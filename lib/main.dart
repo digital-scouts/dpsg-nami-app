@@ -1,9 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:nami/model/nami_stats_model.dart';
+import 'package:nami/mitglied.dart';
+import 'package:nami/nami_stats_model.dart';
 
 const String namiUrl =
     "https://2cb269f6-99dd-4fa8-9aea-fafe6fdb231b.mock.pstmn.io";
@@ -34,13 +38,27 @@ Future<NamiStatsModel> loadNamiStats(Future<String> cookie) async {
       headers: {'Cookie': c});
 
   if (response.statusCode == 200) {
+    var box = await Hive.openBox<Mitglied>('testBox');
+
+    box.put(
+        'name',
+        Mitglied()
+          ..vorname = "Peter"
+          ..nachname = "Hans");
+
+    print('Name: ${box.get('name')?.vorname}');
+
     return NamiStatsModel.fromJson(jsonDecode(response.body));
   } else {
     throw Exception('Failed to load album');
   }
 }
 
-void main() => runApp(const MyApp());
+void main() async {
+  await Hive.initFlutter();
+  Hive.registerAdapter(MitgliedAdapter());
+  runApp(const MyApp());
+}
 
 class MyApp extends StatefulWidget {
   const MyApp({Key? key}) : super(key: key);
