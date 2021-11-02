@@ -6,8 +6,10 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:nami/mitglied.dart';
+import 'package:nami/hive/mitglied.dart';
 import 'package:nami/nami_stats_model.dart';
+import 'package:nami/hive/settings.dart';
+import 'package:nami/screens/login.dart';
 
 const String namiUrl =
     "https://2cb269f6-99dd-4fa8-9aea-fafe6fdb231b.mock.pstmn.io";
@@ -38,16 +40,6 @@ Future<NamiStatsModel> loadNamiStats(Future<String> cookie) async {
       headers: {'Cookie': c});
 
   if (response.statusCode == 200) {
-    var box = await Hive.openBox<Mitglied>('testBox');
-
-    box.put(
-        'name',
-        Mitglied()
-          ..vorname = "Peter"
-          ..nachname = "Hans");
-
-    print('Name: ${box.get('name')?.vorname}');
-
     return NamiStatsModel.fromJson(jsonDecode(response.body));
   } else {
     throw Exception('Failed to load album');
@@ -57,7 +49,13 @@ Future<NamiStatsModel> loadNamiStats(Future<String> cookie) async {
 void main() async {
   await Hive.initFlutter();
   Hive.registerAdapter(MitgliedAdapter());
-  runApp(const MyApp());
+  Hive.registerAdapter(SettingsAdapter());
+
+  runApp(
+    const MaterialApp(
+      home: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatefulWidget {
@@ -70,7 +68,22 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   @override
   void initState() {
+    checkLoginState();
     super.initState();
+  }
+
+  void checkLoginState() async {
+    var box = await Hive.openBox<Settings>('settingsBox');
+    String? token = box.get('s')?.namiApiToken;
+    if (token == null) {
+      print('token: $token');
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
+    } else {
+      // todo load Api Data
+    }
   }
 
   @override

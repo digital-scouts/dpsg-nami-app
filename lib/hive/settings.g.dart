@@ -1,34 +1,37 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'mitglied.dart';
+part of 'settings.dart';
 
 // **************************************************************************
 // TypeAdapterGenerator
 // **************************************************************************
 
-class MitgliedAdapter extends TypeAdapter<Mitglied> {
+class SettingsAdapter extends TypeAdapter<Settings> {
   @override
   final int typeId = 0;
 
   @override
-  Mitglied read(BinaryReader reader) {
+  Settings read(BinaryReader reader) {
     final numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return Mitglied()
-      ..vorname = fields[0] as String
-      ..nachname = fields[1] as String;
+    return Settings()
+      ..namiApiToken = fields[0] as String
+      ..loginId = fields[1] as int
+      ..password = fields[2] as String;
   }
 
   @override
-  void write(BinaryWriter writer, Mitglied obj) {
+  void write(BinaryWriter writer, Settings obj) {
     writer
-      ..writeByte(2)
+      ..writeByte(3)
       ..writeByte(0)
-      ..write(obj.vorname)
+      ..write(obj.namiApiToken)
       ..writeByte(1)
-      ..write(obj.nachname);
+      ..write(obj.loginId)
+      ..writeByte(2)
+      ..write(obj.password);
   }
 
   @override
@@ -37,7 +40,7 @@ class MitgliedAdapter extends TypeAdapter<Mitglied> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is MitgliedAdapter &&
+      other is SettingsAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }
