@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:nami/hive/settings.dart';
 import 'package:nami/utilities/constants.dart';
+import 'package:nami/utilities/nami.service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -17,7 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text(
+        const Text(
           'Mitgliednummer',
           style: kLabelStyle,
         ),
@@ -49,10 +51,10 @@ class _LoginScreenState extends State<LoginScreen> {
               color: Colors.white,
               fontFamily: 'OpenSans',
             ),
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.only(top: 14.0),
-              prefixIcon: const Icon(
+              contentPadding: EdgeInsets.only(top: 14.0),
+              prefixIcon: Icon(
                 Icons.account_box,
                 color: Colors.white,
               ),
@@ -69,7 +71,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text(
+        const Text(
           'Password',
           style: kLabelStyle,
         ),
@@ -87,10 +89,10 @@ class _LoginScreenState extends State<LoginScreen> {
               color: Colors.white,
               fontFamily: 'OpenSans',
             ),
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.only(top: 14.0),
-              prefixIcon: const Icon(
+              contentPadding: EdgeInsets.only(top: 14.0),
+              prefixIcon: Icon(
                 Icons.lock,
                 color: Colors.white,
               ),
@@ -108,7 +110,7 @@ class _LoginScreenState extends State<LoginScreen> {
       alignment: Alignment.centerRight,
       child: TextButton(
         onPressed: () => print('Forgot Password Button Pressed'),
-        child: Text(
+        child: const Text(
           'Passwort vergessen?',
           style: kLabelStyle,
         ),
@@ -152,7 +154,14 @@ class _LoginScreenState extends State<LoginScreen> {
         style: ElevatedButton.styleFrom(
           primary: Colors.white,
         ),
-        onPressed: () => Navigator.pop(context),
+        onPressed: () async => {
+          if (await namiLoginWithPassword(_mitgliedsnummer, _password))
+            {
+              if (_rememberMe) {setNamiPassword(_password)},
+              setNamiLoginId(_mitgliedsnummer),
+            },
+          Navigator.pop(context)
+        },
         child: const Text(
           'ANMELDEN',
           style: TextStyle(
