@@ -4,10 +4,15 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:nami/hive/mitglied.dart';
 import 'package:nami/hive/settings.dart';
-import 'package:nami/screens/dashboard.dart';
 import 'package:nami/screens/login.dart';
+import 'package:flutter/services.dart';
+import 'package:nami/screens/navigation_home_screen.dart';
 
+import 'utilities/app_theme.dart';
 import 'utilities/nami.service.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+
+import 'dart:io';
 
 void main() async {
   await Hive.initFlutter();
@@ -52,15 +57,23 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+      statusBarBrightness:
+          !kIsWeb && Platform.isAndroid ? Brightness.dark : Brightness.light,
+      systemNavigationBarColor: Colors.white,
+      systemNavigationBarDividerColor: Colors.transparent,
+      systemNavigationBarIconBrightness: Brightness.dark,
+    ));
     return MaterialApp(
-      title: 'Fetch Data Example',
+      title: 'Nami',
       theme: ThemeData(
         primarySwatch: Colors.blue,
+        textTheme: AppTheme.textTheme,
+        platform: TargetPlatform.iOS,
       ),
       home: Scaffold(
-        appBar: AppBar(
-          title: const Text('Home'),
-        ),
         body: FutureBuilder(
           future: Hive.openBox('settingsBox'),
           builder: (context, snapshot) {
@@ -74,7 +87,7 @@ class _MyAppState extends State<MyApp> {
                 );
               } else {
                 init();
-                return const DashboardScreen();
+                return NavigationHomeScreen();
               }
             } else {
               return const Scaffold(

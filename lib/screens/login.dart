@@ -234,7 +234,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Widget>[
-                      Image.asset('lib/images/dpsg_logo.png'),
+                      Image.asset('assets/images/dpsg_logo.png'),
                       const SizedBox(height: 30.0),
                       _buildMitgliednummerTF(),
                       const SizedBox(

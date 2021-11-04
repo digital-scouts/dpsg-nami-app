@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:nami/hive/settings.dart';
-import 'package:nami/nami_stats_model.dart';
+import 'package:nami/model/nami_stats_model.dart';
 
 /// Versucht ein Login mit ID und Passwort. True wenn erfolgreich.
 Future<bool> namiLoginWithPassword(int userId, String password) async {

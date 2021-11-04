@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:nami/hive/settings.dart';
+import 'package:nami/utilities/app_theme.dart';
 
 import 'login.dart';
 
@@ -21,91 +22,88 @@ class _DashboardScreenState extends State<DashboardScreen> {
     userId = getNamiLoginId();
   }
 
-  void navPushLoginScreen() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
-    );
-  }
-
-  Widget _buildLogoutBtn() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 25.0),
-      width: double.infinity,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          primary: Colors.white,
-        ),
-        onPressed: () async => {
-          deleteNamiApiCookie(),
-          deleteNamiLoginId(),
-          deleteNamiPassword(),
-          navPushLoginScreen()
-        },
-        child: const Text(
-          'ABMELDEN',
-          style: TextStyle(
-            color: Color(0xFF527DAA),
-            letterSpacing: 1.5,
-            fontSize: 18.0,
-            fontWeight: FontWeight.bold,
-            fontFamily: 'OpenSans',
+  Widget _buildWidgetElement(IconData icon, String text, String subtext) {
+    return SizedBox(
+      width: 160.0,
+      height: 110.0,
+      child: Card(
+        color: const Color.fromARGB(255, 21, 21, 21),
+        elevation: 2.0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+        child: Center(
+            child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            children: <Widget>[
+              Icon(
+                icon,
+                color: Colors.white,
+              ),
+              const SizedBox(
+                height: 10.0,
+              ),
+              Text(
+                text,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 17.0),
+              ),
+              const SizedBox(
+                height: 5.0,
+              ),
+              Text(
+                subtext,
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.w100),
+              )
+            ],
           ),
-        ),
+        )),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: AnnotatedRegion<SystemUiOverlayStyle>(
-        value: SystemUiOverlayStyle.light,
-        child: GestureDetector(
-          onTap: () => FocusScope.of(context).unfocus(),
-          child: Stack(
-            children: <Widget>[
-              Container(
-                // background gradient
-                height: double.infinity,
-                width: double.infinity,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0xFF73AEF5),
-                      Color(0xFF61A4F1),
-                      Color(0xFF478DE0),
-                      Color(0xFF398AE5),
-                    ],
-                    stops: [0.1, 0.4, 0.7, 0.9],
-                  ),
+    return Container(
+        color: AppTheme.nearlyWhite,
+        child: SafeArea(
+            child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            const Padding(
+              padding: EdgeInsets.all(18.0),
+              child: Text(
+                "Welcome, Doctor code \nSelect an option",
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 28.0,
+                    fontWeight: FontWeight.bold),
+                textAlign: TextAlign.start,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Center(
+                child: Wrap(
+                  spacing: 20,
+                  runSpacing: 20.0,
+                  children: <Widget>[
+                    _buildWidgetElement(
+                        Icons.account_box, 'Wölflinge', '5 Kinder'),
+                    _buildWidgetElement(
+                        Icons.account_box, 'Jungpfadfinder', '5 Kinder'),
+                    _buildWidgetElement(
+                        Icons.account_box, 'Pfadfinder', '5 Kinder'),
+                    _buildWidgetElement(Icons.account_box, 'Rover', '5 Kinder'),
+                    _buildWidgetElement(
+                        Icons.account_box, 'Sonstige', '5 Kinder'),
+                  ],
                 ),
               ),
-              Container(
-                height: double.infinity,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 40.0,
-                    vertical: 120.0,
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: <Widget>[
-                      Image.asset('lib/images/dpsg_logo.png'),
-                      Text('Token: $token'),
-                      Text('UserId: $userId'),
-                      _buildLogoutBtn(),
-                    ],
-                  ),
-                ),
-              )
-            ],
-          ),
-        ),
-      ),
-    );
+            )
+          ],
+        )));
   }
 }
