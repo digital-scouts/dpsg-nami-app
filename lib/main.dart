@@ -4,6 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:nami/hive/mitglied.dart';
 import 'package:nami/hive/settings.dart';
+import 'package:nami/model/nami_member_details_model.dart';
 import 'package:nami/screens/login.dart';
 import 'package:flutter/services.dart';
 import 'package:nami/screens/navigation_home_screen.dart';
@@ -34,6 +35,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  double syncProgress = 0;
   @override
   void initState() {
     super.initState();
@@ -45,6 +47,26 @@ class _MyAppState extends State<MyApp> {
     setNamiPath("/ica/rest/api/1/1/service/nami");
     if (!await isLoggedIn()) {
       navPushLogin();
+      return;
+    }
+    int gruppierung = await loadGruppierung();
+    if (gruppierung == 0) {
+      throw Exception("Keine eindeutige Gruppierung gefunden");
+    }
+    setGruppierung(gruppierung);
+    syncNamiData();
+  }
+
+  void syncNamiData() async {
+    syncProgress = 0;
+    List<int> members = await loadMemberIds();
+
+    double syncProgressSteps = 1 / members.length;
+    List<NamiMemberDetailsModel> memberDetails = [];
+    for (var member in members) {
+      memberDetails.add(await loadMemberDetails(member));
+      syncProgress += syncProgressSteps;
+      print('Member $member loaded: ${(syncProgress * 100).round()}%');
     }
   }
 

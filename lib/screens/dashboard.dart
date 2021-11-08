@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:nami/hive/settings.dart';
 import 'package:nami/utilities/app_theme.dart';
+import 'package:nami/utilities/nami.service.dart';
 
 import 'login.dart';
 
@@ -90,15 +91,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   spacing: 20,
                   runSpacing: 20.0,
                   children: <Widget>[
+                    _buildWidgetElement(Icons.account_box, 'Mitglieder', ''),
                     _buildWidgetElement(
-                        Icons.account_box, 'Wölflinge', '5 Kinder'),
+                        Icons.account_box, 'Block 2', 'Untertitel'),
                     _buildWidgetElement(
-                        Icons.account_box, 'Jungpfadfinder', '5 Kinder'),
+                        Icons.account_box, 'Block 3', 'Untertitel'),
                     _buildWidgetElement(
-                        Icons.account_box, 'Pfadfinder', '5 Kinder'),
-                    _buildWidgetElement(Icons.account_box, 'Rover', '5 Kinder'),
+                        Icons.account_box, 'Block 4', 'Untertitel'),
                     _buildWidgetElement(
-                        Icons.account_box, 'Sonstige', '5 Kinder'),
+                        Icons.account_box, 'Block 5', 'Untertitel'),
                   ],
                 ),
               ),

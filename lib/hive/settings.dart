@@ -7,6 +7,7 @@ enum SettingValue {
   namiPassword,
   namiUrl,
   namiPath,
+  gruppierung
 }
 
 Box box = Hive.box('settingsBox');
@@ -31,8 +32,16 @@ void setNamiPath(String path) async {
   box.put(SettingValue.namiPath.toString(), path);
 }
 
+void setGruppierung(int gruppierung) {
+  box.put(SettingValue.gruppierung.toString(), gruppierung);
+}
+
 String? getNamiApiCookie() {
   return box.get(SettingValue.namiApiCookie.toString());
+}
+
+int? getGruppierung() {
+  return box.get(SettingValue.gruppierung.toString());
 }
 
 int? getNamiLoginId() {
@@ -61,4 +70,8 @@ void deleteNamiLoginId() {
 
 void deleteNamiPassword() {
   box.delete(SettingValue.namiPassword.toString());
+}
+
+void deleteGruppierung() {
+  box.delete(SettingValue.gruppierung.toString());
 }
