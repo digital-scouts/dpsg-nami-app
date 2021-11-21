@@ -28,7 +28,7 @@ class Mitglied {
   late int mitgliedsNummer;
 
   @HiveField(8)
-  late DateTime eintrittsdatum;
+  late DateTime? eintrittsdatum;
 
   @HiveField(9)
   late DateTime? austrittsDatum;

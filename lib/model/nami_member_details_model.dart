@@ -21,9 +21,9 @@ class NamiMemberDetailsModel {
   final String mglTypeId;
   final String? beitragsart;
   final String nachname;
-  final DateTime eintrittsdatum;
+  final DateTime? eintrittsdatum;
   final String? rover;
-  final String region;
+  final String? region;
   final String status;
   final String? konfession;
   final String? fixBeitrag;
@@ -32,7 +32,7 @@ class NamiMemberDetailsModel {
   final String? pfadfinder;
   final String? telefon3;
   final int geschlechtId;
-  final String land;
+  final String? land;
   final String? email;
   final String? telefon1;
   final String? woelfling;
@@ -45,7 +45,7 @@ class NamiMemberDetailsModel {
   final String ort;
   final int? ersteUntergliederungId;
   final bool wiederverwendenFlag;
-  final int regionId;
+  final int? regionId;
   final DateTime geburtsDatum;
   final String? stufe;
   final String? genericField1;
@@ -135,7 +135,9 @@ class NamiMemberDetailsModel {
       mglTypeId: json['mglTypeId'],
       beitragsart: json['beitragsart'],
       nachname: json['nachname'],
-      eintrittsdatum: DateTime.parse(json['eintrittsdatum']),
+      eintrittsdatum: json['eintrittsdatum'].length > 5
+          ? DateTime.parse(json['eintrittsdatum'])
+          : null,
       rover: json['rover'],
       region: json['region'],
       status: json['status'],
