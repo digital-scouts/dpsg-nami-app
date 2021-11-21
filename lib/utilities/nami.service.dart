@@ -141,9 +141,10 @@ Future<NamiMemberDetailsModel> loadMemberDetails(int id) async {
       '$url$path/mitglied/filtered-for-navigation/gruppierung/gruppierung/$gruppierung/$id';
   final response =
       await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
+  var source = json.decode(Utf8Decoder().convert(response.bodyBytes));
 
   if (response.statusCode == 200) {
-    return NamiMemberDetailsModel.fromJson(jsonDecode(response.body)['data']);
+    return NamiMemberDetailsModel.fromJson(source['data']);
   } else {
     throw Exception('Failed to load album');
   }
