@@ -15,11 +15,13 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'dart:io';
 
+late Box<Mitglied> memberBox;
+
 void main() async {
   await Hive.initFlutter();
 
   Hive.registerAdapter(MitgliedAdapter());
-
+  memberBox = await Hive.openBox<Mitglied>('members');
   runApp(
     const MaterialApp(
       home: MyApp(),
@@ -43,7 +45,8 @@ class _MyAppState extends State<MyApp> {
   }
 
   void init() async {
-    setNamiUrl("https://2cb269f6-99dd-4fa8-9aea-fafe6fdb231b.mock.pstmn.io");
+    //setNamiUrl("https://2cb269f6-99dd-4fa8-9aea-fafe6fdb231b.mock.pstmn.io");
+    setNamiUrl("https://nami.dpsg.de");
     setNamiPath("/ica/rest/api/1/1/service/nami");
     if (!await isLoggedIn()) {
       navPushLogin();
@@ -59,15 +62,45 @@ class _MyAppState extends State<MyApp> {
 
   void syncNamiData() async {
     syncProgress = 0;
-    List<int> members = await loadMemberIds();
+    List<int> mitgliedIds = await loadMemberIds();
 
-    double syncProgressSteps = 1 / members.length;
-    List<NamiMemberDetailsModel> memberDetails = [];
-    for (var member in members) {
-      memberDetails.add(await loadMemberDetails(member));
-      syncProgress += syncProgressSteps;
-      print('Member $member loaded: ${(syncProgress * 100).round()}%');
+    double syncProgressSteps = 1 / mitgliedIds.length;
+    for (var mitgliedId in mitgliedIds) {
+      storeMitgliedToHive(mitgliedId)
+          .then((value) => syncProgress += syncProgressSteps)
+          .then((value) => print(
+              'Member $mitgliedId loaded: ${(syncProgress * 100).round()}%'));
     }
+  }
+
+  Future<bool> storeMitgliedToHive(int mitgliedId) async {
+    NamiMemberDetailsModel rawMember = await loadMemberDetails(mitgliedId);
+    Mitglied mitglied = Mitglied()
+      ..vorname = rawMember.vorname
+      ..nachname = rawMember.nachname
+      ..geschlecht = rawMember.geschlecht
+      ..geburtsDatum = rawMember.geburtsDatum
+      ..stufe = rawMember.stufe
+      ..id = rawMember.id
+      ..mitgliedsNummer = rawMember.mitgliedsNummer
+      ..eintrittsdatum = rawMember.eintrittsdatum
+      ..austrittsDatum = rawMember.austrittsDatum
+      ..ort = rawMember.ort
+      ..plz = rawMember.plz
+      ..strasse = rawMember.strasse
+      ..landId = rawMember.landId ?? 1
+      ..email = rawMember.email
+      ..emailVertretungsberechtigter = rawMember.emailVertretungsberechtigter
+      ..telefon1 = rawMember.telefon1
+      ..telefon2 = rawMember.telefon2
+      ..telefon3 = rawMember.telefon3
+      ..lastUpdated = rawMember.lastUpdated
+      ..version = rawMember.version
+      ..mglTypeId = rawMember.mglTypeId
+      ..beitragsartId = rawMember.beitragsartId ?? 0
+      ..status = rawMember.status;
+    memberBox.put(mitgliedId, mitglied);
+    return true;
   }
 
   void navPushLogin() {

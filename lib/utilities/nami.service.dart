@@ -9,30 +9,60 @@ import 'package:nami/model/nami_member_details_model.dart';
 Future<bool> namiLoginWithPassword(int userId, String password) async {
   String url = getNamiLUrl();
   String path = getNamiPath();
-  final response = await http.post(
-      Uri.parse('$url$path/auth/manual/sessionStartup'),
-      headers: {"Content-Type": "application/json"},
-      body: json
-          .encode({'username': userId, 'password': password, 'Login': 'API'}));
+  Uri uri = Uri.parse('$url$path/auth/manual/sessionStartup');
+  Map<String, String> body = {
+    'username': userId.toString(),
+    'password': 'Janneckl-95',
+    'Login': 'API'
+  };
+  Map<String, String> headers = {
+    "Host": 'nami.dpsg.de',
+    "Origin": 'https://nami.dpsg.de',
+    'Content-Type': 'application/x-www-form-urlencoded',
+    //'Content-Length': bodyBytes.length.toString(),
+  };
 
-  if (response.statusCode == 200 &&
-      response.headers.containsKey('set-cookie')) {
-    String cookie = response.headers["set-cookie"]!.split(';')[0];
-    setNamiApiCookie(cookie);
-    return true;
+  http.Response authRedirect =
+      await http.post(uri, body: body, headers: headers);
+
+  if (authRedirect.statusCode != 302 ||
+      authRedirect.headers['location']!.isEmpty) {
+    return false;
   }
-  return false;
+
+  Uri redirectUri = Uri.parse(authRedirect.headers['location']!);
+  http.Response response = await http.get(redirectUri);
+
+  /*final response2 = await http.post(
+      Uri.parse('$url$path/auth/manual/sessionStartup'),
+      headers: headers,
+      body: json.encode(body));*/
+
+  if (response.statusCode != 200 ||
+      !response.headers.containsKey('set-cookie')) {
+    return false;
+  }
+  var resBody = json.decode(response.body);
+  if (resBody['statusCode'] != 0 || resBody['statusMessage'].length > 0) {
+    return false;
+  }
+  String cookie = response.headers["set-cookie"]!.split(';')[0];
+  setNamiApiCookie(cookie);
+  return true;
 }
 
 /// läd Nami Dashboard Statistiken
 Future<NamiStatsModel> loadNamiStats() async {
   String url = getNamiLUrl();
+  String? cookie = getNamiApiCookie();
   final response = await http.get(
       Uri.parse('$url/ica/rest/dashboard/stats/stats'),
-      headers: {'Cookie': '$getNamiApiCookie()'});
-
-  if (response.statusCode == 200) {
-    return NamiStatsModel.fromJson(jsonDecode(response.body));
+      headers: {'Cookie': '$cookie'});
+  Map<String, dynamic> json = jsonDecode(response.body);
+  if (response.statusCode == 200 && json['success']) {
+    Map<String, dynamic> json = jsonDecode(response.body);
+    NamiStatsModel stats = NamiStatsModel.fromJson(json);
+    return stats;
   } else {
     throw Exception('Failed to load album');
   }
@@ -42,8 +72,8 @@ Future<NamiStatsModel> loadNamiStats() async {
 Future<bool> isLoggedIn() async {
   //check if token exists
   String? token = getNamiApiCookie();
+  print('token: $token');
   if (token == null || token.isEmpty) {
-    print('token: $token');
     return false;
   }
 
@@ -61,10 +91,11 @@ Future<List<int>> loadMemberIds() async {
   String url = getNamiLUrl();
   String path = getNamiPath();
   int? gruppierung = getGruppierung();
+  String cookie = getNamiApiCookie() ?? '';
   String fullUrl =
       '$url$path/mitglied/filtered-for-navigation/gruppierung/gruppierung/$gruppierung/flist?_dc=1635173028278&page=1&start=0&limit=5000';
-  final response = await http
-      .get(Uri.parse(fullUrl), headers: {'Cookie': '$getNamiApiCookie()'});
+  final response =
+      await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
 
   if (response.statusCode == 200) {
     List<int> memberIds = [];
@@ -80,10 +111,11 @@ Future<List<int>> loadMemberIds() async {
 Future<int> loadGruppierung({node = 'root'}) async {
   String url = getNamiLUrl();
   String path = getNamiPath();
+  String cookie = getNamiApiCookie() ?? '';
   String fullUrl =
       '$url$path/gruppierungen/filtered-for-navigation/gruppierung/node/$node';
-  final response = await http
-      .get(Uri.parse(fullUrl), headers: {'Cookie': '$getNamiApiCookie()'});
+  final response =
+      await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
 
   if (response.statusCode != 200) {
     return 0;
@@ -104,10 +136,11 @@ Future<NamiMemberDetailsModel> loadMemberDetails(int id) async {
   String url = getNamiLUrl();
   String path = getNamiPath();
   int? gruppierung = getGruppierung();
+  String cookie = getNamiApiCookie() ?? '';
   String fullUrl =
       '$url$path/mitglied/filtered-for-navigation/gruppierung/gruppierung/$gruppierung/$id';
-  final response = await http
-      .get(Uri.parse(fullUrl), headers: {'Cookie': '$getNamiApiCookie()'});
+  final response =
+      await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
 
   if (response.statusCode == 200) {
     return NamiMemberDetailsModel.fromJson(jsonDecode(response.body)['data']);

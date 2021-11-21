@@ -4,7 +4,7 @@ class NamiMemberDetailsModel {
   final String geschlecht;
   final String staatsangehoerigkeit;
   final String? ersteTaetigkeitId;
-  final String ersteUntergliederung;
+  final String? ersteUntergliederung;
   final DateTime lastUpdated;
   final String? emailVertretungsberechtigter;
   final String? ersteTaetigkeit;
@@ -15,11 +15,11 @@ class NamiMemberDetailsModel {
   final bool sonst01;
   final bool sonst02;
   final String? spitzname;
-  final int landId;
+  final int? landId;
   final String staatsangehoerigkeitText;
   final int gruppierungId;
   final String mglTypeId;
-  final String beitragsart;
+  final String? beitragsart;
   final String nachname;
   final DateTime eintrittsdatum;
   final String? rover;
@@ -51,7 +51,7 @@ class NamiMemberDetailsModel {
   final String? genericField1;
   final String? genericField2;
   final String? telefax;
-  final int beitragsartId;
+  final int? beitragsartId;
   final String plz;
 
   NamiMemberDetailsModel({

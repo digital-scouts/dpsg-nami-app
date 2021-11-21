@@ -19,7 +19,7 @@ class Mitglied {
   late DateTime geburtsDatum;
 
   @HiveField(5)
-  late String stufe;
+  late String? stufe;
 
   @HiveField(6)
   late int id;
@@ -46,19 +46,19 @@ class Mitglied {
   late int landId;
 
   @HiveField(14)
-  late String email;
+  late String? email;
 
   @HiveField(15)
-  late String emailVertretungsberechtigter;
+  late String? emailVertretungsberechtigter;
 
   @HiveField(16)
-  late String telefon1;
+  late String? telefon1;
 
   @HiveField(17)
-  late String telefon2;
+  late String? telefon2;
 
   @HiveField(18)
-  late String telefon3;
+  late String? telefon3;
 
   @HiveField(19)
   late DateTime lastUpdated;
@@ -67,10 +67,10 @@ class Mitglied {
   late int version;
 
   @HiveField(21)
-  late int mglTypeId;
+  late String mglTypeId;
 
   @HiveField(22)
-  late int beitragsart;
+  late int beitragsartId;
 
   @HiveField(23)
   late String status;

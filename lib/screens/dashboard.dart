@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:nami/hive/settings.dart';
+import 'package:nami/screens/mitglied_liste.dart';
 import 'package:nami/utilities/app_theme.dart';
-import 'package:nami/utilities/nami.service.dart';
-
-import 'login.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({Key? key}) : super(key: key);
@@ -15,6 +12,13 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   late String? token;
   late int? userId;
+
+  void navPushMitgliederListe() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const MitgliedsListe()),
+    );
+  }
 
   @override
   void initState() {
@@ -27,40 +31,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return SizedBox(
       width: 160.0,
       height: 110.0,
-      child: Card(
-        color: const Color.fromARGB(255, 21, 21, 21),
-        elevation: 2.0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-        child: Center(
-            child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Column(
-            children: <Widget>[
-              Icon(
-                icon,
-                color: Colors.white,
-              ),
-              const SizedBox(
-                height: 10.0,
-              ),
-              Text(
-                text,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 17.0),
-              ),
-              const SizedBox(
-                height: 5.0,
-              ),
-              Text(
-                subtext,
-                style: const TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.w100),
-              )
-            ],
-          ),
-        )),
+      child: GestureDetector(
+        onTap: navPushMitgliederListe,
+        child: Card(
+          color: const Color.fromARGB(255, 21, 21, 21),
+          elevation: 2.0,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+          child: Center(
+              child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              children: <Widget>[
+                Icon(
+                  icon,
+                  color: Colors.white,
+                ),
+                const SizedBox(
+                  height: 10.0,
+                ),
+                Text(
+                  text,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 17.0),
+                ),
+                const SizedBox(
+                  height: 5.0,
+                ),
+                Text(
+                  subtext,
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.w100),
+                )
+              ],
+            ),
+          )),
+        ),
       ),
     );
   }

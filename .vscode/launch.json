@@ -7,7 +7,9 @@
         {
             "name": "nami",
             "request": "launch",
-            "type": "dart"
+            "type": "dart",
+            "deviceId": "F1E752B5-1C11-425A-850F-EC04E8DFC7BF",
+            "runTestsOnDevice": false,
         }
     ]
 }

@@ -157,10 +157,10 @@ class _LoginScreenState extends State<LoginScreen> {
         onPressed: () async => {
           if (await namiLoginWithPassword(_mitgliedsnummer, _password))
             {
+              Navigator.pop(context),
               if (_rememberMe) {setNamiPassword(_password)},
               setNamiLoginId(_mitgliedsnummer),
-            },
-          Navigator.pop(context)
+            }
         },
         child: const Text(
           'ANMELDEN',
