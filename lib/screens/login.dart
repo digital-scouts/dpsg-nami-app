@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:nami/hive/settings.dart';
 import 'package:nami/utilities/constants.dart';
-import 'package:nami/utilities/nami.service.dart';
+import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/nami/nami.service.dart';
 import 'dart:async';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 
@@ -152,8 +152,8 @@ class _LoginScreenState extends State<LoginScreen> {
               },
             ),
           ),
-          Text(
-            'Daten speichern',
+          const Text(
+            "Daten speichern",
             style: kLabelStyle,
           ),
         ],
@@ -293,7 +293,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: <Widget>[
                       Image.asset('assets/images/dpsg_logo.png'),
                       const SizedBox(height: 30.0),
-                      Text('V1'),
+                      const Text('V1'),
                       _buildMitgliednummerTF(),
                       const SizedBox(
                         height: 30.0,

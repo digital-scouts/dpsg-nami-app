@@ -9,6 +9,8 @@ import 'help_screen.dart';
 import 'invite_friend_screen.dart';
 
 class NavigationHomeScreen extends StatefulWidget {
+  const NavigationHomeScreen({Key? key}) : super(key: key);
+
   @override
   _NavigationHomeScreenState createState() => _NavigationHomeScreenState();
 }
@@ -19,7 +21,7 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
 
   @override
   void initState() {
-    drawerIndex = DrawerIndex.HOME;
+    drawerIndex = DrawerIndex.home;
     screenView = const DashboardScreen();
     super.initState();
   }
@@ -51,21 +53,21 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
   void changeIndex(DrawerIndex drawerIndexdata) {
     if (drawerIndex != drawerIndexdata) {
       drawerIndex = drawerIndexdata;
-      if (drawerIndex == DrawerIndex.HOME) {
+      if (drawerIndex == DrawerIndex.home) {
         setState(() {
           screenView = const DashboardScreen();
         });
-      } else if (drawerIndex == DrawerIndex.Help) {
+      } else if (drawerIndex == DrawerIndex.help) {
         setState(() {
-          screenView = HelpScreen();
+          screenView = const HelpScreen();
         });
-      } else if (drawerIndex == DrawerIndex.FeedBack) {
+      } else if (drawerIndex == DrawerIndex.feedback) {
         setState(() {
-          screenView = FeedbackScreen();
+          screenView = const FeedbackScreen();
         });
-      } else if (drawerIndex == DrawerIndex.Invite) {
+      } else if (drawerIndex == DrawerIndex.invite) {
         setState(() {
-          screenView = InviteFriend();
+          screenView = const InviteFriend();
         });
       } else {
         //do in your way......

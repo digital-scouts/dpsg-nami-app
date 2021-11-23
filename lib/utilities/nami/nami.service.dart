@@ -2,10 +2,10 @@ import 'dart:convert';
 
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
-import 'package:nami/hive/mitglied.dart';
-import 'package:nami/hive/settings.dart';
 import 'package:nami/model/nami_stats_model.dart';
 import 'package:nami/model/nami_member_details_model.dart';
+import 'package:nami/utilities/hive/mitglied.dart';
+import 'package:nami/utilities/hive/settings.dart';
 
 /// Versucht ein Login mit ID und Passwort. True wenn erfolgreich.
 Future<bool> namiLoginWithPassword(int userId, String password) async {
@@ -59,7 +59,7 @@ Future<NamiStatsModel> loadNamiStats() async {
   String? cookie = getNamiApiCookie();
   final response = await http.get(
       Uri.parse('$url/ica/rest/dashboard/stats/stats'),
-      headers: {'Cookie': '$cookie'});
+      headers: {'Cookie': cookie});
   Map<String, dynamic> json = jsonDecode(response.body);
   if (response.statusCode == 200 && json['success']) {
     Map<String, dynamic> json = jsonDecode(response.body);
@@ -75,7 +75,7 @@ Future<bool> isLoggedIn() async {
   //check if token exists
   String? token = getNamiApiCookie();
   print('token: $token');
-  if (token == null || token.isEmpty) {
+  if (token.isEmpty) {
     return false;
   }
 
@@ -143,7 +143,7 @@ Future<NamiMemberDetailsModel> loadMemberDetails(int id) async {
       '$url$path/mitglied/filtered-for-navigation/gruppierung/gruppierung/$gruppierung/$id';
   final response =
       await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
-  var source = json.decode(Utf8Decoder().convert(response.bodyBytes));
+  var source = json.decode(const Utf8Decoder().convert(response.bodyBytes));
 
   if (response.statusCode == 200) {
     return NamiMemberDetailsModel.fromJson(source['data']);

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:nami/hive/settings.dart';
 import 'package:nami/screens/mitglied_liste.dart';
 import 'package:nami/utilities/app_theme.dart';
+import 'package:nami/utilities/hive/settings.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({Key? key}) : super(key: key);

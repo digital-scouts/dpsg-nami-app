@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:nami/hive/settings.dart';
 import 'package:nami/screens/login.dart';
+import 'package:nami/utilities/hive/settings.dart';
 
 import '../app_theme.dart';
 
@@ -32,23 +32,23 @@ class _HomeDrawerState extends State<HomeDrawer> {
   void setDrawerListArray() {
     drawerList = <DrawerList>[
       DrawerList(
-        index: DrawerIndex.HOME,
+        index: DrawerIndex.home,
         labelName: 'Home',
         icon: const Icon(Icons.home),
       ),
       DrawerList(
-        index: DrawerIndex.Help,
+        index: DrawerIndex.help,
         labelName: 'Help',
         isAssetsImage: true,
         imageName: 'assets/images/supportIcon.png',
       ),
       DrawerList(
-        index: DrawerIndex.FeedBack,
+        index: DrawerIndex.feedback,
         labelName: 'FeedBack',
         icon: const Icon(Icons.help),
       ),
       DrawerList(
-        index: DrawerIndex.Invite,
+        index: DrawerIndex.invite,
         labelName: 'Invite Friend',
         icon: const Icon(Icons.group),
       ),
@@ -302,10 +302,10 @@ class _HomeDrawerState extends State<HomeDrawer> {
 }
 
 enum DrawerIndex {
-  HOME,
-  FeedBack,
-  Help,
-  Invite,
+  home,
+  feedback,
+  help,
+  invite,
 }
 
 class DrawerList {

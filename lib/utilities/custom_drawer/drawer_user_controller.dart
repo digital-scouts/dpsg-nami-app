@@ -41,46 +41,43 @@ class _DrawerUserControllerState extends State<DrawerUserController>
         duration: const Duration(milliseconds: 2000), vsync: this);
     iconAnimationController = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 0));
-    iconAnimationController
-      ?..animateTo(1.0,
-          duration: const Duration(milliseconds: 0),
-          curve: Curves.fastOutSlowIn);
+    iconAnimationController?.animateTo(1.0,
+        duration: const Duration(milliseconds: 0), curve: Curves.fastOutSlowIn);
     scrollController =
         ScrollController(initialScrollOffset: widget.drawerWidth);
-    scrollController!
-      ..addListener(() {
-        if (scrollController!.offset <= 0) {
-          if (scrolloffset != 1.0) {
-            setState(() {
-              scrolloffset = 1.0;
-              try {
-                widget.drawerIsOpen!(true);
-              } catch (_) {}
-            });
-          }
-          iconAnimationController?.animateTo(0.0,
-              duration: const Duration(milliseconds: 0),
-              curve: Curves.fastOutSlowIn);
-        } else if (scrollController!.offset > 0 &&
-            scrollController!.offset < widget.drawerWidth.floor()) {
-          iconAnimationController?.animateTo(
-              (scrollController!.offset * 100 / (widget.drawerWidth)) / 100,
-              duration: const Duration(milliseconds: 0),
-              curve: Curves.fastOutSlowIn);
-        } else {
-          if (scrolloffset != 0.0) {
-            setState(() {
-              scrolloffset = 0.0;
-              try {
-                widget.drawerIsOpen!(false);
-              } catch (_) {}
-            });
-          }
-          iconAnimationController?.animateTo(1.0,
-              duration: const Duration(milliseconds: 0),
-              curve: Curves.fastOutSlowIn);
+    scrollController!.addListener(() {
+      if (scrollController!.offset <= 0) {
+        if (scrolloffset != 1.0) {
+          setState(() {
+            scrolloffset = 1.0;
+            try {
+              widget.drawerIsOpen!(true);
+            } catch (_) {}
+          });
         }
-      });
+        iconAnimationController?.animateTo(0.0,
+            duration: const Duration(milliseconds: 0),
+            curve: Curves.fastOutSlowIn);
+      } else if (scrollController!.offset > 0 &&
+          scrollController!.offset < widget.drawerWidth.floor()) {
+        iconAnimationController?.animateTo(
+            (scrollController!.offset * 100 / (widget.drawerWidth)) / 100,
+            duration: const Duration(milliseconds: 0),
+            curve: Curves.fastOutSlowIn);
+      } else {
+        if (scrolloffset != 0.0) {
+          setState(() {
+            scrolloffset = 0.0;
+            try {
+              widget.drawerIsOpen!(false);
+            } catch (_) {}
+          });
+        }
+        iconAnimationController?.animateTo(1.0,
+            duration: const Duration(milliseconds: 0),
+            curve: Curves.fastOutSlowIn);
+      }
+    });
     WidgetsBinding.instance?.addPostFrameCallback((_) => getInitState());
     super.initState();
   }
@@ -118,9 +115,7 @@ class _DrawerUserControllerState extends State<DrawerUserController>
                       transform: Matrix4.translationValues(
                           scrollController!.offset, 0.0, 0.0),
                       child: HomeDrawer(
-                        screenIndex: widget.screenIndex == null
-                            ? DrawerIndex.HOME
-                            : widget.screenIndex,
+                        screenIndex: widget.screenIndex ?? DrawerIndex.home,
                         iconAnimationController: iconAnimationController,
                         callBackIndex: (DrawerIndex indexType) {
                           onDrawerClick();
@@ -175,9 +170,8 @@ class _DrawerUserControllerState extends State<DrawerUserController>
                                   AppBar().preferredSize.height),
                               child: Center(
                                 // if you use your own menu view UI you add form initialization
-                                child: widget.menuView != null
-                                    ? widget.menuView
-                                    : AnimatedIcon(
+                                child: widget.menuView ??
+                                    AnimatedIcon(
                                         icon: widget.animatedIconData ??
                                             AnimatedIcons.arrow_menu,
                                         progress: iconAnimationController!),

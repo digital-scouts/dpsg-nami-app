@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-import 'package:nami/hive/mitglied.dart';
+import 'package:nami/utilities/hive/mitglied.dart';
 
 class MitgliedsListe extends StatefulWidget {
   const MitgliedsListe({Key? key}) : super(key: key);

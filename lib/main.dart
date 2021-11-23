@@ -2,14 +2,14 @@ import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'package:flutter/material.dart';
-import 'package:nami/hive/mitglied.dart';
-import 'package:nami/hive/settings.dart';
 import 'package:nami/screens/login.dart';
 import 'package:flutter/services.dart';
 import 'package:nami/screens/navigation_home_screen.dart';
+import 'package:nami/utilities/hive/mitglied.dart';
+import 'package:nami/utilities/hive/settings.dart';
 
 import 'utilities/app_theme.dart';
-import 'utilities/nami.service.dart';
+import 'utilities/nami/nami.service.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'dart:io';
@@ -89,7 +89,7 @@ class _MyAppState extends State<MyApp> {
                 );
               } else {
                 init();
-                return NavigationHomeScreen();
+                return const NavigationHomeScreen();
               }
             } else {
               return const Scaffold(

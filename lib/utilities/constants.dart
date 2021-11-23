@@ -14,7 +14,7 @@ const kLabelStyle = TextStyle(
 final kBoxDecorationStyle = BoxDecoration(
   color: const Color(0xFF6CA8F1),
   borderRadius: BorderRadius.circular(10.0),
-  boxShadow: [
+  boxShadow: const [
     BoxShadow(
       color: Colors.black12,
       blurRadius: 6.0,
