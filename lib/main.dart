@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:nami/screens/navigation_home_screen.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/nami/nami-login.service.dart';
 
 import 'utilities/app_theme.dart';
 import 'utilities/nami/nami.service.dart';

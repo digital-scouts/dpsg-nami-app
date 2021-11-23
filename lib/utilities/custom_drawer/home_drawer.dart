@@ -209,7 +209,7 @@ class _HomeDrawerState extends State<HomeDrawer> {
               padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
               child: Row(
                 children: <Widget>[
-                  Container(
+                  const SizedBox(
                     width: 6.0,
                     height: 46.0,
                     // decoration: BoxDecoration(
@@ -228,7 +228,7 @@ class _HomeDrawerState extends State<HomeDrawer> {
                     padding: EdgeInsets.all(4.0),
                   ),
                   listData.isAssetsImage
-                      ? Container(
+                      ? SizedBox(
                           width: 24,
                           height: 24,
                           child: Image.asset(listData.imageName,

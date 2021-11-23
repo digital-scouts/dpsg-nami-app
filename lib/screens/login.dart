@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:nami/utilities/constants.dart';
 import 'package:nami/utilities/hive/settings.dart';
-import 'package:nami/utilities/nami/nami.service.dart';
+import 'package:nami/utilities/nami/nami-login.service.dart';
 import 'dart:async';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 
@@ -134,7 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildRememberMeCheckbox() {
-    return Container(
+    return SizedBox(
       height: 20.0,
       child: Row(
         children: <Widget>[
@@ -280,7 +280,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-              Container(
+              SizedBox(
                 height: double.infinity,
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
