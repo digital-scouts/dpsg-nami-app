@@ -4,7 +4,6 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:nami/hive/mitglied.dart';
 import 'package:nami/hive/settings.dart';
-import 'package:nami/model/nami_member_details_model.dart';
 import 'package:nami/screens/login.dart';
 import 'package:flutter/services.dart';
 import 'package:nami/screens/navigation_home_screen.dart';
@@ -15,13 +14,12 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'dart:io';
 
-late Box<Mitglied> memberBox;
-
 void main() async {
   await Hive.initFlutter();
 
   Hive.registerAdapter(MitgliedAdapter());
-  memberBox = await Hive.openBox<Mitglied>('members');
+  await Hive.openBox<Mitglied>('members');
+
   runApp(
     const MaterialApp(
       home: MyApp(),
@@ -37,81 +35,26 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  double syncProgress = 0;
   @override
   void initState() {
     super.initState();
     // initNami();
   }
 
-  Future<void> setData() async {
-    int gruppierung = await loadGruppierung();
-    if (gruppierung == 0) {
-      throw Exception("Keine eindeutige Gruppierung gefunden");
-    }
-    setGruppierung(gruppierung);
-    syncNamiData();
-  }
-
   void init() async {
-    //setNamiUrl("https://2cb269f6-99dd-4fa8-9aea-fafe6fdb231b.mock.pstmn.io");
-    setNamiUrl("https://nami.dpsg.de");
-    setNamiPath("/ica/rest/api/1/1/service/nami");
-    if (!await isLoggedIn()) {
+    if (!getOfflineMode() && !await isLoggedIn()) {
       navPushLogin();
       return;
     }
-    setData();
-  }
-
-  void syncNamiData() async {
-    syncProgress = 0;
-    List<int> mitgliedIds = await loadMemberIds();
-
-    double syncProgressSteps = 1 / mitgliedIds.length;
-    for (var mitgliedId in mitgliedIds) {
-      storeMitgliedToHive(mitgliedId)
-          .then((value) => syncProgress += syncProgressSteps)
-          .then((value) => print(
-              'Member $mitgliedId loaded: ${(syncProgress * 100).round()}%'));
-    }
-  }
-
-  Future<bool> storeMitgliedToHive(int mitgliedId) async {
-    NamiMemberDetailsModel rawMember = await loadMemberDetails(mitgliedId);
-    Mitglied mitglied = Mitglied()
-      ..vorname = rawMember.vorname
-      ..nachname = rawMember.nachname
-      ..geschlecht = rawMember.geschlecht
-      ..geburtsDatum = rawMember.geburtsDatum
-      ..stufe = rawMember.stufe
-      ..id = rawMember.id
-      ..mitgliedsNummer = rawMember.mitgliedsNummer
-      ..eintrittsdatum = rawMember.eintrittsdatum
-      ..austrittsDatum = rawMember.austrittsDatum
-      ..ort = rawMember.ort
-      ..plz = rawMember.plz
-      ..strasse = rawMember.strasse
-      ..landId = rawMember.landId ?? 1
-      ..email = rawMember.email
-      ..emailVertretungsberechtigter = rawMember.emailVertretungsberechtigter
-      ..telefon1 = rawMember.telefon1
-      ..telefon2 = rawMember.telefon2
-      ..telefon3 = rawMember.telefon3
-      ..lastUpdated = rawMember.lastUpdated
-      ..version = rawMember.version
-      ..mglTypeId = rawMember.mglTypeId
-      ..beitragsartId = rawMember.beitragsartId ?? 0
-      ..status = rawMember.status;
-    memberBox.put(mitgliedId, mitglied);
-    return true;
+    if (getOfflineMode()) return;
+    syncNamiData();
   }
 
   void navPushLogin() {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const LoginScreen()),
-    ).then((value) => setData());
+    ).then((value) => syncNamiData());
   }
 
   @override

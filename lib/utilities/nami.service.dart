@@ -1,6 +1,8 @@
 import 'dart:convert';
 
+import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
+import 'package:nami/hive/mitglied.dart';
 import 'package:nami/hive/settings.dart';
 import 'package:nami/model/nami_stats_model.dart';
 import 'package:nami/model/nami_member_details_model.dart';
@@ -91,7 +93,7 @@ Future<List<int>> loadMemberIds() async {
   String url = getNamiLUrl();
   String path = getNamiPath();
   int? gruppierung = getGruppierung();
-  String cookie = getNamiApiCookie() ?? '';
+  String cookie = getNamiApiCookie();
   String fullUrl =
       '$url$path/mitglied/filtered-for-navigation/gruppierung/gruppierung/$gruppierung/flist?_dc=1635173028278&page=1&start=0&limit=5000';
   final response =
@@ -111,7 +113,7 @@ Future<List<int>> loadMemberIds() async {
 Future<int> loadGruppierung({node = 'root'}) async {
   String url = getNamiLUrl();
   String path = getNamiPath();
-  String cookie = getNamiApiCookie() ?? '';
+  String cookie = getNamiApiCookie();
   String fullUrl =
       '$url$path/gruppierungen/filtered-for-navigation/gruppierung/node/$node';
   final response =
@@ -136,7 +138,7 @@ Future<NamiMemberDetailsModel> loadMemberDetails(int id) async {
   String url = getNamiLUrl();
   String path = getNamiPath();
   int? gruppierung = getGruppierung();
-  String cookie = getNamiApiCookie() ?? '';
+  String cookie = getNamiApiCookie();
   String fullUrl =
       '$url$path/mitglied/filtered-for-navigation/gruppierung/gruppierung/$gruppierung/$id';
   final response =
@@ -148,4 +150,63 @@ Future<NamiMemberDetailsModel> loadMemberDetails(int id) async {
   } else {
     throw Exception('Failed to load album');
   }
+}
+
+void syncNamiData() async {
+  await syncGruppierung();
+  syncMember();
+  //syncStats
+  //syncProfile
+}
+
+syncGruppierung() async {
+  int gruppierung = getGruppierung() ?? await loadGruppierung();
+  if (gruppierung == 0) {
+    throw Exception("Keine eindeutige Gruppierung gefunden");
+  }
+  setGruppierung(gruppierung);
+}
+
+syncMember() async {
+  double memberSyncProgress = 0;
+  Box<Mitglied> memberBox = Hive.box('members');
+  List<int> mitgliedIds = await loadMemberIds();
+
+  double syncProgressSteps = 1 / mitgliedIds.length;
+  for (var mitgliedId in mitgliedIds) {
+    storeMitgliedToHive(mitgliedId, memberBox)
+        .then((value) => memberSyncProgress += syncProgressSteps)
+        .then((value) => print(
+            'Member $mitgliedId loaded: ${(memberSyncProgress * 100).round()}%'));
+  }
+}
+
+Future<void> storeMitgliedToHive(
+    int mitgliedId, Box<Mitglied> memberBox) async {
+  NamiMemberDetailsModel rawMember = await loadMemberDetails(mitgliedId);
+  Mitglied mitglied = Mitglied()
+    ..vorname = rawMember.vorname
+    ..nachname = rawMember.nachname
+    ..geschlecht = rawMember.geschlecht
+    ..geburtsDatum = rawMember.geburtsDatum
+    ..stufe = rawMember.stufe
+    ..id = rawMember.id
+    ..mitgliedsNummer = rawMember.mitgliedsNummer
+    ..eintrittsdatum = rawMember.eintrittsdatum
+    ..austrittsDatum = rawMember.austrittsDatum
+    ..ort = rawMember.ort
+    ..plz = rawMember.plz
+    ..strasse = rawMember.strasse
+    ..landId = rawMember.landId ?? 1
+    ..email = rawMember.email
+    ..emailVertretungsberechtigter = rawMember.emailVertretungsberechtigter
+    ..telefon1 = rawMember.telefon1
+    ..telefon2 = rawMember.telefon2
+    ..telefon3 = rawMember.telefon3
+    ..lastUpdated = rawMember.lastUpdated
+    ..version = rawMember.version
+    ..mglTypeId = rawMember.mglTypeId
+    ..beitragsartId = rawMember.beitragsartId ?? 0
+    ..status = rawMember.status;
+  memberBox.put(mitgliedId, mitglied);
 }

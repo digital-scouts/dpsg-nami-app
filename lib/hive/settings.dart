@@ -7,7 +7,8 @@ enum SettingValue {
   namiPassword,
   namiUrl,
   namiPath,
-  gruppierung
+  gruppierung,
+  offlineMode
 }
 
 Box box = Hive.box('settingsBox');
@@ -36,8 +37,12 @@ void setGruppierung(int gruppierung) {
   box.put(SettingValue.gruppierung.toString(), gruppierung);
 }
 
-String? getNamiApiCookie() {
-  return box.get(SettingValue.namiApiCookie.toString());
+void setOfflineMode(bool offlineMode) {
+  box.put(SettingValue.offlineMode.toString(), offlineMode);
+}
+
+String getNamiApiCookie() {
+  return box.get(SettingValue.namiApiCookie.toString()) ?? '';
 }
 
 int? getGruppierung() {
@@ -53,11 +58,17 @@ String? getNamiPassword() {
 }
 
 String getNamiLUrl() {
-  return box.get(SettingValue.namiUrl.toString());
+  //setNamiUrl("https://2cb269f6-99dd-4fa8-9aea-fafe6fdb231b.mock.pstmn.io");
+  return box.get(SettingValue.namiUrl.toString()) ?? 'https://nami.dpsg.de';
 }
 
 String getNamiPath() {
-  return box.get(SettingValue.namiPath.toString());
+  return box.get(SettingValue.namiPath.toString()) ??
+      '/ica/rest/api/1/1/service/nami';
+}
+
+bool getOfflineMode() {
+  return box.get(SettingValue.offlineMode.toString()) ?? false;
 }
 
 void deleteNamiApiCookie() {

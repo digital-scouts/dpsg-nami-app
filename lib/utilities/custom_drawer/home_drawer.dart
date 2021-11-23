@@ -22,6 +22,7 @@ class HomeDrawer extends StatefulWidget {
 
 class _HomeDrawerState extends State<HomeDrawer> {
   List<DrawerList>? drawerList;
+  bool offlineMode = getOfflineMode();
   @override
   void initState() {
     setDrawerListArray();
@@ -64,7 +65,9 @@ class _HomeDrawerState extends State<HomeDrawer> {
   @override
   Widget build(BuildContext context) {
     int? mitgliedsnummer = getNamiLoginId();
+    int? gruppierung = getGruppierung();
     String username = 'Janneck Lange';
+
     return Scaffold(
       backgroundColor: AppTheme.notWhite.withOpacity(0.5),
       body: Column(
@@ -91,18 +94,28 @@ class _HomeDrawerState extends State<HomeDrawer> {
                       ),
                     ),
                   ),
-                  if (mitgliedsnummer != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8, left: 4),
-                      child: Text(
-                        'Mitgliedsnummer: $mitgliedsnummer',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.lightText,
-                          fontSize: 12,
-                        ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8, left: 4),
+                    child: Text(
+                      'Mitgliedsnummer: $mitgliedsnummer',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.lightText,
+                        fontSize: 12,
                       ),
                     ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8, left: 4),
+                    child: Text(
+                      'Gruppierung: $gruppierung',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.lightText,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -123,6 +136,21 @@ class _HomeDrawerState extends State<HomeDrawer> {
                 return inkwell(drawerList![index]);
               },
             ),
+          ),
+          Column(
+            children: [
+              Switch(
+                value: offlineMode,
+                onChanged: (bool value) {
+                  setOfflineMode(value);
+                  setState(() {
+                    offlineMode = value;
+                  });
+                },
+                activeTrackColor: Colors.yellow,
+                activeColor: Colors.orangeAccent,
+              ),
+            ],
           ),
           Divider(
             height: 1,
