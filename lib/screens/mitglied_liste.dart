@@ -17,7 +17,7 @@ class _MitgliedsListeState extends State<MitgliedsListe> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("title"),
+        title: const Text("Mitglieder"),
       ),
       body: ListView.builder(
         padding: const EdgeInsets.all(8),

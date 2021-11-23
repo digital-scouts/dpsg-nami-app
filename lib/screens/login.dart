@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:nami/hive/settings.dart';
 import 'package:nami/utilities/constants.dart';
 import 'package:nami/utilities/nami.service.dart';
+import 'dart:async';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -14,6 +16,19 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _rememberMe = false;
   int _mitgliedsnummer = 0;
   String _password = '';
+  bool _wrongCredentials = false;
+  bool _loading = false;
+
+  void wrongCredentials() {
+    setState(() {
+      _wrongCredentials = true;
+    });
+    Timer(
+        const Duration(seconds: 3),
+        () => setState(() {
+              _wrongCredentials = false;
+            }));
+  }
 
   Widget _buildMitgliednummerTF() {
     return Column(
@@ -146,26 +161,68 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  Widget _wrongIdOrPassword() {
+    if (_wrongCredentials) {
+      return Container(
+        alignment: Alignment.centerRight,
+        child: const Text(
+          'Mitgliedsnummer oder Passwort falsch',
+          style: TextStyle(
+            color: Colors.red,
+            fontWeight: FontWeight.normal,
+            fontFamily: 'OpenSans',
+          ),
+        ),
+      );
+    } else {
+      return Container();
+    }
+  }
+
+  Widget _loadingSpinner() {
+    if (_loading) {
+      return Container(
+        alignment: Alignment.center,
+        child: const SpinKitRotatingCircle(color: Colors.white, size: 50.0),
+      );
+    } else {
+      return Container();
+    }
+  }
+
   Widget _buildLoginBtn() {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 25.0),
       width: double.infinity,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          primary: Colors.white,
+          primary: _wrongCredentials ? Colors.red : Colors.white,
         ),
         onPressed: () async => {
+          setState(() {
+            _loading = true;
+          }),
           if (await namiLoginWithPassword(_mitgliedsnummer, _password))
             {
-              Navigator.pop(context),
+              setState(() {
+                _loading = false;
+              }),
+              Navigator.pop(context, true),
               if (_rememberMe) {setNamiPassword(_password)},
               setNamiLoginId(_mitgliedsnummer),
             }
+          else
+            {
+              wrongCredentials(),
+              setState(() {
+                _loading = false;
+              }),
+            }
         },
-        child: const Text(
+        child: Text(
           'ANMELDEN',
           style: TextStyle(
-            color: Color(0xFF527DAA),
+            color: _wrongCredentials ? Colors.white : const Color(0xFF527DAA),
             letterSpacing: 1.5,
             fontSize: 18.0,
             fontWeight: FontWeight.bold,
@@ -236,6 +293,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: <Widget>[
                       Image.asset('assets/images/dpsg_logo.png'),
                       const SizedBox(height: 30.0),
+                      Text('V1'),
                       _buildMitgliednummerTF(),
                       const SizedBox(
                         height: 30.0,
@@ -244,7 +302,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       _buildForgotPasswordBtn(),
                       _buildRememberMeCheckbox(),
                       _buildLoginBtn(),
+                      _wrongIdOrPassword(),
                       _buildSignupBtn(),
+                      _loadingSpinner()
                     ],
                   ),
                 ),

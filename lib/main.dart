@@ -44,6 +44,15 @@ class _MyAppState extends State<MyApp> {
     // initNami();
   }
 
+  Future<void> setData() async {
+    int gruppierung = await loadGruppierung();
+    if (gruppierung == 0) {
+      throw Exception("Keine eindeutige Gruppierung gefunden");
+    }
+    setGruppierung(gruppierung);
+    syncNamiData();
+  }
+
   void init() async {
     //setNamiUrl("https://2cb269f6-99dd-4fa8-9aea-fafe6fdb231b.mock.pstmn.io");
     setNamiUrl("https://nami.dpsg.de");
@@ -52,12 +61,7 @@ class _MyAppState extends State<MyApp> {
       navPushLogin();
       return;
     }
-    int gruppierung = await loadGruppierung();
-    if (gruppierung == 0) {
-      throw Exception("Keine eindeutige Gruppierung gefunden");
-    }
-    setGruppierung(gruppierung);
-    syncNamiData();
+    setData();
   }
 
   void syncNamiData() async {
@@ -107,7 +111,7 @@ class _MyAppState extends State<MyApp> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const LoginScreen()),
-    );
+    ).then((value) => setData());
   }
 
   @override
