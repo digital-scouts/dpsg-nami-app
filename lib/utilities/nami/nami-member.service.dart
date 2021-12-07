@@ -1,4 +1,5 @@
 import 'package:nami/model/nami_member_details_model.dart';
+import 'package:nami/utilities/constants.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:hive/hive.dart';
 import 'dart:convert';
@@ -67,7 +68,7 @@ Future<void> storeMitgliedToHive(
     ..nachname = rawMember.nachname
     ..geschlecht = rawMember.geschlecht
     ..geburtsDatum = rawMember.geburtsDatum
-    ..stufe = rawMember.stufe ?? 'keine Stufe'
+    ..stufe = StufenExtension.getValueFromString(rawMember.stufe ?? '').string()
     ..id = rawMember.id
     ..mitgliedsNummer = rawMember.mitgliedsNummer
     ..eintrittsdatum = rawMember.eintrittsdatum

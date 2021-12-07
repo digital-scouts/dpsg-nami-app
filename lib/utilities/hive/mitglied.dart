@@ -1,5 +1,7 @@
 import 'package:hive/hive.dart';
 
+import '../constants.dart';
+
 // flutter packages pub run build_runner build
 
 part 'mitglied.g.dart';
@@ -84,8 +86,9 @@ class Mitglied {
 
   /// 0 gleich | <0 this ist jüngere Stufe | >0 this ist ältere Stufe
   int compareByStufe(Mitglied mitglied) {
-    int m1Stufe = getStufeValue(stufe);
-    int m2Stufe = getStufeValue(mitglied.stufe);
+    int m1Stufe = getStufeValue(StufenExtension.getValueFromString(stufe));
+    int m2Stufe =
+        getStufeValue(StufenExtension.getValueFromString(mitglied.stufe));
     return m1Stufe - m2Stufe;
   }
 
@@ -99,19 +102,17 @@ class Mitglied {
     return eintrittsdatum.compareTo(mitglied.eintrittsdatum);
   }
 
-  int getStufeValue(String stufe) {
-    switch (stufe.toLowerCase().trim()) {
-      case 'biber':
-        return 0;
-      case 'wölfling':
+  int getStufeValue(Stufe stufe) {
+    switch (stufe) {
+      case Stufe.woe:
         return 1;
-      case 'jungpfadfinder':
+      case Stufe.jufi:
         return 2;
-      case 'pfadfinder':
+      case Stufe.pfadi:
         return 3;
-      case 'rover':
+      case Stufe.rover:
         return 4;
-      case 'leiter':
+      case Stufe.leiter:
         return 5;
       default:
         return 6;

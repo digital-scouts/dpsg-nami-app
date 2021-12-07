@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+import 'package:nami/utilities/constants.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 
 ///Filter bei Vor- und Name, Nummer, E-Mail
@@ -15,8 +17,10 @@ void filterByString(List<Mitglied> mitglieder, String filterString) {
 }
 
 ///Filter bei Stufe (woe, jufi, pfadi, rover, leiter)
-void filterByStufe(List<Mitglied> mitglieder, List<String> stufen) {
-  mitglieder.retainWhere((mitglied) => stufen.contains(mitglied.stufe));
+void filterByStufe(List<Mitglied> mitglieder, List<Stufe> stufen) {
+  if (stufen.isEmpty) return;
+  List<String> s = stufen.map((e) => e.string()).toList();
+  mitglieder.removeWhere((m) => !s.contains(m.stufe));
 }
 
 ///Nur aktive Mitglieder
@@ -38,4 +42,40 @@ void sortByAge(List<Mitglied> mitglieder) {
 
 void sortByMitgliedsalter(List<Mitglied> mitglieder) {
   mitglieder.sort((a, b) => a.compareByMitgliedsalter(b));
+}
+
+enum MemberSorting { name, age, group, memberTime }
+const memberSortingNameString = "Name";
+const memberSortingAgeString = 'Alter';
+const memberSortingGroupString = "Gruppe";
+const memberSortingMemberTimeString = "Mitgliedsdauer";
+
+extension MemberSortingExtension on MemberSorting {
+  String string() {
+    switch (this) {
+      case MemberSorting.name:
+        return memberSortingNameString;
+      case MemberSorting.group:
+        return memberSortingGroupString;
+      case MemberSorting.memberTime:
+        return memberSortingMemberTimeString;
+      case MemberSorting.age:
+      default:
+        return memberSortingAgeString;
+    }
+  }
+
+  static MemberSorting getValue(String? value) {
+    switch (value) {
+      case memberSortingAgeString:
+        return MemberSorting.age;
+      case memberSortingGroupString:
+        return MemberSorting.group;
+      case memberSortingMemberTimeString:
+        return MemberSorting.memberTime;
+      case memberSortingNameString:
+      default:
+        return MemberSorting.name;
+    }
+  }
 }
