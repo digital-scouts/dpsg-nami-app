@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
+import 'package:nami/utilities/mitglied.filterAndSort.dart';
 
 class MitgliedsListe extends StatefulWidget {
   const MitgliedsListe({Key? key}) : super(key: key);
@@ -31,6 +32,7 @@ class _MitgliedsListeState extends State<MitgliedsListe> {
                 title: Text(
                     '${mitglieder[index].vorname} ${mitglieder[index].nachname}'),
                 subtitle: Text(mitglieder[index].mitgliedsNummer.toString()),
+                trailing: Text(mitglieder[index].stufe),
               ),
             ),
           );

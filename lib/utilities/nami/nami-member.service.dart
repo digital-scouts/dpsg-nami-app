@@ -67,7 +67,7 @@ Future<void> storeMitgliedToHive(
     ..nachname = rawMember.nachname
     ..geschlecht = rawMember.geschlecht
     ..geburtsDatum = rawMember.geburtsDatum
-    ..stufe = rawMember.stufe
+    ..stufe = rawMember.stufe ?? 'keine Stufe'
     ..id = rawMember.id
     ..mitgliedsNummer = rawMember.mitgliedsNummer
     ..eintrittsdatum = rawMember.eintrittsdatum

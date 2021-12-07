@@ -21,10 +21,10 @@ class MitgliedAdapter extends TypeAdapter<Mitglied> {
       ..nachname = fields[1] as String
       ..geschlecht = fields[3] as String
       ..geburtsDatum = fields[4] as DateTime
-      ..stufe = fields[5] as String?
+      ..stufe = fields[5] as String
       ..id = fields[6] as int
       ..mitgliedsNummer = fields[7] as int
-      ..eintrittsdatum = fields[8] as DateTime?
+      ..eintrittsdatum = fields[8] as DateTime
       ..austrittsDatum = fields[9] as DateTime?
       ..ort = fields[10] as String
       ..plz = fields[11] as String

@@ -19,7 +19,7 @@ class Mitglied {
   late DateTime geburtsDatum;
 
   @HiveField(5)
-  late String? stufe;
+  late String stufe;
 
   @HiveField(6)
   late int id;
@@ -28,7 +28,7 @@ class Mitglied {
   late int mitgliedsNummer;
 
   @HiveField(8)
-  late DateTime? eintrittsdatum;
+  late DateTime eintrittsdatum;
 
   @HiveField(9)
   late DateTime? austrittsDatum;
@@ -74,4 +74,47 @@ class Mitglied {
 
   @HiveField(23)
   late String status;
+
+  /// 0 gleich | <0 this ist alpabetisch früher | >0 this ist alpabetisch später
+  int compareByName(Mitglied mitglied) {
+    String m1Name = '$vorname $nachname';
+    String m2Name = '${mitglied.vorname} ${mitglied.nachname}';
+    return m1Name.compareTo(m2Name);
+  }
+
+  /// 0 gleich | <0 this ist jüngere Stufe | >0 this ist ältere Stufe
+  int compareByStufe(Mitglied mitglied) {
+    int m1Stufe = getStufeValue(stufe);
+    int m2Stufe = getStufeValue(mitglied.stufe);
+    return m1Stufe - m2Stufe;
+  }
+
+  /// 0 gleich | <0 this ist jünger | >0 this ist älter
+  int compareByAge(Mitglied mitglied) {
+    return geburtsDatum.compareTo(mitglied.geburtsDatum);
+  }
+
+  /// 0 gleich | <0 this ist länger dabei | >0 this ist kürzer dabei
+  int compareByMitgliedsalter(Mitglied mitglied) {
+    return eintrittsdatum.compareTo(mitglied.eintrittsdatum);
+  }
+
+  int getStufeValue(String stufe) {
+    switch (stufe.toLowerCase().trim()) {
+      case 'biber':
+        return 0;
+      case 'wölfling':
+        return 1;
+      case 'jungpfadfinder':
+        return 2;
+      case 'pfadfinder':
+        return 3;
+      case 'rover':
+        return 4;
+      case 'leiter':
+        return 5;
+      default:
+        return 6;
+    }
+  }
 }

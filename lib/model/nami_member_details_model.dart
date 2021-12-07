@@ -21,7 +21,7 @@ class NamiMemberDetailsModel {
   final String mglTypeId;
   final String? beitragsart;
   final String nachname;
-  final DateTime? eintrittsdatum;
+  final DateTime eintrittsdatum;
   final String? rover;
   final String? region;
   final String status;
@@ -137,7 +137,7 @@ class NamiMemberDetailsModel {
       nachname: json['nachname'],
       eintrittsdatum: json['eintrittsdatum'].length > 5
           ? DateTime.parse(json['eintrittsdatum'])
-          : null,
+          : DateTime(1599),
       rover: json['rover'],
       region: json['region'],
       status: json['status'],
