@@ -55,6 +55,8 @@ syncMember() async {
   for (var mitgliedId in mitgliedIds) {
     storeMitgliedToHive(mitgliedId, memberBox)
         .then((value) => memberSyncProgress += syncProgressSteps)
+        //todo change print to inApp visible notification
+        // ignore: avoid_print
         .then((value) => print(
             'Member $mitgliedId loaded: ${(memberSyncProgress * 100).round()}%'));
   }
