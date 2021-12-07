@@ -74,7 +74,7 @@ class _InviteFriendState extends State<InviteFriend> {
                         child: InkWell(
                           onTap: () {
                             //method here for functionality
-                            print('Share Action.');
+                            debugPrint('Share Action.');
                           },
                           child: Center(
                             child: Row(

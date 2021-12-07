@@ -105,7 +105,7 @@ class _MitgliedsListeState extends State<MitgliedsListe> {
       itemCount: filteredMitglieder.length,
       itemBuilder: (context, index) {
         return GestureDetector(
-          onTap: () => print(
+          onTap: () => debugPrint(
               'clicked on ${filteredMitglieder[index].mitgliedsNummer.toString()}'),
           child: Card(
             child: ListTile(

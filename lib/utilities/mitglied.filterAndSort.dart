@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:nami/utilities/constants.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 

@@ -82,7 +82,6 @@ class _MyAppState extends State<MyApp> {
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.done) {
               if (snapshot.error != null) {
-                print(snapshot.error);
                 return const Scaffold(
                   body: Center(
                     child: Text('Something went wrong :/'),

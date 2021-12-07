@@ -8,7 +8,6 @@ import 'nami.service.dart';
 Future<bool> isLoggedIn() async {
   //check if token exists
   String? token = getNamiApiCookie();
-  print('token: $token');
   if (token.isEmpty) {
     return false;
   }
@@ -17,7 +16,6 @@ Future<bool> isLoggedIn() async {
   try {
     await loadNamiStats();
   } catch (ex) {
-    print('token is not null but not valid');
     return false;
   }
   return true;

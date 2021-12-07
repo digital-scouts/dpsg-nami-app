@@ -124,7 +124,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Container(
       alignment: Alignment.centerRight,
       child: TextButton(
-        onPressed: () => print('Forgot Password Button Pressed'),
+        onPressed: () => debugPrint('Forgot Password Button Pressed'),
         child: const Text(
           'Passwort vergessen?',
           style: kLabelStyle,
@@ -146,7 +146,7 @@ class _LoginScreenState extends State<LoginScreen> {
               activeColor: Colors.white,
               onChanged: (value) {
                 setState(() {
-                  print('rememberMe: $value');
+                  debugPrint('rememberMe: $value');
                   _rememberMe = value! | false;
                 });
               },
@@ -235,7 +235,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _buildSignupBtn() {
     return GestureDetector(
-      onTap: () => print('Sign Up Button Pressed'),
+      onTap: () => debugPrint('Sign Up Button Pressed'),
       child: RichText(
         text: const TextSpan(
           children: [
