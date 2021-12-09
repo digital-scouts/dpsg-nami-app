@@ -293,7 +293,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: <Widget>[
                       Image.asset('assets/images/dpsg_logo.png'),
                       const SizedBox(height: 30.0),
-                      const Text('V1'),
                       _buildMitgliednummerTF(),
                       const SizedBox(
                         height: 30.0,

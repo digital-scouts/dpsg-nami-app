@@ -8,7 +8,7 @@ enum SettingValue {
   namiUrl,
   namiPath,
   gruppierung,
-  offlineMode
+  lastNamiSync
 }
 
 Box box = Hive.box('settingsBox');
@@ -37,8 +37,8 @@ void setGruppierung(int gruppierung) {
   box.put(SettingValue.gruppierung.toString(), gruppierung);
 }
 
-void setOfflineMode(bool offlineMode) {
-  box.put(SettingValue.offlineMode.toString(), offlineMode);
+void setLastNamiSync(DateTime lastNamiSync) {
+  box.put(SettingValue.lastNamiSync.toString(), lastNamiSync);
 }
 
 String getNamiApiCookie() {
@@ -67,12 +67,16 @@ String getNamiPath() {
       '/ica/rest/api/1/1/service/nami';
 }
 
-bool getOfflineMode() {
-  return box.get(SettingValue.offlineMode.toString()) ?? false;
+DateTime? getLastNamiSync() {
+  return box.get(SettingValue.lastNamiSync.toString());
 }
 
 void deleteNamiApiCookie() {
   box.delete(SettingValue.namiApiCookie.toString());
+}
+
+void deleteLastNamiSync() {
+  box.delete(SettingValue.lastNamiSync.toString());
 }
 
 void deleteNamiLoginId() {

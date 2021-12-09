@@ -36,19 +36,22 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  @override
-  void initState() {
-    super.initState();
-    // initNami();
-  }
-
   void init() async {
-    if (!getOfflineMode() && !await isLoggedIn()) {
-      navPushLogin();
-      return;
+    try {
+      final result = await InternetAddress.lookup('example.com');
+      if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
+        debugPrint('your online');
+        if (!await isLoggedIn()) {
+          navPushLogin();
+          return;
+        } else if (getLastNamiSync() == null ||
+            DateTime.now().difference(getLastNamiSync()!).inDays > 30) {
+          syncNamiData();
+        }
+      }
+    } on SocketException catch (_) {
+      debugPrint('not connected');
     }
-    if (getOfflineMode()) return;
-    syncNamiData();
   }
 
   void navPushLogin() {
