@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:nami/utilities/constants.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:maps_launcher/maps_launcher.dart';
 
 class MitgliedDetail extends StatefulWidget {
   final Mitglied mitglied;
@@ -13,21 +14,21 @@ class MitgliedDetail extends StatefulWidget {
 }
 
 class _MitgliedDetailState extends State<MitgliedDetail> {
-  Widget _buildMailLink(String mail) {
+  Widget _buildLinkText(String scheme, String path) {
     return RichText(
       textAlign: TextAlign.left,
       text: TextSpan(
-        text: mail,
+        text: path,
         style: const TextStyle(color: Colors.blue, fontSize: 20),
         recognizer: TapGestureRecognizer()
           ..onTap = () async {
             final Uri params = Uri(
-              scheme: 'mailto',
-              path: mail,
+              scheme: scheme,
+              path: path,
             );
 
             var url = params.toString();
-            // dies Funktioniert, wenn eine E-Mail app installiert ist
+            // dies Funktioniert, wenn die notwendige app installiert ist
             if (await canLaunch(url)) {
               await launch(url);
             }
@@ -36,24 +37,15 @@ class _MitgliedDetailState extends State<MitgliedDetail> {
     );
   }
 
-  Widget _buildMailPhone(String tel) {
+  Widget _buildMapText(String address) {
     return RichText(
       textAlign: TextAlign.left,
       text: TextSpan(
-        text: tel,
+        text: address,
         style: const TextStyle(color: Colors.blue, fontSize: 20),
         recognizer: TapGestureRecognizer()
-          ..onTap = () async {
-            final Uri params = Uri(
-              scheme: 'tel',
-              path: tel,
-            );
-
-            var url = params.toString();
-            // dies Funktioniert, wenn eine E-Mail app installiert ist
-            if (await canLaunch(url)) {
-              await launch(url);
-            }
+          ..onTap = () {
+            MapsLauncher.launchQuery(address);
           },
       ),
     );
@@ -67,12 +59,13 @@ class _MitgliedDetailState extends State<MitgliedDetail> {
           const Text("E-Mail",
               style: TextStyle(color: Colors.white, fontSize: 20)),
         if (widget.mitglied.email!.isNotEmpty)
-          _buildMailLink(widget.mitglied.email!),
+          _buildLinkText('mailto', widget.mitglied.email!),
         if (widget.mitglied.emailVertretungsberechtigter!.isNotEmpty)
           const Text("E-Mail Vertretungsberechtigte:r",
               style: TextStyle(color: Colors.white, fontSize: 20)),
         if (widget.mitglied.emailVertretungsberechtigter!.isNotEmpty)
-          _buildMailLink(widget.mitglied.emailVertretungsberechtigter!),
+          _buildLinkText(
+              'mailto', widget.mitglied.emailVertretungsberechtigter!),
       ]);
     } else {
       return Container();
@@ -88,17 +81,17 @@ class _MitgliedDetailState extends State<MitgliedDetail> {
           const Text("Telefon 1",
               style: TextStyle(color: Colors.white, fontSize: 20)),
         if (widget.mitglied.telefon1!.isNotEmpty)
-          _buildMailPhone(widget.mitglied.telefon1!),
+          _buildLinkText('tel', widget.mitglied.telefon1!),
         if (widget.mitglied.telefon2!.isNotEmpty)
           const Text("Telefon 2",
               style: TextStyle(color: Colors.white, fontSize: 20)),
         if (widget.mitglied.telefon2!.isNotEmpty)
-          _buildMailPhone(widget.mitglied.telefon2!),
+          _buildLinkText('tel', widget.mitglied.telefon2!),
         if (widget.mitglied.telefon3!.isNotEmpty)
           const Text("Telefon 3",
               style: TextStyle(color: Colors.white, fontSize: 20)),
         if (widget.mitglied.telefon3!.isNotEmpty)
-          _buildMailPhone(widget.mitglied.telefon3!),
+          _buildLinkText('tel', widget.mitglied.telefon3!),
       ]);
     } else {
       return Container();
@@ -106,7 +99,12 @@ class _MitgliedDetailState extends State<MitgliedDetail> {
   }
 
   Widget _buildAdress() {
-    return Container();
+    return _buildBox(<Widget>[
+      const Text("Anschrift",
+          style: TextStyle(color: Colors.white, fontSize: 20)),
+      _buildMapText(
+          '${widget.mitglied.strasse}, ${widget.mitglied.plz} ${widget.mitglied.ort}'),
+    ]);
   }
 
   Widget _buildTaetigkeiten() {
@@ -114,7 +112,57 @@ class _MitgliedDetailState extends State<MitgliedDetail> {
   }
 
   Widget _buildHeader() {
-    return Container();
+    String phone = widget.mitglied.telefon1 ??
+        widget.mitglied.telefon2 ??
+        widget.mitglied.telefon3 ??
+        "";
+    List<String> emails = List.empty(growable: true);
+    if (widget.mitglied.email!.isNotEmpty) {
+      emails.add(widget.mitglied.email!);
+    }
+    if (widget.mitglied.emailVertretungsberechtigter!.isNotEmpty) {
+      emails.add(widget.mitglied.emailVertretungsberechtigter!);
+    }
+    if (phone.isNotEmpty || emails.isNotEmpty) {
+      return _buildBox(<Widget>[
+        if (phone.isNotEmpty)
+          IconButton(
+            icon: const Icon(Icons.phone),
+            tooltip: 'Anrufen',
+            onPressed: () async {
+              final Uri params = Uri(
+                scheme: 'tel',
+                path: phone,
+              );
+
+              var url = params.toString();
+              // dies Funktioniert, wenn die notwendige app installiert ist
+              if (await canLaunch(url)) {
+                await launch(url);
+              }
+            },
+          ),
+        if (emails.isNotEmpty)
+          IconButton(
+            icon: const Icon(Icons.mail),
+            tooltip: 'E-Mail',
+            onPressed: () async {
+              final Uri params = Uri(
+                scheme: 'mailto',
+                path: emails.join(','),
+              );
+
+              var url = params.toString();
+              // dies Funktioniert, wenn die notwendige app installiert ist
+              if (await canLaunch(url)) {
+                await launch(url);
+              }
+            },
+          ),
+      ]);
+    } else {
+      return Container();
+    }
   }
 
   Widget _buildBox(List<Widget> children) {
