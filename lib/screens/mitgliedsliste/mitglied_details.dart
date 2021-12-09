@@ -108,7 +108,10 @@ class _MitgliedDetailState extends State<MitgliedDetail> {
   }
 
   Widget _buildTaetigkeiten() {
-    return Container();
+    return _buildBox(<Widget>[
+      const Text("Tätigkeiten: Comming soon",
+          style: TextStyle(color: Colors.white))
+    ]);
   }
 
   Widget _buildHeader() {
@@ -123,41 +126,64 @@ class _MitgliedDetailState extends State<MitgliedDetail> {
     if (widget.mitglied.emailVertretungsberechtigter!.isNotEmpty) {
       emails.add(widget.mitglied.emailVertretungsberechtigter!);
     }
+
     if (phone.isNotEmpty || emails.isNotEmpty) {
-      return _buildBox(<Widget>[
-        if (phone.isNotEmpty)
-          IconButton(
-            icon: const Icon(Icons.phone),
-            tooltip: 'Anrufen',
-            onPressed: () async {
-              final Uri params = Uri(
-                scheme: 'tel',
-                path: phone,
-              );
-
-              var url = params.toString();
-              // dies Funktioniert, wenn die notwendige app installiert ist
-              if (await canLaunch(url)) {
-                await launch(url);
-              }
-            },
-          ),
+      return Row(mainAxisAlignment: MainAxisAlignment.center, children: [
         if (emails.isNotEmpty)
-          IconButton(
-            icon: const Icon(Icons.mail),
-            tooltip: 'E-Mail',
-            onPressed: () async {
-              final Uri params = Uri(
-                scheme: 'mailto',
-                path: emails.join(','),
-              );
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Ink(
+              decoration: ShapeDecoration(
+                color: Colors.blue,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(5)),
+              ),
+              child: IconButton(
+                iconSize: 35,
+                icon: const Icon(Icons.mail),
+                tooltip: 'E-Mail',
+                onPressed: () async {
+                  final Uri params = Uri(
+                    scheme: 'mailto',
+                    path: emails.join(','),
+                  );
 
-              var url = params.toString();
-              // dies Funktioniert, wenn die notwendige app installiert ist
-              if (await canLaunch(url)) {
-                await launch(url);
-              }
-            },
+                  var url = params.toString();
+                  // dies Funktioniert, wenn die notwendige app installiert ist
+                  if (await canLaunch(url)) {
+                    await launch(url);
+                  }
+                },
+              ),
+            ),
+          ),
+        if (phone.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Ink(
+              decoration: ShapeDecoration(
+                color: Colors.blue,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(5)),
+              ),
+              child: IconButton(
+                iconSize: 35,
+                icon: const Icon(Icons.phone),
+                tooltip: 'Anrufen',
+                onPressed: () async {
+                  final Uri params = Uri(
+                    scheme: 'tel',
+                    path: phone,
+                  );
+
+                  var url = params.toString();
+                  // dies Funktioniert, wenn die notwendige app installiert ist
+                  if (await canLaunch(url)) {
+                    await launch(url);
+                  }
+                },
+              ),
+            ),
           ),
       ]);
     } else {
