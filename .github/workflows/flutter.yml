@@ -11,7 +11,7 @@ on:
 
 jobs:
   build:
-    name: flutter build
+    name: flutter test
     runs-on: ubuntu-latest
     
     env:
