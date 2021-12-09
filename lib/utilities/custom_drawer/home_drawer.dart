@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nami/screens/login.dart';
 import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/nami/nami.service.dart';
 
 import '../app_theme.dart';
 
@@ -22,7 +23,6 @@ class HomeDrawer extends StatefulWidget {
 
 class _HomeDrawerState extends State<HomeDrawer> {
   List<DrawerList>? drawerList;
-  bool offlineMode = getOfflineMode();
   @override
   void initState() {
     setDrawerListArray();
@@ -137,19 +137,20 @@ class _HomeDrawerState extends State<HomeDrawer> {
               },
             ),
           ),
-          Column(
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Switch(
-                value: offlineMode,
-                onChanged: (bool value) {
-                  setOfflineMode(value);
+              IconButton(
+                icon: const Icon(Icons.sync),
+                onPressed: () => {
                   setState(() {
-                    offlineMode = value;
-                  });
+                    syncNamiData();
+                  })
                 },
-                activeTrackColor: Colors.yellow,
-                activeColor: Colors.orangeAccent,
               ),
+              Text(getLastNamiSync() != null
+                  ? "Vor ${DateTime.now().difference(getLastNamiSync()!).inDays.toString()} Tagen"
+                  : "Noch nie Syncronisiert"),
             ],
           ),
           Divider(

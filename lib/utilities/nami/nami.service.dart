@@ -47,6 +47,7 @@ Future<int> loadGruppierung({node = 'root'}) async {
 }
 
 void syncNamiData() async {
+  setLastNamiSync(DateTime.now());
   await syncGruppierung();
   syncMember();
   //syncStats
