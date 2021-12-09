@@ -1,4 +1,16 @@
-# Nami
+# NaMi
+
+<!-- https://buttons.github.io -->
+<!-- https://shields.io/category/social -->
+ <a href="https://github.com/JanneckLange/dpsg-nami-app/subscription" >
+    <img src="https://img.shields.io/github/watchers/JanneckLange/dpsg-nami-app?label=Watch" alt="Watch this Repo">
+  </a>
+   <a href="https://github.com/JanneckLange/dpsg-nami-app/releases" >
+    <img src="https://img.shields.io/github/v/release/janneckLange/dpsg-nami-app?display_name=tag&include_prereleases" alt="Letzter Release">
+  </a>
+  <a href="https://github.com/JanneckLange/dpsg-nami-app/commits/develop">
+    <img src="https://shields.io/github/last-commit/JanneckLange/dpsg-nami-app/develop" alt="Letzter Commit auf Develop">
+  </a>
 
 Die NaMi ist die Namentliche Mitgliedermeldung des Pfadfinderverbandes DPSG (Deutsche Pfadfinderschaft Sankt Georg).
 
@@ -29,3 +41,4 @@ Dies ist ein Flutter Projekt um die NaMi als App für Android und iOS anzubieten
 - Add: Login
 - Add: Member List
 - Add: Offline Mode
+
