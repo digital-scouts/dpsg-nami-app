@@ -144,7 +144,7 @@ class _HomeDrawerState extends State<HomeDrawer> {
                 icon: const Icon(Icons.sync),
                 onPressed: () => {
                   setState(() {
-                    syncNamiData();
+                    syncNamiData(context);
                   })
                 },
               ),
