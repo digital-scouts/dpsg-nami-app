@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:nami/model/nami_stats_model.dart';
 import 'package:nami/utilities/hive/settings.dart';
@@ -8,6 +9,7 @@ import 'nami-member.service.dart';
 Future<NamiStatsModel> loadNamiStats() async {
   String url = getNamiLUrl();
   String? cookie = getNamiApiCookie();
+  debugPrint('Request: Lade Stats');
   final response = await http.get(
       Uri.parse('$url/ica/rest/dashboard/stats/stats'),
       headers: {'Cookie': cookie});
@@ -28,6 +30,7 @@ Future<int> loadGruppierung({node = 'root'}) async {
   String cookie = getNamiApiCookie();
   String fullUrl =
       '$url$path/gruppierungen/filtered-for-navigation/gruppierung/node/$node';
+  debugPrint('Request: Lade Gruppierung');
   final response =
       await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
 
@@ -46,9 +49,10 @@ Future<int> loadGruppierung({node = 'root'}) async {
   return 0;
 }
 
-void syncNamiData() async {
+void syncNamiData(BuildContext context) async {
+  setLastNamiSync(DateTime.now());
   await syncGruppierung();
-  syncMember();
+  syncMember(context);
   //syncStats
   //syncProfile
 }

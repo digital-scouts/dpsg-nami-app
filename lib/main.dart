@@ -36,26 +36,36 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  @override
-  void initState() {
-    super.initState();
-    // initNami();
-  }
-
   void init() async {
-    if (!getOfflineMode() && !await isLoggedIn()) {
-      navPushLogin();
-      return;
+    try {
+      final result = await InternetAddress.lookup('example.com');
+      if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
+        debugPrint('your online');
+
+        int lastLoginCheck =
+            DateTime.now().difference(getLastLoginCheck()).inMinutes;
+        int lastNamiSync = DateTime.now().difference(getLastNamiSync()!).inDays;
+        debugPrint(
+            'Letzter Login Check: $lastLoginCheck Min | Letzter Nami Sync: $lastNamiSync Days');
+        // Überpüfe den Login maximal alle 15 Minuten
+        if (lastLoginCheck > 15 && !await isLoggedIn()) {
+          navPushLogin();
+          return;
+        } else if (getLastNamiSync() == null || lastNamiSync > 30) {
+          // automatisch alle 30 Tage Syncronisieren
+          syncNamiData(context);
+        }
+      }
+    } on SocketException catch (_) {
+      debugPrint('not connected');
     }
-    if (getOfflineMode()) return;
-    syncNamiData();
   }
 
   void navPushLogin() {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const LoginScreen()),
-    ).then((value) => syncNamiData());
+    ).then((value) => syncNamiData(context));
   }
 
   @override

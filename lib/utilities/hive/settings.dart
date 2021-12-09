@@ -8,7 +8,8 @@ enum SettingValue {
   namiUrl,
   namiPath,
   gruppierung,
-  offlineMode
+  lastNamiSync,
+  lastLoginCheck
 }
 
 Box box = Hive.box('settingsBox');
@@ -37,12 +38,21 @@ void setGruppierung(int gruppierung) {
   box.put(SettingValue.gruppierung.toString(), gruppierung);
 }
 
-void setOfflineMode(bool offlineMode) {
-  box.put(SettingValue.offlineMode.toString(), offlineMode);
+void setLastNamiSync(DateTime lastNamiSync) {
+  box.put(SettingValue.lastNamiSync.toString(), lastNamiSync);
+}
+
+void setLastLoginCheck(DateTime lastLoginCheck) {
+  box.put(SettingValue.lastLoginCheck.toString(), lastLoginCheck);
 }
 
 String getNamiApiCookie() {
   return box.get(SettingValue.namiApiCookie.toString()) ?? '';
+}
+
+DateTime getLastLoginCheck() {
+  return box.get(SettingValue.lastLoginCheck.toString()) ??
+      DateTime.utc(1989, 1, 1);
 }
 
 int? getGruppierung() {
@@ -58,7 +68,6 @@ String? getNamiPassword() {
 }
 
 String getNamiLUrl() {
-  //setNamiUrl("https://2cb269f6-99dd-4fa8-9aea-fafe6fdb231b.mock.pstmn.io");
   return box.get(SettingValue.namiUrl.toString()) ?? 'https://nami.dpsg.de';
 }
 
@@ -67,12 +76,21 @@ String getNamiPath() {
       '/ica/rest/api/1/1/service/nami';
 }
 
-bool getOfflineMode() {
-  return box.get(SettingValue.offlineMode.toString()) ?? false;
+DateTime? getLastNamiSync() {
+  return box.get(SettingValue.lastNamiSync.toString()) ??
+      DateTime.utc(1989, 1, 1);
 }
 
 void deleteNamiApiCookie() {
   box.delete(SettingValue.namiApiCookie.toString());
+}
+
+void deleteLastLoginCheck() {
+  box.delete(SettingValue.lastLoginCheck.toString());
+}
+
+void deleteLastNamiSync() {
+  box.delete(SettingValue.lastNamiSync.toString());
 }
 
 void deleteNamiLoginId() {
