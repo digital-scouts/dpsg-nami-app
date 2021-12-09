@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
 import 'package:nami/model/nami_member_details_model.dart';
 import 'package:nami/utilities/constants.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
@@ -7,6 +10,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import 'package:nami/utilities/hive/settings.dart';
+
+ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? snackbar;
 
 Future<List<int>> loadMemberIds() async {
   String url = getNamiLUrl();
@@ -46,19 +51,40 @@ Future<NamiMemberDetailsModel> loadMemberDetails(int id) async {
   }
 }
 
-syncMember() async {
+showSyncStatus(String text, BuildContext context, {bool lastUpdate = false}) {
+  Duration duration = const Duration(seconds: 10);
+  if (snackbar != null) {
+    snackbar!.close();
+  }
+
+  Timer(duration, () => snackbar = null);
+  snackbar = ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+    content: Text(text),
+    duration: duration,
+    action: lastUpdate
+        ? SnackBarAction(
+            label: 'Ok',
+            onPressed: () => {},
+          )
+        : null,
+  ));
+}
+
+syncMember(BuildContext context) async {
   double memberSyncProgress = 0;
   Box<Mitglied> memberBox = Hive.box('members');
   List<int> mitgliedIds = await loadMemberIds();
+  showSyncStatus("Sycronisation 0/2", context);
 
   double syncProgressSteps = 1 / mitgliedIds.length;
   for (var mitgliedId in mitgliedIds) {
     storeMitgliedToHive(mitgliedId, memberBox)
-        .then((value) => memberSyncProgress += syncProgressSteps)
-        //todo change print to inApp visible notification
-        // ignore: avoid_print
-        .then((value) => print(
-            'Member $mitgliedId loaded: ${(memberSyncProgress * 100).round()}%'));
+        .then((value) => {memberSyncProgress += syncProgressSteps})
+        .then((value) => {
+              debugPrint('Sync: ' + memberSyncProgress.toString()),
+              if (memberSyncProgress >= 1.0)
+                {showSyncStatus("Sycronisation 1/2", context, lastUpdate: true)}
+            });
   }
 }
 

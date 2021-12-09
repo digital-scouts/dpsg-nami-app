@@ -46,7 +46,7 @@ class _MyAppState extends State<MyApp> {
           return;
         } else if (getLastNamiSync() == null ||
             DateTime.now().difference(getLastNamiSync()!).inDays > 30) {
-          syncNamiData();
+          syncNamiData(context);
         }
       }
     } on SocketException catch (_) {
@@ -58,7 +58,7 @@ class _MyAppState extends State<MyApp> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const LoginScreen()),
-    ).then((value) => syncNamiData());
+    ).then((value) => syncNamiData(context));
   }
 
   @override
