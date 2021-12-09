@@ -2,6 +2,7 @@ import 'package:backdrop/backdrop.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:nami/screens/mitgliedsliste/mitglied_details.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/mitglied.filterAndSort.dart';
 import 'package:nami/utilities/constants.dart';
@@ -105,8 +106,9 @@ class _MitgliedsListeState extends State<MitgliedsListe> {
       itemCount: filteredMitglieder.length,
       itemBuilder: (context, index) {
         return GestureDetector(
-          onTap: () => debugPrint(
-              'clicked on ${filteredMitglieder[index].mitgliedsNummer.toString()}'),
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (context) =>
+                  MitgliedDetail(mitglied: filteredMitglieder[index]))),
           child: Card(
             child: ListTile(
               leading: Container(

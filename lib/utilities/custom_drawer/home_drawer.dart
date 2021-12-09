@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:nami/screens/login.dart';
+import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/nami/nami.service.dart';
 
 import '../app_theme.dart';
 
@@ -22,7 +25,6 @@ class HomeDrawer extends StatefulWidget {
 
 class _HomeDrawerState extends State<HomeDrawer> {
   List<DrawerList>? drawerList;
-  bool offlineMode = getOfflineMode();
   @override
   void initState() {
     setDrawerListArray();
@@ -137,19 +139,20 @@ class _HomeDrawerState extends State<HomeDrawer> {
               },
             ),
           ),
-          Column(
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Switch(
-                value: offlineMode,
-                onChanged: (bool value) {
-                  setOfflineMode(value);
+              IconButton(
+                icon: const Icon(Icons.sync),
+                onPressed: () => {
                   setState(() {
-                    offlineMode = value;
-                  });
+                    syncNamiData(context);
+                  })
                 },
-                activeTrackColor: Colors.yellow,
-                activeColor: Colors.orangeAccent,
               ),
+              Text(getLastNamiSync() != null
+                  ? "Vor ${DateTime.now().difference(getLastNamiSync()!).inDays.toString()} Tagen"
+                  : "Noch nie Syncronisiert"),
             ],
           ),
           Divider(
@@ -173,12 +176,7 @@ class _HomeDrawerState extends State<HomeDrawer> {
                   Icons.power_settings_new,
                   color: Colors.red,
                 ),
-                onTap: () => {
-                  deleteNamiApiCookie(),
-                  deleteNamiLoginId(),
-                  deleteNamiPassword(),
-                  navPushLoginScreen()
-                },
+                onTap: () => {logout()},
               ),
               SizedBox(
                 height: MediaQuery.of(context).padding.bottom,
@@ -188,6 +186,23 @@ class _HomeDrawerState extends State<HomeDrawer> {
         ],
       ),
     );
+  }
+
+  void logout() {
+    //loaded Data
+    Hive.box<Mitglied>('members').deleteFromDisk();
+    deleteGruppierung();
+
+    // login data
+    deleteNamiApiCookie();
+    deleteNamiLoginId();
+    deleteNamiPassword();
+
+    // other Stuff
+    deleteLastLoginCheck();
+    deleteLastNamiSync();
+
+    navPushLoginScreen();
   }
 
   void onTapped() {
