@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:nami/screens/login.dart';
+import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
 
@@ -174,12 +176,7 @@ class _HomeDrawerState extends State<HomeDrawer> {
                   Icons.power_settings_new,
                   color: Colors.red,
                 ),
-                onTap: () => {
-                  deleteNamiApiCookie(),
-                  deleteNamiLoginId(),
-                  deleteNamiPassword(),
-                  navPushLoginScreen()
-                },
+                onTap: () => {logout()},
               ),
               SizedBox(
                 height: MediaQuery.of(context).padding.bottom,
@@ -189,6 +186,23 @@ class _HomeDrawerState extends State<HomeDrawer> {
         ],
       ),
     );
+  }
+
+  void logout() {
+    //loaded Data
+    Hive.box<Mitglied>('members').deleteFromDisk();
+    deleteGruppierung();
+
+    // login data
+    deleteNamiApiCookie();
+    deleteNamiLoginId();
+    deleteNamiPassword();
+
+    // other Stuff
+    deleteLastLoginCheck();
+    deleteLastNamiSync();
+
+    navPushLoginScreen();
   }
 
   void onTapped() {

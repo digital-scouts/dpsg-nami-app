@@ -99,7 +99,7 @@ syncMember(BuildContext context) async {
     storeMitgliedToHive(mitgliedId, memberBox)
         .then((value) => {memberSyncProgress += syncProgressSteps})
         .then((value) => {
-              debugPrint('Sync: ' + memberSyncProgress.toString()),
+              debugPrint('Sync: ' + memberSyncProgress.round().toString()),
               if (memberSyncProgress >= 1.0)
                 {showSyncStatus("Sycronisation 1/2", context, lastUpdate: true)}
             });

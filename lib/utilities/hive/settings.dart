@@ -68,7 +68,6 @@ String? getNamiPassword() {
 }
 
 String getNamiLUrl() {
-  //setNamiUrl("https://2cb269f6-99dd-4fa8-9aea-fafe6fdb231b.mock.pstmn.io");
   return box.get(SettingValue.namiUrl.toString()) ?? 'https://nami.dpsg.de';
 }
 
@@ -78,7 +77,8 @@ String getNamiPath() {
 }
 
 DateTime? getLastNamiSync() {
-  return box.get(SettingValue.lastNamiSync.toString());
+  return box.get(SettingValue.lastNamiSync.toString()) ??
+      DateTime.utc(1989, 1, 1);
 }
 
 void deleteNamiApiCookie() {
