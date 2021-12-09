@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:nami/utilities/hive/settings.dart';
 
@@ -18,6 +19,7 @@ Future<bool> isLoggedIn() async {
   } catch (ex) {
     return false;
   }
+  setLastLoginCheck(DateTime.now());
   return true;
 }
 
@@ -38,7 +40,7 @@ Future<bool> namiLoginWithPassword(int userId, String password) async {
     "Origin": 'https://nami.dpsg.de',
     'Content-Type': 'application/x-www-form-urlencoded',
   };
-
+  debugPrint('Request: Auth Request');
   http.Response authResponse =
       await http.post(uri, body: body, headers: headers);
 
@@ -49,6 +51,7 @@ Future<bool> namiLoginWithPassword(int userId, String password) async {
 
   //redirect
   Uri redirectUri = Uri.parse(authResponse.headers['location']!);
+  debugPrint('Request: Auth redirect Request');
   http.Response tokenResponse = await http.get(redirectUri);
 
   if (tokenResponse.statusCode != 200 ||
@@ -61,5 +64,6 @@ Future<bool> namiLoginWithPassword(int userId, String password) async {
   }
   String cookie = tokenResponse.headers["set-cookie"]!.split(';')[0];
   setNamiApiCookie(cookie);
+  setLastLoginCheck(DateTime.now());
   return true;
 }

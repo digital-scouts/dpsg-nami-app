@@ -9,6 +9,7 @@ import 'nami-member.service.dart';
 Future<NamiStatsModel> loadNamiStats() async {
   String url = getNamiLUrl();
   String? cookie = getNamiApiCookie();
+  debugPrint('Request: Lade Stats');
   final response = await http.get(
       Uri.parse('$url/ica/rest/dashboard/stats/stats'),
       headers: {'Cookie': cookie});
@@ -29,6 +30,7 @@ Future<int> loadGruppierung({node = 'root'}) async {
   String cookie = getNamiApiCookie();
   String fullUrl =
       '$url$path/gruppierungen/filtered-for-navigation/gruppierung/node/$node';
+  debugPrint('Request: Lade Gruppierung');
   final response =
       await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
 

@@ -41,11 +41,18 @@ class _MyAppState extends State<MyApp> {
       final result = await InternetAddress.lookup('example.com');
       if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
         debugPrint('your online');
-        if (!await isLoggedIn()) {
+
+        int lastLoginCheck =
+            DateTime.now().difference(getLastLoginCheck()).inMinutes;
+        int lastNamiSync = DateTime.now().difference(getLastNamiSync()!).inDays;
+        debugPrint(
+            'Letzter Login Check: $lastLoginCheck Min | Letzter Nami Sync: $lastNamiSync Days');
+        // Überpüfe den Login maximal alle 15 Minuten
+        if (lastLoginCheck > 15 && !await isLoggedIn()) {
           navPushLogin();
           return;
-        } else if (getLastNamiSync() == null ||
-            DateTime.now().difference(getLastNamiSync()!).inDays > 30) {
+        } else if (getLastNamiSync() == null || lastNamiSync > 30) {
+          // automatisch alle 30 Tage Syncronisieren
           syncNamiData(context);
         }
       }

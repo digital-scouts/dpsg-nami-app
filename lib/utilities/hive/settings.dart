@@ -8,7 +8,8 @@ enum SettingValue {
   namiUrl,
   namiPath,
   gruppierung,
-  lastNamiSync
+  lastNamiSync,
+  lastLoginCheck
 }
 
 Box box = Hive.box('settingsBox');
@@ -41,8 +42,17 @@ void setLastNamiSync(DateTime lastNamiSync) {
   box.put(SettingValue.lastNamiSync.toString(), lastNamiSync);
 }
 
+void setLastLoginCheck(DateTime lastLoginCheck) {
+  box.put(SettingValue.lastLoginCheck.toString(), lastLoginCheck);
+}
+
 String getNamiApiCookie() {
   return box.get(SettingValue.namiApiCookie.toString()) ?? '';
+}
+
+DateTime getLastLoginCheck() {
+  return box.get(SettingValue.lastLoginCheck.toString()) ??
+      DateTime.utc(1989, 1, 1);
 }
 
 int? getGruppierung() {
@@ -73,6 +83,10 @@ DateTime? getLastNamiSync() {
 
 void deleteNamiApiCookie() {
   box.delete(SettingValue.namiApiCookie.toString());
+}
+
+void deleteLastLoginCheck() {
+  box.delete(SettingValue.lastLoginCheck.toString());
 }
 
 void deleteLastNamiSync() {

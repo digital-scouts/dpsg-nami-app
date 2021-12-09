@@ -13,20 +13,36 @@ import 'package:nami/utilities/hive/settings.dart';
 
 ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? snackbar;
 
-Future<List<int>> loadMemberIds() async {
+int getVersionOfMember(int id, List<Mitglied> mitglieder) {
+  try {
+    Mitglied mitglied = mitglieder.firstWhere((m) => m.id == id);
+    return mitglied.version;
+  } catch (e) {
+    return 0;
+  }
+}
+
+Future<List<int>> loadMemberIdsToUpdate() async {
   String url = getNamiLUrl();
   String path = getNamiPath();
   int? gruppierung = getGruppierung();
   String cookie = getNamiApiCookie();
   String fullUrl =
       '$url$path/mitglied/filtered-for-navigation/gruppierung/gruppierung/$gruppierung/flist?_dc=1635173028278&page=1&start=0&limit=5000';
+  debugPrint('Request: Lade Mitgliedsliste');
   final response =
       await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
 
+  List<Mitglied> mitglieder =
+      Hive.box<Mitglied>('members').values.toList().cast<Mitglied>();
+
   if (response.statusCode == 200) {
     List<int> memberIds = [];
-    jsonDecode(response.body)['data']
-        .forEach((item) => memberIds.add(item['id']));
+    jsonDecode(response.body)['data'].forEach((item) => {
+          if (getVersionOfMember(item['id'], mitglieder) !=
+              item['entries_version'])
+            {memberIds.add(item['id'])}
+        });
     return memberIds;
   } else {
     throw Exception('Failed to load member List');
@@ -40,6 +56,7 @@ Future<NamiMemberDetailsModel> loadMemberDetails(int id) async {
   String cookie = getNamiApiCookie();
   String fullUrl =
       '$url$path/mitglied/filtered-for-navigation/gruppierung/gruppierung/$gruppierung/$id';
+  debugPrint('Request: Lade Details eines Mitglieds');
   final response =
       await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
   var source = json.decode(const Utf8Decoder().convert(response.bodyBytes));
@@ -73,8 +90,9 @@ showSyncStatus(String text, BuildContext context, {bool lastUpdate = false}) {
 syncMember(BuildContext context) async {
   double memberSyncProgress = 0;
   Box<Mitglied> memberBox = Hive.box('members');
-  List<int> mitgliedIds = await loadMemberIds();
+  List<int> mitgliedIds = await loadMemberIdsToUpdate();
   showSyncStatus("Sycronisation 0/2", context);
+  debugPrint('Starte Syncronisation der Mitgliedsdetails');
 
   double syncProgressSteps = 1 / mitgliedIds.length;
   for (var mitgliedId in mitgliedIds) {
@@ -86,6 +104,10 @@ syncMember(BuildContext context) async {
                 {showSyncStatus("Sycronisation 1/2", context, lastUpdate: true)}
             });
   }
+  if (mitgliedIds.isEmpty) {
+    showSyncStatus("Alle Daten sind aktuell", context, lastUpdate: true);
+  }
+  debugPrint('Syncronisation der Mitgliedsdetails abgeschlossen');
 }
 
 Future<void> storeMitgliedToHive(
