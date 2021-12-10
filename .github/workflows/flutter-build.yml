@@ -46,6 +46,8 @@ jobs:
   version:
     name: flutter version
     runs-on: ubuntu-latest
+    outputs:
+      output1: ${{ steps.step1.gitversion.releaseversion }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
@@ -58,9 +60,8 @@ jobs:
         with:
           dev-branch: develop
           prefix: v
-      - name: Display gitversion
-        run: |
-          echo "git-version: ${{ steps.gitversion.outputs.VERSION }}"
+      - name: Save git-version
+        run: echo "::set-output name=releaseversion::${{ steps.gitversion.outputs.VERSION }}"
   
   build:
     needs: [test, version]
@@ -70,6 +71,8 @@ jobs:
       JAVA_VERSION: "11"
       FLUTTER_VERSION: "2.5.3"
     steps:
+    -  run: |
+        echo "version: ${{ needs.version.outputs.releaseversion }}"
     - name: Checkout code
       uses: actions/checkout@v2
     - name: Setup java
@@ -98,5 +101,5 @@ jobs:
       with:
         artifacts: "build/app/outputs/apk/release/*.apk,build/app/outputs/bundle/release/app-release.aab,build/ios/iphoneos/Runner.app."
         token: ${{ secrets.TOKEN }}
-        tag: ${{ steps.gitversion.outputs.VERSION }}
+        tag: ${{needs.version.outputs.releaseversion}}
         commit: ${{ github.sha }}
