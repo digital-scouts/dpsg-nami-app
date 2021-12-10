@@ -60,7 +60,6 @@ jobs:
       - name: Display gitversion
         run: |
           echo "git-version: ${{ VERSION }}"
-          echo "git-version: $VERSION"
   
   build:
     needs: test
