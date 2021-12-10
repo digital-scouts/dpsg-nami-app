@@ -59,7 +59,6 @@ jobs:
       with:
         flutter-version: ${{env.FLUTTER_VERSION}}
     - run: flutter pub get
-    - run: flutter build ios --release --no-codesign 
     - run: |
           flutter build ios --no-codesign
           cd build/ios/iphoneos
@@ -76,4 +75,3 @@ jobs:
           artifacts: "build/app/outputs/flutter-apk/app-debug.apk"
           tag: v1.0.${{ github.run_number }}
           token: ${{ secrets.TOKEN }}
- 
