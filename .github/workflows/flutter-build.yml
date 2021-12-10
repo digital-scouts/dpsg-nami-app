@@ -63,7 +63,7 @@ jobs:
     - name: Get version.txt
       uses: gittools/actions/gitversion/setup@v0.9.7
       with:
-       versionSpec: '6.x'
+       versionSpec: '5.x'
        includePrerelease: true
     - name: Determine Version
       id:   gitversion
