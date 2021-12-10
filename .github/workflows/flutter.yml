@@ -62,7 +62,8 @@ jobs:
       with:
         flutter-version: ${{env.FLUTTER_VERSION}}
     - run: flutter pub get
-    - run: flutter build ios --release --no-codesign
+    - run: flutter build ios --release --no-codesign 
+        #Built /Users/runner/work/dpsg-nami-app/dpsg-nami-app/build/ios/iphoneos/Runner.app.
   build-android:
     needs: test
     name: flutter build android
@@ -82,6 +83,12 @@ jobs:
           flutter-version: ${{env.FLUTTER_VERSION}}
           channel: 'stable' # or: 'beta', 'dev' or 'master'
       - run: flutter pub get
-      - run: flutter build apk --debug
+      - run: flutter build apk --debug #Built build/app/outputs/flutter-apk/app-debug.apk.
+      - name: Push to Releases
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "build/app/outputs/flutter-apk/app-debug.apk"
+          tag: v1.0.${{ github.run_number }}
+          token: ${{ secrets.TOKEN }}
     
     
