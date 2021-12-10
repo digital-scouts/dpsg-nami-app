@@ -48,15 +48,21 @@ jobs:
       JAVA_VERSION: "11"
       FLUTTER_VERSION: "2.5.3"
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-java@v1
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Setup java
+      uses: actions/setup-java@v1
       with:
         java-version: ${{env.JAVA_VERSION}}
-    - uses: subosito/flutter-action@v1
+    - name: Setup Flutter    
+      uses: subosito/flutter-action@v1
       with:
         flutter-version: ${{env.FLUTTER_VERSION}}
-    - run: flutter pub get
-    - run: |
+    - name: Pub get
+      run: flutter pub get
+    - name: Build iOS
+      id: create_release_ios
+      run: |
           flutter build ios --no-codesign
           cd build/ios/iphoneos
           mkdir Payload
@@ -65,7 +71,9 @@ jobs:
           cd ..
           zip -r app.ipa Payload
         #Built /Users/runner/work/dpsg-nami-app/dpsg-nami-app/build/ios/iphoneos/Runner.app.
-    - run: flutter build apk --debug #Built build/app/outputs/flutter-apk/app-debug.apk.
+    - name: Build Android
+      id: create_release_android
+      run: flutter build apk --debug #Built build/app/outputs/flutter-apk/app-debug.apk.
     - name: Push to Releases
       uses: ncipollo/release-action@v1
       with:
