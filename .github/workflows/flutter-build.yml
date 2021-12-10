@@ -47,7 +47,7 @@ jobs:
     name: flutter version
     runs-on: ubuntu-latest
     outputs:
-      output1: ${{ steps.v.outputs.test }}
+      releaseversion: ${{ steps.v.outputs.version }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
@@ -62,7 +62,7 @@ jobs:
           prefix: v
       - name: Save git-version
         id: v
-        run: echo "::set-output name=test:::${{ steps.gitversion.outputs.VERSION }}"
+        run: echo "::set-output name=version:::${{ steps.gitversion.outputs.VERSION }}"
   
   build:
     needs: [test, version]
