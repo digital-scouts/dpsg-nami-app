@@ -45,13 +45,13 @@ jobs:
       # want to change this to 'flutter test'.
       #- name: Run tests
       #  run: dart test
-  build:
+  build-ios:
     needs: test
-    name: flutter build app
+    name: flutter build ios
     runs-on: macos-latest
     
     env:
-      JAVA_VERSION: "17.0.1"
+      JAVA_VERSION: "11"
       FLUTTER_VERSION: "2.5.3"
     steps:
     - uses: actions/checkout@v2
@@ -62,5 +62,26 @@ jobs:
       with:
         flutter-version: ${{env.FLUTTER_VERSION}}
     - run: flutter pub get
-    - run: flutter build apk --debug
     - run: flutter build ios --release --no-codesign
+  build-android:
+    needs: test
+    name: flutter build android
+    runs-on: ubuntu-latest
+    
+    env:
+      JAVA_VERSION: "11"
+      FLUTTER_VERSION: "2.5.3"
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-java@v2
+        with:
+          distribution: 'zulu'
+          java-version: ${{env.JAVA_VERSION}}
+      - uses: subosito/flutter-action@v1
+        with:
+          flutter-version: ${{env.FLUTTER_VERSION}}
+          channel: 'stable' # or: 'beta', 'dev' or 'master'
+      - run: flutter pub get
+      - run: flutter build apk --debug
+    
+    
