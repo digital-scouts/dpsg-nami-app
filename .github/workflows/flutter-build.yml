@@ -1,8 +1,6 @@
 name: Test & Build
 
 on:
-  release:
-    types: [created]
   workflow_dispatch:
 
 jobs:
@@ -99,7 +97,7 @@ jobs:
     - name: Create a Release in GitHub
       uses: ncipollo/release-action@v1
       with:
-        artifacts: "build/app/outputs/apk/release/*.apk,build/app/outputs/bundle/release/app-release.aab,build/ios/iphoneos/Runner.app."
+        artifacts: "build/app/outputs/flutter-apk/*.apk,build/app/outputs/bundle/release/app-release.aab,build/ios/iphoneos/Runner.app"
         token: ${{ secrets.TOKEN }}
         tag: ${{needs.version.outputs.releaseversion}}
         commit: ${{ github.sha }}
