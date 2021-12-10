@@ -47,7 +47,7 @@ jobs:
     name: flutter version
     runs-on: ubuntu-latest
     outputs:
-      output1: ${{ steps.step1.gitversion.releaseversion }}
+      output1: ${{ steps.v.outputs.test }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
@@ -55,14 +55,14 @@ jobs:
           ref: ${{ github.head_ref }}   # checkout the correct branch name
           fetch-depth: 0                # fetch the whole repo history
       - name: Git Version
-        id: version
+        id: gitversion
         uses: codacy/git-version@2.2.0
         with:
           dev-branch: develop
           prefix: v
       - name: Save git-version
-        id: gitversion
-        run: echo "::set-output name=releaseversion::${{ steps.version.outputs.VERSION }}"
+        id: v
+        run: echo "::set-output name=test:::${{ steps.gitversion.outputs.VERSION }}"
   
   build:
     needs: [test, version]
@@ -72,8 +72,7 @@ jobs:
       JAVA_VERSION: "11"
       FLUTTER_VERSION: "2.5.3"
     steps:
-    -  run: |
-        echo "version: ${{ needs.version.outputs.releaseversion }}"
+    - run: echo ${{needs.version.outputs.releaseversion}}
     - name: Checkout code
       uses: actions/checkout@v2
     - name: Setup java
