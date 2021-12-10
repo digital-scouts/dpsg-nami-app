@@ -8,6 +8,7 @@ on:
       - '.vscode/**'
       - 'releases/**'
       - '**/README.md'
+      - '**/GitVersion.yml'
   pull_request: 
     branches: [ master, develop ]
     paths-ignore:
@@ -15,6 +16,7 @@ on:
       - '.vscode/**'
       - 'releases/**'
       - '**/README.md'
+      - '**/GitVersion.yml'
     
  
 jobs:
