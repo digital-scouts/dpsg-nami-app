@@ -1,6 +1,8 @@
 name: Test & Build
 
 on:
+  release:
+    types: [created]
   workflow_dispatch:
 
 jobs:
@@ -58,11 +60,17 @@ jobs:
       uses: subosito/flutter-action@v1
       with:
         flutter-version: ${{env.FLUTTER_VERSION}}
-    - name: Pub get
-      run: flutter pub get
-    - name: Build iOS
-      id: create_release_ios
-      run: |
+    - name: Get version.txt
+      uses: actions/download-artifact@v2
+      with:
+        name: gitversion
+    - name: Read version
+      id: version
+      uses: juliangruber/read-file-action@v1
+      with:
+        path: version.txt
+    - run: flutter pub get
+    - run: |
           flutter build ios --no-codesign
           cd build/ios/iphoneos
           mkdir Payload
@@ -71,12 +79,12 @@ jobs:
           cd ..
           zip -r app.ipa Payload
         #Built /Users/runner/work/dpsg-nami-app/dpsg-nami-app/build/ios/iphoneos/Runner.app.
-    - name: Build Android
-      id: create_release_android
-      run: flutter build apk --debug #Built build/app/outputs/flutter-apk/app-debug.apk.
-    - name: Push to Releases
+    - run: flutter build apk --debug #Built build/app/outputs/flutter-apk/app-debug.apk.
+    - run: flutter build appbundle
+    - name: Create a Release in GitHub
       uses: ncipollo/release-action@v1
       with:
-          artifacts: "build/app/outputs/flutter-apk/app-debug.apk"
-          tag: ${{ github.ref_name }}
-          token: ${{ secrets.TOKEN }}
+        artifacts: "build/app/outputs/apk/release/*.apk,build/app/outputs/bundle/release/app-release.aab,build/ios/iphoneos/Runner.app."
+        token: ${{ secrets.TOKEN }}
+        tag: ${{ steps.version.outputs.content }}
+        commit: ${{ github.sha }}
