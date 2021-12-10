@@ -55,13 +55,14 @@ jobs:
           ref: ${{ github.head_ref }}   # checkout the correct branch name
           fetch-depth: 0                # fetch the whole repo history
       - name: Git Version
-        id: gitversion
+        id: version
         uses: codacy/git-version@2.2.0
         with:
           dev-branch: develop
           prefix: v
       - name: Save git-version
-        run: echo "::set-output name=releaseversion::${{ steps.gitversion.outputs.VERSION }}"
+        id: gitversion
+        run: echo "::set-output name=releaseversion::${{ steps.version.outputs.VERSION }}"
   
   build:
     needs: [test, version]
