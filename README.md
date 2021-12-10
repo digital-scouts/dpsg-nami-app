@@ -3,7 +3,7 @@
 <!-- https://buttons.github.io -->
 <!-- https://shields.io/category/social -->
 [![Watch](https://img.shields.io/github/watchers/JanneckLange/dpsg-nami-app?label=Watch)](https://github.com/JanneckLange/dpsg-nami-app/subscription)
-[![Flutter](https://github.com/JanneckLange/dpsg-nami-app/actions/workflows/flutter.yml/badge.svg?branch=master)](https://github.com/JanneckLange/dpsg-nami-app/actions/workflows/flutter.yml)
+[![Test](https://github.com/JanneckLange/dpsg-nami-app/actions/workflows/flutter-test.yml/badge.svg)](https://github.com/JanneckLange/dpsg-nami-app/actions/workflows/flutter-test.yml)
 [![Release](https://img.shields.io/github/v/release/janneckLange/dpsg-nami-app?display_name=tag&include_prereleases)](https://github.com/JanneckLange/dpsg-nami-app/releases)
 [![Commit](https://shields.io/github/last-commit/JanneckLange/dpsg-nami-app/develop)](https://github.com/JanneckLange/dpsg-nami-app/commits/develop)
   
