@@ -1,9 +1,6 @@
-name: Flutter
+name: Test & Build
 
 on:
-  push:
-    branches: [ master ]
-
   workflow_dispatch:
 
 jobs:
@@ -73,5 +70,5 @@ jobs:
       uses: ncipollo/release-action@v1
       with:
           artifacts: "build/app/outputs/flutter-apk/app-debug.apk"
-          tag: v1.0.${{ github.run_number }}
+          tag: ${{ github.ref_name }}
           token: ${{ secrets.TOKEN }}
