@@ -33,7 +33,7 @@ Dies ist ein Flutter Projekt um die NaMi als App für Android und iOS anzubieten
 
 ## Versionen
 
-### [0.0.2] - 09.12.2021
+### [0.0.2] - 09.12.2021 [![Test](https://img.shields.io/badge/release-v0.0.2-blue)](https://github.com/JanneckLange/dpsg-nami-app/releases/tag/v0.0.2)
 
 - Changed: Offline Mode to Sync-Button
 - Add: Update only new Versions of Members
