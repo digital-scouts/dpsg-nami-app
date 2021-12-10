@@ -3,9 +3,20 @@ name: Test
 on:
   push:
     branches: [ master, develop ]
+    paths-ignore:
+      - '.github/**'
+      - '.vscode/**'
+      - 'releases/**'
+      - '**/README.md'
   pull_request: 
     branches: [ master, develop ]
-
+    paths-ignore:
+      - '.github/**'
+      - '.vscode/**'
+      - 'releases/**'
+      - '**/README.md'
+    
+ 
 jobs:
   test:
     name: flutter test
