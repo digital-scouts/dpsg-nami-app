@@ -42,6 +42,23 @@ jobs:
       # want to change this to 'flutter test'.
       #- name: Run tests
       #  run: dart test
+  version:
+    needs: test
+    name: flutter version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref }}   # checkout the correct branch name
+          fetch-depth: 0                # fetch the whole repo history
+      - name: Git Version
+        id: gitversion1
+        uses: codacy/git-version@2.2.0
+      - name: Display gitversion
+        run: |
+          echo "git-version: ${{ steps.gitversion1.outputs.major }}"
+  
   build:
     needs: test
     name: flutter build
@@ -60,17 +77,6 @@ jobs:
       uses: subosito/flutter-action@v1
       with:
         flutter-version: ${{env.FLUTTER_VERSION}}
-    - name: Checkout Code
-      uses: actions/checkout@v2
-      with:
-        ref: ${{ github.head_ref }}   # checkout the correct branch name
-        fetch-depth: 0                # fetch the whole repo history
-    - name: Git Version
-      id: gitversion1
-      uses: codacy/git-version@2.2.0
-    - name: Display gitversion
-      run: |
-        echo "git-version: ${{ steps.gitversion1.outputs.major }}"
         
     - uses: gittools/actions/gitversion/setup@v0.9.7
       with:
