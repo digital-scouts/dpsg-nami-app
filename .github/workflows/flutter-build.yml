@@ -54,9 +54,13 @@ jobs:
       - name: Git Version
         id: gitversion1
         uses: codacy/git-version@2.2.0
+        with:
+          dev-branch: develop
+          prefix: v
       - name: Display gitversion
         run: |
-          echo "git-version: ${{ steps.gitversion1.outputs.major }}"
+          echo "git-version: ${{ VERSION }}"
+          echo "git-version: $VERSION"
   
   build:
     needs: test
