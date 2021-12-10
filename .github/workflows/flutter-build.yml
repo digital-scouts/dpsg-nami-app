@@ -60,7 +60,7 @@ jobs:
           prefix: v
       - name: Display gitversion
         run: |
-          echo "git-version: ${{ steps.gitversion1.outputs.VERSION }}"
+          echo "git-version: ${{ steps.gitversion.outputs.VERSION }}"
   
   build:
     needs: [test, version]
