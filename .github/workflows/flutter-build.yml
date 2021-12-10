@@ -62,7 +62,7 @@ jobs:
           prefix: v
       - name: Save git-version
         id: v
-        run: echo "::set-output name=version:::${{ steps.gitversion.outputs.VERSION }}"
+        run: echo "::set-output name=version::${{ steps.gitversion.outputs.VERSION }}"
   
   build:
     needs: [test, version]
