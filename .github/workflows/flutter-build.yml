@@ -60,8 +60,19 @@ jobs:
       uses: subosito/flutter-action@v1
       with:
         flutter-version: ${{env.FLUTTER_VERSION}}
-    - name: Get version.txt
-      uses: gittools/actions/gitversion/setup@v0.9.7
+    - name: Checkout Code
+      uses: actions/checkout@v2
+      with:
+        ref: ${{ github.head_ref }}   # checkout the correct branch name
+        fetch-depth: 0                # fetch the whole repo history
+    - name: Git Version
+      id: gitversion1
+      uses: codacy/git-version@2.2.0
+    - name: Display gitversion
+      run: |
+        echo "git-version: ${{ steps.gitversion1.outputs.major }}"
+        
+    - uses: gittools/actions/gitversion/setup@v0.9.7
       with:
        versionSpec: '5.x'
     - name: Determine Version
