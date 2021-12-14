@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:nami/model/nami_stats_model.dart';
 import 'package:nami/utilities/hive/settings.dart';
+import 'model/nami_stats.model.dart';
 import 'nami-member.service.dart';
 
 /// läd Nami Dashboard Statistiken

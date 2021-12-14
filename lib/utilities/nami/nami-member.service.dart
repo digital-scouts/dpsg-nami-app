@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:nami/model/nami_member_details_model.dart';
 import 'package:nami/utilities/constants.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:hive/hive.dart';
@@ -10,6 +9,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import 'package:nami/utilities/hive/settings.dart';
+
+import 'model/nami_member_details.model.dart';
 
 ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? snackbar;
 
