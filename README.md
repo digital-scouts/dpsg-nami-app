@@ -10,22 +10,24 @@
 [![Test](https://github.com/JanneckLange/dpsg-nami-app/actions/workflows/flutter-test.yml/badge.svg)](https://github.com/JanneckLange/dpsg-nami-app/actions/workflows/flutter-test.yml)
 [![Commit](https://shields.io/github/last-commit/JanneckLange/dpsg-nami-app/develop)](https://github.com/JanneckLange/dpsg-nami-app/commits/develop)
 
-<!-- https://buttons.github.io -->
-<!-- https://shields.io/category/social -->
-
-
-  
-
 Die NaMi ist die Namentliche Mitgliedermeldung des Pfadfinderverbandes DPSG (Deutsche Pfadfinderschaft Sankt Georg).
 
-Dies ist ein Flutter Projekt um die NaMi als App für Android und iOS anzubieten. 
+Dies ist ein Flutter Projekt um die NaMi als App für Android und iOS anzubieten.
+
+## Lizenz
+
+[![Lizenz](https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png)](https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png)
+
+Dieses Werk ist lizenziert unter einer [Creative Commons Namensnennung - Nicht-kommerziell - Weitergabe unter gleichen Bedingungen 4.0 International Lizenz.](http://creativecommons.org/licenses/by-nc-sa/4.0/)
 
 ## Aktuelle Funktionen
+
 - Mitglieder auflisten, sortien und filtern
 - Deteils von Mitgliedern ansehen. Über Buttons anrufen, E-Mails schreiben oder die Adresse auf der Karte anzeigen
 - Mitgliedsdaten sind offline verfügbar und können nach belieben syncronisiert werden
 
 ## Geplante Funktionen
+
 - Mitglieder bearbeiten, löschen und anlegen per Texterkennung
 - Stufenwechsel durchführen
 - Führungszeugniss antragsunterlagen runterladen
@@ -45,4 +47,3 @@ Dies ist ein Flutter Projekt um die NaMi als App für Android und iOS anzubieten
 - Add: Login
 - Add: Member List
 - Add: Offline Mode
-
