@@ -50,21 +50,21 @@ extension StufenExtension on Stufe {
     }
   }
 
-  MaterialColor color() {
+  Color color() {
     switch (this) {
       case Stufe.jufi:
-        return Colors.blue;
+        return const Color(0xFF0042D1);
       case Stufe.leiter:
-        return Colors.yellow;
+        return const Color(0xFFFBFF00);
       case Stufe.rover:
-        return Colors.red;
+        return const Color(0xFFFF0000);
       case Stufe.pfadi:
-        return Colors.green;
+        return const Color(0xFF00B609);
       case Stufe.woe:
-        return Colors.orange;
+        return const Color(0xFFEC8702);
       case Stufe.none:
       default:
-        return Colors.grey;
+        return const Color(0xFF949494);
     }
   }
 

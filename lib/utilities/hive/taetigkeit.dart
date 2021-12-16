@@ -32,4 +32,20 @@ class Taetigkeit {
 
   @HiveField(8)
   late String? berechtigteUntergruppen;
+
+  bool isLeitung() {
+    if (isActive() && taetigkeit.contains('LeiterIn')) {
+      return true;
+    }
+    return false;
+  }
+
+  bool isActive() {
+    DateTime now = DateTime.now();
+    if (aktivVon.isBefore(now) &&
+        (aktivBis == null || aktivBis!.isAfter(now))) {
+      return true;
+    }
+    return false;
+  }
 }

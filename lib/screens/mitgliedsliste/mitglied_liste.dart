@@ -112,9 +112,25 @@ class _MitgliedsListeState extends State<MitgliedsListe> {
           child: Card(
             child: ListTile(
               leading: Container(
-                color: StufenExtension.getValueFromString(
-                        filteredMitglieder[index].stufe)
-                    .color(),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                      colors: [
+                        filteredMitglieder[index].isMitgliedLeiter()
+                            ? StufenExtension.getValueFromString(
+                                    Stufe.leiter.string())
+                                .color()
+                            : StufenExtension.getValueFromString(
+                                    filteredMitglieder[index].stufe)
+                                .color(),
+                        StufenExtension.getValueFromString(
+                                filteredMitglieder[index].stufe)
+                            .color()
+                      ],
+                      begin: const FractionalOffset(0.0, 0.0),
+                      end: const FractionalOffset(0.0, 1.0),
+                      stops: const [0.5, 0.5],
+                      tileMode: TileMode.clamp),
+                ),
                 width: 5,
               ),
               minLeadingWidth: 5,
