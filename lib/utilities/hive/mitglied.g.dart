@@ -39,13 +39,14 @@ class MitgliedAdapter extends TypeAdapter<Mitglied> {
       ..version = fields[20] as int
       ..mglTypeId = fields[21] as String
       ..beitragsartId = fields[22] as int
-      ..status = fields[23] as String;
+      ..status = fields[23] as String
+      ..taetigkeit = (fields[24] as List).cast<Taetigkeit>();
   }
 
   @override
   void write(BinaryWriter writer, Mitglied obj) {
     writer
-      ..writeByte(23)
+      ..writeByte(24)
       ..writeByte(0)
       ..write(obj.vorname)
       ..writeByte(1)
@@ -91,7 +92,9 @@ class MitgliedAdapter extends TypeAdapter<Mitglied> {
       ..writeByte(22)
       ..write(obj.beitragsartId)
       ..writeByte(23)
-      ..write(obj.status);
+      ..write(obj.status)
+      ..writeByte(24)
+      ..write(obj.taetigkeit);
   }
 
   @override
