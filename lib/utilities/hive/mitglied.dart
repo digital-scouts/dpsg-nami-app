@@ -81,6 +81,15 @@ class Mitglied {
   @HiveField(24)
   late List<Taetigkeit> taetigkeit;
 
+  bool isMitgliedLeiter() {
+    for (Taetigkeit t in taetigkeit) {
+      if (t.isLeitung()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /// 0 gleich | <0 this ist alpabetisch früher | >0 this ist alpabetisch später
   int compareByName(Mitglied mitglied) {
     String m1Name = '$vorname $nachname';
