@@ -181,6 +181,6 @@ Future<void> storeMitgliedToHive(
     ..mglTypeId = rawMember.mglTypeId
     ..beitragsartId = rawMember.beitragsartId ?? 0
     ..status = rawMember.status
-    ..taetigkeit = taetigkeiten;
+    ..taetigkeiten = taetigkeiten;
   memberBox.put(mitgliedId, mitglied);
 }

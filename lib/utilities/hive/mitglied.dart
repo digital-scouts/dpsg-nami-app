@@ -79,10 +79,10 @@ class Mitglied {
   late String status;
 
   @HiveField(24)
-  late List<Taetigkeit> taetigkeit;
+  late List<Taetigkeit> taetigkeiten;
 
   bool isMitgliedLeiter() {
-    for (Taetigkeit t in taetigkeit) {
+    for (Taetigkeit t in taetigkeiten) {
       if (t.isLeitung()) {
         return true;
       }

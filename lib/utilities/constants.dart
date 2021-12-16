@@ -53,15 +53,15 @@ extension StufenExtension on Stufe {
   Color color() {
     switch (this) {
       case Stufe.jufi:
-        return const Color(0xFF0042D1);
+        return const Color(0xFF007bff);
       case Stufe.leiter:
-        return const Color(0xFFFBFF00);
+        return const Color(0xFFFFD148);
       case Stufe.rover:
-        return const Color(0xFFFF0000);
+        return const Color(0xFFdc3545);
       case Stufe.pfadi:
-        return const Color(0xFF00B609);
+        return const Color(0xFF26823c);
       case Stufe.woe:
-        return const Color(0xFFEC8702);
+        return const Color(0xFFf56403);
       case Stufe.none:
       default:
         return const Color(0xFF949494);
