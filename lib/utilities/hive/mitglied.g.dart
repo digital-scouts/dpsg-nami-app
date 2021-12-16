@@ -40,7 +40,7 @@ class MitgliedAdapter extends TypeAdapter<Mitglied> {
       ..mglTypeId = fields[21] as String
       ..beitragsartId = fields[22] as int
       ..status = fields[23] as String
-      ..taetigkeit = (fields[24] as List).cast<Taetigkeit>();
+      ..taetigkeiten = (fields[24] as List).cast<Taetigkeit>();
   }
 
   @override
@@ -94,7 +94,7 @@ class MitgliedAdapter extends TypeAdapter<Mitglied> {
       ..writeByte(23)
       ..write(obj.status)
       ..writeByte(24)
-      ..write(obj.taetigkeit);
+      ..write(obj.taetigkeiten);
   }
 
   @override
