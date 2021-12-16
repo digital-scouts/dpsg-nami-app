@@ -1,4 +1,4 @@
-import 'package:nami/utilities/constants.dart';
+import 'package:nami/utilities/stufe.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 
 ///Filter bei Vor- und Name, Nummer, E-Mail

@@ -5,7 +5,7 @@ import 'package:hive/hive.dart';
 import 'package:nami/screens/mitgliedsliste/mitglied_details.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/mitglied.filterAndSort.dart';
-import 'package:nami/utilities/constants.dart';
+import 'package:nami/utilities/stufe.dart';
 
 class MitgliedsListe extends StatefulWidget {
   const MitgliedsListe({Key? key}) : super(key: key);
@@ -24,6 +24,7 @@ class _MitgliedsListeState extends State<MitgliedsListe> {
       List.empty(growable: true);
   List<bool> filterGroup = List.generate(Stufe.values.length, (index) => false);
   bool disableInactive = true;
+  bool customFilterActive = false;
 
   @override
   void initState() {
@@ -100,6 +101,12 @@ class _MitgliedsListeState extends State<MitgliedsListe> {
     applyFilterAndSort();
   }
 
+  void toogleCustomFilter(bool value) {
+    setState(() {
+      customFilterActive = !customFilterActive;
+    });
+  }
+
   Widget _buildMemberList() {
     return ListView.builder(
       padding: const EdgeInsets.all(8),
@@ -150,18 +157,12 @@ class _MitgliedsListeState extends State<MitgliedsListe> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text("Sortiere nach"),
+        Text("Sortiere nach", style: Theme.of(context).textTheme.bodyText1),
         const SizedBox(width: 15),
         DropdownButton<String>(
             value: sorting.string(),
             icon: const Icon(Icons.expand_more),
-            iconSize: 24,
-            elevation: 16,
-            style: const TextStyle(color: Colors.deepPurple),
-            underline: Container(
-              height: 2,
-              color: Colors.deepPurpleAccent,
-            ),
+            style: Theme.of(context).textTheme.bodyText1,
             onChanged: setSorting,
             items: sortingDropdownValues)
       ],
@@ -214,16 +215,15 @@ class _MitgliedsListeState extends State<MitgliedsListe> {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
             child: TextField(
               onChanged: setSearchValue,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
+                hintStyle: Theme.of(context).textTheme.caption,
                 filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(),
                 hintText: 'Textsuche (Name, Mail, Mitgliedsnummer)',
               ),
             ),
           ),
           _buildFilterGroup(),
-          const Divider(color: Colors.black),
+          const Divider(),
           CheckboxListTile(
             value: disableInactive,
             title: const Text('Inaktive Mitglieder ausblenden'),
@@ -237,12 +237,17 @@ class _MitgliedsListeState extends State<MitgliedsListe> {
     return Scaffold(
         body: BackdropScaffold(
             appBar: BackdropAppBar(
-              title: const Text("Mitglieder"),
-              leading: const BackButton(),
-              actions: const <Widget>[
+              title: const Center(child: Text("Mitglieder")),
+              automaticallyImplyLeading: false,
+              actions: <Widget>[
+                Switch(
+                  value: customFilterActive,
+                  onChanged: toogleCustomFilter,
+                ),
                 BackdropToggleButton(
                   icon: AnimatedIcons.search_ellipsis,
-                )
+                  color: Theme.of(context).iconTheme.color ?? Colors.black,
+                ),
               ],
             ),
             backLayer: _buildFilter(),

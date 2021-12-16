@@ -1,6 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:nami/utilities/constants.dart';
+import 'package:nami/utilities/stufe.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
 import 'package:url_launcher/url_launcher.dart';

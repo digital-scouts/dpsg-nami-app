@@ -1,28 +1,5 @@
 import 'package:flutter/material.dart';
 
-const kHintTextStyle = TextStyle(
-  color: Colors.white54,
-  fontFamily: 'OpenSans',
-);
-
-const kLabelStyle = TextStyle(
-  color: Colors.white,
-  fontWeight: FontWeight.bold,
-  fontFamily: 'OpenSans',
-);
-
-final kBoxDecorationStyle = BoxDecoration(
-  color: const Color(0xFF6CA8F1),
-  borderRadius: BorderRadius.circular(10.0),
-  boxShadow: const [
-    BoxShadow(
-      color: Colors.black12,
-      blurRadius: 6.0,
-      offset: Offset(0, 2),
-    ),
-  ],
-);
-
 enum Stufe { woe, jufi, pfadi, rover, leiter, none }
 const stufeWoeString = "Wölfling";
 const stufeJufiString = 'Jungpfadfinder';
@@ -30,6 +7,14 @@ const stufePfadiString = "Pfadfinder";
 const stufeRoverString = "Rover";
 const stufeLeiterString = "Leiter";
 const stufeNoneString = "keine Stufe";
+const stufenFarbe = {
+  Stufe.woe: Color(0xFFf56403),
+  Stufe.jufi: Color(0xFF007bff),
+  Stufe.pfadi: Color(0xFF26823c),
+  Stufe.rover: Color(0xFFdc3545),
+  Stufe.leiter: Color(0xFFFFD148),
+  Stufe.none: Color(0xFF949494)
+};
 
 extension StufenExtension on Stufe {
   String string() {
@@ -53,18 +38,18 @@ extension StufenExtension on Stufe {
   Color color() {
     switch (this) {
       case Stufe.jufi:
-        return const Color(0xFF007bff);
+        return stufenFarbe[Stufe.jufi]!;
       case Stufe.leiter:
-        return const Color(0xFFFFD148);
+        return stufenFarbe[Stufe.leiter]!;
       case Stufe.rover:
-        return const Color(0xFFdc3545);
+        return stufenFarbe[Stufe.rover]!;
       case Stufe.pfadi:
-        return const Color(0xFF26823c);
+        return stufenFarbe[Stufe.pfadi]!;
       case Stufe.woe:
-        return const Color(0xFFf56403);
+        return stufenFarbe[Stufe.woe]!;
       case Stufe.none:
       default:
-        return const Color(0xFF949494);
+        return stufenFarbe[Stufe.none]!;
     }
   }
 

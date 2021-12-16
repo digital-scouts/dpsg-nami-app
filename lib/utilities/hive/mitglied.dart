@@ -1,7 +1,7 @@
 import 'package:hive/hive.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
 
-import '../constants.dart';
+import '../stufe.dart';
 
 // flutter packages pub run build_runner build
 

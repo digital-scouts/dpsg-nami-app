@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:nami/utilities/constants.dart';
+import 'package:nami/utilities/stufe.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:hive/hive.dart';
 import 'dart:convert';
