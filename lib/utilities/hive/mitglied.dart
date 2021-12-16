@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import 'package:nami/utilities/hive/taetigkeit.dart';
 
 import '../constants.dart';
 
@@ -76,6 +77,9 @@ class Mitglied {
 
   @HiveField(23)
   late String status;
+
+  @HiveField(24)
+  late List<Taetigkeit> taetigkeit;
 
   /// 0 gleich | <0 this ist alpabetisch früher | >0 this ist alpabetisch später
   int compareByName(Mitglied mitglied) {
