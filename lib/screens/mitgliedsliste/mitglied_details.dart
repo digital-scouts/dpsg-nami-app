@@ -122,28 +122,31 @@ class _MitgliedDetailState extends State<MitgliedDetail> {
         alteTaetigkeiten.add(taetigkeit);
       }
     }
+    if (aktiveTaetigkeiten.isEmpty && alteTaetigkeiten.isNotEmpty) {
+      showMoreTaetigkeiten = true;
+    }
     return _buildBox(<Widget>[
       const Text("Aktive Tätigkeiten", style: TextStyle(color: Colors.white)),
       for (Taetigkeit item in aktiveTaetigkeiten)
         Text(
             '${item.taetigkeit} - ${item.untergliederung} (Seit: ${item.aktivVon.month}/${item.aktivVon.year})',
             style: const TextStyle(color: Colors.white)),
-      const SizedBox(height: 10),
-      if (!showMoreTaetigkeiten)
+      if (alteTaetigkeiten.isNotEmpty) const SizedBox(height: 10),
+      if (!showMoreTaetigkeiten && alteTaetigkeiten.isNotEmpty)
         GestureDetector(
           onTap: () {
             setState(() => showMoreTaetigkeiten = true);
           },
           child: const Text("Alte Tätigkeiten anzeigen"),
         ),
-      if (showMoreTaetigkeiten)
+      if (showMoreTaetigkeiten && alteTaetigkeiten.isNotEmpty)
         const Text("Alte Tätigkeiten", style: TextStyle(color: Colors.white)),
-      if (showMoreTaetigkeiten)
+      if (showMoreTaetigkeiten && alteTaetigkeiten.isNotEmpty)
         for (Taetigkeit item in alteTaetigkeiten)
           Text(
               '${item.taetigkeit} - ${item.untergliederung} (${item.aktivVon.month}/${item.aktivVon.year}-${item.aktivBis!.month}/${item.aktivBis!.year})',
               style: const TextStyle(color: Colors.white)),
-      if (showMoreTaetigkeiten)
+      if (showMoreTaetigkeiten && aktiveTaetigkeiten.isNotEmpty)
         GestureDetector(
           onTap: () {
             setState(() => showMoreTaetigkeiten = false);
