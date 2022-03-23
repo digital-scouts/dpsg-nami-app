@@ -39,6 +39,11 @@ class _HomeDrawerState extends State<HomeDrawer> {
         labelName: 'Mitglieder',
         icon: const Icon(Icons.group),
       ),
+      DrawerList(
+        index: DrawerIndex.stats,
+        labelName: 'Statistiken',
+        icon: const Icon(Icons.analytics),
+      ),
     ];
   }
 
@@ -298,9 +303,7 @@ class _HomeDrawerState extends State<HomeDrawer> {
   }
 }
 
-enum DrawerIndex {
-  mitglieder,
-}
+enum DrawerIndex { mitglieder, stats }
 
 class DrawerList {
   DrawerList({

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nami/screens/mitgliedsliste/mitglied_liste.dart';
+import 'package:nami/screens/statistiken/statistiken_sceen.dart';
 import 'package:nami/utilities/custom_drawer/drawer_user_controller.dart';
 import 'package:nami/utilities/custom_drawer/home_drawer.dart';
 
@@ -51,6 +52,10 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
       if (drawerIndex == DrawerIndex.mitglieder) {
         setState(() {
           screenView = const MitgliedsListe();
+        });
+      } else if (drawerIndex == DrawerIndex.stats) {
+        setState(() {
+          screenView = const StatistikScreen();
         });
       } else {
         // Hier alle weiteren Naviagtionspunkte des Seitenmenüs definieren
