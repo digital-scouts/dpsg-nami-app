@@ -11,16 +11,33 @@ import 'package:nami/utilities/nami/nami-login.service.dart';
 import 'package:nami/utilities/theme.dart';
 import 'package:provider/provider.dart';
 import 'utilities/nami/nami.service.dart';
-
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:io';
+import 'dart:convert';
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
 
+  const secureStorage = FlutterSecureStorage();
+  // if key not exists return null
+  var encryprionKey = await secureStorage.read(key: 'key');
+  if (encryprionKey == null) {
+    final key = Hive.generateSecureKey();
+    await secureStorage.write(
+      key: 'key',
+      value: base64UrlEncode(key),
+    );
+  }
+  final encryptionKey =
+      base64Url.decode((await secureStorage.read(key: 'key'))!);
+
   Hive.registerAdapter(TaetigkeitAdapter());
-  await Hive.openBox<Taetigkeit>('taetigkeit');
+  var taetigkeitBox = await Hive.openBox<Taetigkeit>('taetigkeit',
+      encryptionCipher: HiveAesCipher(encryptionKey));
   Hive.registerAdapter(MitgliedAdapter());
-  await Hive.openBox<Mitglied>('members');
+  var memberBox = await Hive.openBox<Mitglied>('members',
+      encryptionCipher: HiveAesCipher(encryptionKey));
 
   runApp(ChangeNotifierProvider<ThemeModel>(
       create: (_) => ThemeModel(), child: const MyApp()));
@@ -36,7 +53,9 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   Future<bool> init() async {
     await Hive.openBox('settingsBox');
-    return await isOnline() && await needLogin();
+    var _isOnline = await isOnline();
+    var _needLogin = await needLogin();
+    return _isOnline && !_needLogin;
   }
 
   Future<bool> isOnline() async {
@@ -68,7 +87,9 @@ class _MyAppState extends State<MyApp> {
       // automatisch alle 30 Tage Syncronisieren
       syncNamiData(context);
     }
-
+    if (lastLoginCheck <= 15) {
+      return false;
+    }
     return true;
   }
 
@@ -87,7 +108,7 @@ class _MyAppState extends State<MyApp> {
                     child: Text('Something went wrong :/'),
                   ),
                 );
-              } else if (snapshot.data == true) {
+              } else if (!(snapshot.data as bool)) {
                 return const LoginScreen();
               } else {
                 return const NavigationHomeScreen();

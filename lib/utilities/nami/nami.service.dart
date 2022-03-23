@@ -50,9 +50,9 @@ Future<int> loadGruppierung({node = 'root'}) async {
 }
 
 void syncNamiData(BuildContext context) async {
-  setLastNamiSync(DateTime.now());
   await syncGruppierung();
-  syncMember(context);
+  await syncMember(context);
+  setLastNamiSync(DateTime.now());
   //syncStats
   //syncProfile
 }
@@ -62,5 +62,6 @@ syncGruppierung() async {
   if (gruppierung == 0) {
     throw Exception("Keine eindeutige Gruppierung gefunden");
   }
+  print('gruppierung: $gruppierung');
   setGruppierung(gruppierung);
 }

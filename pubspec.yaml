@@ -26,6 +26,7 @@ dependencies:
   url_launcher: ^6.0.8
   maps_launcher: ^2.0.1
   provider: ^6.0.1
+  flutter_secure_storage: ^5.0.2
 
 dev_dependencies:
   flutter_test:
