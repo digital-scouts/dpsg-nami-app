@@ -101,16 +101,20 @@ showSyncStatus(String text, BuildContext context, {bool lastUpdate = false}) {
   }
 
   Timer(duration, () => snackbar = null);
-  snackbar = ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-    content: Text(text),
-    duration: duration,
-    action: lastUpdate
-        ? SnackBarAction(
-            label: 'Ok',
-            onPressed: () => {},
-          )
-        : null,
-  ));
+  try {
+    snackbar = ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(text),
+      duration: duration,
+      action: lastUpdate
+          ? SnackBarAction(
+              label: 'Ok',
+              onPressed: () => {},
+            )
+          : null,
+    ));
+  } catch (e) {
+    debugPrint('Cant show snackbar');
+  }
 }
 
 syncMember(BuildContext context) async {

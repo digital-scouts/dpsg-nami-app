@@ -27,6 +27,7 @@ dependencies:
   maps_launcher: ^2.0.1
   provider: ^6.0.1
   flutter_secure_storage: ^5.0.2
+  local_auth: ^1.1.11
 
 dev_dependencies:
   flutter_test:

@@ -2,6 +2,8 @@ import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:local_auth/local_auth.dart';
 import 'package:nami/screens/login.dart';
 import 'package:nami/screens/navigation_home_screen.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
@@ -51,11 +53,61 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(home: MyHome());
+  }
+}
+
+class MyHome extends StatefulWidget {
+  MyHome({Key? key}) : super(key: key);
+
+  @override
+  State<MyHome> createState() => _MyHomeState();
+}
+
+class _MyHomeState extends State<MyHome> {
+  bool authenticated = false;
+  final LocalAuthentication auth = LocalAuthentication();
+
   Future<bool> init() async {
     await Hive.openBox('settingsBox');
+
+    bool _canCheckBiometrics = false;
+    try {
+      if (await auth.isDeviceSupported() &&
+          await auth.canCheckBiometrics &&
+          (await auth.getAvailableBiometrics()).isNotEmpty) {
+        _canCheckBiometrics = true;
+      } else {
+        _canCheckBiometrics = false;
+      }
+    } on PlatformException catch (_) {
+      _canCheckBiometrics = false;
+    }
+
+    //nami login
     var _isOnline = await isOnline();
     var _needLogin = await needLogin();
-    return _isOnline && !_needLogin;
+    if (_isOnline && _needLogin) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const LoginScreen(),
+        ),
+      );
+      _needLogin = await needLogin();
+    }
+
+    //app login
+    if (_canCheckBiometrics && !authenticated) {
+      authenticated = await authenticate();
+      setState(() {
+        authenticated = authenticated;
+      });
+    }
+
+    return _isOnline && !_needLogin && authenticated;
   }
 
   Future<bool> isOnline() async {
@@ -76,11 +128,15 @@ class _MyAppState extends State<MyApp> {
     int lastNamiSync = DateTime.now().difference(getLastNamiSync()!).inDays;
     debugPrint(
         'Letzter Login Check: $lastLoginCheck Min | Letzter Nami Sync: $lastNamiSync Days');
-    // Überpüfe den Login maximal alle 15 Minuten
-    if (lastLoginCheck > 15 && !await isLoggedIn()) {
+    // Überpüfe den Nami Login maximal alle 15 Minuten
+    if (lastLoginCheck > 15) {
+      bool _isLoggedIn = await isLoggedIn();
+      if (_isLoggedIn) {
+        return needLogin();
+      }
       debugPrint(
           'Letzter Login Check länger als 15 Minuten her. Login nicht erfolgreich.');
-      return true;
+      return false;
     } else if (lastNamiSync > 30) {
       debugPrint(
           "Letzter NaMi Sync länger als 30 Tage her. NaMi Sync wird durchgeführt.");
@@ -91,6 +147,20 @@ class _MyAppState extends State<MyApp> {
       return false;
     }
     return true;
+  }
+
+  Future<bool> authenticate() async {
+    authenticated = false;
+    try {
+      print('Authenticating');
+      return await auth.authenticate(
+          localizedReason: 'Let OS determine authentication method',
+          useErrorDialogs: true,
+          stickyAuth: false);
+    } on PlatformException catch (e) {
+      print(e);
+      return false;
+    }
   }
 
   @override
@@ -108,8 +178,6 @@ class _MyAppState extends State<MyApp> {
                     child: Text('Something went wrong :/'),
                   ),
                 );
-              } else if (!(snapshot.data as bool)) {
-                return const LoginScreen();
               } else {
                 return const NavigationHomeScreen();
               }

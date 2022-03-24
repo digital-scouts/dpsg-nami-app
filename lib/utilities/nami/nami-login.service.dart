@@ -18,7 +18,7 @@ Future<bool> isLoggedIn() async {
   try {
     print('token is valid - try to load stats');
     final stats = await loadNamiStats();
-    print(stats);
+    print('stats: ${stats.nrMitglieder}');
   } catch (ex) {
     return false;
   }

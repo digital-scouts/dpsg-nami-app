@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:nami/main.dart';
 import 'package:nami/utilities/custom_drawer/home_drawer.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/nami/nami-login.service.dart';
@@ -232,12 +233,14 @@ class _LoginScreenState extends State<LoginScreen> {
               setState(() {
                 _loading = false;
               }),
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const NavigationHomeScreen(),
-                ),
-              ),
+              Navigator.canPop(context)
+                  ? Navigator.pop(context)
+                  : Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => MyApp(),
+                      ),
+                    ),
               if (_rememberMe) {setNamiPassword(_password)},
               setNamiLoginId(_mitgliedsnummer),
             }
