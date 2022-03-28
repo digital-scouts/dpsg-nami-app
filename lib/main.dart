@@ -16,6 +16,7 @@ import 'utilities/nami/nami.service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:io';
 import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -86,10 +87,17 @@ class _MyHomeState extends State<MyHome> {
       _canCheckBiometrics = false;
     }
 
+    //online check
+    if (!await isOnline('example.com')) {
+      throw Exception('No Internet connection');
+    }
+    if (!await isOnline('nami.dpsg.de')) {
+      throw Exception('Nami is not online');
+    }
+
     //nami login
-    var _isOnline = await isOnline();
     var _needLogin = await needLogin();
-    if (_isOnline && _needLogin) {
+    if (_needLogin) {
       await Navigator.push(
         context,
         MaterialPageRoute(
@@ -107,13 +115,16 @@ class _MyHomeState extends State<MyHome> {
       });
     }
 
-    return _isOnline && !_needLogin && authenticated;
+    return !_needLogin && authenticated;
   }
 
-  Future<bool> isOnline() async {
+  Future<bool> isOnline(url) async {
     try {
-      final result = await InternetAddress.lookup('google.com');
-      if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
+      final result = await InternetAddress.lookup(url);
+      final response = await http.head(Uri.parse('https://${url}'));
+      if (result.isNotEmpty &&
+          result[0].rawAddress.isNotEmpty &&
+          response.statusCode == 200) {
         return true;
       }
     } on SocketException catch (_) {
@@ -173,9 +184,9 @@ class _MyHomeState extends State<MyHome> {
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.done) {
               if (snapshot.error != null) {
-                return const Scaffold(
+                return Scaffold(
                   body: Center(
-                    child: Text('Something went wrong :/'),
+                    child: Text('${snapshot.error}'),
                   ),
                 );
               } else {
