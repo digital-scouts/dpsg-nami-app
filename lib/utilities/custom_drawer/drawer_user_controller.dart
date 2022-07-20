@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../app_theme.dart';
 import 'home_drawer.dart';
 
 class DrawerUserController extends StatefulWidget {
@@ -92,7 +91,6 @@ class _DrawerUserControllerState extends State<DrawerUserController>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.white,
       body: SingleChildScrollView(
         controller: scrollController,
         scrollDirection: Axis.horizontal,
@@ -115,7 +113,8 @@ class _DrawerUserControllerState extends State<DrawerUserController>
                       transform: Matrix4.translationValues(
                           scrollController!.offset, 0.0, 0.0),
                       child: HomeDrawer(
-                        screenIndex: widget.screenIndex ?? DrawerIndex.home,
+                        screenIndex:
+                            widget.screenIndex ?? DrawerIndex.mitglieder,
                         iconAnimationController: iconAnimationController,
                         callBackIndex: (DrawerIndex indexType) {
                           onDrawerClick();
@@ -134,12 +133,9 @@ class _DrawerUserControllerState extends State<DrawerUserController>
                 height: MediaQuery.of(context).size.height,
                 //full-screen Width with widget.screenView
                 child: Container(
-                  decoration: BoxDecoration(
-                    color: AppTheme.white,
+                  decoration: const BoxDecoration(
                     boxShadow: <BoxShadow>[
-                      BoxShadow(
-                          color: AppTheme.grey.withOpacity(0.6),
-                          blurRadius: 24),
+                      BoxShadow(blurRadius: 24),
                     ],
                   ),
                   child: Stack(

@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:nami/main.dart';
 import 'package:nami/screens/login.dart';
+import 'package:nami/screens/mitgliedsliste/mitglied_liste.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
+import 'package:provider/provider.dart';
 
-import '../app_theme.dart';
+import '../theme.dart';
 
 class HomeDrawer extends StatefulWidget {
   const HomeDrawer(
@@ -34,34 +37,16 @@ class _HomeDrawerState extends State<HomeDrawer> {
   void setDrawerListArray() {
     drawerList = <DrawerList>[
       DrawerList(
-        index: DrawerIndex.home,
-        labelName: 'Home',
-        icon: const Icon(Icons.home),
-      ),
-      DrawerList(
-        index: DrawerIndex.help,
-        labelName: 'Help',
-        isAssetsImage: true,
-        imageName: 'assets/images/supportIcon.png',
-      ),
-      DrawerList(
-        index: DrawerIndex.feedback,
-        labelName: 'FeedBack',
-        icon: const Icon(Icons.help),
-      ),
-      DrawerList(
-        index: DrawerIndex.invite,
-        labelName: 'Invite Friend',
+        index: DrawerIndex.mitglieder,
+        labelName: 'Mitglieder',
         icon: const Icon(Icons.group),
       ),
+      DrawerList(
+        index: DrawerIndex.stats,
+        labelName: 'Statistiken',
+        icon: const Icon(Icons.analytics),
+      ),
     ];
-  }
-
-  void navPushLoginScreen() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
-    );
   }
 
   @override
@@ -71,7 +56,7 @@ class _HomeDrawerState extends State<HomeDrawer> {
     String username = 'Janneck Lange';
 
     return Scaffold(
-      backgroundColor: AppTheme.notWhite.withOpacity(0.5),
+      backgroundColor: Theme.of(context).backgroundColor,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisAlignment: MainAxisAlignment.start,
@@ -89,33 +74,21 @@ class _HomeDrawerState extends State<HomeDrawer> {
                     padding: const EdgeInsets.only(top: 8, left: 4),
                     child: Text(
                       username,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.grey,
-                        fontSize: 18,
-                      ),
+                      style: Theme.of(context).textTheme.bodyText1,
                     ),
                   ),
                   Padding(
                     padding: const EdgeInsets.only(top: 8, left: 4),
                     child: Text(
                       'Mitgliedsnummer: $mitgliedsnummer',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.lightText,
-                        fontSize: 12,
-                      ),
+                      style: Theme.of(context).textTheme.bodyText2,
                     ),
                   ),
                   Padding(
                     padding: const EdgeInsets.only(top: 8, left: 4),
                     child: Text(
                       'Gruppierung: $gruppierung',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.lightText,
-                        fontSize: 12,
-                      ),
+                      style: Theme.of(context).textTheme.bodyText2,
                     ),
                   ),
                 ],
@@ -127,7 +100,7 @@ class _HomeDrawerState extends State<HomeDrawer> {
           ),
           Divider(
             height: 1,
-            color: AppTheme.grey.withOpacity(0.6),
+            color: Theme.of(context).dividerColor,
           ),
           Expanded(
             child: ListView.builder(
@@ -139,16 +112,26 @@ class _HomeDrawerState extends State<HomeDrawer> {
               },
             ),
           ),
+          Row(children: [
+            ElevatedButton(
+                child: const Text("Light Theme"),
+                onPressed: () {
+                  Provider.of<ThemeModel>(context, listen: false)
+                      .setTheme(ThemeType.light);
+                }),
+            ElevatedButton(
+                child: const Text("Dark Theme"),
+                onPressed: () {
+                  Provider.of<ThemeModel>(context, listen: false)
+                      .setTheme(ThemeType.dark);
+                })
+          ]),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               IconButton(
                 icon: const Icon(Icons.sync),
-                onPressed: () => {
-                  setState(() {
-                    syncNamiData(context);
-                  })
-                },
+                onPressed: () => {syncNamiData(context)},
               ),
               Text(getLastNamiSync() != null
                   ? "Vor ${DateTime.now().difference(getLastNamiSync()!).inDays.toString()} Tagen"
@@ -157,19 +140,14 @@ class _HomeDrawerState extends State<HomeDrawer> {
           ),
           Divider(
             height: 1,
-            color: AppTheme.grey.withOpacity(0.6),
+            color: Theme.of(context).dividerColor,
           ),
           Column(
             children: <Widget>[
               ListTile(
-                title: const Text(
+                title: Text(
                   'Sign Out',
-                  style: TextStyle(
-                    fontFamily: AppTheme.fontName,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                    color: AppTheme.darkText,
-                  ),
+                  style: Theme.of(context).textTheme.bodyText1,
                   textAlign: TextAlign.left,
                 ),
                 trailing: const Icon(
@@ -190,7 +168,7 @@ class _HomeDrawerState extends State<HomeDrawer> {
 
   void logout() {
     //loaded Data
-    Hive.box<Mitglied>('members').deleteFromDisk();
+    Hive.box<Mitglied>('members').clear();
     deleteGruppierung();
 
     // login data
@@ -201,12 +179,8 @@ class _HomeDrawerState extends State<HomeDrawer> {
     // other Stuff
     deleteLastLoginCheck();
     deleteLastNamiSync();
-
-    navPushLoginScreen();
-  }
-
-  void onTapped() {
-    debugPrint('Doing Something...'); // Print to console.
+    MyApp.restartApp(context);
+    // navPushLoginScreen();
   }
 
   Widget inkwell(DrawerList listData) {
@@ -249,12 +223,12 @@ class _HomeDrawerState extends State<HomeDrawer> {
                           child: Image.asset(listData.imageName,
                               color: widget.screenIndex == listData.index
                                   ? Colors.blue
-                                  : AppTheme.nearlyBlack),
+                                  : Theme.of(context).primaryColor),
                         )
                       : Icon(listData.icon?.icon,
                           color: widget.screenIndex == listData.index
                               ? Colors.blue
-                              : AppTheme.nearlyBlack),
+                              : Theme.of(context).primaryColor),
                   const Padding(
                     padding: EdgeInsets.all(4.0),
                   ),
@@ -265,7 +239,7 @@ class _HomeDrawerState extends State<HomeDrawer> {
                       fontSize: 16,
                       color: widget.screenIndex == listData.index
                           ? Colors.blue
-                          : AppTheme.nearlyBlack,
+                          : Theme.of(context).primaryColor,
                     ),
                     textAlign: TextAlign.left,
                   ),
@@ -316,12 +290,7 @@ class _HomeDrawerState extends State<HomeDrawer> {
   }
 }
 
-enum DrawerIndex {
-  home,
-  feedback,
-  help,
-  invite,
-}
+enum DrawerIndex { mitglieder, stats }
 
 class DrawerList {
   DrawerList({

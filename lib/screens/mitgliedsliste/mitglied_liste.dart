@@ -1,11 +1,14 @@
+import 'dart:async';
+
 import 'package:backdrop/backdrop.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
+// import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:nami/screens/mitgliedsliste/mitglied_details.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/mitglied.filterAndSort.dart';
-import 'package:nami/utilities/constants.dart';
+import 'package:nami/utilities/stufe.dart';
 
 class MitgliedsListe extends StatefulWidget {
   const MitgliedsListe({Key? key}) : super(key: key);
@@ -15,6 +18,7 @@ class MitgliedsListe extends StatefulWidget {
 }
 
 class _MitgliedsListeState extends State<MitgliedsListe> {
+  Box<Mitglied> memberBox = Hive.box<Mitglied>('members');
   List<Mitglied> mitglieder =
       Hive.box<Mitglied>('members').values.toList().cast<Mitglied>();
   List<Mitglied> filteredMitglieder = List.empty();
@@ -24,10 +28,16 @@ class _MitgliedsListeState extends State<MitgliedsListe> {
       List.empty(growable: true);
   List<bool> filterGroup = List.generate(Stufe.values.length, (index) => false);
   bool disableInactive = true;
+  bool customFilterActive = false;
 
   @override
   void initState() {
     super.initState();
+    memberBox.listenable().addListener(() {
+      mitglieder = memberBox.values.toList().cast<Mitglied>();
+      applyFilterAndSort();
+    });
+
     filteredMitglieder = mitglieder;
 
     for (MemberSorting value in MemberSorting.values) {
@@ -75,9 +85,11 @@ class _MitgliedsListeState extends State<MitgliedsListe> {
         break;
     }
 
-    setState(() {
-      filteredMitglieder;
-    });
+    try {
+      setState(() {
+        filteredMitglieder;
+      });
+    } catch (_) {}
   }
 
   void setSearchValue(String value) {
@@ -100,6 +112,12 @@ class _MitgliedsListeState extends State<MitgliedsListe> {
     applyFilterAndSort();
   }
 
+  void toogleCustomFilter(bool value) {
+    setState(() {
+      customFilterActive = !customFilterActive;
+    });
+  }
+
   Widget _buildMemberList() {
     return ListView.builder(
       padding: const EdgeInsets.all(8),
@@ -112,9 +130,25 @@ class _MitgliedsListeState extends State<MitgliedsListe> {
           child: Card(
             child: ListTile(
               leading: Container(
-                color: StufenExtension.getValueFromString(
-                        filteredMitglieder[index].stufe)
-                    .color(),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                      colors: [
+                        filteredMitglieder[index].isMitgliedLeiter()
+                            ? StufenExtension.getValueFromString(
+                                    Stufe.leiter.string())
+                                .color()
+                            : StufenExtension.getValueFromString(
+                                    filteredMitglieder[index].stufe)
+                                .color(),
+                        StufenExtension.getValueFromString(
+                                filteredMitglieder[index].stufe)
+                            .color()
+                      ],
+                      begin: const FractionalOffset(0.0, 0.0),
+                      end: const FractionalOffset(0.0, 1.0),
+                      stops: const [0.5, 0.5],
+                      tileMode: TileMode.clamp),
+                ),
                 width: 5,
               ),
               minLeadingWidth: 5,
@@ -134,18 +168,12 @@ class _MitgliedsListeState extends State<MitgliedsListe> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text("Sortiere nach"),
+        Text("Sortiere nach", style: Theme.of(context).textTheme.bodyText1),
         const SizedBox(width: 15),
         DropdownButton<String>(
             value: sorting.string(),
             icon: const Icon(Icons.expand_more),
-            iconSize: 24,
-            elevation: 16,
-            style: const TextStyle(color: Colors.deepPurple),
-            underline: Container(
-              height: 2,
-              color: Colors.deepPurpleAccent,
-            ),
+            style: Theme.of(context).textTheme.bodyText1,
             onChanged: setSorting,
             items: sortingDropdownValues)
       ],
@@ -198,16 +226,15 @@ class _MitgliedsListeState extends State<MitgliedsListe> {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
             child: TextField(
               onChanged: setSearchValue,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
+                hintStyle: Theme.of(context).textTheme.caption,
                 filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(),
                 hintText: 'Textsuche (Name, Mail, Mitgliedsnummer)',
               ),
             ),
           ),
           _buildFilterGroup(),
-          const Divider(color: Colors.black),
+          const Divider(),
           CheckboxListTile(
             value: disableInactive,
             title: const Text('Inaktive Mitglieder ausblenden'),
@@ -221,12 +248,17 @@ class _MitgliedsListeState extends State<MitgliedsListe> {
     return Scaffold(
         body: BackdropScaffold(
             appBar: BackdropAppBar(
-              title: const Text("Mitglieder"),
-              leading: const BackButton(),
-              actions: const <Widget>[
+              title: const Center(child: Text("Mitglieder")),
+              automaticallyImplyLeading: false,
+              actions: <Widget>[
+                Switch(
+                  value: customFilterActive,
+                  onChanged: toogleCustomFilter,
+                ),
                 BackdropToggleButton(
                   icon: AnimatedIcons.search_ellipsis,
-                )
+                  color: Theme.of(context).iconTheme.color ?? Colors.black,
+                ),
               ],
             ),
             backLayer: _buildFilter(),

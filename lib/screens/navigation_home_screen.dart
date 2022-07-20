@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:nami/screens/dashboard.dart';
-import 'package:nami/utilities/app_theme.dart';
+import 'package:nami/screens/mitgliedsliste/mitglied_liste.dart';
+import 'package:nami/screens/statistiken/statistiken_sceen.dart';
 import 'package:nami/utilities/custom_drawer/drawer_user_controller.dart';
 import 'package:nami/utilities/custom_drawer/home_drawer.dart';
-
-import 'feedback_screen.dart';
-import 'help_screen.dart';
-import 'invite_friend_screen.dart';
 
 class NavigationHomeScreen extends StatefulWidget {
   const NavigationHomeScreen({Key? key}) : super(key: key);
@@ -21,20 +17,20 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
 
   @override
   void initState() {
-    drawerIndex = DrawerIndex.home;
-    screenView = const DashboardScreen();
+    drawerIndex = DrawerIndex.mitglieder;
+    screenView = const MitgliedsListe();
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppTheme.nearlyWhite,
+      color: Theme.of(context).backgroundColor,
       child: SafeArea(
         top: false,
         bottom: false,
         child: Scaffold(
-          backgroundColor: AppTheme.nearlyWhite,
+          backgroundColor: Theme.of(context).backgroundColor,
           body: DrawerUserController(
             screenIndex: drawerIndex,
             drawerWidth: MediaQuery.of(context).size.width * 0.75,
@@ -53,24 +49,16 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
   void changeIndex(DrawerIndex drawerIndexdata) {
     if (drawerIndex != drawerIndexdata) {
       drawerIndex = drawerIndexdata;
-      if (drawerIndex == DrawerIndex.home) {
+      if (drawerIndex == DrawerIndex.mitglieder) {
         setState(() {
-          screenView = const DashboardScreen();
+          screenView = const MitgliedsListe();
         });
-      } else if (drawerIndex == DrawerIndex.help) {
+      } else if (drawerIndex == DrawerIndex.stats) {
         setState(() {
-          screenView = const HelpScreen();
-        });
-      } else if (drawerIndex == DrawerIndex.feedback) {
-        setState(() {
-          screenView = const FeedbackScreen();
-        });
-      } else if (drawerIndex == DrawerIndex.invite) {
-        setState(() {
-          screenView = const InviteFriend();
+          screenView = const StatistikScreen();
         });
       } else {
-        //do in your way......
+        // Hier alle weiteren Naviagtionspunkte des Seitenmenüs definieren
       }
     }
   }

@@ -1,6 +1,7 @@
 import 'package:hive/hive.dart';
+import 'package:nami/utilities/hive/taetigkeit.dart';
 
-import '../constants.dart';
+import '../stufe.dart';
 
 // flutter packages pub run build_runner build
 
@@ -76,6 +77,18 @@ class Mitglied {
 
   @HiveField(23)
   late String status;
+
+  @HiveField(24)
+  late List<Taetigkeit> taetigkeiten;
+
+  bool isMitgliedLeiter() {
+    for (Taetigkeit t in taetigkeiten) {
+      if (t.isLeitung()) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   /// 0 gleich | <0 this ist alpabetisch früher | >0 this ist alpabetisch später
   int compareByName(Mitglied mitglied) {

@@ -1,7 +1,8 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:nami/utilities/constants.dart';
+import 'package:nami/utilities/stufe.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
+import 'package:nami/utilities/hive/taetigkeit.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:maps_launcher/maps_launcher.dart';
 
@@ -14,6 +15,8 @@ class MitgliedDetail extends StatefulWidget {
 }
 
 class _MitgliedDetailState extends State<MitgliedDetail> {
+  bool showMoreTaetigkeiten = false;
+
   Widget _buildLinkText(String scheme, String path) {
     return RichText(
       textAlign: TextAlign.left,
@@ -108,9 +111,48 @@ class _MitgliedDetailState extends State<MitgliedDetail> {
   }
 
   Widget _buildTaetigkeiten() {
+    List<Taetigkeit> aktiveTaetigkeiten = [];
+    List<Taetigkeit> alteTaetigkeiten = [];
+    for (Taetigkeit taetigkeit in widget.mitglied.taetigkeiten) {
+      taetigkeit.taetigkeit =
+          taetigkeit.taetigkeit.replaceFirst('€ ', '').split('(')[0];
+      if (taetigkeit.isActive()) {
+        aktiveTaetigkeiten.add(taetigkeit);
+      } else {
+        alteTaetigkeiten.add(taetigkeit);
+      }
+    }
+    if (aktiveTaetigkeiten.isEmpty && alteTaetigkeiten.isNotEmpty) {
+      showMoreTaetigkeiten = true;
+    }
     return _buildBox(<Widget>[
-      const Text("Tätigkeiten: Comming soon",
-          style: TextStyle(color: Colors.white))
+      const Text("Aktive Tätigkeiten", style: TextStyle(color: Colors.white)),
+      for (Taetigkeit item in aktiveTaetigkeiten)
+        Text(
+            '${item.taetigkeit} - ${item.untergliederung} (Seit: ${item.aktivVon.month}/${item.aktivVon.year})',
+            style: const TextStyle(color: Colors.white)),
+      if (alteTaetigkeiten.isNotEmpty) const SizedBox(height: 10),
+      if (!showMoreTaetigkeiten && alteTaetigkeiten.isNotEmpty)
+        GestureDetector(
+          onTap: () {
+            setState(() => showMoreTaetigkeiten = true);
+          },
+          child: const Text("Alte Tätigkeiten anzeigen"),
+        ),
+      if (showMoreTaetigkeiten && alteTaetigkeiten.isNotEmpty)
+        const Text("Alte Tätigkeiten", style: TextStyle(color: Colors.white)),
+      if (showMoreTaetigkeiten && alteTaetigkeiten.isNotEmpty)
+        for (Taetigkeit item in alteTaetigkeiten)
+          Text(
+              '${item.taetigkeit} - ${item.untergliederung} (${item.aktivVon.month}/${item.aktivVon.year}-${item.aktivBis!.month}/${item.aktivBis!.year})',
+              style: const TextStyle(color: Colors.white)),
+      if (showMoreTaetigkeiten && aktiveTaetigkeiten.isNotEmpty)
+        GestureDetector(
+          onTap: () {
+            setState(() => showMoreTaetigkeiten = false);
+          },
+          child: const Text("Weniger anzeigen"),
+        ),
     ]);
   }
 

@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:nami/model/nami_stats_model.dart';
 import 'package:nami/utilities/hive/settings.dart';
+import 'model/nami_stats.model.dart';
 import 'nami-member.service.dart';
 
 /// läd Nami Dashboard Statistiken
@@ -49,10 +49,11 @@ Future<int> loadGruppierung({node = 'root'}) async {
   return 0;
 }
 
-void syncNamiData(BuildContext context) async {
+Future<void> syncNamiData(BuildContext context) async {
   setLastNamiSync(DateTime.now());
   await syncGruppierung();
-  syncMember(context);
+  await syncMember(context);
+
   //syncStats
   //syncProfile
 }
@@ -62,5 +63,6 @@ syncGruppierung() async {
   if (gruppierung == 0) {
     throw Exception("Keine eindeutige Gruppierung gefunden");
   }
+  print('gruppierung: $gruppierung');
   setGruppierung(gruppierung);
 }

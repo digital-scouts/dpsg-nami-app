@@ -1,10 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:nami/utilities/constants.dart';
+import 'package:nami/main.dart';
+import 'package:nami/utilities/custom_drawer/home_drawer.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/nami/nami-login.service.dart';
 import 'dart:async';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+
+import 'navigation_home_screen.dart';
+
+const kHintTextStyle = TextStyle(
+  color: Colors.white54,
+  fontFamily: 'OpenSans',
+);
+
+const kLabelStyle = TextStyle(
+  color: Colors.white,
+  fontWeight: FontWeight.bold,
+  fontFamily: 'OpenSans',
+);
+
+final kBoxDecorationStyle = BoxDecoration(
+  color: const Color(0xFF6CA8F1),
+  borderRadius: BorderRadius.circular(10.0),
+  boxShadow: const [
+    BoxShadow(
+      color: Colors.black12,
+      blurRadius: 6.0,
+      offset: Offset(0, 2),
+    ),
+  ],
+);
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -207,7 +233,14 @@ class _LoginScreenState extends State<LoginScreen> {
               setState(() {
                 _loading = false;
               }),
-              Navigator.pop(context, true),
+              Navigator.canPop(context)
+                  ? Navigator.pop(context)
+                  : Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => MyApp(),
+                      ),
+                    ),
               if (_rememberMe) {setNamiPassword(_password)},
               setNamiLoginId(_mitgliedsnummer),
             }

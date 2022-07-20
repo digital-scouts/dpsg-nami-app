@@ -10,15 +10,19 @@ Future<bool> isLoggedIn() async {
   //check if token exists
   String? token = getNamiApiCookie();
   if (token.isEmpty) {
+    print('token is empty');
     return false;
   }
 
   //check if token is valid
   try {
-    await loadNamiStats();
+    print('token is valid - try to load stats');
+    final stats = await loadNamiStats();
+    print('stats: ${stats.nrMitglieder}');
   } catch (ex) {
     return false;
   }
+
   setLastLoginCheck(DateTime.now());
   return true;
 }
@@ -65,5 +69,6 @@ Future<bool> namiLoginWithPassword(int userId, String password) async {
   String cookie = tokenResponse.headers["set-cookie"]!.split(';')[0];
   setNamiApiCookie(cookie);
   setLastLoginCheck(DateTime.now());
+  print('login successful');
   return true;
 }
