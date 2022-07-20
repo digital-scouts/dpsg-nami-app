@@ -25,11 +25,8 @@ int getVersionOfMember(int id, List<Mitglied> mitglieder) {
   }
 }
 
-Future<List<int>> loadMemberIdsToUpdate() async {
-  String url = getNamiLUrl();
-  String path = getNamiPath();
-  int? gruppierung = getGruppierung();
-  String cookie = getNamiApiCookie();
+Future<List<int>> loadMemberIdsToUpdate(
+    String url, String path, int gruppierung, String cookie) async {
   String fullUrl =
       '$url$path/mitglied/filtered-for-navigation/gruppierung/gruppierung/$gruppierung/flist?_dc=1635173028278&page=1&start=0&limit=5000';
   debugPrint('Request: Lade Mitgliedsliste');
@@ -39,7 +36,8 @@ Future<List<int>> loadMemberIdsToUpdate() async {
   List<Mitglied> mitglieder =
       Hive.box<Mitglied>('members').values.toList().cast<Mitglied>();
 
-  if (response.statusCode == 200) {
+  if (response.statusCode == 200 &&
+      jsonDecode(response.body)['success'] == true) {
     List<int> memberIds = [];
     jsonDecode(response.body)['data'].forEach((item) => {
           if (getVersionOfMember(item['id'], mitglieder) !=
@@ -48,15 +46,14 @@ Future<List<int>> loadMemberIdsToUpdate() async {
         });
     return memberIds;
   } else {
-    throw Exception('Failed to load member List');
+    debugPrint('Failed to load member List');
+    debugPrintStack();
+    return List.empty();
   }
 }
 
-Future<NamiMemberDetailsModel> loadMemberDetails(int id) async {
-  String url = getNamiLUrl();
-  String path = getNamiPath();
-  int? gruppierung = getGruppierung();
-  String cookie = getNamiApiCookie();
+Future<NamiMemberDetailsModel> loadMemberDetails(
+    int id, String url, String path, int gruppierung, String cookie) async {
   String fullUrl =
       '$url$path/mitglied/filtered-for-navigation/gruppierung/gruppierung/$gruppierung/$id';
   debugPrint('Request: Lade Details eines Mitglieds');
@@ -71,11 +68,8 @@ Future<NamiMemberDetailsModel> loadMemberDetails(int id) async {
   }
 }
 
-Future<List<NamiMemberTaetigkeitenModel>> loadMemberTaetigkeiten(int id) async {
-  String url = getNamiLUrl();
-  String path = getNamiPath();
-  String cookie = getNamiApiCookie();
-
+Future<List<NamiMemberTaetigkeitenModel>> loadMemberTaetigkeiten(
+    int id, String url, String path, String cookie) async {
   String fullUrl =
       '$url$path/zugeordnete-taetigkeiten/filtered-for-navigation/gruppierung-mitglied/mitglied/$id/flist';
   debugPrint('Request: Lade Details eines Mitglieds');
@@ -117,34 +111,33 @@ showSyncStatus(String text, BuildContext context, {bool lastUpdate = false}) {
   }
 }
 
-syncMember(BuildContext context) async {
-  double memberSyncProgress = 0;
+Future<void> syncMember(BuildContext context) async {
+  int gruppierung = getGruppierung()!;
+  String cookie = getNamiApiCookie();
+  String url = getNamiLUrl();
+  String path = getNamiPath();
+
   Box<Mitglied> memberBox = Hive.box('members');
-  List<int> mitgliedIds = await loadMemberIdsToUpdate();
-  showSyncStatus("Sycronisation 0/2", context);
+  List<int> mitgliedIds =
+      await loadMemberIdsToUpdate(url, path, gruppierung, cookie);
   debugPrint('Starte Syncronisation der Mitgliedsdetails');
 
-  double syncProgressSteps = 1 / mitgliedIds.length;
+  var futures = <Future>[];
+
   for (var mitgliedId in mitgliedIds) {
-    storeMitgliedToHive(mitgliedId, memberBox)
-        .then((value) => {memberSyncProgress += syncProgressSteps})
-        .then((value) => {
-              debugPrint('Sync: ' + memberSyncProgress.toString()),
-              if (memberSyncProgress >= 1.0)
-                {showSyncStatus("Sycronisation 1/2", context, lastUpdate: true)}
-            });
+    futures.add(storeMitgliedToHive(
+        mitgliedId, memberBox, url, path, gruppierung, cookie));
   }
-  if (mitgliedIds.isEmpty) {
-    showSyncStatus("Alle Daten sind aktuell", context, lastUpdate: true);
-  }
+  await Future.wait(futures);
   debugPrint('Syncronisation der Mitgliedsdetails abgeschlossen');
 }
 
-Future<void> storeMitgliedToHive(
-    int mitgliedId, Box<Mitglied> memberBox) async {
-  NamiMemberDetailsModel rawMember = await loadMemberDetails(mitgliedId);
+Future<void> storeMitgliedToHive(int mitgliedId, Box<Mitglied> memberBox,
+    String url, String path, int gruppierung, String cookie) async {
+  NamiMemberDetailsModel rawMember =
+      await loadMemberDetails(mitgliedId, url, path, gruppierung, cookie);
   List<NamiMemberTaetigkeitenModel> rawTaetigkeiten =
-      await loadMemberTaetigkeiten(mitgliedId);
+      await loadMemberTaetigkeiten(mitgliedId, url, path, cookie);
 
   List<Taetigkeit> taetigkeiten = [];
 

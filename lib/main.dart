@@ -22,6 +22,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
 
+  runApp(ChangeNotifierProvider<ThemeModel>(
+      create: (_) => ThemeModel(), child: const MyApp()));
+}
+
+Future openHive() async {
   const secureStorage = FlutterSecureStorage();
   // if key not exists return null
   var encryprionKey = await secureStorage.read(key: 'key');
@@ -36,24 +41,33 @@ void main() async {
       base64Url.decode((await secureStorage.read(key: 'key'))!);
 
   Hive.registerAdapter(TaetigkeitAdapter());
-  var taetigkeitBox = await Hive.openBox<Taetigkeit>('taetigkeit',
+  await Hive.openBox<Taetigkeit>('taetigkeit',
       encryptionCipher: HiveAesCipher(encryptionKey));
   Hive.registerAdapter(MitgliedAdapter());
-  var memberBox = await Hive.openBox<Mitglied>('members',
+  await Hive.openBox<Mitglied>('members',
       encryptionCipher: HiveAesCipher(encryptionKey));
-
-  runApp(ChangeNotifierProvider<ThemeModel>(
-      create: (_) => ThemeModel(), child: const MyApp()));
 }
 
 class MyApp extends StatefulWidget {
   const MyApp({Key? key}) : super(key: key);
+
+  static void restartApp(BuildContext context) {
+    context.findAncestorStateOfType<_MyAppState>()!.restartApp();
+  }
 
   @override
   _MyAppState createState() => _MyAppState();
 }
 
 class _MyAppState extends State<MyApp> {
+  Key key = UniqueKey();
+
+  void restartApp() {
+    setState(() {
+      key = UniqueKey();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(home: MyHome());
@@ -115,6 +129,18 @@ class _MyHomeState extends State<MyHome> {
       });
     }
 
+    try {
+      await openHive();
+    } catch (_) {}
+
+    if (DateTime.now().difference(getLastNamiSync()!).inDays > 30) {
+      debugPrint(
+          "Letzter NaMi Sync länger als 30 Tage her. NaMi Sync wird durchgeführt.");
+      // automatisch alle 30 Tage Syncronisieren
+
+      syncNamiData(context);
+    }
+
     return !_needLogin && authenticated;
   }
 
@@ -136,9 +162,7 @@ class _MyHomeState extends State<MyHome> {
   Future<bool> needLogin() async {
     int lastLoginCheck =
         DateTime.now().difference(getLastLoginCheck()).inMinutes;
-    int lastNamiSync = DateTime.now().difference(getLastNamiSync()!).inDays;
-    debugPrint(
-        'Letzter Login Check: $lastLoginCheck Min | Letzter Nami Sync: $lastNamiSync Days');
+
     // Überpüfe den Nami Login maximal alle 15 Minuten
     if (lastLoginCheck > 15) {
       bool _isLoggedIn = await isLoggedIn();
@@ -147,12 +171,7 @@ class _MyHomeState extends State<MyHome> {
       }
       debugPrint(
           'Letzter Login Check länger als 15 Minuten her. Login nicht erfolgreich.');
-      return false;
-    } else if (lastNamiSync > 30) {
-      debugPrint(
-          "Letzter NaMi Sync länger als 30 Tage her. NaMi Sync wird durchgeführt.");
-      // automatisch alle 30 Tage Syncronisieren
-      syncNamiData(context);
+      return true;
     }
     if (lastLoginCheck <= 15) {
       return false;
@@ -195,7 +214,7 @@ class _MyHomeState extends State<MyHome> {
             } else {
               return const Scaffold(
                 body: Center(
-                  child: Text('Opening Hive...'),
+                  child: CircularProgressIndicator(),
                 ),
               );
             }

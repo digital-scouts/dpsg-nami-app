@@ -21,6 +21,12 @@
             "type": "dart",
             "deviceId": "iphone",
         },
+        {
+            "name": "MyPhone",
+            "request": "launch",
+            "type": "dart",
+            "deviceId": "00008101-0014083A3A30001E",
+        },
     ],
     "compounds": [
         {

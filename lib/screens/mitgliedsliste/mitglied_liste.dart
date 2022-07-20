@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:backdrop/backdrop.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
+// import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:nami/screens/mitgliedsliste/mitglied_details.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/mitglied.filterAndSort.dart';
@@ -15,6 +18,7 @@ class MitgliedsListe extends StatefulWidget {
 }
 
 class _MitgliedsListeState extends State<MitgliedsListe> {
+  Box<Mitglied> memberBox = Hive.box<Mitglied>('members');
   List<Mitglied> mitglieder =
       Hive.box<Mitglied>('members').values.toList().cast<Mitglied>();
   List<Mitglied> filteredMitglieder = List.empty();
@@ -29,6 +33,11 @@ class _MitgliedsListeState extends State<MitgliedsListe> {
   @override
   void initState() {
     super.initState();
+    memberBox.listenable().addListener(() {
+      mitglieder = memberBox.values.toList().cast<Mitglied>();
+      applyFilterAndSort();
+    });
+
     filteredMitglieder = mitglieder;
 
     for (MemberSorting value in MemberSorting.values) {
@@ -76,9 +85,11 @@ class _MitgliedsListeState extends State<MitgliedsListe> {
         break;
     }
 
-    setState(() {
-      filteredMitglieder;
-    });
+    try {
+      setState(() {
+        filteredMitglieder;
+      });
+    } catch (_) {}
   }
 
   void setSearchValue(String value) {

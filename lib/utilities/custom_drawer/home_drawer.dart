@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:nami/main.dart';
 import 'package:nami/screens/login.dart';
+import 'package:nami/screens/mitgliedsliste/mitglied_liste.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
@@ -45,13 +47,6 @@ class _HomeDrawerState extends State<HomeDrawer> {
         icon: const Icon(Icons.analytics),
       ),
     ];
-  }
-
-  void navPushLoginScreen() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
-    );
   }
 
   @override
@@ -136,11 +131,7 @@ class _HomeDrawerState extends State<HomeDrawer> {
             children: [
               IconButton(
                 icon: const Icon(Icons.sync),
-                onPressed: () => {
-                  setState(() {
-                    syncNamiData(context);
-                  })
-                },
+                onPressed: () => {syncNamiData(context)},
               ),
               Text(getLastNamiSync() != null
                   ? "Vor ${DateTime.now().difference(getLastNamiSync()!).inDays.toString()} Tagen"
@@ -177,7 +168,7 @@ class _HomeDrawerState extends State<HomeDrawer> {
 
   void logout() {
     //loaded Data
-    Hive.box<Mitglied>('members').deleteFromDisk();
+    Hive.box<Mitglied>('members').clear();
     deleteGruppierung();
 
     // login data
@@ -188,12 +179,8 @@ class _HomeDrawerState extends State<HomeDrawer> {
     // other Stuff
     deleteLastLoginCheck();
     deleteLastNamiSync();
-
-    navPushLoginScreen();
-  }
-
-  void onTapped() {
-    debugPrint('Doing Something...'); // Print to console.
+    MyApp.restartApp(context);
+    // navPushLoginScreen();
   }
 
   Widget inkwell(DrawerList listData) {
