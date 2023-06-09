@@ -5,6 +5,10 @@ import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:maps_launcher/maps_launcher.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:geocoding/geocoding.dart';
+import 'dart:math';
 
 class MitgliedDetail extends StatefulWidget {
   final Mitglied mitglied;
@@ -16,6 +20,32 @@ class MitgliedDetail extends StatefulWidget {
 
 class _MitgliedDetailState extends State<MitgliedDetail> {
   bool showMoreTaetigkeiten = false;
+  late Future<LatLng> _addressLocation;
+
+  @override
+  void initState() {
+    super.initState();
+    _addressLocation = _getAddressLocation();
+  }
+
+  Widget _buildBox(List<Widget> children) {
+    return SizedBox(
+      child: Card(
+        color: Colors.black87,
+        elevation: 2.0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+        child: IntrinsicHeight(
+          child: Padding(
+            padding: const EdgeInsets.all(5.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: children,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _buildLinkText(String scheme, String path) {
     return RichText(
@@ -50,6 +80,88 @@ class _MitgliedDetailState extends State<MitgliedDetail> {
           ..onTap = () {
             MapsLauncher.launchQuery(address);
           },
+      ),
+    );
+  }
+
+  Future<LatLng> _getAddressLocation() async {
+    try {
+      String address =
+          '${widget.mitglied.strasse}, ${widget.mitglied.plz} ${widget.mitglied.ort}';
+      List<Location> locations = await locationFromAddress(address);
+      if (locations.isNotEmpty) {
+        Location firstLocation = locations.first;
+        return LatLng(firstLocation.latitude, firstLocation.longitude);
+      } else {
+        throw Exception('Adresse nicht gefunden');
+      }
+    } catch (e) {
+      throw Exception('Fehler beim Abrufen der Adresse: $e');
+    }
+  }
+
+  MapController mapController = MapController();
+
+  Widget _buildMap(LatLng addressLocation, LatLng homeLocation) {
+    WidgetsBinding.instance!.addPostFrameCallback((_) {
+      adjustMapCenterAndZoom(addressLocation, homeLocation, mapController);
+    });
+
+    return SizedBox(
+      child: Card(
+        color: Colors.black87,
+        elevation: 2.0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8.0),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(5.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                width: double.infinity,
+                height: 200.0, // Anpassen der Höhe nach Bedarf
+                child: FlutterMap(
+                  mapController: mapController,
+                  options: MapOptions(
+                    center: addressLocation, // Position für die Karte
+                    zoom: 13.0,
+                  ),
+                  layers: [
+                    TileLayerOptions(
+                      urlTemplate:
+                          'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      subdomains: ['a', 'b', 'c'],
+                    ),
+                    MarkerLayerOptions(
+                      markers: [
+                        Marker(
+                          width: 80.0,
+                          height: 80.0,
+                          point: addressLocation, // Position für den Marker
+                          builder: (ctx) => const Icon(
+                            Icons.person_pin_circle,
+                            color: Colors.red,
+                          ),
+                        ),
+                        Marker(
+                          width: 80.0,
+                          height: 80.0,
+                          point: homeLocation, // Position für den Marker
+                          builder: (ctx) => const Icon(
+                            Icons.home_sharp,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -101,12 +213,88 @@ class _MitgliedDetailState extends State<MitgliedDetail> {
     }
   }
 
-  Widget _buildAdress() {
+  double calculateDistance(LatLng start, LatLng end) {
+    const int earthRadius = 6371; // Erdradius in Kilometern
+
+    // Konvertierung der Längen- und Breitengrade in Radian
+    double startLatRad = degreesToRadians(start.latitude);
+    double startLngRad = degreesToRadians(start.longitude);
+    double endLatRad = degreesToRadians(end.latitude);
+    double endLngRad = degreesToRadians(end.longitude);
+
+    double latDiffRad = endLatRad - startLatRad;
+    double lngDiffRad = endLngRad - startLngRad;
+
+    // Haversine-Formel zur Berechnung der Entfernung
+    double a = pow(sin(latDiffRad / 2), 2) +
+        cos(startLatRad) * cos(endLatRad) * pow(sin(lngDiffRad / 2), 2);
+    double c = 2 * atan2(sqrt(a), sqrt(1 - a));
+
+    double distance = earthRadius * c; // Entfernung in Kilometern
+    return distance;
+  }
+
+  String formatDistance(double distance) {
+    if (distance < 1) {
+      int meters = (distance * 1000).round();
+      return '$meters Meter';
+    } else {
+      return '${distance.toStringAsFixed(1)} km';
+    }
+  }
+
+  double degreesToRadians(double degrees) {
+    return degrees * pi / 180;
+  }
+
+  void adjustMapCenterAndZoom(
+      LatLng marker1, LatLng marker2, MapController mapController) {
+    double minLat = min(marker1.latitude, marker2.latitude);
+    double maxLat = max(marker1.latitude, marker2.latitude);
+    double minLng = min(marker1.longitude, marker2.longitude);
+    double maxLng = max(marker1.longitude, marker2.longitude);
+
+    double centerLat = (minLat + maxLat) / 2;
+    double centerLng = (minLng + maxLng) / 2;
+
+    LatLngBounds bounds =
+        LatLngBounds(LatLng(maxLat, maxLng), LatLng(minLat, minLng));
+
+    CenterZoom zoom = mapController.centerZoomFitBounds(bounds);
+
+    mapController.move(LatLng(centerLat, centerLng), zoom.zoom - 0.5);
+  }
+
+  Widget _buildAddress() {
+    late LatLng addressLocation;
+    LatLng homeLocation = LatLng(53.608620, 9.897620);
+
     return _buildBox(<Widget>[
       const Text("Anschrift",
           style: TextStyle(color: Colors.white, fontSize: 20)),
       _buildMapText(
           '${widget.mitglied.strasse}, ${widget.mitglied.plz} ${widget.mitglied.ort}'),
+      FutureBuilder<LatLng>(
+          future: _addressLocation,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(
+                child: CircularProgressIndicator(),
+              );
+            } else if (snapshot.hasError) {
+              return Center(
+                child: Text('Fehler beim Abrufen der Adresse'),
+              );
+            } else {
+              addressLocation = snapshot.data!;
+              return Column(children: <Widget>[
+                _buildMap(addressLocation, homeLocation),
+                Text(
+                    'Entfernung: ${formatDistance(calculateDistance(addressLocation, homeLocation))}',
+                    style: const TextStyle(color: Colors.white, fontSize: 15)),
+              ]);
+            }
+          })
     ]);
   }
 
@@ -227,29 +415,28 @@ class _MitgliedDetailState extends State<MitgliedDetail> {
               ),
             ),
           ),
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Ink(
+            decoration: ShapeDecoration(
+              color: Colors.blue,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(5)),
+            ),
+            child: IconButton(
+              iconSize: 35,
+              icon: const Icon(Icons.edit),
+              tooltip: 'Bearbeiten',
+              onPressed: () async {
+                //ignore for now
+              },
+            ),
+          ),
+        ),
       ]);
     } else {
       return Container();
     }
-  }
-
-  Widget _buildBox(List<Widget> children) {
-    return SizedBox(
-      child: Card(
-        color: Colors.black87,
-        elevation: 2.0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-        child: IntrinsicHeight(
-          child: Padding(
-            padding: const EdgeInsets.all(5.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: children,
-            ),
-          ),
-        ),
-      ),
-    );
   }
 
   @override
@@ -264,7 +451,7 @@ class _MitgliedDetailState extends State<MitgliedDetail> {
         _buildHeader(),
         _buildMailList(),
         _buildPhoneList(),
-        _buildAdress(),
+        _buildAddress(),
         _buildTaetigkeiten(),
       ]),
     );

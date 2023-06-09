@@ -4,7 +4,11 @@ description: Namentliche Mitgliedermeldung der DPSG als App für Android und iOS
 version: 0.0.2
 
 environment:
-  sdk: ">=2.12.0 <3.0.0"
+  sdk: '>=2.12.0 <3.0.0'
+
+dependency_overrides:
+  build: ^2.2.1
+  logging: ^1.0.0
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -22,12 +26,19 @@ dependencies:
   cupertino_icons: ^1.0.2
   font_awesome_flutter: ^9.0.0
   flutter_spinkit: ^5.1.0
-  backdrop: "^0.6.2"
+  backdrop: '^0.6.2'
   url_launcher: ^6.0.8
   maps_launcher: ^2.0.1
   provider: ^6.0.1
   flutter_secure_storage: ^5.0.2
   local_auth: ^1.1.11
+  location: ^4.4.0
+  syncfusion_flutter_maps: ^20.3.61
+  flutter_map: ^0.14.0
+  latlong: ^0.6.1
+  geocoding: ^2.0.0
+  geolocator_android: ^3.1.8
+  geolocator_apple: ^2.1.1+1
 
 dev_dependencies:
   flutter_test:
@@ -36,15 +47,15 @@ dev_dependencies:
   hive_generator: ^1.1.1
   build_runner: ^2.1.4
   test: ^1.17.10
-  flutter_launcher_icons: "^0.9.2"
+  flutter_launcher_icons: '^0.9.2'
 
 #flutter pub run flutter_launcher_icons:main
 flutter_icons:
-  android: "launcher_icon"
+  android: 'launcher_icon'
   ios: true
-  image_path: "assets/icon/icon.png"
-  adaptive_icon_background: "#ffffff"
-  adaptive_icon_foreground: "assets/icon/icon-blank.png"
+  image_path: 'assets/icon/icon.png'
+  adaptive_icon_background: '#ffffff'
+  adaptive_icon_foreground: 'assets/icon/icon-blank.png'
 
 flutter:
   uses-material-design: true
@@ -52,18 +63,18 @@ flutter:
     - assets/images/
 
   fonts:
-      - family: WorkSans
-        fonts:
-            - asset: assets/fonts/WorkSans-Regular.ttf
-            - asset: assets/fonts/WorkSans-Medium.ttf
-              weight: 500
-            - asset: assets/fonts/WorkSans-SemiBold.ttf
-              weight: 600
-            - asset: assets/fonts/WorkSans-Bold.ttf
-              weight: 700
-      - family: Roboto
-        fonts:
-            - asset: assets/fonts/Roboto-Bold.ttf
-            - asset: assets/fonts/Roboto-Regular.ttf
-            - asset: assets/fonts/Roboto-Medium.ttf
-              weight: 400
+    - family: WorkSans
+      fonts:
+        - asset: assets/fonts/WorkSans-Regular.ttf
+        - asset: assets/fonts/WorkSans-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/WorkSans-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/WorkSans-Bold.ttf
+          weight: 700
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto-Bold.ttf
+        - asset: assets/fonts/Roboto-Regular.ttf
+        - asset: assets/fonts/Roboto-Medium.ttf
+          weight: 400
