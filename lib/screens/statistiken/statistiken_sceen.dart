@@ -1,10 +1,8 @@
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:nami/screens/widgets/groupBarChart.widget.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
-import 'package:charts_flutter/flutter.dart' as charts;
 
 class StatistikScreen extends StatefulWidget {
   const StatistikScreen({Key? key}) : super(key: key);

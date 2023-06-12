@@ -4,9 +4,9 @@ import 'package:nami/screens/widgets/map.widget.dart';
 import 'package:nami/utilities/stufe.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:maps_launcher/maps_launcher.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 class MitgliedDetail extends StatefulWidget {
   final Mitglied mitglied;
@@ -53,8 +53,8 @@ class _MitgliedDetailState extends State<MitgliedDetail> {
 
             var url = params.toString();
             // dies Funktioniert, wenn die notwendige app installiert ist
-            if (await canLaunch(url)) {
-              await launch(url);
+            if (await canLaunchUrlString(url)) {
+              await launchUrlString(url);
             }
           },
       ),
@@ -220,8 +220,8 @@ class _MitgliedDetailState extends State<MitgliedDetail> {
 
                   var url = params.toString();
                   // dies Funktioniert, wenn die notwendige app installiert ist
-                  if (await canLaunch(url)) {
-                    await launch(url);
+                  if (await canLaunchUrlString(url)) {
+                    await launchUrlString(url);
                   }
                 },
               ),
@@ -248,8 +248,8 @@ class _MitgliedDetailState extends State<MitgliedDetail> {
 
                   var url = params.toString();
                   // dies Funktioniert, wenn die notwendige app installiert ist
-                  if (await canLaunch(url)) {
-                    await launch(url);
+                  if (await canLaunchUrlString(url)) {
+                    await launchUrlString(url);
                   }
                 },
               ),

@@ -63,6 +63,5 @@ syncGruppierung() async {
   if (gruppierung == 0) {
     throw Exception("Keine eindeutige Gruppierung gefunden");
   }
-  print('gruppierung: $gruppierung');
   setGruppierung(gruppierung);
 }

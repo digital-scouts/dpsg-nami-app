@@ -70,12 +70,12 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(home: MyHome());
+    return const MaterialApp(home: MyHome());
   }
 }
 
 class MyHome extends StatefulWidget {
-  MyHome({Key? key}) : super(key: key);
+  const MyHome({Key? key}) : super(key: key);
 
   @override
   State<MyHome> createState() => _MyHomeState();
@@ -147,7 +147,7 @@ class _MyHomeState extends State<MyHome> {
   Future<bool> isOnline(url) async {
     try {
       final result = await InternetAddress.lookup(url);
-      final response = await http.head(Uri.parse('https://${url}'));
+      final response = await http.head(Uri.parse('https://$url'));
       if (result.isNotEmpty &&
           result[0].rawAddress.isNotEmpty &&
           response.statusCode == 200) {
@@ -182,13 +182,11 @@ class _MyHomeState extends State<MyHome> {
   Future<bool> authenticate() async {
     authenticated = false;
     try {
-      print('Authenticating');
       return await auth.authenticate(
           localizedReason: 'Let OS determine authentication method',
           useErrorDialogs: true,
           stickyAuth: false);
-    } on PlatformException catch (e) {
-      print(e);
+    } on PlatformException catch (_) {
       return false;
     }
   }
