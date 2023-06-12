@@ -156,7 +156,9 @@ class _MitgliedsListeState extends State<MitgliedsListe> {
                   '${filteredMitglieder[index].vorname} ${filteredMitglieder[index].nachname}'),
               subtitle:
                   Text(filteredMitglieder[index].mitgliedsNummer.toString()),
-              trailing: Text(filteredMitglieder[index].stufe),
+              trailing: Text(filteredMitglieder[index].stufe == 'keine Stufe'
+                  ? ''
+                  : filteredMitglieder[index].stufe),
             ),
           ),
         );
