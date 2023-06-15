@@ -111,7 +111,7 @@ showSyncStatus(String text, BuildContext context, {bool lastUpdate = false}) {
   }
 }
 
-Future<void> syncMember(BuildContext context) async {
+Future<void> syncMember() async {
   int gruppierung = getGruppierung()!;
   String cookie = getNamiApiCookie();
   String url = getNamiLUrl();

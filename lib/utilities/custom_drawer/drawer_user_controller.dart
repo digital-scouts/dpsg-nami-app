@@ -23,10 +23,10 @@ class DrawerUserController extends StatefulWidget {
   final DrawerIndex? screenIndex;
 
   @override
-  _DrawerUserControllerState createState() => _DrawerUserControllerState();
+  DrawerUserControllerState createState() => DrawerUserControllerState();
 }
 
-class _DrawerUserControllerState extends State<DrawerUserController>
+class DrawerUserControllerState extends State<DrawerUserController>
     with TickerProviderStateMixin {
   ScrollController? scrollController;
   AnimationController? iconAnimationController;
@@ -77,7 +77,7 @@ class _DrawerUserControllerState extends State<DrawerUserController>
             curve: Curves.fastOutSlowIn);
       }
     });
-    WidgetsBinding.instance?.addPostFrameCallback((_) => getInitState());
+    WidgetsBinding.instance.addPostFrameCallback((_) => getInitState());
     super.initState();
   }
 

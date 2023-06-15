@@ -13,10 +13,10 @@ class MitgliedDetail extends StatefulWidget {
   const MitgliedDetail({required this.mitglied, Key? key}) : super(key: key);
 
   @override
-  _MitgliedDetailState createState() => _MitgliedDetailState();
+  MitgliedDetailState createState() => MitgliedDetailState();
 }
 
-class _MitgliedDetailState extends State<MitgliedDetail> {
+class MitgliedDetailState extends State<MitgliedDetail> {
   bool showMoreTaetigkeiten = false;
 
   Widget _buildBox(List<Widget> children) {
@@ -123,7 +123,7 @@ class _MitgliedDetailState extends State<MitgliedDetail> {
   }
 
   Widget _buildAddress() {
-    LatLng homeLocation = LatLng(53.608620, 9.897620);
+    LatLng homeLocation = const LatLng(53.608620, 9.897620);
     String memberAddress =
         '${widget.mitglied.strasse}, ${widget.mitglied.plz} ${widget.mitglied.ort}';
 

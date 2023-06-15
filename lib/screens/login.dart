@@ -32,10 +32,10 @@ final kBoxDecorationStyle = BoxDecoration(
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
   @override
-  _LoginScreenState createState() => _LoginScreenState();
+  LoginScreenState createState() => LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class LoginScreenState extends State<LoginScreen> {
   bool _rememberMe = false;
   int _mitgliedsnummer = 0;
   String _password = '';
@@ -219,7 +219,7 @@ class _LoginScreenState extends State<LoginScreen> {
       width: double.infinity,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          primary: _wrongCredentials ? Colors.red : Colors.white,
+          backgroundColor: _wrongCredentials ? Colors.red : Colors.white,
         ),
         onPressed: () async => {
           setState(() {

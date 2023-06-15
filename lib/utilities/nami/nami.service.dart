@@ -49,10 +49,10 @@ Future<int> loadGruppierung({node = 'root'}) async {
   return 0;
 }
 
-Future<void> syncNamiData(BuildContext context) async {
+Future<void> syncNamiData() async {
   setLastNamiSync(DateTime.now());
   await syncGruppierung();
-  await syncMember(context);
+  await syncMember();
 
   //syncStats
   //syncProfile

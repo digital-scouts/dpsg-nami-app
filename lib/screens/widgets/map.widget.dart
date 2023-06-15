@@ -1,11 +1,10 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
 
 import 'package:geocoding/geocoding.dart';
+import 'package:latlong2/latlong.dart';
 
 class MapWidget extends StatefulWidget {
   final LatLng homeLocation;
@@ -15,10 +14,10 @@ class MapWidget extends StatefulWidget {
       : super(key: key);
 
   @override
-  _MapWidgetState createState() => _MapWidgetState();
+  MapWidgetState createState() => MapWidgetState();
 }
 
-class _MapWidgetState extends State<MapWidget> {
+class MapWidgetState extends State<MapWidget> {
   MapController mapController = MapController();
   late Future<LatLng> _addressLocation;
 
@@ -61,7 +60,7 @@ class _MapWidgetState extends State<MapWidget> {
   }
 
   Widget _buildMap(LatLng addressLocation, LatLng homeLocation) {
-    WidgetsBinding.instance!.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       adjustMapCenterAndZoom(addressLocation, homeLocation);
     });
 
@@ -86,13 +85,13 @@ class _MapWidgetState extends State<MapWidget> {
                     center: addressLocation, // Position für die Karte
                     zoom: 13.0,
                   ),
-                  layers: [
-                    TileLayerOptions(
+                  children: [
+                    TileLayer(
                       urlTemplate:
                           'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      subdomains: ['a', 'b', 'c'],
+                      subdomains: const ['a', 'b', 'c'],
                     ),
-                    MarkerLayerOptions(
+                    MarkerLayer(
                       markers: [
                         Marker(
                           width: 80.0,

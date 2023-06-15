@@ -1,5 +1,4 @@
 import 'package:backdrop/backdrop.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 // import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -12,10 +11,10 @@ class MitgliedsListe extends StatefulWidget {
   const MitgliedsListe({Key? key}) : super(key: key);
 
   @override
-  _MitgliedsListeState createState() => _MitgliedsListeState();
+  MitgliedsListeState createState() => MitgliedsListeState();
 }
 
-class _MitgliedsListeState extends State<MitgliedsListe> {
+class MitgliedsListeState extends State<MitgliedsListe> {
   Box<Mitglied> memberBox = Hive.box<Mitglied>('members');
   List<Mitglied> mitglieder =
       Hive.box<Mitglied>('members').values.toList().cast<Mitglied>();
@@ -40,7 +39,7 @@ class _MitgliedsListeState extends State<MitgliedsListe> {
 
     for (MemberSorting value in MemberSorting.values) {
       sortingDropdownValues.add(DropdownMenuItem<String>(
-          child: Text(value.string()), value: value.string()));
+          value: value.string(), child: Text(value.string())));
     }
 
     applyFilterAndSort();
@@ -168,12 +167,12 @@ class _MitgliedsListeState extends State<MitgliedsListe> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text("Sortiere nach", style: Theme.of(context).textTheme.bodyText1),
+        Text("Sortiere nach", style: Theme.of(context).textTheme.bodyLarge),
         const SizedBox(width: 15),
         DropdownButton<String>(
             value: sorting.string(),
             icon: const Icon(Icons.expand_more),
-            style: Theme.of(context).textTheme.bodyText1,
+            style: Theme.of(context).textTheme.bodyLarge,
             onChanged: setSorting,
             items: sortingDropdownValues)
       ],
@@ -227,7 +226,7 @@ class _MitgliedsListeState extends State<MitgliedsListe> {
             child: TextField(
               onChanged: setSearchValue,
               decoration: InputDecoration(
-                hintStyle: Theme.of(context).textTheme.caption,
+                hintStyle: Theme.of(context).textTheme.bodySmall,
                 filled: true,
                 hintText: 'Textsuche (Name, Mail, Mitgliedsnummer)',
               ),

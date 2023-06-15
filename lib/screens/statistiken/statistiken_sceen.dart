@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:nami/screens/widgets/groupBarChart.widget.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
@@ -8,10 +7,10 @@ class StatistikScreen extends StatefulWidget {
   const StatistikScreen({Key? key}) : super(key: key);
 
   @override
-  _StatistikScreenState createState() => _StatistikScreenState();
+  StatistikScreenState createState() => StatistikScreenState();
 }
 
-class _StatistikScreenState extends State<StatistikScreen> {
+class StatistikScreenState extends State<StatistikScreen> {
   Box<Mitglied> memberBox = Hive.box<Mitglied>('members');
   List<Mitglied> mitglieder =
       Hive.box<Mitglied>('members').values.toList().cast<Mitglied>();

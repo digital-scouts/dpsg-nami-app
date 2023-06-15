@@ -1,4 +1,3 @@
-import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'package:flutter/material.dart';
@@ -52,14 +51,14 @@ class MyApp extends StatefulWidget {
   const MyApp({Key? key}) : super(key: key);
 
   static void restartApp(BuildContext context) {
-    context.findAncestorStateOfType<_MyAppState>()!.restartApp();
+    context.findAncestorStateOfType<MyAppState>()!.restartApp();
   }
 
   @override
-  _MyAppState createState() => _MyAppState();
+  MyAppState createState() => MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class MyAppState extends State<MyApp> {
   Key key = UniqueKey();
 
   void restartApp() {
@@ -85,20 +84,29 @@ class _MyHomeState extends State<MyHome> {
   bool authenticated = false;
   final LocalAuthentication auth = LocalAuthentication();
 
+  void openLoginPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const LoginScreen(),
+      ),
+    );
+  }
+
   Future<bool> init() async {
     await Hive.openBox('settingsBox');
 
-    bool _canCheckBiometrics = false;
+    bool canCheckBiometrics = false;
     try {
       if (await auth.isDeviceSupported() &&
           await auth.canCheckBiometrics &&
           (await auth.getAvailableBiometrics()).isNotEmpty) {
-        _canCheckBiometrics = true;
+        canCheckBiometrics = true;
       } else {
-        _canCheckBiometrics = false;
+        canCheckBiometrics = false;
       }
     } on PlatformException catch (_) {
-      _canCheckBiometrics = false;
+      canCheckBiometrics = false;
     }
 
     //online check
@@ -112,20 +120,15 @@ class _MyHomeState extends State<MyHome> {
     //nami login
     var _needLogin = await needLogin();
     if (_needLogin) {
-      await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const LoginScreen(),
-        ),
-      );
+      openLoginPage();
       _needLogin = await needLogin();
     }
 
     //app login
-    if (_canCheckBiometrics && !authenticated) {
-      authenticated = await authenticate();
+    if (canCheckBiometrics && !authenticated) {
+      bool authenticated = await authenticate();
       setState(() {
-        authenticated = authenticated;
+        this.authenticated = authenticated;
       });
     }
 
@@ -138,7 +141,7 @@ class _MyHomeState extends State<MyHome> {
           "Letzter NaMi Sync länger als 30 Tage her. NaMi Sync wird durchgeführt.");
       // automatisch alle 30 Tage Syncronisieren
 
-      syncNamiData(context);
+      syncNamiData();
     }
 
     return !_needLogin && authenticated;
@@ -183,9 +186,7 @@ class _MyHomeState extends State<MyHome> {
     authenticated = false;
     try {
       return await auth.authenticate(
-          localizedReason: 'Let OS determine authentication method',
-          useErrorDialogs: true,
-          stickyAuth: false);
+          localizedReason: 'Let OS determine authentication method');
     } on PlatformException catch (_) {
       return false;
     }

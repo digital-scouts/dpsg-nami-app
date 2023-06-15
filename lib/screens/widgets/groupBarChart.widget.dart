@@ -147,9 +147,9 @@ class GroupBarChartState extends State<GroupBarChart> {
             ),
           ),
           titlesData: FlTitlesData(
-            leftTitles: AxisTitles(),
-            rightTitles: AxisTitles(),
-            topTitles: AxisTitles(),
+            leftTitles: const AxisTitles(),
+            rightTitles: const AxisTitles(),
+            topTitles: const AxisTitles(),
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
@@ -159,7 +159,7 @@ class GroupBarChartState extends State<GroupBarChart> {
             ),
           ),
           borderData: FlBorderData(show: false),
-          gridData: FlGridData(show: false),
+          gridData: const FlGridData(show: false),
           barGroups: createData(),
           maxY: findHighestValue(widget.memberPerGroup).toDouble() + 5,
         ),
