@@ -16,6 +16,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:connectivity/connectivity.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -110,18 +111,18 @@ class _MyHomeState extends State<MyHome> {
     }
 
     //online check
-    if (!await isOnline('example.com')) {
+    if (!await isDeviceConnected()) {
       throw Exception('No Internet connection');
     }
-    if (!await isOnline('nami.dpsg.de')) {
+    if (!await isNamiOnline()) {
       throw Exception('Nami is not online');
     }
 
     //nami login
-    var _needLogin = await needLogin();
-    if (_needLogin) {
+    var needLogin = await doesNeedLogin();
+    if (needLogin) {
       openLoginPage();
-      _needLogin = await needLogin();
+      needLogin = await doesNeedLogin();
     }
 
     //app login
@@ -144,25 +145,34 @@ class _MyHomeState extends State<MyHome> {
       syncNamiData();
     }
 
-    return !_needLogin && authenticated;
+    return !needLogin && authenticated;
   }
 
-  Future<bool> isOnline(url) async {
+  Future<bool> isDeviceConnected() async {
+    var connectivityResult = await (Connectivity().checkConnectivity());
+    if (connectivityResult == ConnectivityResult.none) {
+      return false; // Keine Verbindung
+    } else if (connectivityResult == ConnectivityResult.mobile ||
+        connectivityResult == ConnectivityResult.wifi) {
+      return true; // Verbunden mit Mobilem Netzwerk oder WLAN
+    } else {
+      return false; // Anderer Fall (z. B. Bluetooth)
+    }
+  }
+
+  Future<bool> isNamiOnline() async {
     try {
-      final result = await InternetAddress.lookup(url);
-      final response = await http.head(Uri.parse('https://$url'));
-      if (result.isNotEmpty &&
-          result[0].rawAddress.isNotEmpty &&
-          response.statusCode == 200) {
+      final response = await http.head(Uri.parse('https://nami.dpsg.de/'));
+      if (response.statusCode == 200) {
         return true;
       }
-    } on SocketException catch (_) {
+    } catch (e) {
       return false;
     }
     return false;
   }
 
-  Future<bool> needLogin() async {
+  Future<bool> doesNeedLogin() async {
     int lastLoginCheck =
         DateTime.now().difference(getLastLoginCheck()).inMinutes;
 
@@ -170,7 +180,7 @@ class _MyHomeState extends State<MyHome> {
     if (lastLoginCheck > 15) {
       bool _isLoggedIn = await isLoggedIn();
       if (_isLoggedIn) {
-        return needLogin();
+        return doesNeedLogin();
       }
       debugPrint(
           'Letzter Login Check länger als 15 Minuten her. Login nicht erfolgreich.');
