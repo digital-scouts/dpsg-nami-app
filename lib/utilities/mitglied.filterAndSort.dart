@@ -18,7 +18,7 @@ void filterByString(List<Mitglied> mitglieder, String filterString) {
 ///Filter bei Stufe (woe, jufi, pfadi, rover, leiter)
 void filterByStufe(List<Mitglied> mitglieder, List<Stufe> stufen) {
   if (stufen.isEmpty) return;
-  List<String> s = stufen.map((e) => e.string()).toList();
+  List<String> s = stufen.map((e) => e.name).toList();
   mitglieder.removeWhere((m) => !s.contains(m.stufe));
 }
 
@@ -44,6 +44,7 @@ void sortByMitgliedsalter(List<Mitglied> mitglieder) {
 }
 
 enum MemberSorting { name, age, group, memberTime }
+
 const memberSortingNameString = "Name";
 const memberSortingAgeString = 'Alter';
 const memberSortingGroupString = "Gruppe";

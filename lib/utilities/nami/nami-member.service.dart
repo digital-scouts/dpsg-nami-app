@@ -159,7 +159,7 @@ Future<void> storeMitgliedToHive(int mitgliedId, Box<Mitglied> memberBox,
     ..nachname = rawMember.nachname
     ..geschlecht = rawMember.geschlecht
     ..geburtsDatum = rawMember.geburtsDatum
-    ..stufe = StufenExtension.getValueFromString(rawMember.stufe ?? '').string()
+    ..stufe = Stufe.getStufeByString(rawMember.stufe ?? '').name
     ..id = rawMember.id
     ..mitgliedsNummer = rawMember.mitgliedsNummer
     ..eintrittsdatum = rawMember.eintrittsdatum

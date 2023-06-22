@@ -13,7 +13,6 @@ import 'package:nami/utilities/theme.dart';
 import 'package:provider/provider.dart';
 import 'utilities/nami/nami.service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'dart:io';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:connectivity/connectivity.dart';

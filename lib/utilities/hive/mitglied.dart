@@ -90,6 +90,11 @@ class Mitglied {
     return false;
   }
 
+  int getAlterAm({DateTime? referenceDate}) {
+    referenceDate ??= DateTime.now();
+    return referenceDate.year - geburtsDatum.year;
+  }
+
   /// 0 gleich | <0 this ist alpabetisch früher | >0 this ist alpabetisch später
   int compareByName(Mitglied mitglied) {
     String m1Name = '$vorname $nachname';
@@ -99,10 +104,8 @@ class Mitglied {
 
   /// 0 gleich | <0 this ist jüngere Stufe | >0 this ist ältere Stufe
   int compareByStufe(Mitglied mitglied) {
-    int m1Stufe = getStufeValue(StufenExtension.getValueFromString(stufe));
-    int m2Stufe =
-        getStufeValue(StufenExtension.getValueFromString(mitglied.stufe));
-    return m1Stufe - m2Stufe;
+    return Stufe.getStufeByString(stufe)
+        .compareTo(Stufe.getStufeByString(mitglied.stufe));
   }
 
   /// 0 gleich | <0 this ist jünger | >0 this ist älter
@@ -113,22 +116,5 @@ class Mitglied {
   /// 0 gleich | <0 this ist länger dabei | >0 this ist kürzer dabei
   int compareByMitgliedsalter(Mitglied mitglied) {
     return eintrittsdatum.compareTo(mitglied.eintrittsdatum);
-  }
-
-  int getStufeValue(Stufe stufe) {
-    switch (stufe) {
-      case Stufe.woe:
-        return 1;
-      case Stufe.jufi:
-        return 2;
-      case Stufe.pfadi:
-        return 3;
-      case Stufe.rover:
-        return 4;
-      case Stufe.leiter:
-        return 5;
-      default:
-        return 6;
-    }
   }
 }

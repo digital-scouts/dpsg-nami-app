@@ -23,7 +23,7 @@ class MitgliedsListeState extends State<MitgliedsListe> {
   MemberSorting sorting = MemberSorting.name;
   List<DropdownMenuItem<String>> sortingDropdownValues =
       List.empty(growable: true);
-  List<bool> filterGroup = List.generate(Stufe.values.length, (index) => false);
+  List<bool> filterGroup = List.generate(Stufe.stufen.length, (index) => false);
   bool disableInactive = true;
   bool customFilterActive = false;
 
@@ -57,7 +57,7 @@ class MitgliedsListeState extends State<MitgliedsListe> {
     List<Stufe> gruppen = List.empty(growable: true);
     for (var i = 0; i < filterGroup.length; i++) {
       if (filterGroup[i]) {
-        gruppen.add(Stufe.values[i]);
+        gruppen.add(Stufe.stufen[i]);
       }
     }
     filterByStufe(filteredMitglieder, gruppen);
@@ -131,15 +131,12 @@ class MitgliedsListeState extends State<MitgliedsListe> {
                   gradient: LinearGradient(
                       colors: [
                         filteredMitglieder[index].isMitgliedLeiter()
-                            ? StufenExtension.getValueFromString(
-                                    Stufe.leiter.string())
-                                .color()
-                            : StufenExtension.getValueFromString(
+                            ? Stufe.leiterFarbe
+                            : Stufe.getStufeByString(
                                     filteredMitglieder[index].stufe)
-                                .color(),
-                        StufenExtension.getValueFromString(
-                                filteredMitglieder[index].stufe)
-                            .color()
+                                .farbe,
+                        Stufe.getStufeByString(filteredMitglieder[index].stufe)
+                            .farbe
                       ],
                       begin: const FractionalOffset(0.0, 0.0),
                       end: const FractionalOffset(0.0, 1.0),
