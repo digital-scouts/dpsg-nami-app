@@ -10,22 +10,23 @@ jobs:
 
     env:
       JAVA_VERSION: '17.0.1'
-      FLUTTER_VERSION: '3.0.0'
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-java@v1
         with:
           java-version: ${{env.JAVA_VERSION}}
-      - uses: subosito/flutter-action@v1
+      - uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{env.FLUTTER_VERSION}}
+          channel: 'stable'
+      - run: flutter --version
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
       - uses: actions/checkout@v2
       - uses: dart-lang/setup-dart@v1
         with:
-          sdk: stable
+          sdk: 'stable'
+      - run: dart --version
 
       - name: Install dependencies
         run: flutter pub get
