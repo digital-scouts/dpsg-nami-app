@@ -8,12 +8,12 @@ class Stufe implements Comparable<Stufe> {
   final int? alterMin;
   final int? alterMax;
 
-  static final woelfingFarbe = Color(0xFFf56403);
-  static final jungpfadfinderFarbe = Color(0xFF007bff);
-  static final pfadfinderFarbe = Color(0xFF26823c);
-  static final roverFarbe = Color(0xFFdc3545);
-  static final leiterFarbe = Color(0xFF949494);
-  static final keineStufeFarbe = Color(0xFF949494);
+  static const woelfingFarbe = Color(0xFFf56403);
+  static const jungpfadfinderFarbe = Color(0xFF007bff);
+  static const pfadfinderFarbe = Color(0xFF26823c);
+  static const roverFarbe = Color(0xFFdc3545);
+  static const leiterFarbe = Color(0xFF949494);
+  static const keineStufeFarbe = Color(0xFF949494);
 
   static final List<Stufe> stufen = [
     Stufe("Wölfling", 1, woelfingFarbe, true, 6, 10),

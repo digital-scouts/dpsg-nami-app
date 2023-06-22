@@ -177,8 +177,7 @@ class _MyHomeState extends State<MyHome> {
 
     // Überpüfe den Nami Login maximal alle 15 Minuten
     if (lastLoginCheck > 15) {
-      bool _isLoggedIn = await isLoggedIn();
-      if (_isLoggedIn) {
+      if (await isLoggedIn()) {
         return doesNeedLogin();
       }
       debugPrint(
