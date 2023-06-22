@@ -1,21 +1,42 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:nami/screens/widgets/map.widget.dart';
 import 'package:nami/utilities/stufe.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:maps_launcher/maps_launcher.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 class MitgliedDetail extends StatefulWidget {
   final Mitglied mitglied;
   const MitgliedDetail({required this.mitglied, Key? key}) : super(key: key);
 
   @override
-  _MitgliedDetailState createState() => _MitgliedDetailState();
+  MitgliedDetailState createState() => MitgliedDetailState();
 }
 
-class _MitgliedDetailState extends State<MitgliedDetail> {
+class MitgliedDetailState extends State<MitgliedDetail> {
   bool showMoreTaetigkeiten = false;
+
+  Widget _buildBox(List<Widget> children) {
+    return SizedBox(
+      child: Card(
+        color: Colors.black87,
+        elevation: 2.0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+        child: IntrinsicHeight(
+          child: Padding(
+            padding: const EdgeInsets.all(5.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: children,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _buildLinkText(String scheme, String path) {
     return RichText(
@@ -32,8 +53,8 @@ class _MitgliedDetailState extends State<MitgliedDetail> {
 
             var url = params.toString();
             // dies Funktioniert, wenn die notwendige app installiert ist
-            if (await canLaunch(url)) {
-              await launch(url);
+            if (await canLaunchUrlString(url)) {
+              await launchUrlString(url);
             }
           },
       ),
@@ -101,12 +122,19 @@ class _MitgliedDetailState extends State<MitgliedDetail> {
     }
   }
 
-  Widget _buildAdress() {
+  Widget _buildAddress() {
+    LatLng homeLocation = const LatLng(53.608620, 9.897620);
+    String memberAddress =
+        '${widget.mitglied.strasse}, ${widget.mitglied.plz} ${widget.mitglied.ort}';
+
     return _buildBox(<Widget>[
       const Text("Anschrift",
           style: TextStyle(color: Colors.white, fontSize: 20)),
-      _buildMapText(
-          '${widget.mitglied.strasse}, ${widget.mitglied.plz} ${widget.mitglied.ort}'),
+      _buildMapText(memberAddress),
+      MapWidget(
+        homeLocation: homeLocation,
+        memberAddress: memberAddress,
+      ),
     ]);
   }
 
@@ -156,6 +184,42 @@ class _MitgliedDetailState extends State<MitgliedDetail> {
     ]);
   }
 
+  Widget _buildNextStufenwechsel() {
+    final int age = widget.mitglied.getAlterAm();
+    Stufe currentStufe = Stufe.getStufeByString(widget.mitglied.stufe);
+    Stufe? nextStufe = Stufe.getStufeByOrder(currentStufe.order + 1);
+    int alterImHerbst = widget.mitglied
+        .getAlterAm(referenceDate: DateTime(DateTime.now().year, 9, 1));
+
+    List<Widget> elements = [
+      Text(
+          'Alter: $age (${widget.mitglied.geburtsDatum.day < 10 ? '0' : ''}${widget.mitglied.geburtsDatum.day}.${widget.mitglied.geburtsDatum.month < 10 ? '0' : ''}${widget.mitglied.geburtsDatum.month}.${widget.mitglied.geburtsDatum.year})',
+          style: const TextStyle(color: Colors.white, fontSize: 18)),
+    ];
+
+    if (nextStufe != null &&
+        nextStufe.isStufeYouCanChangeTo &&
+        !widget.mitglied.isMitgliedLeiter()) {
+      int minStufenWechselJahr =
+          DateTime.now().year - alterImHerbst + nextStufe.alterMin!;
+      int maxStufenWechselJahr =
+          DateTime.now().year - alterImHerbst + currentStufe.alterMax! + 1;
+      elements.add(
+        Text(
+            '${widget.mitglied.stufe} -> ${nextStufe.name} ($minStufenWechselJahr/$maxStufenWechselJahr)',
+            style: const TextStyle(color: Colors.white, fontSize: 18)),
+      );
+    } else if (currentStufe.name == "Rover" &&
+        !widget.mitglied.isMitgliedLeiter()) {
+      int maxStufenWechselJahr =
+          DateTime.now().year - alterImHerbst + currentStufe.alterMax! + 1;
+      elements.add(Text('Gruppenzeit endet $maxStufenWechselJahr',
+          style: const TextStyle(color: Colors.white, fontSize: 20)));
+    }
+
+    return _buildBox(elements);
+  }
+
   Widget _buildHeader() {
     String phone = widget.mitglied.telefon1 ??
         widget.mitglied.telefon2 ??
@@ -192,8 +256,8 @@ class _MitgliedDetailState extends State<MitgliedDetail> {
 
                   var url = params.toString();
                   // dies Funktioniert, wenn die notwendige app installiert ist
-                  if (await canLaunch(url)) {
-                    await launch(url);
+                  if (await canLaunchUrlString(url)) {
+                    await launchUrlString(url);
                   }
                 },
               ),
@@ -220,51 +284,50 @@ class _MitgliedDetailState extends State<MitgliedDetail> {
 
                   var url = params.toString();
                   // dies Funktioniert, wenn die notwendige app installiert ist
-                  if (await canLaunch(url)) {
-                    await launch(url);
+                  if (await canLaunchUrlString(url)) {
+                    await launchUrlString(url);
                   }
                 },
               ),
             ),
           ),
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Ink(
+            decoration: ShapeDecoration(
+              color: Colors.blue,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(5)),
+            ),
+            child: IconButton(
+              iconSize: 35,
+              icon: const Icon(Icons.edit),
+              tooltip: 'Bearbeiten',
+              onPressed: () async {
+                //ignore for now
+              },
+            ),
+          ),
+        ),
       ]);
     } else {
       return Container();
     }
   }
 
-  Widget _buildBox(List<Widget> children) {
-    return SizedBox(
-      child: Card(
-        color: Colors.black87,
-        elevation: 2.0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-        child: IntrinsicHeight(
-          child: Padding(
-            padding: const EdgeInsets.all(5.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: children,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor:
-            StufenExtension.getValueFromString(widget.mitglied.stufe).color(),
+        backgroundColor: Stufe.getStufeByString(widget.mitglied.stufe).farbe,
         title: Text("${widget.mitglied.vorname} ${widget.mitglied.nachname}"),
       ),
-      body: Column(children: <Widget>[
+      body: ListView(children: <Widget>[
         _buildHeader(),
+        _buildNextStufenwechsel(),
         _buildMailList(),
         _buildPhoneList(),
-        _buildAdress(),
+        _buildAddress(),
         _buildTaetigkeiten(),
       ]),
     );

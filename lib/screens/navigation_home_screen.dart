@@ -8,10 +8,10 @@ class NavigationHomeScreen extends StatefulWidget {
   const NavigationHomeScreen({Key? key}) : super(key: key);
 
   @override
-  _NavigationHomeScreenState createState() => _NavigationHomeScreenState();
+  NavigationHomeScreenState createState() => NavigationHomeScreenState();
 }
 
-class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
+class NavigationHomeScreenState extends State<NavigationHomeScreen> {
   Widget? screenView;
   DrawerIndex? drawerIndex;
 
@@ -25,12 +25,12 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Theme.of(context).backgroundColor,
+      color: Theme.of(context).colorScheme.background,
       child: SafeArea(
         top: false,
         bottom: false,
         child: Scaffold(
-          backgroundColor: Theme.of(context).backgroundColor,
+          backgroundColor: Theme.of(context).colorScheme.background,
           body: DrawerUserController(
             screenIndex: drawerIndex,
             drawerWidth: MediaQuery.of(context).size.width * 0.75,

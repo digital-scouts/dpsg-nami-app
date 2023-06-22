@@ -1,7 +1,4 @@
-import 'dart:async';
-
 import 'package:backdrop/backdrop.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 // import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -14,10 +11,10 @@ class MitgliedsListe extends StatefulWidget {
   const MitgliedsListe({Key? key}) : super(key: key);
 
   @override
-  _MitgliedsListeState createState() => _MitgliedsListeState();
+  MitgliedsListeState createState() => MitgliedsListeState();
 }
 
-class _MitgliedsListeState extends State<MitgliedsListe> {
+class MitgliedsListeState extends State<MitgliedsListe> {
   Box<Mitglied> memberBox = Hive.box<Mitglied>('members');
   List<Mitglied> mitglieder =
       Hive.box<Mitglied>('members').values.toList().cast<Mitglied>();
@@ -26,7 +23,7 @@ class _MitgliedsListeState extends State<MitgliedsListe> {
   MemberSorting sorting = MemberSorting.name;
   List<DropdownMenuItem<String>> sortingDropdownValues =
       List.empty(growable: true);
-  List<bool> filterGroup = List.generate(Stufe.values.length, (index) => false);
+  List<bool> filterGroup = List.generate(Stufe.stufen.length, (index) => false);
   bool disableInactive = true;
   bool customFilterActive = false;
 
@@ -42,7 +39,7 @@ class _MitgliedsListeState extends State<MitgliedsListe> {
 
     for (MemberSorting value in MemberSorting.values) {
       sortingDropdownValues.add(DropdownMenuItem<String>(
-          child: Text(value.string()), value: value.string()));
+          value: value.string(), child: Text(value.string())));
     }
 
     applyFilterAndSort();
@@ -60,7 +57,7 @@ class _MitgliedsListeState extends State<MitgliedsListe> {
     List<Stufe> gruppen = List.empty(growable: true);
     for (var i = 0; i < filterGroup.length; i++) {
       if (filterGroup[i]) {
-        gruppen.add(Stufe.values[i]);
+        gruppen.add(Stufe.stufen[i]);
       }
     }
     filterByStufe(filteredMitglieder, gruppen);
@@ -134,15 +131,12 @@ class _MitgliedsListeState extends State<MitgliedsListe> {
                   gradient: LinearGradient(
                       colors: [
                         filteredMitglieder[index].isMitgliedLeiter()
-                            ? StufenExtension.getValueFromString(
-                                    Stufe.leiter.string())
-                                .color()
-                            : StufenExtension.getValueFromString(
+                            ? Stufe.leiterFarbe
+                            : Stufe.getStufeByString(
                                     filteredMitglieder[index].stufe)
-                                .color(),
-                        StufenExtension.getValueFromString(
-                                filteredMitglieder[index].stufe)
-                            .color()
+                                .farbe,
+                        Stufe.getStufeByString(filteredMitglieder[index].stufe)
+                            .farbe
                       ],
                       begin: const FractionalOffset(0.0, 0.0),
                       end: const FractionalOffset(0.0, 1.0),
@@ -156,7 +150,9 @@ class _MitgliedsListeState extends State<MitgliedsListe> {
                   '${filteredMitglieder[index].vorname} ${filteredMitglieder[index].nachname}'),
               subtitle:
                   Text(filteredMitglieder[index].mitgliedsNummer.toString()),
-              trailing: Text(filteredMitglieder[index].stufe),
+              trailing: Text(filteredMitglieder[index].stufe == 'keine Stufe'
+                  ? ''
+                  : filteredMitglieder[index].stufe),
             ),
           ),
         );
@@ -168,12 +164,12 @@ class _MitgliedsListeState extends State<MitgliedsListe> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text("Sortiere nach", style: Theme.of(context).textTheme.bodyText1),
+        Text("Sortiere nach", style: Theme.of(context).textTheme.bodyLarge),
         const SizedBox(width: 15),
         DropdownButton<String>(
             value: sorting.string(),
             icon: const Icon(Icons.expand_more),
-            style: Theme.of(context).textTheme.bodyText1,
+            style: Theme.of(context).textTheme.bodyLarge,
             onChanged: setSorting,
             items: sortingDropdownValues)
       ],
@@ -227,7 +223,7 @@ class _MitgliedsListeState extends State<MitgliedsListe> {
             child: TextField(
               onChanged: setSearchValue,
               decoration: InputDecoration(
-                hintStyle: Theme.of(context).textTheme.caption,
+                hintStyle: Theme.of(context).textTheme.bodySmall,
                 filled: true,
                 hintText: 'Textsuche (Name, Mail, Mitgliedsnummer)',
               ),

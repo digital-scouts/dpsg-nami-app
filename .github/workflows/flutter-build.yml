@@ -7,23 +7,26 @@ jobs:
   test:
     name: flutter test
     runs-on: ubuntu-latest
-    
+
     env:
-      JAVA_VERSION: "17.0.1"
-      FLUTTER_VERSION: "2.5.3"
+      JAVA_VERSION: '17.0.1'
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-java@v1
         with:
           java-version: ${{env.JAVA_VERSION}}
-      - uses: subosito/flutter-action@v1
+      - uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{env.FLUTTER_VERSION}}
+          channel: 'stable'
+      - run: flutter --version
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
       - uses: actions/checkout@v2
-      - uses: dart-lang/setup-dart@9a04e6d73cca37bd455e0608d7e5092f881fd603
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: 'stable'
+      - run: dart --version
 
       - name: Install dependencies
         run: flutter pub get
@@ -40,7 +43,7 @@ jobs:
       # want to change this to 'flutter test'.
       #- name: Run tests
       #  run: dart test
-      
+
   version:
     name: flutter version
     runs-on: ubuntu-latest
@@ -50,8 +53,8 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v2
         with:
-          ref: ${{ github.head_ref }}   # checkout the correct branch name
-          fetch-depth: 0                # fetch the whole repo history
+          ref: ${{ github.head_ref }} # checkout the correct branch name
+          fetch-depth: 0 # fetch the whole repo history
       - name: Git Version
         id: gitversion
         uses: codacy/git-version@2.2.0
@@ -61,29 +64,29 @@ jobs:
       - name: Save git-version
         id: v
         run: echo "::set-output name=version::${{ steps.gitversion.outputs.VERSION }}"
-  
+
   build:
     needs: [test, version]
     name: flutter build
     runs-on: macos-latest
     env:
-      JAVA_VERSION: "11"
-      FLUTTER_VERSION: "2.5.3"
+      JAVA_VERSION: '11'
+      FLUTTER_VERSION: '3.0.0'
     steps:
-    - run: echo ${{needs.version.outputs.releaseversion}}
-    - name: Checkout code
-      uses: actions/checkout@v2
-    - name: Setup java
-      uses: actions/setup-java@v1
-      with:
-        java-version: ${{env.JAVA_VERSION}}
-    - name: Setup Flutter    
-      uses: subosito/flutter-action@v1
-      with:
-        flutter-version: ${{env.FLUTTER_VERSION}}
+      - run: echo ${{needs.version.outputs.releaseversion}}
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup java
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{env.JAVA_VERSION}}
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v1
+        with:
+          flutter-version: ${{env.FLUTTER_VERSION}}
 
-    - run: flutter pub get
-    - run: |
+      - run: flutter pub get
+      - run: |
           flutter build ios --no-codesign
           cd build/ios/iphoneos
           mkdir Payload
@@ -92,12 +95,12 @@ jobs:
           cd ..
           zip -r app.ipa Payload
         #Built /Users/runner/work/dpsg-nami-app/dpsg-nami-app/build/ios/iphoneos/Runner.app.
-    - run: flutter build apk --debug #Built build/app/outputs/flutter-apk/app-debug.apk.
-    - run: flutter build appbundle
-    - name: Create a Release in GitHub
-      uses: ncipollo/release-action@v1
-      with:
-        artifacts: "build/app/outputs/flutter-apk/*.apk,build/app/outputs/bundle/release/app-release.aab,build/ios/iphoneos/Runner.app"
-        token: ${{ secrets.TOKEN }}
-        tag: ${{needs.version.outputs.releaseversion}}
-        commit: ${{ github.sha }}
+      - run: flutter build apk --debug #Built build/app/outputs/flutter-apk/app-debug.apk.
+      - run: flutter build appbundle
+      - name: Create a Release in GitHub
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: 'build/app/outputs/flutter-apk/*.apk,build/app/outputs/bundle/release/app-release.aab,build/ios/iphoneos/Runner.app'
+          token: ${{ secrets.TOKEN }}
+          tag: ${{needs.version.outputs.releaseversion}}
+          commit: ${{ github.sha }}

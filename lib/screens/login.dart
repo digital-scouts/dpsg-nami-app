@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:nami/main.dart';
-import 'package:nami/utilities/custom_drawer/home_drawer.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/nami/nami-login.service.dart';
 import 'dart:async';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-
-import 'navigation_home_screen.dart';
 
 const kHintTextStyle = TextStyle(
   color: Colors.white54,
@@ -35,10 +32,10 @@ final kBoxDecorationStyle = BoxDecoration(
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
   @override
-  _LoginScreenState createState() => _LoginScreenState();
+  LoginScreenState createState() => LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class LoginScreenState extends State<LoginScreen> {
   bool _rememberMe = false;
   int _mitgliedsnummer = 0;
   String _password = '';
@@ -222,7 +219,7 @@ class _LoginScreenState extends State<LoginScreen> {
       width: double.infinity,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          primary: _wrongCredentials ? Colors.red : Colors.white,
+          backgroundColor: _wrongCredentials ? Colors.red : Colors.white,
         ),
         onPressed: () async => {
           setState(() {
@@ -238,7 +235,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   : Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => MyApp(),
+                        builder: (context) => const MyApp(),
                       ),
                     ),
               if (_rememberMe) {setNamiPassword(_password)},

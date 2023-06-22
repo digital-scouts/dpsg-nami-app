@@ -1,15 +1,158 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:nami/screens/widgets/groupBarChart.widget.dart';
+import 'package:nami/utilities/hive/mitglied.dart';
 
 class StatistikScreen extends StatefulWidget {
   const StatistikScreen({Key? key}) : super(key: key);
 
   @override
-  _StatistikScreenState createState() => _StatistikScreenState();
+  StatistikScreenState createState() => StatistikScreenState();
 }
 
-class _StatistikScreenState extends State<StatistikScreen> {
+class StatistikScreenState extends State<StatistikScreen> {
+  Box<Mitglied> memberBox = Hive.box<Mitglied>('members');
+  List<Mitglied> mitglieder =
+      Hive.box<Mitglied>('members').values.toList().cast<Mitglied>();
+
+  @override
+  void initState() {
+    super.initState();
+    memberBox.listenable().addListener(() {
+      mitglieder = memberBox.values.toList().cast<Mitglied>();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container();
+    Map<String, GroupData> memberPerGroup =
+        mitglieder.fold<Map<String, GroupData>>({}, (map, member) {
+      String stufe = member.stufe;
+      String taetigkeit = member.isMitgliedLeiter() ? 'leiter' : 'mitglied';
+
+      if (stufe == 'keine Stufe') {
+        taetigkeit = stufe;
+      }
+
+      if (!map.containsKey(stufe)) {
+        map["Wölfling"] = GroupData(0, 0);
+        map["Jungpfadfinder"] = GroupData(0, 0);
+        map["Pfadfinder"] = GroupData(0, 0);
+        map["Rover"] = GroupData(0, 0);
+        map["keine Stufe"] = GroupData(0, 0);
+      }
+
+      if (taetigkeit == 'leiter') {
+        map[stufe]!.leiter += 1;
+      } else {
+        map[stufe]!.mitglied += 1;
+      }
+
+      return map;
+    });
+    // memberPerGroup.remove('keine Stufe');
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Statistiken'),
+      ),
+      body: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          final double containerWidth = constraints.maxWidth * 0.45;
+          final double containerHeight = constraints.maxHeight * 0.25;
+          const double spacing = 10.0;
+
+          return Column(
+            children: [
+              const SizedBox(height: spacing),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  SizedBox(
+                    width: constraints.maxWidth * 0.05,
+                    height: containerHeight,
+                  ),
+                  SizedBox(
+                    width: constraints.maxWidth * 0.35,
+                    height: containerHeight,
+                    child: GroupBarChart(memberPerGroup: memberPerGroup),
+                  ),
+                  SizedBox(
+                    width: constraints.maxWidth * 0.05,
+                    height: containerHeight,
+                  ),
+                  Container(
+                    width: constraints.maxWidth * 0.40,
+                    height: containerHeight,
+                    decoration: BoxDecoration(
+                      color: Colors.blue,
+                      borderRadius: BorderRadius.circular(5.0),
+                    ),
+                    child: const Center(
+                      child: Text(
+                        '?',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20.0,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: spacing),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: containerWidth * 2 + spacing * 2,
+                    height: containerHeight + spacing,
+                    decoration: BoxDecoration(
+                      color: Colors.green,
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                    child: const Center(
+                      child: Text(
+                        '?',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20.0,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: spacing),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Container(
+                    width: containerWidth * 2 + spacing * 2,
+                    height: containerHeight,
+                    decoration: BoxDecoration(
+                      color: Colors.yellow,
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                    child: const Center(
+                      child: Text(
+                        '?',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20.0,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 }

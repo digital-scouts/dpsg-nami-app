@@ -111,7 +111,7 @@ showSyncStatus(String text, BuildContext context, {bool lastUpdate = false}) {
   }
 }
 
-Future<void> syncMember(BuildContext context) async {
+Future<void> syncMember() async {
   int gruppierung = getGruppierung()!;
   String cookie = getNamiApiCookie();
   String url = getNamiLUrl();
@@ -159,7 +159,7 @@ Future<void> storeMitgliedToHive(int mitgliedId, Box<Mitglied> memberBox,
     ..nachname = rawMember.nachname
     ..geschlecht = rawMember.geschlecht
     ..geburtsDatum = rawMember.geburtsDatum
-    ..stufe = StufenExtension.getValueFromString(rawMember.stufe ?? '').string()
+    ..stufe = Stufe.getStufeByString(rawMember.stufe ?? '').name
     ..id = rawMember.id
     ..mitgliedsNummer = rawMember.mitgliedsNummer
     ..eintrittsdatum = rawMember.eintrittsdatum

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:nami/main.dart';
-import 'package:nami/screens/login.dart';
-import 'package:nami/screens/mitgliedsliste/mitglied_liste.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
@@ -23,10 +21,10 @@ class HomeDrawer extends StatefulWidget {
   final Function(DrawerIndex)? callBackIndex;
 
   @override
-  _HomeDrawerState createState() => _HomeDrawerState();
+  HomeDrawerState createState() => HomeDrawerState();
 }
 
-class _HomeDrawerState extends State<HomeDrawer> {
+class HomeDrawerState extends State<HomeDrawer> {
   List<DrawerList>? drawerList;
   @override
   void initState() {
@@ -56,7 +54,7 @@ class _HomeDrawerState extends State<HomeDrawer> {
     String username = 'Janneck Lange';
 
     return Scaffold(
-      backgroundColor: Theme.of(context).backgroundColor,
+      backgroundColor: Theme.of(context).colorScheme.background,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisAlignment: MainAxisAlignment.start,
@@ -74,21 +72,21 @@ class _HomeDrawerState extends State<HomeDrawer> {
                     padding: const EdgeInsets.only(top: 8, left: 4),
                     child: Text(
                       username,
-                      style: Theme.of(context).textTheme.bodyText1,
+                      style: Theme.of(context).textTheme.bodyLarge,
                     ),
                   ),
                   Padding(
                     padding: const EdgeInsets.only(top: 8, left: 4),
                     child: Text(
                       'Mitgliedsnummer: $mitgliedsnummer',
-                      style: Theme.of(context).textTheme.bodyText2,
+                      style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ),
                   Padding(
                     padding: const EdgeInsets.only(top: 8, left: 4),
                     child: Text(
                       'Gruppierung: $gruppierung',
-                      style: Theme.of(context).textTheme.bodyText2,
+                      style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ),
                 ],
@@ -131,7 +129,7 @@ class _HomeDrawerState extends State<HomeDrawer> {
             children: [
               IconButton(
                 icon: const Icon(Icons.sync),
-                onPressed: () => {syncNamiData(context)},
+                onPressed: () => {syncNamiData()},
               ),
               Text(getLastNamiSync() != null
                   ? "Vor ${DateTime.now().difference(getLastNamiSync()!).inDays.toString()} Tagen"
@@ -147,7 +145,7 @@ class _HomeDrawerState extends State<HomeDrawer> {
               ListTile(
                 title: Text(
                   'Sign Out',
-                  style: Theme.of(context).textTheme.bodyText1,
+                  style: Theme.of(context).textTheme.bodyLarge,
                   textAlign: TextAlign.left,
                 ),
                 trailing: const Icon(

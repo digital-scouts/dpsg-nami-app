@@ -1,5 +1,6 @@
 {
-    "github-actions.workflows.pinned.workflows": [
-        ".github/workflows/flutter.yml"
-    ]
+  "github-actions.workflows.pinned.workflows": [
+    ".github/workflows/flutter.yml"
+  ],
+  "java.configuration.updateBuildConfiguration": "interactive"
 }

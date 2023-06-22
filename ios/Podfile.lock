@@ -1,46 +1,72 @@
 PODS:
-  - Flutter (1.0.0)
-  - flutter_secure_storage (3.3.1):
+  - connectivity (0.0.1):
     - Flutter
-  - local_auth (0.0.1):
+    - Reachability
+  - Flutter (1.0.0)
+  - flutter_secure_storage (6.0.0):
+    - Flutter
+  - geocoding_ios (1.0.5):
+    - Flutter
+  - geolocator_apple (1.2.0):
+    - Flutter
+  - local_auth_ios (0.0.1):
     - Flutter
   - maps_launcher (0.0.1):
     - Flutter
-  - path_provider (0.0.1):
+  - path_provider_foundation (0.0.1):
     - Flutter
+    - FlutterMacOS
+  - Reachability (3.2)
   - url_launcher_ios (0.0.1):
     - Flutter
 
 DEPENDENCIES:
+  - connectivity (from `.symlinks/plugins/connectivity/ios`)
   - Flutter (from `Flutter`)
   - flutter_secure_storage (from `.symlinks/plugins/flutter_secure_storage/ios`)
-  - local_auth (from `.symlinks/plugins/local_auth/ios`)
+  - geocoding_ios (from `.symlinks/plugins/geocoding_ios/ios`)
+  - geolocator_apple (from `.symlinks/plugins/geolocator_apple/ios`)
+  - local_auth_ios (from `.symlinks/plugins/local_auth_ios/ios`)
   - maps_launcher (from `.symlinks/plugins/maps_launcher/ios`)
-  - path_provider (from `.symlinks/plugins/path_provider/ios`)
+  - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - url_launcher_ios (from `.symlinks/plugins/url_launcher_ios/ios`)
 
+SPEC REPOS:
+  trunk:
+    - Reachability
+
 EXTERNAL SOURCES:
+  connectivity:
+    :path: ".symlinks/plugins/connectivity/ios"
   Flutter:
     :path: Flutter
   flutter_secure_storage:
     :path: ".symlinks/plugins/flutter_secure_storage/ios"
-  local_auth:
-    :path: ".symlinks/plugins/local_auth/ios"
+  geocoding_ios:
+    :path: ".symlinks/plugins/geocoding_ios/ios"
+  geolocator_apple:
+    :path: ".symlinks/plugins/geolocator_apple/ios"
+  local_auth_ios:
+    :path: ".symlinks/plugins/local_auth_ios/ios"
   maps_launcher:
     :path: ".symlinks/plugins/maps_launcher/ios"
-  path_provider:
-    :path: ".symlinks/plugins/path_provider/ios"
+  path_provider_foundation:
+    :path: ".symlinks/plugins/path_provider_foundation/darwin"
   url_launcher_ios:
     :path: ".symlinks/plugins/url_launcher_ios/ios"
 
 SPEC CHECKSUMS:
-  Flutter: 50d75fe2f02b26cc09d224853bb45737f8b3214a
-  flutter_secure_storage: 7953c38a04c3fdbb00571bcd87d8e3b5ceb9daec
-  local_auth: 1740f55d7af0a2e2a8684ce225fe79d8931e808c
+  connectivity: c4130b2985d4ef6fd26f9702e886bd5260681467
+  Flutter: f04841e97a9d0b0a8025694d0796dd46242b2854
+  flutter_secure_storage: 23fc622d89d073675f2eaa109381aefbcf5a49be
+  geocoding_ios: a389ea40f6f548de6e63006a2e31bf66ff80769a
+  geolocator_apple: cc556e6844d508c95df1e87e3ea6fa4e58c50401
+  local_auth_ios: c6cf091ded637a88f24f86a8875d8b0f526e2605
   maps_launcher: 2e5b6a2d664ec6c27f82ffa81b74228d770ab203
-  path_provider: d1e9807085df1f9cc9318206cd649dc0b76be3de
-  url_launcher_ios: 02f1989d4e14e998335b02b67a7590fa34f971af
+  path_provider_foundation: eaf5b3e458fc0e5fbb9940fb09980e853fe058b8
+  Reachability: 33e18b67625424e47b6cde6d202dce689ad7af96
+  url_launcher_ios: 08a3dfac5fb39e8759aeb0abbd5d9480f30fc8b4
 
 PODFILE CHECKSUM: 57c8aed26fba39d3ec9424816221f294a07c58eb
 
-COCOAPODS: 1.11.2
+COCOAPODS: 1.12.1

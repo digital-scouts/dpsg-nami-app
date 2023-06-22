@@ -1,7 +1,4 @@
 {
-    // Verwendet IntelliSense zum Ermitteln möglicher Attribute.
-    // Zeigen Sie auf vorhandene Attribute, um die zugehörigen Beschreibungen anzuzeigen.
-    // Weitere Informationen finden Sie unter https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
@@ -19,14 +16,21 @@
             "name": "iPhone",
             "request": "launch",
             "type": "dart",
-            "deviceId": "iphone",
+            "deviceId": "iphone"
         },
         {
             "name": "MyPhone",
             "request": "launch",
             "type": "dart",
-            "deviceId": "00008101-0014083A3A30001E",
+            "deviceId": "4E528113-4561-4BDC-86B6-A54BC822AEEE"
         },
+        {
+            "name": "Flutter (iPhone 14 Pro Max)",
+            "program": "lib/main.dart",
+            "deviceId": "4B064FB4-6898-42D6-A627-61A9EE5CE4FE",
+            "request": "launch",
+            "type": "dart"
+        }
     ],
     "compounds": [
         {
@@ -34,7 +38,7 @@
             "configurations": [
                 "Android",
                 "iPhone"
-            ],
+            ]
         }
     ]
 }

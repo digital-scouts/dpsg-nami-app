@@ -1,73 +1,42 @@
 import 'package:flutter/material.dart';
 
-enum Stufe { woe, jufi, pfadi, rover, leiter, none }
-const stufeWoeString = "Wölfling";
-const stufeJufiString = 'Jungpfadfinder';
-const stufePfadiString = "Pfadfinder";
-const stufeRoverString = "Rover";
-const stufeLeiterString = "Leiter";
-const stufeNoneString = "keine Stufe";
-const stufenFarbe = {
-  Stufe.woe: Color(0xFFf56403),
-  Stufe.jufi: Color(0xFF007bff),
-  Stufe.pfadi: Color(0xFF26823c),
-  Stufe.rover: Color(0xFFdc3545),
-  Stufe.leiter: Color(0xFFFFD148),
-  Stufe.none: Color(0xFF949494)
-};
+class Stufe implements Comparable<Stufe> {
+  final String name;
+  final Color farbe;
+  final int order;
+  final bool isStufeYouCanChangeTo;
+  final int? alterMin;
+  final int? alterMax;
 
-extension StufenExtension on Stufe {
-  String string() {
-    switch (this) {
-      case Stufe.jufi:
-        return stufeJufiString;
-      case Stufe.leiter:
-        return stufeLeiterString;
-      case Stufe.rover:
-        return stufeRoverString;
-      case Stufe.pfadi:
-        return stufePfadiString;
-      case Stufe.woe:
-        return stufeWoeString;
-      case Stufe.none:
-      default:
-        return stufeNoneString;
-    }
+  static const woelfingFarbe = Color(0xFFf56403);
+  static const jungpfadfinderFarbe = Color(0xFF007bff);
+  static const pfadfinderFarbe = Color(0xFF26823c);
+  static const roverFarbe = Color(0xFFdc3545);
+  static const leiterFarbe = Color(0xFF949494);
+  static const keineStufeFarbe = Color(0xFF949494);
+
+  static final List<Stufe> stufen = [
+    Stufe("Wölfling", 1, woelfingFarbe, true, 6, 10),
+    Stufe("Jungpfadfinder", 2, jungpfadfinderFarbe, true, 9, 13),
+    Stufe("Pfadfinder", 3, pfadfinderFarbe, true, 12, 16),
+    Stufe("Rover", 4, roverFarbe, true, 15, 20),
+    Stufe("Leiter", 5, leiterFarbe, false, 18),
+    Stufe("keine Stufe", 6, keineStufeFarbe),
+  ];
+
+  static Stufe? getStufeByOrder(int order) {
+    return stufen.where((element) => element.order == order).firstOrNull;
   }
 
-  Color color() {
-    switch (this) {
-      case Stufe.jufi:
-        return stufenFarbe[Stufe.jufi]!;
-      case Stufe.leiter:
-        return stufenFarbe[Stufe.leiter]!;
-      case Stufe.rover:
-        return stufenFarbe[Stufe.rover]!;
-      case Stufe.pfadi:
-        return stufenFarbe[Stufe.pfadi]!;
-      case Stufe.woe:
-        return stufenFarbe[Stufe.woe]!;
-      case Stufe.none:
-      default:
-        return stufenFarbe[Stufe.none]!;
-    }
+  static Stufe getStufeByString(String name) {
+    return stufen.where((element) => element.name == name).first;
   }
 
-  static Stufe getValueFromString(String value) {
-    switch (value) {
-      case stufeJufiString:
-        return Stufe.jufi;
-      case stufeLeiterString:
-        return Stufe.leiter;
-      case stufePfadiString:
-        return Stufe.pfadi;
-      case stufeRoverString:
-        return Stufe.rover;
-      case stufeWoeString:
-        return Stufe.woe;
-      case stufeNoneString:
-      default:
-        return Stufe.none;
-    }
+  Stufe(this.name, this.order, this.farbe,
+      [this.isStufeYouCanChangeTo = false, this.alterMin, this.alterMax]);
+
+  @override
+  int compareTo(Stufe other) {
+    return order.compareTo(other.order);
   }
 }
