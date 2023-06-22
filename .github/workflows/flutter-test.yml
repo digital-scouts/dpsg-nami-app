@@ -2,31 +2,30 @@ name: Test
 
 on:
   push:
-    branches: [ master, develop ]
+    branches: [master, develop]
     paths-ignore:
       - '.github/**'
       - '.vscode/**'
       - 'releases/**'
       - '**/README.md'
       - '**/GitVersion.yml'
-  pull_request: 
-    branches: [ master, develop ]
+  pull_request:
+    branches: [master, develop]
     paths-ignore:
       - '.github/**'
       - '.vscode/**'
       - 'releases/**'
       - '**/README.md'
       - '**/GitVersion.yml'
-    
- 
+
 jobs:
   test:
     name: flutter test
     runs-on: ubuntu-latest
-    
+
     env:
-      JAVA_VERSION: "17.0.1"
-      FLUTTER_VERSION: "2.5.3"
+      JAVA_VERSION: '17.0.1'
+      FLUTTER_VERSION: '3.0.0'
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-java@v1
@@ -56,4 +55,3 @@ jobs:
       # want to change this to 'flutter test'.
       #- name: Run tests
       #  run: dart test
-  
