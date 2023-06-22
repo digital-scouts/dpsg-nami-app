@@ -71,7 +71,6 @@ jobs:
     runs-on: macos-latest
     env:
       JAVA_VERSION: '11'
-      FLUTTER_VERSION: '3.0.0'
     steps:
       - run: echo ${{needs.version.outputs.releaseversion}}
       - name: Checkout code
