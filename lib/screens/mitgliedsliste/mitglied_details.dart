@@ -184,6 +184,42 @@ class MitgliedDetailState extends State<MitgliedDetail> {
     ]);
   }
 
+  Widget _buildNextStufenwechsel() {
+    final int age = widget.mitglied.getAlterAm();
+    Stufe currentStufe = Stufe.getStufeByString(widget.mitglied.stufe);
+    Stufe? nextStufe = Stufe.getStufeByOrder(currentStufe.order + 1);
+    int alterImHerbst = widget.mitglied
+        .getAlterAm(referenceDate: DateTime(DateTime.now().year, 9, 1));
+
+    List<Widget> elements = [
+      Text(
+          'Alter: $age (${widget.mitglied.geburtsDatum.day < 10 ? '0' : ''}${widget.mitglied.geburtsDatum.day}.${widget.mitglied.geburtsDatum.month < 10 ? '0' : ''}${widget.mitglied.geburtsDatum.month}.${widget.mitglied.geburtsDatum.year})',
+          style: const TextStyle(color: Colors.white, fontSize: 18)),
+    ];
+
+    if (nextStufe != null &&
+        nextStufe.isStufeYouCanChangeTo &&
+        !widget.mitglied.isMitgliedLeiter()) {
+      int minStufenWechselJahr =
+          DateTime.now().year - alterImHerbst + nextStufe.alterMin!;
+      int maxStufenWechselJahr =
+          DateTime.now().year - alterImHerbst + currentStufe.alterMax! + 1;
+      elements.add(
+        Text(
+            '${widget.mitglied.stufe} -> ${nextStufe.name} ($minStufenWechselJahr/$maxStufenWechselJahr)',
+            style: const TextStyle(color: Colors.white, fontSize: 18)),
+      );
+    } else if (currentStufe.name == "Rover" &&
+        !widget.mitglied.isMitgliedLeiter()) {
+      int maxStufenWechselJahr =
+          DateTime.now().year - alterImHerbst + currentStufe.alterMax! + 1;
+      elements.add(Text('Gruppenzeit endet $maxStufenWechselJahr',
+          style: const TextStyle(color: Colors.white, fontSize: 20)));
+    }
+
+    return _buildBox(elements);
+  }
+
   Widget _buildHeader() {
     String phone = widget.mitglied.telefon1 ??
         widget.mitglied.telefon2 ??
@@ -283,12 +319,12 @@ class MitgliedDetailState extends State<MitgliedDetail> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor:
-            StufenExtension.getValueFromString(widget.mitglied.stufe).color(),
+        backgroundColor: Stufe.getStufeByString(widget.mitglied.stufe).farbe,
         title: Text("${widget.mitglied.vorname} ${widget.mitglied.nachname}"),
       ),
-      body: Column(children: <Widget>[
+      body: ListView(children: <Widget>[
         _buildHeader(),
+        _buildNextStufenwechsel(),
         _buildMailList(),
         _buildPhoneList(),
         _buildAddress(),
