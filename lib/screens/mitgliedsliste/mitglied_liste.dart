@@ -25,7 +25,6 @@ class MitgliedsListeState extends State<MitgliedsListe> {
       List.empty(growable: true);
   List<bool> filterGroup = List.generate(Stufe.stufen.length, (index) => false);
   bool disableInactive = true;
-  bool customFilterActive = false;
 
   @override
   void initState() {
@@ -107,12 +106,6 @@ class MitgliedsListeState extends State<MitgliedsListe> {
   void setDisabledInactive(bool? value) {
     disableInactive = value! ? value : !disableInactive;
     applyFilterAndSort();
-  }
-
-  void toogleCustomFilter(bool value) {
-    setState(() {
-      customFilterActive = !customFilterActive;
-    });
   }
 
   Widget _buildMemberList() {
@@ -247,10 +240,6 @@ class MitgliedsListeState extends State<MitgliedsListe> {
               title: const Center(child: Text("Mitglieder")),
               automaticallyImplyLeading: false,
               actions: <Widget>[
-                Switch(
-                  value: customFilterActive,
-                  onChanged: toogleCustomFilter,
-                ),
                 BackdropToggleButton(
                   icon: AnimatedIcons.search_ellipsis,
                   color: Theme.of(context).iconTheme.color ?? Colors.black,

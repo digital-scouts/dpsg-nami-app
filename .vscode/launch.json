@@ -16,21 +16,20 @@
             "name": "iPhone",
             "request": "launch",
             "type": "dart",
-            "deviceId": "iphone"
+            "deviceId": "7D506F11-AF46-4FC5-A6C7-5DA7999B4C91"
         },
         {
             "name": "MyPhone",
             "request": "launch",
             "type": "dart",
-            "deviceId": "4E528113-4561-4BDC-86B6-A54BC822AEEE"
+            "deviceId": "00008120-00026848023B401E"
         },
         {
-            "name": "Flutter (iPhone 14 Pro Max)",
-            "program": "lib/main.dart",
-            "deviceId": "4B064FB4-6898-42D6-A627-61A9EE5CE4FE",
+            "name": "MAC",
             "request": "launch",
-            "type": "dart"
-        }
+            "type": "dart",
+            "deviceId": "macos"
+        },
     ],
     "compounds": [
         {
