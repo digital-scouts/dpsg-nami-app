@@ -231,7 +231,7 @@ class LoginScreenState extends State<LoginScreen> {
               }),
               if (_rememberMe) {setNamiPassword(_password)},
               setNamiLoginId(_mitgliedsnummer),
-              Navigator.pop(context),
+              popNavigation(),
             }
           else
             {
@@ -253,6 +253,10 @@ class LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
+  }
+
+  void popNavigation() {
+    Navigator.pop(context);
   }
 
   Widget _buildSignupBtn() {
