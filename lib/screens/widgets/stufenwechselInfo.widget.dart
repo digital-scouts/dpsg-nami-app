@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class StufenwechselInfo extends StatefulWidget {
-  StufenwechselInfo({Key? key}) : super(key: key);
+  const StufenwechselInfo({Key? key}) : super(key: key);
 
   @override
   State<StufenwechselInfo> createState() => _StufenwechselInfoState();
@@ -67,11 +67,11 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
     final availableHeight = MediaQuery.of(context).size.height;
 
     return Container(
-      padding: EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(16.0),
       child: Row(
         children: [
           // Bereich für die Stufenbilder
-          Container(
+          SizedBox(
             width: 50.0,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -93,7 +93,7 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
             ),
           ),
           Container(
-            margin: EdgeInsets.only(left: 16.0, right: 5),
+            margin: const EdgeInsets.only(left: 16.0, right: 5),
             width: 1.0,
             color: Colors.grey,
             height: availableHeight, // Höhe anpassen, abhängig von Ihrer Liste

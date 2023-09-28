@@ -55,10 +55,6 @@ class StatistikScreenState extends State<StatistikScreen> {
     return GroupBarChart(memberPerGroup: memberPerGroup);
   }
 
-  Widget _buildStufenwechselInfo() {
-    return Container();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -114,10 +110,10 @@ class StatistikScreenState extends State<StatistikScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  Container(
+                  SizedBox(
                       width: containerWidth * 2 + spacing * 2,
                       height: containerHeight * 1.5,
-                      child: StufenwechselInfo()),
+                      child: const StufenwechselInfo()),
                 ],
               ),
               const SizedBox(height: spacing),
