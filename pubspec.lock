@@ -265,14 +265,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.1"
-  device_frame:
-    dependency: transitive
-    description:
-      name: device_frame
-      sha256: afe76182aec178d171953d9b4a50a43c57c7cf3c77d8b09a48bf30c8fa04dd9d
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.1.0"
   equatable:
     dependency: transitive
     description:
@@ -432,14 +424,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "10.4.0"
-  freezed_annotation:
-    dependency: transitive
-    description:
-      name: freezed_annotation
-      sha256: aeac15850ef1b38ee368d4c53ba9a847e900bb2c53a4db3f6881cbb3cb684338
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.2.0"
   frontend_server_client:
     dependency: transitive
     description:
@@ -896,14 +880,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.2.3"
-  resizable_widget:
-    dependency: transitive
+  restart_app:
+    dependency: "direct main"
     description:
-      name: resizable_widget
-      sha256: db2919754b93f386b9b3fb15e9f48f6c9d6d41f00a24397629133c99df86606a
+      name: restart_app
+      sha256: b37daeb1c02fcab30e19d9e30b6fdd215bd53577efd927042eb77cf6f09daadb
       url: "https://pub.dev"
     source: hosted
-    version: "1.0.5"
+    version: "1.2.1"
   shelf:
     dependency: transitive
     description:
@@ -1181,16 +1165,8 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.2.0"
-  widgetbook:
-    dependency: "direct main"
-    description:
-      name: widgetbook
-      sha256: "4cded1846abba19aafe9fe9d0b643ddf83716e3b9a1e753058bb1336c5937c18"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.0.0-rc.2"
   widgetbook_annotation:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: widgetbook_annotation
       sha256: "3b7dbd3f326309845d023b586819b4aae7fbf5c8874cf1dfb92b303bb3ed96e4"

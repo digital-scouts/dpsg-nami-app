@@ -50,22 +50,12 @@ Future openHive() async {
 class MyApp extends StatefulWidget {
   const MyApp({Key? key}) : super(key: key);
 
-  static void restartApp(BuildContext context) {
-    context.findAncestorStateOfType<MyAppState>()!.restartApp();
-  }
-
   @override
   MyAppState createState() => MyAppState();
 }
 
 class MyAppState extends State<MyApp> {
   Key key = UniqueKey();
-
-  void restartApp() {
-    setState(() {
-      key = UniqueKey();
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -85,12 +75,15 @@ class _MyHomeState extends State<MyHome> {
   final LocalAuthentication auth = LocalAuthentication();
 
   void openLoginPage() {
-    Navigator.push(
-      context,
+    Navigator.of(context)
+        .push(
       MaterialPageRoute(
         builder: (context) => const LoginScreen(),
       ),
-    );
+    )
+        .then((value) {
+      postLoginSteps();
+    });
   }
 
   Future<bool> init() async {
@@ -117,11 +110,15 @@ class _MyHomeState extends State<MyHome> {
       throw Exception('Nami is not online');
     }
 
+    try {
+      await openHive();
+    } catch (_) {}
+
     //nami login
     var needLogin = await doesNeedLogin();
     if (needLogin) {
       openLoginPage();
-      needLogin = await doesNeedLogin();
+      return false;
     }
 
     //app login
@@ -132,10 +129,12 @@ class _MyHomeState extends State<MyHome> {
       });
     }
 
-    try {
-      await openHive();
-    } catch (_) {}
+    await postLoginSteps();
 
+    return !needLogin && authenticated;
+  }
+
+  Future<void> postLoginSteps() async {
     if (DateTime.now().difference(getLastNamiSync()!).inDays > 30) {
       debugPrint(
           "Letzter NaMi Sync länger als 30 Tage her. NaMi Sync wird durchgeführt.");
@@ -143,8 +142,6 @@ class _MyHomeState extends State<MyHome> {
 
       syncNamiData();
     }
-
-    return !needLogin && authenticated;
   }
 
   Future<bool> isDeviceConnected() async {
@@ -178,16 +175,13 @@ class _MyHomeState extends State<MyHome> {
     // Überpüfe den Nami Login maximal alle 15 Minuten
     if (lastLoginCheck > 15) {
       if (await isLoggedIn()) {
-        return doesNeedLogin();
+        return false;
       }
       debugPrint(
           'Letzter Login Check länger als 15 Minuten her. Login nicht erfolgreich.');
       return true;
     }
-    if (lastLoginCheck <= 15) {
-      return false;
-    }
-    return true;
+    return false;
   }
 
   Future<bool> authenticate() async {

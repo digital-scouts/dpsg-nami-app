@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:nami/main.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/nami/nami-login.service.dart';
 import 'dart:async';
@@ -230,14 +229,7 @@ class LoginScreenState extends State<LoginScreen> {
               setState(() {
                 _loading = false;
               }),
-              Navigator.canPop(context)
-                  ? Navigator.pop(context)
-                  : Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const MyApp(),
-                      ),
-                    ),
+              Navigator.pop(context),
               if (_rememberMe) {setNamiPassword(_password)},
               setNamiLoginId(_mitgliedsnummer),
             }
