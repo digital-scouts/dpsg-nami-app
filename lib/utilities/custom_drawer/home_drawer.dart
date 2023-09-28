@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-import 'package:nami/main.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
 import 'package:provider/provider.dart';
-import 'package:restart_app/restart_app.dart';
 
 import '../../screens/login.dart';
 import '../theme.dart';
