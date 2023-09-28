@@ -229,9 +229,9 @@ class LoginScreenState extends State<LoginScreen> {
               setState(() {
                 _loading = false;
               }),
-              Navigator.pop(context),
               if (_rememberMe) {setNamiPassword(_password)},
               setNamiLoginId(_mitgliedsnummer),
+              Navigator.pop(context),
             }
           else
             {
