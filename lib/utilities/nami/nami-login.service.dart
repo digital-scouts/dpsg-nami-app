@@ -45,17 +45,23 @@ Future<bool> namiLoginWithPassword(int userId, String password) async {
   http.Response authResponse =
       await http.post(uri, body: body, headers: headers);
 
-  if (authResponse.statusCode != 302 ||
-      authResponse.headers['location']!.isEmpty) {
+  if (authResponse.statusCode != 302 && authResponse.statusCode != 200) {
     return false;
   }
 
-  //redirect
-  Uri redirectUri = Uri.parse(authResponse.headers['location']!);
-  debugPrint('Request: Auth redirect Request');
-  http.Response tokenResponse = await http.get(redirectUri);
+  http.Response? tokenResponse;
+  if (authResponse.statusCode == 302 &&
+      authResponse.headers['location']!.isNotEmpty) {
+    //redirect
+    Uri redirectUri = Uri.parse(authResponse.headers['location']!);
+    debugPrint('Request: Auth redirect Request');
+    tokenResponse = await http.get(redirectUri);
+  }
+  if (authResponse.statusCode == 200) {
+    tokenResponse = authResponse;
+  }
 
-  if (tokenResponse.statusCode != 200 ||
+  if (tokenResponse!.statusCode != 200 ||
       !tokenResponse.headers.containsKey('set-cookie')) {
     return false;
   }
