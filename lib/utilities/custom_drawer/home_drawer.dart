@@ -50,7 +50,7 @@ class HomeDrawerState extends State<HomeDrawer> {
   @override
   Widget build(BuildContext context) {
     int? gruppierung = getGruppierung();
-    Mitglied user = getLoggedInUserData();
+    Mitglied? user = getLoggedInUserData();
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
@@ -70,14 +70,14 @@ class HomeDrawerState extends State<HomeDrawer> {
                   Padding(
                     padding: const EdgeInsets.only(top: 8, left: 4),
                     child: Text(
-                      '${user.vorname} ${user.nachname}',
+                      '${user?.vorname} ${user?.nachname}',
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                   ),
                   Padding(
                     padding: const EdgeInsets.only(top: 8, left: 4),
                     child: Text(
-                      'Mitgliedsnummer: ${user.mitgliedsNummer}',
+                      'Mitgliedsnummer: ${user?.mitgliedsNummer}',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ),

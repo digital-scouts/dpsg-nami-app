@@ -66,7 +66,7 @@ int? getGruppierung() {
   return box.get(SettingValue.gruppierung.toString());
 }
 
-Mitglied getLoggedInUserData() {
+Mitglied? getLoggedInUserData() {
   return box.get(SettingValue.loggedInUserData.toString());
 }
 
