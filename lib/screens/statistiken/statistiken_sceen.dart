@@ -59,7 +59,7 @@ class StatistikScreenState extends State<StatistikScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Statistiken'),
+        title: const Center(child: Text('Statistiken')),
       ),
       body: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
