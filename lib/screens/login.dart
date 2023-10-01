@@ -4,6 +4,7 @@ import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/nami/nami-login.service.dart';
 import 'dart:async';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 const kHintTextStyle = TextStyle(
   color: Colors.white54,
@@ -50,6 +51,27 @@ class LoginScreenState extends State<LoginScreen> {
         () => setState(() {
               _wrongCredentials = false;
             }));
+  }
+
+  Future<void> loginButtonPressed() async {
+    setState(() {
+      _loading = true;
+    });
+    if (await namiLoginWithPassword(_mitgliedsnummer, _password)) {
+      setState(() {
+        _loading = false;
+      });
+      if (_rememberMe) {
+        setNamiPassword(_password);
+      }
+      setNamiLoginId(_mitgliedsnummer);
+      popNavigation();
+    } else {
+      wrongCredentials();
+      setState(() {
+        _loading = false;
+      });
+    }
   }
 
   Widget _buildMitgliednummerTF() {
@@ -146,7 +168,8 @@ class LoginScreenState extends State<LoginScreen> {
     return Container(
       alignment: Alignment.centerRight,
       child: TextButton(
-        onPressed: () => debugPrint('Forgot Password Button Pressed'),
+        onPressed: () => launchUrl(Uri.parse(
+            ('https://nami.dpsg.de/ica/pages/access/forgotPassword.jsp'))),
         child: const Text(
           'Passwort vergessen?',
           style: kLabelStyle,
@@ -220,27 +243,7 @@ class LoginScreenState extends State<LoginScreen> {
         style: ElevatedButton.styleFrom(
           backgroundColor: _wrongCredentials ? Colors.red : Colors.white,
         ),
-        onPressed: () async => {
-          setState(() {
-            _loading = true;
-          }),
-          if (await namiLoginWithPassword(_mitgliedsnummer, _password))
-            {
-              setState(() {
-                _loading = false;
-              }),
-              if (_rememberMe) {setNamiPassword(_password)},
-              setNamiLoginId(_mitgliedsnummer),
-              popNavigation(),
-            }
-          else
-            {
-              wrongCredentials(),
-              setState(() {
-                _loading = false;
-              }),
-            }
-        },
+        onPressed: loginButtonPressed,
         child: Text(
           'ANMELDEN',
           style: TextStyle(
@@ -260,8 +263,11 @@ class LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildSignupBtn() {
-    return GestureDetector(
-      onTap: () => debugPrint('Sign Up Button Pressed'),
+    return InkWell(
+      onTap: () {
+        launchUrl(
+            Uri.parse(('https://nami.dpsg.de/ica/pages/requestLogin.jsp')));
+      },
       child: RichText(
         text: const TextSpan(
           children: [
