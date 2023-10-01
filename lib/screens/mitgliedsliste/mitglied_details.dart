@@ -77,7 +77,10 @@ class MitgliedDetailState extends State<MitgliedDetail> {
 
   Widget _buildMailList() {
     if (widget.mitglied.emailVertretungsberechtigter!.isNotEmpty ||
-        widget.mitglied.email!.isNotEmpty) {
+        widget.mitglied.email!.isNotEmpty ||
+        widget.mitglied.telefon1!.isNotEmpty ||
+        widget.mitglied.telefon2!.isNotEmpty ||
+        widget.mitglied.telefon3!.isNotEmpty) {
       return _buildBox(<Widget>[
         if (widget.mitglied.email!.isNotEmpty)
           const Text("E-Mail",
@@ -90,29 +93,18 @@ class MitgliedDetailState extends State<MitgliedDetail> {
         if (widget.mitglied.emailVertretungsberechtigter!.isNotEmpty)
           _buildLinkText(
               'mailto', widget.mitglied.emailVertretungsberechtigter!),
-      ]);
-    } else {
-      return Container();
-    }
-  }
-
-  Widget _buildPhoneList() {
-    if (widget.mitglied.telefon1!.isNotEmpty ||
-        widget.mitglied.telefon2!.isNotEmpty ||
-        widget.mitglied.telefon3!.isNotEmpty) {
-      return _buildBox(<Widget>[
         if (widget.mitglied.telefon1!.isNotEmpty)
-          const Text("Telefon 1",
+          const Text("Telefon",
               style: TextStyle(color: Colors.white, fontSize: 20)),
         if (widget.mitglied.telefon1!.isNotEmpty)
           _buildLinkText('tel', widget.mitglied.telefon1!),
         if (widget.mitglied.telefon2!.isNotEmpty)
-          const Text("Telefon 2",
+          const Text("Telefon",
               style: TextStyle(color: Colors.white, fontSize: 20)),
         if (widget.mitglied.telefon2!.isNotEmpty)
           _buildLinkText('tel', widget.mitglied.telefon2!),
         if (widget.mitglied.telefon3!.isNotEmpty)
-          const Text("Telefon 3",
+          const Text("Telefon",
               style: TextStyle(color: Colors.white, fontSize: 20)),
         if (widget.mitglied.telefon3!.isNotEmpty)
           _buildLinkText('tel', widget.mitglied.telefon3!),
@@ -153,6 +145,9 @@ class MitgliedDetailState extends State<MitgliedDetail> {
     if (aktiveTaetigkeiten.isEmpty && alteTaetigkeiten.isNotEmpty) {
       showMoreTaetigkeiten = true;
     }
+    if (aktiveTaetigkeiten.isEmpty && alteTaetigkeiten.isEmpty) {
+      return Container();
+    }
     return _buildBox(<Widget>[
       const Text("Aktive Tätigkeiten", style: TextStyle(color: Colors.white)),
       for (Taetigkeit item in aktiveTaetigkeiten)
@@ -186,10 +181,7 @@ class MitgliedDetailState extends State<MitgliedDetail> {
 
   Widget _buildNextStufenwechsel() {
     final int age = widget.mitglied.getAlterAm();
-    Stufe currentStufe = Stufe.getStufeByString(widget.mitglied.stufe);
-    Stufe? nextStufe = Stufe.getStufeByOrder(currentStufe.order + 1);
-    int alterImHerbst = widget.mitglied
-        .getAlterAm(referenceDate: DateTime(DateTime.now().year, 9, 1));
+    Stufe? nextStufe = widget.mitglied.nextStufe;
 
     List<Widget> elements = [
       Text(
@@ -197,122 +189,21 @@ class MitgliedDetailState extends State<MitgliedDetail> {
           style: const TextStyle(color: Colors.white, fontSize: 18)),
     ];
 
-    if (nextStufe != null &&
-        nextStufe.isStufeYouCanChangeTo &&
-        !widget.mitglied.isMitgliedLeiter()) {
-      int minStufenWechselJahr =
-          DateTime.now().year - alterImHerbst + nextStufe.alterMin!;
-      int maxStufenWechselJahr =
-          DateTime.now().year - alterImHerbst + currentStufe.alterMax! + 1;
+    int? minStufenWechselJahr = widget.mitglied.getMinStufenWechselJahr();
+    int? maxStufenWechselJahr = widget.mitglied.getMaxStufenWechselJahr();
+
+    if (minStufenWechselJahr != null && maxStufenWechselJahr != null) {
       elements.add(
         Text(
-            '${widget.mitglied.stufe} -> ${nextStufe.name} ($minStufenWechselJahr/$maxStufenWechselJahr)',
+            '${widget.mitglied.stufe} -> ${nextStufe!.name} ($minStufenWechselJahr/$maxStufenWechselJahr)',
             style: const TextStyle(color: Colors.white, fontSize: 18)),
       );
-    } else if (currentStufe.name == "Rover" &&
-        !widget.mitglied.isMitgliedLeiter()) {
-      int maxStufenWechselJahr =
-          DateTime.now().year - alterImHerbst + currentStufe.alterMax! + 1;
+    } else if (maxStufenWechselJahr != null) {
       elements.add(Text('Gruppenzeit endet $maxStufenWechselJahr',
-          style: const TextStyle(color: Colors.white, fontSize: 20)));
+          style: const TextStyle(color: Colors.white, fontSize: 18)));
     }
 
     return _buildBox(elements);
-  }
-
-  Widget _buildHeader() {
-    String phone = widget.mitglied.telefon1 ??
-        widget.mitglied.telefon2 ??
-        widget.mitglied.telefon3 ??
-        "";
-    List<String> emails = List.empty(growable: true);
-    if (widget.mitglied.email!.isNotEmpty) {
-      emails.add(widget.mitglied.email!);
-    }
-    if (widget.mitglied.emailVertretungsberechtigter!.isNotEmpty) {
-      emails.add(widget.mitglied.emailVertretungsberechtigter!);
-    }
-
-    if (phone.isNotEmpty || emails.isNotEmpty) {
-      return Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        if (emails.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Ink(
-              decoration: ShapeDecoration(
-                color: Colors.blue,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(5)),
-              ),
-              child: IconButton(
-                iconSize: 35,
-                icon: const Icon(Icons.mail),
-                tooltip: 'E-Mail',
-                onPressed: () async {
-                  final Uri params = Uri(
-                    scheme: 'mailto',
-                    path: emails.join(','),
-                  );
-
-                  var url = params.toString();
-                  // dies Funktioniert, wenn die notwendige app installiert ist
-                  if (await canLaunchUrlString(url)) {
-                    await launchUrlString(url);
-                  }
-                },
-              ),
-            ),
-          ),
-        if (phone.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Ink(
-              decoration: ShapeDecoration(
-                color: Colors.blue,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(5)),
-              ),
-              child: IconButton(
-                iconSize: 35,
-                icon: const Icon(Icons.phone),
-                tooltip: 'Anrufen',
-                onPressed: () async {
-                  final Uri params = Uri(
-                    scheme: 'tel',
-                    path: phone,
-                  );
-
-                  var url = params.toString();
-                  // dies Funktioniert, wenn die notwendige app installiert ist
-                  if (await canLaunchUrlString(url)) {
-                    await launchUrlString(url);
-                  }
-                },
-              ),
-            ),
-          ),
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Ink(
-            decoration: ShapeDecoration(
-              color: Colors.blue,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(5)),
-            ),
-            child: IconButton(
-              iconSize: 35,
-              icon: const Icon(Icons.edit),
-              tooltip: 'Bearbeiten',
-              onPressed: () async {
-                //ignore for now
-              },
-            ),
-          ),
-        ),
-      ]);
-    } else {
-      return Container();
-    }
   }
 
   @override
@@ -323,10 +214,8 @@ class MitgliedDetailState extends State<MitgliedDetail> {
         title: Text("${widget.mitglied.vorname} ${widget.mitglied.nachname}"),
       ),
       body: ListView(children: <Widget>[
-        _buildHeader(),
         _buildNextStufenwechsel(),
         _buildMailList(),
-        _buildPhoneList(),
         _buildAddress(),
         _buildTaetigkeiten(),
       ]),

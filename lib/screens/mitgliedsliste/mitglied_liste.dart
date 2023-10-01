@@ -25,7 +25,6 @@ class MitgliedsListeState extends State<MitgliedsListe> {
       List.empty(growable: true);
   List<bool> filterGroup = List.generate(Stufe.stufen.length, (index) => false);
   bool disableInactive = true;
-  bool customFilterActive = false;
 
   @override
   void initState() {
@@ -109,55 +108,53 @@ class MitgliedsListeState extends State<MitgliedsListe> {
     applyFilterAndSort();
   }
 
-  void toogleCustomFilter(bool value) {
-    setState(() {
-      customFilterActive = !customFilterActive;
-    });
-  }
-
   Widget _buildMemberList() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(8),
-      itemCount: filteredMitglieder.length,
-      itemBuilder: (context, index) {
-        return GestureDetector(
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (context) =>
-                  MitgliedDetail(mitglied: filteredMitglieder[index]))),
-          child: Card(
-            child: ListTile(
-              leading: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                      colors: [
-                        filteredMitglieder[index].isMitgliedLeiter()
-                            ? Stufe.leiterFarbe
-                            : Stufe.getStufeByString(
-                                    filteredMitglieder[index].stufe)
-                                .farbe,
-                        Stufe.getStufeByString(filteredMitglieder[index].stufe)
-                            .farbe
-                      ],
-                      begin: const FractionalOffset(0.0, 0.0),
-                      end: const FractionalOffset(0.0, 1.0),
-                      stops: const [0.5, 0.5],
-                      tileMode: TileMode.clamp),
+    return filteredMitglieder.isEmpty
+        ? const Center(child: Text('Keine Mitglieder gefunden'))
+        : ListView.builder(
+            padding: const EdgeInsets.all(8),
+            itemCount: filteredMitglieder.length,
+            itemBuilder: (context, index) {
+              return GestureDetector(
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (context) =>
+                        MitgliedDetail(mitglied: filteredMitglieder[index]))),
+                child: Card(
+                  child: ListTile(
+                    leading: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                            colors: [
+                              filteredMitglieder[index].isMitgliedLeiter()
+                                  ? Stufe.leiterFarbe
+                                  : Stufe.getStufeByString(
+                                          filteredMitglieder[index].stufe)
+                                      .farbe,
+                              Stufe.getStufeByString(
+                                      filteredMitglieder[index].stufe)
+                                  .farbe
+                            ],
+                            begin: const FractionalOffset(0.0, 0.0),
+                            end: const FractionalOffset(0.0, 1.0),
+                            stops: const [0.5, 0.5],
+                            tileMode: TileMode.clamp),
+                      ),
+                      width: 5,
+                    ),
+                    minLeadingWidth: 5,
+                    title: Text(
+                        '${filteredMitglieder[index].vorname} ${filteredMitglieder[index].nachname}'),
+                    subtitle: Text(
+                        filteredMitglieder[index].mitgliedsNummer.toString()),
+                    trailing: Text(
+                        filteredMitglieder[index].stufe == 'keine Stufe'
+                            ? ''
+                            : filteredMitglieder[index].stufe),
+                  ),
                 ),
-                width: 5,
-              ),
-              minLeadingWidth: 5,
-              title: Text(
-                  '${filteredMitglieder[index].vorname} ${filteredMitglieder[index].nachname}'),
-              subtitle:
-                  Text(filteredMitglieder[index].mitgliedsNummer.toString()),
-              trailing: Text(filteredMitglieder[index].stufe == 'keine Stufe'
-                  ? ''
-                  : filteredMitglieder[index].stufe),
-            ),
-          ),
-        );
-      },
-    );
+              );
+            },
+          );
   }
 
   Widget _buildSortDropdown() {
@@ -247,10 +244,6 @@ class MitgliedsListeState extends State<MitgliedsListe> {
               title: const Center(child: Text("Mitglieder")),
               automaticallyImplyLeading: false,
               actions: <Widget>[
-                Switch(
-                  value: customFilterActive,
-                  onChanged: toogleCustomFilter,
-                ),
                 BackdropToggleButton(
                   icon: AnimatedIcons.search_ellipsis,
                   color: Theme.of(context).iconTheme.color ?? Colors.black,

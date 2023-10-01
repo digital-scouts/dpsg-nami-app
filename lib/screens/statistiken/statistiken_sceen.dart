@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:nami/screens/widgets/groupBarChart.widget.dart';
+import 'package:nami/screens/widgets/stufenwechselInfo.widget.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 
 class StatistikScreen extends StatefulWidget {
@@ -23,8 +24,7 @@ class StatistikScreenState extends State<StatistikScreen> {
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildMemberCountStatistik() {
     Map<String, GroupData> memberPerGroup =
         mitglieder.fold<Map<String, GroupData>>({}, (map, member) {
       String stufe = member.stufe;
@@ -52,6 +52,11 @@ class StatistikScreenState extends State<StatistikScreen> {
     });
     // memberPerGroup.remove('keine Stufe');
 
+    return GroupBarChart(memberPerGroup: memberPerGroup);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Statistiken'),
@@ -75,7 +80,7 @@ class StatistikScreenState extends State<StatistikScreen> {
                   SizedBox(
                     width: constraints.maxWidth * 0.35,
                     height: containerHeight,
-                    child: GroupBarChart(memberPerGroup: memberPerGroup),
+                    child: _buildMemberCountStatistik(),
                   ),
                   SizedBox(
                     width: constraints.maxWidth * 0.05,
@@ -90,7 +95,7 @@ class StatistikScreenState extends State<StatistikScreen> {
                     ),
                     child: const Center(
                       child: Text(
-                        '?',
+                        'Stufenwechsel',
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -103,26 +108,12 @@ class StatistikScreenState extends State<StatistikScreen> {
               ),
               const SizedBox(height: spacing),
               Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  Container(
-                    width: containerWidth * 2 + spacing * 2,
-                    height: containerHeight + spacing,
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        '?',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20.0,
-                        ),
-                      ),
-                    ),
-                  ),
+                  SizedBox(
+                      width: containerWidth * 2 + spacing * 2,
+                      height: containerHeight * 1.5,
+                      child: const StufenwechselInfo()),
                 ],
               ),
               const SizedBox(height: spacing),
@@ -138,7 +129,7 @@ class StatistikScreenState extends State<StatistikScreen> {
                     ),
                     child: const Center(
                       child: Text(
-                        '?',
+                        'Demografie',
                         style: TextStyle(
                           color: Colors.black,
                           fontWeight: FontWeight.bold,

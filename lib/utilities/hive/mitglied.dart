@@ -90,9 +90,53 @@ class Mitglied {
     return false;
   }
 
+  Stufe get currentStufe {
+    return Stufe.getStufeByString(stufe);
+  }
+
+  Stufe? get nextStufe {
+    return Stufe.getStufeByOrder(Stufe.getStufeByString(stufe).order + 1);
+  }
+
+  int? getMinStufenWechselJahr() {
+    int alterImHerbst =
+        getAlterAm(referenceDate: DateTime(DateTime.now().year, 10, 1));
+
+    if (nextStufe != null &&
+        nextStufe!.isStufeYouCanChangeTo &&
+        !isMitgliedLeiter()) {
+      return DateTime.now().year - alterImHerbst + nextStufe!.alterMin!;
+    } else {
+      return null;
+    }
+  }
+
+  int? getMaxStufenWechselJahr() {
+    int alterImHerbst =
+        getAlterAm(referenceDate: DateTime(DateTime.now().year, 10, 1));
+    if (nextStufe != null &&
+        nextStufe!.isStufeYouCanChangeTo &&
+        !isMitgliedLeiter()) {
+      return DateTime.now().year - alterImHerbst + currentStufe.alterMax! + 1;
+    } else if (currentStufe.name == "Rover" && !isMitgliedLeiter()) {
+      return DateTime.now().year - alterImHerbst + currentStufe.alterMax! + 1;
+    } else {
+      return null;
+    }
+  }
+
   int getAlterAm({DateTime? referenceDate}) {
     referenceDate ??= DateTime.now();
-    return referenceDate.year - geburtsDatum.year;
+
+    int age = referenceDate.year - geburtsDatum.year;
+
+    // Überprüfen, ob der Geburtstag bereits in diesem Jahr stattgefunden hat
+    if (referenceDate.month < geburtsDatum.month ||
+        (referenceDate.month == geburtsDatum.month &&
+            referenceDate.day < geburtsDatum.day)) {
+      age--;
+    }
+    return age;
   }
 
   /// 0 gleich | <0 this ist alpabetisch früher | >0 this ist alpabetisch später

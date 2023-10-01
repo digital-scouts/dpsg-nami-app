@@ -77,14 +77,15 @@ Future<List<NamiMemberTaetigkeitenModel>> loadMemberTaetigkeiten(
       await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
   var source = json.decode(const Utf8Decoder().convert(response.bodyBytes));
 
-  if (response.statusCode == 200) {
+  if (response.statusCode == 200 && source['success']) {
     List<NamiMemberTaetigkeitenModel> taetigkeiten = [];
     for (Map<String, dynamic> item in source['data']) {
       taetigkeiten.add(NamiMemberTaetigkeitenModel.fromJson(item));
     }
     return taetigkeiten;
   } else {
-    throw Exception('Failed to load Tätigkeiten');
+    debugPrint('Failed to load Tätigkeiten');
+    return [];
   }
 }
 
@@ -159,7 +160,7 @@ Future<void> storeMitgliedToHive(int mitgliedId, Box<Mitglied> memberBox,
     ..nachname = rawMember.nachname
     ..geschlecht = rawMember.geschlecht
     ..geburtsDatum = rawMember.geburtsDatum
-    ..stufe = Stufe.getStufeByString(rawMember.stufe ?? '').name
+    ..stufe = Stufe.getStufeByString(rawMember.stufe ?? 'keine Stufe').name
     ..id = rawMember.id
     ..mitgliedsNummer = rawMember.mitgliedsNummer
     ..eintrittsdatum = rawMember.eintrittsdatum
@@ -179,5 +180,8 @@ Future<void> storeMitgliedToHive(int mitgliedId, Box<Mitglied> memberBox,
     ..beitragsartId = rawMember.beitragsartId ?? 0
     ..status = rawMember.status
     ..taetigkeiten = taetigkeiten;
+  if (mitglied.mitgliedsNummer == getNamiLoginId()) {
+    setLoggedInUserData(mitglied);
+  }
   memberBox.put(mitgliedId, mitglied);
 }
