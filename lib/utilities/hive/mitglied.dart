@@ -100,7 +100,7 @@ class Mitglied {
 
   int? getMinStufenWechselJahr() {
     int alterImHerbst =
-        getAlterAm(referenceDate: DateTime(DateTime.now().year, 9, 1));
+        getAlterAm(referenceDate: DateTime(DateTime.now().year, 10, 1));
 
     if (nextStufe != null &&
         nextStufe!.isStufeYouCanChangeTo &&
@@ -113,7 +113,7 @@ class Mitglied {
 
   int? getMaxStufenWechselJahr() {
     int alterImHerbst =
-        getAlterAm(referenceDate: DateTime(DateTime.now().year, 9, 1));
+        getAlterAm(referenceDate: DateTime(DateTime.now().year, 10, 1));
     if (nextStufe != null &&
         nextStufe!.isStufeYouCanChangeTo &&
         !isMitgliedLeiter()) {
@@ -127,7 +127,16 @@ class Mitglied {
 
   int getAlterAm({DateTime? referenceDate}) {
     referenceDate ??= DateTime.now();
-    return referenceDate.year - geburtsDatum.year;
+
+    int age = referenceDate.year - geburtsDatum.year;
+
+    // Überprüfen, ob der Geburtstag bereits in diesem Jahr stattgefunden hat
+    if (referenceDate.month < geburtsDatum.month ||
+        (referenceDate.month == geburtsDatum.month &&
+            referenceDate.day < geburtsDatum.day)) {
+      age--;
+    }
+    return age;
   }
 
   /// 0 gleich | <0 this ist alpabetisch früher | >0 this ist alpabetisch später

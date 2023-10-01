@@ -206,101 +206,6 @@ class MitgliedDetailState extends State<MitgliedDetail> {
     return _buildBox(elements);
   }
 
-  Widget _buildHeader() {
-    String phone = widget.mitglied.telefon1 ??
-        widget.mitglied.telefon2 ??
-        widget.mitglied.telefon3 ??
-        "";
-    List<String> emails = List.empty(growable: true);
-    if (widget.mitglied.email!.isNotEmpty) {
-      emails.add(widget.mitglied.email!);
-    }
-    if (widget.mitglied.emailVertretungsberechtigter!.isNotEmpty) {
-      emails.add(widget.mitglied.emailVertretungsberechtigter!);
-    }
-
-    if (phone.isNotEmpty || emails.isNotEmpty) {
-      return Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        if (emails.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Ink(
-              decoration: ShapeDecoration(
-                color: Colors.blue,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(5)),
-              ),
-              child: IconButton(
-                iconSize: 35,
-                icon: const Icon(Icons.mail),
-                tooltip: 'E-Mail',
-                onPressed: () async {
-                  final Uri params = Uri(
-                    scheme: 'mailto',
-                    path: emails.join(','),
-                  );
-
-                  var url = params.toString();
-                  // dies Funktioniert, wenn die notwendige app installiert ist
-                  if (await canLaunchUrlString(url)) {
-                    await launchUrlString(url);
-                  }
-                },
-              ),
-            ),
-          ),
-        if (phone.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Ink(
-              decoration: ShapeDecoration(
-                color: Colors.blue,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(5)),
-              ),
-              child: IconButton(
-                iconSize: 35,
-                icon: const Icon(Icons.phone),
-                tooltip: 'Anrufen',
-                onPressed: () async {
-                  final Uri params = Uri(
-                    scheme: 'tel',
-                    path: phone,
-                  );
-
-                  var url = params.toString();
-                  // dies Funktioniert, wenn die notwendige app installiert ist
-                  if (await canLaunchUrlString(url)) {
-                    await launchUrlString(url);
-                  }
-                },
-              ),
-            ),
-          ),
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Ink(
-            decoration: ShapeDecoration(
-              color: Colors.blue,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(5)),
-            ),
-            child: IconButton(
-              iconSize: 35,
-              icon: const Icon(Icons.edit),
-              tooltip: 'Bearbeiten',
-              onPressed: () async {
-                //ignore for now
-              },
-            ),
-          ),
-        ),
-      ]);
-    } else {
-      return Container();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -309,7 +214,6 @@ class MitgliedDetailState extends State<MitgliedDetail> {
         title: Text("${widget.mitglied.vorname} ${widget.mitglied.nachname}"),
       ),
       body: ListView(children: <Widget>[
-        _buildHeader(),
         _buildNextStufenwechsel(),
         _buildMailList(),
         _buildAddress(),

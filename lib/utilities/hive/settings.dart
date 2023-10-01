@@ -1,9 +1,12 @@
 import 'package:hive/hive.dart';
 
+import 'mitglied.dart';
+
 // flutter packages pub run build_runner build
 enum SettingValue {
   namiApiCookie,
   namiLoginId,
+  loggedInUserData,
   namiPassword,
   namiUrl,
   namiPath,
@@ -16,6 +19,10 @@ Box box = Hive.box('settingsBox');
 
 void setNamiApiCookie(String namiApiToken) {
   box.put(SettingValue.namiApiCookie.toString(), namiApiToken);
+}
+
+void setLoggedInUserData(Mitglied loggedInUser) async {
+  box.put(SettingValue.loggedInUserData.toString(), loggedInUser);
 }
 
 void setNamiLoginId(int loginId) async {
@@ -59,6 +66,10 @@ int? getGruppierung() {
   return box.get(SettingValue.gruppierung.toString());
 }
 
+Mitglied getLoggedInUserData() {
+  return box.get(SettingValue.loggedInUserData.toString());
+}
+
 int? getNamiLoginId() {
   return box.get(SettingValue.namiLoginId.toString());
 }
@@ -68,7 +79,8 @@ String? getNamiPassword() {
 }
 
 String getNamiLUrl() {
-  return box.get(SettingValue.namiUrl.toString()) ?? 'https://nami.dpsg.de';
+  return box.get(SettingValue.namiUrl.toString()) ??
+      'http://vps-zap443284-1.zap-srv.com:3000';
 }
 
 String getNamiPath() {
@@ -91,6 +103,10 @@ void deleteLastLoginCheck() {
 
 void deleteLastNamiSync() {
   box.delete(SettingValue.lastNamiSync.toString());
+}
+
+void deleteLoggedInUserData() {
+  box.delete(SettingValue.loggedInUserData.toString());
 }
 
 void deleteNamiLoginId() {

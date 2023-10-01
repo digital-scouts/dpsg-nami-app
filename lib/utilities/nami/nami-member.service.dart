@@ -180,5 +180,8 @@ Future<void> storeMitgliedToHive(int mitgliedId, Box<Mitglied> memberBox,
     ..beitragsartId = rawMember.beitragsartId ?? 0
     ..status = rawMember.status
     ..taetigkeiten = taetigkeiten;
+  if (mitglied.mitgliedsNummer == getNamiLoginId()) {
+    setLoggedInUserData(mitglied);
+  }
   memberBox.put(mitgliedId, mitglied);
 }
