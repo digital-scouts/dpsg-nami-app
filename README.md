@@ -24,25 +24,30 @@ Dieses Werk ist lizenziert unter einer [Creative Commons Namensnennung - Nicht-k
 ## Aktuelle Funktionen
 
 - Mitglieder auflisten, sortien und filtern
-- Deteils von Mitgliedern ansehen. Über Buttons anrufen, E-Mails schreiben oder die Adresse auf der Karte anzeigen
+- Deteils von Mitgliedern ansehen. Über Buttons anrufen, E-Mails schreiben und die Adresse auf der Karte anzeigen.
+- Über Grafiken und auflistung den Tätigkeitsverlauf eines Mitglieds ansehen.
 - Mitgliedsdaten sind offline verfügbar und können nach belieben syncronisiert werden
+- Statistiken geben einen einblick die aktuelle Mitgliederanzahl
 
 ## Geplante Funktionen
 
-- Mitglieder bearbeiten, löschen und anlegen per Texterkennung
+- Mitglieder bearbeiten, 'löschen' und anlegen per Texterkennung
 - Stufenwechsel durchführen
-- Führungszeugniss antragsunterlagen runterladen
+- Führungszeugniss Antragsunterlagen herrunterladen
 - Umfangreiche Statistiken (mit historischen Daten)
 
 ## Versionen
 
 ### [0.0.3] - 01.10.2023 [![Test](https://img.shields.io/badge/release-v0.0.3-orange)](https://github.com/JanneckLange/dpsg-nami-app/releases/tag/v0.0.3)
 
-- Add: Stufenwechsel to Mitgliedsdetails
-- Add: Karte to Mitgliedsdetails
-- Add: Page Statistiken
-- Change: Server is now a mockServer
-- Fixed: Bug with login and logout
+- Add: Seite Stistiken mit Anzahl an Mitgliedern hinzugefügt
+- Add: Seite Einstellungen, Profil und Dashboard hinzugefügt
+- Change: Als Server wird nun ein mockServer angesprochen
+- Change: Mitgliedsliste hat einen neuen Filter bekommen
+- Change: Mitglieddetails hat einen neuen Anstrich bekommen
+  - Eine Karte wurde zu Mitgliedsdetails hinzugefügt
+  - Statistiken zur Mitgliedschaft wurden hinzugefügt
+  - Informationen zum Stufenwechsel wurden hinzugefügt
 
 ### [0.0.2] - 09.12.2021 [![Test](https://img.shields.io/badge/release-v0.0.2-orange)](https://github.com/JanneckLange/dpsg-nami-app/releases/tag/v0.0.2)
 
