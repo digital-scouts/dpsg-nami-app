@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+
 // flutter packages pub run build_runner build
 enum SettingValue {
   namiApiCookie,
