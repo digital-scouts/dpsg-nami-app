@@ -35,6 +35,14 @@ Dieses Werk ist lizenziert unter einer [Creative Commons Namensnennung - Nicht-k
 
 ## Versionen
 
+### [0.0.3] - 01.10.2023 [![Test](https://img.shields.io/badge/release-v0.0.3-orange)](https://github.com/JanneckLange/dpsg-nami-app/releases/tag/v0.0.3)
+
+- Add: Stufenwechsel to Mitgliedsdetails
+- Add: Karte to Mitgliedsdetails
+- Add: Page Statistiken
+- Change: Server is now a mockServer
+- Fixed: Bug with login and logout
+
 ### [0.0.2] - 09.12.2021 [![Test](https://img.shields.io/badge/release-v0.0.2-orange)](https://github.com/JanneckLange/dpsg-nami-app/releases/tag/v0.0.2)
 
 - Changed: Offline Mode to Sync-Button
