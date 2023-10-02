@@ -6,7 +6,6 @@ import 'mitglied.dart';
 enum SettingValue {
   namiApiCookie,
   namiLoginId,
-  loggedInUserData,
   namiPassword,
   namiUrl,
   namiPath,
@@ -19,10 +18,6 @@ Box box = Hive.box('settingsBox');
 
 void setNamiApiCookie(String namiApiToken) {
   box.put(SettingValue.namiApiCookie.toString(), namiApiToken);
-}
-
-void setLoggedInUserData(Mitglied loggedInUser) async {
-  box.put(SettingValue.loggedInUserData.toString(), loggedInUser);
 }
 
 void setNamiLoginId(int loginId) async {
@@ -66,10 +61,6 @@ int? getGruppierung() {
   return box.get(SettingValue.gruppierung.toString());
 }
 
-Mitglied? getLoggedInUserData() {
-  return box.get(SettingValue.loggedInUserData.toString());
-}
-
 int? getNamiLoginId() {
   return box.get(SettingValue.namiLoginId.toString());
 }
@@ -103,10 +94,6 @@ void deleteLastLoginCheck() {
 
 void deleteLastNamiSync() {
   box.delete(SettingValue.lastNamiSync.toString());
-}
-
-void deleteLoggedInUserData() {
-  box.delete(SettingValue.loggedInUserData.toString());
 }
 
 void deleteNamiLoginId() {

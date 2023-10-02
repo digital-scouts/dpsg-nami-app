@@ -63,7 +63,9 @@ class HomeDrawerState extends State<HomeDrawer> {
   @override
   Widget build(BuildContext context) {
     int? gruppierung = getGruppierung();
-    Mitglied? user = getLoggedInUserData();
+    Box<Mitglied> memberBox = Hive.box<Mitglied>('members');
+    final Mitglied user = memberBox.values
+        .firstWhere((member) => member.mitgliedsNummer == getNamiLoginId());
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
