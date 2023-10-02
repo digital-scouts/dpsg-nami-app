@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:nami/screens/widgets/map.widget.dart';
+import 'package:nami/screens/widgets/mitgliedStufenPieChart.widget.dart';
 import 'package:nami/utilities/stufe.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
@@ -16,13 +17,21 @@ class MitgliedDetail extends StatefulWidget {
   MitgliedDetailState createState() => MitgliedDetailState();
 }
 
-class MitgliedDetailState extends State<MitgliedDetail> {
+class MitgliedDetailState extends State<MitgliedDetail>
+    with SingleTickerProviderStateMixin {
   bool showMoreTaetigkeiten = false;
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
 
   Widget _buildBox(List<Widget> children) {
     return SizedBox(
       child: Card(
-        color: Colors.black87,
+        color: Theme.of(context).colorScheme.surface,
         elevation: 2.0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
         child: IntrinsicHeight(
@@ -36,6 +45,58 @@ class MitgliedDetailState extends State<MitgliedDetail> {
         ),
       ),
     );
+  }
+
+  Widget _buildStatistikTopRow() {
+    // filter taetigkeiten to only include Stufen Taetigkeiten
+    // count years per stufe by subtracting aktivVon from aktivBis or now
+    Map<String, int> tageProStufe = {};
+    List<String> stufen = Stufe.stufen.map((stufe) => stufe.name).toList();
+    for (var taetigkeit in widget.mitglied.taetigkeiten) {
+      if (taetigkeit.untergliederung != null &&
+          stufen.contains(taetigkeit.untergliederung)) {
+        int sum = tageProStufe[taetigkeit.untergliederung!] ?? 0;
+        String stufe = taetigkeit.taetigkeit.contains('Leiter') ||
+                taetigkeit.taetigkeit.contains('Admin')
+            ? 'LeiterIn'
+            : taetigkeit.untergliederung!;
+        // todo upgrade: show Mietglieds und Leitungszeit pro Stufe wenn Leitungszeit Mitgliedszeit übersteit
+        tageProStufe[stufe] = sum +
+            (taetigkeit.isActive()
+                ? DateTime.now().difference(taetigkeit.aktivVon).inDays ~/ 12
+                : taetigkeit.aktivBis!.difference(taetigkeit.aktivVon).inDays ~/
+                    12);
+      }
+    }
+
+    return Container(
+        color: Stufe.getStufeByString(widget.mitglied.stufe).farbe,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            Expanded(
+                child: SizedBox(
+              child: Column(
+                children: [
+                  MitgliedStufenPieChart(memberPerGroup: tageProStufe),
+                  const SizedBox(height: 5),
+                  Text(
+                      '${(DateTime.now().difference(widget.mitglied.eintrittsdatum).inDays / 365).floor()} Pfadfinderjahre'),
+                  const SizedBox(height: 5),
+                ],
+              ),
+            )),
+            Expanded(
+                child: SizedBox(
+                    child: Card(
+              color: Theme.of(context).colorScheme.surface,
+              elevation: 2.0,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.0)),
+              child: Text(''),
+            ))),
+          ],
+        ));
   }
 
   Widget _buildLinkText(String scheme, String path) {
@@ -209,16 +270,40 @@ class MitgliedDetailState extends State<MitgliedDetail> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Stufe.getStufeByString(widget.mitglied.stufe).farbe,
-        title: Text("${widget.mitglied.vorname} ${widget.mitglied.nachname}"),
-      ),
-      body: ListView(children: <Widget>[
-        _buildNextStufenwechsel(),
-        _buildMailList(),
-        _buildAddress(),
-        _buildTaetigkeiten(),
-      ]),
-    );
+        appBar: AppBar(
+          shadowColor: Colors.transparent,
+          backgroundColor: Stufe.getStufeByString(widget.mitglied.stufe).farbe,
+          title: Text("${widget.mitglied.vorname} ${widget.mitglied.nachname}"),
+        ),
+        body: Column(
+          children: <Widget>[
+            _buildStatistikTopRow(),
+            TabBar(
+              controller: _tabController,
+              tabs: const [
+                Tab(text: 'Kontaktdaten'),
+                Tab(text: 'Tätigkeiten'),
+              ],
+            ),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  ListView(
+                    children: <Widget>[
+                      _buildMailList(),
+                      _buildAddress(),
+                    ],
+                  ),
+                  ListView(
+                    children: <Widget>[
+                      _buildTaetigkeiten(),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ));
   }
 }
