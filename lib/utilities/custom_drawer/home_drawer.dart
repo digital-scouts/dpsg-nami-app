@@ -64,8 +64,11 @@ class HomeDrawerState extends State<HomeDrawer> {
   Widget build(BuildContext context) {
     int? gruppierung = getGruppierung();
     Box<Mitglied> memberBox = Hive.box<Mitglied>('members');
-    final Mitglied user = memberBox.values
-        .firstWhere((member) => member.mitgliedsNummer == getNamiLoginId());
+    Mitglied? user;
+    try {
+      user = memberBox.values
+          .firstWhere((member) => member.mitgliedsNummer == getNamiLoginId());
+    } catch (_) {}
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
@@ -92,7 +95,7 @@ class HomeDrawerState extends State<HomeDrawer> {
                   Padding(
                     padding: const EdgeInsets.only(top: 8, left: 4),
                     child: Text(
-                      'Mitgliedsnummer: ${user?.mitgliedsNummer}',
+                      'Mitgliedsnummer: ${getNamiLoginId()}',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ),
