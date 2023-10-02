@@ -173,20 +173,6 @@ class MitgliedsListeState extends State<MitgliedsListe> {
     );
   }
 
-  Widget _bildInGraustufen(String bildPfad) {
-    return ColorFiltered(
-      colorFilter: const ColorFilter.mode(
-        Colors.grey, // Graustufen
-        BlendMode.saturation,
-      ),
-      child: Image.asset(
-        bildPfad,
-        width: 50.0,
-        height: 50.0,
-      ),
-    );
-  }
-
   Widget _buildFilterGroup() {
     // Bilder für die Stufen
     List<String> stufenBilder = [

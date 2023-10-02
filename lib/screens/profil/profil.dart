@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class Profil extends StatefulWidget {
-  Profil({Key? key}) : super(key: key);
+  const Profil({Key? key}) : super(key: key);
 
   @override
   State<Profil> createState() => _ProfilState();

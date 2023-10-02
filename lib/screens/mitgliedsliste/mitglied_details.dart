@@ -93,7 +93,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
               elevation: 2.0,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8.0)),
-              child: Text(''),
+              child: const Text(''),
             ))),
           ],
         ));
@@ -240,6 +240,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
     ]);
   }
 
+/*
   Widget _buildNextStufenwechsel() {
     final int age = widget.mitglied.getAlterAm();
     Stufe? nextStufe = widget.mitglied.nextStufe;
@@ -266,6 +267,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
 
     return _buildBox(elements);
   }
+*/
 
   @override
   Widget build(BuildContext context) {
