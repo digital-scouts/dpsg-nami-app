@@ -3,10 +3,8 @@ import 'package:hive/hive.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
-import 'package:provider/provider.dart';
 
 import '../../screens/login.dart';
-import '../theme.dart';
 
 class HomeDrawer extends StatefulWidget {
   const HomeDrawer(
@@ -35,6 +33,11 @@ class HomeDrawerState extends State<HomeDrawer> {
   void setDrawerListArray() {
     drawerList = <DrawerList>[
       DrawerList(
+        index: DrawerIndex.dashboard,
+        labelName: 'Dashboard',
+        icon: const Icon(Icons.home),
+      ),
+      DrawerList(
         index: DrawerIndex.mitglieder,
         labelName: 'Mitglieder',
         icon: const Icon(Icons.group),
@@ -43,6 +46,16 @@ class HomeDrawerState extends State<HomeDrawer> {
         index: DrawerIndex.stats,
         labelName: 'Statistiken',
         icon: const Icon(Icons.analytics),
+      ),
+      DrawerList(
+        index: DrawerIndex.profil,
+        labelName: 'Profil',
+        icon: const Icon(Icons.person),
+      ),
+      DrawerList(
+        index: DrawerIndex.settings,
+        labelName: 'Einstellungen',
+        icon: const Icon(Icons.settings),
       ),
     ];
   }
@@ -108,32 +121,6 @@ class HomeDrawerState extends State<HomeDrawer> {
                 return inkwell(drawerList![index]);
               },
             ),
-          ),
-          Row(children: [
-            ElevatedButton(
-                child: const Text("Light Theme"),
-                onPressed: () {
-                  Provider.of<ThemeModel>(context, listen: false)
-                      .setTheme(ThemeType.light);
-                }),
-            ElevatedButton(
-                child: const Text("Dark Theme"),
-                onPressed: () {
-                  Provider.of<ThemeModel>(context, listen: false)
-                      .setTheme(ThemeType.dark);
-                })
-          ]),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.sync),
-                onPressed: () => {syncNamiData()},
-              ),
-              Text(getLastNamiSync() != null
-                  ? "Vor ${DateTime.now().difference(getLastNamiSync()!).inDays.toString()} Tagen"
-                  : "Noch nie Syncronisiert"),
-            ],
           ),
           Divider(
             height: 1,
@@ -294,7 +281,7 @@ class HomeDrawerState extends State<HomeDrawer> {
   }
 }
 
-enum DrawerIndex { mitglieder, stats }
+enum DrawerIndex { dashboard, mitglieder, stats, settings, profil }
 
 class DrawerList {
   DrawerList({

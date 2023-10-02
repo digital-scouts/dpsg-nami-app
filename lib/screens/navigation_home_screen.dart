@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:nami/screens/dashboard/dashboard.dart';
 import 'package:nami/screens/mitgliedsliste/mitglied_liste.dart';
+import 'package:nami/screens/profil/profil.dart';
+import 'package:nami/screens/settings/settings.dart';
 import 'package:nami/screens/statistiken/statistiken_sceen.dart';
 import 'package:nami/utilities/custom_drawer/drawer_user_controller.dart';
 import 'package:nami/utilities/custom_drawer/home_drawer.dart';
@@ -56,6 +59,18 @@ class NavigationHomeScreenState extends State<NavigationHomeScreen> {
       } else if (drawerIndex == DrawerIndex.stats) {
         setState(() {
           screenView = const StatistikScreen();
+        });
+      } else if (drawerIndex == DrawerIndex.settings) {
+        setState(() {
+          screenView = Settings();
+        });
+      } else if (drawerIndex == DrawerIndex.dashboard) {
+        setState(() {
+          screenView = Dashboard();
+        });
+      } else if (drawerIndex == DrawerIndex.profil) {
+        setState(() {
+          screenView = Profil();
         });
       } else {
         // Hier alle weiteren Naviagtionspunkte des Seitenmenüs definieren
