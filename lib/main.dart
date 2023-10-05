@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:nami/screens/login.dart';
 import 'package:nami/screens/navigation_home_screen.dart';
-import 'package:nami/utilities/constants.dart';
 import 'package:nami/utilities/hive/logout.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
@@ -16,6 +15,14 @@ import 'package:provider/provider.dart';
 import 'utilities/nami/nami.service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
+
+  runApp(ChangeNotifierProvider<ThemeModel>(
+      create: (_) => ThemeModel(), child: const MyApp()));
+}
 
 class MyApp extends StatefulWidget {
   const MyApp({Key? key}) : super(key: key);
@@ -29,9 +36,7 @@ class MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(home: const MyHome(), routes: {
-      pageLogin: (context) => const LoginScreen(),
-    });
+    return const MaterialApp(home: MyHome());
   }
 }
 
@@ -55,7 +60,9 @@ class _MyHomeState extends State<MyHome> with WidgetsBindingObserver {
   bool _dataIsReady = false;
 
   void openLoginPage() {
-    Navigator.pushNamed(context, pageLogin).then((value) async {
+    Navigator.push(context,
+            MaterialPageRoute(builder: (context) => const LoginScreen()))
+        .then((value) async {
       await syncNamiData();
       setState(() {
         _dataIsReady = true;
@@ -95,7 +102,6 @@ class _MyHomeState extends State<MyHome> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
-    if (ModalRoute.of(context)?.settings.name == pageLogin) return;
     if (state == AppLifecycleState.paused) {
       _appIsPaused = true;
     } else if (state == AppLifecycleState.resumed && _appIsPaused) {

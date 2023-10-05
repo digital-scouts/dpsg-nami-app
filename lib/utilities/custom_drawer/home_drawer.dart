@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-import 'package:nami/utilities/constants.dart';
+import 'package:nami/screens/login.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
@@ -157,7 +157,9 @@ class HomeDrawerState extends State<HomeDrawer> {
   }
 
   void pushLoginScreen() {
-    Navigator.pushNamed(context, pageLogin).then((value) {
+    Navigator.push(context,
+            MaterialPageRoute(builder: (context) => const LoginScreen()))
+        .then((value) {
       syncNamiData();
     });
   }
