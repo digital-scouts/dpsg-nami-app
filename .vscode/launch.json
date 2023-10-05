@@ -2,11 +2,6 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Current Device",
-            "request": "launch",
-            "type": "dart"
-        },
-        {
             "name": "Android",
             "request": "launch",
             "type": "dart",
@@ -24,20 +19,5 @@
             "type": "dart",
             "deviceId": "00008120-00026848023B401E"
         },
-        {
-            "name": "MAC",
-            "request": "launch",
-            "type": "dart",
-            "deviceId": "macos"
-        },
     ],
-    "compounds": [
-        {
-            "name": "All Devices",
-            "configurations": [
-                "Android",
-                "iPhone"
-            ]
-        }
-    ]
 }

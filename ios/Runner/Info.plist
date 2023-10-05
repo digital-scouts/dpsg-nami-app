@@ -56,5 +56,7 @@
 	<false/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Nutzung der Karte</string>
+	<key>NSFaceIDUsageDescription</key>
+<string>Um die Daten zu schützen ist eine Biometrische Identifikation notwendig.</string>
 </dict>
 </plist>

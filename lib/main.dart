@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:nami/screens/login.dart';
 import 'package:nami/screens/navigation_home_screen.dart';
+import 'package:nami/utilities/constants.dart';
+import 'package:nami/utilities/hive/logout.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
@@ -14,38 +16,6 @@ import 'package:provider/provider.dart';
 import 'utilities/nami/nami.service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:connectivity/connectivity.dart';
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Hive.initFlutter();
-
-  runApp(ChangeNotifierProvider<ThemeModel>(
-      create: (_) => ThemeModel(), child: const MyApp()));
-}
-
-Future openHive() async {
-  const secureStorage = FlutterSecureStorage();
-  // if key not exists return null
-  var encryprionKey = await secureStorage.read(key: 'key');
-  if (encryprionKey == null) {
-    final key = Hive.generateSecureKey();
-    await secureStorage.write(
-      key: 'key',
-      value: base64UrlEncode(key),
-    );
-  }
-  final encryptionKey =
-      base64Url.decode((await secureStorage.read(key: 'key'))!);
-
-  Hive.registerAdapter(TaetigkeitAdapter());
-  await Hive.openBox<Taetigkeit>('taetigkeit',
-      encryptionCipher: HiveAesCipher(encryptionKey));
-  Hive.registerAdapter(MitgliedAdapter());
-  await Hive.openBox<Mitglied>('members',
-      encryptionCipher: HiveAesCipher(encryptionKey));
-}
 
 class MyApp extends StatefulWidget {
   const MyApp({Key? key}) : super(key: key);
@@ -59,7 +29,9 @@ class MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(home: MyHome());
+    return MaterialApp(home: const MyHome(), routes: {
+      pageLogin: (context) => const LoginScreen(),
+    });
   }
 }
 
@@ -70,128 +42,218 @@ class MyHome extends StatefulWidget {
   State<MyHome> createState() => _MyHomeState();
 }
 
-class _MyHomeState extends State<MyHome> {
-  bool authenticated = false;
+class _MyHomeState extends State<MyHome> with WidgetsBindingObserver {
   final LocalAuthentication auth = LocalAuthentication();
+  _SupportState _supportState = _SupportState.unknown;
+  bool? _canCheckBiometrics;
+  List<BiometricType>? _availableBiometrics;
+  String _authorized = "Not Authorized";
+  bool _isAuthenticated = false;
+  bool _isAuthenticating = false;
+  bool _appIsPaused = false;
+  bool _hiveIsOpen = false;
+  bool _dataIsReady = false;
 
   void openLoginPage() {
-    Navigator.of(context)
-        .push(
-      MaterialPageRoute(
-        builder: (context) => const LoginScreen(),
-      ),
-    )
-        .then((value) {
-      postLoginSteps();
+    Navigator.pushNamed(context, pageLogin).then((value) async {
+      await syncNamiData();
+      setState(() {
+        _dataIsReady = true;
+      });
     });
   }
 
-  Future<bool> init() async {
-    await Hive.openBox('settingsBox');
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
-    bool canCheckBiometrics = false;
-    try {
-      if (await auth.isDeviceSupported() &&
-          await auth.canCheckBiometrics &&
-          (await auth.getAvailableBiometrics()).isNotEmpty) {
-        canCheckBiometrics = true;
-      } else {
-        canCheckBiometrics = false;
+    auth.isDeviceSupported().then(
+          (bool isSupported) async => {
+            if (isSupported)
+              {
+                setState(() => _supportState = _SupportState.supported),
+                await Future.wait(
+                    [_checkBiometrics(), _getAvailableBiometrics()]),
+                await _authenticate(),
+              }
+            else
+              {
+                setState(() => _supportState = _SupportState.unsupported),
+                throw Exception('Device not supported'),
+              },
+          },
+        );
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) async {
+    if (ModalRoute.of(context)?.settings.name == pageLogin) return;
+    if (state == AppLifecycleState.paused) {
+      _appIsPaused = true;
+    } else if (state == AppLifecycleState.resumed && _appIsPaused) {
+      _appIsPaused = false;
+      await _authenticate();
+      if (!_isAuthenticated) {
+        // If the user is not authenticated, exit the app
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          SystemNavigator.pop();
+        });
+        throw Exception('Not authenticated');
       }
-    } on PlatformException catch (_) {
-      canCheckBiometrics = false;
     }
+  }
 
-    //online check
-    if (!await isDeviceConnected()) {
-      throw Exception('No Internet connection');
-    }
-    if (!await isNamiOnline()) {
-      throw Exception('Nami is not online');
-    }
+  void afterAuthentication() async {
+    if (!_isAuthenticated) return;
+    await openHive();
 
-    try {
-      await openHive();
-    } catch (_) {}
-
-    //nami login
-    var needLogin = await doesNeedLogin();
-    if (needLogin) {
-      openLoginPage();
-      return false;
-    }
-
-    //app login
-    if (canCheckBiometrics && !authenticated) {
-      bool authenticated = await authenticate();
+    bool lastSyncShortly =
+        DateTime.now().difference(getLastNamiSync()!).inDays < 30;
+    Box<Mitglied> memberBox = Hive.box<Mitglied>('members');
+    bool memberDataIsPresent = memberBox.length > 0;
+    if (lastSyncShortly && memberDataIsPresent) {
+      // dont need nami login, data is present and up to date
       setState(() {
-        this.authenticated = authenticated;
+        _dataIsReady = true;
       });
-    }
-
-    await postLoginSteps();
-
-    return !needLogin && authenticated;
-  }
-
-  Future<void> postLoginSteps() async {
-    if (DateTime.now().difference(getLastNamiSync()!).inDays > 30) {
-      debugPrint(
-          "Letzter NaMi Sync länger als 30 Tage her. NaMi Sync wird durchgeführt.");
-      // automatisch alle 30 Tage Syncronisieren
-
-      syncNamiData();
-    }
-  }
-
-  Future<bool> isDeviceConnected() async {
-    var connectivityResult = await (Connectivity().checkConnectivity());
-    if (connectivityResult == ConnectivityResult.none) {
-      return false; // Keine Verbindung
-    } else if (connectivityResult == ConnectivityResult.mobile ||
-        connectivityResult == ConnectivityResult.wifi) {
-      return true; // Verbunden mit Mobilem Netzwerk oder WLAN
+      return;
     } else {
-      return false; // Anderer Fall (z. B. Bluetooth)
-    }
-  }
-
-  Future<bool> isNamiOnline() async {
-    try {
-      final response = await http.head(Uri.parse('https://nami.dpsg.de/'));
-      if (response.statusCode == 200) {
-        return true;
+      int? loginId = getNamiLoginId();
+      String? password = getNamiPassword();
+      if (loginId == null || password == null || !await updateLoginData()) {
+        // loginData is not stored or login not successful: clear data push login page
+        logout();
+        openLoginPage();
+        return;
+      } else {
+        await syncNamiData();
+        setState(() {
+          _dataIsReady = true;
+        });
       }
-    } catch (e) {
-      return false;
     }
-    return false;
   }
 
-  Future<bool> doesNeedLogin() async {
-    int lastLoginCheck =
-        DateTime.now().difference(getLastLoginCheck()).inMinutes;
-
-    // Überpüfe den Nami Login maximal alle 15 Minuten
-    if (lastLoginCheck > 15) {
-      if (await isLoggedIn()) {
-        return false;
-      }
-      debugPrint(
-          'Letzter Login Check länger als 15 Minuten her. Login nicht erfolgreich.');
-      return true;
+  Future<void> openHive() async {
+    if (_hiveIsOpen) return;
+    const secureStorage = FlutterSecureStorage();
+    var encryprionKey = await secureStorage.read(key: 'key');
+    if (encryprionKey == null) {
+      final key = Hive.generateSecureKey();
+      await secureStorage.write(
+        key: 'key',
+        value: base64UrlEncode(key),
+      );
     }
-    return false;
+    final encryptionKey =
+        base64Url.decode((await secureStorage.read(key: 'key'))!);
+
+    Hive.registerAdapter(TaetigkeitAdapter());
+    Hive.registerAdapter(MitgliedAdapter());
+    await Future.wait([
+      Hive.openBox<Taetigkeit>('taetigkeit',
+          encryptionCipher: HiveAesCipher(encryptionKey)),
+      Hive.openBox<Mitglied>('members',
+          encryptionCipher: HiveAesCipher(encryptionKey)),
+      Hive.openBox('settingsBox',
+          encryptionCipher: HiveAesCipher(encryptionKey))
+    ]);
+    setState(() {
+      _hiveIsOpen = true;
+    });
   }
 
-  Future<bool> authenticate() async {
-    authenticated = false;
+  Future<void> _checkBiometrics() async {
+    late bool canCheckBiometrics;
     try {
-      return await auth.authenticate(
-          localizedReason: 'Let OS determine authentication method');
-    } on PlatformException catch (_) {
-      return false;
+      canCheckBiometrics = await auth.canCheckBiometrics;
+    } on PlatformException catch (e) {
+      canCheckBiometrics = false;
+      print(e);
     }
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _canCheckBiometrics = canCheckBiometrics;
+    });
+  }
+
+  Future<void> _getAvailableBiometrics() async {
+    late List<BiometricType> availableBiometrics;
+    try {
+      availableBiometrics = await auth.getAvailableBiometrics();
+    } on PlatformException catch (e) {
+      availableBiometrics = <BiometricType>[];
+      print(e);
+    }
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _availableBiometrics = availableBiometrics;
+    });
+  }
+
+  Future<void> _authenticate() async {
+    bool authenticated = false;
+    String localizedReason;
+    AuthenticationOptions options;
+
+    if (_availableBiometrics!.isNotEmpty && _canCheckBiometrics!) {
+      localizedReason =
+          'Scan your fingerprint (or face or whatever) to authenticate';
+      options = const AuthenticationOptions(
+        stickyAuth: true,
+        biometricOnly: true,
+      );
+    } else {
+      localizedReason = 'Please enter your password to authenticate';
+      options = const AuthenticationOptions(stickyAuth: true);
+    }
+
+    try {
+      setState(() {
+        _isAuthenticating = true;
+        _authorized = 'Authenticating';
+        debugPrint(_authorized);
+      });
+      authenticated = await auth.authenticate(
+        localizedReason: localizedReason,
+        options: options,
+      );
+      setState(() {
+        _isAuthenticating = false;
+      });
+    } on PlatformException catch (e) {
+      print(e);
+      setState(() {
+        _isAuthenticating = false;
+        _authorized = 'Error - ${e.message}';
+        debugPrint(_authorized);
+      });
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+
+    setState(() => {
+          _isAuthenticated = authenticated,
+          _authorized = authenticated ? 'Authorized' : 'Not Authorized',
+        });
+    debugPrint(_authorized);
+    afterAuthentication();
   }
 
   @override
@@ -199,19 +261,38 @@ class _MyHomeState extends State<MyHome> {
     return MaterialApp(
       theme: Provider.of<ThemeModel>(context).currentTheme,
       home: Scaffold(
-        body: FutureBuilder(
-          future: init(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.done) {
-              if (snapshot.error != null) {
-                return Scaffold(
-                  body: Center(
-                    child: Text('${snapshot.error}'),
-                  ),
-                );
-              } else {
+        body: Builder(
+          builder: (context) {
+            if (_appIsPaused) {
+              return const Scaffold(
+                body: Center(
+                  child: Text('Bitte authentifiziere dich erneut'),
+                ),
+              );
+            }
+            if (_supportState != _SupportState.unknown &&
+                !_isAuthenticating &&
+                _hiveIsOpen &&
+                _dataIsReady) {
+              if (_isAuthenticated) {
                 return const NavigationHomeScreen();
+              } else {
+                return const Text('Woops, something went wrong!');
               }
+            } else if (_supportState != _SupportState.unknown &&
+                !_isAuthenticating &&
+                !_isAuthenticated) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(_authorized),
+                    ElevatedButton(
+                        onPressed: _authenticate,
+                        child: const Text('Try again'))
+                  ],
+                ),
+              );
             } else {
               return const Scaffold(
                 body: Center(
@@ -224,4 +305,10 @@ class _MyHomeState extends State<MyHome> {
       ),
     );
   }
+}
+
+enum _SupportState {
+  unknown,
+  supported,
+  unsupported,
 }

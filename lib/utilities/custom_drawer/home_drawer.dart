@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:nami/utilities/constants.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
 
-import '../../screens/login.dart';
+import '../hive/logout.dart';
 
 class HomeDrawer extends StatefulWidget {
   const HomeDrawer(
@@ -143,7 +144,7 @@ class HomeDrawerState extends State<HomeDrawer> {
                   Icons.power_settings_new,
                   color: Colors.red,
                 ),
-                onTap: () => {logout()},
+                onTap: () => {logout(), pushLoginScreen()},
               ),
               SizedBox(
                 height: MediaQuery.of(context).padding.bottom,
@@ -155,26 +156,8 @@ class HomeDrawerState extends State<HomeDrawer> {
     );
   }
 
-  void logout() {
-    //loaded Data
-    Hive.box<Mitglied>('members').clear();
-    deleteGruppierung();
-
-    // login data
-    deleteNamiApiCookie();
-    deleteNamiLoginId();
-    deleteNamiPassword();
-
-    // other Stuff
-    deleteLastLoginCheck();
-    deleteLastNamiSync();
-    Navigator.of(context)
-        .push(
-      MaterialPageRoute(
-        builder: (context) => const LoginScreen(),
-      ),
-    )
-        .then((value) {
+  void pushLoginScreen() {
+    Navigator.pushNamed(context, pageLogin).then((value) {
       syncNamiData();
     });
   }
