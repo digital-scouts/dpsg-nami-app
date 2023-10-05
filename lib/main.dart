@@ -103,9 +103,10 @@ class _MyHomeState extends State<MyHome> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     if (state == AppLifecycleState.paused) {
-      _appIsPaused = true;
+      setState(() {
+        _appIsPaused = true;
+      });
     } else if (state == AppLifecycleState.resumed && _appIsPaused) {
-      _appIsPaused = false;
       await _authenticate();
       if (!_isAuthenticated) {
         // If the user is not authenticated, exit the app
@@ -212,6 +213,9 @@ class _MyHomeState extends State<MyHome> with WidgetsBindingObserver {
   }
 
   Future<void> _authenticate() async {
+    setState(() {
+      _appIsPaused = true;
+    });
     bool authenticated = false;
     String localizedReason;
     AuthenticationOptions options;
@@ -255,11 +259,54 @@ class _MyHomeState extends State<MyHome> with WidgetsBindingObserver {
     }
 
     setState(() => {
+          _appIsPaused = !authenticated,
           _isAuthenticated = authenticated,
           _authorized = authenticated ? 'Authorized' : 'Not Authorized',
         });
     debugPrint(_authorized);
     afterAuthentication();
+  }
+
+  Widget _buildTryAuthenticationAgainWidget() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(_authorized),
+          ElevatedButton(
+              onPressed: _authenticate, child: const Text('Try again'))
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAppIsPausedWidget() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.lock, size: 100),
+            const SizedBox(width: 30),
+            if (_availableBiometrics!.isNotEmpty && _canCheckBiometrics!)
+              const Icon(Icons.fingerprint, size: 100)
+            else
+              const Icon(Icons.password, size: 100),
+          ],
+        ),
+        const SizedBox(height: 30),
+        const Center(
+          child: Text(
+            'Bitte authentifiziere dich, bevor du auf die sensiblen Daten zugreifst.',
+            textScaleFactor: 1.4,
+            textAlign: TextAlign.center,
+          ),
+        ),
+        SizedBox(height: MediaQuery.of(context).size.height / 2),
+        _buildTryAuthenticationAgainWidget(),
+      ],
+    );
   }
 
   @override
@@ -270,11 +317,7 @@ class _MyHomeState extends State<MyHome> with WidgetsBindingObserver {
         body: Builder(
           builder: (context) {
             if (_appIsPaused) {
-              return const Scaffold(
-                body: Center(
-                  child: Text('Bitte authentifiziere dich erneut'),
-                ),
-              );
+              return _buildAppIsPausedWidget();
             }
             if (_supportState != _SupportState.unknown &&
                 !_isAuthenticating &&
@@ -288,21 +331,12 @@ class _MyHomeState extends State<MyHome> with WidgetsBindingObserver {
             } else if (_supportState != _SupportState.unknown &&
                 !_isAuthenticating &&
                 !_isAuthenticated) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(_authorized),
-                    ElevatedButton(
-                        onPressed: _authenticate,
-                        child: const Text('Try again'))
-                  ],
-                ),
-              );
+              return _buildTryAuthenticationAgainWidget();
             } else {
               return const Scaffold(
                 body: Center(
                   child: CircularProgressIndicator(),
+                  // todo give more information about loading status (show nami sync)
                 ),
               );
             }
