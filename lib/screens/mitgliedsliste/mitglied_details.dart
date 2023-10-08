@@ -47,7 +47,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
     );
   }
 
-  Widget _buildStatistikTopRow() {
+  Widget _buildMitgliedschaftPieChartForTopRow() {
     // filter taetigkeiten to only include Stufen Taetigkeiten
     // count years per stufe by subtracting aktivVon from aktivBis or now
     Map<String, int> tageProStufe = {};
@@ -69,32 +69,62 @@ class MitgliedDetailState extends State<MitgliedDetail>
       }
     }
 
+    return Expanded(
+        child: SizedBox(
+      child: Column(
+        children: [
+          MitgliedStufenPieChart(memberPerGroup: tageProStufe),
+          const SizedBox(height: 5),
+          Text(
+              '${(DateTime.now().difference(widget.mitglied.eintrittsdatum).inDays / 365).floor()} Pfadfinderjahre'),
+          const SizedBox(height: 5),
+        ],
+      ),
+    ));
+  }
+
+  Widget _buildStufenwechselInfoForTopRow() {
+    DateTime currentDate = DateTime.now();
+    Stufe? nextStufe = widget.mitglied.nextStufe;
+    int? minStufenWechselJahr = widget.mitglied.getMinStufenWechselJahr();
+    int? maxStufenWechselJahr = widget.mitglied.getMaxStufenWechselJahr();
+    bool isMinStufenWechselJahrInPast =
+        minStufenWechselJahr != null && minStufenWechselJahr < currentDate.year;
+    Taetigkeit? taetigkeit = widget.mitglied.taetigkeiten.firstWhere(
+        (element) => element.untergliederung == widget.mitglied.stufe,
+        orElse: () => Taetigkeit());
+
+    int years = currentDate.year - taetigkeit.aktivVon.year;
+    int months = currentDate.month - taetigkeit.aktivVon.month;
+
+    if (currentDate.day < taetigkeit.aktivVon.day) {
+      months--;
+    }
+
+    if (months < 0) {
+      years--;
+      months += 12;
+    }
+
+    return Expanded(
+        child: SizedBox(
+            child: Column(
+      children: [
+        Text('In der Stufe seit $years Jahren und $months Monaten'),
+        Text(
+            'Stufenwechsel ${isMinStufenWechselJahrInPast ? 'spätestens' : 'frühestens'} ${minStufenWechselJahr ?? maxStufenWechselJahr ?? 'nicht bekannt'}'),
+      ],
+    )));
+  }
+
+  Widget _buildStatistikTopRow() {
     return Container(
         color: Stufe.getStufeByString(widget.mitglied.stufe).farbe,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            Expanded(
-                child: SizedBox(
-              child: Column(
-                children: [
-                  MitgliedStufenPieChart(memberPerGroup: tageProStufe),
-                  const SizedBox(height: 5),
-                  Text(
-                      '${(DateTime.now().difference(widget.mitglied.eintrittsdatum).inDays / 365).floor()} Pfadfinderjahre'),
-                  const SizedBox(height: 5),
-                ],
-              ),
-            )),
-            Expanded(
-                child: SizedBox(
-                    child: Card(
-              color: Theme.of(context).colorScheme.surface,
-              elevation: 2.0,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.0)),
-              child: const Text(''),
-            ))),
+            _buildMitgliedschaftPieChartForTopRow(),
+            _buildStufenwechselInfoForTopRow()
           ],
         ));
   }
@@ -191,6 +221,15 @@ class MitgliedDetailState extends State<MitgliedDetail>
     ]);
   }
 
+  Widget _buildGeburtsdatum() {
+    final int age = widget.mitglied.getAlterAm();
+    return _buildBox(<Widget>[
+      Text(
+          'Alter: $age (${widget.mitglied.geburtsDatum.day < 10 ? '0' : ''}${widget.mitglied.geburtsDatum.day}.${widget.mitglied.geburtsDatum.month < 10 ? '0' : ''}${widget.mitglied.geburtsDatum.month}.${widget.mitglied.geburtsDatum.year})',
+          style: const TextStyle(color: Colors.white, fontSize: 18)),
+    ]);
+  }
+
   Widget _buildTaetigkeiten() {
     List<Taetigkeit> aktiveTaetigkeiten = [];
     List<Taetigkeit> alteTaetigkeiten = [];
@@ -240,35 +279,6 @@ class MitgliedDetailState extends State<MitgliedDetail>
     ]);
   }
 
-/*
-  Widget _buildNextStufenwechsel() {
-    final int age = widget.mitglied.getAlterAm();
-    Stufe? nextStufe = widget.mitglied.nextStufe;
-
-    List<Widget> elements = [
-      Text(
-          'Alter: $age (${widget.mitglied.geburtsDatum.day < 10 ? '0' : ''}${widget.mitglied.geburtsDatum.day}.${widget.mitglied.geburtsDatum.month < 10 ? '0' : ''}${widget.mitglied.geburtsDatum.month}.${widget.mitglied.geburtsDatum.year})',
-          style: const TextStyle(color: Colors.white, fontSize: 18)),
-    ];
-
-    int? minStufenWechselJahr = widget.mitglied.getMinStufenWechselJahr();
-    int? maxStufenWechselJahr = widget.mitglied.getMaxStufenWechselJahr();
-
-    if (minStufenWechselJahr != null && maxStufenWechselJahr != null) {
-      elements.add(
-        Text(
-            '${widget.mitglied.stufe} -> ${nextStufe!.name} ($minStufenWechselJahr/$maxStufenWechselJahr)',
-            style: const TextStyle(color: Colors.white, fontSize: 18)),
-      );
-    } else if (maxStufenWechselJahr != null) {
-      elements.add(Text('Gruppenzeit endet $maxStufenWechselJahr',
-          style: const TextStyle(color: Colors.white, fontSize: 18)));
-    }
-
-    return _buildBox(elements);
-  }
-*/
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -293,6 +303,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
                 children: [
                   ListView(
                     children: <Widget>[
+                      _buildGeburtsdatum(),
                       _buildMailList(),
                       _buildAddress(),
                     ],
