@@ -57,12 +57,24 @@ Future<NamiMemberDetailsModel> loadMemberDetails(
   String fullUrl =
       '$url$path/mitglied/filtered-for-navigation/gruppierung/gruppierung/$gruppierung/$id';
   debugPrint('Request: Lade Details eines Mitglieds');
-  final response =
-      await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
+  http.Response response;
+  try {
+    response = await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
+  } catch (e) {
+    debugPrint('Failed to load MemberDetails for $id');
+    debugPrint(e.toString());
+    throw Exception('Failed to load MemberDetails');
+  }
   var source = json.decode(const Utf8Decoder().convert(response.bodyBytes));
 
   if (response.statusCode == 200) {
-    return NamiMemberDetailsModel.fromJson(source['data']);
+    NamiMemberDetailsModel member =
+        NamiMemberDetailsModel.fromJson(source['data']);
+    if (DateTime.now().difference(member.geburtsDatum).inDays > 36525) {
+      debugPrint(
+          'Geburtsdatum von $id (${member.vorname}) ist fehlerhaft: ${member.geburtsDatum}');
+    }
+    return member;
   } else {
     throw Exception('Failed to load MemberDetails');
   }
@@ -135,13 +147,26 @@ Future<void> syncMember() async {
 
 Future<void> storeMitgliedToHive(int mitgliedId, Box<Mitglied> memberBox,
     String url, String path, int gruppierung, String cookie) async {
-  NamiMemberDetailsModel rawMember =
-      await loadMemberDetails(mitgliedId, url, path, gruppierung, cookie);
-  List<NamiMemberTaetigkeitenModel> rawTaetigkeiten =
-      await loadMemberTaetigkeiten(mitgliedId, url, path, cookie);
+  NamiMemberDetailsModel rawMember;
+  List<NamiMemberTaetigkeitenModel> rawTaetigkeiten;
+  try {
+    rawMember =
+        await loadMemberDetails(mitgliedId, url, path, gruppierung, cookie);
+  } catch (e) {
+    debugPrint('Failed to load member $mitgliedId');
+    debugPrint(e.toString());
+    return;
+  }
+  try {
+    rawTaetigkeiten =
+        await loadMemberTaetigkeiten(mitgliedId, url, path, cookie);
+  } catch (e) {
+    debugPrint('Failed to load member tätigkeiten $mitgliedId');
+    debugPrint(e.toString());
+    rawTaetigkeiten = [];
+  }
 
   List<Taetigkeit> taetigkeiten = [];
-
   for (NamiMemberTaetigkeitenModel item in rawTaetigkeiten) {
     taetigkeiten.add(Taetigkeit()
       ..id = item.id
