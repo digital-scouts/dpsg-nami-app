@@ -184,7 +184,7 @@ class _MyHomeState extends State<MyHome> with WidgetsBindingObserver {
       canCheckBiometrics = await auth.canCheckBiometrics;
     } on PlatformException catch (e) {
       canCheckBiometrics = false;
-      print(e);
+      debugPrint(e.message);
     }
     if (!mounted) {
       return;
@@ -201,7 +201,7 @@ class _MyHomeState extends State<MyHome> with WidgetsBindingObserver {
       availableBiometrics = await auth.getAvailableBiometrics();
     } on PlatformException catch (e) {
       availableBiometrics = <BiometricType>[];
-      print(e);
+      debugPrint(e.message);
     }
     if (!mounted) {
       return;
@@ -246,7 +246,7 @@ class _MyHomeState extends State<MyHome> with WidgetsBindingObserver {
         _isAuthenticating = false;
       });
     } on PlatformException catch (e) {
-      print(e);
+      debugPrint(e.message);
       setState(() {
         _isAuthenticating = false;
         _authorized = 'Error - ${e.message}';
