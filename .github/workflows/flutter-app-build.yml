@@ -57,10 +57,10 @@ jobs:
         id: v
         run: echo "::set-output name=version::${{ steps.gitversion.outputs.VERSION }}"
 
-  build:
+  setup_flutter:
     needs: [test, version]
-    name: flutter build
-    runs-on: macos-latest
+    name: Setup Flutter
+    runs-on: ubuntu-latest
     env:
       JAVA_VERSION: '11'
     steps:
@@ -75,8 +75,15 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-
       - run: flutter pub get
+
+  build_ios:
+    needs: [setup_flutter]
+    name: Build iOS
+    runs-on: macos-latest
+    env:
+      JAVA_VERSION: '11'
+    steps:
       - run: |
           flutter build ios --no-codesign
           cd build/ios/iphoneos
@@ -85,12 +92,47 @@ jobs:
           ln -s ../Runner.app
           cd ..
           zip -r app.ipa Payload
-        #Built /Users/runner/work/dpsg-nami-app/dpsg-nami-app/build/ios/iphoneos/Runner.app.
-      - run: flutter build apk --debug #Built build/app/outputs/flutter-apk/app-debug.apk.
+      - name: Upload iOS build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ios-artifacts
+          path: build/ios/iphoneos
+
+  build_android:
+    needs: [setup_flutter]
+    name: Build Android
+    runs-on: ubuntu-latest
+    env:
+      JAVA_VERSION: '11'
+    steps:
+      - run: flutter build apk --debug
       - run: flutter build appbundle
+      - name: Upload Android build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: android-artifacts
+          path: build/app/outputs
+
+  release:
+    needs: [build_ios, build_android]
+    name: Create a Release in GitHub
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Download iOS build artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: ios-artifacts
+          path: ios-artifacts
+      - name: Download Android build artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: android-artifacts
+          path: android-artifacts
       - name: Create a Release in GitHub
         uses: ncipollo/release-action@v1
         with:
-          artifacts: 'build/app/outputs/flutter-apk/*.apk,build/app/outputs/bundle/release/app-release.aab,build/ios/iphoneos/Runner.app'
+          artifacts: 'ios-artifacts/*, android-artifacts/*'
           tag: ${{needs.version.outputs.releaseversion}}
           commit: ${{ github.sha }}
