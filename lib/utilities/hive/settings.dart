@@ -9,13 +9,18 @@ enum SettingValue {
   namiPath,
   gruppierung,
   lastNamiSync,
-  lastLoginCheck
+  lastLoginCheck,
+  stufenwechselDatum,
 }
 
 Box box = Hive.box('settingsBox');
 
 void setNamiApiCookie(String namiApiToken) {
   box.put(SettingValue.namiApiCookie.toString(), namiApiToken);
+}
+
+void setStufenwechselDatum(DateTime stufenwechselDatum) {
+  box.put(SettingValue.stufenwechselDatum.toString(), stufenwechselDatum);
 }
 
 void setNamiLoginId(int loginId) async {
@@ -53,6 +58,24 @@ String getNamiApiCookie() {
 DateTime getLastLoginCheck() {
   return box.get(SettingValue.lastLoginCheck.toString()) ??
       DateTime.utc(1989, 1, 1);
+}
+
+DateTime getNextStufenwechselDatum() {
+  DateTime safedStufenwechselDatum =
+      box.get(SettingValue.stufenwechselDatum.toString()) ??
+          DateTime.utc(1989, 10, 1);
+  // set year of safedStufenwechselDatum to current year or next year if it is in the past
+  DateTime stufenwechselDatum;
+  
+  if (safedStufenwechselDatum.isBefore(DateTime.now())) {
+    stufenwechselDatum = DateTime(DateTime.now().year + 1,
+        safedStufenwechselDatum.month, safedStufenwechselDatum.day);
+  } else {
+    stufenwechselDatum = DateTime(DateTime.now().year,
+        safedStufenwechselDatum.month, safedStufenwechselDatum.day);
+  }
+
+  return stufenwechselDatum;
 }
 
 int? getGruppierung() {
@@ -104,4 +127,8 @@ void deleteNamiPassword() {
 
 void deleteGruppierung() {
   box.delete(SettingValue.gruppierung.toString());
+}
+
+void deleteStufenwechselDatum() {
+  box.delete(SettingValue.stufenwechselDatum.toString());
 }

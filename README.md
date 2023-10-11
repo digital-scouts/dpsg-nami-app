@@ -40,8 +40,13 @@ Dieses Werk ist lizenziert unter einer [Creative Commons Namensnennung - Nicht-k
 
 ### [0.0.3] - 06.10.2023 [![Test](https://img.shields.io/badge/release-v0.0.3-orange)](https://github.com/JanneckLange/dpsg-nami-app/releases/tag/v0.0.3)
 
-- Add: Seite Stistiken mit Anzahl an Mitgliedern hinzugefügt
-- Add: Seite Einstellungen, Profil und Dashboard hinzugefügt
+- Add: Seite Stistiken hinzugefügt
+  - Anzahl Mitgliedern/Leitende pro Stufe
+  - Wer kann die Stufe wechseln
+- Add: Seite Profil und Dashboard hinzugefügt
+- Add Seite Einstellungen
+  - Möglichkeit Daten zu syncronisieren
+  - Möglichkeit Datum für Stufenwechsel zu ändern
 - Add: Authentifizierung mit bio-metrischen Daten hinzugefügt
 - Change: Als Server wird nun ein mockServer angesprochen
 - Change: Mitgliedsliste hat einen neuen Filter bekommen
@@ -49,6 +54,7 @@ Dieses Werk ist lizenziert unter einer [Creative Commons Namensnennung - Nicht-k
   - Eine Karte wurde zu Mitgliedsdetails hinzugefügts
   - Statistiken zur Mitgliedschaft wurden hinzugefügt
   - Informationen zum Stufenwechsel wurden hinzugefügt
+  - Tätigkeiten befinden sich nun auf einem eigenen Tab
 - Fix: NaMi Login wird nur noch angefragt, wenn wirklich notwendig
 
 ### [0.0.2] - 09.12.2021 [![Test](https://img.shields.io/badge/release-v0.0.2-orange)](https://github.com/JanneckLange/dpsg-nami-app/releases/tag/v0.0.2)

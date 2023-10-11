@@ -27,74 +27,100 @@ class Settings extends StatefulWidget {
           ),
 */
 
-class _SettingsState extends State<Settings>
-    with SingleTickerProviderStateMixin {
-  bool _isSyncing = false;
-  double _rotationValue = 0.0;
-  late AnimationController _controller;
-  late Animation<double> _rotationAnimation;
+class _SettingsState extends State<Settings> {
+  bool stufenwechselDatumIsValid = true;
 
-  @override
-  void initState() {
-    super.initState();
-
-    // Erstellen Sie einen AnimationController
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 1),
-    );
-
-    // Erstellen Sie eine RotationTransition-Animation mit Tween
-    _rotationAnimation = Tween<double>(begin: 360, end: 0).animate(_controller)
-      ..addListener(() {
-        setState(() {
-          _rotationValue = _rotationAnimation.value;
-        });
-      });
-
-    // Starten Sie die Animation
-    _controller.repeat(); // Animation wiederholen
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  final TextEditingController _stufenwechselTextController =
+      TextEditingController();
 
   Future<void> _syncData() async {
-    setState(() {
-      _isSyncing = true;
-    });
-
     await syncNamiData();
+  }
 
-    setState(() {
-      _isSyncing = false;
-    });
+  Widget _buildSync() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.sync),
+          onPressed: () => {_syncData()},
+        ),
+        Text(getLastNamiSync() != null
+            ? "Vor ${DateTime.now().difference(getLastNamiSync()!).inDays.toString()} Tagen"
+            : "Noch nie Syncronisiert"),
+      ],
+    );
+  }
+
+  bool isValidInput(String text) {
+    RegExp regex = RegExp(r'^\d{0,2}-\d{0,2}$');
+    return regex.hasMatch(text);
+  }
+
+  Widget _buildStufenwechselDatumInput() {
+    _stufenwechselTextController.text =
+        '${getNextStufenwechselDatum().day.toString().padLeft(2, '0')}-${getNextStufenwechselDatum().month.toString().padLeft(2, '0')}';
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text('Stufenwechsel Datum: '),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(left: 8, right: 8),
+              child: TextField(
+                controller: _stufenwechselTextController,
+                decoration: InputDecoration(
+                  hintText: 'DD-MM',
+                  errorText: !stufenwechselDatumIsValid
+                      ? 'Ungültiges Format'
+                      : null, // Anzeige des Fehlers
+                ),
+              ),
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              if (!isValidInput(_stufenwechselTextController.text)) {
+                setState(() {
+                  stufenwechselDatumIsValid = false;
+                });
+              } else {
+                DateTime stufenwechselDatum = DateTime(
+                    DateTime.now().year,
+                    int.parse(_stufenwechselTextController.text.split('-')[1]),
+                    int.parse(_stufenwechselTextController.text.split('-')[0]));
+                setStufenwechselDatum(stufenwechselDatum);
+                setState(() {
+                  stufenwechselDatumIsValid = true;
+                });
+              }
+            },
+            icon: const Icon(Icons.save),
+            label: const Text('Speichern'),
+          )
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('Settings build');
     return Scaffold(
       appBar: AppBar(
         title: const Center(child: Text('Settings')),
       ),
-      body: Row(
+      body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          IconButton(
-            icon: _isSyncing
-                ? RotationTransition(
-                    turns: AlwaysStoppedAnimation(_rotationValue /
-                        360), // Teilen Sie durch 360, um eine vollständige Umdrehung zu erhalten
-                    child: const Icon(Icons.sync))
-                : const Icon(Icons.sync),
-            onPressed: () => {_isSyncing ? null : _syncData()},
+          _buildSync(),
+          Divider(
+            height: 1,
+            color: Theme.of(context).dividerColor,
           ),
-          Text(getLastNamiSync() != null
-              ? "Vor ${DateTime.now().difference(getLastNamiSync()!).inDays.toString()} Tagen"
-              : "Noch nie Syncronisiert"),
+          _buildStufenwechselDatumInput()
         ],
       ),
     );
