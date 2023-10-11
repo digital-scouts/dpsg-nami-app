@@ -86,24 +86,6 @@ class StatistikScreenState extends State<StatistikScreen> {
                     width: constraints.maxWidth * 0.05,
                     height: containerHeight,
                   ),
-                  Container(
-                    width: constraints.maxWidth * 0.40,
-                    height: containerHeight,
-                    decoration: BoxDecoration(
-                      color: Colors.blue,
-                      borderRadius: BorderRadius.circular(5.0),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'Stufenwechsel',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20.0,
-                        ),
-                      ),
-                    ),
-                  ),
                 ],
               ),
               const SizedBox(height: spacing),
