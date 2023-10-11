@@ -59,7 +59,7 @@ class StatistikScreenState extends State<StatistikScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Statistiken'),
+        title: const Center(child: Text('Statistiken')),
       ),
       body: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
@@ -85,24 +85,6 @@ class StatistikScreenState extends State<StatistikScreen> {
                   SizedBox(
                     width: constraints.maxWidth * 0.05,
                     height: containerHeight,
-                  ),
-                  Container(
-                    width: constraints.maxWidth * 0.40,
-                    height: containerHeight,
-                    decoration: BoxDecoration(
-                      color: Colors.blue,
-                      borderRadius: BorderRadius.circular(5.0),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'Stufenwechsel',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20.0,
-                        ),
-                      ),
-                    ),
                   ),
                 ],
               ),

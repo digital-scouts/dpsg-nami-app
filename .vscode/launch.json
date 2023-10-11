@@ -2,11 +2,6 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Current Device",
-            "request": "launch",
-            "type": "dart"
-        },
-        {
             "name": "Android",
             "request": "launch",
             "type": "dart",
@@ -16,7 +11,7 @@
             "name": "iPhone",
             "request": "launch",
             "type": "dart",
-            "deviceId": "7D506F11-AF46-4FC5-A6C7-5DA7999B4C91"
+            "deviceId": "6D4853F8-1BCA-40FB-A6E0-1FCB44F6A17F"
         },
         {
             "name": "MyPhone",
@@ -24,20 +19,5 @@
             "type": "dart",
             "deviceId": "00008120-00026848023B401E"
         },
-        {
-            "name": "MAC",
-            "request": "launch",
-            "type": "dart",
-            "deviceId": "macos"
-        },
     ],
-    "compounds": [
-        {
-            "name": "All Devices",
-            "configurations": [
-                "Android",
-                "iPhone"
-            ]
-        }
-    ]
 }

@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:nami/screens/login.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
-import 'package:provider/provider.dart';
 
-import '../../screens/login.dart';
-import '../theme.dart';
+import '../hive/logout.dart';
 
 class HomeDrawer extends StatefulWidget {
   const HomeDrawer(
@@ -35,6 +34,11 @@ class HomeDrawerState extends State<HomeDrawer> {
   void setDrawerListArray() {
     drawerList = <DrawerList>[
       DrawerList(
+        index: DrawerIndex.dashboard,
+        labelName: 'Dashboard',
+        icon: const Icon(Icons.home),
+      ),
+      DrawerList(
         index: DrawerIndex.mitglieder,
         labelName: 'Mitglieder',
         icon: const Icon(Icons.group),
@@ -44,13 +48,28 @@ class HomeDrawerState extends State<HomeDrawer> {
         labelName: 'Statistiken',
         icon: const Icon(Icons.analytics),
       ),
+      DrawerList(
+        index: DrawerIndex.profil,
+        labelName: 'Profil',
+        icon: const Icon(Icons.person),
+      ),
+      DrawerList(
+        index: DrawerIndex.settings,
+        labelName: 'Einstellungen',
+        icon: const Icon(Icons.settings),
+      ),
     ];
   }
 
   @override
   Widget build(BuildContext context) {
     int? gruppierung = getGruppierung();
-    Mitglied user = getLoggedInUserData();
+    Box<Mitglied> memberBox = Hive.box<Mitglied>('members');
+    Mitglied? user;
+    try {
+      user = memberBox.values
+          .firstWhere((member) => member.mitgliedsNummer == getNamiLoginId());
+    } catch (_) {}
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
@@ -70,14 +89,14 @@ class HomeDrawerState extends State<HomeDrawer> {
                   Padding(
                     padding: const EdgeInsets.only(top: 8, left: 4),
                     child: Text(
-                      '${user.vorname} ${user.nachname}',
+                      '${user?.vorname} ${user?.nachname}',
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                   ),
                   Padding(
                     padding: const EdgeInsets.only(top: 8, left: 4),
                     child: Text(
-                      'Mitgliedsnummer: ${user.mitgliedsNummer}',
+                      'Mitgliedsnummer: ${getNamiLoginId()}',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ),
@@ -109,32 +128,6 @@ class HomeDrawerState extends State<HomeDrawer> {
               },
             ),
           ),
-          Row(children: [
-            ElevatedButton(
-                child: const Text("Light Theme"),
-                onPressed: () {
-                  Provider.of<ThemeModel>(context, listen: false)
-                      .setTheme(ThemeType.light);
-                }),
-            ElevatedButton(
-                child: const Text("Dark Theme"),
-                onPressed: () {
-                  Provider.of<ThemeModel>(context, listen: false)
-                      .setTheme(ThemeType.dark);
-                })
-          ]),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.sync),
-                onPressed: () => {syncNamiData()},
-              ),
-              Text(getLastNamiSync() != null
-                  ? "Vor ${DateTime.now().difference(getLastNamiSync()!).inDays.toString()} Tagen"
-                  : "Noch nie Syncronisiert"),
-            ],
-          ),
           Divider(
             height: 1,
             color: Theme.of(context).dividerColor,
@@ -151,7 +144,7 @@ class HomeDrawerState extends State<HomeDrawer> {
                   Icons.power_settings_new,
                   color: Colors.red,
                 ),
-                onTap: () => {logout()},
+                onTap: () => {logout(), pushLoginScreen()},
               ),
               SizedBox(
                 height: MediaQuery.of(context).padding.bottom,
@@ -163,25 +156,9 @@ class HomeDrawerState extends State<HomeDrawer> {
     );
   }
 
-  void logout() {
-    //loaded Data
-    Hive.box<Mitglied>('members').clear();
-    deleteGruppierung();
-
-    // login data
-    deleteNamiApiCookie();
-    deleteNamiLoginId();
-    deleteNamiPassword();
-
-    // other Stuff
-    deleteLastLoginCheck();
-    deleteLastNamiSync();
-    Navigator.of(context)
-        .push(
-      MaterialPageRoute(
-        builder: (context) => const LoginScreen(),
-      ),
-    )
+  void pushLoginScreen() {
+    Navigator.push(context,
+            MaterialPageRoute(builder: (context) => const LoginScreen()))
         .then((value) {
       syncNamiData();
     });
@@ -294,7 +271,7 @@ class HomeDrawerState extends State<HomeDrawer> {
   }
 }
 
-enum DrawerIndex { mitglieder, stats }
+enum DrawerIndex { dashboard, mitglieder, stats, settings, profil }
 
 class DrawerList {
   DrawerList({

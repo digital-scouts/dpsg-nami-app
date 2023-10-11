@@ -174,39 +174,55 @@ class MitgliedsListeState extends State<MitgliedsListe> {
   }
 
   Widget _buildFilterGroup() {
-    return Column(
-      children: [
-        CheckboxListTile(
-            value: filterGroup[0],
-            title: const Text('Wölflinge'),
-            onChanged: (value) =>
-                setFilterGroup(0, value! ? value : !filterGroup[0])),
-        CheckboxListTile(
-            value: filterGroup[1],
-            title: const Text('Jungpfadfinder'),
-            onChanged: (value) =>
-                setFilterGroup(1, value! ? value : !filterGroup[1])),
-        CheckboxListTile(
-            value: filterGroup[2],
-            title: const Text('Pfadfinder'),
-            onChanged: (value) =>
-                setFilterGroup(2, value! ? value : !filterGroup[2])),
-        CheckboxListTile(
-            value: filterGroup[3],
-            title: const Text('Rover'),
-            onChanged: (value) =>
-                setFilterGroup(3, value! ? value : !filterGroup[3])),
-        CheckboxListTile(
-            value: filterGroup[4],
-            title: const Text('Leiter'),
-            onChanged: (value) =>
-                setFilterGroup(4, value! ? value : !filterGroup[4])),
-        CheckboxListTile(
-            value: filterGroup[5],
-            title: const Text('keine Gruppe'),
-            onChanged: (value) =>
-                setFilterGroup(5, value! ? value : !filterGroup[5])),
-      ],
+    // Bilder für die Stufen
+    List<String> stufenBilder = [
+      'assets/images/woe.png',
+      'assets/images/jufi.png',
+      'assets/images/pfadi.png',
+      'assets/images/rover.png',
+      'assets/images/lilie.png'
+    ];
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: List.generate(stufenBilder.length, (index) {
+          return GestureDetector(
+            onTap: () {
+              setFilterGroup(index, !filterGroup[index]);
+            },
+            child: Container(
+              width: 50.0,
+              height: 50.0,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: filterGroup[index] ? Colors.blue : Colors.grey,
+              ),
+              child: Center(
+                child: Image.asset(
+                  stufenBilder[index],
+                  width: 30.0,
+                  height: 30.0,
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: TextField(
+        onChanged: setSearchValue,
+        decoration: InputDecoration(
+          hintStyle: Theme.of(context).textTheme.bodySmall,
+          filled: true,
+          hintText: 'Textsuche (Name, Mail, Mitgliedsnummer)',
+        ),
+      ),
     );
   }
 
@@ -215,18 +231,6 @@ class MitgliedsListeState extends State<MitgliedsListe> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           _buildSortDropdown(),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-            child: TextField(
-              onChanged: setSearchValue,
-              decoration: InputDecoration(
-                hintStyle: Theme.of(context).textTheme.bodySmall,
-                filled: true,
-                hintText: 'Textsuche (Name, Mail, Mitgliedsnummer)',
-              ),
-            ),
-          ),
-          _buildFilterGroup(),
           const Divider(),
           CheckboxListTile(
             value: disableInactive,
@@ -238,19 +242,35 @@ class MitgliedsListeState extends State<MitgliedsListe> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        body: BackdropScaffold(
-            appBar: BackdropAppBar(
-              title: const Center(child: Text("Mitglieder")),
-              automaticallyImplyLeading: false,
-              actions: <Widget>[
-                BackdropToggleButton(
-                  icon: AnimatedIcons.search_ellipsis,
-                  color: Theme.of(context).iconTheme.color ?? Colors.black,
-                ),
-              ],
-            ),
-            backLayer: _buildFilter(),
-            frontLayer: _buildMemberList()));
+    return LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+      return BackdropScaffold(
+          headerHeight: 100,
+          subHeader: Column(
+            children: <Widget>[
+              _buildFilterGroup(),
+              _buildSearchBar(),
+            ],
+          ),
+          appBar: BackdropAppBar(
+            title: const Center(child: Text("Mitglieder")),
+            automaticallyImplyLeading: false,
+            actions: <Widget>[
+              BackdropToggleButton(
+                icon: AnimatedIcons.search_ellipsis,
+                color: Theme.of(context).iconTheme.color ?? Colors.black,
+              ),
+            ],
+          ),
+          backLayer: SizedBox(
+              height: constraints.maxHeight,
+              width: constraints.maxWidth,
+              child: _buildFilter()),
+          backLayerBackgroundColor: Theme.of(context).colorScheme.surface,
+          frontLayer: SizedBox(
+              height: constraints.maxHeight,
+              width: constraints.maxWidth,
+              child: _buildMemberList()));
+    });
   }
 }

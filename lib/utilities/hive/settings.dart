@@ -1,18 +1,16 @@
 import 'package:hive/hive.dart';
 
-import 'mitglied.dart';
-
 // flutter packages pub run build_runner build
 enum SettingValue {
   namiApiCookie,
   namiLoginId,
-  loggedInUserData,
   namiPassword,
   namiUrl,
   namiPath,
   gruppierung,
   lastNamiSync,
-  lastLoginCheck
+  lastLoginCheck,
+  stufenwechselDatum,
 }
 
 Box box = Hive.box('settingsBox');
@@ -21,8 +19,8 @@ void setNamiApiCookie(String namiApiToken) {
   box.put(SettingValue.namiApiCookie.toString(), namiApiToken);
 }
 
-void setLoggedInUserData(Mitglied loggedInUser) async {
-  box.put(SettingValue.loggedInUserData.toString(), loggedInUser);
+void setStufenwechselDatum(DateTime stufenwechselDatum) {
+  box.put(SettingValue.stufenwechselDatum.toString(), stufenwechselDatum);
 }
 
 void setNamiLoginId(int loginId) async {
@@ -62,12 +60,26 @@ DateTime getLastLoginCheck() {
       DateTime.utc(1989, 1, 1);
 }
 
-int? getGruppierung() {
-  return box.get(SettingValue.gruppierung.toString());
+DateTime getNextStufenwechselDatum() {
+  DateTime safedStufenwechselDatum =
+      box.get(SettingValue.stufenwechselDatum.toString()) ??
+          DateTime.utc(1989, 10, 1);
+  // set year of safedStufenwechselDatum to current year or next year if it is in the past
+  DateTime stufenwechselDatum;
+
+  if (safedStufenwechselDatum.isBefore(DateTime.now())) {
+    stufenwechselDatum = DateTime(DateTime.now().year + 1,
+        safedStufenwechselDatum.month, safedStufenwechselDatum.day);
+  } else {
+    stufenwechselDatum = DateTime(DateTime.now().year,
+        safedStufenwechselDatum.month, safedStufenwechselDatum.day);
+  }
+
+  return stufenwechselDatum;
 }
 
-Mitglied getLoggedInUserData() {
-  return box.get(SettingValue.loggedInUserData.toString());
+int? getGruppierung() {
+  return box.get(SettingValue.gruppierung.toString());
 }
 
 int? getNamiLoginId() {
@@ -105,10 +117,6 @@ void deleteLastNamiSync() {
   box.delete(SettingValue.lastNamiSync.toString());
 }
 
-void deleteLoggedInUserData() {
-  box.delete(SettingValue.loggedInUserData.toString());
-}
-
 void deleteNamiLoginId() {
   box.delete(SettingValue.namiLoginId.toString());
 }
@@ -119,4 +127,8 @@ void deleteNamiPassword() {
 
 void deleteGruppierung() {
   box.delete(SettingValue.gruppierung.toString());
+}
+
+void deleteStufenwechselDatum() {
+  box.delete(SettingValue.stufenwechselDatum.toString());
 }

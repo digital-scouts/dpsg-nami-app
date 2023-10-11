@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
 
 import '../stufe.dart';
@@ -99,27 +100,35 @@ class Mitglied {
   }
 
   int? getMinStufenWechselJahr() {
-    int alterImHerbst =
-        getAlterAm(referenceDate: DateTime(DateTime.now().year, 10, 1));
+    int alterNextStufenwechsel =
+        getAlterAm(referenceDate: getNextStufenwechselDatum());
 
     if (nextStufe != null &&
         nextStufe!.isStufeYouCanChangeTo &&
         !isMitgliedLeiter()) {
-      return DateTime.now().year - alterImHerbst + nextStufe!.alterMin!;
+      return DateTime.now().year -
+          alterNextStufenwechsel +
+          nextStufe!.alterMin!;
     } else {
       return null;
     }
   }
 
   int? getMaxStufenWechselJahr() {
-    int alterImHerbst =
-        getAlterAm(referenceDate: DateTime(DateTime.now().year, 10, 1));
+    int alterNextStufenwechsel =
+        getAlterAm(referenceDate: getNextStufenwechselDatum());
     if (nextStufe != null &&
         nextStufe!.isStufeYouCanChangeTo &&
         !isMitgliedLeiter()) {
-      return DateTime.now().year - alterImHerbst + currentStufe.alterMax! + 1;
+      return DateTime.now().year -
+          alterNextStufenwechsel +
+          currentStufe.alterMax! +
+          1;
     } else if (currentStufe.name == "Rover" && !isMitgliedLeiter()) {
-      return DateTime.now().year - alterImHerbst + currentStufe.alterMax! + 1;
+      return DateTime.now().year -
+          alterNextStufenwechsel +
+          currentStufe.alterMax! +
+          1;
     } else {
       return null;
     }

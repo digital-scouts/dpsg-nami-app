@@ -74,3 +74,12 @@ Future<bool> namiLoginWithPassword(int userId, String password) async {
   setLastLoginCheck(DateTime.now());
   return true;
 }
+
+Future<bool> updateLoginData() async {
+  int? loginId = getNamiLoginId();
+  String? password = getNamiPassword();
+  if (loginId != null && password != null) {
+    return await namiLoginWithPassword(loginId, password);
+  }
+  return false;
+}
