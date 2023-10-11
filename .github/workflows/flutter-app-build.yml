@@ -118,7 +118,7 @@ jobs:
           path: build/app/outputs
 
   release:
-    needs: [build_ios, build_android]
+    needs: [version, build_ios, build_android]
     name: Create a Release in GitHub
     runs-on: ubuntu-latest
     steps:
@@ -134,6 +134,7 @@ jobs:
         with:
           name: android-artifacts
           path: android-artifacts
+      - run: echo ${{needs.version.outputs.releaseversion}}
       - name: Create a Release in GitHub
         uses: ncipollo/release-action@v1
         with:
