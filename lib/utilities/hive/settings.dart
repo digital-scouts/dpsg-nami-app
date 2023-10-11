@@ -66,7 +66,7 @@ DateTime getNextStufenwechselDatum() {
           DateTime.utc(1989, 10, 1);
   // set year of safedStufenwechselDatum to current year or next year if it is in the past
   DateTime stufenwechselDatum;
-  
+
   if (safedStufenwechselDatum.isBefore(DateTime.now())) {
     stufenwechselDatum = DateTime(DateTime.now().year + 1,
         safedStufenwechselDatum.month, safedStufenwechselDatum.day);

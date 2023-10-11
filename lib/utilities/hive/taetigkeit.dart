@@ -49,7 +49,7 @@ class Taetigkeit {
     return false;
   }
 
-  bool isFutureTaetigkeit(){
+  bool isFutureTaetigkeit() {
     DateTime now = DateTime.now();
     if (aktivVon.isAfter(now)) {
       return true;
