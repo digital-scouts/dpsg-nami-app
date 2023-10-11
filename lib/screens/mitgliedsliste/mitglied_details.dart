@@ -135,7 +135,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
             child: Column(
       children: [
         Text(
-            'In der Stufe seit ${currentStufeYears > 1 ? '$currentStufeYears Jahren' : 'einem Jahr'} ${currentStufeMonths != 0 ? 'und $currentStufeMonths Monaten' : ''}.'),
+            'In der Stufe seit ${currentStufeYears > 1 ? '$currentStufeYears Jahren' : 'einem Jahr'}${currentStufeMonths != 0 ? ' und $currentStufeMonths Monaten' : ''}.'),
         nextStufe?.name == 'Leiter' && maxStufenWechselJahr != null
             ? Text('Stufenzeit endet $maxStufenWechselJahr')
             : (maxStufenWechselJahr != null && minStufenWechselJahr != null
