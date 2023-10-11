@@ -54,20 +54,27 @@ class MitgliedDetailState extends State<MitgliedDetail>
     List<String> stufen = Stufe.stufen.map((stufe) => stufe.name).toList();
     for (var taetigkeit in widget.mitglied.taetigkeiten) {
       if (taetigkeit.untergliederung != null &&
-          stufen.contains(taetigkeit.untergliederung)) {
+          stufen.contains(taetigkeit.untergliederung) &&
+          (taetigkeit.taetigkeit.contains('Leiter') ||
+              taetigkeit.taetigkeit.contains('Mitglied'))) {
         int sum = tageProStufe[taetigkeit.untergliederung!] ?? 0;
-        String stufe = taetigkeit.taetigkeit.contains('Leiter') ||
-                taetigkeit.taetigkeit.contains('Admin')
+        String stufe = taetigkeit.taetigkeit.contains('Leiter')
             ? 'LeiterIn'
             : taetigkeit.untergliederung!;
         // todo upgrade: show Mietglieds und Leitungszeit pro Stufe wenn Leitungszeit Mitgliedszeit übersteit
         tageProStufe[stufe] = sum +
             (taetigkeit.isActive()
                 ? DateTime.now().difference(taetigkeit.aktivVon).inDays ~/ 12
-                : taetigkeit.aktivBis!.difference(taetigkeit.aktivVon).inDays ~/
-                    12);
+                : taetigkeit.isFutureTaetigkeit()
+                    ? 0
+                    : taetigkeit.aktivBis!
+                            .difference(taetigkeit.aktivVon)
+                            .inDays ~/
+                        12);
       }
     }
+
+    tageProStufe.removeWhere((key, value) => value == 0);
 
     return Expanded(
         child: SizedBox(
@@ -236,7 +243,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
     for (Taetigkeit taetigkeit in widget.mitglied.taetigkeiten) {
       taetigkeit.taetigkeit =
           taetigkeit.taetigkeit.replaceFirst('€ ', '').split('(')[0];
-      if (taetigkeit.isActive()) {
+      if (taetigkeit.isActive() || taetigkeit.isFutureTaetigkeit()) {
         aktiveTaetigkeiten.add(taetigkeit);
       } else {
         alteTaetigkeiten.add(taetigkeit);
