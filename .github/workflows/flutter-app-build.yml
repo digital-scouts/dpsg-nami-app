@@ -1,0 +1,138 @@
+name: Test & Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: flutter test
+    runs-on: ubuntu-latest
+
+    env:
+      JAVA_VERSION: '17.0.1'
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-java@v1
+        with:
+          java-version: ${{env.JAVA_VERSION}}
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+      - run: flutter --version
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - uses: actions/checkout@v2
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: 'stable'
+      - run: dart --version
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed .
+      - name: Analyze project source
+        run: dart analyze
+      - name: Run tests
+        run: dart test
+
+  version:
+    name: flutter version
+    runs-on: ubuntu-latest
+    outputs:
+      releaseversion: ${{ steps.v.outputs.version }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref }} # checkout the correct branch name
+          fetch-depth: 0 # fetch the whole repo history
+      - name: Git Version
+        id: gitversion
+        uses: codacy/git-version@2.2.0
+        with:
+          dev-branch: develop
+          prefix: v
+      - name: Save git-version
+        id: v
+        run: echo "::set-output name=version::${{ steps.gitversion.outputs.VERSION }}"
+
+  setup_flutter:
+    needs: [test, version]
+    name: Setup Flutter
+    runs-on: ubuntu-latest
+    env:
+      JAVA_VERSION: '11'
+    steps:
+      - run: echo ${{needs.version.outputs.releaseversion}}
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup java
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{env.JAVA_VERSION}}
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+      - run: flutter pub get
+
+  build_ios:
+    needs: [setup_flutter]
+    name: Build iOS
+    runs-on: macos-latest
+    env:
+      JAVA_VERSION: '11'
+    steps:
+      - run: |
+          flutter build ios --no-codesign
+          cd build/ios/iphoneos
+          mkdir Payload
+          cd Payload
+          ln -s ../Runner.app
+          cd ..
+          zip -r app.ipa Payload
+      - name: Upload iOS build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ios-artifacts
+          path: build/ios/iphoneos
+
+  build_android:
+    needs: [setup_flutter]
+    name: Build Android
+    runs-on: ubuntu-latest
+    env:
+      JAVA_VERSION: '11'
+    steps:
+      - run: flutter build apk --debug
+      - run: flutter build appbundle
+      - name: Upload Android build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: android-artifacts
+          path: build/app/outputs
+
+  release:
+    needs: [build_ios, build_android]
+    name: Create a Release in GitHub
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Download iOS build artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: ios-artifacts
+          path: ios-artifacts
+      - name: Download Android build artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: android-artifacts
+          path: android-artifacts
+      - name: Create a Release in GitHub
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: 'ios-artifacts/*, android-artifacts/*'
+          tag: ${{needs.version.outputs.releaseversion}}
+          commit: ${{ github.sha }}
