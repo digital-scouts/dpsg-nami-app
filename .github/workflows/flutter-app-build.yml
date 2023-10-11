@@ -57,9 +57,42 @@ jobs:
         id: v
         run: echo "::set-output name=version::${{ steps.gitversion.outputs.VERSION }}"
 
-  setup_flutter:
+  build_ios:
     needs: [test, version]
-    name: Setup Flutter
+    name: Build iOS
+    runs-on: macos-latest
+    env:
+      JAVA_VERSION: '11'
+    steps:
+      - run: echo ${{needs.version.outputs.releaseversion}}
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup java
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{env.JAVA_VERSION}}
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+      - run: flutter pub get
+      - run: |
+          flutter build ios --no-codesign
+          cd build/ios/iphoneos
+          mkdir Payload
+          cd Payload
+          ln -s ../Runner.app
+          cd ..
+          zip -r app.ipa Payload
+      - name: Upload iOS build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ios-artifacts
+          path: build/ios/iphoneos
+
+  build_android:
+    needs: [test, version]
+    name: Build Android
     runs-on: ubuntu-latest
     env:
       JAVA_VERSION: '11'
@@ -76,35 +109,6 @@ jobs:
         with:
           channel: 'stable'
       - run: flutter pub get
-
-  build_ios:
-    needs: [setup_flutter]
-    name: Build iOS
-    runs-on: macos-latest
-    env:
-      JAVA_VERSION: '11'
-    steps:
-      - run: |
-          flutter build ios --no-codesign
-          cd build/ios/iphoneos
-          mkdir Payload
-          cd Payload
-          ln -s ../Runner.app
-          cd ..
-          zip -r app.ipa Payload
-      - name: Upload iOS build artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: ios-artifacts
-          path: build/ios/iphoneos
-
-  build_android:
-    needs: [setup_flutter]
-    name: Build Android
-    runs-on: ubuntu-latest
-    env:
-      JAVA_VERSION: '11'
-    steps:
       - run: flutter build apk --debug
       - run: flutter build appbundle
       - name: Upload Android build artifacts
