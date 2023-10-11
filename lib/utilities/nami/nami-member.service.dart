@@ -42,7 +42,11 @@ Future<List<int>> loadMemberIdsToUpdate(
     jsonDecode(response.body)['data'].forEach((item) => {
           if (getVersionOfMember(item['id'], mitglieder) !=
               item['entries_version'])
-            {memberIds.add(item['id'])}
+            {
+              debugPrint(
+                  'Member ${item['vorname']} ${item['id']} needs to be updated. Old Version: ${getVersionOfMember(item['id'], mitglieder)} New Version: ${item['entries_version']}'),
+              memberIds.add(item['id'])
+            }
         });
     return memberIds;
   } else {

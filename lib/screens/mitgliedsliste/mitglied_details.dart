@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:nami/screens/widgets/map.widget.dart';
@@ -76,14 +78,27 @@ class MitgliedDetailState extends State<MitgliedDetail>
 
     tageProStufe.removeWhere((key, value) => value == 0);
 
+    String dauerText = '';
+    int pfadfinderTage =
+        DateTime.now().difference(widget.mitglied.eintrittsdatum).inDays;
+    if (pfadfinderTage >= 365) {
+      int jahre = (pfadfinderTage / 365).floor();
+      dauerText = jahre > 1 ? '$jahre Pfadfinderjahre' : 'Ein Pfadfinderjahr';
+    } else if (pfadfinderTage >= 30) {
+      int monate = (pfadfinderTage / 30).floor();
+      dauerText =
+          'Seit ${monate > 1 ? '$monate Monaten' : 'einem Monat'} Pfadfinder';
+    } else {
+      dauerText = 'Seit $pfadfinderTage Tagen dabei.';
+    }
+
     return Expanded(
         child: SizedBox(
       child: Column(
         children: [
           MitgliedStufenPieChart(memberPerGroup: tageProStufe),
           const SizedBox(height: 5),
-          Text(
-              '${(DateTime.now().difference(widget.mitglied.eintrittsdatum).inDays / 365).floor()} Pfadfinderjahre'),
+          Text(dauerText),
           const SizedBox(height: 5),
         ],
       ),
@@ -97,29 +112,38 @@ class MitgliedDetailState extends State<MitgliedDetail>
     int? maxStufenWechselJahr = widget.mitglied.getMaxStufenWechselJahr();
     bool isMinStufenWechselJahrInPast =
         minStufenWechselJahr != null && minStufenWechselJahr < currentDate.year;
-    Taetigkeit? taetigkeit = widget.mitglied.taetigkeiten.firstWhere(
-        (element) => element.untergliederung == widget.mitglied.stufe,
-        orElse: () => Taetigkeit());
-
-    int years = currentDate.year - taetigkeit.aktivVon.year;
-    int months = currentDate.month - taetigkeit.aktivVon.month;
-
-    if (currentDate.day < taetigkeit.aktivVon.day) {
-      months--;
+    Taetigkeit taetigkeit;
+    try {
+      taetigkeit = widget.mitglied.taetigkeiten.firstWhere(
+          (element) => element.untergliederung == widget.mitglied.stufe);
+    } catch (e) {
+      return Container();
     }
 
-    if (months < 0) {
-      years--;
-      months += 12;
+    int currentStufeYears = currentDate.year - taetigkeit.aktivVon.year;
+    int currentStufeMonths = currentDate.month - taetigkeit.aktivVon.month;
+
+    if (currentDate.day < taetigkeit.aktivVon.day) {
+      currentStufeMonths--;
+    }
+
+    if (currentStufeMonths < 0) {
+      currentStufeYears--;
+      currentStufeMonths += 12;
     }
 
     return Expanded(
         child: SizedBox(
             child: Column(
       children: [
-        Text('In der Stufe seit $years Jahren und $months Monaten'),
         Text(
-            'Stufenwechsel ${isMinStufenWechselJahrInPast ? 'spätestens' : 'frühestens'} ${minStufenWechselJahr ?? maxStufenWechselJahr ?? 'nicht bekannt'}'),
+            'In der Stufe seit ${currentStufeYears > 1 ? '$currentStufeYears Jahren' : 'einem Jahr'} ${currentStufeMonths != 0 ? 'und $currentStufeMonths Monaten' : ''}.'),
+        nextStufe?.name == 'Leiter' && maxStufenWechselJahr != null
+            ? Text('Stufenzeit endet $maxStufenWechselJahr')
+            : (maxStufenWechselJahr != null && minStufenWechselJahr != null
+                ? Text(
+                    'Stufenwechsel ${isMinStufenWechselJahrInPast ? 'spätestens' : 'frühestens'} ${isMinStufenWechselJahrInPast ? maxStufenWechselJahr : minStufenWechselJahr}')
+                : const Text('')),
       ],
     )));
   }
@@ -259,7 +283,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
       const Text("Aktive Tätigkeiten", style: TextStyle(color: Colors.white)),
       for (Taetigkeit item in aktiveTaetigkeiten)
         Text(
-            '${item.taetigkeit} - ${item.untergliederung} (Seit: ${item.aktivVon.month}/${item.aktivVon.year})',
+            '${item.taetigkeit} - ${item.untergliederung} (Seit: ${item.aktivVon.month}/${item.aktivVon.year}${item.aktivBis != null ? '-${item.aktivBis!.month}/${item.aktivBis!.year}' : ''})',
             style: const TextStyle(color: Colors.white)),
       if (alteTaetigkeiten.isNotEmpty) const SizedBox(height: 10),
       if (!showMoreTaetigkeiten && alteTaetigkeiten.isNotEmpty)
