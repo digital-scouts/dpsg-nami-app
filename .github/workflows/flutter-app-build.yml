@@ -77,7 +77,7 @@ jobs:
           channel: 'stable'
       - run: flutter pub get
       - run: |
-          flutter build ios --no-codesign -list
+          flutter build ios --no-codesign
           cd build/ios/iphoneos
           mkdir Payload
           cd Payload
