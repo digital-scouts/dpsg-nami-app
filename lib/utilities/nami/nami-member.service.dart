@@ -204,7 +204,7 @@ Future<void> storeMitgliedToHive(int mitgliedId, Box<Mitglied> memberBox,
     ..telefon2 = rawMember.telefon2
     ..telefon3 = rawMember.telefon3
     ..lastUpdated = rawMember.lastUpdated
-    ..version = rawMember.version
+    ..version = rawTaetigkeiten.isNotEmpty ? rawMember.version : 0
     ..mglTypeId = rawMember.mglTypeId
     ..beitragsartId = rawMember.beitragsartId ?? 0
     ..status = rawMember.status

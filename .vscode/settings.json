@@ -1,6 +1,7 @@
 {
   "github-actions.workflows.pinned.workflows": [
-    ".github/workflows/flutter.yml"
+    ".github/workflows/flutter.yml",
+    ".github/workflows/flutter-app-build.yml"
   ],
   "java.configuration.updateBuildConfiguration": "interactive",
   "cSpell.enableFiletypes": ["!dart"]
