@@ -1,0 +1,6 @@
+framework module local_auth_ios {
+  umbrella header "local_auth_ios-umbrella.h"
+
+  export *
+  module * { export * }
+}

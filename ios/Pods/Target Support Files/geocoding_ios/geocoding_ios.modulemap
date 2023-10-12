@@ -1,0 +1,6 @@
+framework module geocoding_ios {
+  umbrella header "geocoding_ios-umbrella.h"
+
+  export *
+  module * { export * }
+}
