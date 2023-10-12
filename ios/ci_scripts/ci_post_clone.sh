@@ -4,7 +4,7 @@
 brew install cocoapods
 
 # Install Flutter
-brew install --cask flutter
+brew install --cask --no-sandbox flutter
 
 # Run Flutter doctor
 flutter doctor
