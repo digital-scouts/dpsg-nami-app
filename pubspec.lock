@@ -1157,22 +1157,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.2.1"
-  widgetbook_annotation:
-    dependency: transitive
-    description:
-      name: widgetbook_annotation
-      sha256: f6376e539ed2aab245ff876790e2fd8fa3b63faedc67b5bd61bfd1eb23bb998e
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.0.0"
-  widgetbook_generator:
-    dependency: "direct dev"
-    description:
-      name: widgetbook_generator
-      sha256: "38694d74f3f683020e37bba7badd4c1f35d4d03d557ff03d0936806216c63a31"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.0.0-rc.2"
   win32:
     dependency: transitive
     description:

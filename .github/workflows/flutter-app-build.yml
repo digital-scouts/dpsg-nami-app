@@ -124,11 +124,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Download iOS build artifacts
-        uses: actions/download-artifact@v2
-        with:
-          name: ios-artifacts
-          path: ios-artifacts
+      # - name: Download iOS build artifacts
+      #   uses: actions/download-artifact@v2
+      #   with:
+      #     name: ios-artifacts
+      #     path: ios-artifacts
       - name: Download Android build artifacts
         uses: actions/download-artifact@v2
         with:
