@@ -81,7 +81,7 @@ jobs:
           cd build/ios/iphoneos
           mkdir Payload
           cd Payload
-          ln -s ../Runner.app
+          ln -s ../NaMi.app
           cd ..
           zip -r app.ipa Payload
       - name: Upload iOS build artifacts

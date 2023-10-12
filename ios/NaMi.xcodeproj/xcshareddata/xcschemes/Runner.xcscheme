@@ -17,7 +17,7 @@
                BlueprintIdentifier = "97C146ED1CF9000F007C117D"
                BuildableName = "NaMi.app"
                BlueprintName = "NaMi"
-               ReferencedContainer = "container:Runner.xcodeproj">
+               ReferencedContainer = "container:NaMi.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -33,7 +33,7 @@
             BlueprintIdentifier = "97C146ED1CF9000F007C117D"
             BuildableName = "NaMi.app"
             BlueprintName = "NaMi"
-            ReferencedContainer = "container:Runner.xcodeproj">
+            ReferencedContainer = "container:NaMi.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -56,7 +56,7 @@
             BlueprintIdentifier = "97C146ED1CF9000F007C117D"
             BuildableName = "NaMi.app"
             BlueprintName = "NaMi"
-            ReferencedContainer = "container:Runner.xcodeproj">
+            ReferencedContainer = "container:NaMi.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -73,7 +73,7 @@
             BlueprintIdentifier = "97C146ED1CF9000F007C117D"
             BuildableName = "NaMi.app"
             BlueprintName = "NaMi"
-            ReferencedContainer = "container:Runner.xcodeproj">
+            ReferencedContainer = "container:NaMi.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
