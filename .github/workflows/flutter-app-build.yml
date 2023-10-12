@@ -76,7 +76,7 @@ jobs:
         with:
           channel: 'stable'
       - run: flutter pub get
-      - run: echo xcodebuild -list
+      - run: xcodebuild -list
       - run: |
           flutter build ios --no-codesign
           cd build/ios/iphoneos
