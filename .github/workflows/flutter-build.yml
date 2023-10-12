@@ -78,7 +78,7 @@ jobs:
 
       - run: flutter pub get
       - run: |
-          flutter build ios --no-codesign
+          flutter build ios --no-codesign -list
           cd build/ios/iphoneos
           mkdir Payload
           cd Payload
