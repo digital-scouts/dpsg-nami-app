@@ -138,8 +138,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           artifacts: |
-            ios-artifacts/*.app
-            android-artifacts/bundle/*
-            android-artifacts/apk/*
+            android-artifacts/bundle/release/*
+            android-artifacts/apk/debug/*
           tag: ${{needs.version.outputs.releaseversion}}
           commit: ${{ github.sha }}
