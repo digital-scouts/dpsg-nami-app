@@ -134,10 +134,12 @@ jobs:
         with:
           name: android-artifacts
           path: android-artifacts
-      - run: echo ${{needs.version.outputs.releaseversion}}
       - name: Create a Release in GitHub
         uses: ncipollo/release-action@v1
         with:
-          artifacts: 'ios-artifacts/*, android-artifacts/*'
+          artifacts: |
+            ios-artifacts/*.app
+            android-artifacts/bundle/*
+            android-artifacts/apk/*
           tag: ${{needs.version.outputs.releaseversion}}
           commit: ${{ github.sha }}
