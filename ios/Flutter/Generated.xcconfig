@@ -2,13 +2,14 @@
 FLUTTER_ROOT=/Users/lange/Documents/flutter
 FLUTTER_APPLICATION_PATH=/Users/lange/Desktop/dev/dpsg-nami-app
 COCOAPODS_PARALLEL_CODE_SIGN=true
-FLUTTER_TARGET=lib/main.dart
+FLUTTER_TARGET=/Users/lange/Desktop/dev/dpsg-nami-app/lib/main.dart
 FLUTTER_BUILD_DIR=build
 FLUTTER_BUILD_NAME=0.0.3
 FLUTTER_BUILD_NUMBER=0.0.3
 EXCLUDED_ARCHS[sdk=iphonesimulator*]=i386
 EXCLUDED_ARCHS[sdk=iphoneos*]=armv7
+DART_DEFINES=RkxVVFRFUl9XRUJfQVVUT19ERVRFQ1Q9dHJ1ZQ==,RkxVVFRFUl9XRUJfQ0FOVkFTS0lUX1VSTD1odHRwczovL3d3dy5nc3RhdGljLmNvbS9mbHV0dGVyLWNhbnZhc2tpdC9hNzk0Y2YyNjgxYzZjOWZlN2IyNjBlMGU4NGRlOTYyOThkYzljMThiLw==
 DART_OBFUSCATION=false
-TRACK_WIDGET_CREATION=false
-TREE_SHAKE_ICONS=true
+TRACK_WIDGET_CREATION=true
+TREE_SHAKE_ICONS=false
 PACKAGE_CONFIG=/Users/lange/Desktop/dev/dpsg-nami-app/.dart_tool/package_config.json
