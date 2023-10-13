@@ -8,6 +8,7 @@ import 'package:nami/utilities/hive/taetigkeit.dart';
 import 'package:maps_launcher/maps_launcher.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+import 'package:intl/intl.dart';
 
 class MitgliedDetail extends StatefulWidget {
   final Mitglied mitglied;
@@ -51,7 +52,8 @@ class MitgliedDetailState extends State<MitgliedDetail>
     // filter taetigkeiten to only include Stufen Taetigkeiten
     // count years per stufe by subtracting aktivVon from aktivBis or now
     Map<String, int> tageProStufe = {};
-    List<String> stufen = Stufe.stufen.map((stufe) => stufe.name).toList();
+    List<String> stufen =
+        Stufe.stufen.map((stufe) => stufe.name.value).toList();
     for (var taetigkeit in widget.mitglied.taetigkeiten) {
       if (taetigkeit.untergliederung != null &&
           stufen.contains(taetigkeit.untergliederung) &&
@@ -260,17 +262,9 @@ class MitgliedDetailState extends State<MitgliedDetail>
   }
 
   Widget _buildTaetigkeiten() {
-    List<Taetigkeit> aktiveTaetigkeiten = [];
-    List<Taetigkeit> alteTaetigkeiten = [];
-    for (Taetigkeit taetigkeit in widget.mitglied.taetigkeiten) {
-      taetigkeit.taetigkeit =
-          taetigkeit.taetigkeit.replaceFirst('€ ', '').split('(')[0];
-      if (taetigkeit.isActive() || taetigkeit.isFutureTaetigkeit()) {
-        aktiveTaetigkeiten.add(taetigkeit);
-      } else {
-        alteTaetigkeiten.add(taetigkeit);
-      }
-    }
+    List<Taetigkeit> aktiveTaetigkeiten =
+        widget.mitglied.getActiveTaetigkeiten();
+    List<Taetigkeit> alteTaetigkeiten = widget.mitglied.getAlteTaetigkeiten();
     if (aktiveTaetigkeiten.isEmpty && alteTaetigkeiten.isNotEmpty) {
       showMoreTaetigkeiten = true;
     }
@@ -308,8 +302,81 @@ class MitgliedDetailState extends State<MitgliedDetail>
     ]);
   }
 
+  Widget _buildTaetigkeitImage(Taetigkeit taetigkeit) {
+    String imagerPath = 'assets/images/lilie.png';
+    if (taetigkeit.taetigkeit.trim() == 'Mitglied') {
+      imagerPath =
+          'assets/images/${Stufe.getStufeByString(taetigkeit.untergliederung!).imageName}';
+    } else if (taetigkeit.taetigkeit.contains('LeiterIn')) {
+      return Image.asset(
+        imagerPath,
+        width: 80.0,
+        height: 80.0,
+        fit: BoxFit.cover,
+        color: Stufe.getStufeByString(taetigkeit.untergliederung!).farbe,
+        colorBlendMode: BlendMode.srcIn,
+      );
+    }
+
+    return Image.asset(
+      imagerPath,
+      width: 80.0,
+      height: 80.0,
+      fit: BoxFit.cover,
+    );
+  }
+
+  Widget _buildTaetigkeitenItem(Taetigkeit taetigkeit) {
+    return SizedBox(
+      height: 100,
+      width: 400,
+      child: Card(
+        color: Theme.of(context).colorScheme.surface,
+        elevation: 2.0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+        child: IntrinsicHeight(
+          child: Padding(
+            padding: const EdgeInsets.all(5.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildTaetigkeitImage(taetigkeit),
+                const SizedBox(width: 10.0),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${taetigkeit.taetigkeit} - ${taetigkeit.untergliederung}',
+                        style: const TextStyle(
+                          fontSize: 18.0,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 5.0),
+                      Text(
+                        '${DateFormat('MMMM').format(taetigkeit.aktivVon)} ${taetigkeit.aktivVon.year}${taetigkeit.aktivBis != null ? ' - ${DateFormat('MMMM').format(taetigkeit.aktivBis!)} ${taetigkeit.aktivBis!.year}' : ''}',
+                        style: TextStyle(fontSize: 16.0),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    List<Taetigkeit> aktiveTaetigkeiten =
+        widget.mitglied.getActiveTaetigkeiten();
+    aktiveTaetigkeiten.sort((a, b) => b.aktivVon.compareTo(a.aktivVon));
+    List<Taetigkeit> vergangeneTaetigkeiten =
+        widget.mitglied.getAlteTaetigkeiten();
+    vergangeneTaetigkeiten.sort((a, b) => b.aktivVon.compareTo(a.aktivVon));
     return Scaffold(
         appBar: AppBar(
           shadowColor: Colors.transparent,
@@ -338,10 +405,32 @@ class MitgliedDetailState extends State<MitgliedDetail>
                     ],
                   ),
                   ListView(
-                    children: <Widget>[
-                      _buildTaetigkeiten(),
+                    children: [
+                      SizedBox(
+                          height: aktiveTaetigkeiten.length * 110,
+                          child: ListView.builder(
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: aktiveTaetigkeiten.length,
+                              itemBuilder: (context, index) =>
+                                  _buildTaetigkeitenItem(
+                                      aktiveTaetigkeiten[index]))),
+                      const SizedBox(
+                        height: 20,
+                      ),
+                      const Text(
+                        'Abgeschlossene Tätigkeiten',
+                        style: TextStyle(fontSize: 18.0),
+                      ),
+                      SizedBox(
+                          height: vergangeneTaetigkeiten.length * 110,
+                          child: ListView.builder(
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: vergangeneTaetigkeiten.length,
+                              itemBuilder: (context, index) =>
+                                  _buildTaetigkeitenItem(
+                                      vergangeneTaetigkeiten[index]))),
                     ],
-                  ),
+                  )
                 ],
               ),
             ),

@@ -36,6 +36,7 @@ dependencies:
   fl_chart: ^0.63.0
   latlong2: ^0.9.0
   connectivity: ^3.0.0
+  intl: ^0.18.0
 
 dev_dependencies:
   flutter_test:

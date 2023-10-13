@@ -18,7 +18,7 @@ void filterByString(List<Mitglied> mitglieder, String filterString) {
 ///Filter bei Stufe (woe, jufi, pfadi, rover, leiter)
 void filterByStufe(List<Mitglied> mitglieder, List<Stufe> stufen) {
   if (stufen.isEmpty) return;
-  List<String> s = stufen.map((e) => e.name).toList();
+  List<String> s = stufen.map((e) => e.name.value).toList();
   mitglieder.removeWhere((m) => !s.contains(m.stufe));
 }
 
