@@ -138,7 +138,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
       children: [
         Text(
             'In der Stufe seit ${currentStufeYears > 1 ? '$currentStufeYears Jahren' : 'einem Jahr'}${currentStufeMonths != 0 ? ' und $currentStufeMonths Monaten' : ''}.'),
-        nextStufe?.name == 'Leiter' && maxStufenWechselJahr != null
+        nextStufe?.name.value == 'Leiter' && maxStufenWechselJahr != null
             ? Text('Stufenzeit endet $maxStufenWechselJahr')
             : (maxStufenWechselJahr != null && minStufenWechselJahr != null
                 ? Text(
@@ -261,47 +261,6 @@ class MitgliedDetailState extends State<MitgliedDetail>
     ]);
   }
 
-  Widget _buildTaetigkeiten() {
-    List<Taetigkeit> aktiveTaetigkeiten =
-        widget.mitglied.getActiveTaetigkeiten();
-    List<Taetigkeit> alteTaetigkeiten = widget.mitglied.getAlteTaetigkeiten();
-    if (aktiveTaetigkeiten.isEmpty && alteTaetigkeiten.isNotEmpty) {
-      showMoreTaetigkeiten = true;
-    }
-    if (aktiveTaetigkeiten.isEmpty && alteTaetigkeiten.isEmpty) {
-      return Container();
-    }
-    return _buildBox(<Widget>[
-      const Text("Aktive Tätigkeiten", style: TextStyle(color: Colors.white)),
-      for (Taetigkeit item in aktiveTaetigkeiten)
-        Text(
-            '${item.taetigkeit} - ${item.untergliederung} (Seit: ${item.aktivVon.month}/${item.aktivVon.year}${item.aktivBis != null ? '-${item.aktivBis!.month}/${item.aktivBis!.year}' : ''})',
-            style: const TextStyle(color: Colors.white)),
-      if (alteTaetigkeiten.isNotEmpty) const SizedBox(height: 10),
-      if (!showMoreTaetigkeiten && alteTaetigkeiten.isNotEmpty)
-        GestureDetector(
-          onTap: () {
-            setState(() => showMoreTaetigkeiten = true);
-          },
-          child: const Text("Alte Tätigkeiten anzeigen"),
-        ),
-      if (showMoreTaetigkeiten && alteTaetigkeiten.isNotEmpty)
-        const Text("Alte Tätigkeiten", style: TextStyle(color: Colors.white)),
-      if (showMoreTaetigkeiten && alteTaetigkeiten.isNotEmpty)
-        for (Taetigkeit item in alteTaetigkeiten)
-          Text(
-              '${item.taetigkeit} - ${item.untergliederung} (${item.aktivVon.month}/${item.aktivVon.year}-${item.aktivBis!.month}/${item.aktivBis!.year})',
-              style: const TextStyle(color: Colors.white)),
-      if (showMoreTaetigkeiten && aktiveTaetigkeiten.isNotEmpty)
-        GestureDetector(
-          onTap: () {
-            setState(() => showMoreTaetigkeiten = false);
-          },
-          child: const Text("Weniger anzeigen"),
-        ),
-    ]);
-  }
-
   Widget _buildTaetigkeitImage(Taetigkeit taetigkeit) {
     String imagerPath = 'assets/images/lilie.png';
     if (taetigkeit.taetigkeit.trim() == 'Mitglied') {
@@ -356,7 +315,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
                       const SizedBox(height: 5.0),
                       Text(
                         '${DateFormat('MMMM').format(taetigkeit.aktivVon)} ${taetigkeit.aktivVon.year}${taetigkeit.aktivBis != null ? ' - ${DateFormat('MMMM').format(taetigkeit.aktivBis!)} ${taetigkeit.aktivBis!.year}' : ''}',
-                        style: TextStyle(fontSize: 16.0),
+                        style: const TextStyle(fontSize: 16.0),
                       ),
                     ],
                   ),

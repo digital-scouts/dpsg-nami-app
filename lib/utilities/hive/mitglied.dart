@@ -148,7 +148,7 @@ class Mitglied {
           alterNextStufenwechsel +
           currentStufe.alterMax! +
           1;
-    } else if (currentStufe.name == "Rover" && !isMitgliedLeiter()) {
+    } else if (currentStufe.name.value == "Rover" && !isMitgliedLeiter()) {
       return DateTime.now().year -
           alterNextStufenwechsel +
           currentStufe.alterMax! +
