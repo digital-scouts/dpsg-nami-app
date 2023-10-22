@@ -335,8 +335,8 @@ class MitgliedDetailState extends State<MitgliedDetail>
     );
   }
 
-  handleStufenwechsel(int memberId, Taetigkeit currentTaetigkeit,
-      Stufe stufe, DateTime aktivVon) async {
+  handleStufenwechsel(int memberId, Taetigkeit currentTaetigkeit, Stufe stufe,
+      DateTime aktivVon) async {
     if (await showConfirmationDialog(
         context,
         aktivVon,
