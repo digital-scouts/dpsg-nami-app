@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
@@ -25,6 +27,7 @@ class MitgliedDetail extends StatefulWidget {
 class MitgliedDetailState extends State<MitgliedDetail>
     with SingleTickerProviderStateMixin {
   bool showMoreTaetigkeiten = false;
+  bool loadingStufenwechsel = false;
   late TabController _tabController;
 
   @override
@@ -332,29 +335,45 @@ class MitgliedDetailState extends State<MitgliedDetail>
     );
   }
 
+  handleStufenwechsel(int memberId, Taetigkeit currentTaetigkeit,
+      Stufe stufe, DateTime aktivVon) async {
+    if (await showConfirmationDialog(
+        context,
+        aktivVon,
+        stufe,
+        '${widget.mitglied.vorname} ${widget.mitglied.nachname}',
+        currentTaetigkeit)) {
+      setState(() => loadingStufenwechsel = true);
+      try {
+        await stufenwechsel(
+            widget.mitglied.id, currentTaetigkeit, stufe, aktivVon);
+      } catch (e) {
+        debugPrint('failed to stufenwechsel');
+      }
+      widget.mitglied = Hive.box<Mitglied>('members')
+          .values
+          .firstWhere((element) => element.id == widget.mitglied.id);
+      setState(() => loadingStufenwechsel = false);
+    }
+  }
+
   Widget _buildStufenwechselItem(
       Taetigkeit fakeStufenwechselTaetigkeit, Taetigkeit currentTaetigkeit) {
     Stufe stufe =
         Stufe.getStufeByString(fakeStufenwechselTaetigkeit.untergliederung!);
+
     return GestureDetector(
-      onTap: () => showConfirmationDialog(
-          context,
-          fakeStufenwechselTaetigkeit.aktivVon,
-          stufe,
-          '${widget.mitglied.vorname} ${widget.mitglied.nachname}',
-          currentTaetigkeit,
-          () async => {
-                await stufenwechsel(widget.mitglied.id, currentTaetigkeit,
-                    stufe, fakeStufenwechselTaetigkeit.aktivVon),
-                setState(() => widget.mitglied = Hive.box<Mitglied>('members')
-                    .values
-                    .firstWhere((element) => element.id == widget.mitglied.id))
-              }),
+      onTap: loadingStufenwechsel
+          ? null
+          : () => handleStufenwechsel(widget.mitglied.id, currentTaetigkeit,
+              stufe, fakeStufenwechselTaetigkeit.aktivVon),
       child: SizedBox(
         height: 100,
         width: 400,
         child: Card(
-          color: Theme.of(context).colorScheme.background,
+          color: loadingStufenwechsel
+              ? Theme.of(context).colorScheme.surface
+              : Theme.of(context).colorScheme.background,
           elevation: 2.0,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
@@ -364,7 +383,15 @@ class MitgliedDetailState extends State<MitgliedDetail>
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildTaetigkeitImage(fakeStufenwechselTaetigkeit),
+                  loadingStufenwechsel
+                      ? const Padding(
+                          padding: EdgeInsets.all(10),
+                          child: SizedBox(
+                            width: 60.0,
+                            height: 60.0,
+                            child: CircularProgressIndicator(),
+                          ))
+                      : _buildTaetigkeitImage(fakeStufenwechselTaetigkeit),
                   const SizedBox(width: 10.0),
                   Expanded(
                     child: Column(
@@ -396,14 +423,15 @@ class MitgliedDetailState extends State<MitgliedDetail>
     );
   }
 
-  void showConfirmationDialog(
+  Future<bool> showConfirmationDialog(
       BuildContext context,
       DateTime stufenwechselDate,
       Stufe stufeAfterWechsel,
       String mitgliedName,
-      Taetigkeit currentTaetigkeit,
-      Function onSuccess) {
-    showDialog(
+      Taetigkeit currentTaetigkeit) async {
+    Completer<bool> completer = Completer<bool>();
+
+    await showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
@@ -414,20 +442,23 @@ class MitgliedDetailState extends State<MitgliedDetail>
             TextButton(
               child: const Text('Abbrechen'),
               onPressed: () {
-                Navigator.of(context).pop(false);
+                completer.complete(false);
+                Navigator.of(context).pop();
               },
             ),
             TextButton(
               child: const Text('Änderung vornehmen'),
               onPressed: () {
-                onSuccess();
-                Navigator.of(context).pop(true);
+                completer.complete(true);
+                Navigator.of(context).pop();
               },
             ),
           ],
         );
       },
     );
+
+    return completer.future;
   }
 
   Taetigkeit? getCurrenttaetigkeit(List<Taetigkeit> aktiveTaetigkeiten) {
