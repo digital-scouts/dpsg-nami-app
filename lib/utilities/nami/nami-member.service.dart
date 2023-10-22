@@ -96,12 +96,29 @@ Future<List<NamiMemberTaetigkeitenModel>> loadMemberTaetigkeiten(
   if (response.statusCode == 200 && source['success']) {
     List<NamiMemberTaetigkeitenModel> taetigkeiten = [];
     for (Map<String, dynamic> item in source['data']) {
-      taetigkeiten.add(NamiMemberTaetigkeitenModel.fromJson(item));
+      taetigkeiten.add(NamiMemberTaetigkeitenModel.fromJson(item, true));
     }
     return taetigkeiten;
   } else {
     debugPrint('Failed to load Tätigkeiten');
     return [];
+  }
+}
+
+Future<NamiMemberTaetigkeitenModel?> loadMemberTaetigkeit(int memberId,
+    int taetigkeitId, String url, String path, String cookie) async {
+  String fullUrl =
+      '$url$path/zugeordnete-taetigkeiten/filtered-for-navigation/gruppierung-mitglied/mitglied/$memberId/$taetigkeitId';
+  debugPrint('Request: Lade Taetigkeit $taetigkeitId von Mitglied $memberId');
+  final response =
+      await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
+  var source = json.decode(const Utf8Decoder().convert(response.bodyBytes));
+
+  if (response.statusCode == 200 && source['success']) {
+    return NamiMemberTaetigkeitenModel.fromJson(source['data'], false);
+  } else {
+    debugPrint('Failed to load Tätigkeit');
+    return null;
   }
 }
 
@@ -129,7 +146,7 @@ showSyncStatus(String text, BuildContext context, {bool lastUpdate = false}) {
 }
 
 Future<void> syncMember() async {
-  int gruppierung = getGruppierung()!;
+  int gruppierung = getGruppierungId()!;
   String cookie = getNamiApiCookie();
   String url = getNamiLUrl();
   String path = getNamiPath();

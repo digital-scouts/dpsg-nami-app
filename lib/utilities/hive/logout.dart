@@ -6,7 +6,7 @@ import 'mitglied.dart';
 void logout() {
   //loaded Data
   Hive.box<Mitglied>('members').clear();
-  deleteGruppierung();
+  deleteGruppierungId();
 
   // login data
   deleteNamiApiCookie();

@@ -7,7 +7,8 @@ enum SettingValue {
   namiPassword,
   namiUrl,
   namiPath,
-  gruppierung,
+  gruppierungId,
+  gruppierungName,
   lastNamiSync,
   lastLoginCheck,
   stufenwechselDatum,
@@ -39,8 +40,12 @@ void setNamiPath(String path) async {
   box.put(SettingValue.namiPath.toString(), path);
 }
 
-void setGruppierung(int gruppierung) {
-  box.put(SettingValue.gruppierung.toString(), gruppierung);
+void setGruppierungId(int gruppierung) {
+  box.put(SettingValue.gruppierungId.toString(), gruppierung);
+}
+
+void setGruppierungName(String gruppierungName) {
+  box.put(SettingValue.gruppierungName.toString(), gruppierungName);
 }
 
 void setLastNamiSync(DateTime lastNamiSync) {
@@ -61,25 +66,36 @@ DateTime getLastLoginCheck() {
 }
 
 DateTime getNextStufenwechselDatum() {
+  DateTime now = DateTime.now();
   DateTime safedStufenwechselDatum =
       box.get(SettingValue.stufenwechselDatum.toString()) ??
           DateTime.utc(1989, 10, 1);
+  safedStufenwechselDatum = DateTime.utc(
+      now.year, safedStufenwechselDatum.month, safedStufenwechselDatum.day);
+
   // set year of safedStufenwechselDatum to current year or next year if it is in the past
   DateTime stufenwechselDatum;
 
-  if (safedStufenwechselDatum.isBefore(DateTime.now())) {
-    stufenwechselDatum = DateTime(DateTime.now().year + 1,
-        safedStufenwechselDatum.month, safedStufenwechselDatum.day);
+  DateTime stufenwechselPlus14Days =
+      safedStufenwechselDatum.add(const Duration(days: 14));
+
+  if (stufenwechselPlus14Days.isBefore(now)) {
+    stufenwechselDatum = DateTime(now.year + 1, safedStufenwechselDatum.month,
+        safedStufenwechselDatum.day);
   } else {
-    stufenwechselDatum = DateTime(DateTime.now().year,
-        safedStufenwechselDatum.month, safedStufenwechselDatum.day);
+    stufenwechselDatum = DateTime(
+        now.year, safedStufenwechselDatum.month, safedStufenwechselDatum.day);
   }
 
   return stufenwechselDatum;
 }
 
-int? getGruppierung() {
-  return box.get(SettingValue.gruppierung.toString());
+int? getGruppierungId() {
+  return box.get(SettingValue.gruppierungId.toString());
+}
+
+String? getGruppierungName() {
+  return box.get(SettingValue.gruppierungName.toString());
 }
 
 int? getNamiLoginId() {
@@ -92,7 +108,7 @@ String? getNamiPassword() {
 
 String getNamiLUrl() {
   return box.get(SettingValue.namiUrl.toString()) ??
-      'http://vps-zap443284-1.zap-srv.com:3000';
+      'https://nami.dpsg.de';
 }
 
 String getNamiPath() {
@@ -125,8 +141,12 @@ void deleteNamiPassword() {
   box.delete(SettingValue.namiPassword.toString());
 }
 
-void deleteGruppierung() {
-  box.delete(SettingValue.gruppierung.toString());
+void deleteGruppierungId() {
+  box.delete(SettingValue.gruppierungId.toString());
+}
+
+void deleteGruppierungName() {
+  box.delete(SettingValue.gruppierungName.toString());
 }
 
 void deleteStufenwechselDatum() {

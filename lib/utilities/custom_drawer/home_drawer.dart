@@ -63,7 +63,7 @@ class HomeDrawerState extends State<HomeDrawer> {
 
   @override
   Widget build(BuildContext context) {
-    int? gruppierung = getGruppierung();
+    int? gruppierung = getGruppierungId();
     Box<Mitglied> memberBox = Hive.box<Mitglied>('members');
     Mitglied? user;
     try {

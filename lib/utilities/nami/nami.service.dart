@@ -23,45 +23,32 @@ Future<NamiStatsModel> loadNamiStats() async {
   }
 }
 
-/// returns the id of the current gruppierung | return 0 when there are multiple or 0 gruppierungen
-Future<int> loadGruppierung({node = 'root'}) async {
+Future<void> loadGruppierung() async {
   String url = getNamiLUrl();
   String path = getNamiPath();
   String cookie = getNamiApiCookie();
-  String fullUrl =
-      '$url$path/gruppierungen/filtered-for-navigation/gruppierung/node/$node';
+  String fullUrl = '$url$path/gf/gruppierung';
   debugPrint('Request: Lade Gruppierung');
   final response =
       await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
 
-  if (response.statusCode != 200) {
-    return 0;
+  if (response.statusCode == 200 &&
+      jsonDecode(response.body)['data'].length == 1) {
+    int gruppierungId = jsonDecode(response.body)['data'][0]['id'];
+    String gruppierungName = jsonDecode(response.body)['data'][0]['descriptor'];
+    setGruppierungId(gruppierungId);
+    setGruppierungName(gruppierungName);
+    debugPrint('Gruppierung: $gruppierungName ($gruppierungId)');
+    return;
   }
-
-  if (jsonDecode(response.body)['data'].length == 1) {
-    int currentGruppierungId = jsonDecode(response.body)['data'][0]['id'];
-    if (currentGruppierungId > 0) {
-      int nextGruppierungId = await loadGruppierung(node: currentGruppierungId);
-      return nextGruppierungId == 0 ? currentGruppierungId : nextGruppierungId;
-    }
-  }
-
-  return 0;
+  debugPrint('Failed to load gruppierung. Multiple or no gruppierungen found');
 }
 
 Future<void> syncNamiData() async {
   setLastNamiSync(DateTime.now());
-  await syncGruppierung();
+  await loadGruppierung();
   await syncMember();
 
   //syncStats
   //syncProfile
-}
-
-syncGruppierung() async {
-  int gruppierung = getGruppierung() ?? await loadGruppierung();
-  if (gruppierung == 0) {
-    throw Exception("Keine eindeutige Gruppierung gefunden");
-  }
-  setGruppierung(gruppierung);
 }
