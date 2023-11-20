@@ -41,7 +41,7 @@ class _SettingsState extends State<Settings> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text('Sync: '),
+        const Text('Sync: '),
         IconButton(
           icon: const Icon(Icons.sync),
           onPressed: () => {_syncData()},
@@ -57,7 +57,7 @@ class _SettingsState extends State<Settings> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text('Force Sync: '),
+        const Text('Force Sync: '),
         IconButton(
           icon: const Icon(Icons.sync),
           onPressed: () => {_syncData(forceSync: true)},
