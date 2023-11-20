@@ -473,11 +473,13 @@ class MitgliedDetailState extends State<MitgliedDetail>
     int? minStufenWechselJahr = widget.mitglied.getMinStufenWechselJahr();
     bool isMinStufenWechselJahrInPast = minStufenWechselJahr != null &&
         minStufenWechselJahr <= currentDate.year;
-    Stufe nextStufe = widget.mitglied.nextStufe!;
+    Stufe? nextStufe = widget.mitglied.nextStufe;
 
     // check if stufenwechsel is possible
 
-    if (!isMinStufenWechselJahrInPast || !nextStufe.isStufeYouCanChangeTo) {
+    if (!isMinStufenWechselJahrInPast ||
+        nextStufe == null ||
+        !nextStufe.isStufeYouCanChangeTo) {
       return null;
     }
 
