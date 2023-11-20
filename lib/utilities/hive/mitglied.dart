@@ -130,7 +130,7 @@ class Mitglied {
     if (nextStufe != null &&
         nextStufe!.isStufeYouCanChangeTo &&
         !isMitgliedLeiter()) {
-      return DateTime.now().year -
+      return getNextStufenwechselDatum().year -
           alterNextStufenwechsel +
           nextStufe!.alterMin!;
     } else {

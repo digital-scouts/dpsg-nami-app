@@ -150,7 +150,7 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
                         ],
                         rows: aktuelleTabellenZeilen,
                       )
-                    : const Text('Diese Jahr kein Stufenwechsel'),
+                    : const Text('Kein Wechsel zum angegebenen Datum'),
               ),
             ),
           ),
