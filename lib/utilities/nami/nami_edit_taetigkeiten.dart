@@ -19,7 +19,7 @@ Future<void> stufenwechsel(int memberId, Taetigkeit currentTaetigkeit,
   debugPrint('Stufenwechsel für ${currentTaetigkeit.id}');
   await createTaetigkeitForStufe(memberId, stufenwechselDatum, nextStufe);
   await completeTaetigkeit(memberId, currentTaetigkeit, stufenwechselDatum);
-  await syncMember();
+  await syncMember(false);
 }
 
 Future<void> createTaetigkeit(int memberId, DateTime startDate,

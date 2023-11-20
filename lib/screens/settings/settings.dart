@@ -33,14 +33,15 @@ class _SettingsState extends State<Settings> {
   final TextEditingController _stufenwechselTextController =
       TextEditingController();
 
-  Future<void> _syncData() async {
-    await syncNamiData();
+  Future<void> _syncData({bool forceSync = false}) async {
+    await syncNamiData(forceSync: forceSync);
   }
 
   Widget _buildSync() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
+        Text('Sync: '),
         IconButton(
           icon: const Icon(Icons.sync),
           onPressed: () => {_syncData()},
@@ -48,6 +49,19 @@ class _SettingsState extends State<Settings> {
         Text(getLastNamiSync() != null
             ? "Vor ${DateTime.now().difference(getLastNamiSync()!).inDays.toString()} Tagen"
             : "Noch nie Syncronisiert"),
+      ],
+    );
+  }
+
+  Widget _buildForceBSync() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text('Force Sync: '),
+        IconButton(
+          icon: const Icon(Icons.sync),
+          onPressed: () => {_syncData(forceSync: true)},
+        ),
       ],
     );
   }
@@ -116,6 +130,7 @@ class _SettingsState extends State<Settings> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           _buildSync(),
+          _buildForceBSync(),
           Divider(
             height: 1,
             color: Theme.of(context).dividerColor,

@@ -44,10 +44,10 @@ Future<void> loadGruppierung() async {
   debugPrint('Failed to load gruppierung. Multiple or no gruppierungen found');
 }
 
-Future<void> syncNamiData() async {
+Future<void> syncNamiData({bool forceSync = false}) async {
   setLastNamiSync(DateTime.now());
   await loadGruppierung();
-  await syncMember();
+  await syncMember(forceSync);
 
   //syncStats
   //syncProfile

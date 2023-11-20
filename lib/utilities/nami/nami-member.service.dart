@@ -145,15 +145,20 @@ showSyncStatus(String text, BuildContext context, {bool lastUpdate = false}) {
   }
 }
 
-Future<void> syncMember() async {
+Future<void> syncMember(bool forceUpdate) async {
   int gruppierung = getGruppierungId()!;
   String cookie = getNamiApiCookie();
   String url = getNamiLUrl();
   String path = getNamiPath();
 
   Box<Mitglied> memberBox = Hive.box('members');
-  List<int> mitgliedIds =
-      await loadMemberIdsToUpdate(url, path, gruppierung, cookie);
+  List<int> mitgliedIds;
+
+  if (forceUpdate) {
+    mitgliedIds = memberBox.keys.cast<int>().toList();
+  } else {
+    mitgliedIds = await loadMemberIdsToUpdate(url, path, gruppierung, cookie);
+  }
   debugPrint('Starte Syncronisation der Mitgliedsdetails');
 
   var futures = <Future>[];
