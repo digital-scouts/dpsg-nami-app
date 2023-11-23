@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:nami/utilities/external_apis/iban.dart';
+import 'package:nami/utilities/external_apis/postcode.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_form_builder/flutter_form_builder.dart';
+import 'package:form_builder_validators/form_builder_validators.dart';
 
 // ignore: must_be_immutable
 class MitgliedBearbeiten extends StatefulWidget {
@@ -14,6 +18,9 @@ class MitgliedBearbeiten extends StatefulWidget {
 
 class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
   bool _unsavedChanges = true;
+  List<PlzResult> _plzResult = [];
+  IbanResult? _ibanResult;
+  final _formKey = GlobalKey<FormBuilderState>();
 
   Future<bool> _onWillPop() async {
     if (!_unsavedChanges) {
@@ -47,8 +54,6 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
 
   @override
   Widget build(BuildContext context) {
-    final _formKey = GlobalKey<FormState>();
-
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
@@ -70,78 +75,440 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
             ),
           ],
         ),
-        body: Form(
+        body: FormBuilder(
           key: _formKey,
           child: ListView(
             padding: EdgeInsets.all(16.0),
             children: [
               // Mitglied
               buildSectionTitle('Mitglied'),
-              buildTwoColumnRow(
-                buildFormTextField('Vorname'),
-                buildFormTextField('Nachname'),
+              twoColumnRow(
+                FormBuilderTextField(
+                  name: 'vorname',
+                  validator: FormBuilderValidators.required(),
+                  decoration: const InputDecoration(
+                    labelText: 'Vorname',
+                    alignLabelWithHint: true,
+                    hintText: ' ',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                FormBuilderTextField(
+                  name: 'nachname',
+                  validator: FormBuilderValidators.required(),
+                  decoration: const InputDecoration(
+                    labelText: 'Nachname',
+                    alignLabelWithHint: true,
+                    hintText: ' ',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
               ),
-              buildTwoColumnRow(
-                buildDropdownField(
-                    ['männlich', 'weiblich', 'divers', 'Keine Angabe'],
-                    'Geschlecht*'),
-                buildDropdownField(['deutsch'], 'Staatsangehörigkeit'),
+              twoColumnRow(
+                FormBuilderDropdown(
+                  name: 'geschlecht',
+                  validator: FormBuilderValidators.required(),
+                  decoration: const InputDecoration(
+                    labelText: 'Geschlecht',
+                    alignLabelWithHint: true,
+                    border: OutlineInputBorder(),
+                  ),
+                  items: ['männlich', 'weiblich', 'divers', 'Keine Angabe']
+                      .map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    setState(() {});
+                  },
+                ),
+                FormBuilderDropdown(
+                  name: 'staatsangehoerigkeit',
+                  validator: FormBuilderValidators.required(),
+                  decoration: const InputDecoration(
+                    labelText: 'Staatsangehörigkeit',
+                    alignLabelWithHint: true,
+                    border: OutlineInputBorder(),
+                  ),
+                  items: ['deutsch'].map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    setState(() {});
+                  },
+                ),
               ),
-              buildTwoColumnRow(
-                buildFormTextField('Konfession*'),
-                buildDateField('Geburtsdatum'),
+              twoColumnRow(
+                FormBuilderTextField(
+                  name: 'konfession',
+                  decoration: const InputDecoration(
+                    labelText: 'Konfession*',
+                    alignLabelWithHint: true,
+                    hintText: ' ',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                FormBuilderDateTimePicker(
+                  inputType: InputType.date,
+                  name: 'geburtstag',
+                  validator: FormBuilderValidators.required(),
+                  format: DateFormat('dd.MM.yyyy'),
+                  decoration: const InputDecoration(
+                    label: Text('Geburtstag'),
+                    alignLabelWithHint: true,
+                    border: OutlineInputBorder(),
+                  ),
+                ),
               ),
-              buildTwoColumnRow(
-                buildDateField('Eintritsdatum'),
-                buildDropdownField(['Bieber', 'Wölfling'], 'Mitgliedsart'),
+              twoColumnRow(
+                FormBuilderDateTimePicker(
+                  inputType: InputType.date,
+                  name: 'eintrittsdatum',
+                  initialDate: DateTime.now(),
+                  validator: FormBuilderValidators.required(),
+                  format: DateFormat('dd.MM.yyyy'),
+                  decoration: const InputDecoration(
+                    label: Text('Eintrittsdatum'),
+                    alignLabelWithHint: true,
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                FormBuilderDropdown(
+                  name: 'mitgliedsart',
+                  validator: FormBuilderValidators.required(),
+                  decoration: const InputDecoration(
+                    labelText: 'Mitgliedsart',
+                    alignLabelWithHint: true,
+                    border: OutlineInputBorder(),
+                  ),
+                  items: ['Bieber', 'Wölfling'].map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    setState(() {});
+                  },
+                ),
               ),
               // Beitrag
               buildSectionTitle('Beitrag'),
-              buildTwoColumnRow(
-                  buildDropdownField(
-                      ['Normal', 'Familie', 'Sozial'], 'Beitragsart'),
-                  buildFormTextField('Stammesbeitrag',
-                      suffix: '€', readonly: true, value: '20'),
+              twoColumnRow(
+                  FormBuilderDropdown(
+                    name: 'beitragsart',
+                    validator: FormBuilderValidators.required(),
+                    decoration: const InputDecoration(
+                      labelText: 'Beitragsart',
+                      alignLabelWithHint: true,
+                      border: OutlineInputBorder(),
+                    ),
+                    items: ['Normal', 'Familie', 'Sozial'].map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      setState(() {});
+                    },
+                  ),
+                  FormBuilderTextField(
+                    name: 'stammesbeitrag',
+                    validator: FormBuilderValidators.required(),
+                    initialValue: '20',
+                    readOnly: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Stammesbeitrag',
+                      suffixText: '€',
+                      alignLabelWithHint: true,
+                      hintText: ' ',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
                   isSixtyForty: true),
-              buildFullWidthCheckbox("Ja zum Stiftungseuro"),
-              buildFullWidthCheckbox("Keine Mitgliedszeitschrift"),
-              buildFullWidthCheckbox("Datenweiterverwendung"),
+              FormBuilderCheckbox(
+                name: 'stiftungseuro',
+                initialValue: true,
+                title: const Text(
+                    '"Ja!" zur Zukunft – "Ja!" zur Stiftung – "Ja!" zu einem Stiftungseuro pro Jahr'),
+                onChanged: (newValue) {},
+                controlAffinity: ListTileControlAffinity.leading,
+              ),
+              FormBuilderCheckbox(
+                name: 'keine_mitgliedszeitschrift',
+                title: const Text(
+                    "Ich möchte die Mitgliederzeitschrift nicht zugeschickt bekommen."),
+                onChanged: (newValue) {},
+                controlAffinity: ListTileControlAffinity.leading,
+              ),
+              FormBuilderCheckbox(
+                name: 'datenweiterverwendung',
+                title: const Text(
+                    "Nach der Beendigung der Mitgliedschaft dürfen die Daten weiter genutzt werden."),
+                onChanged: (newValue) {},
+                controlAffinity: ListTileControlAffinity.leading,
+              ),
               // Anschrift
               buildSectionTitle('Anschrift'),
-              buildFormTextField('Straße und Hausnummer', fullWidth: true),
-              buildTwoColumnRow(
-                buildFormTextField('PLZ'),
-                buildFormTextField('Ort'),
+              const Text('Es werden nur Deutsche Adressen akzeptiert.'),
+              FormBuilderTextField(
+                name: 'street',
+                validator: FormBuilderValidators.required(),
+                decoration: const InputDecoration(
+                  labelText: 'Straße und Hausnummer',
+                  alignLabelWithHint: true,
+                  hintText: ' ',
+                  border: OutlineInputBorder(),
+                ),
               ),
-              buildTwoColumnRow(
-                buildFormTextField('Bundesland'),
-                buildFormTextField('Land'),
+              twoColumnRow(
+                  FormBuilderTextField(
+                    name: 'plz',
+                    maxLength: 5,
+                    validator: FormBuilderValidators.required(),
+                    onChanged: (plz) async => {
+                      setState(() {
+                        _plzResult = [];
+                      }),
+                      if (plz != null && plz.length == 5)
+                        {
+                          _plzResult = await fetchCityAndState(plz),
+                          setState(() {
+                            _plzResult = _plzResult;
+                          }),
+                          if (_plzResult.length == 1)
+                            {
+                              setState(() {
+                                _formKey.currentState!.patchValue({
+                                  'ort': _plzResult[0].city,
+                                  'bundesland': _plzResult[0].state,
+                                  'land': _plzResult[0].country
+                                });
+                              })
+                            },
+                        }
+                    },
+                    decoration: const InputDecoration(
+                      labelText: 'Postleitzahl',
+                      alignLabelWithHint: true,
+                      counterText: '',
+                      hintText: ' ',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  _plzResult.length < 2
+                      ? FormBuilderTextField(
+                          name: 'ort',
+                          validator: FormBuilderValidators.required(),
+                          readOnly: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Ort',
+                            alignLabelWithHint: true,
+                            hintText: ' ',
+                            border: OutlineInputBorder(),
+                          ),
+                        )
+                      : FormBuilderDropdown(
+                          name: 'ortDropdown',
+                          validator: FormBuilderValidators.required(),
+                          decoration: const InputDecoration(
+                            labelText: 'Ort',
+                            alignLabelWithHint: true,
+                            border: OutlineInputBorder(),
+                          ),
+                          items: _plzResult.map((PlzResult value) {
+                            return DropdownMenuItem<PlzResult>(
+                              value: value,
+                              child: Text(value.city),
+                            );
+                          }).toList(),
+                          onChanged: (PlzResult? newValue) {
+                            if (newValue != null) {
+                              setState(() {
+                                _formKey.currentState!.patchValue({
+                                  'bundesland': newValue.state,
+                                  'land': newValue.country
+                                });
+                              });
+                            }
+                          },
+                        )),
+              twoColumnRow(
+                FormBuilderTextField(
+                  name: 'bundesland',
+                  validator: FormBuilderValidators.required(),
+                  readOnly: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Bundesland',
+                    alignLabelWithHint: true,
+                    hintText: ' ',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                FormBuilderTextField(
+                  name: 'land',
+                  readOnly: true,
+                  validator: FormBuilderValidators.required(),
+                  decoration: const InputDecoration(
+                    labelText: 'Land',
+                    alignLabelWithHint: true,
+                    hintText: ' ',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
               ),
-              buildTwoColumnRow(
-                buildFormTextField('Festnetznummer*'),
-                buildFormTextField('Mobilfunknummer*'),
+              twoColumnRow(
+                FormBuilderTextField(
+                  name: 'festnetznummer',
+                  decoration: const InputDecoration(
+                    labelText: 'Festnetznummer*',
+                    alignLabelWithHint: true,
+                    hintText: ' ',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                FormBuilderTextField(
+                  name: 'mobilfunknummer',
+                  decoration: const InputDecoration(
+                    labelText: 'Mobilfunknummer*',
+                    alignLabelWithHint: true,
+                    hintText: ' ',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
               ),
-              buildTwoColumnRow(
-                buildFormTextField('Geschäftlich*'),
-                buildFormTextField('Fax*'),
+              twoColumnRow(
+                FormBuilderTextField(
+                  name: 'geschaeftlich',
+                  decoration: const InputDecoration(
+                    labelText: 'Geschäftlich*',
+                    alignLabelWithHint: true,
+                    hintText: ' ',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                FormBuilderTextField(
+                  name: 'fax',
+                  decoration: const InputDecoration(
+                    labelText: 'Fax*',
+                    alignLabelWithHint: true,
+                    hintText: ' ',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
               ),
-              buildTwoColumnRow(
-                buildFormTextField('E-Mail*'),
-                buildFormTextField('E-Mail Sorgeberechtigter*'),
+              twoColumnRow(
+                FormBuilderTextField(
+                  name: 'email',
+                  decoration: const InputDecoration(
+                    labelText: 'E-Mail*',
+                    alignLabelWithHint: true,
+                    hintText: ' ',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                FormBuilderTextField(
+                  name: 'email_sorgeberechtigter',
+                  decoration: const InputDecoration(
+                    labelText: 'E-Mail Sorgeberechtigter*',
+                    alignLabelWithHint: true,
+                    hintText: ' ',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
               ),
 
               // Kontodaten
               buildSectionTitle('Kontodaten'),
-              buildFormTextField('Kontoinhaber', fullWidth: true),
-              buildFormTextField('IBAN', fullWidth: true),
-              buildTwoColumnRow(
-                buildFormTextField('Kreditinstitut'),
-                buildFormTextField('BIC'),
+              const Text(
+                  'Die Kontodaten sind zum anlegen eines Mitglieds nicht notwendig. Dies kann auch später nachgetragen werden. Es werden nur Deutsche Konten akzeptiert.'),
+              FormBuilderTextField(
+                name: 'kontoinhaber',
+                decoration: const InputDecoration(
+                  labelText: 'Kontoinhaber',
+                  alignLabelWithHint: true,
+                  hintText: ' ',
+                  border: OutlineInputBorder(),
+                ),
               ),
-              Text('*Freiwillige Angaben'),
-              Text(
-                  'Ich bestätige die Daten, im falle eines Imports, auf korrektheit geprüft zu haben.'),
-              TextButton(onPressed: () => {}, child: Text('Mitglied anlegen'))
+              FormBuilderTextField(
+                name: 'iban',
+                maxLength: 22,
+                onChanged: (iban) async => {
+                  _ibanResult = null,
+                  setState(() {
+                    _formKey.currentState!.patchValue({
+                      'kreititnstitut': '',
+                      'bic': '',
+                    });
+                  }),
+                  if (iban != null && iban.length == 22)
+                    {
+                      _ibanResult = await validateIban(iban),
+                      if (_ibanResult != null && _ibanResult!.valid)
+                        {
+                          setState(() {
+                            _formKey.currentState!.patchValue({
+                              'kreititnstitut': _ibanResult!.name,
+                              'bic': _ibanResult!.bic,
+                            });
+                          })
+                        }
+                    }
+                },
+                decoration: const InputDecoration(
+                  counterText: '',
+                  labelText: 'IBAN',
+                  alignLabelWithHint: true,
+                  hintText: ' ',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              twoColumnRow(
+                FormBuilderTextField(
+                  name: 'kreititnstitut',
+                  readOnly: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Kreditinstitut',
+                    alignLabelWithHint: true,
+                    hintText: ' ',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                FormBuilderTextField(
+                  name: 'bic',
+                  readOnly: true,
+                  decoration: const InputDecoration(
+                    labelText: 'BIC',
+                    alignLabelWithHint: true,
+                    hintText: ' ',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              const Text('*Freiwillige Angaben'),
+              const Text(''),
+              const Text(
+                  'Ich bestätige die Daten, vorallem im falle eines Imports, auf Korrektheit geprüft zu haben.'),
+              ElevatedButton(
+                onPressed: () {
+                  // Validate returns true if the form is valid, or false otherwise.
+                  if (_formKey.currentState!.validate()) {
+                    // If the form is valid, display a snackbar. In the real world,
+                    // you'd often call a server or save the information in a database.
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Processing Data')),
+                    );
+                  }
+                },
+                child: const Text('Submit'),
+              ),
             ],
           ),
         ),
@@ -159,7 +526,7 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
     );
   }
 
-  Widget buildTwoColumnRow(Widget child1, Widget child2,
+  Widget twoColumnRow(Widget child1, Widget child2,
       {bool isSixtyForty = false}) {
     return Row(
       children: [
@@ -176,80 +543,5 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
             child: child2),
       ],
     );
-  }
-
-  Widget buildFormTextField(String label,
-      {bool fullWidth = false,
-      String suffix = '',
-      readonly = false,
-      value = ''}) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 8.0),
-      child: TextFormField(
-        readOnly: readonly,
-        initialValue: value,
-        decoration: InputDecoration(
-          labelText: label,
-          alignLabelWithHint: true,
-          hintText: ' ',
-          suffixText: suffix,
-          border: OutlineInputBorder(),
-        ),
-      ),
-    );
-  }
-
-  Widget buildFullWidthCheckbox(String title) {
-    return CheckboxListTile(
-      title: Text(title),
-      value: false,
-      onChanged: (newValue) {},
-      controlAffinity: ListTileControlAffinity.leading,
-    );
-  }
-
-  Widget buildDropdownField(List<String> options, String label) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 8.0),
-      child: DropdownButtonFormField<String>(
-        value: options.first,
-        decoration: InputDecoration(
-          labelText: label,
-          alignLabelWithHint: true,
-          border: OutlineInputBorder(),
-        ),
-        items: options.map((String value) {
-          return DropdownMenuItem<String>(
-            value: value,
-            child: Text(value),
-          );
-        }).toList(),
-        onChanged: (String? newValue) {
-          setState(() {});
-        },
-      ),
-    );
-  }
-
-  Widget buildDateField(String label) {
-    return Padding(
-        padding: EdgeInsets.only(bottom: 8.0),
-        child: TextFormField(
-          decoration: InputDecoration(
-            labelText: label,
-            alignLabelWithHint: true,
-            border: OutlineInputBorder(),
-          ),
-          onTap: () async {
-            final DateTime? picked = await showDatePicker(
-              context: context,
-              initialDate: DateTime.now(),
-              firstDate: DateTime(1900),
-              lastDate: DateTime.now(),
-            );
-          },
-          controller: TextEditingController(
-              text: DateFormat('dd.MM.yyyy').format(DateTime.now())),
-        ));
   }
 }

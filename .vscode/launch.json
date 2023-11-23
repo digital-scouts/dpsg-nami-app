@@ -1,6 +1,7 @@
 {
     "version": "0.2.0",
     "configurations": [
+
         {
             "name": "Android",
             "request": "launch",
@@ -21,7 +22,11 @@
             "name": "MyPhone",
             "request": "launch",
             "type": "dart",
-            "deviceId": "00008120-00026848023B401E"
+            "deviceId": "00008120-00026848023B401E",
+            "args": [
+                "--flavor",
+                "NaMi"
+            ]
         },
     ],
 }
