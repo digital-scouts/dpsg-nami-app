@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
+import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/stufe.dart';
 
 class StufenwechselInfo extends StatefulWidget {
@@ -50,7 +51,7 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
       int? minStufenWechselJahr = mitglied.getMinStufenWechselJahr();
       int? maxStufenWechselJahr = mitglied.getMaxStufenWechselJahr();
       bool isMinStufenWechselJahrInPast = minStufenWechselJahr != null &&
-          minStufenWechselJahr <= currentDate.year;
+          minStufenWechselJahr <= getNextStufenwechselDatum().year;
 
       if (!isMinStufenWechselJahrInPast) {
         continue;

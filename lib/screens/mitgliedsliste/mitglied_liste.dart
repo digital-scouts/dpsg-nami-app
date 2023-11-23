@@ -7,6 +7,8 @@ import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/mitglied.filterAndSort.dart';
 import 'package:nami/utilities/stufe.dart';
 
+import 'mitglied_bearbeiten.dart';
+
 class MitgliedsListe extends StatefulWidget {
   const MitgliedsListe({Key? key}) : super(key: key);
 
@@ -256,6 +258,18 @@ class MitgliedsListeState extends State<MitgliedsListe> {
             title: const Center(child: Text("Mitglieder")),
             automaticallyImplyLeading: false,
             actions: <Widget>[
+              IconButton(
+                icon: const Icon(Icons.add),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => MitgliedBearbeiten(
+                              mitglied: null,
+                            )),
+                  );
+                },
+              ),
               BackdropToggleButton(
                 icon: AnimatedIcons.search_ellipsis,
                 color: Theme.of(context).iconTheme.color ?? Colors.black,
