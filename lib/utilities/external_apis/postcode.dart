@@ -15,7 +15,7 @@ class PlzResult {
 
 Future<List<PlzResult>> fetchCityAndState(String plz) async {
   final response = await http
-      .get(Uri.parse('https://openplzapi.org/de/Localities?postalCode=${plz}'));
+      .get(Uri.parse('https://openplzapi.org/de/Localities?postalCode=$plz'));
   if (response.statusCode == 200) {
     var data = jsonDecode(response.body);
     List<PlzResult> plzData = [];

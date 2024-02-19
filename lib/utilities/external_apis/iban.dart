@@ -23,7 +23,7 @@ class IbanResult {
 
 Future<IbanResult> validateIban(String iban) async {
   final response = await http.get(Uri.parse(
-      'https://openiban.com/validate/${iban}?validateBankCode=true&getBIC=true'));
+      'https://openiban.com/validate/$iban?validateBankCode=true&getBIC=true'));
   if (response.statusCode == 200) {
     Map<String, dynamic> data = jsonDecode(response.body);
     debugPrint(data.toString());
