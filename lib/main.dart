@@ -258,10 +258,10 @@ class _MyHomeState extends State<MyHome> with WidgetsBindingObserver {
       return;
     }
 
-    setState(() => {
-          _appIsPaused = !authenticated,
-          _isAuthenticated = authenticated,
-          _authorized = authenticated ? 'Authorized' : 'Not Authorized',
+    setState(() {
+          _appIsPaused = !authenticated;
+          _isAuthenticated = authenticated;
+          _authorized = authenticated ? 'Authorized' : 'Not Authorized';
         });
     debugPrint(_authorized);
     afterAuthentication();
@@ -296,10 +296,9 @@ class _MyHomeState extends State<MyHome> with WidgetsBindingObserver {
           ],
         ),
         const SizedBox(height: 30),
-        const Center(
+         const Center(
           child: Text(
             'Bitte authentifiziere dich, bevor du auf die sensiblen Daten zugreifst.',
-            textScaleFactor: 1.4,
             textAlign: TextAlign.center,
           ),
         ),

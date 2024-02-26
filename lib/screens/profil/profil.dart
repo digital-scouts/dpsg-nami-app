@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:nami/utilities/pdf/readPDF.dart';
 
 class Profil extends StatefulWidget {
   const Profil({Key? key}) : super(key: key);
@@ -15,8 +14,8 @@ class _ProfilState extends State<Profil> {
       appBar: AppBar(
         title: const Center(child: Text('Profil')),
       ),
-      body: Center(
-        child: readPdf(context),
+      body: const Center(
+        child: Text('Profil'),
       ),
     );
   }

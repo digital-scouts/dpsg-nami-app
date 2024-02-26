@@ -5,6 +5,7 @@ import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
+import 'package:nami/utilities/nami/nami_member_add_meta.dart';
 
 // ignore: must_be_immutable
 class MitgliedBearbeiten extends StatefulWidget {
@@ -20,14 +21,35 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
   bool _unsavedChanges = true;
   List<PlzResult> _plzResult = [];
   IbanResult? _ibanResult;
+  List<NamiMetaData> geschlechtOptions = [];
+  List<NamiMetaData> landOptions = [];
+  List<NamiMetaData> regionOptions = [];
+  List<NamiMetaData> beitragsartOptions = [];
+  List<NamiMetaData> mitgliedstypOptions = [];
+  List<NamiMetaData> staatsangehoerigkeitOptions = [];
   final _formKey = GlobalKey<FormBuilderState>();
 
-  Future<bool> _onWillPop() async {
+  @override
+  void initState() {
+    super.initState();
+    loadMetadata();
+  }
+
+  Future<void> loadMetadata() async {
+    geschlechtOptions = await getGeschlechtMeta();
+    landOptions = await getLandMeta();
+    regionOptions = await getRegionMeta();
+    beitragsartOptions = await getBeitragsartenMeta();
+    mitgliedstypOptions = await getMitgliedstypMeta();
+    staatsangehoerigkeitOptions = await getStaatsangehoerigkeitMeta();
+  }
+
+  void _onWillPop(bool x) async {
     if (!_unsavedChanges) {
-      return true;
+      return;
     }
 
-    final result = await showDialog(
+    await showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Warnung!'),
@@ -49,18 +71,18 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
       ),
     );
 
-    return result ?? false;
+    return;
   }
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: _onWillPop,
+    return PopScope(
+      onPopInvoked: _onWillPop,
       child: Scaffold(
         appBar: AppBar(
           title: widget.mitglied != null
               ? Text("${widget.mitglied!.vorname} ${widget.mitglied!.nachname}")
-              : Text("Neues Mitglied"),
+              : const Text("Neues Mitglied"),
           actions: <Widget>[
             IconButton(
               color: _unsavedChanges
@@ -78,7 +100,7 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
         body: FormBuilder(
           key: _formKey,
           child: ListView(
-            padding: EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(16.0),
             children: [
               // Mitglied
               buildSectionTitle('Mitglied'),
@@ -113,11 +135,12 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                     alignLabelWithHint: true,
                     border: OutlineInputBorder(),
                   ),
-                  items: ['männlich', 'weiblich', 'divers', 'Keine Angabe']
-                      .map((String value) {
+                  items: geschlechtOptions.map((NamiMetaData value) {
                     return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
+                      value: value.id,
+                      child: Text(
+                        value.descriptor,
+                      ),
                     );
                   }).toList(),
                   onChanged: (String? newValue) {
@@ -132,10 +155,10 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                     alignLabelWithHint: true,
                     border: OutlineInputBorder(),
                   ),
-                  items: ['deutsch'].map((String value) {
+                  items: staatsangehoerigkeitOptions.map((NamiMetaData value) {
                     return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
+                      value: value.id,
+                      child: Text(value.descriptor),
                     );
                   }).toList(),
                   onChanged: (String? newValue) {
@@ -186,10 +209,10 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                     alignLabelWithHint: true,
                     border: OutlineInputBorder(),
                   ),
-                  items: ['Bieber', 'Wölfling'].map((String value) {
+                  items: mitgliedstypOptions.map((NamiMetaData value) {
                     return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
+                      value: value.id,
+                      child: Text(value.descriptor),
                     );
                   }).toList(),
                   onChanged: (String? newValue) {
@@ -208,10 +231,10 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                       alignLabelWithHint: true,
                       border: OutlineInputBorder(),
                     ),
-                    items: ['Normal', 'Familie', 'Sozial'].map((String value) {
+                    items: beitragsartOptions.map((NamiMetaData value) {
                       return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
+                        value: value.id,
+                        child: Text(value.descriptor),
                       );
                     }).toList(),
                     onChanged: (String? newValue) {
@@ -518,10 +541,10 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
 
   Widget buildSectionTitle(String title) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Text(
         title,
-        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -535,7 +558,7 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                 ? 6
                 : 5, // 60% of space for child1 if isSixtyForty is true, otherwise 50%
             child: child1),
-        SizedBox(width: 8.0),
+        const SizedBox(width: 8.0),
         Expanded(
             flex: isSixtyForty
                 ? 4

@@ -107,9 +107,9 @@ String? getNamiPassword() {
 }
 
 String getNamiLUrl() {
-  return box.get(SettingValue.namiUrl.toString()) ??
-      'https://nami.dpsg.de' ??
-      'http://vps-zap443284-1.zap-srv.com:3000';
+  return 'https://nami.dpsg.de';
+  //box.get(SettingValue.namiUrl.toString());
+  //'http://vps-zap443284-1.zap-srv.com:3000';
 }
 
 String getNamiPath() {
