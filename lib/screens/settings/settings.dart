@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../utilities/hive/settings.dart';
 import '../../utilities/nami/nami.service.dart';
+import 'dart:math';
 
 class Settings extends StatefulWidget {
   const Settings({Key? key}) : super(key: key);
@@ -12,29 +13,34 @@ class Settings extends StatefulWidget {
 
 // Provider.of<ThemeModel>(context, listen: false).setTheme(ThemeType.dark);
 
-/*
- Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.sync),
-                onPressed: () => {syncNamiData()},
-              ),
-              Text(getLastNamiSync() != null
-                  ? "Vor ${DateTime.now().difference(getLastNamiSync()!).inDays.toString()} Tagen"
-                  : "Noch nie Syncronisiert"),
-            ],
-          ),
-*/
-
-class _SettingsState extends State<Settings> {
+class _SettingsState extends State<Settings>
+    with SingleTickerProviderStateMixin {
   bool stufenwechselDatumIsValid = true;
+  bool loading = false;
+  late final AnimationController _controller;
 
   final TextEditingController _stufenwechselTextController =
       TextEditingController();
 
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(seconds: 2),
+      vsync: this,
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   Future<void> _syncData({bool forceSync = false}) async {
+    setState(() => loading = true);
     await syncNamiData(forceSync: forceSync);
+    setState(() => loading = false);
   }
 
   Widget _buildSync() {
@@ -42,9 +48,18 @@ class _SettingsState extends State<Settings> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const Text('Sync: '),
-        IconButton(
-          icon: const Icon(Icons.sync),
-          onPressed: () => {_syncData()},
+        AnimatedBuilder(
+          animation: _controller,
+          builder: (_, child) {
+            return Transform.rotate(
+              angle: loading ? _controller.value * 2.0 * pi : 0,
+              child: child,
+            );
+          },
+          child: IconButton(
+            icon: const Icon(Icons.sync),
+            onPressed: loading ? null : () => {_syncData()},
+          ),
         ),
         Text(getLastNamiSync() != null
             ? "Vor ${DateTime.now().difference(getLastNamiSync()!).inDays.toString()} Tagen"
@@ -58,9 +73,18 @@ class _SettingsState extends State<Settings> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const Text('Force Sync: '),
-        IconButton(
-          icon: const Icon(Icons.sync),
-          onPressed: () => {_syncData(forceSync: true)},
+        AnimatedBuilder(
+          animation: _controller,
+          builder: (_, child) {
+            return Transform.rotate(
+              angle: loading ? _controller.value * 2.0 * pi : 0,
+              child: child,
+            );
+          },
+          child: IconButton(
+            icon: const Icon(Icons.sync),
+            onPressed: loading ? null : () => {_syncData(forceSync: true)},
+          ),
         ),
       ],
     );

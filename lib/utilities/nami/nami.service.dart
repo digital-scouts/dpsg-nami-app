@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:nami/utilities/hive/settings.dart';
 import 'model/nami_stats.model.dart';
 import 'nami-member.service.dart';
+import 'package:nami/utilities/nami/nami_member_add_meta.dart';
 
 /// läd Nami Dashboard Statistiken
 Future<NamiStatsModel> loadNamiStats() async {
@@ -48,7 +49,22 @@ Future<void> syncNamiData({bool forceSync = false}) async {
   setLastNamiSync(DateTime.now());
   await loadGruppierung();
   await syncMember(forceSync);
+  await reloadMetadataFromServer();
 
   //syncStats
   //syncProfile
+}
+
+Future<void> reloadMetadataFromServer() async {
+  debugPrint('Reloading metadata from server');
+  var results = await Future.wait([
+    getGeschlechtMeta(),
+    getLandMeta(),
+    getRegionMeta(),
+    getBeitragsartenMeta(),
+    getStaatsangehoerigkeitMeta(),
+    getMitgliedstypMeta(),
+  ]);
+  setMetaData(
+      results[0], results[1], results[2], results[3], results[4], results[5]);
 }
