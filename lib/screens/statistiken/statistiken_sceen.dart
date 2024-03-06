@@ -1,8 +1,12 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:nami/screens/widgets/groupBarChart.widget.dart';
 import 'package:nami/screens/widgets/stufenwechselInfo.widget.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
+import 'package:nami/utilities/stufe.dart';
+import 'dart:collection';
 
 class StatistikScreen extends StatefulWidget {
   const StatistikScreen({Key? key}) : super(key: key);
@@ -55,6 +59,125 @@ class StatistikScreenState extends State<StatistikScreen> {
     return GroupBarChart(memberPerGroup: memberPerGroup);
   }
 
+  List<BarChartGroupData> createDateForAltersChart(
+      double barsWidth, double barsSpace) {
+    Map<int, Map<Stufe, int>> data = SplayTreeMap();
+
+    // Durchlaufe alle Mitglieder und sammle die Daten
+    for (var mitglied in mitglieder) {
+      int age = DateTime.now().year - mitglied.geburtsDatum.year;
+      if (mitglied.geburtsDatum.month > DateTime.now().month) {
+        age--;
+      } else if (mitglied.geburtsDatum.month == DateTime.now().month &&
+          mitglied.geburtsDatum.day > DateTime.now().day) {
+        age--;
+      }
+      Stufe stufe = Stufe.getStufeByString(mitglied.stufe);
+
+      if (mitglied.stufe == 'keine Stufe' || mitglied.isMitgliedLeiter()) {
+        continue;
+      }
+
+      if (!data.containsKey(age)) {
+        data[age] = {};
+      }
+
+      if (!data[age]!.containsKey(stufe)) {
+        data[age]![stufe] = 0;
+      }
+
+      if (data[age]![stufe] != null) {
+        data[age]![stufe] = (data[age]![stufe] ?? 0) + 1;
+      }
+    }
+
+    for (int age = 6; age <= 21; age++) {
+      if (!data.containsKey(age)) {
+        data[age] = {};
+      }
+    }
+
+    // Erstelle die BarChartGroupData aus den gesammelten Daten
+    List<BarChartGroupData> chartData = [];
+    data.forEach((age, stufenData) {
+      List<BarChartRodStackItem> stackItems = [];
+      double total = 0;
+      stufenData.forEach((stufe, count) {
+        stackItems.add(BarChartRodStackItem(total, total + count, stufe.farbe));
+        total += count;
+      });
+
+      chartData.add(
+        BarChartGroupData(
+          x: age,
+          barsSpace: barsSpace,
+          barRods: [
+            BarChartRodData(
+              toY: total,
+              rodStackItems: stackItems,
+              borderRadius: BorderRadius.zero,
+            ),
+          ],
+        ),
+      );
+    });
+
+    return chartData;
+  }
+
+  Widget _buildAlterspyramide() {
+    return AspectRatio(
+      aspectRatio: 1.66,
+      child: Padding(
+        padding: const EdgeInsets.only(top: 16),
+        child: LayoutBuilder(builder: (context, constraints) {
+          final barsSpace = 4.0 * constraints.maxWidth / 400;
+          final barsWidth = 8.0 * constraints.maxWidth / 400;
+          return BarChart(
+            BarChartData(
+              titlesData: FlTitlesData(
+                show: true,
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    interval: 3.0,
+                    getTitlesWidget: (value, meta) => SideTitleWidget(
+                      axisSide: meta.axisSide,
+                      child: Text(
+                          (value == 6)
+                              ? 'Alter: 6       '
+                              : (value % 3 == 0)
+                                  ? value.toInt().toString()
+                                  : '',
+                          style: const TextStyle(fontSize: 10)),
+                    ),
+                  ),
+                ),
+                leftTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                topTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                rightTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+              ),
+              borderData: FlBorderData(
+                show: false,
+              ),
+              gridData: const FlGridData(
+                show: false,
+              ),
+              groupsSpace: barsSpace,
+              barGroups: createDateForAltersChart(barsWidth, barsSpace),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -74,17 +197,31 @@ class StatistikScreenState extends State<StatistikScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   SizedBox(
-                    width: constraints.maxWidth * 0.05,
-                    height: containerHeight,
-                  ),
-                  SizedBox(
                     width: constraints.maxWidth * 0.35,
                     height: containerHeight,
-                    child: _buildMemberCountStatistik(),
+                    child: Column(
+                      children: [
+                        const Text('Stufenverteilung',
+                            style: TextStyle(fontSize: 17)),
+                        Expanded(child: _buildMemberCountStatistik()),
+                      ],
+                    ),
                   ),
                   SizedBox(
                     width: constraints.maxWidth * 0.05,
+                  ),
+                  SizedBox(
+                    width: constraints.maxWidth * 0.45,
                     height: containerHeight,
+                    child: Column(
+                      children: [
+                        const Text('Altersverteilung',
+                            style: TextStyle(fontSize: 17)),
+                        Expanded(
+                          child: _buildAlterspyramide(),
+                        )
+                      ],
+                    ),
                   ),
                 ],
               ),
