@@ -12,9 +12,55 @@ enum SettingValue {
   lastNamiSync,
   lastLoginCheck,
   stufenwechselDatum,
+  metaGeschechtOptions,
+  metaLandOptions,
+  metaBeitragsartOptions,
+  metaRegionOptions,
+  metaStaatsangehoerigkeitOptions,
+  metaMitgliedstypOptions,
 }
 
 Box box = Hive.box('settingsBox');
+
+void setMetaData(
+    List<String> geschlecht,
+    List<String> land,
+    List<String> region,
+    List<String> beitragsart,
+    List<String> staatsangehoerigkeit,
+    List<String> mitgliedstyp) {
+  box.put(SettingValue.metaGeschechtOptions.toString(), geschlecht);
+  box.put(SettingValue.metaLandOptions.toString(), land);
+  box.put(SettingValue.metaBeitragsartOptions.toString(), beitragsart);
+  box.put(SettingValue.metaRegionOptions.toString(), region);
+  box.put(SettingValue.metaStaatsangehoerigkeitOptions.toString(),
+      staatsangehoerigkeit);
+  box.put(SettingValue.metaMitgliedstypOptions.toString(), mitgliedstyp);
+}
+
+List<String> getMetaGeschlechtOptions() {
+  return box.get(SettingValue.metaGeschechtOptions.toString()) ?? [];
+}
+
+List<String> getMetaLandOptions() {
+  return box.get(SettingValue.metaLandOptions.toString()) ?? [];
+}
+
+List<String> getMetaBeitragsartOptions() {
+  return box.get(SettingValue.metaBeitragsartOptions.toString()) ?? [];
+}
+
+List<String> getMetaRegionOptions() {
+  return box.get(SettingValue.metaRegionOptions.toString()) ?? [];
+}
+
+List<String> getMetaStaatsangehoerigkeitOptions() {
+  return box.get(SettingValue.metaStaatsangehoerigkeitOptions.toString()) ?? [];
+}
+
+List<String> getMetaMitgliedstypOptions() {
+  return box.get(SettingValue.metaMitgliedstypOptions.toString()) ?? [];
+}
 
 void setNamiApiCookie(String namiApiToken) {
   box.put(SettingValue.namiApiCookie.toString(), namiApiToken);
@@ -108,8 +154,6 @@ String? getNamiPassword() {
 
 String getNamiLUrl() {
   return 'https://nami.dpsg.de';
-  //box.get(SettingValue.namiUrl.toString());
-  //'http://vps-zap443284-1.zap-srv.com:3000';
 }
 
 String getNamiPath() {

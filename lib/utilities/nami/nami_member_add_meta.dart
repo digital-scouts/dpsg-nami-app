@@ -9,7 +9,7 @@ String path = getNamiPath();
 int? gruppierungId = getGruppierungId();
 String cookie = getNamiApiCookie();
 
-Future<List<NamiMetaData>> getMetadata(String url) async {
+Future<List<String>> getMetadata(String url) async {
   final headers = {'Cookie': cookie, 'Content-Type': 'application/json'};
 
   http.Response response;
@@ -26,61 +26,51 @@ Future<List<NamiMetaData>> getMetadata(String url) async {
     debugPrint(result.toString());
     throw Exception('Metadata result not valid: $url');
   }
-  return result['data'].map<NamiMetaData>((m) {
-    return NamiMetaData(m['descriptor'], m['id'].toString());
+
+  List<String> list = result['data'].map<String>((m) {
+    return utf8.decode(m['descriptor'].codeUnits);
   }).toList();
+  list.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+  return list;
 }
 
-Future<List<NamiMetaData>> getBeitragsartenMeta() async {
+Future<List<String>> getBeitragsartenMeta() async {
   String fullUrl =
       '$url/ica/rest/namiBeitrag/beitragsartmgl/gruppierung/$gruppierungId';
-  List<NamiMetaData> meta = await getMetadata(fullUrl);
+  List<String> meta = await getMetadata(fullUrl);
 
   RegExpMatch? match;
-  List<NamiMetaData> newMeta = [];
-  for (NamiMetaData e in meta) {
-    match = RegExp(r'\((.*?)\)').firstMatch(e.descriptor);
-    newMeta.add(NamiMetaData(
-        match!.group(1)!.replaceAll('VERBANDSBEITRAG', '').trim(), e.id));
+  List<String> newMeta = [];
+  for (String e in meta) {
+    match = RegExp(r'\((.*?)\)').firstMatch(e);
+    newMeta.add(match!.group(1)!.replaceAll('VERBANDSBEITRAG', '').trim());
   }
 
   debugPrint(newMeta.toString());
   return newMeta;
 }
 
-Future<List<NamiMetaData>> getGeschlechtMeta() async {
+Future<List<String>> getGeschlechtMeta() async {
   String fullUrl = '$url/ica/rest/baseadmin/geschlecht/';
   return await getMetadata(fullUrl);
 }
 
-Future<List<NamiMetaData>> getStaatsangehoerigkeitMeta() async {
+Future<List<String>> getStaatsangehoerigkeitMeta() async {
   String fullUrl = '$url/ica/rest/baseadmin/staatsangehoerigkeit/';
   return await getMetadata(fullUrl);
 }
 
-Future<List<NamiMetaData>> getRegionMeta() async {
+Future<List<String>> getRegionMeta() async {
   String fullUrl = '$url/ica/rest/baseadmin/region/';
   return await getMetadata(fullUrl);
 }
 
-Future<List<NamiMetaData>> getMitgliedstypMeta() async {
+Future<List<String>> getMitgliedstypMeta() async {
   String fullUrl = '$url/ica/rest/nami/enum/mgltype/';
   return await getMetadata(fullUrl);
 }
 
-Future<List<NamiMetaData>> getLandMeta() async {
+Future<List<String>> getLandMeta() async {
   String fullUrl = '$url/ica/rest/baseadmin/land/';
   return await getMetadata(fullUrl);
-}
-
-class NamiMetaData {
-  String descriptor;
-  String id;
-
-  NamiMetaData(this.descriptor, this.id);
-
-  @override
-  String toString() {
-    return '{descriptor: $descriptor, id: $id}';
-  }
 }
