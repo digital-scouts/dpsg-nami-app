@@ -526,7 +526,7 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                   const Text(''),
                   const Text(
                       'Ich bestätige die Daten, vorallem im falle eines Imports, auf Korrektheit geprüft zu haben.'),
-                  Container(
+                  SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
