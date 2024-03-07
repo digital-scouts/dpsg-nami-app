@@ -1,17 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:nami/utilities/hive/mitglied.dart';
 
 class GroupBarChart extends StatefulWidget {
-  final Map<String, GroupData> memberPerGroup;
+  final List<Mitglied> mitglieder;
 
-  const GroupBarChart({required this.memberPerGroup, Key? key})
-      : super(key: key);
+  const GroupBarChart({required this.mitglieder, Key? key}) : super(key: key);
 
   @override
   State<StatefulWidget> createState() => GroupBarChartState();
 }
 
 class GroupBarChartState extends State<GroupBarChart> {
+  Map<String, GroupData> getMemberPerGroup() {
+    return widget.mitglieder.fold<Map<String, GroupData>>({}, (map, member) {
+      String stufe = member.stufe;
+      String taetigkeit = member.isMitgliedLeiter() ? 'leiter' : 'mitglied';
+
+      if (stufe == 'keine Stufe') {
+        taetigkeit = stufe;
+      }
+
+      if (!map.containsKey(stufe)) {
+        map["Wölfling"] = GroupData(0, 0);
+        map["Jungpfadfinder"] = GroupData(0, 0);
+        map["Pfadfinder"] = GroupData(0, 0);
+        map["Rover"] = GroupData(0, 0);
+        map["keine Stufe"] = GroupData(0, 0);
+      }
+
+      if (taetigkeit == 'leiter') {
+        map[stufe]!.leiter += 1;
+      } else {
+        map[stufe]!.mitglied += 1;
+      }
+
+      return map;
+    });
+    // memberPerGroup.remove('keine Stufe');
+  }
+
   int findHighestValue(Map<String, GroupData> data) {
     int highestValue = 0;
 
@@ -32,7 +60,7 @@ class GroupBarChartState extends State<GroupBarChart> {
     List<BarChartGroupData> sectionData = [];
 
     int index = 0;
-    widget.memberPerGroup.forEach((key, value) {
+    getMemberPerGroup().forEach((key, value) {
       switch (key) {
         case "Wölfling":
           sectionData.add(createGroupData(index, value.leiter.toDouble(),
@@ -161,7 +189,7 @@ class GroupBarChartState extends State<GroupBarChart> {
           borderData: FlBorderData(show: false),
           gridData: const FlGridData(show: false),
           barGroups: createData(),
-          maxY: findHighestValue(widget.memberPerGroup).toDouble() + 5,
+          maxY: findHighestValue(getMemberPerGroup()).toDouble() + 5,
         ),
       ),
     );
