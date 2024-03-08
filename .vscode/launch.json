@@ -1,7 +1,6 @@
 {
     "version": "0.2.0",
     "configurations": [
-
         {
             "name": "Android",
             "request": "launch",
@@ -12,7 +11,7 @@
             "name": "iPhone",
             "request": "launch",
             "type": "dart",
-            "deviceId": "45AF30B2-C4B6-46B8-8F2E-F5D7BF627B77",
+            "deviceId": "77122B42-F99C-4481-A4E3-2D79B779C40D",
             "args": [
                 "--flavor",
                 "NaMi"

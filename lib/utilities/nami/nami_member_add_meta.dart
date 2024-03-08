@@ -45,8 +45,6 @@ Future<List<String>> getBeitragsartenMeta() async {
     match = RegExp(r'\((.*?)\)').firstMatch(e);
     newMeta.add(match!.group(1)!.replaceAll(' - VERBANDSBEITRAG', '').trim());
   }
-
-  debugPrint(newMeta.toString());
   return newMeta;
 }
 

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/nami/nami_rechte.dart';
 import 'model/nami_stats.model.dart';
 import 'nami-member.service.dart';
 import 'package:nami/utilities/nami/nami_member_add_meta.dart';
@@ -34,6 +35,7 @@ Future<void> loadGruppierung() async {
       await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
 
   if (response.statusCode == 200 &&
+      jsonDecode(response.body)['success'] &&
       jsonDecode(response.body)['data'].length == 1) {
     int gruppierungId = jsonDecode(response.body)['data'][0]['id'];
     String gruppierungName = jsonDecode(response.body)['data'][0]['descriptor'];
@@ -46,10 +48,15 @@ Future<void> loadGruppierung() async {
 }
 
 Future<void> syncNamiData({bool forceSync = false}) async {
+  // login / update token
   setLastNamiSync(DateTime.now());
   await loadGruppierung();
   await syncMember(forceSync);
+  //load user data
+
   await reloadMetadataFromServer();
+  var rechte = await getRechte();
+  debugPrint('Rechte: $rechte');
 
   //syncStats
   //syncProfile
