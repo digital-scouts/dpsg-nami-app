@@ -5,7 +5,7 @@ import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
 
-import '../hive/logout.dart';
+import '../hive/hive.handler.dart';
 
 class HomeDrawer extends StatefulWidget {
   const HomeDrawer(
