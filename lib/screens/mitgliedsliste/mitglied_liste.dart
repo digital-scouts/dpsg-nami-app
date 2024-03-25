@@ -178,6 +178,7 @@ class MitgliedsListeState extends State<MitgliedsListe> {
   Widget _buildFilterGroup() {
     // Bilder für die Stufen
     List<String> stufenBilder = [
+      'assets/images/biber.png', // ignored for now
       'assets/images/woe.png',
       'assets/images/jufi.png',
       'assets/images/pfadi.png',
@@ -188,7 +189,8 @@ class MitgliedsListeState extends State<MitgliedsListe> {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: List.generate(stufenBilder.length, (index) {
+        children: List.generate(stufenBilder.length - 1, (index) {
+          index++;
           return GestureDetector(
             onTap: () {
               setFilterGroup(index, !filterGroup[index]);
