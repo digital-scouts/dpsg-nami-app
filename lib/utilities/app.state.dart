@@ -162,6 +162,7 @@ class AppStateHandler extends ChangeNotifier {
   /// Hive is open
   Future<void> setAuthenticatedState(BuildContext context) async {
     if (currentState == AppState.authenticated) return;
+
     await registerAdapter();
     await openHive();
 
@@ -174,14 +175,18 @@ class AppStateHandler extends ChangeNotifier {
     final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
 
     if (mitglieder.isEmpty) {
-      setLoggedOutState(context);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        setLoggedOutState(context);
+      });
       return;
     }
 
     // login check or data is older than 30 days -> load data
     if (getLastLoginCheck().isBefore(thirtyDaysAgo) ||
         getLastNamiSync().isBefore(thirtyDaysAgo)) {
-      setLoadDataState(context);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        setLoadDataState(context);
+      });
       return;
     }
 

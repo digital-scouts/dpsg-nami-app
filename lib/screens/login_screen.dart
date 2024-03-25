@@ -66,7 +66,9 @@ class LoginScreenState extends State<LoginScreen> {
         setNamiPassword(_password);
       }
       setNamiLoginId(_mitgliedsnummer);
-      AppStateHandler().setLoadDataState(context, loadAll: true);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        AppStateHandler().setLoadDataState(context, loadAll: true);
+      });
     } else {
       wrongCredentials();
       setState(() {

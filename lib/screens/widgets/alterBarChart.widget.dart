@@ -15,10 +15,10 @@ class AlterBarChartWidget extends StatefulWidget {
       {super.key, required this.mitglieder, this.minAge = 6, this.maxAge = 21});
 
   @override
-  _AlterBarChartWidgetState createState() => _AlterBarChartWidgetState();
+  AlterBarChartWidgetState createState() => AlterBarChartWidgetState();
 }
 
-class _AlterBarChartWidgetState extends State<AlterBarChartWidget> {
+class AlterBarChartWidgetState extends State<AlterBarChartWidget> {
   List<BarChartGroupData> createDateForAltersChart(
       List<Mitglied> mitglieder, double barsWidth, double barsSpace) {
     Map<int, Map<Stufe, int>> data = SplayTreeMap();

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:nami/screens/widgets/alterBarChart.dart';
+import 'package:nami/screens/widgets/alterBarChart.widget.dart';
 import 'package:nami/screens/widgets/groupBarChart.widget.dart';
 import 'package:nami/screens/widgets/stufenwechselInfo.widget.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
