@@ -55,7 +55,7 @@ class Stufe implements Comparable<Stufe> {
   static final List<Stufe> stufen = [
     Stufe(
       StufeEnum.BIBER,
-      1,
+      0,
       woelfingFarbe,
       isStufeYouCanChangeTo: true,
       alterMin: 4,
@@ -64,7 +64,7 @@ class Stufe implements Comparable<Stufe> {
     ),
     Stufe(
       StufeEnum.WOELFLING,
-      2,
+      1,
       woelfingFarbe,
       isStufeYouCanChangeTo: true,
       alterMin: 6,
@@ -73,7 +73,7 @@ class Stufe implements Comparable<Stufe> {
     ),
     Stufe(
       StufeEnum.JUNGPADFINDER,
-      3,
+      2,
       jungpfadfinderFarbe,
       isStufeYouCanChangeTo: true,
       alterMin: 9,
@@ -82,7 +82,7 @@ class Stufe implements Comparable<Stufe> {
     ),
     Stufe(
       StufeEnum.PFADFINDER,
-      4,
+      3,
       pfadfinderFarbe,
       isStufeYouCanChangeTo: true,
       alterMin: 12,
@@ -91,7 +91,7 @@ class Stufe implements Comparable<Stufe> {
     ),
     Stufe(
       StufeEnum.ROVER,
-      5,
+      4,
       roverFarbe,
       isStufeYouCanChangeTo: true,
       alterMin: 15,
@@ -100,7 +100,7 @@ class Stufe implements Comparable<Stufe> {
     ),
     Stufe(
       StufeEnum.LEITER,
-      6,
+      5,
       leiterFarbe,
       isStufeYouCanChangeTo: false,
       alterMin: 18,
