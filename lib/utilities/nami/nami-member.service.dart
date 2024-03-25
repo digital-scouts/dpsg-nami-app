@@ -25,8 +25,8 @@ int getVersionOfMember(int id, List<Mitglied> mitglieder) {
   }
 }
 
-Future<List<int>> loadMemberIdsToUpdate(
-    String url, String path, int gruppierung, String cookie) async {
+Future<List<int>> loadMemberIdsToUpdate(String url, String path,
+    int gruppierung, String cookie, bool forceUpdate) async {
   String fullUrl =
       '$url$path/mitglied/filtered-for-navigation/gruppierung/gruppierung/$gruppierung/flist?_dc=1635173028278&page=1&start=0&limit=5000';
   debugPrint('Request: Lade Mitgliedsliste');
@@ -40,8 +40,9 @@ Future<List<int>> loadMemberIdsToUpdate(
       jsonDecode(response.body)['success'] == true) {
     List<int> memberIds = [];
     jsonDecode(response.body)['data'].forEach((item) => {
-          if (getVersionOfMember(item['id'], mitglieder) !=
-              item['entries_version'])
+          if (forceUpdate ||
+              getVersionOfMember(item['id'], mitglieder) !=
+                  item['entries_version'])
             {
               debugPrint(
                   'Member ${item['vorname']} ${item['id']} needs to be updated. Old Version: ${getVersionOfMember(item['id'], mitglieder)} New Version: ${item['entries_version']}'),
@@ -122,30 +123,9 @@ Future<NamiMemberTaetigkeitenModel?> loadMemberTaetigkeit(int memberId,
   }
 }
 
-showSyncStatus(String text, BuildContext context, {bool lastUpdate = false}) {
-  Duration duration = const Duration(seconds: 10);
-  if (snackbar != null) {
-    snackbar!.close();
-  }
-
-  Timer(duration, () => snackbar = null);
-  try {
-    snackbar = ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(text),
-      duration: duration,
-      action: lastUpdate
-          ? SnackBarAction(
-              label: 'Ok',
-              onPressed: () => {},
-            )
-          : null,
-    ));
-  } catch (e) {
-    debugPrint('Cant show snackbar');
-  }
-}
-
-Future<void> syncMember(bool forceUpdate) async {
+Future<void> syncMember(ValueNotifier<double> memberAllProgressNotifier,
+    ValueNotifier<bool?> memberOverviewProgressNotifier,
+    {bool forceUpdate = false}) async {
   int gruppierung = getGruppierungId()!;
   String cookie = getNamiApiCookie();
   String url = getNamiLUrl();
@@ -154,25 +134,41 @@ Future<void> syncMember(bool forceUpdate) async {
   Box<Mitglied> memberBox = Hive.box('members');
   List<int> mitgliedIds;
 
-  if (forceUpdate) {
-    mitgliedIds = memberBox.keys.cast<int>().toList();
-  } else {
-    mitgliedIds = await loadMemberIdsToUpdate(url, path, gruppierung, cookie);
-  }
+  mitgliedIds =
+      await loadMemberIdsToUpdate(url, path, gruppierung, cookie, forceUpdate);
+
+  memberOverviewProgressNotifier.value = true;
+
   debugPrint('Starte Syncronisation der Mitgliedsdetails');
 
   var futures = <Future>[];
 
   for (var mitgliedId in mitgliedIds) {
     futures.add(storeMitgliedToHive(
-        mitgliedId, memberBox, url, path, gruppierung, cookie));
+        mitgliedId,
+        memberBox,
+        url,
+        path,
+        gruppierung,
+        cookie,
+        memberAllProgressNotifier,
+        1 / mitgliedIds.length));
   }
   await Future.wait(futures);
+  memberAllProgressNotifier.value = 1.0;
+  setLastNamiSync(DateTime.now());
   debugPrint('Syncronisation der Mitgliedsdetails abgeschlossen');
 }
 
-Future<void> storeMitgliedToHive(int mitgliedId, Box<Mitglied> memberBox,
-    String url, String path, int gruppierung, String cookie) async {
+Future<void> storeMitgliedToHive(
+    int mitgliedId,
+    Box<Mitglied> memberBox,
+    String url,
+    String path,
+    int gruppierung,
+    String cookie,
+    ValueNotifier<double> memberAllProgressNotifier,
+    double progressStep) async {
   NamiMemberDetailsModel rawMember;
   List<NamiMemberTaetigkeitenModel> rawTaetigkeiten;
   try {
@@ -234,5 +230,7 @@ Future<void> storeMitgliedToHive(int mitgliedId, Box<Mitglied> memberBox,
     ..beitragsartId = rawMember.beitragsartId ?? 0
     ..status = rawMember.status
     ..taetigkeiten = taetigkeiten;
+
   memberBox.put(mitgliedId, mitglied);
+  memberAllProgressNotifier.value += progressStep;
 }

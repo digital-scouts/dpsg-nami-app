@@ -5,7 +5,6 @@ import 'package:http/http.dart' as http;
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:intl/intl.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
-import 'package:nami/utilities/nami/nami-member.service.dart';
 import 'package:nami/utilities/stufe.dart';
 
 String url = getNamiLUrl();
@@ -19,7 +18,7 @@ Future<void> stufenwechsel(int memberId, Taetigkeit currentTaetigkeit,
   debugPrint('Stufenwechsel für ${currentTaetigkeit.id}');
   await createTaetigkeitForStufe(memberId, stufenwechselDatum, nextStufe);
   await completeTaetigkeit(memberId, currentTaetigkeit, stufenwechselDatum);
-  await syncMember(false);
+  // TODO: Update member in Hive
 }
 
 Future<void> createTaetigkeit(int memberId, DateTime startDate,

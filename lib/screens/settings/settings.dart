@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../utilities/hive/settings.dart';
-import '../../utilities/nami/nami.service.dart';
 import 'dart:math';
 
 class Settings extends StatefulWidget {
@@ -39,7 +38,7 @@ class _SettingsState extends State<Settings>
 
   Future<void> _syncData({bool forceSync = false}) async {
     setState(() => loading = true);
-    await syncNamiData(forceSync: forceSync);
+    // await syncNamiData(forceSync: forceSync);
     setState(() => loading = false);
   }
 
@@ -61,9 +60,8 @@ class _SettingsState extends State<Settings>
             onPressed: loading ? null : () => {_syncData()},
           ),
         ),
-        Text(getLastNamiSync() != null
-            ? "Vor ${DateTime.now().difference(getLastNamiSync()!).inDays.toString()} Tagen"
-            : "Noch nie Syncronisiert"),
+        Text(
+            "Vor ${DateTime.now().difference(getLastNamiSync()).inDays.toString()} Tagen"),
       ],
     );
   }

@@ -5,6 +5,7 @@ import 'package:nami/utilities/nami/nami-login.service.dart';
 import 'dart:async';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:nami/utilities/app.state.dart';
 
 const kHintTextStyle = TextStyle(
   color: Colors.white54,
@@ -65,7 +66,9 @@ class LoginScreenState extends State<LoginScreen> {
         setNamiPassword(_password);
       }
       setNamiLoginId(_mitgliedsnummer);
-      popNavigation();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        AppStateHandler().setLoadDataState(context, loadAll: true);
+      });
     } else {
       wrongCredentials();
       setState(() {

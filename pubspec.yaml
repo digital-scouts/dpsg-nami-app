@@ -27,6 +27,7 @@ dependencies:
   maps_launcher: ^2.2.0
   provider: ^6.0.1
   flutter_secure_storage: ^9.0.0
+  fluttertoast: ^8.0.8
   local_auth: ^2.1.7
   flutter_map: ^5.0.0
   geocoding: ^2.0.0
