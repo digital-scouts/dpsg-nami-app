@@ -7,10 +7,11 @@ void filterByString(List<Mitglied> mitglieder, String filterString) {
   mitglieder.retainWhere((mitglied) =>
       mitglied.vorname.toLowerCase().contains(filterString) ||
       mitglied.nachname.toLowerCase().contains(filterString) ||
-      mitglied.email!.toLowerCase().contains(filterString) ||
-      mitglied.emailVertretungsberechtigter!
-          .toLowerCase()
-          .contains(filterString) ||
+      (mitglied.email?.toLowerCase().contains(filterString) ?? false) ||
+      (mitglied.emailVertretungsberechtigter
+              ?.toLowerCase()
+              .contains(filterString) ??
+          false) ||
       mitglied.mitgliedsNummer.toString().contains(filterString) ||
       mitglied.id.toString().contains(filterString));
 }
