@@ -1,17 +1,24 @@
+import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:nami/screens/widgets/map.widget.dart';
 import 'package:nami/screens/widgets/mitgliedStufenPieChart.widget.dart';
+import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/nami/nami_edit_taetigkeiten.dart';
 import 'package:nami/utilities/stufe.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
 import 'package:maps_launcher/maps_launcher.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+import 'package:intl/intl.dart';
 
+// ignore: must_be_immutable
 class MitgliedDetail extends StatefulWidget {
-  final Mitglied mitglied;
-  const MitgliedDetail({required this.mitglied, Key? key}) : super(key: key);
+  Mitglied mitglied;
+  MitgliedDetail({required this.mitglied, Key? key}) : super(key: key);
 
   @override
   MitgliedDetailState createState() => MitgliedDetailState();
@@ -20,6 +27,7 @@ class MitgliedDetail extends StatefulWidget {
 class MitgliedDetailState extends State<MitgliedDetail>
     with SingleTickerProviderStateMixin {
   bool showMoreTaetigkeiten = false;
+  bool loadingStufenwechsel = false;
   late TabController _tabController;
 
   @override
@@ -51,7 +59,8 @@ class MitgliedDetailState extends State<MitgliedDetail>
     // filter taetigkeiten to only include Stufen Taetigkeiten
     // count years per stufe by subtracting aktivVon from aktivBis or now
     Map<String, int> tageProStufe = {};
-    List<String> stufen = Stufe.stufen.map((stufe) => stufe.name).toList();
+    List<String> stufen =
+        Stufe.stufen.map((stufe) => stufe.name.value).toList();
     for (var taetigkeit in widget.mitglied.taetigkeiten) {
       if (taetigkeit.untergliederung != null &&
           stufen.contains(taetigkeit.untergliederung) &&
@@ -136,7 +145,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
       children: [
         Text(
             'In der Stufe seit ${currentStufeYears > 1 ? '$currentStufeYears Jahren' : 'einem Jahr'}${currentStufeMonths != 0 ? ' und $currentStufeMonths Monaten' : ''}.'),
-        nextStufe?.name == 'Leiter' && maxStufenWechselJahr != null
+        nextStufe?.name.value == 'Leiter' && maxStufenWechselJahr != null
             ? Text('Stufenzeit endet $maxStufenWechselJahr')
             : (maxStufenWechselJahr != null && minStufenWechselJahr != null
                 ? Text(
@@ -259,57 +268,240 @@ class MitgliedDetailState extends State<MitgliedDetail>
     ]);
   }
 
-  Widget _buildTaetigkeiten() {
-    List<Taetigkeit> aktiveTaetigkeiten = [];
-    List<Taetigkeit> alteTaetigkeiten = [];
-    for (Taetigkeit taetigkeit in widget.mitglied.taetigkeiten) {
-      taetigkeit.taetigkeit =
-          taetigkeit.taetigkeit.replaceFirst('€ ', '').split('(')[0];
-      if (taetigkeit.isActive() || taetigkeit.isFutureTaetigkeit()) {
-        aktiveTaetigkeiten.add(taetigkeit);
-      } else {
-        alteTaetigkeiten.add(taetigkeit);
+  Widget _buildTaetigkeitImage(Taetigkeit taetigkeit) {
+    String imagerPath = 'assets/images/lilie.png';
+    if (taetigkeit.taetigkeit.trim() == 'Mitglied') {
+      imagerPath =
+          'assets/images/${Stufe.getStufeByString(taetigkeit.untergliederung!).imageName}';
+    } else if (taetigkeit.taetigkeit.contains('LeiterIn')) {
+      return Image.asset(
+        imagerPath,
+        width: 80.0,
+        height: 80.0,
+        fit: BoxFit.cover,
+        color: Stufe.getStufeByString(taetigkeit.untergliederung!).farbe,
+        colorBlendMode: BlendMode.srcIn,
+      );
+    }
+
+    return Image.asset(
+      imagerPath,
+      width: 80.0,
+      height: 80.0,
+      fit: BoxFit.cover,
+    );
+  }
+
+  Widget _buildTaetigkeitenItem(Taetigkeit taetigkeit) {
+    return SizedBox(
+      height: 100,
+      width: 400,
+      child: Card(
+        color: Theme.of(context).colorScheme.surface,
+        elevation: 2.0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+        child: IntrinsicHeight(
+          child: Padding(
+            padding: const EdgeInsets.all(5.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildTaetigkeitImage(taetigkeit),
+                const SizedBox(width: 10.0),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${taetigkeit.taetigkeit} - ${taetigkeit.untergliederung}',
+                        style: const TextStyle(
+                          fontSize: 18.0,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 5.0),
+                      Text(
+                        '${DateFormat('MMMM').format(taetigkeit.aktivVon)} ${taetigkeit.aktivVon.year}${taetigkeit.aktivBis != null ? ' - ${DateFormat('MMMM').format(taetigkeit.aktivBis!)} ${taetigkeit.aktivBis!.year}' : ''}',
+                        style: const TextStyle(fontSize: 16.0),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  handleStufenwechsel(int memberId, Taetigkeit currentTaetigkeit, Stufe stufe,
+      DateTime aktivVon) async {
+    if (await showConfirmationDialog(
+        context,
+        aktivVon,
+        stufe,
+        '${widget.mitglied.vorname} ${widget.mitglied.nachname}',
+        currentTaetigkeit)) {
+      setState(() => loadingStufenwechsel = true);
+      try {
+        await stufenwechsel(
+            widget.mitglied.id, currentTaetigkeit, stufe, aktivVon);
+      } catch (e) {
+        debugPrint('failed to stufenwechsel');
       }
+      widget.mitglied = Hive.box<Mitglied>('members')
+          .values
+          .firstWhere((element) => element.id == widget.mitglied.id);
+      setState(() => loadingStufenwechsel = false);
     }
-    if (aktiveTaetigkeiten.isEmpty && alteTaetigkeiten.isNotEmpty) {
-      showMoreTaetigkeiten = true;
-    }
-    if (aktiveTaetigkeiten.isEmpty && alteTaetigkeiten.isEmpty) {
-      return Container();
-    }
-    return _buildBox(<Widget>[
-      const Text("Aktive Tätigkeiten", style: TextStyle(color: Colors.white)),
-      for (Taetigkeit item in aktiveTaetigkeiten)
-        Text(
-            '${item.taetigkeit} - ${item.untergliederung} (Seit: ${item.aktivVon.month}/${item.aktivVon.year}${item.aktivBis != null ? '-${item.aktivBis!.month}/${item.aktivBis!.year}' : ''})',
-            style: const TextStyle(color: Colors.white)),
-      if (alteTaetigkeiten.isNotEmpty) const SizedBox(height: 10),
-      if (!showMoreTaetigkeiten && alteTaetigkeiten.isNotEmpty)
-        GestureDetector(
-          onTap: () {
-            setState(() => showMoreTaetigkeiten = true);
-          },
-          child: const Text("Alte Tätigkeiten anzeigen"),
+  }
+
+  Widget _buildStufenwechselItem(
+      Taetigkeit fakeStufenwechselTaetigkeit, Taetigkeit currentTaetigkeit) {
+    Stufe stufe =
+        Stufe.getStufeByString(fakeStufenwechselTaetigkeit.untergliederung!);
+
+    return GestureDetector(
+      onTap: loadingStufenwechsel
+          ? null
+          : () => handleStufenwechsel(widget.mitglied.id, currentTaetigkeit,
+              stufe, fakeStufenwechselTaetigkeit.aktivVon),
+      child: SizedBox(
+        height: 100,
+        width: 400,
+        child: Card(
+          color: loadingStufenwechsel
+              ? Theme.of(context).colorScheme.surface
+              : Theme.of(context).colorScheme.background,
+          elevation: 2.0,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+          child: IntrinsicHeight(
+            child: Padding(
+              padding: const EdgeInsets.all(5.0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  loadingStufenwechsel
+                      ? const Padding(
+                          padding: EdgeInsets.all(10),
+                          child: SizedBox(
+                            width: 60.0,
+                            height: 60.0,
+                            child: CircularProgressIndicator(),
+                          ))
+                      : _buildTaetigkeitImage(fakeStufenwechselTaetigkeit),
+                  const SizedBox(width: 10.0),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${fakeStufenwechselTaetigkeit.untergliederung}',
+                          style: const TextStyle(
+                            fontSize: 18.0,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Text('(nach Stufenwechsel)'),
+                        const SizedBox(height: 5.0),
+                        Text(
+                          DateFormat('dd. MMMM yyyy')
+                              .format(fakeStufenwechselTaetigkeit.aktivVon),
+                          style: const TextStyle(fontSize: 16.0),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
-      if (showMoreTaetigkeiten && alteTaetigkeiten.isNotEmpty)
-        const Text("Alte Tätigkeiten", style: TextStyle(color: Colors.white)),
-      if (showMoreTaetigkeiten && alteTaetigkeiten.isNotEmpty)
-        for (Taetigkeit item in alteTaetigkeiten)
-          Text(
-              '${item.taetigkeit} - ${item.untergliederung} (${item.aktivVon.month}/${item.aktivVon.year}-${item.aktivBis!.month}/${item.aktivBis!.year})',
-              style: const TextStyle(color: Colors.white)),
-      if (showMoreTaetigkeiten && aktiveTaetigkeiten.isNotEmpty)
-        GestureDetector(
-          onTap: () {
-            setState(() => showMoreTaetigkeiten = false);
-          },
-          child: const Text("Weniger anzeigen"),
-        ),
-    ]);
+      ),
+    );
+  }
+
+  Future<bool> showConfirmationDialog(
+      BuildContext context,
+      DateTime stufenwechselDate,
+      Stufe stufeAfterWechsel,
+      String mitgliedName,
+      Taetigkeit currentTaetigkeit) async {
+    Completer<bool> completer = Completer<bool>();
+
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Stufenwechsel'),
+          content: Text(
+              'Soll $mitgliedName am ${DateFormat('dd. MMMM yyyy').format(stufenwechselDate)} wirklich zu den ${stufeAfterWechsel.name.value} wechseln?\n\nDie aktuelle Tätigkeit (${currentTaetigkeit.untergliederung}) wird beendet.'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Abbrechen'),
+              onPressed: () {
+                completer.complete(false);
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Änderung vornehmen'),
+              onPressed: () {
+                completer.complete(true);
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+
+    return completer.future;
+  }
+
+  Taetigkeit? getCurrenttaetigkeit(List<Taetigkeit> aktiveTaetigkeiten) {
+    List<Taetigkeit> taetigkeiten = aktiveTaetigkeiten
+        .where((taetigkeit) => taetigkeit.taetigkeit.trim() == 'Mitglied')
+        .toList();
+    return taetigkeiten.length == 1 ? taetigkeiten.first : null;
+  }
+
+  Taetigkeit? getStufenwechselTaetigkeit() {
+    DateTime currentDate = DateTime.now();
+    int? minStufenWechselJahr = widget.mitglied.getMinStufenWechselJahr();
+    bool isMinStufenWechselJahrInPast = minStufenWechselJahr != null &&
+        minStufenWechselJahr <= currentDate.year;
+    Stufe? nextStufe = widget.mitglied.nextStufe;
+
+    // check if stufenwechsel is possible
+
+    if (!isMinStufenWechselJahrInPast ||
+        nextStufe == null ||
+        !nextStufe.isStufeYouCanChangeTo) {
+      return null;
+    }
+
+    Taetigkeit? stufenwechselTaetigkeit = Taetigkeit();
+    stufenwechselTaetigkeit.aktivVon = getNextStufenwechselDatum();
+    stufenwechselTaetigkeit.taetigkeit = 'Mitglied';
+    stufenwechselTaetigkeit.untergliederung =
+        widget.mitglied.nextStufe?.name.value;
+    return stufenwechselTaetigkeit;
   }
 
   @override
   Widget build(BuildContext context) {
+    List<Taetigkeit> aktiveTaetigkeiten =
+        widget.mitglied.getActiveTaetigkeiten();
+    aktiveTaetigkeiten.sort((a, b) => b.aktivVon.compareTo(a.aktivVon));
+    List<Taetigkeit> vergangeneTaetigkeiten =
+        widget.mitglied.getAlteTaetigkeiten();
+    vergangeneTaetigkeiten.sort((a, b) => b.aktivVon.compareTo(a.aktivVon));
+
+    Taetigkeit? fakeStufenwechselTaetigkeit = getStufenwechselTaetigkeit();
+    Taetigkeit? currentTaetigkeit = getCurrenttaetigkeit(aktiveTaetigkeiten);
     return Scaffold(
         appBar: AppBar(
           shadowColor: Colors.transparent,
@@ -338,10 +530,38 @@ class MitgliedDetailState extends State<MitgliedDetail>
                     ],
                   ),
                   ListView(
-                    children: <Widget>[
-                      _buildTaetigkeiten(),
+                    children: [
+                      if (fakeStufenwechselTaetigkeit != null &&
+                          currentTaetigkeit != null)
+                        _buildStufenwechselItem(
+                            fakeStufenwechselTaetigkeit, currentTaetigkeit),
+                      SizedBox(
+                          height: aktiveTaetigkeiten.length * 110,
+                          child: ListView.builder(
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: aktiveTaetigkeiten.length,
+                              itemBuilder: (context, index) =>
+                                  _buildTaetigkeitenItem(
+                                      aktiveTaetigkeiten[index]))),
+                      const SizedBox(
+                        height: 20,
+                      ),
+                      if (vergangeneTaetigkeiten.isNotEmpty)
+                        const Text(
+                          'Abgeschlossene Tätigkeiten',
+                          style: TextStyle(fontSize: 18.0),
+                        ),
+                      if (vergangeneTaetigkeiten.isNotEmpty)
+                        SizedBox(
+                            height: vergangeneTaetigkeiten.length * 110,
+                            child: ListView.builder(
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: vergangeneTaetigkeiten.length,
+                                itemBuilder: (context, index) =>
+                                    _buildTaetigkeitenItem(
+                                        vergangeneTaetigkeiten[index]))),
                     ],
-                  ),
+                  )
                 ],
               ),
             ),

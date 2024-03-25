@@ -11,13 +11,21 @@
             "name": "iPhone",
             "request": "launch",
             "type": "dart",
-            "deviceId": "6D4853F8-1BCA-40FB-A6E0-1FCB44F6A17F"
+            "deviceId": "77122B42-F99C-4481-A4E3-2D79B779C40D",
+            "args": [
+                "--flavor",
+                "NaMi"
+            ]
         },
         {
             "name": "MyPhone",
             "request": "launch",
             "type": "dart",
-            "deviceId": "00008120-00026848023B401E"
+            "deviceId": "00008120-00026848023B401E",
+            "args": [
+                "--flavor",
+                "NaMi"
+            ]
         },
     ],
 }

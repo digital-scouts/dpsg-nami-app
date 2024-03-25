@@ -27,16 +27,24 @@ Dieses Werk ist lizenziert unter einer [Creative Commons Namensnennung - Nicht-k
 - Deteils von Mitgliedern ansehen. Über Buttons anrufen, E-Mails schreiben und die Adresse auf der Karte anzeigen.
 - Über Grafiken und auflistung den Tätigkeitsverlauf eines Mitglieds ansehen.
 - Mitgliedsdaten sind offline verfügbar und können nach belieben syncronisiert werden
-- Statistiken geben einen einblick die aktuelle Mitgliederanzahl
+- Statistiken geben einen einblick die aktuelle Mitgliederanzahl und Demografie
 
 ## Geplante Funktionen
 
-- Mitglieder bearbeiten, 'löschen' und anlegen per Texterkennung
+- Mitglieder bearbeiten und anlegen per Texterkennung
 - Stufenwechsel durchführen
 - Führungszeugniss Antragsunterlagen herrunterladen
 - Umfangreiche Statistiken (mit historischen Daten)
 
 ## Versionen
+
+### [0.0.4] - ??
+- Add: Statistik Alterspyramide der Mitglieder hinzugefügt
+- Add: Rechte des Nutzers werden geprüft / Funktionen entsprechend freigeschaltet
+- Add: Mitgleider können per Formular bearbeitet und hinzugefügt werden
+- Add: Stufenwechsel kann über den Tab Tätigkeiten eines Mitglieds durchgeführt werden
+- Fix: Token wird aktuallisert, wenn dieser abgelaufen ist (Vorrausgesetzt, der Login wurde gespeichert)
+- Fix: Der Nutzer abgemeldet, wenn er Token abgelaufen ist und Login nicht gespeichert wurde
 
 ### [0.0.3] - 06.10.2023 [![Test](https://img.shields.io/badge/release-v0.0.3-orange)](https://github.com/JanneckLange/dpsg-nami-app/releases/tag/v0.0.3)
 
@@ -51,7 +59,7 @@ Dieses Werk ist lizenziert unter einer [Creative Commons Namensnennung - Nicht-k
 - Change: Als Server wird nun ein mockServer angesprochen
 - Change: Mitgliedsliste hat einen neuen Filter bekommen
 - Change: Mitglieddetails hat einen neuen Anstrich bekommen
-  - Eine Karte wurde zu Mitgliedsdetails hinzugefügts
+  - Eine Karte wurde zu Mitgliedsdetails hinzugefügt
   - Statistiken zur Mitgliedschaft wurden hinzugefügt
   - Informationen zum Stufenwechsel wurden hinzugefügt
   - Tätigkeiten befinden sich nun auf einem eigenen Tab
@@ -69,3 +77,40 @@ Dieses Werk ist lizenziert unter einer [Creative Commons Namensnennung - Nicht-k
 - Add: Login
 - Add: Member List
 - Add: Offline Mode
+
+## Nami Rechte
+
+Um die App und deren Funktion verwenden zu können sind bestimmte NaMi-Rechte Vorraussetzung.
+
+### Vorraussetzung für die App
+- 5: Personen - mitglied_READ, 
+- 36: Organisation - gruppierung_READ, 
+- 58: Personen - taetigkeitassignment_READ, 
+- 118: Personen - mitglied_SHOW_TAB, 
+- 139: Personen - taetigkeitassignment_SHOW_TAB, 
+- 314: Mgl-Verwaltung - Rechte anzeigen, 
+
+### Mitglied bearbeiten
+- 4: Personen - mitglied_UPDATE,
+- 57: Personen - taetigkeitassignment_UPDATE, 
+
+### Stufenwechsel durchführen
+- 57: Personen - taetigkeitassignment_UPDATE, 
+- 59: Personen - taetigkeitassignment_CREATE, 
+
+### Mitglied anlegen
+-  6: Personen - mitglied_CREATE,
+-  59: Personen - taetigkeitassignment_CREATE, 
+-  313: Mgl-Verwaltung - Kontoverbindung anzeigen
+-  316: Mgl-Verwaltung - Mgl. Beitragskonto
+
+#### Mitglied verewaltung (Admin)
+- 312: Mgl-Verwaltung - Mitgliedschaft beenden
+- 315: Mgl-Verwaltung - Mgl. übernehmen
+- 320: Mgl-Verwaltung - Mgl. Aktivieren
+- 455: Mgl-Verwaltung - Gruppierung bearbeiten
+
+### Führungszeugnis Unterlagen ansehen/herrunterladen
+- 473: Mgl-Verwaltung - Eigene SGB VIII-Bescheinigungen ansehen, 
+- 474: Mgl-Verwaltung - Eigene SGB VIII-Bescheinigungen herunterladen, 
+

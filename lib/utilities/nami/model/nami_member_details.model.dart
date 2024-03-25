@@ -16,7 +16,7 @@ class NamiMemberDetailsModel {
   final bool sonst02;
   final String? spitzname;
   final int? landId;
-  final String staatsangehoerigkeitText;
+  final String? staatsangehoerigkeitText;
   final int gruppierungId;
   final String mglTypeId;
   final String? beitragsart;

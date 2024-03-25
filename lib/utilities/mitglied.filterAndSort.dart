@@ -7,10 +7,11 @@ void filterByString(List<Mitglied> mitglieder, String filterString) {
   mitglieder.retainWhere((mitglied) =>
       mitglied.vorname.toLowerCase().contains(filterString) ||
       mitglied.nachname.toLowerCase().contains(filterString) ||
-      mitglied.email!.toLowerCase().contains(filterString) ||
-      mitglied.emailVertretungsberechtigter!
-          .toLowerCase()
-          .contains(filterString) ||
+      (mitglied.email?.toLowerCase().contains(filterString) ?? false) ||
+      (mitglied.emailVertretungsberechtigter
+              ?.toLowerCase()
+              .contains(filterString) ??
+          false) ||
       mitglied.mitgliedsNummer.toString().contains(filterString) ||
       mitglied.id.toString().contains(filterString));
 }
@@ -18,7 +19,7 @@ void filterByString(List<Mitglied> mitglieder, String filterString) {
 ///Filter bei Stufe (woe, jufi, pfadi, rover, leiter)
 void filterByStufe(List<Mitglied> mitglieder, List<Stufe> stufen) {
   if (stufen.isEmpty) return;
-  List<String> s = stufen.map((e) => e.name).toList();
+  List<String> s = stufen.map((e) => e.name.value).toList();
   mitglieder.removeWhere((m) => !s.contains(m.stufe));
 }
 

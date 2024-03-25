@@ -91,6 +91,30 @@ class Mitglied {
     return false;
   }
 
+  List<Taetigkeit> getActiveTaetigkeiten() {
+    List<Taetigkeit> aktiveTaetigkeiten = [];
+    for (Taetigkeit taetigkeit in taetigkeiten) {
+      taetigkeit.taetigkeit =
+          taetigkeit.taetigkeit.replaceFirst('€ ', '').split('(')[0];
+      if (taetigkeit.isActive() || taetigkeit.isFutureTaetigkeit()) {
+        aktiveTaetigkeiten.add(taetigkeit);
+      }
+    }
+    return aktiveTaetigkeiten;
+  }
+
+  List<Taetigkeit> getAlteTaetigkeiten() {
+    List<Taetigkeit> alteTaetigkeiten = [];
+    for (Taetigkeit taetigkeit in taetigkeiten) {
+      taetigkeit.taetigkeit =
+          taetigkeit.taetigkeit.replaceFirst('€ ', '').split('(')[0];
+      if (!taetigkeit.isActive() && !taetigkeit.isFutureTaetigkeit()) {
+        alteTaetigkeiten.add(taetigkeit);
+      }
+    }
+    return alteTaetigkeiten;
+  }
+
   Stufe get currentStufe {
     return Stufe.getStufeByString(stufe);
   }
@@ -106,7 +130,7 @@ class Mitglied {
     if (nextStufe != null &&
         nextStufe!.isStufeYouCanChangeTo &&
         !isMitgliedLeiter()) {
-      return DateTime.now().year -
+      return getNextStufenwechselDatum().year -
           alterNextStufenwechsel +
           nextStufe!.alterMin!;
     } else {
@@ -124,7 +148,7 @@ class Mitglied {
           alterNextStufenwechsel +
           currentStufe.alterMax! +
           1;
-    } else if (currentStufe.name == "Rover" && !isMitgliedLeiter()) {
+    } else if (currentStufe.name.value == "Rover" && !isMitgliedLeiter()) {
       return DateTime.now().year -
           alterNextStufenwechsel +
           currentStufe.alterMax! +

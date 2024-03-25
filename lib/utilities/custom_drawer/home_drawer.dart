@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-import 'package:nami/screens/login.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
-import 'package:nami/utilities/nami/nami.service.dart';
 
-import '../hive/logout.dart';
+import '../hive/hive.handler.dart';
 
 class HomeDrawer extends StatefulWidget {
   const HomeDrawer(
@@ -63,7 +61,7 @@ class HomeDrawerState extends State<HomeDrawer> {
 
   @override
   Widget build(BuildContext context) {
-    int? gruppierung = getGruppierung();
+    int? gruppierung = getGruppierungId();
     Box<Mitglied> memberBox = Hive.box<Mitglied>('members');
     Mitglied? user;
     try {
@@ -144,7 +142,7 @@ class HomeDrawerState extends State<HomeDrawer> {
                   Icons.power_settings_new,
                   color: Colors.red,
                 ),
-                onTap: () => {logout(), pushLoginScreen()},
+                onTap: () => {logout()},
               ),
               SizedBox(
                 height: MediaQuery.of(context).padding.bottom,
@@ -154,14 +152,6 @@ class HomeDrawerState extends State<HomeDrawer> {
         ],
       ),
     );
-  }
-
-  void pushLoginScreen() {
-    Navigator.push(context,
-            MaterialPageRoute(builder: (context) => const LoginScreen()))
-        .then((value) {
-      syncNamiData();
-    });
   }
 
   Widget inkwell(DrawerList listData) {
