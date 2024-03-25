@@ -1,9 +1,16 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:nami/screens/app_locked.screen.dart';
+import 'package:hive/hive.dart';
+import 'package:nami/screens/app_locked_screen.dart';
+import 'package:nami/screens/loading_info_screen.dart';
 import 'package:nami/utilities/hive/hive.handler.dart';
+import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/nami/nami-login.service.dart';
+import 'package:nami/utilities/nami/nami-member.service.dart';
+import 'package:nami/utilities/nami/nami.service.dart';
+import 'package:nami/utilities/nami/nami_rechte.dart';
 
 class AppStateHandler extends ChangeNotifier {
   static final AppStateHandler _instance = AppStateHandler._internal();
@@ -36,31 +43,6 @@ class AppStateHandler extends ChangeNotifier {
 
   void setInactiveState(BuildContext context) {
     if (currentState == AppState.inactive) return;
-    // twoSideVorhangAnimation(context, animation, secondaryAnimation, child) {
-    //       var curvedAnimation = CurvedAnimation(
-    //         parent: animation,
-    //         curve: Curves.elasticOut,
-    //       );
-
-    //       return Stack(
-    //         children: <Widget>[
-    //           SlideTransition(
-    //             position: Tween<Offset>(
-    //               begin: Offset(-1.0, 0.0),
-    //               end: Offset(-.4, 0.0),
-    //             ).animate(curvedAnimation),
-    //             child: AppLockedScreen(),
-    //           ),
-    //           SlideTransition(
-    //             position: Tween<Offset>(
-    //               begin: Offset(1.0, 0.0),
-    //               end: Offset(.4, 0.0),
-    //             ).animate(curvedAnimation),
-    //             child: AppLockedScreen(),
-    //           ),
-    //         ],
-    //       );
-    //     }
 
     // push locked screen with door-like transition
     Navigator.push(
@@ -93,7 +75,7 @@ class AppStateHandler extends ChangeNotifier {
   void setResumeState(BuildContext context) {
     if (currentState == AppState.resume) return;
     Navigator.maybePop(context);
-    // is app password enabled
+    // TODO: is app password enabled
     // -> yes, is user authenticated
     //    -> yes, setAuthenticatedState
     //    -> no, show reset Option -> setLoggedOutState
@@ -109,27 +91,71 @@ class AppStateHandler extends ChangeNotifier {
     if (currentState == AppState.loggedOut) return;
     // clear AppLoggin | clear hive
     logout();
-    // show login screen -> main.dart
     currentState = AppState.loggedOut;
   }
 
   /// App is authenticated | User is logged in
   /// Hive is open
-  void setLoadDataState({bool loadAll = false}) {
+  Future<void> setLoadDataState(BuildContext context,
+      {bool loadAll = false}) async {
     if (currentState == AppState.loadData) return;
-    // show loading info screen
-    // on error -> setLoggedOutState
-    // on success -> setReadyState
+    ValueNotifier<bool?> loginProgressNotifier = ValueNotifier(null);
+    ValueNotifier<List<AllowedFeatures>> rechteProgressNotifier =
+        ValueNotifier([]);
+    ValueNotifier<String?> gruppierungProgressNotifier = ValueNotifier(null);
+    ValueNotifier<bool?> metaProgressNotifier = ValueNotifier(null);
+    ValueNotifier<bool?> memberOverviewProgressNotifier = ValueNotifier(null);
+    ValueNotifier<double> memberAllProgressNotifier = ValueNotifier(0.0);
+    ValueNotifier<bool> statusGreenNotifier = ValueNotifier(true);
 
-    // update token
-    // update rechte
-    // if loadAll
-    // -> update gruppierung
-    // -> loadAll: update metadata
-    // -> loadAll: update mitglieder komplett
-    // else
-    // -> update mitglieder änderung
     currentState = AppState.loadData;
+
+    Navigator.push(context, MaterialPageRoute(builder: (context) {
+      return LoadingInfoScreen(
+        loginProgressNotifier: loginProgressNotifier,
+        rechteProgressNotifier: rechteProgressNotifier,
+        gruppierungProgressNotifier: gruppierungProgressNotifier,
+        metaProgressNotifier: metaProgressNotifier,
+        memberOverviewProgressNotifier: memberOverviewProgressNotifier,
+        memberAllProgressNotifier: memberAllProgressNotifier,
+        statusGreenNotifier: statusGreenNotifier,
+        loadAll: loadAll,
+      );
+    })).then((value) {
+      if (statusGreenNotifier.value == true) {
+        setReadyState();
+      } else {
+        setLoggedOutState(context);
+      }
+    });
+
+    try {
+      final oneHourAgo = DateTime.now().subtract(const Duration(hours: 1));
+      if (getLastLoginCheck().isAfter(oneHourAgo) || await updateLoginData()) {
+        loginProgressNotifier.value = true;
+      } else {
+        loginProgressNotifier.value = false;
+        statusGreenNotifier.value = false;
+        debugPrint('Login failed and could not be updated.');
+        return;
+      }
+
+      if (loadAll) {
+        gruppierungProgressNotifier.value = await loadGruppierung();
+        await reloadMetadataFromServer();
+        metaProgressNotifier.value = true;
+        await syncMember(
+            memberAllProgressNotifier, memberOverviewProgressNotifier,
+            forceUpdate: true);
+      } else {
+        await syncMember(
+            memberAllProgressNotifier, memberOverviewProgressNotifier);
+      }
+      rechteProgressNotifier.value = await getRechte();
+    } catch (e) {
+      statusGreenNotifier.value = false;
+      debugPrint(e.toString());
+    }
   }
 
   /// App is authenticated | User loggin unclear
@@ -141,15 +167,25 @@ class AppStateHandler extends ChangeNotifier {
 
     currentState = AppState.authenticated;
 
-    // TODO: check if data is available -> no, setLoggedOutState
+    // check if data is available -> Logout if not
+    List<Mitglied> mitglieder =
+        Hive.box<Mitglied>('members').values.toList().cast<Mitglied>();
 
-    //login check is older than 30 days
-    DateTime thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
-    if (getLastNamiSync().isBefore(thirtyDaysAgo)) {
-      setLoadDataState();
-    } else {
-      setReadyState();
+    final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
+
+    if (mitglieder.isEmpty) {
+      setLoggedOutState(context);
+      return;
     }
+
+    // login check or data is older than 30 days -> load data
+    if (getLastLoginCheck().isBefore(thirtyDaysAgo) ||
+        getLastNamiSync().isBefore(thirtyDaysAgo)) {
+      setLoadDataState(context);
+      return;
+    }
+
+    setReadyState();
   }
 
   /// App is authenticated | User is logged in
@@ -157,8 +193,7 @@ class AppStateHandler extends ChangeNotifier {
   /// Data is available and up to date
   void setReadyState() {
     if (currentState == AppState.ready) return;
-    // show AppLoggin Hint when not set
-    // show main screen -> main.dart
+    // show AppLoggin (with biometrics) Hint when not set
 
     currentState = AppState.ready;
   }

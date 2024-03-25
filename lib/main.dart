@@ -2,7 +2,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'package:flutter/material.dart';
-import 'package:nami/screens/login.dart';
+import 'package:nami/screens/login_screen.dart';
 import 'package:nami/screens/navigation_home_screen.dart';
 import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/theme.dart';

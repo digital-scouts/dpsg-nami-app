@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -19,6 +20,25 @@ enum AllowedFeatures {
   memberCreate,
   stufenwechsel,
   fuehrungszeugnis
+}
+
+extension AllowedFeaturesExtension on AllowedFeatures {
+  String toReadableString() {
+    switch (this) {
+      case AllowedFeatures.appStart:
+        return 'App Start';
+      case AllowedFeatures.memberEdit:
+        return 'Member Edit';
+      case AllowedFeatures.memberCreate:
+        return 'Member Create';
+      case AllowedFeatures.stufenwechsel:
+        return 'Stufenwechsel';
+      case AllowedFeatures.fuehrungszeugnis:
+        return 'Führungszeugnis';
+      default:
+        return 'Unknown';
+    }
+  }
 }
 
 // Dokumentation zu den Rechten finden sich im README.md
@@ -55,9 +75,13 @@ Future<List<AllowedFeatures>> getRechte() async {
 
 Future<Map<int, String>> loadRechteJson() async {
   final headers = {'Cookie': cookie};
-  int userId = findCurrentUser()!.id;
+  Mitglied? currentUser = findCurrentUser();
+  if (currentUser == null) {
+    debugPrint('Kein Benutzer gefunden.');
+    return Map.from({});
+  }
 
-  dynamic document = await loadDocument(userId, headers);
+  dynamic document = await loadDocument(currentUser.id, headers);
 
   // Finden Sie das relevante <script>-Tags
   final scriptContent =
@@ -90,6 +114,9 @@ Future<dynamic> loadDocument(int userId, Map<String, String> headers) async {
         Uri.parse(
             '$url/ica//pages/rights/ShowRights?gruppierung=$gruppierungId&id=$userId'),
         headers: headers);
+    if (response.statusCode != 200) {
+      throw Exception('Failed to load user rights: $url');
+    }
     final html = response.body;
     return parse(html);
   } catch (e) {

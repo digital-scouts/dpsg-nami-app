@@ -39,7 +39,7 @@ class _SettingsState extends State<Settings>
 
   Future<void> _syncData({bool forceSync = false}) async {
     setState(() => loading = true);
-    await syncNamiData(forceSync: forceSync);
+    // await syncNamiData(forceSync: forceSync);
     setState(() => loading = false);
   }
 

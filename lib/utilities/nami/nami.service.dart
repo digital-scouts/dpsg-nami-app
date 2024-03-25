@@ -2,9 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:nami/utilities/hive/settings.dart';
-import 'package:nami/utilities/nami/nami_rechte.dart';
 import 'model/nami_stats.model.dart';
-import 'nami-member.service.dart';
 import 'package:nami/utilities/nami/nami_member_add_meta.dart';
 
 /// läd Nami Dashboard Statistiken
@@ -25,7 +23,7 @@ Future<NamiStatsModel> loadNamiStats() async {
   }
 }
 
-Future<void> loadGruppierung() async {
+Future<String> loadGruppierung() async {
   String url = getNamiLUrl();
   String path = getNamiPath();
   String cookie = getNamiApiCookie();
@@ -34,32 +32,20 @@ Future<void> loadGruppierung() async {
   final response =
       await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
 
-  if (response.statusCode == 200 &&
-      jsonDecode(response.body)['success'] &&
-      jsonDecode(response.body)['data'].length == 1) {
-    int gruppierungId = jsonDecode(response.body)['data'][0]['id'];
-    String gruppierungName = jsonDecode(response.body)['data'][0]['descriptor'];
-    setGruppierungId(gruppierungId);
-    setGruppierungName(gruppierungName);
-    debugPrint('Gruppierung: $gruppierungName ($gruppierungId)');
-    return;
+  if (response.statusCode != 200 ||
+      !jsonDecode(response.body)['success'] ||
+      jsonDecode(response.body)['data'].length != 1) {
+    debugPrint(
+        'Failed to load gruppierung. Multiple or no gruppierungen found');
+    throw Exception('Failed to load gruppierung');
   }
-  debugPrint('Failed to load gruppierung. Multiple or no gruppierungen found');
-}
 
-Future<void> syncNamiData({bool forceSync = false}) async {
-  // login / update token
-  setLastNamiSync(DateTime.now());
-  await loadGruppierung();
-  await syncMember(forceSync);
-  //load user data
-
-  await reloadMetadataFromServer();
-  var rechte = await getRechte();
-  debugPrint('Rechte: $rechte');
-
-  //syncStats
-  //syncProfile
+  int gruppierungId = jsonDecode(response.body)['data'][0]['id'];
+  String gruppierungName = jsonDecode(response.body)['data'][0]['descriptor'];
+  setGruppierungId(gruppierungId);
+  setGruppierungName(gruppierungName);
+  debugPrint('Gruppierung: $gruppierungName ($gruppierungId)');
+  return gruppierungName;
 }
 
 Future<void> reloadMetadataFromServer() async {
