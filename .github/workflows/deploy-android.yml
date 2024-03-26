@@ -66,16 +66,14 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      # Step 1 -  Download app bundle
       - name: Download app bundle from artifact
         uses: actions/download-artifact@v2
         with:
-          name: app-bundle
-      # Step 2- Upload the AAB to play console
+          name: android-artifacts
       - name: Publish to Play Store
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: '${{ secrets.ANDROID_SERVICE_ACCOUNT_JSON }}'
-          packageName: com.uxstate.countriespad
+          packageName: de.jlange.nami.app
           releaseFiles: '${{ github.workspace }}/app-release.aab'
           track: production
