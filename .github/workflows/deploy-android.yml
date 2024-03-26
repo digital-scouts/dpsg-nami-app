@@ -2,11 +2,43 @@ name: Deploy App to Android Playstore
 on:
   workflow_dispatch: null
 jobs:
-  build:
-    name: Build Android
+  test:
+    name: flutter test
     runs-on: ubuntu-latest
     env:
-      JAVA_VERSION: '11'
+      JAVA_VERSION: '17.0.1'
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-java@v1
+        with:
+          java-version: ${{env.JAVA_VERSION}}
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+      - run: flutter --version
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - uses: actions/checkout@v2
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: 'stable'
+      - run: dart --version
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed .
+      - name: Analyze project source
+        run: flutter analyze
+      # - name: Run tests
+      #   run: flutter test
+    
+  build:
+    name: Build Android
+    needs: [test]
+    runs-on: ubuntu-latest
+    env:
+      JAVA_VERSION: '17.0.1'
       FLUTTER_VERSION: '3.19.2'
     steps:
       - name: Checkout code
@@ -21,14 +53,17 @@ jobs:
           flutter-version:  ${{env.FLUTTER_VERSION}}
           channel: 'stable'
           cache: true
-          
       - run: flutter pub get
-
       - name: Build aab
         run: flutter build appbundle
+        id: build_aab
           # Build Android App Bundle which by default will be stored in the
           # ./build/app/outputs/bundle/release as app-release.aab
-
+      - name: Upload Signed App Bundle
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-bundle
+          path: ${{steps.build_aab.outputs.signedReleaseFile}}
       # - name: Sign App Bundle
       #   uses: r0adkll/sign-android-release@v1   
       #   id: sign_app
@@ -38,18 +73,30 @@ jobs:
       #     alias: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}         
       #     keyStorePassword: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}             
       #     keyPassword: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
-
       # - name: Upload Signed App Bundle
       #   uses: actions/upload-artifact@v3
       #   with:
       #     name: signed-app-bundle
       #     path: ${{steps.sign_app.outputs.signedReleaseFile}}
-        
+   
+  deploy:
+    name: Deploy Android
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v3
+        id: download-app
+        with:
+          name: app-bundle
+      - uses: actions/download-artifact@v3
+        id: download-signed-app
+        with:
+          name: app-bundle
       - name: Upload to Play Store (Internal Testing)
         uses: r0adkll/upload-google-play@v1.0.18
         with:
           serviceAccountJsonPlainText: ${{ secrets.ANDROID_SERVICE_ACCOUNT_JSON }}
           packageName: de.jlange.nami.app
-          releaseFiles: ${{steps.sign_app.outputs.signedReleaseFile}}
+          releaseFiles: ${{steps.download-app.outputs.signedReleaseFile}}
           mappingFile: ./build/app/outputs/mapping/release/mapping.txt
           track: internal
