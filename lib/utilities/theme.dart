@@ -33,7 +33,7 @@ final lightTheme = ThemeData(
 );
 
 class ThemeModel extends ChangeNotifier {
-  ThemeMode currentMode = ThemeMode.light;
+  ThemeMode currentMode = ThemeMode.system;
 
   setTheme(ThemeMode type) {
     currentMode = type;
