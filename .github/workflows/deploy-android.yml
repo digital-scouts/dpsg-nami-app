@@ -59,35 +59,26 @@ jobs:
         id: build_aab
           # Build Android App Bundle which by default will be stored in the
           # ./build/app/outputs/bundle/release as app-release.aab
+      - name: Sign App Bundle
+        uses: r0adkll/sign-android-release@v1   
+        id: sign_app
+        with:
+          releaseDirectory: build/app/outputs/bundle/release/
+          signingKeyBase64: ${{ secrets.ANDROID_KEYSTORE }}
+          alias: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}         
+          keyStorePassword: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}             
+          keyPassword: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
       - name: Upload Signed App Bundle
         uses: actions/upload-artifact@v3
         with:
-          name: app-bundle
-          path: ${{steps.build_aab.outputs.signedReleaseFile}}
-      # - name: Sign App Bundle
-      #   uses: r0adkll/sign-android-release@v1   
-      #   id: sign_app
-      #   with:
-      #     releaseDirectory: build/app/outputs/bundle/release/
-      #     signingKeyBase64: ${{ secrets.ANDROID_KEYSTORE }}
-      #     alias: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}         
-      #     keyStorePassword: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}             
-      #     keyPassword: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
-      # - name: Upload Signed App Bundle
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     name: signed-app-bundle
-      #     path: ${{steps.sign_app.outputs.signedReleaseFile}}
+          name: signed-app-bundle
+          path: ${{steps.sign_app.outputs.signedReleaseFile}}
    
   deploy:
     name: Deploy Android
     needs: [build]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v3
-        id: download-app
-        with:
-          name: app-bundle
       - uses: actions/download-artifact@v3
         id: download-signed-app
         with:
@@ -97,6 +88,6 @@ jobs:
         with:
           serviceAccountJsonPlainText: ${{ secrets.ANDROID_SERVICE_ACCOUNT_JSON }}
           packageName: de.jlange.nami.app
-          releaseFiles: ${{steps.download-app.outputs.signedReleaseFile}}
+          releaseFiles: ${{steps.download-signed-app.outputs.signedReleaseFile}}
           mappingFile: ./build/app/outputs/mapping/release/mapping.txt
           track: internal
