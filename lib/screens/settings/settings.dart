@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nami/utilities/nami/nami-member.service.dart';
 
 import '../../utilities/hive/settings.dart';
 import 'dart:math';
@@ -38,7 +39,12 @@ class _SettingsState extends State<Settings>
 
   Future<void> _syncData({bool forceSync = false}) async {
     setState(() => loading = true);
-    // await syncNamiData(forceSync: forceSync);
+    //TODO: Show Progress
+    await syncMember(
+      ValueNotifier(0),
+      ValueNotifier(false),
+      forceUpdate: forceSync,
+    );
     setState(() => loading = false);
   }
 

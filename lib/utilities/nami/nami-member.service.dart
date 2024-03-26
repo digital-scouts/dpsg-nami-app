@@ -35,20 +35,21 @@ Future<List<int>> loadMemberIdsToUpdate(String url, String path,
 
   List<Mitglied> mitglieder =
       Hive.box<Mitglied>('members').values.toList().cast<Mitglied>();
-
-  if (response.statusCode == 200 &&
-      jsonDecode(response.body)['success'] == true) {
+  final body = jsonDecode(response.body);
+  if (response.statusCode == 200 && body['success'] == true) {
     List<int> memberIds = [];
-    jsonDecode(response.body)['data'].forEach((item) => {
-          if (forceUpdate ||
-              getVersionOfMember(item['id'], mitglieder) !=
-                  item['entries_version'])
-            {
-              debugPrint(
-                  'Member ${item['vorname']} ${item['id']} needs to be updated. Old Version: ${getVersionOfMember(item['id'], mitglieder)} New Version: ${item['entries_version']}'),
-              memberIds.add(item['id'])
-            }
-        });
+    body['data'].forEach((item) {
+      if (forceUpdate ||
+          getVersionOfMember(item['id'], mitglieder) !=
+              item['entries_version']) {
+        debugPrint(
+            'Member ${item['entries_vorname']} ${item['id']} needs to be updated. Old Version: ${getVersionOfMember(item['id'], mitglieder)} New Version: ${item['entries_version']}');
+        memberIds.add(item['id']);
+      } else {
+        debugPrint(
+            'Member ${item['entries_vorname']} ${item['id']} is up to date. Version: ${item['entries_version']}');
+      }
+    });
     return memberIds;
   } else {
     debugPrint('Failed to load member List');
