@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:nami/utilities/app.state.dart';
-import 'package:nami/utilities/nami/nami-member.service.dart';
 
 import '../../utilities/hive/settings.dart';
 import 'dart:math';

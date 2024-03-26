@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-import 'package:nami/screens/login_screen.dart';
 import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
-
-import '../hive/hive.handler.dart';
 
 class HomeDrawer extends StatefulWidget {
   const HomeDrawer(
