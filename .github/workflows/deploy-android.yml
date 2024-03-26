@@ -36,6 +36,28 @@ jobs:
         run: flutter analyze
       # - name: Run tests
       #   run: flutter test
+
+  version:
+    name: flutter version
+    runs-on: ubuntu-latest
+    outputs:
+      releaseversion: ${{ steps.v.outputs.version }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.head_ref }} # checkout the correct branch name
+          fetch-depth: 0 # fetch the whole repo history
+      - name: Git Version
+        id: gitversion
+        uses: codacy/git-version@2.2.0
+        with:
+          dev-branch: develop
+          prefix: v
+      - name: Save git-version
+        id: v
+        run: echo "::set-output name=version::${{ steps.gitversion.outputs.VERSION }}"
+    
     
   build:
     name: Build Android
@@ -76,11 +98,11 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: signed-app-bundle
-          path: ${{steps.sign_app.outputs.signedReleaseFile}}
+          path: build/app/outputs/bundle/release/app-release.aab
    
   deploy:
     name: Deploy Android
-    needs: [build]
+    needs: [build, version]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v3
@@ -88,10 +110,10 @@ jobs:
         with:
           name: signed-app-bundle
       - name: Upload to Play Store (Internal Testing)
-        uses: r0adkll/upload-google-play@v1.0.18
+        uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.ANDROID_SERVICE_ACCOUNT_JSON }}
           packageName: de.jlange.nami.app
-          releaseFiles: ${{steps.download-signed-app.outputs.signedReleaseFile}}
-          mappingFile: ./build/app/outputs/mapping/release/mapping.txt
+          releaseFiles: app-release.aab
+          releaseName: ${{ needs.version.outputs.releaseversion }}
           track: internal
