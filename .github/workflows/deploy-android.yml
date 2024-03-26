@@ -1,4 +1,4 @@
-name: Deploy App to Androud
+name: Deploy App to Android Playstore
 on:
   workflow_dispatch: null
 jobs:

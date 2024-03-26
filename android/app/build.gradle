@@ -43,7 +43,7 @@ android {
 
     defaultConfig {
         applicationId "de.jlange.nami.app"
-        minSdkVersion 21
+        minSdkVersion 26
         targetSdkVersion 33
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
