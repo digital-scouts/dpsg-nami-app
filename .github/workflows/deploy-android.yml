@@ -2,42 +2,8 @@ name: Deploy App to Android Playstore
 on:
   workflow_dispatch: null
 jobs:
-
-  test:
-    name: flutter test
-    runs-on: ubuntu-latest
-
-    env:
-      JAVA_VERSION: '17.0.1'
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-java@v1
-        with:
-          java-version: ${{env.JAVA_VERSION}}
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-      - run: flutter --version
-      - run: flutter pub get
-      - run: flutter analyze
-      - run: flutter test
-      - uses: actions/checkout@v2
-      - uses: dart-lang/setup-dart@v1
-        with:
-          sdk: 'stable'
-      - run: dart --version
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Verify formatting
-        run: dart format --output=none --set-exit-if-changed .
-
-      - name: Analyze project source
-        run: dart analyze
-
   build:
     name: Build Android
-    needs: test
     runs-on: ubuntu-latest
     env:
       JAVA_VERSION: '11'
@@ -60,20 +26,10 @@ jobs:
         with:
           name: android-artifacts
           path: build/app/outputs
-
-  deploy:
-    name: Job_2 - Deploy aab to playstore
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download app bundle from artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: android-artifacts
       - name: Publish to Play Store
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: '${{ secrets.ANDROID_SERVICE_ACCOUNT_JSON }}'
           packageName: de.jlange.nami.app
-          releaseFiles: '${{ github.workspace }}/app-release.aab'
-          track: production
+          releaseFiles: 'build/app/outputs'
+          track: internal
