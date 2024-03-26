@@ -1,41 +1,66 @@
 name: Deploy App to Androud
-'on':
+on:
   workflow_dispatch: null
 jobs:
-  build:
-    name: Job 1 - Build Signed AAB
+
+  test:
+    name: flutter test
     runs-on: ubuntu-latest
+
+    env:
+      JAVA_VERSION: '17.0.1'
     steps:
-      # Step 1 - checkout the repository, making it available to the workflow:
-      - uses: actions/checkout@v3
-       # Set up Flutter.
-      - uses: subosito/flutter-action@v1
+      - uses: actions/checkout@v2
+      - uses: actions/setup-java@v1
         with:
-            channel: "stable"
-      - name: Checkout flutter_app code
-        uses: actions/checkout@v3
+          java-version: ${{env.JAVA_VERSION}}
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+      - run: flutter --version
       - run: flutter pub get
-      - name: Build APK
-        run: flutter build apk --split-per-abi --release
-      - name: Build APP BUNDLE
-        run: flutter build appbundle
-      - name: Sign AAb
-        id: sign
-        uses: r0adkll/sign-android-release@v1
+      - run: flutter analyze
+      - run: flutter test
+      - uses: actions/checkout@v2
+      - uses: dart-lang/setup-dart@v1
         with:
-          releaseDirectory: app/build/outputs/bundle/release
-          signingKeyBase64: '${{ secrets.ANDROID_KEYSTORE }}'
-          alias: '${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}'
-          keyStorePassword: '${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}'
-          keyPassword: '${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}'
-      # Step 9 - Save AAB after Build job is complete to publish it as a Github release in the next job
-      - name: Upload app bundle as artifact
+          sdk: 'stable'
+      - run: dart --version
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze project source
+        run: dart analyze
+
+  build:
+    name: Build Android
+    needs: test
+    runs-on: ubuntu-latest
+    env:
+      JAVA_VERSION: '11'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup java
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{env.JAVA_VERSION}}
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+      - run: flutter pub get
+      - run: flutter build apk --debug
+      - run: flutter build appbundle
+      - name: Upload Android build artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: app-bundle
-          path: app/build/outputs/bundle/release/app-release.aab
-      # Step 10 - Print out the Job Status
-      - run: 'echo Build status report=${{ job.status }}'
+          name: android-artifacts
+          path: build/app/outputs
+
   deploy:
     name: Job_2 - Deploy aab to playstore
     needs: build
