@@ -22,9 +22,7 @@ jobs:
       - run: flutter pub get
 
       - name: Build aab
-        run: |
-          flutter build appbundle 
-          --release
+        run: flutter build appbundle --release
         
       - name: Upload Android build artifacts
         uses: actions/upload-artifact@v2
