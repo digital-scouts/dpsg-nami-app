@@ -155,103 +155,99 @@ class HomeDrawerState extends State<HomeDrawer> {
   }
 
   Widget inkwell(DrawerList listData) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        splashColor: Colors.grey.withOpacity(0.1),
-        highlightColor: Colors.transparent,
-        onTap: () {
-          navigationtoScreen(listData.index!);
-        },
-        child: Stack(
-          children: <Widget>[
-            Container(
-              padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
-              child: Row(
-                children: <Widget>[
-                  const SizedBox(
-                    width: 6.0,
-                    height: 46.0,
-                    // decoration: BoxDecoration(
-                    //   color: widget.screenIndex == listData.index
-                    //       ? Colors.blue
-                    //       : Colors.transparent,
-                    //   borderRadius: new BorderRadius.only(
-                    //     topLeft: Radius.circular(0),
-                    //     topRight: Radius.circular(16),
-                    //     bottomLeft: Radius.circular(0),
-                    //     bottomRight: Radius.circular(16),
-                    //   ),
-                    // ),
+    final itemColor = widget.screenIndex == listData.index
+        ? Theme.of(context).colorScheme.onPrimaryContainer
+        : Theme.of(context).colorScheme.onBackground;
+
+    return InkWell(
+      splashColor: Colors.grey.withOpacity(0.1),
+      highlightColor: Colors.transparent,
+      onTap: () {
+        navigationtoScreen(listData.index!);
+      },
+      child: Stack(
+        children: <Widget>[
+          Container(
+            padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
+            child: Row(
+              children: <Widget>[
+                const SizedBox(
+                  width: 6.0,
+                  height: 46.0,
+                  // decoration: BoxDecoration(
+                  //   color: widget.screenIndex == listData.index
+                  //       ? Colors.blue
+                  //       : Colors.transparent,
+                  //   borderRadius: new BorderRadius.only(
+                  //     topLeft: Radius.circular(0),
+                  //     topRight: Radius.circular(16),
+                  //     bottomLeft: Radius.circular(0),
+                  //     bottomRight: Radius.circular(16),
+                  //   ),
+                  // ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.all(4.0),
+                ),
+                listData.isAssetsImage
+                    ? SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: Image.asset(
+                          listData.imageName,
+                          color: itemColor,
+                        ),
+                      )
+                    : Icon(
+                        listData.icon?.icon,
+                        color: itemColor,
+                      ),
+                const Padding(padding: EdgeInsets.all(4.0)),
+                Text(
+                  listData.labelName,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 16,
+                    color: itemColor,
                   ),
-                  const Padding(
-                    padding: EdgeInsets.all(4.0),
-                  ),
-                  listData.isAssetsImage
-                      ? SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: Image.asset(listData.imageName,
-                              color: widget.screenIndex == listData.index
-                                  ? Colors.blue
-                                  : Theme.of(context).primaryColor),
-                        )
-                      : Icon(listData.icon?.icon,
-                          color: widget.screenIndex == listData.index
-                              ? Colors.blue
-                              : Theme.of(context).primaryColor),
-                  const Padding(
-                    padding: EdgeInsets.all(4.0),
-                  ),
-                  Text(
-                    listData.labelName,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 16,
-                      color: widget.screenIndex == listData.index
-                          ? Colors.blue
-                          : Theme.of(context).primaryColor,
-                    ),
-                    textAlign: TextAlign.left,
-                  ),
-                ],
-              ),
+                  textAlign: TextAlign.left,
+                ),
+              ],
             ),
-            widget.screenIndex == listData.index
-                ? AnimatedBuilder(
-                    animation: widget.iconAnimationController!,
-                    builder: (BuildContext context, Widget? child) {
-                      return Transform(
-                        transform: Matrix4.translationValues(
-                            (MediaQuery.of(context).size.width * 0.75 - 64) *
-                                (1.0 -
-                                    widget.iconAnimationController!.value -
-                                    1.0),
-                            0.0,
-                            0.0),
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 8, bottom: 8),
-                          child: Container(
-                            width:
-                                MediaQuery.of(context).size.width * 0.75 - 64,
-                            height: 46,
-                            decoration: BoxDecoration(
-                              color: Colors.blue.withOpacity(0.2),
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(0),
-                                topRight: Radius.circular(28),
-                                bottomLeft: Radius.circular(0),
-                                bottomRight: Radius.circular(28),
-                              ),
+          ),
+          widget.screenIndex == listData.index
+              ? AnimatedBuilder(
+                  animation: widget.iconAnimationController!,
+                  builder: (BuildContext context, Widget? child) {
+                    return Transform(
+                      transform: Matrix4.translationValues(
+                          (MediaQuery.of(context).size.width * 0.75 - 64) *
+                              (1.0 -
+                                  widget.iconAnimationController!.value -
+                                  1.0),
+                          0.0,
+                          0.0),
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 8, bottom: 8),
+                        child: Container(
+                          width: MediaQuery.of(context).size.width * 0.75 - 64,
+                          height: 46,
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.2),
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(0),
+                              topRight: Radius.circular(28),
+                              bottomLeft: Radius.circular(0),
+                              bottomRight: Radius.circular(28),
                             ),
                           ),
                         ),
-                      );
-                    },
-                  )
-                : const SizedBox()
-          ],
-        ),
+                      ),
+                    );
+                  },
+                )
+              : const SizedBox()
+        ],
       ),
     );
   }

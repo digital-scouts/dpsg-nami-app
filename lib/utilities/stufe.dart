@@ -1,6 +1,7 @@
 // ignore_for_file: constant_identifier_names
 
 import 'package:flutter/material.dart';
+import 'package:nami/utilities/theme.dart';
 
 enum StufeEnum {
   BIBER,
@@ -44,19 +45,11 @@ class Stufe implements Comparable<Stufe> {
   final int? alterMax;
   final String? imageName;
 
-  static const biberFarbe = Color(0xFFFFFFFF);
-  static const woelfingFarbe = Color(0xFFf56403);
-  static const jungpfadfinderFarbe = Color(0xFF007bff);
-  static const pfadfinderFarbe = Color(0xFF26823c);
-  static const roverFarbe = Color(0xFFdc3545);
-  static const leiterFarbe = Color(0xFF949494);
-  static const keineStufeFarbe = Color(0xFF949494);
-
   static final List<Stufe> stufen = [
     Stufe(
       StufeEnum.BIBER,
       0,
-      woelfingFarbe,
+      DPSGColors.biberFarbe,
       isStufeYouCanChangeTo: true,
       alterMin: 4,
       alterMax: 10,
@@ -65,7 +58,7 @@ class Stufe implements Comparable<Stufe> {
     Stufe(
       StufeEnum.WOELFLING,
       1,
-      woelfingFarbe,
+      DPSGColors.woelfingFarbe,
       isStufeYouCanChangeTo: true,
       alterMin: 6,
       alterMax: 10,
@@ -74,7 +67,7 @@ class Stufe implements Comparable<Stufe> {
     Stufe(
       StufeEnum.JUNGPADFINDER,
       2,
-      jungpfadfinderFarbe,
+      DPSGColors.jungpfadfinderFarbe,
       isStufeYouCanChangeTo: true,
       alterMin: 9,
       alterMax: 13,
@@ -83,7 +76,7 @@ class Stufe implements Comparable<Stufe> {
     Stufe(
       StufeEnum.PFADFINDER,
       3,
-      pfadfinderFarbe,
+      DPSGColors.pfadfinderFarbe,
       isStufeYouCanChangeTo: true,
       alterMin: 12,
       alterMax: 16,
@@ -92,7 +85,7 @@ class Stufe implements Comparable<Stufe> {
     Stufe(
       StufeEnum.ROVER,
       4,
-      roverFarbe,
+      DPSGColors.roverFarbe,
       isStufeYouCanChangeTo: true,
       alterMin: 15,
       alterMax: 20,
@@ -101,12 +94,12 @@ class Stufe implements Comparable<Stufe> {
     Stufe(
       StufeEnum.LEITER,
       5,
-      leiterFarbe,
+      DPSGColors.leiterFarbe,
       isStufeYouCanChangeTo: false,
       alterMin: 18,
       imageName: 'leiter.png',
     ),
-    Stufe(StufeEnum.KEINE_STUFE, 7, keineStufeFarbe),
+    Stufe(StufeEnum.KEINE_STUFE, 7, DPSGColors.keineStufeFarbe),
   ];
 
   static Stufe? getStufeByOrder(int order) {

@@ -12,8 +12,12 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
 
-  runApp(ChangeNotifierProvider<ThemeModel>(
-      create: (_) => ThemeModel(), child: const MyApp()));
+  runApp(
+    ChangeNotifierProvider<ThemeModel>(
+      create: (_) => ThemeModel(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -21,7 +25,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(home: MyHome());
+    return ChangeNotifierProvider(
+      create: (context) => AppStateHandler(),
+      child: MaterialApp(
+        theme: lightTheme,
+        darkTheme: darkTheme,
+        themeMode: Provider.of<ThemeModel>(context).currentMode,
+        home: const MyHome(),
+      ),
+    );
   }
 }
 
@@ -62,32 +74,26 @@ class _MyHomeState extends State<MyHome> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     const navigationHomeScreen = NavigationHomeScreen();
 
-    return ChangeNotifierProvider(
-      create: (context) => appState,
-      child: MaterialApp(
-        theme: Provider.of<ThemeModel>(context).currentTheme,
-        home: Scaffold(
-          body: Consumer<AppStateHandler>(
-            child: navigationHomeScreen,
-            builder: (context, stateHandler, child) {
-              debugPrint('AppState: ${appState.currentState}');
-              Fluttertoast.showToast(
-                msg: 'AppState: ${appState.currentState.name}',
-                toastLength: Toast.LENGTH_LONG,
-                gravity: ToastGravity.BOTTOM,
-              );
-              if (appState.currentState == AppState.loggedOut) {
-                return const LoginScreen();
-              } else if (appState.currentState == AppState.loadData ||
-                  appState.currentState == AppState.resume) {
-                return const CircularProgressIndicator();
-              } else if (appState.currentState == AppState.authenticated) {
-                return const NavigationHomeScreen();
-              }
-              return child!;
-            },
-          ),
-        ),
+    return Scaffold(
+      body: Consumer<AppStateHandler>(
+        child: navigationHomeScreen,
+        builder: (context, stateHandler, child) {
+          debugPrint('AppState: ${appState.currentState}');
+          Fluttertoast.showToast(
+            msg: 'AppState: ${appState.currentState.name}',
+            toastLength: Toast.LENGTH_LONG,
+            gravity: ToastGravity.BOTTOM,
+          );
+          if (appState.currentState == AppState.loggedOut) {
+            return const LoginScreen();
+          } else if (appState.currentState == AppState.loadData ||
+              appState.currentState == AppState.resume) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (appState.currentState == AppState.authenticated) {
+            return const NavigationHomeScreen();
+          }
+          return child!;
+        },
       ),
     );
   }
