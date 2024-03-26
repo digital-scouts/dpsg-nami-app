@@ -14,6 +14,7 @@ import 'package:maps_launcher/maps_launcher.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:intl/intl.dart';
+import 'package:nami/utilities/extensions.dart';
 
 // ignore: must_be_immutable
 class MitgliedDetail extends StatefulWidget {
@@ -205,37 +206,37 @@ class MitgliedDetailState extends State<MitgliedDetail>
   }
 
   Widget _buildMailList() {
-    if (widget.mitglied.emailVertretungsberechtigter!.isNotEmpty ||
-        widget.mitglied.email!.isNotEmpty ||
-        widget.mitglied.telefon1!.isNotEmpty ||
-        widget.mitglied.telefon2!.isNotEmpty ||
-        widget.mitglied.telefon3!.isNotEmpty) {
+    if (widget.mitglied.emailVertretungsberechtigter.isNotNullOrEmpty ||
+        widget.mitglied.email.isNotNullOrEmpty ||
+        widget.mitglied.telefon1.isNotNullOrEmpty ||
+        widget.mitglied.telefon2.isNotNullOrEmpty ||
+        widget.mitglied.telefon3.isNotNullOrEmpty) {
       return _buildBox(<Widget>[
-        if (widget.mitglied.email!.isNotEmpty)
+        if (widget.mitglied.email.isNotNullOrEmpty)
           const Text("E-Mail",
               style: TextStyle(color: Colors.white, fontSize: 20)),
-        if (widget.mitglied.email!.isNotEmpty)
+        if (widget.mitglied.email.isNotNullOrEmpty)
           _buildLinkText('mailto', widget.mitglied.email!),
-        if (widget.mitglied.emailVertretungsberechtigter!.isNotEmpty)
+        if (widget.mitglied.emailVertretungsberechtigter.isNotNullOrEmpty)
           const Text("E-Mail Vertretungsberechtigte:r",
               style: TextStyle(color: Colors.white, fontSize: 20)),
-        if (widget.mitglied.emailVertretungsberechtigter!.isNotEmpty)
+        if (widget.mitglied.emailVertretungsberechtigter.isNotNullOrEmpty)
           _buildLinkText(
               'mailto', widget.mitglied.emailVertretungsberechtigter!),
-        if (widget.mitglied.telefon1!.isNotEmpty)
+        if (widget.mitglied.telefon1.isNotNullOrEmpty)
           const Text("Telefon",
               style: TextStyle(color: Colors.white, fontSize: 20)),
-        if (widget.mitglied.telefon1!.isNotEmpty)
+        if (widget.mitglied.telefon1.isNotNullOrEmpty)
           _buildLinkText('tel', widget.mitglied.telefon1!),
-        if (widget.mitglied.telefon2!.isNotEmpty)
+        if (widget.mitglied.telefon2.isNotNullOrEmpty)
           const Text("Telefon",
               style: TextStyle(color: Colors.white, fontSize: 20)),
-        if (widget.mitglied.telefon2!.isNotEmpty)
+        if (widget.mitglied.telefon2.isNotNullOrEmpty)
           _buildLinkText('tel', widget.mitglied.telefon2!),
-        if (widget.mitglied.telefon3!.isNotEmpty)
+        if (widget.mitglied.telefon3.isNotNullOrEmpty)
           const Text("Telefon",
               style: TextStyle(color: Colors.white, fontSize: 20)),
-        if (widget.mitglied.telefon3!.isNotEmpty)
+        if (widget.mitglied.telefon3.isNotNullOrEmpty)
           _buildLinkText('tel', widget.mitglied.telefon3!),
       ]);
     } else {
