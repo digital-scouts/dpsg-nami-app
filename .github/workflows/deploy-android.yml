@@ -8,30 +8,17 @@ jobs:
     steps:
       # Step 1 - checkout the repository, making it available to the workflow:
       - uses: actions/checkout@v3
-      - name: Setup JDK 20
-        uses: actions/setup-java@v3
+       # Set up Flutter.
+      - uses: subosito/flutter-action@v1
         with:
-          distribution: temurin
-          java-version: 20
-      # Step 4 - Setup Gradle to allow workflow access and execute Gradlew file
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
-      # Step 5 - Setup Gradle Cache to improve the speed of the workflows
-      - name: Setup Gradle Cache
-        uses: gradle/gradle-build-action@v2
-        with:
-          gradle-home-cache-cleanup: true
-      # Step 6 - Override the version code and version name
-      - name: Bump Version Code
-        uses: chkfung/android-version-actions@v1.2.1
-        with:
-          gradlePath: app/build.gradle.kts
-          versionCode: '${{ github.run_number }}'
-          versionName: 1.0.0
-      # Step 7 - Build Production App Bundle
-      - name: Build prodRelease
-        run: ./gradlew bundleRelease
-      # Step 8 - Sign AAB
+            channel: "stable"
+      - name: Checkout flutter_app code
+        uses: actions/checkout@v3
+      - run: flutter pub get
+      - name: Build APK
+        run: flutter build apk --split-per-abi --release
+      - name: Build APP BUNDLE
+        run: flutter build appbundle
       - name: Sign AAb
         id: sign
         uses: r0adkll/sign-android-release@v1
