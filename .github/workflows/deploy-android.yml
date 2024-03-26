@@ -7,6 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       JAVA_VERSION: '11'
+      FLUTTER_VERSION: '3.19.2'
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -17,23 +18,38 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version:  ${{env.FLUTTER_VERSION}}
           channel: 'stable'
+          cache: true
           
       - run: flutter pub get
 
       - name: Build aab
-        run: flutter build appbundle --release
-        
-      - name: Upload Android build artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: android-artifacts
-          path: build/app/outputs
+        run: flutter build appbundle
+          # Build Android App Bundle which by default will be stored in the
+          # ./build/app/outputs/bundle/release as app-release.aab
 
-      - name: Publish to Play Store
-        uses: r0adkll/upload-google-play@v1
+      - name: Sign App Bundle
+        uses: r0adkll/sign-android-release@v1   
+        id: sign_app
         with:
-          serviceAccountJsonPlainText: '${{ secrets.ANDROID_SERVICE_ACCOUNT_JSON }}'
+          releaseDirectory: build/app/outputs/bundle/release/
+          signingKeyBase64: ${{ secrets.ANDROID_KEYSTORE_FILE_BASE64 }}
+          alias: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}         
+          keyStorePassword: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}             
+          keyPassword: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
+
+      - name: Upload Signed App Bundle
+        uses: actions/upload-artifact@v3
+        with:
+          name: signed-app-bundle
+          path: ${{steps.sign_app.outputs.signedReleaseFile}}
+        
+      - name: Upload to Play Store (Internal Testing)
+        uses: r0adkll/upload-google-play@v1.0.18
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.ANDROID_SERVICE_ACCOUNT_JSON }}
           packageName: de.jlange.nami.app
-          releaseFiles: 'build/app/outputs'
+          releaseFiles: ${{steps.sign_app.outputs.signedReleaseFile}}
+          mappingFile: ./build/app/outputs/mapping/release/mapping.txt
           track: internal
