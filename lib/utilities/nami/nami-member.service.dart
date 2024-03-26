@@ -35,7 +35,7 @@ Future<List<int>> loadMemberIdsToUpdate(String url, String path,
 
   List<Mitglied> mitglieder =
       Hive.box<Mitglied>('members').values.toList().cast<Mitglied>();
-  final body = jsonDecode(response.body);
+  late final body = jsonDecode(response.body);
   if (response.statusCode == 200 && body['success'] == true) {
     List<int> memberIds = [];
     body['data'].forEach((item) {

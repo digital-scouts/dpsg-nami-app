@@ -58,11 +58,11 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
   bool get _isDone =>
       widget.loginProgressNotifier.value == true &&
       widget.rechteProgressNotifier.value.isNotEmpty &&
-      widget.metaProgressNotifier.value == true &&
       widget.memberOverviewProgressNotifier.value == true &&
       (widget.loadAll
           ? widget.gruppierungProgressNotifier.value != null &&
-              widget.memberAllProgressNotifier.value == 1
+              widget.memberAllProgressNotifier.value == 1 &&
+              widget.metaProgressNotifier.value == true
           : widget.memberAllProgressNotifier.value == 1);
 
   @override
