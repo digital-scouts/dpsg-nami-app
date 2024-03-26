@@ -18,14 +18,20 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+          
       - run: flutter pub get
-      - run: flutter build apk --debug
-      - run: flutter build appbundle
+
+      - name: Build aab
+        run: |
+          flutter build appbundle 
+          --release
+        
       - name: Upload Android build artifacts
         uses: actions/upload-artifact@v2
         with:
           name: android-artifacts
           path: build/app/outputs
+
       - name: Publish to Play Store
         uses: r0adkll/upload-google-play@v1
         with:
