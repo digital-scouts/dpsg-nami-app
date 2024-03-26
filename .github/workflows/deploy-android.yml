@@ -29,21 +29,21 @@ jobs:
           # Build Android App Bundle which by default will be stored in the
           # ./build/app/outputs/bundle/release as app-release.aab
 
-      - name: Sign App Bundle
-        uses: r0adkll/sign-android-release@v1   
-        id: sign_app
-        with:
-          releaseDirectory: build/app/outputs/bundle/release/
-          signingKeyBase64: ${{ secrets.ANDROID_KEYSTORE }}
-          alias: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}         
-          keyStorePassword: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}             
-          keyPassword: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
+      # - name: Sign App Bundle
+      #   uses: r0adkll/sign-android-release@v1   
+      #   id: sign_app
+      #   with:
+      #     releaseDirectory: build/app/outputs/bundle/release/
+      #     signingKeyBase64: ${{ secrets.ANDROID_KEYSTORE }}
+      #     alias: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}         
+      #     keyStorePassword: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}             
+      #     keyPassword: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
 
-      - name: Upload Signed App Bundle
-        uses: actions/upload-artifact@v3
-        with:
-          name: signed-app-bundle
-          path: ${{steps.sign_app.outputs.signedReleaseFile}}
+      # - name: Upload Signed App Bundle
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: signed-app-bundle
+      #     path: ${{steps.sign_app.outputs.signedReleaseFile}}
         
       - name: Upload to Play Store (Internal Testing)
         uses: r0adkll/upload-google-play@v1.0.18
