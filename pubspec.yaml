@@ -1,6 +1,6 @@
 name: nami
 description: Namentliche Mitgliedermeldung der DPSG als App für Android und iOS
-
+publish_to: none
 version: 0.0.3
 
 environment:
@@ -24,7 +24,10 @@ dependencies:
   flutter_spinkit: ^5.1.0
   backdrop: ^0.9.0
   url_launcher: ^6.1.14
-  maps_launcher: ^2.2.0
+  maps_launcher: # The latest published version is not correct https://github.com/pikaju/flutter-maps-launcher/issues/40
+    git:
+      url: https://github.com/pikaju/flutter-maps-launcher.git
+      ref: master
   provider: ^6.0.1
   flutter_secure_storage: ^9.0.0
   fluttertoast: ^8.0.8
@@ -35,9 +38,7 @@ dependencies:
   geolocator_apple: ^2.1.1+1
   fl_chart: ^0.63.0
   latlong2: ^0.9.0
-  connectivity: ^3.0.0
   intl: ^0.18.0
-  syncfusion_flutter_pdfviewer: ^23.2.4
   flutter_form_builder: ^9.1.1
   form_builder_validators: ^9.1.0
   html: ^0.15.4
