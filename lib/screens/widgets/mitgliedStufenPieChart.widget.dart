@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:nami/utilities/stufe.dart';
 
 class MitgliedStufenPieChart extends StatefulWidget {
   final Map<String, int> memberPerGroup;
@@ -15,12 +16,27 @@ class MitgliedStufenPieChartState extends State<MitgliedStufenPieChart> {
   @override
   Widget build(BuildContext context) {
     return AspectRatio(
-      aspectRatio: 2.3,
-      child: PieChart(
-        PieChartData(
-          sectionsSpace: 0,
-          centerSpaceRadius: 0,
-          sections: createData(),
+      aspectRatio: 1.8,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4.0),
+        child: Container(
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black26,
+                spreadRadius: 0.1,
+                blurRadius: 5,
+              ),
+            ],
+          ),
+          child: PieChart(
+            PieChartData(
+              sectionsSpace: 0,
+              centerSpaceRadius: 0,
+              sections: createData(),
+            ),
+          ),
         ),
       ),
     );
@@ -32,27 +48,24 @@ class MitgliedStufenPieChartState extends State<MitgliedStufenPieChart> {
     widget.memberPerGroup.forEach((key, value) {
       switch (key) {
         case "Wölfling":
-          sectionData.add(createPieElement(
-              key, value, Colors.orange, 'assets/images/woe.png', index));
+          sectionData.add(createPieElement(key, value, Stufe.WOELFLING, index));
           break;
         case "Jungpfadfinder":
-          sectionData.add(createPieElement(
-              key, value, Colors.blue, 'assets/images/jufi.png', index));
+          sectionData
+              .add(createPieElement(key, value, Stufe.JUNGPADFINDER, index));
           break;
         case "Pfadfinder":
-          sectionData.add(createPieElement(
-              key, value, Colors.green, 'assets/images/pfadi.png', index));
+          sectionData
+              .add(createPieElement(key, value, Stufe.PFADFINDER, index));
           break;
         case "Rover":
-          sectionData.add(createPieElement(
-              key, value, Colors.red, 'assets/images/rover.png', index));
+          sectionData.add(createPieElement(key, value, Stufe.ROVER, index));
           break;
         case "LeiterIn":
-          sectionData.add(createPieElement(
-              key, value, Colors.yellow, 'assets/images/lilie.png', index));
+          sectionData.add(createPieElement(key, value, Stufe.LEITER, index));
           break;
         default:
-          sectionData.add(createPieElement(key, value, Colors.grey, '', index));
+          sectionData.add(createPieElement(key, value, null, index));
       }
       index++;
     });
@@ -61,18 +74,18 @@ class MitgliedStufenPieChartState extends State<MitgliedStufenPieChart> {
   }
 
   PieChartSectionData createPieElement(
-      String name, num value, Color color, String badge, num index) {
+      String name, num value, Stufe? stufe, num index) {
     const radius = 45.0;
     const widgetSize = 25.0;
 
     return PieChartSectionData(
-      color: color,
+      color: stufe?.farbe ?? Stufe.KEINE_STUFE.farbe,
       value: value.toDouble(),
       showTitle: false,
       radius: radius,
-      badgeWidget: badge.isNotEmpty
+      badgeWidget: stufe != null
           ? _Badge(
-              badge,
+              stufe.imagePath!,
               size: widgetSize,
               borderColor: Colors.black,
             )

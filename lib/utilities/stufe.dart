@@ -3,125 +3,97 @@
 import 'package:flutter/material.dart';
 import 'package:nami/utilities/theme.dart';
 
-enum StufeEnum {
-  BIBER,
-  WOELFLING,
-  JUNGPADFINDER,
-  PFADFINDER,
-  ROVER,
-  LEITER,
-  KEINE_STUFE
-}
+enum Stufe implements Comparable<Stufe> {
+  BIBER(
+    DPSGColors.biberFarbe,
+    'Biber',
+    imagePath: 'assets/images/biber.png',
+    isStufeYouCanChangeTo: true,
+    alterMin: 4,
+    alterMax: 10,
+  ),
+  WOELFLING(
+    DPSGColors.woelfingFarbe,
+    'Wölfling',
+    imagePath: 'assets/images/woe.png',
+    isStufeYouCanChangeTo: true,
+    alterMin: 6,
+    alterMax: 10,
+  ),
+  JUNGPADFINDER(
+    DPSGColors.jungpfadfinderFarbe,
+    'Jungpfadfinder',
+    imagePath: 'assets/images/jufi.png',
+    isStufeYouCanChangeTo: true,
+    alterMin: 9,
+    alterMax: 13,
+  ),
+  PFADFINDER(
+    DPSGColors.pfadfinderFarbe,
+    'Pfadfinder',
+    imagePath: 'assets/images/pfadi.png',
+    isStufeYouCanChangeTo: true,
+    alterMin: 12,
+    alterMax: 16,
+  ),
+  ROVER(
+    DPSGColors.roverFarbe,
+    'Rover',
+    imagePath: 'assets/images/rover.png',
+    isStufeYouCanChangeTo: true,
+    alterMin: 15,
+    alterMax: 20,
+  ),
+  LEITER(
+    DPSGColors.leiterFarbe,
+    'Leiter',
+    imagePath: 'assets/images/lilie_schwarz.png',
+    isStufeYouCanChangeTo: false,
+    alterMin: 18,
+  ),
+  KEINE_STUFE(
+    DPSGColors.keineStufeFarbe,
+    'keine Stufe',
+    isStufeYouCanChangeTo: false,
+  );
 
-extension StufeEnumExtension on StufeEnum {
-  String get value {
-    switch (this) {
-      case StufeEnum.BIBER:
-        return 'Biber';
-      case StufeEnum.WOELFLING:
-        return 'Wölfling';
-      case StufeEnum.JUNGPADFINDER:
-        return 'Jungpfadfinder';
-      case StufeEnum.PFADFINDER:
-        return 'Pfadfinder';
-      case StufeEnum.ROVER:
-        return 'Rover';
-      case StufeEnum.LEITER:
-        return 'Leiter';
-      case StufeEnum.KEINE_STUFE:
-        return 'keine Stufe';
-      default:
-        return '';
-    }
-  }
-}
-
-class Stufe implements Comparable<Stufe> {
-  final StufeEnum name;
   final Color farbe;
-  final int order;
+  final String display;
+  final String? imagePath;
   final bool isStufeYouCanChangeTo;
   final int? alterMin;
   final int? alterMax;
-  final String? imageName;
 
-  static final List<Stufe> stufen = [
-    Stufe(
-      StufeEnum.BIBER,
-      0,
-      DPSGColors.biberFarbe,
-      isStufeYouCanChangeTo: true,
-      alterMin: 4,
-      alterMax: 10,
-      imageName: 'biber.png',
-    ),
-    Stufe(
-      StufeEnum.WOELFLING,
-      1,
-      DPSGColors.woelfingFarbe,
-      isStufeYouCanChangeTo: true,
-      alterMin: 6,
-      alterMax: 10,
-      imageName: 'woe.png',
-    ),
-    Stufe(
-      StufeEnum.JUNGPADFINDER,
-      2,
-      DPSGColors.jungpfadfinderFarbe,
-      isStufeYouCanChangeTo: true,
-      alterMin: 9,
-      alterMax: 13,
-      imageName: 'jufi.png',
-    ),
-    Stufe(
-      StufeEnum.PFADFINDER,
-      3,
-      DPSGColors.pfadfinderFarbe,
-      isStufeYouCanChangeTo: true,
-      alterMin: 12,
-      alterMax: 16,
-      imageName: 'pfadi.png',
-    ),
-    Stufe(
-      StufeEnum.ROVER,
-      4,
-      DPSGColors.roverFarbe,
-      isStufeYouCanChangeTo: true,
-      alterMin: 15,
-      alterMax: 20,
-      imageName: 'rover.png',
-    ),
-    Stufe(
-      StufeEnum.LEITER,
-      5,
-      DPSGColors.leiterFarbe,
-      isStufeYouCanChangeTo: false,
-      alterMin: 18,
-      imageName: 'leiter.png',
-    ),
-    Stufe(StufeEnum.KEINE_STUFE, 7, DPSGColors.keineStufeFarbe),
+  /// Im gegensatz zu [Stufe.values] ist hier [Stufe.KEINE_STUFE] nicht enthalten
+  static const List<Stufe> stufen = [
+    BIBER,
+    WOELFLING,
+    JUNGPADFINDER,
+    PFADFINDER,
+    ROVER,
+    LEITER,
   ];
 
   static Stufe? getStufeByOrder(int order) {
-    return stufen.where((element) => element.order == order).firstOrNull;
+    return stufen.where((element) => element.index == order).firstOrNull;
   }
 
   static Stufe getStufeByString(String name) {
-    return stufen.where((element) => element.name.value == name).first;
+    return stufen.where((element) => element.display == name).firstOrNull ??
+        KEINE_STUFE;
   }
 
-  Stufe(
-    this.name,
-    this.order,
-    this.farbe, {
+  const Stufe(
+    this.farbe,
+    this.display, {
+    this.imagePath,
     this.isStufeYouCanChangeTo = false,
     this.alterMin,
     this.alterMax,
-    this.imageName,
   });
 
   @override
   int compareTo(Stufe other) {
-    return order.compareTo(other.order);
+    return index.compareTo(other.index);
   }
 }

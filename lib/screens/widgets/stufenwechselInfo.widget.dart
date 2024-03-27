@@ -21,10 +21,10 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
 
   // Bilder für die Stufen
   List<String> stufenBilder = [
-    'assets/images/woe.png',
-    'assets/images/jufi.png',
-    'assets/images/pfadi.png',
-    'assets/images/rover.png',
+    Stufe.WOELFLING.imagePath!,
+    Stufe.JUNGPADFINDER.imagePath!,
+    Stufe.PFADFINDER.imagePath!,
+    Stufe.ROVER.imagePath!,
   ];
 
   // Funktion zum Ändern der ausgewählten Stufe
@@ -57,11 +57,11 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
         continue;
       }
 
-      if (stufenwechselData[currentStufe.order - 1] == null) {
-        stufenwechselData[currentStufe.order - 1] = [];
+      if (stufenwechselData[currentStufe.index - 1] == null) {
+        stufenwechselData[currentStufe.index - 1] = [];
       }
 
-      stufenwechselData[currentStufe.order - 1]!.add(DataRow(cells: [
+      stufenwechselData[currentStufe.index - 1]!.add(DataRow(cells: [
         DataCell(Text(
             '${mitglied.vorname} ${mitglied.nachname.substring(0, 1)}. (${(currentDate.difference(mitglied.geburtsDatum).inDays / 365).toStringAsFixed(1)} Jahre alt)',
             style: const TextStyle(color: Colors.white))),
