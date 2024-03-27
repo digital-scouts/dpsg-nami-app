@@ -6,6 +6,7 @@ import 'package:nami/screens/mitgliedsliste/mitglied_details.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/mitglied.filterAndSort.dart';
 import 'package:nami/utilities/stufe.dart';
+import 'package:nami/utilities/theme.dart';
 
 import 'mitglied_bearbeiten.dart';
 
@@ -128,7 +129,7 @@ class MitgliedsListeState extends State<MitgliedsListe> {
                         gradient: LinearGradient(
                             colors: [
                               filteredMitglieder[index].isMitgliedLeiter()
-                                  ? Stufe.leiterFarbe
+                                  ? DPSGColors.leiterFarbe
                                   : Stufe.getStufeByString(
                                           filteredMitglieder[index].stufe)
                                       .farbe,
@@ -200,7 +201,9 @@ class MitgliedsListeState extends State<MitgliedsListe> {
               height: 50.0,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: filterGroup[index] ? Colors.blue : Colors.grey,
+                color: filterGroup[index]
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.surfaceVariant,
               ),
               child: Center(
                 child: Image.asset(

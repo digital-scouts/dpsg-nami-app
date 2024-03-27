@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
+import 'package:nami/utilities/theme.dart';
 
 class GroupBarChart extends StatefulWidget {
   final List<Mitglied> mitglieder;
@@ -63,24 +64,54 @@ class GroupBarChartState extends State<GroupBarChart> {
     getMemberPerGroup().forEach((key, value) {
       switch (key) {
         case "Wölfling":
-          sectionData.add(createGroupData(index, value.leiter.toDouble(),
-              value.mitglied.toDouble(), Colors.orange));
+          sectionData.add(
+            createGroupData(
+              index,
+              value.leiter.toDouble(),
+              value.mitglied.toDouble(),
+              DPSGColors.woelfingFarbe,
+            ),
+          );
           break;
         case "Jungpfadfinder":
-          sectionData.add(createGroupData(index, value.leiter.toDouble(),
-              value.mitglied.toDouble(), Colors.blue));
+          sectionData.add(
+            createGroupData(
+              index,
+              value.leiter.toDouble(),
+              value.mitglied.toDouble(),
+              DPSGColors.jungpfadfinderFarbe,
+            ),
+          );
           break;
         case "Pfadfinder":
-          sectionData.add(createGroupData(index, value.leiter.toDouble(),
-              value.mitglied.toDouble(), Colors.green));
+          sectionData.add(
+            createGroupData(
+              index,
+              value.leiter.toDouble(),
+              value.mitglied.toDouble(),
+              DPSGColors.pfadfinderFarbe,
+            ),
+          );
           break;
         case "Rover":
-          sectionData.add(createGroupData(index, value.leiter.toDouble(),
-              value.mitglied.toDouble(), Colors.red));
+          sectionData.add(
+            createGroupData(
+              index,
+              value.leiter.toDouble(),
+              value.mitglied.toDouble(),
+              DPSGColors.roverFarbe,
+            ),
+          );
           break;
         default:
-          sectionData.add(createGroupData(index, value.leiter.toDouble(),
-              value.mitglied.toDouble(), Colors.grey));
+          sectionData.add(
+            createGroupData(
+              index,
+              value.leiter.toDouble(),
+              value.mitglied.toDouble(),
+              DPSGColors.leiterFarbe,
+            ),
+          );
           break;
       }
       index++;
@@ -148,6 +179,7 @@ class GroupBarChartState extends State<GroupBarChart> {
 
   @override
   Widget build(BuildContext context) {
+    final data = createData();
     return AspectRatio(
       aspectRatio: 1.3,
       child: BarChart(
@@ -167,8 +199,11 @@ class GroupBarChartState extends State<GroupBarChart> {
               ) {
                 return BarTooltipItem(
                   rod.toY > 0 ? (rod.toY - rod.fromY).round().toString() : '',
-                  const TextStyle(
-                    color: Colors.black,
+                  TextStyle(
+                    color: rod.toY >=
+                            1 // Color text on bar different that on surface
+                        ? Colors.black
+                        : Theme.of(context).colorScheme.onBackground,
                   ),
                 );
               },
@@ -188,7 +223,7 @@ class GroupBarChartState extends State<GroupBarChart> {
           ),
           borderData: FlBorderData(show: false),
           gridData: const FlGridData(show: false),
-          barGroups: createData(),
+          barGroups: data,
           maxY: findHighestValue(getMemberPerGroup()).toDouble() + 5,
         ),
       ),
