@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:nami/utilities/app.state.dart';
 
 import '../../utilities/hive/settings.dart';
-import 'dart:math';
 
 class Settings extends StatefulWidget {
   const Settings({Key? key}) : super(key: key);
@@ -12,53 +12,21 @@ class Settings extends StatefulWidget {
 
 // Provider.of<ThemeModel>(context, listen: false).setTheme(ThemeType.dark);
 
-class _SettingsState extends State<Settings>
-    with SingleTickerProviderStateMixin {
+class _SettingsState extends State<Settings> {
   bool stufenwechselDatumIsValid = true;
-  bool loading = false;
-  late final AnimationController _controller;
 
   final TextEditingController _stufenwechselTextController =
       TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(seconds: 2),
-      vsync: this,
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  Future<void> _syncData({bool forceSync = false}) async {
-    setState(() => loading = true);
-    // await syncNamiData(forceSync: forceSync);
-    setState(() => loading = false);
-  }
 
   Widget _buildSync() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const Text('Sync: '),
-        AnimatedBuilder(
-          animation: _controller,
-          builder: (_, child) {
-            return Transform.rotate(
-              angle: loading ? _controller.value * 2.0 * pi : 0,
-              child: child,
-            );
-          },
-          child: IconButton(
-            icon: const Icon(Icons.sync),
-            onPressed: loading ? null : () => {_syncData()},
-          ),
+        IconButton(
+          icon: const Icon(Icons.sync),
+          onPressed: () =>
+              {AppStateHandler().setLoadDataState(context, loadAll: false)},
         ),
         Text(
             "Vor ${DateTime.now().difference(getLastNamiSync()).inDays.toString()} Tagen"),
@@ -71,18 +39,10 @@ class _SettingsState extends State<Settings>
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const Text('Force Sync: '),
-        AnimatedBuilder(
-          animation: _controller,
-          builder: (_, child) {
-            return Transform.rotate(
-              angle: loading ? _controller.value * 2.0 * pi : 0,
-              child: child,
-            );
-          },
-          child: IconButton(
-            icon: const Icon(Icons.sync),
-            onPressed: loading ? null : () => {_syncData(forceSync: true)},
-          ),
+        IconButton(
+          icon: const Icon(Icons.sync),
+          onPressed: () =>
+              {AppStateHandler().setLoadDataState(context, loadAll: true)},
         ),
       ],
     );

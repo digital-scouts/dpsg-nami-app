@@ -109,6 +109,7 @@ class LoginScreenState extends State<LoginScreen> {
               }),
             ],
             keyboardType: TextInputType.number,
+            autofillHints: const [AutofillHints.username],
             style: const TextStyle(
               color: Colors.white,
               fontFamily: 'OpenSans',
@@ -147,6 +148,7 @@ class LoginScreenState extends State<LoginScreen> {
               _password = text;
             },
             obscureText: true,
+            autofillHints: const [AutofillHints.password],
             style: const TextStyle(
               color: Colors.white,
               fontFamily: 'OpenSans',
@@ -328,17 +330,21 @@ class LoginScreenState extends State<LoginScreen> {
                     children: <Widget>[
                       Image.asset('assets/images/dpsg_logo.png'),
                       const SizedBox(height: 30.0),
-                      _buildMitgliednummerTF(),
-                      const SizedBox(
-                        height: 30.0,
+                      AutofillGroup(
+                        child: Column(
+                          children: [
+                            _buildMitgliednummerTF(),
+                            const SizedBox(height: 30.0),
+                            _buildPasswordTF(),
+                          ],
+                        ),
                       ),
-                      _buildPasswordTF(),
                       _buildForgotPasswordBtn(),
                       _buildRememberMeCheckbox(),
                       _buildLoginBtn(),
                       _wrongIdOrPassword(),
                       _buildSignupBtn(),
-                      _loadingSpinner()
+                      _loadingSpinner(),
                     ],
                   ),
                 ),
