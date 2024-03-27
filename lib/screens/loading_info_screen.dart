@@ -36,6 +36,7 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
     widget.metaProgressNotifier.addListener(_updateProgress);
     widget.memberOverviewProgressNotifier.addListener(_updateProgress);
     widget.memberAllProgressNotifier.addListener(_updateProgress);
+    widget.statusGreenNotifier.addListener(_updateProgress);
   }
 
   @override
@@ -46,6 +47,7 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
     widget.metaProgressNotifier.removeListener(_updateProgress);
     widget.memberOverviewProgressNotifier.removeListener(_updateProgress);
     widget.memberAllProgressNotifier.removeListener(_updateProgress);
+    widget.statusGreenNotifier.removeListener(_updateProgress);
     super.dispose();
   }
 
@@ -113,14 +115,19 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
       children: [
         Text(label),
         if (value is bool) ...[
-          if (value)
+          if (value) // bool is true
             const Icon(Icons.check, color: Colors.green)
-          else if (value == false)
+          else if (value == false ||
+              !widget
+                  .statusGreenNotifier.value) // bool is false or loading failed
             const Icon(Icons.error, color: Colors.red)
-          else
+          else // bool is null
             const CircularProgressIndicator(),
         ] else if (value is double) ...[
-          if (value != 1) CircularProgressIndicator(value: value),
+          if (value != 1)
+            CircularProgressIndicator(value: value), // double is not 1
+          if (!widget.statusGreenNotifier.value) // loading failed
+            const Icon(Icons.error, color: Colors.red),
           Text('${(value * 100).toStringAsFixed(0)}%'),
         ] else if (value is String) ...[
           Text(value),
@@ -129,10 +136,10 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: value.map((e) => Text(e.toReadableString())).toList(),
           )
-        else if (value == null)
+        else if (value == null && widget.statusGreenNotifier.value)
           const CircularProgressIndicator()
         else ...[
-          const CircularProgressIndicator(),
+          const Icon(Icons.error, color: Colors.red),
         ],
       ],
     );

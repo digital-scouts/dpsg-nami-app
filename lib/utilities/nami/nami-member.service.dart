@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:nami/utilities/nami/nami-member-fake.service.dart';
 import 'package:nami/utilities/stufe.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:hive/hive.dart';
@@ -52,9 +53,7 @@ Future<List<int>> loadMemberIdsToUpdate(String url, String path,
     });
     return memberIds;
   } else {
-    debugPrint('Failed to load member List');
-    debugPrintStack();
-    return List.empty();
+    throw Exception('Failed to load MemberIds');
   }
 }
 
@@ -133,15 +132,25 @@ Future<void> syncMember(ValueNotifier<double> memberAllProgressNotifier,
   String path = getNamiPath();
 
   Box<Mitglied> memberBox = Hive.box('members');
-  List<int> mitgliedIds;
 
-  mitgliedIds =
-      await loadMemberIdsToUpdate(url, path, gruppierung, cookie, forceUpdate);
+  if (cookie == 'testLoginCookie') {
+    await storeFakeSetOfMemberInHive(
+        memberBox, memberOverviewProgressNotifier, memberAllProgressNotifier);
+    setLastNamiSync(DateTime.now());
+    return;
+  }
+
+  List<int> mitgliedIds;
+  try {
+    mitgliedIds = await loadMemberIdsToUpdate(
+        url, path, gruppierung, cookie, forceUpdate);
+  } catch (e) {
+    memberOverviewProgressNotifier.value = false;
+    rethrow;
+  }
 
   memberOverviewProgressNotifier.value = true;
-
   debugPrint('Starte Syncronisation der Mitgliedsdetails');
-
   var futures = <Future>[];
 
   for (var mitgliedId in mitgliedIds) {

@@ -24,7 +24,7 @@ class MitgliedStufenPieChartState extends State<MitgliedStufenPieChart> {
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: Colors.black26,
+                color: Colors.black12,
                 spreadRadius: 0.1,
                 blurRadius: 5,
               ),
