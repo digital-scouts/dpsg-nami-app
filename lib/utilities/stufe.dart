@@ -79,7 +79,8 @@ enum Stufe implements Comparable<Stufe> {
   }
 
   static Stufe getStufeByString(String name) {
-    return stufen.where((element) => element.display == name).first;
+    return stufen.where((element) => element.display == name).firstOrNull ??
+        KEINE_STUFE;
   }
 
   const Stufe(
