@@ -12,28 +12,11 @@ class Settings extends StatefulWidget {
 
 // Provider.of<ThemeModel>(context, listen: false).setTheme(ThemeType.dark);
 
-class _SettingsState extends State<Settings>
-    with SingleTickerProviderStateMixin {
+class _SettingsState extends State<Settings> {
   bool stufenwechselDatumIsValid = true;
-  late final AnimationController _controller;
 
   final TextEditingController _stufenwechselTextController =
       TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(seconds: 2),
-      vsync: this,
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
 
   Future<void> _syncData({bool forceSync = false}) async {
     AppStateHandler().setLoadDataState(context, loadAll: forceSync);
