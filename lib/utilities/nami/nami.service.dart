@@ -28,6 +28,12 @@ Future<String> loadGruppierung() async {
   String path = getNamiPath();
   String cookie = getNamiApiCookie();
   String fullUrl = '$url$path/gf/gruppierung';
+
+  if (cookie == 'testLoginCookie') {
+    setGruppierungId(1234);
+    return '1234 Test Gruppierung';
+  }
+
   debugPrint('Request: Lade Gruppierung');
   final response =
       await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});

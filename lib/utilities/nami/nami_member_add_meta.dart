@@ -8,6 +8,7 @@ String url = getNamiLUrl();
 String path = getNamiPath();
 int? gruppierungId = getGruppierungId();
 String cookie = getNamiApiCookie();
+const String testCoockieName = 'testLoginCookie';
 
 Future<List<String>> getMetadata(String url) async {
   final headers = {'Cookie': cookie, 'Content-Type': 'application/json'};
@@ -35,6 +36,16 @@ Future<List<String>> getMetadata(String url) async {
 }
 
 Future<List<String>> getBeitragsartenMeta() async {
+  if (cookie == testCoockieName) {
+    return [
+      'Familienermäßigt - Stiftungseuro',
+      'Familienermäßigt',
+      'Sozialermäßigt - Stiftungseuro',
+      'Sozialermäßigt',
+      'Voller Beitrag - Stiftungseuro',
+      'Voller Beitrag'
+    ];
+  }
   String fullUrl =
       '$url/ica/rest/namiBeitrag/beitragsartmgl/gruppierung/$gruppierungId';
   List<String> meta = await getMetadata(fullUrl);
@@ -49,26 +60,39 @@ Future<List<String>> getBeitragsartenMeta() async {
 }
 
 Future<List<String>> getGeschlechtMeta() async {
+  if (cookie == testCoockieName) {
+    return ['männlich', 'weiblich', 'divers', 'keine Angabe'];
+  }
   String fullUrl = '$url/ica/rest/baseadmin/geschlecht/';
   return await getMetadata(fullUrl);
 }
 
 Future<List<String>> getStaatsangehoerigkeitMeta() async {
+  if (cookie == testCoockieName) {
+    return ['deutsch', 'Teststaatsangehörigkeit2', 'Teststaatsangehörigkeit3'];
+  }
   String fullUrl = '$url/ica/rest/baseadmin/staatsangehoerigkeit/';
   return await getMetadata(fullUrl);
 }
 
 Future<List<String>> getRegionMeta() async {
+  if (cookie == testCoockieName) {
+    return ['Testregion1', 'Testregion2', 'Testregion3'];
+  }
   String fullUrl = '$url/ica/rest/baseadmin/region/';
   return await getMetadata(fullUrl);
 }
 
 Future<List<String>> getMitgliedstypMeta() async {
+  if (cookie == testCoockieName) return ['Schnuppermitglied', 'Mitglied'];
   String fullUrl = '$url/ica/rest/nami/enum/mgltype/';
   return await getMetadata(fullUrl);
 }
 
 Future<List<String>> getLandMeta() async {
+  if (cookie == testCoockieName) {
+    return ['Deutschland', 'Testland2', 'Testland3'];
+  }
   String fullUrl = '$url/ica/rest/baseadmin/land/';
   return await getMetadata(fullUrl);
 }
