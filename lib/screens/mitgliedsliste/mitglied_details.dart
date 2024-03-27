@@ -355,20 +355,21 @@ class MitgliedDetailState extends State<MitgliedDetail>
     Stufe stufe =
         Stufe.getStufeByString(fakeStufenwechselTaetigkeit.untergliederung!);
     return _buildBox(
-      InkWell(
-        onTap: loadingStufenwechsel
-            ? null
-            : () => handleStufenwechsel(widget.mitglied.id, currentTaetigkeit,
-                stufe, fakeStufenwechselTaetigkeit.aktivVon),
-        child: ListTile(
-          leading: loadingStufenwechsel
-              ? const CircularProgressIndicator()
-              : _buildTaetigkeitImage(fakeStufenwechselTaetigkeit),
-          title: Text(
-            '${fakeStufenwechselTaetigkeit.untergliederung}',
-          ),
-          subtitle: Text(
-              "Ab: ${DateFormat('dd. MMMM yyyy').format(fakeStufenwechselTaetigkeit.aktivVon)}"),
+      ListTile(
+        leading: loadingStufenwechsel
+            ? const CircularProgressIndicator()
+            : _buildTaetigkeitImage(fakeStufenwechselTaetigkeit),
+        title: Text(
+          '${fakeStufenwechselTaetigkeit.untergliederung}',
+        ),
+        subtitle: Text(
+            "Ab: ${DateFormat('dd. MMMM yyyy').format(fakeStufenwechselTaetigkeit.aktivVon)}"),
+        trailing: TextButton(
+          onPressed: loadingStufenwechsel
+              ? null
+              : () => handleStufenwechsel(widget.mitglied.id, currentTaetigkeit,
+                  stufe, fakeStufenwechselTaetigkeit.aktivVon),
+          child: const Text("Wechseln"),
         ),
       ),
     );
