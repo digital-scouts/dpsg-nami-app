@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:nami/utilities/app.state.dart';
 
 import '../../utilities/hive/settings.dart';
-import 'dart:math';
 
 class Settings extends StatefulWidget {
   const Settings({Key? key}) : super(key: key);
@@ -16,7 +15,6 @@ class Settings extends StatefulWidget {
 class _SettingsState extends State<Settings>
     with SingleTickerProviderStateMixin {
   bool stufenwechselDatumIsValid = true;
-  bool loading = false;
   late final AnimationController _controller;
 
   final TextEditingController _stufenwechselTextController =
@@ -38,9 +36,7 @@ class _SettingsState extends State<Settings>
   }
 
   Future<void> _syncData({bool forceSync = false}) async {
-    setState(() => loading = true);
     AppStateHandler().setLoadDataState(context, loadAll: forceSync);
-    setState(() => loading = false);
   }
 
   Widget _buildSync() {
@@ -48,18 +44,9 @@ class _SettingsState extends State<Settings>
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const Text('Sync: '),
-        AnimatedBuilder(
-          animation: _controller,
-          builder: (_, child) {
-            return Transform.rotate(
-              angle: loading ? _controller.value * 2.0 * pi : 0,
-              child: child,
-            );
-          },
-          child: IconButton(
-            icon: const Icon(Icons.sync),
-            onPressed: loading ? null : () => {_syncData()},
-          ),
+        IconButton(
+          icon: const Icon(Icons.sync),
+          onPressed: () => {_syncData()},
         ),
         Text(
             "Vor ${DateTime.now().difference(getLastNamiSync()).inDays.toString()} Tagen"),
@@ -72,18 +59,9 @@ class _SettingsState extends State<Settings>
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const Text('Force Sync: '),
-        AnimatedBuilder(
-          animation: _controller,
-          builder: (_, child) {
-            return Transform.rotate(
-              angle: loading ? _controller.value * 2.0 * pi : 0,
-              child: child,
-            );
-          },
-          child: IconButton(
-            icon: const Icon(Icons.sync),
-            onPressed: loading ? null : () => {_syncData(forceSync: true)},
-          ),
+        IconButton(
+          icon: const Icon(Icons.sync),
+          onPressed: () => {_syncData(forceSync: true)},
         ),
       ],
     );
