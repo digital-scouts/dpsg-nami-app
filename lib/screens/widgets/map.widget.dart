@@ -78,6 +78,7 @@ class MapWidgetState extends State<MapWidget> {
                 options: MapOptions(
                   center: addressLocation, // Position für die Karte
                   zoom: 13.0,
+                  maxZoom: 17,
                   interactiveFlags:
                       InteractiveFlag.pinchZoom | InteractiveFlag.drag,
                 ),
