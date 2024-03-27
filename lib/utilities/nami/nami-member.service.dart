@@ -218,9 +218,8 @@ Future<void> storeMitgliedToHive(
     ..geschlecht = rawMember.geschlecht
     ..geburtsDatum = rawMember.geburtsDatum
     ..stufe =
-        Stufe.getStufeByString(rawMember.stufe ?? StufeEnum.KEINE_STUFE.value)
-            .name
-            .value
+        Stufe.getStufeByString(rawMember.stufe ?? Stufe.KEINE_STUFE.display)
+            .display
     ..id = rawMember.id
     ..mitgliedsNummer = rawMember.mitgliedsNummer
     ..eintrittsdatum = rawMember.eintrittsdatum

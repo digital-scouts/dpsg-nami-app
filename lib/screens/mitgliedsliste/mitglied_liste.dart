@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 // import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:nami/screens/mitgliedsliste/mitglied_details.dart';
+import 'package:nami/utilities/extensions.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/mitglied.filterAndSort.dart';
 import 'package:nami/utilities/stufe.dart';
@@ -59,7 +60,7 @@ class MitgliedsListeState extends State<MitgliedsListe> {
     List<Stufe> gruppen = List.empty(growable: true);
     for (var i = 0; i < filterGroup.length; i++) {
       if (filterGroup[i]) {
-        gruppen.add(Stufe.stufen[i]);
+        gruppen.add(Stufe.values[i]);
       }
     }
     filterByStufe(filteredMitglieder, gruppen);
@@ -112,52 +113,53 @@ class MitgliedsListeState extends State<MitgliedsListe> {
   }
 
   Widget _buildMemberList() {
-    return filteredMitglieder.isEmpty
-        ? const Center(child: Text('Keine Mitglieder gefunden'))
-        : ListView.builder(
-            padding: const EdgeInsets.all(8),
-            itemCount: filteredMitglieder.length,
-            itemBuilder: (context, index) {
-              return GestureDetector(
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (context) =>
-                        MitgliedDetail(mitglied: filteredMitglieder[index]))),
-                child: Card(
-                  child: ListTile(
-                    leading: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                            colors: [
-                              filteredMitglieder[index].isMitgliedLeiter()
-                                  ? DPSGColors.leiterFarbe
-                                  : Stufe.getStufeByString(
-                                          filteredMitglieder[index].stufe)
-                                      .farbe,
-                              Stufe.getStufeByString(
-                                      filteredMitglieder[index].stufe)
-                                  .farbe
-                            ],
-                            begin: const FractionalOffset(0.0, 0.0),
-                            end: const FractionalOffset(0.0, 1.0),
-                            stops: const [0.5, 0.5],
-                            tileMode: TileMode.clamp),
-                      ),
-                      width: 5,
-                    ),
-                    minLeadingWidth: 5,
-                    title: Text(
-                        '${filteredMitglieder[index].vorname} ${filteredMitglieder[index].nachname}'),
-                    subtitle: Text(
-                        filteredMitglieder[index].mitgliedsNummer.toString()),
-                    trailing: Text(
-                        filteredMitglieder[index].stufe == 'keine Stufe'
-                            ? ''
-                            : filteredMitglieder[index].stufe),
-                  ),
+    if (filteredMitglieder.isEmpty) {
+      return const Center(child: Text('Keine Mitglieder gefunden'));
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.all(8),
+      itemCount: filteredMitglieder.length,
+      itemBuilder: (context, index) {
+        return Card(
+          child: InkWell(
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                  builder: (context) =>
+                      MitgliedDetail(mitglied: filteredMitglieder[index])),
+            ),
+            child: ListTile(
+              leading: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                      colors: [
+                        filteredMitglieder[index].isMitgliedLeiter()
+                            ? DPSGColors.leiterFarbe
+                            : Stufe.getStufeByString(
+                                    filteredMitglieder[index].stufe)
+                                .farbe,
+                        Stufe.getStufeByString(filteredMitglieder[index].stufe)
+                            .farbe
+                      ],
+                      begin: const FractionalOffset(0.0, 0.0),
+                      end: const FractionalOffset(0.0, 1.0),
+                      stops: const [0.5, 0.5],
+                      tileMode: TileMode.clamp),
                 ),
-              );
-            },
-          );
+                width: 5,
+              ),
+              minLeadingWidth: 5,
+              title: Text(
+                  '${filteredMitglieder[index].vorname} ${filteredMitglieder[index].nachname}'),
+              subtitle:
+                  Text(filteredMitglieder[index].geburtsDatum.prettyPrint()),
+              trailing: Text(filteredMitglieder[index].stufe == 'keine Stufe'
+                  ? ''
+                  : filteredMitglieder[index].stufe),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildSortDropdown() {
@@ -177,44 +179,36 @@ class MitgliedsListeState extends State<MitgliedsListe> {
   }
 
   Widget _buildFilterGroup() {
-    // Bilder für die Stufen
-    List<String> stufenBilder = [
-      'assets/images/biber.png',
-      'assets/images/woe.png',
-      'assets/images/jufi.png',
-      'assets/images/pfadi.png',
-      'assets/images/rover.png',
-      'assets/images/lilie.png'
-    ];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: List.generate(stufenBilder.length, (index) {
-          // TODO: show only filter for groups with members
-          return GestureDetector(
-            onTap: () {
-              setFilterGroup(index, !filterGroup[index]);
-            },
-            child: Container(
-              width: 50.0,
-              height: 50.0,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: filterGroup[index]
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.surfaceVariant,
-              ),
-              child: Center(
-                child: Image.asset(
-                  stufenBilder[index],
-                  width: 30.0,
-                  height: 30.0,
+        children: [
+          for (final stufe in Stufe.stufen)
+            // TODO: show only filter for groups with members
+            GestureDetector(
+              onTap: () {
+                setFilterGroup(stufe.index, !filterGroup[stufe.index]);
+              },
+              child: Container(
+                width: 50.0,
+                height: 50.0,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: filterGroup[stufe.index]
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.surfaceVariant,
+                ),
+                child: Center(
+                  child: Image.asset(
+                    stufe.imagePath!,
+                    width: 30.0,
+                    height: 30.0,
+                  ),
                 ),
               ),
             ),
-          );
-        }),
+        ],
       ),
     );
   }

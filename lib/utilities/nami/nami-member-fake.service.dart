@@ -39,10 +39,7 @@ Mitglied createFakeMember(dynamic rawMember, dynamic rawTaetigkeiten) {
     ..nachname = rawMember['nachname']
     ..geschlecht = rawMember['geschlecht']
     ..geburtsDatum = DateTime.parse(rawMember['geburtsDatum'])
-    ..stufe = Stufe.getStufeByString(
-            rawMember['stufe'] ?? StufeEnum.KEINE_STUFE.value)
-        .name
-        .value
+    ..stufe = Stufe.getStufeByString(rawMember['stufe']).display
     ..id = rawMember['id']
     ..mitgliedsNummer = rawMember['mitgliedsNummer']
     ..eintrittsdatum = DateTime.parse(rawMember['eintrittsdatum'])
