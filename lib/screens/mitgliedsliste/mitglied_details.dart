@@ -37,22 +37,10 @@ class MitgliedDetailState extends State<MitgliedDetail>
     _tabController = TabController(length: 2, vsync: this);
   }
 
-  Widget _buildBox(List<Widget> children) {
-    return SizedBox(
-      child: Card(
-        color: Theme.of(context).colorScheme.surface,
-        elevation: 2.0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-        child: IntrinsicHeight(
-          child: Padding(
-            padding: const EdgeInsets.all(5.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: children,
-            ),
-          ),
-        ),
-      ),
+  Widget _buildBox(Widget child) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 5.0),
+      child: child,
     );
   }
 
@@ -173,7 +161,10 @@ class MitgliedDetailState extends State<MitgliedDetail>
       textAlign: TextAlign.left,
       text: TextSpan(
         text: path,
-        style: const TextStyle(color: Colors.blue, fontSize: 20),
+        style: Theme.of(context)
+            .textTheme
+            .titleMedium!
+            .copyWith(color: Colors.blue),
         recognizer: TapGestureRecognizer()
           ..onTap = () async {
             final Uri params = Uri(
@@ -196,7 +187,10 @@ class MitgliedDetailState extends State<MitgliedDetail>
       textAlign: TextAlign.left,
       text: TextSpan(
         text: address,
-        style: const TextStyle(color: Colors.blue, fontSize: 20),
+        style: Theme.of(context)
+            .textTheme
+            .titleMedium!
+            .copyWith(color: Colors.blue),
         recognizer: TapGestureRecognizer()
           ..onTap = () {
             MapsLauncher.launchQuery(address);
@@ -205,72 +199,102 @@ class MitgliedDetailState extends State<MitgliedDetail>
     );
   }
 
-  Widget _buildMailList() {
-    if (widget.mitglied.emailVertretungsberechtigter.isNotNullOrEmpty ||
-        widget.mitglied.email.isNotNullOrEmpty ||
-        widget.mitglied.telefon1.isNotNullOrEmpty ||
-        widget.mitglied.telefon2.isNotNullOrEmpty ||
-        widget.mitglied.telefon3.isNotNullOrEmpty) {
-      return _buildBox(<Widget>[
-        if (widget.mitglied.email.isNotNullOrEmpty)
-          const Text("E-Mail",
-              style: TextStyle(color: Colors.white, fontSize: 20)),
-        if (widget.mitglied.email.isNotNullOrEmpty)
-          _buildLinkText('mailto', widget.mitglied.email!),
-        if (widget.mitglied.emailVertretungsberechtigter.isNotNullOrEmpty)
-          const Text("E-Mail Vertretungsberechtigte:r",
-              style: TextStyle(color: Colors.white, fontSize: 20)),
-        if (widget.mitglied.emailVertretungsberechtigter.isNotNullOrEmpty)
-          _buildLinkText(
-              'mailto', widget.mitglied.emailVertretungsberechtigter!),
-        if (widget.mitglied.telefon1.isNotNullOrEmpty)
-          const Text("Telefon",
-              style: TextStyle(color: Colors.white, fontSize: 20)),
-        if (widget.mitglied.telefon1.isNotNullOrEmpty)
-          _buildLinkText('tel', widget.mitglied.telefon1!),
-        if (widget.mitglied.telefon2.isNotNullOrEmpty)
-          const Text("Telefon",
-              style: TextStyle(color: Colors.white, fontSize: 20)),
-        if (widget.mitglied.telefon2.isNotNullOrEmpty)
-          _buildLinkText('tel', widget.mitglied.telefon2!),
-        if (widget.mitglied.telefon3.isNotNullOrEmpty)
-          const Text("Telefon",
-              style: TextStyle(color: Colors.white, fontSize: 20)),
-        if (widget.mitglied.telefon3.isNotNullOrEmpty)
-          _buildLinkText('tel', widget.mitglied.telefon3!),
-      ]);
-    } else {
-      return Container();
-    }
-  }
-
   Widget _buildAddress() {
     LatLng homeLocation = const LatLng(53.608620, 9.897620);
     String memberAddress =
         '${widget.mitglied.strasse}, ${widget.mitglied.plz} ${widget.mitglied.ort}';
 
-    return _buildBox(<Widget>[
-      const Text("Anschrift",
-          style: TextStyle(color: Colors.white, fontSize: 20)),
-      _buildMapText(memberAddress),
-      MapWidget(
-        homeLocation: homeLocation,
-        memberAddress: memberAddress,
-      ),
-    ]);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Anschrift",
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        _buildBox(
+          Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.home),
+                title: _buildMapText(memberAddress),
+              ),
+              MapWidget(
+                homeLocation: homeLocation,
+                memberAddress: memberAddress,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
-  Widget _buildGeburtsdatum() {
-    final int age = widget.mitglied.getAlterAm();
-    return _buildBox(<Widget>[
-      Text(
-          'Alter: $age (${widget.mitglied.geburtsDatum.day < 10 ? '0' : ''}${widget.mitglied.geburtsDatum.day}.${widget.mitglied.geburtsDatum.month < 10 ? '0' : ''}${widget.mitglied.geburtsDatum.month}.${widget.mitglied.geburtsDatum.year})',
-          style: const TextStyle(color: Colors.white, fontSize: 18)),
-    ]);
+  Widget _buildGeneralInfos() {
+    final mitglied = widget.mitglied;
+    final int age = mitglied.getAlterAm();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Allgemeine Informationen",
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        _buildBox(
+          Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.event),
+                subtitle: const Text('Alter'),
+                title: Text(
+                    "$age (${widget.mitglied.geburtsDatum.prettyPrint()})"),
+              ),
+              if (mitglied.email.isNotNullOrEmpty)
+                ListTile(
+                  leading: const Icon(Icons.email),
+                  subtitle: const Text('E-Mail'),
+                  title: _buildLinkText("mailto", mitglied.email!),
+                ),
+              if (mitglied.emailVertretungsberechtigter.isNotNullOrEmpty)
+                ListTile(
+                  leading: const Icon(Icons.email),
+                  subtitle: const Text('E-Mail Vertretungsberechtigter'),
+                  title: _buildLinkText(
+                    "mailto",
+                    mitglied.emailVertretungsberechtigter!,
+                  ),
+                ),
+              if (mitglied.telefon1.isNotNullOrEmpty)
+                ListTile(
+                  leading: const Icon(Icons.call),
+                  subtitle: const Text('Festnetznummer'),
+                  title: _buildLinkText("tel", mitglied.telefon1!),
+                ),
+              if (mitglied.telefon2.isNotNullOrEmpty)
+                ListTile(
+                  leading: const Icon(Icons.call),
+                  subtitle: const Text('Mobilfunknummer'),
+                  title: _buildLinkText("tel", mitglied.telefon2!),
+                ),
+              if (mitglied.telefon3.isNotNullOrEmpty)
+                ListTile(
+                  leading: const Icon(Icons.call),
+                  subtitle: const Text('Geschäftlich'),
+                  title: _buildLinkText("tel", mitglied.telefon3!),
+                ),
+              ListTile(
+                leading: const Icon(Icons.tag),
+                subtitle: const Text('NaMi ID'),
+                title: Text(mitglied.mitgliedsNummer.toString()),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildTaetigkeitImage(Taetigkeit taetigkeit) {
-    String imagerPath = 'assets/images/lilie.png';
+    String imagerPath = 'assets/images/lilie_schwarz.png';
     if (taetigkeit.taetigkeit.trim() == 'Mitglied') {
       imagerPath =
           'assets/images/${Stufe.getStufeByString(taetigkeit.untergliederung!).imageName}';
@@ -279,7 +303,6 @@ class MitgliedDetailState extends State<MitgliedDetail>
         imagerPath,
         width: 80.0,
         height: 80.0,
-        fit: BoxFit.cover,
         color: Stufe.getStufeByString(taetigkeit.untergliederung!).farbe,
         colorBlendMode: BlendMode.srcIn,
       );
@@ -289,48 +312,18 @@ class MitgliedDetailState extends State<MitgliedDetail>
       imagerPath,
       width: 80.0,
       height: 80.0,
-      fit: BoxFit.cover,
     );
   }
 
   Widget _buildTaetigkeitenItem(Taetigkeit taetigkeit) {
-    return SizedBox(
-      height: 100,
-      width: 400,
-      child: Card(
-        color: Theme.of(context).colorScheme.surface,
-        elevation: 2.0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-        child: IntrinsicHeight(
-          child: Padding(
-            padding: const EdgeInsets.all(5.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildTaetigkeitImage(taetigkeit),
-                const SizedBox(width: 10.0),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${taetigkeit.taetigkeit} - ${taetigkeit.untergliederung}',
-                        style: const TextStyle(
-                          fontSize: 18.0,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 5.0),
-                      Text(
-                        '${DateFormat('MMMM').format(taetigkeit.aktivVon)} ${taetigkeit.aktivVon.year}${taetigkeit.aktivBis != null ? ' - ${DateFormat('MMMM').format(taetigkeit.aktivBis!)} ${taetigkeit.aktivBis!.year}' : ''}',
-                        style: const TextStyle(fontSize: 16.0),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+    return _buildBox(
+      ListTile(
+        leading: _buildTaetigkeitImage(taetigkeit),
+        title: Text(
+          '${taetigkeit.taetigkeit} - ${taetigkeit.untergliederung}',
+        ),
+        subtitle: Text(
+          '${DateFormat('MMMM').format(taetigkeit.aktivVon)} ${taetigkeit.aktivVon.year}${taetigkeit.aktivBis != null ? ' - ${DateFormat('MMMM').format(taetigkeit.aktivBis!)} ${taetigkeit.aktivBis!.year}' : ''}',
         ),
       ),
     );
@@ -362,63 +355,21 @@ class MitgliedDetailState extends State<MitgliedDetail>
       Taetigkeit fakeStufenwechselTaetigkeit, Taetigkeit currentTaetigkeit) {
     Stufe stufe =
         Stufe.getStufeByString(fakeStufenwechselTaetigkeit.untergliederung!);
-
-    return GestureDetector(
-      onTap: loadingStufenwechsel
-          ? null
-          : () => handleStufenwechsel(widget.mitglied.id, currentTaetigkeit,
-              stufe, fakeStufenwechselTaetigkeit.aktivVon),
-      child: SizedBox(
-        height: 100,
-        width: 400,
-        child: Card(
-          color: loadingStufenwechsel
-              ? Theme.of(context).colorScheme.surface
-              : Theme.of(context).colorScheme.background,
-          elevation: 2.0,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-          child: IntrinsicHeight(
-            child: Padding(
-              padding: const EdgeInsets.all(5.0),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  loadingStufenwechsel
-                      ? const Padding(
-                          padding: EdgeInsets.all(10),
-                          child: SizedBox(
-                            width: 60.0,
-                            height: 60.0,
-                            child: CircularProgressIndicator(),
-                          ))
-                      : _buildTaetigkeitImage(fakeStufenwechselTaetigkeit),
-                  const SizedBox(width: 10.0),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${fakeStufenwechselTaetigkeit.untergliederung}',
-                          style: const TextStyle(
-                            fontSize: 18.0,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const Text('(nach Stufenwechsel)'),
-                        const SizedBox(height: 5.0),
-                        Text(
-                          DateFormat('dd. MMMM yyyy')
-                              .format(fakeStufenwechselTaetigkeit.aktivVon),
-                          style: const TextStyle(fontSize: 16.0),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+    return _buildBox(
+      InkWell(
+        onTap: loadingStufenwechsel
+            ? null
+            : () => handleStufenwechsel(widget.mitglied.id, currentTaetigkeit,
+                stufe, fakeStufenwechselTaetigkeit.aktivVon),
+        child: ListTile(
+          leading: loadingStufenwechsel
+              ? const CircularProgressIndicator()
+              : _buildTaetigkeitImage(fakeStufenwechselTaetigkeit),
+          title: Text(
+            '${fakeStufenwechselTaetigkeit.untergliederung}',
           ),
+          subtitle: Text(
+              "Ab: ${DateFormat('dd. MMMM yyyy').format(fakeStufenwechselTaetigkeit.aktivVon)}"),
         ),
       ),
     );
@@ -520,50 +471,48 @@ class MitgliedDetailState extends State<MitgliedDetail>
               ],
             ),
             Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  ListView(
-                    children: <Widget>[
-                      _buildGeburtsdatum(),
-                      _buildMailList(),
-                      _buildAddress(),
-                    ],
-                  ),
-                  ListView(
-                    children: [
-                      if (fakeStufenwechselTaetigkeit != null &&
-                          currentTaetigkeit != null)
-                        _buildStufenwechselItem(
-                            fakeStufenwechselTaetigkeit, currentTaetigkeit),
-                      SizedBox(
-                          height: aktiveTaetigkeiten.length * 110,
-                          child: ListView.builder(
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: aktiveTaetigkeiten.length,
-                              itemBuilder: (context, index) =>
-                                  _buildTaetigkeitenItem(
-                                      aktiveTaetigkeiten[index]))),
-                      const SizedBox(
-                        height: 20,
-                      ),
-                      if (vergangeneTaetigkeiten.isNotEmpty)
-                        const Text(
-                          'Abgeschlossene Tätigkeiten',
-                          style: TextStyle(fontSize: 18.0),
-                        ),
-                      if (vergangeneTaetigkeiten.isNotEmpty)
-                        SizedBox(
-                            height: vergangeneTaetigkeiten.length * 110,
-                            child: ListView.builder(
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemCount: vergangeneTaetigkeiten.length,
-                                itemBuilder: (context, index) =>
-                                    _buildTaetigkeitenItem(
-                                        vergangeneTaetigkeiten[index]))),
-                    ],
-                  )
-                ],
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    ListView(
+                      children: <Widget>[
+                        _buildGeneralInfos(),
+                        _buildAddress(),
+                      ],
+                    ),
+                    ListView(
+                      children: [
+                        if (fakeStufenwechselTaetigkeit != null &&
+                            currentTaetigkeit != null) ...[
+                          Text(
+                            'Zukünftige Tätigkeit',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          _buildStufenwechselItem(
+                              fakeStufenwechselTaetigkeit, currentTaetigkeit),
+                          const SizedBox(height: 10),
+                        ],
+                        if (aktiveTaetigkeiten.isNotEmpty)
+                          Text(
+                            'Aktive Tätigkeiten',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        for (final taetigkeit in aktiveTaetigkeiten)
+                          _buildTaetigkeitenItem(taetigkeit),
+                        const SizedBox(height: 10),
+                        if (vergangeneTaetigkeiten.isNotEmpty)
+                          Text(
+                            'Abgeschlossene Tätigkeiten',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        for (final taetigkeit in vergangeneTaetigkeiten)
+                          _buildTaetigkeitenItem(taetigkeit),
+                      ],
+                    )
+                  ],
+                ),
               ),
             ),
           ],

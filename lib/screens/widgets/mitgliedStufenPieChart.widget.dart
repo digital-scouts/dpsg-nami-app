@@ -48,8 +48,8 @@ class MitgliedStufenPieChartState extends State<MitgliedStufenPieChart> {
               key, value, Colors.red, 'assets/images/rover.png', index));
           break;
         case "LeiterIn":
-          sectionData.add(createPieElement(
-              key, value, Colors.yellow, 'assets/images/lilie.png', index));
+          sectionData.add(createPieElement(key, value, Colors.yellow,
+              'assets/images/lilie_schwarz.png', index));
           break;
         default:
           sectionData.add(createPieElement(key, value, Colors.grey, '', index));
