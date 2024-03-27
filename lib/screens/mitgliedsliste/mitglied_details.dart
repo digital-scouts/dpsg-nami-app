@@ -283,7 +283,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
                 ),
               ListTile(
                 leading: const Icon(Icons.tag),
-                subtitle: const Text('NaMi ID'),
+                subtitle: const Text('NaMi Mitgliedsnummer'),
                 title: Text(mitglied.mitgliedsNummer.toString()),
               ),
             ],
