@@ -16,12 +16,27 @@ class MitgliedStufenPieChartState extends State<MitgliedStufenPieChart> {
   @override
   Widget build(BuildContext context) {
     return AspectRatio(
-      aspectRatio: 2.3,
-      child: PieChart(
-        PieChartData(
-          sectionsSpace: 0,
-          centerSpaceRadius: 0,
-          sections: createData(),
+      aspectRatio: 1.8,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4.0),
+        child: Container(
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black26,
+                spreadRadius: 0.1,
+                blurRadius: 5,
+              ),
+            ],
+          ),
+          child: PieChart(
+            PieChartData(
+              sectionsSpace: 0,
+              centerSpaceRadius: 0,
+              sections: createData(),
+            ),
+          ),
         ),
       ),
     );
