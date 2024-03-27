@@ -154,6 +154,7 @@ class AppStateHandler extends ChangeNotifier {
       rechteProgressNotifier.value = await getRechte();
     } catch (e) {
       statusGreenNotifier.value = false;
+      statusGreenNotifier.notifyListeners();
       debugPrint(e.toString());
     }
   }
