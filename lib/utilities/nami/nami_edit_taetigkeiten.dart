@@ -90,8 +90,8 @@ Future<void> createTaetigkeitForStufe(
 
   List<NamedId> untergliederungen =
       await loadUntergliederungAufTaetigkeit(taetigkeitId);
-  NamedId untergliederung = untergliederungen.firstWhere(
-      (element) => element.descriptor == stufe.name.value.toString());
+  NamedId untergliederung = untergliederungen
+      .firstWhere((element) => element.descriptor == stufe.display);
 
   if (untergliederung.id == -1) {
     throw Exception(

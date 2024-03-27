@@ -48,8 +48,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
     // filter taetigkeiten to only include Stufen Taetigkeiten
     // count years per stufe by subtracting aktivVon from aktivBis or now
     Map<String, int> tageProStufe = {};
-    List<String> stufen =
-        Stufe.stufen.map((stufe) => stufe.name.value).toList();
+    List<String> stufen = Stufe.values.map((stufe) => stufe.display).toList();
     for (var taetigkeit in widget.mitglied.taetigkeiten) {
       if (taetigkeit.untergliederung != null &&
           stufen.contains(taetigkeit.untergliederung) &&
@@ -134,7 +133,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
       children: [
         Text(
             'In der Stufe seit ${currentStufeYears > 1 ? '$currentStufeYears Jahren' : 'einem Jahr'}${currentStufeMonths != 0 ? ' und $currentStufeMonths Monaten' : ''}.'),
-        nextStufe?.name.value == 'Leiter' && maxStufenWechselJahr != null
+        nextStufe?.display == 'Leiter' && maxStufenWechselJahr != null
             ? Text('Stufenzeit endet $maxStufenWechselJahr')
             : (maxStufenWechselJahr != null && minStufenWechselJahr != null
                 ? Text(
@@ -297,7 +296,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
     String imagerPath = 'assets/images/lilie_schwarz.png';
     if (taetigkeit.taetigkeit.trim() == 'Mitglied') {
       imagerPath =
-          'assets/images/${Stufe.getStufeByString(taetigkeit.untergliederung!).imageName}';
+          Stufe.getStufeByString(taetigkeit.untergliederung!).imagePath!;
     } else if (taetigkeit.taetigkeit.contains('LeiterIn')) {
       return Image.asset(
         imagerPath,
@@ -389,7 +388,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
         return AlertDialog(
           title: const Text('Stufenwechsel'),
           content: Text(
-              'Soll $mitgliedName am ${DateFormat('dd. MMMM yyyy').format(stufenwechselDate)} wirklich zu den ${stufeAfterWechsel.name.value} wechseln?\n\nDie aktuelle Tätigkeit (${currentTaetigkeit.untergliederung}) wird beendet.'),
+              'Soll $mitgliedName am ${DateFormat('dd. MMMM yyyy').format(stufenwechselDate)} wirklich zu den ${stufeAfterWechsel.display} wechseln?\n\nDie aktuelle Tätigkeit (${currentTaetigkeit.untergliederung}) wird beendet.'),
           actions: <Widget>[
             TextButton(
               child: const Text('Abbrechen'),
@@ -439,7 +438,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
     stufenwechselTaetigkeit.aktivVon = getNextStufenwechselDatum();
     stufenwechselTaetigkeit.taetigkeit = 'Mitglied';
     stufenwechselTaetigkeit.untergliederung =
-        widget.mitglied.nextStufe?.name.value;
+        widget.mitglied.nextStufe?.display;
     return stufenwechselTaetigkeit;
   }
 

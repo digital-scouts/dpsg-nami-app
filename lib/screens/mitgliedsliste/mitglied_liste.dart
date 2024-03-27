@@ -60,7 +60,7 @@ class MitgliedsListeState extends State<MitgliedsListe> {
     List<Stufe> gruppen = List.empty(growable: true);
     for (var i = 0; i < filterGroup.length; i++) {
       if (filterGroup[i]) {
-        gruppen.add(Stufe.stufen[i]);
+        gruppen.add(Stufe.values[i]);
       }
     }
     filterByStufe(filteredMitglieder, gruppen);
@@ -179,44 +179,36 @@ class MitgliedsListeState extends State<MitgliedsListe> {
   }
 
   Widget _buildFilterGroup() {
-    // Bilder für die Stufen
-    List<String> stufenBilder = [
-      'assets/images/biber.png',
-      'assets/images/woe.png',
-      'assets/images/jufi.png',
-      'assets/images/pfadi.png',
-      'assets/images/rover.png',
-      'assets/images/lilie_schwarz.png'
-    ];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: List.generate(stufenBilder.length, (index) {
-          // TODO: show only filter for groups with members
-          return GestureDetector(
-            onTap: () {
-              setFilterGroup(index, !filterGroup[index]);
-            },
-            child: Container(
-              width: 50.0,
-              height: 50.0,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: filterGroup[index]
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.surfaceVariant,
-              ),
-              child: Center(
-                child: Image.asset(
-                  stufenBilder[index],
-                  width: 30.0,
-                  height: 30.0,
+        children: [
+          for (final stufe in Stufe.stufen)
+            // TODO: show only filter for groups with members
+            GestureDetector(
+              onTap: () {
+                setFilterGroup(stufe.index, !filterGroup[stufe.index]);
+              },
+              child: Container(
+                width: 50.0,
+                height: 50.0,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: filterGroup[stufe.index]
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.surfaceVariant,
+                ),
+                child: Center(
+                  child: Image.asset(
+                    stufe.imagePath!,
+                    width: 30.0,
+                    height: 30.0,
+                  ),
                 ),
               ),
             ),
-          );
-        }),
+        ],
       ),
     );
   }
