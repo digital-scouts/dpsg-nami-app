@@ -20,7 +20,7 @@ class _SettingsState extends State<Settings> {
 
   Widget _buildSync() {
     return ListTile(
-      title: const Text('Sync: '),
+      title: const Text('Aktualisiere die Mitgliedsdaten'),
       leading: const Icon(Icons.sync),
       onTap: () {
         AppStateHandler().setLoadDataState(context, loadAll: false);
@@ -32,7 +32,7 @@ class _SettingsState extends State<Settings> {
 
   Widget _buildForceBSync() {
     return ListTile(
-      title: const Text('Force Sync: '),
+      title: const Text('Lade alle Daten neu'),
       leading: const Icon(Icons.sync),
       onTap: () {
         AppStateHandler().setLoadDataState(context, loadAll: true);
