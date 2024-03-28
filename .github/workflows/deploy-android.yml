@@ -15,9 +15,10 @@ on:
   workflow_dispatch: null
 jobs:
 
-  bump-version:
+  version:
     runs-on: ubuntu-latest
-    
+    outputs:
+      releaseversion: ${{ steps.version.outputs.version }}
     steps:
     - name: Checkout-Repository
       uses: actions/checkout@v2
@@ -26,19 +27,17 @@ jobs:
       run: |
         VERSION=$(grep "version:" pubspec.yaml | awk '{print $2}')
         echo "::set-output name=version::$VERSION"
-    - name: Output pubspec.yaml Version
-      run: |
-        echo "Die aktuelle Version ist ${{ steps.get_version.outputs.version }}"
     - name: Output Run Number
       run: echo ${{ github.run_number }}
     - name: Set new version of app
+      id: version
       run: |
          VERSION=${{ steps.get_version.outputs.version }}
          VERSION_WITHOUT_PLUS="${VERSION%%+*}"
          GITHUB_RUN_NUMBER=${{ github.run_number }}
-         sed -i "/version:/c version: $VERSION_WITHOUT_PLUS+$GITHUB_RUN_NUMBER" pubspec.yaml    #removing line which contain *** version: ***
-         echo VERSION_WITHOUT_PLUS
+         sed -i "/version:/c version: $VERSION_WITHOUT_PLUS+$GITHUB_RUN_NUMBER" pubspec.yaml
          echo "Die neue Version ist $VERSION_WITHOUT_PLUS+$GITHUB_RUN_NUMBER" 
+         run: echo "::set-output name=version::${{ steps.gitversion.outputs.VERSION }}"
 
   test:
     name: flutter test
@@ -74,28 +73,6 @@ jobs:
         run: flutter analyze
       # - name: Run tests
       #   run: flutter test
-
-  version:
-    name: flutter version
-    runs-on: ubuntu-latest
-    outputs:
-      releaseversion: ${{ steps.v.outputs.version }}
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ github.head_ref }} # checkout the correct branch name
-          fetch-depth: 0 # fetch the whole repo history
-      - name: Git Version
-        id: gitversion
-        uses: codacy/git-version@2.2.0
-        with:
-          dev-branch: develop
-          prefix: v
-      - name: Save git-version
-        id: v
-        run: echo "::set-output name=version::${{ steps.gitversion.outputs.VERSION }}"
-    
     
   build:
     name: Build Android
