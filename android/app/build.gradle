@@ -27,6 +27,7 @@ apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 android {
     compileSdkVersion 34
+    namespace 'de.jlange.nami.app'
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -43,18 +44,10 @@ android {
 
     defaultConfig {
         applicationId "de.jlange.nami.app"
-        minSdkVersion 21
+        minSdkVersion 26
         targetSdkVersion 33
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
-    }
-
-    buildTypes {
-        release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig signingConfigs.debug
-        }
     }
 }
 

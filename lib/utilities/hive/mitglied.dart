@@ -120,7 +120,7 @@ class Mitglied {
   }
 
   Stufe? get nextStufe {
-    return Stufe.getStufeByOrder(Stufe.getStufeByString(stufe).order + 1);
+    return Stufe.getStufeByOrder(Stufe.getStufeByString(stufe).index + 1);
   }
 
   int? getMinStufenWechselJahr() {
@@ -148,7 +148,7 @@ class Mitglied {
           alterNextStufenwechsel +
           currentStufe.alterMax! +
           1;
-    } else if (currentStufe.name.value == "Rover" && !isMitgliedLeiter()) {
+    } else if (currentStufe.display == "Rover" && !isMitgliedLeiter()) {
       return DateTime.now().year -
           alterNextStufenwechsel +
           currentStufe.alterMax! +

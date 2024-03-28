@@ -43,6 +43,9 @@ extension AllowedFeaturesExtension on AllowedFeatures {
 
 // Dokumentation zu den Rechten finden sich im README.md
 Future<List<AllowedFeatures>> getRechte() async {
+  if (cookie == 'testLoginCookie') {
+    return [AllowedFeatures.appStart];
+  }
   List<AllowedFeatures> allowedFeatures = [];
   Map<int, String> rechte = await loadRechteJson();
 

@@ -64,62 +64,56 @@ class MapWidgetState extends State<MapWidget> {
       adjustMapCenterAndZoom(addressLocation, homeLocation);
     });
 
-    return SizedBox(
-      child: Card(
-        color: Colors.black87,
-        elevation: 2.0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(5.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SizedBox(
-                width: double.infinity,
-                height: 200.0, // Anpassen der Höhe nach Bedarf
-                child: FlutterMap(
-                  mapController: mapController,
-                  options: MapOptions(
-                    center: addressLocation, // Position für die Karte
-                    zoom: 13.0,
-                    interactiveFlags:
-                        InteractiveFlag.pinchZoom | InteractiveFlag.drag,
-                  ),
-                  children: [
-                    TileLayer(
-                      urlTemplate:
-                          'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      subdomains: const ['a', 'b', 'c'],
-                    ),
-                    MarkerLayer(
-                      markers: [
-                        Marker(
-                          width: 80.0,
-                          height: 80.0,
-                          point: addressLocation, // Position für den Marker
-                          builder: (ctx) => const Icon(
-                            Icons.person_pin_circle,
-                            color: Colors.red,
-                          ),
-                        ),
-                        Marker(
-                          width: 80.0,
-                          height: 80.0,
-                          point: homeLocation, // Position für den Marker
-                          builder: (ctx) => const Icon(
-                            Icons.home_sharp,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(5.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: double.infinity,
+              height: 200.0, // Anpassen der Höhe nach Bedarf
+              child: FlutterMap(
+                mapController: mapController,
+                options: MapOptions(
+                  center: addressLocation, // Position für die Karte
+                  zoom: 13.0,
+                  maxZoom: 17,
+                  interactiveFlags:
+                      InteractiveFlag.pinchZoom | InteractiveFlag.drag,
                 ),
+                children: [
+                  TileLayer(
+                    urlTemplate:
+                        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    subdomains: const ['a', 'b', 'c'],
+                  ),
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        width: 80.0,
+                        height: 80.0,
+                        point: addressLocation, // Position für den Marker
+                        builder: (ctx) => const Icon(
+                          Icons.person_pin_circle,
+                          color: Colors.red,
+                        ),
+                      ),
+                      Marker(
+                        width: 80.0,
+                        height: 80.0,
+                        point: homeLocation, // Position für den Marker
+                        builder: (ctx) => const Icon(
+                          Icons.home_sharp,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -164,23 +158,31 @@ class MapWidgetState extends State<MapWidget> {
     late LatLng addressLocation;
 
     return FutureBuilder<LatLng>(
-        future: _addressLocation,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          } else if (snapshot.hasError) {
-            return Container();
-          } else {
-            addressLocation = snapshot.data!;
-            return Column(children: <Widget>[
+      future: _addressLocation,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        } else if (snapshot.hasError) {
+          return Container();
+        } else {
+          addressLocation = snapshot.data!;
+          return Column(
+            children: <Widget>[
               _buildMap(addressLocation, widget.homeLocation),
-              Text(
-                  'Entfernung: ${formatDistance(calculateDistance(addressLocation, widget.homeLocation))}',
-                  style: const TextStyle(color: Colors.white, fontSize: 15)),
-            ]);
-          }
-        });
+              ListTile(
+                leading: const Icon(Icons.social_distance),
+                title: Text(
+                  formatDistance(
+                      calculateDistance(addressLocation, widget.homeLocation)),
+                ),
+                subtitle: const Text("Entfernung"),
+              ),
+            ],
+          );
+        }
+      },
+    );
   }
 }

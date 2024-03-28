@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:nami/utilities/app.state.dart';
 
 import '../../utilities/hive/settings.dart';
-import 'dart:math';
 
 class Settings extends StatefulWidget {
   const Settings({Key? key}) : super(key: key);
@@ -12,79 +12,31 @@ class Settings extends StatefulWidget {
 
 // Provider.of<ThemeModel>(context, listen: false).setTheme(ThemeType.dark);
 
-class _SettingsState extends State<Settings>
-    with SingleTickerProviderStateMixin {
+class _SettingsState extends State<Settings> {
   bool stufenwechselDatumIsValid = true;
-  bool loading = false;
-  late final AnimationController _controller;
 
   final TextEditingController _stufenwechselTextController =
       TextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(seconds: 2),
-      vsync: this,
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  Future<void> _syncData({bool forceSync = false}) async {
-    setState(() => loading = true);
-    // await syncNamiData(forceSync: forceSync);
-    setState(() => loading = false);
-  }
-
   Widget _buildSync() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Text('Sync: '),
-        AnimatedBuilder(
-          animation: _controller,
-          builder: (_, child) {
-            return Transform.rotate(
-              angle: loading ? _controller.value * 2.0 * pi : 0,
-              child: child,
-            );
-          },
-          child: IconButton(
-            icon: const Icon(Icons.sync),
-            onPressed: loading ? null : () => {_syncData()},
-          ),
-        ),
-        Text(
-            "Vor ${DateTime.now().difference(getLastNamiSync()).inDays.toString()} Tagen"),
-      ],
+    return ListTile(
+      title: const Text('Aktualisiere die Mitgliedsdaten'),
+      leading: const Icon(Icons.sync),
+      onTap: () {
+        AppStateHandler().setLoadDataState(context, loadAll: false);
+      },
+      subtitle: Text(
+          "Vor ${DateTime.now().difference(getLastNamiSync()).inDays.toString()} Tagen"),
     );
   }
 
   Widget _buildForceBSync() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Text('Force Sync: '),
-        AnimatedBuilder(
-          animation: _controller,
-          builder: (_, child) {
-            return Transform.rotate(
-              angle: loading ? _controller.value * 2.0 * pi : 0,
-              child: child,
-            );
-          },
-          child: IconButton(
-            icon: const Icon(Icons.sync),
-            onPressed: loading ? null : () => {_syncData(forceSync: true)},
-          ),
-        ),
-      ],
+    return ListTile(
+      title: const Text('Lade alle Daten neu'),
+      leading: const Icon(Icons.sync),
+      onTap: () {
+        AppStateHandler().setLoadDataState(context, loadAll: true);
+      },
     );
   }
 
@@ -96,13 +48,13 @@ class _SettingsState extends State<Settings>
   Widget _buildStufenwechselDatumInput() {
     _stufenwechselTextController.text =
         '${getNextStufenwechselDatum().day.toString().padLeft(2, '0')}-${getNextStufenwechselDatum().month.toString().padLeft(2, '0')}';
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+    return ListTile(
+      title: const Text('Stufenwechsel Datum: '),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('Stufenwechsel Datum: '),
-          Expanded(
+          SizedBox(
+            width: 80,
             child: Padding(
               padding: const EdgeInsets.only(left: 8, right: 8),
               child: TextField(
@@ -116,7 +68,8 @@ class _SettingsState extends State<Settings>
               ),
             ),
           ),
-          ElevatedButton.icon(
+          IconButton(
+            color: Theme.of(context).colorScheme.primary,
             onPressed: () {
               if (!isValidInput(_stufenwechselTextController.text)) {
                 setState(() {
@@ -134,7 +87,6 @@ class _SettingsState extends State<Settings>
               }
             },
             icon: const Icon(Icons.save),
-            label: const Text('Speichern'),
           )
         ],
       ),
@@ -143,7 +95,6 @@ class _SettingsState extends State<Settings>
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('Settings build');
     return Scaffold(
       appBar: AppBar(
         title: const Center(child: Text('Settings')),
@@ -153,10 +104,7 @@ class _SettingsState extends State<Settings>
         children: [
           _buildSync(),
           _buildForceBSync(),
-          Divider(
-            height: 1,
-            color: Theme.of(context).dividerColor,
-          ),
+          const Divider(height: 1),
           _buildStufenwechselDatumInput()
         ],
       ),
