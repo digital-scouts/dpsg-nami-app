@@ -39,11 +39,11 @@ jobs:
           failed=$(grep -c "✗" test_output.txt)
           skipped=$(grep -c "SKIPPED" test_output.txt)
           total=$(grep -c "total" test_output.txt)
-          echo '### Test results!' >> $GITHUB_STEP_SUMMARY
-          echo 'Tests passed: $passed' >> $GITHUB_STEP_SUMMARY
-          echo 'Tests failed: $failed' >> $GITHUB_STEP_SUMMARY
-          echo 'Tests skipped: $skipped' >> $GITHUB_STEP_SUMMARY
-          echo 'Total tests: $total' >> $GITHUB_STEP_SUMMARY
+          echo "### Test results!" >> $GITHUB_STEP_SUMMARY
+          echo "Tests passed: $passed" >> $GITHUB_STEP_SUMMARY
+          echo "Tests failed: $failed" >> $GITHUB_STEP_SUMMARY
+          echo "Tests skipped: $skipped" >> $GITHUB_STEP_SUMMARY
+          echo "Total tests: $total" >> $GITHUB_STEP_SUMMARY
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: 'stable'
