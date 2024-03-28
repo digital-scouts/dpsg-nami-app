@@ -1,8 +1,8 @@
-name: Test & Build & Deploy Android
+name: Test & Build & Deploy Android internal
 on:
   push:
     branches:
-      - master
+      - develop
   workflow_dispatch: null
 jobs:
   test:
