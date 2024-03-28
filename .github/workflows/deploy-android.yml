@@ -14,34 +14,6 @@ on:
       - '**/GitVersion.yml'
   workflow_dispatch: null
 jobs:
-
-  version:
-    runs-on: ubuntu-latest
-    outputs:
-      releaseversion: ${{ steps.version.outputs.version }}
-      currentVersion: ${{ steps.get_version.outputs.currentVersion }}
-    env:
-      CURRENT_APP_VERSION: 
-      APP_VERSION: 
-    steps:
-    - name: Checkout-Repository
-      uses: actions/checkout@v4
-    - name: Lesen der aktuellen Version aus der pubspec.yaml
-      id: get_version
-      run: |
-        VERSION=$(grep "version:" pubspec.yaml | awk '{print $2}')
-        echo "currentVersion=$VERSION" >> $GITHUB_OUTPUT
-        echo "Die aaktuelle Version ist $VERSION" 
-    - name: Set new version of app
-      id: version
-      run: |
-         VERSION=${{steps.get_version.outputs.currentVersion}}
-         VERSION_WITHOUT_PLUS="${VERSION%%+*}"
-         GITHUB_RUN_NUMBER=${{ github.run_number }}
-         sed -i "/version:/c version: $VERSION_WITHOUT_PLUS+$GITHUB_RUN_NUMBER" pubspec.yaml
-         echo "Die neue Version ist $VERSION_WITHOUT_PLUS+$GITHUB_RUN_NUMBER" 
-         echo "version=$VERSION_WITHOUT_PLUS+$GITHUB_RUN_NUMBER" >> $GITHUB_OUTPUT
-
   test:
     name: flutter test
     runs-on: ubuntu-latest
@@ -72,8 +44,10 @@ jobs:
     
   build:
     name: Build Android
-    needs: [test, version]
+    needs: [test]
     runs-on: ubuntu-latest
+    outputs:
+      releaseversion: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -83,6 +57,15 @@ jobs:
           VERSION=$(grep "version:" pubspec.yaml | awk '{print $2}')
           echo "currentVersion=$VERSION" >> $GITHUB_OUTPUT
           echo "Die aaktuelle Version ist $VERSION" 
+      - name: Set new version of app
+        id: version
+        run: |
+            VERSION=${{steps.get_version.outputs.currentVersion}}
+            VERSION_WITHOUT_PLUS="${VERSION%%+*}"
+            GITHUB_RUN_NUMBER=${{ github.run_number }}
+            sed -i "/version:/c version: $VERSION_WITHOUT_PLUS+$GITHUB_RUN_NUMBER" pubspec.yaml
+            echo "Die neue Version ist $VERSION_WITHOUT_PLUS+$GITHUB_RUN_NUMBER" 
+            echo "version=$VERSION_WITHOUT_PLUS+$GITHUB_RUN_NUMBER" >> $GITHUB_OUTPUT
       - name: Setup java
         uses: actions/setup-java@v4
         with:
@@ -130,6 +113,6 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.ANDROID_SERVICE_ACCOUNT_JSON }}
           packageName: de.jlange.nami.app
           releaseFiles: app-release.aab
-          releaseName: ${{ needs.version.outputs.releaseversion }}
+          releaseName: ${{ needs.build.outputs.releaseversion }}
           changesNotSentForReview: true
           track: internal
