@@ -3,6 +3,15 @@ on:
   push:
     branches:
       - develop
+    paths-ignore:
+      - '.github/**'
+      - '.vscode/**'
+      - 'releases/**'
+      - 'test/**'
+      - 'ios/**'
+      - 'web/**'
+      - '**/README.md'
+      - '**/GitVersion.yml'
   workflow_dispatch: null
 jobs:
   test:
