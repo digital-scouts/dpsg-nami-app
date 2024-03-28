@@ -25,14 +25,13 @@ jobs:
       APP_VERSION: 
     steps:
     - name: Checkout-Repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
     - name: Lesen der aktuellen Version aus der pubspec.yaml
       id: get_version
       run: |
         VERSION=$(grep "version:" pubspec.yaml | awk '{print $2}')
         echo "currentVersion=$VERSION" >> $GITHUB_OUTPUT
-    - name: Output Run Number
-      run: echo ${{ github.run_number }}
+        echo "Die aaktuelle Version ist $VERSION" 
     - name: Set new version of app
       id: version
       run: |
@@ -47,33 +46,29 @@ jobs:
     name: flutter test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-java@v1
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
+          distribution: 'temurin'
           java-version: ${{ vars.JAVA_VERSION }}
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version:  ${{vars.FLUTTER_VERSION}}
+          flutter-version: ${{ vars.FLUTTER_VERSION }}
           channel: 'stable'
           cache: true
       - run: flutter --version
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
-      - uses: actions/checkout@v2
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: 'stable'
       - run: dart --version
-      - name: Install dependencies
-        run: flutter pub get
       - name: Verify formatting
         run: dart format --output=none --set-exit-if-changed .
       - name: Analyze project source
         run: flutter analyze
-      # - name: Run tests
-      #   run: flutter test
     
   build:
     name: Build Android
@@ -81,10 +76,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+      - name: Lesen der aktuellen Version aus der pubspec.yaml
+        id: get_version
+        run: |
+          VERSION=$(grep "version:" pubspec.yaml | awk '{print $2}')
+          echo "currentVersion=$VERSION" >> $GITHUB_OUTPUT
+          echo "Die aaktuelle Version ist $VERSION" 
       - name: Setup java
-        uses: actions/setup-java@v1
+        uses: actions/setup-java@v4
         with:
+          distribution: 'temurin'
           java-version: ${{ vars.JAVA_VERSION }}
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
