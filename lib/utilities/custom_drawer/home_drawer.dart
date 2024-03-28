@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:nami/utilities/app.state.dart';
@@ -30,11 +31,12 @@ class HomeDrawerState extends State<HomeDrawer> {
 
   void setDrawerListArray() {
     drawerList = <DrawerList>[
-      DrawerList(
-        index: DrawerIndex.dashboard,
-        labelName: 'Dashboard',
-        icon: const Icon(Icons.home),
-      ),
+      if (kDebugMode)
+        DrawerList(
+          index: DrawerIndex.dashboard,
+          labelName: 'Dashboard',
+          icon: const Icon(Icons.home),
+        ),
       DrawerList(
         index: DrawerIndex.mitglieder,
         labelName: 'Mitglieder',
@@ -45,11 +47,12 @@ class HomeDrawerState extends State<HomeDrawer> {
         labelName: 'Statistiken',
         icon: const Icon(Icons.analytics),
       ),
-      DrawerList(
-        index: DrawerIndex.profil,
-        labelName: 'Profil',
-        icon: const Icon(Icons.person),
-      ),
+      if (kDebugMode)
+        DrawerList(
+          index: DrawerIndex.profil,
+          labelName: 'Profil',
+          icon: const Icon(Icons.person),
+        ),
       DrawerList(
         index: DrawerIndex.settings,
         labelName: 'Einstellungen',
