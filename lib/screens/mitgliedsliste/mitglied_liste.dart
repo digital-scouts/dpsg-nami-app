@@ -1,4 +1,5 @@
 import 'package:backdrop/backdrop.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 // import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -246,17 +247,18 @@ class MitgliedsListeState extends State<MitgliedsListe> {
     return LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
       return BackdropScaffold(
-          headerHeight: 100,
-          subHeader: Column(
-            children: <Widget>[
-              _buildFilterGroup(),
-              _buildSearchBar(),
-            ],
-          ),
-          appBar: BackdropAppBar(
-            title: const Center(child: Text("Mitglieder")),
-            automaticallyImplyLeading: false,
-            actions: <Widget>[
+        headerHeight: 100,
+        subHeader: Column(
+          children: <Widget>[
+            _buildFilterGroup(),
+            _buildSearchBar(),
+          ],
+        ),
+        appBar: BackdropAppBar(
+          title: const Center(child: Text("Mitglieder")),
+          automaticallyImplyLeading: false,
+          actions: <Widget>[
+            if (kDebugMode)
               IconButton(
                 icon: const Icon(Icons.add),
                 onPressed: () {
@@ -269,21 +271,23 @@ class MitgliedsListeState extends State<MitgliedsListe> {
                   );
                 },
               ),
-              BackdropToggleButton(
-                icon: AnimatedIcons.search_ellipsis,
-                color: Theme.of(context).iconTheme.color ?? Colors.black,
-              ),
-            ],
-          ),
-          backLayer: SizedBox(
-              height: constraints.maxHeight,
-              width: constraints.maxWidth,
-              child: _buildFilter()),
-          backLayerBackgroundColor: Theme.of(context).colorScheme.surface,
-          frontLayer: SizedBox(
-              height: constraints.maxHeight,
-              width: constraints.maxWidth,
-              child: _buildMemberList()));
+            BackdropToggleButton(
+              icon: AnimatedIcons.search_ellipsis,
+              color: Theme.of(context).iconTheme.color ?? Colors.black,
+            ),
+          ],
+        ),
+        backLayer: SizedBox(
+            height: constraints.maxHeight,
+            width: constraints.maxWidth,
+            child: _buildFilter()),
+        backLayerBackgroundColor: Theme.of(context).colorScheme.surface,
+        frontLayer: SizedBox(
+          height: constraints.maxHeight,
+          width: constraints.maxWidth,
+          child: _buildMemberList(),
+        ),
+      );
     });
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
@@ -364,13 +365,18 @@ class MitgliedDetailState extends State<MitgliedDetail>
         ),
         subtitle: Text(
             "Ab: ${DateFormat('dd. MMMM yyyy').format(fakeStufenwechselTaetigkeit.aktivVon)}"),
-        trailing: TextButton(
-          onPressed: loadingStufenwechsel
-              ? null
-              : () => handleStufenwechsel(widget.mitglied.id, currentTaetigkeit,
-                  stufe, fakeStufenwechselTaetigkeit.aktivVon),
-          child: const Text("Wechseln"),
-        ),
+        trailing: kDebugMode
+            ? TextButton(
+                onPressed: loadingStufenwechsel
+                    ? null
+                    : () => handleStufenwechsel(
+                        widget.mitglied.id,
+                        currentTaetigkeit,
+                        stufe,
+                        fakeStufenwechselTaetigkeit.aktivVon),
+                child: const Text("Wechseln"),
+              )
+            : null,
       ),
     );
   }
