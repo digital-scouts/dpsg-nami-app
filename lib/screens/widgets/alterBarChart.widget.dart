@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:math';
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -8,20 +9,22 @@ import 'package:nami/utilities/stufe.dart';
 // ignore: must_be_immutable
 class AlterBarChartWidget extends StatefulWidget {
   List<Mitglied> mitglieder;
-  int minAge;
-  int maxAge;
 
-  AlterBarChartWidget(
-      {super.key, required this.mitglieder, this.minAge = 6, this.maxAge = 21});
+  AlterBarChartWidget({super.key, required this.mitglieder});
 
   @override
   AlterBarChartWidgetState createState() => AlterBarChartWidgetState();
 }
 
 class AlterBarChartWidgetState extends State<AlterBarChartWidget> {
-  List<BarChartGroupData> createDateForAltersChart(
-      List<Mitglied> mitglieder, double barsWidth, double barsSpace) {
+  (List<BarChartGroupData>, int minAge, int maxAge) createDateForAltersChart(
+    List<Mitglied> mitglieder,
+    double barsWidth,
+    double barsSpace,
+  ) {
     Map<int, Map<Stufe, int>> data = SplayTreeMap();
+    int minAge = 99;
+    int maxAge = 0;
 
     // Durchlaufe alle Mitglieder und sammle die Daten
     for (var mitglied in mitglieder) {
@@ -32,11 +35,13 @@ class AlterBarChartWidgetState extends State<AlterBarChartWidget> {
           mitglied.geburtsDatum.day > DateTime.now().day) {
         age--;
       }
-      Stufe stufe = Stufe.getStufeByString(mitglied.stufe);
+      Stufe stufe = mitglied.currentStufe;
 
-      if (mitglied.stufe == 'keine Stufe' || mitglied.isMitgliedLeiter()) {
+      if (stufe == Stufe.KEINE_STUFE || stufe == Stufe.LEITER) {
         continue;
       }
+      minAge = min(minAge, age);
+      maxAge = max(maxAge, age);
 
       if (!data.containsKey(age)) {
         data[age] = {};
@@ -51,7 +56,7 @@ class AlterBarChartWidgetState extends State<AlterBarChartWidget> {
       }
     }
 
-    for (int age = widget.minAge; age <= widget.maxAge; age++) {
+    for (int age = minAge; age <= maxAge; age++) {
       if (!data.containsKey(age)) {
         data[age] = {};
       }
@@ -75,14 +80,13 @@ class AlterBarChartWidgetState extends State<AlterBarChartWidget> {
             BarChartRodData(
               toY: total,
               rodStackItems: stackItems,
-              borderRadius: BorderRadius.zero,
             ),
           ],
         ),
       );
     });
 
-    return chartData;
+    return (chartData, minAge, maxAge);
   }
 
   @override
@@ -91,45 +95,79 @@ class AlterBarChartWidgetState extends State<AlterBarChartWidget> {
       sideTitles: SideTitles(showTitles: false),
     );
     return AspectRatio(
-      aspectRatio: 1.66,
+      aspectRatio: 4 / 3,
       child: Padding(
         padding: const EdgeInsets.only(top: 16),
         child: LayoutBuilder(builder: (context, constraints) {
           final barsSpace = 4.0 * constraints.maxWidth / 400;
           final barsWidth = 8.0 * constraints.maxWidth / 400;
+          final (data, minAge, maxAge) = createDateForAltersChart(
+            widget.mitglieder,
+            barsWidth,
+            barsSpace,
+          );
           return BarChart(
             BarChartData(
               titlesData: FlTitlesData(
                 show: true,
                 bottomTitles: AxisTitles(
+                  axisNameWidget: const Text("Alter"),
                   sideTitles: SideTitles(
                     showTitles: true,
-                    interval: 3.0,
-                    getTitlesWidget: (value, meta) => SideTitleWidget(
-                      axisSide: meta.axisSide,
-                      child: Text(
-                          (value == widget.minAge)
-                              ? 'Alter: ${widget.minAge}       '
-                              : (value % 2 == 0)
-                                  ? value.toInt().toString()
-                                  : '',
-                          style: const TextStyle(fontSize: 10)),
-                    ),
+                    getTitlesWidget: (value, meta) {
+                      String display;
+                      if (value % 2 == 0 ||
+                          value == minAge ||
+                          value == maxAge) {
+                        display = value.toInt().toString();
+                      } else {
+                        display = '';
+                      }
+
+                      return SideTitleWidget(
+                        axisSide: meta.axisSide,
+                        child: Text(
+                          display,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      );
+                    },
                   ),
                 ),
-                leftTitles: emptySideTile,
+                leftTitles: const AxisTitles(
+                  axisNameWidget: Text("Anzahl"),
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                  ),
+                ),
                 topTitles: emptySideTile,
                 rightTitles: emptySideTile,
+              ),
+              barTouchData: BarTouchData(
+                touchTooltipData: BarTouchTooltipData(
+                  getTooltipItem: (
+                    BarChartGroupData group,
+                    int groupIndex,
+                    BarChartRodData rod,
+                    int rodIndex,
+                  ) {
+                    final count = (rod.toY - rod.fromY).round();
+                    return BarTooltipItem(
+                      "$count",
+                      const TextStyle(),
+                    );
+                  },
+                ),
               ),
               borderData: FlBorderData(
                 show: false,
               ),
               gridData: const FlGridData(
-                show: false,
+                drawHorizontalLine: true,
+                drawVerticalLine: false,
               ),
               groupsSpace: barsSpace,
-              barGroups: createDateForAltersChart(
-                  widget.mitglieder, barsWidth, barsSpace),
+              barGroups: data,
             ),
           );
         }),

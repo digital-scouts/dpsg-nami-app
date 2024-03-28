@@ -2,8 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:nami/screens/widgets/alterBarChart.widget.dart';
 import 'package:nami/screens/widgets/groupBarChart.widget.dart';
-import 'package:nami/screens/widgets/stufenwechselInfo.widget.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
+
+import '../widgets/stufenwechselInfo.widget.dart';
+
+enum StatistikType {
+  stufen("Stufenverteilung"),
+  alter("Altersverteilung");
+
+  final String display;
+  const StatistikType(this.display);
+}
 
 class StatistikScreen extends StatefulWidget {
   const StatistikScreen({Key? key}) : super(key: key);
@@ -16,7 +25,7 @@ class StatistikScreenState extends State<StatistikScreen> {
   Box<Mitglied> memberBox = Hive.box<Mitglied>('members');
   List<Mitglied> mitglieder =
       Hive.box<Mitglied>('members').values.toList().cast<Mitglied>();
-
+  StatistikType selectedType = StatistikType.stufen;
   @override
   void initState() {
     super.initState();
@@ -27,71 +36,61 @@ class StatistikScreenState extends State<StatistikScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const double spacing = 10.0;
     return Scaffold(
       appBar: AppBar(
         title: const Center(child: Text('Statistiken')),
       ),
-      body: LayoutBuilder(
-        builder: (BuildContext context, BoxConstraints constraints) {
-          final double containerWidth = constraints.maxWidth * 0.45;
-          final double containerHeight = constraints.maxHeight * 0.25;
-          const double spacing = 10.0;
-
-          return Column(
-            children: [
-              const SizedBox(height: spacing),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  SizedBox(
-                    width: constraints.maxWidth * 0.35,
-                    height: containerHeight,
-                    child: Column(
-                      children: [
-                        const Text('Stufenverteilung',
-                            style: TextStyle(fontSize: 17)),
-                        Expanded(child: GroupBarChart(mitglieder: mitglieder)),
-                      ],
-                    ),
-                  ),
-                  SizedBox(
-                    width: constraints.maxWidth * 0.05,
-                  ),
-                  SizedBox(
-                    width: constraints.maxWidth * 0.45,
-                    height: containerHeight,
-                    child: Column(
-                      children: [
-                        const Text('Altersverteilung',
-                            style: TextStyle(fontSize: 17)),
-                        Expanded(
-                          child: AlterBarChartWidget(mitglieder: mitglieder),
-                        )
-                      ],
-                    ),
-                  ),
-                ],
+      body: ListView(
+        padding: const EdgeInsets.all(8),
+        children: [
+          Text(
+            "Allgemeine Statistiken",
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Wrap(
+              spacing: 5,
+              children: [
+                for (final type in StatistikType.values)
+                  ChoiceChip(
+                    label: Text(type.display),
+                    selected: type == selectedType,
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() {
+                          selectedType = type;
+                        });
+                      }
+                    },
+                  )
+              ],
+            ),
+          ),
+          if (selectedType == StatistikType.stufen)
+            Card(
+              margin: const EdgeInsets.all(8),
+              child: Padding(
+                padding: const EdgeInsets.all(15),
+                child: GroupBarChart(mitglieder: mitglieder),
               ),
-              const SizedBox(height: spacing * 5),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  SizedBox(
-                    width: containerWidth * 2 + spacing * 2,
-                    height: containerHeight * 1.5,
-                    child: const Column(
-                      children: [
-                        Text('Stufenwechselemphelung',
-                            style: TextStyle(fontSize: 17)),
-                        Expanded(child: StufenwechselInfo()),
-                      ],
-                    ),
-                  ),
-                ],
+            ),
+          if (selectedType == StatistikType.alter)
+            Card(
+              margin: const EdgeInsets.all(10),
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: AlterBarChartWidget(mitglieder: mitglieder),
               ),
-            ],
-          );
-        },
+            ),
+          const SizedBox(height: spacing * 5),
+          Text(
+            'Stufenwechselempfehlung',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const StufenwechselInfo(),
+        ],
       ),
     );
   }

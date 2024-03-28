@@ -116,6 +116,13 @@ class Mitglied {
   }
 
   Stufe get currentStufe {
+    if (isMitgliedLeiter()) {
+      return Stufe.LEITER;
+    }
+    return Stufe.getStufeByString(stufe);
+  }
+
+  Stufe get currentStufeWithoutLeiter {
     return Stufe.getStufeByString(stufe);
   }
 
