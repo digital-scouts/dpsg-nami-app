@@ -32,7 +32,18 @@ jobs:
       - run: flutter --version
       - run: flutter pub get
       - run: flutter analyze
-      - run: flutter test
+      - run: flutter test > test_output.txt
+      - name: Parse and summarize test results
+        run: |
+          passed=$(grep -c "✓" test_output.txt)
+          failed=$(grep -c "✗" test_output.txt)
+          skipped=$(grep -c "SKIPPED" test_output.txt)
+          total=$(grep -c "total" test_output.txt)
+          echo '### Test results!' >> $GITHUB_STEP_SUMMARY
+          echo 'Tests passed: $passed' >> $GITHUB_STEP_SUMMARY
+          echo 'Tests failed: $failed' >> $GITHUB_STEP_SUMMARY
+          echo 'Tests skipped: $skipped' >> $GITHUB_STEP_SUMMARY
+          echo 'Total tests: $total' >> $GITHUB_STEP_SUMMARY
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: 'stable'
@@ -66,6 +77,9 @@ jobs:
             sed -i "/version:/c version: $VERSION_WITHOUT_PLUS+$GITHUB_RUN_NUMBER" pubspec.yaml
             echo "Die neue Version ist $VERSION_WITHOUT_PLUS+$GITHUB_RUN_NUMBER" 
             echo "version=$VERSION_WITHOUT_PLUS+$GITHUB_RUN_NUMBER" >> $GITHUB_OUTPUT
+      - name: Write version to Summary
+        run: |
+          echo "### Version: ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
       - name: Setup java
         uses: actions/setup-java@v4
         with:
