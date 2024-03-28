@@ -21,9 +21,7 @@
 title: NaMi App
 email: dev@jannecklange.de
 description: >- # this means to ignore newlines until "baseurl:"
-  Write an awesome description for your new site here. You can edit this
-  line in _config.yml. It will appear in your document head meta (for
-  Google search results) and in your feed.xml site description.
+  Die NaMi ist die Namentliche Mitgliedermeldung des Pfadfinderverbandes DPSG (Deutsche Pfadfinderschaft Sankt Georg). Dies ist die inofizelle App zur NaMi.
 baseurl: "/dpsg-nami-app" # the subpath of your site, e.g. /blog
 domain: "digital-scouts.github.io/dpsg-nami-app/"
 url: "https://digital-scouts.github.io/dpsg-nami-app/" # the base hostname & protocol for your site, e.g. http://example.com
