@@ -1,4 +1,4 @@
-name: Test & Build & Deploy Android internal
+name: PUSH on develop (Test Flutter & Build Android & Deploy Android internal)
 on:
   push:
     branches:
@@ -14,12 +14,45 @@ on:
       - '**/GitVersion.yml'
   workflow_dispatch: null
 jobs:
+
+  bump-version:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout-Repository
+      uses: actions/checkout@v2
+    - name: Lesen der aktuellen Version aus der pubspec.yaml
+      id: get_version
+      run: |
+        VERSION=$(grep "version:" pubspec.yaml | awk '{print $2}')
+        echo "::set-output name=version::$VERSION"
+    - name: Output pubspec.yaml Version
+      run: |
+        echo "Die aktuelle Version ist ${{ steps.get_version.outputs.version }}"
+    - name: Output Run ID
+      run: echo ${{ github.run_id }}
+    - name: Output Run Number
+      run: echo ${{ github.run_number }}
+    - name: Output Run Attempt
+      run: echo ${{ github.run_attempt }}
+    - name: Set new version of app
+      run: |
+         sed -i "/version:/c version: 1.0.$CURRENT_VERSION+$CODE_VERSION" pubspec.yaml    #removing line which contain *** version: ***
+         echo "CURRENT_VERSION=$CURRENT_VERSION" >> $GITHUB_ENV 
+    - name: Update GitHub repo secret for future app builds
+      uses: hmanzur/actions-set-secret@v2.0.0
+      with:
+        name: 'APP_VERSION'
+        value: ${{ env.CURRENT_VERSION }}
+        repository: organization_name/repository_name
+        token: ${{ secrets.TOKEN }}
+
   test:
     name: flutter test
     runs-on: ubuntu-latest
     env:
-      JAVA_VERSION: '17.0.1'
-      FLUTTER_VERSION: '3.19.2'
+      JAVA_VERSION: ${{ secrets.JAVA_VERSION }}
+      FLUTTER_VERSION: ${{ secrets.FLUTTER_VERSION }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-java@v1
@@ -76,8 +109,8 @@ jobs:
     needs: [test]
     runs-on: ubuntu-latest
     env:
-      JAVA_VERSION: '17.0.1'
-      FLUTTER_VERSION: '3.19.2'
+      JAVA_VERSION: ${{ secrets.JAVA_VERSION }}
+      FLUTTER_VERSION: ${{ secrets.FLUTTER_VERSION }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
