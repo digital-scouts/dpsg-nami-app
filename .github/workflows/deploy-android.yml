@@ -72,7 +72,7 @@ jobs:
     
   build:
     name: Build Android
-    needs: [test]
+    needs: [test, version]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -117,7 +117,7 @@ jobs:
    
   deploy:
     name: Deploy Android
-    needs: [build, version]
+    needs: [build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v3
