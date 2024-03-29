@@ -1,10 +1,10 @@
 import 'dart:math';
 
+import 'package:faker/faker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
-import 'package:nami/utilities/stufe.dart';
 
 Future<void> storeFakeSetOfMemberInHive(
     Box<Mitglied> box,
@@ -12,55 +12,9 @@ Future<void> storeFakeSetOfMemberInHive(
     ValueNotifier<double> memberAllProgressNotifier) async {
   await fakeLoading(memberOverviewProgressNotifier, memberAllProgressNotifier);
 
-  for (var element in members) {
-    Mitglied member =
-        createFakeMember(element['member'], element['taetigkeiten']);
+  for (Mitglied member in createMembersList()) {
     box.put(member.id, member);
   }
-}
-
-Mitglied createFakeMember(dynamic rawMember, dynamic rawTaetigkeiten) {
-  List<Taetigkeit> taetigkeiten = [];
-  for (dynamic item in rawTaetigkeiten) {
-    taetigkeiten.add(Taetigkeit()
-      ..id = item['id']
-      ..taetigkeit = item['taetigkeit']
-      ..aktivBis = DateTime.tryParse(item['aktivBis'])
-      ..aktivVon = DateTime.parse(item['aktivVon'])
-      ..anlagedatum = DateTime.parse(item['anlagedatum'])
-      ..untergliederung = item['untergliederung']
-      ..gruppierung = item['gruppierung']
-      ..berechtigteGruppe = item['berechtigteGruppe']
-      ..berechtigteUntergruppen = item['berechtigteUntergruppen']);
-  }
-
-  Mitglied mitglied = Mitglied()
-    ..vorname = rawMember['vorname']
-    ..nachname = rawMember['nachname']
-    ..geschlecht = rawMember['geschlecht']
-    ..geburtsDatum = DateTime.parse(rawMember['geburtsDatum'])
-    ..stufe = Stufe.getStufeByString(rawMember['stufe']).display
-    ..id = rawMember['id']
-    ..mitgliedsNummer = rawMember['mitgliedsNummer']
-    ..eintrittsdatum = DateTime.parse(rawMember['eintrittsdatum'])
-    ..austrittsDatum = DateTime.tryParse(rawMember['austrittsDatum'])
-    ..ort = rawMember['ort']
-    ..plz = rawMember['plz']
-    ..strasse = rawMember['strasse']
-    ..landId = rawMember['landId'] ?? 1
-    ..email = rawMember['email']
-    ..emailVertretungsberechtigter = rawMember['emailVertretungsberechtigter']
-    ..telefon1 = rawMember['telefon1']
-    ..telefon2 = rawMember['telefon2']
-    ..telefon3 = rawMember['telefon3']
-    ..lastUpdated = DateTime.parse(rawMember['lastUpdated'])
-    ..version = rawMember['version']
-    ..mglTypeId = rawMember['mglTypeId']
-    ..beitragsartId = rawMember['beitragsartId'] ?? 0
-    ..status = rawMember['status']
-    ..taetigkeiten = taetigkeiten;
-
-  return mitglied;
 }
 
 Future<void> fakeLoading(ValueNotifier<bool?> memberOverviewProgressNotifier,
@@ -77,198 +31,234 @@ Future<void> fakeLoading(ValueNotifier<bool?> memberOverviewProgressNotifier,
   }
 }
 
-const List<dynamic> members = [
-  {
-    "member": {
-      "id": 1,
-      "mitgliedsNummer": 1,
-      "geschlecht": "männlich",
-      "emailVertretungsberechtigter": "liam.papa@smith.de",
-      "lastUpdated": "2022-11-14 10:02:39",
-      "version": 34,
-      "mglTypeId": "MITGLIED",
-      "nachname": "Smith",
-      "eintrittsdatum": "2016-11-18 00:00:00",
-      "status": "Aktiv",
-      "telefon3": "",
-      "email": "liam@smith.de",
-      "telefon1": "040 123 456",
-      "telefon2": "Papa: 0171 321 321 / Mama: 01578 123 123",
-      "strasse": "Musterweg 1",
-      "vorname": "Liam",
-      "austrittsDatum": "",
-      "ort": "Hamburg",
-      "landId": 1,
-      "geburtsDatum": "2009-02-16 00:00:00",
-      "stufe": "Pfadfinder",
-      "beitragsartId": 4,
-      "plz": "22523"
-    },
-    "taetigkeiten": [
-      {
-        "id": 11,
-        "aktivBis": "",
-        "aktivVon": "2022-10-07 00:00:00",
-        "anlagedatum": "2022-11-14 10:02:39",
-        "aeaGroupForGf": "",
-        "caeaGroup": "",
-        "untergliederung": "Pfadfinder",
-        "gruppierung": "1234 Test Gruppierung",
-        "taetigkeit": "€ Mitglied (1)"
-      },
-      {
-        "id": 12,
-        "aktivBis": "2022-10-06 00:00:00",
-        "aktivVon": "2020-10-02 00:00:00",
-        "anlagedatum": "2020-10-30 10:39:46",
-        "caeaGroupForGf": "",
-        "caeaGroup": "",
-        "untergliederung": "Jungpfadfinder",
-        "gruppierung": "1234 Test Gruppierung",
-        "taetigkeit": "€ Mitglied (1)"
-      },
-      {
-        "id": 13,
-        "aktivBis": "2020-10-01 00:00:00",
-        "aktivVon": "2016-11-18 00:00:00",
-        "anlagedatum": "2016-12-04 16:42:58",
-        "caeaGroupForGf": "",
-        "caeaGroup": "",
-        "untergliederung": "Wölfling",
-        "gruppierung": "1234 Test Gruppierung",
-        "taetigkeit": "€ Mitglied (1)"
-      }
-    ]
-  },
-  {
-    "member": {
-      "id": 2,
-      "mitgliedsNummer": 2,
-      "geschlecht": "weiblich",
-      "emailVertretungsberechtigter": "emma.mama@johnson.de",
-      "lastUpdated": "2022-10-25 09:45:21",
-      "version": 29,
-      "mglTypeId": "MITGLIED",
-      "nachname": "Johnson",
-      "eintrittsdatum": "2018-07-22 00:00:00",
-      "status": "Aktiv",
-      "telefon3": "",
-      "email": "emma@johnson.de",
-      "telefon1": "030 987 654",
-      "telefon2": "Mama: 0162 987 987 / Papa: 0176 543 543",
-      "strasse": "Musterstraße 2",
-      "vorname": "Emma",
-      "austrittsDatum": "",
-      "ort": "Berlin",
-      "landId": 1,
-      "geburtsDatum": "2010-05-03 00:00:00",
-      "stufe": "Jungpfadfinder",
-      "beitragsartId": 4,
-      "plz": "10115"
-    },
-    "taetigkeiten": [
-      {
-        "id": 21,
-        "aktivBis": "",
-        "caeaGroup": "",
-        "aktivVon": "2022-10-07 00:00:00",
-        "anlagedatum": "2022-11-14 10:02:39",
-        "caeaGroupForGf": "",
-        "untergliederung": "Jungpfadfinder",
-        "gruppierung": "1234 Test Gruppierung",
-        "taetigkeit": "€ Mitglied (1)"
-      },
-      {
-        "id": 22,
-        "aktivBis": "2022-10-06 00:00:00",
-        "caeaGroup": "",
-        "aktivVon": "2020-10-02 00:00:00",
-        "anlagedatum": "2020-10-30 10:39:46",
-        "caeaGroupForGf": "",
-        "untergliederung": "Wölfling",
-        "gruppierung": "1234 Test Gruppierung",
-        "taetigkeit": "€ Mitglied (1)"
-      }
-    ]
-  },
-  {
-    "member": {
-      "id": 3,
-      "mitgliedsNummer": 3,
-      "geschlecht": "männlich",
-      "emailVertretungsberechtigter": "noah.papa@davis.de",
-      "lastUpdated": "2022-09-30 14:20:17",
-      "version": 31,
-      "mglTypeId": "MITGLIED",
-      "nachname": "Davis",
-      "eintrittsdatum": "2017-03-10 00:00:00",
-      "status": "Aktiv",
-      "telefon3": "",
-      "email": "noah@davis.de",
-      "telefon1": "0170 789 123",
-      "telefon2": "0159 987 789",
-      "strasse": "Musterweg 3",
-      "vorname": "Noah",
-      "austrittsDatum": "",
-      "ort": "München",
-      "landId": 1,
-      "geburtsDatum": "2011-08-27 00:00:00",
-      "stufe": "Wölfling",
-      "beitragsartId": 4,
-      "plz": "80331"
-    },
-    "taetigkeiten": [
-      {
-        "id": 31,
-        "aktivBis": "2022-10-06 00:00:00",
-        "caeaGroup": "",
-        "aktivVon": "2020-10-02 00:00:00",
-        "anlagedatum": "2020-10-30 10:39:46",
-        "caeaGroupForGf": "",
-        "untergliederung": "Wölfling",
-        "gruppierung": "1234 Test Gruppierung",
-        "taetigkeit": "€ Mitglied (1)"
-      }
-    ]
-  },
-  {
-    "member": {
-      "id": 1234,
-      "mitgliedsNummer": 1234,
-      "geschlecht": "männlich",
-      "emailVertretungsberechtigter": "",
-      "lastUpdated": "2022-09-30 14:20:17",
-      "version": 5,
-      "mglTypeId": "MITGLIED",
-      "nachname": "Mustermann",
-      "eintrittsdatum": "2017-03-10 00:00:00",
-      "status": "Aktiv",
-      "telefon3": "",
-      "email": "leiter@stamm.de",
-      "telefon1": "0170 789 123",
-      "telefon2": "",
-      "strasse": "Musterweg 3",
-      "vorname": "Test",
-      "austrittsDatum": "",
-      "ort": "Hamburg",
-      "landId": 1,
-      "geburtsDatum": "2011-08-27 00:00:00",
-      "stufe": "Pfadfinder",
-      "beitragsartId": 4,
-      "plz": "80331",
-    },
-    "taetigkeiten": [
-      {
-        "id": 41,
-        "aktivBis": "",
-        "caeaGroup": "Schreiben/Lesen",
-        "aktivVon": "2020-10-02 00:00:00",
-        "anlagedatum": "2020-10-30 10:39:46",
-        "caeaGroupForGf": "Schreiben/Lesen",
-        "untergliederung": "Pfadfinder",
-        "gruppierung": "1234 Test Gruppierung",
-        "taetigkeit": "€ LeiterIn (6)"
-      }
-    ]
+Taetigkeit createTaetigkeit(int id, DateTime start, DateTime? end,
+    String untergliederung, bool isLeader) {
+  Taetigkeit t = Taetigkeit()
+    ..id = id
+    ..aktivVon = start
+    ..aktivBis = end
+    ..anlagedatum = start
+    ..untergliederung = untergliederung
+    ..gruppierung = "1234 Test Gruppierung"
+    ..berechtigteGruppe = ""
+    ..berechtigteUntergruppen = "";
+
+  if (isLeader) {
+    t.taetigkeit = "€ LeiterIn (6)";
+  } else {
+    t.taetigkeit = "€ Mitglied (1)";
   }
-];
+  return t;
+}
+
+Mitglied createMitgleid(
+    int id, DateTime start, DateTime birth, List<Taetigkeit> taetigkeiten) {
+  var faker = Faker();
+  var random = Random();
+  return Mitglied()
+    ..id = id
+    ..mitgliedsNummer = id
+    ..vorname = faker.person.firstName()
+    ..nachname = faker.person.lastName()
+    ..geschlecht = faker.randomGenerator.boolean() ? "männlich" : "weiblich"
+    ..mglTypeId = "MITGLIED"
+    ..stufe = taetigkeiten.first.untergliederung!
+    ..status = "Aktiv"
+    ..beitragsartId = 4
+    ..eintrittsdatum = start
+    ..austrittsDatum = null
+    ..email = faker.internet.email()
+    ..emailVertretungsberechtigter = faker.internet.freeEmail()
+    ..telefon1 = faker.phoneNumber.de()
+    ..telefon2 = faker.phoneNumber.de()
+    ..telefon3 = ""
+    ..geburtsDatum = birth
+    ..strasse = faker.address.streetAddress()
+    ..ort = faker.address.city()
+    ..plz = faker.address.zipCode()
+    ..landId = 1
+    ..version = random.nextInt(60)
+    ..lastUpdated = generateRandomDateDaysAgo(random.nextInt(30))
+    ..taetigkeiten = taetigkeiten;
+}
+
+Mitglied createMemberPfadfinder(int age, int id) {
+  DateTime birthDate = generateRandomDateYearsAgo(age - 0);
+  DateTime woeStart = generateRandomDateYearsAgo(age - 6);
+  DateTime jufiStart = generateRandomDateYearsAgo(age - 9);
+  DateTime pfadiStart = generateRandomDateYearsAgo(age - 12);
+
+  Taetigkeit taetigkeit = createTaetigkeit(
+      int.parse('${id}3'), pfadiStart, null, "Pfadfinder", false);
+  Taetigkeit taetigkeit2 = createTaetigkeit(
+      int.parse('${id}2'), jufiStart, pfadiStart, "Jungpfadfinder", false);
+  Taetigkeit taetigkeit3 = createTaetigkeit(
+      int.parse('${id}1'), woeStart, jufiStart, "Wölfling", false);
+
+  return createMitgleid(
+      id, woeStart, birthDate, [taetigkeit, taetigkeit2, taetigkeit3]);
+}
+
+Mitglied createMemberJungpfadfinder(int age, int id) {
+  DateTime birthDate = generateRandomDateYearsAgo(age - 0);
+  DateTime woeStart = generateRandomDateYearsAgo(age - 8);
+  DateTime jufiStart = generateRandomDateYearsAgo(age - 9);
+
+  Taetigkeit taetigkeit = createTaetigkeit(
+      int.parse('${id}1'), jufiStart, null, "Jungpfadfinder", false);
+  Taetigkeit taetigkeit2 = createTaetigkeit(
+      int.parse('${id}2'), woeStart, jufiStart, "Wölfling", false);
+
+  return createMitgleid(id, woeStart, birthDate, [taetigkeit, taetigkeit2]);
+}
+
+Mitglied createMemberWoelfling(int age, int id) {
+  DateTime birthDate = generateRandomDateYearsAgo(age - 0);
+  DateTime woeStart = generateRandomDateYearsAgo(age - 7);
+
+  Taetigkeit taetigkeit =
+      createTaetigkeit(int.parse('${id}1'), woeStart, null, "Wölfling", false);
+
+  return createMitgleid(id, woeStart, birthDate, [taetigkeit]);
+}
+
+Mitglied createMemberLeiter(int age, String stufe, int id) {
+  DateTime birthDate = generateRandomDateYearsAgo(age - 0);
+  DateTime leiterStart = generateRandomDateYearsAgo(age - 18);
+
+  Taetigkeit taetigkeit =
+      createTaetigkeit(int.parse('${id}1'), leiterStart, null, stufe, true);
+  return createMitgleid(id, leiterStart, birthDate, [taetigkeit]);
+}
+
+List<Mitglied> createMembersList() {
+  int i = 1;
+  return [
+    createMemberPfadfinder(13, i++),
+    createMemberPfadfinder(12, i++),
+    createMemberPfadfinder(14, i++),
+    createMemberPfadfinder(13, i++),
+    createMemberPfadfinder(15, i++),
+    createMemberPfadfinder(16, i++),
+    createMemberPfadfinder(14, i++),
+    createMemberPfadfinder(13, i++),
+    createMemberJungpfadfinder(13, i++),
+    createMemberJungpfadfinder(12, i++),
+    createMemberJungpfadfinder(11, i++),
+    createMemberJungpfadfinder(10, i++),
+    createMemberJungpfadfinder(9, i++),
+    createMemberJungpfadfinder(10, i++),
+    createMemberJungpfadfinder(11, i++),
+    createMemberWoelfling(6, i++),
+    createMemberWoelfling(7, i++),
+    createMemberWoelfling(8, i++),
+    createMemberWoelfling(9, i++),
+    createMemberWoelfling(10, i++),
+    createMemberWoelfling(9, i++),
+    createMemberWoelfling(7, i++),
+    createMemberWoelfling(8, i++),
+    createMemberWoelfling(8, i++),
+    createMemberLeiter(27, 'Pfadfinder', i++),
+    createMemberLeiter(35, 'Rover', i++),
+    createMemberLeiter(18, 'Wölfling', i++),
+    createMemberLeiter(20, 'Pfadfinder', i++),
+    createMemberLeiter(19, 'Jungpfadfinder', i++),
+  ];
+}
+
+DateTime generateRandomDateYearsAgo(int age) {
+  final random = Random();
+  final currentYear = DateTime.now().year;
+  final birthYear = currentYear - age;
+
+  // Generiere einen zufälligen Monat zwischen 1 und 12
+  final month = random.nextInt(12) + 1;
+
+  // Generiere einen zufälligen Tag zwischen 1 und 28
+  // Wir wählen 28, um sicherzustellen, dass das Datum in jedem Monat gültig ist
+  final day = random.nextInt(28) + 1;
+
+  return DateTime(birthYear, month, day);
+}
+
+DateTime generateRandomDateDaysAgo(int days) {
+  return DateTime.now().subtract(Duration(days: days));
+}
+
+class FakeMember {
+  final int id;
+  final int mitgliedsNummer;
+  final String geschlecht;
+  final String emailVertretungsberechtigter;
+  final String lastUpdated;
+  final int version;
+  final String mglTypeId;
+  final String nachname;
+  final String eintrittsdatum;
+  final String status;
+  final String telefon3;
+  final String email;
+  final String telefon1;
+  final String telefon2;
+  final String strasse;
+  final String vorname;
+  final String austrittsDatum;
+  final String ort;
+  final int landId;
+  final String geburtsDatum;
+  final String stufe;
+  final int beitragsartId;
+  final String plz;
+  final List<FakeTaetigkeit> taetigkeiten;
+
+  FakeMember({
+    required this.id,
+    required this.mitgliedsNummer,
+    required this.geschlecht,
+    required this.emailVertretungsberechtigter,
+    required this.lastUpdated,
+    required this.version,
+    required this.mglTypeId,
+    required this.nachname,
+    required this.eintrittsdatum,
+    required this.status,
+    required this.telefon3,
+    required this.email,
+    required this.telefon1,
+    required this.telefon2,
+    required this.strasse,
+    required this.vorname,
+    required this.austrittsDatum,
+    required this.ort,
+    required this.landId,
+    required this.geburtsDatum,
+    required this.stufe,
+    required this.beitragsartId,
+    required this.plz,
+    required this.taetigkeiten,
+  });
+}
+
+class FakeTaetigkeit {
+  final int id;
+  final String aktivBis;
+  final String aktivVon;
+  final String anlagedatum;
+  final String aeaGroupForGf;
+  final String caeaGroup;
+  final String untergliederung;
+  final String gruppierung;
+  final String taetigkeit;
+
+  FakeTaetigkeit({
+    required this.id,
+    required this.aktivBis,
+    required this.aktivVon,
+    required this.anlagedatum,
+    required this.aeaGroupForGf,
+    required this.caeaGroup,
+    required this.untergliederung,
+    required this.gruppierung,
+    required this.taetigkeit,
+  });
+}
