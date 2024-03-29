@@ -122,5 +122,4 @@ jobs:
           packageName: de.jlange.nami.app
           releaseFiles: app-release.aab
           releaseName: ${{ needs.build.outputs.releaseversion }}
-          changesNotSentForReview: true
           track: internal
