@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -11,10 +12,12 @@ import 'package:nami/utilities/nami/nami-login.service.dart';
 import 'package:nami/utilities/nami/nami-member.service.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
+import 'package:wiredash/wiredash.dart';
 
 class AppStateHandler extends ChangeNotifier {
   static final AppStateHandler _instance = AppStateHandler._internal();
   AppState _currentState = AppState.closed;
+  Timer? _resumeTimer;
 
   factory AppStateHandler() {
     return _instance;
@@ -43,7 +46,7 @@ class AppStateHandler extends ChangeNotifier {
 
   void setInactiveState(BuildContext context) {
     if (currentState == AppState.inactive) return;
-
+    _resumeTimer?.cancel();
     // push locked screen with door-like transition
     Navigator.push(
       context,
@@ -123,7 +126,7 @@ class AppStateHandler extends ChangeNotifier {
       );
     })).then((value) {
       if (statusGreenNotifier.value == true) {
-        setReadyState();
+        setReadyState(context);
       } else {
         setLoggedOutState(context);
       }
@@ -191,17 +194,32 @@ class AppStateHandler extends ChangeNotifier {
       return;
     }
 
-    setReadyState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      setReadyState(context);
+    });
   }
 
   /// App is authenticated | User is logged in
   /// Hive is open
   /// Data is available and up to date
-  void setReadyState() {
+  void setReadyState(BuildContext context) {
     if (currentState == AppState.ready) return;
-    // show AppLoggin (with biometrics) Hint when not set
 
     currentState = AppState.ready;
+
+    _resumeTimer?.cancel();
+    debugPrint('Start resume timer');
+    _resumeTimer = Timer(const Duration(minutes: 2), () {
+      Wiredash.of(context).showPromoterSurvey(
+        options: const PsOptions(
+          frequency: Duration(days: 30),
+          initialDelay: Duration(days: 1),
+          minimumAppStarts: 3,
+        ),
+      );
+    });
+
+    // show AppLoggin (with biometrics) Hint when not set
   }
 }
 

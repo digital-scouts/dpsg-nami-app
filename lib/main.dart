@@ -1,3 +1,4 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
@@ -9,13 +10,14 @@ import 'package:nami/screens/navigation_home_screen.dart';
 import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/theme.dart';
 import 'package:provider/provider.dart';
+import 'package:wiredash/wiredash.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   initializeDateFormatting("de_DE", null);
   Intl.defaultLocale = "de_DE";
   await Hive.initFlutter();
-
+  await dotenv.load(fileName: ".env");
   runApp(
     ChangeNotifierProvider<ThemeModel>(
       create: (_) => ThemeModel(),
@@ -29,15 +31,41 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => AppStateHandler(),
-      child: MaterialApp(
-        theme: lightTheme,
-        darkTheme: darkTheme,
-        themeMode: Provider.of<ThemeModel>(context).currentMode,
-        home: const MyHome(),
-      ),
-    );
+    if (dotenv.env['WIREDASH_PROJECT_ID'] == null ||
+        dotenv.env['WIREDASH_SECRET'] == null ||
+        dotenv.env['WIREDASH_PROJECT_ID']!.isEmpty ||
+        dotenv.env['WIREDASH_SECRET']!.isEmpty) {
+      throw Exception(
+          'Please provide WIREDASH_PROJECT_ID and WIREDASH_SECRET in your .env file');
+    }
+    return Wiredash(
+        projectId: dotenv.env['WIREDASH_PROJECT_ID']!,
+        secret: dotenv.env['WIREDASH_SECRET']!,
+        feedbackOptions: const WiredashFeedbackOptions(
+          labels: [
+            Label(
+              id: 'label-u26353u60f',
+              title: 'Fehler',
+            ),
+            Label(
+              id: 'label-mtl2xk4esi',
+              title: 'Verbesserung',
+            ),
+            Label(id: 'label-p792odog4e', title: 'Lob')
+          ],
+        ),
+        options: const WiredashOptionsData(
+          locale: Locale('de', 'DE'),
+        ),
+        child: ChangeNotifierProvider(
+          create: (context) => AppStateHandler(),
+          child: MaterialApp(
+            theme: lightTheme,
+            darkTheme: darkTheme,
+            themeMode: Provider.of<ThemeModel>(context).currentMode,
+            home: const MyHome(),
+          ),
+        ));
   }
 }
 
@@ -79,6 +107,12 @@ class _MyHomeState extends State<MyHome> with WidgetsBindingObserver {
     const navigationHomeScreen = NavigationHomeScreen();
 
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Wiredash.of(context).show(inheritMaterialTheme: true);
+        },
+        child: const Icon(Icons.feedback),
+      ),
       body: Consumer<AppStateHandler>(
         child: navigationHomeScreen,
         builder: (context, stateHandler, child) {

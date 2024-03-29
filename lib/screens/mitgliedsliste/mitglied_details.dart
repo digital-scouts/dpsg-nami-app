@@ -16,6 +16,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:intl/intl.dart';
 import 'package:nami/utilities/extensions.dart';
+import 'package:wiredash/wiredash.dart';
 
 // ignore: must_be_immutable
 class MitgliedDetail extends StatefulWidget {
@@ -461,6 +462,12 @@ class MitgliedDetailState extends State<MitgliedDetail>
     Taetigkeit? fakeStufenwechselTaetigkeit = getStufenwechselTaetigkeit();
     Taetigkeit? currentTaetigkeit = getCurrenttaetigkeit(aktiveTaetigkeiten);
     return Scaffold(
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            Wiredash.of(context).show(inheritMaterialTheme: true);
+          },
+          child: const Icon(Icons.feedback),
+        ),
         appBar: AppBar(
           shadowColor: Colors.transparent,
           backgroundColor: Stufe.getStufeByString(widget.mitglied.stufe).farbe,
