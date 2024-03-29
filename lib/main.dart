@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:nami/screens/login_screen.dart';
 import 'package:nami/screens/navigation_home_screen.dart';
 import 'package:nami/utilities/app.state.dart';
+import 'package:nami/utilities/custom_wiredash_translations_delegate.dart';
 import 'package:nami/utilities/theme.dart';
 import 'package:provider/provider.dart';
 import 'package:wiredash/wiredash.dart';
@@ -43,18 +44,13 @@ class MyApp extends StatelessWidget {
         secret: dotenv.env['WIREDASH_SECRET']!,
         feedbackOptions: const WiredashFeedbackOptions(
           labels: [
-            Label(
-              id: 'label-u26353u60f',
-              title: 'Fehler',
-            ),
-            Label(
-              id: 'label-mtl2xk4esi',
-              title: 'Verbesserung',
-            ),
+            Label(id: 'label-u26353u60f', title: 'Fehler'),
+            Label(id: 'label-mtl2xk4esi', title: 'Verbesserung'),
             Label(id: 'label-p792odog4e', title: 'Lob')
           ],
         ),
         options: const WiredashOptionsData(
+          localizationDelegate: CustomWiredashTranslationsDelegate(),
           locale: Locale('de', 'DE'),
         ),
         child: ChangeNotifierProvider(
