@@ -1,7 +1,5 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
@@ -109,12 +107,6 @@ class _MyHomeState extends State<MyHome> with WidgetsBindingObserver {
       body: Consumer<AppStateHandler>(
         child: navigationHomeScreen,
         builder: (context, stateHandler, child) {
-          debugPrint('AppState: ${appState.currentState}');
-          Fluttertoast.showToast(
-            msg: 'AppState: ${appState.currentState.name}',
-            toastLength: Toast.LENGTH_LONG,
-            gravity: ToastGravity.BOTTOM,
-          );
           if (appState.currentState == AppState.loggedOut) {
             return const LoginScreen();
           } else if (appState.currentState == AppState.loadData ||
