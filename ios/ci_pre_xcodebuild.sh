@@ -20,6 +20,10 @@ if [ -z "$WIREDASH_PROJECT_ID" ]; then
     echo "Fehler: WIREDASH_PROJECT_ID ist nicht gesetzt."
     exit 1
 fi
+# Überprüfen, ob die .env-Datei existiert
+if [ ! -f .env ]; then
+    touch .env  # Erstellt die .env-Datei, wenn sie nicht vorhanden ist
+fi
 
 # Schreiben der Umgebungsvariablen in die .env-Datei
 echo "WIREDASH_SECRET=$WIREDASH_SECRET" > .env
