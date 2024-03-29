@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:nami/utilities/app.state.dart';
+import 'package:nami/utilities/notifications.dart';
 
 import '../../utilities/hive/settings.dart';
 
@@ -10,13 +12,11 @@ class Settings extends StatefulWidget {
   State<Settings> createState() => _SettingsState();
 }
 
-// Provider.of<ThemeModel>(context, listen: false).setTheme(ThemeType.dark);
-
 class _SettingsState extends State<Settings> {
   bool stufenwechselDatumIsValid = true;
 
-  final TextEditingController _stufenwechselTextController =
-      TextEditingController();
+  final _stufenwechselTextController = TextEditingController();
+  final _stammheimTextController = TextEditingController(text: getStammheim());
 
   Widget _buildSync() {
     return ListTile(
@@ -93,6 +93,45 @@ class _SettingsState extends State<Settings> {
     );
   }
 
+  Widget _buildStammHeimInput() {
+    return ListTile(
+      title: TextField(
+        controller: _stammheimTextController,
+        decoration: const InputDecoration(
+          labelText: 'Stammheim Adresse',
+        ),
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            color: Theme.of(context).colorScheme.primary,
+            onPressed: () async {
+              final text = _stammheimTextController.text;
+              setStammheim(text);
+              final scaffold = ScaffoldMessenger.of(context);
+              try {
+                final locations = await locationFromAddress(text);
+                if (locations.length == 1) {
+                  scaffold.showSnackBar(
+                    const SnackBar(content: Text('Adresse gefunden')),
+                  );
+                } else {
+                  // ignore: use_build_context_synchronously
+                  showErrorSnackBar(context, 'Zu viele Adressen gefunden');
+                }
+              } on NoResultFoundException catch (_, __) {
+                // ignore: use_build_context_synchronously
+                showErrorSnackBar(context, 'Keine Adresse gefunden');
+              }
+            },
+            icon: const Icon(Icons.save),
+          )
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -105,7 +144,8 @@ class _SettingsState extends State<Settings> {
           _buildSync(),
           _buildForceBSync(),
           const Divider(height: 1),
-          _buildStufenwechselDatumInput()
+          _buildStufenwechselDatumInput(),
+          _buildStammHeimInput(),
         ],
       ),
     );

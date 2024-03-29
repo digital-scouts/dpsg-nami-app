@@ -5,13 +5,11 @@ import 'package:flutter_map/flutter_map.dart';
 
 import 'package:geocoding/geocoding.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:nami/utilities/hive/settings.dart';
 
 class MapWidget extends StatefulWidget {
-  final LatLng homeLocation;
   final String memberAddress;
-  const MapWidget(
-      {required this.homeLocation, required this.memberAddress, Key? key})
-      : super(key: key);
+  const MapWidget({required this.memberAddress, Key? key}) : super(key: key);
 
   @override
   MapWidgetState createState() => MapWidgetState();
@@ -19,7 +17,7 @@ class MapWidget extends StatefulWidget {
 
 class MapWidgetState extends State<MapWidget> {
   MapController mapController = MapController();
-  late Future<LatLng> _addressLocation;
+  late Future<({LatLng? stammheim, LatLng member})> _addressLocation;
 
   @override
   void initState() {
@@ -27,15 +25,27 @@ class MapWidgetState extends State<MapWidget> {
     _addressLocation = _getAddressLocation();
   }
 
-  Future<LatLng> _getAddressLocation() async {
+  Future<({LatLng? stammheim, LatLng member})> _getAddressLocation() async {
+    final stammheim = getStammheim();
+    LatLng? stammheimLocation;
+    if (stammheim != null) {
+      try {
+        final res = await locationFromAddress(stammheim);
+        stammheimLocation = LatLng(res.first.latitude, res.first.longitude);
+      } on NoResultFoundException catch (_, __) {}
+    }
     try {
       List<Location> locations =
           await locationFromAddress(widget.memberAddress);
+
       if (locations.isNotEmpty) {
         Location firstLocation = locations.first;
-        return LatLng(firstLocation.latitude, firstLocation.longitude);
+        return (
+          stammheim: stammheimLocation,
+          member: LatLng(firstLocation.latitude, firstLocation.longitude)
+        );
       } else {
-        throw Exception('Adresse nicht gefunden');
+        throw Exception('Keine Adresse vom Mitglied gefunden');
       }
     } catch (e) {
       throw Exception('Fehler beim Abrufen der Adresse: $e');
@@ -59,11 +69,12 @@ class MapWidgetState extends State<MapWidget> {
     mapController.move(LatLng(centerLat, centerLng), zoom.zoom - 0.5);
   }
 
-  Widget _buildMap(LatLng addressLocation, LatLng homeLocation) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      adjustMapCenterAndZoom(addressLocation, homeLocation);
-    });
-
+  Widget _buildMap(LatLng addressLocation, LatLng? homeLocation) {
+    if (homeLocation != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        adjustMapCenterAndZoom(addressLocation, homeLocation);
+      });
+    }
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(5.0),
@@ -99,15 +110,16 @@ class MapWidgetState extends State<MapWidget> {
                           color: Colors.red,
                         ),
                       ),
-                      Marker(
-                        width: 80.0,
-                        height: 80.0,
-                        point: homeLocation, // Position für den Marker
-                        builder: (ctx) => const Icon(
-                          Icons.home_sharp,
-                          color: Colors.black,
+                      if (homeLocation != null)
+                        Marker(
+                          width: 80.0,
+                          height: 80.0,
+                          point: homeLocation, // Position für den Marker
+                          builder: (ctx) => const Icon(
+                            Icons.home_sharp,
+                            color: Colors.black,
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ],
@@ -155,9 +167,7 @@ class MapWidgetState extends State<MapWidget> {
 
   @override
   Widget build(BuildContext context) {
-    late LatLng addressLocation;
-
-    return FutureBuilder<LatLng>(
+    return FutureBuilder(
       future: _addressLocation,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -167,18 +177,18 @@ class MapWidgetState extends State<MapWidget> {
         } else if (snapshot.hasError) {
           return Container();
         } else {
-          addressLocation = snapshot.data!;
+          final (:stammheim, :member) = snapshot.data!;
           return Column(
             children: <Widget>[
-              _buildMap(addressLocation, widget.homeLocation),
-              ListTile(
-                leading: const Icon(Icons.social_distance),
-                title: Text(
-                  formatDistance(
-                      calculateDistance(addressLocation, widget.homeLocation)),
+              _buildMap(member, stammheim),
+              if (stammheim != null)
+                ListTile(
+                  leading: const Icon(Icons.social_distance),
+                  title: Text(
+                    formatDistance(calculateDistance(member, stammheim)),
+                  ),
+                  subtitle: const Text("Entfernung"),
                 ),
-                subtitle: const Text("Entfernung"),
-              ),
             ],
           );
         }

@@ -12,6 +12,7 @@ enum SettingValue {
   lastNamiSync,
   lastLoginCheck,
   stufenwechselDatum,
+  stammheim,
   metaGeschechtOptions,
   metaLandOptions,
   metaBeitragsartOptions,
@@ -86,6 +87,14 @@ void setStufenwechselDatum(DateTime stufenwechselDatum) {
       .put(SettingValue.stufenwechselDatum.toString(), stufenwechselDatum);
 }
 
+void setStammheim(String stammheim) {
+  if (stammheim.isEmpty) {
+    Hive.box('settingsBox').delete(SettingValue.stammheim.toString());
+    return;
+  }
+  Hive.box('settingsBox').put(SettingValue.stammheim.toString(), stammheim);
+}
+
 void setNamiLoginId(int loginId) async {
   Hive.box('settingsBox').put(SettingValue.namiLoginId.toString(), loginId);
 }
@@ -155,6 +164,10 @@ DateTime getNextStufenwechselDatum() {
   }
 
   return stufenwechselDatum;
+}
+
+String? getStammheim() {
+  return Hive.box('settingsBox').get(SettingValue.stammheim.toString());
 }
 
 int? getGruppierungId() {
