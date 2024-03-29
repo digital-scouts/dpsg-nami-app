@@ -7,6 +7,7 @@ enum Stufe implements Comparable<Stufe> {
   BIBER(
     DPSGColors.biberFarbe,
     'Biber',
+    'Biber',
     imagePath: 'assets/images/biber.png',
     isStufeYouCanChangeTo: true,
     alterMin: 4,
@@ -15,6 +16,7 @@ enum Stufe implements Comparable<Stufe> {
   WOELFLING(
     DPSGColors.woelfingFarbe,
     'Wölfling',
+    'Wös',
     imagePath: 'assets/images/woe.png',
     isStufeYouCanChangeTo: true,
     alterMin: 6,
@@ -23,6 +25,7 @@ enum Stufe implements Comparable<Stufe> {
   JUNGPADFINDER(
     DPSGColors.jungpfadfinderFarbe,
     'Jungpfadfinder',
+    'Jufis',
     imagePath: 'assets/images/jufi.png',
     isStufeYouCanChangeTo: true,
     alterMin: 9,
@@ -31,6 +34,7 @@ enum Stufe implements Comparable<Stufe> {
   PFADFINDER(
     DPSGColors.pfadfinderFarbe,
     'Pfadfinder',
+    'Pfadis',
     imagePath: 'assets/images/pfadi.png',
     isStufeYouCanChangeTo: true,
     alterMin: 12,
@@ -38,6 +42,7 @@ enum Stufe implements Comparable<Stufe> {
   ),
   ROVER(
     DPSGColors.roverFarbe,
+    'Rover',
     'Rover',
     imagePath: 'assets/images/rover.png',
     isStufeYouCanChangeTo: true,
@@ -47,6 +52,7 @@ enum Stufe implements Comparable<Stufe> {
   LEITER(
     DPSGColors.leiterFarbe,
     'Leiter',
+    'Leiter',
     imagePath: 'assets/images/lilie_schwarz.png',
     isStufeYouCanChangeTo: false,
     alterMin: 18,
@@ -54,11 +60,13 @@ enum Stufe implements Comparable<Stufe> {
   KEINE_STUFE(
     DPSGColors.keineStufeFarbe,
     'keine Stufe',
+    'keine Stufe',
     isStufeYouCanChangeTo: false,
   );
 
   final Color farbe;
   final String display;
+  final String shortDisplay;
   final String? imagePath;
   final bool isStufeYouCanChangeTo;
   final int? alterMin;
@@ -74,6 +82,15 @@ enum Stufe implements Comparable<Stufe> {
     LEITER,
   ];
 
+  /// Im gegensatz zu [Stufe.values] ist hier [Stufe.KEINE_STUFE], [Stufe.LEITER] nicht enthalten
+  static const List<Stufe> stufenWithoutLeiter = [
+    BIBER,
+    WOELFLING,
+    JUNGPADFINDER,
+    PFADFINDER,
+    ROVER,
+  ];
+
   static Stufe? getStufeByOrder(int order) {
     return stufen.where((element) => element.index == order).firstOrNull;
   }
@@ -85,7 +102,8 @@ enum Stufe implements Comparable<Stufe> {
 
   const Stufe(
     this.farbe,
-    this.display, {
+    this.display,
+    this.shortDisplay, {
     this.imagePath,
     this.isStufeYouCanChangeTo = false,
     this.alterMin,
