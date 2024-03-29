@@ -104,24 +104,26 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
                   if (selected) _stufeAendern(stufe);
                 },
                 label: Text(stufe.shortDisplay),
+                showCheckmark: false,
                 avatar: CircleAvatar(
                   backgroundColor: Colors.transparent,
-                  child: Image.asset(
-                    stufe.imagePath!,
-                  ),
+                  child: Image.asset(stufe.imagePath!),
                 ),
               ),
           ],
         ),
         // // Bereich für die Liste der Namen
         if (aktuelleTabellenZeilen.isNotEmpty)
-          Card(
-            child: DataTable(
-              columns: const [
-                DataColumn(label: Text('Name')),
-                DataColumn(label: Text('Wechsel'))
-              ],
-              rows: aktuelleTabellenZeilen,
+          SizedBox(
+            width: double.infinity,
+            child: Card(
+              child: DataTable(
+                columns: const [
+                  DataColumn(label: Text('Name')),
+                  DataColumn(label: Text('Wechsel'))
+                ],
+                rows: aktuelleTabellenZeilen,
+              ),
             ),
           )
         else ...[
