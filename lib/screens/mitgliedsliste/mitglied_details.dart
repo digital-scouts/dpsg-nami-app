@@ -12,7 +12,6 @@ import 'package:nami/utilities/stufe.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
 import 'package:maps_launcher/maps_launcher.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:intl/intl.dart';
 import 'package:nami/utilities/extensions.dart';
@@ -201,7 +200,6 @@ class MitgliedDetailState extends State<MitgliedDetail>
   }
 
   Widget _buildAddress() {
-    LatLng homeLocation = const LatLng(53.608620, 9.897620);
     String memberAddress =
         '${widget.mitglied.strasse}, ${widget.mitglied.plz} ${widget.mitglied.ort}';
 
@@ -220,7 +218,6 @@ class MitgliedDetailState extends State<MitgliedDetail>
                 title: _buildMapText(memberAddress),
               ),
               MapWidget(
-                homeLocation: homeLocation,
                 memberAddress: memberAddress,
               ),
             ],
