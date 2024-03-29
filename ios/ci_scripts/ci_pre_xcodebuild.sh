@@ -1,15 +1,6 @@
 #!/bin/sh
 
-#  ci_pre_xcodebuild.sh
-#  NaMi
-#
-#  Created by Janneck Lange on 29.03.24.
-#
-
 echo "Stage: PRE-Xcode Build is activated .... "
-
-# for future reference
-# https://developer.apple.com/documentation/xcode/environment-variable-reference
 
 # Überprüfen, ob die Umgebungsvariablen gesetzt sind
 if [ -z "$WIREDASH_SECRET" ]; then
@@ -22,12 +13,14 @@ if [ -z "$WIREDASH_PROJECT_ID" ]; then
 fi
 # Überprüfen, ob die .env-Datei existiert
 if [ ! -f .env ]; then
+    echo "Die .env-Datei existiert nicht. Erstelle .env-Datei ..."
     touch .env  # Erstellt die .env-Datei, wenn sie nicht vorhanden ist
 fi
 
 # Schreiben der Umgebungsvariablen in die .env-Datei
 echo "WIREDASH_SECRET=$WIREDASH_SECRET" > .env
 echo "WIREDASH_PROJECT_ID=$WIREDASH_PROJECT_ID" >> .env
+echo "WIREDASH_SECRET=$WIREDASH_SECRET | WIREDASH_PROJECT_ID=$WIREDASH_PROJECT_ID"
 
 echo "Die Umgebungsvariablen wurden erfolgreich in die .env-Datei geschrieben."
 
