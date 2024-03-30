@@ -22,6 +22,7 @@
 
   <application android:label="nami" android:icon="@mipmap/launcher_icon">
     <activity android:name=".MainActivity" android:launchMode="singleTop"
+      android:screenOrientation="portrait"
       android:theme="@style/LaunchTheme"
       android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
       android:hardwareAccelerated="true" android:windowSoftInputMode="adjustResize"
