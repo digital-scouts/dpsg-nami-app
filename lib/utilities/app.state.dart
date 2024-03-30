@@ -1,9 +1,7 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-import 'package:nami/screens/app_locked_screen.dart';
 import 'package:nami/screens/loading_info_screen.dart';
 import 'package:nami/utilities/hive/hive.handler.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
@@ -44,29 +42,6 @@ class AppStateHandler extends ChangeNotifier {
 
   void setInactiveState(BuildContext context) {
     if (currentState == AppState.inactive) return;
-    // push locked screen with door-like transition
-    Navigator.push(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            const AppLockedScreen(),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return AnimatedBuilder(
-            animation: animation,
-            builder: (context, child) {
-              return Transform(
-                transform: Matrix4.identity()
-                  ..setEntry(3, 2, 0.001) // perspective
-                  ..rotateY((1 - animation.value) * pi / 2),
-                alignment: Alignment.centerRight,
-                child: child,
-              );
-            },
-            child: child,
-          );
-        },
-      ),
-    );
 
     currentState = AppState.inactive;
   }

@@ -44,6 +44,7 @@ dependencies:
   html: ^0.15.4
   wiredash: ^2.1.0
   flutter_dotenv: ^5.1.0
+  privacy_screen: ^0.0.6
   faker: ^2.0.0
 
 dev_dependencies:
