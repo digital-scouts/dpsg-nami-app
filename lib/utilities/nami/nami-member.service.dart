@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:nami/utilities/nami/nami-member-fake.service.dart';
+import 'package:nami/utilities/nami/nami.service.dart';
 import 'package:nami/utilities/stufe.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:hive/hive.dart';
@@ -17,7 +18,7 @@ import 'model/nami_taetigkeiten.model.dart';
 
 ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? snackbar;
 
-int getVersionOfMember(int id, List<Mitglied> mitglieder) {
+int _getVersionOfMember(int id, List<Mitglied> mitglieder) {
   try {
     Mitglied mitglied = mitglieder.firstWhere((m) => m.id == id);
     return mitglied.version;
@@ -26,38 +27,35 @@ int getVersionOfMember(int id, List<Mitglied> mitglieder) {
   }
 }
 
-Future<List<int>> loadMemberIdsToUpdate(String url, String path,
-    int gruppierung, String cookie, bool forceUpdate) async {
+Future<List<int>> _loadMemberIdsToUpdate(
+    String url, String path, int gruppierung, bool forceUpdate) async {
   String fullUrl =
       '$url$path/mitglied/filtered-for-navigation/gruppierung/gruppierung/$gruppierung/flist?_dc=1635173028278&page=1&start=0&limit=5000';
   debugPrint('Request: Lade Mitgliedsliste');
-  final response =
-      await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
+  final body = await withMaybeRetry(() async {
+    final cookie = getNamiApiCookie();
+    return await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
+  });
 
   List<Mitglied> mitglieder =
       Hive.box<Mitglied>('members').values.toList().cast<Mitglied>();
-  late final body = jsonDecode(response.body);
-  if (response.statusCode == 200 && body['success'] == true) {
-    List<int> memberIds = [];
-    body['data'].forEach((item) {
-      if (forceUpdate ||
-          getVersionOfMember(item['id'], mitglieder) !=
-              item['entries_version']) {
-        debugPrint(
-            'Member ${item['entries_vorname']} ${item['id']} needs to be updated. Old Version: ${getVersionOfMember(item['id'], mitglieder)} New Version: ${item['entries_version']}');
-        memberIds.add(item['id']);
-      } else {
-        debugPrint(
-            'Member ${item['entries_vorname']} ${item['id']} is up to date. Version: ${item['entries_version']}');
-      }
-    });
-    return memberIds;
-  } else {
-    throw Exception('Failed to load MemberIds');
-  }
+  List<int> memberIds = [];
+  body['data'].forEach((item) {
+    if (forceUpdate ||
+        _getVersionOfMember(item['id'], mitglieder) !=
+            item['entries_version']) {
+      debugPrint(
+          'Member ${item['entries_vorname']} ${item['id']} needs to be updated. Old Version: ${_getVersionOfMember(item['id'], mitglieder)} New Version: ${item['entries_version']}');
+      memberIds.add(item['id']);
+    } else {
+      debugPrint(
+          'Member ${item['entries_vorname']} ${item['id']} is up to date. Version: ${item['entries_version']}');
+    }
+  });
+  return memberIds;
 }
 
-Future<NamiMemberDetailsModel> loadMemberDetails(
+Future<NamiMemberDetailsModel> _loadMemberDetails(
     int id, String url, String path, int gruppierung, String cookie) async {
   String fullUrl =
       '$url$path/mitglied/filtered-for-navigation/gruppierung/gruppierung/$gruppierung/$id';
@@ -85,7 +83,7 @@ Future<NamiMemberDetailsModel> loadMemberDetails(
   }
 }
 
-Future<List<NamiMemberTaetigkeitenModel>> loadMemberTaetigkeiten(
+Future<List<NamiMemberTaetigkeitenModel>> _loadMemberTaetigkeiten(
     int id, String url, String path, String cookie) async {
   String fullUrl =
       '$url$path/zugeordnete-taetigkeiten/filtered-for-navigation/gruppierung-mitglied/mitglied/$id/flist';
@@ -106,7 +104,7 @@ Future<List<NamiMemberTaetigkeitenModel>> loadMemberTaetigkeiten(
   }
 }
 
-Future<NamiMemberTaetigkeitenModel?> loadMemberTaetigkeit(int memberId,
+Future<NamiMemberTaetigkeitenModel?> _loadMemberTaetigkeit(int memberId,
     int taetigkeitId, String url, String path, String cookie) async {
   String fullUrl =
       '$url$path/zugeordnete-taetigkeiten/filtered-for-navigation/gruppierung-mitglied/mitglied/$memberId/$taetigkeitId';
@@ -123,9 +121,11 @@ Future<NamiMemberTaetigkeitenModel?> loadMemberTaetigkeit(int memberId,
   }
 }
 
-Future<void> syncMember(ValueNotifier<double> memberAllProgressNotifier,
-    ValueNotifier<bool?> memberOverviewProgressNotifier,
-    {bool forceUpdate = false}) async {
+Future<void> syncMember(
+  ValueNotifier<double> memberAllProgressNotifier,
+  ValueNotifier<bool?> memberOverviewProgressNotifier, {
+  bool forceUpdate = false,
+}) async {
   int gruppierung = getGruppierungId()!;
   String cookie = getNamiApiCookie();
   String url = getNamiLUrl();
@@ -142,12 +142,15 @@ Future<void> syncMember(ValueNotifier<double> memberAllProgressNotifier,
 
   List<int> mitgliedIds;
   try {
-    mitgliedIds = await loadMemberIdsToUpdate(
-        url, path, gruppierung, cookie, forceUpdate);
+    mitgliedIds =
+        await _loadMemberIdsToUpdate(url, path, gruppierung, forceUpdate);
   } catch (e) {
     memberOverviewProgressNotifier.value = false;
     rethrow;
   }
+
+  /// Update cookie because it could be new after relogin
+  cookie = getNamiApiCookie();
 
   memberOverviewProgressNotifier.value = true;
   debugPrint('Starte Syncronisation der Mitgliedsdetails');
@@ -183,7 +186,7 @@ Future<void> storeMitgliedToHive(
   List<NamiMemberTaetigkeitenModel> rawTaetigkeiten;
   try {
     rawMember =
-        await loadMemberDetails(mitgliedId, url, path, gruppierung, cookie);
+        await _loadMemberDetails(mitgliedId, url, path, gruppierung, cookie);
   } catch (e) {
     debugPrint('Failed to load member $mitgliedId');
     debugPrint(e.toString());
@@ -191,7 +194,7 @@ Future<void> storeMitgliedToHive(
   }
   try {
     rawTaetigkeiten =
-        await loadMemberTaetigkeiten(mitgliedId, url, path, cookie);
+        await _loadMemberTaetigkeiten(mitgliedId, url, path, cookie);
   } catch (e) {
     debugPrint('Failed to load member tätigkeiten $mitgliedId');
     debugPrint(e.toString());

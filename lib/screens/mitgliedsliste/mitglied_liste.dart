@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 // import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:nami/screens/mitgliedsliste/mitglied_details.dart';
-import 'package:nami/utilities/extensions.dart';
+import 'package:nami/utilities/types.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/mitglied.filterAndSort.dart';
 import 'package:nami/utilities/stufe.dart';

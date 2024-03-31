@@ -1,26 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
+import 'package:provider/provider.dart';
 
 class LoadingInfoScreen extends StatefulWidget {
-  final ValueNotifier<bool?> loginProgressNotifier;
   final ValueNotifier<List<AllowedFeatures>> rechteProgressNotifier;
   final ValueNotifier<String?> gruppierungProgressNotifier;
   final ValueNotifier<bool?> metaProgressNotifier;
   final ValueNotifier<bool?> memberOverviewProgressNotifier;
   final ValueNotifier<double> memberAllProgressNotifier;
-  final ValueNotifier<bool> statusGreenNotifier;
   final bool loadAll;
 
-  const LoadingInfoScreen(
-      {super.key,
-      required this.loginProgressNotifier,
-      required this.rechteProgressNotifier,
-      required this.gruppierungProgressNotifier,
-      required this.metaProgressNotifier,
-      required this.memberOverviewProgressNotifier,
-      required this.memberAllProgressNotifier,
-      required this.statusGreenNotifier,
-      this.loadAll = false});
+  const LoadingInfoScreen({
+    super.key,
+    required this.rechteProgressNotifier,
+    required this.gruppierungProgressNotifier,
+    required this.metaProgressNotifier,
+    required this.memberOverviewProgressNotifier,
+    required this.memberAllProgressNotifier,
+    this.loadAll = false,
+  });
 
   @override
   LoadingInfoScreenState createState() => LoadingInfoScreenState();
@@ -30,24 +29,20 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
   @override
   void initState() {
     super.initState();
-    widget.loginProgressNotifier.addListener(_updateProgress);
     widget.rechteProgressNotifier.addListener(_updateProgress);
     widget.gruppierungProgressNotifier.addListener(_updateProgress);
     widget.metaProgressNotifier.addListener(_updateProgress);
     widget.memberOverviewProgressNotifier.addListener(_updateProgress);
     widget.memberAllProgressNotifier.addListener(_updateProgress);
-    widget.statusGreenNotifier.addListener(_updateProgress);
   }
 
   @override
   void dispose() {
-    widget.loginProgressNotifier.removeListener(_updateProgress);
     widget.rechteProgressNotifier.removeListener(_updateProgress);
     widget.gruppierungProgressNotifier.removeListener(_updateProgress);
     widget.metaProgressNotifier.removeListener(_updateProgress);
     widget.memberOverviewProgressNotifier.removeListener(_updateProgress);
     widget.memberAllProgressNotifier.removeListener(_updateProgress);
-    widget.statusGreenNotifier.removeListener(_updateProgress);
     super.dispose();
   }
 
@@ -58,7 +53,6 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
   }
 
   bool get _isDone =>
-      widget.loginProgressNotifier.value == true &&
       widget.rechteProgressNotifier.value.isNotEmpty &&
       widget.memberOverviewProgressNotifier.value == true &&
       (widget.loadAll
@@ -76,8 +70,6 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
           body: ListView(
             children: [
               _buildLoadingStatusRow(
-                  'Login', widget.loginProgressNotifier.value),
-              _buildLoadingStatusRow(
                   'Rechte', widget.rechteProgressNotifier.value),
               if (widget.loadAll)
                 _buildLoadingStatusRow(
@@ -93,16 +85,28 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
               if (_isDone)
                 ElevatedButton(
                   onPressed: () {
+                    AppStateHandler().setReadyState();
                     Navigator.pop(context);
                   },
                   child: const Text('Success'),
                 ),
-              if (widget.statusGreenNotifier.value == false)
+              if (context.watch<AppStateHandler>().syncState == SyncState.error)
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+
+                    AppStateHandler().setLoggedOutState();
+                  },
+                  child: const Text('Fehler. Du wirst ausgeloggt.'),
+                )
+              else if (context.watch<AppStateHandler>().syncState ==
+                  SyncState.offline)
                 ElevatedButton(
                   onPressed: () {
                     Navigator.pop(context);
                   },
-                  child: const Text('Failed'),
+                  child: const Text(
+                      'Keine Netzwerkverbindung. Versuch es später erneut'),
                 )
             ],
           ),
@@ -114,20 +118,16 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label),
-        if (value is bool) ...[
-          if (value) // bool is true
+        if (value is bool?) ...[
+          if (value == true) // bool is true
             const Icon(Icons.check, color: Colors.green)
-          else if (value == false ||
-              !widget
-                  .statusGreenNotifier.value) // bool is false or loading failed
+          else if (value == false) // bool is false
             const Icon(Icons.error, color: Colors.red)
           else // bool is null
             const CircularProgressIndicator(),
         ] else if (value is double) ...[
           if (value != 1)
             CircularProgressIndicator(value: value), // double is not 1
-          if (!widget.statusGreenNotifier.value) // loading failed
-            const Icon(Icons.error, color: Colors.red),
           Text('${(value * 100).toStringAsFixed(0)}%'),
         ] else if (value is String) ...[
           Text(value),
@@ -136,7 +136,7 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: value.map((e) => Text(e.toReadableString())).toList(),
           )
-        else if (value == null && widget.statusGreenNotifier.value)
+        else if (value == null)
           const CircularProgressIndicator()
         else ...[
           const Icon(Icons.error, color: Colors.red),

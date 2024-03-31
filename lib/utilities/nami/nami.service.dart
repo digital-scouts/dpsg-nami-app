@@ -2,8 +2,41 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/nami/nami-login.service.dart';
+import 'package:nami/utilities/types.dart';
 import 'model/nami_stats.model.dart';
 import 'package:nami/utilities/nami/nami_member_add_meta.dart';
+
+/// Calls [func] and returns the json decoded body if reuqest ws succsessful
+///
+/// If the request failes with an expired session, it tries to get a new cookie
+/// with saved password and retries [func].
+/// Throws [SessionExpired] if that's not possible
+///
+/// Remeber to obtain the cookie in [func] to always use the latest one.
+dynamic withMaybeRetry(Future<http.Response> Function() func) async {
+  final response = await func();
+  late final body = jsonDecode(response.body);
+  if (response.statusCode == 200 && body['success']) {
+    return body;
+  } else if (response.statusCode == 200 &&
+      body["message"] == "Session expired") {
+    final success = await updateLoginData();
+    if (success) {
+      final response = await func();
+      late final body = jsonDecode(response.body);
+      if (response.statusCode == 200 && body['success']) {
+        return body;
+      } else {
+        throw SessionExpired();
+      }
+    } else {
+      throw SessionExpired();
+    }
+  } else {
+    throw Exception('Failed to load with status code ${response.statusCode}');
+  }
+}
 
 /// läd Nami Dashboard Statistiken
 Future<NamiStatsModel> loadNamiStats() async {

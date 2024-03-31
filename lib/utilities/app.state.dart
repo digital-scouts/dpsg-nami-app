@@ -1,19 +1,23 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
+import 'package:http/http.dart' as http;
+import 'package:nami/main.dart';
 import 'package:nami/screens/loading_info_screen.dart';
+import 'package:nami/screens/login_screen.dart';
 import 'package:nami/utilities/hive/hive.handler.dart';
-import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
-import 'package:nami/utilities/nami/nami-login.service.dart';
 import 'package:nami/utilities/nami/nami-member.service.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
+import 'package:nami/utilities/notifications.dart';
+import 'package:nami/utilities/types.dart';
 
 class AppStateHandler extends ChangeNotifier {
   static final AppStateHandler _instance = AppStateHandler._internal();
   AppState _currentState = AppState.closed;
+  SyncState _syncRunning = SyncState.notStarted;
+  Timer? syncTimer;
 
   factory AppStateHandler() {
     return _instance;
@@ -25,170 +29,200 @@ class AppStateHandler extends ChangeNotifier {
 
   set currentState(AppState newState) {
     if (_currentState != newState) {
+      debugPrint("AppStateHandler: $newState");
       _currentState = newState;
       notifyListeners();
     }
   }
 
-  /// App is locked | User loggin unclear
-  /// Hive is closed
-  void setClosedState(BuildContext context) {
-    if (currentState == AppState.closed) return;
-    // lock hive
-    closeHive();
+  SyncState get syncState => _syncRunning;
 
-    currentState = AppState.closed;
-  }
-
-  void setInactiveState(BuildContext context) {
-    if (currentState == AppState.inactive) return;
-
-    currentState = AppState.inactive;
+  set syncState(SyncState newState) {
+    if (_syncRunning != newState) {
+      debugPrint("SyncState: $newState");
+      _syncRunning = newState;
+      notifyListeners();
+    }
   }
 
   /// App is authenticated | User loggin unclear
-  void setResumeState(BuildContext context) {
-    if (currentState == AppState.resume) return;
-    Navigator.maybePop(context);
+  void setResumeState(BuildContext context) async {
+    /// Prevent changing state while relogin when app comes from background
+    if (currentState == AppState.relogin) {
+      return;
+    }
+    debugPrint("in ResumeState");
     // TODO: is app password enabled
     // -> yes, is user authenticated
     //    -> yes, setAuthenticatedState
     //    -> no, show reset Option -> setLoggedOutState
     // -> no, setAuthenticatedState
 
-    currentState = AppState.resume;
-    setAuthenticatedState(context);
+    await registerAdapter();
+    await openHive();
+    if (getNamiApiCookie().isNotEmpty) {
+      // ignore: use_build_context_synchronously
+      setAuthenticatedState();
+    } else {
+      setLoggedOutState();
+    }
   }
 
-  /// App is authenticated | User is locked
-  /// Hive is closed
-  void setLoggedOutState(BuildContext context) {
+  /// App is authenticated | User is logged out
+  void setLoggedOutState() {
     if (currentState == AppState.loggedOut) return;
+    syncTimer?.cancel();
     // clear AppLoggin | clear hive
     logout();
     currentState = AppState.loggedOut;
   }
 
+  /// Returns true when relogin was successful
+  ///
+  /// See [AppState.relogin] for more information
+  Future<bool> setReloginState() async {
+    final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
+    final tooLongOffline = getLastLoginCheck().isBefore(thirtyDaysAgo) ||
+        getLastNamiSync().isBefore(thirtyDaysAgo);
+    var showLogin = true;
+    if (tooLongOffline) {
+      showSnackBar(navigatorKey.currentContext!,
+          "Sie waren zu lange offline. Bitte melden Sie sich erneut an.");
+    } else {
+      showLogin = await showConfirmationDialog(
+        "Sitzung abgelaufen",
+        "Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.",
+      );
+    }
+    if (showLogin) {
+      currentState = AppState.relogin;
+
+      final reloginSuccessful = await navigatorKey.currentState!.push<bool?>(
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
+      setReadyState();
+      return reloginSuccessful ?? false;
+    } else {
+      return false;
+    }
+  }
+
   /// App is authenticated | User is logged in
-  /// Hive is open
-  Future<void> setLoadDataState(BuildContext context,
-      {bool loadAll = false}) async {
-    if (currentState == AppState.loadData) return;
-    ValueNotifier<bool?> loginProgressNotifier = ValueNotifier(null);
+  Future<void> setLoadDataState({
+    bool loadAll = false,
+    background = false,
+  }) async {
     ValueNotifier<List<AllowedFeatures>> rechteProgressNotifier =
         ValueNotifier([]);
     ValueNotifier<String?> gruppierungProgressNotifier = ValueNotifier(null);
     ValueNotifier<bool?> metaProgressNotifier = ValueNotifier(null);
     ValueNotifier<bool?> memberOverviewProgressNotifier = ValueNotifier(null);
     ValueNotifier<double> memberAllProgressNotifier = ValueNotifier(0.0);
-    ValueNotifier<bool> statusGreenNotifier = ValueNotifier(true);
 
-    currentState = AppState.loadData;
-
-    Navigator.push(context, MaterialPageRoute(builder: (context) {
-      return LoadingInfoScreen(
-        loginProgressNotifier: loginProgressNotifier,
-        rechteProgressNotifier: rechteProgressNotifier,
-        gruppierungProgressNotifier: gruppierungProgressNotifier,
-        metaProgressNotifier: metaProgressNotifier,
-        memberOverviewProgressNotifier: memberOverviewProgressNotifier,
-        memberAllProgressNotifier: memberAllProgressNotifier,
-        statusGreenNotifier: statusGreenNotifier,
-        loadAll: loadAll,
+    if (background) {
+      syncState = SyncState.loading;
+    } else {
+      navigatorKey.currentState!.push(
+        MaterialPageRoute(builder: (context) {
+          return LoadingInfoScreen(
+            rechteProgressNotifier: rechteProgressNotifier,
+            gruppierungProgressNotifier: gruppierungProgressNotifier,
+            metaProgressNotifier: metaProgressNotifier,
+            memberOverviewProgressNotifier: memberOverviewProgressNotifier,
+            memberAllProgressNotifier: memberAllProgressNotifier,
+            loadAll: loadAll,
+          );
+        }),
       );
-    })).then((value) {
-      if (statusGreenNotifier.value == true) {
-        setReadyState(context);
-      } else {
-        setLoggedOutState(context);
-      }
-    });
+    }
 
     try {
-      final oneHourAgo = DateTime.now().subtract(const Duration(hours: 1));
-      if (getLastLoginCheck().isAfter(oneHourAgo) || await updateLoginData()) {
-        loginProgressNotifier.value = true;
-      } else {
-        loginProgressNotifier.value = false;
-        statusGreenNotifier.value = false;
-        debugPrint('Login failed and could not be updated.');
-        return;
-      }
-
       if (loadAll) {
         gruppierungProgressNotifier.value = await loadGruppierung();
         await reloadMetadataFromServer();
         metaProgressNotifier.value = true;
-        await syncMember(
-            memberAllProgressNotifier, memberOverviewProgressNotifier,
-            forceUpdate: true);
-      } else {
-        await syncMember(
-            memberAllProgressNotifier, memberOverviewProgressNotifier);
       }
+      await syncMember(
+        memberAllProgressNotifier,
+        memberOverviewProgressNotifier,
+        forceUpdate: loadAll,
+      );
       rechteProgressNotifier.value = await getRechte();
+      syncState = SyncState.successful;
+      setReadyState();
+    } on SessionExpired catch (_) {
+      debugPrint('sync failed with session expired');
+      syncState = SyncState.relogin;
+      if (await setReloginState()) {
+        if (!background) {
+          /// pop with false to prevent going to ready or loggedOut state
+          navigatorKey.currentState!.pop();
+        }
+        setLoadDataState(loadAll: loadAll, background: background);
+      } else {
+        syncState = SyncState.error;
+      }
     } catch (e) {
-      statusGreenNotifier.value = false;
-      statusGreenNotifier.notifyListeners();
-      debugPrint(e.toString());
+      if (e is http.ClientException) {
+        debugPrint('sync failed with no internet connection');
+        syncState = SyncState.offline;
+        setReadyState();
+      } else {
+        debugPrint('sync failed with error:$e');
+        syncState = SyncState.error;
+      }
     }
   }
 
   /// App is authenticated | User loggin unclear
-  /// Hive is open
-  Future<void> setAuthenticatedState(BuildContext context) async {
+  Future<void> setAuthenticatedState() async {
     if (currentState == AppState.authenticated) return;
 
-    await registerAdapter();
-    await openHive();
+    // TODO: Ask for app authentication here
 
     currentState = AppState.authenticated;
 
-    // check if data is available -> Logout if not
-    List<Mitglied> mitglieder =
-        Hive.box<Mitglied>('members').values.toList().cast<Mitglied>();
-
-    final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
-
-    if (mitglieder.isEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        setLoggedOutState(context);
-      });
-      return;
-    }
-
-    // login check or data is older than 30 days -> load data
-    if (getLastLoginCheck().isBefore(thirtyDaysAgo) ||
-        getLastNamiSync().isBefore(thirtyDaysAgo)) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        setLoadDataState(context);
-      });
-      return;
-    }
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      setReadyState(context);
-    });
+    setReadyState();
   }
 
   /// App is authenticated | User is logged in
-  /// Hive is open
   /// Data is available and up to date
-  void setReadyState(BuildContext context) {
-    if (currentState == AppState.ready) return;
-
+  void setReadyState() {
+    final diffToLastSync = getLastNamiSync()
+        .add(const Duration(days: 1))
+        .difference(DateTime.now());
+    if (diffToLastSync < const Duration()) {
+      debugPrint("Sync data in background now");
+      setLoadDataState(background: true);
+    } else {
+      debugPrint("Scheduled sync data in $diffToLastSync in background");
+      syncTimer?.cancel();
+      syncTimer = Timer(diffToLastSync, () {
+        debugPrint("Sync data from timer now");
+        setLoadDataState(background: true);
+      });
+    }
     currentState = AppState.ready;
 
     // show AppLoggin (with biometrics) Hint when not set
   }
 }
 
+enum SyncState { notStarted, loading, successful, offline, error, relogin }
+
 enum AppState {
+  /// Only used for initial state
   closed,
-  inactive,
-  resume,
+
   loggedOut,
-  loadData,
+
+  /// App is authenticated, cookie is outdated and password isn't saved.
+  /// Therefore user needs to enter credentials again
+  relogin,
+
+  /// App is authenticated, user is logged in
   authenticated,
-  ready
+
+  /// App is authenticated, user is logged in, data is available and up to date
+  ready,
 }

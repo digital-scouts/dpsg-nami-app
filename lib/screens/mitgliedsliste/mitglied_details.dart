@@ -14,7 +14,7 @@ import 'package:nami/utilities/hive/taetigkeit.dart';
 import 'package:maps_launcher/maps_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:intl/intl.dart';
-import 'package:nami/utilities/extensions.dart';
+import 'package:nami/utilities/types.dart';
 import 'package:wiredash/wiredash.dart';
 
 // ignore: must_be_immutable

@@ -23,7 +23,7 @@ class _SettingsState extends State<Settings> {
       title: const Text('Aktualisiere die Mitgliedsdaten'),
       leading: const Icon(Icons.sync),
       onTap: () {
-        AppStateHandler().setLoadDataState(context, loadAll: false);
+        AppStateHandler().setLoadDataState(loadAll: false);
       },
       subtitle: Text(
           "Vor ${DateTime.now().difference(getLastNamiSync()).inDays.toString()} Tagen"),
@@ -35,7 +35,7 @@ class _SettingsState extends State<Settings> {
       title: const Text('Lade alle Daten neu'),
       leading: const Icon(Icons.sync),
       onTap: () {
-        AppStateHandler().setLoadDataState(context, loadAll: true);
+        AppStateHandler().setLoadDataState(loadAll: true);
       },
     );
   }

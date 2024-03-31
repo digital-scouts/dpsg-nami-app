@@ -48,10 +48,9 @@ class LoginScreenState extends State<LoginScreen> {
       _wrongCredentials = true;
     });
     Timer(
-        const Duration(seconds: 3),
-        () => setState(() {
-              _wrongCredentials = false;
-            }));
+      const Duration(seconds: 3),
+      () => setState(() => _wrongCredentials = false),
+    );
   }
 
   Future<void> loginButtonPressed() async {
@@ -64,11 +63,19 @@ class LoginScreenState extends State<LoginScreen> {
       });
       if (_rememberMe) {
         setNamiPassword(_password);
+      } else {
+        deleteNamiPassword();
       }
       setNamiLoginId(_mitgliedsnummer);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        AppStateHandler().setLoadDataState(context, loadAll: true);
-      });
+      if (AppStateHandler().currentState == AppState.loggedOut) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          AppStateHandler().setLoadDataState(loadAll: true);
+        });
+      } else if (AppStateHandler().currentState == AppState.relogin) {
+        /// setting to result to `true` to signal that the relogin was successful
+        // ignore: use_build_context_synchronously
+        Navigator.pop(context, true);
+      }
     } else {
       wrongCredentials();
       setState(() {
