@@ -86,7 +86,7 @@ class AppStateHandler extends ChangeNotifier {
 
   void showTooLongOfflineNotification() {
     showSnackBar(navigatorKey.currentContext!,
-        "Sie waren zu lange offline. Bitte melden Sie sich erneut an.");
+        "Du warst zu lange offline. Bitte melde dich erneut an.");
   }
 
   /// Returns true when relogin was successful
@@ -100,7 +100,7 @@ class AppStateHandler extends ChangeNotifier {
     } else {
       showLogin = await showConfirmationDialog(
         "Sitzung abgelaufen",
-        "Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.",
+        "Deine Sitzung ist abgelaufen. Bitte melden dich erneut an.",
       );
     }
     if (showLogin) {
@@ -129,7 +129,9 @@ class AppStateHandler extends ChangeNotifier {
     ValueNotifier<double> memberAllProgressNotifier = ValueNotifier(0.0);
 
     syncState = SyncState.loading;
-    if (!background) {
+    if (background) {
+      showSnackBar(navigatorKey.currentContext!, "Daten werden synchronisiert");
+    } else {
       navigatorKey.currentState!.push(
         MaterialPageRoute(builder: (context) {
           return LoadingInfoScreen(
@@ -157,6 +159,10 @@ class AppStateHandler extends ChangeNotifier {
       );
       rechteProgressNotifier.value = await getRechte();
       syncState = SyncState.successful;
+      if (background) {
+        showSnackBar(navigatorKey.currentContext!,
+            "Daten wurden erfolgreich synchronisiert");
+      }
       setReadyState();
     } on SessionExpired catch (_) {
       debugPrint('sync failed with session expired');
@@ -171,8 +177,16 @@ class AppStateHandler extends ChangeNotifier {
         if (isTooLongOffline()) {
           syncState = SyncState.error;
           if (background) {
+            showSnackBar(navigatorKey.currentContext!,
+                'Du wirst ausgeloggt, da du zu lange offline warst.');
             setLoggedOutState();
           }
+          // if not [background] the user will be logged out in
+          // [LoadingInfoScreen] when pressing the button
+        }
+        if (background) {
+          showSnackBar(navigatorKey.currentContext!,
+              'Kein Sync möglich ohne erneute Anmeldung.');
         }
         syncState = SyncState.relogin;
         setReadyState();
