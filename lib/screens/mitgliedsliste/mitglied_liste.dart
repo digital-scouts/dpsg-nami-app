@@ -1,10 +1,8 @@
 import 'package:backdrop/backdrop.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-// import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:nami/screens/mitgliedsliste/mitglied_details.dart';
-import 'package:nami/utilities/extensions.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/mitglied.filterAndSort.dart';
 import 'package:nami/utilities/stufe.dart';
@@ -152,9 +150,12 @@ class MitgliedsListeState extends State<MitgliedsListe> {
               title: Text(
                   '${filteredMitglieder[index].vorname} ${filteredMitglieder[index].nachname}'),
               subtitle:
-                  Text(filteredMitglieder[index].geburtsDatum.prettyPrint()),
+                  Text(filteredMitglieder[index].mitgliedsNummer.toString()),
               trailing: Text(filteredMitglieder[index].stufe == 'keine Stufe'
-                  ? ''
+                  ? filteredMitglieder[index]
+                      .getActiveTaetigkeiten()
+                      .first
+                      .taetigkeit
                   : filteredMitglieder[index].stufe),
             ),
           ),
@@ -186,29 +187,31 @@ class MitgliedsListeState extends State<MitgliedsListe> {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           for (final stufe in Stufe.stufen)
-            // TODO: show only filter for groups with members
-            GestureDetector(
-              onTap: () {
-                setFilterGroup(stufe.index, !filterGroup[stufe.index]);
-              },
-              child: Container(
-                width: 50.0,
-                height: 50.0,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: filterGroup[stufe.index]
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.surfaceVariant,
-                ),
-                child: Center(
-                  child: Image.asset(
-                    stufe.imagePath!,
-                    width: 30.0,
-                    height: 30.0,
+            // Biber wird nur angezeigt, wenn die Gruppierung Biber hat
+            if (stufe != Stufe.BIBER ||
+                mitglieder.any((m) => m.stufe == Stufe.BIBER.display))
+              GestureDetector(
+                onTap: () {
+                  setFilterGroup(stufe.index, !filterGroup[stufe.index]);
+                },
+                child: Container(
+                  width: 50.0,
+                  height: 50.0,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: filterGroup[stufe.index]
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.surfaceVariant,
+                  ),
+                  child: Center(
+                    child: Image.asset(
+                      stufe.imagePath!,
+                      width: 30.0,
+                      height: 30.0,
+                    ),
                   ),
                 ),
               ),
-            ),
         ],
       ),
     );
@@ -216,13 +219,21 @@ class MitgliedsListeState extends State<MitgliedsListe> {
 
   Widget _buildSearchBar() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
       child: TextField(
         onChanged: setSearchValue,
         decoration: InputDecoration(
           hintStyle: Theme.of(context).textTheme.bodySmall,
           filled: true,
-          hintText: 'Textsuche (Name, Mail, Mitgliedsnummer)',
+          fillColor: Colors.white.withOpacity(0.05),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+          border: const OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(10)),
+            borderSide: BorderSide.none,
+          ),
+          icon: const Icon(Icons.search),
+          hintText: 'Suche nach Name, Mail oder Mitgliedsnummer',
         ),
       ),
     );
