@@ -79,9 +79,8 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
                     'Meta', widget.metaProgressNotifier.value),
               _buildLoadingStatusRow('Member Overview',
                   widget.memberOverviewProgressNotifier.value),
-              if (widget.loadAll)
-                _buildLoadingStatusRow(
-                    'Member All', widget.memberAllProgressNotifier.value),
+              _buildLoadingStatusRow(
+                  'Member All', widget.memberAllProgressNotifier.value),
               if (_isDone)
                 ElevatedButton(
                   onPressed: () {
