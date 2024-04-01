@@ -104,6 +104,7 @@ Future<List<NamiMemberTaetigkeitenModel>> _loadMemberTaetigkeiten(
   }
 }
 
+// ignore: unused_element
 Future<NamiMemberTaetigkeitenModel?> _loadMemberTaetigkeit(int memberId,
     int taetigkeitId, String url, String path, String cookie) async {
   String fullUrl =
