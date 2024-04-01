@@ -202,7 +202,8 @@ Future<void> storeMitgliedToHive(
   for (NamiMemberTaetigkeitenModel item in rawTaetigkeiten) {
     taetigkeiten.add(Taetigkeit()
       ..id = item.id
-      ..taetigkeit = item.taetigkeit
+      ..taetigkeit =
+          item.taetigkeit.replaceAll(RegExp(r'^[€\-x ]* '), '').split(' (')[0]
       ..aktivBis = item.aktivBis
       ..aktivVon = item.aktivVon
       ..anlagedatum = item.anlagedatum

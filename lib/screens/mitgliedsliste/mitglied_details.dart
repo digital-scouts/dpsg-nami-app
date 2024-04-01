@@ -326,7 +326,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
       ListTile(
         leading: _buildTaetigkeitImage(taetigkeit),
         title: Text(
-          '${taetigkeit.taetigkeit} - ${taetigkeit.untergliederung}',
+          '${taetigkeit.taetigkeit} ${taetigkeit.untergliederung!.isNotEmpty ? '- ${taetigkeit.untergliederung}' : ''} ',
         ),
         subtitle: Text(
           '${DateFormat('MMMM').format(taetigkeit.aktivVon)} ${taetigkeit.aktivVon.year} ${taetigkeit.aktivBis != null ? '- ${DateFormat('MMMM').format(taetigkeit.aktivBis!)} ${taetigkeit.aktivBis!.year}' : ''} ${getGruppierungName() != taetigkeit.gruppierung ? '\nGruppierung: ${taetigkeit.gruppierung}' : ''}',
