@@ -77,17 +77,26 @@ class AppStateHandler extends ChangeNotifier {
     currentState = AppState.loggedOut;
   }
 
+  bool isTooLongOffline() {
+    final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
+    final tooLongOffline = getLastLoginCheck().isBefore(thirtyDaysAgo) ||
+        getLastNamiSync().isBefore(thirtyDaysAgo);
+    return tooLongOffline;
+  }
+
+  void showTooLongOfflineNotification() {
+    showSnackBar(navigatorKey.currentContext!,
+        "Sie waren zu lange offline. Bitte melden Sie sich erneut an.");
+  }
+
   /// Returns true when relogin was successful
   ///
   /// See [AppState.relogin] for more information
   Future<bool> setReloginState() async {
-    final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
-    final tooLongOffline = getLastLoginCheck().isBefore(thirtyDaysAgo) ||
-        getLastNamiSync().isBefore(thirtyDaysAgo);
     var showLogin = true;
+    final tooLongOffline = isTooLongOffline();
     if (tooLongOffline) {
-      showSnackBar(navigatorKey.currentContext!,
-          "Sie waren zu lange offline. Bitte melden Sie sich erneut an.");
+      showTooLongOfflineNotification();
     } else {
       showLogin = await showConfirmationDialog(
         "Sitzung abgelaufen",
@@ -119,9 +128,8 @@ class AppStateHandler extends ChangeNotifier {
     ValueNotifier<bool?> memberOverviewProgressNotifier = ValueNotifier(null);
     ValueNotifier<double> memberAllProgressNotifier = ValueNotifier(0.0);
 
-    if (background) {
-      syncState = SyncState.loading;
-    } else {
+    syncState = SyncState.loading;
+    if (!background) {
       navigatorKey.currentState!.push(
         MaterialPageRoute(builder: (context) {
           return LoadingInfoScreen(
@@ -160,7 +168,14 @@ class AppStateHandler extends ChangeNotifier {
         }
         setLoadDataState(loadAll: loadAll, background: background);
       } else {
-        syncState = SyncState.error;
+        if (isTooLongOffline()) {
+          syncState = SyncState.error;
+          if (background) {
+            setLoggedOutState();
+          }
+        }
+        syncState = SyncState.relogin;
+        setReadyState();
       }
     } catch (e) {
       if (e is http.ClientException) {
@@ -175,29 +190,41 @@ class AppStateHandler extends ChangeNotifier {
   }
 
   /// App is authenticated | User loggin unclear
+  ///
+  /// Called from [setResumeState]
   Future<void> setAuthenticatedState() async {
-    if (currentState == AppState.authenticated) return;
-
     // TODO: Ask for app authentication here
 
     currentState = AppState.authenticated;
 
+    /// Usually checking the too long offline state can be ckecked via the
+    /// daily sync, which may call [setReloginState] and [checkTooLongOffline]
+    /// but in offline mode [setReloginState] is not called in [setLoadState].
+    if (isTooLongOffline()) {
+      final success = await setReloginState();
+
+      if (!success) setLoggedOutState();
+      return;
+    }
     setReadyState();
   }
 
   /// App is authenticated | User is logged in
   /// Data is available and up to date
   void setReadyState() {
-    final diffToLastSync = getLastNamiSync()
+    // Using [getLastNamiSyncTry] to prevent from instant retry after a failed
+    // sync when offline
+    final nextSync = getLastNamiSyncTry()
         .add(const Duration(days: 1))
         .difference(DateTime.now());
-    if (diffToLastSync < const Duration()) {
-      debugPrint("Sync data in background now");
+    if (nextSync < const Duration()) {
+      debugPrint(
+          "Last sync try is ${DateTime.now().difference(getLastNamiSyncTry())} ago. Sync data in background now");
       setLoadDataState(background: true);
     } else {
-      debugPrint("Scheduled sync data in $diffToLastSync in background");
+      debugPrint("Scheduled sync data in $nextSync in background");
       syncTimer?.cancel();
-      syncTimer = Timer(diffToLastSync, () {
+      syncTimer = Timer(nextSync, () {
         debugPrint("Sync data from timer now");
         setLoadDataState(background: true);
       });

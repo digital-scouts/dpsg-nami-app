@@ -108,6 +108,15 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
                   child: const Text(
                       'Keine Netzwerkverbindung. Versuch es später erneut'),
                 )
+              else if (context.watch<AppStateHandler>().syncState ==
+                  SyncState.relogin)
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text(
+                      'Kein Sync möglich ohne erneute Anmeldung. OK'),
+                )
             ],
           ),
         ));

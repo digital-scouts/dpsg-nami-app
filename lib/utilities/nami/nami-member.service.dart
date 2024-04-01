@@ -126,6 +126,7 @@ Future<void> syncMember(
   ValueNotifier<bool?> memberOverviewProgressNotifier, {
   bool forceUpdate = false,
 }) async {
+  setLastNamiSyncTry(DateTime.now());
   int gruppierung = getGruppierungId()!;
   String cookie = getNamiApiCookie();
   String url = getNamiLUrl();
