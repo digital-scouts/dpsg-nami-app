@@ -7,18 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Nami</string>
-	<key>CFBundleDocumentTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleTypeName</key>
-			<string>MKDirectionsRequest</string>
-			<key>LSItemContentTypes</key>
-			<array>
-				<string>com.apple.maps.directionsrequest</string>
-			</array>
-		</dict>
-	</array>
+	<string>NaMi</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -76,7 +65,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string></string>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<false/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<false/>
 </dict>
 </plist>
