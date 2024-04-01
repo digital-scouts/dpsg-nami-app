@@ -21,7 +21,9 @@ void filterByStufe(List<Mitglied> mitglieder, List<Stufe> stufen) {
   if (stufen.isEmpty) return;
   List<String> s = stufen.map((e) => e.display).toList();
   mitglieder.removeWhere((m) =>
-      !s.contains(m.stufe) && !(s.contains('Leiter') && m.isMitgliedLeiter()));
+      !s.contains(m.stufe) &&
+      !(s.contains('Leiter') &&
+          (m.isMitgliedLeiter() || m.stufe == Stufe.KEINE_STUFE.display)));
 }
 
 ///Nur aktive Mitglieder
