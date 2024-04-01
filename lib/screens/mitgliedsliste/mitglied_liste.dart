@@ -152,10 +152,14 @@ class MitgliedsListeState extends State<MitgliedsListe> {
               subtitle:
                   Text(filteredMitglieder[index].mitgliedsNummer.toString()),
               trailing: Text(filteredMitglieder[index].stufe == 'keine Stufe'
-                  ? filteredMitglieder[index]
-                      .getActiveTaetigkeiten()
-                      .first
-                      .taetigkeit
+                  ? (filteredMitglieder[index]
+                          .getActiveTaetigkeiten()
+                          .isNotEmpty
+                      ? filteredMitglieder[index]
+                          .getActiveTaetigkeiten()
+                          .first
+                          .taetigkeit
+                      : '')
                   : filteredMitglieder[index].stufe),
             ),
           ),
