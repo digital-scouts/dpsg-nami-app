@@ -16,11 +16,12 @@ void filterByString(List<Mitglied> mitglieder, String filterString) {
       mitglied.id.toString().contains(filterString));
 }
 
-///Filter bei Stufe (woe, jufi, pfadi, rover, leiter)
+///Filter bei Stufe/Tätigkeit Leiter (woe, jufi, pfadi, rover, leiter)
 void filterByStufe(List<Mitglied> mitglieder, List<Stufe> stufen) {
   if (stufen.isEmpty) return;
   List<String> s = stufen.map((e) => e.display).toList();
-  mitglieder.removeWhere((m) => !s.contains(m.stufe));
+  mitglieder.removeWhere((m) =>
+      !s.contains(m.stufe) && !(s.contains('Leiter') && m.isMitgliedLeiter()));
 }
 
 ///Nur aktive Mitglieder
