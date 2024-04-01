@@ -12,6 +12,7 @@ void logout() {
   Hive.box<Mitglied>('members').clear();
   deleteGruppierungId();
 
+  setStammheim('');
   // login data
   deleteNamiApiCookie();
   deleteNamiLoginId();
@@ -19,6 +20,7 @@ void logout() {
 
   // other Stuff
   deleteLastLoginCheck();
+  deleteLastNamiSyncTry();
   deleteLastNamiSync();
 }
 

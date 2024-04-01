@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:nami/utilities/hive/hive.handler.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/nami/nami-login.service.dart';
 import 'dart:async';
@@ -61,13 +62,18 @@ class LoginScreenState extends State<LoginScreen> {
       setState(() {
         _loading = false;
       });
+      final differentUser = _mitgliedsnummer != getNamiLoginId();
+      if (differentUser) {
+        logout();
+      }
+      setNamiLoginId(_mitgliedsnummer);
       if (_rememberMe) {
         setNamiPassword(_password);
       } else {
         deleteNamiPassword();
       }
-      setNamiLoginId(_mitgliedsnummer);
-      if (AppStateHandler().currentState == AppState.loggedOut) {
+      if (differentUser ||
+          AppStateHandler().currentState == AppState.loggedOut) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           AppStateHandler().setLoadDataState(loadAll: true);
         });
