@@ -31,15 +31,16 @@ Future<void> fakeLoading(ValueNotifier<bool?> memberOverviewProgressNotifier,
   }
 }
 
-Taetigkeit createTaetigkeit(int id, DateTime start, DateTime? end,
-    String untergliederung, bool isLeader) {
+Taetigkeit createTaetigkeit(
+    int id, DateTime start, DateTime? end, String untergliederung,
+    {bool isLeader = false, String gruppierung = "1234 Test Gruppierung"}) {
   Taetigkeit t = Taetigkeit()
     ..id = id
     ..aktivVon = start
     ..aktivBis = end
     ..anlagedatum = start
     ..untergliederung = untergliederung
-    ..gruppierung = "1234 Test Gruppierung"
+    ..gruppierung = gruppierung
     ..berechtigteGruppe = ""
     ..berechtigteUntergruppen = "";
 
