@@ -12,6 +12,7 @@ enum SettingValue {
   lastNamiSync,
   lastNamiSyncTry,
   lastLoginCheck,
+  syncOverWifiOnly,
   stufenwechselDatum,
   stammheim,
   metaGeschechtOptions,
@@ -137,6 +138,10 @@ void setLastLoginCheck(DateTime lastLoginCheck) {
       .put(SettingValue.lastLoginCheck.toString(), lastLoginCheck);
 }
 
+void setSyncOverWifiOnly(bool value) {
+  Hive.box('settingsBox').put(SettingValue.syncOverWifiOnly.toString(), value);
+}
+
 String getNamiApiCookie() {
   return Hive.box('settingsBox').get(SettingValue.namiApiCookie.toString()) ??
       '';
@@ -145,6 +150,12 @@ String getNamiApiCookie() {
 DateTime getLastLoginCheck() {
   return Hive.box('settingsBox').get(SettingValue.lastLoginCheck.toString()) ??
       DateTime.utc(1989, 1, 1);
+}
+
+bool getSyncOverWifiOnly() {
+  return Hive.box('settingsBox')
+          .get(SettingValue.syncOverWifiOnly.toString()) ??
+      true;
 }
 
 DateTime getNextStufenwechselDatum() {

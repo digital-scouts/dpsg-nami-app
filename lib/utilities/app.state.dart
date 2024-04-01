@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:nami/main.dart';
@@ -234,18 +235,32 @@ class AppStateHandler extends ChangeNotifier {
     if (nextSync < const Duration()) {
       debugPrint(
           "Last sync try is ${DateTime.now().difference(getLastNamiSyncTry())} ago. Sync data in background now");
-      setLoadDataState(background: true);
+      setSyncTimer(const Duration());
     } else {
-      debugPrint("Scheduled sync data in $nextSync in background");
-      syncTimer?.cancel();
-      syncTimer = Timer(nextSync, () {
-        debugPrint("Sync data from timer now");
-        setLoadDataState(background: true);
-      });
+      setSyncTimer(nextSync);
     }
     currentState = AppState.ready;
 
     // show AppLoggin (with biometrics) Hint when not set
+  }
+
+  void setSyncTimer(Duration nextSync) {
+    debugPrint("Scheduled sync data in $nextSync in background");
+    syncTimer?.cancel();
+    syncTimer = Timer(nextSync, () async {
+      if (getSyncOverWifiOnly() && !(await isWifi())) {
+        debugPrint("Don't sync data now, because not in wifi");
+        setSyncTimer(const Duration(days: 1));
+      } else {
+        debugPrint("Sync data from timer now");
+        setLoadDataState(background: true);
+      }
+    });
+  }
+
+  Future<bool> isWifi() async {
+    final res = await Connectivity().checkConnectivity();
+    return res.contains(ConnectivityResult.wifi);
   }
 }
 
