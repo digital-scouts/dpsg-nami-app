@@ -4,8 +4,10 @@ import 'package:nami/utilities/stufe.dart';
 
 class MitgliedStufenPieChart extends StatefulWidget {
   final Map<String, int> memberPerGroup;
+  final bool showLeiterGrafik;
 
-  const MitgliedStufenPieChart({required this.memberPerGroup, Key? key})
+  const MitgliedStufenPieChart(
+      {required this.memberPerGroup, required this.showLeiterGrafik, Key? key})
       : super(key: key);
 
   @override
@@ -46,26 +48,41 @@ class MitgliedStufenPieChartState extends State<MitgliedStufenPieChart> {
     List<PieChartSectionData> sectionData = [];
     num index = 0;
     widget.memberPerGroup.forEach((key, value) {
-      switch (key) {
-        case "Wölfling":
+      if (widget.showLeiterGrafik) {
+        if (key.contains('Mitglied')) {
+          sectionData.add(createPieElement(key, value, null, index));
+        } else if (key.contains("Biber")) {
+          sectionData
+              .add(createPieElement("LeiterIn", value, Stufe.BIBER, index));
+        } else if (key.contains("Wölfling")) {
+          sectionData
+              .add(createPieElement("LeiterIn", value, Stufe.WOELFLING, index));
+        } else if (key.contains("Jungpfadfinder")) {
+          sectionData.add(
+              createPieElement("LeiterIn", value, Stufe.JUNGPADFINDER, index));
+        } else if (key.contains("Pfadfinder")) {
+          sectionData.add(
+              createPieElement("LeiterIn", value, Stufe.PFADFINDER, index));
+        } else if (key.contains("Rover")) {
+          sectionData
+              .add(createPieElement("LeiterIn", value, Stufe.ROVER, index));
+        }
+      } else {
+        if (key.contains('LeiterIn')) {
+          sectionData.add(createPieElement("LeiterIn", value, null, index));
+        } else if (key.contains("Biber")) {
+          sectionData.add(createPieElement(key, value, Stufe.BIBER, index));
+        } else if (key.contains("Wölfling")) {
           sectionData.add(createPieElement(key, value, Stufe.WOELFLING, index));
-          break;
-        case "Jungpfadfinder":
+        } else if (key.contains("Jungpfadfinder")) {
           sectionData
               .add(createPieElement(key, value, Stufe.JUNGPADFINDER, index));
-          break;
-        case "Pfadfinder":
+        } else if (key.contains("Pfadfinder")) {
           sectionData
               .add(createPieElement(key, value, Stufe.PFADFINDER, index));
-          break;
-        case "Rover":
+        } else if (key.contains("Rover")) {
           sectionData.add(createPieElement(key, value, Stufe.ROVER, index));
-          break;
-        case "LeiterIn":
-          sectionData.add(createPieElement(key, value, Stufe.LEITER, index));
-          break;
-        default:
-          sectionData.add(createPieElement(key, value, null, index));
+        }
       }
       index++;
     });
@@ -76,21 +93,24 @@ class MitgliedStufenPieChartState extends State<MitgliedStufenPieChart> {
   PieChartSectionData createPieElement(
       String name, num value, Stufe? stufe, num index) {
     const radius = 45.0;
-    const widgetSize = 25.0;
 
     return PieChartSectionData(
       color: stufe?.farbe ?? Stufe.KEINE_STUFE.farbe,
       value: value.toDouble(),
       showTitle: false,
       radius: radius,
-      badgeWidget: stufe != null
-          ? _Badge(
-              stufe.imagePath!,
-              size: widgetSize,
-              borderColor: Colors.black,
-            )
-          : null,
+      badgeWidget:
+          stufe == null ? null : _buildBadge(stufe, name.contains('LeiterIn')),
       badgePositionPercentageOffset: widget.memberPerGroup.length == 1 ? 0 : .6,
+    );
+  }
+
+  Widget? _buildBadge(Stufe stufe, bool leiter) {
+    return _Badge(
+      leiter ? 'assets/images/lilie_schwarz.png' : stufe.imagePath!,
+      size: 25.0,
+      borderColor: Colors.black,
+      imageColor: leiter && stufe != Stufe.BIBER ? stufe.farbe : null,
     );
   }
 }
@@ -100,10 +120,12 @@ class _Badge extends StatelessWidget {
     this.svgAsset, {
     required this.size,
     required this.borderColor,
+    this.imageColor,
   });
   final String svgAsset;
   final double size;
   final Color borderColor;
+  final Color? imageColor;
 
   @override
   Widget build(BuildContext context) {
@@ -128,10 +150,13 @@ class _Badge extends StatelessWidget {
       ),
       padding: EdgeInsets.all(size * .1),
       child: Center(
-        child: Image.asset(
-          svgAsset,
-        ),
-      ),
+          child: Image.asset(
+        svgAsset,
+        width: 80.0,
+        height: 80.0,
+        color: imageColor,
+        colorBlendMode: BlendMode.srcIn,
+      )),
     );
   }
 }
