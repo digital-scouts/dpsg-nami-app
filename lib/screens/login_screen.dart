@@ -58,14 +58,14 @@ class LoginScreenState extends State<LoginScreen> {
     setState(() {
       _loading = true;
     });
+    final differentUser = _mitgliedsnummer != getNamiLoginId();
+    if (differentUser) {
+      logout();
+    }
     if (await namiLoginWithPassword(_mitgliedsnummer, _password)) {
       setState(() {
         _loading = false;
       });
-      final differentUser = _mitgliedsnummer != getNamiLoginId();
-      if (differentUser) {
-        logout();
-      }
       setNamiLoginId(_mitgliedsnummer);
       if (_rememberMe) {
         setNamiPassword(_password);
