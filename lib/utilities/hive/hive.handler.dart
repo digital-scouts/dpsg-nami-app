@@ -11,6 +11,7 @@ void logout() {
   //loaded Data
   Hive.box<Mitglied>('members').clear();
   deleteGruppierungId();
+  deleteGruppierungName();
 
   // login data
   deleteNamiApiCookie();

@@ -41,7 +41,8 @@ extension AllowedFeaturesExtension on AllowedFeatures {
   }
 }
 
-// Dokumentation zu den Rechten finden sich im README.md
+/// Dokumentation zu den Rechten finden sich im README.md
+/// Rechte werden anhand der User ID geladen (nicht die Mitgliedsnummer)
 Future<List<AllowedFeatures>> getRechte() async {
   if (cookie == 'testLoginCookie') {
     return [AllowedFeatures.appStart];
@@ -113,6 +114,7 @@ Future<Map<int, String>> loadRechteJson() async {
 
 Future<dynamic> loadDocument(int userId, Map<String, String> headers) async {
   try {
+    // Error 500 on Session Expired
     http.Response response = await http.get(
         Uri.parse(
             '$url/ica//pages/rights/ShowRights?gruppierung=$gruppierungId&id=$userId'),
