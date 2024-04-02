@@ -159,7 +159,7 @@ Future<void> syncMember(
   var futures = <Future>[];
 
   for (var mitgliedId in mitgliedIds) {
-    futures.add(storeMitgliedToHive(
+    futures.add(_storeMitgliedToHive(
         mitgliedId,
         memberBox,
         url,
@@ -175,7 +175,7 @@ Future<void> syncMember(
   debugPrint('Syncronisation der Mitgliedsdetails abgeschlossen');
 }
 
-Future<void> storeMitgliedToHive(
+Future<void> _storeMitgliedToHive(
     int mitgliedId,
     Box<Mitglied> memberBox,
     String url,

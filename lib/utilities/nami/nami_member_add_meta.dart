@@ -1,34 +1,21 @@
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:http/http.dart' as http;
+import 'package:nami/utilities/nami/nami.service.dart';
 
-String url = getNamiLUrl();
-String path = getNamiPath();
-int? gruppierungId = getGruppierungId();
-String cookie = getNamiApiCookie();
 const String testCoockieName = 'testLoginCookie';
 
 Future<List<String>> getMetadata(String url) async {
-  final headers = {'Cookie': cookie, 'Content-Type': 'application/json'};
+  final body = await withMaybeRetry(
+    () async => await http.get(Uri.parse(url), headers: {
+      'Cookie': getNamiApiCookie(),
+      'Content-Type': 'application/json'
+    }),
+    'Failed to load metadata: $url',
+  );
 
-  http.Response response;
-  dynamic result;
-  try {
-    response = await http.get(Uri.parse(url), headers: headers);
-    result = jsonDecode(response.body);
-  } catch (e) {
-    debugPrint(e.toString());
-    throw Exception('Failed to load metadata: $url');
-  }
-
-  if (response.statusCode != 200 || !result['success']) {
-    debugPrint(result.toString());
-    throw Exception('Metadata result not valid: $url');
-  }
-
-  List<String> list = result['data'].map<String>((m) {
+  List<String> list = body['data'].map<String>((m) {
     return utf8.decode(m['descriptor'].codeUnits);
   }).toList();
   list.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
@@ -36,7 +23,7 @@ Future<List<String>> getMetadata(String url) async {
 }
 
 Future<List<String>> getBeitragsartenMeta() async {
-  if (cookie == testCoockieName) {
+  if (getNamiApiCookie() == testCoockieName) {
     return [
       'Familienermäßigt - Stiftungseuro',
       'Familienermäßigt',
@@ -47,7 +34,7 @@ Future<List<String>> getBeitragsartenMeta() async {
     ];
   }
   String fullUrl =
-      '$url/ica/rest/namiBeitrag/beitragsartmgl/gruppierung/$gruppierungId';
+      '${getNamiLUrl()}/ica/rest/namiBeitrag/beitragsartmgl/gruppierung/${getGruppierungId()}';
   List<String> meta = await getMetadata(fullUrl);
 
   RegExpMatch? match;
@@ -60,39 +47,41 @@ Future<List<String>> getBeitragsartenMeta() async {
 }
 
 Future<List<String>> getGeschlechtMeta() async {
-  if (cookie == testCoockieName) {
+  if (getNamiApiCookie() == testCoockieName) {
     return ['männlich', 'weiblich', 'divers', 'keine Angabe'];
   }
-  String fullUrl = '$url/ica/rest/baseadmin/geschlecht/';
+  String fullUrl = '${getNamiLUrl()}/ica/rest/baseadmin/geschlecht/';
   return await getMetadata(fullUrl);
 }
 
 Future<List<String>> getStaatsangehoerigkeitMeta() async {
-  if (cookie == testCoockieName) {
+  if (getNamiApiCookie() == testCoockieName) {
     return ['deutsch', 'Teststaatsangehörigkeit2', 'Teststaatsangehörigkeit3'];
   }
-  String fullUrl = '$url/ica/rest/baseadmin/staatsangehoerigkeit/';
+  String fullUrl = '${getNamiLUrl()}/ica/rest/baseadmin/staatsangehoerigkeit/';
   return await getMetadata(fullUrl);
 }
 
 Future<List<String>> getRegionMeta() async {
-  if (cookie == testCoockieName) {
+  if (getNamiApiCookie() == testCoockieName) {
     return ['Testregion1', 'Testregion2', 'Testregion3'];
   }
-  String fullUrl = '$url/ica/rest/baseadmin/region/';
+  String fullUrl = '${getNamiLUrl()}/ica/rest/baseadmin/region/';
   return await getMetadata(fullUrl);
 }
 
 Future<List<String>> getMitgliedstypMeta() async {
-  if (cookie == testCoockieName) return ['Schnuppermitglied', 'Mitglied'];
-  String fullUrl = '$url/ica/rest/nami/enum/mgltype/';
+  if (getNamiApiCookie() == testCoockieName) {
+    return ['Schnuppermitglied', 'Mitglied'];
+  }
+  String fullUrl = '${getNamiLUrl()}/ica/rest/nami/enum/mgltype/';
   return await getMetadata(fullUrl);
 }
 
 Future<List<String>> getLandMeta() async {
-  if (cookie == testCoockieName) {
+  if (getNamiApiCookie() == testCoockieName) {
     return ['Deutschland', 'Testland2', 'Testland3'];
   }
-  String fullUrl = '$url/ica/rest/baseadmin/land/';
+  String fullUrl = '${getNamiLUrl()}/ica/rest/baseadmin/land/';
   return await getMetadata(fullUrl);
 }
