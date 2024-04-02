@@ -145,7 +145,7 @@ class HomeDrawerState extends State<HomeDrawer> {
                   color: Colors.red,
                 ),
                 onTap: () {
-                  AppStateHandler().setLoggedOutState(context);
+                  AppStateHandler().setLoggedOutState();
                 },
               ),
               SizedBox(

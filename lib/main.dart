@@ -12,6 +12,7 @@ import 'package:privacy_screen/privacy_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:wiredash/wiredash.dart';
 
+final navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   initializeDateFormatting("de_DE", null);
@@ -48,28 +49,30 @@ class MyApp extends StatelessWidget {
           'Please provide WIREDASH_PROJECT_ID and WIREDASH_SECRET in your .env file');
     }
     return Wiredash(
-        projectId: dotenv.env['WIREDASH_PROJECT_ID']!,
-        secret: dotenv.env['WIREDASH_SECRET']!,
-        feedbackOptions: const WiredashFeedbackOptions(
-          labels: [
-            Label(id: 'label-u26353u60f', title: 'Fehler'),
-            Label(id: 'label-mtl2xk4esi', title: 'Verbesserung'),
-            Label(id: 'label-p792odog4e', title: 'Lob')
-          ],
+      projectId: dotenv.env['WIREDASH_PROJECT_ID']!,
+      secret: dotenv.env['WIREDASH_SECRET']!,
+      feedbackOptions: const WiredashFeedbackOptions(
+        labels: [
+          Label(id: 'label-u26353u60f', title: 'Fehler'),
+          Label(id: 'label-mtl2xk4esi', title: 'Verbesserung'),
+          Label(id: 'label-p792odog4e', title: 'Lob')
+        ],
+      ),
+      options: const WiredashOptionsData(
+        localizationDelegate: CustomWiredashTranslationsDelegate(),
+        locale: Locale('de', 'DE'),
+      ),
+      child: ChangeNotifierProvider(
+        create: (context) => AppStateHandler(),
+        child: MaterialApp(
+          theme: lightTheme,
+          darkTheme: darkTheme,
+          themeMode: Provider.of<ThemeModel>(context).currentMode,
+          home: const MyHome(),
+          navigatorKey: navigatorKey,
         ),
-        options: const WiredashOptionsData(
-          localizationDelegate: CustomWiredashTranslationsDelegate(),
-          locale: Locale('de', 'DE'),
-        ),
-        child: ChangeNotifierProvider(
-          create: (context) => AppStateHandler(),
-          child: MaterialApp(
-            theme: lightTheme,
-            darkTheme: darkTheme,
-            themeMode: Provider.of<ThemeModel>(context).currentMode,
-            home: const MyHome(),
-          ),
-        ));
+      ),
+    );
   }
 }
 
@@ -87,6 +90,21 @@ class _MyHomeState extends State<MyHome> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     appState.setResumeState(context);
+
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      appState.setResumeState(context);
+    }
   }
 
   @override
@@ -105,8 +123,7 @@ class _MyHomeState extends State<MyHome> with WidgetsBindingObserver {
         builder: (context, stateHandler, child) {
           if (appState.currentState == AppState.loggedOut) {
             return const LoginScreen();
-          } else if (appState.currentState == AppState.loadData ||
-              appState.currentState == AppState.resume) {
+          } else if (appState.currentState == AppState.closed) {
             return const Center(child: CircularProgressIndicator());
           } else if (appState.currentState == AppState.authenticated) {
             return const NavigationHomeScreen();

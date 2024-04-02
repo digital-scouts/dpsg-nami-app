@@ -1,9 +1,79 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:html/dom.dart';
+import 'package:html/parser.dart';
 import 'package:http/http.dart' as http;
 import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/nami/nami-login.service.dart';
+import 'package:nami/utilities/types.dart';
 import 'model/nami_stats.model.dart';
 import 'package:nami/utilities/nami/nami_member_add_meta.dart';
+
+/// Calls [func] and returns the json decoded body if reuqest ws succsessful
+///
+/// If the request failes with an expired session, it tries to get a new cookie
+/// with saved password and retries [func].
+/// Throws [SessionExpired] if that's not possible
+///
+/// Remeber to obtain the cookie in [func] to always use the latest one.
+dynamic withMaybeRetry(Future<http.Response> Function() func,
+    [String? errorMessage]) async {
+  final response = await func();
+  late final body = jsonDecode(response.body);
+  if (response.statusCode == 200 && body['success']) {
+    return body;
+  } else if (response.statusCode == 200 &&
+      body["message"] == "Session expired") {
+    final success = await updateLoginData();
+    if (success) {
+      final response = await func();
+      late final body = jsonDecode(response.body);
+      if (response.statusCode == 200 && body['success']) {
+        return body;
+      } else {
+        throw SessionExpired();
+      }
+    } else {
+      throw SessionExpired();
+    }
+  } else {
+    throw Exception(
+        'Failed to load with status code ${response.statusCode}. Custom Message: $errorMessage');
+  }
+}
+
+/// Calls [func] and returns the html body if reuqest ws succsessful
+///
+/// If the request failes with an expired session, it tries to get a new cookie
+/// with saved password and retries [func].
+/// Throws [SessionExpired] if that's not possible
+///
+/// Remeber to obtain the cookie in [func] to always use the latest one.
+Future<Document> withMaybeRetryHTML(Future<http.Response> Function() func,
+    [String? errorMessage]) async {
+  final response = await func();
+  late final html = parse(response.body);
+  if (response.statusCode == 200) {
+    return html;
+  } else if (response.statusCode == 500 &&
+      response.body.toLowerCase().contains("session expired")) {
+    final success = await updateLoginData();
+    if (success) {
+      final response = await func();
+      late final html = parse(response.body);
+      if (response.statusCode == 200) {
+        return html;
+      } else {
+        throw SessionExpired();
+      }
+    } else {
+      throw SessionExpired();
+    }
+  } else {
+    throw Exception(
+        'Failed to load with status code ${response.statusCode}. Custom Message: $errorMessage');
+  }
+}
 
 /// läd Nami Dashboard Statistiken
 Future<NamiStatsModel> loadNamiStats() async {
@@ -36,19 +106,19 @@ Future<String> loadGruppierung() async {
   }
 
   debugPrint('Request: Lade Gruppierung');
-  final response =
-      await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
+  final body = await withMaybeRetry(() async {
+    final cookie = getNamiApiCookie();
+    return await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
+  });
 
-  if (response.statusCode != 200 ||
-      !jsonDecode(response.body)['success'] ||
-      jsonDecode(response.body)['data'].length != 1) {
+  if (body['data'].length != 1) {
     debugPrint(
         'Failed to load gruppierung. Multiple or no gruppierungen found');
     throw Exception('Failed to load gruppierung');
   }
 
-  int gruppierungId = jsonDecode(response.body)['data'][0]['id'];
-  String gruppierungName = jsonDecode(response.body)['data'][0]['descriptor'];
+  int gruppierungId = body['data'][0]['id'];
+  String gruppierungName = body['data'][0]['descriptor'];
   setGruppierungId(gruppierungId);
   setGruppierungName(gruppierungName);
   debugPrint('Gruppierung: $gruppierungName ($gruppierungId)');

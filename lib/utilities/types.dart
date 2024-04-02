@@ -8,3 +8,5 @@ extension DateTimeExtension on DateTime {
     return "${day < 10 ? '0' : ''}$day.${month < 10 ? '0' : ''}$month.$year";
   }
 }
+
+class SessionExpired implements Exception {}

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:nami/utilities/hive/hive.handler.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/nami/nami-login.service.dart';
 import 'dart:async';
@@ -48,27 +49,39 @@ class LoginScreenState extends State<LoginScreen> {
       _wrongCredentials = true;
     });
     Timer(
-        const Duration(seconds: 3),
-        () => setState(() {
-              _wrongCredentials = false;
-            }));
+      const Duration(seconds: 3),
+      () => setState(() => _wrongCredentials = false),
+    );
   }
 
   Future<void> loginButtonPressed() async {
     setState(() {
       _loading = true;
     });
+    final differentUser = _mitgliedsnummer != getNamiLoginId();
+    if (differentUser) {
+      logout();
+    }
     if (await namiLoginWithPassword(_mitgliedsnummer, _password)) {
       setState(() {
         _loading = false;
       });
+      setNamiLoginId(_mitgliedsnummer);
       if (_rememberMe) {
         setNamiPassword(_password);
+      } else {
+        deleteNamiPassword();
       }
-      setNamiLoginId(_mitgliedsnummer);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        AppStateHandler().setLoadDataState(context, loadAll: true);
-      });
+      if (differentUser ||
+          AppStateHandler().currentState == AppState.loggedOut) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          AppStateHandler().setLoadDataState(loadAll: true);
+        });
+      } else if (AppStateHandler().currentState == AppState.relogin) {
+        /// setting to result to `true` to signal that the relogin was successful
+        // ignore: use_build_context_synchronously
+        Navigator.pop(context, true);
+      }
     } else {
       wrongCredentials();
       setState(() {

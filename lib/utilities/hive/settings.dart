@@ -10,7 +10,9 @@ enum SettingValue {
   gruppierungId,
   gruppierungName,
   lastNamiSync,
+  lastNamiSyncTry,
   lastLoginCheck,
+  syncOverWifiOnly,
   stufenwechselDatum,
   stammheim,
   metaGeschechtOptions,
@@ -126,9 +128,18 @@ void setLastNamiSync(DateTime lastNamiSync) {
       .put(SettingValue.lastNamiSync.toString(), lastNamiSync);
 }
 
+void setLastNamiSyncTry(DateTime lastNamiSyncTry) {
+  Hive.box('settingsBox')
+      .put(SettingValue.lastNamiSyncTry.toString(), lastNamiSyncTry);
+}
+
 void setLastLoginCheck(DateTime lastLoginCheck) {
   Hive.box('settingsBox')
       .put(SettingValue.lastLoginCheck.toString(), lastLoginCheck);
+}
+
+void setSyncOverWifiOnly(bool value) {
+  Hive.box('settingsBox').put(SettingValue.syncOverWifiOnly.toString(), value);
 }
 
 String getNamiApiCookie() {
@@ -139,6 +150,12 @@ String getNamiApiCookie() {
 DateTime getLastLoginCheck() {
   return Hive.box('settingsBox').get(SettingValue.lastLoginCheck.toString()) ??
       DateTime.utc(1989, 1, 1);
+}
+
+bool getSyncOverWifiOnly() {
+  return Hive.box('settingsBox')
+          .get(SettingValue.syncOverWifiOnly.toString()) ??
+      true;
 }
 
 DateTime getNextStufenwechselDatum() {
@@ -200,6 +217,11 @@ DateTime getLastNamiSync() {
       DateTime.utc(1989, 1, 1);
 }
 
+DateTime getLastNamiSyncTry() {
+  return Hive.box('settingsBox').get(SettingValue.lastNamiSyncTry.toString()) ??
+      DateTime.utc(1989, 1, 1);
+}
+
 void deleteNamiApiCookie() {
   Hive.box('settingsBox').delete(SettingValue.namiApiCookie.toString());
 }
@@ -210,6 +232,10 @@ void deleteLastLoginCheck() {
 
 void deleteLastNamiSync() {
   Hive.box('settingsBox').delete(SettingValue.lastNamiSync.toString());
+}
+
+void deleteLastNamiSyncTry() {
+  Hive.box('settingsBox').delete(SettingValue.lastNamiSyncTry.toString());
 }
 
 void deleteNamiLoginId() {

@@ -23,7 +23,7 @@ class _SettingsState extends State<Settings> {
       title: const Text('Aktualisiere die Mitgliedsdaten'),
       leading: const Icon(Icons.sync),
       onTap: () {
-        AppStateHandler().setLoadDataState(context, loadAll: false);
+        AppStateHandler().setLoadDataState(loadAll: false);
       },
       subtitle: Text(
           "Vor ${DateTime.now().difference(getLastNamiSync()).inDays.toString()} Tagen"),
@@ -35,7 +35,7 @@ class _SettingsState extends State<Settings> {
       title: const Text('Lade alle Daten neu'),
       leading: const Icon(Icons.sync),
       onTap: () {
-        AppStateHandler().setLoadDataState(context, loadAll: true);
+        AppStateHandler().setLoadDataState(loadAll: true);
       },
     );
   }
@@ -132,6 +132,20 @@ class _SettingsState extends State<Settings> {
     );
   }
 
+  _buildSyncOverWifiOnly() {
+    return ListTile(
+      title: const Text('Automatischer Sync nur über WLAN'),
+      leading: const Icon(Icons.wifi),
+      trailing: Switch(
+        value: getSyncOverWifiOnly(),
+        onChanged: (value) {
+          setSyncOverWifiOnly(value);
+          setState(() {});
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -146,6 +160,7 @@ class _SettingsState extends State<Settings> {
           const Divider(height: 1),
           _buildStufenwechselDatumInput(),
           _buildStammHeimInput(),
+          _buildSyncOverWifiOnly(),
         ],
       ),
     );

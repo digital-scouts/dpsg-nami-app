@@ -13,6 +13,7 @@ void logout() {
   deleteGruppierungId();
   deleteGruppierungName();
 
+  setStammheim('');
   // login data
   deleteNamiApiCookie();
   deleteNamiLoginId();
@@ -20,6 +21,7 @@ void logout() {
 
   // other Stuff
   deleteLastLoginCheck();
+  deleteLastNamiSyncTry();
   deleteLastNamiSync();
 }
 

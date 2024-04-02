@@ -1,17 +1,11 @@
 import 'dart:convert';
 
-import 'package:nami/utilities/hive/mitglied.dart';
-import 'package:nami/utilities/hive/settings.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:html/parser.dart';
+import 'package:nami/utilities/hive/mitglied.dart';
+import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/nami/nami.service.dart';
 import 'package:nami/utilities/nami/nami_user_data.dart';
-
-String url = getNamiLUrl();
-String path = getNamiPath();
-int? gruppierungId = getGruppierungId();
-int? namiLoginId = getNamiLoginId();
-String cookie = getNamiApiCookie();
 
 // rechte enum
 enum AllowedFeatures {
@@ -44,11 +38,12 @@ extension AllowedFeaturesExtension on AllowedFeatures {
 /// Dokumentation zu den Rechten finden sich im README.md
 /// Rechte werden anhand der User ID geladen (nicht die Mitgliedsnummer)
 Future<List<AllowedFeatures>> getRechte() async {
+  final cookie = getNamiApiCookie();
   if (cookie == 'testLoginCookie') {
     return [AllowedFeatures.appStart];
   }
   List<AllowedFeatures> allowedFeatures = [];
-  Map<int, String> rechte = await loadRechteJson();
+  Map<int, String> rechte = await _loadRechteJson();
 
   if (rechte.containsKey(5) &&
       rechte.containsKey(36) &&
@@ -77,15 +72,14 @@ Future<List<AllowedFeatures>> getRechte() async {
   return allowedFeatures;
 }
 
-Future<Map<int, String>> loadRechteJson() async {
-  final headers = {'Cookie': cookie};
+Future<Map<int, String>> _loadRechteJson() async {
   Mitglied? currentUser = findCurrentUser();
   if (currentUser == null) {
     debugPrint('Kein Benutzer gefunden.');
     return Map.from({});
   }
 
-  dynamic document = await loadDocument(currentUser.id, headers);
+  dynamic document = await _loadDocument(currentUser.id);
 
   // Finden Sie das relevante <script>-Tags
   final scriptContent =
@@ -97,7 +91,7 @@ Future<Map<int, String>> loadRechteJson() async {
   }
 
   // Extrahieren Sie die items-Arrays Daten aus dem storeEbene-Objekt
-  var itemsJsonString = extractItems(scriptContent);
+  var itemsJsonString = _extractItems(scriptContent);
 
   // Parsen des storeEbene-Objekts, um die json korrekte item-list zu erhalten
   String correctedString = itemsJsonString.replaceAllMapped(
@@ -107,30 +101,27 @@ Future<Map<int, String>> loadRechteJson() async {
   List<Map<String, dynamic>> items =
       List<Map<String, dynamic>>.from(json.decode(correctedString));
 
-  Map<int, String> itemMap = createIdNameMap(items);
+  Map<int, String> itemMap = _createIdNameMap(items);
 
   return itemMap;
 }
 
-Future<dynamic> loadDocument(int userId, Map<String, String> headers) async {
-  try {
-    // Error 500 on Session Expired
-    http.Response response = await http.get(
-        Uri.parse(
-            '$url/ica//pages/rights/ShowRights?gruppierung=$gruppierungId&id=$userId'),
-        headers: headers);
-    if (response.statusCode != 200) {
-      throw Exception('Failed to load user rights: $url');
-    }
-    final html = response.body;
-    return parse(html);
-  } catch (e) {
-    debugPrint(e.toString());
-    throw Exception('Failed to load user rights: $url');
-  }
+Future<dynamic> _loadDocument(int userId) async {
+  final gruppierungId = getGruppierungId();
+  // Error 500 on Session Expired
+  final reqUrl = Uri.parse(
+      '${getNamiLUrl()}/ica//pages/rights/ShowRights?gruppierung=$gruppierungId&id=$userId');
+  final html = await withMaybeRetryHTML(
+    () async => await http.get(
+      reqUrl,
+      headers: {'Cookie': getNamiApiCookie()},
+    ),
+    "Failed to load user rights: $reqUrl",
+  );
+  return html;
 }
 
-String extractItems(scriptContent) {
+String _extractItems(scriptContent) {
   const scriptStoreEbeneElement = 'var storeEbene = ';
   int startIndex = scriptContent.indexOf(scriptStoreEbeneElement) +
       scriptStoreEbeneElement.length;
@@ -140,7 +131,7 @@ String extractItems(scriptContent) {
   return storeEbeneJsonString;
 }
 
-Map<int, String> createIdNameMap(List<Map<String, dynamic>> inputList) {
+Map<int, String> _createIdNameMap(List<Map<String, dynamic>> inputList) {
   return Map.fromEntries(inputList.map((item) {
     int id = int.tryParse(item['id'])!;
     String name = item['name'];
