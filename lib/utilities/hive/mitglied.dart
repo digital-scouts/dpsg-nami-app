@@ -94,8 +94,6 @@ class Mitglied {
   List<Taetigkeit> getActiveTaetigkeiten() {
     List<Taetigkeit> aktiveTaetigkeiten = [];
     for (Taetigkeit taetigkeit in taetigkeiten) {
-      taetigkeit.taetigkeit =
-          taetigkeit.taetigkeit.replaceFirst('€ ', '').split('(')[0];
       if (taetigkeit.isActive() || taetigkeit.isFutureTaetigkeit()) {
         aktiveTaetigkeiten.add(taetigkeit);
       }
@@ -106,8 +104,6 @@ class Mitglied {
   List<Taetigkeit> getAlteTaetigkeiten() {
     List<Taetigkeit> alteTaetigkeiten = [];
     for (Taetigkeit taetigkeit in taetigkeiten) {
-      taetigkeit.taetigkeit =
-          taetigkeit.taetigkeit.replaceFirst('€ ', '').split('(')[0];
       if (!taetigkeit.isActive() && !taetigkeit.isFutureTaetigkeit()) {
         alteTaetigkeiten.add(taetigkeit);
       }

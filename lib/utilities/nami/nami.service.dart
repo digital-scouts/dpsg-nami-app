@@ -64,6 +64,7 @@ Future<String> loadGruppierung() async {
 
   if (cookie == 'testLoginCookie') {
     setGruppierungId(1234);
+    setGruppierungName("1234 Test Gruppierung");
     return '1234 Test Gruppierung';
   }
 

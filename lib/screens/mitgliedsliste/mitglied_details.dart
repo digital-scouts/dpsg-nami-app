@@ -50,29 +50,34 @@ class MitgliedDetailState extends State<MitgliedDetail>
     // count years per stufe by subtracting aktivVon from aktivBis or now
     Map<String, int> tageProStufe = {};
     List<String> stufen = Stufe.values.map((stufe) => stufe.display).toList();
+    int tageAlsMitglied = 0;
+    int tageAlsLeiter = 0;
     for (var taetigkeit in widget.mitglied.taetigkeiten) {
       if (taetigkeit.untergliederung != null &&
           stufen.contains(taetigkeit.untergliederung) &&
           (taetigkeit.taetigkeit.contains('Leiter') ||
               taetigkeit.taetigkeit.contains('Mitglied'))) {
-        int sum = tageProStufe[taetigkeit.untergliederung!] ?? 0;
         String stufe = taetigkeit.taetigkeit.contains('Leiter')
-            ? 'LeiterIn'
-            : taetigkeit.untergliederung!;
+            ? 'LeiterIn - ${taetigkeit.untergliederung}'
+            : 'Mitglied - ${taetigkeit.untergliederung}';
+        int sum = tageProStufe[stufe] ?? 0;
+
         // todo upgrade: show Mietglieds und Leitungszeit pro Stufe wenn Leitungszeit Mitgliedszeit übersteit
-        tageProStufe[stufe] = sum +
-            (taetigkeit.isActive()
-                ? DateTime.now().difference(taetigkeit.aktivVon).inDays ~/ 12
-                : taetigkeit.isFutureTaetigkeit()
-                    ? 0
-                    : taetigkeit.aktivBis!
-                            .difference(taetigkeit.aktivVon)
-                            .inDays ~/
-                        12);
+        int activeDays = (taetigkeit.isActive()
+            ? DateTime.now().difference(taetigkeit.aktivVon).inDays
+            : taetigkeit.isFutureTaetigkeit()
+                ? 0
+                : taetigkeit.aktivBis!.difference(taetigkeit.aktivVon).inDays);
+        tageProStufe[stufe] = sum + activeDays;
+        if (taetigkeit.taetigkeit.contains('Leiter')) {
+          tageAlsLeiter += activeDays;
+        } else {
+          tageAlsMitglied += activeDays;
+        }
       }
     }
 
-    tageProStufe.removeWhere((key, value) => value == 0);
+    tageProStufe.removeWhere((key, value) => value < 1);
 
     String dauerText = '';
     int pfadfinderTage =
@@ -92,7 +97,10 @@ class MitgliedDetailState extends State<MitgliedDetail>
         child: SizedBox(
       child: Column(
         children: [
-          MitgliedStufenPieChart(memberPerGroup: tageProStufe),
+          if (tageProStufe.length > 1)
+            MitgliedStufenPieChart(
+                memberPerGroup: tageProStufe,
+                showLeiterGrafik: tageAlsLeiter >= tageAlsMitglied),
           const SizedBox(height: 5),
           Text(dauerText),
           const SizedBox(height: 5),
@@ -292,13 +300,13 @@ class MitgliedDetailState extends State<MitgliedDetail>
   }
 
   Widget _buildTaetigkeitImage(Taetigkeit taetigkeit) {
-    String imagerPath = 'assets/images/lilie_schwarz.png';
+    String imagePath = 'assets/images/lilie_schwarz.png';
     if (taetigkeit.taetigkeit.trim() == 'Mitglied') {
-      imagerPath =
+      imagePath =
           Stufe.getStufeByString(taetigkeit.untergliederung!).imagePath!;
     } else if (taetigkeit.taetigkeit.contains('LeiterIn')) {
       return Image.asset(
-        imagerPath,
+        imagePath,
         width: 80.0,
         height: 80.0,
         color: Stufe.getStufeByString(taetigkeit.untergliederung!).farbe,
@@ -307,7 +315,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
     }
 
     return Image.asset(
-      imagerPath,
+      imagePath,
       width: 80.0,
       height: 80.0,
     );
@@ -318,10 +326,10 @@ class MitgliedDetailState extends State<MitgliedDetail>
       ListTile(
         leading: _buildTaetigkeitImage(taetigkeit),
         title: Text(
-          '${taetigkeit.taetigkeit} - ${taetigkeit.untergliederung}',
+          '${taetigkeit.taetigkeit} ${taetigkeit.untergliederung!.isNotEmpty ? '- ${taetigkeit.untergliederung}' : ''} ',
         ),
         subtitle: Text(
-          '${DateFormat('MMMM').format(taetigkeit.aktivVon)} ${taetigkeit.aktivVon.year}${taetigkeit.aktivBis != null ? ' - ${DateFormat('MMMM').format(taetigkeit.aktivBis!)} ${taetigkeit.aktivBis!.year}' : ''}',
+          '${DateFormat('MMMM').format(taetigkeit.aktivVon)} ${taetigkeit.aktivVon.year} ${taetigkeit.aktivBis != null ? '- ${DateFormat('MMMM').format(taetigkeit.aktivBis!)} ${taetigkeit.aktivBis!.year}' : ''} ${getGruppierungName() != taetigkeit.gruppierung ? '\nGruppierung: ${taetigkeit.gruppierung}' : ''}',
         ),
       ),
     );
