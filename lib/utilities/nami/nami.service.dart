@@ -56,7 +56,7 @@ Future<Document> withMaybeRetryHTML(Future<http.Response> Function() func,
   if (response.statusCode == 200) {
     return html;
   } else if (response.statusCode == 500 &&
-      response.body.contains("Session expired")) {
+      response.body.toLowerCase().contains("session expired")) {
     final success = await updateLoginData();
     if (success) {
       final response = await func();
