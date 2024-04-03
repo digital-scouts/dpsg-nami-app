@@ -161,6 +161,7 @@ class LoginScreenState extends State<LoginScreen> {
             onChanged: (text) {
               _password = text;
             },
+            onSubmitted: (_) => loginButtonPressed(),
             obscureText: true,
             autofillHints: const [AutofillHints.password],
             style: const TextStyle(
