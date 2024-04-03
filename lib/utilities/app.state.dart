@@ -8,6 +8,7 @@ import 'package:nami/screens/loading_info_screen.dart';
 import 'package:nami/screens/login_screen.dart';
 import 'package:nami/utilities/hive/hive.handler.dart';
 import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/nami/nami-member.service.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
@@ -30,7 +31,7 @@ class AppStateHandler extends ChangeNotifier {
 
   set currentState(AppState newState) {
     if (_currentState != newState) {
-      debugPrint("AppStateHandler: $newState");
+      log.i("AppStateHandler: $newState");
       _currentState = newState;
       notifyListeners();
     }
@@ -52,7 +53,7 @@ class AppStateHandler extends ChangeNotifier {
     if (currentState == AppState.relogin) {
       return;
     }
-    debugPrint("in ResumeState");
+    log.i("in ResumeState");
     // TODO: is app password enabled
     // -> yes, is user authenticated
     //    -> yes, setAuthenticatedState

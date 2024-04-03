@@ -7,6 +7,7 @@ import 'package:nami/screens/login_screen.dart';
 import 'package:nami/screens/navigation_home_screen.dart';
 import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/custom_wiredash_translations_delegate.dart';
+import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/theme.dart';
 import 'package:privacy_screen/privacy_screen.dart';
 import 'package:provider/provider.dart';
@@ -19,6 +20,7 @@ void main() async {
   Intl.defaultLocale = "de_DE";
   await Hive.initFlutter();
   await dotenv.load(fileName: ".env");
+  await initLogger();
   await PrivacyScreen.instance.enable(
     iosOptions: const PrivacyIosOptions(
       enablePrivacy: true,
