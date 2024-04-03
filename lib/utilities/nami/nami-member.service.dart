@@ -75,7 +75,8 @@ Future<NamiMemberDetailsModel> _loadMemberDetails(
         NamiMemberDetailsModel.fromJson(source['data']);
     if (DateTime.now().difference(member.geburtsDatum).inDays > 36525) {
       debugPrint(
-          'Geburtsdatum von $id (${member.vorname}) ist fehlerhaft: ${member.geburtsDatum}');
+          'Geburtsdatum von $id (${member.vorname}) ist fehlerhaft: ${member.geburtsDatum}. Versuche es erneut.');
+      return await _loadMemberDetails(id, url, path, gruppierung, cookie);
     }
     return member;
   } else {

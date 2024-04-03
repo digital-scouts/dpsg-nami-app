@@ -121,6 +121,7 @@ class LoginScreenState extends State<LoginScreen> {
                 return oldValue;
               }),
             ],
+            textInputAction: TextInputAction.next,
             keyboardType: TextInputType.number,
             autofillHints: const [AutofillHints.username],
             style: const TextStyle(
@@ -160,6 +161,7 @@ class LoginScreenState extends State<LoginScreen> {
             onChanged: (text) {
               _password = text;
             },
+            onSubmitted: (_) => loginButtonPressed(),
             obscureText: true,
             autofillHints: const [AutofillHints.password],
             style: const TextStyle(
