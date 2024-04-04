@@ -31,7 +31,7 @@ class AppStateHandler extends ChangeNotifier {
 
   set currentState(AppState newState) {
     if (_currentState != newState) {
-      log.i("AppStateHandler: $newState");
+      sensLog.i("AppStateHandler: $newState");
       _currentState = newState;
       notifyListeners();
     }
@@ -53,7 +53,7 @@ class AppStateHandler extends ChangeNotifier {
     if (currentState == AppState.relogin) {
       return;
     }
-    log.i("in ResumeState");
+    sensLog.i("in ResumeState");
     // TODO: is app password enabled
     // -> yes, is user authenticated
     //    -> yes, setAuthenticatedState
