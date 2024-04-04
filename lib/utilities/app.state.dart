@@ -248,7 +248,7 @@ class AppStateHandler extends ChangeNotifier {
     debugPrint("Scheduled sync data in $nextSync in background");
     syncTimer?.cancel();
     syncTimer = Timer(nextSync, () async {
-      if (getSyncOverWifiOnly() && !(await isWifi())) {
+      if (getDataLoadingOverWifiOnly() && !(await isWifi())) {
         debugPrint("Don't sync data now, because not in wifi");
         setSyncTimer(const Duration(days: 1));
       } else {

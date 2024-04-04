@@ -120,7 +120,7 @@ class _SettingsState extends State<Settings> {
                   scaffold.showSnackBar(
                     const SnackBar(content: Text('Adresse gefunden')),
                   );
-                  if (await isWifi() || !getSyncOverWifiOnly()) {
+                  if (await isWifi() || !getDataLoadingOverWifiOnly()) {
                     downloadMapRegion(locations.first);
                   }
                 } else {
@@ -173,14 +173,14 @@ class _SettingsState extends State<Settings> {
     });
   }
 
-  _buildSyncOverWifiOnly() {
+  _buildDataLoadingOverWifiOnly() {
     return ListTile(
-      title: const Text('Automatischer Sync nur über WLAN'),
+      title: const Text('Optionale Daten nur über WLAN laden'),
       leading: const Icon(Icons.wifi),
       trailing: Switch(
-        value: getSyncOverWifiOnly(),
+        value: getDataLoadingOverWifiOnly(),
         onChanged: (value) {
-          setSyncOverWifiOnly(value);
+          setDataLoadingOverWifiOnly(value);
           setState(() {});
         },
       ),
@@ -201,7 +201,7 @@ class _SettingsState extends State<Settings> {
           const Divider(height: 1),
           _buildStufenwechselDatumInput(),
           _buildStammHeimInput(),
-          _buildSyncOverWifiOnly(),
+          _buildDataLoadingOverWifiOnly(),
         ],
       ),
     );
