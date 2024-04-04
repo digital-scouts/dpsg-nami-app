@@ -1,12 +1,17 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
+import 'package:nami/utilities/hive/mitglied.dart';
+import 'package:nami/utilities/nami/model/nami_member_details.model.dart';
 import 'package:path_provider/path_provider.dart';
 
 /// Logger for sensitive data
 ///
 /// Uses [consLog] for console output and a logger for file output
 late final Logger sensLog;
+
+/// Logger for sensitive data to file only
+late final Logger fileLog;
 
 /// Logger for console output only, may contain sensitive data
 late final Logger consLog;
@@ -40,6 +45,12 @@ initLogger() async {
       },
     ),
   );
+  fileLog = Logger(
+    level: Level.all,
+    filter: ProductionFilter(),
+    output: FileOutput(file: _file),
+    printer: LogfmtPrinter(),
+  );
 }
 
 class AllFilter extends LogFilter {
@@ -50,19 +61,12 @@ class AllFilter extends LogFilter {
 }
 
 class CustomPrinter extends LogPrinter {
-  final fileLogger = Logger(
-    level: Level.all,
-    filter: ProductionFilter(),
-    output: FileOutput(file: _file),
-    printer: LogfmtPrinter(),
-  );
-
   @override
   Future<void> init() async {}
 
   @override
   List<String> log(LogEvent event) {
-    fileLogger.log(
+    fileLog.log(
       event.level,
       {
         "msg": event.message,
@@ -90,4 +94,17 @@ class CustomPrinter extends LogPrinter {
 class NoOutput extends LogOutput {
   @override
   void output(OutputEvent event) {}
+}
+
+String sensId(int memberId) {
+  return memberId.toString().substring(3);
+}
+
+Map<String, String> sensMember(NamiMemberDetailsModel member) {
+  return {
+    'shortId': sensId(member.id),
+    'type': member.mglTypeId,
+    'status': member.status,
+    'stufe': member.stufe ?? 'null',
+  };
 }

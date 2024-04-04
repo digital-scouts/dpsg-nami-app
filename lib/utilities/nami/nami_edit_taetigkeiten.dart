@@ -1,10 +1,10 @@
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:intl/intl.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
+import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/stufe.dart';
 
 String url = getNamiLUrl();
@@ -15,7 +15,7 @@ String cookie = getNamiApiCookie();
 
 Future<void> stufenwechsel(int memberId, Taetigkeit currentTaetigkeit,
     Stufe nextStufe, DateTime stufenwechselDatum) async {
-  debugPrint('Stufenwechsel für ${currentTaetigkeit.id}');
+  sensLog.i('Stufenwechsel für ${sensId(memberId)}');
   await createTaetigkeitForStufe(memberId, stufenwechselDatum, nextStufe);
   await completeTaetigkeit(memberId, currentTaetigkeit, stufenwechselDatum);
   // TODO: Update member in Hive
@@ -25,7 +25,7 @@ Future<void> createTaetigkeit(int memberId, DateTime startDate,
     int taetigkeitId, int untergliederungId) async {
   String fullUrl =
       '$url$path/zugeordnete-taetigkeiten/filtered-for-navigation/gruppierung-mitglied/mitglied/$memberId';
-  debugPrint('Request: Erstelle Tätigkeit für $memberId');
+  sensLog.i('Request: Erstelle Tätigkeit für ${sensId(memberId)}');
 
   if (gruppierungName == null || gruppierungId == null) {
     throw Exception('Parameter missing');
@@ -44,24 +44,24 @@ Future<void> createTaetigkeit(int memberId, DateTime startDate,
 
   http.Response response;
   try {
-    response = await http
-        .post(Uri.parse(fullUrl), headers: headers, body: body)
-        .whenComplete(
-            () => debugPrint('Complete: Erstelle Tätigkeit für $memberId'));
+    response =
+        await http.post(Uri.parse(fullUrl), headers: headers, body: body);
+    sensLog.i('Complete: Erstelle Tätigkeit für ${sensId(memberId)}');
   } catch (e) {
-    throw Exception('Failed to create taetigkeit for $memberId');
+    throw Exception('Failed to create taetigkeit for ${sensId(memberId)}');
   }
 
   if (response.statusCode != 200 || !jsonDecode(response.body)['success']) {
-    throw Exception('Failed to create taetigkeit for $memberId');
+    throw Exception('Failed to create taetigkeit for ${sensId(memberId)}');
   }
+  sensLog.i('Success: Tätigkeit erstellt für ${sensId(memberId)}');
 }
 
 Future<void> completeTaetigkeit(
     int memberId, Taetigkeit taetigkeit, DateTime endDate) async {
   String fullUrl =
       '$url$path/zugeordnete-taetigkeiten/filtered-for-navigation/gruppierung-mitglied/mitglied/$memberId/${taetigkeit.id}';
-  debugPrint('Request: Erstelle Tätigkeit für $memberId');
+  sensLog.i('Request: Complete Tätigkeit for ${sensId(memberId)}');
 
   final headers = {'Cookie': cookie, 'Content-Type': 'application/json'};
   final body = jsonEncode({
@@ -71,17 +71,16 @@ Future<void> completeTaetigkeit(
 
   http.Response response;
   try {
-    response = await http
-        .put(Uri.parse(fullUrl), headers: headers, body: body)
-        .whenComplete(
-            () => debugPrint('Complete: Erstelle Tätigkeit für $memberId'));
+    response = await http.put(Uri.parse(fullUrl), headers: headers, body: body);
+    sensLog.i('Complete: Erstelle Tätigkeit für ${sensId(memberId)}');
   } catch (e) {
-    throw Exception('Failed to update taetigkeit for $memberId');
+    throw Exception('Failed to update taetigkeit for ${sensId(memberId)}');
   }
 
   if (response.statusCode != 200 || !jsonDecode(response.body)['success']) {
-    throw Exception('Failed to update taetigkeit for $memberId');
+    throw Exception('Failed to update taetigkeit for ${sensId(memberId)}');
   }
+  sensLog.i('Success: Tätigkeit erstellt für ${sensId(memberId)}');
 }
 
 Future<void> createTaetigkeitForStufe(
@@ -95,7 +94,7 @@ Future<void> createTaetigkeitForStufe(
 
   if (untergliederung.id == -1) {
     throw Exception(
-        'Failed to create taetigkeit for $memberId. Untergruppe not found');
+        'Failed to create taetigkeit for ${sensId(memberId)}. Untergruppe not found');
   }
 
   return createTaetigkeit(
@@ -109,7 +108,7 @@ Future<List<NamedId>> loadTaetigkeitAufGruppierung() async {
       await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
 
   if (response.statusCode != 200 || !jsonDecode(response.body)['success']) {
-    debugPrint('Failed to load taetigkeiten.');
+    sensLog.e('Failed to load taetigkeiten.');
     return List.empty();
   }
   final data = jsonDecode(response.body)['data'];
@@ -125,7 +124,7 @@ Future<List<NamedId>> loadUntergliederungAufTaetigkeit(int taetigkeit) async {
       await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
 
   if (response.statusCode != 200 || !jsonDecode(response.body)['success']) {
-    debugPrint('Failed to load untergliederungen.');
+    sensLog.e('Failed to load untergliederungen.');
     return List.empty();
   }
   final data = jsonDecode(response.body)['data'];

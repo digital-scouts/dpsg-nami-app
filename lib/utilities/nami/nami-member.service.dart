@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/nami/nami-member-fake.service.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
 import 'package:nami/utilities/stufe.dart';
@@ -31,7 +32,7 @@ Future<List<int>> _loadMemberIdsToUpdate(
     String url, String path, int gruppierung, bool forceUpdate) async {
   String fullUrl =
       '$url$path/mitglied/filtered-for-navigation/gruppierung/gruppierung/$gruppierung/flist?_dc=1635173028278&page=1&start=0&limit=5000';
-  debugPrint('Request: Lade Mitgliedsliste');
+  sensLog.i('Request: Lade Mitgliedsliste');
   final body = await withMaybeRetry(() async {
     final cookie = getNamiApiCookie();
     return await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
@@ -44,12 +45,16 @@ Future<List<int>> _loadMemberIdsToUpdate(
     if (forceUpdate ||
         _getVersionOfMember(item['id'], mitglieder) !=
             item['entries_version']) {
-      debugPrint(
+      consLog.i(
           'Member ${item['entries_vorname']} ${item['id']} needs to be updated. Old Version: ${_getVersionOfMember(item['id'], mitglieder)} New Version: ${item['entries_version']}');
+      fileLog.i(
+          'Member ${sensId(item['id'])} needs to be updated. Old Version: ${_getVersionOfMember(item['id'], mitglieder)} New Version: ${item['entries_version']}');
       memberIds.add(item['id']);
     } else {
-      debugPrint(
+      consLog.i(
           'Member ${item['entries_vorname']} ${item['id']} is up to date. Version: ${item['entries_version']}');
+      fileLog.i(
+          'Member ${sensId(item['id'])} is up to date. Version: ${item['entries_version']}');
     }
   });
   return memberIds;
@@ -59,27 +64,30 @@ Future<NamiMemberDetailsModel> _loadMemberDetails(
     int id, String url, String path, int gruppierung, String cookie) async {
   String fullUrl =
       '$url$path/mitglied/filtered-for-navigation/gruppierung/gruppierung/$gruppierung/$id';
-  debugPrint('Request: Lade Details eines Mitglieds');
-  http.Response response;
+  sensLog.i('Request: Load MemberDetails for ${sensId(id)}');
+  final http.Response response;
   try {
     response = await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
-  } catch (e) {
-    debugPrint('Failed to load MemberDetails for $id');
-    debugPrint(e.toString());
+  } catch (e, st) {
+    sensLog.e('Failed to load MemberDetails for ${sensId(id)}',
+        error: e, stackTrace: st);
     throw Exception('Failed to load MemberDetails');
   }
-  var source = json.decode(const Utf8Decoder().convert(response.bodyBytes));
+  final source = json.decode(const Utf8Decoder().convert(response.bodyBytes));
 
   if (response.statusCode == 200) {
     NamiMemberDetailsModel member =
         NamiMemberDetailsModel.fromJson(source['data']);
     if (DateTime.now().difference(member.geburtsDatum).inDays > 36525) {
-      debugPrint(
-          'Geburtsdatum von $id (${member.vorname}) ist fehlerhaft: ${member.geburtsDatum}. Versuche es erneut.');
+      sensLog.w(
+          'Geburtsdatum von ${sensId(id)} ist fehlerhaft: ${member.geburtsDatum}. Versuche es erneut.');
       return await _loadMemberDetails(id, url, path, gruppierung, cookie);
     }
+    sensLog.t('Response: Loaded MemberDetails for ${sensMember(member)}');
     return member;
   } else {
+    sensLog.e(
+        'Failed to load MemberDetails for ${sensId(id)}: wrong status code: ${response.statusCode}');
     throw Exception('Failed to load MemberDetails');
   }
 }
@@ -88,19 +96,23 @@ Future<List<NamiMemberTaetigkeitenModel>> _loadMemberTaetigkeiten(
     int id, String url, String path, String cookie) async {
   String fullUrl =
       '$url$path/zugeordnete-taetigkeiten/filtered-for-navigation/gruppierung-mitglied/mitglied/$id/flist';
-  debugPrint('Request: Lade Details eines Mitglieds');
+  sensLog.i('Request: Lade Details eines Mitglieds');
   final response =
       await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
-  var source = json.decode(const Utf8Decoder().convert(response.bodyBytes));
+  final source = json.decode(const Utf8Decoder().convert(response.bodyBytes));
 
   if (response.statusCode == 200 && source['success']) {
     List<NamiMemberTaetigkeitenModel> taetigkeiten = [];
     for (Map<String, dynamic> item in source['data']) {
-      taetigkeiten.add(NamiMemberTaetigkeitenModel.fromJson(item, true));
+      final taetigkeit = NamiMemberTaetigkeitenModel.fromJson(item, true);
+      sensLog.t(
+          'Taetigkeit = ${taetigkeit.taetigkeit}, untergliederung = ${taetigkeit.untergliederung}, isActive = ${taetigkeit.aktivBis?.isAfter(DateTime.now()) ?? false} von ${sensId(id)}');
+      taetigkeiten.add(taetigkeit);
     }
+    sensLog.i('Response: Loaded Tätigkeiten for ${sensId(id)}');
     return taetigkeiten;
   } else {
-    debugPrint('Failed to load Tätigkeiten');
+    sensLog.e('Failed to load Tätigkeiten for ${sensId(id)}');
     return [];
   }
 }
@@ -110,7 +122,8 @@ Future<NamiMemberTaetigkeitenModel?> _loadMemberTaetigkeit(int memberId,
     int taetigkeitId, String url, String path, String cookie) async {
   String fullUrl =
       '$url$path/zugeordnete-taetigkeiten/filtered-for-navigation/gruppierung-mitglied/mitglied/$memberId/$taetigkeitId';
-  debugPrint('Request: Lade Taetigkeit $taetigkeitId von Mitglied $memberId');
+  sensLog.i(
+      'Request: Lade Taetigkeit ${sensId(taetigkeitId)} von Mitglied ${sensId(memberId)}');
   final response =
       await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
   var source = json.decode(const Utf8Decoder().convert(response.bodyBytes));
@@ -118,7 +131,8 @@ Future<NamiMemberTaetigkeitenModel?> _loadMemberTaetigkeit(int memberId,
   if (response.statusCode == 200 && source['success']) {
     return NamiMemberTaetigkeitenModel.fromJson(source['data'], false);
   } else {
-    debugPrint('Failed to load Tätigkeit');
+    sensLog.e(
+        'Failed to load Tätigkeit ${sensId(taetigkeitId)}: wrong status code: ${response.statusCode}');
     return null;
   }
 }
@@ -156,7 +170,7 @@ Future<void> syncMember(
   cookie = getNamiApiCookie();
 
   memberOverviewProgressNotifier.value = true;
-  debugPrint('Starte Syncronisation der Mitgliedsdetails');
+  sensLog.i('Starte Syncronisation der Mitgliedsdetails');
   var futures = <Future>[];
 
   for (var mitgliedId in mitgliedIds) {
@@ -173,7 +187,7 @@ Future<void> syncMember(
   await Future.wait(futures);
   memberAllProgressNotifier.value = 1.0;
   setLastNamiSync(DateTime.now());
-  debugPrint('Syncronisation der Mitgliedsdetails abgeschlossen');
+  sensLog.i('Syncronisation der Mitgliedsdetails abgeschlossen');
 }
 
 Future<void> _storeMitgliedToHive(
@@ -190,17 +204,17 @@ Future<void> _storeMitgliedToHive(
   try {
     rawMember =
         await _loadMemberDetails(mitgliedId, url, path, gruppierung, cookie);
-  } catch (e) {
-    debugPrint('Failed to load member $mitgliedId');
-    debugPrint(e.toString());
+  } catch (e, st) {
+    sensLog.e('Failed to load member ${sensId(mitgliedId)}',
+        error: e, stackTrace: st);
     return;
   }
   try {
     rawTaetigkeiten =
         await _loadMemberTaetigkeiten(mitgliedId, url, path, cookie);
-  } catch (e) {
-    debugPrint('Failed to load member tätigkeiten $mitgliedId');
-    debugPrint(e.toString());
+  } catch (e, st) {
+    sensLog.e('Failed to load member tätigkeiten ${sensId(mitgliedId)}',
+        error: e, stackTrace: st);
     rawTaetigkeiten = [];
   }
 

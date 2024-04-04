@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:nami/utilities/logger.dart';
 
 class IbanResult {
   final bool valid;
@@ -26,7 +27,7 @@ Future<IbanResult> validateIban(String iban) async {
       'https://openiban.com/validate/$iban?validateBankCode=true&getBIC=true'));
   if (response.statusCode == 200) {
     Map<String, dynamic> data = jsonDecode(response.body);
-    debugPrint(data.toString());
+    consLog.i(data.toString());
     return IbanResult(
         valid: data['valid'],
         iban: data['iban'],

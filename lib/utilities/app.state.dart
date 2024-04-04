@@ -41,7 +41,7 @@ class AppStateHandler extends ChangeNotifier {
 
   set syncState(SyncState newState) {
     if (_syncRunning != newState) {
-      debugPrint("SyncState: $newState");
+      sensLog.i("SyncState: $newState");
       _syncRunning = newState;
       notifyListeners();
     }
@@ -95,9 +95,11 @@ class AppStateHandler extends ChangeNotifier {
   ///
   /// See [AppState.relogin] for more information
   Future<bool> setReloginState() async {
+    sensLog.i('Start relogin');
     var showLogin = true;
     final tooLongOffline = isTooLongOffline();
     if (tooLongOffline) {
+      sensLog.i('too long offline, show too long offline notification');
       showTooLongOfflineNotification();
     } else {
       showLogin = await showConfirmationDialog(
@@ -107,13 +109,14 @@ class AppStateHandler extends ChangeNotifier {
     }
     if (showLogin) {
       currentState = AppState.relogin;
-
+      sensLog.i('show login screen');
       final reloginSuccessful = await navigatorKey.currentState!.push<bool?>(
         MaterialPageRoute(builder: (context) => const LoginScreen()),
       );
       setReadyState();
       return reloginSuccessful ?? false;
     } else {
+      sensLog.i('relogin canceled');
       return false;
     }
   }
@@ -123,6 +126,8 @@ class AppStateHandler extends ChangeNotifier {
     bool loadAll = false,
     background = false,
   }) async {
+    sensLog.i(
+        'Start loading data with loadAll: $loadAll and background: $background');
     ValueNotifier<List<AllowedFeatures>> rechteProgressNotifier =
         ValueNotifier([]);
     ValueNotifier<String?> gruppierungProgressNotifier = ValueNotifier(null);
@@ -162,12 +167,13 @@ class AppStateHandler extends ChangeNotifier {
       rechteProgressNotifier.value = await getRechte();
       syncState = SyncState.successful;
       if (background) {
+        sensLog.i('sync successful in background');
         showSnackBar(navigatorKey.currentContext!,
             "Daten wurden erfolgreich synchronisiert");
       }
       setReadyState();
     } on SessionExpired catch (_) {
-      debugPrint('sync failed with session expired');
+      sensLog.i('sync failed with session expired');
       syncState = SyncState.relogin;
       if (await setReloginState()) {
         if (!background) {
@@ -178,6 +184,7 @@ class AppStateHandler extends ChangeNotifier {
       } else {
         if (isTooLongOffline()) {
           syncState = SyncState.error;
+          sensLog.i('sync failed with too long offline');
           if (background) {
             showSnackBar(navigatorKey.currentContext!,
                 'Du wirst ausgeloggt, da du zu lange offline warst.');
@@ -185,6 +192,7 @@ class AppStateHandler extends ChangeNotifier {
           }
           // if not [background] the user will be logged out in
           // [LoadingInfoScreen] when pressing the button
+          return;
         }
         if (background) {
           showSnackBar(navigatorKey.currentContext!,
@@ -194,12 +202,12 @@ class AppStateHandler extends ChangeNotifier {
         setReadyState();
       }
     } catch (e) {
-      if (e is http.ClientException) {
-        debugPrint('sync failed with no internet connection');
+      if (e is http.ClientException || e is TimeoutException) {
+        sensLog.i('sync failed with no internet connection');
         syncState = SyncState.offline;
         setReadyState();
       } else {
-        debugPrint('sync failed with error:$e');
+        sensLog.e('sync failed with error:$e');
         syncState = SyncState.error;
       }
     }
@@ -217,6 +225,7 @@ class AppStateHandler extends ChangeNotifier {
     /// daily sync, which may call [setReloginState] and [checkTooLongOffline]
     /// but in offline mode [setReloginState] is not called in [setLoadState].
     if (isTooLongOffline()) {
+      sensLog.i('too long offline, set relogin state');
       final success = await setReloginState();
 
       if (!success) setLoggedOutState();
@@ -234,7 +243,7 @@ class AppStateHandler extends ChangeNotifier {
         .add(const Duration(days: 1))
         .difference(DateTime.now());
     if (nextSync < const Duration()) {
-      debugPrint(
+      sensLog.i(
           "Last sync try is ${DateTime.now().difference(getLastNamiSyncTry())} ago. Sync data in background now");
       setSyncTimer(const Duration());
     } else {
@@ -246,14 +255,14 @@ class AppStateHandler extends ChangeNotifier {
   }
 
   void setSyncTimer(Duration nextSync) {
-    debugPrint("Scheduled sync data in $nextSync in background");
+    sensLog.i("Scheduled sync data in $nextSync in background");
     syncTimer?.cancel();
     syncTimer = Timer(nextSync, () async {
       if (getSyncOverWifiOnly() && !(await isWifi())) {
-        debugPrint("Don't sync data now, because not in wifi");
+        sensLog.i("Don't sync data now, because not in wifi");
         setSyncTimer(const Duration(days: 1));
       } else {
-        debugPrint("Sync data from timer now");
+        sensLog.i("Sync data from timer now");
         setLoadDataState(background: true);
       }
     });

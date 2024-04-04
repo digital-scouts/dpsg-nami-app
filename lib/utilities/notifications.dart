@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nami/main.dart';
+import 'package:nami/utilities/logger.dart';
 
 void showErrorSnackBar(BuildContext context, String message) {
   ScaffoldMessenger.of(context).showSnackBar(
@@ -16,6 +17,8 @@ void showErrorSnackBar(BuildContext context, String message) {
 }
 
 void showSnackBar(BuildContext context, String message) {
+  fileLog.i('Showing SnackBar');
+  consLog.i('Showing SnackBar, message = $message');
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
       content: Text(
@@ -29,6 +32,7 @@ Future<bool> showConfirmationDialog(
   String title,
   String message,
 ) async {
+  sensLog.i('Showing Confirmation Dialog, title = $title');
   return await showDialog<bool>(
           context: navigatorKey.currentContext!,
           barrierDismissible: false,

@@ -4,6 +4,7 @@ import 'package:html/dom.dart';
 import 'package:html/parser.dart';
 import 'package:http/http.dart' as http;
 import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/nami/nami-login.service.dart';
 import 'package:nami/utilities/types.dart';
 import 'model/nami_stats.model.dart';
@@ -79,7 +80,7 @@ Future<Document> withMaybeRetryHTML(Future<http.Response> Function() func,
 Future<NamiStatsModel> loadNamiStats() async {
   String url = getNamiLUrl();
   String? cookie = getNamiApiCookie();
-  debugPrint('Request: Lade Stats');
+  sensLog.i('Request: Lade Stats');
   final response = await http.get(
       Uri.parse('$url/ica/rest/dashboard/stats/stats'),
       headers: {'Cookie': cookie});
@@ -105,15 +106,14 @@ Future<String> loadGruppierung() async {
     return '1234 Test Gruppierung';
   }
 
-  debugPrint('Request: Lade Gruppierung');
+  sensLog.i('Request: Lade Gruppierung');
   final body = await withMaybeRetry(() async {
     final cookie = getNamiApiCookie();
     return await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
   });
 
   if (body['data'].length != 1) {
-    debugPrint(
-        'Failed to load gruppierung. Multiple or no gruppierungen found');
+    sensLog.e('Failed to load gruppierung. Multiple or no gruppierungen found');
     throw Exception('Failed to load gruppierung');
   }
 
@@ -121,12 +121,12 @@ Future<String> loadGruppierung() async {
   String gruppierungName = body['data'][0]['descriptor'];
   setGruppierungId(gruppierungId);
   setGruppierungName(gruppierungName);
-  debugPrint('Gruppierung: $gruppierungName ($gruppierungId)');
+  consLog.i('Gruppierung: $gruppierungName ($gruppierungId)');
   return gruppierungName;
 }
 
 Future<void> reloadMetadataFromServer() async {
-  debugPrint('Reloading metadata from server');
+  sensLog.i('Reloading metadata from server');
   var results = await Future.wait([
     getGeschlechtMeta(),
     getLandMeta(),
