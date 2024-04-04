@@ -153,9 +153,12 @@ class _SettingsState extends State<Settings> {
       title: const Text('Teile Logs'),
       leading: const Icon(Icons.share),
       onTap: () {
+        // needed to share on iPad
+        final box = context.findRenderObject() as RenderBox;
         Share.shareXFiles(
           [XFile(loggingFile.path)],
           subject: 'Nami Logs',
+          sharePositionOrigin: box.localToGlobal(Offset.zero) & box.size,
         );
       },
     );
