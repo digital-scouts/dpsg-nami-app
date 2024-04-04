@@ -2,10 +2,12 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 
 import 'package:geocoding/geocoding.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:nami/utilities/hive/settings.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MapWidget extends StatefulWidget {
   final String memberAddress;
@@ -90,14 +92,18 @@ class MapWidgetState extends State<MapWidget> {
                   center: addressLocation, // Position für die Karte
                   zoom: 13.0,
                   maxZoom: 17,
+                  minZoom: 3,
                   interactiveFlags:
                       InteractiveFlag.pinchZoom | InteractiveFlag.drag,
                 ),
                 children: [
                   TileLayer(
+                    // TODO: Recommended: Do not hardcode any URL to tile.openstreetmap.org as doing so will limit your ability to react if the service is disrupted or blocked. In particular, switching should be possible without requiring a software update.
                     urlTemplate:
                         'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
                     subdomains: const ['a', 'b', 'c'],
+                    userAgentPackageName: 'de.jlange.nami.app',
+                    tileProvider: FMTC.instance('mapStore').getTileProvider(),
                   ),
                   MarkerLayer(
                     markers: [
@@ -120,6 +126,19 @@ class MapWidgetState extends State<MapWidget> {
                             color: Colors.black,
                           ),
                         ),
+                    ],
+                  ),
+                  RichAttributionWidget(
+                    attributions: [
+                      TextSourceAttribution(
+                        'OpenStreetMap',
+                        onTap: () async {
+                          const url = 'https://openstreetmap.org/copyright';
+                          if (await canLaunchUrl(Uri.parse(url))) {
+                            await launchUrl(Uri.parse(url));
+                          }
+                        },
+                      ),
                     ],
                   ),
                 ],

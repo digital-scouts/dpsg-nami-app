@@ -1,11 +1,11 @@
 import 'dart:async';
 
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:nami/main.dart';
 import 'package:nami/screens/loading_info_screen.dart';
 import 'package:nami/screens/login_screen.dart';
+import 'package:nami/utilities/helper_fuctions.dart';
 import 'package:nami/utilities/hive/hive.handler.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/nami/nami-member.service.dart';
@@ -248,7 +248,7 @@ class AppStateHandler extends ChangeNotifier {
     debugPrint("Scheduled sync data in $nextSync in background");
     syncTimer?.cancel();
     syncTimer = Timer(nextSync, () async {
-      if (getSyncOverWifiOnly() && !(await isWifi())) {
+      if (getDataLoadingOverWifiOnly() && !(await isWifi())) {
         debugPrint("Don't sync data now, because not in wifi");
         setSyncTimer(const Duration(days: 1));
       } else {
@@ -256,11 +256,6 @@ class AppStateHandler extends ChangeNotifier {
         setLoadDataState(background: true);
       }
     });
-  }
-
-  Future<bool> isWifi() async {
-    final res = await Connectivity().checkConnectivity();
-    return res.contains(ConnectivityResult.wifi);
   }
 }
 
