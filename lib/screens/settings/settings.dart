@@ -1,10 +1,10 @@
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:nami/utilities/app.state.dart';
+import 'package:nami/utilities/helper_fuctions.dart';
 import 'package:nami/utilities/notifications.dart';
 
 import '../../utilities/hive/settings.dart';
@@ -137,11 +137,6 @@ class _SettingsState extends State<Settings> {
         ],
       ),
     );
-  }
-
-  Future<bool> isWifi() async {
-    final res = await Connectivity().checkConnectivity();
-    return res.contains(ConnectivityResult.wifi);
   }
 
   Future<void> downloadMapRegion(Location location) async {
