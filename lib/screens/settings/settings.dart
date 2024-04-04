@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:nami/utilities/app.state.dart';
+import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/notifications.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../utilities/hive/settings.dart';
 
@@ -146,6 +148,19 @@ class _SettingsState extends State<Settings> {
     );
   }
 
+  _buildShareLogs() {
+    return ListTile(
+      title: const Text('Teile Logs'),
+      leading: const Icon(Icons.share),
+      onTap: () {
+        Share.shareXFiles(
+          [XFile(loggingFile.path)],
+          subject: 'Nami Logs',
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -161,6 +176,7 @@ class _SettingsState extends State<Settings> {
           _buildStufenwechselDatumInput(),
           _buildStammHeimInput(),
           _buildSyncOverWifiOnly(),
+          _buildShareLogs(),
         ],
       ),
     );

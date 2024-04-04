@@ -1,7 +1,7 @@
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
-import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/nami/model/nami_member_details.model.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -15,14 +15,15 @@ late final Logger fileLog;
 
 /// Logger for console output only, may contain sensitive data
 late final Logger consLog;
-late final File _file;
+late final File loggingFile;
 
 initLogger() async {
   if (kReleaseMode) {
-    _file = File('${(await getApplicationDocumentsDirectory()).path}/prod.log');
+    loggingFile =
+        File('${(await getApplicationDocumentsDirectory()).path}/prod.log');
   } else {
-    _file =
-        File('${(await getApplicationDocumentsDirectory()).path}/p9234234.log');
+    loggingFile =
+        File('${(await getApplicationDocumentsDirectory()).path}/dev.log');
   }
   sensLog = Logger(
     filter: AllFilter(),
@@ -48,7 +49,7 @@ initLogger() async {
   fileLog = Logger(
     level: Level.all,
     filter: ProductionFilter(),
-    output: FileOutput(file: _file),
+    output: FileOutput(file: loggingFile),
     printer: LogfmtPrinter(),
   );
 }

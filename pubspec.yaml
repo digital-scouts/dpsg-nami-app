@@ -49,6 +49,7 @@ dependencies:
   connectivity_plus: ^6.0.1
   logger: ^2.2.0
   path_provider: ^2.1.2
+  share_plus: ^8.0.2
 
 dev_dependencies:
   flutter_test:
