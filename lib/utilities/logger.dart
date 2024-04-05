@@ -17,7 +17,28 @@ late final Logger fileLog;
 late final Logger consLog;
 late final File loggingFile;
 
-initLogger() async {
+Future<void> deleteOldLogs() async {
+  final lines = await loggingFile.readAsLines();
+  int toDelete = 0;
+  for (int i = 0; i < lines.length; i++) {
+    final line = lines[i];
+    final timeStart = line.indexOf(' time="20');
+    final timeEnd = line.indexOf('"', timeStart + 7);
+    final timestamp = DateTime.tryParse(line.substring(timeStart + 7, timeEnd));
+    if (timestamp == null) continue;
+    if (timestamp.isBefore(DateTime.now().subtract(const Duration(days: 30)))) {
+      toDelete = i;
+    } else {
+      break;
+    }
+  }
+  if (toDelete > 0) {
+    lines.removeRange(0, toDelete + 1);
+    await loggingFile.writeAsString(lines.join('\n'));
+  }
+}
+
+Future<void> initLogger() async {
   if (kReleaseMode) {
     loggingFile =
         File('${(await getApplicationDocumentsDirectory()).path}/prod.log');
@@ -25,6 +46,7 @@ initLogger() async {
     loggingFile =
         File('${(await getApplicationDocumentsDirectory()).path}/dev.log');
   }
+  await deleteOldLogs();
   sensLog = Logger(
     filter: AllFilter(),
     printer: CustomPrinter(),
