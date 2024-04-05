@@ -201,13 +201,13 @@ class AppStateHandler extends ChangeNotifier {
         syncState = SyncState.relogin;
         setReadyState();
       }
-    } catch (e) {
+    } catch (e, st) {
       if (e is http.ClientException || e is TimeoutException) {
         sensLog.i('sync failed with no internet connection');
         syncState = SyncState.offline;
         setReadyState();
       } else {
-        sensLog.e('sync failed with error:$e');
+        sensLog.e('sync failed with error:', error: e, stackTrace: st);
         syncState = SyncState.error;
       }
     }

@@ -60,6 +60,7 @@ Future<void> initLogger() async {
       printTime: true,
       methodCount: 0,
       printEmojis: false,
+      errorMethodCount: 10,
       excludeBox: {
         Level.trace: true,
         Level.debug: true,
@@ -120,7 +121,15 @@ class NoOutput extends LogOutput {
 }
 
 String sensId(int memberId) {
-  return memberId.toString().substring(3);
+  final id = memberId.toString();
+  final length = id.length;
+  final int newLength;
+  if (length > 3) {
+    newLength = 3;
+  } else {
+    newLength = length;
+  }
+  return id.substring(length - newLength, length);
 }
 
 Map<String, String> sensMember(NamiMemberDetailsModel member) {
