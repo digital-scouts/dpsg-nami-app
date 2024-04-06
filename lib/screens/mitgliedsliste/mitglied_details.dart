@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:nami/screens/widgets/map.widget.dart';
 import 'package:nami/screens/widgets/mitgliedStufenPieChart.widget.dart';
+import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/nami/nami_edit_taetigkeiten.dart';
@@ -16,7 +17,6 @@ import 'package:maps_launcher/maps_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:intl/intl.dart';
 import 'package:nami/utilities/types.dart';
-import 'package:wiredash/wiredash.dart';
 
 // ignore: must_be_immutable
 class MitgliedDetail extends StatefulWidget {
@@ -469,9 +469,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
     Taetigkeit? currentTaetigkeit = getCurrenttaetigkeit(aktiveTaetigkeiten);
     return Scaffold(
         floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            Wiredash.of(context).show(inheritMaterialTheme: true);
-          },
+          onPressed: () => openWiredash(context),
           child: const Icon(Icons.feedback),
         ),
         appBar: AppBar(
