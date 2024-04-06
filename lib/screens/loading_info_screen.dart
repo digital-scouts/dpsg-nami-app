@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:nami/utilities/app.state.dart';
-import 'package:nami/utilities/logger.dart';
+import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
 
 class LoadingInfoScreen extends StatefulWidget {
   final ValueNotifier<List<AllowedFeatures>> rechteProgressNotifier;
@@ -102,12 +101,7 @@ eigene Rechte, Mitglieder und Tätigkeiten ohne Personenbezogene Daten"""
               ),
               TextButton(
                 child: const Text("Logs teilen"),
-                onPressed: () {
-                  Share.shareXFiles(
-                    [XFile(loggingFile.path)],
-                    subject: 'Nami Logs',
-                  );
-                },
+                onPressed: () => sendLogsEmail(),
               ),
               ElevatedButton(
                 onPressed: () {

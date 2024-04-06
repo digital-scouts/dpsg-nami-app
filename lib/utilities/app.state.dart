@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:nami/main.dart';
 import 'package:nami/screens/loading_info_screen.dart';
 import 'package:nami/screens/login_screen.dart';
-import 'package:nami/utilities/helper_fuctions.dart';
+import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/hive/hive.handler.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/logger.dart';
