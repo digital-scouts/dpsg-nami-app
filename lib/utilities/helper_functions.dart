@@ -3,6 +3,9 @@ import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_email_sender/flutter_email_sender.dart';
+import 'package:hive/hive.dart';
+import 'package:nami/utilities/hive/mitglied.dart';
+import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/logger.dart';
 import 'package:wiredash/wiredash.dart';
 
@@ -24,11 +27,26 @@ Future<void> sendLogsEmail() async {
 }
 
 void openWiredash(BuildContext context) {
+  Box<Mitglied> memberBox = Hive.box<Mitglied>('members');
+  Mitglied? user;
+  try {
+    user = memberBox.values
+        .firstWhere((member) => member.mitgliedsNummer == getNamiLoginId());
+  } catch (_) {}
   try {
     final logFile = File(loggingFile.path);
     logFile.readAsString().then((logs) {
       Wiredash.of(context).modifyMetaData(
-        (metaData) => metaData..custom['logs'] = logs,
+        (metaData) => metaData
+          ..custom['userNamiLoginId'] = sensId(getNamiLoginId()!)
+          ..custom['user'] = '${user?.vorname} ${user?.nachname}'
+          ..custom['userStatus'] = user?.status
+          ..custom['userActiveTaetigkeiten'] = user
+              ?.getActiveTaetigkeiten()
+              .map((e) =>
+                  '${e.untergliederung} - ${e.taetigkeit} - ${e.gruppierung}')
+          ..custom['gruppierungName'] = getGruppierungName()
+          ..custom['logs'] = logs,
       );
       Wiredash.of(context).show(inheritMaterialTheme: true);
     });
