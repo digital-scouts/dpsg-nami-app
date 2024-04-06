@@ -49,37 +49,40 @@ void sortByMitgliedsalter(List<Mitglied> mitglieder) {
 
 enum MemberSorting { name, age, group, memberTime }
 
-const memberSortingNameString = "Name";
-const memberSortingAgeString = 'Alter';
-const memberSortingGroupString = "Gruppe";
-const memberSortingMemberTimeString = "Mitgliedsdauer";
+const Map<MemberSorting, String> memberSortingValues = {
+  MemberSorting.name: "Name",
+  MemberSorting.age: 'Alter',
+  MemberSorting.group: "Gruppe",
+  MemberSorting.memberTime: "Mitgliedsdauer",
+};
 
-extension MemberSortingExtension on MemberSorting {
-  String string() {
-    switch (this) {
-      case MemberSorting.name:
-        return memberSortingNameString;
-      case MemberSorting.group:
-        return memberSortingGroupString;
-      case MemberSorting.memberTime:
-        return memberSortingMemberTimeString;
-      case MemberSorting.age:
-      default:
-        return memberSortingAgeString;
-    }
-  }
+enum MemberSubElement { id, birthday }
 
-  static MemberSorting getValue(String? value) {
-    switch (value) {
-      case memberSortingAgeString:
-        return MemberSorting.age;
-      case memberSortingGroupString:
-        return MemberSorting.group;
-      case memberSortingMemberTimeString:
-        return MemberSorting.memberTime;
-      case memberSortingNameString:
-      default:
-        return MemberSorting.name;
-    }
+const Map<MemberSubElement, String> memberSubElementValues = {
+  MemberSubElement.id: "Mitgliedsnummer",
+  MemberSubElement.birthday: 'Geburtstag',
+};
+
+class FilterOptions {
+  MemberSorting sorting;
+  MemberSubElement subElement;
+  bool disableInactive;
+  String searchString;
+  List<bool> filterGroup;
+
+  FilterOptions(
+      {this.sorting = MemberSorting.name,
+      this.subElement = MemberSubElement.id,
+      this.disableInactive = true,
+      this.searchString = "",
+      required this.filterGroup});
+
+  FilterOptions copy() {
+    return FilterOptions(
+        sorting: sorting,
+        subElement: subElement,
+        disableInactive: disableInactive,
+        searchString: searchString,
+        filterGroup: List.from(filterGroup));
   }
 }
