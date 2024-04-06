@@ -10,6 +10,7 @@ Future<bool> isWifi() async {
 Future<void> sendLogsEmail() async {
   FlutterEmailSender.send(
     Email(
+      body: 'Beschreibe dein Problem. Wie hat sich die App verhalten, was ist passiert? Was hättest du erwartet?',
       attachmentPaths: [loggingFile.path],
       subject: "NaMi App Logs",
       recipients: ["dev@janecklange.de"],
