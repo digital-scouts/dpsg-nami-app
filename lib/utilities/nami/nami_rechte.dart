@@ -1,9 +1,9 @@
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
 import 'package:nami/utilities/nami/nami_user_data.dart';
 
@@ -69,14 +69,15 @@ Future<List<AllowedFeatures>> getRechte() async {
     allowedFeatures.add(AllowedFeatures.fuehrungszeugnis);
   }
 
+  sensLog.t('Rechte: ${allowedFeatures.map((e) => e.toReadableString())}');
   return allowedFeatures;
 }
 
 Future<Map<int, String>> _loadRechteJson() async {
   Mitglied? currentUser = findCurrentUser();
   if (currentUser == null) {
-    debugPrint('Kein Benutzer gefunden.');
-    return Map.from({});
+    sensLog.e('Failed to find current user in load rechte');
+    throw Exception('Failed to find current user in load rechte');
   }
 
   dynamic document = await _loadDocument(currentUser.id);
@@ -86,15 +87,15 @@ Future<Map<int, String>> _loadRechteJson() async {
       document.querySelector('script:not([src]):not([href])')?.innerHtml;
 
   if (scriptContent == null) {
-    debugPrint('Kein relevantes <script>-Tag gefunden.');
-    return Map.from({});
+    sensLog.w('Kein relevantes <script>-Tag gefunden.');
+    throw Exception('Kein relevantes <script>-Tag gefunden.');
   }
 
   // Extrahieren Sie die items-Arrays Daten aus dem storeEbene-Objekt
   var itemsJsonString = _extractItems(scriptContent);
 
   // Parsen des storeEbene-Objekts, um die json korrekte item-list zu erhalten
-  String correctedString = itemsJsonString.replaceAllMapped(
+  final correctedString = itemsJsonString.replaceAllMapped(
       RegExp(r'(\w+):'), (Match match) => '"${match.group(1)}":');
 
   // Parsen des items-Arrays-strings
@@ -116,7 +117,7 @@ Future<dynamic> _loadDocument(int userId) async {
       reqUrl,
       headers: {'Cookie': getNamiApiCookie()},
     ),
-    "Failed to load user rights: $reqUrl",
+    "Failed to load user rights",
   );
   return html;
 }

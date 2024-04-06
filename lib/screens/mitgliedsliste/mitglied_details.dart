@@ -7,6 +7,7 @@ import 'package:hive/hive.dart';
 import 'package:nami/screens/widgets/map.widget.dart';
 import 'package:nami/screens/widgets/mitgliedStufenPieChart.widget.dart';
 import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/nami/nami_edit_taetigkeiten.dart';
 import 'package:nami/utilities/stufe.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
@@ -347,8 +348,8 @@ class MitgliedDetailState extends State<MitgliedDetail>
       try {
         await stufenwechsel(
             widget.mitglied.id, currentTaetigkeit, stufe, aktivVon);
-      } catch (e) {
-        debugPrint('failed to stufenwechsel');
+      } catch (e, st) {
+        sensLog.e('failed to stufenwechsel', error: e, stackTrace: st);
       }
       widget.mitglied = Hive.box<Mitglied>('members')
           .values

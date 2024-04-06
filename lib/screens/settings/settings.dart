@@ -4,7 +4,7 @@ import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:nami/utilities/app.state.dart';
-import 'package:nami/utilities/helper_fuctions.dart';
+import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/notifications.dart';
 
 import '../../utilities/hive/settings.dart';
@@ -187,6 +187,14 @@ class _SettingsState extends State<Settings> {
     );
   }
 
+  _buildShareLogs() {
+    return ListTile(
+      title: const Text('Teile Logs'),
+      leading: const Icon(Icons.share),
+      onTap: () => sendLogsEmail(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -202,6 +210,7 @@ class _SettingsState extends State<Settings> {
           _buildStufenwechselDatumInput(),
           _buildStammHeimInput(),
           _buildDataLoadingOverWifiOnly(),
+          _buildShareLogs(),
         ],
       ),
     );

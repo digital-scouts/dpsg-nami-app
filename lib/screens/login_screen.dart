@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:nami/utilities/hive/hive.handler.dart';
 import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/nami/nami-login.service.dart';
 import 'dart:async';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
@@ -211,7 +212,7 @@ class LoginScreenState extends State<LoginScreen> {
               activeColor: Colors.white,
               onChanged: (value) {
                 setState(() {
-                  debugPrint('rememberMe: $value');
+                  sensLog.t('rememberMe: $value');
                   _rememberMe = value! | false;
                 });
               },

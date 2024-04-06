@@ -5,9 +5,10 @@ import 'package:http/http.dart' as http;
 import 'package:nami/main.dart';
 import 'package:nami/screens/loading_info_screen.dart';
 import 'package:nami/screens/login_screen.dart';
-import 'package:nami/utilities/helper_fuctions.dart';
+import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/hive/hive.handler.dart';
 import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/nami/nami-member.service.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
@@ -30,7 +31,7 @@ class AppStateHandler extends ChangeNotifier {
 
   set currentState(AppState newState) {
     if (_currentState != newState) {
-      debugPrint("AppStateHandler: $newState");
+      sensLog.i("AppStateHandler: $newState");
       _currentState = newState;
       notifyListeners();
     }
@@ -40,7 +41,7 @@ class AppStateHandler extends ChangeNotifier {
 
   set syncState(SyncState newState) {
     if (_syncRunning != newState) {
-      debugPrint("SyncState: $newState");
+      sensLog.i("SyncState: $newState");
       _syncRunning = newState;
       notifyListeners();
     }
@@ -52,7 +53,7 @@ class AppStateHandler extends ChangeNotifier {
     if (currentState == AppState.relogin) {
       return;
     }
-    debugPrint("in ResumeState");
+    sensLog.i("in ResumeState");
     // TODO: is app password enabled
     // -> yes, is user authenticated
     //    -> yes, setAuthenticatedState
@@ -94,9 +95,11 @@ class AppStateHandler extends ChangeNotifier {
   ///
   /// See [AppState.relogin] for more information
   Future<bool> setReloginState() async {
+    sensLog.i('Start relogin');
     var showLogin = true;
     final tooLongOffline = isTooLongOffline();
     if (tooLongOffline) {
+      sensLog.i('too long offline, show too long offline notification');
       showTooLongOfflineNotification();
     } else {
       showLogin = await showConfirmationDialog(
@@ -106,13 +109,14 @@ class AppStateHandler extends ChangeNotifier {
     }
     if (showLogin) {
       currentState = AppState.relogin;
-
+      sensLog.i('show login screen');
       final reloginSuccessful = await navigatorKey.currentState!.push<bool?>(
         MaterialPageRoute(builder: (context) => const LoginScreen()),
       );
       setReadyState();
       return reloginSuccessful ?? false;
     } else {
+      sensLog.i('relogin canceled');
       return false;
     }
   }
@@ -122,6 +126,8 @@ class AppStateHandler extends ChangeNotifier {
     bool loadAll = false,
     background = false,
   }) async {
+    sensLog.i(
+        'Start loading data with loadAll: $loadAll and background: $background');
     ValueNotifier<List<AllowedFeatures>> rechteProgressNotifier =
         ValueNotifier([]);
     ValueNotifier<String?> gruppierungProgressNotifier = ValueNotifier(null);
@@ -161,12 +167,13 @@ class AppStateHandler extends ChangeNotifier {
       rechteProgressNotifier.value = await getRechte();
       syncState = SyncState.successful;
       if (background) {
+        sensLog.i('sync successful in background');
         showSnackBar(navigatorKey.currentContext!,
             "Daten wurden erfolgreich synchronisiert");
       }
       setReadyState();
     } on SessionExpired catch (_) {
-      debugPrint('sync failed with session expired');
+      sensLog.i('sync failed with session expired');
       syncState = SyncState.relogin;
       if (await setReloginState()) {
         if (!background) {
@@ -177,6 +184,7 @@ class AppStateHandler extends ChangeNotifier {
       } else {
         if (isTooLongOffline()) {
           syncState = SyncState.error;
+          sensLog.i('sync failed with too long offline');
           if (background) {
             showSnackBar(navigatorKey.currentContext!,
                 'Du wirst ausgeloggt, da du zu lange offline warst.');
@@ -184,6 +192,7 @@ class AppStateHandler extends ChangeNotifier {
           }
           // if not [background] the user will be logged out in
           // [LoadingInfoScreen] when pressing the button
+          return;
         }
         if (background) {
           showSnackBar(navigatorKey.currentContext!,
@@ -192,13 +201,13 @@ class AppStateHandler extends ChangeNotifier {
         syncState = SyncState.relogin;
         setReadyState();
       }
-    } catch (e) {
-      if (e is http.ClientException) {
-        debugPrint('sync failed with no internet connection');
+    } catch (e, st) {
+      if (e is http.ClientException || e is TimeoutException) {
+        sensLog.i('sync failed with no internet connection');
         syncState = SyncState.offline;
         setReadyState();
       } else {
-        debugPrint('sync failed with error:$e');
+        sensLog.e('sync failed with error:', error: e, stackTrace: st);
         syncState = SyncState.error;
       }
     }
@@ -216,6 +225,7 @@ class AppStateHandler extends ChangeNotifier {
     /// daily sync, which may call [setReloginState] and [checkTooLongOffline]
     /// but in offline mode [setReloginState] is not called in [setLoadState].
     if (isTooLongOffline()) {
+      sensLog.i('too long offline, set relogin state');
       final success = await setReloginState();
 
       if (!success) setLoggedOutState();
@@ -233,7 +243,7 @@ class AppStateHandler extends ChangeNotifier {
         .add(const Duration(days: 1))
         .difference(DateTime.now());
     if (nextSync < const Duration()) {
-      debugPrint(
+      sensLog.i(
           "Last sync try is ${DateTime.now().difference(getLastNamiSyncTry())} ago. Sync data in background now");
       setSyncTimer(const Duration());
     } else {
@@ -245,14 +255,14 @@ class AppStateHandler extends ChangeNotifier {
   }
 
   void setSyncTimer(Duration nextSync) {
-    debugPrint("Scheduled sync data in $nextSync in background");
+    sensLog.i("Scheduled sync data in $nextSync in background");
     syncTimer?.cancel();
     syncTimer = Timer(nextSync, () async {
       if (getDataLoadingOverWifiOnly() && !(await isWifi())) {
-        debugPrint("Don't sync data now, because not in wifi");
+        sensLog.i("Don't sync data now, because not in wifi");
         setSyncTimer(const Duration(days: 1));
       } else {
-        debugPrint("Sync data from timer now");
+        sensLog.i("Sync data from timer now");
         setLoadDataState(background: true);
       }
     });
