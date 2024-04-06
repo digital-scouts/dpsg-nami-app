@@ -5,7 +5,10 @@
             "name": "Android",
             "request": "launch",
             "type": "dart",
-            "deviceId": "sdk"
+            "deviceId": "sdk",
+            "args": [
+                "--dart-define=USE_LOGGING=true"
+            ]
         },
         {
             "name": "iPhone",
@@ -14,7 +17,8 @@
             "deviceId": "77122B42-F99C-4481-A4E3-2D79B779C40D",
             "args": [
                 "--flavor",
-                "NaMi"
+                "NaMi",
+                "--dart-define=USE_LOGGING=true"
             ]
         },
         {
@@ -24,7 +28,8 @@
             "deviceId": "00008120-00026848023B401E",
             "args": [
                 "--flavor",
-                "NaMi"
+                "NaMi",
+                "--dart-define=USE_LOGGING=true"
             ]
         },
     ],

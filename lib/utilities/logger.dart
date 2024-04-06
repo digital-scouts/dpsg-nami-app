@@ -1,5 +1,5 @@
 import 'dart:io';
-
+import 'dart:developer' as dev;
 import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 import 'package:nami/utilities/nami/model/nami_member_details.model.dart';
@@ -61,7 +61,7 @@ Future<void> initLogger() async {
   consLog = Logger(
     level: Level.debug,
     filter: ProductionFilter(),
-    output: ConsoleOutput(),
+    output: CustomOutput(),
     printer: PrettyPrinter(
       printTime: true,
       methodCount: 0,
@@ -81,6 +81,25 @@ Future<void> initLogger() async {
     output: FileOutput(file: loggingFile),
     printer: LogfmtPrinter(),
   );
+}
+
+class CustomOutput extends LogOutput {
+  @override
+  void output(OutputEvent event) {
+    if (const bool.fromEnvironment('USE_LOGGING', defaultValue: false)) {
+      final StringBuffer buffer = StringBuffer();
+      event.lines.forEach(buffer.writeln);
+      // They don't appear in the stdout of `flutter run`, but in the devtools logging view and IDE
+      dev.log(buffer.toString());
+    } else {
+      // Group all lines of a single log event together
+      debugPrintThrottled("LOG ${event.lines.first}");
+      final restLines = event.lines.sublist(1);
+      for (final line in restLines) {
+        debugPrintThrottled("    $line");
+      }
+    }
+  }
 }
 
 class AllFilter extends LogFilter {
