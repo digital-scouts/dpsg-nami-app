@@ -15,6 +15,7 @@ enum SettingValue {
   syncDataLoadingOverWifiOnly,
   stufenwechselDatum,
   stammheim,
+  welcomeMessageShown,
   metaGeschechtOptions,
   metaLandOptions,
   metaBeitragsartOptions,
@@ -42,6 +43,12 @@ void setMetaData(
       staatsangehoerigkeit);
   Hive.box('settingsBox')
       .put(SettingValue.metaMitgliedstypOptions.toString(), mitgliedstyp);
+}
+
+bool getWelcomeMessageShown() {
+  return Hive.box('settingsBox')
+          .get(SettingValue.welcomeMessageShown.toString()) ??
+      false;
 }
 
 List<String> getMetaGeschlechtOptions() {
@@ -77,6 +84,11 @@ List<String> getMetaMitgliedstypOptions() {
   return Hive.box('settingsBox')
           .get(SettingValue.metaMitgliedstypOptions.toString()) ??
       [];
+}
+
+void setWelcomeMessageShown(bool value) {
+  Hive.box('settingsBox')
+      .put(SettingValue.welcomeMessageShown.toString(), value);
 }
 
 void setNamiApiCookie(String namiApiToken) {

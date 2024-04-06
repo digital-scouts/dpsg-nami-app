@@ -6,6 +6,7 @@ import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/nami/nami-login.service.dart';
 import 'dart:async';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:nami/utilities/notifications.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:nami/utilities/app.state.dart';
 
@@ -304,6 +305,19 @@ class LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!getWelcomeMessageShown()) {
+        bool result = await showWelcomeDialog();
+        if (result) {
+          setWelcomeMessageShown(true);
+        }
+      }
+    });
   }
 
   @override
