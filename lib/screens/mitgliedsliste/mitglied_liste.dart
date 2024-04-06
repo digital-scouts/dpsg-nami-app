@@ -100,8 +100,15 @@ class MitgliedsListeState extends State<MitgliedsListe> {
     }
     return ListView.builder(
       padding: const EdgeInsets.all(8),
-      itemCount: filteredMitglieder.length,
+      itemCount: filteredMitglieder.length + 1,
       itemBuilder: (context, index) {
+        if (index == filteredMitglieder.length) {
+          // Wenn das aktuelle Element das letzte ist, gibt einen Text zurück
+          return ListTile(
+            title:
+                Center(child: Text('Mitglieder: ${filteredMitglieder.length}')),
+          );
+        }
         return Card(
           child: InkWell(
             onTap: () => Navigator.of(context).push(
