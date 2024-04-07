@@ -16,7 +16,14 @@ class GroupBarChart extends StatefulWidget {
 class GroupBarChartState extends State<GroupBarChart> {
   Map<Stufe, GroupData> getMemberPerGroup() {
     return widget.mitglieder.fold<Map<Stufe, GroupData>>({
-      for (var stufe in [...Stufe.values]..remove(Stufe.LEITER))
+      for (var stufe in [
+        Stufe.BIBER,
+        Stufe.WOELFLING,
+        Stufe.JUNGPADFINDER,
+        Stufe.PFADFINDER,
+        Stufe.ROVER,
+        Stufe.KEINE_STUFE
+      ])
         stufe: GroupData(0, 0),
     }, (map, member) {
       final stufe = member.currentStufeWithoutLeiter;

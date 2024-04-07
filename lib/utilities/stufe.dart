@@ -66,7 +66,7 @@ enum Stufe implements Comparable<Stufe> {
   FAVOURITE(
     Colors.yellow,
     'Favourite',
-    'Fav.',
+    'Fav',
     imagePath: 'assets/images/star.png',
     isStufeYouCanChangeTo: false,
   );
