@@ -372,18 +372,13 @@ class MitgliedDetailState extends State<MitgliedDetail>
         ),
         subtitle: Text(
             "Ab: ${DateFormat('dd. MMMM yyyy').format(fakeStufenwechselTaetigkeit.aktivVon)}"),
-        trailing: kDebugMode
-            ? TextButton(
-                onPressed: loadingStufenwechsel
-                    ? null
-                    : () => handleStufenwechsel(
-                        widget.mitglied.id,
-                        currentTaetigkeit,
-                        stufe,
-                        fakeStufenwechselTaetigkeit.aktivVon),
-                child: const Text("Wechseln"),
-              )
-            : null,
+        trailing: TextButton(
+          onPressed: loadingStufenwechsel
+              ? null
+              : () => handleStufenwechsel(widget.mitglied.id, currentTaetigkeit,
+                  stufe, fakeStufenwechselTaetigkeit.aktivVon),
+          child: const Text("Wechseln"),
+        ),
       ),
     );
   }
@@ -516,7 +511,8 @@ class MitgliedDetailState extends State<MitgliedDetail>
                     ),
                     ListView(
                       children: [
-                        if (fakeStufenwechselTaetigkeit != null &&
+                        if (kDebugMode &&
+                            fakeStufenwechselTaetigkeit != null &&
                             currentTaetigkeit != null) ...[
                           Text(
                             'Zukünftige Tätigkeit',
