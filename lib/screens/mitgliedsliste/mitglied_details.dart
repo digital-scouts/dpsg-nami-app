@@ -464,7 +464,8 @@ class MitgliedDetailState extends State<MitgliedDetail>
     List<Taetigkeit> vergangeneTaetigkeiten =
         widget.mitglied.getAlteTaetigkeiten();
     vergangeneTaetigkeiten.sort((a, b) => b.aktivVon.compareTo(a.aktivVon));
-
+    bool isFavourit =
+        getFavouriteList().contains(widget.mitglied.mitgliedsNummer);
     Taetigkeit? fakeStufenwechselTaetigkeit = getStufenwechselTaetigkeit();
     Taetigkeit? currentTaetigkeit = getCurrenttaetigkeit(aktiveTaetigkeiten);
     return Scaffold(
@@ -476,6 +477,20 @@ class MitgliedDetailState extends State<MitgliedDetail>
           shadowColor: Colors.transparent,
           backgroundColor: Stufe.getStufeByString(widget.mitglied.stufe).farbe,
           title: Text("${widget.mitglied.vorname} ${widget.mitglied.nachname}"),
+          actions: [
+            IconButton(
+                onPressed: () => {
+                      isFavourit
+                          ? removeFavouriteList(widget.mitglied.mitgliedsNummer)
+                          : addFavouriteList(widget.mitglied.mitgliedsNummer),
+                      setState(() {
+                        isFavourit = !isFavourit;
+                      })
+                    },
+                icon: isFavourit
+                    ? const Icon(Icons.star)
+                    : const Icon(Icons.star_border_outlined))
+          ],
         ),
         body: Column(
           children: <Widget>[

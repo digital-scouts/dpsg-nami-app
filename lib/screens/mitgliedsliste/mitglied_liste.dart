@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:nami/screens/mitgliedsliste/mitglied_details.dart';
 import 'package:nami/screens/mitgliedsliste/mitglied_liste_filter.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
+import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/mitglied.filterAndSort.dart';
 import 'package:nami/utilities/stufe.dart';
 import 'package:nami/utilities/theme.dart';
@@ -111,11 +112,15 @@ class MitgliedsListeState extends State<MitgliedsListe> {
         }
         return Card(
           child: InkWell(
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                  builder: (context) =>
-                      MitgliedDetail(mitglied: filteredMitglieder[index])),
-            ),
+            onTap: () => Navigator.of(context)
+                .push(
+                  MaterialPageRoute(
+                      builder: (context) =>
+                          MitgliedDetail(mitglied: filteredMitglieder[index])),
+                )
+                .then((value) => setState(() {
+                      applyFilterAndSort();
+                    })),
             child: ListTile(
               leading: Container(
                 decoration: BoxDecoration(
@@ -165,37 +170,48 @@ class MitgliedsListeState extends State<MitgliedsListe> {
   }
 
   Widget _buildFilterGroup() {
+    List<Stufe> gruppen = List.empty(growable: true);
+    if (mitglieder.any((m) => m.stufe == Stufe.BIBER.display)) {
+      gruppen.add(Stufe.BIBER);
+    }
+    gruppen.add(Stufe.WOELFLING);
+    gruppen.add(Stufe.JUNGPADFINDER);
+    gruppen.add(Stufe.PFADFINDER);
+    gruppen.add(Stufe.ROVER);
+    gruppen.add(Stufe.LEITER);
+    if (getFavouriteList().isNotEmpty) {
+      gruppen.add(Stufe.FAVOURITE);
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          for (final stufe in Stufe.stufen)
-            // Biber wird nur angezeigt, wenn die Gruppierung Biber hat
-            if (stufe != Stufe.BIBER ||
-                mitglieder.any((m) => m.stufe == Stufe.BIBER.display))
-              GestureDetector(
-                onTap: () {
-                  setFilterGroup(stufe.index, !filter.filterGroup[stufe.index]);
-                },
-                child: Container(
-                  width: 50.0,
-                  height: 50.0,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: filter.filterGroup[stufe.index]
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.surfaceVariant,
-                  ),
-                  child: Center(
-                    child: Image.asset(
-                      stufe.imagePath!,
-                      width: 30.0,
-                      height: 30.0,
-                    ),
+          for (final stufe in gruppen)
+            GestureDetector(
+              onTap: () {
+                setFilterGroup(stufe.index, !filter.filterGroup[stufe.index]);
+              },
+              child: Container(
+                width: 50.0,
+                height: 50.0,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: filter.filterGroup[stufe.index]
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.surfaceVariant,
+                ),
+                child: Center(
+                  child: Image.asset(
+                    stufe.imagePath!,
+                    color: stufe == Stufe.FAVOURITE ? stufe.farbe : null,
+                    width: 30.0,
+                    height: 30.0,
                   ),
                 ),
               ),
+            ),
         ],
       ),
     );

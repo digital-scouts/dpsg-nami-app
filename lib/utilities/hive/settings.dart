@@ -16,6 +16,7 @@ enum SettingValue {
   stufenwechselDatum,
   stammheim,
   welcomeMessageShown,
+  favouriteList,
   metaGeschechtOptions,
   metaLandOptions,
   metaBeitragsartOptions,
@@ -84,6 +85,33 @@ List<String> getMetaMitgliedstypOptions() {
   return Hive.box('settingsBox')
           .get(SettingValue.metaMitgliedstypOptions.toString()) ??
       [];
+}
+
+List<int> getFavouriteList() {
+  return Hive.box('settingsBox').get(SettingValue.favouriteList.toString()) ??
+      [];
+}
+
+int addFavouriteList(int id) {
+  List<int> favouritList =
+      Hive.box('settingsBox').get(SettingValue.favouriteList.toString()) ?? [];
+  favouritList.add(id);
+  Hive.box('settingsBox')
+      .put(SettingValue.favouriteList.toString(), favouritList);
+  return id;
+}
+
+void removeFavouriteList(int id) {
+  List<int> favouritList =
+      Hive.box('settingsBox').get(SettingValue.favouriteList.toString()) ?? [];
+  favouritList.remove(id);
+  Hive.box('settingsBox')
+      .put(SettingValue.favouriteList.toString(), favouritList);
+}
+
+void setFavouriteList(List<int> favouritList) {
+  Hive.box('settingsBox')
+      .put(SettingValue.favouriteList.toString(), favouritList);
 }
 
 void setWelcomeMessageShown(bool value) {

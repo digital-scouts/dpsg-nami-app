@@ -62,6 +62,13 @@ enum Stufe implements Comparable<Stufe> {
     'keine Stufe',
     'keine Stufe',
     isStufeYouCanChangeTo: false,
+  ),
+  FAVOURITE(
+    Colors.yellow,
+    'Favourite',
+    'Fav.',
+    imagePath: 'assets/images/star.png',
+    isStufeYouCanChangeTo: false,
   );
 
   final Color farbe;
@@ -79,7 +86,7 @@ enum Stufe implements Comparable<Stufe> {
     JUNGPADFINDER,
     PFADFINDER,
     ROVER,
-    LEITER,
+    LEITER
   ];
 
   /// Im gegensatz zu [Stufe.values] ist hier [Stufe.KEINE_STUFE], [Stufe.LEITER] nicht enthalten
