@@ -148,13 +148,11 @@ class NoOutput extends LogOutput {
 String sensId(int memberId) {
   final id = memberId.toString();
   final length = id.length;
-  final int newLength;
   if (length > 3) {
-    newLength = 3;
+    return '*' * (length - 3) + id.substring(length - 3);
   } else {
-    newLength = length;
+    return id;
   }
-  return id.substring(length - newLength, length);
 }
 
 Map<String, String> sensMember(NamiMemberDetailsModel member) {

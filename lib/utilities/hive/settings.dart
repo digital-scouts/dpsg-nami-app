@@ -15,6 +15,8 @@ enum SettingValue {
   syncDataLoadingOverWifiOnly,
   stufenwechselDatum,
   stammheim,
+  welcomeMessageShown,
+  favouriteList,
   metaGeschechtOptions,
   metaLandOptions,
   metaBeitragsartOptions,
@@ -42,6 +44,12 @@ void setMetaData(
       staatsangehoerigkeit);
   Hive.box('settingsBox')
       .put(SettingValue.metaMitgliedstypOptions.toString(), mitgliedstyp);
+}
+
+bool getWelcomeMessageShown() {
+  return Hive.box('settingsBox')
+          .get(SettingValue.welcomeMessageShown.toString()) ??
+      false;
 }
 
 List<String> getMetaGeschlechtOptions() {
@@ -77,6 +85,38 @@ List<String> getMetaMitgliedstypOptions() {
   return Hive.box('settingsBox')
           .get(SettingValue.metaMitgliedstypOptions.toString()) ??
       [];
+}
+
+List<int> getFavouriteList() {
+  return Hive.box('settingsBox').get(SettingValue.favouriteList.toString()) ??
+      [];
+}
+
+int addFavouriteList(int id) {
+  List<int> favouritList =
+      Hive.box('settingsBox').get(SettingValue.favouriteList.toString()) ?? [];
+  favouritList.add(id);
+  Hive.box('settingsBox')
+      .put(SettingValue.favouriteList.toString(), favouritList);
+  return id;
+}
+
+void removeFavouriteList(int id) {
+  List<int> favouritList =
+      Hive.box('settingsBox').get(SettingValue.favouriteList.toString()) ?? [];
+  favouritList.remove(id);
+  Hive.box('settingsBox')
+      .put(SettingValue.favouriteList.toString(), favouritList);
+}
+
+void setFavouriteList(List<int> favouritList) {
+  Hive.box('settingsBox')
+      .put(SettingValue.favouriteList.toString(), favouritList);
+}
+
+void setWelcomeMessageShown(bool value) {
+  Hive.box('settingsBox')
+      .put(SettingValue.welcomeMessageShown.toString(), value);
 }
 
 void setNamiApiCookie(String namiApiToken) {

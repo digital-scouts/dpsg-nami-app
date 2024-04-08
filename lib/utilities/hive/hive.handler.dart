@@ -14,6 +14,7 @@ void logout() {
   deleteGruppierungName();
 
   setStammheim('');
+  setFavouriteList([]);
   // login data
   deleteNamiApiCookie();
   deleteNamiLoginId();

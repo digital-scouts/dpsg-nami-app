@@ -51,23 +51,28 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
       if (stufenwechselData[currentStufe] == null) {
         stufenwechselData[currentStufe] = [];
       }
-
-      stufenwechselData[currentStufe]!.add(
-        DataRow(
-          cells: [
-            DataCell(
-              Text(
-                  '${mitglied.vorname} ${mitglied.nachname.substring(0, 1)}. (${(currentDate.difference(mitglied.geburtsDatum).inDays / 365).toStringAsFixed(1)} Jahre alt)'),
-            ),
-            DataCell(
-              Text('$minStufenWechselJahr-$maxStufenWechselJahr'),
-            ),
-            DataCell(
-              Text('${currentDate.difference(mitglied.geburtsDatum).inDays}'),
-            ),
-          ],
-        ),
+      if (getFavouriteList().contains(mitglied.mitgliedsNummer) &&
+          stufenwechselData[Stufe.FAVOURITE] == null) {
+        stufenwechselData[Stufe.FAVOURITE] = [];
+      }
+      DataRow data = DataRow(
+        cells: [
+          DataCell(
+            Text(
+                '${mitglied.vorname} ${mitglied.nachname.substring(0, 1)}. (${(currentDate.difference(mitglied.geburtsDatum).inDays / 365).toStringAsFixed(1)} Jahre alt)'),
+          ),
+          DataCell(
+            Text('$minStufenWechselJahr-$maxStufenWechselJahr'),
+          ),
+          DataCell(
+            Text('${currentDate.difference(mitglied.geburtsDatum).inDays}'),
+          ),
+        ],
       );
+      stufenwechselData[currentStufe]!.add(data);
+      if (getFavouriteList().contains(mitglied.mitgliedsNummer)) {
+        stufenwechselData[Stufe.FAVOURITE]!.add(data);
+      }
     }
 
     // sortiere die Liste nach dem Alter unt entferne die Spalte mit dem Alter
@@ -80,7 +85,7 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
     });
     stufenwechselData.forEach((key, value) {
       for (var element in value) {
-        element.cells.removeLast();
+        if (element.cells.length == 3) element.cells.removeLast();
       }
     });
     return stufenwechselData;
@@ -97,19 +102,30 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
         Wrap(
           spacing: 5,
           children: [
-            for (final stufe in Stufe.stufenWithoutLeiter)
-              ChoiceChip(
-                selected: stufe == ausgewaehlteStufe,
-                onSelected: (selected) {
-                  if (selected) _stufeAendern(stufe);
-                },
-                label: Text(stufe.shortDisplay),
-                showCheckmark: false,
-                avatar: CircleAvatar(
-                  backgroundColor: Colors.transparent,
-                  child: Image.asset(stufe.imagePath!),
+            for (final stufe in [
+              Stufe.BIBER,
+              Stufe.WOELFLING,
+              Stufe.JUNGPADFINDER,
+              Stufe.PFADFINDER,
+              Stufe.ROVER,
+              Stufe.FAVOURITE
+            ])
+              if ((stufe != Stufe.BIBER ||
+                      stufenwechselData[stufe]?.isNotEmpty == true) &&
+                  (stufe != Stufe.FAVOURITE || getFavouriteList().isNotEmpty))
+                ChoiceChip(
+                  selected: stufe == ausgewaehlteStufe,
+                  onSelected: (selected) {
+                    if (selected) _stufeAendern(stufe);
+                  },
+                  label: Text(stufe.shortDisplay),
+                  showCheckmark: false,
+                  avatar: CircleAvatar(
+                    backgroundColor: Colors.transparent,
+                    child: Image.asset(stufe.imagePath!,
+                        color: stufe == Stufe.FAVOURITE ? stufe.farbe : null),
+                  ),
                 ),
-              ),
           ],
         ),
         // // Bereich für die Liste der Namen

@@ -71,6 +71,7 @@ class MyApp extends StatelessWidget {
         localizationDelegate: CustomWiredashTranslationsDelegate(),
         locale: Locale('de', 'DE'),
       ),
+      collectMetaData: (metaData) => metaData,
       child: ChangeNotifierProvider(
         create: (context) => AppStateHandler(),
         child: const MaterialAppWrapper(),

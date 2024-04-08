@@ -1,9 +1,11 @@
-import 'package:backdrop/backdrop.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:nami/screens/mitgliedsliste/mitglied_details.dart';
+import 'package:nami/screens/mitgliedsliste/mitglied_liste_filter.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
+import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/mitglied.filterAndSort.dart';
 import 'package:nami/utilities/stufe.dart';
 import 'package:nami/utilities/theme.dart';
@@ -22,12 +24,9 @@ class MitgliedsListeState extends State<MitgliedsListe> {
   List<Mitglied> mitglieder =
       Hive.box<Mitglied>('members').values.toList().cast<Mitglied>();
   List<Mitglied> filteredMitglieder = List.empty();
-  String searchString = "";
-  MemberSorting sorting = MemberSorting.name;
-  List<DropdownMenuItem<String>> sortingDropdownValues =
-      List.empty(growable: true);
-  List<bool> filterGroup = List.generate(Stufe.stufen.length, (index) => false);
-  bool disableInactive = true;
+
+  FilterOptions filter =
+      FilterOptions(filterGroup: List.filled(Stufe.values.length, false));
 
   @override
   void initState() {
@@ -39,11 +38,6 @@ class MitgliedsListeState extends State<MitgliedsListe> {
 
     filteredMitglieder = mitglieder;
 
-    for (MemberSorting value in MemberSorting.values) {
-      sortingDropdownValues.add(DropdownMenuItem<String>(
-          value: value.string(), child: Text(value.string())));
-    }
-
     applyFilterAndSort();
   }
 
@@ -51,35 +45,35 @@ class MitgliedsListeState extends State<MitgliedsListe> {
     filteredMitglieder = List.from(mitglieder);
 
     //string
-    if (searchString.isNotEmpty) {
-      filterByString(filteredMitglieder, searchString);
+    if (filter.searchString.isNotEmpty) {
+      filterByString(filteredMitglieder, filter.searchString);
     }
 
     //gruppe
     List<Stufe> gruppen = List.empty(growable: true);
-    for (var i = 0; i < filterGroup.length; i++) {
-      if (filterGroup[i]) {
+    for (var i = 0; i < filter.filterGroup.length; i++) {
+      if (filter.filterGroup[i]) {
         gruppen.add(Stufe.values[i]);
       }
     }
     filterByStufe(filteredMitglieder, gruppen);
 
-    if (disableInactive) {
+    if (filter.disableInactive) {
       filterByStatus(filteredMitglieder);
     }
 
     //sort
-    switch (sorting.string()) {
-      case memberSortingAgeString:
+    switch (filter.sorting) {
+      case MemberSorting.age:
         sortByAge(filteredMitglieder);
         break;
-      case memberSortingGroupString:
+      case MemberSorting.group:
         sortByStufe(filteredMitglieder);
         break;
-      case memberSortingNameString:
+      case MemberSorting.name:
         sortByName(filteredMitglieder);
         break;
-      case memberSortingMemberTimeString:
+      case MemberSorting.memberTime:
         sortByMitgliedsalter(filteredMitglieder);
         break;
     }
@@ -92,22 +86,12 @@ class MitgliedsListeState extends State<MitgliedsListe> {
   }
 
   void setSearchValue(String value) {
-    searchString = value;
-    applyFilterAndSort();
-  }
-
-  void setSorting(String? sort) {
-    sorting = MemberSortingExtension.getValue(sort);
+    filter.searchString = value;
     applyFilterAndSort();
   }
 
   void setFilterGroup(int index, bool value) {
-    filterGroup[index] = value;
-    applyFilterAndSort();
-  }
-
-  void setDisabledInactive(bool? value) {
-    disableInactive = value! ? value : !disableInactive;
+    filter.filterGroup[index] = value;
     applyFilterAndSort();
   }
 
@@ -117,15 +101,26 @@ class MitgliedsListeState extends State<MitgliedsListe> {
     }
     return ListView.builder(
       padding: const EdgeInsets.all(8),
-      itemCount: filteredMitglieder.length,
+      itemCount: filteredMitglieder.length + 1,
       itemBuilder: (context, index) {
+        if (index == filteredMitglieder.length) {
+          // Wenn das aktuelle Element das letzte ist, gibt einen Text zurück
+          return ListTile(
+            title:
+                Center(child: Text('Mitglieder: ${filteredMitglieder.length}')),
+          );
+        }
         return Card(
           child: InkWell(
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                  builder: (context) =>
-                      MitgliedDetail(mitglied: filteredMitglieder[index])),
-            ),
+            onTap: () => Navigator.of(context)
+                .push(
+                  MaterialPageRoute(
+                      builder: (context) =>
+                          MitgliedDetail(mitglied: filteredMitglieder[index])),
+                )
+                .then((value) => setState(() {
+                      applyFilterAndSort();
+                    })),
             child: ListTile(
               leading: Container(
                 decoration: BoxDecoration(
@@ -149,8 +144,14 @@ class MitgliedsListeState extends State<MitgliedsListe> {
               minLeadingWidth: 5,
               title: Text(
                   '${filteredMitglieder[index].vorname} ${filteredMitglieder[index].nachname}'),
-              subtitle:
+              subtitle: switch (filter.subElement) {
+                MemberSubElement.id =>
                   Text(filteredMitglieder[index].mitgliedsNummer.toString()),
+                MemberSubElement.birthday => Text(
+                    DateFormat('d. MMMM yyyy', 'de_DE')
+                        .format(filteredMitglieder[index].geburtsDatum),
+                  )
+              },
               trailing: Text(filteredMitglieder[index].stufe == 'keine Stufe'
                   ? (filteredMitglieder[index]
                           .getActiveTaetigkeiten()
@@ -168,54 +169,49 @@ class MitgliedsListeState extends State<MitgliedsListe> {
     );
   }
 
-  Widget _buildSortDropdown() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text("Sortiere nach", style: Theme.of(context).textTheme.bodyLarge),
-        const SizedBox(width: 15),
-        DropdownButton<String>(
-            value: sorting.string(),
-            icon: const Icon(Icons.expand_more),
-            style: Theme.of(context).textTheme.bodyLarge,
-            onChanged: setSorting,
-            items: sortingDropdownValues)
-      ],
-    );
-  }
-
   Widget _buildFilterGroup() {
+    List<Stufe> gruppen = List.empty(growable: true);
+    if (mitglieder.any((m) => m.stufe == Stufe.BIBER.display)) {
+      gruppen.add(Stufe.BIBER);
+    }
+    gruppen.add(Stufe.WOELFLING);
+    gruppen.add(Stufe.JUNGPADFINDER);
+    gruppen.add(Stufe.PFADFINDER);
+    gruppen.add(Stufe.ROVER);
+    gruppen.add(Stufe.LEITER);
+    if (getFavouriteList().isNotEmpty) {
+      gruppen.add(Stufe.FAVOURITE);
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          for (final stufe in Stufe.stufen)
-            // Biber wird nur angezeigt, wenn die Gruppierung Biber hat
-            if (stufe != Stufe.BIBER ||
-                mitglieder.any((m) => m.stufe == Stufe.BIBER.display))
-              GestureDetector(
-                onTap: () {
-                  setFilterGroup(stufe.index, !filterGroup[stufe.index]);
-                },
-                child: Container(
-                  width: 50.0,
-                  height: 50.0,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: filterGroup[stufe.index]
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.surfaceVariant,
-                  ),
-                  child: Center(
-                    child: Image.asset(
-                      stufe.imagePath!,
-                      width: 30.0,
-                      height: 30.0,
-                    ),
+          for (final stufe in gruppen)
+            GestureDetector(
+              onTap: () {
+                setFilterGroup(stufe.index, !filter.filterGroup[stufe.index]);
+              },
+              child: Container(
+                width: 50.0,
+                height: 50.0,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: filter.filterGroup[stufe.index]
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.surfaceVariant,
+                ),
+                child: Center(
+                  child: Image.asset(
+                    stufe.imagePath!,
+                    color: stufe == Stufe.FAVOURITE ? stufe.farbe : null,
+                    width: 30.0,
+                    height: 30.0,
                   ),
                 ),
               ),
+            ),
         ],
       ),
     );
@@ -243,33 +239,12 @@ class MitgliedsListeState extends State<MitgliedsListe> {
     );
   }
 
-  Widget _buildFilter() {
-    return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          _buildSortDropdown(),
-          const Divider(),
-          CheckboxListTile(
-            value: disableInactive,
-            title: const Text('Inaktive Mitglieder ausblenden'),
-            onChanged: setDisabledInactive,
-          ),
-        ]);
-  }
-
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
-      return BackdropScaffold(
-        headerHeight: 100,
-        subHeader: Column(
-          children: <Widget>[
-            _buildFilterGroup(),
-            _buildSearchBar(),
-          ],
-        ),
-        appBar: BackdropAppBar(
+      return Scaffold(
+        appBar: AppBar(
           title: const Center(child: Text("Mitglieder")),
           automaticallyImplyLeading: false,
           actions: <Widget>[
@@ -286,21 +261,27 @@ class MitgliedsListeState extends State<MitgliedsListe> {
                   );
                 },
               ),
-            BackdropToggleButton(
-              icon: AnimatedIcons.search_ellipsis,
-              color: Theme.of(context).iconTheme.color ?? Colors.black,
-            ),
+            IconButton(
+                onPressed: () => filterDialog(context, filter).then((value) => {
+                      if (value != null)
+                        {
+                          setState(() {
+                            filter = value;
+                          }),
+                          applyFilterAndSort()
+                        }
+                    }),
+                icon: const Icon(Icons.filter_list)),
           ],
         ),
-        backLayer: SizedBox(
-            height: constraints.maxHeight,
-            width: constraints.maxWidth,
-            child: _buildFilter()),
-        backLayerBackgroundColor: Theme.of(context).colorScheme.surface,
-        frontLayer: SizedBox(
-          height: constraints.maxHeight,
-          width: constraints.maxWidth,
-          child: _buildMemberList(),
+        body: Column(
+          children: <Widget>[
+            _buildFilterGroup(),
+            _buildSearchBar(),
+            Expanded(
+              child: _buildMemberList(),
+            ),
+          ],
         ),
       );
     });
