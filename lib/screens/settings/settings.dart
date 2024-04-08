@@ -173,6 +173,20 @@ class _SettingsState extends State<Settings> {
     });
   }
 
+  _buildBiometricAuthentication() {
+    return ListTile(
+      title: const Text('Biometrische Authentifizierung'),
+      leading: const Icon(Icons.fingerprint),
+      trailing: Switch(
+        value: getBiometricAuthenticationEnabled(),
+        onChanged: (value) {
+          setBiometricAuthenticationEnabled(value);
+          setState(() {});
+        },
+      ),
+    );
+  }
+
   _buildDataLoadingOverWifiOnly() {
     return ListTile(
       title: const Text('Optionale Daten nur über WLAN laden'),
@@ -209,6 +223,7 @@ class _SettingsState extends State<Settings> {
           const Divider(height: 1),
           _buildStufenwechselDatumInput(),
           _buildStammHeimInput(),
+          _buildBiometricAuthentication(),
           _buildDataLoadingOverWifiOnly(),
           _buildShareLogs(),
         ],
