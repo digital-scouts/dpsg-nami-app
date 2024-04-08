@@ -228,7 +228,8 @@ class AppStateHandler extends ChangeNotifier {
     if (!forceAuthentication && currentState == AppState.retryAuthentication) {
       return;
     }
-    if (forceAuthentication || (!authenticationStillValid)) {
+    if (getBiometricAuthenticationEnabled() &&
+        (forceAuthentication || (!authenticationStillValid))) {
       final LocalAuthentication auth = LocalAuthentication();
       final canAuthenticateWithBiometrics = await auth.canCheckBiometrics;
       final canAuthenticate =
