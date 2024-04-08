@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:local_auth/local_auth.dart';
 import 'package:nami/main.dart';
-import 'package:nami/screens/loading_info_screen.dart';
+import 'package:nami/screens/utilities/loading_info_screen.dart';
 import 'package:nami/screens/login_screen.dart';
 import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/hive/hive.handler.dart';

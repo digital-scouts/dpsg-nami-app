@@ -6,7 +6,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:nami/screens/login_screen.dart';
 import 'package:nami/screens/navigation_home_screen.dart';
-import 'package:nami/screens/statistiken/authenticate_screen.dart';
+import 'package:nami/screens/utilities/authenticate_screen.dart';
 import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/custom_wiredash_translations_delegate.dart';
 import 'package:nami/utilities/hive/hive.handler.dart';

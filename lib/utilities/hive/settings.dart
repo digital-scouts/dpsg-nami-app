@@ -96,7 +96,7 @@ List<int> getFavouriteList() {
 bool getBiometricAuthenticationEnabled() {
   return Hive.box('settingsBox')
           .get(SettingValue.biometricAuthenticationEnabled.toString()) ??
-      true;
+      false;
 }
 
 int addFavouriteList(int id) {
