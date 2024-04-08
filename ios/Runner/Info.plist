@@ -20,8 +20,6 @@
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(FLUTTER_BUILD_NAME)</string>
-	<key>CFBundleSignature</key>
-	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
@@ -43,9 +41,7 @@
 		<string>MKDirectionsModePedestrian</string>
 	</array>
 	<key>NSFaceIDUsageDescription</key>
-	<string>Um die Daten zu schützen ist eine Biometrische Identifikation notwendig.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Nutzung der Karte</string>
+	<string>Um Ihre Identität zu bestätigen und den Zugriff auf Ihre Daten zu schützen.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Nutzung der Karte</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
@@ -65,8 +61,6 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string></string>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
