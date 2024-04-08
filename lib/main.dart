@@ -10,7 +10,6 @@ import 'package:nami/screens/statistiken/authenticate_screen.dart';
 import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/custom_wiredash_translations_delegate.dart';
 import 'package:nami/utilities/hive/hive.handler.dart';
-import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/theme.dart';
 import 'package:privacy_screen/privacy_screen.dart';
@@ -167,7 +166,6 @@ class RootHome extends StatelessWidget {
         return const LoginScreen();
       case AppState.relogin:
       case AppState.ready:
-      case AppState.authenticated:
       case AppState.retryAuthentication:
         return const NavigationHomeScreen();
     }

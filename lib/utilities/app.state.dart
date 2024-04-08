@@ -52,8 +52,7 @@ class AppStateHandler extends ChangeNotifier {
 
   void onPause() {
     sensLog.i("in onPause");
-    if (currentState == AppState.authenticated ||
-        currentState == AppState.ready) {
+    if (currentState == AppState.ready) {
       lastAuthenticated = DateTime.now();
     }
   }
@@ -250,8 +249,6 @@ class AppStateHandler extends ChangeNotifier {
       }
     }
 
-    currentState = AppState.authenticated;
-
     /// Usually checking the too long offline state can be ckecked via the
     /// daily sync, which may call [setReloginState] and [checkTooLongOffline]
     /// but in offline mode [setReloginState] is not called in [setLoadState].
@@ -315,8 +312,5 @@ enum AppState {
   relogin,
 
   /// App is authenticated, user is logged in
-  authenticated,
-
-  /// App is authenticated, user is logged in, data is available and up to date
   ready,
 }

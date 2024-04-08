@@ -75,8 +75,8 @@ class LoginScreenState extends State<LoginScreen> {
       } else {
         deleteNamiPassword();
       }
+      appStateHandler.lastAuthenticated = DateTime.now();
       if (differentUser || appStateHandler.currentState == AppState.loggedOut) {
-        appStateHandler.lastAuthenticated = DateTime.now();
         WidgetsBinding.instance.addPostFrameCallback((_) {
           appStateHandler.setLoadDataState(loadAll: true);
         });
