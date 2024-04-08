@@ -23,6 +23,7 @@ class AppStateHandler extends ChangeNotifier {
   SyncState _syncRunning = SyncState.notStarted;
   Timer? syncTimer;
   DateTime lastAuthenticated = DateTime(1970);
+  bool _paused = false;
 
   factory AppStateHandler() {
     return _instance;
@@ -52,12 +53,15 @@ class AppStateHandler extends ChangeNotifier {
 
   void onPause() {
     sensLog.i("in onPause");
-    if (currentState == AppState.ready) {
+    if (!_paused && currentState == AppState.ready) {
       lastAuthenticated = DateTime.now();
+      _paused = true;
     }
   }
 
   void onResume(BuildContext context) async {
+    _paused = false;
+
     /// Prevent changing state while relogin when app comes from background
     if (currentState == AppState.relogin) {
       return;

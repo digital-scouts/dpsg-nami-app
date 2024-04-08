@@ -106,12 +106,16 @@ class _MaterialAppWrapperState extends State<MaterialAppWrapper>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        context.read<AppStateHandler>().onResume(context);
-      });
-    } else if (state == AppLifecycleState.paused) {
-      context.read<AppStateHandler>().onPause();
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.detached:
+      case AppLifecycleState.inactive:
+        context.read<AppStateHandler>().onPause();
+      case AppLifecycleState.resumed:
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          context.read<AppStateHandler>().onResume(context);
+        });
     }
   }
 
