@@ -6,8 +6,11 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:nami/screens/login_screen.dart';
 import 'package:nami/screens/navigation_home_screen.dart';
+import 'package:nami/screens/statistiken/authenticate_screen.dart';
 import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/custom_wiredash_translations_delegate.dart';
+import 'package:nami/utilities/hive/hive.handler.dart';
+import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/theme.dart';
 import 'package:privacy_screen/privacy_screen.dart';
@@ -22,6 +25,8 @@ void main() async {
   FMTC.instance('mapStore').manage.createAsync();
   Intl.defaultLocale = "de_DE";
   await Hive.initFlutter();
+  await registerAdapter();
+  await openHive();
   await dotenv.load(fileName: ".env");
   await initLogger();
   await PrivacyScreen.instance.enable(
@@ -69,32 +74,27 @@ class MyApp extends StatelessWidget {
       ),
       child: ChangeNotifierProvider(
         create: (context) => AppStateHandler(),
-        child: MaterialApp(
-          theme: lightTheme,
-          darkTheme: darkTheme,
-          themeMode: Provider.of<ThemeModel>(context).currentMode,
-          home: const MyHome(),
-          navigatorKey: navigatorKey,
-        ),
+        child: const MaterialAppWrapper(),
       ),
     );
   }
 }
 
-class MyHome extends StatefulWidget {
-  const MyHome({Key? key}) : super(key: key);
+class MaterialAppWrapper extends StatefulWidget {
+  const MaterialAppWrapper({Key? key}) : super(key: key);
 
   @override
-  State<MyHome> createState() => _MyHomeState();
+  State<MaterialAppWrapper> createState() => _MaterialAppWrapperState();
 }
 
-class _MyHomeState extends State<MyHome> with WidgetsBindingObserver {
-  AppStateHandler appState = AppStateHandler();
-
+class _MaterialAppWrapperState extends State<MaterialAppWrapper>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    appState.setResumeState(context);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AppStateHandler>().onResume(context);
+    });
 
     WidgetsBinding.instance.addObserver(this);
   }
@@ -108,34 +108,68 @@ class _MyHomeState extends State<MyHome> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      appState.setResumeState(context);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.read<AppStateHandler>().onResume(context);
+      });
+    } else if (state == AppLifecycleState.paused) {
+      context.read<AppStateHandler>().onPause();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    const navigationHomeScreen = NavigationHomeScreen();
-
-    return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Wiredash.of(context).show(inheritMaterialTheme: true);
-        },
-        child: const Icon(Icons.feedback),
-      ),
-      body: Consumer<AppStateHandler>(
-        child: navigationHomeScreen,
-        builder: (context, stateHandler, child) {
-          if (appState.currentState == AppState.loggedOut) {
-            return const LoginScreen();
-          } else if (appState.currentState == AppState.closed) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (appState.currentState == AppState.authenticated) {
-            return const NavigationHomeScreen();
-          }
-          return child!;
-        },
-      ),
+    return MaterialApp(
+      theme: lightTheme,
+      darkTheme: darkTheme,
+      themeMode: Provider.of<ThemeModel>(context).currentMode,
+      home: const RootHome(),
+      navigatorKey: navigatorKey,
+      builder: (context, child) {
+        return Scaffold(
+          floatingActionButton: FloatingActionButton(
+            onPressed: () {
+              Wiredash.of(context).show(inheritMaterialTheme: true);
+            },
+            child: const Icon(Icons.feedback),
+          ),
+          body: Consumer<AppStateHandler>(
+            builder: (context, appStateHandler, _) {
+              final currentState = appStateHandler.currentState;
+              return IndexedStack(
+                index: (currentState == AppState.retryAuthentication) ? 0 : 1,
+                children: [
+                  switch (currentState) {
+                    AppState.retryAuthentication => const AuthenticateScreen(),
+                    _ => const SizedBox(),
+                  },
+                  child!,
+                ],
+              );
+            },
+          ),
+        );
+      },
     );
+  }
+}
+
+class RootHome extends StatelessWidget {
+  const RootHome({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final appStateHandler = context.watch<AppStateHandler>();
+
+    switch (appStateHandler.currentState) {
+      case AppState.closed:
+        return const Center(child: CircularProgressIndicator());
+      case AppState.loggedOut:
+        return const LoginScreen();
+      case AppState.relogin:
+      case AppState.ready:
+      case AppState.authenticated:
+      case AppState.retryAuthentication:
+        return const NavigationHomeScreen();
+    }
   }
 }

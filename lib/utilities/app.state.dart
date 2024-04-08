@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:local_auth/local_auth.dart';
 import 'package:nami/main.dart';
 import 'package:nami/screens/loading_info_screen.dart';
 import 'package:nami/screens/login_screen.dart';
@@ -20,6 +22,7 @@ class AppStateHandler extends ChangeNotifier {
   AppState _currentState = AppState.closed;
   SyncState _syncRunning = SyncState.notStarted;
   Timer? syncTimer;
+  DateTime lastAuthenticated = DateTime(1970);
 
   factory AppStateHandler() {
     return _instance;
@@ -47,23 +50,22 @@ class AppStateHandler extends ChangeNotifier {
     }
   }
 
-  /// App is authenticated | User loggin unclear
-  void setResumeState(BuildContext context) async {
+  void onPause() {
+    sensLog.i("in onPause");
+    if (currentState == AppState.authenticated ||
+        currentState == AppState.ready) {
+      lastAuthenticated = DateTime.now();
+    }
+  }
+
+  void onResume(BuildContext context) async {
     /// Prevent changing state while relogin when app comes from background
     if (currentState == AppState.relogin) {
       return;
     }
-    sensLog.i("in ResumeState");
-    // TODO: is app password enabled
-    // -> yes, is user authenticated
-    //    -> yes, setAuthenticatedState
-    //    -> no, show reset Option -> setLoggedOutState
-    // -> no, setAuthenticatedState
+    sensLog.i("in onResume");
 
-    await registerAdapter();
-    await openHive();
     if (getNamiApiCookie().isNotEmpty) {
-      // ignore: use_build_context_synchronously
       setAuthenticatedState();
     } else {
       setLoggedOutState();
@@ -213,11 +215,40 @@ class AppStateHandler extends ChangeNotifier {
     }
   }
 
+  bool get authenticationStillValid =>
+      DateTime.now().difference(lastAuthenticated) < const Duration(minutes: 2);
+
   /// App is authenticated | User loggin unclear
   ///
-  /// Called from [setResumeState]
-  Future<void> setAuthenticatedState() async {
-    // TODO: Ask for app authentication here
+  /// Called from [onResume]
+  Future<void> setAuthenticatedState([forceAuthentication = false]) async {
+    if (!forceAuthentication && currentState == AppState.retryAuthentication) {
+      return;
+    }
+    if (forceAuthentication || (!authenticationStillValid)) {
+      final LocalAuthentication auth = LocalAuthentication();
+      final canAuthenticateWithBiometrics = await auth.canCheckBiometrics;
+      final canAuthenticate =
+          canAuthenticateWithBiometrics || await auth.isDeviceSupported();
+      if (canAuthenticate) {
+        try {
+          final isAuthenticated = await auth.authenticate(
+            localizedReason: 'Bitte bestätige deine Identität',
+          );
+          if (isAuthenticated) {
+            lastAuthenticated = DateTime.now();
+          } else {
+            currentState = AppState.retryAuthentication;
+            return;
+          }
+        } on PlatformException catch (e, st) {
+          sensLog.e('Exception in biometric authentication:',
+              error: e, stackTrace: st);
+          currentState = AppState.retryAuthentication;
+          return;
+        }
+      }
+    }
 
     currentState = AppState.authenticated;
 
@@ -276,6 +307,8 @@ enum AppState {
   closed,
 
   loggedOut,
+
+  retryAuthentication,
 
   /// App is authenticated, cookie is outdated and password isn't saved.
   /// Therefore user needs to enter credentials again
