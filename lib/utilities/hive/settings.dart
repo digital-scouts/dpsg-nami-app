@@ -23,6 +23,7 @@ enum SettingValue {
   metaRegionOptions,
   metaStaatsangehoerigkeitOptions,
   metaMitgliedstypOptions,
+  biometricAuthenticationEnabled,
 }
 
 void setMetaData(
@@ -90,6 +91,12 @@ List<String> getMetaMitgliedstypOptions() {
 List<int> getFavouriteList() {
   return Hive.box('settingsBox').get(SettingValue.favouriteList.toString()) ??
       [];
+}
+
+bool getBiometricAuthenticationEnabled() {
+  return Hive.box('settingsBox')
+          .get(SettingValue.biometricAuthenticationEnabled.toString()) ??
+      false;
 }
 
 int addFavouriteList(int id) {
@@ -181,6 +188,11 @@ void setLastLoginCheck(DateTime lastLoginCheck) {
 void setDataLoadingOverWifiOnly(bool value) {
   Hive.box('settingsBox')
       .put(SettingValue.syncDataLoadingOverWifiOnly.toString(), value);
+}
+
+void setBiometricAuthenticationEnabled(bool value) {
+  Hive.box('settingsBox')
+      .put(SettingValue.biometricAuthenticationEnabled.toString(), value);
 }
 
 String getNamiApiCookie() {

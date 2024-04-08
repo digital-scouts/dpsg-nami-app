@@ -6,6 +6,7 @@ import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/nami/nami-login.service.dart';
 import 'dart:async';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:provider/provider.dart';
 import 'package:nami/utilities/notifications.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:nami/utilities/app.state.dart';
@@ -60,6 +61,7 @@ class LoginScreenState extends State<LoginScreen> {
     setState(() {
       _loading = true;
     });
+    final appStateHandler = context.read<AppStateHandler>();
     final differentUser = _mitgliedsnummer != getNamiLoginId();
     if (differentUser) {
       logout();
@@ -74,12 +76,12 @@ class LoginScreenState extends State<LoginScreen> {
       } else {
         deleteNamiPassword();
       }
-      if (differentUser ||
-          AppStateHandler().currentState == AppState.loggedOut) {
+      appStateHandler.lastAuthenticated = DateTime.now();
+      if (differentUser || appStateHandler.currentState == AppState.loggedOut) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          AppStateHandler().setLoadDataState(loadAll: true);
+          appStateHandler.setLoadDataState(loadAll: true);
         });
-      } else if (AppStateHandler().currentState == AppState.relogin) {
+      } else if (appStateHandler.currentState == AppState.relogin) {
         /// setting to result to `true` to signal that the relogin was successful
         // ignore: use_build_context_synchronously
         Navigator.pop(context, true);
