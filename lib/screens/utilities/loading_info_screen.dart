@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
+import 'package:nami/utilities/notifications.dart';
 import 'package:provider/provider.dart';
 
 class LoadingInfoScreen extends StatefulWidget {
@@ -68,65 +69,84 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
       canPop: false,
       child: Scaffold(
         drawerEnableOpenDragGesture: false,
+        appBar: AppBar(
+          title: const Text('Lade Informationen'),
+          automaticallyImplyLeading: false,
+        ),
         body: ListView(
+          padding: const EdgeInsets.all(8),
           children: [
             _buildLoadingStatusRow(
-                'Rechte', widget.rechteProgressNotifier.value),
+              Icons.security,
+              'Rechte',
+              widget.rechteProgressNotifier.value,
+            ),
             if (widget.loadAll)
               _buildLoadingStatusRow(
-                  'Gruppierung', widget.gruppierungProgressNotifier.value),
+                Icons.label,
+                'Gruppierung',
+                widget.gruppierungProgressNotifier.value,
+              ),
             if (widget.loadAll)
-              _buildLoadingStatusRow('Meta', widget.metaProgressNotifier.value),
+              _buildLoadingStatusRow(
+                Icons.info,
+                'Metadaten',
+                widget.metaProgressNotifier.value,
+              ),
             _buildLoadingStatusRow(
-                'Member Overview', widget.memberOverviewProgressNotifier.value),
+              Icons.groups,
+              'Mitglieder',
+              widget.memberOverviewProgressNotifier.value,
+            ),
             _buildLoadingStatusRow(
-                'Member All', widget.memberAllProgressNotifier.value),
+              Icons.person,
+              'Mitglieder Details',
+              widget.memberAllProgressNotifier.value,
+            ),
             if (_isDone)
-              ElevatedButton(
+              FilledButton.icon(
                 onPressed: () {
                   AppStateHandler().setReadyState();
                   Navigator.pop(context);
                 },
-                child: const Text('Success'),
+                icon: const Icon(Icons.check),
+                label: const Text('Weiter'),
               ),
             if (context.watch<AppStateHandler>().syncState ==
                 SyncState.error) ...[
-              Text(
-                """
-Du hast die Möglichkeit automatisch generierte Logs der Aktivitäten 
-mit den Entwicklern zu teilen, um bei der Fehlerbehebung zu helfen. 
-Dabei werden folgende Daten gesammelt: gekürzte Mitgliedsnummer und ID, 
-eigene Rechte, Mitglieder und Tätigkeiten ohne Personenbezogene Daten"""
-                    .replaceAll("\n", ""),
+              TextButton.icon(
+                onPressed: () => showSendLogsDialog(),
+                icon: const Icon(Icons.send),
+                label: const Text("Logs teilen"),
               ),
-              TextButton(
-                child: const Text("Logs teilen"),
-                onPressed: () => sendLogsEmail(),
-              ),
-              ElevatedButton(
+              ElevatedButton.icon(
                 onPressed: () {
                   Navigator.pop(context);
 
                   AppStateHandler().setLoggedOutState();
                 },
-                child: const Text('Fehler. Du wirst ausgeloggt.'),
+                style: ElevatedButton.styleFrom(
+                  foregroundColor:
+                      Theme.of(context).colorScheme.onErrorContainer,
+                ),
+                icon: const Icon(Icons.logout),
+                label: const Text('Fehler. Du wirst ausgeloggt.'),
               ),
             ] else if (context.watch<AppStateHandler>().syncState ==
                 SyncState.offline)
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: const Text(
+              ElevatedButton.icon(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.wifi_off),
+                label: const Text(
                     'Keine Netzwerkverbindung. Versuch es später erneut'),
               )
             else if (context.watch<AppStateHandler>().syncState ==
                 SyncState.relogin)
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child:
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(),
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.sync_problem),
+                label:
                     const Text('Kein Sync möglich ohne erneute Anmeldung. OK'),
               )
           ],
@@ -135,35 +155,57 @@ eigene Rechte, Mitglieder und Tätigkeiten ohne Personenbezogene Daten"""
     );
   }
 
-  Widget _buildLoadingStatusRow(String label, dynamic value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label),
-        if (value is bool?) ...[
-          if (value == true) // bool is true
-            const Icon(Icons.check, color: Colors.green)
-          else if (value == false) // bool is false
-            const Icon(Icons.error, color: Colors.red)
-          else // bool is null
-            const CircularProgressIndicator(),
-        ] else if (value is double) ...[
-          if (value != 1)
-            CircularProgressIndicator(value: value), // double is not 1
-          Text('${(value * 100).toStringAsFixed(0)}%'),
-        ] else if (value is String) ...[
-          Text(value),
-        ] else if (value is List<AllowedFeatures>)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: value.map((e) => Text(e.toReadableString())).toList(),
-          )
-        else if (value == null)
-          const CircularProgressIndicator()
-        else ...[
-          const Icon(Icons.error, color: Colors.red),
-        ],
-      ],
+  Widget _buildLoadingStatusRow(
+      IconData iconData, String label, dynamic value) {
+    Widget? trailing;
+    Widget? subtitle;
+    final colorScheme = Theme.of(context).colorScheme;
+    final successIcon = Icon(Icons.check, color: colorScheme.primary);
+    final errorIcon = Icon(Icons.check, color: colorScheme.error);
+    if (value is bool?) {
+      if (value == true) {
+        trailing = successIcon;
+      } else if (value == false) {
+        trailing = errorIcon;
+      } else {
+        // bool is null
+        trailing = const CircularProgressIndicator();
+      }
+    } else if (value is double) {
+      if (value == 1) {
+        trailing = successIcon;
+      } else {
+        trailing = Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            trailing = CircularProgressIndicator(value: value),
+            const SizedBox(width: 8),
+            Text('${(value * 100).toStringAsFixed(0)}%'),
+          ],
+        );
+      }
+    } else if (value is String) {
+      subtitle = Text(value);
+      trailing = successIcon;
+    } else if (value is List<AllowedFeatures>) {
+      if (value.isEmpty) {
+        trailing = const CircularProgressIndicator();
+      } else {
+        trailing = successIcon;
+      }
+      subtitle = Text(
+        value.map((e) => e.toReadableString()).join(", "),
+      );
+    } else if (value == null) {
+      trailing = const CircularProgressIndicator();
+    } else {
+      trailing = errorIcon;
+    }
+    return ListTile(
+      title: Text(label),
+      leading: Icon(iconData),
+      trailing: trailing,
+      subtitle: subtitle,
     );
   }
 }
