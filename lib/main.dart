@@ -31,9 +31,9 @@ void main() async {
   await initLogger();
   await PrivacyScreen.instance.enable(
     iosOptions: const PrivacyIosOptions(
-      enablePrivacy: true,
-      lockTrigger: IosLockTrigger.didEnterBackground,
-    ),
+        enablePrivacy: true,
+        lockTrigger: IosLockTrigger.didEnterBackground,
+        privacyImageName: "privacyScreen"),
     androidOptions: const PrivacyAndroidOptions(
       enableSecure: true,
     ),
