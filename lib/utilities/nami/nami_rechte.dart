@@ -23,11 +23,11 @@ extension AllowedFeaturesExtension on AllowedFeatures {
       case AllowedFeatures.error:
         return 'Fehler, bitte Logs über Einstellungen senden.';
       case AllowedFeatures.appStart:
-        return 'App Start';
+        return 'Mitglieder anzeigen';
       case AllowedFeatures.memberEdit:
-        return 'Member Edit';
+        return 'Miglieder bearbeiten';
       case AllowedFeatures.memberCreate:
-        return 'Member Create';
+        return 'Mitglieder anlegen';
       case AllowedFeatures.stufenwechsel:
         return 'Stufenwechsel';
       case AllowedFeatures.fuehrungszeugnis:
@@ -51,7 +51,7 @@ Future<List<AllowedFeatures>> getRechte() async {
   try {
     rechte = await _loadRechteJson();
   } catch (e) {
-    sensLog.e('Failed to load rechte: $e');
+    sensLog.i('Failed to load rechte: $e');
     return [AllowedFeatures.error];
   }
 
@@ -103,16 +103,19 @@ Future<Map<int, String>> _loadRechteJson() async {
 
   // Extrahieren Sie die items-Arrays Daten aus dem storeEbene-Objekt
   var itemsJsonString = _extractItems(scriptContent);
-  sensLog.w('Rechte - itemsString: $itemsJsonString');
+  sensLog.i('Rechte - itemsString: $itemsJsonString');
 
   // Parsen des storeEbene-Objekts, um die json korrekte item-list zu erhalten
+  // Regex findet alle Elemente die mit , oder { beginnen und mit " enden.
+  // Diese müssen mit " umschlossen werden, um gültiges JSON zu erhalten.
   final correctedString = itemsJsonString.replaceAllMapped(
-      RegExp(r'(\w+):'), (Match match) => '"${match.group(1)}":');
-  sensLog.w('Rechte - itemsCorrectedString: $correctedString');
+      RegExp(r'(?<=[{,])\s*(\w+)(?=:)'),
+      (Match match) => '"${match.group(1)}"');
+
   // Parsen des items-Arrays-strings
   List<Map<String, dynamic>> items =
       List<Map<String, dynamic>>.from(json.decode(correctedString));
-  sensLog.w('Rechte - itemsList: ${items.toString()}');
+  sensLog.i('Rechte - itemsList: ${items.toString()}');
 
   Map<int, String> itemMap = _createIdNameMap(items);
 

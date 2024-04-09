@@ -35,6 +35,7 @@ void main() async {
       iosOptions: const PrivacyIosOptions(
         enablePrivacy: true,
         lockTrigger: IosLockTrigger.didEnterBackground,
+        privacyImageName: "privacyScreen",
       ),
       androidOptions: const PrivacyAndroidOptions(
         enableSecure: true,
