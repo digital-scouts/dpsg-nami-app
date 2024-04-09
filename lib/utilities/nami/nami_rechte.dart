@@ -23,11 +23,11 @@ extension AllowedFeaturesExtension on AllowedFeatures {
       case AllowedFeatures.error:
         return 'Fehler, bitte Logs über Einstellungen senden.';
       case AllowedFeatures.appStart:
-        return 'App Start';
+        return 'Mitglieder anzeigen';
       case AllowedFeatures.memberEdit:
-        return 'Member Edit';
+        return 'Miglieder bearbeiten';
       case AllowedFeatures.memberCreate:
-        return 'Member Create';
+        return 'Mitglieder anlegen';
       case AllowedFeatures.stufenwechsel:
         return 'Stufenwechsel';
       case AllowedFeatures.fuehrungszeugnis:
