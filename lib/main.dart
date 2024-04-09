@@ -9,6 +9,7 @@ import 'package:nami/screens/navigation_home_screen.dart';
 import 'package:nami/screens/utilities/authenticate_screen.dart';
 import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/custom_wiredash_translations_delegate.dart';
+import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/hive/hive.handler.dart';
 import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/theme.dart';
@@ -131,9 +132,7 @@ class _MaterialAppWrapperState extends State<MaterialAppWrapper>
       builder: (context, child) {
         return Scaffold(
           floatingActionButton: FloatingActionButton(
-            onPressed: () {
-              Wiredash.of(context).show(inheritMaterialTheme: true);
-            },
+            onPressed: () => openWiredash(context),
             child: const Icon(Icons.feedback),
           ),
           body: Consumer<AppStateHandler>(

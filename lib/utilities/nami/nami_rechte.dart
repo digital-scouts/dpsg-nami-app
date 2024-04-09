@@ -9,6 +9,7 @@ import 'package:nami/utilities/nami/nami_user_data.dart';
 
 // rechte enum
 enum AllowedFeatures {
+  error,
   appStart,
   memberEdit,
   memberCreate,
@@ -19,6 +20,8 @@ enum AllowedFeatures {
 extension AllowedFeaturesExtension on AllowedFeatures {
   String toReadableString() {
     switch (this) {
+      case AllowedFeatures.error:
+        return 'Fehler, bitte Logs über Einstellungen senden.';
       case AllowedFeatures.appStart:
         return 'App Start';
       case AllowedFeatures.memberEdit:
@@ -38,12 +41,19 @@ extension AllowedFeaturesExtension on AllowedFeatures {
 /// Dokumentation zu den Rechten finden sich im README.md
 /// Rechte werden anhand der User ID geladen (nicht die Mitgliedsnummer)
 Future<List<AllowedFeatures>> getRechte() async {
+  sensLog.w('Rechte werden geladen');
   final cookie = getNamiApiCookie();
   if (cookie == 'testLoginCookie') {
     return [AllowedFeatures.appStart];
   }
   List<AllowedFeatures> allowedFeatures = [];
-  Map<int, String> rechte = await _loadRechteJson();
+  Map<int, String> rechte;
+  try {
+    rechte = await _loadRechteJson();
+  } catch (e) {
+    sensLog.e('Failed to load rechte: $e');
+    return [AllowedFeatures.error];
+  }
 
   if (rechte.containsKey(5) &&
       rechte.containsKey(36) &&
@@ -93,14 +103,16 @@ Future<Map<int, String>> _loadRechteJson() async {
 
   // Extrahieren Sie die items-Arrays Daten aus dem storeEbene-Objekt
   var itemsJsonString = _extractItems(scriptContent);
+  sensLog.w('Rechte - itemsString: $itemsJsonString');
 
   // Parsen des storeEbene-Objekts, um die json korrekte item-list zu erhalten
   final correctedString = itemsJsonString.replaceAllMapped(
       RegExp(r'(\w+):'), (Match match) => '"${match.group(1)}":');
-
+  sensLog.w('Rechte - itemsCorrectedString: $correctedString');
   // Parsen des items-Arrays-strings
   List<Map<String, dynamic>> items =
       List<Map<String, dynamic>>.from(json.decode(correctedString));
+  sensLog.w('Rechte - itemsList: ${items.toString()}');
 
   Map<int, String> itemMap = _createIdNameMap(items);
 
