@@ -35,13 +35,6 @@
 	<true/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<false/>
-	<key>MKDirectionsApplicationSupportedModes</key>
-	<array>
-		<string>MKDirectionsModeBike</string>
-		<string>MKDirectionsModeBus</string>
-		<string>MKDirectionsModeCar</string>
-		<string>MKDirectionsModePedestrian</string>
-	</array>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Um Ihre Identität zu bestätigen und den Zugriff auf Ihre Daten zu schützen.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
