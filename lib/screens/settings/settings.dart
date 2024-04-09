@@ -205,7 +205,7 @@ class _SettingsState extends State<Settings> {
     return ListTile(
       title: const Text('Teile Logs'),
       leading: const Icon(Icons.share),
-      onTap: () => sendLogsEmail(),
+      onTap: () => showSendLogsDialog(),
     );
   }
 
