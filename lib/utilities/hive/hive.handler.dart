@@ -24,6 +24,11 @@ void logout() {
   deleteLastLoginCheck();
   deleteLastNamiSyncTry();
   deleteLastNamiSync();
+
+  //settings
+  deleteListFilterInactive();
+  deleteListSort();
+  deleteListSubtext();
 }
 
 Future<void> registerAdapter() async {

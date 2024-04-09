@@ -25,12 +25,17 @@ class MitgliedsListeState extends State<MitgliedsListe> {
       Hive.box<Mitglied>('members').values.toList().cast<Mitglied>();
   List<Mitglied> filteredMitglieder = List.empty();
 
-  FilterOptions filter =
-      FilterOptions(filterGroup: List.filled(Stufe.values.length, false));
+  FilterOptions filter = FilterOptions(filterGroup: []);
 
   @override
   void initState() {
     super.initState();
+    filter = FilterOptions(
+        filterGroup: List.filled(Stufe.values.length, false),
+        disableInactive: getListFilterInactive(),
+        sorting: getListSort(),
+        subElement: getListSubtext());
+
     memberBox.listenable().addListener(() {
       mitglieder = memberBox.values.toList().cast<Mitglied>();
       applyFilterAndSort();
@@ -268,6 +273,9 @@ class MitgliedsListeState extends State<MitgliedsListe> {
                           setState(() {
                             filter = value;
                           }),
+                          setListFilterInactive(value.disableInactive),
+                          setListSort(value.sorting),
+                          setListSubtext(value.subElement),
                           applyFilterAndSort()
                         }
                     }),

@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import 'package:nami/utilities/mitglied.filterAndSort.dart';
 
 // flutter packages pub run build_runner build
 enum SettingValue {
@@ -17,6 +18,9 @@ enum SettingValue {
   stammheim,
   welcomeMessageShown,
   favouriteList,
+  listSortBy,
+  listFilterInactive,
+  listSubtext,
   metaGeschechtOptions,
   metaLandOptions,
   metaBeitragsartOptions,
@@ -45,6 +49,30 @@ void setMetaData(
       staatsangehoerigkeit);
   Hive.box('settingsBox')
       .put(SettingValue.metaMitgliedstypOptions.toString(), mitgliedstyp);
+}
+
+MemberSorting getListSort() {
+  String? sortingString =
+      Hive.box('settingsBox').get(SettingValue.listSortBy.toString());
+  return MemberSorting.values.firstWhere(
+    (e) => e.toString() == sortingString,
+    orElse: () => MemberSorting.name,
+  );
+}
+
+MemberSubElement getListSubtext() {
+  String? subElementString =
+      Hive.box('settingsBox').get(SettingValue.listSubtext.toString());
+  return MemberSubElement.values.firstWhere(
+    (e) => e.toString() == subElementString,
+    orElse: () => MemberSubElement.id,
+  );
+}
+
+bool getListFilterInactive() {
+  return Hive.box('settingsBox')
+          .get(SettingValue.listFilterInactive.toString()) ??
+      true;
 }
 
 bool getWelcomeMessageShown() {
@@ -106,6 +134,21 @@ int addFavouriteList(int id) {
   Hive.box('settingsBox')
       .put(SettingValue.favouriteList.toString(), favouritList);
   return id;
+}
+
+void setListSort(MemberSorting value) {
+  Hive.box('settingsBox')
+      .put(SettingValue.listSortBy.toString(), value.toString());
+}
+
+void setListFilterInactive(bool value) {
+  Hive.box('settingsBox')
+      .put(SettingValue.listFilterInactive.toString(), value);
+}
+
+void setListSubtext(MemberSubElement value) {
+  Hive.box('settingsBox')
+      .put(SettingValue.listSubtext.toString(), value.toString());
 }
 
 void removeFavouriteList(int id) {
@@ -273,6 +316,18 @@ DateTime getLastNamiSync() {
 DateTime getLastNamiSyncTry() {
   return Hive.box('settingsBox').get(SettingValue.lastNamiSyncTry.toString()) ??
       DateTime.utc(1989, 1, 1);
+}
+
+void deleteListSort() {
+  Hive.box('settingsBox').delete(SettingValue.listSortBy.toString());
+}
+
+void deleteListFilterInactive() {
+  Hive.box('settingsBox').delete(SettingValue.listFilterInactive.toString());
+}
+
+void deleteListSubtext() {
+  Hive.box('settingsBox').delete(SettingValue.listSubtext.toString());
 }
 
 void deleteNamiApiCookie() {
