@@ -99,14 +99,17 @@ class AppStateHandler extends ChangeNotifier {
   /// Returns true when relogin was successful
   ///
   /// See [AppState.relogin] for more information
-  Future<bool> setReloginState() async {
+  ///
+  /// Setting [showDialog] to false prevents the dialog to ask for relogin.
+  /// Instead it will directly show the login screen.
+  Future<bool> setReloginState({showDialog = true}) async {
     sensLog.i('Start relogin');
     var showLogin = true;
     final tooLongOffline = isTooLongOffline();
     if (tooLongOffline) {
       sensLog.i('too long offline, show too long offline notification');
       showTooLongOfflineNotification();
-    } else {
+    } else if (showDialog) {
       showLogin = await showConfirmationDialog(
         "Sitzung abgelaufen",
         "Deine Sitzung ist abgelaufen. Bitte melden dich erneut an.",
@@ -180,32 +183,30 @@ class AppStateHandler extends ChangeNotifier {
     } on SessionExpired catch (_) {
       sensLog.i('sync failed with session expired');
       syncState = SyncState.relogin;
-      if (await setReloginState()) {
-        if (!background) {
+      if (!background) {
+        // not setting relogin state when in background as it's done by [ReloginBanner]
+        if (await setReloginState()) {
           /// pop with false to prevent going to ready or loggedOut state
           navigatorKey.currentState!.pop();
+          setLoadDataState(loadAll: loadAll, background: background);
         }
-        setLoadDataState(loadAll: loadAll, background: background);
-      } else {
-        if (isTooLongOffline()) {
-          syncState = SyncState.error;
-          sensLog.i('sync failed with too long offline');
-          if (background) {
-            showSnackBar(navigatorKey.currentContext!,
-                'Du wirst ausgeloggt, da du zu lange offline warst.');
-            setLoggedOutState();
-          }
-          // if not [background] the user will be logged out in
-          // [LoadingInfoScreen] when pressing the button
-          return;
-        }
+      }
+      if (isTooLongOffline()) {
+        syncState = SyncState.error;
+        sensLog.i('sync failed with too long offline');
         if (background) {
           showSnackBar(navigatorKey.currentContext!,
-              'Kein Sync möglich ohne erneute Anmeldung.');
+              'Du wirst ausgeloggt, da du zu lange offline warst.');
+          setLoggedOutState();
         }
-        syncState = SyncState.relogin;
-        setReadyState();
+        // if not [background] the user will be logged out in
+        // [LoadingInfoScreen] when pressing the button
+        return;
       }
+      showSnackBar(navigatorKey.currentContext!,
+          'Tägliche Aktualisierung nicht möglich. Deine Sitzung ist abgelaufen.');
+      syncState = SyncState.relogin;
+      setReadyState();
     } catch (e, st) {
       if (e is http.ClientException || e is TimeoutException) {
         sensLog.i('sync failed with no internet connection');
