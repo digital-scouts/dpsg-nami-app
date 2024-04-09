@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -29,15 +30,17 @@ void main() async {
   await openHive();
   await dotenv.load(fileName: ".env");
   await initLogger();
-  await PrivacyScreen.instance.enable(
-    iosOptions: const PrivacyIosOptions(
-      enablePrivacy: true,
-      lockTrigger: IosLockTrigger.didEnterBackground,
-    ),
-    androidOptions: const PrivacyAndroidOptions(
-      enableSecure: true,
-    ),
-  );
+  if (!kDebugMode) {
+    await PrivacyScreen.instance.enable(
+      iosOptions: const PrivacyIosOptions(
+        enablePrivacy: true,
+        lockTrigger: IosLockTrigger.didEnterBackground,
+      ),
+      androidOptions: const PrivacyAndroidOptions(
+        enableSecure: true,
+      ),
+    );
+  }
   runApp(
     ChangeNotifierProvider<ThemeModel>(
       create: (_) => ThemeModel(),
