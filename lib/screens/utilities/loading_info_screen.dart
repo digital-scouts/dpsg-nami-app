@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:nami/utilities/app.state.dart';
-import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
 import 'package:nami/utilities/notifications.dart';
 import 'package:provider/provider.dart';
