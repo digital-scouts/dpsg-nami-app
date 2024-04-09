@@ -204,7 +204,7 @@ class AppStateHandler extends ChangeNotifier {
         return;
       }
       showSnackBar(navigatorKey.currentContext!,
-          'Deine Sitzung ist abgelaufen, weshalb der tägliche Sync fehlschlug.');
+          'Tägliche Aktualisierung nicht möglich. Deine Sitzung ist abgelaufen.');
       syncState = SyncState.relogin;
       setReadyState();
     } catch (e, st) {
