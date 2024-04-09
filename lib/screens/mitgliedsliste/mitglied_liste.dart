@@ -279,7 +279,7 @@ class MitgliedsListeState extends State<MitgliedsListe> {
                           applyFilterAndSort()
                         }
                     }),
-                icon: const Icon(Icons.filter_list)),
+                icon: const Icon(Icons.tune)),
           ],
         ),
         body: Column(
