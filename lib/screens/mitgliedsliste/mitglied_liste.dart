@@ -4,6 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:nami/screens/mitgliedsliste/mitglied_details.dart';
 import 'package:nami/screens/mitgliedsliste/mitglied_liste_filter.dart';
+import 'package:nami/screens/widgets/relogin_banner.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/mitglied.filterAndSort.dart';
@@ -284,6 +285,7 @@ class MitgliedsListeState extends State<MitgliedsListe> {
         ),
         body: Column(
           children: <Widget>[
+            const ReloginBanner(),
             _buildFilterGroup(),
             _buildSearchBar(),
             Expanded(
