@@ -256,7 +256,7 @@ class MitgliedsListeState extends State<MitgliedsListe> {
           actions: <Widget>[
             if (kDebugMode)
               IconButton(
-                icon: const Icon(Icons.add),
+                icon: const Icon(Icons.person_add),
                 onPressed: () {
                   Navigator.push(
                     context,

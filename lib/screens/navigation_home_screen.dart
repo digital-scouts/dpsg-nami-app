@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:nami/screens/dashboard/dashboard.dart';
+import 'package:nami/screens/meine_stufe/meine_stufe.dart';
 import 'package:nami/screens/mitgliedsliste/mitglied_liste.dart';
 import 'package:nami/screens/profil/profil.dart';
 import 'package:nami/screens/settings/settings.dart';
@@ -64,9 +64,9 @@ class NavigationHomeScreenState extends State<NavigationHomeScreen> {
         setState(() {
           screenView = const Settings();
         });
-      } else if (drawerIndex == DrawerIndex.dashboard) {
+      } else if (drawerIndex == DrawerIndex.meineStufe) {
         setState(() {
-          screenView = const Dashboard();
+          screenView = const MeineStufe();
         });
       } else if (drawerIndex == DrawerIndex.profil) {
         setState(() {

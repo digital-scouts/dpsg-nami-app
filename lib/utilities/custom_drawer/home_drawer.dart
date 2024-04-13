@@ -33,26 +33,20 @@ class HomeDrawerState extends State<HomeDrawer> {
     drawerList = <DrawerList>[
       if (kDebugMode)
         DrawerList(
-          index: DrawerIndex.dashboard,
-          labelName: 'Dashboard',
-          icon: const Icon(Icons.home),
+          index: DrawerIndex.meineStufe,
+          labelName: 'Meine Stufe',
+          icon: const Icon(Icons.group),
         ),
       DrawerList(
         index: DrawerIndex.mitglieder,
         labelName: 'Mitglieder',
-        icon: const Icon(Icons.group),
+        icon: const Icon(Icons.groups),
       ),
       DrawerList(
         index: DrawerIndex.stats,
         labelName: 'Statistiken',
         icon: const Icon(Icons.analytics),
       ),
-      if (kDebugMode)
-        DrawerList(
-          index: DrawerIndex.profil,
-          labelName: 'Profil',
-          icon: const Icon(Icons.person),
-        ),
       DrawerList(
         index: DrawerIndex.settings,
         labelName: 'Einstellungen',
@@ -261,7 +255,7 @@ class HomeDrawerState extends State<HomeDrawer> {
   }
 }
 
-enum DrawerIndex { dashboard, mitglieder, stats, settings, profil }
+enum DrawerIndex { meineStufe, mitglieder, stats, settings, profil }
 
 class DrawerList {
   DrawerList({
