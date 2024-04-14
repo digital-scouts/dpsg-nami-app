@@ -96,10 +96,12 @@ Future<List<NamiMemberTaetigkeitenModel>> _loadMemberTaetigkeiten(
     int id, String url, String path, String cookie) async {
   String fullUrl =
       '$url$path/zugeordnete-taetigkeiten/filtered-for-navigation/gruppierung-mitglied/mitglied/$id/flist';
-  sensLog.i('Request: Lade Details eines Mitglieds');
+  sensLog.i('Request: Taetigkeiten for ${sensId(id)}');
   final response =
       await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
   final source = json.decode(const Utf8Decoder().convert(response.bodyBytes));
+
+  sensLog.t('Response: Taetigkeiten for ${sensId(id)}');
 
   if (response.statusCode == 200 && source['success']) {
     List<NamiMemberTaetigkeitenModel> taetigkeiten = [];
@@ -109,10 +111,10 @@ Future<List<NamiMemberTaetigkeitenModel>> _loadMemberTaetigkeiten(
           'Taetigkeit = ${taetigkeit.taetigkeit}, untergliederung = ${taetigkeit.untergliederung}, isActive = ${taetigkeit.aktivBis?.isAfter(DateTime.now()) ?? false} von ${sensId(id)}');
       taetigkeiten.add(taetigkeit);
     }
-    sensLog.i('Response: Loaded Tätigkeiten for ${sensId(id)}');
+    sensLog.t('Finalized Taetigkeiten for ${sensId(id)}');
     return taetigkeiten;
   } else {
-    sensLog.e('Failed to load Tätigkeiten for ${sensId(id)}');
+    sensLog.e('Failed to load Taetigkeiten for ${sensId(id)}');
     return [];
   }
 }

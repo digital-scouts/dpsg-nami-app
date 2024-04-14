@@ -1,6 +1,9 @@
 import 'dart:io';
 import 'dart:developer' as dev;
+import 'dart:math';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logger/logger.dart';
 import 'package:nami/utilities/nami/model/nami_member_details.model.dart';
 import 'package:path_provider/path_provider.dart';
@@ -16,6 +19,7 @@ late final Logger fileLog;
 /// Logger for console output only, may contain sensitive data
 late final Logger consLog;
 late final File loggingFile;
+late final int salt;
 
 Future<void> deleteOldLogs() async {
   try {
@@ -45,6 +49,17 @@ Future<void> deleteOldLogs() async {
 }
 
 Future<void> initLogger() async {
+  // Use a random salt to hash sensitive data to create different hashes for the same data on different devices
+  const secureStorage = FlutterSecureStorage();
+  final storedSalt = await secureStorage.read(key: 'salt');
+  if (storedSalt == null) {
+    final newSalt = Random.secure().nextInt(1 << 32);
+    await secureStorage.write(key: 'salt', value: newSalt.toString());
+    salt = newSalt;
+  } else {
+    salt = int.parse(storedSalt);
+  }
+
   if (kReleaseMode) {
     loggingFile =
         File('${(await getApplicationDocumentsDirectory()).path}/prod.log');
@@ -81,6 +96,7 @@ Future<void> initLogger() async {
     output: FileOutput(file: loggingFile),
     printer: LogfmtPrinter(),
   );
+  sensLog.i('Logger initialized');
 }
 
 class CustomOutput extends LogOutput {
@@ -115,16 +131,12 @@ class CustomPrinter extends LogPrinter {
 
   @override
   List<String> log(LogEvent event) {
-    fileLog.log(
-      event.level,
-      {
-        "msg": event.message,
-        "time": event.time,
-      },
-      time: event.time,
-      error: event.error,
-      stackTrace: event.stackTrace,
-    );
+    fileLog.log(event.level, {
+      "msg": event.message?.toString().replaceAll('\n', '[CR]'),
+      "time": event.time,
+      "error": event.error?.toString().replaceAll('\n', '[CR]'),
+      "stackTrace": event.stackTrace?.toString().replaceAll('\n', '[CR]'),
+    });
     consLog.log(
       event.level,
       event.message,
@@ -146,18 +158,13 @@ class NoOutput extends LogOutput {
 }
 
 String sensId(int memberId) {
-  final id = memberId.toString();
-  final length = id.length;
-  if (length > 3) {
-    return '*' * (length - 3) + id.substring(length - 3);
-  } else {
-    return id;
-  }
+  final res = md5.convert([memberId, salt]);
+  return res.toString().substring(0, 6);
 }
 
 Map<String, String> sensMember(NamiMemberDetailsModel member) {
   return {
-    'shortId': sensId(member.id),
+    'id': sensId(member.id),
     'type': member.mglTypeId,
     'status': member.status,
     'stufe': member.stufe ?? 'null',
