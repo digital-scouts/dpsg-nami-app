@@ -28,10 +28,17 @@ Future<void> sendLogsEmail() async {
 }
 
 Future<String> getGitCommitId() async {
-  try {
-    return (await rootBundle.loadString('.git/ORIG_HEAD')).trim();
-  } catch (_) {
-    return 'unknown';
+  // Get the current head
+  final head = await rootBundle.loadString('.git/HEAD');
+
+  // Extract the branch name if needed
+  if (head.startsWith('ref: ')) {
+    // checked out branch name
+    final branchName = head.split('ref: refs/heads/').last.trim();
+    return await rootBundle.loadString('.git/refs/heads/$branchName');
+  } else {
+    // HEAD points to a specific commit
+    return head;
   }
 }
 

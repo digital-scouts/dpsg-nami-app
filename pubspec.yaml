@@ -73,9 +73,10 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
-    - .env
-    - .git/ORIG_HEAD    
-    
+    - .env 
+    - .git/HEAD       
+    - .git/refs/heads/ 
+
   fonts:
     - family: WorkSans
       fonts:
