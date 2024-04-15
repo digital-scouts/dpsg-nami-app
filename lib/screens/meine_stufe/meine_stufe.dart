@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
 import 'package:nami/screens/mitgliedsliste/mitglied_details.dart';
+import 'package:nami/screens/widgets/map.widget.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 
@@ -83,9 +84,22 @@ class _MeineStufeState extends State<MeineStufe> {
       appBar: AppBar(
         title: const Center(child: Text('Meine Stufe')),
       ),
-      body: mitglieder.isEmpty
-          ? _buildNoElements()
-          : _buildMitgliederList(mitglieder),
+      body: Column(
+        children: [
+          MapWidget(
+            members: mitglieder,
+          ),
+          const Text(
+            'Mitglieder',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          Expanded(
+            child: mitglieder.isEmpty
+                ? _buildNoElements()
+                : _buildMitgliederList(mitglieder),
+          ),
+        ],
+      ),
     );
   }
 }

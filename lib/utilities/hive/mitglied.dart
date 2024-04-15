@@ -1,4 +1,6 @@
+import 'package:geocoding/geocoding.dart';
 import 'package:hive/hive.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
 
@@ -89,6 +91,14 @@ class Mitglied {
       }
     }
     return false;
+  }
+
+  Future<LatLng?> getCoordinates() async {
+    try {
+      final res = await locationFromAddress('$strasse, $plz $ort');
+      return LatLng(res.first.latitude, res.first.longitude);
+    } on NoResultFoundException catch (_, __) {}
+    return null;
   }
 
   List<Taetigkeit> getActiveTaetigkeiten() {

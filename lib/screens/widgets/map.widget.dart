@@ -6,12 +6,14 @@ import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 
 import 'package:geocoding/geocoding.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/notifications.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class MapWidget extends StatefulWidget {
-  final String memberAddress;
-  const MapWidget({required this.memberAddress, Key? key}) : super(key: key);
+  final List<Mitglied> members;
+  const MapWidget({required this.members, Key? key}) : super(key: key);
 
   @override
   MapWidgetState createState() => MapWidgetState();
@@ -19,7 +21,9 @@ class MapWidget extends StatefulWidget {
 
 class MapWidgetState extends State<MapWidget> {
   MapController mapController = MapController();
-  late Future<({LatLng? stammheim, LatLng member})> _addressLocation;
+  late Future<({LatLng? stammheim, Map<int, LatLng> members})> _addressLocation;
+
+  final markerNotifier = MapMarkerNotifier();
 
   @override
   void initState() {
@@ -27,7 +31,8 @@ class MapWidgetState extends State<MapWidget> {
     _addressLocation = _getAddressLocation();
   }
 
-  Future<({LatLng? stammheim, LatLng member})> _getAddressLocation() async {
+  Future<({LatLng? stammheim, Map<int, LatLng> members})>
+      _getAddressLocation() async {
     final stammheim = getStammheim();
     LatLng? stammheimLocation;
     if (stammheim != null) {
@@ -36,29 +41,32 @@ class MapWidgetState extends State<MapWidget> {
         stammheimLocation = LatLng(res.first.latitude, res.first.longitude);
       } on NoResultFoundException catch (_, __) {}
     }
-    try {
-      List<Location> locations =
-          await locationFromAddress(widget.memberAddress);
-
-      if (locations.isNotEmpty) {
-        Location firstLocation = locations.first;
-        return (
-          stammheim: stammheimLocation,
-          member: LatLng(firstLocation.latitude, firstLocation.longitude)
-        );
-      } else {
-        throw Exception('Keine Adresse vom Mitglied gefunden');
+    Map<int, LatLng> members = {};
+    for (Mitglied member in widget.members) {
+      LatLng? coordinates = await member.getCoordinates();
+      if (coordinates != null) {
+        members[member.mitgliedsNummer] = coordinates;
       }
-    } catch (e) {
-      throw Exception('Fehler beim Abrufen der Adresse: $e');
     }
+
+    return (stammheim: stammheimLocation, members: members);
   }
 
-  void adjustMapCenterAndZoom(LatLng marker1, LatLng marker2) {
-    double minLat = min(marker1.latitude, marker2.latitude);
-    double maxLat = max(marker1.latitude, marker2.latitude);
-    double minLng = min(marker1.longitude, marker2.longitude);
-    double maxLng = max(marker1.longitude, marker2.longitude);
+  void adjustMapCenterAndZoom(List<LatLng> markers) {
+    double minLat = markers
+        .reduce((val, marker) => val.latitude < marker.latitude ? val : marker)
+        .latitude;
+    double maxLat = markers
+        .reduce((val, marker) => val.latitude > marker.latitude ? val : marker)
+        .latitude;
+    double minLng = markers
+        .reduce(
+            (val, marker) => val.longitude < marker.longitude ? val : marker)
+        .longitude;
+    double maxLng = markers
+        .reduce(
+            (val, marker) => val.longitude > marker.longitude ? val : marker)
+        .longitude;
 
     double centerLat = (minLat + maxLat) / 2;
     double centerLng = (minLng + maxLng) / 2;
@@ -71,11 +79,16 @@ class MapWidgetState extends State<MapWidget> {
     mapController.move(LatLng(centerLat, centerLng), zoom.zoom - 0.5);
   }
 
-  Widget _buildMap(LatLng addressLocation, LatLng? homeLocation) {
-    if (homeLocation != null) {
+  Widget _buildMap(Map<int, LatLng> addressLocations, LatLng? homeLocation) {
+    if (homeLocation != null && addressLocations.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        adjustMapCenterAndZoom(addressLocation, homeLocation);
+        adjustMapCenterAndZoom([...addressLocations.values, homeLocation]);
       });
+    }
+    if (homeLocation == null && addressLocations.isEmpty) {
+      return const Center(
+        child: Text('Keine Adresse gefunden'),
+      );
     }
     return Card(
       child: Padding(
@@ -85,11 +98,11 @@ class MapWidgetState extends State<MapWidget> {
           children: [
             SizedBox(
               width: double.infinity,
-              height: 200.0, // Anpassen der Höhe nach Bedarf
+              height: 200.0,
               child: FlutterMap(
                 mapController: mapController,
                 options: MapOptions(
-                  center: addressLocation, // Position für die Karte
+                  center: homeLocation ?? addressLocations.values.first,
                   zoom: 13.0,
                   maxZoom: 17,
                   minZoom: 3,
@@ -107,25 +120,33 @@ class MapWidgetState extends State<MapWidget> {
                   ),
                   MarkerLayer(
                     markers: [
-                      Marker(
-                        width: 80.0,
-                        height: 80.0,
-                        point: addressLocation, // Position für den Marker
-                        builder: (ctx) => const Icon(
-                          Icons.person_pin_circle,
-                          color: Colors.red,
-                        ),
-                      ),
                       if (homeLocation != null)
                         Marker(
                           width: 80.0,
                           height: 80.0,
                           point: homeLocation, // Position für den Marker
                           builder: (ctx) => const Icon(
-                            Icons.home_sharp,
+                            Icons.home,
                             color: Colors.black,
                           ),
                         ),
+                      if (addressLocations.isNotEmpty)
+                        ...addressLocations.entries
+                            .map((entry) => Marker(
+                                  width: 80.0,
+                                  height: 80.0,
+                                  point: entry.value,
+                                  builder: (ctx) => GestureDetector(
+                                    onTap: () {
+                                      markerNotifier.value = entry.key;
+                                    },
+                                    child: const Icon(
+                                      Icons.person_pin_circle,
+                                      color: Colors.red,
+                                    ),
+                                  ),
+                                ))
+                            .toList(),
                     ],
                   ),
                   RichAttributionWidget(
@@ -196,15 +217,18 @@ class MapWidgetState extends State<MapWidget> {
         } else if (snapshot.hasError) {
           return Container();
         } else {
-          final (:stammheim, :member) = snapshot.data!;
+          final (:stammheim, :members) = snapshot.data!;
           return Column(
             children: <Widget>[
-              _buildMap(member, stammheim),
-              if (stammheim != null)
+              _buildMap(members, stammheim),
+              if (stammheim != null &&
+                  members.isNotEmpty &&
+                  members.length == 1)
                 ListTile(
                   leading: const Icon(Icons.social_distance),
                   title: Text(
-                    formatDistance(calculateDistance(member, stammheim)),
+                    formatDistance(calculateDistance(
+                        members.values.toList().first, stammheim)),
                   ),
                   subtitle: const Text("Entfernung"),
                 ),

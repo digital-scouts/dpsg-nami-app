@@ -227,7 +227,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
                 title: _buildMapText(memberAddress),
               ),
               MapWidget(
-                memberAddress: memberAddress,
+                members: [widget.mitglied],
               ),
             ],
           ),
