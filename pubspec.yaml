@@ -74,7 +74,8 @@ flutter:
   assets:
     - assets/images/
     - .env
-
+    - .git/ORIG_HEAD    
+    
   fonts:
     - family: WorkSans
       fonts:

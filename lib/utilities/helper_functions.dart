@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_email_sender/flutter_email_sender.dart';
 import 'package:hive/hive.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
@@ -26,9 +27,18 @@ Future<void> sendLogsEmail() async {
   );
 }
 
-void openWiredash(BuildContext context) {
+Future<String> getGitCommitId() async {
+  try {
+    return (await rootBundle.loadString('.git/ORIG_HEAD')).trim();
+  } catch (_) {
+    return 'unknown';
+  }
+}
+
+Future<void> openWiredash(BuildContext context) async {
   Box<Mitglied> memberBox = Hive.box<Mitglied>('members');
   Mitglied? user;
+  String gitInfo = await getGitCommitId();
   try {
     user = memberBox.values
         .firstWhere((member) => member.mitgliedsNummer == getNamiLoginId());
@@ -38,6 +48,7 @@ void openWiredash(BuildContext context) {
     logFile.readAsString().then((logs) {
       Wiredash.of(context).modifyMetaData(
         (metaData) => metaData
+          ..custom['gitCommitId'] = gitInfo
           ..custom['userNamiLoginId'] = sensId(getNamiLoginId()!)
           ..custom['user'] = '${user?.vorname} ${user?.nachname}'
           ..custom['userStatus'] = user?.status
