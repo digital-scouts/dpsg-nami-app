@@ -62,6 +62,8 @@ Future<void> openWiredash(BuildContext context) async {
       Wiredash.of(context).show(inheritMaterialTheme: true);
     });
   } catch (_) {
-    Wiredash.of(context).show(inheritMaterialTheme: true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Wiredash.of(context).show(inheritMaterialTheme: true);
+    });
   }
 }
