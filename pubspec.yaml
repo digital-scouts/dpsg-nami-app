@@ -51,6 +51,7 @@ dependencies:
   logger: ^2.2.0
   path_provider: ^2.1.2
   flutter_email_sender: ^6.0.2
+  package_info_plus: ^4.2.0
 
 dev_dependencies:
   flutter_test:

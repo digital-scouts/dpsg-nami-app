@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -28,16 +26,12 @@ Future<void> sendLogsEmail() async {
 }
 
 Future<String> getGitCommitId() async {
-  // Get the current head
   final head = await rootBundle.loadString('.git/HEAD');
 
-  // Extract the branch name if needed
   if (head.startsWith('ref: ')) {
-    // checked out branch name
     final branchName = head.split('ref: refs/heads/').last.trim();
-    return await rootBundle.loadString('.git/refs/heads/$branchName');
+    return (await rootBundle.loadString('.git/refs/heads/$branchName')).trim();
   } else {
-    // HEAD points to a specific commit
     return head;
   }
 }
@@ -50,27 +44,15 @@ Future<void> openWiredash(BuildContext context) async {
     user = memberBox.values
         .firstWhere((member) => member.mitgliedsNummer == getNamiLoginId());
   } catch (_) {}
-  try {
-    final logFile = File(loggingFile.path);
-    logFile.readAsString().then((logs) {
-      Wiredash.of(context).modifyMetaData(
-        (metaData) => metaData
-          ..custom['gitCommitId'] = gitInfo
-          ..custom['userNamiLoginId'] = sensId(getNamiLoginId()!)
-          ..custom['user'] = '${user?.vorname} ${user?.nachname}'
-          ..custom['userStatus'] = user?.status
-          ..custom['userActiveTaetigkeiten'] = user
-              ?.getActiveTaetigkeiten()
-              .map((e) =>
-                  '${e.untergliederung} - ${e.taetigkeit} - ${e.gruppierung}')
-          ..custom['gruppierungName'] = getGruppierungName()
-          ..custom['logs'] = logs,
-      );
-      Wiredash.of(context).show(inheritMaterialTheme: true);
-    });
-  } catch (_) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Wiredash.of(context).show(inheritMaterialTheme: true);
-    });
-  }
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    Wiredash.of(context).modifyMetaData((metaData) => metaData
+      ..custom['gitCommitId'] = gitInfo
+      ..custom['userNamiLoginId'] = sensId(getNamiLoginId()!)
+      ..custom['user'] = '${user?.vorname} ${user?.nachname}'
+      ..custom['userStatus'] = '${user?.status}'
+      ..custom['gruppierungName'] = getGruppierungName());
+
+    Wiredash.of(context).show(inheritMaterialTheme: true);
+  });
 }
