@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/notifications.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../utilities/hive/settings.dart';
 
@@ -226,6 +227,29 @@ class _SettingsState extends State<Settings> {
           _buildBiometricAuthentication(),
           _buildDataLoadingOverWifiOnly(),
           _buildShareLogs(),
+          Expanded(child: Container()),
+          Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: FutureBuilder<MapEntry<PackageInfo, String>>(
+              future: Future.wait([
+                PackageInfo.fromPlatform(),
+                getGitCommitId(),
+              ]).then((results) =>
+                  MapEntry(results[0] as PackageInfo, results[1] as String)),
+              builder: (BuildContext context,
+                  AsyncSnapshot<MapEntry<PackageInfo, String>> snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const CircularProgressIndicator();
+                } else {
+                  final String version =
+                      snapshot.data?.key.version ?? 'Unknown';
+                  final String commitId =
+                      snapshot.data?.value.substring(0, 8) ?? 'Unknown';
+                  return Text('Version: $version | Commit: $commitId');
+                }
+              },
+            ),
+          ),
         ],
       ),
     );

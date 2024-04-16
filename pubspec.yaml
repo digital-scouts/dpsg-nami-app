@@ -52,6 +52,7 @@ dependencies:
   path_provider: ^2.1.2
   flutter_email_sender: ^6.0.2
   crypto: ^3.0.3
+  package_info_plus: ^4.2.0
 
 dev_dependencies:
   flutter_test:
@@ -74,7 +75,9 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
-    - .env
+    - .env 
+    - .git/HEAD       
+    - .git/refs/heads/ 
 
   fonts:
     - family: WorkSans

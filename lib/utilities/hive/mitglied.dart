@@ -182,6 +182,13 @@ class Mitglied {
     return m1Name.compareTo(m2Name);
   }
 
+  /// 0 gleich | <0 this ist alpabetisch früher | >0 this ist alpabetisch später
+  int compareByLastName(Mitglied mitglied) {
+    String m1Name = '$nachname $vorname ';
+    String m2Name = '${mitglied.nachname} ${mitglied.vorname}';
+    return m1Name.compareTo(m2Name);
+  }
+
   /// 0 gleich | <0 this ist jüngere Stufe | >0 this ist ältere Stufe
   int compareByStufe(Mitglied mitglied) {
     return Stufe.getStufeByString(stufe)
