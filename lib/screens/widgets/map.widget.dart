@@ -2,16 +2,16 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 
 import 'package:geocoding/geocoding.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:nami/utilities/hive/settings.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MapWidget extends StatefulWidget {
-  final LatLng homeLocation;
   final String memberAddress;
-  const MapWidget(
-      {required this.homeLocation, required this.memberAddress, Key? key})
-      : super(key: key);
+  const MapWidget({required this.memberAddress, Key? key}) : super(key: key);
 
   @override
   MapWidgetState createState() => MapWidgetState();
@@ -19,7 +19,7 @@ class MapWidget extends StatefulWidget {
 
 class MapWidgetState extends State<MapWidget> {
   MapController mapController = MapController();
-  late Future<LatLng> _addressLocation;
+  late Future<({LatLng? stammheim, LatLng member})> _addressLocation;
 
   @override
   void initState() {
@@ -27,15 +27,27 @@ class MapWidgetState extends State<MapWidget> {
     _addressLocation = _getAddressLocation();
   }
 
-  Future<LatLng> _getAddressLocation() async {
+  Future<({LatLng? stammheim, LatLng member})> _getAddressLocation() async {
+    final stammheim = getStammheim();
+    LatLng? stammheimLocation;
+    if (stammheim != null) {
+      try {
+        final res = await locationFromAddress(stammheim);
+        stammheimLocation = LatLng(res.first.latitude, res.first.longitude);
+      } on NoResultFoundException catch (_, __) {}
+    }
     try {
       List<Location> locations =
           await locationFromAddress(widget.memberAddress);
+
       if (locations.isNotEmpty) {
         Location firstLocation = locations.first;
-        return LatLng(firstLocation.latitude, firstLocation.longitude);
+        return (
+          stammheim: stammheimLocation,
+          member: LatLng(firstLocation.latitude, firstLocation.longitude)
+        );
       } else {
-        throw Exception('Adresse nicht gefunden');
+        throw Exception('Keine Adresse vom Mitglied gefunden');
       }
     } catch (e) {
       throw Exception('Fehler beim Abrufen der Adresse: $e');
@@ -59,51 +71,52 @@ class MapWidgetState extends State<MapWidget> {
     mapController.move(LatLng(centerLat, centerLng), zoom.zoom - 0.5);
   }
 
-  Widget _buildMap(LatLng addressLocation, LatLng homeLocation) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      adjustMapCenterAndZoom(addressLocation, homeLocation);
-    });
-
-    return SizedBox(
-      child: Card(
-        color: Colors.black87,
-        elevation: 2.0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(5.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SizedBox(
-                width: double.infinity,
-                height: 200.0, // Anpassen der Höhe nach Bedarf
-                child: FlutterMap(
-                  mapController: mapController,
-                  options: MapOptions(
-                    center: addressLocation, // Position für die Karte
-                    zoom: 13.0,
-                    interactiveFlags:
-                        InteractiveFlag.pinchZoom | InteractiveFlag.drag,
+  Widget _buildMap(LatLng addressLocation, LatLng? homeLocation) {
+    if (homeLocation != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        adjustMapCenterAndZoom(addressLocation, homeLocation);
+      });
+    }
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(5.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: double.infinity,
+              height: 200.0, // Anpassen der Höhe nach Bedarf
+              child: FlutterMap(
+                mapController: mapController,
+                options: MapOptions(
+                  center: addressLocation, // Position für die Karte
+                  zoom: 13.0,
+                  maxZoom: 17,
+                  minZoom: 3,
+                  interactiveFlags:
+                      InteractiveFlag.pinchZoom | InteractiveFlag.drag,
+                ),
+                children: [
+                  TileLayer(
+                    // TODO: Recommended: Do not hardcode any URL to tile.openstreetmap.org as doing so will limit your ability to react if the service is disrupted or blocked. In particular, switching should be possible without requiring a software update.
+                    urlTemplate:
+                        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    subdomains: const ['a', 'b', 'c'],
+                    userAgentPackageName: 'de.jlange.nami.app',
+                    tileProvider: FMTC.instance('mapStore').getTileProvider(),
                   ),
-                  children: [
-                    TileLayer(
-                      urlTemplate:
-                          'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      subdomains: const ['a', 'b', 'c'],
-                    ),
-                    MarkerLayer(
-                      markers: [
-                        Marker(
-                          width: 80.0,
-                          height: 80.0,
-                          point: addressLocation, // Position für den Marker
-                          builder: (ctx) => const Icon(
-                            Icons.person_pin_circle,
-                            color: Colors.red,
-                          ),
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        width: 80.0,
+                        height: 80.0,
+                        point: addressLocation, // Position für den Marker
+                        builder: (ctx) => const Icon(
+                          Icons.person_pin_circle,
+                          color: Colors.red,
                         ),
+                      ),
+                      if (homeLocation != null)
                         Marker(
                           width: 80.0,
                           height: 80.0,
@@ -113,13 +126,25 @@ class MapWidgetState extends State<MapWidget> {
                             color: Colors.black,
                           ),
                         ),
-                      ],
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                  RichAttributionWidget(
+                    attributions: [
+                      TextSourceAttribution(
+                        'OpenStreetMap',
+                        onTap: () async {
+                          const url = 'https://openstreetmap.org/copyright';
+                          if (await canLaunchUrl(Uri.parse(url))) {
+                            await launchUrl(Uri.parse(url));
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -161,26 +186,32 @@ class MapWidgetState extends State<MapWidget> {
 
   @override
   Widget build(BuildContext context) {
-    late LatLng addressLocation;
-
-    return FutureBuilder<LatLng>(
-        future: _addressLocation,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          } else if (snapshot.hasError) {
-            return Container();
-          } else {
-            addressLocation = snapshot.data!;
-            return Column(children: <Widget>[
-              _buildMap(addressLocation, widget.homeLocation),
-              Text(
-                  'Entfernung: ${formatDistance(calculateDistance(addressLocation, widget.homeLocation))}',
-                  style: const TextStyle(color: Colors.white, fontSize: 15)),
-            ]);
-          }
-        });
+    return FutureBuilder(
+      future: _addressLocation,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        } else if (snapshot.hasError) {
+          return Container();
+        } else {
+          final (:stammheim, :member) = snapshot.data!;
+          return Column(
+            children: <Widget>[
+              _buildMap(member, stammheim),
+              if (stammheim != null)
+                ListTile(
+                  leading: const Icon(Icons.social_distance),
+                  title: Text(
+                    formatDistance(calculateDistance(member, stammheim)),
+                  ),
+                  subtitle: const Text("Entfernung"),
+                ),
+            ],
+          );
+        }
+      },
+    );
   }
 }

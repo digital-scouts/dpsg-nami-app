@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
+import 'package:nami/utilities/stufe.dart';
+import 'package:nami/utilities/theme.dart';
 
 class GroupBarChart extends StatefulWidget {
   final List<Mitglied> mitglieder;
@@ -12,24 +14,21 @@ class GroupBarChart extends StatefulWidget {
 }
 
 class GroupBarChartState extends State<GroupBarChart> {
-  Map<String, GroupData> getMemberPerGroup() {
-    return widget.mitglieder.fold<Map<String, GroupData>>({}, (map, member) {
-      String stufe = member.stufe;
-      String taetigkeit = member.isMitgliedLeiter() ? 'leiter' : 'mitglied';
+  Map<Stufe, GroupData> getMemberPerGroup() {
+    return widget.mitglieder.fold<Map<Stufe, GroupData>>({
+      for (var stufe in [
+        Stufe.BIBER,
+        Stufe.WOELFLING,
+        Stufe.JUNGPADFINDER,
+        Stufe.PFADFINDER,
+        Stufe.ROVER,
+        Stufe.KEINE_STUFE
+      ])
+        stufe: GroupData(0, 0),
+    }, (map, member) {
+      final stufe = member.currentStufeWithoutLeiter;
 
-      if (stufe == 'keine Stufe') {
-        taetigkeit = stufe;
-      }
-
-      if (!map.containsKey(stufe)) {
-        map["Wölfling"] = GroupData(0, 0);
-        map["Jungpfadfinder"] = GroupData(0, 0);
-        map["Pfadfinder"] = GroupData(0, 0);
-        map["Rover"] = GroupData(0, 0);
-        map["keine Stufe"] = GroupData(0, 0);
-      }
-
-      if (taetigkeit == 'leiter') {
+      if (member.isMitgliedLeiter()) {
         map[stufe]!.leiter += 1;
       } else {
         map[stufe]!.mitglied += 1;
@@ -37,10 +36,9 @@ class GroupBarChartState extends State<GroupBarChart> {
 
       return map;
     });
-    // memberPerGroup.remove('keine Stufe');
   }
 
-  int findHighestValue(Map<String, GroupData> data) {
+  int findHighestValue(Map<Stufe, GroupData> data) {
     int highestValue = 0;
 
     data.forEach((key, value) {
@@ -62,25 +60,65 @@ class GroupBarChartState extends State<GroupBarChart> {
     int index = 0;
     getMemberPerGroup().forEach((key, value) {
       switch (key) {
-        case "Wölfling":
-          sectionData.add(createGroupData(index, value.leiter.toDouble(),
-              value.mitglied.toDouble(), Colors.orange));
+        case Stufe.BIBER:
+          sectionData.add(
+            createGroupData(
+              index,
+              value.leiter.toDouble(),
+              value.mitglied.toDouble(),
+              DPSGColors.biberFarbe,
+            ),
+          );
           break;
-        case "Jungpfadfinder":
-          sectionData.add(createGroupData(index, value.leiter.toDouble(),
-              value.mitglied.toDouble(), Colors.blue));
+        case Stufe.WOELFLING:
+          sectionData.add(
+            createGroupData(
+              index,
+              value.leiter.toDouble(),
+              value.mitglied.toDouble(),
+              DPSGColors.woelfingFarbe,
+            ),
+          );
           break;
-        case "Pfadfinder":
-          sectionData.add(createGroupData(index, value.leiter.toDouble(),
-              value.mitglied.toDouble(), Colors.green));
+        case Stufe.JUNGPADFINDER:
+          sectionData.add(
+            createGroupData(
+              index,
+              value.leiter.toDouble(),
+              value.mitglied.toDouble(),
+              DPSGColors.jungpfadfinderFarbe,
+            ),
+          );
           break;
-        case "Rover":
-          sectionData.add(createGroupData(index, value.leiter.toDouble(),
-              value.mitglied.toDouble(), Colors.red));
+        case Stufe.PFADFINDER:
+          sectionData.add(
+            createGroupData(
+              index,
+              value.leiter.toDouble(),
+              value.mitglied.toDouble(),
+              DPSGColors.pfadfinderFarbe,
+            ),
+          );
+          break;
+        case Stufe.ROVER:
+          sectionData.add(
+            createGroupData(
+              index,
+              value.leiter.toDouble(),
+              value.mitglied.toDouble(),
+              DPSGColors.roverFarbe,
+            ),
+          );
           break;
         default:
-          sectionData.add(createGroupData(index, value.leiter.toDouble(),
-              value.mitglied.toDouble(), Colors.grey));
+          sectionData.add(
+            createGroupData(
+              index,
+              value.leiter.toDouble(),
+              value.mitglied.toDouble(),
+              DPSGColors.leiterFarbe,
+            ),
+          );
           break;
       }
       index++;
@@ -90,28 +128,33 @@ class GroupBarChartState extends State<GroupBarChart> {
   }
 
   Widget bottomTitles(double value, TitleMeta meta) {
-    const style = TextStyle(fontSize: 10);
     String text;
     switch (value.toInt()) {
       case 0:
-        text = 'Wö';
+        text = 'Biber';
         break;
       case 1:
-        text = 'Jufi';
+        text = 'Wölflinge';
         break;
       case 2:
-        text = 'Pfadi';
+        text = 'Jufis';
         break;
       case 3:
+        text = 'Pfadis';
+        break;
+      case 4:
         text = 'Rover';
         break;
 
       default:
-        text = '';
+        text = 'Sonstige';
     }
     return SideTitleWidget(
       axisSide: meta.axisSide,
-      child: Text(text, style: style),
+      child: Text(
+        text,
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
     );
   }
 
@@ -129,17 +172,17 @@ class GroupBarChartState extends State<GroupBarChart> {
           fromY: 0,
           toY: leaderCount,
           color: leaderColor,
-          width: 20,
+          width: 30,
           borderRadius: const BorderRadius.only(),
         ),
         BarChartRodData(
           fromY: leaderCount + betweenSpace,
           toY: leaderCount + betweenSpace + memberCount,
           color: color,
-          width: 20,
+          width: 30,
           borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(6),
-            topRight: Radius.circular(6),
+            topLeft: Radius.circular(10),
+            topRight: Radius.circular(10),
           ),
         ),
       ],
@@ -148,8 +191,9 @@ class GroupBarChartState extends State<GroupBarChart> {
 
   @override
   Widget build(BuildContext context) {
+    final data = createData();
     return AspectRatio(
-      aspectRatio: 1.3,
+      aspectRatio: 4 / 3,
       child: BarChart(
         BarChartData(
           alignment: BarChartAlignment.spaceBetween,
@@ -165,10 +209,17 @@ class GroupBarChartState extends State<GroupBarChart> {
                 BarChartRodData rod,
                 int rodIndex,
               ) {
+                final count = (rod.toY - rod.fromY).round();
+                if (count == 0) {
+                  return null;
+                }
                 return BarTooltipItem(
-                  rod.toY > 0 ? (rod.toY - rod.fromY).round().toString() : '',
-                  const TextStyle(
-                    color: Colors.black,
+                  "$count",
+                  TextStyle(
+                    color: rod.toY >=
+                            1 // Color text on bar different that on surface
+                        ? Colors.black
+                        : Theme.of(context).colorScheme.onBackground,
                   ),
                 );
               },
@@ -188,8 +239,7 @@ class GroupBarChartState extends State<GroupBarChart> {
           ),
           borderData: FlBorderData(show: false),
           gridData: const FlGridData(show: false),
-          barGroups: createData(),
-          maxY: findHighestValue(getMemberPerGroup()).toDouble() + 5,
+          barGroups: data,
         ),
       ),
     );

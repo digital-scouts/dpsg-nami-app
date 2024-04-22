@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:nami/utilities/stufe.dart';
 
 class GroupPieChart extends StatefulWidget {
   final Map<String, int> memberPerGroup;
@@ -54,23 +55,21 @@ class GroupPieChartState extends State<GroupPieChart> {
     widget.memberPerGroup.forEach((key, value) {
       switch (key) {
         case "Wölfling":
-          sectionData.add(createPieElement(
-              key, value, Colors.orange, 'assets/images/woe.png', index));
+          sectionData.add(createPieElement(key, value, Stufe.WOELFLING, index));
           break;
         case "Jungpfadfinder":
-          sectionData.add(createPieElement(
-              key, value, Colors.blue, 'assets/images/jufi.png', index));
+          sectionData
+              .add(createPieElement(key, value, Stufe.JUNGPADFINDER, index));
           break;
         case "Pfadfinder":
-          sectionData.add(createPieElement(
-              key, value, Colors.green, 'assets/images/pfadi.png', index));
+          sectionData
+              .add(createPieElement(key, value, Stufe.PFADFINDER, index));
           break;
         case "Rover":
-          sectionData.add(createPieElement(
-              key, value, Colors.red, 'assets/images/rover.png', index));
+          sectionData.add(createPieElement(key, value, Stufe.ROVER, index));
           break;
         default:
-          sectionData.add(createPieElement(key, value, Colors.grey, '', index));
+          sectionData.add(createPieElement(key, value, null, index));
       }
       index++;
     });
@@ -79,7 +78,7 @@ class GroupPieChartState extends State<GroupPieChart> {
   }
 
   PieChartSectionData createPieElement(
-      String name, num value, Color color, String badge, num index) {
+      String name, num value, Stufe? stufe, num index) {
     final isTouched = index == touchedIndex;
     final fontSize = isTouched ? 20.0 : 16.0;
     final radius = isTouched ? 110.0 : 100.0;
@@ -87,7 +86,7 @@ class GroupPieChartState extends State<GroupPieChart> {
     const shadows = [Shadow(color: Colors.black, blurRadius: 2)];
 
     return PieChartSectionData(
-      color: color,
+      color: stufe?.farbe ?? Stufe.KEINE_STUFE.farbe,
       value: value.toDouble(),
       title: value.toString(),
       radius: radius,
@@ -97,9 +96,9 @@ class GroupPieChartState extends State<GroupPieChart> {
         color: const Color(0xffffffff),
         shadows: shadows,
       ),
-      badgeWidget: badge.isNotEmpty
+      badgeWidget: stufe != null
           ? _Badge(
-              badge,
+              stufe.imagePath!,
               size: widgetSize,
               borderColor: Colors.black,
             )

@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:nami/utilities/hive/hive.handler.dart';
 import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/nami/nami-login.service.dart';
 import 'dart:async';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:provider/provider.dart';
+import 'package:nami/utilities/notifications.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:nami/utilities/app.state.dart';
 
@@ -48,27 +52,40 @@ class LoginScreenState extends State<LoginScreen> {
       _wrongCredentials = true;
     });
     Timer(
-        const Duration(seconds: 3),
-        () => setState(() {
-              _wrongCredentials = false;
-            }));
+      const Duration(seconds: 3),
+      () => setState(() => _wrongCredentials = false),
+    );
   }
 
   Future<void> loginButtonPressed() async {
     setState(() {
       _loading = true;
     });
+    final appStateHandler = context.read<AppStateHandler>();
+    final differentUser = _mitgliedsnummer != getNamiLoginId();
+    if (differentUser) {
+      logout();
+    }
     if (await namiLoginWithPassword(_mitgliedsnummer, _password)) {
       setState(() {
         _loading = false;
       });
+      setNamiLoginId(_mitgliedsnummer);
       if (_rememberMe) {
         setNamiPassword(_password);
+      } else {
+        deleteNamiPassword();
       }
-      setNamiLoginId(_mitgliedsnummer);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        AppStateHandler().setLoadDataState(context, loadAll: true);
-      });
+      appStateHandler.lastAuthenticated = DateTime.now();
+      if (differentUser || appStateHandler.currentState == AppState.loggedOut) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          appStateHandler.setLoadDataState(loadAll: true);
+        });
+      } else if (appStateHandler.currentState == AppState.relogin) {
+        /// setting to result to `true` to signal that the relogin was successful
+        // ignore: use_build_context_synchronously
+        Navigator.pop(context, true);
+      }
     } else {
       wrongCredentials();
       setState(() {
@@ -108,7 +125,9 @@ class LoginScreenState extends State<LoginScreen> {
                 return oldValue;
               }),
             ],
+            textInputAction: TextInputAction.next,
             keyboardType: TextInputType.number,
+            autofillHints: const [AutofillHints.username],
             style: const TextStyle(
               color: Colors.white,
               fontFamily: 'OpenSans',
@@ -146,7 +165,9 @@ class LoginScreenState extends State<LoginScreen> {
             onChanged: (text) {
               _password = text;
             },
+            onSubmitted: (_) => loginButtonPressed(),
             obscureText: true,
+            autofillHints: const [AutofillHints.password],
             style: const TextStyle(
               color: Colors.white,
               fontFamily: 'OpenSans',
@@ -194,7 +215,7 @@ class LoginScreenState extends State<LoginScreen> {
               activeColor: Colors.white,
               onChanged: (value) {
                 setState(() {
-                  debugPrint('rememberMe: $value');
+                  sensLog.t('rememberMe: $value');
                   _rememberMe = value! | false;
                 });
               },
@@ -289,6 +310,19 @@ class LoginScreenState extends State<LoginScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!getWelcomeMessageShown()) {
+        bool result = await showWelcomeDialog();
+        if (result) {
+          setWelcomeMessageShown(true);
+        }
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: AnnotatedRegion<SystemUiOverlayStyle>(
@@ -328,17 +362,21 @@ class LoginScreenState extends State<LoginScreen> {
                     children: <Widget>[
                       Image.asset('assets/images/dpsg_logo.png'),
                       const SizedBox(height: 30.0),
-                      _buildMitgliednummerTF(),
-                      const SizedBox(
-                        height: 30.0,
+                      AutofillGroup(
+                        child: Column(
+                          children: [
+                            _buildMitgliednummerTF(),
+                            const SizedBox(height: 30.0),
+                            _buildPasswordTF(),
+                          ],
+                        ),
                       ),
-                      _buildPasswordTF(),
                       _buildForgotPasswordBtn(),
                       _buildRememberMeCheckbox(),
                       _buildLoginBtn(),
                       _wrongIdOrPassword(),
                       _buildSignupBtn(),
-                      _loadingSpinner()
+                      _loadingSpinner(),
                     ],
                   ),
                 ),

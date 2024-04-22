@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import 'package:nami/utilities/mitglied.filterAndSort.dart';
 
 // flutter packages pub run build_runner build
 enum SettingValue {
@@ -10,14 +11,23 @@ enum SettingValue {
   gruppierungId,
   gruppierungName,
   lastNamiSync,
+  lastNamiSyncTry,
   lastLoginCheck,
+  syncDataLoadingOverWifiOnly,
   stufenwechselDatum,
+  stammheim,
+  welcomeMessageShown,
+  favouriteList,
+  listSortBy,
+  listFilterInactive,
+  listSubtext,
   metaGeschechtOptions,
   metaLandOptions,
   metaBeitragsartOptions,
   metaRegionOptions,
   metaStaatsangehoerigkeitOptions,
   metaMitgliedstypOptions,
+  biometricAuthenticationEnabled,
 }
 
 void setMetaData(
@@ -39,6 +49,36 @@ void setMetaData(
       staatsangehoerigkeit);
   Hive.box('settingsBox')
       .put(SettingValue.metaMitgliedstypOptions.toString(), mitgliedstyp);
+}
+
+MemberSorting getListSort() {
+  String? sortingString =
+      Hive.box('settingsBox').get(SettingValue.listSortBy.toString());
+  return MemberSorting.values.firstWhere(
+    (e) => e.toString() == sortingString,
+    orElse: () => MemberSorting.name,
+  );
+}
+
+MemberSubElement getListSubtext() {
+  String? subElementString =
+      Hive.box('settingsBox').get(SettingValue.listSubtext.toString());
+  return MemberSubElement.values.firstWhere(
+    (e) => e.toString() == subElementString,
+    orElse: () => MemberSubElement.id,
+  );
+}
+
+bool getListFilterInactive() {
+  return Hive.box('settingsBox')
+          .get(SettingValue.listFilterInactive.toString()) ??
+      true;
+}
+
+bool getWelcomeMessageShown() {
+  return Hive.box('settingsBox')
+          .get(SettingValue.welcomeMessageShown.toString()) ??
+      false;
 }
 
 List<String> getMetaGeschlechtOptions() {
@@ -76,6 +116,59 @@ List<String> getMetaMitgliedstypOptions() {
       [];
 }
 
+List<int> getFavouriteList() {
+  return Hive.box('settingsBox').get(SettingValue.favouriteList.toString()) ??
+      [];
+}
+
+bool getBiometricAuthenticationEnabled() {
+  return Hive.box('settingsBox')
+          .get(SettingValue.biometricAuthenticationEnabled.toString()) ??
+      false;
+}
+
+int addFavouriteList(int id) {
+  List<int> favouritList =
+      Hive.box('settingsBox').get(SettingValue.favouriteList.toString()) ?? [];
+  favouritList.add(id);
+  Hive.box('settingsBox')
+      .put(SettingValue.favouriteList.toString(), favouritList);
+  return id;
+}
+
+void setListSort(MemberSorting value) {
+  Hive.box('settingsBox')
+      .put(SettingValue.listSortBy.toString(), value.toString());
+}
+
+void setListFilterInactive(bool value) {
+  Hive.box('settingsBox')
+      .put(SettingValue.listFilterInactive.toString(), value);
+}
+
+void setListSubtext(MemberSubElement value) {
+  Hive.box('settingsBox')
+      .put(SettingValue.listSubtext.toString(), value.toString());
+}
+
+void removeFavouriteList(int id) {
+  List<int> favouritList =
+      Hive.box('settingsBox').get(SettingValue.favouriteList.toString()) ?? [];
+  favouritList.remove(id);
+  Hive.box('settingsBox')
+      .put(SettingValue.favouriteList.toString(), favouritList);
+}
+
+void setFavouriteList(List<int> favouritList) {
+  Hive.box('settingsBox')
+      .put(SettingValue.favouriteList.toString(), favouritList);
+}
+
+void setWelcomeMessageShown(bool value) {
+  Hive.box('settingsBox')
+      .put(SettingValue.welcomeMessageShown.toString(), value);
+}
+
 void setNamiApiCookie(String namiApiToken) {
   Hive.box('settingsBox')
       .put(SettingValue.namiApiCookie.toString(), namiApiToken);
@@ -84,6 +177,14 @@ void setNamiApiCookie(String namiApiToken) {
 void setStufenwechselDatum(DateTime stufenwechselDatum) {
   Hive.box('settingsBox')
       .put(SettingValue.stufenwechselDatum.toString(), stufenwechselDatum);
+}
+
+void setStammheim(String stammheim) {
+  if (stammheim.isEmpty) {
+    Hive.box('settingsBox').delete(SettingValue.stammheim.toString());
+    return;
+  }
+  Hive.box('settingsBox').put(SettingValue.stammheim.toString(), stammheim);
 }
 
 void setNamiLoginId(int loginId) async {
@@ -117,9 +218,24 @@ void setLastNamiSync(DateTime lastNamiSync) {
       .put(SettingValue.lastNamiSync.toString(), lastNamiSync);
 }
 
+void setLastNamiSyncTry(DateTime lastNamiSyncTry) {
+  Hive.box('settingsBox')
+      .put(SettingValue.lastNamiSyncTry.toString(), lastNamiSyncTry);
+}
+
 void setLastLoginCheck(DateTime lastLoginCheck) {
   Hive.box('settingsBox')
       .put(SettingValue.lastLoginCheck.toString(), lastLoginCheck);
+}
+
+void setDataLoadingOverWifiOnly(bool value) {
+  Hive.box('settingsBox')
+      .put(SettingValue.syncDataLoadingOverWifiOnly.toString(), value);
+}
+
+void setBiometricAuthenticationEnabled(bool value) {
+  Hive.box('settingsBox')
+      .put(SettingValue.biometricAuthenticationEnabled.toString(), value);
 }
 
 String getNamiApiCookie() {
@@ -130,6 +246,12 @@ String getNamiApiCookie() {
 DateTime getLastLoginCheck() {
   return Hive.box('settingsBox').get(SettingValue.lastLoginCheck.toString()) ??
       DateTime.utc(1989, 1, 1);
+}
+
+bool getDataLoadingOverWifiOnly() {
+  return Hive.box('settingsBox')
+          .get(SettingValue.syncDataLoadingOverWifiOnly.toString()) ??
+      true;
 }
 
 DateTime getNextStufenwechselDatum() {
@@ -155,6 +277,10 @@ DateTime getNextStufenwechselDatum() {
   }
 
   return stufenwechselDatum;
+}
+
+String? getStammheim() {
+  return Hive.box('settingsBox').get(SettingValue.stammheim.toString());
 }
 
 int? getGruppierungId() {
@@ -187,6 +313,23 @@ DateTime getLastNamiSync() {
       DateTime.utc(1989, 1, 1);
 }
 
+DateTime getLastNamiSyncTry() {
+  return Hive.box('settingsBox').get(SettingValue.lastNamiSyncTry.toString()) ??
+      DateTime.utc(1989, 1, 1);
+}
+
+void deleteListSort() {
+  Hive.box('settingsBox').delete(SettingValue.listSortBy.toString());
+}
+
+void deleteListFilterInactive() {
+  Hive.box('settingsBox').delete(SettingValue.listFilterInactive.toString());
+}
+
+void deleteListSubtext() {
+  Hive.box('settingsBox').delete(SettingValue.listSubtext.toString());
+}
+
 void deleteNamiApiCookie() {
   Hive.box('settingsBox').delete(SettingValue.namiApiCookie.toString());
 }
@@ -197,6 +340,10 @@ void deleteLastLoginCheck() {
 
 void deleteLastNamiSync() {
   Hive.box('settingsBox').delete(SettingValue.lastNamiSync.toString());
+}
+
+void deleteLastNamiSyncTry() {
+  Hive.box('settingsBox').delete(SettingValue.lastNamiSyncTry.toString());
 }
 
 void deleteNamiLoginId() {

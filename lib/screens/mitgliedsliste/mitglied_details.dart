@@ -1,19 +1,22 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:nami/screens/widgets/map.widget.dart';
 import 'package:nami/screens/widgets/mitgliedStufenPieChart.widget.dart';
+import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/nami/nami_edit_taetigkeiten.dart';
 import 'package:nami/utilities/stufe.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
 import 'package:maps_launcher/maps_launcher.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:intl/intl.dart';
+import 'package:nami/utilities/types.dart';
 
 // ignore: must_be_immutable
 class MitgliedDetail extends StatefulWidget {
@@ -36,22 +39,10 @@ class MitgliedDetailState extends State<MitgliedDetail>
     _tabController = TabController(length: 2, vsync: this);
   }
 
-  Widget _buildBox(List<Widget> children) {
-    return SizedBox(
-      child: Card(
-        color: Theme.of(context).colorScheme.surface,
-        elevation: 2.0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-        child: IntrinsicHeight(
-          child: Padding(
-            padding: const EdgeInsets.all(5.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: children,
-            ),
-          ),
-        ),
-      ),
+  Widget _buildBox(Widget child) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 5.0),
+      child: child,
     );
   }
 
@@ -59,31 +50,35 @@ class MitgliedDetailState extends State<MitgliedDetail>
     // filter taetigkeiten to only include Stufen Taetigkeiten
     // count years per stufe by subtracting aktivVon from aktivBis or now
     Map<String, int> tageProStufe = {};
-    List<String> stufen =
-        Stufe.stufen.map((stufe) => stufe.name.value).toList();
+    List<String> stufen = Stufe.values.map((stufe) => stufe.display).toList();
+    int tageAlsMitglied = 0;
+    int tageAlsLeiter = 0;
     for (var taetigkeit in widget.mitglied.taetigkeiten) {
       if (taetigkeit.untergliederung != null &&
           stufen.contains(taetigkeit.untergliederung) &&
           (taetigkeit.taetigkeit.contains('Leiter') ||
               taetigkeit.taetigkeit.contains('Mitglied'))) {
-        int sum = tageProStufe[taetigkeit.untergliederung!] ?? 0;
         String stufe = taetigkeit.taetigkeit.contains('Leiter')
-            ? 'LeiterIn'
-            : taetigkeit.untergliederung!;
+            ? 'LeiterIn - ${taetigkeit.untergliederung}'
+            : 'Mitglied - ${taetigkeit.untergliederung}';
+        int sum = tageProStufe[stufe] ?? 0;
+
         // todo upgrade: show Mietglieds und Leitungszeit pro Stufe wenn Leitungszeit Mitgliedszeit übersteit
-        tageProStufe[stufe] = sum +
-            (taetigkeit.isActive()
-                ? DateTime.now().difference(taetigkeit.aktivVon).inDays ~/ 12
-                : taetigkeit.isFutureTaetigkeit()
-                    ? 0
-                    : taetigkeit.aktivBis!
-                            .difference(taetigkeit.aktivVon)
-                            .inDays ~/
-                        12);
+        int activeDays = (taetigkeit.isActive()
+            ? DateTime.now().difference(taetigkeit.aktivVon).inDays
+            : taetigkeit.isFutureTaetigkeit()
+                ? 0
+                : taetigkeit.aktivBis!.difference(taetigkeit.aktivVon).inDays);
+        tageProStufe[stufe] = sum + activeDays;
+        if (taetigkeit.taetigkeit.contains('Leiter')) {
+          tageAlsLeiter += activeDays;
+        } else {
+          tageAlsMitglied += activeDays;
+        }
       }
     }
 
-    tageProStufe.removeWhere((key, value) => value == 0);
+    tageProStufe.removeWhere((key, value) => value < 1);
 
     String dauerText = '';
     int pfadfinderTage =
@@ -103,7 +98,10 @@ class MitgliedDetailState extends State<MitgliedDetail>
         child: SizedBox(
       child: Column(
         children: [
-          MitgliedStufenPieChart(memberPerGroup: tageProStufe),
+          if (tageProStufe.length > 1)
+            MitgliedStufenPieChart(
+                memberPerGroup: tageProStufe,
+                showLeiterGrafik: tageAlsLeiter >= tageAlsMitglied),
           const SizedBox(height: 5),
           Text(dauerText),
           const SizedBox(height: 5),
@@ -145,7 +143,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
       children: [
         Text(
             'In der Stufe seit ${currentStufeYears > 1 ? '$currentStufeYears Jahren' : 'einem Jahr'}${currentStufeMonths != 0 ? ' und $currentStufeMonths Monaten' : ''}.'),
-        nextStufe?.name.value == 'Leiter' && maxStufenWechselJahr != null
+        nextStufe?.display == 'Leiter' && maxStufenWechselJahr != null
             ? Text('Stufenzeit endet $maxStufenWechselJahr')
             : (maxStufenWechselJahr != null && minStufenWechselJahr != null
                 ? Text(
@@ -172,7 +170,10 @@ class MitgliedDetailState extends State<MitgliedDetail>
       textAlign: TextAlign.left,
       text: TextSpan(
         text: path,
-        style: const TextStyle(color: Colors.blue, fontSize: 20),
+        style: Theme.of(context)
+            .textTheme
+            .titleMedium!
+            .copyWith(color: Colors.blue),
         recognizer: TapGestureRecognizer()
           ..onTap = () async {
             final Uri params = Uri(
@@ -195,7 +196,10 @@ class MitgliedDetailState extends State<MitgliedDetail>
       textAlign: TextAlign.left,
       text: TextSpan(
         text: address,
-        style: const TextStyle(color: Colors.blue, fontSize: 20),
+        style: Theme.of(context)
+            .textTheme
+            .titleMedium!
+            .copyWith(color: Colors.blue),
         recognizer: TapGestureRecognizer()
           ..onTap = () {
             MapsLauncher.launchQuery(address);
@@ -204,132 +208,129 @@ class MitgliedDetailState extends State<MitgliedDetail>
     );
   }
 
-  Widget _buildMailList() {
-    if (widget.mitglied.emailVertretungsberechtigter!.isNotEmpty ||
-        widget.mitglied.email!.isNotEmpty ||
-        widget.mitglied.telefon1!.isNotEmpty ||
-        widget.mitglied.telefon2!.isNotEmpty ||
-        widget.mitglied.telefon3!.isNotEmpty) {
-      return _buildBox(<Widget>[
-        if (widget.mitglied.email!.isNotEmpty)
-          const Text("E-Mail",
-              style: TextStyle(color: Colors.white, fontSize: 20)),
-        if (widget.mitglied.email!.isNotEmpty)
-          _buildLinkText('mailto', widget.mitglied.email!),
-        if (widget.mitglied.emailVertretungsberechtigter!.isNotEmpty)
-          const Text("E-Mail Vertretungsberechtigte:r",
-              style: TextStyle(color: Colors.white, fontSize: 20)),
-        if (widget.mitglied.emailVertretungsberechtigter!.isNotEmpty)
-          _buildLinkText(
-              'mailto', widget.mitglied.emailVertretungsberechtigter!),
-        if (widget.mitglied.telefon1!.isNotEmpty)
-          const Text("Telefon",
-              style: TextStyle(color: Colors.white, fontSize: 20)),
-        if (widget.mitglied.telefon1!.isNotEmpty)
-          _buildLinkText('tel', widget.mitglied.telefon1!),
-        if (widget.mitglied.telefon2!.isNotEmpty)
-          const Text("Telefon",
-              style: TextStyle(color: Colors.white, fontSize: 20)),
-        if (widget.mitglied.telefon2!.isNotEmpty)
-          _buildLinkText('tel', widget.mitglied.telefon2!),
-        if (widget.mitglied.telefon3!.isNotEmpty)
-          const Text("Telefon",
-              style: TextStyle(color: Colors.white, fontSize: 20)),
-        if (widget.mitglied.telefon3!.isNotEmpty)
-          _buildLinkText('tel', widget.mitglied.telefon3!),
-      ]);
-    } else {
-      return Container();
-    }
-  }
-
   Widget _buildAddress() {
-    LatLng homeLocation = const LatLng(53.608620, 9.897620);
     String memberAddress =
         '${widget.mitglied.strasse}, ${widget.mitglied.plz} ${widget.mitglied.ort}';
 
-    return _buildBox(<Widget>[
-      const Text("Anschrift",
-          style: TextStyle(color: Colors.white, fontSize: 20)),
-      _buildMapText(memberAddress),
-      MapWidget(
-        homeLocation: homeLocation,
-        memberAddress: memberAddress,
-      ),
-    ]);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Anschrift",
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        _buildBox(
+          Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.home),
+                title: _buildMapText(memberAddress),
+              ),
+              MapWidget(
+                memberAddress: memberAddress,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
-  Widget _buildGeburtsdatum() {
-    final int age = widget.mitglied.getAlterAm();
-    return _buildBox(<Widget>[
-      Text(
-          'Alter: $age (${widget.mitglied.geburtsDatum.day < 10 ? '0' : ''}${widget.mitglied.geburtsDatum.day}.${widget.mitglied.geburtsDatum.month < 10 ? '0' : ''}${widget.mitglied.geburtsDatum.month}.${widget.mitglied.geburtsDatum.year})',
-          style: const TextStyle(color: Colors.white, fontSize: 18)),
-    ]);
+  Widget _buildGeneralInfos() {
+    final mitglied = widget.mitglied;
+    final int age = mitglied.getAlterAm();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Allgemeine Informationen",
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        _buildBox(
+          Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.event),
+                subtitle: const Text('Alter'),
+                title: Text(
+                    "$age (${widget.mitglied.geburtsDatum.prettyPrint()})"),
+              ),
+              if (mitglied.email.isNotNullOrEmpty)
+                ListTile(
+                  leading: const Icon(Icons.email),
+                  subtitle: const Text('E-Mail'),
+                  title: _buildLinkText("mailto", mitglied.email!),
+                ),
+              if (mitglied.emailVertretungsberechtigter.isNotNullOrEmpty)
+                ListTile(
+                  leading: const Icon(Icons.email),
+                  subtitle: const Text('E-Mail Vertretungsberechtigter'),
+                  title: _buildLinkText(
+                    "mailto",
+                    mitglied.emailVertretungsberechtigter!,
+                  ),
+                ),
+              if (mitglied.telefon1.isNotNullOrEmpty)
+                ListTile(
+                  leading: const Icon(Icons.call),
+                  subtitle: const Text('Festnetznummer'),
+                  title: _buildLinkText("tel", mitglied.telefon1!),
+                ),
+              if (mitglied.telefon2.isNotNullOrEmpty)
+                ListTile(
+                  leading: const Icon(Icons.call),
+                  subtitle: const Text('Mobilfunknummer'),
+                  title: _buildLinkText("tel", mitglied.telefon2!),
+                ),
+              if (mitglied.telefon3.isNotNullOrEmpty)
+                ListTile(
+                  leading: const Icon(Icons.call),
+                  subtitle: const Text('Geschäftlich'),
+                  title: _buildLinkText("tel", mitglied.telefon3!),
+                ),
+              ListTile(
+                leading: const Icon(Icons.tag),
+                subtitle: const Text('NaMi Mitgliedsnummer'),
+                title: Text(mitglied.mitgliedsNummer.toString()),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildTaetigkeitImage(Taetigkeit taetigkeit) {
-    String imagerPath = 'assets/images/lilie.png';
+    String imagePath = 'assets/images/lilie_schwarz.png';
     if (taetigkeit.taetigkeit.trim() == 'Mitglied') {
-      imagerPath =
-          'assets/images/${Stufe.getStufeByString(taetigkeit.untergliederung!).imageName}';
+      imagePath =
+          Stufe.getStufeByString(taetigkeit.untergliederung!).imagePath!;
     } else if (taetigkeit.taetigkeit.contains('LeiterIn')) {
       return Image.asset(
-        imagerPath,
+        imagePath,
         width: 80.0,
         height: 80.0,
-        fit: BoxFit.cover,
         color: Stufe.getStufeByString(taetigkeit.untergliederung!).farbe,
         colorBlendMode: BlendMode.srcIn,
       );
     }
 
     return Image.asset(
-      imagerPath,
+      imagePath,
       width: 80.0,
       height: 80.0,
-      fit: BoxFit.cover,
     );
   }
 
   Widget _buildTaetigkeitenItem(Taetigkeit taetigkeit) {
-    return SizedBox(
-      height: 100,
-      width: 400,
-      child: Card(
-        color: Theme.of(context).colorScheme.surface,
-        elevation: 2.0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-        child: IntrinsicHeight(
-          child: Padding(
-            padding: const EdgeInsets.all(5.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildTaetigkeitImage(taetigkeit),
-                const SizedBox(width: 10.0),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${taetigkeit.taetigkeit} - ${taetigkeit.untergliederung}',
-                        style: const TextStyle(
-                          fontSize: 18.0,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 5.0),
-                      Text(
-                        '${DateFormat('MMMM').format(taetigkeit.aktivVon)} ${taetigkeit.aktivVon.year}${taetigkeit.aktivBis != null ? ' - ${DateFormat('MMMM').format(taetigkeit.aktivBis!)} ${taetigkeit.aktivBis!.year}' : ''}',
-                        style: const TextStyle(fontSize: 16.0),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+    return _buildBox(
+      ListTile(
+        leading: _buildTaetigkeitImage(taetigkeit),
+        title: Text(
+          '${taetigkeit.taetigkeit} ${taetigkeit.untergliederung!.isNotEmpty ? '- ${taetigkeit.untergliederung}' : ''} ',
+        ),
+        subtitle: Text(
+          '${DateFormat('MMMM').format(taetigkeit.aktivVon)} ${taetigkeit.aktivVon.year} ${taetigkeit.aktivBis != null ? '- ${DateFormat('MMMM').format(taetigkeit.aktivBis!)} ${taetigkeit.aktivBis!.year}' : ''} ${getGruppierungName() != taetigkeit.gruppierung ? '\nGruppierung: ${taetigkeit.gruppierung}' : ''}',
         ),
       ),
     );
@@ -347,8 +348,8 @@ class MitgliedDetailState extends State<MitgliedDetail>
       try {
         await stufenwechsel(
             widget.mitglied.id, currentTaetigkeit, stufe, aktivVon);
-      } catch (e) {
-        debugPrint('failed to stufenwechsel');
+      } catch (e, st) {
+        sensLog.e('failed to stufenwechsel', error: e, stackTrace: st);
       }
       widget.mitglied = Hive.box<Mitglied>('members')
           .values
@@ -361,63 +362,22 @@ class MitgliedDetailState extends State<MitgliedDetail>
       Taetigkeit fakeStufenwechselTaetigkeit, Taetigkeit currentTaetigkeit) {
     Stufe stufe =
         Stufe.getStufeByString(fakeStufenwechselTaetigkeit.untergliederung!);
-
-    return GestureDetector(
-      onTap: loadingStufenwechsel
-          ? null
-          : () => handleStufenwechsel(widget.mitglied.id, currentTaetigkeit,
-              stufe, fakeStufenwechselTaetigkeit.aktivVon),
-      child: SizedBox(
-        height: 100,
-        width: 400,
-        child: Card(
-          color: loadingStufenwechsel
-              ? Theme.of(context).colorScheme.surface
-              : Theme.of(context).colorScheme.background,
-          elevation: 2.0,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-          child: IntrinsicHeight(
-            child: Padding(
-              padding: const EdgeInsets.all(5.0),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  loadingStufenwechsel
-                      ? const Padding(
-                          padding: EdgeInsets.all(10),
-                          child: SizedBox(
-                            width: 60.0,
-                            height: 60.0,
-                            child: CircularProgressIndicator(),
-                          ))
-                      : _buildTaetigkeitImage(fakeStufenwechselTaetigkeit),
-                  const SizedBox(width: 10.0),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${fakeStufenwechselTaetigkeit.untergliederung}',
-                          style: const TextStyle(
-                            fontSize: 18.0,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const Text('(nach Stufenwechsel)'),
-                        const SizedBox(height: 5.0),
-                        Text(
-                          DateFormat('dd. MMMM yyyy')
-                              .format(fakeStufenwechselTaetigkeit.aktivVon),
-                          style: const TextStyle(fontSize: 16.0),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+    return _buildBox(
+      ListTile(
+        leading: loadingStufenwechsel
+            ? const CircularProgressIndicator()
+            : _buildTaetigkeitImage(fakeStufenwechselTaetigkeit),
+        title: Text(
+          '${fakeStufenwechselTaetigkeit.untergliederung}',
+        ),
+        subtitle: Text(
+            "Ab: ${DateFormat('dd. MMMM yyyy').format(fakeStufenwechselTaetigkeit.aktivVon)}"),
+        trailing: TextButton(
+          onPressed: loadingStufenwechsel
+              ? null
+              : () => handleStufenwechsel(widget.mitglied.id, currentTaetigkeit,
+                  stufe, fakeStufenwechselTaetigkeit.aktivVon),
+          child: const Text("Wechseln"),
         ),
       ),
     );
@@ -437,7 +397,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
         return AlertDialog(
           title: const Text('Stufenwechsel'),
           content: Text(
-              'Soll $mitgliedName am ${DateFormat('dd. MMMM yyyy').format(stufenwechselDate)} wirklich zu den ${stufeAfterWechsel.name.value} wechseln?\n\nDie aktuelle Tätigkeit (${currentTaetigkeit.untergliederung}) wird beendet.'),
+              'Soll $mitgliedName am ${DateFormat('dd. MMMM yyyy').format(stufenwechselDate)} wirklich zu den ${stufeAfterWechsel.display} wechseln?\n\nDie aktuelle Tätigkeit (${currentTaetigkeit.untergliederung}) wird beendet.'),
           actions: <Widget>[
             TextButton(
               child: const Text('Abbrechen'),
@@ -487,7 +447,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
     stufenwechselTaetigkeit.aktivVon = getNextStufenwechselDatum();
     stufenwechselTaetigkeit.taetigkeit = 'Mitglied';
     stufenwechselTaetigkeit.untergliederung =
-        widget.mitglied.nextStufe?.name.value;
+        widget.mitglied.nextStufe?.display;
     return stufenwechselTaetigkeit;
   }
 
@@ -499,14 +459,33 @@ class MitgliedDetailState extends State<MitgliedDetail>
     List<Taetigkeit> vergangeneTaetigkeiten =
         widget.mitglied.getAlteTaetigkeiten();
     vergangeneTaetigkeiten.sort((a, b) => b.aktivVon.compareTo(a.aktivVon));
-
+    bool isFavourit =
+        getFavouriteList().contains(widget.mitglied.mitgliedsNummer);
     Taetigkeit? fakeStufenwechselTaetigkeit = getStufenwechselTaetigkeit();
     Taetigkeit? currentTaetigkeit = getCurrenttaetigkeit(aktiveTaetigkeiten);
     return Scaffold(
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => openWiredash(context),
+          child: const Icon(Icons.feedback),
+        ),
         appBar: AppBar(
           shadowColor: Colors.transparent,
           backgroundColor: Stufe.getStufeByString(widget.mitglied.stufe).farbe,
           title: Text("${widget.mitglied.vorname} ${widget.mitglied.nachname}"),
+          actions: [
+            IconButton(
+                onPressed: () => {
+                      isFavourit
+                          ? removeFavouriteList(widget.mitglied.mitgliedsNummer)
+                          : addFavouriteList(widget.mitglied.mitgliedsNummer),
+                      setState(() {
+                        isFavourit = !isFavourit;
+                      })
+                    },
+                icon: isFavourit
+                    ? const Icon(Icons.star)
+                    : const Icon(Icons.star_border_outlined))
+          ],
         ),
         body: Column(
           children: <Widget>[
@@ -519,50 +498,49 @@ class MitgliedDetailState extends State<MitgliedDetail>
               ],
             ),
             Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  ListView(
-                    children: <Widget>[
-                      _buildGeburtsdatum(),
-                      _buildMailList(),
-                      _buildAddress(),
-                    ],
-                  ),
-                  ListView(
-                    children: [
-                      if (fakeStufenwechselTaetigkeit != null &&
-                          currentTaetigkeit != null)
-                        _buildStufenwechselItem(
-                            fakeStufenwechselTaetigkeit, currentTaetigkeit),
-                      SizedBox(
-                          height: aktiveTaetigkeiten.length * 110,
-                          child: ListView.builder(
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: aktiveTaetigkeiten.length,
-                              itemBuilder: (context, index) =>
-                                  _buildTaetigkeitenItem(
-                                      aktiveTaetigkeiten[index]))),
-                      const SizedBox(
-                        height: 20,
-                      ),
-                      if (vergangeneTaetigkeiten.isNotEmpty)
-                        const Text(
-                          'Abgeschlossene Tätigkeiten',
-                          style: TextStyle(fontSize: 18.0),
-                        ),
-                      if (vergangeneTaetigkeiten.isNotEmpty)
-                        SizedBox(
-                            height: vergangeneTaetigkeiten.length * 110,
-                            child: ListView.builder(
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemCount: vergangeneTaetigkeiten.length,
-                                itemBuilder: (context, index) =>
-                                    _buildTaetigkeitenItem(
-                                        vergangeneTaetigkeiten[index]))),
-                    ],
-                  )
-                ],
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    ListView(
+                      children: <Widget>[
+                        _buildGeneralInfos(),
+                        _buildAddress(),
+                      ],
+                    ),
+                    ListView(
+                      children: [
+                        if (kDebugMode &&
+                            fakeStufenwechselTaetigkeit != null &&
+                            currentTaetigkeit != null) ...[
+                          Text(
+                            'Zukünftige Tätigkeit',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          _buildStufenwechselItem(
+                              fakeStufenwechselTaetigkeit, currentTaetigkeit),
+                          const SizedBox(height: 10),
+                        ],
+                        if (aktiveTaetigkeiten.isNotEmpty)
+                          Text(
+                            'Aktive Tätigkeiten',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        for (final taetigkeit in aktiveTaetigkeiten)
+                          _buildTaetigkeitenItem(taetigkeit),
+                        const SizedBox(height: 10),
+                        if (vergangeneTaetigkeiten.isNotEmpty)
+                          Text(
+                            'Abgeschlossene Tätigkeiten',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        for (final taetigkeit in vergangeneTaetigkeiten)
+                          _buildTaetigkeitenItem(taetigkeit),
+                      ],
+                    )
+                  ],
+                ),
               ),
             ),
           ],

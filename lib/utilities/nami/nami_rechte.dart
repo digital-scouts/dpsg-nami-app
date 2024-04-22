@@ -1,20 +1,15 @@
 import 'dart:convert';
 
+import 'package:http/http.dart' as http;
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:html/parser.dart';
+import 'package:nami/utilities/logger.dart';
+import 'package:nami/utilities/nami/nami.service.dart';
 import 'package:nami/utilities/nami/nami_user_data.dart';
-
-String url = getNamiLUrl();
-String path = getNamiPath();
-int? gruppierungId = getGruppierungId();
-int? namiLoginId = getNamiLoginId();
-String cookie = getNamiApiCookie();
 
 // rechte enum
 enum AllowedFeatures {
+  error,
   appStart,
   memberEdit,
   memberCreate,
@@ -25,12 +20,14 @@ enum AllowedFeatures {
 extension AllowedFeaturesExtension on AllowedFeatures {
   String toReadableString() {
     switch (this) {
+      case AllowedFeatures.error:
+        return 'Fehler, bitte Logs über Einstellungen senden.';
       case AllowedFeatures.appStart:
-        return 'App Start';
+        return 'Mitglieder anzeigen';
       case AllowedFeatures.memberEdit:
-        return 'Member Edit';
+        return 'Miglieder bearbeiten';
       case AllowedFeatures.memberCreate:
-        return 'Member Create';
+        return 'Mitglieder anlegen';
       case AllowedFeatures.stufenwechsel:
         return 'Stufenwechsel';
       case AllowedFeatures.fuehrungszeugnis:
@@ -41,10 +38,22 @@ extension AllowedFeaturesExtension on AllowedFeatures {
   }
 }
 
-// Dokumentation zu den Rechten finden sich im README.md
+/// Dokumentation zu den Rechten finden sich im README.md
+/// Rechte werden anhand der User ID geladen (nicht die Mitgliedsnummer)
 Future<List<AllowedFeatures>> getRechte() async {
+  sensLog.w('Rechte werden geladen');
+  final cookie = getNamiApiCookie();
+  if (cookie == 'testLoginCookie') {
+    return [AllowedFeatures.appStart];
+  }
   List<AllowedFeatures> allowedFeatures = [];
-  Map<int, String> rechte = await loadRechteJson();
+  Map<int, String> rechte;
+  try {
+    rechte = await _loadRechteJson();
+  } catch (e) {
+    sensLog.i('Failed to load rechte: $e');
+    return [AllowedFeatures.error];
+  }
 
   if (rechte.containsKey(5) &&
       rechte.containsKey(36) &&
@@ -70,62 +79,65 @@ Future<List<AllowedFeatures>> getRechte() async {
     allowedFeatures.add(AllowedFeatures.fuehrungszeugnis);
   }
 
+  sensLog.t('Rechte: ${allowedFeatures.map((e) => e.toReadableString())}');
   return allowedFeatures;
 }
 
-Future<Map<int, String>> loadRechteJson() async {
-  final headers = {'Cookie': cookie};
+Future<Map<int, String>> _loadRechteJson() async {
   Mitglied? currentUser = findCurrentUser();
   if (currentUser == null) {
-    debugPrint('Kein Benutzer gefunden.');
-    return Map.from({});
+    sensLog.e('Failed to find current user in load rechte');
+    throw Exception('Failed to find current user in load rechte');
   }
 
-  dynamic document = await loadDocument(currentUser.id, headers);
+  dynamic document = await _loadDocument(currentUser.id);
 
   // Finden Sie das relevante <script>-Tags
   final scriptContent =
       document.querySelector('script:not([src]):not([href])')?.innerHtml;
 
   if (scriptContent == null) {
-    debugPrint('Kein relevantes <script>-Tag gefunden.');
-    return Map.from({});
+    sensLog.w('Kein relevantes <script>-Tag gefunden.');
+    throw Exception('Kein relevantes <script>-Tag gefunden.');
   }
 
   // Extrahieren Sie die items-Arrays Daten aus dem storeEbene-Objekt
-  var itemsJsonString = extractItems(scriptContent);
+  var itemsJsonString = _extractItems(scriptContent);
+  sensLog.i('Rechte - itemsString: $itemsJsonString');
 
   // Parsen des storeEbene-Objekts, um die json korrekte item-list zu erhalten
-  String correctedString = itemsJsonString.replaceAllMapped(
-      RegExp(r'(\w+):'), (Match match) => '"${match.group(1)}":');
+  // Regex findet alle Elemente die mit , oder { beginnen und mit " enden.
+  // Diese müssen mit " umschlossen werden, um gültiges JSON zu erhalten.
+  final correctedString = itemsJsonString.replaceAllMapped(
+      RegExp(r'(?<=[{,])\s*(\w+)(?=:)'),
+      (Match match) => '"${match.group(1)}"');
 
   // Parsen des items-Arrays-strings
   List<Map<String, dynamic>> items =
       List<Map<String, dynamic>>.from(json.decode(correctedString));
+  sensLog.i('Rechte - itemsList: ${items.toString()}');
 
-  Map<int, String> itemMap = createIdNameMap(items);
+  Map<int, String> itemMap = _createIdNameMap(items);
 
   return itemMap;
 }
 
-Future<dynamic> loadDocument(int userId, Map<String, String> headers) async {
-  try {
-    http.Response response = await http.get(
-        Uri.parse(
-            '$url/ica//pages/rights/ShowRights?gruppierung=$gruppierungId&id=$userId'),
-        headers: headers);
-    if (response.statusCode != 200) {
-      throw Exception('Failed to load user rights: $url');
-    }
-    final html = response.body;
-    return parse(html);
-  } catch (e) {
-    debugPrint(e.toString());
-    throw Exception('Failed to load user rights: $url');
-  }
+Future<dynamic> _loadDocument(int userId) async {
+  final gruppierungId = getGruppierungId();
+  // Error 500 on Session Expired
+  final reqUrl = Uri.parse(
+      '${getNamiLUrl()}/ica//pages/rights/ShowRights?gruppierung=$gruppierungId&id=$userId');
+  final html = await withMaybeRetryHTML(
+    () async => await http.get(
+      reqUrl,
+      headers: {'Cookie': getNamiApiCookie()},
+    ),
+    "Failed to load user rights",
+  );
+  return html;
 }
 
-String extractItems(scriptContent) {
+String _extractItems(scriptContent) {
   const scriptStoreEbeneElement = 'var storeEbene = ';
   int startIndex = scriptContent.indexOf(scriptStoreEbeneElement) +
       scriptStoreEbeneElement.length;
@@ -135,7 +147,7 @@ String extractItems(scriptContent) {
   return storeEbeneJsonString;
 }
 
-Map<int, String> createIdNameMap(List<Map<String, dynamic>> inputList) {
+Map<int, String> _createIdNameMap(List<Map<String, dynamic>> inputList) {
   return Map.fromEntries(inputList.map((item) {
     int id = int.tryParse(item['id'])!;
     String name = item['name'];

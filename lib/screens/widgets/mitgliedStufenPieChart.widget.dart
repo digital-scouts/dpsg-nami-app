@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:nami/utilities/stufe.dart';
 
 class MitgliedStufenPieChart extends StatefulWidget {
   final Map<String, int> memberPerGroup;
+  final bool showLeiterGrafik;
 
-  const MitgliedStufenPieChart({required this.memberPerGroup, Key? key})
+  const MitgliedStufenPieChart(
+      {required this.memberPerGroup, required this.showLeiterGrafik, Key? key})
       : super(key: key);
 
   @override
@@ -14,45 +17,105 @@ class MitgliedStufenPieChart extends StatefulWidget {
 class MitgliedStufenPieChartState extends State<MitgliedStufenPieChart> {
   @override
   Widget build(BuildContext context) {
+    Map<String, int> memberPerGroup =
+        summarizeData(widget.memberPerGroup, widget.showLeiterGrafik);
+
     return AspectRatio(
-      aspectRatio: 2.3,
-      child: PieChart(
-        PieChartData(
-          sectionsSpace: 0,
-          centerSpaceRadius: 0,
-          sections: createData(),
+      aspectRatio: 1.8,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4.0),
+        child: Container(
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black12,
+                spreadRadius: 0.1,
+                blurRadius: 5,
+              ),
+            ],
+          ),
+          child: PieChart(
+            PieChartData(
+              sectionsSpace: 0,
+              centerSpaceRadius: 0,
+              sections: createData(memberPerGroup, widget.showLeiterGrafik),
+            ),
+          ),
         ),
       ),
     );
   }
 
-  List<PieChartSectionData> createData() {
+  Map<String, int> summarizeData(
+      Map<String, int> memberPerGroup, bool showLeiterGrafik) {
+    int leiterSum = 0;
+    int mitgliedSum = 0;
+
+    memberPerGroup.forEach((key, value) {
+      if (key.contains('LeiterIn')) {
+        leiterSum += value;
+      } else if (key.contains('Mitglied')) {
+        mitgliedSum += value;
+      }
+    });
+    if (showLeiterGrafik) {
+      memberPerGroup.removeWhere((key, value) => key.contains('Mitglied'));
+      memberPerGroup.addAll({'Mitglied': mitgliedSum});
+    } else {
+      memberPerGroup.removeWhere((key, value) => key.contains('LeiterIn'));
+      memberPerGroup.addAll({'LeiterIn': leiterSum});
+    }
+
+    return memberPerGroup;
+  }
+
+  List<PieChartSectionData> createData(
+      Map<String, int> memberPerGroup, bool showLeiterGrafik) {
     List<PieChartSectionData> sectionData = [];
     num index = 0;
-    widget.memberPerGroup.forEach((key, value) {
-      switch (key) {
-        case "Wölfling":
+
+    memberPerGroup.forEach((key, value) {
+      if (showLeiterGrafik) {
+        if (key.contains('Mitglied')) {
+          sectionData
+              .add(createPieElement(key, value, null, index, showLeiterGrafik));
+        } else if (key.contains(Stufe.BIBER.display)) {
           sectionData.add(createPieElement(
-              key, value, Colors.orange, 'assets/images/woe.png', index));
-          break;
-        case "Jungpfadfinder":
+              "LeiterIn", value, Stufe.BIBER, index, showLeiterGrafik));
+        } else if (key.contains(Stufe.WOELFLING.display)) {
           sectionData.add(createPieElement(
-              key, value, Colors.blue, 'assets/images/jufi.png', index));
-          break;
-        case "Pfadfinder":
+              "LeiterIn", value, Stufe.WOELFLING, index, showLeiterGrafik));
+        } else if (key.contains(Stufe.JUNGPADFINDER.display)) {
           sectionData.add(createPieElement(
-              key, value, Colors.green, 'assets/images/pfadi.png', index));
-          break;
-        case "Rover":
+              "LeiterIn", value, Stufe.JUNGPADFINDER, index, showLeiterGrafik));
+        } else if (key.contains(Stufe.PFADFINDER.display)) {
           sectionData.add(createPieElement(
-              key, value, Colors.red, 'assets/images/rover.png', index));
-          break;
-        case "LeiterIn":
+              "LeiterIn", value, Stufe.PFADFINDER, index, showLeiterGrafik));
+        } else if (key.contains(Stufe.ROVER.display)) {
           sectionData.add(createPieElement(
-              key, value, Colors.yellow, 'assets/images/lilie.png', index));
-          break;
-        default:
-          sectionData.add(createPieElement(key, value, Colors.grey, '', index));
+              "LeiterIn", value, Stufe.ROVER, index, showLeiterGrafik));
+        }
+      } else {
+        if (key.contains('LeiterIn')) {
+          sectionData.add(createPieElement(
+              "LeiterIn", value, Stufe.LEITER, index, showLeiterGrafik));
+        } else if (key.contains(Stufe.BIBER.display)) {
+          sectionData.add(createPieElement(
+              key, value, Stufe.BIBER, index, showLeiterGrafik));
+        } else if (key.contains(Stufe.WOELFLING.display)) {
+          sectionData.add(createPieElement(
+              key, value, Stufe.WOELFLING, index, showLeiterGrafik));
+        } else if (key.contains(Stufe.JUNGPADFINDER.display)) {
+          sectionData.add(createPieElement(
+              key, value, Stufe.JUNGPADFINDER, index, showLeiterGrafik));
+        } else if (key.contains(Stufe.PFADFINDER.display)) {
+          sectionData.add(createPieElement(
+              key, value, Stufe.PFADFINDER, index, showLeiterGrafik));
+        } else if (key.contains(Stufe.ROVER.display)) {
+          sectionData.add(createPieElement(
+              key, value, Stufe.ROVER, index, showLeiterGrafik));
+        }
       }
       index++;
     });
@@ -61,23 +124,37 @@ class MitgliedStufenPieChartState extends State<MitgliedStufenPieChart> {
   }
 
   PieChartSectionData createPieElement(
-      String name, num value, Color color, String badge, num index) {
+      String name, num value, Stufe? stufe, num index, bool leiterElement) {
     const radius = 45.0;
-    const widgetSize = 25.0;
 
     return PieChartSectionData(
-      color: color,
+      color: stufe?.farbe ?? Stufe.KEINE_STUFE.farbe,
       value: value.toDouble(),
       showTitle: false,
       radius: radius,
-      badgeWidget: badge.isNotEmpty
-          ? _Badge(
-              badge,
-              size: widgetSize,
-              borderColor: Colors.black,
-            )
-          : null,
+      badgeWidget: stufe == null
+          ? null
+          : leiterElement
+              ? _buildBadgeLeader(stufe)
+              : _buildBadgeMember(stufe),
       badgePositionPercentageOffset: widget.memberPerGroup.length == 1 ? 0 : .6,
+    );
+  }
+
+  Widget? _buildBadgeLeader(Stufe stufe) {
+    return _Badge(
+      'assets/images/lilie_schwarz.png',
+      size: 25.0,
+      borderColor: Colors.black,
+      imageColor: stufe != Stufe.BIBER ? stufe.farbe : null,
+    );
+  }
+
+  Widget? _buildBadgeMember(Stufe stufe) {
+    return _Badge(
+      stufe.imagePath!,
+      size: 25.0,
+      borderColor: Colors.black,
     );
   }
 }
@@ -87,10 +164,12 @@ class _Badge extends StatelessWidget {
     this.svgAsset, {
     required this.size,
     required this.borderColor,
+    this.imageColor,
   });
   final String svgAsset;
   final double size;
   final Color borderColor;
+  final Color? imageColor;
 
   @override
   Widget build(BuildContext context) {
@@ -115,10 +194,13 @@ class _Badge extends StatelessWidget {
       ),
       padding: EdgeInsets.all(size * .1),
       child: Center(
-        child: Image.asset(
-          svgAsset,
-        ),
-      ),
+          child: Image.asset(
+        svgAsset,
+        width: 80.0,
+        height: 80.0,
+        color: imageColor,
+        colorBlendMode: BlendMode.srcIn,
+      )),
     );
   }
 }

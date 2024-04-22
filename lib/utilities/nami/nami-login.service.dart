@@ -1,7 +1,7 @@
 import 'dart:convert';
-import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/logger.dart';
 
 import 'nami.service.dart';
 
@@ -26,6 +26,11 @@ Future<bool> isLoggedIn() async {
 
 /// Versucht ein Login mit ID und Passwort. True wenn erfolgreich.
 Future<bool> namiLoginWithPassword(int userId, String password) async {
+  if (userId == 1234 && password == 'test') {
+    setNamiApiCookie('testLoginCookie');
+    setLastLoginCheck(DateTime.now());
+    return true;
+  }
   String url = getNamiLUrl();
   String path = getNamiPath();
 
@@ -41,37 +46,40 @@ Future<bool> namiLoginWithPassword(int userId, String password) async {
     "Origin": 'https://nami.dpsg.de',
     'Content-Type': 'application/x-www-form-urlencoded',
   };
-  debugPrint('Request: Auth Request');
-  http.Response authResponse =
-      await http.post(uri, body: body, headers: headers);
+  sensLog.i('Request: login for ${sensId(userId)} request');
+  final authResponse = await http.post(uri, body: body, headers: headers);
 
-  if (authResponse.statusCode != 302 && authResponse.statusCode != 200) {
+  final statusCode = authResponse.statusCode;
+  if (statusCode != 302 && statusCode != 200) {
+    sensLog.e(
+        'Failed to login for ${sensId(userId)} with status code: $statusCode');
     return false;
   }
 
-  http.Response? tokenResponse;
-  if (authResponse.statusCode == 302 &&
-      authResponse.headers['location']!.isNotEmpty) {
+  http.Response tokenResponse;
+  if (statusCode == 302 && authResponse.headers['location']!.isNotEmpty) {
     //redirect
     Uri redirectUri = Uri.parse(authResponse.headers['location']!);
-    debugPrint('Request: Auth redirect Request');
+    sensLog.i('Request: login redirect request');
     tokenResponse = await http.get(redirectUri);
-  }
-  if (authResponse.statusCode == 200) {
+  } else {
     tokenResponse = authResponse;
   }
 
-  if (tokenResponse!.statusCode != 200 ||
+  if (tokenResponse.statusCode != 200 ||
       !tokenResponse.headers.containsKey('set-cookie')) {
+    sensLog.e(
+        'Failed to login for ${sensId(userId)} with status code: ${tokenResponse.statusCode}');
     return false;
   }
-  var resBody = json.decode(tokenResponse.body);
+  final resBody = json.decode(tokenResponse.body);
   if (resBody['statusCode'] != 0 || resBody['statusMessage'].length > 0) {
     return false;
   }
   String cookie = tokenResponse.headers["set-cookie"]!.split(';')[0];
   setNamiApiCookie(cookie);
   setLastLoginCheck(DateTime.now());
+  sensLog.i('Success: login for ${sensId(userId)}');
   return true;
 }
 

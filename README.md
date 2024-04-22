@@ -1,7 +1,6 @@
 # NaMi
 
 [![Watch](https://img.shields.io/github/watchers/JanneckLange/dpsg-nami-app?label=Watch)](https://github.com/JanneckLange/dpsg-nami-app/subscription)
-[![wakatime](https://wakatime.com/badge/user/f75702c6-6ecd-478f-a765-9c0a07c62d50/project/c30b8bfa-fe60-4da1-9a32-9c86bad66605.svg)](https://wakatime.com/badge/user/f75702c6-6ecd-478f-a765-9c0a07c62d50/project/c30b8bfa-fe60-4da1-9a32-9c86bad66605)
 
 **Master**
 [![Release](https://img.shields.io/github/v/release/janneckLange/dpsg-nami-app?display_name=tag&include_prereleases)](https://github.com/JanneckLange/dpsg-nami-app/releases)
@@ -13,13 +12,34 @@
 
 Die NaMi ist die Namentliche Mitgliedermeldung des Pfadfinderverbandes DPSG (Deutsche Pfadfinderschaft Sankt Georg).
 
-Dies ist ein Flutter Projekt um die NaMi als App für Android und iOS anzubieten.
-
 ## Lizenz
 
 [![Lizenz](https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png)](https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png)
 
 Dieses Werk ist lizenziert unter einer [Creative Commons Namensnennung - Nicht-kommerziell - Weitergabe unter gleichen Bedingungen 4.0 International Lizenz.](http://creativecommons.org/licenses/by-nc-sa/4.0/)
+
+## Mitwirken
+
+### Tester
+Bevor die App kostenlos in den Stores verfügbar sein soll, wollen wir noch testen ob alles wie gewünscht funktioniert. Unterschiedliche Datenkonstellationen könnten zu uns noch unbekannten Fehlern führen. Um diese zu finden brauchen wir dich.
+
+Generell suchen wir jeden, der Interesse hat sich mit einer neuen App auseinander zu setzten, Feedback zu bestehenden Funktionen zu geben und ggf. Umfragen zu zukünftigen Funktionen teil zu nehmen. 
+
+**Vorraussetzungen:**
+- Du bist Mitglied in einer Gruppierung
+- Du hast NaMi Rechte andere Mitglieder zu sehen
+- Android mit PlayStore Konto oder iPhone mit Apple-ID
+
+
+Testversion der App laden: [Android](https://play.google.com/store/apps/details?id=de.jlange.nami.app) oder
+[iOS](https://testflight.apple.com/join/YGeELMUq)
+
+Neben Feedback zur aktuell Version der würden wir mit gelegtlichen Umfragen gerne mehr zum allgemeinen Nutzerverhalten erfahren. Schreibe mir eine Mail (dev@jannecklange.de) wenn du bereit bist due Zukunft der App mitzugestalten.
+
+### Entwickler
+#### Setup
+- [Flutter Setup](https://docs.flutter.dev/get-started/install)
+- [Wiredash Setup](https://docs.wiredash.com/guide/start)
 
 ## Aktuelle Funktionen
 
@@ -35,47 +55,6 @@ Dieses Werk ist lizenziert unter einer [Creative Commons Namensnennung - Nicht-k
 - Stufenwechsel durchführen
 - Führungszeugniss Antragsunterlagen herrunterladen
 
-## Versionen
-
-### [0.0.4] - ??
-- Add: Statistik Alterspyramide der Mitglieder hinzugefügt
-- Add: Rechte des Nutzers werden geprüft / Funktionen entsprechend freigeschaltet
-- Add: Mitgleider können per Formular bearbeitet und hinzugefügt werden
-- Add: Stufenwechsel kann über den Tab Tätigkeiten eines Mitglieds durchgeführt werden
-- Fix: Token wird aktuallisert, wenn dieser abgelaufen ist (Vorrausgesetzt, der Login wurde gespeichert)
-- Fix: Der Nutzer abgemeldet, wenn er Token abgelaufen ist und Login nicht gespeichert wurde
-
-### [0.0.3] - 06.10.2023 [![Test](https://img.shields.io/badge/release-v0.0.3-orange)](https://github.com/JanneckLange/dpsg-nami-app/releases/tag/v0.0.3)
-
-- Add: Seite Stistiken hinzugefügt
-  - Anzahl Mitgliedern/Leitende pro Stufe
-  - Wer kann die Stufe wechseln
-- Add: Seite Profil und Dashboard hinzugefügt
-- Add Seite Einstellungen
-  - Möglichkeit Daten zu syncronisieren
-  - Möglichkeit Datum für Stufenwechsel zu ändern
-- Add: Authentifizierung mit bio-metrischen Daten hinzugefügt
-- Change: Als Server wird nun ein mockServer angesprochen
-- Change: Mitgliedsliste hat einen neuen Filter bekommen
-- Change: Mitglieddetails hat einen neuen Anstrich bekommen
-  - Eine Karte wurde zu Mitgliedsdetails hinzugefügt
-  - Statistiken zur Mitgliedschaft wurden hinzugefügt
-  - Informationen zum Stufenwechsel wurden hinzugefügt
-  - Tätigkeiten befinden sich nun auf einem eigenen Tab
-- Fix: NaMi Login wird nur noch angefragt, wenn wirklich notwendig
-
-### [0.0.2] - 09.12.2021 [![Test](https://img.shields.io/badge/release-v0.0.2-orange)](https://github.com/JanneckLange/dpsg-nami-app/releases/tag/v0.0.2)
-
-- Changed: Offline Mode to Sync-Button
-- Add: Update only new Versions of Members
-- Add: Delete all data when logout
-- Add: Member Details
-
-### [0.0.1] - 07.12.2021
-
-- Add: Login
-- Add: Member List
-- Add: Offline Mode
 
 ## Nami Rechte
 

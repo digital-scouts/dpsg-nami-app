@@ -1,3 +1,4 @@
+import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/stufe.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 
@@ -16,11 +17,16 @@ void filterByString(List<Mitglied> mitglieder, String filterString) {
       mitglied.id.toString().contains(filterString));
 }
 
-///Filter bei Stufe (woe, jufi, pfadi, rover, leiter)
+///Filter bei Stufe/Tätigkeit Leiter (woe, jufi, pfadi, rover, leiter)
 void filterByStufe(List<Mitglied> mitglieder, List<Stufe> stufen) {
   if (stufen.isEmpty) return;
-  List<String> s = stufen.map((e) => e.name.value).toList();
-  mitglieder.removeWhere((m) => !s.contains(m.stufe));
+  List<String> s = stufen.map((e) => e.display).toList();
+  mitglieder.removeWhere((m) =>
+      !s.contains(m.stufe) &&
+      !(s.contains('Leiter') &&
+          (m.isMitgliedLeiter() || m.stufe == Stufe.KEINE_STUFE.display)) &&
+      !(s.contains(Stufe.FAVOURITE.display) &&
+          getFavouriteList().contains(m.mitgliedsNummer)));
 }
 
 ///Nur aktive Mitglieder
@@ -30,6 +36,10 @@ void filterByStatus(List<Mitglied> mitglieder) {
 
 void sortByName(List<Mitglied> mitglieder) {
   mitglieder.sort((a, b) => a.compareByName(b));
+}
+
+void sortByLastName(List<Mitglied> mitglieder) {
+  mitglieder.sort((a, b) => a.compareByLastName(b));
 }
 
 void sortByStufe(List<Mitglied> mitglieder) {
@@ -44,39 +54,43 @@ void sortByMitgliedsalter(List<Mitglied> mitglieder) {
   mitglieder.sort((a, b) => a.compareByMitgliedsalter(b));
 }
 
-enum MemberSorting { name, age, group, memberTime }
+enum MemberSorting { name, lastname, age, group, memberTime }
 
-const memberSortingNameString = "Name";
-const memberSortingAgeString = 'Alter';
-const memberSortingGroupString = "Gruppe";
-const memberSortingMemberTimeString = "Mitgliedsdauer";
+const Map<MemberSorting, String> memberSortingValues = {
+  MemberSorting.name: "Vorname",
+  MemberSorting.lastname: "Nachname",
+  MemberSorting.age: 'Alter',
+  MemberSorting.group: "Gruppe",
+  MemberSorting.memberTime: "Mitgliedsdauer",
+};
 
-extension MemberSortingExtension on MemberSorting {
-  String string() {
-    switch (this) {
-      case MemberSorting.name:
-        return memberSortingNameString;
-      case MemberSorting.group:
-        return memberSortingGroupString;
-      case MemberSorting.memberTime:
-        return memberSortingMemberTimeString;
-      case MemberSorting.age:
-      default:
-        return memberSortingAgeString;
-    }
-  }
+enum MemberSubElement { id, birthday }
 
-  static MemberSorting getValue(String? value) {
-    switch (value) {
-      case memberSortingAgeString:
-        return MemberSorting.age;
-      case memberSortingGroupString:
-        return MemberSorting.group;
-      case memberSortingMemberTimeString:
-        return MemberSorting.memberTime;
-      case memberSortingNameString:
-      default:
-        return MemberSorting.name;
-    }
+const Map<MemberSubElement, String> memberSubElementValues = {
+  MemberSubElement.id: "Mitgliedsnummer",
+  MemberSubElement.birthday: 'Geburtstag',
+};
+
+class FilterOptions {
+  MemberSorting sorting;
+  MemberSubElement subElement;
+  bool disableInactive;
+  String searchString;
+  List<bool> filterGroup;
+
+  FilterOptions(
+      {this.sorting = MemberSorting.name,
+      this.subElement = MemberSubElement.id,
+      this.disableInactive = true,
+      this.searchString = "",
+      required this.filterGroup});
+
+  FilterOptions copy() {
+    return FilterOptions(
+        sorting: sorting,
+        subElement: subElement,
+        disableInactive: disableInactive,
+        searchString: searchString,
+        filterGroup: List.from(filterGroup));
   }
 }

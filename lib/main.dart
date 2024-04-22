@@ -1,19 +1,53 @@
-import 'package:fluttertoast/fluttertoast.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
 import 'package:nami/screens/login_screen.dart';
 import 'package:nami/screens/navigation_home_screen.dart';
+import 'package:nami/screens/utilities/authenticate_screen.dart';
 import 'package:nami/utilities/app.state.dart';
+import 'package:nami/utilities/custom_wiredash_translations_delegate.dart';
+import 'package:nami/utilities/helper_functions.dart';
+import 'package:nami/utilities/hive/hive.handler.dart';
+import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/theme.dart';
+import 'package:privacy_screen/privacy_screen.dart';
 import 'package:provider/provider.dart';
+import 'package:wiredash/wiredash.dart';
 
+final navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await FlutterMapTileCaching.initialise();
+  initializeDateFormatting("de_DE", null);
+  FMTC.instance('mapStore').manage.createAsync();
+  Intl.defaultLocale = "de_DE";
   await Hive.initFlutter();
-
-  runApp(ChangeNotifierProvider<ThemeModel>(
-      create: (_) => ThemeModel(), child: const MyApp()));
+  await registerAdapter();
+  await openHive();
+  await dotenv.load(fileName: ".env");
+  await initLogger();
+  if (!kDebugMode) {
+    await PrivacyScreen.instance.enable(
+      iosOptions: const PrivacyIosOptions(
+        enablePrivacy: true,
+        lockTrigger: IosLockTrigger.didEnterBackground,
+        privacyImageName: "privacyScreen",
+      ),
+      androidOptions: const PrivacyAndroidOptions(
+        enableSecure: true,
+      ),
+    );
+  }
+  runApp(
+    ChangeNotifierProvider<ThemeModel>(
+      create: (_) => ThemeModel(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -21,24 +55,52 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(home: MyHome());
+    if (dotenv.env['WIREDASH_PROJECT_ID'] == null ||
+        dotenv.env['WIREDASH_SECRET'] == null ||
+        dotenv.env['WIREDASH_PROJECT_ID']!.isEmpty ||
+        dotenv.env['WIREDASH_SECRET']!.isEmpty) {
+      throw Exception(
+          'Please provide WIREDASH_PROJECT_ID and WIREDASH_SECRET in your .env file');
+    }
+    return Wiredash(
+      projectId: dotenv.env['WIREDASH_PROJECT_ID']!,
+      secret: dotenv.env['WIREDASH_SECRET']!,
+      feedbackOptions: const WiredashFeedbackOptions(
+        labels: [
+          Label(id: 'label-u26353u60f', title: 'Fehler'),
+          Label(id: 'label-mtl2xk4esi', title: 'Verbesserung'),
+          Label(id: 'label-p792odog4e', title: 'Lob')
+        ],
+      ),
+      options: const WiredashOptionsData(
+        localizationDelegate: CustomWiredashTranslationsDelegate(),
+        locale: Locale('de', 'DE'),
+      ),
+      collectMetaData: (metaData) => metaData,
+      child: ChangeNotifierProvider(
+        create: (context) => AppStateHandler(),
+        child: const MaterialAppWrapper(),
+      ),
+    );
   }
 }
 
-class MyHome extends StatefulWidget {
-  const MyHome({Key? key}) : super(key: key);
+class MaterialAppWrapper extends StatefulWidget {
+  const MaterialAppWrapper({Key? key}) : super(key: key);
 
   @override
-  State<MyHome> createState() => _MyHomeState();
+  State<MaterialAppWrapper> createState() => _MaterialAppWrapperState();
 }
 
-class _MyHomeState extends State<MyHome> with WidgetsBindingObserver {
-  AppStateHandler appState = AppStateHandler();
-
+class _MaterialAppWrapperState extends State<MaterialAppWrapper>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    appState.setResumeState(context);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AppStateHandler>().onResume(context);
+    });
+
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -50,45 +112,70 @@ class _MyHomeState extends State<MyHome> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    debugPrint('AppLifecycle: $state');
-    if (state == AppLifecycleState.inactive) {
-      appState.setInactiveState(context);
-    } else if (state == AppLifecycleState.resumed) {
-      appState.setResumeState(context);
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.detached:
+      case AppLifecycleState.inactive:
+        context.read<AppStateHandler>().onPause();
+      case AppLifecycleState.resumed:
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          context.read<AppStateHandler>().onResume(context);
+        });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    const navigationHomeScreen = NavigationHomeScreen();
-
-    return ChangeNotifierProvider(
-      create: (context) => appState,
-      child: MaterialApp(
-        theme: Provider.of<ThemeModel>(context).currentTheme,
-        home: Scaffold(
+    return MaterialApp(
+      theme: lightTheme,
+      darkTheme: darkTheme,
+      themeMode: Provider.of<ThemeModel>(context).currentMode,
+      home: const RootHome(),
+      navigatorKey: navigatorKey,
+      builder: (context, child) {
+        return Scaffold(
+          floatingActionButton: FloatingActionButton(
+            onPressed: () => openWiredash(context),
+            child: const Icon(Icons.feedback),
+          ),
           body: Consumer<AppStateHandler>(
-            child: navigationHomeScreen,
-            builder: (context, stateHandler, child) {
-              debugPrint('AppState: ${appState.currentState}');
-              Fluttertoast.showToast(
-                msg: 'AppState: ${appState.currentState.name}',
-                toastLength: Toast.LENGTH_LONG,
-                gravity: ToastGravity.BOTTOM,
+            builder: (context, appStateHandler, _) {
+              final currentState = appStateHandler.currentState;
+              return IndexedStack(
+                index: (currentState == AppState.retryAuthentication) ? 0 : 1,
+                children: [
+                  switch (currentState) {
+                    AppState.retryAuthentication => const AuthenticateScreen(),
+                    _ => const SizedBox(),
+                  },
+                  child!,
+                ],
               );
-              if (appState.currentState == AppState.loggedOut) {
-                return const LoginScreen();
-              } else if (appState.currentState == AppState.loadData ||
-                  appState.currentState == AppState.resume) {
-                return const CircularProgressIndicator();
-              } else if (appState.currentState == AppState.authenticated) {
-                return const NavigationHomeScreen();
-              }
-              return child!;
             },
           ),
-        ),
-      ),
+        );
+      },
     );
+  }
+}
+
+class RootHome extends StatelessWidget {
+  const RootHome({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final appStateHandler = context.watch<AppStateHandler>();
+
+    switch (appStateHandler.currentState) {
+      case AppState.closed:
+        return const Center(child: CircularProgressIndicator());
+      case AppState.loggedOut:
+        return const LoginScreen();
+      case AppState.relogin:
+      case AppState.ready:
+      case AppState.retryAuthentication:
+        return const NavigationHomeScreen();
+    }
   }
 }

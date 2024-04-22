@@ -1,4 +1,4 @@
-name: Test & Build & Deploy Android internal
+name: PUSH on develop (Test Flutter & Build Android & Deploy Android internal)
 on:
   push:
     branches:
@@ -17,78 +17,72 @@ jobs:
   test:
     name: flutter test
     runs-on: ubuntu-latest
-    env:
-      JAVA_VERSION: '17.0.1'
-      FLUTTER_VERSION: '3.19.2'
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-java@v1
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
-          java-version: ${{env.JAVA_VERSION}}
+          distribution: 'temurin'
+          java-version: ${{ vars.JAVA_VERSION }}
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version:  ${{env.FLUTTER_VERSION}}
+          flutter-version: ${{ vars.FLUTTER_VERSION }}
           channel: 'stable'
           cache: true
       - run: flutter --version
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
-      - uses: actions/checkout@v2
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: 'stable'
       - run: dart --version
-      - name: Install dependencies
-        run: flutter pub get
       - name: Verify formatting
         run: dart format --output=none --set-exit-if-changed .
       - name: Analyze project source
         run: flutter analyze
-      # - name: Run tests
-      #   run: flutter test
-
-  version:
-    name: flutter version
-    runs-on: ubuntu-latest
-    outputs:
-      releaseversion: ${{ steps.v.outputs.version }}
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ github.head_ref }} # checkout the correct branch name
-          fetch-depth: 0 # fetch the whole repo history
-      - name: Git Version
-        id: gitversion
-        uses: codacy/git-version@2.2.0
-        with:
-          dev-branch: develop
-          prefix: v
-      - name: Save git-version
-        id: v
-        run: echo "::set-output name=version::${{ steps.gitversion.outputs.VERSION }}"
-    
     
   build:
     name: Build Android
     needs: [test]
     runs-on: ubuntu-latest
-    env:
-      JAVA_VERSION: '17.0.1'
-      FLUTTER_VERSION: '3.19.2'
+    outputs:
+      releaseversion: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Setup java
-        uses: actions/setup-java@v1
+        uses: actions/checkout@v4
+      - name: Lesen der aktuellen Version aus der pubspec.yaml
+        id: get_version
+        run: |
+          VERSION=$(grep "version:" pubspec.yaml | awk '{print $2}')
+          echo "currentVersion=$VERSION" >> $GITHUB_OUTPUT
+          echo "Die aaktuelle Version ist $VERSION" 
+      - name: Set new version of app
+        id: version
+        run: |
+            VERSION=${{steps.get_version.outputs.currentVersion}}
+            VERSION_WITHOUT_PLUS="${VERSION%%+*}"
+            GITHUB_RUN_NUMBER=${{ github.run_number }}
+            sed -i "/version:/c version: $VERSION_WITHOUT_PLUS+$GITHUB_RUN_NUMBER" pubspec.yaml
+            echo "Die neue Version ist $VERSION_WITHOUT_PLUS+$GITHUB_RUN_NUMBER" 
+            echo "version=$VERSION_WITHOUT_PLUS+$GITHUB_RUN_NUMBER" >> $GITHUB_OUTPUT
+      - name: Write version to Summary
+        run: |
+          echo "### Version: ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+      - name: Make envfile
+        uses: SpicyPizza/create-envfile@v2.0
         with:
-          java-version: ${{env.JAVA_VERSION}}
+          envkey_WIREDASH_SECRET: ${{ secrets.PROD_WIREDASH_SECRET }} # ignore error
+          envkey_WIREDASH_PROJECT_ID: ${{ secrets.PROD_WIREDASH_PROJECT_ID }} # ignore error
+      - name: Setup java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ vars.JAVA_VERSION }}
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version:  ${{env.FLUTTER_VERSION}}
+          flutter-version:  ${{ vars.FLUTTER_VERSION }}
           channel: 'stable'
           cache: true
       - run: flutter pub get
@@ -114,7 +108,7 @@ jobs:
    
   deploy:
     name: Deploy Android
-    needs: [build, version]
+    needs: [build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v3
@@ -127,6 +121,5 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.ANDROID_SERVICE_ACCOUNT_JSON }}
           packageName: de.jlange.nami.app
           releaseFiles: app-release.aab
-          releaseName: ${{ needs.version.outputs.releaseversion }}
-          changesNotSentForReview: true
+          releaseName: ${{ needs.build.outputs.releaseversion }}
           track: internal

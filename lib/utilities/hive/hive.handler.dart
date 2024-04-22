@@ -3,15 +3,20 @@ import 'package:nami/utilities/hive/settings.dart';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
+import 'package:nami/utilities/logger.dart';
 import 'dart:convert';
 
 import 'mitglied.dart';
 
 void logout() {
+  sensLog.i('in logout');
   //loaded Data
   Hive.box<Mitglied>('members').clear();
   deleteGruppierungId();
+  deleteGruppierungName();
 
+  setStammheim('');
+  setFavouriteList([]);
   // login data
   deleteNamiApiCookie();
   deleteNamiLoginId();
@@ -19,6 +24,7 @@ void logout() {
 
   // other Stuff
   deleteLastLoginCheck();
+  deleteLastNamiSyncTry();
   deleteLastNamiSync();
 }
 

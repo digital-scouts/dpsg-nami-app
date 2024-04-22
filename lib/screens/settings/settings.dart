@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:nami/utilities/app.state.dart';
+import 'package:nami/utilities/helper_functions.dart';
+import 'package:nami/utilities/notifications.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../utilities/hive/settings.dart';
-import 'dart:math';
 
 class Settings extends StatefulWidget {
   const Settings({Key? key}) : super(key: key);
@@ -10,81 +17,31 @@ class Settings extends StatefulWidget {
   State<Settings> createState() => _SettingsState();
 }
 
-// Provider.of<ThemeModel>(context, listen: false).setTheme(ThemeType.dark);
-
-class _SettingsState extends State<Settings>
-    with SingleTickerProviderStateMixin {
+class _SettingsState extends State<Settings> {
   bool stufenwechselDatumIsValid = true;
-  bool loading = false;
-  late final AnimationController _controller;
 
-  final TextEditingController _stufenwechselTextController =
-      TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(seconds: 2),
-      vsync: this,
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  Future<void> _syncData({bool forceSync = false}) async {
-    setState(() => loading = true);
-    // await syncNamiData(forceSync: forceSync);
-    setState(() => loading = false);
-  }
+  final _stufenwechselTextController = TextEditingController();
+  final _stammheimTextController = TextEditingController(text: getStammheim());
 
   Widget _buildSync() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Text('Sync: '),
-        AnimatedBuilder(
-          animation: _controller,
-          builder: (_, child) {
-            return Transform.rotate(
-              angle: loading ? _controller.value * 2.0 * pi : 0,
-              child: child,
-            );
-          },
-          child: IconButton(
-            icon: const Icon(Icons.sync),
-            onPressed: loading ? null : () => {_syncData()},
-          ),
-        ),
-        Text(
-            "Vor ${DateTime.now().difference(getLastNamiSync()).inDays.toString()} Tagen"),
-      ],
+    return ListTile(
+      title: const Text('Aktualisiere die Mitgliedsdaten'),
+      leading: const Icon(Icons.sync),
+      onTap: () {
+        AppStateHandler().setLoadDataState(loadAll: false);
+      },
+      subtitle: Text(
+          "Vor ${DateTime.now().difference(getLastNamiSync()).inDays.toString()} Tagen"),
     );
   }
 
   Widget _buildForceBSync() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Text('Force Sync: '),
-        AnimatedBuilder(
-          animation: _controller,
-          builder: (_, child) {
-            return Transform.rotate(
-              angle: loading ? _controller.value * 2.0 * pi : 0,
-              child: child,
-            );
-          },
-          child: IconButton(
-            icon: const Icon(Icons.sync),
-            onPressed: loading ? null : () => {_syncData(forceSync: true)},
-          ),
-        ),
-      ],
+    return ListTile(
+      title: const Text('Lade alle Daten neu'),
+      leading: const Icon(Icons.sync),
+      onTap: () {
+        AppStateHandler().setLoadDataState(loadAll: true);
+      },
     );
   }
 
@@ -96,13 +53,13 @@ class _SettingsState extends State<Settings>
   Widget _buildStufenwechselDatumInput() {
     _stufenwechselTextController.text =
         '${getNextStufenwechselDatum().day.toString().padLeft(2, '0')}-${getNextStufenwechselDatum().month.toString().padLeft(2, '0')}';
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+    return ListTile(
+      title: const Text('Stufenwechsel Datum: '),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('Stufenwechsel Datum: '),
-          Expanded(
+          SizedBox(
+            width: 80,
             child: Padding(
               padding: const EdgeInsets.only(left: 8, right: 8),
               child: TextField(
@@ -116,7 +73,8 @@ class _SettingsState extends State<Settings>
               ),
             ),
           ),
-          ElevatedButton.icon(
+          IconButton(
+            color: Theme.of(context).colorScheme.primary,
             onPressed: () {
               if (!isValidInput(_stufenwechselTextController.text)) {
                 setState(() {
@@ -134,16 +92,126 @@ class _SettingsState extends State<Settings>
               }
             },
             icon: const Icon(Icons.save),
-            label: const Text('Speichern'),
           )
         ],
       ),
     );
   }
 
+  Widget _buildStammHeimInput() {
+    return ListTile(
+      title: TextField(
+        controller: _stammheimTextController,
+        decoration: const InputDecoration(
+          labelText: 'Stammheim Adresse',
+        ),
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            color: Theme.of(context).colorScheme.primary,
+            onPressed: () async {
+              final text = _stammheimTextController.text;
+              setStammheim(text);
+              final scaffold = ScaffoldMessenger.of(context);
+              try {
+                final locations = await locationFromAddress(text);
+                if (locations.length == 1) {
+                  scaffold.showSnackBar(
+                    const SnackBar(content: Text('Adresse gefunden')),
+                  );
+                  if (await isWifi() || !getDataLoadingOverWifiOnly()) {
+                    downloadMapRegion(locations.first);
+                  }
+                } else {
+                  // ignore: use_build_context_synchronously
+                  showErrorSnackBar(context, 'Zu viele Adressen gefunden');
+                }
+              } on NoResultFoundException catch (_, __) {
+                // ignore: use_build_context_synchronously
+                showErrorSnackBar(context, 'Keine Adresse gefunden');
+              }
+            },
+            icon: const Icon(Icons.save),
+          )
+        ],
+      ),
+    );
+  }
+
+  Future<void> downloadMapRegion(Location location) async {
+    final region =
+        CircleRegion(LatLng(location.latitude, location.longitude), 2);
+    final downloadable = region.toDownloadable(
+      3, // Minimum Zoom
+      17, // Maximum Zoom
+      TileLayer(
+        urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        subdomains: const ['a', 'b', 'c'],
+        userAgentPackageName: 'de.jlange.nami.app',
+      ),
+    );
+    final download = FMTC
+        .instance('mapStore')
+        .download
+        .startForeground(region: downloadable);
+
+    download.listen((progress) async {
+      debugPrint(
+          '${progress.elapsedDuration} Map Download progress: ${progress.attemptedTiles} of ${progress.maxTiles} (${(progress.attemptedTiles / progress.maxTiles * 100).toInt()}% | ${progress.estRemainingDuration.inSeconds} Seconds remaining)');
+      if (progress.isComplete) {
+        debugPrint(
+            '${progress.elapsedDuration} Map Download progress: Complete (Successful: ${progress.successfulTiles} | Failed: ${progress.failedTiles} | Cached: ${progress.cachedTiles} | Size: ${(progress.successfulSize / 1024).toStringAsFixed(2)} MiB)');
+        debugPrint(
+            'Kartenspeichergröße: ${(FMTC.instance('mapStore').stats.storeSize / 1024).toStringAsFixed(2)} MiB}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(
+                  'Kartendownload abgeschlossen (Geladen: ${(progress.successfulSize / 1024).toStringAsFixed(0)} MiB)')),
+        );
+      }
+    });
+  }
+
+  _buildBiometricAuthentication() {
+    return ListTile(
+      title: const Text('Biometrische Authentifizierung'),
+      leading: const Icon(Icons.fingerprint),
+      trailing: Switch(
+        value: getBiometricAuthenticationEnabled(),
+        onChanged: (value) {
+          setBiometricAuthenticationEnabled(value);
+          setState(() {});
+        },
+      ),
+    );
+  }
+
+  _buildDataLoadingOverWifiOnly() {
+    return ListTile(
+      title: const Text('Optionale Daten nur über WLAN laden'),
+      leading: const Icon(Icons.wifi),
+      trailing: Switch(
+        value: getDataLoadingOverWifiOnly(),
+        onChanged: (value) {
+          setDataLoadingOverWifiOnly(value);
+          setState(() {});
+        },
+      ),
+    );
+  }
+
+  _buildShareLogs() {
+    return ListTile(
+      title: const Text('Teile Logs'),
+      leading: const Icon(Icons.share),
+      onTap: () => showSendLogsDialog(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    debugPrint('Settings build');
     return Scaffold(
       appBar: AppBar(
         title: const Center(child: Text('Settings')),
@@ -153,11 +221,35 @@ class _SettingsState extends State<Settings>
         children: [
           _buildSync(),
           _buildForceBSync(),
-          Divider(
-            height: 1,
-            color: Theme.of(context).dividerColor,
+          const Divider(height: 1),
+          _buildStufenwechselDatumInput(),
+          _buildStammHeimInput(),
+          _buildBiometricAuthentication(),
+          _buildDataLoadingOverWifiOnly(),
+          _buildShareLogs(),
+          Expanded(child: Container()),
+          Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: FutureBuilder<MapEntry<PackageInfo, String>>(
+              future: Future.wait([
+                PackageInfo.fromPlatform(),
+                getGitCommitId(),
+              ]).then((results) =>
+                  MapEntry(results[0] as PackageInfo, results[1] as String)),
+              builder: (BuildContext context,
+                  AsyncSnapshot<MapEntry<PackageInfo, String>> snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const CircularProgressIndicator();
+                } else {
+                  final String version =
+                      snapshot.data?.key.version ?? 'Unknown';
+                  final String commitId =
+                      snapshot.data?.value.substring(0, 8) ?? 'Unknown';
+                  return Text('Version: $version | Commit: $commitId');
+                }
+              },
+            ),
           ),
-          _buildStufenwechselDatumInput()
         ],
       ),
     );

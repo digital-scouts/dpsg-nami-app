@@ -94,8 +94,6 @@ class Mitglied {
   List<Taetigkeit> getActiveTaetigkeiten() {
     List<Taetigkeit> aktiveTaetigkeiten = [];
     for (Taetigkeit taetigkeit in taetigkeiten) {
-      taetigkeit.taetigkeit =
-          taetigkeit.taetigkeit.replaceFirst('€ ', '').split('(')[0];
       if (taetigkeit.isActive() || taetigkeit.isFutureTaetigkeit()) {
         aktiveTaetigkeiten.add(taetigkeit);
       }
@@ -106,8 +104,6 @@ class Mitglied {
   List<Taetigkeit> getAlteTaetigkeiten() {
     List<Taetigkeit> alteTaetigkeiten = [];
     for (Taetigkeit taetigkeit in taetigkeiten) {
-      taetigkeit.taetigkeit =
-          taetigkeit.taetigkeit.replaceFirst('€ ', '').split('(')[0];
       if (!taetigkeit.isActive() && !taetigkeit.isFutureTaetigkeit()) {
         alteTaetigkeiten.add(taetigkeit);
       }
@@ -116,11 +112,18 @@ class Mitglied {
   }
 
   Stufe get currentStufe {
+    if (isMitgliedLeiter()) {
+      return Stufe.LEITER;
+    }
+    return Stufe.getStufeByString(stufe);
+  }
+
+  Stufe get currentStufeWithoutLeiter {
     return Stufe.getStufeByString(stufe);
   }
 
   Stufe? get nextStufe {
-    return Stufe.getStufeByOrder(Stufe.getStufeByString(stufe).order + 1);
+    return Stufe.getStufeByOrder(Stufe.getStufeByString(stufe).index + 1);
   }
 
   int? getMinStufenWechselJahr() {
@@ -148,7 +151,7 @@ class Mitglied {
           alterNextStufenwechsel +
           currentStufe.alterMax! +
           1;
-    } else if (currentStufe.name.value == "Rover" && !isMitgliedLeiter()) {
+    } else if (currentStufe.display == "Rover" && !isMitgliedLeiter()) {
       return DateTime.now().year -
           alterNextStufenwechsel +
           currentStufe.alterMax! +
@@ -176,6 +179,13 @@ class Mitglied {
   int compareByName(Mitglied mitglied) {
     String m1Name = '$vorname $nachname';
     String m2Name = '${mitglied.vorname} ${mitglied.nachname}';
+    return m1Name.compareTo(m2Name);
+  }
+
+  /// 0 gleich | <0 this ist alpabetisch früher | >0 this ist alpabetisch später
+  int compareByLastName(Mitglied mitglied) {
+    String m1Name = '$nachname $vorname ';
+    String m2Name = '${mitglied.nachname} ${mitglied.vorname}';
     return m1Name.compareTo(m2Name);
   }
 

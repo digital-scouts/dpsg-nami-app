@@ -14,30 +14,22 @@ class StufenwechselInfo extends StatefulWidget {
 class _StufenwechselInfoState extends State<StufenwechselInfo> {
   // Die Liste der Namen
   List<DataRow> aktuelleTabellenZeilen = [];
-  Map<int, List<DataRow>> stufenwechselData = {};
+  Map<Stufe, List<DataRow>> stufenwechselData = {};
 
   // Die ausgewählte Stufe (0-3 entsprechend den Bildern)
-  int ausgewaehlteStufe = 0;
-
-  // Bilder für die Stufen
-  List<String> stufenBilder = [
-    'assets/images/woe.png',
-    'assets/images/jufi.png',
-    'assets/images/pfadi.png',
-    'assets/images/rover.png',
-  ];
+  Stufe ausgewaehlteStufe = Stufe.WOELFLING;
 
   // Funktion zum Ändern der ausgewählten Stufe
-  void _stufeAendern(int index) {
+  void _stufeAendern(Stufe stufe) {
     setState(() {
-      ausgewaehlteStufe = index;
-      aktuelleTabellenZeilen = stufenwechselData[index] ?? [];
+      ausgewaehlteStufe = stufe;
+      aktuelleTabellenZeilen = stufenwechselData[stufe] ?? [];
       // Hier könnten Sie die Liste namenListe basierend auf der ausgewählten Stufe aktualisieren.
     });
   }
 
-  Map<int, List<DataRow>> loadStufenwechselData() {
-    Map<int, List<DataRow>> stufenwechselData = {};
+  Map<Stufe, List<DataRow>> loadStufenwechselData() {
+    Map<Stufe, List<DataRow>> stufenwechselData = {};
     List<Mitglied> mitglieder =
         Hive.box<Mitglied>('members').values.toList().cast<Mitglied>();
     DateTime currentDate = DateTime.now();
@@ -56,20 +48,31 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
       if (!isMinStufenWechselJahrInPast) {
         continue;
       }
-
-      if (stufenwechselData[currentStufe.order - 1] == null) {
-        stufenwechselData[currentStufe.order - 1] = [];
+      if (stufenwechselData[currentStufe] == null) {
+        stufenwechselData[currentStufe] = [];
       }
-
-      stufenwechselData[currentStufe.order - 1]!.add(DataRow(cells: [
-        DataCell(Text(
-            '${mitglied.vorname} ${mitglied.nachname.substring(0, 1)}. (${(currentDate.difference(mitglied.geburtsDatum).inDays / 365).toStringAsFixed(1)} Jahre alt)',
-            style: const TextStyle(color: Colors.white))),
-        DataCell(Text('$minStufenWechselJahr-$maxStufenWechselJahr',
-            style: const TextStyle(color: Colors.white))),
-        DataCell(Text('${currentDate.difference(mitglied.geburtsDatum).inDays}',
-            style: const TextStyle(color: Colors.white))),
-      ]));
+      if (getFavouriteList().contains(mitglied.mitgliedsNummer) &&
+          stufenwechselData[Stufe.FAVOURITE] == null) {
+        stufenwechselData[Stufe.FAVOURITE] = [];
+      }
+      DataRow data = DataRow(
+        cells: [
+          DataCell(
+            Text(
+                '${mitglied.vorname} ${mitglied.nachname.substring(0, 1)}. (${(currentDate.difference(mitglied.geburtsDatum).inDays / 365).toStringAsFixed(1)} Jahre alt)'),
+          ),
+          DataCell(
+            Text('$minStufenWechselJahr-$maxStufenWechselJahr'),
+          ),
+          DataCell(
+            Text('${currentDate.difference(mitglied.geburtsDatum).inDays}'),
+          ),
+        ],
+      );
+      stufenwechselData[currentStufe]!.add(data);
+      if (getFavouriteList().contains(mitglied.mitgliedsNummer)) {
+        stufenwechselData[Stufe.FAVOURITE]!.add(data);
+      }
     }
 
     // sortiere die Liste nach dem Alter unt entferne die Spalte mit dem Alter
@@ -82,7 +85,7 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
     });
     stufenwechselData.forEach((key, value) {
       for (var element in value) {
-        element.cells.removeLast();
+        if (element.cells.length == 3) element.cells.removeLast();
       }
     });
     return stufenwechselData;
@@ -90,73 +93,66 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
 
   @override
   Widget build(BuildContext context) {
-    final availableHeight = MediaQuery.of(context).size.height;
-
     stufenwechselData = loadStufenwechselData();
     _stufeAendern(ausgewaehlteStufe);
 
-    return Container(
-      padding: const EdgeInsets.all(16.0),
-      child: Row(
-        children: [
-          // Bereich für die Stufenbilder
-          SizedBox(
-            width: 50.0,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: List.generate(stufenBilder.length, (index) {
-                return GestureDetector(
-                  onTap: () {
-                    _stufeAendern(index);
+    return Column(
+      children: [
+        // Bereich für die Stufenbilder
+        Wrap(
+          spacing: 5,
+          children: [
+            for (final stufe in [
+              Stufe.BIBER,
+              Stufe.WOELFLING,
+              Stufe.JUNGPADFINDER,
+              Stufe.PFADFINDER,
+              Stufe.ROVER,
+              Stufe.FAVOURITE
+            ])
+              if ((stufe != Stufe.BIBER ||
+                      stufenwechselData[stufe]?.isNotEmpty == true) &&
+                  (stufe != Stufe.FAVOURITE || getFavouriteList().isNotEmpty))
+                ChoiceChip(
+                  selected: stufe == ausgewaehlteStufe,
+                  onSelected: (selected) {
+                    if (selected) _stufeAendern(stufe);
                   },
-                  child: Container(
-                    width: 50.0,
-                    height: 50.0,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: ausgewaehlteStufe == index
-                          ? Colors.blue
-                          : Colors.grey,
-                    ),
-                    child: Center(
-                      child: Image.asset(
-                        stufenBilder[index],
-                        width: 30.0,
-                        height: 30.0,
-                      ),
-                    ),
+                  label: Text(stufe.shortDisplay),
+                  showCheckmark: false,
+                  avatar: CircleAvatar(
+                    backgroundColor: Colors.transparent,
+                    child: Image.asset(stufe.imagePath!,
+                        color: stufe == Stufe.FAVOURITE ? stufe.farbe : null),
                   ),
-                );
-              }),
-            ),
-          ),
-          Container(
-            margin: const EdgeInsets.only(left: 16.0, right: 5),
-            width: 1.0,
-            color: Colors.grey,
-            height: availableHeight, // Höhe anpassen, abhängig von Ihrer Liste
-          ),
-          // Bereich für die Liste der Namen
-          Expanded(
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.vertical,
-                child: aktuelleTabellenZeilen.isNotEmpty
-                    ? DataTable(
-                        columns: const [
-                          DataColumn(label: Text('Name')),
-                          DataColumn(label: Text('Wechsel'))
-                        ],
-                        rows: aktuelleTabellenZeilen,
-                      )
-                    : const Text('Kein Wechsel zum angegebenen Datum'),
+                ),
+          ],
+        ),
+        // // Bereich für die Liste der Namen
+        if (aktuelleTabellenZeilen.isNotEmpty)
+          SizedBox(
+            width: double.infinity,
+            child: Card(
+              child: DataTable(
+                columns: const [
+                  DataColumn(label: Text('Name')),
+                  DataColumn(label: Text('Wechsel'))
+                ],
+                rows: aktuelleTabellenZeilen,
               ),
+            ),
+          )
+        else ...[
+          const SizedBox(height: 40),
+          const ListTile(
+            leading: Icon(Icons.block),
+            title: Text(
+              'Kein Wechsel zum angegebenen Datum',
+              textAlign: TextAlign.center,
             ),
           ),
         ],
-      ),
+      ],
     );
   }
 }
