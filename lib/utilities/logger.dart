@@ -5,7 +5,9 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logger/logger.dart';
+import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/nami/model/nami_member_details.model.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 
 /// Logger for sensitive data
@@ -97,6 +99,19 @@ Future<void> initLogger() async {
     printer: LogfmtPrinter(),
   );
   sensLog.i('Logger initialized');
+
+  Future.wait([
+    PackageInfo.fromPlatform(),
+    getGitCommitId(),
+  ]).then<void>(
+    (value) {
+      sensLog.i(
+          'Version: ${(value[0] as PackageInfo).version} | Commit: ${value[1]}');
+    },
+    onError: (e, s) {
+      sensLog.e('Error getting version and commit id', error: e, stackTrace: s);
+    },
+  );
 }
 
 class CustomOutput extends LogOutput {
