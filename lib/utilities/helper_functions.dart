@@ -25,21 +25,26 @@ Future<void> sendLogsEmail() async {
   );
 }
 
-Future<String> getGitCommitId() async {
-  final head = await rootBundle.loadString('.git/HEAD');
+Future<String?> getGitCommitId() async {
+  try {
+    final head = await rootBundle.loadString('.git/HEAD');
 
-  if (head.startsWith('ref: ')) {
-    final branchName = head.split('ref: refs/heads/').last.trim();
-    return (await rootBundle.loadString('.git/refs/heads/$branchName')).trim();
-  } else {
-    return head;
+    if (head.startsWith('ref: ')) {
+      final branchName = head.split('ref: refs/heads/').last.trim();
+      return (await rootBundle.loadString('.git/refs/heads/$branchName'))
+          .trim();
+    } else {
+      return head;
+    }
+  } catch (e) {
+    return null;
   }
 }
 
 Future<void> openWiredash(BuildContext context) async {
   Box<Mitglied> memberBox = Hive.box<Mitglied>('members');
   Mitglied? user;
-  String gitInfo = await getGitCommitId();
+  String gitInfo = await getGitCommitId() ?? 'unknown';
   try {
     user = memberBox.values
         .firstWhere((member) => member.mitgliedsNummer == getNamiLoginId());
