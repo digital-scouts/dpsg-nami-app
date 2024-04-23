@@ -21,14 +21,13 @@ class AusbildungAdapter extends TypeAdapter<Ausbildung> {
       ..datum = fields[1] as DateTime
       ..veranstalter = fields[2] as String
       ..name = fields[3] as String
-      ..baustein = fields[4] as String
-      ..descriptor = fields[5] as String?;
+      ..baustein = fields[4] as String;
   }
 
   @override
   void write(BinaryWriter writer, Ausbildung obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(5)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -38,9 +37,7 @@ class AusbildungAdapter extends TypeAdapter<Ausbildung> {
       ..writeByte(3)
       ..write(obj.name)
       ..writeByte(4)
-      ..write(obj.baustein)
-      ..writeByte(5)
-      ..write(obj.descriptor);
+      ..write(obj.baustein);
   }
 
   @override
