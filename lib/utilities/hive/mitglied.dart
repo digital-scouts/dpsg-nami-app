@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import 'package:nami/utilities/hive/ausbildung.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
 
@@ -81,6 +82,9 @@ class Mitglied {
 
   @HiveField(24)
   late List<Taetigkeit> taetigkeiten;
+
+  @HiveField(25, defaultValue: [])
+  late List<Ausbildung> ausbildungen;
 
   bool isMitgliedLeiter() {
     for (Taetigkeit t in taetigkeiten) {
