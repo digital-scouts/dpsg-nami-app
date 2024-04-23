@@ -167,12 +167,12 @@ class AppStateHandler extends ChangeNotifier {
         await reloadMetadataFromServer();
         metaProgressNotifier.value = true;
       }
-      await syncMember(
+      await syncMembers(
         memberAllProgressNotifier,
         memberOverviewProgressNotifier,
+        rechteProgressNotifier,
         forceUpdate: loadAll,
       );
-      rechteProgressNotifier.value = await getRechte();
       syncState = SyncState.successful;
       if (background) {
         sensLog.i('sync successful in background');
