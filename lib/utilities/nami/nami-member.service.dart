@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:nami/utilities/hive/ausbildung.dart';
 import 'package:nami/utilities/logger.dart';
+import 'package:nami/utilities/nami/model/nami_member_ausbildung_model.dart';
 import 'package:nami/utilities/nami/nami-member-fake.service.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
 import 'package:nami/utilities/stufe.dart';
@@ -119,6 +121,31 @@ Future<List<NamiMemberTaetigkeitenModel>> _loadMemberTaetigkeiten(
   }
 }
 
+Future<List<NamiMemberAusbildungModel>> _loadMemberAusbildungen(
+    int id, String url, String path, String cookie) async {
+  String fullUrl =
+      '$url$path/mitglied-ausbildung/filtered-for-navigation/mitglied/mitglied/$id/flist';
+  sensLog.i('Request: Ausbildungen for ${sensId(id)}');
+  final response =
+      await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
+  final source = json.decode(const Utf8Decoder()
+      .convert(response.bodyBytes)
+      .replaceAll("&#34;", '\\"'));
+
+  if (response.statusCode == 200 && source['success']) {
+    List<NamiMemberAusbildungModel> ausbildungen = [];
+    for (Map<String, dynamic> item in source['data']) {
+      final ausbildung = NamiMemberAusbildungModel.fromJson(item);
+      ausbildungen.add(ausbildung);
+    }
+    sensLog.i('Response: Loaded Ausbildungen for ${sensId(id)}');
+    return ausbildungen;
+  } else {
+    sensLog.e('Failed to load Ausbildungen for ${sensId(id)}');
+    return [];
+  }
+}
+
 // ignore: unused_element
 Future<NamiMemberTaetigkeitenModel?> _loadMemberTaetigkeit(int memberId,
     int taetigkeitId, String url, String path, String cookie) async {
@@ -203,6 +230,7 @@ Future<void> _storeMitgliedToHive(
     double progressStep) async {
   NamiMemberDetailsModel rawMember;
   List<NamiMemberTaetigkeitenModel> rawTaetigkeiten;
+  List<NamiMemberAusbildungModel> rawAusbildungen;
   try {
     rawMember =
         await _loadMemberDetails(mitgliedId, url, path, gruppierung, cookie);
@@ -220,6 +248,14 @@ Future<void> _storeMitgliedToHive(
     rawTaetigkeiten = [];
   }
 
+  try {
+    rawAusbildungen =
+        await _loadMemberAusbildungen(mitgliedId, url, path, cookie);
+  } catch (e, st) {
+    sensLog.e('Failed to load member ausbildungen ${sensId(mitgliedId)}',
+        error: e, stackTrace: st);
+    rawAusbildungen = [];
+  }
   List<Taetigkeit> taetigkeiten = [];
   for (NamiMemberTaetigkeitenModel item in rawTaetigkeiten) {
     taetigkeiten.add(Taetigkeit()
@@ -233,6 +269,18 @@ Future<void> _storeMitgliedToHive(
       ..gruppierung = item.gruppierung
       ..berechtigteGruppe = item.berechtigteGruppe
       ..berechtigteUntergruppen = item.berechtigteUntergruppen);
+  }
+
+  List<Ausbildung> ausbildungen = [];
+  for (final item in rawAusbildungen) {
+    ausbildungen.add(
+      Ausbildung()
+        ..id = item.id
+        ..name = item.name
+        ..veranstalter = item.veranstalter
+        ..datum = item.datum
+        ..baustein = item.baustein,
+    );
   }
 
   Mitglied mitglied = Mitglied()
@@ -261,7 +309,8 @@ Future<void> _storeMitgliedToHive(
     ..mglTypeId = rawMember.mglTypeId
     ..beitragsartId = rawMember.beitragsartId ?? 0
     ..status = rawMember.status
-    ..taetigkeiten = taetigkeiten;
+    ..taetigkeiten = taetigkeiten
+    ..ausbildungen = ausbildungen;
 
   memberBox.put(mitgliedId, mitglied);
   memberAllProgressNotifier.value += progressStep;
