@@ -10,7 +10,8 @@ class NamiMemberAusbildungModel {
 
   late String baustein;
 
-  late String? descriptor;
+  String? descriptor;
+
   NamiMemberAusbildungModel._({
     required this.id,
     required this.name,

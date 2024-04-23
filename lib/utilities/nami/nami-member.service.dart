@@ -125,16 +125,18 @@ Future<List<NamiMemberAusbildungModel>> _loadMemberAusbildungen(
     int id, String url, String path, String cookie) async {
   String fullUrl =
       '$url$path/mitglied-ausbildung/filtered-for-navigation/mitglied/mitglied/$id/flist';
-  sensLog.i('Request: Lade Ausbildungen eines Mitglieds');
+  sensLog.i('Request: Ausbildungen for ${sensId(id)}');
   final response =
       await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
-  final source = json.decode(const Utf8Decoder().convert(response.bodyBytes));
+  final source = json.decode(const Utf8Decoder()
+      .convert(response.bodyBytes)
+      .replaceAll("&#34;", '\\"'));
 
   if (response.statusCode == 200 && source['success']) {
     List<NamiMemberAusbildungModel> ausbildungen = [];
     for (Map<String, dynamic> item in source['data']) {
-      final taetigkeit = NamiMemberAusbildungModel.fromJson(item);
-      ausbildungen.add(taetigkeit);
+      final ausbildung = NamiMemberAusbildungModel.fromJson(item);
+      ausbildungen.add(ausbildung);
     }
     sensLog.i('Response: Loaded Ausbildungen for ${sensId(id)}');
     return ausbildungen;

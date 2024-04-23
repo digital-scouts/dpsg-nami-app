@@ -20,5 +20,5 @@ class Ausbildung {
   late String baustein;
 
   @HiveField(5)
-  late String? descriptor;
+  String? descriptor;
 }
