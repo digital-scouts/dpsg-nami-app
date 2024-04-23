@@ -14,7 +14,11 @@ enum AllowedFeatures {
   memberEdit,
   memberCreate,
   stufenwechsel,
-  fuehrungszeugnis
+  fuehrungszeugnis,
+  ausbildungCreate,
+  ausbildungEdit,
+  ausbildungRead,
+  ausbildungDelete,
 }
 
 extension AllowedFeaturesExtension on AllowedFeatures {
@@ -32,8 +36,14 @@ extension AllowedFeaturesExtension on AllowedFeatures {
         return 'Stufenwechsel';
       case AllowedFeatures.fuehrungszeugnis:
         return 'Führungszeugnis';
-      default:
-        return 'Unknown';
+      case AllowedFeatures.ausbildungCreate:
+        return 'Ausbildung anlegen';
+      case AllowedFeatures.ausbildungEdit:
+        return 'Ausbildung bearbeiten';
+      case AllowedFeatures.ausbildungRead:
+        return 'Ausbildung anzeigen';
+      case AllowedFeatures.ausbildungDelete:
+        return 'Ausbildung löschen';
     }
   }
 }
@@ -77,6 +87,18 @@ Future<List<AllowedFeatures>> getRechte() async {
   }
   if (rechte.containsKey(473) && rechte.containsKey(474)) {
     allowedFeatures.add(AllowedFeatures.fuehrungszeugnis);
+  }
+  if (rechte.containsKey(192)) {
+    allowedFeatures.add(AllowedFeatures.ausbildungCreate);
+  }
+  if (rechte.containsKey(193)) {
+    allowedFeatures.add(AllowedFeatures.ausbildungRead);
+  }
+  if (rechte.containsKey(194)) {
+    allowedFeatures.add(AllowedFeatures.ausbildungEdit);
+  }
+  if (rechte.containsKey(195)) {
+    allowedFeatures.add(AllowedFeatures.ausbildungDelete);
   }
 
   sensLog.t('Rechte: ${allowedFeatures.map((e) => e.toReadableString())}');
