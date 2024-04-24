@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:nami/screens/utilities/welcome_screen.dart';
 import 'package:nami/utilities/hive/hive.handler.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/logger.dart';
@@ -312,14 +313,7 @@ class LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!getWelcomeMessageShown()) {
-        bool result = await showWelcomeDialog();
-        if (result) {
-          setWelcomeMessageShown(true);
-        }
-      }
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) async {});
   }
 
   @override
