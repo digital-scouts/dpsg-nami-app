@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter/material.dart';
@@ -133,6 +134,14 @@ class _MaterialAppWrapperState extends State<MaterialAppWrapper>
       themeMode: Provider.of<ThemeModel>(context).currentMode,
       home: const RootHome(),
       navigatorKey: navigatorKey,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('de', 'DE'), // Spanish
+      ],
       builder: (context, child) {
         return Scaffold(
           floatingActionButton: FloatingActionButton(

@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/notifications.dart';
+import 'package:nami/utilities/types.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../utilities/hive/settings.dart';
@@ -20,7 +21,6 @@ class Settings extends StatefulWidget {
 class _SettingsState extends State<Settings> {
   bool stufenwechselDatumIsValid = true;
 
-  final _stufenwechselTextController = TextEditingController();
   final _stammheimTextController = TextEditingController(text: getStammheim());
 
   Widget _buildSync() {
@@ -51,48 +51,27 @@ class _SettingsState extends State<Settings> {
   }
 
   Widget _buildStufenwechselDatumInput() {
-    _stufenwechselTextController.text =
-        '${getNextStufenwechselDatum().day.toString().padLeft(2, '0')}-${getNextStufenwechselDatum().month.toString().padLeft(2, '0')}';
     return ListTile(
       title: const Text('Stufenwechsel Datum: '),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            width: 80,
-            child: Padding(
-              padding: const EdgeInsets.only(left: 8, right: 8),
-              child: TextField(
-                controller: _stufenwechselTextController,
-                decoration: InputDecoration(
-                  hintText: 'DD-MM',
-                  errorText: !stufenwechselDatumIsValid
-                      ? 'Ungültiges Format'
-                      : null, // Anzeige des Fehlers
-                ),
-              ),
+          TextButton(
+            onPressed: () async {
+              final date = await showDatePicker(
+                  context: context,
+                  firstDate: DateTime.now(),
+                  lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+                  initialDate: DateTime.now());
+              if (date != null) {
+                setStufenwechselDatum(date);
+              }
+              setState(() {});
+            },
+            child: Text(
+              getStufenWechselDatum().prettyPrint(),
             ),
           ),
-          IconButton(
-            color: Theme.of(context).colorScheme.primary,
-            onPressed: () {
-              if (!isValidInput(_stufenwechselTextController.text)) {
-                setState(() {
-                  stufenwechselDatumIsValid = false;
-                });
-              } else {
-                DateTime stufenwechselDatum = DateTime(
-                    DateTime.now().year,
-                    int.parse(_stufenwechselTextController.text.split('-')[1]),
-                    int.parse(_stufenwechselTextController.text.split('-')[0]));
-                setStufenwechselDatum(stufenwechselDatum);
-                setState(() {
-                  stufenwechselDatumIsValid = true;
-                });
-              }
-            },
-            icon: const Icon(Icons.save),
-          )
         ],
       ),
     );

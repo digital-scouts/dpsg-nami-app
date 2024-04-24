@@ -263,6 +263,12 @@ bool getDataLoadingOverWifiOnly() {
       true;
 }
 
+DateTime getStufenWechselDatum() {
+  return Hive.box('settingsBox')
+          .get(SettingValue.stufenwechselDatum.toString()) ??
+      DateTime.now();
+}
+
 DateTime getNextStufenwechselDatum() {
   DateTime now = DateTime.now();
   DateTime safedStufenwechselDatum =
