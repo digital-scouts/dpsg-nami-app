@@ -48,56 +48,63 @@ extension AllowedFeaturesExtension on AllowedFeatures {
   }
 }
 
-/// Dokumentation zu den Rechten finden sich im README.md
-/// Rechte werden anhand der User ID geladen (nicht die Mitgliedsnummer)
-Future<List<AllowedFeatures>> getRechte() async {
-  sensLog.w('Rechte werden geladen');
+Future<List<int>> loadRechte() async {
+  sensLog.i('Rechte werden geladen');
   final cookie = getNamiApiCookie();
   if (cookie == 'testLoginCookie') {
-    return [AllowedFeatures.appStart];
+    return [5, 36, 58, 118, 139, 314, 193, 194, 195];
   }
-  List<AllowedFeatures> allowedFeatures = [];
   Map<int, String> rechte;
   try {
     rechte = await _loadRechteJson();
-  } catch (e) {
-    sensLog.i('Failed to load rechte: $e');
+  } catch (e, st) {
+    sensLog.e('Failed to load rechte', error: e, stackTrace: st);
+    return [];
+  }
+  return rechte.keys.toList();
+}
+
+/// Dokumentation zu den Rechten finden sich im README.md
+/// Rechte werden anhand der User ID geladen (nicht die Mitgliedsnummer)
+List<AllowedFeatures> getAllowedFeatures() {
+  final rechte = getRechte();
+  if (rechte.isEmpty) {
     return [AllowedFeatures.error];
   }
-
-  if (rechte.containsKey(5) &&
-      rechte.containsKey(36) &&
-      rechte.containsKey(58) &&
-      rechte.containsKey(118) &&
-      rechte.containsKey(139) &&
-      rechte.containsKey(314)) {
+  List<AllowedFeatures> allowedFeatures = [];
+  if (rechte.contains(5) &&
+      rechte.contains(36) &&
+      rechte.contains(58) &&
+      rechte.contains(118) &&
+      rechte.contains(139) &&
+      rechte.contains(314)) {
     allowedFeatures.add(AllowedFeatures.appStart);
   }
-  if (rechte.containsKey(57) && rechte.containsKey(59)) {
+  if (rechte.contains(57) && rechte.contains(59)) {
     allowedFeatures.add(AllowedFeatures.stufenwechsel);
   }
-  if (rechte.containsKey(4) && rechte.containsKey(57)) {
+  if (rechte.contains(4) && rechte.contains(57)) {
     allowedFeatures.add(AllowedFeatures.memberEdit);
   }
-  if (rechte.containsKey(6) &&
-      rechte.containsKey(59) &&
-      rechte.containsKey(313) &&
-      rechte.containsKey(316)) {
+  if (rechte.contains(6) &&
+      rechte.contains(59) &&
+      rechte.contains(313) &&
+      rechte.contains(316)) {
     allowedFeatures.add(AllowedFeatures.memberCreate);
   }
-  if (rechte.containsKey(473) && rechte.containsKey(474)) {
+  if (rechte.contains(473) && rechte.contains(474)) {
     allowedFeatures.add(AllowedFeatures.fuehrungszeugnis);
   }
-  if (rechte.containsKey(192)) {
+  if (rechte.contains(192)) {
     allowedFeatures.add(AllowedFeatures.ausbildungCreate);
   }
-  if (rechte.containsKey(193)) {
+  if (rechte.contains(193)) {
     allowedFeatures.add(AllowedFeatures.ausbildungRead);
   }
-  if (rechte.containsKey(194)) {
+  if (rechte.contains(194)) {
     allowedFeatures.add(AllowedFeatures.ausbildungEdit);
   }
-  if (rechte.containsKey(195)) {
+  if (rechte.contains(195)) {
     allowedFeatures.add(AllowedFeatures.ausbildungDelete);
   }
 

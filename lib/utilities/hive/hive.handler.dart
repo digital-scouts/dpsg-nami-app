@@ -15,6 +15,7 @@ void logout() {
   Hive.box<Mitglied>('members').clear();
   deleteGruppierungId();
   deleteGruppierungName();
+  setRechte([]);
 
   setStammheim('');
   setFavouriteList([]);
