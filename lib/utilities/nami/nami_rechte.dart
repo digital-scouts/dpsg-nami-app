@@ -52,7 +52,7 @@ Future<List<int>> loadRechte() async {
   sensLog.i('Rechte werden geladen');
   final cookie = getNamiApiCookie();
   if (cookie == 'testLoginCookie') {
-    return [5, 36, 58, 118, 139, 314];
+    return [5, 36, 58, 118, 139, 314, 193, 194, 195];
   }
   Map<int, String> rechte;
   try {

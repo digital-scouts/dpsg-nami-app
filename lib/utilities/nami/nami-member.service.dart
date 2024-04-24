@@ -20,8 +20,6 @@ import 'package:nami/utilities/hive/taetigkeit.dart';
 import 'model/nami_member_details.model.dart';
 import 'model/nami_taetigkeiten.model.dart';
 
-ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? snackbar;
-
 int _getVersionOfMember(int id, List<Mitglied> mitglieder) {
   try {
     Mitglied mitglied = mitglieder.firstWhere((m) => m.id == id);
@@ -184,6 +182,9 @@ Future<void> syncMembers(
   if (cookie == 'testLoginCookie') {
     await storeFakeSetOfMemberInHive(
         memberBox, memberOverviewProgressNotifier, memberAllProgressNotifier);
+    setRechte(await loadRechte());
+    rechteProgressNotifier.value = getAllowedFeatures();
+
     setLastNamiSync(DateTime.now());
     return;
   }
