@@ -272,7 +272,8 @@ Future<Mitglied?> _storeMitgliedToHive(
   }
 
   final allowedFeatures = getAllowedFeatures();
-  if (allowedFeatures.contains(AllowedFeatures.ausbildungRead)) {
+  if (allowedFeatures.contains(AllowedFeatures.ausbildungRead) ||
+      mitgliedId == getNamiLoginId()) {
     try {
       rawAusbildungen =
           await _loadMemberAusbildungen(mitgliedId, url, path, cookie);
