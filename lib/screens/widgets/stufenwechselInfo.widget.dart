@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:nami/screens/mitgliedsliste/mitglied_details.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/stufe.dart';
@@ -56,6 +57,14 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
         stufenwechselData[Stufe.FAVOURITE] = [];
       }
       DataRow data = DataRow(
+        onSelectChanged: (_) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MitgliedDetail(mitglied: mitglied),
+            ),
+          );
+        },
         cells: [
           DataCell(
             Text(
@@ -139,6 +148,7 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
                   DataColumn(label: Text('Wechsel'))
                 ],
                 rows: aktuelleTabellenZeilen,
+                showCheckboxColumn: false,
               ),
             ),
           )
