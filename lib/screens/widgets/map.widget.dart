@@ -8,12 +8,14 @@ import 'package:geocoding/geocoding.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
-import 'package:nami/utilities/notifications.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:just_the_tooltip/just_the_tooltip.dart';
 
 class MapWidget extends StatefulWidget {
   final List<Mitglied> members;
-  const MapWidget({required this.members, Key? key}) : super(key: key);
+  final Map<int, Color>? elementColors;
+  const MapWidget({required this.members, this.elementColors, Key? key})
+      : super(key: key);
 
   @override
   MapWidgetState createState() => MapWidgetState();
@@ -21,14 +23,21 @@ class MapWidget extends StatefulWidget {
 
 class MapWidgetState extends State<MapWidget> {
   MapController mapController = MapController();
+  Map<int, JustTheController> tooltipControllers = {};
   late Future<({LatLng? stammheim, Map<int, LatLng> members})> _addressLocation;
-
-  final markerNotifier = MapMarkerNotifier();
 
   @override
   void initState() {
     super.initState();
     _addressLocation = _getAddressLocation();
+  }
+
+  @override
+  void didUpdateWidget(MapWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.members != oldWidget.members) {
+      _addressLocation = _getAddressLocation();
+    }
   }
 
   Future<({LatLng? stammheim, Map<int, LatLng> members})>
@@ -42,10 +51,12 @@ class MapWidgetState extends State<MapWidget> {
       } on NoResultFoundException catch (_, __) {}
     }
     Map<int, LatLng> members = {};
+    tooltipControllers = {};
     for (Mitglied member in widget.members) {
       LatLng? coordinates = await member.getCoordinates();
       if (coordinates != null) {
         members[member.mitgliedsNummer] = coordinates;
+        tooltipControllers[member.mitgliedsNummer] = JustTheController();
       }
     }
 
@@ -122,45 +133,62 @@ class MapWidgetState extends State<MapWidget> {
                     markers: [
                       if (homeLocation != null)
                         Marker(
-                          width: 80.0,
-                          height: 80.0,
+                          width: 20.0,
+                          height: 20.0,
                           point: homeLocation, // Position für den Marker
-                          builder: (ctx) => const Icon(
-                            Icons.home,
-                            color: Colors.black,
-                          ),
+                          builder: (ctx) =>
+                              const Icon(Icons.home, color: Colors.black),
                         ),
-                      if (addressLocations.isNotEmpty)
-                        ...addressLocations.entries
-                            .map((entry) => Marker(
-                                  width: 80.0,
-                                  height: 80.0,
-                                  point: entry.value,
-                                  builder: (ctx) => GestureDetector(
-                                    onTap: () {
-                                      markerNotifier.value = entry.key;
-                                    },
-                                    child: const Icon(
-                                      Icons.person_pin_circle,
-                                      color: Colors.red,
-                                    ),
-                                  ),
-                                ))
-                            .toList(),
+                      ...addressLocations.entries.map((entry) {
+                        Mitglied member = widget.members.firstWhere(
+                            (element) => element.mitgliedsNummer == entry.key);
+                        return Marker(
+                          width: 25.0,
+                          height: 25.0,
+                          point: entry.value,
+                          builder: (ctx) => GestureDetector(
+                            onTap: () =>
+                                tooltipControllers[entry.key]!.showTooltip(),
+                            child: JustTheTooltip(
+                              controller: tooltipControllers[entry.key],
+                              content: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: ConstrainedBox(
+                                    constraints:
+                                        const BoxConstraints(maxWidth: 200.0),
+                                    child: Text(
+                                      '${member.vorname} ${member.nachname}',
+                                    )),
+                              ),
+                              child: Icon(
+                                Icons.person_pin_circle,
+                                color: widget.elementColors?[entry.key] ??
+                                    Colors.red,
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
                     ],
                   ),
-                  RichAttributionWidget(
-                    attributions: [
-                      TextSourceAttribution(
-                        'OpenStreetMap',
+                  Align(
+                    alignment: Alignment.bottomRight,
+                    child: ColoredBox(
+                      color: Colors.black.withOpacity(0.5),
+                      child: GestureDetector(
                         onTap: () async {
                           const url = 'https://openstreetmap.org/copyright';
                           if (await canLaunchUrl(Uri.parse(url))) {
                             await launchUrl(Uri.parse(url));
                           }
                         },
+                        child: const Padding(
+                          padding: EdgeInsets.all(3),
+                          child: Text('© OpenStreetMap',
+                              style: TextStyle(fontSize: 10)),
+                        ),
                       ),
-                    ],
+                    ),
                   ),
                 ],
               ),

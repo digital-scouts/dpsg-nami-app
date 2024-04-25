@@ -40,20 +40,16 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
       }
 
       Stufe? currentStufe = Stufe.getStufeByString(mitglied.stufe);
-      int? minStufenWechselJahr = mitglied.getMinStufenWechselJahr();
-      int? maxStufenWechselJahr = mitglied.getMaxStufenWechselJahr();
+      DateTime? minStufenWechselJahr = mitglied.getMaxStufenWechselDatum();
+      DateTime? maxStufenWechselJahr = mitglied.getMaxStufenWechselDatum();
       bool isMinStufenWechselJahrInPast = minStufenWechselJahr != null &&
-          minStufenWechselJahr <= getNextStufenwechselDatum().year;
+          minStufenWechselJahr.isBefore(getNextStufenwechselDatum());
 
       if (!isMinStufenWechselJahrInPast) {
         continue;
       }
       if (stufenwechselData[currentStufe] == null) {
         stufenwechselData[currentStufe] = [];
-      }
-      if (getFavouriteList().contains(mitglied.mitgliedsNummer) &&
-          stufenwechselData[Stufe.FAVOURITE] == null) {
-        stufenwechselData[Stufe.FAVOURITE] = [];
       }
       DataRow data = DataRow(
         cells: [
@@ -70,9 +66,6 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
         ],
       );
       stufenwechselData[currentStufe]!.add(data);
-      if (getFavouriteList().contains(mitglied.mitgliedsNummer)) {
-        stufenwechselData[Stufe.FAVOURITE]!.add(data);
-      }
     }
 
     // sortiere die Liste nach dem Alter unt entferne die Spalte mit dem Alter
@@ -107,12 +100,10 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
               Stufe.WOELFLING,
               Stufe.JUNGPADFINDER,
               Stufe.PFADFINDER,
-              Stufe.ROVER,
-              Stufe.FAVOURITE
+              Stufe.ROVER
             ])
               if ((stufe != Stufe.BIBER ||
-                      stufenwechselData[stufe]?.isNotEmpty == true) &&
-                  (stufe != Stufe.FAVOURITE || getFavouriteList().isNotEmpty))
+                  stufenwechselData[stufe]?.isNotEmpty == true))
                 ChoiceChip(
                   selected: stufe == ausgewaehlteStufe,
                   onSelected: (selected) {
@@ -122,8 +113,9 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
                   showCheckmark: false,
                   avatar: CircleAvatar(
                     backgroundColor: Colors.transparent,
-                    child: Image.asset(stufe.imagePath!,
-                        color: stufe == Stufe.FAVOURITE ? stufe.farbe : null),
+                    child: Image.asset(
+                      stufe.imagePath!,
+                    ),
                   ),
                 ),
           ],

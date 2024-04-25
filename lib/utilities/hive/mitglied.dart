@@ -136,36 +136,48 @@ class Mitglied {
     return Stufe.getStufeByOrder(Stufe.getStufeByString(stufe).index + 1);
   }
 
-  int? getMinStufenWechselJahr() {
+  DateTime? getMinStufenWechselDatum() {
     int alterNextStufenwechsel =
         getAlterAm(referenceDate: getNextStufenwechselDatum());
 
     if (nextStufe != null &&
         nextStufe!.isStufeYouCanChangeTo &&
         !isMitgliedLeiter()) {
-      return getNextStufenwechselDatum().year -
-          alterNextStufenwechsel +
-          nextStufe!.alterMin!;
+      DateTime nextStufenwechselDatum = getNextStufenwechselDatum();
+      return DateTime(
+          nextStufenwechselDatum.year -
+              alterNextStufenwechsel +
+              nextStufe!.alterMin!,
+          nextStufenwechselDatum.month,
+          nextStufenwechselDatum.day);
     } else {
       return null;
     }
   }
 
-  int? getMaxStufenWechselJahr() {
+  DateTime? getMaxStufenWechselDatum() {
     int alterNextStufenwechsel =
         getAlterAm(referenceDate: getNextStufenwechselDatum());
+
     if (nextStufe != null &&
         nextStufe!.isStufeYouCanChangeTo &&
         !isMitgliedLeiter()) {
-      return DateTime.now().year -
-          alterNextStufenwechsel +
-          currentStufe.alterMax! +
-          1;
-    } else if (currentStufe.display == "Rover" && !isMitgliedLeiter()) {
-      return DateTime.now().year -
-          alterNextStufenwechsel +
-          currentStufe.alterMax! +
-          1;
+      return DateTime(
+          DateTime.now().year -
+              alterNextStufenwechsel +
+              currentStufe.alterMax! +
+              1,
+          DateTime.now().month,
+          DateTime.now().day);
+    } else if (currentStufe.display == Stufe.ROVER.display &&
+        !isMitgliedLeiter()) {
+      return DateTime(
+          DateTime.now().year -
+              alterNextStufenwechsel +
+              currentStufe.alterMax! +
+              1,
+          DateTime.now().month,
+          DateTime.now().day);
     } else {
       return null;
     }

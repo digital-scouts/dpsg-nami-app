@@ -3,10 +3,6 @@ import 'package:nami/main.dart';
 import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/logger.dart';
 
-class MapMarkerNotifier extends ValueNotifier<int> {
-  MapMarkerNotifier() : super(0);
-}
-
 void showErrorSnackBar(BuildContext context, String message) {
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(

@@ -1,6 +1,7 @@
 // ignore_for_file: constant_identifier_names
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:nami/utilities/theme.dart';
 
 enum Stufe implements Comparable<Stufe> {
@@ -11,7 +12,7 @@ enum Stufe implements Comparable<Stufe> {
     imagePath: 'assets/images/biber.png',
     isStufeYouCanChangeTo: true,
     alterMin: 4,
-    alterMax: 10,
+    alterMax: 7,
   ),
   WOELFLING(
     DPSGColors.woelfingFarbe,
@@ -61,13 +62,6 @@ enum Stufe implements Comparable<Stufe> {
     DPSGColors.keineStufeFarbe,
     'keine Stufe',
     'keine Stufe',
-    isStufeYouCanChangeTo: false,
-  ),
-  FAVOURITE(
-    Colors.yellow,
-    'Favourite',
-    'Fav',
-    imagePath: 'assets/images/star.png',
     isStufeYouCanChangeTo: false,
   );
 
