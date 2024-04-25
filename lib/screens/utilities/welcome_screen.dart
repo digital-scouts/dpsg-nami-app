@@ -25,24 +25,27 @@ class WelcomeScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(16.0),
                 child: Text(
                   "Bitte beachte, dass unsere App sich noch in der Entwicklung befindet und es daher zu Problemen kommen kann. Dein Feedback ist uns jedoch sehr wichtig! Wenn du auf Probleme stößt oder Verbesserungsvorschläge hast, lass es uns bitte wissen. Wir sind dankbar für jede Unterstützung bei der Weiterentwicklung unserer App.",
-                  style: Theme.of(context).textTheme.bodyLarge,
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ),
             ),
             const SizedBox(height: 20),
             Text(
-              "Ein paar Einstellungen",
+              "Wenige Einstellungen zu Beginn",
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const Card(
-              child: Column(
-                children: [
-                  StufenwechelDatumSetting(),
-                  StammHeimSetting(),
-                ],
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 8.0),
+                child: Column(
+                  children: [
+                    StufenwechelDatumSetting(),
+                    StammHeimSetting(),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 40),
             FilledButton.icon(
               onPressed: () => Navigator.pop(context),
               icon: const Icon(Icons.check),

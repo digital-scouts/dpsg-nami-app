@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:nami/screens/utilities/welcome_screen.dart';
 import 'package:nami/utilities/hive/hive.handler.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/logger.dart';
@@ -8,7 +7,6 @@ import 'package:nami/utilities/nami/nami-login.service.dart';
 import 'dart:async';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:provider/provider.dart';
-import 'package:nami/utilities/notifications.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:nami/utilities/app.state.dart';
 

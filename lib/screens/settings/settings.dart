@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:nami/screens/utilities/welcome_screen.dart';
 import 'package:nami/screens/widgets/stamm_heim_setting.dart';
 import 'package:nami/screens/widgets/stufenwechsel_datum_setting.dart';
 import 'package:nami/utilities/app.state.dart';
@@ -94,16 +93,6 @@ class Settings extends StatelessWidget {
               _buildBiometricAuthentication(),
               _buildDataLoadingOverWifiOnly(),
               _buildShareLogs(),
-              ElevatedButton(
-                child: const Text("push Welcome page"),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const WelcomeScreen()),
-                  );
-                },
-              ),
               Expanded(child: Container()),
               Padding(
                 padding: const EdgeInsets.all(20.0),
