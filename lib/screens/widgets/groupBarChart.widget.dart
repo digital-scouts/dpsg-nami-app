@@ -200,7 +200,7 @@ class GroupBarChartState extends State<GroupBarChart> {
           barTouchData: BarTouchData(
             enabled: false,
             touchTooltipData: BarTouchTooltipData(
-              tooltipBgColor: Colors.transparent,
+              getTooltipColor: (_) => Colors.transparent,
               tooltipPadding: EdgeInsets.zero,
               tooltipMargin: -23,
               getTooltipItem: (
