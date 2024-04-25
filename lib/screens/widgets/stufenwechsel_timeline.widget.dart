@@ -7,7 +7,8 @@ class TimelineWidget extends StatelessWidget {
   final Mitglied mitglied;
   final DateTime nextStufenwechsel;
 
-  TimelineWidget({
+  const TimelineWidget({
+    super.key,
     required this.currentStufe,
     required this.mitglied,
     required this.nextStufenwechsel,
@@ -16,7 +17,7 @@ class TimelineWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
-      size: Size(double.infinity, 10),
+      size: const Size(double.infinity, 10),
       painter: TimelinePainter(
         currentStufe: currentStufe,
         mitglied: mitglied,
