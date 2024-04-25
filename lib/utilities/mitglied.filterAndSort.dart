@@ -35,6 +35,10 @@ void sortByName(List<Mitglied> mitglieder) {
   mitglieder.sort((a, b) => a.compareByName(b));
 }
 
+void sortByLastName(List<Mitglied> mitglieder) {
+  mitglieder.sort((a, b) => a.compareByLastName(b));
+}
+
 void sortByStufe(List<Mitglied> mitglieder) {
   mitglieder.sort((a, b) => a.compareByStufe(b));
 }
@@ -47,10 +51,11 @@ void sortByMitgliedsalter(List<Mitglied> mitglieder) {
   mitglieder.sort((a, b) => a.compareByMitgliedsalter(b));
 }
 
-enum MemberSorting { name, age, group, memberTime }
+enum MemberSorting { name, lastname, age, group, memberTime }
 
 const Map<MemberSorting, String> memberSortingValues = {
-  MemberSorting.name: "Name",
+  MemberSorting.name: "Vorname",
+  MemberSorting.lastname: "Nachname",
   MemberSorting.age: 'Alter',
   MemberSorting.group: "Gruppe",
   MemberSorting.memberTime: "Mitgliedsdauer",

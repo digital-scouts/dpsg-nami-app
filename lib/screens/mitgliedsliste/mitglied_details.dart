@@ -36,8 +36,11 @@ class MitgliedDetailState extends State<MitgliedDetail>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController =
+        TabController(length: showAusbildungen ? 3 : 2, vsync: this);
   }
+
+  bool get showAusbildungen => widget.mitglied.ausbildungen.isNotEmpty;
 
   Widget _buildBox(Widget child) {
     return Card(
@@ -464,86 +467,103 @@ class MitgliedDetailState extends State<MitgliedDetail>
     Taetigkeit? fakeStufenwechselTaetigkeit = getStufenwechselTaetigkeit();
     Taetigkeit? currentTaetigkeit = getCurrenttaetigkeit(aktiveTaetigkeiten);
     return Scaffold(
-        floatingActionButton: FloatingActionButton(
-          onPressed: () => openWiredash(context),
-          child: const Icon(Icons.feedback),
-        ),
-        appBar: AppBar(
-          shadowColor: Colors.transparent,
-          backgroundColor: Stufe.getStufeByString(widget.mitglied.stufe).farbe,
-          title: Text("${widget.mitglied.vorname} ${widget.mitglied.nachname}"),
-          actions: [
-            IconButton(
-                onPressed: () => {
-                      isFavourit
-                          ? removeFavouriteList(widget.mitglied.mitgliedsNummer)
-                          : addFavouriteList(widget.mitglied.mitgliedsNummer),
-                      setState(() {
-                        isFavourit = !isFavourit;
-                      })
-                    },
-                icon: isFavourit
-                    ? const Icon(Icons.star)
-                    : const Icon(Icons.star_border_outlined))
-          ],
-        ),
-        body: Column(
-          children: <Widget>[
-            _buildStatistikTopRow(),
-            TabBar(
-              controller: _tabController,
-              tabs: const [
-                Tab(text: 'Kontaktdaten'),
-                Tab(text: 'Tätigkeiten'),
-              ],
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    ListView(
-                      children: <Widget>[
-                        _buildGeneralInfos(),
-                        _buildAddress(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => openWiredash(context),
+        child: const Icon(Icons.feedback),
+      ),
+      appBar: AppBar(
+        shadowColor: Colors.transparent,
+        backgroundColor: Stufe.getStufeByString(widget.mitglied.stufe).farbe,
+        title: Text("${widget.mitglied.vorname} ${widget.mitglied.nachname}"),
+        actions: [
+          IconButton(
+              onPressed: () => {
+                    isFavourit
+                        ? removeFavouriteList(widget.mitglied.mitgliedsNummer)
+                        : addFavouriteList(widget.mitglied.mitgliedsNummer),
+                    setState(() {
+                      isFavourit = !isFavourit;
+                    })
+                  },
+              icon: isFavourit
+                  ? const Icon(Icons.star)
+                  : const Icon(Icons.star_border_outlined))
+        ],
+      ),
+      body: Column(
+        children: <Widget>[
+          _buildStatistikTopRow(),
+          TabBar(
+            controller: _tabController,
+            tabs: [
+              const Tab(text: 'Basisdaten'),
+              const Tab(text: 'Tätigkeiten'),
+              if (showAusbildungen) const Tab(text: 'Ausbildungen')
+            ],
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  ListView(
+                    children: <Widget>[
+                      _buildGeneralInfos(),
+                      _buildAddress(),
+                    ],
+                  ),
+                  ListView(
+                    children: [
+                      if (kDebugMode &&
+                          fakeStufenwechselTaetigkeit != null &&
+                          currentTaetigkeit != null) ...[
+                        Text(
+                          'Zukünftige Tätigkeit',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        _buildStufenwechselItem(
+                            fakeStufenwechselTaetigkeit, currentTaetigkeit),
+                        const SizedBox(height: 10),
                       ],
-                    ),
+                      if (aktiveTaetigkeiten.isNotEmpty)
+                        Text(
+                          'Aktive Tätigkeiten',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      for (final taetigkeit in aktiveTaetigkeiten)
+                        _buildTaetigkeitenItem(taetigkeit),
+                      const SizedBox(height: 10),
+                      if (vergangeneTaetigkeiten.isNotEmpty)
+                        Text(
+                          'Abgeschlossene Tätigkeiten',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      for (final taetigkeit in vergangeneTaetigkeiten)
+                        _buildTaetigkeitenItem(taetigkeit),
+                    ],
+                  ),
+                  if (showAusbildungen)
                     ListView(
                       children: [
-                        if (kDebugMode &&
-                            fakeStufenwechselTaetigkeit != null &&
-                            currentTaetigkeit != null) ...[
-                          Text(
-                            'Zukünftige Tätigkeit',
-                            style: Theme.of(context).textTheme.titleMedium,
+                        for (final ausbildung in widget.mitglied.ausbildungen)
+                          _buildBox(
+                            ListTile(
+                              leading: const Icon(Icons.school),
+                              title: Text(ausbildung.baustein),
+                              isThreeLine: true,
+                              subtitle: Text(
+                                  '${ausbildung.name}\n${DateFormat('dd. MMMM yyyy').format(ausbildung.datum)} - ${ausbildung.veranstalter}'),
+                            ),
                           ),
-                          _buildStufenwechselItem(
-                              fakeStufenwechselTaetigkeit, currentTaetigkeit),
-                          const SizedBox(height: 10),
-                        ],
-                        if (aktiveTaetigkeiten.isNotEmpty)
-                          Text(
-                            'Aktive Tätigkeiten',
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                        for (final taetigkeit in aktiveTaetigkeiten)
-                          _buildTaetigkeitenItem(taetigkeit),
-                        const SizedBox(height: 10),
-                        if (vergangeneTaetigkeiten.isNotEmpty)
-                          Text(
-                            'Abgeschlossene Tätigkeiten',
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                        for (final taetigkeit in vergangeneTaetigkeiten)
-                          _buildTaetigkeitenItem(taetigkeit),
                       ],
-                    )
-                  ],
-                ),
+                    ),
+                ],
               ),
             ),
-          ],
-        ));
+          ),
+        ],
+      ),
+    );
   }
 }

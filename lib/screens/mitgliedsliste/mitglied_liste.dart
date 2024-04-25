@@ -79,6 +79,9 @@ class MitgliedsListeState extends State<MitgliedsListe> {
       case MemberSorting.name:
         sortByName(filteredMitglieder);
         break;
+      case MemberSorting.lastname:
+        sortByLastName(filteredMitglieder);
+        break;
       case MemberSorting.memberTime:
         sortByMitgliedsalter(filteredMitglieder);
         break;
@@ -148,8 +151,11 @@ class MitgliedsListeState extends State<MitgliedsListe> {
                 width: 5,
               ),
               minLeadingWidth: 5,
-              title: Text(
-                  '${filteredMitglieder[index].vorname} ${filteredMitglieder[index].nachname}'),
+              title: filter.sorting == MemberSorting.lastname
+                  ? Text(
+                      '${filteredMitglieder[index].nachname}, ${filteredMitglieder[index].vorname} ')
+                  : Text(
+                      '${filteredMitglieder[index].vorname} ${filteredMitglieder[index].nachname}'),
               subtitle: switch (filter.subElement) {
                 MemberSubElement.id =>
                   Text(filteredMitglieder[index].mitgliedsNummer.toString()),

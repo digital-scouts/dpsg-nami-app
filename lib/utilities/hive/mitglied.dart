@@ -1,6 +1,7 @@
 import 'package:geocoding/geocoding.dart';
 import 'package:hive/hive.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:nami/utilities/hive/ausbildung.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
 
@@ -83,6 +84,9 @@ class Mitglied {
 
   @HiveField(24)
   late List<Taetigkeit> taetigkeiten;
+
+  @HiveField(25, defaultValue: [])
+  late List<Ausbildung> ausbildungen;
 
   bool isMitgliedLeiter() {
     for (Taetigkeit t in taetigkeiten) {
@@ -201,6 +205,13 @@ class Mitglied {
   int compareByName(Mitglied mitglied) {
     String m1Name = '$vorname $nachname';
     String m2Name = '${mitglied.vorname} ${mitglied.nachname}';
+    return m1Name.compareTo(m2Name);
+  }
+
+  /// 0 gleich | <0 this ist alpabetisch früher | >0 this ist alpabetisch später
+  int compareByLastName(Mitglied mitglied) {
+    String m1Name = '$nachname $vorname ';
+    String m2Name = '${mitglied.nachname} ${mitglied.vorname}';
     return m1Name.compareTo(m2Name);
   }
 

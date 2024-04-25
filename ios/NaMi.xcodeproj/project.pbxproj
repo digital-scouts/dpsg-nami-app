@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 60;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -40,6 +40,7 @@
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
+		7C18D7662BC4A7F8007A86EF /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = Base; path = Base.lproj/Info.plist; sourceTree = "<group>"; };
 		7CB28ED02AD7F2CA00FC2A69 /* NaMi.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = NaMi.entitlements; sourceTree = "<group>"; };
 		8E389110D5AB5257BAFF2FEB /* Pods-NaMi.debug-nami.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-NaMi.debug-nami.xcconfig"; path = "Target Support Files/Pods-NaMi/Pods-NaMi.debug-nami.xcconfig"; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Flutter/Debug.xcconfig; sourceTree = "<group>"; };
@@ -48,7 +49,6 @@
 		97C146FB1CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		97C146FD1CF9000F007C117D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		C50BBE77BB677B72C86AB184 /* Pods-NaMi.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-NaMi.debug.xcconfig"; path = "Target Support Files/Pods-NaMi/Pods-NaMi.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -101,7 +101,7 @@
 				97C146FA1CF9000F007C117D /* Main.storyboard */,
 				97C146FD1CF9000F007C117D /* Assets.xcassets */,
 				97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */,
-				97C147021CF9000F007C117D /* Info.plist */,
+				7C18D7672BC4A7F8007A86EF /* Info.plist */,
 				1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */,
 				1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */,
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
@@ -288,6 +288,14 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXVariantGroup section */
+		7C18D7672BC4A7F8007A86EF /* Info.plist */ = {
+			isa = PBXVariantGroup;
+			children = (
+				7C18D7662BC4A7F8007A86EF /* Base */,
+			);
+			name = Info.plist;
+			sourceTree = "<group>";
+		};
 		97C146FA1CF9000F007C117D /* Main.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
@@ -368,8 +376,8 @@
 				CURRENT_PROJECT_VERSION = 0.0.3;
 				DEVELOPMENT_TEAM = 6WMJR3R823;
 				ENABLE_BITCODE = NO;
-				FLUTTER_BUILD_NAME = 0.0.3;
-				FLUTTER_BUILD_NUMBER = 0.0.3;
+				FLUTTER_BUILD_NAME = 0.1.0;
+				FLUTTER_BUILD_NUMBER = 0.1.0;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = NaMi;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
@@ -454,8 +462,8 @@
 				CURRENT_PROJECT_VERSION = 0.0.3;
 				DEVELOPMENT_TEAM = 6WMJR3R823;
 				ENABLE_BITCODE = NO;
-				FLUTTER_BUILD_NAME = 0.0.3;
-				FLUTTER_BUILD_NUMBER = 0.0.3;
+				FLUTTER_BUILD_NAME = 0.1.0;
+				FLUTTER_BUILD_NUMBER = 0.1.0;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = NaMi;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
@@ -543,8 +551,8 @@
 				CURRENT_PROJECT_VERSION = 0.0.3;
 				DEVELOPMENT_TEAM = 6WMJR3R823;
 				ENABLE_BITCODE = NO;
-				FLUTTER_BUILD_NAME = 0.0.3;
-				FLUTTER_BUILD_NUMBER = 0.0.3;
+				FLUTTER_BUILD_NAME = 0.1.0;
+				FLUTTER_BUILD_NUMBER = 0.1.0;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = NaMi;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
@@ -686,8 +694,8 @@
 				CURRENT_PROJECT_VERSION = 0.0.3;
 				DEVELOPMENT_TEAM = 6WMJR3R823;
 				ENABLE_BITCODE = NO;
-				FLUTTER_BUILD_NAME = 0.0.3;
-				FLUTTER_BUILD_NUMBER = 0.0.3;
+				FLUTTER_BUILD_NAME = 0.1.0;
+				FLUTTER_BUILD_NUMBER = 0.1.0;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = NaMi;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
@@ -720,8 +728,8 @@
 				CURRENT_PROJECT_VERSION = 0.0.3;
 				DEVELOPMENT_TEAM = 6WMJR3R823;
 				ENABLE_BITCODE = NO;
-				FLUTTER_BUILD_NAME = 0.0.3;
-				FLUTTER_BUILD_NUMBER = 0.0.3;
+				FLUTTER_BUILD_NAME = 0.1.0;
+				FLUTTER_BUILD_NUMBER = 0.1.0;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = NaMi;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";

@@ -1,7 +1,7 @@
 name: nami
 description: Namentliche Mitgliedermeldung der DPSG als App für Android und iOS
 publish_to: none
-version: 0.0.3+4
+version: 0.1.0
 
 environment:
   sdk: '^3.0.0'
@@ -52,6 +52,8 @@ dependencies:
   path_provider: ^2.1.2
   flutter_email_sender: ^6.0.2
   just_the_tooltip: ^0.0.12
+  crypto: ^3.0.3
+  package_info_plus: ^4.2.0
 
 dev_dependencies:
   flutter_test:
@@ -74,7 +76,10 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
-    - .env
+    - .env 
+    - .git/refs/heads/ 
+    - .git/HEAD       
+
 
   fonts:
     - family: WorkSans
