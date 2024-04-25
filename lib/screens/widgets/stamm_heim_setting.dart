@@ -52,6 +52,12 @@ class _StammHeimSettingState extends State<StammHeimSetting> {
   }
 
   @override
+  void dispose() {
+    _stammheimTextController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ListTile(
       title: TextField(

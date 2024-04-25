@@ -140,7 +140,7 @@ class _MaterialAppWrapperState extends State<MaterialAppWrapper>
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [
-        Locale('de', 'DE'), // Spanish
+        Locale('de', 'DE'),
       ],
       builder: (context, child) {
         return Scaffold(
