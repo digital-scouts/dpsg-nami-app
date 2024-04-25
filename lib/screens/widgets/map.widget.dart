@@ -11,7 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 class MapWidget extends StatefulWidget {
   final String memberAddress;
-  const MapWidget({required this.memberAddress, Key? key}) : super(key: key);
+  const MapWidget({required this.memberAddress, super.key});
 
   @override
   MapWidgetState createState() => MapWidgetState();

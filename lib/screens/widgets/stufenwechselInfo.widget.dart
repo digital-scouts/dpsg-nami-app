@@ -5,7 +5,7 @@ import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/stufe.dart';
 
 class StufenwechselInfo extends StatefulWidget {
-  const StufenwechselInfo({Key? key}) : super(key: key);
+  const StufenwechselInfo({super.key});
 
   @override
   State<StufenwechselInfo> createState() => _StufenwechselInfoState();

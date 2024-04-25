@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
 
 class Profil extends StatefulWidget {
-  const Profil({Key? key}) : super(key: key);
+  const Profil({super.key});
 
   @override
   State<Profil> createState() => _ProfilState();

@@ -14,7 +14,7 @@ import 'package:nami/utilities/theme.dart';
 import 'mitglied_bearbeiten.dart';
 
 class MitgliedsListe extends StatefulWidget {
-  const MitgliedsListe({Key? key}) : super(key: key);
+  const MitgliedsListe({super.key});
 
   @override
   MitgliedsListeState createState() => MitgliedsListeState();

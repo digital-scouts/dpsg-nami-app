@@ -8,7 +8,7 @@ import 'package:nami/utilities/custom_drawer/drawer_user_controller.dart';
 import 'package:nami/utilities/custom_drawer/home_drawer.dart';
 
 class NavigationHomeScreen extends StatefulWidget {
-  const NavigationHomeScreen({Key? key}) : super(key: key);
+  const NavigationHomeScreen({super.key});
 
   @override
   NavigationHomeScreenState createState() => NavigationHomeScreenState();

@@ -7,11 +7,10 @@ import 'package:nami/utilities/hive/settings.dart';
 
 class HomeDrawer extends StatefulWidget {
   const HomeDrawer(
-      {Key? key,
+      {super.key,
       this.screenIndex,
       this.iconAnimationController,
-      this.callBackIndex})
-      : super(key: key);
+      this.callBackIndex});
 
   final AnimationController? iconAnimationController;
   final DrawerIndex? screenIndex;
