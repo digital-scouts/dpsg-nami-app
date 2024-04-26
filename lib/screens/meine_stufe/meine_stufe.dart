@@ -66,13 +66,14 @@ class _MeineStufeState extends State<MeineStufe> {
   }
 
   Widget _buildMitgliedElement(Mitglied mitglied, Color color) {
-    DateTime currentDate = DateTime.now();
-    Taetigkeit taetigkeit = mitglied.taetigkeiten
+    final DateTime currentDate = DateTime.now();
+    final Taetigkeit taetigkeit = mitglied.taetigkeiten
         .firstWhere((element) => element.untergliederung == mitglied.stufe);
-    int currentStufeYears = currentDate.year - taetigkeit.aktivVon.year;
-    int currentStufeMonths = currentDate.month - taetigkeit.aktivVon.month;
+    final int currentStufeYears = currentDate.year - taetigkeit.aktivVon.year;
+    final int currentStufeMonths =
+        currentDate.month - taetigkeit.aktivVon.month;
 
-    double currentStufeYearsDecimal =
+    final double currentStufeYearsDecimal =
         currentStufeYears + currentStufeMonths / 12.0;
 
     return Card(

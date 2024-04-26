@@ -31,12 +31,11 @@ class HomeDrawerState extends State<HomeDrawer> {
 
   void setDrawerListArray() {
     drawerList = <DrawerList>[
-      if (kDebugMode)
-        DrawerList(
-          index: DrawerIndex.meineStufe,
-          labelName: 'Meine Stufe',
-          icon: const Icon(Icons.group),
-        ),
+      DrawerList(
+        index: DrawerIndex.meineStufe,
+        labelName: 'Meine Stufe',
+        icon: const Icon(Icons.group),
+      ),
       DrawerList(
         index: DrawerIndex.mitglieder,
         labelName: 'Mitglieder',
