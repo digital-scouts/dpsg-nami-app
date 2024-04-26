@@ -40,10 +40,10 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
       }
 
       Stufe? currentStufe = Stufe.getStufeByString(mitglied.stufe);
-      DateTime? minStufenWechselJahr = mitglied.getMaxStufenWechselDatum();
-      DateTime? maxStufenWechselJahr = mitglied.getMaxStufenWechselDatum();
-      bool isMinStufenWechselJahrInPast = minStufenWechselJahr != null &&
-          minStufenWechselJahr.isBefore(getNextStufenwechselDatum());
+      DateTime? minStufenWechselDatum = mitglied.getMinStufenWechselDatum();
+      DateTime? maxStufenWechselDatum = mitglied.getMaxStufenWechselDatum();
+      bool isMinStufenWechselJahrInPast = minStufenWechselDatum != null &&
+          minStufenWechselDatum.isBefore(getNextStufenwechselDatum());
 
       if (!isMinStufenWechselJahrInPast) {
         continue;
@@ -58,7 +58,8 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
                 '${mitglied.vorname} ${mitglied.nachname.substring(0, 1)}. (${(currentDate.difference(mitglied.geburtsDatum).inDays / 365).toStringAsFixed(1)} Jahre alt)'),
           ),
           DataCell(
-            Text('$minStufenWechselJahr-$maxStufenWechselJahr'),
+            Text(
+                '${minStufenWechselDatum.year}-${maxStufenWechselDatum!.year}'),
           ),
           DataCell(
             Text('${currentDate.difference(mitglied.geburtsDatum).inDays}'),

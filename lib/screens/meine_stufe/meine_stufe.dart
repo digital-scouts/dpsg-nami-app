@@ -6,6 +6,7 @@ import 'package:nami/screens/widgets/map.widget.dart';
 import 'package:nami/screens/widgets/stufenwechsel_timeline.widget.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/hive/taetigkeit.dart';
 import 'package:nami/utilities/stufe.dart';
 
 class MeineStufe extends StatefulWidget {
@@ -18,6 +19,21 @@ class MeineStufe extends StatefulWidget {
 class _MeineStufeState extends State<MeineStufe> {
   late List<Mitglied> mitglieder;
   late Map<int, Color> elementColors = {};
+  final List<Color> colors = [
+    const Color(0xFF1A237E),
+    const Color(0xFF004D40),
+    const Color(0xFF880E4F),
+    const Color(0xFF1B5E20),
+    const Color(0xFF3E2723),
+    const Color(0xFF311B92),
+    const Color(0xFFBF360C),
+    const Color(0xFF3F51B5),
+    const Color(0xFF4CAF50),
+    const Color(0xFFE91E63),
+    const Color(0xFF795548),
+    const Color(0xFF9C27B0),
+    const Color(0xFFD84315),
+  ];
 
   @override
   void initState() {
@@ -49,7 +65,16 @@ class _MeineStufeState extends State<MeineStufe> {
     );
   }
 
-  Widget _buildMitgiedElement(Mitglied mitglied, Color color) {
+  Widget _buildMitgliedElement(Mitglied mitglied, Color color) {
+    DateTime currentDate = DateTime.now();
+    Taetigkeit taetigkeit = mitglied.taetigkeiten
+        .firstWhere((element) => element.untergliederung == mitglied.stufe);
+    int currentStufeYears = currentDate.year - taetigkeit.aktivVon.year;
+    int currentStufeMonths = currentDate.month - taetigkeit.aktivVon.month;
+
+    double currentStufeYearsDecimal =
+        currentStufeYears + currentStufeMonths / 12.0;
+
     return Card(
       child: Container(
         decoration: BoxDecoration(
@@ -62,9 +87,20 @@ class _MeineStufeState extends State<MeineStufe> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('${mitglied.vorname} ${mitglied.nachname}'),
-                    Text(DateFormat('dd. MMMM yyyy')
-                        .format(mitglied.geburtsDatum)),
+                    Text('${mitglied.vorname} ${mitglied.nachname}',
+                        overflow: TextOverflow.ellipsis),
+                    Row(
+                      children: [
+                        const Icon(Icons.cake, size: 12),
+                        const SizedBox(width: 5),
+                        Text(DateFormat('dd. MMMM yyyy')
+                            .format(mitglied.geburtsDatum)),
+                      ],
+                    ),
+                    mitglied.isMitgliedLeiter()
+                        ? Container()
+                        : Text(
+                            '${Stufe.getStufeByString(mitglied.stufe).shortDisplaySingular} seit ${currentStufeYearsDecimal.toStringAsFixed(1)} Jahren')
                   ],
                 )),
             Positioned(
@@ -75,7 +111,6 @@ class _MeineStufeState extends State<MeineStufe> {
                   ? Container()
                   : TimelineWidget(
                       mitglied: mitglied,
-                      currentStufe: Stufe.getStufeByString(mitglied.stufe),
                       nextStufenwechsel: getNextStufenwechselDatum(),
                     ),
             ),
@@ -92,7 +127,7 @@ class _MeineStufeState extends State<MeineStufe> {
       itemCount: mitglieder.length,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: (MediaQuery.of(context).size.width > 600) ? 3 : 2,
-        childAspectRatio: 5 / 2,
+        childAspectRatio: 6 / 3,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
       ),
@@ -104,28 +139,11 @@ class _MeineStufeState extends State<MeineStufe> {
                       MitgliedDetail(mitglied: mitglieder[i])),
             )
             .then((value) => setState(() => loadMitglieder())),
-        child: _buildMitgiedElement(
+        child: _buildMitgliedElement(
             mitglieder[i], elementColors[mitglieder[i].mitgliedsNummer]!),
       ),
     );
   }
-
-  final List<Color> colors = [
-    // Dunkle Farbtöne, nicht mehr als 3 ähnliche Farben
-    const Color(0xFF1A237E),
-    const Color(0xFF004D40),
-    const Color(0xFF880E4F),
-    const Color(0xFF1B5E20),
-    const Color(0xFF3E2723),
-    const Color(0xFF311B92),
-    const Color(0xFFBF360C),
-    const Color(0xFF3F51B5),
-    const Color(0xFF4CAF50),
-    const Color(0xFFE91E63),
-    const Color(0xFF795548),
-    const Color(0xFF9C27B0),
-    const Color(0xFFD84315),
-  ];
 
   void loadMitglieder() {
     List<int> favouriteIds = getFavouriteList();
@@ -151,11 +169,15 @@ class _MeineStufeState extends State<MeineStufe> {
       ),
       body: Column(
         children: [
-          MapWidget(members: mitglieder, elementColors: elementColors),
-          const Text(
-            'Mitglieder',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
+          mitglieder.isEmpty
+              ? Container()
+              : MapWidget(members: mitglieder, elementColors: elementColors),
+          mitglieder.isEmpty
+              ? Container()
+              : const Text(
+                  'Mitglieder',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
           Expanded(
             child: mitglieder.isEmpty
                 ? _buildNoElements()

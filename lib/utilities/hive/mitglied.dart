@@ -164,22 +164,10 @@ class Mitglied {
         getAlterAm(referenceDate: getNextStufenwechselDatum());
 
     if (nextStufe != null &&
-        nextStufe!.isStufeYouCanChangeTo &&
+        (nextStufe!.isStufeYouCanChangeTo || currentStufe == Stufe.ROVER) &&
         !isMitgliedLeiter()) {
       return DateTime(
-          DateTime.now().year -
-              alterNextStufenwechsel +
-              currentStufe.alterMax! +
-              1,
-          DateTime.now().month,
-          DateTime.now().day);
-    } else if (currentStufe.display == Stufe.ROVER.display &&
-        !isMitgliedLeiter()) {
-      return DateTime(
-          DateTime.now().year -
-              alterNextStufenwechsel +
-              currentStufe.alterMax! +
-              1,
+          DateTime.now().year - alterNextStufenwechsel + currentStufe.alterMax!,
           DateTime.now().month,
           DateTime.now().day);
     } else {

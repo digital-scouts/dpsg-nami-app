@@ -91,11 +91,14 @@ class MapWidgetState extends State<MapWidget> {
   }
 
   Widget _buildMap(Map<int, LatLng> addressLocations, LatLng? homeLocation) {
-    if (homeLocation != null && addressLocations.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        adjustMapCenterAndZoom([...addressLocations.values, homeLocation]);
-      });
+    List<LatLng> markers = [...addressLocations.values];
+    if (homeLocation != null) {
+      markers.add(homeLocation);
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      adjustMapCenterAndZoom(markers);
+    });
+
     if (homeLocation == null && addressLocations.isEmpty) {
       return const Center(
         child: Text('Keine Adresse gefunden'),

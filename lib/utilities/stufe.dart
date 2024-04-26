@@ -9,6 +9,7 @@ enum Stufe implements Comparable<Stufe> {
     DPSGColors.biberFarbe,
     'Biber',
     'Biber',
+    'Biber',
     imagePath: 'assets/images/biber.png',
     isStufeYouCanChangeTo: true,
     alterMin: 4,
@@ -18,6 +19,7 @@ enum Stufe implements Comparable<Stufe> {
     DPSGColors.woelfingFarbe,
     'Wölfling',
     'Wös',
+    'Wö',
     imagePath: 'assets/images/woe.png',
     isStufeYouCanChangeTo: true,
     alterMin: 6,
@@ -27,6 +29,7 @@ enum Stufe implements Comparable<Stufe> {
     DPSGColors.jungpfadfinderFarbe,
     'Jungpfadfinder',
     'Jufis',
+    'Jufi',
     imagePath: 'assets/images/jufi.png',
     isStufeYouCanChangeTo: true,
     alterMin: 9,
@@ -36,6 +39,7 @@ enum Stufe implements Comparable<Stufe> {
     DPSGColors.pfadfinderFarbe,
     'Pfadfinder',
     'Pfadis',
+    'Pfadi',
     imagePath: 'assets/images/pfadi.png',
     isStufeYouCanChangeTo: true,
     alterMin: 12,
@@ -43,6 +47,7 @@ enum Stufe implements Comparable<Stufe> {
   ),
   ROVER(
     DPSGColors.roverFarbe,
+    'Rover',
     'Rover',
     'Rover',
     imagePath: 'assets/images/rover.png',
@@ -54,6 +59,7 @@ enum Stufe implements Comparable<Stufe> {
     DPSGColors.leiterFarbe,
     'Leiter',
     'Leiter',
+    'Leiter',
     imagePath: 'assets/images/lilie_schwarz.png',
     isStufeYouCanChangeTo: false,
     alterMin: 18,
@@ -62,12 +68,14 @@ enum Stufe implements Comparable<Stufe> {
     DPSGColors.keineStufeFarbe,
     'keine Stufe',
     'keine Stufe',
+    'keine Stufe',
     isStufeYouCanChangeTo: false,
   );
 
   final Color farbe;
   final String display;
   final String shortDisplay;
+  final String shortDisplaySingular;
   final String? imagePath;
   final bool isStufeYouCanChangeTo;
   final int? alterMin;
@@ -104,7 +112,8 @@ enum Stufe implements Comparable<Stufe> {
   const Stufe(
     this.farbe,
     this.display,
-    this.shortDisplay, {
+    this.shortDisplay,
+    this.shortDisplaySingular, {
     this.imagePath,
     this.isStufeYouCanChangeTo = false,
     this.alterMin,
