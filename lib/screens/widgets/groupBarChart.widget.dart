@@ -111,14 +111,6 @@ class GroupBarChartState extends State<GroupBarChart> {
           );
           break;
         default:
-          sectionData.add(
-            createGroupData(
-              index,
-              value.leiter.toDouble(),
-              value.mitglied.toDouble(),
-              DPSGColors.leiterFarbe,
-            ),
-          );
           break;
       }
       index++;
@@ -145,7 +137,6 @@ class GroupBarChartState extends State<GroupBarChart> {
       case 4:
         text = 'Rover';
         break;
-
       default:
         text = 'Sonstige';
     }
@@ -192,57 +183,61 @@ class GroupBarChartState extends State<GroupBarChart> {
   @override
   Widget build(BuildContext context) {
     final data = createData();
-    return AspectRatio(
-      aspectRatio: 4 / 3,
-      child: BarChart(
-        BarChartData(
-          alignment: BarChartAlignment.spaceBetween,
-          barTouchData: BarTouchData(
-            enabled: false,
-            touchTooltipData: BarTouchTooltipData(
-              tooltipBgColor: Colors.transparent,
-              tooltipPadding: EdgeInsets.zero,
-              tooltipMargin: -23,
-              getTooltipItem: (
-                BarChartGroupData group,
-                int groupIndex,
-                BarChartRodData rod,
-                int rodIndex,
-              ) {
-                final count = (rod.toY - rod.fromY).round();
-                if (count == 0) {
-                  return null;
-                }
-                return BarTooltipItem(
-                  "$count",
-                  TextStyle(
-                    color: rod.toY >=
-                            1 // Color text on bar different that on surface
-                        ? Colors.black
-                        : Theme.of(context).colorScheme.onBackground,
-                  ),
-                );
-              },
-            ),
-          ),
-          titlesData: FlTitlesData(
-            leftTitles: const AxisTitles(),
-            rightTitles: const AxisTitles(),
-            topTitles: const AxisTitles(),
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                getTitlesWidget: bottomTitles,
-                reservedSize: 20,
+    return Column(children: [
+      AspectRatio(
+        aspectRatio: 6 / 4,
+        child: BarChart(
+          BarChartData(
+            alignment: BarChartAlignment.spaceBetween,
+            barTouchData: BarTouchData(
+              enabled: false,
+              touchTooltipData: BarTouchTooltipData(
+                tooltipBgColor: Colors.transparent,
+                tooltipPadding: EdgeInsets.zero,
+                tooltipMargin: -23,
+                getTooltipItem: (
+                  BarChartGroupData group,
+                  int groupIndex,
+                  BarChartRodData rod,
+                  int rodIndex,
+                ) {
+                  final count = (rod.toY - rod.fromY).round();
+                  if (count == 0) {
+                    return null;
+                  }
+                  return BarTooltipItem(
+                    "$count",
+                    TextStyle(
+                      color: rod.toY >=
+                              1 // Color text on bar different that on surface
+                          ? Colors.black
+                          : Theme.of(context).colorScheme.onBackground,
+                    ),
+                  );
+                },
               ),
             ),
+            titlesData: FlTitlesData(
+              leftTitles: const AxisTitles(),
+              rightTitles: const AxisTitles(),
+              topTitles: const AxisTitles(),
+              bottomTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  getTitlesWidget: bottomTitles,
+                  reservedSize: 25,
+                ),
+              ),
+            ),
+            borderData: FlBorderData(show: false),
+            gridData: const FlGridData(show: false),
+            barGroups: data,
           ),
-          borderData: FlBorderData(show: false),
-          gridData: const FlGridData(show: false),
-          barGroups: data,
         ),
       ),
-    );
+      const SizedBox(height: 10),
+      Text('Gesamtzahl der Mitglieder: ${widget.mitglieder.length}'),
+    ]);
   }
 }
 
