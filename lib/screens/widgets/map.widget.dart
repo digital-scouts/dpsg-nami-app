@@ -21,6 +21,7 @@ class MapWidget extends StatefulWidget {
 }
 
 class MapWidgetState extends State<MapWidget> {
+  bool _isExpanded = false;
   MapController mapController = MapController();
   late Future<({LatLng? stammheim, Map<int, LatLng> members})> _addressLocation;
 
@@ -108,7 +109,9 @@ class MapWidgetState extends State<MapWidget> {
           children: [
             SizedBox(
               width: double.infinity,
-              height: 200.0,
+              height: _isExpanded
+                  ? (MediaQuery.of(context).size.height - 300)
+                  : 200.0,
               child: FlutterMap(
                 mapController: mapController,
                 options: MapOptions(
@@ -178,6 +181,16 @@ class MapWidgetState extends State<MapWidget> {
                       ),
                     ),
                   ),
+                  if (addressLocations.isNotEmpty &&
+                      addressLocations.length > 1)
+                    IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _isExpanded = !_isExpanded;
+                        });
+                      },
+                      icon: Icon(_isExpanded ? Icons.compress : Icons.expand),
+                    )
                 ],
               ),
             ),
