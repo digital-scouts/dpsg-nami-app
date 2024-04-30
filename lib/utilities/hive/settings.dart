@@ -38,23 +38,20 @@ void setMetaData(
     List<String> beitragsart,
     List<String> staatsangehoerigkeit,
     List<String> mitgliedstyp) {
-  Hive.box('settingsBox')
-      .put(SettingValue.metaGeschechtOptions.toString(), geschlecht);
-  Hive.box('settingsBox').put(SettingValue.metaLandOptions.toString(), land);
-  Hive.box('settingsBox')
-      .put(SettingValue.metaBeitragsartOptions.toString(), beitragsart);
-  Hive.box('settingsBox')
-      .put(SettingValue.metaRegionOptions.toString(), region);
-  Hive.box('settingsBox').put(
-      SettingValue.metaStaatsangehoerigkeitOptions.toString(),
+  settingsBox.put(SettingValue.metaGeschechtOptions.toString(), geschlecht);
+  settingsBox.put(SettingValue.metaLandOptions.toString(), land);
+  settingsBox.put(SettingValue.metaBeitragsartOptions.toString(), beitragsart);
+  settingsBox.put(SettingValue.metaRegionOptions.toString(), region);
+  settingsBox.put(SettingValue.metaStaatsangehoerigkeitOptions.toString(),
       staatsangehoerigkeit);
-  Hive.box('settingsBox')
-      .put(SettingValue.metaMitgliedstypOptions.toString(), mitgliedstyp);
+  settingsBox.put(
+      SettingValue.metaMitgliedstypOptions.toString(), mitgliedstyp);
 }
 
+Box get settingsBox => Hive.box('settingsBox');
+
 MemberSorting getListSort() {
-  String? sortingString =
-      Hive.box('settingsBox').get(SettingValue.listSortBy.toString());
+  String? sortingString = settingsBox.get(SettingValue.listSortBy.toString());
   return MemberSorting.values.firstWhere(
     (e) => e.toString() == sortingString,
     orElse: () => MemberSorting.name,
@@ -63,7 +60,7 @@ MemberSorting getListSort() {
 
 MemberSubElement getListSubtext() {
   String? subElementString =
-      Hive.box('settingsBox').get(SettingValue.listSubtext.toString());
+      settingsBox.get(SettingValue.listSubtext.toString());
   return MemberSubElement.values.firstWhere(
     (e) => e.toString() == subElementString,
     orElse: () => MemberSubElement.id,
@@ -71,202 +68,177 @@ MemberSubElement getListSubtext() {
 }
 
 bool getListFilterInactive() {
-  return Hive.box('settingsBox')
-          .get(SettingValue.listFilterInactive.toString()) ??
-      true;
+  return settingsBox.get(SettingValue.listFilterInactive.toString()) ?? true;
 }
 
 bool getWelcomeMessageShown() {
-  return Hive.box('settingsBox')
-          .get(SettingValue.welcomeMessageShown.toString()) ??
-      false;
+  return settingsBox.get(SettingValue.welcomeMessageShown.toString()) ?? false;
 }
 
 List<String> getMetaGeschlechtOptions() {
-  return Hive.box('settingsBox')
-          .get(SettingValue.metaGeschechtOptions.toString()) ??
-      [];
+  return settingsBox.get(SettingValue.metaGeschechtOptions.toString()) ?? [];
 }
 
 List<String> getMetaLandOptions() {
-  return Hive.box('settingsBox').get(SettingValue.metaLandOptions.toString()) ??
-      [];
+  return settingsBox.get(SettingValue.metaLandOptions.toString()) ?? [];
 }
 
 List<String> getMetaBeitragsartOptions() {
-  return Hive.box('settingsBox')
-          .get(SettingValue.metaBeitragsartOptions.toString()) ??
-      [];
+  return settingsBox.get(SettingValue.metaBeitragsartOptions.toString()) ?? [];
 }
 
 List<String> getMetaRegionOptions() {
-  return Hive.box('settingsBox')
-          .get(SettingValue.metaRegionOptions.toString()) ??
-      [];
+  return settingsBox.get(SettingValue.metaRegionOptions.toString()) ?? [];
 }
 
 List<String> getMetaStaatsangehoerigkeitOptions() {
-  return Hive.box('settingsBox')
+  return settingsBox
           .get(SettingValue.metaStaatsangehoerigkeitOptions.toString()) ??
       [];
 }
 
 List<String> getMetaMitgliedstypOptions() {
-  return Hive.box('settingsBox')
-          .get(SettingValue.metaMitgliedstypOptions.toString()) ??
-      [];
+  return settingsBox.get(SettingValue.metaMitgliedstypOptions.toString()) ?? [];
 }
 
 List<int> getFavouriteList() {
-  return Hive.box('settingsBox').get(SettingValue.favouriteList.toString()) ??
-      [];
+  return settingsBox.get(SettingValue.favouriteList.toString()) ?? [];
 }
 
 bool getBiometricAuthenticationEnabled() {
-  return Hive.box('settingsBox')
+  return settingsBox
           .get(SettingValue.biometricAuthenticationEnabled.toString()) ??
       false;
 }
 
 List<int> getRechte() {
-  return Hive.box('settingsBox').get(SettingValue.rechte.toString()) ?? [];
+  return settingsBox.get(SettingValue.rechte.toString()) ?? [];
 }
 
 int addFavouriteList(int id) {
   List<int> favouritList =
-      Hive.box('settingsBox').get(SettingValue.favouriteList.toString()) ?? [];
+      settingsBox.get(SettingValue.favouriteList.toString()) ?? [];
   favouritList.add(id);
-  Hive.box('settingsBox')
-      .put(SettingValue.favouriteList.toString(), favouritList);
+  settingsBox.put(SettingValue.favouriteList.toString(), favouritList);
   return id;
 }
 
 void setListSort(MemberSorting value) {
-  Hive.box('settingsBox')
-      .put(SettingValue.listSortBy.toString(), value.toString());
+  settingsBox.put(SettingValue.listSortBy.toString(), value.toString());
 }
 
 void setListFilterInactive(bool value) {
-  Hive.box('settingsBox')
-      .put(SettingValue.listFilterInactive.toString(), value);
+  settingsBox.put(SettingValue.listFilterInactive.toString(), value);
 }
 
 void setListSubtext(MemberSubElement value) {
-  Hive.box('settingsBox')
-      .put(SettingValue.listSubtext.toString(), value.toString());
+  settingsBox.put(SettingValue.listSubtext.toString(), value.toString());
 }
 
 void removeFavouriteList(int id) {
   List<int> favouritList =
-      Hive.box('settingsBox').get(SettingValue.favouriteList.toString()) ?? [];
+      settingsBox.get(SettingValue.favouriteList.toString()) ?? [];
   favouritList.remove(id);
-  Hive.box('settingsBox')
-      .put(SettingValue.favouriteList.toString(), favouritList);
+  settingsBox.put(SettingValue.favouriteList.toString(), favouritList);
 }
 
 void setFavouriteList(List<int> favouritList) {
-  Hive.box('settingsBox')
-      .put(SettingValue.favouriteList.toString(), favouritList);
+  settingsBox.put(SettingValue.favouriteList.toString(), favouritList);
 }
 
 void setWelcomeMessageShown(bool value) {
-  Hive.box('settingsBox')
-      .put(SettingValue.welcomeMessageShown.toString(), value);
+  settingsBox.put(SettingValue.welcomeMessageShown.toString(), value);
 }
 
 void setNamiApiCookie(String namiApiToken) {
-  Hive.box('settingsBox')
-      .put(SettingValue.namiApiCookie.toString(), namiApiToken);
+  settingsBox.put(SettingValue.namiApiCookie.toString(), namiApiToken);
 }
 
 void setStufenwechselDatum(DateTime stufenwechselDatum) {
-  Hive.box('settingsBox')
-      .put(SettingValue.stufenwechselDatum.toString(), stufenwechselDatum);
+  settingsBox.put(
+      SettingValue.stufenwechselDatum.toString(), stufenwechselDatum);
 }
 
 void setStammheim(String stammheim) {
   if (stammheim.isEmpty) {
-    Hive.box('settingsBox').delete(SettingValue.stammheim.toString());
+    settingsBox.delete(SettingValue.stammheim.toString());
     return;
   }
-  Hive.box('settingsBox').put(SettingValue.stammheim.toString(), stammheim);
+  settingsBox.put(SettingValue.stammheim.toString(), stammheim);
 }
 
 void setNamiLoginId(int loginId) async {
-  Hive.box('settingsBox').put(SettingValue.namiLoginId.toString(), loginId);
+  settingsBox.put(SettingValue.namiLoginId.toString(), loginId);
 }
 
 void setNamiPassword(String password) async {
-  Hive.box('settingsBox').put(SettingValue.namiPassword.toString(), password);
+  settingsBox.put(SettingValue.namiPassword.toString(), password);
 }
 
 void setNamiUrl(String url) async {
-  Hive.box('settingsBox').put(SettingValue.namiUrl.toString(), url);
+  settingsBox.put(SettingValue.namiUrl.toString(), url);
 }
 
 void setNamiPath(String path) async {
-  Hive.box('settingsBox').put(SettingValue.namiPath.toString(), path);
+  settingsBox.put(SettingValue.namiPath.toString(), path);
 }
 
 void setGruppierungId(int gruppierung) {
-  Hive.box('settingsBox')
-      .put(SettingValue.gruppierungId.toString(), gruppierung);
+  settingsBox.put(SettingValue.gruppierungId.toString(), gruppierung);
 }
 
 void setGruppierungName(String gruppierungName) {
-  Hive.box('settingsBox')
-      .put(SettingValue.gruppierungName.toString(), gruppierungName);
+  settingsBox.put(SettingValue.gruppierungName.toString(), gruppierungName);
 }
 
 void setLastNamiSync(DateTime lastNamiSync) {
-  Hive.box('settingsBox')
-      .put(SettingValue.lastNamiSync.toString(), lastNamiSync);
+  settingsBox.put(SettingValue.lastNamiSync.toString(), lastNamiSync);
 }
 
 void setLastNamiSyncTry(DateTime lastNamiSyncTry) {
-  Hive.box('settingsBox')
-      .put(SettingValue.lastNamiSyncTry.toString(), lastNamiSyncTry);
+  settingsBox.put(SettingValue.lastNamiSyncTry.toString(), lastNamiSyncTry);
 }
 
 void setLastLoginCheck(DateTime lastLoginCheck) {
-  Hive.box('settingsBox')
-      .put(SettingValue.lastLoginCheck.toString(), lastLoginCheck);
+  settingsBox.put(SettingValue.lastLoginCheck.toString(), lastLoginCheck);
 }
 
 void setDataLoadingOverWifiOnly(bool value) {
-  Hive.box('settingsBox')
-      .put(SettingValue.syncDataLoadingOverWifiOnly.toString(), value);
+  settingsBox.put(SettingValue.syncDataLoadingOverWifiOnly.toString(), value);
 }
 
 void setBiometricAuthenticationEnabled(bool value) {
-  Hive.box('settingsBox')
-      .put(SettingValue.biometricAuthenticationEnabled.toString(), value);
+  settingsBox.put(
+      SettingValue.biometricAuthenticationEnabled.toString(), value);
 }
 
 void setRechte(List<int> rechte) {
-  Hive.box('settingsBox').put(SettingValue.rechte.toString(), rechte);
+  settingsBox.put(SettingValue.rechte.toString(), rechte);
 }
 
 String getNamiApiCookie() {
-  return Hive.box('settingsBox').get(SettingValue.namiApiCookie.toString()) ??
-      '';
+  return settingsBox.get(SettingValue.namiApiCookie.toString()) ?? '';
 }
 
 DateTime getLastLoginCheck() {
-  return Hive.box('settingsBox').get(SettingValue.lastLoginCheck.toString()) ??
+  return settingsBox.get(SettingValue.lastLoginCheck.toString()) ??
       DateTime.utc(1989, 1, 1);
 }
 
 bool getDataLoadingOverWifiOnly() {
-  return Hive.box('settingsBox')
-          .get(SettingValue.syncDataLoadingOverWifiOnly.toString()) ??
+  return settingsBox.get(SettingValue.syncDataLoadingOverWifiOnly.toString()) ??
       true;
+}
+
+DateTime getStufenWechselDatum() {
+  return settingsBox.get(SettingValue.stufenwechselDatum.toString()) ??
+      DateTime.now();
 }
 
 DateTime getNextStufenwechselDatum() {
   DateTime now = DateTime.now();
   DateTime safedStufenwechselDatum =
-      Hive.box('settingsBox').get(SettingValue.stufenwechselDatum.toString()) ??
+      settingsBox.get(SettingValue.stufenwechselDatum.toString()) ??
           DateTime.utc(1989, 10, 1);
   safedStufenwechselDatum = DateTime.utc(
       now.year, safedStufenwechselDatum.month, safedStufenwechselDatum.day);
@@ -289,23 +261,23 @@ DateTime getNextStufenwechselDatum() {
 }
 
 String? getStammheim() {
-  return Hive.box('settingsBox').get(SettingValue.stammheim.toString());
+  return settingsBox.get(SettingValue.stammheim.toString());
 }
 
 int? getGruppierungId() {
-  return Hive.box('settingsBox').get(SettingValue.gruppierungId.toString());
+  return settingsBox.get(SettingValue.gruppierungId.toString());
 }
 
 String? getGruppierungName() {
-  return Hive.box('settingsBox').get(SettingValue.gruppierungName.toString());
+  return settingsBox.get(SettingValue.gruppierungName.toString());
 }
 
 int? getNamiLoginId() {
-  return Hive.box('settingsBox').get(SettingValue.namiLoginId.toString());
+  return settingsBox.get(SettingValue.namiLoginId.toString());
 }
 
 String? getNamiPassword() {
-  return Hive.box('settingsBox').get(SettingValue.namiPassword.toString());
+  return settingsBox.get(SettingValue.namiPassword.toString());
 }
 
 String getNamiLUrl() {
@@ -313,64 +285,64 @@ String getNamiLUrl() {
 }
 
 String getNamiPath() {
-  return Hive.box('settingsBox').get(SettingValue.namiPath.toString()) ??
+  return settingsBox.get(SettingValue.namiPath.toString()) ??
       '/ica/rest/api/1/1/service/nami';
 }
 
 DateTime getLastNamiSync() {
-  return Hive.box('settingsBox').get(SettingValue.lastNamiSync.toString()) ??
+  return settingsBox.get(SettingValue.lastNamiSync.toString()) ??
       DateTime.utc(1989, 1, 1);
 }
 
 DateTime getLastNamiSyncTry() {
-  return Hive.box('settingsBox').get(SettingValue.lastNamiSyncTry.toString()) ??
+  return settingsBox.get(SettingValue.lastNamiSyncTry.toString()) ??
       DateTime.utc(1989, 1, 1);
 }
 
 void deleteListSort() {
-  Hive.box('settingsBox').delete(SettingValue.listSortBy.toString());
+  settingsBox.delete(SettingValue.listSortBy.toString());
 }
 
 void deleteListFilterInactive() {
-  Hive.box('settingsBox').delete(SettingValue.listFilterInactive.toString());
+  settingsBox.delete(SettingValue.listFilterInactive.toString());
 }
 
 void deleteListSubtext() {
-  Hive.box('settingsBox').delete(SettingValue.listSubtext.toString());
+  settingsBox.delete(SettingValue.listSubtext.toString());
 }
 
 void deleteNamiApiCookie() {
-  Hive.box('settingsBox').delete(SettingValue.namiApiCookie.toString());
+  settingsBox.delete(SettingValue.namiApiCookie.toString());
 }
 
 void deleteLastLoginCheck() {
-  Hive.box('settingsBox').delete(SettingValue.lastLoginCheck.toString());
+  settingsBox.delete(SettingValue.lastLoginCheck.toString());
 }
 
 void deleteLastNamiSync() {
-  Hive.box('settingsBox').delete(SettingValue.lastNamiSync.toString());
+  settingsBox.delete(SettingValue.lastNamiSync.toString());
 }
 
 void deleteLastNamiSyncTry() {
-  Hive.box('settingsBox').delete(SettingValue.lastNamiSyncTry.toString());
+  settingsBox.delete(SettingValue.lastNamiSyncTry.toString());
 }
 
 void deleteNamiLoginId() {
-  Hive.box('settingsBox').delete(SettingValue.namiLoginId.toString());
+  settingsBox.delete(SettingValue.namiLoginId.toString());
 }
 
 void deleteNamiPassword() {
-  Hive.box('settingsBox').delete(SettingValue.namiPassword.toString());
+  settingsBox.delete(SettingValue.namiPassword.toString());
 }
 
 void deleteGruppierungId() {
-  Hive.box('settingsBox').delete(SettingValue.gruppierungId.toString());
+  settingsBox.delete(SettingValue.gruppierungId.toString());
 }
 
 void deleteGruppierungName() {
-  Hive.box('settingsBox').delete(SettingValue.gruppierungName.toString());
+  settingsBox.delete(SettingValue.gruppierungName.toString());
 }
 
 void deleteStufenwechselDatum() {
-  Hive.box('settingsBox').delete(SettingValue.stufenwechselDatum.toString());
+  settingsBox.delete(SettingValue.stufenwechselDatum.toString());
 }

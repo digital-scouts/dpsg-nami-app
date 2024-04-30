@@ -62,7 +62,8 @@ Future<List<int>> _loadMemberIdsToUpdate(
 }
 
 Future<NamiMemberDetailsModel> _loadMemberDetails(
-    int id, String url, String path, int gruppierung, String cookie) async {
+    int id, String url, String path, int gruppierung, String cookie,
+    {int retry = 0}) async {
   String fullUrl =
       '$url$path/mitglied/filtered-for-navigation/gruppierung/gruppierung/$gruppierung/$id';
   sensLog.i('Request: Load MemberDetails for ${sensId(id)}');
@@ -81,8 +82,11 @@ Future<NamiMemberDetailsModel> _loadMemberDetails(
         NamiMemberDetailsModel.fromJson(source['data']);
     if (DateTime.now().difference(member.geburtsDatum).inDays > 36525) {
       sensLog.w(
-          'Geburtsdatum von ${sensId(id)} ist fehlerhaft: ${member.geburtsDatum}. Versuche es erneut.');
-      return await _loadMemberDetails(id, url, path, gruppierung, cookie);
+          'Geburtsdatum von ${sensId(id)} ist fehlerhaft: ${member.geburtsDatum}. Versuche es erneut. Retry: $retry');
+      if (retry <= 3) {
+        return await _loadMemberDetails(id, url, path, gruppierung, cookie,
+            retry: retry + 1);
+      }
     }
     sensLog.t('Response: Loaded MemberDetails for ${sensMember(member)}');
     return member;
