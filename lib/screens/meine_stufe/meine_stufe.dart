@@ -139,7 +139,10 @@ class _MeineStufeState extends State<MeineStufe> {
                   builder: (context) =>
                       MitgliedDetail(mitglied: mitglieder[i])),
             )
-            .then((value) => setState(() => loadMitglieder())),
+            .then((value) => {
+                  if (mitglieder.length != getFavouriteList().length)
+                    setState(() => loadMitglieder())
+                }),
         child: _buildMitgliedElement(
             mitglieder[i], elementColors[mitglieder[i].mitgliedsNummer]!),
       ),
