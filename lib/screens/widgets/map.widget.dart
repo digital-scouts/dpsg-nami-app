@@ -9,7 +9,6 @@ import 'package:latlong2/latlong.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:just_the_tooltip/just_the_tooltip.dart';
 
 class MapWidget extends StatefulWidget {
   final List<Mitglied> members;
@@ -23,7 +22,6 @@ class MapWidget extends StatefulWidget {
 
 class MapWidgetState extends State<MapWidget> {
   MapController mapController = MapController();
-  Map<int, JustTheController> tooltipControllers = {};
   late Future<({LatLng? stammheim, Map<int, LatLng> members})> _addressLocation;
 
   @override
@@ -51,12 +49,10 @@ class MapWidgetState extends State<MapWidget> {
       } on NoResultFoundException catch (_, __) {}
     }
     Map<int, LatLng> members = {};
-    tooltipControllers = {};
     for (Mitglied member in widget.members) {
       LatLng? coordinates = await member.getCoordinates();
       if (coordinates != null) {
         members[member.mitgliedsNummer] = coordinates;
-        tooltipControllers[member.mitgliedsNummer] = JustTheController();
       }
     }
 
@@ -149,25 +145,14 @@ class MapWidgetState extends State<MapWidget> {
                           width: 25.0,
                           height: 25.0,
                           point: entry.value,
-                          builder: (ctx) => GestureDetector(
-                            onTap: () =>
-                                tooltipControllers[entry.key]!.showTooltip(),
-                            child: JustTheTooltip(
-                              controller: tooltipControllers[entry.key],
-                              content: Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: ConstrainedBox(
-                                    constraints:
-                                        const BoxConstraints(maxWidth: 200.0),
-                                    child: Text(
-                                      '${member.vorname} ${member.nachname}',
-                                    )),
-                              ),
-                              child: Icon(
-                                Icons.person_pin_circle,
-                                color: widget.elementColors?[entry.key] ??
-                                    Colors.red,
-                              ),
+                          builder: (ctx) => Tooltip(
+                            triggerMode: TooltipTriggerMode.tap,
+                            message: '${member.vorname} ${member.nachname}',
+                            child: Icon(
+                              Icons.person_pin_circle,
+                              color: widget
+                                      .elementColors?[member.mitgliedsNummer] ??
+                                  Colors.red,
                             ),
                           ),
                         );
