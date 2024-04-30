@@ -6,6 +6,7 @@ import 'package:nami/screens/settings/settings.dart';
 import 'package:nami/screens/statistiken/statistiken_sceen.dart';
 import 'package:nami/utilities/custom_drawer/drawer_user_controller.dart';
 import 'package:nami/utilities/custom_drawer/home_drawer.dart';
+import 'package:nami/utilities/hive/settings.dart';
 
 class NavigationHomeScreen extends StatefulWidget {
   const NavigationHomeScreen({Key? key}) : super(key: key);
@@ -20,8 +21,14 @@ class NavigationHomeScreenState extends State<NavigationHomeScreen> {
 
   @override
   void initState() {
-    drawerIndex = DrawerIndex.mitglieder;
-    screenView = const MitgliedsListe();
+    if (getFavouriteList().isNotEmpty) {
+      drawerIndex = DrawerIndex.meineStufe;
+      screenView = const MeineStufe();
+    } else {
+      drawerIndex = DrawerIndex.mitglieder;
+      screenView = const MitgliedsListe();
+    }
+
     super.initState();
   }
 
