@@ -141,13 +141,13 @@ class Mitglied {
   }
 
   DateTime? getMinStufenWechselDatum() {
+    DateTime nextStufenwechselDatum = getNextStufenwechselDatum();
     int alterNextStufenwechsel =
-        getAlterAm(referenceDate: getNextStufenwechselDatum());
+        getAlterAm(referenceDate: nextStufenwechselDatum);
 
     if (nextStufe != null &&
         nextStufe!.isStufeYouCanChangeTo &&
         !isMitgliedLeiter()) {
-      DateTime nextStufenwechselDatum = getNextStufenwechselDatum();
       return DateTime(
           nextStufenwechselDatum.year -
               alterNextStufenwechsel +
@@ -160,16 +160,19 @@ class Mitglied {
   }
 
   DateTime? getMaxStufenWechselDatum() {
+    DateTime nextStufenwechselDatum = getNextStufenwechselDatum();
     int alterNextStufenwechsel =
-        getAlterAm(referenceDate: getNextStufenwechselDatum());
+        getAlterAm(referenceDate: nextStufenwechselDatum);
 
     if (nextStufe != null &&
         (nextStufe!.isStufeYouCanChangeTo || currentStufe == Stufe.ROVER) &&
         !isMitgliedLeiter()) {
       return DateTime(
-          DateTime.now().year - alterNextStufenwechsel + currentStufe.alterMax!,
-          DateTime.now().month,
-          DateTime.now().day);
+          nextStufenwechselDatum.year -
+              alterNextStufenwechsel +
+              currentStufe.alterMax!,
+          nextStufenwechselDatum.month,
+          nextStufenwechselDatum.day);
     } else {
       return null;
     }

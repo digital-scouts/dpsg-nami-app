@@ -44,7 +44,9 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
       DateTime? minStufenWechselDatum = mitglied.getMinStufenWechselDatum();
       DateTime? maxStufenWechselDatum = mitglied.getMaxStufenWechselDatum();
       bool isMinStufenWechselJahrInPast = minStufenWechselDatum != null &&
-          minStufenWechselDatum.isBefore(getNextStufenwechselDatum());
+          minStufenWechselDatum
+              .subtract(const Duration(days: 1))
+              .isBefore(getNextStufenwechselDatum());
 
       if (!isMinStufenWechselJahrInPast) {
         continue;
@@ -78,7 +80,7 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
       stufenwechselData[currentStufe]!.add(data);
     }
 
-    // sortiere die Liste nach dem Alter unt entferne die Spalte mit dem Alter
+    // sortiere die Liste nach dem Alter und entferne die Spalte mit dem Alter
     stufenwechselData.forEach((key, value) {
       value.sort((a, b) {
         return b.cells[2].child

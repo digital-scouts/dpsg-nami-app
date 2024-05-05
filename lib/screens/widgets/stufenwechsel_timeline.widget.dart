@@ -76,17 +76,16 @@ class TimelinePainter extends CustomPainter {
             stufeEnd.difference(stufeStart).inDays) *
         size.width;
 
+    drawLine(canvas, size, 0, timelineEndPos, currentStufe.farbe);
+
     // Draw timeline
     if (prevStufeEndPos != null) {
-      drawStripedLine(canvas, size, timelineStartPos, prevStufeEndPos,
+      drawOtherStufeLine(canvas, size, timelineStartPos, prevStufeEndPos,
           prevStufe!.farbe, currentStufe.farbe);
     }
 
-    drawLine(canvas, size, prevStufeEndPos ?? timelineStartPos,
-        nextStufeStartPos ?? timelineEndPos, currentStufe.farbe);
-
     if (nextStufeStartPos != null) {
-      drawStripedLine(canvas, size, nextStufeStartPos, timelineEndPos,
+      drawOtherStufeLine(canvas, size, nextStufeStartPos, timelineEndPos,
           nextStufe!.farbe, currentStufe.farbe);
     }
 
@@ -102,25 +101,28 @@ class TimelinePainter extends CustomPainter {
         Offset(start, size.height / 2), Offset(end, size.height / 2), paint);
   }
 
-  static void drawStripedLine(Canvas canvas, Size size, double start,
+  static void drawOtherStufeLine(Canvas canvas, Size size, double start,
       double end, Color color1, Color color2) {
-    double stripeLength = 5.0;
-    double totalLength = end - start;
-    double currentLength = 0.0;
+    const double strokeWidth = 7;
+    const double yOffset = 1.5;
 
-    while (currentLength < totalLength) {
-      double startX = start + currentLength;
-      double endX = startX + stripeLength;
+    final fillPaint = Paint()
+      ..color = color1
+      ..style = PaintingStyle.fill;
+    Path path = Path();
 
-      if (endX > end) {
-        endX = end;
-      }
-
-      drawLine(canvas, size, startX, endX,
-          (currentLength / stripeLength).round() % 2 == 0 ? color1 : color2);
-
-      currentLength += stripeLength;
+    if (start == 0) {
+      path.moveTo(start, strokeWidth + yOffset); // left bottom
+      path.lineTo(start, 0 + yOffset); // left top
+      path.lineTo(end, 0 + strokeWidth + yOffset); // right
+    } else {
+      path.moveTo(end, size.height - strokeWidth - yOffset); // right bottom
+      path.lineTo(end, size.height - yOffset); // right top
+      path.lineTo(start, strokeWidth + yOffset); // left
     }
+
+    path.close();
+    canvas.drawPath(path, fillPaint);
   }
 
   static void drawArrow(Canvas canvas, Size size, double todayPos) {

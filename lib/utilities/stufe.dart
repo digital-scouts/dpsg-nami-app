@@ -23,7 +23,7 @@ enum Stufe implements Comparable<Stufe> {
     imagePath: 'assets/images/woe.png',
     isStufeYouCanChangeTo: true,
     alterMin: 6,
-    alterMax: 10,
+    alterMax: 11, // 6-10 inklusive
   ),
   JUNGPADFINDER(
     DPSGColors.jungpfadfinderFarbe,
@@ -33,7 +33,7 @@ enum Stufe implements Comparable<Stufe> {
     imagePath: 'assets/images/jufi.png',
     isStufeYouCanChangeTo: true,
     alterMin: 9,
-    alterMax: 13,
+    alterMax: 14, //9-13 inklusive
   ),
   PFADFINDER(
     DPSGColors.pfadfinderFarbe,
@@ -43,7 +43,7 @@ enum Stufe implements Comparable<Stufe> {
     imagePath: 'assets/images/pfadi.png',
     isStufeYouCanChangeTo: true,
     alterMin: 12,
-    alterMax: 16,
+    alterMax: 17, // 12-16 inklusive
   ),
   ROVER(
     DPSGColors.roverFarbe,
@@ -53,7 +53,7 @@ enum Stufe implements Comparable<Stufe> {
     imagePath: 'assets/images/rover.png',
     isStufeYouCanChangeTo: true,
     alterMin: 15,
-    alterMax: 20,
+    alterMax: 21, // 15-20 inklusive
   ),
   LEITER(
     DPSGColors.leiterFarbe,
