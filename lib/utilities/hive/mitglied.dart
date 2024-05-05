@@ -149,11 +149,12 @@ class Mitglied {
         nextStufe!.isStufeYouCanChangeTo &&
         !isMitgliedLeiter()) {
       return DateTime(
-          nextStufenwechselDatum.year -
-              alterNextStufenwechsel +
-              nextStufe!.alterMin!,
-          nextStufenwechselDatum.month,
-          nextStufenwechselDatum.day);
+              nextStufenwechselDatum.year -
+                  alterNextStufenwechsel +
+                  nextStufe!.alterMin!,
+              nextStufenwechselDatum.month,
+              nextStufenwechselDatum.day)
+          .subtract(const Duration(days: 1));
     } else {
       return null;
     }

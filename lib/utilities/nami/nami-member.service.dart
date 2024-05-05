@@ -169,6 +169,22 @@ Future<NamiMemberTaetigkeitenModel?> _loadMemberTaetigkeit(int memberId,
   }
 }
 
+Future<Mitglied> updateOneMember(int memberId) async {
+  String cookie = getNamiApiCookie();
+  String url = getNamiLUrl();
+  String path = getNamiPath();
+  int gruppierung = getGruppierungId()!;
+
+  Box<Mitglied> memberBox = Hive.box('members');
+
+  final member = await _storeMitgliedToHive(memberId, memberBox, url, path,
+      gruppierung, cookie, ValueNotifier<double>(0), 1);
+  if (member == null) {
+    throw Exception('Failed to load details of current user');
+  }
+  return member;
+}
+
 Future<void> syncMembers(
   ValueNotifier<double> memberAllProgressNotifier,
   ValueNotifier<bool?> memberOverviewProgressNotifier,

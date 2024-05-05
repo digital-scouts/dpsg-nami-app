@@ -44,9 +44,7 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
       DateTime? minStufenWechselDatum = mitglied.getMinStufenWechselDatum();
       DateTime? maxStufenWechselDatum = mitglied.getMaxStufenWechselDatum();
       bool isMinStufenWechselJahrInPast = minStufenWechselDatum != null &&
-          minStufenWechselDatum
-              .subtract(const Duration(days: 1))
-              .isBefore(getNextStufenwechselDatum());
+          minStufenWechselDatum.isBefore(getNextStufenwechselDatum());
 
       if (!isMinStufenWechselJahrInPast) {
         continue;

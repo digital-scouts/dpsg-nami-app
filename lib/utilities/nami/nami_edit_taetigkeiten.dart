@@ -1,10 +1,12 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:intl/intl.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
 import 'package:nami/utilities/logger.dart';
+import 'package:nami/utilities/nami/nami-member.service.dart';
 import 'package:nami/utilities/stufe.dart';
 
 String url = getNamiLUrl();
@@ -13,12 +15,12 @@ int? gruppierungId = getGruppierungId();
 String? gruppierungName = getGruppierungName();
 String cookie = getNamiApiCookie();
 
-Future<void> stufenwechsel(int memberId, Taetigkeit currentTaetigkeit,
+Future<Mitglied> stufenwechsel(int memberId, Taetigkeit currentTaetigkeit,
     Stufe nextStufe, DateTime stufenwechselDatum) async {
   sensLog.i('Stufenwechsel für ${sensId(memberId)}');
   await createTaetigkeitForStufe(memberId, stufenwechselDatum, nextStufe);
   await completeTaetigkeit(memberId, currentTaetigkeit, stufenwechselDatum);
-  // TODO: Update member in Hive
+  return await updateOneMember(memberId);
 }
 
 Future<void> createTaetigkeit(int memberId, DateTime startDate,

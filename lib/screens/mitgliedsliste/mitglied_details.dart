@@ -1,9 +1,7 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
 import 'package:nami/screens/widgets/map.widget.dart';
 import 'package:nami/screens/widgets/mitgliedStufenPieChart.widget.dart';
 import 'package:nami/utilities/helper_functions.dart';
@@ -348,16 +346,18 @@ class MitgliedDetailState extends State<MitgliedDetail>
         '${widget.mitglied.vorname} ${widget.mitglied.nachname}',
         currentTaetigkeit)) {
       setState(() => loadingStufenwechsel = true);
+      Mitglied? mitglied;
       try {
-        await stufenwechsel(
+        mitglied = await stufenwechsel(
             widget.mitglied.id, currentTaetigkeit, stufe, aktivVon);
       } catch (e, st) {
         sensLog.e('failed to stufenwechsel', error: e, stackTrace: st);
       }
-      widget.mitglied = Hive.box<Mitglied>('members')
-          .values
-          .firstWhere((element) => element.id == widget.mitglied.id);
-      setState(() => loadingStufenwechsel = false);
+
+      setState(() {
+        loadingStufenwechsel = false;
+        widget.mitglied = mitglied ?? widget.mitglied;
+      });
     }
   }
 
@@ -432,10 +432,10 @@ class MitgliedDetailState extends State<MitgliedDetail>
   }
 
   Taetigkeit? getStufenwechselTaetigkeit() {
-    DateTime currentDate = DateTime.now();
-    DateTime? minStufenWechselJahr = widget.mitglied.getMaxStufenWechselDatum();
+    DateTime nextStufenwechselDatum = getNextStufenwechselDatum();
+    DateTime? minStufenWechselJahr = widget.mitglied.getMinStufenWechselDatum();
     bool isMinStufenWechselJahrInPast = minStufenWechselJahr != null &&
-        minStufenWechselJahr.isBefore(currentDate);
+        minStufenWechselJahr.isBefore(nextStufenwechselDatum);
     Stufe? nextStufe = widget.mitglied.nextStufe;
 
     // check if stufenwechsel is possible
@@ -447,7 +447,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
     }
 
     Taetigkeit? stufenwechselTaetigkeit = Taetigkeit();
-    stufenwechselTaetigkeit.aktivVon = getNextStufenwechselDatum();
+    stufenwechselTaetigkeit.aktivVon = nextStufenwechselDatum;
     stufenwechselTaetigkeit.taetigkeit = 'Mitglied';
     stufenwechselTaetigkeit.untergliederung =
         widget.mitglied.nextStufe?.display;
@@ -515,8 +515,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
                   ),
                   ListView(
                     children: [
-                      if (kDebugMode &&
-                          fakeStufenwechselTaetigkeit != null &&
+                      if (fakeStufenwechselTaetigkeit != null &&
                           currentTaetigkeit != null) ...[
                         Text(
                           'Zukünftige Tätigkeit',
