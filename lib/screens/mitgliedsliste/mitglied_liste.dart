@@ -191,9 +191,6 @@ class MitgliedsListeState extends State<MitgliedsListe> {
     gruppen.add(Stufe.PFADFINDER);
     gruppen.add(Stufe.ROVER);
     gruppen.add(Stufe.LEITER);
-    if (getFavouriteList().isNotEmpty) {
-      gruppen.add(Stufe.FAVOURITE);
-    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
@@ -217,7 +214,6 @@ class MitgliedsListeState extends State<MitgliedsListe> {
                 child: Center(
                   child: Image.asset(
                     stufe.imagePath!,
-                    color: stufe == Stufe.FAVOURITE ? stufe.farbe : null,
                     width: 30.0,
                     height: 30.0,
                   ),
@@ -262,7 +258,7 @@ class MitgliedsListeState extends State<MitgliedsListe> {
           actions: <Widget>[
             if (kDebugMode)
               IconButton(
-                icon: const Icon(Icons.add),
+                icon: const Icon(Icons.person_add),
                 onPressed: () {
                   Navigator.push(
                     context,

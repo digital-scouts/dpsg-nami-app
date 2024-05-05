@@ -22,7 +22,7 @@ class ReloginBanner extends StatelessWidget {
               leading: Icon(Icons.sync_problem,
                   color: Theme.of(context).colorScheme.error),
               content: const Text(
-                  'Deine Sitzung ist abgelaufen, weshalb der tägliche Sync fehlschlug.'),
+                  'Tägliche Aktualisierung nicht möglich. Deine Sitzung ist abgelaufen.'),
               actions: [
                 TextButton(
                   child: const Text('Abbrechen'),

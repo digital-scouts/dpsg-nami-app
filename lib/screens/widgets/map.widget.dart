@@ -6,20 +6,24 @@ import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 
 import 'package:geocoding/geocoding.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class MapWidget extends StatefulWidget {
-  final String memberAddress;
-  const MapWidget({required this.memberAddress, Key? key}) : super(key: key);
+  final List<Mitglied> members;
+  final Map<int, Color>? elementColors;
+  const MapWidget({required this.members, this.elementColors, Key? key})
+      : super(key: key);
 
   @override
   MapWidgetState createState() => MapWidgetState();
 }
 
 class MapWidgetState extends State<MapWidget> {
+  bool _isExpanded = false;
   MapController mapController = MapController();
-  late Future<({LatLng? stammheim, LatLng member})> _addressLocation;
+  late Future<({LatLng? stammheim, Map<int, LatLng> members})> _addressLocation;
 
   @override
   void initState() {
@@ -27,7 +31,16 @@ class MapWidgetState extends State<MapWidget> {
     _addressLocation = _getAddressLocation();
   }
 
-  Future<({LatLng? stammheim, LatLng member})> _getAddressLocation() async {
+  @override
+  void didUpdateWidget(MapWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.members != oldWidget.members) {
+      _addressLocation = _getAddressLocation();
+    }
+  }
+
+  Future<({LatLng? stammheim, Map<int, LatLng> members})>
+      _getAddressLocation() async {
     final stammheim = getStammheim();
     LatLng? stammheimLocation;
     if (stammheim != null) {
@@ -36,29 +49,32 @@ class MapWidgetState extends State<MapWidget> {
         stammheimLocation = LatLng(res.first.latitude, res.first.longitude);
       } on NoResultFoundException catch (_, __) {}
     }
-    try {
-      List<Location> locations =
-          await locationFromAddress(widget.memberAddress);
-
-      if (locations.isNotEmpty) {
-        Location firstLocation = locations.first;
-        return (
-          stammheim: stammheimLocation,
-          member: LatLng(firstLocation.latitude, firstLocation.longitude)
-        );
-      } else {
-        throw Exception('Keine Adresse vom Mitglied gefunden');
+    Map<int, LatLng> members = {};
+    for (Mitglied member in widget.members) {
+      LatLng? coordinates = await member.getCoordinates();
+      if (coordinates != null) {
+        members[member.mitgliedsNummer] = coordinates;
       }
-    } catch (e) {
-      throw Exception('Fehler beim Abrufen der Adresse: $e');
     }
+
+    return (stammheim: stammheimLocation, members: members);
   }
 
-  void adjustMapCenterAndZoom(LatLng marker1, LatLng marker2) {
-    double minLat = min(marker1.latitude, marker2.latitude);
-    double maxLat = max(marker1.latitude, marker2.latitude);
-    double minLng = min(marker1.longitude, marker2.longitude);
-    double maxLng = max(marker1.longitude, marker2.longitude);
+  void adjustMapCenterAndZoom(List<LatLng> markers) {
+    double minLat = markers
+        .reduce((val, marker) => val.latitude < marker.latitude ? val : marker)
+        .latitude;
+    double maxLat = markers
+        .reduce((val, marker) => val.latitude > marker.latitude ? val : marker)
+        .latitude;
+    double minLng = markers
+        .reduce(
+            (val, marker) => val.longitude < marker.longitude ? val : marker)
+        .longitude;
+    double maxLng = markers
+        .reduce(
+            (val, marker) => val.longitude > marker.longitude ? val : marker)
+        .longitude;
 
     double centerLat = (minLat + maxLat) / 2;
     double centerLng = (minLng + maxLng) / 2;
@@ -71,11 +87,19 @@ class MapWidgetState extends State<MapWidget> {
     mapController.move(LatLng(centerLat, centerLng), zoom.zoom - 0.5);
   }
 
-  Widget _buildMap(LatLng addressLocation, LatLng? homeLocation) {
+  Widget _buildMap(Map<int, LatLng> addressLocations, LatLng? homeLocation) {
+    List<LatLng> markers = [...addressLocations.values];
     if (homeLocation != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        adjustMapCenterAndZoom(addressLocation, homeLocation);
-      });
+      markers.add(homeLocation);
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      adjustMapCenterAndZoom(markers);
+    });
+
+    if (homeLocation == null && addressLocations.isEmpty) {
+      return const Center(
+        child: Text('Keine Adresse gefunden'),
+      );
     }
     return Card(
       child: Padding(
@@ -85,11 +109,13 @@ class MapWidgetState extends State<MapWidget> {
           children: [
             SizedBox(
               width: double.infinity,
-              height: 200.0, // Anpassen der Höhe nach Bedarf
+              height: _isExpanded
+                  ? (MediaQuery.of(context).size.height - 300)
+                  : 200.0,
               child: FlutterMap(
                 mapController: mapController,
                 options: MapOptions(
-                  center: addressLocation, // Position für die Karte
+                  center: homeLocation ?? addressLocations.values.first,
                   zoom: 13.0,
                   maxZoom: 17,
                   minZoom: 3,
@@ -107,40 +133,64 @@ class MapWidgetState extends State<MapWidget> {
                   ),
                   MarkerLayer(
                     markers: [
-                      Marker(
-                        width: 80.0,
-                        height: 80.0,
-                        point: addressLocation, // Position für den Marker
-                        builder: (ctx) => const Icon(
-                          Icons.person_pin_circle,
-                          color: Colors.red,
-                        ),
-                      ),
                       if (homeLocation != null)
                         Marker(
-                          width: 80.0,
-                          height: 80.0,
+                          width: 20.0,
+                          height: 20.0,
                           point: homeLocation, // Position für den Marker
-                          builder: (ctx) => const Icon(
-                            Icons.home_sharp,
-                            color: Colors.black,
-                          ),
+                          builder: (ctx) =>
+                              const Icon(Icons.home, color: Colors.black),
                         ),
+                      ...addressLocations.entries.map((entry) {
+                        Mitglied member = widget.members.firstWhere(
+                            (element) => element.mitgliedsNummer == entry.key);
+                        return Marker(
+                          width: 25.0,
+                          height: 25.0,
+                          point: entry.value,
+                          builder: (ctx) => Tooltip(
+                            triggerMode: TooltipTriggerMode.tap,
+                            message: '${member.vorname} ${member.nachname}',
+                            child: Icon(
+                              Icons.person_pin_circle,
+                              color: widget
+                                      .elementColors?[member.mitgliedsNummer] ??
+                                  Colors.red,
+                            ),
+                          ),
+                        );
+                      }).toList(),
                     ],
                   ),
-                  RichAttributionWidget(
-                    attributions: [
-                      TextSourceAttribution(
-                        'OpenStreetMap',
+                  Align(
+                    alignment: Alignment.bottomRight,
+                    child: ColoredBox(
+                      color: Colors.black.withOpacity(0.5),
+                      child: GestureDetector(
                         onTap: () async {
                           const url = 'https://openstreetmap.org/copyright';
                           if (await canLaunchUrl(Uri.parse(url))) {
                             await launchUrl(Uri.parse(url));
                           }
                         },
+                        child: const Padding(
+                          padding: EdgeInsets.all(3),
+                          child: Text('© OpenStreetMap',
+                              style: TextStyle(fontSize: 10)),
+                        ),
                       ),
-                    ],
+                    ),
                   ),
+                  if (addressLocations.isNotEmpty &&
+                      addressLocations.length > 1)
+                    IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _isExpanded = !_isExpanded;
+                        });
+                      },
+                      icon: Icon(_isExpanded ? Icons.compress : Icons.expand),
+                    )
                 ],
               ),
             ),
@@ -196,15 +246,18 @@ class MapWidgetState extends State<MapWidget> {
         } else if (snapshot.hasError) {
           return Container();
         } else {
-          final (:stammheim, :member) = snapshot.data!;
+          final (:stammheim, :members) = snapshot.data!;
           return Column(
             children: <Widget>[
-              _buildMap(member, stammheim),
-              if (stammheim != null)
+              _buildMap(members, stammheim),
+              if (stammheim != null &&
+                  members.isNotEmpty &&
+                  members.length == 1)
                 ListTile(
                   leading: const Icon(Icons.social_distance),
                   title: Text(
-                    formatDistance(calculateDistance(member, stammheim)),
+                    formatDistance(calculateDistance(
+                        members.values.toList().first, stammheim)),
                   ),
                   subtitle: const Text("Entfernung"),
                 ),

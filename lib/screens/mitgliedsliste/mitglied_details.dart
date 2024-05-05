@@ -116,10 +116,12 @@ class MitgliedDetailState extends State<MitgliedDetail>
   Widget _buildStufenwechselInfoForTopRow() {
     DateTime currentDate = DateTime.now();
     Stufe? nextStufe = widget.mitglied.nextStufe;
-    int? minStufenWechselJahr = widget.mitglied.getMinStufenWechselJahr();
-    int? maxStufenWechselJahr = widget.mitglied.getMaxStufenWechselJahr();
-    bool isMinStufenWechselJahrInPast =
-        minStufenWechselJahr != null && minStufenWechselJahr < currentDate.year;
+    DateTime? minStufenWechselDatum =
+        widget.mitglied.getMinStufenWechselDatum();
+    DateTime? maxStufenWechselDatum =
+        widget.mitglied.getMaxStufenWechselDatum();
+    bool isMinStufenWechselJahrInPast = minStufenWechselDatum != null &&
+        minStufenWechselDatum.isBefore(currentDate);
     Taetigkeit taetigkeit;
     try {
       taetigkeit = widget.mitglied.taetigkeiten.firstWhere(
@@ -146,11 +148,11 @@ class MitgliedDetailState extends State<MitgliedDetail>
       children: [
         Text(
             'In der Stufe seit ${currentStufeYears > 1 ? '$currentStufeYears Jahren' : 'einem Jahr'}${currentStufeMonths != 0 ? ' und $currentStufeMonths Monaten' : ''}.'),
-        nextStufe?.display == 'Leiter' && maxStufenWechselJahr != null
-            ? Text('Stufenzeit endet $maxStufenWechselJahr')
-            : (maxStufenWechselJahr != null && minStufenWechselJahr != null
+        nextStufe?.display == 'Leiter' && maxStufenWechselDatum != null
+            ? Text('Stufenzeit endet ${maxStufenWechselDatum.year}')
+            : (maxStufenWechselDatum != null && minStufenWechselDatum != null
                 ? Text(
-                    'Stufenwechsel ${isMinStufenWechselJahrInPast ? 'spätestens' : 'frühestens'} ${isMinStufenWechselJahrInPast ? maxStufenWechselJahr : minStufenWechselJahr}')
+                    'Stufenwechsel ${isMinStufenWechselJahrInPast ? 'spätestens' : 'frühestens'} ${isMinStufenWechselJahrInPast ? maxStufenWechselDatum.year : minStufenWechselDatum.year}')
                 : const Text('')),
       ],
     )));
@@ -229,9 +231,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
                 leading: const Icon(Icons.home),
                 title: _buildMapText(memberAddress),
               ),
-              MapWidget(
-                memberAddress: memberAddress,
-              ),
+              MapWidget(members: [widget.mitglied]),
             ],
           ),
         ),
@@ -433,9 +433,9 @@ class MitgliedDetailState extends State<MitgliedDetail>
 
   Taetigkeit? getStufenwechselTaetigkeit() {
     DateTime currentDate = DateTime.now();
-    int? minStufenWechselJahr = widget.mitglied.getMinStufenWechselJahr();
+    DateTime? minStufenWechselJahr = widget.mitglied.getMaxStufenWechselDatum();
     bool isMinStufenWechselJahrInPast = minStufenWechselJahr != null &&
-        minStufenWechselJahr <= currentDate.year;
+        minStufenWechselJahr.isBefore(currentDate);
     Stufe? nextStufe = widget.mitglied.nextStufe;
 
     // check if stufenwechsel is possible
