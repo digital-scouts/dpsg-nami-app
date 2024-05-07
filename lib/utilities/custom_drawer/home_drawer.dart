@@ -46,12 +46,11 @@ class HomeDrawerState extends State<HomeDrawer> {
         labelName: 'Statistiken',
         icon: const Icon(Icons.analytics),
       ),
-      if (kDebugMode)
-        DrawerList(
-          index: DrawerIndex.profil,
-          labelName: 'Profil',
-          icon: const Icon(Icons.person),
-        ),
+      DrawerList(
+        index: DrawerIndex.profil,
+        labelName: 'Profil',
+        icon: const Icon(Icons.person),
+      ),
       DrawerList(
         index: DrawerIndex.settings,
         labelName: 'Einstellungen',
