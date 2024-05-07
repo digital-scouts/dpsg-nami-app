@@ -549,10 +549,13 @@ class MitgliedDetailState extends State<MitgliedDetail>
                           _buildBox(
                             ListTile(
                               leading: const Icon(Icons.school),
-                              title: Text(ausbildung.baustein),
+                              title: Text(
+                                  ausbildung.baustein.contains('Sonstiges')
+                                      ? ausbildung.name
+                                      : ausbildung.baustein),
                               isThreeLine: true,
                               subtitle: Text(
-                                  '${ausbildung.name}\n${DateFormat('dd. MMMM yyyy').format(ausbildung.datum)} - ${ausbildung.veranstalter}'),
+                                  '${ausbildung.baustein.contains('Sonstiges') ? '' : '${ausbildung.name}\n'}${DateFormat('dd. MMMM yyyy').format(ausbildung.datum)}${ausbildung.veranstalter.isEmpty ? '' : ' - ${ausbildung.veranstalter}'}'),
                             ),
                           ),
                       ],
