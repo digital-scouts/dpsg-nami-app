@@ -31,14 +31,16 @@ class _StammHeimSettingState extends State<StammHeimSetting> {
     final download = const FMTCStore('mapStore')
         .download
         .startForeground(region: downloadable);
-
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     download.listen((progress) async {
       debugPrint(
           '${progress.elapsedDuration} Map Download progress: ${progress.attemptedTiles} of ${progress.maxTiles} (${(progress.attemptedTiles / progress.maxTiles * 100).toInt()}% | ${progress.estRemainingDuration.inSeconds} Seconds remaining)');
       if (progress.isComplete) {
         debugPrint(
             '${progress.elapsedDuration} Map Download progress: Complete (Successful: ${progress.successfulTiles} | Failed: ${progress.failedTiles} | Cached: ${progress.cachedTiles} | Size: ${(progress.successfulSize / 1024).toStringAsFixed(2)} MiB)');
-        ScaffoldMessenger.of(context).showSnackBar(
+        debugPrint(
+            'Kartenspeichergröße: ${(await const FMTCStore('mapStore').stats.size / 1024).toStringAsFixed(2)} MiB}');
+        scaffoldMessenger.showSnackBar(
           SnackBar(
               content: Text(
                   'Kartendownload abgeschlossen (Geladen: ${(progress.successfulSize / 1024).toStringAsFixed(0)} MiB)')),
