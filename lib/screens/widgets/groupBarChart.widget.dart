@@ -211,7 +211,7 @@ class GroupBarChartState extends State<GroupBarChart> {
                       color: rod.toY >=
                               1 // Color text on bar different that on surface
                           ? Colors.black
-                          : Theme.of(context).colorScheme.onBackground,
+                          : Theme.of(context).colorScheme.onSurface,
                     ),
                   );
                 },

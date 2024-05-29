@@ -209,7 +209,7 @@ class MitgliedsListeState extends State<MitgliedsListe> {
                   shape: BoxShape.circle,
                   color: filter.filterGroup[stufe.index]
                       ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.surfaceVariant,
+                      : Theme.of(context).colorScheme.surfaceContainer,
                 ),
                 child: Center(
                   child: Image.asset(

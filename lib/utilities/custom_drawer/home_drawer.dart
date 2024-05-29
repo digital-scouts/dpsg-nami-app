@@ -68,7 +68,7 @@ class HomeDrawerState extends State<HomeDrawer> {
     } catch (_) {}
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisAlignment: MainAxisAlignment.start,
@@ -157,7 +157,7 @@ class HomeDrawerState extends State<HomeDrawer> {
   Widget inkwell(DrawerList listData) {
     final itemColor = widget.screenIndex == listData.index
         ? Theme.of(context).colorScheme.onPrimaryContainer
-        : Theme.of(context).colorScheme.onBackground;
+        : Theme.of(context).colorScheme.onSurface;
 
     return InkWell(
       splashColor: Colors.grey.withOpacity(0.1),
