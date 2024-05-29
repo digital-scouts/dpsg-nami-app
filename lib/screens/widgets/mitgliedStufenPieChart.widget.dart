@@ -7,7 +7,9 @@ class MitgliedStufenPieChart extends StatefulWidget {
   final bool showLeiterGrafik;
 
   const MitgliedStufenPieChart(
-      {required this.memberPerGroup, required this.showLeiterGrafik, super.key});
+      {required this.memberPerGroup,
+      required this.showLeiterGrafik,
+      super.key});
 
   @override
   State<StatefulWidget> createState() => MitgliedStufenPieChartState();
