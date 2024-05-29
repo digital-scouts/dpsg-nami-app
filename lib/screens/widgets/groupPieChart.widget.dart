@@ -5,8 +5,7 @@ import 'package:nami/utilities/stufe.dart';
 class GroupPieChart extends StatefulWidget {
   final Map<String, int> memberPerGroup;
 
-  const GroupPieChart({required this.memberPerGroup, Key? key})
-      : super(key: key);
+  const GroupPieChart({required this.memberPerGroup, super.key});
 
   @override
   State<StatefulWidget> createState() => GroupPieChartState();

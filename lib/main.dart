@@ -22,9 +22,9 @@ import 'package:wiredash/wiredash.dart';
 final navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await FlutterMapTileCaching.initialise();
+  await FMTCObjectBoxBackend().initialise();
   initializeDateFormatting("de_DE", null);
-  FMTC.instance('mapStore').manage.createAsync();
+  const FMTCStore('mapStore').manage.create();
   Intl.defaultLocale = "de_DE";
   await Hive.initFlutter();
   await registerAdapter();
@@ -52,7 +52,7 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -87,7 +87,7 @@ class MyApp extends StatelessWidget {
 }
 
 class MaterialAppWrapper extends StatefulWidget {
-  const MaterialAppWrapper({Key? key}) : super(key: key);
+  const MaterialAppWrapper({super.key});
 
   @override
   State<MaterialAppWrapper> createState() => _MaterialAppWrapperState();

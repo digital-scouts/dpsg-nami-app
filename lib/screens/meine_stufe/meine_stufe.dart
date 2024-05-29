@@ -10,7 +10,7 @@ import 'package:nami/utilities/hive/taetigkeit.dart';
 import 'package:nami/utilities/stufe.dart';
 
 class MeineStufe extends StatefulWidget {
-  const MeineStufe({Key? key}) : super(key: key);
+  const MeineStufe({super.key});
 
   @override
   State<MeineStufe> createState() => _MeineStufeState();

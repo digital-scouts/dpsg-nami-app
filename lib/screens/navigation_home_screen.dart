@@ -9,7 +9,7 @@ import 'package:nami/utilities/custom_drawer/home_drawer.dart';
 import 'package:nami/utilities/hive/settings.dart';
 
 class NavigationHomeScreen extends StatefulWidget {
-  const NavigationHomeScreen({Key? key}) : super(key: key);
+  const NavigationHomeScreen({super.key});
 
   @override
   NavigationHomeScreenState createState() => NavigationHomeScreenState();
