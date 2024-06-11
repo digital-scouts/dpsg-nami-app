@@ -10,7 +10,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../../utilities/hive/settings.dart';
 
 class Settings extends StatelessWidget {
-  const Settings({Key? key}) : super(key: key);
+  const Settings({super.key});
 
   Widget _buildSync() {
     return ListTile(
@@ -82,8 +82,7 @@ class Settings extends StatelessWidget {
       body: ValueListenableBuilder(
         valueListenable: settingsBox.listenable(),
         builder: (context, _, __) {
-          return Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          return ListView(
             children: [
               _buildSync(),
               _buildForceBSync(),

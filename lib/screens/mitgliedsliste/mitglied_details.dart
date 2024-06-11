@@ -19,7 +19,7 @@ import 'package:nami/utilities/types.dart';
 // ignore: must_be_immutable
 class MitgliedDetail extends StatefulWidget {
   Mitglied mitglied;
-  MitgliedDetail({required this.mitglied, Key? key}) : super(key: key);
+  MitgliedDetail({required this.mitglied, super.key});
 
   @override
   MitgliedDetailState createState() => MitgliedDetailState();

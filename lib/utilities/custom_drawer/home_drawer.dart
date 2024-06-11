@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:nami/utilities/app.state.dart';
@@ -7,11 +6,10 @@ import 'package:nami/utilities/hive/settings.dart';
 
 class HomeDrawer extends StatefulWidget {
   const HomeDrawer(
-      {Key? key,
+      {super.key,
       this.screenIndex,
       this.iconAnimationController,
-      this.callBackIndex})
-      : super(key: key);
+      this.callBackIndex});
 
   final AnimationController? iconAnimationController;
   final DrawerIndex? screenIndex;
@@ -70,7 +68,7 @@ class HomeDrawerState extends State<HomeDrawer> {
     } catch (_) {}
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisAlignment: MainAxisAlignment.start,
@@ -159,7 +157,7 @@ class HomeDrawerState extends State<HomeDrawer> {
   Widget inkwell(DrawerList listData) {
     final itemColor = widget.screenIndex == listData.index
         ? Theme.of(context).colorScheme.onPrimaryContainer
-        : Theme.of(context).colorScheme.onBackground;
+        : Theme.of(context).colorScheme.onSurface;
 
     return InkWell(
       splashColor: Colors.grey.withOpacity(0.1),

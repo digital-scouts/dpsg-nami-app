@@ -21,19 +21,17 @@ class _StammHeimSettingState extends State<StammHeimSetting> {
     final region =
         CircleRegion(LatLng(location.latitude, location.longitude), 2);
     final downloadable = region.toDownloadable(
-      3, // Minimum Zoom
-      17, // Maximum Zoom
-      TileLayer(
-        urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        subdomains: const ['a', 'b', 'c'],
+      minZoom: 3,
+      maxZoom: 17,
+      options: TileLayer(
+        urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
         userAgentPackageName: 'de.jlange.nami.app',
       ),
     );
-    final download = FMTC
-        .instance('mapStore')
+    final download = const FMTCStore('mapStore')
         .download
         .startForeground(region: downloadable);
-
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     download.listen((progress) async {
       debugPrint(
           '${progress.elapsedDuration} Map Download progress: ${progress.attemptedTiles} of ${progress.maxTiles} (${(progress.attemptedTiles / progress.maxTiles * 100).toInt()}% | ${progress.estRemainingDuration.inSeconds} Seconds remaining)');
@@ -41,8 +39,8 @@ class _StammHeimSettingState extends State<StammHeimSetting> {
         debugPrint(
             '${progress.elapsedDuration} Map Download progress: Complete (Successful: ${progress.successfulTiles} | Failed: ${progress.failedTiles} | Cached: ${progress.cachedTiles} | Size: ${(progress.successfulSize / 1024).toStringAsFixed(2)} MiB)');
         debugPrint(
-            'Kartenspeichergröße: ${(FMTC.instance('mapStore').stats.storeSize / 1024).toStringAsFixed(2)} MiB}');
-        ScaffoldMessenger.of(context).showSnackBar(
+            'Kartenspeichergröße: ${(await const FMTCStore('mapStore').stats.size / 1024).toStringAsFixed(2)} MiB}');
+        scaffoldMessenger.showSnackBar(
           SnackBar(
               content: Text(
                   'Kartendownload abgeschlossen (Geladen: ${(progress.successfulSize / 1024).toStringAsFixed(0)} MiB)')),

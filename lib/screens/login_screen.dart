@@ -34,7 +34,7 @@ final kBoxDecorationStyle = BoxDecoration(
 );
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
   @override
   LoginScreenState createState() => LoginScreenState();
 }

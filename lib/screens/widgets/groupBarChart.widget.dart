@@ -7,7 +7,7 @@ import 'package:nami/utilities/theme.dart';
 class GroupBarChart extends StatefulWidget {
   final List<Mitglied> mitglieder;
 
-  const GroupBarChart({required this.mitglieder, Key? key}) : super(key: key);
+  const GroupBarChart({required this.mitglieder, super.key});
 
   @override
   State<StatefulWidget> createState() => GroupBarChartState();
@@ -192,7 +192,7 @@ class GroupBarChartState extends State<GroupBarChart> {
             barTouchData: BarTouchData(
               enabled: false,
               touchTooltipData: BarTouchTooltipData(
-                tooltipBgColor: Colors.transparent,
+                getTooltipColor: (_) => Colors.transparent,
                 tooltipPadding: EdgeInsets.zero,
                 tooltipMargin: -23,
                 getTooltipItem: (
@@ -211,7 +211,7 @@ class GroupBarChartState extends State<GroupBarChart> {
                       color: rod.toY >=
                               1 // Color text on bar different that on surface
                           ? Colors.black
-                          : Theme.of(context).colorScheme.onBackground,
+                          : Theme.of(context).colorScheme.onSurface,
                     ),
                   );
                 },

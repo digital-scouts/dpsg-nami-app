@@ -9,12 +9,12 @@ import 'package:latlong2/latlong.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:collection/collection.dart';
 
 class MapWidget extends StatefulWidget {
   final List<Mitglied> members;
   final Map<int, Color>? elementColors;
-  const MapWidget({required this.members, this.elementColors, Key? key})
-      : super(key: key);
+  const MapWidget({required this.members, this.elementColors, super.key});
 
   @override
   MapWidgetState createState() => MapWidgetState();
@@ -34,7 +34,10 @@ class MapWidgetState extends State<MapWidget> {
   @override
   void didUpdateWidget(MapWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.members != oldWidget.members) {
+    if (!const DeepCollectionEquality()
+        .equals(widget.members, oldWidget.members)) {
+      // Create new map controller, because new [MapWidget] gets created in [build]
+      mapController = MapController();
       _addressLocation = _getAddressLocation();
     }
   }
@@ -60,7 +63,7 @@ class MapWidgetState extends State<MapWidget> {
     return (stammheim: stammheimLocation, members: members);
   }
 
-  void adjustMapCenterAndZoom(List<LatLng> markers) {
+  LatLngBounds _getMapBounds(List<LatLng> markers) {
     double minLat = markers
         .reduce((val, marker) => val.latitude < marker.latitude ? val : marker)
         .latitude;
@@ -76,15 +79,11 @@ class MapWidgetState extends State<MapWidget> {
             (val, marker) => val.longitude > marker.longitude ? val : marker)
         .longitude;
 
-    double centerLat = (minLat + maxLat) / 2;
-    double centerLng = (minLng + maxLng) / 2;
-
-    LatLngBounds bounds =
-        LatLngBounds(LatLng(maxLat, maxLng), LatLng(minLat, minLng));
-
-    CenterZoom zoom = mapController.centerZoomFitBounds(bounds);
-
-    mapController.move(LatLng(centerLat, centerLng), zoom.zoom - 0.5);
+    LatLngBounds bounds = LatLngBounds(
+      LatLng(maxLat, maxLng),
+      LatLng(minLat, minLng),
+    );
+    return bounds;
   }
 
   Widget _buildMap(Map<int, LatLng> addressLocations, LatLng? homeLocation) {
@@ -92,15 +91,13 @@ class MapWidgetState extends State<MapWidget> {
     if (homeLocation != null) {
       markers.add(homeLocation);
     }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      adjustMapCenterAndZoom(markers);
-    });
 
     if (homeLocation == null && addressLocations.isEmpty) {
       return const Center(
         child: Text('Keine Adresse gefunden'),
       );
     }
+    final bounds = _getMapBounds(markers);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(5.0),
@@ -115,21 +112,22 @@ class MapWidgetState extends State<MapWidget> {
               child: FlutterMap(
                 mapController: mapController,
                 options: MapOptions(
-                  center: homeLocation ?? addressLocations.values.first,
-                  zoom: 13.0,
                   maxZoom: 17,
                   minZoom: 3,
-                  interactiveFlags:
-                      InteractiveFlag.pinchZoom | InteractiveFlag.drag,
+                  initialCameraFit: CameraFit.bounds(
+                    bounds: bounds,
+                    padding: const EdgeInsets.all(32),
+                  ),
+                  interactionOptions: const InteractionOptions(
+                      flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag),
                 ),
                 children: [
                   TileLayer(
                     // TODO: Recommended: Do not hardcode any URL to tile.openstreetmap.org as doing so will limit your ability to react if the service is disrupted or blocked. In particular, switching should be possible without requiring a software update.
                     urlTemplate:
-                        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    subdomains: const ['a', 'b', 'c'],
+                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                     userAgentPackageName: 'de.jlange.nami.app',
-                    tileProvider: FMTC.instance('mapStore').getTileProvider(),
+                    tileProvider: const FMTCStore('mapStore').getTileProvider(),
                   ),
                   MarkerLayer(
                     markers: [
@@ -138,8 +136,10 @@ class MapWidgetState extends State<MapWidget> {
                           width: 20.0,
                           height: 20.0,
                           point: homeLocation, // Position für den Marker
-                          builder: (ctx) =>
-                              const Icon(Icons.home, color: Colors.black),
+                          child: const Icon(
+                            Icons.home,
+                            color: Colors.black,
+                          ),
                         ),
                       ...addressLocations.entries.map((entry) {
                         Mitglied member = widget.members.firstWhere(
@@ -148,7 +148,7 @@ class MapWidgetState extends State<MapWidget> {
                           width: 25.0,
                           height: 25.0,
                           point: entry.value,
-                          builder: (ctx) => Tooltip(
+                          child: Tooltip(
                             triggerMode: TooltipTriggerMode.tap,
                             message: '${member.vorname} ${member.nachname}',
                             child: Icon(
@@ -159,7 +159,7 @@ class MapWidgetState extends State<MapWidget> {
                             ),
                           ),
                         );
-                      }).toList(),
+                      }),
                     ],
                   ),
                   Align(
@@ -244,7 +244,9 @@ class MapWidgetState extends State<MapWidget> {
             child: CircularProgressIndicator(),
           );
         } else if (snapshot.hasError) {
-          return Container();
+          return const Center(
+            child: Text('Fehler beim Laden der Adressen'),
+          );
         } else {
           final (:stammheim, :members) = snapshot.data!;
           return Column(

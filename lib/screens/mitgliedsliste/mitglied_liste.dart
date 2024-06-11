@@ -14,7 +14,7 @@ import 'package:nami/utilities/theme.dart';
 import 'mitglied_bearbeiten.dart';
 
 class MitgliedsListe extends StatefulWidget {
-  const MitgliedsListe({Key? key}) : super(key: key);
+  const MitgliedsListe({super.key});
 
   @override
   MitgliedsListeState createState() => MitgliedsListeState();
@@ -209,7 +209,7 @@ class MitgliedsListeState extends State<MitgliedsListe> {
                   shape: BoxShape.circle,
                   color: filter.filterGroup[stufe.index]
                       ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.surfaceVariant,
+                      : Theme.of(context).colorScheme.surfaceContainer,
                 ),
                 child: Center(
                   child: Image.asset(

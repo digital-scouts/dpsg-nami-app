@@ -9,7 +9,7 @@ import 'package:nami/utilities/custom_drawer/home_drawer.dart';
 import 'package:nami/utilities/hive/settings.dart';
 
 class NavigationHomeScreen extends StatefulWidget {
-  const NavigationHomeScreen({Key? key}) : super(key: key);
+  const NavigationHomeScreen({super.key});
 
   @override
   NavigationHomeScreenState createState() => NavigationHomeScreenState();
@@ -35,12 +35,12 @@ class NavigationHomeScreenState extends State<NavigationHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Theme.of(context).colorScheme.background,
+      color: Theme.of(context).colorScheme.surface,
       child: SafeArea(
         top: false,
         bottom: false,
         child: Scaffold(
-          backgroundColor: Theme.of(context).colorScheme.background,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           body: DrawerUserController(
             screenIndex: drawerIndex,
             drawerWidth: MediaQuery.of(context).size.width * 0.75,
