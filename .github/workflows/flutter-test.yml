@@ -4,19 +4,19 @@ on:
   push:
     branches: [master, develop]
     paths-ignore:
-      - '.github/**'
-      - '.vscode/**'
-      - 'releases/**'
-      - '**/README.md'
-      - '**/GitVersion.yml'
+      - ".github/**"
+      - ".vscode/**"
+      - "releases/**"
+      - "**/README.md"
+      - "**/GitVersion.yml"
   pull_request:
     branches: [master, develop]
     paths-ignore:
-      - '.github/**'
-      - '.vscode/**'
-      - 'releases/**'
-      - '**/README.md'
-      - '**/GitVersion.yml'
+      - ".github/**"
+      - ".vscode/**"
+      - "releases/**"
+      - "**/README.md"
+      - "**/GitVersion.yml"
 
 jobs:
   test:
@@ -24,15 +24,16 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      JAVA_VERSION: '17.0.1'
+      JAVA_VERSION: "17.0.1"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-java@v1
         with:
           java-version: ${{env.JAVA_VERSION}}
-      - uses: subosito/flutter-action@v2
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
+          channel: "stable"
       - run: flutter --version
       - run: flutter pub get
       - run: flutter analyze
@@ -40,7 +41,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: dart-lang/setup-dart@v1
         with:
-          sdk: 'stable'
+          sdk: "3.4"
       - run: dart --version
       - name: Install dependencies
         run: flutter pub get

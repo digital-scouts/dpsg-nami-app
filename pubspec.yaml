@@ -1,10 +1,10 @@
 name: nami
 description: Namentliche Mitgliedermeldung der DPSG als App für Android und iOS
 publish_to: none
-version: 0.1.0
+version: 0.1.1
 
 environment:
-  sdk: '^3.4.0'
+  sdk: "^3.4.0"
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -70,20 +70,19 @@ dev_dependencies:
 
 #flutter pub run flutter_launcher_icons:main
 flutter_icons:
-  android: 'launcher_icon'
+  android: "launcher_icon"
   ios: true
-  image_path: 'assets/icon/icon.png'
-  adaptive_icon_background: '#ffffff'
-  adaptive_icon_foreground: 'assets/icon/icon-blank.png'
+  image_path: "assets/icon/icon.png"
+  adaptive_icon_background: "#ffffff"
+  adaptive_icon_foreground: "assets/icon/icon-blank.png"
 
 flutter:
   uses-material-design: true
   assets:
     - assets/images/
-    - .env 
-    - .git/refs/heads/ 
-    - .git/HEAD       
-
+    - .env
+    - .git/refs/heads/
+    - .git/HEAD
 
   fonts:
     - family: WorkSans
