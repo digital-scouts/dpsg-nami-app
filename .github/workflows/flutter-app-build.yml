@@ -13,26 +13,20 @@ jobs:
       - uses: actions/setup-java@v1
         with:
           java-version: ${{ vars.JAVA_VERSION }}
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ vars.DART_VERSION }}
+      - run: dart --version
       - uses: subosito/flutter-action@v2
         with:
           channel: "stable"
       - run: flutter --version
       - run: flutter pub get
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed .
       - run: flutter analyze
       - run: flutter test
       - uses: actions/checkout@v2
-      - uses: dart-lang/setup-dart@v1
-        with:
-          sdk: "stable"
-      - run: dart --version
-      - name: Install dependencies
-        run: flutter pub get
-      - name: Verify formatting
-        run: dart format --output=none --set-exit-if-changed .
-      - name: Analyze project source
-        run: flutter analyze
-      - name: Run tests
-        run: flutter test
 
   version:
     name: flutter version
