@@ -77,6 +77,10 @@ jobs:
         with:
           distribution: "temurin"
           java-version: ${{ vars.JAVA_VERSION }}
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ vars.DART_VERSION }}
+      - run: dart --version
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
