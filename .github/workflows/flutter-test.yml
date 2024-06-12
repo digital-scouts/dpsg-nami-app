@@ -17,6 +17,7 @@ on:
       - "releases/**"
       - "**/README.md"
       - "**/GitVersion.yml"
+  workflow_dispatch: null
 
 jobs:
   test:
