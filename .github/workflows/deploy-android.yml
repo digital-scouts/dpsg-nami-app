@@ -84,9 +84,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ vars.FLUTTER_VERSION }}
           channel: "stable"
-          cache: true
       - run: dart --version
       - run: flutter pub get
       - name: Build aab
