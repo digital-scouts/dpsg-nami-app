@@ -4,7 +4,7 @@ import 'home_drawer.dart';
 
 class DrawerUserController extends StatefulWidget {
   const DrawerUserController({
-    Key? key,
+    super.key,
     this.drawerWidth = 250,
     this.onDrawerCall,
     this.screenView,
@@ -12,7 +12,7 @@ class DrawerUserController extends StatefulWidget {
     this.menuView,
     this.drawerIsOpen,
     this.screenIndex,
-  }) : super(key: key);
+  });
 
   final double drawerWidth;
   final Function(DrawerIndex)? onDrawerCall;

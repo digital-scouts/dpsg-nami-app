@@ -14,7 +14,7 @@ import 'package:nami/utilities/theme.dart';
 import 'mitglied_bearbeiten.dart';
 
 class MitgliedsListe extends StatefulWidget {
-  const MitgliedsListe({Key? key}) : super(key: key);
+  const MitgliedsListe({super.key});
 
   @override
   MitgliedsListeState createState() => MitgliedsListeState();
@@ -191,9 +191,6 @@ class MitgliedsListeState extends State<MitgliedsListe> {
     gruppen.add(Stufe.PFADFINDER);
     gruppen.add(Stufe.ROVER);
     gruppen.add(Stufe.LEITER);
-    if (getFavouriteList().isNotEmpty) {
-      gruppen.add(Stufe.FAVOURITE);
-    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
@@ -212,12 +209,11 @@ class MitgliedsListeState extends State<MitgliedsListe> {
                   shape: BoxShape.circle,
                   color: filter.filterGroup[stufe.index]
                       ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.surfaceVariant,
+                      : Theme.of(context).colorScheme.surfaceContainer,
                 ),
                 child: Center(
                   child: Image.asset(
                     stufe.imagePath!,
-                    color: stufe == Stufe.FAVOURITE ? stufe.farbe : null,
                     width: 30.0,
                     height: 30.0,
                   ),
@@ -262,7 +258,7 @@ class MitgliedsListeState extends State<MitgliedsListe> {
           actions: <Widget>[
             if (kDebugMode)
               IconButton(
-                icon: const Icon(Icons.add),
+                icon: const Icon(Icons.person_add),
                 onPressed: () {
                   Navigator.push(
                     context,

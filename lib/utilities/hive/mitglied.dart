@@ -1,4 +1,7 @@
+import 'package:geocoding/geocoding.dart';
 import 'package:hive/hive.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:nami/utilities/hive/ausbildung.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
 
@@ -82,6 +85,9 @@ class Mitglied {
   @HiveField(24)
   late List<Taetigkeit> taetigkeiten;
 
+  @HiveField(25, defaultValue: [])
+  late List<Ausbildung> ausbildungen;
+
   bool isMitgliedLeiter() {
     for (Taetigkeit t in taetigkeiten) {
       if (t.isLeitung()) {
@@ -89,6 +95,14 @@ class Mitglied {
       }
     }
     return false;
+  }
+
+  Future<LatLng?> getCoordinates() async {
+    try {
+      final res = await locationFromAddress('$strasse, $plz $ort');
+      return LatLng(res.first.latitude, res.first.longitude);
+    } on NoResultFoundException catch (_, __) {}
+    return null;
   }
 
   List<Taetigkeit> getActiveTaetigkeiten() {
@@ -126,36 +140,40 @@ class Mitglied {
     return Stufe.getStufeByOrder(Stufe.getStufeByString(stufe).index + 1);
   }
 
-  int? getMinStufenWechselJahr() {
+  DateTime? getMinStufenWechselDatum() {
+    DateTime nextStufenwechselDatum = getNextStufenwechselDatum();
     int alterNextStufenwechsel =
-        getAlterAm(referenceDate: getNextStufenwechselDatum());
+        getAlterAm(referenceDate: nextStufenwechselDatum);
 
     if (nextStufe != null &&
         nextStufe!.isStufeYouCanChangeTo &&
         !isMitgliedLeiter()) {
-      return getNextStufenwechselDatum().year -
-          alterNextStufenwechsel +
-          nextStufe!.alterMin!;
+      return DateTime(
+              nextStufenwechselDatum.year -
+                  alterNextStufenwechsel +
+                  nextStufe!.alterMin!,
+              nextStufenwechselDatum.month,
+              nextStufenwechselDatum.day)
+          .subtract(const Duration(days: 1));
     } else {
       return null;
     }
   }
 
-  int? getMaxStufenWechselJahr() {
+  DateTime? getMaxStufenWechselDatum() {
+    DateTime nextStufenwechselDatum = getNextStufenwechselDatum();
     int alterNextStufenwechsel =
-        getAlterAm(referenceDate: getNextStufenwechselDatum());
+        getAlterAm(referenceDate: nextStufenwechselDatum);
+
     if (nextStufe != null &&
-        nextStufe!.isStufeYouCanChangeTo &&
+        (nextStufe!.isStufeYouCanChangeTo || currentStufe == Stufe.ROVER) &&
         !isMitgliedLeiter()) {
-      return DateTime.now().year -
-          alterNextStufenwechsel +
-          currentStufe.alterMax! +
-          1;
-    } else if (currentStufe.display == "Rover" && !isMitgliedLeiter()) {
-      return DateTime.now().year -
-          alterNextStufenwechsel +
-          currentStufe.alterMax! +
-          1;
+      return DateTime(
+          nextStufenwechselDatum.year -
+              alterNextStufenwechsel +
+              currentStufe.alterMax!,
+          nextStufenwechselDatum.month,
+          nextStufenwechselDatum.day);
     } else {
       return null;
     }

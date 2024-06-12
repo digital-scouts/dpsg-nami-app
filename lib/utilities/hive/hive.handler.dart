@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import 'package:nami/utilities/hive/ausbildung.dart';
 import 'package:nami/utilities/hive/settings.dart';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -14,6 +15,7 @@ void logout() {
   Hive.box<Mitglied>('members').clear();
   deleteGruppierungId();
   deleteGruppierungName();
+  setRechte([]);
 
   setStammheim('');
   setFavouriteList([]);
@@ -31,6 +33,7 @@ void logout() {
 Future<void> registerAdapter() async {
   try {
     Hive.registerAdapter(TaetigkeitAdapter());
+    Hive.registerAdapter(AusbildungAdapter());
     Hive.registerAdapter(MitgliedAdapter());
   } catch (_) {}
 }

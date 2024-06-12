@@ -1,4 +1,3 @@
-import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/stufe.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 
@@ -24,9 +23,7 @@ void filterByStufe(List<Mitglied> mitglieder, List<Stufe> stufen) {
   mitglieder.removeWhere((m) =>
       !s.contains(m.stufe) &&
       !(s.contains('Leiter') &&
-          (m.isMitgliedLeiter() || m.stufe == Stufe.KEINE_STUFE.display)) &&
-      !(s.contains(Stufe.FAVOURITE.display) &&
-          getFavouriteList().contains(m.mitgliedsNummer)));
+          (m.isMitgliedLeiter() || m.stufe == Stufe.KEINE_STUFE.display)));
 }
 
 ///Nur aktive Mitglieder

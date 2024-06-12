@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:nami/utilities/app.state.dart';
@@ -7,11 +6,10 @@ import 'package:nami/utilities/hive/settings.dart';
 
 class HomeDrawer extends StatefulWidget {
   const HomeDrawer(
-      {Key? key,
+      {super.key,
       this.screenIndex,
       this.iconAnimationController,
-      this.callBackIndex})
-      : super(key: key);
+      this.callBackIndex});
 
   final AnimationController? iconAnimationController;
   final DrawerIndex? screenIndex;
@@ -31,28 +29,26 @@ class HomeDrawerState extends State<HomeDrawer> {
 
   void setDrawerListArray() {
     drawerList = <DrawerList>[
-      if (kDebugMode)
-        DrawerList(
-          index: DrawerIndex.dashboard,
-          labelName: 'Dashboard',
-          icon: const Icon(Icons.home),
-        ),
+      DrawerList(
+        index: DrawerIndex.meineStufe,
+        labelName: 'Meine Stufe',
+        icon: const Icon(Icons.group),
+      ),
       DrawerList(
         index: DrawerIndex.mitglieder,
         labelName: 'Mitglieder',
-        icon: const Icon(Icons.group),
+        icon: const Icon(Icons.groups),
       ),
       DrawerList(
         index: DrawerIndex.stats,
         labelName: 'Statistiken',
         icon: const Icon(Icons.analytics),
       ),
-      if (kDebugMode)
-        DrawerList(
-          index: DrawerIndex.profil,
-          labelName: 'Profil',
-          icon: const Icon(Icons.person),
-        ),
+      DrawerList(
+        index: DrawerIndex.profil,
+        labelName: 'Profil',
+        icon: const Icon(Icons.person),
+      ),
       DrawerList(
         index: DrawerIndex.settings,
         labelName: 'Einstellungen',
@@ -72,7 +68,7 @@ class HomeDrawerState extends State<HomeDrawer> {
     } catch (_) {}
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisAlignment: MainAxisAlignment.start,
@@ -161,7 +157,7 @@ class HomeDrawerState extends State<HomeDrawer> {
   Widget inkwell(DrawerList listData) {
     final itemColor = widget.screenIndex == listData.index
         ? Theme.of(context).colorScheme.onPrimaryContainer
-        : Theme.of(context).colorScheme.onBackground;
+        : Theme.of(context).colorScheme.onSurface;
 
     return InkWell(
       splashColor: Colors.grey.withOpacity(0.1),
@@ -261,7 +257,7 @@ class HomeDrawerState extends State<HomeDrawer> {
   }
 }
 
-enum DrawerIndex { dashboard, mitglieder, stats, settings, profil }
+enum DrawerIndex { meineStufe, mitglieder, stats, settings, profil }
 
 class DrawerList {
   DrawerList({

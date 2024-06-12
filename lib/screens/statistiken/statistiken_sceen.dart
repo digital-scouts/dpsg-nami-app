@@ -15,7 +15,7 @@ enum StatistikType {
 }
 
 class StatistikScreen extends StatefulWidget {
-  const StatistikScreen({Key? key}) : super(key: key);
+  const StatistikScreen({super.key});
 
   @override
   StatistikScreenState createState() => StatistikScreenState();

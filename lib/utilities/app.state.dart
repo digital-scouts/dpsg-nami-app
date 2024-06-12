@@ -7,6 +7,7 @@ import 'package:local_auth/local_auth.dart';
 import 'package:nami/main.dart';
 import 'package:nami/screens/utilities/loading_info_screen.dart';
 import 'package:nami/screens/login_screen.dart';
+import 'package:nami/screens/utilities/welcome_screen.dart';
 import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/hive/hive.handler.dart';
 import 'package:nami/utilities/hive/settings.dart';
@@ -167,12 +168,12 @@ class AppStateHandler extends ChangeNotifier {
         await reloadMetadataFromServer();
         metaProgressNotifier.value = true;
       }
-      await syncMember(
+      await syncMembers(
         memberAllProgressNotifier,
         memberOverviewProgressNotifier,
+        rechteProgressNotifier,
         forceUpdate: loadAll,
       );
-      rechteProgressNotifier.value = await getRechte();
       syncState = SyncState.successful;
       if (background) {
         sensLog.i('sync successful in background');
@@ -270,7 +271,14 @@ class AppStateHandler extends ChangeNotifier {
 
   /// App is authenticated | User is logged in
   /// Data is available and up to date
-  void setReadyState() {
+  Future<void> setReadyState() async {
+    if (!getWelcomeMessageShown()) {
+      await Navigator.push(
+        navigatorKey.currentContext!,
+        MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+      );
+      setWelcomeMessageShown(true);
+    }
     // Using [getLastNamiSyncTry] to prevent from instant retry after a failed
     // sync when offline
     final nextSync = getLastNamiSyncTry()

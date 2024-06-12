@@ -60,29 +60,6 @@ Future<bool> showConfirmationDialog(
       false;
 }
 
-Future<bool> showWelcomeDialog() async {
-  sensLog.i('Showing Welcome Dialog');
-  return await showDialog<bool>(
-          context: navigatorKey.currentContext!,
-          barrierDismissible: false,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text("Willkommen!"),
-              content: const Text(
-                  "Wir freuen uns, dich hier zu haben! \nBitte beachte, dass unsere App sich noch in der Entwicklung befindet und es daher zu Problemen kommen kann. Dein Feedback ist uns jedoch sehr wichtig! Wenn du auf Probleme stößt oder Verbesserungsvorschläge hast, lass es uns bitte wissen. Wir sind dankbar für jede Unterstützung bei der Weiterentwicklung unserer App. \n\nWillkommen an Bord und viel Spaß beim Erkunden!"),
-              actions: <Widget>[
-                TextButton(
-                  child: const Text('Bestätigen'),
-                  onPressed: () {
-                    Navigator.of(context).pop(true);
-                  },
-                ),
-              ],
-            );
-          }) ??
-      false;
-}
-
 Future<bool> showSendLogsDialog() async {
   sensLog.i('Showing share logs dialog');
 
