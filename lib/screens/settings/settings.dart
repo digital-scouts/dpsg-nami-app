@@ -92,7 +92,6 @@ class Settings extends StatelessWidget {
               _buildBiometricAuthentication(),
               _buildDataLoadingOverWifiOnly(),
               _buildShareLogs(),
-              Expanded(child: Container()),
               Padding(
                 padding: const EdgeInsets.all(20.0),
                 child: FutureBuilder<MapEntry<PackageInfo, String>>(
