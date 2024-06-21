@@ -6,6 +6,7 @@ import 'package:nami/screens/widgets/map.widget.dart';
 import 'package:nami/screens/widgets/stufenwechsel_timeline.widget.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/hive/settings_stufenwechsel.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
 import 'package:nami/utilities/stufe.dart';
 
