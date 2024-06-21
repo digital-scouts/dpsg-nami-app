@@ -14,7 +14,6 @@ enum SettingValue {
   lastNamiSyncTry,
   lastLoginCheck,
   syncDataLoadingOverWifiOnly,
-  stufenwechselDatum,
   stammheim,
   welcomeMessageShown,
   favouriteList,
@@ -154,11 +153,6 @@ void setNamiApiCookie(String namiApiToken) {
   settingsBox.put(SettingValue.namiApiCookie.toString(), namiApiToken);
 }
 
-void setStufenwechselDatum(DateTime stufenwechselDatum) {
-  settingsBox.put(
-      SettingValue.stufenwechselDatum.toString(), stufenwechselDatum);
-}
-
 void setStammheim(String stammheim) {
   if (stammheim.isEmpty) {
     settingsBox.delete(SettingValue.stammheim.toString());
@@ -228,36 +222,6 @@ DateTime getLastLoginCheck() {
 bool getDataLoadingOverWifiOnly() {
   return settingsBox.get(SettingValue.syncDataLoadingOverWifiOnly.toString()) ??
       true;
-}
-
-DateTime getStufenWechselDatum() {
-  return settingsBox.get(SettingValue.stufenwechselDatum.toString()) ??
-      DateTime.now();
-}
-
-DateTime getNextStufenwechselDatum() {
-  DateTime now = DateTime.now();
-  DateTime safedStufenwechselDatum =
-      settingsBox.get(SettingValue.stufenwechselDatum.toString()) ??
-          DateTime.utc(1989, 10, 1);
-  safedStufenwechselDatum = DateTime.utc(
-      now.year, safedStufenwechselDatum.month, safedStufenwechselDatum.day);
-
-  // set year of safedStufenwechselDatum to current year or next year if it is in the past
-  DateTime stufenwechselDatum;
-
-  DateTime stufenwechselPlus14Days =
-      safedStufenwechselDatum.add(const Duration(days: 14));
-
-  if (stufenwechselPlus14Days.isBefore(now)) {
-    stufenwechselDatum = DateTime(now.year + 1, safedStufenwechselDatum.month,
-        safedStufenwechselDatum.day);
-  } else {
-    stufenwechselDatum = DateTime(
-        now.year, safedStufenwechselDatum.month, safedStufenwechselDatum.day);
-  }
-
-  return stufenwechselDatum;
 }
 
 String? getStammheim() {
@@ -341,8 +305,4 @@ void deleteGruppierungId() {
 
 void deleteGruppierungName() {
   settingsBox.delete(SettingValue.gruppierungName.toString());
-}
-
-void deleteStufenwechselDatum() {
-  settingsBox.delete(SettingValue.stufenwechselDatum.toString());
 }

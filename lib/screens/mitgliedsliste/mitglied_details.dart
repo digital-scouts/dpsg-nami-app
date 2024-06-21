@@ -6,6 +6,7 @@ import 'package:nami/screens/widgets/map.widget.dart';
 import 'package:nami/screens/widgets/mitgliedStufenPieChart.widget.dart';
 import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/hive/settings_stufenwechsel.dart';
 import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/nami/nami_edit_taetigkeiten.dart';
 import 'package:nami/utilities/stufe.dart';
