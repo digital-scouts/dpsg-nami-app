@@ -1300,13 +1300,14 @@ packages:
     source: hosted
     version: "6.3.3"
   url_launcher_ios:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
-      name: url_launcher_ios
-      sha256: "7068716403343f6ba4969b4173cbf3b84fc768042124bc2c011e5d782b24fe89"
-      url: "https://pub.dev"
-    source: hosted
-    version: "6.3.0"
+      path: "packages/url_launcher/url_launcher_ios"
+      ref: urllauncher_fix_main_actor_completion_conformance
+      resolved-ref: ce455e87a4db3642fe2d9d36c8da1ee72d7cffea
+      url: "https://github.com/hellohuanlin/packages.git"
+    source: git
+    version: "6.3.1"
   url_launcher_linux:
     dependency: transitive
     description:
