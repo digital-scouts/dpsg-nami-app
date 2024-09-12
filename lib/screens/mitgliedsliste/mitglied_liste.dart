@@ -253,13 +253,6 @@ class MitgliedsListeState extends State<MitgliedsListe> {
 
   @override
   Widget build(BuildContext context) {
-    Wiredash.of(context).showPromoterSurvey(
-      options: const PsOptions(
-        frequency: Duration(days: 100),
-        initialDelay: Duration(days: 7),
-        minimumAppStarts: 3,
-      ),
-    );
     return LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
       return Scaffold(
@@ -270,7 +263,7 @@ class MitgliedsListeState extends State<MitgliedsListe> {
             IconButton(
               icon: const Icon(Icons.person_add),
               onPressed: () {
-                Wiredash.of(context).trackEvent('Open new Member clicked');
+                Wiredash.trackEvent('Mitglied bearbeiten opend');
                 Navigator.push(
                   context,
                   MaterialPageRoute(

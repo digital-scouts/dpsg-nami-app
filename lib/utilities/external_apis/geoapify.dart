@@ -2,10 +2,12 @@ import 'dart:convert';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:wiredash/wiredash.dart';
 
 Future<bool> validateGermanAdress(
     String housenumber, String street, String postcode, String city) async {
   String apiKey = startUp();
+  Wiredash.trackEvent('Validate Adress with Geoapify');
 
   final response = await http.get(Uri.parse(
       'https://api.geoapify.com/v1/geocode/search?housenumber=$housenumber&street=$street&postcode=$postcode&city=$city&country=Germany&format=json&apiKey=$apiKey'));
@@ -37,6 +39,7 @@ Future<bool> validateGermanAdress(
 
 Future<List<GeoapifyAdress>> autocompleteGermanAdress(String text) async {
   String apiKey = startUp();
+  Wiredash.trackEvent('Autocomplete Adress with Geoapify');
 
   final response = await http.get(Uri.parse(
       'https://api.geoapify.com/v1/geocode/autocomplete?text=$text&lang=de&limit=3&filter=countrycode:de&format=json&apiKey=$apiKey'));

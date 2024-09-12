@@ -9,7 +9,9 @@ import 'package:intl/intl.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/nami/nami_member_add_meta.dart';
+import 'package:wiredash/wiredash.dart';
 
 // ignore: must_be_immutable
 class MitgliedBearbeiten extends StatefulWidget {
@@ -423,6 +425,8 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                                       .toList());
                             } catch (e) {
                               debugPrint(e.toString());
+                              sensLog.e('Failed to autocomplete adress');
+                              sensLog.e(e.toString());
                               setState(() {
                                 _adressAutocompleteActive = false;
                               });
@@ -729,6 +733,8 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                             const SnackBar(content: Text('Processing Data')),
                           );
                         }
+                        Wiredash.trackEvent('Mitglied bearbeiten submitted',
+                            data: {'valid': _formKey.currentState!.isValid});
                       },
                       child: const Text('Submit'),
                     ),
