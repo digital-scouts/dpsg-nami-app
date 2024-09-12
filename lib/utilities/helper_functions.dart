@@ -20,7 +20,7 @@ Future<void> sendLogsEmail() async {
           'Beschreibe dein Problem. Wie hat sich die App verhalten, was ist passiert? Was hättest du erwartet?',
       attachmentPaths: [loggingFile.path],
       subject: "NaMi App Logs",
-      recipients: ["dev@janecklange.de"],
+      recipients: ["dev@jannecklange.de"],
     ),
   );
 }

@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:nami/utilities/theme.dart';
 
+/// Alter der Stufen wird nur noch fürs Reset in den Einstellungen verwendet.
+/// Bitte nutze für alle anderen Zwecke das in der Hive gespeicherte Alter.
 enum Stufe implements Comparable<Stufe> {
   BIBER(
     DPSGColors.biberFarbe,
