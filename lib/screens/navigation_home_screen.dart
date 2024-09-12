@@ -7,6 +7,7 @@ import 'package:nami/screens/statistiken/statistiken_sceen.dart';
 import 'package:nami/utilities/custom_drawer/drawer_user_controller.dart';
 import 'package:nami/utilities/custom_drawer/home_drawer.dart';
 import 'package:nami/utilities/hive/settings.dart';
+import 'package:wiredash/wiredash.dart';
 
 class NavigationHomeScreen extends StatefulWidget {
   const NavigationHomeScreen({super.key});
@@ -57,6 +58,13 @@ class NavigationHomeScreenState extends State<NavigationHomeScreen> {
   }
 
   void changeIndex(DrawerIndex drawerIndexdata) {
+    Wiredash.of(context).showPromoterSurvey(
+      options: const PsOptions(
+        frequency: Duration(days: 100),
+        initialDelay: Duration(days: 7),
+        minimumAppStarts: 3,
+      ),
+    );
     if (drawerIndex != drawerIndexdata) {
       drawerIndex = drawerIndexdata;
       if (drawerIndex == DrawerIndex.mitglieder) {
