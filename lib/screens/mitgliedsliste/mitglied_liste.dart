@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
@@ -268,20 +267,19 @@ class MitgliedsListeState extends State<MitgliedsListe> {
           title: const Center(child: Text("Mitglieder")),
           automaticallyImplyLeading: false,
           actions: <Widget>[
-            if (kDebugMode)
-              IconButton(
-                icon: const Icon(Icons.person_add),
-                onPressed: () {
-                  Wiredash.of(context).trackEvent('Open new Member clicked');
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => MitgliedBearbeiten(
-                              mitglied: null,
-                            )),
-                  );
-                },
-              ),
+            IconButton(
+              icon: const Icon(Icons.person_add),
+              onPressed: () {
+                Wiredash.of(context).trackEvent('Open new Member clicked');
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => MitgliedBearbeiten(
+                            mitglied: null,
+                          )),
+                );
+              },
+            ),
             IconButton(
                 onPressed: () => filterDialog(context, filter).then((value) => {
                       if (value != null)

@@ -26,6 +26,8 @@ enum SettingValue {
   metaRegionOptions,
   metaStaatsangehoerigkeitOptions,
   metaMitgliedstypOptions,
+  metaKonfessionOptions,
+  metaErsteTaetigkeitOptions,
   biometricAuthenticationEnabled,
   rechte,
 }
@@ -36,7 +38,9 @@ void setMetaData(
     List<String> region,
     List<String> beitragsart,
     List<String> staatsangehoerigkeit,
-    List<String> mitgliedstyp) {
+    List<String> mitgliedstyp,
+    List<String> konfession,
+    List<String> ersteTaetigkeit) {
   settingsBox.put(SettingValue.metaGeschechtOptions.toString(), geschlecht);
   settingsBox.put(SettingValue.metaLandOptions.toString(), land);
   settingsBox.put(SettingValue.metaBeitragsartOptions.toString(), beitragsart);
@@ -45,6 +49,9 @@ void setMetaData(
       staatsangehoerigkeit);
   settingsBox.put(
       SettingValue.metaMitgliedstypOptions.toString(), mitgliedstyp);
+  settingsBox.put(SettingValue.metaKonfessionOptions.toString(), konfession);
+  settingsBox.put(
+      SettingValue.metaErsteTaetigkeitOptions.toString(), ersteTaetigkeit);
 }
 
 Box get settingsBox => Hive.box('settingsBox');
@@ -93,6 +100,15 @@ List<String> getMetaRegionOptions() {
 List<String> getMetaStaatsangehoerigkeitOptions() {
   return settingsBox
           .get(SettingValue.metaStaatsangehoerigkeitOptions.toString()) ??
+      [];
+}
+
+List<String> getMetaKonfessionOptions() {
+  return settingsBox.get(SettingValue.metaKonfessionOptions.toString()) ?? [];
+}
+
+List<String> getErsteTaetigkeitOptions() {
+  return settingsBox.get(SettingValue.metaErsteTaetigkeitOptions.toString()) ??
       [];
 }
 
