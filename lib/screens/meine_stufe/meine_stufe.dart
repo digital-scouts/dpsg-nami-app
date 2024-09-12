@@ -68,8 +68,15 @@ class _MeineStufeState extends State<MeineStufe> {
 
   Widget _buildMitgliedElement(Mitglied mitglied, Color color) {
     final DateTime currentDate = DateTime.now();
-    final Taetigkeit taetigkeit = mitglied.taetigkeiten
-        .firstWhere((element) => element.untergliederung == mitglied.stufe);
+    Taetigkeit emptyTaetigkeit = Taetigkeit();
+
+    final Taetigkeit taetigkeit = mitglied.taetigkeiten.firstWhere(
+      (element) => element.untergliederung == mitglied.stufe,
+      orElse: () {
+        emptyTaetigkeit.aktivVon = emptyTaetigkeit.aktivBis = currentDate;
+        return emptyTaetigkeit;
+      },
+    );
     final int currentStufeYears = currentDate.year - taetigkeit.aktivVon.year;
     final int currentStufeMonths =
         currentDate.month - taetigkeit.aktivVon.month;
@@ -95,11 +102,11 @@ class _MeineStufeState extends State<MeineStufe> {
                       children: [
                         const Icon(Icons.cake, size: 12),
                         const SizedBox(width: 5),
-                        Text(DateFormat('dd. MMMM yyyy')
+                        Text(DateFormat('dd. MMM yyyy')
                             .format(mitglied.geburtsDatum)),
                       ],
                     ),
-                    mitglied.isMitgliedLeiter()
+                    mitglied.isMitgliedLeiter() || taetigkeit == emptyTaetigkeit
                         ? Container()
                         : Text(
                             '${Stufe.getStufeByString(mitglied.stufe).shortDisplaySingular} seit ${currentStufeYearsDecimal.toStringAsFixed(1)} Jahren')
@@ -109,12 +116,13 @@ class _MeineStufeState extends State<MeineStufe> {
               bottom: 0,
               left: 0,
               right: 0,
-              child: mitglied.isMitgliedLeiter()
-                  ? Container()
-                  : TimelineWidget(
-                      mitglied: mitglied,
-                      nextStufenwechsel: getNextStufenwechselDatum(),
-                    ),
+              child:
+                  mitglied.isMitgliedLeiter() || taetigkeit == emptyTaetigkeit
+                      ? Container()
+                      : TimelineWidget(
+                          mitglied: mitglied,
+                          nextStufenwechsel: getNextStufenwechselDatum(),
+                        ),
             ),
           ],
         ),
