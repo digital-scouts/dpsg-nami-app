@@ -122,7 +122,7 @@ class MitgliedsListeState extends State<MitgliedsListe> {
         return Card(
           child: InkWell(
             onTap: () => {
-              Wiredash.of(context).trackEvent('Show Member Details',
+              Wiredash.trackEvent('Show Member Details',
                   data: {'type': 'memberList'}),
               Navigator.of(context)
                   .push(

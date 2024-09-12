@@ -7,7 +7,7 @@ import 'package:wiredash/wiredash.dart';
 Future<bool> validateGermanAdress(
     String housenumber, String street, String postcode, String city) async {
   String apiKey = startUp();
-  Wiredash.trackEvent('Validate Adress with Geoapify');
+  Wiredash.trackEvent('Geoapify validate adress');
 
   final response = await http.get(Uri.parse(
       'https://api.geoapify.com/v1/geocode/search?housenumber=$housenumber&street=$street&postcode=$postcode&city=$city&country=Germany&format=json&apiKey=$apiKey'));
@@ -39,7 +39,7 @@ Future<bool> validateGermanAdress(
 
 Future<List<GeoapifyAdress>> autocompleteGermanAdress(String text) async {
   String apiKey = startUp();
-  Wiredash.trackEvent('Autocomplete Adress with Geoapify');
+  Wiredash.trackEvent('Geoapify autocomplete adress');
 
   final response = await http.get(Uri.parse(
       'https://api.geoapify.com/v1/geocode/autocomplete?text=$text&lang=de&limit=3&filter=countrycode:de&format=json&apiKey=$apiKey'));
