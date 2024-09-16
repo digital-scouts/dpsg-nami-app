@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:nami/screens/widgets/nami_change_toggle.dart';
 import 'package:nami/screens/widgets/stamm_heim_setting.dart';
 import 'package:nami/screens/widgets/stufenwechsel_alter_setting.dart';
 import 'package:nami/screens/widgets/stufenwechsel_datum_setting.dart';
@@ -86,26 +87,6 @@ class _SettingsState extends State<Settings> {
     );
   }
 
-  _buildNamiChangeToggle() {
-    return ListTile(
-      title: const Text('Erlaube Datenänderungen durch den Nutzer'),
-      leading: const Icon(Icons.edit),
-      onTap: () {
-        Wiredash.trackEvent('Settings', data: {
-          'type': 'toggle nami changes',
-          'value': !getNamiChangesEnabled()
-        });
-        setNamiChangesEnabled(!getNamiChangesEnabled());
-      },
-      trailing: Switch(
-        value: getNamiChangesEnabled(),
-        onChanged: (value) {
-          setNamiChangesEnabled(value);
-        },
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -119,7 +100,7 @@ class _SettingsState extends State<Settings> {
             children: [
               _buildSync(),
               _buildForceBSync(),
-              _buildNamiChangeToggle(),
+              const NamiChangeToggle(),
               const Divider(height: 1),
               const StufenwechelDatumSetting(),
               const StufenwechselAlterSetting(stufe: Stufe.BIBER),
