@@ -260,19 +260,20 @@ class MitgliedsListeState extends State<MitgliedsListe> {
           title: const Center(child: Text("Mitglieder")),
           automaticallyImplyLeading: false,
           actions: <Widget>[
-            IconButton(
-              icon: const Icon(Icons.person_add),
-              onPressed: () {
-                Wiredash.trackEvent('Mitglied bearbeiten opend');
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => MitgliedBearbeiten(
-                            mitglied: null,
-                          )),
-                );
-              },
-            ),
+            if (getNamiChangesEnabled())
+              IconButton(
+                icon: const Icon(Icons.person_add),
+                onPressed: () {
+                  Wiredash.trackEvent('Mitglied bearbeiten opend');
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => MitgliedBearbeiten(
+                              mitglied: null,
+                            )),
+                  );
+                },
+              ),
             IconButton(
                 onPressed: () => filterDialog(context, filter).then((value) => {
                       if (value != null)

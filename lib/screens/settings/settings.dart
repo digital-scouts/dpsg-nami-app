@@ -86,6 +86,26 @@ class _SettingsState extends State<Settings> {
     );
   }
 
+  _buildNamiChangeToggle() {
+    return ListTile(
+      title: const Text('Erlaube Datenänderungen durch den Nutzer'),
+      leading: const Icon(Icons.edit),
+      onTap: () {
+        Wiredash.trackEvent('Settings', data: {
+          'type': 'toggle nami changes',
+          'value': !getNamiChangesEnabled()
+        });
+        setNamiChangesEnabled(!getNamiChangesEnabled());
+      },
+      trailing: Switch(
+        value: getNamiChangesEnabled(),
+        onChanged: (value) {
+          setNamiChangesEnabled(value);
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -99,6 +119,7 @@ class _SettingsState extends State<Settings> {
             children: [
               _buildSync(),
               _buildForceBSync(),
+              _buildNamiChangeToggle(),
               const Divider(height: 1),
               const StufenwechelDatumSetting(),
               const StufenwechselAlterSetting(stufe: Stufe.BIBER),

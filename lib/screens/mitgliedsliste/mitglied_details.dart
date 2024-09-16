@@ -446,7 +446,8 @@ class MitgliedDetailState extends State<MitgliedDetail>
 
     if (!isMinStufenWechselJahrInPast ||
         nextStufe == null ||
-        !nextStufe.isStufeYouCanChangeTo) {
+        !nextStufe.isStufeYouCanChangeTo ||
+        !getNamiChangesEnabled()) {
       return null;
     }
 

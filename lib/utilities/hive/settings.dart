@@ -29,6 +29,7 @@ enum SettingValue {
   metaKonfessionOptions,
   metaErsteTaetigkeitOptions,
   biometricAuthenticationEnabled,
+  namiChangesEnabled,
   rechte,
 }
 
@@ -124,6 +125,14 @@ bool getBiometricAuthenticationEnabled() {
   return settingsBox
           .get(SettingValue.biometricAuthenticationEnabled.toString()) ??
       false;
+}
+
+bool getNamiChangesEnabled() {
+  return settingsBox.get(SettingValue.namiChangesEnabled.toString()) ?? false;
+}
+
+void setNamiChangesEnabled(bool value) {
+  settingsBox.put(SettingValue.namiChangesEnabled.toString(), value);
 }
 
 List<int> getRechte() {
