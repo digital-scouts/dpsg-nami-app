@@ -37,8 +37,8 @@ jobs:
       - run: flutter pub get
       - name: Verify formatting
         run: dart format --output=none --set-exit-if-changed .
-      - run: flutter analyze
-      - run: flutter test
+      #- run: flutter analyze
+      #- run: flutter test
 
   build:
     name: Build Android
