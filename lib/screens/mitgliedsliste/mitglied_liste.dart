@@ -10,6 +10,7 @@ import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/mitglied.filterAndSort.dart';
 import 'package:nami/utilities/stufe.dart';
 import 'package:nami/utilities/theme.dart';
+import 'package:wiredash/wiredash.dart';
 
 import 'mitglied_bearbeiten.dart';
 
@@ -121,15 +122,19 @@ class MitgliedsListeState extends State<MitgliedsListe> {
         }
         return Card(
           child: InkWell(
-            onTap: () => Navigator.of(context)
-                .push(
-                  MaterialPageRoute(
-                      builder: (context) =>
-                          MitgliedDetail(mitglied: filteredMitglieder[index])),
-                )
-                .then((value) => setState(() {
-                      applyFilterAndSort();
-                    })),
+            onTap: () => {
+              Wiredash.of(context).trackEvent('Show Member Details',
+                  data: {'type': 'memberList'}),
+              Navigator.of(context)
+                  .push(
+                    MaterialPageRoute(
+                        builder: (context) => MitgliedDetail(
+                            mitglied: filteredMitglieder[index])),
+                  )
+                  .then((value) => setState(() {
+                        applyFilterAndSort();
+                      }))
+            },
             child: ListTile(
               leading: Container(
                 decoration: BoxDecoration(
@@ -249,6 +254,13 @@ class MitgliedsListeState extends State<MitgliedsListe> {
 
   @override
   Widget build(BuildContext context) {
+    Wiredash.of(context).showPromoterSurvey(
+      options: const PsOptions(
+        frequency: Duration(days: 100),
+        initialDelay: Duration(days: 7),
+        minimumAppStarts: 3,
+      ),
+    );
     return LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
       return Scaffold(
@@ -260,6 +272,7 @@ class MitgliedsListeState extends State<MitgliedsListe> {
               IconButton(
                 icon: const Icon(Icons.person_add),
                 onPressed: () {
+                  Wiredash.of(context).trackEvent('Open new Member clicked');
                   Navigator.push(
                     context,
                     MaterialPageRoute(

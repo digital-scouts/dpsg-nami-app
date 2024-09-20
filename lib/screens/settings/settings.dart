@@ -1,17 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:nami/screens/widgets/stamm_heim_setting.dart';
+import 'package:nami/screens/widgets/stufenwechsel_alter_setting.dart';
 import 'package:nami/screens/widgets/stufenwechsel_datum_setting.dart';
 import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/notifications.dart';
+import 'package:nami/utilities/stufe.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../utilities/hive/settings.dart';
 
-class Settings extends StatelessWidget {
+class Settings extends StatefulWidget {
   const Settings({super.key});
 
+  @override
+  State<Settings> createState() => _SettingsState();
+}
+
+class _SettingsState extends State<Settings> {
   Widget _buildSync() {
     return ListTile(
       title: const Text('Aktualisiere die Mitgliedsdaten'),
@@ -88,9 +95,17 @@ class Settings extends StatelessWidget {
               _buildForceBSync(),
               const Divider(height: 1),
               const StufenwechelDatumSetting(),
+              const StufenwechselAlterSetting(stufe: Stufe.BIBER),
+              const StufenwechselAlterSetting(stufe: Stufe.WOELFLING),
+              const StufenwechselAlterSetting(stufe: Stufe.JUNGPADFINDER),
+              const StufenwechselAlterSetting(stufe: Stufe.PFADFINDER),
+              const StufenwechselAlterSetting(stufe: Stufe.ROVER),
+              const Divider(height: 1),
               const StammHeimSetting(),
+              const Divider(height: 1),
               _buildBiometricAuthentication(),
               _buildDataLoadingOverWifiOnly(),
+              const Divider(height: 1),
               _buildShareLogs(),
               Padding(
                 padding: const EdgeInsets.all(20.0),

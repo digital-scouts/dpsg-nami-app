@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
+import 'package:nami/utilities/hive/settings_stufenwechsel.dart';
 import 'package:nami/utilities/stufe.dart';
 
 class TimelineWidget extends StatelessWidget {
@@ -36,23 +37,24 @@ class TimelinePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final Stufe currentStufe = Stufe.getStufeByString(mitglied.stufe);
-    if (currentStufe.alterMin == null || currentStufe.alterMax == null) {
+    if (getStufeMinAge(currentStufe) == null ||
+        getStufeMaxAge(currentStufe) == null) {
       return;
     }
 
     // Aktuelle Stufe
-    final DateTime stufeStart =
-        mitglied.geburtsDatum.add(Duration(days: 365 * currentStufe.alterMin!));
-    final DateTime stufeEnd =
-        mitglied.geburtsDatum.add(Duration(days: 365 * currentStufe.alterMax!));
+    final DateTime stufeStart = mitglied.geburtsDatum
+        .add(Duration(days: 365 * getStufeMinAge(currentStufe)!));
+    final DateTime stufeEnd = mitglied.geburtsDatum
+        .add(Duration(days: 365 * getStufeMaxAge(currentStufe)!));
 
     // Vorherige Stufe
     final Stufe? prevStufe =
         Stufe.getStufeByOrder(Stufe.getStufeByString(mitglied.stufe).index - 1);
     double? prevStufeEndPos;
     if (prevStufe != null) {
-      DateTime prevStufeEnd =
-          mitglied.geburtsDatum.add(Duration(days: 365 * prevStufe.alterMax!));
+      DateTime prevStufeEnd = mitglied.geburtsDatum
+          .add(Duration(days: 365 * getStufeMaxAge(prevStufe)!));
       prevStufeEndPos = (prevStufeEnd.difference(stufeStart).inDays /
               stufeEnd.difference(stufeStart).inDays) *
           size.width;
@@ -63,8 +65,8 @@ class TimelinePainter extends CustomPainter {
         Stufe.getStufeByOrder(Stufe.getStufeByString(mitglied.stufe).index + 1);
     double? nextStufeStartPos;
     if (nextStufe != null && nextStufe.isStufeYouCanChangeTo) {
-      DateTime nextStufeStart =
-          mitglied.geburtsDatum.add(Duration(days: 365 * nextStufe.alterMin!));
+      DateTime nextStufeStart = mitglied.geburtsDatum
+          .add(Duration(days: 365 * getStufeMinAge(nextStufe)!));
       nextStufeStartPos = (nextStufeStart.difference(stufeStart).inDays /
               stufeEnd.difference(stufeStart).inDays) *
           size.width;
