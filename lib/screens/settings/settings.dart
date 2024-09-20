@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:nami/screens/widgets/nami_change_toggle.dart';
 import 'package:nami/screens/widgets/stamm_heim_setting.dart';
 import 'package:nami/screens/widgets/stufenwechsel_alter_setting.dart';
 import 'package:nami/screens/widgets/stufenwechsel_datum_setting.dart';
@@ -8,6 +9,7 @@ import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/notifications.dart';
 import 'package:nami/utilities/stufe.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:wiredash/wiredash.dart';
 
 import '../../utilities/hive/settings.dart';
 
@@ -24,6 +26,7 @@ class _SettingsState extends State<Settings> {
       title: const Text('Aktualisiere die Mitgliedsdaten'),
       leading: const Icon(Icons.sync),
       onTap: () {
+        Wiredash.trackEvent('Settings', data: {'type': 'SyncData'});
         AppStateHandler().setLoadDataState(loadAll: false);
       },
       subtitle: Text(
@@ -36,6 +39,7 @@ class _SettingsState extends State<Settings> {
       title: const Text('Lade alle Daten neu'),
       leading: const Icon(Icons.sync),
       onTap: () {
+        Wiredash.trackEvent('Settings', data: {'type': 'SyncData forced'});
         AppStateHandler().setLoadDataState(loadAll: true);
       },
     );
@@ -76,7 +80,10 @@ class _SettingsState extends State<Settings> {
     return ListTile(
       title: const Text('Teile Logs'),
       leading: const Icon(Icons.share),
-      onTap: () => showSendLogsDialog(),
+      onTap: () {
+        Wiredash.trackEvent('Settings', data: {'type': 'share logs'});
+        showSendLogsDialog();
+      },
     );
   }
 
@@ -93,6 +100,7 @@ class _SettingsState extends State<Settings> {
             children: [
               _buildSync(),
               _buildForceBSync(),
+              const NamiChangeToggle(),
               const Divider(height: 1),
               const StufenwechelDatumSetting(),
               const StufenwechselAlterSetting(stufe: Stufe.BIBER),

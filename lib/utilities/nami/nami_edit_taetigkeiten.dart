@@ -8,6 +8,7 @@ import 'package:nami/utilities/hive/taetigkeit.dart';
 import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/nami/nami-member.service.dart';
 import 'package:nami/utilities/stufe.dart';
+import 'package:wiredash/wiredash.dart';
 
 String url = getNamiLUrl();
 String path = getNamiPath();
@@ -17,6 +18,7 @@ String cookie = getNamiApiCookie();
 
 Future<Mitglied> stufenwechsel(int memberId, Taetigkeit currentTaetigkeit,
     Stufe nextStufe, DateTime stufenwechselDatum) async {
+  Wiredash.trackEvent('Stufenwechsel wird durchgeführt');
   sensLog.i('Stufenwechsel für ${sensId(memberId)}');
   await createTaetigkeitForStufe(memberId, stufenwechselDatum, nextStufe);
   await completeTaetigkeit(memberId, currentTaetigkeit, stufenwechselDatum);

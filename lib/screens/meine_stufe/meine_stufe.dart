@@ -9,6 +9,7 @@ import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/hive/settings_stufenwechsel.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
 import 'package:nami/utilities/stufe.dart';
+import 'package:wiredash/wiredash.dart';
 
 class MeineStufe extends StatefulWidget {
   const MeineStufe({super.key});
@@ -142,16 +143,20 @@ class _MeineStufeState extends State<MeineStufe> {
         mainAxisSpacing: 10,
       ),
       itemBuilder: (ctx, i) => InkWell(
-        onTap: () => Navigator.of(context)
-            .push(
-              MaterialPageRoute(
-                  builder: (context) =>
-                      MitgliedDetail(mitglied: mitglieder[i])),
-            )
-            .then((value) => {
-                  if (mitglieder.length != getFavouriteList().length)
-                    setState(() => loadMitglieder())
-                }),
+        onTap: () {
+          Wiredash.trackEvent('Show Member Details',
+              data: {'type': 'meineStufe'});
+          Navigator.of(context)
+              .push(
+                MaterialPageRoute(
+                    builder: (context) =>
+                        MitgliedDetail(mitglied: mitglieder[i])),
+              )
+              .then((value) => {
+                    if (mitglieder.length != getFavouriteList().length)
+                      setState(() => loadMitglieder())
+                  });
+        },
         child: _buildMitgliedElement(
             mitglieder[i], elementColors[mitglieder[i].mitgliedsNummer]!),
       ),

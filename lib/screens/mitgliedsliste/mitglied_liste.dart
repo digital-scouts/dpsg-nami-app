@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
@@ -123,7 +122,7 @@ class MitgliedsListeState extends State<MitgliedsListe> {
         return Card(
           child: InkWell(
             onTap: () => {
-              Wiredash.of(context).trackEvent('Show Member Details',
+              Wiredash.trackEvent('Show Member Details',
                   data: {'type': 'memberList'}),
               Navigator.of(context)
                   .push(
@@ -254,13 +253,6 @@ class MitgliedsListeState extends State<MitgliedsListe> {
 
   @override
   Widget build(BuildContext context) {
-    Wiredash.of(context).showPromoterSurvey(
-      options: const PsOptions(
-        frequency: Duration(days: 100),
-        initialDelay: Duration(days: 7),
-        minimumAppStarts: 3,
-      ),
-    );
     return LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
       return Scaffold(
@@ -268,11 +260,11 @@ class MitgliedsListeState extends State<MitgliedsListe> {
           title: const Center(child: Text("Mitglieder")),
           automaticallyImplyLeading: false,
           actions: <Widget>[
-            if (kDebugMode)
+            if (getNamiChangesEnabled())
               IconButton(
                 icon: const Icon(Icons.person_add),
                 onPressed: () {
-                  Wiredash.of(context).trackEvent('Open new Member clicked');
+                  Wiredash.trackEvent('Mitglied bearbeiten opend');
                   Navigator.push(
                     context,
                     MaterialPageRoute(

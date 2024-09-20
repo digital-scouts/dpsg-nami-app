@@ -7,6 +7,8 @@ import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 
+import 'package:wiredash/wiredash.dart';
+
 class Profil extends StatefulWidget {
   const Profil({super.key});
 
@@ -25,6 +27,7 @@ class _ProfilState extends State<Profil> {
   }
 
   Future<void> loadAntrag() async {
+    Wiredash.trackEvent('Führungszeugnis', data: {'type': 'Antrag laden'});
     setState(() => loadingAntrag = true);
     try {
       final pdfData = await loadFzAntrag();
@@ -63,6 +66,8 @@ class _ProfilState extends State<Profil> {
                   subtitle: Text(
                       'Bescheinigung von: ${doc.erstelltAm.prettyPrint()}\nFührungszeugnis von: ${doc.fzDatum.prettyPrint()}'),
                   onTap: () {
+                    Wiredash.trackEvent('Führungszeugnis',
+                        data: {'type': 'Bescheinigung laden'});
                     loadFzDocument(doc.id).then((pdfData) async {
                       final output = await getTemporaryDirectory();
                       final file = File(

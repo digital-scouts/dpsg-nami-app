@@ -26,7 +26,10 @@ enum SettingValue {
   metaRegionOptions,
   metaStaatsangehoerigkeitOptions,
   metaMitgliedstypOptions,
+  metaKonfessionOptions,
+  metaErsteTaetigkeitOptions,
   biometricAuthenticationEnabled,
+  namiChangesEnabled,
   rechte,
 }
 
@@ -36,7 +39,9 @@ void setMetaData(
     List<String> region,
     List<String> beitragsart,
     List<String> staatsangehoerigkeit,
-    List<String> mitgliedstyp) {
+    List<String> mitgliedstyp,
+    List<String> konfession,
+    List<String> ersteTaetigkeit) {
   settingsBox.put(SettingValue.metaGeschechtOptions.toString(), geschlecht);
   settingsBox.put(SettingValue.metaLandOptions.toString(), land);
   settingsBox.put(SettingValue.metaBeitragsartOptions.toString(), beitragsart);
@@ -45,6 +50,9 @@ void setMetaData(
       staatsangehoerigkeit);
   settingsBox.put(
       SettingValue.metaMitgliedstypOptions.toString(), mitgliedstyp);
+  settingsBox.put(SettingValue.metaKonfessionOptions.toString(), konfession);
+  settingsBox.put(
+      SettingValue.metaErsteTaetigkeitOptions.toString(), ersteTaetigkeit);
 }
 
 Box get settingsBox => Hive.box('settingsBox');
@@ -96,6 +104,15 @@ List<String> getMetaStaatsangehoerigkeitOptions() {
       [];
 }
 
+List<String> getMetaKonfessionOptions() {
+  return settingsBox.get(SettingValue.metaKonfessionOptions.toString()) ?? [];
+}
+
+List<String> getErsteTaetigkeitOptions() {
+  return settingsBox.get(SettingValue.metaErsteTaetigkeitOptions.toString()) ??
+      [];
+}
+
 List<String> getMetaMitgliedstypOptions() {
   return settingsBox.get(SettingValue.metaMitgliedstypOptions.toString()) ?? [];
 }
@@ -108,6 +125,14 @@ bool getBiometricAuthenticationEnabled() {
   return settingsBox
           .get(SettingValue.biometricAuthenticationEnabled.toString()) ??
       false;
+}
+
+bool getNamiChangesEnabled() {
+  return settingsBox.get(SettingValue.namiChangesEnabled.toString()) ?? false;
+}
+
+void setNamiChangesEnabled(bool value) {
+  settingsBox.put(SettingValue.namiChangesEnabled.toString(), value);
 }
 
 List<int> getRechte() {

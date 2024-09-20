@@ -72,6 +72,7 @@ jobs:
         with:
           envkey_WIREDASH_SECRET: ${{ secrets.PROD_WIREDASH_SECRET }} # ignore error
           envkey_WIREDASH_PROJECT_ID: ${{ secrets.PROD_WIREDASH_PROJECT_ID }} # ignore error
+          envkey_GEOAPIFY_KEY: ${{ secrets.GEOAPIFY_KEY }} # ignore error
       - name: Setup java
         uses: actions/setup-java@v4
         with:

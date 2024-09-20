@@ -16,6 +16,7 @@ import 'package:maps_launcher/maps_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:intl/intl.dart';
 import 'package:nami/utilities/types.dart';
+import 'package:wiredash/wiredash.dart';
 
 // ignore: must_be_immutable
 class MitgliedDetail extends StatefulWidget {
@@ -340,6 +341,8 @@ class MitgliedDetailState extends State<MitgliedDetail>
 
   handleStufenwechsel(int memberId, Taetigkeit currentTaetigkeit, Stufe stufe,
       DateTime aktivVon) async {
+    Wiredash.trackEvent('Stufenwechsel starting',
+        data: {'type': 'memberdetails'});
     if (await showConfirmationDialog(
         context,
         aktivVon,
@@ -443,7 +446,8 @@ class MitgliedDetailState extends State<MitgliedDetail>
 
     if (!isMinStufenWechselJahrInPast ||
         nextStufe == null ||
-        !nextStufe.isStufeYouCanChangeTo) {
+        !nextStufe.isStufeYouCanChangeTo ||
+        !getNamiChangesEnabled()) {
       return null;
     }
 
@@ -463,7 +467,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
     List<Taetigkeit> vergangeneTaetigkeiten =
         widget.mitglied.getAlteTaetigkeiten();
     vergangeneTaetigkeiten.sort((a, b) => b.aktivVon.compareTo(a.aktivVon));
-    bool isFavourit =
+    bool isFavorite =
         getFavouriteList().contains(widget.mitglied.mitgliedsNummer);
     Taetigkeit? fakeStufenwechselTaetigkeit = getStufenwechselTaetigkeit();
     Taetigkeit? currentTaetigkeit = getCurrenttaetigkeit(aktiveTaetigkeiten);
@@ -479,14 +483,16 @@ class MitgliedDetailState extends State<MitgliedDetail>
         actions: [
           IconButton(
               onPressed: () => {
-                    isFavourit
+                    Wiredash.trackEvent('Member Details toggle favourite',
+                        data: {'type': isFavorite ? 'remove' : 'add'}),
+                    isFavorite
                         ? removeFavouriteList(widget.mitglied.mitgliedsNummer)
                         : addFavouriteList(widget.mitglied.mitgliedsNummer),
                     setState(() {
-                      isFavourit = !isFavourit;
+                      isFavorite = !isFavorite;
                     })
                   },
-              icon: isFavourit
+              icon: isFavorite
                   ? const Icon(Icons.star)
                   : const Icon(Icons.star_border_outlined))
         ],
