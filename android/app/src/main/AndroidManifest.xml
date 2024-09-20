@@ -20,7 +20,7 @@
     </intent>
   </queries>
 
-  <application android:label="nami" android:icon="@mipmap/launcher_icon">
+  <application android:label="nami" android:icon="@mipmap/launcher_icon" android:allowBackup="false">
     <activity android:name=".MainActivity" android:launchMode="singleTop"
       android:screenOrientation="portrait"
       android:theme="@style/LaunchTheme"
