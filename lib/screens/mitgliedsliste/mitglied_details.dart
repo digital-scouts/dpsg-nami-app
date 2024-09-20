@@ -473,7 +473,8 @@ class MitgliedDetailState extends State<MitgliedDetail>
     Taetigkeit? currentTaetigkeit = getCurrenttaetigkeit(aktiveTaetigkeiten);
     return Scaffold(
       floatingActionButton: FloatingActionButton(
-        onPressed: () => openWiredash(context),
+        onPressed: () =>
+            openWiredash(context, 'Feedback Button Mitglied Details'),
         child: const Icon(Icons.feedback),
       ),
       appBar: AppBar(

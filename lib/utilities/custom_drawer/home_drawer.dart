@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:nami/utilities/app.state.dart';
+import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -65,6 +66,53 @@ class HomeDrawerState extends State<HomeDrawer> {
         icon: const Icon(Icons.settings),
       ),
     ];
+  }
+
+  void _showSupportModal(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Entwicklung unterstützen'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Deine Unterstützung hilft mir, die App weiter zu verbessern und neue Funktionen zu entwickeln.',
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.payment),
+                title: const Text('Paypal Spenden'),
+                onTap: () => _launchURL(
+                    'https://www.paypal.com/donate/?hosted_button_id=5YJVWMBN72G3A'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.code),
+                title: const Text('Github Sponsor'),
+                onTap: () =>
+                    _launchURL('https://github.com/sponsors/JanneckLange'),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  openWiredash(context, 'Entwickler loben');
+                },
+                child: const Text('Mit Feedback unterstützen'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Schließen'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -134,18 +182,10 @@ class HomeDrawerState extends State<HomeDrawer> {
               },
             ),
           ),
-          // Paypal Spenden Link https://www.paypal.com/donate/?hosted_button_id=5YJVWMBN72G3A
-          // Github Sponsor Link https://github.com/sponsors/JanneckLange
           ListTile(
-            leading: const Icon(Icons.payment),
-            title: const Text('Paypal Spenden'),
-            onTap: () => _launchURL(
-                'https://www.paypal.com/donate/?hosted_button_id=5YJVWMBN72G3A'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.code),
-            title: const Text('Github Sponsor'),
-            onTap: () => _launchURL('https://github.com/sponsors/JanneckLange'),
+            leading: const Icon(Icons.thumb_up),
+            title: const Text('Entwickler loben'),
+            onTap: () => _showSupportModal(context),
           ),
           const Center(
             child: Text(

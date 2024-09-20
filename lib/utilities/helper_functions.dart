@@ -41,7 +41,7 @@ Future<String?> getGitCommitId() async {
   }
 }
 
-Future<void> openWiredash(BuildContext context) async {
+Future<void> openWiredash(BuildContext context, String feedbackType) async {
   Box<Mitglied> memberBox = Hive.box<Mitglied>('members');
   Mitglied? user;
   String gitInfo = await getGitCommitId() ?? 'unknown';
@@ -52,6 +52,7 @@ Future<void> openWiredash(BuildContext context) async {
 
   WidgetsBinding.instance.addPostFrameCallback((_) {
     Wiredash.of(context).modifyMetaData((metaData) => metaData
+      ..custom['type'] = feedbackType
       ..custom['gitCommitId'] = gitInfo
       ..custom['userNamiLoginId'] = sensId(getNamiLoginId()!)
       ..custom['user'] = '${user?.vorname} ${user?.nachname}'

@@ -152,7 +152,7 @@ class _MaterialAppWrapperState extends State<MaterialAppWrapper>
       builder: (context, child) {
         return Scaffold(
           floatingActionButton: FloatingActionButton(
-            onPressed: () => openWiredash(context),
+            onPressed: () => openWiredash(context, 'Feedback Button Main'),
             child: const Icon(Icons.feedback),
           ),
           body: Consumer<AppStateHandler>(
