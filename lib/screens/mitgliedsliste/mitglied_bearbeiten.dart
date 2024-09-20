@@ -11,7 +11,7 @@ import 'package:nami/utilities/hive/settings.dart';
 class MitgliedBearbeiten extends StatefulWidget {
   Mitglied? mitglied;
 
-  MitgliedBearbeiten({required this.mitglied, Key? key}) : super(key: key);
+  MitgliedBearbeiten({required this.mitglied, super.key});
 
   @override
   MitgliedBearbeitenState createState() => MitgliedBearbeitenState();

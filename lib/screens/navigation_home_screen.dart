@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:nami/screens/dashboard/dashboard.dart';
+import 'package:nami/screens/meine_stufe/meine_stufe.dart';
 import 'package:nami/screens/mitgliedsliste/mitglied_liste.dart';
 import 'package:nami/screens/profil/profil.dart';
 import 'package:nami/screens/settings/settings.dart';
 import 'package:nami/screens/statistiken/statistiken_sceen.dart';
 import 'package:nami/utilities/custom_drawer/drawer_user_controller.dart';
 import 'package:nami/utilities/custom_drawer/home_drawer.dart';
+import 'package:nami/utilities/hive/settings.dart';
 
 class NavigationHomeScreen extends StatefulWidget {
-  const NavigationHomeScreen({Key? key}) : super(key: key);
+  const NavigationHomeScreen({super.key});
 
   @override
   NavigationHomeScreenState createState() => NavigationHomeScreenState();
@@ -20,20 +21,26 @@ class NavigationHomeScreenState extends State<NavigationHomeScreen> {
 
   @override
   void initState() {
-    drawerIndex = DrawerIndex.mitglieder;
-    screenView = const MitgliedsListe();
+    if (getFavouriteList().isNotEmpty) {
+      drawerIndex = DrawerIndex.meineStufe;
+      screenView = const MeineStufe();
+    } else {
+      drawerIndex = DrawerIndex.mitglieder;
+      screenView = const MitgliedsListe();
+    }
+
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Theme.of(context).colorScheme.background,
+      color: Theme.of(context).colorScheme.surface,
       child: SafeArea(
         top: false,
         bottom: false,
         child: Scaffold(
-          backgroundColor: Theme.of(context).colorScheme.background,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           body: DrawerUserController(
             screenIndex: drawerIndex,
             drawerWidth: MediaQuery.of(context).size.width * 0.75,
@@ -64,9 +71,9 @@ class NavigationHomeScreenState extends State<NavigationHomeScreen> {
         setState(() {
           screenView = const Settings();
         });
-      } else if (drawerIndex == DrawerIndex.dashboard) {
+      } else if (drawerIndex == DrawerIndex.meineStufe) {
         setState(() {
-          screenView = const Dashboard();
+          screenView = const MeineStufe();
         });
       } else if (drawerIndex == DrawerIndex.profil) {
         setState(() {

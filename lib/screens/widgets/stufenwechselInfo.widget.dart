@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:nami/screens/mitgliedsliste/mitglied_details.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
-import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/hive/settings_stufenwechsel.dart';
 import 'package:nami/utilities/stufe.dart';
 
 class StufenwechselInfo extends StatefulWidget {
-  const StufenwechselInfo({Key? key}) : super(key: key);
+  const StufenwechselInfo({super.key});
 
   @override
   State<StufenwechselInfo> createState() => _StufenwechselInfoState();
@@ -40,10 +41,10 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
       }
 
       Stufe? currentStufe = Stufe.getStufeByString(mitglied.stufe);
-      int? minStufenWechselJahr = mitglied.getMinStufenWechselJahr();
-      int? maxStufenWechselJahr = mitglied.getMaxStufenWechselJahr();
-      bool isMinStufenWechselJahrInPast = minStufenWechselJahr != null &&
-          minStufenWechselJahr <= getNextStufenwechselDatum().year;
+      DateTime? minStufenWechselDatum = mitglied.getMinStufenWechselDatum();
+      DateTime? maxStufenWechselDatum = mitglied.getMaxStufenWechselDatum();
+      bool isMinStufenWechselJahrInPast = minStufenWechselDatum != null &&
+          minStufenWechselDatum.isBefore(getNextStufenwechselDatum());
 
       if (!isMinStufenWechselJahrInPast) {
         continue;
@@ -51,18 +52,23 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
       if (stufenwechselData[currentStufe] == null) {
         stufenwechselData[currentStufe] = [];
       }
-      if (getFavouriteList().contains(mitglied.mitgliedsNummer) &&
-          stufenwechselData[Stufe.FAVOURITE] == null) {
-        stufenwechselData[Stufe.FAVOURITE] = [];
-      }
       DataRow data = DataRow(
+        onSelectChanged: (_) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MitgliedDetail(mitglied: mitglied),
+            ),
+          );
+        },
         cells: [
           DataCell(
             Text(
                 '${mitglied.vorname} ${mitglied.nachname.substring(0, 1)}. (${(currentDate.difference(mitglied.geburtsDatum).inDays / 365).toStringAsFixed(1)} Jahre alt)'),
           ),
           DataCell(
-            Text('$minStufenWechselJahr-$maxStufenWechselJahr'),
+            Text(
+                '${minStufenWechselDatum.year}-${maxStufenWechselDatum!.year}'),
           ),
           DataCell(
             Text('${currentDate.difference(mitglied.geburtsDatum).inDays}'),
@@ -70,12 +76,9 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
         ],
       );
       stufenwechselData[currentStufe]!.add(data);
-      if (getFavouriteList().contains(mitglied.mitgliedsNummer)) {
-        stufenwechselData[Stufe.FAVOURITE]!.add(data);
-      }
     }
 
-    // sortiere die Liste nach dem Alter unt entferne die Spalte mit dem Alter
+    // sortiere die Liste nach dem Alter und entferne die Spalte mit dem Alter
     stufenwechselData.forEach((key, value) {
       value.sort((a, b) {
         return b.cells[2].child
@@ -107,12 +110,10 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
               Stufe.WOELFLING,
               Stufe.JUNGPADFINDER,
               Stufe.PFADFINDER,
-              Stufe.ROVER,
-              Stufe.FAVOURITE
+              Stufe.ROVER
             ])
               if ((stufe != Stufe.BIBER ||
-                      stufenwechselData[stufe]?.isNotEmpty == true) &&
-                  (stufe != Stufe.FAVOURITE || getFavouriteList().isNotEmpty))
+                  stufenwechselData[stufe]?.isNotEmpty == true))
                 ChoiceChip(
                   selected: stufe == ausgewaehlteStufe,
                   onSelected: (selected) {
@@ -122,8 +123,9 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
                   showCheckmark: false,
                   avatar: CircleAvatar(
                     backgroundColor: Colors.transparent,
-                    child: Image.asset(stufe.imagePath!,
-                        color: stufe == Stufe.FAVOURITE ? stufe.farbe : null),
+                    child: Image.asset(
+                      stufe.imagePath!,
+                    ),
                   ),
                 ),
           ],
@@ -139,6 +141,7 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
                   DataColumn(label: Text('Wechsel'))
                 ],
                 rows: aktuelleTabellenZeilen,
+                showCheckboxColumn: false,
               ),
             ),
           )

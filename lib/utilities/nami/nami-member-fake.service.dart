@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:faker/faker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
+import 'package:nami/utilities/hive/ausbildung.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
 
@@ -54,14 +55,35 @@ Taetigkeit createTaetigkeit(
   return t;
 }
 
+Ausbildung createAusbildung({
+  required int id,
+  required DateTime datum,
+  required String name,
+  required String veranstalter,
+  required String baustein,
+}) {
+  final a = Ausbildung()
+    ..id = id
+    ..name = name
+    ..datum = datum
+    ..veranstalter = veranstalter
+    ..baustein = baustein;
+  return a;
+}
+
 /// first in taetigkeiten is the newest/current untergliederung
 Mitglied createMitgleid(
-    int id, DateTime start, DateTime birth, List<Taetigkeit> taetigkeiten,
-    {String? vorname,
-    String? nachname,
-    String? strasse,
-    String? ort,
-    String? plz}) {
+  int id,
+  DateTime start,
+  DateTime birth,
+  List<Taetigkeit> taetigkeiten, {
+  String? vorname,
+  String? nachname,
+  String? strasse,
+  String? ort,
+  String? plz,
+  List<Ausbildung> ausbildungen = const [],
+}) {
   var faker = Faker();
   var random = Random();
   return Mitglied()
@@ -88,7 +110,8 @@ Mitglied createMitgleid(
     ..landId = 1
     ..version = random.nextInt(60)
     ..lastUpdated = generateRandomDateDaysAgo(random.nextInt(30))
-    ..taetigkeiten = taetigkeiten;
+    ..taetigkeiten = taetigkeiten
+    ..ausbildungen = ausbildungen;
 }
 
 Mitglied createMemberDefaultPfadfinder(int age, int id) {
@@ -158,8 +181,28 @@ Mitglied createMemberDefaultLeiter(int age, String stufe, int id) {
   Taetigkeit taetigkeit = createTaetigkeit(
       int.parse('${id}1'), leiterStart, null, stufe,
       isLeader: true);
+  final ausbildung1 = createAusbildung(
+    id: int.parse('${id}01'),
+    name: "Bausteinwochenende 19.04.24-21.04.24",
+    datum: DateTime.parse("2024-04-19"),
+    baustein: "Baustein 2a",
+    veranstalter: "DPSG DV Köln",
+  );
+  final ausbildung2 = createAusbildung(
+    id: int.parse('${id}02'),
+    name: "Bausteinwochenende 19.04.24-21.04.24",
+    datum: DateTime.parse("2024-04-19"),
+    baustein: "Baustein 2b",
+    veranstalter: "DPSG DV Köln",
+  );
 
-  return createMitgleid(id, leiterStart, birthDate, [taetigkeit]);
+  return createMitgleid(
+    id,
+    leiterStart,
+    birthDate,
+    [taetigkeit],
+    ausbildungen: [ausbildung1, ausbildung2],
+  );
 }
 
 /// Leiter ist in allen Stufen Mitglied und Leiter gewesen

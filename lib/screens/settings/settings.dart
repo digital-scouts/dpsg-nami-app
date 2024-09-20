@@ -1,28 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
-import 'package:geocoding/geocoding.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:nami/screens/widgets/stamm_heim_setting.dart';
+import 'package:nami/screens/widgets/stufenwechsel_alter_setting.dart';
+import 'package:nami/screens/widgets/stufenwechsel_datum_setting.dart';
 import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/notifications.dart';
+import 'package:nami/utilities/stufe.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../utilities/hive/settings.dart';
 
 class Settings extends StatefulWidget {
-  const Settings({Key? key}) : super(key: key);
+  const Settings({super.key});
 
   @override
   State<Settings> createState() => _SettingsState();
 }
 
 class _SettingsState extends State<Settings> {
-  bool stufenwechselDatumIsValid = true;
-
-  final _stufenwechselTextController = TextEditingController();
-  final _stammheimTextController = TextEditingController(text: getStammheim());
-
   Widget _buildSync() {
     return ListTile(
       title: const Text('Aktualisiere die Mitgliedsdaten'),
@@ -50,130 +46,6 @@ class _SettingsState extends State<Settings> {
     return regex.hasMatch(text);
   }
 
-  Widget _buildStufenwechselDatumInput() {
-    _stufenwechselTextController.text =
-        '${getNextStufenwechselDatum().day.toString().padLeft(2, '0')}-${getNextStufenwechselDatum().month.toString().padLeft(2, '0')}';
-    return ListTile(
-      title: const Text('Stufenwechsel Datum: '),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: 80,
-            child: Padding(
-              padding: const EdgeInsets.only(left: 8, right: 8),
-              child: TextField(
-                controller: _stufenwechselTextController,
-                decoration: InputDecoration(
-                  hintText: 'DD-MM',
-                  errorText: !stufenwechselDatumIsValid
-                      ? 'Ungültiges Format'
-                      : null, // Anzeige des Fehlers
-                ),
-              ),
-            ),
-          ),
-          IconButton(
-            color: Theme.of(context).colorScheme.primary,
-            onPressed: () {
-              if (!isValidInput(_stufenwechselTextController.text)) {
-                setState(() {
-                  stufenwechselDatumIsValid = false;
-                });
-              } else {
-                DateTime stufenwechselDatum = DateTime(
-                    DateTime.now().year,
-                    int.parse(_stufenwechselTextController.text.split('-')[1]),
-                    int.parse(_stufenwechselTextController.text.split('-')[0]));
-                setStufenwechselDatum(stufenwechselDatum);
-                setState(() {
-                  stufenwechselDatumIsValid = true;
-                });
-              }
-            },
-            icon: const Icon(Icons.save),
-          )
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStammHeimInput() {
-    return ListTile(
-      title: TextField(
-        controller: _stammheimTextController,
-        decoration: const InputDecoration(
-          labelText: 'Stammheim Adresse',
-        ),
-      ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconButton(
-            color: Theme.of(context).colorScheme.primary,
-            onPressed: () async {
-              final text = _stammheimTextController.text;
-              setStammheim(text);
-              final scaffold = ScaffoldMessenger.of(context);
-              try {
-                final locations = await locationFromAddress(text);
-                if (locations.length == 1) {
-                  scaffold.showSnackBar(
-                    const SnackBar(content: Text('Adresse gefunden')),
-                  );
-                  if (await isWifi() || !getDataLoadingOverWifiOnly()) {
-                    downloadMapRegion(locations.first);
-                  }
-                } else {
-                  // ignore: use_build_context_synchronously
-                  showErrorSnackBar(context, 'Zu viele Adressen gefunden');
-                }
-              } on NoResultFoundException catch (_, __) {
-                // ignore: use_build_context_synchronously
-                showErrorSnackBar(context, 'Keine Adresse gefunden');
-              }
-            },
-            icon: const Icon(Icons.save),
-          )
-        ],
-      ),
-    );
-  }
-
-  Future<void> downloadMapRegion(Location location) async {
-    final region =
-        CircleRegion(LatLng(location.latitude, location.longitude), 2);
-    final downloadable = region.toDownloadable(
-      3, // Minimum Zoom
-      17, // Maximum Zoom
-      TileLayer(
-        urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        subdomains: const ['a', 'b', 'c'],
-        userAgentPackageName: 'de.jlange.nami.app',
-      ),
-    );
-    final download = FMTC
-        .instance('mapStore')
-        .download
-        .startForeground(region: downloadable);
-
-    download.listen((progress) async {
-      debugPrint(
-          '${progress.elapsedDuration} Map Download progress: ${progress.attemptedTiles} of ${progress.maxTiles} (${(progress.attemptedTiles / progress.maxTiles * 100).toInt()}% | ${progress.estRemainingDuration.inSeconds} Seconds remaining)');
-      if (progress.isComplete) {
-        debugPrint(
-            '${progress.elapsedDuration} Map Download progress: Complete (Successful: ${progress.successfulTiles} | Failed: ${progress.failedTiles} | Cached: ${progress.cachedTiles} | Size: ${(progress.successfulSize / 1024).toStringAsFixed(2)} MiB)');
-        debugPrint(
-            'Kartenspeichergröße: ${(FMTC.instance('mapStore').stats.storeSize / 1024).toStringAsFixed(2)} MiB}');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(
-                  'Kartendownload abgeschlossen (Geladen: ${(progress.successfulSize / 1024).toStringAsFixed(0)} MiB)')),
-        );
-      }
-    });
-  }
-
   _buildBiometricAuthentication() {
     return ListTile(
       title: const Text('Biometrische Authentifizierung'),
@@ -182,7 +54,6 @@ class _SettingsState extends State<Settings> {
         value: getBiometricAuthenticationEnabled(),
         onChanged: (value) {
           setBiometricAuthenticationEnabled(value);
-          setState(() {});
         },
       ),
     );
@@ -196,7 +67,6 @@ class _SettingsState extends State<Settings> {
         value: getDataLoadingOverWifiOnly(),
         onChanged: (value) {
           setDataLoadingOverWifiOnly(value);
-          setState(() {});
         },
       ),
     );
@@ -216,41 +86,52 @@ class _SettingsState extends State<Settings> {
       appBar: AppBar(
         title: const Center(child: Text('Settings')),
       ),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _buildSync(),
-          _buildForceBSync(),
-          const Divider(height: 1),
-          _buildStufenwechselDatumInput(),
-          _buildStammHeimInput(),
-          _buildBiometricAuthentication(),
-          _buildDataLoadingOverWifiOnly(),
-          _buildShareLogs(),
-          Expanded(child: Container()),
-          Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: FutureBuilder<MapEntry<PackageInfo, String>>(
-              future: Future.wait([
-                PackageInfo.fromPlatform(),
-                getGitCommitId(),
-              ]).then((results) =>
-                  MapEntry(results[0] as PackageInfo, results[1] as String)),
-              builder: (BuildContext context,
-                  AsyncSnapshot<MapEntry<PackageInfo, String>> snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const CircularProgressIndicator();
-                } else {
-                  final String version =
-                      snapshot.data?.key.version ?? 'Unknown';
-                  final String commitId =
-                      snapshot.data?.value.substring(0, 8) ?? 'Unknown';
-                  return Text('Version: $version | Commit: $commitId');
-                }
-              },
-            ),
-          ),
-        ],
+      body: ValueListenableBuilder(
+        valueListenable: settingsBox.listenable(),
+        builder: (context, _, __) {
+          return ListView(
+            children: [
+              _buildSync(),
+              _buildForceBSync(),
+              const Divider(height: 1),
+              const StufenwechelDatumSetting(),
+              const StufenwechselAlterSetting(stufe: Stufe.BIBER),
+              const StufenwechselAlterSetting(stufe: Stufe.WOELFLING),
+              const StufenwechselAlterSetting(stufe: Stufe.JUNGPADFINDER),
+              const StufenwechselAlterSetting(stufe: Stufe.PFADFINDER),
+              const StufenwechselAlterSetting(stufe: Stufe.ROVER),
+              const Divider(height: 1),
+              const StammHeimSetting(),
+              const Divider(height: 1),
+              _buildBiometricAuthentication(),
+              _buildDataLoadingOverWifiOnly(),
+              const Divider(height: 1),
+              _buildShareLogs(),
+              Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: FutureBuilder<MapEntry<PackageInfo, String>>(
+                  future: Future.wait([
+                    PackageInfo.fromPlatform(),
+                    getGitCommitId(),
+                  ]).then((results) => MapEntry(
+                      results[0] as PackageInfo, results[1] as String)),
+                  builder: (BuildContext context,
+                      AsyncSnapshot<MapEntry<PackageInfo, String>> snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const CircularProgressIndicator();
+                    } else {
+                      final String version =
+                          snapshot.data?.key.version ?? 'Unknown';
+                      final String commitId =
+                          snapshot.data?.value.substring(0, 8) ?? 'Unknown';
+                      return Text('Version: $version | Commit: $commitId');
+                    }
+                  },
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

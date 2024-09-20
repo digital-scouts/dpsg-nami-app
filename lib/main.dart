@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter/material.dart';
@@ -21,9 +22,9 @@ import 'package:wiredash/wiredash.dart';
 final navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await FlutterMapTileCaching.initialise();
+  await FMTCObjectBoxBackend().initialise();
   initializeDateFormatting("de_DE", null);
-  FMTC.instance('mapStore').manage.createAsync();
+  const FMTCStore('mapStore').manage.create();
   Intl.defaultLocale = "de_DE";
   await Hive.initFlutter();
   await registerAdapter();
@@ -51,7 +52,7 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +87,7 @@ class MyApp extends StatelessWidget {
 }
 
 class MaterialAppWrapper extends StatefulWidget {
-  const MaterialAppWrapper({Key? key}) : super(key: key);
+  const MaterialAppWrapper({super.key});
 
   @override
   State<MaterialAppWrapper> createState() => _MaterialAppWrapperState();
@@ -133,6 +134,14 @@ class _MaterialAppWrapperState extends State<MaterialAppWrapper>
       themeMode: Provider.of<ThemeModel>(context).currentMode,
       home: const RootHome(),
       navigatorKey: navigatorKey,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('de', 'DE'),
+      ],
       builder: (context, child) {
         return Scaffold(
           floatingActionButton: FloatingActionButton(

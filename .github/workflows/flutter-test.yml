@@ -4,47 +4,44 @@ on:
   push:
     branches: [master, develop]
     paths-ignore:
-      - '.github/**'
-      - '.vscode/**'
-      - 'releases/**'
-      - '**/README.md'
-      - '**/GitVersion.yml'
+      - ".github/**"
+      - ".vscode/**"
+      - "releases/**"
+      - "**/README.md"
+      - "**/GitVersion.yml"
   pull_request:
     branches: [master, develop]
     paths-ignore:
-      - '.github/**'
-      - '.vscode/**'
-      - 'releases/**'
-      - '**/README.md'
-      - '**/GitVersion.yml'
+      - ".github/**"
+      - ".vscode/**"
+      - "releases/**"
+      - "**/README.md"
+      - "**/GitVersion.yml"
+  workflow_dispatch: null
 
 jobs:
   test:
     name: flutter test
     runs-on: ubuntu-latest
 
-    env:
-      JAVA_VERSION: '17.0.1'
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-java@v1
         with:
-          java-version: ${{env.JAVA_VERSION}}
-      - uses: subosito/flutter-action@v2
+          java-version: ${{vars.JAVA_VERSION}}
+      - uses: dart-lang/setup-dart@v1
         with:
-          channel: 'stable'
+          sdk: ${{vars.DART_VERSION}}
+      - run: dart --version
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
       - run: flutter --version
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
       - uses: actions/checkout@v2
-      - uses: dart-lang/setup-dart@v1
-        with:
-          sdk: 'stable'
-      - run: dart --version
-      - name: Install dependencies
-        run: flutter pub get
-
       - name: Verify formatting
         run: dart format --output=none --set-exit-if-changed .
 

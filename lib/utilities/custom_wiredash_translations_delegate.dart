@@ -32,4 +32,7 @@ class _DeOverrides extends WiredashLocalizationsDe {
   @override
   String get feedbackStep3ScreenshotOverviewDescription =>
       "Du kannst die App normal bedienen, bevor du einen Screenshot erstellst. Achte darauf, auf deinem Screenshot alle personenbezogenen Daten mit einem dicken schwarzen Stift zu verdecken.";
+  @override
+  String get promoterScoreStep1Question =>
+      "Mit welcher Wahrscheinlichkeit würdest du die App weiterempfehlen?";
 }

@@ -1,9 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:nami/utilities/hive/ausbildung.dart';
 import 'package:nami/utilities/logger.dart';
+import 'package:nami/utilities/nami/model/nami_member_ausbildung_model.dart';
 import 'package:nami/utilities/nami/nami-member-fake.service.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
+import 'package:nami/utilities/nami/nami_rechte.dart';
 import 'package:nami/utilities/stufe.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:hive/hive.dart';
@@ -16,8 +19,6 @@ import 'package:nami/utilities/hive/taetigkeit.dart';
 
 import 'model/nami_member_details.model.dart';
 import 'model/nami_taetigkeiten.model.dart';
-
-ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? snackbar;
 
 int _getVersionOfMember(int id, List<Mitglied> mitglieder) {
   try {
@@ -61,7 +62,8 @@ Future<List<int>> _loadMemberIdsToUpdate(
 }
 
 Future<NamiMemberDetailsModel> _loadMemberDetails(
-    int id, String url, String path, int gruppierung, String cookie) async {
+    int id, String url, String path, int gruppierung, String cookie,
+    {int retry = 0}) async {
   String fullUrl =
       '$url$path/mitglied/filtered-for-navigation/gruppierung/gruppierung/$gruppierung/$id';
   sensLog.i('Request: Load MemberDetails for ${sensId(id)}');
@@ -80,8 +82,11 @@ Future<NamiMemberDetailsModel> _loadMemberDetails(
         NamiMemberDetailsModel.fromJson(source['data']);
     if (DateTime.now().difference(member.geburtsDatum).inDays > 36525) {
       sensLog.w(
-          'Geburtsdatum von ${sensId(id)} ist fehlerhaft: ${member.geburtsDatum}. Versuche es erneut.');
-      return await _loadMemberDetails(id, url, path, gruppierung, cookie);
+          'Geburtsdatum von ${sensId(id)} ist fehlerhaft: ${member.geburtsDatum}. Versuche es erneut. Retry: $retry');
+      if (retry <= 3) {
+        return await _loadMemberDetails(id, url, path, gruppierung, cookie,
+            retry: retry + 1);
+      }
     }
     sensLog.t('Response: Loaded MemberDetails for ${sensMember(member)}');
     return member;
@@ -119,6 +124,31 @@ Future<List<NamiMemberTaetigkeitenModel>> _loadMemberTaetigkeiten(
   }
 }
 
+Future<List<NamiMemberAusbildungModel>> _loadMemberAusbildungen(
+    int id, String url, String path, String cookie) async {
+  String fullUrl =
+      '$url$path/mitglied-ausbildung/filtered-for-navigation/mitglied/mitglied/$id/flist';
+  sensLog.i('Request: Ausbildungen for ${sensId(id)}');
+  final response =
+      await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
+  final source = json.decode(const Utf8Decoder()
+      .convert(response.bodyBytes)
+      .replaceAll("&#34;", '\\"'));
+
+  if (response.statusCode == 200 && source['success']) {
+    List<NamiMemberAusbildungModel> ausbildungen = [];
+    for (Map<String, dynamic> item in source['data']) {
+      final ausbildung = NamiMemberAusbildungModel.fromJson(item);
+      ausbildungen.add(ausbildung);
+    }
+    sensLog.i('Response: Loaded Ausbildungen for ${sensId(id)}');
+    return ausbildungen;
+  } else {
+    sensLog.e('Failed to load Ausbildungen for ${sensId(id)}');
+    return [];
+  }
+}
+
 // ignore: unused_element
 Future<NamiMemberTaetigkeitenModel?> _loadMemberTaetigkeit(int memberId,
     int taetigkeitId, String url, String path, String cookie) async {
@@ -139,9 +169,26 @@ Future<NamiMemberTaetigkeitenModel?> _loadMemberTaetigkeit(int memberId,
   }
 }
 
-Future<void> syncMember(
+Future<Mitglied> updateOneMember(int memberId) async {
+  String cookie = getNamiApiCookie();
+  String url = getNamiLUrl();
+  String path = getNamiPath();
+  int gruppierung = getGruppierungId()!;
+
+  Box<Mitglied> memberBox = Hive.box('members');
+
+  final member = await _storeMitgliedToHive(memberId, memberBox, url, path,
+      gruppierung, cookie, ValueNotifier<double>(0), 1);
+  if (member == null) {
+    throw Exception('Failed to load details of current user');
+  }
+  return member;
+}
+
+Future<void> syncMembers(
   ValueNotifier<double> memberAllProgressNotifier,
-  ValueNotifier<bool?> memberOverviewProgressNotifier, {
+  ValueNotifier<bool?> memberOverviewProgressNotifier,
+  ValueNotifier<List<AllowedFeatures>> rechteProgressNotifier, {
   bool forceUpdate = false,
 }) async {
   setLastNamiSyncTry(DateTime.now());
@@ -155,6 +202,9 @@ Future<void> syncMember(
   if (cookie == 'testLoginCookie') {
     await storeFakeSetOfMemberInHive(
         memberBox, memberOverviewProgressNotifier, memberAllProgressNotifier);
+    setRechte(await loadRechte());
+    rechteProgressNotifier.value = getAllowedFeatures();
+
     setLastNamiSync(DateTime.now());
     return;
   }
@@ -173,18 +223,38 @@ Future<void> syncMember(
 
   memberOverviewProgressNotifier.value = true;
   sensLog.i('Starte Syncronisation der Mitgliedsdetails');
-  var futures = <Future>[];
-
-  for (var mitgliedId in mitgliedIds) {
-    futures.add(_storeMitgliedToHive(
-        mitgliedId,
+  final futures = <Future>[];
+  final userMitgliedId = getNamiLoginId()!;
+  if (mitgliedIds.contains(userMitgliedId)) {
+    final userMitgliedDetails = await _storeMitgliedToHive(
+        userMitgliedId,
         memberBox,
         url,
         path,
         gruppierung,
         cookie,
         memberAllProgressNotifier,
-        1 / mitgliedIds.length));
+        1 / mitgliedIds.length);
+    if (userMitgliedDetails == null) {
+      throw Exception('Failed to load details of current user');
+    }
+  }
+  final rechte = await loadRechte();
+  setRechte(rechte);
+  rechteProgressNotifier.value = getAllowedFeatures();
+
+  for (var mitgliedId in mitgliedIds) {
+    if (mitgliedId == userMitgliedId) continue;
+    futures.add(_storeMitgliedToHive(
+      mitgliedId,
+      memberBox,
+      url,
+      path,
+      gruppierung,
+      cookie,
+      memberAllProgressNotifier,
+      1 / mitgliedIds.length,
+    ));
   }
   await Future.wait(futures);
   memberAllProgressNotifier.value = 1.0;
@@ -192,7 +262,7 @@ Future<void> syncMember(
   sensLog.i('Syncronisation der Mitgliedsdetails abgeschlossen');
 }
 
-Future<void> _storeMitgliedToHive(
+Future<Mitglied?> _storeMitgliedToHive(
     int mitgliedId,
     Box<Mitglied> memberBox,
     String url,
@@ -203,13 +273,14 @@ Future<void> _storeMitgliedToHive(
     double progressStep) async {
   NamiMemberDetailsModel rawMember;
   List<NamiMemberTaetigkeitenModel> rawTaetigkeiten;
+  List<NamiMemberAusbildungModel> rawAusbildungen = [];
   try {
     rawMember =
         await _loadMemberDetails(mitgliedId, url, path, gruppierung, cookie);
   } catch (e, st) {
     sensLog.e('Failed to load member ${sensId(mitgliedId)}',
         error: e, stackTrace: st);
-    return;
+    return null;
   }
   try {
     rawTaetigkeiten =
@@ -220,6 +291,17 @@ Future<void> _storeMitgliedToHive(
     rawTaetigkeiten = [];
   }
 
+  final allowedFeatures = getAllowedFeatures();
+  if (allowedFeatures.contains(AllowedFeatures.ausbildungRead) ||
+      mitgliedId == getNamiLoginId()) {
+    try {
+      rawAusbildungen =
+          await _loadMemberAusbildungen(mitgliedId, url, path, cookie);
+    } catch (e, st) {
+      sensLog.e('Failed to load member ausbildungen ${sensId(mitgliedId)}',
+          error: e, stackTrace: st);
+    }
+  }
   List<Taetigkeit> taetigkeiten = [];
   for (NamiMemberTaetigkeitenModel item in rawTaetigkeiten) {
     taetigkeiten.add(Taetigkeit()
@@ -233,6 +315,18 @@ Future<void> _storeMitgliedToHive(
       ..gruppierung = item.gruppierung
       ..berechtigteGruppe = item.berechtigteGruppe
       ..berechtigteUntergruppen = item.berechtigteUntergruppen);
+  }
+
+  List<Ausbildung> ausbildungen = [];
+  for (final item in rawAusbildungen) {
+    ausbildungen.add(
+      Ausbildung()
+        ..id = item.id
+        ..name = item.name
+        ..veranstalter = item.veranstalter
+        ..datum = item.datum
+        ..baustein = item.baustein,
+    );
   }
 
   Mitglied mitglied = Mitglied()
@@ -261,8 +355,10 @@ Future<void> _storeMitgliedToHive(
     ..mglTypeId = rawMember.mglTypeId
     ..beitragsartId = rawMember.beitragsartId ?? 0
     ..status = rawMember.status
-    ..taetigkeiten = taetigkeiten;
+    ..taetigkeiten = taetigkeiten
+    ..ausbildungen = ausbildungen;
 
   memberBox.put(mitgliedId, mitglied);
   memberAllProgressNotifier.value += progressStep;
+  return mitglied;
 }

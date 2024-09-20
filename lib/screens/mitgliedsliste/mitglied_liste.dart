@@ -10,11 +10,12 @@ import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/mitglied.filterAndSort.dart';
 import 'package:nami/utilities/stufe.dart';
 import 'package:nami/utilities/theme.dart';
+import 'package:wiredash/wiredash.dart';
 
 import 'mitglied_bearbeiten.dart';
 
 class MitgliedsListe extends StatefulWidget {
-  const MitgliedsListe({Key? key}) : super(key: key);
+  const MitgliedsListe({super.key});
 
   @override
   MitgliedsListeState createState() => MitgliedsListeState();
@@ -121,15 +122,19 @@ class MitgliedsListeState extends State<MitgliedsListe> {
         }
         return Card(
           child: InkWell(
-            onTap: () => Navigator.of(context)
-                .push(
-                  MaterialPageRoute(
-                      builder: (context) =>
-                          MitgliedDetail(mitglied: filteredMitglieder[index])),
-                )
-                .then((value) => setState(() {
-                      applyFilterAndSort();
-                    })),
+            onTap: () => {
+              Wiredash.of(context).trackEvent('Show Member Details',
+                  data: {'type': 'memberList'}),
+              Navigator.of(context)
+                  .push(
+                    MaterialPageRoute(
+                        builder: (context) => MitgliedDetail(
+                            mitglied: filteredMitglieder[index])),
+                  )
+                  .then((value) => setState(() {
+                        applyFilterAndSort();
+                      }))
+            },
             child: ListTile(
               leading: Container(
                 decoration: BoxDecoration(
@@ -191,9 +196,6 @@ class MitgliedsListeState extends State<MitgliedsListe> {
     gruppen.add(Stufe.PFADFINDER);
     gruppen.add(Stufe.ROVER);
     gruppen.add(Stufe.LEITER);
-    if (getFavouriteList().isNotEmpty) {
-      gruppen.add(Stufe.FAVOURITE);
-    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
@@ -212,12 +214,11 @@ class MitgliedsListeState extends State<MitgliedsListe> {
                   shape: BoxShape.circle,
                   color: filter.filterGroup[stufe.index]
                       ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.surfaceVariant,
+                      : Theme.of(context).colorScheme.surfaceContainer,
                 ),
                 child: Center(
                   child: Image.asset(
                     stufe.imagePath!,
-                    color: stufe == Stufe.FAVOURITE ? stufe.farbe : null,
                     width: 30.0,
                     height: 30.0,
                   ),
@@ -253,6 +254,13 @@ class MitgliedsListeState extends State<MitgliedsListe> {
 
   @override
   Widget build(BuildContext context) {
+    Wiredash.of(context).showPromoterSurvey(
+      options: const PsOptions(
+        frequency: Duration(days: 100),
+        initialDelay: Duration(days: 7),
+        minimumAppStarts: 3,
+      ),
+    );
     return LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
       return Scaffold(
@@ -262,8 +270,9 @@ class MitgliedsListeState extends State<MitgliedsListe> {
           actions: <Widget>[
             if (kDebugMode)
               IconButton(
-                icon: const Icon(Icons.add),
+                icon: const Icon(Icons.person_add),
                 onPressed: () {
+                  Wiredash.of(context).trackEvent('Open new Member clicked');
                   Navigator.push(
                     context,
                     MaterialPageRoute(

@@ -1,56 +1,65 @@
 // ignore_for_file: constant_identifier_names
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:nami/utilities/theme.dart';
 
+/// Alter der Stufen wird nur noch fürs Reset in den Einstellungen verwendet.
+/// Bitte nutze für alle anderen Zwecke das in der Hive gespeicherte Alter.
 enum Stufe implements Comparable<Stufe> {
   BIBER(
     DPSGColors.biberFarbe,
     'Biber',
     'Biber',
+    'Biber',
     imagePath: 'assets/images/biber.png',
     isStufeYouCanChangeTo: true,
     alterMin: 4,
-    alterMax: 10,
+    alterMax: 7,
   ),
   WOELFLING(
     DPSGColors.woelfingFarbe,
     'Wölfling',
     'Wös',
+    'Wö',
     imagePath: 'assets/images/woe.png',
     isStufeYouCanChangeTo: true,
     alterMin: 6,
-    alterMax: 10,
+    alterMax: 11, // 6-10 inklusive
   ),
   JUNGPADFINDER(
     DPSGColors.jungpfadfinderFarbe,
     'Jungpfadfinder',
     'Jufis',
+    'Jufi',
     imagePath: 'assets/images/jufi.png',
     isStufeYouCanChangeTo: true,
     alterMin: 9,
-    alterMax: 13,
+    alterMax: 14, //9-13 inklusive
   ),
   PFADFINDER(
     DPSGColors.pfadfinderFarbe,
     'Pfadfinder',
     'Pfadis',
+    'Pfadi',
     imagePath: 'assets/images/pfadi.png',
     isStufeYouCanChangeTo: true,
     alterMin: 12,
-    alterMax: 16,
+    alterMax: 17, // 12-16 inklusive
   ),
   ROVER(
     DPSGColors.roverFarbe,
     'Rover',
     'Rover',
+    'Rover',
     imagePath: 'assets/images/rover.png',
     isStufeYouCanChangeTo: true,
     alterMin: 15,
-    alterMax: 20,
+    alterMax: 21, // 15-20 inklusive
   ),
   LEITER(
     DPSGColors.leiterFarbe,
+    'Leiter',
     'Leiter',
     'Leiter',
     imagePath: 'assets/images/lilie_schwarz.png',
@@ -61,19 +70,14 @@ enum Stufe implements Comparable<Stufe> {
     DPSGColors.keineStufeFarbe,
     'keine Stufe',
     'keine Stufe',
-    isStufeYouCanChangeTo: false,
-  ),
-  FAVOURITE(
-    Colors.yellow,
-    'Favourite',
-    'Fav',
-    imagePath: 'assets/images/star.png',
+    'keine Stufe',
     isStufeYouCanChangeTo: false,
   );
 
   final Color farbe;
   final String display;
   final String shortDisplay;
+  final String shortDisplaySingular;
   final String? imagePath;
   final bool isStufeYouCanChangeTo;
   final int? alterMin;
@@ -110,7 +114,8 @@ enum Stufe implements Comparable<Stufe> {
   const Stufe(
     this.farbe,
     this.display,
-    this.shortDisplay, {
+    this.shortDisplay,
+    this.shortDisplaySingular, {
     this.imagePath,
     this.isStufeYouCanChangeTo = false,
     this.alterMin,
