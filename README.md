@@ -43,18 +43,17 @@ Neben Feedback zur aktuell Version der würden wir mit gelegtlichen Umfragen ger
 
 ## Aktuelle Funktionen
 
-- Mitglieder auflisten, sortien und filtern
-- Deteils von Mitgliedern ansehen. Über Buttons anrufen, E-Mails schreiben und die Adresse auf der Karte anzeigen.
-- Über Grafiken und auflistung den Tätigkeitsverlauf eines Mitglieds ansehen.
-- Mitgliedsdaten sind offline verfügbar und können nach belieben syncronisiert werden
-- Statistiken geben einen einblick die aktuelle Mitgliederanzahl und Demografie
+- Mitglieder auflisten, sortieren und filtern
+- Details von Mitgliedern ansehen. Adresse auf der Karte anzeigen. Über Buttons anrufen, E-Mails schreiben.
+- Über Grafiken und Auflistung den Tätigkeitsverlauf eines Mitglieds ansehen.
+- Mitgliedsdaten sind offline verfügbar und können nach belieben synchronisiert werden
+- Statistiken geben einen Einblick die aktuelle Mitgliederanzahl, Altersstruktur und Stufenwechsel
 
 ## Geplante Funktionen
 
 - Mitglieder bearbeiten und anlegen per Texterkennung
 - Stufenwechsel durchführen
 - Führungszeugniss Antragsunterlagen herrunterladen
-- Umfangreiche Statistiken (mit historischen Daten)
 
 
 ## Nami Rechte
