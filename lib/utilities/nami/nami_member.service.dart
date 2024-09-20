@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:nami/utilities/hive/ausbildung.dart';
 import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/nami/model/nami_member_ausbildung_model.dart';
-import 'package:nami/utilities/nami/nami-member-fake.service.dart';
+import 'package:nami/utilities/nami/nami_member_fake.service.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
 import 'package:nami/utilities/stufe.dart';
