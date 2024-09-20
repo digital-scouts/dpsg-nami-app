@@ -4,6 +4,7 @@ import 'package:nami/screens/mitgliedsliste/mitglied_details.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings_stufenwechsel.dart';
 import 'package:nami/utilities/stufe.dart';
+import 'package:wiredash/wiredash.dart';
 
 class StufenwechselInfo extends StatefulWidget {
   const StufenwechselInfo({super.key});
@@ -54,6 +55,8 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
       }
       DataRow data = DataRow(
         onSelectChanged: (_) {
+          Wiredash.trackEvent('Show Member Details',
+              data: {'type': 'stufenwechselInfoWidget'});
           Navigator.push(
             context,
             MaterialPageRoute(

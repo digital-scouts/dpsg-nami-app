@@ -78,10 +78,65 @@ Future<List<String>> getMitgliedstypMeta() async {
   return await getMetadata(fullUrl);
 }
 
+Future<List<String>> getErsteTaetigkeitMeta() async {
+  if (getNamiApiCookie() == testCoockieName) {
+    return ['LeiterIn', 'sonst. Mitglied', 'Mitglied'];
+  }
+  String fullUrl =
+      '${getNamiLUrl()}/ica/rest//nami/taetigkeitaufgruppierung/filtered/gruppierung/erste-taetigkeit/gruppierung/${getGruppierungId()}';
+  return await getMetadata(fullUrl);
+}
+
+Future<List<String>> getErsteUntergliederungMeta(String taetigkeit) async {
+  if (getNamiApiCookie() == testCoockieName) {
+    return ['LeiterIn', 'sonst. Mitglied', 'Mitglied'];
+  }
+
+  //find taetigkeitId
+  // todo extra call einsparen
+  String taetigkeitUrl =
+      '${getNamiLUrl()}/ica/rest//nami/taetigkeitaufgruppierung/filtered/gruppierung/erste-taetigkeit/gruppierung/${getGruppierungId()}';
+  final body = await withMaybeRetry(
+    () async => await http.get(Uri.parse(taetigkeitUrl), headers: {
+      'Cookie': getNamiApiCookie(),
+      'Content-Type': 'application/json'
+    }),
+    'Failed to load metadata: $taetigkeitUrl',
+  );
+
+  String? taetigkeitId = body['data']
+      .firstWhere(
+        (item) => utf8.decode(item['descriptor'].codeUnits) == taetigkeit,
+        orElse: () => null,
+      )?['id']
+      .toString();
+
+  if (taetigkeitId == null) {
+    throw Exception('TaetigkeitId not found for taetigkeit: $taetigkeit');
+  }
+
+  // load untergliederung
+  String fullUrl =
+      '${getNamiLUrl()}/ica/rest//nami/untergliederungauftaetigkeit/filtered/untergliederung/ersteTaetigkeit/$taetigkeitId';
+  return await getMetadata(fullUrl);
+}
+
 Future<List<String>> getLandMeta() async {
   if (getNamiApiCookie() == testCoockieName) {
     return ['Deutschland', 'Testland2', 'Testland3'];
   }
   String fullUrl = '${getNamiLUrl()}/ica/rest/baseadmin/land/';
+  return await getMetadata(fullUrl);
+}
+
+Future<List<String>> getKonfessionMeta() async {
+  if (getNamiApiCookie() == testCoockieName) {
+    return [
+      'römisch-katholisch',
+      'evangelisch / protestantisch',
+      'sonstige' 'ohne Konfession'
+    ];
+  }
+  String fullUrl = '${getNamiLUrl()}/ica/rest/baseadmin/konfession/';
   return await getMetadata(fullUrl);
 }

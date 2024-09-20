@@ -3,6 +3,7 @@ import 'package:hive/hive.dart';
 import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HomeDrawer extends StatefulWidget {
   const HomeDrawer(
@@ -25,6 +26,15 @@ class HomeDrawerState extends State<HomeDrawer> {
   void initState() {
     setDrawerListArray();
     super.initState();
+  }
+
+  Future<void> _launchURL(String url) async {
+    final Uri uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      throw 'Could not launch $url';
+    }
   }
 
   void setDrawerListArray() {
@@ -124,6 +134,28 @@ class HomeDrawerState extends State<HomeDrawer> {
               },
             ),
           ),
+          // Paypal Spenden Link https://www.paypal.com/donate/?hosted_button_id=5YJVWMBN72G3A
+          // Github Sponsor Link https://github.com/sponsors/JanneckLange
+          ListTile(
+            leading: const Icon(Icons.payment),
+            title: const Text('Paypal Spenden'),
+            onTap: () => _launchURL(
+                'https://www.paypal.com/donate/?hosted_button_id=5YJVWMBN72G3A'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.code),
+            title: const Text('Github Sponsor'),
+            onTap: () => _launchURL('https://github.com/sponsors/JanneckLange'),
+          ),
+          const Center(
+            child: Text(
+              'Entwickelt mit ❤️ in Hamburg',
+              style: TextStyle(
+                fontSize: 14,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
           Divider(
             height: 1,
             color: Theme.of(context).dividerColor,

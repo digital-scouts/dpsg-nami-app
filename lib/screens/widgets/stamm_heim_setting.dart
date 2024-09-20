@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/notifications.dart';
+import 'package:wiredash/wiredash.dart';
 
 class StammHeimSetting extends StatefulWidget {
   const StammHeimSetting({super.key});
@@ -71,12 +72,16 @@ class _StammHeimSettingState extends State<StammHeimSetting> {
           IconButton(
             color: Theme.of(context).colorScheme.primary,
             onPressed: () async {
+              Wiredash.trackEvent('Settings',
+                  data: {'type': 'Stammesheim saved'});
               final text = _stammheimTextController.text;
               setStammheim(text);
               final scaffold = ScaffoldMessenger.of(context);
               try {
                 final locations = await locationFromAddress(text);
                 if (locations.length == 1) {
+                  Wiredash.trackEvent('Settings',
+                      data: {'type': 'Stammesheim location found'});
                   scaffold.showSnackBar(
                     const SnackBar(content: Text('Adresse gefunden')),
                   );

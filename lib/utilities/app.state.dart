@@ -17,6 +17,7 @@ import 'package:nami/utilities/nami/nami.service.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
 import 'package:nami/utilities/notifications.dart';
 import 'package:nami/utilities/types.dart';
+import 'package:wiredash/wiredash.dart';
 
 class AppStateHandler extends ChangeNotifier {
   static final AppStateHandler _instance = AppStateHandler._internal();
@@ -135,6 +136,7 @@ class AppStateHandler extends ChangeNotifier {
     bool loadAll = false,
     background = false,
   }) async {
+    Wiredash.trackEvent('Data sync startet');
     sensLog.i(
         'Start loading data with loadAll: $loadAll and background: $background');
     ValueNotifier<List<AllowedFeatures>> rechteProgressNotifier =
@@ -177,12 +179,16 @@ class AppStateHandler extends ChangeNotifier {
       syncState = SyncState.successful;
       if (background) {
         sensLog.i('sync successful in background');
+        Wiredash.trackEvent('Data sync successful');
         showSnackBar(navigatorKey.currentContext!,
             "Daten wurden erfolgreich synchronisiert");
       }
       setReadyState();
     } on SessionExpired catch (_) {
       sensLog.i('sync failed with session expired');
+      Wiredash.trackEvent('Data sync failed', data: {
+        'error': 'Session expired',
+      });
       syncState = SyncState.relogin;
       if (!background) {
         // not setting relogin state when in background as it's done by [ReloginBanner]
@@ -195,6 +201,9 @@ class AppStateHandler extends ChangeNotifier {
       if (isTooLongOffline()) {
         syncState = SyncState.error;
         sensLog.i('sync failed with too long offline');
+        Wiredash.trackEvent('Data sync failed', data: {
+          'error': 'Too long offline',
+        });
         if (background) {
           showSnackBar(navigatorKey.currentContext!,
               'Du wirst ausgeloggt, da du zu lange offline warst.');
@@ -211,10 +220,17 @@ class AppStateHandler extends ChangeNotifier {
     } catch (e, st) {
       if (e is http.ClientException || e is TimeoutException) {
         sensLog.i('sync failed with no internet connection');
+        Wiredash.trackEvent('Data sync failed', data: {
+          'error': 'No internet connection',
+        });
         syncState = SyncState.offline;
         setReadyState();
       } else {
         sensLog.e('sync failed with error:', error: e, stackTrace: st);
+        Wiredash.trackEvent('Data sync failed', data: {
+          'error': e.toString(),
+          'stackTrace': st.toString(),
+        });
         syncState = SyncState.error;
       }
     }

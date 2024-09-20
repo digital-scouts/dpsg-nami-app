@@ -37,6 +37,8 @@ dynamic withMaybeRetry(Future<http.Response> Function() func,
       throw SessionExpired();
     }
   } else {
+    sensLog.e(
+        'withMaybeRetry: ${body["message"]} Failed to load with status code ${response.statusCode}. Custom Message: $errorMessage');
     throw Exception(
         'Failed to load with status code ${response.statusCode}. Custom Message: $errorMessage');
   }
@@ -111,6 +113,7 @@ Future<String> loadGruppierung() async {
     return await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
   });
 
+// if body['data'].length is 0, user has no rights to see any gruppierung
   if (body['data'].length != 1) {
     sensLog.e('Failed to load gruppierung. Multiple or no gruppierungen found');
     throw Exception('Failed to load gruppierung');
@@ -133,7 +136,9 @@ Future<void> reloadMetadataFromServer() async {
     getBeitragsartenMeta(),
     getStaatsangehoerigkeitMeta(),
     getMitgliedstypMeta(),
+    getKonfessionMeta(),
+    getErsteTaetigkeitMeta(),
   ]);
-  setMetaData(
-      results[0], results[1], results[2], results[3], results[4], results[5]);
+  setMetaData(results[0], results[1], results[2], results[3], results[4],
+      results[5], results[6], results[7]);
 }

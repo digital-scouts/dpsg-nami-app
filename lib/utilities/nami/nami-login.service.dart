@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/logger.dart';
+import 'package:wiredash/wiredash.dart';
 
 import 'nami.service.dart';
 
@@ -80,6 +81,7 @@ Future<bool> namiLoginWithPassword(int userId, String password) async {
   setNamiApiCookie(cookie);
   setLastLoginCheck(DateTime.now());
   sensLog.i('Success: login for ${sensId(userId)}');
+  Wiredash.trackEvent('Nami Login successfull');
   return true;
 }
 
