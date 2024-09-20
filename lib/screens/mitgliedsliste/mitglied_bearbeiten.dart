@@ -65,7 +65,7 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
     });
   }
 
-  void _onWillPop(bool didPop) async {
+  void _onWillPop(bool didPop, Object? result) async {
     if (didPop) return;
     showDialog(
       context: context,
@@ -119,7 +119,7 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
     return PopScope(
       canPop: canPop,
       key: const Key('MitgliedBearbeiten'),
-      onPopInvoked: _onWillPop,
+      onPopInvokedWithResult: _onWillPop,
       child: Scaffold(
         appBar: AppBar(
           title: widget.mitglied != null
