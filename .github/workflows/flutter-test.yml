@@ -18,40 +18,28 @@ on:
       - "**/README.md"
       - "**/GitVersion.yml"
   workflow_dispatch: null
-
 jobs:
   test:
     name: flutter test
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v2
-
       - uses: actions/setup-java@v1
         with:
           java-version: ${{vars.JAVA_VERSION}}
-
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: ${{vars.DART_VERSION}}
-
       - run: dart --version
-
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: "stable"
-
       - run: flutter --version
-
       - run: flutter pub get
-
       - run: flutter analyze
-
       - run: flutter test
-
       - name: Verify formatting
         run: dart format --output=none --set-exit-if-changed .
-
       - name: Analyze project source
         run: dart analyze
