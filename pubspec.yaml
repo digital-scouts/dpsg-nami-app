@@ -16,8 +16,8 @@ dependencies:
   flutter:
     sdk: flutter
   http: ^1.0.0
-  hive: ^2.0.4
-  hive_flutter: ^1.1.0
+  hive_ce: ^2.6.0
+  hive_ce_flutter: ^2.1.0
   animations: ^2.0.0
   cupertino_icons: ^1.0.2
   font_awesome_flutter: ^10.4.0
@@ -47,7 +47,7 @@ dependencies:
   privacy_screen: ^0.0.6
   faker: ^2.0.0
   connectivity_plus: ^6.0.1
-  flutter_map_tile_caching: ^9.0.0-dev.3
+  flutter_map_tile_caching: ^9.1.3
   logger: ^2.2.0
   path_provider: ^2.1.2
   flutter_email_sender: ^6.0.2
@@ -63,7 +63,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
-  hive_generator: ^2.0.0
+  hive_ce_generator: ^1.6.0
   build_runner: ^2.1.4
   test: ^1.17.10
   flutter_launcher_icons: ^0.13.1

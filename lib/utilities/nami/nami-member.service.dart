@@ -9,7 +9,7 @@ import 'package:nami/utilities/nami/nami.service.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
 import 'package:nami/utilities/stufe.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
-import 'package:hive/hive.dart';
+import 'package:hive_ce/hive.dart';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;

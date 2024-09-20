@@ -85,7 +85,8 @@ class _StammHeimSettingState extends State<StammHeimSetting> {
                   scaffold.showSnackBar(
                     const SnackBar(content: Text('Adresse gefunden')),
                   );
-                  if (await isWifi() || !getDataLoadingOverWifiOnly()) {
+                  if (isMapTileCachingEnabled() &&
+                      (await isWifi() || !getDataLoadingOverWifiOnly())) {
                     downloadMapRegion(locations.first);
                   }
                 } else {

@@ -1,4 +1,4 @@
-import 'package:hive/hive.dart';
+import 'package:hive_ce/hive.dart';
 import 'package:nami/utilities/mitglied.filterAndSort.dart';
 
 // flutter packages pub run build_runner build
@@ -31,6 +31,7 @@ enum SettingValue {
   biometricAuthenticationEnabled,
   namiChangesEnabled,
   rechte,
+  mapTileCachingEnabled
 }
 
 void setMetaData(
@@ -330,4 +331,13 @@ void deleteGruppierungId() {
 
 void deleteGruppierungName() {
   settingsBox.delete(SettingValue.gruppierungName.toString());
+}
+
+void enableMapTileCaching() {
+  settingsBox.put(SettingValue.mapTileCachingEnabled.toString(), true);
+}
+
+bool isMapTileCachingEnabled() {
+  return settingsBox.get(SettingValue.mapTileCachingEnabled.toString()) ??
+      false;
 }

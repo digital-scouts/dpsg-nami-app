@@ -1,4 +1,4 @@
-import 'package:hive/hive.dart';
+import 'package:hive_ce/hive.dart';
 part 'ausbildung.g.dart';
 
 // flutter packages pub run build_runner build

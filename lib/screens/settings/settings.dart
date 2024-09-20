@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:nami/screens/widgets/nami_change_toggle.dart';
 import 'package:nami/screens/widgets/stamm_heim_setting.dart';
 import 'package:nami/screens/widgets/stufenwechsel_alter_setting.dart';

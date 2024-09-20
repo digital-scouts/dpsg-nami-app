@@ -127,7 +127,9 @@ class MapWidgetState extends State<MapWidget> {
                     urlTemplate:
                         'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                     userAgentPackageName: 'de.jlange.nami.app',
-                    tileProvider: const FMTCStore('mapStore').getTileProvider(),
+                    tileProvider: isMapTileCachingEnabled()
+                        ? const FMTCStore('mapStore').getTileProvider()
+                        : null,
                   ),
                   MarkerLayer(
                     markers: [

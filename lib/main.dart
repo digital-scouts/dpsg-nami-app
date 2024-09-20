@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
@@ -13,6 +13,7 @@ import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/custom_wiredash_translations_delegate.dart';
 import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/hive/hive.handler.dart';
+import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/theme.dart';
 import 'package:privacy_screen/privacy_screen.dart';
@@ -21,16 +22,22 @@ import 'package:wiredash/wiredash.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await FMTCObjectBoxBackend().initialise();
   initializeDateFormatting("de_DE", null);
-  const FMTCStore('mapStore').manage.create();
   Intl.defaultLocale = "de_DE";
   await Hive.initFlutter();
   await registerAdapter();
   await openHive();
   await dotenv.load(fileName: ".env");
   await initLogger();
+  try {
+    WidgetsFlutterBinding.ensureInitialized();
+    await FMTCObjectBoxBackend().initialise();
+    const FMTCStore('mapStore').manage.create();
+    enableMapTileCaching();
+  } catch (e) {
+    sensLog
+        .e('Error while initalice objectbox for flutter_map_tile_caching: $e');
+  }
   if (!kDebugMode) {
     await PrivacyScreen.instance.enable(
       iosOptions: const PrivacyIosOptions(
