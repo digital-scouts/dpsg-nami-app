@@ -63,20 +63,22 @@ String startUp() {
 }
 
 class GeoapifyAdress {
-  String country;
-  String countryCode;
-  String city;
-  String postcode;
-  String street;
+  String? country;
+  String? countryCode;
+  String? state;
+  String? city;
+  String? postcode;
+  String? street;
   String formatted;
   String? housenumber;
 
   GeoapifyAdress(
-      {required this.country,
-      required this.countryCode,
-      required this.city,
-      required this.postcode,
-      required this.street,
+      {this.country,
+      this.countryCode,
+      this.state,
+      this.city,
+      this.postcode,
+      this.street,
       required this.formatted,
       this.housenumber});
 
@@ -84,6 +86,7 @@ class GeoapifyAdress {
     return GeoapifyAdress(
         country: json['country'],
         countryCode: json['country_code'],
+        state: json['state'],
         city: json['city'],
         postcode: json['postcode'],
         street: json['street'],

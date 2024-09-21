@@ -4,7 +4,7 @@ import 'package:html/parser.dart';
 import 'package:http/http.dart' as http;
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/logger.dart';
-import 'package:nami/utilities/nami/nami-login.service.dart';
+import 'package:nami/utilities/nami/nami_login.service.dart';
 import 'package:nami/utilities/types.dart';
 import 'model/nami_stats.model.dart';
 import 'package:nami/utilities/nami/nami_member_add_meta.dart';
@@ -13,7 +13,7 @@ import 'package:nami/utilities/nami/nami_member_add_meta.dart';
 ///
 /// If the request failes with an expired session, it tries to get a new cookie
 /// with saved password and retries [func].
-/// Throws [SessionExpired] if that's not possible
+/// Throws [SessionExpiredException] if that's not possible
 ///
 /// Remeber to obtain the cookie in [func] to always use the latest one.
 dynamic withMaybeRetry(Future<http.Response> Function() func,
@@ -31,10 +31,10 @@ dynamic withMaybeRetry(Future<http.Response> Function() func,
       if (response.statusCode == 200 && body['success']) {
         return body;
       } else {
-        throw SessionExpired();
+        throw SessionExpiredException();
       }
     } else {
-      throw SessionExpired();
+      throw SessionExpiredException();
     }
   } else {
     sensLog.e(
@@ -48,7 +48,7 @@ dynamic withMaybeRetry(Future<http.Response> Function() func,
 ///
 /// If the request failes with an expired session, it tries to get a new cookie
 /// with saved password and retries [func].
-/// Throws [SessionExpired] if that's not possible
+/// Throws [SessionExpiredException] if that's not possible
 ///
 /// Remeber to obtain the cookie in [func] to always use the latest one.
 Future<Document> withMaybeRetryHTML(Future<http.Response> Function() func,
@@ -66,10 +66,10 @@ Future<Document> withMaybeRetryHTML(Future<http.Response> Function() func,
       if (response.statusCode == 200) {
         return html;
       } else {
-        throw SessionExpired();
+        throw SessionExpiredException();
       }
     } else {
-      throw SessionExpired();
+      throw SessionExpiredException();
     }
   } else {
     throw Exception(

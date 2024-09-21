@@ -17,7 +17,7 @@ class TaetigkeitAdapter extends TypeAdapter<Taetigkeit> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return Taetigkeit()
-      ..id = fields[0] as int
+      ..id = (fields[0] as num).toInt()
       ..taetigkeit = fields[1] as String
       ..aktivVon = fields[2] as DateTime
       ..aktivBis = fields[3] as DateTime?

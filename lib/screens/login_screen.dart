@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:nami/utilities/hive/hive.handler.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/logger.dart';
-import 'package:nami/utilities/nami/nami-login.service.dart';
+import 'package:nami/utilities/nami/nami_login.service.dart';
 import 'dart:async';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:provider/provider.dart';

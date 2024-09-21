@@ -7,6 +7,7 @@ import 'package:nami/screens/widgets/relogin_banner.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/mitglied.filterAndSort.dart';
+import 'package:nami/utilities/nami/nami_rechte.dart';
 import 'package:nami/utilities/stufe.dart';
 import 'package:nami/utilities/theme.dart';
 import 'package:wiredash/wiredash.dart';
@@ -260,7 +261,8 @@ class MitgliedsListeState extends State<MitgliedsListe> {
           title: const Center(child: Text("Mitglieder")),
           automaticallyImplyLeading: false,
           actions: <Widget>[
-            if (getNamiChangesEnabled())
+            if (getNamiChangesEnabled() &&
+                getAllowedFeatures().contains(AllowedFeatures.memberCreate))
               IconButton(
                 icon: const Icon(Icons.person_add),
                 onPressed: () {

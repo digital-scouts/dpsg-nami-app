@@ -12,7 +12,7 @@ import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/hive/hive.handler.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/logger.dart';
-import 'package:nami/utilities/nami/nami-member.service.dart';
+import 'package:nami/utilities/nami/nami_member.service.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
 import 'package:nami/utilities/notifications.dart';
@@ -184,7 +184,7 @@ class AppStateHandler extends ChangeNotifier {
             "Daten wurden erfolgreich synchronisiert");
       }
       setReadyState();
-    } on SessionExpired catch (_) {
+    } on SessionExpiredException catch (_) {
       sensLog.i('sync failed with session expired');
       Wiredash.trackEvent('Data sync failed', data: {
         'error': 'Session expired',

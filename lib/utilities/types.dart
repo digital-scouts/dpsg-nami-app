@@ -11,4 +11,48 @@ extension DateTimeExtension on DateTime {
   }
 }
 
-class SessionExpired implements Exception {}
+class SessionExpiredException implements Exception {}
+
+class MemberCreationException implements Exception {
+  final List<FieldInfo> fieldInfo;
+  final String message;
+
+  MemberCreationException(this.message, {this.fieldInfo = const []});
+
+  @override
+  String toString() {
+    return 'MemberCreationException: $message ${fieldInfo.map((e) => e.toJson()).toList()}';
+  }
+}
+
+class FieldInfo {
+  final String fieldName;
+  final String messageId;
+  final String level;
+  final String message;
+
+  FieldInfo({
+    required this.fieldName,
+    required this.messageId,
+    required this.level,
+    required this.message,
+  });
+
+  factory FieldInfo.fromJson(Map<String, dynamic> json) {
+    return FieldInfo(
+      fieldName: json['fieldName'],
+      messageId: json['messageId'],
+      level: json['level'],
+      message: json['message'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'fieldName': fieldName,
+      'messageId': messageId,
+      'level': level,
+      'message': message,
+    };
+  }
+}

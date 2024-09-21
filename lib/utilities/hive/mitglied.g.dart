@@ -16,29 +16,47 @@ class MitgliedAdapter extends TypeAdapter<Mitglied> {
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
+
+    // data Model changed 20. September 2024 v0.1.1 - migration fix
+    if (fields[3] is! num) {
+      switch (fields[3]) {
+        case 'männlich':
+          fields[3] = 19;
+          break;
+        case 'weiblich':
+          fields[3] = 20;
+          break;
+        case 'divers':
+          fields[3] = 24;
+          break;
+        default:
+          fields[3] = 23; // keine Angabe
+      }
+    }
+
     return Mitglied()
       ..vorname = fields[0] as String
       ..nachname = fields[1] as String
-      ..geschlecht = fields[3] as String
+      ..geschlechtId = (fields[3] as num).toInt()
       ..geburtsDatum = fields[4] as DateTime
       ..stufe = fields[5] as String
-      ..id = fields[6] as int
-      ..mitgliedsNummer = fields[7] as int
+      ..id = (fields[6] as num).toInt()
+      ..mitgliedsNummer = (fields[7] as num).toInt()
       ..eintrittsdatum = fields[8] as DateTime
       ..austrittsDatum = fields[9] as DateTime?
       ..ort = fields[10] as String
       ..plz = fields[11] as String
       ..strasse = fields[12] as String
-      ..landId = fields[13] as int
+      ..landId = (fields[13] as num).toInt()
       ..email = fields[14] as String?
       ..emailVertretungsberechtigter = fields[15] as String?
       ..telefon1 = fields[16] as String?
       ..telefon2 = fields[17] as String?
       ..telefon3 = fields[18] as String?
       ..lastUpdated = fields[19] as DateTime
-      ..version = fields[20] as int
+      ..version = (fields[20] as num).toInt()
       ..mglTypeId = fields[21] as String
-      ..beitragsartId = fields[22] as int
+      ..beitragsartId = (fields[22] as num).toInt()
       ..status = fields[23] as String
       ..taetigkeiten = (fields[24] as List).cast<Taetigkeit>()
       ..ausbildungen =
@@ -54,7 +72,7 @@ class MitgliedAdapter extends TypeAdapter<Mitglied> {
       ..writeByte(1)
       ..write(obj.nachname)
       ..writeByte(3)
-      ..write(obj.geschlecht)
+      ..write(obj.geschlechtId)
       ..writeByte(4)
       ..write(obj.geburtsDatum)
       ..writeByte(5)

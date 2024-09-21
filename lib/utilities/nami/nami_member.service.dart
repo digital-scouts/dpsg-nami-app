@@ -175,6 +175,10 @@ Future<Mitglied> updateOneMember(int memberId) async {
   String path = getNamiPath();
   int gruppierung = getGruppierungId()!;
 
+  if (cookie == 'testLoginCookie') {
+    return createMemberDefaultPfadfinder(13, memberId);
+  }
+
   Box<Mitglied> memberBox = Hive.box('members');
 
   final member = await _storeMitgliedToHive(memberId, memberBox, url, path,
@@ -332,13 +336,13 @@ Future<Mitglied?> _storeMitgliedToHive(
   Mitglied mitglied = Mitglied()
     ..vorname = rawMember.vorname
     ..nachname = rawMember.nachname
-    ..geschlecht = rawMember.geschlecht
+    ..geschlechtId = rawMember.geschlechtId
     ..geburtsDatum = rawMember.geburtsDatum
     ..stufe =
         Stufe.getStufeByString(rawMember.stufe ?? Stufe.KEINE_STUFE.display)
             .display
     ..id = rawMember.id
-    ..mitgliedsNummer = rawMember.mitgliedsNummer
+    ..mitgliedsNummer = rawMember.mitgliedsNummer ?? 0
     ..eintrittsdatum = rawMember.eintrittsdatum
     ..austrittsDatum = rawMember.austrittsDatum
     ..ort = rawMember.ort
@@ -350,11 +354,11 @@ Future<Mitglied?> _storeMitgliedToHive(
     ..telefon1 = rawMember.telefon1
     ..telefon2 = rawMember.telefon2
     ..telefon3 = rawMember.telefon3
-    ..lastUpdated = rawMember.lastUpdated
+    ..lastUpdated = rawMember.lastUpdated ?? DateTime.now()
     ..version = rawTaetigkeiten.isNotEmpty ? rawMember.version : 0
     ..mglTypeId = rawMember.mglTypeId
     ..beitragsartId = rawMember.beitragsartId ?? 0
-    ..status = rawMember.status
+    ..status = rawMember.status ?? ''
     ..taetigkeiten = taetigkeiten
     ..ausbildungen = ausbildungen;
 

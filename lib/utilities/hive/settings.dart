@@ -35,14 +35,14 @@ enum SettingValue {
 }
 
 void setMetaData(
-    List<String> geschlecht,
-    List<String> land,
-    List<String> region,
-    List<String> beitragsart,
-    List<String> staatsangehoerigkeit,
-    List<String> mitgliedstyp,
-    List<String> konfession,
-    List<String> ersteTaetigkeit) {
+    Map<String, String> geschlecht,
+    Map<String, String> land,
+    Map<String, String> region,
+    Map<String, String> beitragsart,
+    Map<String, String> staatsangehoerigkeit,
+    Map<String, String> mitgliedstyp,
+    Map<String, String> konfession,
+    Map<String, String> ersteTaetigkeit) {
   settingsBox.put(SettingValue.metaGeschechtOptions.toString(), geschlecht);
   settingsBox.put(SettingValue.metaLandOptions.toString(), land);
   settingsBox.put(SettingValue.metaBeitragsartOptions.toString(), beitragsart);
@@ -83,39 +83,53 @@ bool getWelcomeMessageShown() {
   return settingsBox.get(SettingValue.welcomeMessageShown.toString()) ?? false;
 }
 
-List<String> getMetaGeschlechtOptions() {
-  return settingsBox.get(SettingValue.metaGeschechtOptions.toString()) ?? [];
+Map<String, String> getMetaGeschlechtOptions() {
+  final dynamicMap =
+      settingsBox.get(SettingValue.metaGeschechtOptions.toString()) ?? {};
+  return Map<String, String>.from(dynamicMap);
 }
 
-List<String> getMetaLandOptions() {
-  return settingsBox.get(SettingValue.metaLandOptions.toString()) ?? [];
+Map<String, String> getMetaLandOptions() {
+  final dynamicMap =
+      settingsBox.get(SettingValue.metaLandOptions.toString()) ?? {};
+  return Map<String, String>.from(dynamicMap);
 }
 
-List<String> getMetaBeitragsartOptions() {
-  return settingsBox.get(SettingValue.metaBeitragsartOptions.toString()) ?? [];
+Map<String, String> getMetaBeitragsartOptions() {
+  final dynamicMap =
+      settingsBox.get(SettingValue.metaBeitragsartOptions.toString()) ?? {};
+  return Map<String, String>.from(dynamicMap);
 }
 
-List<String> getMetaRegionOptions() {
-  return settingsBox.get(SettingValue.metaRegionOptions.toString()) ?? [];
+Map<String, String> getMetaRegionOptions() {
+  final dynamicMap =
+      settingsBox.get(SettingValue.metaRegionOptions.toString()) ?? {};
+  return Map<String, String>.from(dynamicMap);
 }
 
-List<String> getMetaStaatsangehoerigkeitOptions() {
-  return settingsBox
+Map<String, String> getMetaStaatsangehoerigkeitOptions() {
+  final dynamicMap = settingsBox
           .get(SettingValue.metaStaatsangehoerigkeitOptions.toString()) ??
-      [];
+      {};
+  return Map<String, String>.from(dynamicMap);
 }
 
-List<String> getMetaKonfessionOptions() {
-  return settingsBox.get(SettingValue.metaKonfessionOptions.toString()) ?? [];
+Map<String, String> getMetaKonfessionOptions() {
+  final dynamicMap =
+      settingsBox.get(SettingValue.metaKonfessionOptions.toString()) ?? {};
+  return Map<String, String>.from(dynamicMap);
 }
 
-List<String> getErsteTaetigkeitOptions() {
-  return settingsBox.get(SettingValue.metaErsteTaetigkeitOptions.toString()) ??
-      [];
+Map<String, String> getErsteTaetigkeitOptions() {
+  final dynamicMap =
+      settingsBox.get(SettingValue.metaErsteTaetigkeitOptions.toString()) ?? {};
+  return Map<String, String>.from(dynamicMap);
 }
 
-List<String> getMetaMitgliedstypOptions() {
-  return settingsBox.get(SettingValue.metaMitgliedstypOptions.toString()) ?? [];
+Map<String, String> getMetaMitgliedstypOptions() {
+  final dynamicMap =
+      settingsBox.get(SettingValue.metaMitgliedstypOptions.toString()) ?? {};
+  return Map<String, String>.from(dynamicMap);
 }
 
 List<int> getFavouriteList() {

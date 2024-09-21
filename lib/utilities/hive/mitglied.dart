@@ -20,7 +20,7 @@ class Mitglied {
   late String nachname;
 
   @HiveField(3)
-  late String geschlecht;
+  late int geschlechtId;
 
   @HiveField(4)
   late DateTime geburtsDatum;
@@ -29,7 +29,7 @@ class Mitglied {
   late String stufe;
 
   @HiveField(6)
-  late int id;
+  late int? id;
 
   @HiveField(7)
   late int mitgliedsNummer;

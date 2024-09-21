@@ -179,9 +179,9 @@ String sensId(int memberId) {
 
 Map<String, String> sensMember(NamiMemberDetailsModel member) {
   return {
-    'id': sensId(member.id),
+    'id': sensId(member.id!),
     'type': member.mglTypeId,
-    'status': member.status,
+    'status': member.status ?? 'no Status',
     'stufe': member.stufe ?? 'null',
   };
 }

@@ -6,7 +6,7 @@ import 'package:nami/utilities/hive/settings.dart';
 import 'package:intl/intl.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
 import 'package:nami/utilities/logger.dart';
-import 'package:nami/utilities/nami/nami-member.service.dart';
+import 'package:nami/utilities/nami/nami_member.service.dart';
 import 'package:nami/utilities/stufe.dart';
 import 'package:wiredash/wiredash.dart';
 

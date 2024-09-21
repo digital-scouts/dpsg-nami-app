@@ -52,7 +52,22 @@ Future<List<int>> loadRechte() async {
   sensLog.i('Rechte werden geladen');
   final cookie = getNamiApiCookie();
   if (cookie == 'testLoginCookie') {
-    return [5, 36, 58, 118, 139, 314, 193, 194, 195];
+    // return [5, 36, 58, 118, 139, 314, 193, 194, 195];
+    return [
+      5,
+      6,
+      36,
+      58,
+      59,
+      118,
+      139,
+      314,
+      193,
+      194,
+      195,
+      313,
+      316
+    ]; // mit create Member
   }
   Map<int, String> rechte;
   try {
@@ -119,7 +134,7 @@ Future<Map<int, String>> _loadRechteJson() async {
     throw Exception('Failed to find current user in load rechte');
   }
 
-  dynamic document = await _loadDocument(currentUser.id);
+  dynamic document = await _loadDocument(currentUser.id!);
 
   // Finden Sie das relevante <script>-Tags
   final scriptContent =

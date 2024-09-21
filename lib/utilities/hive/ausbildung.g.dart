@@ -17,7 +17,7 @@ class AusbildungAdapter extends TypeAdapter<Ausbildung> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return Ausbildung()
-      ..id = fields[0] as int
+      ..id = (fields[0] as num).toInt()
       ..datum = fields[1] as DateTime
       ..veranstalter = fields[2] as String
       ..name = fields[3] as String

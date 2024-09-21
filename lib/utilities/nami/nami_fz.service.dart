@@ -56,7 +56,7 @@ Future<List<int>> loadPdfDocument(String url) async {
   // Check if cookie is still valid - withMaybeRetry does not work here
   if (body.statusCode != 200) {
     sensLog.e('Failed to load Führungszeugnis Dokument.');
-    throw SessionExpired();
+    throw SessionExpiredException();
   }
 
   return body.bodyBytes;

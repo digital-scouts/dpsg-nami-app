@@ -353,7 +353,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
       Mitglied? mitglied;
       try {
         mitglied = await stufenwechsel(
-            widget.mitglied.id, currentTaetigkeit, stufe, aktivVon);
+            widget.mitglied.id!, currentTaetigkeit, stufe, aktivVon);
       } catch (e, st) {
         sensLog.e('failed to stufenwechsel', error: e, stackTrace: st);
       }
@@ -382,8 +382,11 @@ class MitgliedDetailState extends State<MitgliedDetail>
         trailing: TextButton(
           onPressed: loadingStufenwechsel
               ? null
-              : () => handleStufenwechsel(widget.mitglied.id, currentTaetigkeit,
-                  stufe, fakeStufenwechselTaetigkeit.aktivVon),
+              : () => handleStufenwechsel(
+                  widget.mitglied.id!,
+                  currentTaetigkeit,
+                  stufe,
+                  fakeStufenwechselTaetigkeit.aktivVon),
           child: const Text("Wechseln"),
         ),
       ),
