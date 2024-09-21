@@ -85,8 +85,35 @@ class _ProfilState extends State<Profil> {
     );
   }
 
+  Widget buildFzView() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Führungszeugnis",
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        ElevatedButton(
+          onPressed: loadingAntrag ? null : loadAntrag,
+          child: loadingAntrag
+              ? const CircularProgressIndicator()
+              : const Text("Antragsunterlagen laden"),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          "Deine Bescheinigungen",
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        buildFzList(),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final features = getAllowedFeatures();
+
     return Scaffold(
       appBar: AppBar(
         title: const Center(child: Text('Profil')),
@@ -94,37 +121,109 @@ class _ProfilState extends State<Profil> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text("Deine Rechte:", style: Theme.of(context).textTheme.titleMedium),
+          Text("Deine Rechte",
+              style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 8),
           Card(
             margin: EdgeInsets.zero,
             child: Column(
               children: [
-                for (final feature in getAllowedFeatures())
-                  ListTile(
-                    title: Text(
-                      feature.toReadableString(),
-                    ),
-                  )
+                ListTile(
+                  title: const Text(
+                    'Mitglied/Tätigkeiten',
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.visibility,
+                        color: features.contains(AllowedFeatures.appStart)
+                            ? Colors.green
+                            : Colors.grey,
+                      ),
+                      Icon(
+                        Icons.edit,
+                        color: features.contains(AllowedFeatures.memberEdit)
+                            ? Colors.green
+                            : Colors.grey,
+                      ),
+                      Icon(
+                        Icons.person_add,
+                        color: features.contains(AllowedFeatures.memberCreate)
+                            ? Colors.green
+                            : Colors.grey,
+                      ),
+                    ],
+                  ),
+                ),
+                ListTile(
+                  title: const Text(
+                    'Ausbildung',
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.visibility,
+                        color: features.contains(AllowedFeatures.ausbildungRead)
+                            ? Colors.green
+                            : Colors.grey,
+                      ),
+                      Icon(
+                        Icons.edit,
+                        color: features.contains(AllowedFeatures.ausbildungEdit)
+                            ? Colors.green
+                            : Colors.grey,
+                      ),
+                      Icon(
+                        Icons.add_comment,
+                        color:
+                            features.contains(AllowedFeatures.ausbildungCreate)
+                                ? Colors.green
+                                : Colors.grey,
+                      ),
+                      Icon(
+                        Icons.delete,
+                        color:
+                            features.contains(AllowedFeatures.ausbildungDelete)
+                                ? Colors.green
+                                : Colors.grey,
+                      ),
+                    ],
+                  ),
+                ),
+                ListTile(
+                  title: const Text(
+                    'Stufenwechsel',
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      features.contains(AllowedFeatures.stufenwechsel)
+                          ? const Icon(Icons.check, color: Colors.green)
+                          : const Icon(Icons.close, color: Colors.red),
+                    ],
+                  ),
+                ),
+                ListTile(
+                  title: const Text(
+                    'Führungszeugnis',
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      features.contains(AllowedFeatures.fuehrungszeugnis)
+                          ? const Icon(Icons.check, color: Colors.green)
+                          : const Icon(Icons.close, color: Colors.red),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
           const SizedBox(height: 16),
-          Text("Führungszeugnis",
-              style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          ElevatedButton(
-            onPressed: loadingAntrag ? null : loadAntrag,
-            child: loadingAntrag
-                ? const CircularProgressIndicator()
-                : const Text("Antragsunterlagen laden"),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            "Deine Bescheinigungen",
-            style: Theme.of(context).textTheme.titleSmall,
-          ),
-          buildFzList(),
+          if (getAllowedFeatures().contains(AllowedFeatures.fuehrungszeugnis))
+            buildFzView()
         ],
       ),
     );

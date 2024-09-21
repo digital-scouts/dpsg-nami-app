@@ -29,7 +29,7 @@ extension AllowedFeaturesExtension on AllowedFeatures {
       case AllowedFeatures.appStart:
         return 'Mitglieder anzeigen';
       case AllowedFeatures.memberEdit:
-        return 'Miglieder bearbeiten';
+        return 'Mitglieder bearbeiten';
       case AllowedFeatures.memberCreate:
         return 'Mitglieder anlegen';
       case AllowedFeatures.stufenwechsel:
@@ -52,22 +52,7 @@ Future<List<int>> loadRechte() async {
   sensLog.i('Rechte werden geladen');
   final cookie = getNamiApiCookie();
   if (cookie == 'testLoginCookie') {
-    // return [5, 36, 58, 118, 139, 314, 193, 194, 195];
-    return [
-      5,
-      6,
-      36,
-      58,
-      59,
-      118,
-      139,
-      314,
-      193,
-      194,
-      195,
-      313,
-      316
-    ]; // mit create Member
+    return [5, 36, 58, 118, 139, 314, 193, 194];
   }
   Map<int, String> rechte;
   try {

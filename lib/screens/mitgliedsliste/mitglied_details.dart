@@ -9,6 +9,7 @@ import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/hive/settings_stufenwechsel.dart';
 import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/nami/nami_edit_taetigkeiten.dart';
+import 'package:nami/utilities/nami/nami_rechte.dart';
 import 'package:nami/utilities/stufe.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
@@ -446,11 +447,11 @@ class MitgliedDetailState extends State<MitgliedDetail>
     Stufe? nextStufe = widget.mitglied.nextStufe;
 
     // check if stufenwechsel is possible
-
     if (!isMinStufenWechselJahrInPast ||
         nextStufe == null ||
         !nextStufe.isStufeYouCanChangeTo ||
-        !getNamiChangesEnabled()) {
+        !getNamiChangesEnabled() ||
+        !getAllowedFeatures().contains(AllowedFeatures.stufenwechsel)) {
       return null;
     }
 
