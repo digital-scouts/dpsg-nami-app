@@ -13,6 +13,8 @@ enum AllowedFeatures {
   appStart,
   memberEdit,
   memberCreate,
+  memberImport,
+  membershipEnd,
   stufenwechsel,
   fuehrungszeugnis,
   ausbildungCreate,
@@ -32,6 +34,10 @@ extension AllowedFeaturesExtension on AllowedFeatures {
         return 'Mitglieder bearbeiten';
       case AllowedFeatures.memberCreate:
         return 'Mitglieder anlegen';
+      case AllowedFeatures.membershipEnd:
+        return 'Mitgliedschaft beenden';
+      case AllowedFeatures.memberImport:
+        return 'Mitglied übernehmen';
       case AllowedFeatures.stufenwechsel:
         return 'Stufenwechsel';
       case AllowedFeatures.fuehrungszeugnis:
@@ -91,6 +97,12 @@ List<AllowedFeatures> getAllowedFeatures() {
       rechte.contains(313) &&
       rechte.contains(316)) {
     allowedFeatures.add(AllowedFeatures.memberCreate);
+  }
+  if (rechte.contains(312)) {
+    allowedFeatures.add(AllowedFeatures.membershipEnd);
+  }
+  if (rechte.contains(315)) {
+    allowedFeatures.add(AllowedFeatures.memberImport);
   }
   if (rechte.contains(473) && rechte.contains(474)) {
     allowedFeatures.add(AllowedFeatures.fuehrungszeugnis);

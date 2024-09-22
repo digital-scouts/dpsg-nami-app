@@ -119,6 +119,7 @@ class HomeDrawerState extends State<HomeDrawer> {
   Widget build(BuildContext context) {
     int? gruppierung = getGruppierungId();
     Box<Mitglied> memberBox = Hive.box<Mitglied>('members');
+
     Mitglied? user;
     try {
       user = memberBox.values
@@ -187,10 +188,10 @@ class HomeDrawerState extends State<HomeDrawer> {
             title: const Text('Entwickler loben'),
             onTap: () => _showSupportModal(context),
           ),
-          const Center(
+          Center(
             child: Text(
-              'Entwickelt mit ❤️ in Hamburg',
-              style: TextStyle(
+              'Entwickelt mit ${Theme.of(context).brightness == Brightness.dark ? '🩶' : '❤️'} in Hamburg',
+              style: const TextStyle(
                 fontSize: 14,
               ),
             ),
@@ -204,7 +205,7 @@ class HomeDrawerState extends State<HomeDrawer> {
             children: <Widget>[
               ListTile(
                 title: Text(
-                  'Sign Out',
+                  'Abmelden',
                   style: Theme.of(context).textTheme.bodyLarge,
                   textAlign: TextAlign.left,
                 ),

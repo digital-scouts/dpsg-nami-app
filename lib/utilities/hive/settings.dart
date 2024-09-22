@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:nami/utilities/mitglied.filterAndSort.dart';
 
@@ -33,7 +34,8 @@ enum SettingValue {
   rechte,
   mapTileCachingEnabled,
   lastAppVerion,
-  newVersionInfoShown
+  newVersionInfoShown,
+  themeMode
 }
 
 void setMetaData(
@@ -372,4 +374,13 @@ void setLastAppVersion(String version) {
 
 void setNewVersionInfoShown(bool value) {
   settingsBox.put(SettingValue.newVersionInfoShown.toString(), value);
+}
+
+void setThemeMode(ThemeMode mode) {
+  settingsBox.put(SettingValue.themeMode.toString(), mode.index);
+}
+
+ThemeMode getThemeMode() {
+  return ThemeMode.values[settingsBox.get(SettingValue.themeMode.toString()) ??
+      ThemeMode.system.index];
 }

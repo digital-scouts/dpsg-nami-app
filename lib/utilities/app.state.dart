@@ -78,16 +78,15 @@ class AppStateHandler extends ChangeNotifier {
           MaterialPageRoute(
               builder: (context) => NewVersionInfoScreen(
                     features: const [
-                      'Bearbeiten und anlegen von Mitgliedern.',
-                      'Ein Stufenwechsel kann jetzt über die Tätigkeiten erfolgen.',
-                      'In den Einstellungen kann das bearbeiten von Daten aktiviert werden.',
-                      'Es wurden anonyme Tracking-Funktionen hinzugefügt um die nutzung der App analysieren zu können.',
-                      'Die Möglichkeit den Entwickler zu loben wurde hinzugefügt.',
-                      'Dieser Screen'
+                      'Bearbeiten und Anlegen von Mitgliedern.',
+                      'In den Einstellungen kann das Bearbeiten von Daten aktiviert werden.',
+                      'Es wurden anonyme Tracking-Funktionen hinzugefügt, um die Nutzung der App analysieren zu können.',
+                      'Die Möglichkeit, den Entwickler zu loben, wurde hinzugefügt.',
+                      'Es kann nach Belieben zwischen dem hellen und dunklen Design gewechselt werden.',
                     ],
                     bugFixes: const [
-                      'Passive Mitglieder lassen sich in \'Meine Stufe\' jetzt darstellen.',
-                      'Diverse Fehlerbehebungen die bei einzelnen Datenkonstellationen auftraten.'
+                      'Passive Mitglieder lassen sich in "Meine Stufe" jetzt darstellen.',
+                      'Diverse Fehlerbehebungen, die bei einzelnen Datenkonstellationen auftraten.'
                     ],
                     dataReset: true,
                     version: appVersion,
@@ -95,9 +94,6 @@ class AppStateHandler extends ChangeNotifier {
         );
         setNewVersionInfoShown(true);
       }
-
-      // TODO: show new version info
-      // TODO: reset data if nessessary
     }
 
     /// Prevent changing state while relogin when app comes from background

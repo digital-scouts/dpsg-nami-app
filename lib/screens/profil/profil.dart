@@ -91,20 +91,20 @@ class _ProfilState extends State<Profil> {
       children: [
         Text(
           "Führungszeugnis",
-          style: Theme.of(context).textTheme.titleMedium,
+          style: Theme.of(context).textTheme.headlineSmall,
         ),
         const SizedBox(height: 8),
-        ElevatedButton(
-          onPressed: loadingAntrag ? null : loadAntrag,
-          child: loadingAntrag
-              ? const CircularProgressIndicator()
-              : const Text("Antragsunterlagen laden"),
+        GestureDetector(
+          onTap: loadAntrag,
+          child: Text(
+            "Antragsunterlagen laden",
+            style: Theme.of(context)
+                .textTheme
+                .bodyLarge!
+                .copyWith(color: Colors.blue),
+          ),
         ),
         const SizedBox(height: 8),
-        Text(
-          "Deine Bescheinigungen",
-          style: Theme.of(context).textTheme.titleSmall,
-        ),
         buildFzList(),
       ],
     );
@@ -121,8 +121,8 @@ class _ProfilState extends State<Profil> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text("Deine Rechte",
-              style: Theme.of(context).textTheme.headlineMedium),
+          Text("Berechtigungen",
+              style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 8),
           Card(
             margin: EdgeInsets.zero,
@@ -148,8 +148,20 @@ class _ProfilState extends State<Profil> {
                             : Colors.grey,
                       ),
                       Icon(
-                        Icons.person_add,
+                        Icons.person_add_alt_1_rounded,
                         color: features.contains(AllowedFeatures.memberCreate)
+                            ? Colors.green
+                            : Colors.grey,
+                      ),
+                      Icon(
+                        Icons.group_add,
+                        color: features.contains(AllowedFeatures.memberImport)
+                            ? Colors.green
+                            : Colors.grey,
+                      ),
+                      Icon(
+                        Icons.delete,
+                        color: features.contains(AllowedFeatures.membershipEnd)
                             ? Colors.green
                             : Colors.grey,
                       ),
@@ -176,7 +188,7 @@ class _ProfilState extends State<Profil> {
                             : Colors.grey,
                       ),
                       Icon(
-                        Icons.add_comment,
+                        Icons.add_box,
                         color:
                             features.contains(AllowedFeatures.ausbildungCreate)
                                 ? Colors.green

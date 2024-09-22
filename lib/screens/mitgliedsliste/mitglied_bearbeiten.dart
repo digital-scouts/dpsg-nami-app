@@ -585,14 +585,11 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                   ),
                   // Kontodaten
                   _buildSectionTitle('Kontodaten'),
-                  const Text(
-                      'Die Kontodaten sind zum anlegen eines Mitglieds nicht notwendig. Dies kann auch später nachgetragen werden. Es werden nur Deutsche Konten akzeptiert.'),
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4.0),
                     child: FormBuilderTextField(
                       name: 'kontoinhaber',
-                      validator: FormBuilderValidators.required(),
-                      decoration: _buildActiveInputDecoration('Kontoinhaber'),
+                      decoration: _buildActiveInputDecoration('Kontoinhaber*'),
                     ),
                   ),
                   Padding(
@@ -600,7 +597,6 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                     child: FormBuilderTextField(
                       name: 'iban',
                       maxLength: 22,
-                      validator: FormBuilderValidators.required(),
                       onChanged: (iban) async => {
                         _ibanResult = null,
                         setState(() {
@@ -623,7 +619,7 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                               }
                           }
                       },
-                      decoration: _buildActiveInputDecoration('IBAN'),
+                      decoration: _buildActiveInputDecoration('IBAN*'),
                     ),
                   ),
                   _twoColumnRow(
@@ -632,7 +628,7 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                       readOnly: true,
                       focusNode: AlwaysDisabledFocusNode(),
                       decoration:
-                          _buildDisabledInputDecoration('Kreditinstitut'),
+                          _buildDisabledInputDecoration('Kreditinstitut*'),
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -640,9 +636,13 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                         name: 'bic',
                         readOnly: true,
                         focusNode: AlwaysDisabledFocusNode(),
-                        decoration: _buildDisabledInputDecoration('BIC'),
+                        decoration: _buildDisabledInputDecoration('BIC*'),
                       ),
                     ),
+                  ),
+                  const Align(
+                    alignment: Alignment.centerRight,
+                    child: Text('*Freiwillige Angaben'),
                   ),
                   _buildSectionTitle('Neues Mitglied anlegen'),
 
@@ -767,7 +767,7 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
     return InputDecoration(
         labelText: labelText,
         counterText: '',
-        fillColor: const Color.fromARGB(255, 222, 222, 222),
+        fillColor: Theme.of(context).disabledColor,
         filled: true,
         border: const OutlineInputBorder());
   }
