@@ -80,7 +80,7 @@ Future<void> initLogger() async {
     filter: ProductionFilter(),
     output: CustomOutput(),
     printer: PrettyPrinter(
-      printTime: true,
+      dateTimeFormat: DateTimeFormat.dateAndTime,
       methodCount: 0,
       printEmojis: false,
       errorMethodCount: 10,
