@@ -148,7 +148,7 @@ class _ProfilState extends State<Profil> {
                             : Colors.grey,
                       ),
                       Icon(
-                        Icons.person_add_alt_1_rounded,
+                        Icons.person_add_alt_1,
                         color: features.contains(AllowedFeatures.memberCreate)
                             ? Colors.green
                             : Colors.grey,

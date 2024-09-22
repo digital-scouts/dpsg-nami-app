@@ -120,70 +120,100 @@ class MitgliedsListeState extends State<MitgliedsListe> {
                 Center(child: Text('Mitglieder: ${filteredMitglieder.length}')),
           );
         }
-        return Card(
-          child: InkWell(
-            onTap: () => {
-              Wiredash.trackEvent('Show Member Details',
-                  data: {'type': 'memberList'}),
-              Navigator.of(context)
-                  .push(
-                    MaterialPageRoute(
-                        builder: (context) => MitgliedDetail(
-                            mitglied: filteredMitglieder[index])),
-                  )
-                  .then((value) => setState(() {
-                        applyFilterAndSort();
-                      }))
-            },
-            child: ListTile(
-              leading: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                      colors: [
-                        filteredMitglieder[index].isMitgliedLeiter()
-                            ? DPSGColors.leiterFarbe
-                            : Stufe.getStufeByString(
-                                    filteredMitglieder[index].stufe)
-                                .farbe,
-                        Stufe.getStufeByString(filteredMitglieder[index].stufe)
-                            .farbe
-                      ],
-                      begin: const FractionalOffset(0.0, 0.0),
-                      end: const FractionalOffset(0.0, 1.0),
-                      stops: const [0.5, 0.5],
-                      tileMode: TileMode.clamp),
-                ),
-                width: 5,
-              ),
-              minLeadingWidth: 5,
-              title: filter.sorting == MemberSorting.lastname
-                  ? Text(
-                      '${filteredMitglieder[index].nachname}, ${filteredMitglieder[index].vorname} ')
-                  : Text(
-                      '${filteredMitglieder[index].vorname} ${filteredMitglieder[index].nachname}'),
-              subtitle: switch (filter.subElement) {
-                MemberSubElement.id =>
-                  Text(filteredMitglieder[index].mitgliedsNummer.toString()),
-                MemberSubElement.birthday => Text(
-                    DateFormat('d. MMMM yyyy', 'de_DE')
-                        .format(filteredMitglieder[index].geburtsDatum),
-                  )
+        bool isFavourite = getFavouriteList()
+            .contains(filteredMitglieder[index].mitgliedsNummer);
+        return Dismissible(
+          key: Key(filteredMitglieder[index].mitgliedsNummer.toString()),
+          direction: DismissDirection.endToStart,
+          confirmDismiss: (direction) async {
+            setState(() {
+              // Fügen Sie das Mitglied zu den Favoriten hinzu
+              toggleFavorites(filteredMitglieder[index]);
+            });
+
+            return false;
+          },
+          background: Container(
+            color: isFavourite ? Colors.red : Colors.green,
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Icon(
+              isFavourite ? Icons.bookmark_remove : Icons.bookmark_add,
+              color: Colors.white,
+            ),
+          ),
+          child: Card(
+            child: InkWell(
+              onTap: () => {
+                Wiredash.trackEvent('Show Member Details',
+                    data: {'type': 'memberList'}),
+                Navigator.of(context)
+                    .push(
+                      MaterialPageRoute(
+                          builder: (context) => MitgliedDetail(
+                              mitglied: filteredMitglieder[index])),
+                    )
+                    .then((value) => setState(() {
+                          applyFilterAndSort();
+                        }))
               },
-              trailing: Text(filteredMitglieder[index].stufe == 'keine Stufe'
-                  ? (filteredMitglieder[index]
-                          .getActiveTaetigkeiten()
-                          .isNotEmpty
-                      ? filteredMitglieder[index]
-                          .getActiveTaetigkeiten()
-                          .first
-                          .taetigkeit
-                      : '')
-                  : filteredMitglieder[index].stufe),
+              child: ListTile(
+                leading: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                        colors: [
+                          filteredMitglieder[index].isMitgliedLeiter()
+                              ? DPSGColors.leiterFarbe
+                              : Stufe.getStufeByString(
+                                      filteredMitglieder[index].stufe)
+                                  .farbe,
+                          Stufe.getStufeByString(
+                                  filteredMitglieder[index].stufe)
+                              .farbe
+                        ],
+                        begin: const FractionalOffset(0.0, 0.0),
+                        end: const FractionalOffset(0.0, 1.0),
+                        stops: const [0.5, 0.5],
+                        tileMode: TileMode.clamp),
+                  ),
+                  width: 5,
+                ),
+                minLeadingWidth: 5,
+                title: filter.sorting == MemberSorting.lastname
+                    ? Text(
+                        '${filteredMitglieder[index].nachname}, ${filteredMitglieder[index].vorname} ')
+                    : Text(
+                        '${filteredMitglieder[index].vorname} ${filteredMitglieder[index].nachname}'),
+                subtitle: switch (filter.subElement) {
+                  MemberSubElement.id =>
+                    Text(filteredMitglieder[index].mitgliedsNummer.toString()),
+                  MemberSubElement.birthday => Text(
+                      DateFormat('d. MMMM yyyy', 'de_DE')
+                          .format(filteredMitglieder[index].geburtsDatum),
+                    )
+                },
+                trailing: Text(filteredMitglieder[index].stufe == 'keine Stufe'
+                    ? (filteredMitglieder[index]
+                            .getActiveTaetigkeiten()
+                            .isNotEmpty
+                        ? filteredMitglieder[index]
+                            .getActiveTaetigkeiten()
+                            .first
+                            .taetigkeit
+                        : '')
+                    : filteredMitglieder[index].stufe),
+              ),
             ),
           ),
         );
       },
     );
+  }
+
+  void toggleFavorites(Mitglied mitglied) {
+    getFavouriteList().contains(mitglied.mitgliedsNummer)
+        ? removeFavouriteList(mitglied.mitgliedsNummer)
+        : addFavouriteList(mitglied.mitgliedsNummer);
   }
 
   Widget _buildFilterGroup() {
@@ -214,7 +244,7 @@ class MitgliedsListeState extends State<MitgliedsListe> {
                   shape: BoxShape.circle,
                   color: filter.filterGroup[stufe.index]
                       ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.surfaceContainer,
+                      : Theme.of(context).colorScheme.secondaryContainer,
                 ),
                 child: Center(
                   child: Image.asset(
@@ -264,7 +294,7 @@ class MitgliedsListeState extends State<MitgliedsListe> {
             if (getNamiChangesEnabled() &&
                 getAllowedFeatures().contains(AllowedFeatures.memberCreate))
               IconButton(
-                icon: const Icon(Icons.person_add),
+                icon: const Icon(Icons.person_add_alt_1),
                 onPressed: () {
                   Wiredash.trackEvent('Mitglied bearbeiten opend');
                   Navigator.push(

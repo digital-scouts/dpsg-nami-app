@@ -155,7 +155,7 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
       ersteUntergliederungId:
           int.parse(_formKey.currentState!.fields['group']!.value.toString()),
       zeitschriftenversand:
-          !_formKey.currentState!.fields['keine_mitgliedszeitschrift']!.value,
+          _formKey.currentState!.fields['mitgliedszeitschrift']!.value,
       wiederverwendenFlag:
           _formKey.currentState!.fields['datenweiterverwendung']!.value,
       strasse: _formKey.currentState!.fields['street']!.value,
@@ -351,18 +351,10 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                     },
                   ),
                   FormBuilderCheckbox(
-                    name: 'stiftungseuro',
+                    name: 'mitgliedszeitschrift',
                     initialValue: true,
                     title: const Text(
-                        '"Ja!" zur Zukunft – "Ja!" zur Stiftung – "Ja!" zu einem Stiftungseuro pro Jahr'),
-                    onChanged: (newValue) {},
-                    controlAffinity: ListTileControlAffinity.leading,
-                  ),
-                  FormBuilderCheckbox(
-                    name: 'keine_mitgliedszeitschrift',
-                    initialValue: false,
-                    title: const Text(
-                        "Ich möchte die Mitgliederzeitschrift nicht zugeschickt bekommen."),
+                        "Ich möchte die Mitgliederzeitschrift zugeschickt bekommen."),
                     onChanged: (newValue) {},
                     controlAffinity: ListTileControlAffinity.leading,
                   ),

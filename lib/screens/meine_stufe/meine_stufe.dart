@@ -57,7 +57,7 @@ class _MeineStufeState extends State<MeineStufe> {
                   text:
                       'Keine Mitglieder hinzugefügt. \nFüge Mitglieder in den Details \nüber '),
               WidgetSpan(
-                child: Icon(Icons.star, size: 20),
+                child: Icon(Icons.bookmark_border, size: 20),
               ),
               TextSpan(text: ' hinzu.'),
             ],

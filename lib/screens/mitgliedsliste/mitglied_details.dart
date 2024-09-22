@@ -498,8 +498,8 @@ class MitgliedDetailState extends State<MitgliedDetail>
                     })
                   },
               icon: isFavorite
-                  ? const Icon(Icons.star)
-                  : const Icon(Icons.star_border_outlined))
+                  ? const Icon(Icons.bookmark)
+                  : const Icon(Icons.bookmark_border))
         ],
       ),
       body: Column(
