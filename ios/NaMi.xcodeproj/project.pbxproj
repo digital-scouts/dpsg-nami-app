@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -376,8 +376,8 @@
 				CURRENT_PROJECT_VERSION = 0.2.0;
 				DEVELOPMENT_TEAM = 6WMJR3R823;
 				ENABLE_BITCODE = NO;
-				FLUTTER_BUILD_NAME = 0.1.1;
-				FLUTTER_BUILD_NUMBER = 0.1.1;
+				FLUTTER_BUILD_NAME = 0.2.0;
+				FLUTTER_BUILD_NUMBER = 0.2.0;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = NaMi;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
@@ -462,8 +462,8 @@
 				CURRENT_PROJECT_VERSION = 0.2.0;
 				DEVELOPMENT_TEAM = 6WMJR3R823;
 				ENABLE_BITCODE = NO;
-				FLUTTER_BUILD_NAME = 0.1.1;
-				FLUTTER_BUILD_NUMBER = 0.1.1;
+				FLUTTER_BUILD_NAME = 0.2.0;
+				FLUTTER_BUILD_NUMBER = 0.2.0;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = NaMi;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
@@ -551,8 +551,8 @@
 				CURRENT_PROJECT_VERSION = 0.2.0;
 				DEVELOPMENT_TEAM = 6WMJR3R823;
 				ENABLE_BITCODE = NO;
-				FLUTTER_BUILD_NAME = 0.1.1;
-				FLUTTER_BUILD_NUMBER = 0.1.1;
+				FLUTTER_BUILD_NAME = 0.2.0;
+				FLUTTER_BUILD_NUMBER = 0.2.0;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = NaMi;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
@@ -694,8 +694,8 @@
 				CURRENT_PROJECT_VERSION = 0.2.0;
 				DEVELOPMENT_TEAM = 6WMJR3R823;
 				ENABLE_BITCODE = NO;
-				FLUTTER_BUILD_NAME = 0.1.1;
-				FLUTTER_BUILD_NUMBER = 0.1.1;
+				FLUTTER_BUILD_NAME = 0.2.0;
+				FLUTTER_BUILD_NUMBER = 0.2.0;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = NaMi;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
@@ -728,8 +728,8 @@
 				CURRENT_PROJECT_VERSION = 0.2.0;
 				DEVELOPMENT_TEAM = 6WMJR3R823;
 				ENABLE_BITCODE = NO;
-				FLUTTER_BUILD_NAME = 0.1.1;
-				FLUTTER_BUILD_NUMBER = 0.1.1;
+				FLUTTER_BUILD_NAME = 0.2.0;
+				FLUTTER_BUILD_NUMBER = 0.2.0;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = NaMi;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";

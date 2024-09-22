@@ -67,7 +67,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
             : 'Mitglied - ${taetigkeit.untergliederung}';
         int sum = tageProStufe[stufe] ?? 0;
 
-        // todo upgrade: show Mietglieds und Leitungszeit pro Stufe wenn Leitungszeit Mitgliedszeit übersteit
+        // TODO upgrade: show Mietglieds und Leitungszeit pro Stufe wenn Leitungszeit Mitgliedszeit übersteit
         int activeDays = (taetigkeit.isActive()
             ? DateTime.now().difference(taetigkeit.aktivVon).inDays
             : taetigkeit.isFutureTaetigkeit()

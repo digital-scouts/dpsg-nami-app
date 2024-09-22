@@ -7,6 +7,7 @@ import 'package:local_auth/local_auth.dart';
 import 'package:nami/main.dart';
 import 'package:nami/screens/utilities/loading_info_screen.dart';
 import 'package:nami/screens/login_screen.dart';
+import 'package:nami/screens/utilities/new_version_info_screen.dart';
 import 'package:nami/screens/utilities/welcome_screen.dart';
 import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/hive/hive.handler.dart';
@@ -17,6 +18,7 @@ import 'package:nami/utilities/nami/nami.service.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
 import 'package:nami/utilities/notifications.dart';
 import 'package:nami/utilities/types.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:wiredash/wiredash.dart';
 
 class AppStateHandler extends ChangeNotifier {
@@ -63,6 +65,40 @@ class AppStateHandler extends ChangeNotifier {
 
   void onResume(BuildContext context) async {
     _paused = false;
+    final packageInfo = await PackageInfo.fromPlatform();
+    final appVersion = packageInfo.version;
+    // first open with new version
+    if (getLastAppVersion() != appVersion) {
+      setNewVersionInfoShown(false);
+      setLastAppVersion(appVersion);
+      // show version info only when user is not new / welcome message was shown before
+      if (getWelcomeMessageShown()) {
+        await Navigator.push(
+          navigatorKey.currentContext!,
+          MaterialPageRoute(
+              builder: (context) => NewVersionInfoScreen(
+                    features: const [
+                      'Bearbeiten und anlegen von Mitgliedern.',
+                      'Ein Stufenwechsel kann jetzt über die Tätigkeiten erfolgen.',
+                      'In den Einstellungen kann das bearbeiten von Daten aktiviert werden.',
+                      'Es wurden anonyme Tracking-Funktionen hinzugefügt um die nutzung der App analysieren zu können.',
+                      'Die Möglichkeit den Entwickler zu loben wurde hinzugefügt.',
+                      'Dieser Screen'
+                    ],
+                    bugFixes: const [
+                      'Passive Mitglieder lassen sich in \'Meine Stufe\' jetzt darstellen.',
+                      'Diverse Fehlerbehebungen die bei einzelnen Datenkonstellationen auftraten.'
+                    ],
+                    dataReset: true,
+                    version: appVersion,
+                  )),
+        );
+        setNewVersionInfoShown(true);
+      }
+
+      // TODO: show new version info
+      // TODO: reset data if nessessary
+    }
 
     /// Prevent changing state while relogin when app comes from background
     if (currentState == AppState.relogin) {

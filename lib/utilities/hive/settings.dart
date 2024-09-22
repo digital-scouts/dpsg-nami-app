@@ -31,7 +31,9 @@ enum SettingValue {
   biometricAuthenticationEnabled,
   namiChangesEnabled,
   rechte,
-  mapTileCachingEnabled
+  mapTileCachingEnabled,
+  lastAppVerion,
+  newVersionInfoShown
 }
 
 void setMetaData(
@@ -354,4 +356,20 @@ void enableMapTileCaching() {
 bool isMapTileCachingEnabled() {
   return settingsBox.get(SettingValue.mapTileCachingEnabled.toString()) ??
       false;
+}
+
+bool isNewVersionInfoShown() {
+  return settingsBox.get(SettingValue.newVersionInfoShown.toString()) ?? false;
+}
+
+String getLastAppVersion() {
+  return settingsBox.get(SettingValue.lastAppVerion.toString()) ?? '';
+}
+
+void setLastAppVersion(String version) {
+  settingsBox.put(SettingValue.lastAppVerion.toString(), version);
+}
+
+void setNewVersionInfoShown(bool value) {
+  settingsBox.put(SettingValue.newVersionInfoShown.toString(), value);
 }
