@@ -113,10 +113,9 @@ Future<String> loadGruppierung() async {
     return await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
   });
 
-// if body['data'].length is 0, user has no rights to see any gruppierung
   if (body['data'].length != 1) {
     sensLog.e('Failed to load gruppierung. Multiple or no gruppierungen found');
-    throw Exception('Failed to load gruppierung');
+    throw InvalidNumberOfGruppierungException();
   }
 
   int gruppierungId = body['data'][0]['id'];

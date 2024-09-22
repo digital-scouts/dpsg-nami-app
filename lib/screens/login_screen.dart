@@ -346,7 +346,10 @@ class LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Widget>[
-                      Image.asset('assets/images/dpsg_logo.png'),
+                      Image.asset(
+                        'assets/images/dpsg_logo.png',
+                        cacheHeight: 444,
+                      ),
                       const SizedBox(height: 30.0),
                       AutofillGroup(
                         child: Column(

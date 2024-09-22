@@ -173,7 +173,7 @@ class AppStateHandler extends ChangeNotifier {
         'Start loading data with loadAll: $loadAll and background: $background');
     ValueNotifier<List<AllowedFeatures>> rechteProgressNotifier =
         ValueNotifier([]);
-    ValueNotifier<String?> gruppierungProgressNotifier = ValueNotifier(null);
+    ValueNotifier<String> gruppierungProgressNotifier = ValueNotifier('');
     ValueNotifier<bool?> metaProgressNotifier = ValueNotifier(null);
     ValueNotifier<bool?> memberOverviewProgressNotifier = ValueNotifier(null);
     ValueNotifier<double> memberAllProgressNotifier = ValueNotifier(0.0);
@@ -216,6 +216,21 @@ class AppStateHandler extends ChangeNotifier {
             "Daten wurden erfolgreich synchronisiert");
       }
       setReadyState();
+    } on InvalidNumberOfGruppierungException catch (_) {
+      sensLog.i('sync failed with invalid number of gruppierungen');
+      Wiredash.trackEvent('Data sync failed', data: {
+        'error': 'Invalid number of gruppierungen',
+      });
+
+      memberAllProgressNotifier.value = 0;
+      rechteProgressNotifier.value = [AllowedFeatures.noPermission];
+      gruppierungProgressNotifier.value = 'null';
+      gruppierungProgressNotifier.value =
+          'Keine oder mehrere Gruppierung(en) gefunden';
+      metaProgressNotifier.value = false;
+      memberOverviewProgressNotifier.value = false;
+
+      syncState = SyncState.noPermission;
     } on SessionExpiredException catch (_) {
       sensLog.i('sync failed with session expired');
       Wiredash.trackEvent('Data sync failed', data: {
@@ -359,7 +374,15 @@ class AppStateHandler extends ChangeNotifier {
   }
 }
 
-enum SyncState { notStarted, loading, successful, offline, error, relogin }
+enum SyncState {
+  notStarted,
+  loading,
+  successful,
+  offline,
+  error,
+  relogin,
+  noPermission
+}
 
 enum AppState {
   /// Only used for initial state

@@ -201,6 +201,7 @@ class _Badge extends StatelessWidget {
         height: 80.0,
         color: imageColor,
         colorBlendMode: BlendMode.srcIn,
+        cacheWidth: 54,
       )),
     );
   }

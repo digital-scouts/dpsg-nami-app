@@ -128,6 +128,7 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
                     backgroundColor: Colors.transparent,
                     child: Image.asset(
                       stufe.imagePath!,
+                      cacheHeight: 50,
                     ),
                   ),
                 ),

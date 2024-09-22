@@ -316,6 +316,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
         height: 80.0,
         color: Stufe.getStufeByString(taetigkeit.untergliederung!).farbe,
         colorBlendMode: BlendMode.srcIn,
+        cacheWidth: 80,
       );
     }
 
@@ -323,6 +324,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
       imagePath,
       width: 80.0,
       height: 80.0,
+      cacheHeight: 80,
     );
   }
 

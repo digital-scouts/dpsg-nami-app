@@ -1,8 +1,15 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:nami/utilities/app.state.dart';
+import 'package:nami/utilities/nami/nami_fz.service.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
 import 'package:nami/utilities/notifications.dart';
+import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:wiredash/wiredash.dart';
+import 'package:nami/utilities/types.dart';
 
 class LoadingInfoScreen extends StatefulWidget {
   final ValueNotifier<List<AllowedFeatures>> rechteProgressNotifier;
@@ -140,6 +147,20 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
                     'Keine Netzwerkverbindung. Versuch es später erneut'),
               )
             else if (context.watch<AppStateHandler>().syncState ==
+                SyncState.noPermission)
+              Column(
+                children: [
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(),
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.block),
+                    label: const Text(
+                        'Du hast nicht die notwendige Berechtigung die App zu nutzen.'),
+                  ),
+                  _buildFuehrungszeugnisBescheinigung()
+                ],
+              )
+            else if (context.watch<AppStateHandler>().syncState ==
                 SyncState.relogin)
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(),
@@ -147,10 +168,57 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
                 icon: const Icon(Icons.sync_problem),
                 label:
                     const Text('Kein Sync möglich ohne erneute Anmeldung. OK'),
-              )
+              ),
           ],
         ),
       ),
+    );
+  }
+
+  // try to show the FuehrungszeugnisBescheinigung even when user has no permission to open the app
+  Widget _buildFuehrungszeugnisBescheinigung() {
+    return FutureBuilder(
+      future: loadFzDocumenets(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError ||
+            snapshot.connectionState == ConnectionState.waiting ||
+            snapshot.requireData.isEmpty) {
+          return Container();
+        }
+
+        final documents = snapshot.requireData;
+        documents.sort((a, b) => b.erstelltAm.compareTo(a.erstelltAm));
+
+        return Card(
+          margin: const EdgeInsets.only(top: 20),
+          child: Column(
+            children: [
+              Text(
+                'Aktuellste Führungszeugnis-Bescheinigung',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              ListTile(
+                title: Text('Bescheinigung (${documents.first.fzNummer})'),
+                isThreeLine: true,
+                subtitle: Text(
+                    'Bescheinigung von: ${documents.first.erstelltAm.prettyPrint()}\nFührungszeugnis von: ${documents.first.fzDatum.prettyPrint()}'),
+                onTap: () {
+                  Wiredash.trackEvent('Führungszeugnis',
+                      data: {'type': 'Bescheinigung laden'});
+                  loadFzDocument(documents.first.id).then((pdfData) async {
+                    final output = await getTemporaryDirectory();
+                    final file = File(
+                        "${output.path}/dpsg-fz-bescheinigung_${documents.first.fzNummer}.pdf");
+                    await file.writeAsBytes(pdfData, flush: true);
+
+                    OpenFile.open(file.path);
+                  });
+                },
+              )
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -183,7 +251,7 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
           ],
         );
       }
-    } else if (value is String) {
+    } else if (value is String && value.isNotEmpty) {
       subtitle = Text(value);
       trailing = successIcon;
     } else if (value is List<AllowedFeatures>) {
@@ -195,7 +263,7 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
       subtitle = Text(
         value.map((e) => e.toReadableString()).join(", "),
       );
-    } else if (value == null) {
+    } else if (value == null || value is String) {
       trailing = const CircularProgressIndicator();
     } else {
       trailing = errorIcon;

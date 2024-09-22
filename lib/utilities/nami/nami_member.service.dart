@@ -228,27 +228,8 @@ Future<void> syncMembers(
   memberOverviewProgressNotifier.value = true;
   sensLog.i('Starte Syncronisation der Mitgliedsdetails');
   final futures = <Future>[];
-  final userMitgliedId = getNamiLoginId()!;
-  if (mitgliedIds.contains(userMitgliedId)) {
-    final userMitgliedDetails = await _storeMitgliedToHive(
-        userMitgliedId,
-        memberBox,
-        url,
-        path,
-        gruppierung,
-        cookie,
-        memberAllProgressNotifier,
-        1 / mitgliedIds.length);
-    if (userMitgliedDetails == null) {
-      throw Exception('Failed to load details of current user');
-    }
-  }
-  final rechte = await loadRechte();
-  setRechte(rechte);
-  rechteProgressNotifier.value = getAllowedFeatures();
 
   for (var mitgliedId in mitgliedIds) {
-    if (mitgliedId == userMitgliedId) continue;
     futures.add(_storeMitgliedToHive(
       mitgliedId,
       memberBox,
@@ -262,6 +243,11 @@ Future<void> syncMembers(
   }
   await Future.wait(futures);
   memberAllProgressNotifier.value = 1.0;
+
+  final rechte = await loadRechte();
+  setRechte(rechte);
+  rechteProgressNotifier.value = getAllowedFeatures();
+
   setLastNamiSync(DateTime.now());
   sensLog.i('Syncronisation der Mitgliedsdetails abgeschlossen');
 }

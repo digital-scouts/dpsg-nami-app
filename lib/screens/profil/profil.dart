@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/nami/model/nami_fz.model.dart';
 import 'package:nami/utilities/nami/nami_fz.service.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
 import 'package:nami/utilities/types.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
 import 'dart:io';
 
 import 'package:wiredash/wiredash.dart';
@@ -18,6 +20,7 @@ class Profil extends StatefulWidget {
 
 class _ProfilState extends State<Profil> {
   var loadingAntrag = false;
+  bool sessionFailed = false;
   Future<List<FzDocument>>? documentsFuture;
 
   @override
@@ -27,7 +30,8 @@ class _ProfilState extends State<Profil> {
   }
 
   Future<void> loadAntrag() async {
-    Wiredash.trackEvent('Führungszeugnis', data: {'type': 'Antrag laden'});
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    Wiredash.trackEvent('Fuehrungszeugnis', data: {'type': 'Antrag laden'});
     setState(() => loadingAntrag = true);
     try {
       final pdfData = await loadFzAntrag();
@@ -36,6 +40,11 @@ class _ProfilState extends State<Profil> {
       await file.writeAsBytes(pdfData, flush: true);
 
       OpenFile.open(file.path);
+    } on NamiServerException catch (_) {
+      scaffoldMessenger.showSnackBar(const SnackBar(
+        content: Text(
+            'Serverfehler. Möglicherweise fehlt die Berechtigung zum laden der Antragsunterlagen.'),
+      ));
     } finally {
       setState(() => loadingAntrag = false);
     }
@@ -50,6 +59,33 @@ class _ProfilState extends State<Profil> {
         }
 
         if (snapshot.hasError) {
+          if (snapshot.error is SessionExpiredException) {
+            setState(() {
+              sessionFailed = true;
+            });
+            // Login abgelaufen -> await setReloginState();
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text("Session abgelaufen. Bitte erneut einloggen."),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () async {
+                      await context
+                          .read<AppStateHandler>()
+                          .setReloginState(showDialog: false);
+
+                      setState(() {
+                        sessionFailed = false;
+                      });
+                    },
+                    child: const Text("Erneut einloggen"),
+                  ),
+                ],
+              ),
+            );
+          }
           return const Center(child: Text("Fehler beim Laden"));
         }
 
@@ -94,19 +130,30 @@ class _ProfilState extends State<Profil> {
           style: Theme.of(context).textTheme.headlineSmall,
         ),
         const SizedBox(height: 8),
-        GestureDetector(
-          onTap: loadAntrag,
-          child: Text(
-            "Antragsunterlagen laden",
-            style: Theme.of(context)
-                .textTheme
-                .bodyLarge!
-                .copyWith(color: Colors.blue),
+        if (!sessionFailed)
+          GestureDetector(
+            onTap: loadAntrag,
+            child: Text(
+              "Antragsunterlagen laden",
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyLarge!
+                  .copyWith(color: Colors.blue),
+            ),
           ),
-        ),
         const SizedBox(height: 8),
         buildFzList(),
       ],
+    );
+  }
+
+  _buildFeatureIcon(bool active, IconData icon, String tooltip) {
+    return Tooltip(
+      message: tooltip,
+      child: Icon(
+        icon,
+        color: active ? Colors.green : Colors.grey,
+      ),
     );
   }
 
@@ -135,36 +182,26 @@ class _ProfilState extends State<Profil> {
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        Icons.visibility,
-                        color: features.contains(AllowedFeatures.appStart)
-                            ? Colors.green
-                            : Colors.grey,
-                      ),
-                      Icon(
-                        Icons.edit,
-                        color: features.contains(AllowedFeatures.memberEdit)
-                            ? Colors.green
-                            : Colors.grey,
-                      ),
-                      Icon(
-                        Icons.person_add_alt_1,
-                        color: features.contains(AllowedFeatures.memberCreate)
-                            ? Colors.green
-                            : Colors.grey,
-                      ),
-                      Icon(
-                        Icons.group_add,
-                        color: features.contains(AllowedFeatures.memberImport)
-                            ? Colors.green
-                            : Colors.grey,
-                      ),
-                      Icon(
-                        Icons.delete,
-                        color: features.contains(AllowedFeatures.membershipEnd)
-                            ? Colors.green
-                            : Colors.grey,
-                      ),
+                      _buildFeatureIcon(
+                          features.contains(AllowedFeatures.appStart),
+                          Icons.visibility,
+                          'Mitglieder anzeigen'),
+                      _buildFeatureIcon(
+                          features.contains(AllowedFeatures.memberEdit),
+                          Icons.edit,
+                          'Mitglieder bearbeiten'),
+                      _buildFeatureIcon(
+                          features.contains(AllowedFeatures.memberCreate),
+                          Icons.person_add_alt_1,
+                          'Mitglieder hinzufügen'),
+                      _buildFeatureIcon(
+                          features.contains(AllowedFeatures.memberImport),
+                          Icons.group_add,
+                          'Mitglieder übernehmen'),
+                      _buildFeatureIcon(
+                          features.contains(AllowedFeatures.membershipEnd),
+                          Icons.delete,
+                          'Mitgliedschaft beenden'),
                     ],
                   ),
                 ),
@@ -175,32 +212,22 @@ class _ProfilState extends State<Profil> {
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        Icons.visibility,
-                        color: features.contains(AllowedFeatures.ausbildungRead)
-                            ? Colors.green
-                            : Colors.grey,
-                      ),
-                      Icon(
-                        Icons.edit,
-                        color: features.contains(AllowedFeatures.ausbildungEdit)
-                            ? Colors.green
-                            : Colors.grey,
-                      ),
-                      Icon(
-                        Icons.add_box,
-                        color:
-                            features.contains(AllowedFeatures.ausbildungCreate)
-                                ? Colors.green
-                                : Colors.grey,
-                      ),
-                      Icon(
-                        Icons.delete,
-                        color:
-                            features.contains(AllowedFeatures.ausbildungDelete)
-                                ? Colors.green
-                                : Colors.grey,
-                      ),
+                      _buildFeatureIcon(
+                          features.contains(AllowedFeatures.ausbildungRead),
+                          Icons.visibility,
+                          'Ausbidlungen anzeigen'),
+                      _buildFeatureIcon(
+                          features.contains(AllowedFeatures.ausbildungEdit),
+                          Icons.edit,
+                          'Ausbildungen bearbeiten'),
+                      _buildFeatureIcon(
+                          features.contains(AllowedFeatures.ausbildungCreate),
+                          Icons.add_box,
+                          'Ausbildungen hinzufügen'),
+                      _buildFeatureIcon(
+                          features.contains(AllowedFeatures.ausbildungDelete),
+                          Icons.delete,
+                          'Ausbildungen löschen'),
                     ],
                   ),
                 ),
@@ -211,9 +238,15 @@ class _ProfilState extends State<Profil> {
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      features.contains(AllowedFeatures.stufenwechsel)
-                          ? const Icon(Icons.check, color: Colors.green)
-                          : const Icon(Icons.close, color: Colors.red),
+                      Tooltip(
+                          message:
+                              features.contains(AllowedFeatures.stufenwechsel)
+                                  ? 'Stufenwechsel erlaubt'
+                                  : 'Stufenwechsel nicht erlaubt',
+                          child:
+                              features.contains(AllowedFeatures.stufenwechsel)
+                                  ? const Icon(Icons.check, color: Colors.green)
+                                  : const Icon(Icons.close, color: Colors.red)),
                     ],
                   ),
                 ),
@@ -221,12 +254,19 @@ class _ProfilState extends State<Profil> {
                   title: const Text(
                     'Führungszeugnis',
                   ),
+                  subtitle: const Text('Laden von SGB VIII-Bescheinigungen'),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      features.contains(AllowedFeatures.fuehrungszeugnis)
-                          ? const Icon(Icons.check, color: Colors.green)
-                          : const Icon(Icons.close, color: Colors.red),
+                      Tooltip(
+                          message: features
+                                  .contains(AllowedFeatures.stufenwechsel)
+                              ? 'Führungszeugnis kann angezeigt werden'
+                              : 'Führungszeugnis kann nicht angezeigt werden',
+                          child: features
+                                  .contains(AllowedFeatures.fuehrungszeugnis)
+                              ? const Icon(Icons.check, color: Colors.green)
+                              : const Icon(Icons.close, color: Colors.red)),
                     ],
                   ),
                 ),

@@ -13,6 +13,10 @@ extension DateTimeExtension on DateTime {
 
 class SessionExpiredException implements Exception {}
 
+class InvalidNumberOfGruppierungException implements Exception {}
+
+class NamiServerException implements Exception {}
+
 class MemberCreationException implements Exception {
   final List<FieldInfo> fieldInfo;
   final String message;

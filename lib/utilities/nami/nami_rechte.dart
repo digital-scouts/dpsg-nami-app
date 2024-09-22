@@ -9,7 +9,8 @@ import 'package:nami/utilities/nami/nami_user_data.dart';
 
 // rechte enum
 enum AllowedFeatures {
-  error,
+  noPermission,
+  unknownError,
   appStart,
   memberEdit,
   memberCreate,
@@ -26,8 +27,10 @@ enum AllowedFeatures {
 extension AllowedFeaturesExtension on AllowedFeatures {
   String toReadableString() {
     switch (this) {
-      case AllowedFeatures.error:
+      case AllowedFeatures.unknownError:
         return 'Fehler, bitte Logs über Einstellungen senden.';
+      case AllowedFeatures.noPermission:
+        return 'Keine Berechtigung';
       case AllowedFeatures.appStart:
         return 'Mitglieder anzeigen';
       case AllowedFeatures.memberEdit:
@@ -75,7 +78,7 @@ Future<List<int>> loadRechte() async {
 List<AllowedFeatures> getAllowedFeatures() {
   final rechte = getRechte();
   if (rechte.isEmpty) {
-    return [AllowedFeatures.error];
+    return [AllowedFeatures.unknownError];
   }
   List<AllowedFeatures> allowedFeatures = [];
   if (rechte.contains(5) &&

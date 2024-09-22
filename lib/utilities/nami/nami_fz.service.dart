@@ -54,6 +54,10 @@ Future<List<int>> loadPdfDocument(String url) async {
   final body = await http.get(Uri.parse(url), headers: {'Cookie': cookie});
 
   // Check if cookie is still valid - withMaybeRetry does not work here
+  if (body.statusCode == 500) {
+    sensLog.e('Failed to load Führungszeugnis Dokument. Server Error.');
+    throw NamiServerException();
+  }
   if (body.statusCode != 200) {
     sensLog.e('Failed to load Führungszeugnis Dokument.');
     throw SessionExpiredException();
