@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:nami/screens/mitgliedsliste/mitglied_details.dart';
 import 'package:nami/utilities/external_apis/geoapify.dart';
 import 'package:nami/utilities/external_apis/iban.dart';
@@ -449,6 +450,19 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                             focusNode: focusNode,
                             decoration: _buildActiveInputDecoration(
                                 'Vollständige deutsche Anschrift'),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Bitte geben Sie eine vollständige Adresse ein';
+                              }
+                              if (_formKey.currentState!.fields['street']!.value
+                                      .isNotEmpty &&
+                                  !_formKey
+                                      .currentState!.fields['street']!.value
+                                      .contains(RegExp(r'\d'))) {
+                                return 'Bitte geben Sie eine Hausnummer ein';
+                              }
+                              return null;
+                            },
                           );
                         },
                       ),
@@ -458,7 +472,9 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                     child: FormBuilderTextField(
                       name: 'street',
                       readOnly: _adressAutocompleteActive,
-                      validator: FormBuilderValidators.required(),
+                      validator: _adressAutocompleteActive
+                          ? null
+                          : FormBuilderValidators.required(),
                       focusNode: _adressAutocompleteActive
                           ? AlwaysDisabledFocusNode()
                           : null,
@@ -480,7 +496,9 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                             ? _buildDisabledInputDecoration('Postleitzahl')
                             : _buildActiveInputDecoration('Postleitzahl'),
                         maxLength: 5,
-                        validator: FormBuilderValidators.required(),
+                        validator: _adressAutocompleteActive
+                            ? null
+                            : FormBuilderValidators.required(),
                         onChanged: (plz) async => {
                           if (!_adressAutocompleteActive)
                             updateCityAfterPlzChange(plz)
@@ -489,7 +507,6 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                       _plzResult.length < 2
                           ? FormBuilderTextField(
                               name: 'ort',
-                              validator: FormBuilderValidators.required(),
                               readOnly: true,
                               focusNode: AlwaysDisabledFocusNode(),
                               decoration: _buildDisabledInputDecoration('Ort'),
@@ -522,7 +539,6 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                   _twoColumnRow(
                     FormBuilderTextField(
                       name: 'bundesland',
-                      validator: FormBuilderValidators.required(),
                       readOnly: true,
                       focusNode: AlwaysDisabledFocusNode(),
                       decoration: _buildDisabledInputDecoration('Bundesland'),
@@ -589,29 +605,48 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                     child: FormBuilderTextField(
                       name: 'iban',
                       maxLength: 22,
-                      onChanged: (iban) async => {
-                        _ibanResult = null,
+                      inputFormatters: [UpperCaseTextFormatter()],
+                      onChanged: (iban) async {
+                        _ibanResult = null;
                         setState(() {
                           _formKey.currentState!.patchValue({
                             'kreititnstitut': '',
                             'bic': '',
                           });
-                        }),
-                        if (iban != null && iban.length == 22)
-                          {
-                            _ibanResult = await validateIban(iban),
-                            if (_ibanResult != null && _ibanResult!.valid)
-                              {
-                                setState(() {
-                                  _formKey.currentState!.patchValue({
-                                    'kreititnstitut': _ibanResult!.name,
-                                    'bic': _ibanResult!.bic,
-                                  });
-                                })
-                              }
+                        });
+
+                        if (iban != null && iban.length == 22) {
+                          _ibanResult = await validateIban(iban);
+                          if (_ibanResult != null && _ibanResult!.valid) {
+                            _formKey.currentState!.fields['iban']!.validate();
+                            setState(() {
+                              _formKey.currentState!.patchValue({
+                                'kreititnstitut': _ibanResult!.name,
+                                'bic': _ibanResult!.bic,
+                              });
+                            });
+                          } else {
+                            // Zeige eine Fehlermeldung an, wenn die IBAN ungültig ist
+                            setState(() {
+                              _formKey.currentState!.fields['iban']!
+                                  .invalidate('Ungültige IBAN');
+                            });
                           }
+                        }
                       },
                       decoration: _buildActiveInputDecoration('IBAN*'),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return null;
+                        }
+                        if (value.length != 22) {
+                          return 'Die IBAN muss 22 Zeichen lang sein';
+                        }
+                        if (_ibanResult != null && !_ibanResult!.valid) {
+                          return 'Ungültige IBAN';
+                        }
+                        return null;
+                      },
                     ),
                   ),
                   _twoColumnRow(
@@ -799,4 +834,15 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
 class AlwaysDisabledFocusNode extends FocusNode {
   @override
   bool get hasFocus => false;
+}
+
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    return TextEditingValue(
+      text: newValue.text.toUpperCase(),
+      selection: newValue.selection,
+    );
+  }
 }
