@@ -251,7 +251,7 @@ class MitgliedsListeState extends State<MitgliedsListe> {
                     stufe.imagePath!,
                     width: 30.0,
                     height: 30.0,
-                    cacheHeight: 50,
+                    cacheHeight: 100,
                   ),
                 ),
               ),

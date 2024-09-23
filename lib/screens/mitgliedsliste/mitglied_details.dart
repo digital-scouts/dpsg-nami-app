@@ -2,21 +2,21 @@ import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:maps_launcher/maps_launcher.dart';
 import 'package:nami/screens/widgets/map.widget.dart';
 import 'package:nami/screens/widgets/mitgliedStufenPieChart.widget.dart';
 import 'package:nami/utilities/helper_functions.dart';
+import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/hive/settings_stufenwechsel.dart';
+import 'package:nami/utilities/hive/taetigkeit.dart';
 import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/nami/nami_edit_taetigkeiten.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
 import 'package:nami/utilities/stufe.dart';
-import 'package:nami/utilities/hive/mitglied.dart';
-import 'package:nami/utilities/hive/taetigkeit.dart';
-import 'package:maps_launcher/maps_launcher.dart';
-import 'package:url_launcher/url_launcher_string.dart';
-import 'package:intl/intl.dart';
 import 'package:nami/utilities/types.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 import 'package:wiredash/wiredash.dart';
 
 // ignore: must_be_immutable
@@ -316,7 +316,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
         height: 80.0,
         color: Stufe.getStufeByString(taetigkeit.untergliederung!).farbe,
         colorBlendMode: BlendMode.srcIn,
-        cacheWidth: 80,
+        cacheWidth: 150,
       );
     }
 
@@ -324,7 +324,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
       imagePath,
       width: 80.0,
       height: 80.0,
-      cacheHeight: 80,
+      cacheHeight: 150,
     );
   }
 
