@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/nami/model/nami_fz.model.dart';
@@ -7,8 +9,6 @@ import 'package:nami/utilities/types.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
-import 'dart:io';
-
 import 'package:wiredash/wiredash.dart';
 
 class Profil extends StatefulWidget {

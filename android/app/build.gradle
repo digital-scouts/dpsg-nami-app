@@ -50,6 +50,14 @@ android {
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
     }
+    buildTypes {
+        release {
+            shrinkResources true
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
 }
 
 flutter {

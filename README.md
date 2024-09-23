@@ -99,7 +99,17 @@ Um die App und deren Funktion verwenden zu können sind bestimmte NaMi-Rechte Vo
 - 320: Mgl-Verwaltung - Mgl. Aktivieren
 - 455: Mgl-Verwaltung - Gruppierung bearbeiten
 
+#### Gruppierung verwalten (Admin)
+
+- 578: Eingangsrechnungen Gruppierung
+- 376: Rechnung lesen
+- 378: Rechnung download
+- 433: Rechnung download
+- 591: Gruppierungsverwaltung
+- 36: Gruppierung lesen
+
 ### Führungszeugnis Unterlagen ansehen/herrunterladen
 
-- 473: Mgl-Verwaltung - Eigene SGB VIII-Bescheinigungen ansehen,
-- 474: Mgl-Verwaltung - Eigene SGB VIII-Bescheinigungen herunterladen,
+- 473: Mgl-Verwaltung - Eigene SGB VIII-Bescheinigungen ansehen
+- 474: Mgl-Verwaltung - Eigene SGB VIII-Bescheinigungen herunterladen
+- Ein Recht die Antragsunterlagen zu erstellen ist nicht definiert (Möglicherweise nut für Beitragspflichtige Mitgliedschaften)
