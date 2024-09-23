@@ -56,4 +56,12 @@ class Taetigkeit {
     }
     return false;
   }
+
+  bool endsInFuture() {
+    DateTime now = DateTime.now();
+    if (aktivBis == null || aktivBis!.isAfter(now)) {
+      return true;
+    }
+    return false;
+  }
 }

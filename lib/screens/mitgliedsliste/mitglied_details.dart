@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:intl/intl.dart';
 import 'package:maps_launcher/maps_launcher.dart';
 import 'package:nami/screens/widgets/map.widget.dart';
@@ -19,7 +20,7 @@ import 'package:nami/utilities/types.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:wiredash/wiredash.dart';
 
-// ignore: must_be_immutable
+// ignore: must_be_immutable - Nach dem Stufenwechsel wird das Mitglied neu geladen
 class MitgliedDetail extends StatefulWidget {
   Mitglied mitglied;
   MitgliedDetail({required this.mitglied, super.key});
@@ -319,18 +320,196 @@ class MitgliedDetailState extends State<MitgliedDetail>
         cacheWidth: 150,
       );
     }
+    bool isDarkTheme = Theme.of(context).brightness == Brightness.dark;
 
     return Image.asset(
       imagePath,
       width: 80.0,
       height: 80.0,
       cacheHeight: 150,
+      color: Color(isDarkTheme ? 0xFF636363 : 0xFF000000),
+      colorBlendMode: BlendMode.srcIn,
+    );
+  }
+
+  void terminateTaetigkeitDialog(BuildContext context, Taetigkeit taetigkeit) {
+    String? gruppierung = getGruppierungName();
+    bool taetigkeitIsFromOtherGroup = taetigkeit.gruppierung != gruppierung;
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Tätigkeit beenden'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: RichText(
+                  text: TextSpan(
+                    children: [
+                      const TextSpan(
+                        text: 'Tätigkeit: ',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      TextSpan(
+                        text:
+                            '${taetigkeit.taetigkeit} ${taetigkeit.untergliederung!.isNotEmpty ? '- ${taetigkeit.untergliederung}' : ''}',
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16.0),
+              const Text('Wann soll die Tätigkeit beendet werden?'),
+              FormBuilderDateTimePicker(
+                inputType: InputType.date,
+                name: 'geburtstag',
+                format: DateFormat('dd.MM.yyyy'),
+              ),
+              const SizedBox(height: 40.0),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: RichText(
+                  text: TextSpan(
+                    children: [
+                      const TextSpan(
+                        text: 'Tätigkeit stattdessen ',
+                      ),
+                      TextSpan(
+                        text: 'löschen',
+                        style: const TextStyle(color: Colors.red),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () {
+                            Navigator.of(context).pop();
+                            openDeleteTaetigkeitDialog(context, taetigkeit);
+                          },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (taetigkeitIsFromOtherGroup)
+                const Padding(
+                  padding: EdgeInsets.only(top: 16.0),
+                  child: Text(
+                    'Die Tätigkeit ist einer anderen Gruppierung zugehörig, bearbeiten ist vermutlich nicht möglich.',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Abbrechen'),
+              onPressed: () {
+                Navigator.of(context).pop(); // Schließt den Dialog
+              },
+            ),
+            TextButton(
+              child: const Text('Speichern'),
+              onPressed: () {
+                // TODO: Fügen Sie hier den Code zum abschließen der Tätigkeit hinzu
+                Navigator.of(context).pop(); // Schließt den Dialog
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void openDeleteTaetigkeitDialog(BuildContext context, Taetigkeit taetigkeit) {
+    String? gruppierung = getGruppierungName();
+    bool taetigkeitIsFromOtherGroup = taetigkeit.gruppierung != gruppierung;
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Tätigkeit löschen'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: RichText(
+                  text: TextSpan(
+                    children: [
+                      const TextSpan(
+                        text: 'Tätigkeit: ',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      TextSpan(
+                        text:
+                            '${taetigkeit.taetigkeit} ${taetigkeit.untergliederung!.isNotEmpty ? '- ${taetigkeit.untergliederung}' : ''}',
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16.0),
+              const Text(
+                  'Sind Sie sicher, dass Sie diese Tätigkeit löschen möchten?'),
+              const SizedBox(height: 16.0),
+              if (taetigkeitIsFromOtherGroup)
+                const Padding(
+                  padding: EdgeInsets.only(top: 16.0),
+                  child: Text(
+                    'Die Tätigkeit ist einer anderen Gruppierung zugehörig, löschen ist vermutlich nicht möglich.',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Abbrechen'),
+              onPressed: () {
+                Navigator.of(context).pop(); // Schließt den Dialog
+              },
+            ),
+            TextButton(
+              onPressed: () {
+                // TODO: Fügen Sie hier den Code zum Löschen der Tätigkeit hinzu
+                Navigator.of(context).pop(); // Schließt den Dialog
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red, // Setzt die Textfarbe auf Rot
+              ),
+              child: const Text('Löschen'),
+            )
+          ],
+        );
+      },
     );
   }
 
   Widget _buildTaetigkeitenItem(Taetigkeit taetigkeit) {
-    return _buildBox(
-      ListTile(
+    return _buildBox(Dismissible(
+      key: Key(taetigkeit.id.toString()),
+      direction: DismissDirection.endToStart,
+      confirmDismiss: (direction) async {
+        if (taetigkeit.endsInFuture()) {
+          terminateTaetigkeitDialog(context, taetigkeit);
+        } else {
+          openDeleteTaetigkeitDialog(context, taetigkeit);
+        }
+        return false;
+      },
+      background: Container(
+        color: taetigkeit.endsInFuture() ? Colors.orange : Colors.red,
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Icon(
+          taetigkeit.endsInFuture() ? Icons.event_busy : Icons.delete,
+          color: Colors.white,
+        ),
+      ),
+      child: ListTile(
         leading: _buildTaetigkeitImage(taetigkeit),
         title: Text(
           '${taetigkeit.taetigkeit} ${taetigkeit.untergliederung!.isNotEmpty ? '- ${taetigkeit.untergliederung}' : ''} ',
@@ -339,7 +518,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
           '${DateFormat('MMMM').format(taetigkeit.aktivVon)} ${taetigkeit.aktivVon.year} ${taetigkeit.aktivBis != null ? '- ${DateFormat('MMMM').format(taetigkeit.aktivBis!)} ${taetigkeit.aktivBis!.year}' : ''} ${getGruppierungName() != taetigkeit.gruppierung ? '\nGruppierung: ${taetigkeit.gruppierung}' : ''}',
         ),
       ),
-    );
+    ));
   }
 
   handleStufenwechsel(int memberId, Taetigkeit currentTaetigkeit, Stufe stufe,
@@ -516,66 +695,66 @@ class MitgliedDetailState extends State<MitgliedDetail>
             ],
           ),
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  ListView(
-                    children: <Widget>[
-                      _buildGeneralInfos(),
-                      _buildAddress(),
-                    ],
-                  ),
-                  ListView(
-                    children: [
-                      if (fakeStufenwechselTaetigkeit != null &&
-                          currentTaetigkeit != null) ...[
-                        Text(
-                          'Zukünftige Tätigkeit',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        _buildStufenwechselItem(
-                            fakeStufenwechselTaetigkeit, currentTaetigkeit),
-                        const SizedBox(height: 10),
-                      ],
-                      if (aktiveTaetigkeiten.isNotEmpty)
-                        Text(
-                          'Aktive Tätigkeiten',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      for (final taetigkeit in aktiveTaetigkeiten)
-                        _buildTaetigkeitenItem(taetigkeit),
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                ListView(
+                  padding: const EdgeInsets.all(10.0),
+                  children: <Widget>[
+                    _buildGeneralInfos(),
+                    _buildAddress(),
+                  ],
+                ),
+                ListView(
+                  padding: const EdgeInsets.all(10.0),
+                  children: [
+                    if (fakeStufenwechselTaetigkeit != null &&
+                        currentTaetigkeit != null) ...[
+                      Text(
+                        'Zukünftige Tätigkeit',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      _buildStufenwechselItem(
+                          fakeStufenwechselTaetigkeit, currentTaetigkeit),
                       const SizedBox(height: 10),
-                      if (vergangeneTaetigkeiten.isNotEmpty)
-                        Text(
-                          'Abgeschlossene Tätigkeiten',
-                          style: Theme.of(context).textTheme.titleMedium,
+                    ],
+                    if (aktiveTaetigkeiten.isNotEmpty)
+                      Text(
+                        'Aktive Tätigkeiten',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    for (final taetigkeit in aktiveTaetigkeiten)
+                      _buildTaetigkeitenItem(taetigkeit),
+                    const SizedBox(height: 10),
+                    if (vergangeneTaetigkeiten.isNotEmpty)
+                      Text(
+                        'Abgeschlossene Tätigkeiten',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    for (final taetigkeit in vergangeneTaetigkeiten)
+                      _buildTaetigkeitenItem(taetigkeit),
+                  ],
+                ),
+                if (showAusbildungen)
+                  ListView(
+                    padding: const EdgeInsets.all(10.0),
+                    children: [
+                      for (final ausbildung in widget.mitglied.ausbildungen)
+                        _buildBox(
+                          ListTile(
+                            leading: const Icon(Icons.school),
+                            title: Text(
+                                ausbildung.baustein.contains('Sonstiges')
+                                    ? ausbildung.name
+                                    : ausbildung.baustein),
+                            isThreeLine: true,
+                            subtitle: Text(
+                                '${ausbildung.baustein.contains('Sonstiges') ? '' : '${ausbildung.name}\n'}${DateFormat('dd. MMMM yyyy').format(ausbildung.datum)}${ausbildung.veranstalter.isEmpty ? '' : ' - ${ausbildung.veranstalter}'}'),
+                          ),
                         ),
-                      for (final taetigkeit in vergangeneTaetigkeiten)
-                        _buildTaetigkeitenItem(taetigkeit),
                     ],
                   ),
-                  if (showAusbildungen)
-                    ListView(
-                      children: [
-                        for (final ausbildung in widget.mitglied.ausbildungen)
-                          _buildBox(
-                            ListTile(
-                              leading: const Icon(Icons.school),
-                              title: Text(
-                                  ausbildung.baustein.contains('Sonstiges')
-                                      ? ausbildung.name
-                                      : ausbildung.baustein),
-                              isThreeLine: true,
-                              subtitle: Text(
-                                  '${ausbildung.baustein.contains('Sonstiges') ? '' : '${ausbildung.name}\n'}${DateFormat('dd. MMMM yyyy').format(ausbildung.datum)}${ausbildung.veranstalter.isEmpty ? '' : ' - ${ausbildung.veranstalter}'}'),
-                            ),
-                          ),
-                      ],
-                    ),
-                ],
-              ),
+              ],
             ),
           ),
         ],
