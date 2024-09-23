@@ -1,21 +1,19 @@
 import 'dart:async';
-
-import 'package:flutter/material.dart';
-import 'package:nami/utilities/hive/ausbildung.dart';
-import 'package:nami/utilities/logger.dart';
-import 'package:nami/utilities/nami/model/nami_member_ausbildung_model.dart';
-import 'package:nami/utilities/nami/nami_member_fake.service.dart';
-import 'package:nami/utilities/nami/nami.service.dart';
-import 'package:nami/utilities/nami/nami_rechte.dart';
-import 'package:nami/utilities/stufe.dart';
-import 'package:nami/utilities/hive/mitglied.dart';
-import 'package:hive_ce/hive.dart';
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
+import 'package:hive_ce/hive.dart';
 import 'package:http/http.dart' as http;
-
+import 'package:nami/utilities/hive/ausbildung.dart';
+import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
+import 'package:nami/utilities/logger.dart';
+import 'package:nami/utilities/nami/model/nami_member_ausbildung_model.dart';
+import 'package:nami/utilities/nami/nami.service.dart';
+import 'package:nami/utilities/nami/nami_member_fake.service.dart';
+import 'package:nami/utilities/nami/nami_rechte.dart';
+import 'package:nami/utilities/stufe.dart';
 
 import 'model/nami_member_details.model.dart';
 import 'model/nami_taetigkeiten.model.dart';
@@ -29,7 +27,7 @@ int _getVersionOfMember(int id, List<Mitglied> mitglieder) {
   }
 }
 
-Future<List<int>> _loadMemberIdsToUpdate(
+Future<Map<int, int>> _loadMemberIdsToUpdate(
     String url, String path, int gruppierung, bool forceUpdate) async {
   String fullUrl =
       '$url$path/mitglied/filtered-for-navigation/gruppierung/gruppierung/$gruppierung/flist?_dc=1635173028278&page=1&start=0&limit=5000';
@@ -41,7 +39,7 @@ Future<List<int>> _loadMemberIdsToUpdate(
 
   List<Mitglied> mitglieder =
       Hive.box<Mitglied>('members').values.toList().cast<Mitglied>();
-  List<int> memberIds = [];
+  Map<int, int> memberIds = {};
   body['data'].forEach((item) {
     if (forceUpdate ||
         _getVersionOfMember(item['id'], mitglieder) !=
@@ -50,7 +48,7 @@ Future<List<int>> _loadMemberIdsToUpdate(
           'Member ${item['entries_vorname']} ${item['id']} needs to be updated. Old Version: ${_getVersionOfMember(item['id'], mitglieder)} New Version: ${item['entries_version']}');
       fileLog.i(
           'Member ${sensId(item['id'])} needs to be updated. Old Version: ${_getVersionOfMember(item['id'], mitglieder)} New Version: ${item['entries_version']}');
-      memberIds.add(item['id']);
+      memberIds[item['id']] = item['entries_mitgliedsNummer'];
     } else {
       consLog.i(
           'Member ${item['entries_vorname']} ${item['id']} is up to date. Version: ${item['entries_version']}');
@@ -200,20 +198,21 @@ Future<void> syncMembers(
   String cookie = getNamiApiCookie();
   String url = getNamiLUrl();
   String path = getNamiPath();
+  int memberId = getNamiLoginId()!;
 
   Box<Mitglied> memberBox = Hive.box('members');
 
   if (cookie == 'testLoginCookie') {
     await storeFakeSetOfMemberInHive(
         memberBox, memberOverviewProgressNotifier, memberAllProgressNotifier);
-    setRechte(await loadRechte());
+    setRechte(await loadRechte(0));
     rechteProgressNotifier.value = getAllowedFeatures();
 
     setLastNamiSync(DateTime.now());
     return;
   }
 
-  List<int> mitgliedIds;
+  Map<int, int> mitgliedIds;
   try {
     mitgliedIds =
         await _loadMemberIdsToUpdate(url, path, gruppierung, forceUpdate);
@@ -225,11 +224,31 @@ Future<void> syncMembers(
   /// Update cookie because it could be new after relogin
   cookie = getNamiApiCookie();
 
+  // find logged in user
+
+  int? loggedInUserId;
+  if (mitgliedIds.containsKey(memberId)) {
+    loggedInUserId = memberId;
+  } else if (mitgliedIds.containsValue(memberId)) {
+    loggedInUserId =
+        mitgliedIds.keys.firstWhere((key) => mitgliedIds[key] == memberId);
+  }
+  if (loggedInUserId == null) {
+    sensLog.e(
+        'Mitgliedsnummer oder ID des eingeloggten Mitglieds nicht in der Gruppierung gefunden');
+    memberOverviewProgressNotifier.value = false;
+    return;
+  }
+
+  final rechte = await loadRechte(loggedInUserId);
+  setRechte(rechte);
+  rechteProgressNotifier.value = getAllowedFeatures();
+
   memberOverviewProgressNotifier.value = true;
   sensLog.i('Starte Syncronisation der Mitgliedsdetails');
   final futures = <Future>[];
 
-  for (var mitgliedId in mitgliedIds) {
+  for (var mitgliedId in mitgliedIds.keys) {
     futures.add(_storeMitgliedToHive(
       mitgliedId,
       memberBox,
@@ -243,10 +262,6 @@ Future<void> syncMembers(
   }
   await Future.wait(futures);
   memberAllProgressNotifier.value = 1.0;
-
-  final rechte = await loadRechte();
-  setRechte(rechte);
-  rechteProgressNotifier.value = getAllowedFeatures();
 
   setLastNamiSync(DateTime.now());
   sensLog.i('Syncronisation der Mitgliedsdetails abgeschlossen');

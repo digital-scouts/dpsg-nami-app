@@ -1,11 +1,9 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
-import 'package:nami/utilities/nami/nami_user_data.dart';
 
 // rechte enum
 enum AllowedFeatures {
@@ -57,7 +55,7 @@ extension AllowedFeaturesExtension on AllowedFeatures {
   }
 }
 
-Future<List<int>> loadRechte() async {
+Future<List<int>> loadRechte(int id) async {
   sensLog.i('Rechte werden geladen');
   final cookie = getNamiApiCookie();
   if (cookie == 'testLoginCookie') {
@@ -65,7 +63,7 @@ Future<List<int>> loadRechte() async {
   }
   Map<int, String> rechte;
   try {
-    rechte = await _loadRechteJson();
+    rechte = await _loadRechteJson(id);
   } catch (e, st) {
     sensLog.e('Failed to load rechte', error: e, stackTrace: st);
     return [];
@@ -127,14 +125,8 @@ List<AllowedFeatures> getAllowedFeatures() {
   return allowedFeatures;
 }
 
-Future<Map<int, String>> _loadRechteJson() async {
-  Mitglied? currentUser = findCurrentUser();
-  if (currentUser == null) {
-    sensLog.e('Failed to find current user in load rechte');
-    throw Exception('Failed to find current user in load rechte');
-  }
-
-  dynamic document = await _loadDocument(currentUser.id!);
+Future<Map<int, String>> _loadRechteJson(int id) async {
+  dynamic document = await _loadDocument(id);
 
   // Finden Sie das relevante <script>-Tags
   final scriptContent =

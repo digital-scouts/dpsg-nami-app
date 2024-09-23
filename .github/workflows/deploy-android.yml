@@ -89,7 +89,7 @@ jobs:
       - run: dart --version
       - run: flutter pub get
       - name: Build aab
-        run: flutter build appbundle
+        run: flutter build appbundle --obfuscate --split-debug-info=build/app/outputs/symbols
         id:
           build_aab
           # Build Android App Bundle which by default will be stored in the
