@@ -14,6 +14,9 @@ enum AllowedFeatures {
   memberCreate,
   memberImport,
   membershipEnd,
+  taetigkeitCreate,
+  taetigkeitEdit,
+  taetigkeitDelete,
   stufenwechsel,
   fuehrungszeugnis,
   ausbildungCreate,
@@ -39,6 +42,12 @@ extension AllowedFeaturesExtension on AllowedFeatures {
         return 'Mitgliedschaft beenden';
       case AllowedFeatures.memberImport:
         return 'Mitglied übernehmen';
+      case AllowedFeatures.taetigkeitCreate:
+        return 'Tätigkeit anlegen';
+      case AllowedFeatures.taetigkeitEdit:
+        return 'Tätigkeit bearbeiten';
+      case AllowedFeatures.taetigkeitDelete:
+        return 'Tätigkeit löschen';
       case AllowedFeatures.stufenwechsel:
         return 'Stufenwechsel';
       case AllowedFeatures.fuehrungszeugnis:
@@ -89,6 +98,15 @@ List<AllowedFeatures> getAllowedFeatures() {
   }
   if (rechte.contains(57) && rechte.contains(59)) {
     allowedFeatures.add(AllowedFeatures.stufenwechsel);
+  }
+  if (rechte.contains(57)) {
+    allowedFeatures.add(AllowedFeatures.taetigkeitEdit);
+  }
+  if (rechte.contains(59)) {
+    allowedFeatures.add(AllowedFeatures.taetigkeitCreate);
+  }
+  if (rechte.contains(186)) {
+    allowedFeatures.add(AllowedFeatures.taetigkeitDelete);
   }
   if (rechte.contains(4) && rechte.contains(57)) {
     allowedFeatures.add(AllowedFeatures.memberEdit);

@@ -177,7 +177,7 @@ class _ProfilState extends State<Profil> {
               children: [
                 ListTile(
                   title: const Text(
-                    'Mitglied/Tätigkeiten',
+                    'Mitglieder',
                   ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -202,6 +202,32 @@ class _ProfilState extends State<Profil> {
                           features.contains(AllowedFeatures.membershipEnd),
                           Icons.delete,
                           'Mitgliedschaft beenden'),
+                    ],
+                  ),
+                ),
+                ListTile(
+                  title: const Text(
+                    'Tätigkeiten',
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildFeatureIcon(
+                          features.contains(AllowedFeatures.appStart),
+                          Icons.visibility,
+                          'Tätigkeiten anzeigen'),
+                      _buildFeatureIcon(
+                          features.contains(AllowedFeatures.taetigkeitEdit),
+                          Icons.edit,
+                          'Tätigkeiten bearbeiten'),
+                      _buildFeatureIcon(
+                          features.contains(AllowedFeatures.taetigkeitCreate),
+                          Icons.add_box,
+                          'Tätigkeiten hinzufügen'),
+                      _buildFeatureIcon(
+                          features.contains(AllowedFeatures.taetigkeitDelete),
+                          Icons.delete,
+                          'Tätigkeiten löschen'),
                     ],
                   ),
                 ),
@@ -235,6 +261,8 @@ class _ProfilState extends State<Profil> {
                   title: const Text(
                     'Stufenwechsel',
                   ),
+                  subtitle:
+                      const Text('Bearbeiten und Erstellen von Tätigkeiten'),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [

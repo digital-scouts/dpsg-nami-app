@@ -505,7 +505,8 @@ class MitgliedDetailState extends State<MitgliedDetail>
       builder: (BuildContext context) {
         return TaetigkeitAnlegen(mitgliedId: widget.mitglied.id!);
       },
-    ).then((_) async {
+    ).then((result) async {
+      if (!result) return;
       // Mitglied aktualisieren, wenn der Dialog geschlossen wird
       Mitglied newMitglied = await updateOneMember(widget.mitglied.id!);
       setState(() {
@@ -840,13 +841,16 @@ class MitgliedDetailState extends State<MitgliedDetail>
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
                           const Spacer(),
-                          TextButton(
-                            onPressed: () => openCreateTaetigkeitDialog(),
-                            child: const Text(
-                              'Weitere hinzufügen',
-                              style: TextStyle(color: Colors.blue),
+                          if (getNamiChangesEnabled() &&
+                              getAllowedFeatures()
+                                  .contains(AllowedFeatures.taetigkeitCreate))
+                            TextButton(
+                              onPressed: () => openCreateTaetigkeitDialog(),
+                              child: const Text(
+                                'Weitere hinzufügen',
+                                style: TextStyle(color: Colors.blue),
+                              ),
                             ),
-                          ),
                         ],
                       ),
                       _buildStufenwechselItem(
@@ -861,33 +865,39 @@ class MitgliedDetailState extends State<MitgliedDetail>
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
                           const Spacer(),
-                          if (fakeStufenwechselTaetigkeit == null ||
-                              currentTaetigkeit == null)
-                            TextButton(
-                              onPressed: () => openCreateTaetigkeitDialog(),
-                              child: const Text(
-                                'Weitere hinzufügen',
-                                style: TextStyle(color: Colors.blue),
+                          if (getNamiChangesEnabled() &&
+                              getAllowedFeatures()
+                                  .contains(AllowedFeatures.taetigkeitCreate))
+                            if (fakeStufenwechselTaetigkeit == null ||
+                                currentTaetigkeit == null)
+                              TextButton(
+                                onPressed: () => openCreateTaetigkeitDialog(),
+                                child: const Text(
+                                  'Weitere hinzufügen',
+                                  style: TextStyle(color: Colors.blue),
+                                ),
                               ),
-                            ),
                         ],
                       ),
                     for (final taetigkeit in aktiveTaetigkeiten)
                       _buildTaetigkeitenItem(taetigkeit),
                     const SizedBox(height: 10),
-                    if ((fakeStufenwechselTaetigkeit == null ||
-                            currentTaetigkeit == null) &&
-                        aktiveTaetigkeiten.isEmpty)
-                      Align(
-                        alignment: Alignment.center,
-                        child: TextButton(
-                          onPressed: () => openCreateTaetigkeitDialog(),
-                          child: const Text(
-                            'Neue Tätigkeit erstellen',
-                            style: TextStyle(color: Colors.blue),
+                    if (getNamiChangesEnabled() &&
+                        getAllowedFeatures()
+                            .contains(AllowedFeatures.taetigkeitCreate))
+                      if ((fakeStufenwechselTaetigkeit == null ||
+                              currentTaetigkeit == null) &&
+                          aktiveTaetigkeiten.isEmpty)
+                        Align(
+                          alignment: Alignment.center,
+                          child: TextButton(
+                            onPressed: () => openCreateTaetigkeitDialog(),
+                            child: const Text(
+                              'Neue Tätigkeit erstellen',
+                              style: TextStyle(color: Colors.blue),
+                            ),
                           ),
                         ),
-                      ),
                     if (vergangeneTaetigkeiten.isNotEmpty)
                       Text(
                         'Abgeschlossene Tätigkeiten',

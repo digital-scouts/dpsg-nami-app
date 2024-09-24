@@ -136,7 +136,7 @@ class TaetigkeitAnlegenState extends State<TaetigkeitAnlegen> {
         TextButton(
           child: const Text('Abbrechen'),
           onPressed: () {
-            Navigator.of(context).pop();
+            Navigator.of(context).pop(false);
           },
         ),
         TextButton(
@@ -152,7 +152,7 @@ class TaetigkeitAnlegenState extends State<TaetigkeitAnlegen> {
                 caeaGroup: _formKey.currentState!.value['caeaGroup'].toString(),
               );
 
-              Navigator.of(context).pop();
+              Navigator.of(context).pop(true);
             }
           },
         ),
