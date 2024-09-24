@@ -4,6 +4,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
+import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:intl/intl.dart';
 import 'package:maps_launcher/maps_launcher.dart';
 import 'package:nami/screens/widgets/map.widget.dart';
@@ -13,8 +14,9 @@ import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/hive/settings_stufenwechsel.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
 import 'package:nami/utilities/logger.dart';
-import 'package:nami/utilities/nami/nami_edit_taetigkeiten.dart';
+import 'package:nami/utilities/nami/nami_member.service.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
+import 'package:nami/utilities/nami/nami_taetigkeiten.service.dart';
 import 'package:nami/utilities/stufe.dart';
 import 'package:nami/utilities/types.dart';
 import 'package:url_launcher/url_launcher_string.dart';
@@ -390,90 +392,137 @@ class MitgliedDetailState extends State<MitgliedDetail>
   void terminateTaetigkeitDialog(BuildContext context, Taetigkeit taetigkeit) {
     String? gruppierung = getGruppierungName();
     bool taetigkeitIsFromOtherGroup = taetigkeit.gruppierung != gruppierung;
+    final formKey = GlobalKey<FormBuilderState>();
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Tätigkeit beenden'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: RichText(
-                  text: TextSpan(
-                    children: [
-                      const TextSpan(
-                        text: 'Tätigkeit: ',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
+          content: FormBuilder(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: RichText(
+                    text: TextSpan(
+                      children: [
+                        const TextSpan(
+                          text: 'Tätigkeit: ',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      TextSpan(
-                        text:
-                            '${taetigkeit.taetigkeit} ${taetigkeit.untergliederung!.isNotEmpty ? '- ${taetigkeit.untergliederung}' : ''}',
-                      ),
-                    ],
+                        TextSpan(
+                          text:
+                              '${taetigkeit.taetigkeit} ${taetigkeit.untergliederung!.isNotEmpty ? '- ${taetigkeit.untergliederung}' : ''}',
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16.0),
-              const Text('Wann soll die Tätigkeit beendet werden?'),
-              FormBuilderDateTimePicker(
-                inputType: InputType.date,
-                name: 'geburtstag',
-                format: DateFormat('dd.MM.yyyy'),
-              ),
-              const SizedBox(height: 40.0),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: RichText(
-                  text: TextSpan(
-                    children: [
-                      const TextSpan(
-                        text: 'Tätigkeit stattdessen ',
-                      ),
-                      TextSpan(
-                        text: 'löschen',
-                        style: const TextStyle(color: Colors.red),
-                        recognizer: TapGestureRecognizer()
-                          ..onTap = () {
-                            Navigator.of(context).pop();
-                            openDeleteTaetigkeitDialog(context, taetigkeit);
-                          },
-                      ),
-                    ],
+                const SizedBox(height: 16.0),
+                const Text('Wann soll die Tätigkeit beendet werden?'),
+                FormBuilderDateTimePicker(
+                  inputType: InputType.date,
+                  name: 'beendigungDatum',
+                  format: DateFormat('dd.MM.yyyy'),
+                  validator: FormBuilderValidators.compose([
+                    FormBuilderValidators.required(),
+                    (val) {
+                      if (val == null) return null;
+                      if (val.isBefore(taetigkeit.aktivVon)) {
+                        return 'Das Datum muss nach ${taetigkeit.aktivVon.prettyPrint()} liegen.';
+                      }
+                      return null;
+                    },
+                  ]),
+                ),
+                const SizedBox(height: 40.0),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: RichText(
+                    text: TextSpan(
+                      children: [
+                        const TextSpan(
+                          text: 'Tätigkeit stattdessen ',
+                        ),
+                        TextSpan(
+                          text: 'löschen',
+                          style: const TextStyle(color: Colors.red),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () {
+                              Navigator.of(context).pop();
+                              openDeleteTaetigkeitDialog(context, taetigkeit);
+                            },
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              if (taetigkeitIsFromOtherGroup)
-                const Padding(
-                  padding: EdgeInsets.only(top: 16.0),
-                  child: Text(
-                    'Die Tätigkeit ist einer anderen Gruppierung zugehörig, bearbeiten ist vermutlich nicht möglich.',
-                    style: TextStyle(color: Colors.red),
+                if (taetigkeitIsFromOtherGroup)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 16.0),
+                    child: Text(
+                      'Die Tätigkeit ist einer anderen Gruppierung zugehörig, bearbeiten ist vermutlich nicht möglich.',
+                      style: TextStyle(color: Colors.red),
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
           actions: <Widget>[
             TextButton(
               child: const Text('Abbrechen'),
               onPressed: () {
-                Navigator.of(context).pop(); // Schließt den Dialog
+                Navigator.of(context).pop();
               },
             ),
             TextButton(
               child: const Text('Speichern'),
-              onPressed: () {
-                // TODO: Fügen Sie hier den Code zum abschließen der Tätigkeit hinzu
-                Navigator.of(context).pop(); // Schließt den Dialog
+              onPressed: () async {
+                if (formKey.currentState
+                        ?.saveAndValidate(focusOnInvalid: false) ??
+                    false) {
+                  completeTaetigkeit(widget.mitglied.id!, taetigkeit,
+                      formKey.currentState?.fields['beendigungDatum']?.value);
+                  Navigator.of(context).pop();
+                }
               },
             ),
           ],
         );
       },
     );
+  }
+
+  Future<void> completeTaetigkeit(
+      int memberId, Taetigkeit taetigkeit, DateTime endDate) async {
+    Wiredash.trackEvent('Tätigkeit beenden');
+    sensLog.i(
+        'Tätigkeit für Mitglied: ${sensId(memberId)} | Tätigkeit: ${taetigkeit.id} beenden');
+    await completeTaetigkeit(memberId, taetigkeit, endDate);
+    Mitglied newMitglied = await updateOneMember(memberId);
+    setState(() => widget.mitglied = newMitglied);
+
+    // ignore: use_build_context_synchronously
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Tätigkeit beendet'),
+        duration: Duration(milliseconds: 700),
+      ),
+    );
+  }
+
+  Future<void> deleteTaetigkeit(int memberId, Taetigkeit taetigkeit) async {
+    Wiredash.trackEvent('Tätigkeit löschen');
+    sensLog.i(
+        'Tätigkeit für Mitglied: ${sensId(memberId)} | Tätigkeit: ${taetigkeit.id} löschen');
+    await deleteTaetigkeit(memberId, taetigkeit);
+    Mitglied newMitglied = await updateOneMember(memberId);
+    setState(() => widget.mitglied = newMitglied);
   }
 
   void openDeleteTaetigkeitDialog(BuildContext context, Taetigkeit taetigkeit) {
@@ -524,16 +573,16 @@ class MitgliedDetailState extends State<MitgliedDetail>
             TextButton(
               child: const Text('Abbrechen'),
               onPressed: () {
-                Navigator.of(context).pop(); // Schließt den Dialog
+                Navigator.of(context).pop();
               },
             ),
             TextButton(
               onPressed: () {
-                // TODO: Fügen Sie hier den Code zum Löschen der Tätigkeit hinzu
-                Navigator.of(context).pop(); // Schließt den Dialog
+                deleteTaetigkeit(widget.mitglied.id!, taetigkeit);
+                Navigator.of(context).pop();
               },
               style: TextButton.styleFrom(
-                foregroundColor: Colors.red, // Setzt die Textfarbe auf Rot
+                foregroundColor: Colors.red,
               ),
               child: const Text('Löschen'),
             )
