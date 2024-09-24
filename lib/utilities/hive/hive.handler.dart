@@ -1,11 +1,11 @@
+import 'dart:convert';
+
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:nami/utilities/hive/ausbildung.dart';
 import 'package:nami/utilities/hive/settings.dart';
-
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
 import 'package:nami/utilities/logger.dart';
-import 'dart:convert';
 
 import 'mitglied.dart';
 
@@ -22,6 +22,7 @@ void logout() {
   // login data
   deleteNamiApiCookie();
   deleteNamiLoginId();
+  deleteLoggedInUserId();
   deleteNamiPassword();
 
   // other Stuff

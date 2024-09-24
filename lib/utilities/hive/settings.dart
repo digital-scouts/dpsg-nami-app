@@ -6,6 +6,7 @@ import 'package:nami/utilities/mitglied.filterAndSort.dart';
 enum SettingValue {
   namiApiCookie,
   namiLoginId,
+  loggedInUserId,
   namiPassword,
   namiUrl,
   namiPath,
@@ -209,6 +210,10 @@ void setNamiLoginId(int loginId) async {
   settingsBox.put(SettingValue.namiLoginId.toString(), loginId);
 }
 
+void setLoggedInUserId(int userId) async {
+  settingsBox.put(SettingValue.loggedInUserId.toString(), userId);
+}
+
 void setNamiPassword(String password) async {
   settingsBox.put(SettingValue.namiPassword.toString(), password);
 }
@@ -284,6 +289,10 @@ int? getNamiLoginId() {
   return settingsBox.get(SettingValue.namiLoginId.toString());
 }
 
+int? getLoggedInUserId() {
+  return settingsBox.get(SettingValue.loggedInUserId.toString());
+}
+
 String? getNamiPassword() {
   return settingsBox.get(SettingValue.namiPassword.toString());
 }
@@ -337,6 +346,10 @@ void deleteLastNamiSyncTry() {
 
 void deleteNamiLoginId() {
   settingsBox.delete(SettingValue.namiLoginId.toString());
+}
+
+void deleteLoggedInUserId() {
+  settingsBox.delete(SettingValue.loggedInUserId.toString());
 }
 
 void deleteNamiPassword() {

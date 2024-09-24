@@ -14,6 +14,7 @@ import 'package:nami/utilities/nami/nami.service.dart';
 import 'package:nami/utilities/nami/nami_member_fake.service.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
 import 'package:nami/utilities/stufe.dart';
+import 'package:nami/utilities/types.dart';
 
 import 'model/nami_member_details.model.dart';
 import 'model/nami_taetigkeiten.model.dart';
@@ -226,18 +227,22 @@ Future<void> syncMembers(
 
   // find logged in user
 
-  int? loggedInUserId;
-  if (mitgliedIds.containsKey(memberId)) {
-    loggedInUserId = memberId;
-  } else if (mitgliedIds.containsValue(memberId)) {
-    loggedInUserId =
-        mitgliedIds.keys.firstWhere((key) => mitgliedIds[key] == memberId);
-  }
+  int? loggedInUserId = getLoggedInUserId();
   if (loggedInUserId == null) {
-    sensLog.e(
-        'Mitgliedsnummer oder ID des eingeloggten Mitglieds nicht in der Gruppierung gefunden');
-    memberOverviewProgressNotifier.value = false;
-    return;
+    if (mitgliedIds.containsKey(memberId)) {
+      loggedInUserId = memberId;
+      setLoggedInUserId(loggedInUserId);
+    } else if (mitgliedIds.containsValue(memberId)) {
+      loggedInUserId =
+          mitgliedIds.keys.firstWhere((key) => mitgliedIds[key] == memberId);
+      setLoggedInUserId(loggedInUserId);
+    }
+    if (loggedInUserId == null) {
+      sensLog.e(
+          'Mitgliedsnummer oder ID des eingeloggten Mitglieds nicht in der Gruppierung gefunden');
+      memberOverviewProgressNotifier.value = false;
+      throw SessionExpiredException();
+    }
   }
 
   final rechte = await loadRechte(loggedInUserId);
