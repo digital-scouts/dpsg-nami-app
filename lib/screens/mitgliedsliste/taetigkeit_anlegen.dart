@@ -152,6 +152,7 @@ class TaetigkeitAnlegenState extends State<TaetigkeitAnlegen> {
                 caeaGroup: _formKey.currentState!.value['caeaGroup'].toString(),
               );
 
+              // ignore: use_build_context_synchronously
               Navigator.of(context).pop(true);
             }
           },
