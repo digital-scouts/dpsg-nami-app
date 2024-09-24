@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:intl/intl.dart';
 import 'package:maps_launcher/maps_launcher.dart';
@@ -240,6 +241,36 @@ class MitgliedDetailState extends State<MitgliedDetail>
     );
   }
 
+  Widget _buildMitgliedschaft() {
+    final Mitglied mitglied = widget.mitglied;
+    final Map<String, String> beitragsartOptions = getMetaBeitragsartOptions();
+    final Map<String, String> mitgliedstypOptions =
+        getMetaMitgliedstypOptions();
+    final beitragsart =
+        beitragsartOptions[mitglied.beitragsartId.toString()] ?? 'Unbekannt';
+    final mitgliedstyp =
+        mitgliedstypOptions[mitglied.mglTypeId.toString()] ?? 'Unbekannt';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Mitgliedschaft",
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        _buildBox(Column(children: [
+          _buildListTile(Icons.tag, 'NaMi Mitgliedsnummer',
+              mitglied.mitgliedsNummer.toString(),
+              copy: true),
+          _buildListTile(Icons.event, 'Eintrittsdatum',
+              mitglied.eintrittsdatum.prettyPrint()),
+          _buildListTile(Icons.wallet_membership, 'Mitgliedstyp',
+              '$beitragsart ($mitgliedstyp)'),
+          _buildListTile(Icons.check, 'Status', mitglied.status.toString()),
+        ])),
+      ],
+    );
+  }
+
   Widget _buildGeneralInfos() {
     final mitglied = widget.mitglied;
     final int age = mitglied.getAlterAm();
@@ -253,54 +284,74 @@ class MitgliedDetailState extends State<MitgliedDetail>
         _buildBox(
           Column(
             children: [
-              ListTile(
-                leading: const Icon(Icons.event),
-                subtitle: const Text('Alter'),
-                title: Text(
-                    "$age (${widget.mitglied.geburtsDatum.prettyPrint()})"),
-              ),
+              _buildListTile(Icons.cake, 'Geburtstag',
+                  "$age (${widget.mitglied.geburtsDatum.prettyPrint()})"),
               if (mitglied.email.isNotNullOrEmpty)
-                ListTile(
-                  leading: const Icon(Icons.email),
-                  subtitle: const Text('E-Mail'),
-                  title: _buildLinkText("mailto", mitglied.email!),
-                ),
+                _buildListTile(Icons.email, 'E-Mail', mitglied.email!,
+                    copy: true, isLink: true, linkType: 'mailto'),
               if (mitglied.emailVertretungsberechtigter.isNotNullOrEmpty)
-                ListTile(
-                  leading: const Icon(Icons.email),
-                  subtitle: const Text('E-Mail Vertretungsberechtigter'),
-                  title: _buildLinkText(
-                    "mailto",
-                    mitglied.emailVertretungsberechtigter!,
-                  ),
+                _buildListTile(
+                  Icons.email,
+                  'E-Mail Vertretungsberechtigter',
+                  mitglied.emailVertretungsberechtigter!,
+                  copy: true,
+                  isLink: true,
+                  linkType: 'mailto',
                 ),
               if (mitglied.telefon1.isNotNullOrEmpty)
-                ListTile(
-                  leading: const Icon(Icons.call),
-                  subtitle: const Text('Festnetznummer'),
-                  title: _buildLinkText("tel", mitglied.telefon1!),
+                _buildListTile(
+                  Icons.call,
+                  'Festnetznummer',
+                  mitglied.telefon1!,
+                  copy: true,
+                  isLink: true,
+                  linkType: 'tel',
                 ),
               if (mitglied.telefon2.isNotNullOrEmpty)
-                ListTile(
-                  leading: const Icon(Icons.call),
-                  subtitle: const Text('Mobilfunknummer'),
-                  title: _buildLinkText("tel", mitglied.telefon2!),
+                _buildListTile(
+                  Icons.call,
+                  'Mobilfunknummer',
+                  mitglied.telefon2!,
+                  copy: true,
+                  isLink: true,
+                  linkType: 'tel',
                 ),
               if (mitglied.telefon3.isNotNullOrEmpty)
-                ListTile(
-                  leading: const Icon(Icons.call),
-                  subtitle: const Text('Geschäftlich'),
-                  title: _buildLinkText("tel", mitglied.telefon3!),
+                _buildListTile(
+                  Icons.call,
+                  'Geschäftlich',
+                  mitglied.telefon3!,
+                  copy: true,
+                  isLink: true,
+                  linkType: 'tel',
                 ),
-              ListTile(
-                leading: const Icon(Icons.tag),
-                subtitle: const Text('NaMi Mitgliedsnummer'),
-                title: Text(mitglied.mitgliedsNummer.toString()),
-              ),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildListTile(IconData icon, String subtitle, String title,
+      {bool copy = false, bool isLink = false, String? linkType}) {
+    return ListTile(
+      leading: Icon(icon),
+      subtitle: Text(subtitle),
+      title: isLink ? _buildLinkText(linkType!, title) : Text(title),
+      trailing: copy
+          ? IconButton(
+              icon: const Icon(Icons.copy),
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: title));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Kopiert'),
+                    duration: Duration(milliseconds: 700),
+                  ),
+                );
+              },
+            )
+          : null,
     );
   }
 
@@ -708,6 +759,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
                   children: <Widget>[
                     _buildGeneralInfos(),
                     _buildAddress(),
+                    _buildMitgliedschaft(),
                   ],
                 ),
                 ListView(
