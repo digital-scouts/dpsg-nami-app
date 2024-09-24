@@ -306,13 +306,18 @@ class MitgliedDetailState extends State<MitgliedDetail>
   }
 
   Widget _buildTaetigkeitImage(Taetigkeit taetigkeit) {
-    String imagePath = 'assets/images/lilie_schwarz.png';
+    String liliePath = 'assets/images/lilie_schwarz.png';
+
     if (taetigkeit.taetigkeit.trim() == 'Mitglied') {
-      imagePath =
-          Stufe.getStufeByString(taetigkeit.untergliederung!).imagePath!;
+      return Image.asset(
+        Stufe.getStufeByString(taetigkeit.untergliederung!).imagePath!,
+        width: 80.0,
+        height: 80.0,
+        cacheHeight: 150,
+      );
     } else if (taetigkeit.taetigkeit.contains('LeiterIn')) {
       return Image.asset(
-        imagePath,
+        liliePath,
         width: 80.0,
         height: 80.0,
         color: Stufe.getStufeByString(taetigkeit.untergliederung!).farbe,
@@ -323,7 +328,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
     bool isDarkTheme = Theme.of(context).brightness == Brightness.dark;
 
     return Image.asset(
-      imagePath,
+      liliePath,
       width: 80.0,
       height: 80.0,
       cacheHeight: 150,
