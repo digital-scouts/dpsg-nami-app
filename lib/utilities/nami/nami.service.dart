@@ -1,13 +1,15 @@
 import 'dart:convert';
+
 import 'package:html/dom.dart';
 import 'package:html/parser.dart';
 import 'package:http/http.dart' as http;
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/nami/nami_login.service.dart';
-import 'package:nami/utilities/types.dart';
-import 'model/nami_stats.model.dart';
 import 'package:nami/utilities/nami/nami_member_add_meta.dart';
+import 'package:nami/utilities/types.dart';
+
+import 'model/nami_stats.model.dart';
 
 /// Calls [func] and returns the json decoded body if reuqest ws succsessful
 ///
@@ -19,11 +21,12 @@ import 'package:nami/utilities/nami/nami_member_add_meta.dart';
 dynamic withMaybeRetry(Future<http.Response> Function() func,
     [String? errorMessage]) async {
   final response = await func();
-  late final body = jsonDecode(response.body);
-  if (response.statusCode == 200 && body['success']) {
-    return body;
-  } else if (response.statusCode == 200 &&
-      body["message"] == "Session expired") {
+
+  if (response.statusCode == 200 && jsonDecode(response.body)['success']) {
+    return jsonDecode(response.body);
+  } else if (response.statusCode == 500 ||
+      (response.statusCode == 200 &&
+          jsonDecode(response.body)["message"] == "Session expired")) {
     final success = await updateLoginData();
     if (success) {
       final response = await func();
@@ -38,7 +41,7 @@ dynamic withMaybeRetry(Future<http.Response> Function() func,
     }
   } else {
     sensLog.e(
-        'withMaybeRetry: ${body["message"]} Failed to load with status code ${response.statusCode}. Custom Message: $errorMessage');
+        'withMaybeRetry: ${jsonDecode(response.body)["message"]} Failed to load with status code ${response.statusCode}. Custom Message: $errorMessage');
     throw Exception(
         'Failed to load with status code ${response.statusCode}. Custom Message: $errorMessage');
   }

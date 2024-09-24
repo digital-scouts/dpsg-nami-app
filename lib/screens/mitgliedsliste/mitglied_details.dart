@@ -7,6 +7,7 @@ import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:intl/intl.dart';
 import 'package:maps_launcher/maps_launcher.dart';
+import 'package:nami/screens/mitgliedsliste/taetigkeit_anlegen.dart';
 import 'package:nami/screens/widgets/map.widget.dart';
 import 'package:nami/screens/widgets/mitgliedStufenPieChart.widget.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
@@ -486,7 +487,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
                 if (formKey.currentState
                         ?.saveAndValidate(focusOnInvalid: false) ??
                     false) {
-                  completeTaetigkeit(widget.mitglied.id!, taetigkeit,
+                  completeTaetigkeitConfirmed(widget.mitglied.id!, taetigkeit,
                       formKey.currentState?.fields['beendigungDatum']?.value);
                   Navigator.of(context).pop();
                 }
@@ -498,9 +499,24 @@ class MitgliedDetailState extends State<MitgliedDetail>
     );
   }
 
-  Future<void> completeTaetigkeit(
+  void openCreateTaetigkeitDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return TaetigkeitAnlegen(mitgliedId: widget.mitglied.id!);
+      },
+    ).then((_) async {
+      // Mitglied aktualisieren, wenn der Dialog geschlossen wird
+      Mitglied newMitglied = await updateOneMember(widget.mitglied.id!);
+      setState(() {
+        widget.mitglied = newMitglied;
+      });
+    });
+  }
+
+  Future<void> completeTaetigkeitConfirmed(
       int memberId, Taetigkeit taetigkeit, DateTime endDate) async {
-    Wiredash.trackEvent('Tätigkeit beenden');
+    Wiredash.trackEvent('Taetigkeit beenden');
     sensLog.i(
         'Tätigkeit für Mitglied: ${sensId(memberId)} | Tätigkeit: ${taetigkeit.id} beenden');
     await completeTaetigkeit(memberId, taetigkeit, endDate);
@@ -516,8 +532,9 @@ class MitgliedDetailState extends State<MitgliedDetail>
     );
   }
 
-  Future<void> deleteTaetigkeit(int memberId, Taetigkeit taetigkeit) async {
-    Wiredash.trackEvent('Tätigkeit löschen');
+  Future<void> deleteTaetigkeitConfirmed(
+      int memberId, Taetigkeit taetigkeit) async {
+    Wiredash.trackEvent('Taetigkeit löschen');
     sensLog.i(
         'Tätigkeit für Mitglied: ${sensId(memberId)} | Tätigkeit: ${taetigkeit.id} löschen');
     await deleteTaetigkeit(memberId, taetigkeit);
@@ -578,7 +595,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
             ),
             TextButton(
               onPressed: () {
-                deleteTaetigkeit(widget.mitglied.id!, taetigkeit);
+                deleteTaetigkeitConfirmed(widget.mitglied.id!, taetigkeit);
                 Navigator.of(context).pop();
               },
               style: TextButton.styleFrom(
@@ -816,22 +833,61 @@ class MitgliedDetailState extends State<MitgliedDetail>
                   children: [
                     if (fakeStufenwechselTaetigkeit != null &&
                         currentTaetigkeit != null) ...[
-                      Text(
-                        'Zukünftige Tätigkeit',
-                        style: Theme.of(context).textTheme.titleMedium,
+                      Row(
+                        children: [
+                          Text(
+                            'Zukünftige Tätigkeit',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const Spacer(),
+                          TextButton(
+                            onPressed: () => openCreateTaetigkeitDialog(),
+                            child: const Text(
+                              'Weitere hinzufügen',
+                              style: TextStyle(color: Colors.blue),
+                            ),
+                          ),
+                        ],
                       ),
                       _buildStufenwechselItem(
                           fakeStufenwechselTaetigkeit, currentTaetigkeit),
                       const SizedBox(height: 10),
                     ],
                     if (aktiveTaetigkeiten.isNotEmpty)
-                      Text(
-                        'Aktive Tätigkeiten',
-                        style: Theme.of(context).textTheme.titleMedium,
+                      Row(
+                        children: [
+                          Text(
+                            'Aktive Tätigkeiten',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const Spacer(),
+                          if (fakeStufenwechselTaetigkeit == null ||
+                              currentTaetigkeit == null)
+                            TextButton(
+                              onPressed: () => openCreateTaetigkeitDialog(),
+                              child: const Text(
+                                'Weitere hinzufügen',
+                                style: TextStyle(color: Colors.blue),
+                              ),
+                            ),
+                        ],
                       ),
                     for (final taetigkeit in aktiveTaetigkeiten)
                       _buildTaetigkeitenItem(taetigkeit),
                     const SizedBox(height: 10),
+                    if ((fakeStufenwechselTaetigkeit == null ||
+                            currentTaetigkeit == null) &&
+                        aktiveTaetigkeiten.isEmpty)
+                      Align(
+                        alignment: Alignment.center,
+                        child: TextButton(
+                          onPressed: () => openCreateTaetigkeitDialog(),
+                          child: const Text(
+                            'Neue Tätigkeit erstellen',
+                            style: TextStyle(color: Colors.blue),
+                          ),
+                        ),
+                      ),
                     if (vergangeneTaetigkeiten.isNotEmpty)
                       Text(
                         'Abgeschlossene Tätigkeiten',

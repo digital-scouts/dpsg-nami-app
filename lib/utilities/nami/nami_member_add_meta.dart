@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:nami/utilities/hive/settings.dart';
 import 'package:http/http.dart' as http;
+import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
 
 const String testCoockieName = 'testLoginCookie';

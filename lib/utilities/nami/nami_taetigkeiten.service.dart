@@ -27,7 +27,8 @@ Future<Mitglied> stufenwechsel(int memberId, Taetigkeit currentTaetigkeit,
 }
 
 Future<void> createTaetigkeit(int memberId, DateTime startDate,
-    int taetigkeitId, int untergliederungId) async {
+    String taetigkeitId, String untergliederungId,
+    {String? caeaGroup}) async {
   String fullUrl =
       '$url$path/zugeordnete-taetigkeiten/filtered-for-navigation/gruppierung-mitglied/mitglied/$memberId';
   sensLog.i('Request: Erstelle Tätigkeit für ${sensId(memberId)}');
@@ -44,7 +45,9 @@ Future<void> createTaetigkeit(int memberId, DateTime startDate,
     'aktivVon': formattedStartDate,
     'aktivBis': null,
     'taetigkeitId': taetigkeitId,
-    'untergliederungId': untergliederungId
+    'untergliederungId': untergliederungId,
+    'caeaGroupId': caeaGroup,
+    'caeaGroupForGfId': caeaGroup
   });
 
   http.Response response;
@@ -117,21 +120,17 @@ Future<void> createTaetigkeitForStufe(
     int memberId, DateTime startDate, Stufe stufe) async {
   int taetigkeitId = 1;
 
-  List<NamedId> untergliederungen =
+  Map<int, String> untergliederungen =
       await loadUntergliederungAufTaetigkeit(taetigkeitId);
-  NamedId untergliederung = untergliederungen
-      .firstWhere((element) => element.descriptor == stufe.display);
+  int untergliederungId = untergliederungen.entries
+      .firstWhere((element) => element.value == stufe.display)
+      .key;
 
-  if (untergliederung.id == -1) {
-    throw Exception(
-        'Failed to create taetigkeit for ${sensId(memberId)}. Untergruppe not found');
-  }
-
-  return createTaetigkeit(
-      memberId, startDate, taetigkeitId, untergliederung.id);
+  return createTaetigkeit(memberId, startDate, taetigkeitId.toString(),
+      untergliederungId.toString());
 }
 
-Future<List<NamedId>> loadTaetigkeitAufGruppierung() async {
+Future<Map<int, String>> loadTaetigkeitAufGruppierung() async {
   String fullUrl =
       '$url$path/taetigkeitaufgruppierung/filtered/gruppierung/gruppierung/$gruppierungId';
   final response =
@@ -139,15 +138,17 @@ Future<List<NamedId>> loadTaetigkeitAufGruppierung() async {
 
   if (response.statusCode != 200 || !jsonDecode(response.body)['success']) {
     sensLog.e('Failed to load taetigkeiten.');
-    return List.empty();
+    return {};
   }
   final data = jsonDecode(response.body)['data'];
-  final taetigkeiten = List<NamedId>.from(
-      data.map((item) => NamedId(item['id'], item['descriptor'])));
-  return taetigkeiten;
+  return Map<int, String>.fromEntries(
+    data.map<MapEntry<int, String>>(
+        (item) => MapEntry<int, String>(item['id'], item['descriptor'])),
+  );
 }
 
-Future<List<NamedId>> loadUntergliederungAufTaetigkeit(int taetigkeit) async {
+Future<Map<int, String>> loadUntergliederungAufTaetigkeit(
+    int taetigkeit) async {
   String fullUrl =
       '$url$path/untergliederungauftaetigkeit/filtered/untergliederung/taetigkeit/$taetigkeit';
   final response =
@@ -155,16 +156,18 @@ Future<List<NamedId>> loadUntergliederungAufTaetigkeit(int taetigkeit) async {
 
   if (response.statusCode != 200 || !jsonDecode(response.body)['success']) {
     sensLog.e('Failed to load untergliederungen.');
-    return List.empty();
+    return {};
   }
   final data = jsonDecode(response.body)['data'];
-  final taetigkeiten = List<NamedId>.from(
-      data.map((item) => NamedId(item['id'], item['descriptor'])));
-  return taetigkeiten;
+
+  return Map<int, String>.fromEntries(
+    data.map<MapEntry<int, String>>(
+        (item) => MapEntry<int, String>(item['id'], item['descriptor'])),
+  );
 }
 
 /// Rechte die eine Tätigkeit haben kann (Lesen oder Schreiben/Lesen)
-Future<List<NamedId>> loadCaeaGroupAufTaetigkeit(int taetigkeit) async {
+Future<Map<int, String>> loadCaeaGroupAufTaetigkeit(String taetigkeit) async {
   String fullUrl =
       '$url$path/caea-group/filtered-for-navigation/taetigkeit/taetigkeit/$taetigkeit';
   final response =
@@ -172,15 +175,11 @@ Future<List<NamedId>> loadCaeaGroupAufTaetigkeit(int taetigkeit) async {
 
   if (response.statusCode != 200 || !jsonDecode(response.body)['success']) {
     sensLog.e('Failed to load untergliederungen.');
-    return List.empty();
+    return {};
   }
   final data = jsonDecode(response.body)['data'];
-  return List<NamedId>.from(
-      data.map((item) => NamedId(item['id'], item['descriptor'])));
-}
-
-class NamedId {
-  int id;
-  String descriptor;
-  NamedId(this.id, this.descriptor);
+  return Map<int, String>.fromEntries(
+    data.map<MapEntry<int, String>>(
+        (item) => MapEntry<int, String>(item['id'], item['descriptor'])),
+  );
 }
