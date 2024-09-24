@@ -7,7 +7,6 @@ import 'package:intl/intl.dart';
 import 'package:maps_launcher/maps_launcher.dart';
 import 'package:nami/screens/widgets/map.widget.dart';
 import 'package:nami/screens/widgets/mitgliedStufenPieChart.widget.dart';
-import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/hive/settings_stufenwechsel.dart';
@@ -494,9 +493,15 @@ class MitgliedDetailState extends State<MitgliedDetail>
   }
 
   Widget _buildTaetigkeitenItem(Taetigkeit taetigkeit) {
+    // TODO add tätigkeit permissions
+    bool permissionToEdit =
+        getAllowedFeatures().contains(AllowedFeatures.memberEdit) &&
+            getNamiChangesEnabled();
     return _buildBox(Dismissible(
       key: Key(taetigkeit.id.toString()),
-      direction: DismissDirection.endToStart,
+      direction: permissionToEdit
+          ? DismissDirection.endToStart
+          : DismissDirection.none,
       confirmDismiss: (direction) async {
         if (taetigkeit.endsInFuture()) {
           terminateTaetigkeitDialog(context, taetigkeit);
@@ -565,7 +570,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
           '${fakeStufenwechselTaetigkeit.untergliederung}',
         ),
         subtitle: Text(
-            "Ab: ${DateFormat('dd. MMMM yyyy').format(fakeStufenwechselTaetigkeit.aktivVon)}"),
+            "Stufenwechsel am ${DateFormat('dd. MMMM yyyy').format(fakeStufenwechselTaetigkeit.aktivVon)}"),
         trailing: TextButton(
           onPressed: loadingStufenwechsel
               ? null
@@ -662,11 +667,6 @@ class MitgliedDetailState extends State<MitgliedDetail>
     Taetigkeit? fakeStufenwechselTaetigkeit = getStufenwechselTaetigkeit();
     Taetigkeit? currentTaetigkeit = getCurrenttaetigkeit(aktiveTaetigkeiten);
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: () =>
-            openWiredash(context, 'Feedback Button Mitglied Details'),
-        child: const Icon(Icons.feedback),
-      ),
       appBar: AppBar(
         shadowColor: Colors.transparent,
         backgroundColor: Stufe.getStufeByString(widget.mitglied.stufe).farbe,
