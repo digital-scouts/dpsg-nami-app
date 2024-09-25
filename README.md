@@ -46,21 +46,29 @@ Neben Feedback zur aktuell Version der würden wir mit gelegtlichen Umfragen ger
 
 ## Aktuelle Funktionen
 
-- Mitglieder auflisten, sortieren und filtern
-- Details von Mitgliedern ansehen. Über Action-Buttons anrufen oder E-Mails schreiben.
+- Mitglieder und deren Details auflisten, sortieren und filtern
   - Adresse und Entfernung zum Stammesheim auf der Karte anzeigen.
   - Über Grafiken und Auflistung den Tätigkeitsverlauf eines Mitglieds ansehen.
+  - Wie in den Kontakten E-Mails schreiben und einen Anruf starten
+- Mitglieder und Tätigkeiten bearbeiten, erstellen und löschen/Mitgliedschaft beenden
 - Mitgliedsdaten sind offline verfügbar und können nach belieben synchronisiert werden
 - Statistiken geben einen Einblick in die aktuelle Mitgliederanzahl und Altersstruktur
 - Empfehlung für den nächsten Stufenwechsel eines Mitglieds.
   - Die gewünschte Altersgrenzen der Stufen können angepasst werden.
   - Stufenwechsel durchführen
 - Führungszeugniss Antragsunterlagen und Bescheinigungen herrunterladen
-- Jeder Nutzer hat die Möglichkeit das Bearbeiten von Daten zu deaktiven und braucht so keine Angst haben 'Etwas kaput zu machen'
+- Jeder Nutzer hat sieht auch nur die Funktionen, die er aufgrund seiner Rechte ausführen kann. Die Recht sind im eigenen Profil aufgelistet.
+- Jeder Nutzer hat die Möglichkeit das Bearbeiten von Daten zu deaktiven und braucht so keine Angst haben 'Etwas kaput zu machen
 
 ## Geplante Funktionen
 
-- Mitglieder bearbeiten und anlegen per Texterkennung
+- Mitglieder anlegen per Texterkennung / Foto vom Anmeldebogen
+
+## Externe Apis
+
+- [Geoapify](https://www.geoapify.com): Autovervollständigung von Adressen beim anlegen eines Nutzers (Free Limit 3000 Requests / day)
+- [openplzapi](https://www.openplzapi.org/de/): Fallback für Geoapify (Unlimited)
+- [openiban](https://openiban.com): Validierung der IBAN beim anlegen eines Nutzers (Unlimited)
 
 ## Nami Rechte
 
