@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
-import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:nami/screens/login_screen.dart';
@@ -26,7 +26,12 @@ void main() async {
   Intl.defaultLocale = "de_DE";
   await Hive.initFlutter();
   await registerAdapter();
-  await openHive();
+  try {
+    await openHive();
+  } on TypeError catch (_) {
+    deleteHiveMemberDataOnFail();
+    await openHive();
+  }
   await dotenv.load(fileName: ".env");
   await initLogger();
   try {
