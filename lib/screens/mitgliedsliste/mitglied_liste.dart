@@ -301,9 +301,7 @@ class MitgliedsListeState extends State<MitgliedsListe> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => MitgliedBearbeiten(
-                              mitglied: null,
-                            )),
+                        builder: (context) => MitgliedBearbeiten()),
                   );
                 },
               ),

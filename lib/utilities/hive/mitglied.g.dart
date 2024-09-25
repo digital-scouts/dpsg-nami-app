@@ -16,31 +16,13 @@ class MitgliedAdapter extends TypeAdapter<Mitglied> {
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-
-    // data Model changed 20. September 2024 v0.1.1 - migration fix
-    if (fields[3] is! num) {
-      switch (fields[3]) {
-        case 'männlich':
-          fields[3] = 19;
-          break;
-        case 'weiblich':
-          fields[3] = 20;
-          break;
-        case 'divers':
-          fields[3] = 24;
-          break;
-        default:
-          fields[3] = 23; // keine Angabe
-      }
-    }
-
     return Mitglied()
       ..vorname = fields[0] as String
       ..nachname = fields[1] as String
       ..geschlechtId = (fields[3] as num).toInt()
       ..geburtsDatum = fields[4] as DateTime
       ..stufe = fields[5] as String
-      ..id = (fields[6] as num).toInt()
+      ..id = (fields[6] as num?)?.toInt()
       ..mitgliedsNummer = (fields[7] as num).toInt()
       ..eintrittsdatum = fields[8] as DateTime
       ..austrittsDatum = fields[9] as DateTime?
@@ -60,13 +42,17 @@ class MitgliedAdapter extends TypeAdapter<Mitglied> {
       ..status = fields[23] as String
       ..taetigkeiten = (fields[24] as List).cast<Taetigkeit>()
       ..ausbildungen =
-          fields[25] == null ? [] : (fields[25] as List).cast<Ausbildung>();
+          fields[25] == null ? [] : (fields[25] as List).cast<Ausbildung>()
+      ..staatssangehaerigkeitId = (fields[26] as num).toInt()
+      ..konfessionId = fields[27] as String?
+      ..mitgliedszeitschrift = fields[28] as bool
+      ..datenweiterverwendung = fields[29] as bool;
   }
 
   @override
   void write(BinaryWriter writer, Mitglied obj) {
     writer
-      ..writeByte(25)
+      ..writeByte(29)
       ..writeByte(0)
       ..write(obj.vorname)
       ..writeByte(1)
@@ -116,7 +102,15 @@ class MitgliedAdapter extends TypeAdapter<Mitglied> {
       ..writeByte(24)
       ..write(obj.taetigkeiten)
       ..writeByte(25)
-      ..write(obj.ausbildungen);
+      ..write(obj.ausbildungen)
+      ..writeByte(26)
+      ..write(obj.staatssangehaerigkeitId)
+      ..writeByte(27)
+      ..write(obj.konfessionId)
+      ..writeByte(28)
+      ..write(obj.mitgliedszeitschrift)
+      ..writeByte(29)
+      ..write(obj.datenweiterverwendung);
   }
 
   @override

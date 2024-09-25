@@ -7,6 +7,7 @@ import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:intl/intl.dart';
 import 'package:maps_launcher/maps_launcher.dart';
+import 'package:nami/screens/mitgliedsliste/mitglied_bearbeiten.dart';
 import 'package:nami/screens/mitgliedsliste/taetigkeit_anlegen.dart';
 import 'package:nami/screens/widgets/map.widget.dart';
 import 'package:nami/screens/widgets/mitgliedStufenPieChart.widget.dart';
@@ -790,6 +791,32 @@ class MitgliedDetailState extends State<MitgliedDetail>
         backgroundColor: Stufe.getStufeByString(widget.mitglied.stufe).farbe,
         title: Text("${widget.mitglied.vorname} ${widget.mitglied.nachname}"),
         actions: [
+          if (getNamiChangesEnabled() &&
+              getAllowedFeatures().contains(AllowedFeatures.memberEdit))
+            IconButton(
+                onPressed: () {
+                  Wiredash.trackEvent('Member Details edit');
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => MitgliedBearbeiten(
+                        mitglied: widget.mitglied,
+                      ),
+                    ),
+                  ).then((result) async {
+                    if (result != null) {
+                      Mitglied newMitglied =
+                          await updateOneMember(widget.mitglied.id!);
+                      setState(() {
+                        widget.mitglied = newMitglied;
+                      });
+                    }
+                  });
+                },
+                icon: const Icon(
+                  Icons.edit,
+                  color: Colors.black54,
+                )),
           IconButton(
               onPressed: () => {
                     Wiredash.trackEvent('Member Details toggle favourite',
@@ -801,9 +828,10 @@ class MitgliedDetailState extends State<MitgliedDetail>
                       isFavorite = !isFavorite;
                     })
                   },
-              icon: isFavorite
-                  ? const Icon(Icons.bookmark)
-                  : const Icon(Icons.bookmark_border))
+              icon: Icon(
+                isFavorite ? Icons.bookmark : Icons.bookmark_border,
+                color: Colors.black54,
+              ))
         ],
       ),
       body: Column(

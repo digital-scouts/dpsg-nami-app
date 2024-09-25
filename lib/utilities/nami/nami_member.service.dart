@@ -366,7 +366,11 @@ Future<Mitglied?> _storeMitgliedToHive(
     ..beitragsartId = rawMember.beitragsartId ?? 0
     ..status = rawMember.status ?? ''
     ..taetigkeiten = taetigkeiten
-    ..ausbildungen = ausbildungen;
+    ..ausbildungen = ausbildungen
+    ..staatssangehaerigkeitId = rawMember.staatsangehoerigkeitId
+    ..konfessionId = rawMember.konfessionId.toString()
+    ..mitgliedszeitschrift = rawMember.zeitschriftenversand
+    ..datenweiterverwendung = rawMember.wiederverwendenFlag;
 
   memberBox.put(mitgliedId, mitglied);
   memberAllProgressNotifier.value += progressStep;

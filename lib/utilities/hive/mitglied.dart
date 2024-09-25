@@ -88,6 +88,18 @@ class Mitglied {
   @HiveField(25, defaultValue: [])
   late List<Ausbildung> ausbildungen;
 
+  @HiveField(26)
+  late int staatssangehaerigkeitId;
+
+  @HiveField(27)
+  late String? konfessionId;
+
+  @HiveField(28)
+  late bool mitgliedszeitschrift;
+
+  @HiveField(29)
+  late bool datenweiterverwendung;
+
   bool isMitgliedLeiter() {
     for (Taetigkeit t in taetigkeiten) {
       if (t.isLeitung()) {
