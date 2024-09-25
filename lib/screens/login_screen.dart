@@ -1,14 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/hive/hive.handler.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/nami/nami_login.service.dart';
-import 'dart:async';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:nami/utilities/app.state.dart';
 
 const kHintTextStyle = TextStyle(
   color: Colors.white54,
@@ -57,6 +58,7 @@ class LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> loginButtonPressed() async {
+    if (_loading) return;
     setState(() {
       _loading = true;
     });
