@@ -68,7 +68,7 @@ jobs:
       - run: flutter pub get
       - name: Lower minSdkVersion for APK
         run: |
-          sed -i 's/minSdkVersion [0-9]\+/minSdkVersion 16/' android/app/build.gradle
+          sed -i 's/minSdkVersion [0-9]\+/minSdkVersion 24/' android/app/build.gradle
       - run: flutter build apk --flavor minSdkLowered
       - name: Restore original minSdkVersion
         run: git checkout -- android/app/build.gradle
