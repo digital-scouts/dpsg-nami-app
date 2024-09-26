@@ -66,7 +66,12 @@ jobs:
         with:
           channel: "stable"
       - run: flutter pub get
-      - run: flutter build apk
+      - name: Lower minSdkVersion for APK
+        run: |
+          sed -i 's/minSdkVersion [0-9]\+/minSdkVersion 16/' android/app/build.gradle
+      - run: flutter build apk --flavor minSdkLowered
+      - name: Restore original minSdkVersion
+        run: git checkout -- android/app/build.gradle
       - run: flutter build appbundle
       - name: Upload Android build artifacts
         uses: actions/upload-artifact@v2
