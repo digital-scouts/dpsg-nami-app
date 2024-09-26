@@ -29,7 +29,7 @@ jobs:
       - run: flutter test
 
   version:
-    name: flutter version
+    name: version
     runs-on: ubuntu-latest
     outputs:
       releaseversion: ${{ steps.v.outputs.version }}
@@ -74,7 +74,7 @@ jobs:
         run: git checkout -- android/app/build.gradle
       - run: flutter build appbundle
       - name: Upload Android build artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: android-artifacts
           path: build/app/outputs
