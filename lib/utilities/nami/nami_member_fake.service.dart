@@ -96,6 +96,8 @@ Mitglied createMitgleid(
     ..stufe = taetigkeiten.first.untergliederung!
     ..status = "Aktiv"
     ..beitragsartId = 4
+    ..staatssangehaerigkeitId = 1054
+    ..konfessionId = null
     ..eintrittsdatum = start
     ..austrittsDatum = null
     ..email = faker.internet.email()
@@ -111,6 +113,8 @@ Mitglied createMitgleid(
     ..version = random.nextInt(60)
     ..lastUpdated = generateRandomDateDaysAgo(random.nextInt(30))
     ..taetigkeiten = taetigkeiten
+    ..mitgliedszeitschrift = random.nextBool()
+    ..datenweiterverwendung = random.nextBool()
     ..ausbildungen = ausbildungen;
 }
 

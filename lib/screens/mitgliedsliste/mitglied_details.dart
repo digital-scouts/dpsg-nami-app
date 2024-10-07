@@ -792,6 +792,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
     setState(() {
       loadingEditMember = false;
     });
+    // ignore: use_build_context_synchronously
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
     Navigator.push(
