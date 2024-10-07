@@ -38,10 +38,13 @@ Future<Map<int, int>> _loadMemberIdsToUpdate(
     return await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
   });
 
-  List<Mitglied> mitglieder =
-      Hive.box<Mitglied>('members').values.toList().cast<Mitglied>();
+  final box = Hive.box<Mitglied>('members');
+  List<Mitglied> mitglieder = box.values.toList().cast<Mitglied>();
   Map<int, int> memberIds = {};
+  Set<int> loadedMemberIds = {};
+
   body['data'].forEach((item) {
+    loadedMemberIds.add(item['id']);
     if (forceUpdate ||
         _getVersionOfMember(item['id'], mitglieder) !=
             item['entries_version']) {
@@ -57,6 +60,17 @@ Future<Map<int, int>> _loadMemberIdsToUpdate(
           'Member ${sensId(item['id'])} is up to date. Version: ${item['entries_version']}');
     }
   });
+
+  // Entferne gelöschte Mitglieder
+  for (var mitglied in mitglieder) {
+    if (!loadedMemberIds.contains(mitglied.id)) {
+      consLog.i(
+          'Member ${mitglied.vorname} ${mitglied.id} wird aus Hive entfernt.');
+      fileLog.i('Member ${sensId(mitglied.id!)} wird aus Hive entfernt.');
+      await box.delete(mitglied.id);
+    }
+  }
+
   return memberIds;
 }
 
