@@ -537,7 +537,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
 
   Future<void> deleteTaetigkeitConfirmed(
       int memberId, Taetigkeit taetigkeit) async {
-    Wiredash.trackEvent('Taetigkeit löschen');
+    Wiredash.trackEvent('Taetigkeit loeschen');
     sensLog.i(
         'Tätigkeit für Mitglied: ${sensId(memberId)} | Tätigkeit: ${taetigkeit.id} löschen');
     await deleteTaetigkeit(memberId, taetigkeit);

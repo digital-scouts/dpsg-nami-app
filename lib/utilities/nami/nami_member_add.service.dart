@@ -41,7 +41,7 @@ Future<int> namiCreateMember(NamiMemberDetailsModel mitglied) async {
   } else {
     sensLog.e(
         'Failed to create member: Status: ${response.statusCode}, success: ${source['success']}, data: ${source['data']}');
-    throw MemberCreationException('',
+    throw MemberCreationException(source['message'],
         fieldInfo: (source['data']['fieldInfo'] as List)
             .map((item) => FieldInfo.fromJson(item))
             .toList());

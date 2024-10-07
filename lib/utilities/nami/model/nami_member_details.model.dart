@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class NamiMemberDetailsModel {
   String? mglType;
   String? ersteUntergliederung;
@@ -39,6 +41,7 @@ class NamiMemberDetailsModel {
   String? telefax;
   int? beitragsartId;
   String plz;
+  Kontoverbindung? kontoverbindung;
 
   NamiMemberDetailsModel({
     this.mglType,
@@ -81,6 +84,7 @@ class NamiMemberDetailsModel {
     this.telefax,
     required this.beitragsartId,
     required this.plz,
+    this.kontoverbindung,
   });
 
   factory NamiMemberDetailsModel.fromJson(Map<String, dynamic> json) {
@@ -129,6 +133,9 @@ class NamiMemberDetailsModel {
       telefax: json['telefax'],
       beitragsartId: json['beitragsartId'],
       plz: json['plz'],
+      kontoverbindung: json['kontoverbindung'] == null
+          ? null
+          : Kontoverbindung.fromJson(json['kontoverbindung']),
     );
   }
   Map<String, dynamic> toJson() {
@@ -159,6 +166,41 @@ class NamiMemberDetailsModel {
       'emailVertretungsberechtigter': emailVertretungsberechtigter,
       'gruppierungId': gruppierungId,
       'version': version,
+      'kontoverbindung': kontoverbindung != null
+          ? jsonEncode(kontoverbindung!.toJson())
+          : null, // Kontoverbundung darf kein (echtes) JSON sein
+    };
+  }
+}
+
+class Kontoverbindung {
+  String? institut;
+  String? iban;
+  String? bic;
+  String? kontoinhaber;
+
+  Kontoverbindung({
+    this.institut,
+    this.iban,
+    this.bic,
+    this.kontoinhaber,
+  });
+
+  factory Kontoverbindung.fromJson(Map<String, dynamic> json) {
+    return Kontoverbindung(
+      institut: json['institut'],
+      iban: json['iban'],
+      bic: json['bic'],
+      kontoinhaber: json['kontoinhaber'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'institut': institut,
+      'iban': iban,
+      'bic': bic,
+      'kontoinhaber': kontoinhaber,
     };
   }
 }

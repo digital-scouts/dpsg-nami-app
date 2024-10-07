@@ -167,12 +167,13 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
       staatsangehoerigkeitId: int.parse(_formKey
           .currentState!.fields['staatsangehoerigkeit']!.value
           .toString()),
-      konfessionId: _formKey.currentState!.fields['konfession']!.value != null
-          ? int.parse(
-              _formKey.currentState!.fields['konfession']!.value.toString())
-          : null,
+      konfessionId:
+          _formKey.currentState!.fields['konfession']!.value.isNotEmpty
+              ? int.parse(_formKey.currentState!.fields['konfession']!.value)
+              : null,
       geburtsDatum: _formKey.currentState!.fields['geburtstag']!.value,
-      eintrittsdatum: widget.mitglied!.eintrittsdatum,
+      eintrittsdatum: widget.mitglied?.eintrittsdatum ??
+          _formKey.currentState!.fields['eintrittsdatum']!.value,
       beitragsartId: int.parse(
           _formKey.currentState!.fields['beitragsart']!.value.toString()),
       zeitschriftenversand:
@@ -196,7 +197,7 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
       email: _formKey.currentState!.fields['email']!.value,
       emailVertretungsberechtigter:
           _formKey.currentState!.fields['email_sorgeberechtigter']!.value,
-      version: widget.mitglied!.version,
+      version: widget.mitglied == null ? 0 : widget.mitglied!.version,
       gruppierungId: getGruppierungId() ?? 0,
     );
 
@@ -212,6 +213,12 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
       model.mglTypeId = mitgliedstypOptions.entries
           .firstWhere((element) => element.value == 'Mitglied')
           .key;
+      model.kontoverbindung = Kontoverbindung(
+        kontoinhaber: _formKey.currentState!.fields['kontoinhaber']!.value,
+        iban: _formKey.currentState!.fields['iban']!.value,
+        bic: _formKey.currentState!.fields['bic']!.value,
+        institut: _formKey.currentState!.fields['kreititnstitut']!.value,
+      );
     }
 
     return model;
