@@ -25,7 +25,7 @@ class MemberCreationException implements Exception {
 
   @override
   String toString() {
-    return 'MemberCreationException: $message ${fieldInfo.map((e) => e.toJson()).toList()}';
+    return 'MemberCreationException: $message ${fieldInfo.isNotEmpty ? fieldInfo.map((e) => e.toJson()).toList() : ''}';
   }
 }
 

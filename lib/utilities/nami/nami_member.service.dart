@@ -76,7 +76,7 @@ Future<NamiMemberDetailsModel> _loadMemberDetails(
   }
   final source = json.decode(const Utf8Decoder().convert(response.bodyBytes));
 
-  if (response.statusCode == 200) {
+  if (response.statusCode == 200 && source['success']) {
     NamiMemberDetailsModel member =
         NamiMemberDetailsModel.fromJson(source['data']);
     if (DateTime.now().difference(member.geburtsDatum).inDays > 36525) {
@@ -362,7 +362,7 @@ Future<Mitglied?> _storeMitgliedToHive(
     ..telefon3 = rawMember.telefon3
     ..lastUpdated = rawMember.lastUpdated ?? DateTime.now()
     ..version = rawTaetigkeiten.isNotEmpty ? rawMember.version : 0
-    ..mglTypeId = rawMember.mglTypeId
+    ..mglTypeId = rawMember.mglTypeId!
     ..beitragsartId = rawMember.beitragsartId ?? 0
     ..status = rawMember.status ?? ''
     ..taetigkeiten = taetigkeiten

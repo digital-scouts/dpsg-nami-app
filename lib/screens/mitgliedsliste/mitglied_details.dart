@@ -37,6 +37,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
     with SingleTickerProviderStateMixin {
   bool showMoreTaetigkeiten = false;
   bool loadingStufenwechsel = false;
+  bool loadingEditMember = false;
   late TabController _tabController;
 
   @override
@@ -773,6 +774,45 @@ class MitgliedDetailState extends State<MitgliedDetail>
     return stufenwechselTaetigkeit;
   }
 
+  Future<void> editMemberClicked() async {
+    setState(() {
+      loadingEditMember = true;
+    });
+
+    Wiredash.trackEvent('Member Details edit');
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content:
+            Text('Bitte warten, während die Mitgliedsdaten geladen werden...'),
+      ),
+    );
+
+    Mitglied updatedMitglied = await updateOneMember(widget.mitglied.id!);
+
+    setState(() {
+      loadingEditMember = false;
+    });
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+    Navigator.push(
+      // ignore: use_build_context_synchronously
+      context,
+      MaterialPageRoute(
+        builder: (context) => MitgliedBearbeiten(
+          mitglied: updatedMitglied,
+        ),
+      ),
+    ).then((result) async {
+      if (result != null) {
+        Mitglied newMitglied = await updateOneMember(widget.mitglied.id!);
+        setState(() {
+          widget.mitglied = newMitglied;
+          loadingEditMember = false;
+        });
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     List<Taetigkeit> aktiveTaetigkeiten =
@@ -794,25 +834,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
           if (getNamiChangesEnabled() &&
               getAllowedFeatures().contains(AllowedFeatures.memberEdit))
             IconButton(
-                onPressed: () {
-                  Wiredash.trackEvent('Member Details edit');
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => MitgliedBearbeiten(
-                        mitglied: widget.mitglied,
-                      ),
-                    ),
-                  ).then((result) async {
-                    if (result != null) {
-                      Mitglied newMitglied =
-                          await updateOneMember(widget.mitglied.id!);
-                      setState(() {
-                        widget.mitglied = newMitglied;
-                      });
-                    }
-                  });
-                },
+                onPressed: loadingEditMember ? null : editMemberClicked,
                 icon: const Icon(
                   Icons.edit,
                   color: Colors.black54,

@@ -1,6 +1,7 @@
-import 'dart:io';
 import 'dart:developer' as dev;
+import 'dart:io';
 import 'dart:math';
+
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -180,7 +181,7 @@ String sensId(int memberId) {
 Map<String, String> sensMember(NamiMemberDetailsModel member) {
   return {
     'id': sensId(member.id!),
-    'type': member.mglTypeId,
+    'type': member.mglTypeId!,
     'status': member.status ?? 'no Status',
     'stufe': member.stufe ?? 'null',
   };

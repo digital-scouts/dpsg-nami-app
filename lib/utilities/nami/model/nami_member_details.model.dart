@@ -1,48 +1,48 @@
 class NamiMemberDetailsModel {
-  final String? mglType;
-  final String? ersteTaetigkeitId;
-  final String? ersteUntergliederung;
-  final DateTime? lastUpdated;
-  final String? emailVertretungsberechtigter;
-  final String? ersteTaetigkeit;
-  final String? nameZusatz;
-  final int? id;
-  final int staatsangehoerigkeitId;
-  final int version;
-  final String? spitzname;
-  final int? landId;
-  final String? staatsangehoerigkeitText;
-  final int gruppierungId;
-  final String mglTypeId;
-  final String nachname;
-  final DateTime eintrittsdatum;
-  final String? status;
-  final String? fixBeitrag;
-  final int? konfessionId;
-  final bool zeitschriftenversand;
-  final String? telefon3;
-  final int geschlechtId;
-  final String? email;
-  final String? telefon1;
-  final String? telefon2;
-  final String strasse;
-  final String vorname;
-  final int? mitgliedsNummer;
-  final String? gruppierung;
-  final DateTime? austrittsDatum;
-  final String ort;
-  final int? ersteUntergliederungId;
-  final bool wiederverwendenFlag;
-  final int? regionId;
-  final DateTime geburtsDatum;
-  final String? stufe;
-  final String? telefax;
-  final int? beitragsartId;
-  final String plz;
+  String? mglType;
+  String? ersteUntergliederung;
+  String? ersteTaetigkeitId;
+  DateTime? lastUpdated;
+  String? emailVertretungsberechtigter;
+  String? ersteTaetigkeit;
+  String? nameZusatz;
+  int? id;
+  int staatsangehoerigkeitId;
+  int version;
+  String? spitzname;
+  int? landId;
+  String? staatsangehoerigkeitText;
+  int gruppierungId;
+  String? mglTypeId;
+  String nachname;
+  DateTime eintrittsdatum;
+  String? status;
+  String? fixBeitrag;
+  int? konfessionId;
+  bool zeitschriftenversand;
+  String? telefon3;
+  int geschlechtId;
+  String? email;
+  String? telefon1;
+  String? telefon2;
+  String strasse;
+  String vorname;
+  int? mitgliedsNummer;
+  String? gruppierung;
+  DateTime? austrittsDatum;
+  String ort;
+  int? ersteUntergliederungId;
+  bool wiederverwendenFlag;
+  int? regionId;
+  DateTime geburtsDatum;
+  String? stufe;
+  String? telefax;
+  int? beitragsartId;
+  String plz;
 
   NamiMemberDetailsModel({
     this.mglType,
-    required this.ersteTaetigkeitId,
+    this.ersteTaetigkeitId,
     this.ersteUntergliederung,
     this.lastUpdated,
     required this.emailVertretungsberechtigter,
@@ -55,7 +55,7 @@ class NamiMemberDetailsModel {
     required this.landId,
     this.staatsangehoerigkeitText,
     required this.gruppierungId,
-    required this.mglTypeId,
+    this.mglTypeId,
     required this.nachname,
     required this.eintrittsdatum,
     this.status,
@@ -73,7 +73,7 @@ class NamiMemberDetailsModel {
     this.gruppierung,
     this.austrittsDatum,
     required this.ort,
-    required this.ersteUntergliederungId,
+    this.ersteUntergliederungId,
     required this.wiederverwendenFlag,
     required this.regionId,
     required this.geburtsDatum,
@@ -158,6 +158,7 @@ class NamiMemberDetailsModel {
       'email': email,
       'emailVertretungsberechtigter': emailVertretungsberechtigter,
       'gruppierungId': gruppierungId,
+      'version': version,
     };
   }
 }

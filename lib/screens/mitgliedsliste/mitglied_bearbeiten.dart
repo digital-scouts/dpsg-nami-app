@@ -56,6 +56,32 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
     super.initState();
     loadMetadata();
     if (widget.mitglied != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _formKey.currentState!.patchValue({
+          'vorname': widget.mitglied!.vorname,
+          'nachname': widget.mitglied!.nachname,
+          'geschlecht': widget.mitglied!.geschlechtId.toString(),
+          'staatsangehoerigkeit':
+              widget.mitglied?.staatssangehaerigkeitId.toString() ??
+                  '1054', // default to deutsch
+          'konfession': widget.mitglied?.konfessionId == 'null'
+              ? ''
+              : widget.mitglied?.konfessionId,
+          'geburtstag': widget.mitglied!.geburtsDatum,
+          'beitragsart': widget.mitglied?.beitragsartId.toString() ??
+              '4', // Voller Beitrag - Stiftungseuro - VERBANDSBEITRAG,
+          'mitgliedszeitschrift': widget.mitglied?.mitgliedszeitschrift ?? true,
+          'datenweiterverwendung': widget.mitglied!.datenweiterverwendung,
+          'street': widget.mitglied!.strasse,
+          'plz': widget.mitglied!.plz,
+          'festnetznummer': widget.mitglied!.telefon1,
+          'mobilfunknummer': widget.mitglied!.telefon2,
+          'geschaeftlich': widget.mitglied!.telefon3,
+          'email': widget.mitglied!.email,
+          'email_sorgeberechtigter':
+              widget.mitglied!.emailVertretungsberechtigter,
+        });
+      });
       _adressAutocompleteActive = false;
       updateCityAfterPlzChange(widget.mitglied!.plz);
     }
@@ -132,18 +158,8 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
     }
   }
 
-  Future<Mitglied?> submitNewMemberForm() async {
-    int id = 999999;
-
-    if (getNamiApiCookie() != 'testLoginCookie') {
-      id = await createMember(createMemberFromForm());
-    }
-
-    return await updateOneMember(id);
-  }
-
   NamiMemberDetailsModel createMemberFromForm() {
-    return NamiMemberDetailsModel(
+    NamiMemberDetailsModel model = NamiMemberDetailsModel(
       vorname: _formKey.currentState!.fields['vorname']!.value,
       nachname: _formKey.currentState!.fields['nachname']!.value,
       geschlechtId: int.parse(
@@ -156,16 +172,9 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
               _formKey.currentState!.fields['konfession']!.value.toString())
           : null,
       geburtsDatum: _formKey.currentState!.fields['geburtstag']!.value,
-      eintrittsdatum: _formKey.currentState!.fields['eintrittsdatum']!.value,
+      eintrittsdatum: widget.mitglied!.eintrittsdatum,
       beitragsartId: int.parse(
           _formKey.currentState!.fields['beitragsart']!.value.toString()),
-      mglTypeId: mitgliedstypOptions.entries
-          .firstWhere((element) => element.value == 'Mitglied')
-          .key,
-      ersteTaetigkeitId:
-          _formKey.currentState!.fields['taetigkeit']!.value.toString(),
-      ersteUntergliederungId:
-          int.parse(_formKey.currentState!.fields['group']!.value.toString()),
       zeitschriftenversand:
           _formKey.currentState!.fields['mitgliedszeitschrift']!.value,
       wiederverwendenFlag:
@@ -187,9 +196,25 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
       email: _formKey.currentState!.fields['email']!.value,
       emailVertretungsberechtigter:
           _formKey.currentState!.fields['email_sorgeberechtigter']!.value,
-      version: -1,
+      version: widget.mitglied!.version,
       gruppierungId: getGruppierungId() ?? 0,
     );
+
+    if (widget.mitglied != null) {
+      model.id = widget.mitglied!.id;
+    }
+
+    if (widget.mitglied == null) {
+      model.ersteTaetigkeitId =
+          _formKey.currentState!.fields['taetigkeit']!.value.toString();
+      model.ersteUntergliederungId =
+          int.parse(_formKey.currentState!.fields['group']!.value.toString());
+      model.mglTypeId = mitgliedstypOptions.entries
+          .firstWhere((element) => element.value == 'Mitglied')
+          .key;
+    }
+
+    return model;
   }
 
   @override
@@ -217,13 +242,11 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                   _twoColumnRow(
                     FormBuilderTextField(
                       name: 'vorname',
-                      initialValue: widget.mitglied?.vorname,
                       validator: FormBuilderValidators.required(),
                       decoration: _buildActiveInputDecoration('Vorname'),
                     ),
                     FormBuilderTextField(
                       name: 'nachname',
-                      initialValue: widget.mitglied?.nachname,
                       validator: FormBuilderValidators.required(),
                       decoration: _buildActiveInputDecoration('Nachname'),
                     ),
@@ -231,7 +254,6 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                   _twoColumnRow(
                     FormBuilderDropdown(
                       name: 'geschlecht',
-                      initialValue: widget.mitglied?.geschlechtId.toString(),
                       validator: FormBuilderValidators.required(),
                       decoration: _buildActiveInputDecoration('Geschlecht'),
                       items: geschlechtOptions.entries.map((entry) {
@@ -246,9 +268,7 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                     ),
                     FormBuilderDropdown(
                       name: 'staatsangehoerigkeit',
-                      initialValue:
-                          widget.mitglied?.staatssangehaerigkeitId.toString() ??
-                              '1054', // default to deutsch
+                      initialValue: '1054', // default to deutsch
                       validator: FormBuilderValidators.required(),
                       decoration:
                           _buildActiveInputDecoration('Staatsangehörigkeit'),
@@ -266,9 +286,7 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                   _twoColumnRow(
                     FormBuilderDropdown(
                       name: 'konfession',
-                      initialValue: widget.mitglied?.konfessionId == 'null'
-                          ? ''
-                          : widget.mitglied?.konfessionId,
+                      initialValue: '',
                       items: konfessionOptions.entries.map((entry) {
                         return DropdownMenuItem<String>(
                           value: entry.key,
@@ -283,14 +301,12 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                     FormBuilderDateTimePicker(
                       inputType: InputType.date,
                       name: 'geburtstag',
-                      initialDate: widget.mitglied?.geburtsDatum,
-                      initialValue: widget.mitglied?.geburtsDatum,
                       validator: FormBuilderValidators.required(),
                       format: DateFormat('dd.MM.yyyy'),
                       decoration: _buildActiveInputDecoration('Geburtstag'),
                     ),
                   ),
-                  if (widget.mitglied == null)
+                  if (widget.mitglied == null) // tätigkeit
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4.0),
                       child: FormBuilderDropdown(
@@ -319,7 +335,7 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                         },
                       ),
                     ),
-                  if (widget.mitglied == null)
+                  if (widget.mitglied == null) // group
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4.0),
                       child: FormBuilderDropdown(
@@ -339,7 +355,7 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                         },
                       ),
                     ),
-                  if (widget.mitglied == null)
+                  if (widget.mitglied == null) // eintrittsdatum
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4.0),
                       child: FormBuilderDateTimePicker(
@@ -364,7 +380,7 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                   FormBuilderDropdown(
                     name: 'beitragsart',
                     validator: FormBuilderValidators.required(),
-                    initialValue: widget.mitglied?.beitragsartId.toString() ??
+                    initialValue:
                         '4', // Voller Beitrag - Stiftungseuro - VERBANDSBEITRAG
                     decoration: _buildActiveInputDecoration('Beitragsart'),
                     items: beitragsartOptions.entries.map((entry) {
@@ -379,7 +395,7 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                   ),
                   FormBuilderCheckbox(
                     name: 'mitgliedszeitschrift',
-                    initialValue: widget.mitglied?.mitgliedszeitschrift ?? true,
+                    initialValue: true,
                     title: const Text(
                         "Ich möchte die Mitgliederzeitschrift zugeschickt bekommen."),
                     onChanged: (newValue) {},
@@ -387,8 +403,7 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                   ),
                   FormBuilderCheckbox(
                     name: 'datenweiterverwendung',
-                    initialValue:
-                        widget.mitglied?.datenweiterverwendung ?? false,
+                    initialValue: false,
                     title: const Text(
                         "Nach der Beendigung der Mitgliedschaft dürfen die Daten weiter genutzt werden."),
                     onChanged: (newValue) {},
@@ -498,7 +513,6 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                     padding: const EdgeInsets.symmetric(vertical: 4.0),
                     child: FormBuilderTextField(
                       name: 'street',
-                      initialValue: widget.mitglied?.strasse,
                       readOnly: _adressAutocompleteActive,
                       validator: _adressAutocompleteActive
                           ? null
@@ -516,7 +530,6 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                   _twoColumnRow(
                       FormBuilderTextField(
                         name: 'plz',
-                        initialValue: widget.mitglied?.plz,
                         readOnly: _adressAutocompleteActive,
                         focusNode: _adressAutocompleteActive
                             ? AlwaysDisabledFocusNode()
@@ -583,13 +596,11 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                   ),
                   _twoColumnRow(
                     FormBuilderTextField(
-                      initialValue: widget.mitglied?.telefon1,
                       name: 'festnetznummer',
                       decoration:
                           _buildActiveInputDecoration('Festnetznummer*'),
                     ),
                     FormBuilderTextField(
-                      initialValue: widget.mitglied?.telefon2,
                       name: 'mobilfunknummer',
                       decoration:
                           _buildActiveInputDecoration('Mobilfunknummer*'),
@@ -598,7 +609,6 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4.0),
                     child: FormBuilderTextField(
-                      initialValue: widget.mitglied?.telefon3,
                       name: 'geschaeftlich',
                       decoration:
                           _buildActiveInputDecoration('Weitere Nummer(n)*'),
@@ -607,7 +617,6 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4.0),
                     child: FormBuilderTextField(
-                      initialValue: widget.mitglied?.email,
                       name: 'email',
                       decoration: _buildActiveInputDecoration('E-Mail*'),
                     ),
@@ -615,8 +624,6 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4.0),
                     child: FormBuilderTextField(
-                      initialValue:
-                          widget.mitglied?.emailVertretungsberechtigter,
                       name: 'email_sorgeberechtigter',
                       decoration: _buildActiveInputDecoration(
                           'E-Mail Sorgeberechtigter*'),
@@ -732,90 +739,7 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      onPressed: _submitInProgress
-                          ? null
-                          : () {
-                              final scaffoldMessenger =
-                                  ScaffoldMessenger.of(context);
-                              final navigator = Navigator.of(context);
-
-                              setState(() {
-                                _submitInProgress = true;
-                              });
-
-                              validateOnInteraction = true;
-
-                              if (_formKey.currentState!.validate()) {
-                                if (widget.mitglied == null) {
-                                  submitNewMemberForm()
-                                      .then((Mitglied? mitglied) {
-                                    scaffoldMessenger.showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                            'Mitglied mit ID ${mitglied!.id} erfolgreich ${widget.mitglied == null ? 'angelegt' : 'bearbeitet'}'),
-                                      ),
-                                    );
-                                    navigator.pop();
-                                    setState(() {
-                                      _submitInProgress = false;
-                                    });
-                                    navigator.push(
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            MitgliedDetail(mitglied: mitglied),
-                                      ),
-                                    );
-                                  }).catchError((error) {
-                                    setState(() {
-                                      _submitInProgress = false;
-                                    });
-                                    if (error is MemberCreationException) {
-                                      showDialog(
-                                        // ignore: use_build_context_synchronously
-                                        context: context,
-                                        builder: (BuildContext context) {
-                                          return AlertDialog(
-                                            title: const Text(
-                                                'Fehler beim Anlegen'),
-                                            content: Text(
-                                              error.fieldInfo
-                                                  .map((e) =>
-                                                      '${e.fieldName}: ${e.message}')
-                                                  .join(', '),
-                                            ),
-                                            actions: <Widget>[
-                                              TextButton(
-                                                child: const Text('OK'),
-                                                onPressed: () {
-                                                  Navigator.of(context).pop();
-                                                },
-                                              ),
-                                            ],
-                                          );
-                                        },
-                                      );
-                                    } else {
-                                      scaffoldMessenger.showSnackBar(
-                                        SnackBar(
-                                            content: Text('Error: $error')),
-                                      );
-                                    }
-                                  });
-                                } else {
-                                  // TODO Update
-                                }
-                              } else {
-                                setState(() {
-                                  _submitInProgress = false;
-                                });
-                              }
-
-                              Wiredash.trackEvent(
-                                  'Mitglied bearbeiten submitted',
-                                  data: {
-                                    'valid': _formKey.currentState!.isValid,
-                                  });
-                            },
+                      onPressed: _submitInProgress ? null : submit,
                       child: _submitInProgress
                           ? const CircularProgressIndicator(
                               valueColor:
@@ -835,6 +759,137 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
         ),
       ),
     );
+  }
+
+  Future<void> submit() async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
+    setState(() {
+      _submitInProgress = true;
+    });
+
+    Wiredash.trackEvent('Mitglied bearbeiten', data: {
+      'type': 'submit button clicked',
+      'valid': _formKey.currentState!.isValid,
+    });
+
+    // invalid form
+    if (!_formKey.currentState!.validate()) {
+      setState(() {
+        _submitInProgress = false;
+      });
+      return;
+    }
+
+    // valid form
+    NamiMemberDetailsModel formMitglied = createMemberFromForm();
+    int memberId;
+    try {
+      if (widget.mitglied != null) {
+        Wiredash.trackEvent('Mitglied bearbeiten', data: {'type': 'edit'});
+        memberId = await editMember(formMitglied, scaffoldMessenger, navigator);
+      } else {
+        Wiredash.trackEvent('Mitglied bearbeiten', data: {'type': 'create'});
+        memberId =
+            await createNewMember(formMitglied, scaffoldMessenger, navigator);
+      }
+    } catch (e) {
+      sensLog.e('Failed to create/edit member');
+      sensLog.e(e.toString());
+      scaffoldMessenger.showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+      Wiredash.trackEvent('Mitglied bearbeiten',
+          data: {'type': 'edit/create', 'error': e.toString()});
+      setState(() {
+        _submitInProgress = false;
+      });
+      return;
+    }
+
+    Mitglied? mitglied;
+    try {
+      mitglied = await updateOneMember(memberId);
+    } catch (e) {
+      sensLog.e('Failed to update after successfull create/edit member');
+      sensLog.e(e.toString());
+      scaffoldMessenger.showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+      Wiredash.trackEvent('Mitglied bearbeiten',
+          data: {'type': 'update', 'error': e.toString()});
+    }
+
+    navigator.pop();
+    setState(() {
+      _submitInProgress = false;
+    });
+
+    if (mitglied != null) {
+      navigator.push(
+        MaterialPageRoute(
+          builder: (context) => MitgliedDetail(mitglied: mitglied!),
+        ),
+      );
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text(
+              'Mitglied mit ID ${mitglied.id} erfolgreich ${widget.mitglied == null ? 'angelegt' : 'bearbeitet'}'),
+        ),
+      );
+    }
+  }
+
+  Future<int> editMember(
+      NamiMemberDetailsModel formMitglied,
+      ScaffoldMessengerState scaffoldMessenger,
+      NavigatorState navigator) async {
+    try {
+      return await namiEditMember(formMitglied);
+    } on MemberCreationException catch (_) {
+      // Todo handle error
+      rethrow;
+    }
+  }
+
+  Future<int> createNewMember(
+      NamiMemberDetailsModel formMitglied,
+      ScaffoldMessengerState scaffoldMessenger,
+      NavigatorState navigator) async {
+    try {
+      return await namiCreateMember(formMitglied);
+    } on MemberCreationException catch (e) {
+      if (e.fieldInfo.isNotEmpty) {
+        showDialog(
+          // ignore: use_build_context_synchronously
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Fehler beim Anlegen'),
+              content: Text(
+                e.fieldInfo
+                    .map((e) => '${e.fieldName}: ${e.message}')
+                    .join(', '),
+              ),
+              actions: <Widget>[
+                TextButton(
+                  child: const Text('OK'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      } else {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+      rethrow;
+    }
   }
 
   InputDecoration _buildDisabledInputDecoration(String labelText) {
