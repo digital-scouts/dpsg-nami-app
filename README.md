@@ -63,6 +63,14 @@ Neben Feedback zur aktuell Version der würden wir mit gelegtlichen Umfragen ger
 ## Geplante Funktionen
 
 - Mitglieder anlegen per Texterkennung / Foto vom Anmeldebogen
+- Export von Zuschusslisten
+- Erinnerungen und Kalenderintegration für
+  - Geburtstage 
+  - Ablaufende Ausbildungen (Präventionsschulung)
+- Änderungshistorie für Admins
+- Statistik historische Entwicklung im Stamm
+  - Wann verlassen Mitglieder den Stamm, wann kommen sie
+- Stammeskarte
 
 ## Externe Apis
 
