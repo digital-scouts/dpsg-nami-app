@@ -50,7 +50,7 @@ Taetigkeit createTaetigkeit(
   if (isLeader) {
     t.taetigkeit = "€ LeiterIn (6)";
   } else {
-    t.taetigkeit = "€ Mitglied (1)";
+    t.taetigkeit = "Mitglied";
   }
   return t;
 }
