@@ -5,7 +5,6 @@ import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
-import 'package:nami/utilities/logger.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class HomeDrawer extends StatefulWidget {
@@ -25,11 +24,21 @@ class HomeDrawer extends StatefulWidget {
 
 class HomeDrawerState extends State<HomeDrawer> {
   final InAppReview inAppReview = InAppReview.instance;
+  bool _isReviewAvailable = false;
   List<DrawerList>? drawerList;
+
   @override
   void initState() {
     setDrawerListArray();
     super.initState();
+    _checkReviewAvailability();
+  }
+
+  Future<void> _checkReviewAvailability() async {
+    final isAvailable = await inAppReview.isAvailable();
+    setState(() {
+      _isReviewAvailable = isAvailable;
+    });
   }
 
   Future<void> _launchURL(String url) async {
@@ -72,6 +81,7 @@ class HomeDrawerState extends State<HomeDrawer> {
   }
 
   void _showSupportModal(BuildContext context) {
+    bool testDevice = getIsTestDevice();
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -84,39 +94,29 @@ class HomeDrawerState extends State<HomeDrawer> {
                 'Deine Unterstützung hilft mir, die App weiter zu verbessern und neue Funktionen zu entwickeln.',
               ),
               const SizedBox(height: 16),
-              ListTile(
-                leading: const Icon(Icons.web),
-                title: const Text('Mehr über Support und Spenden'),
-                onTap: () => _launchURL(
-                    'https://digital-scouts.github.io/dpsg-nami-app/jekyll/update/2024/10/10/how-to-support.html'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.thumb_up),
-                title: const Text('App bewerten'),
-                onTap: () async => {
-                  consLog.i(
-                      'Bewertungsfunktion wird geöffnet. Available: ${await inAppReview.isAvailable()}'),
-                  if (await inAppReview.isAvailable())
-                    {inAppReview.requestReview()}
-                  else
-                    {
-                      inAppReview.openStoreListing(
-                          appStoreId: const bool.hasEnvironment('APPSTORE_ID')
-                              ? const String.fromEnvironment('APPSTORE_ID')
-                              : ''),
-                      // ignore: use_build_context_synchronously
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                              'Die Bewertungsfunktion ist auf deinem Gerät nicht verfügbar.'),
-                        ),
-                      )
-                    }
-                },
-              ),
+              if (!testDevice)
+                ListTile(
+                  leading: const Icon(Icons.payment),
+                  title: const Text('Paypal Spenden'),
+                  onTap: () => _launchURL(
+                      'https://www.paypal.com/donate/?hosted_button_id=5YJVWMBN72G3A'),
+                ),
+              if (!testDevice)
+                ListTile(
+                  leading: const Icon(Icons.code),
+                  title: const Text('Github Sponsor'),
+                  onTap: () =>
+                      _launchURL('https://github.com/sponsors/JanneckLange'),
+                ),
+              if (_isReviewAvailable)
+                ListTile(
+                  leading: const Icon(Icons.thumb_up),
+                  title: const Text('App bewerten'),
+                  onTap: () => inAppReview.requestReview(),
+                ),
               ListTile(
                 leading: const Icon(Icons.feedback),
-                title: const Text('Mit Feedback unterstützen'),
+                title: const Text('Feedback geben'),
                 onTap: () => openWiredash(context, 'Entwickler loben'),
               ),
             ],
@@ -203,8 +203,8 @@ class HomeDrawerState extends State<HomeDrawer> {
             ),
           ),
           ListTile(
-            leading: const Icon(Icons.thumb_up),
-            title: const Text('Entwickler loben'),
+            leading: const Icon(Icons.support),
+            title: const Text('Entwicklung unterstützen'),
             onTap: () => _showSupportModal(context),
           ),
           Center(
