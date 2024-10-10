@@ -86,9 +86,9 @@ class HomeDrawerState extends State<HomeDrawer> {
               const SizedBox(height: 16),
               ListTile(
                 leading: const Icon(Icons.web),
-                title: const Text('Mehr erfahren'),
+                title: const Text('Mehr über Support und Spenden'),
                 onTap: () => _launchURL(
-                    'https://digital-scouts.github.io/dpsg-nami-app/'),
+                    'https://digital-scouts.github.io/dpsg-nami-app/jekyll/update/2024/10/10/how-to-support.html'),
               ),
               ListTile(
                 leading: const Icon(Icons.thumb_up),
