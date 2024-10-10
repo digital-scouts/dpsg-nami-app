@@ -26,6 +26,7 @@ fi
 echo "WIREDASH_SECRET=$WIREDASH_SECRET" > .env
 echo "WIREDASH_PROJECT_ID=$WIREDASH_PROJECT_ID" >> .env
 echo "GEOAPIFY_KEY=$GEOAPIFY_KEY" >> .env
+echo "APPSTORE_ID=$APPSTORE_ID" >> .env
 echo "WIREDASH_SECRET=$WIREDASH_SECRET | WIREDASH_PROJECT_ID=$WIREDASH_PROJECT_ID | GEOAPIFY_KEY=$GEOAPIFY_KEY"
 
 echo "Die Umgebungsvariablen wurden erfolgreich in die .env-Datei geschrieben."

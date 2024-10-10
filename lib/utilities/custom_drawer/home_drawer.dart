@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:hive_ce/hive.dart';
+import 'package:in_app_review/in_app_review.dart';
 import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/logger.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class HomeDrawer extends StatefulWidget {
@@ -22,6 +24,7 @@ class HomeDrawer extends StatefulWidget {
 }
 
 class HomeDrawerState extends State<HomeDrawer> {
+  final InAppReview inAppReview = InAppReview.instance;
   List<DrawerList>? drawerList;
   @override
   void initState() {
@@ -82,23 +85,39 @@ class HomeDrawerState extends State<HomeDrawer> {
               ),
               const SizedBox(height: 16),
               ListTile(
-                leading: const Icon(Icons.payment),
-                title: const Text('Paypal Spenden'),
+                leading: const Icon(Icons.web),
+                title: const Text('Mehr erfahren'),
                 onTap: () => _launchURL(
-                    'https://www.paypal.com/donate/?hosted_button_id=5YJVWMBN72G3A'),
+                    'https://digital-scouts.github.io/dpsg-nami-app/'),
               ),
               ListTile(
-                leading: const Icon(Icons.code),
-                title: const Text('Github Sponsor'),
-                onTap: () =>
-                    _launchURL('https://github.com/sponsors/JanneckLange'),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () {
-                  openWiredash(context, 'Entwickler loben');
+                leading: const Icon(Icons.thumb_up),
+                title: const Text('App bewerten'),
+                onTap: () async => {
+                  consLog.i(
+                      'Bewertungsfunktion wird geöffnet. Available: ${await inAppReview.isAvailable()}'),
+                  if (await inAppReview.isAvailable())
+                    {inAppReview.requestReview()}
+                  else
+                    {
+                      inAppReview.openStoreListing(
+                          appStoreId: const bool.hasEnvironment('APPSTORE_ID')
+                              ? const String.fromEnvironment('APPSTORE_ID')
+                              : ''),
+                      // ignore: use_build_context_synchronously
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                              'Die Bewertungsfunktion ist auf deinem Gerät nicht verfügbar.'),
+                        ),
+                      )
+                    }
                 },
-                child: const Text('Mit Feedback unterstützen'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.feedback),
+                title: const Text('Mit Feedback unterstützen'),
+                onTap: () => openWiredash(context, 'Entwickler loben'),
               ),
             ],
           ),
