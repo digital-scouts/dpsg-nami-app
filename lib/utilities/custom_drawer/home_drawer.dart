@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:in_app_review/in_app_review.dart';
@@ -81,7 +83,6 @@ class HomeDrawerState extends State<HomeDrawer> {
   }
 
   void _showSupportModal(BuildContext context) {
-    bool testDevice = getIsTestDevice();
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -94,14 +95,14 @@ class HomeDrawerState extends State<HomeDrawer> {
                 'Deine Unterstützung hilft mir, die App weiter zu verbessern und neue Funktionen zu entwickeln.',
               ),
               const SizedBox(height: 16),
-              if (!testDevice)
+              if (!Platform.isIOS)
                 ListTile(
                   leading: const Icon(Icons.payment),
                   title: const Text('Paypal Spenden'),
                   onTap: () => _launchURL(
                       'https://www.paypal.com/donate/?hosted_button_id=5YJVWMBN72G3A'),
                 ),
-              if (!testDevice)
+              if (!Platform.isIOS)
                 ListTile(
                   leading: const Icon(Icons.code),
                   title: const Text('Github Sponsor'),
