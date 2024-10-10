@@ -36,7 +36,8 @@ enum SettingValue {
   mapTileCachingEnabled,
   lastAppVerion,
   newVersionInfoShown,
-  themeMode
+  themeMode,
+  isTestDevice,
 }
 
 void setMetaData(
@@ -396,4 +397,12 @@ void setThemeMode(ThemeMode mode) {
 ThemeMode getThemeMode() {
   return ThemeMode.values[settingsBox.get(SettingValue.themeMode.toString()) ??
       ThemeMode.system.index];
+}
+
+void setIsTestDevice(bool value) {
+  settingsBox.put(SettingValue.isTestDevice.toString(), value);
+}
+
+bool getIsTestDevice() {
+  return settingsBox.get(SettingValue.isTestDevice.toString()) ?? false;
 }

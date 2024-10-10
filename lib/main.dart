@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -21,6 +24,7 @@ import 'package:provider/provider.dart';
 import 'package:wiredash/wiredash.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
   initializeDateFormatting("de_DE", null);
   Intl.defaultLocale = "de_DE";
@@ -75,8 +79,46 @@ class MyApp extends StatelessWidget {
       throw Exception(
           'Please provide WIREDASH_PROJECT_ID and WIREDASH_SECRET in your .env file');
     }
+    return FutureBuilder<bool>(
+      future: _isTestDevice(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const CircularProgressIndicator();
+        } else if (snapshot.hasError) {
+          return Text('Error: ${snapshot.error}');
+        } else {
+          final isTestDevice = snapshot.data ?? false;
+          setIsTestDevice(true);
+          return WiredashApp(isTestDevice: isTestDevice);
+        }
+      },
+    );
+  }
+
+  Future<bool> _isTestDevice() async {
+    final deviceInfo = DeviceInfoPlugin();
+    if (Platform.isIOS) {
+      final iosInfo = await deviceInfo.iosInfo;
+      return iosInfo.isPhysicalDevice == false;
+    } else if (Platform.isAndroid) {
+      final androidInfo = await deviceInfo.androidInfo;
+      return androidInfo.isPhysicalDevice == false;
+    }
+    return false;
+  }
+}
+
+class WiredashApp extends StatelessWidget {
+  final bool isTestDevice;
+
+  const WiredashApp({super.key, required this.isTestDevice});
+
+  @override
+  Widget build(BuildContext context) {
     return Wiredash(
-      projectId: dotenv.env['WIREDASH_PROJECT_ID']!,
+      projectId: isTestDevice
+          ? 'invalidKeyForTesting' // filter test devices from wiredash
+          : dotenv.env['WIREDASH_PROJECT_ID']!,
       secret: dotenv.env['WIREDASH_SECRET']!,
       feedbackOptions: const WiredashFeedbackOptions(
         labels: [
@@ -89,7 +131,8 @@ class MyApp extends StatelessWidget {
         localizationDelegate: CustomWiredashTranslationsDelegate(),
         locale: Locale('de', 'DE'),
       ),
-      collectMetaData: (metaData) => metaData,
+      collectMetaData: (metaData) =>
+          metaData..custom['isTestDevice'] = isTestDevice,
       child: ChangeNotifierProvider(
         create: (context) => AppStateHandler(),
         child: const MaterialAppWrapper(),

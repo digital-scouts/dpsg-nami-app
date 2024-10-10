@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Wie kann man unterstützen!"
+title:  "Wie kann man unterstützen?"
 date:   2024-10-10 10:00:00 +0100
 categories: jekyll update
 ---

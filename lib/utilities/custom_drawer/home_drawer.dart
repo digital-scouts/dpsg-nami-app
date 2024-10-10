@@ -209,7 +209,7 @@ class HomeDrawerState extends State<HomeDrawer> {
           ),
           Center(
             child: Text(
-              'Entwickelt mit ${Theme.of(context).brightness == Brightness.dark ? '🩶' : '❤️'} in Hamburg',
+              'Entwickelt mit ${Theme.of(context).brightness == Brightness.dark ? '🖤' : '❤️'} in Hamburg',
               style: const TextStyle(
                 fontSize: 14,
               ),
