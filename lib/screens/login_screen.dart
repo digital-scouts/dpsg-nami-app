@@ -22,18 +22,6 @@ const kLabelStyle = TextStyle(
   fontFamily: 'OpenSans',
 );
 
-final kBoxDecorationStyle = BoxDecoration(
-  color: const Color(0xFF6CA8F1),
-  borderRadius: BorderRadius.circular(10.0),
-  boxShadow: const [
-    BoxShadow(
-      color: Colors.black12,
-      blurRadius: 6.0,
-      offset: Offset(0, 2),
-    ),
-  ],
-);
-
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
   @override
@@ -44,6 +32,7 @@ class LoginScreenState extends State<LoginScreen> {
   bool _rememberMe = false;
   int _mitgliedsnummer = 0;
   String _password = '';
+  bool _isPasswordVisible = false;
   bool _wrongCredentials = false;
   bool _loading = false;
 
@@ -51,16 +40,13 @@ class LoginScreenState extends State<LoginScreen> {
     setState(() {
       _wrongCredentials = true;
     });
-    Timer(
-      const Duration(seconds: 3),
-      () => setState(() => _wrongCredentials = false),
-    );
   }
 
   Future<void> loginButtonPressed() async {
     if (_loading) return;
     setState(() {
       _loading = true;
+      _wrongCredentials = false;
     });
     final appStateHandler = context.read<AppStateHandler>();
     final differentUser = _mitgliedsnummer != getNamiLoginId();
@@ -106,7 +92,20 @@ class LoginScreenState extends State<LoginScreen> {
         const SizedBox(height: 10.0),
         Container(
           alignment: Alignment.centerLeft,
-          decoration: kBoxDecorationStyle,
+          decoration: BoxDecoration(
+            color: const Color(0xFF6CA8F1),
+            borderRadius: BorderRadius.circular(10.0),
+            border: _wrongCredentials
+                ? Border.all(color: Colors.red, width: 2.0)
+                : null,
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 6.0,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
           height: 60.0,
           child: TextField(
             onChanged: (number) {
@@ -160,25 +159,49 @@ class LoginScreenState extends State<LoginScreen> {
         const SizedBox(height: 10.0),
         Container(
           alignment: Alignment.centerLeft,
-          decoration: kBoxDecorationStyle,
+          decoration: BoxDecoration(
+            color: const Color(0xFF6CA8F1),
+            borderRadius: BorderRadius.circular(10.0),
+            border: _wrongCredentials
+                ? Border.all(color: Colors.red, width: 2.0)
+                : null,
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 6.0,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
           height: 60.0,
           child: TextField(
             onChanged: (text) {
               _password = text;
             },
             onSubmitted: (_) => loginButtonPressed(),
-            obscureText: true,
+            obscureText: !_isPasswordVisible,
             autofillHints: const [AutofillHints.password],
             style: const TextStyle(
               color: Colors.white,
               fontFamily: 'OpenSans',
             ),
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               border: InputBorder.none,
-              contentPadding: EdgeInsets.only(top: 14.0),
-              prefixIcon: Icon(
+              contentPadding: const EdgeInsets.only(top: 14.0),
+              prefixIcon: const Icon(
                 Icons.lock,
                 color: Colors.white,
+              ),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                  color: Colors.white,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _isPasswordVisible = !_isPasswordVisible;
+                  });
+                },
               ),
               hintText: 'Passwort eingeben',
               hintStyle: kHintTextStyle,
@@ -234,7 +257,7 @@ class LoginScreenState extends State<LoginScreen> {
   Widget _wrongIdOrPassword() {
     if (_wrongCredentials) {
       return Container(
-        alignment: Alignment.centerRight,
+        alignment: Alignment.center,
         child: const Text(
           'Mitgliedsnummer oder Passwort falsch',
           style: TextStyle(
