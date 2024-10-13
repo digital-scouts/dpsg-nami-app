@@ -1,6 +1,3 @@
-import 'dart:io';
-
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -79,46 +76,9 @@ class MyApp extends StatelessWidget {
       throw Exception(
           'Please provide WIREDASH_PROJECT_ID and WIREDASH_SECRET in your .env file');
     }
-    return FutureBuilder<bool>(
-      future: _isTestDevice(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const CircularProgressIndicator();
-        } else if (snapshot.hasError) {
-          return Text('Error: ${snapshot.error}');
-        } else {
-          final isTestDevice = snapshot.data ?? false;
-          setIsTestDevice(true);
-          return WiredashApp(isTestDevice: isTestDevice);
-        }
-      },
-    );
-  }
 
-  Future<bool> _isTestDevice() async {
-    final deviceInfo = DeviceInfoPlugin();
-    if (Platform.isIOS) {
-      final iosInfo = await deviceInfo.iosInfo;
-      return iosInfo.isPhysicalDevice == false;
-    } else if (Platform.isAndroid) {
-      final androidInfo = await deviceInfo.androidInfo;
-      return androidInfo.isPhysicalDevice == false;
-    }
-    return false;
-  }
-}
-
-class WiredashApp extends StatelessWidget {
-  final bool isTestDevice;
-
-  const WiredashApp({super.key, required this.isTestDevice});
-
-  @override
-  Widget build(BuildContext context) {
     return Wiredash(
-      projectId: isTestDevice
-          ? 'invalidKeyForTesting' // filter test devices from wiredash
-          : dotenv.env['WIREDASH_PROJECT_ID']!,
+      projectId: dotenv.env['WIREDASH_PROJECT_ID']!,
       secret: dotenv.env['WIREDASH_SECRET']!,
       feedbackOptions: const WiredashFeedbackOptions(
         labels: [
@@ -131,8 +91,7 @@ class WiredashApp extends StatelessWidget {
         localizationDelegate: CustomWiredashTranslationsDelegate(),
         locale: Locale('de', 'DE'),
       ),
-      collectMetaData: (metaData) =>
-          metaData..custom['isTestDevice'] = isTestDevice,
+      collectMetaData: (metaData) => metaData,
       child: ChangeNotifierProvider(
         create: (context) => AppStateHandler(),
         child: const MaterialAppWrapper(),
