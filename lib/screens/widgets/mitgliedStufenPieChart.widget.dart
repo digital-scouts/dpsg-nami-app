@@ -21,18 +21,19 @@ class MitgliedStufenPieChartState extends State<MitgliedStufenPieChart> {
     Map<String, int> memberPerGroup =
         summarizeData(widget.memberPerGroup, widget.showLeiterGrafik);
 
-    return AspectRatio(
-      aspectRatio: 1.8,
+    return SizedBox(
+      height: 120, // Erhöhte Höhe, um Platz für den Schatten zu schaffen
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4.0),
+        padding: const EdgeInsets.all(10.0), // Padding hinzufügen
         child: Container(
           decoration: const BoxDecoration(
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: Colors.black12,
-                spreadRadius: 0.1,
-                blurRadius: 5,
+                color: Colors.black26,
+                blurRadius: 10,
+                spreadRadius: 2,
+                offset: Offset(0, 4), // Verschiebung des Schattens nach unten
               ),
             ],
           ),

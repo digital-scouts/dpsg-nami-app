@@ -103,23 +103,22 @@ class MitgliedDetailState extends State<MitgliedDetail>
       dauerText = 'Aktiv seit $pfadfinderTage Tagen Pfadfinder:in';
     }
 
-    return Expanded(
-        child: SizedBox(
-      child: Column(
-        children: [
-          if (tageProStufe.length > 1)
-            MitgliedStufenPieChart(
-                memberPerGroup: tageProStufe,
-                showLeiterGrafik: tageAlsLeiter >= tageAlsMitglied),
-          const SizedBox(height: 5),
-          Text(
-            dauerText,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 5),
-        ],
-      ),
-    ));
+    return SizedBox(
+        width: MediaQuery.of(context).size.width,
+        child: Column(
+          children: [
+            if (tageProStufe.length > 1)
+              MitgliedStufenPieChart(
+                  memberPerGroup: tageProStufe,
+                  showLeiterGrafik: tageAlsLeiter >= tageAlsMitglied),
+            if (tageProStufe.length > 1) const SizedBox(height: 5),
+            Text(
+              dauerText,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 5),
+          ],
+        ));
   }
 
   int calculateActiveDays(List<Taetigkeit> taetigkeiten) {
@@ -200,6 +199,10 @@ class MitgliedDetailState extends State<MitgliedDetail>
   }
 
   Widget _buildAddress() {
+    if (widget.mitglied.plz.isEmpty) {
+      return Container();
+    }
+
     String memberAddress =
         '${widget.mitglied.strasse}, ${widget.mitglied.plz} ${widget.mitglied.ort}';
 
