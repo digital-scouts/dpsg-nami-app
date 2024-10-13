@@ -11,6 +11,7 @@ import 'package:nami/screens/mitgliedsliste/mitglied_bearbeiten.dart';
 import 'package:nami/screens/mitgliedsliste/taetigkeit_anlegen.dart';
 import 'package:nami/screens/widgets/map.widget.dart';
 import 'package:nami/screens/widgets/mitgliedStufenPieChart.widget.dart';
+import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/hive/settings_stufenwechsel.dart';
@@ -271,6 +272,17 @@ class MitgliedDetailState extends State<MitgliedDetail>
           _buildListTile(Icons.wallet_membership, 'Mitgliedstyp',
               '$beitragsart ($mitgliedstyp)'),
           _buildListTile(Icons.check, 'Status', mitglied.status.toString()),
+          // wenn bearbeiten möglich und rechte vorhanden, button mitglieschaft beenden anzeigen
+          if (getAllowedFeatures().contains(AllowedFeatures.membershipEnd) &&
+              getNamiChangesEnabled() &&
+              getLoggedInUserId() != widget.mitglied.id)
+            ListTile(
+              leading: const Icon(Icons.delete),
+              title: const Text('Mitgliedschaft beenden'),
+              onTap: () {
+                terminateMitgliedschaftDialog(context, mitglied);
+              },
+            ),
         ])),
       ],
     );
@@ -390,6 +402,140 @@ class MitgliedDetailState extends State<MitgliedDetail>
       color: Color(isDarkTheme ? 0xFF636363 : 0xFF000000),
       colorBlendMode: BlendMode.srcIn,
     );
+  }
+
+  void terminateMitgliedschaftDialog(BuildContext context, Mitglied mitglied) {
+    final formKey = GlobalKey<FormBuilderState>();
+
+    bool isBeforeIgnoringTime(DateTime val) {
+      DateTime now = DateTime.now();
+      DateTime valDateOnly = DateTime(val.year, val.month, val.day);
+      DateTime nowDateOnly = DateTime(now.year, now.month, now.day);
+      return valDateOnly.isBefore(nowDateOnly);
+    }
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Mitgliedschaft beenden'),
+          content: FormBuilder(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (!widget.mitglied.datenweiterverwendung)
+                  RichText(
+                    text: const TextSpan(
+                      text:
+                          'Dieses Mitglied hat der weiteren Datenverwendung nach Beendigung der Mitgliedschaft nicht zugestimmt. Mit Beendigung der Mitgliedschaft werden sämtliche Daten ',
+                      children: <TextSpan>[
+                        TextSpan(
+                          text: 'in allen Ebenen',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        TextSpan(
+                          text: ' unwiderruflich gelöscht.',
+                        ),
+                      ],
+                    ),
+                  ),
+                if (widget.mitglied.datenweiterverwendung)
+                  RichText(
+                    text: const TextSpan(
+                      text:
+                          'Dieses Mitglied hat der weiteren Datenverwendung nach Beendigung der Mitgliedschaft zugestimmt. Alle Daten ',
+                      children: <TextSpan>[
+                        TextSpan(
+                          text: 'in allen Ebenen',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        TextSpan(
+                          text:
+                              ' bleiben erhalten und das Mitglied wird mit Beendigung der Mitgliedschaft auf "inaktiv" gesetzt.',
+                        ),
+                      ],
+                    ),
+                  ),
+                const Text(
+                    'Sollte das Mitglied noch aktive Tätigkeiten in anderen Gruppierungen (Stamm, Bezirk, Diözese) haben, ist eine Mitgliedsübernahme in Betracht zu ziehen und ggf. die Mitgliedschaft nicht zu beenden.'),
+                const SizedBox(height: 16.0),
+                Text(
+                    'Wann soll die Mitgliedschaft von ${mitglied.vorname} ${mitglied.nachname} beendet werden?'),
+                FormBuilderDateTimePicker(
+                  inputType: InputType.date,
+                  name: 'beendigungDatum',
+                  format: DateFormat('dd.MM.yyyy'),
+                  validator: FormBuilderValidators.compose([
+                    FormBuilderValidators.required(),
+                    (val) {
+                      if (val == null) return null;
+                      if (isBeforeIgnoringTime(val)) {
+                        return 'Das Datum muss mindestens heute sein.';
+                      }
+                      return null;
+                    },
+                  ]),
+                ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Abbrechen'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text(
+                'Mitgliedschaft beenden',
+                style: TextStyle(color: Colors.red),
+              ),
+              onPressed: () async {
+                if (formKey.currentState
+                        ?.saveAndValidate(focusOnInvalid: false) ??
+                    false) {
+                  terminateMitgliedschaftConfirmed(
+                      widget.mitglied.id!,
+                      mitglied,
+                      formKey.currentState?.fields['beendigungDatum']?.value);
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void terminateMitgliedschaftConfirmed(
+      int memberId, Mitglied mitglied, DateTime endDate) async {
+    Wiredash.trackEvent('Mitgliedschaft beenden');
+    sensLog.i('Mitgliedschaft für Mitglied: ${sensId(memberId)}  beenden');
+
+    try {
+      await endMembership(memberId, endDate);
+    } on SessionExpiredException catch (_) {
+      await AppStateHandler().setReloginState();
+      return;
+    } catch (e) {
+      sensLog.e('Mitgliedschaft beenden fehlgeschlagen: $e');
+      Wiredash.trackEvent('Mitgliedschaft beenden fehlgeschlagen', data: {
+        'error': e.toString(),
+      });
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Mitgliedschaft konnte nicht beendet werden: $e'),
+        ),
+      );
+      return;
+    }
+
+    // ignore: use_build_context_synchronously
+    Navigator.of(context).pop();
   }
 
   void terminateTaetigkeitDialog(BuildContext context, Taetigkeit taetigkeit) {

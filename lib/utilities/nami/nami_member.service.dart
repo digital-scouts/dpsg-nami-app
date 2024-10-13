@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:nami/utilities/hive/ausbildung.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
@@ -162,26 +163,6 @@ Future<List<NamiMemberAusbildungModel>> _loadMemberAusbildungen(
   }
 }
 
-// ignore: unused_element
-Future<NamiMemberTaetigkeitenModel?> _loadMemberTaetigkeit(int memberId,
-    int taetigkeitId, String url, String path, String cookie) async {
-  String fullUrl =
-      '$url$path/zugeordnete-taetigkeiten/filtered-for-navigation/gruppierung-mitglied/mitglied/$memberId/$taetigkeitId';
-  sensLog.i(
-      'Request: Lade Taetigkeit ${sensId(taetigkeitId)} von Mitglied ${sensId(memberId)}');
-  final response =
-      await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
-  var source = json.decode(const Utf8Decoder().convert(response.bodyBytes));
-
-  if (response.statusCode == 200 && source['success']) {
-    return NamiMemberTaetigkeitenModel.fromJson(source['data'], false);
-  } else {
-    sensLog.e(
-        'Failed to load Tätigkeit ${sensId(taetigkeitId)}: wrong status code: ${response.statusCode}');
-    return null;
-  }
-}
-
 Future<Mitglied> updateOneMember(int memberId) async {
   String cookie = getNamiApiCookie();
   String url = getNamiLUrl();
@@ -284,6 +265,44 @@ Future<void> syncMembers(
 
   setLastNamiSync(DateTime.now());
   sensLog.i('Syncronisation der Mitgliedsdetails abgeschlossen');
+}
+
+Future<void> endMembership(int memberId, DateTime endDate) async {
+  String cookie = getNamiApiCookie();
+  String url = getNamiLUrl();
+  String path = getNamiPath();
+  Box<Mitglied> memberBox = Hive.box('members');
+
+  if (cookie == 'testLoginCookie') {
+    return Future.value();
+  }
+
+  final headers = {
+    'Cookie': cookie,
+    'Content-Type': 'application/x-www-form-urlencoded'
+  };
+
+  // body is x-www-form-urlencoded
+  final body = {
+    'id': memberId.toString(),
+    'isConfirmed': 'true',
+    'beendenZumDatum': '${DateFormat('yyyy-MM-dd').format(endDate)} 00:00:00'
+  };
+
+  String fullUrl =
+      '$url$path/mitglied/filtered-for-navigation/mglschaft-beenden';
+  sensLog.i('Request: Mitgliedschaft beenden für ${sensId(memberId)}');
+
+  final response = await withMaybeRetry(() async {
+    return await http.post(Uri.parse(fullUrl), headers: headers, body: body);
+  });
+
+  if (!response.containsKey('success') || response['success'] != true) {
+    sensLog.e('Failed to end membership for ${sensId(memberId)}');
+    throw Exception('Failed to end membership');
+  }
+  memberBox.delete(memberId);
+  sensLog.i('Success: Mitgliedschaft beendet für ${sensId(memberId)}');
 }
 
 Future<Mitglied?> _storeMitgliedToHive(
