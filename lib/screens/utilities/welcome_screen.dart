@@ -18,7 +18,7 @@ class WelcomeScreen extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           children: [
             Text(
-              "Wir freunen uns, dich hier zu haben!",
+              "Wir freuen uns, dich hier zu haben!",
               style: Theme.of(context).textTheme.titleMedium,
             ),
             Card(

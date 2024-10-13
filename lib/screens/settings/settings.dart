@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:nami/screens/widgets/nami_change_toggle.dart';
 import 'package:nami/screens/widgets/stamm_heim_setting.dart';
 import 'package:nami/screens/widgets/stufenwechsel_alter_setting.dart';
@@ -8,7 +8,9 @@ import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/notifications.dart';
 import 'package:nami/utilities/stufe.dart';
+import 'package:nami/utilities/theme.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:provider/provider.dart';
 import 'package:wiredash/wiredash.dart';
 
 import '../../utilities/hive/settings.dart';
@@ -36,7 +38,8 @@ class _SettingsState extends State<Settings> {
 
   Widget _buildForceBSync() {
     return ListTile(
-      title: const Text('Lade alle Daten neu'),
+      title: const Text('Fehlerhafte Daten korrigieren'),
+      subtitle: const Text('Alle Daten werden neu geladen'),
       leading: const Icon(Icons.sync),
       onTap: () {
         Wiredash.trackEvent('Settings', data: {'type': 'SyncData forced'});
@@ -87,6 +90,38 @@ class _SettingsState extends State<Settings> {
     );
   }
 
+  _buildThemeToggle() {
+    final themeModel = Provider.of<ThemeModel>(context);
+
+    return ListTile(
+      title: const Text('Erscheinungsbild'),
+      leading: const Icon(Icons.color_lens),
+      trailing: DropdownButton<ThemeMode>(
+        value: themeModel.currentMode,
+        onChanged: (ThemeMode? newValue) {
+          if (newValue != null) {
+            themeModel.setTheme(newValue);
+            setThemeMode(newValue);
+          }
+        },
+        items: const [
+          DropdownMenuItem(
+            value: ThemeMode.system,
+            child: Text('Automatisch'),
+          ),
+          DropdownMenuItem(
+            value: ThemeMode.light,
+            child: Text('Hell'),
+          ),
+          DropdownMenuItem(
+            value: ThemeMode.dark,
+            child: Text('Dunkel'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -113,6 +148,7 @@ class _SettingsState extends State<Settings> {
               const Divider(height: 1),
               _buildBiometricAuthentication(),
               _buildDataLoadingOverWifiOnly(),
+              _buildThemeToggle(),
               const Divider(height: 1),
               _buildShareLogs(),
               Padding(

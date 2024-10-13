@@ -1,16 +1,14 @@
-import 'package:hive/hive.dart';
-import 'package:nami/utilities/hive/ausbildung.dart';
-import 'package:nami/utilities/hive/settings.dart';
+import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:hive_ce/hive.dart';
+import 'package:nami/utilities/hive/ausbildung.dart';
+import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
-import 'package:nami/utilities/logger.dart';
-import 'dart:convert';
 
 import 'mitglied.dart';
 
 void logout() {
-  sensLog.i('in logout');
   //loaded Data
   Hive.box<Mitglied>('members').clear();
   deleteGruppierungId();
@@ -22,6 +20,7 @@ void logout() {
   // login data
   deleteNamiApiCookie();
   deleteNamiLoginId();
+  deleteLoggedInUserId();
   deleteNamiPassword();
 
   // other Stuff
@@ -40,6 +39,16 @@ Future<void> registerAdapter() async {
 
 Future<void> closeHive() async {
   await Hive.close();
+}
+
+Future<void> deleteHiveMemberDataOnFail() async {
+  await Hive.openBox('members');
+  await Hive.box('members').clear();
+
+  await Hive.openBox('taetigkeit');
+  await Hive.box('taetigkeit').clear();
+
+  Hive.close();
 }
 
 Future<void> openHive() async {

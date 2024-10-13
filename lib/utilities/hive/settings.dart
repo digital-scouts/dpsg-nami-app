@@ -1,10 +1,12 @@
-import 'package:hive/hive.dart';
+import 'package:flutter/material.dart';
+import 'package:hive_ce/hive.dart';
 import 'package:nami/utilities/mitglied.filterAndSort.dart';
 
 // flutter packages pub run build_runner build
 enum SettingValue {
   namiApiCookie,
   namiLoginId,
+  loggedInUserId,
   namiPassword,
   namiUrl,
   namiPath,
@@ -31,17 +33,22 @@ enum SettingValue {
   biometricAuthenticationEnabled,
   namiChangesEnabled,
   rechte,
+  mapTileCachingEnabled,
+  lastAppVerion,
+  newVersionInfoShown,
+  themeMode,
+  isTestDevice,
 }
 
 void setMetaData(
-    List<String> geschlecht,
-    List<String> land,
-    List<String> region,
-    List<String> beitragsart,
-    List<String> staatsangehoerigkeit,
-    List<String> mitgliedstyp,
-    List<String> konfession,
-    List<String> ersteTaetigkeit) {
+    Map<String, String> geschlecht,
+    Map<String, String> land,
+    Map<String, String> region,
+    Map<String, String> beitragsart,
+    Map<String, String> staatsangehoerigkeit,
+    Map<String, String> mitgliedstyp,
+    Map<String, String> konfession,
+    Map<String, String> ersteTaetigkeit) {
   settingsBox.put(SettingValue.metaGeschechtOptions.toString(), geschlecht);
   settingsBox.put(SettingValue.metaLandOptions.toString(), land);
   settingsBox.put(SettingValue.metaBeitragsartOptions.toString(), beitragsart);
@@ -82,39 +89,53 @@ bool getWelcomeMessageShown() {
   return settingsBox.get(SettingValue.welcomeMessageShown.toString()) ?? false;
 }
 
-List<String> getMetaGeschlechtOptions() {
-  return settingsBox.get(SettingValue.metaGeschechtOptions.toString()) ?? [];
+Map<String, String> getMetaGeschlechtOptions() {
+  final dynamicMap =
+      settingsBox.get(SettingValue.metaGeschechtOptions.toString()) ?? {};
+  return Map<String, String>.from(dynamicMap);
 }
 
-List<String> getMetaLandOptions() {
-  return settingsBox.get(SettingValue.metaLandOptions.toString()) ?? [];
+Map<String, String> getMetaLandOptions() {
+  final dynamicMap =
+      settingsBox.get(SettingValue.metaLandOptions.toString()) ?? {};
+  return Map<String, String>.from(dynamicMap);
 }
 
-List<String> getMetaBeitragsartOptions() {
-  return settingsBox.get(SettingValue.metaBeitragsartOptions.toString()) ?? [];
+Map<String, String> getMetaBeitragsartOptions() {
+  final dynamicMap =
+      settingsBox.get(SettingValue.metaBeitragsartOptions.toString()) ?? {};
+  return Map<String, String>.from(dynamicMap);
 }
 
-List<String> getMetaRegionOptions() {
-  return settingsBox.get(SettingValue.metaRegionOptions.toString()) ?? [];
+Map<String, String> getMetaRegionOptions() {
+  final dynamicMap =
+      settingsBox.get(SettingValue.metaRegionOptions.toString()) ?? {};
+  return Map<String, String>.from(dynamicMap);
 }
 
-List<String> getMetaStaatsangehoerigkeitOptions() {
-  return settingsBox
+Map<String, String> getMetaStaatsangehoerigkeitOptions() {
+  final dynamicMap = settingsBox
           .get(SettingValue.metaStaatsangehoerigkeitOptions.toString()) ??
-      [];
+      {};
+  return Map<String, String>.from(dynamicMap);
 }
 
-List<String> getMetaKonfessionOptions() {
-  return settingsBox.get(SettingValue.metaKonfessionOptions.toString()) ?? [];
+Map<String, String> getMetaKonfessionOptions() {
+  final dynamicMap =
+      settingsBox.get(SettingValue.metaKonfessionOptions.toString()) ?? {};
+  return Map<String, String>.from(dynamicMap);
 }
 
-List<String> getErsteTaetigkeitOptions() {
-  return settingsBox.get(SettingValue.metaErsteTaetigkeitOptions.toString()) ??
-      [];
+Map<String, String> getErsteTaetigkeitOptions() {
+  final dynamicMap =
+      settingsBox.get(SettingValue.metaErsteTaetigkeitOptions.toString()) ?? {};
+  return Map<String, String>.from(dynamicMap);
 }
 
-List<String> getMetaMitgliedstypOptions() {
-  return settingsBox.get(SettingValue.metaMitgliedstypOptions.toString()) ?? [];
+Map<String, String> getMetaMitgliedstypOptions() {
+  final dynamicMap =
+      settingsBox.get(SettingValue.metaMitgliedstypOptions.toString()) ?? {};
+  return Map<String, String>.from(dynamicMap);
 }
 
 List<int> getFavouriteList() {
@@ -188,6 +209,10 @@ void setStammheim(String stammheim) {
 
 void setNamiLoginId(int loginId) async {
   settingsBox.put(SettingValue.namiLoginId.toString(), loginId);
+}
+
+void setLoggedInUserId(int userId) async {
+  settingsBox.put(SettingValue.loggedInUserId.toString(), userId);
 }
 
 void setNamiPassword(String password) async {
@@ -265,6 +290,10 @@ int? getNamiLoginId() {
   return settingsBox.get(SettingValue.namiLoginId.toString());
 }
 
+int? getLoggedInUserId() {
+  return settingsBox.get(SettingValue.loggedInUserId.toString());
+}
+
 String? getNamiPassword() {
   return settingsBox.get(SettingValue.namiPassword.toString());
 }
@@ -320,6 +349,10 @@ void deleteNamiLoginId() {
   settingsBox.delete(SettingValue.namiLoginId.toString());
 }
 
+void deleteLoggedInUserId() {
+  settingsBox.delete(SettingValue.loggedInUserId.toString());
+}
+
 void deleteNamiPassword() {
   settingsBox.delete(SettingValue.namiPassword.toString());
 }
@@ -330,4 +363,46 @@ void deleteGruppierungId() {
 
 void deleteGruppierungName() {
   settingsBox.delete(SettingValue.gruppierungName.toString());
+}
+
+void enableMapTileCaching() {
+  settingsBox.put(SettingValue.mapTileCachingEnabled.toString(), true);
+}
+
+bool isMapTileCachingEnabled() {
+  return settingsBox.get(SettingValue.mapTileCachingEnabled.toString()) ??
+      false;
+}
+
+bool isNewVersionInfoShown() {
+  return settingsBox.get(SettingValue.newVersionInfoShown.toString()) ?? false;
+}
+
+String getLastAppVersion() {
+  return settingsBox.get(SettingValue.lastAppVerion.toString()) ?? '';
+}
+
+void setLastAppVersion(String version) {
+  settingsBox.put(SettingValue.lastAppVerion.toString(), version);
+}
+
+void setNewVersionInfoShown(bool value) {
+  settingsBox.put(SettingValue.newVersionInfoShown.toString(), value);
+}
+
+void setThemeMode(ThemeMode mode) {
+  settingsBox.put(SettingValue.themeMode.toString(), mode.index);
+}
+
+ThemeMode getThemeMode() {
+  return ThemeMode.values[settingsBox.get(SettingValue.themeMode.toString()) ??
+      ThemeMode.system.index];
+}
+
+void setIsTestDevice(bool value) {
+  settingsBox.put(SettingValue.isTestDevice.toString(), value);
+}
+
+bool getIsTestDevice() {
+  return settingsBox.get(SettingValue.isTestDevice.toString()) ?? false;
 }

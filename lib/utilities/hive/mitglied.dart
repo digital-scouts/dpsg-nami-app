@@ -1,5 +1,5 @@
 import 'package:geocoding/geocoding.dart';
-import 'package:hive/hive.dart';
+import 'package:hive_ce/hive.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:nami/utilities/hive/ausbildung.dart';
 import 'package:nami/utilities/hive/settings_stufenwechsel.dart';
@@ -20,7 +20,7 @@ class Mitglied {
   late String nachname;
 
   @HiveField(3)
-  late String geschlecht;
+  late int geschlechtId;
 
   @HiveField(4)
   late DateTime geburtsDatum;
@@ -29,7 +29,7 @@ class Mitglied {
   late String stufe;
 
   @HiveField(6)
-  late int id;
+  late int? id;
 
   @HiveField(7)
   late int mitgliedsNummer;
@@ -88,6 +88,18 @@ class Mitglied {
   @HiveField(25, defaultValue: [])
   late List<Ausbildung> ausbildungen;
 
+  @HiveField(26)
+  late int staatssangehaerigkeitId;
+
+  @HiveField(27)
+  late String? konfessionId;
+
+  @HiveField(28)
+  late bool mitgliedszeitschrift;
+
+  @HiveField(29)
+  late bool datenweiterverwendung;
+
   bool isMitgliedLeiter() {
     for (Taetigkeit t in taetigkeiten) {
       if (t.isLeitung()) {
@@ -105,10 +117,20 @@ class Mitglied {
     return null;
   }
 
+  List<Taetigkeit> getZukuenftigeTaetigkeiten() {
+    List<Taetigkeit> zukuenftigeTaetigkeiten = [];
+    for (Taetigkeit taetigkeit in taetigkeiten) {
+      if (!taetigkeit.isActive() && taetigkeit.isFutureTaetigkeit()) {
+        zukuenftigeTaetigkeiten.add(taetigkeit);
+      }
+    }
+    return zukuenftigeTaetigkeiten;
+  }
+
   List<Taetigkeit> getActiveTaetigkeiten() {
     List<Taetigkeit> aktiveTaetigkeiten = [];
     for (Taetigkeit taetigkeit in taetigkeiten) {
-      if (taetigkeit.isActive() || taetigkeit.isFutureTaetigkeit()) {
+      if (taetigkeit.isActive() && !taetigkeit.isFutureTaetigkeit()) {
         aktiveTaetigkeiten.add(taetigkeit);
       }
     }

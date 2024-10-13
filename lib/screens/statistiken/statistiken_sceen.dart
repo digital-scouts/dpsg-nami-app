@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:nami/screens/widgets/alterBarChart.widget.dart';
 import 'package:nami/screens/widgets/groupBarChart.widget.dart';
 import 'package:nami/utilities/hive/mitglied.dart';

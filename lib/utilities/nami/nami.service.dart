@@ -1,29 +1,32 @@
 import 'dart:convert';
+
 import 'package:html/dom.dart';
 import 'package:html/parser.dart';
 import 'package:http/http.dart' as http;
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/logger.dart';
-import 'package:nami/utilities/nami/nami-login.service.dart';
-import 'package:nami/utilities/types.dart';
-import 'model/nami_stats.model.dart';
+import 'package:nami/utilities/nami/nami_login.service.dart';
 import 'package:nami/utilities/nami/nami_member_add_meta.dart';
+import 'package:nami/utilities/types.dart';
+
+import 'model/nami_stats.model.dart';
 
 /// Calls [func] and returns the json decoded body if reuqest ws succsessful
 ///
 /// If the request failes with an expired session, it tries to get a new cookie
 /// with saved password and retries [func].
-/// Throws [SessionExpired] if that's not possible
+/// Throws [SessionExpiredException] if that's not possible
 ///
 /// Remeber to obtain the cookie in [func] to always use the latest one.
 dynamic withMaybeRetry(Future<http.Response> Function() func,
     [String? errorMessage]) async {
   final response = await func();
-  late final body = jsonDecode(response.body);
-  if (response.statusCode == 200 && body['success']) {
-    return body;
-  } else if (response.statusCode == 200 &&
-      body["message"] == "Session expired") {
+
+  if (response.statusCode == 200 && jsonDecode(response.body)['success']) {
+    return jsonDecode(response.body);
+  } else if (response.statusCode == 500 ||
+      (response.statusCode == 200 &&
+          jsonDecode(response.body)["message"] == "Session expired")) {
     final success = await updateLoginData();
     if (success) {
       final response = await func();
@@ -31,14 +34,14 @@ dynamic withMaybeRetry(Future<http.Response> Function() func,
       if (response.statusCode == 200 && body['success']) {
         return body;
       } else {
-        throw SessionExpired();
+        throw SessionExpiredException();
       }
     } else {
-      throw SessionExpired();
+      throw SessionExpiredException();
     }
   } else {
     sensLog.e(
-        'withMaybeRetry: ${body["message"]} Failed to load with status code ${response.statusCode}. Custom Message: $errorMessage');
+        'withMaybeRetry: ${jsonDecode(response.body)["message"]} Failed to load with status code ${response.statusCode}. Custom Message: $errorMessage');
     throw Exception(
         'Failed to load with status code ${response.statusCode}. Custom Message: $errorMessage');
   }
@@ -48,7 +51,7 @@ dynamic withMaybeRetry(Future<http.Response> Function() func,
 ///
 /// If the request failes with an expired session, it tries to get a new cookie
 /// with saved password and retries [func].
-/// Throws [SessionExpired] if that's not possible
+/// Throws [SessionExpiredException] if that's not possible
 ///
 /// Remeber to obtain the cookie in [func] to always use the latest one.
 Future<Document> withMaybeRetryHTML(Future<http.Response> Function() func,
@@ -66,10 +69,10 @@ Future<Document> withMaybeRetryHTML(Future<http.Response> Function() func,
       if (response.statusCode == 200) {
         return html;
       } else {
-        throw SessionExpired();
+        throw SessionExpiredException();
       }
     } else {
-      throw SessionExpired();
+      throw SessionExpiredException();
     }
   } else {
     throw Exception(
@@ -113,10 +116,9 @@ Future<String> loadGruppierung() async {
     return await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
   });
 
-// if body['data'].length is 0, user has no rights to see any gruppierung
   if (body['data'].length != 1) {
     sensLog.e('Failed to load gruppierung. Multiple or no gruppierungen found');
-    throw Exception('Failed to load gruppierung');
+    throw InvalidNumberOfGruppierungException();
   }
 
   int gruppierungId = body['data'][0]['id'];

@@ -1,122 +1,95 @@
+import 'dart:convert';
+
 class NamiMemberDetailsModel {
-  final String? jungpfadfinder;
-  final String? mglType;
-  final String geschlecht;
-  final String staatsangehoerigkeit;
-  final String? ersteTaetigkeitId;
-  final String? ersteUntergliederung;
-  final DateTime lastUpdated;
-  final String? emailVertretungsberechtigter;
-  final String? ersteTaetigkeit;
-  final String? nameZusatz;
-  final int id;
-  final int staatsangehoerigkeitId;
-  final int version;
-  final bool sonst01;
-  final bool sonst02;
-  final String? spitzname;
-  final int? landId;
-  final String? staatsangehoerigkeitText;
-  final int gruppierungId;
-  final String mglTypeId;
-  final String? beitragsart;
-  final String nachname;
-  final DateTime eintrittsdatum;
-  final String? rover;
-  final String? region;
-  final String status;
-  final String? konfession;
-  final String? fixBeitrag;
-  final int? konfessionId;
-  final bool zeitschriftenversand;
-  final String? pfadfinder;
-  final String? telefon3;
-  final int geschlechtId;
-  final String? land;
-  final String? email;
-  final String? telefon1;
-  final String? woelfling;
-  final String? telefon2;
-  final String strasse;
-  final String vorname;
-  final int mitgliedsNummer;
-  final String gruppierung;
-  final DateTime? austrittsDatum;
-  final String ort;
-  final int? ersteUntergliederungId;
-  final bool wiederverwendenFlag;
-  final int? regionId;
-  final DateTime geburtsDatum;
-  final String? stufe;
-  final String? genericField1;
-  final String? genericField2;
-  final String? telefax;
-  final int? beitragsartId;
-  final String plz;
+  String? mglType;
+  String? ersteUntergliederung;
+  String? ersteTaetigkeitId;
+  DateTime? lastUpdated;
+  String? emailVertretungsberechtigter;
+  String? ersteTaetigkeit;
+  String? nameZusatz;
+  int? id;
+  int staatsangehoerigkeitId;
+  int version;
+  String? spitzname;
+  int? landId;
+  String? staatsangehoerigkeitText;
+  int gruppierungId;
+  String? mglTypeId;
+  String nachname;
+  DateTime eintrittsdatum;
+  String? status;
+  String? fixBeitrag;
+  int? konfessionId;
+  bool zeitschriftenversand;
+  String? telefon3;
+  int geschlechtId;
+  String? email;
+  String? telefon1;
+  String? telefon2;
+  String strasse;
+  String vorname;
+  int? mitgliedsNummer;
+  String? gruppierung;
+  DateTime? austrittsDatum;
+  String ort;
+  int? ersteUntergliederungId;
+  bool wiederverwendenFlag;
+  int? regionId;
+  DateTime geburtsDatum;
+  String? stufe;
+  String? telefax;
+  int? beitragsartId;
+  String plz;
+  Kontoverbindung? kontoverbindung;
 
   NamiMemberDetailsModel({
-    required this.jungpfadfinder,
-    required this.mglType,
-    required this.geschlecht,
-    required this.staatsangehoerigkeit,
-    required this.ersteTaetigkeitId,
-    required this.ersteUntergliederung,
-    required this.lastUpdated,
+    this.mglType,
+    this.ersteTaetigkeitId,
+    this.ersteUntergliederung,
+    this.lastUpdated,
     required this.emailVertretungsberechtigter,
-    required this.ersteTaetigkeit,
-    required this.nameZusatz,
-    required this.id,
+    this.ersteTaetigkeit,
+    this.nameZusatz,
+    this.id,
     required this.staatsangehoerigkeitId,
     required this.version,
-    required this.sonst01,
-    required this.sonst02,
-    required this.spitzname,
+    this.spitzname,
     required this.landId,
-    required this.staatsangehoerigkeitText,
+    this.staatsangehoerigkeitText,
     required this.gruppierungId,
-    required this.mglTypeId,
-    required this.beitragsart,
+    this.mglTypeId,
     required this.nachname,
     required this.eintrittsdatum,
-    required this.rover,
-    required this.region,
-    required this.status,
-    required this.konfession,
-    required this.fixBeitrag,
+    this.status,
+    this.fixBeitrag,
     required this.konfessionId,
     required this.zeitschriftenversand,
-    required this.pfadfinder,
     required this.telefon3,
     required this.geschlechtId,
-    required this.land,
     required this.email,
     required this.telefon1,
-    required this.woelfling,
     required this.telefon2,
     required this.strasse,
     required this.vorname,
-    required this.mitgliedsNummer,
-    required this.gruppierung,
-    required this.austrittsDatum,
+    this.mitgliedsNummer,
+    this.gruppierung,
+    this.austrittsDatum,
     required this.ort,
-    required this.ersteUntergliederungId,
+    this.ersteUntergliederungId,
     required this.wiederverwendenFlag,
     required this.regionId,
     required this.geburtsDatum,
-    required this.stufe,
-    required this.genericField1,
-    required this.genericField2,
-    required this.telefax,
+    this.stufe,
+    this.telefax,
     required this.beitragsartId,
     required this.plz,
+    this.kontoverbindung,
   });
 
   factory NamiMemberDetailsModel.fromJson(Map<String, dynamic> json) {
     return NamiMemberDetailsModel(
-      jungpfadfinder: json['jungpfadfinder'],
       mglType: json['mglType'],
-      geschlecht: json['geschlecht'],
-      staatsangehoerigkeit: json['staatsangehoerigkeit'],
       ersteTaetigkeitId: json['ersteTaetigkeitId'],
       ersteUntergliederung: json['ersteUntergliederung'],
       lastUpdated: DateTime.parse(json['lastUpdated']),
@@ -126,32 +99,23 @@ class NamiMemberDetailsModel {
       id: json['id'],
       staatsangehoerigkeitId: json['staatsangehoerigkeitId'],
       version: json['version'],
-      sonst01: json['sonst01'],
-      sonst02: json['sonst02'],
       spitzname: json['spitzname'],
       landId: json['landId'],
       staatsangehoerigkeitText: json['staatsangehoerigkeitText'],
       gruppierungId: json['gruppierungId'],
       mglTypeId: json['mglTypeId'],
-      beitragsart: json['beitragsart'],
       nachname: json['nachname'],
       eintrittsdatum: json['eintrittsdatum'].length > 5
           ? DateTime.parse(json['eintrittsdatum'])
           : DateTime(1599),
-      rover: json['rover'],
-      region: json['region'],
       status: json['status'],
-      konfession: json['konfession'],
       fixBeitrag: json['fixBeitrag'],
       konfessionId: json['konfessionId'],
       zeitschriftenversand: json['zeitschriftenversand'],
-      pfadfinder: json['pfadfinder'],
       telefon3: json['telefon3'],
       geschlechtId: json['geschlechtId'],
-      land: json['land'],
       email: json['email'],
       telefon1: json['telefon1'],
-      woelfling: json['woelfling'],
       telefon2: json['telefon2'],
       strasse: json['strasse'],
       vorname: json['vorname'],
@@ -166,11 +130,77 @@ class NamiMemberDetailsModel {
       regionId: json['regionId'],
       geburtsDatum: DateTime.parse(json['geburtsDatum']),
       stufe: json['stufe'],
-      genericField1: json['genericField1'],
-      genericField2: json['genericField2'],
       telefax: json['telefax'],
       beitragsartId: json['beitragsartId'],
       plz: json['plz'],
+      kontoverbindung: json['kontoverbindung'] == null
+          ? null
+          : Kontoverbindung.fromJson(json['kontoverbindung']),
     );
+  }
+  Map<String, dynamic> toJson() {
+    return {
+      'vorname': vorname,
+      'nachname': nachname,
+      'geschlechtId': geschlechtId,
+      'staatsangehoerigkeitId': staatsangehoerigkeitId,
+      'konfessionId': konfessionId,
+      'geburtsDatum': geburtsDatum.toIso8601String(),
+      'eintrittsdatum': eintrittsdatum.toIso8601String(),
+      'austrittsDatum': austrittsDatum?.toIso8601String(),
+      'beitragsartId': beitragsartId,
+      'mglTypeId': mglTypeId,
+      'ersteTaetigkeitId': ersteTaetigkeitId,
+      'ersteUntergliederungId': ersteUntergliederungId,
+      'zeitschriftenversand': zeitschriftenversand,
+      'wiederverwendenFlag': wiederverwendenFlag,
+      'strasse': strasse,
+      'plz': plz,
+      'ort': ort,
+      'regionId': regionId,
+      'landId': landId,
+      'telefon1': telefon1,
+      'telefon2': telefon2,
+      'telefon3': telefon3,
+      'email': email,
+      'emailVertretungsberechtigter': emailVertretungsberechtigter,
+      'gruppierungId': gruppierungId,
+      'version': version,
+      'kontoverbindung': kontoverbindung != null
+          ? jsonEncode(kontoverbindung!.toJson())
+          : null, // Kontoverbundung darf kein (echtes) JSON sein
+    };
+  }
+}
+
+class Kontoverbindung {
+  String? institut;
+  String? iban;
+  String? bic;
+  String? kontoinhaber;
+
+  Kontoverbindung({
+    this.institut,
+    this.iban,
+    this.bic,
+    this.kontoinhaber,
+  });
+
+  factory Kontoverbindung.fromJson(Map<String, dynamic> json) {
+    return Kontoverbindung(
+      institut: json['institut'],
+      iban: json['iban'],
+      bic: json['bic'],
+      kontoinhaber: json['kontoinhaber'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'institut': institut,
+      'iban': iban,
+      'bic': bic,
+      'kontoinhaber': kontoinhaber,
+    };
   }
 }

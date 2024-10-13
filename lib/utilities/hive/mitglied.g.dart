@@ -19,42 +19,46 @@ class MitgliedAdapter extends TypeAdapter<Mitglied> {
     return Mitglied()
       ..vorname = fields[0] as String
       ..nachname = fields[1] as String
-      ..geschlecht = fields[3] as String
+      ..geschlechtId = (fields[3] as num).toInt()
       ..geburtsDatum = fields[4] as DateTime
       ..stufe = fields[5] as String
-      ..id = fields[6] as int
-      ..mitgliedsNummer = fields[7] as int
+      ..id = (fields[6] as num?)?.toInt()
+      ..mitgliedsNummer = (fields[7] as num).toInt()
       ..eintrittsdatum = fields[8] as DateTime
       ..austrittsDatum = fields[9] as DateTime?
       ..ort = fields[10] as String
       ..plz = fields[11] as String
       ..strasse = fields[12] as String
-      ..landId = fields[13] as int
+      ..landId = (fields[13] as num).toInt()
       ..email = fields[14] as String?
       ..emailVertretungsberechtigter = fields[15] as String?
       ..telefon1 = fields[16] as String?
       ..telefon2 = fields[17] as String?
       ..telefon3 = fields[18] as String?
       ..lastUpdated = fields[19] as DateTime
-      ..version = fields[20] as int
+      ..version = (fields[20] as num).toInt()
       ..mglTypeId = fields[21] as String
-      ..beitragsartId = fields[22] as int
+      ..beitragsartId = (fields[22] as num).toInt()
       ..status = fields[23] as String
       ..taetigkeiten = (fields[24] as List).cast<Taetigkeit>()
       ..ausbildungen =
-          fields[25] == null ? [] : (fields[25] as List).cast<Ausbildung>();
+          fields[25] == null ? [] : (fields[25] as List).cast<Ausbildung>()
+      ..staatssangehaerigkeitId = (fields[26] as num).toInt()
+      ..konfessionId = fields[27] as String?
+      ..mitgliedszeitschrift = fields[28] as bool
+      ..datenweiterverwendung = fields[29] as bool;
   }
 
   @override
   void write(BinaryWriter writer, Mitglied obj) {
     writer
-      ..writeByte(25)
+      ..writeByte(29)
       ..writeByte(0)
       ..write(obj.vorname)
       ..writeByte(1)
       ..write(obj.nachname)
       ..writeByte(3)
-      ..write(obj.geschlecht)
+      ..write(obj.geschlechtId)
       ..writeByte(4)
       ..write(obj.geburtsDatum)
       ..writeByte(5)
@@ -98,7 +102,15 @@ class MitgliedAdapter extends TypeAdapter<Mitglied> {
       ..writeByte(24)
       ..write(obj.taetigkeiten)
       ..writeByte(25)
-      ..write(obj.ausbildungen);
+      ..write(obj.ausbildungen)
+      ..writeByte(26)
+      ..write(obj.staatssangehaerigkeitId)
+      ..writeByte(27)
+      ..write(obj.konfessionId)
+      ..writeByte(28)
+      ..write(obj.mitgliedszeitschrift)
+      ..writeByte(29)
+      ..write(obj.datenweiterverwendung);
   }
 
   @override

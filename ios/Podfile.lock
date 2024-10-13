@@ -16,15 +16,18 @@ PODS:
     - Flutter
   - geolocator_apple (1.2.0):
     - Flutter
+  - in_app_review (0.2.0):
+    - Flutter
   - local_auth_darwin (0.0.1):
     - Flutter
+    - FlutterMacOS
   - maps_launcher (0.0.1):
     - Flutter
   - ObjectBox (2.0.0)
   - objectbox_flutter_libs (0.0.1):
     - Flutter
     - ObjectBox (= 2.0.0)
-  - open_file (0.0.1):
+  - open_file_ios (0.0.1):
     - Flutter
   - package_info_plus (0.4.5):
     - Flutter
@@ -49,10 +52,11 @@ DEPENDENCIES:
   - fluttertoast (from `.symlinks/plugins/fluttertoast/ios`)
   - geocoding_ios (from `.symlinks/plugins/geocoding_ios/ios`)
   - geolocator_apple (from `.symlinks/plugins/geolocator_apple/ios`)
+  - in_app_review (from `.symlinks/plugins/in_app_review/ios`)
   - local_auth_darwin (from `.symlinks/plugins/local_auth_darwin/darwin`)
   - maps_launcher (from `.symlinks/plugins/maps_launcher/ios`)
   - objectbox_flutter_libs (from `.symlinks/plugins/objectbox_flutter_libs/ios`)
-  - open_file (from `.symlinks/plugins/open_file/ios`)
+  - open_file_ios (from `.symlinks/plugins/open_file_ios/ios`)
   - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - privacy_screen (from `.symlinks/plugins/privacy_screen/ios`)
@@ -81,14 +85,16 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/geocoding_ios/ios"
   geolocator_apple:
     :path: ".symlinks/plugins/geolocator_apple/ios"
+  in_app_review:
+    :path: ".symlinks/plugins/in_app_review/ios"
   local_auth_darwin:
     :path: ".symlinks/plugins/local_auth_darwin/darwin"
   maps_launcher:
     :path: ".symlinks/plugins/maps_launcher/ios"
   objectbox_flutter_libs:
     :path: ".symlinks/plugins/objectbox_flutter_libs/ios"
-  open_file:
-    :path: ".symlinks/plugins/open_file/ios"
+  open_file_ios:
+    :path: ".symlinks/plugins/open_file_ios/ios"
   package_info_plus:
     :path: ".symlinks/plugins/package_info_plus/ios"
   path_provider_foundation:
@@ -106,14 +112,15 @@ SPEC CHECKSUMS:
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
   flutter_email_sender: 10a22605f92809a11ef52b2f412db806c6082d40
   flutter_secure_storage: d33dac7ae2ea08509be337e775f6b59f1ff45f12
-  fluttertoast: 9f2f8e81bb5ce18facb9748d7855bf5a756fe3db
+  fluttertoast: e9a18c7be5413da53898f660530c56f35edfba9c
   geocoding_ios: d7460f56e80e118d57678efe5c2cdc888739ff18
   geolocator_apple: 6cbaf322953988e009e5ecb481f07efece75c450
-  local_auth_darwin: 4d56c90c2683319835a61274b57620df9c4520ab
+  in_app_review: 318597b3a06c22bb46dc454d56828c85f444f99d
+  local_auth_darwin: 66e40372f1c29f383a314c738c7446e2f7fdadc3
   maps_launcher: 2e5b6a2d664ec6c27f82ffa81b74228d770ab203
   ObjectBox: f5319bd9ad2ea960796eff7227e86471867e9ef0
   objectbox_flutter_libs: c7748f6c6fda47d22f15c8062fb8208063fd948a
-  open_file: 02eb5cb6b21264bd3a696876f5afbfb7ca4f4b7d
+  open_file_ios: 461db5853723763573e140de3193656f91990d9e
   package_info_plus: 58f0028419748fad15bf008b270aaa8e54380b1c
   path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
   privacy_screen: 1a131c052ceb3c3659934b003b0d397c2381a24e

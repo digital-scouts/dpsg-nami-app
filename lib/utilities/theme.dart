@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nami/utilities/hive/settings.dart';
 
 const Color darkSecondary = Color(0xFF520081);
 
@@ -20,6 +21,7 @@ final darkTheme = ThemeData(
     secondary: DPSGColors.secondary,
     brightness: Brightness.dark,
   ),
+  disabledColor: const Color.fromARGB(255, 36, 36, 36),
 );
 
 //################################################################
@@ -30,10 +32,11 @@ final lightTheme = ThemeData(
     secondary: DPSGColors.secondary,
     brightness: Brightness.light,
   ),
+  disabledColor: const Color.fromARGB(255, 222, 222, 222),
 );
 
 class ThemeModel extends ChangeNotifier {
-  ThemeMode currentMode = ThemeMode.system;
+  ThemeMode currentMode = getThemeMode();
 
   setTheme(ThemeMode type) {
     currentMode = type;

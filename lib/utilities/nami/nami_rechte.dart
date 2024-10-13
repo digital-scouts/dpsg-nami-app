@@ -1,18 +1,22 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
-import 'package:nami/utilities/nami/nami_user_data.dart';
 
 // rechte enum
 enum AllowedFeatures {
-  error,
+  noPermission,
+  unknownError,
   appStart,
   memberEdit,
   memberCreate,
+  memberImport,
+  membershipEnd,
+  taetigkeitCreate,
+  taetigkeitEdit,
+  taetigkeitDelete,
   stufenwechsel,
   fuehrungszeugnis,
   ausbildungCreate,
@@ -24,14 +28,26 @@ enum AllowedFeatures {
 extension AllowedFeaturesExtension on AllowedFeatures {
   String toReadableString() {
     switch (this) {
-      case AllowedFeatures.error:
+      case AllowedFeatures.unknownError:
         return 'Fehler, bitte Logs über Einstellungen senden.';
+      case AllowedFeatures.noPermission:
+        return 'Keine Berechtigung';
       case AllowedFeatures.appStart:
         return 'Mitglieder anzeigen';
       case AllowedFeatures.memberEdit:
-        return 'Miglieder bearbeiten';
+        return 'Mitglieder bearbeiten';
       case AllowedFeatures.memberCreate:
         return 'Mitglieder anlegen';
+      case AllowedFeatures.membershipEnd:
+        return 'Mitgliedschaft beenden';
+      case AllowedFeatures.memberImport:
+        return 'Mitglied übernehmen';
+      case AllowedFeatures.taetigkeitCreate:
+        return 'Tätigkeit anlegen';
+      case AllowedFeatures.taetigkeitEdit:
+        return 'Tätigkeit bearbeiten';
+      case AllowedFeatures.taetigkeitDelete:
+        return 'Tätigkeit löschen';
       case AllowedFeatures.stufenwechsel:
         return 'Stufenwechsel';
       case AllowedFeatures.fuehrungszeugnis:
@@ -48,15 +64,15 @@ extension AllowedFeaturesExtension on AllowedFeatures {
   }
 }
 
-Future<List<int>> loadRechte() async {
+Future<List<int>> loadRechte(int id) async {
   sensLog.i('Rechte werden geladen');
   final cookie = getNamiApiCookie();
   if (cookie == 'testLoginCookie') {
-    return [5, 36, 58, 118, 139, 314, 193, 194, 195];
+    return [5, 36, 58, 118, 139, 314, 193, 194];
   }
   Map<int, String> rechte;
   try {
-    rechte = await _loadRechteJson();
+    rechte = await _loadRechteJson(id);
   } catch (e, st) {
     sensLog.e('Failed to load rechte', error: e, stackTrace: st);
     return [];
@@ -69,7 +85,7 @@ Future<List<int>> loadRechte() async {
 List<AllowedFeatures> getAllowedFeatures() {
   final rechte = getRechte();
   if (rechte.isEmpty) {
-    return [AllowedFeatures.error];
+    return [AllowedFeatures.unknownError];
   }
   List<AllowedFeatures> allowedFeatures = [];
   if (rechte.contains(5) &&
@@ -83,6 +99,15 @@ List<AllowedFeatures> getAllowedFeatures() {
   if (rechte.contains(57) && rechte.contains(59)) {
     allowedFeatures.add(AllowedFeatures.stufenwechsel);
   }
+  if (rechte.contains(57)) {
+    allowedFeatures.add(AllowedFeatures.taetigkeitEdit);
+  }
+  if (rechte.contains(59)) {
+    allowedFeatures.add(AllowedFeatures.taetigkeitCreate);
+  }
+  if (rechte.contains(186)) {
+    allowedFeatures.add(AllowedFeatures.taetigkeitDelete);
+  }
   if (rechte.contains(4) && rechte.contains(57)) {
     allowedFeatures.add(AllowedFeatures.memberEdit);
   }
@@ -91,6 +116,12 @@ List<AllowedFeatures> getAllowedFeatures() {
       rechte.contains(313) &&
       rechte.contains(316)) {
     allowedFeatures.add(AllowedFeatures.memberCreate);
+  }
+  if (rechte.contains(312)) {
+    allowedFeatures.add(AllowedFeatures.membershipEnd);
+  }
+  if (rechte.contains(315)) {
+    allowedFeatures.add(AllowedFeatures.memberImport);
   }
   if (rechte.contains(473) && rechte.contains(474)) {
     allowedFeatures.add(AllowedFeatures.fuehrungszeugnis);
@@ -112,14 +143,8 @@ List<AllowedFeatures> getAllowedFeatures() {
   return allowedFeatures;
 }
 
-Future<Map<int, String>> _loadRechteJson() async {
-  Mitglied? currentUser = findCurrentUser();
-  if (currentUser == null) {
-    sensLog.e('Failed to find current user in load rechte');
-    throw Exception('Failed to find current user in load rechte');
-  }
-
-  dynamic document = await _loadDocument(currentUser.id);
+Future<Map<int, String>> _loadRechteJson(int id) async {
+  dynamic document = await _loadDocument(id);
 
   // Finden Sie das relevante <script>-Tags
   final scriptContent =

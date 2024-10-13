@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nami/screens/utilities/fuehrungszeugnis.widget.dart';
 import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
 import 'package:nami/utilities/notifications.dart';
@@ -140,6 +141,20 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
                     'Keine Netzwerkverbindung. Versuch es später erneut'),
               )
             else if (context.watch<AppStateHandler>().syncState ==
+                SyncState.noPermission)
+              Column(
+                children: [
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(),
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.block),
+                    label: const Text(
+                        'Du hast nicht die notwendige Berechtigung die App zu nutzen.'),
+                  ),
+                  const FuehrungszeugnisWidgets()
+                ],
+              )
+            else if (context.watch<AppStateHandler>().syncState ==
                 SyncState.relogin)
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(),
@@ -147,7 +162,7 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
                 icon: const Icon(Icons.sync_problem),
                 label:
                     const Text('Kein Sync möglich ohne erneute Anmeldung. OK'),
-              )
+              ),
           ],
         ),
       ),
@@ -183,7 +198,7 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
           ],
         );
       }
-    } else if (value is String) {
+    } else if (value is String && value.isNotEmpty) {
       subtitle = Text(value);
       trailing = successIcon;
     } else if (value is List<AllowedFeatures>) {
@@ -195,7 +210,7 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
       subtitle = Text(
         value.map((e) => e.toReadableString()).join(", "),
       );
-    } else if (value == null) {
+    } else if (value == null || value is String) {
       trailing = const CircularProgressIndicator();
     } else {
       trailing = errorIcon;

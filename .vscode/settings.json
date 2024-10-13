@@ -3,6 +3,12 @@
     ".github/workflows/flutter.yml",
     ".github/workflows/flutter-app-build.yml"
   ],
+  "[dart]": {
+      "editor.codeActionsOnSave": {
+          "source.fixAll": "always",
+          "source.organizeImports": "always",
+      }
+  },
   "java.configuration.updateBuildConfiguration": "interactive",
   "cSpell.enableFiletypes": ["!dart"]
 }

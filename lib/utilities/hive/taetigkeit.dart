@@ -1,4 +1,4 @@
-import 'package:hive/hive.dart';
+import 'package:hive_ce/hive.dart';
 
 // flutter packages pub run build_runner build
 
@@ -52,6 +52,14 @@ class Taetigkeit {
   bool isFutureTaetigkeit() {
     DateTime now = DateTime.now();
     if (aktivVon.isAfter(now)) {
+      return true;
+    }
+    return false;
+  }
+
+  bool endsInFuture() {
+    DateTime now = DateTime.now();
+    if (aktivBis == null || aktivBis!.isAfter(now)) {
       return true;
     }
     return false;

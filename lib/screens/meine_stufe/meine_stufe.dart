@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
+import 'package:hive_ce/hive.dart';
 import 'package:intl/intl.dart';
 import 'package:nami/screens/mitgliedsliste/mitglied_details.dart';
 import 'package:nami/screens/widgets/map.widget.dart';
@@ -57,7 +57,7 @@ class _MeineStufeState extends State<MeineStufe> {
                   text:
                       'Keine Mitglieder hinzugefügt. \nFüge Mitglieder in den Details \nüber '),
               WidgetSpan(
-                child: Icon(Icons.star, size: 20),
+                child: Icon(Icons.bookmark_border, size: 20),
               ),
               TextSpan(text: ' hinzu.'),
             ],

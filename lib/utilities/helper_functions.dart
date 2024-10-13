@@ -2,7 +2,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_email_sender/flutter_email_sender.dart';
-import 'package:hive/hive.dart';
+import 'package:hive_ce/hive.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/logger.dart';
@@ -41,7 +41,7 @@ Future<String?> getGitCommitId() async {
   }
 }
 
-Future<void> openWiredash(BuildContext context) async {
+Future<void> openWiredash(BuildContext context, String feedbackType) async {
   Box<Mitglied> memberBox = Hive.box<Mitglied>('members');
   Mitglied? user;
   String gitInfo = await getGitCommitId() ?? 'unknown';
@@ -52,6 +52,7 @@ Future<void> openWiredash(BuildContext context) async {
 
   WidgetsBinding.instance.addPostFrameCallback((_) {
     Wiredash.of(context).modifyMetaData((metaData) => metaData
+      ..custom['type'] = feedbackType
       ..custom['gitCommitId'] = gitInfo
       ..custom['userNamiLoginId'] = sensId(getNamiLoginId()!)
       ..custom['user'] = '${user?.vorname} ${user?.nachname}'

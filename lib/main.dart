@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:flutter/material.dart';
+import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:nami/screens/login_screen.dart';
@@ -13,6 +13,7 @@ import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/custom_wiredash_translations_delegate.dart';
 import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/hive/hive.handler.dart';
+import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/theme.dart';
 import 'package:privacy_screen/privacy_screen.dart';
@@ -20,17 +21,29 @@ import 'package:provider/provider.dart';
 import 'package:wiredash/wiredash.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await FMTCObjectBoxBackend().initialise();
   initializeDateFormatting("de_DE", null);
-  const FMTCStore('mapStore').manage.create();
   Intl.defaultLocale = "de_DE";
   await Hive.initFlutter();
   await registerAdapter();
-  await openHive();
+  try {
+    await openHive();
+  } on TypeError catch (_) {
+    deleteHiveMemberDataOnFail();
+    await openHive();
+  }
   await dotenv.load(fileName: ".env");
   await initLogger();
+  try {
+    WidgetsFlutterBinding.ensureInitialized();
+    await FMTCObjectBoxBackend().initialise();
+    const FMTCStore('mapStore').manage.create();
+    enableMapTileCaching();
+  } catch (e) {
+    sensLog
+        .e('Error while initalice objectbox for flutter_map_tile_caching: $e');
+  }
   if (!kDebugMode) {
     await PrivacyScreen.instance.enable(
       iosOptions: const PrivacyIosOptions(
@@ -63,6 +76,7 @@ class MyApp extends StatelessWidget {
       throw Exception(
           'Please provide WIREDASH_PROJECT_ID and WIREDASH_SECRET in your .env file');
     }
+
     return Wiredash(
       projectId: dotenv.env['WIREDASH_PROJECT_ID']!,
       secret: dotenv.env['WIREDASH_SECRET']!,
@@ -145,7 +159,7 @@ class _MaterialAppWrapperState extends State<MaterialAppWrapper>
       builder: (context, child) {
         return Scaffold(
           floatingActionButton: FloatingActionButton(
-            onPressed: () => openWiredash(context),
+            onPressed: () => openWiredash(context, 'Feedback Button Main'),
             child: const Icon(Icons.feedback),
           ),
           body: Consumer<AppStateHandler>(

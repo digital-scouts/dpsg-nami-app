@@ -5,18 +5,20 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:local_auth/local_auth.dart';
 import 'package:nami/main.dart';
-import 'package:nami/screens/utilities/loading_info_screen.dart';
 import 'package:nami/screens/login_screen.dart';
+import 'package:nami/screens/utilities/loading_info_screen.dart';
+import 'package:nami/screens/utilities/new_version_info_screen.dart';
 import 'package:nami/screens/utilities/welcome_screen.dart';
 import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/hive/hive.handler.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/logger.dart';
-import 'package:nami/utilities/nami/nami-member.service.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
+import 'package:nami/utilities/nami/nami_member.service.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
 import 'package:nami/utilities/notifications.dart';
 import 'package:nami/utilities/types.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:wiredash/wiredash.dart';
 
 class AppStateHandler extends ChangeNotifier {
@@ -63,6 +65,38 @@ class AppStateHandler extends ChangeNotifier {
 
   void onResume(BuildContext context) async {
     _paused = false;
+    final packageInfo = await PackageInfo.fromPlatform();
+    final appVersion = packageInfo.version;
+    // first open with new version
+    if (getLastAppVersion() != appVersion) {
+      setNewVersionInfoShown(false);
+      setLastAppVersion(appVersion);
+      // show version info only when user is not new / welcome message was shown before
+      if (getWelcomeMessageShown()) {
+        await Navigator.push(
+          navigatorKey.currentContext!,
+          MaterialPageRoute(
+              builder: (context) => NewVersionInfoScreen(
+                    features: const [
+                      'Bearbeiten und Anlegen von Mitgliedern und Tätigkeiten (In den Einstellungen kann das Bearbeiten von Daten aktiviert werden.).',
+                      'In den Mitgliedsdetails werden nun mehr Infos angezeigt.',
+                      'Es wurden anonyme Tracking-Funktionen hinzugefügt, um die Nutzung der App analysieren zu können.',
+                      'Die Möglichkeit, den Entwickler zu loben, wurde hinzugefügt.',
+                      'Es kann nach Belieben zwischen dem hellen und dunklen Design gewechselt werden.',
+                    ],
+                    bugFixes: const [
+                      'Passive Mitglieder lassen sich in "Meine Stufe" jetzt darstellen.',
+                      'Diverse Fehlerbehebungen, die bei einzelnen Datenkonstellationen auftraten.',
+                      'Die App kommt jetzt damit klar, wenn sich jemand ohne Leserechte anmeldet.',
+                      'Das Laden und Anzeigen der eigenen Rechte wurde optimiert'
+                    ],
+                    dataReset: true,
+                    version: appVersion,
+                  )),
+        );
+        setNewVersionInfoShown(true);
+      }
+    }
 
     /// Prevent changing state while relogin when app comes from background
     if (currentState == AppState.relogin) {
@@ -141,7 +175,7 @@ class AppStateHandler extends ChangeNotifier {
         'Start loading data with loadAll: $loadAll and background: $background');
     ValueNotifier<List<AllowedFeatures>> rechteProgressNotifier =
         ValueNotifier([]);
-    ValueNotifier<String?> gruppierungProgressNotifier = ValueNotifier(null);
+    ValueNotifier<String> gruppierungProgressNotifier = ValueNotifier('');
     ValueNotifier<bool?> metaProgressNotifier = ValueNotifier(null);
     ValueNotifier<bool?> memberOverviewProgressNotifier = ValueNotifier(null);
     ValueNotifier<double> memberAllProgressNotifier = ValueNotifier(0.0);
@@ -184,7 +218,22 @@ class AppStateHandler extends ChangeNotifier {
             "Daten wurden erfolgreich synchronisiert");
       }
       setReadyState();
-    } on SessionExpired catch (_) {
+    } on InvalidNumberOfGruppierungException catch (_) {
+      sensLog.i('sync failed with invalid number of gruppierungen');
+      Wiredash.trackEvent('Data sync failed', data: {
+        'error': 'Invalid number of gruppierungen',
+      });
+
+      memberAllProgressNotifier.value = 0;
+      rechteProgressNotifier.value = [AllowedFeatures.noPermission];
+      gruppierungProgressNotifier.value = 'null';
+      gruppierungProgressNotifier.value =
+          'Keine oder mehrere Gruppierung(en) gefunden';
+      metaProgressNotifier.value = false;
+      memberOverviewProgressNotifier.value = false;
+
+      syncState = SyncState.noPermission;
+    } on SessionExpiredException catch (_) {
       sensLog.i('sync failed with session expired');
       Wiredash.trackEvent('Data sync failed', data: {
         'error': 'Session expired',
@@ -327,7 +376,15 @@ class AppStateHandler extends ChangeNotifier {
   }
 }
 
-enum SyncState { notStarted, loading, successful, offline, error, relogin }
+enum SyncState {
+  notStarted,
+  loading,
+  successful,
+  offline,
+  error,
+  relogin,
+  noPermission
+}
 
 enum AppState {
   /// Only used for initial state

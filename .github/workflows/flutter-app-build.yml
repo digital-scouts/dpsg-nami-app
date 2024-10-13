@@ -29,7 +29,7 @@ jobs:
       - run: flutter test
 
   version:
-    name: flutter version
+    name: version
     runs-on: ubuntu-latest
     outputs:
       releaseversion: ${{ steps.v.outputs.version }}
@@ -66,10 +66,10 @@ jobs:
         with:
           channel: "stable"
       - run: flutter pub get
-      - run: flutter build apk --debug
+      - run: flutter build apk
       - run: flutter build appbundle
       - name: Upload Android build artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: android-artifacts
           path: build/app/outputs
@@ -82,7 +82,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Download Android build artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: android-artifacts
           path: android-artifacts

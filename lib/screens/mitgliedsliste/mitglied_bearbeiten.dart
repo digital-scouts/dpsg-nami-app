@@ -1,23 +1,30 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_form_builder/flutter_form_builder.dart';
+import 'package:form_builder_validators/form_builder_validators.dart';
+import 'package:intl/intl.dart';
+import 'package:nami/screens/mitgliedsliste/mitglied_details.dart';
+import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/external_apis/geoapify.dart';
 import 'package:nami/utilities/external_apis/iban.dart';
 import 'package:nami/utilities/external_apis/postcode.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
-import 'package:intl/intl.dart';
-import 'package:flutter_form_builder/flutter_form_builder.dart';
-import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/logger.dart';
+import 'package:nami/utilities/nami/model/nami_member_details.model.dart';
+import 'package:nami/utilities/nami/nami_member.service.dart';
+import 'package:nami/utilities/nami/nami_member_add.service.dart';
 import 'package:nami/utilities/nami/nami_member_add_meta.dart';
+import 'package:nami/utilities/types.dart';
 import 'package:wiredash/wiredash.dart';
 
 // ignore: must_be_immutable
 class MitgliedBearbeiten extends StatefulWidget {
   Mitglied? mitglied;
 
-  MitgliedBearbeiten({required this.mitglied, super.key});
+  MitgliedBearbeiten({this.mitglied, super.key});
 
   @override
   MitgliedBearbeitenState createState() => MitgliedBearbeitenState();
@@ -26,27 +33,58 @@ class MitgliedBearbeiten extends StatefulWidget {
 class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
   Timer? _adressAutocompleteDebounce;
   bool canPop = false;
+  bool _submitInProgress = false;
   List<GeoapifyAdress> _adressAutocompleteAdressesResults = [];
   String _adressAutocompleteSearchString = '';
   bool _adressAutocompleteActive = true;
   bool validateOnInteraction = false;
   List<PlzResult> _plzResult = [];
   IbanResult? _ibanResult;
-  List<String> geschlechtOptions = [];
-  List<String> landOptions = [];
-  List<String> regionOptions = [];
-  List<String> beitragsartOptions = [];
-  List<String> mitgliedstypOptions = [];
-  List<String> staatsangehoerigkeitOptions = [];
-  List<String> konfessionOptions = [];
-  List<String> ersteTaetigkeitOptions = [];
-  List<String> ersteUntergliederungOptions = [];
+  Map<String, String> geschlechtOptions = {};
+  Map<String, String> landOptions = {};
+  Map<String, String> regionOptions = {};
+  Map<String, String> beitragsartOptions = {};
+  Map<String, String> mitgliedstypOptions = {};
+  Map<String, String> staatsangehoerigkeitOptions = {};
+  Map<String, String> konfessionOptions = {};
+  Map<String, String> ersteTaetigkeitOptions = {};
+  Map<String, String> ersteUntergliederungOptions = {};
   final _formKey = GlobalKey<FormBuilderState>();
 
   @override
   void initState() {
     super.initState();
     loadMetadata();
+    if (widget.mitglied != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _formKey.currentState!.patchValue({
+          'vorname': widget.mitglied!.vorname,
+          'nachname': widget.mitglied!.nachname,
+          'geschlecht': widget.mitglied!.geschlechtId.toString(),
+          'staatsangehoerigkeit':
+              widget.mitglied?.staatssangehaerigkeitId.toString() ??
+                  '1054', // default to deutsch
+          'konfession': widget.mitglied?.konfessionId == 'null'
+              ? ''
+              : widget.mitglied?.konfessionId,
+          'geburtstag': widget.mitglied!.geburtsDatum,
+          'beitragsart': widget.mitglied?.beitragsartId.toString() ??
+              '4', // Voller Beitrag - Stiftungseuro - VERBANDSBEITRAG,
+          'mitgliedszeitschrift': widget.mitglied?.mitgliedszeitschrift ?? true,
+          'datenweiterverwendung': widget.mitglied!.datenweiterverwendung,
+          'street': widget.mitglied!.strasse,
+          'plz': widget.mitglied!.plz,
+          'festnetznummer': widget.mitglied!.telefon1,
+          'mobilfunknummer': widget.mitglied!.telefon2,
+          'geschaeftlich': widget.mitglied!.telefon3,
+          'email': widget.mitglied!.email,
+          'email_sorgeberechtigter':
+              widget.mitglied!.emailVertretungsberechtigter,
+        });
+      });
+      _adressAutocompleteActive = false;
+      updateCityAfterPlzChange(widget.mitglied!.plz);
+    }
   }
 
   Future<void> loadMetadata() async {
@@ -58,11 +96,17 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
     staatsangehoerigkeitOptions = getMetaStaatsangehoerigkeitOptions();
     konfessionOptions = getMetaKonfessionOptions();
     ersteTaetigkeitOptions = getErsteTaetigkeitOptions();
-    ersteUntergliederungOptions =
-        await getErsteUntergliederungMeta('€ Mitglied');
-    setState(() {
-      ersteUntergliederungOptions = ersteUntergliederungOptions;
-    });
+    try {
+      ersteUntergliederungOptions =
+          await getErsteUntergliederungMeta('1'); //€ Mitglied
+    } on SessionExpiredException catch (_) {
+      if (!await AppStateHandler().setReloginState()) {
+        // ignore: use_build_context_synchronously
+        Navigator.of(context).pop();
+      }
+    }
+
+    setState(() {});
   }
 
   void _onWillPop(bool didPop, Object? result) async {
@@ -80,7 +124,6 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
             ),
             TextButton(
               onPressed: () {
-                // Pop
                 Navigator.of(context).pop();
                 setState(() {
                   canPop = true;
@@ -114,6 +157,72 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
     }
   }
 
+  NamiMemberDetailsModel createMemberFromForm() {
+    NamiMemberDetailsModel model = NamiMemberDetailsModel(
+      vorname: _formKey.currentState!.fields['vorname']!.value,
+      nachname: _formKey.currentState!.fields['nachname']!.value,
+      geschlechtId: int.parse(
+          _formKey.currentState!.fields['geschlecht']!.value.toString()),
+      staatsangehoerigkeitId: int.parse(_formKey
+          .currentState!.fields['staatsangehoerigkeit']!.value
+          .toString()),
+      konfessionId:
+          _formKey.currentState!.fields['konfession']!.value.isNotEmpty
+              ? int.parse(_formKey.currentState!.fields['konfession']!.value)
+              : null,
+      geburtsDatum: _formKey.currentState!.fields['geburtstag']!.value,
+      eintrittsdatum: widget.mitglied?.eintrittsdatum ??
+          _formKey.currentState!.fields['eintrittsdatum']!.value,
+      beitragsartId: int.parse(
+          _formKey.currentState!.fields['beitragsart']!.value.toString()),
+      zeitschriftenversand:
+          _formKey.currentState!.fields['mitgliedszeitschrift']!.value,
+      wiederverwendenFlag:
+          _formKey.currentState!.fields['datenweiterverwendung']!.value,
+      strasse: _formKey.currentState!.fields['street']!.value,
+      plz: _formKey.currentState!.fields['plz']!.value,
+      ort: _formKey.currentState!.fields['ort']!.value,
+      regionId: int.parse(regionOptions.entries
+          .firstWhere((element) => element.value
+              .contains(_formKey.currentState!.fields['bundesland']!.value))
+          .key),
+      landId: int.parse(landOptions.entries
+          .firstWhere((element) => element.value
+              .contains(_formKey.currentState!.fields['land']!.value))
+          .key),
+      telefon1: _formKey.currentState!.fields['festnetznummer']!.value,
+      telefon2: _formKey.currentState!.fields['mobilfunknummer']!.value,
+      telefon3: _formKey.currentState!.fields['geschaeftlich']!.value,
+      email: _formKey.currentState!.fields['email']!.value,
+      emailVertretungsberechtigter:
+          _formKey.currentState!.fields['email_sorgeberechtigter']!.value,
+      version: widget.mitglied == null ? 0 : widget.mitglied!.version,
+      gruppierungId: getGruppierungId() ?? 0,
+    );
+
+    if (widget.mitglied != null) {
+      model.id = widget.mitglied!.id;
+    }
+
+    if (widget.mitglied == null) {
+      model.ersteTaetigkeitId =
+          _formKey.currentState!.fields['taetigkeit']!.value.toString();
+      model.ersteUntergliederungId =
+          int.parse(_formKey.currentState!.fields['group']!.value.toString());
+      model.mglTypeId = mitgliedstypOptions.entries
+          .firstWhere((element) => element.value == 'Mitglied')
+          .key;
+      model.kontoverbindung = Kontoverbindung(
+        kontoinhaber: _formKey.currentState!.fields['kontoinhaber']!.value,
+        iban: _formKey.currentState!.fields['iban']!.value,
+        bic: _formKey.currentState!.fields['bic']!.value,
+        institut: _formKey.currentState!.fields['kreititnstitut']!.value,
+      );
+    }
+
+    return model;
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -136,74 +245,27 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  // Mitglied
-                  Container(
-                    padding: const EdgeInsets.all(16.0),
-                    margin: const EdgeInsets.symmetric(vertical: 8.0),
-                    decoration: BoxDecoration(
-                      color: Colors.yellow[100],
-                      borderRadius: BorderRadius.circular(8.0),
-                      border: Border.all(
-                        color: Colors.yellow[700]!,
-                        width: 2.0,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.warning,
-                          color: Colors.yellow[700],
-                        ),
-                        const SizedBox(width: 8.0),
-                        const Expanded(
-                          child: Text(
-                            'Erstellen von Mitglieder noch nicht möglich. Dies ist nur ein Formular um die Funktionalität zu testen.',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  buildSectionTitle('Mitglied'),
-                  twoColumnRow(
+                  _twoColumnRow(
                     FormBuilderTextField(
                       name: 'vorname',
                       validator: FormBuilderValidators.required(),
-                      decoration: const InputDecoration(
-                        labelText: 'Vorname',
-                        alignLabelWithHint: true,
-                        hintText: ' ',
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration: _buildActiveInputDecoration('Vorname'),
                     ),
                     FormBuilderTextField(
                       name: 'nachname',
                       validator: FormBuilderValidators.required(),
-                      decoration: const InputDecoration(
-                        labelText: 'Nachname',
-                        alignLabelWithHint: true,
-                        hintText: ' ',
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration: _buildActiveInputDecoration('Nachname'),
                     ),
                   ),
-                  twoColumnRow(
+                  _twoColumnRow(
                     FormBuilderDropdown(
                       name: 'geschlecht',
                       validator: FormBuilderValidators.required(),
-                      decoration: const InputDecoration(
-                        labelText: 'Geschlecht',
-                        alignLabelWithHint: true,
-                        border: OutlineInputBorder(),
-                      ),
-                      items: geschlechtOptions.map((String value) {
+                      decoration: _buildActiveInputDecoration('Geschlecht'),
+                      items: geschlechtOptions.entries.map((entry) {
                         return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(
-                            value,
-                          ),
+                          value: entry.key,
+                          child: Text(entry.value),
                         );
                       }).toList(),
                       onChanged: (String? newValue) {
@@ -212,17 +274,14 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                     ),
                     FormBuilderDropdown(
                       name: 'staatsangehoerigkeit',
-                      initialValue: 'deutsch',
+                      initialValue: '1054', // default to deutsch
                       validator: FormBuilderValidators.required(),
-                      decoration: const InputDecoration(
-                        labelText: 'Staatsangehörigkeit',
-                        alignLabelWithHint: true,
-                        border: OutlineInputBorder(),
-                      ),
-                      items: staatsangehoerigkeitOptions.map((String value) {
+                      decoration:
+                          _buildActiveInputDecoration('Staatsangehörigkeit'),
+                      items: staatsangehoerigkeitOptions.entries.map((entry) {
                         return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
+                          value: entry.key,
+                          child: Text(entry.value),
                         );
                       }).toList(),
                       onChanged: (String? newValue) {
@@ -230,128 +289,110 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                       },
                     ),
                   ),
-                  twoColumnRow(
+                  _twoColumnRow(
                     FormBuilderDropdown(
                       name: 'konfession',
-                      items: konfessionOptions.map((String value) {
+                      initialValue: '',
+                      items: konfessionOptions.entries.map((entry) {
                         return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(
-                            value,
-                          ),
+                          value: entry.key,
+                          child: Text(entry.value),
                         );
                       }).toList(),
                       onChanged: (String? newValue) {
                         setState(() {});
                       },
-                      decoration: const InputDecoration(
-                        labelText: 'Konfession*',
-                        alignLabelWithHint: true,
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration: _buildActiveInputDecoration('Konfession*'),
                     ),
                     FormBuilderDateTimePicker(
                       inputType: InputType.date,
                       name: 'geburtstag',
                       validator: FormBuilderValidators.required(),
                       format: DateFormat('dd.MM.yyyy'),
-                      decoration: const InputDecoration(
-                        label: Text('Geburtstag'),
-                        alignLabelWithHint: true,
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration: _buildActiveInputDecoration('Geburtstag'),
                     ),
                   ),
-
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4.0),
-                    child: FormBuilderDropdown(
-                      name: 'taetigkeit',
-                      validator: FormBuilderValidators.required(),
-                      initialValue: '€ Mitglied',
-                      decoration: const InputDecoration(
-                        label: Text('Erste Tätigkeit'),
-                        alignLabelWithHint: true,
-                        border: OutlineInputBorder(),
-                      ),
-                      items: ersteTaetigkeitOptions.map((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) async {
-                        if (newValue != null) {
-                          ersteUntergliederungOptions =
-                              await getErsteUntergliederungMeta(newValue);
-                          _formKey.currentState!.patchValue({
-                            'group': '',
-                          });
-                          setState(() {
+                  if (widget.mitglied == null) // tätigkeit
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: FormBuilderDropdown(
+                        name: 'taetigkeit',
+                        validator: FormBuilderValidators.required(),
+                        initialValue: '1', // € Mitglied
+                        decoration: _buildActiveInputDecoration('Tätigkeit'),
+                        items: ersteTaetigkeitOptions.entries.map((entry) {
+                          return DropdownMenuItem<String>(
+                            value: entry.key,
+                            child: Text(entry.value),
+                          );
+                        }).toList(),
+                        onChanged: (String? newValue) async {
+                          if (newValue != null) {
                             ersteUntergliederungOptions =
-                                ersteUntergliederungOptions;
-                          });
-                        }
-                      },
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4.0),
-                    child: FormBuilderDropdown(
-                      name: 'group',
-                      validator: FormBuilderValidators.required(),
-                      enabled: ersteUntergliederungOptions.isNotEmpty,
-                      decoration: const InputDecoration(
-                        labelText: 'Stufe/Abteilung',
-                        alignLabelWithHint: true,
-                        border: OutlineInputBorder(),
-                      ),
-                      items: ersteUntergliederungOptions.map((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        setState(() {});
-                      },
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4.0),
-                    child: FormBuilderDateTimePicker(
-                      inputType: InputType.date,
-                      name: 'eintrittsdatum',
-                      initialDate: DateTime.now(),
-                      initialValue: DateTime.now(),
-                      validator: FormBuilderValidators.required(),
-                      format: DateFormat('dd.MM.yyyy'),
-                      decoration: const InputDecoration(
-                        label: Text('Eintrittsdatum'),
-                        alignLabelWithHint: true,
-                        border: OutlineInputBorder(),
+                                await getErsteUntergliederungMeta(newValue);
+                            _formKey.currentState!.patchValue({
+                              'group': '',
+                            });
+                            setState(() {
+                              ersteUntergliederungOptions =
+                                  ersteUntergliederungOptions;
+                            });
+                          }
+                        },
                       ),
                     ),
-                  ),
+                  if (widget.mitglied == null) // group
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: FormBuilderDropdown(
+                        name: 'group',
+                        validator: FormBuilderValidators.required(),
+                        enabled: ersteUntergliederungOptions.isNotEmpty,
+                        decoration:
+                            _buildActiveInputDecoration('Stufe/Abteilung'),
+                        items: ersteUntergliederungOptions.entries.map((entry) {
+                          return DropdownMenuItem<String>(
+                            value: entry.key,
+                            child: Text(entry.value),
+                          );
+                        }).toList(),
+                        onChanged: (String? newValue) {
+                          setState(() {});
+                        },
+                      ),
+                    ),
+                  if (widget.mitglied == null) // eintrittsdatum
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: FormBuilderDateTimePicker(
+                        inputType: InputType.date,
+                        name: 'eintrittsdatum',
+                        initialDate:
+                            widget.mitglied?.eintrittsdatum ?? DateTime.now(),
+                        initialValue:
+                            widget.mitglied?.eintrittsdatum ?? DateTime.now(),
+                        validator: FormBuilderValidators.required(),
+                        format: DateFormat('dd.MM.yyyy'),
+                        decoration:
+                            _buildActiveInputDecoration('Eintrittsdatum'),
+                      ),
+                    ),
                   const Align(
                     alignment: Alignment.centerRight,
                     child: Text('*Freiwillige Angaben'),
                   ),
                   // Beitrag
-                  buildSectionTitle('Beitrag'),
+                  _buildSectionTitle('Beitrag'),
                   FormBuilderDropdown(
                     name: 'beitragsart',
                     validator: FormBuilderValidators.required(),
-                    initialValue: 'Voller Beitrag - Stiftungseuro',
-                    decoration: const InputDecoration(
-                      labelText: 'Beitragsart',
-                      alignLabelWithHint: true,
-                      border: OutlineInputBorder(),
-                    ),
-                    items: beitragsartOptions.map((String value) {
+                    initialValue:
+                        '4', // Voller Beitrag - Stiftungseuro - VERBANDSBEITRAG
+                    decoration: _buildActiveInputDecoration('Beitragsart'),
+                    items: beitragsartOptions.entries.map((entry) {
                       return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
+                        value: entry.key,
+                        child: Text(entry.value),
                       );
                     }).toList(),
                     onChanged: (String? newValue) {
@@ -359,30 +400,23 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                     },
                   ),
                   FormBuilderCheckbox(
-                    name: 'stiftungseuro',
+                    name: 'mitgliedszeitschrift',
                     initialValue: true,
                     title: const Text(
-                        '"Ja!" zur Zukunft – "Ja!" zur Stiftung – "Ja!" zu einem Stiftungseuro pro Jahr'),
-                    onChanged: (newValue) {},
-                    controlAffinity: ListTileControlAffinity.leading,
-                  ),
-                  FormBuilderCheckbox(
-                    name: 'keine_mitgliedszeitschrift',
-                    title: const Text(
-                        "Ich möchte die Mitgliederzeitschrift nicht zugeschickt bekommen."),
+                        "Ich möchte die Mitgliederzeitschrift zugeschickt bekommen."),
                     onChanged: (newValue) {},
                     controlAffinity: ListTileControlAffinity.leading,
                   ),
                   FormBuilderCheckbox(
                     name: 'datenweiterverwendung',
+                    initialValue: false,
                     title: const Text(
                         "Nach der Beendigung der Mitgliedschaft dürfen die Daten weiter genutzt werden."),
                     onChanged: (newValue) {},
                     controlAffinity: ListTileControlAffinity.leading,
                   ),
                   // Anschrift
-                  buildSectionTitle('Anschrift'),
-                  const Text('Es werden nur Deutsche Adressen akzeptiert.'),
+                  _buildSectionTitle('Anschrift'),
                   // ToDo in case of error disable autocomplete field and activate manual input
                   if (_adressAutocompleteActive)
                     Padding(
@@ -440,23 +474,19 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                           GeoapifyAdress adress =
                               _adressAutocompleteAdressesResults.firstWhere(
                                   (element) => element.formatted == selection);
-                          /*
-                          bool valid  = await validateGermanAdress(
-                              adress.housenumber ?? '',
-                              adress.street,
-                              adress.postcode,
-                              adress.city);
-                          todo what to do with invalid?
-                          */
+
                           setState(() {
                             _formKey.currentState!.patchValue({
                               'street':
                                   '${adress.street} ${adress.housenumber ?? ''}',
                               'plz': adress.postcode,
+                              'ort': adress.city,
+                              'bundesland': adress.state ?? adress.city,
+                              'land': adress.country
                             });
                           });
 
-                          updateCityAfterPlzChange(adress.postcode);
+                          // updateCityAfterPlzChange(adress.postcode);
                         },
                         fieldViewBuilder: (BuildContext context,
                             TextEditingController textEditingController,
@@ -466,12 +496,21 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                             enabled: _adressAutocompleteActive,
                             controller: textEditingController,
                             focusNode: focusNode,
-                            decoration: const InputDecoration(
-                              labelText: 'Ganze Adresse suchen',
-                              alignLabelWithHint: true,
-                              hintText: ' ',
-                              border: OutlineInputBorder(),
-                            ),
+                            decoration: _buildActiveInputDecoration(
+                                'Vollständige deutsche Anschrift'),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Bitte geben Sie eine vollständige Adresse ein';
+                              }
+                              if (_formKey.currentState!.fields['street']!.value
+                                      .isNotEmpty &&
+                                  !_formKey
+                                      .currentState!.fields['street']!.value
+                                      .contains(RegExp(r'\d'))) {
+                                return 'Bitte geben Sie eine Hausnummer ein';
+                              }
+                              return null;
+                            },
                           );
                         },
                       ),
@@ -481,42 +520,44 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                     child: FormBuilderTextField(
                       name: 'street',
                       readOnly: _adressAutocompleteActive,
-                      validator: FormBuilderValidators.required(),
-                      decoration: const InputDecoration(
-                        labelText: 'Straße und Hausnummer',
-                        alignLabelWithHint: true,
-                        hintText: ' ',
-                        border: OutlineInputBorder(),
-                      ),
+                      validator: _adressAutocompleteActive
+                          ? null
+                          : FormBuilderValidators.required(),
+                      focusNode: _adressAutocompleteActive
+                          ? AlwaysDisabledFocusNode()
+                          : null,
+                      decoration: _adressAutocompleteActive
+                          ? _buildDisabledInputDecoration(
+                              'Straße und Hausnummer')
+                          : _buildActiveInputDecoration(
+                              'Straße und Hausnummer'),
                     ),
                   ),
-                  twoColumnRow(
+                  _twoColumnRow(
                       FormBuilderTextField(
                         name: 'plz',
                         readOnly: _adressAutocompleteActive,
+                        focusNode: _adressAutocompleteActive
+                            ? AlwaysDisabledFocusNode()
+                            : null,
+                        decoration: _adressAutocompleteActive
+                            ? _buildDisabledInputDecoration('Postleitzahl')
+                            : _buildActiveInputDecoration('Postleitzahl'),
                         maxLength: 5,
-                        validator: FormBuilderValidators.required(),
-                        onChanged: (plz) async =>
-                            {updateCityAfterPlzChange(plz)},
-                        decoration: const InputDecoration(
-                          labelText: 'Postleitzahl',
-                          alignLabelWithHint: true,
-                          counterText: '',
-                          hintText: ' ',
-                          border: OutlineInputBorder(),
-                        ),
+                        validator: _adressAutocompleteActive
+                            ? null
+                            : FormBuilderValidators.required(),
+                        onChanged: (plz) async => {
+                          if (!_adressAutocompleteActive)
+                            updateCityAfterPlzChange(plz)
+                        },
                       ),
                       _plzResult.length < 2
                           ? FormBuilderTextField(
                               name: 'ort',
-                              validator: FormBuilderValidators.required(),
                               readOnly: true,
-                              decoration: const InputDecoration(
-                                labelText: 'Ort',
-                                alignLabelWithHint: true,
-                                hintText: ' ',
-                                border: OutlineInputBorder(),
-                              ),
+                              focusNode: AlwaysDisabledFocusNode(),
+                              decoration: _buildDisabledInputDecoration('Ort'),
                             )
                           : FormBuilderDropdown(
                               name: 'ortDropdown',
@@ -543,85 +584,55 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                                 }
                               },
                             )),
-                  twoColumnRow(
+                  _twoColumnRow(
                     FormBuilderTextField(
                       name: 'bundesland',
-                      validator: FormBuilderValidators.required(),
                       readOnly: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Bundesland',
-                        alignLabelWithHint: true,
-                        hintText: ' ',
-                        border: OutlineInputBorder(),
-                      ),
+                      focusNode: AlwaysDisabledFocusNode(),
+                      decoration: _buildDisabledInputDecoration('Bundesland'),
                     ),
                     FormBuilderTextField(
                       name: 'land',
                       initialValue: 'Deutschland',
                       readOnly: true,
                       validator: FormBuilderValidators.required(),
-                      decoration: const InputDecoration(
-                        labelText: 'Land',
-                        alignLabelWithHint: true,
-                        hintText: ' ',
-                        border: OutlineInputBorder(),
-                      ),
+                      focusNode: AlwaysDisabledFocusNode(),
+                      decoration: _buildDisabledInputDecoration('Land'),
                     ),
                   ),
-                  twoColumnRow(
+                  _twoColumnRow(
                     FormBuilderTextField(
                       name: 'festnetznummer',
-                      decoration: const InputDecoration(
-                        labelText: 'Festnetznummer*',
-                        alignLabelWithHint: true,
-                        hintText: ' ',
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration:
+                          _buildActiveInputDecoration('Festnetznummer*'),
                     ),
                     FormBuilderTextField(
                       name: 'mobilfunknummer',
-                      decoration: const InputDecoration(
-                        labelText: 'Mobilfunknummer*',
-                        alignLabelWithHint: true,
-                        hintText: ' ',
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration:
+                          _buildActiveInputDecoration('Mobilfunknummer*'),
                     ),
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4.0),
                     child: FormBuilderTextField(
                       name: 'geschaeftlich',
-                      decoration: const InputDecoration(
-                        labelText: 'Weitere Nummer(n)*',
-                        alignLabelWithHint: true,
-                        hintText: ' ',
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration:
+                          _buildActiveInputDecoration('Weitere Nummer(n)*'),
                     ),
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4.0),
                     child: FormBuilderTextField(
                       name: 'email',
-                      decoration: const InputDecoration(
-                        labelText: 'E-Mail*',
-                        alignLabelWithHint: true,
-                        hintText: ' ',
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration: _buildActiveInputDecoration('E-Mail*'),
                     ),
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4.0),
                     child: FormBuilderTextField(
                       name: 'email_sorgeberechtigter',
-                      decoration: const InputDecoration(
-                        labelText: 'E-Mail Sorgeberechtigter*',
-                        alignLabelWithHint: true,
-                        hintText: ' ',
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration: _buildActiveInputDecoration(
+                          'E-Mail Sorgeberechtigter*'),
                     ),
                   ),
                   const Align(
@@ -629,91 +640,99 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                     child: Text('*Freiwillige Angaben'),
                   ),
                   // Kontodaten
-                  buildSectionTitle('Kontodaten'),
-                  const Text(
-                      'Die Kontodaten sind zum anlegen eines Mitglieds nicht notwendig. Dies kann auch später nachgetragen werden. Es werden nur Deutsche Konten akzeptiert.'),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4.0),
-                    child: FormBuilderTextField(
-                      name: 'kontoinhaber',
-                      validator: FormBuilderValidators.required(),
-                      decoration: const InputDecoration(
-                        labelText: 'Kontoinhaber',
-                        alignLabelWithHint: true,
-                        hintText: ' ',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4.0),
-                    child: FormBuilderTextField(
-                      name: 'iban',
-                      maxLength: 22,
-                      validator: FormBuilderValidators.required(),
-                      onChanged: (iban) async => {
-                        _ibanResult = null,
-                        setState(() {
-                          _formKey.currentState!.patchValue({
-                            'kreititnstitut': '',
-                            'bic': '',
-                          });
-                        }),
-                        if (iban != null && iban.length == 22)
-                          {
-                            _ibanResult = await validateIban(iban),
-                            if (_ibanResult != null && _ibanResult!.valid)
-                              {
-                                setState(() {
-                                  _formKey.currentState!.patchValue({
-                                    'kreititnstitut': _ibanResult!.name,
-                                    'bic': _ibanResult!.bic,
-                                  });
-                                })
-                              }
-                          }
-                      },
-                      decoration: const InputDecoration(
-                        counterText: '',
-                        labelText: 'IBAN',
-                        alignLabelWithHint: true,
-                        hintText: ' ',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                  twoColumnRow(
-                    FormBuilderTextField(
-                      name: 'kreititnstitut',
-                      readOnly: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Kreditinstitut',
-                        alignLabelWithHint: true,
-                        hintText: ' ',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
+                  if (widget.mitglied == null) _buildSectionTitle('Kontodaten'),
+                  if (widget.mitglied == null)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4.0),
                       child: FormBuilderTextField(
-                        name: 'bic',
+                        name: 'kontoinhaber',
+                        decoration:
+                            _buildActiveInputDecoration('Kontoinhaber*'),
+                      ),
+                    ),
+                  if (widget.mitglied == null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: FormBuilderTextField(
+                        name: 'iban',
+                        maxLength: 22,
+                        inputFormatters: [UpperCaseTextFormatter()],
+                        onChanged: (iban) async {
+                          _ibanResult = null;
+                          setState(() {
+                            _formKey.currentState!.patchValue({
+                              'kreititnstitut': '',
+                              'bic': '',
+                            });
+                          });
+
+                          if (iban != null && iban.length == 22) {
+                            _ibanResult = await validateIban(iban);
+                            if (_ibanResult != null && _ibanResult!.valid) {
+                              _formKey.currentState!.fields['iban']!.validate();
+                              setState(() {
+                                _formKey.currentState!.patchValue({
+                                  'kreititnstitut': _ibanResult!.name,
+                                  'bic': _ibanResult!.bic,
+                                });
+                              });
+                            } else {
+                              // Zeige eine Fehlermeldung an, wenn die IBAN ungültig ist
+                              setState(() {
+                                _formKey.currentState!.fields['iban']!
+                                    .invalidate('Ungültige IBAN');
+                              });
+                            }
+                          }
+                        },
+                        decoration: _buildActiveInputDecoration('IBAN*'),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return null;
+                          }
+                          if (value.length != 22) {
+                            return 'Die IBAN muss 22 Zeichen lang sein';
+                          }
+                          if (_ibanResult != null && !_ibanResult!.valid) {
+                            return 'Ungültige IBAN';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                  if (widget.mitglied == null)
+                    _twoColumnRow(
+                      FormBuilderTextField(
+                        name: 'kreititnstitut',
                         readOnly: true,
-                        decoration: const InputDecoration(
-                          labelText: 'BIC',
-                          alignLabelWithHint: true,
-                          hintText: ' ',
-                          border: OutlineInputBorder(),
+                        focusNode: AlwaysDisabledFocusNode(),
+                        decoration:
+                            _buildDisabledInputDecoration('Kreditinstitut*'),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4.0),
+                        child: FormBuilderTextField(
+                          name: 'bic',
+                          readOnly: true,
+                          focusNode: AlwaysDisabledFocusNode(),
+                          decoration: _buildDisabledInputDecoration('BIC*'),
                         ),
                       ),
                     ),
-                  ),
-                  buildSectionTitle('Neues Mitglied anlegen'),
+                  if (widget.mitglied == null)
+                    const Align(
+                      alignment: Alignment.centerRight,
+                      child: Text('*Freiwillige Angaben'),
+                    ),
+                  _buildSectionTitle(widget.mitglied == null
+                      ? 'Neues Mitglied anlegen'
+                      : 'Mitglied bearbeiten'),
 
                   FormBuilderCheckbox(
                     name: 'betaInfoChecked',
                     validator: FormBuilderValidators.required(),
-                    title: const Text(
-                        "Ich habe zur Kenntnis genommen, dass beim Anlegen eines Mitglieds über die App Fehler auftreten können. Bitte prüfe die Daten nach dem anlegen."),
+                    title: Text(
+                        "Ich habe zur Kenntnis genommen, dass beim ${widget.mitglied == null ? 'anlegen' : 'bearbeiten'} eines Mitglieds über die App Fehler auftreten können. Bitte prüfe die Daten nach dem ${widget.mitglied == null ? 'anlegen' : 'bearbeiten'}."),
                     onChanged: (newValue) {},
                     controlAffinity: ListTileControlAffinity.leading,
                   ),
@@ -726,17 +745,14 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      onPressed: () {
-                        validateOnInteraction = true;
-                        if (_formKey.currentState!.validate()) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Processing Data')),
-                          );
-                        }
-                        Wiredash.trackEvent('Mitglied bearbeiten submitted',
-                            data: {'valid': _formKey.currentState!.isValid});
-                      },
-                      child: const Text('Submit'),
+                      onPressed: _submitInProgress ? null : submit,
+                      child: _submitInProgress
+                          ? const CircularProgressIndicator(
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            )
+                          : Text(
+                              'Mitglied ${widget.mitglied == null ? 'anlegen' : 'bearbeiten'}'),
                     ),
                   ),
                   const SizedBox(
@@ -751,7 +767,156 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
     );
   }
 
-  Widget buildSectionTitle(String title) {
+  Future<void> submit() async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
+    setState(() {
+      _submitInProgress = true;
+    });
+
+    Wiredash.trackEvent('Mitglied bearbeiten', data: {
+      'type': 'submit button clicked',
+      'valid': _formKey.currentState!.isValid,
+    });
+
+    // invalid form
+    if (!_formKey.currentState!.validate()) {
+      setState(() {
+        _submitInProgress = false;
+      });
+      return;
+    }
+
+    // valid form
+    NamiMemberDetailsModel formMitglied = createMemberFromForm();
+    int memberId;
+    try {
+      if (widget.mitglied != null) {
+        Wiredash.trackEvent('Mitglied bearbeiten', data: {'type': 'edit'});
+        memberId = await editMember(formMitglied, scaffoldMessenger, navigator);
+      } else {
+        Wiredash.trackEvent('Mitglied bearbeiten', data: {'type': 'create'});
+        memberId =
+            await createNewMember(formMitglied, scaffoldMessenger, navigator);
+      }
+    } catch (e) {
+      sensLog.e('Failed to create/edit member');
+      sensLog.e(e.toString());
+      scaffoldMessenger.showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+      Wiredash.trackEvent('Mitglied bearbeiten',
+          data: {'type': 'edit/create', 'error': e.toString()});
+      setState(() {
+        _submitInProgress = false;
+      });
+      return;
+    }
+
+    Mitglied? mitglied;
+    try {
+      mitglied = await updateOneMember(memberId);
+    } catch (e) {
+      sensLog.e('Failed to update after successfull create/edit member');
+      sensLog.e(e.toString());
+      scaffoldMessenger.showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+      Wiredash.trackEvent('Mitglied bearbeiten',
+          data: {'type': 'update', 'error': e.toString()});
+    }
+
+    navigator.pop();
+    setState(() {
+      _submitInProgress = false;
+    });
+
+    if (mitglied != null) {
+      navigator.push(
+        MaterialPageRoute(
+          builder: (context) => MitgliedDetail(mitglied: mitglied!),
+        ),
+      );
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text(
+              'Mitglied mit ID ${mitglied.id} erfolgreich ${widget.mitglied == null ? 'angelegt' : 'bearbeitet'}'),
+        ),
+      );
+    }
+  }
+
+  Future<int> editMember(
+      NamiMemberDetailsModel formMitglied,
+      ScaffoldMessengerState scaffoldMessenger,
+      NavigatorState navigator) async {
+    try {
+      return await namiEditMember(formMitglied);
+    } on MemberCreationException catch (_) {
+      // Todo handle error
+      rethrow;
+    }
+  }
+
+  Future<int> createNewMember(
+      NamiMemberDetailsModel formMitglied,
+      ScaffoldMessengerState scaffoldMessenger,
+      NavigatorState navigator) async {
+    try {
+      return await namiCreateMember(formMitglied);
+    } on MemberCreationException catch (e) {
+      if (e.fieldInfo.isNotEmpty) {
+        showDialog(
+          // ignore: use_build_context_synchronously
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Fehler beim Anlegen'),
+              content: Text(
+                e.fieldInfo
+                    .map((e) => '${e.fieldName}: ${e.message}')
+                    .join(', '),
+              ),
+              actions: <Widget>[
+                TextButton(
+                  child: const Text('OK'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      } else {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+      rethrow;
+    }
+  }
+
+  InputDecoration _buildDisabledInputDecoration(String labelText) {
+    return InputDecoration(
+        labelText: labelText,
+        counterText: '',
+        fillColor: Theme.of(context).disabledColor,
+        filled: true,
+        border: const OutlineInputBorder());
+  }
+
+  InputDecoration _buildActiveInputDecoration(String labelText) {
+    return InputDecoration(
+        labelText: labelText,
+        hintText: ' ',
+        counterText: '',
+        alignLabelWithHint: true,
+        border: const OutlineInputBorder());
+  }
+
+  Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Text(
@@ -761,7 +926,7 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
     );
   }
 
-  Widget twoColumnRow(Widget child1, Widget child2) {
+  Widget _twoColumnRow(Widget child1, Widget child2) {
     return Padding(
         padding: const EdgeInsets.symmetric(vertical: 4.0),
         child: Row(
@@ -771,5 +936,21 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
             Expanded(flex: 5, child: child2),
           ],
         ));
+  }
+}
+
+class AlwaysDisabledFocusNode extends FocusNode {
+  @override
+  bool get hasFocus => false;
+}
+
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    return TextEditingValue(
+      text: newValue.text.toUpperCase(),
+      selection: newValue.selection,
+    );
   }
 }
