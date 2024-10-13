@@ -645,7 +645,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
           '${taetigkeit.taetigkeit} ${taetigkeit.untergliederung!.isNotEmpty ? '- ${taetigkeit.untergliederung}' : ''} ',
         ),
         subtitle: Text(
-          '${DateFormat('MMMM').format(taetigkeit.aktivVon)} ${taetigkeit.aktivVon.year} ${taetigkeit.aktivBis != null ? '- ${DateFormat('MMMM').format(taetigkeit.aktivBis!)} ${taetigkeit.aktivBis!.year}' : ''} ${getGruppierungName() != taetigkeit.gruppierung ? '\nGruppierung: ${taetigkeit.gruppierung}' : ''}',
+          '${DateFormat('MMMM').format(taetigkeit.aktivVon)} ${taetigkeit.aktivVon.year} ${taetigkeit.aktivBis != null ? '- ${DateFormat('MMMM').format(taetigkeit.aktivBis!)} ${taetigkeit.aktivBis!.year}' : ''} ${getGruppierungName() != taetigkeit.gruppierung ? '\nGruppierung: ${taetigkeit.gruppierung}' : ''} ${taetigkeit.berechtigteGruppe != null && taetigkeit.berechtigteGruppe!.isNotEmpty ? '\nBerechtigung: ${taetigkeit.berechtigteGruppe}' : ''}',
         ),
       ),
     ));
@@ -756,9 +756,12 @@ class MitgliedDetailState extends State<MitgliedDetail>
     bool isMinStufenWechselJahrInPast = minStufenWechselJahr != null &&
         minStufenWechselJahr.isBefore(nextStufenwechselDatum);
     Stufe? nextStufe = widget.mitglied.nextStufe;
+    bool nextStufeAlreadyAssigned = widget.mitglied.taetigkeiten
+        .any((element) => element.untergliederung == nextStufe!.display);
 
     // check if stufenwechsel is possible
-    if (!isMinStufenWechselJahrInPast ||
+    if (nextStufeAlreadyAssigned ||
+        !isMinStufenWechselJahrInPast ||
         nextStufe == null ||
         !nextStufe.isStufeYouCanChangeTo ||
         !getNamiChangesEnabled() ||
@@ -822,10 +825,15 @@ class MitgliedDetailState extends State<MitgliedDetail>
     List<Taetigkeit> vergangeneTaetigkeiten =
         widget.mitglied.getAlteTaetigkeiten();
     vergangeneTaetigkeiten.sort((a, b) => b.aktivVon.compareTo(a.aktivVon));
+    List<Taetigkeit> zukuenftigeTaetigkeiten =
+        widget.mitglied.getZukuenftigeTaetigkeiten();
+    zukuenftigeTaetigkeiten.sort((a, b) => b.aktivVon.compareTo(a.aktivVon));
     bool isFavorite =
         getFavouriteList().contains(widget.mitglied.mitgliedsNummer);
-    Taetigkeit? fakeStufenwechselTaetigkeit = getStufenwechselTaetigkeit();
     Taetigkeit? currentTaetigkeit = getCurrenttaetigkeit(aktiveTaetigkeiten);
+    Taetigkeit? fakeStufenwechselTaetigkeit =
+        currentTaetigkeit == null ? null : getStufenwechselTaetigkeit();
+
     return Scaffold(
       appBar: AppBar(
         shadowColor: Colors.transparent,
@@ -883,8 +891,8 @@ class MitgliedDetailState extends State<MitgliedDetail>
                 ListView(
                   padding: const EdgeInsets.all(10.0),
                   children: [
-                    if (fakeStufenwechselTaetigkeit != null &&
-                        currentTaetigkeit != null) ...[
+                    if (zukuenftigeTaetigkeiten.isNotEmpty ||
+                        fakeStufenwechselTaetigkeit != null) ...[
                       Row(
                         children: [
                           Text(
@@ -904,8 +912,11 @@ class MitgliedDetailState extends State<MitgliedDetail>
                             ),
                         ],
                       ),
-                      _buildStufenwechselItem(
-                          fakeStufenwechselTaetigkeit, currentTaetigkeit),
+                      for (final taetigkeit in zukuenftigeTaetigkeiten)
+                        _buildTaetigkeitenItem(taetigkeit),
+                      if (fakeStufenwechselTaetigkeit != null)
+                        _buildStufenwechselItem(
+                            fakeStufenwechselTaetigkeit, currentTaetigkeit!),
                       const SizedBox(height: 10),
                     ],
                     if (aktiveTaetigkeiten.isNotEmpty)
@@ -919,8 +930,8 @@ class MitgliedDetailState extends State<MitgliedDetail>
                           if (getNamiChangesEnabled() &&
                               getAllowedFeatures()
                                   .contains(AllowedFeatures.taetigkeitCreate))
-                            if (fakeStufenwechselTaetigkeit == null ||
-                                currentTaetigkeit == null)
+                            if (fakeStufenwechselTaetigkeit == null &&
+                                zukuenftigeTaetigkeiten.isEmpty)
                               TextButton(
                                 onPressed: () => openCreateTaetigkeitDialog(),
                                 child: const Text(

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/nami/nami_member_add_meta.dart';
 import 'package:nami/utilities/nami/nami_taetigkeiten.service.dart';
+import 'package:nami/utilities/types.dart';
 
 class TaetigkeitAnlegen extends StatefulWidget {
   final int mitgliedId;
@@ -28,8 +29,14 @@ class TaetigkeitAnlegenState extends State<TaetigkeitAnlegen> {
 
   Future<void> loadMetadata() async {
     ersteTaetigkeitOptions = getErsteTaetigkeitOptions();
-    ersteUntergliederungOptions =
-        await getErsteUntergliederungMeta('1'); //€ Mitglied
+    try {
+      ersteUntergliederungOptions =
+          await getErsteUntergliederungMeta('1'); //€ Mitglied
+    } on SessionExpiredException catch (_) {
+      // ignore: use_build_context_synchronously
+      Navigator.of(context).pop(false);
+    }
+
     caeaGroupOptions = await loadCaeaGroupAufTaetigkeit('1'); //€ Mitglied
     setState(() {});
   }

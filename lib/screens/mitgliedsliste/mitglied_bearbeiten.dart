@@ -124,7 +124,6 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
             ),
             TextButton(
               onPressed: () {
-                // Pop
                 Navigator.of(context).pop();
                 setState(() {
                   canPop = true;

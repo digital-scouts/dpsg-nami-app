@@ -306,10 +306,6 @@ class LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void popNavigation() {
-    Navigator.pop(context);
-  }
-
   Widget _buildSignupBtn() {
     return InkWell(
       onTap: () {

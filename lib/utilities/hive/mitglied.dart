@@ -117,10 +117,20 @@ class Mitglied {
     return null;
   }
 
+  List<Taetigkeit> getZukuenftigeTaetigkeiten() {
+    List<Taetigkeit> zukuenftigeTaetigkeiten = [];
+    for (Taetigkeit taetigkeit in taetigkeiten) {
+      if (!taetigkeit.isActive() && taetigkeit.isFutureTaetigkeit()) {
+        zukuenftigeTaetigkeiten.add(taetigkeit);
+      }
+    }
+    return zukuenftigeTaetigkeiten;
+  }
+
   List<Taetigkeit> getActiveTaetigkeiten() {
     List<Taetigkeit> aktiveTaetigkeiten = [];
     for (Taetigkeit taetigkeit in taetigkeiten) {
-      if (taetigkeit.isActive() || taetigkeit.isFutureTaetigkeit()) {
+      if (taetigkeit.isActive() && !taetigkeit.isFutureTaetigkeit()) {
         aktiveTaetigkeiten.add(taetigkeit);
       }
     }

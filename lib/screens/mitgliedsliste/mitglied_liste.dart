@@ -266,6 +266,9 @@ class MitgliedsListeState extends State<MitgliedsListe> {
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
       child: TextField(
         onChanged: setSearchValue,
+        enableSuggestions: false,
+        autocorrect: false,
+        autofillHints: null,
         decoration: InputDecoration(
           hintStyle: Theme.of(context).textTheme.bodySmall,
           filled: true,

@@ -1,33 +1,45 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
+import 'package:nami/utilities/types.dart';
 
 const String testCoockieName = 'testLoginCookie';
 
 Future<Map<String, String>> getMetadata(String url) async {
-  final body = await withMaybeRetry(
+  return withMaybeRetry(
     () async => await http.get(Uri.parse(url), headers: {
       'Cookie': getNamiApiCookie(),
       'Content-Type': 'application/json'
     }),
     'Failed to load metadata: $url',
-  );
+  ).then<Map<String, String>>((body) {
+    Map<String, String> map = {
+      for (var m in body['data'])
+        m['id'].toString(): utf8.decode(m['descriptor'].codeUnits)
+    };
 
-  Map<String, String> map = {
-    for (var m in body['data'])
-      m['id'].toString(): utf8.decode(m['descriptor'].codeUnits)
-  };
+    // Sortieren der Map nach den Schlüsseln (descriptor)
+    var sortedMap = Map.fromEntries(
+      map.entries.toList()
+        ..sort((e1, e2) =>
+            e1.value.toLowerCase().compareTo(e2.value.toLowerCase())),
+    );
 
-  // Sortieren der Map nach den Schlüsseln (descriptor)
-  var sortedMap = Map.fromEntries(
-    map.entries.toList()
-      ..sort(
-          (e1, e2) => e1.value.toLowerCase().compareTo(e2.value.toLowerCase())),
-  );
-
-  return sortedMap;
+    return sortedMap;
+  }).catchError((error) async {
+    if (error is SessionExpiredException) {
+      if (!await AppStateHandler().setReloginState()) {
+        throw error;
+      } else {
+        return await getMetadata(url);
+      }
+    } else {
+      throw error;
+    }
+  }, test: (error) => error is SessionExpiredException);
 }
 
 Future<Map<String, String>> getBeitragsartenMeta() async {
