@@ -208,10 +208,10 @@ class HomeDrawerState extends State<HomeDrawer> {
             title: const Text('Entwicklung unterstützen'),
             onTap: () => _showSupportModal(context),
           ),
-          Center(
+          const Center(
             child: Text(
-              'Entwickelt mit ${Theme.of(context).brightness == Brightness.dark ? '🖤' : '❤️'} in Hamburg',
-              style: const TextStyle(
+              'Entwickelt mit ❤️ in Hamburg',
+              style: TextStyle(
                 fontSize: 14,
               ),
             ),
