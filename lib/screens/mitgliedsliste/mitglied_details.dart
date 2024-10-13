@@ -58,8 +58,6 @@ class MitgliedDetailState extends State<MitgliedDetail>
   }
 
   Widget _buildMitgliedschaftPieChartForTopRow() {
-    // filter taetigkeiten to only include Stufen Taetigkeiten
-    // count years per stufe by subtracting aktivVon from aktivBis or now
     Map<String, int> tageProStufe = {};
     List<String> stufen = Stufe.values.map((stufe) => stufe.display).toList();
     int tageAlsMitglied = 0;
@@ -74,7 +72,6 @@ class MitgliedDetailState extends State<MitgliedDetail>
             : 'Mitglied - ${taetigkeit.untergliederung}';
         int sum = tageProStufe[stufe] ?? 0;
 
-        // TODO upgrade: show Mietglieds und Leitungszeit pro Stufe wenn Leitungszeit Mitgliedszeit übersteit
         int activeDays = (taetigkeit.isActive()
             ? DateTime.now().difference(taetigkeit.aktivVon).inDays
             : taetigkeit.isFutureTaetigkeit()
@@ -92,17 +89,18 @@ class MitgliedDetailState extends State<MitgliedDetail>
     tageProStufe.removeWhere((key, value) => value < 1);
 
     String dauerText = '';
-    int pfadfinderTage =
-        DateTime.now().difference(widget.mitglied.eintrittsdatum).inDays;
+    int pfadfinderTage = calculateActiveDays(widget.mitglied.taetigkeiten);
     if (pfadfinderTage >= 365) {
       int jahre = (pfadfinderTage / 365).floor();
-      dauerText = jahre > 1 ? '$jahre Pfadfinderjahre' : 'Ein Pfadfinderjahr';
+      dauerText = jahre > 1
+          ? '$jahre aktive Pfadfinderjahre'
+          : 'Ein aktives Pfadfinderjahr';
     } else if (pfadfinderTage >= 30) {
       int monate = (pfadfinderTage / 30).floor();
       dauerText =
-          'Seit ${monate > 1 ? '$monate Monaten' : 'einem Monat'} Pfadfinder';
+          'Aktiv seit ${monate > 1 ? '$monate Monaten' : 'einem Monat'} Pfadfinder:in';
     } else {
-      dauerText = 'Seit $pfadfinderTage Tagen dabei.';
+      dauerText = 'Aktiv seit $pfadfinderTage Tagen Pfadfinder:in';
     }
 
     return Expanded(
@@ -114,68 +112,48 @@ class MitgliedDetailState extends State<MitgliedDetail>
                 memberPerGroup: tageProStufe,
                 showLeiterGrafik: tageAlsLeiter >= tageAlsMitglied),
           const SizedBox(height: 5),
-          Text(dauerText),
+          Text(
+            dauerText,
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 5),
         ],
       ),
     ));
   }
 
-  Widget _buildStufenwechselInfoForTopRow() {
-    DateTime currentDate = DateTime.now();
-    Stufe? nextStufe = widget.mitglied.nextStufe;
-    DateTime? minStufenWechselDatum =
-        widget.mitglied.getMinStufenWechselDatum();
-    DateTime? maxStufenWechselDatum =
-        widget.mitglied.getMaxStufenWechselDatum();
-    bool isMinStufenWechselJahrInPast = minStufenWechselDatum != null &&
-        minStufenWechselDatum.isBefore(currentDate);
-    Taetigkeit taetigkeit;
-    try {
-      taetigkeit = widget.mitglied.taetigkeiten.firstWhere(
-          (element) => element.untergliederung == widget.mitglied.stufe);
-    } catch (e) {
-      return Container();
+  int calculateActiveDays(List<Taetigkeit> taetigkeiten) {
+    if (taetigkeiten.isEmpty) return 0;
+
+    taetigkeiten.sort((a, b) => a.aktivVon.compareTo(b.aktivVon));
+
+    int activeDays = 0;
+    DateTime currentStart = taetigkeiten[0].aktivVon;
+    DateTime currentEnd = taetigkeiten[0].aktivBis ?? DateTime.now();
+
+    for (int i = 1; i < taetigkeiten.length; i++) {
+      DateTime nextStart = taetigkeiten[i].aktivVon;
+      DateTime nextEnd = taetigkeiten[i].aktivBis ?? DateTime.now();
+
+      if (nextStart.isAfter(currentEnd)) {
+        activeDays += currentEnd.difference(currentStart).inDays + 1;
+        currentStart = nextStart;
+        currentEnd = nextEnd;
+      } else {
+        if (nextEnd.isAfter(currentEnd)) {
+          currentEnd = nextEnd;
+        }
+      }
     }
+    activeDays += currentEnd.difference(currentStart).inDays + 1;
 
-    int currentStufeYears = currentDate.year - taetigkeit.aktivVon.year;
-    int currentStufeMonths = currentDate.month - taetigkeit.aktivVon.month;
-
-    if (currentDate.day < taetigkeit.aktivVon.day) {
-      currentStufeMonths--;
-    }
-
-    if (currentStufeMonths < 0) {
-      currentStufeYears--;
-      currentStufeMonths += 12;
-    }
-
-    return Expanded(
-        child: SizedBox(
-            child: Column(
-      children: [
-        Text(
-            'In der Stufe seit ${currentStufeYears > 1 ? '$currentStufeYears Jahren' : 'einem Jahr'}${currentStufeMonths != 0 ? ' und $currentStufeMonths Monaten' : ''}.'),
-        nextStufe?.display == 'Leiter' && maxStufenWechselDatum != null
-            ? Text('Stufenzeit endet ${maxStufenWechselDatum.year}')
-            : (maxStufenWechselDatum != null && minStufenWechselDatum != null
-                ? Text(
-                    'Stufenwechsel ${isMinStufenWechselJahrInPast ? 'spätestens' : 'frühestens'} ${isMinStufenWechselJahrInPast ? maxStufenWechselDatum.year : minStufenWechselDatum.year}')
-                : const Text('')),
-      ],
-    )));
+    return activeDays;
   }
 
   Widget _buildStatistikTopRow() {
     return Container(
         color: Stufe.getStufeByString(widget.mitglied.stufe).farbe,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildMitgliedschaftPieChartForTopRow(),
-            _buildStufenwechselInfoForTopRow()
-          ],
-        ));
+        child: _buildMitgliedschaftPieChartForTopRow());
   }
 
   Widget _buildLinkText(String scheme, String path) {
