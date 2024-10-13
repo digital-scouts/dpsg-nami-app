@@ -395,6 +395,11 @@ class MitgliedDetailState extends State<MitgliedDetail>
   void terminateTaetigkeitDialog(BuildContext context, Taetigkeit taetigkeit) {
     String? gruppierung = getGruppierungName();
     bool taetigkeitIsFromOtherGroup = taetigkeit.gruppierung != gruppierung;
+    bool loggedInUserCouldLooseRights =
+        getLoggedInUserId() == widget.mitglied.id &&
+            taetigkeit.aktivBis == null &&
+            (taetigkeit.berechtigteGruppe != null ||
+                taetigkeit.berechtigteUntergruppen != null);
     final formKey = GlobalKey<FormBuilderState>();
 
     showDialog(
@@ -465,12 +470,31 @@ class MitgliedDetailState extends State<MitgliedDetail>
                     ),
                   ),
                 ),
+                // taetigkeit is from logged in user and has berechtigungen
+                if (loggedInUserCouldLooseRights)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16.0),
+                    child: Container(
+                      color: Colors.orange.withOpacity(0.1),
+                      padding: const EdgeInsets.all(8.0),
+                      child: const Text(
+                        'Dir könnten beim beenden der Tätigkeit Rechte verloren gehen. Bitte prüfe, ob du die Tätigkeit wirklich beenden möchtest.',
+                        style: TextStyle(
+                            color: Colors.orange, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
                 if (taetigkeitIsFromOtherGroup)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 16.0),
-                    child: Text(
-                      'Die Tätigkeit ist einer anderen Gruppierung zugehörig, bearbeiten ist vermutlich nicht möglich.',
-                      style: TextStyle(color: Colors.red),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16.0),
+                    child: Container(
+                      color: Colors.orange.withOpacity(0.1),
+                      padding: const EdgeInsets.all(8.0),
+                      child: const Text(
+                        'Die Tätigkeit ist einer anderen Gruppierung zugehörig, beenden ist vermutlich nicht möglich.',
+                        style: TextStyle(
+                            color: Colors.orange, fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
               ],
@@ -548,6 +572,13 @@ class MitgliedDetailState extends State<MitgliedDetail>
   void openDeleteTaetigkeitDialog(BuildContext context, Taetigkeit taetigkeit) {
     String? gruppierung = getGruppierungName();
     bool taetigkeitIsFromOtherGroup = taetigkeit.gruppierung != gruppierung;
+    bool loggedInUserCouldLooseRights =
+        getLoggedInUserId() == widget.mitglied.id &&
+            taetigkeit.aktivBis == null &&
+            (taetigkeit.berechtigteGruppe != null ||
+                taetigkeit.berechtigteUntergruppen != null);
+    bool createdMoreThanTwoDaysAgo = taetigkeit.anlagedatum
+        .isBefore(DateTime.now().subtract(const Duration(days: 2)));
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -579,12 +610,44 @@ class MitgliedDetailState extends State<MitgliedDetail>
               const Text(
                   'Sind Sie sicher, dass Sie diese Tätigkeit löschen möchten?'),
               const SizedBox(height: 16.0),
+              if (loggedInUserCouldLooseRights)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16.0),
+                  child: Container(
+                    color: Colors.orange.withOpacity(0.1),
+                    padding: const EdgeInsets.all(8.0),
+                    child: const Text(
+                      'Dir könnten beim Löschen Rechte verloren gehen. Bitte prüfe, ob du die Tätigkeit wirklich löschen möchtest.',
+                      style: TextStyle(
+                          color: Colors.orange, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
               if (taetigkeitIsFromOtherGroup)
-                const Padding(
-                  padding: EdgeInsets.only(top: 16.0),
-                  child: Text(
-                    'Die Tätigkeit ist einer anderen Gruppierung zugehörig, löschen ist vermutlich nicht möglich.',
-                    style: TextStyle(color: Colors.red),
+                Padding(
+                  padding: const EdgeInsets.only(top: 16.0),
+                  child: Container(
+                    color: Colors.orange.withOpacity(0.1),
+                    padding: const EdgeInsets.all(8.0),
+                    child: const Text(
+                      'Die Tätigkeit ist einer anderen Gruppierung zugehörig, löschen ist vermutlich nicht möglich.',
+                      style: TextStyle(
+                          color: Colors.orange, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              // older than 2 days
+              if (createdMoreThanTwoDaysAgo)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16.0),
+                  child: Container(
+                    color: Colors.orange.withOpacity(0.1),
+                    padding: const EdgeInsets.all(8.0),
+                    child: const Text(
+                      'Die Tätigkeit ist vor mehr als zwei Tagen angelegt worden, löschen ist vermutlich nicht möglich.',
+                      style: TextStyle(
+                          color: Colors.orange, fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
             ],

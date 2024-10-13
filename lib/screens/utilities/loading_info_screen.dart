@@ -1,15 +1,16 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:nami/screens/utilities/fuehrungszeugnis.widget.dart';
 import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/nami/nami_fz.service.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
 import 'package:nami/utilities/notifications.dart';
+import 'package:nami/utilities/types.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:wiredash/wiredash.dart';
-import 'package:nami/utilities/types.dart';
 
 class LoadingInfoScreen extends StatefulWidget {
   final ValueNotifier<List<AllowedFeatures>> rechteProgressNotifier;
@@ -157,7 +158,7 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
                     label: const Text(
                         'Du hast nicht die notwendige Berechtigung die App zu nutzen.'),
                   ),
-                  _buildFuehrungszeugnisBescheinigung()
+                  const FuehrungszeugnisWidgets()
                 ],
               )
             else if (context.watch<AppStateHandler>().syncState ==

@@ -1,15 +1,6 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:nami/utilities/app.state.dart';
-import 'package:nami/utilities/nami/model/nami_fz.model.dart';
-import 'package:nami/utilities/nami/nami_fz.service.dart';
+import 'package:nami/screens/utilities/fuehrungszeugnis.widget.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
-import 'package:nami/utilities/types.dart';
-import 'package:open_file/open_file.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:provider/provider.dart';
-import 'package:wiredash/wiredash.dart';
 
 class Profil extends StatefulWidget {
   const Profil({super.key});
@@ -19,134 +10,6 @@ class Profil extends StatefulWidget {
 }
 
 class _ProfilState extends State<Profil> {
-  var loadingAntrag = false;
-  bool sessionFailed = false;
-  Future<List<FzDocument>>? documentsFuture;
-
-  @override
-  initState() {
-    super.initState();
-    documentsFuture = loadFzDocumenets();
-  }
-
-  Future<void> loadAntrag() async {
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-    Wiredash.trackEvent('Fuehrungszeugnis', data: {'type': 'Antrag laden'});
-    setState(() => loadingAntrag = true);
-    try {
-      final pdfData = await loadFzAntrag();
-      final output = await getTemporaryDirectory();
-      final file = File("${output.path}/fuehrungszeugnisAntrag.pdf");
-      await file.writeAsBytes(pdfData, flush: true);
-
-      OpenFile.open(file.path);
-    } on NamiServerException catch (_) {
-      scaffoldMessenger.showSnackBar(const SnackBar(
-        content: Text(
-            'Serverfehler. Möglicherweise fehlt die Berechtigung zum laden der Antragsunterlagen.'),
-      ));
-    } finally {
-      setState(() => loadingAntrag = false);
-    }
-  }
-
-  Widget buildFzList() {
-    return FutureBuilder(
-      future: documentsFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (snapshot.hasError) {
-          if (snapshot.error is SessionExpiredException) {
-            setState(() {
-              sessionFailed = true;
-            });
-            // Login abgelaufen -> await setReloginState();
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text("Session abgelaufen. Bitte erneut einloggen."),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () async {
-                      await context
-                          .read<AppStateHandler>()
-                          .setReloginState(showDialog: false);
-
-                      setState(() {
-                        sessionFailed = false;
-                      });
-                    },
-                    child: const Text("Erneut einloggen"),
-                  ),
-                ],
-              ),
-            );
-          }
-          return const Center(child: Text("Fehler beim Laden"));
-        }
-
-        final documents = snapshot.requireData;
-        documents.sort((a, b) => b.erstelltAm.compareTo(a.erstelltAm));
-
-        return Card(
-          child: Column(
-            children: [
-              for (final doc in documents)
-                ListTile(
-                  title: Text('Bescheinigung (${doc.fzNummer})'),
-                  isThreeLine: true,
-                  subtitle: Text(
-                      'Bescheinigung von: ${doc.erstelltAm.prettyPrint()}\nFührungszeugnis von: ${doc.fzDatum.prettyPrint()}'),
-                  onTap: () {
-                    Wiredash.trackEvent('Führungszeugnis',
-                        data: {'type': 'Bescheinigung laden'});
-                    loadFzDocument(doc.id).then((pdfData) async {
-                      final output = await getTemporaryDirectory();
-                      final file = File(
-                          "${output.path}/dpsg-fz-bescheinigung_${doc.fzNummer}.pdf");
-                      await file.writeAsBytes(pdfData, flush: true);
-
-                      OpenFile.open(file.path);
-                    });
-                  },
-                )
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget buildFzView() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Führungszeugnis",
-          style: Theme.of(context).textTheme.headlineSmall,
-        ),
-        const SizedBox(height: 8),
-        if (!sessionFailed)
-          GestureDetector(
-            onTap: loadAntrag,
-            child: Text(
-              "Antragsunterlagen laden",
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyLarge!
-                  .copyWith(color: Colors.blue),
-            ),
-          ),
-        const SizedBox(height: 8),
-        buildFzList(),
-      ],
-    );
-  }
-
   _buildFeatureIcon(bool active, IconData icon, String tooltip) {
     return Tooltip(
       message: tooltip,
@@ -303,7 +166,7 @@ class _ProfilState extends State<Profil> {
           ),
           const SizedBox(height: 16),
           if (getAllowedFeatures().contains(AllowedFeatures.fuehrungszeugnis))
-            buildFzView()
+            const FuehrungszeugnisWidgets(),
         ],
       ),
     );
