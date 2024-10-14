@@ -72,27 +72,12 @@ class AppStateHandler extends ChangeNotifier {
       setNewVersionInfoShown(false);
       setLastAppVersion(appVersion);
       // show version info only when user is not new / welcome message was shown before
-      if (getWelcomeMessageShown()) {
+      if (!isNewVersionInfoShown()) {
         await Navigator.push(
           navigatorKey.currentContext!,
           MaterialPageRoute(
-              builder: (context) => NewVersionInfoScreen(
-                    features: const [
-                      'Bearbeiten und Anlegen von Mitgliedern und Tätigkeiten (In den Einstellungen kann das Bearbeiten von Daten aktiviert werden.).',
-                      'In den Mitgliedsdetails werden nun mehr Infos angezeigt.',
-                      'Es wurden anonyme Tracking-Funktionen hinzugefügt, um die Nutzung der App analysieren zu können.',
-                      'Die Möglichkeit, den Entwickler zu loben, wurde hinzugefügt.',
-                      'Es kann nach Belieben zwischen dem hellen und dunklen Design gewechselt werden.',
-                    ],
-                    bugFixes: const [
-                      'Passive Mitglieder lassen sich in "Meine Stufe" jetzt darstellen.',
-                      'Diverse Fehlerbehebungen, die bei einzelnen Datenkonstellationen auftraten.',
-                      'Die App kommt jetzt damit klar, wenn sich jemand ohne Leserechte anmeldet.',
-                      'Das Laden und Anzeigen der eigenen Rechte wurde optimiert'
-                    ],
-                    dataReset: true,
-                    version: appVersion,
-                  )),
+              builder: (context) =>
+                  NewVersionInfoScreen(currentVersion: appVersion)),
         );
         setNewVersionInfoShown(true);
       }

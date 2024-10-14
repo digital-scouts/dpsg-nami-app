@@ -92,6 +92,7 @@ flutter:
     - .env
     - .git/refs/heads/
     - .git/HEAD
+    - assets/changelog.json
 
   fonts:
     - family: WorkSans

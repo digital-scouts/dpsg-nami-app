@@ -1,0 +1,29 @@
+{
+  "versions": [
+    {
+      "version": "0.2.0",
+      "data_reset": true,
+      "features": [
+        "Bearbeiten und Anlegen von Mitgliedern und Tätigkeiten",
+        "In den Mitgliedsdetails werden nun mehr Infos angezeigt.",
+        "Es wurden anonyme Tracking-Funktionen hinzugefügt, um die Nutzung der App analysieren zu können.",
+        "Infos, wie die Entwicklung unterstütz werden kann wurde hinzugefügt.",
+        "Es kann nach Belieben zwischen dem hellen und dunklen Design gewechselt werden."
+      ],
+      "bugFixes": [
+        "Meldet man sich ohne Rechte an, kann man immer noch Führungszeugnis Unterlagen laden.",
+        "Diverse weitere Fehlerbehebungen und Optimierungen"
+      ]
+    },
+    {
+        "version": "0.2.1",
+        "data_reset": false,
+        "features": [
+            "Beenden der Mitgliedschaft"
+        ],
+        "bugFixes": [
+           "Diverse Fehlerbehebungen und Optimierungen"
+        ]
+      }
+  ]
+}
