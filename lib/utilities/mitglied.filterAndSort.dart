@@ -32,7 +32,7 @@ void filterByStatus(List<Mitglied> mitglieder) {
 }
 
 void filterByPassive(List<Mitglied> mitglieder) {
-  // alle aktiven tätigkeiten sind vom typ "passive matgliedschaft"
+  // alle aktiven tätigkeiten die vom typ "passive matgliedschaft" sind
   mitglieder.retainWhere((mitglied) => mitglied
       .getActiveTaetigkeiten()
       .any((taetigkeit) => taetigkeit.taetigkeit != 'passive Mitgliedschaft'));
