@@ -37,11 +37,11 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
     DateTime currentDate = DateTime.now();
 
     for (var mitglied in mitglieder) {
-      if (mitglied.isMitgliedLeiter() || mitglied.stufe == 'keine Stufe') {
+      Stufe currentStufe = mitglied.currentStufe;
+      if (currentStufe == Stufe.LEITER || currentStufe == Stufe.KEINE_STUFE) {
         continue;
       }
 
-      Stufe? currentStufe = Stufe.getStufeByString(mitglied.stufe);
       DateTime? minStufenWechselDatum = mitglied.getMinStufenWechselDatum();
       DateTime? maxStufenWechselDatum = mitglied.getMaxStufenWechselDatum();
       bool isMinStufenWechselJahrInPast = minStufenWechselDatum != null &&

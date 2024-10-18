@@ -9,7 +9,6 @@ import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/mitglied.filterAndSort.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
 import 'package:nami/utilities/stufe.dart';
-import 'package:nami/utilities/theme.dart';
 import 'package:wiredash/wiredash.dart';
 
 import 'mitglied_bearbeiten.dart';
@@ -35,6 +34,7 @@ class MitgliedsListeState extends State<MitgliedsListe> {
     filter = FilterOptions(
         filterGroup: List.filled(Stufe.values.length, false),
         disableInactive: getListFilterInactive(),
+        disablePassive: getListFilterPassive(),
         sorting: getListSort(),
         subElement: getListSubtext());
 
@@ -67,6 +67,9 @@ class MitgliedsListeState extends State<MitgliedsListe> {
 
     if (filter.disableInactive) {
       filterByStatus(filteredMitglieder);
+    }
+    if (filter.disablePassive) {
+      filterByPassive(filteredMitglieder);
     }
 
     //sort
@@ -162,13 +165,9 @@ class MitgliedsListeState extends State<MitgliedsListe> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                         colors: [
-                          filteredMitglieder[index].isMitgliedLeiter()
-                              ? DPSGColors.leiterFarbe
-                              : Stufe.getStufeByString(
-                                      filteredMitglieder[index].stufe)
-                                  .farbe,
-                          Stufe.getStufeByString(
-                                  filteredMitglieder[index].stufe)
+                          filteredMitglieder[index].currentStufe.farbe,
+                          filteredMitglieder[index]
+                              .currentStufeWithoutLeiter
                               .farbe
                         ],
                         begin: const FractionalOffset(0.0, 0.0),
@@ -192,16 +191,17 @@ class MitgliedsListeState extends State<MitgliedsListe> {
                           .format(filteredMitglieder[index].geburtsDatum),
                     )
                 },
-                trailing: Text(filteredMitglieder[index].stufe == 'keine Stufe'
-                    ? (filteredMitglieder[index]
-                            .getActiveTaetigkeiten()
-                            .isNotEmpty
-                        ? filteredMitglieder[index]
-                            .getActiveTaetigkeiten()
-                            .first
-                            .taetigkeit
-                        : '')
-                    : filteredMitglieder[index].stufe),
+                trailing: Text(
+                    filteredMitglieder[index].currentStufe == Stufe.KEINE_STUFE
+                        ? (filteredMitglieder[index]
+                                .getActiveTaetigkeiten()
+                                .isNotEmpty
+                            ? filteredMitglieder[index]
+                                .getActiveTaetigkeiten()
+                                .first
+                                .taetigkeit
+                            : '')
+                        : filteredMitglieder[index].currentStufe.display),
               ),
             ),
           ),
@@ -218,7 +218,7 @@ class MitgliedsListeState extends State<MitgliedsListe> {
 
   Widget _buildFilterGroup() {
     List<Stufe> gruppen = List.empty(growable: true);
-    if (mitglieder.any((m) => m.stufe == Stufe.BIBER.display)) {
+    if (mitglieder.any((m) => m.currentStufe == Stufe.BIBER)) {
       gruppen.add(Stufe.BIBER);
     }
     gruppen.add(Stufe.WOELFLING);
@@ -316,6 +316,7 @@ class MitgliedsListeState extends State<MitgliedsListe> {
                             filter = value;
                           }),
                           setListFilterInactive(value.disableInactive),
+                          setListFilterPassive(value.disablePassive),
                           setListSort(value.sorting),
                           setListSubtext(value.subElement),
                           applyFilterAndSort()

@@ -18,7 +18,7 @@ String cookie = getNamiApiCookie();
 
 Future<Mitglied> stufenwechsel(int memberId, Taetigkeit currentTaetigkeit,
     Stufe nextStufe, DateTime stufenwechselDatum) async {
-  Wiredash.trackEvent('Stufenwechsel wird durchgeführt');
+  Wiredash.trackEvent('Stufenwechsel wird durchgefuehrt');
   sensLog.i('Stufenwechsel für ${sensId(memberId)}');
   // erst die neue Tätigkeit anlegen und dann die alte Tätigkeit beenden
   await createTaetigkeitForStufe(memberId, stufenwechselDatum, nextStufe);

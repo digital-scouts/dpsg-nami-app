@@ -21,7 +21,6 @@ class MitgliedAdapter extends TypeAdapter<Mitglied> {
       ..nachname = fields[1] as String
       ..geschlechtId = (fields[3] as num).toInt()
       ..geburtsDatum = fields[4] as DateTime
-      ..stufe = fields[5] as String
       ..id = (fields[6] as num?)?.toInt()
       ..mitgliedsNummer = (fields[7] as num).toInt()
       ..eintrittsdatum = fields[8] as DateTime
@@ -52,7 +51,7 @@ class MitgliedAdapter extends TypeAdapter<Mitglied> {
   @override
   void write(BinaryWriter writer, Mitglied obj) {
     writer
-      ..writeByte(29)
+      ..writeByte(28)
       ..writeByte(0)
       ..write(obj.vorname)
       ..writeByte(1)
@@ -61,8 +60,6 @@ class MitgliedAdapter extends TypeAdapter<Mitglied> {
       ..write(obj.geschlechtId)
       ..writeByte(4)
       ..write(obj.geburtsDatum)
-      ..writeByte(5)
-      ..write(obj.stufe)
       ..writeByte(6)
       ..write(obj.id)
       ..writeByte(7)

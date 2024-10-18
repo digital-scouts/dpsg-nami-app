@@ -25,9 +25,6 @@ class Mitglied {
   @HiveField(4)
   late DateTime geburtsDatum;
 
-  @HiveField(5)
-  late String stufe;
-
   @HiveField(6)
   late int? id;
 
@@ -101,7 +98,7 @@ class Mitglied {
   late bool datenweiterverwendung;
 
   bool isMitgliedLeiter() {
-    for (Taetigkeit t in taetigkeiten) {
+    for (Taetigkeit t in getActiveTaetigkeiten()) {
       if (t.isLeitung()) {
         return true;
       }
@@ -151,15 +148,34 @@ class Mitglied {
     if (isMitgliedLeiter()) {
       return Stufe.LEITER;
     }
-    return Stufe.getStufeByString(stufe);
+
+    for (Taetigkeit taetigkeit in getActiveTaetigkeiten()) {
+      if (taetigkeit.untergliederung != null &&
+          taetigkeit.untergliederung!.isNotEmpty) {
+        return Stufe.getStufeByString(taetigkeit.untergliederung!);
+      }
+    }
+
+    return Stufe.KEINE_STUFE;
   }
 
+  /// Gibt die Untergliederung zurück, wenn es eine Stufe ist
   Stufe get currentStufeWithoutLeiter {
-    return Stufe.getStufeByString(stufe);
+    for (Taetigkeit taetigkeit in getActiveTaetigkeiten()) {
+      if (taetigkeit.untergliederung != null &&
+          taetigkeit.untergliederung!.isNotEmpty) {
+        Stufe s = Stufe.getStufeByString(taetigkeit.untergliederung!);
+        if (s == Stufe.KEINE_STUFE) {
+          continue;
+        }
+        return s;
+      }
+    }
+    return Stufe.KEINE_STUFE;
   }
 
   Stufe? get nextStufe {
-    return Stufe.getStufeByOrder(Stufe.getStufeByString(stufe).index + 1);
+    return Stufe.getStufeByOrder(currentStufe.index + 1);
   }
 
   DateTime? getMinStufenWechselDatum() {
@@ -188,6 +204,7 @@ class Mitglied {
         getAlterAm(referenceDate: nextStufenwechselDatum);
 
     if (nextStufe != null &&
+        currentStufe != Stufe.KEINE_STUFE &&
         (nextStufe!.isStufeYouCanChangeTo || currentStufe == Stufe.ROVER) &&
         !isMitgliedLeiter()) {
       return DateTime(
@@ -231,8 +248,7 @@ class Mitglied {
 
   /// 0 gleich | <0 this ist jüngere Stufe | >0 this ist ältere Stufe
   int compareByStufe(Mitglied mitglied) {
-    return Stufe.getStufeByString(stufe)
-        .compareTo(Stufe.getStufeByString(mitglied.stufe));
+    return currentStufe.compareTo(mitglied.currentStufe);
   }
 
   /// 0 gleich | <0 this ist jünger | >0 this ist älter

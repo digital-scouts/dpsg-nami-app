@@ -151,7 +151,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
 
   Widget _buildStatistikTopRow() {
     return Container(
-        color: Stufe.getStufeByString(widget.mitglied.stufe).farbe,
+        color: widget.mitglied.currentStufe.farbe,
         child: _buildMitgliedschaftPieChartForTopRow());
   }
 
@@ -1027,7 +1027,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
     return Scaffold(
       appBar: AppBar(
         shadowColor: Colors.transparent,
-        backgroundColor: Stufe.getStufeByString(widget.mitglied.stufe).farbe,
+        backgroundColor: widget.mitglied.currentStufe.farbe,
         title: Text("${widget.mitglied.vorname} ${widget.mitglied.nachname}"),
         actions: [
           if (getNamiChangesEnabled() &&

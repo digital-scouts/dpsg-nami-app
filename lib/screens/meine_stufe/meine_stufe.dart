@@ -8,7 +8,6 @@ import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/hive/settings_stufenwechsel.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
-import 'package:nami/utilities/stufe.dart';
 import 'package:wiredash/wiredash.dart';
 
 class MeineStufe extends StatefulWidget {
@@ -72,7 +71,7 @@ class _MeineStufeState extends State<MeineStufe> {
     Taetigkeit emptyTaetigkeit = Taetigkeit();
 
     final Taetigkeit taetigkeit = mitglied.taetigkeiten.firstWhere(
-      (element) => element.untergliederung == mitglied.stufe,
+      (element) => element.untergliederung == mitglied.currentStufe.display,
       orElse: () {
         emptyTaetigkeit.aktivVon = emptyTaetigkeit.aktivBis = currentDate;
         return emptyTaetigkeit;
@@ -110,7 +109,7 @@ class _MeineStufeState extends State<MeineStufe> {
                     mitglied.isMitgliedLeiter() || taetigkeit == emptyTaetigkeit
                         ? Container()
                         : Text(
-                            '${Stufe.getStufeByString(mitglied.stufe).shortDisplaySingular} seit ${currentStufeYearsDecimal.toStringAsFixed(1)} Jahren')
+                            '${mitglied.currentStufe.shortDisplaySingular} seit ${currentStufeYearsDecimal.toStringAsFixed(1)} Jahren')
                   ],
                 )),
             Positioned(

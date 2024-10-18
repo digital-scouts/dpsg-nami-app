@@ -52,6 +52,16 @@ Future<FilterOptions?> filterDialog(
                   });
                 },
               ),
+              CheckboxListTile(
+                contentPadding: const EdgeInsets.only(left: 0),
+                value: filter.disablePassive,
+                title: const Text('Passive Mitglieder ausblenden'),
+                onChanged: (bool? value) {
+                  setState(() {
+                    filter.disablePassive = value ?? false;
+                  });
+                },
+              ),
               const Divider(),
               Row(
                 mainAxisAlignment: MainAxisAlignment.start,

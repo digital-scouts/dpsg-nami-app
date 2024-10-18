@@ -1,5 +1,5 @@
-import 'package:nami/utilities/stufe.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
+import 'package:nami/utilities/stufe.dart';
 
 ///Filter bei Vor- und Name, Nummer, E-Mail
 void filterByString(List<Mitglied> mitglieder, String filterString) {
@@ -19,16 +19,23 @@ void filterByString(List<Mitglied> mitglieder, String filterString) {
 ///Filter bei Stufe/Tätigkeit Leiter (woe, jufi, pfadi, rover, leiter)
 void filterByStufe(List<Mitglied> mitglieder, List<Stufe> stufen) {
   if (stufen.isEmpty) return;
-  List<String> s = stufen.map((e) => e.display).toList();
-  mitglieder.removeWhere((m) =>
-      !s.contains(m.stufe) &&
-      !(s.contains('Leiter') &&
-          (m.isMitgliedLeiter() || m.stufe == Stufe.KEINE_STUFE.display)));
+  mitglieder.removeWhere((mitglied) =>
+      !stufen.contains(mitglied.currentStufeWithoutLeiter) &&
+      !(stufen.contains(Stufe.LEITER) &&
+          (mitglied.isMitgliedLeiter() ||
+              mitglied.currentStufe == Stufe.KEINE_STUFE)));
 }
 
 ///Nur aktive Mitglieder
 void filterByStatus(List<Mitglied> mitglieder) {
   mitglieder.retainWhere((mitglied) => mitglied.status == 'Aktiv');
+}
+
+void filterByPassive(List<Mitglied> mitglieder) {
+  // alle aktiven tätigkeiten sind vom typ "passive matgliedschaft"
+  mitglieder.retainWhere((mitglied) => mitglied
+      .getActiveTaetigkeiten()
+      .any((taetigkeit) => taetigkeit.taetigkeit != 'passive Mitgliedschaft'));
 }
 
 void sortByName(List<Mitglied> mitglieder) {
@@ -72,6 +79,7 @@ class FilterOptions {
   MemberSorting sorting;
   MemberSubElement subElement;
   bool disableInactive;
+  bool disablePassive;
   String searchString;
   List<bool> filterGroup;
 
@@ -79,6 +87,7 @@ class FilterOptions {
       {this.sorting = MemberSorting.name,
       this.subElement = MemberSubElement.id,
       this.disableInactive = true,
+      this.disablePassive = false,
       this.searchString = "",
       required this.filterGroup});
 
@@ -87,6 +96,7 @@ class FilterOptions {
         sorting: sorting,
         subElement: subElement,
         disableInactive: disableInactive,
+        disablePassive: disablePassive,
         searchString: searchString,
         filterGroup: List.from(filterGroup));
   }

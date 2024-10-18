@@ -21,6 +21,7 @@ enum SettingValue {
   favouriteList,
   listSortBy,
   listFilterInactive,
+  listFilterPassive,
   listSubtext,
   metaGeschechtOptions,
   metaLandOptions,
@@ -83,6 +84,10 @@ MemberSubElement getListSubtext() {
 
 bool getListFilterInactive() {
   return settingsBox.get(SettingValue.listFilterInactive.toString()) ?? true;
+}
+
+bool getListFilterPassive() {
+  return settingsBox.get(SettingValue.listFilterPassive.toString()) ?? false;
 }
 
 bool getWelcomeMessageShown() {
@@ -174,6 +179,10 @@ void setListSort(MemberSorting value) {
 
 void setListFilterInactive(bool value) {
   settingsBox.put(SettingValue.listFilterInactive.toString(), value);
+}
+
+void setListFilterPassive(bool value) {
+  settingsBox.put(SettingValue.listFilterPassive.toString(), value);
 }
 
 void setListSubtext(MemberSubElement value) {
@@ -319,10 +328,6 @@ DateTime getLastNamiSyncTry() {
 
 void deleteListSort() {
   settingsBox.delete(SettingValue.listSortBy.toString());
-}
-
-void deleteListFilterInactive() {
-  settingsBox.delete(SettingValue.listFilterInactive.toString());
 }
 
 void deleteListSubtext() {

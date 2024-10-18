@@ -36,7 +36,7 @@ class TimelinePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final Stufe currentStufe = Stufe.getStufeByString(mitglied.stufe);
+    final Stufe currentStufe = mitglied.currentStufe;
     if (getStufeMinAge(currentStufe) == null ||
         getStufeMaxAge(currentStufe) == null) {
       return;
@@ -50,7 +50,7 @@ class TimelinePainter extends CustomPainter {
 
     // Vorherige Stufe
     final Stufe? prevStufe =
-        Stufe.getStufeByOrder(Stufe.getStufeByString(mitglied.stufe).index - 1);
+        Stufe.getStufeByOrder(mitglied.currentStufe.index - 1);
     double? prevStufeEndPos;
     if (prevStufe != null) {
       DateTime prevStufeEnd = mitglied.geburtsDatum
@@ -62,7 +62,7 @@ class TimelinePainter extends CustomPainter {
 
     // Nächste Stufe
     final Stufe? nextStufe =
-        Stufe.getStufeByOrder(Stufe.getStufeByString(mitglied.stufe).index + 1);
+        Stufe.getStufeByOrder(mitglied.currentStufe.index + 1);
     double? nextStufeStartPos;
     if (nextStufe != null && nextStufe.isStufeYouCanChangeTo) {
       DateTime nextStufeStart = mitglied.geburtsDatum

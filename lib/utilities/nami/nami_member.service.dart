@@ -14,7 +14,6 @@ import 'package:nami/utilities/nami/model/nami_member_ausbildung_model.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
 import 'package:nami/utilities/nami/nami_member_fake.service.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
-import 'package:nami/utilities/stufe.dart';
 import 'package:nami/utilities/types.dart';
 
 import 'model/nami_member_details.model.dart';
@@ -377,9 +376,6 @@ Future<Mitglied?> _storeMitgliedToHive(
     ..nachname = rawMember.nachname
     ..geschlechtId = rawMember.geschlechtId
     ..geburtsDatum = rawMember.geburtsDatum
-    ..stufe =
-        Stufe.getStufeByString(rawMember.stufe ?? Stufe.KEINE_STUFE.display)
-            .display
     ..id = rawMember.id
     ..mitgliedsNummer = rawMember.mitgliedsNummer ?? 0
     ..eintrittsdatum = rawMember.eintrittsdatum
