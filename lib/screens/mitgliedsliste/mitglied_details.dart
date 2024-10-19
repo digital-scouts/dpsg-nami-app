@@ -12,6 +12,7 @@ import 'package:nami/screens/mitgliedsliste/taetigkeit_anlegen.dart';
 import 'package:nami/screens/widgets/map.widget.dart';
 import 'package:nami/screens/widgets/mitgliedStufenPieChart.widget.dart';
 import 'package:nami/utilities/app.state.dart';
+import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/hive/settings_stufenwechsel.dart';
@@ -271,7 +272,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
 
   Widget _buildGeneralInfos() {
     final mitglied = widget.mitglied;
-    final int age = mitglied.getAlterAm();
+    final int age = getAlterAm(date: mitglied.geburtsDatum).floor();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

@@ -1,6 +1,7 @@
 import 'package:geocoding/geocoding.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/hive/ausbildung.dart';
 import 'package:nami/utilities/hive/settings_stufenwechsel.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
@@ -181,7 +182,8 @@ class Mitglied {
   DateTime? getMinStufenWechselDatum() {
     DateTime nextStufenwechselDatum = getNextStufenwechselDatum();
     int alterNextStufenwechsel =
-        getAlterAm(referenceDate: nextStufenwechselDatum);
+        getAlterAm(referenceDate: nextStufenwechselDatum, date: geburtsDatum)
+            .floor();
 
     if (nextStufe != null &&
         nextStufe!.isStufeYouCanChangeTo &&
@@ -201,7 +203,8 @@ class Mitglied {
   DateTime? getMaxStufenWechselDatum() {
     DateTime nextStufenwechselDatum = getNextStufenwechselDatum();
     int alterNextStufenwechsel =
-        getAlterAm(referenceDate: nextStufenwechselDatum);
+        getAlterAm(referenceDate: nextStufenwechselDatum, date: geburtsDatum)
+            .floor();
 
     if (nextStufe != null &&
         currentStufe != Stufe.KEINE_STUFE &&
@@ -216,20 +219,6 @@ class Mitglied {
     } else {
       return null;
     }
-  }
-
-  int getAlterAm({DateTime? referenceDate}) {
-    referenceDate ??= DateTime.now();
-
-    int age = referenceDate.year - geburtsDatum.year;
-
-    // Überprüfen, ob der Geburtstag bereits in diesem Jahr stattgefunden hat
-    if (referenceDate.month < geburtsDatum.month ||
-        (referenceDate.month == geburtsDatum.month &&
-            referenceDate.day < geburtsDatum.day)) {
-      age--;
-    }
-    return age;
   }
 
   /// 0 gleich | <0 this ist alpabetisch früher | >0 this ist alpabetisch später
