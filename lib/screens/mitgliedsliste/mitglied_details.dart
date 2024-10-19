@@ -90,7 +90,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
     tageProStufe.removeWhere((key, value) => value < 1);
 
     String dauerText = '';
-    int pfadfinderTage = calculateActiveDays(widget.mitglied.taetigkeiten);
+    int pfadfinderTage = widget.mitglied.activeDays;
     if (pfadfinderTage >= 365) {
       int jahre = (pfadfinderTage / 365).floor();
       dauerText = jahre > 1
@@ -120,34 +120,6 @@ class MitgliedDetailState extends State<MitgliedDetail>
             const SizedBox(height: 5),
           ],
         ));
-  }
-
-  int calculateActiveDays(List<Taetigkeit> taetigkeiten) {
-    if (taetigkeiten.isEmpty) return 0;
-
-    taetigkeiten.sort((a, b) => a.aktivVon.compareTo(b.aktivVon));
-
-    int activeDays = 0;
-    DateTime currentStart = taetigkeiten[0].aktivVon;
-    DateTime currentEnd = taetigkeiten[0].aktivBis ?? DateTime.now();
-
-    for (int i = 1; i < taetigkeiten.length; i++) {
-      DateTime nextStart = taetigkeiten[i].aktivVon;
-      DateTime nextEnd = taetigkeiten[i].aktivBis ?? DateTime.now();
-
-      if (nextStart.isAfter(currentEnd)) {
-        activeDays += currentEnd.difference(currentStart).inDays + 1;
-        currentStart = nextStart;
-        currentEnd = nextEnd;
-      } else {
-        if (nextEnd.isAfter(currentEnd)) {
-          currentEnd = nextEnd;
-        }
-      }
-    }
-    activeDays += currentEnd.difference(currentStart).inDays + 1;
-
-    return activeDays;
   }
 
   Widget _buildStatistikTopRow() {

@@ -179,6 +179,34 @@ class Mitglied {
     return Stufe.getStufeByOrder(currentStufe.index + 1);
   }
 
+  int get activeDays {
+    if (taetigkeiten.isEmpty) return 0;
+
+    taetigkeiten.sort((a, b) => a.aktivVon.compareTo(b.aktivVon));
+
+    int activeDays = 0;
+    DateTime currentStart = taetigkeiten[0].aktivVon;
+    DateTime currentEnd = taetigkeiten[0].aktivBis ?? DateTime.now();
+
+    for (int i = 1; i < taetigkeiten.length; i++) {
+      DateTime nextStart = taetigkeiten[i].aktivVon;
+      DateTime nextEnd = taetigkeiten[i].aktivBis ?? DateTime.now();
+
+      if (nextStart.isAfter(currentEnd)) {
+        activeDays += currentEnd.difference(currentStart).inDays + 1;
+        currentStart = nextStart;
+        currentEnd = nextEnd;
+      } else {
+        if (nextEnd.isAfter(currentEnd)) {
+          currentEnd = nextEnd;
+        }
+      }
+    }
+    activeDays += currentEnd.difference(currentStart).inDays + 1;
+
+    return activeDays;
+  }
+
   DateTime? getMinStufenWechselDatum() {
     DateTime nextStufenwechselDatum = getNextStufenwechselDatum();
     int alterNextStufenwechsel =
@@ -247,6 +275,6 @@ class Mitglied {
 
   /// 0 gleich | <0 this ist länger dabei | >0 this ist kürzer dabei
   int compareByMitgliedsalter(Mitglied mitglied) {
-    return eintrittsdatum.compareTo(mitglied.eintrittsdatum);
+    return mitglied.activeDays.compareTo(activeDays);
   }
 }

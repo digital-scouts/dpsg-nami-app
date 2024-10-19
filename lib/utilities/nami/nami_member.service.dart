@@ -378,7 +378,9 @@ Future<Mitglied?> _storeMitgliedToHive(
     ..geburtsDatum = rawMember.geburtsDatum
     ..id = rawMember.id
     ..mitgliedsNummer = rawMember.mitgliedsNummer ?? 0
-    ..eintrittsdatum = rawMember.eintrittsdatum
+    ..eintrittsdatum = rawMember.eintrittsdatum.isBefore(DateTime(1950))
+        ? getEarliestStartDate(taetigkeiten)
+        : rawMember.eintrittsdatum
     ..austrittsDatum = rawMember.austrittsDatum
     ..ort = rawMember.ort
     ..plz = rawMember.plz
@@ -404,4 +406,12 @@ Future<Mitglied?> _storeMitgliedToHive(
   memberBox.put(mitgliedId, mitglied);
   memberAllProgressNotifier.value += progressStep;
   return mitglied;
+}
+
+DateTime getEarliestStartDate(List<Taetigkeit> taetigkeiten) {
+  if (taetigkeiten.isEmpty) {
+    return DateTime.now(); // Fallback, falls keine Tätigkeiten vorhanden sind
+  }
+  taetigkeiten.sort((a, b) => a.aktivVon.compareTo(b.aktivVon));
+  return taetigkeiten.first.aktivVon;
 }

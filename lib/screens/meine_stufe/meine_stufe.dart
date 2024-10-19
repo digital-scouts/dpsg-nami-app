@@ -189,12 +189,6 @@ class _MeineStufeState extends State<MeineStufe> {
           mitglieder.isEmpty
               ? Container()
               : MapWidget(members: mitglieder, elementColors: elementColors),
-          mitglieder.isEmpty
-              ? Container()
-              : const Text(
-                  'Mitglieder',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
           Expanded(
             child: mitglieder.isEmpty
                 ? _buildNoElements()
