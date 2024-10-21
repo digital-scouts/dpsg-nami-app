@@ -867,6 +867,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.0"
+  multi_dropdown:
+    dependency: "direct main"
+    description:
+      name: multi_dropdown
+      sha256: da25f6defdc62aaf8ce0842d31ff7875fad29aeb13f5b2de9e157a06d53f4b74
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.1"
   nanoid2:
     dependency: transitive
     description:

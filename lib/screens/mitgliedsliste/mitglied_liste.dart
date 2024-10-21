@@ -9,6 +9,7 @@ import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/mitglied.filterAndSort.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
 import 'package:nami/utilities/stufe.dart';
+import 'package:provider/provider.dart';
 import 'package:wiredash/wiredash.dart';
 
 import 'mitglied_bearbeiten.dart';
@@ -24,114 +25,41 @@ class MitgliedsListeState extends State<MitgliedsListe> {
   Box<Mitglied> memberBox = Hive.box<Mitglied>('members');
   List<Mitglied> mitglieder =
       Hive.box<Mitglied>('members').values.toList().cast<Mitglied>();
-  List<Mitglied> filteredMitglieder = List.empty();
-
-  FilterOptions filter = FilterOptions(filterGroup: []);
 
   @override
   void initState() {
     super.initState();
-    filter = FilterOptions(
-        filterGroup: List.filled(Stufe.values.length, false),
-        disableInactive: getListFilterInactive(),
-        disablePassive: getListFilterPassive(),
-        sorting: getListSort(),
-        subElement: getListSubtext());
 
     memberBox.listenable().addListener(() {
-      mitglieder = memberBox.values.toList().cast<Mitglied>();
-      applyFilterAndSort();
-    });
-
-    filteredMitglieder = mitglieder;
-
-    applyFilterAndSort();
-  }
-
-  void applyFilterAndSort() {
-    filteredMitglieder = List.from(mitglieder);
-
-    //string
-    if (filter.searchString.isNotEmpty) {
-      filterByString(filteredMitglieder, filter.searchString);
-    }
-
-    //gruppe
-    List<Stufe> gruppen = List.empty(growable: true);
-    for (var i = 0; i < filter.filterGroup.length; i++) {
-      if (filter.filterGroup[i]) {
-        gruppen.add(Stufe.values[i]);
-      }
-    }
-    filterByStufe(filteredMitglieder, gruppen);
-
-    if (filter.disableInactive) {
-      filterByStatus(filteredMitglieder);
-    }
-    if (filter.disablePassive) {
-      filterByPassive(filteredMitglieder);
-    }
-
-    //sort
-    switch (filter.sorting) {
-      case MemberSorting.age:
-        sortByAge(filteredMitglieder);
-        break;
-      case MemberSorting.group:
-        sortByStufe(filteredMitglieder);
-        break;
-      case MemberSorting.name:
-        sortByName(filteredMitglieder);
-        break;
-      case MemberSorting.lastname:
-        sortByLastName(filteredMitglieder);
-        break;
-      case MemberSorting.memberTime:
-        sortByMitgliedsalter(filteredMitglieder);
-        break;
-    }
-
-    try {
       setState(() {
-        filteredMitglieder;
+        mitglieder = memberBox.values.toList().cast<Mitglied>();
       });
-    } catch (_) {}
+    });
   }
 
-  void setSearchValue(String value) {
-    filter.searchString = value;
-    applyFilterAndSort();
-  }
-
-  void setFilterGroup(int index, bool value) {
-    filter.filterGroup[index] = value;
-    applyFilterAndSort();
-  }
-
-  Widget _buildMemberList() {
-    if (filteredMitglieder.isEmpty) {
+  Widget _buildMemberList(BuildContext context, List<Mitglied> mitglieder) {
+    if (mitglieder.isEmpty) {
       return const Center(child: Text('Keine Mitglieder gefunden'));
     }
     return ListView.builder(
       padding: const EdgeInsets.all(8),
-      itemCount: filteredMitglieder.length + 1,
+      itemCount: mitglieder.length + 1,
       itemBuilder: (context, index) {
-        if (index == filteredMitglieder.length) {
+        if (index == mitglieder.length) {
           // Wenn das aktuelle Element das letzte ist, gibt einen Text zurück
           return ListTile(
-            title:
-                Center(child: Text('Mitglieder: ${filteredMitglieder.length}')),
+            title: Center(child: Text('Mitglieder: ${mitglieder.length}')),
           );
         }
-        bool isFavourite = getFavouriteList()
-            .contains(filteredMitglieder[index].mitgliedsNummer);
+        bool isFavourite =
+            getFavouriteList().contains(mitglieder[index].mitgliedsNummer);
         return Dismissible(
-          key: Key(filteredMitglieder[index].mitgliedsNummer.toString()),
+          key: Key(mitglieder[index].mitgliedsNummer.toString()),
           direction: DismissDirection.endToStart,
           confirmDismiss: (direction) async {
             setState(() {
               // Fügen Sie das Mitglied zu den Favoriten hinzu
-              toggleFavorites(filteredMitglieder[index]);
+              toggleFavorites(mitglieder[index]);
             });
 
             return false;
@@ -150,25 +78,19 @@ class MitgliedsListeState extends State<MitgliedsListe> {
               onTap: () => {
                 Wiredash.trackEvent('Show Member Details',
                     data: {'type': 'memberList'}),
-                Navigator.of(context)
-                    .push(
-                      MaterialPageRoute(
-                          builder: (context) => MitgliedDetail(
-                              mitglied: filteredMitglieder[index])),
-                    )
-                    .then((value) => setState(() {
-                          applyFilterAndSort();
-                        }))
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                      builder: (context) =>
+                          MitgliedDetail(mitglied: mitglieder[index])),
+                )
               },
               child: ListTile(
                 leading: Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                         colors: [
-                          filteredMitglieder[index].currentStufe.farbe,
-                          filteredMitglieder[index]
-                              .currentStufeWithoutLeiter
-                              .farbe
+                          mitglieder[index].currentStufe.farbe,
+                          mitglieder[index].currentStufeWithoutLeiter.farbe
                         ],
                         begin: const FractionalOffset(0.0, 0.0),
                         end: const FractionalOffset(0.0, 1.0),
@@ -178,30 +100,34 @@ class MitgliedsListeState extends State<MitgliedsListe> {
                   width: 5,
                 ),
                 minLeadingWidth: 5,
-                title: filter.sorting == MemberSorting.lastname
+                title: Provider.of<MemberListSettingsHandler>(context)
+                            .filterOptions
+                            .sorting ==
+                        MemberSorting.lastname
                     ? Text(
-                        '${filteredMitglieder[index].nachname}, ${filteredMitglieder[index].vorname} ')
+                        '${mitglieder[index].nachname}, ${mitglieder[index].vorname} ')
                     : Text(
-                        '${filteredMitglieder[index].vorname} ${filteredMitglieder[index].nachname}'),
-                subtitle: switch (filter.subElement) {
+                        '${mitglieder[index].vorname} ${mitglieder[index].nachname}'),
+                subtitle: switch (
+                    Provider.of<MemberListSettingsHandler>(context)
+                        .filterOptions
+                        .subElement) {
                   MemberSubElement.id =>
-                    Text(filteredMitglieder[index].mitgliedsNummer.toString()),
+                    Text(mitglieder[index].mitgliedsNummer.toString()),
                   MemberSubElement.birthday => Text(
                       DateFormat('d. MMMM yyyy', 'de_DE')
-                          .format(filteredMitglieder[index].geburtsDatum),
+                          .format(mitglieder[index].geburtsDatum),
                     )
                 },
                 trailing: Text(
-                    filteredMitglieder[index].currentStufe == Stufe.KEINE_STUFE
-                        ? (filteredMitglieder[index]
-                                .getActiveTaetigkeiten()
-                                .isNotEmpty
-                            ? filteredMitglieder[index]
+                    mitglieder[index].currentStufe == Stufe.KEINE_STUFE
+                        ? (mitglieder[index].getActiveTaetigkeiten().isNotEmpty
+                            ? mitglieder[index]
                                 .getActiveTaetigkeiten()
                                 .first
                                 .taetigkeit
                             : '')
-                        : filteredMitglieder[index].currentStufe.display),
+                        : mitglieder[index].currentStufe.display),
               ),
             ),
           ),
@@ -216,56 +142,77 @@ class MitgliedsListeState extends State<MitgliedsListe> {
         : addFavouriteList(mitglied.mitgliedsNummer);
   }
 
-  Widget _buildFilterGroup() {
-    List<Stufe> gruppen = List.empty(growable: true);
-    if (mitglieder.any((m) => m.currentStufe == Stufe.BIBER)) {
-      gruppen.add(Stufe.BIBER);
-    }
-    gruppen.add(Stufe.WOELFLING);
-    gruppen.add(Stufe.JUNGPADFINDER);
-    gruppen.add(Stufe.PFADFINDER);
-    gruppen.add(Stufe.ROVER);
-    gruppen.add(Stufe.LEITER);
+  Widget _buildFilterGroup(BuildContext context) {
+    Map<String, CustomGroup> gruppen =
+        Provider.of<MemberListSettingsHandler>(context)
+            .filterOptions
+            .filterGroup;
+
+    // Zeige keine Gruppe an, die keine Mitglieder haben
+    gruppen.removeWhere((key, value) {
+      return value.stufe != null &&
+          !mitglieder.any((mitglied) =>
+              (value.stufe != null &&
+                  value.stufe == mitglied.currentStufeWithoutLeiter) ||
+              (value.stufe == Stufe.LEITER && mitglied.isMitgliedLeiter()));
+    });
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          for (final stufe in gruppen)
-            GestureDetector(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: gruppen.entries.map((entry) {
+            String groupName = entry.key;
+            CustomGroup group = entry.value;
+
+            Widget groupImage;
+            if (group.stufe == null) {
+              groupImage = Icon(group.icon);
+            } else {
+              groupImage = Image.asset(
+                group.stufe!.imagePath ?? Stufe.LEITER.imagePath!,
+                width: 30.0,
+                height: 30.0,
+                cacheHeight: 100,
+              );
+            }
+
+            return GestureDetector(
               onTap: () {
-                setFilterGroup(stufe.index, !filter.filterGroup[stufe.index]);
+                Provider.of<MemberListSettingsHandler>(context, listen: false)
+                    .updateFilterGroupActive(groupName, !group.active);
               },
               child: Container(
                 width: 50.0,
                 height: 50.0,
+                margin: const EdgeInsets.symmetric(
+                    horizontal: 4.0), // Abstand zwischen den Elementen
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: filter.filterGroup[stufe.index]
+                  color: group.active
                       ? Theme.of(context).colorScheme.primary
                       : Theme.of(context).colorScheme.secondaryContainer,
                 ),
                 child: Center(
-                  child: Image.asset(
-                    stufe.imagePath!,
-                    width: 30.0,
-                    height: 30.0,
-                    cacheHeight: 100,
-                  ),
+                  child: groupImage,
                 ),
               ),
-            ),
-        ],
+            );
+          }).toList(),
+        ),
       ),
     );
   }
 
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
       child: TextField(
-        onChanged: setSearchValue,
+        onChanged: (value) {
+          Provider.of<MemberListSettingsHandler>(context, listen: false)
+              .updateSearchString(value);
+        },
         enableSuggestions: false,
         autocorrect: false,
         autofillHints: null,
@@ -286,56 +233,74 @@ class MitgliedsListeState extends State<MitgliedsListe> {
     );
   }
 
+  static List<String> getUniqueTaetigkeiten(List<Mitglied> mitglieder) {
+    Set<String> uniqueTaetigkeiten = {};
+
+    for (var mitglied in mitglieder) {
+      for (var taetigkeit in mitglied.taetigkeiten) {
+        uniqueTaetigkeiten.add(taetigkeit.taetigkeit);
+      }
+    }
+
+    return uniqueTaetigkeiten.toList();
+  }
+
+  Future<void> filterDialog(BuildContext context) async {
+    final filterHandler = MemberListSettingsHandler();
+    await showDialog(
+      barrierDismissible: false,
+      context: context,
+      builder: (BuildContext context) {
+        return FilterDialog(
+            filterHandler: filterHandler,
+            maxTaetigkeiten: getUniqueTaetigkeiten(mitglieder));
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-        builder: (BuildContext context, BoxConstraints constraints) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Center(child: Text("Mitglieder")),
-          automaticallyImplyLeading: false,
-          actions: <Widget>[
-            if (getNamiChangesEnabled() &&
-                getAllowedFeatures().contains(AllowedFeatures.memberCreate))
-              IconButton(
-                icon: const Icon(Icons.person_add_alt_1),
-                onPressed: () {
-                  Wiredash.trackEvent('Mitglied bearbeiten opend');
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => MitgliedBearbeiten()),
-                  );
-                },
-              ),
-            IconButton(
-                onPressed: () => filterDialog(context, filter).then((value) => {
-                      if (value != null)
-                        {
-                          setState(() {
-                            filter = value;
-                          }),
-                          setListFilterInactive(value.disableInactive),
-                          setListFilterPassive(value.disablePassive),
-                          setListSort(value.sorting),
-                          setListSubtext(value.subElement),
-                          applyFilterAndSort()
-                        }
-                    }),
-                icon: const Icon(Icons.tune)),
-          ],
-        ),
-        body: Column(
-          children: <Widget>[
-            const ReloginBanner(),
-            _buildFilterGroup(),
-            _buildSearchBar(),
-            Expanded(
-              child: _buildMemberList(),
+    return ChangeNotifierProvider<MemberListSettingsHandler>.value(
+        value: MemberListSettingsHandler(),
+        child: LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+          return Scaffold(
+            appBar: AppBar(
+              title: const Center(child: Text("Mitglieder")),
+              automaticallyImplyLeading: false,
+              actions: <Widget>[
+                if (getNamiChangesEnabled() &&
+                    getAllowedFeatures().contains(AllowedFeatures.memberCreate))
+                  IconButton(
+                    icon: const Icon(Icons.person_add_alt_1),
+                    onPressed: () {
+                      Wiredash.trackEvent('Mitglied bearbeiten opend');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => MitgliedBearbeiten()),
+                      );
+                    },
+                  ),
+                IconButton(
+                    onPressed: () => filterDialog(context),
+                    icon: const Icon(Icons.tune)),
+              ],
             ),
-          ],
-        ),
-      );
-    });
+            body: Column(
+              children: <Widget>[
+                const ReloginBanner(),
+                _buildFilterGroup(context),
+                _buildSearchBar(context),
+                Expanded(
+                  child: _buildMemberList(
+                      context,
+                      Provider.of<MemberListSettingsHandler>(context)
+                          .applyFilterAndSort(mitglieder)),
+                ),
+              ],
+            ),
+          );
+        }));
   }
 }

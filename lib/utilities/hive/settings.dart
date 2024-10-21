@@ -20,8 +20,6 @@ enum SettingValue {
   welcomeMessageShown,
   favouriteList,
   listSortBy,
-  listFilterInactive,
-  listFilterPassive,
   listSubtext,
   metaGeschechtOptions,
   metaLandOptions,
@@ -80,14 +78,6 @@ MemberSubElement getListSubtext() {
     (e) => e.toString() == subElementString,
     orElse: () => MemberSubElement.id,
   );
-}
-
-bool getListFilterInactive() {
-  return settingsBox.get(SettingValue.listFilterInactive.toString()) ?? true;
-}
-
-bool getListFilterPassive() {
-  return settingsBox.get(SettingValue.listFilterPassive.toString()) ?? false;
 }
 
 bool getWelcomeMessageShown() {
@@ -175,14 +165,6 @@ int addFavouriteList(int id) {
 
 void setListSort(MemberSorting value) {
   settingsBox.put(SettingValue.listSortBy.toString(), value.toString());
-}
-
-void setListFilterInactive(bool value) {
-  settingsBox.put(SettingValue.listFilterInactive.toString(), value);
-}
-
-void setListFilterPassive(bool value) {
-  settingsBox.put(SettingValue.listFilterPassive.toString(), value);
 }
 
 void setListSubtext(MemberSubElement value) {
