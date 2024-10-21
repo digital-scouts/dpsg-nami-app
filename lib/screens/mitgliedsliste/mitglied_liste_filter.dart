@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:multi_dropdown/multi_dropdown.dart';
+import 'package:nami/utilities/hive/custom_group.dart';
 import 'package:nami/utilities/mitglied.filterAndSort.dart';
 
 class FilterDialog extends StatefulWidget {
@@ -180,10 +181,16 @@ class EditGroupSettingsDialogState extends State<EditGroupSettingsDialog> {
   late bool showNonMembers;
   late bool showInactive;
   List<IconData> icons = [
+    Icons.groups,
+    Icons.diversity_1,
     Icons.group,
     Icons.person,
+    Icons.manage_accounts,
     Icons.star,
+    Icons.handyman,
+    Icons.sos,
     Icons.school,
+    Icons.home,
   ];
 
   @override
@@ -204,101 +211,111 @@ class EditGroupSettingsDialogState extends State<EditGroupSettingsDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Eigen Gruppe bearbeiten'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(labelText: 'Gruppenname'),
-            ),
-            const SizedBox(height: 16),
-            Text('Icon', style: Theme.of(context).textTheme.bodyLarge),
-            Wrap(
-              spacing: 8.0,
-              runSpacing: 8.0,
-              children: icons.map((IconData i) {
-                return ChoiceChip(
-                  label: Icon(i),
-                  selected: icon == i,
-                  onSelected: (bool selected) {
-                    if (selected) {
-                      setState(() {
-                        icon = i;
-                      });
-                    }
-                  },
-                );
-              }).toList(),
-            ),
-            MultiDropdown<String>(
-              items: widget.maxTaetigkeiten
-                  .map((String item) => DropdownItem<String>(
-                      value: item,
-                      label: item,
-                      selected: taetigkeiten.contains(item)))
-                  .toList(),
-              maxSelections: 4,
-              chipDecoration: const ChipDecoration(
-                  labelStyle: TextStyle(color: Colors.white),
-                  backgroundColor: Colors.blue),
-              dropdownItemDecoration: DropdownItemDecoration(
-                backgroundColor: Theme.of(context).primaryColor,
-                selectedBackgroundColor: Theme.of(context).primaryColor,
-              ),
-              onSelectionChange: (selectedItems) {
-                setState(() {
-                  taetigkeiten = selectedItems;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-            CheckboxListTile(
-              title: const Text('Zeige Nicht-Mitglieder'),
-              value: showNonMembers,
-              onChanged: (bool? value) {
-                setState(() {
-                  showNonMembers = value ?? false;
-                });
-              },
-            ),
-            CheckboxListTile(
-              title: const Text('Zeige Inaktive'),
-              value: showInactive,
-              onChanged: (bool? value) {
-                setState(() {
-                  showInactive = value ?? false;
-                });
+    return Dialog(
+      insetPadding:
+          const EdgeInsets.only(left: 16, right: 16, top: 50, bottom: 50),
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Eigene Gruppe'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.save),
+              onPressed: () {
+                Navigator.of(context).pop(MapEntry(
+                  nameController.text,
+                  CustomGroup(
+                    iconCodePoint: icon.codePoint,
+                    active: widget.group?.value.active ?? true,
+                    taetigkeiten: taetigkeiten,
+                    showNonMembers: showNonMembers,
+                    showInactive: showInactive,
+                  ),
+                ));
               },
             ),
           ],
         ),
+        body: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Gruppenname'),
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 6.0,
+                  runSpacing: 4.0,
+                  alignment: WrapAlignment.spaceEvenly,
+                  children: icons.map((IconData i) {
+                    return ChoiceChip(
+                      label: Icon(i),
+                      selected: icon == i,
+                      onSelected: (bool selected) {
+                        if (selected) {
+                          setState(() {
+                            icon = i;
+                          });
+                        }
+                      },
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 16),
+                MultiDropdown<String>(
+                  items: widget.maxTaetigkeiten
+                      .map((String item) => DropdownItem<String>(
+                          value: item,
+                          label: item,
+                          selected: taetigkeiten.contains(item)))
+                      .toList(),
+                  maxSelections: 4,
+                  chipDecoration: const ChipDecoration(
+                      labelStyle: TextStyle(color: Colors.white),
+                      backgroundColor: Colors.blue),
+                  dropdownDecoration: DropdownDecoration(
+                    backgroundColor: Theme.of(context).disabledColor,
+                  ),
+                  dropdownItemDecoration: DropdownItemDecoration(
+                    backgroundColor: Theme.of(context).disabledColor,
+                    selectedBackgroundColor: Theme.of(context).dividerColor,
+                  ),
+                  fieldDecoration: FieldDecoration(
+                      hintText: 'Tätigkeiten',
+                      backgroundColor: Theme.of(context).disabledColor),
+                  onSelectionChange: (selectedItems) {
+                    setState(() {
+                      taetigkeiten = selectedItems;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                CheckboxListTile(
+                  title: const Text('Zeige Nicht-Mitglieder'),
+                  value: showNonMembers,
+                  onChanged: (bool? value) {
+                    setState(() {
+                      showNonMembers = value ?? false;
+                    });
+                  },
+                ),
+                CheckboxListTile(
+                  title: const Text('Zeige Inaktive'),
+                  value: showInactive,
+                  onChanged: (bool? value) {
+                    setState(() {
+                      showInactive = value ?? false;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-          child: const Text('Abbrechen'),
-        ),
-        TextButton(
-          onPressed: () {
-            Navigator.of(context).pop(MapEntry(
-              nameController.text,
-              CustomGroup(
-                icon: icon,
-                active: widget.group?.value.active ?? true,
-                taetigkeiten: taetigkeiten,
-                showNonMembers: showNonMembers,
-                showInactive: showInactive,
-              ),
-            ));
-          },
-          child: const Text('Speichern'),
-        ),
-      ],
     );
   }
 }

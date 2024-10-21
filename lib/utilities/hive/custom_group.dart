@@ -1,0 +1,49 @@
+import 'package:flutter/material.dart';
+import 'package:hive_ce/hive.dart';
+import 'package:nami/utilities/stufe.dart';
+
+// flutter packages pub run build_runner build
+part 'custom_group.g.dart';
+
+@HiveType(typeId: 0)
+class CustomGroup {
+  @HiveField(0)
+  bool active;
+
+  @HiveField(1)
+  List<String>? taetigkeiten;
+
+  @HiveField(2)
+  int? iconCodePoint;
+
+  @HiveField(3)
+  bool showNonMembers; // Zeige auch  Mitglieder vom Typ Nichtmitglied
+
+  @HiveField(4)
+  bool showInactive; // Zeige auch Mitglieder mit Status inaktiv
+
+  @HiveField(5)
+  bool static; // default groups, that can't be deleted
+
+  @HiveField(6)
+  int? stufeIndex;
+
+  CustomGroup({
+    this.active = false,
+    this.static = false,
+    this.taetigkeiten,
+    this.iconCodePoint,
+    this.showNonMembers = false,
+    this.showInactive = false,
+    this.stufeIndex,
+  });
+
+  Stufe? get stufe => stufeIndex != null ? Stufe.values[stufeIndex!] : null;
+
+  set stufe(Stufe? value) => stufeIndex = value?.index;
+
+  IconData get icon =>
+      IconData(iconCodePoint ?? 0xe900, fontFamily: 'MaterialIcons');
+
+  set icon(IconData value) => iconCodePoint = value.codePoint;
+}

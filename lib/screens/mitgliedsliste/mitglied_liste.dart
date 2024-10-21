@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:nami/screens/mitgliedsliste/mitglied_details.dart';
 import 'package:nami/screens/mitgliedsliste/mitglied_liste_filter.dart';
 import 'package:nami/screens/widgets/relogin_banner.dart';
+import 'package:nami/utilities/hive/custom_group.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/mitglied.filterAndSort.dart';
@@ -237,7 +238,7 @@ class MitgliedsListeState extends State<MitgliedsListe> {
     Set<String> uniqueTaetigkeiten = {};
 
     for (var mitglied in mitglieder) {
-      for (var taetigkeit in mitglied.taetigkeiten) {
+      for (var taetigkeit in mitglied.getActiveTaetigkeiten()) {
         uniqueTaetigkeiten.add(taetigkeit.taetigkeit);
       }
     }

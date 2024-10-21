@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:nami/utilities/hive/custom_group.dart';
+import 'package:nami/utilities/hive/filter.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
-import 'package:nami/utilities/hive/settings.dart';
-import 'package:nami/utilities/stufe.dart';
 
 enum MemberSorting { name, lastname, age, group, memberTime }
 
@@ -20,41 +20,11 @@ const Map<MemberSubElement, String> memberSubElementValues = {
   MemberSubElement.birthday: 'Geburtstag',
 };
 
-class CustomGroup {
-  bool showInactive; // Zeige auch Mitglieder mit Status inaktiv
-  bool showNonMembers; // Zeige auch  Mitglieder vom Typ Nichtmitglied
-  List<String>? taetigkeiten;
-  Stufe? stufe;
-  IconData icon;
-  bool active;
-  bool static; // default groups, that can't be deleted
-
-  CustomGroup(
-      {this.showInactive = false,
-      this.showNonMembers = false,
-      this.active = false,
-      this.static = false,
-      this.stufe,
-      this.icon = Icons.group,
-      this.taetigkeiten});
-}
-
 class FilterOptions {
   MemberSorting sorting = getListSort();
   MemberSubElement subElement = getListSubtext();
   String searchString = '';
-  Map<String, CustomGroup> filterGroup = {
-    'Biber': CustomGroup(stufe: Stufe.BIBER, static: true),
-    'Wö': CustomGroup(stufe: Stufe.WOELFLING, static: true),
-    'Jufi': CustomGroup(stufe: Stufe.JUNGPADFINDER, static: true),
-    'Pfadi': CustomGroup(stufe: Stufe.PFADFINDER, static: true),
-    'Rover': CustomGroup(stufe: Stufe.ROVER, static: true),
-    'Leitende': CustomGroup(taetigkeiten: ['LeiterIn'], icon: Icons.group),
-    'C1': CustomGroup(
-        taetigkeiten: ['ElternvertreterIn'],
-        showNonMembers: true,
-        icon: Icons.person),
-  };
+  Map<String, CustomGroup> filterGroup = getCustomGroups();
 
   FilterOptions();
 }
@@ -126,6 +96,7 @@ class MemberListSettingsHandler extends ChangeNotifier {
 
   void updateFilterGroup(String name, CustomGroup group) {
     _filterOptions.filterGroup[name] = group;
+    saveCustomGroups(_filterOptions.filterGroup);
     notifyListeners();
   }
 
