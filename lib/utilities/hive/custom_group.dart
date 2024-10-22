@@ -28,6 +28,9 @@ class CustomGroup {
   @HiveField(6)
   int? stufeIndex;
 
+  @HiveField(7)
+  bool orFilter; // true or | false and
+
   CustomGroup({
     this.active = false,
     this.static = false,
@@ -35,6 +38,7 @@ class CustomGroup {
     this.iconCodePoint,
     this.showNonMembers = false,
     this.showInactive = false,
+    this.orFilter = true,
     this.stufeIndex,
   });
 

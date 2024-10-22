@@ -180,6 +180,7 @@ class EditGroupSettingsDialogState extends State<EditGroupSettingsDialog> {
   late List<String> taetigkeiten;
   late bool showNonMembers;
   late bool showInactive;
+  late bool orFilter;
   List<IconData> icons = [
     Icons.groups,
     Icons.diversity_1,
@@ -201,6 +202,7 @@ class EditGroupSettingsDialogState extends State<EditGroupSettingsDialog> {
     taetigkeiten = widget.group?.value.taetigkeiten ?? [];
     showNonMembers = widget.group?.value.showNonMembers ?? false;
     showInactive = widget.group?.value.showInactive ?? false;
+    orFilter = widget.group?.value.orFilter ?? true;
   }
 
   @override
@@ -229,6 +231,7 @@ class EditGroupSettingsDialogState extends State<EditGroupSettingsDialog> {
                     taetigkeiten: taetigkeiten,
                     showNonMembers: showNonMembers,
                     showInactive: showInactive,
+                    orFilter: orFilter,
                   ),
                 ));
               },
@@ -265,6 +268,70 @@ class EditGroupSettingsDialogState extends State<EditGroupSettingsDialog> {
                   }).toList(),
                 ),
                 const SizedBox(height: 16),
+                const Text('Welche Merkmale müssen zutreffen?'),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Expanded(
+                      child: RadioListTile<String>(
+                        title: const Text('eines'),
+                        value: 'OR',
+                        groupValue: orFilter ? 'OR' : 'AND',
+                        onChanged: (String? value) {
+                          setState(() {
+                            orFilter = value == 'OR';
+                          });
+                        },
+                      ),
+                    ),
+                    Expanded(
+                      child: RadioListTile<String>(
+                        title: const Text('alle'),
+                        value: 'AND',
+                        groupValue: orFilter ? 'OR' : 'AND',
+                        onChanged: (String? value) {
+                          setState(() {
+                            orFilter = value == 'OR';
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                if (orFilter)
+                  const Text.rich(
+                    TextSpan(
+                      text: 'Mitglieder die ',
+                      children: <TextSpan>[
+                        TextSpan(
+                          text: 'eines der folgenden',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        TextSpan(
+                          text:
+                              ' Merkmale besitzen werden in der Gruppe angezeigt',
+                        ),
+                      ],
+                    ),
+                  ),
+                if (!orFilter)
+                  const Text.rich(
+                    TextSpan(
+                      text: 'Mitglieder die ',
+                      children: <TextSpan>[
+                        TextSpan(
+                          text: 'alle der folgenden',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        TextSpan(
+                          text:
+                              ' Merkmale besitzen werden in der Gruppe angezeigt',
+                        ),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 16),
                 MultiDropdown<String>(
                   items: widget.maxTaetigkeiten
                       .map((String item) => DropdownItem<String>(
@@ -294,7 +361,7 @@ class EditGroupSettingsDialogState extends State<EditGroupSettingsDialog> {
                 ),
                 const SizedBox(height: 16),
                 CheckboxListTile(
-                  title: const Text('Zeige Nicht-Mitglieder'),
+                  title: const Text('Nicht-Mitglieder'),
                   value: showNonMembers,
                   onChanged: (bool? value) {
                     setState(() {
@@ -303,7 +370,7 @@ class EditGroupSettingsDialogState extends State<EditGroupSettingsDialog> {
                   },
                 ),
                 CheckboxListTile(
-                  title: const Text('Zeige Inaktive'),
+                  title: const Text('Inaktive Mitglieder'),
                   value: showInactive,
                   onChanged: (bool? value) {
                     setState(() {

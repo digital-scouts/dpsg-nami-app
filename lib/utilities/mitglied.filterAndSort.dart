@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:nami/utilities/hive/custom_group.dart';
 import 'package:nami/utilities/hive/filter.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
+import 'package:nami/utilities/stufe.dart';
 
 enum MemberSorting { name, lastname, age, group, memberTime }
 
@@ -44,16 +45,20 @@ class MemberListSettingsHandler extends ChangeNotifier {
   List<Mitglied> applyFilterAndSort(List<Mitglied> mitglieder) {
     List<Mitglied> filteredMitglieder = List.empty(growable: true);
 
-// filter stufe & Tätigkeit
+    // filter by Gruppe
     if (!filterOptions.filterGroup.values
         .toList()
         .every((gruppe) => !gruppe.active)) {
       for (var gruppe in filterOptions.filterGroup.values) {
         if (!gruppe.active) continue;
-        filteredMitglieder.addAll(
-            filterGruppeByStufeAndTaetigkeit(List.from(mitglieder), gruppe));
+        if (gruppe.orFilter) {
+          filteredMitglieder.addAll(orFilterMitglieder(mitglieder, gruppe));
+        } else {
+          filteredMitglieder.addAll(andFilterMitglieder(mitglieder, gruppe));
+        }
       }
     } else {
+      // wenn keine Gruppen ausgewählt sind, dann alle Mitglieder anzeigen
       filteredMitglieder.addAll(mitglieder);
     }
 
@@ -79,6 +84,76 @@ class MemberListSettingsHandler extends ChangeNotifier {
       case MemberSorting.memberTime:
         sortByMitgliedsalter(filteredMitglieder);
         break;
+    }
+
+    return filteredMitglieder;
+  }
+
+  /// Mitglied muss mindestens einem Kriterium entsprechen
+  List<Mitglied> orFilterMitglieder(
+      List<Mitglied> mitglieder, CustomGroup gruppe) {
+    List<Mitglied> filteredMitglieder = [];
+    filteredMitglieder
+        .addAll(filterGruppeByTaetigkeit(mitglieder, gruppe.taetigkeiten));
+
+    filteredMitglieder.addAll(filterGruppeByStufe(mitglieder, gruppe.stufe));
+
+    if (gruppe.showInactive) {
+      filteredMitglieder.addAll(filterInactive(mitglieder));
+    }
+
+    if (gruppe.showNonMembers) {
+      filteredMitglieder.addAll(filterNonMembers(mitglieder));
+    }
+    return filteredMitglieder;
+  }
+
+  /// Mitglied muss allen kriterien entsprechen
+  List<Mitglied> andFilterMitglieder(
+      List<Mitglied> mitglieder, CustomGroup gruppe) {
+    List<Mitglied> filteredMitglieder = [];
+
+    for (var mitglied in mitglieder) {
+      bool matchesAllCriteria = true;
+
+      // Überprüfen, ob das Mitglied die Tätigkeiten erfüllt
+      if (gruppe.taetigkeiten != null && gruppe.taetigkeiten!.isNotEmpty) {
+        bool matchesTaetigkeit = gruppe.taetigkeiten!.every((taetigkeit) =>
+            mitglied.getActiveTaetigkeiten().any((activeTaetigkeit) =>
+                activeTaetigkeit.taetigkeit == taetigkeit));
+        if (!matchesTaetigkeit) {
+          matchesAllCriteria = false;
+        }
+      }
+
+      // Überprüfen, ob das Mitglied die Stufe erfüllt
+      if (gruppe.stufe != null) {
+        bool matchesStufe = mitglied.currentStufeWithoutLeiter == gruppe.stufe;
+        if (!matchesStufe) {
+          matchesAllCriteria = false;
+        }
+      }
+
+      // Überprüfen, ob das Mitglied inaktiv ist
+      if (gruppe.showInactive) {
+        bool matchesInactive = mitglied.status == 'Inaktiv';
+        if (!matchesInactive) {
+          matchesAllCriteria = false;
+        }
+      }
+
+      // Überprüfen, ob das Mitglied ein Nicht-Mitglied ist
+      if (gruppe.showNonMembers) {
+        bool matchesNonMember = mitglied.mglTypeId == 'NICHT_MITGLIED';
+        if (!matchesNonMember) {
+          matchesAllCriteria = false;
+        }
+      }
+
+      // Wenn das Mitglied alle Kriterien erfüllt, zur Liste hinzufügen
+      if (matchesAllCriteria) {
+        filteredMitglieder.add(mitglied);
+      }
     }
 
     return filteredMitglieder;
@@ -132,44 +207,41 @@ class MemberListSettingsHandler extends ChangeNotifier {
         mitglied.id.toString().contains(filterString));
   }
 
-  void filterInactive(List<Mitglied> mitglieder) {
-    mitglieder.removeWhere((mitglied) => mitglied.status == 'Inaktiv');
+  List<Mitglied> filterInactive(List<Mitglied> mitglieder) {
+    // return List with only mitglied.status == 'Inaktiv'
+    return mitglieder
+        .where((mitglied) => mitglied.status == 'Inaktiv')
+        .toList();
   }
 
-  void filterNonMembers(List<Mitglied> mitglieder) {
-    mitglieder
-        .removeWhere((mitglied) => mitglied.mglTypeId == 'NICHT_MITGLIED');
+  List<Mitglied> filterNonMembers(List<Mitglied> mitglieder) {
+    // return List with only mitglied.mglTypeId == 'NICHT_MITGLIED'
+    return mitglieder
+        .where((mitglied) => mitglied.mglTypeId == 'NICHT_MITGLIED')
+        .toList();
   }
 
-  List<Mitglied> filterGruppeByStufeAndTaetigkeit(
-      final List<Mitglied> mitglieder, final CustomGroup gruppe) {
-    List<Mitglied> filteredMitglieder = List.empty(growable: true);
+  List<Mitglied> filterGruppeByStufe(
+      final List<Mitglied> mitglieder, final Stufe? stufe) {
+    if (stufe == null) {
+      return List.empty();
+    }
+    return mitglieder
+        .where((mitglied) => mitglied.currentStufeWithoutLeiter == stufe)
+        .toList();
+  }
 
-    if (gruppe.stufe != null) {
-      filteredMitglieder.addAll(mitglieder.where(
-          (mitglied) => mitglied.currentStufeWithoutLeiter == gruppe.stufe));
+  List<Mitglied> filterGruppeByTaetigkeit(
+      final List<Mitglied> mitglieder, final List<String>? taetigkeiten) {
+    if (taetigkeiten == null) {
+      return List.empty();
     }
 
-    if (gruppe.taetigkeiten != null) {
-      filteredMitglieder.addAll(mitglieder.where((mitglied) => mitglied
-          .getActiveTaetigkeiten()
-          .any((taetigkeit) =>
-              gruppe.taetigkeiten!.contains(taetigkeit.taetigkeit))));
-    }
-
-    if (gruppe.stufe == null && gruppe.taetigkeiten == null) {
-      filteredMitglieder.addAll(mitglieder);
-    }
-
-    if (!gruppe.showInactive) {
-      filterInactive(filteredMitglieder);
-    }
-
-    if (!gruppe.showNonMembers) {
-      filterNonMembers(filteredMitglieder);
-    }
-
-    return filteredMitglieder;
+    return mitglieder
+        .where((mitglied) => mitglied
+            .getActiveTaetigkeiten()
+            .any((taetigkeit) => taetigkeiten.contains(taetigkeit.taetigkeit)))
+        .toList();
   }
 
   void sortByName(List<Mitglied> mitglieder) {

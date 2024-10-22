@@ -23,6 +23,7 @@ class CustomGroupAdapter extends TypeAdapter<CustomGroup> {
       iconCodePoint: (fields[2] as num?)?.toInt(),
       showNonMembers: fields[3] == null ? false : fields[3] as bool,
       showInactive: fields[4] == null ? false : fields[4] as bool,
+      orFilter: fields[7] == null ? true : fields[7] as bool,
       stufeIndex: (fields[6] as num?)?.toInt(),
     );
   }
@@ -30,7 +31,7 @@ class CustomGroupAdapter extends TypeAdapter<CustomGroup> {
   @override
   void write(BinaryWriter writer, CustomGroup obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.active)
       ..writeByte(1)
@@ -44,7 +45,9 @@ class CustomGroupAdapter extends TypeAdapter<CustomGroup> {
       ..writeByte(5)
       ..write(obj.static)
       ..writeByte(6)
-      ..write(obj.stufeIndex);
+      ..write(obj.stufeIndex)
+      ..writeByte(7)
+      ..write(obj.orFilter);
   }
 
   @override
