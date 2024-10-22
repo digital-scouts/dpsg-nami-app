@@ -13,9 +13,6 @@ class CustomGroup {
   @HiveField(1)
   List<String>? taetigkeiten;
 
-  @HiveField(2)
-  int? iconCodePoint;
-
   @HiveField(3)
   bool showNonMembers; // Zeige auch  Mitglieder vom Typ Nichtmitglied
 
@@ -31,11 +28,14 @@ class CustomGroup {
   @HiveField(7)
   bool orFilter; // true or | false and
 
+  @HiveField(8)
+  int? iconIndex;
+
   CustomGroup({
     this.active = false,
     this.static = false,
     this.taetigkeiten,
-    this.iconCodePoint,
+    this.iconIndex,
     this.showNonMembers = false,
     this.showInactive = false,
     this.orFilter = true,
@@ -46,8 +46,20 @@ class CustomGroup {
 
   set stufe(Stufe? value) => stufeIndex = value?.index;
 
-  IconData get icon =>
-      IconData(iconCodePoint ?? 0xe900, fontFamily: 'MaterialIcons');
+  IconData get icon => icons[iconIndex ?? 0];
 
-  set icon(IconData value) => iconCodePoint = value.codePoint;
+  set icon(IconData value) => iconIndex = icons.indexOf(value);
+
+  static const List<IconData> icons = [
+    Icons.groups,
+    Icons.diversity_1,
+    Icons.group,
+    Icons.person,
+    Icons.manage_accounts,
+    Icons.star,
+    Icons.handyman,
+    Icons.sos,
+    Icons.school,
+    Icons.home,
+  ];
 }

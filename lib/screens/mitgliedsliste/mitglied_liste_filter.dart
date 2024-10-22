@@ -181,18 +181,6 @@ class EditGroupSettingsDialogState extends State<EditGroupSettingsDialog> {
   late bool showNonMembers;
   late bool showInactive;
   late bool orFilter;
-  List<IconData> icons = [
-    Icons.groups,
-    Icons.diversity_1,
-    Icons.group,
-    Icons.person,
-    Icons.manage_accounts,
-    Icons.star,
-    Icons.handyman,
-    Icons.sos,
-    Icons.school,
-    Icons.home,
-  ];
 
   @override
   void initState() {
@@ -226,7 +214,7 @@ class EditGroupSettingsDialogState extends State<EditGroupSettingsDialog> {
                 Navigator.of(context).pop(MapEntry(
                   nameController.text,
                   CustomGroup(
-                    iconCodePoint: icon.codePoint,
+                    iconIndex: CustomGroup.icons.indexOf(icon),
                     active: widget.group?.value.active ?? true,
                     taetigkeiten: taetigkeiten,
                     showNonMembers: showNonMembers,
@@ -253,7 +241,7 @@ class EditGroupSettingsDialogState extends State<EditGroupSettingsDialog> {
                   spacing: 6.0,
                   runSpacing: 4.0,
                   alignment: WrapAlignment.spaceEvenly,
-                  children: icons.map((IconData i) {
+                  children: CustomGroup.icons.map((IconData i) {
                     return ChoiceChip(
                       label: Icon(i),
                       selected: icon == i,

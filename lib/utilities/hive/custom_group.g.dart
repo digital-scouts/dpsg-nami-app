@@ -20,7 +20,7 @@ class CustomGroupAdapter extends TypeAdapter<CustomGroup> {
       active: fields[0] == null ? false : fields[0] as bool,
       static: fields[5] == null ? false : fields[5] as bool,
       taetigkeiten: (fields[1] as List?)?.cast<String>(),
-      iconCodePoint: (fields[2] as num?)?.toInt(),
+      iconIndex: (fields[8] as num?)?.toInt(),
       showNonMembers: fields[3] == null ? false : fields[3] as bool,
       showInactive: fields[4] == null ? false : fields[4] as bool,
       orFilter: fields[7] == null ? true : fields[7] as bool,
@@ -36,8 +36,6 @@ class CustomGroupAdapter extends TypeAdapter<CustomGroup> {
       ..write(obj.active)
       ..writeByte(1)
       ..write(obj.taetigkeiten)
-      ..writeByte(2)
-      ..write(obj.iconCodePoint)
       ..writeByte(3)
       ..write(obj.showNonMembers)
       ..writeByte(4)
@@ -47,7 +45,9 @@ class CustomGroupAdapter extends TypeAdapter<CustomGroup> {
       ..writeByte(6)
       ..write(obj.stufeIndex)
       ..writeByte(7)
-      ..write(obj.orFilter);
+      ..write(obj.orFilter)
+      ..writeByte(8)
+      ..write(obj.iconIndex);
   }
 
   @override

@@ -26,7 +26,7 @@ Map<String, CustomGroup> getCustomGroups() {
       'Rover': CustomGroup(stufeIndex: Stufe.ROVER.index, static: true),
       'Leitende': CustomGroup(
         taetigkeiten: ['LeiterIn'],
-        iconCodePoint: Icons.group.codePoint,
+        iconIndex: CustomGroup.icons.indexOf(Icons.group),
       ),
     };
   }
