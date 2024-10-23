@@ -98,16 +98,16 @@ Future<NamiStatsModel> loadNamiStats() async {
   }
 }
 
-Future<String> loadGruppierung() async {
+Future<List<String>> loadGruppierung() async {
   String url = getNamiLUrl();
   String path = getNamiPath();
   String cookie = getNamiApiCookie();
   String fullUrl = '$url$path/gf/gruppierung';
 
   if (cookie == 'testLoginCookie') {
-    setGruppierungId(1234);
-    setGruppierungName("1234 Test Gruppierung");
-    return '1234 Test Gruppierung';
+    setGruppierungId([1234]);
+    setGruppierungName(["1234 Test Gruppierung"]);
+    return ['1234 Test Gruppierung'];
   }
 
   sensLog.i('Request: Lade Gruppierung');
@@ -116,13 +116,16 @@ Future<String> loadGruppierung() async {
     return await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
   });
 
-  if (body['data'].length != 1) {
+  if (body['data'].isEmpty) {
     sensLog.e('Failed to load gruppierung. Multiple or no gruppierungen found');
-    throw InvalidNumberOfGruppierungException();
+    throw NoGruppierungException();
   }
 
-  int gruppierungId = body['data'][0]['id'];
-  String gruppierungName = body['data'][0]['descriptor'];
+  List<int> gruppierungId =
+      body['data'].map((e) => e['id']).cast<int>().toList();
+  List<String> gruppierungName =
+      body['data'].map((e) => e['descriptor']).cast<String>().toList();
+
   setGruppierungId(gruppierungId);
   setGruppierungName(gruppierungName);
   consLog.i('Gruppierung: $gruppierungName ($gruppierungId)');

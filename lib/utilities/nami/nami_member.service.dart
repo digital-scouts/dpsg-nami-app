@@ -166,7 +166,8 @@ Future<Mitglied> updateOneMember(int memberId) async {
   String cookie = getNamiApiCookie();
   String url = getNamiLUrl();
   String path = getNamiPath();
-  int gruppierung = getGruppierungId()!;
+  // TODO make multiple gruppierung possible
+  int gruppierung = getGruppierungId()[0];
 
   if (cookie == 'testLoginCookie') {
     return createMemberDefaultPfadfinder(13, memberId);
@@ -189,7 +190,8 @@ Future<void> syncMembers(
   bool forceUpdate = false,
 }) async {
   setLastNamiSyncTry(DateTime.now());
-  int gruppierung = getGruppierungId()!;
+  // TODO make multiple gruppierung possible
+  List<int> gruppierungen = getGruppierungId();
   String cookie = getNamiApiCookie();
   String url = getNamiLUrl();
   String path = getNamiPath();
@@ -207,10 +209,12 @@ Future<void> syncMembers(
     return;
   }
 
-  Map<int, int> mitgliedIds;
+  Map<int, int> mitgliedIds = {};
   try {
-    mitgliedIds =
-        await _loadMemberIdsToUpdate(url, path, gruppierung, forceUpdate);
+    for (var gruppierung in gruppierungen) {
+      mitgliedIds.addAll(
+          await _loadMemberIdsToUpdate(url, path, gruppierung, forceUpdate));
+    }
   } catch (e) {
     memberOverviewProgressNotifier.value = false;
     rethrow;
@@ -220,7 +224,6 @@ Future<void> syncMembers(
   cookie = getNamiApiCookie();
 
   // find logged in user
-
   int? loggedInUserId = getLoggedInUserId();
   if (loggedInUserId == null) {
     if (mitgliedIds.containsKey(memberId)) {
@@ -253,7 +256,7 @@ Future<void> syncMembers(
       memberBox,
       url,
       path,
-      gruppierung,
+      gruppierungen[0],
       cookie,
       memberAllProgressNotifier,
       1 / mitgliedIds.length,
@@ -394,7 +397,7 @@ Future<Mitglied?> _storeMitgliedToHive(
     ..telefon3 = rawMember.telefon3
     ..lastUpdated = rawMember.lastUpdated ?? DateTime.now()
     ..version = rawTaetigkeiten.isNotEmpty ? rawMember.version : 0
-    ..mglTypeId = rawMember.mglTypeId!
+    ..mglTypeId = rawMember.mglTypeId ?? 'NICHT_MITGLIED'
     ..beitragsartId = rawMember.beitragsartId ?? 0
     ..status = rawMember.status ?? ''
     ..taetigkeiten = taetigkeiten

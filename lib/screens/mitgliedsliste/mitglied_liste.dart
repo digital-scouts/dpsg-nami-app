@@ -152,12 +152,17 @@ class MitgliedsListeState extends State<MitgliedsListe> {
             .filterGroup;
 
     // Zeige keine Gruppe an, die keine Mitglieder haben
-    gruppen.removeWhere((key, value) {
-      return value.stufe != null &&
-          !mitglieder.any((mitglied) =>
-              (value.stufe != null &&
-                  value.stufe == mitglied.currentStufeWithoutLeiter) ||
-              (value.stufe == Stufe.LEITER && mitglied.isMitgliedLeiter()));
+    Map<String, CustomGroup> customGruppen = {};
+
+    gruppen.forEach((key, value) {
+      if (!value.static ||
+          (value.stufe != null &&
+              mitglieder.any((mitglied) =>
+                  value.stufe == mitglied.currentStufeWithoutLeiter ||
+                  (value.stufe == Stufe.LEITER &&
+                      mitglied.isMitgliedLeiter())))) {
+        customGruppen[key] = value;
+      }
     });
 
     return Padding(
@@ -165,7 +170,7 @@ class MitgliedsListeState extends State<MitgliedsListe> {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
-          children: gruppen.entries.map((entry) {
+          children: customGruppen.entries.map((entry) {
             String groupName = entry.key;
             CustomGroup group = entry.value;
 

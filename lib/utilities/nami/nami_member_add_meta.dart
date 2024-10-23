@@ -53,8 +53,9 @@ Future<Map<String, String>> getBeitragsartenMeta() async {
       '6': 'Voller Beitrag'
     };
   }
+  // TODO make multiple gruppierung possible
   String fullUrl =
-      '${getNamiLUrl()}/ica/rest/namiBeitrag/beitragsartmgl/gruppierung/${getGruppierungId()}';
+      '${getNamiLUrl()}/ica/rest/namiBeitrag/beitragsartmgl/gruppierung/${getGruppierungId()[0]}';
   Map<String, String> meta = await getMetadata(fullUrl);
 
   RegExpMatch? match;
@@ -114,8 +115,9 @@ Future<Map<String, String>> getErsteTaetigkeitMeta() async {
   if (getNamiApiCookie() == testCoockieName) {
     return {'1': 'LeiterIn', '2': 'sonst. Mitglied', '3': 'Mitglied'};
   }
+  // TODO make multiple gruppierung possible
   String fullUrl =
-      '${getNamiLUrl()}/ica/rest//nami/taetigkeitaufgruppierung/filtered/gruppierung/erste-taetigkeit/gruppierung/${getGruppierungId()}';
+      '${getNamiLUrl()}/ica/rest//nami/taetigkeitaufgruppierung/filtered/gruppierung/erste-taetigkeit/gruppierung/${getGruppierungId()[0]}';
   return await getMetadata(fullUrl);
 }
 

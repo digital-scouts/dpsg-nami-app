@@ -190,11 +190,11 @@ void setNamiPath(String path) async {
   settingsBox.put(SettingValue.namiPath.toString(), path);
 }
 
-void setGruppierungId(int gruppierung) {
+void setGruppierungId(List<int> gruppierung) {
   settingsBox.put(SettingValue.gruppierungId.toString(), gruppierung);
 }
 
-void setGruppierungName(String gruppierungName) {
+void setGruppierungName(List<String> gruppierungName) {
   settingsBox.put(SettingValue.gruppierungName.toString(), gruppierungName);
 }
 
@@ -241,12 +241,12 @@ String? getStammheim() {
   return settingsBox.get(SettingValue.stammheim.toString());
 }
 
-int? getGruppierungId() {
-  return settingsBox.get(SettingValue.gruppierungId.toString());
+List<int> getGruppierungId() {
+  return settingsBox.get(SettingValue.gruppierungId.toString()) ?? [];
 }
 
-String? getGruppierungName() {
-  return settingsBox.get(SettingValue.gruppierungName.toString());
+List<String> getGruppierungName() {
+  return settingsBox.get(SettingValue.gruppierungName.toString()) ?? [];
 }
 
 int? getNamiLoginId() {

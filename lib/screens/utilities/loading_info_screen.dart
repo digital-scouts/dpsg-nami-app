@@ -7,7 +7,7 @@ import 'package:provider/provider.dart';
 
 class LoadingInfoScreen extends StatefulWidget {
   final ValueNotifier<List<AllowedFeatures>> rechteProgressNotifier;
-  final ValueNotifier<String?> gruppierungProgressNotifier;
+  final ValueNotifier<List<String>?> gruppierungProgressNotifier;
   final ValueNotifier<bool?> metaProgressNotifier;
   final ValueNotifier<bool?> memberOverviewProgressNotifier;
   final ValueNotifier<double> memberAllProgressNotifier;
@@ -58,7 +58,7 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
       widget.rechteProgressNotifier.value.isNotEmpty &&
       widget.memberOverviewProgressNotifier.value == true &&
       (widget.loadAll
-          ? widget.gruppierungProgressNotifier.value != null &&
+          ? widget.gruppierungProgressNotifier.value!.isNotEmpty &&
               widget.memberAllProgressNotifier.value == 1 &&
               widget.metaProgressNotifier.value == true
           : widget.memberAllProgressNotifier.value == 1);
@@ -201,6 +201,15 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
     } else if (value is String && value.isNotEmpty) {
       subtitle = Text(value);
       trailing = successIcon;
+    } else if (value is List<String>) {
+      if (value.isEmpty) {
+        trailing = const CircularProgressIndicator();
+      } else {
+        trailing = successIcon;
+      }
+      subtitle = Text(
+        value.join(", "),
+      );
     } else if (value is List<AllowedFeatures>) {
       if (value.isEmpty) {
         trailing = const CircularProgressIndicator();

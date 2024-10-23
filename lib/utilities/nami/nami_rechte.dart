@@ -177,7 +177,7 @@ Future<Map<int, String>> _loadRechteJson(int id) async {
 }
 
 Future<dynamic> _loadDocument(int userId) async {
-  final gruppierungId = getGruppierungId();
+  int gruppierungId = getGruppierungId()[0];
   // Error 500 on Session Expired
   final reqUrl = Uri.parse(
       '${getNamiLUrl()}/ica//pages/rights/ShowRights?gruppierung=$gruppierungId&id=$userId');

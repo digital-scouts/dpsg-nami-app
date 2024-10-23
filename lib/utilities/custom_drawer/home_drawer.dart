@@ -137,7 +137,8 @@ class HomeDrawerState extends State<HomeDrawer> {
 
   @override
   Widget build(BuildContext context) {
-    int? gruppierung = getGruppierungId();
+    // TODO make multiple gruppierung possible
+    int? gruppierung = getGruppierungId()[0];
     Box<Mitglied> memberBox = Hive.box<Mitglied>('members');
 
     Mitglied? user;
