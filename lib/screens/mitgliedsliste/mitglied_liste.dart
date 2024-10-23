@@ -113,6 +113,8 @@ class MitgliedsListeState extends State<MitgliedsListe> {
                     Provider.of<MemberListSettingsHandler>(context)
                         .filterOptions
                         .subElement) {
+                  MemberSubElement.spitzname =>
+                    Text(mitglieder[index].spitzname ?? ''),
                   MemberSubElement.id =>
                     Text(mitglieder[index].mitgliedsNummer.toString()),
                   MemberSubElement.birthday => Text(

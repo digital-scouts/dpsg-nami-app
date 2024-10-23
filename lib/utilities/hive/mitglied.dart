@@ -98,6 +98,9 @@ class Mitglied {
   @HiveField(29)
   late bool datenweiterverwendung;
 
+  @HiveField(30)
+  late String? spitzname;
+
   bool isMitgliedLeiter() {
     for (Taetigkeit t in getActiveTaetigkeiten()) {
       if (t.isLeitung()) {

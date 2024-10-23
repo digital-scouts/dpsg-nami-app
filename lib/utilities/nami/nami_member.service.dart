@@ -374,6 +374,7 @@ Future<Mitglied?> _storeMitgliedToHive(
   Mitglied mitglied = Mitglied()
     ..vorname = rawMember.vorname
     ..nachname = rawMember.nachname
+    ..spitzname = rawMember.spitzname
     ..geschlechtId = rawMember.geschlechtId
     ..geburtsDatum = rawMember.geburtsDatum
     ..id = rawMember.id

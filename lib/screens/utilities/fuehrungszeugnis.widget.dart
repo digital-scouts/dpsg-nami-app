@@ -58,9 +58,7 @@ class _FuehrungszeugnisWidgetsState extends State<FuehrungszeugnisWidgets> {
 
         if (snapshot.hasError) {
           if (snapshot.error is SessionExpiredException) {
-            setState(() {
-              sessionFailed = true;
-            });
+            sessionFailed = true;
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -71,10 +69,8 @@ class _FuehrungszeugnisWidgetsState extends State<FuehrungszeugnisWidgets> {
                     onPressed: () async {
                       if (await AppStateHandler()
                           .setReloginState(showDialog: false)) {
-                        setState(() {
-                          sessionFailed = false;
-                          documentsFuture = loadFzDocumenets();
-                        });
+                        sessionFailed = false;
+                        documentsFuture = loadFzDocumenets();
                       }
                     },
                     child: const Text("Erneut einloggen"),

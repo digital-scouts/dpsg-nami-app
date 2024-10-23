@@ -14,11 +14,12 @@ const Map<MemberSorting, String> memberSortingValues = {
   MemberSorting.memberTime: "Mitgliedsdauer",
 };
 
-enum MemberSubElement { id, birthday }
+enum MemberSubElement { id, birthday, spitzname }
 
 const Map<MemberSubElement, String> memberSubElementValues = {
   MemberSubElement.id: "Mitgliedsnummer",
   MemberSubElement.birthday: 'Geburtstag',
+  MemberSubElement.spitzname: 'Spitzname',
 };
 
 class FilterOptions {

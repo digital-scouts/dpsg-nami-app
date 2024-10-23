@@ -45,13 +45,14 @@ class MitgliedAdapter extends TypeAdapter<Mitglied> {
       ..staatssangehaerigkeitId = (fields[26] as num).toInt()
       ..konfessionId = fields[27] as String?
       ..mitgliedszeitschrift = fields[28] as bool
-      ..datenweiterverwendung = fields[29] as bool;
+      ..datenweiterverwendung = fields[29] as bool
+      ..spitzname = fields[30] as String?;
   }
 
   @override
   void write(BinaryWriter writer, Mitglied obj) {
     writer
-      ..writeByte(28)
+      ..writeByte(29)
       ..writeByte(0)
       ..write(obj.vorname)
       ..writeByte(1)
@@ -107,7 +108,9 @@ class MitgliedAdapter extends TypeAdapter<Mitglied> {
       ..writeByte(28)
       ..write(obj.mitgliedszeitschrift)
       ..writeByte(29)
-      ..write(obj.datenweiterverwendung);
+      ..write(obj.datenweiterverwendung)
+      ..writeByte(30)
+      ..write(obj.spitzname);
   }
 
   @override
