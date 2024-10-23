@@ -14,7 +14,6 @@
             "name": "iPhone",
             "request": "launch",
             "type": "dart",
-            "deviceId": "85433212-9C10-4E0E-8A37-69706FB13F3A",
             "args": [
                 "--flavor",
                 "NaMi",
@@ -25,18 +24,6 @@
             "name": "iPad",
             "request": "launch",
             "type": "dart",
-            "deviceId": "A2517436-3494-4311-89B8-08C33B4448F3",
-            "args": [
-                "--flavor",
-                "NaMi",
-                "--dart-define=USE_LOGGING=true"
-            ]
-        },
-        {
-            "name": "MyPhone",
-            "request": "launch",
-            "type": "dart",
-            "deviceId": "00008120-00026848023B401E",
             "args": [
                 "--flavor",
                 "NaMi",

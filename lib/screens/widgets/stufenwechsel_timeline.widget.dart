@@ -138,7 +138,7 @@ class TimelinePainter extends CustomPainter {
       ..style = PaintingStyle.fill;
 
     const double triangleHeight = 7;
-    final double triangleCenterY = size.height / 2;
+    final double triangleCenterY = size.height / 2 - 2;
 
     Path path = Path();
     if (todayPos > size.width) {

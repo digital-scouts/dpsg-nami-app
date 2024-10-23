@@ -87,6 +87,8 @@ class _MeineStufeState extends State<MeineStufe> {
     return Card(
       child: Container(
         decoration: BoxDecoration(
+          borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(5), bottomLeft: Radius.circular(5)),
           border: Border(left: BorderSide(color: color, width: 5.0)),
         ),
         child: Stack(
@@ -109,11 +111,11 @@ class _MeineStufeState extends State<MeineStufe> {
                     mitglied.isMitgliedLeiter() || taetigkeit == emptyTaetigkeit
                         ? Container()
                         : Text(
-                            '${mitglied.currentStufe.shortDisplaySingular} seit ${currentStufeYearsDecimal.toStringAsFixed(1)} Jahren')
+                            '${currentStufeYearsDecimal % 1 == 0 ? currentStufeYearsDecimal.toInt() : currentStufeYearsDecimal.toStringAsFixed(1)} Jahre ${mitglied.currentStufe.shortDisplaySingular}')
                   ],
                 )),
             Positioned(
-              bottom: 0,
+              bottom: -2,
               left: 0,
               right: 0,
               child:

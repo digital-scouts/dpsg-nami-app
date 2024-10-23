@@ -27,7 +27,7 @@ class FilterDialogState extends State<FilterDialog> {
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 Text("Sortiere nach",
-                    style: Theme.of(context).textTheme.bodyLarge),
+                    style: Theme.of(context).textTheme.bodySmall),
                 const SizedBox(width: 15),
                 Expanded(
                   child: DropdownButton<MemberSorting>(
@@ -58,7 +58,7 @@ class FilterDialogState extends State<FilterDialog> {
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 Text("Zusatztext",
-                    style: Theme.of(context).textTheme.bodyLarge),
+                    style: Theme.of(context).textTheme.bodySmall),
                 const SizedBox(width: 15),
                 Expanded(
                   child: DropdownButton<MemberSubElement>(
@@ -89,7 +89,7 @@ class FilterDialogState extends State<FilterDialog> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Gruppen'),
+                Text('Gruppen', style: Theme.of(context).textTheme.bodyLarge),
                 IconButton(
                   icon: const Icon(Icons.add),
                   onPressed: () {
@@ -109,6 +109,9 @@ class FilterDialogState extends State<FilterDialog> {
                 .where((e) => !e.value.static))
               ListTile(
                 leading: Icon(gruppe.value.icon),
+                contentPadding: EdgeInsets.zero,
+                title: Text(gruppe.key,
+                    style: Theme.of(context).textTheme.bodyMedium),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -134,7 +137,6 @@ class FilterDialogState extends State<FilterDialog> {
                     ),
                   ],
                 ),
-                title: Text(gruppe.key),
               )
           ],
         ),
@@ -297,8 +299,7 @@ class EditGroupSettingsDialogState extends State<EditGroupSettingsDialog> {
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                         TextSpan(
-                          text:
-                              ' Merkmale besitzen werden in der Gruppe angezeigt',
+                          text: ' Merkmale besitzen werden angezeigt',
                         ),
                       ],
                     ),
@@ -313,8 +314,7 @@ class EditGroupSettingsDialogState extends State<EditGroupSettingsDialog> {
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                         TextSpan(
-                          text:
-                              ' Merkmale besitzen werden in der Gruppe angezeigt',
+                          text: ' Merkmale besitzen werden angezeigt',
                         ),
                       ],
                     ),
