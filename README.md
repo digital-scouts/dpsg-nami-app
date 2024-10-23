@@ -11,7 +11,9 @@
 [![Test](https://github.com/JanneckLange/dpsg-nami-app/actions/workflows/flutter-test.yml/badge.svg)](https://github.com/JanneckLange/dpsg-nami-app/actions/workflows/flutter-test.yml)
 [![Commit](https://shields.io/github/last-commit/JanneckLange/dpsg-nami-app/develop)](https://github.com/JanneckLange/dpsg-nami-app/commits/develop)
 
-Die NaMi ist die Namentliche Mitgliedermeldung des Pfadfinderverbandes DPSG (Deutsche Pfadfinderschaft Sankt Georg).
+NaMi steht für die Namentliche Mitgliedermeldung der Deutschen Pfadfinderschaft Sankt Georg (DPSG). Diese App richtet sich speziell an Gruppenleiter:innen der DPSG und ermöglicht den mobilen, offline Zugriff auf Mitgliederdaten. Dank vielseitiger Sortier- und Filterfunktionen sowie grundlegender Bearbeitungsoptionen bietet die App eine unverzichtbare Unterstützung im Gruppenalltag.
+
+Diese App wird privat entwickelt und bereitgestellt. Sie steht in keinem Zusammenhang mit der DPSG und ist (wie alle privaten Projekte) weder von der DPSG autorisiert noch unterstützt. Alle Mitgliedsdaten werden auf eigene Verantwortung verwaltet und sind nicht Teil der offiziellen DPSG-Systeme.
 
 ## Lizenz
 
@@ -23,27 +25,25 @@ Dieses Werk ist lizenziert unter einer [Creative Commons Namensnennung - Nicht-k
 
 ### Tester
 
-Bevor die App kostenlos in den Stores verfügbar sein soll, wollen wir noch testen ob alles wie gewünscht funktioniert. Unterschiedliche Datenkonstellationen könnten zu uns noch unbekannten Fehlern führen. Um diese zu finden brauchen wir dich.
+Bevor die App kostenlos in den Stores verfügbar sein soll, wollen wir noch testen ob alles wie gewünscht funktioniert. Unterschiedliche Datenkonstellationen könnten zu noch unbekannten Fehlern führen. Um diese zu finden braucht es dich.
 
 Generell suchen wir jeden, der Interesse hat sich mit einer neuen App auseinander zu setzten, Feedback zu bestehenden Funktionen zu geben und ggf. Umfragen zu zukünftigen Funktionen teil zu nehmen.
 
 **Vorraussetzungen:**
 
-- Du bist Mitglied in einer Gruppierung
-- Du hast NaMi Rechte andere Mitglieder zu sehen
-- Android mit PlayStore Konto oder iPhone mit Apple-ID
+- Du hast Leserechte für mindestens einen Stamm 
+  - Typischerweise Tätigkeit LeiterIn (Lesen)
+  - Besteht leserecht zu mehreren Stämmen, so muss ich für einen entschieden werden
 
 Testversion der App laden: [Android](https://play.google.com/store/apps/details?id=de.jlange.nami.app) oder
 [iOS](https://testflight.apple.com/join/YGeELMUq)
 
-Neben Feedback zur aktuell Version der würden wir mit gelegtlichen Umfragen gerne mehr zum allgemeinen Nutzerverhalten erfahren. Schreibe mir eine Mail (dev@jannecklange.de) wenn du bereit bist due Zukunft der App mitzugestalten.
+## Funktionsweise 
 
-### Entwickler
+Die App verbindet sich direkt mit dem NaMi-Backend, sodass keine Mitgliedsdaten auf externen Servern gespeichert oder verarbeitet werden. 
+Die Daten des ausgewählten Stammes werden lokal und verschlüsselt auf dem Gerät des Nutzers gespeichert. 
 
-#### Setup
-
-- [Flutter Setup](https://docs.flutter.dev/get-started/install)
-- [Wiredash Setup](https://docs.wiredash.com/guide/start)
+Die Daten werden tägliche automatisch im Hintergrund synchronisiert, sofern das Passwort beim Login gespeichert wurde. Falls die Daten länger als 30 Tage nicht aktualisiert wurden, werden sie automatisch aus der App entfernt, um die Datensicherheit zu gewährleisten.
 
 ## Aktuelle Funktionen
 
@@ -58,8 +58,8 @@ Neben Feedback zur aktuell Version der würden wir mit gelegtlichen Umfragen ger
   - Die gewünschte Altersgrenzen der Stufen können angepasst werden.
   - Stufenwechsel durchführen
 - Führungszeugniss Antragsunterlagen und Bescheinigungen herrunterladen
-- Jeder Nutzer hat sieht auch nur die Funktionen, die er aufgrund seiner Rechte ausführen kann. Die Recht sind im eigenen Profil aufgelistet.
-- Jeder Nutzer hat die Möglichkeit das Bearbeiten von Daten zu deaktiven und braucht so keine Angst haben 'Etwas kaput zu machen
+- Jeder Nutzer sieht auch nur die Funktionen, die er aufgrund seiner Rechte ausführen kann. Die Recht sind im eigenen Profil aufgelistet.
+- Jeder Nutzer hat die Möglichkeit das Bearbeiten von Daten zu deaktiven und braucht so keine Angst haben 'Etwas kaput zu machen'
 
 ## Geplante Funktionen
 
@@ -68,7 +68,6 @@ Neben Feedback zur aktuell Version der würden wir mit gelegtlichen Umfragen ger
 - Erinnerungen und Kalenderintegration für
   - Geburtstage 
   - Ablaufende Ausbildungen (Präventionsschulung)
-- Änderungshistorie für Admins
 - Statistik historische Entwicklung im Stamm
   - Wann verlassen Mitglieder den Stamm, wann kommen sie
 - Stammeskarte
