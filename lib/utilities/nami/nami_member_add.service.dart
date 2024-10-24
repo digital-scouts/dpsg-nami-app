@@ -8,10 +8,9 @@ import 'package:nami/utilities/types.dart';
 
 String url = getNamiLUrl();
 String path = getNamiPath();
-// TODO make multiple gruppierung possible
-int? gruppierungId = getGruppierungId()[0];
-// TODO make multiple gruppierung possible
-String? gruppierungName = getGruppierungName()[0];
+
+int? gruppierungId = getGruppierungId();
+String? gruppierungName = getGruppierungName();
 String cookie = getNamiApiCookie();
 
 Future<int> namiCreateMember(NamiMemberDetailsModel mitglied) async {

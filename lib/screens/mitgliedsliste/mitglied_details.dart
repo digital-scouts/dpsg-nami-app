@@ -493,8 +493,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
   }
 
   void terminateTaetigkeitDialog(BuildContext context, Taetigkeit taetigkeit) {
-    // TODO make multiple gruppierung possible
-    String? gruppierung = getGruppierungName()[0];
+    String? gruppierung = getGruppierungName();
     bool taetigkeitIsFromOtherGroup = taetigkeit.gruppierung != gruppierung;
     bool loggedInUserCouldLooseRights =
         getLoggedInUserId() == widget.mitglied.id &&
@@ -671,8 +670,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
   }
 
   void openDeleteTaetigkeitDialog(BuildContext context, Taetigkeit taetigkeit) {
-    // TODO make multiple gruppierung possible
-    String? gruppierung = getGruppierungName()[0];
+    String? gruppierung = getGruppierungName();
     bool taetigkeitIsFromOtherGroup = taetigkeit.gruppierung != gruppierung;
     bool loggedInUserCouldLooseRights =
         getLoggedInUserId() == widget.mitglied.id &&

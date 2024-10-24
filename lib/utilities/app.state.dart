@@ -9,10 +9,12 @@ import 'package:nami/screens/login_screen.dart';
 import 'package:nami/screens/utilities/loading_info_screen.dart';
 import 'package:nami/screens/utilities/new_version_info_screen.dart';
 import 'package:nami/screens/utilities/welcome_screen.dart';
+import 'package:nami/screens/widgets/chooseGruppierung.widget.dart';
 import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/hive/hive.handler.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/logger.dart';
+import 'package:nami/utilities/nami/model/nami_gruppierung.model.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
 import 'package:nami/utilities/nami/nami_member.service.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
@@ -160,7 +162,8 @@ class AppStateHandler extends ChangeNotifier {
         'Start loading data with loadAll: $loadAll and background: $background');
     ValueNotifier<List<AllowedFeatures>> rechteProgressNotifier =
         ValueNotifier([]);
-    ValueNotifier<List<String>> gruppierungProgressNotifier = ValueNotifier([]);
+    ValueNotifier<List<NamiGruppierungModel>> gruppierungProgressNotifier =
+        ValueNotifier([]);
     ValueNotifier<bool?> metaProgressNotifier = ValueNotifier(null);
     ValueNotifier<bool?> memberOverviewProgressNotifier = ValueNotifier(null);
     ValueNotifier<double> memberAllProgressNotifier = ValueNotifier(0.0);
@@ -185,7 +188,35 @@ class AppStateHandler extends ChangeNotifier {
 
     try {
       if (loadAll) {
-        gruppierungProgressNotifier.value = await loadGruppierung();
+        deleteGruppierungId();
+        deleteGruppierungName();
+        gruppierungProgressNotifier.value = await loadGruppierungen();
+        // wenn mehrere Gruppierungen vorhanden sind öffne ein popup um eine auszuwählen
+        if (gruppierungProgressNotifier.value.length > 1) {
+          sensLog.i('multiple gruppierungen found');
+
+          NamiGruppierungModel? selectedGruppierung =
+              await showDialog<NamiGruppierungModel>(
+            context: navigatorKey.currentContext!,
+            builder: (BuildContext context) {
+              return ChooseGruppierungWidget(
+                gruppierungen: gruppierungProgressNotifier.value,
+                onGruppierungSelected:
+                    (NamiGruppierungModel selectedGruppierung) {
+                  Navigator.of(context).pop(selectedGruppierung);
+                },
+              );
+            },
+          );
+          if (selectedGruppierung == null) {
+            throw NoGruppierungException();
+          }
+          setGruppierungId(selectedGruppierung.id);
+          setGruppierungName(selectedGruppierung.name);
+        } else {
+          setGruppierungId(gruppierungProgressNotifier.value[0].id);
+          setGruppierungName(gruppierungProgressNotifier.value[0].name);
+        }
         await reloadMetadataFromServer();
         metaProgressNotifier.value = true;
       }
@@ -213,7 +244,7 @@ class AppStateHandler extends ChangeNotifier {
       rechteProgressNotifier.value = [AllowedFeatures.noPermission];
       gruppierungProgressNotifier.value = [];
       gruppierungProgressNotifier.value = [
-        'Keine oder mehrere Gruppierung(en) gefunden'
+        NamiGruppierungModel(id: 1, name: 'Keine Gruppierung gefunden')
       ];
       metaProgressNotifier.value = false;
       memberOverviewProgressNotifier.value = false;

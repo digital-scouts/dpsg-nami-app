@@ -12,9 +12,8 @@ import 'package:wiredash/wiredash.dart';
 
 String url = getNamiLUrl();
 String path = getNamiPath();
-// TODO make multiple gruppierung possible
-int? gruppierungId = getGruppierungId()[0];
-String? gruppierungName = getGruppierungName()[0];
+int? gruppierungId = getGruppierungId();
+String? gruppierungName = getGruppierungName();
 String cookie = getNamiApiCookie();
 
 Future<Mitglied> stufenwechsel(int memberId, Taetigkeit currentTaetigkeit,

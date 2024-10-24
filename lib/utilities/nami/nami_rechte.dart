@@ -177,7 +177,7 @@ Future<Map<int, String>> _loadRechteJson(int id) async {
 }
 
 Future<dynamic> _loadDocument(int userId) async {
-  int gruppierungId = getGruppierungId()[0];
+  int gruppierungId = getGruppierungId()!;
   // Error 500 on Session Expired
   final reqUrl = Uri.parse(
       '${getNamiLUrl()}/ica//pages/rights/ShowRights?gruppierung=$gruppierungId&id=$userId');
@@ -193,6 +193,7 @@ Future<dynamic> _loadDocument(int userId) async {
 
 String _extractItems(scriptContent) {
   const scriptStoreEbeneElement = 'var storeEbene = ';
+  // TODO: 'var storeTree = ', 'var rightsFromTree = ' and 'var rigthsEbene = ' are also present in the scriptContent
   int startIndex = scriptContent.indexOf(scriptStoreEbeneElement) +
       scriptStoreEbeneElement.length;
   startIndex = scriptContent.indexOf('items:', startIndex) + 'items:'.length;

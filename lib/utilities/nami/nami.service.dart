@@ -5,6 +5,7 @@ import 'package:html/parser.dart';
 import 'package:http/http.dart' as http;
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/logger.dart';
+import 'package:nami/utilities/nami/model/nami_gruppierung.model.dart';
 import 'package:nami/utilities/nami/nami_login.service.dart';
 import 'package:nami/utilities/nami/nami_member_add_meta.dart';
 import 'package:nami/utilities/types.dart';
@@ -98,38 +99,73 @@ Future<NamiStatsModel> loadNamiStats() async {
   }
 }
 
-Future<List<String>> loadGruppierung() async {
-  String url = getNamiLUrl();
-  String path = getNamiPath();
+Future<List<NamiGruppierungModel>> loadGruppierungen(
+    {bool onlyStaemme = true}) async {
   String cookie = getNamiApiCookie();
-  String fullUrl = '$url$path/gf/gruppierung';
 
   if (cookie == 'testLoginCookie') {
-    setGruppierungId([1234]);
-    setGruppierungName(["1234 Test Gruppierung"]);
-    return ['1234 Test Gruppierung'];
+    return [NamiGruppierungModel(id: 1234, name: '1234 Test Gruppierung')];
   }
 
   sensLog.i('Request: Lade Gruppierung');
+
+  late List<NamiGruppierungModel> gruppierungen;
+  if (onlyStaemme) {
+    gruppierungen = await loadOnlyStaemme();
+  } else {
+    gruppierungen = await loadAllGruppierung();
+  }
+
+  if (gruppierungen.isEmpty) {
+    throw NoGruppierungException();
+  }
+  return gruppierungen;
+}
+
+Future<List<NamiGruppierungModel>> loadAllGruppierung() async {
+  String url = getNamiLUrl();
+  String path = getNamiPath();
+  String fullUrl = '$url$path/gf/gruppierung';
+
+  sensLog.i('Request: Lade Gruppierung');
+
   final body = await withMaybeRetry(() async {
     final cookie = getNamiApiCookie();
     return await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
   });
 
-  if (body['data'].isEmpty) {
-    sensLog.e('Failed to load gruppierung. Multiple or no gruppierungen found');
-    throw NoGruppierungException();
+  List<NamiGruppierungModel> gruppierungen = (body['data'] as List<dynamic>)
+      .map((e) => NamiGruppierungModel.fromJson(e as Map<String, dynamic>))
+      .cast<NamiGruppierungModel>()
+      .toList();
+
+  return gruppierungen;
+}
+
+Future<List<NamiGruppierungModel>> loadOnlyStaemme(
+    {int node = 1, String name = ''}) async {
+  String url = getNamiLUrl();
+  String path = getNamiPath();
+  String fullUrl =
+      '$url$path/gruppierungen/filtered-for-navigation/gruppierung/node/$node';
+
+  sensLog.i('Request: Lade Gruppierung for node $node');
+  final body = await withMaybeRetry(() async {
+    final cookie = getNamiApiCookie();
+    return await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
+  });
+
+  List<NamiGruppierungModel> gruppierungen = [];
+  if (body['data'].isNotEmpty) {
+    for (var item in body['data']) {
+      gruppierungen.addAll(
+          await loadOnlyStaemme(node: item['id'], name: item['descriptor']));
+    }
+  } else {
+    gruppierungen.add(NamiGruppierungModel(id: node, name: name));
   }
 
-  List<int> gruppierungId =
-      body['data'].map((e) => e['id']).cast<int>().toList();
-  List<String> gruppierungName =
-      body['data'].map((e) => e['descriptor']).cast<String>().toList();
-
-  setGruppierungId(gruppierungId);
-  setGruppierungName(gruppierungName);
-  consLog.i('Gruppierung: $gruppierungName ($gruppierungId)');
-  return gruppierungName;
+  return gruppierungen;
 }
 
 Future<void> reloadMetadataFromServer() async {

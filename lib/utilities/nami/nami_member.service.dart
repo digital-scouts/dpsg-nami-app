@@ -10,11 +10,11 @@ import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
 import 'package:nami/utilities/logger.dart';
+import 'package:nami/utilities/nami/model/nami_gruppierung.model.dart';
 import 'package:nami/utilities/nami/model/nami_member_ausbildung_model.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
 import 'package:nami/utilities/nami/nami_member_fake.service.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
-import 'package:nami/utilities/types.dart';
 
 import 'model/nami_member_details.model.dart';
 import 'model/nami_taetigkeiten.model.dart';
@@ -166,8 +166,8 @@ Future<Mitglied> updateOneMember(int memberId) async {
   String cookie = getNamiApiCookie();
   String url = getNamiLUrl();
   String path = getNamiPath();
-  // TODO make multiple gruppierung possible
-  int gruppierung = getGruppierungId()[0];
+
+  int gruppierung = getGruppierungId()!;
 
   if (cookie == 'testLoginCookie') {
     return createMemberDefaultPfadfinder(13, memberId);
@@ -183,6 +183,42 @@ Future<Mitglied> updateOneMember(int memberId) async {
   return member;
 }
 
+Future<int?> findUserId(int memberId, Map<int, int> mitgliedIds) async {
+  String url = getNamiLUrl();
+  String path = getNamiPath();
+
+  int? loggedInUserId = getLoggedInUserId();
+  if (loggedInUserId == null) {
+    if (mitgliedIds.containsKey(memberId)) {
+      loggedInUserId = memberId;
+      setLoggedInUserId(loggedInUserId);
+    } else if (mitgliedIds.containsValue(memberId)) {
+      loggedInUserId =
+          mitgliedIds.keys.firstWhere((key) => mitgliedIds[key] == memberId);
+      setLoggedInUserId(loggedInUserId);
+    }
+    if (loggedInUserId == null) {
+      List<NamiGruppierungModel> gruppierungen =
+          await loadGruppierungen(onlyStaemme: false);
+      for (NamiGruppierungModel gruppierung in gruppierungen) {
+        mitgliedIds =
+            await _loadMemberIdsToUpdate(url, path, gruppierung.id, true);
+        if (mitgliedIds.containsKey(memberId)) {
+          loggedInUserId = memberId;
+          setLoggedInUserId(loggedInUserId);
+          break;
+        } else if (mitgliedIds.containsValue(memberId)) {
+          loggedInUserId = mitgliedIds.keys
+              .firstWhere((key) => mitgliedIds[key] == memberId);
+          setLoggedInUserId(loggedInUserId);
+          break;
+        }
+      }
+    }
+  }
+  return loggedInUserId;
+}
+
 Future<void> syncMembers(
   ValueNotifier<double> memberAllProgressNotifier,
   ValueNotifier<bool?> memberOverviewProgressNotifier,
@@ -190,8 +226,8 @@ Future<void> syncMembers(
   bool forceUpdate = false,
 }) async {
   setLastNamiSyncTry(DateTime.now());
-  // TODO make multiple gruppierung possible
-  List<int> gruppierungen = getGruppierungId();
+
+  int gruppierung = getGruppierungId()!;
   String cookie = getNamiApiCookie();
   String url = getNamiLUrl();
   String path = getNamiPath();
@@ -211,10 +247,8 @@ Future<void> syncMembers(
 
   Map<int, int> mitgliedIds = {};
   try {
-    for (var gruppierung in gruppierungen) {
-      mitgliedIds.addAll(
-          await _loadMemberIdsToUpdate(url, path, gruppierung, forceUpdate));
-    }
+    mitgliedIds.addAll(
+        await _loadMemberIdsToUpdate(url, path, gruppierung, forceUpdate));
   } catch (e) {
     memberOverviewProgressNotifier.value = false;
     rethrow;
@@ -223,25 +257,11 @@ Future<void> syncMembers(
   /// Update cookie because it could be new after relogin
   cookie = getNamiApiCookie();
 
-  // find logged in user
-  int? loggedInUserId = getLoggedInUserId();
+  int? loggedInUserId = await findUserId(memberId, mitgliedIds);
   if (loggedInUserId == null) {
-    if (mitgliedIds.containsKey(memberId)) {
-      loggedInUserId = memberId;
-      setLoggedInUserId(loggedInUserId);
-    } else if (mitgliedIds.containsValue(memberId)) {
-      loggedInUserId =
-          mitgliedIds.keys.firstWhere((key) => mitgliedIds[key] == memberId);
-      setLoggedInUserId(loggedInUserId);
-    }
-    if (loggedInUserId == null) {
-      sensLog.e(
-          'Mitgliedsnummer oder ID des eingeloggten Mitglieds nicht in der Gruppierung gefunden');
-      memberOverviewProgressNotifier.value = false;
-      throw SessionExpiredException();
-    }
+    memberOverviewProgressNotifier.value = false;
+    return;
   }
-
   final rechte = await loadRechte(loggedInUserId);
   setRechte(rechte);
   rechteProgressNotifier.value = getAllowedFeatures();
@@ -256,7 +276,7 @@ Future<void> syncMembers(
       memberBox,
       url,
       path,
-      gruppierungen[0],
+      gruppierung,
       cookie,
       memberAllProgressNotifier,
       1 / mitgliedIds.length,
