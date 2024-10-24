@@ -13,7 +13,7 @@ extension DateTimeExtension on DateTime {
 
 class SessionExpiredException implements Exception {}
 
-class InvalidNumberOfGruppierungException implements Exception {}
+class NoGruppierungException implements Exception {}
 
 class NamiServerException implements Exception {}
 

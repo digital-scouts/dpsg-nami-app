@@ -137,7 +137,7 @@ class HomeDrawerState extends State<HomeDrawer> {
 
   @override
   Widget build(BuildContext context) {
-    int? gruppierung = getGruppierungId();
+    String? gruppierungName = getGruppierungName();
     Box<Mitglied> memberBox = Hive.box<Mitglied>('members');
 
     Mitglied? user;
@@ -161,13 +161,14 @@ class HomeDrawerState extends State<HomeDrawer> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: <Widget>[
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8, left: 4),
-                    child: Text(
-                      '${user?.vorname} ${user?.nachname}',
-                      style: Theme.of(context).textTheme.bodyLarge,
+                  if (user != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8, left: 4),
+                      child: Text(
+                        '${user.vorname} ${user.nachname}',
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
                     ),
-                  ),
                   Padding(
                     padding: const EdgeInsets.only(top: 8, left: 4),
                     child: Text(
@@ -178,7 +179,7 @@ class HomeDrawerState extends State<HomeDrawer> {
                   Padding(
                     padding: const EdgeInsets.only(top: 8, left: 4),
                     child: Text(
-                      'Gruppierung: $gruppierung',
+                      'Gruppierung: $gruppierungName',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ),

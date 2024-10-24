@@ -197,7 +197,7 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
       emailVertretungsberechtigter:
           _formKey.currentState!.fields['email_sorgeberechtigter']!.value,
       version: widget.mitglied == null ? 0 : widget.mitglied!.version,
-      gruppierungId: getGruppierungId() ?? 0,
+      gruppierungId: getGruppierungId()!,
     );
 
     if (widget.mitglied != null) {
