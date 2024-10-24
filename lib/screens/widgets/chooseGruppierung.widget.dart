@@ -1,17 +1,3 @@
-//  Titel: Gruppirtung auswählen
-// Beschreibung: Du hast zugriff auf mehrere Gruppierungen, bitte wähle ein Gruppierung aus. Du kannst die Gruppierung später ändern.
-// Dropdown: Gruppierung
-// So sieht der Aufruf aus:
-/*
-          showGruppierungSelectionDialog(
-            gruppierungProgressNotifier.value,
-            (NamiGruppierungModel gruppierung) {
-              setGruppierungId([gruppierung.id]);
-              setGruppierungName([gruppierung.name]);
-              gruppierungProgressNotifier.value = [gruppierung];
-            },
-          );*/
-
 import 'package:flutter/material.dart';
 import 'package:nami/utilities/nami/model/nami_gruppierung.model.dart';
 
