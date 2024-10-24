@@ -15,26 +15,6 @@ NaMi steht für die Namentliche Mitgliedermeldung der Deutschen Pfadfinderschaft
 
 Diese App wird privat entwickelt und bereitgestellt. Sie steht in keinem Zusammenhang mit der DPSG und ist (wie alle privaten Projekte) weder von der DPSG autorisiert noch unterstützt. Alle Mitgliedsdaten werden auf eigene Verantwortung verwaltet und sind nicht Teil der offiziellen DPSG-Systeme.
 
-## Lizenz
-
-[![Lizenz](https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png)](https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png)
-
-Dieses Werk ist lizenziert unter einer [Creative Commons Namensnennung - Nicht-kommerziell - Weitergabe unter gleichen Bedingungen 4.0 International Lizenz.](http://creativecommons.org/licenses/by-nc-sa/4.0/)
-
-## Mitwirken
-
-### Tester
-
-Bevor die App kostenlos in den Stores verfügbar sein soll, wollen wir noch testen ob alles wie gewünscht funktioniert. Unterschiedliche Datenkonstellationen könnten zu noch unbekannten Fehlern führen. Um diese zu finden braucht es dich.
-
-Gesucht wird jeder, der Interesse hat sich mit einer neuen App auseinander zu setzten, Feedback zu bestehenden Funktionen zu geben und ggf. Umfragen zu zukünftigen Funktionen teil zu nehmen.
-
-**Vorraussetzungen:**
-
-- Du hast Leserechte für mindestens einen Stamm 
-  - Typischerweise Tätigkeit LeiterIn (Lesen)
-  - Besteht leserecht zu mehreren Stämmen, so muss sich für einen entschieden werden. 
-
 Testversion der App laden: [Android](https://play.google.com/store/apps/details?id=de.jlange.nami.app) oder
 [iOS](https://testflight.apple.com/join/YGeELMUq)
 
