@@ -43,7 +43,9 @@ Testversion der App laden: [Android](https://play.google.com/store/apps/details?
 Die App verbindet sich direkt mit dem NaMi-Backend, sodass keine Mitgliedsdaten auf externen Servern gespeichert oder verarbeitet werden. 
 Die Daten des ausgewählten Stammes werden lokal und verschlüsselt auf dem Gerät des Nutzers gespeichert. 
 
-Die Daten werden tägliche automatisch im Hintergrund synchronisiert, sofern das Passwort beim Login gespeichert wurde. Falls die Daten länger als 30 Tage nicht aktualisiert wurden, werden sie automatisch aus der App entfernt, um die Datensicherheit zu gewährleisten.
+Die Daten werden tägliche automatisch im Hintergrund synchronisiert. Falls die Daten länger als 30 Tage nicht aktualisiert wurden, werden sie automatisch aus der App entfernt, um die Datensicherheit zu gewährleisten.
+
+Hat ein Nutzer die Rechte mehrere Stämme zu sehen (zum Beispiel, weil er auch Aktiv in einem Diözesanarbeitskreis ist), dann muss **ein** Stamm ausgewählt werden. Es werden die Mitgliedes dieses Stammes angezeigt. 
 
 ## Aktuelle Funktionen
 
