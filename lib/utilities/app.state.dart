@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'package:http/http.dart' as http;
 import 'package:local_auth/local_auth.dart';
 import 'package:nami/main.dart';
@@ -61,12 +62,16 @@ class AppStateHandler extends ChangeNotifier {
     sensLog.i("in onPause");
     if (!_paused && currentState == AppState.ready) {
       lastAuthenticated = DateTime.now();
+      FMTCObjectBoxBackend().uninitialise();
       _paused = true;
     }
   }
 
   void onResume(BuildContext context) async {
     _paused = false;
+    try {
+      await FMTCObjectBoxBackend().initialise();
+    } catch (_) {}
     final packageInfo = await PackageInfo.fromPlatform();
     final appVersion = packageInfo.version;
     // first open with new version

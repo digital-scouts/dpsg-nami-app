@@ -167,6 +167,7 @@ class MemberListSettingsHandler extends ChangeNotifier {
 
   void updateFilterGroupActive(String name, bool value) {
     _filterOptions.filterGroup[name]!.active = value;
+    saveCustomGroups(_filterOptions.filterGroup);
     notifyListeners();
   }
 
