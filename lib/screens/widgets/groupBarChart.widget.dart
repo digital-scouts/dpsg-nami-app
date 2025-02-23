@@ -141,7 +141,7 @@ class GroupBarChartState extends State<GroupBarChart> {
         text = 'Sonstige';
     }
     return SideTitleWidget(
-      axisSide: meta.axisSide,
+      meta: meta,
       child: Text(
         text,
         style: Theme.of(context).textTheme.bodySmall,

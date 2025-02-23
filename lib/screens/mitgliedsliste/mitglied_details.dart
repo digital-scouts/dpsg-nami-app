@@ -575,7 +575,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
                   Padding(
                     padding: const EdgeInsets.only(top: 16.0),
                     child: Container(
-                      color: Colors.orange.withOpacity(0.1),
+                      color: Colors.orange.withValues(alpha: 0.1),
                       padding: const EdgeInsets.all(8.0),
                       child: const Text(
                         'Dir könnten beim beenden der Tätigkeit Rechte verloren gehen. Bitte prüfe, ob du die Tätigkeit wirklich beenden möchtest.',
@@ -588,7 +588,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
                   Padding(
                     padding: const EdgeInsets.only(top: 16.0),
                     child: Container(
-                      color: Colors.orange.withOpacity(0.1),
+                      color: Colors.orange.withValues(alpha: 0.1),
                       padding: const EdgeInsets.all(8.0),
                       child: const Text(
                         'Die Tätigkeit ist einer anderen Gruppierung zugehörig, beenden ist vermutlich nicht möglich.',
@@ -714,7 +714,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
                 Padding(
                   padding: const EdgeInsets.only(top: 16.0),
                   child: Container(
-                    color: Colors.orange.withOpacity(0.1),
+                    color: Colors.orange.withValues(alpha: 0.1),
                     padding: const EdgeInsets.all(8.0),
                     child: const Text(
                       'Dir könnten beim Löschen Rechte verloren gehen. Bitte prüfe, ob du die Tätigkeit wirklich löschen möchtest.',
@@ -727,7 +727,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
                 Padding(
                   padding: const EdgeInsets.only(top: 16.0),
                   child: Container(
-                    color: Colors.orange.withOpacity(0.1),
+                    color: Colors.orange.withValues(alpha: 0.1),
                     padding: const EdgeInsets.all(8.0),
                     child: const Text(
                       'Die Tätigkeit ist einer anderen Gruppierung zugehörig, löschen ist vermutlich nicht möglich.',
@@ -741,7 +741,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
                 Padding(
                   padding: const EdgeInsets.only(top: 16.0),
                   child: Container(
-                    color: Colors.orange.withOpacity(0.1),
+                    color: Colors.orange.withValues(alpha: 0.1),
                     padding: const EdgeInsets.all(8.0),
                     child: const Text(
                       'Die Tätigkeit ist vor mehr als zwei Tagen angelegt worden, löschen ist vermutlich nicht möglich.',

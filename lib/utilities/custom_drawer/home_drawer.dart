@@ -254,7 +254,7 @@ class HomeDrawerState extends State<HomeDrawer> {
         : Theme.of(context).colorScheme.onSurface;
 
     return InkWell(
-      splashColor: Colors.grey.withOpacity(0.1),
+      splashColor: Colors.grey.withValues(alpha: 0.1),
       highlightColor: Colors.transparent,
       onTap: () {
         navigationtoScreen(listData.index!);
@@ -327,7 +327,7 @@ class HomeDrawerState extends State<HomeDrawer> {
                           width: MediaQuery.of(context).size.width * 0.75 - 64,
                           height: 46,
                           decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.2),
+                            color: Colors.blue.withValues(alpha: 0.2),
                             borderRadius: const BorderRadius.only(
                               topLeft: Radius.circular(0),
                               topRight: Radius.circular(28),

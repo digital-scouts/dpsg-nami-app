@@ -125,7 +125,7 @@ class AlterBarChartWidgetState extends State<AlterBarChartWidget> {
                       }
 
                       return SideTitleWidget(
-                        axisSide: meta.axisSide,
+                        meta: meta,
                         child: Text(
                           display,
                           style: Theme.of(context).textTheme.bodySmall,

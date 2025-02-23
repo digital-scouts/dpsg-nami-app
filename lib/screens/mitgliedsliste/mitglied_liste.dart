@@ -227,7 +227,7 @@ class MitgliedsListeState extends State<MitgliedsListe> {
         decoration: InputDecoration(
           hintStyle: Theme.of(context).textTheme.bodySmall,
           filled: true,
-          fillColor: Colors.white.withOpacity(0.05),
+          fillColor: Colors.white.withValues(alpha: 0.05),
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
           border: const OutlineInputBorder(
