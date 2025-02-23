@@ -26,6 +26,14 @@
         "Ein Fehler bei dem Mitglieder ohne Stufe für den Stufenwechsel angezeigt wurden, wurde behoben.",
         "Diverse weitere Fehlerbehebungen und Optimierungen"
       ]
+    },
+    {
+      "version": "0.2.2",
+      "data_reset": false,
+      "features": [],
+      "bugFixes": [
+        "Ein Fehler, der die App zum Absturz brachte wurde behoben."
+      ]
     }
   ]
 }
