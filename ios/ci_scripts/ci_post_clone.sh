@@ -22,6 +22,7 @@ HOMEBREW_NO_AUTO_UPDATE=1 # disable homebrew's automatic updates.
 brew install cocoapods
 
 echo "calling pub get"
+echo "Aktuelles Verzeichnis: $(pwd)"
 # Install Flutter dependencies.
 flutter pub get
 
