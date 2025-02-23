@@ -5,7 +5,7 @@ set -e
 echo "Running post clone script"
 
 # The default execution directory of this script is the ci_scripts directory.
-cd $CI_WORKSPACE # change working directory to the root of your cloned repo.
+cd $CI_PRIMARY_REPOSITORY_PATH # change working directory to the root of your cloned repo.
 
 # Install Flutter using curl.
 curl -sLO "https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_3.29.0-stable.zip"
