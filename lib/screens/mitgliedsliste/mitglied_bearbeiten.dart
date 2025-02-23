@@ -197,7 +197,7 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
       emailVertretungsberechtigter:
           _formKey.currentState!.fields['email_sorgeberechtigter']!.value,
       version: widget.mitglied == null ? 0 : widget.mitglied!.version,
-      gruppierungId: getGruppierungId() ?? 0,
+      gruppierungId: getGruppierungId()!,
     );
 
     if (widget.mitglied != null) {
@@ -248,11 +248,13 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                   _twoColumnRow(
                     FormBuilderTextField(
                       name: 'vorname',
+                      keyboardType: TextInputType.name,
                       validator: FormBuilderValidators.required(),
                       decoration: _buildActiveInputDecoration('Vorname'),
                     ),
                     FormBuilderTextField(
                       name: 'nachname',
+                      keyboardType: TextInputType.name,
                       validator: FormBuilderValidators.required(),
                       decoration: _buildActiveInputDecoration('Nachname'),
                     ),
@@ -495,6 +497,7 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                           return TextFormField(
                             enabled: _adressAutocompleteActive,
                             controller: textEditingController,
+                            keyboardType: TextInputType.streetAddress,
                             focusNode: focusNode,
                             decoration: _buildActiveInputDecoration(
                                 'Vollständige deutsche Anschrift'),
@@ -603,11 +606,13 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                   _twoColumnRow(
                     FormBuilderTextField(
                       name: 'festnetznummer',
+                      keyboardType: TextInputType.phone,
                       decoration:
                           _buildActiveInputDecoration('Festnetznummer*'),
                     ),
                     FormBuilderTextField(
                       name: 'mobilfunknummer',
+                      keyboardType: TextInputType.phone,
                       decoration:
                           _buildActiveInputDecoration('Mobilfunknummer*'),
                     ),
@@ -616,6 +621,7 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                     padding: const EdgeInsets.symmetric(vertical: 4.0),
                     child: FormBuilderTextField(
                       name: 'geschaeftlich',
+                      keyboardType: TextInputType.phone,
                       decoration:
                           _buildActiveInputDecoration('Weitere Nummer(n)*'),
                     ),
@@ -623,6 +629,7 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4.0),
                     child: FormBuilderTextField(
+                      keyboardType: TextInputType.emailAddress,
                       name: 'email',
                       decoration: _buildActiveInputDecoration('E-Mail*'),
                     ),
@@ -630,6 +637,7 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4.0),
                     child: FormBuilderTextField(
+                      keyboardType: TextInputType.emailAddress,
                       name: 'email_sorgeberechtigter',
                       decoration: _buildActiveInputDecoration(
                           'E-Mail Sorgeberechtigter*'),
@@ -646,6 +654,7 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                       padding: const EdgeInsets.symmetric(vertical: 4.0),
                       child: FormBuilderTextField(
                         name: 'kontoinhaber',
+                        keyboardType: TextInputType.name,
                         decoration:
                             _buildActiveInputDecoration('Kontoinhaber*'),
                       ),

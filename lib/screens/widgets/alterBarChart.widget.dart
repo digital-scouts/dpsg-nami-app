@@ -95,7 +95,7 @@ class AlterBarChartWidgetState extends State<AlterBarChartWidget> {
       sideTitles: SideTitles(showTitles: false),
     );
     return AspectRatio(
-      aspectRatio: 4 / 3,
+      aspectRatio: 8 / 7,
       child: Padding(
         padding: const EdgeInsets.only(top: 16),
         child: LayoutBuilder(builder: (context, constraints) {
@@ -125,7 +125,7 @@ class AlterBarChartWidgetState extends State<AlterBarChartWidget> {
                       }
 
                       return SideTitleWidget(
-                        axisSide: meta.axisSide,
+                        meta: meta,
                         child: Text(
                           display,
                           style: Theme.of(context).textTheme.bodySmall,

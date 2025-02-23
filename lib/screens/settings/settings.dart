@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
+import 'package:nami/screens/utilities/new_version_info_screen.dart';
 import 'package:nami/screens/widgets/nami_change_toggle.dart';
 import 'package:nami/screens/widgets/stamm_heim_setting.dart';
 import 'package:nami/screens/widgets/stufenwechsel_alter_setting.dart';
@@ -122,6 +123,25 @@ class _SettingsState extends State<Settings> {
     );
   }
 
+  Widget _buildChangelogButton() {
+    return ListTile(
+      title: const Text('Changelog'),
+      leading: const Icon(Icons.info),
+      onTap: () async {
+        final packageInfo = await PackageInfo.fromPlatform();
+        final appVersion = packageInfo.version;
+        Navigator.push(
+          // ignore: use_build_context_synchronously
+          context,
+          MaterialPageRoute(
+              builder: (context) => NewVersionInfoScreen(
+                    currentVersion: appVersion,
+                  )),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -151,6 +171,7 @@ class _SettingsState extends State<Settings> {
               _buildThemeToggle(),
               const Divider(height: 1),
               _buildShareLogs(),
+              _buildChangelogButton(),
               Padding(
                 padding: const EdgeInsets.all(20.0),
                 child: FutureBuilder<MapEntry<PackageInfo, String>>(

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:hive_ce/hive.dart';
-import 'package:nami/utilities/mitglied.filterAndSort.dart';
 
 // flutter packages pub run build_runner build
 enum SettingValue {
@@ -19,9 +18,6 @@ enum SettingValue {
   stammheim,
   welcomeMessageShown,
   favouriteList,
-  listSortBy,
-  listFilterInactive,
-  listSubtext,
   metaGeschechtOptions,
   metaLandOptions,
   metaBeitragsartOptions,
@@ -63,27 +59,6 @@ void setMetaData(
 }
 
 Box get settingsBox => Hive.box('settingsBox');
-
-MemberSorting getListSort() {
-  String? sortingString = settingsBox.get(SettingValue.listSortBy.toString());
-  return MemberSorting.values.firstWhere(
-    (e) => e.toString() == sortingString,
-    orElse: () => MemberSorting.name,
-  );
-}
-
-MemberSubElement getListSubtext() {
-  String? subElementString =
-      settingsBox.get(SettingValue.listSubtext.toString());
-  return MemberSubElement.values.firstWhere(
-    (e) => e.toString() == subElementString,
-    orElse: () => MemberSubElement.id,
-  );
-}
-
-bool getListFilterInactive() {
-  return settingsBox.get(SettingValue.listFilterInactive.toString()) ?? true;
-}
 
 bool getWelcomeMessageShown() {
   return settingsBox.get(SettingValue.welcomeMessageShown.toString()) ?? false;
@@ -166,18 +141,6 @@ int addFavouriteList(int id) {
   favouritList.add(id);
   settingsBox.put(SettingValue.favouriteList.toString(), favouritList);
   return id;
-}
-
-void setListSort(MemberSorting value) {
-  settingsBox.put(SettingValue.listSortBy.toString(), value.toString());
-}
-
-void setListFilterInactive(bool value) {
-  settingsBox.put(SettingValue.listFilterInactive.toString(), value);
-}
-
-void setListSubtext(MemberSubElement value) {
-  settingsBox.put(SettingValue.listSubtext.toString(), value.toString());
 }
 
 void removeFavouriteList(int id) {
@@ -315,18 +278,6 @@ DateTime getLastNamiSync() {
 DateTime getLastNamiSyncTry() {
   return settingsBox.get(SettingValue.lastNamiSyncTry.toString()) ??
       DateTime.utc(1989, 1, 1);
-}
-
-void deleteListSort() {
-  settingsBox.delete(SettingValue.listSortBy.toString());
-}
-
-void deleteListFilterInactive() {
-  settingsBox.delete(SettingValue.listFilterInactive.toString());
-}
-
-void deleteListSubtext() {
-  settingsBox.delete(SettingValue.listSubtext.toString());
 }
 
 void deleteNamiApiCookie() {

@@ -137,7 +137,7 @@ class HomeDrawerState extends State<HomeDrawer> {
 
   @override
   Widget build(BuildContext context) {
-    int? gruppierung = getGruppierungId();
+    String? gruppierungName = getGruppierungName();
     Box<Mitglied> memberBox = Hive.box<Mitglied>('members');
 
     Mitglied? user;
@@ -161,13 +161,14 @@ class HomeDrawerState extends State<HomeDrawer> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: <Widget>[
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8, left: 4),
-                    child: Text(
-                      '${user?.vorname} ${user?.nachname}',
-                      style: Theme.of(context).textTheme.bodyLarge,
+                  if (user != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8, left: 4),
+                      child: Text(
+                        '${user.vorname} ${user.nachname}',
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
                     ),
-                  ),
                   Padding(
                     padding: const EdgeInsets.only(top: 8, left: 4),
                     child: Text(
@@ -178,7 +179,7 @@ class HomeDrawerState extends State<HomeDrawer> {
                   Padding(
                     padding: const EdgeInsets.only(top: 8, left: 4),
                     child: Text(
-                      'Gruppierung: $gruppierung',
+                      'Gruppierung: $gruppierungName',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ),
@@ -253,7 +254,7 @@ class HomeDrawerState extends State<HomeDrawer> {
         : Theme.of(context).colorScheme.onSurface;
 
     return InkWell(
-      splashColor: Colors.grey.withOpacity(0.1),
+      splashColor: Colors.grey.withValues(alpha: 0.1),
       highlightColor: Colors.transparent,
       onTap: () {
         navigationtoScreen(listData.index!);
@@ -326,7 +327,7 @@ class HomeDrawerState extends State<HomeDrawer> {
                           width: MediaQuery.of(context).size.width * 0.75 - 64,
                           height: 46,
                           decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.2),
+                            color: Colors.blue.withValues(alpha: 0.2),
                             borderRadius: const BorderRadius.only(
                               topLeft: Radius.circular(0),
                               topRight: Radius.circular(28),

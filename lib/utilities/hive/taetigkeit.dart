@@ -34,7 +34,7 @@ class Taetigkeit {
   late String? berechtigteUntergruppen;
 
   bool isLeitung() {
-    if (isActive() && taetigkeit.contains('LeiterIn')) {
+    if (taetigkeit.contains('LeiterIn')) {
       return true;
     }
     return false;

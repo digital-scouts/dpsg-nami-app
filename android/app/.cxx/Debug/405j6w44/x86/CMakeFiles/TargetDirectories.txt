@@ -1,0 +1,2 @@
+/Users/lange/Desktop/dev/dpsg-nami-app/android/app/.cxx/Debug/405j6w44/x86/CMakeFiles/rebuild_cache.dir
+/Users/lange/Desktop/dev/dpsg-nami-app/android/app/.cxx/Debug/405j6w44/x86/CMakeFiles/edit_cache.dir

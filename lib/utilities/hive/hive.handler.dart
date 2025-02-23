@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:nami/utilities/hive/ausbildung.dart';
+import 'package:nami/utilities/hive/custom_group.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
 
@@ -34,6 +35,7 @@ Future<void> registerAdapter() async {
     Hive.registerAdapter(TaetigkeitAdapter());
     Hive.registerAdapter(AusbildungAdapter());
     Hive.registerAdapter(MitgliedAdapter());
+    Hive.registerAdapter(CustomGroupAdapter());
   } catch (_) {}
 }
 
@@ -69,7 +71,8 @@ Future<void> openHive() async {
         encryptionCipher: HiveAesCipher(encryptionKey)),
     Hive.openBox<Mitglied>('members',
         encryptionCipher: HiveAesCipher(encryptionKey)),
-    Hive.openBox('settingsBox', encryptionCipher: HiveAesCipher(encryptionKey))
+    Hive.openBox('settingsBox', encryptionCipher: HiveAesCipher(encryptionKey)),
+    Hive.openBox('filterBox', encryptionCipher: HiveAesCipher(encryptionKey))
   ]);
   return;
 }

@@ -12,6 +12,7 @@ import 'package:nami/screens/mitgliedsliste/taetigkeit_anlegen.dart';
 import 'package:nami/screens/widgets/map.widget.dart';
 import 'package:nami/screens/widgets/mitgliedStufenPieChart.widget.dart';
 import 'package:nami/utilities/app.state.dart';
+import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/hive/settings_stufenwechsel.dart';
@@ -89,7 +90,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
     tageProStufe.removeWhere((key, value) => value < 1);
 
     String dauerText = '';
-    int pfadfinderTage = calculateActiveDays(widget.mitglied.taetigkeiten);
+    int pfadfinderTage = widget.mitglied.activeDays;
     if (pfadfinderTage >= 365) {
       int jahre = (pfadfinderTage / 365).floor();
       dauerText = jahre > 1
@@ -121,37 +122,9 @@ class MitgliedDetailState extends State<MitgliedDetail>
         ));
   }
 
-  int calculateActiveDays(List<Taetigkeit> taetigkeiten) {
-    if (taetigkeiten.isEmpty) return 0;
-
-    taetigkeiten.sort((a, b) => a.aktivVon.compareTo(b.aktivVon));
-
-    int activeDays = 0;
-    DateTime currentStart = taetigkeiten[0].aktivVon;
-    DateTime currentEnd = taetigkeiten[0].aktivBis ?? DateTime.now();
-
-    for (int i = 1; i < taetigkeiten.length; i++) {
-      DateTime nextStart = taetigkeiten[i].aktivVon;
-      DateTime nextEnd = taetigkeiten[i].aktivBis ?? DateTime.now();
-
-      if (nextStart.isAfter(currentEnd)) {
-        activeDays += currentEnd.difference(currentStart).inDays + 1;
-        currentStart = nextStart;
-        currentEnd = nextEnd;
-      } else {
-        if (nextEnd.isAfter(currentEnd)) {
-          currentEnd = nextEnd;
-        }
-      }
-    }
-    activeDays += currentEnd.difference(currentStart).inDays + 1;
-
-    return activeDays;
-  }
-
   Widget _buildStatistikTopRow() {
     return Container(
-        color: Stufe.getStufeByString(widget.mitglied.stufe).farbe,
+        color: widget.mitglied.currentStufe.farbe,
         child: _buildMitgliedschaftPieChartForTopRow());
   }
 
@@ -271,7 +244,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
 
   Widget _buildGeneralInfos() {
     final mitglied = widget.mitglied;
-    final int age = mitglied.getAlterAm();
+    final int age = getAlterAm(date: mitglied.geburtsDatum).floor();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -602,7 +575,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
                   Padding(
                     padding: const EdgeInsets.only(top: 16.0),
                     child: Container(
-                      color: Colors.orange.withOpacity(0.1),
+                      color: Colors.orange.withValues(alpha: 0.1),
                       padding: const EdgeInsets.all(8.0),
                       child: const Text(
                         'Dir könnten beim beenden der Tätigkeit Rechte verloren gehen. Bitte prüfe, ob du die Tätigkeit wirklich beenden möchtest.',
@@ -615,7 +588,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
                   Padding(
                     padding: const EdgeInsets.only(top: 16.0),
                     child: Container(
-                      color: Colors.orange.withOpacity(0.1),
+                      color: Colors.orange.withValues(alpha: 0.1),
                       padding: const EdgeInsets.all(8.0),
                       child: const Text(
                         'Die Tätigkeit ist einer anderen Gruppierung zugehörig, beenden ist vermutlich nicht möglich.',
@@ -741,7 +714,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
                 Padding(
                   padding: const EdgeInsets.only(top: 16.0),
                   child: Container(
-                    color: Colors.orange.withOpacity(0.1),
+                    color: Colors.orange.withValues(alpha: 0.1),
                     padding: const EdgeInsets.all(8.0),
                     child: const Text(
                       'Dir könnten beim Löschen Rechte verloren gehen. Bitte prüfe, ob du die Tätigkeit wirklich löschen möchtest.',
@@ -754,7 +727,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
                 Padding(
                   padding: const EdgeInsets.only(top: 16.0),
                   child: Container(
-                    color: Colors.orange.withOpacity(0.1),
+                    color: Colors.orange.withValues(alpha: 0.1),
                     padding: const EdgeInsets.all(8.0),
                     child: const Text(
                       'Die Tätigkeit ist einer anderen Gruppierung zugehörig, löschen ist vermutlich nicht möglich.',
@@ -768,7 +741,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
                 Padding(
                   padding: const EdgeInsets.only(top: 16.0),
                   child: Container(
-                    color: Colors.orange.withOpacity(0.1),
+                    color: Colors.orange.withValues(alpha: 0.1),
                     padding: const EdgeInsets.all(8.0),
                     child: const Text(
                       'Die Tätigkeit ist vor mehr als zwei Tagen angelegt worden, löschen ist vermutlich nicht möglich.',
@@ -1027,7 +1000,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
     return Scaffold(
       appBar: AppBar(
         shadowColor: Colors.transparent,
-        backgroundColor: Stufe.getStufeByString(widget.mitglied.stufe).farbe,
+        backgroundColor: widget.mitglied.currentStufe.farbe,
         title: Text("${widget.mitglied.vorname} ${widget.mitglied.nachname}"),
         actions: [
           if (getNamiChangesEnabled() &&

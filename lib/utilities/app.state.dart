@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'package:http/http.dart' as http;
 import 'package:local_auth/local_auth.dart';
 import 'package:nami/main.dart';
@@ -9,10 +10,12 @@ import 'package:nami/screens/login_screen.dart';
 import 'package:nami/screens/utilities/loading_info_screen.dart';
 import 'package:nami/screens/utilities/new_version_info_screen.dart';
 import 'package:nami/screens/utilities/welcome_screen.dart';
+import 'package:nami/screens/widgets/chooseGruppierung.widget.dart';
 import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/hive/hive.handler.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/logger.dart';
+import 'package:nami/utilities/nami/model/nami_gruppierung.model.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
 import 'package:nami/utilities/nami/nami_member.service.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
@@ -59,12 +62,16 @@ class AppStateHandler extends ChangeNotifier {
     sensLog.i("in onPause");
     if (!_paused && currentState == AppState.ready) {
       lastAuthenticated = DateTime.now();
+      FMTCObjectBoxBackend().uninitialise();
       _paused = true;
     }
   }
 
   void onResume(BuildContext context) async {
     _paused = false;
+    try {
+      await FMTCObjectBoxBackend().initialise();
+    } catch (_) {}
     final packageInfo = await PackageInfo.fromPlatform();
     final appVersion = packageInfo.version;
     // first open with new version
@@ -72,27 +79,12 @@ class AppStateHandler extends ChangeNotifier {
       setNewVersionInfoShown(false);
       setLastAppVersion(appVersion);
       // show version info only when user is not new / welcome message was shown before
-      if (getWelcomeMessageShown()) {
+      if (!isNewVersionInfoShown()) {
         await Navigator.push(
           navigatorKey.currentContext!,
           MaterialPageRoute(
-              builder: (context) => NewVersionInfoScreen(
-                    features: const [
-                      'Bearbeiten und Anlegen von Mitgliedern und Tätigkeiten (In den Einstellungen kann das Bearbeiten von Daten aktiviert werden.).',
-                      'In den Mitgliedsdetails werden nun mehr Infos angezeigt.',
-                      'Es wurden anonyme Tracking-Funktionen hinzugefügt, um die Nutzung der App analysieren zu können.',
-                      'Die Möglichkeit, den Entwickler zu loben, wurde hinzugefügt.',
-                      'Es kann nach Belieben zwischen dem hellen und dunklen Design gewechselt werden.',
-                    ],
-                    bugFixes: const [
-                      'Passive Mitglieder lassen sich in "Meine Stufe" jetzt darstellen.',
-                      'Diverse Fehlerbehebungen, die bei einzelnen Datenkonstellationen auftraten.',
-                      'Die App kommt jetzt damit klar, wenn sich jemand ohne Leserechte anmeldet.',
-                      'Das Laden und Anzeigen der eigenen Rechte wurde optimiert'
-                    ],
-                    dataReset: true,
-                    version: appVersion,
-                  )),
+              builder: (context) =>
+                  NewVersionInfoScreen(currentVersion: appVersion)),
         );
         setNewVersionInfoShown(true);
       }
@@ -175,7 +167,8 @@ class AppStateHandler extends ChangeNotifier {
         'Start loading data with loadAll: $loadAll and background: $background');
     ValueNotifier<List<AllowedFeatures>> rechteProgressNotifier =
         ValueNotifier([]);
-    ValueNotifier<String> gruppierungProgressNotifier = ValueNotifier('');
+    ValueNotifier<List<NamiGruppierungModel>> gruppierungProgressNotifier =
+        ValueNotifier([]);
     ValueNotifier<bool?> metaProgressNotifier = ValueNotifier(null);
     ValueNotifier<bool?> memberOverviewProgressNotifier = ValueNotifier(null);
     ValueNotifier<double> memberAllProgressNotifier = ValueNotifier(0.0);
@@ -200,7 +193,35 @@ class AppStateHandler extends ChangeNotifier {
 
     try {
       if (loadAll) {
-        gruppierungProgressNotifier.value = await loadGruppierung();
+        deleteGruppierungId();
+        deleteGruppierungName();
+        gruppierungProgressNotifier.value = await loadGruppierungen();
+        // wenn mehrere Gruppierungen vorhanden sind öffne ein popup um eine auszuwählen
+        if (gruppierungProgressNotifier.value.length > 1) {
+          sensLog.i('multiple gruppierungen found');
+
+          NamiGruppierungModel? selectedGruppierung =
+              await showDialog<NamiGruppierungModel>(
+            context: navigatorKey.currentContext!,
+            builder: (BuildContext context) {
+              return ChooseGruppierungWidget(
+                gruppierungen: gruppierungProgressNotifier.value,
+                onGruppierungSelected:
+                    (NamiGruppierungModel selectedGruppierung) {
+                  Navigator.of(context).pop(selectedGruppierung);
+                },
+              );
+            },
+          );
+          if (selectedGruppierung == null) {
+            throw NoGruppierungException();
+          }
+          setGruppierungId(selectedGruppierung.id);
+          setGruppierungName(selectedGruppierung.name);
+        } else {
+          setGruppierungId(gruppierungProgressNotifier.value[0].id);
+          setGruppierungName(gruppierungProgressNotifier.value[0].name);
+        }
         await reloadMetadataFromServer();
         metaProgressNotifier.value = true;
       }
@@ -218,17 +239,18 @@ class AppStateHandler extends ChangeNotifier {
             "Daten wurden erfolgreich synchronisiert");
       }
       setReadyState();
-    } on InvalidNumberOfGruppierungException catch (_) {
-      sensLog.i('sync failed with invalid number of gruppierungen');
+    } on NoGruppierungException catch (_) {
+      sensLog.i('sync failed with no gruppierung found');
       Wiredash.trackEvent('Data sync failed', data: {
-        'error': 'Invalid number of gruppierungen',
+        'error': 'no gruppierung found',
       });
 
       memberAllProgressNotifier.value = 0;
       rechteProgressNotifier.value = [AllowedFeatures.noPermission];
-      gruppierungProgressNotifier.value = 'null';
-      gruppierungProgressNotifier.value =
-          'Keine oder mehrere Gruppierung(en) gefunden';
+      gruppierungProgressNotifier.value = [];
+      gruppierungProgressNotifier.value = [
+        NamiGruppierungModel(id: 1, name: 'Keine Gruppierung gefunden')
+      ];
       metaProgressNotifier.value = false;
       memberOverviewProgressNotifier.value = false;
 

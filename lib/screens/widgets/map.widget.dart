@@ -1,15 +1,14 @@
 import 'dart:math';
 
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
-
 import 'package:geocoding/geocoding.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:collection/collection.dart';
 
 class MapWidget extends StatefulWidget {
   final List<Mitglied> members;
@@ -128,7 +127,11 @@ class MapWidgetState extends State<MapWidget> {
                         'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                     userAgentPackageName: 'de.jlange.nami.app',
                     tileProvider: isMapTileCachingEnabled()
-                        ? const FMTCStore('mapStore').getTileProvider()
+                        ? FMTCTileProvider(
+                            stores: const {
+                              'mapStore': BrowseStoreStrategy.readUpdateCreate
+                            },
+                          )
                         : null,
                   ),
                   MarkerLayer(
@@ -167,7 +170,7 @@ class MapWidgetState extends State<MapWidget> {
                   Align(
                     alignment: Alignment.bottomRight,
                     child: ColoredBox(
-                      color: Colors.black.withOpacity(0.5),
+                      color: Colors.black.withValues(alpha: 0.5),
                       child: GestureDetector(
                         onTap: () async {
                           const url = 'https://openstreetmap.org/copyright';

@@ -8,7 +8,6 @@ import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/hive/settings_stufenwechsel.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
-import 'package:nami/utilities/stufe.dart';
 import 'package:wiredash/wiredash.dart';
 
 class MeineStufe extends StatefulWidget {
@@ -72,7 +71,7 @@ class _MeineStufeState extends State<MeineStufe> {
     Taetigkeit emptyTaetigkeit = Taetigkeit();
 
     final Taetigkeit taetigkeit = mitglied.taetigkeiten.firstWhere(
-      (element) => element.untergliederung == mitglied.stufe,
+      (element) => element.untergliederung == mitglied.currentStufe.display,
       orElse: () {
         emptyTaetigkeit.aktivVon = emptyTaetigkeit.aktivBis = currentDate;
         return emptyTaetigkeit;
@@ -88,6 +87,8 @@ class _MeineStufeState extends State<MeineStufe> {
     return Card(
       child: Container(
         decoration: BoxDecoration(
+          borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(5), bottomLeft: Radius.circular(5)),
           border: Border(left: BorderSide(color: color, width: 5.0)),
         ),
         child: Stack(
@@ -110,11 +111,11 @@ class _MeineStufeState extends State<MeineStufe> {
                     mitglied.isMitgliedLeiter() || taetigkeit == emptyTaetigkeit
                         ? Container()
                         : Text(
-                            '${Stufe.getStufeByString(mitglied.stufe).shortDisplaySingular} seit ${currentStufeYearsDecimal.toStringAsFixed(1)} Jahren')
+                            '${currentStufeYearsDecimal % 1 == 0 ? currentStufeYearsDecimal.toInt() : currentStufeYearsDecimal.toStringAsFixed(1)} Jahre ${mitglied.currentStufe.shortDisplaySingular}')
                   ],
                 )),
             Positioned(
-              bottom: 0,
+              bottom: -2,
               left: 0,
               right: 0,
               child:
@@ -190,12 +191,6 @@ class _MeineStufeState extends State<MeineStufe> {
           mitglieder.isEmpty
               ? Container()
               : MapWidget(members: mitglieder, elementColors: elementColors),
-          mitglieder.isEmpty
-              ? Container()
-              : const Text(
-                  'Mitglieder',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
           Expanded(
             child: mitglieder.isEmpty
                 ? _buildNoElements()

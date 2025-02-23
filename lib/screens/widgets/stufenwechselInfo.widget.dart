@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:nami/screens/mitgliedsliste/mitglied_details.dart';
+import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings_stufenwechsel.dart';
 import 'package:nami/utilities/stufe.dart';
+import 'package:nami/utilities/types.dart';
 import 'package:wiredash/wiredash.dart';
 
 class StufenwechselInfo extends StatefulWidget {
@@ -17,6 +19,7 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
   // Die Liste der Namen
   List<DataRow> aktuelleTabellenZeilen = [];
   Map<Stufe, List<DataRow>> stufenwechselData = {};
+  DateTime nextStufenwechselDatum = getNextStufenwechselDatum();
 
   // Die ausgewählte Stufe (0-3 entsprechend den Bildern)
   Stufe ausgewaehlteStufe = Stufe.WOELFLING;
@@ -34,17 +37,19 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
     Map<Stufe, List<DataRow>> stufenwechselData = {};
     List<Mitglied> mitglieder =
         Hive.box<Mitglied>('members').values.toList().cast<Mitglied>();
-    DateTime currentDate = DateTime.now();
 
     for (var mitglied in mitglieder) {
-      if (mitglied.isMitgliedLeiter() || mitglied.stufe == 'keine Stufe') {
+      Stufe currentStufe = mitglied.currentStufe;
+      if (currentStufe == Stufe.LEITER || currentStufe == Stufe.KEINE_STUFE) {
         continue;
       }
 
-      Stufe? currentStufe = Stufe.getStufeByString(mitglied.stufe);
-      DateTime? minStufenWechselDatum = mitglied.getMinStufenWechselDatum();
+      double alterNextStufenwechsel = getAlterAm(
+          referenceDate: nextStufenwechselDatum, date: mitglied.geburtsDatum);
       DateTime? maxStufenWechselDatum = mitglied.getMaxStufenWechselDatum();
-      bool isMinStufenWechselJahrInPast = minStufenWechselDatum != null &&
+      DateTime? minStufenWechselDatum = mitglied.getMinStufenWechselDatum() ??
+          maxStufenWechselDatum!.subtract(const Duration(days: 365 * 2));
+      bool isMinStufenWechselJahrInPast =
           minStufenWechselDatum.isBefore(getNextStufenwechselDatum());
 
       if (!isMinStufenWechselJahrInPast) {
@@ -66,15 +71,15 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
         },
         cells: [
           DataCell(
-            Text(
-                '${mitglied.vorname} ${mitglied.nachname.substring(0, 1)}. (${(currentDate.difference(mitglied.geburtsDatum).inDays / 365).toStringAsFixed(1)} Jahre alt)'),
+            Text('${mitglied.vorname} ${mitglied.nachname.substring(0, 1)}.'),
           ),
           DataCell(
-            Text(
-                '${minStufenWechselDatum.year}-${maxStufenWechselDatum!.year}'),
+            Text(alterNextStufenwechsel.toStringAsFixed(1)),
           ),
           DataCell(
-            Text('${currentDate.difference(mitglied.geburtsDatum).inDays}'),
+            Text(currentStufe == Stufe.ROVER
+                ? maxStufenWechselDatum!.year.toString()
+                : '${minStufenWechselDatum.year}-${maxStufenWechselDatum!.year}'),
           ),
         ],
       );
@@ -84,16 +89,14 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
     // sortiere die Liste nach dem Alter und entferne die Spalte mit dem Alter
     stufenwechselData.forEach((key, value) {
       value.sort((a, b) {
-        return b.cells[2].child
-            .toString()
-            .compareTo(a.cells[2].child.toString());
+        final String textA = (a.cells[1].child as Text).data ?? '';
+        final String textB = (b.cells[1].child as Text).data ?? '';
+        final double valueA = double.tryParse(textA) ?? -1;
+        final double valueB = double.tryParse(textB) ?? -1;
+        return valueB.compareTo(valueA);
       });
     });
-    stufenwechselData.forEach((key, value) {
-      for (var element in value) {
-        if (element.cells.length == 3) element.cells.removeLast();
-      }
-    });
+
     return stufenwechselData;
   }
 
@@ -104,8 +107,8 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
 
     return Column(
       children: [
-        // Bereich für die Stufenbilder
         Wrap(
+          alignment: WrapAlignment.center,
           spacing: 5,
           children: [
             for (final stufe in [
@@ -139,22 +142,30 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
           SizedBox(
             width: double.infinity,
             child: Card(
-              child: DataTable(
-                columns: const [
-                  DataColumn(label: Text('Name')),
-                  DataColumn(label: Text('Wechsel'))
-                ],
-                rows: aktuelleTabellenZeilen,
-                showCheckboxColumn: false,
-              ),
+              child: Column(children: [
+                Text(
+                    'Wechsel am ${nextStufenwechselDatum.prettyPrint()} (${getStufeMinAge(Stufe.getStufeByOrder(ausgewaehlteStufe.index + 1)!)}-${getStufeMaxAge(ausgewaehlteStufe)} Jahre)'),
+                DataTable(
+                  columns: [
+                    const DataColumn(label: Text('Name')),
+                    const DataColumn(label: Text('Alter')),
+                    DataColumn(
+                        label: Text(ausgewaehlteStufe == Stufe.ROVER
+                            ? 'Ende'
+                            : 'Wechsel'))
+                  ],
+                  rows: aktuelleTabellenZeilen,
+                  showCheckboxColumn: false,
+                )
+              ]),
             ),
           )
         else ...[
           const SizedBox(height: 40),
-          const ListTile(
-            leading: Icon(Icons.block),
+          ListTile(
+            leading: const Icon(Icons.block),
             title: Text(
-              'Kein Wechsel zum angegebenen Datum',
+              'Kein Wechsel zum ${nextStufenwechselDatum.prettyPrint()}',
               textAlign: TextAlign.center,
             ),
           ),

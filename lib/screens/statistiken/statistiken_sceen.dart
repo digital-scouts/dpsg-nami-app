@@ -36,7 +36,6 @@ class StatistikScreenState extends State<StatistikScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const double spacing = 10.0;
     return Scaffold(
       appBar: AppBar(
         title: const Center(child: Text('Statistiken')),
@@ -84,7 +83,7 @@ class StatistikScreenState extends State<StatistikScreen> {
                 child: AlterBarChartWidget(mitglieder: mitglieder),
               ),
             ),
-          const SizedBox(height: spacing * 5),
+          const SizedBox(height: 15),
           Text(
             'Stufenwechselempfehlung',
             style: Theme.of(context).textTheme.titleMedium,

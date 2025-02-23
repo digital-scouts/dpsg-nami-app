@@ -114,6 +114,7 @@ Future<Map<String, String>> getErsteTaetigkeitMeta() async {
   if (getNamiApiCookie() == testCoockieName) {
     return {'1': 'LeiterIn', '2': 'sonst. Mitglied', '3': 'Mitglied'};
   }
+
   String fullUrl =
       '${getNamiLUrl()}/ica/rest//nami/taetigkeitaufgruppierung/filtered/gruppierung/erste-taetigkeit/gruppierung/${getGruppierungId()}';
   return await getMetadata(fullUrl);
