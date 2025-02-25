@@ -91,6 +91,7 @@ Mitglied createMitgleid(
     ..mitgliedsNummer = id
     ..vorname = vorname ?? faker.person.firstName()
     ..nachname = nachname ?? faker.person.lastName()
+    ..spitzname = ""
     ..geschlechtId = random.nextBool() ? 19 : 20
     ..mglTypeId = "MITGLIED"
     ..status = "Aktiv"
