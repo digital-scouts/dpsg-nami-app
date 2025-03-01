@@ -111,10 +111,10 @@ class HomeDrawerState extends State<HomeDrawer> {
                 ),
               if (Platform.isIOS)
                 ListTile(
-                  leading: const Icon(Icons.code),
+                  leading: const Icon(Icons.web),
                   title: const Text('Neuigkeiten'),
                   onTap: () => _launchURL(
-                      ' https://digital-scouts.github.io/dpsg-nami-app/'),
+                      'https://digital-scouts.github.io/dpsg-nami-app/'),
                 ),
               if (_isReviewAvailable)
                 ListTile(
