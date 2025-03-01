@@ -79,7 +79,7 @@ class AppStateHandler extends ChangeNotifier {
       setNewVersionInfoShown(false);
       setLastAppVersion(appVersion);
       // show version info only when user is not new / welcome message was shown before
-      if (!isNewVersionInfoShown()) {
+      if (!isNewVersionInfoShown() && getWelcomeMessageShown()) {
         await Navigator.push(
           navigatorKey.currentContext!,
           MaterialPageRoute(

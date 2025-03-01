@@ -25,7 +25,7 @@ class WelcomeScreen extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Text(
-                  "Bitte beachte, dass unsere App sich noch in der Entwicklung befindet und es daher zu Problemen kommen kann. Dein Feedback ist uns jedoch sehr wichtig! Wenn du auf Probleme stößt oder Verbesserungsvorschläge hast, lass es uns bitte wissen. Wir sind dankbar für jede Unterstützung bei der Weiterentwicklung unserer App.",
+                  "Dies ist die erste Version der Nami-App. Wir haben uns bemüht, die App so einfach wie möglich zu gestalten und auf möglichst viele unterschiedliche Stammeskulturen einzugehen. Wir hoffen, dass du dich schnell zurechtfindest und die App dir gefällt. Solltest du Fragen oder Anregungen haben, kannst du gerne ein Feedback schreiben.",
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ),
@@ -51,7 +51,7 @@ class WelcomeScreen extends StatelessWidget {
             FilledButton.icon(
               onPressed: () => Navigator.pop(context),
               icon: const Icon(Icons.check),
-              label: const Text("Willkommen und viel Spaß beim Erkunden!"),
+              label: const Text("Los geht´s!"),
             )
           ],
         ),

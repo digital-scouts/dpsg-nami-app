@@ -109,6 +109,13 @@ class HomeDrawerState extends State<HomeDrawer> {
                   onTap: () =>
                       _launchURL('https://github.com/sponsors/JanneckLange'),
                 ),
+              if (Platform.isIOS)
+                ListTile(
+                  leading: const Icon(Icons.code),
+                  title: const Text('Neuigkeiten'),
+                  onTap: () => _launchURL(
+                      ' https://digital-scouts.github.io/dpsg-nami-app/'),
+                ),
               if (_isReviewAvailable)
                 ListTile(
                   leading: const Icon(Icons.thumb_up),
@@ -120,6 +127,13 @@ class HomeDrawerState extends State<HomeDrawer> {
                 title: const Text('Feedback geben'),
                 onTap: () => openWiredash(context, 'Entwickler loben'),
               ),
+              const SizedBox(height: 16),
+              const Text(
+                'Besonderer Dank an',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text('DPSG Santa Lucia, Vinzent, Lasse'),
             ],
           ),
           actions: [
