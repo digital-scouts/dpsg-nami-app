@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Die NaMi App ist jetzt im App Store und Play Store verfügbar!"
-date:   2025-26-02 18:00:00 +0100
+date:   2025-02-26 18:00:00 +0100
 categories: jekyll update
 ---
 
