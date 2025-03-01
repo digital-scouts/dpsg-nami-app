@@ -71,7 +71,7 @@ class NewVersionInfoScreen extends StatelessWidget {
             versionInfo.features.add('Keine neuen Funktionen');
           }
           if (versionInfo.bugFixes.isEmpty) {
-            versionInfo.bugFixes.add('Keine Fehlerbehebungen');
+            versionInfo.bugFixes.add('Kleine Fehlerbehebungen');
           }
 
           return ListView(
