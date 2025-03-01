@@ -14,8 +14,9 @@ enum Stufe implements Comparable<Stufe> {
     'Biber',
     imagePath: 'assets/images/biber.png',
     isStufeYouCanChangeTo: true,
-    alterMin: 4,
-    alterMax: 7,
+    alterMin:
+        4, // only inital value! Use getStufeMinAge() and getStufeMaxAge() for age boundaries
+    alterMax: 7, // inital 4-6 inklusive
   ),
   WOELFLING(
     DPSGColors.woelfingFarbe,
@@ -24,8 +25,9 @@ enum Stufe implements Comparable<Stufe> {
     'Wö',
     imagePath: 'assets/images/woe.png',
     isStufeYouCanChangeTo: true,
-    alterMin: 6,
-    alterMax: 11, // 6-10 inklusive
+    alterMin:
+        6, // only inital value! Use getStufeMinAge() and getStufeMaxAge() for age boundaries
+    alterMax: 11, // inital 6-10 inklusive
   ),
   JUNGPADFINDER(
     DPSGColors.jungpfadfinderFarbe,
@@ -34,8 +36,9 @@ enum Stufe implements Comparable<Stufe> {
     'Jufi',
     imagePath: 'assets/images/jufi.png',
     isStufeYouCanChangeTo: true,
-    alterMin: 9,
-    alterMax: 14, //9-13 inklusive
+    alterMin:
+        9, // only inital value! Use getStufeMinAge() and getStufeMaxAge() for age boundaries
+    alterMax: 14, // inital 9-13 inklusive
   ),
   PFADFINDER(
     DPSGColors.pfadfinderFarbe,
@@ -44,8 +47,9 @@ enum Stufe implements Comparable<Stufe> {
     'Pfadi',
     imagePath: 'assets/images/pfadi.png',
     isStufeYouCanChangeTo: true,
-    alterMin: 12,
-    alterMax: 17, // 12-16 inklusive
+    alterMin:
+        12, // only inital value! Use getStufeMinAge() and getStufeMaxAge() for age boundaries
+    alterMax: 17, // inital 12-16 inklusive
   ),
   ROVER(
     DPSGColors.roverFarbe,
@@ -59,9 +63,9 @@ enum Stufe implements Comparable<Stufe> {
   ),
   LEITER(
     DPSGColors.leiterFarbe,
+    'Leiter:in',
     'Leiter',
-    'Leiter',
-    'Leiter',
+    'Leiter:in',
     imagePath: 'assets/images/lilie_schwarz.png',
     isStufeYouCanChangeTo: false,
     alterMin: 18,

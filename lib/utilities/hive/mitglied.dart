@@ -1,6 +1,7 @@
 import 'package:geocoding/geocoding.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/hive/ausbildung.dart';
 import 'package:nami/utilities/hive/settings_stufenwechsel.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
@@ -24,9 +25,6 @@ class Mitglied {
 
   @HiveField(4)
   late DateTime geburtsDatum;
-
-  @HiveField(5)
-  late String stufe;
 
   @HiveField(6)
   late int? id;
@@ -100,8 +98,11 @@ class Mitglied {
   @HiveField(29)
   late bool datenweiterverwendung;
 
+  @HiveField(30)
+  late String? spitzname;
+
   bool isMitgliedLeiter() {
-    for (Taetigkeit t in taetigkeiten) {
+    for (Taetigkeit t in getActiveTaetigkeiten()) {
       if (t.isLeitung()) {
         return true;
       }
@@ -151,21 +152,69 @@ class Mitglied {
     if (isMitgliedLeiter()) {
       return Stufe.LEITER;
     }
-    return Stufe.getStufeByString(stufe);
+
+    for (Taetigkeit taetigkeit in getActiveTaetigkeiten()) {
+      if (taetigkeit.untergliederung != null &&
+          taetigkeit.untergliederung!.isNotEmpty) {
+        return Stufe.getStufeByString(taetigkeit.untergliederung!);
+      }
+    }
+
+    return Stufe.KEINE_STUFE;
   }
 
+  /// Gibt die Untergliederung zurück, wenn es eine Stufe ist
   Stufe get currentStufeWithoutLeiter {
-    return Stufe.getStufeByString(stufe);
+    for (Taetigkeit taetigkeit in getActiveTaetigkeiten()) {
+      if (taetigkeit.untergliederung != null &&
+          taetigkeit.untergliederung!.isNotEmpty) {
+        Stufe s = Stufe.getStufeByString(taetigkeit.untergliederung!);
+        if (s == Stufe.KEINE_STUFE) {
+          continue;
+        }
+        return s;
+      }
+    }
+    return Stufe.KEINE_STUFE;
   }
 
   Stufe? get nextStufe {
-    return Stufe.getStufeByOrder(Stufe.getStufeByString(stufe).index + 1);
+    return Stufe.getStufeByOrder(currentStufe.index + 1);
+  }
+
+  int get activeDays {
+    if (taetigkeiten.isEmpty) return 0;
+
+    taetigkeiten.sort((a, b) => a.aktivVon.compareTo(b.aktivVon));
+
+    int activeDays = 0;
+    DateTime currentStart = taetigkeiten[0].aktivVon;
+    DateTime currentEnd = taetigkeiten[0].aktivBis ?? DateTime.now();
+
+    for (int i = 1; i < taetigkeiten.length; i++) {
+      DateTime nextStart = taetigkeiten[i].aktivVon;
+      DateTime nextEnd = taetigkeiten[i].aktivBis ?? DateTime.now();
+
+      if (nextStart.isAfter(currentEnd)) {
+        activeDays += currentEnd.difference(currentStart).inDays + 1;
+        currentStart = nextStart;
+        currentEnd = nextEnd;
+      } else {
+        if (nextEnd.isAfter(currentEnd)) {
+          currentEnd = nextEnd;
+        }
+      }
+    }
+    activeDays += currentEnd.difference(currentStart).inDays + 1;
+
+    return activeDays;
   }
 
   DateTime? getMinStufenWechselDatum() {
     DateTime nextStufenwechselDatum = getNextStufenwechselDatum();
     int alterNextStufenwechsel =
-        getAlterAm(referenceDate: nextStufenwechselDatum);
+        getAlterAm(referenceDate: nextStufenwechselDatum, date: geburtsDatum)
+            .floor();
 
     if (nextStufe != null &&
         nextStufe!.isStufeYouCanChangeTo &&
@@ -185,9 +234,11 @@ class Mitglied {
   DateTime? getMaxStufenWechselDatum() {
     DateTime nextStufenwechselDatum = getNextStufenwechselDatum();
     int alterNextStufenwechsel =
-        getAlterAm(referenceDate: nextStufenwechselDatum);
+        getAlterAm(referenceDate: nextStufenwechselDatum, date: geburtsDatum)
+            .floor();
 
     if (nextStufe != null &&
+        currentStufe != Stufe.KEINE_STUFE &&
         (nextStufe!.isStufeYouCanChangeTo || currentStufe == Stufe.ROVER) &&
         !isMitgliedLeiter()) {
       return DateTime(
@@ -199,20 +250,6 @@ class Mitglied {
     } else {
       return null;
     }
-  }
-
-  int getAlterAm({DateTime? referenceDate}) {
-    referenceDate ??= DateTime.now();
-
-    int age = referenceDate.year - geburtsDatum.year;
-
-    // Überprüfen, ob der Geburtstag bereits in diesem Jahr stattgefunden hat
-    if (referenceDate.month < geburtsDatum.month ||
-        (referenceDate.month == geburtsDatum.month &&
-            referenceDate.day < geburtsDatum.day)) {
-      age--;
-    }
-    return age;
   }
 
   /// 0 gleich | <0 this ist alpabetisch früher | >0 this ist alpabetisch später
@@ -231,8 +268,7 @@ class Mitglied {
 
   /// 0 gleich | <0 this ist jüngere Stufe | >0 this ist ältere Stufe
   int compareByStufe(Mitglied mitglied) {
-    return Stufe.getStufeByString(stufe)
-        .compareTo(Stufe.getStufeByString(mitglied.stufe));
+    return currentStufe.compareTo(mitglied.currentStufe);
   }
 
   /// 0 gleich | <0 this ist jünger | >0 this ist älter
@@ -242,6 +278,6 @@ class Mitglied {
 
   /// 0 gleich | <0 this ist länger dabei | >0 this ist kürzer dabei
   int compareByMitgliedsalter(Mitglied mitglied) {
-    return eintrittsdatum.compareTo(mitglied.eintrittsdatum);
+    return mitglied.activeDays.compareTo(activeDays);
   }
 }

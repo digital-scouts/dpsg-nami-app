@@ -41,6 +41,19 @@ Future<String?> getGitCommitId() async {
   }
 }
 
+/// compare date1 with referenceDate, if referenceDate is null, use DateTime.now()
+double getAlterAm({DateTime? referenceDate, required DateTime date}) {
+  referenceDate ??= DateTime.now();
+
+  // Berechne die Differenz in Tagen
+  int daysDifference = referenceDate.difference(date).inDays;
+
+  // Berechne das Alter als double
+  double age = daysDifference / 365.25;
+
+  return age;
+}
+
 Future<void> openWiredash(BuildContext context, String feedbackType) async {
   Box<Mitglied> memberBox = Hive.box<Mitglied>('members');
   Mitglied? user;

@@ -21,7 +21,6 @@ class MitgliedAdapter extends TypeAdapter<Mitglied> {
       ..nachname = fields[1] as String
       ..geschlechtId = (fields[3] as num).toInt()
       ..geburtsDatum = fields[4] as DateTime
-      ..stufe = fields[5] as String
       ..id = (fields[6] as num?)?.toInt()
       ..mitgliedsNummer = (fields[7] as num).toInt()
       ..eintrittsdatum = fields[8] as DateTime
@@ -46,7 +45,8 @@ class MitgliedAdapter extends TypeAdapter<Mitglied> {
       ..staatssangehaerigkeitId = (fields[26] as num).toInt()
       ..konfessionId = fields[27] as String?
       ..mitgliedszeitschrift = fields[28] as bool
-      ..datenweiterverwendung = fields[29] as bool;
+      ..datenweiterverwendung = fields[29] as bool
+      ..spitzname = fields[30] as String?;
   }
 
   @override
@@ -61,8 +61,6 @@ class MitgliedAdapter extends TypeAdapter<Mitglied> {
       ..write(obj.geschlechtId)
       ..writeByte(4)
       ..write(obj.geburtsDatum)
-      ..writeByte(5)
-      ..write(obj.stufe)
       ..writeByte(6)
       ..write(obj.id)
       ..writeByte(7)
@@ -110,7 +108,9 @@ class MitgliedAdapter extends TypeAdapter<Mitglied> {
       ..writeByte(28)
       ..write(obj.mitgliedszeitschrift)
       ..writeByte(29)
-      ..write(obj.datenweiterverwendung);
+      ..write(obj.datenweiterverwendung)
+      ..writeByte(30)
+      ..write(obj.spitzname);
   }
 
   @override

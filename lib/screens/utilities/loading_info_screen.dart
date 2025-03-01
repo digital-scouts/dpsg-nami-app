@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:nami/screens/utilities/fuehrungszeugnis.widget.dart';
 import 'package:nami/utilities/app.state.dart';
+import 'package:nami/utilities/nami/model/nami_gruppierung.model.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
 import 'package:nami/utilities/notifications.dart';
 import 'package:provider/provider.dart';
 
 class LoadingInfoScreen extends StatefulWidget {
   final ValueNotifier<List<AllowedFeatures>> rechteProgressNotifier;
-  final ValueNotifier<String?> gruppierungProgressNotifier;
+  final ValueNotifier<List<NamiGruppierungModel>?> gruppierungProgressNotifier;
   final ValueNotifier<bool?> metaProgressNotifier;
   final ValueNotifier<bool?> memberOverviewProgressNotifier;
   final ValueNotifier<double> memberAllProgressNotifier;
@@ -58,7 +59,7 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
       widget.rechteProgressNotifier.value.isNotEmpty &&
       widget.memberOverviewProgressNotifier.value == true &&
       (widget.loadAll
-          ? widget.gruppierungProgressNotifier.value != null &&
+          ? widget.gruppierungProgressNotifier.value!.isNotEmpty &&
               widget.memberAllProgressNotifier.value == 1 &&
               widget.metaProgressNotifier.value == true
           : widget.memberAllProgressNotifier.value == 1);
@@ -201,6 +202,15 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
     } else if (value is String && value.isNotEmpty) {
       subtitle = Text(value);
       trailing = successIcon;
+    } else if (value is List<NamiGruppierungModel>) {
+      if (value.isEmpty) {
+        trailing = const CircularProgressIndicator();
+      } else {
+        trailing = successIcon;
+      }
+      subtitle = Text(
+        value.map((e) => e.name).join(", "),
+      );
     } else if (value is List<AllowedFeatures>) {
       if (value.isEmpty) {
         trailing = const CircularProgressIndicator();

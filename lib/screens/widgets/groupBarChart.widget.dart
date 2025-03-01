@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/material.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/stufe.dart';
 import 'package:nami/utilities/theme.dart';
@@ -141,7 +141,7 @@ class GroupBarChartState extends State<GroupBarChart> {
         text = 'Sonstige';
     }
     return SideTitleWidget(
-      axisSide: meta.axisSide,
+      meta: meta,
       child: Text(
         text,
         style: Theme.of(context).textTheme.bodySmall,
@@ -182,6 +182,17 @@ class GroupBarChartState extends State<GroupBarChart> {
 
   @override
   Widget build(BuildContext context) {
+    final summAktiveMitglieder = widget.mitglieder
+        .where((mitglied) => mitglied.status == 'Aktiv')
+        .toList();
+    final leitende = widget.mitglieder
+        .where((mitglied) => mitglied.currentStufe == Stufe.LEITER)
+        .toList();
+    final aktiveMitglieder = widget.mitglieder
+        .where((mitglied) =>
+            mitglied.currentStufe != Stufe.LEITER &&
+            mitglied.currentStufe != Stufe.KEINE_STUFE)
+        .toList();
     final data = createData();
     return Column(children: [
       AspectRatio(
@@ -236,7 +247,11 @@ class GroupBarChartState extends State<GroupBarChart> {
         ),
       ),
       const SizedBox(height: 10),
-      Text('Gesamtzahl der Mitglieder: ${widget.mitglieder.length}'),
+      Text('Gesamtanzahl aktive Mitglieder: ${summAktiveMitglieder.length}'),
+      Text(
+          '(Gruppenkinder: ${aktiveMitglieder.length} | Leitende: ${leitende.length} | Sonstige: ${summAktiveMitglieder.length - aktiveMitglieder.length - leitende.length})'),
+      Text(
+          'Inaktive Mitglieder: ${widget.mitglieder.length - summAktiveMitglieder.length}'),
     ]);
   }
 }

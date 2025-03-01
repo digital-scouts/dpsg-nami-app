@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -16,7 +15,6 @@ import 'package:nami/utilities/hive/hive.handler.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/theme.dart';
-import 'package:privacy_screen/privacy_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:wiredash/wiredash.dart';
 
@@ -43,18 +41,6 @@ void main() async {
   } catch (e) {
     sensLog
         .e('Error while initalice objectbox for flutter_map_tile_caching: $e');
-  }
-  if (!kDebugMode) {
-    await PrivacyScreen.instance.enable(
-      iosOptions: const PrivacyIosOptions(
-        enablePrivacy: true,
-        lockTrigger: IosLockTrigger.didEnterBackground,
-        privacyImageName: "privacyScreen",
-      ),
-      androidOptions: const PrivacyAndroidOptions(
-        enableSecure: true,
-      ),
-    );
   }
   runApp(
     ChangeNotifierProvider<ThemeModel>(

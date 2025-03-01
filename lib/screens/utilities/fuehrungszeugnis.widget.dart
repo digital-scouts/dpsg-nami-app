@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/nami/model/nami_fz.model.dart';
 import 'package:nami/utilities/nami/nami_fz.service.dart';
 import 'package:nami/utilities/types.dart';
@@ -56,33 +57,28 @@ class _FuehrungszeugnisWidgetsState extends State<FuehrungszeugnisWidgets> {
         }
 
         if (snapshot.hasError) {
-          // if (snapshot.error is SessionExpiredException) {
-          //   setState(() {
-          //     sessionFailed = true;
-          //   });
-          //   // Login abgelaufen -> await setReloginState();
-          //   return Center(
-          //     child: Column(
-          //       mainAxisAlignment: MainAxisAlignment.center,
-          //       children: [
-          //         const Text("Session abgelaufen. Bitte erneut einloggen."),
-          //         const SizedBox(height: 16),
-          //         ElevatedButton(
-          //           onPressed: () async {
-          //             await context
-          //                 .read<AppStateHandler>()
-          //                 .setReloginState(showDialog: false);
-
-          //             setState(() {
-          //               sessionFailed = false;
-          //             });
-          //           },
-          //           child: const Text("Erneut einloggen"),
-          //         ),
-          //       ],
-          //     ),
-          //   );
-          // }
+          if (snapshot.error is SessionExpiredException) {
+            sessionFailed = true;
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text("Session abgelaufen. Bitte erneut einloggen."),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () async {
+                      if (await AppStateHandler()
+                          .setReloginState(showDialog: false)) {
+                        sessionFailed = false;
+                        documentsFuture = loadFzDocumenets();
+                      }
+                    },
+                    child: const Text("Erneut einloggen"),
+                  ),
+                ],
+              ),
+            );
+          }
           return const Center(child: Text("Fehler beim Laden"));
         }
 

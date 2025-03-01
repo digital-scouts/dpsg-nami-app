@@ -8,6 +8,7 @@ import 'package:nami/utilities/types.dart';
 
 String url = getNamiLUrl();
 String path = getNamiPath();
+
 int? gruppierungId = getGruppierungId();
 String? gruppierungName = getGruppierungName();
 String cookie = getNamiApiCookie();
