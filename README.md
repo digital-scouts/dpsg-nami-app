@@ -1,13 +1,25 @@
 # NaMi
 
+
+<a href="https://apps.apple.com/de/app/nami/id6468066816">
+    <img src="./assets/workfiles/Download_on_the_App_Store_Badge_DE_RGB_blk_092917.svg" alt="Download für iOS" height="50">
+</a>
+<a href="https://play.google.com/store/apps/details?id=de.jlange.nami.app">
+    <img src="./assets/workfiles/GetItOnGooglePlay_Badge_Web_color_German.png" alt="Download für Android" height="50" >
+</a>
+
+<br>
+
 ![wakatime](https://wakatime.com/badge/user/f75702c6-6ecd-478f-a765-9c0a07c62d50/project/c30b8bfa-fe60-4da1-9a32-9c86bad66605.svg)
 [![Watch](https://img.shields.io/github/watchers/JanneckLange/dpsg-nami-app?label=Watch)](https://github.com/JanneckLange/dpsg-nami-app/subscription)
 
 **Master**
+
 [![Release](https://img.shields.io/github/v/release/janneckLange/dpsg-nami-app?display_name=tag&include_prereleases)](https://github.com/JanneckLange/dpsg-nami-app/releases)
 [![Commit](https://shields.io/github/last-commit/JanneckLange/dpsg-nami-app/master)](https://github.com/JanneckLange/dpsg-nami-app/commits/master)
 
 **Develop**
+
 [![Test](https://github.com/JanneckLange/dpsg-nami-app/actions/workflows/flutter-test.yml/badge.svg)](https://github.com/JanneckLange/dpsg-nami-app/actions/workflows/flutter-test.yml)
 [![Commit](https://shields.io/github/last-commit/JanneckLange/dpsg-nami-app/develop)](https://github.com/JanneckLange/dpsg-nami-app/commits/develop)
 
@@ -90,14 +102,14 @@ Um die App und deren Funktion verwenden zu können sind bestimmte NaMi-Rechte Vo
 - 313: Mgl-Verwaltung - Kontoverbindung anzeigen
 - 316: Mgl-Verwaltung - Mgl. Beitragskonto
 
-#### Mitglied verewaltung (Admin)
+### Mitglied verewaltung (Admin)
 
 - 312: Mgl-Verwaltung - Mitgliedschaft beenden
 - 315: Mgl-Verwaltung - Mgl. übernehmen
 - 320: Mgl-Verwaltung - Mgl. Aktivieren
 - 455: Mgl-Verwaltung - Gruppierung bearbeiten
 
-#### Gruppierung verwalten (Admin)
+### Gruppierung verwalten (Admin)
 
 - 578: Eingangsrechnungen Gruppierung
 - 376: Rechnung lesen

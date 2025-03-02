@@ -34,6 +34,15 @@
       "bugFixes": [
         "Ein Fehler, der die App zum Absturz brachte wurde behoben."
       ]
+    },
+    {
+      "version": "0.2.3",
+      "data_reset": false,
+      "features": [
+        "Mehrere Optimierungen für einen besseren Umgang mit der App.",
+        "Ein Dank an alle, die die Entwicklung unterstützen wurde hinzugefügt."
+      ],
+      "bugFixes": []
     }
   ]
 }
