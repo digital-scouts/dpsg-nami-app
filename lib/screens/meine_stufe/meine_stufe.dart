@@ -3,6 +3,7 @@ import 'package:hive_ce/hive.dart';
 import 'package:intl/intl.dart';
 import 'package:nami/screens/mitgliedsliste/mitglied_details.dart';
 import 'package:nami/screens/widgets/map.widget.dart';
+import 'package:nami/screens/widgets/status_information_banner.dart';
 import 'package:nami/screens/widgets/stufenwechsel_timeline.widget.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
@@ -191,6 +192,7 @@ class _MeineStufeState extends State<MeineStufe> {
           mitglieder.isEmpty
               ? Container()
               : MapWidget(members: mitglieder, elementColors: elementColors),
+          const StatusInformationBanner(),
           Expanded(
             child: mitglieder.isEmpty
                 ? _buildNoElements()

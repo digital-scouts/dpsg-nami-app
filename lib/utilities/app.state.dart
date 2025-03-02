@@ -174,9 +174,7 @@ class AppStateHandler extends ChangeNotifier {
     ValueNotifier<double> memberAllProgressNotifier = ValueNotifier(0.0);
 
     syncState = SyncState.loading;
-    if (background) {
-      showSnackBar(navigatorKey.currentContext!, "Daten werden synchronisiert");
-    } else {
+    if (!background) {
       navigatorKey.currentState!.push(
         MaterialPageRoute(builder: (context) {
           return LoadingInfoScreen(
@@ -235,8 +233,6 @@ class AppStateHandler extends ChangeNotifier {
       if (background) {
         sensLog.i('sync successful in background');
         Wiredash.trackEvent('Data sync successful');
-        showSnackBar(navigatorKey.currentContext!,
-            "Daten wurden erfolgreich synchronisiert");
       }
       setReadyState();
     } on NoGruppierungException catch (_) {
@@ -284,8 +280,6 @@ class AppStateHandler extends ChangeNotifier {
         // [LoadingInfoScreen] when pressing the button
         return;
       }
-      showSnackBar(navigatorKey.currentContext!,
-          'Tägliche Aktualisierung nicht möglich. Deine Sitzung ist abgelaufen.');
       syncState = SyncState.relogin;
       setReadyState();
     } catch (e, st) {
