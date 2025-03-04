@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
+import 'package:nami/screens/settings/data_change_history_page.dart';
 import 'package:nami/screens/utilities/new_version_info_screen.dart';
 import 'package:nami/screens/widgets/nami_change_toggle.dart';
 import 'package:nami/screens/widgets/stamm_heim_setting.dart';
@@ -91,6 +92,21 @@ class _SettingsState extends State<Settings> {
     );
   }
 
+  _buildShowDataHistory() {
+    return ListTile(
+      title: const Text('Syncronisationshistorie'),
+      leading: const Icon(Icons.info),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const DataChangeHistoryPage(),
+          ),
+        );
+      },
+    );
+  }
+
   _buildThemeToggle() {
     final themeModel = Provider.of<ThemeModel>(context);
 
@@ -155,6 +171,7 @@ class _SettingsState extends State<Settings> {
             children: [
               _buildSync(),
               _buildForceBSync(),
+              _buildShowDataHistory(),
               const NamiChangeToggle(),
               const Divider(height: 1),
               const StufenwechelDatumSetting(),

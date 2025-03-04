@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:nami/utilities/dataChanges.service.dart';
 import 'package:nami/utilities/hive/ausbildung.dart';
+import 'package:nami/utilities/hive/dataChanges.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
@@ -29,7 +31,11 @@ int _getVersionOfMember(int id, List<Mitglied> mitglieder) {
 }
 
 Future<Map<int, int>> _loadMemberIdsToUpdate(
-    String url, String path, int gruppierung, bool forceUpdate) async {
+    String url,
+    String path,
+    int gruppierung,
+    bool forceUpdate,
+    DataChangesService dataChangesService) async {
   String fullUrl =
       '$url$path/mitglied/filtered-for-navigation/gruppierung/gruppierung/$gruppierung/flist?_dc=1635173028278&page=1&start=0&limit=5000';
   sensLog.i('Request: Lade Mitgliedsliste');
@@ -67,10 +73,11 @@ Future<Map<int, int>> _loadMemberIdsToUpdate(
       consLog.i(
           'Member ${mitglied.vorname} ${mitglied.id} wird aus Hive entfernt.');
       fileLog.i('Member ${sensId(mitglied.id!)} wird aus Hive entfernt.');
+      dataChangesService.addDataChangeEntry(mitglied.id!,
+          action: DataChangeAction.delete);
       await box.delete(mitglied.id);
     }
   }
-
   return memberIds;
 }
 
@@ -176,14 +183,15 @@ Future<Mitglied> updateOneMember(int memberId) async {
   Box<Mitglied> memberBox = Hive.box('members');
 
   final member = await _storeMitgliedToHive(memberId, memberBox, url, path,
-      gruppierung, cookie, ValueNotifier<double>(0), 1);
+      gruppierung, cookie, DataChangesService(), ValueNotifier<double>(0), 1);
   if (member == null) {
     throw Exception('Failed to load details of current user');
   }
   return member;
 }
 
-Future<int?> findUserId(int memberId, Map<int, int> mitgliedIds) async {
+Future<int?> findUserId(int memberId, Map<int, int> mitgliedIds,
+    DataChangesService dataChangesService) async {
   String url = getNamiLUrl();
   String path = getNamiPath();
 
@@ -201,8 +209,8 @@ Future<int?> findUserId(int memberId, Map<int, int> mitgliedIds) async {
       List<NamiGruppierungModel> gruppierungen =
           await loadGruppierungen(onlyStaemme: false);
       for (NamiGruppierungModel gruppierung in gruppierungen) {
-        mitgliedIds =
-            await _loadMemberIdsToUpdate(url, path, gruppierung.id, true);
+        mitgliedIds = await _loadMemberIdsToUpdate(
+            url, path, gruppierung.id, true, dataChangesService);
         if (mitgliedIds.containsKey(memberId)) {
           loggedInUserId = memberId;
           setLoggedInUserId(loggedInUserId);
@@ -219,10 +227,16 @@ Future<int?> findUserId(int memberId, Map<int, int> mitgliedIds) async {
   return loggedInUserId;
 }
 
+/// Syncronizes all members from Nami with the local Hive database.
+/// If [forceUpdate] is set to true, all members will be updated.
+/// Otherwise only members with a newer version will be updated.
+/// The progress is reported via the [rechteProgressNotifier], [memberAllProgressNotifier] and [memberOverviewProgressNotifier].
+/// A List of updated Member (id) is returned.
 Future<void> syncMembers(
   ValueNotifier<double> memberAllProgressNotifier,
   ValueNotifier<bool?> memberOverviewProgressNotifier,
-  ValueNotifier<List<AllowedFeatures>> rechteProgressNotifier, {
+  ValueNotifier<List<AllowedFeatures>> rechteProgressNotifier,
+  DataChangesService dataChangesService, {
   bool forceUpdate = false,
 }) async {
   setLastNamiSyncTry(DateTime.now());
@@ -247,8 +261,8 @@ Future<void> syncMembers(
 
   Map<int, int> mitgliedIds = {};
   try {
-    mitgliedIds.addAll(
-        await _loadMemberIdsToUpdate(url, path, gruppierung, forceUpdate));
+    mitgliedIds.addAll(await _loadMemberIdsToUpdate(
+        url, path, gruppierung, forceUpdate, dataChangesService));
   } catch (e) {
     memberOverviewProgressNotifier.value = false;
     rethrow;
@@ -257,7 +271,8 @@ Future<void> syncMembers(
   /// Update cookie because it could be new after relogin
   cookie = getNamiApiCookie();
 
-  int? loggedInUserId = await findUserId(memberId, mitgliedIds);
+  int? loggedInUserId =
+      await findUserId(memberId, mitgliedIds, dataChangesService);
   if (loggedInUserId == null) {
     memberOverviewProgressNotifier.value = false;
     return;
@@ -278,6 +293,7 @@ Future<void> syncMembers(
       path,
       gruppierung,
       cookie,
+      dataChangesService,
       memberAllProgressNotifier,
       1 / mitgliedIds.length,
     ));
@@ -334,6 +350,7 @@ Future<Mitglied?> _storeMitgliedToHive(
     String path,
     int gruppierung,
     String cookie,
+    DataChangesService dataChangesService,
     ValueNotifier<double> memberAllProgressNotifier,
     double progressStep) async {
   NamiMemberDetailsModel rawMember;
@@ -356,8 +373,7 @@ Future<Mitglied?> _storeMitgliedToHive(
     rawTaetigkeiten = [];
   }
 
-  final allowedFeatures = getAllowedFeatures();
-  if (allowedFeatures.contains(AllowedFeatures.ausbildungRead) ||
+  if (getAllowedFeatures().contains(AllowedFeatures.ausbildungRead) ||
       mitgliedId == getNamiLoginId()) {
     try {
       rawAusbildungen =
@@ -427,9 +443,44 @@ Future<Mitglied?> _storeMitgliedToHive(
     ..mitgliedszeitschrift = rawMember.zeitschriftenversand
     ..datenweiterverwendung = rawMember.wiederverwendenFlag;
 
+  // Compare previous member data with new data, List of changed fields
+  final previousMemberData = memberBox.get(mitgliedId);
+  if (previousMemberData == null) {
+    sensLog.i('No previous data found for ${sensId(mitgliedId)}');
+    await dataChangesService.addDataChangeEntry(mitgliedId,
+        action: DataChangeAction.create);
+  } else {
+    List<String> changedFields =
+        _getChangedFields(previousMemberData, mitglied);
+    sensLog.i('Changed fields for ${sensId(mitgliedId)}: $changedFields');
+    await dataChangesService.addDataChangeEntry(mitgliedId,
+        changedFields: changedFields, action: DataChangeAction.update);
+  }
+
   memberBox.put(mitgliedId, mitglied);
   memberAllProgressNotifier.value += progressStep;
   return mitglied;
+}
+
+List<String> _getChangedFields(
+    Mitglied? previousMemberData, Mitglied mitglied) {
+  final List<String> ignoreFields = ['lastUpdated', 'version'];
+  List<String> changedFields = [];
+  if (previousMemberData != null) {
+    final previousMap = previousMemberData.toJson();
+    final currentMap = mitglied.toJson();
+
+    previousMap.forEach((key, previousValue) {
+      if (ignoreFields.contains(key)) {
+        return;
+      }
+      final currentValue = currentMap[key];
+      if (previousValue != currentValue) {
+        changedFields.add(key);
+      }
+    });
+  }
+  return changedFields;
 }
 
 DateTime getEarliestStartDate(List<Taetigkeit> taetigkeiten) {

@@ -1,7 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:nami/screens/widgets/data_change_history.dart';
 import 'package:nami/utilities/app.state.dart';
+import 'package:nami/utilities/dataChanges.service.dart';
+import 'package:nami/utilities/hive/dataChanges.dart';
 import 'package:provider/provider.dart';
 
 class StatusInformationBanner extends StatefulWidget {
@@ -37,9 +40,23 @@ class StatusInformationBannerState extends State<StatusInformationBanner> {
     );
   }
 
+  void _showDataChangeDialog(List<DataChange> changes) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return DataChangeHistory(
+            changes: changes, title: 'Neuste Änderungen', isDialog: true);
+      },
+    );
+  }
+
   Widget _buildBanner(SyncState syncState) {
     switch (syncState) {
       case SyncState.loading:
+        _timer?.cancel();
+        _timer = Timer(const Duration(seconds: 30), () {
+          context.read<AppStateHandler>().syncState = SyncState.notStarted;
+        });
         return MaterialBanner(
           key: const ValueKey('loading'),
           leading: Icon(Icons.sync, color: Theme.of(context).colorScheme.error),
@@ -48,22 +65,23 @@ class StatusInformationBannerState extends State<StatusInformationBanner> {
         );
       case SyncState.successful:
         _timer?.cancel();
-        _timer = Timer(const Duration(seconds: 5), () {
+        _timer = Timer(const Duration(seconds: 10), () {
           context.read<AppStateHandler>().syncState = SyncState.notStarted;
         });
+        List<DataChange> changes = DataChangesService()
+            .getLatestEntry(duration: const Duration(minutes: 5));
         return MaterialBanner(
           key: const ValueKey('successful'),
           leading: Icon(Icons.check_circle,
               color: Theme.of(context).colorScheme.primary),
-          content: const Text('Synchronisation erfolgreich.'),
+          content:
+              Text('Synchronisation erfolgreich. ${changes.length} Änderungen'),
           actions: [
-            TextButton(
-              child: const Text('OK'),
-              onPressed: () {
-                context.read<AppStateHandler>().syncState =
-                    SyncState.notStarted;
-              },
-            ),
+            changes.isEmpty
+                ? const SizedBox()
+                : TextButton(
+                    onPressed: () => _showDataChangeDialog(changes),
+                    child: const Text('Anzeigen')),
           ],
         );
       case SyncState.relogin:
