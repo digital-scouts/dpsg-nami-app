@@ -1,7 +1,7 @@
 name: nami
 description: Namentliche Mitgliedermeldung der DPSG als App für Android und iOS
 publish_to: none
-version: 0.2.2
+version: 0.2.3
 
 environment:
   sdk: "^3.4.0"

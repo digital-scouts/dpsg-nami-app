@@ -329,6 +329,30 @@ class LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  Widget _buildTestAppBtn() {
+    return InkWell(
+      onTap: () {
+        _mitgliedsnummer = 1234;
+        _password = 'test';
+        loginButtonPressed();
+      },
+      child: RichText(
+        text: const TextSpan(
+          children: [
+            TextSpan(
+              text: 'Reinschnuppern',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 18.0,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -386,6 +410,8 @@ class LoginScreenState extends State<LoginScreen> {
                       _buildLoginBtn(),
                       _wrongIdOrPassword(),
                       _buildSignupBtn(),
+                      const SizedBox(height: 30.0),
+                      _buildTestAppBtn(),
                       _loadingSpinner(),
                     ],
                   ),

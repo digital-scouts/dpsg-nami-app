@@ -122,7 +122,6 @@ class MapWidgetState extends State<MapWidget> {
                 ),
                 children: [
                   TileLayer(
-                    // TODO: Recommended: Do not hardcode any URL to tile.openstreetmap.org as doing so will limit your ability to react if the service is disrupted or blocked. In particular, switching should be possible without requiring a software update.
                     urlTemplate:
                         'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                     userAgentPackageName: 'de.jlange.nami.app',
