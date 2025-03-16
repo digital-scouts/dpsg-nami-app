@@ -51,7 +51,7 @@ class DataChangeHistory extends StatelessWidget {
                   title: Text(
                       '${member?.vorname ?? 'Unbekannt'} ${member?.nachname ?? ''}'),
                   subtitle: Text(
-                      'Aktion: ${change.actionEnum.toString().split('.').last} - ${change.changedFields.join(', ')}'),
+                      '${change.actionEnum.toString().split('.').last} ${change.changedFields.isNotEmpty ? ':' : ''} ${change.changedFields.join(', ')}'),
                 );
               }),
             ],

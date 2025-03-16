@@ -35,6 +35,7 @@ class DataChangesService {
         entries.add(entry);
       }
     }
+    entries.sort((a, b) => b.changeDate.compareTo(a.changeDate));
     return entries;
   }
 }

@@ -48,4 +48,18 @@ enum DataChangeAction {
 
   const DataChangeAction(this.value);
   final int value;
+
+  @override
+  String toString() {
+    switch (this) {
+      case DataChangeAction.create:
+        return 'Erstellt';
+      case DataChangeAction.update:
+        return 'Aktualisiert';
+      case DataChangeAction.delete:
+        return 'Gelöscht';
+      default:
+        return 'Unbekannt';
+    }
+  }
 }
