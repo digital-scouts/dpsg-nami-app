@@ -361,13 +361,6 @@ class MitgliedDetailState extends State<MitgliedDetail>
   void terminateMitgliedschaftDialog(BuildContext context, Mitglied mitglied) {
     final formKey = GlobalKey<FormBuilderState>();
 
-    bool isBeforeIgnoringTime(DateTime val) {
-      DateTime now = DateTime.now();
-      DateTime valDateOnly = DateTime(val.year, val.month, val.day);
-      DateTime nowDateOnly = DateTime(now.year, now.month, now.day);
-      return valDateOnly.isBefore(nowDateOnly);
-    }
-
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -418,18 +411,14 @@ class MitgliedDetailState extends State<MitgliedDetail>
                     'Wann soll die Mitgliedschaft von ${mitglied.vorname} ${mitglied.nachname} beendet werden?'),
                 FormBuilderDateTimePicker(
                   inputType: InputType.date,
+                  initialValue: DateTime.now(),
                   name: 'beendigungDatum',
                   format: DateFormat('dd.MM.yyyy'),
-                  validator: FormBuilderValidators.compose([
-                    FormBuilderValidators.required(),
-                    (val) {
-                      if (val == null) return null;
-                      if (isBeforeIgnoringTime(val)) {
-                        return 'Das Datum muss mindestens heute sein.';
-                      }
-                      return null;
-                    },
-                  ]),
+                  lastDate: widget.mitglied.datenweiterverwendung
+                      ? null
+                      : DateTime.now(),
+                  validator: FormBuilderValidators.compose(
+                      [FormBuilderValidators.required()]),
                 ),
               ],
             ),
@@ -946,14 +935,19 @@ class MitgliedDetailState extends State<MitgliedDetail>
     });
 
     Wiredash.trackEvent('Member Details edit');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content:
-            Text('Bitte warten, während die Mitgliedsdaten geladen werden...'),
-      ),
-    );
 
-    Mitglied updatedMitglied = await updateOneMember(widget.mitglied.id!);
+    Mitglied updatedMitglied;
+    try {
+      updatedMitglied = await updateOneMember(widget.mitglied.id!);
+    } on SessionExpiredException catch (_) {
+      if (!await AppStateHandler().setReloginState()) {
+        // ignore: use_build_context_synchronously
+        Navigator.of(context).pop();
+        updatedMitglied = await updateOneMember(widget.mitglied.id!);
+      } else {
+        return;
+      }
+    }
 
     setState(() {
       loadingEditMember = false;
@@ -1007,10 +1001,12 @@ class MitgliedDetailState extends State<MitgliedDetail>
               getAllowedFeatures().contains(AllowedFeatures.memberEdit))
             IconButton(
                 onPressed: loadingEditMember ? null : editMemberClicked,
-                icon: const Icon(
-                  Icons.edit,
-                  color: Colors.black54,
-                )),
+                icon: loadingEditMember
+                    ? const CircularProgressIndicator()
+                    : const Icon(
+                        Icons.edit,
+                        color: Colors.black54,
+                      )),
           IconButton(
               onPressed: () => {
                     Wiredash.trackEvent('Member Details toggle favourite',

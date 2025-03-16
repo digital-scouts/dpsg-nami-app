@@ -39,10 +39,14 @@
       "version": "0.2.3",
       "data_reset": false,
       "features": [
+        "Syncronisationshistorie, Protokoll der letzten Datenänderungen.",
         "Mehrere Optimierungen für einen besseren Umgang mit der App.",
         "Ein Dank an alle, die die Entwicklung unterstützen wurde hinzugefügt."
       ],
-      "bugFixes": []
+      "bugFixes": [
+        "Login-Seite wird geöffnet, wenn Mitglieder bearbeitet werden, ohne angemeldet zu sein.",
+        "Beenden der Mitgliedschaft ohne Datenweiterverarbeitung wurde behoben."
+      ]
     }
   ]
 }

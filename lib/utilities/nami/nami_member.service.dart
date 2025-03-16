@@ -17,6 +17,7 @@ import 'package:nami/utilities/nami/model/nami_member_ausbildung_model.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
 import 'package:nami/utilities/nami/nami_member_fake.service.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
+import 'package:nami/utilities/types.dart';
 
 import 'model/nami_member_details.model.dart';
 import 'model/nami_taetigkeiten.model.dart';
@@ -89,7 +90,13 @@ Future<NamiMemberDetailsModel> _loadMemberDetails(
   sensLog.i('Request: Load MemberDetails for ${sensId(id)}');
   final http.Response response;
   try {
-    response = await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
+    response = await withMaybeRetry(() async {
+      return await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
+    });
+  } on SessionExpiredException catch (e, st) {
+    sensLog.i('Failed to load MemberDetails for ${sensId(id)}',
+        error: e, stackTrace: st);
+    rethrow;
   } catch (e, st) {
     sensLog.e('Failed to load MemberDetails for ${sensId(id)}',
         error: e, stackTrace: st);
@@ -181,9 +188,15 @@ Future<Mitglied> updateOneMember(int memberId) async {
   }
 
   Box<Mitglied> memberBox = Hive.box('members');
+  final Mitglied? member;
+  try {
+    member = await _storeMitgliedToHive(memberId, memberBox, url, path,
+        gruppierung, cookie, DataChangesService(), ValueNotifier<double>(0), 1);
+  } catch (e) {
+    sensLog.i('Failed to update member ${sensId(memberId)}', error: e);
+    rethrow;
+  }
 
-  final member = await _storeMitgliedToHive(memberId, memberBox, url, path,
-      gruppierung, cookie, DataChangesService(), ValueNotifier<double>(0), 1);
   if (member == null) {
     throw Exception('Failed to load details of current user');
   }
@@ -360,9 +373,9 @@ Future<Mitglied?> _storeMitgliedToHive(
     rawMember =
         await _loadMemberDetails(mitgliedId, url, path, gruppierung, cookie);
   } catch (e, st) {
-    sensLog.e('Failed to load member ${sensId(mitgliedId)}',
+    sensLog.i('Failed to load member ${sensId(mitgliedId)}',
         error: e, stackTrace: st);
-    return null;
+    rethrow;
   }
   try {
     rawTaetigkeiten =
