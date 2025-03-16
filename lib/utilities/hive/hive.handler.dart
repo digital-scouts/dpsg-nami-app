@@ -4,7 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:nami/utilities/hive/ausbildung.dart';
 import 'package:nami/utilities/hive/custom_group.dart';
-import 'package:nami/utilities/hive/dataChanges.dart';
+import 'package:nami/utilities/hive/data_changes.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
 
@@ -38,9 +38,7 @@ Future<void> registerAdapter() async {
     Hive.registerAdapter(MitgliedAdapter());
     Hive.registerAdapter(DataChangeAdapter());
     Hive.registerAdapter(CustomGroupAdapter());
-  } catch (_) {
-    print('Error while registering Hive Adapters');
-  }
+  } catch (_) {}
 }
 
 Future<void> closeHive() async {

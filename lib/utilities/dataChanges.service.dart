@@ -1,5 +1,5 @@
 import 'package:hive_ce_flutter/hive_flutter.dart';
-import 'package:nami/utilities/hive/dataChanges.dart';
+import 'package:nami/utilities/hive/data_changes.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/logger.dart';
 

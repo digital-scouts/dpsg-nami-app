@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_ce/hive.dart';
-import 'package:nami/utilities/hive/dataChanges.dart';
+import 'package:nami/utilities/hive/data_changes.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 
 class DataChangeHistory extends StatelessWidget {

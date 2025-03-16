@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:nami/screens/widgets/data_change_history.dart';
 import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/dataChanges.service.dart';
-import 'package:nami/utilities/hive/dataChanges.dart';
+import 'package:nami/utilities/hive/data_changes.dart';
 import 'package:provider/provider.dart';
 
 class StatusInformationBanner extends StatefulWidget {

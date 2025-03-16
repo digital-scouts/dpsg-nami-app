@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:nami/utilities/dataChanges.service.dart';
 import 'package:nami/utilities/hive/ausbildung.dart';
-import 'package:nami/utilities/hive/dataChanges.dart';
+import 'package:nami/utilities/hive/data_changes.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';

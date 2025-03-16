@@ -1,6 +1,8 @@
 import 'package:hive_ce_flutter/hive_flutter.dart';
 
-part 'dataChanges.g.dart';
+part 'data_changes.g.dart';
+
+// flutter packages pub run build_runner build
 
 @HiveType(typeId: 0)
 class DataChange extends HiveObject {
