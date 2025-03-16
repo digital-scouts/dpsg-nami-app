@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:nami/screens/mitgliedsliste/mitglied_details.dart';
@@ -216,10 +217,14 @@ class MitgliedsListeState extends State<MitgliedsListe> {
   Widget _buildSearchBar(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-      child: TextField(
+      child: FormBuilderTextField(
+        name: 'search',
+        initialValue: Provider.of<MemberListSettingsHandler>(context)
+            .filterOptions
+            .searchString,
         onChanged: (value) {
           Provider.of<MemberListSettingsHandler>(context, listen: false)
-              .updateSearchString(value);
+              .updateSearchString(value?.toString() ?? '');
         },
         enableSuggestions: false,
         autocorrect: false,

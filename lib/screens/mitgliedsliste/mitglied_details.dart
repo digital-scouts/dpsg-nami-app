@@ -231,8 +231,11 @@ class MitgliedDetailState extends State<MitgliedDetail>
               getNamiChangesEnabled() &&
               getLoggedInUserId() != widget.mitglied.id)
             ListTile(
-              leading: const Icon(Icons.delete),
-              title: const Text('Mitgliedschaft beenden'),
+              leading: const Icon(Icons.delete, color: Colors.redAccent),
+              title: const Text(
+                'Mitgliedschaft beenden',
+                style: TextStyle(color: Colors.redAccent),
+              ),
               onTap: () {
                 terminateMitgliedschaftDialog(context, mitglied);
               },
@@ -373,7 +376,8 @@ class MitgliedDetailState extends State<MitgliedDetail>
               children: [
                 if (!widget.mitglied.datenweiterverwendung)
                   RichText(
-                    text: const TextSpan(
+                    text: TextSpan(
+                      style: Theme.of(context).textTheme.bodyMedium,
                       text:
                           'Dieses Mitglied hat der weiteren Datenverwendung nach Beendigung der Mitgliedschaft nicht zugestimmt. Mit Beendigung der Mitgliedschaft werden sämtliche Daten ',
                       children: <TextSpan>[
@@ -382,14 +386,16 @@ class MitgliedDetailState extends State<MitgliedDetail>
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                         TextSpan(
-                          text: ' unwiderruflich gelöscht.',
+                          text:
+                              ' unwiderruflich gelöscht. Die Mitgliedschaft kann nicht in der Zukunft beeendet werden.',
                         ),
                       ],
                     ),
                   ),
                 if (widget.mitglied.datenweiterverwendung)
                   RichText(
-                    text: const TextSpan(
+                    text: TextSpan(
+                      style: Theme.of(context).textTheme.bodyMedium,
                       text:
                           'Dieses Mitglied hat der weiteren Datenverwendung nach Beendigung der Mitgliedschaft zugestimmt. Alle Daten ',
                       children: <TextSpan>[
@@ -404,6 +410,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
                       ],
                     ),
                   ),
+                const SizedBox(height: 8.0),
                 const Text(
                     'Sollte das Mitglied noch aktive Tätigkeiten in anderen Gruppierungen (Stamm, Bezirk, Diözese) haben, ist eine Mitgliedsübernahme in Betracht zu ziehen und ggf. die Mitgliedschaft nicht zu beenden.'),
                 const SizedBox(height: 16.0),

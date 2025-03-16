@@ -44,8 +44,9 @@
         "Ein Dank an alle, die die Entwicklung unterstützen wurde hinzugefügt."
       ],
       "bugFixes": [
-        "Login-Seite wird geöffnet, wenn Mitglieder bearbeitet werden, ohne angemeldet zu sein.",
-        "Beenden der Mitgliedschaft ohne Datenweiterverarbeitung wurde behoben."
+        "Login-Seite wird geöffnet, wenn Mitglieder bearbeitet werden sollen, ohne angemeldet zu sein.",
+        "Zeitraum fürs beenden der Mitgliedschaft ohne Datenweiterverarbeitung wurde angepasst.",
+        "Diverse weitere Fehlerbehebungen und Optimierungen"
       ]
     }
   ]
