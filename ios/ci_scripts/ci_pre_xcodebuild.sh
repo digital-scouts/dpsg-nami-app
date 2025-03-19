@@ -15,6 +15,10 @@ if [ -z "$GEOAPIFY_KEY" ]; then
     echo "Fehler: GEOAPIFY_KEY ist nicht gesetzt."
     exit 1
 fi
+if [ -z "$OPEN_AI_KEY" ]; then
+    echo "Fehler: OPEN_AI_KEY ist nicht gesetzt."
+    exit 1
+fi
 
 # Überprüfen, ob die .env-Datei existiert
 cd $CI_PRIMARY_REPOSITORY_PATH || exit 1
@@ -26,8 +30,9 @@ fi
 echo "WIREDASH_SECRET=$WIREDASH_SECRET" > .env
 echo "WIREDASH_PROJECT_ID=$WIREDASH_PROJECT_ID" >> .env
 echo "GEOAPIFY_KEY=$GEOAPIFY_KEY" >> .env
+echo "OPEN_AI_KEY=$OPEN_AI_KEY" >> .env
 echo "APPSTORE_ID=$APPSTORE_ID" >> .env
-echo "WIREDASH_SECRET=$WIREDASH_SECRET | WIREDASH_PROJECT_ID=$WIREDASH_PROJECT_ID | GEOAPIFY_KEY=$GEOAPIFY_KEY"
+echo "WIREDASH_SECRET=$WIREDASH_SECRET | WIREDASH_PROJECT_ID=$WIREDASH_PROJECT_ID | GEOAPIFY_KEY=$GEOAPIFY_KEY | OPEN_AI_KEY=$OPEN_AI_KEY"
 
 echo "Die Umgebungsvariablen wurden erfolgreich in die .env-Datei geschrieben."
 

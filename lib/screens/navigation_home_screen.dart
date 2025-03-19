@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nami/screens/knowledge_chat/knowledge_chat.dart';
 import 'package:nami/screens/meine_stufe/meine_stufe.dart';
 import 'package:nami/screens/mitgliedsliste/mitglied_liste.dart';
 import 'package:nami/screens/profil/profil.dart';
@@ -95,6 +96,11 @@ class NavigationHomeScreenState extends State<NavigationHomeScreen> {
           screenView = const Profil();
         });
         Wiredash.trackEvent('Change drawner index', data: {'page': 'Profil'});
+      } else if (drawerIndex == DrawerIndex.chat) {
+        setState(() {
+          screenView = const KnowledgeChat();
+        });
+        Wiredash.trackEvent('Change drawner index', data: {'page': 'Chat'});
       } else {
         // Hier alle weiteren Naviagtionspunkte des Seitenmenüs definieren
       }

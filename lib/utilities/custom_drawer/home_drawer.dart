@@ -75,6 +75,11 @@ class HomeDrawerState extends State<HomeDrawer> {
         icon: const Icon(Icons.person),
       ),
       DrawerList(
+        index: DrawerIndex.chat,
+        labelName: 'KI Assistant',
+        icon: const Icon(Icons.assistant),
+      ),
+      DrawerList(
         index: DrawerIndex.settings,
         labelName: 'Einstellungen',
         icon: const Icon(Icons.settings),
@@ -365,7 +370,7 @@ class HomeDrawerState extends State<HomeDrawer> {
   }
 }
 
-enum DrawerIndex { meineStufe, mitglieder, stats, settings, profil }
+enum DrawerIndex { meineStufe, mitglieder, stats, settings, chat, profil }
 
 class DrawerList {
   DrawerList({

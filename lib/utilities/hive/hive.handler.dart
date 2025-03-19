@@ -79,6 +79,10 @@ Future<void> openHive() async {
     Hive.openBox('settingsBox', encryptionCipher: HiveAesCipher(encryptionKey)),
     Hive.openBox('filterBox', encryptionCipher: HiveAesCipher(encryptionKey)),
     Hive.openBox<DataChange>('dataChanges',
+        encryptionCipher: HiveAesCipher(encryptionKey)),
+    Hive.openBox<Map>('satzung_db',
+        encryptionCipher: HiveAesCipher(encryptionKey)),
+    Hive.openBox<Map>('ai_chat_messages',
         encryptionCipher: HiveAesCipher(encryptionKey))
   ]);
   return;
