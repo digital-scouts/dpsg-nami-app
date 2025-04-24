@@ -90,9 +90,7 @@ Future<NamiMemberDetailsModel> _loadMemberDetails(
   sensLog.i('Request: Load MemberDetails for ${sensId(id)}');
   final http.Response response;
   try {
-    response = await withMaybeRetry(() async {
-      return await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
-    });
+    response = await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
   } on SessionExpiredException catch (e, st) {
     sensLog.i('Failed to load MemberDetails for ${sensId(id)}',
         error: e, stackTrace: st);
