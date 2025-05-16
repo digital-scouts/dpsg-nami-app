@@ -57,7 +57,7 @@ class _KnowledgeChat extends State<KnowledgeChat> {
     _messagesBox.add({"role": "user", "content": query});
 
     List<String> relevantText = await vectorSearch.findRelevantTexts(query);
-    String prompt = "${relevantText.join('\n')}\n\nFrage: $query";
+    // String prompt = "${relevantText.join('\n')}\n\nFrage: $query";
 
     Map<String, dynamic> result; //= await openAIService.askGPT(prompt);
     var fakeResult = {

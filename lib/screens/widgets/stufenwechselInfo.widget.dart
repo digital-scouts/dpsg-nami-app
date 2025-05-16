@@ -37,6 +37,9 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
     Map<Stufe, List<DataRow>> stufenwechselData = {};
     List<Mitglied> mitglieder =
         Hive.box<Mitglied>('members').values.toList().cast<Mitglied>();
+    mitglieder.sort((a, b) {
+      return a.geburtsDatum.compareTo(b.geburtsDatum);
+    });
 
     for (var mitglied in mitglieder) {
       Stufe currentStufe = mitglied.currentStufe;
@@ -74,12 +77,14 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
             Text('${mitglied.vorname} ${mitglied.nachname.substring(0, 1)}.'),
           ),
           DataCell(
-            Text(alterNextStufenwechsel.toStringAsFixed(1)),
+            Text(_formatAlterJahrMonat(alterNextStufenwechsel)),
           ),
           DataCell(
-            Text(currentStufe == Stufe.ROVER
-                ? maxStufenWechselDatum!.year.toString()
-                : '${minStufenWechselDatum.year}-${maxStufenWechselDatum!.year}'),
+            Text(
+              currentStufe == Stufe.ROVER
+                  ? maxStufenWechselDatum!.year.toString()
+                  : '${minStufenWechselDatum.year}-${maxStufenWechselDatum!.year.toString().substring(2)}',
+            ),
           ),
         ],
       );
@@ -98,6 +103,12 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
     });
 
     return stufenwechselData;
+  }
+
+  String _formatAlterJahrMonat(double alter) {
+    int jahre = alter.floor();
+    int monate = ((alter - jahre) * 12).round();
+    return "${jahre}J ${monate}M";
   }
 
   @override
@@ -147,7 +158,9 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
                     'Wechsel am ${nextStufenwechselDatum.prettyPrint()} (${getStufeMinAge(Stufe.getStufeByOrder(ausgewaehlteStufe.index + 1)!)}-${getStufeMaxAge(ausgewaehlteStufe)} Jahre)'),
                 DataTable(
                   columns: [
-                    const DataColumn(label: Text('Name')),
+                    const DataColumn(
+                      label: Text('Name'),
+                    ),
                     const DataColumn(label: Text('Alter')),
                     DataColumn(
                         label: Text(ausgewaehlteStufe == Stufe.ROVER
