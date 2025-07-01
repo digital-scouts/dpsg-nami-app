@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:http/http.dart' as http;
 import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/hive/settings.dart';
@@ -12,13 +10,12 @@ Future<Map<String, String>> getMetadata(String url) async {
   return withMaybeRetry(
     () async => await http.get(Uri.parse(url), headers: {
       'Cookie': getNamiApiCookie(),
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json; charset=UTF-8',
     }),
     'Failed to load metadata: $url',
   ).then<Map<String, String>>((body) {
     Map<String, String> map = {
-      for (var m in body['data'])
-        m['id'].toString(): utf8.decode(m['descriptor'].codeUnits)
+      for (var m in body['data']) m['id'].toString(): m['descriptor']
     };
 
     // Sortieren der Map nach den Schlüsseln (descriptor)
