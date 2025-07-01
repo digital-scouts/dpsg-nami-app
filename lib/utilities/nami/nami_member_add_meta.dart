@@ -10,7 +10,7 @@ Future<Map<String, String>> getMetadata(String url) async {
   return withMaybeRetry(
     () async => await http.get(Uri.parse(url), headers: {
       'Cookie': getNamiApiCookie(),
-      'Content-Type': 'application/json; charset=UTF-8',
+      'Content-Type': 'application/json'
     }),
     'Failed to load metadata: $url',
   ).then<Map<String, String>>((body) {
