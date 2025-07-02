@@ -916,7 +916,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
         minStufenWechselJahr.isBefore(nextStufenwechselDatum);
     Stufe? nextStufe = widget.mitglied.nextStufe;
     bool nextStufeAlreadyAssigned = widget.mitglied.taetigkeiten
-        .any((element) => element.untergliederung == nextStufe!.display);
+        .any((element) => element.untergliederung == nextStufe?.display);
 
     // check if stufenwechsel is possible
     if (nextStufeAlreadyAssigned ||

@@ -24,7 +24,7 @@ dynamic withMaybeRetry(Future<http.Response> Function() func,
   final response = await func();
 
   if (response.statusCode == 200 && jsonDecode(response.body)['success']) {
-    return jsonDecode(response.body);
+    return jsonDecode(utf8.decode(response.bodyBytes));
   } else if (response.statusCode == 500 ||
       (response.statusCode == 200 &&
           jsonDecode(response.body)["message"] == "Session expired")) {
