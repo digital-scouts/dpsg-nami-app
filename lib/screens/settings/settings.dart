@@ -191,21 +191,22 @@ class _SettingsState extends State<Settings> {
               _buildChangelogButton(),
               Padding(
                 padding: const EdgeInsets.all(20.0),
-                child: FutureBuilder<MapEntry<PackageInfo, String>>(
+                child: FutureBuilder<(PackageInfo, String?)>(
                   future: Future.wait([
                     PackageInfo.fromPlatform(),
                     getGitCommitId(),
-                  ]).then((results) => MapEntry(
-                      results[0] as PackageInfo, results[1] as String)),
+                  ]).then((results) {
+                    return (results[0] as PackageInfo, results[1] as String?);
+                  }),
                   builder: (BuildContext context,
-                      AsyncSnapshot<MapEntry<PackageInfo, String>> snapshot) {
+                      AsyncSnapshot<(PackageInfo, String?)> snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const CircularProgressIndicator();
                     } else {
                       final String version =
-                          snapshot.data?.key.version ?? 'Unknown';
+                          snapshot.data?.$1.version ?? 'Unknown';
                       final String commitId =
-                          snapshot.data?.value.substring(0, 8) ?? 'Unknown';
+                          snapshot.data?.$2?.substring(0, 8) ?? 'Unknown';
                       return Text('Version: $version | Commit: $commitId');
                     }
                   },

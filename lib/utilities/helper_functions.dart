@@ -27,11 +27,11 @@ Future<void> sendLogsEmail() async {
 
 Future<String?> getGitCommitId() async {
   try {
-    final head = await rootBundle.loadString('.git/HEAD');
+    final head = await rootBundle.loadString('.gitlink/HEAD');
 
     if (head.startsWith('ref: ')) {
       final branchName = head.split('ref: refs/heads/').last.trim();
-      return (await rootBundle.loadString('.git/refs/heads/$branchName'))
+      return (await rootBundle.loadString('.gitlink/refs/heads/$branchName'))
           .trim();
     } else {
       return head;
