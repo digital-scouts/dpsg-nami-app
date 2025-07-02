@@ -48,6 +48,16 @@
         "Zeitraum fürs beenden der Mitgliedschaft ohne Datenweiterverarbeitung wurde angepasst.",
         "Diverse weitere Fehlerbehebungen und Optimierungen"
       ]
+    },
+    {
+      "version": "0.2.4",
+      "data_reset": false,
+      "features": [],
+      "bugFixes": [
+        "Kreditinstitute mit Umlauten verhindern nicht mehr das Anlegen eines Mitglieds.",
+        "Ein Problem bei dem Leitende nur einen grauen Screen hatten wurde behoben.",
+        "Die Stufenwechsel-Übersicht zeigt das Alter nicht mehr in Dezimal an."
+      ]
     }
   ]
 }

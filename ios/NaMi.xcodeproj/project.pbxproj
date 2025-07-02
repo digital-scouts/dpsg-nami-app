@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -264,9 +264,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-NaMi/Pods-NaMi-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-NaMi/Pods-NaMi-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -378,8 +382,8 @@
 				CURRENT_PROJECT_VERSION = 0.2.2;
 				DEVELOPMENT_TEAM = 6WMJR3R823;
 				ENABLE_BITCODE = NO;
-				FLUTTER_BUILD_NAME = 0.2.3;
-				FLUTTER_BUILD_NUMBER = 0.2.3;
+				FLUTTER_BUILD_NAME = 0.2.4;
+				FLUTTER_BUILD_NUMBER = 0.2.4;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = NaMi;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
@@ -466,8 +470,8 @@
 				CURRENT_PROJECT_VERSION = 0.2.2;
 				DEVELOPMENT_TEAM = 6WMJR3R823;
 				ENABLE_BITCODE = NO;
-				FLUTTER_BUILD_NAME = 0.2.3;
-				FLUTTER_BUILD_NUMBER = 0.2.3;
+				FLUTTER_BUILD_NAME = 0.2.4;
+				FLUTTER_BUILD_NUMBER = 0.2.4;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = NaMi;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
@@ -557,8 +561,8 @@
 				CURRENT_PROJECT_VERSION = 0.2.2;
 				DEVELOPMENT_TEAM = 6WMJR3R823;
 				ENABLE_BITCODE = NO;
-				FLUTTER_BUILD_NAME = 0.2.3;
-				FLUTTER_BUILD_NUMBER = 0.2.3;
+				FLUTTER_BUILD_NAME = 0.2.4;
+				FLUTTER_BUILD_NUMBER = 0.2.4;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = NaMi;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
@@ -704,8 +708,8 @@
 				CURRENT_PROJECT_VERSION = 0.2.2;
 				DEVELOPMENT_TEAM = 6WMJR3R823;
 				ENABLE_BITCODE = NO;
-				FLUTTER_BUILD_NAME = 0.2.3;
-				FLUTTER_BUILD_NUMBER = 0.2.3;
+				FLUTTER_BUILD_NAME = 0.2.4;
+				FLUTTER_BUILD_NUMBER = 0.2.4;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = NaMi;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
@@ -738,8 +742,8 @@
 				CURRENT_PROJECT_VERSION = 0.2.2;
 				DEVELOPMENT_TEAM = 6WMJR3R823;
 				ENABLE_BITCODE = NO;
-				FLUTTER_BUILD_NAME = 0.2.3;
-				FLUTTER_BUILD_NUMBER = 0.2.3;
+				FLUTTER_BUILD_NAME = 0.2.4;
+				FLUTTER_BUILD_NUMBER = 0.2.4;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = NaMi;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
