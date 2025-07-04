@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
+import 'package:nami/screens/settings/data_change_history_page.dart';
 import 'package:nami/screens/utilities/new_version_info_screen.dart';
 import 'package:nami/screens/widgets/nami_change_toggle.dart';
 import 'package:nami/screens/widgets/stamm_heim_setting.dart';
@@ -91,6 +92,21 @@ class _SettingsState extends State<Settings> {
     );
   }
 
+  _buildShowDataHistory() {
+    return ListTile(
+      title: const Text('Syncronisationshistorie'),
+      leading: const Icon(Icons.info),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const DataChangeHistoryPage(),
+          ),
+        );
+      },
+    );
+  }
+
   _buildThemeToggle() {
     final themeModel = Provider.of<ThemeModel>(context);
 
@@ -155,6 +171,7 @@ class _SettingsState extends State<Settings> {
             children: [
               _buildSync(),
               _buildForceBSync(),
+              _buildShowDataHistory(),
               const NamiChangeToggle(),
               const Divider(height: 1),
               const StufenwechelDatumSetting(),
@@ -174,21 +191,22 @@ class _SettingsState extends State<Settings> {
               _buildChangelogButton(),
               Padding(
                 padding: const EdgeInsets.all(20.0),
-                child: FutureBuilder<MapEntry<PackageInfo, String>>(
+                child: FutureBuilder<(PackageInfo, String?)>(
                   future: Future.wait([
                     PackageInfo.fromPlatform(),
                     getGitCommitId(),
-                  ]).then((results) => MapEntry(
-                      results[0] as PackageInfo, results[1] as String)),
+                  ]).then((results) {
+                    return (results[0] as PackageInfo, results[1] as String?);
+                  }),
                   builder: (BuildContext context,
-                      AsyncSnapshot<MapEntry<PackageInfo, String>> snapshot) {
+                      AsyncSnapshot<(PackageInfo, String?)> snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const CircularProgressIndicator();
                     } else {
                       final String version =
-                          snapshot.data?.key.version ?? 'Unknown';
+                          snapshot.data?.$1.version ?? 'Unknown';
                       final String commitId =
-                          snapshot.data?.value.substring(0, 8) ?? 'Unknown';
+                          snapshot.data?.$2?.substring(0, 8) ?? 'Unknown';
                       return Text('Version: $version | Commit: $commitId');
                     }
                   },

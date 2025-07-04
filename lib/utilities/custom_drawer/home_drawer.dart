@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:nami/utilities/app.state.dart';
@@ -53,6 +54,7 @@ class HomeDrawerState extends State<HomeDrawer> {
   }
 
   void setDrawerListArray() {
+    final showChat = dotenv.env['KNOWLEDGE_CHAT']?.toLowerCase() == 'true';
     drawerList = <DrawerList>[
       DrawerList(
         index: DrawerIndex.meineStufe,
@@ -74,6 +76,12 @@ class HomeDrawerState extends State<HomeDrawer> {
         labelName: 'Profil',
         icon: const Icon(Icons.person),
       ),
+      if (showChat)
+        DrawerList(
+          index: DrawerIndex.chat,
+          labelName: 'KI Assistant',
+          icon: const Icon(Icons.assistant),
+        ),
       DrawerList(
         index: DrawerIndex.settings,
         labelName: 'Einstellungen',
@@ -365,7 +373,7 @@ class HomeDrawerState extends State<HomeDrawer> {
   }
 }
 
-enum DrawerIndex { meineStufe, mitglieder, stats, settings, profil }
+enum DrawerIndex { meineStufe, mitglieder, stats, settings, chat, profil }
 
 class DrawerList {
   DrawerList({

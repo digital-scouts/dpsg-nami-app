@@ -280,4 +280,36 @@ class Mitglied {
   int compareByMitgliedsalter(Mitglied mitglied) {
     return mitglied.activeDays.compareTo(activeDays);
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'vorname': vorname,
+      'nachname': nachname,
+      'spitzname': spitzname,
+      'geschlechtId': geschlechtId,
+      'geburtsDatum': geburtsDatum,
+      'id': id,
+      'mitgliedsNummer': mitgliedsNummer,
+      'eintrittsdatum': eintrittsdatum,
+      'austrittsDatum': austrittsDatum,
+      'ort': ort,
+      'plz': plz,
+      'strasse': strasse,
+      'landId': landId,
+      'email': email,
+      'emailVertretungsberechtigter': emailVertretungsberechtigter,
+      'telefon1': telefon1,
+      'telefon2': telefon2,
+      'telefon3': telefon3,
+      'lastUpdated': lastUpdated,
+      'version': version,
+      'mglTypeId': mglTypeId,
+      'beitragsartId': beitragsartId,
+      'status': status,
+      'staatssangehaerigkeitId': staatssangehaerigkeitId,
+      'konfessionId': konfessionId,
+      'mitgliedszeitschrift': mitgliedszeitschrift,
+      'datenweiterverwendung': datenweiterverwendung,
+    };
+  }
 }

@@ -1,2 +1,0 @@
-/Users/lange/Desktop/dev/dpsg-nami-app/android/app/.cxx/RelWithDebInfo/605x121p/armeabi-v7a/CMakeFiles/rebuild_cache.dir
-/Users/lange/Desktop/dev/dpsg-nami-app/android/app/.cxx/RelWithDebInfo/605x121p/armeabi-v7a/CMakeFiles/edit_cache.dir

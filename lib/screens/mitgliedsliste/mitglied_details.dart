@@ -231,8 +231,11 @@ class MitgliedDetailState extends State<MitgliedDetail>
               getNamiChangesEnabled() &&
               getLoggedInUserId() != widget.mitglied.id)
             ListTile(
-              leading: const Icon(Icons.delete),
-              title: const Text('Mitgliedschaft beenden'),
+              leading: const Icon(Icons.delete, color: Colors.redAccent),
+              title: const Text(
+                'Mitgliedschaft beenden',
+                style: TextStyle(color: Colors.redAccent),
+              ),
               onTap: () {
                 terminateMitgliedschaftDialog(context, mitglied);
               },
@@ -361,13 +364,6 @@ class MitgliedDetailState extends State<MitgliedDetail>
   void terminateMitgliedschaftDialog(BuildContext context, Mitglied mitglied) {
     final formKey = GlobalKey<FormBuilderState>();
 
-    bool isBeforeIgnoringTime(DateTime val) {
-      DateTime now = DateTime.now();
-      DateTime valDateOnly = DateTime(val.year, val.month, val.day);
-      DateTime nowDateOnly = DateTime(now.year, now.month, now.day);
-      return valDateOnly.isBefore(nowDateOnly);
-    }
-
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -380,7 +376,8 @@ class MitgliedDetailState extends State<MitgliedDetail>
               children: [
                 if (!widget.mitglied.datenweiterverwendung)
                   RichText(
-                    text: const TextSpan(
+                    text: TextSpan(
+                      style: Theme.of(context).textTheme.bodyMedium,
                       text:
                           'Dieses Mitglied hat der weiteren Datenverwendung nach Beendigung der Mitgliedschaft nicht zugestimmt. Mit Beendigung der Mitgliedschaft werden sämtliche Daten ',
                       children: <TextSpan>[
@@ -389,14 +386,16 @@ class MitgliedDetailState extends State<MitgliedDetail>
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                         TextSpan(
-                          text: ' unwiderruflich gelöscht.',
+                          text:
+                              ' unwiderruflich gelöscht. Die Mitgliedschaft kann nicht in der Zukunft beeendet werden.',
                         ),
                       ],
                     ),
                   ),
                 if (widget.mitglied.datenweiterverwendung)
                   RichText(
-                    text: const TextSpan(
+                    text: TextSpan(
+                      style: Theme.of(context).textTheme.bodyMedium,
                       text:
                           'Dieses Mitglied hat der weiteren Datenverwendung nach Beendigung der Mitgliedschaft zugestimmt. Alle Daten ',
                       children: <TextSpan>[
@@ -411,6 +410,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
                       ],
                     ),
                   ),
+                const SizedBox(height: 8.0),
                 const Text(
                     'Sollte das Mitglied noch aktive Tätigkeiten in anderen Gruppierungen (Stamm, Bezirk, Diözese) haben, ist eine Mitgliedsübernahme in Betracht zu ziehen und ggf. die Mitgliedschaft nicht zu beenden.'),
                 const SizedBox(height: 16.0),
@@ -418,18 +418,14 @@ class MitgliedDetailState extends State<MitgliedDetail>
                     'Wann soll die Mitgliedschaft von ${mitglied.vorname} ${mitglied.nachname} beendet werden?'),
                 FormBuilderDateTimePicker(
                   inputType: InputType.date,
+                  initialValue: DateTime.now(),
                   name: 'beendigungDatum',
                   format: DateFormat('dd.MM.yyyy'),
-                  validator: FormBuilderValidators.compose([
-                    FormBuilderValidators.required(),
-                    (val) {
-                      if (val == null) return null;
-                      if (isBeforeIgnoringTime(val)) {
-                        return 'Das Datum muss mindestens heute sein.';
-                      }
-                      return null;
-                    },
-                  ]),
+                  lastDate: widget.mitglied.datenweiterverwendung
+                      ? null
+                      : DateTime.now(),
+                  validator: FormBuilderValidators.compose(
+                      [FormBuilderValidators.required()]),
                 ),
               ],
             ),
@@ -920,7 +916,7 @@ class MitgliedDetailState extends State<MitgliedDetail>
         minStufenWechselJahr.isBefore(nextStufenwechselDatum);
     Stufe? nextStufe = widget.mitglied.nextStufe;
     bool nextStufeAlreadyAssigned = widget.mitglied.taetigkeiten
-        .any((element) => element.untergliederung == nextStufe!.display);
+        .any((element) => element.untergliederung == nextStufe?.display);
 
     // check if stufenwechsel is possible
     if (nextStufeAlreadyAssigned ||
@@ -946,14 +942,19 @@ class MitgliedDetailState extends State<MitgliedDetail>
     });
 
     Wiredash.trackEvent('Member Details edit');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content:
-            Text('Bitte warten, während die Mitgliedsdaten geladen werden...'),
-      ),
-    );
 
-    Mitglied updatedMitglied = await updateOneMember(widget.mitglied.id!);
+    Mitglied updatedMitglied;
+    try {
+      updatedMitglied = await updateOneMember(widget.mitglied.id!);
+    } on SessionExpiredException catch (_) {
+      if (!await AppStateHandler().setReloginState()) {
+        // ignore: use_build_context_synchronously
+        Navigator.of(context).pop();
+        updatedMitglied = await updateOneMember(widget.mitglied.id!);
+      } else {
+        return;
+      }
+    }
 
     setState(() {
       loadingEditMember = false;
@@ -1007,10 +1008,12 @@ class MitgliedDetailState extends State<MitgliedDetail>
               getAllowedFeatures().contains(AllowedFeatures.memberEdit))
             IconButton(
                 onPressed: loadingEditMember ? null : editMemberClicked,
-                icon: const Icon(
-                  Icons.edit,
-                  color: Colors.black54,
-                )),
+                icon: loadingEditMember
+                    ? const CircularProgressIndicator()
+                    : const Icon(
+                        Icons.edit,
+                        color: Colors.black54,
+                      )),
           IconButton(
               onPressed: () => {
                     Wiredash.trackEvent('Member Details toggle favourite',

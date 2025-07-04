@@ -1,7 +1,7 @@
 name: nami
 description: Namentliche Mitgliedermeldung der DPSG als App für Android und iOS
 publish_to: none
-version: 0.2.3
+version: 0.2.4
 
 environment:
   sdk: "^3.4.0"
@@ -39,7 +39,7 @@ dependencies:
   fl_chart: ^0.70.2
   latlong2: ^0.9.0
   intl: any
-  flutter_form_builder: ^9.1.1
+  flutter_form_builder: ^10.0.1
   form_builder_validators: ^11.0.0
   html: ^0.15.4
   wiredash: ^2.2.0
@@ -89,9 +89,11 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/ai_kontext/
     - .env
-    - .git/refs/heads/
-    - .git/HEAD
+    # Using .gitlink here, because gradle excludes files like .git by default. This symlink circumvents that. This is used to display the current commit.
+    - .gitlink/refs/heads/
+    - .gitlink/HEAD
     - assets/changelog.json
 
   fonts:

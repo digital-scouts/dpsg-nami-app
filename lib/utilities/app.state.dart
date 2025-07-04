@@ -11,6 +11,7 @@ import 'package:nami/screens/utilities/loading_info_screen.dart';
 import 'package:nami/screens/utilities/new_version_info_screen.dart';
 import 'package:nami/screens/utilities/welcome_screen.dart';
 import 'package:nami/screens/widgets/chooseGruppierung.widget.dart';
+import 'package:nami/utilities/dataChanges.service.dart';
 import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/hive/hive.handler.dart';
 import 'package:nami/utilities/hive/settings.dart';
@@ -31,6 +32,7 @@ class AppStateHandler extends ChangeNotifier {
   Timer? syncTimer;
   DateTime lastAuthenticated = DateTime(1970);
   bool _paused = false;
+  final DataChangesService _dataChangesService = DataChangesService();
 
   factory AppStateHandler() {
     return _instance;
@@ -227,9 +229,11 @@ class AppStateHandler extends ChangeNotifier {
         memberAllProgressNotifier,
         memberOverviewProgressNotifier,
         rechteProgressNotifier,
+        _dataChangesService,
         forceUpdate: loadAll,
       );
       syncState = SyncState.successful;
+
       if (background) {
         sensLog.i('sync successful in background');
         Wiredash.trackEvent('Data sync successful');

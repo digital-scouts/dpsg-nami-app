@@ -378,8 +378,8 @@
 				CURRENT_PROJECT_VERSION = 0.2.2;
 				DEVELOPMENT_TEAM = 6WMJR3R823;
 				ENABLE_BITCODE = NO;
-				FLUTTER_BUILD_NAME = 0.2.3;
-				FLUTTER_BUILD_NUMBER = 0.2.3;
+				FLUTTER_BUILD_NAME = 0.2.4;
+				FLUTTER_BUILD_NUMBER = 0.2.4;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = NaMi;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
@@ -466,8 +466,8 @@
 				CURRENT_PROJECT_VERSION = 0.2.2;
 				DEVELOPMENT_TEAM = 6WMJR3R823;
 				ENABLE_BITCODE = NO;
-				FLUTTER_BUILD_NAME = 0.2.3;
-				FLUTTER_BUILD_NUMBER = 0.2.3;
+				FLUTTER_BUILD_NAME = 0.2.4;
+				FLUTTER_BUILD_NUMBER = 0.2.4;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = NaMi;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
@@ -557,8 +557,8 @@
 				CURRENT_PROJECT_VERSION = 0.2.2;
 				DEVELOPMENT_TEAM = 6WMJR3R823;
 				ENABLE_BITCODE = NO;
-				FLUTTER_BUILD_NAME = 0.2.3;
-				FLUTTER_BUILD_NUMBER = 0.2.3;
+				FLUTTER_BUILD_NAME = 0.2.4;
+				FLUTTER_BUILD_NUMBER = 0.2.4;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = NaMi;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
@@ -704,8 +704,8 @@
 				CURRENT_PROJECT_VERSION = 0.2.2;
 				DEVELOPMENT_TEAM = 6WMJR3R823;
 				ENABLE_BITCODE = NO;
-				FLUTTER_BUILD_NAME = 0.2.3;
-				FLUTTER_BUILD_NUMBER = 0.2.3;
+				FLUTTER_BUILD_NAME = 0.2.4;
+				FLUTTER_BUILD_NUMBER = 0.2.4;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = NaMi;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
@@ -738,8 +738,8 @@
 				CURRENT_PROJECT_VERSION = 0.2.2;
 				DEVELOPMENT_TEAM = 6WMJR3R823;
 				ENABLE_BITCODE = NO;
-				FLUTTER_BUILD_NAME = 0.2.3;
-				FLUTTER_BUILD_NUMBER = 0.2.3;
+				FLUTTER_BUILD_NAME = 0.2.4;
+				FLUTTER_BUILD_NUMBER = 0.2.4;
 				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = NaMi;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
