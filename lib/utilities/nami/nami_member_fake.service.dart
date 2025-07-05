@@ -45,16 +45,15 @@ Taetigkeit createTaetigkeit(
   bool isLeader = false,
   String gruppierung = "1234 Test Gruppierung",
 }) {
-  Taetigkeit t =
-      Taetigkeit()
-        ..id = id
-        ..aktivVon = start
-        ..aktivBis = end
-        ..anlagedatum = start
-        ..untergliederung = untergliederung
-        ..gruppierung = gruppierung
-        ..berechtigteGruppe = ""
-        ..berechtigteUntergruppen = "";
+  Taetigkeit t = Taetigkeit()
+    ..id = id
+    ..aktivVon = start
+    ..aktivBis = end
+    ..anlagedatum = start
+    ..untergliederung = untergliederung
+    ..gruppierung = gruppierung
+    ..berechtigteGruppe = ""
+    ..berechtigteUntergruppen = "";
 
   if (isLeader) {
     t.taetigkeit = "€ LeiterIn (6)";
@@ -71,13 +70,12 @@ Ausbildung createAusbildung({
   required String veranstalter,
   required String baustein,
 }) {
-  final a =
-      Ausbildung()
-        ..id = id
-        ..name = name
-        ..datum = datum
-        ..veranstalter = veranstalter
-        ..baustein = baustein;
+  final a = Ausbildung()
+    ..id = id
+    ..name = name
+    ..datum = datum
+    ..veranstalter = veranstalter
+    ..baustein = baustein;
   return a;
 }
 

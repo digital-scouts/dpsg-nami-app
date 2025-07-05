@@ -40,11 +40,10 @@ class BirthdayNotificationService {
 
   /// Fordert explizit Benachrichtigungsberechtigungen an
   static Future<bool> requestPermissions() async {
-    final IOSFlutterLocalNotificationsPlugin? iosImplementation =
-        _notifications
-            .resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin
-            >();
+    final IOSFlutterLocalNotificationsPlugin? iosImplementation = _notifications
+        .resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin
+        >();
 
     final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
         _notifications
@@ -63,8 +62,8 @@ class BirthdayNotificationService {
     }
 
     if (androidImplementation != null) {
-      final bool? granted =
-          await androidImplementation.requestNotificationsPermission();
+      final bool? granted = await androidImplementation
+          .requestNotificationsPermission();
       scheduleAllBirthdays();
       return granted ?? false;
     }
@@ -108,11 +107,10 @@ class BirthdayNotificationService {
 
     List<Stufe> stufen = getGeburtstagsbenachrichtigungenGruppen();
 
-    List<Mitglied> mitglieder =
-        Hive.box<Mitglied>('members').values
-            .where((element) => stufen.contains(element.currentStufe))
-            .toList()
-            .cast<Mitglied>();
+    List<Mitglied> mitglieder = Hive.box<Mitglied>('members').values
+        .where((element) => stufen.contains(element.currentStufe))
+        .toList()
+        .cast<Mitglied>();
 
     // Sortiere nach dem nächsten Geburtstag (aufsteigend)
     mitglieder.sort((a, b) {
@@ -207,10 +205,9 @@ class BirthdayNotificationService {
       final int mitgliedId = int.parse(payload);
 
       // Mitglied aus Hive laden
-      final mitglied =
-          Hive.box<Mitglied>(
-            'members',
-          ).values.where((m) => m.id == mitgliedId).firstOrNull;
+      final mitglied = Hive.box<Mitglied>(
+        'members',
+      ).values.where((m) => m.id == mitgliedId).firstOrNull;
 
       if (mitglied != null) {
         // Zur MitgliedDetail-Seite navigieren

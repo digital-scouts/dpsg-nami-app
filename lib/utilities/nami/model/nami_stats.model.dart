@@ -13,10 +13,7 @@ class NamiStatsModel {
   final int nrMitglieder;
   final List<StatsCategorie> statsCategories;
 
-  NamiStatsModel({
-    required this.nrMitglieder,
-    required this.statsCategories,
-  });
+  NamiStatsModel({required this.nrMitglieder, required this.statsCategories});
 
   factory NamiStatsModel.fromJson(Map<String, dynamic> json) {
     List<StatsCategorie> list = [];

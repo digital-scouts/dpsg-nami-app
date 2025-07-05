@@ -65,30 +65,22 @@ class MapWidgetState extends State<MapWidget> {
   }
 
   LatLngBounds _getMapBounds(List<LatLng> markers) {
-    double minLat =
-        markers
-            .reduce(
-              (val, marker) => val.latitude < marker.latitude ? val : marker,
-            )
-            .latitude;
-    double maxLat =
-        markers
-            .reduce(
-              (val, marker) => val.latitude > marker.latitude ? val : marker,
-            )
-            .latitude;
-    double minLng =
-        markers
-            .reduce(
-              (val, marker) => val.longitude < marker.longitude ? val : marker,
-            )
-            .longitude;
-    double maxLng =
-        markers
-            .reduce(
-              (val, marker) => val.longitude > marker.longitude ? val : marker,
-            )
-            .longitude;
+    double minLat = markers
+        .reduce((val, marker) => val.latitude < marker.latitude ? val : marker)
+        .latitude;
+    double maxLat = markers
+        .reduce((val, marker) => val.latitude > marker.latitude ? val : marker)
+        .latitude;
+    double minLng = markers
+        .reduce(
+          (val, marker) => val.longitude < marker.longitude ? val : marker,
+        )
+        .longitude;
+    double maxLng = markers
+        .reduce(
+          (val, marker) => val.longitude > marker.longitude ? val : marker,
+        )
+        .longitude;
 
     LatLngBounds bounds = LatLngBounds(
       LatLng(maxLat, maxLng),
@@ -115,10 +107,9 @@ class MapWidgetState extends State<MapWidget> {
           children: [
             SizedBox(
               width: double.infinity,
-              height:
-                  _isExpanded
-                      ? (MediaQuery.of(context).size.height - 300)
-                      : 200.0,
+              height: _isExpanded
+                  ? (MediaQuery.of(context).size.height - 300)
+                  : 200.0,
               child: FlutterMap(
                 mapController: mapController,
                 options: MapOptions(
@@ -137,15 +128,13 @@ class MapWidgetState extends State<MapWidget> {
                     urlTemplate:
                         'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                     userAgentPackageName: 'de.jlange.nami.app',
-                    tileProvider:
-                        isMapTileCachingEnabled()
-                            ? FMTCTileProvider(
-                              stores: const {
-                                'mapStore':
-                                    BrowseStoreStrategy.readUpdateCreate,
-                              },
-                            )
-                            : null,
+                    tileProvider: isMapTileCachingEnabled()
+                        ? FMTCTileProvider(
+                            stores: const {
+                              'mapStore': BrowseStoreStrategy.readUpdateCreate,
+                            },
+                          )
+                        : null,
                   ),
                   MarkerLayer(
                     markers: [

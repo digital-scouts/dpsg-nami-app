@@ -16,8 +16,12 @@ int? gruppierungId = getGruppierungId();
 String? gruppierungName = getGruppierungName();
 String cookie = getNamiApiCookie();
 
-Future<Mitglied> stufenwechsel(int memberId, Taetigkeit currentTaetigkeit,
-    Stufe nextStufe, DateTime stufenwechselDatum) async {
+Future<Mitglied> stufenwechsel(
+  int memberId,
+  Taetigkeit currentTaetigkeit,
+  Stufe nextStufe,
+  DateTime stufenwechselDatum,
+) async {
   Wiredash.trackEvent('Stufenwechsel wird durchgefuehrt');
   sensLog.i('Stufenwechsel für ${sensId(memberId)}');
   // erst die neue Tätigkeit anlegen und dann die alte Tätigkeit beenden
@@ -26,9 +30,13 @@ Future<Mitglied> stufenwechsel(int memberId, Taetigkeit currentTaetigkeit,
   return await updateOneMember(memberId);
 }
 
-Future<void> createTaetigkeit(int memberId, DateTime startDate,
-    String taetigkeitId, String untergliederungId,
-    {String? caeaGroup}) async {
+Future<void> createTaetigkeit(
+  int memberId,
+  DateTime startDate,
+  String taetigkeitId,
+  String untergliederungId, {
+  String? caeaGroup,
+}) async {
   String fullUrl =
       '$url$path/zugeordnete-taetigkeiten/filtered-for-navigation/gruppierung-mitglied/mitglied/$memberId';
   sensLog.i('Request: Erstelle Tätigkeit für ${sensId(memberId)}');
@@ -36,8 +44,9 @@ Future<void> createTaetigkeit(int memberId, DateTime startDate,
   if (gruppierungName == null || gruppierungId == null) {
     throw Exception('Parameter missing');
   }
-  String formattedStartDate =
-      DateFormat('yyyy-MM-ddTHH:mm:ss').format(startDate);
+  String formattedStartDate = DateFormat(
+    'yyyy-MM-ddTHH:mm:ss',
+  ).format(startDate);
   final headers = {'Cookie': cookie, 'Content-Type': 'application/json'};
   final body = jsonEncode({
     'gruppierung': gruppierungName,
@@ -47,13 +56,16 @@ Future<void> createTaetigkeit(int memberId, DateTime startDate,
     'taetigkeitId': taetigkeitId,
     'untergliederungId': untergliederungId,
     'caeaGroupId': caeaGroup,
-    'caeaGroupForGfId': caeaGroup
+    'caeaGroupForGfId': caeaGroup,
   });
 
   http.Response response;
   try {
-    response =
-        await http.post(Uri.parse(fullUrl), headers: headers, body: body);
+    response = await http.post(
+      Uri.parse(fullUrl),
+      headers: headers,
+      body: body,
+    );
     sensLog.i('Complete: Erstelle Tätigkeit für ${sensId(memberId)}');
   } catch (e) {
     throw Exception('Failed to create taetigkeit for ${sensId(memberId)}');
@@ -66,7 +78,10 @@ Future<void> createTaetigkeit(int memberId, DateTime startDate,
 }
 
 Future<void> completeTaetigkeit(
-    int memberId, Taetigkeit taetigkeit, DateTime endDate) async {
+  int memberId,
+  Taetigkeit taetigkeit,
+  DateTime endDate,
+) async {
   String fullUrl =
       '$url$path/zugeordnete-taetigkeiten/filtered-for-navigation/gruppierung-mitglied/mitglied/$memberId/${taetigkeit.id}';
   sensLog.i('Request: Complete Tätigkeit for ${sensId(memberId)}');
@@ -94,16 +109,19 @@ Future<void> completeTaetigkeit(
 Future<void> deleteTaetigkeit(int memberId, Taetigkeit taetigkeit) async {
   String fullUrl =
       '$url$path/zugeordnete-taetigkeiten/filtered-for-navigation/gruppierung-mitglied/mitglied/$memberId/${taetigkeit.id}';
-  sensLog
-      .i('Request: Delete Tätigkeit ${taetigkeit.id} für ${sensId(memberId)}');
+  sensLog.i(
+    'Request: Delete Tätigkeit ${taetigkeit.id} für ${sensId(memberId)}',
+  );
 
   try {
     await http.delete(Uri.parse(fullUrl), headers: {'Cookie': cookie});
     sensLog.i(
-        'Complete: Delete Tätigkeit ${taetigkeit.id} für ${sensId(memberId)}');
+      'Complete: Delete Tätigkeit ${taetigkeit.id} für ${sensId(memberId)}',
+    );
   } catch (e) {
     throw Exception(
-        'Failed to delete taetigkeit ${taetigkeit.id} for ${sensId(memberId)}');
+      'Failed to delete taetigkeit ${taetigkeit.id} for ${sensId(memberId)}',
+    );
   }
 
   /*
@@ -117,24 +135,34 @@ Future<void> deleteTaetigkeit(int memberId, Taetigkeit taetigkeit) async {
 }
 
 Future<void> createTaetigkeitForStufe(
-    int memberId, DateTime startDate, Stufe stufe) async {
+  int memberId,
+  DateTime startDate,
+  Stufe stufe,
+) async {
   int taetigkeitId = 1;
 
-  Map<int, String> untergliederungen =
-      await loadUntergliederungAufTaetigkeit(taetigkeitId);
+  Map<int, String> untergliederungen = await loadUntergliederungAufTaetigkeit(
+    taetigkeitId,
+  );
   int untergliederungId = untergliederungen.entries
       .firstWhere((element) => element.value == stufe.display)
       .key;
 
-  return createTaetigkeit(memberId, startDate, taetigkeitId.toString(),
-      untergliederungId.toString());
+  return createTaetigkeit(
+    memberId,
+    startDate,
+    taetigkeitId.toString(),
+    untergliederungId.toString(),
+  );
 }
 
 Future<Map<int, String>> loadTaetigkeitAufGruppierung() async {
   String fullUrl =
       '$url$path/taetigkeitaufgruppierung/filtered/gruppierung/gruppierung/$gruppierungId';
-  final response =
-      await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
+  final response = await http.get(
+    Uri.parse(fullUrl),
+    headers: {'Cookie': cookie},
+  );
 
   if (response.statusCode != 200 || !jsonDecode(response.body)['success']) {
     sensLog.e('Failed to load taetigkeiten.');
@@ -143,16 +171,20 @@ Future<Map<int, String>> loadTaetigkeitAufGruppierung() async {
   final data = jsonDecode(response.body)['data'];
   return Map<int, String>.fromEntries(
     data.map<MapEntry<int, String>>(
-        (item) => MapEntry<int, String>(item['id'], item['descriptor'])),
+      (item) => MapEntry<int, String>(item['id'], item['descriptor']),
+    ),
   );
 }
 
 Future<Map<int, String>> loadUntergliederungAufTaetigkeit(
-    int taetigkeit) async {
+  int taetigkeit,
+) async {
   String fullUrl =
       '$url$path/untergliederungauftaetigkeit/filtered/untergliederung/taetigkeit/$taetigkeit';
-  final response =
-      await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
+  final response = await http.get(
+    Uri.parse(fullUrl),
+    headers: {'Cookie': cookie},
+  );
 
   if (response.statusCode != 200 || !jsonDecode(response.body)['success']) {
     sensLog.e('Failed to load untergliederungen.');
@@ -162,7 +194,8 @@ Future<Map<int, String>> loadUntergliederungAufTaetigkeit(
 
   return Map<int, String>.fromEntries(
     data.map<MapEntry<int, String>>(
-        (item) => MapEntry<int, String>(item['id'], item['descriptor'])),
+      (item) => MapEntry<int, String>(item['id'], item['descriptor']),
+    ),
   );
 }
 
@@ -170,8 +203,10 @@ Future<Map<int, String>> loadUntergliederungAufTaetigkeit(
 Future<Map<int, String>> loadCaeaGroupAufTaetigkeit(String taetigkeit) async {
   String fullUrl =
       '$url$path/caea-group/filtered-for-navigation/taetigkeit/taetigkeit/$taetigkeit';
-  final response =
-      await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
+  final response = await http.get(
+    Uri.parse(fullUrl),
+    headers: {'Cookie': cookie},
+  );
 
   if (response.statusCode != 200 || !jsonDecode(response.body)['success']) {
     sensLog.e('Failed to load untergliederungen.');
@@ -180,6 +215,7 @@ Future<Map<int, String>> loadCaeaGroupAufTaetigkeit(String taetigkeit) async {
   final data = jsonDecode(response.body)['data'];
   return Map<int, String>.fromEntries(
     data.map<MapEntry<int, String>>(
-        (item) => MapEntry<int, String>(item['id'], item['descriptor'])),
+      (item) => MapEntry<int, String>(item['id'], item['descriptor']),
+    ),
   );
 }

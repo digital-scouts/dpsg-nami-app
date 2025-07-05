@@ -86,8 +86,8 @@ class AppStateHandler extends ChangeNotifier {
         await Navigator.push(
           navigatorKey.currentContext!,
           MaterialPageRoute(
-            builder:
-                (context) => NewVersionInfoScreen(currentVersion: appVersion),
+            builder: (context) =>
+                NewVersionInfoScreen(currentVersion: appVersion),
           ),
         );
         setNewVersionInfoShown(true);
@@ -215,11 +215,10 @@ class AppStateHandler extends ChangeNotifier {
                 builder: (BuildContext context) {
                   return ChooseGruppierungWidget(
                     gruppierungen: gruppierungProgressNotifier.value,
-                    onGruppierungSelected: (
-                      NamiGruppierungModel selectedGruppierung,
-                    ) {
-                      Navigator.of(context).pop(selectedGruppierung);
-                    },
+                    onGruppierungSelected:
+                        (NamiGruppierungModel selectedGruppierung) {
+                          Navigator.of(context).pop(selectedGruppierung);
+                        },
                   );
                 },
               );

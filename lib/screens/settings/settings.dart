@@ -92,26 +92,32 @@ class _SettingsState extends State<Settings> {
               Padding(
                 padding: const EdgeInsets.all(20.0),
                 child: FutureBuilder<(PackageInfo, String?)>(
-                  future: Future.wait([
-                    PackageInfo.fromPlatform(),
-                    getGitCommitId(),
-                  ]).then((results) {
-                    return (results[0] as PackageInfo, results[1] as String?);
-                  }),
-                  builder: (
-                    BuildContext context,
-                    AsyncSnapshot<(PackageInfo, String?)> snapshot,
-                  ) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const CircularProgressIndicator();
-                    } else {
-                      final String version =
-                          snapshot.data?.$1.version ?? 'Unknown';
-                      final String commitId =
-                          snapshot.data?.$2?.substring(0, 8) ?? 'Unknown';
-                      return Text('Version: $version | Commit: $commitId');
-                    }
-                  },
+                  future:
+                      Future.wait([
+                        PackageInfo.fromPlatform(),
+                        getGitCommitId(),
+                      ]).then((results) {
+                        return (
+                          results[0] as PackageInfo,
+                          results[1] as String?,
+                        );
+                      }),
+                  builder:
+                      (
+                        BuildContext context,
+                        AsyncSnapshot<(PackageInfo, String?)> snapshot,
+                      ) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const CircularProgressIndicator();
+                        } else {
+                          final String version =
+                              snapshot.data?.$1.version ?? 'Unknown';
+                          final String commitId =
+                              snapshot.data?.$2?.substring(0, 8) ?? 'Unknown';
+                          return Text('Version: $version | Commit: $commitId');
+                        }
+                      },
                 ),
               ),
             ],

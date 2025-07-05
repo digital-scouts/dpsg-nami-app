@@ -8,21 +8,25 @@ class DataChangesService {
 
   DataChangesService();
 
-  Future<void> addDataChangeEntry(int id,
-      {List<String> changedFields = const [],
-      DataChangeAction action = DataChangeAction.unknown}) async {
+  Future<void> addDataChangeEntry(
+    int id, {
+    List<String> changedFields = const [],
+    DataChangeAction action = DataChangeAction.unknown,
+  }) async {
     sensLog.i('IDS from latest change: $id');
     final entry = DataChange(
-        id: id,
-        changeDate: DateTime.now(),
-        gruppierung: getGruppierungId() ?? 0,
-        action: action.value,
-        changedFields: changedFields);
+      id: id,
+      changeDate: DateTime.now(),
+      gruppierung: getGruppierungId() ?? 0,
+      action: action.value,
+      changedFields: changedFields,
+    );
     await _box.add(entry);
   }
 
-  List<DataChange> getLatestEntry(
-      {Duration duration = const Duration(minutes: 1)}) {
+  List<DataChange> getLatestEntry({
+    Duration duration = const Duration(minutes: 1),
+  }) {
     var now = DateTime.now();
     return getEntriesInRange(now.subtract(duration), now);
   }

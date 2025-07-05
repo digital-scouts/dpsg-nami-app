@@ -11,11 +11,12 @@ import 'package:nami/utilities/hive/settings.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class HomeDrawer extends StatefulWidget {
-  const HomeDrawer(
-      {super.key,
-      this.screenIndex,
-      this.iconAnimationController,
-      this.callBackIndex});
+  const HomeDrawer({
+    super.key,
+    this.screenIndex,
+    this.iconAnimationController,
+    this.callBackIndex,
+  });
 
   final AnimationController? iconAnimationController;
   final DrawerIndex? screenIndex;
@@ -108,7 +109,8 @@ class HomeDrawerState extends State<HomeDrawer> {
                   leading: const Icon(Icons.payment),
                   title: const Text('Paypal Spenden'),
                   onTap: () => _launchURL(
-                      'https://www.paypal.com/donate/?hosted_button_id=5YJVWMBN72G3A'),
+                    'https://www.paypal.com/donate/?hosted_button_id=5YJVWMBN72G3A',
+                  ),
                 ),
               if (!Platform.isIOS)
                 ListTile(
@@ -122,7 +124,8 @@ class HomeDrawerState extends State<HomeDrawer> {
                   leading: const Icon(Icons.web),
                   title: const Text('Neuigkeiten'),
                   onTap: () => _launchURL(
-                      'https://digital-scouts.github.io/dpsg-nami-app/'),
+                    'https://digital-scouts.github.io/dpsg-nami-app/',
+                  ),
                 ),
               if (_isReviewAvailable)
                 ListTile(
@@ -164,8 +167,9 @@ class HomeDrawerState extends State<HomeDrawer> {
 
     Mitglied? user;
     try {
-      user = memberBox.values
-          .firstWhere((member) => member.mitgliedsNummer == getNamiLoginId());
+      user = memberBox.values.firstWhere(
+        (member) => member.mitgliedsNummer == getNamiLoginId(),
+      );
     } catch (_) {}
 
     return Scaffold(
@@ -209,13 +213,8 @@ class HomeDrawerState extends State<HomeDrawer> {
               ),
             ),
           ),
-          const SizedBox(
-            height: 4,
-          ),
-          Divider(
-            height: 1,
-            color: Theme.of(context).dividerColor,
-          ),
+          const SizedBox(height: 4),
+          Divider(height: 1, color: Theme.of(context).dividerColor),
           Expanded(
             child: ListView.builder(
               physics: const BouncingScrollPhysics(),
@@ -234,16 +233,11 @@ class HomeDrawerState extends State<HomeDrawer> {
           const Center(
             child: Text(
               'Entwickelt mit ❤️ in Hamburg',
-              style: TextStyle(
-                fontSize: 14,
-              ),
+              style: TextStyle(fontSize: 14),
             ),
           ),
           const SizedBox(height: 8),
-          Divider(
-            height: 1,
-            color: Theme.of(context).dividerColor,
-          ),
+          Divider(height: 1, color: Theme.of(context).dividerColor),
           Column(
             children: <Widget>[
               ListTile(
@@ -260,9 +254,7 @@ class HomeDrawerState extends State<HomeDrawer> {
                   AppStateHandler().setLoggedOutState();
                 },
               ),
-              SizedBox(
-                height: MediaQuery.of(context).padding.bottom,
-              )
+              SizedBox(height: MediaQuery.of(context).padding.bottom),
             ],
           ),
         ],
@@ -302,9 +294,7 @@ class HomeDrawerState extends State<HomeDrawer> {
                   //   ),
                   // ),
                 ),
-                const Padding(
-                  padding: EdgeInsets.all(4.0),
-                ),
+                const Padding(padding: EdgeInsets.all(4.0)),
                 listData.isAssetsImage
                     ? SizedBox(
                         width: 24,
@@ -314,10 +304,7 @@ class HomeDrawerState extends State<HomeDrawer> {
                           color: itemColor,
                         ),
                       )
-                    : Icon(
-                        listData.icon?.icon,
-                        color: itemColor,
-                      ),
+                    : Icon(listData.icon?.icon, color: itemColor),
                 const Padding(padding: EdgeInsets.all(4.0)),
                 Text(
                   listData.labelName,
@@ -337,12 +324,11 @@ class HomeDrawerState extends State<HomeDrawer> {
                   builder: (BuildContext context, Widget? child) {
                     return Transform(
                       transform: Matrix4.translationValues(
-                          (MediaQuery.of(context).size.width * 0.75 - 64) *
-                              (1.0 -
-                                  widget.iconAnimationController!.value -
-                                  1.0),
-                          0.0,
-                          0.0),
+                        (MediaQuery.of(context).size.width * 0.75 - 64) *
+                            (1.0 - widget.iconAnimationController!.value - 1.0),
+                        0.0,
+                        0.0,
+                      ),
                       child: Padding(
                         padding: const EdgeInsets.only(top: 8, bottom: 8),
                         child: Container(
@@ -362,7 +348,7 @@ class HomeDrawerState extends State<HomeDrawer> {
                     );
                   },
                 )
-              : const SizedBox()
+              : const SizedBox(),
         ],
       ),
     );

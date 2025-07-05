@@ -23,8 +23,9 @@ class StatistikScreen extends StatefulWidget {
 
 class StatistikScreenState extends State<StatistikScreen> {
   Box<Mitglied> memberBox = Hive.box<Mitglied>('members');
-  List<Mitglied> mitglieder =
-      Hive.box<Mitglied>('members').values.toList().cast<Mitglied>();
+  List<Mitglied> mitglieder = Hive.box<Mitglied>(
+    'members',
+  ).values.toList().cast<Mitglied>();
   StatistikType selectedType = StatistikType.stufen;
   @override
   void initState() {
@@ -37,9 +38,7 @@ class StatistikScreenState extends State<StatistikScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Center(child: Text('Statistiken')),
-      ),
+      appBar: AppBar(title: const Center(child: Text('Statistiken'))),
       body: ListView(
         padding: const EdgeInsets.all(8),
         children: [
@@ -63,7 +62,7 @@ class StatistikScreenState extends State<StatistikScreen> {
                         });
                       }
                     },
-                  )
+                  ),
               ],
             ),
           ),

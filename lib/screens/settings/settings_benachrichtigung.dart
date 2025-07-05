@@ -75,10 +75,9 @@ class _SettingsBenachrichtigungState extends State<SettingsBenachrichtigung> {
             (stufe) => CheckboxListTile(
               title: Text(stufe.shortDisplay),
               value: _selectedStufen.contains(stufe),
-              onChanged:
-                  _benachrichtigungenActive
-                      ? (val) => _onStufeChanged(stufe, val ?? false)
-                      : null,
+              onChanged: _benachrichtigungenActive
+                  ? (val) => _onStufeChanged(stufe, val ?? false)
+                  : null,
             ),
           ),
           const Divider(height: 1),

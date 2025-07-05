@@ -11,10 +11,7 @@ import 'package:nami/utilities/nami/nami_login.service.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-const kHintTextStyle = TextStyle(
-  color: Colors.white54,
-  fontFamily: 'OpenSans',
-);
+const kHintTextStyle = TextStyle(color: Colors.white54, fontFamily: 'OpenSans');
 
 const kLabelStyle = TextStyle(
   color: Colors.white,
@@ -85,10 +82,7 @@ class LoginScreenState extends State<LoginScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        const Text(
-          'Mitgliednummer',
-          style: kLabelStyle,
-        ),
+        const Text('Mitgliednummer', style: kLabelStyle),
         const SizedBox(height: 10.0),
         Container(
           alignment: Alignment.centerLeft,
@@ -128,17 +122,11 @@ class LoginScreenState extends State<LoginScreen> {
             textInputAction: TextInputAction.next,
             keyboardType: TextInputType.number,
             autofillHints: const [AutofillHints.username],
-            style: const TextStyle(
-              color: Colors.white,
-              fontFamily: 'OpenSans',
-            ),
+            style: const TextStyle(color: Colors.white, fontFamily: 'OpenSans'),
             decoration: const InputDecoration(
               border: InputBorder.none,
               contentPadding: EdgeInsets.only(top: 14.0),
-              prefixIcon: Icon(
-                Icons.account_box,
-                color: Colors.white,
-              ),
+              prefixIcon: Icon(Icons.account_box, color: Colors.white),
               hintText: 'Mitgliednummer eingeben',
               hintStyle: kHintTextStyle,
             ),
@@ -152,10 +140,7 @@ class LoginScreenState extends State<LoginScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        const Text(
-          'Password',
-          style: kLabelStyle,
-        ),
+        const Text('Password', style: kLabelStyle),
         const SizedBox(height: 10.0),
         Container(
           alignment: Alignment.centerLeft,
@@ -181,17 +166,11 @@ class LoginScreenState extends State<LoginScreen> {
             onSubmitted: (_) => loginButtonPressed(),
             obscureText: !_isPasswordVisible,
             autofillHints: const [AutofillHints.password],
-            style: const TextStyle(
-              color: Colors.white,
-              fontFamily: 'OpenSans',
-            ),
+            style: const TextStyle(color: Colors.white, fontFamily: 'OpenSans'),
             decoration: InputDecoration(
               border: InputBorder.none,
               contentPadding: const EdgeInsets.only(top: 14.0),
-              prefixIcon: const Icon(
-                Icons.lock,
-                color: Colors.white,
-              ),
+              prefixIcon: const Icon(Icons.lock, color: Colors.white),
               suffixIcon: IconButton(
                 icon: Icon(
                   _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
@@ -216,12 +195,12 @@ class LoginScreenState extends State<LoginScreen> {
     return Container(
       alignment: Alignment.centerRight,
       child: TextButton(
-        onPressed: () => launchUrl(Uri.parse(
-            ('https://nami.dpsg.de/ica/pages/access/forgotPassword.jsp'))),
-        child: const Text(
-          'Passwort vergessen?',
-          style: kLabelStyle,
+        onPressed: () => launchUrl(
+          Uri.parse(
+            ('https://nami.dpsg.de/ica/pages/access/forgotPassword.jsp'),
+          ),
         ),
+        child: const Text('Passwort vergessen?', style: kLabelStyle),
       ),
     );
   }
@@ -245,10 +224,7 @@ class LoginScreenState extends State<LoginScreen> {
               },
             ),
           ),
-          const Text(
-            "Daten speichern",
-            style: kLabelStyle,
-          ),
+          const Text("Daten speichern", style: kLabelStyle),
         ],
       ),
     );
@@ -310,7 +286,8 @@ class LoginScreenState extends State<LoginScreen> {
     return InkWell(
       onTap: () {
         launchUrl(
-            Uri.parse(('https://nami.dpsg.de/ica/pages/requestLogin.jsp')));
+          Uri.parse(('https://nami.dpsg.de/ica/pages/requestLogin.jsp')),
+        );
       },
       child: RichText(
         text: const TextSpan(
@@ -416,7 +393,7 @@ class LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                 ),
-              )
+              ),
             ],
           ),
         ),

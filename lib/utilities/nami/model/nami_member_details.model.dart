@@ -179,12 +179,7 @@ class Kontoverbindung {
   String? bic;
   String? kontoinhaber;
 
-  Kontoverbindung({
-    this.institut,
-    this.iban,
-    this.bic,
-    this.kontoinhaber,
-  });
+  Kontoverbindung({this.institut, this.iban, this.bic, this.kontoinhaber});
 
   factory Kontoverbindung.fromJson(Map<String, dynamic> json) {
     return Kontoverbindung(

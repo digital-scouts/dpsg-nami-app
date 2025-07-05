@@ -31,8 +31,9 @@ Future<String?> getGitCommitId() async {
 
     if (head.startsWith('ref: ')) {
       final branchName = head.split('ref: refs/heads/').last.trim();
-      return (await rootBundle.loadString('.gitlink/refs/heads/$branchName'))
-          .trim();
+      return (await rootBundle.loadString(
+        '.gitlink/refs/heads/$branchName',
+      )).trim();
     } else {
       return head;
     }
@@ -59,18 +60,21 @@ Future<void> openWiredash(BuildContext context, String feedbackType) async {
   Mitglied? user;
   String gitInfo = await getGitCommitId() ?? 'unknown';
   try {
-    user = memberBox.values
-        .firstWhere((member) => member.mitgliedsNummer == getNamiLoginId());
+    user = memberBox.values.firstWhere(
+      (member) => member.mitgliedsNummer == getNamiLoginId(),
+    );
   } catch (_) {}
 
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    Wiredash.of(context).modifyMetaData((metaData) => metaData
-      ..custom['type'] = feedbackType
-      ..custom['gitCommitId'] = gitInfo
-      ..custom['userNamiLoginId'] = sensId(getNamiLoginId()!)
-      ..custom['user'] = '${user?.vorname} ${user?.nachname}'
-      ..custom['userStatus'] = '${user?.status}'
-      ..custom['gruppierungName'] = getGruppierungName());
+    Wiredash.of(context).modifyMetaData(
+      (metaData) => metaData
+        ..custom['type'] = feedbackType
+        ..custom['gitCommitId'] = gitInfo
+        ..custom['userNamiLoginId'] = sensId(getNamiLoginId()!)
+        ..custom['user'] = '${user?.vorname} ${user?.nachname}'
+        ..custom['userStatus'] = '${user?.status}'
+        ..custom['gruppierungName'] = getGruppierungName(),
+    );
 
     Wiredash.of(context).show(inheritMaterialTheme: true);
   });

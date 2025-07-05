@@ -15,27 +15,30 @@ class GroupBarChart extends StatefulWidget {
 
 class GroupBarChartState extends State<GroupBarChart> {
   Map<Stufe, GroupData> getMemberPerGroup() {
-    return widget.mitglieder.fold<Map<Stufe, GroupData>>({
-      for (var stufe in [
-        Stufe.BIBER,
-        Stufe.WOELFLING,
-        Stufe.JUNGPADFINDER,
-        Stufe.PFADFINDER,
-        Stufe.ROVER,
-        Stufe.KEINE_STUFE
-      ])
-        stufe: GroupData(0, 0),
-    }, (map, member) {
-      final stufe = member.currentStufeWithoutLeiter;
+    return widget.mitglieder.fold<Map<Stufe, GroupData>>(
+      {
+        for (var stufe in [
+          Stufe.BIBER,
+          Stufe.WOELFLING,
+          Stufe.JUNGPADFINDER,
+          Stufe.PFADFINDER,
+          Stufe.ROVER,
+          Stufe.KEINE_STUFE,
+        ])
+          stufe: GroupData(0, 0),
+      },
+      (map, member) {
+        final stufe = member.currentStufeWithoutLeiter;
 
-      if (member.isMitgliedLeiter()) {
-        map[stufe]!.leiter += 1;
-      } else {
-        map[stufe]!.mitglied += 1;
-      }
+        if (member.isMitgliedLeiter()) {
+          map[stufe]!.leiter += 1;
+        } else {
+          map[stufe]!.mitglied += 1;
+        }
 
-      return map;
-    });
+        return map;
+      },
+    );
   }
 
   int findHighestValue(Map<Stufe, GroupData> data) {
@@ -142,15 +145,16 @@ class GroupBarChartState extends State<GroupBarChart> {
     }
     return SideTitleWidget(
       meta: meta,
-      child: Text(
-        text,
-        style: Theme.of(context).textTheme.bodySmall,
-      ),
+      child: Text(text, style: Theme.of(context).textTheme.bodySmall),
     );
   }
 
   BarChartGroupData createGroupData(
-      int x, double leaderCount, double memberCount, Color color) {
+    int x,
+    double leaderCount,
+    double memberCount,
+    Color color,
+  ) {
     const leaderColor = Colors.yellow;
     const betweenSpace = 0.2;
 
@@ -189,70 +193,78 @@ class GroupBarChartState extends State<GroupBarChart> {
         .where((mitglied) => mitglied.currentStufe == Stufe.LEITER)
         .toList();
     final aktiveMitglieder = widget.mitglieder
-        .where((mitglied) =>
-            mitglied.currentStufe != Stufe.LEITER &&
-            mitglied.currentStufe != Stufe.KEINE_STUFE)
+        .where(
+          (mitglied) =>
+              mitglied.currentStufe != Stufe.LEITER &&
+              mitglied.currentStufe != Stufe.KEINE_STUFE,
+        )
         .toList();
     final data = createData();
-    return Column(children: [
-      AspectRatio(
-        aspectRatio: 6 / 4,
-        child: BarChart(
-          BarChartData(
-            alignment: BarChartAlignment.spaceBetween,
-            barTouchData: BarTouchData(
-              enabled: false,
-              touchTooltipData: BarTouchTooltipData(
-                getTooltipColor: (_) => Colors.transparent,
-                tooltipPadding: EdgeInsets.zero,
-                tooltipMargin: -23,
-                getTooltipItem: (
-                  BarChartGroupData group,
-                  int groupIndex,
-                  BarChartRodData rod,
-                  int rodIndex,
-                ) {
-                  final count = (rod.toY - rod.fromY).round();
-                  if (count == 0) {
-                    return null;
-                  }
-                  return BarTooltipItem(
-                    "$count",
-                    TextStyle(
-                      color: rod.toY >=
-                              1 // Color text on bar different that on surface
-                          ? Colors.black
-                          : Theme.of(context).colorScheme.onSurface,
-                    ),
-                  );
-                },
-              ),
-            ),
-            titlesData: FlTitlesData(
-              leftTitles: const AxisTitles(),
-              rightTitles: const AxisTitles(),
-              topTitles: const AxisTitles(),
-              bottomTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  getTitlesWidget: bottomTitles,
-                  reservedSize: 25,
+    return Column(
+      children: [
+        AspectRatio(
+          aspectRatio: 6 / 4,
+          child: BarChart(
+            BarChartData(
+              alignment: BarChartAlignment.spaceBetween,
+              barTouchData: BarTouchData(
+                enabled: false,
+                touchTooltipData: BarTouchTooltipData(
+                  getTooltipColor: (_) => Colors.transparent,
+                  tooltipPadding: EdgeInsets.zero,
+                  tooltipMargin: -23,
+                  getTooltipItem:
+                      (
+                        BarChartGroupData group,
+                        int groupIndex,
+                        BarChartRodData rod,
+                        int rodIndex,
+                      ) {
+                        final count = (rod.toY - rod.fromY).round();
+                        if (count == 0) {
+                          return null;
+                        }
+                        return BarTooltipItem(
+                          "$count",
+                          TextStyle(
+                            color:
+                                rod.toY >=
+                                    1 // Color text on bar different that on surface
+                                ? Colors.black
+                                : Theme.of(context).colorScheme.onSurface,
+                          ),
+                        );
+                      },
                 ),
               ),
+              titlesData: FlTitlesData(
+                leftTitles: const AxisTitles(),
+                rightTitles: const AxisTitles(),
+                topTitles: const AxisTitles(),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    getTitlesWidget: bottomTitles,
+                    reservedSize: 25,
+                  ),
+                ),
+              ),
+              borderData: FlBorderData(show: false),
+              gridData: const FlGridData(show: false),
+              barGroups: data,
             ),
-            borderData: FlBorderData(show: false),
-            gridData: const FlGridData(show: false),
-            barGroups: data,
           ),
         ),
-      ),
-      const SizedBox(height: 10),
-      Text('Gesamtanzahl aktive Mitglieder: ${summAktiveMitglieder.length}'),
-      Text(
-          '(Gruppenkinder: ${aktiveMitglieder.length} | Leitende: ${leitende.length} | Sonstige: ${summAktiveMitglieder.length - aktiveMitglieder.length - leitende.length})'),
-      Text(
-          'Inaktive Mitglieder: ${widget.mitglieder.length - summAktiveMitglieder.length}'),
-    ]);
+        const SizedBox(height: 10),
+        Text('Gesamtanzahl aktive Mitglieder: ${summAktiveMitglieder.length}'),
+        Text(
+          '(Gruppenkinder: ${aktiveMitglieder.length} | Leitende: ${leitende.length} | Sonstige: ${summAktiveMitglieder.length - aktiveMitglieder.length - leitende.length})',
+        ),
+        Text(
+          'Inaktive Mitglieder: ${widget.mitglieder.length - summAktiveMitglieder.length}',
+        ),
+      ],
+    );
   }
 }
 

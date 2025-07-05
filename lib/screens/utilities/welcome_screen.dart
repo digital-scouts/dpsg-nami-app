@@ -44,24 +44,22 @@ class WelcomeScreen extends StatelessWidget {
                   children: [
                     StufenwechelDatumSetting(),
                     StammHeimSetting(),
-                    NamiChangeToggle(showEditIcon: false)
+                    NamiChangeToggle(showEditIcon: false),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 20),
-            const NotificationTestWidget(
-              initialMessage: true,
-            ),
+            const NotificationTestWidget(initialMessage: true),
             const SizedBox(height: 40),
             FilledButton.icon(
               onPressed: () => {
                 BirthdayNotificationService.requestPermissions(),
-                Navigator.pop(context)
+                Navigator.pop(context),
               },
               icon: const Icon(Icons.check),
               label: const Text("Los geht´s!"),
-            )
+            ),
           ],
         ),
       ),

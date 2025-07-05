@@ -81,8 +81,8 @@ class _SettingsDebugState extends State<SettingsDebug> {
           // ignore: use_build_context_synchronously
           context,
           MaterialPageRoute(
-            builder:
-                (context) => NewVersionInfoScreen(currentVersion: appVersion),
+            builder: (context) =>
+                NewVersionInfoScreen(currentVersion: appVersion),
           ),
         );
       },

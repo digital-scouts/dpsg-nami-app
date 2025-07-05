@@ -4,10 +4,7 @@ import 'package:nami/utilities/notifications/birthday_notifications.dart';
 class NotificationTestWidget extends StatefulWidget {
   final bool initialMessage;
 
-  const NotificationTestWidget({
-    super.key,
-    this.initialMessage = false,
-  });
+  const NotificationTestWidget({super.key, this.initialMessage = false});
 
   @override
   State<NotificationTestWidget> createState() => _NotificationTestWidgetState();

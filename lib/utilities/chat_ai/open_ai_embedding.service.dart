@@ -24,13 +24,17 @@ class OpenAIEmbeddingService {
     );
 
     final responseData = jsonDecode(utf8.decode(response.bodyBytes));
-    Wiredash.trackEvent('AI Question Embedding', data: {
-      'tokens': responseData["usage"]["total_tokens"],
-      'text': text,
-      'model': 'text-embedding-ada-002'
-    });
+    Wiredash.trackEvent(
+      'AI Question Embedding',
+      data: {
+        'tokens': responseData["usage"]["total_tokens"],
+        'text': text,
+        'model': 'text-embedding-ada-002',
+      },
+    );
     debugPrint(
-        'Tokens used for embedding ${responseData["usage"]["total_tokens"]}');
+      'Tokens used for embedding ${responseData["usage"]["total_tokens"]}',
+    );
     return List<double>.from(responseData["data"][0]["embedding"]);
   }
 }

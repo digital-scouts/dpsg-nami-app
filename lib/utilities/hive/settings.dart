@@ -36,33 +36,38 @@ enum SettingValue {
   themeMode,
   isTestDevice,
   geburtstagsbenachrichtungen,
-  benachrichtigungenActive
+  benachrichtigungenActive,
 }
 
-enum GeburtstagsbenachrichtigungenGruppen {
-  favouriten,
-}
+enum GeburtstagsbenachrichtigungenGruppen { favouriten }
 
 void setMetaData(
-    Map<String, String> geschlecht,
-    Map<String, String> land,
-    Map<String, String> region,
-    Map<String, String> beitragsart,
-    Map<String, String> staatsangehoerigkeit,
-    Map<String, String> mitgliedstyp,
-    Map<String, String> konfession,
-    Map<String, String> ersteTaetigkeit) {
+  Map<String, String> geschlecht,
+  Map<String, String> land,
+  Map<String, String> region,
+  Map<String, String> beitragsart,
+  Map<String, String> staatsangehoerigkeit,
+  Map<String, String> mitgliedstyp,
+  Map<String, String> konfession,
+  Map<String, String> ersteTaetigkeit,
+) {
   settingsBox.put(SettingValue.metaGeschechtOptions.toString(), geschlecht);
   settingsBox.put(SettingValue.metaLandOptions.toString(), land);
   settingsBox.put(SettingValue.metaBeitragsartOptions.toString(), beitragsart);
   settingsBox.put(SettingValue.metaRegionOptions.toString(), region);
-  settingsBox.put(SettingValue.metaStaatsangehoerigkeitOptions.toString(),
-      staatsangehoerigkeit);
   settingsBox.put(
-      SettingValue.metaMitgliedstypOptions.toString(), mitgliedstyp);
+    SettingValue.metaStaatsangehoerigkeitOptions.toString(),
+    staatsangehoerigkeit,
+  );
+  settingsBox.put(
+    SettingValue.metaMitgliedstypOptions.toString(),
+    mitgliedstyp,
+  );
   settingsBox.put(SettingValue.metaKonfessionOptions.toString(), konfession);
   settingsBox.put(
-      SettingValue.metaErsteTaetigkeitOptions.toString(), ersteTaetigkeit);
+    SettingValue.metaErsteTaetigkeitOptions.toString(),
+    ersteTaetigkeit,
+  );
 }
 
 Box get settingsBox => Hive.box('settingsBox');
@@ -96,8 +101,10 @@ Map<String, String> getMetaRegionOptions() {
 }
 
 Map<String, String> getMetaStaatsangehoerigkeitOptions() {
-  final dynamicMap = settingsBox
-          .get(SettingValue.metaStaatsangehoerigkeitOptions.toString()) ??
+  final dynamicMap =
+      settingsBox.get(
+        SettingValue.metaStaatsangehoerigkeitOptions.toString(),
+      ) ??
       {};
   return Map<String, String>.from(dynamicMap);
 }
@@ -125,8 +132,9 @@ List<int> getFavouriteList() {
 }
 
 bool getBiometricAuthenticationEnabled() {
-  return settingsBox
-          .get(SettingValue.biometricAuthenticationEnabled.toString()) ??
+  return settingsBox.get(
+        SettingValue.biometricAuthenticationEnabled.toString(),
+      ) ??
       false;
 }
 
@@ -223,7 +231,9 @@ void setDataLoadingOverWifiOnly(bool value) {
 
 void setBiometricAuthenticationEnabled(bool value) {
   settingsBox.put(
-      SettingValue.biometricAuthenticationEnabled.toString(), value);
+    SettingValue.biometricAuthenticationEnabled.toString(),
+    value,
+  );
 }
 
 void setRechte(List<int> rechte) {
@@ -378,20 +388,22 @@ void setGeburtstagsbenachrichtigungenGruppen(List<Stufe> value) {
   List<int> gruppenIndices = value.map((e) => e.index).toList();
 
   settingsBox.put(
-      SettingValue.geburtstagsbenachrichtungen.toString(), gruppenIndices);
+    SettingValue.geburtstagsbenachrichtungen.toString(),
+    gruppenIndices,
+  );
 }
 
 List<Stufe> getGeburtstagsbenachrichtigungenGruppen() {
   final dynamicList =
       settingsBox.get(SettingValue.geburtstagsbenachrichtungen.toString()) ??
-          [
-            Stufe.BIBER.index,
-            Stufe.WOELFLING.index,
-            Stufe.JUNGPADFINDER.index,
-            Stufe.PFADFINDER.index,
-            Stufe.ROVER.index,
-            Stufe.LEITER.index
-          ];
+      [
+        Stufe.BIBER.index,
+        Stufe.WOELFLING.index,
+        Stufe.JUNGPADFINDER.index,
+        Stufe.PFADFINDER.index,
+        Stufe.ROVER.index,
+        Stufe.LEITER.index,
+      ];
   // Stelle sicher, dass dynamicList eine List<int> ist
   final List<int> indices = List<int>.from(dynamicList);
   return indices

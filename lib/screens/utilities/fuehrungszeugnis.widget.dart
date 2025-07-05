@@ -39,10 +39,13 @@ class _FuehrungszeugnisWidgetsState extends State<FuehrungszeugnisWidgets> {
 
       OpenFile.open(file.path);
     } on NamiServerException catch (_) {
-      scaffoldMessenger.showSnackBar(const SnackBar(
-        content: Text(
-            'Serverfehler. Möglicherweise fehlt die Berechtigung zum laden der Antragsunterlagen.'),
-      ));
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Serverfehler. Möglicherweise fehlt die Berechtigung zum laden der Antragsunterlagen.',
+          ),
+        ),
+      );
     } finally {
       setState(() => loadingAntrag = false);
     }
@@ -67,8 +70,9 @@ class _FuehrungszeugnisWidgetsState extends State<FuehrungszeugnisWidgets> {
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () async {
-                      if (await AppStateHandler()
-                          .setReloginState(showDialog: false)) {
+                      if (await AppStateHandler().setReloginState(
+                        showDialog: false,
+                      )) {
                         sessionFailed = false;
                         documentsFuture = loadFzDocumenets();
                       }
@@ -93,20 +97,24 @@ class _FuehrungszeugnisWidgetsState extends State<FuehrungszeugnisWidgets> {
                   title: Text('Bescheinigung (${doc.fzNummer})'),
                   isThreeLine: true,
                   subtitle: Text(
-                      'Bescheinigung von: ${doc.erstelltAm.prettyPrint()}\nFührungszeugnis von: ${doc.fzDatum.prettyPrint()}'),
+                    'Bescheinigung von: ${doc.erstelltAm.prettyPrint()}\nFührungszeugnis von: ${doc.fzDatum.prettyPrint()}',
+                  ),
                   onTap: () {
-                    Wiredash.trackEvent('Führungszeugnis',
-                        data: {'type': 'Bescheinigung laden'});
+                    Wiredash.trackEvent(
+                      'Führungszeugnis',
+                      data: {'type': 'Bescheinigung laden'},
+                    );
                     loadFzDocument(doc.id).then((pdfData) async {
                       final output = await getTemporaryDirectory();
                       final file = File(
-                          "${output.path}/dpsg-fz-bescheinigung_${doc.fzNummer}.pdf");
+                        "${output.path}/dpsg-fz-bescheinigung_${doc.fzNummer}.pdf",
+                      );
                       await file.writeAsBytes(pdfData, flush: true);
 
                       OpenFile.open(file.path);
                     });
                   },
-                )
+                ),
             ],
           ),
         );
@@ -129,10 +137,9 @@ class _FuehrungszeugnisWidgetsState extends State<FuehrungszeugnisWidgets> {
             onTap: loadAntrag,
             child: Text(
               "Antragsunterlagen laden",
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyLarge!
-                  .copyWith(color: Colors.blue),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge!.copyWith(color: Colors.blue),
             ),
           ),
         const SizedBox(height: 8),

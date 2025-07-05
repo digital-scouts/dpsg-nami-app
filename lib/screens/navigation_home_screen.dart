@@ -72,14 +72,18 @@ class NavigationHomeScreenState extends State<NavigationHomeScreen> {
         setState(() {
           screenView = const MitgliedsListe();
         });
-        Wiredash.trackEvent('Change drawner index',
-            data: {'page': 'Mitgliederliste'});
+        Wiredash.trackEvent(
+          'Change drawner index',
+          data: {'page': 'Mitgliederliste'},
+        );
       } else if (drawerIndex == DrawerIndex.stats) {
         setState(() {
           screenView = const StatistikScreen();
         });
-        Wiredash.trackEvent('Change drawner index',
-            data: {'page': 'StatistikScreen'});
+        Wiredash.trackEvent(
+          'Change drawner index',
+          data: {'page': 'StatistikScreen'},
+        );
       } else if (drawerIndex == DrawerIndex.settings) {
         setState(() {
           screenView = const Settings();
@@ -89,8 +93,10 @@ class NavigationHomeScreenState extends State<NavigationHomeScreen> {
         setState(() {
           screenView = const MeineStufe();
         });
-        Wiredash.trackEvent('Change drawner index',
-            data: {'page': 'MeineStufe'});
+        Wiredash.trackEvent(
+          'Change drawner index',
+          data: {'page': 'MeineStufe'},
+        );
       } else if (drawerIndex == DrawerIndex.profil) {
         setState(() {
           screenView = const Profil();

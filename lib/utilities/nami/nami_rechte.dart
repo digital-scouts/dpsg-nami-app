@@ -147,8 +147,9 @@ Future<Map<int, String>> _loadRechteJson(int id) async {
   dynamic document = await _loadDocument(id);
 
   // Finden Sie das relevante <script>-Tags
-  final scriptContent =
-      document.querySelector('script:not([src]):not([href])')?.innerHtml;
+  final scriptContent = document
+      .querySelector('script:not([src]):not([href])')
+      ?.innerHtml;
 
   if (scriptContent == null) {
     sensLog.w('Kein relevantes <script>-Tag gefunden.');

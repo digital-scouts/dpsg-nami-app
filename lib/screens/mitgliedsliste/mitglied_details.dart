@@ -70,18 +70,16 @@ class MitgliedDetailState extends State<MitgliedDetail>
           stufen.contains(taetigkeit.untergliederung) &&
           (taetigkeit.taetigkeit.contains('Leiter') ||
               taetigkeit.taetigkeit.contains('Mitglied'))) {
-        String stufe =
-            taetigkeit.taetigkeit.contains('Leiter')
-                ? 'LeiterIn - ${taetigkeit.untergliederung}'
-                : 'Mitglied - ${taetigkeit.untergliederung}';
+        String stufe = taetigkeit.taetigkeit.contains('Leiter')
+            ? 'LeiterIn - ${taetigkeit.untergliederung}'
+            : 'Mitglied - ${taetigkeit.untergliederung}';
         int sum = tageProStufe[stufe] ?? 0;
 
-        int activeDays =
-            (taetigkeit.isActive()
-                ? DateTime.now().difference(taetigkeit.aktivVon).inDays
-                : taetigkeit.isFutureTaetigkeit()
-                ? 0
-                : taetigkeit.aktivBis!.difference(taetigkeit.aktivVon).inDays);
+        int activeDays = (taetigkeit.isActive()
+            ? DateTime.now().difference(taetigkeit.aktivVon).inDays
+            : taetigkeit.isFutureTaetigkeit()
+            ? 0
+            : taetigkeit.aktivBis!.difference(taetigkeit.aktivVon).inDays);
         tageProStufe[stufe] = sum + activeDays;
         if (taetigkeit.taetigkeit.contains('Leiter')) {
           tageAlsLeiter += activeDays;
@@ -97,10 +95,9 @@ class MitgliedDetailState extends State<MitgliedDetail>
     int pfadfinderTage = widget.mitglied.activeDays;
     if (pfadfinderTage >= 365) {
       int jahre = (pfadfinderTage / 365).floor();
-      dauerText =
-          jahre > 1
-              ? '$jahre aktive Pfadfinderjahre'
-              : 'Ein aktives Pfadfinderjahr';
+      dauerText = jahre > 1
+          ? '$jahre aktive Pfadfinderjahre'
+          : 'Ein aktives Pfadfinderjahr';
     } else if (pfadfinderTage >= 30) {
       int monate = (pfadfinderTage / 30).floor();
       dauerText =
@@ -141,17 +138,16 @@ class MitgliedDetailState extends State<MitgliedDetail>
         style: Theme.of(
           context,
         ).textTheme.titleMedium!.copyWith(color: Colors.blue),
-        recognizer:
-            TapGestureRecognizer()
-              ..onTap = () async {
-                final Uri params = Uri(scheme: scheme, path: path);
+        recognizer: TapGestureRecognizer()
+          ..onTap = () async {
+            final Uri params = Uri(scheme: scheme, path: path);
 
-                var url = params.toString();
-                // dies Funktioniert, wenn die notwendige app installiert ist
-                if (await canLaunchUrlString(url)) {
-                  await launchUrlString(url);
-                }
-              },
+            var url = params.toString();
+            // dies Funktioniert, wenn die notwendige app installiert ist
+            if (await canLaunchUrlString(url)) {
+              await launchUrlString(url);
+            }
+          },
       ),
     );
   }
@@ -164,11 +160,10 @@ class MitgliedDetailState extends State<MitgliedDetail>
         style: Theme.of(
           context,
         ).textTheme.titleMedium!.copyWith(color: Colors.blue),
-        recognizer:
-            TapGestureRecognizer()
-              ..onTap = () {
-                MapsLauncher.launchQuery(address);
-              },
+        recognizer: TapGestureRecognizer()
+          ..onTap = () {
+            MapsLauncher.launchQuery(address);
+          },
       ),
     );
   }
@@ -338,21 +333,20 @@ class MitgliedDetailState extends State<MitgliedDetail>
       leading: Icon(icon),
       subtitle: Text(subtitle),
       title: isLink ? _buildLinkText(linkType!, title) : Text(title),
-      trailing:
-          copy
-              ? IconButton(
-                icon: const Icon(Icons.copy),
-                onPressed: () {
-                  Clipboard.setData(ClipboardData(text: title));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Kopiert'),
-                      duration: Duration(milliseconds: 700),
-                    ),
-                  );
-                },
-              )
-              : null,
+      trailing: copy
+          ? IconButton(
+              icon: const Icon(Icons.copy),
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: title));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Kopiert'),
+                    duration: Duration(milliseconds: 700),
+                  ),
+                );
+              },
+            )
+          : null,
     );
   }
 
@@ -450,10 +444,9 @@ class MitgliedDetailState extends State<MitgliedDetail>
                   initialValue: DateTime.now(),
                   name: 'beendigungDatum',
                   format: DateFormat('dd.MM.yyyy'),
-                  lastDate:
-                      widget.mitglied.datenweiterverwendung
-                          ? null
-                          : DateTime.now(),
+                  lastDate: widget.mitglied.datenweiterverwendung
+                      ? null
+                      : DateTime.now(),
                   validator: FormBuilderValidators.compose([
                     FormBuilderValidators.required(),
                   ]),
@@ -589,15 +582,11 @@ class MitgliedDetailState extends State<MitgliedDetail>
                         TextSpan(
                           text: 'löschen',
                           style: const TextStyle(color: Colors.red),
-                          recognizer:
-                              TapGestureRecognizer()
-                                ..onTap = () {
-                                  Navigator.of(context).pop();
-                                  openDeleteTaetigkeitDialog(
-                                    context,
-                                    taetigkeit,
-                                  );
-                                },
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () {
+                              Navigator.of(context).pop();
+                              openDeleteTaetigkeitDialog(context, taetigkeit);
+                            },
                         ),
                       ],
                     ),
@@ -835,10 +824,9 @@ class MitgliedDetailState extends State<MitgliedDetail>
     return _buildBox(
       Dismissible(
         key: Key(taetigkeit.id.toString()),
-        direction:
-            permissionToEdit
-                ? DismissDirection.endToStart
-                : DismissDirection.none,
+        direction: permissionToEdit
+            ? DismissDirection.endToStart
+            : DismissDirection.none,
         confirmDismiss: (direction) async {
           if (taetigkeit.endsInFuture()) {
             terminateTaetigkeitDialog(context, taetigkeit);
@@ -915,24 +903,22 @@ class MitgliedDetailState extends State<MitgliedDetail>
     );
     return _buildBox(
       ListTile(
-        leading:
-            loadingStufenwechsel
-                ? const CircularProgressIndicator()
-                : _buildTaetigkeitImage(fakeStufenwechselTaetigkeit),
+        leading: loadingStufenwechsel
+            ? const CircularProgressIndicator()
+            : _buildTaetigkeitImage(fakeStufenwechselTaetigkeit),
         title: Text('${fakeStufenwechselTaetigkeit.untergliederung}'),
         subtitle: Text(
           "Stufenwechsel am ${DateFormat('dd. MMMM yyyy').format(fakeStufenwechselTaetigkeit.aktivVon)}",
         ),
         trailing: TextButton(
-          onPressed:
-              loadingStufenwechsel
-                  ? null
-                  : () => handleStufenwechsel(
-                    widget.mitglied.id!,
-                    currentTaetigkeit,
-                    stufe,
-                    fakeStufenwechselTaetigkeit.aktivVon,
-                  ),
+          onPressed: loadingStufenwechsel
+              ? null
+              : () => handleStufenwechsel(
+                  widget.mitglied.id!,
+                  currentTaetigkeit,
+                  stufe,
+                  fakeStufenwechselTaetigkeit.aktivVon,
+                ),
           child: const Text("Wechseln"),
         ),
       ),
@@ -980,10 +966,9 @@ class MitgliedDetailState extends State<MitgliedDetail>
   }
 
   Taetigkeit? getCurrenttaetigkeit(List<Taetigkeit> aktiveTaetigkeiten) {
-    List<Taetigkeit> taetigkeiten =
-        aktiveTaetigkeiten
-            .where((taetigkeit) => taetigkeit.taetigkeit.trim() == 'Mitglied')
-            .toList();
+    List<Taetigkeit> taetigkeiten = aktiveTaetigkeiten
+        .where((taetigkeit) => taetigkeit.taetigkeit.trim() == 'Mitglied')
+        .toList();
     return taetigkeiten.length == 1 ? taetigkeiten.first : null;
   }
 
@@ -1061,21 +1046,22 @@ class MitgliedDetailState extends State<MitgliedDetail>
 
   @override
   Widget build(BuildContext context) {
-    List<Taetigkeit> aktiveTaetigkeiten =
-        widget.mitglied.getActiveTaetigkeiten();
+    List<Taetigkeit> aktiveTaetigkeiten = widget.mitglied
+        .getActiveTaetigkeiten();
     aktiveTaetigkeiten.sort((a, b) => b.aktivVon.compareTo(a.aktivVon));
-    List<Taetigkeit> vergangeneTaetigkeiten =
-        widget.mitglied.getAlteTaetigkeiten();
+    List<Taetigkeit> vergangeneTaetigkeiten = widget.mitglied
+        .getAlteTaetigkeiten();
     vergangeneTaetigkeiten.sort((a, b) => b.aktivVon.compareTo(a.aktivVon));
-    List<Taetigkeit> zukuenftigeTaetigkeiten =
-        widget.mitglied.getZukuenftigeTaetigkeiten();
+    List<Taetigkeit> zukuenftigeTaetigkeiten = widget.mitglied
+        .getZukuenftigeTaetigkeiten();
     zukuenftigeTaetigkeiten.sort((a, b) => b.aktivVon.compareTo(a.aktivVon));
     bool isFavorite = getFavouriteList().contains(
       widget.mitglied.mitgliedsNummer,
     );
     Taetigkeit? currentTaetigkeit = getCurrenttaetigkeit(aktiveTaetigkeiten);
-    Taetigkeit? fakeStufenwechselTaetigkeit =
-        currentTaetigkeit == null ? null : getStufenwechselTaetigkeit();
+    Taetigkeit? fakeStufenwechselTaetigkeit = currentTaetigkeit == null
+        ? null
+        : getStufenwechselTaetigkeit();
 
     return Scaffold(
       appBar: AppBar(
@@ -1087,25 +1073,23 @@ class MitgliedDetailState extends State<MitgliedDetail>
               getAllowedFeatures().contains(AllowedFeatures.memberEdit))
             IconButton(
               onPressed: loadingEditMember ? null : editMemberClicked,
-              icon:
-                  loadingEditMember
-                      ? const CircularProgressIndicator()
-                      : const Icon(Icons.edit, color: Colors.black54),
+              icon: loadingEditMember
+                  ? const CircularProgressIndicator()
+                  : const Icon(Icons.edit, color: Colors.black54),
             ),
           IconButton(
-            onPressed:
-                () => {
-                  Wiredash.trackEvent(
-                    'Member Details toggle favourite',
-                    data: {'type': isFavorite ? 'remove' : 'add'},
-                  ),
-                  isFavorite
-                      ? removeFavouriteList(widget.mitglied.mitgliedsNummer)
-                      : addFavouriteList(widget.mitglied.mitgliedsNummer),
-                  setState(() {
-                    isFavorite = !isFavorite;
-                  }),
-                },
+            onPressed: () => {
+              Wiredash.trackEvent(
+                'Member Details toggle favourite',
+                data: {'type': isFavorite ? 'remove' : 'add'},
+              ),
+              isFavorite
+                  ? removeFavouriteList(widget.mitglied.mitgliedsNummer)
+                  : addFavouriteList(widget.mitglied.mitgliedsNummer),
+              setState(() {
+                isFavorite = !isFavorite;
+              }),
+            },
             icon: Icon(
               isFavorite ? Icons.bookmark : Icons.bookmark_border,
               color: Colors.black54,

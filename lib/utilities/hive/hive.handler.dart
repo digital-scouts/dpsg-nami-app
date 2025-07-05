@@ -63,27 +63,35 @@ Future<void> openHive() async {
   var encryprionKey = await secureStorage.read(key: 'key');
   if (encryprionKey == null) {
     final key = Hive.generateSecureKey();
-    await secureStorage.write(
-      key: 'key',
-      value: base64UrlEncode(key),
-    );
+    await secureStorage.write(key: 'key', value: base64UrlEncode(key));
   }
-  final encryptionKey =
-      base64Url.decode((await secureStorage.read(key: 'key'))!);
+  final encryptionKey = base64Url.decode(
+    (await secureStorage.read(key: 'key'))!,
+  );
 
   await Future.wait([
-    Hive.openBox<Taetigkeit>('taetigkeit',
-        encryptionCipher: HiveAesCipher(encryptionKey)),
-    Hive.openBox<Mitglied>('members',
-        encryptionCipher: HiveAesCipher(encryptionKey)),
+    Hive.openBox<Taetigkeit>(
+      'taetigkeit',
+      encryptionCipher: HiveAesCipher(encryptionKey),
+    ),
+    Hive.openBox<Mitglied>(
+      'members',
+      encryptionCipher: HiveAesCipher(encryptionKey),
+    ),
     Hive.openBox('settingsBox', encryptionCipher: HiveAesCipher(encryptionKey)),
     Hive.openBox('filterBox', encryptionCipher: HiveAesCipher(encryptionKey)),
-    Hive.openBox<DataChange>('dataChanges',
-        encryptionCipher: HiveAesCipher(encryptionKey)),
-    Hive.openBox<Map>('satzung_db',
-        encryptionCipher: HiveAesCipher(encryptionKey)),
-    Hive.openBox<Map>('ai_chat_messages',
-        encryptionCipher: HiveAesCipher(encryptionKey))
+    Hive.openBox<DataChange>(
+      'dataChanges',
+      encryptionCipher: HiveAesCipher(encryptionKey),
+    ),
+    Hive.openBox<Map>(
+      'satzung_db',
+      encryptionCipher: HiveAesCipher(encryptionKey),
+    ),
+    Hive.openBox<Map>(
+      'ai_chat_messages',
+      encryptionCipher: HiveAesCipher(encryptionKey),
+    ),
   ]);
   return;
 }

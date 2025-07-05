@@ -42,9 +42,7 @@ class _SettingsAppState extends State<SettingsApp> {
     final themeModel = Provider.of<ThemeModel>(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('App-Einstellungen'),
-      ),
+      appBar: AppBar(title: const Text('App-Einstellungen')),
       body: ListView(
         children: [
           const NamiChangeToggle(),
@@ -59,10 +57,7 @@ class _SettingsAppState extends State<SettingsApp> {
           ListTile(
             title: const Text('Optionale Daten nur über WLAN laden'),
             leading: const Icon(Icons.wifi),
-            trailing: Switch(
-              value: _wifiOnly,
-              onChanged: _updateWifiOnly,
-            ),
+            trailing: Switch(value: _wifiOnly, onChanged: _updateWifiOnly),
           ),
           ListTile(
             title: const Text('Erscheinungsbild'),
@@ -80,14 +75,8 @@ class _SettingsAppState extends State<SettingsApp> {
                   value: ThemeMode.system,
                   child: Text('Automatisch'),
                 ),
-                DropdownMenuItem(
-                  value: ThemeMode.light,
-                  child: Text('Hell'),
-                ),
-                DropdownMenuItem(
-                  value: ThemeMode.dark,
-                  child: Text('Dunkel'),
-                ),
+                DropdownMenuItem(value: ThemeMode.light, child: Text('Hell')),
+                DropdownMenuItem(value: ThemeMode.dark, child: Text('Dunkel')),
               ],
             ),
           ),

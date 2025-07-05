@@ -11,11 +11,12 @@ class VersionInfo {
   final List<String> bugFixes;
   final bool dataReset;
 
-  VersionInfo(
-      {required this.version,
-      required this.features,
-      required this.bugFixes,
-      required this.dataReset});
+  VersionInfo({
+    required this.version,
+    required this.features,
+    required this.bugFixes,
+    required this.dataReset,
+  });
 
   factory VersionInfo.fromJson(Map<String, dynamic> json) {
     return VersionInfo(
@@ -55,17 +56,24 @@ class NewVersionInfoScreen extends StatelessWidget {
           }
           if (snapshot.hasError) {
             return const Center(
-                child: Text('Fehler beim Laden der Versionsinformationen'));
+              child: Text('Fehler beim Laden der Versionsinformationen'),
+            );
           }
 
           final versionInfo = snapshot.data?.firstWhere(
-              (version) => version.version == currentVersion,
-              orElse: () => VersionInfo(
-                  version: '', dataReset: false, features: [], bugFixes: []));
+            (version) => version.version == currentVersion,
+            orElse: () => VersionInfo(
+              version: '',
+              dataReset: false,
+              features: [],
+              bugFixes: [],
+            ),
+          );
 
           if (versionInfo == null) {
             return const Center(
-                child: Text('Keine Informationen für diese Version gefunden'));
+              child: Text('Keine Informationen für diese Version gefunden'),
+            );
           }
           if (versionInfo.features.isEmpty) {
             versionInfo.features.add('Keine neuen Funktionen');
@@ -90,8 +98,11 @@ class NewVersionInfoScreen extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 20.0),
                 child: TextButton(
                   onPressed: () {
-                    launchUrl(Uri.parse(
-                        'https://github.com/digital-scouts/dpsg-nami-app/releases'));
+                    launchUrl(
+                      Uri.parse(
+                        'https://github.com/digital-scouts/dpsg-nami-app/releases',
+                      ),
+                    );
                   },
                   child: const Text(
                     'Mehr Infos zu älteren Versionen',
@@ -100,10 +111,7 @@ class NewVersionInfoScreen extends StatelessWidget {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.only(
-                  top: 20.0,
-                  bottom: 40.0,
-                ),
+                padding: const EdgeInsets.only(top: 20.0, bottom: 40.0),
                 child: FilledButton.icon(
                   onPressed: () => Navigator.pop(context),
                   label: const Text("Weiter"),

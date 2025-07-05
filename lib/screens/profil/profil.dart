@@ -135,12 +135,11 @@ class _ProfilState extends State<Profil> {
                       Tooltip(
                         message:
                             features.contains(AllowedFeatures.stufenwechsel)
-                                ? 'Stufenwechsel erlaubt'
-                                : 'Stufenwechsel nicht erlaubt',
-                        child:
-                            features.contains(AllowedFeatures.stufenwechsel)
-                                ? const Icon(Icons.check, color: Colors.green)
-                                : const Icon(Icons.close, color: Colors.red),
+                            ? 'Stufenwechsel erlaubt'
+                            : 'Stufenwechsel nicht erlaubt',
+                        child: features.contains(AllowedFeatures.stufenwechsel)
+                            ? const Icon(Icons.check, color: Colors.green)
+                            : const Icon(Icons.close, color: Colors.red),
                       ),
                     ],
                   ),
@@ -154,12 +153,12 @@ class _ProfilState extends State<Profil> {
                       Tooltip(
                         message:
                             features.contains(AllowedFeatures.stufenwechsel)
-                                ? 'Führungszeugnis kann angezeigt werden'
-                                : 'Führungszeugnis kann nicht angezeigt werden',
+                            ? 'Führungszeugnis kann angezeigt werden'
+                            : 'Führungszeugnis kann nicht angezeigt werden',
                         child:
                             features.contains(AllowedFeatures.fuehrungszeugnis)
-                                ? const Icon(Icons.check, color: Colors.green)
-                                : const Icon(Icons.close, color: Colors.red),
+                            ? const Icon(Icons.check, color: Colors.green)
+                            : const Icon(Icons.close, color: Colors.red),
                       ),
                     ],
                   ),

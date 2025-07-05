@@ -82,92 +82,88 @@ class _StammHeimSettingState extends State<StammHeimSetting> {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      title:
-          _adressAutocompleteActive
-              ? Autocomplete<String>(
-                optionsBuilder: (TextEditingValue textEditingValue) async {
-                  if (_adressAutocompleteSearchString ==
-                      textEditingValue.text) {
-                    return _adressAutocompleteAdressesResults
-                        .map((address) => address.formatted)
-                        .toList();
-                  }
-                  _adressAutocompleteSearchString = textEditingValue.text;
+      title: _adressAutocompleteActive
+          ? Autocomplete<String>(
+              optionsBuilder: (TextEditingValue textEditingValue) async {
+                if (_adressAutocompleteSearchString == textEditingValue.text) {
+                  return _adressAutocompleteAdressesResults
+                      .map((address) => address.formatted)
+                      .toList();
+                }
+                _adressAutocompleteSearchString = textEditingValue.text;
 
-                  if (_adressAutocompleteSearchString.length < 5) {
-                    _adressAutocompleteAdressesResults = [];
-                    return const Iterable<String>.empty();
-                  }
+                if (_adressAutocompleteSearchString.length < 5) {
+                  _adressAutocompleteAdressesResults = [];
+                  return const Iterable<String>.empty();
+                }
 
-                  if (_adressAutocompleteDebounce?.isActive ?? false) {
-                    _adressAutocompleteDebounce!.cancel();
-                  }
-                  Completer<Iterable<String>> completer =
-                      Completer<Iterable<String>>();
+                if (_adressAutocompleteDebounce?.isActive ?? false) {
+                  _adressAutocompleteDebounce!.cancel();
+                }
+                Completer<Iterable<String>> completer =
+                    Completer<Iterable<String>>();
 
-                  _adressAutocompleteDebounce = Timer(
-                    const Duration(milliseconds: 500),
-                    () async {
-                      try {
-                        _adressAutocompleteAdressesResults =
-                            await autocompleteGermanAdress(
-                              textEditingValue.text,
-                            );
-                        completer.complete(
-                          _adressAutocompleteAdressesResults
-                              .map((address) => address.formatted)
-                              .toList(),
-                        );
-                      } catch (e) {
-                        debugPrint(e.toString());
-                        setState(() {
-                          _adressAutocompleteActive = false;
-                        });
-                      }
-                    },
-                  );
+                _adressAutocompleteDebounce = Timer(
+                  const Duration(milliseconds: 500),
+                  () async {
+                    try {
+                      _adressAutocompleteAdressesResults =
+                          await autocompleteGermanAdress(textEditingValue.text);
+                      completer.complete(
+                        _adressAutocompleteAdressesResults
+                            .map((address) => address.formatted)
+                            .toList(),
+                      );
+                    } catch (e) {
+                      debugPrint(e.toString());
+                      setState(() {
+                        _adressAutocompleteActive = false;
+                      });
+                    }
+                  },
+                );
 
-                  return completer.future;
-                },
-                onSelected: (String selection) async {
-                  _adressAutocompleteSearchString = selection;
-                  GeoapifyAdress adress = _adressAutocompleteAdressesResults
-                      .firstWhere((element) => element.formatted == selection);
+                return completer.future;
+              },
+              onSelected: (String selection) async {
+                _adressAutocompleteSearchString = selection;
+                GeoapifyAdress adress = _adressAutocompleteAdressesResults
+                    .firstWhere((element) => element.formatted == selection);
 
-                  setState(() {
-                    _stammheimTextController.text =
-                        '${adress.street} ${adress.housenumber ?? ''}, ${adress.postcode} ${adress.city}, ${adress.country}';
-                  });
-                },
-                fieldViewBuilder: (
-                  BuildContext context,
-                  TextEditingController textEditingController,
-                  FocusNode focusNode,
-                  VoidCallback onFieldSubmitted,
-                ) {
-                  textEditingController.text = _stammheimTextController.text;
-                  return TextFormField(
-                    controller: textEditingController,
-                    focusNode: focusNode,
-                    decoration: const InputDecoration(
-                      labelText: 'Stammesheim Adresse',
-                    ),
-                  );
-                },
-              )
-              : TextField(
-                controller: _stammheimTextController,
-                decoration: const InputDecoration(
-                  labelText: 'Stammesheim Adresse',
-                ),
+                setState(() {
+                  _stammheimTextController.text =
+                      '${adress.street} ${adress.housenumber ?? ''}, ${adress.postcode} ${adress.city}, ${adress.country}';
+                });
+              },
+              fieldViewBuilder:
+                  (
+                    BuildContext context,
+                    TextEditingController textEditingController,
+                    FocusNode focusNode,
+                    VoidCallback onFieldSubmitted,
+                  ) {
+                    textEditingController.text = _stammheimTextController.text;
+                    return TextFormField(
+                      controller: textEditingController,
+                      focusNode: focusNode,
+                      decoration: const InputDecoration(
+                        labelText: 'Stammesheim Adresse',
+                      ),
+                    );
+                  },
+            )
+          : TextField(
+              controller: _stammheimTextController,
+              decoration: const InputDecoration(
+                labelText: 'Stammesheim Adresse',
               ),
-      subtitle:
-          _message == null
-              ? const Text('Wird für die Kartenansicht genutzt')
-              : Text(
-                _message!,
-                style: TextStyle(color: Theme.of(context).colorScheme.primary),
-              ),
+            ),
+      subtitle: _message == null
+          ? const Text('Wird für die Kartenansicht genutzt')
+          : Text(
+              _message!,
+              style: TextStyle(color: Theme.of(context).colorScheme.primary),
+            ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

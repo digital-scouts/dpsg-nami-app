@@ -212,11 +212,10 @@ class Mitglied {
 
   DateTime? getMinStufenWechselDatum() {
     DateTime nextStufenwechselDatum = getNextStufenwechselDatum();
-    int alterNextStufenwechsel =
-        getAlterAm(
-          referenceDate: nextStufenwechselDatum,
-          date: geburtsDatum,
-        ).floor();
+    int alterNextStufenwechsel = getAlterAm(
+      referenceDate: nextStufenwechselDatum,
+      date: geburtsDatum,
+    ).floor();
 
     if (nextStufe != null &&
         nextStufe!.isStufeYouCanChangeTo &&
@@ -235,11 +234,10 @@ class Mitglied {
 
   DateTime? getMaxStufenWechselDatum() {
     DateTime nextStufenwechselDatum = getNextStufenwechselDatum();
-    int alterNextStufenwechsel =
-        getAlterAm(
-          referenceDate: nextStufenwechselDatum,
-          date: geburtsDatum,
-        ).floor();
+    int alterNextStufenwechsel = getAlterAm(
+      referenceDate: nextStufenwechselDatum,
+      date: geburtsDatum,
+    ).floor();
 
     if (nextStufe != null &&
         currentStufe != Stufe.KEINE_STUFE &&

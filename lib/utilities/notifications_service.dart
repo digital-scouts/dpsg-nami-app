@@ -25,8 +25,9 @@ class NotificationService {
     // Timezone-Daten initialisieren
     tz.initializeTimeZones();
 
-    const androidInitialize =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidInitialize = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
 
     const iosInitialize = DarwinInitializationSettings(
       requestAlertPermission: true,
@@ -58,23 +59,24 @@ class NotificationService {
       // iOS Berechtigung über flutter_local_notifications
       final bool? iosPermission = await _notificationsPlugin
           .resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin>()
-          ?.requestPermissions(
-            alert: true,
-            badge: true,
-            sound: true,
-          );
+            IOSFlutterLocalNotificationsPlugin
+          >()
+          ?.requestPermissions(alert: true, badge: true, sound: true);
 
       // Android Berechtigung über permission_handler
       final androidPermission = await Permission.notification.request();
 
       sensLog.i(
-          'iOS permission: $iosPermission, Android permission: ${androidPermission.isGranted}');
+        'iOS permission: $iosPermission, Android permission: ${androidPermission.isGranted}',
+      );
 
       return iosPermission ?? androidPermission.isGranted;
     } catch (e, st) {
-      sensLog.e('Error requesting notification permissions',
-          error: e, stackTrace: st);
+      sensLog.e(
+        'Error requesting notification permissions',
+        error: e,
+        stackTrace: st,
+      );
       return false;
     }
   }
@@ -85,7 +87,8 @@ class NotificationService {
       // iOS Check
       final iosPermissions = await _notificationsPlugin
           .resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin>()
+            IOSFlutterLocalNotificationsPlugin
+          >()
           ?.checkPermissions();
 
       final bool iosEnabled = iosPermissions?.isEnabled ?? false;
@@ -95,8 +98,11 @@ class NotificationService {
 
       return iosEnabled || androidEnabled;
     } catch (e, st) {
-      sensLog.e('Error checking notification permissions',
-          error: e, stackTrace: st);
+      sensLog.e(
+        'Error checking notification permissions',
+        error: e,
+        stackTrace: st,
+      );
       return false;
     }
   }

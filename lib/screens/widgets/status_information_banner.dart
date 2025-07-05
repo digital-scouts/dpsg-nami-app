@@ -45,7 +45,10 @@ class StatusInformationBannerState extends State<StatusInformationBanner> {
       context: context,
       builder: (context) {
         return DataChangeHistory(
-            changes: changes, title: 'Neuste Änderungen', isDialog: true);
+          changes: changes,
+          title: 'Neuste Änderungen',
+          isDialog: true,
+        );
       },
     );
   }
@@ -68,28 +71,36 @@ class StatusInformationBannerState extends State<StatusInformationBanner> {
         _timer = Timer(const Duration(seconds: 10), () {
           context.read<AppStateHandler>().syncState = SyncState.notStarted;
         });
-        List<DataChange> changes = DataChangesService()
-            .getLatestEntry(duration: const Duration(minutes: 5));
+        List<DataChange> changes = DataChangesService().getLatestEntry(
+          duration: const Duration(minutes: 5),
+        );
         return MaterialBanner(
           key: const ValueKey('successful'),
-          leading: Icon(Icons.check_circle,
-              color: Theme.of(context).colorScheme.primary),
-          content:
-              Text('Synchronisation erfolgreich. ${changes.length} Änderungen'),
+          leading: Icon(
+            Icons.check_circle,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          content: Text(
+            'Synchronisation erfolgreich. ${changes.length} Änderungen',
+          ),
           actions: [
             changes.isEmpty
                 ? const SizedBox()
                 : TextButton(
                     onPressed: () => _showDataChangeDialog(changes),
-                    child: const Text('Anzeigen')),
+                    child: const Text('Anzeigen'),
+                  ),
           ],
         );
       case SyncState.relogin:
         return MaterialBanner(
-          leading: Icon(Icons.sync_problem,
-              color: Theme.of(context).colorScheme.error),
+          leading: Icon(
+            Icons.sync_problem,
+            color: Theme.of(context).colorScheme.error,
+          ),
           content: const Text(
-              'Tägliche Aktualisierung nicht möglich. Deine Sitzung ist abgelaufen.'),
+            'Tägliche Aktualisierung nicht möglich. Deine Sitzung ist abgelaufen.',
+          ),
           actions: [
             TextButton(
               child: const Text('Abbrechen'),
@@ -102,11 +113,14 @@ class StatusInformationBannerState extends State<StatusInformationBanner> {
               child: const Text('Anmelden'),
               onPressed: () async {
                 final appStateHandler = context.read<AppStateHandler>();
-                final successfulRelogin =
-                    await appStateHandler.setReloginState(showDialog: false);
+                final successfulRelogin = await appStateHandler.setReloginState(
+                  showDialog: false,
+                );
                 if (successfulRelogin) {
                   appStateHandler.setLoadDataState(
-                      background: true, loadAll: false);
+                    background: true,
+                    loadAll: false,
+                  );
                 }
               },
             ),

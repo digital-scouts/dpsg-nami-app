@@ -14,10 +14,13 @@ class ChooseGruppierungWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-        title: const Text('Gruppierung auswählen'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
+      title: const Text('Gruppierung auswählen'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
           const Text(
-              'Du hast Zugriff auf mehrere Gruppierungen, bitte wähle eine Gruppierung aus. Du kannst die Gruppierung später ändern.'),
+            'Du hast Zugriff auf mehrere Gruppierungen, bitte wähle eine Gruppierung aus. Du kannst die Gruppierung später ändern.',
+          ),
           const SizedBox(height: 20),
           DropdownButton<NamiGruppierungModel>(
             items: gruppierungen.map((NamiGruppierungModel gruppierung) {
@@ -33,6 +36,8 @@ class ChooseGruppierungWidget extends StatelessWidget {
               } else {}
             },
           ),
-        ]));
+        ],
+      ),
+    );
   }
 }

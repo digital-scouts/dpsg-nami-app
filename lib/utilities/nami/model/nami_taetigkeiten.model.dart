@@ -14,24 +14,27 @@ class NamiMemberTaetigkeitenModel {
   final int? caeaGroupId;
   final String? caeaGroupForGfId;
 
-  NamiMemberTaetigkeitenModel(
-      {required this.taetigkeit,
-      this.taetigkeitId,
-      required this.id,
-      required this.aktivVon,
-      required this.aktivBis,
-      required this.anlagedatum,
-      required this.untergliederung,
-      this.untergliederungId,
-      required this.gruppierung,
-      this.gruppierungId,
-      required this.berechtigteGruppe,
-      required this.berechtigteUntergruppen,
-      this.caeaGroupId,
-      this.caeaGroupForGfId});
+  NamiMemberTaetigkeitenModel({
+    required this.taetigkeit,
+    this.taetigkeitId,
+    required this.id,
+    required this.aktivVon,
+    required this.aktivBis,
+    required this.anlagedatum,
+    required this.untergliederung,
+    this.untergliederungId,
+    required this.gruppierung,
+    this.gruppierungId,
+    required this.berechtigteGruppe,
+    required this.berechtigteUntergruppen,
+    this.caeaGroupId,
+    this.caeaGroupForGfId,
+  });
 
   factory NamiMemberTaetigkeitenModel.fromJson(
-      Map<String, dynamic> json, bool needPreText) {
+    Map<String, dynamic> json,
+    bool needPreText,
+  ) {
     String preText = needPreText ? 'entries_' : '';
     return NamiMemberTaetigkeitenModel(
       taetigkeit: json['${preText}taetigkeit'],
