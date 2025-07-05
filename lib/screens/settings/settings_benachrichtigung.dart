@@ -46,6 +46,50 @@ class _SettingsBenachrichtigungState extends State<SettingsBenachrichtigung> {
     });
   }
 
+  showNotifications(List<PendingNotificationRequest> notifications) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        if (notifications.isEmpty) {
+          return AlertDialog(
+            title: const Text('Geplante Benachrichtigungen'),
+            content: const Text('Keine geplanten Benachrichtigungen gefunden.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          );
+        }
+        return AlertDialog(
+          title: const Text('Geplante Benachrichtigungen'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: notifications.length,
+              itemBuilder: (context, index) {
+                final n = notifications[index];
+                return ListTile(
+                  title: Text(n.title ?? 'Kein Titel'),
+                  subtitle: Text(n.body ?? ''),
+                  trailing: Text(n.payload.toString()),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildShowNotificationsButton() {
     return ListTile(
       title: const Text('Geplante Benachrichtigungen anzeigen'),
@@ -54,48 +98,7 @@ class _SettingsBenachrichtigungState extends State<SettingsBenachrichtigung> {
         List<PendingNotificationRequest> notifications =
             await BirthdayNotificationService.getAllPlannedNotifications();
 
-        showDialog(
-          context: context,
-          builder: (context) {
-            if (notifications.isEmpty) {
-              return AlertDialog(
-                title: const Text('Geplante Benachrichtigungen'),
-                content:
-                    const Text('Keine geplanten Benachrichtigungen gefunden.'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('OK'),
-                  ),
-                ],
-              );
-            }
-            return AlertDialog(
-              title: const Text('Geplante Benachrichtigungen'),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: notifications.length,
-                  itemBuilder: (context, index) {
-                    final n = notifications[index];
-                    return ListTile(
-                      title: Text(n.title ?? 'Kein Titel'),
-                      subtitle: Text(n.body ?? ''),
-                      trailing: Text(n.payload.toString()),
-                    );
-                  },
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('OK'),
-                ),
-              ],
-            );
-          },
-        );
+        showNotifications(notifications);
       },
     );
   }
