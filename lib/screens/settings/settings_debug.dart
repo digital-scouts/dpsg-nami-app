@@ -46,7 +46,7 @@ class _SettingsDebugState extends State<SettingsDebug> {
 
   Widget _buildShowDataHistory() {
     return ListTile(
-      title: const Text('Syncronisationshistorie'),
+      title: const Text('Datenänderungen auflisten'),
       leading: const Icon(Icons.info),
       onTap: () {
         Navigator.push(

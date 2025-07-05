@@ -5,6 +5,7 @@ import 'package:nami/main.dart';
 import 'package:nami/screens/mitgliedsliste/mitglied_details.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/stufe.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
@@ -221,7 +222,7 @@ class BirthdayNotificationService {
       }
     } catch (e) {
       // Fehler beim Parsen der Payload ignorieren
-      print('Fehler beim Öffnen der Mitgliedsdetails: $e');
+      sensLog.e('Fehler beim Öffnen der Mitgliedsdetails: $e');
     }
   }
 }
