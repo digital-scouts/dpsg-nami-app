@@ -41,6 +41,8 @@
 	<string>Nutzung der Karte</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Nutzung der Karte</string>
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>Diese App benötigt Zugriff auf Benachrichtigungen, um Sie über Ereignisse zu informieren.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

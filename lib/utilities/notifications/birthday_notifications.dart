@@ -14,13 +14,50 @@ class BirthdayNotificationService {
     const AndroidInitializationSettings androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
     const DarwinInitializationSettings iosSettings =
-        DarwinInitializationSettings();
+        DarwinInitializationSettings(
+      requestAlertPermission: false, // Keine automatische Berechtigung
+      requestBadgePermission: false,
+      requestSoundPermission: false,
+    );
     const InitializationSettings settings = InitializationSettings(
       android: androidSettings,
       iOS: iosSettings,
       macOS: iosSettings,
     );
     await _notifications.initialize(settings);
+
+    // Berechtigungen werden später explizit angefordert
+    // await requestPermissions();
+  }
+
+  /// Fordert explizit Benachrichtigungsberechtigungen an
+  static Future<bool> requestPermissions() async {
+    final IOSFlutterLocalNotificationsPlugin? iosImplementation =
+        _notifications.resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin>();
+
+    final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
+        _notifications.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+
+    if (iosImplementation != null) {
+      final bool? granted = await iosImplementation.requestPermissions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+      scheduleAllBirthdays();
+      return granted ?? false;
+    }
+
+    if (androidImplementation != null) {
+      final bool? granted =
+          await androidImplementation.requestNotificationsPermission();
+      scheduleAllBirthdays();
+      return granted ?? false;
+    }
+    scheduleAllBirthdays();
+    return true; // Fallback für andere Plattformen
   }
 
   static Future<List<PendingNotificationRequest>>
@@ -32,11 +69,10 @@ class BirthdayNotificationService {
     await _notifications.cancelAll();
   }
 
-  static Future<bool> callTestBenachrichtigung(
-      {duration = const Duration(seconds: 5)}) async {
+  static Future<bool> callTestBenachrichtigung() async {
     try {
       await _notifications.show(
-        0, // unique id
+        9999,
         'Test Benachrichtigung',
         'Dies ist eine Testbenachrichtigung für Geburtstage.',
         const NotificationDetails(
@@ -96,17 +132,14 @@ class BirthdayNotificationService {
       now.year,
       mitglied.geburtsDatum.month,
       mitglied.geburtsDatum.day,
+      10,
     );
     if (nextBirthday.isBefore(now)) {
-      nextBirthday = DateTime(
-        now.year + 1,
-        mitglied.geburtsDatum.month,
-        mitglied.geburtsDatum.day,
-      );
+      nextBirthday.add(Duration(days: 365)); // Nächstes Jahr
     }
 
     await _notifications.zonedSchedule(
-        mitglied.id.hashCode, // unique id
+        mitglied.id.hashCode,
         'Geburtstag',
         '${mitglied.vorname} ${mitglied.nachname} hat heute Geburtstag!',
         tz.TZDateTime.from(nextBirthday, tz.local),
@@ -119,9 +152,8 @@ class BirthdayNotificationService {
           iOS: DarwinNotificationDetails(),
           macOS: DarwinNotificationDetails(),
         ),
-        matchDateTimeComponents: DateTimeComponents.dayOfMonthAndTime,
         payload:
             '${nextBirthday.day}.${nextBirthday.month}.${nextBirthday.year}',
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle);
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle);
   }
 }

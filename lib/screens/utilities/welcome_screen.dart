@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:nami/screens/widgets/nami_change_toggle.dart';
+import 'package:nami/screens/widgets/notification_test_widget.dart';
 import 'package:nami/screens/widgets/stamm_heim_setting.dart';
 import 'package:nami/screens/widgets/stufenwechsel_datum_setting.dart';
+import 'package:nami/utilities/notifications/birthday_notifications.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -25,7 +27,7 @@ class WelcomeScreen extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Text(
-                  "Dies ist die erste Version der Nami-App. Wir haben uns bemüht, die App so einfach wie möglich zu gestalten und auf möglichst viele unterschiedliche Stammeskulturen einzugehen. Wir hoffen, dass du dich schnell zurechtfindest und die App dir gefällt. Solltest du Fragen oder Anregungen haben, kannst du gerne ein Feedback schreiben.",
+                  "Wir haben uns bemüht auf möglichst viele unterschiedliche Stammeskulturen einzugehen. Wir hoffen, dass du dich schnell zurechtfindest und die App dir gefällt. Solltest du Fragen oder Anregungen haben, kannst du gerne ein Feedback schreiben.",
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ),
@@ -47,9 +49,16 @@ class WelcomeScreen extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(height: 20),
+            const NotificationTestWidget(
+              initialMessage: true,
+            ),
             const SizedBox(height: 40),
             FilledButton.icon(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => {
+                BirthdayNotificationService.requestPermissions(),
+                Navigator.pop(context)
+              },
               icon: const Icon(Icons.check),
               label: const Text("Los geht´s!"),
             )
