@@ -86,8 +86,9 @@ class AppStateHandler extends ChangeNotifier {
         await Navigator.push(
           navigatorKey.currentContext!,
           MaterialPageRoute(
-              builder: (context) =>
-                  NewVersionInfoScreen(currentVersion: appVersion)),
+            builder:
+                (context) => NewVersionInfoScreen(currentVersion: appVersion),
+          ),
         );
         setNewVersionInfoShown(true);
       }
@@ -117,14 +118,17 @@ class AppStateHandler extends ChangeNotifier {
 
   bool isTooLongOffline() {
     final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
-    final tooLongOffline = getLastLoginCheck().isBefore(thirtyDaysAgo) ||
+    final tooLongOffline =
+        getLastLoginCheck().isBefore(thirtyDaysAgo) ||
         getLastNamiSync().isBefore(thirtyDaysAgo);
     return tooLongOffline;
   }
 
   void showTooLongOfflineNotification() {
-    showSnackBar(navigatorKey.currentContext!,
-        "Du warst zu lange offline. Bitte melde dich erneut an.");
+    showSnackBar(
+      navigatorKey.currentContext!,
+      "Du warst zu lange offline. Bitte melde dich erneut an.",
+    );
   }
 
   /// Returns true when relogin was successful
@@ -133,7 +137,7 @@ class AppStateHandler extends ChangeNotifier {
   ///
   /// Setting [showDialog] to false prevents the dialog to ask for relogin.
   /// Instead it will directly show the login screen.
-  Future<bool> setReloginState({showDialog = true}) async {
+  Future<bool> setReloginState({bool showDialog = true}) async {
     sensLog.i('Start relogin');
     var showLogin = true;
     final tooLongOffline = isTooLongOffline();
@@ -167,9 +171,11 @@ class AppStateHandler extends ChangeNotifier {
   }) async {
     Wiredash.trackEvent('Data sync startet');
     sensLog.i(
-        'Start loading data with loadAll: $loadAll and background: $background');
-    ValueNotifier<List<AllowedFeatures>> rechteProgressNotifier =
-        ValueNotifier([]);
+      'Start loading data with loadAll: $loadAll and background: $background',
+    );
+    ValueNotifier<List<AllowedFeatures>> rechteProgressNotifier = ValueNotifier(
+      [],
+    );
     ValueNotifier<List<NamiGruppierungModel>> gruppierungProgressNotifier =
         ValueNotifier([]);
     ValueNotifier<bool?> metaProgressNotifier = ValueNotifier(null);
@@ -179,16 +185,18 @@ class AppStateHandler extends ChangeNotifier {
     syncState = SyncState.loading;
     if (!background) {
       navigatorKey.currentState!.push(
-        MaterialPageRoute(builder: (context) {
-          return LoadingInfoScreen(
-            rechteProgressNotifier: rechteProgressNotifier,
-            gruppierungProgressNotifier: gruppierungProgressNotifier,
-            metaProgressNotifier: metaProgressNotifier,
-            memberOverviewProgressNotifier: memberOverviewProgressNotifier,
-            memberAllProgressNotifier: memberAllProgressNotifier,
-            loadAll: loadAll,
-          );
-        }),
+        MaterialPageRoute(
+          builder: (context) {
+            return LoadingInfoScreen(
+              rechteProgressNotifier: rechteProgressNotifier,
+              gruppierungProgressNotifier: gruppierungProgressNotifier,
+              metaProgressNotifier: metaProgressNotifier,
+              memberOverviewProgressNotifier: memberOverviewProgressNotifier,
+              memberAllProgressNotifier: memberAllProgressNotifier,
+              loadAll: loadAll,
+            );
+          },
+        ),
       );
     }
 
@@ -203,17 +211,18 @@ class AppStateHandler extends ChangeNotifier {
 
           NamiGruppierungModel? selectedGruppierung =
               await showDialog<NamiGruppierungModel>(
-            context: navigatorKey.currentContext!,
-            builder: (BuildContext context) {
-              return ChooseGruppierungWidget(
-                gruppierungen: gruppierungProgressNotifier.value,
-                onGruppierungSelected:
-                    (NamiGruppierungModel selectedGruppierung) {
-                  Navigator.of(context).pop(selectedGruppierung);
+                context: navigatorKey.currentContext!,
+                builder: (BuildContext context) {
+                  return ChooseGruppierungWidget(
+                    gruppierungen: gruppierungProgressNotifier.value,
+                    onGruppierungSelected: (
+                      NamiGruppierungModel selectedGruppierung,
+                    ) {
+                      Navigator.of(context).pop(selectedGruppierung);
+                    },
+                  );
                 },
               );
-            },
-          );
           if (selectedGruppierung == null) {
             throw NoGruppierungException();
           }
@@ -243,15 +252,16 @@ class AppStateHandler extends ChangeNotifier {
       setReadyState();
     } on NoGruppierungException catch (_) {
       sensLog.i('sync failed with no gruppierung found');
-      Wiredash.trackEvent('Data sync failed', data: {
-        'error': 'no gruppierung found',
-      });
+      Wiredash.trackEvent(
+        'Data sync failed',
+        data: {'error': 'no gruppierung found'},
+      );
 
       memberAllProgressNotifier.value = 0;
       rechteProgressNotifier.value = [AllowedFeatures.noPermission];
       gruppierungProgressNotifier.value = [];
       gruppierungProgressNotifier.value = [
-        NamiGruppierungModel(id: 1, name: 'Keine Gruppierung gefunden')
+        NamiGruppierungModel(id: 1, name: 'Keine Gruppierung gefunden'),
       ];
       metaProgressNotifier.value = false;
       memberOverviewProgressNotifier.value = false;
@@ -259,9 +269,10 @@ class AppStateHandler extends ChangeNotifier {
       syncState = SyncState.noPermission;
     } on SessionExpiredException catch (_) {
       sensLog.i('sync failed with session expired');
-      Wiredash.trackEvent('Data sync failed', data: {
-        'error': 'Session expired',
-      });
+      Wiredash.trackEvent(
+        'Data sync failed',
+        data: {'error': 'Session expired'},
+      );
       syncState = SyncState.relogin;
       if (!background) {
         // not setting relogin state when in background as it's done by [ReloginBanner]
@@ -274,12 +285,15 @@ class AppStateHandler extends ChangeNotifier {
       if (isTooLongOffline()) {
         syncState = SyncState.error;
         sensLog.i('sync failed with too long offline');
-        Wiredash.trackEvent('Data sync failed', data: {
-          'error': 'Too long offline',
-        });
+        Wiredash.trackEvent(
+          'Data sync failed',
+          data: {'error': 'Too long offline'},
+        );
         if (background) {
-          showSnackBar(navigatorKey.currentContext!,
-              'Du wirst ausgeloggt, da du zu lange offline warst.');
+          showSnackBar(
+            navigatorKey.currentContext!,
+            'Du wirst ausgeloggt, da du zu lange offline warst.',
+          );
           setLoggedOutState();
         }
         // if not [background] the user will be logged out in
@@ -291,17 +305,18 @@ class AppStateHandler extends ChangeNotifier {
     } catch (e, st) {
       if (e is http.ClientException || e is TimeoutException) {
         sensLog.i('sync failed with no internet connection');
-        Wiredash.trackEvent('Data sync failed', data: {
-          'error': 'No internet connection',
-        });
+        Wiredash.trackEvent(
+          'Data sync failed',
+          data: {'error': 'No internet connection'},
+        );
         syncState = SyncState.offline;
         setReadyState();
       } else {
         sensLog.e('sync failed with error:', error: e, stackTrace: st);
-        Wiredash.trackEvent('Data sync failed', data: {
-          'error': e.toString(),
-          'stackTrace': st.toString(),
-        });
+        Wiredash.trackEvent(
+          'Data sync failed',
+          data: {'error': e.toString(), 'stackTrace': st.toString()},
+        );
         syncState = SyncState.error;
       }
     }
@@ -313,7 +328,7 @@ class AppStateHandler extends ChangeNotifier {
   /// App is authenticated | User loggin unclear
   ///
   /// Called from [onResume]
-  Future<void> setAuthenticatedState([forceAuthentication = false]) async {
+  Future<void> setAuthenticatedState([bool forceAuthentication = false]) async {
     if (!forceAuthentication && currentState == AppState.retryAuthentication) {
       return;
     }
@@ -335,8 +350,11 @@ class AppStateHandler extends ChangeNotifier {
             return;
           }
         } on PlatformException catch (e, st) {
-          sensLog.e('Exception in biometric authentication:',
-              error: e, stackTrace: st);
+          sensLog.e(
+            'Exception in biometric authentication:',
+            error: e,
+            stackTrace: st,
+          );
           currentState = AppState.retryAuthentication;
           return;
         }
@@ -373,7 +391,8 @@ class AppStateHandler extends ChangeNotifier {
         .difference(DateTime.now());
     if (nextSync < const Duration()) {
       sensLog.i(
-          "Last sync try is ${DateTime.now().difference(getLastNamiSyncTry())} ago. Sync data in background now");
+        "Last sync try is ${DateTime.now().difference(getLastNamiSyncTry())} ago. Sync data in background now",
+      );
       setSyncTimer(const Duration());
     } else {
       setSyncTimer(nextSync);
@@ -405,7 +424,7 @@ enum SyncState {
   offline,
   error,
   relogin,
-  noPermission
+  noPermission,
 }
 
 enum AppState {

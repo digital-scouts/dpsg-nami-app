@@ -163,12 +163,14 @@ Future<Map<int, String>> _loadRechteJson(int id) async {
   // Regex findet alle Elemente die mit , oder { beginnen und mit " enden.
   // Diese müssen mit " umschlossen werden, um gültiges JSON zu erhalten.
   final correctedString = itemsJsonString.replaceAllMapped(
-      RegExp(r'(?<=[{,])\s*(\w+)(?=:)'),
-      (Match match) => '"${match.group(1)}"');
+    RegExp(r'(?<=[{,])\s*(\w+)(?=:)'),
+    (Match match) => '"${match.group(1)}"',
+  );
 
   // Parsen des items-Arrays-strings
-  List<Map<String, dynamic>> items =
-      List<Map<String, dynamic>>.from(json.decode(correctedString));
+  List<Map<String, dynamic>> items = List<Map<String, dynamic>>.from(
+    json.decode(correctedString),
+  );
   sensLog.i('Rechte - itemsList: ${items.toString()}');
 
   Map<int, String> itemMap = _createIdNameMap(items);
@@ -180,21 +182,19 @@ Future<dynamic> _loadDocument(int userId) async {
   int gruppierungId = getGruppierungId()!;
   // Error 500 on Session Expired
   final reqUrl = Uri.parse(
-      '${getNamiLUrl()}/ica//pages/rights/ShowRights?gruppierung=$gruppierungId&id=$userId');
+    '${getNamiLUrl()}/ica//pages/rights/ShowRights?gruppierung=$gruppierungId&id=$userId',
+  );
   final html = await withMaybeRetryHTML(
-    () async => await http.get(
-      reqUrl,
-      headers: {'Cookie': getNamiApiCookie()},
-    ),
+    () async => await http.get(reqUrl, headers: {'Cookie': getNamiApiCookie()}),
     "Failed to load user rights",
   );
   return html;
 }
 
-String _extractItems(scriptContent) {
+String _extractItems(dynamic scriptContent) {
   const scriptStoreEbeneElement = 'var storeEbene = ';
-  // TODO: 'var storeTree = ', 'var rightsFromTree = ' and 'var rigthsEbene = ' are also present in the scriptContent
-  int startIndex = scriptContent.indexOf(scriptStoreEbeneElement) +
+  int startIndex =
+      scriptContent.indexOf(scriptStoreEbeneElement) +
       scriptStoreEbeneElement.length;
   startIndex = scriptContent.indexOf('items:', startIndex) + 'items:'.length;
   final endIndex = scriptContent.indexOf('}]},', startIndex) + 2;
@@ -203,9 +203,11 @@ String _extractItems(scriptContent) {
 }
 
 Map<int, String> _createIdNameMap(List<Map<String, dynamic>> inputList) {
-  return Map.fromEntries(inputList.map((item) {
-    int id = int.tryParse(item['id'])!;
-    String name = item['name'];
-    return MapEntry(id, name);
-  }));
+  return Map.fromEntries(
+    inputList.map((item) {
+      int id = int.tryParse(item['id'])!;
+      String name = item['name'];
+      return MapEntry(id, name);
+    }),
+  );
 }

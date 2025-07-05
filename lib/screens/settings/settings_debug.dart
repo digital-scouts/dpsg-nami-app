@@ -27,7 +27,8 @@ class _SettingsDebugState extends State<SettingsDebug> {
         AppStateHandler().setLoadDataState(loadAll: false);
       },
       subtitle: Text(
-          "Vor ${DateTime.now().difference(getLastNamiSync()).inDays.toString()} Tagen"),
+        "Vor ${DateTime.now().difference(getLastNamiSync()).inDays.toString()} Tagen",
+      ),
     );
   }
 
@@ -80,15 +81,15 @@ class _SettingsDebugState extends State<SettingsDebug> {
           // ignore: use_build_context_synchronously
           context,
           MaterialPageRoute(
-              builder: (context) => NewVersionInfoScreen(
-                    currentVersion: appVersion,
-                  )),
+            builder:
+                (context) => NewVersionInfoScreen(currentVersion: appVersion),
+          ),
         );
       },
     );
   }
 
-  showNotifications(List<PendingNotificationRequest> notifications) {
+  void showNotifications(List<PendingNotificationRequest> notifications) {
     showDialog(
       context: context,
       builder: (context) {
@@ -148,9 +149,7 @@ class _SettingsDebugState extends State<SettingsDebug> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Debug & Tools'),
-      ),
+      appBar: AppBar(title: const Text('Debug & Tools')),
       body: ListView(
         children: [
           _buildSync(),

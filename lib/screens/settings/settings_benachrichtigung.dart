@@ -3,6 +3,7 @@ import 'package:nami/screens/widgets/notification_test_widget.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/notifications/birthday_notifications.dart';
 import 'package:nami/utilities/stufe.dart';
+import 'package:wiredash/wiredash.dart';
 
 class SettingsBenachrichtigung extends StatefulWidget {
   const SettingsBenachrichtigung({super.key});
@@ -32,6 +33,10 @@ class _SettingsBenachrichtigungState extends State<SettingsBenachrichtigung> {
   }
 
   void _onBenachrichtigungenActiveChanged(bool value) {
+    Wiredash.trackEvent(
+      'Settings',
+      data: {'type': 'Benachrichtigungen aktivieren', 'value': value},
+    );
     setState(() {
       _benachrichtigungenActive = value;
       setBenachrichtigungenActive(value);

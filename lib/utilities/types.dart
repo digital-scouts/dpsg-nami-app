@@ -6,7 +6,7 @@ extension StringExtension on String? {
 }
 
 extension DateTimeExtension on DateTime {
-  prettyPrint() {
+  String prettyPrint() {
     return DateFormat('dd.MM.yyyy', 'de_DE').format(this);
   }
 }

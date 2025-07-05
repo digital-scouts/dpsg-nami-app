@@ -4,7 +4,7 @@ publish_to: none
 version: 0.2.5
 
 environment:
-  sdk: "^3.4.0"
+  sdk: "^3.8.0"
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -32,11 +32,11 @@ dependencies:
   flutter_secure_storage: ^9.0.0
   fluttertoast: ^8.0.8
   local_auth: ^2.1.7
-  flutter_map: ^7.0.0
-  geocoding: ^3.0.0
-  geolocator_android: ^4.1.9
+  flutter_map: ^8.0.0
+  geocoding: ^4.0.0
+  geolocator_android: ^5.0.0
   geolocator_apple: ^2.3.7
-  fl_chart: ^0.70.2
+  fl_chart: ^1.0.0
   latlong2: ^0.9.0
   intl: any
   flutter_form_builder: ^10.0.1
@@ -46,7 +46,7 @@ dependencies:
   flutter_dotenv: ^5.1.0
   faker: ^2.0.0
   connectivity_plus: ^6.0.1
-  flutter_map_tile_caching: ^10.0.0
+  flutter_map_tile_caching: ^10.1.0
   logger: ^2.2.0
   path_provider: ^2.1.2
   flutter_email_sender: ^7.0.0
@@ -67,7 +67,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
   hive_ce_generator: ^1.6.0
   build_runner: ^2.1.4
   test: ^1.17.10

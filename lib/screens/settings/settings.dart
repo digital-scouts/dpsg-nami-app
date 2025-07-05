@@ -35,9 +35,7 @@ class _SettingsState extends State<Settings> {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => pageBuilder(),
-          ),
+          MaterialPageRoute(builder: (context) => pageBuilder()),
         );
       },
     );
@@ -78,12 +76,10 @@ class _SettingsState extends State<Settings> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Center(child: Text('Settings')),
-      ),
+      appBar: AppBar(title: const Center(child: Text('Settings'))),
       body: ValueListenableBuilder(
         valueListenable: settingsBox.listenable(),
-        builder: (context, _, __) {
+        builder: (context, _, _) {
           return ListView(
             children: [
               _buildStufenwechselSettings(),
@@ -102,8 +98,10 @@ class _SettingsState extends State<Settings> {
                   ]).then((results) {
                     return (results[0] as PackageInfo, results[1] as String?);
                   }),
-                  builder: (BuildContext context,
-                      AsyncSnapshot<(PackageInfo, String?)> snapshot) {
+                  builder: (
+                    BuildContext context,
+                    AsyncSnapshot<(PackageInfo, String?)> snapshot,
+                  ) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const CircularProgressIndicator();
                     } else {

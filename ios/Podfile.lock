@@ -16,6 +16,7 @@ PODS:
     - Flutter
   - geolocator_apple (1.2.0):
     - Flutter
+    - FlutterMacOS
   - in_app_review (2.0.0):
     - Flutter
   - local_auth_darwin (0.0.1):
@@ -23,10 +24,10 @@ PODS:
     - FlutterMacOS
   - maps_launcher (0.0.1):
     - Flutter
-  - ObjectBox (4.1.0)
+  - ObjectBox (4.3.0)
   - objectbox_flutter_libs (0.0.1):
     - Flutter
-    - ObjectBox (= 4.1.0)
+    - ObjectBox (= 4.3.0)
   - open_file_ios (0.0.1):
     - Flutter
   - package_info_plus (0.4.5):
@@ -51,7 +52,7 @@ DEPENDENCIES:
   - flutter_secure_storage (from `.symlinks/plugins/flutter_secure_storage/ios`)
   - fluttertoast (from `.symlinks/plugins/fluttertoast/ios`)
   - geocoding_ios (from `.symlinks/plugins/geocoding_ios/ios`)
-  - geolocator_apple (from `.symlinks/plugins/geolocator_apple/ios`)
+  - geolocator_apple (from `.symlinks/plugins/geolocator_apple/darwin`)
   - in_app_review (from `.symlinks/plugins/in_app_review/ios`)
   - local_auth_darwin (from `.symlinks/plugins/local_auth_darwin/darwin`)
   - maps_launcher (from `.symlinks/plugins/maps_launcher/ios`)
@@ -85,7 +86,7 @@ EXTERNAL SOURCES:
   geocoding_ios:
     :path: ".symlinks/plugins/geocoding_ios/ios"
   geolocator_apple:
-    :path: ".symlinks/plugins/geolocator_apple/ios"
+    :path: ".symlinks/plugins/geolocator_apple/darwin"
   in_app_review:
     :path: ".symlinks/plugins/in_app_review/ios"
   local_auth_darwin:
@@ -116,12 +117,12 @@ SPEC CHECKSUMS:
   flutter_secure_storage: d33dac7ae2ea08509be337e775f6b59f1ff45f12
   fluttertoast: 21eecd6935e7064cc1fcb733a4c5a428f3f24f0f
   geocoding_ios: d7460f56e80e118d57678efe5c2cdc888739ff18
-  geolocator_apple: 9bcea1918ff7f0062d98345d238ae12718acfbc1
+  geolocator_apple: 66b711889fd333205763b83c9dcf0a57a28c7afd
   in_app_review: a31b5257259646ea78e0e35fc914979b0031d011
-  local_auth_darwin: 66e40372f1c29f383a314c738c7446e2f7fdadc3
+  local_auth_darwin: fa4b06454df7df8e97c18d7ee55151c57e7af0de
   maps_launcher: 2e5b6a2d664ec6c27f82ffa81b74228d770ab203
-  ObjectBox: bf3d4b51075d52868422d5d1f2f2141b1d630d30
-  objectbox_flutter_libs: 2f30755c12b0fe104d75445c3ba879e3072eda54
+  ObjectBox: 7760fa9072adcffe102a6adf4646ca84ba70ab6b
+  objectbox_flutter_libs: 8fa96fe3ffeb448a48e8cacbbe3ec4be7a6564d8
   open_file_ios: 461db5853723763573e140de3193656f91990d9e
   package_info_plus: c0502532a26c7662a62a356cebe2692ec5fe4ec4
   path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
@@ -129,6 +130,6 @@ SPEC CHECKSUMS:
   shared_preferences_foundation: fcdcbc04712aee1108ac7fda236f363274528f78
   url_launcher_ios: 5334b05cef931de560670eeae103fd3e431ac3fe
 
-PODFILE CHECKSUM: 7354afdf1c71f01cf1e4f470782fbd97f3de3314
+PODFILE CHECKSUM: 3d377f004cf2fde0b0b8823270c89e5155814510
 
 COCOAPODS: 1.16.2

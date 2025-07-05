@@ -21,14 +21,15 @@ class DataChange extends HiveObject {
   @HiveField(4)
   List<String> changedFields;
 
-  DataChange(
-      {required this.id,
-      required this.changeDate,
-      required this.gruppierung,
-      required this.action,
-      required this.changedFields});
+  DataChange({
+    required this.id,
+    required this.changeDate,
+    required this.gruppierung,
+    required this.action,
+    required this.changedFields,
+  });
 
-  get actionEnum {
+  DataChangeAction get actionEnum {
     switch (action) {
       case 0:
         return DataChangeAction.create;
