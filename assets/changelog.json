@@ -58,6 +58,14 @@
         "Ein Problem bei dem Leitende nur einen grauen Screen hatten wurde behoben.",
         "Die Stufenwechsel-Übersicht zeigt das Alter nicht mehr in Dezimal an."
       ]
+    },
+    {
+      "version": "0.2.5",
+      "data_reset": false,
+      "features": [
+        "Benachrichtigungen für Geburtstage"
+      ],
+      "bugFixes": []
     }
   ]
 }
