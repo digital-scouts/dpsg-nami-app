@@ -1,10 +1,14 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hive_ce/hive.dart';
+import 'package:nami/main.dart';
+import 'package:nami/screens/mitgliedsliste/mitglied_details.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/stufe.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
+import 'package:wiredash/wiredash.dart';
 
 class BirthdayNotificationService {
   static final _notifications = FlutterLocalNotificationsPlugin();
@@ -15,16 +19,19 @@ class BirthdayNotificationService {
         AndroidInitializationSettings('@mipmap/ic_launcher');
     const DarwinInitializationSettings iosSettings =
         DarwinInitializationSettings(
-      requestAlertPermission: false, // Keine automatische Berechtigung
-      requestBadgePermission: false,
-      requestSoundPermission: false,
-    );
+          requestAlertPermission: false, // Keine automatische Berechtigung
+          requestBadgePermission: false,
+          requestSoundPermission: false,
+        );
     const InitializationSettings settings = InitializationSettings(
       android: androidSettings,
       iOS: iosSettings,
       macOS: iosSettings,
     );
-    await _notifications.initialize(settings);
+    await _notifications.initialize(
+      settings,
+      onDidReceiveNotificationResponse: _onNotificationTapped,
+    );
 
     // Berechtigungen werden später explizit angefordert
     // await requestPermissions();
@@ -33,12 +40,16 @@ class BirthdayNotificationService {
   /// Fordert explizit Benachrichtigungsberechtigungen an
   static Future<bool> requestPermissions() async {
     final IOSFlutterLocalNotificationsPlugin? iosImplementation =
-        _notifications.resolvePlatformSpecificImplementation<
-            IOSFlutterLocalNotificationsPlugin>();
+        _notifications
+            .resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin
+            >();
 
     final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
-        _notifications.resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+        _notifications
+            .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+            >();
 
     if (iosImplementation != null) {
       final bool? granted = await iosImplementation.requestPermissions(
@@ -61,7 +72,7 @@ class BirthdayNotificationService {
   }
 
   static Future<List<PendingNotificationRequest>>
-      getAllPlannedNotifications() async {
+  getAllPlannedNotifications() async {
     return await _notifications.pendingNotificationRequests();
   }
 
@@ -96,26 +107,38 @@ class BirthdayNotificationService {
 
     List<Stufe> stufen = getGeburtstagsbenachrichtigungenGruppen();
 
-    List<Mitglied> mitglieder = Hive.box<Mitglied>('members')
-        .values
-        .where((element) => stufen.contains(element.currentStufe))
-        .toList()
-        .cast<Mitglied>();
+    List<Mitglied> mitglieder =
+        Hive.box<Mitglied>('members').values
+            .where((element) => stufen.contains(element.currentStufe))
+            .toList()
+            .cast<Mitglied>();
 
     // Sortiere nach dem nächsten Geburtstag (aufsteigend)
     mitglieder.sort((a, b) {
       DateTime now = DateTime.now();
-      DateTime nextA =
-          DateTime(now.year, a.geburtsDatum.month, a.geburtsDatum.day);
+      DateTime nextA = DateTime(
+        now.year,
+        a.geburtsDatum.month,
+        a.geburtsDatum.day,
+      );
       if (nextA.isBefore(now)) {
-        nextA =
-            DateTime(now.year + 1, a.geburtsDatum.month, a.geburtsDatum.day);
+        nextA = DateTime(
+          now.year + 1,
+          a.geburtsDatum.month,
+          a.geburtsDatum.day,
+        );
       }
-      DateTime nextB =
-          DateTime(now.year, b.geburtsDatum.month, b.geburtsDatum.day);
+      DateTime nextB = DateTime(
+        now.year,
+        b.geburtsDatum.month,
+        b.geburtsDatum.day,
+      );
       if (nextB.isBefore(now)) {
-        nextB =
-            DateTime(now.year + 1, b.geburtsDatum.month, b.geburtsDatum.day);
+        nextB = DateTime(
+          now.year + 1,
+          b.geburtsDatum.month,
+          b.geburtsDatum.day,
+        );
       }
       return nextA.compareTo(nextB);
     });
@@ -132,28 +155,73 @@ class BirthdayNotificationService {
       now.year,
       mitglied.geburtsDatum.month,
       mitglied.geburtsDatum.day,
-      10,
+      1,
+      34,
     );
     if (nextBirthday.isBefore(now)) {
-      nextBirthday.add(Duration(days: 365)); // Nächstes Jahr
+      nextBirthday = DateTime(
+        now.year + 1,
+        mitglied.geburtsDatum.month,
+        mitglied.geburtsDatum.day,
+        1,
+        34,
+      );
     }
 
     await _notifications.zonedSchedule(
-        mitglied.id.hashCode,
-        'Geburtstag',
-        '${mitglied.vorname} ${mitglied.nachname} hat heute Geburtstag!',
-        tz.TZDateTime.from(nextBirthday, tz.local),
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'birthday_channel',
-            'Geburtstage',
-            channelDescription: 'Erinnerungen an Geburtstage',
-          ),
-          iOS: DarwinNotificationDetails(),
-          macOS: DarwinNotificationDetails(),
+      mitglied.id.hashCode,
+      'Geburtstag',
+      '${mitglied.vorname} ${mitglied.nachname} hat heute Geburtstag!',
+      tz.TZDateTime.from(nextBirthday, tz.local),
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'birthday_channel',
+          'Geburtstage',
+          channelDescription: 'Erinnerungen an Geburtstage',
         ),
-        payload:
-            '${nextBirthday.day}.${nextBirthday.month}.${nextBirthday.year}',
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle);
+        iOS: DarwinNotificationDetails(),
+        macOS: DarwinNotificationDetails(),
+      ),
+      payload: mitglied.id.toString(), // Mitglied-ID als Payload
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      matchDateTimeComponents:
+          DateTimeComponents.dateAndTime, // Jährliche Wiederholung
+    );
+  }
+
+  /// Wird aufgerufen, wenn auf eine Benachrichtigung geklickt wird
+  static Future<void> _onNotificationTapped(
+    NotificationResponse response,
+  ) async {
+    Wiredash.trackEvent(
+      'Geburtstagsbenachrichtigung',
+      data: {'type': 'Details durch Benachrichtigung geöffnet'},
+    );
+    final payload = response.payload;
+
+    if (payload == null) return;
+
+    // Payload-Format: "mitgliedId"
+    try {
+      final int mitgliedId = int.parse(payload);
+
+      // Mitglied aus Hive laden
+      final mitglied =
+          Hive.box<Mitglied>(
+            'members',
+          ).values.where((m) => m.id == mitgliedId).firstOrNull;
+
+      if (mitglied != null) {
+        // Zur MitgliedDetail-Seite navigieren
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(
+            builder: (context) => MitgliedDetail(mitglied: mitglied),
+          ),
+        );
+      }
+    } catch (e) {
+      // Fehler beim Parsen der Payload ignorieren
+      print('Fehler beim Öffnen der Mitgliedsdetails: $e');
+    }
   }
 }

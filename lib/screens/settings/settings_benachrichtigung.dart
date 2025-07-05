@@ -34,7 +34,7 @@ class _SettingsBenachrichtigungState extends State<SettingsBenachrichtigung> {
 
   void _onBenachrichtigungenActiveChanged(bool value) {
     Wiredash.trackEvent(
-      'Settings',
+      'Geburtstagsbenachrichtigung',
       data: {'type': 'Benachrichtigungen aktivieren', 'value': value},
     );
     setState(() {
@@ -60,9 +60,7 @@ class _SettingsBenachrichtigungState extends State<SettingsBenachrichtigung> {
     ];
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Benachrichtigungen'),
-      ),
+      appBar: AppBar(title: const Text('Benachrichtigungen')),
       body: ListView(
         children: [
           SwitchListTile(
@@ -73,13 +71,16 @@ class _SettingsBenachrichtigungState extends State<SettingsBenachrichtigung> {
           const ListTile(
             title: Text('Geburtstagsbenachrichtigungen für folgende Stufen:'),
           ),
-          ...allStufen.map((stufe) => CheckboxListTile(
-                title: Text(stufe.shortDisplay),
-                value: _selectedStufen.contains(stufe),
-                onChanged: _benachrichtigungenActive
-                    ? (val) => _onStufeChanged(stufe, val ?? false)
-                    : null,
-              )),
+          ...allStufen.map(
+            (stufe) => CheckboxListTile(
+              title: Text(stufe.shortDisplay),
+              value: _selectedStufen.contains(stufe),
+              onChanged:
+                  _benachrichtigungenActive
+                      ? (val) => _onStufeChanged(stufe, val ?? false)
+                      : null,
+            ),
+          ),
           const Divider(height: 1),
           const NotificationTestWidget(),
         ],

@@ -10,9 +10,10 @@ import 'package:nami/utilities/hive/taetigkeit.dart';
 var random = Random();
 
 Future<void> storeFakeSetOfMemberInHive(
-    Box<Mitglied> box,
-    ValueNotifier<bool?> memberOverviewProgressNotifier,
-    ValueNotifier<double> memberAllProgressNotifier) async {
+  Box<Mitglied> box,
+  ValueNotifier<bool?> memberOverviewProgressNotifier,
+  ValueNotifier<double> memberAllProgressNotifier,
+) async {
   await fakeLoading(memberOverviewProgressNotifier, memberAllProgressNotifier);
 
   for (Mitglied member in createMembersList()) {
@@ -20,8 +21,10 @@ Future<void> storeFakeSetOfMemberInHive(
   }
 }
 
-Future<void> fakeLoading(ValueNotifier<bool?> memberOverviewProgressNotifier,
-    ValueNotifier<double> memberAllProgressNotifier) async {
+Future<void> fakeLoading(
+  ValueNotifier<bool?> memberOverviewProgressNotifier,
+  ValueNotifier<double> memberAllProgressNotifier,
+) async {
   await Future.delayed(const Duration(seconds: 1));
   memberOverviewProgressNotifier.value = true;
   Random random = Random();
@@ -35,17 +38,23 @@ Future<void> fakeLoading(ValueNotifier<bool?> memberOverviewProgressNotifier,
 }
 
 Taetigkeit createTaetigkeit(
-    int id, DateTime start, DateTime? end, String untergliederung,
-    {bool isLeader = false, String gruppierung = "1234 Test Gruppierung"}) {
-  Taetigkeit t = Taetigkeit()
-    ..id = id
-    ..aktivVon = start
-    ..aktivBis = end
-    ..anlagedatum = start
-    ..untergliederung = untergliederung
-    ..gruppierung = gruppierung
-    ..berechtigteGruppe = ""
-    ..berechtigteUntergruppen = "";
+  int id,
+  DateTime start,
+  DateTime? end,
+  String untergliederung, {
+  bool isLeader = false,
+  String gruppierung = "1234 Test Gruppierung",
+}) {
+  Taetigkeit t =
+      Taetigkeit()
+        ..id = id
+        ..aktivVon = start
+        ..aktivBis = end
+        ..anlagedatum = start
+        ..untergliederung = untergliederung
+        ..gruppierung = gruppierung
+        ..berechtigteGruppe = ""
+        ..berechtigteUntergruppen = "";
 
   if (isLeader) {
     t.taetigkeit = "€ LeiterIn (6)";
@@ -62,12 +71,13 @@ Ausbildung createAusbildung({
   required String veranstalter,
   required String baustein,
 }) {
-  final a = Ausbildung()
-    ..id = id
-    ..name = name
-    ..datum = datum
-    ..veranstalter = veranstalter
-    ..baustein = baustein;
+  final a =
+      Ausbildung()
+        ..id = id
+        ..name = name
+        ..datum = datum
+        ..veranstalter = veranstalter
+        ..baustein = baustein;
   return a;
 }
 
@@ -124,15 +134,30 @@ Mitglied createMemberDefaultPfadfinder(int age, int id) {
   DateTime jufiStart = generateRandomDateYearsAgo(age - 9);
   DateTime pfadiStart = generateRandomDateYearsAgo(age - 12);
 
-  Taetigkeit taetigkeit =
-      createTaetigkeit(int.parse('${id}3'), pfadiStart, null, "Pfadfinder");
+  Taetigkeit taetigkeit = createTaetigkeit(
+    int.parse('${id}3'),
+    pfadiStart,
+    null,
+    "Pfadfinder",
+  );
   Taetigkeit taetigkeit2 = createTaetigkeit(
-      int.parse('${id}2'), jufiStart, pfadiStart, "Jungpfadfinder");
-  Taetigkeit taetigkeit3 =
-      createTaetigkeit(int.parse('${id}1'), woeStart, jufiStart, "Wölfling");
+    int.parse('${id}2'),
+    jufiStart,
+    pfadiStart,
+    "Jungpfadfinder",
+  );
+  Taetigkeit taetigkeit3 = createTaetigkeit(
+    int.parse('${id}1'),
+    woeStart,
+    jufiStart,
+    "Wölfling",
+  );
 
-  return createMitgleid(
-      id, woeStart, birthDate, [taetigkeit, taetigkeit2, taetigkeit3]);
+  return createMitgleid(id, woeStart, birthDate, [
+    taetigkeit,
+    taetigkeit2,
+    taetigkeit3,
+  ]);
 }
 
 Mitglied createMemberDefaultJungpfadfinder(int age, int id) {
@@ -140,10 +165,18 @@ Mitglied createMemberDefaultJungpfadfinder(int age, int id) {
   DateTime woeStart = generateRandomDateYearsAgo(age - 8);
   DateTime jufiStart = generateRandomDateYearsAgo(age - 9);
 
-  Taetigkeit taetigkeit =
-      createTaetigkeit(int.parse('${id}1'), jufiStart, null, "Jungpfadfinder");
-  Taetigkeit taetigkeit2 =
-      createTaetigkeit(int.parse('${id}2'), woeStart, jufiStart, "Wölfling");
+  Taetigkeit taetigkeit = createTaetigkeit(
+    int.parse('${id}1'),
+    jufiStart,
+    null,
+    "Jungpfadfinder",
+  );
+  Taetigkeit taetigkeit2 = createTaetigkeit(
+    int.parse('${id}2'),
+    woeStart,
+    jufiStart,
+    "Wölfling",
+  );
 
   return createMitgleid(id, woeStart, birthDate, [taetigkeit, taetigkeit2]);
 }
@@ -156,14 +189,20 @@ Mitglied createMemberDefaultWoelfling(int age, int id) {
   List<Taetigkeit> taetigkeiten = [];
   int i = 1;
   taetigkeiten.add(
-      createTaetigkeit(int.parse('$id${i++}'), woeStart, null, "Wölfling"));
+    createTaetigkeit(int.parse('$id${i++}'), woeStart, null, "Wölfling"),
+  );
   if (random.nextBool()) {
-    taetigkeiten.add(createTaetigkeit(
-        int.parse('$id${i++}'), biberStart, woeStart, "Biber"));
+    taetigkeiten.add(
+      createTaetigkeit(int.parse('$id${i++}'), biberStart, woeStart, "Biber"),
+    );
   }
 
-  return createMitgleid(id, taetigkeiten.length == 2 ? biberStart : woeStart,
-      birthDate, taetigkeiten);
+  return createMitgleid(
+    id,
+    taetigkeiten.length == 2 ? biberStart : woeStart,
+    birthDate,
+    taetigkeiten,
+  );
 }
 
 Mitglied createMemberDefaultBiber(int age, int id) {
@@ -172,8 +211,9 @@ Mitglied createMemberDefaultBiber(int age, int id) {
 
   List<Taetigkeit> taetigkeiten = [];
   int i = 1;
-  taetigkeiten
-      .add(createTaetigkeit(int.parse('$id${i++}'), biberStart, null, "Biber"));
+  taetigkeiten.add(
+    createTaetigkeit(int.parse('$id${i++}'), biberStart, null, "Biber"),
+  );
 
   return createMitgleid(id, biberStart, birthDate, taetigkeiten);
 }
@@ -183,8 +223,12 @@ Mitglied createMemberDefaultLeiter(int age, String stufe, int id) {
   DateTime leiterStart = generateRandomDateYearsAgo(age - 18);
 
   Taetigkeit taetigkeit = createTaetigkeit(
-      int.parse('${id}1'), leiterStart, null, stufe,
-      isLeader: true);
+    int.parse('${id}1'),
+    leiterStart,
+    null,
+    stufe,
+    isLeader: true,
+  );
   final ausbildung1 = createAusbildung(
     id: int.parse('${id}01'),
     name: "Bausteinwochenende 19.04.24-21.04.24",
@@ -228,59 +272,104 @@ Mitglied createMemberLeiter1(int id) {
 
   int i = 1;
   Taetigkeit taetigkeit0 = createTaetigkeit(
-      int.parse('$id${i++}'), biberStart, woeStart, 'Biber',
-      gruppierung: '6789 Andere Gruppierung');
+    int.parse('$id${i++}'),
+    biberStart,
+    woeStart,
+    'Biber',
+    gruppierung: '6789 Andere Gruppierung',
+  );
   Taetigkeit taetigkeit1 = createTaetigkeit(
-      int.parse('$id${i++}'), woeStart, jufiStart, 'Wölfling',
-      gruppierung: '6789 Andere Gruppierung');
+    int.parse('$id${i++}'),
+    woeStart,
+    jufiStart,
+    'Wölfling',
+    gruppierung: '6789 Andere Gruppierung',
+  );
   Taetigkeit taetigkeit2 = createTaetigkeit(
-      int.parse('$id${i++}'), jufiStart, pfadiStart, 'Jungpfadfinder',
-      gruppierung: '6789 Andere Gruppierung');
+    int.parse('$id${i++}'),
+    jufiStart,
+    pfadiStart,
+    'Jungpfadfinder',
+    gruppierung: '6789 Andere Gruppierung',
+  );
   Taetigkeit taetigkeit3 = createTaetigkeit(
-      int.parse('$id${i++}'), pfadiStart, roverStart, 'Pfadfinder');
+    int.parse('$id${i++}'),
+    pfadiStart,
+    roverStart,
+    'Pfadfinder',
+  );
   Taetigkeit taetigkeit4 = createTaetigkeit(
-      int.parse('$id${i++}'), roverStart, leiterBiberStart, 'Rover');
+    int.parse('$id${i++}'),
+    roverStart,
+    leiterBiberStart,
+    'Rover',
+  );
   Taetigkeit taetigkeit5 = createTaetigkeit(
-      int.parse('$id${i++}'), leiterBiberStart, leiterWoeStart, 'Biber',
-      isLeader: true);
+    int.parse('$id${i++}'),
+    leiterBiberStart,
+    leiterWoeStart,
+    'Biber',
+    isLeader: true,
+  );
   Taetigkeit taetigkeit6 = createTaetigkeit(
-      int.parse('$id${i++}'), leiterWoeStart, leiterJufiStart, 'Wölfling',
-      isLeader: true);
-  Taetigkeit taetigkeit7 = createTaetigkeit(int.parse('$id${i++}'),
-      leiterJufiStart, leiterPfadiStart, 'Jungpfadfinder',
-      isLeader: true);
+    int.parse('$id${i++}'),
+    leiterWoeStart,
+    leiterJufiStart,
+    'Wölfling',
+    isLeader: true,
+  );
+  Taetigkeit taetigkeit7 = createTaetigkeit(
+    int.parse('$id${i++}'),
+    leiterJufiStart,
+    leiterPfadiStart,
+    'Jungpfadfinder',
+    isLeader: true,
+  );
   Taetigkeit taetigkeit8 = createTaetigkeit(
-      int.parse('$id${i++}'), leiterPfadiStart, leiterRoverStart, 'Pfadfinder',
-      isLeader: true);
+    int.parse('$id${i++}'),
+    leiterPfadiStart,
+    leiterRoverStart,
+    'Pfadfinder',
+    isLeader: true,
+  );
   Taetigkeit taetigkeit9 = createTaetigkeit(
-      int.parse('$id${i++}'), leiterRoverStart, leiterJufi2Start, 'Rover',
-      isLeader: true);
+    int.parse('$id${i++}'),
+    leiterRoverStart,
+    leiterJufi2Start,
+    'Rover',
+    isLeader: true,
+  );
   Taetigkeit taetigkeit10 = createTaetigkeit(
-      int.parse('$id${i++}'), leiterJufi2Start, null, 'Jungpfadfinder',
-      isLeader: true);
+    int.parse('$id${i++}'),
+    leiterJufi2Start,
+    null,
+    'Jungpfadfinder',
+    isLeader: true,
+  );
 
   return createMitgleid(
-      id,
-      biberStart,
-      birthDate,
-      [
-        taetigkeit10,
-        taetigkeit9,
-        taetigkeit8,
-        taetigkeit7,
-        taetigkeit6,
-        taetigkeit5,
-        taetigkeit4,
-        taetigkeit3,
-        taetigkeit2,
-        taetigkeit1,
-        taetigkeit0
-      ],
-      vorname: 'A1_Leiter',
-      nachname: 'Alle Stufen',
-      strasse: 'Lange Reihe 2',
-      ort: 'Hamburg',
-      plz: '20099');
+    id,
+    biberStart,
+    birthDate,
+    [
+      taetigkeit10,
+      taetigkeit9,
+      taetigkeit8,
+      taetigkeit7,
+      taetigkeit6,
+      taetigkeit5,
+      taetigkeit4,
+      taetigkeit3,
+      taetigkeit2,
+      taetigkeit1,
+      taetigkeit0,
+    ],
+    vorname: 'A1_Leiter',
+    nachname: 'Alle Stufen',
+    strasse: 'Lange Reihe 2',
+    ort: 'Hamburg',
+    plz: '20099',
+  );
 }
 
 /// Leiter ist in allen Stufen und leitet kürzer als er Mitglied war
@@ -298,47 +387,80 @@ Mitglied createMemberLeiter2(int id) {
 
   int i = 1;
   Taetigkeit taetigkeit0 = createTaetigkeit(
-      int.parse('$id${i++}'), biberStart, woeStart, 'Biber',
-      gruppierung: '6789 Andere Gruppierung');
+    int.parse('$id${i++}'),
+    biberStart,
+    woeStart,
+    'Biber',
+    gruppierung: '6789 Andere Gruppierung',
+  );
   Taetigkeit taetigkeit1 = createTaetigkeit(
-      int.parse('$id${i++}'), woeStart, jufiStart, 'Wölfling',
-      gruppierung: '6789 Andere Gruppierung');
+    int.parse('$id${i++}'),
+    woeStart,
+    jufiStart,
+    'Wölfling',
+    gruppierung: '6789 Andere Gruppierung',
+  );
   Taetigkeit taetigkeit2 = createTaetigkeit(
-      int.parse('$id${i++}'), jufiStart, pfadiStart, 'Jungpfadfinder',
-      gruppierung: '6789 Andere Gruppierung');
+    int.parse('$id${i++}'),
+    jufiStart,
+    pfadiStart,
+    'Jungpfadfinder',
+    gruppierung: '6789 Andere Gruppierung',
+  );
   Taetigkeit taetigkeit3 = createTaetigkeit(
-      int.parse('$id${i++}'), pfadiStart, roverStart, 'Pfadfinder');
+    int.parse('$id${i++}'),
+    pfadiStart,
+    roverStart,
+    'Pfadfinder',
+  );
   Taetigkeit taetigkeit4 = createTaetigkeit(
-      int.parse('$id${i++}'), roverStart, leiterPfadi1Start, 'Rover');
+    int.parse('$id${i++}'),
+    roverStart,
+    leiterPfadi1Start,
+    'Rover',
+  );
   Taetigkeit taetigkeit5 = createTaetigkeit(
-      int.parse('$id${i++}'), leiterPfadi1Start, leiterWoeStart, 'Pfadfinder',
-      isLeader: true);
+    int.parse('$id${i++}'),
+    leiterPfadi1Start,
+    leiterWoeStart,
+    'Pfadfinder',
+    isLeader: true,
+  );
   Taetigkeit taetigkeit6 = createTaetigkeit(
-      int.parse('$id${i++}'), leiterWoeStart, leiterPfadi2Start, 'Wölfling',
-      isLeader: true);
+    int.parse('$id${i++}'),
+    leiterWoeStart,
+    leiterPfadi2Start,
+    'Wölfling',
+    isLeader: true,
+  );
   Taetigkeit taetigkeit7 = createTaetigkeit(
-      int.parse('$id${i++}'), leiterPfadi2Start, null, 'Pfadfinder',
-      isLeader: true);
+    int.parse('$id${i++}'),
+    leiterPfadi2Start,
+    null,
+    'Pfadfinder',
+    isLeader: true,
+  );
 
   return createMitgleid(
-      id,
-      biberStart,
-      birthDate,
-      [
-        taetigkeit7,
-        taetigkeit6,
-        taetigkeit5,
-        taetigkeit4,
-        taetigkeit3,
-        taetigkeit2,
-        taetigkeit1,
-        taetigkeit0
-      ],
-      vorname: 'A2_Leiter',
-      nachname: 'Pfadi',
-      strasse: 'Lange Reihe 2',
-      ort: 'Hamburg',
-      plz: '20099');
+    id,
+    biberStart,
+    birthDate,
+    [
+      taetigkeit7,
+      taetigkeit6,
+      taetigkeit5,
+      taetigkeit4,
+      taetigkeit3,
+      taetigkeit2,
+      taetigkeit1,
+      taetigkeit0,
+    ],
+    vorname: 'A2_Leiter',
+    nachname: 'Pfadi',
+    strasse: 'Lange Reihe 2',
+    ort: 'Hamburg',
+    plz: '20099',
+  );
 }
 
 List<Mitglied> createMembersList() {
@@ -386,12 +508,18 @@ DateTime generateRandomDateYearsAgo(int age) {
   final currentYear = DateTime.now().year;
   final birthYear = currentYear - age;
 
+  // TODO: Temporär: Generiere ein Datum in den nächsten 5 Tagen, ggf. zurückändern auf zufälliges Datum
   // Generiere einen zufälligen Monat zwischen 1 und 12
-  final month = random.nextInt(12) + 1;
+  // final month = random.nextInt(12) + 1;
 
   // Generiere einen zufälligen Tag zwischen 1 und 28
-  // Wir wählen 28, um sicherzustellen, dass das Datum in jedem Monat gültig ist
-  final day = random.nextInt(28) + 1;
+  // final day = random.nextInt(28) + 1;
+
+  final now = DateTime.now();
+  final randomDays = random.nextInt(5); // 0 bis 4 Tage in der Zukunft
+  final futureDate = now.add(Duration(days: randomDays));
+  final month = futureDate.month;
+  final day = futureDate.day;
 
   return DateTime(birthYear, month, day);
 }
