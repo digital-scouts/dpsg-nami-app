@@ -1,23 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
-import 'package:nami/screens/settings/data_change_history_page.dart';
-import 'package:nami/screens/utilities/new_version_info_screen.dart';
-import 'package:nami/screens/widgets/nami_change_toggle.dart';
+import 'package:nami/screens/settings/settings_app.dart';
+import 'package:nami/screens/settings/settings_benachrichtigung.dart';
+import 'package:nami/screens/settings/settings_stufenwechsel.dart';
 import 'package:nami/screens/widgets/stamm_heim_setting.dart';
-import 'package:nami/screens/widgets/stufenwechsel_alter_setting.dart';
-import 'package:nami/screens/widgets/stufenwechsel_datum_setting.dart';
-import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/helper_functions.dart';
-import 'package:nami/utilities/notifications.dart';
-import 'package:nami/utilities/notifications/birthday_notifications.dart';
-import 'package:nami/utilities/stufe.dart';
-import 'package:nami/utilities/theme.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:provider/provider.dart';
-import 'package:wiredash/wiredash.dart';
 
 import '../../utilities/hive/settings.dart';
+import 'settings_debug.dart';
 
 class Settings extends StatefulWidget {
   const Settings({super.key});
@@ -27,190 +18,60 @@ class Settings extends StatefulWidget {
 }
 
 class _SettingsState extends State<Settings> {
-  Widget _buildSync() {
-    return ListTile(
-      title: const Text('Aktualisiere die Mitgliedsdaten'),
-      leading: const Icon(Icons.sync),
-      onTap: () {
-        Wiredash.trackEvent('Settings', data: {'type': 'SyncData'});
-        AppStateHandler().setLoadDataState(loadAll: false);
-      },
-      subtitle: Text(
-          "Vor ${DateTime.now().difference(getLastNamiSync()).inDays.toString()} Tagen"),
-    );
-  }
-
-  Widget _buildForceBSync() {
-    return ListTile(
-      title: const Text('Fehlerhafte Daten korrigieren'),
-      subtitle: const Text('Alle Daten werden neu geladen'),
-      leading: const Icon(Icons.sync),
-      onTap: () {
-        Wiredash.trackEvent('Settings', data: {'type': 'SyncData forced'});
-        AppStateHandler().setLoadDataState(loadAll: true);
-      },
-    );
-  }
-
   bool isValidInput(String text) {
     RegExp regex = RegExp(r'^\d{0,2}-\d{0,2}$');
     return regex.hasMatch(text);
   }
 
-  _buildBiometricAuthentication() {
+  Widget _buildSubpageTile({
+    required String title,
+    required IconData icon,
+    required Widget Function() pageBuilder,
+  }) {
     return ListTile(
-      title: const Text('Biometrische Authentifizierung'),
-      leading: const Icon(Icons.fingerprint),
-      trailing: Switch(
-        value: getBiometricAuthenticationEnabled(),
-        onChanged: (value) {
-          setBiometricAuthenticationEnabled(value);
-        },
-      ),
-    );
-  }
-
-  _buildDataLoadingOverWifiOnly() {
-    return ListTile(
-      title: const Text('Optionale Daten nur über WLAN laden'),
-      leading: const Icon(Icons.wifi),
-      trailing: Switch(
-        value: getDataLoadingOverWifiOnly(),
-        onChanged: (value) {
-          setDataLoadingOverWifiOnly(value);
-        },
-      ),
-    );
-  }
-
-  _buildShareLogs() {
-    return ListTile(
-      title: const Text('Teile Logs'),
-      leading: const Icon(Icons.share),
-      onTap: () {
-        Wiredash.trackEvent('Settings', data: {'type': 'share logs'});
-        showSendLogsDialog();
-      },
-    );
-  }
-
-  _buildShowDataHistory() {
-    return ListTile(
-      title: const Text('Syncronisationshistorie'),
-      leading: const Icon(Icons.info),
+      title: Text(title),
+      leading: Icon(icon),
+      trailing: const Icon(Icons.chevron_right),
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => const DataChangeHistoryPage(),
+            builder: (context) => pageBuilder(),
           ),
         );
       },
     );
   }
 
-  _buildThemeToggle() {
-    final themeModel = Provider.of<ThemeModel>(context);
-
-    return ListTile(
-      title: const Text('Erscheinungsbild'),
-      leading: const Icon(Icons.color_lens),
-      trailing: DropdownButton<ThemeMode>(
-        value: themeModel.currentMode,
-        onChanged: (ThemeMode? newValue) {
-          if (newValue != null) {
-            themeModel.setTheme(newValue);
-            setThemeMode(newValue);
-          }
-        },
-        items: const [
-          DropdownMenuItem(
-            value: ThemeMode.system,
-            child: Text('Automatisch'),
-          ),
-          DropdownMenuItem(
-            value: ThemeMode.light,
-            child: Text('Hell'),
-          ),
-          DropdownMenuItem(
-            value: ThemeMode.dark,
-            child: Text('Dunkel'),
-          ),
-        ],
-      ),
+  Widget _buildBenachrichtigungSettings() {
+    return _buildSubpageTile(
+      title: 'Benachrichtigungen',
+      icon: Icons.notifications,
+      pageBuilder: () => const SettingsBenachrichtigung(),
     );
   }
 
-  Widget _buildChangelogButton() {
-    return ListTile(
-      title: const Text('Changelog'),
-      leading: const Icon(Icons.info),
-      onTap: () async {
-        final packageInfo = await PackageInfo.fromPlatform();
-        final appVersion = packageInfo.version;
-        Navigator.push(
-          // ignore: use_build_context_synchronously
-          context,
-          MaterialPageRoute(
-              builder: (context) => NewVersionInfoScreen(
-                    currentVersion: appVersion,
-                  )),
-        );
-      },
+  Widget _buildDebugSettings() {
+    return _buildSubpageTile(
+      title: 'Debug & Tools',
+      icon: Icons.bug_report,
+      pageBuilder: () => const SettingsDebug(),
     );
   }
 
-  Widget _buildShowNotificationsButton() {
-    return ListTile(
-      title: const Text('Notifications anzeigen'),
-      leading: const Icon(Icons.info),
-      onTap: () async {
-        List<PendingNotificationRequest> notifications =
-            await BirthdayNotificationService.getAllPlannedNotifications();
+  Widget _buildStufenwechselSettings() {
+    return _buildSubpageTile(
+      title: 'Stufenwechsel',
+      icon: Icons.swap_horiz,
+      pageBuilder: () => const SettingsStufenwechsel(),
+    );
+  }
 
-        showDialog(
-          context: context,
-          builder: (context) {
-            if (notifications.isEmpty) {
-              return AlertDialog(
-                title: const Text('Geplante Benachrichtigungen'),
-                content:
-                    const Text('Keine geplanten Benachrichtigungen gefunden.'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('OK'),
-                  ),
-                ],
-              );
-            }
-            return AlertDialog(
-              title: const Text('Geplante Benachrichtigungen'),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: notifications.length,
-                  itemBuilder: (context, index) {
-                    final n = notifications[index];
-                    return ListTile(
-                      title: Text(n.title ?? 'Kein Titel'),
-                      subtitle: Text(n.body ?? ''),
-                      trailing: Text(n.payload.toString()),
-                    );
-                  },
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('OK'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+  Widget _buildAppSettings() {
+    return _buildSubpageTile(
+      title: 'App-Einstellungen',
+      icon: Icons.settings,
+      pageBuilder: () => const SettingsApp(),
     );
   }
 
@@ -225,27 +86,13 @@ class _SettingsState extends State<Settings> {
         builder: (context, _, __) {
           return ListView(
             children: [
-              _buildSync(),
-              _buildForceBSync(),
-              _buildShowDataHistory(),
-              const NamiChangeToggle(),
-              const Divider(height: 1),
-              const StufenwechelDatumSetting(),
-              const StufenwechselAlterSetting(stufe: Stufe.BIBER),
-              const StufenwechselAlterSetting(stufe: Stufe.WOELFLING),
-              const StufenwechselAlterSetting(stufe: Stufe.JUNGPADFINDER),
-              const StufenwechselAlterSetting(stufe: Stufe.PFADFINDER),
-              const StufenwechselAlterSetting(stufe: Stufe.ROVER),
+              _buildStufenwechselSettings(),
+              _buildBenachrichtigungSettings(),
+              _buildAppSettings(),
               const Divider(height: 1),
               const StammHeimSetting(),
               const Divider(height: 1),
-              _buildBiometricAuthentication(),
-              _buildDataLoadingOverWifiOnly(),
-              _buildThemeToggle(),
-              const Divider(height: 1),
-              _buildShareLogs(),
-              _buildChangelogButton(),
-              _buildShowNotificationsButton(),
+              _buildDebugSettings(),
               Padding(
                 padding: const EdgeInsets.all(20.0),
                 child: FutureBuilder<(PackageInfo, String?)>(

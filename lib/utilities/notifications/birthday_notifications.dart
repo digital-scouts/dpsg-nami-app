@@ -28,8 +28,35 @@ class BirthdayNotificationService {
     return await _notifications.pendingNotificationRequests();
   }
 
-  static Future<void> scheduleAllBirthdays() async {
+  static Future<void> cancelAllBirthdayNotifications() async {
     await _notifications.cancelAll();
+  }
+
+  static Future<bool> callTestBenachrichtigung(
+      {duration = const Duration(seconds: 5)}) async {
+    try {
+      await _notifications.show(
+        0, // unique id
+        'Test Benachrichtigung',
+        'Dies ist eine Testbenachrichtigung für Geburtstage.',
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'birthday_channel',
+            'Geburtstage',
+            channelDescription: 'Erinnerungen an Geburtstage',
+          ),
+          iOS: DarwinNotificationDetails(),
+          macOS: DarwinNotificationDetails(),
+        ),
+      );
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static Future<void> scheduleAllBirthdays() async {
+    await cancelAllBirthdayNotifications();
 
     List<Stufe> stufen = getGeburtstagsbenachrichtigungenGruppen();
 

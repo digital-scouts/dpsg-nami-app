@@ -35,7 +35,8 @@ enum SettingValue {
   newVersionInfoShown,
   themeMode,
   isTestDevice,
-  geburtstagsbenachrichtungen
+  geburtstagsbenachrichtungen,
+  benachrichtigungenActive
 }
 
 enum GeburtstagsbenachrichtigungenGruppen {
@@ -362,6 +363,15 @@ void setIsTestDevice(bool value) {
 
 bool getIsTestDevice() {
   return settingsBox.get(SettingValue.isTestDevice.toString()) ?? false;
+}
+
+void setBenachrichtigungenActive(bool value) {
+  settingsBox.put(SettingValue.benachrichtigungenActive.toString(), value);
+}
+
+bool getBenachrichtigungenActive() {
+  return settingsBox.get(SettingValue.benachrichtigungenActive.toString()) ??
+      true;
 }
 
 void setGeburtstagsbenachrichtigungenGruppen(List<Stufe> value) {

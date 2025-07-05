@@ -148,7 +148,7 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
                 ),
           ],
         ),
-        // // Bereich für die Liste der Namen
+        // Bereich für die Liste der Namen
         if (aktuelleTabellenZeilen.isNotEmpty)
           SizedBox(
             width: double.infinity,
