@@ -21,6 +21,7 @@ import 'package:nami/utilities/nami/nami.service.dart';
 import 'package:nami/utilities/nami/nami_member.service.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
 import 'package:nami/utilities/notifications.dart';
+import 'package:nami/utilities/notifications/birthday_notifications.dart';
 import 'package:nami/utilities/types.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:wiredash/wiredash.dart';
@@ -232,6 +233,7 @@ class AppStateHandler extends ChangeNotifier {
         _dataChangesService,
         forceUpdate: loadAll,
       );
+      await BirthdayNotificationService.scheduleAllBirthdays();
       syncState = SyncState.successful;
 
       if (background) {

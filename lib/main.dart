@@ -14,6 +14,7 @@ import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/hive/hive.handler.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/logger.dart';
+import 'package:nami/utilities/notifications/birthday_notifications.dart';
 import 'package:nami/utilities/theme.dart';
 import 'package:provider/provider.dart';
 import 'package:wiredash/wiredash.dart';
@@ -42,6 +43,7 @@ void main() async {
     sensLog
         .e('Error while initalice objectbox for flutter_map_tile_caching: $e');
   }
+  await BirthdayNotificationService.init();
   runApp(
     ChangeNotifierProvider<ThemeModel>(
       create: (_) => ThemeModel(),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:nami/screens/settings/data_change_history_page.dart';
 import 'package:nami/screens/utilities/new_version_info_screen.dart';
@@ -9,6 +10,7 @@ import 'package:nami/screens/widgets/stufenwechsel_datum_setting.dart';
 import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/notifications.dart';
+import 'package:nami/utilities/notifications/birthday_notifications.dart';
 import 'package:nami/utilities/stufe.dart';
 import 'package:nami/utilities/theme.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -158,6 +160,60 @@ class _SettingsState extends State<Settings> {
     );
   }
 
+  Widget _buildShowNotificationsButton() {
+    return ListTile(
+      title: const Text('Notifications anzeigen'),
+      leading: const Icon(Icons.info),
+      onTap: () async {
+        List<PendingNotificationRequest> notifications =
+            await BirthdayNotificationService.getAllPlannedNotifications();
+
+        showDialog(
+          context: context,
+          builder: (context) {
+            if (notifications.isEmpty) {
+              return AlertDialog(
+                title: const Text('Geplante Benachrichtigungen'),
+                content:
+                    const Text('Keine geplanten Benachrichtigungen gefunden.'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('OK'),
+                  ),
+                ],
+              );
+            }
+            return AlertDialog(
+              title: const Text('Geplante Benachrichtigungen'),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: notifications.length,
+                  itemBuilder: (context, index) {
+                    final n = notifications[index];
+                    return ListTile(
+                      title: Text(n.title ?? 'Kein Titel'),
+                      subtitle: Text(n.body ?? ''),
+                      trailing: Text(n.payload.toString()),
+                    );
+                  },
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -189,6 +245,7 @@ class _SettingsState extends State<Settings> {
               const Divider(height: 1),
               _buildShareLogs(),
               _buildChangelogButton(),
+              _buildShowNotificationsButton(),
               Padding(
                 padding: const EdgeInsets.all(20.0),
                 child: FutureBuilder<(PackageInfo, String?)>(

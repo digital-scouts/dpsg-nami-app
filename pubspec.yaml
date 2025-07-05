@@ -60,6 +60,8 @@ dependencies:
   in_app_review: ^2.0.9
   device_info_plus: ^11.3.0
   multi_dropdown: ^3.0.1
+  flutter_local_notifications: ^19.3.0
+  timezone: ^0.10.1
 
 dev_dependencies:
   flutter_test:

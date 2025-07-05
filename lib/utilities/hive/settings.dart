@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_ce/hive.dart';
+import 'package:nami/utilities/stufe.dart';
 
 // flutter packages pub run build_runner build
 enum SettingValue {
@@ -34,6 +35,11 @@ enum SettingValue {
   newVersionInfoShown,
   themeMode,
   isTestDevice,
+  geburtstagsbenachrichtungen
+}
+
+enum GeburtstagsbenachrichtigungenGruppen {
+  favouriten,
 }
 
 void setMetaData(
@@ -356,4 +362,30 @@ void setIsTestDevice(bool value) {
 
 bool getIsTestDevice() {
   return settingsBox.get(SettingValue.isTestDevice.toString()) ?? false;
+}
+
+void setGeburtstagsbenachrichtigungenGruppen(List<Stufe> value) {
+  List<int> gruppenIndices = value.map((e) => e.index).toList();
+
+  settingsBox.put(
+      SettingValue.geburtstagsbenachrichtungen.toString(), gruppenIndices);
+}
+
+List<Stufe> getGeburtstagsbenachrichtigungenGruppen() {
+  final dynamicList =
+      settingsBox.get(SettingValue.geburtstagsbenachrichtungen.toString()) ??
+          [
+            Stufe.BIBER.index,
+            Stufe.WOELFLING.index,
+            Stufe.JUNGPADFINDER.index,
+            Stufe.PFADFINDER.index,
+            Stufe.ROVER.index,
+            Stufe.LEITER.index
+          ];
+  // Stelle sicher, dass dynamicList eine List<int> ist
+  final List<int> indices = List<int>.from(dynamicList);
+  return indices
+      .map((e) => Stufe.getStufeByOrder(e))
+      .whereType<Stufe>()
+      .toList();
 }
