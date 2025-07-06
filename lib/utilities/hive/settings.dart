@@ -37,7 +37,7 @@ enum SettingValue {
   isTestDevice,
   geburtstagsbenachrichtungen,
   benachrichtigungenActive,
-  benachrichtigungenAmVorabend,
+  benachrichtigungsZeit,
 }
 
 enum GeburtstagsbenachrichtigungenGruppen { favouriten }
@@ -385,15 +385,39 @@ bool getBenachrichtigungenActive() {
       true;
 }
 
-void setBenachrichtigungenAmVorabend(bool value) {
-  settingsBox.put(SettingValue.benachrichtigungenAmVorabend.toString(), value);
+void setBenachrichtungsZeitpunkt(BenachrichtigungsZeit zeit) {
+  settingsBox.put(
+    SettingValue.benachrichtigungsZeit.toString(),
+    zeit.displayName,
+  );
 }
 
-bool getBenachrichtigungenAmVorabend() {
-  return settingsBox.get(
-        SettingValue.benachrichtigungenAmVorabend.toString(),
-      ) ??
-      false; // Standard: am Morgen (10 Uhr)
+BenachrichtigungsZeit getBenachrichtigungsZeitpunkt() {
+  final String? zeitName = settingsBox.get(
+    SettingValue.benachrichtigungsZeit.toString(),
+  );
+  if (zeitName == null) return BenachrichtigungsZeit.morgens;
+  return BenachrichtigungsZeit.values.firstWhere(
+    (zeit) => zeit.displayName == zeitName,
+    orElse: () => BenachrichtigungsZeit.morgens,
+  );
+}
+
+enum BenachrichtigungsZeit {
+  vorabend('Vorabend', 0, 22, -1),
+  morgens('Morgens', 1, 10, 0),
+  mittag('Mittags', 2, 12, 0);
+
+  const BenachrichtigungsZeit(
+    this.displayName,
+    this.i,
+    this.stunde,
+    this.tageOffset,
+  );
+  final String displayName;
+  final int i;
+  final int stunde;
+  final int tageOffset; // -1 für Vorabend, 0 für am Tag selbst
 }
 
 void setGeburtstagsbenachrichtigungenGruppen(List<Stufe> value) {

@@ -150,57 +150,29 @@ class BirthdayNotificationService {
 
   static Future<void> scheduleBirthdayNotification(Mitglied mitglied) async {
     final now = DateTime.now();
-    final amVorabend = getBenachrichtigungenAmVorabend();
+    BenachrichtigungsZeit zeitpunkt = getBenachrichtigungsZeitpunkt();
 
-    DateTime notificationDate;
-    String notificationText;
+    DateTime notificationDate = DateTime(
+      now.year,
+      mitglied.geburtsDatum.month,
+      mitglied.geburtsDatum.day + zeitpunkt.tageOffset,
+      zeitpunkt.stunde,
+    );
 
-    if (amVorabend) {
-      // Vorabend: 22 Uhr am Tag vor dem Geburtstag
+    // Falls der Geburtstag bereits vorbei ist, nächstes Jahr
+    if (notificationDate.isBefore(now)) {
       notificationDate = DateTime(
-        now.year,
+        now.year + 1,
         mitglied.geburtsDatum.month,
-        mitglied.geburtsDatum.day - 1,
-        22,
+        mitglied.geburtsDatum.day + zeitpunkt.tageOffset,
+        zeitpunkt.stunde,
       );
-      notificationText =
-          '${mitglied.vorname} ${mitglied.nachname} hat morgen Geburtstag!';
-
-      // Falls der Vorabend bereits vorbei ist, nächstes Jahr
-      if (notificationDate.isBefore(now)) {
-        notificationDate = DateTime(
-          now.year + 1,
-          mitglied.geburtsDatum.month,
-          mitglied.geburtsDatum.day - 1,
-          22,
-        );
-      }
-    } else {
-      // Morgen: 10 Uhr am Geburtstag
-      notificationDate = DateTime(
-        now.year,
-        mitglied.geburtsDatum.month,
-        mitglied.geburtsDatum.day,
-        10,
-      );
-      notificationText =
-          '${mitglied.vorname} ${mitglied.nachname} hat heute Geburtstag!';
-
-      // Falls der Geburtstag bereits vorbei ist, nächstes Jahr
-      if (notificationDate.isBefore(now)) {
-        notificationDate = DateTime(
-          now.year + 1,
-          mitglied.geburtsDatum.month,
-          mitglied.geburtsDatum.day,
-          10,
-        );
-      }
     }
 
     await _notifications.zonedSchedule(
       mitglied.id.hashCode,
       'Geburtstag',
-      notificationText,
+      '${mitglied.vorname} ${mitglied.nachname} hat ${zeitpunkt.tageOffset == 0 ? 'heute' : 'morgen'} Geburtstag!',
       tz.TZDateTime.from(notificationDate, tz.local),
       const NotificationDetails(
         android: AndroidNotificationDetails(
@@ -211,7 +183,8 @@ class BirthdayNotificationService {
         iOS: DarwinNotificationDetails(),
         macOS: DarwinNotificationDetails(),
       ),
-      payload: mitglied.id.toString(), // Mitglied-ID als Payload
+      payload:
+          '${mitglied.id.toString()}-${notificationDate.day}.${notificationDate.month}.${notificationDate.year} ${notificationDate.hour} Uhr',
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       matchDateTimeComponents:
           DateTimeComponents.dateAndTime, // Jährliche Wiederholung
@@ -232,7 +205,7 @@ class BirthdayNotificationService {
 
     // Payload-Format: "mitgliedId"
     try {
-      final int mitgliedId = int.parse(payload);
+      final int mitgliedId = int.parse(payload.split('-').first);
 
       // Mitglied aus Hive laden
       final mitglied = Hive.box<Mitglied>(

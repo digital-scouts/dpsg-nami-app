@@ -117,7 +117,7 @@ class _SettingsDebugState extends State<SettingsDebug> {
                 return ListTile(
                   title: Text(n.title ?? 'Kein Titel'),
                   subtitle: Text(n.body ?? ''),
-                  trailing: Text(n.payload.toString()),
+                  trailing: Text(n.payload.toString().split('-').last),
                 );
               },
             ),

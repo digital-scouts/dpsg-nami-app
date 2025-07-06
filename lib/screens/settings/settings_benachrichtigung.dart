@@ -16,7 +16,6 @@ class SettingsBenachrichtigung extends StatefulWidget {
 class _SettingsBenachrichtigungState extends State<SettingsBenachrichtigung> {
   List<Stufe> _selectedStufen = getGeburtstagsbenachrichtigungenGruppen();
   bool _benachrichtigungenActive = getBenachrichtigungenActive();
-  bool _benachrichtigungenAmVorabend = getBenachrichtigungenAmVorabend();
 
   void _onStufeChanged(Stufe stufe, bool selected) {
     setState(() {
@@ -49,14 +48,20 @@ class _SettingsBenachrichtigungState extends State<SettingsBenachrichtigung> {
     });
   }
 
-  void _onBenachrichtigungenAmVorabendChanged(bool value) {
+  void _onBenachrichtigungsZeitChanged(BenachrichtigungsZeit? zeit) {
+    if (zeit == null) return;
+
     Wiredash.trackEvent(
       'Geburtstagsbenachrichtigung',
-      data: {'type': 'Benachrichtigungszeit ändern', 'amVorabend': value},
+      data: {
+        'type': 'Benachrichtigungszeit ändern',
+        'zeit': zeit.displayName,
+        'stunde': zeit.stunde,
+        'tageOffset': zeit.tageOffset,
+      },
     );
     setState(() {
-      _benachrichtigungenAmVorabend = value;
-      setBenachrichtigungenAmVorabend(value);
+      setBenachrichtungsZeitpunkt(zeit);
       // Alle Benachrichtigungen neu planen mit neuer Zeit
       if (_benachrichtigungenActive) {
         BirthdayNotificationService.scheduleAllBirthdays();
@@ -84,17 +89,22 @@ class _SettingsBenachrichtigungState extends State<SettingsBenachrichtigung> {
             value: _benachrichtigungenActive,
             onChanged: (value) => _onBenachrichtigungenActiveChanged(value),
           ),
-          SwitchListTile(
-            title: const Text('Benachrichtigungen am Vorabend (22 Uhr)'),
-            subtitle: Text(
-              _benachrichtigungenAmVorabend
-                  ? 'Benachrichtigung am Vorabend um 22 Uhr'
-                  : 'Benachrichtigung am Geburtstag um 10 Uhr',
+          ListTile(
+            title: const Text('Benachrichtigungszeit'),
+            trailing: DropdownButton<BenachrichtigungsZeit>(
+              value: getBenachrichtigungsZeitpunkt(),
+              onChanged: _benachrichtigungenActive
+                  ? _onBenachrichtigungsZeitChanged
+                  : null,
+              items: BenachrichtigungsZeit.values
+                  .map(
+                    (zeit) => DropdownMenuItem(
+                      value: zeit,
+                      child: Text(zeit.displayName),
+                    ),
+                  )
+                  .toList(),
             ),
-            value: _benachrichtigungenAmVorabend,
-            onChanged: _benachrichtigungenActive
-                ? (value) => _onBenachrichtigungenAmVorabendChanged(value)
-                : null,
           ),
           const Divider(height: 1),
           const ListTile(
