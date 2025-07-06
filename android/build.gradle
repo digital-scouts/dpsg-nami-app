@@ -4,6 +4,14 @@ allprojects {
         mavenCentral()
     }
 
+    // TODO (try to remove later) Force resolution of androidx.core to compatible version project-wide
+    configurations.all {
+        resolutionStrategy {
+            force 'androidx.core:core:1.13.1'
+            force 'androidx.core:core-ktx:1.13.1'
+        }
+    }
+
     subprojects {
         afterEvaluate { project ->
             if (project.hasProperty('android')) {

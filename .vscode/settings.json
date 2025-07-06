@@ -4,11 +4,21 @@
     ".github/workflows/flutter-app-build.yml"
   ],
   "[dart]": {
-      "editor.codeActionsOnSave": {
-          "source.fixAll": "always",
-          "source.organizeImports": "always",
-      }
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "always",
+      "source.organizeImports": "always"
+    },
+    "editor.formatOnSave": true,
+    "editor.formatOnType": false,
+    "editor.defaultFormatter": "Dart-Code.dart-code",
+    "editor.rulers": [
+      80
+    ],
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2,
+    "editor.detectIndentation": false
   },
-  "java.configuration.updateBuildConfiguration": "interactive",
-  "cSpell.enableFiletypes": ["!dart"]
+  "dart.enableSdkFormatter": true,
+  "dart.lineLength": 80,
+  "dart.analysisExcludedFolders": [],
 }
