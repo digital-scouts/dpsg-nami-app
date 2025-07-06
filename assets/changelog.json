@@ -63,7 +63,8 @@
       "version": "0.2.5",
       "data_reset": false,
       "features": [
-        "Benachrichtigungen für Geburtstage"
+        "Benachrichtigungen für Geburtstage",
+        "Einstellungen aufgeräumt und übersichtlicher gestaltet"
       ],
       "bugFixes": []
     }

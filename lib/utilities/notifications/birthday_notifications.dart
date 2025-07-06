@@ -150,28 +150,58 @@ class BirthdayNotificationService {
 
   static Future<void> scheduleBirthdayNotification(Mitglied mitglied) async {
     final now = DateTime.now();
-    DateTime nextBirthday = DateTime(
-      now.year,
-      mitglied.geburtsDatum.month,
-      mitglied.geburtsDatum.day,
-      1,
-      34,
-    );
-    if (nextBirthday.isBefore(now)) {
-      nextBirthday = DateTime(
-        now.year + 1,
+    final amVorabend = getBenachrichtigungenAmVorabend();
+
+    DateTime notificationDate;
+    String notificationText;
+
+    if (amVorabend) {
+      // Vorabend: 22 Uhr am Tag vor dem Geburtstag
+      notificationDate = DateTime(
+        now.year,
+        mitglied.geburtsDatum.month,
+        mitglied.geburtsDatum.day - 1,
+        22,
+      );
+      notificationText =
+          '${mitglied.vorname} ${mitglied.nachname} hat morgen Geburtstag!';
+
+      // Falls der Vorabend bereits vorbei ist, nächstes Jahr
+      if (notificationDate.isBefore(now)) {
+        notificationDate = DateTime(
+          now.year + 1,
+          mitglied.geburtsDatum.month,
+          mitglied.geburtsDatum.day - 1,
+          22,
+        );
+      }
+    } else {
+      // Morgen: 10 Uhr am Geburtstag
+      notificationDate = DateTime(
+        now.year,
         mitglied.geburtsDatum.month,
         mitglied.geburtsDatum.day,
-        1,
-        34,
+        10,
       );
+      notificationText =
+          '${mitglied.vorname} ${mitglied.nachname} hat heute Geburtstag!';
+
+      // Falls der Geburtstag bereits vorbei ist, nächstes Jahr
+      if (notificationDate.isBefore(now)) {
+        notificationDate = DateTime(
+          now.year + 1,
+          mitglied.geburtsDatum.month,
+          mitglied.geburtsDatum.day,
+          10,
+        );
+      }
     }
 
     await _notifications.zonedSchedule(
       mitglied.id.hashCode,
       'Geburtstag',
-      '${mitglied.vorname} ${mitglied.nachname} hat heute Geburtstag!',
-      tz.TZDateTime.from(nextBirthday, tz.local),
+      notificationText,
+      tz.TZDateTime.from(notificationDate, tz.local),
       const NotificationDetails(
         android: AndroidNotificationDetails(
           'birthday_channel',

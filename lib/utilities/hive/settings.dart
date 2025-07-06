@@ -37,6 +37,7 @@ enum SettingValue {
   isTestDevice,
   geburtstagsbenachrichtungen,
   benachrichtigungenActive,
+  benachrichtigungenAmVorabend,
 }
 
 enum GeburtstagsbenachrichtigungenGruppen { favouriten }
@@ -382,6 +383,17 @@ void setBenachrichtigungenActive(bool value) {
 bool getBenachrichtigungenActive() {
   return settingsBox.get(SettingValue.benachrichtigungenActive.toString()) ??
       true;
+}
+
+void setBenachrichtigungenAmVorabend(bool value) {
+  settingsBox.put(SettingValue.benachrichtigungenAmVorabend.toString(), value);
+}
+
+bool getBenachrichtigungenAmVorabend() {
+  return settingsBox.get(
+        SettingValue.benachrichtigungenAmVorabend.toString(),
+      ) ??
+      false; // Standard: am Morgen (10 Uhr)
 }
 
 void setGeburtstagsbenachrichtigungenGruppen(List<Stufe> value) {

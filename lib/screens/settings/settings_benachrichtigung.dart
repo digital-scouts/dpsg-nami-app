@@ -16,6 +16,7 @@ class SettingsBenachrichtigung extends StatefulWidget {
 class _SettingsBenachrichtigungState extends State<SettingsBenachrichtigung> {
   List<Stufe> _selectedStufen = getGeburtstagsbenachrichtigungenGruppen();
   bool _benachrichtigungenActive = getBenachrichtigungenActive();
+  bool _benachrichtigungenAmVorabend = getBenachrichtigungenAmVorabend();
 
   void _onStufeChanged(Stufe stufe, bool selected) {
     setState(() {
@@ -48,6 +49,21 @@ class _SettingsBenachrichtigungState extends State<SettingsBenachrichtigung> {
     });
   }
 
+  void _onBenachrichtigungenAmVorabendChanged(bool value) {
+    Wiredash.trackEvent(
+      'Geburtstagsbenachrichtigung',
+      data: {'type': 'Benachrichtigungszeit ändern', 'amVorabend': value},
+    );
+    setState(() {
+      _benachrichtigungenAmVorabend = value;
+      setBenachrichtigungenAmVorabend(value);
+      // Alle Benachrichtigungen neu planen mit neuer Zeit
+      if (_benachrichtigungenActive) {
+        BirthdayNotificationService.scheduleAllBirthdays();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final allStufen = [
@@ -68,6 +84,19 @@ class _SettingsBenachrichtigungState extends State<SettingsBenachrichtigung> {
             value: _benachrichtigungenActive,
             onChanged: (value) => _onBenachrichtigungenActiveChanged(value),
           ),
+          SwitchListTile(
+            title: const Text('Benachrichtigungen am Vorabend (22 Uhr)'),
+            subtitle: Text(
+              _benachrichtigungenAmVorabend
+                  ? 'Benachrichtigung am Vorabend um 22 Uhr'
+                  : 'Benachrichtigung am Geburtstag um 10 Uhr',
+            ),
+            value: _benachrichtigungenAmVorabend,
+            onChanged: _benachrichtigungenActive
+                ? (value) => _onBenachrichtigungenAmVorabendChanged(value)
+                : null,
+          ),
+          const Divider(height: 1),
           const ListTile(
             title: Text('Geburtstagsbenachrichtigungen für folgende Stufen:'),
           ),
@@ -80,7 +109,6 @@ class _SettingsBenachrichtigungState extends State<SettingsBenachrichtigung> {
                   : null,
             ),
           ),
-          const Divider(height: 1),
           const NotificationTestWidget(),
         ],
       ),

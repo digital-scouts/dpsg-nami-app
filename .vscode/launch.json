@@ -16,8 +16,6 @@
             "type": "dart",
             "deviceId": "C753CEB2-6197-4AF9-AC44-617AD4D40DC7",
             "args": [
-                "--flavor",
-                "NaMi",
                 "--dart-define=USE_LOGGING=true"
             ]
         },
@@ -26,8 +24,6 @@
             "request": "launch",
             "type": "dart",
             "args": [
-                "--flavor",
-                "NaMi",
                 "--dart-define=USE_LOGGING=true"
             ]
         },
