@@ -33,7 +33,7 @@ class BirthdayNotificationService {
   static Future<void> init() async {
     tzdata.initializeTimeZones();
     const AndroidInitializationSettings androidSettings =
-        AndroidInitializationSettings('@mipmap/launcher_icon');
+        AndroidInitializationSettings('@mipmap/ic_launcher');
     const DarwinInitializationSettings iosSettings =
         DarwinInitializationSettings(
           requestAlertPermission: false, // Keine automatische Berechtigung
