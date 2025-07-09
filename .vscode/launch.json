@@ -5,7 +5,7 @@
             "name": "Android",
             "request": "launch",
             "type": "dart",
-            "deviceId": "sdk",
+            "deviceId": "emulator-5554",
             "args": [
                 "--dart-define=USE_LOGGING=true"
             ]
@@ -14,7 +14,7 @@
             "name": "iPhone",
             "request": "launch",
             "type": "dart",
-            "deviceId": "C753CEB2-6197-4AF9-AC44-617AD4D40DC7",
+            "deviceId": "29AA1963-EC2E-4DE0-969E-AA4737731BB4",
             "args": [
                 "--dart-define=USE_LOGGING=true"
             ]

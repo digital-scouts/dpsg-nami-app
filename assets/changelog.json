@@ -63,8 +63,9 @@
       "version": "0.2.5",
       "data_reset": false,
       "features": [
-        "Benachrichtigungen für Geburtstage",
-        "Einstellungen aufgeräumt und übersichtlicher gestaltet"
+        "Benachrichtigungen für Geburtstage - muss in den Einstellungen aktiviert werden.",
+        "Einstellungen aufgeräumt und übersichtlicher gestaltet",
+        "Das Android App Icon wurde angepasst (identisch zu iOS)"
       ],
       "bugFixes": []
     }
