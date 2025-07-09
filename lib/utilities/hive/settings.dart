@@ -35,7 +35,7 @@ enum SettingValue {
   newVersionInfoShown,
   themeMode,
   isTestDevice,
-  geburtstagsbenachrichtungen,
+  geburtstagsbenachrichtigungen,
   benachrichtigungenActive,
   benachrichtigungsZeit,
 }
@@ -424,14 +424,14 @@ void setGeburtstagsbenachrichtigungenGruppen(List<Stufe> value) {
   List<int> gruppenIndices = value.map((e) => e.index).toList();
 
   settingsBox.put(
-    SettingValue.geburtstagsbenachrichtungen.toString(),
+    SettingValue.geburtstagsbenachrichtigungen.toString(),
     gruppenIndices,
   );
 }
 
 List<Stufe> getGeburtstagsbenachrichtigungenGruppen() {
   final dynamicList =
-      settingsBox.get(SettingValue.geburtstagsbenachrichtungen.toString()) ??
+      settingsBox.get(SettingValue.geburtstagsbenachrichtigungen.toString()) ??
       [
         Stufe.BIBER.index,
         Stufe.WOELFLING.index,
