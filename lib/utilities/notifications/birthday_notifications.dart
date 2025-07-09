@@ -82,10 +82,12 @@ class BirthdayNotificationService {
 
   static Future<bool> callTestBenachrichtigung() async {
     try {
-      await _notifications.show(
+      await _notifications.zonedSchedule(
         9999,
         'Test Benachrichtigung',
         'Dies ist eine Testbenachrichtigung für Geburtstage.',
+        tz.TZDateTime.now(tz.local).add(const Duration(seconds: 5)),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         const NotificationDetails(
           android: AndroidNotificationDetails(
             'birthday_channel',
