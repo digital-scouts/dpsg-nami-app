@@ -7,6 +7,16 @@
 -keep class io.flutter.embedding.** { *; }
 -keep class io.flutter.** { *; }
 
+# Benachrichtigungs-Icon behalten (wird über String-Referenz verwendet)
+-keep class **.R$drawable { 
+    public static final int ic_notification; 
+}
+
+# Ressourcen für Benachrichtigungen behalten
+-keepclassmembers class **.R$* {
+    public static <fields>;
+}
+
 -dontwarn com.google.android.play.core.splitcompat.SplitCompatApplication
 -dontwarn com.google.android.play.core.splitinstall.SplitInstallException
 -dontwarn com.google.android.play.core.splitinstall.SplitInstallManager
