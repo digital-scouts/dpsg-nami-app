@@ -13,11 +13,27 @@ import 'package:wiredash/wiredash.dart';
 
 class BirthdayNotificationService {
   static final _notifications = FlutterLocalNotificationsPlugin();
+  static final NotificationDetails _defaultNotificationDetails =
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'birthday_channel',
+          'Geburtstage',
+          channelDescription: 'Erinnerungen an Geburtstage',
+          icon: '@drawable/ic_notification',
+          color: Color.fromARGB(255, 255, 251, 0), // Grün
+          importance: Importance.high,
+          priority: Priority.high,
+          enableVibration: true,
+          playSound: true,
+        ),
+        iOS: DarwinNotificationDetails(),
+        macOS: DarwinNotificationDetails(),
+      );
 
   static Future<void> init() async {
     tzdata.initializeTimeZones();
     const AndroidInitializationSettings androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@mipmap/launcher_icon');
     const DarwinInitializationSettings iosSettings =
         DarwinInitializationSettings(
           requestAlertPermission: false, // Keine automatische Berechtigung
@@ -33,9 +49,6 @@ class BirthdayNotificationService {
       settings,
       onDidReceiveNotificationResponse: _onNotificationTapped,
     );
-
-    // Berechtigungen werden später explizit angefordert
-    // await requestPermissions();
   }
 
   /// Fordert explizit Benachrichtigungsberechtigungen an
@@ -87,16 +100,8 @@ class BirthdayNotificationService {
         'Test Benachrichtigung',
         'Dies ist eine Testbenachrichtigung für Geburtstage.',
         tz.TZDateTime.now(tz.local).add(const Duration(seconds: 5)),
+        _defaultNotificationDetails,
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'birthday_channel',
-            'Geburtstage',
-            channelDescription: 'Erinnerungen an Geburtstage',
-          ),
-          iOS: DarwinNotificationDetails(),
-          macOS: DarwinNotificationDetails(),
-        ),
       );
       return true;
     } catch (e) {
@@ -176,15 +181,7 @@ class BirthdayNotificationService {
       'Geburtstag',
       '${mitglied.vorname} ${mitglied.nachname} hat ${zeitpunkt.tageOffset == 0 ? 'heute' : 'morgen'} Geburtstag!',
       tz.TZDateTime.from(notificationDate, tz.local),
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'birthday_channel',
-          'Geburtstage',
-          channelDescription: 'Erinnerungen an Geburtstage',
-        ),
-        iOS: DarwinNotificationDetails(),
-        macOS: DarwinNotificationDetails(),
-      ),
+      _defaultNotificationDetails,
       payload:
           '${mitglied.id.toString()}-${notificationDate.day}.${notificationDate.month}.${notificationDate.year} ${notificationDate.hour} Uhr',
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
@@ -203,7 +200,7 @@ class BirthdayNotificationService {
     );
     final payload = response.payload;
 
-    if (payload == null) return;
+    if (payload == null || payload.isEmpty) return;
 
     // Payload-Format: "mitgliedId"
     try {

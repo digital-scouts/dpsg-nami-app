@@ -404,9 +404,9 @@ BenachrichtigungsZeit getBenachrichtigungsZeitpunkt() {
 }
 
 enum BenachrichtigungsZeit {
-  vorabend('Vorabend', 0, 22, -1),
+  vorabend('Vorabend', 0, 20, -1),
   morgens('Morgens', 1, 10, 0),
-  mittag('Mittags', 2, 12, 0);
+  mittag('Mittags', 2, 13, 0);
 
   const BenachrichtigungsZeit(
     this.displayName,
