@@ -8,7 +8,7 @@ part of 'data_changes.dart';
 
 class DataChangeAdapter extends TypeAdapter<DataChange> {
   @override
-  final int typeId = 0;
+  final typeId = 0;
 
   @override
   DataChange read(BinaryReader reader) {

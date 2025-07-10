@@ -12,7 +12,8 @@ import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/custom_wiredash_translations_delegate.dart';
 import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/hive/hive.handler.dart';
-import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/hive/hive_service.dart';
+import 'package:nami/utilities/hive/settings_service.dart';
 import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/notifications/birthday_notifications.dart';
 import 'package:nami/utilities/theme.dart';
@@ -32,6 +33,11 @@ void main() async {
     deleteHiveMemberDataOnFail();
     await openHive();
   }
+
+  // Initialisiere die Services
+  initializeSettingsService();
+  initializeHiveService();
+
   await dotenv.load(fileName: ".env");
   await initLogger();
   try {

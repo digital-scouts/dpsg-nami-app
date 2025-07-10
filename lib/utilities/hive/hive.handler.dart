@@ -5,6 +5,7 @@ import 'package:hive_ce/hive.dart';
 import 'package:nami/utilities/hive/ausbildung.dart';
 import 'package:nami/utilities/hive/custom_group.dart';
 import 'package:nami/utilities/hive/data_changes.dart';
+import 'package:nami/utilities/hive/hive_service.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
 
@@ -12,7 +13,7 @@ import 'mitglied.dart';
 
 void logout() {
   //loaded Data
-  Hive.box<Mitglied>('members').clear();
+  hiveService.memberBox.clear();
   deleteGruppierungId();
   deleteGruppierungName();
   setRechte([]);

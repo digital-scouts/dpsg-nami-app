@@ -2,9 +2,9 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_email_sender/flutter_email_sender.dart';
-import 'package:hive_ce/hive.dart';
+import 'package:nami/utilities/hive/hive_service.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
-import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/hive/settings_service.dart';
 import 'package:nami/utilities/logger.dart';
 import 'package:wiredash/wiredash.dart';
 
@@ -56,12 +56,11 @@ double getAlterAm({DateTime? referenceDate, required DateTime date}) {
 }
 
 Future<void> openWiredash(BuildContext context, String feedbackType) async {
-  Box<Mitglied> memberBox = Hive.box<Mitglied>('members');
   Mitglied? user;
   String gitInfo = await getGitCommitId() ?? 'unknown';
   try {
-    user = memberBox.values.firstWhere(
-      (member) => member.mitgliedsNummer == getNamiLoginId(),
+    user = hiveService.getAllMembers().firstWhere(
+      (member) => member.mitgliedsNummer == settingsService.getNamiLoginId(),
     );
   } catch (_) {}
 
@@ -70,10 +69,10 @@ Future<void> openWiredash(BuildContext context, String feedbackType) async {
       (metaData) => metaData
         ..custom['type'] = feedbackType
         ..custom['gitCommitId'] = gitInfo
-        ..custom['userNamiLoginId'] = sensId(getNamiLoginId()!)
+        ..custom['userNamiLoginId'] = sensId(settingsService.getNamiLoginId()!)
         ..custom['user'] = '${user?.vorname} ${user?.nachname}'
         ..custom['userStatus'] = '${user?.status}'
-        ..custom['gruppierungName'] = getGruppierungName(),
+        ..custom['gruppierungName'] = settingsService.getGruppierungName(),
     );
 
     Wiredash.of(context).show(inheritMaterialTheme: true);

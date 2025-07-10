@@ -8,7 +8,7 @@ part of 'mitglied.dart';
 
 class MitgliedAdapter extends TypeAdapter<Mitglied> {
   @override
-  final int typeId = 1;
+  final typeId = 1;
 
   @override
   Mitglied read(BinaryReader reader) {

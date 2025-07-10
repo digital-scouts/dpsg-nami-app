@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
-import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:nami/screens/mitgliedsliste/mitglied_details.dart';
 import 'package:nami/screens/mitgliedsliste/mitglied_liste_filter.dart';
 import 'package:nami/screens/widgets/status_information_banner.dart';
+import 'package:nami/services/member_service.dart';
 import 'package:nami/utilities/hive/custom_group.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
@@ -17,26 +17,35 @@ import 'package:wiredash/wiredash.dart';
 import 'mitglied_bearbeiten.dart';
 
 class MitgliedsListe extends StatefulWidget {
-  const MitgliedsListe({super.key});
+  final MemberService? memberService;
+
+  const MitgliedsListe({super.key, this.memberService});
 
   @override
   MitgliedsListeState createState() => MitgliedsListeState();
 }
 
 class MitgliedsListeState extends State<MitgliedsListe> {
-  Box<Mitglied> memberBox = Hive.box<Mitglied>('members');
-  List<Mitglied> mitglieder = Hive.box<Mitglied>(
-    'members',
-  ).values.toList().cast<Mitglied>();
+  late final MemberService _memberService;
+  List<Mitglied> mitglieder = [];
 
   @override
   void initState() {
     super.initState();
 
-    memberBox.listenable().addListener(() {
-      setState(() {
-        mitglieder = memberBox.values.toList().cast<Mitglied>();
-      });
+    // Verwende den injizierte Service oder erstelle einen Standard-Service
+    _memberService = widget.memberService ?? HiveMemberService();
+
+    // Lade die Mitglieder initial
+    mitglieder = _memberService.getAllMembers();
+
+    // Höre auf Änderungen
+    _memberService.addListener(() {
+      if (mounted) {
+        setState(() {
+          mitglieder = _memberService.getAllMembers();
+        });
+      }
     });
   }
 
@@ -54,7 +63,7 @@ class MitgliedsListeState extends State<MitgliedsListe> {
             title: Center(child: Text('Mitglieder: ${mitglieder.length}')),
           );
         }
-        bool isFavourite = getFavouriteList().contains(
+        bool isFavourite = _memberService.isFavorite(
           mitglieder[index].mitgliedsNummer,
         );
         return Dismissible(
@@ -130,8 +139,7 @@ class MitgliedsListeState extends State<MitgliedsListe> {
                   ),
                   MemberSubElement.birthday => Text(
                     DateFormat(
-                      'd. MMMM yyyy',
-                      'de_DE',
+                      'dd.MM.yyyy',
                     ).format(mitglieder[index].geburtsDatum),
                   ),
                 },
@@ -154,9 +162,11 @@ class MitgliedsListeState extends State<MitgliedsListe> {
   }
 
   void toggleFavorites(Mitglied mitglied) {
-    getFavouriteList().contains(mitglied.mitgliedsNummer)
-        ? removeFavouriteList(mitglied.mitgliedsNummer)
-        : addFavouriteList(mitglied.mitgliedsNummer);
+    if (_memberService.isFavorite(mitglied.mitgliedsNummer)) {
+      _memberService.removeFromFavorites(mitglied.mitgliedsNummer);
+    } else {
+      _memberService.addToFavorites(mitglied.mitgliedsNummer);
+    }
   }
 
   Widget _buildFilterGroup(BuildContext context) {
@@ -191,9 +201,10 @@ class MitgliedsListeState extends State<MitgliedsListe> {
 
             Widget groupImage;
             if (group.stufe == null) {
-              groupImage = Icon(group.icon);
+              groupImage = Icon(group.icon, semanticLabel: '$groupName Filter');
             } else {
               groupImage = Image.asset(
+                semanticLabel: '$groupName Filter',
                 group.stufe!.imagePath ?? Stufe.LEITER.imagePath!,
                 width: 30.0,
                 height: 30.0,

@@ -5,7 +5,7 @@ import 'package:nami/utilities/stufe.dart';
 // flutter packages pub run build_runner build
 part 'custom_group.g.dart';
 
-@HiveType(typeId: 0)
+@HiveType(typeId: 4)
 class CustomGroup {
   @HiveField(0)
   bool active;

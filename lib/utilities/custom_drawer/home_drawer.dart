@@ -2,12 +2,12 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/helper_functions.dart';
+import 'package:nami/utilities/hive/hive_service.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
-import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/hive/settings_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class HomeDrawer extends StatefulWidget {
@@ -162,13 +162,12 @@ class HomeDrawerState extends State<HomeDrawer> {
 
   @override
   Widget build(BuildContext context) {
-    String? gruppierungName = getGruppierungName();
-    Box<Mitglied> memberBox = Hive.box<Mitglied>('members');
+    String? gruppierungName = settingsService.getGruppierungName();
 
     Mitglied? user;
     try {
-      user = memberBox.values.firstWhere(
-        (member) => member.mitgliedsNummer == getNamiLoginId(),
+      user = hiveService.getAllMembers().firstWhere(
+        (member) => member.mitgliedsNummer == settingsService.getNamiLoginId(),
       );
     } catch (_) {}
 
