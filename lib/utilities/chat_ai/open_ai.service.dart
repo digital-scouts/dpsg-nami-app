@@ -25,30 +25,38 @@ class OpenAIService {
         "messages": [
           {
             "role": "system",
-            "content": utf8.decode(utf8.encode(
-                "Du bist ein Experte für die DPSG-Satzung und beantwortest Fragen basierend auf den bereitgestellten Informationen."))
+            "content": utf8.decode(
+              utf8.encode(
+                "Du bist ein Experte für die DPSG-Satzung und beantwortest Fragen basierend auf den bereitgestellten Informationen.",
+              ),
+            ),
           },
-          {"role": "user", "content": utf8.decode(utf8.encode(prompt))}
+          {"role": "user", "content": utf8.decode(utf8.encode(prompt))},
         ],
         "max_tokens": 100,
         "temperature": 0.7,
         "top_p": 1.0,
         "frequency_penalty": 0.0,
-        "presence_penalty": 0.0
+        "presence_penalty": 0.0,
       }),
     );
 
-    final Map<String, dynamic> responseData =
-        jsonDecode(utf8.decode(response.bodyBytes));
+    final Map<String, dynamic> responseData = jsonDecode(
+      utf8.decode(response.bodyBytes),
+    );
 
-    Wiredash.trackEvent('AI Question Chat', data: {
-      'tokens': responseData["usage"]["total_tokens"],
-      'prompt': prompt,
-      'answer': responseData["choices"][0]["message"]["content"],
-      'model': 'text-embedding-ada-002'
-    });
+    Wiredash.trackEvent(
+      'AI Question Chat',
+      data: {
+        'tokens': responseData["usage"]["total_tokens"],
+        'prompt': prompt,
+        'answer': responseData["choices"][0]["message"]["content"],
+        'model': 'text-embedding-ada-002',
+      },
+    );
     debugPrint(
-        'Tokens used for embedding ${responseData["usage"]["total_tokens"]}');
+      'Tokens used for embedding ${responseData["usage"]["total_tokens"]}',
+    );
 
     return responseData;
   }

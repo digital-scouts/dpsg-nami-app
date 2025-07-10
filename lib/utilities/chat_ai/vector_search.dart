@@ -20,8 +20,9 @@ class VectorSearch {
 
   Future<void> _loadEmbeddings() async {
     // Lade die JSON-Datei mit den Embeddings
-    String jsonString = await rootBundle
-        .loadString('assets/ai_kontext/satzung_stamm_2024_embeddings.json');
+    String jsonString = await rootBundle.loadString(
+      'assets/ai_kontext/satzung_stamm_2024_embeddings.json',
+    );
     List<dynamic> jsonData = jsonDecode(jsonString);
 
     // Speichere die Embeddings in der Hive-Datenbank
@@ -48,7 +49,8 @@ class VectorSearch {
           "similarity": similarity,
         });
         debugPrint(
-            "Similarity: ${similarity.toStringAsFixed(2)}: ${storedData["text"].substring(0, 3)}");
+          "Similarity: ${similarity.toStringAsFixed(2)}: ${storedData["text"].substring(0, 3)}",
+        );
       }
     }
 
@@ -56,8 +58,10 @@ class VectorSearch {
     similarityList.sort((a, b) => b["similarity"].compareTo(a["similarity"]));
 
     // Nimm die besten 3
-    List<String> relevantTexts =
-        similarityList.take(3).map((e) => e["text"] as String).toList();
+    List<String> relevantTexts = similarityList
+        .take(3)
+        .map((e) => e["text"] as String)
+        .toList();
 
     return relevantTexts;
   }

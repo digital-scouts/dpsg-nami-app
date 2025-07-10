@@ -9,12 +9,13 @@ class DataChangeHistory extends StatelessWidget {
   final bool isDialog;
   final bool showDate;
 
-  const DataChangeHistory(
-      {super.key,
-      required this.changes,
-      required this.title,
-      this.isDialog = false,
-      this.showDate = true});
+  const DataChangeHistory({
+    super.key,
+    required this.changes,
+    required this.title,
+    this.isDialog = false,
+    this.showDate = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -43,15 +44,19 @@ class DataChangeHistory extends StatelessWidget {
                 Text(
                   entry.key,
                   style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 16),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
               ...entry.value.map((change) {
                 final member = membersBox.get(change.id);
                 return ListTile(
                   title: Text(
-                      '${member?.vorname ?? 'Unbekannt'} ${member?.nachname ?? ''}'),
+                    '${member?.vorname ?? 'Unbekannt'} ${member?.nachname ?? ''}',
+                  ),
                   subtitle: Text(
-                      '${change.actionEnum.toString().split('.').last} ${change.changedFields.isNotEmpty ? ':' : ''} ${change.changedFields.join(', ')}'),
+                    '${change.actionEnum.toString().split('.').last} ${change.changedFields.isNotEmpty ? ':' : ''} ${change.changedFields.join(', ')}',
+                  ),
                 );
               }),
             ],
@@ -76,10 +81,7 @@ class DataChangeHistory extends StatelessWidget {
     } else {
       return Scaffold(
         appBar: AppBar(title: Text(title)),
-        body: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: content,
-        ),
+        body: Padding(padding: const EdgeInsets.all(8.0), child: content),
       );
     }
   }

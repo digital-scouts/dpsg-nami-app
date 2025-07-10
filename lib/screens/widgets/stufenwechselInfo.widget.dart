@@ -35,8 +35,9 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
 
   Map<Stufe, List<DataRow>> loadStufenwechselData() {
     Map<Stufe, List<DataRow>> stufenwechselData = {};
-    List<Mitglied> mitglieder =
-        Hive.box<Mitglied>('members').values.toList().cast<Mitglied>();
+    List<Mitglied> mitglieder = Hive.box<Mitglied>(
+      'members',
+    ).values.toList().cast<Mitglied>();
     mitglieder.sort((a, b) {
       return a.geburtsDatum.compareTo(b.geburtsDatum);
     });
@@ -48,12 +49,16 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
       }
 
       double alterNextStufenwechsel = getAlterAm(
-          referenceDate: nextStufenwechselDatum, date: mitglied.geburtsDatum);
+        referenceDate: nextStufenwechselDatum,
+        date: mitglied.geburtsDatum,
+      );
       DateTime? maxStufenWechselDatum = mitglied.getMaxStufenWechselDatum();
-      DateTime? minStufenWechselDatum = mitglied.getMinStufenWechselDatum() ??
+      DateTime? minStufenWechselDatum =
+          mitglied.getMinStufenWechselDatum() ??
           maxStufenWechselDatum!.subtract(const Duration(days: 365 * 2));
-      bool isMinStufenWechselJahrInPast =
-          minStufenWechselDatum.isBefore(getNextStufenwechselDatum());
+      bool isMinStufenWechselJahrInPast = minStufenWechselDatum.isBefore(
+        getNextStufenwechselDatum(),
+      );
 
       if (!isMinStufenWechselJahrInPast) {
         continue;
@@ -63,8 +68,10 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
       }
       DataRow data = DataRow(
         onSelectChanged: (_) {
-          Wiredash.trackEvent('Show Member Details',
-              data: {'type': 'stufenwechselInfoWidget'});
+          Wiredash.trackEvent(
+            'Show Member Details',
+            data: {'type': 'stufenwechselInfoWidget'},
+          );
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -76,9 +83,7 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
           DataCell(
             Text('${mitglied.vorname} ${mitglied.nachname.substring(0, 1)}.'),
           ),
-          DataCell(
-            Text(_formatAlterJahrMonat(alterNextStufenwechsel)),
-          ),
+          DataCell(Text(_formatAlterJahrMonat(alterNextStufenwechsel))),
           DataCell(
             Text(
               currentStufe == Stufe.ROVER
@@ -127,7 +132,7 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
               Stufe.WOELFLING,
               Stufe.JUNGPADFINDER,
               Stufe.PFADFINDER,
-              Stufe.ROVER
+              Stufe.ROVER,
             ])
               if ((stufe != Stufe.BIBER ||
                   stufenwechselData[stufe]?.isNotEmpty == true))
@@ -140,37 +145,36 @@ class _StufenwechselInfoState extends State<StufenwechselInfo> {
                   showCheckmark: false,
                   avatar: CircleAvatar(
                     backgroundColor: Colors.transparent,
-                    child: Image.asset(
-                      stufe.imagePath!,
-                      cacheHeight: 50,
-                    ),
+                    child: Image.asset(stufe.imagePath!, cacheHeight: 50),
                   ),
                 ),
           ],
         ),
-        // // Bereich für die Liste der Namen
+        // Bereich für die Liste der Namen
         if (aktuelleTabellenZeilen.isNotEmpty)
           SizedBox(
             width: double.infinity,
             child: Card(
-              child: Column(children: [
-                Text(
-                    'Wechsel am ${nextStufenwechselDatum.prettyPrint()} (${getStufeMinAge(Stufe.getStufeByOrder(ausgewaehlteStufe.index + 1)!)}-${getStufeMaxAge(ausgewaehlteStufe)} Jahre)'),
-                DataTable(
-                  columns: [
-                    const DataColumn(
-                      label: Text('Name'),
-                    ),
-                    const DataColumn(label: Text('Alter')),
-                    DataColumn(
-                        label: Text(ausgewaehlteStufe == Stufe.ROVER
-                            ? 'Ende'
-                            : 'Wechsel'))
-                  ],
-                  rows: aktuelleTabellenZeilen,
-                  showCheckboxColumn: false,
-                )
-              ]),
+              child: Column(
+                children: [
+                  Text(
+                    'Wechsel am ${nextStufenwechselDatum.prettyPrint()} (${getStufeMinAge(Stufe.getStufeByOrder(ausgewaehlteStufe.index + 1)!)}-${getStufeMaxAge(ausgewaehlteStufe)} Jahre)',
+                  ),
+                  DataTable(
+                    columns: [
+                      const DataColumn(label: Text('Name')),
+                      const DataColumn(label: Text('Alter')),
+                      DataColumn(
+                        label: Text(
+                          ausgewaehlteStufe == Stufe.ROVER ? 'Ende' : 'Wechsel',
+                        ),
+                      ),
+                    ],
+                    rows: aktuelleTabellenZeilen,
+                    showCheckboxColumn: false,
+                  ),
+                ],
+              ),
             ),
           )
         else ...[

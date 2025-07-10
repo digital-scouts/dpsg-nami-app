@@ -38,7 +38,7 @@ final lightTheme = ThemeData(
 class ThemeModel extends ChangeNotifier {
   ThemeMode currentMode = getThemeMode();
 
-  setTheme(ThemeMode type) {
+  void setTheme(ThemeMode type) {
     currentMode = type;
     return notifyListeners();
   }

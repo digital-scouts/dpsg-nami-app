@@ -94,7 +94,7 @@ enum Stufe implements Comparable<Stufe> {
     JUNGPADFINDER,
     PFADFINDER,
     ROVER,
-    LEITER
+    LEITER,
   ];
 
   /// Im gegensatz zu [Stufe.values] ist hier [Stufe.KEINE_STUFE], [Stufe.LEITER] nicht enthalten

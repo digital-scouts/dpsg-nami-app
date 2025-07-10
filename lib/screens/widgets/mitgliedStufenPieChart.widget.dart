@@ -6,10 +6,11 @@ class MitgliedStufenPieChart extends StatefulWidget {
   final Map<String, int> memberPerGroup;
   final bool showLeiterGrafik;
 
-  const MitgliedStufenPieChart(
-      {required this.memberPerGroup,
-      required this.showLeiterGrafik,
-      super.key});
+  const MitgliedStufenPieChart({
+    required this.memberPerGroup,
+    required this.showLeiterGrafik,
+    super.key,
+  });
 
   @override
   State<StatefulWidget> createState() => MitgliedStufenPieChartState();
@@ -18,8 +19,10 @@ class MitgliedStufenPieChart extends StatefulWidget {
 class MitgliedStufenPieChartState extends State<MitgliedStufenPieChart> {
   @override
   Widget build(BuildContext context) {
-    Map<String, int> memberPerGroup =
-        summarizeData(widget.memberPerGroup, widget.showLeiterGrafik);
+    Map<String, int> memberPerGroup = summarizeData(
+      widget.memberPerGroup,
+      widget.showLeiterGrafik,
+    );
 
     return SizedBox(
       height: 120, // Erhöhte Höhe, um Platz für den Schatten zu schaffen
@@ -50,7 +53,9 @@ class MitgliedStufenPieChartState extends State<MitgliedStufenPieChart> {
   }
 
   Map<String, int> summarizeData(
-      Map<String, int> memberPerGroup, bool showLeiterGrafik) {
+    Map<String, int> memberPerGroup,
+    bool showLeiterGrafik,
+  ) {
     int leiterSum = 0;
     int mitgliedSum = 0;
 
@@ -73,50 +78,118 @@ class MitgliedStufenPieChartState extends State<MitgliedStufenPieChart> {
   }
 
   List<PieChartSectionData> createData(
-      Map<String, int> memberPerGroup, bool showLeiterGrafik) {
+    Map<String, int> memberPerGroup,
+    bool showLeiterGrafik,
+  ) {
     List<PieChartSectionData> sectionData = [];
     num index = 0;
 
     memberPerGroup.forEach((key, value) {
       if (showLeiterGrafik) {
         if (key.contains('Mitglied')) {
-          sectionData
-              .add(createPieElement(key, value, null, index, showLeiterGrafik));
+          sectionData.add(
+            createPieElement(key, value, null, index, showLeiterGrafik),
+          );
         } else if (key.contains(Stufe.BIBER.display)) {
-          sectionData.add(createPieElement(
-              "LeiterIn", value, Stufe.BIBER, index, showLeiterGrafik));
+          sectionData.add(
+            createPieElement(
+              "LeiterIn",
+              value,
+              Stufe.BIBER,
+              index,
+              showLeiterGrafik,
+            ),
+          );
         } else if (key.contains(Stufe.WOELFLING.display)) {
-          sectionData.add(createPieElement(
-              "LeiterIn", value, Stufe.WOELFLING, index, showLeiterGrafik));
+          sectionData.add(
+            createPieElement(
+              "LeiterIn",
+              value,
+              Stufe.WOELFLING,
+              index,
+              showLeiterGrafik,
+            ),
+          );
         } else if (key.contains(Stufe.JUNGPADFINDER.display)) {
-          sectionData.add(createPieElement(
-              "LeiterIn", value, Stufe.JUNGPADFINDER, index, showLeiterGrafik));
+          sectionData.add(
+            createPieElement(
+              "LeiterIn",
+              value,
+              Stufe.JUNGPADFINDER,
+              index,
+              showLeiterGrafik,
+            ),
+          );
         } else if (key.contains(Stufe.PFADFINDER.display)) {
-          sectionData.add(createPieElement(
-              "LeiterIn", value, Stufe.PFADFINDER, index, showLeiterGrafik));
+          sectionData.add(
+            createPieElement(
+              "LeiterIn",
+              value,
+              Stufe.PFADFINDER,
+              index,
+              showLeiterGrafik,
+            ),
+          );
         } else if (key.contains(Stufe.ROVER.display)) {
-          sectionData.add(createPieElement(
-              "LeiterIn", value, Stufe.ROVER, index, showLeiterGrafik));
+          sectionData.add(
+            createPieElement(
+              "LeiterIn",
+              value,
+              Stufe.ROVER,
+              index,
+              showLeiterGrafik,
+            ),
+          );
         }
       } else {
         if (key.contains('LeiterIn')) {
-          sectionData.add(createPieElement(
-              "LeiterIn", value, Stufe.LEITER, index, showLeiterGrafik));
+          sectionData.add(
+            createPieElement(
+              "LeiterIn",
+              value,
+              Stufe.LEITER,
+              index,
+              showLeiterGrafik,
+            ),
+          );
         } else if (key.contains(Stufe.BIBER.display)) {
-          sectionData.add(createPieElement(
-              key, value, Stufe.BIBER, index, showLeiterGrafik));
+          sectionData.add(
+            createPieElement(key, value, Stufe.BIBER, index, showLeiterGrafik),
+          );
         } else if (key.contains(Stufe.WOELFLING.display)) {
-          sectionData.add(createPieElement(
-              key, value, Stufe.WOELFLING, index, showLeiterGrafik));
+          sectionData.add(
+            createPieElement(
+              key,
+              value,
+              Stufe.WOELFLING,
+              index,
+              showLeiterGrafik,
+            ),
+          );
         } else if (key.contains(Stufe.JUNGPADFINDER.display)) {
-          sectionData.add(createPieElement(
-              key, value, Stufe.JUNGPADFINDER, index, showLeiterGrafik));
+          sectionData.add(
+            createPieElement(
+              key,
+              value,
+              Stufe.JUNGPADFINDER,
+              index,
+              showLeiterGrafik,
+            ),
+          );
         } else if (key.contains(Stufe.PFADFINDER.display)) {
-          sectionData.add(createPieElement(
-              key, value, Stufe.PFADFINDER, index, showLeiterGrafik));
+          sectionData.add(
+            createPieElement(
+              key,
+              value,
+              Stufe.PFADFINDER,
+              index,
+              showLeiterGrafik,
+            ),
+          );
         } else if (key.contains(Stufe.ROVER.display)) {
-          sectionData.add(createPieElement(
-              key, value, Stufe.ROVER, index, showLeiterGrafik));
+          sectionData.add(
+            createPieElement(key, value, Stufe.ROVER, index, showLeiterGrafik),
+          );
         }
       }
       index++;
@@ -126,7 +199,12 @@ class MitgliedStufenPieChartState extends State<MitgliedStufenPieChart> {
   }
 
   PieChartSectionData createPieElement(
-      String name, num value, Stufe? stufe, num index, bool leiterElement) {
+    String name,
+    num value,
+    Stufe? stufe,
+    num index,
+    bool leiterElement,
+  ) {
     const radius = 45.0;
 
     return PieChartSectionData(
@@ -137,8 +215,8 @@ class MitgliedStufenPieChartState extends State<MitgliedStufenPieChart> {
       badgeWidget: stufe == null
           ? null
           : leiterElement
-              ? _buildBadgeLeader(stufe)
-              : _buildBadgeMember(stufe),
+          ? _buildBadgeLeader(stufe)
+          : _buildBadgeMember(stufe),
       badgePositionPercentageOffset: widget.memberPerGroup.length == 1 ? 0 : .6,
     );
   }
@@ -153,11 +231,7 @@ class MitgliedStufenPieChartState extends State<MitgliedStufenPieChart> {
   }
 
   Widget? _buildBadgeMember(Stufe stufe) {
-    return _Badge(
-      stufe.imagePath!,
-      size: 25.0,
-      borderColor: Colors.black,
-    );
+    return _Badge(stufe.imagePath!, size: 25.0, borderColor: Colors.black);
   }
 }
 
@@ -182,10 +256,7 @@ class _Badge extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         shape: BoxShape.circle,
-        border: Border.all(
-          color: borderColor,
-          width: 1,
-        ),
+        border: Border.all(color: borderColor, width: 1),
         boxShadow: <BoxShadow>[
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.5),
@@ -196,14 +267,15 @@ class _Badge extends StatelessWidget {
       ),
       padding: EdgeInsets.all(size * .1),
       child: Center(
-          child: Image.asset(
-        svgAsset,
-        width: 80.0,
-        height: 80.0,
-        color: imageColor,
-        colorBlendMode: BlendMode.srcIn,
-        cacheWidth: 54,
-      )),
+        child: Image.asset(
+          svgAsset,
+          width: 80.0,
+          height: 80.0,
+          color: imageColor,
+          colorBlendMode: BlendMode.srcIn,
+          cacheWidth: 54,
+        ),
+      ),
     );
   }
 }

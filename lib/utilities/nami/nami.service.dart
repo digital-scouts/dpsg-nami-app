@@ -19,8 +19,10 @@ import 'model/nami_stats.model.dart';
 /// Throws [SessionExpiredException] if that's not possible
 ///
 /// Remeber to obtain the cookie in [func] to always use the latest one.
-dynamic withMaybeRetry(Future<http.Response> Function() func,
-    [String? errorMessage]) async {
+dynamic withMaybeRetry(
+  Future<http.Response> Function() func, [
+  String? errorMessage,
+]) async {
   final response = await func();
 
   if (response.statusCode == 200 && jsonDecode(response.body)['success']) {
@@ -42,9 +44,11 @@ dynamic withMaybeRetry(Future<http.Response> Function() func,
     }
   } else {
     sensLog.e(
-        'withMaybeRetry: ${jsonDecode(response.body)["message"]} Failed to load with status code ${response.statusCode}. Custom Message: $errorMessage');
+      'withMaybeRetry: ${jsonDecode(response.body)["message"]} Failed to load with status code ${response.statusCode}. Custom Message: $errorMessage',
+    );
     throw Exception(
-        'Failed to load with status code ${response.statusCode}. Custom Message: $errorMessage');
+      'Failed to load with status code ${response.statusCode}. Custom Message: $errorMessage',
+    );
   }
 }
 
@@ -55,8 +59,10 @@ dynamic withMaybeRetry(Future<http.Response> Function() func,
 /// Throws [SessionExpiredException] if that's not possible
 ///
 /// Remeber to obtain the cookie in [func] to always use the latest one.
-Future<Document> withMaybeRetryHTML(Future<http.Response> Function() func,
-    [String? errorMessage]) async {
+Future<Document> withMaybeRetryHTML(
+  Future<http.Response> Function() func, [
+  String? errorMessage,
+]) async {
   final response = await func();
   late final html = parse(response.body);
   if (response.statusCode == 200) {
@@ -77,7 +83,8 @@ Future<Document> withMaybeRetryHTML(Future<http.Response> Function() func,
     }
   } else {
     throw Exception(
-        'Failed to load with status code ${response.statusCode}. Custom Message: $errorMessage');
+      'Failed to load with status code ${response.statusCode}. Custom Message: $errorMessage',
+    );
   }
 }
 
@@ -87,8 +94,9 @@ Future<NamiStatsModel> loadNamiStats() async {
   String? cookie = getNamiApiCookie();
   sensLog.i('Request: Lade Stats');
   final response = await http.get(
-      Uri.parse('$url/ica/rest/dashboard/stats/stats'),
-      headers: {'Cookie': cookie});
+    Uri.parse('$url/ica/rest/dashboard/stats/stats'),
+    headers: {'Cookie': cookie},
+  );
   Map<String, dynamic> json = jsonDecode(response.body);
   if (response.statusCode == 200 && json['success']) {
     Map<String, dynamic> json = jsonDecode(response.body);
@@ -99,8 +107,9 @@ Future<NamiStatsModel> loadNamiStats() async {
   }
 }
 
-Future<List<NamiGruppierungModel>> loadGruppierungen(
-    {bool onlyStaemme = true}) async {
+Future<List<NamiGruppierungModel>> loadGruppierungen({
+  bool onlyStaemme = true,
+}) async {
   String cookie = getNamiApiCookie();
 
   if (cookie == 'testLoginCookie') {
@@ -142,8 +151,10 @@ Future<List<NamiGruppierungModel>> loadAllGruppierung() async {
   return gruppierungen;
 }
 
-Future<List<NamiGruppierungModel>> loadOnlyStaemme(
-    {int node = 1, String name = ''}) async {
+Future<List<NamiGruppierungModel>> loadOnlyStaemme({
+  int node = 1,
+  String name = '',
+}) async {
   String url = getNamiLUrl();
   String path = getNamiPath();
   String fullUrl =
@@ -159,7 +170,8 @@ Future<List<NamiGruppierungModel>> loadOnlyStaemme(
   if (body['data'].isNotEmpty) {
     for (var item in body['data']) {
       gruppierungen.addAll(
-          await loadOnlyStaemme(node: item['id'], name: item['descriptor']));
+        await loadOnlyStaemme(node: item['id'], name: item['descriptor']),
+      );
     }
   } else {
     gruppierungen.add(NamiGruppierungModel(id: node, name: name));
@@ -180,6 +192,14 @@ Future<void> reloadMetadataFromServer() async {
     getKonfessionMeta(),
     getErsteTaetigkeitMeta(),
   ]);
-  setMetaData(results[0], results[1], results[2], results[3], results[4],
-      results[5], results[6], results[7]);
+  setMetaData(
+    results[0],
+    results[1],
+    results[2],
+    results[3],
+    results[4],
+    results[5],
+    results[6],
+    results[7],
+  );
 }

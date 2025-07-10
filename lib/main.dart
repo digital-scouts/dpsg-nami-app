@@ -14,6 +14,7 @@ import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/hive/hive.handler.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/logger.dart';
+import 'package:nami/utilities/notifications/birthday_notifications.dart';
 import 'package:nami/utilities/theme.dart';
 import 'package:provider/provider.dart';
 import 'package:wiredash/wiredash.dart';
@@ -39,9 +40,11 @@ void main() async {
     const FMTCStore('mapStore').manage.create();
     enableMapTileCaching();
   } catch (e) {
-    sensLog
-        .e('Error while initalice objectbox for flutter_map_tile_caching: $e');
+    sensLog.e(
+      'Error while initalice objectbox for flutter_map_tile_caching: $e',
+    );
   }
+  await BirthdayNotificationService.init();
   runApp(
     ChangeNotifierProvider<ThemeModel>(
       create: (_) => ThemeModel(),
@@ -60,7 +63,8 @@ class MyApp extends StatelessWidget {
         dotenv.env['WIREDASH_PROJECT_ID']!.isEmpty ||
         dotenv.env['WIREDASH_SECRET']!.isEmpty) {
       throw Exception(
-          'Please provide WIREDASH_PROJECT_ID and WIREDASH_SECRET in your .env file');
+        'Please provide WIREDASH_PROJECT_ID and WIREDASH_SECRET in your .env file',
+      );
     }
 
     return Wiredash(
@@ -70,7 +74,7 @@ class MyApp extends StatelessWidget {
         labels: [
           Label(id: 'label-u26353u60f', title: 'Fehler'),
           Label(id: 'label-mtl2xk4esi', title: 'Verbesserung'),
-          Label(id: 'label-p792odog4e', title: 'Lob')
+          Label(id: 'label-p792odog4e', title: 'Lob'),
         ],
       ),
       options: const WiredashOptionsData(
@@ -139,9 +143,7 @@ class _MaterialAppWrapperState extends State<MaterialAppWrapper>
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('de', 'DE'),
-      ],
+      supportedLocales: const [Locale('de', 'DE')],
       builder: (context, child) {
         return Scaffold(
           floatingActionButton: FloatingActionButton(

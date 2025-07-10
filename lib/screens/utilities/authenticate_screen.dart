@@ -26,9 +26,9 @@ class AuthenticateScreen extends StatelessWidget {
                 const SizedBox(height: 20),
                 FilledButton.icon(
                   onPressed: () async {
-                    await context
-                        .read<AppStateHandler>()
-                        .setAuthenticatedState(true);
+                    await context.read<AppStateHandler>().setAuthenticatedState(
+                      true,
+                    );
                   },
                   label: const Text("Mit Biometrie erneut versuchen"),
                   icon: const Icon(Icons.fingerprint),

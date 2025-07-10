@@ -36,9 +36,7 @@ class GroupPieChartState extends State<GroupPieChart> {
                 });
               },
             ),
-            borderData: FlBorderData(
-              show: false,
-            ),
+            borderData: FlBorderData(show: false),
             sectionsSpace: 0,
             centerSpaceRadius: 0,
             sections: createData(),
@@ -57,12 +55,14 @@ class GroupPieChartState extends State<GroupPieChart> {
           sectionData.add(createPieElement(key, value, Stufe.WOELFLING, index));
           break;
         case "Jungpfadfinder":
-          sectionData
-              .add(createPieElement(key, value, Stufe.JUNGPADFINDER, index));
+          sectionData.add(
+            createPieElement(key, value, Stufe.JUNGPADFINDER, index),
+          );
           break;
         case "Pfadfinder":
-          sectionData
-              .add(createPieElement(key, value, Stufe.PFADFINDER, index));
+          sectionData.add(
+            createPieElement(key, value, Stufe.PFADFINDER, index),
+          );
           break;
         case "Rover":
           sectionData.add(createPieElement(key, value, Stufe.ROVER, index));
@@ -77,7 +77,11 @@ class GroupPieChartState extends State<GroupPieChart> {
   }
 
   PieChartSectionData createPieElement(
-      String name, num value, Stufe? stufe, num index) {
+    String name,
+    num value,
+    Stufe? stufe,
+    num index,
+  ) {
     final isTouched = index == touchedIndex;
     final fontSize = isTouched ? 20.0 : 16.0;
     final radius = isTouched ? 110.0 : 100.0;
@@ -108,11 +112,7 @@ class GroupPieChartState extends State<GroupPieChart> {
 }
 
 class _Badge extends StatelessWidget {
-  const _Badge(
-    this.svgAsset, {
-    required this.size,
-    required this.borderColor,
-  });
+  const _Badge(this.svgAsset, {required this.size, required this.borderColor});
   final String svgAsset;
   final double size;
   final Color borderColor;
@@ -126,10 +126,7 @@ class _Badge extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         shape: BoxShape.circle,
-        border: Border.all(
-          color: borderColor,
-          width: 2,
-        ),
+        border: Border.all(color: borderColor, width: 2),
         boxShadow: <BoxShadow>[
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.5),
@@ -139,11 +136,7 @@ class _Badge extends StatelessWidget {
         ],
       ),
       padding: EdgeInsets.all(size * .15),
-      child: Center(
-        child: Image.asset(
-          svgAsset,
-        ),
-      ),
+      child: Center(child: Image.asset(svgAsset)),
     );
   }
 }

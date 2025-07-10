@@ -114,7 +114,7 @@ class Mitglied {
     try {
       final res = await locationFromAddress('$strasse, $plz $ort');
       return LatLng(res.first.latitude, res.first.longitude);
-    } on NoResultFoundException catch (_, __) {}
+    } on NoResultFoundException catch (_) {}
     return null;
   }
 
@@ -212,20 +212,21 @@ class Mitglied {
 
   DateTime? getMinStufenWechselDatum() {
     DateTime nextStufenwechselDatum = getNextStufenwechselDatum();
-    int alterNextStufenwechsel =
-        getAlterAm(referenceDate: nextStufenwechselDatum, date: geburtsDatum)
-            .floor();
+    int alterNextStufenwechsel = getAlterAm(
+      referenceDate: nextStufenwechselDatum,
+      date: geburtsDatum,
+    ).floor();
 
     if (nextStufe != null &&
         nextStufe!.isStufeYouCanChangeTo &&
         !isMitgliedLeiter()) {
       return DateTime(
-              nextStufenwechselDatum.year -
-                  alterNextStufenwechsel +
-                  getStufeMinAge(nextStufe!)!,
-              nextStufenwechselDatum.month,
-              nextStufenwechselDatum.day)
-          .subtract(const Duration(days: 1));
+        nextStufenwechselDatum.year -
+            alterNextStufenwechsel +
+            getStufeMinAge(nextStufe!)!,
+        nextStufenwechselDatum.month,
+        nextStufenwechselDatum.day,
+      ).subtract(const Duration(days: 1));
     } else {
       return null;
     }
@@ -233,20 +234,22 @@ class Mitglied {
 
   DateTime? getMaxStufenWechselDatum() {
     DateTime nextStufenwechselDatum = getNextStufenwechselDatum();
-    int alterNextStufenwechsel =
-        getAlterAm(referenceDate: nextStufenwechselDatum, date: geburtsDatum)
-            .floor();
+    int alterNextStufenwechsel = getAlterAm(
+      referenceDate: nextStufenwechselDatum,
+      date: geburtsDatum,
+    ).floor();
 
     if (nextStufe != null &&
         currentStufe != Stufe.KEINE_STUFE &&
         (nextStufe!.isStufeYouCanChangeTo || currentStufe == Stufe.ROVER) &&
         !isMitgliedLeiter()) {
       return DateTime(
-          nextStufenwechselDatum.year -
-              alterNextStufenwechsel +
-              getStufeMaxAge(currentStufe)!,
-          nextStufenwechselDatum.month,
-          nextStufenwechselDatum.day);
+        nextStufenwechselDatum.year -
+            alterNextStufenwechsel +
+            getStufeMaxAge(currentStufe)!,
+        nextStufenwechselDatum.month,
+        nextStufenwechselDatum.day,
+      );
     } else {
       return null;
     }

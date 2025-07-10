@@ -93,10 +93,7 @@ class _StufenwechselAlterSettingState extends State<StufenwechselAlterSetting> {
           IconButton(
             icon: const Icon(Icons.restore),
             onPressed: () {
-              setStufeMinAge(
-                widget.stufe,
-                widget.stufe.alterMin ?? 0,
-              );
+              setStufeMinAge(widget.stufe, widget.stufe.alterMin ?? 0);
               setStufeMaxAge(widget.stufe, widget.stufe.alterMax ?? 99);
               minAgeController.text = getStufeMinAge(widget.stufe).toString();
               maxAgeController.text = getStufeMaxAge(widget.stufe).toString();

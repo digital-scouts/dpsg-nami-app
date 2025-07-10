@@ -5,12 +5,19 @@ import 'package:http/http.dart' as http;
 import 'package:wiredash/wiredash.dart';
 
 Future<bool> validateGermanAdress(
-    String housenumber, String street, String postcode, String city) async {
+  String housenumber,
+  String street,
+  String postcode,
+  String city,
+) async {
   String apiKey = startUp();
   Wiredash.trackEvent('Geoapify validate adress');
 
-  final response = await http.get(Uri.parse(
-      'https://api.geoapify.com/v1/geocode/search?housenumber=$housenumber&street=$street&postcode=$postcode&city=$city&country=Germany&format=json&apiKey=$apiKey'));
+  final response = await http.get(
+    Uri.parse(
+      'https://api.geoapify.com/v1/geocode/search?housenumber=$housenumber&street=$street&postcode=$postcode&city=$city&country=Germany&format=json&apiKey=$apiKey',
+    ),
+  );
   if (response.statusCode != 200) {
     throw Exception('Failed to load address');
   }
@@ -41,8 +48,11 @@ Future<List<GeoapifyAdress>> autocompleteGermanAdress(String text) async {
   String apiKey = startUp();
   Wiredash.trackEvent('Geoapify autocomplete adress');
 
-  final response = await http.get(Uri.parse(
-      'https://api.geoapify.com/v1/geocode/autocomplete?text=$text&lang=de&limit=3&filter=countrycode:de&format=json&apiKey=$apiKey'));
+  final response = await http.get(
+    Uri.parse(
+      'https://api.geoapify.com/v1/geocode/autocomplete?text=$text&lang=de&limit=3&filter=countrycode:de&format=json&apiKey=$apiKey',
+    ),
+  );
   if (response.statusCode != 200) {
     throw Exception('Failed to load address');
   }
@@ -72,25 +82,27 @@ class GeoapifyAdress {
   String formatted;
   String? housenumber;
 
-  GeoapifyAdress(
-      {this.country,
-      this.countryCode,
-      this.state,
-      this.city,
-      this.postcode,
-      this.street,
-      required this.formatted,
-      this.housenumber});
+  GeoapifyAdress({
+    this.country,
+    this.countryCode,
+    this.state,
+    this.city,
+    this.postcode,
+    this.street,
+    required this.formatted,
+    this.housenumber,
+  });
 
   factory GeoapifyAdress.fromJson(Map<String, dynamic> json) {
     return GeoapifyAdress(
-        country: json['country'],
-        countryCode: json['country_code'],
-        state: json['state'],
-        city: json['city'],
-        postcode: json['postcode'],
-        street: json['street'],
-        formatted: json['formatted'],
-        housenumber: json['housenumber']);
+      country: json['country'],
+      countryCode: json['country_code'],
+      state: json['state'],
+      city: json['city'],
+      postcode: json['postcode'],
+      street: json['street'],
+      formatted: json['formatted'],
+      housenumber: json['housenumber'],
+    );
   }
 }

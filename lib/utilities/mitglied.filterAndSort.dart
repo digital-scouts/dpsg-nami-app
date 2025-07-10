@@ -47,9 +47,9 @@ class MemberListSettingsHandler extends ChangeNotifier {
     List<Mitglied> filteredMitglieder = List.empty(growable: true);
 
     // filter by Gruppe
-    if (!filterOptions.filterGroup.values
-        .toList()
-        .every((gruppe) => !gruppe.active)) {
+    if (!filterOptions.filterGroup.values.toList().every(
+      (gruppe) => !gruppe.active,
+    )) {
       for (var gruppe in filterOptions.filterGroup.values) {
         if (!gruppe.active) continue;
         if (gruppe.orFilter) {
@@ -92,10 +92,13 @@ class MemberListSettingsHandler extends ChangeNotifier {
 
   /// Mitglied muss mindestens einem Kriterium entsprechen
   List<Mitglied> orFilterMitglieder(
-      List<Mitglied> mitglieder, CustomGroup gruppe) {
+    List<Mitglied> mitglieder,
+    CustomGroup gruppe,
+  ) {
     List<Mitglied> filteredMitglieder = [];
-    filteredMitglieder
-        .addAll(filterGruppeByTaetigkeit(mitglieder, gruppe.taetigkeiten));
+    filteredMitglieder.addAll(
+      filterGruppeByTaetigkeit(mitglieder, gruppe.taetigkeiten),
+    );
 
     filteredMitglieder.addAll(filterGruppeByStufe(mitglieder, gruppe.stufe));
 
@@ -111,7 +114,9 @@ class MemberListSettingsHandler extends ChangeNotifier {
 
   /// Mitglied muss allen kriterien entsprechen
   List<Mitglied> andFilterMitglieder(
-      List<Mitglied> mitglieder, CustomGroup gruppe) {
+    List<Mitglied> mitglieder,
+    CustomGroup gruppe,
+  ) {
     List<Mitglied> filteredMitglieder = [];
 
     for (var mitglied in mitglieder) {
@@ -119,9 +124,11 @@ class MemberListSettingsHandler extends ChangeNotifier {
 
       // Überprüfen, ob das Mitglied die Tätigkeiten erfüllt
       if (gruppe.taetigkeiten != null && gruppe.taetigkeiten!.isNotEmpty) {
-        bool matchesTaetigkeit = gruppe.taetigkeiten!.every((taetigkeit) =>
-            mitglied.getActiveTaetigkeiten().any((activeTaetigkeit) =>
-                activeTaetigkeit.taetigkeit == taetigkeit));
+        bool matchesTaetigkeit = gruppe.taetigkeiten!.every(
+          (taetigkeit) => mitglied.getActiveTaetigkeiten().any(
+            (activeTaetigkeit) => activeTaetigkeit.taetigkeit == taetigkeit,
+          ),
+        );
         if (!matchesTaetigkeit) {
           matchesAllCriteria = false;
         }
@@ -197,16 +204,18 @@ class MemberListSettingsHandler extends ChangeNotifier {
   ///Filter bei Vor- und Name, Nummer, E-Mail
   void filterByString(List<Mitglied> mitglieder, String filterString) {
     filterString = filterString.toLowerCase().trim();
-    mitglieder.retainWhere((mitglied) =>
-        mitglied.vorname.toLowerCase().contains(filterString) ||
-        mitglied.nachname.toLowerCase().contains(filterString) ||
-        (mitglied.email?.toLowerCase().contains(filterString) ?? false) ||
-        (mitglied.emailVertretungsberechtigter
-                ?.toLowerCase()
-                .contains(filterString) ??
-            false) ||
-        mitglied.mitgliedsNummer.toString().contains(filterString) ||
-        mitglied.id.toString().contains(filterString));
+    mitglieder.retainWhere(
+      (mitglied) =>
+          mitglied.vorname.toLowerCase().contains(filterString) ||
+          mitglied.nachname.toLowerCase().contains(filterString) ||
+          (mitglied.email?.toLowerCase().contains(filterString) ?? false) ||
+          (mitglied.emailVertretungsberechtigter?.toLowerCase().contains(
+                filterString,
+              ) ??
+              false) ||
+          mitglied.mitgliedsNummer.toString().contains(filterString) ||
+          mitglied.id.toString().contains(filterString),
+    );
   }
 
   List<Mitglied> filterInactive(List<Mitglied> mitglieder) {
@@ -224,7 +233,9 @@ class MemberListSettingsHandler extends ChangeNotifier {
   }
 
   List<Mitglied> filterGruppeByStufe(
-      final List<Mitglied> mitglieder, final Stufe? stufe) {
+    final List<Mitglied> mitglieder,
+    final Stufe? stufe,
+  ) {
     if (stufe == null) {
       return List.empty();
     }
@@ -234,15 +245,19 @@ class MemberListSettingsHandler extends ChangeNotifier {
   }
 
   List<Mitglied> filterGruppeByTaetigkeit(
-      final List<Mitglied> mitglieder, final List<String>? taetigkeiten) {
+    final List<Mitglied> mitglieder,
+    final List<String>? taetigkeiten,
+  ) {
     if (taetigkeiten == null) {
       return List.empty();
     }
 
     return mitglieder
-        .where((mitglied) => mitglied
-            .getActiveTaetigkeiten()
-            .any((taetigkeit) => taetigkeiten.contains(taetigkeit.taetigkeit)))
+        .where(
+          (mitglied) => mitglied.getActiveTaetigkeiten().any(
+            (taetigkeit) => taetigkeiten.contains(taetigkeit.taetigkeit),
+          ),
+        )
         .toList();
   }
 

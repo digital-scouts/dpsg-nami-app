@@ -14,8 +14,9 @@ void saveCustomGroups(Map<String, CustomGroup> groups) {
 }
 
 Map<String, CustomGroup> getCustomGroups() {
-  final Map<dynamic, dynamic>? rawGroups =
-      filterBox.get(FilterValue.customGroups.toString());
+  final Map<dynamic, dynamic>? rawGroups = filterBox.get(
+    FilterValue.customGroups.toString(),
+  );
 
   if (rawGroups == null) {
     return {
@@ -31,8 +32,9 @@ Map<String, CustomGroup> getCustomGroups() {
     };
   }
 
-  return rawGroups
-      .map((key, value) => MapEntry(key as String, value as CustomGroup));
+  return rawGroups.map(
+    (key, value) => MapEntry(key as String, value as CustomGroup),
+  );
 }
 
 MemberSorting getListSort() {

@@ -60,8 +60,8 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
       widget.memberOverviewProgressNotifier.value == true &&
       (widget.loadAll
           ? widget.gruppierungProgressNotifier.value!.isNotEmpty &&
-              widget.memberAllProgressNotifier.value == 1 &&
-              widget.metaProgressNotifier.value == true
+                widget.memberAllProgressNotifier.value == 1 &&
+                widget.metaProgressNotifier.value == true
           : widget.memberAllProgressNotifier.value == 1);
 
   @override
@@ -127,8 +127,9 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
                   AppStateHandler().setLoggedOutState();
                 },
                 style: ElevatedButton.styleFrom(
-                  foregroundColor:
-                      Theme.of(context).colorScheme.onErrorContainer,
+                  foregroundColor: Theme.of(
+                    context,
+                  ).colorScheme.onErrorContainer,
                 ),
                 icon: const Icon(Icons.logout),
                 label: const Text('Fehler. Du wirst ausgeloggt.'),
@@ -139,7 +140,8 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.wifi_off),
                 label: const Text(
-                    'Keine Netzwerkverbindung. Versuch es später erneut'),
+                  'Keine Netzwerkverbindung. Versuch es später erneut',
+                ),
               )
             else if (context.watch<AppStateHandler>().syncState ==
                 SyncState.noPermission)
@@ -150,9 +152,10 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
                     onPressed: () => Navigator.pop(context),
                     icon: const Icon(Icons.block),
                     label: const Text(
-                        'Du hast nicht die notwendige Berechtigung die App zu nutzen.'),
+                      'Du hast nicht die notwendige Berechtigung die App zu nutzen.',
+                    ),
                   ),
-                  const FuehrungszeugnisWidgets()
+                  const FuehrungszeugnisWidgets(),
                 ],
               )
             else if (context.watch<AppStateHandler>().syncState ==
@@ -161,8 +164,9 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
                 style: ElevatedButton.styleFrom(),
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.sync_problem),
-                label:
-                    const Text('Kein Sync möglich ohne erneute Anmeldung. OK'),
+                label: const Text(
+                  'Kein Sync möglich ohne erneute Anmeldung. OK',
+                ),
               ),
           ],
         ),
@@ -171,7 +175,10 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
   }
 
   Widget _buildLoadingStatusRow(
-      IconData iconData, String label, dynamic value) {
+    IconData iconData,
+    String label,
+    dynamic value,
+  ) {
     Widget? trailing;
     Widget? subtitle;
     final colorScheme = Theme.of(context).colorScheme;
@@ -208,18 +215,14 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
       } else {
         trailing = successIcon;
       }
-      subtitle = Text(
-        value.map((e) => e.name).join(", "),
-      );
+      subtitle = Text(value.map((e) => e.name).join(", "));
     } else if (value is List<AllowedFeatures>) {
       if (value.isEmpty) {
         trailing = const CircularProgressIndicator();
       } else {
         trailing = successIcon;
       }
-      subtitle = Text(
-        value.map((e) => e.toReadableString()).join(", "),
-      );
+      subtitle = Text(value.map((e) => e.toReadableString()).join(", "));
     } else if (value == null || value is String) {
       trailing = const CircularProgressIndicator();
     } else {

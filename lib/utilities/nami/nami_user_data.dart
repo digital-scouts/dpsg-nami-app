@@ -4,8 +4,9 @@ import 'package:nami/utilities/hive/settings.dart';
 
 // find user by id in mitglied list
 Mitglied? findMitgliedById(int id) {
-  List<Mitglied> mitglieder =
-      Hive.box<Mitglied>('members').values.toList().cast<Mitglied>();
+  List<Mitglied> mitglieder = Hive.box<Mitglied>(
+    'members',
+  ).values.toList().cast<Mitglied>();
   for (var mitglied in mitglieder) {
     if (mitglied.mitgliedsNummer == id) {
       return mitglied;

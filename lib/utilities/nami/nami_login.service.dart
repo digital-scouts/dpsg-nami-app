@@ -41,7 +41,7 @@ Future<bool> namiLoginWithPassword(int userId, String password) async {
   Map<String, String> body = {
     'username': userId.toString(),
     'password': password,
-    'Login': 'API'
+    'Login': 'API',
   };
   Map<String, String> headers = {
     "Host": 'nami.dpsg.de',
@@ -54,7 +54,8 @@ Future<bool> namiLoginWithPassword(int userId, String password) async {
   final statusCode = authResponse.statusCode;
   if (statusCode != 302 && statusCode != 200) {
     sensLog.e(
-        'Failed to login for ${sensId(userId)} with status code: $statusCode');
+      'Failed to login for ${sensId(userId)} with status code: $statusCode',
+    );
     return false;
   }
 
@@ -71,7 +72,8 @@ Future<bool> namiLoginWithPassword(int userId, String password) async {
   if (tokenResponse.statusCode != 200 ||
       !tokenResponse.headers.containsKey('set-cookie')) {
     sensLog.e(
-        'Failed to login for ${sensId(userId)} with status code: ${tokenResponse.statusCode}');
+      'Failed to login for ${sensId(userId)} with status code: ${tokenResponse.statusCode}',
+    );
     return false;
   }
   final resBody = json.decode(tokenResponse.body);

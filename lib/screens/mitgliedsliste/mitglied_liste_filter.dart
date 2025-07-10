@@ -7,8 +7,11 @@ class FilterDialog extends StatefulWidget {
   final MemberListSettingsHandler filterHandler;
   final List<String> maxTaetigkeiten;
 
-  const FilterDialog(
-      {super.key, required this.filterHandler, required this.maxTaetigkeiten});
+  const FilterDialog({
+    super.key,
+    required this.filterHandler,
+    required this.maxTaetigkeiten,
+  });
 
   @override
   FilterDialogState createState() => FilterDialogState();
@@ -26,8 +29,10 @@ class FilterDialogState extends State<FilterDialog> {
             Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                Text("Sortiere nach",
-                    style: Theme.of(context).textTheme.bodySmall),
+                Text(
+                  "Sortiere nach",
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
                 const SizedBox(width: 15),
                 Expanded(
                   child: DropdownButton<MemberSorting>(
@@ -36,19 +41,22 @@ class FilterDialogState extends State<FilterDialog> {
                     isExpanded: true,
                     onChanged: (MemberSorting? sort) {
                       setState(() {
-                        widget.filterHandler
-                            .updateSorting(sort ?? MemberSorting.name);
+                        widget.filterHandler.updateSorting(
+                          sort ?? MemberSorting.name,
+                        );
                       });
                     },
                     items: MemberSorting.values
-                        .map((MemberSorting sort) =>
-                            DropdownMenuItem<MemberSorting>(
-                              value: sort,
-                              child: Text(
-                                memberSortingValues[sort] ?? "",
-                                style: Theme.of(context).textTheme.bodyLarge,
+                        .map(
+                          (MemberSorting sort) =>
+                              DropdownMenuItem<MemberSorting>(
+                                value: sort,
+                                child: Text(
+                                  memberSortingValues[sort] ?? "",
+                                  style: Theme.of(context).textTheme.bodyLarge,
+                                ),
                               ),
-                            ))
+                        )
                         .toList(),
                   ),
                 ),
@@ -57,8 +65,10 @@ class FilterDialogState extends State<FilterDialog> {
             Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                Text("Zusatztext",
-                    style: Theme.of(context).textTheme.bodySmall),
+                Text(
+                  "Zusatztext",
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
                 const SizedBox(width: 15),
                 Expanded(
                   child: DropdownButton<MemberSubElement>(
@@ -68,18 +78,21 @@ class FilterDialogState extends State<FilterDialog> {
                     onChanged: (MemberSubElement? subElement) {
                       setState(() {
                         widget.filterHandler.updateSubElement(
-                            subElement ?? MemberSubElement.id);
+                          subElement ?? MemberSubElement.id,
+                        );
                       });
                     },
                     items: MemberSubElement.values
-                        .map((MemberSubElement sort) =>
-                            DropdownMenuItem<MemberSubElement>(
-                              value: sort,
-                              child: Text(
-                                memberSubElementValues[sort] ?? "",
-                                style: Theme.of(context).textTheme.bodyLarge,
+                        .map(
+                          (MemberSubElement sort) =>
+                              DropdownMenuItem<MemberSubElement>(
+                                value: sort,
+                                child: Text(
+                                  memberSubElementValues[sort] ?? "",
+                                  style: Theme.of(context).textTheme.bodyLarge,
+                                ),
                               ),
-                            ))
+                        )
                         .toList(),
                   ),
                 ),
@@ -93,40 +106,51 @@ class FilterDialogState extends State<FilterDialog> {
                 IconButton(
                   icon: const Icon(Icons.add),
                   onPressed: () {
-                    editGroupSettingsDialog(context, null)
-                        .then((MapEntry<String, CustomGroup>? value) => {
-                              if (value != null)
-                                widget.filterHandler
-                                    .updateFilterGroup(value.key, value.value),
-                              setState(() {})
-                            });
+                    editGroupSettingsDialog(context, null).then(
+                      (MapEntry<String, CustomGroup>? value) => {
+                        if (value != null)
+                          widget.filterHandler.updateFilterGroup(
+                            value.key,
+                            value.value,
+                          ),
+                        setState(() {}),
+                      },
+                    );
                   },
                 ),
               ],
             ),
-            for (var gruppe in widget
-                .filterHandler.filterOptions.filterGroup.entries
-                .where((e) => !e.value.static))
+            for (var gruppe
+                in widget.filterHandler.filterOptions.filterGroup.entries.where(
+                  (e) => !e.value.static,
+                ))
               ListTile(
                 leading: Icon(gruppe.value.icon),
                 contentPadding: EdgeInsets.zero,
-                title: Text(gruppe.key,
-                    style: Theme.of(context).textTheme.bodyMedium),
+                title: Text(
+                  gruppe.key,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
                       icon: const Icon(Icons.edit),
-                      onPressed: () => editGroupSettingsDialog(context, gruppe)
-                          .then((MapEntry<String, CustomGroup>? value) => {
-                                if (value == null || value.key != gruppe.key)
-                                  widget.filterHandler
-                                      .removeFilterGroup(gruppe.key),
-                                if (value != null)
-                                  widget.filterHandler.updateFilterGroup(
-                                      value.key, value.value),
-                                setState(() {})
-                              }),
+                      onPressed: () =>
+                          editGroupSettingsDialog(context, gruppe).then(
+                            (MapEntry<String, CustomGroup>? value) => {
+                              if (value == null || value.key != gruppe.key)
+                                widget.filterHandler.removeFilterGroup(
+                                  gruppe.key,
+                                ),
+                              if (value != null)
+                                widget.filterHandler.updateFilterGroup(
+                                  value.key,
+                                  value.value,
+                                ),
+                              setState(() {}),
+                            },
+                          ),
                     ),
                     IconButton(
                       icon: const Icon(Icons.delete),
@@ -137,7 +161,7 @@ class FilterDialogState extends State<FilterDialog> {
                     ),
                   ],
                 ),
-              )
+              ),
           ],
         ),
       ),
@@ -153,12 +177,16 @@ class FilterDialogState extends State<FilterDialog> {
   }
 
   Future<MapEntry<String, CustomGroup>> editGroupSettingsDialog(
-      BuildContext context, MapEntry<String, CustomGroup>? group) async {
+    BuildContext context,
+    MapEntry<String, CustomGroup>? group,
+  ) async {
     return await showDialog(
       context: context,
       builder: (BuildContext context) {
         return EditGroupSettingsDialog(
-            group: group, maxTaetigkeiten: widget.maxTaetigkeiten);
+          group: group,
+          maxTaetigkeiten: widget.maxTaetigkeiten,
+        );
       },
     );
   }
@@ -169,8 +197,11 @@ class EditGroupSettingsDialog extends StatefulWidget {
 
   final List<String> maxTaetigkeiten;
 
-  const EditGroupSettingsDialog(
-      {super.key, this.group, required this.maxTaetigkeiten});
+  const EditGroupSettingsDialog({
+    super.key,
+    this.group,
+    required this.maxTaetigkeiten,
+  });
 
   @override
   EditGroupSettingsDialogState createState() => EditGroupSettingsDialogState();
@@ -204,8 +235,12 @@ class EditGroupSettingsDialogState extends State<EditGroupSettingsDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      insetPadding:
-          const EdgeInsets.only(left: 16, right: 16, top: 50, bottom: 50),
+      insetPadding: const EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 50,
+        bottom: 50,
+      ),
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Eigene Gruppe'),
@@ -213,17 +248,19 @@ class EditGroupSettingsDialogState extends State<EditGroupSettingsDialog> {
             IconButton(
               icon: const Icon(Icons.save),
               onPressed: () {
-                Navigator.of(context).pop(MapEntry(
-                  nameController.text,
-                  CustomGroup(
-                    iconIndex: CustomGroup.icons.indexOf(icon),
-                    active: widget.group?.value.active ?? true,
-                    taetigkeiten: taetigkeiten,
-                    showNonMembers: showNonMembers,
-                    showInactive: showInactive,
-                    orFilter: orFilter,
+                Navigator.of(context).pop(
+                  MapEntry(
+                    nameController.text,
+                    CustomGroup(
+                      iconIndex: CustomGroup.icons.indexOf(icon),
+                      active: widget.group?.value.active ?? true,
+                      taetigkeiten: taetigkeiten,
+                      showNonMembers: showNonMembers,
+                      showInactive: showInactive,
+                      orFilter: orFilter,
+                    ),
                   ),
-                ));
+                );
               },
             ),
           ],
@@ -298,9 +335,7 @@ class EditGroupSettingsDialogState extends State<EditGroupSettingsDialog> {
                           text: 'eines der folgenden',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        TextSpan(
-                          text: ' Merkmale besitzen werden angezeigt',
-                        ),
+                        TextSpan(text: ' Merkmale besitzen werden angezeigt'),
                       ],
                     ),
                   ),
@@ -313,24 +348,26 @@ class EditGroupSettingsDialogState extends State<EditGroupSettingsDialog> {
                           text: 'alle der folgenden',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        TextSpan(
-                          text: ' Merkmale besitzen werden angezeigt',
-                        ),
+                        TextSpan(text: ' Merkmale besitzen werden angezeigt'),
                       ],
                     ),
                   ),
                 const SizedBox(height: 16),
                 MultiDropdown<String>(
                   items: widget.maxTaetigkeiten
-                      .map((String item) => DropdownItem<String>(
+                      .map(
+                        (String item) => DropdownItem<String>(
                           value: item,
                           label: item,
-                          selected: taetigkeiten.contains(item)))
+                          selected: taetigkeiten.contains(item),
+                        ),
+                      )
                       .toList(),
                   maxSelections: 4,
                   chipDecoration: const ChipDecoration(
-                      labelStyle: TextStyle(color: Colors.white),
-                      backgroundColor: Colors.blue),
+                    labelStyle: TextStyle(color: Colors.white),
+                    backgroundColor: Colors.blue,
+                  ),
                   dropdownDecoration: DropdownDecoration(
                     backgroundColor: Theme.of(context).disabledColor,
                   ),
@@ -339,8 +376,9 @@ class EditGroupSettingsDialogState extends State<EditGroupSettingsDialog> {
                     selectedBackgroundColor: Theme.of(context).dividerColor,
                   ),
                   fieldDecoration: FieldDecoration(
-                      hintText: 'Tätigkeiten',
-                      backgroundColor: Theme.of(context).disabledColor),
+                    hintText: 'Tätigkeiten',
+                    backgroundColor: Theme.of(context).disabledColor,
+                  ),
                   onSelectionChange: (selectedItems) {
                     setState(() {
                       taetigkeiten = selectedItems;

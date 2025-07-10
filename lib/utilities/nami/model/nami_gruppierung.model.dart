@@ -4,7 +4,7 @@ class NamiGruppierungModel {
 
   NamiGruppierungModel({required this.id, required this.name});
 
-  static fromJson(e) {
+  static NamiGruppierungModel fromJson(dynamic e) {
     return NamiGruppierungModel(id: e['id'], name: e['descriptor']);
   }
 }

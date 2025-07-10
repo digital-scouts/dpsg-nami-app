@@ -32,11 +32,13 @@ Future<void> deleteOldLogs() async {
       final line = lines[i];
       final timeStart = line.indexOf(' time="20');
       final timeEnd = line.indexOf('"', timeStart + 7);
-      final timestamp =
-          DateTime.tryParse(line.substring(timeStart + 7, timeEnd));
+      final timestamp = DateTime.tryParse(
+        line.substring(timeStart + 7, timeEnd),
+      );
       if (timestamp == null) continue;
-      if (timestamp
-          .isBefore(DateTime.now().subtract(const Duration(days: 30)))) {
+      if (timestamp.isBefore(
+        DateTime.now().subtract(const Duration(days: 30)),
+      )) {
         toDelete = i;
       } else {
         break;
@@ -64,11 +66,13 @@ Future<void> initLogger() async {
   }
 
   if (kReleaseMode) {
-    loggingFile =
-        File('${(await getApplicationDocumentsDirectory()).path}/prod.log');
+    loggingFile = File(
+      '${(await getApplicationDocumentsDirectory()).path}/prod.log',
+    );
   } else {
-    loggingFile =
-        File('${(await getApplicationDocumentsDirectory()).path}/dev.log');
+    loggingFile = File(
+      '${(await getApplicationDocumentsDirectory()).path}/dev.log',
+    );
   }
   await deleteOldLogs();
   sensLog = Logger(
@@ -101,13 +105,11 @@ Future<void> initLogger() async {
   );
   sensLog.i('Logger initialized');
 
-  Future.wait([
-    PackageInfo.fromPlatform(),
-    getGitCommitId(),
-  ]).then<void>(
+  Future.wait([PackageInfo.fromPlatform(), getGitCommitId()]).then<void>(
     (value) {
       sensLog.i(
-          'Version: ${(value[0] as PackageInfo).version} | Commit: ${value[1]}');
+        'Version: ${(value[0] as PackageInfo).version} | Commit: ${value[1]}',
+      );
     },
     onError: (e, s) {
       sensLog.e('Error getting version and commit id', error: e, stackTrace: s);

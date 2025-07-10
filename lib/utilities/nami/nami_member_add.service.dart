@@ -28,8 +28,11 @@ Future<int> namiCreateMember(NamiMemberDetailsModel mitglied) async {
   final http.Response response;
 
   try {
-    response =
-        await http.post(Uri.parse(fullUrl), headers: headers, body: body);
+    response = await http.post(
+      Uri.parse(fullUrl),
+      headers: headers,
+      body: body,
+    );
   } catch (e, st) {
     sensLog.e('Failed to create member', error: e, stackTrace: st);
     throw MemberCreationException('Failed to create member: $e');
@@ -41,11 +44,14 @@ Future<int> namiCreateMember(NamiMemberDetailsModel mitglied) async {
     return source['data']; // should be the id
   } else {
     sensLog.e(
-        'Failed to create member: Status: ${response.statusCode}, success: ${source['success']}, data: ${source['data']}');
-    throw MemberCreationException(source['message'],
-        fieldInfo: (source['data']['fieldInfo'] as List)
-            .map((item) => FieldInfo.fromJson(item))
-            .toList());
+      'Failed to create member: Status: ${response.statusCode}, success: ${source['success']}, data: ${source['data']}',
+    );
+    throw MemberCreationException(
+      source['message'],
+      fieldInfo: (source['data']['fieldInfo'] as List)
+          .map((item) => FieldInfo.fromJson(item))
+          .toList(),
+    );
   }
 }
 
@@ -72,16 +78,20 @@ Future<int> namiEditMember(NamiMemberDetailsModel mitglied) async {
   final source = json.decode(const Utf8Decoder().convert(response.bodyBytes));
 
   if (response.statusCode == 200 && source['success']) {
-    sensLog
-        .t('Response: Member with id ${sensId(source['data']['id'])} edited');
+    sensLog.t(
+      'Response: Member with id ${sensId(source['data']['id'])} edited',
+    );
     return source['data']['id']; // should be the id
   } else {
     sensLog.e(
-        'Failed to edit member: Status: ${response.statusCode}, success: ${source['success']}, data: ${source['data']}');
+      'Failed to edit member: Status: ${response.statusCode}, success: ${source['success']}, data: ${source['data']}',
+    );
 
-    throw MemberCreationException(source['message'],
-        fieldInfo: (source['data']['fieldInfo'] as List)
-            .map((item) => FieldInfo.fromJson(item))
-            .toList());
+    throw MemberCreationException(
+      source['message'],
+      fieldInfo: (source['data']['fieldInfo'] as List)
+          .map((item) => FieldInfo.fromJson(item))
+          .toList(),
+    );
   }
 }

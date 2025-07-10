@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_ce/hive.dart';
+import 'package:nami/utilities/stufe.dart';
 
 // flutter packages pub run build_runner build
 enum SettingValue {
@@ -34,28 +35,40 @@ enum SettingValue {
   newVersionInfoShown,
   themeMode,
   isTestDevice,
+  geburtstagsbenachrichtigungen,
+  benachrichtigungenActive,
+  benachrichtigungsZeit,
 }
 
+enum GeburtstagsbenachrichtigungenGruppen { favouriten }
+
 void setMetaData(
-    Map<String, String> geschlecht,
-    Map<String, String> land,
-    Map<String, String> region,
-    Map<String, String> beitragsart,
-    Map<String, String> staatsangehoerigkeit,
-    Map<String, String> mitgliedstyp,
-    Map<String, String> konfession,
-    Map<String, String> ersteTaetigkeit) {
+  Map<String, String> geschlecht,
+  Map<String, String> land,
+  Map<String, String> region,
+  Map<String, String> beitragsart,
+  Map<String, String> staatsangehoerigkeit,
+  Map<String, String> mitgliedstyp,
+  Map<String, String> konfession,
+  Map<String, String> ersteTaetigkeit,
+) {
   settingsBox.put(SettingValue.metaGeschechtOptions.toString(), geschlecht);
   settingsBox.put(SettingValue.metaLandOptions.toString(), land);
   settingsBox.put(SettingValue.metaBeitragsartOptions.toString(), beitragsart);
   settingsBox.put(SettingValue.metaRegionOptions.toString(), region);
-  settingsBox.put(SettingValue.metaStaatsangehoerigkeitOptions.toString(),
-      staatsangehoerigkeit);
   settingsBox.put(
-      SettingValue.metaMitgliedstypOptions.toString(), mitgliedstyp);
+    SettingValue.metaStaatsangehoerigkeitOptions.toString(),
+    staatsangehoerigkeit,
+  );
+  settingsBox.put(
+    SettingValue.metaMitgliedstypOptions.toString(),
+    mitgliedstyp,
+  );
   settingsBox.put(SettingValue.metaKonfessionOptions.toString(), konfession);
   settingsBox.put(
-      SettingValue.metaErsteTaetigkeitOptions.toString(), ersteTaetigkeit);
+    SettingValue.metaErsteTaetigkeitOptions.toString(),
+    ersteTaetigkeit,
+  );
 }
 
 Box get settingsBox => Hive.box('settingsBox');
@@ -89,8 +102,10 @@ Map<String, String> getMetaRegionOptions() {
 }
 
 Map<String, String> getMetaStaatsangehoerigkeitOptions() {
-  final dynamicMap = settingsBox
-          .get(SettingValue.metaStaatsangehoerigkeitOptions.toString()) ??
+  final dynamicMap =
+      settingsBox.get(
+        SettingValue.metaStaatsangehoerigkeitOptions.toString(),
+      ) ??
       {};
   return Map<String, String>.from(dynamicMap);
 }
@@ -118,8 +133,9 @@ List<int> getFavouriteList() {
 }
 
 bool getBiometricAuthenticationEnabled() {
-  return settingsBox
-          .get(SettingValue.biometricAuthenticationEnabled.toString()) ??
+  return settingsBox.get(
+        SettingValue.biometricAuthenticationEnabled.toString(),
+      ) ??
       false;
 }
 
@@ -216,7 +232,9 @@ void setDataLoadingOverWifiOnly(bool value) {
 
 void setBiometricAuthenticationEnabled(bool value) {
   settingsBox.put(
-      SettingValue.biometricAuthenticationEnabled.toString(), value);
+    SettingValue.biometricAuthenticationEnabled.toString(),
+    value,
+  );
 }
 
 void setRechte(List<int> rechte) {
@@ -356,4 +374,76 @@ void setIsTestDevice(bool value) {
 
 bool getIsTestDevice() {
   return settingsBox.get(SettingValue.isTestDevice.toString()) ?? false;
+}
+
+void setBenachrichtigungenActive(bool value) {
+  settingsBox.put(SettingValue.benachrichtigungenActive.toString(), value);
+}
+
+bool getBenachrichtigungenActive() {
+  return settingsBox.get(SettingValue.benachrichtigungenActive.toString()) ??
+      true;
+}
+
+void setBenachrichtungsZeitpunkt(BenachrichtigungsZeit zeit) {
+  settingsBox.put(
+    SettingValue.benachrichtigungsZeit.toString(),
+    zeit.displayName,
+  );
+}
+
+BenachrichtigungsZeit getBenachrichtigungsZeitpunkt() {
+  final String? zeitName = settingsBox.get(
+    SettingValue.benachrichtigungsZeit.toString(),
+  );
+  if (zeitName == null) return BenachrichtigungsZeit.morgens;
+  return BenachrichtigungsZeit.values.firstWhere(
+    (zeit) => zeit.displayName == zeitName,
+    orElse: () => BenachrichtigungsZeit.morgens,
+  );
+}
+
+enum BenachrichtigungsZeit {
+  vorabend('Vorabend', 0, 20, -1),
+  morgens('Morgens', 1, 10, 0),
+  mittag('Mittags', 2, 13, 0);
+
+  const BenachrichtigungsZeit(
+    this.displayName,
+    this.i,
+    this.stunde,
+    this.tageOffset,
+  );
+  final String displayName;
+  final int i;
+  final int stunde;
+  final int tageOffset; // -1 für Vorabend, 0 für am Tag selbst
+}
+
+void setGeburtstagsbenachrichtigungenGruppen(List<Stufe> value) {
+  List<int> gruppenIndices = value.map((e) => e.index).toList();
+
+  settingsBox.put(
+    SettingValue.geburtstagsbenachrichtigungen.toString(),
+    gruppenIndices,
+  );
+}
+
+List<Stufe> getGeburtstagsbenachrichtigungenGruppen() {
+  final dynamicList =
+      settingsBox.get(SettingValue.geburtstagsbenachrichtigungen.toString()) ??
+      [
+        Stufe.BIBER.index,
+        Stufe.WOELFLING.index,
+        Stufe.JUNGPADFINDER.index,
+        Stufe.PFADFINDER.index,
+        Stufe.ROVER.index,
+        Stufe.LEITER.index,
+      ];
+  // Stelle sicher, dass dynamicList eine List<int> ist
+  final List<int> indices = List<int>.from(dynamicList);
+  return indices
+      .map((e) => Stufe.getStufeByOrder(e))
+      .whereType<Stufe>()
+      .toList();
 }

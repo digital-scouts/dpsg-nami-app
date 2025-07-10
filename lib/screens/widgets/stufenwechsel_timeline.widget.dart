@@ -29,10 +29,7 @@ class TimelinePainter extends CustomPainter {
   final Mitglied mitglied;
   final DateTime nextStufenwechsel;
 
-  TimelinePainter({
-    required this.mitglied,
-    required this.nextStufenwechsel,
-  });
+  TimelinePainter({required this.mitglied, required this.nextStufenwechsel});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -43,38 +40,47 @@ class TimelinePainter extends CustomPainter {
     }
 
     // Aktuelle Stufe
-    final DateTime stufeStart = mitglied.geburtsDatum
-        .add(Duration(days: 365 * getStufeMinAge(currentStufe)!));
-    final DateTime stufeEnd = mitglied.geburtsDatum
-        .add(Duration(days: 365 * getStufeMaxAge(currentStufe)!));
+    final DateTime stufeStart = mitglied.geburtsDatum.add(
+      Duration(days: 365 * getStufeMinAge(currentStufe)!),
+    );
+    final DateTime stufeEnd = mitglied.geburtsDatum.add(
+      Duration(days: 365 * getStufeMaxAge(currentStufe)!),
+    );
 
     // Vorherige Stufe
-    final Stufe? prevStufe =
-        Stufe.getStufeByOrder(mitglied.currentStufe.index - 1);
+    final Stufe? prevStufe = Stufe.getStufeByOrder(
+      mitglied.currentStufe.index - 1,
+    );
     double? prevStufeEndPos;
     if (prevStufe != null) {
-      DateTime prevStufeEnd = mitglied.geburtsDatum
-          .add(Duration(days: 365 * getStufeMaxAge(prevStufe)!));
-      prevStufeEndPos = (prevStufeEnd.difference(stufeStart).inDays /
+      DateTime prevStufeEnd = mitglied.geburtsDatum.add(
+        Duration(days: 365 * getStufeMaxAge(prevStufe)!),
+      );
+      prevStufeEndPos =
+          (prevStufeEnd.difference(stufeStart).inDays /
               stufeEnd.difference(stufeStart).inDays) *
           size.width;
     }
 
     // Nächste Stufe
-    final Stufe? nextStufe =
-        Stufe.getStufeByOrder(mitglied.currentStufe.index + 1);
+    final Stufe? nextStufe = Stufe.getStufeByOrder(
+      mitglied.currentStufe.index + 1,
+    );
     double? nextStufeStartPos;
     if (nextStufe != null && nextStufe.isStufeYouCanChangeTo) {
-      DateTime nextStufeStart = mitglied.geburtsDatum
-          .add(Duration(days: 365 * getStufeMinAge(nextStufe)!));
-      nextStufeStartPos = (nextStufeStart.difference(stufeStart).inDays /
+      DateTime nextStufeStart = mitglied.geburtsDatum.add(
+        Duration(days: 365 * getStufeMinAge(nextStufe)!),
+      );
+      nextStufeStartPos =
+          (nextStufeStart.difference(stufeStart).inDays /
               stufeEnd.difference(stufeStart).inDays) *
           size.width;
     }
 
     double timelineStartPos = 0;
     double timelineEndPos = size.width;
-    double todayPos = (DateTime.now().difference(stufeStart).inDays /
+    double todayPos =
+        (DateTime.now().difference(stufeStart).inDays /
             stufeEnd.difference(stufeStart).inDays) *
         size.width;
 
@@ -82,29 +88,55 @@ class TimelinePainter extends CustomPainter {
 
     // Draw timeline
     if (prevStufeEndPos != null) {
-      drawOtherStufeLine(canvas, size, timelineStartPos, prevStufeEndPos,
-          prevStufe!.farbe, currentStufe.farbe);
+      drawOtherStufeLine(
+        canvas,
+        size,
+        timelineStartPos,
+        prevStufeEndPos,
+        prevStufe!.farbe,
+        currentStufe.farbe,
+      );
     }
 
     if (nextStufeStartPos != null) {
-      drawOtherStufeLine(canvas, size, nextStufeStartPos, timelineEndPos,
-          nextStufe!.farbe, currentStufe.farbe);
+      drawOtherStufeLine(
+        canvas,
+        size,
+        nextStufeStartPos,
+        timelineEndPos,
+        nextStufe!.farbe,
+        currentStufe.farbe,
+      );
     }
 
     drawArrow(canvas, size, todayPos);
   }
 
   static void drawLine(
-      Canvas canvas, Size size, double start, double end, Color color) {
+    Canvas canvas,
+    Size size,
+    double start,
+    double end,
+    Color color,
+  ) {
     Paint paint = Paint()
       ..color = color
       ..strokeWidth = 7;
     canvas.drawLine(
-        Offset(start, size.height / 2), Offset(end, size.height / 2), paint);
+      Offset(start, size.height / 2),
+      Offset(end, size.height / 2),
+      paint,
+    );
   }
 
-  static void drawOtherStufeLine(Canvas canvas, Size size, double start,
-      double end, Color color1, Color color2) {
+  static void drawOtherStufeLine(
+    Canvas canvas,
+    Size size,
+    double start,
+    double end,
+    Color color1,
+    Color color2,
+  ) {
     const double strokeWidth = 7;
     const double yOffset = 1.5;
 
@@ -145,31 +177,49 @@ class TimelinePainter extends CustomPainter {
       const double xOffset = -8;
       final double triangleCenterX = size.width;
       // Pfeil zeigt nach rechts
-      path.moveTo(triangleCenterX + xOffset - triangleHeight / 2,
-          triangleCenterY - triangleHeight / 2); // left
+      path.moveTo(
+        triangleCenterX + xOffset - triangleHeight / 2,
+        triangleCenterY - triangleHeight / 2,
+      ); // left
       path.lineTo(
-          triangleCenterX + xOffset + triangleHeight, triangleCenterY); // right
-      path.lineTo(triangleCenterX + xOffset - triangleHeight / 2,
-          triangleCenterY + triangleHeight / 2); // bottom
+        triangleCenterX + xOffset + triangleHeight,
+        triangleCenterY,
+      ); // right
+      path.lineTo(
+        triangleCenterX + xOffset - triangleHeight / 2,
+        triangleCenterY + triangleHeight / 2,
+      ); // bottom
     } else if (todayPos < 0) {
       const double xOffset = 8;
       const double triangleCenterX = 0;
       // Pfeil zeigt nach links
-      path.moveTo(triangleCenterX + xOffset + triangleHeight / 2,
-          triangleCenterY - triangleHeight / 2); // right
+      path.moveTo(
+        triangleCenterX + xOffset + triangleHeight / 2,
+        triangleCenterY - triangleHeight / 2,
+      ); // right
       path.lineTo(
-          triangleCenterX + xOffset - triangleHeight, triangleCenterY); // left
-      path.lineTo(triangleCenterX + xOffset + triangleHeight / 2,
-          triangleCenterY + triangleHeight / 2); // bottom
+        triangleCenterX + xOffset - triangleHeight,
+        triangleCenterY,
+      ); // left
+      path.lineTo(
+        triangleCenterX + xOffset + triangleHeight / 2,
+        triangleCenterY + triangleHeight / 2,
+      ); // bottom
     } else {
       final double triangleCenterX = todayPos;
       // Pfeil zeigt nach unten
       path.moveTo(
-          triangleCenterX, triangleCenterY + triangleHeight / 3); // bottom
-      path.lineTo(triangleCenterX - triangleHeight / 2,
-          triangleCenterY - triangleHeight); // top left
-      path.lineTo(triangleCenterX + triangleHeight / 2,
-          triangleCenterY - triangleHeight); // top right
+        triangleCenterX,
+        triangleCenterY + triangleHeight / 3,
+      ); // bottom
+      path.lineTo(
+        triangleCenterX - triangleHeight / 2,
+        triangleCenterY - triangleHeight,
+      ); // top left
+      path.lineTo(
+        triangleCenterX + triangleHeight / 2,
+        triangleCenterY - triangleHeight,
+      ); // top right
     }
     path.close();
 

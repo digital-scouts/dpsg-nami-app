@@ -8,13 +8,23 @@ echo "Running post clone script"
 cd $CI_PRIMARY_REPOSITORY_PATH # change working directory to the root of your cloned repo.
 
 # Install Flutter using curl.
-curl -sLO "https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_3.29.0-stable.zip"
-unzip -qq flutter_macos_3.29.0-stable.zip -d $HOME
+echo "Downloading Flutter 3.32.5..."
+curl -sLO "https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_3.32.5-stable.zip"
+echo "Extracting Flutter..."
+unzip -qq flutter_macos_3.32.5-stable.zip -d $HOME
 export PATH="$PATH:$HOME/flutter/bin"
+
+# Verify Flutter installation
+echo "Flutter version:"
+flutter --version
 
 # Install Flutter artifacts for iOS (--ios), or macOS (--macos) platforms.
 echo "Doing precache"
 flutter precache --ios
+
+# Check Flutter setup
+echo "Running flutter doctor"
+flutter doctor -v
 
 echo "Installing cocoa pods"
 # Install CocoaPods using Homebrew.
@@ -29,5 +39,9 @@ flutter pub get
 echo "executing pod install"
 # Install CocoaPods dependencies.
 cd ios && pod install # run `pod install` in the `ios` directory.
+
+# Cleanup downloaded Flutter archive
+echo "Cleaning up..."
+rm -f $CI_PRIMARY_REPOSITORY_PATH/flutter_macos_3.32.5-stable.zip
 
 exit 0

@@ -25,8 +25,9 @@ class MitgliedsListe extends StatefulWidget {
 
 class MitgliedsListeState extends State<MitgliedsListe> {
   Box<Mitglied> memberBox = Hive.box<Mitglied>('members');
-  List<Mitglied> mitglieder =
-      Hive.box<Mitglied>('members').values.toList().cast<Mitglied>();
+  List<Mitglied> mitglieder = Hive.box<Mitglied>(
+    'members',
+  ).values.toList().cast<Mitglied>();
 
   @override
   void initState() {
@@ -53,8 +54,9 @@ class MitgliedsListeState extends State<MitgliedsListe> {
             title: Center(child: Text('Mitglieder: ${mitglieder.length}')),
           );
         }
-        bool isFavourite =
-            getFavouriteList().contains(mitglieder[index].mitgliedsNummer);
+        bool isFavourite = getFavouriteList().contains(
+          mitglieder[index].mitgliedsNummer,
+        );
         return Dismissible(
           key: Key(mitglieder[index].mitgliedsNummer.toString()),
           direction: DismissDirection.endToStart,
@@ -78,60 +80,71 @@ class MitgliedsListeState extends State<MitgliedsListe> {
           child: Card(
             child: InkWell(
               onTap: () => {
-                Wiredash.trackEvent('Show Member Details',
-                    data: {'type': 'memberList'}),
+                Wiredash.trackEvent(
+                  'Show Member Details',
+                  data: {'type': 'memberList'},
+                ),
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                      builder: (context) =>
-                          MitgliedDetail(mitglied: mitglieder[index])),
-                )
+                    builder: (context) =>
+                        MitgliedDetail(mitglied: mitglieder[index]),
+                  ),
+                ),
               },
               child: ListTile(
                 leading: Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                        colors: [
-                          mitglieder[index].currentStufe.farbe,
-                          mitglieder[index].currentStufeWithoutLeiter.farbe
-                        ],
-                        begin: const FractionalOffset(0.0, 0.0),
-                        end: const FractionalOffset(0.0, 1.0),
-                        stops: const [0.5, 0.5],
-                        tileMode: TileMode.clamp),
+                      colors: [
+                        mitglieder[index].currentStufe.farbe,
+                        mitglieder[index].currentStufeWithoutLeiter.farbe,
+                      ],
+                      begin: const FractionalOffset(0.0, 0.0),
+                      end: const FractionalOffset(0.0, 1.0),
+                      stops: const [0.5, 0.5],
+                      tileMode: TileMode.clamp,
+                    ),
                   ),
                   width: 5,
                 ),
                 minLeadingWidth: 5,
-                title: Provider.of<MemberListSettingsHandler>(context)
-                            .filterOptions
-                            .sorting ==
+                title:
+                    Provider.of<MemberListSettingsHandler>(
+                          context,
+                        ).filterOptions.sorting ==
                         MemberSorting.lastname
                     ? Text(
-                        '${mitglieder[index].nachname}, ${mitglieder[index].vorname} ')
+                        '${mitglieder[index].nachname}, ${mitglieder[index].vorname} ',
+                      )
                     : Text(
-                        '${mitglieder[index].vorname} ${mitglieder[index].nachname}'),
-                subtitle: switch (
-                    Provider.of<MemberListSettingsHandler>(context)
-                        .filterOptions
-                        .subElement) {
-                  MemberSubElement.spitzname =>
-                    Text(mitglieder[index].spitzname ?? ''),
-                  MemberSubElement.id =>
-                    Text(mitglieder[index].mitgliedsNummer.toString()),
+                        '${mitglieder[index].vorname} ${mitglieder[index].nachname}',
+                      ),
+                subtitle: switch (Provider.of<MemberListSettingsHandler>(
+                  context,
+                ).filterOptions.subElement) {
+                  MemberSubElement.spitzname => Text(
+                    mitglieder[index].spitzname ?? '',
+                  ),
+                  MemberSubElement.id => Text(
+                    mitglieder[index].mitgliedsNummer.toString(),
+                  ),
                   MemberSubElement.birthday => Text(
-                      DateFormat('d. MMMM yyyy', 'de_DE')
-                          .format(mitglieder[index].geburtsDatum),
-                    )
+                    DateFormat(
+                      'd. MMMM yyyy',
+                      'de_DE',
+                    ).format(mitglieder[index].geburtsDatum),
+                  ),
                 },
                 trailing: Text(
-                    mitglieder[index].currentStufe == Stufe.KEINE_STUFE
-                        ? (mitglieder[index].getActiveTaetigkeiten().isNotEmpty
+                  mitglieder[index].currentStufe == Stufe.KEINE_STUFE
+                      ? (mitglieder[index].getActiveTaetigkeiten().isNotEmpty
                             ? mitglieder[index]
-                                .getActiveTaetigkeiten()
-                                .first
-                                .taetigkeit
+                                  .getActiveTaetigkeiten()
+                                  .first
+                                  .taetigkeit
                             : '')
-                        : mitglieder[index].currentStufe.display),
+                      : mitglieder[index].currentStufe.display,
+                ),
               ),
             ),
           ),
@@ -147,10 +160,9 @@ class MitgliedsListeState extends State<MitgliedsListe> {
   }
 
   Widget _buildFilterGroup(BuildContext context) {
-    Map<String, CustomGroup> gruppen =
-        Provider.of<MemberListSettingsHandler>(context)
-            .filterOptions
-            .filterGroup;
+    Map<String, CustomGroup> gruppen = Provider.of<MemberListSettingsHandler>(
+      context,
+    ).filterOptions.filterGroup;
 
     // Zeige keine Gruppe an, die keine Mitglieder haben
     Map<String, CustomGroup> customGruppen = {};
@@ -158,10 +170,12 @@ class MitgliedsListeState extends State<MitgliedsListe> {
     gruppen.forEach((key, value) {
       if (!value.static ||
           (value.stufe != null &&
-              mitglieder.any((mitglied) =>
-                  value.stufe == mitglied.currentStufeWithoutLeiter ||
-                  (value.stufe == Stufe.LEITER &&
-                      mitglied.isMitgliedLeiter())))) {
+              mitglieder.any(
+                (mitglied) =>
+                    value.stufe == mitglied.currentStufeWithoutLeiter ||
+                    (value.stufe == Stufe.LEITER &&
+                        mitglied.isMitgliedLeiter()),
+              ))) {
         customGruppen[key] = value;
       }
     });
@@ -189,23 +203,24 @@ class MitgliedsListeState extends State<MitgliedsListe> {
 
             return GestureDetector(
               onTap: () {
-                Provider.of<MemberListSettingsHandler>(context, listen: false)
-                    .updateFilterGroupActive(groupName, !group.active);
+                Provider.of<MemberListSettingsHandler>(
+                  context,
+                  listen: false,
+                ).updateFilterGroupActive(groupName, !group.active);
               },
               child: Container(
                 width: 50.0,
                 height: 50.0,
                 margin: const EdgeInsets.symmetric(
-                    horizontal: 4.0), // Abstand zwischen den Elementen
+                  horizontal: 4.0,
+                ), // Abstand zwischen den Elementen
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: group.active
                       ? Theme.of(context).colorScheme.primary
                       : Theme.of(context).colorScheme.secondaryContainer,
                 ),
-                child: Center(
-                  child: groupImage,
-                ),
+                child: Center(child: groupImage),
               ),
             );
           }).toList(),
@@ -219,12 +234,14 @@ class MitgliedsListeState extends State<MitgliedsListe> {
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
       child: FormBuilderTextField(
         name: 'search',
-        initialValue: Provider.of<MemberListSettingsHandler>(context)
-            .filterOptions
-            .searchString,
+        initialValue: Provider.of<MemberListSettingsHandler>(
+          context,
+        ).filterOptions.searchString,
         onChanged: (value) {
-          Provider.of<MemberListSettingsHandler>(context, listen: false)
-              .updateSearchString(value?.toString() ?? '');
+          Provider.of<MemberListSettingsHandler>(
+            context,
+            listen: false,
+          ).updateSearchString(value?.toString() ?? '');
         },
         enableSuggestions: false,
         autocorrect: false,
@@ -233,8 +250,10 @@ class MitgliedsListeState extends State<MitgliedsListe> {
           hintStyle: Theme.of(context).textTheme.bodySmall,
           filled: true,
           fillColor: Colors.white.withValues(alpha: 0.05),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 10,
+            vertical: 0,
+          ),
           border: const OutlineInputBorder(
             borderRadius: BorderRadius.all(Radius.circular(10)),
             borderSide: BorderSide.none,
@@ -265,8 +284,9 @@ class MitgliedsListeState extends State<MitgliedsListe> {
       context: context,
       builder: (BuildContext context) {
         return FilterDialog(
-            filterHandler: filterHandler,
-            maxTaetigkeiten: getUniqueTaetigkeiten(mitglieder));
+          filterHandler: filterHandler,
+          maxTaetigkeiten: getUniqueTaetigkeiten(mitglieder),
+        );
       },
     );
   }
@@ -274,9 +294,9 @@ class MitgliedsListeState extends State<MitgliedsListe> {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider<MemberListSettingsHandler>.value(
-        value: MemberListSettingsHandler(),
-        child: LayoutBuilder(
-            builder: (BuildContext context, BoxConstraints constraints) {
+      value: MemberListSettingsHandler(),
+      child: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
           return Scaffold(
             appBar: AppBar(
               title: const Center(child: Text("Mitglieder")),
@@ -291,13 +311,15 @@ class MitgliedsListeState extends State<MitgliedsListe> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => MitgliedBearbeiten()),
+                          builder: (context) => MitgliedBearbeiten(),
+                        ),
                       );
                     },
                   ),
                 IconButton(
-                    onPressed: () => filterDialog(context),
-                    icon: const Icon(Icons.tune)),
+                  onPressed: () => filterDialog(context),
+                  icon: const Icon(Icons.tune),
+                ),
               ],
             ),
             body: Column(
@@ -307,13 +329,17 @@ class MitgliedsListeState extends State<MitgliedsListe> {
                 _buildSearchBar(context),
                 Expanded(
                   child: _buildMemberList(
+                    context,
+                    Provider.of<MemberListSettingsHandler>(
                       context,
-                      Provider.of<MemberListSettingsHandler>(context)
-                          .applyFilterAndSort(mitglieder)),
+                    ).applyFilterAndSort(mitglieder),
+                  ),
                 ),
               ],
             ),
           );
-        }));
+        },
+      ),
+    );
   }
 }

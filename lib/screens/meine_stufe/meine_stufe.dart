@@ -54,11 +54,10 @@ class _MeineStufeState extends State<MeineStufe> {
             style: DefaultTextStyle.of(context).style,
             children: const [
               TextSpan(
-                  text:
-                      'Keine Mitglieder hinzugefügt. \nFüge Mitglieder in den Details \nüber '),
-              WidgetSpan(
-                child: Icon(Icons.bookmark_border, size: 20),
+                text:
+                    'Keine Mitglieder hinzugefügt. \nFüge Mitglieder in den Details \nüber ',
               ),
+              WidgetSpan(child: Icon(Icons.bookmark_border, size: 20)),
               TextSpan(text: ' hinzu.'),
             ],
           ),
@@ -89,43 +88,52 @@ class _MeineStufeState extends State<MeineStufe> {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(5), bottomLeft: Radius.circular(5)),
+            topLeft: Radius.circular(5),
+            bottomLeft: Radius.circular(5),
+          ),
           border: Border(left: BorderSide(color: color, width: 5.0)),
         ),
         child: Stack(
           children: [
             Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('${mitglied.vorname} ${mitglied.nachname}',
-                        overflow: TextOverflow.ellipsis),
-                    Row(
-                      children: [
-                        const Icon(Icons.cake, size: 12),
-                        const SizedBox(width: 5),
-                        Text(DateFormat('dd. MMM yyyy')
-                            .format(mitglied.geburtsDatum)),
-                      ],
-                    ),
-                    mitglied.isMitgliedLeiter() || taetigkeit == emptyTaetigkeit
-                        ? Container()
-                        : Text(
-                            '${currentStufeYearsDecimal % 1 == 0 ? currentStufeYearsDecimal.toInt() : currentStufeYearsDecimal.toStringAsFixed(1)} Jahre ${mitglied.currentStufe.shortDisplaySingular}')
-                  ],
-                )),
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${mitglied.vorname} ${mitglied.nachname}',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Row(
+                    children: [
+                      const Icon(Icons.cake, size: 12),
+                      const SizedBox(width: 5),
+                      Text(
+                        DateFormat(
+                          'dd. MMM yyyy',
+                        ).format(mitglied.geburtsDatum),
+                      ),
+                    ],
+                  ),
+                  mitglied.isMitgliedLeiter() || taetigkeit == emptyTaetigkeit
+                      ? Container()
+                      : Text(
+                          '${currentStufeYearsDecimal % 1 == 0 ? currentStufeYearsDecimal.toInt() : currentStufeYearsDecimal.toStringAsFixed(1)} Jahre ${mitglied.currentStufe.shortDisplaySingular}',
+                        ),
+                ],
+              ),
+            ),
             Positioned(
               bottom: -2,
               left: 0,
               right: 0,
               child:
                   mitglied.isMitgliedLeiter() || taetigkeit == emptyTaetigkeit
-                      ? Container()
-                      : TimelineWidget(
-                          mitglied: mitglied,
-                          nextStufenwechsel: getNextStufenwechselDatum(),
-                        ),
+                  ? Container()
+                  : TimelineWidget(
+                      mitglied: mitglied,
+                      nextStufenwechsel: getNextStufenwechselDatum(),
+                    ),
             ),
           ],
         ),
@@ -134,7 +142,9 @@ class _MeineStufeState extends State<MeineStufe> {
   }
 
   Widget _buildMitgliederList(
-      List<Mitglied> mitglieder, Map<int, Color> elementColors) {
+    List<Mitglied> mitglieder,
+    Map<int, Color> elementColors,
+  ) {
     return GridView.builder(
       padding: const EdgeInsets.all(10.0),
       itemCount: mitglieder.length,
@@ -146,29 +156,34 @@ class _MeineStufeState extends State<MeineStufe> {
       ),
       itemBuilder: (ctx, i) => InkWell(
         onTap: () {
-          Wiredash.trackEvent('Show Member Details',
-              data: {'type': 'meineStufe'});
+          Wiredash.trackEvent(
+            'Show Member Details',
+            data: {'type': 'meineStufe'},
+          );
           Navigator.of(context)
               .push(
                 MaterialPageRoute(
-                    builder: (context) =>
-                        MitgliedDetail(mitglied: mitglieder[i])),
+                  builder: (context) => MitgliedDetail(mitglied: mitglieder[i]),
+                ),
               )
-              .then((value) => {
-                    if (mitglieder.length != getFavouriteList().length)
-                      setState(() => loadMitglieder())
-                  });
+              .then(
+                (value) => {
+                  if (mitglieder.length != getFavouriteList().length)
+                    setState(() => loadMitglieder()),
+                },
+              );
         },
         child: _buildMitgliedElement(
-            mitglieder[i], elementColors[mitglieder[i].mitgliedsNummer]!),
+          mitglieder[i],
+          elementColors[mitglieder[i].mitgliedsNummer]!,
+        ),
       ),
     );
   }
 
   void loadMitglieder() {
     List<int> favouriteIds = getFavouriteList();
-    mitglieder = Hive.box<Mitglied>('members')
-        .values
+    mitglieder = Hive.box<Mitglied>('members').values
         .where((element) => favouriteIds.contains(element.mitgliedsNummer))
         .toList()
         .cast<Mitglied>();
@@ -176,7 +191,9 @@ class _MeineStufeState extends State<MeineStufe> {
     int index = 0;
     for (var mitglied in mitglieder) {
       elementColors.putIfAbsent(
-          mitglied.mitgliedsNummer, () => colors[index % colors.length]);
+        mitglied.mitgliedsNummer,
+        () => colors[index % colors.length],
+      );
       index++;
     }
   }
@@ -184,9 +201,7 @@ class _MeineStufeState extends State<MeineStufe> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Center(child: Text('Meine Stufe')),
-      ),
+      appBar: AppBar(title: const Center(child: Text('Meine Stufe'))),
       body: Column(
         children: [
           mitglieder.isEmpty

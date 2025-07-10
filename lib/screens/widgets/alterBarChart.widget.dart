@@ -76,12 +76,7 @@ class AlterBarChartWidgetState extends State<AlterBarChartWidget> {
         BarChartGroupData(
           x: age,
           barsSpace: barsSpace,
-          barRods: [
-            BarChartRodData(
-              toY: total,
-              rodStackItems: stackItems,
-            ),
-          ],
+          barRods: [BarChartRodData(toY: total, rodStackItems: stackItems)],
         ),
       );
     });
@@ -91,86 +86,80 @@ class AlterBarChartWidgetState extends State<AlterBarChartWidget> {
 
   @override
   Widget build(BuildContext context) {
-    const emptySideTile = AxisTitles(
-      sideTitles: SideTitles(showTitles: false),
-    );
+    const emptySideTile = AxisTitles(sideTitles: SideTitles(showTitles: false));
     return AspectRatio(
       aspectRatio: 8 / 7,
       child: Padding(
         padding: const EdgeInsets.only(top: 16),
-        child: LayoutBuilder(builder: (context, constraints) {
-          final barsSpace = 4.0 * constraints.maxWidth / 400;
-          final barsWidth = 8.0 * constraints.maxWidth / 400;
-          final (data, minAge, maxAge) = createDateForAltersChart(
-            widget.mitglieder,
-            barsWidth,
-            barsSpace,
-          );
-          return BarChart(
-            BarChartData(
-              titlesData: FlTitlesData(
-                show: true,
-                bottomTitles: AxisTitles(
-                  axisNameWidget: const Text("Alter"),
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    getTitlesWidget: (value, meta) {
-                      String display;
-                      if (value % 2 == 0 ||
-                          value == minAge ||
-                          value == maxAge) {
-                        display = value.toInt().toString();
-                      } else {
-                        display = '';
-                      }
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final barsSpace = 4.0 * constraints.maxWidth / 400;
+            final barsWidth = 8.0 * constraints.maxWidth / 400;
+            final (data, minAge, maxAge) = createDateForAltersChart(
+              widget.mitglieder,
+              barsWidth,
+              barsSpace,
+            );
+            return BarChart(
+              BarChartData(
+                titlesData: FlTitlesData(
+                  show: true,
+                  bottomTitles: AxisTitles(
+                    axisNameWidget: const Text("Alter"),
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        String display;
+                        if (value % 2 == 0 ||
+                            value == minAge ||
+                            value == maxAge) {
+                          display = value.toInt().toString();
+                        } else {
+                          display = '';
+                        }
 
-                      return SideTitleWidget(
-                        meta: meta,
-                        child: Text(
-                          display,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      );
-                    },
+                        return SideTitleWidget(
+                          meta: meta,
+                          child: Text(
+                            display,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  leftTitles: const AxisTitles(
+                    axisNameWidget: Text("Anzahl"),
+                    sideTitles: SideTitles(showTitles: true),
+                  ),
+                  topTitles: emptySideTile,
+                  rightTitles: emptySideTile,
+                ),
+                barTouchData: BarTouchData(
+                  touchTooltipData: BarTouchTooltipData(
+                    getTooltipItem:
+                        (
+                          BarChartGroupData group,
+                          int groupIndex,
+                          BarChartRodData rod,
+                          int rodIndex,
+                        ) {
+                          final count = (rod.toY - rod.fromY).round();
+                          return BarTooltipItem("$count", const TextStyle());
+                        },
                   ),
                 ),
-                leftTitles: const AxisTitles(
-                  axisNameWidget: Text("Anzahl"),
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                  ),
+                borderData: FlBorderData(show: false),
+                gridData: const FlGridData(
+                  drawHorizontalLine: true,
+                  drawVerticalLine: false,
                 ),
-                topTitles: emptySideTile,
-                rightTitles: emptySideTile,
+                groupsSpace: barsSpace,
+                barGroups: data,
               ),
-              barTouchData: BarTouchData(
-                touchTooltipData: BarTouchTooltipData(
-                  getTooltipItem: (
-                    BarChartGroupData group,
-                    int groupIndex,
-                    BarChartRodData rod,
-                    int rodIndex,
-                  ) {
-                    final count = (rod.toY - rod.fromY).round();
-                    return BarTooltipItem(
-                      "$count",
-                      const TextStyle(),
-                    );
-                  },
-                ),
-              ),
-              borderData: FlBorderData(
-                show: false,
-              ),
-              gridData: const FlGridData(
-                drawHorizontalLine: true,
-                drawVerticalLine: false,
-              ),
-              groupsSpace: barsSpace,
-              barGroups: data,
-            ),
-          );
-        }),
+            );
+          },
+        ),
       ),
     );
   }

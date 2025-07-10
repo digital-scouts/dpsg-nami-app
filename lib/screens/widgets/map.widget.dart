@@ -33,8 +33,10 @@ class MapWidgetState extends State<MapWidget> {
   @override
   void didUpdateWidget(MapWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!const DeepCollectionEquality()
-        .equals(widget.members, oldWidget.members)) {
+    if (!const DeepCollectionEquality().equals(
+      widget.members,
+      oldWidget.members,
+    )) {
       // Create new map controller, because new [MapWidget] gets created in [build]
       mapController = MapController();
       _addressLocation = _getAddressLocation();
@@ -42,14 +44,14 @@ class MapWidgetState extends State<MapWidget> {
   }
 
   Future<({LatLng? stammheim, Map<int, LatLng> members})>
-      _getAddressLocation() async {
+  _getAddressLocation() async {
     final stammheim = getStammheim();
     LatLng? stammheimLocation;
     if (stammheim != null) {
       try {
         final res = await locationFromAddress(stammheim);
         stammheimLocation = LatLng(res.first.latitude, res.first.longitude);
-      } on NoResultFoundException catch (_, __) {}
+      } on NoResultFoundException catch (_) {}
     }
     Map<int, LatLng> members = {};
     for (Mitglied member in widget.members) {
@@ -71,11 +73,13 @@ class MapWidgetState extends State<MapWidget> {
         .latitude;
     double minLng = markers
         .reduce(
-            (val, marker) => val.longitude < marker.longitude ? val : marker)
+          (val, marker) => val.longitude < marker.longitude ? val : marker,
+        )
         .longitude;
     double maxLng = markers
         .reduce(
-            (val, marker) => val.longitude > marker.longitude ? val : marker)
+          (val, marker) => val.longitude > marker.longitude ? val : marker,
+        )
         .longitude;
 
     LatLngBounds bounds = LatLngBounds(
@@ -92,9 +96,7 @@ class MapWidgetState extends State<MapWidget> {
     }
 
     if (homeLocation == null && addressLocations.isEmpty) {
-      return const Center(
-        child: Text('Keine Adresse gefunden'),
-      );
+      return const Center(child: Text('Keine Adresse gefunden'));
     }
     final bounds = _getMapBounds(markers);
     return Card(
@@ -118,7 +120,8 @@ class MapWidgetState extends State<MapWidget> {
                     padding: const EdgeInsets.all(32),
                   ),
                   interactionOptions: const InteractionOptions(
-                      flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag),
+                    flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag,
+                  ),
                 ),
                 children: [
                   TileLayer(
@@ -128,7 +131,7 @@ class MapWidgetState extends State<MapWidget> {
                     tileProvider: isMapTileCachingEnabled()
                         ? FMTCTileProvider(
                             stores: const {
-                              'mapStore': BrowseStoreStrategy.readUpdateCreate
+                              'mapStore': BrowseStoreStrategy.readUpdateCreate,
                             },
                           )
                         : null,
@@ -140,14 +143,12 @@ class MapWidgetState extends State<MapWidget> {
                           width: 20.0,
                           height: 20.0,
                           point: homeLocation, // Position für den Marker
-                          child: const Icon(
-                            Icons.home,
-                            color: Colors.black,
-                          ),
+                          child: const Icon(Icons.home, color: Colors.black),
                         ),
                       ...addressLocations.entries.map((entry) {
                         Mitglied member = widget.members.firstWhere(
-                            (element) => element.mitgliedsNummer == entry.key);
+                          (element) => element.mitgliedsNummer == entry.key,
+                        );
                         return Marker(
                           width: 25.0,
                           height: 25.0,
@@ -157,8 +158,9 @@ class MapWidgetState extends State<MapWidget> {
                             message: '${member.vorname} ${member.nachname}',
                             child: Icon(
                               Icons.person_pin_circle,
-                              color: widget
-                                      .elementColors?[member.mitgliedsNummer] ??
+                              color:
+                                  widget.elementColors?[member
+                                      .mitgliedsNummer] ??
                                   Colors.red,
                             ),
                           ),
@@ -179,8 +181,10 @@ class MapWidgetState extends State<MapWidget> {
                         },
                         child: const Padding(
                           padding: EdgeInsets.all(3),
-                          child: Text('© OpenStreetMap',
-                              style: TextStyle(fontSize: 10)),
+                          child: Text(
+                            '© OpenStreetMap',
+                            style: TextStyle(fontSize: 10),
+                          ),
                         ),
                       ),
                     ),
@@ -194,7 +198,7 @@ class MapWidgetState extends State<MapWidget> {
                         });
                       },
                       icon: Icon(_isExpanded ? Icons.compress : Icons.expand),
-                    )
+                    ),
                 ],
               ),
             ),
@@ -217,7 +221,8 @@ class MapWidgetState extends State<MapWidget> {
     double lngDiffRad = endLngRad - startLngRad;
 
     // Haversine-Formel zur Berechnung der Entfernung
-    double a = pow(sin(latDiffRad / 2), 2) +
+    double a =
+        pow(sin(latDiffRad / 2), 2) +
         cos(startLatRad) * cos(endLatRad) * pow(sin(lngDiffRad / 2), 2);
     double c = 2 * atan2(sqrt(a), sqrt(1 - a));
 
@@ -244,13 +249,9 @@ class MapWidgetState extends State<MapWidget> {
       future: _addressLocation,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
+          return const Center(child: CircularProgressIndicator());
         } else if (snapshot.hasError) {
-          return const Center(
-            child: Text('Fehler beim Laden der Adressen'),
-          );
+          return const Center(child: Text('Fehler beim Laden der Adressen'));
         } else {
           final (:stammheim, :members) = snapshot.data!;
           return Column(
@@ -262,8 +263,12 @@ class MapWidgetState extends State<MapWidget> {
                 ListTile(
                   leading: const Icon(Icons.social_distance),
                   title: Text(
-                    formatDistance(calculateDistance(
-                        members.values.toList().first, stammheim)),
+                    formatDistance(
+                      calculateDistance(
+                        members.values.toList().first,
+                        stammheim,
+                      ),
+                    ),
                   ),
                   subtitle: const Text("Entfernung"),
                 ),

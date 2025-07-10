@@ -34,8 +34,9 @@ class _KnowledgeChat extends State<KnowledgeChat> {
 
   void _initHive() {
     _messagesBox = Hive.box("ai_chat_messages");
-    List<Map<String, String>> messages =
-        _messagesBox.values.map((e) => Map<String, String>.from(e)).toList();
+    List<Map<String, String>> messages = _messagesBox.values
+        .map((e) => Map<String, String>.from(e))
+        .toList();
     setState(() {
       _messages.addAll(messages);
     });
@@ -64,18 +65,19 @@ class _KnowledgeChat extends State<KnowledgeChat> {
       'choices': [
         {
           'message': {'content': relevantText.join('\n')},
-        }
+        },
       ],
-      'usage': {'total_tokens': 0}
+      'usage': {'total_tokens': 0},
     };
     result = fakeResult; // Fake-Antwort
 
     setState(() {
       final assistantMessage = {
         "role": "assistant",
-        "content": utf8.decode(utf8.encode(
-            result["choices"][0]["message"]["content"])), // UTF-8 Codierung
-        "tokens": result["usage"]["total_tokens"].toString()
+        "content": utf8.decode(
+          utf8.encode(result["choices"][0]["message"]["content"]),
+        ), // UTF-8 Codierung
+        "tokens": result["usage"]["total_tokens"].toString(),
       };
       _messages.add(assistantMessage);
       _totalTokensUsed += result["usage"]["total_tokens"] as int;
@@ -132,8 +134,10 @@ class _KnowledgeChat extends State<KnowledgeChat> {
                           if (message.containsKey("tokens"))
                             Text(
                               "Tokens: ${message["tokens"]}",
-                              style:
-                                  TextStyle(color: Colors.grey, fontSize: 10),
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 10,
+                              ),
                             ),
                         ],
                       ),
@@ -159,8 +163,12 @@ class _KnowledgeChat extends State<KnowledgeChat> {
               ),
             ),
           Padding(
-            padding:
-                const EdgeInsets.only(top: 8, left: 8, right: 8, bottom: 40),
+            padding: const EdgeInsets.only(
+              top: 8,
+              left: 8,
+              right: 8,
+              bottom: 40,
+            ),
             child: Row(
               children: [
                 Expanded(

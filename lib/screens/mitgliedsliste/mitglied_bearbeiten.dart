@@ -63,12 +63,13 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
           'geschlecht': widget.mitglied!.geschlechtId.toString(),
           'staatsangehoerigkeit':
               widget.mitglied?.staatssangehaerigkeitId.toString() ??
-                  '1054', // default to deutsch
+              '1054', // default to deutsch
           'konfession': widget.mitglied?.konfessionId == 'null'
               ? ''
               : widget.mitglied?.konfessionId,
           'geburtstag': widget.mitglied!.geburtsDatum,
-          'beitragsart': widget.mitglied?.beitragsartId.toString() ??
+          'beitragsart':
+              widget.mitglied?.beitragsartId.toString() ??
               '4', // Voller Beitrag - Stiftungseuro - VERBANDSBEITRAG,
           'mitgliedszeitschrift': widget.mitglied?.mitgliedszeitschrift ?? true,
           'datenweiterverwendung': widget.mitglied!.datenweiterverwendung,
@@ -107,8 +108,9 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
     konfessionOptions = getMetaKonfessionOptions();
     ersteTaetigkeitOptions = getErsteTaetigkeitOptions();
     try {
-      ersteUntergliederungOptions =
-          await getErsteUntergliederungMeta('1'); //€ Mitglied
+      ersteUntergliederungOptions = await getErsteUntergliederungMeta(
+        '1',
+      ); //€ Mitglied
     } on SessionExpiredException catch (_) {
       if (!await AppStateHandler().setReloginState()) {
         // ignore: use_build_context_synchronously
@@ -124,25 +126,27 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-          title: const Text('Warnung!'),
-          content: const Text(
-              'Die eingegebenen Daten gehen beim Verlassen verloren. Möchtest du die Seite wirklich verlassen?'),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Nein, weiter bearbeiten.'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                setState(() {
-                  canPop = true;
-                });
-                Navigator.of(context).pop();
-              },
-              child: const Text('Ja, verlassen.'),
-            )
-          ]),
+        title: const Text('Warnung!'),
+        content: const Text(
+          'Die eingegebenen Daten gehen beim Verlassen verloren. Möchtest du die Seite wirklich verlassen?',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Nein, weiter bearbeiten.'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              setState(() {
+                canPop = true;
+              });
+              Navigator.of(context).pop();
+            },
+            child: const Text('Ja, verlassen.'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -160,7 +164,7 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
           _formKey.currentState!.patchValue({
             'ort': _plzResult[0].city,
             'bundesland': _plzResult[0].state,
-            'land': _plzResult[0].country
+            'land': _plzResult[0].country,
           });
         });
       }
@@ -172,19 +176,22 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
       vorname: _formKey.currentState!.fields['vorname']!.value,
       nachname: _formKey.currentState!.fields['nachname']!.value,
       geschlechtId: int.parse(
-          _formKey.currentState!.fields['geschlecht']!.value.toString()),
-      staatsangehoerigkeitId: int.parse(_formKey
-          .currentState!.fields['staatsangehoerigkeit']!.value
-          .toString()),
+        _formKey.currentState!.fields['geschlecht']!.value.toString(),
+      ),
+      staatsangehoerigkeitId: int.parse(
+        _formKey.currentState!.fields['staatsangehoerigkeit']!.value.toString(),
+      ),
       konfessionId:
           _formKey.currentState!.fields['konfession']!.value.isNotEmpty
-              ? int.parse(_formKey.currentState!.fields['konfession']!.value)
-              : null,
+          ? int.parse(_formKey.currentState!.fields['konfession']!.value)
+          : null,
       geburtsDatum: _formKey.currentState!.fields['geburtstag']!.value,
-      eintrittsdatum: widget.mitglied?.eintrittsdatum ??
+      eintrittsdatum:
+          widget.mitglied?.eintrittsdatum ??
           _formKey.currentState!.fields['eintrittsdatum']!.value,
       beitragsartId: int.parse(
-          _formKey.currentState!.fields['beitragsart']!.value.toString()),
+        _formKey.currentState!.fields['beitragsart']!.value.toString(),
+      ),
       zeitschriftenversand:
           _formKey.currentState!.fields['mitgliedszeitschrift']!.value,
       wiederverwendenFlag:
@@ -192,14 +199,24 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
       strasse: _formKey.currentState!.fields['street']!.value,
       plz: _formKey.currentState!.fields['plz']!.value,
       ort: _formKey.currentState!.fields['ort']!.value,
-      regionId: int.parse(regionOptions.entries
-          .firstWhere((element) => element.value
-              .contains(_formKey.currentState!.fields['bundesland']!.value))
-          .key),
-      landId: int.parse(landOptions.entries
-          .firstWhere((element) => element.value
-              .contains(_formKey.currentState!.fields['land']!.value))
-          .key),
+      regionId: int.parse(
+        regionOptions.entries
+            .firstWhere(
+              (element) => element.value.contains(
+                _formKey.currentState!.fields['bundesland']!.value,
+              ),
+            )
+            .key,
+      ),
+      landId: int.parse(
+        landOptions.entries
+            .firstWhere(
+              (element) => element.value.contains(
+                _formKey.currentState!.fields['land']!.value,
+              ),
+            )
+            .key,
+      ),
       telefon1: _formKey.currentState!.fields['festnetznummer']!.value,
       telefon2: _formKey.currentState!.fields['mobilfunknummer']!.value,
       telefon3: _formKey.currentState!.fields['geschaeftlich']!.value,
@@ -215,10 +232,14 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
     }
 
     if (widget.mitglied == null) {
-      model.ersteTaetigkeitId =
-          _formKey.currentState!.fields['taetigkeit']!.value.toString();
-      model.ersteUntergliederungId =
-          int.parse(_formKey.currentState!.fields['group']!.value.toString());
+      model.ersteTaetigkeitId = _formKey
+          .currentState!
+          .fields['taetigkeit']!
+          .value
+          .toString();
+      model.ersteUntergliederungId = int.parse(
+        _formKey.currentState!.fields['group']!.value.toString(),
+      );
       model.mglTypeId = mitgliedstypOptions.entries
           .firstWhere((element) => element.value == 'Mitglied')
           .key;
@@ -288,8 +309,9 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                       name: 'staatsangehoerigkeit',
                       initialValue: '1054', // default to deutsch
                       validator: FormBuilderValidators.required(),
-                      decoration:
-                          _buildActiveInputDecoration('Staatsangehörigkeit *'),
+                      decoration: _buildActiveInputDecoration(
+                        'Staatsangehörigkeit *',
+                      ),
                       items: staatsangehoerigkeitOptions.entries.map((entry) {
                         return DropdownMenuItem<String>(
                           value: entry.key,
@@ -342,9 +364,7 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                           if (newValue != null) {
                             ersteUntergliederungOptions =
                                 await getErsteUntergliederungMeta(newValue);
-                            _formKey.currentState!.patchValue({
-                              'group': '',
-                            });
+                            _formKey.currentState!.patchValue({'group': ''});
                             setState(() {
                               ersteUntergliederungOptions =
                                   ersteUntergliederungOptions;
@@ -360,8 +380,9 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                         name: 'group',
                         validator: FormBuilderValidators.required(),
                         enabled: ersteUntergliederungOptions.isNotEmpty,
-                        decoration:
-                            _buildActiveInputDecoration('Stufe/Abteilung *'),
+                        decoration: _buildActiveInputDecoration(
+                          'Stufe/Abteilung *',
+                        ),
                         items: ersteUntergliederungOptions.entries.map((entry) {
                           return DropdownMenuItem<String>(
                             value: entry.key,
@@ -385,8 +406,9 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                             widget.mitglied?.eintrittsdatum ?? DateTime.now(),
                         validator: FormBuilderValidators.required(),
                         format: DateFormat('dd.MM.yyyy'),
-                        decoration:
-                            _buildActiveInputDecoration('Eintrittsdatum *'),
+                        decoration: _buildActiveInputDecoration(
+                          'Eintrittsdatum *',
+                        ),
                       ),
                     ),
                   const Align(
@@ -415,7 +437,8 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                     name: 'mitgliedszeitschrift',
                     initialValue: true,
                     title: const Text(
-                        "Ich möchte die Mitgliederzeitschrift zugeschickt bekommen."),
+                      "Ich möchte die Mitgliederzeitschrift zugeschickt bekommen.",
+                    ),
                     onChanged: (newValue) {},
                     controlAffinity: ListTileControlAffinity.leading,
                   ),
@@ -423,7 +446,8 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                     name: 'datenweiterverwendung',
                     initialValue: false,
                     title: const Text(
-                        "Nach der Beendigung der Mitgliedschaft dürfen die Daten weiter genutzt werden."),
+                      "Nach der Beendigung der Mitgliedschaft dürfen die Daten weiter genutzt werden.",
+                    ),
                     onChanged: (newValue) {},
                     controlAffinity: ListTileControlAffinity.leading,
                   ),
@@ -436,56 +460,62 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                       child: Autocomplete<String>(
                         optionsBuilder:
                             (TextEditingValue textEditingValue) async {
-                          // skip when searing for same string again
-                          if (_adressAutocompleteSearchString ==
-                              textEditingValue.text) {
-                            return _adressAutocompleteAdressesResults
-                                .map((address) => address.formatted)
-                                .toList();
-                          }
-                          _adressAutocompleteSearchString =
-                              textEditingValue.text;
+                              // skip when searing for same string again
+                              if (_adressAutocompleteSearchString ==
+                                  textEditingValue.text) {
+                                return _adressAutocompleteAdressesResults
+                                    .map((address) => address.formatted)
+                                    .toList();
+                              }
+                              _adressAutocompleteSearchString =
+                                  textEditingValue.text;
 
-                          // return empty when string is too short
-                          if (_adressAutocompleteSearchString.length < 5) {
-                            _adressAutocompleteAdressesResults = [];
-                            return const Iterable<String>.empty();
-                          }
+                              // return empty when string is too short
+                              if (_adressAutocompleteSearchString.length < 5) {
+                                _adressAutocompleteAdressesResults = [];
+                                return const Iterable<String>.empty();
+                              }
 
-                          // debounce when typing
-                          if (_adressAutocompleteDebounce?.isActive ?? false) {
-                            _adressAutocompleteDebounce!.cancel();
-                          }
-                          Completer<Iterable<String>> completer =
-                              Completer<Iterable<String>>();
+                              // debounce when typing
+                              if (_adressAutocompleteDebounce?.isActive ??
+                                  false) {
+                                _adressAutocompleteDebounce!.cancel();
+                              }
+                              Completer<Iterable<String>> completer =
+                                  Completer<Iterable<String>>();
 
-                          _adressAutocompleteDebounce = Timer(
-                              const Duration(milliseconds: 500), () async {
-                            try {
-                              _adressAutocompleteAdressesResults =
-                                  await autocompleteGermanAdress(
-                                      textEditingValue.text);
-                              completer.complete(
-                                  _adressAutocompleteAdressesResults
-                                      .map((address) => address.formatted)
-                                      .toList());
-                            } catch (e) {
-                              debugPrint(e.toString());
-                              sensLog.e('Failed to autocomplete adress');
-                              sensLog.e(e.toString());
-                              setState(() {
-                                _adressAutocompleteActive = false;
-                              });
-                            }
-                          });
+                              _adressAutocompleteDebounce = Timer(
+                                const Duration(milliseconds: 500),
+                                () async {
+                                  try {
+                                    _adressAutocompleteAdressesResults =
+                                        await autocompleteGermanAdress(
+                                          textEditingValue.text,
+                                        );
+                                    completer.complete(
+                                      _adressAutocompleteAdressesResults
+                                          .map((address) => address.formatted)
+                                          .toList(),
+                                    );
+                                  } catch (e) {
+                                    debugPrint(e.toString());
+                                    sensLog.e('Failed to autocomplete adress');
+                                    sensLog.e(e.toString());
+                                    setState(() {
+                                      _adressAutocompleteActive = false;
+                                    });
+                                  }
+                                },
+                              );
 
-                          return completer.future;
-                        },
+                              return completer.future;
+                            },
                         onSelected: (String selection) async {
                           _adressAutocompleteSearchString = selection;
                           GeoapifyAdress adress =
                               _adressAutocompleteAdressesResults.firstWhere(
-                                  (element) => element.formatted == selection);
+                                (element) => element.formatted == selection,
+                              );
 
                           // Patch Werte im Formular
                           _formKey.currentState!.patchValue({
@@ -494,38 +524,47 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                             'plz': adress.postcode,
                             'ort': adress.city,
                             'bundesland': adress.state ?? adress.city,
-                            'land': adress.country
+                            'land': adress.country,
                           });
 
                           // State nach Patch aktualisieren, damit Werte im Widget sichtbar sind
                           setState(() {});
                         },
-                        fieldViewBuilder: (BuildContext context,
-                            TextEditingController textEditingController,
-                            FocusNode focusNode,
-                            VoidCallback onFieldSubmitted) {
-                          return TextFormField(
-                            enabled: _adressAutocompleteActive,
-                            controller: textEditingController,
-                            keyboardType: TextInputType.streetAddress,
-                            focusNode: focusNode,
-                            decoration: _buildActiveInputDecoration(
-                                'Vollständige deutsche Anschrift'),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Bitte geben Sie eine vollständige Adresse ein';
-                              }
-                              if (_formKey.currentState!.fields['street']!.value
-                                      .isNotEmpty &&
-                                  !_formKey
-                                      .currentState!.fields['street']!.value
-                                      .contains(RegExp(r'\d'))) {
-                                return 'Bitte geben Sie eine Hausnummer ein';
-                              }
-                              return null;
+                        fieldViewBuilder:
+                            (
+                              BuildContext context,
+                              TextEditingController textEditingController,
+                              FocusNode focusNode,
+                              VoidCallback onFieldSubmitted,
+                            ) {
+                              return TextFormField(
+                                enabled: _adressAutocompleteActive,
+                                controller: textEditingController,
+                                keyboardType: TextInputType.streetAddress,
+                                focusNode: focusNode,
+                                decoration: _buildActiveInputDecoration(
+                                  'Vollständige deutsche Anschrift',
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Bitte geben Sie eine vollständige Adresse ein';
+                                  }
+                                  if (_formKey
+                                          .currentState!
+                                          .fields['street']!
+                                          .value
+                                          .isNotEmpty &&
+                                      !_formKey
+                                          .currentState!
+                                          .fields['street']!
+                                          .value
+                                          .contains(RegExp(r'\d'))) {
+                                    return 'Bitte geben Sie eine Hausnummer ein';
+                                  }
+                                  return null;
+                                },
+                              );
                             },
-                          );
-                        },
                       ),
                     ),
                   if (_adressAutocompleteActive)
@@ -538,11 +577,13 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                                 _formKey.currentState!.fields['plz'] != null &&
                                 _formKey.currentState!.fields['ort'] != null
                             ? '${_formKey.currentState!.fields['street']?.value ?? ''}, '
-                                '${_formKey.currentState!.fields['plz']?.value ?? ''} '
-                                '${_formKey.currentState!.fields['ort']?.value ?? ''} '
+                                  '${_formKey.currentState!.fields['plz']?.value ?? ''} '
+                                  '${_formKey.currentState!.fields['ort']?.value ?? ''} '
                             : '',
                         style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w500),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   if (_adressAutocompleteActive &&
@@ -552,9 +593,10 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                       child: Text(
                         'Hausnummer fehlt',
                         style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.red),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.red,
+                        ),
                       ),
                     ),
                   Visibility(
@@ -568,15 +610,17 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                             name: 'street',
                             readOnly: true,
                             decoration: _buildDisabledInputDecoration(
-                                'Straße und Hausnummer'),
+                              'Straße und Hausnummer',
+                            ),
                           ),
                         ),
                         _twoColumnRow(
                           FormBuilderTextField(
                             name: 'plz',
                             readOnly: true,
-                            decoration:
-                                _buildDisabledInputDecoration('Postleitzahl'),
+                            decoration: _buildDisabledInputDecoration(
+                              'Postleitzahl',
+                            ),
                           ),
                           FormBuilderTextField(
                             name: 'ort',
@@ -588,8 +632,9 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                           FormBuilderTextField(
                             name: 'bundesland',
                             readOnly: true,
-                            decoration:
-                                _buildDisabledInputDecoration('Bundesland'),
+                            decoration: _buildDisabledInputDecoration(
+                              'Bundesland',
+                            ),
                           ),
                           FormBuilderTextField(
                             name: 'land',
@@ -609,8 +654,9 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                     FormBuilderTextField(
                       name: 'mobilfunknummer',
                       keyboardType: TextInputType.phone,
-                      decoration:
-                          _buildActiveInputDecoration('Mobilfunknummer'),
+                      decoration: _buildActiveInputDecoration(
+                        'Mobilfunknummer',
+                      ),
                     ),
                   ),
                   Padding(
@@ -618,8 +664,9 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                     child: FormBuilderTextField(
                       name: 'geschaeftlich',
                       keyboardType: TextInputType.phone,
-                      decoration:
-                          _buildActiveInputDecoration('Weitere Nummer(n)'),
+                      decoration: _buildActiveInputDecoration(
+                        'Weitere Nummer(n)',
+                      ),
                     ),
                   ),
                   Padding(
@@ -636,7 +683,8 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                       keyboardType: TextInputType.emailAddress,
                       name: 'email_sorgeberechtigter',
                       decoration: _buildActiveInputDecoration(
-                          'E-Mail Sorgeberechtigter'),
+                        'E-Mail Sorgeberechtigter',
+                      ),
                     ),
                   ),
                   const Align(
@@ -704,7 +752,8 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                               setState(() {
                                 _formKey.currentState!.patchValue({
                                   'kreditinstitut': filterKreditinstitutName(
-                                      _ibanResult!.name ?? ''),
+                                    _ibanResult!.name ?? '',
+                                  ),
                                   'bic': _ibanResult!.bic,
                                 });
                               });
@@ -738,8 +787,9 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                         name: 'kreditinstitut',
                         readOnly: true,
                         focusNode: AlwaysDisabledFocusNode(),
-                        decoration:
-                            _buildDisabledInputDecoration('Kreditinstitut'),
+                        decoration: _buildDisabledInputDecoration(
+                          'Kreditinstitut',
+                        ),
                       ),
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -752,15 +802,18 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                       ),
                     ),
 
-                  _buildSectionTitle(widget.mitglied == null
-                      ? 'Neues Mitglied anlegen'
-                      : 'Mitglied bearbeiten'),
+                  _buildSectionTitle(
+                    widget.mitglied == null
+                        ? 'Neues Mitglied anlegen'
+                        : 'Mitglied bearbeiten',
+                  ),
 
                   FormBuilderCheckbox(
                     name: 'betaInfoChecked',
                     validator: FormBuilderValidators.required(),
                     title: Text(
-                        "Ich habe zur Kenntnis genommen, dass beim ${widget.mitglied == null ? 'anlegen' : 'bearbeiten'} eines Mitglieds über die App Fehler auftreten können. Bitte prüfe die Daten nach dem ${widget.mitglied == null ? 'anlegen' : 'bearbeiten'}."),
+                      "Ich habe zur Kenntnis genommen, dass beim ${widget.mitglied == null ? 'anlegen' : 'bearbeiten'} eines Mitglieds über die App Fehler auftreten können. Bitte prüfe die Daten nach dem ${widget.mitglied == null ? 'anlegen' : 'bearbeiten'}.",
+                    ),
                     onChanged: (newValue) {},
                     controlAffinity: ListTileControlAffinity.leading,
                   ),
@@ -776,16 +829,16 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
                       onPressed: _submitInProgress ? null : submit,
                       child: _submitInProgress
                           ? const CircularProgressIndicator(
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
                             )
                           : Text(
-                              'Mitglied ${widget.mitglied == null ? 'anlegen' : 'bearbeiten'}'),
+                              'Mitglied ${widget.mitglied == null ? 'anlegen' : 'bearbeiten'}',
+                            ),
                     ),
                   ),
-                  const SizedBox(
-                    height: 10,
-                  )
+                  const SizedBox(height: 10),
                 ],
               ),
             ),
@@ -803,10 +856,13 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
       _submitInProgress = true;
     });
 
-    Wiredash.trackEvent('Mitglied bearbeiten', data: {
-      'type': 'submit button clicked',
-      'valid': _formKey.currentState!.isValid,
-    });
+    Wiredash.trackEvent(
+      'Mitglied bearbeiten',
+      data: {
+        'type': 'submit button clicked',
+        'valid': _formKey.currentState!.isValid,
+      },
+    );
 
     // invalid form
     if (!_formKey.currentState!.validate()) {
@@ -825,17 +881,20 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
         memberId = await editMember(formMitglied, scaffoldMessenger, navigator);
       } else {
         Wiredash.trackEvent('Mitglied bearbeiten', data: {'type': 'create'});
-        memberId =
-            await createNewMember(formMitglied, scaffoldMessenger, navigator);
+        memberId = await createNewMember(
+          formMitglied,
+          scaffoldMessenger,
+          navigator,
+        );
       }
     } catch (e) {
       sensLog.e('Failed to create/edit member');
       sensLog.e(e.toString());
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+      scaffoldMessenger.showSnackBar(SnackBar(content: Text('Error: $e')));
+      Wiredash.trackEvent(
+        'Mitglied bearbeiten',
+        data: {'type': 'edit/create', 'error': e.toString()},
       );
-      Wiredash.trackEvent('Mitglied bearbeiten',
-          data: {'type': 'edit/create', 'error': e.toString()});
       setState(() {
         _submitInProgress = false;
       });
@@ -848,11 +907,11 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
     } catch (e) {
       sensLog.e('Failed to update after successfull create/edit member');
       sensLog.e(e.toString());
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+      scaffoldMessenger.showSnackBar(SnackBar(content: Text('Error: $e')));
+      Wiredash.trackEvent(
+        'Mitglied bearbeiten',
+        data: {'type': 'update', 'error': e.toString()},
       );
-      Wiredash.trackEvent('Mitglied bearbeiten',
-          data: {'type': 'update', 'error': e.toString()});
     }
 
     navigator.pop();
@@ -869,16 +928,18 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
       scaffoldMessenger.showSnackBar(
         SnackBar(
           content: Text(
-              'Mitglied mit ID ${mitglied.id} erfolgreich ${widget.mitglied == null ? 'angelegt' : 'bearbeitet'}'),
+            'Mitglied mit ID ${mitglied.id} erfolgreich ${widget.mitglied == null ? 'angelegt' : 'bearbeitet'}',
+          ),
         ),
       );
     }
   }
 
   Future<int> editMember(
-      NamiMemberDetailsModel formMitglied,
-      ScaffoldMessengerState scaffoldMessenger,
-      NavigatorState navigator) async {
+    NamiMemberDetailsModel formMitglied,
+    ScaffoldMessengerState scaffoldMessenger,
+    NavigatorState navigator,
+  ) async {
     try {
       return await namiEditMember(formMitglied);
     } on MemberCreationException catch (_) {
@@ -888,9 +949,10 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
   }
 
   Future<int> createNewMember(
-      NamiMemberDetailsModel formMitglied,
-      ScaffoldMessengerState scaffoldMessenger,
-      NavigatorState navigator) async {
+    NamiMemberDetailsModel formMitglied,
+    ScaffoldMessengerState scaffoldMessenger,
+    NavigatorState navigator,
+  ) async {
     try {
       return await namiCreateMember(formMitglied);
     } on MemberCreationException catch (e) {
@@ -918,9 +980,7 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
           },
         );
       } else {
-        scaffoldMessenger.showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        scaffoldMessenger.showSnackBar(SnackBar(content: Text('Error: $e')));
       }
       rethrow;
     }
@@ -928,20 +988,22 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
 
   InputDecoration _buildDisabledInputDecoration(String labelText) {
     return InputDecoration(
-        labelText: labelText,
-        counterText: '',
-        fillColor: Theme.of(context).disabledColor,
-        filled: true,
-        border: const OutlineInputBorder());
+      labelText: labelText,
+      counterText: '',
+      fillColor: Theme.of(context).disabledColor,
+      filled: true,
+      border: const OutlineInputBorder(),
+    );
   }
 
   InputDecoration _buildActiveInputDecoration(String labelText) {
     return InputDecoration(
-        labelText: labelText,
-        hintText: ' ',
-        counterText: '',
-        alignLabelWithHint: true,
-        border: const OutlineInputBorder());
+      labelText: labelText,
+      hintText: ' ',
+      counterText: '',
+      alignLabelWithHint: true,
+      border: const OutlineInputBorder(),
+    );
   }
 
   Widget _buildSectionTitle(String title) {
@@ -959,14 +1021,15 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
 
   Widget _twoColumnRow(Widget child1, Widget child2) {
     return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4.0),
-        child: Row(
-          children: [
-            Expanded(flex: 5, child: child1),
-            const SizedBox(width: 8.0),
-            Expanded(flex: 5, child: child2),
-          ],
-        ));
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        children: [
+          Expanded(flex: 5, child: child1),
+          const SizedBox(width: 8.0),
+          Expanded(flex: 5, child: child2),
+        ],
+      ),
+    );
   }
 }
 
@@ -991,7 +1054,9 @@ class AlwaysDisabledFocusNode extends FocusNode {
 class UpperCaseTextFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue, TextEditingValue newValue) {
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
     return TextEditingValue(
       text: newValue.text.toUpperCase(),
       selection: newValue.selection,

@@ -40,8 +40,9 @@ class MitgliedAdapter extends TypeAdapter<Mitglied> {
       ..beitragsartId = (fields[22] as num).toInt()
       ..status = fields[23] as String
       ..taetigkeiten = (fields[24] as List).cast<Taetigkeit>()
-      ..ausbildungen =
-          fields[25] == null ? [] : (fields[25] as List).cast<Ausbildung>()
+      ..ausbildungen = fields[25] == null
+          ? []
+          : (fields[25] as List).cast<Ausbildung>()
       ..staatssangehaerigkeitId = (fields[26] as num).toInt()
       ..konfessionId = fields[27] as String?
       ..mitgliedszeitschrift = fields[28] as bool

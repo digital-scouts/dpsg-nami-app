@@ -30,8 +30,9 @@ class TaetigkeitAnlegenState extends State<TaetigkeitAnlegen> {
   Future<void> loadMetadata() async {
     ersteTaetigkeitOptions = getErsteTaetigkeitOptions();
     try {
-      ersteUntergliederungOptions =
-          await getErsteUntergliederungMeta('1'); //€ Mitglied
+      ersteUntergliederungOptions = await getErsteUntergliederungMeta(
+        '1',
+      ); //€ Mitglied
     } on SessionExpiredException catch (_) {
       // ignore: use_build_context_synchronously
       Navigator.of(context).pop(false);
@@ -58,9 +59,10 @@ class TaetigkeitAnlegenState extends State<TaetigkeitAnlegen> {
                 format: DateFormat('dd.MM.yyyy'),
                 validator: FormBuilderValidators.required(),
                 decoration: const InputDecoration(
-                    labelText: 'Beginn',
-                    alignLabelWithHint: true,
-                    border: OutlineInputBorder()),
+                  labelText: 'Beginn',
+                  alignLabelWithHint: true,
+                  border: OutlineInputBorder(),
+                ),
               ),
             ),
             Padding(
@@ -70,9 +72,10 @@ class TaetigkeitAnlegenState extends State<TaetigkeitAnlegen> {
                 validator: FormBuilderValidators.required(),
                 initialValue: '1', // € Mitglied
                 decoration: const InputDecoration(
-                    labelText: 'Tätigkeit',
-                    alignLabelWithHint: true,
-                    border: OutlineInputBorder()),
+                  labelText: 'Tätigkeit',
+                  alignLabelWithHint: true,
+                  border: OutlineInputBorder(),
+                ),
                 items: ersteTaetigkeitOptions.entries.map((entry) {
                   return DropdownMenuItem<String>(
                     value: entry.key,
@@ -83,8 +86,9 @@ class TaetigkeitAnlegenState extends State<TaetigkeitAnlegen> {
                   if (newValue != null) {
                     ersteUntergliederungOptions =
                         await getErsteUntergliederungMeta(newValue);
-                    caeaGroupOptions =
-                        await loadCaeaGroupAufTaetigkeit(newValue);
+                    caeaGroupOptions = await loadCaeaGroupAufTaetigkeit(
+                      newValue,
+                    );
                     _formKey.currentState!.patchValue({
                       'group': '',
                       'caeaGroup': '',
@@ -101,9 +105,10 @@ class TaetigkeitAnlegenState extends State<TaetigkeitAnlegen> {
                 validator: FormBuilderValidators.required(),
                 enabled: ersteUntergliederungOptions.isNotEmpty,
                 decoration: const InputDecoration(
-                    labelText: 'Stufe/Abteilung',
-                    alignLabelWithHint: true,
-                    border: OutlineInputBorder()),
+                  labelText: 'Stufe/Abteilung',
+                  alignLabelWithHint: true,
+                  border: OutlineInputBorder(),
+                ),
                 items: ersteUntergliederungOptions.entries.map((entry) {
                   return DropdownMenuItem<String>(
                     value: entry.key,
@@ -122,9 +127,10 @@ class TaetigkeitAnlegenState extends State<TaetigkeitAnlegen> {
                   name: 'caeaGroup',
                   enabled: caeaGroupOptions.isNotEmpty,
                   decoration: const InputDecoration(
-                      labelText: 'Rechte',
-                      alignLabelWithHint: true,
-                      border: OutlineInputBorder()),
+                    labelText: 'Rechte',
+                    alignLabelWithHint: true,
+                    border: OutlineInputBorder(),
+                  ),
                   items: caeaGroupOptions.entries.map((entry) {
                     return DropdownMenuItem<int>(
                       value: entry.key,

@@ -18,10 +18,13 @@ class _NamiChangeToggleState extends State<NamiChangeToggle> {
       title: const Text('Erlaube Datenänderungen durch den Nutzer'),
       leading: widget.showEditIcon ? const Icon(Icons.edit) : null,
       onTap: () {
-        Wiredash.trackEvent('Settings', data: {
-          'type': 'toggle nami changes',
-          'value': !getNamiChangesEnabled()
-        });
+        Wiredash.trackEvent(
+          'Settings',
+          data: {
+            'type': 'toggle nami changes',
+            'value': !getNamiChangesEnabled(),
+          },
+        );
         setNamiChangesEnabled(!getNamiChangesEnabled());
         setState(() {});
       },
