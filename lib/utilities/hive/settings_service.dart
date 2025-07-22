@@ -670,7 +670,7 @@ void setMetaData(
   ersteTaetigkeit,
 );
 
-Box get settingsBox => settingsService.settingsBox;
+Box get _settingsBox => settingsService.settingsBox;
 bool getWelcomeMessageShown() => settingsService.getWelcomeMessageShown();
 Map<String, String> getMetaGeschlechtOptions() =>
     settingsService.getMetaGeschlechtOptions();
