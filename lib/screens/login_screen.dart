@@ -31,6 +31,7 @@ class LoginScreenState extends State<LoginScreen> {
   String _password = '';
   bool _isPasswordVisible = false;
   bool _wrongCredentials = false;
+  bool _loginFailed = false;
   bool _loading = false;
 
   void wrongCredentials() {
@@ -39,18 +40,38 @@ class LoginScreenState extends State<LoginScreen> {
     });
   }
 
+  void loginFailed() {
+    setState(() {
+      _loginFailed = true;
+    });
+  }
+
   Future<void> loginButtonPressed() async {
     if (_loading) return;
     setState(() {
       _loading = true;
       _wrongCredentials = false;
+      _loginFailed = false;
     });
     final appStateHandler = context.read<AppStateHandler>();
     final differentUser = _mitgliedsnummer != getNamiLoginId();
     if (differentUser) {
       logout();
     }
-    if (await namiLoginWithPassword(_mitgliedsnummer, _password)) {
+
+    bool login = false;
+    try {
+      login = await namiLoginWithPassword(_mitgliedsnummer, _password);
+    } catch (e) {
+      sensLog.e('Login failed: $e');
+      loginFailed();
+      setState(() {
+        _loading = false;
+      });
+      return;
+    }
+
+    if (login) {
       setState(() {
         _loading = false;
       });
@@ -243,6 +264,18 @@ class LoginScreenState extends State<LoginScreen> {
           ),
         ),
       );
+    } else if (_loginFailed) {
+      return Center(
+        child: const Text(
+          'Es gab ein Problem beim Login. Bitte versuche es später erneut.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.red,
+            fontWeight: FontWeight.normal,
+            fontFamily: 'OpenSans',
+          ),
+        ),
+      );
     } else {
       return Container();
     }
@@ -265,13 +298,17 @@ class LoginScreenState extends State<LoginScreen> {
       width: double.infinity,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: _wrongCredentials ? Colors.red : Colors.white,
+          backgroundColor: _wrongCredentials || _loginFailed
+              ? Colors.red
+              : Colors.white,
         ),
         onPressed: loginButtonPressed,
         child: Text(
           'ANMELDEN',
           style: TextStyle(
-            color: _wrongCredentials ? Colors.white : const Color(0xFF527DAA),
+            color: _wrongCredentials || _loginFailed
+                ? Colors.white
+                : const Color(0xFF527DAA),
             letterSpacing: 1.5,
             fontSize: 18.0,
             fontWeight: FontWeight.bold,
