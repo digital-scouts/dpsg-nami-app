@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:nami/screens/widgets/alterBarChart.widget.dart';
 import 'package:nami/screens/widgets/groupBarChart.widget.dart';
+import 'package:nami/utilities/hive/hive_service.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 
 import '../widgets/stufenwechselInfo.widget.dart';
@@ -22,16 +22,25 @@ class StatistikScreen extends StatefulWidget {
 }
 
 class StatistikScreenState extends State<StatistikScreen> {
-  Box<Mitglied> memberBox = Hive.box<Mitglied>('members');
-  List<Mitglied> mitglieder = Hive.box<Mitglied>(
-    'members',
-  ).values.toList().cast<Mitglied>();
+  List<Mitglied> mitglieder = [];
   StatistikType selectedType = StatistikType.stufen;
+
   @override
   void initState() {
     super.initState();
-    memberBox.listenable().addListener(() {
-      mitglieder = memberBox.values.toList().cast<Mitglied>();
+    _loadMitglieder();
+    hiveService.addMemberBoxListener(_loadMitglieder);
+  }
+
+  @override
+  void dispose() {
+    hiveService.removeMemberBoxListener(_loadMitglieder);
+    super.dispose();
+  }
+
+  void _loadMitglieder() {
+    setState(() {
+      mitglieder = hiveService.getAllMembers();
     });
   }
 

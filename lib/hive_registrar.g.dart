@@ -18,3 +18,13 @@ extension HiveRegistrar on HiveInterface {
     registerAdapter(TaetigkeitAdapter());
   }
 }
+
+extension IsolatedHiveRegistrar on IsolatedHiveInterface {
+  void registerAdapters() {
+    registerAdapter(AusbildungAdapter());
+    registerAdapter(CustomGroupAdapter());
+    registerAdapter(DataChangeAdapter());
+    registerAdapter(MitgliedAdapter());
+    registerAdapter(TaetigkeitAdapter());
+  }
+}

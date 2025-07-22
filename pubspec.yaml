@@ -1,7 +1,7 @@
 name: nami
 description: Namentliche Mitgliedermeldung der DPSG als App für Android und iOS
 publish_to: none
-version: 0.2.5
+version: 0.2.6
 
 environment:
   sdk: "^3.8.0"
@@ -72,6 +72,7 @@ dev_dependencies:
   build_runner: ^2.1.4
   test: ^1.17.10
   flutter_launcher_icons: ^0.14.3
+  mockito: ^5.4.6
 
 dependency_overrides:
   url_launcher_ios: # fix https://github.com/flutter/flutter/issues/151467

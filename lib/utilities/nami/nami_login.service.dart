@@ -48,22 +48,32 @@ Future<bool> namiLoginWithPassword(int userId, String password) async {
     "Origin": 'https://nami.dpsg.de',
     'Content-Type': 'application/x-www-form-urlencoded',
   };
-  sensLog.i('Request: login for ${sensId(userId)} request');
+  sensLog.i('Request: login for ${sensId(userId)} request to $uri');
   final authResponse = await http.post(uri, body: body, headers: headers);
 
   final statusCode = authResponse.statusCode;
   if (statusCode != 302 && statusCode != 200) {
     sensLog.e(
-      'Failed to login for ${sensId(userId)} with status code: $statusCode',
+      'Failed to login for ${sensId(userId)} with status code: $statusCode: ${authResponse.body}',
     );
-    return false;
+    throw Exception(
+      'Failed to login for ${sensId(userId)} with status code: $statusCode: ${authResponse.body}',
+    );
   }
 
   http.Response tokenResponse;
   if (statusCode == 302 && authResponse.headers['location']!.isNotEmpty) {
     //redirect
-    Uri redirectUri = Uri.parse(authResponse.headers['location']!);
-    sensLog.i('Request: login redirect request');
+    String redirectLocation = authResponse.headers['location']!;
+
+    // Ensure the redirect URL uses HTTPS
+    if (redirectLocation.startsWith('http://')) {
+      redirectLocation = redirectLocation.replaceFirst('http://', 'https://');
+      sensLog.i('Converted HTTP redirect to HTTPS: $redirectLocation');
+    }
+
+    Uri redirectUri = Uri.parse(redirectLocation);
+    sensLog.i('Request: login redirect request to $redirectUri');
     tokenResponse = await http.get(redirectUri);
   } else {
     tokenResponse = authResponse;
@@ -72,12 +82,17 @@ Future<bool> namiLoginWithPassword(int userId, String password) async {
   if (tokenResponse.statusCode != 200 ||
       !tokenResponse.headers.containsKey('set-cookie')) {
     sensLog.e(
-      'Failed to login for ${sensId(userId)} with status code: ${tokenResponse.statusCode}',
+      'Failed to login for ${sensId(userId)} with status code: ${tokenResponse.statusCode}: ${tokenResponse.body}',
     );
-    return false;
+    throw Exception(
+      'Failed to login for ${sensId(userId)} with status code: $statusCode: ${tokenResponse.body}',
+    );
   }
   final resBody = json.decode(tokenResponse.body);
   if (resBody['statusCode'] != 0 || resBody['statusMessage'].length > 0) {
+    sensLog.e(
+      'Failed to login for ${sensId(userId)} with status code: ${resBody['statusCode']}: ${resBody['statusMessage']}',
+    );
     return false;
   }
   String cookie = tokenResponse.headers["set-cookie"]!.split(';')[0];

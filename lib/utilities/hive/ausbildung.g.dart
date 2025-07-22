@@ -8,7 +8,7 @@ part of 'ausbildung.dart';
 
 class AusbildungAdapter extends TypeAdapter<Ausbildung> {
   @override
-  final int typeId = 3;
+  final typeId = 3;
 
   @override
   Ausbildung read(BinaryReader reader) {

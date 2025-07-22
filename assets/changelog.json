@@ -68,6 +68,16 @@
         "Das Android App Icon wurde angepasst (identisch zu iOS)"
       ],
       "bugFixes": []
+    },
+    {
+      "version": "0.2.6",
+      "data_reset": false,
+      "features": [],
+      "bugFixes": [
+        "Ein Fehler verursacht durch den Nami Server wurde behoben, der das Einloggen verhinderte.",
+        "Der Feedback-Button auf der Loginseite funktioniert nun wieder.",
+        "Das DPSG Logo wurde aktualisiert."
+      ]
     }
   ]
 }

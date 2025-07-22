@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:intl/intl.dart';
 import 'package:nami/screens/mitgliedsliste/mitglied_details.dart';
 import 'package:nami/screens/widgets/map.widget.dart';
 import 'package:nami/screens/widgets/status_information_banner.dart';
 import 'package:nami/screens/widgets/stufenwechsel_timeline.widget.dart';
+import 'package:nami/utilities/hive/hive_service.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
-import 'package:nami/utilities/hive/settings.dart';
+import 'package:nami/utilities/hive/settings_service.dart';
 import 'package:nami/utilities/hive/settings_stufenwechsel.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
 import 'package:wiredash/wiredash.dart';
@@ -182,11 +182,11 @@ class _MeineStufeState extends State<MeineStufe> {
   }
 
   void loadMitglieder() {
-    List<int> favouriteIds = getFavouriteList();
-    mitglieder = Hive.box<Mitglied>('members').values
+    List<int> favouriteIds = settingsService.getFavouriteList();
+    mitglieder = hiveService
+        .getAllMembers()
         .where((element) => favouriteIds.contains(element.mitgliedsNummer))
-        .toList()
-        .cast<Mitglied>();
+        .toList();
 
     int index = 0;
     for (var mitglied in mitglieder) {
