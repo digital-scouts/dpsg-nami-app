@@ -6,7 +6,6 @@ import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'package:http/http.dart' as http;
 import 'package:local_auth/local_auth.dart';
 import 'package:nami/main.dart';
-import 'package:nami/screens/login_screen.dart';
 import 'package:nami/screens/utilities/loading_info_screen.dart';
 import 'package:nami/screens/utilities/new_version_info_screen.dart';
 import 'package:nami/screens/utilities/welcome_screen.dart';
@@ -154,7 +153,7 @@ class AppStateHandler extends ChangeNotifier {
       currentState = AppState.relogin;
       sensLog.i('show login screen');
       final reloginSuccessful = await navigatorKey.currentState!.push<bool?>(
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        MaterialPageRoute(builder: (context) => Container()),
       );
       setReadyState();
       return reloginSuccessful ?? false;

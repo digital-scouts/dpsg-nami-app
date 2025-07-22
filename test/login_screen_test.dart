@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:logger/logger.dart';
-import 'package:nami/screens/login_screen.dart';
+import 'package:nami/presentation/login/login.page.dart';
 import 'package:nami/utilities/logger.dart' as logger_utils;
 
 // Einfache Test-Output-Klasse, die nichts ausgibt
@@ -32,7 +32,7 @@ void main() {
   });
 
   Widget createLoginScreen() {
-    return const MaterialApp(home: LoginScreen());
+    return const MaterialApp(home: LoginPage());
   }
 
   // Helper-Funktion für konsistentes Widget-Setup
