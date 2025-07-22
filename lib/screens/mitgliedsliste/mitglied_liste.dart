@@ -139,7 +139,8 @@ class MitgliedsListeState extends State<MitgliedsListe> {
                   ),
                   MemberSubElement.birthday => Text(
                     DateFormat(
-                      'dd.MM.yyyy',
+                      'd. MMMM yyyy',
+                      'de_DE',
                     ).format(mitglieder[index].geburtsDatum),
                   ),
                 },

@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:hive_ce_flutter/adapters.dart';
+import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:nami/utilities/hive/ausbildung.dart';
 import 'package:nami/utilities/hive/data_changes.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
@@ -12,8 +12,8 @@ abstract class HiveService {
   Box<Taetigkeit> get taetigkeitBox;
   Box<Ausbildung> get ausbildungBox;
   Box<DataChange> get dataChangesBox;
-  Box<Map> get satzungBox;
-  Box<Map> get aiChatMessagesBox;
+  Box<Map<String, dynamic>> get satzungBox;
+  Box<Map<String, dynamic>> get aiChatMessagesBox;
   Box get filterBox;
 
   // Convenience-Methoden
@@ -45,10 +45,12 @@ class HiveServiceImpl implements HiveService {
   Box<DataChange> get dataChangesBox => Hive.box<DataChange>('dataChanges');
 
   @override
-  Box<Map> get satzungBox => Hive.box<Map>('satzung_db');
+  Box<Map<String, dynamic>> get satzungBox =>
+      Hive.box<Map<String, dynamic>>('satzung_db');
 
   @override
-  Box<Map> get aiChatMessagesBox => Hive.box<Map>('ai_chat_messages');
+  Box<Map<String, dynamic>> get aiChatMessagesBox =>
+      Hive.box<Map<String, dynamic>>('ai_chat_messages');
 
   @override
   Box get filterBox => Hive.box('filterBox');
@@ -103,8 +105,8 @@ class MockHiveService implements HiveService {
   final Box<Taetigkeit> _taetigkeitBox;
   final Box<Ausbildung> _ausbildungBox;
   final Box<DataChange> _dataChangesBox;
-  final Box<Map> _satzungBox;
-  final Box<Map> _aiChatMessagesBox;
+  final Box<Map<String, dynamic>> _satzungBox;
+  final Box<Map<String, dynamic>> _aiChatMessagesBox;
   final Box _filterBox;
 
   MockHiveService({
@@ -112,8 +114,8 @@ class MockHiveService implements HiveService {
     required Box<Taetigkeit> taetigkeitBox,
     required Box<Ausbildung> ausbildungBox,
     required Box<DataChange> dataChangesBox,
-    required Box<Map> satzungBox,
-    required Box<Map> aiChatMessagesBox,
+    required Box<Map<String, dynamic>> satzungBox,
+    required Box<Map<String, dynamic>> aiChatMessagesBox,
     required Box filterBox,
   }) : _memberBox = memberBox,
        _taetigkeitBox = taetigkeitBox,
@@ -136,10 +138,10 @@ class MockHiveService implements HiveService {
   Box<DataChange> get dataChangesBox => _dataChangesBox;
 
   @override
-  Box<Map> get satzungBox => _satzungBox;
+  Box<Map<String, dynamic>> get satzungBox => _satzungBox;
 
   @override
-  Box<Map> get aiChatMessagesBox => _aiChatMessagesBox;
+  Box<Map<String, dynamic>> get aiChatMessagesBox => _aiChatMessagesBox;
 
   @override
   Box get filterBox => _filterBox;
