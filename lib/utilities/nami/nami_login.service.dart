@@ -85,7 +85,7 @@ Future<bool> namiLoginWithPassword(int userId, String password) async {
       'Failed to login for ${sensId(userId)} with status code: ${tokenResponse.statusCode}: ${tokenResponse.body}',
     );
     throw Exception(
-      'Failed to login for ${sensId(userId)} with status code: $statusCode: ${authResponse.body}',
+      'Failed to login for ${sensId(userId)} with status code: $statusCode: ${tokenResponse.body}',
     );
   }
   final resBody = json.decode(tokenResponse.body);
