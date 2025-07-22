@@ -48,13 +48,13 @@ Future<bool> namiLoginWithPassword(int userId, String password) async {
     "Origin": 'https://nami.dpsg.de',
     'Content-Type': 'application/x-www-form-urlencoded',
   };
-  sensLog.i('Request: login for ${sensId(userId)} request');
+  sensLog.i('Request: login for ${sensId(userId)} request to $uri');
   final authResponse = await http.post(uri, body: body, headers: headers);
 
   final statusCode = authResponse.statusCode;
   if (statusCode != 302 && statusCode != 200) {
     sensLog.e(
-      'Failed to login for ${sensId(userId)} with status code: $statusCode',
+      'Failed to login for ${sensId(userId)} with status code: $statusCode: ${authResponse.body}',
     );
     return false;
   }
@@ -78,6 +78,9 @@ Future<bool> namiLoginWithPassword(int userId, String password) async {
   }
   final resBody = json.decode(tokenResponse.body);
   if (resBody['statusCode'] != 0 || resBody['statusMessage'].length > 0) {
+    sensLog.e(
+      'Failed to login for ${sensId(userId)} with status code: ${resBody['statusCode']}: ${resBody['statusMessage']}',
+    );
     return false;
   }
   String cookie = tokenResponse.headers["set-cookie"]!.split(';')[0];
