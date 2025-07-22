@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:logger/logger.dart';
@@ -24,7 +26,6 @@ void main() {
         lineLength: 80,
         colors: false,
         printEmojis: false,
-        printTime: false,
       ),
       output: TestLogOutput(), // Keine Ausgabe während der Tests
     );
