@@ -62,8 +62,16 @@ Future<bool> namiLoginWithPassword(int userId, String password) async {
   http.Response tokenResponse;
   if (statusCode == 302 && authResponse.headers['location']!.isNotEmpty) {
     //redirect
-    Uri redirectUri = Uri.parse(authResponse.headers['location']!);
-    sensLog.i('Request: login redirect request');
+    String redirectLocation = authResponse.headers['location']!;
+
+    // Ensure the redirect URL uses HTTPS
+    if (redirectLocation.startsWith('http://')) {
+      redirectLocation = redirectLocation.replaceFirst('http://', 'https://');
+      sensLog.i('Converted HTTP redirect to HTTPS: $redirectLocation');
+    }
+
+    Uri redirectUri = Uri.parse(redirectLocation);
+    sensLog.i('Request: login redirect request to $redirectUri');
     tokenResponse = await http.get(redirectUri);
   } else {
     tokenResponse = authResponse;
@@ -72,7 +80,7 @@ Future<bool> namiLoginWithPassword(int userId, String password) async {
   if (tokenResponse.statusCode != 200 ||
       !tokenResponse.headers.containsKey('set-cookie')) {
     sensLog.e(
-      'Failed to login for ${sensId(userId)} with status code: ${tokenResponse.statusCode}',
+      'Failed to login for ${sensId(userId)} with status code: ${tokenResponse.statusCode}: ${tokenResponse.body}',
     );
     return false;
   }
