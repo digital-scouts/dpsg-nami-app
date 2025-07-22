@@ -69,7 +69,7 @@ Future<void> openWiredash(BuildContext context, String feedbackType) async {
       (metaData) => metaData
         ..custom['type'] = feedbackType
         ..custom['gitCommitId'] = gitInfo
-        ..custom['userNamiLoginId'] = user?.mglTypeId
+        ..custom['userNamiLoginId'] = user != null ? sensId(getNamiLoginId()!) : null
         ..custom['user'] = '${user?.vorname} ${user?.nachname}'
         ..custom['userStatus'] = '${user?.status}'
         ..custom['gruppierungName'] = settingsService.getGruppierungName(),
