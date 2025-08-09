@@ -46,13 +46,25 @@ Future<String?> getGitCommitId() async {
 double getAlterAm({DateTime? referenceDate, required DateTime date}) {
   referenceDate ??= DateTime.now();
 
-  // Berechne die Differenz in Tagen
-  int daysDifference = referenceDate.difference(date).inDays;
+  // Berechne das Alter präzise basierend auf Jahren, Monaten und Tagen
+  int age = referenceDate.year - date.year;
 
-  // Berechne das Alter als double
-  double age = daysDifference / 365.25;
+  // Prüfe, ob der Geburtstag in diesem Jahr bereits stattgefunden hat
+  if (referenceDate.month < date.month ||
+      (referenceDate.month == date.month && referenceDate.day < date.day)) {
+    age--;
+  }
 
-  return age;
+  // Für genauere Berechnung: addiere die Tage seit dem letzten Geburtstag
+  DateTime lastBirthday = DateTime(referenceDate.year, date.month, date.day);
+  if (lastBirthday.isAfter(referenceDate)) {
+    lastBirthday = DateTime(referenceDate.year - 1, date.month, date.day);
+  }
+
+  int daysSinceLastBirthday = referenceDate.difference(lastBirthday).inDays;
+  double fractionalAge = daysSinceLastBirthday / 365.25;
+
+  return age + fractionalAge;
 }
 
 Future<void> openWiredash(BuildContext context, String feedbackType) async {
