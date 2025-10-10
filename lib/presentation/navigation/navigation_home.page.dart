@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:nami/presentation/app/app_cubit.dart';
 import 'package:nami/presentation/mitglieder/mitglieder.page.dart';
 import 'package:nami/presentation/navigation/navigation_cubit.dart';
 import 'package:nami/presentation/navigation/navigation_home.widgets.dart';
@@ -7,7 +8,6 @@ import 'package:nami/presentation/profile/profile.page.dart';
 import 'package:nami/presentation/settings/settings.page.dart';
 import 'package:nami/presentation/statistiken/stats.page.dart';
 import 'package:nami/presentation/stufe/stufe.page.dart';
-import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/hive/hive_service.dart';
 import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings_service.dart';
@@ -106,8 +106,15 @@ class _NavigationScaffold extends StatelessWidget {
 
           // Logout Section
           DrawerLogoutSection(
-            onLogoutTap: () {
-              AppStateHandler().setLoggedOutState();
+            onLogoutTap: () async {
+              Navigator.pop(context); // Drawer erst schließen
+
+              // Logout-Bestätigung anzeigen
+              final shouldLogout = await _showLogoutConfirmation(context);
+              if (shouldLogout) {
+                // Neuen AppCubit für Logout verwenden
+                context.read<AppCubit>().logout();
+              }
             },
           ),
         ],
@@ -143,5 +150,28 @@ class _NavigationScaffold extends StatelessWidget {
       case NavigationTab.profil:
         return const ProfilePage();
     }
+  }
+
+  Future<bool> _showLogoutConfirmation(BuildContext context) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Abmelden'),
+              content: const Text('Möchten Sie sich wirklich abmelden?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Abbrechen'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('Abmelden'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
   }
 }

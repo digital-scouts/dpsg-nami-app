@@ -16,5 +16,23 @@ class AppCubit extends Cubit<AppStatus> {
   }
 
   void loginSuccess() => emit(AppStatus.authenticated);
-  void logout() => emit(AppStatus.unauthenticated);
+
+  Future<void> logout() async {
+    try {
+      // Führe den tatsächlichen Logout durch
+      await authRepository.logout();
+      // Setze den State auf unauthenticated
+      emit(AppStatus.unauthenticated);
+    } catch (e) {
+      // Falls Logout fehlschlägt, logge den Fehler aber setze trotzdem unauthenticated
+      // da wir den User sowieso ausloggen wollen
+      emit(AppStatus.unauthenticated);
+      rethrow; // Werfe den Fehler weiter für potentielle UI-Behandlung
+    }
+  }
+
+  Future<void> refresh() async {
+    emit(AppStatus.loading);
+    await _checkAuth();
+  }
 }

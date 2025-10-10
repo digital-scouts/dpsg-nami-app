@@ -36,7 +36,7 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<void> logout() async {
     userData.deleteNamiApiCookie();
-    userData.deleteLoggedInUserId();
+    // userData.deleteLoggedInUserId();
     userData.deleteNamiLoginId();
     userData.deleteNamiPassword();
   }
@@ -44,5 +44,10 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<bool> isLoggedIn() async {
     return userData.getNamiApiCookie().isNotEmpty;
+  }
+
+  @override
+  int? getSavedLoginId() {
+    return userData.getLoggedInUserId();
   }
 }

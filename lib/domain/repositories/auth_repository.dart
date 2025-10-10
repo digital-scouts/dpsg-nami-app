@@ -3,4 +3,5 @@ abstract class AuthRepository {
   Future<void> testLogin();
   Future<void> logout();
   Future<bool> isLoggedIn();
+  int? getSavedLoginId();
 }

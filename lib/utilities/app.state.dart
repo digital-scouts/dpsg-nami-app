@@ -25,6 +25,7 @@ import 'package:nami/utilities/types.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:wiredash/wiredash.dart';
 
+@Deprecated('Use AppCubit instead')
 class AppStateHandler extends ChangeNotifier {
   static final AppStateHandler _instance = AppStateHandler._internal();
   AppState _currentState = AppState.closed;

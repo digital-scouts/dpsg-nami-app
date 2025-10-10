@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nami/domain/repositories/auth_repository.dart';
-import 'package:nami/utilities/app.state.dart';
+import 'package:nami/presentation/app/app_cubit.dart';
 
 import 'login.bloc.dart';
 import 'login.widgets.dart';
@@ -80,14 +80,23 @@ class _LoginFormState extends State<_LoginForm> {
   bool rememberMe = false;
 
   @override
+  void initState() {
+    super.initState();
+
+    // Lade gespeicherte LoginId und fülle das Feld vor
+    final authRepo = context.read<AuthRepository>();
+    final savedLoginId = authRepo.getSavedLoginId();
+    if (savedLoginId != null) {
+      mitgliedsnummerCtrl.text = savedLoginId.toString();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return BlocListener<LoginBloc, LoginState>(
       listener: (context, state) {
-        if (state is LoginFailure) {
-          // Error is already displayed in the ErrorDisplay widget
-        }
         if (state is LoginSuccess) {
-          _handleLoginSuccess(context, state);
+          context.read<AppCubit>().loginSuccess();
         }
       },
       child: Column(
@@ -126,24 +135,6 @@ class _LoginFormState extends State<_LoginForm> {
         ],
       ),
     );
-  }
-
-  void _handleLoginSuccess(BuildContext context, LoginSuccess state) {
-    final appStateHandler = context.read<AppStateHandler>();
-    appStateHandler.lastAuthenticated = DateTime.now();
-
-    if (state.differentUser ||
-        appStateHandler.currentState == AppState.loggedOut) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        appStateHandler.setLoadDataState(loadAll: true);
-      });
-    } else if (state.isRelogin) {
-      Navigator.pop(context, true);
-    }
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text("Login erfolgreich")));
   }
 
   @override
