@@ -151,10 +151,24 @@ class _MaterialAppWrapperState extends State<MaterialAppWrapper>
       ],
       supportedLocales: const [Locale('de', 'DE')],
       builder: (context, child) {
+        final mediaQuery = MediaQuery.of(context);
+        final bottomInset = mediaQuery.padding.bottom;
+
+        final safeChild = SafeArea(
+          top: true,
+          bottom: true,
+          child: child ?? const SizedBox.shrink(),
+        );
+
         return Scaffold(
-          floatingActionButton: FloatingActionButton(
-            onPressed: () => openWiredash(context, 'Feedback Button Main'),
-            child: const Icon(Icons.feedback),
+          floatingActionButton: Padding(
+            padding: EdgeInsets.only(
+              bottom: bottomInset > 0 ? bottomInset * 0.3 : 0,
+            ),
+            child: FloatingActionButton(
+              onPressed: () => openWiredash(context, 'Feedback Button Main'),
+              child: const Icon(Icons.feedback),
+            ),
           ),
           body: Consumer<AppStateHandler>(
             builder: (context, appStateHandler, _) {
@@ -166,7 +180,7 @@ class _MaterialAppWrapperState extends State<MaterialAppWrapper>
                     AppState.retryAuthentication => const AuthenticateScreen(),
                     _ => const SizedBox(),
                   },
-                  child!,
+                  safeChild,
                 ],
               );
             },
