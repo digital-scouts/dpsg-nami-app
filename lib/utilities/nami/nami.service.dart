@@ -187,9 +187,8 @@ Future<void> reloadMetadataFromServer() async {
   Future<T?> safe<T>(Future<T> Function() loader, String label) async {
     try {
       return await loader();
-    } catch (e, st) {
+    } catch (e) {
       sensLog.w('Metadata Load Failed ($label): $e');
-      sensLog.v(st.toString());
       return null; // Fehler ignorieren wie gewünscht
     }
   }
