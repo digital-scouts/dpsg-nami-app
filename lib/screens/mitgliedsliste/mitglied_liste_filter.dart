@@ -296,34 +296,35 @@ class EditGroupSettingsDialogState extends State<EditGroupSettingsDialog> {
                 ),
                 const SizedBox(height: 16),
                 const Text('Welche Merkmale müssen zutreffen?'),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Expanded(
-                      child: RadioListTile<String>(
-                        title: const Text('eines'),
-                        value: 'OR',
-                        groupValue: orFilter ? 'OR' : 'AND',
-                        onChanged: (String? value) {
-                          setState(() {
-                            orFilter = value == 'OR';
-                          });
-                        },
-                      ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: ToggleButtons(
+                    isSelected: [orFilter, !orFilter],
+                    onPressed: (int index) {
+                      setState(() {
+                        orFilter =
+                            index == 0; // 0 -> 'eines' (OR), 1 -> 'alle' (AND)
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(6),
+                    constraints: const BoxConstraints(
+                      minHeight: 36,
+                      minWidth: 80,
                     ),
-                    Expanded(
-                      child: RadioListTile<String>(
-                        title: const Text('alle'),
-                        value: 'AND',
-                        groupValue: orFilter ? 'OR' : 'AND',
-                        onChanged: (String? value) {
-                          setState(() {
-                            orFilter = value == 'OR';
-                          });
-                        },
+                    color: Theme.of(context).colorScheme.onSurface,
+                    selectedColor: Theme.of(context).colorScheme.onPrimary,
+                    fillColor: Theme.of(context).colorScheme.primary,
+                    children: const [
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12.0),
+                        child: Text('eines'),
                       ),
-                    ),
-                  ],
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12.0),
+                        child: Text('alle'),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 16),
                 if (orFilter)
