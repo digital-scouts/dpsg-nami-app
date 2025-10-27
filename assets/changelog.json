@@ -78,6 +78,15 @@
         "Der Feedback-Button auf der Loginseite funktioniert nun wieder.",
         "Das DPSG Logo wurde aktualisiert."
       ]
+    },
+    {
+      "version": "0.2.7",
+      "data_reset": false,
+      "features": [],
+      "bugFixes": [
+        "Die App berücksichtigt nun Safe Areas bei Android Geräten mit 3-Button-Navigation.",
+        "Das Laden von Daten mit unterschiedlichen Berechtigungen sollte nun stabiler laufen und genauere Fehler liefern."
+      ]
     }
   ]
 }
