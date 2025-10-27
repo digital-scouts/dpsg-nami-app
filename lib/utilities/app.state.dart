@@ -234,13 +234,31 @@ class AppStateHandler extends ChangeNotifier {
         await reloadMetadataFromServer();
         metaProgressNotifier.value = true;
       }
-      await syncMembers(
-        memberAllProgressNotifier,
-        memberOverviewProgressNotifier,
-        rechteProgressNotifier,
-        _dataChangesService,
-        forceUpdate: loadAll,
-      );
+      try {
+        await syncMembers(
+          memberAllProgressNotifier,
+          memberOverviewProgressNotifier,
+          rechteProgressNotifier,
+          _dataChangesService,
+          forceUpdate: loadAll,
+        );
+      } catch (e) {
+        if (memberAllProgressNotifier.value == 0) {
+          showSnackBar(
+            navigatorKey.currentContext!,
+            'Dir fehlen Rechte, Mitglieder zu laden - Dieses Recht ist notwendig um die App zu nutzen.',
+          );
+          syncState = SyncState.noPermission;
+          return;
+        } else {
+          showSnackBar(
+            navigatorKey.currentContext!,
+            'Beim Laden der Mitglieder sind Fehler aufgetreten, möglicherweise sind die Daten unvollständig oder fehlerhaft.',
+          );
+          memberAllProgressNotifier.value = 1.0;
+        }
+      }
+
       await BirthdayNotificationService.scheduleAllBirthdays();
       syncState = SyncState.successful;
 

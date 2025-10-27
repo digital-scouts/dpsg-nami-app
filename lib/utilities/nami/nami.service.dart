@@ -182,24 +182,40 @@ Future<List<NamiGruppierungModel>> loadOnlyStaemme({
 
 Future<void> reloadMetadataFromServer() async {
   sensLog.i('Reloading metadata from server');
-  var results = await Future.wait([
-    getGeschlechtMeta(),
-    getLandMeta(),
-    getRegionMeta(),
-    getBeitragsartenMeta(),
-    getStaatsangehoerigkeitMeta(),
-    getMitgliedstypMeta(),
-    getKonfessionMeta(),
-    getErsteTaetigkeitMeta(),
-  ]);
+
+  // Hilfsfunktion: Führt Future aus, fängt Fehler ab und liefert null zurück
+  Future<T?> safe<T>(Future<T> Function() loader, String label) async {
+    try {
+      return await loader();
+    } catch (e, st) {
+      sensLog.w('Metadata Load Failed ($label): $e');
+      sensLog.v(st.toString());
+      return null; // Fehler ignorieren wie gewünscht
+    }
+  }
+
+  // Einzelne Ladeaufrufe – Fehler einzelner Quellen verhindern nicht die anderen
+  final geschlecht = await safe(getGeschlechtMeta, 'Geschlecht');
+  final land = await safe(getLandMeta, 'Land');
+  final region = await safe(getRegionMeta, 'Region');
+  final beitragsarten = await safe(getBeitragsartenMeta, 'Beitragsarten');
+  final staatsangehoerigkeit = await safe(
+    getStaatsangehoerigkeitMeta,
+    'Staatsangehörigkeit',
+  );
+  final mitgliedstyp = await safe(getMitgliedstypMeta, 'Mitgliedstyp');
+  final konfession = await safe(getKonfessionMeta, 'Konfession');
+  final ersteTaetigkeit = await safe(getErsteTaetigkeitMeta, 'Erste Tätigkeit');
+
+  // Fallback auf leere Maps, da setMetaData non-null erwartet
   setMetaData(
-    results[0],
-    results[1],
-    results[2],
-    results[3],
-    results[4],
-    results[5],
-    results[6],
-    results[7],
+    geschlecht ?? const {},
+    land ?? const {},
+    region ?? const {},
+    beitragsarten ?? const {},
+    staatsangehoerigkeit ?? const {},
+    mitgliedstyp ?? const {},
+    konfession ?? const {},
+    ersteTaetigkeit ?? const {},
   );
 }

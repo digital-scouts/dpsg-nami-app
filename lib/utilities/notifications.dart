@@ -18,7 +18,9 @@ void showErrorSnackBar(BuildContext context, String message) {
 void showSnackBar(BuildContext context, String message) {
   fileLog.i('Showing SnackBar');
   consLog.i('Showing SnackBar, message = $message');
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(message), duration: Duration(seconds: 10)),
+  );
 }
 
 Future<bool> showConfirmationDialog(String title, String message) async {

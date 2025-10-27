@@ -347,6 +347,7 @@ Future<void> syncMembers(
     );
   } catch (e) {
     memberOverviewProgressNotifier.value = false;
+    rechteProgressNotifier.value = [AllowedFeatures.noPermission];
     rethrow;
   }
 
@@ -385,11 +386,19 @@ Future<void> syncMembers(
       ),
     );
   }
-  await Future.wait(futures);
-  memberAllProgressNotifier.value = 1.0;
+  try {
+    await Future.wait(futures);
+  } catch (e) {
+    sensLog.e(
+      'Fehler bei der Synchronisation der Mitgliedsdetails: $e - Fehler wird ignoriert.',
+    );
+    rethrow;
+  } finally {
+    setLastNamiSync(DateTime.now());
+    sensLog.i('Syncronisation der Mitgliedsdetails abgeschlossen');
+  }
 
-  setLastNamiSync(DateTime.now());
-  sensLog.i('Syncronisation der Mitgliedsdetails abgeschlossen');
+  memberAllProgressNotifier.value = 1.0;
 }
 
 Future<void> endMembership(int memberId, DateTime endDate) async {
