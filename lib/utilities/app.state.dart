@@ -127,7 +127,7 @@ class AppStateHandler extends ChangeNotifier {
   void showTooLongOfflineNotification() {
     showSnackBar(
       navigatorKey.currentContext!,
-      "Du warst zu lange offline. Bitte melde dich erneut an.",
+      "Du warst zu lange offline. Bitte melde dich erneut an. Wenn es sich um einen Fehler handelt, sende bitte die Logdatei (Einstellungen -> Debug&Tools).",
     );
   }
 
@@ -309,7 +309,7 @@ class AppStateHandler extends ChangeNotifier {
         if (background) {
           showSnackBar(
             navigatorKey.currentContext!,
-            'Du wirst ausgeloggt, da du zu lange offline warst.',
+            'Du wirst ausgeloggt, da du zu lange offline warst. Wenn es sich um einen Fehler handelt, sende bitte die Logdatei (Einstellungen -> Debug&Tools).',
           );
           setLoggedOutState();
         }
