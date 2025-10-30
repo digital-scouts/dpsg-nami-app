@@ -154,9 +154,14 @@ class _MaterialAppWrapperState extends State<MaterialAppWrapper>
         final mediaQuery = MediaQuery.of(context);
         final bottomInset = mediaQuery.padding.bottom;
 
+        // Dynamische SafeArea unten - Android Button-Nav braucht platz, kein Button sollte darunter liegen
+        final platform = Theme.of(context).platform;
+        final bottomSystemPadding = mediaQuery.padding.bottom;
+        final isAndroid = platform == TargetPlatform.android;
+        final isButtonNavAndroid = isAndroid && bottomSystemPadding > 30.0;
         final safeChild = SafeArea(
-          top: true,
-          bottom: true,
+          top: false,
+          bottom: isButtonNavAndroid,
           child: child ?? const SizedBox.shrink(),
         );
 
