@@ -223,9 +223,7 @@ class MitgliedsListeState extends State<MitgliedsListe> {
               child: Container(
                 width: 50.0,
                 height: 50.0,
-                margin: const EdgeInsets.symmetric(
-                  horizontal: 4.0,
-                ), // Abstand zwischen den Elementen
+                margin: const EdgeInsets.symmetric(horizontal: 4.0),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: group.active

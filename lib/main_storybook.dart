@@ -1,0 +1,78 @@
+import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:storybook_flutter/storybook_flutter.dart';
+import 'stories/member_list_tile_story.dart';
+import 'stories/member_basis_info_card_story.dart';
+import 'stories/member_basis_story.dart';
+import 'stories/member_list_story.dart';
+import 'stories/member_list_search_bar_story.dart';
+import 'stories/member_list_directory_story.dart';
+import 'stories/member_list_group_filter_bar_story.dart';
+import 'stories/member_roles_list_tile_story.dart';
+import 'stories/member_roles_list_story.dart';
+import 'stories/member_roles_recommendation_tile_story.dart';
+import 'stories/member_roles_statistik_pie_story.dart';
+import 'stories/statistik_age_distribution_story.dart';
+import 'stories/statistik_group_distribution_story.dart';
+import 'presentation/theme/theme.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('de');
+  runApp(const StorybookEntry());
+}
+
+class StorybookEntry extends StatelessWidget {
+  const StorybookEntry({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      theme: lightTheme,
+      darkTheme: darkTheme,
+      themeMode: ThemeMode.system,
+      home: Storybook(
+        stories: [
+          memberListTileStory(),
+          memberGeneralInfoCardStory(),
+          memberMembershipInfoCardStory(),
+          memberDetailsStory(),
+          memberListStory(),
+          memberRolesListTileStory(),
+          memberRolesRecommendationTileStory(),
+          memberRolesListStory(),
+          memberRolesPieNurMitgliedStory(),
+          memberRolesPieNurLeitungStory(),
+          memberRolesPieMitgliedUndLeitungStory(),
+          memberRolesPieNurEineStufeStory(),
+          memberRolesPieMaxStory(),
+          memberRolesPieUeberlappStory(),
+          ageDistributionStory(),
+          groupDistributionStory(),
+          groupFilterStory(),
+          searchBarStory(),
+          memberDirectoryStory(),
+          Story(
+            name: 'System/ThemeToggleInfo',
+            builder: (context) => Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Aktuelles Brightness: ${Theme.of(context).brightness.name}',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Um das Theme zu wechseln, ändere den System-Dark-Mode oder erweitere Storybook mit einem eigenen Theme-Mode-Knob.',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -1,0 +1,204 @@
+import 'package:flutter/material.dart';
+import 'package:storybook_flutter/storybook_flutter.dart';
+import '../domain/member/stufe.dart';
+import '../domain/member/taetigkeit.dart';
+import '../presentation/widgets/member_roles_statistik_pie.dart';
+
+Story memberRolesPieNurMitgliedStory() {
+  return Story(
+    name: 'MemberDetails/StatistikPie/NurMitglied',
+    builder: (context) {
+      final size = context.knobs
+          .sliderInt(label: 'Größe', initial: 180, min: 120, max: 300)
+          .toDouble();
+      final now = DateTime.now();
+      final roles = [
+        Taetigkeit(
+          stufe: Stufe.woelfling,
+          art: TaetigkeitsArt.mitglied,
+          start: now.subtract(const Duration(days: 900)),
+          ende: now.subtract(const Duration(days: 600)),
+        ),
+        Taetigkeit(
+          stufe: Stufe.jungpfadfinder,
+          art: TaetigkeitsArt.mitglied,
+          start: now.subtract(const Duration(days: 500)),
+          ende: now.subtract(const Duration(days: 300)),
+        ),
+      ];
+      return Center(
+        child: MemberRolesStatistikPie(roles: roles, size: size),
+      );
+    },
+  );
+}
+
+Story memberRolesPieNurLeitungStory() {
+  return Story(
+    name: 'MemberDetails/StatistikPie/NurLeitung',
+    builder: (context) {
+      final size = context.knobs
+          .sliderInt(label: 'Größe', initial: 180, min: 120, max: 300)
+          .toDouble();
+      final now = DateTime.now();
+      final roles = [
+        Taetigkeit(
+          stufe: Stufe.rover,
+          art: TaetigkeitsArt.leitung,
+          start: now.subtract(const Duration(days: 800)),
+          ende: now.subtract(const Duration(days: 400)),
+        ),
+        Taetigkeit(
+          stufe: Stufe.pfadfinder,
+          art: TaetigkeitsArt.leitung,
+          start: now.subtract(const Duration(days: 350)),
+          ende: now.subtract(const Duration(days: 100)),
+        ),
+      ];
+      return Center(
+        child: MemberRolesStatistikPie(roles: roles, size: size),
+      );
+    },
+  );
+}
+
+Story memberRolesPieMitgliedUndLeitungStory() {
+  return Story(
+    name: 'MemberDetails/StatistikPie/MitgliedUndLeitung',
+    builder: (context) {
+      final size = context.knobs
+          .sliderInt(label: 'Größe', initial: 180, min: 120, max: 300)
+          .toDouble();
+      final now = DateTime.now();
+      final roles = [
+        Taetigkeit(
+          stufe: Stufe.pfadfinder,
+          art: TaetigkeitsArt.mitglied,
+          start: now.subtract(const Duration(days: 900)),
+          ende: now.subtract(const Duration(days: 600)),
+        ),
+        Taetigkeit(
+          stufe: Stufe.rover,
+          art: TaetigkeitsArt.leitung,
+          start: now.subtract(const Duration(days: 500)),
+          ende: now.subtract(const Duration(days: 200)),
+        ),
+      ];
+      return Center(
+        child: MemberRolesStatistikPie(roles: roles, size: size),
+      );
+    },
+  );
+}
+
+Story memberRolesPieNurEineStufeStory() {
+  return Story(
+    name: 'MemberDetails/StatistikPie/NurEineStufe',
+    description: 'Einfarbig -> leerer Container',
+    builder: (context) {
+      final size = context.knobs
+          .sliderInt(label: 'Größe', initial: 180, min: 120, max: 300)
+          .toDouble();
+      final now = DateTime.now();
+      final roles = [
+        Taetigkeit(
+          stufe: Stufe.woelfling,
+          art: TaetigkeitsArt.mitglied,
+          start: now.subtract(const Duration(days: 400)),
+          ende: now.subtract(const Duration(days: 200)),
+        ),
+        Taetigkeit(
+          stufe: Stufe.woelfling,
+          art: TaetigkeitsArt.leitung,
+          start: now.subtract(const Duration(days: 180)),
+          ende: now.subtract(const Duration(days: 60)),
+        ),
+      ];
+      return Center(
+        child: MemberRolesStatistikPie(roles: roles, size: size),
+      );
+    },
+  );
+}
+
+Story memberRolesPieMaxStory() {
+  return Story(
+    name: 'MemberDetails/StatistikPie/Maximal',
+    builder: (context) {
+      final size = context.knobs
+          .sliderInt(label: 'Größe', initial: 180, min: 120, max: 300)
+          .toDouble();
+      final now = DateTime.now();
+      final roles = <Taetigkeit>[];
+      final stufen = [
+        Stufe.biber,
+        Stufe.woelfling,
+        Stufe.jungpfadfinder,
+        Stufe.pfadfinder,
+        Stufe.rover,
+      ];
+      int offset = 2000;
+      for (final s in stufen) {
+        roles.add(
+          Taetigkeit(
+            stufe: s,
+            art: TaetigkeitsArt.mitglied,
+            start: now.subtract(Duration(days: offset)),
+            ende: now.subtract(Duration(days: offset - 100)),
+          ),
+        );
+        offset -= 150;
+        roles.add(
+          Taetigkeit(
+            stufe: s,
+            art: TaetigkeitsArt.leitung,
+            start: now.subtract(Duration(days: offset)),
+            ende: now.subtract(Duration(days: offset - 100)),
+          ),
+        );
+        offset -= 150;
+      }
+      roles.add(
+        Taetigkeit(
+          stufe: Stufe.leitung,
+          art: TaetigkeitsArt.sonstiges,
+          start: now.subtract(const Duration(days: 150)),
+          ende: now.subtract(const Duration(days: 100)),
+        ),
+      );
+      return Center(
+        child: MemberRolesStatistikPie(roles: roles, size: size),
+      );
+    },
+  );
+}
+
+Story memberRolesPieUeberlappStory() {
+  return Story(
+    name: 'MemberDetails/StatistikPie/Ueberlapp',
+    description: 'Überlappende Zeiten, neuere Tätigkeit zählt im Overlap',
+    builder: (context) {
+      final size = context.knobs
+          .sliderInt(label: 'Größe', initial: 180, min: 120, max: 300)
+          .toDouble();
+      final now = DateTime.now();
+      final roles = [
+        Taetigkeit(
+          stufe: Stufe.pfadfinder,
+          art: TaetigkeitsArt.mitglied,
+          start: DateTime(now.year - 2, 1, 1),
+          ende: DateTime(now.year - 1, 12, 31),
+        ),
+        Taetigkeit(
+          stufe: Stufe.rover,
+          art: TaetigkeitsArt.leitung,
+          start: DateTime(now.year - 1, 6, 1),
+          ende: DateTime(now.year, 6, 1),
+        ),
+      ];
+      return Center(
+        child: MemberRolesStatistikPie(roles: roles, size: size),
+      );
+    },
+  );
+}
