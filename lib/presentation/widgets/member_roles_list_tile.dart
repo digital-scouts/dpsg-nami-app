@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:nami/domain/member/stufe.dart';
-import 'package:nami/domain/member/taetigkeit.dart';
+import 'package:nami/domain/taetigkeit/stufe.dart';
+import 'package:nami/domain/taetigkeit/taetigkeit.dart';
+import 'package:nami/presentation/stufe/stufe_visuals.dart';
 
 class MemberRolesListTile extends StatelessWidget {
   const MemberRolesListTile({
@@ -112,25 +113,21 @@ Widget _buildLeadingFor(BuildContext context, Taetigkeit taetigkeit) {
   if (taetigkeit.art == TaetigkeitsArt.leitung &&
       taetigkeit.stufe != Stufe.leitung) {
     return Image.asset(
-      Stufe.leitung.imagePath,
+      StufeVisuals.assetFor(Stufe.leitung),
       width: 80.0,
       height: 80.0,
-      color: taetigkeit.stufe.color,
+      color: StufeVisuals.colorFor(taetigkeit.stufe),
       colorBlendMode: BlendMode.srcIn,
       cacheWidth: 150,
     );
   }
-  if (taetigkeit.stufe.imagePath.isNotEmpty) {
-    return Image.asset(
-      taetigkeit.stufe.imagePath,
-      width: 80.0,
-      height: 80.0,
-      cacheHeight: 150,
-    );
+  final asset = StufeVisuals.assetFor(taetigkeit.stufe);
+  if (asset.isNotEmpty) {
+    return Image.asset(asset, width: 80.0, height: 80.0, cacheHeight: 150);
   }
   final isDark = Theme.of(context).brightness == Brightness.dark;
   return Image.asset(
-    Stufe.leitung.imagePath,
+    StufeVisuals.assetFor(Stufe.leitung),
     width: 80.0,
     height: 80.0,
     color: isDark ? Colors.white70 : Colors.black,

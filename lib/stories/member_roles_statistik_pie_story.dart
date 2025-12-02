@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:storybook_flutter/storybook_flutter.dart';
-import '../domain/member/stufe.dart';
-import '../domain/member/taetigkeit.dart';
+
+import '../domain/taetigkeit/stufe.dart';
+import '../domain/taetigkeit/taetigkeit.dart';
 import '../presentation/widgets/member_roles_statistik_pie.dart';
 
 Story memberRolesPieNurMitgliedStory() {

@@ -1,7 +1,8 @@
+import 'package:nami/presentation/stufe/stufe_visuals.dart';
 import 'package:storybook_flutter/storybook_flutter.dart';
 
+import '../domain/taetigkeit/stufe.dart';
 import '../presentation/widgets/member_list_group_filter_bar.dart';
-import '../domain/member/stufe.dart';
 
 Story groupFilterStory() => Story(
   name: 'MemberList/Group Filter',
@@ -18,7 +19,7 @@ Story groupFilterStory() => Story(
         .map(
           (s) => GroupFilterItem(
             keyName: s.name,
-            imageAssetPath: s.imagePath,
+            imageAssetPath: StufeVisuals.assetFor(s),
             semanticLabel: '${s.displayName} Filter',
           ),
         )

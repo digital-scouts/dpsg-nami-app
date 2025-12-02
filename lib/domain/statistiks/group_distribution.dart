@@ -1,5 +1,5 @@
-import 'stufe.dart';
-import 'taetigkeit.dart';
+import '../taetigkeit/stufe.dart';
+import '../taetigkeit/taetigkeit.dart';
 
 /// Verteilung für eine einzelne Stufe: Anzahl Leitende und Mitglieder.
 class GroupDistribution {

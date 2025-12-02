@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:nami/domain/member/taetigkeit.dart';
+import 'package:nami/domain/taetigkeit/taetigkeit.dart';
+
 import 'member_roles_list_tile.dart';
 
 class MemberRolesList extends StatelessWidget {

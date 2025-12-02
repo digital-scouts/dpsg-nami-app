@@ -1,5 +1,4 @@
-import 'package:flutter/material.dart';
-import '../../presentation/theme/theme.dart';
+// Domain-Schicht: keine UI-Abhängigkeiten hier.
 
 enum Stufe { biber, woelfling, jungpfadfinder, pfadfinder, rover, leitung }
 
@@ -23,25 +22,7 @@ extension StufeProps on Stufe {
     Stufe.leitung => 'Leitung',
   };
 
-  /// Primärfarbe als direkte `Color` aus dem zentralen Theme.
-  Color get color => switch (this) {
-    Stufe.biber => DPSGColors.biberFarbe,
-    Stufe.woelfling => DPSGColors.woelfingFarbe,
-    Stufe.jungpfadfinder => DPSGColors.jungpfadfinderFarbe,
-    Stufe.pfadfinder => DPSGColors.pfadfinderFarbe,
-    Stufe.rover => DPSGColors.roverFarbe,
-    Stufe.leitung => DPSGColors.leiterFarbe,
-  };
-
-  /// Relativer Asset-Pfad (später durch Asset-Konvention im UI geladen).
-  String get imagePath => switch (this) {
-    Stufe.biber => 'assets/images/biber.png',
-    Stufe.woelfling => 'assets/images/woe.png',
-    Stufe.jungpfadfinder => 'assets/images/jufi.png',
-    Stufe.pfadfinder => 'assets/images/pfadi.png',
-    Stufe.rover => 'assets/images/rover.png',
-    Stufe.leitung => 'assets/images/lilie_schwarz.png',
-  };
+  // Keine Farben/Assets hier – diese gehören in die Presentation-Schicht.
 
   num get order => switch (this) {
     Stufe.biber => 1,
@@ -68,5 +49,14 @@ extension StufeProps on Stufe {
     Stufe.pfadfinder => 17,
     Stufe.rover => 21,
     Stufe.leitung => 99,
+  };
+
+  Stufe? get nextStufe => switch (this) {
+    Stufe.biber => Stufe.woelfling,
+    Stufe.woelfling => Stufe.jungpfadfinder,
+    Stufe.jungpfadfinder => Stufe.pfadfinder,
+    Stufe.pfadfinder => Stufe.rover,
+    Stufe.rover => null,
+    Stufe.leitung => null,
   };
 }

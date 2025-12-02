@@ -1,8 +1,8 @@
-import 'package:storybook_flutter/storybook_flutter.dart';
 import 'package:nami/domain/member/mitglied.dart';
-import 'package:nami/domain/member/stufe.dart';
+import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/presentation/widgets/member_list.dart';
 import 'package:nami/presentation/widgets/member_list_tile.dart';
+import 'package:storybook_flutter/storybook_flutter.dart';
 
 Story memberListStory() => Story(
   name: 'MemberList/ListTile List',

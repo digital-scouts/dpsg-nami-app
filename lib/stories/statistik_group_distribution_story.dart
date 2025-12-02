@@ -1,7 +1,8 @@
 import 'package:storybook_flutter/storybook_flutter.dart';
-import '../domain/member/stufe.dart';
-import '../domain/member/taetigkeit.dart';
-import '../domain/member/group_distribution.dart';
+
+import '../domain/statistiks/group_distribution.dart';
+import '../domain/taetigkeit/stufe.dart';
+import '../domain/taetigkeit/taetigkeit.dart';
 import '../presentation/widgets/statistik_groupdistribution.dart';
 
 Story groupDistributionStory() {

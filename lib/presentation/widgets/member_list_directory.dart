@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nami/domain/member/mitglied.dart';
-import 'package:nami/domain/member/stufe.dart';
+import 'package:nami/domain/taetigkeit/stufe.dart';
+import 'package:nami/presentation/stufe/stufe_visuals.dart';
 import 'package:nami/presentation/widgets/member_list.dart';
 import 'package:nami/presentation/widgets/member_list_group_filter_bar.dart';
 import 'package:nami/presentation/widgets/member_list_search_bar.dart';
@@ -56,7 +57,7 @@ class _MemberDirectoryState extends State<MemberDirectory> {
         .map(
           (s) => GroupFilterItem(
             keyName: s.name,
-            imageAssetPath: s.imagePath,
+            imageAssetPath: StufeVisuals.assetFor(s),
             semanticLabel: s.displayName,
           ),
         )

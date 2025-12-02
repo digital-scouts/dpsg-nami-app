@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nami/domain/member/age_distribution.dart';
-import 'package:nami/domain/member/stufe.dart';
-import 'package:nami/domain/member/taetigkeit.dart';
+import 'package:nami/domain/statistiks/age_distribution.dart';
+import 'package:nami/domain/taetigkeit/stufe.dart';
+import 'package:nami/domain/taetigkeit/taetigkeit.dart';
 
 void main() {
   group('computeAgeDistribution', () {

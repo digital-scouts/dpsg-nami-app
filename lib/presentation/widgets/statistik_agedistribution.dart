@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../domain/member/age_distribution.dart';
-import '../../domain/member/stufe.dart';
+import 'package:nami/presentation/stufe/stufe_visuals.dart';
+
+import '../../domain/statistiks/age_distribution.dart';
+import '../../domain/taetigkeit/stufe.dart';
 
 class AgeDistributionChart extends StatefulWidget {
   const AgeDistributionChart({
@@ -260,7 +262,7 @@ class _AgeDistributionPainter extends CustomPainter {
         final frac = total == 0 ? 0 : entry.count / data.maxCount;
         final h = frac * chartHeight;
         final top = currentBottom - h;
-        final paint = Paint()..color = entry.stufe.color;
+        final paint = Paint()..color = StufeVisuals.colorFor(entry.stufe);
         final rect = Rect.fromLTWH(x, top, barWidth, h);
         final isTop = i == bar.entries.length - 1;
         if (isTop) {

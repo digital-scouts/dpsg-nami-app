@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:nami/domain/member/member_utils.dart';
 import 'package:nami/domain/member/mitglied.dart';
-import 'package:nami/domain/member/stufe.dart';
-import 'package:nami/presentation/theme/theme.dart';
+import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/presentation/format/date_formatters.dart';
+import 'package:nami/presentation/stufe/stufe_visuals.dart';
+import 'package:nami/presentation/theme/theme.dart';
 
 enum MemberSubtitleMode {
   mitgliedsnummer,
@@ -32,7 +33,9 @@ class MemberListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final stufe = MemberUtils.aktiveStufe(mitglied);
     final isLeitung = MemberUtils.isLeitung(mitglied);
-    final primaryColor = stufe?.color ?? DPSGColors.keineStufeFarbe;
+    final primaryColor = stufe != null
+        ? StufeVisuals.colorFor(stufe)
+        : DPSGColors.keineStufeFarbe;
     final secondaryColor = isLeitung ? DPSGColors.leiterFarbe : primaryColor;
 
     final tile = Dismissible(

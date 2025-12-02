@@ -1,9 +1,11 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
-import 'package:nami/domain/member/stufe.dart';
-import 'package:nami/domain/member/taetigkeit.dart';
-import 'package:nami/domain/member/taetigkeit_statistik.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:nami/domain/statistiks/taetigkeit_statistik.dart';
+import 'package:nami/domain/taetigkeit/stufe.dart';
+import 'package:nami/domain/taetigkeit/taetigkeit.dart';
+import 'package:nami/presentation/stufe/stufe_visuals.dart';
 
 class MemberRolesStatistikPie extends StatelessWidget {
   const MemberRolesStatistikPie({
@@ -51,7 +53,7 @@ class MemberRolesStatistikPie extends StatelessWidget {
         _PieSection(
           startAngle: startAngle,
           sweepAngle: sweep,
-          color: s.stufe.color,
+          color: StufeVisuals.colorFor(s.stufe),
           roleKey: _RoleKey(s.stufe, s.art),
           fraction: fraction,
         ),
@@ -94,11 +96,13 @@ class MemberRolesStatistikPie extends StatelessWidget {
 
     final String asset = useSvgLilie
         ? 'assets/images/lilie.svg'
-        : (isLeitung ? Stufe.leitung.imagePath : s.roleKey.stufe.imagePath);
+        : (isLeitung
+              ? StufeVisuals.assetFor(Stufe.leitung)
+              : StufeVisuals.assetFor(s.roleKey.stufe));
     // Bei Biber Leitung kein Tint anwenden, damit schwarzer Outline erhalten bleibt und Fill weiß bleibt.
     final Color? tint = (useSvgLilie
         ? null
-        : (isLeitung ? s.roleKey.stufe.color : null));
+        : (isLeitung ? StufeVisuals.colorFor(s.roleKey.stufe) : null));
 
     return Positioned(
       left: cx - badgeSize / 2,
