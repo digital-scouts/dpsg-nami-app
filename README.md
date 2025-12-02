@@ -1,6 +1,5 @@
 # NaMi
 
-
 <a href="https://apps.apple.com/de/app/nami/id6468066816">
     <img src="./assets/workfiles/Download_on_the_App_Store_Badge_DE_RGB_blk_092917.svg" alt="Download für iOS" height="50">
 </a>
@@ -13,13 +12,11 @@
 ![wakatime](https://wakatime.com/badge/user/f75702c6-6ecd-478f-a765-9c0a07c62d50/project/c30b8bfa-fe60-4da1-9a32-9c86bad66605.svg)
 [![Watch](https://img.shields.io/github/watchers/JanneckLange/dpsg-nami-app?label=Watch)](https://github.com/JanneckLange/dpsg-nami-app/subscription)
 
-**Master**
-
+Master:
 [![Release](https://img.shields.io/github/v/release/janneckLange/dpsg-nami-app?display_name=tag&include_prereleases)](https://github.com/JanneckLange/dpsg-nami-app/releases)
 [![Commit](https://shields.io/github/last-commit/JanneckLange/dpsg-nami-app/master)](https://github.com/JanneckLange/dpsg-nami-app/commits/master)
 
-**Develop**
-
+Develop:
 [![Test](https://github.com/JanneckLange/dpsg-nami-app/actions/workflows/flutter-test.yml/badge.svg)](https://github.com/JanneckLange/dpsg-nami-app/actions/workflows/flutter-test.yml)
 [![Commit](https://shields.io/github/last-commit/JanneckLange/dpsg-nami-app/develop)](https://github.com/JanneckLange/dpsg-nami-app/commits/develop)
 
@@ -30,14 +27,21 @@ Diese App wird privat entwickelt und bereitgestellt. Sie steht in keinem Zusamme
 Testversion der App laden: [Android](https://play.google.com/store/apps/details?id=de.jlange.nami.app) oder
 [iOS](https://testflight.apple.com/join/YGeELMUq)
 
-## Funktionsweise 
+## Entwicklung
 
-Die App verbindet sich direkt mit dem NaMi-Backend, sodass keine Mitgliedsdaten auf externen Servern gespeichert oder verarbeitet werden. 
-Die Daten des ausgewählten Stammes werden lokal und verschlüsselt auf dem Gerät des Nutzers gespeichert. 
+### Storybook
+
+To run the storybook, use the following command:
+`flutter run -t lib/main_storybook.dart`
+
+## Funktionsweise
+
+Die App verbindet sich direkt mit dem NaMi-Backend, sodass keine Mitgliedsdaten auf externen Servern gespeichert oder verarbeitet werden.
+Die Daten des ausgewählten Stammes werden lokal und verschlüsselt auf dem Gerät des Nutzers gespeichert.
 
 Die Daten werden tägliche automatisch im Hintergrund synchronisiert. Falls die Daten länger als 30 Tage nicht aktualisiert wurden, werden sie automatisch aus der App entfernt, um die Datensicherheit zu gewährleisten.
 
-Hat ein Nutzer die Rechte mehrere Stämme zu sehen (zum Beispiel, weil er auch Aktiv in einem Diözesanarbeitskreis ist), dann muss **ein** Stamm ausgewählt werden. Es werden die Mitgliedes dieses Stammes angezeigt. 
+Hat ein Nutzer die Rechte mehrere Stämme zu sehen (zum Beispiel, weil er auch Aktiv in einem Diözesanarbeitskreis ist), dann muss **ein** Stamm ausgewählt werden. Es werden die Mitgliedes dieses Stammes angezeigt.
 
 ## Aktuelle Funktionen
 
@@ -60,7 +64,7 @@ Hat ein Nutzer die Rechte mehrere Stämme zu sehen (zum Beispiel, weil er auch A
 - Mitglieder anlegen per Texterkennung / Foto vom Anmeldebogen
 - Export von Zuschusslisten
 - Erinnerungen und Kalenderintegration für
-  - Geburtstage 
+  - Geburtstage
   - Ablaufende Ausbildungen (Präventionsschulung)
 - Statistik historische Entwicklung im Stamm
   - Wann verlassen Mitglieder den Stamm, wann kommen sie
