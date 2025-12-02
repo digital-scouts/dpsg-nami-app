@@ -1,5 +1,5 @@
-import 'taetigkeit.dart';
-import 'stufe.dart';
+import '../taetigkeit/stufe.dart';
+import '../taetigkeit/taetigkeit.dart';
 
 /// Repräsentiert ein Mitglied der DPSG – reine Domain-Entität (keine Flutter Abhängigkeiten).
 /// Pflichtfelder: Vorname, Nachname, Geburtsdatum, Eintrittsdatum, Mitgliedsnummer.

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:storybook_flutter/storybook_flutter.dart';
-import 'package:nami/domain/member/stufe.dart';
-import 'package:nami/domain/member/taetigkeit.dart';
+import 'package:nami/domain/taetigkeit/stufe.dart';
+import 'package:nami/domain/taetigkeit/taetigkeit.dart';
 import 'package:nami/presentation/widgets/member_roles_list_tile.dart';
+import 'package:storybook_flutter/storybook_flutter.dart';
 
 Story memberRolesListTileStory() => Story(
   name: 'MemberDetails/Role/MemberRolesListTile',

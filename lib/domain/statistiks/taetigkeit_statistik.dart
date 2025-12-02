@@ -1,5 +1,5 @@
-import 'taetigkeit.dart';
-import 'stufe.dart';
+import '../taetigkeit/stufe.dart';
+import '../taetigkeit/taetigkeit.dart';
 
 /// Bereinigt eine Liste von Tätigkeiten für Statistik-Zwecke.
 /// Regeln:
@@ -51,7 +51,7 @@ List<Taetigkeit> cleanForStatistiks(List<Taetigkeit> original) {
   // (Priorität-Hilfsfunktion entfällt; Regeln unten angewandt)
 
   // Priorität: Leitung > Mitglied > Sonstige
-  int _priority(TaetigkeitsArt art) {
+  int priority(TaetigkeitsArt art) {
     switch (art) {
       case TaetigkeitsArt.leitung:
         return 3;
@@ -72,8 +72,8 @@ List<Taetigkeit> cleanForStatistiks(List<Taetigkeit> original) {
       final overlaps = s.start.isBefore(t.ende!) && t.start.isBefore(s.ende!);
       if (!overlaps) continue;
 
-      final pNew = _priority(t.art);
-      final pOld = _priority(s.art);
+      final pNew = priority(t.art);
+      final pOld = priority(s.art);
 
       if (t.start.isAtSameMomentAs(s.start)) {
         // Gleicher Start: behalte die höhere Priorität, entferne/verkürze die niedrigere

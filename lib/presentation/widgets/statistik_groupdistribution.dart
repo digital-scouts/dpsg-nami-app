@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../domain/member/group_distribution.dart';
-import '../../domain/member/stufe.dart';
+import 'package:nami/presentation/stufe/stufe_visuals.dart';
+import 'package:nami/presentation/theme/theme.dart';
+
+import '../../domain/statistiks/group_distribution.dart';
+import '../../domain/taetigkeit/stufe.dart';
 
 /// Zeigt gestapelte Balken (Leitung unten, Mitglieder oben) für eine oder mehrere Stufen.
 class GroupDistributionChart extends StatelessWidget {
@@ -125,8 +128,8 @@ class _GroupDistributionPainter extends CustomPainter {
       final leaderHeight = leaderFrac * height;
       final memberFrac = dist.mitgliedCount / maxTotal;
       final memberHeight = memberFrac * height;
-      final leaderColor = Stufe.leitung.color;
-      final memberColor = dist.stufe.color;
+      final leaderColor = DPSGColors.leiterFarbe;
+      final memberColor = StufeVisuals.colorFor(dist.stufe);
 
       // Leitung Segment (unten)
       if (leaderHeight > 0) {

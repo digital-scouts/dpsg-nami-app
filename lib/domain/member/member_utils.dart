@@ -1,6 +1,6 @@
+import '../taetigkeit/stufe.dart';
+import '../taetigkeit/taetigkeit.dart';
 import 'mitglied.dart';
-import 'taetigkeit.dart';
-import 'stufe.dart';
 
 /// Reine Domain-Hilfsfunktionen rund um `Mitglied` und `Taetigkeit`.
 /// Keine Flutter-Abhängigkeiten, leicht testbar.

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:nami/domain/member/mitglied.dart';
-import 'package:nami/presentation/widgets/member_list_tile.dart';
 import 'package:nami/domain/member/member_utils.dart';
-import 'package:nami/domain/member/stufe.dart';
+import 'package:nami/domain/member/mitglied.dart';
+import 'package:nami/domain/taetigkeit/stufe.dart';
+import 'package:nami/presentation/widgets/member_list_tile.dart';
 
 class MemberListSettingsHandler extends ChangeNotifier {
   MemberListSettingsHandler({String initial = ''}) : _searchString = initial;
