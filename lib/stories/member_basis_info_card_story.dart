@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:storybook_flutter/storybook_flutter.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/presentation/widgets/member_basis_info_card.dart';
+// ignore: depend_on_referenced_packages
+import 'package:storybook_flutter/storybook_flutter.dart';
 
 Story memberGeneralInfoCardStory() => Story(
   name: 'MemberDetails/Basis/Allgemeine Info',

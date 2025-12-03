@@ -10,8 +10,8 @@ import '../taetigkeit/taetigkeit.dart';
 /// - Parallele, unwichtigere Tätigkeiten in Überlapp werden entfernt
 ///   (Priorität: Leitung > Mitglied > Sonstige).
 ///
-/// Input: Original Liste<Taetigkeit>
-/// Output: Neue Liste<Taetigkeit> ohne Überlapp, zusammengelegt.
+/// Input: Original Liste Taetigkeit
+/// Output: Neue Liste Taetigkeit ohne Überlapp, zusammengelegt.
 List<Taetigkeit> cleanForStatistiks(List<Taetigkeit> original) {
   if (original.isEmpty) return const [];
 
