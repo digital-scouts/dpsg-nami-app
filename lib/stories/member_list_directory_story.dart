@@ -1,8 +1,9 @@
-import 'package:storybook_flutter/storybook_flutter.dart';
 import 'package:nami/domain/member/mitglied.dart';
+import 'package:nami/presentation/widgets/member_list.dart';
 import 'package:nami/presentation/widgets/member_list_directory.dart';
 import 'package:nami/presentation/widgets/member_list_tile.dart';
-import 'package:nami/presentation/widgets/member_list.dart';
+// ignore: depend_on_referenced_packages
+import 'package:storybook_flutter/storybook_flutter.dart';
 
 Story memberDirectoryStory() => Story(
   name: 'MemberList/View',

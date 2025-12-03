@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:nami/domain/stufenwechsel/stufenwechsel_info.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
+import 'package:nami/presentation/stufe/stufe_visuals.dart';
 
 class StufenwechselEmpfehlung extends StatelessWidget {
   final List<StufenwechselInfo> infos;
-  final Stufe stufe;
+  final List<Stufe> stufen;
   final void Function(String id)? onTap;
 
   const StufenwechselEmpfehlung({
     super.key,
     required this.infos,
-    required this.stufe,
+    required this.stufen,
     this.onTap,
   });
-
   String _formatAlter(Duration d) {
     final jahre = (d.inDays / 365).floor();
     final restTage = d.inDays - jahre * 365;
@@ -37,21 +37,53 @@ class StufenwechselEmpfehlung extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sorted = [...infos]
-      ..sort((a, b) => b.alterZumStichtag.compareTo(a.alterZumStichtag));
+    // Alle gewünschten Stufen zusammenführen und in einer Liste darstellen.
+    final combined =
+        infos.where((i) => i.stufe != null && stufen.contains(i.stufe)).toList()
+          ..sort((a, b) => b.alterZumStichtag.compareTo(a.alterZumStichtag));
 
-    return DataTable(
-      columns: const [
-        DataColumn(label: Text('Name')),
-        DataColumn(label: Text('Alter')),
-        DataColumn(label: Text('Wechsel')),
-      ],
-      rows: sorted.map((info) {
-        final name = info.vorname;
-        final alter = _formatAlter(info.alterZumStichtag);
-        final wechsel = _formatWechsel(info.wechselzeitraum);
-        return DataRow(
-          cells: [
+    if (combined.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final showStufeCol = stufen.length > 1;
+
+    final columns = <DataColumn>[
+      if (showStufeCol) const DataColumn(label: Text('Stufe')),
+      const DataColumn(label: Text('Name')),
+      const DataColumn(label: Text('Alter')),
+      const DataColumn(label: Text('Wechsel')),
+    ];
+
+    return SizedBox(
+      width: double.infinity,
+      child: DataTable(
+        columns: columns,
+        rows: combined.map((info) {
+          final name = info.vorname;
+          final alter = _formatAlter(info.alterZumStichtag);
+          final wechsel = _formatWechsel(info.wechselzeitraum);
+          final cells = <DataCell>[];
+
+          if (showStufeCol) {
+            final stufe = info.stufe;
+            final asset = stufe != null ? StufeVisuals.assetFor(stufe) : null;
+            cells.add(
+              DataCell(
+                asset != null
+                    ? Image.asset(
+                        asset,
+                        width: 35,
+                        height: 28,
+                        fit: BoxFit.contain,
+                      )
+                    : const SizedBox.shrink(),
+                onTap: onTap == null ? null : () => onTap!(info.id),
+              ),
+            );
+          }
+
+          cells.addAll([
             DataCell(
               Text(name),
               onTap: onTap == null ? null : () => onTap!(info.id),
@@ -64,9 +96,11 @@ class StufenwechselEmpfehlung extends StatelessWidget {
               Text(wechsel),
               onTap: onTap == null ? null : () => onTap!(info.id),
             ),
-          ],
-        );
-      }).toList(),
+          ]);
+
+          return DataRow(cells: cells);
+        }).toList(),
+      ),
     );
   }
 }
