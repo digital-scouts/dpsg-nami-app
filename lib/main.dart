@@ -10,15 +10,16 @@ import 'package:nami/data/datasource/hive/user/hive_user_data_source.dart';
 import 'package:nami/data/datasource/nami/login.api.dart';
 import 'package:nami/data/repositories/auth_repository_impl.dart';
 import 'package:nami/domain/repositories/auth_repository.dart';
+import 'package:nami/ignore_deprecated_utilities/custom_wiredash_translations_delegate.dart';
+import 'package:nami/ignore_deprecated_utilities/helper_functions.dart';
+import 'package:nami/ignore_deprecated_utilities/hive/hive_service.dart';
+import 'package:nami/ignore_deprecated_utilities/hive/settings_service.dart'
+    hide settingsBox;
+import 'package:nami/ignore_deprecated_utilities/logger.dart';
+import 'package:nami/ignore_deprecated_utilities/notifications/birthday_notifications.dart';
+import 'package:nami/ignore_deprecated_utilities/theme.dart';
 import 'package:nami/presentation/app/app_cubit.dart';
 import 'package:nami/presentation/navigation/navigation_home.page.dart';
-import 'package:nami/utilities/custom_wiredash_translations_delegate.dart';
-import 'package:nami/utilities/helper_functions.dart';
-import 'package:nami/utilities/hive/hive_service.dart';
-import 'package:nami/utilities/hive/settings_service.dart' hide settingsBox;
-import 'package:nami/utilities/logger.dart';
-import 'package:nami/utilities/notifications/birthday_notifications.dart';
-import 'package:nami/utilities/theme.dart';
 import 'package:provider/provider.dart';
 import 'package:wiredash/wiredash.dart';
 
