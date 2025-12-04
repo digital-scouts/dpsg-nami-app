@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:nami/domain/stufenwechsel/stufenwechsel_info.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
+import 'package:nami/presentation/format/date_formatters.dart';
 import 'package:nami/presentation/stufe/stufe_visuals.dart';
 
 class StufenwechselEmpfehlung extends StatelessWidget {
   final List<StufenwechselInfo> infos;
   final List<Stufe> stufen;
   final void Function(String id)? onTap;
+  final DateTime stichtag;
 
   const StufenwechselEmpfehlung({
     super.key,
     required this.infos,
     required this.stufen,
     this.onTap,
+    required this.stichtag,
   });
   String _formatAlter(Duration d) {
     final jahre = (d.inDays / 365).floor();
@@ -43,7 +46,17 @@ class StufenwechselEmpfehlung extends StatelessWidget {
           ..sort((a, b) => b.alterZumStichtag.compareTo(a.alterZumStichtag));
 
     if (combined.isEmpty) {
-      return const SizedBox.shrink();
+      final stufenText = stufen.isEmpty
+          ? 'Stufe'
+          : stufen.map((s) => s.shortDisplayName).join(', ');
+      final datumText = DateFormatter.formatGermanShortDate(stichtag);
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text(
+          'Kein Wechsel der $stufenText zum $datumText',
+          textAlign: TextAlign.center,
+        ),
+      );
     }
 
     final showStufeCol = stufen.length > 1;

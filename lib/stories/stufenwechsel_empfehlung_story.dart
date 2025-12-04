@@ -49,13 +49,14 @@ Story stufenwechselEmpfehlungStory() {
     ),
   ];
   return Story(
-    name: 'Stufenwechsel/Empfehlung',
+    name: 'Stufenwechsel/EmpfehlungTabelle',
     builder: (context) {
       final showBiber = context.knobs.boolean(label: 'Biber', initial: false);
       final showWoe = context.knobs.boolean(label: 'Wölfling', initial: true);
       final showJufi = context.knobs.boolean(label: 'Jufi', initial: true);
       final showPfadi = context.knobs.boolean(label: 'Pfadi', initial: false);
       final showRover = context.knobs.boolean(label: 'Rover', initial: false);
+      final stichtag = DateTime.now();
 
       final stufen = <Stufe>[
         if (showBiber) Stufe.biber,
@@ -67,7 +68,8 @@ Story stufenwechselEmpfehlungStory() {
 
       return StufenwechselEmpfehlung(
         infos: infos,
-        stufen: stufen.isEmpty ? [Stufe.woelfling] : stufen,
+        stufen: stufen,
+        stichtag: stichtag,
         onTap: (id) {
           ScaffoldMessenger.of(
             context,
