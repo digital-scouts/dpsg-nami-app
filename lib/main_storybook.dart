@@ -55,7 +55,7 @@ class StorybookEntry extends StatelessWidget {
           ageDistributionStory(),
           groupDistributionStory(),
           groupFilterStory(),
-          searchBarStory(),
+          memberListSearchBarStory(),
           memberDirectoryStory(),
           stufenwechselEmpfehlungStory(),
           stufenChoiceChipsStory(),
