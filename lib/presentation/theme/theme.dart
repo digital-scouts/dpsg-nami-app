@@ -24,6 +24,9 @@ final darkTheme = ThemeData(
     brightness: Brightness.dark,
   ),
   disabledColor: const Color.fromARGB(255, 36, 36, 36),
+  inputDecorationTheme: const InputDecorationTheme(
+    fillColor: Color.fromARGB(255, 58, 58, 58),
+  ),
 );
 
 final lightTheme = ThemeData(
@@ -33,4 +36,7 @@ final lightTheme = ThemeData(
     brightness: Brightness.light,
   ),
   disabledColor: const Color.fromARGB(255, 222, 222, 222),
+  inputDecorationTheme: const InputDecorationTheme(
+    fillColor: Color.fromARGB(255, 242, 242, 242),
+  ),
 );
