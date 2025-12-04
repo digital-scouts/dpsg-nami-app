@@ -205,7 +205,10 @@ class _GroupDistributionPainter extends CustomPainter {
 
   Color _bestTextColor(Color bg) {
     // einfache Luma-Heuristik
-    final luma = 0.299 * bg.red + 0.587 * bg.green + 0.114 * bg.blue;
+    final luma =
+        0.299 * ((bg.r * 255.0).round() & 0xff) +
+        0.587 * ((bg.g * 255.0).round() & 0xff) +
+        0.114 * ((bg.b * 255.0).round() & 0xff);
     return luma > 140 ? Colors.black : Colors.white;
   }
 

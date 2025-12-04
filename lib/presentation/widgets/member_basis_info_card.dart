@@ -1,10 +1,10 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/gestures.dart';
-import 'package:url_launcher/url_launcher_string.dart';
-import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/member/member_utils.dart';
+import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/presentation/format/date_formatters.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 /// Zeigt allgemeine Informationen zu einem Mitglied.
 /// Input: Nur die Domain-Entität `Mitglied`.
@@ -128,6 +128,7 @@ class _InfoTile extends StatelessWidget {
               tooltip: 'Kopieren',
               onPressed: () async {
                 await Clipboard.setData(ClipboardData(text: row.value));
+                // ignore: use_build_context_synchronously
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Kopiert'),
@@ -175,6 +176,7 @@ class _InfoTile extends StatelessWidget {
                 if (await canLaunchUrlString(uri)) {
                   await launchUrlString(uri);
                 } else {
+                  // ignore: use_build_context_synchronously
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Kann Link nicht öffnen')),
                   );
