@@ -22,6 +22,8 @@ final darkTheme = ThemeData(
     seedColor: DPSGColors.primary,
     secondary: DPSGColors.secondary,
     brightness: Brightness.dark,
+    surface: Color.fromARGB(255, 205, 25, 25),
+    shadow: Color.fromARGB(255, 0, 0, 0),
   ),
   disabledColor: const Color.fromARGB(255, 36, 36, 36),
   inputDecorationTheme: const InputDecorationTheme(
@@ -34,6 +36,8 @@ final lightTheme = ThemeData(
     seedColor: DPSGColors.primary,
     secondary: DPSGColors.secondary,
     brightness: Brightness.light,
+    surface: Color(0xFFFFFFFF),
+    shadow: Color.fromARGB(255, 200, 200, 200),
   ),
   disabledColor: const Color.fromARGB(255, 222, 222, 222),
   inputDecorationTheme: const InputDecorationTheme(

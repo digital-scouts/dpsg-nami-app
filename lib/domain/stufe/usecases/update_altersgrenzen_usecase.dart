@@ -57,6 +57,15 @@ class UpdateAltersgrenzenUseCase {
           'Höchstalter ${next.shortDisplayName} (${n.maxJahre}) muss größer sein als ${prev.shortDisplayName} (${p.maxJahre}).',
         );
       }
+      // 3) Keine Lücken zwischen aufeinanderfolgenden Stufen: Beginn der nächsten Stufe
+      //    darf nicht größer sein als das Höchstalter der vorherigen Stufe.
+      //    Beispiel: Wö max=8 und Jufi min=9 -> Lücke (8.x Jahre)
+      if (n.minJahre > p.maxJahre) {
+        throw AltersgrenzenValidationError(
+          'Es darf keine Lücke zwischen ${prev.shortDisplayName} und ${next.shortDisplayName} entstehen. '
+          'Aktuell: Mindestalter ${next.shortDisplayName} (${n.minJahre}) > Höchstalter ${prev.shortDisplayName} (${p.maxJahre}).',
+        );
+      }
     }
   }
 }
