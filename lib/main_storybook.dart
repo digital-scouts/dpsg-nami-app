@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:nami/stories/app_bottom_navigation_story.dart';
 import 'package:nami/stories/app_sidebar_story.dart';
 import 'package:nami/stories/message_of_the_day_card_story.dart';
+import 'package:nami/stories/settings_page_story.dart';
 import 'package:nami/stories/stufen_choice_chips_story.dart';
 import 'package:nami/stories/stufenwechsel_empfehlung_story.dart';
 import 'package:nami/stories/stufenwechsel_timeline_story.dart';
@@ -63,6 +65,8 @@ class StorybookEntry extends StatelessWidget {
           stufenChoiceChipsStory(),
           stufenwechselTimelineStory(),
           appSidebarStory(),
+          appBottomNavigationStory(),
+          settingsPageStory(),
           storyMessageOfTheDayCard(),
           Story(
             name: 'App/ThemeToggleInfo',
