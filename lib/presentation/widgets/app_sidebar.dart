@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../domain/notifications/message_of_the_day.dart';
+import 'message_of_the_day_card.dart';
+
 class AppSidebar extends StatefulWidget {
   final String userName;
   final String userId;
@@ -7,8 +10,8 @@ class AppSidebar extends StatefulWidget {
   final VoidCallback? onMitglieder;
   final VoidCallback? onStatistiken;
   final VoidCallback? onSettings;
-  final String messageOfTheDay;
-  final String messageOfTheDayHeader;
+  final MessageOfTheDay? motd;
+  // Sidebar zeigt nur noch eine fixe Message; keine Model-Prop nötig
 
   const AppSidebar({
     super.key,
@@ -18,8 +21,7 @@ class AppSidebar extends StatefulWidget {
     this.onMitglieder,
     this.onStatistiken,
     this.onSettings,
-    this.messageOfTheDay = "",
-    this.messageOfTheDayHeader = "",
+    this.motd,
   });
 
   @override
@@ -48,7 +50,10 @@ class _AppSidebarState extends State<AppSidebar> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     clipBehavior: Clip.antiAlias,
-                    child: _HeaderIcon(brightness: theme.brightness),
+                    child: Image.asset(
+                      'assets/icon/icon-blank.png',
+                      fit: BoxFit.cover,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -74,8 +79,8 @@ class _AppSidebarState extends State<AppSidebar> {
               ),
             ),
 
+            // Nav items
             const Divider(),
-            // Controls
             ListTile(
               leading: const Icon(Icons.people),
               title: const Text('Meine Stufe'),
@@ -93,54 +98,19 @@ class _AppSidebarState extends State<AppSidebar> {
             ),
             const Spacer(),
 
-            // Platz für Benachrichtigungen
-            if (widget.messageOfTheDay.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 8),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.notifications_active,
-                                color: theme.colorScheme.primary,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  widget.messageOfTheDayHeader.isNotEmpty
-                                      ? widget.messageOfTheDayHeader
-                                      : 'Hinweis',
-                                  style: theme.textTheme.titleSmall,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            widget.messageOfTheDay,
-                            style: theme.textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                ),
+            // Unterer Bereich
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 8),
+                  if (widget.motd != null)
+                    MessageOfTheDayCard(motd: widget.motd!, maxBodyHeight: 120),
+                  const SizedBox(height: 16),
+                ],
               ),
+            ),
             ListTile(
               leading: const Icon(Icons.settings),
               title: const Text('Einstellungen'),
@@ -159,28 +129,6 @@ class _AppSidebarState extends State<AppSidebar> {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _HeaderIcon extends StatelessWidget {
-  final Brightness brightness;
-  const _HeaderIcon({required this.brightness});
-
-  @override
-  Widget build(BuildContext context) {
-    final path = 'assets/icon/icon-blank.png';
-    return Image.asset(
-      path,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stack) {
-        return Center(
-          child: Icon(
-            Icons.apps,
-            color: Theme.of(context).colorScheme.onSecondaryContainer,
-          ),
-        );
-      },
     );
   }
 }
