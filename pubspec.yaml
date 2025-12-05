@@ -67,6 +67,7 @@ dependencies:
   flutter_bloc: ^9.1.1
   equatable: ^2.0.7
   flutter_svg: ^2.2.3
+  awesome_snackbar_content: ^0.1.8
 
 dev_dependencies:
   flutter_test:

@@ -49,6 +49,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.13.0"
+  awesome_snackbar_content:
+    dependency: "direct main"
+    description:
+      name: awesome_snackbar_content
+      sha256: "1aac8861d567ba0f8a5dc8e79e525b50f70d6feedf4cbe99e08efb29fce6039d"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.8"
   backdrop:
     dependency: "direct main"
     description:
