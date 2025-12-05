@@ -98,6 +98,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/icon/
     - assets/ai_kontext/
     - .env
     # Using .gitlink here, because gradle excludes files like .git by default. This symlink circumvents that. This is used to display the current commit.
