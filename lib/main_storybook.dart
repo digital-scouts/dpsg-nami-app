@@ -4,6 +4,7 @@ import 'package:nami/stories/app_bottom_navigation_story.dart';
 import 'package:nami/stories/app_sidebar_story.dart';
 import 'package:nami/stories/message_of_the_day_card_story.dart';
 import 'package:nami/stories/settings_page_story.dart';
+import 'package:nami/stories/settings_stamm_page_story.dart';
 import 'package:nami/stories/stamm_address_settings_story.dart';
 import 'package:nami/stories/stufen_choice_chips_story.dart';
 import 'package:nami/stories/stufenwechsel_empfehlung_story.dart';
@@ -69,6 +70,7 @@ class StorybookEntry extends StatelessWidget {
           appSidebarStory(),
           appBottomNavigationStory(),
           settingsPageStory(),
+          buildSettingsStammPageStory(),
           stammAddressSettingsStory(),
           stufenwechselSettingsStory(),
           storyMessageOfTheDayCard(),

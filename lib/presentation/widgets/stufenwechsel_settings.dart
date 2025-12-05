@@ -97,8 +97,6 @@ class _StufenwechselSettingsState extends State<StufenwechselSettings> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Nächster Stufenwechsel', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 8),
         Row(
           children: [
             Expanded(

@@ -40,30 +40,30 @@ class UpdateAltersgrenzenUseCase {
       Stufe.rover,
     ];
     for (var i = 0; i < ordered.length - 1; i++) {
-      final prev = ordered[i];
+      final current = ordered[i];
       final next = ordered[i + 1];
-      if (!g.grenzen.containsKey(prev) || !g.grenzen.containsKey(next)) {
+      if (!g.grenzen.containsKey(current) || !g.grenzen.containsKey(next)) {
         continue;
       }
-      final p = g.forStufe(prev);
-      final n = g.forStufe(next);
-      if (n.minJahre <= p.minJahre) {
+      final cur = g.forStufe(current);
+      final nex = g.forStufe(next);
+      if (nex.minJahre <= cur.minJahre) {
         throw AltersgrenzenValidationError(
-          'Mindestalter ${next.shortDisplayName} (${n.minJahre}) muss größer sein als ${prev.shortDisplayName} (${p.minJahre}).',
+          'Mindestalter ${next.shortDisplayName} (${nex.minJahre}) muss größer sein als ${current.shortDisplayName} (${cur.minJahre}).',
         );
       }
-      if (n.maxJahre <= p.maxJahre) {
+      if (nex.maxJahre <= cur.maxJahre) {
         throw AltersgrenzenValidationError(
-          'Höchstalter ${next.shortDisplayName} (${n.maxJahre}) muss größer sein als ${prev.shortDisplayName} (${p.maxJahre}).',
+          'Höchstalter ${next.shortDisplayName} (${nex.maxJahre}) muss größer sein als ${current.shortDisplayName} (${cur.maxJahre}).',
         );
       }
       // 3) Keine Lücken zwischen aufeinanderfolgenden Stufen: Beginn der nächsten Stufe
       //    darf nicht größer sein als das Höchstalter der vorherigen Stufe.
       //    Beispiel: Wö max=8 und Jufi min=9 -> Lücke (8.x Jahre)
-      if (n.minJahre > p.maxJahre) {
+      if (nex.minJahre > cur.maxJahre) {
         throw AltersgrenzenValidationError(
-          'Es darf keine Lücke zwischen ${prev.shortDisplayName} und ${next.shortDisplayName} entstehen. '
-          'Aktuell: Mindestalter ${next.shortDisplayName} (${n.minJahre}) > Höchstalter ${prev.shortDisplayName} (${p.maxJahre}).',
+          'Es darf keine Lücke zwischen ${current.shortDisplayName} und ${next.shortDisplayName} entstehen. '
+          'Aktuell: Mindestalter ${next.shortDisplayName} (${nex.minJahre}) > Höchstalter ${current.shortDisplayName} (${cur.maxJahre}).',
         );
       }
     }
