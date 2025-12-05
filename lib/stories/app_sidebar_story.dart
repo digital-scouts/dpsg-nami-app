@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nami/domain/notifications/message_of_the_day.dart';
 import 'package:nami/presentation/widgets/app_sidebar.dart';
 // ignore: depend_on_referenced_packages
 import 'package:storybook_flutter/storybook_flutter.dart';
@@ -12,27 +13,29 @@ Story appSidebarStory() {
         initial: 'Max Mustermann',
       );
       final userId = context.knobs.text(label: 'Benutzer-ID', initial: '12345');
-      final showNotification = context.knobs.boolean(
-        label: 'Benachrichtigung anzeigen',
-        initial: false,
+      final showMessageOfTheDay = context.knobs.boolean(
+        label: 'Show Message of the Day',
+        initial: true,
       );
-      final notificationText = context.knobs.text(
-        label: 'Benachrichtigungstext',
-        initial: 'Willkommen zurück!',
-      );
-
-      final messageOfTheDayHeader = context.knobs.text(
-        label: 'Benachrichtigungskopf',
-        initial: 'Tagesnachricht',
-      );
+      final motd = showMessageOfTheDay
+          ? MessageOfTheDay(
+              header: 'Hinweis',
+              bodyMarkdown:
+                  'Willkommen zur Nami App! Diese Seitenleiste bietet schnellen Zugriff auf wichtige Bereiche der App.',
+              action: CallToAction(
+                label: 'Mehr erfahren',
+                externalLink: Uri.parse('https://dpsg.de'),
+                color: Colors.blue,
+              ),
+            )
+          : null;
 
       return Scaffold(
         appBar: AppBar(title: const Text('Sidebar Preview')),
         drawer: AppSidebar(
           userName: userName,
           userId: userId,
-          messageOfTheDay: showNotification ? notificationText : "",
-          messageOfTheDayHeader: messageOfTheDayHeader,
+          motd: motd,
           onMeineStufe: () => ScaffoldMessenger.of(
             context,
           ).showSnackBar(const SnackBar(content: Text('Meine Stufe'))),
