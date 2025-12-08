@@ -97,12 +97,17 @@ class _StufenwechselSettingsState extends State<StufenwechselSettings> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Text(
+          "Für die Empfehlung des nächsten Stufenwechsels wird das Datum und die in deinem Stamm verwendeten Altersgrenzen berücksichtigt. ",
+          style: theme.textTheme.bodyMedium,
+        ),
+        const SizedBox(height: 16),
         Row(
           children: [
             Expanded(
               child: Text(
                 _date == null
-                    ? 'Kein Datum gewählt'
+                    ? 'Kein Datum für den nächsten Stufenwechsel festgelegt'
                     : DateFormatter.formatGermanLongDate(_date!),
               ),
             ),
@@ -113,8 +118,27 @@ class _StufenwechselSettingsState extends State<StufenwechselSettings> {
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        Text('Altersgruppen', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: Text('Altersgruppen', style: theme.textTheme.titleMedium),
+            ),
+            IconButton(
+              tooltip: 'Änderungen zurücksetzen',
+              icon: const Icon(Icons.undo),
+              onPressed: () {
+                final defaults = StufenDefaults.build();
+                setState(() => _grenzen = defaults);
+                widget.onResetDefaults?.call();
+              },
+            ),
+            TextButton(
+              onPressed: () => widget.onSave?.call(_grenzen),
+              child: const Text('Speichern'),
+            ),
+          ],
+        ),
         const SizedBox(height: 8),
         for (final stufe in Stufe.values.where((s) => s != Stufe.leitung)) ...[
           Row(
@@ -156,25 +180,6 @@ class _StufenwechselSettingsState extends State<StufenwechselSettings> {
           const SizedBox(height: 12),
         ],
         const SizedBox(height: 12),
-        Row(
-          children: [
-            const Spacer(),
-            IconButton(
-              tooltip: 'Änderungen zurücksetzen',
-              icon: const Icon(Icons.undo),
-              onPressed: () {
-                final defaults = StufenDefaults.build();
-                setState(() => _grenzen = defaults);
-                widget.onResetDefaults?.call();
-              },
-            ),
-
-            FilledButton(
-              onPressed: () => widget.onSave?.call(_grenzen),
-              child: const Text('Speichern'),
-            ),
-          ],
-        ),
       ],
     );
   }

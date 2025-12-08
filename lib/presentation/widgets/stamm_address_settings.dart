@@ -48,8 +48,10 @@ class _StammAddressSettingsState extends State<StammAddressSettings> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const MapSkeleton(),
-        const SizedBox(height: 12),
+        Text(
+          "Die Adresse wird verwendet, um den Stamm auf der Karte zu verorten und die Entfernung von Mitgliedern zum Heim anzuzeigen.",
+          style: theme.textTheme.bodyMedium,
+        ),
         Autocomplete<String>(
           optionsBuilder: (TextEditingValue value) async {
             final query = value.text;
@@ -85,15 +87,12 @@ class _StammAddressSettingsState extends State<StammAddressSettings> {
             return TextFormField(
               controller: textController,
               focusNode: focusNode,
-              decoration: const InputDecoration(labelText: 'Adresse'),
+              decoration: const InputDecoration(labelText: 'Heim-Adresse'),
             );
           },
         ),
-        const SizedBox(height: 8),
-        Text(
-          'Wird für die Kartenansicht genutzt',
-          style: theme.textTheme.bodySmall,
-        ),
+        const SizedBox(height: 12),
+        const MapSkeleton(),
       ],
     );
   }
