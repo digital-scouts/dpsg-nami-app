@@ -41,6 +41,11 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
           onLogout: () => print("Logout clicked"),
           onStammSettings: () =>
               Navigator.pushNamed(context, '/settings/stamm'),
+          onAppSettings: () => Navigator.pushNamed(context, '/settings/app'),
+          onProfile: () => Navigator.pushNamed(context, '/profile'),
+          onDebugTools: () => Navigator.pushNamed(context, '/settings/debug'),
+          onNotifications: () =>
+              Navigator.pushNamed(context, '/settings/notifications'),
         );
         break;
       default:

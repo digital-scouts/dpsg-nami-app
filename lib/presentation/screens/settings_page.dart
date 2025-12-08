@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nami/l10n/app_localizations.dart';
 
 class SettingsPage extends StatelessWidget {
   final String userName;
@@ -27,8 +28,9 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final t = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Einstellungen')),
+      appBar: AppBar(title: Text(t.t('settings_title'))),
       body: SafeArea(
         child: Column(
           children: [
@@ -71,33 +73,33 @@ class SettingsPage extends StatelessWidget {
                   ListTile(
                     leading: const Icon(Icons.person),
                     trailing: const Icon(Icons.chevron_right),
-                    title: const Text('Profil'),
+                    title: Text(t.t('profile')),
                     onTap: onProfile,
                   ),
                   const Divider(),
                   ListTile(
                     leading: const Icon(Icons.flag),
                     trailing: const Icon(Icons.chevron_right),
-                    title: const Text('Stammeseinstellungen'),
+                    title: Text(t.t('stamm_settings')),
                     onTap: onStammSettings,
                   ),
                   ListTile(
                     leading: const Icon(Icons.settings_suggest),
                     trailing: const Icon(Icons.chevron_right),
-                    title: const Text('Appeinstellungen'),
+                    title: Text(t.t('app_settings')),
                     onTap: onAppSettings,
                   ),
                   ListTile(
                     leading: const Icon(Icons.notifications),
                     trailing: const Icon(Icons.chevron_right),
-                    title: const Text('Benachrichtigungen'),
+                    title: Text(t.t('notifications_enable')),
                     onTap: onNotifications,
                   ),
 
                   ListTile(
                     leading: const Icon(Icons.build_circle),
                     trailing: const Icon(Icons.chevron_right),
-                    title: const Text('Debug & Tools'),
+                    title: Text(t.t('debug_tools')),
                     onTap: onDebugTools,
                   ),
                 ],
@@ -110,7 +112,7 @@ class SettingsPage extends StatelessWidget {
                   Icons.logout,
                   color: Theme.of(context).colorScheme.error,
                 ),
-                title: const Text('Logout'),
+                title: Text(t.t('logout')),
                 onTap: onLogout,
               ),
             ),
@@ -120,12 +122,12 @@ class SettingsPage extends StatelessWidget {
               child: Column(
                 children: [
                   Text(
-                    'Entwickelt mit ❤️ in Hamburg',
+                    t.t('developed_in_hamburg'),
                     style: theme.textTheme.bodySmall,
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Version: $appVersion',
+                    '${t.t('version_label')}: $appVersion',
                     style: theme.textTheme.bodySmall,
                   ),
                 ],
