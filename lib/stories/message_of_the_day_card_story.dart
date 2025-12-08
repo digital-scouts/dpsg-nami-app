@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+// ignore: depend_on_referenced_packages
 import 'package:storybook_flutter/storybook_flutter.dart';
 
 import '../domain/notifications/message_of_the_day.dart';

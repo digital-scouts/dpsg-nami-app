@@ -4,6 +4,7 @@ import 'package:nami/data/settings/in_memory_address_settings_repository.dart';
 import 'package:nami/domain/stufe/altersgrenzen.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/screens/settings_stamm_page.dart';
+// ignore: depend_on_referenced_packages
 import 'package:storybook_flutter/storybook_flutter.dart';
 
 Story buildSettingsStammPageStory() => Story(
