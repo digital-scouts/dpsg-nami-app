@@ -37,15 +37,18 @@ Story stufenwechselSettingsStory() {
             onSave: (g) async {
               try {
                 await usecase.call(g);
+                // ignore: use_build_context_synchronously
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Altersgrenzen gespeichert')),
                 );
                 grenzen = g;
               } on AltersgrenzenValidationError catch (e) {
                 ScaffoldMessenger.of(
+                  // ignore: use_build_context_synchronously
                   context,
                 ).showSnackBar(SnackBar(content: Text(e.message)));
               } catch (_) {
+                // ignore: use_build_context_synchronously
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Speichern fehlgeschlagen.')),
                 );

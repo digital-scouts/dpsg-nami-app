@@ -38,7 +38,7 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
         body = SettingsPage(
           userId: "133",
           userName: "Max Mustermann",
-          onLogout: () => print("Logout clicked"),
+          onLogout: () => debugPrint("Logout clicked"),
           onStammSettings: () =>
               Navigator.pushNamed(context, '/settings/stamm'),
           onAppSettings: () => Navigator.pushNamed(context, '/settings/app'),
