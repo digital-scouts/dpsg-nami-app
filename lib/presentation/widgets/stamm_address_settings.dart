@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:nami/domain/settings/address_settings_repository.dart';
+import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/widgets/skeletton_map.dart';
 
 class StammAddressSettings extends StatefulWidget {
@@ -49,7 +50,7 @@ class _StammAddressSettingsState extends State<StammAddressSettings> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          "Die Adresse wird verwendet, um den Stamm auf der Karte zu verorten und die Entfernung von Mitgliedern zum Heim anzuzeigen.",
+          AppLocalizations.of(context).t('address_help'),
           style: theme.textTheme.bodyMedium,
         ),
         Autocomplete<String>(
@@ -79,7 +80,9 @@ class _StammAddressSettingsState extends State<StammAddressSettings> {
             // TODO: Trigger map region download
             widget.onDownloadRegion?.call();
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Adresse gespeichert')),
+              SnackBar(
+                content: Text(AppLocalizations.of(context).t('address_saved')),
+              ),
             );
           },
           fieldViewBuilder: (context, textController, focusNode, onSubmitted) {
@@ -87,7 +90,9 @@ class _StammAddressSettingsState extends State<StammAddressSettings> {
             return TextFormField(
               controller: textController,
               focusNode: focusNode,
-              decoration: const InputDecoration(labelText: 'Heim-Adresse'),
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context).t('address_label'),
+              ),
             );
           },
         ),

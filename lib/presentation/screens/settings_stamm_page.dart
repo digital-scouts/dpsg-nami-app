@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nami/domain/settings/address_settings_repository.dart';
 import 'package:nami/domain/stufe/altersgrenzen.dart';
+import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/widgets/stamm_address_settings.dart';
 import 'package:nami/presentation/widgets/stufenwechsel_settings.dart';
 import 'package:nami/services/address_autocomplete_provider.dart';
@@ -24,20 +25,24 @@ class SettingsStammPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final t = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Stamm-Einstellungen')),
+      appBar: AppBar(title: Text(t.t('stamm_settings'))),
       body: Padding(
         padding: const EdgeInsets.fromLTRB(18, 0, 18, 0),
         child: ListView(
           children: [
-            Text('Adresse', style: theme.textTheme.titleLarge),
+            Text(t.t('address_section'), style: theme.textTheme.titleLarge),
             const SizedBox(height: 8),
             StammAddressSettings(
               repository: addressRepository,
               autocompleteProvider: geoapifyAutocompleteProvider,
             ),
             const SizedBox(height: 24),
-            Text('Stufenwechsel', style: theme.textTheme.titleLarge),
+            Text(
+              t.t('stufenwechsel_section'),
+              style: theme.textTheme.titleLarge,
+            ),
             const SizedBox(height: 8),
             StufenwechselSettings(
               nextStufenwechsel: initialStufenwechsel,

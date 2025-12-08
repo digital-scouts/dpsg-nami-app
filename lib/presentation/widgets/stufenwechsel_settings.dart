@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nami/domain/stufe/altersgrenzen.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
+import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/format/date_formatters.dart';
 import 'package:nami/presentation/stufe/stufe_visuals.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
@@ -98,7 +99,7 @@ class _StufenwechselSettingsState extends State<StufenwechselSettings> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Für die Empfehlung des nächsten Stufenwechsels wird das Datum und die in deinem Stamm verwendeten Altersgrenzen berücksichtigt. ",
+          AppLocalizations.of(context).t('stufenwechsel_help'),
           style: theme.textTheme.bodyMedium,
         ),
         const SizedBox(height: 16),
@@ -107,12 +108,12 @@ class _StufenwechselSettingsState extends State<StufenwechselSettings> {
             Expanded(
               child: Text(
                 _date == null
-                    ? 'Kein Datum für den nächsten Stufenwechsel festgelegt'
+                    ? AppLocalizations.of(context).t('no_date_chosen')
                     : DateFormatter.formatGermanLongDate(_date!),
               ),
             ),
             IconButton(
-              tooltip: 'Datum wählen',
+              tooltip: AppLocalizations.of(context).t('pick_date'),
               onPressed: _pickDate,
               icon: const Icon(Icons.calendar_month),
             ),
@@ -122,10 +123,13 @@ class _StufenwechselSettingsState extends State<StufenwechselSettings> {
         Row(
           children: [
             Expanded(
-              child: Text('Altersgruppen', style: theme.textTheme.titleMedium),
+              child: Text(
+                AppLocalizations.of(context).t('altersgruppen'),
+                style: theme.textTheme.titleMedium,
+              ),
             ),
             IconButton(
-              tooltip: 'Änderungen zurücksetzen',
+              tooltip: AppLocalizations.of(context).t('reset_changes'),
               icon: const Icon(Icons.undo),
               onPressed: () {
                 final defaults = StufenDefaults.build();
@@ -135,7 +139,7 @@ class _StufenwechselSettingsState extends State<StufenwechselSettings> {
             ),
             TextButton(
               onPressed: () => widget.onSave?.call(_grenzen),
-              child: const Text('Speichern'),
+              child: Text(AppLocalizations.of(context).t('save')),
             ),
           ],
         ),

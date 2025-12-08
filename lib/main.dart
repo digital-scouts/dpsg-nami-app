@@ -8,7 +8,9 @@ import 'package:nami/presentation/theme/theme.dart';
 import 'package:provider/provider.dart';
 import 'package:wiredash/wiredash.dart';
 
+import 'l10n/app_localizations.dart';
 import 'presentation/navigation/app_router.dart';
+import 'presentation/theme/locale_model.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
@@ -20,7 +22,10 @@ void main() async {
 
   runApp(
     MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => ThemeModel())],
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeModel()),
+        ChangeNotifierProvider(create: (_) => LocaleModel()),
+      ],
       child: const MyApp(),
     ),
   );
@@ -50,12 +55,14 @@ class MyApp extends StatelessWidget {
           navigatorKey: navigatorKey,
           onGenerateRoute: onGenerateRoute,
           initialRoute: '/',
-          localizationsDelegates: const [
+          localizationsDelegates: [
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
+            AppLocalizations.delegate,
           ],
-          supportedLocales: const [Locale('de', 'DE')],
+          supportedLocales: const [Locale('de'), Locale('en')],
+          locale: context.watch<LocaleModel>().currentLocale,
           home: Wiredash(
             projectId: projectId,
             secret: secret,
