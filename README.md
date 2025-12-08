@@ -1,6 +1,5 @@
 # NaMi
 
-
 <a href="https://apps.apple.com/de/app/nami/id6468066816">
     <img src="./assets/workfiles/Download_on_the_App_Store_Badge_DE_RGB_blk_092917.svg" alt="Download für iOS" height="50">
 </a>
@@ -10,8 +9,25 @@
 
 <br>
 
+
+
 ![wakatime](https://wakatime.com/badge/user/f75702c6-6ecd-478f-a765-9c0a07c62d50/project/c30b8bfa-fe60-4da1-9a32-9c86bad66605.svg)
 [![Watch](https://img.shields.io/github/watchers/JanneckLange/dpsg-nami-app?label=Watch)](https://github.com/JanneckLange/dpsg-nami-app/subscription)
+
+**Neubau**
+
+Die aktuelle Version (0.2.7) der NaMi App wird nicht mehr aktualisiert.
+
+NaMi ist mein erstes Projekt mit Flutter und für mobile Geräte.  Ich habe viel gelernt, bin aber mit der aktuellen Codebasis nicht zufrieden und möchte sie verbessern.  Außerdem steht NaMi3.0 vor der Tür.
+
+Daher laufen derzeit umfangreiche Umbauarbeiten, die zahlreiche Verbesserungen in der Entwicklung, aber auch in der App mit sich bringen. 
+
+Es wird keinen Parallelbetrieb von NaMi2.0 und NaMi3.0 mit der App geben. Sobald NaMi3.0 Produktiv verfügbar ist, wird auch die App auf die neue Infrastruktur zugreifen.
+
+[![Commit](https://shields.io/github/last-commit/JanneckLange/dpsg-nami-app/refactor/bigAppRebuild)](https://github.com/JanneckLange/dpsg-nami-app/commits/refactor/bigAppRebuild)
+
+
+
 
 **Master**
 
