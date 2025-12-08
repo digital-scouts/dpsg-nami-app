@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nami/l10n/app_localizations.dart';
 
 class MapSkeleton extends StatelessWidget {
   const MapSkeleton({super.key, this.height = 200});
@@ -16,6 +17,7 @@ class MapSkeleton extends StatelessWidget {
     );
 
     final theme = Theme.of(context);
+    final t = AppLocalizations.of(context);
     final shadowColor = theme.colorScheme.onSurface.withValues(alpha: 0.18);
     return Container(
       decoration: BoxDecoration(
@@ -50,7 +52,7 @@ class MapSkeleton extends StatelessWidget {
                 alignment: Alignment.center,
                 color: theme.colorScheme.surface.withValues(alpha: 0.35),
                 child: Text(
-                  'Karte nich nicht verfügbar',
+                  t.t('map_not_available'),
                   style: theme.textTheme.titleMedium?.copyWith(
                     color: theme.colorScheme.onSurface,
                     fontWeight: FontWeight.w600,

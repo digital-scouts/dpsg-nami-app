@@ -38,6 +38,17 @@ class _StufenwechselSettingsState extends State<StufenwechselSettings> {
     _date = widget.nextStufenwechsel;
   }
 
+  @override
+  void didUpdateWidget(covariant StufenwechselSettings oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.grenzen != widget.grenzen) {
+      _grenzen = widget.grenzen;
+    }
+    if (oldWidget.nextStufenwechsel != widget.nextStufenwechsel) {
+      _date = widget.nextStufenwechsel;
+    }
+  }
+
   Future<void> _pickDate() async {
     final now = DateTime.now();
     final picked = await showDatePicker(
@@ -110,6 +121,7 @@ class _StufenwechselSettingsState extends State<StufenwechselSettings> {
                 _date == null
                     ? AppLocalizations.of(context).t('no_date_chosen')
                     : DateFormatter.formatGermanLongDate(_date!),
+                style: theme.textTheme.bodyMedium,
               ),
             ),
             IconButton(

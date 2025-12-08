@@ -90,8 +90,10 @@ class _StammAddressSettingsState extends State<StammAddressSettings> {
             return TextFormField(
               controller: textController,
               focusNode: focusNode,
+              style: Theme.of(context).textTheme.bodySmall,
               decoration: InputDecoration(
                 labelText: AppLocalizations.of(context).t('address_label'),
+                labelStyle: Theme.of(context).textTheme.bodyMedium,
               ),
             );
           },
