@@ -45,6 +45,7 @@ class AppLocalizations {
       'altersgruppen': 'Altersgruppen',
       'reset_changes': 'Änderungen zurücksetzen',
       'save': 'Speichern',
+      'map_not_available': 'Karte nicht verfügbar',
     },
     'en': {
       'settings_title': 'App Settings',
@@ -79,6 +80,7 @@ class AppLocalizations {
       'altersgruppen': 'Age groups',
       'reset_changes': 'Reset changes',
       'save': 'Save',
+      'map_not_available': 'Map not available',
     },
   };
 

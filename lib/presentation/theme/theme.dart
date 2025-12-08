@@ -48,8 +48,15 @@ final lightTheme = ThemeData(
 class ThemeModel extends ChangeNotifier {
   ThemeMode currentMode = ThemeMode.system;
 
+  final Future<void> Function(ThemeMode)? _persist;
+
+  ThemeModel({Future<void> Function(ThemeMode)? persist}) : _persist = persist;
+
   void setTheme(ThemeMode type) {
     currentMode = type;
-    return notifyListeners();
+    notifyListeners();
+    if (_persist != null) {
+      _persist(type);
+    }
   }
 }

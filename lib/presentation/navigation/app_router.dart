@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../data/settings/in_memory_address_settings_repository.dart';
+// import '../../data/settings/in_memory_address_settings_repository.dart';
+import '../../data/settings/shared_prefs_address_settings_repository.dart';
+import '../../data/settings/shared_prefs_stufen_settings_repository.dart';
+import '../../domain/settings/stufen_settings.dart';
 import '../../domain/stufe/altersgrenzen.dart';
 import '../navigation/navigation_home.page.dart';
 import '../screens/app_settings_page.dart';
@@ -22,23 +25,61 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
       return MaterialPageRoute(builder: (_) => const NavigationHomeScreen());
     case AppRoutes.settingsStamm:
       return MaterialPageRoute(
-        builder: (_) => SettingsStammPage(
-          addressRepository: InMemoryAddressSettingsRepository(),
-          initialAltersgrenzen: StufenDefaults.build(),
-        ),
+        builder: (context) {
+          final repo = SharedPrefsStufenSettingsRepository();
+          return FutureBuilder<StufenSettings>(
+            future: repo.load(),
+            builder: (context, snapshot) {
+              final loaded = snapshot.data;
+              final initialGrenzen = loaded?.grenzen ?? StufenDefaults.build();
+              final initialDate = loaded?.stufenwechselDatum;
+              return SettingsStammPage(
+                addressRepository: SharedPrefsAddressSettingsRepository(),
+                initialAltersgrenzen: initialGrenzen,
+                initialStufenwechsel: initialDate,
+                onSaveAltersgrenzen: (grenzen) async {
+                  final current =
+                      loaded ??
+                      StufenSettings(
+                        grenzen: initialGrenzen,
+                        stufenwechselDatum: initialDate,
+                      );
+                  await repo.saveAltersgrenzen(
+                    current.copyWith(grenzen: grenzen),
+                  );
+                },
+                onStufenwechselChanged: (date) async {
+                  await repo.saveStufenwechselDatum(date);
+                },
+              );
+            },
+          );
+        },
       );
     case AppRoutes.settingsApp:
       return MaterialPageRoute(
         builder: (context) => AppSettingsPage(
           notificationsEnabled: true,
           analyticsEnabled: false,
-          themeMode: ThemeMode.system,
-          languageCode: 'de',
+          themeMode: Provider.of<ThemeModel>(
+            context,
+            listen: false,
+          ).currentMode,
+          languageCode: Provider.of<LocaleModel>(
+            context,
+            listen: false,
+          ).currentLocale.languageCode,
           onNotificationsChanged: (v) {
             // TODO: persist/apply notifications flag
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Benachrichtigungen geändert: $v')),
+            );
           },
           onAnalyticsChanged: (v) {
             // TODO: persist/apply analytics flag
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text('Analytics geändert: $v')));
           },
           onThemeModeChanged: (mode) {
             final themeModel = Provider.of<ThemeModel>(context, listen: false);

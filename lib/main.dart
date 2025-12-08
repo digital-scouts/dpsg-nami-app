@@ -8,6 +8,9 @@ import 'package:nami/presentation/theme/theme.dart';
 import 'package:provider/provider.dart';
 import 'package:wiredash/wiredash.dart';
 
+import 'data/settings/shared_prefs_app_settings_repository.dart';
+import 'domain/settings/app_settings.dart';
+import 'domain/settings/app_settings_repository.dart';
 import 'l10n/app_localizations.dart';
 import 'presentation/navigation/app_router.dart';
 import 'presentation/theme/locale_model.dart';
@@ -20,11 +23,23 @@ void main() async {
   await initializeDateFormatting("de_DE", null);
   Intl.defaultLocale = "de_DE";
 
+  // Settings laden und Provider initialisieren
+  final AppSettingsRepository settingsRepo = SharedPrefsAppSettingsRepository();
+  final AppSettings initial = await settingsRepo.load();
+
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ThemeModel()),
-        ChangeNotifierProvider(create: (_) => LocaleModel()),
+        ChangeNotifierProvider(
+          create: (_) =>
+              ThemeModel(persist: (mode) => settingsRepo.saveThemeMode(mode))
+                ..currentMode = initial.themeMode,
+        ),
+        ChangeNotifierProvider(
+          create: (_) => LocaleModel(
+            persist: (code) => settingsRepo.saveLanguageCode(code),
+          )..setLocale(Locale(initial.languageCode)),
+        ),
       ],
       child: const MyApp(),
     ),
