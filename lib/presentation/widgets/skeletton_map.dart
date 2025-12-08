@@ -31,17 +31,36 @@ class MapSkeleton extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
-        child: isDark
-            ? ColorFiltered(
+        child: Stack(
+          children: [
+            if (isDark)
+              ColorFiltered(
                 colorFilter: const ColorFilter.matrix([
-                  -1, 0, 0, 0, 300, // R invert
-                  0, -1, 0, 0, 300, // G invert
-                  0, 0, -1, 0, 300, // B invert
-                  0, 0, 0, 1, 0, // A unverändert
+                  -1, 0, 0, 0, 300, // R
+                  0, -1, 0, 0, 300, // G
+                  0, 0, -1, 0, 300, // B
+                  0, 0, 0, 1, 0, // A
                 ]),
                 child: img,
               )
-            : img,
+            else
+              img,
+            Positioned.fill(
+              child: Container(
+                alignment: Alignment.center,
+                color: theme.colorScheme.surface.withValues(alpha: 0.35),
+                child: Text(
+                  'Karte nich nicht verfügbar',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: theme.colorScheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

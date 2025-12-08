@@ -22,7 +22,7 @@ final darkTheme = ThemeData(
     seedColor: DPSGColors.primary,
     secondary: DPSGColors.secondary,
     brightness: Brightness.dark,
-    surface: Color.fromARGB(255, 205, 25, 25),
+    surface: Color.fromARGB(255, 43, 43, 43),
     shadow: Color.fromARGB(255, 0, 0, 0),
   ),
   disabledColor: const Color.fromARGB(255, 36, 36, 36),
@@ -44,3 +44,12 @@ final lightTheme = ThemeData(
     fillColor: Color.fromARGB(255, 242, 242, 242),
   ),
 );
+
+class ThemeModel extends ChangeNotifier {
+  ThemeMode currentMode = ThemeMode.system;
+
+  void setTheme(ThemeMode type) {
+    currentMode = type;
+    return notifyListeners();
+  }
+}
