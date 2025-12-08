@@ -81,6 +81,17 @@ class MyApp extends StatelessWidget {
           home: Wiredash(
             projectId: projectId,
             secret: secret,
+            feedbackOptions: const WiredashFeedbackOptions(
+              labels: [
+                Label(id: 'label-u26353u60f', title: 'Fehler'),
+                Label(id: 'label-mtl2xk4esi', title: 'Verbesserung'),
+                Label(id: 'label-p792odog4e', title: 'Lob'),
+              ],
+            ),
+            options: WiredashOptionsData(
+              locale: context.watch<LocaleModel>().currentLocale,
+            ),
+            collectMetaData: (metaData) => metaData,
             child: const NavigationHomeScreen(),
           ),
         );

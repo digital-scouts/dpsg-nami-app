@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:nami/data/settings/in_memory_address_settings_repository.dart';
 import 'package:nami/l10n/app_localizations.dart';
-import 'package:nami/presentation/widgets/stamm_address_settings.dart';
+import 'package:nami/presentation/widgets/settings_stamm_address.dart';
 // ignore: depend_on_referenced_packages
 import 'package:storybook_flutter/storybook_flutter.dart';
 

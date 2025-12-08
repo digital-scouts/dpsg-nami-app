@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:nami/domain/settings/address_settings_repository.dart';
 import 'package:nami/domain/stufe/altersgrenzen.dart';
 import 'package:nami/l10n/app_localizations.dart';
-import 'package:nami/presentation/widgets/stamm_address_settings.dart';
-import 'package:nami/presentation/widgets/stufenwechsel_settings.dart';
+import 'package:nami/presentation/widgets/settings_stamm_address.dart';
+import 'package:nami/presentation/widgets/settings_stufenwechsel.dart';
 import 'package:nami/services/address_autocomplete_provider.dart';
 
 class SettingsStammPage extends StatelessWidget {
