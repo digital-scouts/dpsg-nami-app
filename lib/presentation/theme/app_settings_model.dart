@@ -11,9 +11,9 @@ class AppSettingsModel extends ChangeNotifier {
   bool analyticsEnabled;
 
   AppSettingsModel(AppSettings initial, this._repo)
-      : themeMode = initial.themeMode,
-        languageCode = initial.languageCode,
-        analyticsEnabled = initial.analyticsEnabled;
+    : themeMode = initial.themeMode,
+      languageCode = initial.languageCode,
+      analyticsEnabled = initial.analyticsEnabled;
 
   Future<void> setThemeMode(ThemeMode mode) async {
     themeMode = mode;

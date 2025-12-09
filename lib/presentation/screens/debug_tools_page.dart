@@ -39,6 +39,7 @@ class DebugToolsPage extends StatelessWidget {
             ElevatedButton.icon(
               onPressed: () async {
                 await logger.log('debug', 'Manueller Logeintrag gesendet');
+                // ignore: use_build_context_synchronously
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Logeintrag geschrieben')),
                 );

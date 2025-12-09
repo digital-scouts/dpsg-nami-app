@@ -4,7 +4,7 @@ import 'package:nami/data/settings/in_memory_stufen_settings_repository.dart';
 import 'package:nami/domain/stufe/altersgrenzen.dart';
 import 'package:nami/domain/stufe/usecases/update_altersgrenzen_usecase.dart';
 import 'package:nami/l10n/app_localizations.dart';
-import 'package:nami/presentation/widgets/stufenwechsel_settings.dart';
+import 'package:nami/presentation/widgets/settings_stufenwechsel.dart';
 // ignore: depend_on_referenced_packages
 import 'package:storybook_flutter/storybook_flutter.dart';
 
