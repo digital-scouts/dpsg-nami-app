@@ -1,22 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-// import '../../data/settings/in_memory_address_settings_repository.dart';
 import '../../data/settings/shared_prefs_address_settings_repository.dart';
 import '../../data/settings/shared_prefs_stufen_settings_repository.dart';
 import '../../domain/settings/stufen_settings.dart';
 import '../../domain/stufe/altersgrenzen.dart';
+import '../../services/logger_service.dart';
 import '../navigation/navigation_home.page.dart';
 import '../screens/app_settings_page.dart';
+import '../screens/debug_tools_page.dart';
 import '../screens/settings_stamm_page.dart';
+import '../theme/app_settings_model.dart';
 import '../theme/locale_model.dart';
 import '../theme/theme.dart';
-// Keine Provider/ignore_deprecated-Abhängigkeit für AppSettingsPage
 
 class AppRoutes {
   static const String home = '/';
   static const String settingsStamm = '/settings/stamm';
   static const String settingsApp = '/settings/app';
+  static const String debugTools = '/settings/debug';
 }
 
 Route<dynamic> onGenerateRoute(RouteSettings settings) {
@@ -58,42 +60,52 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
       );
     case AppRoutes.settingsApp:
       return MaterialPageRoute(
-        builder: (context) => AppSettingsPage(
-          notificationsEnabled: true,
-          analyticsEnabled: false,
-          themeMode: Provider.of<ThemeModel>(
+        builder: (context) {
+          final themeModel = Provider.of<ThemeModel>(context, listen: false);
+          final localeModel = Provider.of<LocaleModel>(context, listen: false);
+          final appSettings = Provider.of<AppSettingsModel>(
             context,
             listen: false,
-          ).currentMode,
-          languageCode: Provider.of<LocaleModel>(
-            context,
-            listen: false,
-          ).currentLocale.languageCode,
-          onNotificationsChanged: (v) {
-            // TODO: persist/apply notifications flag
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Benachrichtigungen geändert: $v')),
-            );
-          },
-          onAnalyticsChanged: (v) {
-            // TODO: persist/apply analytics flag
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text('Analytics geändert: $v')));
-          },
-          onThemeModeChanged: (mode) {
-            final themeModel = Provider.of<ThemeModel>(context, listen: false);
-            themeModel.setTheme(mode);
-          },
-          onLanguageChanged: (code) {
-            final localeModel = Provider.of<LocaleModel>(
-              context,
-              listen: false,
-            );
-            localeModel.setLocale(Locale(code));
-          },
-        ),
+          );
+
+          return AppSettingsPage(
+            notificationsEnabled: true,
+            analyticsEnabled: appSettings.analyticsEnabled,
+            themeMode: themeModel.currentMode,
+            languageCode: localeModel.currentLocale.languageCode,
+            onNotificationsChanged: (v) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Benachrichtigungen geändert: $v')),
+              );
+            },
+            onAnalyticsChanged: (v) async {
+              final logger = Provider.of<LoggerService>(context, listen: false);
+              await logger.trackAndLog('appRouter', 'telemetry_changed', {
+                'value': v,
+              });
+              await appSettings.setAnalyticsEnabled(v);
+            },
+            onThemeModeChanged: (mode) async {
+              final logger = Provider.of<LoggerService>(context, listen: false);
+              themeModel.setTheme(mode);
+              logger.trackAndLog('appRouter', 'theme_changed', {
+                'mode': mode.name,
+              });
+              await appSettings.setThemeMode(mode);
+            },
+            onLanguageChanged: (code) async {
+              final logger = Provider.of<LoggerService>(context, listen: false);
+              localeModel.setLocale(Locale(code));
+              logger.trackAndLog('appRouter', 'language_changed', {
+                'code': code,
+              });
+              await appSettings.setLanguageCode(code);
+            },
+          );
+        },
       );
+    case AppRoutes.debugTools:
+      return MaterialPageRoute(builder: (context) => const DebugToolsPage());
     default:
       return MaterialPageRoute(builder: (_) => const NavigationHomeScreen());
   }
