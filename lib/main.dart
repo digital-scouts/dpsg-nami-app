@@ -16,6 +16,7 @@ import 'presentation/navigation/app_router.dart';
 import 'presentation/theme/app_settings_model.dart';
 import 'presentation/theme/locale_model.dart';
 import 'services/logger_service.dart';
+import 'services/usage_tracking_service.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
@@ -36,15 +37,7 @@ void main() async {
       final ctx = navigatorKey.currentContext;
       if (ctx == null) return;
       try {
-        final wd = Wiredash.of(ctx);
-        // Generic hook: try method with (name, props) positional if available
-        // ignore: prefer_function_declarations_over_variables
-        final dynamic fn = (wd as dynamic).trackEvent;
-        if (fn is Function) {
-          try {
-            fn(name, props);
-          } catch (_) {}
-        }
+        await Wiredash.of(ctx).trackEvent(name, data: props);
       } catch (_) {}
     },
   );
@@ -72,8 +65,53 @@ void main() async {
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  late UsageTrackingService _usage;
+  bool _isPaused = false;
+  late final LoggerService logger;
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Start Nutzungs-Session beim App-Start
+    logger = context.read<LoggerService>();
+    _usage = UsageTrackingService(logger: logger);
+    // Ausstehende Pause/Sessions vom letzten Lauf auswerten
+    _usage.flushPendingSession();
+    _usage.startSession();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      logger.log('lifecycle', 'App resumed');
+      // App kommt in den Vordergrund: einmaliges Resume
+      _usage.resume();
+      _isPaused = false;
+    } else if (state == AppLifecycleState.inactive) {
+      // App geht in den Hintergrund: nur einmal pausieren
+      if (!_isPaused) {
+        _usage.pause();
+        _isPaused = true;
+      }
+    } else if (state == AppLifecycleState.paused) {
+      logger.log('lifecycle', 'App paused');
+    }
+    super.didChangeAppLifecycleState(state);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -89,36 +127,36 @@ class MyApp extends StatelessWidget {
 
     return Consumer<ThemeModel>(
       builder: (context, themeModel, _) {
-        return MaterialApp(
-          theme: lightTheme,
-          darkTheme: darkTheme,
-          themeMode: themeModel.currentMode,
-          navigatorKey: navigatorKey,
-          onGenerateRoute: onGenerateRoute,
-          initialRoute: '/',
-          localizationsDelegates: [
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-            AppLocalizations.delegate,
-          ],
-          supportedLocales: const [Locale('de'), Locale('en')],
-          locale: context.watch<LocaleModel>().currentLocale,
-          home: Wiredash(
-            projectId: projectId,
-            secret: secret,
-            feedbackOptions: const WiredashFeedbackOptions(
-              labels: [
-                Label(id: 'label-u26353u60f', title: 'Fehler'),
-                Label(id: 'label-mtl2xk4esi', title: 'Verbesserung'),
-                Label(id: 'label-p792odog4e', title: 'Lob'),
-              ],
-            ),
-            options: WiredashOptionsData(
-              locale: context.watch<LocaleModel>().currentLocale,
-            ),
-            collectMetaData: (metaData) => metaData,
-            child: const NavigationHomeScreen(),
+        return Wiredash(
+          projectId: projectId,
+          secret: secret,
+          feedbackOptions: const WiredashFeedbackOptions(
+            labels: [
+              Label(id: 'label-u26353u60f', title: 'Fehler'),
+              Label(id: 'label-mtl2xk4esi', title: 'Verbesserung'),
+              Label(id: 'label-p792odog4e', title: 'Lob'),
+            ],
+          ),
+          options: WiredashOptionsData(
+            locale: context.watch<LocaleModel>().currentLocale,
+          ),
+          collectMetaData: (metaData) => metaData,
+          child: MaterialApp(
+            theme: lightTheme,
+            darkTheme: darkTheme,
+            themeMode: themeModel.currentMode,
+            navigatorKey: navigatorKey,
+            onGenerateRoute: onGenerateRoute,
+            initialRoute: '/',
+            localizationsDelegates: [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+              AppLocalizations.delegate,
+            ],
+            supportedLocales: const [Locale('de'), Locale('en')],
+            locale: context.watch<LocaleModel>().currentLocale,
+            home: const NavigationHomeScreen(),
           ),
         );
       },
