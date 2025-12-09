@@ -13,7 +13,9 @@ import 'domain/settings/app_settings.dart';
 import 'domain/settings/app_settings_repository.dart';
 import 'l10n/app_localizations.dart';
 import 'presentation/navigation/app_router.dart';
+import 'presentation/theme/app_settings_model.dart';
 import 'presentation/theme/locale_model.dart';
+import 'services/logger_service.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
@@ -26,6 +28,26 @@ void main() async {
   // Settings laden und Provider initialisieren
   final AppSettingsRepository settingsRepo = SharedPrefsAppSettingsRepository();
   final AppSettings initial = await settingsRepo.load();
+
+  final logger = LoggerService(
+    settingsRepository: settingsRepo,
+    navigatorKey: navigatorKey,
+    wiredashEventHook: (name, props) async {
+      final ctx = navigatorKey.currentContext;
+      if (ctx == null) return;
+      try {
+        final wd = Wiredash.of(ctx);
+        // Generic hook: try method with (name, props) positional if available
+        // ignore: prefer_function_declarations_over_variables
+        final dynamic fn = (wd as dynamic).trackEvent;
+        if (fn is Function) {
+          try {
+            fn(name, props);
+          } catch (_) {}
+        }
+      } catch (_) {}
+    },
+  );
 
   runApp(
     MultiProvider(
@@ -40,6 +62,10 @@ void main() async {
             persist: (code) => settingsRepo.saveLanguageCode(code),
           )..setLocale(Locale(initial.languageCode)),
         ),
+        ChangeNotifierProvider(
+          create: (_) => AppSettingsModel(initial, settingsRepo),
+        ),
+        Provider<LoggerService>.value(value: logger),
       ],
       child: const MyApp(),
     ),
