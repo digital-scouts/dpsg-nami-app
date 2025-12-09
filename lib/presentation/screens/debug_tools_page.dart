@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:nami/main.dart' show navigatorKey;
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:wiredash/wiredash.dart';
 
 import '../../services/logger_service.dart';
 
@@ -62,6 +64,26 @@ class DebugToolsPage extends StatelessWidget {
               },
               icon: const Icon(Icons.article_outlined),
               label: const Text('Log anzeigen'),
+            ),
+            const Text('Feedback senden'),
+            const SizedBox(height: 8),
+            ElevatedButton.icon(
+              onPressed: () {
+                final ctx = navigatorKey.currentContext;
+                if (ctx != null) {
+                  Wiredash.of(ctx).show(inheritMaterialTheme: true);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Wiredash konnte nicht gefunden werden (Root-Kontext fehlt).',
+                      ),
+                    ),
+                  );
+                }
+              },
+              icon: const Icon(Icons.feedback_outlined),
+              label: const Text('Wiredash Feedback öffnen'),
             ),
           ],
         ),
