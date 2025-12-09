@@ -105,7 +105,8 @@ void main() {
 
     await service.trackEvent('evt', {'a': 1});
     await Future<void>.delayed(const Duration(milliseconds: 10));
-    final content = await logFile.readAsString();
+    final exists = await logFile.exists();
+    final content = exists ? await logFile.readAsString() : '';
     expect(content.contains('[hook] evt'), isFalse);
   });
 }
