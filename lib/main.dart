@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -20,48 +23,98 @@ import 'services/usage_tracking_service.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: ".env");
-  await initializeDateFormatting("de_DE", null);
-  Intl.defaultLocale = "de_DE";
+void main() {
+  LoggerService? logger;
+  runZonedGuarded(
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
+      await dotenv.load(fileName: ".env");
+      await initializeDateFormatting("de_DE", null);
+      Intl.defaultLocale = "de_DE";
 
-  // Settings laden und Provider initialisieren
-  final AppSettingsRepository settingsRepo = SharedPrefsAppSettingsRepository();
-  final AppSettings initial = await settingsRepo.load();
+      // Settings laden und Provider initialisieren
+      final AppSettingsRepository settingsRepo =
+          SharedPrefsAppSettingsRepository();
+      final AppSettings initial = await settingsRepo.load();
 
-  final logger = LoggerService(
-    settingsRepository: settingsRepo,
-    navigatorKey: navigatorKey,
-    wiredashEventHook: (name, props) async {
-      final ctx = navigatorKey.currentContext;
-      if (ctx == null) return;
-      try {
-        await Wiredash.of(ctx).trackEvent(name, data: props);
-      } catch (_) {}
+      logger = LoggerService(
+        settingsRepository: settingsRepo,
+        navigatorKey: navigatorKey,
+        wiredashEventHook: (name, props) async {
+          final ctx = navigatorKey.currentContext;
+          if (ctx == null) return;
+          try {
+            await Wiredash.of(ctx).trackEvent(name, data: props);
+          } catch (_) {}
+        },
+      );
+
+      // Globale Fehlerbehandlung: Framework- und ungefangene Fehler loggen/tracken
+      FlutterError.onError = (FlutterErrorDetails details) async {
+        FlutterError.presentError(details);
+        await logger?.log(
+          'error',
+          'FlutterError: ${details.exceptionAsString()}',
+        );
+        await logger?.trackEvent('runtime_error', {
+          'type': 'flutter',
+          'exception': details.exceptionAsString(),
+          'stack': details.stack?.toString(),
+        });
+      };
+
+      PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
+        // Ungefangene, asynchrone Fehler
+        // ignore: discarded_futures
+        logger?.log('error', 'Uncaught: $error\n$stack');
+        // ignore: discarded_futures
+        logger?.trackEvent('runtime_error', {
+          'type': 'uncaught',
+          'exception': error.toString(),
+          'stack': stack.toString(),
+        });
+        return true; // Fehler als behandelt markieren
+      };
+
+      runApp(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider(
+              create: (_) => ThemeModel(
+                persist: (mode) => settingsRepo.saveThemeMode(mode),
+              )..currentMode = initial.themeMode,
+            ),
+            ChangeNotifierProvider(
+              create: (_) => LocaleModel(
+                persist: (code) => settingsRepo.saveLanguageCode(code),
+              )..setLocale(Locale(initial.languageCode)),
+            ),
+            ChangeNotifierProvider(
+              create: (_) => AppSettingsModel(initial, settingsRepo),
+            ),
+            Provider<LoggerService>.value(value: logger!),
+          ],
+          child: const MyApp(),
+        ),
+      );
     },
-  );
-
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(
-          create: (_) =>
-              ThemeModel(persist: (mode) => settingsRepo.saveThemeMode(mode))
-                ..currentMode = initial.themeMode,
-        ),
-        ChangeNotifierProvider(
-          create: (_) => LocaleModel(
-            persist: (code) => settingsRepo.saveLanguageCode(code),
-          )..setLocale(Locale(initial.languageCode)),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => AppSettingsModel(initial, settingsRepo),
-        ),
-        Provider<LoggerService>.value(value: logger),
-      ],
-      child: const MyApp(),
-    ),
+    (error, stack) {
+      // Letzte Schutzschicht für unvorhergesehene Fehler
+      if (logger != null) {
+        // ignore: discarded_futures
+        logger!.log('error', 'Zoned: $error\n$stack');
+        // ignore: discarded_futures
+        logger!.trackEvent('runtime_error', {
+          'type': 'zoned',
+          'exception': error.toString(),
+          'stack': stack.toString(),
+        });
+      } else {
+        // Fallback: zur Not in stdout schreiben, falls Logger noch nicht bereit ist
+        // ignore: avoid_print
+        print('Zoned error before logger init: $error\n$stack');
+      }
+    },
   );
 }
 
