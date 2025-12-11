@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../domain/settings/app_settings.dart';
 import '../../domain/settings/app_settings_repository.dart';
+import '../../domain/taetigkeit/stufe.dart';
 
 class AppSettingsModel extends ChangeNotifier {
   final AppSettingsRepository _repo;
@@ -9,11 +10,16 @@ class AppSettingsModel extends ChangeNotifier {
   ThemeMode themeMode;
   String languageCode;
   bool analyticsEnabled;
+  bool notificationsEnabled;
+  Set<Stufe> geburstagsbenachrichtigungStufen;
 
   AppSettingsModel(AppSettings initial, this._repo)
     : themeMode = initial.themeMode,
       languageCode = initial.languageCode,
-      analyticsEnabled = initial.analyticsEnabled;
+      analyticsEnabled = initial.analyticsEnabled,
+      notificationsEnabled = initial.notificationsEnabled,
+      geburstagsbenachrichtigungStufen =
+          initial.geburstagsbenachrichtigungStufen;
 
   Future<void> setThemeMode(ThemeMode mode) async {
     themeMode = mode;
@@ -31,5 +37,17 @@ class AppSettingsModel extends ChangeNotifier {
     analyticsEnabled = enabled;
     notifyListeners();
     await _repo.saveAnalyticsEnabled(enabled);
+  }
+
+  Future<void> setNotificationsEnabled(bool enabled) async {
+    notificationsEnabled = enabled;
+    notifyListeners();
+    await _repo.saveNotificationsEnabled(enabled);
+  }
+
+  Future<void> setGeburstagsbenachrichtigungStufen(Set<Stufe> stufen) async {
+    geburstagsbenachrichtigungStufen = stufen;
+    notifyListeners();
+    await _repo.saveGeburstagsbenachrichtigungStufen(stufen);
   }
 }

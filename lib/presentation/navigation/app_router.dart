@@ -6,13 +6,13 @@ import '../../data/settings/shared_prefs_stufen_settings_repository.dart';
 import '../../domain/settings/stufen_settings.dart';
 import '../../domain/stufe/altersgrenzen.dart';
 import '../../services/logger_service.dart';
+import '../model/app_settings_model.dart';
+import '../model/locale_model.dart';
 import '../navigation/navigation_home.page.dart';
 import '../screens/settings_app_page.dart';
 import '../screens/settings_debug_tools_page.dart';
 import '../screens/settings_notification_page.dart';
 import '../screens/settings_stamm_page.dart';
-import '../theme/app_settings_model.dart';
-import '../theme/locale_model.dart';
 import '../theme/theme.dart';
 
 class AppRoutes {
@@ -103,15 +103,18 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
     case AppRoutes.settingsNotification:
       return MaterialPageRoute(
         builder: (context) {
+          final appSettings = Provider.of<AppSettingsModel>(
+            context,
+            listen: false,
+          );
           return SettingsNotificationPage(
-            notificationsEnabled: true,
-            onNotificationsChanged: (v) async {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Benachrichtigungen geändert: $v')),
-              );
-              // Persist setting if AppSettingsModel later supports it
-              // await appSettings.setNotificationsEnabled(v);
-            },
+            notificationsEnabled: appSettings.notificationsEnabled,
+            onNotificationsChanged: (v) async =>
+                await appSettings.setNotificationsEnabled(v),
+            geburstagsbenachrichtigungStufen:
+                appSettings.geburstagsbenachrichtigungStufen,
+            geburstagsbenachrichtigungStufenChanged: (stufen) async =>
+                await appSettings.setGeburstagsbenachrichtigungStufen(stufen),
           );
         },
       );

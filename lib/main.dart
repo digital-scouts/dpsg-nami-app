@@ -12,9 +12,9 @@ import 'data/settings/shared_prefs_app_settings_repository.dart';
 import 'domain/settings/app_settings.dart';
 import 'domain/settings/app_settings_repository.dart';
 import 'l10n/app_localizations.dart';
+import 'presentation/model/app_settings_model.dart';
+import 'presentation/model/locale_model.dart';
 import 'presentation/navigation/app_router.dart';
-import 'presentation/theme/app_settings_model.dart';
-import 'presentation/theme/locale_model.dart';
 import 'services/logger_service.dart';
 import 'services/usage_tracking_service.dart';
 

@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:nami/domain/settings/app_settings.dart';
 import 'package:nami/domain/settings/app_settings_repository.dart';
+import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/services/logger_service.dart';
 import 'package:nami/services/usage_tracking_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -28,6 +29,12 @@ class _FakeRepo implements AppSettingsRepository {
   Future<void> saveThemeMode(ThemeMode mode) async {
     value = value.copyWith(themeMode: mode);
   }
+
+  @override
+  Future<void> saveNotificationsEnabled(bool enabled) async {}
+
+  @override
+  Future<void> saveGeburstagsbenachrichtigungStufen(Set<Stufe> stufen) async {}
 }
 
 void main() {
@@ -196,7 +203,7 @@ void main() {
     await usage.resume();
 
     final content = await logFile.readAsString();
-    expect(content.contains('session_duration props:'), isTrue);
+    expect(content.contains('[usage] session_duration'), isTrue);
   });
 
   test('Pause snapshot persisted and flushed at next start', () async {
@@ -250,6 +257,6 @@ void main() {
     await usage2.flushPendingSession();
 
     final content = await logFile.readAsString();
-    expect(content.contains('session_duration props:'), isTrue);
+    expect(content.contains('[usage] session_duration'), isTrue);
   });
 }
