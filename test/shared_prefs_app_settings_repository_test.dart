@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/data/settings/shared_prefs_app_settings_repository.dart';
+import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -23,6 +24,34 @@ void main() {
       final settings = await repo.load();
       expect(settings.themeMode, ThemeMode.dark);
       expect(settings.languageCode, 'en');
+    });
+
+    test('notificationsEnabled defaults and persists', () async {
+      SharedPreferences.setMockInitialValues({});
+      final repo = SharedPrefsAppSettingsRepository();
+      final s0 = await repo.load();
+      expect(s0.notificationsEnabled, isTrue);
+      await repo.saveNotificationsEnabled(false);
+      final s1 = await repo.load();
+      expect(s1.notificationsEnabled, isFalse);
+    });
+
+    test('geburstagsbenachrichtigungStufen defaults and persists', () async {
+      SharedPreferences.setMockInitialValues({});
+      final repo = SharedPrefsAppSettingsRepository();
+      final s0 = await repo.load();
+      expect(s0.geburstagsbenachrichtigungStufen, {
+        Stufe.biber,
+        Stufe.woelfling,
+        Stufe.jungpfadfinder,
+        Stufe.pfadfinder,
+        Stufe.rover,
+        Stufe.leitung,
+      });
+      final set = {Stufe.woelfling, Stufe.pfadfinder, Stufe.leitung};
+      await repo.saveGeburstagsbenachrichtigungStufen(set);
+      final s1 = await repo.load();
+      expect(s1.geburstagsbenachrichtigungStufen, set);
     });
   });
 }

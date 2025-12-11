@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/domain/settings/app_settings.dart';
 import 'package:nami/domain/settings/app_settings_repository.dart';
+import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/services/logger_service.dart';
 
 class _FakeRepo implements AppSettingsRepository {
@@ -24,6 +25,18 @@ class _FakeRepo implements AppSettingsRepository {
   @override
   Future<void> saveThemeMode(ThemeMode mode) async {
     value = value.copyWith(themeMode: mode);
+  }
+
+  @override
+  Future<void> saveGeburstagsbenachrichtigungStufen(Set<Stufe> stufen) {
+    // TODO: implement saveGeburstagsbenachrichtigungStufen
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> saveNotificationsEnabled(bool enabled) {
+    // TODO: implement saveNotificationsEnabled
+    throw UnimplementedError();
   }
 }
 

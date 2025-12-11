@@ -3,15 +3,19 @@ import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/presentation/stufe/stufe_visuals.dart';
 
 class StufenChoiceChips extends StatelessWidget {
+  final bool singleSelect;
+  final bool showLeader;
   final bool showBiber;
-  final Stufe ausgewaehlteStufe;
-  final void Function(Stufe stufe)? onChanged;
+  final Set<Stufe> ausgewaehlteStufen;
+  final void Function(Set<Stufe> stufen)? ausgewaehlteStufenChanged;
 
   const StufenChoiceChips({
     super.key,
+    required this.singleSelect,
     required this.showBiber,
-    required this.ausgewaehlteStufe,
-    this.onChanged,
+    required this.showLeader,
+    required this.ausgewaehlteStufen,
+    this.ausgewaehlteStufenChanged,
   });
 
   List<Stufe> _buildStufen() {
@@ -21,6 +25,7 @@ class StufenChoiceChips extends StatelessWidget {
       Stufe.jungpfadfinder,
       Stufe.pfadfinder,
       Stufe.rover,
+      if (showLeader) Stufe.leitung,
     ];
     return list;
   }
@@ -33,9 +38,26 @@ class StufenChoiceChips extends StatelessWidget {
       runSpacing: 8,
       children: stufen.map((stufe) {
         return ChoiceChip(
-          selected: stufe == ausgewaehlteStufe,
+          selected: ausgewaehlteStufen.contains(stufe),
           onSelected: (selected) {
-            if (selected && onChanged != null) onChanged!(stufe);
+            if (ausgewaehlteStufenChanged == null) return;
+            final next = Set<Stufe>.from(ausgewaehlteStufen);
+            if (singleSelect) {
+              if (selected) {
+                next
+                  ..clear()
+                  ..add(stufe);
+              } else {
+                return;
+              }
+            } else {
+              if (selected) {
+                next.add(stufe);
+              } else {
+                next.remove(stufe);
+              }
+            }
+            ausgewaehlteStufenChanged!(next);
           },
           label: Text(stufe.shortDisplayName),
           showCheckmark: false,
