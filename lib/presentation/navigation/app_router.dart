@@ -80,7 +80,7 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
             },
             onAnalyticsChanged: (v) async {
               final logger = Provider.of<LoggerService>(context, listen: false);
-              await logger.trackAndLog('appRouter', 'telemetry_changed', {
+              await logger.trackAndLog('settings', 'telemetry_changed', {
                 'value': v,
               });
               await appSettings.setAnalyticsEnabled(v);
@@ -88,7 +88,7 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
             onThemeModeChanged: (mode) async {
               final logger = Provider.of<LoggerService>(context, listen: false);
               themeModel.setTheme(mode);
-              logger.trackAndLog('appRouter', 'theme_changed', {
+              logger.trackAndLog('settings', 'theme_changed', {
                 'mode': mode.name,
               });
               await appSettings.setThemeMode(mode);
@@ -96,7 +96,7 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
             onLanguageChanged: (code) async {
               final logger = Provider.of<LoggerService>(context, listen: false);
               localeModel.setLocale(Locale(code));
-              logger.trackAndLog('appRouter', 'language_changed', {
+              logger.trackAndLog('settings', 'language_changed', {
                 'code': code,
               });
               await appSettings.setLanguageCode(code);

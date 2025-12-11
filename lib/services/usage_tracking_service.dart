@@ -1,4 +1,3 @@
-import 'package:nami/presentation/format/date_formatters.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'logger_service.dart';
@@ -30,11 +29,7 @@ class UsageTrackingService {
     final end = now();
     final duration = end.difference(s);
     final seconds = duration.inSeconds;
-    await logger.trackAndLog('usage', 'session_duration', {
-      'seconds': seconds,
-      'start': DateFormatter.formatTecnicalShortDate(s),
-      'end': DateFormatter.formatTecnicalShortDate(end),
-    });
+    await logger.trackAndLog('usage', 'session_duration', {'seconds': seconds});
     _start = null;
     _pausedAt = null;
   }
@@ -59,8 +54,6 @@ class UsageTrackingService {
       final seconds = paused.difference(start).inSeconds;
       await logger.trackAndLog('usage', 'session_duration', {
         'seconds': seconds,
-        'start': DateFormatter.formatTecnicalShortDate(start),
-        'end': DateFormatter.formatTecnicalShortDate(paused),
       });
       // await logger.log('usage', 'flushed_pending_session seconds=$seconds');
       await prefs.remove('usage.pending_start_iso');
