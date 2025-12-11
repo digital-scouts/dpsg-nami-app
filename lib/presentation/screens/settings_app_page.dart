@@ -3,22 +3,18 @@ import 'package:nami/l10n/app_localizations.dart';
 // Keine Abhängigkeit zu ignore_deprecated, reines Input/Output-Pattern
 
 class AppSettingsPage extends StatefulWidget {
-  final bool notificationsEnabled;
   final bool analyticsEnabled;
   final ThemeMode themeMode;
   final String languageCode; // e.g. 'de', 'en'
-  final ValueChanged<bool>? onNotificationsChanged;
   final ValueChanged<bool>? onAnalyticsChanged;
   final ValueChanged<ThemeMode>? onThemeModeChanged;
   final ValueChanged<String>? onLanguageChanged;
 
   const AppSettingsPage({
     super.key,
-    this.notificationsEnabled = true,
     this.analyticsEnabled = false,
     this.themeMode = ThemeMode.system,
     this.languageCode = 'de',
-    this.onNotificationsChanged,
     this.onAnalyticsChanged,
     this.onThemeModeChanged,
     this.onLanguageChanged,
@@ -29,7 +25,6 @@ class AppSettingsPage extends StatefulWidget {
 }
 
 class _AppSettingsPageState extends State<AppSettingsPage> {
-  late bool _notificationsEnabled;
   late bool _analyticsEnabled;
   late ThemeMode _currentMode;
   late String _languageCode;
@@ -37,7 +32,6 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
   @override
   void initState() {
     super.initState();
-    _notificationsEnabled = widget.notificationsEnabled;
     _analyticsEnabled = widget.analyticsEnabled;
     _currentMode = widget.themeMode;
     _languageCode = widget.languageCode;
@@ -59,14 +53,7 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
             style: theme.textTheme.titleLarge,
           ),
           const SizedBox(height: 8),
-          SwitchListTile(
-            title: Text(AppLocalizations.of(context).t('notifications_enable')),
-            value: _notificationsEnabled,
-            onChanged: (v) {
-              setState(() => _notificationsEnabled = v);
-              widget.onNotificationsChanged?.call(v);
-            },
-          ),
+          // Hinweis: Notification-Einstellungen wurden in die SettingsNotificationPage ausgelagert.
           SwitchListTile(
             title: Text(AppLocalizations.of(context).t('analytics_enable')),
             value: _analyticsEnabled,

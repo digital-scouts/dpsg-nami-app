@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:nami/widgets/confetti_overlay.dart';
+import 'package:nami/presentation/widgets/confetti_overlay.dart';
 // ignore: depend_on_referenced_packages
 import 'package:storybook_flutter/storybook_flutter.dart';
 
