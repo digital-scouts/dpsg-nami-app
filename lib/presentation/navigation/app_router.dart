@@ -7,8 +7,9 @@ import '../../domain/settings/stufen_settings.dart';
 import '../../domain/stufe/altersgrenzen.dart';
 import '../../services/logger_service.dart';
 import '../navigation/navigation_home.page.dart';
-import '../screens/app_settings_page.dart';
-import '../screens/debug_tools_page.dart';
+import '../screens/settings_app_page.dart';
+import '../screens/settings_debug_tools_page.dart';
+import '../screens/settings_notification_page.dart';
 import '../screens/settings_stamm_page.dart';
 import '../theme/app_settings_model.dart';
 import '../theme/locale_model.dart';
@@ -18,6 +19,7 @@ class AppRoutes {
   static const String home = '/';
   static const String settingsStamm = '/settings/stamm';
   static const String settingsApp = '/settings/app';
+  static const String settingsNotification = '/settings/notifications';
   static const String debugTools = '/settings/debug';
 }
 
@@ -69,15 +71,9 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
           );
 
           return AppSettingsPage(
-            notificationsEnabled: true,
             analyticsEnabled: appSettings.analyticsEnabled,
             themeMode: themeModel.currentMode,
             languageCode: localeModel.currentLocale.languageCode,
-            onNotificationsChanged: (v) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Benachrichtigungen geändert: $v')),
-              );
-            },
             onAnalyticsChanged: (v) async {
               final logger = Provider.of<LoggerService>(context, listen: false);
               await logger.trackAndLog('settings', 'telemetry_changed', {
@@ -100,6 +96,21 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
                 'code': code,
               });
               await appSettings.setLanguageCode(code);
+            },
+          );
+        },
+      );
+    case AppRoutes.settingsNotification:
+      return MaterialPageRoute(
+        builder: (context) {
+          return SettingsNotificationPage(
+            notificationsEnabled: true,
+            onNotificationsChanged: (v) async {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Benachrichtigungen geändert: $v')),
+              );
+              // Persist setting if AppSettingsModel later supports it
+              // await appSettings.setNotificationsEnabled(v);
             },
           );
         },

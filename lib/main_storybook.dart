@@ -3,6 +3,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:nami/stories/app_bottom_navigation_story.dart';
 import 'package:nami/stories/app_sidebar_story.dart';
 import 'package:nami/stories/message_of_the_day_card_story.dart';
+import 'package:nami/stories/settings_app_page_story.dart' as settings_stories;
 import 'package:nami/stories/settings_app_page_story.dart';
 import 'package:nami/stories/settings_page_story.dart';
 import 'package:nami/stories/settings_stamm_address_story.dart';
@@ -73,6 +74,7 @@ class StorybookEntry extends StatelessWidget {
           appBottomNavigationStory(),
           settingsPageStory(),
           appSettingsPageStory(),
+          settings_stories.settingsNotificationPageStory(),
           buildSettingsStammPageStory(),
           stammAddressSettingsStory(),
           stufenwechselSettingsStory(),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nami/l10n/app_localizations.dart';
-import 'package:nami/widgets/confetti_overlay.dart';
+import 'package:nami/presentation/widgets/confetti_overlay.dart';
 
 class SettingsPage extends StatefulWidget {
   final String userName;
@@ -118,26 +118,26 @@ class _SettingsPageState extends State<SettingsPage> {
                   ListTile(
                     leading: const Icon(Icons.flag),
                     trailing: const Icon(Icons.chevron_right),
-                    title: Text(t.t('stamm_settings')),
+                    title: Text(t.t('settings_stamm')),
                     onTap: widget.onStammSettings,
                   ),
                   ListTile(
                     leading: const Icon(Icons.settings_suggest),
                     trailing: const Icon(Icons.chevron_right),
-                    title: Text(t.t('app_settings')),
+                    title: Text(t.t('settings_app')),
                     onTap: widget.onAppSettings,
                   ),
                   ListTile(
                     leading: const Icon(Icons.notifications),
                     trailing: const Icon(Icons.chevron_right),
-                    title: Text(t.t('notifications_enable')),
+                    title: Text(t.t('settings_notifications')),
                     onTap: widget.onNotifications,
                   ),
 
                   ListTile(
                     leading: const Icon(Icons.build_circle),
                     trailing: const Icon(Icons.chevron_right),
-                    title: Text(t.t('debug_tools')),
+                    title: Text(t.t('settings_debug_tools')),
                     onTap: widget.onDebugTools,
                   ),
                 ],
