@@ -1,10 +1,14 @@
+import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../data/settings/shared_prefs_address_settings_repository.dart';
 import '../../data/settings/shared_prefs_stufen_settings_repository.dart';
+import '../../data/settings/stufen_settings_repo_adapter.dart';
 import '../../domain/settings/stufen_settings.dart';
 import '../../domain/stufe/altersgrenzen.dart';
+import '../../domain/stufe/usecases/update_altersgrenzen_usecase.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/logger_service.dart';
 import '../model/app_settings_model.dart';
 import '../model/locale_model.dart';
@@ -48,9 +52,43 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
                         grenzen: initialGrenzen,
                         stufenwechselDatum: initialDate,
                       );
-                  await repo.saveAltersgrenzen(
-                    current.copyWith(grenzen: grenzen),
+                  final adapter = StufenSettingsRepoAdapter(
+                    prefsRepo: repo,
+                    currentDateProvider: () => current.stufenwechselDatum,
                   );
+                  final usecase = UpdateAltersgrenzenUseCase(adapter);
+                  try {
+                    await usecase.call(grenzen);
+                    // ignore: use_build_context_synchronously
+                    final l10n = AppLocalizations.of(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        behavior: SnackBarBehavior.floating,
+                        backgroundColor: Colors.transparent,
+                        elevation: 0,
+                        content: AwesomeSnackbarContent(
+                          title: l10n.t('snackbar_saved_title'),
+                          message: l10n.t('snackbar_saved_altersgrenzen'),
+                          contentType: ContentType.success,
+                        ),
+                      ),
+                    );
+                  } on AltersgrenzenValidationError catch (e) {
+                    // ignore: use_build_context_synchronously
+                    final l10n = AppLocalizations.of(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        behavior: SnackBarBehavior.floating,
+                        backgroundColor: Colors.transparent,
+                        elevation: 0,
+                        content: AwesomeSnackbarContent(
+                          title: l10n.t('snackbar_invalid_altersgrenzen_title'),
+                          message: e.message,
+                          contentType: ContentType.failure,
+                        ),
+                      ),
+                    );
+                  }
                 },
                 onStufenwechselChanged: (date) async {
                   await repo.saveStufenwechselDatum(date);
@@ -76,15 +114,17 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
             languageCode: localeModel.currentLocale.languageCode,
             onAnalyticsChanged: (v) async {
               final logger = Provider.of<LoggerService>(context, listen: false);
-              await logger.trackAndLog('settings', 'telemetry_changed', {
-                'value': v,
-              });
+              await logger.debounceTrackAndLog(
+                'settings',
+                'telemetry_changed',
+                {'value': v},
+              );
               await appSettings.setAnalyticsEnabled(v);
             },
             onThemeModeChanged: (mode) async {
               final logger = Provider.of<LoggerService>(context, listen: false);
               themeModel.setTheme(mode);
-              logger.trackAndLog('settings', 'theme_changed', {
+              logger.debounceTrackAndLog('settings', 'theme_changed', {
                 'mode': mode.name,
               });
               await appSettings.setThemeMode(mode);
@@ -92,7 +132,7 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
             onLanguageChanged: (code) async {
               final logger = Provider.of<LoggerService>(context, listen: false);
               localeModel.setLocale(Locale(code));
-              logger.trackAndLog('settings', 'language_changed', {
+              logger.debounceTrackAndLog('settings', 'language_changed', {
                 'code': code,
               });
               await appSettings.setLanguageCode(code);
@@ -103,18 +143,29 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
     case AppRoutes.settingsNotification:
       return MaterialPageRoute(
         builder: (context) {
+          final logger = Provider.of<LoggerService>(context, listen: false);
           final appSettings = Provider.of<AppSettingsModel>(
             context,
             listen: false,
           );
           return SettingsNotificationPage(
             notificationsEnabled: appSettings.notificationsEnabled,
-            onNotificationsChanged: (v) async =>
-                await appSettings.setNotificationsEnabled(v),
+            onNotificationsChanged: (v) async {
+              logger.debounceTrackAndLog('settings', 'notifications_changed', {
+                'value': v,
+              });
+              await appSettings.setNotificationsEnabled(v);
+            },
             geburstagsbenachrichtigungStufen:
                 appSettings.geburstagsbenachrichtigungStufen,
-            geburstagsbenachrichtigungStufenChanged: (stufen) async =>
-                await appSettings.setGeburstagsbenachrichtigungStufen(stufen),
+            geburstagsbenachrichtigungStufenChanged: (stufen) async {
+              await appSettings.setGeburstagsbenachrichtigungStufen(stufen);
+              logger.debounceTrackAndLog(
+                'settings',
+                'birthday_notification_stages_changed',
+                {'stufen': stufen.map((s) => s.name).toList()},
+              );
+            },
           );
         },
       );

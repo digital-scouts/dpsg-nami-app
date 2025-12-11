@@ -13,6 +13,9 @@ class AppLocalizations {
 
   static final Map<String, Map<String, String>> _localizedValues = {
     'de': {
+      'snackbar_saved_title': 'Gespeichert',
+      'snackbar_saved_altersgrenzen': 'Altersgrenzen erfolgreich gespeichert.',
+      'snackbar_invalid_altersgrenzen_title': 'Ungültige Altersgrenzen',
       'settings_title': 'App-Einstellungen',
       'general': 'Allgemein',
       'settings_notifications': 'Benachrichtigungen',
@@ -49,6 +52,9 @@ class AppLocalizations {
       'map_not_available': 'Karte nicht verfügbar',
     },
     'en': {
+      'snackbar_saved_title': 'Saved',
+      'snackbar_saved_altersgrenzen': 'Age limits saved successfully.',
+      'snackbar_invalid_altersgrenzen_title': 'Invalid age limits',
       'settings_title': 'App Settings',
       'general': 'General',
       'settings_notifications': 'Notifications',
