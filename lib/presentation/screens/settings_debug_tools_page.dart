@@ -52,7 +52,7 @@ class DebugToolsPage extends StatelessWidget {
                 }
                 // Recreate empty file for continued logging
                 await (await logger.getLogFile()).create(recursive: true);
-                // ignore: use_build_context_synchronously
+
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Logdatei gelöscht')),
                 );
@@ -66,7 +66,7 @@ class DebugToolsPage extends StatelessWidget {
                 final file = await logger.getLogFile();
                 final exists = await file.exists();
                 final content = exists ? await file.readAsString() : '';
-                // ignore: use_build_context_synchronously
+
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => _LogViewerPage(content: content),

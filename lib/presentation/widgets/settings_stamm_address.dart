@@ -79,10 +79,8 @@ class _StammAddressSettingsState extends State<StammAddressSettings> {
             _controller.text = selection;
             // TODO: Trigger map region download
             widget.onDownloadRegion?.call();
-            // ignore: use_build_context_synchronously
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                // ignore: use_build_context_synchronously
                 content: Text(AppLocalizations.of(context).t('address_saved')),
               ),
             );
