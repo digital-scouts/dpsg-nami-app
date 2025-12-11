@@ -15,6 +15,7 @@ import 'package:nami/stories/stufenwechsel_timeline_story.dart';
 import 'package:storybook_flutter/storybook_flutter.dart';
 
 import 'presentation/theme/theme.dart';
+import 'stories/confetti_overlay_story.dart';
 import 'stories/member_basis_info_card_story.dart';
 import 'stories/member_basis_story.dart';
 import 'stories/member_list_directory_story.dart';
@@ -76,6 +77,7 @@ class StorybookEntry extends StatelessWidget {
           stammAddressSettingsStory(),
           stufenwechselSettingsStory(),
           storyMessageOfTheDayCard(),
+          confettiOverlayStory(),
           Story(
             name: 'App/ThemeToggleInfo',
             builder: (context) => Padding(
