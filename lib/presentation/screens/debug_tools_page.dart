@@ -94,8 +94,65 @@ class DebugToolsPage extends StatelessWidget {
                 }
               },
               icon: const Icon(Icons.feedback_outlined),
-              label: const Text('Wiredash Feedback öffnen'),
+              label: const Text('Feedback senden'),
             ),
+            ElevatedButton.icon(
+              onPressed: () {
+                final ctx = navigatorKey.currentContext;
+                if (ctx != null) {
+                  Wiredash.of(ctx).showPromoterSurvey(force: true);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Wiredash konnte nicht gefunden werden (Root-Kontext fehlt).',
+                      ),
+                    ),
+                  );
+                }
+              },
+              icon: const Icon(Icons.star_outline),
+              label: const Text('App bewerten'),
+            ),
+            const Text('Daten aktualisieren'),
+            ElevatedButton.icon(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Nicht implementiert: Daten aktualisiert'),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.refresh_outlined),
+              label: const Text('Daten jetzt aktualisieren'),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Nicht implementiert: Datenänderungen angezeigt',
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.visibility_outlined),
+              label: const Text('Datenänderungen anzeigen'),
+            ),
+            const SizedBox(height: 8),
+            const Text('Changelog anzeigen'),
+            ElevatedButton.icon(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Nicht implementiert: Changelog angezeigt'),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.list_alt_outlined),
+              label: const Text('Changelog anzeigen'),
+            ),
+            const SizedBox(height: 8),
           ],
         ),
       ),
