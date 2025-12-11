@@ -59,7 +59,6 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
                   final usecase = UpdateAltersgrenzenUseCase(adapter);
                   try {
                     await usecase.call(grenzen);
-                    // ignore: use_build_context_synchronously
                     final l10n = AppLocalizations.of(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -74,7 +73,6 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
                       ),
                     );
                   } on AltersgrenzenValidationError catch (e) {
-                    // ignore: use_build_context_synchronously
                     final l10n = AppLocalizations.of(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
