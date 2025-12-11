@@ -27,7 +27,7 @@ class SettingsStammPage extends StatelessWidget {
     final theme = Theme.of(context);
     final t = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(t.t('stamm_settings'))),
+      appBar: AppBar(title: Text(t.t('settings_stamm'))),
       body: Padding(
         padding: const EdgeInsets.fromLTRB(18, 0, 18, 0),
         child: ListView(

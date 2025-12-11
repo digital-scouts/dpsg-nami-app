@@ -98,8 +98,6 @@ class _StufenwechselSettingsState extends State<StufenwechselSettings> {
               interval.copyWith(minJahre: newMin, maxJahre: newMax),
             );
           });
-          // Speichern direkt bei Änderung
-          widget.onSave?.call(_grenzen);
         },
       ),
     );
@@ -149,8 +147,11 @@ class _StufenwechselSettingsState extends State<StufenwechselSettings> {
                 final defaults = StufenDefaults.build();
                 setState(() => _grenzen = defaults);
                 widget.onResetDefaults?.call();
-                widget.onSave?.call(_grenzen);
               },
+            ),
+            TextButton(
+              onPressed: () => widget.onSave?.call(_grenzen),
+              child: Text(AppLocalizations.of(context).t('save')),
             ),
           ],
         ),

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -15,6 +16,9 @@ class LoggerService {
   final GlobalKey<NavigatorState> navigatorKey;
   final WiredashEventHook? wiredashEventHook;
   final Future<File> Function()? logFileProvider;
+  final Map<String, DateTime> _debounceMap = {};
+  final Map<String, Timer> _debounceTimers = {};
+  final Map<String, Map<String, Object?>> _debounceLastProps = {};
 
   LoggerService({
     required this.settingsRepository,
@@ -58,6 +62,38 @@ class LoggerService {
     if (wiredashEventHook != null) {
       await wiredashEventHook!(name, properties);
     }
+  }
+
+  /// Debounce: Innerhalb von 30s wird nur das letzte Event ausgeführt.
+  ///
+  /// Verhalten:
+  /// - Jeder Aufruf verschiebt die Ausführung um 30s (ab letztem Aufruf).
+  /// - Kommen weitere Aufrufe in diesem Zeitfenster, werden frühere verworfen.
+  /// - Erst nach 30s Inaktivität wird `trackAndLog` mit den zuletzt
+  ///   übergebenen `properties` aufgerufen.
+  Future<void> debounceTrackAndLog(
+    String service,
+    String name,
+    Map<String, Object?> properties,
+  ) async {
+    final key = '_debounce_${service}_$name';
+
+    // Zuletzt übergebene Props merken (das letzte Event zählt)
+    _debounceLastProps[key] = properties;
+
+    // Bestehenden Timer abbrechen und neu starten
+    final existing = _debounceTimers[key];
+    if (existing != null && existing.isActive) {
+      existing.cancel();
+    }
+
+    _debounceTimers[key] = Timer(const Duration(seconds: 30), () async {
+      // Nach 30s Inaktivität: letztes Event senden
+      final last = _debounceLastProps.remove(key) ?? properties;
+      _debounceTimers.remove(key);
+      _debounceMap[key] = DateTime.now();
+      await trackAndLog(service, name, last);
+    });
   }
 
   Future<void> trackAndLog(
