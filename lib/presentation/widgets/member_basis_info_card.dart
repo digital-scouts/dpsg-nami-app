@@ -128,7 +128,6 @@ class _InfoTile extends StatelessWidget {
               tooltip: 'Kopieren',
               onPressed: () async {
                 await Clipboard.setData(ClipboardData(text: row.value));
-                // ignore: use_build_context_synchronously
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Kopiert'),
@@ -176,7 +175,6 @@ class _InfoTile extends StatelessWidget {
                 if (await canLaunchUrlString(uri)) {
                   await launchUrlString(uri);
                 } else {
-                  // ignore: use_build_context_synchronously
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Kann Link nicht öffnen')),
                   );
