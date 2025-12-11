@@ -24,12 +24,16 @@ class DebugToolsPage extends StatelessWidget {
             ElevatedButton.icon(
               onPressed: () async {
                 final file = await logger.getLogFile();
+                final exists = await file.exists();
+                final content = exists ? await file.readAsString() : '';
                 final uri = Uri(
                   scheme: 'mailto',
                   path: '',
                   queryParameters: {
                     'subject': 'NamiApp Logdatei',
-                    'body': 'Pfad zur Logdatei: ${file.path}',
+                    'body': content.isEmpty
+                        ? 'Keine Log-Inhalte vorhanden.'
+                        : content,
                   },
                 );
                 await launchUrl(uri);
@@ -37,17 +41,24 @@ class DebugToolsPage extends StatelessWidget {
               icon: const Icon(Icons.mail_outline),
               label: const Text('Log per Mail/Share senden'),
             ),
+
             const SizedBox(width: 12),
             ElevatedButton.icon(
               onPressed: () async {
-                await logger.log('debug', 'Manueller Logeintrag gesendet');
+                final file = await logger.getLogFile();
+                final exists = await file.exists();
+                if (exists) {
+                  await file.delete();
+                }
+                // Recreate empty file for continued logging
+                await (await logger.getLogFile()).create(recursive: true);
                 // ignore: use_build_context_synchronously
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Logeintrag geschrieben')),
+                  const SnackBar(content: Text('Logdatei gelöscht')),
                 );
               },
-              icon: const Icon(Icons.bug_report_outlined),
-              label: const Text('Test-Log schreiben'),
+              icon: const Icon(Icons.delete_outline),
+              label: const Text('Logs löschen'),
             ),
             const SizedBox(width: 12),
             ElevatedButton.icon(
@@ -101,7 +112,7 @@ class _LogViewerPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Logdatei anzeigen')),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -166,6 +177,7 @@ class _ColoredLogView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final lines = content.isEmpty ? const <String>[] : content.split('\n');
+    final ordered = lines.reversed.toList();
     final base = const TextStyle(fontFamily: 'monospace', fontSize: 13);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final tsStyle = base.copyWith(
@@ -180,24 +192,26 @@ class _ColoredLogView extends StatelessWidget {
 
     return SelectableText.rich(
       TextSpan(
-        children: lines
-            .expand(
-              (l) => [
-                _spanForLine(
-                  l,
-                  base,
-                  tsStyle: tsStyle,
-                  catEventStyle: catEventStyle,
-                  catWarnStyle: catWarnStyle,
-                  catErrorStyle: catErrorStyle,
-                  catServiceStyle: catServiceStyle,
-                  catDebugStyle: catDebugStyle,
-                  msgStyle: msgStyle,
-                ),
-                const TextSpan(text: '\n'),
-              ],
-            )
-            .toList(),
+        children: lines.isEmpty
+            ? const <TextSpan>[]
+            : ordered
+                  .expand(
+                    (l) => [
+                      _spanForLine(
+                        l,
+                        base,
+                        tsStyle: tsStyle,
+                        catEventStyle: catEventStyle,
+                        catWarnStyle: catWarnStyle,
+                        catErrorStyle: catErrorStyle,
+                        catServiceStyle: catServiceStyle,
+                        catDebugStyle: catDebugStyle,
+                        msgStyle: msgStyle,
+                      ),
+                      const TextSpan(text: '\n'),
+                    ],
+                  )
+                  .toList(),
         style: base,
       ),
     );

@@ -65,7 +65,7 @@ class LoggerService {
     String name,
     Map<String, Object?> properties,
   ) async {
-    await log(service, '$name props:${properties.toString()}');
+    await log(service, '$name ${properties.toString()}');
     await trackEvent(name, properties);
   }
 }
