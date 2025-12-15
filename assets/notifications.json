@@ -1,15 +1,17 @@
-[
-  {
-    "id": "test-1",
-    "title": {
-      "de": "Hallo",
-      "en": "Hello"
-    },
-    "body": {
-      "de": "Text",
-      "en": "Text"
-    },
-    "type": "info",
-    "platform": "all"
-  }
-]
+{
+  items: [
+    {
+      "id": "test-1",
+      "title": {
+        "de": "Hallo",
+        "en": "Hello"
+      },
+      "body": {
+        "de": "Text",
+        "en": "Text"
+      },
+      "type": "info",
+      "platform": "all"
+    }
+  ]
+}
