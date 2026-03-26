@@ -43,7 +43,7 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context).t('settings_title')),
+        title: Text(AppLocalizations.of(context).t('settings_app')),
       ),
       body: ListView(
         padding: const EdgeInsets.all(12),

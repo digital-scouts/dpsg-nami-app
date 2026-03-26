@@ -60,8 +60,24 @@ class LoggerService {
       return;
     }
     if (wiredashEventHook != null) {
-      await wiredashEventHook!(name, properties);
+      await wiredashEventHook!(name, _sanitizeEventProperties(properties));
     }
+  }
+
+  Map<String, Object?> _sanitizeEventProperties(
+    Map<String, Object?> properties,
+  ) {
+    return {
+      for (final entry in properties.entries)
+        entry.key: _sanitizeEventValue(entry.value),
+    };
+  }
+
+  Object? _sanitizeEventValue(Object? value) {
+    if (value == null || value is String || value is num || value is bool) {
+      return value;
+    }
+    return value.toString();
   }
 
   /// Debounce: Innerhalb von 30s wird nur das letzte Event ausgeführt.

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/navigation/app_router.dart';
 import 'package:nami/presentation/screens/settings_page.dart';
 import 'package:nami/presentation/widgets/app_bottom_navigation.dart';
@@ -15,24 +16,25 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     Widget body;
     switch (_index) {
       case 0:
         body = Scaffold(
-          appBar: AppBar(title: Text('Meine Stufe')),
-          body: Center(child: Text('Meine Stufe')),
+          appBar: AppBar(title: Text(t.t('nav_my_stage'))),
+          body: Center(child: Text(t.t('nav_my_stage'))),
         );
         break;
       case 1:
         body = Scaffold(
-          appBar: AppBar(title: Text('Mitglieder')),
-          body: Center(child: Text('Mitglieder')),
+          appBar: AppBar(title: Text(t.t('nav_members'))),
+          body: Center(child: Text(t.t('nav_members'))),
         );
         break;
       case 2:
         body = Scaffold(
-          appBar: AppBar(title: Text('Statistiken')),
-          body: Center(child: Text('Statistiken')),
+          appBar: AppBar(title: Text(t.t('nav_statistics'))),
+          body: Center(child: Text(t.t('nav_statistics'))),
         );
         break;
       case 3:
@@ -49,7 +51,7 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
         );
         break;
       default:
-        body = const Center(child: Text('Meine Stufe'));
+        body = Center(child: Text(t.t('nav_my_stage')));
     }
 
     return Scaffold(
