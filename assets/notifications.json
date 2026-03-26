@@ -11,7 +11,13 @@
                 "en": "Text"
             },
             "type": "info",
-            "platform": "all"
+            "platform": "all",
+            "created_at": null,
+            "updated_at": null,
+            "starts_at": null,
+            "ends_at": null,
+            "deep_link": null,
+            "external_link": null
         }
     ]
 }
