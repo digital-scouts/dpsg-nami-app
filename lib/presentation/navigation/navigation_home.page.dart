@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nami/presentation/navigation/app_router.dart';
 import 'package:nami/presentation/screens/settings_page.dart';
 import 'package:nami/presentation/widgets/app_bottom_navigation.dart';
 
@@ -36,16 +37,17 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
         break;
       case 3:
         body = SettingsPage(
-          userId: "133",
-          userName: "Max Mustermann",
-          onLogout: () => debugPrint("Logout clicked"),
           onStammSettings: () =>
-              Navigator.pushNamed(context, '/settings/stamm'),
-          onAppSettings: () => Navigator.pushNamed(context, '/settings/app'),
-          onProfile: () => Navigator.pushNamed(context, '/profile'),
-          onDebugTools: () => Navigator.pushNamed(context, '/settings/debug'),
+              Navigator.pushNamed(context, AppRoutes.settingsStamm),
+          onAppSettings: () =>
+              Navigator.pushNamed(context, AppRoutes.settingsApp),
+          onProfile: () => Navigator.pushNamed(context, AppRoutes.profile),
+          onDebugTools: () =>
+              Navigator.pushNamed(context, AppRoutes.debugTools),
           onNotifications: () =>
-              Navigator.pushNamed(context, '/settings/notifications'),
+              Navigator.pushNamed(context, AppRoutes.pullNotifications),
+          onNotificationSettings: () =>
+              Navigator.pushNamed(context, AppRoutes.settingsNotification),
         );
         break;
       default:

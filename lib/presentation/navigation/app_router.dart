@@ -13,6 +13,7 @@ import '../../services/logger_service.dart';
 import '../model/app_settings_model.dart';
 import '../model/locale_model.dart';
 import '../navigation/navigation_home.page.dart';
+import '../notifications/notifications_page.dart';
 import '../screens/settings_app_page.dart';
 import '../screens/settings_debug_tools_page.dart';
 import '../screens/settings_notification_page.dart';
@@ -25,12 +26,72 @@ class AppRoutes {
   static const String settingsApp = '/settings/app';
   static const String settingsNotification = '/settings/notifications';
   static const String debugTools = '/settings/debug';
+  static const String pullNotifications = '/notifications';
+  static const String profile = '/profile';
 }
 
 Route<dynamic> onGenerateRoute(RouteSettings settings) {
   switch (settings.name) {
     case AppRoutes.home:
       return MaterialPageRoute(builder: (_) => const NavigationHomeScreen());
+    case AppRoutes.profile:
+      return MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            title: Text(AppLocalizations.of(context).t('profile')),
+          ),
+          body: Center(
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.secondaryContainer,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: Image.asset(
+                        'assets/icon/icon-blank.png',
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Max Mustermann',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'ID: 133',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.logout,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  title: Text(AppLocalizations.of(context).t('logout')),
+                  onTap: () => debugPrint("Logout clicked"),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
     case AppRoutes.settingsStamm:
       return MaterialPageRoute(
         builder: (context) {
@@ -167,6 +228,8 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
           );
         },
       );
+    case AppRoutes.pullNotifications:
+      return MaterialPageRoute(builder: (context) => const NotificationsPage());
     case AppRoutes.debugTools:
       return MaterialPageRoute(builder: (context) => const DebugToolsPage());
     default:

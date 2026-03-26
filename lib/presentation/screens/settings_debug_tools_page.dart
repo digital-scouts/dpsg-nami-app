@@ -1,13 +1,33 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_email_sender/flutter_email_sender.dart';
 import 'package:nami/main.dart' show navigatorKey;
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:wiredash/wiredash.dart';
 
 import '../../services/logger_service.dart';
 
 class DebugToolsPage extends StatelessWidget {
   const DebugToolsPage({super.key});
+
+  Future<void> sendLogsEmail(File file) async {
+    final exists = await file.exists();
+    if (!exists) {
+      return;
+    }
+    try {
+      FlutterEmailSender.send(
+        Email(
+          body:
+              'Beschreibe dein Problem. Wie hat sich die App verhalten, was ist passiert? Was hättest du erwartet?',
+          attachmentPaths: [file.path],
+          subject: "NaMi App Logs",
+          recipients: ["dev@jannecklange.de"],
+        ),
+      );
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,25 +44,12 @@ class DebugToolsPage extends StatelessWidget {
             ElevatedButton.icon(
               onPressed: () async {
                 final file = await logger.getLogFile();
-                final exists = await file.exists();
-                final content = exists ? await file.readAsString() : '';
-                final uri = Uri(
-                  scheme: 'mailto',
-                  path: '',
-                  queryParameters: {
-                    'subject': 'NamiApp Logdatei',
-                    'body': content.isEmpty
-                        ? 'Keine Log-Inhalte vorhanden.'
-                        : content,
-                  },
-                );
-                await launchUrl(uri);
+                await sendLogsEmail(file);
               },
               icon: const Icon(Icons.mail_outline),
-              label: const Text('Log per Mail/Share senden'),
+              label: const Text('Log per Mail senden'),
             ),
 
-            const SizedBox(width: 12),
             ElevatedButton.icon(
               onPressed: () async {
                 final file = await logger.getLogFile();
@@ -60,7 +67,6 @@ class DebugToolsPage extends StatelessWidget {
               icon: const Icon(Icons.delete_outline),
               label: const Text('Logs löschen'),
             ),
-            const SizedBox(width: 12),
             ElevatedButton.icon(
               onPressed: () async {
                 final file = await logger.getLogFile();
@@ -76,8 +82,11 @@ class DebugToolsPage extends StatelessWidget {
               icon: const Icon(Icons.article_outlined),
               label: const Text('Log anzeigen'),
             ),
+
+            const SizedBox(height: 20),
             const Text('Feedback senden'),
             const SizedBox(height: 8),
+
             ElevatedButton.icon(
               onPressed: () {
                 final ctx = navigatorKey.currentContext;
@@ -114,7 +123,11 @@ class DebugToolsPage extends StatelessWidget {
               icon: const Icon(Icons.star_outline),
               label: const Text('App bewerten'),
             ),
+
+            const SizedBox(height: 20),
             const Text('Daten aktualisieren'),
+            const SizedBox(height: 8),
+
             ElevatedButton.icon(
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -139,8 +152,11 @@ class DebugToolsPage extends StatelessWidget {
               icon: const Icon(Icons.visibility_outlined),
               label: const Text('Datenänderungen anzeigen'),
             ),
-            const SizedBox(height: 8),
+
+            const SizedBox(height: 20),
             const Text('Changelog anzeigen'),
+            const SizedBox(height: 8),
+
             ElevatedButton.icon(
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -152,7 +168,16 @@ class DebugToolsPage extends StatelessWidget {
               icon: const Icon(Icons.list_alt_outlined),
               label: const Text('Changelog anzeigen'),
             ),
+
+            const SizedBox(height: 20),
+            const Text('Mitteilungen'),
             const SizedBox(height: 8),
+
+            ElevatedButton.icon(
+              onPressed: () => Navigator.pushNamed(context, '/notifications'),
+              icon: const Icon(Icons.notifications_outlined),
+              label: const Text('Mitteilungen anzeigen'),
+            ),
           ],
         ),
       ),
