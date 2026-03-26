@@ -24,11 +24,6 @@ Story settingsPageStory() => Story(
       ],
       supportedLocales: const [Locale('de'), Locale('en')],
       home: SettingsPage(
-        userName: context.knobs.text(
-          label: 'User Name',
-          initial: 'Max Mustermann',
-        ),
-        userId: context.knobs.text(label: 'User ID', initial: '123456'),
         appVersion: version,
         onStammSettings: () => ScaffoldMessenger.of(
           context,
@@ -45,9 +40,6 @@ Story settingsPageStory() => Story(
         onProfile: () => ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Profil'))),
-        onLogout: () => ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Logout'))),
       ),
     );
   },

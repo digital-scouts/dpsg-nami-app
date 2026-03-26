@@ -4,10 +4,12 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:hive_ce/hive.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:nami/presentation/navigation/navigation_home.page.dart';
 import 'package:nami/presentation/theme/theme.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:wiredash/wiredash.dart';
 
@@ -28,6 +30,8 @@ void main() {
   runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
+      final appDocDir = await getApplicationDocumentsDirectory();
+      Hive.init(appDocDir.path);
       await dotenv.load(fileName: ".env");
       await initializeDateFormatting("de_DE", null);
       Intl.defaultLocale = "de_DE";

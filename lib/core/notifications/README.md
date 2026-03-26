@@ -1,0 +1,25 @@
+# Pull Notifications Modul
+
+Dieses Modul implementiert die Kernlogik für Pull Notifications gemäß der Spezifikation in `specs/pull-notifications.md`.
+
+## Struktur
+
+- `pull_notification.dart`: Model & JSON-Parser
+- `pull_notifications_repository.dart`: Repository-Interface
+- `remote_notifications_data_source.dart`: HTTP-Loader
+- `local_notifications_data_source.dart`: Hive-Cache & Ack-Logik
+- `notifications_parser_test.dart`: Unit-Tests für Model/Parser
+
+## Hinweise
+
+- Die URL zur JSON-Quelle wird aus der `.env` geladen.
+- Das Feld `platform` ist optional, Default ist `all`.
+- `created_at` und `updated_at` sind optional.
+- Mehrsprachigkeit: `title` und `body` als Map (`de`, `en`).
+- ACK-Status wird lokal in Hive gespeichert (`notifications_ack_box`).
+
+## Nächste Schritte
+
+- Repository-Implementierung (SWR-Logik, Intervall, Fehlerbehandlung)
+- Integration in UI/Bloc
+- Weitere Tests (Integration, Widget)

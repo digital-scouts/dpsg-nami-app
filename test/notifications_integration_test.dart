@@ -1,0 +1,34 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:nami/core/notifications/pull_notification.dart';
+import 'package:nami/presentation/notifications/notifications_list.dart';
+
+void main() {
+  testWidgets(
+    'Integration: Notification wird angezeigt und kann bestätigt werden',
+    (tester) async {
+      final notifications = [
+        PullNotification(
+          id: '1',
+          title: const LocalizedString(de: 'Test', en: 'Test'),
+          body: const LocalizedString(de: 'Text', en: 'Text'),
+        ),
+      ];
+      var acked = <String>{};
+      await tester.pumpWidget(
+        MaterialApp(
+          home: NotificationsList(
+            notifications: notifications,
+            acknowledged: acked,
+            onTap: (_) {},
+            onAcknowledge: (n) => acked.add(n.id),
+          ),
+        ),
+      );
+      expect(find.text('Test'), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.done));
+      await tester.pump();
+      expect(acked.contains('1'), isTrue);
+    },
+  );
+}
