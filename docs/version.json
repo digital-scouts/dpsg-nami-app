@@ -1,6 +1,6 @@
 {
   "android": {
-    "latest": "1.0.0",
+    "latest": "1.1.0",
     "min_supported": "1.0.0",
     "store_url": "https://play.google.com/store/apps/details?id=de.jlange.nami.app"
   },
