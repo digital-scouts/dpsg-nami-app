@@ -83,6 +83,39 @@ class AppLocalizations {
       'reset_changes': 'Änderungen zurücksetzen',
       'save': 'Speichern',
       'map_not_available': 'Karte nicht verfügbar',
+      'auth_loading_title': 'Sichere Sitzung wird vorbereitet',
+      'auth_loading_body':
+          'Bitte warte kurz, waehrend der geschuetzte App-Zustand geladen wird.',
+      'auth_login_title': 'Anmeldung erforderlich',
+      'auth_login_body':
+          'Melde dich mit deinem Hitobito-Zugang an, um sensible DPSG-Daten offline verfuegbar zu machen.',
+      'auth_not_configured_body':
+          'OAuth ist noch nicht konfiguriert. Hinterlege die Hitobito-Zugangsdaten in der .env, um den Login zu aktivieren.',
+      'auth_login_action': 'Mit Hitobito anmelden',
+      'auth_relogin_title': 'Erneute Anmeldung erforderlich',
+      'auth_relogin_body':
+          'Die lokal gespeicherten Daten sind abgelaufen. Bitte melde dich erneut an, um den Datenbestand zu entsperren.',
+      'auth_relogin_action': 'Erneut anmelden',
+      'auth_unlock_title': 'App entsperren',
+      'auth_unlock_body':
+          'Bestaetige kurz deine Identitaet, um auf die lokal gespeicherten Daten zuzugreifen.',
+      'auth_unlock_action': 'Jetzt entsperren',
+      'auth_status_title': 'Anmeldestatus',
+      'auth_status_initializing': 'Wird vorbereitet',
+      'auth_status_signed_out': 'Abgemeldet',
+      'auth_status_authenticating': 'Anmeldung laeuft',
+      'auth_status_signed_in': 'Angemeldet',
+      'auth_status_unlock_required': 'Lokale Entsperrung erforderlich',
+      'auth_status_relogin_required': 'Neuanmeldung erforderlich',
+      'auth_status_error': 'Fehler',
+      'auth_status_unknown_user': 'Kein Profil geladen',
+      'auth_last_data_sync_title': 'Letzte Datenbestaetigung',
+      'auth_last_data_sync_unknown':
+          'Noch kein bestaetigter Datenstand vorhanden',
+      'auth_refresh_due_title': 'Auffrischung nach 24 Stunden faellig',
+      'auth_refresh_due_yes': 'Ja',
+      'auth_refresh_due_no': 'Nein',
+      'auth_manual_refresh_action': 'Sitzung jetzt pruefen',
     },
     'en': {
       'nav_my_stage': 'My Group',
@@ -155,6 +188,38 @@ class AppLocalizations {
       'reset_changes': 'Reset changes',
       'save': 'Save',
       'map_not_available': 'Map not available',
+      'auth_loading_title': 'Preparing secure session',
+      'auth_loading_body':
+          'Please wait while the protected app state is being loaded.',
+      'auth_login_title': 'Sign-in required',
+      'auth_login_body':
+          'Sign in with your Hitobito account to make sensitive DPSG data available offline.',
+      'auth_not_configured_body':
+          'OAuth is not configured yet. Add the Hitobito credentials to the .env file to enable sign-in.',
+      'auth_login_action': 'Sign in with Hitobito',
+      'auth_relogin_title': 'Sign-in required again',
+      'auth_relogin_body':
+          'The locally stored data has expired. Please sign in again to unlock the data set.',
+      'auth_relogin_action': 'Sign in again',
+      'auth_unlock_title': 'Unlock app',
+      'auth_unlock_body':
+          'Confirm your identity to access the locally stored data.',
+      'auth_unlock_action': 'Unlock now',
+      'auth_status_title': 'Sign-in status',
+      'auth_status_initializing': 'Preparing',
+      'auth_status_signed_out': 'Signed out',
+      'auth_status_authenticating': 'Signing in',
+      'auth_status_signed_in': 'Signed in',
+      'auth_status_unlock_required': 'Local unlock required',
+      'auth_status_relogin_required': 'Sign-in required again',
+      'auth_status_error': 'Error',
+      'auth_status_unknown_user': 'No profile loaded',
+      'auth_last_data_sync_title': 'Last data verification',
+      'auth_last_data_sync_unknown': 'No verified data set available yet',
+      'auth_refresh_due_title': '24h refresh due',
+      'auth_refresh_due_yes': 'Yes',
+      'auth_refresh_due_no': 'No',
+      'auth_manual_refresh_action': 'Check session now',
     },
   };
 
