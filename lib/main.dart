@@ -11,6 +11,7 @@ import 'package:nami/core/notifications/pull_notification.dart';
 import 'package:nami/core/notifications/pull_notifications_cubit.dart';
 import 'package:nami/core/notifications/pull_notifications_repository_factory.dart';
 import 'package:nami/presentation/navigation/navigation_home.page.dart';
+import 'package:nami/presentation/notifications/app_update_dialog.dart';
 import 'package:nami/presentation/theme/theme.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
@@ -23,6 +24,7 @@ import 'l10n/app_localizations.dart';
 import 'presentation/model/app_settings_model.dart';
 import 'presentation/model/locale_model.dart';
 import 'presentation/navigation/app_router.dart';
+import 'services/app_update_service.dart';
 import 'services/logger_service.dart';
 import 'services/usage_tracking_service.dart';
 
@@ -140,6 +142,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   PullNotificationsCubit? _notificationsCubit;
   StreamSubscription<PullNotificationsState>? _notificationsSubscription;
   String? _currentUrgentId;
+  bool _didCheckForAppUpdate = false;
 
   @override
   void initState() {
@@ -152,6 +155,30 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _usage.flushPendingSession();
     _usage.startSession();
     _initGlobalNotifications();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkForAppUpdate();
+    });
+  }
+
+  Future<void> _checkForAppUpdate() async {
+    if (_didCheckForAppUpdate) {
+      return;
+    }
+    _didCheckForAppUpdate = true;
+
+    try {
+      final info = await AppUpdateService().checkForUpdate();
+      final dialogContext = navigatorKey.currentContext;
+      if (!mounted || dialogContext == null || info == null) {
+        return;
+      }
+      await showAppUpdateDialog(dialogContext, info);
+    } catch (error, stack) {
+      await logger.log(
+        'update',
+        'App-Update-Check fehlgeschlagen: $error\n$stack',
+      );
+    }
   }
 
   Future<void> _initGlobalNotifications() async {

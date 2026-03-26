@@ -4,9 +4,11 @@ import 'package:nami/core/notifications/pull_notifications_repository_factory.da
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/notifications/notification_card.dart';
 import 'package:nami/presentation/widgets/confetti_overlay.dart';
+import 'package:nami/services/app_update_service.dart';
 import 'package:nami/services/logger_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SettingsPage extends StatefulWidget {
   final VoidCallback? onStammSettings;
@@ -34,6 +36,7 @@ class _SettingsPageState extends State<SettingsPage> {
   int _tapCount = 0;
   DateTime? _firstTapAt;
   String? _appVersion;
+  late Future<AppUpdateInfo?> _appUpdateFuture;
   late Future<PullNotification?> _unreadNotificationFuture;
 
   int _notificationPriority(PullNotification notification) {
@@ -52,9 +55,18 @@ class _SettingsPageState extends State<SettingsPage> {
   void initState() {
     super.initState();
     _unreadNotificationFuture = _loadUnreadNotification();
+    _appUpdateFuture = _loadAppUpdateInfo();
     _appVersion = widget.appVersion;
     if (_appVersion == null) {
       _loadAppVersion();
+    }
+  }
+
+  Future<AppUpdateInfo?> _loadAppUpdateInfo() async {
+    try {
+      return await AppUpdateService().checkForUpdate();
+    } catch (_) {
+      return null;
     }
   }
 
@@ -119,6 +131,39 @@ class _SettingsPageState extends State<SettingsPage> {
     }
 
     return unread.first;
+  }
+
+  Future<void> _openStore(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) {
+      return;
+    }
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  PullNotification _buildUpdateNotification(
+    BuildContext context,
+    AppUpdateInfo info,
+  ) {
+    final t = AppLocalizations.of(context);
+    final body = info.isRequired
+        ? '${t.t('update_required_body')}\n${t.t('version')} ${info.currentVersion} → ${info.latestVersion}'
+        : '${t.t('update_available_body')}\n${t.t('version')} ${info.currentVersion} → ${info.latestVersion}';
+
+    return PullNotification(
+      id: 'app-update-${info.latestVersion}-${info.currentVersion}',
+      title: LocalizedString(
+        de: info.isRequired
+            ? t.t('update_required_title')
+            : t.t('update_available_title'),
+        en: info.isRequired
+            ? t.t('update_required_title')
+            : t.t('update_available_title'),
+      ),
+      body: LocalizedString(de: body, en: body),
+      type: info.isRequired ? 'urgent' : 'warn',
+      externalLink: info.storeUrl,
+    );
   }
 
   void _handleTippleTapInTwoSeconds() {
@@ -195,6 +240,23 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                 ],
               ),
+            ),
+            FutureBuilder<AppUpdateInfo?>(
+              future: _appUpdateFuture,
+              builder: (context, snapshot) {
+                final updateInfo = snapshot.data;
+                if (updateInfo == null) {
+                  return const SizedBox.shrink();
+                }
+
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: NotificationCard(
+                    notification: _buildUpdateNotification(context, updateInfo),
+                    onTap: () => _openStore(updateInfo.storeUrl),
+                  ),
+                );
+              },
             ),
             FutureBuilder<PullNotification?>(
               future: _unreadNotificationFuture,
