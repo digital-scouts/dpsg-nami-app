@@ -44,8 +44,6 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
           onProfile: () => Navigator.pushNamed(context, AppRoutes.profile),
           onDebugTools: () =>
               Navigator.pushNamed(context, AppRoutes.debugTools),
-          onNotifications: () =>
-              Navigator.pushNamed(context, AppRoutes.pullNotifications),
           onNotificationSettings: () =>
               Navigator.pushNamed(context, AppRoutes.settingsNotification),
         );

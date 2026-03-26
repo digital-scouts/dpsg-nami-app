@@ -23,6 +23,6 @@ void main() {
       ),
     );
     expect(find.text('Test'), findsOneWidget);
-    expect(find.byIcon(Icons.done), findsOneWidget);
+    expect(find.byIcon(Icons.close), findsOneWidget);
   });
 }

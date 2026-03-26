@@ -8,14 +8,14 @@ class PullNotificationsRepositoryImpl implements PullNotificationsRepository {
   final RemoteNotificationsDataSource remote;
   final LocalNotificationsDataSource local;
   final Duration cacheExpiration;
+  final Duration minFetchInterval;
 
   PullNotificationsRepositoryImpl({
     required this.remote,
     required this.local,
     this.cacheExpiration = const Duration(days: 7),
+    this.minFetchInterval = const Duration(hours: 1),
   });
-
-  DateTime? _lastFetch;
 
   @override
   Future<List<PullNotification>> fetchNotifications({
@@ -23,21 +23,30 @@ class PullNotificationsRepositoryImpl implements PullNotificationsRepository {
   }) async {
     // 1. Cache zuerst
     final cached = local.getNotifications();
+    final lastFetchAt = await local.getLastFetchAt();
     final now = DateTime.now();
-    final isCacheValid =
-        _lastFetch != null && now.difference(_lastFetch!) < cacheExpiration;
+    final shouldSkipRemote =
+        !forceRefresh &&
+        lastFetchAt != null &&
+        now.difference(lastFetchAt) < minFetchInterval;
+
     if (cached.isNotEmpty && !forceRefresh) {
-      // Cache sofort liefern, damit der App-Start nicht blockiert.
-      if (!isCacheValid) {
+      // Cache sofort liefern, Remote nur nach Ablauf des Intervalls prüfen.
+      if (!shouldSkipRemote) {
         _refreshInBackground();
       }
       return cached;
     }
+
+    if (shouldSkipRemote) {
+      return cached;
+    }
+
     // 2. Remote holen (und speichern)
     try {
       final fresh = await remote.fetch();
       await local.saveNotifications(fresh);
-      _lastFetch = DateTime.now();
+      await local.setLastFetchAt(now);
       return fresh;
     } catch (e) {
       // Bei Fehler: Fallback auf Cache
@@ -51,7 +60,7 @@ class PullNotificationsRepositoryImpl implements PullNotificationsRepository {
         .fetch()
         .then((fresh) async {
           await local.saveNotifications(fresh);
-          _lastFetch = DateTime.now();
+          await local.setLastFetchAt(DateTime.now());
         })
         .catchError((_) {
           /* Fehler ignorieren, da nur Hintergrund */

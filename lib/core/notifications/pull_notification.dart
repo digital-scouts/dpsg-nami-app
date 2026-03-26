@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 
 /// Mehrsprachiges Feld für Titel/Body
 @immutable
@@ -25,6 +25,16 @@ class LocalizedString {
   }
 
   Map<String, dynamic> toJson() => {'de': de, 'en': en};
+
+  String resolve(Locale locale) {
+    if (locale.languageCode == 'en' && en.isNotEmpty) {
+      return en;
+    }
+    if (de.isNotEmpty) {
+      return de;
+    }
+    return en;
+  }
 }
 
 /// Pull Notification Model

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:nami/core/notifications/pull_notification.dart';
 
+import 'notification_card.dart';
+
 class NotificationsList extends StatelessWidget {
   final List<PullNotification> notifications;
   final Set<String> acknowledged;
@@ -26,25 +28,18 @@ class NotificationsList extends StatelessWidget {
     if (visible.isEmpty) {
       return const Center(child: Text('Keine Mitteilungen'));
     }
-    return ListView(
-      children: visible.map((n) {
-        return Card(
-          color: n.type == 'urgent'
-              ? Colors.red[100]
-              : n.type == 'warn'
-              ? Colors.yellow[100]
-              : null,
-          child: ListTile(
-            title: Text(n.title.de),
-            subtitle: Text(n.body.de),
-            trailing: IconButton(
-              icon: const Icon(Icons.done),
-              onPressed: () => onAcknowledge(n),
-            ),
-            onTap: () => onTap(n),
-          ),
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: visible.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final notification = visible[index];
+        return NotificationCard(
+          notification: notification,
+          onTap: () => onTap(notification),
+          onClose: () => onAcknowledge(notification),
         );
-      }).toList(),
+      },
     );
   }
 }

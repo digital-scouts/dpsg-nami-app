@@ -28,12 +28,13 @@ Story settingsPageStory() => Story(
         onStammSettings: () => ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Stammeseinstellungen'))),
-        onNotifications: () => ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Benachrichtigungen'))),
         onAppSettings: () => ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Appeinstellungen'))),
+        onNotificationSettings: () =>
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Benachrichtigungseinstellungen')),
+            ),
         onDebugTools: () => ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Debug & Tools'))),

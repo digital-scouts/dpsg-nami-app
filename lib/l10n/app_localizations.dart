@@ -20,6 +20,13 @@ class AppLocalizations {
       'general': 'Allgemein',
       'settings_notifications': 'Benachrichtigungen',
       'pull_notifications_title': 'Mitteilungen',
+      'settings_unread_notifications_title': 'Ungelesene Mitteilungen',
+      'settings_unread_notifications_hint':
+          'Du hast {count} ungelesene Mitteilungen. Vollständige Ansicht über Debug & Tools.',
+      'settings_unread_notifications_urgent_hint':
+          'Du hast {count} ungelesene Mitteilungen, darunter dringende Hinweise.',
+      'open_notifications_in_debug': 'In Debug & Tools öffnen',
+      'acknowledge': 'Bestätigen',
       'notifications_enable': 'Benachrichtigungen aktiviert',
       'analytics_enable': 'Analyse/Telemetry erlauben',
       'display': 'Anzeige',
@@ -60,6 +67,13 @@ class AppLocalizations {
       'general': 'General',
       'settings_notifications': 'Notification settings',
       'pull_notifications_title': 'Announcements',
+      'settings_unread_notifications_title': 'Unread announcements',
+      'settings_unread_notifications_hint':
+          'You have {count} unread announcements. Open the full list in Debug & Tools.',
+      'settings_unread_notifications_urgent_hint':
+          'You have {count} unread announcements, including urgent ones.',
+      'open_notifications_in_debug': 'Open in Debug & Tools',
+      'acknowledge': 'Acknowledge',
       'notifications_enable': 'Notifications enabled',
       'analytics_enable': 'Allow analytics/telemetry',
       'display': 'Display',

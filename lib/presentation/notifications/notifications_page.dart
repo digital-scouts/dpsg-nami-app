@@ -1,16 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:hive_ce/hive.dart';
-import 'package:nami/core/notifications/pull_notification.dart';
+import 'package:nami/core/notifications/pull_notifications_repository_factory.dart';
 
-import '../../core/notifications/local_notifications_data_source.dart';
 import '../../core/notifications/pull_notifications_cubit.dart';
-import '../../core/notifications/pull_notifications_env.dart';
-import '../../core/notifications/pull_notifications_repository_impl.dart';
-import '../../core/notifications/remote_notifications_data_source.dart';
 import '../../services/logger_service.dart';
 import 'notifications_list.dart';
-import 'urgent_notification_modal.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -21,7 +15,6 @@ class NotificationsPage extends StatefulWidget {
 
 class _NotificationsPageState extends State<NotificationsPage> {
   PullNotificationsCubit? cubit;
-  bool _urgentShown = false;
   bool _boxReady = false;
 
   @override
@@ -31,15 +24,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
   }
 
   Future<void> _initHiveAndCubit() async {
-    await Hive.openBox('notifications_box');
     final logger = context.read<LoggerService>();
-    final remote = RemoteNotificationsDataSource(
-      PullNotificationsEnv.url,
-      logger: logger,
-    );
-    final box = Hive.box('notifications_box');
-    final local = LocalNotificationsDataSource(box);
-    final repo = PullNotificationsRepositoryImpl(remote: remote, local: local);
+    final repo = await createPullNotificationsRepository(logger: logger);
     final c = PullNotificationsCubit(repo);
     if (!mounted) {
       await c.close();
@@ -105,24 +91,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
             ),
             Expanded(
               child:
-                  BlocConsumer<PullNotificationsCubit, PullNotificationsState>(
-                    listener: (context, state) {
-                      if (state is PullNotificationsLoaded && !_urgentShown) {
-                        PullNotification? urgent;
-                        try {
-                          urgent = state.notifications.firstWhere(
-                            (n) =>
-                                n.type == 'urgent' &&
-                                !state.acknowledged.contains(n.id),
-                          );
-                        } catch (e) {
-                          urgent = null;
-                        }
-                        if (urgent == null) return;
-                        _urgentShown = true;
-                        showUrgentNotificationModal(context, urgent);
-                      }
-                    },
+                  BlocBuilder<PullNotificationsCubit, PullNotificationsState>(
                     builder: (context, state) {
                       if (state is PullNotificationsLoading) {
                         return const Center(child: CircularProgressIndicator());
