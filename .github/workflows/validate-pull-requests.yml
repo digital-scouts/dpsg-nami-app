@@ -1,0 +1,76 @@
+name: Validate Pull Requests
+
+on:
+  pull_request:
+    branches: [develop, master]
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate Flutter project
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ vars.JAVA_VERSION }}
+
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ vars.DART_VERSION }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Validate app version consistency
+        run: dart tool/validate_versions.dart
+
+      - name: Require version bump for master PRs
+        if: github.event_name == 'pull_request' && github.base_ref == 'master'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          BASE_VERSION=$(git show "origin/${{ github.base_ref }}:pubspec.yaml" | awk '/^version:/{print $2}')
+          HEAD_VERSION=$(awk '/^version:/{print $2}' pubspec.yaml)
+          BASE_RELEASE="${BASE_VERSION%%+*}"
+          HEAD_RELEASE="${HEAD_VERSION%%+*}"
+
+          python3 - "$BASE_RELEASE" "$HEAD_RELEASE" <<'PY'
+          import sys
+
+          base = tuple(int(part) for part in sys.argv[1].split('.'))
+          head = tuple(int(part) for part in sys.argv[2].split('.'))
+
+          if head <= base:
+              print(f"Version bump required for master PRs: base={sys.argv[1]} head={sys.argv[2]}")
+              raise SystemExit(1)
+          PY
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze Flutter project
+        run: flutter analyze
+
+      - name: Run Flutter tests
+        run: flutter test

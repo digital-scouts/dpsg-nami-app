@@ -77,6 +77,30 @@ Story appSettingsPageStory() => Story(
   },
 );
 
+Story appSettingsPageEnglishStory() => Story(
+  name: 'Screens/AppSettingsPage/EnglishAnalyticsOn',
+  builder: (context) {
+    return MaterialApp(
+      localizationsDelegates: [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        AppLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('de'), Locale('en')],
+      locale: const Locale('en'),
+      home: AppSettingsPage(
+        analyticsEnabled: true,
+        themeMode: ThemeMode.dark,
+        languageCode: 'en',
+        onAnalyticsChanged: (_) {},
+        onThemeModeChanged: (_) {},
+        onLanguageChanged: (_) {},
+      ),
+    );
+  },
+);
+
 Story settingsNotificationPageStory() => Story(
   name: 'Screens/SettingsNotificationPage',
   builder: (context) {
@@ -105,6 +129,25 @@ Story settingsNotificationPageStory() => Story(
             ),
           );
         },
+      ),
+    );
+  },
+);
+
+Story settingsNotificationPageDisabledStory() => Story(
+  name: 'Screens/SettingsNotificationPage/Disabled',
+  builder: (context) {
+    return MaterialApp(
+      localizationsDelegates: [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        AppLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('de'), Locale('en')],
+      home: const SettingsNotificationPage(
+        notificationsEnabled: false,
+        geburstagsbenachrichtigungStufen: {},
       ),
     );
   },
