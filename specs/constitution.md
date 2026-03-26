@@ -52,9 +52,11 @@ Fehler, Sync-Ereignisse und Performance-Metriken werden strukturiert geloggt (Le
    - Format & Lint (dart format, dart analyze)
    - Unit Tests
    - (Später) Integration/Contract Tests mit Mock/Stubs
-   - Build Artefakte (Android .apk / iOS TestFlight build)
+   - Versionskonsistenz zwischen pubspec und Changelog
+   - Android AAB fuer den internen Play-Track bei Pushes auf `develop` sowie nach gemergten Pull Requests auf `master`
+   - GitHub Release mit Release-Notizen aus dem Changelog nach gemergten Pull Requests auf `master`
    - Optional: Security Scan (Dependency Audit)
-7. Release: Manuell nach erfolgreichem Build. Semver Tagging, Changelog aktualisieren.
+7. Release: Version in `pubspec.yaml` pflegen, Changelog aktualisieren, Merge via Pull Request nach `master`; GitHub Release und Android-Deploy laufen danach automatisiert. Direkte Pushes nach `master` gelten als Hotfixes und loesen diese Release-Automation nicht aus. iOS-Distribution bleibt ausserhalb von GitHub Actions.
 8. Monitoring & Feedback: Wiredash für Feedback/Analyse, Crash Reporting (Tool Auswahl offen, Kandidaten: Sentry/Crashlytics).
 
 Quality Gates Mindestanforderungen (MVP angepasster Umfang):

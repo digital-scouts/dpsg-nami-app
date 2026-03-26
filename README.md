@@ -17,7 +17,7 @@ Master:
 
 Develop:
 
-[![Test](https://github.com/JanneckLange/dpsg-nami-app/actions/workflows/flutter-test.yml/badge.svg)](https://github.com/JanneckLange/dpsg-nami-app/actions/workflows/flutter-test.yml)
+[![Validate](https://github.com/JanneckLange/dpsg-nami-app/actions/workflows/validate-pull-requests.yml/badge.svg)](https://github.com/JanneckLange/dpsg-nami-app/actions/workflows/validate-pull-requests.yml)
 [![Commit](https://shields.io/github/last-commit/JanneckLange/dpsg-nami-app/develop)](https://github.com/JanneckLange/dpsg-nami-app/commits/develop)
 
 NaMi steht für die Namentliche Mitgliedermeldung der Deutschen Pfadfinderschaft Sankt Georg (DPSG). Diese App richtet sich speziell an Gruppenleiter:innen der DPSG und ermöglicht den mobilen, offline Zugriff auf Mitgliederdaten. Dank vielseitiger Sortier- und Filterfunktionen sowie grundlegender Bearbeitungsoptionen bietet die App eine unverzichtbare Unterstützung im Stammesalltag.
@@ -70,19 +70,23 @@ Ab dann wird vor jedem Commit automatisch geprüft, ob [pubspec.yaml](pubspec.ya
 
 Die gleiche Versionsprüfung läuft zusätzlich in GitHub Actions:
 
-- im PR- und Push-Workflow [flutter-test.yml](.github/workflows/flutter-test.yml)
-- im Android-Deploy-Workflow [deploy-android.yml](.github/workflows/deploy-android.yml)
-- im manuellen Build-Workflow [flutter-app-build.yml](.github/workflows/flutter-app-build.yml)
+- [validate-pull-requests.yml](.github/workflows/validate-pull-requests.yml) validiert Pull Requests nach `develop` und `master` mit Versionscheck, Formatierung, Analyse und Tests.
+- [deploy-android-internal.yml](.github/workflows/deploy-android-internal.yml) baut ein Android App Bundle und deployed es nach Pushes auf `develop`, nach gemergten Pull Requests auf `master` oder manuell in den internen Play-Track.
+- [create-github-release.yml](.github/workflows/create-github-release.yml) erstellt nach gemergten Pull Requests auf `master` oder manuell einen GitHub Release auf Basis der Version aus [pubspec.yaml](pubspec.yaml) und der Eintraege aus [assets/changelog.json](assets/changelog.json).
 
-Dadurch kann eine inkonsistente Versionierung nicht unbemerkt in den Hauptbranch gelangen, auch wenn lokal kein Hook aktiviert ist.
+Dadurch kann eine inkonsistente Versionierung nicht unbemerkt in den Hauptbranch gelangen, auch wenn lokal kein Hook aktiviert ist. Der GitHub Release enthaelt bewusst nur Tag und Release-Notizen, aber kein angehaengtes Android-Binaerfile.
 
-Wenn sich die Versionsnummer in [pubspec.yaml](pubspec.yaml) auf `master` aendert, erstellt [version-reminder-prs.yml](.github/workflows/version-reminder-prs.yml) automatisch zwei Pull Requests:
+Der iOS-Release-Pfad laeuft weiterhin ausserhalb von GitHub Actions ueber Xcode Cloud beziehungsweise App Store Connect.
+
+Beim Merge eines Pull Requests nach `master` erstellt [version-reminder-prs.yml](.github/workflows/version-reminder-prs.yml) automatisch zwei Pull Requests:
 
 - einen für Android
 - einen für iOS
 
 Diese PRs aktualisieren jeweils den passenden Eintrag in [docs/version.json](docs/version.json) auf die neue Versionsnummer.
 Sie dienen als Erinnerung und sollen erst dann gemerged werden, wenn die jeweilige Store-Version wirklich verfuegbar ist.
+
+Direkte Pushes nach `master` werden als Hotfixes behandelt und loesen bewusst keine Release-, Deploy- oder Versionierungs-Workflows aus.
 
 ### Storybook
 
@@ -91,10 +95,9 @@ To run the storybook, use the following command:
 
 ## Funktionsweise
 
-Die App verbindet sich direkt mit dem NaMi-Backend, sodass keine Mitgliedsdaten auf externen Servern gespeichert oder verarbeitet werden.
-Die Daten des ausgewählten Stammes werden lokal und verschlüsselt auf dem Gerät des Nutzers gespeichert.
+Die App ist darauf ausgelegt, sich direkt mit dem NaMi-Backend zu verbinden, sodass keine Mitgliedsdaten auf externen Servern dieser App gespeichert oder verarbeitet werden.
 
-Die Daten werden tägliche automatisch im Hintergrund synchronisiert. Falls die Daten länger als 30 Tage nicht aktualisiert wurden, werden sie automatisch aus der App entfernt, um die Datensicherheit zu gewährleisten.
+Teile der Mitgliedsdaten-Funktionalitaet befinden sich noch in Umsetzung. Geplante Sicherheitsmassnahmen wie eine verschluesselte lokale Speicherung dieser Daten sind noch nicht vollstaendig umgesetzt und sollten daher noch nicht als abgeschlossen betrachtet werden.
 
 ## Aktuelle Funktionen
 

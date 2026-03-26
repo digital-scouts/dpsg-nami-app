@@ -1,0 +1,123 @@
+name: Create GitHub Release
+
+on:
+  pull_request:
+    branches: [master]
+    types: [closed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: create-github-release-master
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Validate and publish GitHub release
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.merge_commit_sha || github.sha }}
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ vars.JAVA_VERSION }}
+
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ vars.DART_VERSION }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Validate app version consistency
+        run: dart tool/validate_versions.dart
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze Flutter project
+        run: flutter analyze
+
+      - name: Run Flutter tests
+        run: flutter test
+
+      - name: Read release version from pubspec
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          FULL_VERSION=$(awk '/^version:/{print $2}' pubspec.yaml)
+          RELEASE_VERSION="${FULL_VERSION%%+*}"
+          echo "release_version=$RELEASE_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build release notes from changelog
+        id: notes
+        shell: bash
+        run: |
+          python3 <<'PY'
+          import json
+          import os
+
+          version = os.environ['RELEASE_VERSION']
+          output_path = os.environ['GITHUB_OUTPUT']
+
+          with open('assets/changelog.json', encoding='utf-8') as handle:
+              changelog = json.load(handle)
+
+          entries = changelog.get('versions', [])
+          entry = next((item for item in entries if item.get('version') == version), None)
+
+          lines = [f'## NaMi {version}', '']
+          if entry is None:
+              lines.append('Keine Changelog-Informationen fuer diese Version gefunden.')
+          else:
+              if entry.get('data_reset'):
+                  lines.append('- Datenreset erforderlich')
+                  lines.append('')
+
+              features = entry.get('features') or []
+              bugfixes = entry.get('bugFixes') or []
+
+              if features:
+                  lines.append('### Features')
+                  lines.extend(f'- {item}' for item in features)
+                  lines.append('')
+
+              if bugfixes:
+                  lines.append('### Bugfixes')
+                  lines.extend(f'- {item}' for item in bugfixes)
+                  lines.append('')
+
+          body = '\n'.join(lines).strip() + '\n'
+          with open(output_path, 'a', encoding='utf-8') as handle:
+              handle.write('body<<EOF\n')
+              handle.write(body)
+              handle.write('EOF\n')
+          PY
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.release_version }}
+
+      - name: Create GitHub release
+        uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          tag: v${{ steps.version.outputs.release_version }}
+          name: NaMi v${{ steps.version.outputs.release_version }}
+          body: ${{ steps.notes.outputs.body }}
+          commit: ${{ github.event_name == 'pull_request' && github.event.pull_request.merge_commit_sha || github.sha }}

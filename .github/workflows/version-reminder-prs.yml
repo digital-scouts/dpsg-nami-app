@@ -1,10 +1,9 @@
-name: Create new Version Nummer PRs
+name: Create Version Reminder PRs
 
 on:
-  push:
+  pull_request:
     branches: [master]
-    paths:
-      - pubspec.yaml
+    types: [closed]
 
 permissions:
   contents: write
@@ -13,11 +12,14 @@ permissions:
 jobs:
   prepare:
     name: Read app version
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.release_version }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: ${{ vars.DART_VERSION }}
@@ -31,9 +33,12 @@ jobs:
   android:
     name: Android PR
     needs: prepare
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: ${{ vars.DART_VERSION }}
@@ -57,9 +62,12 @@ jobs:
   ios:
     name: iOS PR
     needs: prepare
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: ${{ vars.DART_VERSION }}

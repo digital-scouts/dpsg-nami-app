@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/domain/settings/app_settings.dart';
@@ -10,6 +11,22 @@ import 'package:nami/services/logger_service.dart';
 class _CustomEventValue {
   @override
   String toString() => 'custom-event-value';
+}
+
+class _RecordingLoggerService extends LoggerService {
+  _RecordingLoggerService({required super.settingsRepository})
+    : super(navigatorKey: GlobalKey<NavigatorState>());
+
+  final List<(String, String, Map<String, Object?>)> calls = [];
+
+  @override
+  Future<void> trackAndLog(
+    String service,
+    String name,
+    Map<String, Object?> properties,
+  ) async {
+    calls.add((service, name, properties));
+  }
 }
 
 class _FakeRepo implements AppSettingsRepository {
@@ -170,6 +187,40 @@ void main() {
       expect(capturedProps!['number'], 42);
       expect(capturedProps!['bool'], true);
       expect(capturedProps!['null'], isNull);
+    },
+  );
+
+  test(
+    'debounceTrackAndLog sendet nur das letzte Event nach 30s Inaktivitaet',
+    () {
+      final repo = _FakeRepo(
+        const AppSettings(
+          themeMode: ThemeMode.system,
+          languageCode: 'de',
+          analyticsEnabled: true,
+        ),
+      );
+      final service = _RecordingLoggerService(settingsRepository: repo);
+
+      fakeAsync((async) {
+        service.debounceTrackAndLog('settings', 'theme_changed', {
+          'value': 'a',
+        });
+        async.elapse(const Duration(seconds: 10));
+        service.debounceTrackAndLog('settings', 'theme_changed', {
+          'value': 'b',
+        });
+        async.elapse(const Duration(seconds: 29));
+
+        expect(service.calls, isEmpty);
+
+        async.elapse(const Duration(seconds: 1));
+
+        expect(service.calls, hasLength(1));
+        expect(service.calls.single.$1, 'settings');
+        expect(service.calls.single.$2, 'theme_changed');
+        expect(service.calls.single.$3['value'], 'b');
+      });
     },
   );
 }
