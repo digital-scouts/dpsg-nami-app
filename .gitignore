@@ -43,3 +43,8 @@ app.*.map.json
 venv
 .cache_ggshield
 download
+
+# Local environment files
+.env
+.env.*
+!.env.example
