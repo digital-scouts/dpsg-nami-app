@@ -7,6 +7,9 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
+import 'package:nami/core/notifications/pull_notification.dart';
+import 'package:nami/core/notifications/pull_notifications_cubit.dart';
+import 'package:nami/core/notifications/pull_notifications_repository_factory.dart';
 import 'package:nami/presentation/navigation/navigation_home.page.dart';
 import 'package:nami/presentation/theme/theme.dart';
 import 'package:path_provider/path_provider.dart';
@@ -24,6 +27,7 @@ import 'services/logger_service.dart';
 import 'services/usage_tracking_service.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
+final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
 void main() {
   LoggerService? logger;
@@ -133,6 +137,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   late UsageTrackingService _usage;
   bool _isPaused = false;
   late final LoggerService logger;
+  PullNotificationsCubit? _notificationsCubit;
+  StreamSubscription<PullNotificationsState>? _notificationsSubscription;
+  String? _currentUrgentId;
+
   @override
   void initState() {
     super.initState();
@@ -143,11 +151,82 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     // Ausstehende Pause/Sessions vom letzten Lauf auswerten
     _usage.flushPendingSession();
     _usage.startSession();
+    _initGlobalNotifications();
+  }
+
+  Future<void> _initGlobalNotifications() async {
+    final repo = await createPullNotificationsRepository(logger: logger);
+    final cubit = PullNotificationsCubit(repo);
+    _notificationsSubscription = cubit.stream.listen(_handleNotificationsState);
+    _notificationsCubit = cubit;
+    await cubit.load();
+  }
+
+  void _handleNotificationsState(PullNotificationsState state) {
+    if (state is! PullNotificationsLoaded) return;
+
+    PullNotification? urgent;
+    try {
+      urgent = state.notifications.firstWhere(
+        (notification) =>
+            notification.type == 'urgent' &&
+            !state.acknowledged.contains(notification.id),
+      );
+    } catch (_) {
+      urgent = null;
+    }
+
+    final messenger = scaffoldMessengerKey.currentState;
+    if (urgent == null) {
+      _currentUrgentId = null;
+      messenger?.hideCurrentMaterialBanner();
+      return;
+    }
+
+    if (_currentUrgentId == urgent.id) {
+      return;
+    }
+
+    _currentUrgentId = urgent.id;
+    final locale = context.read<LocaleModel>().currentLocale;
+    messenger
+      ?..hideCurrentMaterialBanner()
+      ..showMaterialBanner(
+        MaterialBanner(
+          backgroundColor: Theme.of(context).colorScheme.errorContainer,
+          leading: Icon(
+            Icons.notification_important_outlined,
+            color: Theme.of(context).colorScheme.onErrorContainer,
+          ),
+          content: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                urgent.title.resolve(locale),
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 4),
+              Text(urgent.body.resolve(locale)),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                await _notificationsCubit?.acknowledge(urgent!.id);
+              },
+              child: Text(AppLocalizations.of(context).t('acknowledge')),
+            ),
+          ],
+        ),
+      );
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _notificationsSubscription?.cancel();
+    _notificationsCubit?.close();
     super.dispose();
   }
 
@@ -158,6 +237,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       // App kommt in den Vordergrund: einmaliges Resume
       _usage.resume();
       _isPaused = false;
+      _notificationsCubit?.load(force: true);
     } else if (state == AppLifecycleState.inactive) {
       // App geht in den Hintergrund: nur einmal pausieren
       if (!_isPaused) {
@@ -203,6 +283,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             darkTheme: darkTheme,
             themeMode: themeModel.currentMode,
             navigatorKey: navigatorKey,
+            scaffoldMessengerKey: scaffoldMessengerKey,
             onGenerateRoute: onGenerateRoute,
             initialRoute: '/',
             localizationsDelegates: [

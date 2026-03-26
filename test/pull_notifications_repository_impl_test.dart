@@ -26,9 +26,10 @@ class FakeRemote implements RemoteNotificationsDataSource {
 }
 
 class FakeLocal implements LocalNotificationsDataSource {
-  FakeLocal({required this.cached});
+  FakeLocal({required this.cached, this.lastFetchAt});
 
   final List<PullNotification> cached;
+  DateTime? lastFetchAt;
   List<PullNotification>? savedNotifications;
   int getCalls = 0;
 
@@ -44,6 +45,14 @@ class FakeLocal implements LocalNotificationsDataSource {
   @override
   Future<void> saveNotifications(List<PullNotification> notifications) async {
     savedNotifications = notifications;
+  }
+
+  @override
+  Future<DateTime?> getLastFetchAt() async => lastFetchAt;
+
+  @override
+  Future<void> setLastFetchAt(DateTime timestamp) async {
+    lastFetchAt = timestamp;
   }
 
   @override
@@ -81,6 +90,33 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       expect(remote.fetchCalls, 1);
       expect(local.savedNotifications, cached);
+      expect(local.lastFetchAt, isNotNull);
+    });
+
+    test('ueberspringt Remote innerhalb des Fetch-Intervalls', () async {
+      final cached = [
+        PullNotification(
+          id: '3',
+          title: const LocalizedString(de: 'Aktuell', en: 'Current'),
+          body: const LocalizedString(de: 'Cache', en: 'Cache'),
+        ),
+      ];
+      remote = FakeRemote(cached);
+      local = FakeLocal(
+        cached: cached,
+        lastFetchAt: DateTime.now().subtract(const Duration(minutes: 15)),
+      );
+      repo = PullNotificationsRepositoryImpl(
+        remote: remote,
+        local: local,
+        minFetchInterval: const Duration(hours: 1),
+      );
+
+      final result = await repo.fetchNotifications();
+
+      expect(result, cached);
+      await Future<void>.delayed(Duration.zero);
+      expect(remote.fetchCalls, 0);
     });
 
     test('liefert Remote wenn kein Cache', () async {
@@ -100,6 +136,7 @@ void main() {
       expect(result, remoteList);
       expect(remote.fetchCalls, 1);
       expect(local.savedNotifications, remoteList);
+      expect(local.lastFetchAt, isNotNull);
     });
   });
 }

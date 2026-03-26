@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:nami/core/notifications/pull_notification.dart';
+import 'package:nami/core/notifications/pull_notifications_repository_factory.dart';
 import 'package:nami/l10n/app_localizations.dart';
+import 'package:nami/presentation/notifications/notification_card.dart';
 import 'package:nami/presentation/widgets/confetti_overlay.dart';
+import 'package:nami/services/logger_service.dart';
+import 'package:provider/provider.dart';
 
 class SettingsPage extends StatefulWidget {
   final VoidCallback? onStammSettings;
-  final VoidCallback? onNotifications;
   final VoidCallback? onNotificationSettings;
   final VoidCallback? onAppSettings;
   final VoidCallback? onDebugTools;
@@ -14,7 +18,6 @@ class SettingsPage extends StatefulWidget {
   const SettingsPage({
     super.key,
     this.onStammSettings,
-    this.onNotifications,
     this.onNotificationSettings,
     this.onAppSettings,
     this.onDebugTools,
@@ -29,6 +32,57 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   int _tapCount = 0;
   DateTime? _firstTapAt;
+  late Future<PullNotification?> _unreadNotificationFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _unreadNotificationFuture = _loadUnreadNotification();
+  }
+
+  Future<void> _acknowledgeNotification(PullNotification notification) async {
+    final logger = context.read<LoggerService>();
+    final repo = await createPullNotificationsRepository(logger: logger);
+    await repo.acknowledgeNotification(notification.id);
+    if (!mounted) return;
+    setState(() {
+      _unreadNotificationFuture = _loadUnreadNotification();
+    });
+  }
+
+  Future<PullNotification?> _loadUnreadNotification() async {
+    final logger = context.read<LoggerService>();
+    final repo = await createPullNotificationsRepository(logger: logger);
+    final notifications = await repo.fetchNotifications();
+    final acknowledged = await repo.getAcknowledgedIds();
+
+    final unread =
+        notifications
+            .where((notification) => !acknowledged.contains(notification.id))
+            .toList()
+          ..sort((left, right) {
+            final leftDate = left.updatedAt ?? left.createdAt;
+            final rightDate = right.updatedAt ?? right.createdAt;
+
+            if (leftDate == null && rightDate == null) {
+              return 0;
+            }
+            if (leftDate == null) {
+              return 1;
+            }
+            if (rightDate == null) {
+              return -1;
+            }
+
+            return rightDate.compareTo(leftDate);
+          });
+
+    if (unread.isEmpty) {
+      return null;
+    }
+
+    return unread.first;
+  }
 
   void _handleTippleTapInTwoSeconds() {
     final now = DateTime.now();
@@ -90,12 +144,6 @@ class _SettingsPageState extends State<SettingsPage> {
                     onTap: widget.onAppSettings,
                   ),
                   ListTile(
-                    leading: const Icon(Icons.notifications),
-                    trailing: const Icon(Icons.chevron_right),
-                    title: Text(t.t('pull_notifications_title')),
-                    onTap: widget.onNotifications,
-                  ),
-                  ListTile(
                     leading: const Icon(Icons.tune),
                     trailing: const Icon(Icons.chevron_right),
                     title: Text(t.t('settings_notifications')),
@@ -110,6 +158,23 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                 ],
               ),
+            ),
+            FutureBuilder<PullNotification?>(
+              future: _unreadNotificationFuture,
+              builder: (context, snapshot) {
+                final notification = snapshot.data;
+                if (notification == null) {
+                  return const SizedBox.shrink();
+                }
+
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: NotificationCard(
+                    notification: notification,
+                    onClose: () => _acknowledgeNotification(notification),
+                  ),
+                );
+              },
             ),
             const Divider(height: 1),
             GestureDetector(

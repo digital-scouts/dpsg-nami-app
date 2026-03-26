@@ -26,7 +26,7 @@ void main() {
         ),
       );
       expect(find.text('Test'), findsOneWidget);
-      await tester.tap(find.byIcon(Icons.done));
+      await tester.tap(find.byIcon(Icons.close));
       await tester.pump();
       expect(acked.contains('1'), isTrue);
     },
