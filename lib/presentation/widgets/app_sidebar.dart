@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/notifications/message_of_the_day.dart';
+import '../../l10n/app_localizations.dart';
 import 'message_of_the_day_card.dart';
 
 class AppSidebar extends StatefulWidget {
@@ -32,6 +33,7 @@ class _AppSidebarState extends State<AppSidebar> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final t = AppLocalizations.of(context);
     return Drawer(
       child: SafeArea(
         child: Column(
@@ -83,17 +85,17 @@ class _AppSidebarState extends State<AppSidebar> {
             const Divider(),
             ListTile(
               leading: const Icon(Icons.people),
-              title: const Text('Meine Stufe'),
+              title: Text(t.t('nav_my_stage')),
               onTap: widget.onMeineStufe,
             ),
             ListTile(
               leading: const Icon(Icons.groups),
-              title: const Text('Mitglieder'),
+              title: Text(t.t('nav_members')),
               onTap: widget.onMitglieder,
             ),
             ListTile(
               leading: const Icon(Icons.insert_chart),
-              title: const Text('Statistiken'),
+              title: Text(t.t('nav_statistics')),
               onTap: widget.onStatistiken,
             ),
             const Spacer(),
@@ -113,7 +115,7 @@ class _AppSidebarState extends State<AppSidebar> {
             ),
             ListTile(
               leading: const Icon(Icons.settings),
-              title: const Text('Einstellungen'),
+              title: Text(t.t('nav_settings')),
               onTap: widget.onSettings,
             ),
             const Divider(),

@@ -5,6 +5,7 @@ import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/notifications/notification_card.dart';
 import 'package:nami/presentation/widgets/confetti_overlay.dart';
 import 'package:nami/services/logger_service.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -13,7 +14,7 @@ class SettingsPage extends StatefulWidget {
   final VoidCallback? onAppSettings;
   final VoidCallback? onDebugTools;
   final VoidCallback? onProfile;
-  final String appVersion;
+  final String? appVersion;
 
   const SettingsPage({
     super.key,
@@ -22,7 +23,7 @@ class SettingsPage extends StatefulWidget {
     this.onAppSettings,
     this.onDebugTools,
     this.onProfile,
-    this.appVersion = 'v0.0.0',
+    this.appVersion,
   });
 
   @override
@@ -32,6 +33,7 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   int _tapCount = 0;
   DateTime? _firstTapAt;
+  String? _appVersion;
   late Future<PullNotification?> _unreadNotificationFuture;
 
   int _notificationPriority(PullNotification notification) {
@@ -50,6 +52,22 @@ class _SettingsPageState extends State<SettingsPage> {
   void initState() {
     super.initState();
     _unreadNotificationFuture = _loadUnreadNotification();
+    _appVersion = widget.appVersion;
+    if (_appVersion == null) {
+      _loadAppVersion();
+    }
+  }
+
+  Future<void> _loadAppVersion() async {
+    String version = '-';
+    try {
+      final info = await PackageInfo.fromPlatform();
+      version = info.version;
+    } catch (_) {}
+    if (!mounted) return;
+    setState(() {
+      _appVersion = version;
+    });
   }
 
   Future<void> _acknowledgeNotification(PullNotification notification) async {
@@ -228,7 +246,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '${t.t('version_label')}: ${widget.appVersion}',
+                      '${t.t('version_label')}: ${_appVersion ?? '...'}',
                       style: theme.textTheme.bodySmall,
                     ),
                   ],

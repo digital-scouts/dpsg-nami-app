@@ -7,6 +7,11 @@ import 'package:nami/domain/settings/app_settings_repository.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/services/logger_service.dart';
 
+class _CustomEventValue {
+  @override
+  String toString() => 'custom-event-value';
+}
+
 class _FakeRepo implements AppSettingsRepository {
   AppSettings value;
   _FakeRepo(this.value);
@@ -122,4 +127,49 @@ void main() {
     final content = exists ? await logFile.readAsString() : '';
     expect(content.contains('[hook] evt'), isFalse);
   });
+
+  test(
+    'trackEvent converts lists and objects to strings for wiredash',
+    () async {
+      final tempDir = await Directory.systemTemp.createTemp('logger_test4');
+      final logFile = File('${tempDir.path}/app.log');
+      Map<String, Object?>? capturedProps;
+
+      final repo = _FakeRepo(
+        const AppSettings(
+          themeMode: ThemeMode.system,
+          languageCode: 'de',
+          analyticsEnabled: true,
+        ),
+      );
+
+      final service = LoggerService(
+        settingsRepository: repo,
+        navigatorKey: GlobalKey<NavigatorState>(),
+        logFileProvider: () async => logFile,
+        wiredashEventHook: (name, props) async {
+          capturedProps = props;
+        },
+      );
+
+      await service.trackEvent('evt', {
+        'list': ['a', 'b'],
+        'map': {'x': 1},
+        'object': _CustomEventValue(),
+        'string': 'ok',
+        'number': 42,
+        'bool': true,
+        'null': null,
+      });
+
+      expect(capturedProps, isNotNull);
+      expect(capturedProps!['list'], '[a, b]');
+      expect(capturedProps!['map'], '{x: 1}');
+      expect(capturedProps!['object'], 'custom-event-value');
+      expect(capturedProps!['string'], 'ok');
+      expect(capturedProps!['number'], 42);
+      expect(capturedProps!['bool'], true);
+      expect(capturedProps!['null'], isNull);
+    },
+  );
 }

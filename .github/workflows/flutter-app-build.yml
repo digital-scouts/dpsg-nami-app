@@ -18,6 +18,8 @@ jobs:
         with:
           sdk: ${{ vars.DART_VERSION }}
       - run: dart --version
+      - name: Validate app version
+        run: dart tool/validate_versions.dart
       - uses: subosito/flutter-action@v2
         with:
           channel: "stable"

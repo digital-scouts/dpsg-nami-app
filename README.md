@@ -29,6 +29,48 @@ Testversion der App laden: [Android](https://play.google.com/store/apps/details?
 
 ## Entwicklung
 
+### Versionierung
+
+Die aktuelle App-Version wird zentral in [pubspec.yaml](pubspec.yaml) gepflegt.
+Alle anderen Stellen lesen diese Version entweder zur Laufzeit aus oder werden beim Flutter-Build daraus abgeleitet.
+
+Zusätzlich muss die höchste Version in [assets/changelog.json](assets/changelog.json) zur Version aus der pubspec passen.
+Beispiel:
+
+```yaml
+version: 1.0.0+1
+```
+
+Dann muss der höchste Eintrag im Changelog `1.0.0` sein.
+
+Die Prüfung kann lokal manuell ausgeführt werden:
+
+```sh
+dart tool/validate_versions.dart
+```
+
+### Git Hooks
+
+Im Repository liegt ein lokaler Pre-Commit-Hook unter [.githooks/pre-commit](.githooks/pre-commit).
+Damit der Hook verwendet wird, muss das Hook-Verzeichnis einmal pro lokalem Clone aktiviert werden:
+
+```sh
+chmod +x .githooks/pre-commit
+git config core.hooksPath .githooks
+```
+
+Ab dann wird vor jedem Commit automatisch geprüft, ob [pubspec.yaml](pubspec.yaml) und [assets/changelog.json](assets/changelog.json) zueinander passen. Bei einer Abweichung wird der Commit abgebrochen.
+
+### GitHub Actions
+
+Die gleiche Versionsprüfung läuft zusätzlich in GitHub Actions:
+
+- im PR- und Push-Workflow [flutter-test.yml](.github/workflows/flutter-test.yml)
+- im Android-Deploy-Workflow [deploy-android.yml](.github/workflows/deploy-android.yml)
+- im manuellen Build-Workflow [flutter-app-build.yml](.github/workflows/flutter-app-build.yml)
+
+Dadurch kann eine inkonsistente Versionierung nicht unbemerkt in den Hauptbranch gelangen, auch wenn lokal kein Hook aktiviert ist.
+
 ### Storybook
 
 To run the storybook, use the following command:
