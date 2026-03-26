@@ -12,6 +12,7 @@ Future<PullNotificationsRepositoryImpl> createPullNotificationsRepository({
   await Hive.openBox('notifications_box');
   final box = Hive.box('notifications_box');
   final local = LocalNotificationsDataSource(box);
+  // TODO(pull_notifications): Fuer Entwicklungszwecke optionalen Asset-Fallback statt Remote-Quelle ergaenzen.
   final remote = RemoteNotificationsDataSource(
     PullNotificationsEnv.url,
     logger: logger,

@@ -34,6 +34,18 @@ class _SettingsPageState extends State<SettingsPage> {
   DateTime? _firstTapAt;
   late Future<PullNotification?> _unreadNotificationFuture;
 
+  int _notificationPriority(PullNotification notification) {
+    switch (notification.type) {
+      case 'urgent':
+        return 0;
+      case 'warn':
+        return 1;
+      case 'info':
+      default:
+        return 2;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -61,6 +73,13 @@ class _SettingsPageState extends State<SettingsPage> {
             .where((notification) => !acknowledged.contains(notification.id))
             .toList()
           ..sort((left, right) {
+            final priorityCompare = _notificationPriority(
+              left,
+            ).compareTo(_notificationPriority(right));
+            if (priorityCompare != 0) {
+              return priorityCompare;
+            }
+
             final leftDate = left.updatedAt ?? left.createdAt;
             final rightDate = right.updatedAt ?? right.createdAt;
 
@@ -187,9 +206,25 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 child: Column(
                   children: [
-                    Text(
-                      t.t('developed_in_hamburg'),
-                      style: theme.textTheme.bodySmall,
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          t.t('developed_with'),
+                          style: theme.textTheme.bodySmall,
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.favorite,
+                          size: 14,
+                          color: theme.colorScheme.error,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          t.t('developed_in_hamburg'),
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 6),
                     Text(

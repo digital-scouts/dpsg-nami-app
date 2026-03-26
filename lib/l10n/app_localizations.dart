@@ -42,7 +42,8 @@ class AppLocalizations {
       'settings_app': 'Appeinstellungen',
       'settings_debug_tools': 'Debug & Tools',
       'logout': 'Logout',
-      'developed_in_hamburg': 'Entwickelt mit ❤️ in Hamburg',
+      'developed_with': 'Entwickelt mit',
+      'developed_in_hamburg': 'in Hamburg',
       'version_label': 'Version',
       'address_section': 'Adresse',
       'address_help':
@@ -89,7 +90,8 @@ class AppLocalizations {
       'settings_app': 'App settings',
       'settings_debug_tools': 'Debug & Tools',
       'logout': 'Logout',
-      'developed_in_hamburg': 'Built with ❤️ in Hamburg',
+      'developed_with': 'Built with',
+      'developed_in_hamburg': 'in Hamburg',
       'version_label': 'Version',
       'address_section': 'Address',
       'address_help':

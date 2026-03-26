@@ -13,6 +13,7 @@ Dieses Modul implementiert die Kernlogik für Pull Notifications gemäß der Spe
 ## Hinweise
 
 - Die URL zur JSON-Quelle wird aus der `.env` geladen.
+- Remote-Checks werden ueber ein Mindestintervall aus der `.env` gedrosselt.
 - Das Feld `platform` ist optional, Default ist `all`.
 - `created_at` und `updated_at` sind optional.
 - Mehrsprachigkeit: `title` und `body` als Map (`de`, `en`).
@@ -20,6 +21,7 @@ Dieses Modul implementiert die Kernlogik für Pull Notifications gemäß der Spe
 
 ## Nächste Schritte
 
-- Repository-Implementierung (SWR-Logik, Intervall, Fehlerbehandlung)
-- Integration in UI/Bloc
-- Weitere Tests (Integration, Widget)
+- Plattform-Filterung ueber `platform` zentral anwenden.
+- Aktivitaetsfenster ueber `starts_at` und `ends_at` auswerten.
+- Detailansicht bzw. `deep_link`/`external_link` umsetzen.
+- Optionalen Asset-Fallback fuer Entwicklungszwecke ergaenzen.

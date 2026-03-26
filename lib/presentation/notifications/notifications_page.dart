@@ -90,32 +90,33 @@ class _NotificationsPageState extends State<NotificationsPage> {
               ),
             ),
             Expanded(
-              child:
-                  BlocBuilder<PullNotificationsCubit, PullNotificationsState>(
-                    builder: (context, state) {
-                      if (state is PullNotificationsLoading) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-                      if (state is PullNotificationsLoaded) {
-                        return NotificationsList(
-                          notifications: state.notifications,
-                          acknowledged: state.acknowledged,
-                          onTap: (n) {},
-                          onAcknowledge: (n) => cubit!.acknowledge(n.id),
-                        );
-                      }
-                      if (state is PullNotificationsError) {
-                        return Center(child: Text('Fehler: ${state.message}'));
-                      }
-                      // Default: Zeige leere Liste
-                      return NotificationsList(
-                        notifications: const [],
-                        acknowledged: const {},
-                        onTap: (_) {},
-                        onAcknowledge: (_) {},
-                      );
-                    },
-                  ),
+              child: BlocBuilder<PullNotificationsCubit, PullNotificationsState>(
+                builder: (context, state) {
+                  if (state is PullNotificationsLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (state is PullNotificationsLoaded) {
+                    return NotificationsList(
+                      notifications: state.notifications,
+                      acknowledged: state.acknowledged,
+                      onTap: (n) {
+                        // TODO(pull_notifications): Detailansicht sowie `deep_link`/`external_link` oeffnen.
+                      },
+                      onAcknowledge: (n) => cubit!.acknowledge(n.id),
+                    );
+                  }
+                  if (state is PullNotificationsError) {
+                    return Center(child: Text('Fehler: ${state.message}'));
+                  }
+                  // Default: Zeige leere Liste
+                  return NotificationsList(
+                    notifications: const [],
+                    acknowledged: const {},
+                    onTap: (_) {},
+                    onAcknowledge: (_) {},
+                  );
+                },
+              ),
             ),
           ],
         ),
