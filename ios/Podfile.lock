@@ -10,6 +10,8 @@ PODS:
     - Flutter
   - flutter_secure_storage (6.0.0):
     - Flutter
+  - flutter_web_auth_2 (3.0.0):
+    - Flutter
   - fluttertoast (0.0.2):
     - Flutter
   - geocoding_ios (1.0.5):
@@ -50,6 +52,7 @@ DEPENDENCIES:
   - flutter_email_sender (from `.symlinks/plugins/flutter_email_sender/ios`)
   - flutter_local_notifications (from `.symlinks/plugins/flutter_local_notifications/ios`)
   - flutter_secure_storage (from `.symlinks/plugins/flutter_secure_storage/ios`)
+  - flutter_web_auth_2 (from `.symlinks/plugins/flutter_web_auth_2/ios`)
   - fluttertoast (from `.symlinks/plugins/fluttertoast/ios`)
   - geocoding_ios (from `.symlinks/plugins/geocoding_ios/ios`)
   - geolocator_apple (from `.symlinks/plugins/geolocator_apple/darwin`)
@@ -81,6 +84,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/flutter_local_notifications/ios"
   flutter_secure_storage:
     :path: ".symlinks/plugins/flutter_secure_storage/ios"
+  flutter_web_auth_2:
+    :path: ".symlinks/plugins/flutter_web_auth_2/ios"
   fluttertoast:
     :path: ".symlinks/plugins/fluttertoast/ios"
   geocoding_ios:
@@ -115,6 +120,7 @@ SPEC CHECKSUMS:
   flutter_email_sender: aa1e9772696691d02cd91fea829856c11efb8e58
   flutter_local_notifications: a5a732f069baa862e728d839dd2ebb904737effb
   flutter_secure_storage: 1ed9476fba7e7a782b22888f956cce43e2c62f13
+  flutter_web_auth_2: 5c8d9dcd7848b5a9efb086d24e7a9adcae979c80
   fluttertoast: 2c67e14dce98bbdb200df9e1acf610d7a6264ea1
   geocoding_ios: 33776c9ebb98d037b5e025bb0e7537f6dd19646e
   geolocator_apple: ab36aa0e8b7d7a2d7639b3b4e48308394e8cef5e

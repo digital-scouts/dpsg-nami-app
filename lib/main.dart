@@ -10,8 +10,10 @@ import 'package:intl/intl.dart';
 import 'package:nami/core/notifications/pull_notification.dart';
 import 'package:nami/core/notifications/pull_notifications_cubit.dart';
 import 'package:nami/core/notifications/pull_notifications_repository_factory.dart';
-import 'package:nami/presentation/navigation/navigation_home.page.dart';
+import 'package:nami/data/auth/secure_auth_session_repository.dart';
+import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/notifications/app_update_dialog.dart';
+import 'package:nami/presentation/screens/auth_gate_screen.dart';
 import 'package:nami/presentation/theme/theme.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
@@ -25,7 +27,12 @@ import 'presentation/model/app_settings_model.dart';
 import 'presentation/model/locale_model.dart';
 import 'presentation/navigation/app_router.dart';
 import 'services/app_update_service.dart';
+import 'services/biometric_lock_service.dart';
+import 'services/hitobito_auth_env.dart';
+import 'services/hitobito_data_retention_policy.dart';
+import 'services/hitobito_oauth_service.dart';
 import 'services/logger_service.dart';
+import 'services/sensitive_storage_service.dart';
 import 'services/usage_tracking_service.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
@@ -58,6 +65,22 @@ void main() {
           } catch (_) {}
         },
       );
+
+      final authModel = AuthSessionModel(
+        repository: SecureAuthSessionRepository(),
+        oauthService: HitobitoOauthService(
+          config: HitobitoAuthEnv.authConfig,
+          logger: logger,
+        ),
+        biometricLockService: BiometricLockService(logger: logger),
+        sensitiveStorageService: SensitiveStorageService(),
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: HitobitoAuthEnv.maxDataAge,
+          refreshInterval: HitobitoAuthEnv.refreshInterval,
+        ),
+        logger: logger!,
+      );
+      await authModel.initialize();
 
       // Globale Fehlerbehandlung: Framework- und ungefangene Fehler loggen/tracken
       FlutterError.onError = (FlutterErrorDetails details) async {
@@ -102,6 +125,7 @@ void main() {
             ChangeNotifierProvider(
               create: (_) => AppSettingsModel(initial, settingsRepo),
             ),
+            ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
             Provider<LoggerService>.value(value: logger!),
           ],
           child: const MyApp(),
@@ -139,6 +163,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   late UsageTrackingService _usage;
   bool _isPaused = false;
   late final LoggerService logger;
+  Timer? _authMaintenanceTimer;
   PullNotificationsCubit? _notificationsCubit;
   StreamSubscription<PullNotificationsState>? _notificationsSubscription;
   String? _currentUrgentId;
@@ -155,9 +180,19 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _usage.flushPendingSession();
     _usage.startSession();
     _initGlobalNotifications();
+    _startAuthMaintenanceTimer();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkForAppUpdate();
     });
+  }
+
+  void _startAuthMaintenanceTimer() {
+    _authMaintenanceTimer?.cancel();
+    final authModel = context.read<AuthSessionModel>();
+    _authMaintenanceTimer = Timer.periodic(
+      HitobitoAuthEnv.refreshInterval,
+      (_) => authModel.performBackgroundMaintenance(trigger: 'interval'),
+    );
   }
 
   Future<void> _checkForAppUpdate() async {
@@ -252,6 +287,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _authMaintenanceTimer?.cancel();
     _notificationsSubscription?.cancel();
     _notificationsCubit?.close();
     super.dispose();
@@ -259,11 +295,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    final authModel = context.read<AuthSessionModel>();
     if (state == AppLifecycleState.resumed) {
       logger.log('lifecycle', 'App resumed');
       // App kommt in den Vordergrund: einmaliges Resume
       _usage.resume();
       _isPaused = false;
+      authModel.onAppResumed();
       _notificationsCubit?.load(force: true);
     } else if (state == AppLifecycleState.inactive) {
       // App geht in den Hintergrund: nur einmal pausieren
@@ -312,7 +350,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             navigatorKey: navigatorKey,
             scaffoldMessengerKey: scaffoldMessengerKey,
             onGenerateRoute: onGenerateRoute,
-            initialRoute: '/',
             localizationsDelegates: [
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
@@ -321,7 +358,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             ],
             supportedLocales: const [Locale('de'), Locale('en')],
             locale: context.watch<LocaleModel>().currentLocale,
-            home: const NavigationHomeScreen(),
+            home: const AuthGateScreen(),
           ),
         );
       },
