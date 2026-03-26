@@ -3,6 +3,7 @@
     "configurations": [
 
 
+
     
         {
             "name": "Android",
@@ -17,7 +18,7 @@
             "name": "iPhone",
             "request": "launch",
             "type": "dart",
-            "deviceId": "1DB1F9DA-1E79-4603-BE20-92BD588836D1",
+            "deviceId": "AB64C873-1F92-481C-9351-EE646A08C256",
             "args": [
                 "--dart-define=USE_LOGGING=true"
             ]

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_email_sender/flutter_email_sender.dart';
 import 'package:nami/main.dart' show navigatorKey;
+import 'package:nami/presentation/screens/changelog_page.dart';
 import 'package:provider/provider.dart';
 import 'package:wiredash/wiredash.dart';
 
@@ -159,10 +160,8 @@ class DebugToolsPage extends StatelessWidget {
 
             ElevatedButton.icon(
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Nicht implementiert: Changelog angezeigt'),
-                  ),
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const ChangelogPage()),
                 );
               },
               icon: const Icon(Icons.list_alt_outlined),

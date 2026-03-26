@@ -43,6 +43,11 @@ version: 1.0.0+1
 
 Dann muss der höchste Eintrag im Changelog `1.0.0` sein.
 
+Für Update-Hinweise in der App gibt es zusätzlich eine manuell gepflegte Remote-Datei unter [docs/version.json](docs/version.json).
+Sie enthält pro Plattform die zuletzt als verfuegbar markierte Version, die minimale unterstuetzte Version und den Store-Link.
+Diese Datei beschreibt bewusst nicht den aktuellen Entwicklungsstand, sondern den tatsaechlich freigegebenen Stand pro Plattform.
+Die App lädt diese Datei über `APP_UPDATE_URL` aus der `.env` und cached die Antwort lokal. Die Fetch-Frequenz und das Timeout werden über `APP_UPDATE_MIN_FETCH_INTERVAL_HOURS` und `APP_UPDATE_FETCH_TIMEOUT_SECONDS` gesteuert.
+
 Die Prüfung kann lokal manuell ausgeführt werden:
 
 ```sh
@@ -70,6 +75,14 @@ Die gleiche Versionsprüfung läuft zusätzlich in GitHub Actions:
 - im manuellen Build-Workflow [flutter-app-build.yml](.github/workflows/flutter-app-build.yml)
 
 Dadurch kann eine inkonsistente Versionierung nicht unbemerkt in den Hauptbranch gelangen, auch wenn lokal kein Hook aktiviert ist.
+
+Wenn sich die Versionsnummer in [pubspec.yaml](pubspec.yaml) auf `master` aendert, erstellt [version-reminder-prs.yml](.github/workflows/version-reminder-prs.yml) automatisch zwei Pull Requests:
+
+- einen für Android
+- einen für iOS
+
+Diese PRs aktualisieren jeweils den passenden Eintrag in [docs/version.json](docs/version.json) auf die neue Versionsnummer.
+Sie dienen als Erinnerung und sollen erst dann gemerged werden, wenn die jeweilige Store-Version wirklich verfuegbar ist.
 
 ### Storybook
 
