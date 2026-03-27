@@ -54,6 +54,16 @@ Token Endpoint:
 
 Profile Endpoint: <https://demo.hitobito.com/de/oauth/profile>
 
-Profile Informationen des Benutzers können über diesen Endpoint bezogen werden. Dabei muss das Access Token im Authorization Header übergeben werden. Der gewünschte Scope kann als X-Scope Header übergeben werden.
+Profile Informationen des Benutzers koennen ueber diesen Endpoint bezogen werden. Dabei muss das Access Token im Authorization Header uebergeben werden. Fuer die Profilansicht der App werden Rollen ueber den Header `X-Scope: with_roles` mitgeladen.
 
-`curl -H 'Authorization: Bearer 057b491f0ea151782f1ab3ed67dba91eaf0d59e621f312afec4d3bf81e08777a' -H 'X-Scope: email' https://demo.hitobito.com/de/oauth/profile`
+Beispiel:
+
+`curl -H 'Authorization: Bearer 057b491f0ea151782f1ab3ed67dba91eaf0d59e621f312afec4d3bf81e08777a' -H 'X-Scope: with_roles' https://demo.hitobito.com/oauth/profile`
+
+Aktuell verwendet die App aus `/oauth/profile` insbesondere diese Felder:
+
+- `id` als nami-id
+- `email`
+- `first_name`, `last_name`, `nickname` fuer die Anzeige des Profilnamens
+- `language` fuer Sprachbadge und Sprachsynchronisierung der App nach dem Login
+- `roles` fuer die Rollenliste im Profil

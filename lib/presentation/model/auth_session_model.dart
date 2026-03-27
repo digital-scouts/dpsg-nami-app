@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../../domain/auth/auth_profile.dart';
 import '../../domain/auth/auth_session.dart';
 import '../../domain/auth/auth_session_repository.dart';
 import '../../domain/auth/auth_state.dart';
@@ -21,12 +22,14 @@ class AuthSessionModel extends ChangeNotifier {
     required SensitiveStorageService sensitiveStorageService,
     required HitobitoDataRetentionPolicy retentionPolicy,
     required LoggerService logger,
+    Future<void> Function(String languageCode)? onPreferredLanguageChanged,
   }) : _repository = repository,
        _oauthService = oauthService,
        _biometricLockService = biometricLockService,
        _sensitiveStorageService = sensitiveStorageService,
        _retentionPolicy = retentionPolicy,
-       _logger = logger;
+       _logger = logger,
+       _onPreferredLanguageChanged = onPreferredLanguageChanged;
 
   final AuthSessionRepository _repository;
   final HitobitoOauthService _oauthService;
@@ -34,17 +37,22 @@ class AuthSessionModel extends ChangeNotifier {
   final SensitiveStorageService _sensitiveStorageService;
   final HitobitoDataRetentionPolicy _retentionPolicy;
   final LoggerService _logger;
+  final Future<void> Function(String languageCode)? _onPreferredLanguageChanged;
 
   AuthState _state = AuthState.initializing;
   AuthSession? _session;
+  AuthProfile? _profile;
   DateTime? _lastSensitiveSyncAt;
   String? _errorMessage;
   DateTime? _lastSuccessfulUnlockAt;
+  bool _isLoadingProfile = false;
 
   AuthState get state => _state;
   AuthSession? get session => _session;
+  AuthProfile? get profile => _profile;
   DateTime? get lastSensitiveSyncAt => _lastSensitiveSyncAt;
   String? get errorMessage => _errorMessage;
+  bool get isLoadingProfile => _isLoadingProfile;
   bool get isConfigured => _oauthService.config.isConfigured;
   bool get isRefreshDue => _retentionPolicy.isRefreshDue(_lastSensitiveSyncAt);
   Duration? get remainingUntilRelogin =>
@@ -60,6 +68,9 @@ class AuthSessionModel extends ChangeNotifier {
         .loadLastSensitiveSyncAt();
 
     await _deriveState(requireUnlock: true);
+    if (_state == AuthState.signedIn) {
+      await ensureProfileLoaded(force: true);
+    }
   }
 
   Future<void> signIn() async {
@@ -95,6 +106,7 @@ class AuthSessionModel extends ChangeNotifier {
 
       _session = authenticatedSession;
       _lastSensitiveSyncAt = verifiedAt;
+      await ensureProfileLoaded(force: true);
       _state = AuthState.signedIn;
       await _logger.log('auth_flow', 'Login erfolgreich abgeschlossen');
       notifyListeners();
@@ -132,6 +144,7 @@ class AuthSessionModel extends ChangeNotifier {
     _lastSuccessfulUnlockAt = DateTime.now();
     await _logger.log('auth_flow', 'Lokale Entsperrung erfolgreich');
     notifyListeners();
+    unawaited(ensureProfileLoaded());
     unawaited(performBackgroundMaintenance(trigger: 'unlock'));
   }
 
@@ -141,6 +154,8 @@ class AuthSessionModel extends ChangeNotifier {
     await _sensitiveStorageService.purgeSensitiveData();
 
     _session = null;
+    _profile = null;
+    _isLoadingProfile = false;
     _lastSensitiveSyncAt = null;
     _errorMessage = null;
     _state = AuthState.signedOut;
@@ -234,6 +249,39 @@ class AuthSessionModel extends ChangeNotifier {
     }
   }
 
+  Future<void> ensureProfileLoaded({bool force = false}) async {
+    if (_session == null || _state == AuthState.reloginRequired) {
+      return;
+    }
+
+    if (_isLoadingProfile) {
+      return;
+    }
+
+    if (!force && _profile != null) {
+      return;
+    }
+
+    _isLoadingProfile = true;
+    notifyListeners();
+
+    try {
+      final loadedProfile = await _oauthService.fetchProfile(_session!);
+      _profile = loadedProfile;
+      _errorMessage = null;
+      await _syncPreferredLanguage(loadedProfile.normalizedLanguage);
+    } catch (error, stack) {
+      await _logger.log(
+        'auth',
+        'Profil konnte nicht geladen werden: $error\n$stack',
+      );
+      _errorMessage = error.toString();
+    } finally {
+      _isLoadingProfile = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> _deriveState({required bool requireUnlock}) async {
     if (_session == null) {
       _state = AuthState.signedOut;
@@ -261,5 +309,14 @@ class AuthSessionModel extends ChangeNotifier {
     _state = AuthState.signedIn;
     notifyListeners();
     unawaited(performBackgroundMaintenance(trigger: 'bootstrap'));
+  }
+
+  Future<void> _syncPreferredLanguage(String languageCode) async {
+    final handler = _onPreferredLanguageChanged;
+    if (handler == null) {
+      return;
+    }
+
+    await handler(AuthProfile.normalizeLanguageCode(languageCode));
   }
 }

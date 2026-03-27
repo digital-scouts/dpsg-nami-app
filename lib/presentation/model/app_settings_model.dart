@@ -28,6 +28,10 @@ class AppSettingsModel extends ChangeNotifier {
   }
 
   Future<void> setLanguageCode(String code) async {
+    if (languageCode == code) {
+      return;
+    }
+
     languageCode = code;
     notifyListeners();
     await _repo.saveLanguageCode(code);

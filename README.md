@@ -90,8 +90,13 @@ Direkte Pushes nach `master` werden als Hotfixes behandelt und loesen bewusst ke
 
 ### Storybook
 
-To run the storybook, use the following command:
-`flutter run -t lib/main_storybook.dart`
+Storybook ist Teil der UI-Absicherung.
+
+Zum Starten:
+
+```sh
+flutter run -t lib/main_storybook.dart
+```
 
 ## Funktionsweise
 
@@ -112,7 +117,9 @@ Teile der Mitgliedsdaten-Funktionalitaet befinden sich noch in Umsetzung. Geplan
   - Die gewünschte Altersgrenzen der Stufen können angepasst werden.
   - Stufenwechsel durchführen
 - Führungszeugniss Antragsunterlagen und Bescheinigungen herrunterladen
-- Jeder Nutzer sieht auch nur die Funktionen, die er aufgrund seiner Rechte ausführen kann. Die Recht sind im eigenen Profil aufgelistet.
+- Das eigene Profil wird nach dem Login ueber Hitobito OAuth geladen und zeigt nami-id, E-Mail, bevorzugte Sprache als Sprachbadge und die zugewiesenen Rollen.
+- Die App-Sprache wird nach dem Login auf Basis der bevorzugten Profilsprache gesetzt. Unbekannte oder fehlende Sprachcodes fallen auf Deutsch zurueck.
+- Jeder Nutzer sieht auch nur die Funktionen, die er aufgrund seiner Rechte ausführen kann. Die Rechte sind im eigenen Profil aufgelistet.
 - Jeder Nutzer hat die Möglichkeit das Bearbeiten von Daten zu deaktiven und braucht so keine Angst haben 'Etwas kaput zu machen'
 
 ## Geplante Funktionen

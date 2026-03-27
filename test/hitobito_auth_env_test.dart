@@ -20,6 +20,7 @@ void main() {
           'HITOBITO_OAUTH_CLIENT_SECRET=secret\n'
           'HITOBITO_OAUTH_AUTHORIZATION_URL=https://demo.hitobito.com/oauth/authorize\n'
           'HITOBITO_OAUTH_TOKEN_URL=https://demo.hitobito.com/oauth/token\n'
+          'HITOBITO_OAUTH_PROFILE_URL=https://demo.hitobito.com/oauth/profile\n'
           'HITOBITO_OAUTH_REDIRECT_URI=de.jlange.nami.app:/oauth/callback\n'
           'HITOBITO_OAUTH_SCOPES=openid email\n'
           'HITOBITO_DATA_MAX_AGE_DAYS=60\n'
@@ -29,6 +30,7 @@ void main() {
     final config = HitobitoAuthEnv.authConfig;
     expect(config.isConfigured, isTrue);
     expect(config.callbackScheme, 'de.jlange.nami.app');
+    expect(config.profileUrl, 'https://demo.hitobito.com/oauth/profile');
     expect(config.scopes, <String>['openid', 'email']);
     expect(HitobitoAuthEnv.maxDataAge, const Duration(days: 60));
     expect(HitobitoAuthEnv.refreshInterval, const Duration(hours: 12));
