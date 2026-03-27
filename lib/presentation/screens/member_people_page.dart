@@ -72,7 +72,7 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
       return ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: peopleModel.members.length,
-        separatorBuilder: (_, __) => const Divider(height: 1),
+        separatorBuilder: (context, index) => const Divider(height: 1),
         itemBuilder: (context, index) {
           final member = peopleModel.members[index];
           return ListTile(

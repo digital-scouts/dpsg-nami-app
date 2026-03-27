@@ -36,9 +36,10 @@ Dein Fokus sind Features, Bugfixes und kleine bis mittlere Refactorings in der b
 1. Relevante Dateien und bestehende Architektur lesen.
 2. Root Cause identifizieren statt Symptome zu flicken.
 3. Minimalen, sauberen Eingriff umsetzen.
-4. Betroffene Tests ausfuehren oder ergaenzen, wenn es fuer die Aufgabe sinnvoll ist.
-5. Kurz auf Risiken, offene Annahmen oder Folgeschritte hinweisen.
+4. Nach produktiven Aenderungen `flutter analyze` ausfuehren und neu entstandene oder relevante bestehende Issues im betroffenen Bereich beheben.
+5. Betroffene Tests ausfuehren oder ergaenzen, wenn es fuer die Aufgabe sinnvoll ist.
+6. Kurz auf Risiken, offene Annahmen oder Folgeschritte hinweisen.
 
 ## Ergebnis
 
-Liefere umgesetzte Codeaenderungen mit kurzer Begruendung, betroffenen Bereichen und durchgefuehrter Validierung.
+Liefere umgesetzte Codeaenderungen mit kurzer Begruendung, betroffenen Bereichen und durchgefuehrter Validierung inklusive `flutter analyze`.
