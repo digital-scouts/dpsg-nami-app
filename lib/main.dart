@@ -20,6 +20,7 @@ import 'package:provider/provider.dart';
 import 'package:wiredash/wiredash.dart';
 
 import 'data/settings/shared_prefs_app_settings_repository.dart';
+import 'domain/auth/auth_profile.dart';
 import 'domain/settings/app_settings.dart';
 import 'domain/settings/app_settings_repository.dart';
 import 'l10n/app_localizations.dart';
@@ -53,6 +54,10 @@ void main() {
       final AppSettingsRepository settingsRepo =
           SharedPrefsAppSettingsRepository();
       final AppSettings initial = await settingsRepo.load();
+      final localeModel = LocaleModel(
+        persist: (code) => settingsRepo.saveLanguageCode(code),
+      )..setLocale(Locale(initial.languageCode), persist: false);
+      final appSettingsModel = AppSettingsModel(initial, settingsRepo);
 
       logger = LoggerService(
         settingsRepository: settingsRepo,
@@ -79,6 +84,11 @@ void main() {
           refreshInterval: HitobitoAuthEnv.refreshInterval,
         ),
         logger: logger!,
+        onPreferredLanguageChanged: (languageCode) async {
+          final normalized = AuthProfile.normalizeLanguageCode(languageCode);
+          localeModel.setLocale(Locale(normalized), persist: false);
+          await appSettingsModel.setLanguageCode(normalized);
+        },
       );
       await authModel.initialize();
 
@@ -117,13 +127,9 @@ void main() {
                 persist: (mode) => settingsRepo.saveThemeMode(mode),
               )..currentMode = initial.themeMode,
             ),
-            ChangeNotifierProvider(
-              create: (_) => LocaleModel(
-                persist: (code) => settingsRepo.saveLanguageCode(code),
-              )..setLocale(Locale(initial.languageCode)),
-            ),
-            ChangeNotifierProvider(
-              create: (_) => AppSettingsModel(initial, settingsRepo),
+            ChangeNotifierProvider<LocaleModel>.value(value: localeModel),
+            ChangeNotifierProvider<AppSettingsModel>.value(
+              value: appSettingsModel,
             ),
             ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
             Provider<LoggerService>.value(value: logger!),

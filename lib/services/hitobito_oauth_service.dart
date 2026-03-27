@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:http/http.dart' as http;
 
+import '../domain/auth/auth_profile.dart';
 import '../domain/auth/auth_session.dart';
 import 'hitobito_auth_env.dart';
 import 'logger_service.dart';
@@ -124,6 +125,40 @@ class HitobitoOauthService {
     }
 
     return refresh(session);
+  }
+
+  Future<AuthProfile> fetchProfile(AuthSession session) async {
+    if (config.profileUrl.isEmpty) {
+      throw const HitobitoAuthException(
+        'Der Profil-Endpoint ist nicht konfiguriert.',
+      );
+    }
+
+    final requestUri = Uri.parse(config.profileUrl);
+
+    final response = await _httpClient.get(
+      requestUri,
+      headers: <String, String>{
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ${session.accessToken}',
+        'X-Scope': 'with_roles',
+      },
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw HitobitoAuthException(
+        'Profil-Anfrage fehlgeschlagen (${response.statusCode}).',
+      );
+    }
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map<String, dynamic>) {
+      throw const HitobitoAuthException(
+        'Profil-Antwort hat ein ungueltiges Format.',
+      );
+    }
+
+    return AuthProfile.fromJson(decoded);
   }
 
   Future<Map<String, dynamic>> _requestToken(

@@ -35,6 +35,7 @@ class HitobitoAuthConfig {
       clientSecret.isNotEmpty &&
       authorizationUrl.isNotEmpty &&
       tokenUrl.isNotEmpty &&
+      profileUrl.isNotEmpty &&
       redirectUri.isNotEmpty &&
       callbackScheme.isNotEmpty;
 }
