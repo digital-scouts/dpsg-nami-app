@@ -3,6 +3,8 @@ import 'package:nami/domain/statistiks/taetigkeit_statistik.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/domain/taetigkeit/taetigkeit.dart';
 
+DateTime _day(int year, int month, int day) => DateTime(year, month, day);
+
 void main() {
   group('cleanForStatistiks', () {
     test('ignores future roles and returns empty when none past/active', () {
@@ -70,11 +72,10 @@ void main() {
     });
 
     test('overlap chooses newer start and splits segments', () {
-      final now = DateTime.now();
-      final a1 = DateTime(now.year - 2, 1, 1); // 2023-01-01
-      final a2 = DateTime(now.year - 1, 6, 1); // 2024-06-01
-      final b1 = DateTime(now.year - 1, 12, 31); // 2024-12-31
-      final b2 = DateTime(now.year, 6, 1); // 2025-06-01
+      final a1 = _day(2022, 1, 1);
+      final a2 = _day(2023, 6, 1);
+      final b1 = _day(2023, 12, 31);
+      final b2 = _day(2024, 6, 1);
       final roles = <Taetigkeit>[
         Taetigkeit(
           stufe: Stufe.pfadfinder,
@@ -104,11 +105,10 @@ void main() {
     });
 
     test('overlap chooses leader over member and splits segments', () {
-      final now = DateTime.now();
-      final a1 = DateTime(now.year - 2, 1, 1); // 2023-01-01
-      final a2 = DateTime(now.year - 1, 6, 1); // 2024-06-01
-      final b1 = DateTime(now.year - 1, 12, 31); // 2024-12-31
-      final b2 = DateTime(now.year, 6, 1); // 2025-06-01
+      final a1 = _day(2022, 1, 1);
+      final a2 = _day(2023, 6, 1);
+      final b1 = _day(2023, 12, 31);
+      final b2 = _day(2024, 6, 1);
       final roles = <Taetigkeit>[
         Taetigkeit(
           stufe: Stufe.pfadfinder,
@@ -139,11 +139,10 @@ void main() {
     });
 
     test('overlap chooses member over sonstige and splits segments', () {
-      final now = DateTime.now();
-      final a1 = DateTime(now.year - 2, 1, 1); // 2023-01-01
-      final a2 = DateTime(now.year - 1, 6, 1); // 2024-06-01
-      final b1 = DateTime(now.year - 1, 12, 31); // 2024-12-31
-      final b2 = DateTime(now.year, 6, 1); // 2025-06-01
+      final a1 = _day(2022, 1, 1);
+      final a2 = _day(2023, 6, 1);
+      final b1 = _day(2023, 12, 31);
+      final b2 = _day(2024, 6, 1);
       final roles = <Taetigkeit>[
         Taetigkeit(
           stufe: Stufe.pfadfinder,
@@ -171,6 +170,48 @@ void main() {
       expect(res.last.ende, DateTime(b2.year, b2.month, b2.day));
       expect(res.last.stufe, Stufe.rover);
       expect(res.last.art, TaetigkeitsArt.sonstiges);
+    });
+
+    test('active overlap caps winning segment at today', () {
+      final now = DateTime.now();
+      final olderStart = DateTime(now.year - 2, 1, 1);
+      final newerStart = DateTime(now.year - 1, 6, 1);
+      final olderEnd = DateTime(now.year - 1, 12, 31);
+      final newerFutureEnd = now.add(const Duration(days: 30));
+
+      final roles = <Taetigkeit>[
+        Taetigkeit(
+          stufe: Stufe.pfadfinder,
+          art: TaetigkeitsArt.mitglied,
+          start: olderStart,
+          ende: olderEnd,
+        ),
+        Taetigkeit(
+          stufe: Stufe.rover,
+          art: TaetigkeitsArt.leitung,
+          start: newerStart,
+          ende: newerFutureEnd,
+        ),
+      ];
+
+      final res = cleanForStatistiks(roles);
+      final today = DateTime(now.year, now.month, now.day);
+
+      expect(res.length, 2);
+      expect(
+        res.first.start,
+        DateTime(olderStart.year, olderStart.month, olderStart.day),
+      );
+      expect(
+        res.first.ende,
+        DateTime(newerStart.year, newerStart.month, newerStart.day),
+      );
+      expect(
+        res.last.start,
+        DateTime(newerStart.year, newerStart.month, newerStart.day),
+      );
+      expect(res.last.ende, today);
+      expect(res.last.art, TaetigkeitsArt.leitung);
     });
 
     test('merge segments of same role', () {

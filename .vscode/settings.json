@@ -25,6 +25,10 @@
     "/^flutter analyze$/": {
       "approve": true,
       "matchCommandLine": true
+    },
+    "/^flutter test$/": {
+      "approve": true,
+      "matchCommandLine": true
     }
   },
 }
