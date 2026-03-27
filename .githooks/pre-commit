@@ -17,3 +17,8 @@ fi
 
 echo "Pruefe Versionskonsistenz..."
 dart tool/validate_versions.dart
+
+if [ -f .env ]; then
+	echo "Pruefe Env-Konsistenz..."
+	dart tool/validate_env_files.dart
+fi

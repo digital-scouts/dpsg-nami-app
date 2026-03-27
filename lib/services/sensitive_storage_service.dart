@@ -20,13 +20,42 @@ class SensitiveStorageService {
     'hitobito_roles_box',
     'hitobito_mailing_lists_box',
   ];
+  static final Map<String, Future<Box<String>>> _openingStringBoxes =
+      <String, Future<Box<String>>>{};
 
   final FlutterSecureStorage _secureStorage;
 
   Future<Box<String>> openSecureMetaBox() async {
+    return openEncryptedStringBox(secureMetaBoxName);
+  }
+
+  Future<Box<String>> openEncryptedStringBox(String boxName) async {
+    if (Hive.isBoxOpen(boxName)) {
+      return Hive.box<String>(boxName);
+    }
+
+    final existingOpen = _openingStringBoxes[boxName];
+    if (existingOpen != null) {
+      return existingOpen;
+    }
+
+    late final Future<Box<String>> openFuture;
+    openFuture = _openEncryptedStringBoxInternal(boxName);
+    _openingStringBoxes[boxName] = openFuture;
+
+    try {
+      return await openFuture;
+    } finally {
+      if (identical(_openingStringBoxes[boxName], openFuture)) {
+        _openingStringBoxes.remove(boxName);
+      }
+    }
+  }
+
+  Future<Box<String>> _openEncryptedStringBoxInternal(String boxName) async {
     final encryptionKey = await _loadOrCreateEncryptionKey();
     return Hive.openBox<String>(
-      secureMetaBoxName,
+      boxName,
       encryptionCipher: HiveAesCipher(encryptionKey),
     );
   }
@@ -61,12 +90,9 @@ class SensitiveStorageService {
 
   Future<void> purgeSensitiveData() async {
     for (final boxName in sensitiveBoxNames) {
+      _openingStringBoxes.remove(boxName);
       if (Hive.isBoxOpen(boxName)) {
-        if (boxName == secureMetaBoxName) {
-          await Hive.box<String>(boxName).close();
-        } else {
-          await Hive.box(boxName).close();
-        }
+        await Hive.box<String>(boxName).close();
       }
 
       try {

@@ -98,6 +98,10 @@ Zum Starten:
 flutter run -t lib/main_storybook.dart
 ```
 
+### Hitobito OAuth
+
+Fuer die Entwicklung gegen die Demo-Instanz verwendet die App eine reduzierte Hitobito-Konfiguration ueber `.env` mit `HITOBITO_BASE_URL`, Client-ID, Client-Secret und Redirect-URI. Authorization-, Token-, Discovery-, Profil- und People-Endpunkte werden daraus im Code abgeleitet.
+
 ## Funktionsweise
 
 Die App ist darauf ausgelegt, sich direkt mit dem NaMi-Backend zu verbinden, sodass keine Mitgliedsdaten auf externen Servern dieser App gespeichert oder verarbeitet werden.

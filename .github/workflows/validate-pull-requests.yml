@@ -44,6 +44,13 @@ jobs:
       - name: Validate app version consistency
         run: dart tool/validate_versions.dart
 
+      - name: Validate env example syntax
+        shell: bash
+        run: |
+          cp .env.example .env.ci
+          dart tool/validate_env_files.dart .env.ci .env.example
+          rm .env.ci
+
       - name: Require version bump for master PRs
         if: github.event_name == 'pull_request' && github.base_ref == 'master'
         shell: bash

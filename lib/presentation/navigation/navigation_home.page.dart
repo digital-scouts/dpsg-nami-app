@@ -1,8 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:nami/l10n/app_localizations.dart';
+import 'package:nami/presentation/model/member_people_model.dart';
 import 'package:nami/presentation/navigation/app_router.dart';
+import 'package:nami/presentation/screens/member_people_page.dart';
 import 'package:nami/presentation/screens/settings_page.dart';
 import 'package:nami/presentation/widgets/app_bottom_navigation.dart';
+import 'package:provider/provider.dart';
+
+import '../../data/people/secure_member_people_repository.dart';
+import '../../services/hitobito_auth_env.dart';
+import '../../services/hitobito_people_service.dart';
+import '../../services/logger_service.dart';
+import '../../services/sensitive_storage_service.dart';
 
 class NavigationHomeScreen extends StatefulWidget {
   const NavigationHomeScreen({super.key});
@@ -13,6 +22,22 @@ class NavigationHomeScreen extends StatefulWidget {
 
 class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
   int _index = 0;
+  late final MemberPeopleModel _memberPeopleModel;
+
+  @override
+  void initState() {
+    super.initState();
+    final logger = context.read<LoggerService>();
+    _memberPeopleModel = MemberPeopleModel(
+      repository: SecureMemberPeopleRepository(
+        remoteService: HitobitoPeopleService(
+          config: HitobitoAuthEnv.authConfig,
+        ),
+        sensitiveStorageService: SensitiveStorageService(),
+      ),
+      logger: logger,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,9 +51,9 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
         );
         break;
       case 1:
-        body = Scaffold(
-          appBar: AppBar(title: Text(t.t('nav_members'))),
-          body: Center(child: Text(t.t('nav_members'))),
+        body = ChangeNotifierProvider<MemberPeopleModel>.value(
+          value: _memberPeopleModel,
+          child: const MemberPeoplePage(),
         );
         break;
       case 2:

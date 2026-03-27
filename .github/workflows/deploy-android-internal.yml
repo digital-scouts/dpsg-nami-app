@@ -50,6 +50,13 @@ jobs:
       - name: Validate app version consistency
         run: dart tool/validate_versions.dart
 
+      - name: Validate env example syntax
+        shell: bash
+        run: |
+          cp .env.example .env.ci
+          dart tool/validate_env_files.dart .env.ci .env.example
+          rm .env.ci
+
       - name: Verify formatting
         run: dart format --output=none --set-exit-if-changed .
 
@@ -76,17 +83,15 @@ jobs:
 
       - name: Create env file
         shell: bash
+        env:
+          WIREDASH_SECRET: ${{ secrets.PROD_WIREDASH_SECRET }}
+          WIREDASH_PROJECT_ID: ${{ secrets.PROD_WIREDASH_PROJECT_ID }}
+          GEOAPIFY_KEY: ${{ secrets.GEOAPIFY_KEY }}
         run: |
-          cat > .env <<EOF
-          WIREDASH_SECRET=${{ secrets.PROD_WIREDASH_SECRET }}
-          WIREDASH_PROJECT_ID=${{ secrets.PROD_WIREDASH_PROJECT_ID }}
-          GEOAPIFY_KEY=${{ secrets.GEOAPIFY_KEY }}
-          PULL_NOTIFICATIONS_URL=
-          PULL_NOTIFICATIONS_MIN_FETCH_INTERVAL_HOURS=
-          APP_UPDATE_URL=
-          APP_UPDATE_MIN_FETCH_INTERVAL_HOURS=
-          APP_UPDATE_FETCH_TIMEOUT_SECONDS=
-          EOF
+          awk -F= '/^[A-Z][A-Z0-9_]*=/{print $1}' .env.example | while read -r key; do
+            printf '%s=%s\n' "$key" "$(printenv "$key" || true)"
+          done > .env
+          dart tool/validate_env_files.dart
 
       - name: Build Android App Bundle
         run: |
