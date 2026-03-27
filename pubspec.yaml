@@ -107,9 +107,6 @@ flutter:
     - assets/icon/
     - assets/ai_kontext/
     - .env
-    # Using .gitlink here, because gradle excludes files like .git by default. This symlink circumvents that. This is used to display the current commit.
-    - .gitlink/refs/heads/
-    - .gitlink/HEAD
     - assets/changelog.json
 
   fonts:

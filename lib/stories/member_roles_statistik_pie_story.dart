@@ -6,6 +6,8 @@ import '../domain/taetigkeit/stufe.dart';
 import '../domain/taetigkeit/taetigkeit.dart';
 import '../presentation/widgets/member_roles_statistik_pie.dart';
 
+final DateTime _storybookNow = DateTime(2025, 10, 1);
+
 Story memberRolesPieNurMitgliedStory() {
   return Story(
     name: 'MemberDetails/StatistikPie/NurMitglied',
@@ -13,19 +15,18 @@ Story memberRolesPieNurMitgliedStory() {
       final size = context.knobs
           .sliderInt(label: 'Größe', initial: 180, min: 120, max: 300)
           .toDouble();
-      final now = DateTime.now();
       final roles = [
         Taetigkeit(
           stufe: Stufe.woelfling,
           art: TaetigkeitsArt.mitglied,
-          start: now.subtract(const Duration(days: 900)),
-          ende: now.subtract(const Duration(days: 600)),
+          start: _storybookNow.subtract(const Duration(days: 900)),
+          ende: _storybookNow.subtract(const Duration(days: 600)),
         ),
         Taetigkeit(
           stufe: Stufe.jungpfadfinder,
           art: TaetigkeitsArt.mitglied,
-          start: now.subtract(const Duration(days: 500)),
-          ende: now.subtract(const Duration(days: 300)),
+          start: _storybookNow.subtract(const Duration(days: 500)),
+          ende: _storybookNow.subtract(const Duration(days: 300)),
         ),
       ];
       return Center(
@@ -42,19 +43,18 @@ Story memberRolesPieNurLeitungStory() {
       final size = context.knobs
           .sliderInt(label: 'Größe', initial: 180, min: 120, max: 300)
           .toDouble();
-      final now = DateTime.now();
       final roles = [
         Taetigkeit(
           stufe: Stufe.rover,
           art: TaetigkeitsArt.leitung,
-          start: now.subtract(const Duration(days: 800)),
-          ende: now.subtract(const Duration(days: 400)),
+          start: _storybookNow.subtract(const Duration(days: 800)),
+          ende: _storybookNow.subtract(const Duration(days: 400)),
         ),
         Taetigkeit(
           stufe: Stufe.pfadfinder,
           art: TaetigkeitsArt.leitung,
-          start: now.subtract(const Duration(days: 350)),
-          ende: now.subtract(const Duration(days: 100)),
+          start: _storybookNow.subtract(const Duration(days: 350)),
+          ende: _storybookNow.subtract(const Duration(days: 100)),
         ),
       ];
       return Center(
@@ -71,19 +71,18 @@ Story memberRolesPieMitgliedUndLeitungStory() {
       final size = context.knobs
           .sliderInt(label: 'Größe', initial: 180, min: 120, max: 300)
           .toDouble();
-      final now = DateTime.now();
       final roles = [
         Taetigkeit(
           stufe: Stufe.pfadfinder,
           art: TaetigkeitsArt.mitglied,
-          start: now.subtract(const Duration(days: 900)),
-          ende: now.subtract(const Duration(days: 600)),
+          start: _storybookNow.subtract(const Duration(days: 900)),
+          ende: _storybookNow.subtract(const Duration(days: 600)),
         ),
         Taetigkeit(
           stufe: Stufe.rover,
           art: TaetigkeitsArt.leitung,
-          start: now.subtract(const Duration(days: 500)),
-          ende: now.subtract(const Duration(days: 200)),
+          start: _storybookNow.subtract(const Duration(days: 500)),
+          ende: _storybookNow.subtract(const Duration(days: 200)),
         ),
       ];
       return Center(
@@ -101,19 +100,18 @@ Story memberRolesPieNurEineStufeStory() {
       final size = context.knobs
           .sliderInt(label: 'Größe', initial: 180, min: 120, max: 300)
           .toDouble();
-      final now = DateTime.now();
       final roles = [
         Taetigkeit(
           stufe: Stufe.woelfling,
           art: TaetigkeitsArt.mitglied,
-          start: now.subtract(const Duration(days: 400)),
-          ende: now.subtract(const Duration(days: 200)),
+          start: _storybookNow.subtract(const Duration(days: 400)),
+          ende: _storybookNow.subtract(const Duration(days: 200)),
         ),
         Taetigkeit(
           stufe: Stufe.woelfling,
           art: TaetigkeitsArt.leitung,
-          start: now.subtract(const Duration(days: 180)),
-          ende: now.subtract(const Duration(days: 60)),
+          start: _storybookNow.subtract(const Duration(days: 180)),
+          ende: _storybookNow.subtract(const Duration(days: 60)),
         ),
       ];
       return Center(
@@ -130,7 +128,6 @@ Story memberRolesPieMaxStory() {
       final size = context.knobs
           .sliderInt(label: 'Größe', initial: 180, min: 120, max: 300)
           .toDouble();
-      final now = DateTime.now();
       final roles = <Taetigkeit>[];
       final stufen = [
         Stufe.biber,
@@ -145,8 +142,8 @@ Story memberRolesPieMaxStory() {
           Taetigkeit(
             stufe: s,
             art: TaetigkeitsArt.mitglied,
-            start: now.subtract(Duration(days: offset)),
-            ende: now.subtract(Duration(days: offset - 100)),
+            start: _storybookNow.subtract(Duration(days: offset)),
+            ende: _storybookNow.subtract(Duration(days: offset - 100)),
           ),
         );
         offset -= 150;
@@ -154,8 +151,8 @@ Story memberRolesPieMaxStory() {
           Taetigkeit(
             stufe: s,
             art: TaetigkeitsArt.leitung,
-            start: now.subtract(Duration(days: offset)),
-            ende: now.subtract(Duration(days: offset - 100)),
+            start: _storybookNow.subtract(Duration(days: offset)),
+            ende: _storybookNow.subtract(Duration(days: offset - 100)),
           ),
         );
         offset -= 150;
@@ -164,8 +161,8 @@ Story memberRolesPieMaxStory() {
         Taetigkeit(
           stufe: Stufe.leitung,
           art: TaetigkeitsArt.sonstiges,
-          start: now.subtract(const Duration(days: 150)),
-          ende: now.subtract(const Duration(days: 100)),
+          start: _storybookNow.subtract(const Duration(days: 150)),
+          ende: _storybookNow.subtract(const Duration(days: 100)),
         ),
       );
       return Center(
@@ -183,19 +180,18 @@ Story memberRolesPieUeberlappStory() {
       final size = context.knobs
           .sliderInt(label: 'Größe', initial: 180, min: 120, max: 300)
           .toDouble();
-      final now = DateTime.now();
       final roles = [
         Taetigkeit(
           stufe: Stufe.pfadfinder,
           art: TaetigkeitsArt.mitglied,
-          start: DateTime(now.year - 2, 1, 1),
-          ende: DateTime(now.year - 1, 12, 31),
+          start: DateTime(2022, 1, 1),
+          ende: DateTime(2023, 12, 31),
         ),
         Taetigkeit(
           stufe: Stufe.rover,
           art: TaetigkeitsArt.leitung,
-          start: DateTime(now.year - 1, 6, 1),
-          ende: DateTime(now.year, 6, 1),
+          start: DateTime(2023, 6, 1),
+          ende: DateTime(2024, 6, 1),
         ),
       ];
       return Center(
