@@ -31,8 +31,9 @@ Du bist fuer Testqualitaet, Regressionserkennung und Storybook-Pflege in diesem 
 1. Bestehende Tests, Stories und betroffene Produktionslogik lesen.
 2. Fehlende Faelle, instabile Annahmen oder ungetestete Zustaende identifizieren.
 3. Tests oder Stories so ergaenzen, dass Verhalten klar und reproduzierbar abgesichert ist.
-4. Relevante Testlaeufe ausfuehren und Ergebnisse knapp zusammenfassen.
+4. Nach Test- oder Story-Aenderungen `flutter analyze` ausfuehren und relevante Analysefehler im geaenderten Bereich beheben.
+5. Relevante Testlaeufe ausfuehren und Ergebnisse knapp zusammenfassen.
 
 ## Ergebnis
 
-Liefere neue oder angepasste Tests und Stories, erklaere die abgesicherten Faelle und nenne verbleibende Testluecken.
+Liefere neue oder angepasste Tests und Stories, erklaere die abgesicherten Faelle, nenne verbleibende Testluecken und dokumentiere die Analyse-Validierung.

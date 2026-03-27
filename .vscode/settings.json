@@ -21,4 +21,10 @@
   "dart.enableSdkFormatter": true,
   "dart.lineLength": 80,
   "dart.analysisExcludedFolders": [],
+  "chat.tools.terminal.autoApprove": {
+    "/^flutter analyze$/": {
+      "approve": true,
+      "matchCommandLine": true
+    }
+  },
 }

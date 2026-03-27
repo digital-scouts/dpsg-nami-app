@@ -43,6 +43,9 @@ version: 1.0.0+1
 
 Dann muss der höchste Eintrag im Changelog `1.0.0` sein.
 
+Wenn dieselbe Release-Version erneut deployed werden soll, wird nur die Build-Metadaten-Komponente in [pubspec.yaml](pubspec.yaml) erhöht, zum Beispiel von `1.0.0+1` auf `1.0.0+2`.
+Der Changelog bleibt dabei auf `1.0.0`, weil nur die Release-Version ohne Build-Metadaten relevant ist.
+
 Für Update-Hinweise in der App gibt es zusätzlich eine manuell gepflegte Remote-Datei unter [docs/version.json](docs/version.json).
 Sie enthält pro Plattform die zuletzt als verfuegbar markierte Version, die minimale unterstuetzte Version und den Store-Link.
 Diese Datei beschreibt bewusst nicht den aktuellen Entwicklungsstand, sondern den tatsaechlich freigegebenen Stand pro Plattform.
@@ -52,6 +55,12 @@ Die Prüfung kann lokal manuell ausgeführt werden:
 
 ```sh
 dart tool/validate_versions.dart
+```
+
+Für Env-Dateien gibt es zusätzlich eine Konsistenzprüfung gegen [.env.example](.env.example):
+
+```sh
+dart tool/validate_env_files.dart
 ```
 
 ### Git Hooks
@@ -66,6 +75,8 @@ git config core.hooksPath .githooks
 
 Ab dann wird vor jedem Commit automatisch geprüft, ob [pubspec.yaml](pubspec.yaml) und [assets/changelog.json](assets/changelog.json) zueinander passen. Bei einer Abweichung wird der Commit abgebrochen.
 
+Wenn lokal eine [.env](.env) vorhanden ist, prüft der Hook zusätzlich, ob die Keys zu [.env.example](.env.example) passen.
+
 ### GitHub Actions
 
 Die gleiche Versionsprüfung läuft zusätzlich in GitHub Actions:
@@ -74,9 +85,13 @@ Die gleiche Versionsprüfung läuft zusätzlich in GitHub Actions:
 - [deploy-android-internal.yml](.github/workflows/deploy-android-internal.yml) baut ein Android App Bundle und deployed es nach Pushes auf `develop`, nach gemergten Pull Requests auf `master` oder manuell in den internen Play-Track.
 - [create-github-release.yml](.github/workflows/create-github-release.yml) erstellt nach gemergten Pull Requests auf `master` oder manuell einen GitHub Release auf Basis der Version aus [pubspec.yaml](pubspec.yaml) und der Eintraege aus [assets/changelog.json](assets/changelog.json).
 
+Zusätzlich validieren die CI-Workflows die Env-Vorlage über [tool/validate_env_files.dart](tool/validate_env_files.dart), damit neue oder entfernte Keys nicht unbemerkt an [.env.example](.env.example) vorbeilaufen.
+
 Dadurch kann eine inkonsistente Versionierung nicht unbemerkt in den Hauptbranch gelangen, auch wenn lokal kein Hook aktiviert ist. Der GitHub Release enthaelt bewusst nur Tag und Release-Notizen, aber kein angehaengtes Android-Binaerfile.
 
 Der iOS-Release-Pfad laeuft weiterhin ausserhalb von GitHub Actions ueber Xcode Cloud beziehungsweise App Store Connect.
+Das Xcode-Cloud-Skript [ios/ci_scripts/ci_pre_xcodebuild.sh](ios/ci_scripts/ci_pre_xcodebuild.sh) erzeugt die lokale [.env](.env) dabei anhand der Keys aus [.env.example](.env.example).
+Wenn Env-Keys geändert werden, müssen deshalb Xcode-Cloud-Variablen und [.env.example](.env.example) synchron gehalten werden.
 
 Beim Merge eines Pull Requests nach `master` erstellt [version-reminder-prs.yml](.github/workflows/version-reminder-prs.yml) automatisch zwei Pull Requests:
 
@@ -101,6 +116,7 @@ flutter run -t lib/main_storybook.dart
 ### Hitobito OAuth
 
 Fuer die Entwicklung gegen die Demo-Instanz verwendet die App eine reduzierte Hitobito-Konfiguration ueber `.env` mit `HITOBITO_BASE_URL`, Client-ID, Client-Secret und Redirect-URI. Authorization-, Token-, Discovery-, Profil- und People-Endpunkte werden daraus im Code abgeleitet.
+Neue Env-Keys muessen immer auch in [.env.example](.env.example) enthalten sein, weil lokale Validierung, GitHub Actions und Xcode Cloud dieses Template als Referenz verwenden.
 
 ## Funktionsweise
 
