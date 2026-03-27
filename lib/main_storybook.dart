@@ -23,6 +23,7 @@ import 'stories/member_list_group_filter_bar_story.dart';
 import 'stories/member_list_search_bar_story.dart';
 import 'stories/member_list_story.dart';
 import 'stories/member_list_tile_story.dart';
+import 'stories/member_people_page_story.dart';
 import 'stories/member_roles_list_story.dart';
 import 'stories/member_roles_list_tile_story.dart';
 import 'stories/member_roles_recommendation_tile_story.dart';
@@ -51,6 +52,8 @@ class StorybookEntry extends StatelessWidget {
           memberGeneralInfoCardStory(),
           memberMembershipInfoCardStory(),
           memberDetailsStory(),
+          memberPeoplePageLoadedStory(),
+          memberPeoplePageEmptyStory(),
           memberListStory(),
           memberRolesListTileStory(),
           memberRolesRecommendationTileStory(),

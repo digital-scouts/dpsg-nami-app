@@ -22,6 +22,7 @@
 - Aendere Release-Dateien nur bewusst und konsistent.
 - Halte pubspec.yaml, assets/changelog.json und docs/version.json inhaltlich stimmig, wenn eine Release-Aufgabe dies erfordert.
 - Nutze vorhandene Validierung wie tool/validate_versions.dart, wenn Versions- oder Release-Dateien betroffen sind.
+- Wenn Env-Keys geaendert werden, halte .env.example, lokale .env, ios/ci_scripts/ci_pre_xcodebuild.sh, GitHub-Workflow-Env-Erzeugung und tool/validate_env_files.dart synchron.
 
 ## Dokumentation
 

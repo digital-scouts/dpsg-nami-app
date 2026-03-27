@@ -5,6 +5,8 @@ import '../taetigkeit/taetigkeit.dart';
 /// Pflichtfelder: Vorname, Nachname, Geburtsdatum, Eintrittsdatum, Mitgliedsnummer.
 /// Optionale Felder: Fahrtenname, Austrittsdatum.
 class Mitglied {
+  static final DateTime _peoplePlaceholderDate = DateTime(1900, 1, 1);
+
   Mitglied({
     required this.vorname,
     required this.nachname,
@@ -24,6 +26,24 @@ class Mitglied {
        assert(mitgliedsnummer.isNotEmpty),
        taetigkeiten = List.unmodifiable(taetigkeiten ?? const []);
 
+  Mitglied.peopleListItem({
+    required this.vorname,
+    required this.nachname,
+    required this.mitgliedsnummer,
+    this.fahrtenname,
+  }) : assert(vorname.isNotEmpty),
+       assert(nachname.isNotEmpty),
+       assert(mitgliedsnummer.isNotEmpty),
+       geburtsdatum = _peoplePlaceholderDate,
+       eintrittsdatum = _peoplePlaceholderDate,
+       austrittsdatum = null,
+       telefon1 = null,
+       telefon2 = null,
+       telefon3 = null,
+       email1 = null,
+       email2 = null,
+       taetigkeiten = const [];
+
   final String vorname;
   final String nachname;
   final String? fahrtenname;
@@ -37,6 +57,8 @@ class Mitglied {
   final String? email1;
   final String? email2;
   final List<Taetigkeit> taetigkeiten;
+
+  String get fullName => '$vorname $nachname'.trim();
 
   bool get istAusgetreten =>
       austrittsdatum != null && austrittsdatum!.isBefore(DateTime.now());
@@ -73,6 +95,24 @@ class Mitglied {
 
   Mitglied addTaetigkeit(Taetigkeit t) =>
       copyWith(taetigkeiten: [...taetigkeiten, t]);
+
+  Map<String, dynamic> toPeopleListJson() {
+    return {
+      'mitgliedsnummer': mitgliedsnummer,
+      'vorname': vorname,
+      'nachname': nachname,
+      'fahrtenname': fahrtenname,
+    };
+  }
+
+  factory Mitglied.fromPeopleListJson(Map<String, dynamic> json) {
+    return Mitglied.peopleListItem(
+      mitgliedsnummer: json['mitgliedsnummer']?.toString() ?? '',
+      vorname: json['vorname']?.toString() ?? '',
+      nachname: json['nachname']?.toString() ?? '',
+      fahrtenname: json['fahrtenname']?.toString(),
+    );
+  }
 
   @override
   bool operator ==(Object other) {
