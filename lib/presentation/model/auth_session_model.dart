@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../../domain/auth/auth_profile.dart';
+import '../../domain/auth/auth_profile_repository.dart';
 import '../../domain/auth/auth_session.dart';
 import '../../domain/auth/auth_session_repository.dart';
 import '../../domain/auth/auth_state.dart';
@@ -17,6 +18,7 @@ class AuthSessionModel extends ChangeNotifier {
 
   AuthSessionModel({
     required AuthSessionRepository repository,
+    required AuthProfileRepository profileRepository,
     required HitobitoOauthService oauthService,
     required BiometricLockService biometricLockService,
     required SensitiveStorageService sensitiveStorageService,
@@ -24,6 +26,7 @@ class AuthSessionModel extends ChangeNotifier {
     required LoggerService logger,
     Future<void> Function(String languageCode)? onPreferredLanguageChanged,
   }) : _repository = repository,
+       _profileRepository = profileRepository,
        _oauthService = oauthService,
        _biometricLockService = biometricLockService,
        _sensitiveStorageService = sensitiveStorageService,
@@ -32,6 +35,7 @@ class AuthSessionModel extends ChangeNotifier {
        _onPreferredLanguageChanged = onPreferredLanguageChanged;
 
   final AuthSessionRepository _repository;
+  final AuthProfileRepository _profileRepository;
   final HitobitoOauthService _oauthService;
   final BiometricLockService _biometricLockService;
   final SensitiveStorageService _sensitiveStorageService;
@@ -43,18 +47,24 @@ class AuthSessionModel extends ChangeNotifier {
   AuthSession? _session;
   AuthProfile? _profile;
   DateTime? _lastSensitiveSyncAt;
+  DateTime? _lastProfileSyncAt;
   String? _errorMessage;
   DateTime? _lastSuccessfulUnlockAt;
   bool _isLoadingProfile = false;
+  bool _isSyncingHitobitoData = false;
 
   AuthState get state => _state;
   AuthSession? get session => _session;
   AuthProfile? get profile => _profile;
   DateTime? get lastSensitiveSyncAt => _lastSensitiveSyncAt;
+  DateTime? get lastProfileSyncAt => _lastProfileSyncAt;
   String? get errorMessage => _errorMessage;
   bool get isLoadingProfile => _isLoadingProfile;
+  bool get isSyncingHitobitoData => _isSyncingHitobitoData;
   bool get isConfigured => _oauthService.config.isConfigured;
   bool get isRefreshDue => _retentionPolicy.isRefreshDue(_lastSensitiveSyncAt);
+  bool get isProfileRefreshDue =>
+      _retentionPolicy.isRefreshDue(_lastProfileSyncAt);
   Duration? get remainingUntilRelogin =>
       _retentionPolicy.remainingUntilRelogin(_lastSensitiveSyncAt);
 
@@ -66,10 +76,12 @@ class AuthSessionModel extends ChangeNotifier {
     _session = await _repository.load();
     _lastSensitiveSyncAt = await _sensitiveStorageService
         .loadLastSensitiveSyncAt();
+    _lastProfileSyncAt = await _profileRepository.loadLastSyncAt();
+    _profile = await _profileRepository.loadCached();
 
     await _deriveState(requireUnlock: true);
     if (_state == AuthState.signedIn) {
-      await ensureProfileLoaded(force: true);
+      await ensureProfileLoaded();
     }
   }
 
@@ -95,13 +107,14 @@ class AuthSessionModel extends ChangeNotifier {
           'auth_flow',
           'Vorhandene sensible Daten werden wegen Benutzerwechsel geloescht',
         );
+        await _profileRepository.clear();
         await _sensitiveStorageService.purgeSensitiveData();
       }
 
       await _repository.save(authenticatedSession);
       await _sensitiveStorageService.savePrincipal(nextPrincipal);
 
-      final verifiedAt = DateTime.now();
+      final verifiedAt = _retentionPolicy.now();
       await _sensitiveStorageService.saveLastSensitiveSyncAt(verifiedAt);
 
       _session = authenticatedSession;
@@ -141,22 +154,24 @@ class AuthSessionModel extends ChangeNotifier {
 
     _errorMessage = null;
     _state = AuthState.signedIn;
-    _lastSuccessfulUnlockAt = DateTime.now();
+    _lastSuccessfulUnlockAt = _retentionPolicy.now();
     await _logger.log('auth_flow', 'Lokale Entsperrung erfolgreich');
     notifyListeners();
-    unawaited(ensureProfileLoaded());
-    unawaited(performBackgroundMaintenance(trigger: 'unlock'));
+    unawaited(_refreshAfterUnlock());
   }
 
   Future<void> logout() async {
     await _logger.log('auth_flow', 'Logout gestartet');
     await _repository.clear();
+    await _profileRepository.clear();
     await _sensitiveStorageService.purgeSensitiveData();
 
     _session = null;
     _profile = null;
     _isLoadingProfile = false;
+    _isSyncingHitobitoData = false;
     _lastSensitiveSyncAt = null;
+    _lastProfileSyncAt = null;
     _errorMessage = null;
     _state = AuthState.signedOut;
     await _logger.log(
@@ -224,14 +239,7 @@ class AuthSessionModel extends ChangeNotifier {
     }
 
     try {
-      final refreshedSession = await _oauthService.refreshIfNeeded(_session!);
-      if (refreshedSession.accessToken != _session!.accessToken ||
-          refreshedSession.refreshToken != _session!.refreshToken ||
-          refreshedSession.expiresAt != _session!.expiresAt) {
-        await _logger.log('auth_flow', 'Session durch Wartung aktualisiert');
-        _session = refreshedSession;
-        await _repository.save(refreshedSession);
-      }
+      await prepareSessionForRemoteAccess(trigger: trigger);
     } catch (error, stack) {
       await _logger.log(
         'auth',
@@ -249,16 +257,64 @@ class AuthSessionModel extends ChangeNotifier {
     }
   }
 
+  Future<AuthSession?> prepareSessionForRemoteAccess({
+    required String trigger,
+    bool forceRefresh = false,
+  }) async {
+    if (_session == null || _state == AuthState.reloginRequired) {
+      return null;
+    }
+
+    if (_retentionPolicy.isReloginRequired(_lastSensitiveSyncAt)) {
+      _state = AuthState.reloginRequired;
+      await _logger.log(
+        'auth_flow',
+        'Relogin erforderlich: Datenfrist abgelaufen',
+      );
+      notifyListeners();
+      return null;
+    }
+
+    try {
+      final currentSession = _session!;
+      final refreshedSession = forceRefresh && currentSession.canRefresh
+          ? await _oauthService.refresh(currentSession)
+          : await _oauthService.refreshIfNeeded(currentSession);
+      if (refreshedSession.accessToken != currentSession.accessToken ||
+          refreshedSession.refreshToken != currentSession.refreshToken ||
+          refreshedSession.expiresAt != currentSession.expiresAt) {
+        await _logger.log('auth_flow', 'Session durch $trigger aktualisiert');
+        _session = refreshedSession;
+        await _repository.save(refreshedSession);
+      }
+    } catch (error, stack) {
+      await _logger.log(
+        'auth',
+        'Session-Auffrischung fehlgeschlagen ($trigger): $error\n$stack',
+      );
+    }
+
+    return _session;
+  }
+
   Future<void> ensureProfileLoaded({bool force = false}) async {
     if (_session == null || _state == AuthState.reloginRequired) {
       return;
+    }
+
+    final hadProfile = _profile != null;
+    await _restoreCachedProfile();
+    if (!hadProfile && _profile != null) {
+      notifyListeners();
     }
 
     if (_isLoadingProfile) {
       return;
     }
 
-    if (!force && _profile != null) {
+    if (!force &&
+        _profile != null &&
+        !_retentionPolicy.isRefreshDue(_lastProfileSyncAt)) {
       return;
     }
 
@@ -266,10 +322,14 @@ class AuthSessionModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final loadedProfile = await _oauthService.fetchProfile(_session!);
-      _profile = loadedProfile;
-      _errorMessage = null;
-      await _syncPreferredLanguage(loadedProfile.normalizedLanguage);
+      final activeSession = await prepareSessionForRemoteAccess(
+        trigger: force ? 'profile_force' : 'profile_load',
+      );
+      if (activeSession == null) {
+        return;
+      }
+
+      await _loadProfileFromRemote(activeSession);
     } catch (error, stack) {
       await _logger.log(
         'auth',
@@ -280,6 +340,105 @@ class AuthSessionModel extends ChangeNotifier {
       _isLoadingProfile = false;
       notifyListeners();
     }
+  }
+
+  Future<void> syncHitobitoData({
+    required Future<void> Function(String accessToken) syncMembers,
+    bool force = false,
+    String trigger = 'manual',
+  }) async {
+    if (_isSyncingHitobitoData ||
+        _session == null ||
+        _state == AuthState.reloginRequired) {
+      return;
+    }
+
+    if (!force && !_retentionPolicy.isRefreshDue(_lastSensitiveSyncAt)) {
+      return;
+    }
+
+    _isSyncingHitobitoData = true;
+    notifyListeners();
+
+    try {
+      final activeSession = await prepareSessionForRemoteAccess(
+        trigger: '${trigger}_session',
+        forceRefresh: force,
+      );
+      if (activeSession == null) {
+        return;
+      }
+
+      await _loadProfileFromRemote(activeSession);
+      await syncMembers(activeSession.accessToken);
+
+      final verifiedAt = _retentionPolicy.now();
+      _lastSensitiveSyncAt = verifiedAt;
+      await _sensitiveStorageService.saveLastSensitiveSyncAt(verifiedAt);
+      _errorMessage = null;
+    } catch (error, stack) {
+      await _logger.log(
+        'hitobito_sync',
+        'Hitobito-Sync fehlgeschlagen ($trigger): $error\n$stack',
+      );
+      _errorMessage ??= error.toString();
+    } finally {
+      _isSyncingHitobitoData = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _loadProfileFromRemote(
+    AuthSession session, {
+    bool retryOnUnauthorized = true,
+  }) async {
+    try {
+      final loadedProfile = await _oauthService.fetchProfile(session);
+      final syncAt = _retentionPolicy.now();
+      _profile = loadedProfile;
+      _lastProfileSyncAt = syncAt;
+      _errorMessage = null;
+      await _profileRepository.save(loadedProfile);
+      await _profileRepository.saveLastSyncAt(syncAt);
+      await _syncPreferredLanguage(loadedProfile.normalizedLanguage);
+    } on HitobitoAuthException catch (error, stack) {
+      await _logger.log(
+        'auth',
+        'Profil konnte nicht geladen werden: $error\n$stack',
+      );
+
+      if (retryOnUnauthorized && error.statusCode == 401) {
+        final refreshedSession = await prepareSessionForRemoteAccess(
+          trigger: 'profile_retry',
+          forceRefresh: true,
+        );
+        if (refreshedSession != null &&
+            refreshedSession.accessToken != session.accessToken) {
+          return _loadProfileFromRemote(
+            refreshedSession,
+            retryOnUnauthorized: false,
+          );
+        }
+
+        _state = AuthState.reloginRequired;
+        _errorMessage = error.toString();
+        notifyListeners();
+        return;
+      }
+
+      _errorMessage = error.toString();
+      rethrow;
+    }
+  }
+
+  Future<void> _restoreCachedProfile() async {
+    _lastProfileSyncAt ??= await _profileRepository.loadLastSyncAt();
+    _profile ??= await _profileRepository.loadCached();
+  }
+
+  Future<void> _refreshAfterUnlock() async {
+    await prepareSessionForRemoteAccess(trigger: 'unlock');
+    await ensureProfileLoaded();
   }
 
   Future<void> _deriveState({required bool requireUnlock}) async {

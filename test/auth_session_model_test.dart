@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/domain/auth/auth_profile.dart';
+import 'package:nami/domain/auth/auth_profile_repository.dart';
 import 'package:nami/domain/auth/auth_session.dart';
 import 'package:nami/domain/auth/auth_session_repository.dart';
 import 'package:nami/domain/settings/app_settings.dart';
@@ -36,6 +37,7 @@ void main() {
 
       final model = AuthSessionModel(
         repository: _InMemoryAuthSessionRepository(),
+        profileRepository: _InMemoryAuthProfileRepository(),
         oauthService: oauthService,
         biometricLockService: _FakeBiometricLockService(),
         sensitiveStorageService: _FakeSensitiveStorageService(),
@@ -79,6 +81,7 @@ void main() {
 
       final model = AuthSessionModel(
         repository: _InMemoryAuthSessionRepository(),
+        profileRepository: _InMemoryAuthProfileRepository(),
         oauthService: oauthService,
         biometricLockService: _FakeBiometricLockService(),
         sensitiveStorageService: _FakeSensitiveStorageService(),
@@ -127,6 +130,7 @@ void main() {
 
       final model = AuthSessionModel(
         repository: repository,
+        profileRepository: _InMemoryAuthProfileRepository(),
         oauthService: oauthService,
         biometricLockService: _FakeBiometricLockService(),
         sensitiveStorageService: _FakeSensitiveStorageService(),
@@ -150,6 +154,137 @@ void main() {
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
+
+  test(
+    'laedt gecachtes Profil bei initialize ohne sofortigen Remote-Refresh',
+    () async {
+      final cachedProfile = const AuthProfile(
+        namiId: 41,
+        firstName: 'Cache',
+        lastName: 'Only',
+        language: 'de',
+      );
+      final oauthService = _FakeOauthService(
+        sessionToReturn: AuthSession(
+          accessToken: 'unused',
+          receivedAt: DateTime(2026, 3, 27),
+        ),
+        profileToReturn: const AuthProfile(
+          namiId: 99,
+          firstName: 'Remote',
+          lastName: 'Profile',
+          language: 'en',
+        ),
+      );
+      final profileRepository = _InMemoryAuthProfileRepository(
+        profile: cachedProfile,
+        lastSyncAt: DateTime(2026, 3, 27, 6),
+      );
+
+      final model = AuthSessionModel(
+        repository: _InMemoryAuthSessionRepository(
+          initialSession: AuthSession(
+            accessToken: 'existing-token',
+            receivedAt: DateTime(2026, 3, 27),
+          ),
+        ),
+        profileRepository: profileRepository,
+        oauthService: oauthService,
+        biometricLockService: _FakeBiometricLockService(),
+        sensitiveStorageService: _FakeSensitiveStorageService(),
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => DateTime(2026, 3, 27, 12),
+        ),
+        logger: _createLogger(),
+      );
+
+      await model.initialize();
+
+      expect(model.profile?.namiId, 41);
+      expect(oauthService.fetchProfileCallCount, 0);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  test(
+    'syncHitobitoData aktualisiert Profil, Mitglieder und Sync-Zeitpunkt',
+    () async {
+      final oauthService = _FakeOauthService(
+        sessionToReturn: AuthSession(
+          accessToken: 'access-token',
+          refreshToken: 'refresh-token',
+          receivedAt: DateTime(2026, 3, 27),
+        ),
+        profileToReturn: const AuthProfile(
+          namiId: 77,
+          firstName: 'Sync',
+          lastName: 'User',
+          language: 'de',
+        ),
+      );
+      final sensitiveStorage = _FakeSensitiveStorageService();
+      final memberSyncTokens = <String>[];
+      final model = AuthSessionModel(
+        repository: _InMemoryAuthSessionRepository(),
+        profileRepository: _InMemoryAuthProfileRepository(),
+        oauthService: oauthService,
+        biometricLockService: _FakeBiometricLockService(),
+        sensitiveStorageService: sensitiveStorage,
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => DateTime(2026, 3, 28, 12),
+        ),
+        logger: _createLogger(),
+      );
+
+      await model.signIn();
+      sensitiveStorage._lastSensitiveSyncAt = DateTime(2026, 3, 27, 8);
+
+      await model.syncHitobitoData(
+        syncMembers: (accessToken) async {
+          memberSyncTokens.add(accessToken);
+        },
+        force: true,
+      );
+
+      expect(model.profile?.namiId, 77);
+      expect(memberSyncTokens, <String>['access-token']);
+      expect(model.lastSensitiveSyncAt, DateTime(2026, 3, 28, 12));
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+}
+
+class _InMemoryAuthProfileRepository implements AuthProfileRepository {
+  _InMemoryAuthProfileRepository({this.profile, this.lastSyncAt});
+
+  AuthProfile? profile;
+  DateTime? lastSyncAt;
+
+  @override
+  Future<void> clear() async {
+    profile = null;
+    lastSyncAt = null;
+  }
+
+  @override
+  Future<AuthProfile?> loadCached() async => profile;
+
+  @override
+  Future<DateTime?> loadLastSyncAt() async => lastSyncAt;
+
+  @override
+  Future<void> save(AuthProfile profile) async {
+    this.profile = profile;
+  }
+
+  @override
+  Future<void> saveLastSyncAt(DateTime timestamp) async {
+    lastSyncAt = timestamp;
+  }
 }
 
 class _InMemoryAuthSessionRepository implements AuthSessionRepository {
@@ -191,13 +326,19 @@ class _FakeOauthService extends HitobitoOauthService {
 
   final AuthSession sessionToReturn;
   final AuthProfile profileToReturn;
+  int fetchProfileCallCount = 0;
 
   @override
   Future<AuthSession> authenticateInteractive() async => sessionToReturn;
 
   @override
-  Future<AuthProfile> fetchProfile(AuthSession session) async =>
-      profileToReturn;
+  Future<AuthSession> refresh(AuthSession session) async => sessionToReturn;
+
+  @override
+  Future<AuthProfile> fetchProfile(AuthSession session) async {
+    fetchProfileCallCount += 1;
+    return profileToReturn;
+  }
 
   @override
   Future<AuthSession> refreshIfNeeded(

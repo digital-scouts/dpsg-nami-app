@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:nami/domain/auth/auth_profile.dart';
+import 'package:nami/domain/auth/auth_profile_repository.dart';
 import 'package:nami/domain/auth/auth_session.dart';
 import 'package:nami/domain/auth/auth_session_repository.dart';
 import 'package:nami/domain/member/member_people_repository.dart';
@@ -65,6 +66,7 @@ class _MemberPeopleStoryShellState extends State<_MemberPeopleStoryShell> {
     super.initState();
     _authModel = AuthSessionModel(
       repository: _InMemoryAuthSessionRepository(),
+      profileRepository: _InMemoryAuthProfileRepository(),
       oauthService: _FakeOauthService(),
       biometricLockService: _FakeBiometricLockService(),
       sensitiveStorageService: _FakeSensitiveStorageService(),
@@ -105,6 +107,33 @@ class _MemberPeopleStoryShellState extends State<_MemberPeopleStoryShell> {
         },
       ),
     );
+  }
+}
+
+class _InMemoryAuthProfileRepository implements AuthProfileRepository {
+  AuthProfile? _profile;
+  DateTime? _lastSyncAt;
+
+  @override
+  Future<void> clear() async {
+    _profile = null;
+    _lastSyncAt = null;
+  }
+
+  @override
+  Future<AuthProfile?> loadCached() async => _profile;
+
+  @override
+  Future<DateTime?> loadLastSyncAt() async => _lastSyncAt;
+
+  @override
+  Future<void> save(AuthProfile profile) async {
+    _profile = profile;
+  }
+
+  @override
+  Future<void> saveLastSyncAt(DateTime timestamp) async {
+    _lastSyncAt = timestamp;
   }
 }
 

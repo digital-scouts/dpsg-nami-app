@@ -10,7 +10,10 @@ import 'package:intl/intl.dart';
 import 'package:nami/core/notifications/pull_notification.dart';
 import 'package:nami/core/notifications/pull_notifications_cubit.dart';
 import 'package:nami/core/notifications/pull_notifications_repository_factory.dart';
+import 'package:nami/data/auth/secure_auth_profile_repository.dart';
 import 'package:nami/data/auth/secure_auth_session_repository.dart';
+import 'package:nami/data/people/secure_member_people_repository.dart';
+import 'package:nami/domain/member/member_people_repository.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/notifications/app_update_dialog.dart';
 import 'package:nami/presentation/screens/auth_gate_screen.dart';
@@ -32,6 +35,7 @@ import 'services/biometric_lock_service.dart';
 import 'services/hitobito_auth_env.dart';
 import 'services/hitobito_data_retention_policy.dart';
 import 'services/hitobito_oauth_service.dart';
+import 'services/hitobito_people_service.dart';
 import 'services/logger_service.dart';
 import 'services/sensitive_storage_service.dart';
 import 'services/usage_tracking_service.dart';
@@ -71,14 +75,25 @@ void main() {
         },
       );
 
+      final sensitiveStorageService = SensitiveStorageService();
+      final memberPeopleRepository = SecureMemberPeopleRepository(
+        remoteService: HitobitoPeopleService(
+          config: HitobitoAuthEnv.authConfig,
+        ),
+        sensitiveStorageService: sensitiveStorageService,
+      );
+
       final authModel = AuthSessionModel(
         repository: SecureAuthSessionRepository(),
+        profileRepository: SecureAuthProfileRepository(
+          sensitiveStorageService: sensitiveStorageService,
+        ),
         oauthService: HitobitoOauthService(
           config: HitobitoAuthEnv.authConfig,
           logger: logger,
         ),
         biometricLockService: BiometricLockService(logger: logger),
-        sensitiveStorageService: SensitiveStorageService(),
+        sensitiveStorageService: sensitiveStorageService,
         retentionPolicy: HitobitoDataRetentionPolicy(
           maxDataAge: HitobitoAuthEnv.maxDataAge,
           refreshInterval: HitobitoAuthEnv.refreshInterval,
@@ -133,6 +148,9 @@ void main() {
             ),
             ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
             Provider<LoggerService>.value(value: logger!),
+            Provider<MemberPeopleRepository>.value(
+              value: memberPeopleRepository,
+            ),
           ],
           child: const MyApp(),
         ),
@@ -195,9 +213,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void _startAuthMaintenanceTimer() {
     _authMaintenanceTimer?.cancel();
     final authModel = context.read<AuthSessionModel>();
+    final memberPeopleRepository = context.read<MemberPeopleRepository>();
     _authMaintenanceTimer = Timer.periodic(
       HitobitoAuthEnv.refreshInterval,
-      (_) => authModel.performBackgroundMaintenance(trigger: 'interval'),
+      (_) => authModel.syncHitobitoData(
+        syncMembers: (accessToken) async {
+          await memberPeopleRepository.refresh(accessToken);
+        },
+        trigger: 'interval',
+      ),
     );
   }
 

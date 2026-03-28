@@ -1,5 +1,9 @@
 # Notizen zur Hitobito-DPSG Implementierung
 
+## Offene Fragen
+
+- Ist es angedacht, das Mitglieder einen Hitobito-Zugang haben und eigene Daten selber einsehen und bearbeiten können, oder werden die Daten weiterhin nur von Stammesverantwortlichen gepflegt?
+
 ## Repositories
 
 Hitobito: <https://github.com/hitobito/hitobito>
@@ -15,7 +19,7 @@ Neben den drei Ressource-Typen Group, People und Role gibt es weitere Ressourcen
 
 #### Hitobito Group
 
-##### Hitobito Group Attribute
+##### Hitobito Group **Attribute**
 
 | Attribut | Typ | Hinweise |
 | --- | --- | --- |
@@ -172,7 +176,7 @@ User loggt sich ein
 
 #### Testzugang (nur für Entwicklung)
 
-Der Testzugang ist über die Hitobito Demo-Instanz möglich: <https://demo.hitobito.com>. Hier stehen nur die Hitobito-eigenen Ressourcen zur Verfügung, aber keine Pfadi-DE oder DPSG-spezifischen Erweiterungen. Für die Entwicklung und das Testen der API-Integration und Grundfunktionen ist dies jedoch ausreichend.
+Der Testzugang ist über die Hitobito Demo-Instanz möglich: <https://demo.hitobito.com>. Hier stehen nur die Hitobito-eigenen Ressourcen zur Verfügung, aber keine Pfadi-DE oder DPSG-spezifischen Erweiterungen. Für die Entwicklung und das Testen der API-Integration und Grundfunktionen ist dies jedoch ausreichend. OAuth Applikationen werden um 4 Uhr morgens zurückgesetzt.
 
 Name: NamiDevTest
 Client ID: ***REMOVED***

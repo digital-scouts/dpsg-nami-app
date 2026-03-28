@@ -16,6 +16,7 @@ class SensitiveStorageService {
 
   static const List<String> sensitiveBoxNames = <String>[
     secureMetaBoxName,
+    'hitobito_profile_box',
     'hitobito_people_box',
     'hitobito_roles_box',
     'hitobito_mailing_lists_box',

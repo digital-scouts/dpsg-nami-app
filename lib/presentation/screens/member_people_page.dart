@@ -18,7 +18,7 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final authModel = context.read<AuthSessionModel>();
-      await authModel.performBackgroundMaintenance(trigger: 'members_load');
+      await authModel.prepareSessionForRemoteAccess(trigger: 'members_load');
       if (!mounted) {
         return;
       }

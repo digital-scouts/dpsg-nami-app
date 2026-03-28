@@ -51,6 +51,7 @@ class AppLocalizations {
       'language_en': 'Englisch (Beta)',
       'profile': 'Profil',
       'profile_loading': 'Profil wird geladen',
+      'profile_last_sync_title': 'Profil zuletzt aktualisiert',
       'profile_not_loaded':
           'Das Hitobito-Profil konnte noch nicht geladen werden.',
       'profile_nami_id_label': 'nami-id',
@@ -170,6 +171,7 @@ class AppLocalizations {
       'language_en': 'English (Beta)',
       'profile': 'Profile',
       'profile_loading': 'Loading profile',
+      'profile_last_sync_title': 'Profile last updated',
       'profile_not_loaded': 'The Hitobito profile could not be loaded yet.',
       'profile_nami_id_label': 'nami-id',
       'profile_email_label': 'Email',
