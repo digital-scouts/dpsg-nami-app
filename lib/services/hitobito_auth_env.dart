@@ -115,6 +115,15 @@ class HitobitoAuthEnv {
     return Duration(hours: hours);
   }
 
+  static Duration get appLockTimeout {
+    final secondsRaw = _env('HITOBITO_APP_LOCK_TIMEOUT_SECONDS');
+    final seconds = int.tryParse(secondsRaw ?? '');
+    if (seconds == null || seconds < 0) {
+      return const Duration(seconds: 60);
+    }
+    return Duration(seconds: seconds);
+  }
+
   static String? _env(String key) {
     try {
       return dotenv.env[key];

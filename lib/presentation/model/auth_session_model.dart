@@ -14,8 +14,6 @@ import '../../services/logger_service.dart';
 import '../../services/sensitive_storage_service.dart';
 
 class AuthSessionModel extends ChangeNotifier {
-  static const Duration _resumeUnlockSuppressionWindow = Duration(seconds: 3);
-
   AuthSessionModel({
     required AuthSessionRepository repository,
     required AuthProfileRepository profileRepository,
@@ -25,6 +23,7 @@ class AuthSessionModel extends ChangeNotifier {
     required HitobitoDataRetentionPolicy retentionPolicy,
     required LoggerService logger,
     Future<void> Function(String languageCode)? onPreferredLanguageChanged,
+    Duration lockTimeout = const Duration(seconds: 60),
   }) : _repository = repository,
        _profileRepository = profileRepository,
        _oauthService = oauthService,
@@ -32,7 +31,8 @@ class AuthSessionModel extends ChangeNotifier {
        _sensitiveStorageService = sensitiveStorageService,
        _retentionPolicy = retentionPolicy,
        _logger = logger,
-       _onPreferredLanguageChanged = onPreferredLanguageChanged;
+       _onPreferredLanguageChanged = onPreferredLanguageChanged,
+       _lockTimeout = lockTimeout;
 
   final AuthSessionRepository _repository;
   final AuthProfileRepository _profileRepository;
@@ -42,14 +42,15 @@ class AuthSessionModel extends ChangeNotifier {
   final HitobitoDataRetentionPolicy _retentionPolicy;
   final LoggerService _logger;
   final Future<void> Function(String languageCode)? _onPreferredLanguageChanged;
+  final Duration _lockTimeout;
 
   AuthState _state = AuthState.initializing;
   AuthSession? _session;
   AuthProfile? _profile;
   DateTime? _lastSensitiveSyncAt;
   DateTime? _lastProfileSyncAt;
+  DateTime? _lastBackgroundedAt;
   String? _errorMessage;
-  DateTime? _lastSuccessfulUnlockAt;
   bool _isLoadingProfile = false;
   bool _isSyncingHitobitoData = false;
 
@@ -76,6 +77,8 @@ class AuthSessionModel extends ChangeNotifier {
     _session = await _repository.load();
     _lastSensitiveSyncAt = await _sensitiveStorageService
         .loadLastSensitiveSyncAt();
+    _lastBackgroundedAt = await _sensitiveStorageService
+        .loadLastBackgroundedAt();
     _lastProfileSyncAt = await _profileRepository.loadLastSyncAt();
     _profile = await _profileRepository.loadCached();
 
@@ -113,12 +116,14 @@ class AuthSessionModel extends ChangeNotifier {
 
       await _repository.save(authenticatedSession);
       await _sensitiveStorageService.savePrincipal(nextPrincipal);
+      await _sensitiveStorageService.saveLastBackgroundedAt(null);
 
       final verifiedAt = _retentionPolicy.now();
       await _sensitiveStorageService.saveLastSensitiveSyncAt(verifiedAt);
 
       _session = authenticatedSession;
       _lastSensitiveSyncAt = verifiedAt;
+      _lastBackgroundedAt = null;
       await ensureProfileLoaded(force: true);
       _state = AuthState.signedIn;
       await _logger.log('auth_flow', 'Login erfolgreich abgeschlossen');
@@ -154,7 +159,7 @@ class AuthSessionModel extends ChangeNotifier {
 
     _errorMessage = null;
     _state = AuthState.signedIn;
-    _lastSuccessfulUnlockAt = _retentionPolicy.now();
+    await _clearBackgroundedAt();
     await _logger.log('auth_flow', 'Lokale Entsperrung erfolgreich');
     notifyListeners();
     unawaited(_refreshAfterUnlock());
@@ -172,6 +177,7 @@ class AuthSessionModel extends ChangeNotifier {
     _isSyncingHitobitoData = false;
     _lastSensitiveSyncAt = null;
     _lastProfileSyncAt = null;
+    _lastBackgroundedAt = null;
     _errorMessage = null;
     _state = AuthState.signedOut;
     await _logger.log(
@@ -179,6 +185,17 @@ class AuthSessionModel extends ChangeNotifier {
       'Logout abgeschlossen, sensible Daten geloescht',
     );
     notifyListeners();
+  }
+
+  Future<void> onAppBackgrounded() async {
+    if (_session == null) {
+      return;
+    }
+
+    final backgroundedAt = _retentionPolicy.now();
+    _lastBackgroundedAt = backgroundedAt;
+    await _sensitiveStorageService.saveLastBackgroundedAt(backgroundedAt);
+    await _logger.log('auth_flow', 'App-Hintergrundzeitpunkt gespeichert');
   }
 
   Future<void> onAppResumed() async {
@@ -196,12 +213,10 @@ class AuthSessionModel extends ChangeNotifier {
       return;
     }
 
-    if (_shouldSuppressResumeUnlock()) {
-      unawaited(performBackgroundMaintenance(trigger: 'resume'));
-      return;
-    }
+    final shouldRequireUnlock = _shouldRequireUnlockAfterResume();
+    await _clearBackgroundedAt();
 
-    if (await _biometricLockService.isAvailable()) {
+    if (shouldRequireUnlock && await _biometricLockService.isAvailable()) {
       _state = AuthState.unlockRequired;
       await _logger.log(
         'auth_flow',
@@ -213,14 +228,14 @@ class AuthSessionModel extends ChangeNotifier {
     unawaited(performBackgroundMaintenance(trigger: 'resume'));
   }
 
-  bool _shouldSuppressResumeUnlock() {
-    final lastSuccessfulUnlockAt = _lastSuccessfulUnlockAt;
-    if (lastSuccessfulUnlockAt == null) {
+  bool _shouldRequireUnlockAfterResume() {
+    final lastBackgroundedAt = _lastBackgroundedAt;
+    if (lastBackgroundedAt == null) {
       return false;
     }
 
-    return DateTime.now().difference(lastSuccessfulUnlockAt) <
-        _resumeUnlockSuppressionWindow;
+    return _retentionPolicy.now().difference(lastBackgroundedAt) >=
+        _lockTimeout;
   }
 
   Future<void> performBackgroundMaintenance({required String trigger}) async {
@@ -439,6 +454,11 @@ class AuthSessionModel extends ChangeNotifier {
   Future<void> _refreshAfterUnlock() async {
     await prepareSessionForRemoteAccess(trigger: 'unlock');
     await ensureProfileLoaded();
+  }
+
+  Future<void> _clearBackgroundedAt() async {
+    _lastBackgroundedAt = null;
+    await _sensitiveStorageService.saveLastBackgroundedAt(null);
   }
 
   Future<void> _deriveState({required bool requireUnlock}) async {
