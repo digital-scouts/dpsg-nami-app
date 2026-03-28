@@ -131,6 +131,7 @@ class AppLocalizations {
       'auth_refresh_due_yes': 'Ja',
       'auth_refresh_due_no': 'Nein',
       'auth_manual_refresh_action': 'Sitzung jetzt pruefen',
+      'auth_lock_timeout_label': 'App-Sperre nach Hintergrund in Sekunden',
     },
     'en': {
       'nav_my_stage': 'My Group',
@@ -248,6 +249,7 @@ class AppLocalizations {
       'auth_refresh_due_yes': 'Yes',
       'auth_refresh_due_no': 'No',
       'auth_manual_refresh_action': 'Check session now',
+      'auth_lock_timeout_label': 'App lock after background in seconds',
     },
   };
 

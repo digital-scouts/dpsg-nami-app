@@ -99,6 +99,7 @@ void main() {
           refreshInterval: HitobitoAuthEnv.refreshInterval,
         ),
         logger: logger!,
+        lockTimeout: HitobitoAuthEnv.appLockTimeout,
         onPreferredLanguageChanged: (languageCode) async {
           final normalized = AuthProfile.normalizeLanguageCode(languageCode);
           localeModel.setLocale(Locale(normalized), persist: false);
@@ -333,14 +334,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       _isPaused = false;
       authModel.onAppResumed();
       _notificationsCubit?.load(force: true);
-    } else if (state == AppLifecycleState.inactive) {
-      // App geht in den Hintergrund: nur einmal pausieren
+    } else if (state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
       if (!_isPaused) {
         _usage.pause();
         _isPaused = true;
+        authModel.onAppBackgrounded();
       }
-    } else if (state == AppLifecycleState.paused) {
-      logger.log('lifecycle', 'App paused');
+      logger.log('lifecycle', 'App $state');
     }
     super.didChangeAppLifecycleState(state);
   }
@@ -386,6 +388,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               GlobalCupertinoLocalizations.delegate,
               AppLocalizations.delegate,
             ],
+            builder: (context, child) {
+              return Stack(
+                fit: StackFit.expand,
+                children: [if (child != null) child, const AppLockOverlay()],
+              );
+            },
             supportedLocales: const [Locale('de'), Locale('en')],
             locale: context.watch<LocaleModel>().currentLocale,
             home: const AuthGateScreen(),

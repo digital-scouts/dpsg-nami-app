@@ -11,6 +11,7 @@ void main() {
     expect(config.scopeString, HitobitoAuthConfig.defaultScopeString);
     expect(HitobitoAuthEnv.maxDataAge, const Duration(days: 90));
     expect(HitobitoAuthEnv.refreshInterval, const Duration(hours: 24));
+    expect(HitobitoAuthEnv.appLockTimeout, const Duration(seconds: 60));
   });
 
   test(
@@ -23,7 +24,8 @@ void main() {
             'HITOBITO_OAUTH_CLIENT_SECRET=secret\n'
             'HITOBITO_OAUTH_REDIRECT_URI=de.jlange.nami.app:/oauth/callback\n'
             'HITOBITO_DATA_MAX_AGE_DAYS=60\n'
-            'HITOBITO_REFRESH_INTERVAL_HOURS=12\n',
+            'HITOBITO_REFRESH_INTERVAL_HOURS=12\n'
+            'HITOBITO_APP_LOCK_TIMEOUT_SECONDS=75\n',
       );
 
       final config = HitobitoAuthEnv.authConfig;
@@ -46,6 +48,7 @@ void main() {
       expect(config.scopes, HitobitoAuthConfig.defaultScopeString.split(' '));
       expect(HitobitoAuthEnv.maxDataAge, const Duration(days: 60));
       expect(HitobitoAuthEnv.refreshInterval, const Duration(hours: 12));
+      expect(HitobitoAuthEnv.appLockTimeout, const Duration(seconds: 75));
     },
   );
 }

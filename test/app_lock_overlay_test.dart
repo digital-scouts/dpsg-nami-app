@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/domain/auth/auth_profile.dart';
 import 'package:nami/domain/auth/auth_profile_repository.dart';
 import 'package:nami/domain/auth/auth_session.dart';
 import 'package:nami/domain/auth/auth_session_repository.dart';
-import 'package:nami/domain/member/member_people_repository.dart';
-import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/settings/app_settings.dart';
 import 'package:nami/domain/settings/app_settings_repository.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
-import 'package:nami/presentation/model/member_people_model.dart';
-import 'package:nami/presentation/screens/member_people_page.dart';
+import 'package:nami/presentation/screens/auth_gate_screen.dart';
 import 'package:nami/services/biometric_lock_service.dart';
 import 'package:nami/services/hitobito_auth_env.dart';
 import 'package:nami/services/hitobito_data_retention_policy.dart';
@@ -20,80 +18,39 @@ import 'package:nami/services/hitobito_oauth_service.dart';
 import 'package:nami/services/logger_service.dart';
 import 'package:nami/services/sensitive_storage_service.dart';
 import 'package:provider/provider.dart';
-// ignore: depend_on_referenced_packages
-import 'package:storybook_flutter/storybook_flutter.dart';
 
-Story memberPeoplePageLoadedStory() => Story(
-  name: 'Screens/MemberPeoplePage/Loaded',
-  builder: (context) => _MemberPeopleStoryShell(
-    cached: <Mitglied>[
-      Mitglied.peopleListItem(
-        mitgliedsnummer: '1001',
-        vorname: 'Julia',
-        nachname: 'Keller',
-      ),
-      Mitglied.peopleListItem(
-        mitgliedsnummer: '1002',
-        vorname: 'Max',
-        nachname: 'Mustermann',
-      ),
-    ],
-  ),
-);
+void main() {
+  testWidgets(
+    'zeigt Lock-Overlay ueber einer gepushten Route und behaelt die Route nach Unlock',
+    (tester) async {
+      var now = DateTime(2026, 3, 28, 12, 0, 0);
+      final authModel = AuthSessionModel(
+        repository: _InMemoryAuthSessionRepository(),
+        profileRepository: _InMemoryAuthProfileRepository(),
+        oauthService: _FakeOauthService(
+          sessionToReturn: AuthSession(
+            accessToken: 'access-token',
+            refreshToken: 'refresh-token',
+            receivedAt: now,
+          ),
+        ),
+        biometricLockService: _FakeBiometricLockService(),
+        sensitiveStorageService: _FakeSensitiveStorageService(),
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => now,
+        ),
+        logger: _FakeLoggerService(),
+        lockTimeout: const Duration(seconds: 60),
+      );
 
-Story memberPeoplePageEmptyStory() => Story(
-  name: 'Screens/MemberPeoplePage/Empty',
-  builder: (context) => _MemberPeopleStoryShell(cached: const <Mitglied>[]),
-);
+      await authModel.signIn();
 
-class _MemberPeopleStoryShell extends StatefulWidget {
-  const _MemberPeopleStoryShell({required this.cached});
-
-  final List<Mitglied> cached;
-
-  @override
-  State<_MemberPeopleStoryShell> createState() =>
-      _MemberPeopleStoryShellState();
-}
-
-class _MemberPeopleStoryShellState extends State<_MemberPeopleStoryShell> {
-  late final AuthSessionModel _authModel;
-  late final MemberPeopleModel _peopleModel;
-  late final Future<void> _signInFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _authModel = AuthSessionModel(
-      repository: _InMemoryAuthSessionRepository(),
-      profileRepository: _InMemoryAuthProfileRepository(),
-      oauthService: _FakeOauthService(),
-      biometricLockService: _FakeBiometricLockService(),
-      sensitiveStorageService: _FakeSensitiveStorageService(),
-      retentionPolicy: HitobitoDataRetentionPolicy(
-        maxDataAge: const Duration(days: 90),
-        refreshInterval: const Duration(hours: 24),
-      ),
-      logger: _FakeLoggerService(),
-    );
-    _peopleModel = MemberPeopleModel(
-      repository: _FakeMemberPeopleRepository(cached: widget.cached),
-      logger: _FakeLoggerService(),
-    );
-    _signInFuture = _authModel.signIn();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider<AuthSessionModel>.value(value: _authModel),
-        ChangeNotifierProvider<MemberPeopleModel>.value(value: _peopleModel),
-      ],
-      child: FutureBuilder<void>(
-        future: _signInFuture,
-        builder: (context, snapshot) {
-          return MaterialApp(
+      await tester.pumpWidget(
+        ChangeNotifierProvider<AuthSessionModel>.value(
+          value: authModel,
+          child: MaterialApp(
             localizationsDelegates: [
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
@@ -102,12 +59,61 @@ class _MemberPeopleStoryShellState extends State<_MemberPeopleStoryShell> {
             ],
             supportedLocales: const [Locale('de'), Locale('en')],
             locale: const Locale('de'),
-            home: const MemberPeoplePage(),
-          );
-        },
-      ),
-    );
-  }
+            builder: (context, child) {
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (child != null) child,
+                  const AppLockOverlay(),
+                ],
+              );
+            },
+            home: Scaffold(
+              body: Center(
+                child: Builder(
+                  builder: (context) => FilledButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const Scaffold(
+                            body: Center(child: Text('Zweite Seite')),
+                          ),
+                        ),
+                      );
+                    },
+                    child: const Text('Weiter'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+
+      await tester.tap(find.text('Weiter'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Zweite Seite'), findsOneWidget);
+      expect(find.byKey(const Key('app_lock_overlay')), findsNothing);
+
+      await authModel.onAppBackgrounded();
+      now = now.add(const Duration(seconds: 61));
+      await authModel.onAppResumed();
+      await tester.pump();
+
+      expect(find.byKey(const Key('app_lock_overlay')), findsOneWidget);
+      expect(find.text('Zweite Seite'), findsOneWidget);
+
+      await tester.tap(find.text('Jetzt entsperren'));
+      await tester.pump();
+
+      expect(find.byKey(const Key('app_lock_overlay')), findsNothing);
+      expect(find.text('Zweite Seite'), findsOneWidget);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
 }
 
 class _InMemoryAuthProfileRepository implements AuthProfileRepository {
@@ -137,37 +143,25 @@ class _InMemoryAuthProfileRepository implements AuthProfileRepository {
   }
 }
 
-class _FakeMemberPeopleRepository implements MemberPeopleRepository {
-  _FakeMemberPeopleRepository({required this.cached});
-
-  final List<Mitglied> cached;
-
-  @override
-  Future<List<Mitglied>> loadCached() async => cached;
-
-  @override
-  Future<List<Mitglied>> refresh(String accessToken) async => cached;
-}
-
 class _InMemoryAuthSessionRepository implements AuthSessionRepository {
-  AuthSession? session;
+  AuthSession? _session;
 
   @override
   Future<void> clear() async {
-    session = null;
+    _session = null;
   }
 
   @override
-  Future<AuthSession?> load() async => session;
+  Future<AuthSession?> load() async => _session;
 
   @override
   Future<void> save(AuthSession session) async {
-    this.session = session;
+    _session = session;
   }
 }
 
 class _FakeOauthService extends HitobitoOauthService {
-  _FakeOauthService()
+  _FakeOauthService({required this.sessionToReturn})
     : super(
         config: const HitobitoAuthConfig(
           clientId: 'client',
@@ -175,34 +169,43 @@ class _FakeOauthService extends HitobitoOauthService {
           authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
           tokenUrl: 'https://demo.hitobito.com/oauth/token',
           redirectUri: 'de.jlange.nami.app:/oauth/callback',
-          scopeString: 'openid email api',
+          scopeString: 'openid email',
           discoveryUrl: '',
           profileUrl: 'https://demo.hitobito.com/oauth/profile',
         ),
       );
 
+  final AuthSession sessionToReturn;
+
   @override
-  Future<AuthSession> authenticateInteractive() async => AuthSession(
-    accessToken: 'storybook-token',
-    refreshToken: 'storybook-refresh-token',
-    receivedAt: DateTime(2026, 3, 27),
-  );
+  Future<AuthSession> authenticateInteractive() async => sessionToReturn;
 
   @override
   Future<AuthProfile> fetchProfile(AuthSession session) async =>
       const AuthProfile(
         namiId: 1,
-        firstName: 'Story',
+        firstName: 'Overlay',
         lastName: 'User',
         language: 'de',
       );
+
+  @override
+  Future<AuthSession> refreshIfNeeded(
+    AuthSession session, {
+    Duration threshold = const Duration(minutes: 5),
+  }) async {
+    return session;
+  }
 }
 
 class _FakeBiometricLockService extends BiometricLockService {
   _FakeBiometricLockService() : super();
 
   @override
-  Future<bool> isAvailable() async => false;
+  Future<bool> authenticate() async => true;
+
+  @override
+  Future<bool> isAvailable() async => true;
 }
 
 class _FakeSensitiveStorageService extends SensitiveStorageService {
@@ -253,6 +256,23 @@ class _FakeLoggerService extends LoggerService {
 
   @override
   Future<void> log(String service, String message) async {}
+
+  @override
+  Future<void> trackEvent(String name, Map<String, Object?> properties) async {}
+
+  @override
+  Future<void> trackAndLog(
+    String service,
+    String name,
+    Map<String, Object?> properties,
+  ) async {}
+
+  @override
+  Future<void> debounceTrackAndLog(
+    String service,
+    String name,
+    Map<String, Object?> properties,
+  ) async {}
 }
 
 class _FakeAppSettingsRepository implements AppSettingsRepository {

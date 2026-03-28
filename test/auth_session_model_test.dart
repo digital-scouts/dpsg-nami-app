@@ -4,6 +4,7 @@ import 'package:nami/domain/auth/auth_profile.dart';
 import 'package:nami/domain/auth/auth_profile_repository.dart';
 import 'package:nami/domain/auth/auth_session.dart';
 import 'package:nami/domain/auth/auth_session_repository.dart';
+import 'package:nami/domain/auth/auth_state.dart';
 import 'package:nami/domain/settings/app_settings.dart';
 import 'package:nami/domain/settings/app_settings_repository.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
@@ -256,6 +257,101 @@ void main() {
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
+
+  test(
+    'sperrt nach Resume erst nach konfiguriertem Timeout',
+    () async {
+      var now = DateTime(2026, 3, 28, 12, 0, 0);
+      final model = AuthSessionModel(
+        repository: _InMemoryAuthSessionRepository(),
+        profileRepository: _InMemoryAuthProfileRepository(),
+        oauthService: _FakeOauthService(
+          sessionToReturn: AuthSession(
+            accessToken: 'access-token',
+            refreshToken: 'refresh-token',
+            receivedAt: now,
+          ),
+          profileToReturn: const AuthProfile(
+            namiId: 88,
+            firstName: 'Lock',
+            lastName: 'User',
+            language: 'de',
+          ),
+        ),
+        biometricLockService: _FakeBiometricLockService(available: true),
+        sensitiveStorageService: _FakeSensitiveStorageService(),
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => now,
+        ),
+        logger: _createLogger(),
+        lockTimeout: const Duration(seconds: 60),
+      );
+
+      await model.signIn();
+      await model.onAppBackgrounded();
+      now = now.add(const Duration(seconds: 30));
+
+      await model.onAppResumed();
+
+      expect(model.state, AuthState.signedIn);
+
+      await model.onAppBackgrounded();
+      now = now.add(const Duration(seconds: 61));
+
+      await model.onAppResumed();
+
+      expect(model.state, AuthState.unlockRequired);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  test(
+    'entsperren loescht den Hintergrundzeitpunkt und sperrt nicht sofort erneut',
+    () async {
+      var now = DateTime(2026, 3, 28, 12, 0, 0);
+      final model = AuthSessionModel(
+        repository: _InMemoryAuthSessionRepository(),
+        profileRepository: _InMemoryAuthProfileRepository(),
+        oauthService: _FakeOauthService(
+          sessionToReturn: AuthSession(
+            accessToken: 'access-token',
+            refreshToken: 'refresh-token',
+            receivedAt: now,
+          ),
+          profileToReturn: const AuthProfile(
+            namiId: 89,
+            firstName: 'Unlock',
+            lastName: 'User',
+            language: 'de',
+          ),
+        ),
+        biometricLockService: _FakeBiometricLockService(available: true),
+        sensitiveStorageService: _FakeSensitiveStorageService(),
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => now,
+        ),
+        logger: _createLogger(),
+        lockTimeout: const Duration(seconds: 60),
+      );
+
+      await model.signIn();
+      await model.onAppBackgrounded();
+      now = now.add(const Duration(seconds: 61));
+      await model.onAppResumed();
+
+      expect(model.state, AuthState.unlockRequired);
+
+      await model.unlock();
+      await model.onAppResumed();
+
+      expect(model.state, AuthState.signedIn);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
 }
 
 class _InMemoryAuthProfileRepository implements AuthProfileRepository {
@@ -350,18 +446,21 @@ class _FakeOauthService extends HitobitoOauthService {
 }
 
 class _FakeBiometricLockService extends BiometricLockService {
-  _FakeBiometricLockService() : super();
+  _FakeBiometricLockService({this.available = false}) : super();
+
+  final bool available;
 
   @override
   Future<bool> authenticate() async => true;
 
   @override
-  Future<bool> isAvailable() async => false;
+  Future<bool> isAvailable() async => available;
 }
 
 class _FakeSensitiveStorageService extends SensitiveStorageService {
   String? _principal;
   DateTime? _lastSensitiveSyncAt;
+  DateTime? _lastBackgroundedAt;
 
   _FakeSensitiveStorageService() : super();
 
@@ -372,14 +471,23 @@ class _FakeSensitiveStorageService extends SensitiveStorageService {
   Future<DateTime?> loadLastSensitiveSyncAt() async => _lastSensitiveSyncAt;
 
   @override
+  Future<DateTime?> loadLastBackgroundedAt() async => _lastBackgroundedAt;
+
+  @override
   Future<void> purgeSensitiveData() async {
     _principal = null;
     _lastSensitiveSyncAt = null;
+    _lastBackgroundedAt = null;
   }
 
   @override
   Future<void> saveLastSensitiveSyncAt(DateTime timestamp) async {
     _lastSensitiveSyncAt = timestamp;
+  }
+
+  @override
+  Future<void> saveLastBackgroundedAt(DateTime? timestamp) async {
+    _lastBackgroundedAt = timestamp;
   }
 
   @override
