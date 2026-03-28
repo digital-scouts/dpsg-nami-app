@@ -13,6 +13,16 @@ class AuthProfileRole {
   final String roleClass;
   final List<String> permissions;
 
+  Map<String, dynamic> toJson() {
+    return {
+      'group_id': groupId,
+      'group_name': groupName,
+      'role_name': roleName,
+      'role_class': roleClass,
+      'permissions': permissions,
+    };
+  }
+
   factory AuthProfileRole.fromJson(Map<String, dynamic> json) {
     return AuthProfileRole(
       groupId: _toInt(json['group_id']),
@@ -52,6 +62,18 @@ class AuthProfile {
   final String? nickname;
   final String? language;
   final List<AuthProfileRole> roles;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': namiId,
+      'email': email,
+      'first_name': firstName,
+      'last_name': lastName,
+      'nickname': nickname,
+      'language': language,
+      'roles': roles.map((role) => role.toJson()).toList(growable: false),
+    };
+  }
 
   String? get trimmedNickname {
     final value = nickname?.trim();

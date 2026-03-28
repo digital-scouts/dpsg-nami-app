@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../domain/auth/auth_profile.dart';
+import '../../domain/auth/auth_state.dart';
 import '../../l10n/app_localizations.dart';
 import '../model/auth_session_model.dart';
 
@@ -36,18 +38,20 @@ class _ProfilePageState extends State<ProfilePage> {
             children: [
               if (profile != null) ...[
                 _ProfileHeader(profile: profile),
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
                 _ProfileInfoCard(profile: profile),
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
                 _ProfileRolesCard(profile: profile),
-                const SizedBox(height: 24),
+                const SizedBox(height: 8),
               ] else ...[
                 _ProfilePlaceholder(
                   isLoading: authModel.isLoadingProfile,
                   errorMessage: authModel.errorMessage,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 8),
               ],
+              _ProfileStatusCard(authModel: authModel),
+              const SizedBox(height: 8),
               OutlinedButton.icon(
                 onPressed: authModel.session != null ? authModel.logout : null,
                 icon: const Icon(Icons.logout),
@@ -58,6 +62,76 @@ class _ProfilePageState extends State<ProfilePage> {
         );
       },
     );
+  }
+}
+
+class _ProfileStatusCard extends StatelessWidget {
+  const _ProfileStatusCard({required this.authModel});
+
+  final AuthSessionModel authModel;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final stateText = switch (authModel.state) {
+      AuthState.initializing => t.t('auth_status_initializing'),
+      AuthState.signedOut => t.t('auth_status_signed_out'),
+      AuthState.authenticating => t.t('auth_status_authenticating'),
+      AuthState.signedIn => t.t('auth_status_signed_in'),
+      AuthState.unlockRequired => t.t('auth_status_unlock_required'),
+      AuthState.reloginRequired => t.t('auth_status_relogin_required'),
+      AuthState.error => t.t('auth_status_error'),
+    };
+
+    return Card(
+      child: Column(
+        children: [
+          _InfoTile(
+            icon: Icons.verified_user_outlined,
+            label: t.t('auth_status_title'),
+            value: stateText,
+          ),
+          _InfoTile(
+            icon: Icons.update_outlined,
+            label: t.t('auth_last_data_sync_title'),
+            value: _formatTimestamp(
+              context,
+              authModel.lastSensitiveSyncAt,
+              fallback: t.t('auth_last_data_sync_unknown'),
+            ),
+          ),
+          _InfoTile(
+            icon: Icons.account_circle_outlined,
+            label: t.t('profile_last_sync_title'),
+            value: authModel.isLoadingProfile
+                ? t.t('profile_loading')
+                : _formatTimestamp(
+                    context,
+                    authModel.lastProfileSyncAt,
+                    fallback: t.t('auth_status_unknown_user'),
+                  ),
+          ),
+          if (authModel.isSyncingHitobitoData)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: LinearProgressIndicator(minHeight: 2),
+            ),
+        ],
+      ),
+    );
+  }
+
+  String _formatTimestamp(
+    BuildContext context,
+    DateTime? value, {
+    required String fallback,
+  }) {
+    if (value == null) {
+      return fallback;
+    }
+
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    return DateFormat('dd.MM.yyyy HH:mm', locale).format(value.toLocal());
   }
 }
 
@@ -119,6 +193,7 @@ class _ProfileInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
 
     return Card(
       child: Column(
@@ -138,7 +213,13 @@ class _ProfileInfoCard extends StatelessWidget {
           _InfoTile(
             icon: Icons.translate_outlined,
             label: t.t('profile_language_label'),
-            child: _LanguageBadge(languageCode: profile.normalizedLanguage),
+            child: Text(
+              profile.normalizedLanguage.toUpperCase(),
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: theme.colorScheme.onSecondaryContainer,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),
@@ -284,32 +365,6 @@ class _InfoTile extends StatelessWidget {
       leading: Icon(icon),
       title: Text(label),
       subtitle: child ?? Text(value!),
-    );
-  }
-}
-
-class _LanguageBadge extends StatelessWidget {
-  const _LanguageBadge({required this.languageCode});
-
-  final String languageCode;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        languageCode.toUpperCase(),
-        style: theme.textTheme.labelLarge?.copyWith(
-          color: theme.colorScheme.onSecondaryContainer,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
     );
   }
 }

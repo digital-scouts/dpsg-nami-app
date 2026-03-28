@@ -10,9 +10,10 @@ import 'hitobito_auth_env.dart';
 import 'logger_service.dart';
 
 class HitobitoAuthException implements Exception {
-  const HitobitoAuthException(this.message);
+  const HitobitoAuthException(this.message, {this.statusCode});
 
   final String message;
+  final int? statusCode;
 
   @override
   String toString() => message;
@@ -148,6 +149,7 @@ class HitobitoOauthService {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw HitobitoAuthException(
         'Profil-Anfrage fehlgeschlagen (${response.statusCode}).',
+        statusCode: response.statusCode,
       );
     }
 
@@ -176,6 +178,7 @@ class HitobitoOauthService {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw HitobitoAuthException(
         'Token-Anfrage fehlgeschlagen (${response.statusCode}).',
+        statusCode: response.statusCode,
       );
     }
 

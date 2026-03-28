@@ -2,7 +2,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_email_sender/flutter_email_sender.dart';
+import 'package:nami/domain/auth/auth_state.dart';
+import 'package:nami/domain/member/member_people_repository.dart';
 import 'package:nami/main.dart' show navigatorKey;
+import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/screens/changelog_page.dart';
 import 'package:provider/provider.dart';
 import 'package:wiredash/wiredash.dart';
@@ -33,6 +36,8 @@ class DebugToolsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final logger = Provider.of<LoggerService>(context, listen: false);
+    final authModel = context.watch<AuthSessionModel>();
+    final memberPeopleRepository = context.read<MemberPeopleRepository>();
     return Scaffold(
       appBar: AppBar(title: const Text('Debug & Tools')),
       body: Padding(
@@ -130,13 +135,30 @@ class DebugToolsPage extends StatelessWidget {
             const SizedBox(height: 8),
 
             ElevatedButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Nicht implementiert: Daten aktualisiert'),
-                  ),
-                );
-              },
+              onPressed: authModel.isSyncingHitobitoData
+                  ? null
+                  : () async {
+                      await authModel.syncHitobitoData(
+                        syncMembers: (accessToken) async {
+                          await memberPeopleRepository.refresh(accessToken);
+                        },
+                        force: true,
+                        trigger: 'debug_tools',
+                      );
+
+                      if (!context.mounted) {
+                        return;
+                      }
+
+                      final messenger = ScaffoldMessenger.of(context);
+                      final message =
+                          authModel.state == AuthState.reloginRequired
+                          ? 'Neuanmeldung erforderlich, Daten konnten nicht synchronisiert werden.'
+                          : (authModel.errorMessage?.isNotEmpty == true
+                                ? 'Hitobito-Daten konnten nicht vollständig synchronisiert werden.'
+                                : 'Hitobito-Daten wurden synchronisiert.');
+                      messenger.showSnackBar(SnackBar(content: Text(message)));
+                    },
               icon: const Icon(Icons.refresh_outlined),
               label: const Text('Daten jetzt aktualisieren'),
             ),

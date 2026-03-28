@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nami/domain/member/member_people_repository.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/member_people_model.dart';
 import 'package:nami/presentation/navigation/app_router.dart';
@@ -7,11 +8,7 @@ import 'package:nami/presentation/screens/settings_page.dart';
 import 'package:nami/presentation/widgets/app_bottom_navigation.dart';
 import 'package:provider/provider.dart';
 
-import '../../data/people/secure_member_people_repository.dart';
-import '../../services/hitobito_auth_env.dart';
-import '../../services/hitobito_people_service.dart';
 import '../../services/logger_service.dart';
-import '../../services/sensitive_storage_service.dart';
 
 class NavigationHomeScreen extends StatefulWidget {
   const NavigationHomeScreen({super.key});
@@ -28,13 +25,9 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
   void initState() {
     super.initState();
     final logger = context.read<LoggerService>();
+    final repository = context.read<MemberPeopleRepository>();
     _memberPeopleModel = MemberPeopleModel(
-      repository: SecureMemberPeopleRepository(
-        remoteService: HitobitoPeopleService(
-          config: HitobitoAuthEnv.authConfig,
-        ),
-        sensitiveStorageService: SensitiveStorageService(),
-      ),
+      repository: repository,
       logger: logger,
     );
   }

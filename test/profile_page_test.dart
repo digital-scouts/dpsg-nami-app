@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/domain/auth/auth_profile.dart';
+import 'package:nami/domain/auth/auth_profile_repository.dart';
 import 'package:nami/domain/auth/auth_session.dart';
 import 'package:nami/domain/auth/auth_session_repository.dart';
 import 'package:nami/domain/settings/app_settings.dart';
@@ -49,13 +50,18 @@ void main() {
       expect(find.text('34'), findsOneWidget);
       expect(find.text('julia@example.com'), findsOneWidget);
       expect(find.text('EN'), findsOneWidget);
+      expect(find.text('Anmeldestatus'), findsOneWidget);
+      expect(find.text('Letzte Datenbestaetigung'), findsOneWidget);
+      expect(find.text('Angemeldet'), findsOneWidget);
+
+      await tester.scrollUntilVisible(
+        find.text('Mitarbeiter*in GS'),
+        200,
+        scrollable: find.byType(Scrollable),
+      );
       expect(find.text('Mitarbeiter*in GS'), findsOneWidget);
       expect(find.text('hitobito'), findsOneWidget);
       expect(find.textContaining('admin, contact_data'), findsOneWidget);
-
-      expect(find.text('Anmeldestatus'), findsNothing);
-      expect(find.text('Letzte Datenbestaetigung'), findsNothing);
-      expect(find.text('Sitzung jetzt pruefen'), findsNothing);
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
@@ -98,6 +104,11 @@ void main() {
 
       expect(find.text('Lea Beispiel'), findsOneWidget);
       expect(find.text('DE'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('Keine Rollen im Profil vorhanden'),
+        200,
+        scrollable: find.byType(Scrollable),
+      );
       expect(find.text('Keine Rollen im Profil vorhanden'), findsOneWidget);
     },
     timeout: const Timeout(Duration(seconds: 3)),
@@ -110,6 +121,7 @@ Future<void> _pumpProfilePage(
 }) async {
   final authModel = AuthSessionModel(
     repository: _InMemoryAuthSessionRepository(),
+    profileRepository: _InMemoryAuthProfileRepository(),
     oauthService: _FakeOauthService(
       sessionToReturn: AuthSession(
         accessToken: 'access-token',
@@ -147,6 +159,33 @@ Future<void> _pumpProfilePage(
   );
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 50));
+}
+
+class _InMemoryAuthProfileRepository implements AuthProfileRepository {
+  AuthProfile? _profile;
+  DateTime? _lastSyncAt;
+
+  @override
+  Future<void> clear() async {
+    _profile = null;
+    _lastSyncAt = null;
+  }
+
+  @override
+  Future<AuthProfile?> loadCached() async => _profile;
+
+  @override
+  Future<DateTime?> loadLastSyncAt() async => _lastSyncAt;
+
+  @override
+  Future<void> save(AuthProfile profile) async {
+    _profile = profile;
+  }
+
+  @override
+  Future<void> saveLastSyncAt(DateTime timestamp) async {
+    _lastSyncAt = timestamp;
+  }
 }
 
 class _InMemoryAuthSessionRepository implements AuthSessionRepository {
