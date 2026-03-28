@@ -13,7 +13,20 @@ Hitobito-DPSG und DPSG Organization Hierarchy: <https://github.com/hitobito/hito
 ## Datenmodell
 
 Das finale Datenmodel setzt sich aus Hitobito + Pfadi-DE + DPSG zusammen.
-Neben den drei Ressource-Typen Group, People und Role gibt es weitere Ressourcen wie PhoneNumber, SocialAccount, AdditionalEmail, AdditionalAddress, MailingList, Event, Subscription, Invoice etc. die teilweise auch in der App relevant sein koennen.
+Neben den drei Ressource-Typen Group, People und Role gibt es weitere Ressourcen wie PhoneNumber, SocialAccount, AdditionalEmail, AdditionalAddress, MailingList, Event, Subscription, Invoice etc., die teilweise auch in der App relevant sein können.
+
+### Einordnung für die App
+
+Für die App wird das technische Hitobito-Modell bewusst nicht 1:1 in die Navigation übernommen. Technisch sind Layer und normale Gruppen weiterhin derselbe Ressourcentyp `Group`. Für die mobile App gilt fachlich jedoch folgende Ableitung:
+
+- Ein Arbeitskontext ist immer genau ein Layer.
+- Ein Arbeitskontext umfasst alle Mitglieder dieses Layers.
+- Nicht-Layer-Gruppen innerhalb dieses Layers dienen in der App primär als Filter, Teilmengen oder spätere Vorlagen für persönliche Dashboards.
+- Unterlayer gehören nicht automatisch zum aktuellen Arbeitskontext.
+- Hat eine Person Zugriff auf mehrere Layer, wechselt sie bewusst zwischen diesen Arbeitskontexten.
+- Der initiale Arbeitskontext wird aus `primary_group` beziehungsweise dem daraus ableitbaren Primary Layer bestimmt.
+
+Dieses Dokument beschreibt weiterhin primär das technische Hitobito-Datenmodell. Die ausführliche App-Konzeption dazu liegt in [specs/hitobito-arbeitskontext-konzept.md](specs/hitobito-arbeitskontext-konzept.md).
 
 ### Group
 
@@ -28,7 +41,7 @@ Neben den drei Ressource-Typen Group, People und Role gibt es weitere Ressourcen
 | `display_name` | `string` | berechneter Anzeigename |
 | `description` | `string` | Beschreibung |
 | `layer` | `boolean` | Kennzeichnet Ebenengruppe |
-| `parent_id` | `integer` | ID der uebergeordneten Gruppe |
+| `parent_id` | `integer` | ID der übergeordneten Gruppe |
 | `layer_group_id` | `integer` | ID der zugeordneten Ebenengruppe |
 | `type` | `string` | technischer Gruppentyp |
 | `email` | `string` | Kontakt-E-Mail |
@@ -36,13 +49,13 @@ Neben den drei Ressource-Typen Group, People und Role gibt es weitere Ressourcen
 | `zip_code` | `integer` | Postleitzahl |
 | `town` | `string` | Ort |
 | `country` | `string` | Land |
-| `require_person_add_requests` | `boolean` | Personen muessen Aufnahme anfragen |
-| `self_registration_url` | `string` | URL fuer Selbstregistrierung |
+| `require_person_add_requests` | `boolean` | Personen müssen Aufnahme anfragen |
+| `self_registration_url` | `string` | URL für Selbstregistrierung |
 | `self_registration_require_adult_consent` | `boolean` | Selbstregistrierung verlangt Einwilligung Erwachsener |
 | `archived_at` | `datetime` | Archivierungszeitpunkt |
 | `created_at` | `datetime` | Erstellungszeitpunkt |
-| `updated_at` | `datetime` | Aenderungszeitpunkt |
-| `deleted_at` | `datetime` | Loeschzeitpunkt |
+| `updated_at` | `datetime` | Änderungszeitpunkt |
+| `deleted_at` | `datetime` | Löschzeitpunkt |
 | `logo` | `string` | extra attribute, Logoreferenz |
 | `language` | `string` | extra attribute, Standardsprache der Gruppe |
 | `privacy_policies` | `array` | extra attribute, Datenschutzrichtlinien |
@@ -87,10 +100,10 @@ Neben den drei Ressource-Typen Group, People und Role gibt es weitere Ressourcen
 | `nickname` | `string` | Spitzname |
 | `company_name` | `string` | Firmenname |
 | `company` | `boolean` | Kennzeichnet Firmenkontakt |
-| `email` | `string` | Primaere E-Mail |
+| `email` | `string` | Primäre E-Mail |
 | `address` | `string` | read-only |
 | `address_care_of` | `string` | c/o |
-| `street` | `string` | Strasse |
+| `street` | `string` | Straße |
 | `housenumber` | `string` | Hausnummer |
 | `postbox` | `string` | Postfach |
 | `zip_code` | `string` | Postleitzahl |
@@ -98,11 +111,11 @@ Neben den drei Ressource-Typen Group, People und Role gibt es weitere Ressourcen
 | `country` | `string` | Land |
 | `household_key` | `string` | read-only |
 | `primary_group_id` | `integer` | read-only |
-| `gender` | `string` | lesbar ueber `show_details?`, schreibbar ueber `write_details?` |
-| `birthday` | `date` | lesbar ueber `show_details?`, schreibbar ueber `write_details?` |
+| `gender` | `string` | lesbar über `show_details?`, schreibbar über `write_details?` |
+| `birthday` | `date` | lesbar über `show_details?`, schreibbar über `write_details?` |
 | `language` | `string` | bevorzugte Sprache |
 | `picture` | `string` | Bildreferenz |
-| `updated_at` | `datetime` | Zeitpunkt der letzten Aenderung |
+| `updated_at` | `datetime` | Zeitpunkt der letzten Änderung |
 | `additional_information` | `string` | Zusatzinformationen |
 
 ##### Hitobito People Beziehungen
@@ -142,7 +155,7 @@ Neben den drei Ressource-Typen Group, People und Role gibt es weitere Ressourcen
 | Attribut | Typ | Hinweise |
 | --- | --- | --- |
 | `created_at` | `datetime` | Erstellungszeitpunkt |
-| `updated_at` | `datetime` | Aenderungszeitpunkt |
+| `updated_at` | `datetime` | Änderungszeitpunkt |
 | `start_on` | `date` | Startdatum |
 | `end_on` | `date` | Enddatum |
 | `name` | `string` | Rollenname |
@@ -172,6 +185,14 @@ User loggt sich ein
 → App bekommt Token
 → nutzt API
 
+Aktueller App-Ablauf:
+
+- Der erste App-Start mit Hitobito-Daten erfordert einen erfolgreichen OAuth-Login und mindestens einen erfolgreichen initialen Datenabruf.
+- Danach nutzt die App den lokal verschlüsselten Cache für Profil- und Mitgliedsdaten auch dann weiter, wenn Hitobito später nicht erreichbar ist.
+- Aktualisierungsversuche für Hitobito-Daten werden nur nach Ablauf von `HITOBITO_REFRESH_INTERVAL_HOURS` erneut gestartet.
+- Schlägt ein Update fehl, zeigt die App einen fachlichen Hinweis statt einer technischen Plattformfehlermeldung.
+- Ist der letzte erfolgreiche lokale Datenstand älter als `HITOBITO_DATA_MAX_AGE_DAYS`, werden die lokalen Hitobito-Daten gelöscht und die App meldet den Nutzer ab.
+
 <https://github.com/hitobito/hitobito/blob/master/doc/developer/people/oauth.md>
 
 #### Testzugang (nur für Entwicklung)
@@ -188,7 +209,7 @@ Redirect URIs: de.jlange.nami.app:/oauth/callback
 Hosts mit API-Zugriff: <http://127.0.0.1>
 Einwilligung überspringen: nein
 
-Aktuelle App-Konfiguration fuer Entwicklung:
+Aktuelle App-Konfiguration für Entwicklung:
 
 - `HITOBITO_BASE_URL=https://demo.hitobito.com`
 - `HITOBITO_OAUTH_CLIENT_ID=...`
@@ -203,6 +224,6 @@ Die App leitet daraus aktuell diese Endpunkte ab:
 - Profile Endpoint: <https://demo.hitobito.com/de/oauth/profile>
 - People Endpoint: <https://demo.hitobito.com/api/people>
 
-Die App fordert beim OAuth-Login aktuell standardmaessig die Scopes `openid name email api with_roles` an.
+Die App fordert beim OAuth-Login aktuell standardmäßig die Scopes `openid name email api with_roles` an.
 
-Profile Informationen des Benutzers koennen ueber den aktuell in der App verwendeten Endpoint `/de/oauth/profile` bezogen werden. Dabei muss das Access Token im Authorization Header uebergeben werden. Fuer die Profilansicht der App werden Rollen ueber den Header `X-Scope: with_roles` mitgeladen. Zusaetzlich ist `with_roles` aktuell auch Teil der beim Login angeforderten OAuth-Scopes.
+Profile Informationen des Benutzers können über den aktuell in der App verwendeten Endpoint `/de/oauth/profile` bezogen werden. Dabei muss das Access Token im Authorization Header übergeben werden. Für die Profilansicht der App werden Rollen über den Header `X-Scope: with_roles` mitgeladen. Zusätzlich ist `with_roles` aktuell auch Teil der beim Login angeforderten OAuth-Scopes.

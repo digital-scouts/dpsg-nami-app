@@ -1,11 +1,7 @@
 # NaMi
 
-<a href="https://apps.apple.com/de/app/nami/id6468066816">
-    <img src="./assets/workfiles/Download_on_the_App_Store_Badge_DE_RGB_blk_092917.svg" alt="Download für iOS" height="50">
-</a>
-<a href="https://play.google.com/store/apps/details?id=de.jlange.nami.app">
-    <img src="./assets/workfiles/GetItOnGooglePlay_Badge_Web_color_German.png" alt="Download für Android" height="50" >
-</a>
+[![Download für iOS](./assets/workfiles/Download_on_the_App_Store_Badge_DE_RGB_blk_092917.svg)](https://apps.apple.com/de/app/nami/id6468066816)
+[![Download für Android](./assets/workfiles/GetItOnGooglePlay_Badge_Web_color_German.png)](https://play.google.com/store/apps/details?id=de.jlange.nami.app)
 
 ![wakatime](https://wakatime.com/badge/user/f75702c6-6ecd-478f-a765-9c0a07c62d50/project/c30b8bfa-fe60-4da1-9a32-9c86bad66605.svg)
 [![Watch](https://img.shields.io/github/watchers/JanneckLange/dpsg-nami-app?label=Watch)](https://github.com/JanneckLange/dpsg-nami-app/subscription)
@@ -20,7 +16,7 @@ Develop:
 [![Validate](https://github.com/JanneckLange/dpsg-nami-app/actions/workflows/validate-pull-requests.yml/badge.svg)](https://github.com/JanneckLange/dpsg-nami-app/actions/workflows/validate-pull-requests.yml)
 [![Commit](https://shields.io/github/last-commit/JanneckLange/dpsg-nami-app/develop)](https://github.com/JanneckLange/dpsg-nami-app/commits/develop)
 
-NaMi steht für die Namentliche Mitgliedermeldung der Deutschen Pfadfinderschaft Sankt Georg (DPSG). Diese App richtet sich speziell an Gruppenleiter:innen der DPSG und ermöglicht den mobilen, offline Zugriff auf Mitgliederdaten. Dank vielseitiger Sortier- und Filterfunktionen sowie grundlegender Bearbeitungsoptionen bietet die App eine unverzichtbare Unterstützung im Stammesalltag.
+NaMi steht für die Namentliche Mitgliedermeldung der Deutschen Pfadfinderschaft Sankt Georg (DPSG). Diese App richtet sich speziell an Leitende der DPSG und ermöglicht den mobilen, offline Zugriff auf Mitgliederdaten. Der fachliche Schwerpunkt liegt weiterhin auf dem Stammesalltag. Für die laufende Hitobito-Ausrichtung wird die App konzeptionell um einen wechselbaren Arbeitskontext erweitert, damit auch Nutzer auf Bezirks-, Diözesan- oder Bundesebene bei Bedarf gezielt in einen anderen Layer wechseln können, ohne dass die App ihren Stammfokus verliert.
 
 Diese App wird privat entwickelt und bereitgestellt. Sie steht in keinem Zusammenhang mit der DPSG und ist (wie alle privaten Projekte) weder von der DPSG autorisiert noch unterstützt. Alle Mitgliedsdaten werden auf eigene Verantwortung verwaltet und sind nicht Teil der offiziellen DPSG-Systeme.
 
@@ -47,8 +43,8 @@ Wenn dieselbe Release-Version erneut deployed werden soll, wird nur die Build-Me
 Der Changelog bleibt dabei auf `1.0.0`, weil nur die Release-Version ohne Build-Metadaten relevant ist.
 
 Für Update-Hinweise in der App gibt es zusätzlich eine manuell gepflegte Remote-Datei unter [docs/version.json](docs/version.json).
-Sie enthält pro Plattform die zuletzt als verfuegbar markierte Version, die minimale unterstuetzte Version und den Store-Link.
-Diese Datei beschreibt bewusst nicht den aktuellen Entwicklungsstand, sondern den tatsaechlich freigegebenen Stand pro Plattform.
+Sie enthält pro Plattform die zuletzt als verfügbar markierte Version, die minimale unterstützte Version und den Store-Link.
+Diese Datei beschreibt bewusst nicht den aktuellen Entwicklungsstand, sondern den tatsächlich freigegebenen Stand pro Plattform.
 Die App lädt diese Datei über `APP_UPDATE_URL` aus der `.env` und cached die Antwort lokal. Die Fetch-Frequenz und das Timeout werden über `APP_UPDATE_MIN_FETCH_INTERVAL_HOURS` und `APP_UPDATE_FETCH_TIMEOUT_SECONDS` gesteuert.
 
 Die Prüfung kann lokal manuell ausgeführt werden:
@@ -87,9 +83,9 @@ Die gleiche Versionsprüfung läuft zusätzlich in GitHub Actions:
 
 Zusätzlich validieren die CI-Workflows die Env-Vorlage über [tool/validate_env_files.dart](tool/validate_env_files.dart), damit neue oder entfernte Keys nicht unbemerkt an [.env.example](.env.example) vorbeilaufen.
 
-Dadurch kann eine inkonsistente Versionierung nicht unbemerkt in den Hauptbranch gelangen, auch wenn lokal kein Hook aktiviert ist. Der GitHub Release enthaelt bewusst nur Tag und Release-Notizen, aber kein angehaengtes Android-Binaerfile.
+Dadurch kann eine inkonsistente Versionierung nicht unbemerkt in den Hauptbranch gelangen, auch wenn lokal kein Hook aktiviert ist. Der GitHub Release enthält bewusst nur Tag und Release-Notizen, aber kein angehängtes Android-Binärfile.
 
-Der iOS-Release-Pfad laeuft weiterhin ausserhalb von GitHub Actions ueber Xcode Cloud beziehungsweise App Store Connect.
+Der iOS-Release-Pfad läuft weiterhin außerhalb von GitHub Actions über Xcode Cloud beziehungsweise App Store Connect.
 Das Xcode-Cloud-Skript [ios/ci_scripts/ci_pre_xcodebuild.sh](ios/ci_scripts/ci_pre_xcodebuild.sh) erzeugt die lokale [.env](.env) dabei anhand der Keys aus [.env.example](.env.example).
 Wenn Env-Keys geändert werden, müssen deshalb Xcode-Cloud-Variablen und [.env.example](.env.example) synchron gehalten werden.
 
@@ -99,9 +95,9 @@ Beim Merge eines Pull Requests nach `master` erstellt [version-reminder-prs.yml]
 - einen für iOS
 
 Diese PRs aktualisieren jeweils den passenden Eintrag in [docs/version.json](docs/version.json) auf die neue Versionsnummer.
-Sie dienen als Erinnerung und sollen erst dann gemerged werden, wenn die jeweilige Store-Version wirklich verfuegbar ist.
+Sie dienen als Erinnerung und sollen erst dann gemerged werden, wenn die jeweilige Store-Version wirklich verfügbar ist.
 
-Direkte Pushes nach `master` werden als Hotfixes behandelt und loesen bewusst keine Release-, Deploy- oder Versionierungs-Workflows aus.
+Direkte Pushes nach `master` werden als Hotfixes behandelt und lösen bewusst keine Release-, Deploy- oder Versionierungs-Workflows aus.
 
 ### Storybook
 
@@ -113,16 +109,37 @@ Zum Starten:
 flutter run -t lib/main_storybook.dart
 ```
 
+### Dokumentationsstil
+
+Für deutschsprachige Fließtexte in [README.md](README.md), unter [docs](docs) und unter [specs](specs) gilt UTF-8-Schreibweise mit echten Umlauten und ß.
+ASCII bleibt auf technische Literale begrenzt, insbesondere für Code, Dateinamen, Pfade, URLs, Env-Keys, CLI-Beispiele, Identifier und API-Felder.
+
 ### Hitobito OAuth
 
-Fuer die Entwicklung gegen die Demo-Instanz verwendet die App eine reduzierte Hitobito-Konfiguration ueber `.env` mit `HITOBITO_BASE_URL`, Client-ID, Client-Secret und Redirect-URI. Authorization-, Token-, Discovery-, Profil- und People-Endpunkte werden daraus im Code abgeleitet.
-Neue Env-Keys muessen immer auch in [.env.example](.env.example) enthalten sein, weil lokale Validierung, GitHub Actions und Xcode Cloud dieses Template als Referenz verwenden.
+Für die Entwicklung gegen die Demo-Instanz verwendet die App eine reduzierte Hitobito-Konfiguration über `.env` mit `HITOBITO_BASE_URL`, Client-ID, Client-Secret und Redirect-URI. Authorization-, Token-, Discovery-, Profil- und People-Endpunkte werden daraus im Code abgeleitet.
+Neue Env-Keys müssen immer auch in [.env.example](.env.example) enthalten sein, weil lokale Validierung, GitHub Actions und Xcode Cloud dieses Template als Referenz verwenden.
+
+### Geplantes Hitobito-Arbeitskontextmodell
+
+Vor der Implementierung der nächsten Hitobito-Ausbaustufe gilt konzeptionell folgendes Modell:
+
+- Die App arbeitet immer in genau einem aktiven Arbeitskontext.
+- Ein Arbeitskontext ist immer genau ein Layer mit allen Mitgliedern dieses Layers sowie den zugehörigen Nicht-Layer-Gruppen als Struktur- und Filterbasis.
+- Gruppen innerhalb eines Arbeitskontexts sind in der App primär Filter oder Teilmengen und keine eigenständigen Hauptkontexte.
+- Der initiale Arbeitskontext wird aus dem Primary Layer der Person abgeleitet. Falls dieser ausnahmsweise nicht sinnvoll bestimmbar ist, wird der erste verfügbare Layer aus einer stabil sortierten Liste verwendet.
+- Suche, Mitgliedsliste, Statistik und weitere Ansichten arbeiten jeweils nur innerhalb des aktiven Arbeitskontexts.
+- Unterlayer gehören nicht automatisch zum aktiven Arbeitskontext. Sie werden nur über einen bewussten Kontextwechsel geöffnet.
+- Offline verfügbar ist in der ersten Ausbaustufe genau ein Arbeitskontext. Beim Wechsel wird der lokal gespeicherte Kontext ersetzt.
+
+Die ausführliche Fassung dieses Konzepts liegt in [specs/hitobito-arbeitskontext-konzept.md](specs/hitobito-arbeitskontext-konzept.md).
 
 ## Funktionsweise
 
 Die App ist darauf ausgelegt, sich direkt mit dem NaMi-Backend zu verbinden, sodass keine Mitgliedsdaten auf externen Servern dieser App gespeichert oder verarbeitet werden.
 
-Teile der Mitgliedsdaten-Funktionalitaet befinden sich noch in Umsetzung. Geplante Sicherheitsmassnahmen wie eine verschluesselte lokale Speicherung dieser Daten sind noch nicht vollstaendig umgesetzt und sollten daher noch nicht als abgeschlossen betrachtet werden.
+Für Hitobito gilt aktuell: Die App muss beim ersten Start erfolgreich per Hitobito angemeldet werden, damit Profil- und Mitgliedsdaten erstmals lokal geladen werden können. Danach bleiben die lokal verschlüsselten Daten auch ohne erreichbares Hitobito lesbar. Aktualisierungsversuche laufen über das konfigurierte Intervall `HITOBITO_REFRESH_INTERVAL_HOURS`. Schlägt ein Update fehl, bleiben die vorhandenen lokalen Daten weiter nutzbar. Nach manuellem Logout oder wenn der letzte erfolgreiche Datenstand älter als `HITOBITO_DATA_MAX_AGE_DAYS` ist, werden die lokalen Hitobito-Daten gelöscht.
+
+Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den jeweils aktiven Arbeitskontext gekoppelt. Die App soll dabei im ersten Schritt genau einen lokalen Arbeitskontext vorhalten und diesen bei einem bewussten Kontextwechsel ersetzen.
 
 ## Aktuelle Funktionen
 
@@ -131,14 +148,15 @@ Teile der Mitgliedsdaten-Funktionalitaet befinden sich noch in Umsetzung. Geplan
   - Über Grafiken und Auflistung den Tätigkeitsverlauf eines Mitglieds ansehen.
   - Wie in den Kontakten E-Mails schreiben und einen Anruf starten
 - Mitglieder und Tätigkeiten bearbeiten, erstellen und löschen/Mitgliedschaft beenden
-- Mitgliedsdaten sind offline verfügbar und können nach belieben synchronisiert werden
+- Mitgliedsdaten sind nach erstem erfolgreichem Hitobito-Login und initialem Laden offline verfügbar; Aktualisierungen werden im konfigurierten Hitobito-Refresh-Intervall versucht
 - Statistiken geben einen Einblick in die aktuelle Mitgliederanzahl und Altersstruktur
 - Empfehlung für den nächsten Stufenwechsel eines Mitglieds.
   - Die gewünschte Altersgrenzen der Stufen können angepasst werden.
   - Stufenwechsel durchführen
 - Führungszeugniss Antragsunterlagen und Bescheinigungen herrunterladen
-- Das eigene Profil wird nach dem Login ueber Hitobito OAuth geladen und zeigt nami-id, E-Mail, bevorzugte Sprache als Sprachbadge und die zugewiesenen Rollen.
-- Die App-Sprache wird nach dem Login auf Basis der bevorzugten Profilsprache gesetzt. Unbekannte oder fehlende Sprachcodes fallen auf Deutsch zurueck.
+- Das eigene Profil wird nach dem Login über Hitobito OAuth geladen und zeigt nami-id, E-Mail, bevorzugte Sprache als Sprachbadge und die zugewiesenen Rollen.
+- Wenn Hitobito später nicht erreichbar ist oder eine erneute Anmeldung für Updates erforderlich wird, bleibt der lokale Datenstand bis zum Ablauf von `HITOBITO_DATA_MAX_AGE_DAYS` nutzbar; die App zeigt dazu einen fachlichen Hinweis statt einer generischen Plattformfehlermeldung.
+- Die App-Sprache wird nach dem Login auf Basis der bevorzugten Profilsprache gesetzt. Unbekannte oder fehlende Sprachcodes fallen auf Deutsch zurück.
 - Jeder Nutzer sieht auch nur die Funktionen, die er aufgrund seiner Rechte ausführen kann. Die Rechte sind im eigenen Profil aufgelistet.
 - Jeder Nutzer hat die Möglichkeit das Bearbeiten von Daten zu deaktiven und braucht so keine Angst haben 'Etwas kaput zu machen'
 

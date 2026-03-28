@@ -73,15 +73,19 @@ class _ProfileStatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final stateText = switch (authModel.state) {
-      AuthState.initializing => t.t('auth_status_initializing'),
-      AuthState.signedOut => t.t('auth_status_signed_out'),
-      AuthState.authenticating => t.t('auth_status_authenticating'),
-      AuthState.signedIn => t.t('auth_status_signed_in'),
-      AuthState.unlockRequired => t.t('auth_status_unlock_required'),
-      AuthState.reloginRequired => t.t('auth_status_relogin_required'),
-      AuthState.error => t.t('auth_status_error'),
-    };
+    final stateText = authModel.hasRemoteAccessIssue
+        ? authModel.requiresInteractiveLogin
+              ? t.t('auth_status_update_login_required')
+              : t.t('auth_status_cached_only')
+        : switch (authModel.state) {
+            AuthState.initializing => t.t('auth_status_initializing'),
+            AuthState.signedOut => t.t('auth_status_signed_out'),
+            AuthState.authenticating => t.t('auth_status_authenticating'),
+            AuthState.signedIn => t.t('auth_status_signed_in'),
+            AuthState.unlockRequired => t.t('auth_status_unlock_required'),
+            AuthState.reloginRequired => t.t('auth_status_relogin_required'),
+            AuthState.error => t.t('auth_status_error'),
+          };
 
     return Card(
       child: Column(

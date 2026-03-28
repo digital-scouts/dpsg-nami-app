@@ -48,9 +48,12 @@ class AuthSessionModel extends ChangeNotifier {
   AuthSession? _session;
   AuthProfile? _profile;
   DateTime? _lastSensitiveSyncAt;
+  DateTime? _lastSensitiveSyncAttemptAt;
   DateTime? _lastProfileSyncAt;
   DateTime? _lastBackgroundedAt;
   String? _errorMessage;
+  String? _remoteAccessIssueMessage;
+  bool _requiresInteractiveLogin = false;
   bool _isLoadingProfile = false;
   bool _isSyncingHitobitoData = false;
 
@@ -58,12 +61,21 @@ class AuthSessionModel extends ChangeNotifier {
   AuthSession? get session => _session;
   AuthProfile? get profile => _profile;
   DateTime? get lastSensitiveSyncAt => _lastSensitiveSyncAt;
+  DateTime? get lastSensitiveSyncAttemptAt => _lastSensitiveSyncAttemptAt;
   DateTime? get lastProfileSyncAt => _lastProfileSyncAt;
   String? get errorMessage => _errorMessage;
+  String? get remoteAccessIssueMessage => _remoteAccessIssueMessage;
   bool get isLoadingProfile => _isLoadingProfile;
   bool get isSyncingHitobitoData => _isSyncingHitobitoData;
   bool get isConfigured => _oauthService.config.isConfigured;
+  bool get hasRemoteAccessIssue => _remoteAccessIssueMessage != null;
+  bool get requiresInteractiveLogin => _requiresInteractiveLogin;
   bool get isRefreshDue => _retentionPolicy.isRefreshDue(_lastSensitiveSyncAt);
+  bool get isRefreshAttemptDue =>
+      !_requiresInteractiveLogin &&
+      _retentionPolicy.isRefreshDue(
+        _lastSensitiveSyncAttemptAt ?? _lastSensitiveSyncAt,
+      );
   bool get isProfileRefreshDue =>
       _retentionPolicy.isRefreshDue(_lastProfileSyncAt);
   Duration? get remainingUntilRelogin =>
@@ -77,6 +89,8 @@ class AuthSessionModel extends ChangeNotifier {
     _session = await _repository.load();
     _lastSensitiveSyncAt = await _sensitiveStorageService
         .loadLastSensitiveSyncAt();
+    _lastSensitiveSyncAttemptAt = await _sensitiveStorageService
+        .loadLastSensitiveSyncAttemptAt();
     _lastBackgroundedAt = await _sensitiveStorageService
         .loadLastBackgroundedAt();
     _lastProfileSyncAt = await _profileRepository.loadLastSyncAt();
@@ -117,23 +131,29 @@ class AuthSessionModel extends ChangeNotifier {
       await _repository.save(authenticatedSession);
       await _sensitiveStorageService.savePrincipal(nextPrincipal);
       await _sensitiveStorageService.saveLastBackgroundedAt(null);
-
-      final verifiedAt = _retentionPolicy.now();
-      await _sensitiveStorageService.saveLastSensitiveSyncAt(verifiedAt);
+      await _sensitiveStorageService.saveLastSensitiveSyncAttemptAt(null);
 
       _session = authenticatedSession;
-      _lastSensitiveSyncAt = verifiedAt;
       _lastBackgroundedAt = null;
+      _lastSensitiveSyncAttemptAt = null;
+      _requiresInteractiveLogin = false;
+      _remoteAccessIssueMessage = null;
       await ensureProfileLoaded(force: true);
       _state = AuthState.signedIn;
       await _logger.log('auth_flow', 'Login erfolgreich abgeschlossen');
       notifyListeners();
     } catch (error, stack) {
-      await _logger.log('auth', 'OAuth-Login fehlgeschlagen: $error\n$stack');
+      if (error is HitobitoAuthException &&
+          error.isExpectedInteractionFailure) {
+        await _logger.log(
+          'auth_flow',
+          'OAuth-Login nicht abgeschlossen: $error',
+        );
+      } else {
+        await _logger.log('auth', 'OAuth-Login fehlgeschlagen: $error\n$stack');
+      }
       _errorMessage = error.toString();
-      _state = previousState == AuthState.reloginRequired
-          ? AuthState.reloginRequired
-          : AuthState.signedOut;
+      _state = previousState;
       notifyListeners();
     }
   }
@@ -176,9 +196,12 @@ class AuthSessionModel extends ChangeNotifier {
     _isLoadingProfile = false;
     _isSyncingHitobitoData = false;
     _lastSensitiveSyncAt = null;
+    _lastSensitiveSyncAttemptAt = null;
     _lastProfileSyncAt = null;
     _lastBackgroundedAt = null;
     _errorMessage = null;
+    _remoteAccessIssueMessage = null;
+    _requiresInteractiveLogin = false;
     _state = AuthState.signedOut;
     await _logger.log(
       'auth_flow',
@@ -204,12 +227,7 @@ class AuthSessionModel extends ChangeNotifier {
     }
 
     if (_retentionPolicy.isReloginRequired(_lastSensitiveSyncAt)) {
-      _state = AuthState.reloginRequired;
-      await _logger.log(
-        'auth_flow',
-        'Relogin erforderlich: Datenfrist abgelaufen',
-      );
-      notifyListeners();
+      await _expireSensitiveData();
       return;
     }
 
@@ -224,8 +242,6 @@ class AuthSessionModel extends ChangeNotifier {
       );
       notifyListeners();
     }
-
-    unawaited(performBackgroundMaintenance(trigger: 'resume'));
   }
 
   bool _shouldRequireUnlockAfterResume() {
@@ -244,12 +260,7 @@ class AuthSessionModel extends ChangeNotifier {
     }
 
     if (_retentionPolicy.isReloginRequired(_lastSensitiveSyncAt)) {
-      _state = AuthState.reloginRequired;
-      await _logger.log(
-        'auth_flow',
-        'Relogin erforderlich: Datenfrist abgelaufen',
-      );
-      notifyListeners();
+      await _expireSensitiveData();
       return;
     }
 
@@ -280,13 +291,12 @@ class AuthSessionModel extends ChangeNotifier {
       return null;
     }
 
+    if (_requiresInteractiveLogin) {
+      return null;
+    }
+
     if (_retentionPolicy.isReloginRequired(_lastSensitiveSyncAt)) {
-      _state = AuthState.reloginRequired;
-      await _logger.log(
-        'auth_flow',
-        'Relogin erforderlich: Datenfrist abgelaufen',
-      );
-      notifyListeners();
+      await _expireSensitiveData();
       return null;
     }
 
@@ -302,11 +312,20 @@ class AuthSessionModel extends ChangeNotifier {
         _session = refreshedSession;
         await _repository.save(refreshedSession);
       }
+      _clearRemoteAccessIssue(notify: false);
     } catch (error, stack) {
       await _logger.log(
         'auth',
         'Session-Auffrischung fehlgeschlagen ($trigger): $error\n$stack',
       );
+      reportRemoteDataIssue(
+        error.toString(),
+        requiresInteractiveLogin: _isUnauthorized(error),
+        notify: false,
+      );
+      if (_requiresInteractiveLogin) {
+        return null;
+      }
     }
 
     return _session;
@@ -346,10 +365,12 @@ class AuthSessionModel extends ChangeNotifier {
 
       await _loadProfileFromRemote(activeSession);
     } catch (error, stack) {
-      await _logger.log(
-        'auth',
-        'Profil konnte nicht geladen werden: $error\n$stack',
-      );
+      if (!_isUnauthorized(error)) {
+        await _logger.log(
+          'auth',
+          'Profil konnte nicht geladen werden: $error\n$stack',
+        );
+      }
       _errorMessage = error.toString();
     } finally {
       _isLoadingProfile = false;
@@ -368,10 +389,11 @@ class AuthSessionModel extends ChangeNotifier {
       return;
     }
 
-    if (!force && !_retentionPolicy.isRefreshDue(_lastSensitiveSyncAt)) {
+    if (!force && !isRefreshAttemptDue) {
       return;
     }
 
+    await markSensitiveDataSyncAttempted();
     _isSyncingHitobitoData = true;
     notifyListeners();
 
@@ -385,18 +407,25 @@ class AuthSessionModel extends ChangeNotifier {
       }
 
       await _loadProfileFromRemote(activeSession);
+      if (_requiresInteractiveLogin) {
+        return;
+      }
       await syncMembers(activeSession.accessToken);
 
-      final verifiedAt = _retentionPolicy.now();
-      _lastSensitiveSyncAt = verifiedAt;
-      await _sensitiveStorageService.saveLastSensitiveSyncAt(verifiedAt);
+      await markSensitiveDataSynced();
       _errorMessage = null;
+      _clearRemoteAccessIssue(notify: false);
     } catch (error, stack) {
       await _logger.log(
         'hitobito_sync',
         'Hitobito-Sync fehlgeschlagen ($trigger): $error\n$stack',
       );
       _errorMessage ??= error.toString();
+      reportRemoteDataIssue(
+        error.toString(),
+        requiresInteractiveLogin: _isUnauthorized(error),
+        notify: false,
+      );
     } finally {
       _isSyncingHitobitoData = false;
       notifyListeners();
@@ -417,10 +446,12 @@ class AuthSessionModel extends ChangeNotifier {
       await _profileRepository.saveLastSyncAt(syncAt);
       await _syncPreferredLanguage(loadedProfile.normalizedLanguage);
     } on HitobitoAuthException catch (error, stack) {
-      await _logger.log(
-        'auth',
-        'Profil konnte nicht geladen werden: $error\n$stack',
-      );
+      if (!_isUnauthorized(error)) {
+        await _logger.log(
+          'auth',
+          'Profil konnte nicht geladen werden: $error\n$stack',
+        );
+      }
 
       if (retryOnUnauthorized && error.statusCode == 401) {
         final refreshedSession = await prepareSessionForRemoteAccess(
@@ -435,13 +466,16 @@ class AuthSessionModel extends ChangeNotifier {
           );
         }
 
-        _state = AuthState.reloginRequired;
-        _errorMessage = error.toString();
-        notifyListeners();
+        reportRemoteDataIssue(error.toString(), requiresInteractiveLogin: true);
         return;
       }
 
       _errorMessage = error.toString();
+      reportRemoteDataIssue(
+        error.toString(),
+        requiresInteractiveLogin: false,
+        notify: false,
+      );
       rethrow;
     }
   }
@@ -452,8 +486,9 @@ class AuthSessionModel extends ChangeNotifier {
   }
 
   Future<void> _refreshAfterUnlock() async {
-    await prepareSessionForRemoteAccess(trigger: 'unlock');
-    await ensureProfileLoaded();
+    if (isRefreshAttemptDue) {
+      await ensureProfileLoaded(force: true);
+    }
   }
 
   Future<void> _clearBackgroundedAt() async {
@@ -469,12 +504,7 @@ class AuthSessionModel extends ChangeNotifier {
     }
 
     if (_retentionPolicy.isReloginRequired(_lastSensitiveSyncAt)) {
-      _state = AuthState.reloginRequired;
-      await _logger.log(
-        'auth_flow',
-        'Relogin erforderlich: Datenfrist abgelaufen',
-      );
-      notifyListeners();
+      await _expireSensitiveData();
       return;
     }
 
@@ -486,8 +516,8 @@ class AuthSessionModel extends ChangeNotifier {
     }
 
     _state = AuthState.signedIn;
+    _state = AuthState.signedIn;
     notifyListeners();
-    unawaited(performBackgroundMaintenance(trigger: 'bootstrap'));
   }
 
   Future<void> _syncPreferredLanguage(String languageCode) async {
@@ -497,5 +527,56 @@ class AuthSessionModel extends ChangeNotifier {
     }
 
     await handler(AuthProfile.normalizeLanguageCode(languageCode));
+  }
+
+  Future<void> markSensitiveDataSynced() async {
+    final verifiedAt = _retentionPolicy.now();
+    _lastSensitiveSyncAt = verifiedAt;
+    _lastSensitiveSyncAttemptAt = verifiedAt;
+    await _sensitiveStorageService.saveLastSensitiveSyncAt(verifiedAt);
+    await _sensitiveStorageService.saveLastSensitiveSyncAttemptAt(verifiedAt);
+  }
+
+  Future<void> markSensitiveDataSyncAttempted() async {
+    final attemptedAt = _retentionPolicy.now();
+    _lastSensitiveSyncAttemptAt = attemptedAt;
+    await _sensitiveStorageService.saveLastSensitiveSyncAttemptAt(attemptedAt);
+  }
+
+  void clearRemoteDataIssue() {
+    _clearRemoteAccessIssue(notify: true);
+  }
+
+  void reportRemoteDataIssue(
+    String message, {
+    bool requiresInteractiveLogin = false,
+    bool notify = true,
+  }) {
+    _remoteAccessIssueMessage = message;
+    _requiresInteractiveLogin =
+        _requiresInteractiveLogin || requiresInteractiveLogin;
+    if (notify) {
+      notifyListeners();
+    }
+  }
+
+  void _clearRemoteAccessIssue({required bool notify}) {
+    _remoteAccessIssueMessage = null;
+    _requiresInteractiveLogin = false;
+    if (notify) {
+      notifyListeners();
+    }
+  }
+
+  bool _isUnauthorized(Object error) {
+    return error is HitobitoAuthException && error.statusCode == 401;
+  }
+
+  Future<void> _expireSensitiveData() async {
+    await _logger.log(
+      'auth_flow',
+      'Gespeicherte Daten sind abgelaufen und werden geloescht',
+    );
+    await logout();
   }
 }

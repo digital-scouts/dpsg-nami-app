@@ -218,6 +218,7 @@ class _FakeBiometricLockService extends BiometricLockService {
 class _FakeSensitiveStorageService extends SensitiveStorageService {
   String? _principal;
   DateTime? _lastSensitiveSyncAt;
+  DateTime? _lastSensitiveSyncAttemptAt;
   DateTime? _lastBackgroundedAt;
 
   _FakeSensitiveStorageService() : super();
@@ -229,18 +230,28 @@ class _FakeSensitiveStorageService extends SensitiveStorageService {
   Future<DateTime?> loadLastSensitiveSyncAt() async => _lastSensitiveSyncAt;
 
   @override
+  Future<DateTime?> loadLastSensitiveSyncAttemptAt() async =>
+      _lastSensitiveSyncAttemptAt;
+
+  @override
   Future<DateTime?> loadLastBackgroundedAt() async => _lastBackgroundedAt;
 
   @override
   Future<void> purgeSensitiveData() async {
     _principal = null;
     _lastSensitiveSyncAt = null;
+    _lastSensitiveSyncAttemptAt = null;
     _lastBackgroundedAt = null;
   }
 
   @override
   Future<void> saveLastSensitiveSyncAt(DateTime timestamp) async {
     _lastSensitiveSyncAt = timestamp;
+  }
+
+  @override
+  Future<void> saveLastSensitiveSyncAttemptAt(DateTime? timestamp) async {
+    _lastSensitiveSyncAttemptAt = timestamp;
   }
 
   @override

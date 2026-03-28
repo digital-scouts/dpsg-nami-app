@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/domain/auth/auth_profile.dart';
 import 'package:nami/domain/auth/auth_profile_repository.dart';
@@ -157,6 +158,117 @@ void main() {
   );
 
   test(
+    'loggt den erwarteten 401-Fall beim Profil-Laden waehrend initialize nicht',
+    () async {
+      final logger = _createLogger();
+      final oauthService =
+          _FakeOauthService(
+              sessionToReturn: AuthSession(
+                accessToken: 'existing-token',
+                receivedAt: DateTime(2026, 3, 27),
+              ),
+              profileToReturn: const AuthProfile(
+                namiId: 37,
+                firstName: 'Lea',
+                lastName: 'Beispiel',
+                language: 'de',
+              ),
+            )
+            ..fetchProfileError = const HitobitoAuthException(
+              'Profil-Anfrage fehlgeschlagen (401).',
+              statusCode: 401,
+            );
+
+      final model = AuthSessionModel(
+        repository: _InMemoryAuthSessionRepository(
+          initialSession: AuthSession(
+            accessToken: 'existing-token',
+            receivedAt: DateTime(2026, 3, 27),
+          ),
+        ),
+        profileRepository: _InMemoryAuthProfileRepository(),
+        oauthService: oauthService,
+        biometricLockService: _FakeBiometricLockService(),
+        sensitiveStorageService: _FakeSensitiveStorageService(),
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => DateTime(2026, 3, 27, 12),
+        ),
+        logger: logger,
+      );
+
+      await model.initialize();
+
+      expect(model.hasRemoteAccessIssue, isTrue);
+      expect(model.requiresInteractiveLogin, isTrue);
+      expect(
+        logger.entries.where(
+          (entry) =>
+              entry.message.contains('Profil konnte nicht geladen werden'),
+        ),
+        isEmpty,
+      );
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  test(
+    'loggt unerwartete Profil-Fehler waehrend initialize weiter',
+    () async {
+      final logger = _createLogger();
+      final oauthService =
+          _FakeOauthService(
+              sessionToReturn: AuthSession(
+                accessToken: 'existing-token',
+                receivedAt: DateTime(2026, 3, 27),
+              ),
+              profileToReturn: const AuthProfile(
+                namiId: 38,
+                firstName: 'Lea',
+                lastName: 'Beispiel',
+                language: 'de',
+              ),
+            )
+            ..fetchProfileError = const HitobitoAuthException(
+              'Profil-Anfrage fehlgeschlagen (500).',
+              statusCode: 500,
+            );
+
+      final model = AuthSessionModel(
+        repository: _InMemoryAuthSessionRepository(
+          initialSession: AuthSession(
+            accessToken: 'existing-token',
+            receivedAt: DateTime(2026, 3, 27),
+          ),
+        ),
+        profileRepository: _InMemoryAuthProfileRepository(),
+        oauthService: oauthService,
+        biometricLockService: _FakeBiometricLockService(),
+        sensitiveStorageService: _FakeSensitiveStorageService(),
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => DateTime(2026, 3, 27, 12),
+        ),
+        logger: logger,
+      );
+
+      await model.initialize();
+
+      expect(model.errorMessage, 'Profil-Anfrage fehlgeschlagen (500).');
+      expect(
+        logger.entries.where(
+          (entry) =>
+              entry.message.contains('Profil konnte nicht geladen werden'),
+        ),
+        isNotEmpty,
+      );
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  test(
     'laedt gecachtes Profil bei initialize ohne sofortigen Remote-Refresh',
     () async {
       final cachedProfile = const AuthProfile(
@@ -254,6 +366,146 @@ void main() {
       expect(model.profile?.namiId, 77);
       expect(memberSyncTokens, <String>['access-token']);
       expect(model.lastSensitiveSyncAt, DateTime(2026, 3, 28, 12));
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  test(
+    'setzt bei 401 waehrend Sync nur einen nicht-blockierenden Remote-Hinweis',
+    () async {
+      final oauthService = _FakeOauthService(
+        sessionToReturn: AuthSession(
+          accessToken: 'access-token',
+          refreshToken: 'refresh-token',
+          receivedAt: DateTime(2026, 3, 27),
+        ),
+        profileToReturn: const AuthProfile(
+          namiId: 91,
+          firstName: 'Remote',
+          lastName: 'Issue',
+          language: 'de',
+        ),
+      );
+      final sensitiveStorage = _FakeSensitiveStorageService();
+      final model = AuthSessionModel(
+        repository: _InMemoryAuthSessionRepository(),
+        profileRepository: _InMemoryAuthProfileRepository(),
+        oauthService: oauthService,
+        biometricLockService: _FakeBiometricLockService(),
+        sensitiveStorageService: sensitiveStorage,
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => DateTime(2026, 3, 28, 12),
+        ),
+        logger: _createLogger(),
+      );
+
+      await model.signIn();
+      await model.markSensitiveDataSynced();
+      oauthService.fetchProfileError = const HitobitoAuthException(
+        'Profil-Anfrage fehlgeschlagen (401).',
+        statusCode: 401,
+      );
+
+      await model.syncHitobitoData(syncMembers: (_) async {}, force: true);
+
+      expect(model.state, AuthState.signedIn);
+      expect(model.hasRemoteAccessIssue, isTrue);
+      expect(model.requiresInteractiveLogin, isTrue);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  test(
+    'bleibt bei fehlgeschlagener erneuter Anmeldung im bisherigen Zustand',
+    () async {
+      final oauthService = _FakeOauthService(
+        sessionToReturn: AuthSession(
+          accessToken: 'access-token',
+          refreshToken: 'refresh-token',
+          receivedAt: DateTime(2026, 3, 27),
+        ),
+        profileToReturn: const AuthProfile(
+          namiId: 92,
+          firstName: 'Retry',
+          lastName: 'User',
+          language: 'de',
+        ),
+      );
+      final model = AuthSessionModel(
+        repository: _InMemoryAuthSessionRepository(),
+        profileRepository: _InMemoryAuthProfileRepository(),
+        oauthService: oauthService,
+        biometricLockService: _FakeBiometricLockService(),
+        sensitiveStorageService: _FakeSensitiveStorageService(),
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => DateTime(2026, 3, 28, 12),
+        ),
+        logger: _createLogger(),
+      );
+
+      await model.signIn();
+      oauthService.authenticateError = const HitobitoAuthException(
+        'OAuth Login fehlgeschlagen.',
+      );
+
+      await model.signIn();
+
+      expect(model.state, AuthState.signedIn);
+      expect(model.errorMessage, 'OAuth Login fehlgeschlagen.');
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  test(
+    'loggt bei abgebrochener OAuth-Anmeldung keine technische PlatformException',
+    () async {
+      final logger = _createLogger();
+      final oauthService = _FakeOauthService(
+        sessionToReturn: AuthSession(
+          accessToken: 'access-token',
+          refreshToken: 'refresh-token',
+          receivedAt: DateTime(2026, 3, 27),
+        ),
+        profileToReturn: const AuthProfile(
+          namiId: 93,
+          firstName: 'Cancel',
+          lastName: 'User',
+          language: 'de',
+        ),
+      );
+      final model = AuthSessionModel(
+        repository: _InMemoryAuthSessionRepository(),
+        profileRepository: _InMemoryAuthProfileRepository(),
+        oauthService: oauthService,
+        biometricLockService: _FakeBiometricLockService(),
+        sensitiveStorageService: _FakeSensitiveStorageService(),
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => DateTime(2026, 3, 28, 12),
+        ),
+        logger: logger,
+      );
+
+      oauthService.authenticateError =
+          HitobitoAuthException.fromPlatformException(
+            PlatformException(code: 'CANCELED', message: 'User canceled login'),
+          );
+
+      await model.signIn();
+
+      expect(model.errorMessage, 'Die Hitobito-Anmeldung wurde abgebrochen.');
+      expect(logger.entries.where((entry) => entry.service == 'auth'), isEmpty);
+      expect(
+        logger.entries.where(
+          (entry) => entry.message.contains('OAuth-Login nicht abgeschlossen'),
+        ),
+        isNotEmpty,
+      );
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
@@ -422,17 +674,36 @@ class _FakeOauthService extends HitobitoOauthService {
 
   final AuthSession sessionToReturn;
   final AuthProfile profileToReturn;
+  Object? authenticateError;
+  Object? refreshError;
+  Object? fetchProfileError;
   int fetchProfileCallCount = 0;
 
   @override
-  Future<AuthSession> authenticateInteractive() async => sessionToReturn;
+  Future<AuthSession> authenticateInteractive() async {
+    final error = authenticateError;
+    if (error != null) {
+      throw error;
+    }
+    return sessionToReturn;
+  }
 
   @override
-  Future<AuthSession> refresh(AuthSession session) async => sessionToReturn;
+  Future<AuthSession> refresh(AuthSession session) async {
+    final error = refreshError;
+    if (error != null) {
+      throw error;
+    }
+    return sessionToReturn;
+  }
 
   @override
   Future<AuthProfile> fetchProfile(AuthSession session) async {
     fetchProfileCallCount += 1;
+    final error = fetchProfileError;
+    if (error != null) {
+      throw error;
+    }
     return profileToReturn;
   }
 
@@ -460,6 +731,7 @@ class _FakeBiometricLockService extends BiometricLockService {
 class _FakeSensitiveStorageService extends SensitiveStorageService {
   String? _principal;
   DateTime? _lastSensitiveSyncAt;
+  DateTime? _lastSensitiveSyncAttemptAt;
   DateTime? _lastBackgroundedAt;
 
   _FakeSensitiveStorageService() : super();
@@ -471,18 +743,28 @@ class _FakeSensitiveStorageService extends SensitiveStorageService {
   Future<DateTime?> loadLastSensitiveSyncAt() async => _lastSensitiveSyncAt;
 
   @override
+  Future<DateTime?> loadLastSensitiveSyncAttemptAt() async =>
+      _lastSensitiveSyncAttemptAt;
+
+  @override
   Future<DateTime?> loadLastBackgroundedAt() async => _lastBackgroundedAt;
 
   @override
   Future<void> purgeSensitiveData() async {
     _principal = null;
     _lastSensitiveSyncAt = null;
+    _lastSensitiveSyncAttemptAt = null;
     _lastBackgroundedAt = null;
   }
 
   @override
   Future<void> saveLastSensitiveSyncAt(DateTime timestamp) async {
     _lastSensitiveSyncAt = timestamp;
+  }
+
+  @override
+  Future<void> saveLastSensitiveSyncAttemptAt(DateTime? timestamp) async {
+    _lastSensitiveSyncAttemptAt = timestamp;
   }
 
   @override
@@ -496,7 +778,14 @@ class _FakeSensitiveStorageService extends SensitiveStorageService {
   }
 }
 
-LoggerService _createLogger() => _FakeLoggerService();
+_FakeLoggerService _createLogger() => _FakeLoggerService();
+
+class _LogEntry {
+  const _LogEntry({required this.service, required this.message});
+
+  final String service;
+  final String message;
+}
 
 class _FakeLoggerService extends LoggerService {
   _FakeLoggerService()
@@ -505,8 +794,12 @@ class _FakeLoggerService extends LoggerService {
         navigatorKey: GlobalKey<NavigatorState>(),
       );
 
+  final List<_LogEntry> entries = <_LogEntry>[];
+
   @override
-  Future<void> log(String service, String message) async {}
+  Future<void> log(String service, String message) async {
+    entries.add(_LogEntry(service: service, message: message));
+  }
 
   @override
   Future<void> trackEvent(String name, Map<String, Object?> properties) async {}

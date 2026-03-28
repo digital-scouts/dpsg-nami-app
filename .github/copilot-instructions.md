@@ -4,6 +4,7 @@
 
 - Bevorzuge kleine, fokussierte Aenderungen, die zur bestehenden Struktur unter lib/domain, lib/data, lib/presentation und lib/services passen.
 - Behebe Probleme an der Ursache statt mit oberflaechlichen Workarounds.
+- Verwende in deutschsprachigen Markdown-Fliesstexten echte Umlaute und ß. Technische Literale wie Code, Pfade, Dateinamen, URLs, Env-Keys, CLI-Beispiele, Identifier und API-Felder bleiben ASCII.
 - Halte bestehende Benennungen, Dateistruktur und Muster konsistent, sofern die Aufgabe keinen abweichenden Eingriff erfordert.
 
 ## Flutter und UI

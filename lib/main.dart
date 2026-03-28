@@ -215,6 +215,16 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _authMaintenanceTimer?.cancel();
     final authModel = context.read<AuthSessionModel>();
     final memberPeopleRepository = context.read<MemberPeopleRepository>();
+    if (authModel.isRefreshAttemptDue) {
+      unawaited(
+        authModel.syncHitobitoData(
+          syncMembers: (accessToken) async {
+            await memberPeopleRepository.refresh(accessToken);
+          },
+          trigger: 'startup',
+        ),
+      );
+    }
     _authMaintenanceTimer = Timer.periodic(
       HitobitoAuthEnv.refreshInterval,
       (_) => authModel.syncHitobitoData(

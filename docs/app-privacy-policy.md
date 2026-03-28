@@ -17,7 +17,7 @@ This privacy policy describes which data is processed by the app itself and whic
 
 The app can process member-related content that is entered by users or loaded from external systems. This data is processed on the device to provide app functionality.
 
-At the current stage of implementation, not all planned member data features are available yet. Planned security measures for local member data storage, including encrypted storage, are still being implemented and are therefore not yet described here as completed functionality.
+Member data loaded from Hitobito is stored locally on the device in encrypted form so it can be used offline after the first successful sign-in and initial data load.
 
 ## Analytics and diagnostics
 
@@ -61,7 +61,9 @@ These services process data under their own privacy policies:
 
 ## Data retention
 
-Data entered into or loaded by the app remains on the device according to the current app behavior and the actions taken by the user.
+Hitobito profile and member data remain on the device until the user logs out or the locally stored data exceeds the configured maximum retention period used by the app.
+
+If an update from Hitobito fails, the app can continue to use the existing local data until that retention period is exceeded.
 
 Analytics, diagnostics and feedback data may also be retained by the respective third-party providers according to their own retention policies.
 
@@ -69,7 +71,7 @@ Analytics, diagnostics and feedback data may also be retained by the respective 
 
 Reasonable care is taken to avoid unnecessary exposure of sensitive data.
 
-Some planned security measures, especially encrypted local storage for member data, are still in implementation and should not yet be considered complete.
+Sensitive Hitobito-related data used by the app is stored locally in encrypted form and is deleted on logout or when the locally cached data is considered too old by the app.
 
 ## Your choices
 
