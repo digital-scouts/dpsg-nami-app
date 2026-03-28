@@ -13,6 +13,8 @@ class SensitiveStorageService {
   static const String _encryptionKeyStorageKey = 'hitobito_hive_encryption_key';
   static const String _principalKey = 'current_principal';
   static const String _lastSensitiveSyncAtKey = 'last_sensitive_sync_at';
+  static const String _lastSensitiveSyncAttemptAtKey =
+      'last_sensitive_sync_attempt_at';
   static const String _lastBackgroundedAtKey = 'last_backgrounded_at';
 
   static const List<String> sensitiveBoxNames = <String>[
@@ -84,6 +86,25 @@ class SensitiveStorageService {
   Future<DateTime?> loadLastSensitiveSyncAt() async {
     final box = await openSecureMetaBox();
     final raw = box.get(_lastSensitiveSyncAtKey);
+    if (raw == null || raw.isEmpty) {
+      return null;
+    }
+    return DateTime.tryParse(raw);
+  }
+
+  Future<void> saveLastSensitiveSyncAttemptAt(DateTime? timestamp) async {
+    final box = await openSecureMetaBox();
+    if (timestamp == null) {
+      await box.delete(_lastSensitiveSyncAttemptAtKey);
+      return;
+    }
+
+    await box.put(_lastSensitiveSyncAttemptAtKey, timestamp.toIso8601String());
+  }
+
+  Future<DateTime?> loadLastSensitiveSyncAttemptAt() async {
+    final box = await openSecureMetaBox();
+    final raw = box.get(_lastSensitiveSyncAttemptAtKey);
     if (raw == null || raw.isEmpty) {
       return null;
     }

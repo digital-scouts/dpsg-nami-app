@@ -21,13 +21,21 @@ class MemberPeopleModel extends ChangeNotifier {
   bool _isRefreshing = false;
   bool _hasLoaded = false;
   String? _errorMessage;
+  bool _lastRemoteRefreshSucceeded = false;
+  int _refreshFailureCount = 0;
 
   List<Mitglied> get members => _members;
   bool get isLoading => _isLoading;
   bool get isRefreshing => _isRefreshing;
   String? get errorMessage => _errorMessage;
+  bool get lastRemoteRefreshSucceeded => _lastRemoteRefreshSucceeded;
+  int get refreshFailureCount => _refreshFailureCount;
 
-  Future<void> load({required String? accessToken, bool force = false}) async {
+  Future<void> load({
+    required String? accessToken,
+    bool force = false,
+    bool refreshRemotely = true,
+  }) async {
     if (_isLoading || _isRefreshing) {
       return;
     }
@@ -38,6 +46,7 @@ class MemberPeopleModel extends ChangeNotifier {
     _hasLoaded = true;
     _isLoading = true;
     _errorMessage = null;
+    _lastRemoteRefreshSucceeded = false;
     notifyListeners();
 
     try {
@@ -60,20 +69,24 @@ class MemberPeopleModel extends ChangeNotifier {
       return;
     }
 
+    if (!refreshRemotely && _members.isNotEmpty) {
+      return;
+    }
+
     _isRefreshing = true;
     notifyListeners();
 
     try {
       _members = await _repository.refresh(accessToken);
       _errorMessage = null;
+      _lastRemoteRefreshSucceeded = true;
     } catch (error, stack) {
       await _logger.log(
         'people',
         'Mitglieder konnten nicht aktualisiert werden: $error\n$stack',
       );
-      if (_members.isEmpty) {
-        _errorMessage = error.toString();
-      }
+      _errorMessage = error.toString();
+      _refreshFailureCount += 1;
     } finally {
       _isRefreshing = false;
       notifyListeners();

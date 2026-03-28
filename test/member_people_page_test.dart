@@ -95,6 +95,108 @@ void main() {
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
+
+  testWidgets(
+    'zeigt Snackbar bei fehlgeschlagenem Refresh und belaesst lokale Daten sichtbar',
+    (tester) async {
+      final oauthService = _FakeOauthService();
+      final authModel = AuthSessionModel(
+        repository: _InMemoryAuthSessionRepository(),
+        profileRepository: _InMemoryAuthProfileRepository(),
+        oauthService: oauthService,
+        biometricLockService: _FakeBiometricLockService(),
+        sensitiveStorageService: _FakeSensitiveStorageService(),
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+        ),
+        logger: _FakeLoggerService(),
+      );
+      final repository = _FakeMemberPeopleRepository(
+        cached: <Mitglied>[
+          Mitglied.peopleListItem(
+            mitgliedsnummer: '1',
+            vorname: 'Julia',
+            nachname: 'Keller',
+          ),
+        ],
+        refreshed: const <Mitglied>[],
+        refreshError: Exception('offline'),
+      );
+      final peopleModel = MemberPeopleModel(
+        repository: repository,
+        logger: _FakeLoggerService(),
+      );
+
+      await authModel.signIn();
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
+            ChangeNotifierProvider<MemberPeopleModel>.value(value: peopleModel),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+              AppLocalizations.delegate,
+            ],
+            supportedLocales: const [Locale('de'), Locale('en')],
+            locale: const Locale('de'),
+            home: const MemberPeoplePage(),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.text('Julia Keller'), findsOneWidget);
+      expect(
+        find.text(
+          'Hitobito-Daten konnten nicht aktualisiert werden. Es werden lokale Daten angezeigt.',
+        ),
+        findsOneWidget,
+      );
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
+            ChangeNotifierProvider<MemberPeopleModel>.value(value: peopleModel),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+              AppLocalizations.delegate,
+            ],
+            supportedLocales: const [Locale('de'), Locale('en')],
+            locale: const Locale('de'),
+            home: const MemberPeoplePage(),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump();
+
+      expect(
+        find.text(
+          'Hitobito-Daten konnten nicht aktualisiert werden. Es werden lokale Daten angezeigt.',
+        ),
+        findsNothing,
+      );
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
 }
 
 class _FakeMemberPeopleRepository implements MemberPeopleRepository {
@@ -102,11 +204,13 @@ class _FakeMemberPeopleRepository implements MemberPeopleRepository {
     required this.cached,
     required this.refreshed,
     this.refreshDelay = Duration.zero,
+    this.refreshError,
   });
 
   final List<Mitglied> cached;
   final List<Mitglied> refreshed;
   final Duration refreshDelay;
+  final Object? refreshError;
   String? lastRefreshAccessToken;
 
   @override
@@ -117,6 +221,10 @@ class _FakeMemberPeopleRepository implements MemberPeopleRepository {
     lastRefreshAccessToken = accessToken;
     if (refreshDelay > Duration.zero) {
       await Future<void>.delayed(refreshDelay);
+    }
+    final error = refreshError;
+    if (error != null) {
+      throw error;
     }
     return refreshed;
   }
@@ -224,6 +332,7 @@ class _FakeBiometricLockService extends BiometricLockService {
 class _FakeSensitiveStorageService extends SensitiveStorageService {
   String? _principal;
   DateTime? _lastSensitiveSyncAt;
+  DateTime? _lastSensitiveSyncAttemptAt;
   DateTime? _lastBackgroundedAt;
 
   _FakeSensitiveStorageService() : super();
@@ -235,18 +344,28 @@ class _FakeSensitiveStorageService extends SensitiveStorageService {
   Future<DateTime?> loadLastSensitiveSyncAt() async => _lastSensitiveSyncAt;
 
   @override
+  Future<DateTime?> loadLastSensitiveSyncAttemptAt() async =>
+      _lastSensitiveSyncAttemptAt;
+
+  @override
   Future<DateTime?> loadLastBackgroundedAt() async => _lastBackgroundedAt;
 
   @override
   Future<void> purgeSensitiveData() async {
     _principal = null;
     _lastSensitiveSyncAt = null;
+    _lastSensitiveSyncAttemptAt = null;
     _lastBackgroundedAt = null;
   }
 
   @override
   Future<void> saveLastSensitiveSyncAt(DateTime timestamp) async {
     _lastSensitiveSyncAt = timestamp;
+  }
+
+  @override
+  Future<void> saveLastSensitiveSyncAttemptAt(DateTime? timestamp) async {
+    _lastSensitiveSyncAttemptAt = timestamp;
   }
 
   @override

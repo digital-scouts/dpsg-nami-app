@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -6,6 +7,30 @@ import 'package:nami/services/hitobito_auth_env.dart';
 import 'package:nami/services/hitobito_oauth_service.dart';
 
 void main() {
+  test('uebersetzt abgebrochenen OAuth-Login in fachliche Meldung', () {
+    final error = HitobitoAuthException.fromPlatformException(
+      PlatformException(code: 'CANCELED', message: 'User canceled login'),
+    );
+
+    expect(error.toString(), 'Die Hitobito-Anmeldung wurde abgebrochen.');
+    expect(error.isExpectedInteractionFailure, isTrue);
+  });
+
+  test('uebersetzt technische OAuth-Plugin-Fehler in fachliche Meldung', () {
+    final error = HitobitoAuthException.fromPlatformException(
+      PlatformException(
+        code: 'ACTIVITY_NOT_FOUND',
+        message: 'No activity found to handle intent',
+      ),
+    );
+
+    expect(
+      error.toString(),
+      'Die Hitobito-Anmeldung konnte nicht gestartet werden. Bitte pruefe die OAuth-Konfiguration.',
+    );
+    expect(error.isExpectedInteractionFailure, isTrue);
+  });
+
   test(
     'laedt /profile mit with_roles und mappt Rollen korrekt',
     () async {

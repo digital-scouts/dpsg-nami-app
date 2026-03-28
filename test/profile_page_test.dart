@@ -113,6 +113,69 @@ void main() {
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
+
+  testWidgets(
+    'zeigt bei Remote-Problemen einen cache-only Status statt Angemeldet',
+    (tester) async {
+      final authModel = AuthSessionModel(
+        repository: _InMemoryAuthSessionRepository(),
+        profileRepository: _InMemoryAuthProfileRepository(),
+        oauthService: _FakeOauthService(
+          sessionToReturn: AuthSession(
+            accessToken: 'access-token',
+            refreshToken: 'refresh-token',
+            receivedAt: DateTime(2026, 3, 27),
+          ),
+          profileToReturn: const AuthProfile(
+            namiId: 37,
+            email: 'lea@example.com',
+            firstName: 'Lea',
+            lastName: 'Beispiel',
+            language: 'de',
+          ),
+        ),
+        biometricLockService: _FakeBiometricLockService(),
+        sensitiveStorageService: _FakeSensitiveStorageService(),
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => DateTime(2026, 3, 27, 12),
+        ),
+        logger: _createLogger(),
+      );
+      await authModel.signIn();
+      authModel.reportRemoteDataIssue(
+        'Profil-Anfrage fehlgeschlagen (401).',
+        requiresInteractiveLogin: true,
+      );
+
+      await tester.pumpWidget(
+        ChangeNotifierProvider<AuthSessionModel>.value(
+          value: authModel,
+          child: MaterialApp(
+            localizationsDelegates: [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+              AppLocalizations.delegate,
+            ],
+            supportedLocales: const [Locale('de'), Locale('en')],
+            locale: const Locale('de'),
+            home: const ProfilePage(),
+          ),
+        ),
+      );
+
+      await tester.pump();
+
+      expect(
+        find.text('Lokale Daten aktiv, Anmeldung fuer Updates erforderlich'),
+        findsOneWidget,
+      );
+      expect(find.text('Angemeldet'), findsNothing);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
 }
 
 Future<void> _pumpProfilePage(
@@ -254,6 +317,7 @@ class _FakeBiometricLockService extends BiometricLockService {
 class _FakeSensitiveStorageService extends SensitiveStorageService {
   String? _principal;
   DateTime? _lastSensitiveSyncAt;
+  DateTime? _lastSensitiveSyncAttemptAt;
   DateTime? _lastBackgroundedAt;
 
   _FakeSensitiveStorageService() : super();
@@ -265,18 +329,28 @@ class _FakeSensitiveStorageService extends SensitiveStorageService {
   Future<DateTime?> loadLastSensitiveSyncAt() async => _lastSensitiveSyncAt;
 
   @override
+  Future<DateTime?> loadLastSensitiveSyncAttemptAt() async =>
+      _lastSensitiveSyncAttemptAt;
+
+  @override
   Future<DateTime?> loadLastBackgroundedAt() async => _lastBackgroundedAt;
 
   @override
   Future<void> purgeSensitiveData() async {
     _principal = null;
     _lastSensitiveSyncAt = null;
+    _lastSensitiveSyncAttemptAt = null;
     _lastBackgroundedAt = null;
   }
 
   @override
   Future<void> saveLastSensitiveSyncAt(DateTime timestamp) async {
     _lastSensitiveSyncAt = timestamp;
+  }
+
+  @override
+  Future<void> saveLastSensitiveSyncAttemptAt(DateTime? timestamp) async {
+    _lastSensitiveSyncAttemptAt = timestamp;
   }
 
   @override

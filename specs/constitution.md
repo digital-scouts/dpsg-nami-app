@@ -6,6 +6,8 @@
 
 Klares Schichtenmodell (Presentation → Application → Domain → Data). Abhängigkeiten verlaufen nur nach innen. Repositories kapseln Datenquellen (Remote API, lokaler Cache via Hive). Keine UI-spezifische Logik in Domain. Domain-Ebene ist framework-agnostisch (reine Dart-Entitäten, UseCases). Data-Ebene implementiert Synchronisations- und Mappings. Skalierung bis ca. 1000 Mitglieder (typisch ~100). Pflichtfelder (Name, Mitgliedsnummer, Geburtsdatum) sind non-null; optionale Felder dürfen null sein und werden im UI adaptiv ausgeblendet.
 
+Für Hitobito-basierte Mitgliedsdaten arbeitet die App fachlich immer in genau einem aktiven Arbeitskontext. Ein Arbeitskontext ist genau ein Layer mit allen Mitgliedern dieses Layers sowie den zugehörigen Nicht-Layer-Gruppen als Struktur- und Filterbasis. Unterlayer gehören nicht automatisch dazu, sondern werden nur über einen bewussten Kontextwechsel geöffnet.
+
 ### II. State Management: BLoC / Cubit
 
 Alle relevanten UI-Zustände und Seiteneffekte werden über BLoCs/Cubits gesteuert. Ereignis → Zustandsstrom. Strikte Trennung zwischen State und Side Effects (Navigation, Dialoge). Einheitliche Fehler-, Loading- und Empty-Zustände. BLoCs werden isoliert getestet (Unit). Keine Geschäftslogik direkt in Widgets. Rollen- und Rechteinformation wird nach Login geladen und im entsprechenden Auth/Permission-BLoC gehalten.
@@ -20,13 +22,15 @@ Repository-Integrations-Tests gegen simulierte API (Mock / Stub basierend auf Po
 
 ### V. Observability & Simplicity
 
-Fehler, Sync-Ereignisse und Performance-Metriken werden strukturiert geloggt (Level: debug/info/warn/error). Personenbezogene Daten werden nicht im Klartext geloggt; IDs werden anonymisiert/gehasht. Lokale Änderungen (später) werden nachvollziehbar (Change Queue). YAGNI: Keine vorzeitige Optimierung; Feature-Scope klein halten. Versionierung nach MAJOR.MINOR.PATCH; Breaking Changes dokumentieren (Migration Guide). SWR-Ansatz: Anzeige aus Cache, paralleler Refresh, danach Merge/Update. Logout nach 30 Tagen Inaktivität, verpflichtender Sync spätestens alle 30 Tage.
+Fehler, Sync-Ereignisse und Performance-Metriken werden strukturiert geloggt (Level: debug/info/warn/error). Personenbezogene Daten werden nicht im Klartext geloggt; IDs werden anonymisiert/gehasht. Lokale Änderungen (später) werden nachvollziehbar (Change Queue). YAGNI: Keine vorzeitige Optimierung; Feature-Scope klein halten. Versionierung nach MAJOR.MINOR.PATCH; Breaking Changes dokumentieren (Migration Guide). Lesedaten werden bevorzugt aus dem lokalen Cache angezeigt. Remote-Updates für Hitobito-Daten erfolgen nur, wenn das konfigurierte Refresh-Intervall abgelaufen ist. Ist der letzte erfolgreiche Datenstand älter als die konfigurierte Maximaldauer, werden die lokalen Hitobito-Daten gelöscht und die App meldet den Nutzer ab.
 
 ## Zusätzliche Constraints & Anforderungen
 
 - Plattformen: Android & iOS (Flutter stable channel), breite Geräteunterstützung (min SDK Versionen so niedrig wie praktikabel – noch festzulegen).
-- Offline-Fähigkeit MVP: Nur Lesen aus Hive Cache (kein Offline-Edit). Später: Outbox für Schreiboperationen (vorbereitet, deaktiviert).
-- Sync-Strategie aktuell: SWR für Lesedaten (Cache sofort → Refresh). Änderungen nur online und nur auf frischen Daten (Refresh vor Bearbeitung zwingend). Trigger: App-Start, manuell, täglich einmal falls online.
+- Offline-Fähigkeit MVP: Nur Lesen aus Hive Cache (kein Offline-Edit). Für Hitobito ist in der ersten Ausbaustufe genau ein aktiver Arbeitskontext lokal verfügbar; ein Kontextwechsel ersetzt den lokalen Bestand. Später: Outbox für Schreiboperationen (vorbereitet, deaktiviert) und optional mehrere bewusst markierte Offline-Arbeitskontexte.
+- Sync-Strategie aktuell: Cache zuerst für Lesedaten. Remote-Updates für Hitobito-Daten werden nur bei fälligem Intervall (`HITOBITO_REFRESH_INTERVAL_HOURS`) versucht. Schlägt ein Update fehl, bleibt der vorhandene Cache lesbar und ein fachlicher Hinweis wird angezeigt. Änderungen bleiben nur online und nur auf frischen Daten erlaubt.
+- Arbeitskontext-Regel: Suche, Listen, Statistiken und persönliche Dashboards arbeiten nur innerhalb des aktiven Arbeitskontexts. Gruppen, Tags und spätere persönliche Auswahlen sind Teilmengen dieses Kontexts und keine eigenständigen Hauptkontexte.
+- Startkontext-Regel: Der initiale Arbeitskontext wird aus dem Primary Layer der Person abgeleitet. Falls dieser ausnahmsweise nicht brauchbar bestimmbar ist, wird der erste verfügbare Layer aus einer stabil sortierten Liste verwendet.
 - Datensatz-Versionierung vorhanden (Mitgliederversion) → Vor Bearbeitung wird Version abgeglichen, sonst Refresh.
 - Sicherheitsaspekte: Auth via Username/Passwort → apiSessionToken (Gültigkeit ~1h). Silent Refresh kurz vor Ablauf (im Auth-Repository Zeitüberwachung). Optionaler Biometrie-Login (Keychain/Keystore Speicherung des Tokens oder Refresh-Creds). Rechte werden nach Login geladen und lokal (verschlüsselt) persistiert.
 - Verschlüsselung: Alle personenbezogenen Daten in Hive verschlüsselt (Key-Management noch zu definieren; SecureStorage + ableitbarer Schlüssel). Hive Purge bei Logout oder Auto-Abmeldung.
@@ -34,7 +38,7 @@ Fehler, Sync-Ereignisse und Performance-Metriken werden strukturiert geloggt (Le
 - Internationalisierung: Initial nur Deutsch; Architektur erlaubt Erweiterung (ARB-Dateien) für Englisch.
 - Accessibility: Dynamische Schriftgrößen (OS Einstellungen), VoiceOver/TalkBack Labels, ausreichende Kontraste (gemäß Corporate Design Leitfaden: [Corporate Design PDF](https://dpsg.de/sites/default/files/2021-04/dpsg_corporate_design_leitfaden.pdf) + WCAG Mindestanforderungen).
 - API-Spezifikation: Postman Collection manuell gepflegt → Ableitung eines internen Schemas (später automatisierter Export zu OpenAPI geplant).
-- Fehlerstrategie: Netzwerkfehler → Retry mit exponentiellem Backoff; Auth 401 → Re-Login Flow. Bei Versionskonflikt: erzwungener Refresh.
+- Fehlerstrategie: Netzwerkfehler bei Hitobito-Updates blockieren die App nicht sofort, solange ein gültiger lokaler Datenstand vorhanden ist; stattdessen wird nach Ablauf des konfigurierten Refresh-Intervalls erneut versucht. Auth- oder OAuth-Fehler werden für Nutzer fachlich übersetzt. Ist kein gültiger lokaler Datenstand vorhanden oder läuft er ab, ist ein erneuter Login erforderlich. Bei Versionskonflikt: erzwungener Refresh.
 - Datenvalidierung: Domain Entities garantieren Pflichtfelder; optionale Felder bleiben null und werden im UI ausgeblendet.
 - Package Policy: Externe Pakete nur bei aktivem Wartungsstatus & kompatibler Lizenz (MIT/Apache2 bevorzugt). Minimaler Zusatzumfang.
 - Rollen & Rechte: Nutzer mit fehlender Leseberechtigung auf Mitglieder können App nicht nutzen → Freundliche Fehlermeldung + Logout.
@@ -53,10 +57,10 @@ Fehler, Sync-Ereignisse und Performance-Metriken werden strukturiert geloggt (Le
    - Unit Tests
    - (Später) Integration/Contract Tests mit Mock/Stubs
    - Versionskonsistenz zwischen pubspec und Changelog
-   - Android AAB fuer den internen Play-Track bei Pushes auf `develop` sowie nach gemergten Pull Requests auf `master`
+   - Android AAB für den internen Play-Track bei Pushes auf `develop` sowie nach gemergten Pull Requests auf `master`
    - GitHub Release mit Release-Notizen aus dem Changelog nach gemergten Pull Requests auf `master`
    - Optional: Security Scan (Dependency Audit)
-7. Release: Version in `pubspec.yaml` pflegen, Changelog aktualisieren, Merge via Pull Request nach `master`; GitHub Release und Android-Deploy laufen danach automatisiert. Direkte Pushes nach `master` gelten als Hotfixes und loesen diese Release-Automation nicht aus. iOS-Distribution bleibt ausserhalb von GitHub Actions.
+7. Release: Version in `pubspec.yaml` pflegen, Changelog aktualisieren, Merge via Pull Request nach `master`; GitHub Release und Android-Deploy laufen danach automatisiert. Direkte Pushes nach `master` gelten als Hotfixes und lösen diese Release-Automation nicht aus. iOS-Distribution bleibt außerhalb von GitHub Actions.
 8. Monitoring & Feedback: Wiredash für Feedback/Analyse, Crash Reporting (Tool Auswahl offen, Kandidaten: Sentry/Crashlytics).
 
 Quality Gates Mindestanforderungen (MVP angepasster Umfang):

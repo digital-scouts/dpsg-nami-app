@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:nami/core/notifications/pull_notification.dart';
 import 'package:nami/core/notifications/pull_notifications_repository_factory.dart';
 import 'package:nami/l10n/app_localizations.dart';
+import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/notifications/notification_card.dart';
 import 'package:nami/presentation/widgets/confetti_overlay.dart';
 import 'package:nami/services/app_update_service.dart';
@@ -166,6 +167,27 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  PullNotification _buildHitobitoIssueNotification(
+    BuildContext context,
+    AuthSessionModel authModel,
+  ) {
+    final t = AppLocalizations.of(context);
+    final bodyKey = authModel.requiresInteractiveLogin
+        ? 'settings_hitobito_issue_relogin_body'
+        : 'settings_hitobito_issue_body';
+    final body = t.t(bodyKey);
+
+    return PullNotification(
+      id: 'hitobito-issue',
+      title: LocalizedString(
+        de: t.t('settings_hitobito_issue_title'),
+        en: t.t('settings_hitobito_issue_title'),
+      ),
+      body: LocalizedString(de: body, en: body),
+      type: 'warn',
+    );
+  }
+
   void _handleTippleTapInTwoSeconds() {
     final now = DateTime.now();
     if (_firstTapAt == null ||
@@ -196,6 +218,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final t = AppLocalizations.of(context);
+    final authModel = context.watch<AuthSessionModel>();
     return Scaffold(
       appBar: AppBar(title: Text(t.t('settings_title'))),
       body: SafeArea(
@@ -241,6 +264,17 @@ class _SettingsPageState extends State<SettingsPage> {
                 ],
               ),
             ),
+            if (authModel.hasRemoteAccessIssue)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: NotificationCard(
+                  notification: _buildHitobitoIssueNotification(
+                    context,
+                    authModel,
+                  ),
+                  onTap: authModel.isConfigured ? authModel.signIn : null,
+                ),
+              ),
             FutureBuilder<AppUpdateInfo?>(
               future: _appUpdateFuture,
               builder: (context, snapshot) {

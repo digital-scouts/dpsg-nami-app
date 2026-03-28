@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:http/http.dart' as http;
 
@@ -10,10 +11,33 @@ import 'hitobito_auth_env.dart';
 import 'logger_service.dart';
 
 class HitobitoAuthException implements Exception {
-  const HitobitoAuthException(this.message, {this.statusCode});
+  const HitobitoAuthException(
+    this.message, {
+    this.statusCode,
+    this.isExpectedInteractionFailure = false,
+  });
 
   final String message;
   final int? statusCode;
+  final bool isExpectedInteractionFailure;
+
+  factory HitobitoAuthException.fromPlatformException(PlatformException error) {
+    final code = error.code.toUpperCase();
+    final message = error.message?.toLowerCase() ?? '';
+    final isCanceled = code == 'CANCELED' || message.contains('cancel');
+
+    if (isCanceled) {
+      return const HitobitoAuthException(
+        'Die Hitobito-Anmeldung wurde abgebrochen.',
+        isExpectedInteractionFailure: true,
+      );
+    }
+
+    return const HitobitoAuthException(
+      'Die Hitobito-Anmeldung konnte nicht gestartet werden. Bitte pruefe die OAuth-Konfiguration.',
+      isExpectedInteractionFailure: true,
+    );
+  }
 
   @override
   String toString() => message;
@@ -54,10 +78,20 @@ class HitobitoOauthService {
       },
     );
 
-    final callback = await FlutterWebAuth2.authenticate(
-      url: authorizationUri.toString(),
-      callbackUrlScheme: config.callbackScheme,
-    );
+    final String callback;
+    try {
+      callback = await FlutterWebAuth2.authenticate(
+        url: authorizationUri.toString(),
+        callbackUrlScheme: config.callbackScheme,
+      );
+    } on PlatformException catch (error) {
+      throw HitobitoAuthException.fromPlatformException(error);
+    } on MissingPluginException {
+      throw const HitobitoAuthException(
+        'Die Hitobito-Anmeldung konnte nicht gestartet werden. Bitte pruefe die OAuth-Konfiguration.',
+        isExpectedInteractionFailure: true,
+      );
+    }
 
     final callbackUri = Uri.parse(callback);
     final returnedState = callbackUri.queryParameters['state'];

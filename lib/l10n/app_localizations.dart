@@ -65,9 +65,18 @@ class AppLocalizations {
       'members_error': 'Mitglieder konnten nicht geladen werden.',
       'members_login_required':
           'Melde dich an, um Mitglieder aus Hitobito zu laden.',
+      'members_sync_issue_cached':
+          'Hitobito-Daten konnten nicht aktualisiert werden. Es werden lokale Daten angezeigt.',
+      'members_sync_issue_relogin':
+          'Hitobito-Daten konnten nicht aktualisiert werden. Bitte melde dich erneut an.',
       'settings_stamm': 'Stammeseinstellungen',
       'settings_app': 'Appeinstellungen',
       'settings_debug_tools': 'Debug & Tools',
+      'settings_hitobito_issue_title': 'Hitobito derzeit nicht erreichbar',
+      'settings_hitobito_issue_body':
+          'Die App zeigt weiter lokale Daten an. Tippe hier, um die Verbindung erneut zu pruefen.',
+      'settings_hitobito_issue_relogin_body':
+          'Die App zeigt weiter lokale Daten an. Tippe hier, um dich erneut bei Hitobito anzumelden.',
       'logout': 'Logout',
       'developed_with': 'Entwickelt mit',
       'developed_in_hamburg': 'in Hamburg',
@@ -120,6 +129,10 @@ class AppLocalizations {
       'auth_status_signed_out': 'Abgemeldet',
       'auth_status_authenticating': 'Anmeldung laeuft',
       'auth_status_signed_in': 'Angemeldet',
+      'auth_status_cached_only':
+          'Lokale Daten aktiv, Aktualisierung fehlgeschlagen',
+      'auth_status_update_login_required':
+          'Lokale Daten aktiv, Anmeldung fuer Updates erforderlich',
       'auth_status_unlock_required': 'Lokale Entsperrung erforderlich',
       'auth_status_relogin_required': 'Neuanmeldung erforderlich',
       'auth_status_error': 'Fehler',
@@ -184,9 +197,18 @@ class AppLocalizations {
       'members_empty': 'No members available',
       'members_error': 'Members could not be loaded.',
       'members_login_required': 'Sign in to load members from Hitobito.',
+      'members_sync_issue_cached':
+          'Hitobito data could not be refreshed. Showing local data instead.',
+      'members_sync_issue_relogin':
+          'Hitobito data could not be refreshed. Please sign in again.',
       'settings_stamm': 'Troop settings',
       'settings_app': 'App settings',
       'settings_debug_tools': 'Debug & Tools',
+      'settings_hitobito_issue_title': 'Hitobito currently unavailable',
+      'settings_hitobito_issue_body':
+          'The app continues to show local data. Tap here to try the connection again.',
+      'settings_hitobito_issue_relogin_body':
+          'The app continues to show local data. Tap here to sign in to Hitobito again.',
       'logout': 'Logout',
       'developed_with': 'Built with',
       'developed_in_hamburg': 'in Hamburg',
@@ -239,6 +261,9 @@ class AppLocalizations {
       'auth_status_signed_out': 'Signed out',
       'auth_status_authenticating': 'Signing in',
       'auth_status_signed_in': 'Signed in',
+      'auth_status_cached_only': 'Local data active, refresh failed',
+      'auth_status_update_login_required':
+          'Local data active, sign-in required for updates',
       'auth_status_unlock_required': 'Local unlock required',
       'auth_status_relogin_required': 'Sign-in required again',
       'auth_status_error': 'Error',

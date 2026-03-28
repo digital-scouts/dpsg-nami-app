@@ -13,20 +13,44 @@ class MemberPeoplePage extends StatefulWidget {
 }
 
 class _MemberPeoplePageState extends State<MemberPeoplePage> {
+  int? _lastShownRefreshFailureCount;
+
   @override
   void initState() {
     super.initState();
+    _lastShownRefreshFailureCount = context
+        .read<MemberPeopleModel>()
+        .refreshFailureCount;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final authModel = context.read<AuthSessionModel>();
-      await authModel.prepareSessionForRemoteAccess(trigger: 'members_load');
+      final session = authModel.session;
+      final peopleModel = context.read<MemberPeopleModel>();
+      final shouldRefreshRemotely = authModel.isRefreshAttemptDue;
+      if (shouldRefreshRemotely) {
+        await authModel.markSensitiveDataSyncAttempted();
+      }
+      await peopleModel.load(
+        accessToken: session?.accessToken,
+        refreshRemotely: shouldRefreshRemotely,
+      );
+
       if (!mounted) {
         return;
       }
 
-      final session = authModel.session;
-      await context.read<MemberPeopleModel>().load(
-        accessToken: session?.accessToken,
-      );
+      if (peopleModel.lastRemoteRefreshSucceeded) {
+        await authModel.markSensitiveDataSynced();
+        authModel.clearRemoteDataIssue();
+        return;
+      }
+
+      final errorMessage = peopleModel.errorMessage;
+      if (errorMessage != null && errorMessage != 'login_required') {
+        authModel.reportRemoteDataIssue(
+          errorMessage,
+          requiresInteractiveLogin: _looksUnauthorized(errorMessage),
+        );
+      }
     });
   }
 
@@ -37,6 +61,7 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
 
     return Consumer<MemberPeopleModel>(
       builder: (context, peopleModel, _) {
+        _scheduleIssueSnackbar(context, t, peopleModel);
         return Scaffold(
           appBar: AppBar(title: Text(t.t('nav_members'))),
           body: Column(
@@ -56,6 +81,35 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
         );
       },
     );
+  }
+
+  void _scheduleIssueSnackbar(
+    BuildContext context,
+    AppLocalizations t,
+    MemberPeopleModel peopleModel,
+  ) {
+    final shownCount = _lastShownRefreshFailureCount ?? 0;
+    if (peopleModel.refreshFailureCount <= shownCount) {
+      return;
+    }
+
+    _lastShownRefreshFailureCount = peopleModel.refreshFailureCount;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      final issueKey = context.read<AuthSessionModel>().requiresInteractiveLogin
+          ? 'members_sync_issue_relogin'
+          : 'members_sync_issue_cached';
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(t.t(issueKey))));
+    });
+  }
+
+  bool _looksUnauthorized(String message) {
+    return message.contains('(401)') || message.contains('401');
   }
 
   Widget _buildBody(
