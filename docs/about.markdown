@@ -8,7 +8,7 @@ permalink: /about/
 
 Diese Seite sammelt projektbezogene Dokumentation, die vor größeren Implementierungsschritten mit dem aktuellen Code- und Konzeptstand abgeglichen wird.
 
-Aktuell wird die App für Hitobito fachlich auf ein Arbeitskontext-Modell vorbereitet. Dabei arbeitet die App immer in genau einem aktiven Layer mit seinen Mitgliedern und den zugehörigen Nicht-Layer-Gruppen als Struktur- und Filterbasis. Höhere Ebenen werden über bewussten Kontextwechsel unterstützt, ohne den Stammfokus der App aufzugeben.
+Aktuell wird die App für Hitobito fachlich auf ein Arbeitskontext-Modell vorbereitet. Dabei arbeitet die App immer in genau einem aktiven Layer. Hitobito-Rechte können den darin sichtbaren Bestand verkleinern, ohne dass dadurch ein anderer Arbeitskontext entsteht. Mehrere technisch sichtbare Layer werden nur dann angeboten, wenn sie sich aus eigenen Rollen mit arbeitskontextrelevanten Rechten ableiten lassen. Höhere Ebenen werden über bewussten Kontextwechsel unterstützt, ohne den Stammfokus der App aufzugeben.
 
 Eine kurze Zusammenfassung für die Projektdokumentation liegt unter [Arbeitskontext-Modell](/arbeitskontext/).
 

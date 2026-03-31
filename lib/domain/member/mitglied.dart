@@ -2,8 +2,8 @@ import '../taetigkeit/stufe.dart';
 import '../taetigkeit/taetigkeit.dart';
 
 /// Repräsentiert ein Mitglied der DPSG – reine Domain-Entität (keine Flutter Abhängigkeiten).
-/// Pflichtfelder: Vorname, Nachname, Geburtsdatum, Eintrittsdatum, Mitgliedsnummer.
-/// Optionale Felder: Fahrtenname, Austrittsdatum.
+/// Pflichtfelder: Geburtsdatum, Eintrittsdatum, Mitgliedsnummer.
+/// Optionale Felder: Vorname, Nachname, Fahrtenname, Austrittsdatum.
 class Mitglied {
   static final DateTime _peoplePlaceholderDate = DateTime(1900, 1, 1);
 
@@ -21,9 +21,7 @@ class Mitglied {
     this.email1,
     this.email2,
     List<Taetigkeit>? taetigkeiten,
-  }) : assert(vorname.isNotEmpty),
-       assert(nachname.isNotEmpty),
-       assert(mitgliedsnummer.isNotEmpty),
+  }) : assert(mitgliedsnummer.isNotEmpty),
        taetigkeiten = List.unmodifiable(taetigkeiten ?? const []);
 
   Mitglied.peopleListItem({
@@ -31,9 +29,7 @@ class Mitglied {
     required this.nachname,
     required this.mitgliedsnummer,
     this.fahrtenname,
-  }) : assert(vorname.isNotEmpty),
-       assert(nachname.isNotEmpty),
-       assert(mitgliedsnummer.isNotEmpty),
+  }) : assert(mitgliedsnummer.isNotEmpty),
        geburtsdatum = _peoplePlaceholderDate,
        eintrittsdatum = _peoplePlaceholderDate,
        austrittsdatum = null,

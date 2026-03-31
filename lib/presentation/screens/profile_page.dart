@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../domain/arbeitskontext/arbeitskontext.dart';
 import '../../domain/auth/auth_profile.dart';
 import '../../domain/auth/auth_state.dart';
 import '../../l10n/app_localizations.dart';
+import '../model/arbeitskontext_model.dart';
 import '../model/auth_session_model.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -23,44 +25,265 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
+  Future<void> _openLayerSwitcher(
+    BuildContext context, {
+    required AuthSessionModel authModel,
+    required ArbeitskontextModel arbeitskontextModel,
+  }) async {
+    final arbeitskontext = arbeitskontextModel.arbeitskontext;
+    if (arbeitskontext == null || arbeitskontext.verfuegbareLayer.isEmpty) {
+      return;
+    }
+
+    final selectedLayer = await showModalBottomSheet<ArbeitskontextLayer>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) =>
+          _LayerSwitcherSheet(arbeitskontext: arbeitskontext),
+    );
+
+    if (!mounted || selectedLayer == null) {
+      return;
+    }
+
+    await arbeitskontextModel.switchToLayer(
+      targetLayer: selectedLayer,
+      session: authModel.session,
+      profile: authModel.profile,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
 
-    return Consumer<AuthSessionModel>(
-      builder: (context, authModel, _) {
+    return Consumer2<AuthSessionModel, ArbeitskontextModel>(
+      builder: (context, authModel, arbeitskontextModel, _) {
         final profile = authModel.profile;
 
         return Scaffold(
           appBar: AppBar(title: Text(t.t('profile'))),
-          body: ListView(
-            padding: const EdgeInsets.all(16),
+          body: Stack(
             children: [
-              if (profile != null) ...[
-                _ProfileHeader(profile: profile),
-                const SizedBox(height: 8),
-                _ProfileInfoCard(profile: profile),
-                const SizedBox(height: 8),
-                _ProfileRolesCard(profile: profile),
-                const SizedBox(height: 8),
-              ] else ...[
-                _ProfilePlaceholder(
-                  isLoading: authModel.isLoadingProfile,
-                  errorMessage: authModel.errorMessage,
-                ),
-                const SizedBox(height: 8),
-              ],
-              _ProfileStatusCard(authModel: authModel),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: authModel.session != null ? authModel.logout : null,
-                icon: const Icon(Icons.logout),
-                label: Text(t.t('logout')),
+              ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  if (profile != null) ...[
+                    _ProfileHeader(profile: profile),
+                    const SizedBox(height: 8),
+                    _ProfileInfoCard(profile: profile),
+                    const SizedBox(height: 8),
+                  ] else ...[
+                    _ProfilePlaceholder(
+                      isLoading: authModel.isLoadingProfile,
+                      errorMessage: authModel.errorMessage,
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  _ArbeitskontextCard(
+                    arbeitskontextModel: arbeitskontextModel,
+                    onOpenLayerSwitcher: arbeitskontextModel.isSwitchingLayer
+                        ? null
+                        : () => _openLayerSwitcher(
+                            context,
+                            authModel: authModel,
+                            arbeitskontextModel: arbeitskontextModel,
+                          ),
+                  ),
+                  const SizedBox(height: 8),
+                  if (profile != null) ...[
+                    _ProfileRolesCard(profile: profile),
+                    const SizedBox(height: 8),
+                  ],
+                  _ProfileStatusCard(authModel: authModel),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: authModel.session != null
+                        ? authModel.logout
+                        : null,
+                    icon: const Icon(Icons.logout),
+                    label: Text(t.t('logout')),
+                  ),
+                ],
               ),
+              if (arbeitskontextModel.isSwitchingLayer)
+                const _ProfileLoadingOverlay(),
             ],
           ),
         );
       },
+    );
+  }
+}
+
+class _ArbeitskontextCard extends StatelessWidget {
+  const _ArbeitskontextCard({
+    required this.arbeitskontextModel,
+    required this.onOpenLayerSwitcher,
+  });
+
+  final ArbeitskontextModel arbeitskontextModel;
+  final VoidCallback? onOpenLayerSwitcher;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final arbeitskontext = arbeitskontextModel.arbeitskontext;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              t.t('profile_context_title'),
+              style: theme.textTheme.titleLarge,
+            ),
+            const SizedBox(height: 12),
+            if (arbeitskontextModel.isLoading && arbeitskontext == null) ...[
+              const Center(child: CircularProgressIndicator()),
+              const SizedBox(height: 12),
+              Text(t.t('profile_context_loading')),
+            ] else if (arbeitskontext != null) ...[
+              _InfoTile(
+                icon: Icons.account_tree_outlined,
+                label: t.t('profile_context_current_layer_label'),
+                value: arbeitskontext.aktiverLayer.name,
+              ),
+              if (arbeitskontextModel.errorMessage != null &&
+                  arbeitskontextModel.errorMessage!.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  arbeitskontextModel.errorMessage!,
+                  style: TextStyle(color: theme.colorScheme.error),
+                ),
+              ],
+              const SizedBox(height: 12),
+              if (arbeitskontext.verfuegbareLayer.isNotEmpty)
+                FilledButton.icon(
+                  onPressed: onOpenLayerSwitcher,
+                  icon: const Icon(Icons.swap_horiz),
+                  label: Text(t.t('profile_context_switch_action')),
+                )
+              else
+                Text(
+                  t.t('profile_context_no_other_layers'),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+            ] else ...[
+              Text(t.t('profile_context_unavailable')),
+              if (arbeitskontextModel.errorMessage != null &&
+                  arbeitskontextModel.errorMessage!.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  arbeitskontextModel.errorMessage!,
+                  style: TextStyle(color: theme.colorScheme.error),
+                ),
+              ],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LayerSwitcherSheet extends StatelessWidget {
+  const _LayerSwitcherSheet({required this.arbeitskontext});
+
+  final Arbeitskontext arbeitskontext;
+  static const _layerListKey = ValueKey('layer_switcher_list');
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final maxSheetHeight = MediaQuery.sizeOf(context).height * 0.8;
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maxSheetHeight),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                t.t('profile_context_sheet_title'),
+                style: theme.textTheme.titleLarge,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                t.t('profile_context_sheet_hint'),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 12),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.check_circle_outline),
+                title: Text(arbeitskontext.aktiverLayer.name),
+                subtitle: Text(t.t('profile_context_current_badge')),
+                trailing: const Icon(Icons.radio_button_checked),
+              ),
+              const Divider(),
+              Flexible(
+                fit: FlexFit.loose,
+                child: ListView.separated(
+                  key: _layerListKey,
+                  shrinkWrap: true,
+                  itemCount: arbeitskontext.verfuegbareLayer.length,
+                  itemBuilder: (context, index) {
+                    final layer = arbeitskontext.verfuegbareLayer[index];
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.account_tree_outlined),
+                      title: Text(layer.name),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => Navigator.of(context).pop(layer),
+                    );
+                  },
+                  separatorBuilder: (_, _) => const Divider(height: 1),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileLoadingOverlay extends StatelessWidget {
+  const _ProfileLoadingOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+
+    return ColoredBox(
+      color: Colors.black54,
+      child: Center(
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                Text(t.t('profile_context_switch_loading')),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

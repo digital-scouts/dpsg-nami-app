@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../domain/member/mitglied.dart';
 import '../../l10n/app_localizations.dart';
+import '../model/arbeitskontext_model.dart';
 import '../model/auth_session_model.dart';
-import '../model/member_people_model.dart';
 
 class MemberPeoplePage extends StatefulWidget {
   const MemberPeoplePage({super.key});
@@ -13,126 +14,104 @@ class MemberPeoplePage extends StatefulWidget {
 }
 
 class _MemberPeoplePageState extends State<MemberPeoplePage> {
-  int? _lastShownRefreshFailureCount;
+  String? _lastShownIssueKey;
 
-  @override
-  void initState() {
-    super.initState();
-    _lastShownRefreshFailureCount = context
-        .read<MemberPeopleModel>()
-        .refreshFailureCount;
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final authModel = context.read<AuthSessionModel>();
-      final session = authModel.session;
-      final peopleModel = context.read<MemberPeopleModel>();
-      final shouldRefreshRemotely = authModel.isRefreshAttemptDue;
-      if (shouldRefreshRemotely) {
-        await authModel.markSensitiveDataSyncAttempted();
-      }
-      await peopleModel.load(
-        accessToken: session?.accessToken,
-        refreshRemotely: shouldRefreshRemotely,
-      );
+  String _buildAvatarLabel(Mitglied member) {
+    final trimmedVorname = member.vorname.trim();
+    if (trimmedVorname.isNotEmpty) {
+      return trimmedVorname.characters.first.toUpperCase();
+    }
 
-      if (!mounted) {
-        return;
-      }
+    final trimmedNachname = member.nachname.trim();
+    if (trimmedNachname.isNotEmpty) {
+      return trimmedNachname.characters.first.toUpperCase();
+    }
 
-      if (peopleModel.lastRemoteRefreshSucceeded) {
-        await authModel.markSensitiveDataSynced();
-        authModel.clearRemoteDataIssue();
-        return;
-      }
-
-      final errorMessage = peopleModel.errorMessage;
-      if (errorMessage != null && errorMessage != 'login_required') {
-        authModel.reportRemoteDataIssue(
-          errorMessage,
-          requiresInteractiveLogin: _looksUnauthorized(errorMessage),
-        );
-      }
-    });
+    return '?';
   }
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final authModel = context.watch<AuthSessionModel>();
+    final arbeitskontextModel = context.watch<ArbeitskontextModel>();
+    final members =
+        arbeitskontextModel.readModel?.mitglieder ?? const <Mitglied>[];
 
-    return Consumer<MemberPeopleModel>(
-      builder: (context, peopleModel, _) {
-        _scheduleIssueSnackbar(context, t, peopleModel);
-        return Scaffold(
-          appBar: AppBar(title: Text(t.t('nav_members'))),
-          body: Column(
-            children: [
-              if (peopleModel.isRefreshing)
-                const LinearProgressIndicator(minHeight: 2),
-              Expanded(
-                child: _buildBody(
-                  context,
-                  t,
-                  authModel: authModel,
-                  peopleModel: peopleModel,
-                ),
-              ),
-            ],
+    _scheduleIssueSnackbar(context, t, authModel);
+
+    return Scaffold(
+      appBar: AppBar(title: Text(t.t('nav_members'))),
+      body: Column(
+        children: [
+          if (authModel.isSyncingHitobitoData || arbeitskontextModel.isLoading)
+            const LinearProgressIndicator(minHeight: 2),
+          Expanded(
+            child: _buildBody(
+              context,
+              t,
+              authModel: authModel,
+              arbeitskontextModel: arbeitskontextModel,
+              members: members,
+            ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
   void _scheduleIssueSnackbar(
     BuildContext context,
     AppLocalizations t,
-    MemberPeopleModel peopleModel,
+    AuthSessionModel authModel,
   ) {
-    final shownCount = _lastShownRefreshFailureCount ?? 0;
-    if (peopleModel.refreshFailureCount <= shownCount) {
+    final issueMessage = authModel.remoteAccessIssueMessage;
+    if (issueMessage == null || issueMessage.isEmpty) {
       return;
     }
 
-    _lastShownRefreshFailureCount = peopleModel.refreshFailureCount;
+    final issueKey = '${authModel.requiresInteractiveLogin}|$issueMessage';
+    if (_lastShownIssueKey == issueKey) {
+      return;
+    }
+
+    _lastShownIssueKey = issueKey;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
       }
 
-      final issueKey = context.read<AuthSessionModel>().requiresInteractiveLogin
+      final snackbarKey =
+          context.read<AuthSessionModel>().requiresInteractiveLogin
           ? 'members_sync_issue_relogin'
           : 'members_sync_issue_cached';
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(t.t(issueKey))));
+        ..showSnackBar(SnackBar(content: Text(t.t(snackbarKey))));
     });
-  }
-
-  bool _looksUnauthorized(String message) {
-    return message.contains('(401)') || message.contains('401');
   }
 
   Widget _buildBody(
     BuildContext context,
     AppLocalizations t, {
     required AuthSessionModel authModel,
-    required MemberPeopleModel peopleModel,
+    required ArbeitskontextModel arbeitskontextModel,
+    required List<Mitglied> members,
   }) {
-    if (peopleModel.isLoading && peopleModel.members.isEmpty) {
+    if ((arbeitskontextModel.isLoading || authModel.isSyncingHitobitoData) &&
+        members.isEmpty) {
       return Center(child: Text(t.t('members_loading')));
     }
 
-    if (peopleModel.members.isNotEmpty) {
+    if (members.isNotEmpty) {
       return ListView.separated(
         padding: const EdgeInsets.all(16),
-        itemCount: peopleModel.members.length,
+        itemCount: members.length,
         separatorBuilder: (context, index) => const Divider(height: 1),
         itemBuilder: (context, index) {
-          final member = peopleModel.members[index];
+          final member = members[index];
           return ListTile(
-            leading: CircleAvatar(
-              child: Text(member.vorname.characters.first.toUpperCase()),
-            ),
+            leading: CircleAvatar(child: Text(_buildAvatarLabel(member))),
             title: Text(member.fullName),
           );
         },
@@ -143,16 +122,19 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
       return Center(child: Text(t.t('members_login_required')));
     }
 
+    if (arbeitskontextModel.hasError || authModel.hasRemoteAccessIssue) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(t.t('members_error'), textAlign: TextAlign.center),
+        ),
+      );
+    }
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: Text(
-          peopleModel.errorMessage != null &&
-                  peopleModel.errorMessage != 'login_required'
-              ? t.t('members_error')
-              : t.t('members_empty'),
-          textAlign: TextAlign.center,
-        ),
+        child: Text(t.t('members_empty'), textAlign: TextAlign.center),
       ),
     );
   }

@@ -45,6 +45,7 @@ void main() {
           '''
         {
           "id": 34,
+          "primary_group_id": 1,
           "email": "julia@example.com",
           "first_name": "Julia",
           "last_name": "Keller",
@@ -94,6 +95,7 @@ void main() {
       expect(requestHeaders['Authorization'], 'Bearer token-123');
       expect(requestHeaders['X-Scope'], 'with_roles');
       expect(profile.namiId, 34);
+      expect(profile.primaryGroupId, 1);
       expect(profile.email, 'julia@example.com');
       expect(profile.primaryDisplayName, 'Polka');
       expect(profile.secondaryDisplayName, 'Julia Keller');

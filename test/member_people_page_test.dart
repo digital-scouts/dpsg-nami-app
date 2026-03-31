@@ -1,22 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nami/data/arbeitskontext/hitobito_group_resource.dart';
+import 'package:nami/domain/arbeitskontext/arbeitskontext.dart';
+import 'package:nami/domain/arbeitskontext/arbeitskontext_local_repository.dart';
+import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model.dart';
+import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model_repository.dart';
+import 'package:nami/domain/arbeitskontext/usecases/bestimme_startkontext_usecase.dart';
 import 'package:nami/domain/auth/auth_profile.dart';
 import 'package:nami/domain/auth/auth_profile_repository.dart';
 import 'package:nami/domain/auth/auth_session.dart';
 import 'package:nami/domain/auth/auth_session_repository.dart';
-import 'package:nami/domain/member/member_people_repository.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/settings/app_settings.dart';
 import 'package:nami/domain/settings/app_settings_repository.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/l10n/app_localizations.dart';
+import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
-import 'package:nami/presentation/model/member_people_model.dart';
 import 'package:nami/presentation/screens/member_people_page.dart';
 import 'package:nami/services/biometric_lock_service.dart';
 import 'package:nami/services/hitobito_auth_env.dart';
 import 'package:nami/services/hitobito_data_retention_policy.dart';
+import 'package:nami/services/hitobito_groups_service.dart';
 import 'package:nami/services/hitobito_oauth_service.dart';
 import 'package:nami/services/logger_service.dart';
 import 'package:nami/services/sensitive_storage_service.dart';
@@ -24,133 +30,62 @@ import 'package:provider/provider.dart';
 
 void main() {
   testWidgets(
-    'zeigt lokal geladene Mitgliederliste an',
+    'zeigt lokal geladenen Mitgliederbestand des Arbeitskontexts an',
     (tester) async {
-      final oauthService = _FakeOauthService();
-      final authModel = AuthSessionModel(
-        repository: _InMemoryAuthSessionRepository(),
-        profileRepository: _InMemoryAuthProfileRepository(),
-        oauthService: oauthService,
-        biometricLockService: _FakeBiometricLockService(),
-        sensitiveStorageService: _FakeSensitiveStorageService(),
-        retentionPolicy: HitobitoDataRetentionPolicy(
-          maxDataAge: const Duration(days: 90),
-          refreshInterval: const Duration(hours: 24),
-        ),
-        logger: _FakeLoggerService(),
-      );
-      final repository = _FakeMemberPeopleRepository(
-        cached: <Mitglied>[
+      final authModel = await _createSignedInAuthModel();
+      final arbeitskontextModel = await _createArbeitskontextModel(
+        mitglieder: <Mitglied>[
           Mitglied.peopleListItem(
             mitgliedsnummer: '1',
             vorname: 'Julia',
             nachname: 'Keller',
           ),
-        ],
-        refreshed: <Mitglied>[
           Mitglied.peopleListItem(
             mitgliedsnummer: '2',
             vorname: 'Max',
             nachname: 'Mustermann',
           ),
         ],
-        refreshDelay: const Duration(milliseconds: 10),
+        authModel: authModel,
       );
-      final peopleModel = MemberPeopleModel(
-        repository: repository,
-        logger: _FakeLoggerService(),
-      );
-
-      await authModel.signIn();
 
       await tester.pumpWidget(
-        MultiProvider(
-          providers: [
-            ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
-            ChangeNotifierProvider<MemberPeopleModel>.value(value: peopleModel),
-          ],
-          child: MaterialApp(
-            localizationsDelegates: [
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-              AppLocalizations.delegate,
-            ],
-            supportedLocales: const [Locale('de'), Locale('en')],
-            locale: const Locale('de'),
-            home: const MemberPeoplePage(),
-          ),
+        _buildTestApp(
+          authModel: authModel,
+          arbeitskontextModel: arbeitskontextModel,
         ),
       );
 
-      await tester.pump();
       await tester.pump();
 
       expect(find.text('Julia Keller'), findsOneWidget);
-
-      await tester.pump(const Duration(milliseconds: 20));
-
       expect(find.text('Max Mustermann'), findsOneWidget);
-      expect(repository.lastRefreshAccessToken, 'token-refreshed');
     },
-    timeout: const Timeout(Duration(seconds: 3)),
   );
 
   testWidgets(
-    'zeigt Snackbar bei fehlgeschlagenem Refresh und belaesst lokale Daten sichtbar',
+    'zeigt Snackbar bei vorhandenem Remote-Issue und belaesst lokale Daten sichtbar',
     (tester) async {
-      final oauthService = _FakeOauthService();
-      final authModel = AuthSessionModel(
-        repository: _InMemoryAuthSessionRepository(),
-        profileRepository: _InMemoryAuthProfileRepository(),
-        oauthService: oauthService,
-        biometricLockService: _FakeBiometricLockService(),
-        sensitiveStorageService: _FakeSensitiveStorageService(),
-        retentionPolicy: HitobitoDataRetentionPolicy(
-          maxDataAge: const Duration(days: 90),
-          refreshInterval: const Duration(hours: 24),
-        ),
-        logger: _FakeLoggerService(),
-      );
-      final repository = _FakeMemberPeopleRepository(
-        cached: <Mitglied>[
+      final authModel = await _createSignedInAuthModel();
+      final arbeitskontextModel = await _createArbeitskontextModel(
+        mitglieder: <Mitglied>[
           Mitglied.peopleListItem(
             mitgliedsnummer: '1',
             vorname: 'Julia',
             nachname: 'Keller',
           ),
         ],
-        refreshed: const <Mitglied>[],
-        refreshError: Exception('offline'),
+        authModel: authModel,
       );
-      final peopleModel = MemberPeopleModel(
-        repository: repository,
-        logger: _FakeLoggerService(),
-      );
-
-      await authModel.signIn();
+      authModel.reportRemoteDataIssue('offline');
 
       await tester.pumpWidget(
-        MultiProvider(
-          providers: [
-            ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
-            ChangeNotifierProvider<MemberPeopleModel>.value(value: peopleModel),
-          ],
-          child: MaterialApp(
-            localizationsDelegates: [
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-              AppLocalizations.delegate,
-            ],
-            supportedLocales: const [Locale('de'), Locale('en')],
-            locale: const Locale('de'),
-            home: const MemberPeoplePage(),
-          ),
+        _buildTestApp(
+          authModel: authModel,
+          arbeitskontextModel: arbeitskontextModel,
         ),
       );
 
-      await tester.pump();
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
@@ -161,73 +96,203 @@ void main() {
         ),
         findsOneWidget,
       );
-
-      await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pump();
-
-      await tester.pumpWidget(
-        MultiProvider(
-          providers: [
-            ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
-            ChangeNotifierProvider<MemberPeopleModel>.value(value: peopleModel),
-          ],
-          child: MaterialApp(
-            localizationsDelegates: [
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-              AppLocalizations.delegate,
-            ],
-            supportedLocales: const [Locale('de'), Locale('en')],
-            locale: const Locale('de'),
-            home: const MemberPeoplePage(),
-          ),
-        ),
-      );
-
-      await tester.pump();
-      await tester.pump();
-
-      expect(
-        find.text(
-          'Hitobito-Daten konnten nicht aktualisiert werden. Es werden lokale Daten angezeigt.',
-        ),
-        findsNothing,
-      );
     },
-    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  testWidgets('zeigt bei leerem Vor- und Nachnamen einen Avatar-Fallback', (
+    tester,
+  ) async {
+    final authModel = await _createSignedInAuthModel();
+    final arbeitskontextModel = await _createArbeitskontextModel(
+      mitglieder: <Mitglied>[
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '3',
+          vorname: '',
+          nachname: '',
+        ),
+      ],
+      authModel: authModel,
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        authModel: authModel,
+        arbeitskontextModel: arbeitskontextModel,
+      ),
+    );
+
+    await tester.pump();
+
+    expect(find.byType(CircleAvatar), findsOneWidget);
+    expect(find.text('?'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('zeigt Login-Hinweis ohne Session und ohne Kontextdaten', (
+    tester,
+  ) async {
+    final authModel = AuthSessionModel(
+      repository: _InMemoryAuthSessionRepository(),
+      profileRepository: _InMemoryAuthProfileRepository(),
+      oauthService: _FakeOauthService(),
+      biometricLockService: _FakeBiometricLockService(),
+      sensitiveStorageService: _FakeSensitiveStorageService(),
+      retentionPolicy: HitobitoDataRetentionPolicy(
+        maxDataAge: const Duration(days: 90),
+        refreshInterval: const Duration(hours: 24),
+      ),
+      logger: _FakeLoggerService(),
+    );
+    final arbeitskontextModel = ArbeitskontextModel(
+      localRepository: _FakeArbeitskontextLocalRepository(),
+      readModelRepository: _FakeArbeitskontextReadModelRepository(),
+      groupsService: _FakeHitobitoGroupsService(),
+      bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+      logger: _FakeLoggerService(),
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        authModel: authModel,
+        arbeitskontextModel: arbeitskontextModel,
+      ),
+    );
+
+    await tester.pump();
+
+    expect(
+      find.text('Melde dich an, um Mitglieder aus Hitobito zu laden.'),
+      findsOneWidget,
+    );
+  });
+}
+
+Widget _buildTestApp({
+  required AuthSessionModel authModel,
+  required ArbeitskontextModel arbeitskontextModel,
+}) {
+  return MultiProvider(
+    providers: [
+      ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
+      ChangeNotifierProvider<ArbeitskontextModel>.value(
+        value: arbeitskontextModel,
+      ),
+    ],
+    child: MaterialApp(
+      localizationsDelegates: [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        AppLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('de'), Locale('en')],
+      locale: const Locale('de'),
+      home: const MemberPeoplePage(),
+    ),
   );
 }
 
-class _FakeMemberPeopleRepository implements MemberPeopleRepository {
-  _FakeMemberPeopleRepository({
-    required this.cached,
-    required this.refreshed,
-    this.refreshDelay = Duration.zero,
-    this.refreshError,
-  });
+Future<AuthSessionModel> _createSignedInAuthModel() async {
+  final authModel = AuthSessionModel(
+    repository: _InMemoryAuthSessionRepository(),
+    profileRepository: _InMemoryAuthProfileRepository(),
+    oauthService: _FakeOauthService(),
+    biometricLockService: _FakeBiometricLockService(),
+    sensitiveStorageService: _FakeSensitiveStorageService(),
+    retentionPolicy: HitobitoDataRetentionPolicy(
+      maxDataAge: const Duration(days: 90),
+      refreshInterval: const Duration(hours: 24),
+    ),
+    logger: _FakeLoggerService(),
+  );
+  await authModel.signIn();
+  return authModel;
+}
 
-  final List<Mitglied> cached;
-  final List<Mitglied> refreshed;
-  final Duration refreshDelay;
-  final Object? refreshError;
-  String? lastRefreshAccessToken;
+Future<ArbeitskontextModel> _createArbeitskontextModel({
+  required List<Mitglied> mitglieder,
+  required AuthSessionModel authModel,
+}) async {
+  final model = ArbeitskontextModel(
+    localRepository: _FakeArbeitskontextLocalRepository(
+      cached: ArbeitskontextReadModel(
+        arbeitskontext: Arbeitskontext(
+          aktiverLayer: const ArbeitskontextLayer(
+            id: 11,
+            name: 'Stamm Musterdorf',
+          ),
+        ),
+        mitglieder: mitglieder,
+      ),
+    ),
+    readModelRepository: _FakeArbeitskontextReadModelRepository(),
+    groupsService: _FakeHitobitoGroupsService(),
+    bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+    logger: _FakeLoggerService(),
+  );
+
+  await model.syncForAuth(
+    authState: authModel.state,
+    session: authModel.session,
+    profile: authModel.profile,
+  );
+
+  return model;
+}
+
+class _FakeArbeitskontextLocalRepository
+    implements ArbeitskontextLocalRepository {
+  _FakeArbeitskontextLocalRepository({this.cached});
+
+  final ArbeitskontextReadModel? cached;
 
   @override
-  Future<List<Mitglied>> loadCached() async => cached;
+  Future<void> clearCached() async {}
 
   @override
-  Future<List<Mitglied>> refresh(String accessToken) async {
-    lastRefreshAccessToken = accessToken;
-    if (refreshDelay > Duration.zero) {
-      await Future<void>.delayed(refreshDelay);
-    }
-    final error = refreshError;
-    if (error != null) {
-      throw error;
-    }
-    return refreshed;
+  Future<ArbeitskontextReadModel?> loadLastCached() async => cached;
+
+  @override
+  Future<void> saveCached(ArbeitskontextReadModel readModel) async {}
+}
+
+class _FakeArbeitskontextReadModelRepository
+    implements ArbeitskontextReadModelRepository {
+  @override
+  Future<ArbeitskontextReadModel> loadCached(
+    Arbeitskontext arbeitskontext,
+  ) async {
+    return ArbeitskontextReadModel(arbeitskontext: arbeitskontext);
   }
+
+  @override
+  Future<ArbeitskontextReadModel> refresh({
+    required String accessToken,
+    required Arbeitskontext arbeitskontext,
+  }) async {
+    return ArbeitskontextReadModel(arbeitskontext: arbeitskontext);
+  }
+}
+
+class _FakeHitobitoGroupsService extends HitobitoGroupsService {
+  _FakeHitobitoGroupsService()
+    : super(
+        config: const HitobitoAuthConfig(
+          clientId: 'client',
+          clientSecret: 'secret',
+          authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
+          tokenUrl: 'https://demo.hitobito.com/oauth/token',
+          redirectUri: 'de.jlange.nami.app:/oauth/callback',
+          scopeString: 'openid email api',
+          discoveryUrl: '',
+          profileUrl: 'https://demo.hitobito.com/oauth/profile',
+        ),
+      );
+
+  @override
+  Future<List<HitobitoGroupResource>> fetchAccessibleGroups(
+    String accessToken,
+  ) async => const <HitobitoGroupResource>[];
 }
 
 class _InMemoryAuthProfileRepository implements AuthProfileRepository {

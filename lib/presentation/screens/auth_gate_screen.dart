@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../domain/auth/auth_state.dart';
 import '../../l10n/app_localizations.dart';
+import '../model/arbeitskontext_model.dart';
 import '../model/auth_session_model.dart';
 import '../navigation/navigation_home.page.dart';
 
@@ -11,8 +12,8 @@ class AuthGateScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AuthSessionModel>(
-      builder: (context, authModel, _) {
+    return Consumer2<AuthSessionModel, ArbeitskontextModel>(
+      builder: (context, authModel, arbeitskontextModel, _) {
         switch (authModel.state) {
           case AuthState.initializing:
           case AuthState.authenticating:
@@ -52,6 +53,42 @@ class AuthGateScreen extends StatelessWidget {
             );
           case AuthState.unlockRequired:
           case AuthState.signedIn:
+            if (arbeitskontextModel.status == ArbeitskontextStatus.initial ||
+                arbeitskontextModel.isLoading) {
+              return const _AuthInfoScaffold(
+                title: 'Arbeitskontext wird geladen',
+                message:
+                    'Der aktive Arbeitskontext wird initialisiert. Danach stehen die kontextgebundenen Funktionen zur Verfuegung.',
+                child: CircularProgressIndicator(),
+              );
+            }
+            if (arbeitskontextModel.isUnauthorized) {
+              return _AuthInfoScaffold(
+                title: ArbeitskontextModel.unauthorizedMessage,
+                message:
+                    'Melde dich mit einem Konto an, das mindestens ein relevantes Layer- oder Gruppenrecht besitzt.',
+                errorMessage: arbeitskontextModel.errorMessage,
+                child: FilledButton.icon(
+                  onPressed: authModel.logout,
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Abmelden'),
+                ),
+              );
+            }
+            if (arbeitskontextModel.hasError) {
+              return _AuthInfoScaffold(
+                title: 'Arbeitskontext konnte nicht initialisiert werden',
+                message:
+                    'Der App-Start konnte keinen gueltigen Arbeitskontext herstellen.',
+                errorMessage: arbeitskontextModel.errorMessage,
+                child: FilledButton.icon(
+                  onPressed: () => arbeitskontextModel.retry(authModel.profile),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Erneut versuchen'),
+                ),
+              );
+            }
+
             return const NavigationHomeScreen();
         }
       },

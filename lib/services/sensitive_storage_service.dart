@@ -19,10 +19,11 @@ class SensitiveStorageService {
 
   static const List<String> sensitiveBoxNames = <String>[
     secureMetaBoxName,
+    'hitobito_arbeitskontext_box',
     'hitobito_profile_box',
-    'hitobito_people_box',
     'hitobito_roles_box',
     'hitobito_mailing_lists_box',
+    'hitobito_people_box',
   ];
   static final Map<String, Future<Box<String>>> _openingStringBoxes =
       <String, Future<Box<String>>>{};

@@ -2,7 +2,7 @@
 
 ## Zweck
 
-Dieses Dokument hält die fachliche App-Konzeption für Hitobito vor der Implementierung fest. Es soll als Grundlage für spätere Tickets, Detailentscheidungen und UX-Abstimmungen dienen.
+Dieses Dokument hält die fachliche App-Konzeption für Hitobito fest. Es dient als Grundlage für umgesetzte und weitere Tickets, Detailentscheidungen und UX-Abstimmungen.
 
 ## Ausgangslage
 
@@ -20,6 +20,7 @@ Dieses Dokument hält die fachliche App-Konzeption für Hitobito vor der Impleme
 - `primary_group` ist die vorhandene primäre Gruppenzuordnung der Person und dient in der App als Default für den Startkontext.
 - Ein Layer kann Nicht-Layer-Gruppen wie Vorstände, Arbeitskreise oder Stufen-Gruppen enthalten.
 - Unterlayer sind eigenständige Layer im Baum und nicht automatisch Teil desselben mobilen Arbeitsraums.
+- Technische Sichtbarkeit eines Layers in Hitobito ist nicht automatisch gleichbedeutend mit fachlicher Relevanz dieses Layers für die App.
 
 ## Begriffe
 
@@ -29,8 +30,8 @@ Ein Arbeitskontext ist der aktuell aktive Layer in der App.
 
 Er umfasst:
 
-- alle Mitglieder dieses Layers
-- alle zu diesem Layer gehörenden Nicht-Layer-Gruppen als Struktur- und Filterbasis
+- den für den aktuellen Nutzer aus Hitobito lesbar verfügbaren Personenbestand dieses Layers
+- die für den aktuellen Nutzer aus Hitobito lesbar verfügbaren Nicht-Layer-Gruppen dieses Layers als Struktur- und Filterbasis
 
 Er umfasst nicht automatisch:
 
@@ -47,9 +48,17 @@ Eine Teilmenge ist eine eingeschränkte Sicht innerhalb des aktuellen Arbeitskon
 
 Teilmengen ändern nie den Arbeitskontext selbst.
 
+### Relevanter Layer
+
+Ein relevanter Layer ist ein Layer, den die App dem Nutzer überhaupt als möglichen Arbeitskontext anbietet.
+
+Relevante Layer werden nicht aus allen technisch sichtbaren Layern übernommen, sondern aus den eigenen Rollen und deren arbeitskontextrelevanten Rechten abgeleitet.
+
+Zusatzrechte wie `contact_data` können die technische Sichtbarkeit anderer Personen oder Gruppen vergrößern, machen diese Layer aber nicht automatisch zu angebotenen Arbeitskontexten.
+
 ### Kontextwechsel
 
-Ein Kontextwechsel ist der bewusste Wechsel von einem Layer in einen anderen Layer, auf den die Person ebenfalls Zugriff hat.
+Ein Kontextwechsel ist der bewusste Wechsel von einem Layer in einen anderen relevanten Layer, den die App der Person anbietet.
 
 ## Zielbild
 
@@ -69,6 +78,25 @@ Die App arbeitet immer in genau einem aktiven Arbeitskontext. Alle Seiten der Ap
 - Nicht-Layer-Gruppen dienen primär als Filter, Teilmengen oder spätere Vorlagen für persönliche Dashboards.
 - Die Mitgliedsliste zeigt ohne Filter alle Mitglieder des aktiven Arbeitskontexts.
 - Gruppenfilter schränken diese Menge nur ein.
+- Sonstige Gruppen sind im MVP keine vordefinierten Hauptfilter, können aber später in benutzerdefinierten Filtern genutzt werden.
+
+### 2a. Rechte verkleinern die sichtbare Teilmenge
+
+- Hitobito bleibt die Quelle der Wahrheit dafür, welche Personen und Gruppen ein Nutzer lesen darf.
+- Der Arbeitskontext bleibt trotzdem derselbe Layer, auch wenn der sichtbare Bestand darin durch Rechte stark eingeschränkt ist.
+- Die App modelliert im MVP kein eigenes zusätzliches Rechte-System, sondern arbeitet mit dem lesbar aus Hitobito geladenen Bestand.
+- Für die App macht es daher fachlich keinen Unterschied, ob ein Layer von Haus aus klein ist oder durch Rechte nur als kleiner Ausschnitt sichtbar wird.
+
+### 2b. Relevante Layer werden aus eigenen Rollen abgeleitet
+
+- Die App unterscheidet zwischen technisch sichtbaren Layern und fachlich relevanten Layern.
+- Fachlich relevant sind nur Layer, die sich aus eigenen Rollen des angemeldeten Nutzers mit arbeitskontextrelevanten Lese- oder Schreibrechten herleiten lassen.
+- `layer_read` und `layer_full` machen genau den zugehörigen Layer relevant.
+- `layer_and_below_read` und `layer_and_below_full` machen den zugehörigen Layer und alle darunterliegenden Layer relevant.
+- Gruppenrechte wie `group_read`, `group_and_below_read` oder `group_and_below_full` machen den zugehörigen Layer relevant, vergrößern aber primär die sichtbare Teilmenge innerhalb dieses Layers und nicht automatisch die Menge angebotener Layer.
+- `contact_data`, Finanz- oder Antragsrechte sind für sich allein keine Grundlage für einen angebotenen Arbeitskontext.
+- Rollen mit `admin` oder `impersonation` werden für den normalen App-Fall zunächst nicht als eigener Produktpfad modelliert.
+- Hat eine Person kein arbeitskontextrelevantes Layer- oder Gruppen-Lese- beziehungsweise Schreibrecht, ist die App fachlich nicht für diesen Nutzer vorgesehen.
 
 ### 3. Unterlayer sind eigene Arbeitskontexte
 
@@ -79,8 +107,8 @@ Die App arbeitet immer in genau einem aktiven Arbeitskontext. Alle Seiten der Ap
 
 ### 4. Startkontext
 
-- Der initiale Arbeitskontext wird aus `primary_group` beziehungsweise dem daraus ableitbaren Primary Layer bestimmt.
-- Falls dies ausnahmsweise nicht brauchbar bestimmbar ist, wird der erste verfügbare Layer aus einer stabil sortierten Liste verwendet.
+- Der initiale Arbeitskontext wird aus `primary_group` beziehungsweise dem daraus ableitbaren Primary Layer bestimmt, sofern dieser zu den relevanten Layern der Person gehört.
+- Falls dies ausnahmsweise nicht brauchbar bestimmbar ist, wird der erste relevante Layer aus einer stabil sortierten Liste verwendet.
 - Ein komplexerer Default wie "zuletzt genutzter Kontext" ist vorerst nicht Teil der Konzeption.
 
 ### 5. Offline-Strategie für die erste Ausbaustufe
@@ -96,6 +124,7 @@ Die App arbeitet immer in genau einem aktiven Arbeitskontext. Alle Seiten der Ap
 - Mitgliedslisten zeigen nur Personen des aktiven Arbeitskontexts.
 - Statistiken beziehen sich zunächst nur auf den aktiven Arbeitskontext.
 - Rekursive Statistiken über Unterlayer sind vorerst ausgeschlossen.
+- Sichtbarkeit und Filterung arbeiten dabei immer auf dem für den Nutzer lesbaren Teilbestand des aktiven Layers.
 
 ### 7. Meine Gruppe
 
@@ -105,11 +134,22 @@ Die App arbeitet immer in genau einem aktiven Arbeitskontext. Alle Seiten der Ap
 
 ## Folgen für die Produktlogik
 
+### Stufen und Gruppen
+
+- Hitobito kennt die in der App genutzte Stufenlogik nicht als eigene fachliche Domäne.
+- Für den MVP wird deshalb global im Code gepflegt, welche Hitobito-Gruppe genau einer In-App-Stufe entspricht.
+- Eine Hitobito-Gruppe wird im MVP höchstens genau einer In-App-Stufe zugeordnet.
+- Die Zuordnung bleibt bewusst konfigurierbar, weil noch nicht feststeht, über welches Gruppenattribut sich die Stufen in Hitobito stabil erkennen lassen.
+- Personen werden Gruppen in der App über ihre Rollen zugeordnet. Hat eine Person Rollen in mehreren Gruppen, erscheint sie in mehreren Filtern.
+- Leere Gruppen ohne Personen werden in der Leseansicht nicht angezeigt.
+
 ### Stammleitung
 
 - Für die meisten Nutzer ist der Arbeitskontext identisch mit dem eigenen Stamm.
 - Die App wirkt dadurch weiterhin wie eine Stamm-App.
 - Gruppen innerhalb des Stamms wie Wölflinge oder Jungpfadfinder sind nur Filter auf denselben Kontext.
+- Auch bei eingeschränkten Rechten auf nur Teile des Stammes bleibt der Arbeitskontext fachlich der Stamm-Layer; sichtbar ist dann nur ein kleinerer Ausschnitt.
+- Hat eine Person im Stamm nur gruppenbezogene Rechte, bleibt der Stamm-Layer trotzdem der relevante Arbeitskontext; kleiner wird dann die sichtbare Teilmenge innerhalb dieses Layers.
 
 ### Bezirks-, Diözesan- oder Bundesebene
 
@@ -117,6 +157,13 @@ Die App arbeitet immer in genau einem aktiven Arbeitskontext. Alle Seiten der Ap
 - Er kann eigene Personen enthalten, die keinem darunterliegenden Stammkontext zugeordnet sind.
 - Gleichzeitig kann dieser Kontext als Verteiler dienen, um bewusst in andere Layer zu wechseln.
 - Die App zeigt in diesem Kontext aber weiterhin nur die Personen des aktiven Layers selbst.
+- Werden weitere Layer nur über `contact_data` oder ähnliche Zusatzrechte technisch sichtbar, erscheinen sie nicht als angebotene Arbeitskontexte.
+
+### Leere Layer
+
+- Leere Layer bleiben mögliche Arbeitskontexte.
+- Ein leerer Layer kann fachlich trotzdem relevant sein, etwa für den Aufbau einer neuen Gruppe oder das Anlegen des ersten Mitglieds.
+- Die frühere Hilfsregel "Layer ohne Mitglieder sind nicht relevant" gilt daher nicht mehr.
 
 ## Abgrenzungen
 
@@ -144,21 +191,25 @@ Diese Punkte sind bewusst noch offen und sollen später separat entschieden werd
 - Statistikoptionen für einen Layer plus Unterlayer
 - Rolle von Tags als zusätzliche Teilmengen innerhalb des Arbeitskontexts
 - Rolle persönlicher Auswahlen für "Meine Gruppe"
+- Erweiterung der Stufenzuordnung über das MVP-Modell "eine Gruppe -> eine In-App-Stufe" hinaus
 
 ## Ableitbare Ticket-Schnitte
 
 Aus diesem Dokument lassen sich später unter anderem folgende Ticketbereiche ableiten:
 
 - Modellierung eines `WorkingContext` oder ähnlichen Domain-Konzepts
-- Ableitung des Startkontexts aus `primary_group` und verfügbaren Layern
+- Ableitung relevanter Layer aus Rollen und Rechten
+- Ableitung des Startkontexts aus `primary_group` und relevanten Layern
 - Persistenz und Austausch genau eines lokalen Arbeitskontexts
-- Kontextwechsel-Flow zwischen verfügbaren Layern
+- Kontextwechsel-Flow zwischen relevanten Layern
 - Mitgliedsliste für alle Personen des aktiven Arbeitskontexts
+- Ableitung des lesbaren Teilbestands innerhalb eines Arbeitskontexts aus Hitobito-Rechten
 - Gruppenfilter innerhalb des Arbeitskontexts
+- global konfigurierbare Zuordnung von Hitobito-Gruppen zu In-App-Stufen
 - Kontextgebundene Suche
 - Kontextgebundene Statistiken
 - Grundlagen für einen späteren Ausbau auf mehrere Offline-Arbeitskontexte
 
 ## Kurzfassung
 
-Die App ist kein generischer Hitobito-Baum-Browser. Sie ist ein mobiles Arbeitswerkzeug, das immer in genau einem aktiven Layer arbeitet. Gruppen, Tags und spätere persönliche Auswahlen sind Teilmengen dieses Arbeitskontexts. Höhere Ebenen werden über bewussten Kontextwechsel unterstützt. Offline ist in der ersten Ausbaustufe genau ein Arbeitskontext verfügbar.
+Die App ist kein generischer Hitobito-Baum-Browser. Sie ist ein mobiles Arbeitswerkzeug, das immer in genau einem aktiven Layer arbeitet. Rechte können den sichtbaren Bestand innerhalb dieses Layers verkleinern, ohne den Arbeitskontext zu ändern. Als Arbeitskontexte angeboten werden aber nur die aus eigenen Rollen und arbeitskontextrelevanten Rechten abgeleiteten relevanten Layer. Gruppen, Tags und spätere persönliche Auswahlen sind Teilmengen dieses Arbeitskontexts. Höhere Ebenen werden über bewussten Kontextwechsel unterstützt. Offline ist in der ersten Ausbaustufe genau ein Arbeitskontext verfügbar.

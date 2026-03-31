@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_email_sender/flutter_email_sender.dart';
 import 'package:nami/domain/auth/auth_state.dart';
-import 'package:nami/domain/member/member_people_repository.dart';
 import 'package:nami/main.dart' show navigatorKey;
+import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/screens/changelog_page.dart';
 import 'package:provider/provider.dart';
@@ -37,7 +37,7 @@ class DebugToolsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final logger = Provider.of<LoggerService>(context, listen: false);
     final authModel = context.watch<AuthSessionModel>();
-    final memberPeopleRepository = context.read<MemberPeopleRepository>();
+    final arbeitskontextModel = context.read<ArbeitskontextModel>();
     return Scaffold(
       appBar: AppBar(title: const Text('Debug & Tools')),
       body: Padding(
@@ -140,7 +140,10 @@ class DebugToolsPage extends StatelessWidget {
                   : () async {
                       await authModel.syncHitobitoData(
                         syncMembers: (accessToken) async {
-                          await memberPeopleRepository.refresh(accessToken);
+                          await arbeitskontextModel.refreshFromRemote(
+                            session: authModel.session,
+                            profile: authModel.profile,
+                          );
                         },
                         force: true,
                         trigger: 'debug_tools',
