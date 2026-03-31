@@ -1,21 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:nami/data/arbeitskontext/hitobito_group_resource.dart';
+import 'package:nami/domain/arbeitskontext/arbeitskontext.dart';
+import 'package:nami/domain/arbeitskontext/arbeitskontext_local_repository.dart';
+import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model.dart';
+import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model_repository.dart';
+import 'package:nami/domain/arbeitskontext/usecases/bestimme_startkontext_usecase.dart';
 import 'package:nami/domain/auth/auth_profile.dart';
 import 'package:nami/domain/auth/auth_profile_repository.dart';
 import 'package:nami/domain/auth/auth_session.dart';
 import 'package:nami/domain/auth/auth_session_repository.dart';
-import 'package:nami/domain/member/member_people_repository.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/settings/app_settings.dart';
 import 'package:nami/domain/settings/app_settings_repository.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/l10n/app_localizations.dart';
+import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
-import 'package:nami/presentation/model/member_people_model.dart';
 import 'package:nami/presentation/screens/member_people_page.dart';
 import 'package:nami/services/biometric_lock_service.dart';
 import 'package:nami/services/hitobito_auth_env.dart';
 import 'package:nami/services/hitobito_data_retention_policy.dart';
+import 'package:nami/services/hitobito_groups_service.dart';
 import 'package:nami/services/hitobito_oauth_service.dart';
 import 'package:nami/services/logger_service.dart';
 import 'package:nami/services/sensitive_storage_service.dart';
@@ -58,8 +64,8 @@ class _MemberPeopleStoryShell extends StatefulWidget {
 
 class _MemberPeopleStoryShellState extends State<_MemberPeopleStoryShell> {
   late final AuthSessionModel _authModel;
-  late final MemberPeopleModel _peopleModel;
-  late final Future<void> _signInFuture;
+  late final ArbeitskontextModel _arbeitskontextModel;
+  late final Future<void> _initializeFuture;
 
   @override
   void initState() {
@@ -76,11 +82,33 @@ class _MemberPeopleStoryShellState extends State<_MemberPeopleStoryShell> {
       ),
       logger: _FakeLoggerService(),
     );
-    _peopleModel = MemberPeopleModel(
-      repository: _FakeMemberPeopleRepository(cached: widget.cached),
+    _arbeitskontextModel = ArbeitskontextModel(
+      localRepository: _FakeArbeitskontextLocalRepository(
+        cached: ArbeitskontextReadModel(
+          arbeitskontext: Arbeitskontext(
+            aktiverLayer: const ArbeitskontextLayer(
+              id: 11,
+              name: 'Stamm Musterdorf',
+            ),
+          ),
+          mitglieder: widget.cached,
+        ),
+      ),
+      readModelRepository: _FakeArbeitskontextReadModelRepository(),
+      groupsService: _FakeHitobitoGroupsService(),
+      bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
       logger: _FakeLoggerService(),
     );
-    _signInFuture = _authModel.signIn();
+    _initializeFuture = _initialize();
+  }
+
+  Future<void> _initialize() async {
+    await _authModel.signIn();
+    await _arbeitskontextModel.syncForAuth(
+      authState: _authModel.state,
+      session: _authModel.session,
+      profile: _authModel.profile,
+    );
   }
 
   @override
@@ -88,10 +116,12 @@ class _MemberPeopleStoryShellState extends State<_MemberPeopleStoryShell> {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<AuthSessionModel>.value(value: _authModel),
-        ChangeNotifierProvider<MemberPeopleModel>.value(value: _peopleModel),
+        ChangeNotifierProvider<ArbeitskontextModel>.value(
+          value: _arbeitskontextModel,
+        ),
       ],
       child: FutureBuilder<void>(
-        future: _signInFuture,
+        future: _initializeFuture,
         builder: (context, snapshot) {
           return MaterialApp(
             localizationsDelegates: [
@@ -108,6 +138,61 @@ class _MemberPeopleStoryShellState extends State<_MemberPeopleStoryShell> {
       ),
     );
   }
+}
+
+class _FakeArbeitskontextLocalRepository
+    implements ArbeitskontextLocalRepository {
+  _FakeArbeitskontextLocalRepository({this.cached});
+
+  final ArbeitskontextReadModel? cached;
+
+  @override
+  Future<void> clearCached() async {}
+
+  @override
+  Future<ArbeitskontextReadModel?> loadLastCached() async => cached;
+
+  @override
+  Future<void> saveCached(ArbeitskontextReadModel readModel) async {}
+}
+
+class _FakeArbeitskontextReadModelRepository
+    implements ArbeitskontextReadModelRepository {
+  @override
+  Future<ArbeitskontextReadModel> loadCached(
+    Arbeitskontext arbeitskontext,
+  ) async {
+    return ArbeitskontextReadModel(arbeitskontext: arbeitskontext);
+  }
+
+  @override
+  Future<ArbeitskontextReadModel> refresh({
+    required String accessToken,
+    required Arbeitskontext arbeitskontext,
+  }) async {
+    return ArbeitskontextReadModel(arbeitskontext: arbeitskontext);
+  }
+}
+
+class _FakeHitobitoGroupsService extends HitobitoGroupsService {
+  _FakeHitobitoGroupsService()
+    : super(
+        config: const HitobitoAuthConfig(
+          clientId: 'client',
+          clientSecret: 'secret',
+          authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
+          tokenUrl: 'https://demo.hitobito.com/oauth/token',
+          redirectUri: 'de.jlange.nami.app:/oauth/callback',
+          scopeString: 'openid email api',
+          discoveryUrl: '',
+          profileUrl: 'https://demo.hitobito.com/oauth/profile',
+        ),
+      );
+
+  @override
+  Future<List<HitobitoGroupResource>> fetchAccessibleGroups(
+    String accessToken,
+  ) async => const <HitobitoGroupResource>[];
 }
 
 class _InMemoryAuthProfileRepository implements AuthProfileRepository {
@@ -135,18 +220,6 @@ class _InMemoryAuthProfileRepository implements AuthProfileRepository {
   Future<void> saveLastSyncAt(DateTime timestamp) async {
     _lastSyncAt = timestamp;
   }
-}
-
-class _FakeMemberPeopleRepository implements MemberPeopleRepository {
-  _FakeMemberPeopleRepository({required this.cached});
-
-  final List<Mitglied> cached;
-
-  @override
-  Future<List<Mitglied>> loadCached() async => cached;
-
-  @override
-  Future<List<Mitglied>> refresh(String accessToken) async => cached;
 }
 
 class _InMemoryAuthSessionRepository implements AuthSessionRepository {

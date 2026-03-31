@@ -25,27 +25,27 @@ void main() {
 
   test('oeffnet dieselbe verschluesselte Box parallel nur einmal', () async {
     final boxes = await Future.wait<Box<String>>(<Future<Box<String>>>[
-      service.openEncryptedStringBox('hitobito_people_box'),
-      service.openEncryptedStringBox('hitobito_people_box'),
+      service.openEncryptedStringBox('hitobito_arbeitskontext_box'),
+      service.openEncryptedStringBox('hitobito_arbeitskontext_box'),
     ]);
 
     expect(boxes[0], same(boxes[1]));
-    expect(Hive.isBoxOpen('hitobito_people_box'), isTrue);
+    expect(Hive.isBoxOpen('hitobito_arbeitskontext_box'), isTrue);
   });
 
   test('kann Box nach purge erneut verschluesselt oeffnen', () async {
     final firstBox = await service.openEncryptedStringBox(
-      'hitobito_people_box',
+      'hitobito_arbeitskontext_box',
     );
-    await firstBox.put('people_list_v1', '[]');
+    await firstBox.put('arbeitskontext_read_model_v1', '{}');
 
     await service.purgeSensitiveData();
 
     final reopenedBox = await service.openEncryptedStringBox(
-      'hitobito_people_box',
+      'hitobito_arbeitskontext_box',
     );
 
     expect(reopenedBox.isOpen, isTrue);
-    expect(reopenedBox.get('people_list_v1'), isNull);
+    expect(reopenedBox.get('arbeitskontext_read_model_v1'), isNull);
   });
 }

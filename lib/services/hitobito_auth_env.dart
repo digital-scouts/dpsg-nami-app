@@ -68,6 +68,17 @@ class HitobitoAuthConfig {
     return base.replace(path: '/api/people', queryParameters: null);
   }
 
+  Uri? get groupsUri {
+    final base = Uri.tryParse(
+      profileUrl.isNotEmpty ? profileUrl : authorizationUrl,
+    );
+    if (base == null) {
+      return null;
+    }
+
+    return base.replace(path: '/api/groups', queryParameters: null);
+  }
+
   List<String> get scopes => scopeString
       .split(RegExp(r'\s+'))
       .where((scope) => scope.isNotEmpty)

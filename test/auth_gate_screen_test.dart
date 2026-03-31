@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/data/arbeitskontext/hitobito_group_resource.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext_local_repository.dart';
@@ -16,7 +19,7 @@ import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
-import 'package:nami/presentation/screens/profile_page.dart';
+import 'package:nami/presentation/screens/auth_gate_screen.dart';
 import 'package:nami/services/biometric_lock_service.dart';
 import 'package:nami/services/hitobito_auth_env.dart';
 import 'package:nami/services/hitobito_data_retention_policy.dart';
@@ -25,138 +28,55 @@ import 'package:nami/services/hitobito_oauth_service.dart';
 import 'package:nami/services/logger_service.dart';
 import 'package:nami/services/sensitive_storage_service.dart';
 import 'package:provider/provider.dart';
-// ignore: depend_on_referenced_packages
-import 'package:storybook_flutter/storybook_flutter.dart';
 
-Story profilePageStory() => Story(
-  name: 'Screens/ProfilePage/WithNicknameAndRoles',
-  builder: (context) => _ProfileStoryShell(
-    profile: const AuthProfile(
-      namiId: 34,
-      email: 'julia@example.com',
-      firstName: 'Julia',
-      lastName: 'Keller',
-      nickname: 'Polka',
-      language: 'en',
-      roles: <AuthProfileRole>[
-        AuthProfileRole(
-          groupId: 1,
-          groupName: 'hitobito',
-          roleName: 'Mitarbeiter*in GS',
-          roleClass: 'Group::Bund::MitarbeiterGs',
-          permissions: <String>['admin', 'contact_data'],
+void main() {
+  testWidgets(
+    'zeigt waehrend der Initialisierung den Arbeitskontext-Ladestatus',
+    (tester) async {
+      final authModel = await _buildSignedInAuthModel(
+        const AuthProfile(
+          namiId: 10,
+          roles: <AuthProfileRole>[
+            AuthProfileRole(
+              groupId: 11,
+              groupName: 'Stamm Musterdorf',
+              roleName: 'Mitglied',
+              roleClass: 'Group::Mitglied',
+            ),
+          ],
         ),
-      ],
-    ),
-  ),
-);
-
-Story profilePageWithoutNicknameStory() => Story(
-  name: 'Screens/ProfilePage/WithoutNicknameNoRoles',
-  builder: (context) => _ProfileStoryShell(
-    profile: const AuthProfile(
-      namiId: 35,
-      email: 'max@example.com',
-      firstName: 'Max',
-      lastName: 'Mustermann',
-      language: 'de',
-    ),
-  ),
-);
-
-Story profilePageUnknownLanguageStory() => Story(
-  name: 'Screens/ProfilePage/UnknownLanguageFallback',
-  builder: (context) => _ProfileStoryShell(
-    profile: const AuthProfile(
-      namiId: 36,
-      email: 'lea@example.com',
-      firstName: 'Lea',
-      lastName: 'Beispiel',
-      language: 'fr',
-    ),
-  ),
-);
-
-class _ProfileStoryShell extends StatefulWidget {
-  const _ProfileStoryShell({required this.profile});
-
-  final AuthProfile profile;
-
-  @override
-  State<_ProfileStoryShell> createState() => _ProfileStoryShellState();
-}
-
-class _ProfileStoryShellState extends State<_ProfileStoryShell> {
-  late final AuthSessionModel _authModel;
-  late final ArbeitskontextModel _arbeitskontextModel;
-  late final Future<void> _initializeFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _authModel = AuthSessionModel(
-      repository: _InMemoryAuthSessionRepository(),
-      profileRepository: _InMemoryAuthProfileRepository(),
-      oauthService: _FakeOauthService(profileToReturn: widget.profile),
-      biometricLockService: _FakeBiometricLockService(),
-      sensitiveStorageService: _FakeSensitiveStorageService(),
-      retentionPolicy: HitobitoDataRetentionPolicy(
-        maxDataAge: const Duration(days: 90),
-        refreshInterval: const Duration(hours: 24),
-      ),
-      logger: _FakeLoggerService(),
-    );
-    _arbeitskontextModel = ArbeitskontextModel(
-      localRepository: _FakeArbeitskontextLocalRepository(
-        cached: ArbeitskontextReadModel(
-          arbeitskontext: Arbeitskontext(
-            aktiverLayer: const ArbeitskontextLayer(
+      );
+      final localRepository = _DelayedArbeitskontextLocalRepository();
+      final arbeitskontextModel = ArbeitskontextModel(
+        localRepository: localRepository,
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: _FakeHitobitoGroupsService(
+          groups: const <HitobitoGroupResource>[
+            HitobitoGroupResource(
               id: 11,
               name: 'Stamm Musterdorf',
+              isLayer: true,
             ),
-            verfuegbareLayer: const <ArbeitskontextLayer>[
-              ArbeitskontextLayer(id: 20, name: 'Bezirk Rhein'),
-            ],
-          ),
+          ],
         ),
-      ),
-      readModelRepository: _FakeArbeitskontextReadModelRepository(),
-      groupsService: _FakeHitobitoGroupsService(
-        groups: const <HitobitoGroupResource>[
-          HitobitoGroupResource(
-            id: 11,
-            name: 'Stamm Musterdorf',
-            isLayer: true,
-          ),
-          HitobitoGroupResource(id: 20, name: 'Bezirk Rhein', isLayer: true),
-        ],
-      ),
-      bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
-      logger: _FakeLoggerService(),
-    );
-    _initializeFuture = _initialize();
-  }
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
 
-  Future<void> _initialize() async {
-    await _authModel.signIn();
-    await _arbeitskontextModel.syncForAuth(
-      authState: _authModel.state,
-      session: _authModel.session,
-      profile: _authModel.profile,
-    );
-  }
+      final pending = arbeitskontextModel.syncForAuth(
+        authState: authModel.state,
+        session: authModel.session,
+        profile: authModel.profile,
+      );
 
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<void>(
-      future: _initializeFuture,
-      builder: (context, snapshot) {
-        return MultiProvider(
+      await tester.pumpWidget(
+        MultiProvider(
           providers: [
-            ChangeNotifierProvider<AuthSessionModel>.value(value: _authModel),
+            ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
             ChangeNotifierProvider<ArbeitskontextModel>.value(
-              value: _arbeitskontextModel,
+              value: arbeitskontextModel,
             ),
+            Provider<LoggerService>.value(value: _FakeLoggerService()),
           ],
           child: MaterialApp(
             localizationsDelegates: [
@@ -167,25 +87,129 @@ class _ProfileStoryShellState extends State<_ProfileStoryShell> {
             ],
             supportedLocales: const [Locale('de'), Locale('en')],
             locale: const Locale('de'),
-            home: const ProfilePage(),
+            home: const AuthGateScreen(),
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+
+      await tester.pump();
+
+      expect(find.text('Arbeitskontext wird geladen'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      localRepository.complete();
+      await pending;
+    },
+  );
+
+  testWidgets(
+    'zeigt ohne relevante Rechte einen expliziten Nicht-Berechtigt-Zustand',
+    (tester) async {
+      final authModel = await _buildSignedInAuthModel(
+        const AuthProfile(namiId: 11),
+      );
+      final arbeitskontextModel = ArbeitskontextModel(
+        localRepository: _ImmediateArbeitskontextLocalRepository(),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: _FakeHitobitoGroupsService(),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+
+      await arbeitskontextModel.syncForAuth(
+        authState: authModel.state,
+        session: authModel.session,
+        profile: authModel.profile,
+      );
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
+            ChangeNotifierProvider<ArbeitskontextModel>.value(
+              value: arbeitskontextModel,
+            ),
+            Provider<LoggerService>.value(value: _FakeLoggerService()),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+              AppLocalizations.delegate,
+            ],
+            supportedLocales: const [Locale('de'), Locale('en')],
+            locale: const Locale('de'),
+            home: const AuthGateScreen(),
+          ),
+        ),
+      );
+
+      await tester.pump();
+
+      expect(
+        find.text(ArbeitskontextModel.unauthorizedMessage),
+        findsNWidgets(2),
+      );
+      expect(find.text('Abmelden'), findsOneWidget);
+      expect(
+        find.textContaining(
+          'mindestens ein relevantes Layer- oder Gruppenrecht',
+        ),
+        findsOneWidget,
+      );
+    },
+  );
 }
 
-class _FakeArbeitskontextLocalRepository
-    implements ArbeitskontextLocalRepository {
-  _FakeArbeitskontextLocalRepository({this.cached});
+Future<AuthSessionModel> _buildSignedInAuthModel(AuthProfile profile) async {
+  final authModel = AuthSessionModel(
+    repository: _InMemoryAuthSessionRepository(),
+    profileRepository: _InMemoryAuthProfileRepository(),
+    oauthService: _FakeOauthService(profileToReturn: profile),
+    biometricLockService: _FakeBiometricLockService(),
+    sensitiveStorageService: _FakeSensitiveStorageService(),
+    retentionPolicy: HitobitoDataRetentionPolicy(
+      maxDataAge: const Duration(days: 90),
+      refreshInterval: const Duration(hours: 24),
+      nowProvider: () => DateTime(2026, 3, 31, 12),
+    ),
+    logger: _FakeLoggerService(),
+  );
+  await authModel.signIn();
+  return authModel;
+}
 
-  final ArbeitskontextReadModel? cached;
+class _ImmediateArbeitskontextLocalRepository
+    implements ArbeitskontextLocalRepository {
+  @override
+  Future<void> clearCached() async {}
+
+  @override
+  Future<ArbeitskontextReadModel?> loadLastCached() async => null;
+
+  @override
+  Future<void> saveCached(ArbeitskontextReadModel readModel) async {}
+}
+
+class _DelayedArbeitskontextLocalRepository
+    implements ArbeitskontextLocalRepository {
+  final Completer<void> _completer = Completer<void>();
+
+  void complete() {
+    if (!_completer.isCompleted) {
+      _completer.complete();
+    }
+  }
 
   @override
   Future<void> clearCached() async {}
 
   @override
-  Future<ArbeitskontextReadModel?> loadLastCached() async => cached;
+  Future<ArbeitskontextReadModel?> loadLastCached() async {
+    await _completer.future;
+    return null;
+  }
 
   @override
   Future<void> saveCached(ArbeitskontextReadModel readModel) async {}
@@ -297,9 +321,9 @@ class _FakeOauthService extends HitobitoOauthService {
 
   @override
   Future<AuthSession> authenticateInteractive() async => AuthSession(
-    accessToken: 'storybook-token',
-    refreshToken: 'storybook-refresh-token',
-    receivedAt: DateTime(2026, 3, 27),
+    accessToken: 'access-token',
+    refreshToken: 'refresh-token',
+    receivedAt: DateTime(2026, 3, 31, 12),
   );
 
   @override
@@ -307,16 +331,17 @@ class _FakeOauthService extends HitobitoOauthService {
       profileToReturn;
 
   @override
+  Future<AuthSession> refresh(AuthSession session) async => session;
+
+  @override
   Future<AuthSession> refreshIfNeeded(
     AuthSession session, {
-    Duration threshold = const Duration(minutes: 5),
-  }) async {
-    return session;
-  }
+    Duration threshold = Duration.zero,
+  }) async => session;
 }
 
 class _FakeBiometricLockService extends BiometricLockService {
-  _FakeBiometricLockService() : super();
+  _FakeBiometricLockService() : super(logger: _FakeLoggerService());
 
   @override
   Future<bool> authenticate() async => true;
@@ -326,15 +351,13 @@ class _FakeBiometricLockService extends BiometricLockService {
 }
 
 class _FakeSensitiveStorageService extends SensitiveStorageService {
-  String? _principal;
   DateTime? _lastSensitiveSyncAt;
   DateTime? _lastSensitiveSyncAttemptAt;
   DateTime? _lastBackgroundedAt;
-
-  _FakeSensitiveStorageService() : super();
+  String? _principal;
 
   @override
-  Future<String?> loadPrincipal() async => _principal;
+  Future<DateTime?> loadLastBackgroundedAt() async => _lastBackgroundedAt;
 
   @override
   Future<DateTime?> loadLastSensitiveSyncAt() async => _lastSensitiveSyncAt;
@@ -344,29 +367,29 @@ class _FakeSensitiveStorageService extends SensitiveStorageService {
       _lastSensitiveSyncAttemptAt;
 
   @override
-  Future<DateTime?> loadLastBackgroundedAt() async => _lastBackgroundedAt;
+  Future<String?> loadPrincipal() async => _principal;
 
   @override
   Future<void> purgeSensitiveData() async {
-    _principal = null;
     _lastSensitiveSyncAt = null;
     _lastSensitiveSyncAttemptAt = null;
     _lastBackgroundedAt = null;
+    _principal = null;
   }
 
   @override
-  Future<void> saveLastSensitiveSyncAt(DateTime timestamp) async {
-    _lastSensitiveSyncAt = timestamp;
+  Future<void> saveLastBackgroundedAt(DateTime? value) async {
+    _lastBackgroundedAt = value;
   }
 
   @override
-  Future<void> saveLastSensitiveSyncAttemptAt(DateTime? timestamp) async {
-    _lastSensitiveSyncAttemptAt = timestamp;
+  Future<void> saveLastSensitiveSyncAt(DateTime? value) async {
+    _lastSensitiveSyncAt = value;
   }
 
   @override
-  Future<void> saveLastBackgroundedAt(DateTime? timestamp) async {
-    _lastBackgroundedAt = timestamp;
+  Future<void> saveLastSensitiveSyncAttemptAt(DateTime? value) async {
+    _lastSensitiveSyncAttemptAt = value;
   }
 
   @override
@@ -384,23 +407,6 @@ class _FakeLoggerService extends LoggerService {
 
   @override
   Future<void> log(String service, String message) async {}
-
-  @override
-  Future<void> trackEvent(String name, Map<String, Object?> properties) async {}
-
-  @override
-  Future<void> trackAndLog(
-    String service,
-    String name,
-    Map<String, Object?> properties,
-  ) async {}
-
-  @override
-  Future<void> debounceTrackAndLog(
-    String service,
-    String name,
-    Map<String, Object?> properties,
-  ) async {}
 }
 
 class _FakeAppSettingsRepository implements AppSettingsRepository {

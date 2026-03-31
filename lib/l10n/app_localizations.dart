@@ -57,6 +57,19 @@ class AppLocalizations {
       'profile_nami_id_label': 'nami-id',
       'profile_email_label': 'E-Mail',
       'profile_language_label': 'Sprache',
+      'profile_context_title': 'Arbeitskontext',
+      'profile_context_current_layer_label': 'Aktiver Layer',
+      'profile_context_switch_action': 'Layer wechseln',
+      'profile_context_no_other_layers':
+          'Es sind aktuell keine weiteren erreichbaren Layer verfuegbar.',
+      'profile_context_unavailable':
+          'Der Arbeitskontext ist derzeit nicht verfuegbar.',
+      'profile_context_loading': 'Arbeitskontext wird geladen',
+      'profile_context_sheet_title': 'Layer wechseln',
+      'profile_context_sheet_hint':
+          'Waehle einen anderen erreichbaren Layer als aktiven Arbeitskontext.',
+      'profile_context_current_badge': 'Aktuell aktiv',
+      'profile_context_switch_loading': 'Arbeitskontext wird gewechselt',
       'profile_roles_title': 'Rollen',
       'profile_roles_empty': 'Keine Rollen im Profil vorhanden',
       'profile_permissions_label': 'Rechte',
@@ -190,6 +203,19 @@ class AppLocalizations {
       'profile_nami_id_label': 'nami-id',
       'profile_email_label': 'Email',
       'profile_language_label': 'Language',
+      'profile_context_title': 'Work context',
+      'profile_context_current_layer_label': 'Active layer',
+      'profile_context_switch_action': 'Switch layer',
+      'profile_context_no_other_layers':
+          'There are currently no other reachable layers available.',
+      'profile_context_unavailable':
+          'The work context is currently unavailable.',
+      'profile_context_loading': 'Loading work context',
+      'profile_context_sheet_title': 'Switch layer',
+      'profile_context_sheet_hint':
+          'Choose another reachable layer as the active work context.',
+      'profile_context_current_badge': 'Currently active',
+      'profile_context_switch_loading': 'Switching work context',
       'profile_roles_title': 'Roles',
       'profile_roles_empty': 'No roles available in the profile',
       'profile_permissions_label': 'Permissions',

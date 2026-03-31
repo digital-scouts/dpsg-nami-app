@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:nami/domain/member/member_people_repository.dart';
 import 'package:nami/l10n/app_localizations.dart';
-import 'package:nami/presentation/model/member_people_model.dart';
+import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/navigation/app_router.dart';
 import 'package:nami/presentation/screens/member_people_page.dart';
 import 'package:nami/presentation/screens/settings_page.dart';
 import 'package:nami/presentation/widgets/app_bottom_navigation.dart';
 import 'package:provider/provider.dart';
-
-import '../../services/logger_service.dart';
 
 class NavigationHomeScreen extends StatefulWidget {
   const NavigationHomeScreen({super.key});
@@ -19,35 +16,24 @@ class NavigationHomeScreen extends StatefulWidget {
 
 class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
   int _index = 0;
-  late final MemberPeopleModel _memberPeopleModel;
-
-  @override
-  void initState() {
-    super.initState();
-    final logger = context.read<LoggerService>();
-    final repository = context.read<MemberPeopleRepository>();
-    _memberPeopleModel = MemberPeopleModel(
-      repository: repository,
-      logger: logger,
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
+    final aktiverLayerName = context.select<ArbeitskontextModel, String?>(
+      (model) => model.arbeitskontext?.aktiverLayer.name,
+    );
+    final startseitenTitel = aktiverLayerName ?? t.t('nav_my_stage');
     Widget body;
     switch (_index) {
       case 0:
         body = Scaffold(
-          appBar: AppBar(title: Text(t.t('nav_my_stage'))),
-          body: Center(child: Text(t.t('nav_my_stage'))),
+          appBar: AppBar(title: Text(startseitenTitel)),
+          body: Center(child: Text(startseitenTitel)),
         );
         break;
       case 1:
-        body = ChangeNotifierProvider<MemberPeopleModel>.value(
-          value: _memberPeopleModel,
-          child: const MemberPeoplePage(),
-        );
+        body = const MemberPeoplePage();
         break;
       case 2:
         body = Scaffold(

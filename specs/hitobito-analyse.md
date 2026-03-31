@@ -1,5 +1,7 @@
 # Notizen zur Hitobito-DPSG Implementierung
 
+Dieses Dokument sammelt notizen und beobachtungen.
+
 ## Offene Fragen
 
 - Ist es angedacht, das Mitglieder einen Hitobito-Zugang haben und eigene Daten selber einsehen und bearbeiten können, oder werden die Daten weiterhin nur von Stammesverantwortlichen gepflegt?
@@ -20,13 +22,102 @@ Neben den drei Ressource-Typen Group, People und Role gibt es weitere Ressourcen
 Für die App wird das technische Hitobito-Modell bewusst nicht 1:1 in die Navigation übernommen. Technisch sind Layer und normale Gruppen weiterhin derselbe Ressourcentyp `Group`. Für die mobile App gilt fachlich jedoch folgende Ableitung:
 
 - Ein Arbeitskontext ist immer genau ein Layer.
-- Ein Arbeitskontext umfasst alle Mitglieder dieses Layers.
+- Ein Arbeitskontext umfasst den für den aktuellen Nutzer aus Hitobito lesbar verfügbaren Personen- und Gruppenbestand dieses Layers.
 - Nicht-Layer-Gruppen innerhalb dieses Layers dienen in der App primär als Filter, Teilmengen oder spätere Vorlagen für persönliche Dashboards.
 - Unterlayer gehören nicht automatisch zum aktuellen Arbeitskontext.
 - Hat eine Person Zugriff auf mehrere Layer, wechselt sie bewusst zwischen diesen Arbeitskontexten.
-- Der initiale Arbeitskontext wird aus `primary_group` beziehungsweise dem daraus ableitbaren Primary Layer bestimmt.
+- Der initiale Arbeitskontext wird aus `primary_group` beziehungsweise dem daraus ableitbaren Primary Layer bestimmt, sofern dieser zu den relevanten Layern der Person gehört.
+- Rechte verkleinern dabei nur die sichtbare Teilmenge innerhalb eines Layers. Für die App macht es im MVP keinen fachlichen Unterschied, ob ein Layer generell klein ist oder durch Rechte nur teilweise sichtbar wird.
+- Die App führt im MVP kein eigenes Rechte-Modell zusätzlich zu Hitobito ein, sondern arbeitet mit dem lesbar zurückgelieferten Bestand.
+- Technisch sichtbare Layer werden nicht automatisch als App-Layer angeboten. Die App leitet zunächst relevante Layer aus eigenen Rollen und arbeitskontextrelevanten Rechten ab.
+- Layerrechte wie `layer_read`, `layer_full`, `layer_and_below_read` und `layer_and_below_full` bestimmen, welche Layer als Arbeitskontexte angeboten werden.
+- Gruppenrechte wie `group_read`, `group_and_below_read` und `group_and_below_full` machen den zugehörigen Layer relevant, schränken aber primär die sichtbare Teilmenge innerhalb dieses Layers ein.
+- Zusatzrechte wie `contact_data`, `approve_applications`, `finance` oder `layer_and_below_finance` erweitern die angebotene Layerliste nicht.
+- Rollen mit `admin` oder `impersonation` werden für den normalen App-Fall zunächst nicht als eigener Produktpfad modelliert.
+- Für den MVP wird die In-App-Stufe global im Code aus genau einer zugeordneten Hitobito-Gruppe hergeleitet. Welche Gruppe zu welcher In-App-Stufe gehört, bleibt bewusst konfigurierbar.
+- Personen werden Gruppen in der App über ihre Rollen zugeordnet. Hat eine Person Rollen in mehreren Gruppen, kann sie in mehreren Filtern erscheinen.
+- Leere Gruppen ohne Personen werden in der Leseansicht nicht angezeigt.
+- Leere Layer bleiben dagegen als mögliche Arbeitskontexte zulässig.
+- Sonstige Gruppen sind im MVP keine vordefinierten Hauptfilter, können später aber in benutzerdefinierten Filtern genutzt werden.
 
 Dieses Dokument beschreibt weiterhin primär das technische Hitobito-Datenmodell. Die ausführliche App-Konzeption dazu liegt in [specs/hitobito-arbeitskontext-konzept.md](specs/hitobito-arbeitskontext-konzept.md).
+
+### Vorläufige MVP-Ableitungen für die App
+
+- Eine Hitobito-Gruppe wird im MVP höchstens genau einer In-App-Stufe zugeordnet.
+- Die Zuordnung liegt global im Code und nicht in einer benutzerseitigen Konfiguration.
+- Welche Gruppenattribute sich langfristig am besten für automatische Vorschläge eignen, ist derzeit noch offen.
+- Für den Lesemodus gilt pragmatisch: Was aus Hitobito nicht lesbar zurückkommt, existiert in der App nicht.
+- Für spätere Bearbeitungs- und Anlegeflows dürfen zusätzliche, im Lesemodus verborgene Gruppen separat betrachtet werden.
+- Ohne mindestens ein arbeitskontextrelevantes Layer- oder Gruppen-Lese- beziehungsweise Schreibrecht ist die App fachlich nicht für den Nutzer vorgesehen.
+
+### Relevante Rechte für die Layer-Auswahl in der App
+
+- Arbeitskontextrelevant sind derzeit: `layer_full`, `layer_read`, `layer_and_below_read`, `layer_and_below_full`, `group_read`, `group_and_below_full`, `group_and_below_read`.
+- Nicht arbeitskontextrelevant für die Layer-Auswahl sind derzeit: `contact_data`, `approve_applications`, `finance`, `layer_and_below_finance`.
+- `admin` und `impersonation` bleiben für die normale Produktlogik zunächst unberücksichtigt.
+- `contact_data` bleibt ein Sonderfall für zusätzliche Sichtbarkeit und Austausch, erzeugt aber keinen eigenen Arbeitskontext.
+
+### Group/Layer DPSG-Stamm
+
+- Stamm < Bezirk, Landesverband
+  - Stamm
+    - Stammesführer*in: [:group_read]
+    - Stv. Stammesführer*in: [:group_read]
+    - Stammesschatzmeister*in: [:group_read, :finance]
+    - Stv. Stammesschatzmeister*in: [:group_read, :finance]
+    - Empfänger*in Aufnahmeantrag in Stammesführung: []
+    - Stammesmitgliederverwalter*in: 2FA [:layer_and_below_full]
+    - Erfasser*in Führungszeugnis: 2FA [:layer_and_below_read, :group_and_below_efz]
+    - Kassenprüfer*in: []
+    - Zuschussbeauftrage*r: []
+    - Ansprechperson Bundeslager: []
+    - Stammeskämmerer*in: []
+    - Materialwart*in: []
+    - Ansprechperson Heimvermietung: []
+    - Heimwart*in: []
+    - Juleica-Inhaber*in: []
+    - Stammesbeauftragte*r: []
+    - Landesdelegierte*r: []
+    - Ersatz-Landesdelegierte*r: []
+    - Bezirksdelegierte*r: []
+    - Stammesgeschäftsstelle: []
+  - Arbeitsbereiche
+  - Stufen
+  - Wölflingsstufe
+  - Pfadfinder*innenstufe
+  - Ranger/Rover-Stufe
+  - Erwachsenenarbeit
+  - Ausbildung
+  - Internationales
+  - intakt
+  - intakt - Prävention und Intervention
+  - intakt - psychische Gesundheit
+  - intakt - Macht und Miteinander
+  - Öffentlichkeitsarbeit/Medien
+  - Politische Bildung/Politik und Gesellschaft
+  - IT
+  - Findungskommission
+  - Rainbow
+  - Inklusion
+  - Wachstum und Stämme
+  - Sonstiger Arbeitsbereich
+  - Gruppen
+  - Meute
+    - Meutenführer*in: [:group_read]
+    - Stv. Meutenführer*in: [:group_read]
+    - Wölfling: []
+  - Gilde
+    - Gildenführer*in: [:group_read]
+    - Stv. Gildenführer*in: [:group_read]
+  - Sippe
+    - Sippenführer*in: [:group_read]
+    - Stv. Sippenführer*in: [:group_read]
+    - Pfadfinder*in: []
+  - Runde
+    - Rundensprecher*in: [:group_read]
+    - Stv. Rundensprecher*in: [:group_read]
+    - Ranger/Rover: []
 
 ### Group
 

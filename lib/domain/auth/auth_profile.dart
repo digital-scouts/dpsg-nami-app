@@ -47,6 +47,7 @@ class AuthProfileRole {
 class AuthProfile {
   const AuthProfile({
     required this.namiId,
+    this.primaryGroupId,
     this.email,
     this.firstName,
     this.lastName,
@@ -56,6 +57,7 @@ class AuthProfile {
   });
 
   final int namiId;
+  final int? primaryGroupId;
   final String? email;
   final String? firstName;
   final String? lastName;
@@ -66,6 +68,7 @@ class AuthProfile {
   Map<String, dynamic> toJson() {
     return {
       'id': namiId,
+      'primary_group_id': primaryGroupId,
       'email': email,
       'first_name': firstName,
       'last_name': lastName,
@@ -122,6 +125,7 @@ class AuthProfile {
   factory AuthProfile.fromJson(Map<String, dynamic> json) {
     return AuthProfile(
       namiId: _toInt(json['id']),
+      primaryGroupId: _toNullableInt(json['primary_group_id']),
       email: json['email']?.toString(),
       firstName: json['first_name']?.toString(),
       lastName: json['last_name']?.toString(),
@@ -148,5 +152,13 @@ class AuthProfile {
     }
 
     return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  static int? _toNullableInt(Object? value) {
+    final parsed = _toInt(value);
+    if (parsed <= 0) {
+      return null;
+    }
+    return parsed;
   }
 }

@@ -119,14 +119,25 @@ ASCII bleibt auf technische Literale begrenzt, insbesondere für Code, Dateiname
 Für die Entwicklung gegen die Demo-Instanz verwendet die App eine reduzierte Hitobito-Konfiguration über `.env` mit `HITOBITO_BASE_URL`, Client-ID, Client-Secret und Redirect-URI. Authorization-, Token-, Discovery-, Profil- und People-Endpunkte werden daraus im Code abgeleitet.
 Neue Env-Keys müssen immer auch in [.env.example](.env.example) enthalten sein, weil lokale Validierung, GitHub Actions und Xcode Cloud dieses Template als Referenz verwenden.
 
-### Geplantes Hitobito-Arbeitskontextmodell
+### Hitobito-Arbeitskontextmodell
 
-Vor der Implementierung der nächsten Hitobito-Ausbaustufe gilt konzeptionell folgendes Modell:
+Für die aktuelle Hitobito-Ausbaustufe gilt fachlich folgendes Modell:
 
 - Die App arbeitet immer in genau einem aktiven Arbeitskontext.
-- Ein Arbeitskontext ist immer genau ein Layer mit allen Mitgliedern dieses Layers sowie den zugehörigen Nicht-Layer-Gruppen als Struktur- und Filterbasis.
+- Ein Arbeitskontext ist immer genau ein Layer. Hitobito-Rechte können die darin sichtbaren Personen und Gruppen verkleinern, ohne dass dadurch ein anderer Arbeitskontext entsteht.
+- Technisch sichtbare Layer aus Hitobito sind nicht automatisch App-relevante Layer. Die App bietet nur Layer an, die sich aus eigenen Rollen mit arbeitskontextrelevanten Lese- oder Schreibrechten ableiten lassen.
+- `contact_data` und ähnliche Zusatzrechte erzeugen für sich allein keinen eigenen Arbeitskontext und erweitern die angebotene Layerliste nicht.
+- Die App arbeitet im MVP mit genau dem aus Hitobito lesbar zurückgelieferten Bestand. Ein eigener Rechtebaum wird dabei nicht zusätzlich in der App modelliert.
 - Gruppen innerhalb eines Arbeitskontexts sind in der App primär Filter oder Teilmengen und keine eigenständigen Hauptkontexte.
-- Der initiale Arbeitskontext wird aus dem Primary Layer der Person abgeleitet. Falls dieser ausnahmsweise nicht sinnvoll bestimmbar ist, wird der erste verfügbare Layer aus einer stabil sortierten Liste verwendet.
+- Gruppenrechte wie `group_read` oder `group_and_below_read` können einen Layer für die App relevant machen, schränken aber primär die sichtbare Teilmenge innerhalb dieses Layers ein.
+- Layerrechte wie `layer_read`, `layer_full`, `layer_and_below_read` oder `layer_and_below_full` bestimmen, welche Layer als Arbeitskontexte angeboten werden.
+- Für den MVP wird die In-App-Stufe global im Code aus genau einer zugeordneten Hitobito-Gruppe hergeleitet. Diese Zuordnung bleibt bewusst konfigurierbar.
+- Personen werden Gruppen in der App über ihre Rollen zugeordnet. Hat eine Person Rollen in mehreren Gruppen, kann sie in mehreren Filtern erscheinen.
+- Leere Gruppen ohne Personen werden in der Leseansicht nicht angezeigt.
+- Sonstige Gruppen sind keine vordefinierten Hauptfilter, können später aber in benutzerdefinierten Filtern genutzt werden.
+- Leere Layer bleiben grundsätzlich zulässige Arbeitskontexte, weil sie für erste Anlage- oder Aufbauprozesse relevant sein können.
+- Ohne mindestens ein relevantes Layer- oder Gruppen-Lese- beziehungsweise Schreibrecht zeigt die App einen expliziten Nicht-berechtigt-Zustand mit Logout an.
+- Der initiale Arbeitskontext wird aus dem Primary Layer der Person bestimmt, sofern dieser innerhalb der relevanten Layer liegt. Falls dies ausnahmsweise nicht sinnvoll bestimmbar ist, wird der erste relevante Layer aus einer stabil sortierten Liste verwendet.
 - Suche, Mitgliedsliste, Statistik und weitere Ansichten arbeiten jeweils nur innerhalb des aktiven Arbeitskontexts.
 - Unterlayer gehören nicht automatisch zum aktiven Arbeitskontext. Sie werden nur über einen bewussten Kontextwechsel geöffnet.
 - Offline verfügbar ist in der ersten Ausbaustufe genau ein Arbeitskontext. Beim Wechsel wird der lokal gespeicherte Kontext ersetzt.

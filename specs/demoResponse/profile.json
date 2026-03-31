@@ -1,0 +1,37 @@
+{
+    "id": 223,
+    "email": "leitung@hitobito.ch",
+    "first_name": "Mio",
+    "last_name": "Wollmann",
+    "nickname": "Sed",
+    "company_name": null,
+    "company": false,
+    "address_care_of": null,
+    "street": "Netzestr.",
+    "housenumber": "53b",
+    "postbox": null,
+    "zip_code": "6292",
+    "town": "Ost Anneke",
+    "country": "CH",
+    "gender": "m",
+    "birthday": "1989-04-11",
+    "language": "de",
+    "primary_group_id": 7,
+    "title": null,
+    "additional_languages": null,
+    "advertising": null,
+    "address": "Netzestr. 53b",
+    "roles": [
+        {
+            "group_id": 7,
+            "group_name": "Vorstand",
+            "role": "Group::RegionBoard::President",
+            "role_class": "Group::RegionBoard::President",
+            "role_name": "Präsident*in",
+            "permissions": [
+                "layer_full",
+                "contact_data"
+            ]
+        }
+    ]
+}

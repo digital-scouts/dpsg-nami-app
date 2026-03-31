@@ -10,10 +10,12 @@ import 'package:intl/intl.dart';
 import 'package:nami/core/notifications/pull_notification.dart';
 import 'package:nami/core/notifications/pull_notifications_cubit.dart';
 import 'package:nami/core/notifications/pull_notifications_repository_factory.dart';
+import 'package:nami/data/arbeitskontext/hitobito_arbeitskontext_read_model_repository.dart';
+import 'package:nami/data/arbeitskontext/secure_arbeitskontext_local_repository.dart';
 import 'package:nami/data/auth/secure_auth_profile_repository.dart';
 import 'package:nami/data/auth/secure_auth_session_repository.dart';
-import 'package:nami/data/people/secure_member_people_repository.dart';
-import 'package:nami/domain/member/member_people_repository.dart';
+import 'package:nami/domain/arbeitskontext/usecases/bestimme_startkontext_usecase.dart';
+import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/notifications/app_update_dialog.dart';
 import 'package:nami/presentation/screens/auth_gate_screen.dart';
@@ -34,6 +36,7 @@ import 'services/app_update_service.dart';
 import 'services/biometric_lock_service.dart';
 import 'services/hitobito_auth_env.dart';
 import 'services/hitobito_data_retention_policy.dart';
+import 'services/hitobito_groups_service.dart';
 import 'services/hitobito_oauth_service.dart';
 import 'services/hitobito_people_service.dart';
 import 'services/logger_service.dart';
@@ -76,12 +79,21 @@ void main() {
       );
 
       final sensitiveStorageService = SensitiveStorageService();
-      final memberPeopleRepository = SecureMemberPeopleRepository(
-        remoteService: HitobitoPeopleService(
-          config: HitobitoAuthEnv.authConfig,
-        ),
+      final arbeitskontextLocalRepository = SecureArbeitskontextLocalRepository(
         sensitiveStorageService: sensitiveStorageService,
       );
+      final hitobitoGroupsService = HitobitoGroupsService(
+        config: HitobitoAuthEnv.authConfig,
+      );
+      final hitobitoPeopleService = HitobitoPeopleService(
+        config: HitobitoAuthEnv.authConfig,
+      );
+      final arbeitskontextReadModelRepository =
+          HitobitoArbeitskontextReadModelRepository(
+            groupsService: hitobitoGroupsService,
+            peopleService: hitobitoPeopleService,
+            localRepository: arbeitskontextLocalRepository,
+          );
 
       final authModel = AuthSessionModel(
         repository: SecureAuthSessionRepository(),
@@ -107,6 +119,19 @@ void main() {
         },
       );
       await authModel.initialize();
+
+      final arbeitskontextModel = ArbeitskontextModel(
+        localRepository: arbeitskontextLocalRepository,
+        readModelRepository: arbeitskontextReadModelRepository,
+        groupsService: hitobitoGroupsService,
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: logger!,
+      );
+      await arbeitskontextModel.syncForAuth(
+        authState: authModel.state,
+        session: authModel.session,
+        profile: authModel.profile,
+      );
 
       // Globale Fehlerbehandlung: Framework- und ungefangene Fehler loggen/tracken
       FlutterError.onError = (FlutterErrorDetails details) async {
@@ -148,10 +173,10 @@ void main() {
               value: appSettingsModel,
             ),
             ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
-            Provider<LoggerService>.value(value: logger!),
-            Provider<MemberPeopleRepository>.value(
-              value: memberPeopleRepository,
+            ChangeNotifierProvider<ArbeitskontextModel>.value(
+              value: arbeitskontextModel,
             ),
+            Provider<LoggerService>.value(value: logger!),
           ],
           child: const MyApp(),
         ),
@@ -188,6 +213,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   late UsageTrackingService _usage;
   bool _isPaused = false;
   late final LoggerService logger;
+  late final AuthSessionModel _authModel;
+  late final ArbeitskontextModel _arbeitskontextModel;
   Timer? _authMaintenanceTimer;
   PullNotificationsCubit? _notificationsCubit;
   StreamSubscription<PullNotificationsState>? _notificationsSubscription;
@@ -200,6 +227,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     // Start Nutzungs-Session beim App-Start
     logger = context.read<LoggerService>();
+    _authModel = context.read<AuthSessionModel>();
+    _arbeitskontextModel = context.read<ArbeitskontextModel>();
+    _authModel.addListener(_syncArbeitskontextWithAuth);
     _usage = UsageTrackingService(logger: logger);
     // Ausstehende Pause/Sessions vom letzten Lauf auswerten
     _usage.flushPendingSession();
@@ -211,15 +241,27 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     });
   }
 
+  void _syncArbeitskontextWithAuth() {
+    unawaited(
+      _arbeitskontextModel.syncForAuth(
+        authState: _authModel.state,
+        session: _authModel.session,
+        profile: _authModel.profile,
+      ),
+    );
+  }
+
   void _startAuthMaintenanceTimer() {
     _authMaintenanceTimer?.cancel();
     final authModel = context.read<AuthSessionModel>();
-    final memberPeopleRepository = context.read<MemberPeopleRepository>();
     if (authModel.isRefreshAttemptDue) {
       unawaited(
         authModel.syncHitobitoData(
           syncMembers: (accessToken) async {
-            await memberPeopleRepository.refresh(accessToken);
+            await _arbeitskontextModel.refreshFromRemote(
+              session: _authModel.session,
+              profile: _authModel.profile,
+            );
           },
           trigger: 'startup',
         ),
@@ -229,7 +271,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       HitobitoAuthEnv.refreshInterval,
       (_) => authModel.syncHitobitoData(
         syncMembers: (accessToken) async {
-          await memberPeopleRepository.refresh(accessToken);
+          await _arbeitskontextModel.refreshFromRemote(
+            session: _authModel.session,
+            profile: _authModel.profile,
+          );
         },
         trigger: 'interval',
       ),
@@ -328,6 +373,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _authModel.removeListener(_syncArbeitskontextWithAuth);
     _authMaintenanceTimer?.cancel();
     _notificationsSubscription?.cancel();
     _notificationsCubit?.close();

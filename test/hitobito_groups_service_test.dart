@@ -2,11 +2,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:nami/services/hitobito_auth_env.dart';
-import 'package:nami/services/hitobito_people_service.dart';
+import 'package:nami/services/hitobito_groups_service.dart';
 
 void main() {
   test(
-    'laedt /api/people und mappt Vor- und Nachnamen auf Mitglied',
+    'laedt accessible groups ueber /api/groups und mappt Layer-Felder',
     () async {
       final requestedUris = <Uri>[];
       late Map<String, String> requestHeaders;
@@ -21,13 +21,12 @@ void main() {
         {
           "data": [
             {
-              "id": "24",
-              "type": "people",
+              "id": "101",
               "attributes": {
-                "first_name": "Max",
-                "last_name": "Mustermann",
-                "nickname": "Moe",
-                "primary_group_id": 11
+                "name": "Woelflinge",
+                "layer": false,
+                "parent_id": 11,
+                "layer_group_id": 11
               }
             }
           ],
@@ -46,19 +45,17 @@ void main() {
         {
           "data": [
             {
-              "id": "23",
-              "type": "people",
+              "id": "11",
               "attributes": {
-                "first_name": "Julia",
-                "last_name": "Keller",
-                "nickname": "Polka",
-                "membership_number": 1001,
-                "primary_group_id": 11
+                "name": "Stamm Musterdorf",
+                "layer": true,
+                "parent_id": 5,
+                "layer_group_id": 11
               }
             }
           ],
           "links": {
-            "next": "https://demo.hitobito.com/api/people?page=2"
+            "next": "https://demo.hitobito.com/api/groups?page=2"
           }
         }
         ''',
@@ -67,39 +64,38 @@ void main() {
         );
       });
 
-      final service = HitobitoPeopleService(
+      final service = HitobitoGroupsService(
         config: const HitobitoAuthConfig(
           clientId: 'client',
           clientSecret: 'secret',
           authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
           tokenUrl: 'https://demo.hitobito.com/oauth/token',
           redirectUri: 'de.jlange.nami.app:/oauth/callback',
-          scopeString: 'openid email api',
+          scopeString: 'openid email',
           discoveryUrl: '',
           profileUrl: 'https://demo.hitobito.com/oauth/profile',
         ),
         httpClient: client,
       );
 
-      final people = await service.fetchPeople('token-123');
+      final groups = await service.fetchAccessibleGroups('token-123');
 
       expect(requestedUris, hasLength(2));
       expect(
         requestedUris.first.toString(),
-        'https://demo.hitobito.com/api/people',
+        'https://demo.hitobito.com/api/groups',
       );
       expect(
         requestedUris.last.toString(),
-        'https://demo.hitobito.com/api/people?page=2',
+        'https://demo.hitobito.com/api/groups?page=2',
       );
       expect(requestHeaders['Authorization'], 'Bearer token-123');
-      expect(people, hasLength(2));
-      expect(people.first.vorname, 'Julia');
-      expect(people.first.nachname, 'Keller');
-      expect(people.first.fahrtenname, 'Polka');
-      expect(people.first.mitgliedsnummer, '1001');
-      expect(people.last.mitgliedsnummer, '24');
+      expect(groups, hasLength(2));
+      expect(groups.first.isLayer, isTrue);
+      expect(groups.first.parentId, 5);
+      expect(groups.first.layerGroupId, 11);
+      expect(groups.last.isLayer, isFalse);
+      expect(groups.last.layerGroupId, 11);
     },
-    timeout: const Timeout(Duration(seconds: 3)),
   );
 }
