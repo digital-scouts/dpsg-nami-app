@@ -237,6 +237,15 @@ Dieses Dokument beschreibt weiterhin primär das technische Hitobito-Datenmodell
 | `payment_method` | `string` | Zahlart |
 | `consent_data_retention` | `boolean` | Einwilligung zur Datenhaltung |
 
+### Planungsableitungen für das App-Personenmodell
+
+- Das aktuelle Legacy-Modell mit festen Slots wie `telefon1`, `telefon2`, `telefon3`, `email1` und `email2` soll nicht weiter Zielstruktur bleiben.
+- Für die App ist stattdessen ein Hitobito-nahes Personenmodell mit strukturierten Listen für E-Mails, Telefonnummern und Adressen vorgesehen.
+- Relevante optionale Personenfelder aus der DPSG-Erweiterung sind `pronoun`, `entry_date`, `exit_date` sowie Bankdaten (`bank_account_owner`, `iban`, `bic`, `bank_name`, `payment_method`). Diese Felder müssen optional behandelt werden, da sie in Demoantworten nicht durchgängig vorhanden sind.
+- Die erste Suchausbaustufe soll bewusst nur Vorname, Nachname, Nickname, ID und alle verfügbaren E-Mail-Adressen durchsuchen. Telefonnummern und Adressen gehören noch nicht zum ersten Suchumfang.
+- Tags bleiben vorerst außerhalb des Zielmodells, solange dafür kein belastbarer JSON:API-Pfad bestätigt ist.
+- Historische Rollen sollen später nicht aus dem reduzierten People-Schnitt abgeleitet werden, sondern über den dedizierten Roles-Endpoint mit Filtern wie `active`, `start_on` und `end_on`.
+
 ### Role
 
 #### Hitobito Role

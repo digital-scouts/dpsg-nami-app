@@ -50,6 +50,11 @@ class _FakeRepo implements AppSettingsRepository {
   }
 
   @override
+  Future<void> saveMemberListSearchResultHighlightEnabled(bool enabled) async {
+    value = value.copyWith(memberListSearchResultHighlightEnabled: enabled);
+  }
+
+  @override
   Future<void> saveGeburstagsbenachrichtigungStufen(Set<Stufe> stufen) {
     // TODO: implement saveGeburstagsbenachrichtigungStufen
     throw UnimplementedError();

@@ -4,6 +4,13 @@ import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/presentation/widgets/member_list_tile.dart';
 
+class _FilteredMemberEntry {
+  const _FilteredMemberEntry({required this.mitglied, this.subtitleHighlight});
+
+  final Mitglied mitglied;
+  final MemberSubtitleHighlight? subtitleHighlight;
+}
+
 class MemberListSettingsHandler extends ChangeNotifier {
   MemberListSettingsHandler({String initial = ''}) : _searchString = initial;
   String _searchString;
@@ -21,8 +28,11 @@ class MemberList extends StatelessWidget {
     super.key,
     required this.mitglieder,
     this.searchString = '',
+    this.highlightSearchMatches = false,
     this.sortKey = MemberSortKey.name,
     this.subtitleMode = MemberSubtitleMode.mitgliedsnummer,
+    this.subtitleTextBuilder,
+    this.trailingTextBuilder,
     this.favourites = const {},
     this.stufenFilter = const {},
     this.onToggleFavourite,
@@ -30,8 +40,11 @@ class MemberList extends StatelessWidget {
   });
   final List<Mitglied> mitglieder;
   final String searchString;
+  final bool highlightSearchMatches;
   final MemberSortKey sortKey;
   final MemberSubtitleMode subtitleMode;
+  final String? Function(Mitglied mitglied)? subtitleTextBuilder;
+  final String? Function(Mitglied mitglied)? trailingTextBuilder;
   final Set<String> favourites;
   final Set<Stufe> stufenFilter;
   final ValueChanged<String>? onToggleFavourite;
@@ -40,29 +53,21 @@ class MemberList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final search = searchString.toLowerCase();
-    bool match(String? v) => v != null && v.toLowerCase().contains(search);
-    final filteredSearch =
-        (search.isEmpty
-                ? mitglieder
-                : mitglieder.where(
-                    (m) =>
-                        match(m.vorname) ||
-                        match(m.nachname) ||
-                        match(m.fahrtenname) ||
-                        match(m.mitgliedsnummer) ||
-                        match(m.email1) ||
-                        match(m.email2) ||
-                        match(m.telefon1) ||
-                        match(m.telefon2) ||
-                        match(m.telefon3),
-                  ))
-            .toList();
+    final filteredSearch = search.isEmpty
+        ? mitglieder
+              .map((mitglied) => _FilteredMemberEntry(mitglied: mitglied))
+              .toList(growable: false)
+        : mitglieder
+              .map((mitglied) => _resolveFilteredMember(mitglied, search))
+              .whereType<_FilteredMemberEntry>()
+              .toList(growable: false);
 
     final filtered = stufenFilter.isEmpty
         ? filteredSearch
-        : filteredSearch.where((m) {
+        : filteredSearch.where((entry) {
+            // TODO: Aktueller Filter arbeitet noch auf Stufen aus Taetigkeiten; fuer Ticket 6 auf echte Arbeitskontext-Gruppen umstellen.
             // Nutze alle aktiven Tätigkeiten für den Filter (nicht nur neueste)
-            final aktiveStufen = m.taetigkeiten
+            final aktiveStufen = entry.mitglied.taetigkeiten
                 .where((t) => t.istAktiv)
                 .map((t) => t.stufe)
                 .toSet();
@@ -70,27 +75,29 @@ class MemberList extends StatelessWidget {
           }).toList();
 
     filtered.sort((a, b) {
+      final first = a.mitglied;
+      final second = b.mitglied;
       switch (sortKey) {
         case MemberSortKey.age:
           // Ältere zuerst (früheres Geburtsdatum)
-          return a.geburtsdatum.compareTo(b.geburtsdatum);
+          return first.geburtsdatum.compareTo(second.geburtsdatum);
         case MemberSortKey.group:
           final sa =
-              MemberUtils.aktiveStufe(a)?.index ?? Stufe.values.length + 1;
+              MemberUtils.aktiveStufe(first)?.index ?? Stufe.values.length + 1;
           final sb =
-              MemberUtils.aktiveStufe(b)?.index ?? Stufe.values.length + 1;
+              MemberUtils.aktiveStufe(second)?.index ?? Stufe.values.length + 1;
           return sa.compareTo(sb);
         case MemberSortKey.name:
-          final ln = a.nachname.compareTo(b.nachname);
+          final ln = first.nachname.compareTo(second.nachname);
           if (ln != 0) return ln;
-          return a.vorname.compareTo(b.vorname);
+          return first.vorname.compareTo(second.vorname);
         case MemberSortKey.vorname:
-          final fn = a.vorname.compareTo(b.vorname);
+          final fn = first.vorname.compareTo(second.vorname);
           if (fn != 0) return fn;
-          return a.nachname.compareTo(b.nachname);
+          return first.nachname.compareTo(second.nachname);
         case MemberSortKey.memberTime:
           // Längere Mitgliedschaft zuerst (früheres Eintrittsdatum)
-          return a.eintrittsdatum.compareTo(b.eintrittsdatum);
+          return first.eintrittsdatum.compareTo(second.eintrittsdatum);
       }
     });
 
@@ -109,11 +116,17 @@ class MemberList extends StatelessWidget {
             ),
           );
         }
-        final m = filtered[i];
+        final entry = filtered[i];
+        final m = entry.mitglied;
         return MemberListTile(
           mitglied: m,
           isFavourite: favourites.contains(m.mitgliedsnummer),
           subtitleMode: subtitleMode,
+          subtitleText: subtitleTextBuilder?.call(m),
+          subtitleHighlight: highlightSearchMatches
+              ? entry.subtitleHighlight
+              : null,
+          trailingText: trailingTextBuilder?.call(m),
           onTap: () {
             if (onTapMember != null) {
               onTapMember!(m.mitgliedsnummer);
@@ -126,6 +139,48 @@ class MemberList extends StatelessWidget {
           },
         );
       },
+    );
+  }
+
+  _FilteredMemberEntry? _resolveFilteredMember(
+    Mitglied mitglied,
+    String search,
+  ) {
+    final candidates = <String?>[
+      for (final emailAdresse in mitglied.emailAdressen) emailAdresse.wert,
+      mitglied.fahrtenname,
+      mitglied.vorname,
+      mitglied.nachname,
+      mitglied.mitgliedsnummer,
+    ];
+
+    for (final candidate in candidates) {
+      final highlight = _buildHighlight(candidate, search);
+      if (highlight != null) {
+        return _FilteredMemberEntry(
+          mitglied: mitglied,
+          subtitleHighlight: highlight,
+        );
+      }
+    }
+
+    return null;
+  }
+
+  MemberSubtitleHighlight? _buildHighlight(String? text, String search) {
+    if (text == null || text.isEmpty) {
+      return null;
+    }
+
+    final matchStart = text.toLowerCase().indexOf(search);
+    if (matchStart < 0) {
+      return null;
+    }
+
+    return MemberSubtitleHighlight(
+      text: text,
+      matchStart: matchStart,
+      matchEnd: matchStart + search.length,
     );
   }
 }

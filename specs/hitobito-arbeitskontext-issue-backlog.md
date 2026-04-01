@@ -84,8 +84,8 @@ Dieses Dokument übersetzt das Arbeitskontext-Konzept in kleine, kopierfertige T
 - Titel: Lesbaren Layer-Bestand aus Hitobito in einen Kontext-Read-Model laden
 - Typ: Feature
 - Priorität: P0
-- Status: in Arbeit
-- Umsetzungsstand: Das Ziel-Read-Model und der Domain-Vertrag sind in `lib/domain/arbeitskontext/arbeitskontext_read_model.dart` und `lib/domain/arbeitskontext/arbeitskontext_read_model_repository.dart` angelegt und durch `test/arbeitskontext_read_model_test.dart` abgesichert. Mit `lib/data/arbeitskontext/hitobito_arbeitskontext_read_model_repository.dart` werden erreichbare Layer und lesbare Nicht-Layer-Gruppen bereits produktiv aus Hitobito in das Read-Model ueberfuehrt und lokal gespeichert. Noch offen sind der produktive Personenbestand des aktiven Layers, Pagination fuer Groups und People sowie die Nutzung dieses vollstaendigen Read-Models in der Mitgliederliste.
+- Status: umgesetzt
+- Umsetzungsstand: People und Groups werden produktiv für den aktiven Arbeitskontext geladen. Die Pagination der Hitobito-Services wird bereits vollständig über while(nextUri != null) verarbeitet, und das aufgebaute Arbeitskontext-Read-Model wird nach erfolgreichem Refresh lokal gespeichert.
 - Ziel: Den für den aktiven Arbeitskontext lesbaren Personen- und Gruppenbestand konsistent aus Hitobito abrufen und in der App nutzbar machen.
 - Kurzbeschreibung: Für den aktiven Layer soll ein Read-Model geladen werden, das nur den aus Hitobito lesbar zurückgelieferten Bestand enthält. Die App führt im MVP kein eigenes Rechte-Modell ein und interpretiert fehlende Lesbarkeit nicht als Fehler im Fachmodell. Welche Layer überhaupt als Arbeitskontexte in Frage kommen, wird dabei bereits vorgelagert über die RelevantLayer-Logik entschieden. Damit wird die Grundlage für Listen, Filter, Suche und Statistik geschaffen.
 - Akzeptanzkriterien:
@@ -94,32 +94,86 @@ Dieses Dokument übersetzt das Arbeitskontext-Konzept in kleine, kopierfertige T
   - Die App leitet aus unvollständiger Lesbarkeit keine zusätzlichen lokalen Rechte oder Verbote ab.
   - Das Read-Model ist als Quelle für Listen, Suche, Filter und Statistik verwendbar.
 - Abhängigkeiten: Ticket 1, Ticket 2.
-- Nicht Teil dieses Tickets: Darstellung in konkreten Screens, Offline-Speicherung.
+- Nicht Teil dieses Tickets: Darstellung in konkreten Screens, fachliche Gruppenfilter auf Basis von Rollen- und Gruppenzuordnungen pro Person.
 
 ### Ticket 3a: Personenbestand des aktiven Arbeitskontexts produktiv laden und an die Mitgliederliste anbinden
 
 - Titel: Personenbestand des aktiven Arbeitskontexts produktiv laden und an die Mitgliederliste anbinden
 - Typ: Feature
 - Priorität: P0
-- Status: offen
+- Status: umgesetzt
+- Umsetzungsstand: Der Personenbestand des aktiven Arbeitskontexts wird produktiv geladen, und die Mitgliederliste nutzt bereits readModel.mitglieder als Datenquelle.
 - Ziel: Den aktiven Arbeitskontext von einem reinen Layer-und-Gruppen-Modell zu einem voll nutzbaren Read-Model mit Personenbestand ausbauen und die Mitgliederliste auf diese Quelle umstellen.
-- Kurzbeschreibung: Der Arbeitskontext soll fuer den aktiven Layer nicht nur erreichbare Layer und lesbare Nicht-Layer-Gruppen, sondern auch den lesbaren Personenbestand produktiv aus Hitobito laden. Dabei muessen die paginierten Responses von `GET /api/groups` und `GET /api/people` vollstaendig verarbeitet werden. Anschliessend soll die Mitgliederliste ihren Datenbestand aus dem aktiven Arbeitskontext statt aus dem bisherigen globalen Flat-People-Pfad beziehen.
+- Kurzbeschreibung: Der Arbeitskontext soll für den aktiven Layer nicht nur erreichbare Layer und lesbare Nicht-Layer-Gruppen, sondern auch den lesbaren Personenbestand produktiv aus Hitobito laden. Dabei müssen die paginierten Responses von GET /api/groups und GET /api/people vollständig verarbeitet werden. Anschließend soll die Mitgliederliste ihren Datenbestand aus dem aktiven Arbeitskontext statt aus dem bisherigen globalen Flat-People-Pfad beziehen.
 - Akzeptanzkriterien:
-  - Die paginierten Responses von `GET /api/groups` werden vollstaendig geladen.
-  - Die paginierten Responses von `GET /api/people` werden vollstaendig geladen.
-  - Das `ArbeitskontextReadModel` enthaelt fuer den aktiven Layer sowohl lesbare Personen als auch lesbare Nicht-Layer-Gruppen.
-  - Der vollstaendige Arbeitskontext wird nach erfolgreichem Laden lokal gespeichert.
+  - Die paginierten Responses von GET /api/groups werden vollständig geladen.
+  - Die paginierten Responses von GET /api/people werden vollständig geladen.
+  - Das ArbeitskontextReadModel enthält für den aktiven Layer sowohl lesbare Personen als auch lesbare Nicht-Layer-Gruppen.
+  - Der vollständige Arbeitskontext wird nach erfolgreichem Laden lokal gespeichert.
   - Die Mitgliederliste liest ihren Bestand aus dem aktiven Arbeitskontext und nicht mehr aus einem separaten globalen Flat-People-Repository.
 - Abhängigkeiten: Ticket 3, Ticket 4b.
 - Nicht Teil dieses Tickets: Gruppenfilter auf Rollenbasis, Kontextwechsel-UI, Stufenzuordnung.
+
+### Ticket 3b: Rollen- und Gruppenzuordnungen pro Person in das Arbeitskontext-Read-Model übernehmen
+
+- Titel: Rollen- und Gruppenzuordnungen pro Person in das Arbeitskontext-Read-Model übernehmen
+- Typ: Feature
+- Priorität: P0
+- Status: umgesetzt
+- Umsetzungsstand: Rollen- und Gruppenzuordnungen werden bereits aus dem People-Pfad extrahiert, in das Arbeitskontext-Read-Model übernommen, lokal mitgespeichert und produktiv für die Anzeige der primären Gruppen- und Rolleninformation genutzt.
+- Ziel: Die fachliche Datengrundlage für gruppenbasierte Filter innerhalb des aktiven Arbeitskontexts schaffen.
+- Kurzbeschreibung: Für gruppenbasierte Filter braucht das Arbeitskontext-Read-Model pro Person nicht nur Stammdaten, sondern auch Rollen- und Gruppenzuordnungen. Die People-Ressourcen kennen in den Demoantworten bereits Rollenbeziehungen, das aktuelle Mapping übernimmt diese Beziehungen pro Person jedoch noch nicht in das Read-Model. Dieses Ticket ergänzt die fehlende fachliche Datengrundlage für spätere Gruppenfilter und weitere aus Rollen abgeleitete Sichten.
+- Akzeptanzkriterien:
+  - Das Arbeitskontext-Read-Model enthält pro Person die für den aktiven Layer relevanten Rollen- und Gruppenzuordnungen.
+  - Personen können mehreren Gruppen innerhalb desselben Arbeitskontexts zugeordnet sein.
+  - Die übernommenen Zuordnungen basieren ausschließlich auf lesbaren Hitobito-Daten des aktiven Arbeitskontexts.
+  - Die Datengrundlage reicht aus, um Gruppenfilter in der Mitgliederliste ohne zusätzliche API-Interpretation in der UI aufzubauen.
+- Abhängigkeiten: Ticket 3, Ticket 3a.
+- Nicht Teil dieses Tickets: Konkrete UI für Gruppenfilter, Stufenzuordnung, Suche oder Statistik.
+
+### Ticket 3c: Personenmodell auf Hitobito-Kontaktobjekte umstellen und Legacy-Felder abbauen
+
+- Titel: Personenmodell auf Hitobito-Kontaktobjekte umstellen und Legacy-Felder abbauen
+- Typ: Feature
+- Priorität: P0
+- Status: umgesetzt
+- Umsetzungsstand: Das Mitgliedsmodell fuehrt strukturierte Sammlungen fuer E-Mails, Telefonnummern und Adressen sowie optionale Personenfelder. Operative Aufrufer wie Kontaktanzeige, Storybook, Suche, Demo-Fabriken und Serialisierung nutzen das neue Zielmodell; Legacy-Felder und Legacy-Kompatibilitaet sind aus dem Domainmodell entfernt.
+- Ziel: Das lokale Personenmodell von alten NaMi-2.0-Kontaktslots lösen und an die Hitobito-Struktur angleichen.
+- Kurzbeschreibung: Das aktuelle Mitgliedsmodell enthält noch feste Kontaktfelder wie `telefon1`, `telefon2`, `telefon3`, `email1` und `email2`. Für Hitobito soll das Modell stattdessen strukturierte Sammlungen für E-Mails, Telefonnummern und Adressen mit Label und Wert führen. Zusätzlich sollen die für den DPSG-Endpunkt relevanten optionalen Personenfelder wie `pronoun`, `entry_date`, `exit_date` und Bankdaten berücksichtigt werden. `country` bleibt Adressbestandteil und wird nicht als Nationalität interpretiert.
+- Akzeptanzkriterien:
+  - Das Personenmodell führt strukturierte Sammlungen für E-Mails, Telefonnummern und Adressen statt fester Legacy-Felder.
+  - Adressen können mindestens `address_care_of`, `street`, `housenumber`, `postbox`, `zip_code`, `town` und `country` abbilden.
+  - Optionale Personenfelder `pronoun`, `entry_date`, `exit_date`, `bank_account_owner`, `iban`, `bic`, `bank_name` und `payment_method` sind im Modell vorgesehen.
+  - Legacy-Felder wie `telefon1` bis `telefon3` und `email1` bis `email2` werden nicht weiter als Zielmodell fortgeschrieben.
+  - Fehlende optionale Felder in Demo- oder Produktantworten bleiben zulässig.
+- Abhängigkeiten: Ticket 3a.
+- Nicht Teil dieses Tickets: Historischer Rollenverlauf, Tags, Bearbeitungs-UI.
+
+### Ticket 3d: Hitobito-People-Mapping auf erweitertes Personenmodell anheben
+
+- Titel: Hitobito-People-Mapping auf erweitertes Personenmodell anheben
+- Typ: Feature
+- Priorität: P0
+- Status: umgesetzt
+- Umsetzungsstand: Der produktive People-Pfad mappt neben Rollen und direkten Basisattributen jetzt auch zusaetzliche E-Mails, Telefonnummern und Zusatzadressen aus included-Beziehungen in das erweiterte Personenmodell. Fehlende optionale Felder und fehlende Kontakt-Includes bleiben tolerant behandelt.
+- Ziel: Das produktive Arbeitskontext-Read-Model nicht nur mit Minimalstammdaten, sondern mit dem geplanten erweiterten Personenmodell befüllen.
+- Kurzbeschreibung: Der produktive Pfad aus `GET /api/people` in das Arbeitskontext-Read-Model liefert derzeit nur einen reduzierten People-List-Schnitt. Dieses Ticket erweitert den Mapping-Pfad auf primäre und zusätzliche E-Mails, Telefonnummern, strukturierte Adressen sowie optionale Personenfelder wie `pronoun`, `entry_date`, `exit_date` und Bankdaten.
+- Akzeptanzkriterien:
+  - Das produktive People-Mapping übernimmt primäre und zusätzliche E-Mails in ein gemeinsames Kontaktmodell.
+  - Telefonnummern und strukturierte Adressen werden aus Hitobito-Beziehungen beziehungsweise Attributen übernommen.
+  - Optionale Felder wie `pronoun`, `entry_date`, `exit_date` und Bankdaten werden übernommen, wenn Hitobito sie liefert.
+  - Das Arbeitskontext-Read-Model verwendet danach keinen bloßen Minimal-Schnitt mehr als einziges Produktivmodell.
+  - Fehlende optionale Felder führen nicht zu fehlerhaftem Mapping.
+- Abhängigkeiten: Ticket 3c.
+- Nicht Teil dieses Tickets: Historische Rollen über den Roles-Endpoint, Tags, Schreiboperationen.
 
 ### Ticket 4: Offline genau einen Arbeitskontext speichern und beim Wechsel ersetzen
 
 - Titel: Offline genau einen Arbeitskontext speichern und beim Wechsel ersetzen
 - Typ: Feature
 - Priorität: P0
-- Status: in Arbeit
-- Umsetzungsstand: Die lokale Persistenz für genau einen Arbeitskontext ist über `lib/domain/arbeitskontext/arbeitskontext_local_repository.dart`, `lib/data/arbeitskontext/secure_arbeitskontext_local_repository.dart` und die Registrierung in `lib/services/sensitive_storage_service.dart` angelegt und durch `test/secure_arbeitskontext_local_repository_test.dart` abgesichert. Offen sind noch die produktive Nutzung beim App-Start, das Speichern nach erfolgreichem Laden oder Wechsel sowie der eigentliche Kontextwechsel-Flow.
+- Status: umgesetzt
+- Umsetzungsstand: Genau ein Arbeitskontext wird lokal über loadLastCached und saveCached wiederhergestellt beziehungsweise ersetzt. Beim fehlgeschlagenen oder abgebrochenen Wechsel bleibt der bisherige aktive Kontext deterministisch erhalten.
 - Ziel: Die MVP-Offlinestrategie technisch sauber verankern, damit lokal immer genau ein Arbeitskontext verfügbar ist.
 - Kurzbeschreibung: Lokal wird im MVP genau ein Arbeitskontext mit seinem lesbaren Bestand vorgehalten. Beim bewussten Wechsel in einen anderen Layer wird der bisherige lokale Kontext ersetzt. Das Verhalten muss konsistent für Neustart, erneutes Laden und Kontextwechsel sein.
 - Akzeptanzkriterien:
@@ -136,7 +190,7 @@ Dieses Dokument übersetzt das Arbeitskontext-Konzept in kleine, kopierfertige T
 - Typ: Feature
 - Priorität: P0
 - Status: umgesetzt
-- Umsetzungsstand: Der produktive Arbeitskontext-App-State ist in `lib/presentation/model/arbeitskontext_model.dart` umgesetzt und in `lib/main.dart` an den Auth-Lebenszyklus verdrahtet. `lib/presentation/screens/auth_gate_screen.dart` stellt explizite Lade- und Fehlerzustände dar, und `test/arbeitskontext_model_test.dart` sowie `test/auth_gate_screen_test.dart` sichern Initialisierung, Restore-Pfad und Fehlerfall ab.
+- Umsetzungsstand: Der produktive Arbeitskontext-App-State ist umgesetzt und an den Auth-Lebenszyklus verdrahtet. Explizite Lade- und Fehlerzustände sind vorhanden, und der Startpfad ist zusätzlich gegen übernommene Sessions ohne restorable Profildaten gehärtet.
 - Ziel: Den Arbeitskontext im laufenden App-Betrieb zentral führen und beim Start belastbar initialisieren, damit Folgefunktionen auf einen konsistenten aktiven Kontext aufbauen.
 - Kurzbeschreibung: Der aktive Arbeitskontext soll produktiv im App-State gehalten und beim Start aus dem zuletzt lokal gespeicherten Kontext oder über den vorhandenen Startkontext-Resolver initialisiert werden. Dazu gehören klare Lade- und Fehlerzustände für die Arbeitskontext-Initialisierung, damit der weitere App-Flow nicht auf impliziten Annahmen basiert. Die bestehende Offline-Persistenz und die fachliche Startlogik sollen dafür in den realen Startpfad der App verdrahtet werden.
 - Akzeptanzkriterien:
@@ -154,12 +208,11 @@ Dieses Dokument übersetzt das Arbeitskontext-Konzept in kleine, kopierfertige T
 - Typ: Feature
 - Priorität: P0
 - Status: umgesetzt
-- Umsetzungsstand: Die produktive Hitobito-Gruppenquelle ist über `lib/services/hitobito_groups_service.dart` und `GET /api/groups` angebunden. `lib/domain/auth/auth_profile.dart` und `lib/services/hitobito_oauth_service.dart` führen `primary_group_id`, `lib/data/arbeitskontext/hitobito_arbeitskontext_read_model_repository.dart` mappt erreichbare Layer und lesbare Nicht-Layer-Gruppen in das Arbeitskontext-Read-Model, und `lib/presentation/model/arbeitskontext_model.dart` nutzt die Groups-Quelle produktiv für Startkontext und Refresh. Abgesichert ist das durch `test/hitobito_groups_service_test.dart`, `test/hitobito_arbeitskontext_read_model_repository_test.dart`, `test/hitobito_oauth_service_test.dart` sowie die angepassten Arbeitskontext-Model-Tests.
+- Umsetzungsstand: Die produktive Hitobito-Gruppenquelle ist angebunden, primary_group_id wird geführt, erreichbare Layer und lesbare Nicht-Layer-Gruppen werden in das Arbeitskontext-Read-Model gemappt, und die Groups-Quelle wird produktiv für Startkontext und Refresh genutzt.
 - Ziel: Die produktive Datengrundlage schaffen, um Layer und lesbare Gruppen für den Arbeitskontext konsistent aus Hitobito zu laden und in das Read-Model zu überführen.
-- Kurzbeschreibung: Es soll eine Rohdatenquelle entstehen, die `primary_group` beziehungsweise den Primary Layer sowie weitere erreichbare Layer aus Hitobito ableitbar macht. Zusätzlich sollen die lesbaren Nicht-Layer-Gruppen des aktiven Layers geladen und in das bestehende Arbeitskontext-Read-Model gemappt werden. Damit werden die Integrationslücken zwischen fachlichem Modell und realer Hitobito-Anbindung vor dem eigentlichen Kontextwechsel geschlossen.
-- Kurzbeschreibung: Es soll eine Rohdatenquelle entstehen, die `primary_group` beziehungsweise den Primary Layer sowie weitere technisch sichtbare Layer aus Hitobito ableitbar macht. Zusätzlich sollen die lesbaren Nicht-Layer-Gruppen des aktiven Layers geladen und in das bestehende Arbeitskontext-Read-Model gemappt werden. Damit werden die Integrationslücken zwischen fachlichem Modell und realer Hitobito-Anbindung vor der Ableitung relevanter Layer und dem eigentlichen Kontextwechsel geschlossen.
+- Kurzbeschreibung: Es soll eine Rohdatenquelle entstehen, die primary_group beziehungsweise den Primary Layer sowie weitere technisch sichtbare Layer aus Hitobito ableitbar macht. Zusätzlich sollen die lesbaren Nicht-Layer-Gruppen des aktiven Layers geladen und in das bestehende Arbeitskontext-Read-Model gemappt werden. Damit werden die Integrationslücken zwischen fachlichem Modell und realer Hitobito-Anbindung vor der Ableitung relevanter Layer und dem eigentlichen Kontextwechsel geschlossen.
 - Akzeptanzkriterien:
-  - Es gibt eine produktiv nutzbare Rohdatenquelle für `primary_group` beziehungsweise den Primary Layer.
+  - Es gibt eine produktiv nutzbare Rohdatenquelle für primary_group beziehungsweise den Primary Layer.
   - Technisch sichtbare Layer werden aus Hitobito-Daten belastbar abgeleitet.
   - Für den aktiven Layer werden lesbare Nicht-Layer-Gruppen aus Hitobito geladen.
   - Die geladenen Layer- und Gruppendaten werden in das ArbeitskontextReadModel gemappt.
@@ -167,12 +220,30 @@ Dieses Dokument übersetzt das Arbeitskontext-Konzept in kleine, kopierfertige T
 - Abhängigkeiten: Ticket 2, Ticket 3.
 - Nicht Teil dieses Tickets: Kontextwechsel-UI, globale Suche, Rekursion über Unterlayer.
 
+### Ticket 4c: Cache und Kontextwechsel auf erweitertes Personenmodell anheben
+
+- Titel: Cache und Kontextwechsel auf erweitertes Personenmodell anheben
+- Typ: Feature
+- Priorität: P0
+- Status: umgesetzt
+- Umsetzungsstand: Der lokale Arbeitskontext-Cache persistiert das erweiterte Personenmodell bereits verlustfrei ueber lib/data/arbeitskontext/secure_arbeitskontext_local_repository.dart und den produktiven Refresh-Pfad in lib/data/arbeitskontext/hitobito_arbeitskontext_read_model_repository.dart. Gezielte Tests in test/secure_arbeitskontext_local_repository_test.dart, test/hitobito_arbeitskontext_read_model_repository_test.dart und test/arbeitskontext_model_test.dart sichern den Roundtrip fuer strukturierte Kontakte sowie Rollen- und Gruppenzuordnungen auch ueber den Kontextwechsel ab.
+- Ziel: Den erweiterten Personenstand bei Offline-Nutzung und bewusstem Kontextwechsel verlustfrei erhalten.
+- Kurzbeschreibung: Sobald das Personenmodell über die bisherige Minimalform hinausgeht, müssen lokaler Cache und Kontextwechsel dieselbe Struktur mittragen. Dieses Ticket hebt Persistenz und Wiederherstellung des Arbeitskontexts auf das neue Personenmodell an, damit E-Mails, Telefonnummern, Adressen und optionale Personenfelder nicht beim Speichern verloren gehen.
+- Akzeptanzkriterien:
+  - Der lokale Arbeitskontext-Cache speichert und lädt das erweiterte Personenmodell vollständig.
+  - Ein Kontextwechsel ersetzt weiterhin genau einen lokalen Arbeitskontext, ohne neue Personenfelder zu verlieren.
+  - Fehlende optionale Felder bleiben beim Speichern und Laden sauber optional.
+  - Die Persistenz bleibt kompatibel mit dem Grundsatz, dass im MVP genau ein Arbeitskontext lokal verfügbar ist.
+- Abhängigkeiten: Ticket 3c, Ticket 3d, Ticket 4.
+- Nicht Teil dieses Tickets: Mehrere Offline-Kontexte, historische Rollenverläufe.
+
 ### Ticket 5: Bewussten Kontextwechsel zwischen relevanten Layern umsetzen
 
 - Titel: Bewussten Kontextwechsel zwischen relevanten Layern umsetzen
 - Typ: Feature
 - Priorität: P0
-- Status: offen
+- Status: umgesetzt
+- Umsetzungsstand: Der bewusste Layerwechsel ist über ein Bottom Sheet auf der ProfilePage umgesetzt und delegiert den produktiven Wechsel an switchToLayer.
 - Ziel: Nutzerinnen und Nutzer sollen gezielt zwischen erreichbaren Layern wechseln können, ohne den Arbeitskontext versehentlich zu verändern.
 - Kurzbeschreibung: Die App benötigt einen klaren Flow, um den aktiven Arbeitskontext bewusst zu wechseln. Zur Auswahl stehen nur relevante Layer, nicht beliebige Gruppen und nicht bloß technisch sichtbare Layer. Der Wechsel aktualisiert den aktiven Kontext, stößt das Laden des neuen Bestands an und respektiert die Regel, dass Unterlayer nicht automatisch dazugehören.
 - Akzeptanzkriterien:
@@ -189,9 +260,10 @@ Dieses Dokument übersetzt das Arbeitskontext-Konzept in kleine, kopierfertige T
 - Titel: Mitgliederliste für den aktiven Arbeitskontext mit Gruppenfiltern umsetzen
 - Typ: Feature
 - Priorität: P0
-- Status: offen
+- Status: in Arbeit
+- Umsetzungsstand: Die Standardliste ist bereits umgesetzt und zeigt die Mitglieder des aktiven Arbeitskontexts. Offen sind die gruppenbasierten Filter und die dafür nötige Datengrundlage aus Ticket 3b.
 - Ziel: Die Mitgliederliste soll den gesamten lesbaren Bestand des aktiven Arbeitskontexts zeigen und über Gruppen sinnvoll einschränkbar sein.
-- Kurzbeschreibung: Standardmäßig zeigt die Mitgliederliste alle Personen des aktiven Arbeitskontexts. Gruppen dienen nur als Filter innerhalb dieses Kontexts. Die Zuordnung von Personen zu Gruppen erfolgt über Rollen. Leere Gruppen ohne Personen werden in der Leseansicht nicht angezeigt, und sonstige Gruppen sind im MVP keine vordefinierten Hauptfilter.
+- Kurzbeschreibung: Die Standardliste zeigt bereits alle Personen des aktiven Arbeitskontexts. Offen sind gruppenbasierte Filter innerhalb dieses Kontexts. Dafür müssen Personen über ihre Rollen fachlich belastbar Gruppen zugeordnet werden können; diese Datengrundlage ist Gegenstand von Ticket 3b. Leere Gruppen ohne Personen werden in der Leseansicht nicht angezeigt, und sonstige Gruppen sind im MVP keine vordefinierten Hauptfilter.
 - Akzeptanzkriterien:
   - Ohne aktiven Filter zeigt die Liste alle lesbaren Personen des aktiven Arbeitskontexts.
   - Gruppenfilter schränken die Liste ein, ohne den aktiven Arbeitskontext zu ändern.
@@ -199,7 +271,7 @@ Dieses Dokument übersetzt das Arbeitskontext-Konzept in kleine, kopierfertige T
   - Personen mit Rollen in mehreren Gruppen können in mehreren Filtern erscheinen.
   - Leere Gruppen ohne Personen werden in der Leseansicht nicht angezeigt.
   - Sonstige Gruppen erscheinen nicht als vordefinierte Hauptfilter des MVP.
-- Abhängigkeiten: Ticket 3.
+- Abhängigkeiten: Ticket 3, Ticket 3b.
 - Nicht Teil dieses Tickets: Benutzerdefinierte Filter, Tags, "Meine Gruppe" als personalisierte Teilmenge.
 
 ### Ticket 7: Stufenzuordnung aus Hitobito-Gruppen global im Code ableiten
@@ -215,7 +287,7 @@ Dieses Dokument übersetzt das Arbeitskontext-Konzept in kleine, kopierfertige T
   - Eine Hitobito-Gruppe kann im MVP höchstens einer In-App-Stufe zugeordnet werden.
   - Fehlt für eine Gruppe eine Zuordnung, führt das nicht zu einer falschen Stufe.
   - Die Zuordnung kann für Anzeigen und Filter des MVP verwendet werden.
-- Abhängigkeiten: Ticket 3, Ticket 6.
+- Abhängigkeiten: Ticket 3, Ticket 3b, Ticket 6.
 - Nicht Teil dieses Tickets: Automatische Heuristiken aus Gruppenattributen, benutzerseitige Konfiguration der Zuordnung.
 
 ### Ticket 8: Suche und Statistik strikt an den aktiven Arbeitskontext binden
@@ -234,6 +306,39 @@ Dieses Dokument übersetzt das Arbeitskontext-Konzept in kleine, kopierfertige T
 - Abhängigkeiten: Ticket 3, Ticket 5.
 - Nicht Teil dieses Tickets: Globale Suche über mehrere Layer, rekursive Statistik über Unterlayer.
 
+### Ticket 8a: Suche im Arbeitskontext auf Namen, ID und alle E-Mails erweitern
+
+- Titel: Suche im Arbeitskontext auf Namen, ID und alle E-Mails erweitern
+- Typ: Feature
+- Priorität: P1
+- Status: umgesetzt
+- Umsetzungsstand: Die Suche der Mitgliederliste arbeitet im aktiven Arbeitskontext bereits ueber Vorname, Nachname, Nickname, Mitgliedsnummer und alle strukturierten E-Mail-Adressen. Der Such-Hint ist auf diesen Scope angepasst, und Tests sichern ab, dass Telefonnummern und Adressen diese erste Suchstufe weiterhin nicht beeinflussen.
+- Ziel: Die erste Suchausbaustufe passend zum neuen Personenmodell liefern, ohne den Scope unnötig zu verbreitern.
+- Kurzbeschreibung: Die Suche soll im aktiven Arbeitskontext weiterhin strikt kontextgebunden bleiben, aber statt der alten Legacy-Felder gezielt auf Vorname, Nachname, Nickname, ID und alle verfügbaren E-Mail-Adressen zugreifen. Telefonnummern und Adressen werden im Modell vorbereitet, sollen in dieser ersten Suchstufe jedoch bewusst noch nicht durchsucht werden.
+- Akzeptanzkriterien:
+  - Suche liefert nur Treffer aus dem aktiven Arbeitskontext.
+  - Gesucht wird über Vorname, Nachname, Nickname, Mitglieds- oder Personen-ID sowie primäre und zusätzliche E-Mails.
+  - Die Suche hängt nicht mehr an Legacy-Feldern wie `email1`, `email2`, `telefon1`, `telefon2` oder `telefon3`.
+  - Telefonnummern und Adressen beeinflussen diese erste Suchstufe nicht.
+- Abhängigkeiten: Ticket 3c, Ticket 3d, Ticket 8.
+- Nicht Teil dieses Tickets: Telefon- oder Adresssuche, globale Suche, historische Rollenstatistiken.
+
+### Ticket 8b: Historischen Rollenverlauf für spätere Statistiken und Verlaufssichten laden
+
+- Titel: Historischen Rollenverlauf für spätere Statistiken und Verlaufssichten laden
+- Typ: Feature
+- Priorität: P1
+- Status: offen
+- Ziel: Eine belastbare Datengrundlage für spätere Statistiken und Verlaufssichten schaffen, die nicht nur aktuelle Rollen kennt.
+- Kurzbeschreibung: Für spätere Verlaufslogik soll ein dedizierter Importpfad über den Roles-Endpoint vorbereitet werden, der aktive und nicht aktive Rollen anhand von `active`, `start_on` und `end_on` berücksichtigen kann.
+- Akzeptanzkriterien:
+  - Es gibt einen klaren Datenpfad für Rollenverläufe über den Roles-Endpoint.
+  - Aktive und abgelaufene Rollen können fachlich unterschieden und gespeichert werden.
+  - Der Rollenverlauf ist von der reinen Gruppenfilter-Datengrundlage des aktuellen Arbeitskontexts sauber abgegrenzt.
+  - Die Datengrundlage ist für spätere Mitgliedschafts- und Rollenstatistiken nutzbar.
+- Abhängigkeiten: Ticket 3b, Ticket 3d, Ticket 8.
+- Nicht Teil dieses Tickets: Konkrete Statistik-UI, rekursive Auswertungen über Unterlayer.
+
 ## Folge- und Klärungstickets
 
 ### Ticket 9: Schreib- und Bearbeitungslogik für teilweise sichtbare Layer fachlich klären
@@ -250,6 +355,22 @@ Dieses Dokument übersetzt das Arbeitskontext-Konzept in kleine, kopierfertige T
   - Offene API- oder Rechtefragen an Hitobito sind gesammelt.
 - Abhängigkeiten: Ticket 3.
 - Nicht Teil dieses Tickets: Umsetzung konkreter Bearbeitungs- oder Anlageflows.
+
+### Ticket 9a: Offene Personenfelder und nicht exponierte API-Felder fachlich klären
+
+- Titel: Offene Personenfelder und nicht exponierte API-Felder fachlich klären
+- Typ: Klärung
+- Priorität: P1
+- Status: offen
+- Ziel: Transparent festhalten, welche gewünschten Felder fachlich relevant sind, aber aktuell nicht belastbar aus der JSON:API ableitbar sind.
+- Kurzbeschreibung: Für einzelne Personenfelder bestehen weiterhin Lücken zwischen UI, Rails-Modell und dokumentierter JSON:API. Insbesondere `created_at` für Personen ist in der DPSG-OpenAPI nicht als lesbares People-Feld bestätigt. Tags bleiben ebenfalls außerhalb des Zielmodells, solange dafür kein belastbarer JSON:API-Pfad oder eine fachlich bestätigte Person-Tag-Ressource vorliegt.
+- Akzeptanzkriterien:
+  - Es gibt eine dokumentierte Entscheidung zum Umgang mit nicht exponierten Feldern wie Person-`created_at`.
+  - Es ist festgehalten, dass `country` nicht als Nationalität interpretiert wird.
+  - Es ist festgehalten, dass Tags vorerst bewusst außerhalb des Zielmodells bleiben.
+  - Offene API-Fragen sind so dokumentiert, dass sie in spätere Folgearbeiten überführt werden können.
+- Abhängigkeiten: Ticket 3c, Ticket 3d.
+- Nicht Teil dieses Tickets: Implementierung neuer API-Clients oder UI für Tags.
 
 ### Ticket 10: Mehrere offline verfügbare Arbeitskontexte konzipieren
 
@@ -296,21 +417,18 @@ Dieses Dokument übersetzt das Arbeitskontext-Konzept in kleine, kopierfertige T
 - Abhängigkeiten: Ticket 6, Ticket 7.
 - Nicht Teil dieses Tickets: Konkrete Umsetzung von Tags, Dashboards oder personalisierten Filtern.
 
-## Empfohlene Startreihenfolge
+## Empfohlene weitere Reihenfolge ab aktuellem Stand
 
-1. Ticket 1: Arbeitskontext-Domainmodell und verfügbare Layer definieren
-2. Ticket 2a: Relevante Layer aus Rollen und Berechtigungen ableiten
-3. Ticket 2: Startkontext aus `primary_group` und relevanten Layern ableiten
-4. Ticket 3: Lesbaren Layer-Bestand aus Hitobito in einen Kontext-Read-Model laden
-5. Ticket 4: Offline genau einen Arbeitskontext speichern und beim Wechsel ersetzen
-6. Ticket 4a: Arbeitskontext-App-State und Startinitialisierung produktiv verdrahten
-7. Ticket 4b: Hitobito-Layer- und Gruppenquelle für den Arbeitskontext aufbauen
-8. Ticket 3a: Personenbestand des aktiven Arbeitskontexts produktiv laden und an die Mitgliederliste anbinden
-9. Ticket 5: Bewussten Kontextwechsel zwischen relevanten Layern umsetzen
-10. Ticket 6: Mitgliederliste für den aktiven Arbeitskontext mit Gruppenfiltern umsetzen
-11. Ticket 7: Stufenzuordnung aus Hitobito-Gruppen global im Code ableiten
-12. Ticket 8: Suche und Statistik strikt an den aktiven Arbeitskontext binden
+1. Ticket 6: Mitgliederliste für den aktiven Arbeitskontext mit Gruppenfiltern umsetzen
+2. Ticket 7: Stufenzuordnung aus Hitobito-Gruppen global im Code ableiten
+3. Ticket 8b: Historischen Rollenverlauf für spätere Statistiken und Verlaufssichten laden
+4. Ticket 9: Schreib- und Bearbeitungslogik für teilweise sichtbare Layer fachlich klären
+5. Ticket 9a: Offene Personenfelder und nicht exponierte API-Felder fachlich klären
+6. Ticket 10: Mehrere offline verfügbare Arbeitskontexte konzipieren
+7. Ticket 11: Rekursive Sichten über Unterlayer als eigener Produktentscheid vorbereiten
+8. Ticket 12: Persönliche Teilmengen, Tags und "Meine Gruppe" nach dem MVP definieren
 
 ## Hinweis zur Nutzung in GitHub
 
 Die Ticketabschnitte sind bewusst so formuliert, dass sie direkt als Grundlage für einzelne GitHub-Issues übernommen und bei Bedarf nur noch um technische Umsetzungshinweise, Labels oder Story-Points ergänzt werden können.
+  

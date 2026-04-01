@@ -1,16 +1,12 @@
 {
     "version": "0.2.0",
     "configurations": [
-
-
-
-    
         {
             "name": "Android",
             "request": "launch",
             "type": "dart",
             "deviceId": "emulator-5554",
-            "args": [
+            "toolArgs": [
                 "--dart-define=USE_LOGGING=true"
             ]
         },
@@ -19,7 +15,7 @@
             "request": "launch",
             "type": "dart",
             "deviceId": "AB64C873-1F92-481C-9351-EE646A08C256",
-            "args": [
+            "toolArgs": [
                 "--dart-define=USE_LOGGING=true"
             ]
         },
@@ -27,7 +23,8 @@
             "name": "iPad",
             "request": "launch",
             "type": "dart",
-            "args": [
+            "program": "lib/main_storybook.dart",
+            "toolArgs": [
                 "--dart-define=USE_LOGGING=true"
             ]
         },

@@ -12,6 +12,7 @@ void main() {
         analyticsEnabled: true,
       );
       expect(s.notificationsEnabled, isTrue);
+      expect(s.memberListSearchResultHighlightEnabled, isFalse);
       expect(s.geburstagsbenachrichtigungStufen, {
         Stufe.biber,
         Stufe.woelfling,
@@ -31,14 +32,17 @@ void main() {
         themeMode: ThemeMode.dark,
         languageCode: 'en',
         analyticsEnabled: false,
+        memberListSearchResultHighlightEnabled: true,
       );
       expect(s2.themeMode, ThemeMode.dark);
       expect(s2.languageCode, 'en');
       expect(s2.analyticsEnabled, false);
+      expect(s2.memberListSearchResultHighlightEnabled, isTrue);
       // original unchanged
       expect(s.themeMode, ThemeMode.light);
       expect(s.languageCode, 'de');
       expect(s.analyticsEnabled, true);
+      expect(s.memberListSearchResultHighlightEnabled, isFalse);
     });
 
     test('copyWith partial updates', () {
@@ -53,6 +57,7 @@ void main() {
       expect(s2.analyticsEnabled, true);
       // defaults for new fields persist
       expect(s2.notificationsEnabled, isTrue);
+      expect(s2.memberListSearchResultHighlightEnabled, isFalse);
       expect(s2.geburstagsbenachrichtigungStufen, {
         Stufe.biber,
         Stufe.woelfling,

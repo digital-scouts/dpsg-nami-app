@@ -114,6 +114,8 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
 
           return AppSettingsPage(
             analyticsEnabled: appSettings.analyticsEnabled,
+            memberListSearchResultHighlightEnabled:
+                appSettings.memberListSearchResultHighlightEnabled,
             themeMode: themeModel.currentMode,
             languageCode: localeModel.currentLocale.languageCode,
             onAnalyticsChanged: (v) async {
@@ -124,6 +126,15 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
                 {'value': v},
               );
               await appSettings.setAnalyticsEnabled(v);
+            },
+            onMemberListSearchResultHighlightChanged: (v) async {
+              final logger = Provider.of<LoggerService>(context, listen: false);
+              await logger.debounceTrackAndLog(
+                'settings',
+                'member_search_result_highlight_changed',
+                {'value': v},
+              );
+              await appSettings.setMemberListSearchResultHighlightEnabled(v);
             },
             onThemeModeChanged: (mode) async {
               final logger = Provider.of<LoggerService>(context, listen: false);

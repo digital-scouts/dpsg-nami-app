@@ -10,6 +10,8 @@ class SharedPrefsAppSettingsRepository implements AppSettingsRepository {
   static const String _keyLanguageCode = 'languageCode';
   static const String _keyAnalyticsEnabled = 'analyticsEnabled';
   static const String _keyNotificationsEnabled = 'notificationsEnabled';
+  static const String _keyMemberListSearchResultHighlightEnabled =
+      'memberListSearchResultHighlightEnabled';
   static const String _keyGeburstagsbenachrichtigungStufen =
       'geburstagsbenachrichtigungStufen';
 
@@ -22,6 +24,9 @@ class SharedPrefsAppSettingsRepository implements AppSettingsRepository {
     final lang = prefs.getString(_keyLanguageCode);
     final analytics = prefs.getBool(_keyAnalyticsEnabled);
     final notifications = prefs.getBool(_keyNotificationsEnabled);
+    final searchResultHighlight = prefs.getBool(
+      _keyMemberListSearchResultHighlightEnabled,
+    );
     final stufenList = prefs.getStringList(
       _keyGeburstagsbenachrichtigungStufen,
     );
@@ -31,6 +36,8 @@ class SharedPrefsAppSettingsRepository implements AppSettingsRepository {
     final languageCode = lang ?? 'de';
     final analyticsEnabled = analytics ?? true;
     final notificationsEnabled = notifications ?? true;
+    final memberListSearchResultHighlightEnabled =
+        searchResultHighlight ?? false;
     final geburstagsbenachrichtigungStufen = stufenList != null
         ? stufenList.map((s) => _stufeFromString(s)).whereType<Stufe>().toSet()
         : const {
@@ -46,6 +53,8 @@ class SharedPrefsAppSettingsRepository implements AppSettingsRepository {
       languageCode: languageCode,
       analyticsEnabled: analyticsEnabled,
       notificationsEnabled: notificationsEnabled,
+      memberListSearchResultHighlightEnabled:
+          memberListSearchResultHighlightEnabled,
       geburstagsbenachrichtigungStufen: geburstagsbenachrichtigungStufen,
     );
   }
@@ -72,6 +81,12 @@ class SharedPrefsAppSettingsRepository implements AppSettingsRepository {
   Future<void> saveNotificationsEnabled(bool enabled) async {
     final prefs = await _prefs();
     await prefs.setBool(_keyNotificationsEnabled, enabled);
+  }
+
+  @override
+  Future<void> saveMemberListSearchResultHighlightEnabled(bool enabled) async {
+    final prefs = await _prefs();
+    await prefs.setBool(_keyMemberListSearchResultHighlightEnabled, enabled);
   }
 
   @override

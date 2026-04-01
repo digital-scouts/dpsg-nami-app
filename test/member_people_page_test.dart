@@ -19,6 +19,8 @@ import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/screens/member_people_page.dart';
+import 'package:nami/presentation/widgets/member_list_group_filter_bar.dart';
+import 'package:nami/presentation/widgets/member_list_search_bar.dart';
 import 'package:nami/services/biometric_lock_service.dart';
 import 'package:nami/services/hitobito_auth_env.dart';
 import 'package:nami/services/hitobito_data_retention_policy.dart';
@@ -60,8 +62,55 @@ void main() {
 
       expect(find.text('Julia Keller'), findsOneWidget);
       expect(find.text('Max Mustermann'), findsOneWidget);
+      expect(find.byType(MemberSearchBar), findsOneWidget);
+      expect(find.byType(GroupFilterBar), findsOneWidget);
     },
   );
+
+  testWidgets('nutzt auf der Members-Page den Subtitle-Modus der Listen-UI', (
+    tester,
+  ) async {
+    final authModel = await _createSignedInAuthModel();
+    final arbeitskontextModel = await _createArbeitskontextModel(
+      mitglieder: <Mitglied>[
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '4711',
+          vorname: 'Julia',
+          nachname: 'Keller',
+        ),
+      ],
+      gruppen: const <ArbeitskontextGruppe>[
+        ArbeitskontextGruppe(id: 21, name: 'Woelflingsmeute', layerId: 11),
+        ArbeitskontextGruppe(id: 22, name: 'Juffistufe', layerId: 11),
+      ],
+      mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
+        ArbeitskontextMitgliedsZuordnung(
+          mitgliedsnummer: '4711',
+          gruppenId: 21,
+          rollenLabel: 'Vorstandsmitglied',
+        ),
+        ArbeitskontextMitgliedsZuordnung(
+          mitgliedsnummer: '4711',
+          gruppenId: 22,
+          rollenLabel: 'Mitglied',
+        ),
+      ],
+      authModel: authModel,
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        authModel: authModel,
+        arbeitskontextModel: arbeitskontextModel,
+      ),
+    );
+
+    await tester.pump();
+
+    expect(find.text('Julia Keller'), findsOneWidget);
+    expect(find.text('4711'), findsOneWidget);
+    expect(find.text('Woelflingsmeute\nVorstandsmitglied'), findsOneWidget);
+  });
 
   testWidgets(
     'zeigt Snackbar bei vorhandenem Remote-Issue und belaesst lokale Daten sichtbar',
@@ -99,7 +148,7 @@ void main() {
     },
   );
 
-  testWidgets('zeigt bei leerem Vor- und Nachnamen einen Avatar-Fallback', (
+  testWidgets('rendert die neue Listen-UI auch mit leerem Vor- und Nachnamen', (
     tester,
   ) async {
     final authModel = await _createSignedInAuthModel();
@@ -123,8 +172,8 @@ void main() {
 
     await tester.pump();
 
-    expect(find.byType(CircleAvatar), findsOneWidget);
-    expect(find.text('?'), findsOneWidget);
+    expect(find.byType(MemberSearchBar), findsOneWidget);
+    expect(find.byType(GroupFilterBar), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -211,6 +260,9 @@ Future<AuthSessionModel> _createSignedInAuthModel() async {
 
 Future<ArbeitskontextModel> _createArbeitskontextModel({
   required List<Mitglied> mitglieder,
+  List<ArbeitskontextGruppe> gruppen = const <ArbeitskontextGruppe>[],
+  List<ArbeitskontextMitgliedsZuordnung> mitgliedsZuordnungen =
+      const <ArbeitskontextMitgliedsZuordnung>[],
   required AuthSessionModel authModel,
 }) async {
   final model = ArbeitskontextModel(
@@ -223,6 +275,8 @@ Future<ArbeitskontextModel> _createArbeitskontextModel({
           ),
         ),
         mitglieder: mitglieder,
+        gruppen: gruppen,
+        mitgliedsZuordnungen: mitgliedsZuordnungen,
       ),
     ),
     readModelRepository: _FakeArbeitskontextReadModelRepository(),
@@ -474,6 +528,9 @@ class _FakeAppSettingsRepository implements AppSettingsRepository {
 
   @override
   Future<void> saveNotificationsEnabled(bool enabled) async {}
+
+  @override
+  Future<void> saveMemberListSearchResultHighlightEnabled(bool enabled) async {}
 
   @override
   Future<void> saveThemeMode(ThemeMode mode) async {}

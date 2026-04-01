@@ -27,6 +27,10 @@ Story memberListTileStory() => Story(
         Option(label: 'Spitzname', value: MemberSubtitleMode.spitzname),
       ],
     );
+    final showHighlight = context.knobs.boolean(
+      label: 'Suchtreffer-Highlight',
+      initial: false,
+    );
     final mitglieder = [
       Option(
         label: 'Wölflingskind',
@@ -86,6 +90,13 @@ Story memberListTileStory() => Story(
       mitglied: mitglied,
       isFavourite: isFavourite,
       subtitleMode: subtitleMode,
+      subtitleHighlight: showHighlight
+          ? const MemberSubtitleHighlight(
+              text: 'test@google.de',
+              matchStart: 0,
+              matchEnd: 3,
+            )
+          : null,
       toggleFavorites: () async {
         debugPrint(
           'Toggled favorite for ${mitglied.vorname} ${mitglied.nachname}',

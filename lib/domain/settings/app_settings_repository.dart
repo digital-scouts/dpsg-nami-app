@@ -9,5 +9,6 @@ abstract class AppSettingsRepository {
   Future<void> saveLanguageCode(String code);
   Future<void> saveAnalyticsEnabled(bool enabled);
   Future<void> saveNotificationsEnabled(bool enabled);
+  Future<void> saveMemberListSearchResultHighlightEnabled(bool enabled);
   Future<void> saveGeburstagsbenachrichtigungStufen(Set<Stufe> stufen);
 }

@@ -36,6 +36,19 @@ void main() {
       expect(s1.notificationsEnabled, isFalse);
     });
 
+    test(
+      'memberListSearchResultHighlightEnabled defaults and persists',
+      () async {
+        SharedPreferences.setMockInitialValues({});
+        final repo = SharedPrefsAppSettingsRepository();
+        final s0 = await repo.load();
+        expect(s0.memberListSearchResultHighlightEnabled, isFalse);
+        await repo.saveMemberListSearchResultHighlightEnabled(true);
+        final s1 = await repo.load();
+        expect(s1.memberListSearchResultHighlightEnabled, isTrue);
+      },
+    );
+
     test('geburstagsbenachrichtigungStufen defaults and persists', () async {
       SharedPreferences.setMockInitialValues({});
       final repo = SharedPrefsAppSettingsRepository();

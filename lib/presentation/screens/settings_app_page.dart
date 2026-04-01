@@ -4,18 +4,22 @@ import 'package:nami/l10n/app_localizations.dart';
 
 class AppSettingsPage extends StatefulWidget {
   final bool analyticsEnabled;
+  final bool memberListSearchResultHighlightEnabled;
   final ThemeMode themeMode;
   final String languageCode; // e.g. 'de', 'en'
   final ValueChanged<bool>? onAnalyticsChanged;
+  final ValueChanged<bool>? onMemberListSearchResultHighlightChanged;
   final ValueChanged<ThemeMode>? onThemeModeChanged;
   final ValueChanged<String>? onLanguageChanged;
 
   const AppSettingsPage({
     super.key,
     this.analyticsEnabled = false,
+    this.memberListSearchResultHighlightEnabled = false,
     this.themeMode = ThemeMode.system,
     this.languageCode = 'de',
     this.onAnalyticsChanged,
+    this.onMemberListSearchResultHighlightChanged,
     this.onThemeModeChanged,
     this.onLanguageChanged,
   });
@@ -26,6 +30,7 @@ class AppSettingsPage extends StatefulWidget {
 
 class _AppSettingsPageState extends State<AppSettingsPage> {
   late bool _analyticsEnabled;
+  late bool _memberListSearchResultHighlightEnabled;
   late ThemeMode _currentMode;
   late String _languageCode;
 
@@ -33,6 +38,8 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
   void initState() {
     super.initState();
     _analyticsEnabled = widget.analyticsEnabled;
+    _memberListSearchResultHighlightEnabled =
+        widget.memberListSearchResultHighlightEnabled;
     _currentMode = widget.themeMode;
     _languageCode = widget.languageCode;
   }
@@ -60,6 +67,24 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
             onChanged: (v) {
               setState(() => _analyticsEnabled = v);
               widget.onAnalyticsChanged?.call(v);
+            },
+          ),
+
+          SwitchListTile(
+            title: Text(
+              AppLocalizations.of(
+                context,
+              ).t('member_search_result_highlight_enable'),
+            ),
+            subtitle: Text(
+              AppLocalizations.of(
+                context,
+              ).t('member_search_result_highlight_hint'),
+            ),
+            value: _memberListSearchResultHighlightEnabled,
+            onChanged: (v) {
+              setState(() => _memberListSearchResultHighlightEnabled = v);
+              widget.onMemberListSearchResultHighlightChanged?.call(v);
             },
           ),
 

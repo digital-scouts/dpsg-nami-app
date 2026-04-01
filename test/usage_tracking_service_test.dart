@@ -34,6 +34,9 @@ class _FakeRepo implements AppSettingsRepository {
   Future<void> saveNotificationsEnabled(bool enabled) async {}
 
   @override
+  Future<void> saveMemberListSearchResultHighlightEnabled(bool enabled) async {}
+
+  @override
   Future<void> saveGeburstagsbenachrichtigungStufen(Set<Stufe> stufen) async {}
 }
 
