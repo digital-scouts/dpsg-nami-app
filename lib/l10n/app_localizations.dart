@@ -7,8 +7,12 @@ class AppLocalizations {
   static final LocalizationsDelegate<AppLocalizations> delegate =
       const _AppLocalizationsDelegate();
 
+  static AppLocalizations? maybeOf(BuildContext context) {
+    return Localizations.of<AppLocalizations>(context, AppLocalizations);
+  }
+
   static AppLocalizations of(BuildContext context) {
-    return Localizations.of<AppLocalizations>(context, AppLocalizations)!;
+    return maybeOf(context)!;
   }
 
   static final Map<String, Map<String, String>> _localizedValues = {

@@ -190,6 +190,40 @@ void main() {
     },
   );
 
+  test('trackEvent kuerzt zu lange String-Properties fuer wiredash', () async {
+    final tempDir = await Directory.systemTemp.createTemp('logger_test5');
+    final logFile = File('${tempDir.path}/app.log');
+    Map<String, Object?>? capturedProps;
+    final longStack = List<String>.filled(300, '#0 frame').join('\n');
+
+    final repo = _FakeRepo(
+      const AppSettings(
+        themeMode: ThemeMode.system,
+        languageCode: 'de',
+        analyticsEnabled: true,
+      ),
+    );
+
+    final service = LoggerService(
+      settingsRepository: repo,
+      navigatorKey: GlobalKey<NavigatorState>(),
+      logFileProvider: () async => logFile,
+      wiredashEventHook: (name, props) async {
+        capturedProps = props;
+      },
+    );
+
+    await service.trackEvent('runtime_error', {
+      'stack': longStack,
+      'exception': 'kaputt',
+    });
+
+    expect(capturedProps, isNotNull);
+    expect((capturedProps!['stack'] as String).length, lessThanOrEqualTo(1024));
+    expect((capturedProps!['stack'] as String).endsWith('...'), isTrue);
+    expect(capturedProps!['exception'], 'kaputt');
+  });
+
   test(
     'debounceTrackAndLog sendet nur das letzte Event nach 30s Inaktivitaet',
     () {
