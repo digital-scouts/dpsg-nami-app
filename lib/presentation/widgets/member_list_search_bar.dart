@@ -44,8 +44,7 @@ class MemberSearchBar extends StatelessWidget {
                     borderSide: BorderSide.none,
                   ),
                   prefixIcon: const Icon(Icons.search),
-                  hintText:
-                      'Suche nach Name, Mail, Telefon oder Mitgliedsnummer',
+                  hintText: 'Suche nach Name, Mail oder ID',
                 ),
               ),
             ),

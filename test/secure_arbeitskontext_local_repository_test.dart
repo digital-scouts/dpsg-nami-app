@@ -53,10 +53,47 @@ void main() {
         ArbeitskontextGruppe(id: 101, name: 'Woelflinge', layerId: 11),
       ],
       mitglieder: <Mitglied>[
-        Mitglied.peopleListItem(
+        Mitglied(
           mitgliedsnummer: '1001',
           vorname: 'Anna',
           nachname: 'Beispiel',
+          geburtsdatum: DateTime(2010, 4, 3),
+          eintrittsdatum: DateTime(2021, 9, 1),
+          pronoun: 'sie/ihr',
+          emailAdressen: const <MitgliedKontaktEmail>[
+            MitgliedKontaktEmail(
+              wert: 'anna@example.org',
+              label: Mitglied.primaryEmailLabel,
+              istPrimaer: true,
+            ),
+            MitgliedKontaktEmail(
+              wert: 'familie@example.org',
+              label: Mitglied.secondaryEmailLabel,
+            ),
+          ],
+          telefonnummern: const <MitgliedKontaktTelefon>[
+            MitgliedKontaktTelefon(
+              wert: '+49 170 1234567',
+              label: Mitglied.phoneMobileLabel,
+            ),
+          ],
+          adressen: const <MitgliedKontaktAdresse>[
+            MitgliedKontaktAdresse(
+              street: 'Musterweg',
+              housenumber: '4',
+              zipCode: '12345',
+              town: 'Musterdorf',
+              country: 'DE',
+            ),
+          ],
+        ),
+      ],
+      mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
+        ArbeitskontextMitgliedsZuordnung(
+          mitgliedsnummer: '1001',
+          gruppenId: 101,
+          rollenTyp: 'Group::Leiter',
+          rollenLabel: 'Leitung',
         ),
       ],
     );
@@ -147,6 +184,8 @@ ArbeitskontextReadModel _buildReadModel({
   List<ArbeitskontextLayer> verfuegbareLayer = const <ArbeitskontextLayer>[],
   List<ArbeitskontextGruppe> gruppen = const <ArbeitskontextGruppe>[],
   List<Mitglied> mitglieder = const <Mitglied>[],
+  List<ArbeitskontextMitgliedsZuordnung> mitgliedsZuordnungen =
+      const <ArbeitskontextMitgliedsZuordnung>[],
 }) {
   return ArbeitskontextReadModel(
     arbeitskontext: Arbeitskontext(
@@ -158,5 +197,6 @@ ArbeitskontextReadModel _buildReadModel({
     ),
     gruppen: gruppen,
     mitglieder: mitglieder,
+    mitgliedsZuordnungen: mitgliedsZuordnungen,
   );
 }

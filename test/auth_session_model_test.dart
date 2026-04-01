@@ -158,6 +158,59 @@ void main() {
   );
 
   test(
+    'setzt uebernommene Session ohne Profildaten und Sync-Stand bei initialize auf signedOut zurueck',
+    () async {
+      final repository = _InMemoryAuthSessionRepository(
+        initialSession: AuthSession(
+          accessToken: 'existing-token',
+          receivedAt: DateTime(2026, 3, 27),
+        ),
+      );
+      final logger = _createLogger();
+      final model = AuthSessionModel(
+        repository: repository,
+        profileRepository: _InMemoryAuthProfileRepository(),
+        oauthService: _FakeOauthService(
+          sessionToReturn: AuthSession(
+            accessToken: 'unused',
+            receivedAt: DateTime(2026, 3, 27),
+          ),
+          profileToReturn: const AuthProfile(
+            namiId: 99,
+            firstName: 'Lea',
+            lastName: 'Beispiel',
+            language: 'de',
+          ),
+        ),
+        biometricLockService: _FakeBiometricLockService(available: true),
+        sensitiveStorageService: _FakeSensitiveStorageService(),
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => DateTime(2026, 3, 27, 12),
+        ),
+        logger: logger,
+      );
+
+      await model.initialize();
+
+      expect(model.state, AuthState.signedOut);
+      expect(model.session, isNull);
+      expect(model.profile, isNull);
+      expect(await repository.load(), isNull);
+      expect(
+        logger.entries.any(
+          (entry) => entry.message.contains(
+            'Uebernommene Session ohne restorable Profildaten erkannt',
+          ),
+        ),
+        isTrue,
+      );
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  test(
     'loggt den erwarteten 401-Fall beim Profil-Laden waehrend initialize nicht',
     () async {
       final logger = _createLogger();
@@ -838,6 +891,9 @@ class _FakeAppSettingsRepository implements AppSettingsRepository {
 
   @override
   Future<void> saveNotificationsEnabled(bool enabled) async {}
+
+  @override
+  Future<void> saveMemberListSearchResultHighlightEnabled(bool enabled) async {}
 
   @override
   Future<void> saveThemeMode(ThemeMode mode) async {}

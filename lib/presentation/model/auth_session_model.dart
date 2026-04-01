@@ -96,10 +96,41 @@ class AuthSessionModel extends ChangeNotifier {
     _lastProfileSyncAt = await _profileRepository.loadLastSyncAt();
     _profile = await _profileRepository.loadCached();
 
+    if (await _shouldResetStaleSessionBeforeUnlock()) {
+      await _logger.log(
+        'auth_flow',
+        'Uebernommene Session ohne restorable Profildaten erkannt, Login wird zurueckgesetzt',
+      );
+      await _repository.clear();
+      await _profileRepository.clear();
+      await _sensitiveStorageService.purgeSensitiveData();
+      _session = null;
+      _profile = null;
+      _lastSensitiveSyncAt = null;
+      _lastSensitiveSyncAttemptAt = null;
+      _lastProfileSyncAt = null;
+      _lastBackgroundedAt = null;
+    }
+
     await _deriveState(requireUnlock: true);
     if (_state == AuthState.signedIn) {
       await ensureProfileLoaded();
     }
+  }
+
+  Future<bool> _shouldResetStaleSessionBeforeUnlock() async {
+    if (_session == null) {
+      return false;
+    }
+
+    final hasRestorableProfile = _profile != null || _lastProfileSyncAt != null;
+    final hasSensitiveSyncState =
+        _lastSensitiveSyncAt != null || _lastSensitiveSyncAttemptAt != null;
+    if (hasRestorableProfile || hasSensitiveSyncState) {
+      return false;
+    }
+
+    return _biometricLockService.isAvailable();
   }
 
   Future<void> signIn() async {

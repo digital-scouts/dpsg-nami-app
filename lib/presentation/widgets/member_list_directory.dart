@@ -16,6 +16,10 @@ class MemberDirectory extends StatefulWidget {
     this.initialFavourites = const {},
     this.sortKey = MemberSortKey.name,
     this.subtitleMode = MemberSubtitleMode.mitgliedsnummer,
+    this.highlightSearchMatches = false,
+    this.subtitleTextBuilder,
+    this.trailingTextBuilder,
+    this.enableGroupFilter = true,
   });
   final List<Mitglied> mitglieder;
   final String initialSearch;
@@ -23,6 +27,10 @@ class MemberDirectory extends StatefulWidget {
   final Set<String> initialFavourites;
   final MemberSortKey sortKey;
   final MemberSubtitleMode subtitleMode;
+  final bool highlightSearchMatches;
+  final String? Function(Mitglied mitglied)? subtitleTextBuilder;
+  final String? Function(Mitglied mitglied)? trailingTextBuilder;
+  final bool enableGroupFilter;
 
   @override
   State<MemberDirectory> createState() => _MemberDirectoryState();
@@ -69,6 +77,10 @@ class _MemberDirectoryState extends State<MemberDirectory> {
           items: items,
           selectedKeys: selectedStufen.map((e) => e.name).toSet(),
           onChanged: (next) {
+            // TODO: Gruppenfilterleiste wird im Produktpfad vorerst nur angezeigt; echte Anbindung an Arbeitskontext-Gruppen folgt in Ticket 6.
+            if (!widget.enableGroupFilter) {
+              return;
+            }
             setState(() {
               selectedStufen
                 ..clear()
@@ -85,10 +97,13 @@ class _MemberDirectoryState extends State<MemberDirectory> {
           child: MemberList(
             mitglieder: widget.mitglieder,
             searchString: search,
+            highlightSearchMatches: widget.highlightSearchMatches,
             sortKey: widget.sortKey,
             subtitleMode: widget.subtitleMode,
+            subtitleTextBuilder: widget.subtitleTextBuilder,
+            trailingTextBuilder: widget.trailingTextBuilder,
             favourites: favourites,
-            stufenFilter: selectedStufen,
+            stufenFilter: widget.enableGroupFilter ? selectedStufen : const {},
             onToggleFavourite: toggleFavourite,
             onTapMember: (id) {
               // TODO: Handle member tap

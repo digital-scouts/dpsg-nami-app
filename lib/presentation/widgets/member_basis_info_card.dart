@@ -16,6 +16,32 @@ class MemberGeneralInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final alter = MemberUtils.alterInJahren(mitglied);
+    final telefonRows = mitglied.telefonnummern
+        .map(
+          (telefonnummer) => _InfoRow(
+            icon: telefonnummer.label == Mitglied.phoneMobileLabel
+                ? Icons.phone_android
+                : Icons.call,
+            label: telefonnummer.label ?? 'Telefonnummer',
+            value: telefonnummer.wert,
+            copy: true,
+            isLink: true,
+            linkType: 'tel',
+          ),
+        )
+        .toList(growable: false);
+    final emailRows = mitglied.emailAdressen
+        .map(
+          (emailAdresse) => _InfoRow(
+            icon: Icons.email,
+            label: emailAdresse.label ?? 'E-Mail',
+            value: emailAdresse.wert,
+            copy: true,
+            isLink: true,
+            linkType: 'mailto',
+          ),
+        )
+        .toList(growable: false);
 
     final infoRows = <_InfoRow>[
       _InfoRow(
@@ -30,51 +56,8 @@ class MemberGeneralInfoCard extends StatelessWidget {
           label: 'Fahrtenname',
           value: mitglied.fahrtenname!,
         ),
-      if (mitglied.telefon2 != null && mitglied.telefon2!.isNotEmpty)
-        _InfoRow(
-          icon: Icons.phone_android,
-          label: 'Mobilfunknummer',
-          value: mitglied.telefon2!,
-          copy: true,
-          isLink: true,
-          linkType: 'tel',
-        ),
-      if (mitglied.telefon1 != null && mitglied.telefon1!.isNotEmpty)
-        _InfoRow(
-          icon: Icons.call,
-          label: 'Festnetznummer',
-          value: mitglied.telefon1!,
-          copy: true,
-          isLink: true,
-          linkType: 'tel',
-        ),
-      if (mitglied.telefon3 != null && mitglied.telefon3!.isNotEmpty)
-        _InfoRow(
-          icon: Icons.call,
-          label: 'Geschäftlich',
-          value: mitglied.telefon3!,
-          copy: true,
-          isLink: true,
-          linkType: 'tel',
-        ),
-      if (mitglied.email1 != null && mitglied.email1!.isNotEmpty)
-        _InfoRow(
-          icon: Icons.email,
-          label: 'E-Mail',
-          value: mitglied.email1!,
-          copy: true,
-          isLink: true,
-          linkType: 'mailto',
-        ),
-      if (mitglied.email2 != null && mitglied.email2!.isNotEmpty)
-        _InfoRow(
-          icon: Icons.email,
-          label: 'E-Mail Vertretungsberechtigte/r',
-          value: mitglied.email2!,
-          copy: true,
-          isLink: true,
-          linkType: 'mailto',
-        ),
+      ...telefonRows,
+      ...emailRows,
     ];
 
     return Column(

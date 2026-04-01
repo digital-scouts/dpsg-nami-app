@@ -9,6 +9,7 @@ import 'package:nami/domain/arbeitskontext/usecases/bestimme_startkontext_usecas
 import 'package:nami/domain/auth/auth_profile.dart';
 import 'package:nami/domain/auth/auth_session.dart';
 import 'package:nami/domain/auth/auth_state.dart';
+import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/settings/app_settings.dart';
 import 'package:nami/domain/settings/app_settings_repository.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
@@ -340,6 +341,200 @@ void main() {
   );
 
   test(
+    'haelt beim erfolgreichen Layerwechsel den vollstaendigen neuen Read-Model-Bestand mit Kontakten und Zuordnungen',
+    () async {
+      final readModelRepository = _FakeArbeitskontextReadModelRepository(
+        refreshResultsByLayer: <int, ArbeitskontextReadModel>{
+          11: _buildReadModel(
+            aktiverLayerId: 11,
+            aktiverLayerName: 'Stamm Musterdorf',
+            verfuegbareLayer: const <ArbeitskontextLayer>[
+              ArbeitskontextLayer(id: 20, name: 'Bezirk Rhein'),
+            ],
+            gruppen: const <ArbeitskontextGruppe>[
+              ArbeitskontextGruppe(id: 101, name: 'Woelflinge', layerId: 11),
+            ],
+            mitglieder: <Mitglied>[
+              Mitglied.peopleListItem(
+                mitgliedsnummer: '1001',
+                vorname: 'Julia',
+                nachname: 'Keller',
+                emailAdressen: const <MitgliedKontaktEmail>[
+                  MitgliedKontaktEmail(
+                    wert: 'julia@example.org',
+                    label: Mitglied.primaryEmailLabel,
+                    istPrimaer: true,
+                  ),
+                ],
+              ),
+            ],
+            mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
+              ArbeitskontextMitgliedsZuordnung(
+                mitgliedsnummer: '1001',
+                gruppenId: 101,
+                rollenTyp: 'Group::Leiter',
+                rollenLabel: 'Leitung',
+              ),
+            ],
+          ),
+          20: _buildReadModel(
+            aktiverLayerId: 20,
+            aktiverLayerName: 'Bezirk Rhein',
+            verfuegbareLayer: const <ArbeitskontextLayer>[
+              ArbeitskontextLayer(id: 11, name: 'Stamm Musterdorf'),
+            ],
+            gruppen: const <ArbeitskontextGruppe>[
+              ArbeitskontextGruppe(id: 201, name: 'Bezirksteam', layerId: 20),
+            ],
+            mitglieder: <Mitglied>[
+              Mitglied.peopleListItem(
+                mitgliedsnummer: '2001',
+                vorname: 'Mara',
+                nachname: 'Schmidt',
+                pronoun: 'dey/deren',
+                emailAdressen: const <MitgliedKontaktEmail>[
+                  MitgliedKontaktEmail(
+                    wert: 'mara@example.org',
+                    label: Mitglied.primaryEmailLabel,
+                    istPrimaer: true,
+                  ),
+                  MitgliedKontaktEmail(
+                    wert: 'familie@example.org',
+                    label: 'Familie',
+                  ),
+                ],
+                telefonnummern: const <MitgliedKontaktTelefon>[
+                  MitgliedKontaktTelefon(
+                    wert: '+49 40 9876543',
+                    label: 'Festnetz',
+                  ),
+                ],
+                adressen: const <MitgliedKontaktAdresse>[
+                  MitgliedKontaktAdresse(
+                    label: 'Post',
+                    postbox: 'PF 12',
+                    zipCode: '50669',
+                    town: 'Koeln',
+                    country: 'DE',
+                  ),
+                ],
+              ),
+            ],
+            mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
+              ArbeitskontextMitgliedsZuordnung(
+                mitgliedsnummer: '2001',
+                gruppenId: 201,
+                rollenTyp: 'Group::Bezirk::Vorstand',
+                rollenLabel: 'Vorstand',
+              ),
+            ],
+          ),
+        },
+      );
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(),
+        readModelRepository: readModelRepository,
+        groupsService: _FakeHitobitoGroupsService(
+          groups: const <HitobitoGroupResource>[
+            HitobitoGroupResource(
+              id: 11,
+              name: 'Stamm Musterdorf',
+              isLayer: true,
+            ),
+            HitobitoGroupResource(id: 20, name: 'Bezirk Rhein', isLayer: true),
+          ],
+        ),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+      final session = AuthSession(
+        accessToken: 'token-7',
+        receivedAt: DateTime(2026, 3, 31),
+      );
+      const profile = AuthProfile(
+        namiId: 7,
+        primaryGroupId: 11,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 11,
+            groupName: 'Stamm Musterdorf',
+            roleName: 'Leitung Stamm',
+            roleClass: 'Group::Stamm::Leitung',
+            permissions: <String>['layer_read'],
+          ),
+          AuthProfileRole(
+            groupId: 20,
+            groupName: 'Bezirk Rhein',
+            roleName: 'Leitung Bezirk',
+            roleClass: 'Group::Bezirk::Leitung',
+            permissions: <String>['layer_read'],
+          ),
+        ],
+      );
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: session,
+        profile: profile,
+      );
+
+      final success = await model.switchToLayer(
+        targetLayer: const ArbeitskontextLayer(id: 20, name: 'Bezirk Rhein'),
+        session: session,
+        profile: profile,
+      );
+
+      expect(success, isTrue);
+      expect(model.arbeitskontext?.aktiverLayer.id, 20);
+      expect(model.readModel?.findeMitglied('1001'), isNull);
+      expect(model.readModel?.findeMitglied('2001')?.pronoun, 'dey/deren');
+      expect(
+        model.readModel?.findeMitglied('2001')?.emailAdressen,
+        const <MitgliedKontaktEmail>[
+          MitgliedKontaktEmail(
+            wert: 'mara@example.org',
+            label: Mitglied.primaryEmailLabel,
+            istPrimaer: true,
+          ),
+          MitgliedKontaktEmail(wert: 'familie@example.org', label: 'Familie'),
+        ],
+      );
+      expect(
+        model.readModel?.findeMitglied('2001')?.telefonnummern,
+        const <MitgliedKontaktTelefon>[
+          MitgliedKontaktTelefon(wert: '+49 40 9876543', label: 'Festnetz'),
+        ],
+      );
+      expect(
+        model.readModel?.findeMitglied('2001')?.adressen,
+        const <MitgliedKontaktAdresse>[
+          MitgliedKontaktAdresse(
+            label: 'Post',
+            postbox: 'PF 12',
+            zipCode: '50669',
+            town: 'Koeln',
+            country: 'DE',
+          ),
+        ],
+      );
+      expect(model.readModel?.gruppen, const <ArbeitskontextGruppe>[
+        ArbeitskontextGruppe(id: 201, name: 'Bezirksteam', layerId: 20),
+      ]);
+      expect(
+        model.readModel?.mitgliedsZuordnungen,
+        const <ArbeitskontextMitgliedsZuordnung>[
+          ArbeitskontextMitgliedsZuordnung(
+            mitgliedsnummer: '2001',
+            gruppenId: 201,
+            rollenTyp: 'Group::Bezirk::Vorstand',
+            rollenLabel: 'Vorstand',
+          ),
+        ],
+      );
+    },
+  );
+
+  test(
     'group_and_below_read macht genau den zugehoerigen Layer relevant',
     () async {
       final model = ArbeitskontextModel(
@@ -414,9 +609,14 @@ class _FakeArbeitskontextLocalRepository
 
 class _FakeArbeitskontextReadModelRepository
     implements ArbeitskontextReadModelRepository {
-  _FakeArbeitskontextReadModelRepository({this.refreshError});
+  _FakeArbeitskontextReadModelRepository({
+    this.refreshError,
+    Map<int, ArbeitskontextReadModel> refreshResultsByLayer =
+        const <int, ArbeitskontextReadModel>{},
+  }) : _refreshResultsByLayer = refreshResultsByLayer;
 
   final Object? refreshError;
+  final Map<int, ArbeitskontextReadModel> _refreshResultsByLayer;
   Arbeitskontext? lastRefreshArbeitskontext;
 
   @override
@@ -435,8 +635,35 @@ class _FakeArbeitskontextReadModelRepository
     if (refreshError != null) {
       throw refreshError!;
     }
+    final configured = _refreshResultsByLayer[arbeitskontext.aktiverLayer.id];
+    if (configured != null) {
+      return configured.copyWith(arbeitskontext: arbeitskontext);
+    }
     return ArbeitskontextReadModel(arbeitskontext: arbeitskontext);
   }
+}
+
+ArbeitskontextReadModel _buildReadModel({
+  required int aktiverLayerId,
+  required String aktiverLayerName,
+  List<ArbeitskontextLayer> verfuegbareLayer = const <ArbeitskontextLayer>[],
+  List<ArbeitskontextGruppe> gruppen = const <ArbeitskontextGruppe>[],
+  List<Mitglied> mitglieder = const <Mitglied>[],
+  List<ArbeitskontextMitgliedsZuordnung> mitgliedsZuordnungen =
+      const <ArbeitskontextMitgliedsZuordnung>[],
+}) {
+  return ArbeitskontextReadModel(
+    arbeitskontext: Arbeitskontext(
+      aktiverLayer: ArbeitskontextLayer(
+        id: aktiverLayerId,
+        name: aktiverLayerName,
+      ),
+      verfuegbareLayer: verfuegbareLayer,
+    ),
+    gruppen: gruppen,
+    mitglieder: mitglieder,
+    mitgliedsZuordnungen: mitgliedsZuordnungen,
+  );
 }
 
 class _FakeHitobitoGroupsService extends HitobitoGroupsService {
@@ -498,6 +725,9 @@ class _FakeAppSettingsRepository implements AppSettingsRepository {
 
   @override
   Future<void> saveNotificationsEnabled(bool enabled) async {}
+
+  @override
+  Future<void> saveMemberListSearchResultHighlightEnabled(bool enabled) async {}
 
   @override
   Future<void> saveThemeMode(ThemeMode mode) async {}

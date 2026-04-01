@@ -7,6 +7,7 @@ class AppSettings {
   final String languageCode;
   final bool analyticsEnabled;
   final bool notificationsEnabled;
+  final bool memberListSearchResultHighlightEnabled;
   final Set<Stufe> geburstagsbenachrichtigungStufen;
 
   const AppSettings({
@@ -14,6 +15,7 @@ class AppSettings {
     required this.languageCode,
     required this.analyticsEnabled,
     this.notificationsEnabled = true,
+    this.memberListSearchResultHighlightEnabled = false,
     this.geburstagsbenachrichtigungStufen = const {
       Stufe.biber,
       Stufe.woelfling,
@@ -29,12 +31,16 @@ class AppSettings {
     String? languageCode,
     bool? analyticsEnabled,
     bool? notificationsEnabled,
+    bool? memberListSearchResultHighlightEnabled,
     Set<Stufe>? geburstagsbenachrichtigungStufen,
   }) => AppSettings(
     themeMode: themeMode ?? this.themeMode,
     languageCode: languageCode ?? this.languageCode,
     analyticsEnabled: analyticsEnabled ?? this.analyticsEnabled,
     notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
+    memberListSearchResultHighlightEnabled:
+        memberListSearchResultHighlightEnabled ??
+        this.memberListSearchResultHighlightEnabled,
     geburstagsbenachrichtigungStufen:
         geburstagsbenachrichtigungStufen ??
         this.geburstagsbenachrichtigungStufen,

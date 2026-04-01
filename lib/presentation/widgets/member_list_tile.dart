@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nami/domain/member/member_utils.dart';
 import 'package:nami/domain/member/mitglied.dart';
-import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/presentation/format/date_formatters.dart';
 import 'package:nami/presentation/stufe/stufe_visuals.dart';
 import 'package:nami/presentation/theme/theme.dart';
@@ -13,12 +12,29 @@ enum MemberSubtitleMode {
   eintrittsdatum,
 }
 
+class MemberSubtitleHighlight {
+  const MemberSubtitleHighlight({
+    required this.text,
+    required this.matchStart,
+    required this.matchEnd,
+  }) : assert(matchStart >= 0),
+       assert(matchEnd >= matchStart),
+       assert(matchEnd <= text.length);
+
+  final String text;
+  final int matchStart;
+  final int matchEnd;
+}
+
 class MemberListTile extends StatelessWidget {
   const MemberListTile({
     super.key,
     required this.mitglied,
     required this.isFavourite,
     required this.subtitleMode,
+    this.subtitleText,
+    this.subtitleHighlight,
+    this.trailingText,
     this.onTap,
     this.toggleFavorites,
   });
@@ -26,17 +42,44 @@ class MemberListTile extends StatelessWidget {
   final Mitglied mitglied;
   final bool isFavourite;
   final MemberSubtitleMode subtitleMode;
+  final String? subtitleText;
+  final MemberSubtitleHighlight? subtitleHighlight;
+  final String? trailingText;
   final VoidCallback? onTap;
   final VoidCallback? toggleFavorites;
 
   @override
   Widget build(BuildContext context) {
     final stufe = MemberUtils.aktiveStufe(mitglied);
-    final isLeitung = MemberUtils.isLeitung(mitglied);
+    final resolvedTrailingText = trailingText
+        ?.split(' - ')
+        .where((segment) => segment.isNotEmpty)
+        .join('\n');
+    final resolvedSubtitle =
+        subtitleText ??
+        () {
+          switch (subtitleMode) {
+            case MemberSubtitleMode.mitgliedsnummer:
+              return mitglied.mitgliedsnummer;
+            case MemberSubtitleMode.geburtstag:
+              return DateFormatter.formatGermanLongDate(mitglied.geburtsdatum);
+            case MemberSubtitleMode.spitzname:
+              return mitglied.fahrtenname ?? '';
+            case MemberSubtitleMode.eintrittsdatum:
+              return DateFormatter.formatGermanLongDate(
+                mitglied.eintrittsdatum,
+              );
+          }
+        }();
     final primaryColor = stufe != null
         ? StufeVisuals.colorFor(stufe)
         : DPSGColors.keineStufeFarbe;
-    final secondaryColor = isLeitung ? DPSGColors.leiterFarbe : primaryColor;
+    final secondaryColor = MemberUtils.isLeitung(mitglied)
+        ? DPSGColors.leiterFarbe
+        : primaryColor;
+    final subtitleWidget = subtitleHighlight != null
+        ? _HighlightedSubtitle(highlight: subtitleHighlight!)
+        : Text(resolvedSubtitle);
 
     final tile = Dismissible(
       key: Key(mitglied.mitgliedsnummer),
@@ -65,6 +108,7 @@ class MemberListTile extends StatelessWidget {
             leading: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
+                  // TODO: Leading-Farbverlauf basiert noch auf Stufe/Taetigkeit; spaeter auf Gruppenkontext des Arbeitsmodells umstellen.
                   colors: [secondaryColor, primaryColor],
                   begin: const FractionalOffset(0.0, 0.0),
                   end: const FractionalOffset(0.0, 1.0),
@@ -75,33 +119,24 @@ class MemberListTile extends StatelessWidget {
               width: 5,
             ),
             title: Text('${mitglied.vorname} ${mitglied.nachname}'),
-            subtitle: Text(() {
-              switch (subtitleMode) {
-                case MemberSubtitleMode.mitgliedsnummer:
-                  return mitglied.mitgliedsnummer;
-                case MemberSubtitleMode.geburtstag:
-                  return DateFormatter.formatGermanLongDate(
-                    mitglied.geburtsdatum,
-                  );
-                case MemberSubtitleMode.spitzname:
-                  return mitglied.fahrtenname ?? '';
-                case MemberSubtitleMode.eintrittsdatum:
-                  return DateFormatter.formatGermanLongDate(
-                    mitglied.eintrittsdatum,
-                  );
-              }
-            }()),
+            subtitle: subtitleWidget,
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Center(
-                  child: Text(
-                    isLeitung
-                        ? Stufe.leitung.displayName
-                        : stufe?.displayName ?? '',
+                if (resolvedTrailingText != null &&
+                    resolvedTrailingText.isNotEmpty)
+                  Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 140),
+                      child: Text(
+                        resolvedTrailingText,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
                   ),
-                ),
                 if (isFavourite) ...[
                   const SizedBox(width: 5),
                   Container(
@@ -118,5 +153,41 @@ class MemberListTile extends StatelessWidget {
     );
 
     return Material(child: tile);
+  }
+}
+
+class _HighlightedSubtitle extends StatelessWidget {
+  const _HighlightedSubtitle({required this.highlight});
+
+  final MemberSubtitleHighlight highlight;
+
+  @override
+  Widget build(BuildContext context) {
+    final baseStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+      color: Theme.of(context).listTileTheme.textColor,
+    );
+    final highlightedStyle = baseStyle?.copyWith(
+      color: Theme.of(context).colorScheme.primary,
+      fontWeight: FontWeight.w700,
+    );
+    final prefix = highlight.text.substring(0, highlight.matchStart);
+    final match = highlight.text.substring(
+      highlight.matchStart,
+      highlight.matchEnd,
+    );
+    final suffix = highlight.text.substring(highlight.matchEnd);
+
+    return RichText(
+      text: TextSpan(
+        style: baseStyle,
+        children: <InlineSpan>[
+          TextSpan(text: prefix),
+          TextSpan(text: match, style: highlightedStyle),
+          TextSpan(text: suffix),
+        ],
+      ),
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+    );
   }
 }

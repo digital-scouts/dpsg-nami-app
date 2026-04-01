@@ -45,6 +45,10 @@ class AppLocalizations {
       'version': 'Version',
       'notifications_enable': 'Benachrichtigungen aktiviert',
       'analytics_enable': 'Analyse/Telemetry erlauben',
+      'member_search_result_highlight_enable':
+          'Suchtreffer im Untertitel hervorheben',
+      'member_search_result_highlight_hint':
+          'Zeigt bei aktiver Suche das passende Trefferfeld statt des Standard-Untertitels an.',
       'display': 'Anzeige',
       'theme': 'Theme',
       'theme_light': 'Hell',
@@ -192,6 +196,10 @@ class AppLocalizations {
       'version': 'Version',
       'notifications_enable': 'Notifications enabled',
       'analytics_enable': 'Allow analytics/telemetry',
+      'member_search_result_highlight_enable':
+          'Highlight matching search results in subtitle',
+      'member_search_result_highlight_hint':
+          'Shows the matching field during search instead of the default subtitle.',
       'display': 'Display',
       'theme': 'Theme',
       'theme_light': 'Light',

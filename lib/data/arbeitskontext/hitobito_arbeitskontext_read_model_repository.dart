@@ -66,15 +66,16 @@ class HitobitoArbeitskontextReadModelRepository
       accessibleGroups: accessibleGroups,
       aktiverLayerId: aktuellerKontext.aktiverLayer.id,
     );
-    final mitglieder = _extractKontextMitglieder(
+    final mitgliedsdaten = _extractKontextMitgliedsdaten(
       peopleResources: peopleResources,
       accessibleGroups: accessibleGroups,
       aktiverLayerId: aktuellerKontext.aktiverLayer.id,
     );
     final readModel = ArbeitskontextReadModel(
       arbeitskontext: aktuellerKontext,
-      mitglieder: mitglieder,
+      mitglieder: mitgliedsdaten.mitglieder,
       gruppen: gruppen,
+      mitgliedsZuordnungen: mitgliedsdaten.mitgliedsZuordnungen,
     );
     await _localRepository.saveCached(readModel);
     return readModel;
@@ -165,7 +166,7 @@ class HitobitoArbeitskontextReadModelRepository
     return result;
   }
 
-  List<Mitglied> _extractKontextMitglieder({
+  _KontextMitgliedsdaten _extractKontextMitgliedsdaten({
     required List<HitobitoPersonResource> peopleResources,
     required List<HitobitoGroupResource> accessibleGroups,
     required int aktiverLayerId,
@@ -174,42 +175,104 @@ class HitobitoArbeitskontextReadModelRepository
       for (final group in accessibleGroups) group.id: group,
     };
     final ids = <String>{};
-    final result = <Mitglied>[];
+    final mitglieder = <Mitglied>[];
+    final mitgliedsZuordnungen = <ArbeitskontextMitgliedsZuordnung>[];
 
     for (final person in peopleResources) {
-      final resolvedLayerId = _resolvePersonLayerId(
+      final relevanteRollen = _extractRelevanteRollenZuordnungen(
+        person: person,
+        groupsById: groupsById,
+        aktiverLayerId: aktiverLayerId,
+      );
+      final hatRolleImAktivenLayer = _hasRolleImAktivenLayer(
+        person: person,
+        groupsById: groupsById,
+        aktiverLayerId: aktiverLayerId,
+      );
+      final resolvedPrimaryLayerId = _resolveGroupLayerId(
         person.primaryGroupId,
         groupsById,
       );
-      if (resolvedLayerId != aktiverLayerId) {
+      final gehoertZumAktivenLayer =
+          hatRolleImAktivenLayer || resolvedPrimaryLayerId == aktiverLayerId;
+      if (!gehoertZumAktivenLayer) {
         continue;
       }
 
       final mitglied = person.toMitglied();
       if (!ids.add(mitglied.mitgliedsnummer)) {
+        mitgliedsZuordnungen.addAll(relevanteRollen);
         continue;
       }
 
-      result.add(mitglied);
+      mitglieder.add(mitglied);
+      mitgliedsZuordnungen.addAll(relevanteRollen);
+    }
+
+    return _KontextMitgliedsdaten(
+      mitglieder: mitglieder,
+      mitgliedsZuordnungen: mitgliedsZuordnungen,
+    );
+  }
+
+  List<ArbeitskontextMitgliedsZuordnung> _extractRelevanteRollenZuordnungen({
+    required HitobitoPersonResource person,
+    required Map<int, HitobitoGroupResource> groupsById,
+    required int aktiverLayerId,
+  }) {
+    final result = <ArbeitskontextMitgliedsZuordnung>[];
+
+    for (final role in person.roles) {
+      final group = groupsById[role.groupId];
+      if (group == null || group.isLayer) {
+        continue;
+      }
+
+      final resolvedLayerId = _resolveLayerId(group, groupsById);
+      if (resolvedLayerId != aktiverLayerId) {
+        continue;
+      }
+
+      result.add(role.toMitgliedsZuordnung(mitgliedsnummer: person.memberId));
     }
 
     return result;
   }
 
-  int? _resolvePersonLayerId(
-    int? primaryGroupId,
+  bool _hasRolleImAktivenLayer({
+    required HitobitoPersonResource person,
+    required Map<int, HitobitoGroupResource> groupsById,
+    required int aktiverLayerId,
+  }) {
+    for (final role in person.roles) {
+      final group = groupsById[role.groupId];
+      if (group == null) {
+        continue;
+      }
+
+      final resolvedLayerId = _resolveLayerId(group, groupsById);
+      if (resolvedLayerId == aktiverLayerId) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  int? _resolveGroupLayerId(
+    int? groupId,
     Map<int, HitobitoGroupResource> groupsById,
   ) {
-    if (primaryGroupId == null) {
+    if (groupId == null) {
       return null;
     }
 
-    final primaryGroup = groupsById[primaryGroupId];
-    if (primaryGroup == null) {
-      return primaryGroupId;
+    final group = groupsById[groupId];
+    if (group == null) {
+      return groupId;
     }
 
-    return _resolveLayerId(primaryGroup, groupsById);
+    return _resolveLayerId(group, groupsById);
   }
 
   int? _resolveLayerId(
@@ -235,4 +298,14 @@ class HitobitoArbeitskontextReadModelRepository
     }
     return parent.layerGroupId;
   }
+}
+
+class _KontextMitgliedsdaten {
+  const _KontextMitgliedsdaten({
+    required this.mitglieder,
+    required this.mitgliedsZuordnungen,
+  });
+
+  final List<Mitglied> mitglieder;
+  final List<ArbeitskontextMitgliedsZuordnung> mitgliedsZuordnungen;
 }

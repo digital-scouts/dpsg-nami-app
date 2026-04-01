@@ -17,8 +17,19 @@ Story memberGeneralInfoCardStory() => Story(
           geburtsdatum: DateTime(now.year - 8, 5, 15),
           eintrittsdatum: DateTime(now.year - 2, 5, 15),
           mitgliedsnummer: '12345',
-          telefon1: '01234 567890',
-          email1: 'max@example.com',
+          telefonnummern: const <MitgliedKontaktTelefon>[
+            MitgliedKontaktTelefon(
+              wert: '01234 567890',
+              label: Mitglied.phoneLandlineLabel,
+            ),
+          ],
+          emailAdressen: const <MitgliedKontaktEmail>[
+            MitgliedKontaktEmail(
+              wert: 'max@example.com',
+              label: Mitglied.primaryEmailLabel,
+              istPrimaer: true,
+            ),
+          ],
         ),
       ),
       Option(
@@ -30,11 +41,31 @@ Story memberGeneralInfoCardStory() => Story(
           geburtsdatum: DateTime(now.year - 20, 5, 15),
           eintrittsdatum: DateTime(now.year - 10, 5, 15),
           mitgliedsnummer: '12345',
-          telefon1: '01234 567890',
-          telefon2: '09876 543210',
-          telefon3: '01111 222333',
-          email1: 'max.mustermann@example.com',
-          email2: 'max2.mustermann@example.com',
+          telefonnummern: const <MitgliedKontaktTelefon>[
+            MitgliedKontaktTelefon(
+              wert: '01234 567890',
+              label: Mitglied.phoneLandlineLabel,
+            ),
+            MitgliedKontaktTelefon(
+              wert: '09876 543210',
+              label: Mitglied.phoneMobileLabel,
+            ),
+            MitgliedKontaktTelefon(
+              wert: '01111 222333',
+              label: Mitglied.phoneBusinessLabel,
+            ),
+          ],
+          emailAdressen: const <MitgliedKontaktEmail>[
+            MitgliedKontaktEmail(
+              wert: 'max.mustermann@example.com',
+              label: Mitglied.primaryEmailLabel,
+              istPrimaer: true,
+            ),
+            MitgliedKontaktEmail(
+              wert: 'max2.mustermann@example.com',
+              label: Mitglied.secondaryEmailLabel,
+            ),
+          ],
         ),
       ),
     ];
@@ -61,7 +92,13 @@ Story memberMembershipInfoCardStory() => Story(
           geburtsdatum: DateTime(now.year - 20, 5, 15),
           eintrittsdatum: DateTime(now.year - 5, 3, 10),
           mitgliedsnummer: 'M-001',
-          email1: 'max@example.com',
+          emailAdressen: const <MitgliedKontaktEmail>[
+            MitgliedKontaktEmail(
+              wert: 'max@example.com',
+              label: Mitglied.primaryEmailLabel,
+              istPrimaer: true,
+            ),
+          ],
         ),
       ),
       Option(

@@ -3,8 +3,12 @@ import 'package:provider/provider.dart';
 
 import '../../domain/member/mitglied.dart';
 import '../../l10n/app_localizations.dart';
+import '../model/app_settings_model.dart';
 import '../model/arbeitskontext_model.dart';
 import '../model/auth_session_model.dart';
+import '../widgets/member_list.dart';
+import '../widgets/member_list_directory.dart';
+import '../widgets/member_list_tile.dart';
 
 class MemberPeoplePage extends StatefulWidget {
   const MemberPeoplePage({super.key});
@@ -16,18 +20,38 @@ class MemberPeoplePage extends StatefulWidget {
 class _MemberPeoplePageState extends State<MemberPeoplePage> {
   String? _lastShownIssueKey;
 
-  String _buildAvatarLabel(Mitglied member) {
-    final trimmedVorname = member.vorname.trim();
-    if (trimmedVorname.isNotEmpty) {
-      return trimmedVorname.characters.first.toUpperCase();
+  // TODO: Arbeitskontext liefert aktuell reduzierte People-List-Mitglieder; fuer alle Subtitle-Modi bei Bedarf auf ein vollstaendigeres Mitglied-Modell umstellen.
+  static const MemberSubtitleMode _subtitleMode =
+      MemberSubtitleMode.mitgliedsnummer;
+
+  String? _buildPrimaryGroupRole(
+    Mitglied member,
+    ArbeitskontextModel arbeitskontextModel,
+  ) {
+    final readModel = arbeitskontextModel.readModel;
+    if (readModel == null) {
+      return null;
     }
 
-    final trimmedNachname = member.nachname.trim();
-    if (trimmedNachname.isNotEmpty) {
-      return trimmedNachname.characters.first.toUpperCase();
+    final zuordnungen = readModel.findeMitgliedsZuordnungen(
+      member.mitgliedsnummer,
+    );
+    if (zuordnungen.isEmpty) {
+      return null;
     }
 
-    return '?';
+    final ersteZuordnung = zuordnungen.first;
+    final gruppe = readModel.findeGruppe(ersteZuordnung.gruppenId);
+    if (gruppe == null) {
+      return null;
+    }
+
+    final rollenLabel = ersteZuordnung.displayRollenLabel;
+    if (rollenLabel == null || rollenLabel.isEmpty) {
+      return gruppe.name;
+    }
+
+    return '${gruppe.name} - $rollenLabel';
   }
 
   @override
@@ -35,6 +59,9 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
     final t = AppLocalizations.of(context);
     final authModel = context.watch<AuthSessionModel>();
     final arbeitskontextModel = context.watch<ArbeitskontextModel>();
+    final appSettingsModel = context.watch<AppSettingsModel?>();
+    final highlightSearchMatches =
+        appSettingsModel?.memberListSearchResultHighlightEnabled ?? false;
     final members =
         arbeitskontextModel.readModel?.mitglieder ?? const <Mitglied>[];
 
@@ -52,6 +79,7 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
               t,
               authModel: authModel,
               arbeitskontextModel: arbeitskontextModel,
+              highlightSearchMatches: highlightSearchMatches,
               members: members,
             ),
           ),
@@ -96,6 +124,7 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
     AppLocalizations t, {
     required AuthSessionModel authModel,
     required ArbeitskontextModel arbeitskontextModel,
+    required bool highlightSearchMatches,
     required List<Mitglied> members,
   }) {
     if ((arbeitskontextModel.isLoading || authModel.isSyncingHitobitoData) &&
@@ -104,17 +133,14 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
     }
 
     if (members.isNotEmpty) {
-      return ListView.separated(
-        padding: const EdgeInsets.all(16),
-        itemCount: members.length,
-        separatorBuilder: (context, index) => const Divider(height: 1),
-        itemBuilder: (context, index) {
-          final member = members[index];
-          return ListTile(
-            leading: CircleAvatar(child: Text(_buildAvatarLabel(member))),
-            title: Text(member.fullName),
-          );
-        },
+      return MemberDirectory(
+        mitglieder: members,
+        sortKey: MemberSortKey.name,
+        subtitleMode: _subtitleMode,
+        highlightSearchMatches: highlightSearchMatches,
+        trailingTextBuilder: (member) =>
+            _buildPrimaryGroupRole(member, arbeitskontextModel),
+        enableGroupFilter: false,
       );
     }
 

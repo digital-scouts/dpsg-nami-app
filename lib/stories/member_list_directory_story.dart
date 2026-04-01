@@ -43,11 +43,16 @@ Story memberDirectoryStory() => Story(
         ),
       ],
     );
+    final highlightSearchMatches = context.knobs.boolean(
+      label: 'Suchtreffer hervorheben',
+      initial: true,
+    );
 
     return MemberDirectory(
       mitglieder: members,
       sortKey: sort,
       subtitleMode: subtitle,
+      highlightSearchMatches: highlightSearchMatches,
     );
   },
 );

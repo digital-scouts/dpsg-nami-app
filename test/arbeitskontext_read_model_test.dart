@@ -74,6 +74,40 @@ void main() {
       expect(readModel.gruppen, const <ArbeitskontextGruppe>[gruppe]);
     });
 
+    test(
+      'normalisiert doppelte Mitgliedszuordnungen ueber Mitglied, Gruppe und Rolle',
+      () {
+        const zuordnung = ArbeitskontextMitgliedsZuordnung(
+          mitgliedsnummer: '1001',
+          gruppenId: 101,
+          rollenTyp: 'Group::Mitglied',
+          rollenLabel: 'Mitglied',
+        );
+        const duplicate = ArbeitskontextMitgliedsZuordnung(
+          mitgliedsnummer: '1001',
+          gruppenId: 101,
+          rollenTyp: 'Group::Mitglied',
+          rollenLabel: 'Mitglied',
+        );
+
+        final readModel = ArbeitskontextReadModel(
+          arbeitskontext: arbeitskontext,
+          gruppen: const <ArbeitskontextGruppe>[
+            ArbeitskontextGruppe(id: 101, name: 'Woelflinge', layerId: 11),
+          ],
+          mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
+            zuordnung,
+            duplicate,
+          ],
+        );
+
+        expect(
+          readModel.mitgliedsZuordnungen,
+          const <ArbeitskontextMitgliedsZuordnung>[zuordnung],
+        );
+      },
+    );
+
     test('liefert unveraenderliche Listen', () {
       final readModel = ArbeitskontextReadModel(
         arbeitskontext: arbeitskontext,
@@ -102,6 +136,15 @@ void main() {
       expect(
         () => readModel.gruppen.add(
           const ArbeitskontextGruppe(id: 102, name: 'Pfadis', layerId: 11),
+        ),
+        throwsUnsupportedError,
+      );
+      expect(
+        () => readModel.mitgliedsZuordnungen.add(
+          const ArbeitskontextMitgliedsZuordnung(
+            mitgliedsnummer: '1001',
+            gruppenId: 101,
+          ),
         ),
         throwsUnsupportedError,
       );

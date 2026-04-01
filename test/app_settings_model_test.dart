@@ -10,6 +10,7 @@ class _FakeRepo implements AppSettingsRepository {
   String? savedLang;
   bool? savedAnalytics;
   bool? savedNotifications;
+  bool? savedSearchResultHighlight;
   Set<Stufe>? savedBirthdayStages;
 
   @override
@@ -35,6 +36,11 @@ class _FakeRepo implements AppSettingsRepository {
   }
 
   @override
+  Future<void> saveMemberListSearchResultHighlightEnabled(bool enabled) async {
+    savedSearchResultHighlight = enabled;
+  }
+
+  @override
   Future<void> saveGeburstagsbenachrichtigungStufen(Set<Stufe> stufen) async {
     savedBirthdayStages = stufen;
   }
@@ -54,6 +60,10 @@ void main() {
     await model.setNotificationsEnabled(false);
     expect(model.notificationsEnabled, isFalse);
     expect(repo.savedNotifications, isFalse);
+
+    await model.setMemberListSearchResultHighlightEnabled(true);
+    expect(model.memberListSearchResultHighlightEnabled, isTrue);
+    expect(repo.savedSearchResultHighlight, isTrue);
 
     final set = {Stufe.woelfling, Stufe.pfadfinder};
     await model.setGeburstagsbenachrichtigungStufen(set);

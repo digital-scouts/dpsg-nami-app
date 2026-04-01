@@ -11,6 +11,7 @@ class AppSettingsModel extends ChangeNotifier {
   String languageCode;
   bool analyticsEnabled;
   bool notificationsEnabled;
+  bool memberListSearchResultHighlightEnabled;
   Set<Stufe> geburstagsbenachrichtigungStufen;
 
   AppSettingsModel(AppSettings initial, this._repo)
@@ -18,6 +19,8 @@ class AppSettingsModel extends ChangeNotifier {
       languageCode = initial.languageCode,
       analyticsEnabled = initial.analyticsEnabled,
       notificationsEnabled = initial.notificationsEnabled,
+      memberListSearchResultHighlightEnabled =
+          initial.memberListSearchResultHighlightEnabled,
       geburstagsbenachrichtigungStufen =
           initial.geburstagsbenachrichtigungStufen;
 
@@ -47,6 +50,12 @@ class AppSettingsModel extends ChangeNotifier {
     notificationsEnabled = enabled;
     notifyListeners();
     await _repo.saveNotificationsEnabled(enabled);
+  }
+
+  Future<void> setMemberListSearchResultHighlightEnabled(bool enabled) async {
+    memberListSearchResultHighlightEnabled = enabled;
+    notifyListeners();
+    await _repo.saveMemberListSearchResultHighlightEnabled(enabled);
   }
 
   Future<void> setGeburstagsbenachrichtigungStufen(Set<Stufe> stufen) async {

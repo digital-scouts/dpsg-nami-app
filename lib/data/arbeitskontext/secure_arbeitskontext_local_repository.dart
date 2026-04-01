@@ -57,6 +57,9 @@ class SecureArbeitskontextLocalRepository
           .map((mitglied) => mitglied.toPeopleListJson())
           .toList(growable: false),
       'gruppen': readModel.gruppen.map(_gruppeToJson).toList(growable: false),
+      'mitglieds_zuordnungen': readModel.mitgliedsZuordnungen
+          .map(_mitgliedsZuordnungToJson)
+          .toList(growable: false),
     };
   }
 
@@ -102,6 +105,15 @@ class SecureArbeitskontextLocalRepository
               .toList(growable: false)
         : const <ArbeitskontextGruppe>[];
 
+    final mitgliedsZuordnungenJson = json['mitglieds_zuordnungen'];
+    final mitgliedsZuordnungen = mitgliedsZuordnungenJson is List
+        ? mitgliedsZuordnungenJson
+              .whereType<Map<String, dynamic>>()
+              .map(_mitgliedsZuordnungFromJson)
+              .whereType<ArbeitskontextMitgliedsZuordnung>()
+              .toList(growable: false)
+        : const <ArbeitskontextMitgliedsZuordnung>[];
+
     return ArbeitskontextReadModel(
       arbeitskontext: Arbeitskontext(
         aktiverLayer: aktiverLayer,
@@ -109,6 +121,7 @@ class SecureArbeitskontextLocalRepository
       ),
       mitglieder: mitglieder,
       gruppen: gruppen,
+      mitgliedsZuordnungen: mitgliedsZuordnungen,
     );
   }
 
@@ -151,6 +164,34 @@ class SecureArbeitskontextLocalRepository
     }
 
     return ArbeitskontextGruppe(id: id, name: name, layerId: layerId);
+  }
+
+  Map<String, dynamic> _mitgliedsZuordnungToJson(
+    ArbeitskontextMitgliedsZuordnung zuordnung,
+  ) {
+    return <String, dynamic>{
+      'mitgliedsnummer': zuordnung.mitgliedsnummer,
+      'gruppen_id': zuordnung.gruppenId,
+      'rollen_typ': zuordnung.rollenTyp,
+      'rollen_label': zuordnung.rollenLabel,
+    };
+  }
+
+  ArbeitskontextMitgliedsZuordnung? _mitgliedsZuordnungFromJson(
+    Map<String, dynamic> json,
+  ) {
+    final mitgliedsnummer = json['mitgliedsnummer']?.toString() ?? '';
+    final gruppenId = _toInt(json['gruppen_id']);
+    if (mitgliedsnummer.isEmpty || gruppenId <= 0) {
+      return null;
+    }
+
+    return ArbeitskontextMitgliedsZuordnung(
+      mitgliedsnummer: mitgliedsnummer,
+      gruppenId: gruppenId,
+      rollenTyp: json['rollen_typ']?.toString(),
+      rollenLabel: json['rollen_label']?.toString(),
+    );
   }
 
   int _toInt(Object? value) {

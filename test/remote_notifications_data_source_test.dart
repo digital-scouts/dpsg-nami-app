@@ -29,6 +29,9 @@ class _FakeSettingsRepository implements AppSettingsRepository {
   Future<void> saveNotificationsEnabled(bool enabled) async {}
 
   @override
+  Future<void> saveMemberListSearchResultHighlightEnabled(bool enabled) async {}
+
+  @override
   Future<void> saveThemeMode(ThemeMode mode) async {}
 }
 
