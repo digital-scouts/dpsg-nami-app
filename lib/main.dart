@@ -337,6 +337,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
     _currentUrgentId = urgent.id;
     final locale = context.read<LocaleModel>().currentLocale;
+    final localizations =
+        AppLocalizations.maybeOf(context) ?? AppLocalizations(locale);
     messenger
       ?..hideCurrentMaterialBanner()
       ..showMaterialBanner(
@@ -363,7 +365,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               onPressed: () async {
                 await _notificationsCubit?.acknowledge(urgent!.id);
               },
-              child: Text(AppLocalizations.of(context).t('acknowledge')),
+              child: Text(localizations.t('acknowledge')),
             ),
           ],
         ),

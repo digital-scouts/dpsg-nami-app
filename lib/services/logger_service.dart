@@ -12,6 +12,8 @@ typedef WiredashEventHook =
     Future<void> Function(String name, Map<String, Object?> properties);
 
 class LoggerService {
+  static const int _maxEventValueLength = 1024;
+
   final AppSettingsRepository settingsRepository;
   final GlobalKey<NavigatorState> navigatorKey;
   final WiredashEventHook? wiredashEventHook;
@@ -74,10 +76,20 @@ class LoggerService {
   }
 
   Object? _sanitizeEventValue(Object? value) {
-    if (value == null || value is String || value is num || value is bool) {
+    if (value == null || value is num || value is bool) {
       return value;
     }
-    return value.toString();
+    if (value is String) {
+      return _truncateEventString(value);
+    }
+    return _truncateEventString(value.toString());
+  }
+
+  String _truncateEventString(String value) {
+    if (value.length <= _maxEventValueLength) {
+      return value;
+    }
+    return '${value.substring(0, _maxEventValueLength - 3)}...';
   }
 
   /// Debounce: Innerhalb von 30s wird nur das letzte Event ausgeführt.
