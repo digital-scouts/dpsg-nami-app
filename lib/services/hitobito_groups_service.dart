@@ -18,8 +18,12 @@ class HitobitoGroupsService {
   HitobitoGroupsService({required this.config, http.Client? httpClient})
     : _httpClient = httpClient ?? http.Client();
 
-  final HitobitoAuthConfig config;
+  HitobitoAuthConfig config;
   final http.Client _httpClient;
+
+  void updateConfig(HitobitoAuthConfig nextConfig) {
+    config = nextConfig;
+  }
 
   Future<List<HitobitoGroupResource>> fetchAccessibleGroups(
     String accessToken,

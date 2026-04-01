@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../../domain/auth/auth_state.dart';
 import '../../l10n/app_localizations.dart';
-import '../model/arbeitskontext_model.dart';
 import '../model/auth_session_model.dart';
 import '../navigation/navigation_home.page.dart';
 
@@ -12,87 +11,7 @@ class AuthGateScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer2<AuthSessionModel, ArbeitskontextModel>(
-      builder: (context, authModel, arbeitskontextModel, _) {
-        switch (authModel.state) {
-          case AuthState.initializing:
-          case AuthState.authenticating:
-            return _AuthInfoScaffold(
-              title: AppLocalizations.of(context).t('auth_loading_title'),
-              message: AppLocalizations.of(context).t('auth_loading_body'),
-              child: const CircularProgressIndicator(),
-            );
-          case AuthState.reloginRequired:
-            return _AuthInfoScaffold(
-              title: AppLocalizations.of(context).t('auth_relogin_title'),
-              message: AppLocalizations.of(context).t('auth_relogin_body'),
-              errorMessage: authModel.errorMessage,
-              child: FilledButton.icon(
-                onPressed: authModel.isConfigured ? authModel.signIn : null,
-                icon: const Icon(Icons.login),
-                label: Text(
-                  AppLocalizations.of(context).t('auth_login_action'),
-                ),
-              ),
-            );
-          case AuthState.signedOut:
-          case AuthState.error:
-            return _AuthInfoScaffold(
-              title: AppLocalizations.of(context).t('auth_login_title'),
-              message: authModel.isConfigured
-                  ? AppLocalizations.of(context).t('auth_login_body')
-                  : AppLocalizations.of(context).t('auth_not_configured_body'),
-              errorMessage: authModel.errorMessage,
-              child: FilledButton.icon(
-                onPressed: authModel.isConfigured ? authModel.signIn : null,
-                icon: const Icon(Icons.login),
-                label: Text(
-                  AppLocalizations.of(context).t('auth_login_action'),
-                ),
-              ),
-            );
-          case AuthState.unlockRequired:
-          case AuthState.signedIn:
-            if (arbeitskontextModel.status == ArbeitskontextStatus.initial ||
-                arbeitskontextModel.isLoading) {
-              return const _AuthInfoScaffold(
-                title: 'Arbeitskontext wird geladen',
-                message:
-                    'Der aktive Arbeitskontext wird initialisiert. Danach stehen die kontextgebundenen Funktionen zur Verfuegung.',
-                child: CircularProgressIndicator(),
-              );
-            }
-            if (arbeitskontextModel.isUnauthorized) {
-              return _AuthInfoScaffold(
-                title: ArbeitskontextModel.unauthorizedMessage,
-                message:
-                    'Melde dich mit einem Konto an, das mindestens ein relevantes Layer- oder Gruppenrecht besitzt.',
-                errorMessage: arbeitskontextModel.errorMessage,
-                child: FilledButton.icon(
-                  onPressed: authModel.logout,
-                  icon: const Icon(Icons.logout),
-                  label: const Text('Abmelden'),
-                ),
-              );
-            }
-            if (arbeitskontextModel.hasError) {
-              return _AuthInfoScaffold(
-                title: 'Arbeitskontext konnte nicht initialisiert werden',
-                message:
-                    'Der App-Start konnte keinen gueltigen Arbeitskontext herstellen.',
-                errorMessage: arbeitskontextModel.errorMessage,
-                child: FilledButton.icon(
-                  onPressed: () => arbeitskontextModel.retry(authModel.profile),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Erneut versuchen'),
-                ),
-              );
-            }
-
-            return const NavigationHomeScreen();
-        }
-      },
-    );
+    return const NavigationHomeScreen();
   }
 }
 
@@ -151,42 +70,6 @@ class AppLockOverlay extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _AuthInfoScaffold extends StatelessWidget {
-  const _AuthInfoScaffold({
-    required this.title,
-    required this.message,
-    required this.child,
-    this.errorMessage,
-  });
-
-  final String title;
-  final String message;
-  final Widget child;
-  final String? errorMessage;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: _AuthInfoPanel(
-                title: title,
-                message: message,
-                errorMessage: errorMessage,
-                child: child,
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

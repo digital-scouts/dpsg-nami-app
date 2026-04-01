@@ -230,7 +230,9 @@ class _SettingsPageState extends State<SettingsPage> {
                 children: [
                   ListTile(
                     leading: const Icon(Icons.person),
-                    trailing: const Icon(Icons.chevron_right),
+                    trailing: widget.onProfile == null
+                        ? const Icon(Icons.lock_outline)
+                        : const Icon(Icons.chevron_right),
                     title: Text(t.t('profile')),
                     onTap: widget.onProfile,
                   ),

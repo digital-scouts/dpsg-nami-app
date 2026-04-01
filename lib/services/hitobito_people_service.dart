@@ -19,8 +19,12 @@ class HitobitoPeopleService {
   HitobitoPeopleService({required this.config, http.Client? httpClient})
     : _httpClient = httpClient ?? http.Client();
 
-  final HitobitoAuthConfig config;
+  HitobitoAuthConfig config;
   final http.Client _httpClient;
+
+  void updateConfig(HitobitoAuthConfig nextConfig) {
+    config = nextConfig;
+  }
 
   Future<List<Mitglied>> fetchPeople(String accessToken) async {
     final resources = await fetchPeopleResources(accessToken);

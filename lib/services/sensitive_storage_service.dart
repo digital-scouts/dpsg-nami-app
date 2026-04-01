@@ -16,6 +16,10 @@ class SensitiveStorageService {
   static const String _lastSensitiveSyncAttemptAtKey =
       'last_sensitive_sync_attempt_at';
   static const String _lastBackgroundedAtKey = 'last_backgrounded_at';
+  static const String _hitobitoOauthClientIdKey =
+      'hitobito_oauth_client_id_override';
+  static const String _hitobitoOauthClientSecretKey =
+      'hitobito_oauth_client_secret_override';
 
   static const List<String> sensitiveBoxNames = <String>[
     secureMetaBoxName,
@@ -130,6 +134,40 @@ class SensitiveStorageService {
     }
 
     return DateTime.tryParse(raw);
+  }
+
+  Future<void> saveHitobitoOauthClientId(String? clientId) async {
+    final box = await openSecureMetaBox();
+    if (clientId == null || clientId.isEmpty) {
+      await box.delete(_hitobitoOauthClientIdKey);
+      return;
+    }
+    await box.put(_hitobitoOauthClientIdKey, clientId);
+  }
+
+  Future<String?> loadHitobitoOauthClientId() async {
+    final box = await openSecureMetaBox();
+    return box.get(_hitobitoOauthClientIdKey);
+  }
+
+  Future<void> saveHitobitoOauthClientSecret(String? clientSecret) async {
+    final box = await openSecureMetaBox();
+    if (clientSecret == null || clientSecret.isEmpty) {
+      await box.delete(_hitobitoOauthClientSecretKey);
+      return;
+    }
+    await box.put(_hitobitoOauthClientSecretKey, clientSecret);
+  }
+
+  Future<String?> loadHitobitoOauthClientSecret() async {
+    final box = await openSecureMetaBox();
+    return box.get(_hitobitoOauthClientSecretKey);
+  }
+
+  Future<void> clearHitobitoOauthOverride() async {
+    final box = await openSecureMetaBox();
+    await box.delete(_hitobitoOauthClientIdKey);
+    await box.delete(_hitobitoOauthClientSecretKey);
   }
 
   Future<void> purgeSensitiveData() async {

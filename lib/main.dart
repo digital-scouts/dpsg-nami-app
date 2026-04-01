@@ -34,6 +34,7 @@ import 'presentation/model/locale_model.dart';
 import 'presentation/navigation/app_router.dart';
 import 'services/app_update_service.dart';
 import 'services/biometric_lock_service.dart';
+import 'services/hitobito_auth_config_controller.dart';
 import 'services/hitobito_auth_env.dart';
 import 'services/hitobito_data_retention_policy.dart';
 import 'services/hitobito_groups_service.dart';
@@ -82,12 +83,26 @@ void main() {
       final arbeitskontextLocalRepository = SecureArbeitskontextLocalRepository(
         sensitiveStorageService: sensitiveStorageService,
       );
+      final envAuthConfig = HitobitoAuthEnv.authConfig;
+      final oauthService = HitobitoOauthService(
+        config: envAuthConfig,
+        logger: logger,
+      );
       final hitobitoGroupsService = HitobitoGroupsService(
-        config: HitobitoAuthEnv.authConfig,
+        config: envAuthConfig,
       );
       final hitobitoPeopleService = HitobitoPeopleService(
-        config: HitobitoAuthEnv.authConfig,
+        config: envAuthConfig,
       );
+      final hitobitoAuthConfigController = HitobitoAuthConfigController(
+        sensitiveStorageService: sensitiveStorageService,
+        oauthService: oauthService,
+        groupsService: hitobitoGroupsService,
+        peopleService: hitobitoPeopleService,
+        logger: logger,
+        envConfig: envAuthConfig,
+      );
+      await hitobitoAuthConfigController.initialize();
       final arbeitskontextReadModelRepository =
           HitobitoArbeitskontextReadModelRepository(
             groupsService: hitobitoGroupsService,
@@ -100,10 +115,7 @@ void main() {
         profileRepository: SecureAuthProfileRepository(
           sensitiveStorageService: sensitiveStorageService,
         ),
-        oauthService: HitobitoOauthService(
-          config: HitobitoAuthEnv.authConfig,
-          logger: logger,
-        ),
+        oauthService: oauthService,
         biometricLockService: BiometricLockService(logger: logger),
         sensitiveStorageService: sensitiveStorageService,
         retentionPolicy: HitobitoDataRetentionPolicy(
@@ -175,6 +187,9 @@ void main() {
             ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
             ChangeNotifierProvider<ArbeitskontextModel>.value(
               value: arbeitskontextModel,
+            ),
+            ChangeNotifierProvider<HitobitoAuthConfigController>.value(
+              value: hitobitoAuthConfigController,
             ),
             Provider<LoggerService>.value(value: logger!),
           ],

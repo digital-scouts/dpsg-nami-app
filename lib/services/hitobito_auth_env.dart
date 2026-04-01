@@ -45,6 +45,28 @@ class HitobitoAuthConfig {
   final String discoveryUrl;
   final String profileUrl;
 
+  HitobitoAuthConfig copyWith({
+    String? clientId,
+    String? clientSecret,
+    String? authorizationUrl,
+    String? tokenUrl,
+    String? redirectUri,
+    String? scopeString,
+    String? discoveryUrl,
+    String? profileUrl,
+  }) {
+    return HitobitoAuthConfig(
+      clientId: clientId ?? this.clientId,
+      clientSecret: clientSecret ?? this.clientSecret,
+      authorizationUrl: authorizationUrl ?? this.authorizationUrl,
+      tokenUrl: tokenUrl ?? this.tokenUrl,
+      redirectUri: redirectUri ?? this.redirectUri,
+      scopeString: scopeString ?? this.scopeString,
+      discoveryUrl: discoveryUrl ?? this.discoveryUrl,
+      profileUrl: profileUrl ?? this.profileUrl,
+    );
+  }
+
   static String _normalizeBaseUrl(String value) {
     return value.endsWith('/') ? value.substring(0, value.length - 1) : value;
   }

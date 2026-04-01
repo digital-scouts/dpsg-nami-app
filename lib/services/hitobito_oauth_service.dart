@@ -53,10 +53,14 @@ class HitobitoOauthService {
        _now = nowProvider ?? DateTime.now,
        _logger = logger;
 
-  final HitobitoAuthConfig config;
+  HitobitoAuthConfig config;
   final http.Client _httpClient;
   final DateTime Function() _now;
   final LoggerService? _logger;
+
+  void updateConfig(HitobitoAuthConfig nextConfig) {
+    config = nextConfig;
+  }
 
   Future<AuthSession> authenticateInteractive() async {
     await _logger?.log('auth_oauth', 'Interaktiver OAuth-Login gestartet');
