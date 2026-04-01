@@ -141,36 +141,9 @@ class AuthSessionModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final previousPrincipal = await _sensitiveStorageService.loadPrincipal();
       final authenticatedSession = await _oauthService
           .authenticateInteractive();
-      final nextPrincipal = authenticatedSession.principal;
-      final mustPurgeExistingData =
-          previousPrincipal != null &&
-          previousPrincipal.isNotEmpty &&
-          (nextPrincipal == null || nextPrincipal != previousPrincipal);
-
-      if (mustPurgeExistingData) {
-        await _logger.log(
-          'auth_flow',
-          'Vorhandene sensible Daten werden wegen Benutzerwechsel geloescht',
-        );
-        await _profileRepository.clear();
-        await _sensitiveStorageService.purgeSensitiveData();
-      }
-
-      await _repository.save(authenticatedSession);
-      await _sensitiveStorageService.savePrincipal(nextPrincipal);
-      await _sensitiveStorageService.saveLastBackgroundedAt(null);
-      await _sensitiveStorageService.saveLastSensitiveSyncAttemptAt(null);
-
-      _session = authenticatedSession;
-      _lastBackgroundedAt = null;
-      _lastSensitiveSyncAttemptAt = null;
-      _requiresInteractiveLogin = false;
-      _remoteAccessIssueMessage = null;
-      await ensureProfileLoaded(force: true);
-      _state = AuthState.signedIn;
+      await _completeSuccessfulSignIn(authenticatedSession);
       await _logger.log('auth_flow', 'Login erfolgreich abgeschlossen');
       notifyListeners();
     } catch (error, stack) {
@@ -187,6 +160,67 @@ class AuthSessionModel extends ChangeNotifier {
       _state = previousState;
       notifyListeners();
     }
+  }
+
+  Future<void> signInWithAuthenticatedSession(
+    AuthSession authenticatedSession,
+  ) async {
+    await _logger.log('auth_flow', 'Login mit bestaetigter Session gestartet');
+    final previousState = _state;
+    _state = AuthState.authenticating;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _completeSuccessfulSignIn(authenticatedSession);
+      await _logger.log(
+        'auth_flow',
+        'Login mit bestaetigter Session abgeschlossen',
+      );
+      notifyListeners();
+    } catch (error, stack) {
+      await _logger.log(
+        'auth',
+        'OAuth-Login mit bestaetigter Session fehlgeschlagen: $error\n$stack',
+      );
+      _errorMessage = error.toString();
+      _state = previousState;
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  Future<void> _completeSuccessfulSignIn(
+    AuthSession authenticatedSession,
+  ) async {
+    final previousPrincipal = await _sensitiveStorageService.loadPrincipal();
+    final nextPrincipal = authenticatedSession.principal;
+    final mustPurgeExistingData =
+        previousPrincipal != null &&
+        previousPrincipal.isNotEmpty &&
+        (nextPrincipal == null || nextPrincipal != previousPrincipal);
+
+    if (mustPurgeExistingData) {
+      await _logger.log(
+        'auth_flow',
+        'Vorhandene sensible Daten werden wegen Benutzerwechsel geloescht',
+      );
+      await _profileRepository.clear();
+      await _sensitiveStorageService.purgeSensitiveData();
+    }
+
+    await _repository.save(authenticatedSession);
+    await _sensitiveStorageService.savePrincipal(nextPrincipal);
+    await _sensitiveStorageService.saveLastBackgroundedAt(null);
+    await _sensitiveStorageService.saveLastSensitiveSyncAttemptAt(null);
+
+    _session = authenticatedSession;
+    _lastBackgroundedAt = null;
+    _lastSensitiveSyncAttemptAt = null;
+    _requiresInteractiveLogin = false;
+    _remoteAccessIssueMessage = null;
+    await ensureProfileLoaded(force: true);
+    _state = AuthState.signedIn;
   }
 
   Future<void> unlock() async {

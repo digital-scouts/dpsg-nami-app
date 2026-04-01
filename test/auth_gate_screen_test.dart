@@ -152,12 +152,70 @@ void main() {
         findsNWidgets(2),
       );
       expect(find.text('Abmelden'), findsOneWidget);
+      expect(find.text('Einstellungen'), findsOneWidget);
       expect(
         find.textContaining(
           'mindestens ein relevantes Layer- oder Gruppenrecht',
         ),
         findsOneWidget,
       );
+    },
+  );
+
+  testWidgets(
+    'laesst die Einstellungen auch ohne Login ueber die Shell erreichen',
+    (tester) async {
+      final authModel = AuthSessionModel(
+        repository: _InMemoryAuthSessionRepository(),
+        profileRepository: _InMemoryAuthProfileRepository(),
+        oauthService: _FakeOauthService(
+          profileToReturn: const AuthProfile(namiId: 99),
+        ),
+        biometricLockService: _FakeBiometricLockService(),
+        sensitiveStorageService: _FakeSensitiveStorageService(),
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+        ),
+        logger: _FakeLoggerService(),
+      );
+      final arbeitskontextModel = ArbeitskontextModel(
+        localRepository: _ImmediateArbeitskontextLocalRepository(),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: _FakeHitobitoGroupsService(),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
+            ChangeNotifierProvider<ArbeitskontextModel>.value(
+              value: arbeitskontextModel,
+            ),
+            Provider<LoggerService>.value(value: _FakeLoggerService()),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+              AppLocalizations.delegate,
+            ],
+            supportedLocales: const [Locale('de'), Locale('en')],
+            locale: const Locale('de'),
+            home: const AuthGateScreen(),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.tap(find.text('Einstellungen'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Stamm'), findsOneWidget);
+      expect(find.byIcon(Icons.lock_outline), findsOneWidget);
     },
   );
 }
