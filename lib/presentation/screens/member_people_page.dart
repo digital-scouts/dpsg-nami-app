@@ -67,24 +67,21 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
 
     _scheduleIssueSnackbar(context, t, authModel);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(t.t('nav_members'))),
-      body: Column(
-        children: [
-          if (authModel.isSyncingHitobitoData || arbeitskontextModel.isLoading)
-            const LinearProgressIndicator(minHeight: 2),
-          Expanded(
-            child: _buildBody(
-              context,
-              t,
-              authModel: authModel,
-              arbeitskontextModel: arbeitskontextModel,
-              highlightSearchMatches: highlightSearchMatches,
-              members: members,
-            ),
+    return Column(
+      children: [
+        if (authModel.isSyncingHitobitoData || arbeitskontextModel.isLoading)
+          const LinearProgressIndicator(minHeight: 2),
+        Expanded(
+          child: _buildBody(
+            context,
+            t,
+            authModel: authModel,
+            arbeitskontextModel: arbeitskontextModel,
+            highlightSearchMatches: highlightSearchMatches,
+            members: members,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

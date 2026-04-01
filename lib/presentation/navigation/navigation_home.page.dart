@@ -24,10 +24,7 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
     final t = AppLocalizations.of(context);
     final authModel = context.watch<AuthSessionModel>();
     final arbeitskontextModel = context.watch<ArbeitskontextModel>();
-    final aktiverLayerName = context.select<ArbeitskontextModel, String?>(
-      (model) => model.arbeitskontext?.aktiverLayer.name,
-    );
-    final startseitenTitel = aktiverLayerName ?? t.t('nav_my_stage');
+    final startseitenTitel = t.t('nav_my_stage');
     Widget body;
     switch (_index) {
       case 0:
