@@ -9,6 +9,7 @@ class SharedPrefsAppSettingsRepository implements AppSettingsRepository {
   static const String _keyThemeMode = 'themeMode';
   static const String _keyLanguageCode = 'languageCode';
   static const String _keyAnalyticsEnabled = 'analyticsEnabled';
+  static const String _keyBiometricLockEnabled = 'biometricLockEnabled';
   static const String _keyNotificationsEnabled = 'notificationsEnabled';
   static const String _keyMemberListSearchResultHighlightEnabled =
       'memberListSearchResultHighlightEnabled';
@@ -23,6 +24,7 @@ class SharedPrefsAppSettingsRepository implements AppSettingsRepository {
     final themeIndex = prefs.getInt(_keyThemeMode);
     final lang = prefs.getString(_keyLanguageCode);
     final analytics = prefs.getBool(_keyAnalyticsEnabled);
+    final biometricLock = prefs.getBool(_keyBiometricLockEnabled);
     final notifications = prefs.getBool(_keyNotificationsEnabled);
     final searchResultHighlight = prefs.getBool(
       _keyMemberListSearchResultHighlightEnabled,
@@ -35,6 +37,7 @@ class SharedPrefsAppSettingsRepository implements AppSettingsRepository {
         : ThemeMode.system;
     final languageCode = lang ?? 'de';
     final analyticsEnabled = analytics ?? true;
+    final biometricLockEnabled = biometricLock ?? false;
     final notificationsEnabled = notifications ?? true;
     final memberListSearchResultHighlightEnabled =
         searchResultHighlight ?? false;
@@ -52,6 +55,7 @@ class SharedPrefsAppSettingsRepository implements AppSettingsRepository {
       themeMode: themeMode,
       languageCode: languageCode,
       analyticsEnabled: analyticsEnabled,
+      biometricLockEnabled: biometricLockEnabled,
       notificationsEnabled: notificationsEnabled,
       memberListSearchResultHighlightEnabled:
           memberListSearchResultHighlightEnabled,
@@ -75,6 +79,12 @@ class SharedPrefsAppSettingsRepository implements AppSettingsRepository {
   Future<void> saveAnalyticsEnabled(bool enabled) async {
     final prefs = await _prefs();
     await prefs.setBool(_keyAnalyticsEnabled, enabled);
+  }
+
+  @override
+  Future<void> saveBiometricLockEnabled(bool enabled) async {
+    final prefs = await _prefs();
+    await prefs.setBool(_keyBiometricLockEnabled, enabled);
   }
 
   @override

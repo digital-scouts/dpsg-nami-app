@@ -8,6 +8,7 @@ abstract class AppSettingsRepository {
   Future<void> saveThemeMode(ThemeMode mode);
   Future<void> saveLanguageCode(String code);
   Future<void> saveAnalyticsEnabled(bool enabled);
+  Future<void> saveBiometricLockEnabled(bool enabled) async {}
   Future<void> saveNotificationsEnabled(bool enabled);
   Future<void> saveMemberListSearchResultHighlightEnabled(bool enabled);
   Future<void> saveGeburstagsbenachrichtigungStufen(Set<Stufe> stufen);

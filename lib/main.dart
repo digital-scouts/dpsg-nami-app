@@ -18,6 +18,7 @@ import 'package:nami/domain/arbeitskontext/usecases/bestimme_startkontext_usecas
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/notifications/app_update_dialog.dart';
+import 'package:nami/presentation/notifications/welcome_dialog.dart';
 import 'package:nami/presentation/screens/auth_gate_screen.dart';
 import 'package:nami/presentation/theme/theme.dart';
 import 'package:path_provider/path_provider.dart';
@@ -26,12 +27,16 @@ import 'package:wiredash/wiredash.dart';
 
 import 'data/settings/shared_prefs_app_settings_repository.dart';
 import 'domain/auth/auth_profile.dart';
+import 'domain/auth/auth_state.dart';
 import 'domain/settings/app_settings.dart';
 import 'domain/settings/app_settings_repository.dart';
 import 'l10n/app_localizations.dart';
 import 'presentation/model/app_settings_model.dart';
 import 'presentation/model/locale_model.dart';
 import 'presentation/navigation/app_router.dart';
+import 'services/app_reset_service.dart';
+import 'services/app_runtime_controller.dart';
+import 'services/app_startup_state_service.dart';
 import 'services/app_update_service.dart';
 import 'services/biometric_lock_service.dart';
 import 'services/hitobito_auth_config_controller.dart';
@@ -61,6 +66,7 @@ void main() {
       // Settings laden und Provider initialisieren
       final AppSettingsRepository settingsRepo =
           SharedPrefsAppSettingsRepository();
+      final appStartupStateService = AppStartupStateService();
       final AppSettings initial = await settingsRepo.load();
       final localeModel = LocaleModel(
         persist: (code) => settingsRepo.saveLanguageCode(code),
@@ -80,6 +86,10 @@ void main() {
       );
 
       final sensitiveStorageService = SensitiveStorageService();
+      final authSessionRepository = SecureAuthSessionRepository();
+      final authProfileRepository = SecureAuthProfileRepository(
+        sensitiveStorageService: sensitiveStorageService,
+      );
       final arbeitskontextLocalRepository = SecureArbeitskontextLocalRepository(
         sensitiveStorageService: sensitiveStorageService,
       );
@@ -109,12 +119,15 @@ void main() {
             peopleService: hitobitoPeopleService,
             localRepository: arbeitskontextLocalRepository,
           );
+      final appResetService = AppResetService(
+        authSessionRepository: authSessionRepository,
+        sensitiveStorageService: sensitiveStorageService,
+        logFileProvider: logger!.getLogFile,
+      );
 
       final authModel = AuthSessionModel(
-        repository: SecureAuthSessionRepository(),
-        profileRepository: SecureAuthProfileRepository(
-          sensitiveStorageService: sensitiveStorageService,
-        ),
+        repository: authSessionRepository,
+        profileRepository: authProfileRepository,
         oauthService: oauthService,
         biometricLockService: BiometricLockService(logger: logger),
         sensitiveStorageService: sensitiveStorageService,
@@ -123,6 +136,7 @@ void main() {
           refreshInterval: HitobitoAuthEnv.refreshInterval,
         ),
         logger: logger!,
+        isAppLockEnabled: () => appSettingsModel.biometricLockEnabled,
         lockTimeout: HitobitoAuthEnv.appLockTimeout,
         onPreferredLanguageChanged: (languageCode) async {
           final normalized = AuthProfile.normalizeLanguageCode(languageCode);
@@ -181,6 +195,11 @@ void main() {
               )..currentMode = initial.themeMode,
             ),
             ChangeNotifierProvider<LocaleModel>.value(value: localeModel),
+            Provider<AppSettingsRepository>.value(value: settingsRepo),
+            Provider<AppStartupStateService>.value(
+              value: appStartupStateService,
+            ),
+            Provider<AppResetService>.value(value: appResetService),
             ChangeNotifierProvider<AppSettingsModel>.value(
               value: appSettingsModel,
             ),
@@ -230,11 +249,17 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   late final LoggerService logger;
   late final AuthSessionModel _authModel;
   late final ArbeitskontextModel _arbeitskontextModel;
+  late final AppResetService _appResetService;
+  late final AppStartupStateService _appStartupStateService;
+  late final AppRuntimeController _appRuntimeController;
   Timer? _authMaintenanceTimer;
   PullNotificationsCubit? _notificationsCubit;
   StreamSubscription<PullNotificationsState>? _notificationsSubscription;
   String? _currentUrgentId;
+  PullNotificationsLoaded? _pendingNotificationsState;
   bool _didCheckForAppUpdate = false;
+  bool _startupFlowCompleted = false;
+  bool _startupFlowRunning = false;
 
   @override
   void initState() {
@@ -244,16 +269,35 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     logger = context.read<LoggerService>();
     _authModel = context.read<AuthSessionModel>();
     _arbeitskontextModel = context.read<ArbeitskontextModel>();
-    _authModel.addListener(_syncArbeitskontextWithAuth);
+    _appResetService = context.read<AppResetService>();
+    _appStartupStateService = context.read<AppStartupStateService>();
+    _appRuntimeController = AppRuntimeController(resetApp: _performFullReset);
+    _authModel.addListener(_handleAuthModelChanged);
     _usage = UsageTrackingService(logger: logger);
     // Ausstehende Pause/Sessions vom letzten Lauf auswerten
     _usage.flushPendingSession();
     _usage.startSession();
     _initGlobalNotifications();
     _startAuthMaintenanceTimer();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkForAppUpdate();
-    });
+    _scheduleStartupFlow();
+  }
+
+  void _handleAuthModelChanged() {
+    _syncArbeitskontextWithAuth();
+
+    final authState = _authModel.state;
+    if (authState == AuthState.signedIn) {
+      _scheduleStartupFlow();
+      _flushPendingNotificationBanner();
+      return;
+    }
+
+    if (authState == AuthState.unlockRequired) {
+      scaffoldMessengerKey.currentState?.hideCurrentMaterialBanner();
+      return;
+    }
+
+    _resetStartupFlowState();
   }
 
   void _syncArbeitskontextWithAuth() {
@@ -264,6 +308,58 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         profile: _authModel.profile,
       ),
     );
+  }
+
+  void _resetStartupFlowState() {
+    _startupFlowCompleted = false;
+    _startupFlowRunning = false;
+    _didCheckForAppUpdate = false;
+    _pendingNotificationsState = null;
+    _currentUrgentId = null;
+    scaffoldMessengerKey.currentState?.hideCurrentMaterialBanner();
+  }
+
+  bool _canShowStartupUi() => _authModel.state == AuthState.signedIn;
+
+  void _scheduleStartupFlow() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_runStartupFlowIfNeeded());
+    });
+  }
+
+  Future<void> _runStartupFlowIfNeeded() async {
+    if (!mounted ||
+        !_canShowStartupUi() ||
+        _startupFlowCompleted ||
+        _startupFlowRunning) {
+      return;
+    }
+
+    final dialogContext = navigatorKey.currentContext;
+    if (dialogContext == null) {
+      return;
+    }
+
+    _startupFlowRunning = true;
+    scaffoldMessengerKey.currentState?.hideCurrentMaterialBanner();
+
+    try {
+      final hasSeenWelcome = await _appStartupStateService.hasSeenWelcome();
+      if (!hasSeenWelcome) {
+        await showWelcomeDialog(dialogContext);
+        await _appStartupStateService.markWelcomeSeen();
+        _startupFlowCompleted = true;
+        return;
+      }
+
+      await _checkForAppUpdate();
+      _startupFlowCompleted = true;
+    } finally {
+      _startupFlowRunning = false;
+      if (_startupFlowCompleted) {
+        _flushPendingNotificationBanner();
+      }
+    }
   }
 
   void _startAuthMaintenanceTimer() {
@@ -318,6 +414,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   }
 
   Future<void> _initGlobalNotifications() async {
+    await _notificationsSubscription?.cancel();
+    await _notificationsCubit?.close();
+
     final repo = await createPullNotificationsRepository(logger: logger);
     final cubit = PullNotificationsCubit(repo);
     _notificationsSubscription = cubit.stream.listen(_handleNotificationsState);
@@ -326,7 +425,33 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   }
 
   void _handleNotificationsState(PullNotificationsState state) {
+    if (state is PullNotificationsLoaded) {
+      _pendingNotificationsState = state;
+    }
+
+    if (!_startupFlowCompleted || !_canShowStartupUi()) {
+      scaffoldMessengerKey.currentState?.hideCurrentMaterialBanner();
+      return;
+    }
+
     if (state is! PullNotificationsLoaded) return;
+
+    _showNotificationBanner(state);
+  }
+
+  void _flushPendingNotificationBanner() {
+    final state = _pendingNotificationsState;
+    if (state == null || !_startupFlowCompleted || !_canShowStartupUi()) {
+      return;
+    }
+
+    _showNotificationBanner(state);
+  }
+
+  void _showNotificationBanner(PullNotificationsLoaded state) {
+    if (!_canShowStartupUi()) {
+      return;
+    }
 
     PullNotification? urgent;
     try {
@@ -387,10 +512,55 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       );
   }
 
+  Future<void> _performFullReset() async {
+    await logger.log('debug_tools', 'Vollstaendiger App-Reset gestartet');
+    scaffoldMessengerKey.currentState
+      ?..hideCurrentSnackBar()
+      ..hideCurrentMaterialBanner();
+    navigatorKey.currentState?.popUntil((route) => route.isFirst);
+
+    _authMaintenanceTimer?.cancel();
+    await _notificationsSubscription?.cancel();
+    _notificationsSubscription = null;
+    await _notificationsCubit?.close();
+    _notificationsCubit = null;
+    _pendingNotificationsState = null;
+    _currentUrgentId = null;
+
+    await _authModel.logout();
+    await _appResetService.resetAllData();
+
+    final settingsRepo = context.read<AppSettingsRepository>();
+    final defaults = await settingsRepo.load();
+    context.read<AppSettingsModel>().replaceWith(defaults);
+    context.read<ThemeModel>().setTheme(defaults.themeMode);
+    context.read<LocaleModel>().setLocale(
+      Locale(defaults.languageCode),
+      persist: false,
+    );
+
+    _resetStartupFlowState();
+    _usage.startSession();
+    _startAuthMaintenanceTimer();
+    await _initGlobalNotifications();
+    _scheduleStartupFlow();
+
+    final snackbarContext = navigatorKey.currentContext;
+    if (snackbarContext != null) {
+      scaffoldMessengerKey.currentState?.showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(snackbarContext).t('debug_reset_done'),
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _authModel.removeListener(_syncArbeitskontextWithAuth);
+    _authModel.removeListener(_handleAuthModelChanged);
     _authMaintenanceTimer?.cancel();
     _notificationsSubscription?.cancel();
     _notificationsCubit?.close();
@@ -434,42 +604,45 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
     return Consumer<ThemeModel>(
       builder: (context, themeModel, _) {
-        return Wiredash(
-          projectId: projectId,
-          secret: secret,
-          feedbackOptions: const WiredashFeedbackOptions(
-            labels: [
-              Label(id: 'label-u26353u60f', title: 'Fehler'),
-              Label(id: 'label-mtl2xk4esi', title: 'Verbesserung'),
-              Label(id: 'label-p792odog4e', title: 'Lob'),
-            ],
-          ),
-          options: WiredashOptionsData(
-            locale: context.watch<LocaleModel>().currentLocale,
-          ),
-          collectMetaData: (metaData) => metaData,
-          child: MaterialApp(
-            theme: lightTheme,
-            darkTheme: darkTheme,
-            themeMode: themeModel.currentMode,
-            navigatorKey: navigatorKey,
-            scaffoldMessengerKey: scaffoldMessengerKey,
-            onGenerateRoute: onGenerateRoute,
-            localizationsDelegates: [
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-              AppLocalizations.delegate,
-            ],
-            builder: (context, child) {
-              return Stack(
-                fit: StackFit.expand,
-                children: [if (child != null) child, const AppLockOverlay()],
-              );
-            },
-            supportedLocales: const [Locale('de'), Locale('en')],
-            locale: context.watch<LocaleModel>().currentLocale,
-            home: const AuthGateScreen(),
+        return Provider<AppRuntimeController>.value(
+          value: _appRuntimeController,
+          child: Wiredash(
+            projectId: projectId,
+            secret: secret,
+            feedbackOptions: const WiredashFeedbackOptions(
+              labels: [
+                Label(id: 'label-u26353u60f', title: 'Fehler'),
+                Label(id: 'label-mtl2xk4esi', title: 'Verbesserung'),
+                Label(id: 'label-p792odog4e', title: 'Lob'),
+              ],
+            ),
+            options: WiredashOptionsData(
+              locale: context.watch<LocaleModel>().currentLocale,
+            ),
+            collectMetaData: (metaData) => metaData,
+            child: MaterialApp(
+              theme: lightTheme,
+              darkTheme: darkTheme,
+              themeMode: themeModel.currentMode,
+              navigatorKey: navigatorKey,
+              scaffoldMessengerKey: scaffoldMessengerKey,
+              onGenerateRoute: onGenerateRoute,
+              localizationsDelegates: [
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+                AppLocalizations.delegate,
+              ],
+              builder: (context, child) {
+                return Stack(
+                  fit: StackFit.expand,
+                  children: [if (child != null) child, const AppLockOverlay()],
+                );
+              },
+              supportedLocales: const [Locale('de'), Locale('en')],
+              locale: context.watch<LocaleModel>().currentLocale,
+              home: const AuthGateScreen(),
+            ),
           ),
         );
       },

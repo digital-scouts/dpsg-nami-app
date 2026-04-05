@@ -116,7 +116,7 @@ ASCII bleibt auf technische Literale begrenzt, insbesondere für Code, Dateiname
 
 ### Hitobito OAuth
 
-Für die Entwicklung gegen die Demo-Instanz verwendet die App eine reduzierte Hitobito-Konfiguration über `.env` mit `HITOBITO_BASE_URL`, Client-ID, Client-Secret und Redirect-URI. Authorization-, Token-, Discovery-, Profil- und People-Endpunkte werden daraus im Code abgeleitet.
+Für die Entwicklung gegen die Demo-Instanz verwendet die App eine reduzierte Hitobito-Konfiguration über `.env` mit `HITOBITO_BASE_URL`, Client-ID, Client-Secret und Redirect-URI. Authorization-, Token-, Discovery-, Profil- und People-Endpunkte werden daraus im Code abgeleitet. Client-ID und Client-Secret können zusätzlich in Debug & Tools zur Laufzeit testweise überschrieben werden; die Werte werden lokal sicher gespeichert und erst nach erfolgreicher Prüfung übernommen.
 Neue Env-Keys müssen immer auch in [.env.example](.env.example) enthalten sein, weil lokale Validierung, GitHub Actions und Xcode Cloud dieses Template als Referenz verwenden.
 
 ### Hitobito-Arbeitskontextmodell
@@ -136,7 +136,7 @@ Für die aktuelle Hitobito-Ausbaustufe gilt fachlich folgendes Modell:
 - Leere Gruppen ohne Personen werden in der Leseansicht nicht angezeigt.
 - Sonstige Gruppen sind keine vordefinierten Hauptfilter, können später aber in benutzerdefinierten Filtern genutzt werden.
 - Leere Layer bleiben grundsätzlich zulässige Arbeitskontexte, weil sie für erste Anlage- oder Aufbauprozesse relevant sein können.
-- Ohne mindestens ein relevantes Layer- oder Gruppen-Lese- beziehungsweise Schreibrecht zeigt die App einen expliziten Nicht-berechtigt-Zustand mit Logout an.
+- Ohne mindestens ein relevantes Layer- oder Gruppen-Lese- beziehungsweise Schreibrecht zeigt die App für kontextabhängige Bereiche einen expliziten Nicht-berechtigt-Zustand mit Logout an. Die Stamm-Einstellungen bleiben weiterhin erreichbar.
 - Der initiale Arbeitskontext wird aus dem Primary Layer der Person bestimmt, sofern dieser innerhalb der relevanten Layer liegt. Falls dies ausnahmsweise nicht sinnvoll bestimmbar ist, wird der erste relevante Layer aus einer stabil sortierten Liste verwendet.
 - Suche, Mitgliedsliste, Statistik und weitere Ansichten arbeiten jeweils nur innerhalb des aktiven Arbeitskontexts.
 - Unterlayer gehören nicht automatisch zum aktiven Arbeitskontext. Sie werden nur über einen bewussten Kontextwechsel geöffnet.
@@ -167,6 +167,7 @@ Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den
 - Führungszeugniss Antragsunterlagen und Bescheinigungen herrunterladen
 - Das eigene Profil wird nach dem Login über Hitobito OAuth geladen und zeigt nami-id, E-Mail, bevorzugte Sprache als Sprachbadge und die zugewiesenen Rollen.
 - Wenn Hitobito später nicht erreichbar ist oder eine erneute Anmeldung für Updates erforderlich wird, bleibt der lokale Datenstand bis zum Ablauf von `HITOBITO_DATA_MAX_AGE_DAYS` nutzbar; die App zeigt dazu einen fachlichen Hinweis statt einer generischen Plattformfehlermeldung.
+- Die Stamm-Einstellungen und Debug & Tools bleiben auch dann erreichbar, wenn noch kein Login vorliegt oder der Arbeitskontext nicht initialisiert werden konnte. Das Profil bleibt in diesen Zuständen gesperrt.
 - Die App-Sprache wird nach dem Login auf Basis der bevorzugten Profilsprache gesetzt. Unbekannte oder fehlende Sprachcodes fallen auf Deutsch zurück.
 - Jeder Nutzer sieht auch nur die Funktionen, die er aufgrund seiner Rechte ausführen kann. Die Rechte sind im eigenen Profil aufgelistet.
 - Jeder Nutzer hat die Möglichkeit das Bearbeiten von Daten zu deaktiven und braucht so keine Angst haben 'Etwas kaput zu machen'

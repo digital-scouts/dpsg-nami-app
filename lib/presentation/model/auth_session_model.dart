@@ -23,6 +23,7 @@ class AuthSessionModel extends ChangeNotifier {
     required HitobitoDataRetentionPolicy retentionPolicy,
     required LoggerService logger,
     Future<void> Function(String languageCode)? onPreferredLanguageChanged,
+    bool Function()? isAppLockEnabled,
     Duration lockTimeout = const Duration(seconds: 60),
   }) : _repository = repository,
        _profileRepository = profileRepository,
@@ -32,6 +33,7 @@ class AuthSessionModel extends ChangeNotifier {
        _retentionPolicy = retentionPolicy,
        _logger = logger,
        _onPreferredLanguageChanged = onPreferredLanguageChanged,
+       _isAppLockEnabled = isAppLockEnabled ?? _appLockDisabled,
        _lockTimeout = lockTimeout;
 
   final AuthSessionRepository _repository;
@@ -42,7 +44,10 @@ class AuthSessionModel extends ChangeNotifier {
   final HitobitoDataRetentionPolicy _retentionPolicy;
   final LoggerService _logger;
   final Future<void> Function(String languageCode)? _onPreferredLanguageChanged;
+  final bool Function() _isAppLockEnabled;
   final Duration _lockTimeout;
+
+  static bool _appLockDisabled() => false;
 
   AuthState _state = AuthState.initializing;
   AuthSession? _session;
@@ -130,7 +135,7 @@ class AuthSessionModel extends ChangeNotifier {
       return false;
     }
 
-    return _biometricLockService.isAvailable();
+    return _isAppLockEnabled() && await _biometricLockService.isAvailable();
   }
 
   Future<void> signIn() async {
@@ -299,7 +304,9 @@ class AuthSessionModel extends ChangeNotifier {
     final shouldRequireUnlock = _shouldRequireUnlockAfterResume();
     await _clearBackgroundedAt();
 
-    if (shouldRequireUnlock && await _biometricLockService.isAvailable()) {
+    if (shouldRequireUnlock &&
+        _isAppLockEnabled() &&
+        await _biometricLockService.isAvailable()) {
       _state = AuthState.unlockRequired;
       await _logger.log(
         'auth_flow',
@@ -573,7 +580,9 @@ class AuthSessionModel extends ChangeNotifier {
       return;
     }
 
-    if (requireUnlock && await _biometricLockService.isAvailable()) {
+    if (requireUnlock &&
+        _isAppLockEnabled() &&
+        await _biometricLockService.isAvailable()) {
       _state = AuthState.unlockRequired;
       await _logger.log('auth_flow', 'Lokale Entsperrung erforderlich');
       notifyListeners();

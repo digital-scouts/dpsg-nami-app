@@ -6,6 +6,7 @@ class AppSettings {
   final ThemeMode themeMode;
   final String languageCode;
   final bool analyticsEnabled;
+  final bool biometricLockEnabled;
   final bool notificationsEnabled;
   final bool memberListSearchResultHighlightEnabled;
   final Set<Stufe> geburstagsbenachrichtigungStufen;
@@ -14,6 +15,7 @@ class AppSettings {
     required this.themeMode,
     required this.languageCode,
     required this.analyticsEnabled,
+    this.biometricLockEnabled = false,
     this.notificationsEnabled = true,
     this.memberListSearchResultHighlightEnabled = false,
     this.geburstagsbenachrichtigungStufen = const {
@@ -30,6 +32,7 @@ class AppSettings {
     ThemeMode? themeMode,
     String? languageCode,
     bool? analyticsEnabled,
+    bool? biometricLockEnabled,
     bool? notificationsEnabled,
     bool? memberListSearchResultHighlightEnabled,
     Set<Stufe>? geburstagsbenachrichtigungStufen,
@@ -37,6 +40,7 @@ class AppSettings {
     themeMode: themeMode ?? this.themeMode,
     languageCode: languageCode ?? this.languageCode,
     analyticsEnabled: analyticsEnabled ?? this.analyticsEnabled,
+    biometricLockEnabled: biometricLockEnabled ?? this.biometricLockEnabled,
     notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
     memberListSearchResultHighlightEnabled:
         memberListSearchResultHighlightEnabled ??

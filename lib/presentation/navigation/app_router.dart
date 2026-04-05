@@ -114,6 +114,7 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
 
           return AppSettingsPage(
             analyticsEnabled: appSettings.analyticsEnabled,
+            biometricLockEnabled: appSettings.biometricLockEnabled,
             memberListSearchResultHighlightEnabled:
                 appSettings.memberListSearchResultHighlightEnabled,
             themeMode: themeModel.currentMode,
@@ -126,6 +127,13 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
                 {'value': v},
               );
               await appSettings.setAnalyticsEnabled(v);
+            },
+            onBiometricLockChanged: (v) async {
+              final logger = Provider.of<LoggerService>(context, listen: false);
+              await logger.debounceTrackAndLog('settings', 'app_lock_changed', {
+                'value': v,
+              });
+              await appSettings.setBiometricLockEnabled(v);
             },
             onMemberListSearchResultHighlightChanged: (v) async {
               final logger = Provider.of<LoggerService>(context, listen: false);

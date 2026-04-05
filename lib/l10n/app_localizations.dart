@@ -42,9 +42,16 @@ class AppLocalizations {
       'update_required_title': 'Update erforderlich',
       'update_required_body':
           'Deine aktuelle App-Version wird nicht mehr unterstützt. Bitte aktualisiere die App.',
+      'welcome_title': 'Willkommen',
+      'welcome_body':
+          'Willkommen in der App. Weitere Hinweise und Optionen folgen später.',
+      'welcome_action': 'Weiter',
       'version': 'Version',
       'notifications_enable': 'Benachrichtigungen aktiviert',
       'analytics_enable': 'Analyse/Telemetry erlauben',
+      'app_lock_enable': 'App-Sperre aktivieren',
+      'app_lock_enable_hint':
+          'Fordert nach Rueckkehr aus dem Hintergrund die Geraeteauthentifizierung an.',
       'member_search_result_highlight_enable':
           'Suchtreffer im Untertitel hervorheben',
       'member_search_result_highlight_hint':
@@ -91,7 +98,7 @@ class AppLocalizations {
       'members_sync_issue_relogin':
           'Hitobito-Daten konnten nicht aktualisiert werden. Bitte melde dich erneut an.',
       'settings_stamm': 'Stammeseinstellungen',
-      'settings_app': 'Appeinstellungen',
+      'settings_app': 'App-Einstellungen',
       'settings_debug_tools': 'Debug & Tools',
       'settings_hitobito_issue_title': 'Hitobito derzeit nicht erreichbar',
       'settings_hitobito_issue_body':
@@ -166,6 +173,14 @@ class AppLocalizations {
       'auth_refresh_due_no': 'Nein',
       'auth_manual_refresh_action': 'Sitzung jetzt pruefen',
       'auth_lock_timeout_label': 'App-Sperre nach Hintergrund in Sekunden',
+      'debug_reset_title': 'App zurücksetzen',
+      'debug_reset_action': 'Alle Daten löschen',
+      'debug_reset_confirm_title': 'Alle Daten löschen?',
+      'debug_reset_confirm_body':
+          'Alle lokalen Daten, Einstellungen und Caches werden gelöscht. Die App wird danach in einen Erststart-ähnlichen Zustand zurückgesetzt.',
+      'debug_reset_confirm_action': 'Jetzt löschen',
+      'debug_reset_done':
+          'Alle Daten wurden gelöscht. Bitte jetzt App beenden und neu starten.',
     },
     'en': {
       'nav_my_stage': 'My Group',
@@ -193,9 +208,16 @@ class AppLocalizations {
       'update_required_title': 'Update required',
       'update_required_body':
           'Your current app version is no longer supported. Please update the app.',
+      'welcome_title': 'Welcome',
+      'welcome_body':
+          'Welcome to the app. More guidance and options will be added later.',
+      'welcome_action': 'Continue',
       'version': 'Version',
       'notifications_enable': 'Notifications enabled',
       'analytics_enable': 'Allow analytics/telemetry',
+      'app_lock_enable': 'Enable app lock',
+      'app_lock_enable_hint':
+          'Requires device authentication after returning from the background.',
       'member_search_result_highlight_enable':
           'Highlight matching search results in subtitle',
       'member_search_result_highlight_hint':
@@ -313,6 +335,14 @@ class AppLocalizations {
       'auth_refresh_due_no': 'No',
       'auth_manual_refresh_action': 'Check session now',
       'auth_lock_timeout_label': 'App lock after background in seconds',
+            'debug_reset_title': 'Reset app',
+            'debug_reset_action': 'Delete all data',
+            'debug_reset_confirm_title': 'Delete all data?',
+            'debug_reset_confirm_body':
+                    'All local data, settings, and caches will be deleted. The app will then return to a first-start-like state.',
+            'debug_reset_confirm_action': 'Delete now',
+            'debug_reset_done':
+                    'All data was deleted. Please close and restart the app now.',
     },
   };
 

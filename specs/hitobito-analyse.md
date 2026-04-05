@@ -316,6 +316,8 @@ Aktuelle App-Konfiguration für Entwicklung:
 - `HITOBITO_OAUTH_CLIENT_SECRET=...`
 - `HITOBITO_OAUTH_REDIRECT_URI=de.jlange.nami.app:/oauth/callback`
 
+Zusätzlich können `HITOBITO_OAUTH_CLIENT_ID` und `HITOBITO_OAUTH_CLIENT_SECRET` in Debug & Tools zur Laufzeit testweise überschrieben werden. Die Werte werden lokal sicher gespeichert und erst nach erfolgreichem OAuth-Login übernommen.
+
 Die App leitet daraus aktuell diese Endpunkte ab:
 
 - Discovery Endpoint: <https://demo.hitobito.com/.well-known/openid-configuration>
