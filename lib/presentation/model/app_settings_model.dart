@@ -10,6 +10,7 @@ class AppSettingsModel extends ChangeNotifier {
   ThemeMode themeMode;
   String languageCode;
   bool analyticsEnabled;
+  bool biometricLockEnabled;
   bool notificationsEnabled;
   bool memberListSearchResultHighlightEnabled;
   Set<Stufe> geburstagsbenachrichtigungStufen;
@@ -18,11 +19,25 @@ class AppSettingsModel extends ChangeNotifier {
     : themeMode = initial.themeMode,
       languageCode = initial.languageCode,
       analyticsEnabled = initial.analyticsEnabled,
+      biometricLockEnabled = initial.biometricLockEnabled,
       notificationsEnabled = initial.notificationsEnabled,
       memberListSearchResultHighlightEnabled =
           initial.memberListSearchResultHighlightEnabled,
       geburstagsbenachrichtigungStufen =
           initial.geburstagsbenachrichtigungStufen;
+
+  void replaceWith(AppSettings settings) {
+    themeMode = settings.themeMode;
+    languageCode = settings.languageCode;
+    analyticsEnabled = settings.analyticsEnabled;
+    biometricLockEnabled = settings.biometricLockEnabled;
+    notificationsEnabled = settings.notificationsEnabled;
+    memberListSearchResultHighlightEnabled =
+        settings.memberListSearchResultHighlightEnabled;
+    geburstagsbenachrichtigungStufen =
+        settings.geburstagsbenachrichtigungStufen;
+    notifyListeners();
+  }
 
   Future<void> setThemeMode(ThemeMode mode) async {
     themeMode = mode;
@@ -44,6 +59,12 @@ class AppSettingsModel extends ChangeNotifier {
     analyticsEnabled = enabled;
     notifyListeners();
     await _repo.saveAnalyticsEnabled(enabled);
+  }
+
+  Future<void> setBiometricLockEnabled(bool enabled) async {
+    biometricLockEnabled = enabled;
+    notifyListeners();
+    await _repo.saveBiometricLockEnabled(enabled);
   }
 
   Future<void> setNotificationsEnabled(bool enabled) async {

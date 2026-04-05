@@ -4,10 +4,12 @@ import 'package:nami/l10n/app_localizations.dart';
 
 class AppSettingsPage extends StatefulWidget {
   final bool analyticsEnabled;
+  final bool biometricLockEnabled;
   final bool memberListSearchResultHighlightEnabled;
   final ThemeMode themeMode;
   final String languageCode; // e.g. 'de', 'en'
   final ValueChanged<bool>? onAnalyticsChanged;
+  final ValueChanged<bool>? onBiometricLockChanged;
   final ValueChanged<bool>? onMemberListSearchResultHighlightChanged;
   final ValueChanged<ThemeMode>? onThemeModeChanged;
   final ValueChanged<String>? onLanguageChanged;
@@ -15,10 +17,12 @@ class AppSettingsPage extends StatefulWidget {
   const AppSettingsPage({
     super.key,
     this.analyticsEnabled = false,
+    this.biometricLockEnabled = false,
     this.memberListSearchResultHighlightEnabled = false,
     this.themeMode = ThemeMode.system,
     this.languageCode = 'de',
     this.onAnalyticsChanged,
+    this.onBiometricLockChanged,
     this.onMemberListSearchResultHighlightChanged,
     this.onThemeModeChanged,
     this.onLanguageChanged,
@@ -30,6 +34,7 @@ class AppSettingsPage extends StatefulWidget {
 
 class _AppSettingsPageState extends State<AppSettingsPage> {
   late bool _analyticsEnabled;
+  late bool _biometricLockEnabled;
   late bool _memberListSearchResultHighlightEnabled;
   late ThemeMode _currentMode;
   late String _languageCode;
@@ -38,6 +43,7 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
   void initState() {
     super.initState();
     _analyticsEnabled = widget.analyticsEnabled;
+    _biometricLockEnabled = widget.biometricLockEnabled;
     _memberListSearchResultHighlightEnabled =
         widget.memberListSearchResultHighlightEnabled;
     _currentMode = widget.themeMode;
@@ -67,6 +73,18 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
             onChanged: (v) {
               setState(() => _analyticsEnabled = v);
               widget.onAnalyticsChanged?.call(v);
+            },
+          ),
+
+          SwitchListTile(
+            title: Text(AppLocalizations.of(context).t('app_lock_enable')),
+            subtitle: Text(
+              AppLocalizations.of(context).t('app_lock_enable_hint'),
+            ),
+            value: _biometricLockEnabled,
+            onChanged: (v) {
+              setState(() => _biometricLockEnabled = v);
+              widget.onBiometricLockChanged?.call(v);
             },
           ),
 

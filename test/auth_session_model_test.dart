@@ -190,6 +190,7 @@ void main() {
           nowProvider: () => DateTime(2026, 3, 27, 12),
         ),
         logger: logger,
+        isAppLockEnabled: () => true,
       );
 
       await model.initialize();
@@ -591,6 +592,7 @@ void main() {
           nowProvider: () => now,
         ),
         logger: _createLogger(),
+        isAppLockEnabled: () => true,
         lockTimeout: const Duration(seconds: 60),
       );
 
@@ -640,6 +642,7 @@ void main() {
           nowProvider: () => now,
         ),
         logger: _createLogger(),
+        isAppLockEnabled: () => true,
         lockTimeout: const Duration(seconds: 60),
       );
 
@@ -651,6 +654,47 @@ void main() {
       expect(model.state, AuthState.unlockRequired);
 
       await model.unlock();
+      await model.onAppResumed();
+
+      expect(model.state, AuthState.signedIn);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  test(
+    'sperrt nach Resume nicht, wenn die App-Sperre deaktiviert ist',
+    () async {
+      var now = DateTime(2026, 3, 28, 12, 0, 0);
+      final model = AuthSessionModel(
+        repository: _InMemoryAuthSessionRepository(),
+        profileRepository: _InMemoryAuthProfileRepository(),
+        oauthService: _FakeOauthService(
+          sessionToReturn: AuthSession(
+            accessToken: 'access-token',
+            refreshToken: 'refresh-token',
+            receivedAt: now,
+          ),
+          profileToReturn: const AuthProfile(
+            namiId: 90,
+            firstName: 'NoLock',
+            lastName: 'User',
+            language: 'de',
+          ),
+        ),
+        biometricLockService: _FakeBiometricLockService(available: true),
+        sensitiveStorageService: _FakeSensitiveStorageService(),
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => now,
+        ),
+        logger: _createLogger(),
+        lockTimeout: const Duration(seconds: 60),
+      );
+
+      await model.signIn();
+      await model.onAppBackgrounded();
+      now = now.add(const Duration(seconds: 61));
       await model.onAppResumed();
 
       expect(model.state, AuthState.signedIn);
@@ -882,6 +926,9 @@ class _FakeAppSettingsRepository implements AppSettingsRepository {
 
   @override
   Future<void> saveAnalyticsEnabled(bool enabled) async {}
+
+  @override
+  Future<void> saveBiometricLockEnabled(bool enabled) async {}
 
   @override
   Future<void> saveGeburstagsbenachrichtigungStufen(Set<Stufe> stufen) async {}

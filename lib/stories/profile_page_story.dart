@@ -415,6 +415,9 @@ class _FakeAppSettingsRepository implements AppSettingsRepository {
   Future<void> saveAnalyticsEnabled(bool enabled) async {}
 
   @override
+  Future<void> saveBiometricLockEnabled(bool enabled) async {}
+
+  @override
   Future<void> saveGeburstagsbenachrichtigungStufen(Set<Stufe> stufen) async {}
 
   @override

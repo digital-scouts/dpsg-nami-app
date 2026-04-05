@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_email_sender/flutter_email_sender.dart';
 import 'package:nami/domain/auth/auth_state.dart';
+import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/main.dart' show navigatorKey;
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
@@ -10,18 +11,24 @@ import 'package:nami/presentation/screens/changelog_page.dart';
 import 'package:provider/provider.dart';
 import 'package:wiredash/wiredash.dart';
 
+import '../../services/app_runtime_controller.dart';
 import '../../services/hitobito_auth_config_controller.dart';
 import '../../services/hitobito_oauth_service.dart';
 import '../../services/logger_service.dart';
 
 class DebugToolsPage extends StatefulWidget {
-  const DebugToolsPage({super.key, this.oauthServiceFactory});
+  const DebugToolsPage({
+    super.key,
+    this.oauthServiceFactory,
+    this.onResetAllData,
+  });
 
   final HitobitoOauthService Function(
     HitobitoAuthConfigController controller,
     LoggerService logger,
   )?
   oauthServiceFactory;
+  final Future<void> Function()? onResetAllData;
 
   @override
   State<DebugToolsPage> createState() => _DebugToolsPageState();
@@ -45,6 +52,37 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
     );
   }
 
+  Future<void> _confirmAndResetApp(BuildContext context) async {
+    final t = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(t.t('debug_reset_confirm_title')),
+          content: Text(t.t('debug_reset_confirm_body')),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(t.t('ignore')),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(t.t('debug_reset_confirm_action')),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+
+    final handler =
+        widget.onResetAllData ?? context.read<AppRuntimeController>().resetApp;
+    await handler();
+  }
+
   Future<void> sendLogsEmail(File file) async {
     final exists = await file.exists();
     if (!exists) {
@@ -65,6 +103,7 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final logger = Provider.of<LoggerService>(context, listen: false);
     final authModel = context.watch<AuthSessionModel>();
     final arbeitskontextModel = context.read<ArbeitskontextModel>();
@@ -213,6 +252,15 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                 },
                 icon: const Icon(Icons.visibility_outlined),
                 label: const Text('Datenänderungen anzeigen'),
+              ),
+
+              const SizedBox(height: 20),
+              Text(t.t('debug_reset_title')),
+              const SizedBox(height: 8),
+              ElevatedButton.icon(
+                onPressed: () => _confirmAndResetApp(context),
+                icon: const Icon(Icons.delete_forever_outlined),
+                label: Text(t.t('debug_reset_action')),
               ),
 
               const SizedBox(height: 20),

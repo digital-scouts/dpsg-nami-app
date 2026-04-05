@@ -42,6 +42,7 @@ void main() {
           nowProvider: () => now,
         ),
         logger: _FakeLoggerService(),
+        isAppLockEnabled: () => true,
         lockTimeout: const Duration(seconds: 60),
       );
 
@@ -293,6 +294,9 @@ class _FakeAppSettingsRepository implements AppSettingsRepository {
 
   @override
   Future<void> saveAnalyticsEnabled(bool enabled) async {}
+
+  @override
+  Future<void> saveBiometricLockEnabled(bool enabled) async {}
 
   @override
   Future<void> saveGeburstagsbenachrichtigungStufen(Set<Stufe> stufen) async {}

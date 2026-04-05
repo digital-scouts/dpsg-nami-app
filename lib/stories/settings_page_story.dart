@@ -59,12 +59,18 @@ Story appSettingsPageStory() => Story(
       supportedLocales: const [Locale('de'), Locale('en')],
       home: AppSettingsPage(
         analyticsEnabled: false,
+        biometricLockEnabled: false,
         memberListSearchResultHighlightEnabled: true,
         themeMode: ThemeMode.system,
         onAnalyticsChanged: (v) {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text('Analytics geändert: $v')));
+        },
+        onBiometricLockChanged: (v) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('App-Sperre geändert: $v')));
         },
         onMemberListSearchResultHighlightChanged: (v) {
           ScaffoldMessenger.of(
@@ -97,10 +103,12 @@ Story appSettingsPageEnglishStory() => Story(
       locale: const Locale('en'),
       home: AppSettingsPage(
         analyticsEnabled: true,
+        biometricLockEnabled: true,
         memberListSearchResultHighlightEnabled: true,
         themeMode: ThemeMode.dark,
         languageCode: 'en',
         onAnalyticsChanged: (_) {},
+        onBiometricLockChanged: (_) {},
         onMemberListSearchResultHighlightChanged: (_) {},
         onThemeModeChanged: (_) {},
         onLanguageChanged: (_) {},

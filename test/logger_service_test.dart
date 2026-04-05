@@ -40,6 +40,11 @@ class _FakeRepo implements AppSettingsRepository {
   }
 
   @override
+  Future<void> saveBiometricLockEnabled(bool enabled) async {
+    value = value.copyWith(biometricLockEnabled: enabled);
+  }
+
+  @override
   Future<void> saveLanguageCode(String code) async {
     value = value.copyWith(languageCode: code);
   }

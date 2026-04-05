@@ -9,6 +9,7 @@ class _FakeRepo implements AppSettingsRepository {
   ThemeMode? savedMode;
   String? savedLang;
   bool? savedAnalytics;
+  bool? savedBiometricLock;
   bool? savedNotifications;
   bool? savedSearchResultHighlight;
   Set<Stufe>? savedBirthdayStages;
@@ -23,6 +24,11 @@ class _FakeRepo implements AppSettingsRepository {
   @override
   Future<void> saveAnalyticsEnabled(bool enabled) async {
     savedAnalytics = enabled;
+  }
+
+  @override
+  Future<void> saveBiometricLockEnabled(bool enabled) async {
+    savedBiometricLock = enabled;
   }
 
   @override
@@ -81,5 +87,9 @@ void main() {
     await model.setAnalyticsEnabled(false);
     expect(model.analyticsEnabled, isFalse);
     expect(repo.savedAnalytics, isFalse);
+
+    await model.setBiometricLockEnabled(true);
+    expect(model.biometricLockEnabled, isTrue);
+    expect(repo.savedBiometricLock, isTrue);
   });
 }
