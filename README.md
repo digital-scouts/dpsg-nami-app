@@ -160,7 +160,7 @@ Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den
   - Wie in den Kontakten E-Mails schreiben und einen Anruf starten
 - Mitglieder und Tätigkeiten bearbeiten, erstellen und löschen/Mitgliedschaft beenden
 - Mitgliedsdaten sind nach erstem erfolgreichem Hitobito-Login und initialem Laden offline verfügbar; Aktualisierungen werden im konfigurierten Hitobito-Refresh-Intervall versucht
-- Statistiken geben einen Einblick in die aktuelle Mitgliederanzahl und Altersstruktur
+- Der Statistik-Tab zeigt aktuell die Mitgliederanzahl im aktiven Arbeitskontext
 - Empfehlung für den nächsten Stufenwechsel eines Mitglieds.
   - Die gewünschte Altersgrenzen der Stufen können angepasst werden.
   - Stufenwechsel durchführen
