@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:nami/domain/maps/address_map_location_repository.dart';
 import 'package:nami/domain/member/mitglied.dart';
+import 'package:nami/domain/settings/address_settings_repository.dart';
 import 'package:nami/presentation/widgets/member_address_card.dart';
 import 'package:nami/services/geoapify_address_map_service.dart';
+import 'package:nami/services/map_tile_cache_service.dart';
 
 import 'member_basis_info_card.dart';
 
@@ -15,6 +17,8 @@ class MemberDetails extends StatelessWidget {
     this.onEndMembership,
     this.addressLocationRepository,
     this.mapService,
+    this.addressSettingsRepository,
+    this.tileCacheService,
     this.previewTimeout,
     this.spacing = 16,
     this.showGeneralInfo = true,
@@ -25,6 +29,8 @@ class MemberDetails extends StatelessWidget {
   final VoidCallback? onEndMembership;
   final AddressMapLocationRepository? addressLocationRepository;
   final GeoapifyAddressMapService? mapService;
+  final AddressSettingsRepository? addressSettingsRepository;
+  final MapTileCacheService? tileCacheService;
   final Duration? previewTimeout;
   final double spacing;
   final bool showGeneralInfo;
@@ -43,6 +49,8 @@ class MemberDetails extends StatelessWidget {
           mitglied: mitglied,
           addressLocationRepository: addressLocationRepository,
           mapService: mapService,
+          addressSettingsRepository: addressSettingsRepository,
+          tileCacheService: tileCacheService,
           previewTimeout: previewTimeout,
         ),
       );

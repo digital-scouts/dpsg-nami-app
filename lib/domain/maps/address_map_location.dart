@@ -1,19 +1,21 @@
 class AddressMapLocation {
   const AddressMapLocation({
     required this.cacheKey,
-    required this.latitude,
-    required this.longitude,
     required this.resolvedAt,
+    this.latitude,
+    this.longitude,
     this.addressFingerprint,
-    this.previewImagePath,
+    this.addressNotFound = false,
   });
 
   final String cacheKey;
-  final double latitude;
-  final double longitude;
+  final double? latitude;
+  final double? longitude;
   final DateTime resolvedAt;
   final String? addressFingerprint;
-  final String? previewImagePath;
+  final bool addressNotFound;
+
+  bool get hasCoordinates => latitude != null && longitude != null;
 
   AddressMapLocation copyWith({
     String? cacheKey,
@@ -21,9 +23,8 @@ class AddressMapLocation {
     double? longitude,
     DateTime? resolvedAt,
     String? addressFingerprint,
-    String? previewImagePath,
+    bool? addressNotFound,
     bool addressFingerprintLoeschen = false,
-    bool previewImagePathLoeschen = false,
   }) => AddressMapLocation(
     cacheKey: cacheKey ?? this.cacheKey,
     latitude: latitude ?? this.latitude,
@@ -32,9 +33,7 @@ class AddressMapLocation {
     addressFingerprint: addressFingerprintLoeschen
         ? null
         : addressFingerprint ?? this.addressFingerprint,
-    previewImagePath: previewImagePathLoeschen
-        ? null
-        : previewImagePath ?? this.previewImagePath,
+    addressNotFound: addressNotFound ?? this.addressNotFound,
   );
 
   Map<String, dynamic> toJson() {
@@ -44,7 +43,7 @@ class AddressMapLocation {
       'longitude': longitude,
       'resolved_at': resolvedAt.toIso8601String(),
       'address_fingerprint': addressFingerprint,
-      'preview_image_path': previewImagePath,
+      'address_not_found': addressNotFound,
     };
   }
 
@@ -55,7 +54,9 @@ class AddressMapLocation {
     final resolvedAt = resolvedAtRaw == null
         ? null
         : DateTime.tryParse(resolvedAtRaw);
-    if (latitude == null || longitude == null || resolvedAt == null) {
+    final addressNotFound = json['address_not_found'] == true;
+    if (resolvedAt == null ||
+        (!addressNotFound && (latitude == null || longitude == null))) {
       throw const FormatException('Ungueltiger AddressMapLocation-Eintrag.');
     }
 
@@ -65,7 +66,7 @@ class AddressMapLocation {
       longitude: longitude,
       resolvedAt: resolvedAt,
       addressFingerprint: json['address_fingerprint']?.toString(),
-      previewImagePath: json['preview_image_path']?.toString(),
+      addressNotFound: addressNotFound,
     );
   }
 
@@ -77,7 +78,7 @@ class AddressMapLocation {
         other.longitude == longitude &&
         other.resolvedAt == resolvedAt &&
         other.addressFingerprint == addressFingerprint &&
-        other.previewImagePath == previewImagePath;
+        other.addressNotFound == addressNotFound;
   }
 
   @override
@@ -87,6 +88,6 @@ class AddressMapLocation {
     longitude,
     resolvedAt,
     addressFingerprint,
-    previewImagePath,
+    addressNotFound,
   );
 }

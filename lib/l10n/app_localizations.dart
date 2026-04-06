@@ -135,6 +135,8 @@ class AppLocalizations {
       'reset_changes': 'Änderungen zurücksetzen',
       'save': 'Speichern',
       'map_not_available': 'Karte nicht verfügbar',
+      'map_address_not_found': 'Adresse nicht gefunden',
+      'map_technical_error': 'Technischer Fehler',
       'map_wifi_only_refresh':
           'Kartenvorschau wird nur über WLAN aktualisiert.',
       'auth_loading_title': 'Sichere Sitzung wird vorbereitet',
@@ -301,6 +303,8 @@ class AppLocalizations {
       'reset_changes': 'Reset changes',
       'save': 'Save',
       'map_not_available': 'Map not available',
+      'map_address_not_found': 'Address not found',
+      'map_technical_error': 'Technical error',
       'map_wifi_only_refresh': 'Map preview is only refreshed over Wi-Fi.',
       'auth_loading_title': 'Preparing secure session',
       'auth_loading_body':

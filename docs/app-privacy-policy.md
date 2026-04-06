@@ -44,7 +44,7 @@ The app itself does not continuously collect precise location data for analytics
 
 For address-related features, user input may be sent to an external geocoding service to retrieve address suggestions. This happens only when the corresponding feature is used.
 
-For member detail map previews and map previews around the saved Stamm address, postal address data may also be sent to Geoapify to geocode the address and retrieve a small map preview. The app stores resulting coordinates and cached preview data locally on the device to reduce repeated requests.
+For member detail maps and the map around the saved Stamm address, postal address data may also be sent to Geoapify to geocode the address. The app stores resulting coordinates locally on the device to reduce repeated requests. Map tiles may additionally be cached locally for offline use.
 
 TODO: Before broader rollout of map features, refine this section and the in-app first-start notice with a more explicit consent flow for Privacy Policy acknowledgement.
 
@@ -53,7 +53,8 @@ TODO: Before broader rollout of map features, refine this section and the in-app
 The app currently uses third-party services such as:
 
 - Wiredash for feedback and event tracking
-- Geoapify for address autocomplete, geocoding and map previews
+- Geoapify for address autocomplete and geocoding
+- map tile delivery and caching based on OpenStreetMap tiles
 - platform and store infrastructure provided by Apple and Google
 
 These services process data under their own privacy policies:

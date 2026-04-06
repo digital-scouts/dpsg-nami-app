@@ -46,6 +46,7 @@ import 'services/hitobito_groups_service.dart';
 import 'services/hitobito_oauth_service.dart';
 import 'services/hitobito_people_service.dart';
 import 'services/logger_service.dart';
+import 'services/map_tile_cache_service.dart';
 import 'services/sensitive_storage_service.dart';
 import 'services/usage_tracking_service.dart';
 
@@ -84,6 +85,7 @@ void main() {
           } catch (_) {}
         },
       );
+      final mapTileCacheService = MapTileCacheService(logger: logger);
 
       final sensitiveStorageService = SensitiveStorageService();
       final authSessionRepository = SecureAuthSessionRepository();
@@ -123,6 +125,7 @@ void main() {
         authSessionRepository: authSessionRepository,
         sensitiveStorageService: sensitiveStorageService,
         logFileProvider: logger!.getLogFile,
+        clearMapCache: mapTileCacheService.deleteRoot,
       );
 
       final authModel = AuthSessionModel(
@@ -211,6 +214,7 @@ void main() {
               value: hitobitoAuthConfigController,
             ),
             Provider<LoggerService>.value(value: logger!),
+            Provider<MapTileCacheService>.value(value: mapTileCacheService),
           ],
           child: const MyApp(),
         ),
