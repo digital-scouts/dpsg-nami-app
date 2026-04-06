@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -97,30 +99,77 @@ class _InfoRow {
   final String? linkType; // 'mailto' | 'tel'
 }
 
-class _InfoTile extends StatelessWidget {
+class _InfoTile extends StatefulWidget {
   const _InfoTile({required this.row});
   final _InfoRow row;
+
+  @override
+  State<_InfoTile> createState() => _InfoTileState();
+}
+
+class _InfoTileState extends State<_InfoTile> {
+  static const _copyHighlightDuration = Duration(milliseconds: 700);
+  static const _copyAnimationDuration = Duration(milliseconds: 180);
+  static const _copyHighlightColor = Color(0xFF2E7D32);
+
+  Timer? _copyHighlightTimer;
+  bool _isCopyHighlighted = false;
+
+  @override
+  void dispose() {
+    _copyHighlightTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _copyValue() async {
+    setState(() {
+      _isCopyHighlighted = true;
+    });
+
+    _copyHighlightTimer?.cancel();
+    _copyHighlightTimer = Timer(_copyHighlightDuration, () {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isCopyHighlighted = false;
+      });
+    });
+
+    await Clipboard.setData(ClipboardData(text: widget.row.value));
+  }
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
       dense: true,
-      leading: Icon(row.icon, size: 20),
+      leading: Icon(widget.row.icon, size: 20),
       title: _buildTitle(context),
-      subtitle: Text(row.label),
-      trailing: row.copy
-          ? IconButton(
-              icon: const Icon(Icons.copy, size: 18),
-              tooltip: 'Kopieren',
-              onPressed: () async {
-                await Clipboard.setData(ClipboardData(text: row.value));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Kopiert'),
-                    duration: Duration(milliseconds: 800),
+      subtitle: Text(widget.row.label),
+      trailing: widget.row.copy
+          ? AnimatedScale(
+              scale: _isCopyHighlighted ? 1.08 : 1,
+              duration: _copyAnimationDuration,
+              child: AnimatedContainer(
+                key: const ValueKey('copy-highlight-container'),
+                duration: _copyAnimationDuration,
+                curve: Curves.easeOut,
+                decoration: BoxDecoration(
+                  color: _isCopyHighlighted
+                      ? _copyHighlightColor.withValues(alpha: 0.14)
+                      : Colors.transparent,
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  icon: Icon(
+                    Icons.copy,
+                    size: 18,
+                    color: _isCopyHighlighted ? _copyHighlightColor : null,
                   ),
-                );
-              },
+                  tooltip: 'Kopieren',
+                  onPressed: _copyValue,
+                ),
+              ),
             )
           : null,
     );
@@ -133,23 +182,23 @@ class _InfoTile extends StatelessWidget {
       builder: (ctx, constraints) {
         final fittedStyle = _fitTextStyle(
           context: ctx,
-          text: row.value,
+          text: widget.row.value,
           base: maxStyle,
           maxWidth: constraints.maxWidth,
           maxSize: maxStyle.fontSize ?? 16,
           minSize: (maxStyle.fontSize ?? 16) * 0.8, // 80% minimal
         );
 
-        if (!row.isLink || row.linkType == null) {
+        if (!widget.row.isLink || widget.row.linkType == null) {
           return Text(
-            row.value,
+            widget.row.value,
             overflow: TextOverflow.ellipsis,
             style: fittedStyle,
           );
         }
 
-        final scheme = row.linkType!; // 'tel' oder 'mailto'
-        final path = row.value;
+        final scheme = widget.row.linkType!; // 'tel' oder 'mailto'
+        final path = widget.row.value;
         final uri = Uri(scheme: scheme, path: path).toString();
         return RichText(
           textAlign: TextAlign.left,

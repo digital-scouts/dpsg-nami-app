@@ -18,6 +18,40 @@ class MemberAddressUtils {
     return _addressLines(address).join(', ');
   }
 
+  static String formatCompactDisplayAddress(MitgliedKontaktAdresse address) {
+    final streetLine = _joinParts(
+      _trimToNull(address.street),
+      _trimToNull(address.housenumber),
+    );
+    final cityLine = _joinParts(
+      _trimToNull(address.zipCode),
+      _trimToNull(address.town),
+    );
+
+    return [
+      if (streetLine != null) streetLine,
+      if (cityLine != null) cityLine,
+    ].join(', ');
+  }
+
+  static String formatMapQueryAddress(MitgliedKontaktAdresse address) {
+    final streetLine = _joinParts(
+      _trimToNull(address.street),
+      _trimToNull(address.housenumber),
+    );
+    final cityLine = _joinParts(
+      _trimToNull(address.zipCode),
+      _trimToNull(address.town),
+    );
+    final country = _trimToNull(address.country);
+
+    return [
+      if (streetLine != null) streetLine,
+      if (cityLine != null) cityLine,
+      if (country != null) country,
+    ].join(', ');
+  }
+
   static String fingerprint(MitgliedKontaktAdresse address) {
     final normalized = <String>[
       address.addressCareOf ?? '',

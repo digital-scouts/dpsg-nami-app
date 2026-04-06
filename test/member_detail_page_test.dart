@@ -109,7 +109,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 150));
 
     expect(find.text('Adresse'), findsOneWidget);
-    expect(find.text('Musterweg 4\n50667 Koeln\nDE'), findsOneWidget);
+    expect(find.text('Musterweg 4, 50667 Koeln'), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsNothing);
   });
 

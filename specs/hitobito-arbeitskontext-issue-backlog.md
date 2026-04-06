@@ -348,11 +348,10 @@ Dieses Dokument übersetzt das Arbeitskontext-Konzept in kleine, kopierfertige T
 - Priorität: P1
 - Status: offen
 - Ziel: Frühzeitig festlegen, wie spätere Bearbeitungsfunktionen mit teilweise lesbaren oder unsichtbaren Gruppen innerhalb eines Layers umgehen.
-- Kurzbeschreibung: Die fachliche Klärung betrifft vor allem Rollen-, Gruppen- und Kontextänderungen; die reine Bearbeitung bereits im aktiven Arbeitskontext sichtbarer Basisdaten soll hingegen nicht pauschal blockiert werden. Zusätzliche Gruppenquellen bleiben vor allem für spätere Schreib- oder Anlegeprozesse relevant, wenn Zielgruppen außerhalb des im Lesemodus sichtbaren Bestands liegen.
+- Kurzbeschreibung: Der MVP fokussiert auf den lesbaren Bestand. Für spätere Schreib- oder Anlegeprozesse ist jedoch offen, ob zusätzliche Gruppen auswählbar sein müssen, die im Lesemodus nicht sichtbar sind. Diese fachliche Grenze soll vor Ausbau von Editierfunktionen separat entschieden werden.
 - Akzeptanzkriterien:
-  - Es gibt eine dokumentierte Abgrenzung zwischen erlaubter Bearbeitung bereits sichtbarer Basisdaten und weiterhin offener Rollen-, Gruppen- oder Kontextänderungen.
-  - Es ist fachlich beschrieben, für welche Änderungsarten der im Lesemodus sichtbare Bestand ausreicht und ab wann zusätzliche Gruppenquellen relevant werden.
-  - Risiken für Rollenwechsel, Verschieben zwischen Gruppen oder Layern und Neuanlage von Personen sind beschrieben.
+  - Es gibt eine dokumentierte Entscheidung, ob Schreibkontexte strikt am Lesemodus hängen oder zusätzliche Gruppenquellen brauchen.
+  - Risiken für Bearbeiten, Verschieben und Neuanlage von Personen sind beschrieben.
   - Offene API- oder Rechtefragen an Hitobito sind gesammelt.
 - Abhängigkeiten: Ticket 3.
 - Nicht Teil dieses Tickets: Umsetzung konkreter Bearbeitungs- oder Anlageflows.
@@ -372,74 +371,6 @@ Dieses Dokument übersetzt das Arbeitskontext-Konzept in kleine, kopierfertige T
   - Offene API-Fragen sind so dokumentiert, dass sie in spätere Folgearbeiten überführt werden können.
 - Abhängigkeiten: Ticket 3c, Ticket 3d.
 - Nicht Teil dieses Tickets: Implementierung neuer API-Clients oder UI für Tags.
-
-### Ticket 9b: Begrenzten Edit-Scope bestehender Personen festlegen
-
-- Titel: Begrenzten Edit-Scope bestehender Personen festlegen
-- Typ: Klärung
-- Priorität: P1
-- Status: offen
-- Ziel: Den ersten Bearbeitungsausbau bewusst auf bestehende, bereits sichtbare Personen und auf risikoarme Änderungen an People-Attributen sowie Kontakt-Unterressourcen begrenzen.
-- Kurzbeschreibung: Für die erste Schreibausbaustufe soll die App nur bestehende Personen bearbeiten, die im aktiven Arbeitskontext bereits lesbar sind. Bearbeitet werden dürfen nur freigegebene People-Attribute sowie die Relationships `phone_numbers`, `additional_emails` und `additional_addresses`. Nicht Teil dieses ersten Scopes sind Neuanlage, Löschung, Rollenänderungen, Gruppenwechsel, Layer-Wechsel oder andere Strukturänderungen.
-- Akzeptanzkriterien:
-  - Der erste Bearbeitungsscope ist auf bestehende, bereits lesbare Personen im aktiven Arbeitskontext begrenzt.
-  - Neuanlage, Löschung, Rollenwechsel, Gruppenwechsel und Verschieben zwischen Layern sind explizit ausgeschlossen.
-  - Es ist dokumentiert, welche People-Attribute sowie welche Kontakt-Unterressourcen im ersten Schritt bearbeitet werden dürfen.
-  - Es ist festgelegt, dass Rollen und sonstige Gruppenlogik für diesen Scope read-only bleiben.
-  - Die fachlichen Grenzen für teilweise sichtbare Layer sind mit Ticket 9 konsistent beschrieben.
-- Abhängigkeiten: Ticket 9, Ticket 9a.
-- Nicht Teil dieses Tickets: Technische Umsetzung von Schreibrequests, Offline-Synchronisation, Anlage neuer Personen.
-
-### Ticket 9c: Schreibfähiges Personen-Editmodell mit updated_at und Unterressourcen-IDs aufbauen
-
-- Titel: Schreibfähiges Personen-Editmodell mit updated_at und Unterressourcen-IDs aufbauen
-- Typ: Feature
-- Priorität: P1
-- Status: offen
-- Ziel: Eine belastbare lokale Bearbeitungsgrundlage schaffen, die bestehende Personen und ihre editierbaren Kontakt-Unterressourcen verlustfrei in Schreiboperationen überführen kann.
-- Kurzbeschreibung: Das bestehende Read-Model ist für Anzeige und Suche geeignet, reicht aber nicht als präzise Schreibgrundlage. Für Bearbeitung bestehender Personen soll daher ein dediziertes Editmodell eingeführt werden, das neben den bearbeitbaren People-Attributen auch `updated_at` sowie die IDs bestehender Unterressourcen für `phone_numbers`, `additional_emails` und `additional_addresses` mitführt. Damit können Änderungen fachlich sauber vom reinen Lesezustand getrennt und bestehende Unterressourcen gezielt aktualisiert, ergänzt oder entfernt werden.
-- Akzeptanzkriterien:
-  - Das Editmodell führt Personen-ID, `updated_at` und die für den ersten Bearbeitungsscope freigegebenen People-Attribute.
-  - Bestehende `phone_numbers`, `additional_emails` und `additional_addresses` behalten ihre jeweiligen Unterressourcen-IDs im Editmodell.
-  - Das Modell kann zwischen unveränderten, neu angelegten, geänderten und entfernten Kontakt-Unterressourcen unterscheiden.
-  - Das Editmodell kann deterministisch aus dem vorhandenen Personen-Read-Model aufgebaut werden, ohne bearbeitungsrelevante Daten zu verlieren.
-  - Die Modellierung ist so geschnitten, dass spätere Konflikt- oder Stale-Data-Prüfungen auf `updated_at` aufbauen können.
-- Abhängigkeiten: Ticket 3c, Ticket 3d, Ticket 9b.
-- Nicht Teil dieses Tickets: Bearbeitungs-UI, Versand produktiver Schreibrequests, Offline-Queue.
-
-### Ticket 9d: Online-Bearbeitung bestehender Personen über People-Attributes plus phone_numbers, additional_emails und additional_addresses umsetzen
-
-- Titel: Online-Bearbeitung bestehender Personen über People-Attributes plus phone_numbers, additional_emails und additional_addresses umsetzen
-- Typ: Feature
-- Priorität: P1
-- Status: offen
-- Ziel: Bereits sichtbare Personen im aktiven Arbeitskontext online gegen Hitobito bearbeiten können, ohne den ersten Scope unnötig zu verbreitern.
-- Kurzbeschreibung: Aufbauend auf dem geklärten Edit-Scope und dem schreibfähigen Editmodell soll ein erster produktiver Online-Bearbeitungspfad für bestehende Personen entstehen. Bearbeitbare People-Attribute werden über die People-Ressource geschrieben; Telefonnummern, zusätzliche E-Mails und zusätzliche Adressen werden über die zugehörigen Unterressourcen mit ihren bestehenden IDs aktualisiert, ergänzt oder entfernt. Nach erfolgreicher Speicherung soll der aktive Arbeitskontext wieder einen konsistenten Serverstand abbilden.
-- Akzeptanzkriterien:
-  - Bereits sichtbare Personen können innerhalb des freigegebenen Bearbeitungsscopes online bearbeitet werden.
-  - Bearbeitbare People-Attribute werden produktiv an Hitobito zurückgeschrieben.
-  - `phone_numbers`, `additional_emails` und `additional_addresses` können im freigegebenen Scope gezielt aktualisiert, ergänzt und entfernt werden.
-  - Der Schreibpfad berücksichtigt `updated_at` mindestens für die Erkennung veralteter Bearbeitungsstände im Client.
-  - Nach erfolgreicher Bearbeitung wird der lokale Arbeitskontext so aktualisiert, dass Listen und Detailansichten wieder den Serverstand zeigen.
-- Abhängigkeiten: Ticket 4a, Ticket 9b, Ticket 9c.
-- Nicht Teil dieses Tickets: Offline-Bearbeitung, Neuanlage von Personen, Rollen- oder Gruppenzuordnungen ändern.
-
-### Ticket 9e: Offline-fähige Schreibschnittstelle vorbereiten
-
-- Titel: Offline-fähige Schreibschnittstelle vorbereiten
-- Typ: Feature
-- Priorität: P1
-- Status: offen
-- Ziel: Den ersten Online-Schreibpfad so abstrahieren, dass spätere Offline-Bearbeitung mit Queue- oder Outbox-Logik ohne grundlegenden Umbau anschließen kann.
-- Kurzbeschreibung: Auch wenn Bearbeitung im ersten Ausbau nur online und nach Refresh erfolgen soll, sollte die technische Schreibschnittstelle nicht direkt an einen synchronen Online-Request gekoppelt sein. Dieses Ticket führt eine klare Schreibabstraktion ein, die Personenänderungen mitsamt Basisstand, Feldänderungen und Änderungen an Unterressourcen serialisierbar beschreibt. Damit bleibt der erste Bearbeitungspfad online, bereitet aber Retry-, Queue- und Konfliktlogik für eine spätere Offline-Stufe strukturell vor.
-- Akzeptanzkriterien:
-  - Es gibt eine klar abgegrenzte Schreibschnittstelle zwischen Bearbeitungslogik und konkretem Online-Transport.
-  - Schreiboperationen enthalten mindestens Personen-ID, Basisstand über `updated_at` sowie Änderungen an People-Attributen und Unterressourcen.
-  - Fehlerarten wie Netzwerkfehler, Validierungsfehler und veralteter Bearbeitungsstand sind fachlich getrennt behandelbar.
-  - Der erste Ausbau bleibt weiterhin online-only und aktiviert noch keine nutzerseitige Offline-Queue.
-  - Die Schnittstelle ist so geschnitten, dass spätere Outbox- oder Retry-Logik ohne Änderung des UI-Vertrags anschließen kann.
-- Abhängigkeiten: Ticket 9c.
-- Nicht Teil dieses Tickets: Produktive Offline-Synchronisation, automatische Retries, Konfliktauflösung im Hintergrund.
 
 ### Ticket 10: Mehrere offline verfügbare Arbeitskontexte konzipieren
 
@@ -490,16 +421,12 @@ Dieses Dokument übersetzt das Arbeitskontext-Konzept in kleine, kopierfertige T
 
 1. Ticket 6: Mitgliederliste für den aktiven Arbeitskontext mit Gruppenfiltern umsetzen
 2. Ticket 7: Stufenzuordnung aus Hitobito-Gruppen global im Code ableiten
-3. Ticket 9: Schreib- und Bearbeitungslogik für teilweise sichtbare Layer fachlich klären
-4. Ticket 9a: Offene Personenfelder und nicht exponierte API-Felder fachlich klären
-5. Ticket 9b: Begrenzten Edit-Scope bestehender Personen festlegen
-6. Ticket 9c: Schreibfähiges Personen-Editmodell mit updated_at und Unterressourcen-IDs aufbauen
-7. Ticket 9e: Offline-fähige Schreibschnittstelle vorbereiten
-8. Ticket 9d: Online-Bearbeitung bestehender Personen über People-Attributes plus phone_numbers, additional_emails und additional_addresses umsetzen
-9. Ticket 8b: Historischen Rollenverlauf für spätere Statistiken und Verlaufssichten laden
-10. Ticket 10: Mehrere offline verfügbare Arbeitskontexte konzipieren
-11. Ticket 11: Rekursive Sichten über Unterlayer als eigener Produktentscheid vorbereiten
-12. Ticket 12: Persönliche Teilmengen, Tags und "Meine Gruppe" nach dem MVP definieren
+3. Ticket 8b: Historischen Rollenverlauf für spätere Statistiken und Verlaufssichten laden
+4. Ticket 9: Schreib- und Bearbeitungslogik für teilweise sichtbare Layer fachlich klären
+5. Ticket 9a: Offene Personenfelder und nicht exponierte API-Felder fachlich klären
+6. Ticket 10: Mehrere offline verfügbare Arbeitskontexte konzipieren
+7. Ticket 11: Rekursive Sichten über Unterlayer als eigener Produktentscheid vorbereiten
+8. Ticket 12: Persönliche Teilmengen, Tags und "Meine Gruppe" nach dem MVP definieren
 
 ## Hinweis zur Nutzung in GitHub
 

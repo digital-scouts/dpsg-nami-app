@@ -186,5 +186,7 @@ Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den
 ## Externe Apis
 
 - [Geoapify](https://www.geoapify.com): Autovervollständigung von Adressen beim anlegen eines Nutzers (Free Limit 3000 Requests / day)
+- [MapTiler](https://www.maptiler.com): konfigurierbarer Tile-Provider für Kartenansicht und Offline-Tiles
+- [OpenStreetMap Tiles](https://operations.osmfoundation.org/policies/tiles/): Fallback, wenn kein expliziter Tile-Endpoint konfiguriert ist
 - [openplzapi](https://www.openplzapi.org/de/): Fallback für Geoapify (Unlimited)
 - [openiban](https://openiban.com): Validierung der IBAN beim anlegen eines Nutzers (Unlimited)

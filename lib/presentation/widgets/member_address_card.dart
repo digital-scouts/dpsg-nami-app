@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:maps_launcher/maps_launcher.dart';
 import 'package:nami/data/settings/shared_prefs_address_settings_repository.dart';
 import 'package:nami/domain/maps/address_map_location_repository.dart';
 import 'package:nami/domain/member/member_address_utils.dart';
@@ -18,6 +19,7 @@ class MemberAddressCard extends StatelessWidget {
     this.addressSettingsRepository,
     this.tileCacheService,
     this.previewTimeout,
+    this.onLaunchAddress,
   });
 
   final Mitglied mitglied;
@@ -26,6 +28,7 @@ class MemberAddressCard extends StatelessWidget {
   final AddressSettingsRepository? addressSettingsRepository;
   final MapTileCacheService? tileCacheService;
   final Duration? previewTimeout;
+  final Future<bool> Function(String addressQuery)? onLaunchAddress;
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +37,10 @@ class MemberAddressCard extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final formattedAddress = MemberAddressUtils.formatMultilineAddress(address);
+    final formattedAddress = MemberAddressUtils.formatCompactDisplayAddress(
+      address,
+    );
+    final mapQueryAddress = MemberAddressUtils.formatMapQueryAddress(address);
     final cacheKey = mitglied.primaryAddressCacheKey;
     final stammRepository =
         addressSettingsRepository ?? SharedPrefsAddressSettingsRepository();
@@ -51,9 +57,10 @@ class MemberAddressCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  formattedAddress,
-                  style: Theme.of(context).textTheme.bodyLarge,
+                _AddressLink(
+                  displayAddress: formattedAddress,
+                  queryAddress: mapQueryAddress,
+                  onLaunchAddress: onLaunchAddress,
                 ),
                 if (cacheKey != null) ...[
                   const SizedBox(height: 16),
@@ -97,6 +104,46 @@ class MemberAddressCard extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _AddressLink extends StatelessWidget {
+  const _AddressLink({
+    required this.displayAddress,
+    required this.queryAddress,
+    this.onLaunchAddress,
+  });
+
+  final String displayAddress;
+  final String queryAddress;
+  final Future<bool> Function(String addressQuery)? onLaunchAddress;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textStyle = theme.textTheme.titleMedium;
+    final linkStyle = textStyle?.copyWith(
+      color: Colors.blue,
+      decoration: TextDecoration.none,
+    );
+
+    if (displayAddress.isEmpty || queryAddress.isEmpty) {
+      return Text(displayAddress, style: textStyle);
+    }
+
+    return InkWell(
+      onTap: () async {
+        final launch = onLaunchAddress ?? MapsLauncher.launchQuery;
+        final success = await launch(queryAddress);
+        if (!context.mounted || success) {
+          return;
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Kann Adresse nicht in Karten öffnen')),
+        );
+      },
+      child: Text(displayAddress, style: linkStyle),
     );
   }
 }
