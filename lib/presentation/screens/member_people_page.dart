@@ -9,6 +9,7 @@ import '../model/auth_session_model.dart';
 import '../widgets/member_list.dart';
 import '../widgets/member_list_directory.dart';
 import '../widgets/member_list_tile.dart';
+import 'member_detail_page.dart';
 
 class MemberPeoplePage extends StatefulWidget {
   const MemberPeoplePage({super.key});
@@ -23,6 +24,24 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
   // TODO: Arbeitskontext liefert aktuell reduzierte People-List-Mitglieder; fuer alle Subtitle-Modi bei Bedarf auf ein vollstaendigeres Mitglied-Modell umstellen.
   static const MemberSubtitleMode _subtitleMode =
       MemberSubtitleMode.mitgliedsnummer;
+
+  Mitglied? _findMemberById(List<Mitglied> members, String memberId) {
+    for (final member in members) {
+      if (member.mitgliedsnummer == memberId) {
+        return member;
+      }
+    }
+
+    return null;
+  }
+
+  Future<void> _openMemberDetails(BuildContext context, Mitglied member) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => MemberDetailPage(mitglied: member),
+      ),
+    );
+  }
 
   String? _buildPrimaryGroupRole(
     Mitglied member,
@@ -138,6 +157,13 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
         trailingTextBuilder: (member) =>
             _buildPrimaryGroupRole(member, arbeitskontextModel),
         enableGroupFilter: false,
+        onTapMember: (memberId) {
+          final selectedMember = _findMemberById(members, memberId);
+          if (selectedMember == null) {
+            return;
+          }
+          _openMemberDetails(context, selectedMember);
+        },
       );
     }
 

@@ -189,6 +189,7 @@ class HitobitoPeopleService {
       birthday: _toDateTime(attributesMap['birthday']),
       entryDate: _toDateTime(attributesMap['entry_date']),
       exitDate: _toDateTime(attributesMap['exit_date']),
+      updatedAt: _toDateTime(attributesMap['updated_at']),
       pronoun: _toNullableString(attributesMap['pronoun']),
       bankAccountOwner: _toNullableString(attributesMap['bank_account_owner']),
       iban: _toNullableString(attributesMap['iban']),

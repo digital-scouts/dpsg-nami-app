@@ -70,6 +70,7 @@ class HitobitoPersonResource {
     this.birthday,
     this.entryDate,
     this.exitDate,
+    this.updatedAt,
     this.pronoun,
     this.bankAccountOwner,
     this.iban,
@@ -91,6 +92,7 @@ class HitobitoPersonResource {
   final DateTime? birthday;
   final DateTime? entryDate;
   final DateTime? exitDate;
+  final DateTime? updatedAt;
   final String? pronoun;
   final String? bankAccountOwner;
   final String? iban;
@@ -111,14 +113,19 @@ class HitobitoPersonResource {
   }
 
   Mitglied toMitglied() {
+    final resolvedBirthday = birthday ?? Mitglied.peoplePlaceholderDate;
+    final resolvedEntryDate = entryDate ?? Mitglied.peoplePlaceholderDate;
+    final resolvedExitDate = exitDate?.add(Duration.zero);
+
     return Mitglied(
       mitgliedsnummer: memberId,
       vorname: firstName,
       nachname: lastName,
       fahrtenname: nickname,
-      geburtsdatum: birthday ?? Mitglied.peoplePlaceholderDate,
-      eintrittsdatum: entryDate ?? Mitglied.peoplePlaceholderDate,
-      austrittsdatum: exitDate,
+      geburtsdatum: resolvedBirthday,
+      eintrittsdatum: resolvedEntryDate,
+      austrittsdatum: resolvedExitDate,
+      updatedAt: updatedAt,
       telefonnummern: telefonnummern,
       emailAdressen: emailAdressen,
       adressen: adressen,

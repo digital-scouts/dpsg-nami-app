@@ -20,6 +20,7 @@ class MemberDirectory extends StatefulWidget {
     this.subtitleTextBuilder,
     this.trailingTextBuilder,
     this.enableGroupFilter = true,
+    this.onTapMember,
   });
   final List<Mitglied> mitglieder;
   final String initialSearch;
@@ -31,6 +32,7 @@ class MemberDirectory extends StatefulWidget {
   final String? Function(Mitglied mitglied)? subtitleTextBuilder;
   final String? Function(Mitglied mitglied)? trailingTextBuilder;
   final bool enableGroupFilter;
+  final ValueChanged<String>? onTapMember;
 
   @override
   State<MemberDirectory> createState() => _MemberDirectoryState();
@@ -106,8 +108,7 @@ class _MemberDirectoryState extends State<MemberDirectory> {
             stufenFilter: widget.enableGroupFilter ? selectedStufen : const {},
             onToggleFavourite: toggleFavourite,
             onTapMember: (id) {
-              // TODO: Handle member tap
-              debugPrint('Mitglied $id angetippt');
+              widget.onTapMember?.call(id);
             },
           ),
         ),

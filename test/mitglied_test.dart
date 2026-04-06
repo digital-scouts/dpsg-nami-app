@@ -67,6 +67,7 @@ void main() {
       geburtsdatum: DateTime(2008, 6, 2),
       eintrittsdatum: DateTime(2020, 1, 1),
       austrittsdatum: DateTime(2025, 2, 1),
+      updatedAt: DateTime(2025, 3, 4, 16, 30),
       pronoun: 'er/ihm',
       bankAccountOwner: 'Max Muster',
       iban: 'DE02120300000000202051',

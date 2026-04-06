@@ -358,13 +358,14 @@ void main() {
           ],
         ),
         peopleService: _FakeHitobitoPeopleService(
-          people: const <HitobitoPersonResource>[
+          people: <HitobitoPersonResource>[
             HitobitoPersonResource(
               id: 2,
               firstName: 'Mara',
               lastName: 'Schmidt',
               membershipNumber: 2001,
               primaryGroupId: 201,
+              updatedAt: DateTime(2024, 12, 24, 9, 15),
               emailAdressen: <MitgliedKontaktEmail>[
                 MitgliedKontaktEmail(
                   wert: 'mara@example.org',
@@ -455,6 +456,10 @@ void main() {
             country: 'DE',
           ),
         ],
+      );
+      expect(
+        localRepository.saved?.findeMitglied('2001')?.updatedAt,
+        DateTime(2024, 12, 24, 9, 15),
       );
       expect(
         localRepository.saved?.mitgliedsZuordnungen,

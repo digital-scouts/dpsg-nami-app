@@ -59,6 +59,7 @@ void main() {
           nachname: 'Beispiel',
           geburtsdatum: DateTime(2010, 4, 3),
           eintrittsdatum: DateTime(2021, 9, 1),
+          updatedAt: DateTime(2024, 10, 11, 8, 45),
           pronoun: 'sie/ihr',
           emailAdressen: const <MitgliedKontaktEmail>[
             MitgliedKontaktEmail(
