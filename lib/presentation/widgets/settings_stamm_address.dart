@@ -1,9 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:nami/domain/member/member_address_utils.dart';
 import 'package:nami/domain/settings/address_settings_repository.dart';
 import 'package:nami/l10n/app_localizations.dart';
-import 'package:nami/presentation/widgets/skeletton_map.dart';
+import 'package:nami/presentation/widgets/address_map_preview.dart';
 
 class StammAddressSettings extends StatefulWidget {
   final AddressSettingsRepository repository;
@@ -26,13 +27,22 @@ class _StammAddressSettingsState extends State<StammAddressSettings> {
   Timer? _debounce;
   String _lastQuery = '';
   List<String> _results = [];
+  String? _savedAddress;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController();
     widget.repository.loadAddress().then((value) {
-      if (value != null) _controller.text = value;
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _savedAddress = value;
+        if (value != null) {
+          _controller.text = value;
+        }
+      });
     });
   }
 
@@ -76,7 +86,10 @@ class _StammAddressSettingsState extends State<StammAddressSettings> {
           },
           onSelected: (selection) async {
             await widget.repository.saveAddress(selection);
-            _controller.text = selection;
+            setState(() {
+              _savedAddress = selection;
+              _controller.text = selection;
+            });
             // TODO: Trigger map region download
             widget.onDownloadRegion?.call();
             ScaffoldMessenger.of(context).showSnackBar(
@@ -99,7 +112,15 @@ class _StammAddressSettingsState extends State<StammAddressSettings> {
           },
         ),
         const SizedBox(height: 12),
-        const MapSkeleton(),
+        if ((_savedAddress ?? '').trim().isNotEmpty)
+          AddressMapPreview(
+            addressText: (_savedAddress ?? '').trim(),
+            cacheKey: 'stamm:0',
+            addressFingerprint: MemberAddressUtils.fingerprintFromText(
+              (_savedAddress ?? '').trim(),
+            ),
+            wifiOnlyRefresh: true,
+          ),
       ],
     );
   }

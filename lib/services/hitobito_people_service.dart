@@ -395,6 +395,7 @@ class HitobitoPeopleService {
     final id = _toInt(resource['id']);
     final personId = _toContactablePersonId(attributesMap);
     final adresse = MitgliedKontaktAdresse(
+      additionalAddressId: id,
       label: _toNullableString(attributesMap['label']),
       addressCareOf: _toNullableString(attributesMap['address_care_of']),
       street: _toNullableString(attributesMap['street']),
@@ -592,6 +593,7 @@ class HitobitoPeopleService {
   }) {
     final result = <MitgliedKontaktAdresse>[];
     final adresse = MitgliedKontaktAdresse(
+      additionalAddressId: 0,
       addressCareOf: _toNullableString(attributesMap['address_care_of']),
       street: _toNullableString(attributesMap['street']),
       housenumber: _toNullableString(attributesMap['housenumber']),

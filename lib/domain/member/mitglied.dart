@@ -93,6 +93,7 @@ class MitgliedKontaktTelefon {
 
 class MitgliedKontaktAdresse {
   const MitgliedKontaktAdresse({
+    this.additionalAddressId,
     this.label,
     this.addressCareOf,
     this.street,
@@ -103,6 +104,7 @@ class MitgliedKontaktAdresse {
     this.country,
   });
 
+  final int? additionalAddressId;
   final String? label;
   final String? addressCareOf;
   final String? street;
@@ -123,6 +125,7 @@ class MitgliedKontaktAdresse {
   }
 
   MitgliedKontaktAdresse copyWith({
+    int? additionalAddressId,
     String? label,
     String? addressCareOf,
     String? street,
@@ -131,6 +134,7 @@ class MitgliedKontaktAdresse {
     String? zipCode,
     String? town,
     String? country,
+    bool additionalAddressIdLoeschen = false,
     bool labelLoeschen = false,
     bool addressCareOfLoeschen = false,
     bool streetLoeschen = false,
@@ -140,6 +144,9 @@ class MitgliedKontaktAdresse {
     bool townLoeschen = false,
     bool countryLoeschen = false,
   }) => MitgliedKontaktAdresse(
+    additionalAddressId: additionalAddressIdLoeschen
+        ? null
+        : additionalAddressId ?? this.additionalAddressId,
     label: labelLoeschen ? null : label ?? this.label,
     addressCareOf: addressCareOfLoeschen
         ? null
@@ -154,6 +161,7 @@ class MitgliedKontaktAdresse {
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
+      'additional_address_id': additionalAddressId,
       'label': label,
       'address_care_of': addressCareOf,
       'street': street,
@@ -167,6 +175,7 @@ class MitgliedKontaktAdresse {
 
   factory MitgliedKontaktAdresse.fromJson(Map<String, dynamic> json) {
     return MitgliedKontaktAdresse(
+      additionalAddressId: _parseInt(json['additional_address_id']),
       label: _trimToNull(json['label']?.toString()),
       addressCareOf: _trimToNull(json['address_care_of']?.toString()),
       street: _trimToNull(json['street']?.toString()),
@@ -181,6 +190,7 @@ class MitgliedKontaktAdresse {
   @override
   bool operator ==(Object other) {
     return other is MitgliedKontaktAdresse &&
+        other.additionalAddressId == additionalAddressId &&
         other.label == label &&
         other.addressCareOf == addressCareOf &&
         other.street == street &&
@@ -193,6 +203,7 @@ class MitgliedKontaktAdresse {
 
   @override
   int get hashCode => Object.hash(
+    additionalAddressId,
     label,
     addressCareOf,
     street,
@@ -220,6 +231,7 @@ class Mitglied {
     required this.eintrittsdatum,
     this.austrittsdatum,
     this.updatedAt,
+    this.personId,
     required this.mitgliedsnummer,
     List<MitgliedKontaktTelefon>? telefonnummern,
     List<MitgliedKontaktEmail>? emailAdressen,
@@ -247,6 +259,7 @@ class Mitglied {
     required this.mitgliedsnummer,
     this.fahrtenname,
     this.updatedAt,
+    this.personId,
     List<MitgliedKontaktTelefon>? telefonnummern,
     List<MitgliedKontaktEmail>? emailAdressen,
     List<MitgliedKontaktAdresse>? adressen,
@@ -276,6 +289,7 @@ class Mitglied {
   final DateTime eintrittsdatum;
   final DateTime? austrittsdatum;
   final DateTime? updatedAt;
+  final int? personId;
   final String mitgliedsnummer;
   final List<MitgliedKontaktTelefon> telefonnummern;
   final List<MitgliedKontaktEmail> emailAdressen;
@@ -290,6 +304,18 @@ class Mitglied {
 
   static DateTime get peoplePlaceholderDate => _peoplePlaceholderDate;
 
+  MitgliedKontaktAdresse? get primaryAddress =>
+      adressen.isEmpty ? null : adressen.first;
+
+  String? get primaryAddressCacheKey {
+    final address = primaryAddress;
+    final currentPersonId = personId;
+    if (address == null || currentPersonId == null || currentPersonId <= 0) {
+      return null;
+    }
+    return '$currentPersonId:${address.additionalAddressId ?? 0}';
+  }
+
   String get fullName => '$vorname $nachname'.trim();
 
   bool get istAusgetreten =>
@@ -303,6 +329,7 @@ class Mitglied {
     DateTime? eintrittsdatum,
     DateTime? austrittsdatum,
     DateTime? updatedAt,
+    int? personId,
     String? mitgliedsnummer,
     List<MitgliedKontaktTelefon>? telefonnummern,
     List<MitgliedKontaktEmail>? emailAdressen,
@@ -317,6 +344,7 @@ class Mitglied {
     bool fahrtennameLoeschen = false,
     bool austrittsdatumLoeschen = false,
     bool updatedAtLoeschen = false,
+    bool personIdLoeschen = false,
     bool pronounLoeschen = false,
     bool bankAccountOwnerLoeschen = false,
     bool ibanLoeschen = false,
@@ -333,6 +361,7 @@ class Mitglied {
         ? null
         : austrittsdatum ?? this.austrittsdatum,
     updatedAt: updatedAtLoeschen ? null : updatedAt ?? this.updatedAt,
+    personId: personIdLoeschen ? null : personId ?? this.personId,
     mitgliedsnummer: mitgliedsnummer ?? this.mitgliedsnummer,
     telefonnummern: telefonnummern ?? this.telefonnummern,
     emailAdressen: emailAdressen ?? this.emailAdressen,
@@ -363,6 +392,7 @@ class Mitglied {
       'eintrittsdatum': eintrittsdatum.toIso8601String(),
       'austrittsdatum': austrittsdatum?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
+      'person_id': personId,
       'telefonnummern': telefonnummern
           .map((telefonnummer) => telefonnummer.toJson())
           .toList(growable: false),
@@ -416,6 +446,7 @@ class Mitglied {
           _parseDateTime(json['eintrittsdatum']) ?? peoplePlaceholderDate,
       austrittsdatum: _parseDateTime(json['austrittsdatum']),
       updatedAt: _parseDateTime(json['updated_at']),
+      personId: _parseInt(json['person_id']),
       telefonnummern: telefonnummern,
       emailAdressen: emailAdressen,
       adressen: adressen,
@@ -438,6 +469,7 @@ class Mitglied {
         other.eintrittsdatum == eintrittsdatum &&
         other.austrittsdatum == austrittsdatum &&
         other.updatedAt == updatedAt &&
+        other.personId == personId &&
         other.mitgliedsnummer == mitgliedsnummer &&
         other.pronoun == pronoun &&
         other.bankAccountOwner == bankAccountOwner &&
@@ -460,6 +492,7 @@ class Mitglied {
     eintrittsdatum,
     austrittsdatum,
     updatedAt,
+    personId,
     mitgliedsnummer,
     pronoun,
     bankAccountOwner,
@@ -495,6 +528,9 @@ class Mitglied {
     }
     if (updatedAt != null) {
       buffer.write(', updatedAt: ${updatedAt!.toIso8601String()}');
+    }
+    if (personId != null) {
+      buffer.write(', personId: $personId');
     }
     if (emailAdressen.isNotEmpty) {
       buffer.write(', emailAdressen: $emailAdressen');
@@ -594,6 +630,7 @@ class Mitglied {
       }
 
       final normalized = adresse.copyWith(
+        additionalAddressId: adresse.additionalAddressId,
         label: _trimToNull(adresse.label),
         addressCareOf: _trimToNull(adresse.addressCareOf),
         street: _trimToNull(adresse.street),
@@ -604,6 +641,7 @@ class Mitglied {
         country: _trimToNull(adresse.country),
       );
       final key = [
+        normalized.additionalAddressId?.toString() ?? '',
         normalized.label ?? '',
         normalized.addressCareOf ?? '',
         normalized.street ?? '',
@@ -637,6 +675,14 @@ DateTime? _parseDateTime(Object? value) {
     return null;
   }
   return DateTime.tryParse(raw);
+}
+
+int? _parseInt(Object? value) {
+  final raw = _trimToNull(value?.toString());
+  if (raw == null) {
+    return null;
+  }
+  return int.tryParse(raw);
 }
 
 class MitgliedFactory {

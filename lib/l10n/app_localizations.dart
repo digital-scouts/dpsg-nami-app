@@ -44,7 +44,7 @@ class AppLocalizations {
           'Deine aktuelle App-Version wird nicht mehr unterstützt. Bitte aktualisiere die App.',
       'welcome_title': 'Willkommen',
       'welcome_body':
-          'Willkommen in der App. Weitere Hinweise und Optionen folgen später.',
+          'Willkommen in der App. Weitere Hinweise und Optionen folgen später. Vor dem breiteren Rollout der Kartenfunktion wird hier noch ein ausdrücklicher Privacy-Policy-Hinweis mit einer Bestätigung wie "Ich stimme Privacy Policy zu" ergänzt.',
       'welcome_action': 'Weiter',
       'version': 'Version',
       'notifications_enable': 'Benachrichtigungen aktiviert',
@@ -135,6 +135,8 @@ class AppLocalizations {
       'reset_changes': 'Änderungen zurücksetzen',
       'save': 'Speichern',
       'map_not_available': 'Karte nicht verfügbar',
+      'map_wifi_only_refresh':
+          'Kartenvorschau wird nur über WLAN aktualisiert.',
       'auth_loading_title': 'Sichere Sitzung wird vorbereitet',
       'auth_loading_body':
           'Bitte warte kurz, waehrend der geschuetzte App-Zustand geladen wird.',
@@ -210,7 +212,7 @@ class AppLocalizations {
           'Your current app version is no longer supported. Please update the app.',
       'welcome_title': 'Welcome',
       'welcome_body':
-          'Welcome to the app. More guidance and options will be added later.',
+          'Welcome to the app. More guidance and options will be added later. Before the broader rollout of the map feature, an explicit Privacy Policy notice with a confirmation such as "I agree to the Privacy Policy" will be added here.',
       'welcome_action': 'Continue',
       'version': 'Version',
       'notifications_enable': 'Notifications enabled',
@@ -299,6 +301,7 @@ class AppLocalizations {
       'reset_changes': 'Reset changes',
       'save': 'Save',
       'map_not_available': 'Map not available',
+      'map_wifi_only_refresh': 'Map preview is only refreshed over Wi-Fi.',
       'auth_loading_title': 'Preparing secure session',
       'auth_loading_body':
           'Please wait while the protected app state is being loaded.',
@@ -335,14 +338,14 @@ class AppLocalizations {
       'auth_refresh_due_no': 'No',
       'auth_manual_refresh_action': 'Check session now',
       'auth_lock_timeout_label': 'App lock after background in seconds',
-            'debug_reset_title': 'Reset app',
-            'debug_reset_action': 'Delete all data',
-            'debug_reset_confirm_title': 'Delete all data?',
-            'debug_reset_confirm_body':
-                    'All local data, settings, and caches will be deleted. The app will then return to a first-start-like state.',
-            'debug_reset_confirm_action': 'Delete now',
-            'debug_reset_done':
-                    'All data was deleted. Please close and restart the app now.',
+      'debug_reset_title': 'Reset app',
+      'debug_reset_action': 'Delete all data',
+      'debug_reset_confirm_title': 'Delete all data?',
+      'debug_reset_confirm_body':
+          'All local data, settings, and caches will be deleted. The app will then return to a first-start-like state.',
+      'debug_reset_confirm_action': 'Delete now',
+      'debug_reset_done':
+          'All data was deleted. Please close and restart the app now.',
     },
   };
 

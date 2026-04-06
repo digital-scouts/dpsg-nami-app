@@ -118,6 +118,7 @@ class HitobitoPersonResource {
     final resolvedExitDate = exitDate?.add(Duration.zero);
 
     return Mitglied(
+      personId: id,
       mitgliedsnummer: memberId,
       vorname: firstName,
       nachname: lastName,
