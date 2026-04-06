@@ -31,7 +31,6 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
       case 0:
         body = _buildProtectedBody(
           context,
-          title: startseitenTitel,
           readyBody: Center(child: Text(startseitenTitel)),
           authModel: authModel,
           arbeitskontextModel: arbeitskontextModel,
@@ -40,7 +39,6 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
       case 1:
         body = _buildProtectedBody(
           context,
-          title: t.t('nav_members'),
           readyBody: const MemberPeoplePage(),
           authModel: authModel,
           arbeitskontextModel: arbeitskontextModel,
@@ -49,7 +47,6 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
       case 2:
         body = _buildProtectedBody(
           context,
-          title: t.t('nav_statistics'),
           readyBody: const StatisticsPage(),
           authModel: authModel,
           arbeitskontextModel: arbeitskontextModel,
@@ -95,26 +92,20 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
 
   Widget _buildProtectedBody(
     BuildContext context, {
-    required String title,
     required Widget readyBody,
     required AuthSessionModel authModel,
     required ArbeitskontextModel arbeitskontextModel,
   }) {
     final placeholder = _buildPlaceholder(
       context,
-      title: title,
       authModel: authModel,
       arbeitskontextModel: arbeitskontextModel,
     );
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: placeholder ?? readyBody,
-    );
+    return SafeArea(bottom: false, child: placeholder ?? readyBody);
   }
 
   Widget? _buildPlaceholder(
     BuildContext context, {
-    required String title,
     required AuthSessionModel authModel,
     required ArbeitskontextModel arbeitskontextModel,
   }) {
