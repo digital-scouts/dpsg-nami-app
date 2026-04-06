@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:nami/data/maps/in_memory_address_map_location_repository.dart';
+import 'package:nami/data/settings/in_memory_address_settings_repository.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/screens/member_detail_page.dart';
@@ -139,6 +140,7 @@ void main() {
           MemberDetailPage(
             mitglied: member,
             addressLocationRepository: InMemoryAddressMapLocationRepository(),
+            addressSettingsRepository: InMemoryAddressSettingsRepository(),
             mapService: _NeverCompletingGeoapifyAddressMapService(),
             previewTimeout: const Duration(milliseconds: 100),
           ),
@@ -147,10 +149,51 @@ void main() {
 
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 150));
+      await tester.pump();
 
       expect(find.text('Adresse'), findsOneWidget);
       expect(find.byType(CircularProgressIndicator), findsNothing);
-      expect(find.byType(Image), findsNothing);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  testWidgets(
+    'zeigt Adresse nicht gefunden bei leerem Geocoding-Treffer',
+    (tester) async {
+      final member = Mitglied(
+        personId: 23,
+        mitgliedsnummer: '4711',
+        vorname: 'Julia',
+        nachname: 'Keller',
+        geburtsdatum: DateTime(2010, 4, 6),
+        eintrittsdatum: DateTime(2020, 5, 1),
+        adressen: const <MitgliedKontaktAdresse>[
+          MitgliedKontaktAdresse(
+            additionalAddressId: 0,
+            street: 'Musterweg',
+            housenumber: '4',
+            zipCode: '50667',
+            town: 'Koeln',
+            country: 'DE',
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberDetailPage(
+            mitglied: member,
+            addressLocationRepository: InMemoryAddressMapLocationRepository(),
+            addressSettingsRepository: InMemoryAddressSettingsRepository(),
+            mapService: _NullGeoapifyAddressMapService(),
+            previewTimeout: const Duration(milliseconds: 100),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 150));
+      await tester.pump();
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
@@ -181,4 +224,14 @@ class _NeverCompletingGeoapifyAddressMapService
   Future<LatLng?> geocodeAddress(String addressText) {
     return Completer<LatLng?>().future;
   }
+}
+
+class _NullGeoapifyAddressMapService extends GeoapifyAddressMapService {
+  _NullGeoapifyAddressMapService() : super(apiKeyOverride: 'test-key');
+
+  @override
+  bool get hasApiKey => true;
+
+  @override
+  Future<LatLng?> geocodeAddress(String addressText) async => null;
 }

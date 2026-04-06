@@ -5,17 +5,24 @@ import 'package:nami/domain/member/member_address_utils.dart';
 import 'package:nami/domain/settings/address_settings_repository.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/widgets/address_map_preview.dart';
+import 'package:nami/services/geoapify_address_map_service.dart';
+import 'package:nami/services/map_tile_cache_service.dart';
+import 'package:nami/services/maps_env.dart';
 
 class StammAddressSettings extends StatefulWidget {
   final AddressSettingsRepository repository;
   final Future<List<String>> Function(String query) autocompleteProvider;
-  final VoidCallback? onDownloadRegion; // TODO: Implement map region download
+  final VoidCallback? onDownloadRegion;
+  final GeoapifyAddressMapService? mapService;
+  final MapTileCacheService? tileCacheService;
 
   const StammAddressSettings({
     super.key,
     required this.repository,
     required this.autocompleteProvider,
     this.onDownloadRegion,
+    this.mapService,
+    this.tileCacheService,
   });
 
   @override
@@ -86,11 +93,11 @@ class _StammAddressSettingsState extends State<StammAddressSettings> {
           },
           onSelected: (selection) async {
             await widget.repository.saveAddress(selection);
+            unawaited(_downloadOfflineRegion(selection));
             setState(() {
               _savedAddress = selection;
               _controller.text = selection;
             });
-            // TODO: Trigger map region download
             widget.onDownloadRegion?.call();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -119,9 +126,29 @@ class _StammAddressSettingsState extends State<StammAddressSettings> {
             addressFingerprint: MemberAddressUtils.fingerprintFromText(
               (_savedAddress ?? '').trim(),
             ),
-            wifiOnlyRefresh: true,
+            mapService: widget.mapService,
+            tileCacheService: widget.tileCacheService,
           ),
       ],
+    );
+  }
+
+  Future<void> _downloadOfflineRegion(String addressText) async {
+    final mapService = widget.mapService ?? GeoapifyAddressMapService();
+    final tileCacheService = widget.tileCacheService ?? MapTileCacheService();
+    if (!mapService.hasApiKey) {
+      return;
+    }
+    final geocodeResult = await mapService.resolveAddress(addressText);
+    final location = geocodeResult.location;
+    if (location == null) {
+      return;
+    }
+    await tileCacheService.downloadRegion(
+      center: location,
+      radiusKm: MapsEnv.stammOfflineRadiusKm,
+      reason: 'stamm:0',
+      wifiOnly: true,
     );
   }
 }

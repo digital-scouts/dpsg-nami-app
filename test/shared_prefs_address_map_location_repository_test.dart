@@ -16,7 +16,6 @@ void main() {
       longitude: 9.9937,
       resolvedAt: DateTime(2026, 4, 6, 10, 15),
       addressFingerprint: 'abc123',
-      previewImagePath: '/tmp/preview.png',
     );
 
     await repository.save(location);
@@ -39,4 +38,21 @@ void main() {
 
     expect(await repository.load('23:0'), isNull);
   });
+
+  test(
+    'speichert und laedt Negativ-Cache fuer nicht gefundene Adresse',
+    () async {
+      final repository = SharedPrefsAddressMapLocationRepository();
+      final location = AddressMapLocation(
+        cacheKey: 'stamm:0',
+        resolvedAt: DateTime(2026, 4, 6, 11, 30),
+        addressFingerprint: 'missing123',
+        addressNotFound: true,
+      );
+
+      await repository.save(location);
+
+      expect(await repository.load('stamm:0'), location);
+    },
+  );
 }

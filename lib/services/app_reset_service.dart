@@ -15,11 +15,13 @@ class AppResetService {
     required SensitiveStorageService sensitiveStorageService,
     ResetPreferencesProvider? preferencesProvider,
     ResetLogFileProvider? logFileProvider,
+    Future<void> Function()? clearMapCache,
   }) : _authSessionRepository = authSessionRepository,
        _sensitiveStorageService = sensitiveStorageService,
        _preferencesProvider =
            preferencesProvider ?? SharedPreferences.getInstance,
-       _logFileProvider = logFileProvider;
+       _logFileProvider = logFileProvider,
+       _clearMapCache = clearMapCache;
 
   static const List<String> plainHiveBoxes = <String>[
     'notifications_box',
@@ -31,6 +33,7 @@ class AppResetService {
   final SensitiveStorageService _sensitiveStorageService;
   final ResetPreferencesProvider _preferencesProvider;
   final ResetLogFileProvider? _logFileProvider;
+  final Future<void> Function()? _clearMapCache;
 
   Future<void> resetAllData({bool clearLogFile = true}) async {
     final prefs = await _preferencesProvider();
@@ -38,6 +41,10 @@ class AppResetService {
 
     await _authSessionRepository.clear();
     await _sensitiveStorageService.purgeSensitiveData();
+    final clearMapCache = _clearMapCache;
+    if (clearMapCache != null) {
+      await clearMapCache();
+    }
 
     for (final boxName in plainHiveBoxes) {
       if (Hive.isBoxOpen(boxName)) {

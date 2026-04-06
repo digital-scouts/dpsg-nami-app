@@ -12,7 +12,7 @@ typedef WiredashEventHook =
     Future<void> Function(String name, Map<String, Object?> properties);
 
 class LoggerService {
-  static const int _maxEventValueLength = 1024;
+  static const int _maxEventValueLength = 900;
 
   final AppSettingsRepository settingsRepository;
   final GlobalKey<NavigatorState> navigatorKey;

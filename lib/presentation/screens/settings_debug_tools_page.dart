@@ -15,6 +15,7 @@ import '../../services/app_runtime_controller.dart';
 import '../../services/hitobito_auth_config_controller.dart';
 import '../../services/hitobito_oauth_service.dart';
 import '../../services/logger_service.dart';
+import '../../services/map_tile_cache_service.dart';
 
 class DebugToolsPage extends StatefulWidget {
   const DebugToolsPage({
@@ -264,6 +265,27 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
               ),
 
               const SizedBox(height: 20),
+              const Text('Karten-Cache'),
+              const SizedBox(height: 8),
+              FutureBuilder<double>(
+                future: context.read<MapTileCacheService>().realSizeKiB(),
+                builder: (context, snapshot) {
+                  final text = switch (snapshot.connectionState) {
+                    ConnectionState.done when snapshot.hasData =>
+                      _formatMapCacheSize(snapshot.data!),
+                    ConnectionState.done => 'Größe derzeit nicht verfügbar',
+                    _ => 'Größe wird geladen ...',
+                  };
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.map_outlined),
+                    title: const Text('Offline-Karten'),
+                    subtitle: Text(text),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 20),
               const Text('Hitobito OAuth'),
               const SizedBox(height: 8),
               Text(
@@ -308,6 +330,17 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
         ),
       ),
     );
+  }
+
+  String _formatMapCacheSize(double sizeKiB) {
+    if (sizeKiB <= 0) {
+      return 'Noch keine Offline-Kartendaten gespeichert';
+    }
+    final sizeMiB = sizeKiB / 1024;
+    if (sizeMiB < 1) {
+      return '${sizeKiB.toStringAsFixed(0)} KiB gespeichert';
+    }
+    return '${sizeMiB.toStringAsFixed(2)} MiB gespeichert';
   }
 }
 
