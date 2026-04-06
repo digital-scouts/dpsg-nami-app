@@ -399,7 +399,7 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
   }
 }
 
-class _InteractiveMapPreview extends StatelessWidget {
+class _InteractiveMapPreview extends StatefulWidget {
   const _InteractiveMapPreview({
     required this.height,
     required this.tileProvider,
@@ -413,11 +413,51 @@ class _InteractiveMapPreview extends StatelessWidget {
   final AddressMapLocation? secondaryLocation;
 
   @override
+  State<_InteractiveMapPreview> createState() => _InteractiveMapPreviewState();
+}
+
+class _InteractiveMapPreviewState extends State<_InteractiveMapPreview> {
+  late final MapController _mapController;
+
+  @override
+  void initState() {
+    super.initState();
+    _mapController = MapController();
+  }
+
+  @override
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
+  }
+
+  void _recenterMap(List<LatLng> points) {
+    if (points.length > 1) {
+      _mapController.fitCamera(
+        CameraFit.bounds(
+          bounds: LatLngBounds.fromPoints(points),
+          padding: const EdgeInsets.all(36),
+          maxZoom: 16,
+        ),
+      );
+      return;
+    }
+
+    _mapController.move(points.first, 15, id: 'recenter');
+  }
+
+  @override
   Widget build(BuildContext context) {
     final points = <LatLng>[
-      LatLng(primaryLocation.latitude!, primaryLocation.longitude!),
-      if (secondaryLocation != null)
-        LatLng(secondaryLocation!.latitude!, secondaryLocation!.longitude!),
+      LatLng(
+        widget.primaryLocation.latitude!,
+        widget.primaryLocation.longitude!,
+      ),
+      if (widget.secondaryLocation != null)
+        LatLng(
+          widget.secondaryLocation!.latitude!,
+          widget.secondaryLocation!.longitude!,
+        ),
     ];
     final initialCameraFit = points.length > 1
         ? CameraFit.bounds(
@@ -430,47 +470,75 @@ class _InteractiveMapPreview extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: SizedBox(
-        height: height,
-        child: FlutterMap(
-          options: MapOptions(
-            initialCenter: points.first,
-            initialZoom: 15,
-            maxZoom: 17,
-            minZoom: 3,
-            initialCameraFit: initialCameraFit,
-            interactionOptions: const InteractionOptions(
-              flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-            ),
-          ),
+        height: widget.height,
+        child: Stack(
           children: [
-            TileLayer(
-              urlTemplate: MapTileCacheService.tileUrlTemplate,
-              userAgentPackageName: MapTileCacheService.userAgentPackageName,
-              tileProvider: tileProvider,
-              maxZoom: 17,
-            ),
-            MarkerLayer(
-              markers: [
-                Marker(
-                  point: points.first,
-                  width: 44,
-                  height: 44,
-                  child: const _MapMarker(
-                    icon: Icons.location_on,
-                    color: Color(0xFFC62828),
-                  ),
+            FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter: points.first,
+                initialZoom: 15,
+                maxZoom: 17,
+                minZoom: 3,
+                initialCameraFit: initialCameraFit,
+                interactionOptions: const InteractionOptions(
+                  flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
                 ),
-                if (secondaryLocation != null)
-                  Marker(
-                    point: points.last,
-                    width: 44,
-                    height: 44,
-                    child: const _MapMarker(
-                      icon: Icons.home,
-                      color: Color(0xFF1565C0),
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate: MapTileCacheService.tileUrlTemplate,
+                  userAgentPackageName:
+                      MapTileCacheService.userAgentPackageName,
+                  tileProvider: widget.tileProvider,
+                  maxZoom: 17,
+                ),
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: points.first,
+                      width: 44,
+                      height: 44,
+                      child: const _MapMarker(
+                        icon: Icons.location_on,
+                        color: Color(0xFFC62828),
+                      ),
                     ),
-                  ),
+                    if (widget.secondaryLocation != null)
+                      Marker(
+                        point: points.last,
+                        width: 44,
+                        height: 44,
+                        child: const _MapMarker(
+                          icon: Icons.home,
+                          color: Color(0xFF1565C0),
+                        ),
+                      ),
+                  ],
+                ),
               ],
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Material(
+                color: Theme.of(
+                  context,
+                ).colorScheme.surface.withValues(alpha: 0.5),
+                elevation: 2,
+                shape: const CircleBorder(),
+                child: IconButton(
+                  tooltip: 'Karte zentrieren',
+                  constraints: const BoxConstraints.tightFor(
+                    width: 34,
+                    height: 34,
+                  ),
+                  padding: EdgeInsets.zero,
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => _recenterMap(points),
+                  icon: const Icon(Icons.center_focus_strong, size: 18),
+                ),
+              ),
             ),
           ],
         ),
@@ -487,20 +555,7 @@ class _MapMarker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-        boxShadow: const [
-          BoxShadow(
-            blurRadius: 8,
-            color: Color(0x33000000),
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Center(child: Icon(icon, color: color, size: 28)),
-    );
+    return Center(child: Icon(icon, color: color, size: 28));
   }
 }
 

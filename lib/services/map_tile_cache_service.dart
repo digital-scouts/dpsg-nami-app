@@ -10,6 +10,7 @@ import 'package:http/io_client.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'logger_service.dart';
+import 'maps_env.dart';
 
 class MapTileCacheService {
   MapTileCacheService({
@@ -24,13 +25,13 @@ class MapTileCacheService {
        _logger = logger;
 
   static const String storeName = 'offline_map_tiles';
-  static const String tileUrlTemplate =
-      'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
   static const String userAgentPackageName = 'de.jlange.nami.app';
   static const String userAgentValue =
       'dpsg-nami-app/1.0 (+https://github.com/digital-scouts/dpsg-nami-app)';
   static const int minCachedZoom = 10;
   static const int maxCachedZoom = 16;
+
+  static String get tileUrlTemplate => MapsEnv.mapTileUrlTemplate;
 
   final FMTCBackend _backend;
   final Connectivity _connectivity;
@@ -155,6 +156,11 @@ class MapTileCacheService {
       headers: headers,
     );
     _initialized = true;
+    await _log(
+      MapsEnv.isUsingTileFallback
+          ? 'Map-Cache initialisiert mit OSM-Fallback'
+          : 'Map-Cache initialisiert mit konfiguriertem Tile-Provider',
+    );
     await _log('Map-Cache initialisiert');
   }
 

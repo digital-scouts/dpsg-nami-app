@@ -44,7 +44,7 @@ The app itself does not continuously collect precise location data for analytics
 
 For address-related features, user input may be sent to an external geocoding service to retrieve address suggestions. This happens only when the corresponding feature is used.
 
-For member detail maps and the map around the saved Stamm address, postal address data may also be sent to Geoapify to geocode the address. The app stores resulting coordinates locally on the device to reduce repeated requests. Map tiles may additionally be cached locally for offline use.
+For member detail maps and the map around the saved Stamm address, postal address data may also be sent to Geoapify to geocode the address. The app stores resulting coordinates locally on the device to reduce repeated requests. If no sufficiently precise address match can be determined, the app may also store a local "address not found" cache state for that address input to avoid repeated geocoding requests. Map tiles may additionally be cached locally for offline use and may be delivered via a configured tile provider such as MapTiler, with an OpenStreetMap-based fallback used if no explicit tile URL is configured.
 
 TODO: Before broader rollout of map features, refine this section and the in-app first-start notice with a more explicit consent flow for Privacy Policy acknowledgement.
 
@@ -54,13 +54,14 @@ The app currently uses third-party services such as:
 
 - Wiredash for feedback and event tracking
 - Geoapify for address autocomplete and geocoding
-- map tile delivery and caching based on OpenStreetMap tiles
+- MapTiler for configured map tile delivery, with an OpenStreetMap-based fallback when no explicit tile endpoint is configured
 - platform and store infrastructure provided by Apple and Google
 
 These services process data under their own privacy policies:
 
 - [Wiredash Privacy Policy](https://wiredash.io/legal/privacy-policy)
 - [Geoapify Privacy Policy](https://www.geoapify.com/privacy-policy/)
+- [MapTiler Privacy Policy](https://www.maptiler.com/privacy-policy/)
 - [Google Play Services](https://www.google.com/policies/privacy/)
 - [Apple Privacy Policy](https://www.apple.com/legal/privacy/)
 
