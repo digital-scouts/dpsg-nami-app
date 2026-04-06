@@ -1,5 +1,6 @@
+import '../taetigkeit/role_derivation.dart';
+import '../taetigkeit/roles.dart';
 import '../taetigkeit/stufe.dart';
-import '../taetigkeit/taetigkeit.dart';
 
 /// Bereinigt eine Liste von Tätigkeiten für Statistik-Zwecke.
 /// Regeln:
@@ -12,13 +13,13 @@ import '../taetigkeit/taetigkeit.dart';
 ///
 /// Input: Original Liste Taetigkeit
 /// Output: Neue Liste Taetigkeit ohne Überlapp, zusammengelegt.
-List<Taetigkeit> cleanForStatistiks(List<Taetigkeit> original) {
+List<Role> cleanForStatistiks(List<Role> original) {
   if (original.isEmpty) return const [];
 
   // Vergangene und aktuelle Tätigkeiten berücksichtigen.
   // Aktuelle werden bis "jetzt" begrenzt; zukünftige ignoriert.
   final now = DateTime.now();
-  final normalized = <Taetigkeit>[];
+  final normalized = <Role>[];
   for (final t in original) {
     final startsInFuture = t.start.isAfter(now);
     if (startsInFuture) continue; // zukünftige Tätigkeit ignorieren^
@@ -28,7 +29,7 @@ List<Taetigkeit> cleanForStatistiks(List<Taetigkeit> original) {
     // Nur Intervalle mit positiver Dauer aufnehmen
     if (!effectiveEnd.isAfter(t.start)) continue;
     normalized.add(
-      Taetigkeit(
+      roleFromLegacy(
         stufe: t.stufe,
         art: t.art,
         start: DateTime(t.start.year, t.start.month, t.start.day),
@@ -51,19 +52,19 @@ List<Taetigkeit> cleanForStatistiks(List<Taetigkeit> original) {
   // (Priorität-Hilfsfunktion entfällt; Regeln unten angewandt)
 
   // Priorität: Leitung > Mitglied > Sonstige
-  int priority(TaetigkeitsArt art) {
+  int priority(RoleCategory art) {
     switch (art) {
-      case TaetigkeitsArt.leitung:
+      case RoleCategory.leitung:
         return 3;
-      case TaetigkeitsArt.mitglied:
+      case RoleCategory.mitglied:
         return 2;
-      case TaetigkeitsArt.sonstiges:
+      case RoleCategory.sonstiges:
         return 1;
     }
   }
 
   // Iteratives Einfügen mit Kürzungsregeln
-  final segments = <Taetigkeit>[];
+  final segments = <Role>[];
   final byStart = [...normalized]..sort((a, b) => a.start.compareTo(b.start));
   for (var t in byStart) {
     // Kürzungen gegenüber bereits enthaltenen Segmenten anwenden
@@ -79,7 +80,7 @@ List<Taetigkeit> cleanForStatistiks(List<Taetigkeit> original) {
         // Gleicher Start: behalte die höhere Priorität, entferne/verkürze die niedrigere
         if (pNew >= pOld) {
           // kürze bestehendes Segment bis 0 Dauer
-          segments[i] = Taetigkeit(
+          segments[i] = roleFromLegacy(
             stufe: s.stufe,
             art: s.art,
             start: s.start,
@@ -87,7 +88,7 @@ List<Taetigkeit> cleanForStatistiks(List<Taetigkeit> original) {
           );
         } else {
           // kürze neues Segment am Start auf s.ende
-          t = Taetigkeit(
+          t = roleFromLegacy(
             stufe: t.stufe,
             art: t.art,
             start: s.ende!,
@@ -97,7 +98,7 @@ List<Taetigkeit> cleanForStatistiks(List<Taetigkeit> original) {
       } else if (pNew >= pOld) {
         // Neuere mit höherer/gleicher Priorität gewinnt: kürze älteres Ende auf neueren Start
         if (s.ende!.isAfter(t.start)) {
-          segments[i] = Taetigkeit(
+          segments[i] = roleFromLegacy(
             stufe: s.stufe,
             art: s.art,
             start: s.start,
@@ -107,7 +108,7 @@ List<Taetigkeit> cleanForStatistiks(List<Taetigkeit> original) {
       } else {
         // Neuere hat niedrigere Priorität: kürze neuere am Start auf älteres Ende
         if (t.start.isBefore(s.ende!)) {
-          t = Taetigkeit(
+          t = roleFromLegacy(
             stufe: t.stufe,
             art: t.art,
             start: s.ende!,
@@ -129,7 +130,7 @@ List<Taetigkeit> cleanForStatistiks(List<Taetigkeit> original) {
   // Zusammenlegen: aufeinanderfolgende Segmente mit gleicher (Stufe, Art)
   // und lückenlos angrenzenden Zeiten werden gemerged.
   segments.sort((a, b) => a.start.compareTo(b.start));
-  final merged = <Taetigkeit>[];
+  final merged = <Role>[];
   for (final s in segments) {
     if (merged.isEmpty) {
       merged.add(s);
@@ -141,7 +142,7 @@ List<Taetigkeit> cleanForStatistiks(List<Taetigkeit> original) {
       last.ende!,
     ); // s.start <= last.ende
     if (sameRole && overlapsOrContiguous) {
-      merged[merged.length - 1] = Taetigkeit(
+      merged[merged.length - 1] = roleFromLegacy(
         stufe: last.stufe,
         art: last.art,
         start: last.start,
@@ -162,7 +163,7 @@ List<Taetigkeit> cleanForStatistiks(List<Taetigkeit> original) {
     final fillsGap = a.ende == b.start && b.ende == c.start;
     if (sameAC && fillsGap) {
       // Entferne mittleres Segment und merge A mit C
-      merged[i] = Taetigkeit(
+      merged[i] = roleFromLegacy(
         stufe: a.stufe,
         art: a.art,
         start: a.start,
@@ -182,15 +183,15 @@ List<Taetigkeit> cleanForStatistiks(List<Taetigkeit> original) {
 class RoleDuration {
   RoleDuration({required this.stufe, required this.art, required this.days});
   final Stufe stufe;
-  final TaetigkeitsArt art;
+  final RoleCategory art;
   final int days;
 }
 
-List<RoleDuration> durationsByRoleDays(List<Taetigkeit> original) {
+List<RoleDuration> durationsByRoleDays(List<Role> original) {
   final cleaned = cleanForStatistiks(original);
   if (cleaned.isEmpty) return const [];
 
-  final Map<(Stufe, TaetigkeitsArt), int> acc = {};
+  final Map<(Stufe, RoleCategory), int> acc = {};
   for (final t in cleaned) {
     final days = t.ende!.difference(t.start).inDays;
     if (days <= 0) continue;
@@ -204,7 +205,7 @@ List<RoleDuration> durationsByRoleDays(List<Taetigkeit> original) {
   ];
 }
 
-Duration membershipDuration(List<Taetigkeit> original) {
+Duration membershipDuration(List<Role> original) {
   final cleaned = cleanForStatistiks(original);
   if (cleaned.isEmpty) return Duration.zero;
 

@@ -2,8 +2,8 @@
 import 'package:storybook_flutter/storybook_flutter.dart';
 
 import '../domain/statistiks/age_distribution.dart';
+import '../domain/taetigkeit/roles.dart';
 import '../domain/taetigkeit/stufe.dart';
-import '../domain/taetigkeit/taetigkeit.dart';
 import '../presentation/widgets/statistik_agedistribution.dart';
 
 Story ageDistributionStory() {
@@ -66,7 +66,7 @@ Story ageDistributionStory() {
           MemberAgeInfo(
             stufe: stufe,
             birthDate: birthDate,
-            art: TaetigkeitsArt.mitglied,
+            art: RoleCategory.mitglied,
           ),
         );
       }
@@ -84,7 +84,7 @@ Story ageDistributionStory() {
           MemberAgeInfo(
             stufe: stufe,
             birthDate: birthDate,
-            art: TaetigkeitsArt.leitung,
+            art: RoleCategory.leitung,
           ),
         );
       }

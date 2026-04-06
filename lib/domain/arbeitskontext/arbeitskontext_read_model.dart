@@ -115,6 +115,7 @@ class ArbeitskontextGruppe {
 class ArbeitskontextReadModel {
   ArbeitskontextReadModel({
     required this.arbeitskontext,
+    this.rolesSindGeladen = false,
     Iterable<Mitglied> mitglieder = const <Mitglied>[],
     Iterable<ArbeitskontextGruppe> gruppen = const <ArbeitskontextGruppe>[],
     Iterable<ArbeitskontextMitgliedsZuordnung> mitgliedsZuordnungen =
@@ -135,6 +136,7 @@ class ArbeitskontextReadModel {
        );
 
   final Arbeitskontext arbeitskontext;
+  final bool rolesSindGeladen;
   final List<Mitglied> mitglieder;
   final List<ArbeitskontextGruppe> gruppen;
   final List<ArbeitskontextMitgliedsZuordnung> mitgliedsZuordnungen;
@@ -171,11 +173,13 @@ class ArbeitskontextReadModel {
 
   ArbeitskontextReadModel copyWith({
     Arbeitskontext? arbeitskontext,
+    bool? rolesSindGeladen,
     Iterable<Mitglied>? mitglieder,
     Iterable<ArbeitskontextGruppe>? gruppen,
     Iterable<ArbeitskontextMitgliedsZuordnung>? mitgliedsZuordnungen,
   }) => ArbeitskontextReadModel(
     arbeitskontext: arbeitskontext ?? this.arbeitskontext,
+    rolesSindGeladen: rolesSindGeladen ?? this.rolesSindGeladen,
     mitglieder: mitglieder ?? this.mitglieder,
     gruppen: gruppen ?? this.gruppen,
     mitgliedsZuordnungen: mitgliedsZuordnungen ?? this.mitgliedsZuordnungen,
@@ -185,6 +189,7 @@ class ArbeitskontextReadModel {
   bool operator ==(Object other) {
     return other is ArbeitskontextReadModel &&
         other.arbeitskontext == arbeitskontext &&
+        other.rolesSindGeladen == rolesSindGeladen &&
         _listEquals(other.mitglieder, mitglieder) &&
         _listEquals(other.gruppen, gruppen) &&
         _listEquals(other.mitgliedsZuordnungen, mitgliedsZuordnungen);
@@ -193,6 +198,7 @@ class ArbeitskontextReadModel {
   @override
   int get hashCode => Object.hash(
     arbeitskontext,
+    rolesSindGeladen,
     Object.hashAll(mitglieder),
     Object.hashAll(gruppen),
     Object.hashAll(mitgliedsZuordnungen),
@@ -200,7 +206,7 @@ class ArbeitskontextReadModel {
 
   @override
   String toString() {
-    return 'ArbeitskontextReadModel(arbeitskontext: $arbeitskontext, mitglieder: $mitglieder, gruppen: $gruppen, mitgliedsZuordnungen: $mitgliedsZuordnungen)';
+    return 'ArbeitskontextReadModel(arbeitskontext: $arbeitskontext, rolesSindGeladen: $rolesSindGeladen, mitglieder: $mitglieder, gruppen: $gruppen, mitgliedsZuordnungen: $mitgliedsZuordnungen)';
   }
 
   static List<Mitglied> _normalizeMitglieder(Iterable<Mitglied> mitglieder) {

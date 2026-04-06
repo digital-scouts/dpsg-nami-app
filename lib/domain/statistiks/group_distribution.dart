@@ -1,5 +1,6 @@
+import '../taetigkeit/role_derivation.dart';
+import '../taetigkeit/roles.dart';
 import '../taetigkeit/stufe.dart';
-import '../taetigkeit/taetigkeit.dart';
 
 /// Verteilung für eine einzelne Stufe: Anzahl Leitende und Mitglieder.
 class GroupDistribution {
@@ -22,11 +23,11 @@ class GroupDistribution {
 /// Berechnet die Verteilung für alle Stufen (ohne die reine "Leitung" Stufe als eigene Säule).
 /// Leitende werden durch `TaetigkeitsArt.leitung` identifiziert und der jeweiligen Stufe zugerechnet.
 List<GroupDistribution> computeGroupDistributions(
-  List<Taetigkeit> taetigkeiten, {
+  List<Role> taetigkeiten, {
   bool nurAktive = true,
 }) {
   if (taetigkeiten.isEmpty) return const [];
-  final byStufe = <Stufe, Map<TaetigkeitsArt, int>>{};
+  final byStufe = <Stufe, Map<RoleCategory, int>>{};
   for (final t in taetigkeiten) {
     if (nurAktive && !t.istAktiv) continue;
     // Die Stufe.leitung (generische Leitungs-Stufe) wird hier ignoriert, da Leitende einer Stufe
@@ -40,8 +41,8 @@ List<GroupDistribution> computeGroupDistributions(
     for (final entry in byStufe.entries)
       GroupDistribution(
         stufe: entry.key,
-        leitungCount: entry.value[TaetigkeitsArt.leitung] ?? 0,
-        mitgliedCount: entry.value[TaetigkeitsArt.mitglied] ?? 0,
+        leitungCount: entry.value[RoleCategory.leitung] ?? 0,
+        mitgliedCount: entry.value[RoleCategory.mitglied] ?? 0,
       ),
   ]..sort((a, b) => a.stufe.order.compareTo(b.stufe.order));
   return result;
@@ -50,7 +51,7 @@ List<GroupDistribution> computeGroupDistributions(
 /// Berechnet nur für eine spezifische Stufe.
 GroupDistribution computeGroupDistributionForStufe(
   Stufe stufe,
-  List<Taetigkeit> taetigkeiten, {
+  List<Role> taetigkeiten, {
   bool nurAktive = true,
 }) {
   int leitung = 0;
@@ -59,11 +60,11 @@ GroupDistribution computeGroupDistributionForStufe(
     if (t.stufe != stufe) continue;
     if (nurAktive && !t.istAktiv) continue;
     switch (t.art) {
-      case TaetigkeitsArt.leitung:
+      case RoleCategory.leitung:
         leitung++;
-      case TaetigkeitsArt.mitglied:
+      case RoleCategory.mitglied:
         mitglied++;
-      case TaetigkeitsArt.sonstiges:
+      case RoleCategory.sonstiges:
         // ignorieren
         break;
     }

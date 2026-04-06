@@ -101,6 +101,17 @@ class HitobitoAuthConfig {
     return base.replace(path: '/api/groups', queryParameters: null);
   }
 
+  Uri? get rolesUri {
+    final base = Uri.tryParse(
+      profileUrl.isNotEmpty ? profileUrl : authorizationUrl,
+    );
+    if (base == null) {
+      return null;
+    }
+
+    return base.replace(path: '/api/roles', queryParameters: null);
+  }
+
   List<String> get scopes => scopeString
       .split(RegExp(r'\s+'))
       .where((scope) => scope.isNotEmpty)

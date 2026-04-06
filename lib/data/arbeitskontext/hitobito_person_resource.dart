@@ -6,6 +6,10 @@ class HitobitoPersonRoleResource {
     required this.id,
     required this.groupId,
     this.personId,
+    this.createdAt,
+    this.updatedAt,
+    this.startOn,
+    this.endOn,
     this.roleType,
     this.roleName,
     this.roleLabel,
@@ -15,6 +19,10 @@ class HitobitoPersonRoleResource {
   final int id;
   final int groupId;
   final int? personId;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final DateTime? startOn;
+  final DateTime? endOn;
   final String? roleType;
   final String? roleName;
   final String? roleLabel;

@@ -53,6 +53,7 @@ class SecureArbeitskontextLocalRepository
             .map(_layerToJson)
             .toList(growable: false),
       },
+      'roles_sind_geladen': readModel.rolesSindGeladen,
       'mitglieder': readModel.mitglieder
           .map((mitglied) => mitglied.toPeopleListJson())
           .toList(growable: false),
@@ -119,6 +120,7 @@ class SecureArbeitskontextLocalRepository
         aktiverLayer: aktiverLayer,
         verfuegbareLayer: verfuegbareLayer,
       ),
+      rolesSindGeladen: json['roles_sind_geladen'] == true,
       mitglieder: mitglieder,
       gruppen: gruppen,
       mitgliedsZuordnungen: mitgliedsZuordnungen,

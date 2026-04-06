@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../../data/arbeitskontext/hitobito_group_resource.dart';
@@ -66,6 +68,7 @@ class ArbeitskontextModel extends ChangeNotifier {
   String? _profileFingerprint;
   bool _isSynchronizing = false;
   bool _isSwitchingLayer = false;
+  bool _isLoadingRoles = false;
 
   ArbeitskontextStatus get status => _status;
   Arbeitskontext? get arbeitskontext => _arbeitskontext;
@@ -76,6 +79,8 @@ class ArbeitskontextModel extends ChangeNotifier {
   bool get isUnauthorized => _status == ArbeitskontextStatus.unauthorized;
   bool get hasError => _status == ArbeitskontextStatus.error;
   bool get isSwitchingLayer => _isSwitchingLayer;
+  bool get isLoadingRoles => _isLoadingRoles;
+  bool get areRolesLoaded => _readModel?.rolesSindGeladen ?? false;
 
   Future<void> syncForAuth({
     required AuthState authState,
@@ -131,6 +136,7 @@ class ArbeitskontextModel extends ChangeNotifier {
           'arbeitskontext',
           'Arbeitskontext erfolgreich aus lokalem Cache geladen: layer=${cached.arbeitskontext.aktiverLayer.id} name=${cached.arbeitskontext.aktiverLayer.name}',
         );
+        _scheduleRolesPreload();
         return;
       }
 
@@ -164,6 +170,7 @@ class ArbeitskontextModel extends ChangeNotifier {
           'Arbeitskontext erfolgreich remote geladen: layer=${_arbeitskontext!.aktiverLayer.id} name=${_arbeitskontext!.aktiverLayer.name} gruppen=${_readModel?.gruppen.length ?? 0} mitglieder=${_readModel?.mitglieder.length ?? 0}',
         );
       }
+      _scheduleRolesPreload();
     } catch (error, stack) {
       await _logger.log(
         'arbeitskontext',
@@ -238,6 +245,7 @@ class ArbeitskontextModel extends ChangeNotifier {
           'Arbeitskontext erfolgreich aktualisiert: layer=${_arbeitskontext!.aktiverLayer.id} name=${_arbeitskontext!.aktiverLayer.name} gruppen=${_readModel?.gruppen.length ?? 0} mitglieder=${_readModel?.mitglieder.length ?? 0}',
         );
       }
+      _scheduleRolesPreload();
     } catch (error, stack) {
       await _logger.log(
         'arbeitskontext',
@@ -249,6 +257,58 @@ class ArbeitskontextModel extends ChangeNotifier {
       _errorMessage = error.toString();
     } finally {
       _isSynchronizing = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> ensureRolesLoaded() async {
+    return _loadRoles(surfaceErrors: true);
+  }
+
+  Future<bool> _loadRoles({required bool surfaceErrors}) async {
+    final currentReadModel = _readModel;
+    final session = _session;
+    if (currentReadModel == null) {
+      return false;
+    }
+    if (currentReadModel.rolesSindGeladen) {
+      return true;
+    }
+    if (_isSynchronizing || _isSwitchingLayer || _isLoadingRoles) {
+      return false;
+    }
+    if (session == null || session.accessToken.isEmpty) {
+      return false;
+    }
+
+    _isLoadingRoles = true;
+    if (surfaceErrors) {
+      _errorMessage = null;
+    }
+    notifyListeners();
+
+    try {
+      _readModel = await _readModelRepository.loadRoles(
+        accessToken: session.accessToken,
+        readModel: currentReadModel,
+      );
+      _arbeitskontext = _readModel?.arbeitskontext;
+      await _logger.log(
+        'arbeitskontext',
+        'Roles erfolgreich nachgeladen: layer=${_arbeitskontext?.aktiverLayer.id} mitglieder=${_readModel?.mitglieder.length ?? 0}',
+      );
+      return true;
+    } catch (error, stack) {
+      await _logger.log(
+        'arbeitskontext',
+        'Roles-Nachladen fehlgeschlagen: $error\n$stack',
+      );
+      if (surfaceErrors) {
+        _errorMessage = error.toString();
+      }
+      return false;
+    } finally {
+      _isLoadingRoles = false;
       notifyListeners();
     }
   }
@@ -315,6 +375,7 @@ class ArbeitskontextModel extends ChangeNotifier {
           'Arbeitskontext erfolgreich gewechselt: layer=${_arbeitskontext!.aktiverLayer.id} name=${_arbeitskontext!.aktiverLayer.name} gruppen=${_readModel?.gruppen.length ?? 0} mitglieder=${_readModel?.mitglieder.length ?? 0}',
         );
       }
+      _scheduleRolesPreload();
       return true;
     } catch (error, stack) {
       await _logger.log(
@@ -349,6 +410,18 @@ class ArbeitskontextModel extends ChangeNotifier {
     _activeProfileId = null;
     _profileFingerprint = null;
     notifyListeners();
+  }
+
+  void _scheduleRolesPreload() {
+    unawaited(
+      Future<void>.microtask(() async {
+        await _preloadRolesInBackground();
+      }),
+    );
+  }
+
+  Future<void> _preloadRolesInBackground() async {
+    await _loadRoles(surfaceErrors: false);
   }
 
   Arbeitskontext? _bestimmeStartkontext({

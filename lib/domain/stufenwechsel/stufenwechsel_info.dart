@@ -4,8 +4,9 @@ library;
 import 'package:nami/domain/member/member_utils.dart';
 
 import '../member/mitglied.dart';
+import '../taetigkeit/role_derivation.dart';
+import '../taetigkeit/roles.dart';
 import '../taetigkeit/stufe.dart';
-import '../taetigkeit/taetigkeit.dart';
 
 ///
 /// Eingabe:
@@ -118,10 +119,10 @@ bool berechneShouldWechselNext(
   final Stufe? currentStufe = MemberUtils.aktiveStufe(m);
   final Stufe? next = currentStufe?.nextStufe;
   if (next != null) {
-    final hasFuturePlannedNext = m.taetigkeiten.any(
+    final hasFuturePlannedNext = m.roles.any(
       (t) =>
           t.stufe == next &&
-          t.art == TaetigkeitsArt.mitglied &&
+          t.art == RoleCategory.mitglied &&
           t.start.isAfter(stichtag),
     );
     if (hasFuturePlannedNext) return false;

@@ -21,6 +21,7 @@ import 'package:nami/presentation/notifications/app_update_dialog.dart';
 import 'package:nami/presentation/notifications/welcome_dialog.dart';
 import 'package:nami/presentation/screens/auth_gate_screen.dart';
 import 'package:nami/presentation/theme/theme.dart';
+import 'package:nami/services/hitobito_roles_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:wiredash/wiredash.dart';
@@ -106,11 +107,13 @@ void main() {
       final hitobitoPeopleService = HitobitoPeopleService(
         config: envAuthConfig,
       );
+      final hitobitoRolesService = HitobitoRolesService(config: envAuthConfig);
       final hitobitoAuthConfigController = HitobitoAuthConfigController(
         sensitiveStorageService: sensitiveStorageService,
         oauthService: oauthService,
         groupsService: hitobitoGroupsService,
         peopleService: hitobitoPeopleService,
+        rolesService: hitobitoRolesService,
         logger: logger,
         envConfig: envAuthConfig,
       );
@@ -119,6 +122,7 @@ void main() {
           HitobitoArbeitskontextReadModelRepository(
             groupsService: hitobitoGroupsService,
             peopleService: hitobitoPeopleService,
+            rolesService: hitobitoRolesService,
             localRepository: arbeitskontextLocalRepository,
           );
       final appResetService = AppResetService(

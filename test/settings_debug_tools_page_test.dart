@@ -126,87 +126,86 @@ void main() {
     },
   );
 
-  testWidgets(
-    'fragt vor dem Zuruecksetzen nach und fuehrt den Reset aus',
-    (tester) async {
-      final logger = _FakeLoggerService();
-      final groupsService = _FakeHitobitoGroupsService();
-      final peopleService = HitobitoPeopleService(config: groupsService.config);
-      final configController = HitobitoAuthConfigController(
-        sensitiveStorageService: _FakeSensitiveStorageService(),
-        oauthService: _MutableOauthService(),
-        groupsService: groupsService,
-        peopleService: peopleService,
-        logger: logger,
-        envConfig: groupsService.config,
-      );
-      await configController.initialize();
+  testWidgets('fragt vor dem Zuruecksetzen nach und fuehrt den Reset aus', (
+    tester,
+  ) async {
+    final logger = _FakeLoggerService();
+    final groupsService = _FakeHitobitoGroupsService();
+    final peopleService = HitobitoPeopleService(config: groupsService.config);
+    final configController = HitobitoAuthConfigController(
+      sensitiveStorageService: _FakeSensitiveStorageService(),
+      oauthService: _MutableOauthService(),
+      groupsService: groupsService,
+      peopleService: peopleService,
+      logger: logger,
+      envConfig: groupsService.config,
+    );
+    await configController.initialize();
 
-      final authModel = AuthSessionModel(
-        repository: _InMemoryAuthSessionRepository(),
-        profileRepository: _InMemoryAuthProfileRepository(),
-        oauthService: _MutableOauthService(),
-        biometricLockService: _FakeBiometricLockService(),
-        sensitiveStorageService: _FakeSensitiveStorageService(),
-        retentionPolicy: HitobitoDataRetentionPolicy(
-          maxDataAge: const Duration(days: 90),
-          refreshInterval: const Duration(hours: 24),
-        ),
-        logger: logger,
-      );
-      final arbeitskontextModel = ArbeitskontextModel(
-        localRepository: _ImmediateArbeitskontextLocalRepository(),
-        readModelRepository: _FakeArbeitskontextReadModelRepository(),
-        groupsService: groupsService,
-        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
-        logger: logger,
-      );
-      var resetCalled = false;
+    final authModel = AuthSessionModel(
+      repository: _InMemoryAuthSessionRepository(),
+      profileRepository: _InMemoryAuthProfileRepository(),
+      oauthService: _MutableOauthService(),
+      biometricLockService: _FakeBiometricLockService(),
+      sensitiveStorageService: _FakeSensitiveStorageService(),
+      retentionPolicy: HitobitoDataRetentionPolicy(
+        maxDataAge: const Duration(days: 90),
+        refreshInterval: const Duration(hours: 24),
+      ),
+      logger: logger,
+    );
+    final arbeitskontextModel = ArbeitskontextModel(
+      localRepository: _ImmediateArbeitskontextLocalRepository(),
+      readModelRepository: _FakeArbeitskontextReadModelRepository(),
+      groupsService: groupsService,
+      bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+      logger: logger,
+    );
+    var resetCalled = false;
 
-      await tester.pumpWidget(
-        MultiProvider(
-          providers: [
-            ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
-            ChangeNotifierProvider<ArbeitskontextModel>.value(
-              value: arbeitskontextModel,
-            ),
-            ChangeNotifierProvider<HitobitoAuthConfigController>.value(
-              value: configController,
-            ),
-            Provider<LoggerService>.value(value: logger),
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
+          ChangeNotifierProvider<ArbeitskontextModel>.value(
+            value: arbeitskontextModel,
+          ),
+          ChangeNotifierProvider<HitobitoAuthConfigController>.value(
+            value: configController,
+          ),
+          Provider<LoggerService>.value(value: logger),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            AppLocalizations.delegate,
           ],
-          child: MaterialApp(
-            localizationsDelegates: [
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-              AppLocalizations.delegate,
-            ],
-            supportedLocales: const [Locale('de'), Locale('en')],
-            locale: const Locale('de'),
-            home: DebugToolsPage(
-              onResetAllData: () async {
-                resetCalled = true;
-              },
-            ),
+          supportedLocales: const [Locale('de'), Locale('en')],
+          locale: const Locale('de'),
+          home: DebugToolsPage(
+            onResetAllData: () async {
+              resetCalled = true;
+            },
           ),
         ),
-      );
+      ),
+    );
 
-      await tester.pumpAndSettle();
-      await tester.drag(find.byType(ListView), const Offset(0, -500));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Alle Daten löschen'), warnIfMissed: false);
-      await tester.pumpAndSettle();
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView), const Offset(0, -500));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Alle Daten löschen'), warnIfMissed: false);
+    await tester.pumpAndSettle();
 
-      expect(find.text('Alle Daten löschen?'), findsOneWidget);
+    expect(find.text('Alle Daten löschen?'), findsOneWidget);
 
-      await tester.tap(find.text('Jetzt löschen'));
-      await tester.pumpAndSettle();
+    await tester.tap(find.text('Jetzt löschen'));
+    await tester.pumpAndSettle();
 
-      expect(resetCalled, isTrue);
-    },
-  );
+    expect(resetCalled, isTrue);
+  });
 }
 
 class _MutableOauthService extends HitobitoOauthService {
@@ -293,6 +292,14 @@ class _ImmediateArbeitskontextLocalRepository
 
 class _FakeArbeitskontextReadModelRepository
     implements ArbeitskontextReadModelRepository {
+  @override
+  Future<ArbeitskontextReadModel> loadRoles({
+    required String accessToken,
+    required ArbeitskontextReadModel readModel,
+  }) async {
+    return readModel;
+  }
+
   @override
   Future<ArbeitskontextReadModel> loadCached(
     Arbeitskontext arbeitskontext,

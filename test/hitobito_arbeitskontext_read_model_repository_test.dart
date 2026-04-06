@@ -6,9 +6,11 @@ import 'package:nami/domain/arbeitskontext/arbeitskontext.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext_local_repository.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model.dart';
 import 'package:nami/domain/member/mitglied.dart';
+import 'package:nami/domain/taetigkeit/roles.dart';
 import 'package:nami/services/hitobito_auth_env.dart';
 import 'package:nami/services/hitobito_groups_service.dart';
 import 'package:nami/services/hitobito_people_service.dart';
+import 'package:nami/services/hitobito_roles_service.dart';
 
 void main() {
   test(
@@ -474,6 +476,85 @@ void main() {
       );
     },
   );
+
+  test(
+    'loadRoles mappt vollstaendige und historische Roles auf Mitglieder und markiert den Kontext als geladen',
+    () async {
+      final localRepository = _FakeArbeitskontextLocalRepository();
+      final repository = HitobitoArbeitskontextReadModelRepository(
+        groupsService: _FakeHitobitoGroupsService(),
+        peopleService: _FakeHitobitoPeopleService(),
+        rolesService: _FakeHitobitoRolesService(
+          roles: <HitobitoPersonRoleResource>[
+            HitobitoPersonRoleResource(
+              id: 701,
+              personId: 1,
+              groupId: 101,
+              roleType: 'Group::Mitglied',
+              roleLabel: 'Mitglied',
+              startOn: DateTime(2020, 1, 1),
+              endOn: DateTime(2021, 1, 1),
+            ),
+            HitobitoPersonRoleResource(
+              id: 702,
+              personId: 1,
+              groupId: 11,
+              roleType: 'Group::Leiter',
+              roleLabel: 'Leitung Stamm',
+              startOn: DateTime(2021, 2, 1),
+            ),
+          ],
+        ),
+        localRepository: localRepository,
+      );
+      final readModel = ArbeitskontextReadModel(
+        arbeitskontext: Arbeitskontext(
+          aktiverLayer: const ArbeitskontextLayer(
+            id: 11,
+            name: 'Stamm Musterdorf',
+          ),
+        ),
+        gruppen: const <ArbeitskontextGruppe>[
+          ArbeitskontextGruppe(id: 101, name: 'Woelflinge', layerId: 11),
+        ],
+        mitglieder: <Mitglied>[
+          Mitglied.peopleListItem(
+            mitgliedsnummer: '1001',
+            personId: 1,
+            vorname: 'Julia',
+            nachname: 'Keller',
+          ),
+        ],
+      );
+
+      final loaded = await repository.loadRoles(
+        accessToken: 'token-123',
+        readModel: readModel,
+      );
+
+      expect(loaded.rolesSindGeladen, isTrue);
+      expect(localRepository.saved, loaded);
+      expect(loaded.findeMitglied('1001')?.roles, <Role>[
+        Role(
+          id: 701,
+          personId: 1,
+          groupId: 101,
+          type: 'Group::Mitglied',
+          label: 'Mitglied',
+          startOn: DateTime(2020, 1, 1),
+          endOn: DateTime(2021, 1, 1),
+        ),
+        Role(
+          id: 702,
+          personId: 1,
+          groupId: 11,
+          type: 'Group::Leiter',
+          label: 'Leitung Stamm',
+          startOn: DateTime(2021, 2, 1),
+        ),
+      ]);
+    },
+  );
 }
 
 class _FakeArbeitskontextLocalRepository
@@ -543,4 +624,31 @@ class _FakeHitobitoPeopleService extends HitobitoPeopleService {
   Future<List<HitobitoPersonResource>> fetchPeopleResources(
     String accessToken,
   ) async => _people;
+}
+
+class _FakeHitobitoRolesService extends HitobitoRolesService {
+  _FakeHitobitoRolesService({
+    List<HitobitoPersonRoleResource> roles =
+        const <HitobitoPersonRoleResource>[],
+  }) : _roles = roles,
+       super(
+         config: const HitobitoAuthConfig(
+           clientId: 'client',
+           clientSecret: 'secret',
+           authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
+           tokenUrl: 'https://demo.hitobito.com/oauth/token',
+           redirectUri: 'de.jlange.nami.app:/oauth/callback',
+           scopeString: 'openid email',
+           discoveryUrl: '',
+           profileUrl: 'https://demo.hitobito.com/oauth/profile',
+         ),
+       );
+
+  final List<HitobitoPersonRoleResource> _roles;
+
+  @override
+  Future<List<HitobitoPersonRoleResource>> fetchRoleResources(
+    String accessToken, {
+    bool? active,
+  }) async => _roles;
 }

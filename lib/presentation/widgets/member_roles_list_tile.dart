@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:nami/domain/taetigkeit/role_derivation.dart';
+import 'package:nami/domain/taetigkeit/roles.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
-import 'package:nami/domain/taetigkeit/taetigkeit.dart';
 import 'package:nami/presentation/stufe/stufe_visuals.dart';
 
 class MemberRolesListTile extends StatelessWidget {
@@ -11,8 +12,8 @@ class MemberRolesListTile extends StatelessWidget {
     this.onDismissRequested,
   });
 
-  final Taetigkeit taetigkeit;
-  final ValueChanged<Taetigkeit>? onDismissRequested;
+  final Role taetigkeit;
+  final ValueChanged<Role>? onDismissRequested;
 
   @override
   Widget build(BuildContext context) {
@@ -83,8 +84,8 @@ class MemberRolesRecommendationListTile extends StatelessWidget {
     this.onActionRequested,
   });
 
-  final Taetigkeit taetigkeit;
-  final ValueChanged<Taetigkeit>? onActionRequested;
+  final Role taetigkeit;
+  final ValueChanged<Role>? onActionRequested;
 
   @override
   Widget build(BuildContext context) {
@@ -109,8 +110,8 @@ class MemberRolesRecommendationListTile extends StatelessWidget {
   }
 }
 
-Widget _buildLeadingFor(BuildContext context, Taetigkeit taetigkeit) {
-  if (taetigkeit.art == TaetigkeitsArt.leitung &&
+Widget _buildLeadingFor(BuildContext context, Role taetigkeit) {
+  if (taetigkeit.art == RoleCategory.leitung &&
       taetigkeit.stufe != Stufe.leitung) {
     return Image.asset(
       StufeVisuals.assetFor(Stufe.leitung),

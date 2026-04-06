@@ -324,24 +324,26 @@ Dieses Dokument übersetzt das Arbeitskontext-Konzept in kleine, kopierfertige T
 - Abhängigkeiten: Ticket 3c, Ticket 3d, Ticket 8.
 - Nicht Teil dieses Tickets: Telefon- oder Adresssuche, globale Suche, historische Rollenstatistiken.
 
-### Ticket 8b: Vollständige und historische Roles lazy nachladen
+### Ticket 8b: Vollständige und historische Roles direkt nach Kontextaufbau im Hintergrund nachladen
 
-- Titel: Vollständige und historische Roles lazy nachladen
+- Titel: Vollständige und historische Roles direkt nach Kontextaufbau im Hintergrund nachladen
 - Typ: Feature
 - Priorität: P1
-- Status: offen
+- Status: umgesetzt
+- Umsetzungsstand: Der initiale Arbeitskontext bleibt produktiv schlank und enthält weiterhin nur Personen, Gruppen und mitgliedsZuordnungen. Vollständige Roles werden über einen separaten Roles-Pfad in `lib/data/arbeitskontext/hitobito_arbeitskontext_read_model_repository.dart` nachgeladen, in `Mitglied.roles` persistiert und durch `rolesSindGeladen` im Read-Model sowie im lokalen Cache abgesichert. Die produktive Verdrahtung startet dieses Nachladen jetzt automatisch direkt nach Cache-Wiederherstellung, initialem Remote-Laden, Refresh und Layerwechsel im Hintergrund aus `lib/presentation/model/arbeitskontext_model.dart`; gezielte Absicherung besteht in `test/hitobito_arbeitskontext_read_model_repository_test.dart` und `test/arbeitskontext_model_test.dart`.
 - Ziel: Eine belastbare Datengrundlage für spätere Statistiken und Verlaufssichten schaffen, ohne den Initial-Load des Arbeitskontexts unnötig aufzublähen.
-- Kurzbeschreibung: Rollen werden fachlich nicht mehr als Tätigkeiten bezeichnet, sondern konsistent als Roles. Der initiale Load des Arbeitskontexts bleibt schlank und trennt das Laden des People-Bestands von den vollständigen, auch historischen Roles. Für Listen und Filter bleiben mitgliedsZuordnungen als kompakte Struktur im Arbeitskontext erhalten. Vollständige Roles werden bei Bedarf lazy über /api/roles nachgeladen und im Zielmodell Mitglied.roles geführt.
+- Kurzbeschreibung: Rollen werden fachlich nicht mehr als Tätigkeiten bezeichnet, sondern konsistent als Roles. Der initiale Load des Arbeitskontexts bleibt schlank und trennt das Laden des People-Bestands von den vollständigen, auch historischen Roles. Für Listen und Filter bleiben mitgliedsZuordnungen als kompakte Struktur im Arbeitskontext erhalten. Vollständige Roles werden über /api/roles getrennt vom People-Load nachgeladen und im Zielmodell Mitglied.roles geführt. Das Nachladen startet automatisch direkt nach erfolgreichem Kontextaufbau im Hintergrund und nicht erst irgendwann später durch einen separaten Bedarfs-Trigger.
 - Ausbau-Schritte:
   - Fachbegriffe, Modellnamen und Dokumentation von Tätigkeiten auf Roles umstellen.
   - Den initialen People-Load so begrenzen, dass nur der schlanke Arbeitskontext einschließlich mitgliedsZuordnungen aufgebaut wird.
   - Einen separaten Ladepfad für vollständige Roles über /api/roles einführen, der aktive und historische Roles nachladen kann.
   - Das Zielmodell Mitglied.roles produktiv anbinden und so persistieren, dass bestehende Listen- und Filterpfade weiter auf mitgliedsZuordnungen basieren.
-  - Den Lazy-Load nur an Stellen auslösen, die vollständige oder historische Roles fachlich wirklich benötigen, etwa spätere Verlaufssichten oder Statistiken.
+  - Das Nachladen der vollständigen Roles nach erfolgreichem Kontextaufbau automatisch im Hintergrund starten, ohne den initialen People-Load aufzublähen.
 - Akzeptanzkriterien:
   - Rollen werden im Fachkontext und in der Benennung nicht mehr als Tätigkeiten, sondern als Roles geführt.
   - Der initiale Load des Arbeitskontexts lädt keine vollständigen historischen Roles mit.
-  - Vollständige Roles werden getrennt vom People-Load lazy über /api/roles nachgeladen.
+  - Vollständige Roles werden getrennt vom People-Load über /api/roles nachgeladen.
+  - Das Nachladen vollständiger Roles startet automatisch direkt nach erfolgreichem Aufbau oder Wiederherstellung des Arbeitskontexts im Hintergrund.
   - Mitglied.roles ist das Zielmodell für vollständige, auch historische Roles.
   - mitgliedsZuordnungen bleiben als kompakte Struktur für Listen und Filter bestehen.
   - Die Datengrundlage ist für spätere Mitgliedschafts- und Rollenstatistiken nutzbar, ohne den MVP-Initial-Load zu verschlechtern.
