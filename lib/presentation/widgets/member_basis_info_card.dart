@@ -15,7 +15,9 @@ class MemberGeneralInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final alter = MemberUtils.alterInJahren(mitglied);
+    final hasKnownBirthday =
+        mitglied.geburtsdatum != Mitglied.peoplePlaceholderDate;
+    final alter = hasKnownBirthday ? MemberUtils.alterInJahren(mitglied) : null;
     final telefonRows = mitglied.telefonnummern
         .map(
           (telefonnummer) => _InfoRow(
@@ -44,12 +46,13 @@ class MemberGeneralInfoCard extends StatelessWidget {
         .toList(growable: false);
 
     final infoRows = <_InfoRow>[
-      _InfoRow(
-        icon: Icons.cake,
-        label: 'Geburtstag',
-        value:
-            '$alter (${DateFormatter.formatGermanShortDate(mitglied.geburtsdatum)})',
-      ),
+      if (hasKnownBirthday)
+        _InfoRow(
+          icon: Icons.cake,
+          label: 'Geburtstag',
+          value:
+              '$alter (${DateFormatter.formatGermanShortDate(mitglied.geburtsdatum)})',
+        ),
       if (mitglied.fahrtenname != null && mitglied.fahrtenname!.isNotEmpty)
         _InfoRow(
           icon: Icons.tag,
@@ -209,6 +212,8 @@ class MemberMembershipInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasKnownEntryDate =
+        mitglied.eintrittsdatum != Mitglied.peoplePlaceholderDate;
     final infoRows = <_InfoRow>[
       _InfoRow(
         icon: Icons.confirmation_number,
@@ -216,20 +221,24 @@ class MemberMembershipInfoCard extends StatelessWidget {
         value: mitglied.mitgliedsnummer,
         copy: true,
       ),
-      _InfoRow(
-        icon: Icons.login,
-        label: 'Eintrittsdatum',
-        value: DateFormatter.formatGermanShortDate(mitglied.eintrittsdatum),
-      ),
+      if (hasKnownEntryDate)
+        _InfoRow(
+          icon: Icons.login,
+          label: 'Eintrittsdatum',
+          value: DateFormatter.formatGermanShortDate(mitglied.eintrittsdatum),
+        ),
+      if (mitglied.updatedAt != null)
+        _InfoRow(
+          icon: Icons.update,
+          label: 'Zuletzt aktualisiert',
+          value: DateFormatter.formatGermanShortDateTime(mitglied.updatedAt!),
+        ),
       _InfoRow(
         icon: mitglied.istAusgetreten ? Icons.cancel : Icons.check_circle,
         label: 'Status',
         value: mitglied.istAusgetreten ? 'Beendet' : 'Aktiv',
       ),
     ];
-    final showEndMembershipButton =
-        true; // TODO: Rechte prüfen, Einstellungen prüfen
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -240,7 +249,7 @@ class MemberMembershipInfoCard extends StatelessWidget {
           child: Column(
             children: [
               ...infoRows.map((r) => _InfoTile(row: r)),
-              if (showEndMembershipButton && onEndMembership != null)
+              if (onEndMembership != null)
                 ListTile(
                   leading: const Icon(Icons.delete, color: Colors.redAccent),
                   title: const Text(

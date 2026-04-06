@@ -219,6 +219,7 @@ class Mitglied {
     required this.geburtsdatum,
     required this.eintrittsdatum,
     this.austrittsdatum,
+    this.updatedAt,
     required this.mitgliedsnummer,
     List<MitgliedKontaktTelefon>? telefonnummern,
     List<MitgliedKontaktEmail>? emailAdressen,
@@ -245,6 +246,7 @@ class Mitglied {
     required this.nachname,
     required this.mitgliedsnummer,
     this.fahrtenname,
+    this.updatedAt,
     List<MitgliedKontaktTelefon>? telefonnummern,
     List<MitgliedKontaktEmail>? emailAdressen,
     List<MitgliedKontaktAdresse>? adressen,
@@ -273,6 +275,7 @@ class Mitglied {
   final DateTime geburtsdatum;
   final DateTime eintrittsdatum;
   final DateTime? austrittsdatum;
+  final DateTime? updatedAt;
   final String mitgliedsnummer;
   final List<MitgliedKontaktTelefon> telefonnummern;
   final List<MitgliedKontaktEmail> emailAdressen;
@@ -299,6 +302,7 @@ class Mitglied {
     DateTime? geburtsdatum,
     DateTime? eintrittsdatum,
     DateTime? austrittsdatum,
+    DateTime? updatedAt,
     String? mitgliedsnummer,
     List<MitgliedKontaktTelefon>? telefonnummern,
     List<MitgliedKontaktEmail>? emailAdressen,
@@ -312,6 +316,7 @@ class Mitglied {
     List<Taetigkeit>? taetigkeiten,
     bool fahrtennameLoeschen = false,
     bool austrittsdatumLoeschen = false,
+    bool updatedAtLoeschen = false,
     bool pronounLoeschen = false,
     bool bankAccountOwnerLoeschen = false,
     bool ibanLoeschen = false,
@@ -327,6 +332,7 @@ class Mitglied {
     austrittsdatum: austrittsdatumLoeschen
         ? null
         : austrittsdatum ?? this.austrittsdatum,
+    updatedAt: updatedAtLoeschen ? null : updatedAt ?? this.updatedAt,
     mitgliedsnummer: mitgliedsnummer ?? this.mitgliedsnummer,
     telefonnummern: telefonnummern ?? this.telefonnummern,
     emailAdressen: emailAdressen ?? this.emailAdressen,
@@ -356,6 +362,7 @@ class Mitglied {
       'geburtsdatum': geburtsdatum.toIso8601String(),
       'eintrittsdatum': eintrittsdatum.toIso8601String(),
       'austrittsdatum': austrittsdatum?.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
       'telefonnummern': telefonnummern
           .map((telefonnummer) => telefonnummer.toJson())
           .toList(growable: false),
@@ -408,6 +415,7 @@ class Mitglied {
       eintrittsdatum:
           _parseDateTime(json['eintrittsdatum']) ?? peoplePlaceholderDate,
       austrittsdatum: _parseDateTime(json['austrittsdatum']),
+      updatedAt: _parseDateTime(json['updated_at']),
       telefonnummern: telefonnummern,
       emailAdressen: emailAdressen,
       adressen: adressen,
@@ -429,6 +437,7 @@ class Mitglied {
         other.geburtsdatum == geburtsdatum &&
         other.eintrittsdatum == eintrittsdatum &&
         other.austrittsdatum == austrittsdatum &&
+        other.updatedAt == updatedAt &&
         other.mitgliedsnummer == mitgliedsnummer &&
         other.pronoun == pronoun &&
         other.bankAccountOwner == bankAccountOwner &&
@@ -450,6 +459,7 @@ class Mitglied {
     geburtsdatum,
     eintrittsdatum,
     austrittsdatum,
+    updatedAt,
     mitgliedsnummer,
     pronoun,
     bankAccountOwner,
@@ -482,6 +492,9 @@ class Mitglied {
       buffer.write(
         ', austrittsdatum: ${austrittsdatum!.toIso8601String().split('T')[0]}',
       );
+    }
+    if (updatedAt != null) {
+      buffer.write(', updatedAt: ${updatedAt!.toIso8601String()}');
     }
     if (emailAdressen.isNotEmpty) {
       buffer.write(', emailAdressen: $emailAdressen');

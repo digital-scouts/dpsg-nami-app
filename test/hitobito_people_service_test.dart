@@ -87,6 +87,7 @@ void main() {
                 "email": "julia@example.org",
                 "birthday": "2008-05-12",
                 "entry_date": "2021-09-01",
+                "updated_at": "2024-11-07T14:35:00Z",
                 "pronoun": "sie/ihr",
                 "street": "Musterweg",
                 "housenumber": "4",
@@ -303,12 +304,14 @@ void main() {
       ]);
       expect(people.first.geburtsdatum, DateTime(2008, 5, 12));
       expect(people.first.eintrittsdatum, DateTime(2021, 9, 1));
+      expect(people.first.updatedAt, DateTime.parse('2024-11-07T14:35:00Z'));
       expect(people.last.mitgliedsnummer, '24');
 
       final resources = await service.fetchPeopleResources('token-123');
       expect(resources.first.emailAdressen, people.first.emailAdressen);
       expect(resources.first.telefonnummern, people.first.telefonnummern);
       expect(resources.first.adressen, people.first.adressen);
+      expect(resources.first.updatedAt, DateTime.parse('2024-11-07T14:35:00Z'));
       expect(resources.first.roles, hasLength(1));
       expect(resources.first.roles.first.groupId, 11);
       expect(

@@ -18,6 +18,7 @@ import 'presentation/theme/theme.dart';
 import 'stories/confetti_overlay_story.dart';
 import 'stories/member_basis_info_card_story.dart';
 import 'stories/member_basis_story.dart';
+import 'stories/member_detail_page_story.dart';
 import 'stories/member_list_directory_story.dart';
 import 'stories/member_list_group_filter_bar_story.dart';
 import 'stories/member_list_search_bar_story.dart';
@@ -52,6 +53,7 @@ class StorybookEntry extends StatelessWidget {
           memberGeneralInfoCardStory(),
           memberMembershipInfoCardStory(),
           memberDetailsStory(),
+          memberDetailPageStory(),
           memberPeoplePageLoadedStory(),
           memberPeoplePageEmptyStory(),
           memberListStory(),

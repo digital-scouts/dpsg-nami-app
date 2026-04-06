@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:nami/data/arbeitskontext/hitobito_group_resource.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext_local_repository.dart';
@@ -19,6 +20,7 @@ import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/screens/member_people_page.dart';
+import 'package:nami/presentation/widgets/member_basis.dart';
 import 'package:nami/presentation/widgets/member_list_group_filter_bar.dart';
 import 'package:nami/presentation/widgets/member_list_search_bar.dart';
 import 'package:nami/services/biometric_lock_service.dart';
@@ -31,6 +33,10 @@ import 'package:nami/services/sensitive_storage_service.dart';
 import 'package:provider/provider.dart';
 
 void main() {
+  setUpAll(() async {
+    await initializeDateFormatting('de');
+  });
+
   testWidgets(
     'zeigt lokal geladenen Mitgliederbestand des Arbeitskontexts an',
     (tester) async {
@@ -214,6 +220,46 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('oeffnet bei Tap auf ein Mitglied die Read-only-Detailansicht', (
+    tester,
+  ) async {
+    final authModel = await _createSignedInAuthModel();
+    final arbeitskontextModel = await _createArbeitskontextModel(
+      mitglieder: <Mitglied>[
+        Mitglied(
+          mitgliedsnummer: '4711',
+          vorname: 'Julia',
+          nachname: 'Keller',
+          geburtsdatum: DateTime(2010, 4, 6),
+          eintrittsdatum: DateTime(2020, 5, 1),
+          telefonnummern: const <MitgliedKontaktTelefon>[
+            MitgliedKontaktTelefon(wert: '040123456', label: 'Festnetznummer'),
+          ],
+          emailAdressen: const <MitgliedKontaktEmail>[
+            MitgliedKontaktEmail(wert: 'julia@example.com', label: 'E-Mail'),
+          ],
+        ),
+      ],
+      authModel: authModel,
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        authModel: authModel,
+        arbeitskontextModel: arbeitskontextModel,
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Julia Keller'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MemberDetails), findsOneWidget);
+    expect(find.text('Allgemeine Informationen'), findsOneWidget);
+    expect(find.text('Mitgliedschaft'), findsOneWidget);
+  });
 }
 
 Widget _buildTestApp({
@@ -236,7 +282,7 @@ Widget _buildTestApp({
       ],
       supportedLocales: const [Locale('de'), Locale('en')],
       locale: const Locale('de'),
-      home: const MemberPeoplePage(),
+      home: const Scaffold(body: MemberPeoplePage()),
     ),
   );
 }
