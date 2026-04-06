@@ -1,0 +1,65 @@
+{
+    "results": [
+        {
+            "datasource": {
+                "sourcename": "openstreetmap",
+                "attribution": "© OpenStreetMap contributors",
+                "license": "Open Database License",
+                "url": "https://www.openstreetmap.org/copyright"
+            },
+            "country": "Deutschland",
+            "country_code": "de",
+            "city": "Hamburg",
+            "postcode": "20537",
+            "district": "Hamburg-Mitte",
+            "suburb": "Hamm",
+            "street": "Hammer Weg",
+            "housenumber": "32",
+            "iso3166_2": "DE-HH",
+            "lon": 10.0469783,
+            "lat": 53.5531048,
+            "result_type": "building",
+            "formatted": "Hammer Weg 32, Hamburg-Mitte, 20537 Hamburg, Deutschland",
+            "address_line1": "Hammer Weg 32",
+            "address_line2": "Hamburg-Mitte, 20537 Hamburg, Deutschland",
+            "timezone": {
+                "name": "Europe/Berlin",
+                "offset_STD": "+01:00",
+                "offset_STD_seconds": 3600,
+                "offset_DST": "+02:00",
+                "offset_DST_seconds": 7200,
+                "abbreviation_STD": "CET",
+                "abbreviation_DST": "CEST"
+            },
+            "plus_code": "9F5GH23W+6Q",
+            "plus_code_short": "H23W+6Q Hamburg, Deutschland",
+            "rank": {
+                "importance": 0.00008255359731436664,
+                "popularity": 7.60770323580906,
+                "confidence": 1,
+                "confidence_city_level": 1,
+                "confidence_street_level": 1,
+                "confidence_building_level": 1,
+                "match_type": "full_match"
+            },
+            "place_id": "514c3e2c8a0d182440595ca15923ccc64a40f00103f901a154d85800000000c00203",
+            "bbox": {
+                "lon1": 10.0469283,
+                "lat1": 53.5530548,
+                "lon2": 10.0470283,
+                "lat2": 53.5531548
+            }
+        }
+    ],
+    "query": {
+        "text": "Hammer Weg 32, 20537 Hamburg, DE",
+        "parsed": {
+            "housenumber": "32",
+            "street": "hammer weg",
+            "postcode": "20537",
+            "city": "hamburg",
+            "country": "de",
+            "expected_type": "building"
+        }
+    }
+}

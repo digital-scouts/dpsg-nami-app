@@ -61,6 +61,7 @@ void main() {
 
   test('serialisiert und deserialisiert das erweiterte Personenmodell', () {
     final original = Mitglied(
+      personId: 77,
       mitgliedsnummer: '1002',
       vorname: 'Max',
       nachname: 'Muster',
@@ -89,6 +90,7 @@ void main() {
       ],
       adressen: const <MitgliedKontaktAdresse>[
         MitgliedKontaktAdresse(
+          additionalAddressId: 0,
           addressCareOf: 'c/o Muster',
           street: 'Ringstrasse',
           housenumber: '2',

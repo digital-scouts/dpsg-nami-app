@@ -263,6 +263,7 @@ void main() {
       expect(people.first.vorname, 'Julia');
       expect(people.first.nachname, 'Keller');
       expect(people.first.fahrtenname, 'Polka');
+      expect(people.first.personId, 23);
       expect(people.first.mitgliedsnummer, '1001');
       expect(people.first.pronoun, 'sie/ihr');
       expect(people.first.emailAdressen, const <MitgliedKontaktEmail>[
@@ -280,6 +281,7 @@ void main() {
       ]);
       expect(people.first.adressen, const <MitgliedKontaktAdresse>[
         MitgliedKontaktAdresse(
+          additionalAddressId: 0,
           street: 'Musterweg',
           housenumber: '4',
           zipCode: '50667',
@@ -287,6 +289,7 @@ void main() {
           country: 'DE',
         ),
         MitgliedKontaktAdresse(
+          additionalAddressId: 801,
           label: 'Elternhaus',
           street: 'Nebenweg',
           housenumber: '5',
@@ -295,6 +298,7 @@ void main() {
           country: 'DE',
         ),
         MitgliedKontaktAdresse(
+          additionalAddressId: 802,
           label: 'Postfach',
           postbox: 'PF 12',
           zipCode: '50669',
