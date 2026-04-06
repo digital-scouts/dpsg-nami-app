@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 // ignore: depend_on_referenced_packages
 import 'package:storybook_flutter/storybook_flutter.dart';
 
+import '../domain/taetigkeit/role_derivation.dart';
+import '../domain/taetigkeit/roles.dart';
 import '../domain/taetigkeit/stufe.dart';
-import '../domain/taetigkeit/taetigkeit.dart';
 import '../presentation/widgets/member_roles_statistik_pie.dart';
 
 final DateTime _storybookNow = DateTime(2025, 10, 1);
@@ -16,15 +17,15 @@ Story memberRolesPieNurMitgliedStory() {
           .sliderInt(label: 'Größe', initial: 180, min: 120, max: 300)
           .toDouble();
       final roles = [
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.woelfling,
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
           start: _storybookNow.subtract(const Duration(days: 900)),
           ende: _storybookNow.subtract(const Duration(days: 600)),
         ),
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.jungpfadfinder,
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
           start: _storybookNow.subtract(const Duration(days: 500)),
           ende: _storybookNow.subtract(const Duration(days: 300)),
         ),
@@ -44,15 +45,15 @@ Story memberRolesPieNurLeitungStory() {
           .sliderInt(label: 'Größe', initial: 180, min: 120, max: 300)
           .toDouble();
       final roles = [
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.rover,
-          art: TaetigkeitsArt.leitung,
+          art: RoleCategory.leitung,
           start: _storybookNow.subtract(const Duration(days: 800)),
           ende: _storybookNow.subtract(const Duration(days: 400)),
         ),
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.pfadfinder,
-          art: TaetigkeitsArt.leitung,
+          art: RoleCategory.leitung,
           start: _storybookNow.subtract(const Duration(days: 350)),
           ende: _storybookNow.subtract(const Duration(days: 100)),
         ),
@@ -72,15 +73,15 @@ Story memberRolesPieMitgliedUndLeitungStory() {
           .sliderInt(label: 'Größe', initial: 180, min: 120, max: 300)
           .toDouble();
       final roles = [
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.pfadfinder,
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
           start: _storybookNow.subtract(const Duration(days: 900)),
           ende: _storybookNow.subtract(const Duration(days: 600)),
         ),
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.rover,
-          art: TaetigkeitsArt.leitung,
+          art: RoleCategory.leitung,
           start: _storybookNow.subtract(const Duration(days: 500)),
           ende: _storybookNow.subtract(const Duration(days: 200)),
         ),
@@ -101,15 +102,15 @@ Story memberRolesPieNurEineStufeStory() {
           .sliderInt(label: 'Größe', initial: 180, min: 120, max: 300)
           .toDouble();
       final roles = [
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.woelfling,
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
           start: _storybookNow.subtract(const Duration(days: 400)),
           ende: _storybookNow.subtract(const Duration(days: 200)),
         ),
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.woelfling,
-          art: TaetigkeitsArt.leitung,
+          art: RoleCategory.leitung,
           start: _storybookNow.subtract(const Duration(days: 180)),
           ende: _storybookNow.subtract(const Duration(days: 60)),
         ),
@@ -128,7 +129,7 @@ Story memberRolesPieMaxStory() {
       final size = context.knobs
           .sliderInt(label: 'Größe', initial: 180, min: 120, max: 300)
           .toDouble();
-      final roles = <Taetigkeit>[];
+      final roles = <Role>[];
       final stufen = [
         Stufe.biber,
         Stufe.woelfling,
@@ -139,18 +140,18 @@ Story memberRolesPieMaxStory() {
       int offset = 2000;
       for (final s in stufen) {
         roles.add(
-          Taetigkeit(
+          roleFromLegacy(
             stufe: s,
-            art: TaetigkeitsArt.mitglied,
+            art: RoleCategory.mitglied,
             start: _storybookNow.subtract(Duration(days: offset)),
             ende: _storybookNow.subtract(Duration(days: offset - 100)),
           ),
         );
         offset -= 150;
         roles.add(
-          Taetigkeit(
+          roleFromLegacy(
             stufe: s,
-            art: TaetigkeitsArt.leitung,
+            art: RoleCategory.leitung,
             start: _storybookNow.subtract(Duration(days: offset)),
             ende: _storybookNow.subtract(Duration(days: offset - 100)),
           ),
@@ -158,9 +159,9 @@ Story memberRolesPieMaxStory() {
         offset -= 150;
       }
       roles.add(
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.leitung,
-          art: TaetigkeitsArt.sonstiges,
+          art: RoleCategory.sonstiges,
           start: _storybookNow.subtract(const Duration(days: 150)),
           ende: _storybookNow.subtract(const Duration(days: 100)),
         ),
@@ -181,15 +182,15 @@ Story memberRolesPieUeberlappStory() {
           .sliderInt(label: 'Größe', initial: 180, min: 120, max: 300)
           .toDouble();
       final roles = [
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.pfadfinder,
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
           start: DateTime(2022, 1, 1),
           ende: DateTime(2023, 12, 31),
         ),
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.rover,
-          art: TaetigkeitsArt.leitung,
+          art: RoleCategory.leitung,
           start: DateTime(2023, 6, 1),
           ende: DateTime(2024, 6, 1),
         ),

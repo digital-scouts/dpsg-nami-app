@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 // ignore: depend_on_referenced_packages
 import 'package:storybook_flutter/storybook_flutter.dart';
 
+import '../domain/taetigkeit/role_derivation.dart';
+import '../domain/taetigkeit/roles.dart';
 import '../domain/taetigkeit/stufe.dart';
-import '../domain/taetigkeit/taetigkeit.dart';
 import '../presentation/widgets/member_roles_list.dart';
 
 Story memberRolesListStory() {
@@ -30,16 +31,16 @@ Story memberRolesListStory() {
         min: 0,
       );
 
-      List<Taetigkeit> genRoles(
+      List<Role> genRoles(
         int count, {
         required Stufe stufe,
-        required TaetigkeitsArt art,
+        required RoleCategory art,
         required DateTime start,
         DateTime? ende,
       }) {
         return List.generate(
           count,
-          (i) => Taetigkeit(
+          (i) => roleFromLegacy(
             stufe: stufe,
             art: art,
             start: start.add(Duration(days: i * 30)),
@@ -52,29 +53,29 @@ Story memberRolesListStory() {
       final futureRoles = genRoles(
         futureCount,
         stufe: Stufe.pfadfinder,
-        art: TaetigkeitsArt.mitglied,
+        art: RoleCategory.mitglied,
         start: now.add(const Duration(days: 30)),
         ende: now.add(const Duration(days: 365)),
       );
       final activeRoles = genRoles(
         activeCount,
         stufe: Stufe.jungpfadfinder,
-        art: TaetigkeitsArt.mitglied,
+        art: RoleCategory.mitglied,
         start: now.subtract(const Duration(days: 200)),
         ende: null,
       );
       final pastRoles = genRoles(
         pastCount,
         stufe: Stufe.woelfling,
-        art: TaetigkeitsArt.mitglied,
+        art: RoleCategory.mitglied,
         start: now.subtract(const Duration(days: 600)),
         ende: now.subtract(const Duration(days: 100)),
       );
 
       // Empfehlung: basierend auf erster zukünftiger Tätigkeit oder Default.
-      final recommendation = Taetigkeit(
+      final recommendation = roleFromLegacy(
         stufe: Stufe.rover,
-        art: TaetigkeitsArt.mitglied,
+        art: RoleCategory.mitglied,
         start: now.add(const Duration(days: 230)),
       );
 

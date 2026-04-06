@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nami/domain/member/member_utils.dart';
 import 'package:nami/domain/member/mitglied.dart';
+import 'package:nami/domain/taetigkeit/role_derivation.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/presentation/widgets/member_list_tile.dart';
 
@@ -66,8 +67,8 @@ class MemberList extends StatelessWidget {
         ? filteredSearch
         : filteredSearch.where((entry) {
             // TODO: Aktueller Filter arbeitet noch auf Stufen aus Taetigkeiten; fuer Ticket 6 auf echte Arbeitskontext-Gruppen umstellen.
-            // Nutze alle aktiven Tätigkeiten für den Filter (nicht nur neueste)
-            final aktiveStufen = entry.mitglied.taetigkeiten
+            // Nutze alle aktiven Roles fuer den Filter (nicht nur neueste)
+            final aktiveStufen = entry.mitglied.roles
                 .where((t) => t.istAktiv)
                 .map((t) => t.stufe)
                 .toSet();

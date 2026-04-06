@@ -3,8 +3,10 @@ import '../../domain/arbeitskontext/arbeitskontext_local_repository.dart';
 import '../../domain/arbeitskontext/arbeitskontext_read_model.dart';
 import '../../domain/arbeitskontext/arbeitskontext_read_model_repository.dart';
 import '../../domain/member/mitglied.dart';
+import '../../domain/taetigkeit/roles.dart';
 import '../../services/hitobito_groups_service.dart';
 import '../../services/hitobito_people_service.dart';
+import '../../services/hitobito_roles_service.dart';
 import 'hitobito_group_resource.dart';
 import 'hitobito_person_resource.dart';
 
@@ -13,13 +15,16 @@ class HitobitoArbeitskontextReadModelRepository
   HitobitoArbeitskontextReadModelRepository({
     required HitobitoGroupsService groupsService,
     required HitobitoPeopleService peopleService,
+    HitobitoRolesService? rolesService,
     required ArbeitskontextLocalRepository localRepository,
   }) : _groupsService = groupsService,
        _peopleService = peopleService,
+       _rolesService = rolesService,
        _localRepository = localRepository;
 
   final HitobitoGroupsService _groupsService;
   final HitobitoPeopleService _peopleService;
+  final HitobitoRolesService? _rolesService;
   final ArbeitskontextLocalRepository _localRepository;
 
   @override
@@ -79,6 +84,70 @@ class HitobitoArbeitskontextReadModelRepository
     );
     await _localRepository.saveCached(readModel);
     return readModel;
+  }
+
+  @override
+  Future<ArbeitskontextReadModel> loadRoles({
+    required String accessToken,
+    required ArbeitskontextReadModel readModel,
+  }) async {
+    if (readModel.rolesSindGeladen) {
+      return readModel;
+    }
+
+    final rolesService = _rolesService;
+    if (rolesService == null) {
+      return readModel;
+    }
+
+    final personIdsToMitglieder = <int, Mitglied>{
+      for (final mitglied in readModel.mitglieder)
+        if (mitglied.personId != null && mitglied.personId! > 0)
+          mitglied.personId!: mitglied,
+    };
+    final relevanteGruppenIds = <int>{
+      readModel.arbeitskontext.aktiverLayer.id,
+      ...readModel.gruppen.map((gruppe) => gruppe.id),
+    };
+    final gruppenNamenById = <int, String>{
+      readModel.arbeitskontext.aktiverLayer.id:
+          readModel.arbeitskontext.aktiverLayer.name,
+      for (final gruppe in readModel.gruppen) gruppe.id: gruppe.name,
+    };
+    final rollen = await rolesService.fetchRoleResources(accessToken);
+    final rolesByMitgliedsnummer = <String, List<Role>>{};
+
+    for (final role in rollen) {
+      final personId = role.personId;
+      if (personId == null || !relevanteGruppenIds.contains(role.groupId)) {
+        continue;
+      }
+
+      final mitglied = personIdsToMitglieder[personId];
+      if (mitglied == null) {
+        continue;
+      }
+
+      rolesByMitgliedsnummer
+          .putIfAbsent(mitglied.mitgliedsnummer, () => <Role>[])
+          .add(
+            _mapRoleToDomainRole(
+              role: role,
+              mitglied: mitglied,
+              gruppenName: gruppenNamenById[role.groupId],
+            ),
+          );
+    }
+
+    final updated = readModel.copyWith(
+      rolesSindGeladen: true,
+      mitglieder: readModel.mitglieder.map((mitglied) {
+        final roles = rolesByMitgliedsnummer[mitglied.mitgliedsnummer];
+        return mitglied.copyWith(roles: roles ?? const <Role>[]);
+      }),
+    );
+    await _localRepository.saveCached(updated);
+    return updated;
   }
 
   List<ArbeitskontextLayer> _resolveRelevantLayers({
@@ -297,6 +366,25 @@ class HitobitoArbeitskontextReadModelRepository
       return parent.id;
     }
     return parent.layerGroupId;
+  }
+
+  Role _mapRoleToDomainRole({
+    required HitobitoPersonRoleResource role,
+    required Mitglied mitglied,
+    required String? gruppenName,
+  }) {
+    return Role(
+      id: role.id,
+      createdAt: role.createdAt,
+      updatedAt: role.updatedAt,
+      startOn: role.startOn ?? mitglied.eintrittsdatum,
+      endOn: role.endOn,
+      name: role.roleName,
+      personId: role.personId ?? mitglied.personId,
+      groupId: role.groupId,
+      type: role.roleType,
+      label: role.roleLabel ?? role.resolvedRoleLabel ?? gruppenName,
+    );
   }
 }
 

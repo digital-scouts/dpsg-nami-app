@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:nami/domain/taetigkeit/role_derivation.dart';
+import 'package:nami/domain/taetigkeit/roles.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
-import 'package:nami/domain/taetigkeit/taetigkeit.dart';
 import 'package:nami/presentation/widgets/member_roles_list_tile.dart';
 // ignore: depend_on_referenced_packages
 import 'package:storybook_flutter/storybook_flutter.dart';
@@ -32,9 +33,9 @@ Story memberRolesListTileStory() => Story(
       initial: isLeitung ? 'Berechtigung: Leitung' : '',
     );
 
-    final t = Taetigkeit(
+    final t = roleFromLegacy(
       stufe: stufe,
-      art: isLeitung ? TaetigkeitsArt.leitung : TaetigkeitsArt.mitglied,
+      art: isLeitung ? RoleCategory.leitung : RoleCategory.mitglied,
       start: DateTime(2020, startMonth, 1),
       ende: hasEnd ? DateTime(2025, endMonth, 1) : null,
       permission: permission,

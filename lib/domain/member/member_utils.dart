@@ -1,5 +1,6 @@
+import '../taetigkeit/role_derivation.dart';
+import '../taetigkeit/roles.dart';
 import '../taetigkeit/stufe.dart';
-import '../taetigkeit/taetigkeit.dart';
 import 'mitglied.dart';
 
 /// Reine Domain-Hilfsfunktionen rund um `Mitglied` und `Taetigkeit`.
@@ -7,15 +8,13 @@ import 'mitglied.dart';
 class MemberUtils {
   /// Hat das Mitglied aktuell eine aktive Tätigkeit mit Art `Leitung`?
   static bool isLeitung(Mitglied m) {
-    return m.taetigkeiten.any(
-      (t) => t.istAktiv && t.art == TaetigkeitsArt.leitung,
-    );
+    return m.roles.any((t) => t.istAktiv && t.art == RoleCategory.leitung);
   }
 
   /// Liefert die Stufe der neuesten aktiven Tätigkeit.
   /// Falls keine aktive Tätigkeit existiert, gibt `null` zurück.
   static Stufe? aktiveStufe(Mitglied m) {
-    final aktive = m.taetigkeiten.where((t) => t.istAktiv).toList();
+    final aktive = m.roles.where((t) => t.istAktiv).toList();
     if (aktive.isEmpty) return null;
 
     aktive.sort((a, b) => b.start.compareTo(a.start));

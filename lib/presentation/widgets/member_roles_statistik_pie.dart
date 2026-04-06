@@ -3,8 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:nami/domain/statistiks/taetigkeit_statistik.dart';
+import 'package:nami/domain/taetigkeit/roles.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
-import 'package:nami/domain/taetigkeit/taetigkeit.dart';
 import 'package:nami/presentation/stufe/stufe_visuals.dart';
 
 class MemberRolesStatistikPie extends StatelessWidget {
@@ -14,7 +14,7 @@ class MemberRolesStatistikPie extends StatelessWidget {
     this.size = 180,
   });
 
-  final List<Taetigkeit> roles;
+  final List<Role> roles;
   final double size;
 
   @override
@@ -31,12 +31,12 @@ class MemberRolesStatistikPie extends StatelessWidget {
 
     // Sortierung: Leitung vor Mitglied, Sonstiges am Ende, dann Stufe
     slices.sort((a, b) {
-      int prioA = a.art == TaetigkeitsArt.leitung
+      int prioA = a.art == RoleCategory.leitung
           ? 2
-          : (a.art == TaetigkeitsArt.mitglied ? 1 : 0);
-      int prioB = b.art == TaetigkeitsArt.leitung
+          : (a.art == RoleCategory.mitglied ? 1 : 0);
+      int prioB = b.art == RoleCategory.leitung
           ? 2
-          : (b.art == TaetigkeitsArt.mitglied ? 1 : 0);
+          : (b.art == RoleCategory.mitglied ? 1 : 0);
       if (prioA != prioB) return prioB.compareTo(prioA);
       return a.stufe.index.compareTo(b.stufe.index);
     });
@@ -88,7 +88,7 @@ class MemberRolesStatistikPie extends StatelessWidget {
     final cx = radius + badgeRadius * math.cos(midAngle);
     final cy = radius + badgeRadius * math.sin(midAngle);
 
-    final isLeitung = s.roleKey.art == TaetigkeitsArt.leitung;
+    final isLeitung = s.roleKey.art == RoleCategory.leitung;
     final badgeSize = 26.0;
 
     // Spezialfall: Biber Leitung – Kreis wie üblich, aber Lilie aus SVG (für Outline).
@@ -146,7 +146,7 @@ class MemberRolesStatistikPie extends StatelessWidget {
 class _RoleKey {
   const _RoleKey(this.stufe, this.art);
   final Stufe stufe;
-  final TaetigkeitsArt art;
+  final RoleCategory art;
 
   @override
   bool operator ==(Object other) {

@@ -8,4 +8,9 @@ abstract class ArbeitskontextReadModelRepository {
     required String accessToken,
     required Arbeitskontext arbeitskontext,
   });
+
+  Future<ArbeitskontextReadModel> loadRoles({
+    required String accessToken,
+    required ArbeitskontextReadModel readModel,
+  });
 }

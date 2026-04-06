@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:nami/domain/taetigkeit/taetigkeit.dart';
+import 'package:nami/domain/taetigkeit/role_derivation.dart';
+import 'package:nami/domain/taetigkeit/roles.dart';
 
 import 'member_roles_list_tile.dart';
 
@@ -12,10 +13,10 @@ class MemberRolesList extends StatelessWidget {
     this.recommendation,
   });
 
-  final List<Taetigkeit> roles;
-  final ValueChanged<Taetigkeit>? onDismissRequested;
-  final ValueChanged<Taetigkeit>? onRecommendationRequested;
-  final Taetigkeit? recommendation;
+  final List<Role> roles;
+  final ValueChanged<Role>? onDismissRequested;
+  final ValueChanged<Role>? onRecommendationRequested;
+  final Role? recommendation;
 
   @override
   Widget build(BuildContext context) {
@@ -69,10 +70,10 @@ class _Section extends StatelessWidget {
   });
 
   final String title;
-  final List<Taetigkeit> roles;
-  final ValueChanged<Taetigkeit>? onDismissRequested;
-  final Taetigkeit? recommendation;
-  final ValueChanged<Taetigkeit>? onRecommendationRequested;
+  final List<Role> roles;
+  final ValueChanged<Role>? onDismissRequested;
+  final Role? recommendation;
+  final ValueChanged<Role>? onRecommendationRequested;
 
   @override
   Widget build(BuildContext context) {

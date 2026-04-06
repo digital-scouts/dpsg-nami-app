@@ -89,7 +89,8 @@ class HitobitoPeopleService {
       includeValue = _mergeCsvValue(includeValue, relationship);
     }
     queryParameters['include'] = includeValue ?? '';
-    queryParameters['fields[roles]'] = 'person_id,group_id,type,label,name';
+    queryParameters['fields[roles]'] =
+        'created_at,updated_at,start_on,end_on,name,person_id,group_id,type,label';
     queryParameters['fields[phone_numbers]'] =
         'contactable_id,contactable_type,label,number';
     queryParameters['fields[additional_emails]'] =
@@ -331,6 +332,10 @@ class HitobitoPeopleService {
       id: id,
       groupId: groupId,
       personId: _toNullableInt(attributesMap['person_id']),
+      createdAt: _toDateTime(attributesMap['created_at']),
+      updatedAt: _toDateTime(attributesMap['updated_at']),
+      startOn: _toDateTime(attributesMap['start_on']),
+      endOn: _toDateTime(attributesMap['end_on']),
       roleType: attributesMap['type']?.toString(),
       roleName: attributesMap['name']?.toString(),
       roleLabel: attributesMap['label']?.toString(),

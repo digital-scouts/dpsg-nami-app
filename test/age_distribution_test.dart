@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/domain/statistiks/age_distribution.dart';
+import 'package:nami/domain/taetigkeit/roles.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
-import 'package:nami/domain/taetigkeit/taetigkeit.dart';
 
 void main() {
   group('computeAgeDistribution', () {
@@ -12,7 +12,7 @@ void main() {
         MemberAgeInfo(
           stufe: Stufe.woelfling,
           birthDate: DateTime(now.year - 9, 1, 1),
-          art: TaetigkeitsArt.leitung,
+          art: RoleCategory.leitung,
         ),
       ];
       final data = computeAgeDistribution(members);
@@ -25,17 +25,17 @@ void main() {
         MemberAgeInfo(
           stufe: Stufe.woelfling,
           birthDate: DateTime(now.year - 9, now.month, now.day - 1),
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
         ),
         MemberAgeInfo(
           stufe: Stufe.woelfling,
           birthDate: DateTime(now.year - 9, now.month, now.day - 2),
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
         ),
         MemberAgeInfo(
           stufe: Stufe.jungpfadfinder,
           birthDate: DateTime(now.year - 9, now.month, now.day - 3),
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
         ),
       ];
       final data = computeAgeDistribution(members);
@@ -61,12 +61,12 @@ void main() {
         MemberAgeInfo(
           stufe: Stufe.woelfling,
           birthDate: DateTime(now.year - 9, 1, 1),
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
         ),
         MemberAgeInfo(
           stufe: Stufe.jungpfadfinder,
           birthDate: DateTime(now.year - 11, 1, 1),
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
         ),
       ];
       final data = computeAgeDistribution(
@@ -89,12 +89,12 @@ void main() {
         MemberAgeInfo(
           stufe: Stufe.woelfling,
           birthDate: DateTime(2015, 7, 10),
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
         ), // birthday next month
         MemberAgeInfo(
           stufe: Stufe.woelfling,
           birthDate: DateTime(2015, 5, 20),
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
         ), // birthday passed
       ];
       final data = computeAgeDistribution(members, referenceDate: ref);

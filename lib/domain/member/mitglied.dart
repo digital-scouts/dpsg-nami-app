@@ -1,5 +1,6 @@
+import '../taetigkeit/role_derivation.dart';
+import '../taetigkeit/roles.dart';
 import '../taetigkeit/stufe.dart';
-import '../taetigkeit/taetigkeit.dart';
 
 class MitgliedKontaktEmail {
   const MitgliedKontaktEmail({
@@ -242,7 +243,7 @@ class Mitglied {
     this.bic,
     this.bankName,
     this.paymentMethod,
-    List<Taetigkeit>? taetigkeiten,
+    List<Role>? roles,
   }) : assert(mitgliedsnummer.isNotEmpty),
        telefonnummern = List.unmodifiable(
          _normalizeTelefonnummern(telefonnummern ?? const []),
@@ -251,7 +252,7 @@ class Mitglied {
          _normalizeEmailAdressen(emailAdressen ?? const []),
        ),
        adressen = List.unmodifiable(_normalizeAdressen(adressen ?? const [])),
-       taetigkeiten = List.unmodifiable(taetigkeiten ?? const []);
+       roles = List.unmodifiable(roles ?? const []);
 
   Mitglied.peopleListItem({
     required this.vorname,
@@ -280,7 +281,7 @@ class Mitglied {
          _normalizeEmailAdressen(emailAdressen ?? const []),
        ),
        adressen = List.unmodifiable(_normalizeAdressen(adressen ?? const [])),
-       taetigkeiten = const [];
+       roles = const [];
 
   final String vorname;
   final String nachname;
@@ -300,7 +301,7 @@ class Mitglied {
   final String? bic;
   final String? bankName;
   final String? paymentMethod;
-  final List<Taetigkeit> taetigkeiten;
+  final List<Role> roles;
 
   static DateTime get peoplePlaceholderDate => _peoplePlaceholderDate;
 
@@ -340,7 +341,7 @@ class Mitglied {
     String? bic,
     String? bankName,
     String? paymentMethod,
-    List<Taetigkeit>? taetigkeiten,
+    List<Role>? roles,
     bool fahrtennameLoeschen = false,
     bool austrittsdatumLoeschen = false,
     bool updatedAtLoeschen = false,
@@ -376,11 +377,10 @@ class Mitglied {
     paymentMethod: paymentMethodLoeschen
         ? null
         : paymentMethod ?? this.paymentMethod,
-    taetigkeiten: taetigkeiten ?? this.taetigkeiten,
+    roles: roles ?? this.roles,
   );
 
-  Mitglied addTaetigkeit(Taetigkeit t) =>
-      copyWith(taetigkeiten: [...taetigkeiten, t]);
+  Mitglied addRole(Role role) => copyWith(roles: [...roles, role]);
 
   Map<String, dynamic> toPeopleListJson() {
     return {
@@ -402,6 +402,7 @@ class Mitglied {
       'adressen': adressen
           .map((adresse) => adresse.toJson())
           .toList(growable: false),
+      'roles': roles.map((role) => role.toJson()).toList(growable: false),
       'pronoun': pronoun,
       'bank_account_owner': bankAccountOwner,
       'iban': iban,
@@ -434,6 +435,13 @@ class Mitglied {
               .where((adresse) => !adresse.istLeer)
               .toList(growable: false)
         : const <MitgliedKontaktAdresse>[];
+    final rolesJson = json['roles'] ?? json['taetigkeiten'];
+    final roles = rolesJson is List
+        ? rolesJson
+              .whereType<Map<String, dynamic>>()
+              .map(Role.fromJson)
+              .toList(growable: false)
+        : const <Role>[];
 
     return Mitglied(
       mitgliedsnummer: json['mitgliedsnummer']?.toString() ?? '',
@@ -450,6 +458,7 @@ class Mitglied {
       telefonnummern: telefonnummern,
       emailAdressen: emailAdressen,
       adressen: adressen,
+      roles: roles,
       pronoun: _trimToNull(json['pronoun']?.toString()),
       bankAccountOwner: _trimToNull(json['bank_account_owner']?.toString()),
       iban: _trimToNull(json['iban']?.toString()),
@@ -480,7 +489,7 @@ class Mitglied {
         _listEquals(other.telefonnummern, telefonnummern) &&
         _listEquals(other.emailAdressen, emailAdressen) &&
         _listEquals(other.adressen, adressen) &&
-        _listEquals(other.taetigkeiten, taetigkeiten);
+        _listEquals(other.roles, roles);
   }
 
   @override
@@ -503,7 +512,7 @@ class Mitglied {
     Object.hashAll(telefonnummern),
     Object.hashAll(emailAdressen),
     Object.hashAll(adressen),
-    Object.hashAll(taetigkeiten),
+    Object.hashAll(roles),
   );
 
   @override
@@ -544,11 +553,11 @@ class Mitglied {
     if (pronoun != null) {
       buffer.write(', pronoun: $pronoun');
     }
-    if (taetigkeiten.isNotEmpty) {
-      buffer.write(', taetigkeiten: [');
-      for (var i = 0; i < taetigkeiten.length; i++) {
+    if (roles.isNotEmpty) {
+      buffer.write(', roles: [');
+      for (var i = 0; i < roles.length; i++) {
         if (i > 0) buffer.write(', ');
-        buffer.write(taetigkeiten[i].toString());
+        buffer.write(roles[i].toString());
       }
       buffer.write(']');
     }
@@ -763,8 +772,8 @@ class MitgliedFactory {
             label: Mitglied.secondaryEmailLabel,
           ),
       ],
-      taetigkeiten: [
-        Taetigkeit(
+      roles: [
+        roleFromLegacy(
           stufe: switch (index % 5) {
             0 => Stufe.woelfling,
             1 => Stufe.jungpfadfinder,
@@ -772,13 +781,13 @@ class MitgliedFactory {
             3 => Stufe.rover,
             _ => Stufe.pfadfinder,
           },
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
           start: eintrittsdatum,
         ),
         if (index % 6 == 0)
-          Taetigkeit(
+          roleFromLegacy(
             stufe: Stufe.rover,
-            art: TaetigkeitsArt.leitung,
+            art: RoleCategory.leitung,
             start: DateTime(
               eintrittsdatum.year + 2,
               eintrittsdatum.month,

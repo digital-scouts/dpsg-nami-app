@@ -1,5 +1,5 @@
+import '../taetigkeit/roles.dart';
 import '../taetigkeit/stufe.dart';
-import '../taetigkeit/taetigkeit.dart';
 
 class MemberAgeInfo {
   MemberAgeInfo({
@@ -9,7 +9,7 @@ class MemberAgeInfo {
   });
   final Stufe stufe;
   final DateTime birthDate;
-  final TaetigkeitsArt art;
+  final RoleCategory art;
 }
 
 class AgeDistributionEntry {
@@ -52,7 +52,7 @@ AgeDistributionData computeAgeDistribution(
   if (members.isEmpty) return AgeDistributionData.empty;
   final now = referenceDate ?? DateTime.now();
   final filtered = members
-      .where((m) => m.art == TaetigkeitsArt.mitglied)
+      .where((m) => m.art == RoleCategory.mitglied)
       .toList();
   if (filtered.isEmpty) return AgeDistributionData.empty;
 

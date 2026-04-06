@@ -2,8 +2,9 @@
 import 'package:storybook_flutter/storybook_flutter.dart';
 
 import '../domain/statistiks/group_distribution.dart';
+import '../domain/taetigkeit/role_derivation.dart';
+import '../domain/taetigkeit/roles.dart';
 import '../domain/taetigkeit/stufe.dart';
-import '../domain/taetigkeit/taetigkeit.dart';
 import '../presentation/widgets/statistik_groupdistribution.dart';
 
 Story groupDistributionStory() {
@@ -61,7 +62,7 @@ Story groupDistributionStory() {
         Stufe.pfadfinder,
         Stufe.rover,
       ];
-      final taetigkeiten = <Taetigkeit>[];
+      final taetigkeiten = <Role>[];
       for (final s in stufen) {
         // Mitglieder abhängig von Stufe-Regler
         final perStufeMitglieder = switch (s) {
@@ -74,9 +75,9 @@ Story groupDistributionStory() {
         };
         for (int i = 0; i < perStufeMitglieder; i++) {
           taetigkeiten.add(
-            Taetigkeit(
+            roleFromLegacy(
               stufe: s,
-              art: TaetigkeitsArt.mitglied,
+              art: RoleCategory.mitglied,
               start: DateTime(2024, 1, 1),
             ),
           );
@@ -87,9 +88,9 @@ Story groupDistributionStory() {
             .clamp(0, perStufeMitglieder);
         for (int i = 0; i < leitungAnzahl; i++) {
           taetigkeiten.add(
-            Taetigkeit(
+            roleFromLegacy(
               stufe: s,
-              art: TaetigkeitsArt.leitung,
+              art: RoleCategory.leitung,
               start: DateTime(2023, 6, 1),
             ),
           );
@@ -97,9 +98,9 @@ Story groupDistributionStory() {
         // Zufällige inaktive Leitung um Verhalten zu zeigen
         if (rnd.nextInt(100) < 30) {
           taetigkeiten.add(
-            Taetigkeit(
+            roleFromLegacy(
               stufe: s,
-              art: TaetigkeitsArt.leitung,
+              art: RoleCategory.leitung,
               start: DateTime(2022, 1, 1),
               ende: DateTime(2024, 5, 1),
             ),

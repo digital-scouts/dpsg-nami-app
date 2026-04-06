@@ -1,7 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/domain/statistiks/taetigkeit_statistik.dart';
+import 'package:nami/domain/taetigkeit/role_derivation.dart';
+import 'package:nami/domain/taetigkeit/roles.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
-import 'package:nami/domain/taetigkeit/taetigkeit.dart';
 
 DateTime _day(int year, int month, int day) => DateTime(year, month, day);
 
@@ -10,9 +11,9 @@ void main() {
     test('ignores future roles and returns empty when none past/active', () {
       final now = DateTime.now();
       final roles = [
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.rover,
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
           start: now.add(const Duration(days: 10)),
           ende: now.add(const Duration(days: 20)),
         ),
@@ -24,9 +25,9 @@ void main() {
     test('includes past roles unchanged when no overlaps', () {
       final now = DateTime.now();
       final roles = [
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.woelfling,
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
           start: now.subtract(const Duration(days: 100)),
           ende: now.subtract(const Duration(days: 50)),
         ),
@@ -34,7 +35,7 @@ void main() {
       final res = cleanForStatistiks(roles);
       expect(res.length, 1);
       expect(res.first.stufe, Stufe.woelfling);
-      expect(res.first.art, TaetigkeitsArt.mitglied);
+      expect(res.first.art, RoleCategory.mitglied);
       expect(
         res.first.start,
         DateTime(
@@ -57,9 +58,9 @@ void main() {
       final now = DateTime.now();
       final start = now.subtract(const Duration(days: 30));
       final roles = [
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.pfadfinder,
-          art: TaetigkeitsArt.leitung,
+          art: RoleCategory.leitung,
           start: start,
           ende: null,
         ),
@@ -76,16 +77,16 @@ void main() {
       final a2 = _day(2023, 6, 1);
       final b1 = _day(2023, 12, 31);
       final b2 = _day(2024, 6, 1);
-      final roles = <Taetigkeit>[
-        Taetigkeit(
+      final roles = <Role>[
+        roleFromLegacy(
           stufe: Stufe.pfadfinder,
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
           start: a1,
           ende: b1,
         ),
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.rover,
-          art: TaetigkeitsArt.leitung,
+          art: RoleCategory.leitung,
           start: a2,
           ende: b2,
         ),
@@ -109,16 +110,16 @@ void main() {
       final a2 = _day(2023, 6, 1);
       final b1 = _day(2023, 12, 31);
       final b2 = _day(2024, 6, 1);
-      final roles = <Taetigkeit>[
-        Taetigkeit(
+      final roles = <Role>[
+        roleFromLegacy(
           stufe: Stufe.pfadfinder,
-          art: TaetigkeitsArt.leitung,
+          art: RoleCategory.leitung,
           start: a1,
           ende: b1,
         ),
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.rover,
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
           start: a2,
           ende: b2,
         ),
@@ -130,12 +131,12 @@ void main() {
       expect(res.first.start, DateTime(a1.year, a1.month, a1.day));
       expect(res.first.ende, DateTime(b1.year, b1.month, b1.day));
       expect(res.first.stufe, Stufe.pfadfinder);
-      expect(res.first.art, TaetigkeitsArt.leitung);
+      expect(res.first.art, RoleCategory.leitung);
 
       expect(res.last.start, DateTime(b1.year, b1.month, b1.day));
       expect(res.last.ende, DateTime(b2.year, b2.month, b2.day));
       expect(res.last.stufe, Stufe.rover);
-      expect(res.last.art, TaetigkeitsArt.mitglied);
+      expect(res.last.art, RoleCategory.mitglied);
     });
 
     test('overlap chooses member over sonstige and splits segments', () {
@@ -143,16 +144,16 @@ void main() {
       final a2 = _day(2023, 6, 1);
       final b1 = _day(2023, 12, 31);
       final b2 = _day(2024, 6, 1);
-      final roles = <Taetigkeit>[
-        Taetigkeit(
+      final roles = <Role>[
+        roleFromLegacy(
           stufe: Stufe.pfadfinder,
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
           start: a1,
           ende: b1,
         ),
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.rover,
-          art: TaetigkeitsArt.sonstiges,
+          art: RoleCategory.sonstiges,
           start: a2,
           ende: b2,
         ),
@@ -164,12 +165,12 @@ void main() {
       expect(res.first.start, DateTime(a1.year, a1.month, a1.day));
       expect(res.first.ende, DateTime(b1.year, b1.month, b1.day));
       expect(res.first.stufe, Stufe.pfadfinder);
-      expect(res.first.art, TaetigkeitsArt.mitglied);
+      expect(res.first.art, RoleCategory.mitglied);
 
       expect(res.last.start, DateTime(b1.year, b1.month, b1.day));
       expect(res.last.ende, DateTime(b2.year, b2.month, b2.day));
       expect(res.last.stufe, Stufe.rover);
-      expect(res.last.art, TaetigkeitsArt.sonstiges);
+      expect(res.last.art, RoleCategory.sonstiges);
     });
 
     test('active overlap caps winning segment at today', () {
@@ -179,16 +180,16 @@ void main() {
       final olderEnd = DateTime(now.year - 1, 12, 31);
       final newerFutureEnd = now.add(const Duration(days: 30));
 
-      final roles = <Taetigkeit>[
-        Taetigkeit(
+      final roles = <Role>[
+        roleFromLegacy(
           stufe: Stufe.pfadfinder,
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
           start: olderStart,
           ende: olderEnd,
         ),
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.rover,
-          art: TaetigkeitsArt.leitung,
+          art: RoleCategory.leitung,
           start: newerStart,
           ende: newerFutureEnd,
         ),
@@ -211,7 +212,7 @@ void main() {
         DateTime(newerStart.year, newerStart.month, newerStart.day),
       );
       expect(res.last.ende, today);
-      expect(res.last.art, TaetigkeitsArt.leitung);
+      expect(res.last.art, RoleCategory.leitung);
     });
 
     test('merge segments of same role', () {
@@ -220,21 +221,21 @@ void main() {
       final now = DateTime.now();
       final s = Stufe.jungpfadfinder;
       final roles = [
-        Taetigkeit(
+        roleFromLegacy(
           stufe: s,
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
           start: DateTime(now.year - 2, 1, 1),
           ende: DateTime(now.year - 2, 2, 1),
         ),
-        Taetigkeit(
+        roleFromLegacy(
           stufe: s,
-          art: TaetigkeitsArt.leitung,
+          art: RoleCategory.leitung,
           start: DateTime(now.year - 2, 2, 1),
           ende: DateTime(now.year - 2, 3, 1),
         ),
-        Taetigkeit(
+        roleFromLegacy(
           stufe: s,
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
           start: DateTime(now.year - 2, 3, 1),
           ende: DateTime(now.year - 2, 4, 1),
         ),
@@ -255,22 +256,22 @@ void main() {
       final start = DateTime(now.year - 1, 1, 1);
       final end = DateTime(now.year - 1, 6, 1);
       final roles = [
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.pfadfinder,
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
           start: start,
           ende: end,
         ),
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.rover,
-          art: TaetigkeitsArt.leitung,
+          art: RoleCategory.leitung,
           start: start,
           ende: end,
         ),
       ];
       final res = cleanForStatistiks(roles);
       expect(res.length, 1);
-      expect(res.first.art, TaetigkeitsArt.leitung);
+      expect(res.first.art, RoleCategory.leitung);
       expect(res.first.stufe, Stufe.rover);
     });
   });
@@ -279,9 +280,9 @@ void main() {
     test('returns empty list for only future roles', () {
       final now = DateTime.now();
       final roles = [
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.biber,
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
           start: DateTime(now.year + 1, 1, 1),
           ende: DateTime(now.year + 1, 1, 10),
         ),
@@ -293,15 +294,15 @@ void main() {
     test('aggregates member days for same stufe', () {
       final now = DateTime.now();
       final roles = [
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.woelfling,
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
           start: DateTime(now.year - 1, 1, 1),
           ende: DateTime(now.year - 1, 1, 11), // 10 Tage
         ),
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.woelfling,
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
           start: DateTime(now.year - 1, 2, 1),
           ende: DateTime(now.year - 1, 2, 6), // 5 Tage
         ),
@@ -309,16 +310,16 @@ void main() {
       final res = durationsByRoleDays(roles);
       expect(res.length, 1);
       expect(res.first.stufe, Stufe.woelfling);
-      expect(res.first.art, TaetigkeitsArt.mitglied);
+      expect(res.first.art, RoleCategory.mitglied);
       expect(res.first.days, 15);
     });
 
     test('leader days aggregated separately (art == leitung)', () {
       final now = DateTime.now();
       final roles = [
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.jungpfadfinder,
-          art: TaetigkeitsArt.leitung,
+          art: RoleCategory.leitung,
           start: DateTime(now.year - 2, 3, 1),
           ende: DateTime(now.year - 2, 3, 11), // 10 Tage
         ),
@@ -326,7 +327,7 @@ void main() {
       final res = durationsByRoleDays(roles);
       expect(res.length, 1);
       expect(res.first.stufe, Stufe.jungpfadfinder);
-      expect(res.first.art, TaetigkeitsArt.leitung);
+      expect(res.first.art, RoleCategory.leitung);
       expect(res.first.days, 10);
     });
 
@@ -334,23 +335,23 @@ void main() {
       final now = DateTime.now();
       final s = Stufe.pfadfinder;
       final roles = [
-        Taetigkeit(
+        roleFromLegacy(
           stufe: s,
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
           start: DateTime(now.year - 2, 1, 1),
           ende: DateTime(now.year - 2, 3, 1),
         ),
-        Taetigkeit(
+        roleFromLegacy(
           stufe: s,
-          art: TaetigkeitsArt.leitung,
+          art: RoleCategory.leitung,
           start: DateTime(now.year - 2, 2, 1),
           ende: DateTime(now.year - 2, 4, 1),
         ),
       ];
       final res = durationsByRoleDays(roles);
       expect(res.length, 2);
-      final member = res.firstWhere((e) => e.art == TaetigkeitsArt.mitglied);
-      final leader = res.firstWhere((e) => e.art == TaetigkeitsArt.leitung);
+      final member = res.firstWhere((e) => e.art == RoleCategory.mitglied);
+      final leader = res.firstWhere((e) => e.art == RoleCategory.leitung);
       expect(leader.days > member.days, true);
       expect(member.days > 0, true);
     });
@@ -359,9 +360,9 @@ void main() {
       final now = DateTime.now();
       final start = DateTime(now.year - 1, now.month, 1);
       final roles = [
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.rover,
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
           start: start,
           ende: null,
         ),
@@ -381,9 +382,9 @@ void main() {
     test('returns zero for empty or only future roles', () {
       final now = DateTime.now();
       final roles = [
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.biber,
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
           start: DateTime(now.year + 1, 1, 1),
           ende: DateTime(now.year + 1, 1, 10),
         ),
@@ -396,16 +397,16 @@ void main() {
       final now = DateTime.now();
       final roles = [
         // 10 Tage Mitglied
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.woelfling,
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
           start: DateTime(now.year - 1, 1, 1),
           ende: DateTime(now.year - 1, 1, 11),
         ),
         // 5 Tage Leitung (nicht überlappend)
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.rover,
-          art: TaetigkeitsArt.leitung,
+          art: RoleCategory.leitung,
           start: DateTime(now.year - 1, 2, 1),
           ende: DateTime(now.year - 1, 2, 6),
         ),
@@ -417,16 +418,16 @@ void main() {
       final now = DateTime.now();
       final roles = [
         // Mitglied: Jan 01 - Mar 01
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.pfadfinder,
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
           start: DateTime(now.year - 2, 1, 1),
           ende: DateTime(now.year - 2, 3, 1),
         ),
         // Leitung: Feb 01 - Apr 01 (überlappt; Leitung gewinnt ab Feb)
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.pfadfinder,
-          art: TaetigkeitsArt.leitung,
+          art: RoleCategory.leitung,
           start: DateTime(now.year - 2, 2, 1),
           ende: DateTime(now.year - 2, 4, 1),
         ),
@@ -440,9 +441,9 @@ void main() {
       final now = DateTime.now();
       final start = DateTime(now.year - 1, now.month, 1);
       final roles = [
-        Taetigkeit(
+        roleFromLegacy(
           stufe: Stufe.rover,
-          art: TaetigkeitsArt.mitglied,
+          art: RoleCategory.mitglied,
           start: start,
           ende: null,
         ),

@@ -194,6 +194,14 @@ class _FakeArbeitskontextLocalRepository
 class _FakeArbeitskontextReadModelRepository
     implements ArbeitskontextReadModelRepository {
   @override
+  Future<ArbeitskontextReadModel> loadRoles({
+    required String accessToken,
+    required ArbeitskontextReadModel readModel,
+  }) async {
+    return readModel;
+  }
+
+  @override
   Future<ArbeitskontextReadModel> loadCached(
     Arbeitskontext arbeitskontext,
   ) async {

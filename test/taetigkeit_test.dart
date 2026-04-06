@@ -1,17 +1,18 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nami/domain/taetigkeit/role_derivation.dart';
+import 'package:nami/domain/taetigkeit/roles.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
-import 'package:nami/domain/taetigkeit/taetigkeit.dart';
 
 void main() {
   test('istAktiv ist wahr ohne Ende oder mit zukuenftigem Ende', () {
-    final open = Taetigkeit(
+    final open = roleFromLegacy(
       stufe: Stufe.rover,
-      art: TaetigkeitsArt.mitglied,
+      art: RoleCategory.mitglied,
       start: DateTime(2025, 1, 1),
     );
-    final futureEnd = Taetigkeit(
+    final futureEnd = roleFromLegacy(
       stufe: Stufe.rover,
-      art: TaetigkeitsArt.leitung,
+      art: RoleCategory.leitung,
       start: DateTime(2025, 1, 1),
       ende: DateTime.now().add(const Duration(days: 1)),
     );
@@ -21,9 +22,9 @@ void main() {
   });
 
   test('istAktiv ist falsch bei vergangenem Ende', () {
-    final taetigkeit = Taetigkeit(
+    final taetigkeit = roleFromLegacy(
       stufe: Stufe.pfadfinder,
-      art: TaetigkeitsArt.mitglied,
+      art: RoleCategory.mitglied,
       start: DateTime(2024, 1, 1),
       ende: DateTime.now().subtract(const Duration(days: 1)),
     );
@@ -32,42 +33,41 @@ void main() {
   });
 
   test('copyWith uebernimmt neue Werte und behaelt alte bei', () {
-    final original = Taetigkeit(
+    final original = roleFromLegacy(
       stufe: Stufe.woelfling,
-      art: TaetigkeitsArt.mitglied,
+      art: RoleCategory.mitglied,
       start: DateTime(2024, 2, 3),
       permission: 'read',
     );
 
-    final updated = original.copyWith(
-      art: TaetigkeitsArt.leitung,
+    final updated = roleFromLegacy(
+      stufe: original.stufe,
+      art: RoleCategory.leitung,
+      start: original.start,
       permission: 'write',
     );
 
     expect(updated.stufe, Stufe.woelfling);
-    expect(updated.art, TaetigkeitsArt.leitung);
+    expect(updated.art, RoleCategory.leitung);
     expect(updated.start, DateTime(2024, 2, 3));
     expect(updated.permission, 'write');
   });
 
-  test(
-    'gleichheit ignoriert permission nicht und bleibt ueber hash stabil',
-    () {
-      final first = Taetigkeit(
-        stufe: Stufe.biber,
-        art: TaetigkeitsArt.mitglied,
-        start: DateTime(2024, 5, 1),
-        permission: 'x',
-      );
-      final second = Taetigkeit(
-        stufe: Stufe.biber,
-        art: TaetigkeitsArt.mitglied,
-        start: DateTime(2024, 5, 1),
-        permission: 'y',
-      );
+  test('gleichheit beruecksichtigt unterschiedliche Rohdaten', () {
+    final first = roleFromLegacy(
+      stufe: Stufe.biber,
+      art: RoleCategory.mitglied,
+      start: DateTime(2024, 5, 1),
+      permission: 'x',
+    );
+    final second = roleFromLegacy(
+      stufe: Stufe.biber,
+      art: RoleCategory.mitglied,
+      start: DateTime(2024, 5, 1),
+      permission: 'y',
+    );
 
-      expect(first, second);
-      expect(first.hashCode, second.hashCode);
-    },
-  );
+    expect(first, isNot(second));
+    expect(first.hashCode, isNot(second.hashCode));
+  });
 }

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:nami/domain/member/mitglied.dart';
+import 'package:nami/domain/taetigkeit/role_derivation.dart';
+import 'package:nami/domain/taetigkeit/roles.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
-import 'package:nami/domain/taetigkeit/taetigkeit.dart';
 // ignore: depend_on_referenced_packages
 import 'package:storybook_flutter/storybook_flutter.dart';
 
@@ -40,10 +41,10 @@ Story memberListTileStory() => Story(
           geburtsdatum: DateTime(now.year - 8, 5, 15),
           eintrittsdatum: DateTime(now.year - 2, 5, 15),
           mitgliedsnummer: '12345',
-          taetigkeiten: [
-            Taetigkeit(
+          roles: [
+            roleFromLegacy(
               stufe: Stufe.woelfling,
-              art: TaetigkeitsArt.mitglied,
+              art: RoleCategory.mitglied,
               start: DateTime(now.year - 2, 5, 15),
             ),
           ],
@@ -58,21 +59,21 @@ Story memberListTileStory() => Story(
           geburtsdatum: DateTime(now.year - 20, 5, 15),
           eintrittsdatum: DateTime(now.year - 10, 5, 15),
           mitgliedsnummer: '12345',
-          taetigkeiten: [
-            Taetigkeit(
+          roles: [
+            roleFromLegacy(
               stufe: Stufe.woelfling,
-              art: TaetigkeitsArt.leitung,
+              art: RoleCategory.leitung,
               start: DateTime(now.year - 1, 5, 15),
             ),
-            Taetigkeit(
+            roleFromLegacy(
               stufe: Stufe.jungpfadfinder,
-              art: TaetigkeitsArt.mitglied,
+              art: RoleCategory.mitglied,
               start: DateTime(now.year - 8, 5, 15),
               ende: DateTime(now.year - 6, 5, 14),
             ),
-            Taetigkeit(
+            roleFromLegacy(
               stufe: Stufe.woelfling,
-              art: TaetigkeitsArt.mitglied,
+              art: RoleCategory.mitglied,
               start: DateTime(now.year - 10, 5, 15),
               ende: DateTime(now.year - 8, 5, 14),
             ),

@@ -1,8 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/stufenwechsel/stufenwechsel_info.dart';
+import 'package:nami/domain/taetigkeit/role_derivation.dart';
+import 'package:nami/domain/taetigkeit/roles.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
-import 'package:nami/domain/taetigkeit/taetigkeit.dart';
 
 void main() {
   group('Stufenwechsel Info', () {
@@ -13,10 +14,10 @@ void main() {
         geburtsdatum: DateTime(2017, 7, 1),
         eintrittsdatum: DateTime(2023, 9, 1),
         mitgliedsnummer: 'w1',
-        taetigkeiten: [
-          Taetigkeit(
+        roles: [
+          roleFromLegacy(
             stufe: Stufe.woelfling,
-            art: TaetigkeitsArt.mitglied,
+            art: RoleCategory.mitglied,
             start: DateTime(2023, 9, 1),
           ),
         ],
@@ -60,10 +61,10 @@ void main() {
         geburtsdatum: DateTime(2008, 3, 10),
         eintrittsdatum: DateTime(2023, 9, 1),
         mitgliedsnummer: 'r1',
-        taetigkeiten: [
-          Taetigkeit(
+        roles: [
+          roleFromLegacy(
             stufe: Stufe.rover,
-            art: TaetigkeitsArt.mitglied,
+            art: RoleCategory.mitglied,
             start: DateTime(2023, 9, 1),
           ),
         ],
@@ -97,10 +98,10 @@ void main() {
         geburtsdatum: DateTime(2018, 9, 1),
         eintrittsdatum: DateTime(2024, 9, 1),
         mitgliedsnummer: 'A-1',
-        taetigkeiten: [
-          Taetigkeit(
+        roles: [
+          roleFromLegacy(
             stufe: Stufe.woelfling,
-            art: TaetigkeitsArt.mitglied,
+            art: RoleCategory.mitglied,
             start: DateTime(2024, 9, 1),
           ),
         ],
@@ -134,10 +135,10 @@ void main() {
         geburtsdatum: DateTime(2017, 1, 1),
         eintrittsdatum: DateTime(2023, 9, 1),
         mitgliedsnummer: 'A-2',
-        taetigkeiten: [
-          Taetigkeit(
+        roles: [
+          roleFromLegacy(
             stufe: Stufe.woelfling,
-            art: TaetigkeitsArt.mitglied,
+            art: RoleCategory.mitglied,
             start: DateTime(2023, 9, 1),
           ),
         ],
@@ -173,10 +174,10 @@ void main() {
         geburtsdatum: DateTime(2020, 6, 1),
         eintrittsdatum: DateTime(2024, 9, 1),
         mitgliedsnummer: 'B-1',
-        taetigkeiten: [
-          Taetigkeit(
+        roles: [
+          roleFromLegacy(
             stufe: Stufe.woelfling,
-            art: TaetigkeitsArt.mitglied,
+            art: RoleCategory.mitglied,
             start: DateTime(2024, 9, 1),
           ),
         ],
@@ -209,10 +210,10 @@ void main() {
         geburtsdatum: DateTime(2014, 1, 1),
         eintrittsdatum: DateTime(2020, 9, 1),
         mitgliedsnummer: 'B-2',
-        taetigkeiten: [
-          Taetigkeit(
+        roles: [
+          roleFromLegacy(
             stufe: Stufe.woelfling,
-            art: TaetigkeitsArt.mitglied,
+            art: RoleCategory.mitglied,
             start: DateTime(2020, 9, 1),
           ),
         ],
@@ -247,10 +248,10 @@ void main() {
         geburtsdatum: DateTime(2015, 5, 1),
         eintrittsdatum: DateTime(2022, 9, 1),
         mitgliedsnummer: 'F-1',
-        taetigkeiten: [
-          Taetigkeit(
+        roles: [
+          roleFromLegacy(
             stufe: Stufe.woelfling,
-            art: TaetigkeitsArt.mitglied,
+            art: RoleCategory.mitglied,
             start: DateTime(2022, 9, 1),
           ),
         ],
@@ -261,10 +262,10 @@ void main() {
         geburtsdatum: DateTime(2015, 5, 1),
         eintrittsdatum: DateTime(2022, 9, 1),
         mitgliedsnummer: 'F-3',
-        taetigkeiten: [
-          Taetigkeit(
+        roles: [
+          roleFromLegacy(
             stufe: Stufe.woelfling,
-            art: TaetigkeitsArt.mitglied,
+            art: RoleCategory.mitglied,
             start: DateTime(2022, 9, 1),
             ende: DateTime(2024, 8, 31),
           ),
@@ -276,10 +277,10 @@ void main() {
         geburtsdatum: DateTime(2000, 1, 1),
         eintrittsdatum: DateTime(2020, 1, 1),
         mitgliedsnummer: 'F-2',
-        taetigkeiten: [
-          Taetigkeit(
+        roles: [
+          roleFromLegacy(
             stufe: Stufe.leitung,
-            art: TaetigkeitsArt.leitung,
+            art: RoleCategory.leitung,
             start: DateTime(2023, 1, 1),
           ),
         ],
@@ -312,16 +313,16 @@ void main() {
           geburtsdatum: DateTime(2016, 6, 1),
           eintrittsdatum: DateTime(2023, 9, 1),
           mitgliedsnummer: 'F-3',
-          taetigkeiten: [
-            Taetigkeit(
+          roles: [
+            roleFromLegacy(
               stufe: Stufe.woelfling,
-              art: TaetigkeitsArt.mitglied,
+              art: RoleCategory.mitglied,
               start: DateTime(2023, 9, 1),
             ),
             // Geplante Aufnahme als Jufi nach Stichtag
-            Taetigkeit(
+            roleFromLegacy(
               stufe: Stufe.jungpfadfinder,
-              art: TaetigkeitsArt.mitglied,
+              art: RoleCategory.mitglied,
               start: DateTime(2026, 10, 1),
             ),
           ],

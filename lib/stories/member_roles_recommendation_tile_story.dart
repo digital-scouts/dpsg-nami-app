@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 // ignore: depend_on_referenced_packages
 import 'package:storybook_flutter/storybook_flutter.dart';
 
+import '../domain/taetigkeit/role_derivation.dart';
+import '../domain/taetigkeit/roles.dart';
 import '../domain/taetigkeit/stufe.dart';
-import '../domain/taetigkeit/taetigkeit.dart';
 import '../presentation/widgets/member_roles_list_tile.dart';
 
 Story memberRolesRecommendationTileStory() {
@@ -29,9 +30,9 @@ Story memberRolesRecommendationTileStory() {
       );
 
       final now = DateTime.now();
-      final taetigkeit = Taetigkeit(
+      final taetigkeit = roleFromLegacy(
         stufe: stufe,
-        art: TaetigkeitsArt.mitglied,
+        art: RoleCategory.mitglied,
         start: now.add(Duration(days: 30 * monthsAhead)),
       );
 

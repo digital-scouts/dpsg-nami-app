@@ -4,6 +4,7 @@ import 'hitobito_auth_env.dart';
 import 'hitobito_groups_service.dart';
 import 'hitobito_oauth_service.dart';
 import 'hitobito_people_service.dart';
+import 'hitobito_roles_service.dart';
 import 'logger_service.dart';
 import 'sensitive_storage_service.dart';
 
@@ -13,12 +14,14 @@ class HitobitoAuthConfigController extends ChangeNotifier {
     required HitobitoOauthService oauthService,
     required HitobitoGroupsService groupsService,
     required HitobitoPeopleService peopleService,
+    HitobitoRolesService? rolesService,
     LoggerService? logger,
     HitobitoAuthConfig? envConfig,
   }) : _sensitiveStorageService = sensitiveStorageService,
        _oauthService = oauthService,
        _groupsService = groupsService,
        _peopleService = peopleService,
+       _rolesService = rolesService,
        _logger = logger,
        _envConfig = envConfig ?? HitobitoAuthEnv.authConfig,
        _effectiveConfig = envConfig ?? HitobitoAuthEnv.authConfig;
@@ -27,6 +30,7 @@ class HitobitoAuthConfigController extends ChangeNotifier {
   final HitobitoOauthService _oauthService;
   final HitobitoGroupsService _groupsService;
   final HitobitoPeopleService _peopleService;
+  final HitobitoRolesService? _rolesService;
   final LoggerService? _logger;
   final HitobitoAuthConfig _envConfig;
 
@@ -122,6 +126,7 @@ class HitobitoAuthConfigController extends ChangeNotifier {
     _oauthService.updateConfig(nextConfig);
     _groupsService.updateConfig(nextConfig);
     _peopleService.updateConfig(nextConfig);
+    _rolesService?.updateConfig(nextConfig);
     if (notify) {
       notifyListeners();
     }
