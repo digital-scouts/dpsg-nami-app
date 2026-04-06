@@ -295,7 +295,8 @@ Dieses Dokument übersetzt das Arbeitskontext-Konzept in kleine, kopierfertige T
 - Titel: Suche und Statistik strikt an den aktiven Arbeitskontext binden
 - Typ: Feature
 - Priorität: P1
-- Status: offen
+- Status: umgesetzt
+- Umsetzungsstand: Die Suche ist ueber Ticket 8a produktiv an den aktiven Arbeitskontext gebunden. Der Statistik-Tab zeigt produktiv bereits eine erste kontextgebundene Kennzahl als Mitgliederanzahl des aktiven Arbeitskontexts und aktualisiert sich nach einem Layerwechsel.
 - Ziel: Suchen und Kennzahlen sollen fachlich konsistent bleiben und nie unbemerkt mehrere Layer vermischen.
 - Kurzbeschreibung: Suche und Statistik arbeiten im MVP ausschließlich auf dem lesbaren Bestand des aktiven Arbeitskontexts. Rekursive Betrachtungen über Unterlayer hinweg sind ausdrücklich nicht Teil des MVP. Ein Kontextwechsel muss beide Bereiche sofort auf den neuen Layer umstellen.
 - Akzeptanzkriterien:
@@ -323,19 +324,27 @@ Dieses Dokument übersetzt das Arbeitskontext-Konzept in kleine, kopierfertige T
 - Abhängigkeiten: Ticket 3c, Ticket 3d, Ticket 8.
 - Nicht Teil dieses Tickets: Telefon- oder Adresssuche, globale Suche, historische Rollenstatistiken.
 
-### Ticket 8b: Historischen Rollenverlauf für spätere Statistiken und Verlaufssichten laden
+### Ticket 8b: Vollständige und historische Roles lazy nachladen
 
-- Titel: Historischen Rollenverlauf für spätere Statistiken und Verlaufssichten laden
+- Titel: Vollständige und historische Roles lazy nachladen
 - Typ: Feature
 - Priorität: P1
 - Status: offen
-- Ziel: Eine belastbare Datengrundlage für spätere Statistiken und Verlaufssichten schaffen, die nicht nur aktuelle Rollen kennt.
-- Kurzbeschreibung: Für spätere Verlaufslogik soll ein dedizierter Importpfad über den Roles-Endpoint vorbereitet werden, der aktive und nicht aktive Rollen anhand von `active`, `start_on` und `end_on` berücksichtigen kann.
+- Ziel: Eine belastbare Datengrundlage für spätere Statistiken und Verlaufssichten schaffen, ohne den Initial-Load des Arbeitskontexts unnötig aufzublähen.
+- Kurzbeschreibung: Rollen werden fachlich nicht mehr als Tätigkeiten bezeichnet, sondern konsistent als Roles. Der initiale Load des Arbeitskontexts bleibt schlank und trennt das Laden des People-Bestands von den vollständigen, auch historischen Roles. Für Listen und Filter bleiben mitgliedsZuordnungen als kompakte Struktur im Arbeitskontext erhalten. Vollständige Roles werden bei Bedarf lazy über /api/roles nachgeladen und im Zielmodell Mitglied.roles geführt.
+- Ausbau-Schritte:
+  - Fachbegriffe, Modellnamen und Dokumentation von Tätigkeiten auf Roles umstellen.
+  - Den initialen People-Load so begrenzen, dass nur der schlanke Arbeitskontext einschließlich mitgliedsZuordnungen aufgebaut wird.
+  - Einen separaten Ladepfad für vollständige Roles über /api/roles einführen, der aktive und historische Roles nachladen kann.
+  - Das Zielmodell Mitglied.roles produktiv anbinden und so persistieren, dass bestehende Listen- und Filterpfade weiter auf mitgliedsZuordnungen basieren.
+  - Den Lazy-Load nur an Stellen auslösen, die vollständige oder historische Roles fachlich wirklich benötigen, etwa spätere Verlaufssichten oder Statistiken.
 - Akzeptanzkriterien:
-  - Es gibt einen klaren Datenpfad für Rollenverläufe über den Roles-Endpoint.
-  - Aktive und abgelaufene Rollen können fachlich unterschieden und gespeichert werden.
-  - Der Rollenverlauf ist von der reinen Gruppenfilter-Datengrundlage des aktuellen Arbeitskontexts sauber abgegrenzt.
-  - Die Datengrundlage ist für spätere Mitgliedschafts- und Rollenstatistiken nutzbar.
+  - Rollen werden im Fachkontext und in der Benennung nicht mehr als Tätigkeiten, sondern als Roles geführt.
+  - Der initiale Load des Arbeitskontexts lädt keine vollständigen historischen Roles mit.
+  - Vollständige Roles werden getrennt vom People-Load lazy über /api/roles nachgeladen.
+  - Mitglied.roles ist das Zielmodell für vollständige, auch historische Roles.
+  - mitgliedsZuordnungen bleiben als kompakte Struktur für Listen und Filter bestehen.
+  - Die Datengrundlage ist für spätere Mitgliedschafts- und Rollenstatistiken nutzbar, ohne den MVP-Initial-Load zu verschlechtern.
 - Abhängigkeiten: Ticket 3b, Ticket 3d, Ticket 8.
 - Nicht Teil dieses Tickets: Konkrete Statistik-UI, rekursive Auswertungen über Unterlayer.
 

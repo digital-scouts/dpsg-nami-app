@@ -6,6 +6,7 @@ import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/navigation/app_router.dart';
 import 'package:nami/presentation/screens/member_people_page.dart';
 import 'package:nami/presentation/screens/settings_page.dart';
+import 'package:nami/presentation/screens/statistics_page.dart';
 import 'package:nami/presentation/widgets/app_bottom_navigation.dart';
 import 'package:provider/provider.dart';
 
@@ -49,7 +50,7 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
         body = _buildProtectedBody(
           context,
           title: t.t('nav_statistics'),
-          readyBody: Center(child: Text(t.t('nav_statistics'))),
+          readyBody: const StatisticsPage(),
           authModel: authModel,
           arbeitskontextModel: arbeitskontextModel,
         );
