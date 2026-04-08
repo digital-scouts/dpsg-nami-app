@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -12,6 +14,35 @@ import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/screens/settings_map_page.dart';
 
 void main() {
+  testWidgets('zeigt den Zurück-Button auch während des Ladens', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          AppLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('de'), Locale('en')],
+        locale: const Locale('de'),
+        home: SettingsMapPage(
+          repository: _DelayedDioceseBoundaryRepository(),
+          stammRepository: _FakeStammMapMarkerRepository(),
+        ),
+      ),
+    );
+
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey('settings-map-back-button')),
+      findsOneWidget,
+    );
+    expect(find.text('Kartendaten werden geladen'), findsOneWidget);
+  });
+
   testWidgets('rendert die Karten-Seite mit Boundary-Daten', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -32,9 +63,30 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Karte'), findsOneWidget);
+    expect(find.byType(AppBar), findsNothing);
     expect(find.byType(FlutterMap), findsOneWidget);
     expect(find.byType(MarkerClusterLayerWidget), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('settings-map-back-button')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('settings-map-search-button')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('settings-map-recenter-button')),
+      findsOneWidget,
+    );
+
+    final backButton = tester.widget<IconButton>(
+      find.descendant(
+        of: find.byKey(const ValueKey('settings-map-back-button')),
+        matching: find.byType(IconButton),
+      ),
+    );
+    expect(backButton.constraints?.minWidth, 48);
+    expect(backButton.constraints?.minHeight, 48);
 
     final polygonLayer = tester.widget<PolygonLayer<String>>(
       find.byType(PolygonLayer<String>),
@@ -83,7 +135,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('stamm-1')).last);
       await tester.pumpAndSettle();
 
-      expect(find.text('Nordlicht'), findsOneWidget);
+      expect(find.text('Stamm Nordlicht'), findsOneWidget);
       expect(find.text('nordlicht.example'), findsOneWidget);
 
       await tester.tap(find.text('nordlicht.example'));
@@ -123,7 +175,7 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Sued'), findsOneWidget);
+    expect(find.text('Süd'), findsOneWidget);
     expect(find.text('www.dpsg-sued.de'), findsOneWidget);
 
     await tester.tap(find.text('www.dpsg-sued.de'));
@@ -133,6 +185,63 @@ void main() {
     expect(openedUri.toString(), 'https://www.dpsg-sued.de');
   });
 
+  testWidgets('durchsucht Karte per ASCII-Näherung und setzt die Auswahl', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          AppLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('de'), Locale('en')],
+        locale: const Locale('de'),
+        home: SettingsMapPage(
+          repository: _FakeDioceseBoundaryRepository(),
+          stammRepository: _FakeStammMapMarkerRepository(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('settings-map-search-button')));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('settings-map-search-field')),
+      'sud',
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('settings-map-search-results')),
+      findsOneWidget,
+    );
+    expect(find.text('Süd'), findsOneWidget);
+    expect(find.text('Diözese'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('settings-map-search-result-south')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('settings-map-search-field')),
+      findsNothing,
+    );
+    expect(find.text('Süd'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('settings-map-search-button')));
+    await tester.pumpAndSettle();
+
+    final searchField = tester.widget<TextField>(
+      find.byKey(const ValueKey('settings-map-search-field')),
+    );
+    expect(searchField.controller?.text, isEmpty);
+  });
   testWidgets('versteckt Stammmarker unterhalb des Mindestzooms', (
     tester,
   ) async {
@@ -158,6 +267,79 @@ void main() {
 
     expect(find.byType(MarkerClusterLayerWidget), findsNothing);
   });
+
+  testWidgets(
+    'zeigt ab dem maximalen DV-Zoom nur noch Polygon-Grenzen ohne Hit-Info',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            AppLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('de'), Locale('en')],
+          locale: const Locale('de'),
+          home: SettingsMapPage(
+            repository: _FakeDioceseBoundaryRepository(),
+            stammRepository: _FakeStammMapMarkerRepository(),
+            dvMaxVisibleZoom: 0,
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final polygonLayer = tester.widget<PolygonLayer<String>>(
+        find.byType(PolygonLayer<String>),
+      );
+      expect(polygonLayer.polygons, hasLength(3));
+      expect(
+        polygonLayer.polygons.every((polygon) => polygon.color == null),
+        isTrue,
+      );
+      expect(
+        polygonLayer.polygons.every((polygon) => polygon.hitValue == null),
+        isTrue,
+      );
+    },
+  );
+
+  testWidgets(
+    'blendet bestehende Diözesen-Auswahl ab dem maximalen DV-Zoom aus',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            AppLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('de'), Locale('en')],
+          locale: const Locale('de'),
+          home: SettingsMapPage(
+            repository: _FakeDioceseBoundaryRepository(),
+            stammRepository: _FakeStammMapMarkerRepository(),
+            initialSelectedBoundaryId: 'south',
+            dvMaxVisibleZoom: 0,
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Süd'), findsNothing);
+    },
+  );
+}
+
+class _DelayedDioceseBoundaryRepository implements DioceseBoundaryRepository {
+  @override
+  Future<List<DioceseBoundary>> loadBoundaries() {
+    return Completer<List<DioceseBoundary>>().future;
+  }
 }
 
 class _FakeDioceseBoundaryRepository implements DioceseBoundaryRepository {
@@ -181,7 +363,7 @@ class _FakeDioceseBoundaryRepository implements DioceseBoundaryRepository {
       ),
       DioceseBoundary(
         id: 'south',
-        name: 'Sued',
+        name: 'Süd',
         website: 'www.dpsg-sued.de',
         polygons: [
           DioceseBoundaryPolygon(
@@ -224,6 +406,22 @@ class _FakeStammMapMarkerRepository implements StammMapMarkerRepository {
           city: 'Hamburg',
           postalCode: '20095',
           website: 'nordlicht.example',
+        ),
+        StammMapMarker(
+          id: 'district-1',
+          name: 'Bezirk Alster',
+          latitude: 48.14,
+          longitude: 11.58,
+          city: 'München',
+          postalCode: '80331',
+        ),
+        StammMapMarker(
+          id: 'dv-1',
+          name: 'Diözesanleitung Hamburg',
+          latitude: 50.11,
+          longitude: 8.68,
+          city: 'Frankfurt am Main',
+          postalCode: '60311',
         ),
       ],
       fetchedAt: DateTime(2026, 4, 8),

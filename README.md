@@ -81,7 +81,7 @@ Die gleiche Versionsprüfung läuft zusätzlich in GitHub Actions:
 - [deploy-android-internal.yml](.github/workflows/deploy-android-internal.yml) baut ein Android App Bundle und deployed es nach Pushes auf `develop`, nach gemergten Pull Requests auf `master` oder manuell in den internen Play-Track.
 - [create-github-release.yml](.github/workflows/create-github-release.yml) erstellt nach gemergten Pull Requests auf `master` oder manuell einen GitHub Release auf Basis der Version aus [pubspec.yaml](pubspec.yaml) und der Eintraege aus [assets/changelog.json](assets/changelog.json).
 
-Zusätzlich validieren die CI-Workflows die Env-Vorlage über [tool/validate_env_files.dart](tool/validate_env_files.dart), damit neue oder entfernte Keys nicht unbemerkt an [.env.example](.env.example) vorbeilaufen.
+Zusätzlich validieren [validate-pull-requests.yml](.github/workflows/validate-pull-requests.yml) und [deploy-android-internal.yml](.github/workflows/deploy-android-internal.yml) die Env-Vorlage über [tool/validate_env_files.dart](tool/validate_env_files.dart), damit neue oder entfernte Keys nicht unbemerkt an [.env.example](.env.example) vorbeilaufen.
 
 Dadurch kann eine inkonsistente Versionierung nicht unbemerkt in den Hauptbranch gelangen, auch wenn lokal kein Hook aktiviert ist. Der GitHub Release enthält bewusst nur Tag und Release-Notizen, aber kein angehängtes Android-Binärfile.
 
@@ -123,7 +123,7 @@ python3 -m venv .venv
 ./.venv/bin/python tool/convert_bistum_shapefile.py --simplify-percent 15
 ```
 
-Die aktuell eingebundene Kartenansicht zeigt generalisierte Bistumsgrenzen als erste fachliche Näherung für DPSG-Diözesen. Weitere Kartenebenen oder Stammstandorte bauen künftig auf demselben GeoJSON-basierten Laufzeitpfad auf.
+Die aktuell eingebundene Kartenansicht kombiniert generalisierte Bistumsgrenzen als fachliche Näherung für DPSG-Diözesen mit Stammstandorten aus dem Store-Locator-Pfad. Beim Auswählen eines Stammes oder einer Diözese zeigt die Karte den Namen und, sofern gepflegt, einen direkten Website-Link an. Weitere Kartenebenen bauen künftig auf demselben GeoJSON-basierten Laufzeitpfad auf.
 
 ### Dokumentationsstil
 
@@ -184,7 +184,7 @@ Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den
 - Das eigene Profil wird nach dem Login über Hitobito OAuth geladen und zeigt nami-id, E-Mail, bevorzugte Sprache als Sprachbadge und die zugewiesenen Rollen.
 - Wenn Hitobito später nicht erreichbar ist oder eine erneute Anmeldung für Updates erforderlich wird, bleibt der lokale Datenstand bis zum Ablauf von `HITOBITO_DATA_MAX_AGE_DAYS` nutzbar; die App zeigt dazu einen fachlichen Hinweis statt einer generischen Plattformfehlermeldung.
 - Die Stamm-Einstellungen und Debug & Tools bleiben auch dann erreichbar, wenn noch kein Login vorliegt oder der Arbeitskontext nicht initialisiert werden konnte. Das Profil bleibt in diesen Zuständen gesperrt.
-- Unter Einstellungen steht zusätzlich eine Kartenansicht zur Verfügung, die aktuell generalisierte Bistumsgrenzen als erste Näherung für DPSG-Diözesen rendert.
+- Unter Einstellungen steht zusätzlich eine Kartenansicht zur Verfügung, die generalisierte Bistumsgrenzen für DPSG-Diözesen, Stammstandorte und optionale Website-Links für ausgewählte Stämme oder Diözesen anzeigt.
 - Die App-Sprache wird nach dem Login auf Basis der bevorzugten Profilsprache gesetzt. Unbekannte oder fehlende Sprachcodes fallen auf Deutsch zurück.
 - Jeder Nutzer sieht auch nur die Funktionen, die er aufgrund seiner Rechte ausführen kann. Die Rechte sind im eigenen Profil aufgelistet.
 - Jeder Nutzer hat die Möglichkeit das Bearbeiten von Daten zu deaktiven und braucht so keine Angst haben 'Etwas kaput zu machen'
@@ -198,7 +198,7 @@ Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den
   - Ablaufende Ausbildungen (Präventionsschulung)
 - Statistik historische Entwicklung im Stamm
   - Wann verlassen Mitglieder den Stamm, wann kommen sie
-- Stammstandorte und weitere fachliche Kartenebenen auf Basis der neuen Karteninfrastruktur
+- Weitere fachliche Kartenebenen auf Basis der neuen Karteninfrastruktur
 
 ## Externe Apis
 

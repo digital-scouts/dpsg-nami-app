@@ -7,8 +7,11 @@ class MapsEnv {
   static double get stammOfflineRadiusKm =>
       _positiveDouble('MAPS_STAMM_OFFLINE_RADIUS_KM', fallback: 5);
 
-    static double get stammMinVisibleZoom =>
+  static double get stammMinVisibleZoom =>
       _nonNegativeDouble('MAPS_STAMM_MIN_VISIBLE_ZOOM', fallback: 0);
+
+  static double get dvMaxVisibleZoom =>
+      _nonNegativeDouble('MAPS_DV_MAX_VISIBLE_ZOOM', fallback: 100);
 
   static double get memberOfflineRadiusKm =>
       _positiveDouble('MAPS_MEMBER_OFFLINE_RADIUS_KM', fallback: 0.5);
