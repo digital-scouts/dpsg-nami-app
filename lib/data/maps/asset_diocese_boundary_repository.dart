@@ -10,6 +10,34 @@ class AssetDioceseBoundaryRepository implements DioceseBoundaryRepository {
     this.assetPath = 'assets/maps/dioeceses.geojson',
   });
 
+  static const Map<String, String> _boundaryWebsitesById = {
+    'dioezesanverband-aachen': 'http://www.dpsg-ac.de',
+    'dioezesanverband-augsburg': 'http://www.dpsg-augsburg.de',
+    'dioezesanverband-bamberg': 'http://www.dpsg-bamberg.de',
+    'dioezesanverband-berlin': 'http://www.dpsg-dv-berlin.de',
+    'dioezesanverband-eichstaett': 'http://www.dpsg-eichstaett.de',
+    'dioezesanverband-essen': 'http://www.dpsg-essen.de',
+    'dioezesanverband-erfurt': 'https://dpsg-thueringen.de',
+    'dioezesanverband-freiburg': 'http://www.dpsg-freiburg.de',
+    'dioezesanverband-fulda': 'http://www.dpsg-fulda.de',
+    'dioezesanverband-hamburg': 'http://www.dpsg-hamburg.de',
+    'dioezesanverband-hildesheim': 'http://www.dpsg-hildesheim.de',
+    'dioezesanverband-koeln': 'http://www.dpsg-koeln.de',
+    'dioezesanverband-limburg': 'http://www.dpsg-limburg.de',
+    'dioezesanverband-magdeburg': 'http://www.dpsg-dv-magdeburg.de',
+    'dioezesanverband-mainz': 'http://www.dpsg-mainz.de',
+    'dioezesanverband-muenchen-und-freising': 'http://www.dpsg1300.de',
+    'dioezesanverband-muenster': 'http://www.dpsgmuenster.de',
+    'dioezesanverband-osnabrueck': 'https://dpsg-os.de',
+    'dioezesanverband-paderborn': 'http://www.dpsg-paderborn.de',
+    'dioezesanverband-passau': 'http://www.dpsg-passau.de',
+    'dioezesanverband-regensburg': 'http://www.dpsg-regensburg.de',
+    'dioezesanverband-rottenburg-stuttgart': 'http://www.dpsg-rottenburg.de',
+    'dioezesanverband-speyer': 'http://www.dpsg-speyer.org',
+    'dioezesanverband-trier': 'http://www.dpsg-trier.de',
+    'dioezesanverband-wuerzburg': 'http://www.dpsg-wuerzburg.de',
+  };
+
   final String assetPath;
 
   @override
@@ -42,6 +70,7 @@ class AssetDioceseBoundaryRepository implements DioceseBoundaryRepository {
         id: existing.id,
         name: existing.name,
         polygons: [...existing.polygons, ...boundary.polygons],
+        website: existing.website ?? boundary.website,
       );
     }
 
@@ -74,8 +103,14 @@ class AssetDioceseBoundaryRepository implements DioceseBoundaryRepository {
         _readString(props['bistum_name']) ??
         _readString(props['label']) ??
         id;
+    final website = _readString(props['website']) ?? _boundaryWebsitesById[id];
 
-    return DioceseBoundary(id: id, name: name, polygons: polygons);
+    return DioceseBoundary(
+      id: id,
+      name: name,
+      polygons: polygons,
+      website: website,
+    );
   }
 
   List<DioceseBoundaryPolygon> _parseGeometry(Map<String, dynamic> geometry) {

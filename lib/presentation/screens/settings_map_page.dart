@@ -4,14 +4,34 @@ import 'package:latlong2/latlong.dart';
 import 'package:nami/data/maps/asset_diocese_boundary_repository.dart';
 import 'package:nami/domain/maps/diocese_boundary.dart';
 import 'package:nami/domain/maps/diocese_boundary_repository.dart';
+import 'package:nami/domain/maps/stamm_map_marker.dart';
+import 'package:nami/domain/maps/stamm_map_marker_repository.dart';
 import 'package:nami/l10n/app_localizations.dart';
+import 'package:nami/presentation/widgets/stamm_cluster_layer.dart';
 import 'package:nami/services/map_tile_cache_service.dart';
 import 'package:nami/services/maps_env.dart';
+import 'package:nami/services/stamm_map_sync_service.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+typedef ExternalUrlOpener = Future<bool> Function(Uri uri);
 
 class SettingsMapPage extends StatefulWidget {
-  const SettingsMapPage({super.key, this.repository});
+  const SettingsMapPage({
+    super.key,
+    this.repository,
+    this.stammRepository,
+    this.stammMinVisibleZoom,
+    this.externalUrlOpener,
+    this.initialSelectedBoundaryId,
+    this.initialSelectedStammMarkerId,
+  });
 
   final DioceseBoundaryRepository? repository;
+  final StammMapMarkerRepository? stammRepository;
+  final double? stammMinVisibleZoom;
+  final ExternalUrlOpener? externalUrlOpener;
+  final String? initialSelectedBoundaryId;
+  final String? initialSelectedStammMarkerId;
 
   @override
   State<SettingsMapPage> createState() => _SettingsMapPageState();
@@ -19,15 +39,23 @@ class SettingsMapPage extends StatefulWidget {
 
 class _SettingsMapPageState extends State<SettingsMapPage> {
   late Future<List<DioceseBoundary>> _future;
+  late final StammMapMarkerRepository _stammRepository;
   final MapController _mapController = MapController();
   final LayerHitNotifier<String> _polygonHitNotifier = ValueNotifier(null);
   String? _selectedBoundaryId;
+  String? _selectedStammMarkerId;
+  List<StammMapMarker> _stammMarkers = const [];
+  double _currentZoom = 6;
 
   @override
   void initState() {
     super.initState();
+    _stammRepository = widget.stammRepository ?? StammMapSyncService();
+    _selectedBoundaryId = widget.initialSelectedBoundaryId;
+    _selectedStammMarkerId = widget.initialSelectedStammMarkerId;
     _future = _loadBoundaries();
     _polygonHitNotifier.addListener(_handlePolygonHitChange);
+    _loadStammMarkers();
   }
 
   @override
@@ -55,6 +83,9 @@ class _SettingsMapPageState extends State<SettingsMapPage> {
     }
     setState(() {
       _selectedBoundaryId = nextSelectedBoundaryId;
+      if (nextSelectedBoundaryId != null) {
+        _selectedStammMarkerId = null;
+      }
     });
   }
 
@@ -69,6 +100,111 @@ class _SettingsMapPageState extends State<SettingsMapPage> {
         maxZoom: 12,
       ),
     );
+  }
+
+  Future<void> _loadStammMarkers() async {
+    try {
+      final snapshot = await _stammRepository.loadCachedOrFallback();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _stammMarkers = snapshot.markers;
+        if (!_hasSelectedStammMarker(snapshot.markers)) {
+          _selectedStammMarkerId = null;
+        }
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _stammMarkers = const [];
+        _selectedStammMarkerId = null;
+      });
+    }
+
+    _refreshStammMarkersIfDue();
+  }
+
+  Future<void> _refreshStammMarkersIfDue() async {
+    try {
+      final snapshot = await _stammRepository.refreshIfDue();
+      if (!mounted || snapshot == null) {
+        return;
+      }
+      setState(() {
+        _stammMarkers = snapshot.markers;
+        if (!_hasSelectedStammMarker(snapshot.markers)) {
+          _selectedStammMarkerId = null;
+        }
+      });
+    } catch (_) {
+      // Cache oder Asset bleiben aktiv, daher hier bewusst kein Fehler-UI.
+    }
+  }
+
+  bool _hasSelectedStammMarker(List<StammMapMarker> markers) {
+    final selectedId = _selectedStammMarkerId;
+    if (selectedId == null) {
+      return false;
+    }
+    return markers.any((marker) => marker.id == selectedId);
+  }
+
+  StammMapMarker? _selectedStammMarker() {
+    final selectedId = _selectedStammMarkerId;
+    if (selectedId == null) {
+      return null;
+    }
+
+    for (final marker in _stammMarkers) {
+      if (marker.id == selectedId) {
+        return marker;
+      }
+    }
+    return null;
+  }
+
+  String? _normalizedWebsite(String? rawWebsite) {
+    final trimmed = rawWebsite?.trim();
+    if (trimmed == null || trimmed.isEmpty) {
+      return null;
+    }
+
+    final hasScheme = RegExp(r'^[a-zA-Z][a-zA-Z0-9+.-]*://').hasMatch(trimmed);
+    final candidate = hasScheme ? trimmed : 'https://$trimmed';
+    final uri = Uri.tryParse(candidate);
+    if (uri == null || !uri.hasScheme || uri.host.isEmpty) {
+      return null;
+    }
+    return uri.toString();
+  }
+
+  String? _selectedWebsite({
+    StammMapMarker? selectedStammMarker,
+    DioceseBoundary? selectedBoundary,
+  }) {
+    return _normalizedWebsite(selectedStammMarker?.website) ??
+        _normalizedWebsite(selectedBoundary?.website);
+  }
+
+  String _websiteLabel(String normalizedWebsite) {
+    return normalizedWebsite.replaceFirst(RegExp(r'^https?://'), '');
+  }
+
+  Future<void> _openWebsite(String normalizedWebsite) async {
+    final opener = widget.externalUrlOpener ?? _launchExternalUrl;
+    final didOpen = await opener(Uri.parse(normalizedWebsite));
+    if (!didOpen && mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Kann Link nicht öffnen')));
+    }
+  }
+
+  static Future<bool> _launchExternalUrl(Uri uri) {
+    return launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   @override
@@ -127,6 +263,13 @@ class _SettingsMapPageState extends State<SettingsMapPage> {
           final selectedBoundary = _selectedBoundaryId == null
               ? null
               : boundariesById[_selectedBoundaryId!];
+          final selectedStammMarker = _selectedStammMarker();
+          final selectedLabel =
+              selectedStammMarker?.name ?? selectedBoundary?.name;
+          final selectedWebsite = _selectedWebsite(
+            selectedStammMarker: selectedStammMarker,
+            selectedBoundary: selectedBoundary,
+          );
           final initialCameraFit = CameraFit.bounds(
             bounds: LatLngBounds.fromPoints(allPoints),
             padding: const EdgeInsets.all(28),
@@ -157,6 +300,15 @@ class _SettingsMapPageState extends State<SettingsMapPage> {
                                     InteractiveFlag.all &
                                     ~InteractiveFlag.rotate,
                               ),
+                              onPositionChanged: (camera, hasGesture) {
+                                final nextZoom = camera.zoom;
+                                if ((_currentZoom - nextZoom).abs() < 0.01) {
+                                  return;
+                                }
+                                setState(() {
+                                  _currentZoom = nextZoom;
+                                });
+                              },
                             ),
                             children: [
                               TileLayer(
@@ -173,18 +325,38 @@ class _SettingsMapPageState extends State<SettingsMapPage> {
                                 polygonLabels: false,
                                 hitNotifier: _polygonHitNotifier,
                               ),
+                              StammClusterLayer(
+                                markers: _stammMarkers,
+                                currentZoom: _currentZoom,
+                                minVisibleZoom:
+                                    widget.stammMinVisibleZoom ??
+                                    MapsEnv.stammMinVisibleZoom,
+                                onMarkerTap: (marker) {
+                                  setState(() {
+                                    _selectedBoundaryId = null;
+                                    _selectedStammMarkerId = marker.id;
+                                  });
+                                },
+                              ),
                             ],
                           ),
-                          if (selectedBoundary != null)
+                          if (selectedLabel != null)
                             Positioned(
                               left: 12,
                               right: 12,
                               bottom: 12,
                               child: _SelectedBoundaryCard(
-                                boundaryName: selectedBoundary.name,
+                                title: selectedLabel,
+                                websiteLabel: selectedWebsite == null
+                                    ? null
+                                    : _websiteLabel(selectedWebsite),
+                                onOpenWebsite: selectedWebsite == null
+                                    ? null
+                                    : () => _openWebsite(selectedWebsite),
                                 onClose: () {
                                   setState(() {
                                     _selectedBoundaryId = null;
+                                    _selectedStammMarkerId = null;
                                   });
                                   _polygonHitNotifier.value = null;
                                 },
@@ -276,11 +448,15 @@ class _SettingsMapPageState extends State<SettingsMapPage> {
 
 class _SelectedBoundaryCard extends StatelessWidget {
   const _SelectedBoundaryCard({
-    required this.boundaryName,
+    required this.title,
     required this.onClose,
+    this.websiteLabel,
+    this.onOpenWebsite,
   });
 
-  final String boundaryName;
+  final String title;
+  final String? websiteLabel;
+  final Future<void> Function()? onOpenWebsite;
   final VoidCallback onClose;
 
   @override
@@ -293,9 +469,34 @@ class _SelectedBoundaryCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Text(boundaryName, style: theme.textTheme.titleMedium),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(title, style: theme.textTheme.titleMedium),
+                  if (websiteLabel != null && onOpenWebsite != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: TextButton.icon(
+                        onPressed: () => onOpenWebsite!(),
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          alignment: Alignment.centerLeft,
+                        ),
+                        icon: const Icon(Icons.link, size: 16),
+                        label: Text(
+                          websiteLabel!,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
             IconButton(
               tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
