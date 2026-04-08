@@ -29,6 +29,7 @@ import 'package:nami/services/hitobito_groups_service.dart';
 import 'package:nami/services/hitobito_oauth_service.dart';
 import 'package:nami/services/hitobito_people_service.dart';
 import 'package:nami/services/logger_service.dart';
+import 'package:nami/services/map_tile_cache_service.dart';
 import 'package:nami/services/sensitive_storage_service.dart';
 import 'package:provider/provider.dart';
 
@@ -101,13 +102,16 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      await tester.scrollUntilVisible(
-        find.text('OAuth-Zugangsdaten prüfen'),
-        200,
-        scrollable: find.byType(Scrollable),
+      await _scrollDownUntilFinderExists(
+        tester,
+        find.byKey(const Key('debug_oauth_override_button')),
       );
-      await tester.tap(find.text('OAuth-Zugangsdaten prüfen'));
+      final oauthButton = find.byKey(const Key('debug_oauth_override_button'));
+      await tester.ensureVisible(oauthButton);
+      tester.widget<FilledButton>(oauthButton).onPressed!.call();
       await tester.pumpAndSettle();
+
+      expect(find.text('Hitobito OAuth prüfen'), findsOneWidget);
 
       await tester.enterText(
         find.widgetWithText(TextFormField, 'Client ID'),
@@ -196,9 +200,10 @@ void main() {
     );
 
     await tester.pumpAndSettle();
-    await tester.drag(find.byType(ListView), const Offset(0, -500));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Alle Daten löschen'), warnIfMissed: false);
+    final resetButton = find.byKey(const Key('debug_reset_app_button'));
+    await _scrollDownUntilFinderExists(tester, resetButton);
+    await tester.ensureVisible(resetButton);
+    await tester.tap(resetButton, warnIfMissed: false);
     await tester.pumpAndSettle();
 
     expect(find.text('Alle Daten löschen?'), findsOneWidget);
@@ -271,19 +276,122 @@ void main() {
     );
 
     await tester.pumpAndSettle();
-    await tester.drag(find.byType(ListView), const Offset(0, -700));
-    await tester.pumpAndSettle();
+    await _scrollDownUntilFinderExists(
+      tester,
+      find.byKey(const Key('debug_refresh_stamm_markers_button')),
+    );
+    final stammRefreshButton = find.byKey(
+      const Key('debug_refresh_stamm_markers_button'),
+    );
+    await tester.ensureVisible(stammRefreshButton);
 
-    await tester.tap(find.text('Stammesuche jetzt laden'));
+    tester.widget<FilledButton>(stammRefreshButton).onPressed!.call();
     await tester.pump();
     await tester.pumpAndSettle();
 
     expect(stammRepository.forceRefreshCalls, 1);
+    expect(logger.debugActions, contains('refresh_stamm_markers'));
     expect(
       find.text('Stammesuche aktualisiert: 1 Marker geladen.'),
       findsOneWidget,
     );
   });
+
+  testWidgets('loescht Kartendaten manuell', (tester) async {
+    final logger = _FakeLoggerService();
+    final groupsService = _FakeHitobitoGroupsService();
+    final peopleService = HitobitoPeopleService(config: groupsService.config);
+    final configController = HitobitoAuthConfigController(
+      sensitiveStorageService: _FakeSensitiveStorageService(),
+      oauthService: _MutableOauthService(),
+      groupsService: groupsService,
+      peopleService: peopleService,
+      logger: logger,
+      envConfig: groupsService.config,
+    );
+    await configController.initialize();
+
+    final authModel = AuthSessionModel(
+      repository: _InMemoryAuthSessionRepository(),
+      profileRepository: _InMemoryAuthProfileRepository(),
+      oauthService: _MutableOauthService(),
+      biometricLockService: _FakeBiometricLockService(),
+      sensitiveStorageService: _FakeSensitiveStorageService(),
+      retentionPolicy: HitobitoDataRetentionPolicy(
+        maxDataAge: const Duration(days: 90),
+        refreshInterval: const Duration(hours: 24),
+      ),
+      logger: logger,
+    );
+    final arbeitskontextModel = ArbeitskontextModel(
+      localRepository: _ImmediateArbeitskontextLocalRepository(),
+      readModelRepository: _FakeArbeitskontextReadModelRepository(),
+      groupsService: groupsService,
+      bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+      logger: logger,
+    );
+    final mapTileCacheService = _FakeMapTileCacheService();
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
+          ChangeNotifierProvider<ArbeitskontextModel>.value(
+            value: arbeitskontextModel,
+          ),
+          ChangeNotifierProvider<HitobitoAuthConfigController>.value(
+            value: configController,
+          ),
+          Provider<LoggerService>.value(value: logger),
+          Provider<MapTileCacheService>.value(value: mapTileCacheService),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            AppLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('de'), Locale('en')],
+          locale: const Locale('de'),
+          home: const DebugToolsPage(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await _scrollDownUntilFinderExists(
+      tester,
+      find.byKey(const Key('debug_delete_map_cache_button')),
+    );
+    final deleteMapCacheButton = find.byKey(
+      const Key('debug_delete_map_cache_button'),
+    );
+    await tester.ensureVisible(deleteMapCacheButton);
+
+    tester.widget<FilledButton>(deleteMapCacheButton).onPressed!.call();
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(mapTileCacheService.deleteRootCalls, 1);
+    expect(logger.debugActions, contains('delete_map_cache'));
+    expect(find.text('Kartendaten gelöscht'), findsOneWidget);
+  });
+}
+
+Future<void> _scrollDownUntilFinderExists(
+  WidgetTester tester,
+  Finder finder,
+) async {
+  for (var i = 0; i < 12; i++) {
+    if (finder.evaluate().isNotEmpty) {
+      return;
+    }
+    await tester.drag(find.byType(ListView), const Offset(0, -300));
+    await tester.pumpAndSettle();
+  }
+
+  expect(finder, findsWidgets);
 }
 
 class _MutableOauthService extends HitobitoOauthService {
@@ -458,6 +566,20 @@ class _FakeStammMapRepository implements StammMapMarkerRepository {
   }
 }
 
+class _FakeMapTileCacheService extends MapTileCacheService {
+  _FakeMapTileCacheService() : super(logger: _FakeLoggerService());
+
+  int deleteRootCalls = 0;
+
+  @override
+  Future<double> realSizeKiB() async => 2048;
+
+  @override
+  Future<void> deleteRoot() async {
+    deleteRootCalls++;
+  }
+}
+
 class _InMemoryAuthSessionRepository implements AuthSessionRepository {
   AuthSession? _session;
 
@@ -561,8 +683,38 @@ class _FakeLoggerService extends LoggerService {
         navigatorKey: GlobalKey<NavigatorState>(),
       );
 
+  final List<String> debugActions = <String>[];
+
   @override
   Future<void> log(String service, String message) async {}
+
+  @override
+  Future<void> logInfo(String service, String message) async {}
+
+  @override
+  Future<void> logWarn(String service, String message) async {}
+
+  @override
+  Future<void> logError(
+    String service,
+    String message, {
+    Object? error,
+    StackTrace? stackTrace,
+  }) async {}
+
+  @override
+  Future<void> trackAndLog(
+    String service,
+    String name,
+    Map<String, Object?> properties,
+  ) async {
+    if (service == 'debug_tools' && name == 'debug_action') {
+      final action = properties['action']?.toString();
+      if (action != null) {
+        debugActions.add(action);
+      }
+    }
+  }
 }
 
 class _FakeAppSettingsRepository implements AppSettingsRepository {

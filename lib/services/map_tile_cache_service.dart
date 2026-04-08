@@ -15,10 +15,12 @@ import 'maps_env.dart';
 class MapTileCacheService {
   MapTileCacheService({
     FMTCBackend? backend,
+    FMTCBackend Function()? backendFactory,
     Connectivity? connectivity,
     Client? httpClient,
     LoggerService? logger,
-  }) : _backend = backend ?? FMTCObjectBoxBackend(),
+  }) : _backendFactory = backendFactory ?? FMTCObjectBoxBackend.new,
+       _backend = backend ?? (backendFactory ?? FMTCObjectBoxBackend.new)(),
        _connectivity = connectivity ?? Connectivity(),
        _httpClient =
            httpClient ?? IOClient(HttpClient()..userAgent = userAgentValue),
@@ -33,7 +35,8 @@ class MapTileCacheService {
 
   static String get tileUrlTemplate => MapsEnv.mapTileUrlTemplate;
 
-  final FMTCBackend _backend;
+  final FMTCBackend Function() _backendFactory;
+  FMTCBackend _backend;
   final Connectivity _connectivity;
   final Client _httpClient;
   final LoggerService? _logger;
@@ -126,17 +129,28 @@ class MapTileCacheService {
   }
 
   Future<void> deleteRoot() async {
+    Object? deleteError;
+    StackTrace? deleteStackTrace;
+
     try {
       if (!_initialized) {
         await _initializeBackend();
       }
       await _backend.uninitialise(deleteRoot: true);
-      _initialized = false;
-      _tileProvider = null;
       await _log('Map-Cache geloescht');
     } catch (error, stackTrace) {
+      deleteError = error;
+      deleteStackTrace = stackTrace;
+    } finally {
+      _backend = _backendFactory();
+      _initialized = false;
+      _initializing = null;
+      _tileProvider = null;
+    }
+
+    if (deleteError != null) {
       await _log(
-        'Map-Cache konnte nicht geloescht werden: $error\n$stackTrace',
+        'Map-Cache konnte nicht geloescht werden: $deleteError\n$deleteStackTrace',
       );
     }
   }

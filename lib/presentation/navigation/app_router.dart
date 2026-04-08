@@ -24,6 +24,7 @@ import '../theme/theme.dart';
 
 class AppRoutes {
   static const String home = '/';
+  static const String memberDetail = '/members/detail';
   static const String settingsStamm = '/settings/stamm';
   static const String settingsApp = '/settings/app';
   static const String settingsNotification = '/settings/notifications';
@@ -36,11 +37,18 @@ class AppRoutes {
 Route<dynamic> onGenerateRoute(RouteSettings settings) {
   switch (settings.name) {
     case AppRoutes.home:
-      return MaterialPageRoute(builder: (_) => const NavigationHomeScreen());
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (_) => const NavigationHomeScreen(),
+      );
     case AppRoutes.profile:
-      return MaterialPageRoute(builder: (context) => const ProfilePage());
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => const ProfilePage(),
+      );
     case AppRoutes.settingsStamm:
       return MaterialPageRoute(
+        settings: settings,
         builder: (context) {
           final repo = SharedPrefsStufenSettingsRepository();
           return FutureBuilder<StufenSettings>(
@@ -106,6 +114,7 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
       );
     case AppRoutes.settingsApp:
       return MaterialPageRoute(
+        settings: settings,
         builder: (context) {
           final themeModel = Provider.of<ThemeModel>(context, listen: false);
           final localeModel = Provider.of<LocaleModel>(context, listen: false);
@@ -123,50 +132,48 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
             languageCode: localeModel.currentLocale.languageCode,
             onAnalyticsChanged: (v) async {
               final logger = Provider.of<LoggerService>(context, listen: false);
-              await logger.debounceTrackAndLog(
-                'settings',
-                'telemetry_changed',
-                {'value': v},
-              );
               await appSettings.setAnalyticsEnabled(v);
+              await logger.debounceTrackSettingsChanged('analytics', {
+                'value': v,
+              });
             },
             onBiometricLockChanged: (v) async {
               final logger = Provider.of<LoggerService>(context, listen: false);
-              await logger.debounceTrackAndLog('settings', 'app_lock_changed', {
+              await appSettings.setBiometricLockEnabled(v);
+              await logger.debounceTrackSettingsChanged('biometric_lock', {
                 'value': v,
               });
-              await appSettings.setBiometricLockEnabled(v);
             },
             onMemberListSearchResultHighlightChanged: (v) async {
               final logger = Provider.of<LoggerService>(context, listen: false);
-              await logger.debounceTrackAndLog(
-                'settings',
-                'member_search_result_highlight_changed',
+              await appSettings.setMemberListSearchResultHighlightEnabled(v);
+              await logger.debounceTrackSettingsChanged(
+                'member_search_result_highlight',
                 {'value': v},
               );
-              await appSettings.setMemberListSearchResultHighlightEnabled(v);
             },
             onThemeModeChanged: (mode) async {
               final logger = Provider.of<LoggerService>(context, listen: false);
               themeModel.setTheme(mode);
-              logger.debounceTrackAndLog('settings', 'theme_changed', {
+              await appSettings.setThemeMode(mode);
+              await logger.debounceTrackSettingsChanged('theme', {
                 'mode': mode.name,
               });
-              await appSettings.setThemeMode(mode);
             },
             onLanguageChanged: (code) async {
               final logger = Provider.of<LoggerService>(context, listen: false);
               localeModel.setLocale(Locale(code));
-              logger.debounceTrackAndLog('settings', 'language_changed', {
+              await appSettings.setLanguageCode(code);
+              await logger.debounceTrackSettingsChanged('language', {
                 'code': code,
               });
-              await appSettings.setLanguageCode(code);
             },
           );
         },
       );
     case AppRoutes.settingsNotification:
       return MaterialPageRoute(
+        settings: settings,
         builder: (context) {
           final logger = Provider.of<LoggerService>(context, listen: false);
           final appSettings = Provider.of<AppSettingsModel>(
@@ -176,31 +183,41 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
           return SettingsNotificationPage(
             notificationsEnabled: appSettings.notificationsEnabled,
             onNotificationsChanged: (v) async {
-              logger.debounceTrackAndLog('settings', 'notifications_changed', {
+              await appSettings.setNotificationsEnabled(v);
+              await logger.debounceTrackSettingsChanged('notifications', {
                 'value': v,
               });
-              await appSettings.setNotificationsEnabled(v);
             },
             geburstagsbenachrichtigungStufen:
                 appSettings.geburstagsbenachrichtigungStufen,
             geburstagsbenachrichtigungStufenChanged: (stufen) async {
               await appSettings.setGeburstagsbenachrichtigungStufen(stufen);
-              logger.debounceTrackAndLog(
-                'settings',
-                'birthday_notification_stages_changed',
-                {'stufen': stufen.map((s) => s.name).toList()},
-              );
+              await logger.debounceTrackSettingsChanged('birthday_stages', {
+                'stufen': stufen.map((s) => s.name).toList(),
+              });
             },
           );
         },
       );
     case AppRoutes.settingsMap:
-      return MaterialPageRoute(builder: (context) => const SettingsMapPage());
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => const SettingsMapPage(),
+      );
     case AppRoutes.pullNotifications:
-      return MaterialPageRoute(builder: (context) => const NotificationsPage());
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => const NotificationsPage(),
+      );
     case AppRoutes.debugTools:
-      return MaterialPageRoute(builder: (context) => const DebugToolsPage());
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => const DebugToolsPage(),
+      );
     default:
-      return MaterialPageRoute(builder: (_) => const NavigationHomeScreen());
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (_) => const NavigationHomeScreen(),
+      );
   }
 }

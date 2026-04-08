@@ -8,6 +8,7 @@ import 'package:nami/presentation/screens/member_people_page.dart';
 import 'package:nami/presentation/screens/settings_page.dart';
 import 'package:nami/presentation/screens/statistics_page.dart';
 import 'package:nami/presentation/widgets/app_bottom_navigation.dart';
+import 'package:nami/services/logger_service.dart';
 import 'package:provider/provider.dart';
 
 class NavigationHomeScreen extends StatefulWidget {
@@ -19,6 +20,13 @@ class NavigationHomeScreen extends StatefulWidget {
 
 class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
   int _index = 0;
+
+  static const List<String> _tabIds = <String>[
+    'my_stage',
+    'members',
+    'statistics',
+    'settings',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -77,7 +85,21 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
       body: body,
       bottomNavigationBar: AppBottomNavigation(
         currentIndex: _index,
-        onTap: (i) => setState(() => _index = i),
+        onTap: (i) {
+          if (i == _index) {
+            return;
+          }
+
+          final logger = context.read<LoggerService>();
+          final previousTab = _tabIds[_index];
+          final nextTab = _tabIds[i];
+          logger.logNavigationAction(
+            'tab_switch',
+            fromRoute: previousTab,
+            toRoute: nextTab,
+          );
+          setState(() => _index = i);
+        },
       ),
     );
   }

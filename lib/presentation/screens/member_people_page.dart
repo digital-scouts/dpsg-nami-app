@@ -6,6 +6,7 @@ import '../../l10n/app_localizations.dart';
 import '../model/app_settings_model.dart';
 import '../model/arbeitskontext_model.dart';
 import '../model/auth_session_model.dart';
+import '../navigation/app_router.dart';
 import '../widgets/member_list.dart';
 import '../widgets/member_list_directory.dart';
 import '../widgets/member_list_tile.dart';
@@ -38,6 +39,10 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
   Future<void> _openMemberDetails(BuildContext context, Mitglied member) async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
+        settings: RouteSettings(
+          name: AppRoutes.memberDetail,
+          arguments: member.mitgliedsnummer,
+        ),
         builder: (_) => MemberDetailPage(mitglied: member),
       ),
     );

@@ -139,7 +139,15 @@ class AuthSessionModel extends ChangeNotifier {
   }
 
   Future<void> signIn() async {
-    await _logger.log('auth_flow', 'Login gestartet');
+    await _logger.logInfo(
+      'auth_flow',
+      'login started method=interactive_oauth',
+    );
+    await _logger.trackAuthFlow(
+      'login',
+      'started',
+      properties: const {'method': 'interactive_oauth'},
+    );
     final previousState = _state;
     _state = AuthState.authenticating;
     _errorMessage = null;
@@ -149,17 +157,46 @@ class AuthSessionModel extends ChangeNotifier {
       final authenticatedSession = await _oauthService
           .authenticateInteractive();
       await _completeSuccessfulSignIn(authenticatedSession);
-      await _logger.log('auth_flow', 'Login erfolgreich abgeschlossen');
+      await _logger.logInfo(
+        'auth_flow',
+        'login success method=interactive_oauth',
+      );
+      await _logger.trackAuthFlow(
+        'login',
+        'success',
+        properties: const {'method': 'interactive_oauth'},
+      );
       notifyListeners();
     } catch (error, stack) {
       if (error is HitobitoAuthException &&
           error.isExpectedInteractionFailure) {
-        await _logger.log(
+        await _logger.logInfo(
           'auth_flow',
-          'OAuth-Login nicht abgeschlossen: $error',
+          'login cancelled method=interactive_oauth error_type=${error.runtimeType}',
+        );
+        await _logger.trackAuthFlow(
+          'login',
+          'cancelled',
+          properties: {
+            'method': 'interactive_oauth',
+            'error_type': error.runtimeType.toString(),
+          },
         );
       } else {
-        await _logger.log('auth', 'OAuth-Login fehlgeschlagen: $error\n$stack');
+        await _logger.logError(
+          'auth',
+          'login failure method=interactive_oauth',
+          error: error,
+          stackTrace: stack,
+        );
+        await _logger.trackAuthFlow(
+          'login',
+          'failure',
+          properties: {
+            'method': 'interactive_oauth',
+            'error_type': error.runtimeType.toString(),
+          },
+        );
       }
       _errorMessage = error.toString();
       _state = previousState;
@@ -170,7 +207,15 @@ class AuthSessionModel extends ChangeNotifier {
   Future<void> signInWithAuthenticatedSession(
     AuthSession authenticatedSession,
   ) async {
-    await _logger.log('auth_flow', 'Login mit bestaetigter Session gestartet');
+    await _logger.logInfo(
+      'auth_flow',
+      'login started method=authenticated_session',
+    );
+    await _logger.trackAuthFlow(
+      'login',
+      'started',
+      properties: const {'method': 'authenticated_session'},
+    );
     final previousState = _state;
     _state = AuthState.authenticating;
     _errorMessage = null;
@@ -178,15 +223,30 @@ class AuthSessionModel extends ChangeNotifier {
 
     try {
       await _completeSuccessfulSignIn(authenticatedSession);
-      await _logger.log(
+      await _logger.logInfo(
         'auth_flow',
-        'Login mit bestaetigter Session abgeschlossen',
+        'login success method=authenticated_session',
+      );
+      await _logger.trackAuthFlow(
+        'login',
+        'success',
+        properties: const {'method': 'authenticated_session'},
       );
       notifyListeners();
     } catch (error, stack) {
-      await _logger.log(
+      await _logger.logError(
         'auth',
-        'OAuth-Login mit bestaetigter Session fehlgeschlagen: $error\n$stack',
+        'login failure method=authenticated_session',
+        error: error,
+        stackTrace: stack,
+      );
+      await _logger.trackAuthFlow(
+        'login',
+        'failure',
+        properties: {
+          'method': 'authenticated_session',
+          'error_type': error.runtimeType.toString(),
+        },
       );
       _errorMessage = error.toString();
       _state = previousState;
@@ -256,7 +316,8 @@ class AuthSessionModel extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    await _logger.log('auth_flow', 'Logout gestartet');
+    await _logger.logInfo('auth_flow', 'logout started');
+    await _logger.trackAuthFlow('logout', 'started');
     await _repository.clear();
     await _profileRepository.clear();
     await _sensitiveStorageService.purgeSensitiveData();
@@ -273,9 +334,14 @@ class AuthSessionModel extends ChangeNotifier {
     _remoteAccessIssueMessage = null;
     _requiresInteractiveLogin = false;
     _state = AuthState.signedOut;
-    await _logger.log(
+    await _logger.logInfo(
       'auth_flow',
-      'Logout abgeschlossen, sensible Daten geloescht',
+      'logout success sensitive_data_cleared=true',
+    );
+    await _logger.trackAuthFlow(
+      'logout',
+      'success',
+      properties: const {'sensitive_data_cleared': true},
     );
     notifyListeners();
   }

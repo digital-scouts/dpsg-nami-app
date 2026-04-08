@@ -105,6 +105,92 @@ void main() {
     expect(find.text('Sued'), findsNothing);
   });
 
+  testWidgets('blendet Zentrieren aus, solange die Suche offen ist', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          AppLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('de'), Locale('en')],
+        locale: const Locale('de'),
+        home: SettingsMapPage(
+          repository: _FakeDioceseBoundaryRepository(),
+          stammRepository: _FakeStammMapMarkerRepository(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('settings-map-recenter-button')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('settings-map-search-button')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('settings-map-search-field')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('settings-map-recenter-button')),
+      findsNothing,
+    );
+  });
+
+  testWidgets(
+    'blendet den Such-Button erst nach der Schließen-Animation wieder ein',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            AppLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('de'), Locale('en')],
+          locale: const Locale('de'),
+          home: SettingsMapPage(
+            repository: _FakeDioceseBoundaryRepository(),
+            stammRepository: _FakeStammMapMarkerRepository(),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('settings-map-search-button')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('settings-map-search-close-button')),
+      );
+      await tester.pump();
+
+      expect(
+        find.byKey(const ValueKey('settings-map-search-button')),
+        findsNothing,
+      );
+
+      await tester.pump(const Duration(milliseconds: 250));
+
+      expect(
+        find.byKey(const ValueKey('settings-map-search-button')),
+        findsOneWidget,
+      );
+    },
+  );
+
   testWidgets(
     'zeigt den Namen und den Website-Link eines Stammes nach Marker-Klick',
     (tester) async {

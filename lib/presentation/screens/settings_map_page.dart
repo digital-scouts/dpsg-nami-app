@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -40,6 +42,12 @@ class SettingsMapPage extends StatefulWidget {
 }
 
 class _SettingsMapPageState extends State<SettingsMapPage> {
+  static const Duration _searchCloseButtonDelay = Duration(milliseconds: 130);
+  static const Duration _polygonHoldSelectionDelay = Duration(
+    milliseconds: 100,
+  );
+  static const double _polygonHoldMoveTolerance = 12;
+
   late Future<List<DioceseBoundary>> _future;
   late final StammMapMarkerRepository _stammRepository;
   final MapController _mapController = MapController();
@@ -51,6 +59,11 @@ class _SettingsMapPageState extends State<SettingsMapPage> {
   List<StammMapMarker> _stammMarkers = const [];
   double _currentZoom = 6;
   bool _isSearchOpen = false;
+  bool _showCollapsedSearchButton = true;
+  Timer? _searchButtonRevealTimer;
+  Timer? _polygonHoldSelectionTimer;
+  int? _polygonHoldPointer;
+  Offset? _polygonHoldStartPosition;
 
   @override
   void initState() {
@@ -62,15 +75,14 @@ class _SettingsMapPageState extends State<SettingsMapPage> {
     _selectedBoundaryId = widget.initialSelectedBoundaryId;
     _selectedStammMarkerId = widget.initialSelectedStammMarkerId;
     _future = _loadBoundaries();
-    _polygonHitNotifier.addListener(_handlePolygonHitChange);
     _loadStammMarkers();
   }
 
   @override
   void dispose() {
-    _polygonHitNotifier
-      ..removeListener(_handlePolygonHitChange)
-      ..dispose();
+    _searchButtonRevealTimer?.cancel();
+    _polygonHoldSelectionTimer?.cancel();
+    _polygonHitNotifier.dispose();
     _searchController
       ..removeListener(_handleSearchTextChange)
       ..dispose();
@@ -85,19 +97,60 @@ class _SettingsMapPageState extends State<SettingsMapPage> {
     return repository.loadBoundaries();
   }
 
-  void _handlePolygonHitChange() {
+  void _startPolygonHoldSelection(PointerDownEvent event) {
+    if (_polygonHoldPointer != null && _polygonHoldPointer != event.pointer) {
+      _cancelPolygonHoldSelection();
+      return;
+    }
+
+    _polygonHoldSelectionTimer?.cancel();
+    _polygonHoldPointer = event.pointer;
+    _polygonHoldStartPosition = event.position;
+    _polygonHoldSelectionTimer = Timer(
+      _polygonHoldSelectionDelay,
+      _selectBoundaryFromCurrentPolygonHit,
+    );
+  }
+
+  void _updatePolygonHoldSelection(PointerMoveEvent event) {
+    if (_polygonHoldPointer != event.pointer ||
+        _polygonHoldStartPosition == null) {
+      return;
+    }
+
+    if ((event.position - _polygonHoldStartPosition!).distance >
+        _polygonHoldMoveTolerance) {
+      _cancelPolygonHoldSelection();
+    }
+  }
+
+  void _cancelPolygonHoldSelection() {
+    _polygonHoldSelectionTimer?.cancel();
+    _polygonHoldPointer = null;
+    _polygonHoldStartPosition = null;
+  }
+
+  void _selectBoundaryFromCurrentPolygonHit() {
+    _polygonHoldSelectionTimer?.cancel();
+    _polygonHoldPointer = null;
+    _polygonHoldStartPosition = null;
+
+    if (!mounted) {
+      return;
+    }
+
     final result = _polygonHitNotifier.value;
     final nextSelectedBoundaryId = result == null || result.hitValues.isEmpty
         ? null
         : result.hitValues.last;
-    if (_selectedBoundaryId == nextSelectedBoundaryId) {
+    if (nextSelectedBoundaryId == null ||
+        _selectedBoundaryId == nextSelectedBoundaryId) {
       return;
     }
+
     setState(() {
       _selectedBoundaryId = nextSelectedBoundaryId;
-      if (nextSelectedBoundaryId != null) {
-        _selectedStammMarkerId = null;
-      }
+      _selectedStammMarkerId = null;
     });
   }
 
@@ -135,8 +188,10 @@ class _SettingsMapPageState extends State<SettingsMapPage> {
     if (_isSearchOpen) {
       return;
     }
+    _searchButtonRevealTimer?.cancel();
     setState(() {
       _isSearchOpen = true;
+      _showCollapsedSearchButton = true;
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
@@ -152,8 +207,20 @@ class _SettingsMapPageState extends State<SettingsMapPage> {
     if (!_isSearchOpen) {
       return;
     }
+
+    _searchButtonRevealTimer?.cancel();
     setState(() {
       _isSearchOpen = false;
+      _showCollapsedSearchButton = false;
+    });
+
+    _searchButtonRevealTimer = Timer(_searchCloseButtonDelay, () {
+      if (!mounted || _isSearchOpen) {
+        return;
+      }
+      setState(() {
+        _showCollapsedSearchButton = true;
+      });
     });
   }
 
@@ -331,10 +398,21 @@ class _SettingsMapPageState extends State<SettingsMapPage> {
 
     _searchFocusNode.unfocus();
     _searchController.clear();
+    _searchButtonRevealTimer?.cancel();
     setState(() {
       _isSearchOpen = false;
+      _showCollapsedSearchButton = false;
       _selectedBoundaryId = entry.boundary?.id;
       _selectedStammMarkerId = entry.marker?.id;
+    });
+
+    _searchButtonRevealTimer = Timer(_searchCloseButtonDelay, () {
+      if (!mounted || _isSearchOpen) {
+        return;
+      }
+      setState(() {
+        _showCollapsedSearchButton = true;
+      });
     });
 
     if (entry.marker != null) {
@@ -462,6 +540,10 @@ class _SettingsMapPageState extends State<SettingsMapPage> {
                           nextZoom >= dvMaxVisibleZoom &&
                           _selectedBoundaryId != null;
 
+                      if (hasGesture || zoomChanged) {
+                        _cancelPolygonHoldSelection();
+                      }
+
                       if (!zoomChanged && !shouldDisableBoundarySelection) {
                         return;
                       }
@@ -485,14 +567,21 @@ class _SettingsMapPageState extends State<SettingsMapPage> {
                           MapTileCacheService.userAgentPackageName,
                       maxZoom: 19,
                     ),
-                    PolygonLayer<String>(
-                      polygons: _buildPolygons(
-                        boundaries,
-                        selectedBoundaryId: _selectedBoundaryId,
-                        showBorderOnly: _currentZoom >= dvMaxVisibleZoom,
+                    Listener(
+                      behavior: HitTestBehavior.deferToChild,
+                      onPointerDown: _startPolygonHoldSelection,
+                      onPointerMove: _updatePolygonHoldSelection,
+                      onPointerUp: (_) => _cancelPolygonHoldSelection(),
+                      onPointerCancel: (_) => _cancelPolygonHoldSelection(),
+                      child: PolygonLayer<String>(
+                        polygons: _buildPolygons(
+                          boundaries,
+                          selectedBoundaryId: _selectedBoundaryId,
+                          showBorderOnly: _currentZoom >= dvMaxVisibleZoom,
+                        ),
+                        polygonLabels: false,
+                        hitNotifier: _polygonHitNotifier,
                       ),
-                      polygonLabels: false,
-                      hitNotifier: _polygonHitNotifier,
                     ),
                     StammClusterLayer(
                       markers: _stammMarkers,
@@ -544,6 +633,8 @@ class _SettingsMapPageState extends State<SettingsMapPage> {
                               children: [
                                 _MapSearchControl(
                                   isOpen: _isSearchOpen,
+                                  showCollapsedButton:
+                                      _showCollapsedSearchButton,
                                   controller: _searchController,
                                   focusNode: _searchFocusNode,
                                   hintText: t.t('settings_map_search_hint'),
@@ -555,15 +646,17 @@ class _SettingsMapPageState extends State<SettingsMapPage> {
                                   onOpen: _openSearch,
                                   onClose: _closeSearch,
                                 ),
-                                const SizedBox(height: 8),
-                                _MapOverlayButton(
-                                  key: const ValueKey(
-                                    'settings-map-recenter-button',
+                                if (!_isSearchOpen) ...[
+                                  const SizedBox(height: 8),
+                                  _MapOverlayButton(
+                                    key: const ValueKey(
+                                      'settings-map-recenter-button',
+                                    ),
+                                    tooltip: t.t('settings_map_recenter'),
+                                    icon: Icons.center_focus_strong,
+                                    onPressed: () => _recenterMap(allPoints),
                                   ),
-                                  tooltip: t.t('settings_map_recenter'),
-                                  icon: Icons.center_focus_strong,
-                                  onPressed: () => _recenterMap(allPoints),
-                                ),
+                                ],
                                 if (_isSearchOpen &&
                                     _searchController.text.trim().isNotEmpty)
                                   Padding(
@@ -781,6 +874,7 @@ class _MapOverlayButton extends StatelessWidget {
 class _MapSearchControl extends StatelessWidget {
   const _MapSearchControl({
     required this.isOpen,
+    required this.showCollapsedButton,
     required this.controller,
     required this.focusNode,
     required this.hintText,
@@ -792,6 +886,7 @@ class _MapSearchControl extends StatelessWidget {
   });
 
   final bool isOpen;
+  final bool showCollapsedButton;
   final TextEditingController controller;
   final FocusNode focusNode;
   final String hintText;
@@ -853,12 +948,14 @@ class _MapSearchControl extends StatelessWidget {
                   ),
                 ),
               )
-            : _MapOverlayButton(
+            : showCollapsedButton
+            ? _MapOverlayButton(
                 key: const ValueKey('settings-map-search-button'),
                 tooltip: openTooltip,
                 icon: Icons.search,
                 onPressed: onOpen,
-              ),
+              )
+            : const SizedBox(width: 48, height: 48),
       ),
     );
   }

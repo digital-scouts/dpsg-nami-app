@@ -556,7 +556,7 @@ void main() {
       expect(logger.entries.where((entry) => entry.service == 'auth'), isEmpty);
       expect(
         logger.entries.where(
-          (entry) => entry.message.contains('OAuth-Login nicht abgeschlossen'),
+          (entry) => entry.message.contains('login cancelled'),
         ),
         isNotEmpty,
       );
@@ -896,6 +896,27 @@ class _FakeLoggerService extends LoggerService {
   @override
   Future<void> log(String service, String message) async {
     entries.add(_LogEntry(service: service, message: message));
+  }
+
+  @override
+  Future<void> logInfo(String service, String message) async {
+    entries.add(_LogEntry(service: service, message: message));
+  }
+
+  @override
+  Future<void> logWarn(String service, String message) async {
+    entries.add(_LogEntry(service: service, message: message));
+  }
+
+  @override
+  Future<void> logError(
+    String service,
+    String message, {
+    Object? error,
+    StackTrace? stackTrace,
+  }) async {
+    final suffix = error == null ? '' : ' ${error.runtimeType}: $error';
+    entries.add(_LogEntry(service: service, message: '$message$suffix'));
   }
 
   @override

@@ -129,6 +129,7 @@ void main() {
         authSessionRepository: authSessionRepository,
         sensitiveStorageService: sensitiveStorageService,
         logFileProvider: logger!.getLogFile,
+        clearLogs: logger!.clearAllLogs,
         clearMapCache: mapTileCacheService.deleteRoot,
       );
 
@@ -169,27 +170,34 @@ void main() {
       // Globale Fehlerbehandlung: Framework- und ungefangene Fehler loggen/tracken
       FlutterError.onError = (FlutterErrorDetails details) async {
         FlutterError.presentError(details);
-        await logger?.log(
+        await logger?.logError(
           'error',
-          'FlutterError: ${details.exceptionAsString()}',
+          'FlutterError',
+          error: details.exception,
+          stackTrace: details.stack,
         );
-        await logger?.trackEvent('runtime_error', {
-          'type': 'flutter',
-          'exception': details.exceptionAsString(),
-          'stack': details.stack?.toString(),
-        });
+        await logger?.trackRuntimeError(
+          source: 'flutter',
+          error: details.exception,
+          stackTrace: details.stack,
+        );
       };
 
       PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
         // Ungefangene, asynchrone Fehler
         // ignore: discarded_futures
-        logger?.log('error', 'Uncaught: $error\n$stack');
+        logger?.logError(
+          'error',
+          'Uncaught runtime error',
+          error: error,
+          stackTrace: stack,
+        );
         // ignore: discarded_futures
-        logger?.trackEvent('runtime_error', {
-          'type': 'uncaught',
-          'exception': error.toString(),
-          'stack': stack.toString(),
-        });
+        logger?.trackRuntimeError(
+          source: 'uncaught',
+          error: error,
+          stackTrace: stack,
+        );
         return true; // Fehler als behandelt markieren
       };
 
@@ -230,11 +238,11 @@ void main() {
         // ignore: discarded_futures
         logger!.log('error', 'Zoned: $error\n$stack');
         // ignore: discarded_futures
-        logger!.trackEvent('runtime_error', {
-          'type': 'zoned',
-          'exception': error.toString(),
-          'stack': stack.toString(),
-        });
+        logger!.trackRuntimeError(
+          source: 'zoned',
+          error: error,
+          stackTrace: stack,
+        );
       } else {
         // Fallback: zur Not in stdout schreiben, falls Logger noch nicht bereit ist
         // ignore: avoid_print
@@ -633,6 +641,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               darkTheme: darkTheme,
               themeMode: themeModel.currentMode,
               navigatorKey: navigatorKey,
+              navigatorObservers: [
+                AppNavigationLoggingObserver(logger: logger),
+              ],
               scaffoldMessengerKey: scaffoldMessengerKey,
               onGenerateRoute: onGenerateRoute,
               localizationsDelegates: [
