@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_email_sender/flutter_email_sender.dart';
 import 'package:nami/domain/auth/auth_state.dart';
+import 'package:nami/domain/maps/stamm_map_marker_repository.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/main.dart' show navigatorKey;
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
@@ -16,12 +17,14 @@ import '../../services/hitobito_auth_config_controller.dart';
 import '../../services/hitobito_oauth_service.dart';
 import '../../services/logger_service.dart';
 import '../../services/map_tile_cache_service.dart';
+import '../../services/stamm_map_sync_service.dart';
 
 class DebugToolsPage extends StatefulWidget {
   const DebugToolsPage({
     super.key,
     this.oauthServiceFactory,
     this.onResetAllData,
+    this.stammMapRepository,
   });
 
   final HitobitoOauthService Function(
@@ -30,6 +33,7 @@ class DebugToolsPage extends StatefulWidget {
   )?
   oauthServiceFactory;
   final Future<void> Function()? onResetAllData;
+  final StammMapMarkerRepository? stammMapRepository;
 
   @override
   State<DebugToolsPage> createState() => _DebugToolsPageState();
@@ -37,6 +41,7 @@ class DebugToolsPage extends StatefulWidget {
 
 class _DebugToolsPageState extends State<DebugToolsPage> {
   final ScrollController _scrollController = ScrollController();
+  bool _isRefreshingStammMarkers = false;
 
   @override
   void dispose() {
@@ -102,10 +107,56 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
     } catch (_) {}
   }
 
+  Future<void> _refreshStammMarkers(LoggerService logger) async {
+    final repository =
+        widget.stammMapRepository ?? StammMapSyncService(logger: logger);
+    setState(() {
+      _isRefreshingStammMarkers = true;
+    });
+
+    try {
+      final snapshot = await repository.forceRefresh();
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Stammesuche aktualisiert: ${snapshot.markers.length} Marker geladen.',
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Stammesuche konnte nicht aktualisiert werden.'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRefreshingStammMarkers = false;
+        });
+      }
+    }
+  }
+
+  MapTileCacheService _resolveMapTileCacheService(LoggerService logger) {
+    try {
+      return context.read<MapTileCacheService>();
+    } catch (_) {
+      return MapTileCacheService(logger: logger);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final logger = Provider.of<LoggerService>(context, listen: false);
+    final mapTileCacheService = _resolveMapTileCacheService(logger);
     final authModel = context.watch<AuthSessionModel>();
     final arbeitskontextModel = context.read<ArbeitskontextModel>();
     final configController = context.watch<HitobitoAuthConfigController>();
@@ -268,7 +319,7 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
               const Text('Karten-Cache'),
               const SizedBox(height: 8),
               FutureBuilder<double>(
-                future: context.read<MapTileCacheService>().realSizeKiB(),
+                future: mapTileCacheService.realSizeKiB(),
                 builder: (context, snapshot) {
                   final text = switch (snapshot.connectionState) {
                     ConnectionState.done when snapshot.hasData =>
@@ -283,6 +334,18 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                     subtitle: Text(text),
                   );
                 },
+              ),
+              const SizedBox(height: 8),
+              ElevatedButton.icon(
+                onPressed: _isRefreshingStammMarkers
+                    ? null
+                    : () => _refreshStammMarkers(logger),
+                icon: const Icon(Icons.travel_explore_outlined),
+                label: Text(
+                  _isRefreshingStammMarkers
+                      ? 'Stammesuche wird aktualisiert ...'
+                      : 'Stammesuche jetzt laden',
+                ),
               ),
 
               const SizedBox(height: 20),

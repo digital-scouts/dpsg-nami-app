@@ -72,6 +72,8 @@ dependencies:
   flutter_svg: ^2.2.3
   awesome_snackbar_content: ^0.1.8
   syncfusion_flutter_sliders: ^31.2.16
+  xml: ^6.6.1
+  flutter_map_marker_cluster: ^8.2.2
 
 dev_dependencies:
   flutter_test:

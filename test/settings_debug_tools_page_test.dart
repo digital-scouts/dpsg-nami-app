@@ -12,6 +12,8 @@ import 'package:nami/domain/auth/auth_profile_repository.dart';
 import 'package:nami/domain/auth/auth_session.dart';
 import 'package:nami/domain/auth/auth_session_repository.dart';
 import 'package:nami/domain/auth/auth_state.dart';
+import 'package:nami/domain/maps/stamm_map_marker.dart';
+import 'package:nami/domain/maps/stamm_map_marker_repository.dart';
 import 'package:nami/domain/settings/app_settings.dart';
 import 'package:nami/domain/settings/app_settings_repository.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
@@ -206,6 +208,82 @@ void main() {
 
     expect(resetCalled, isTrue);
   });
+
+  testWidgets('laedt Stammesuche manuell nach', (tester) async {
+    final logger = _FakeLoggerService();
+    final groupsService = _FakeHitobitoGroupsService();
+    final peopleService = HitobitoPeopleService(config: groupsService.config);
+    final configController = HitobitoAuthConfigController(
+      sensitiveStorageService: _FakeSensitiveStorageService(),
+      oauthService: _MutableOauthService(),
+      groupsService: groupsService,
+      peopleService: peopleService,
+      logger: logger,
+      envConfig: groupsService.config,
+    );
+    await configController.initialize();
+
+    final authModel = AuthSessionModel(
+      repository: _InMemoryAuthSessionRepository(),
+      profileRepository: _InMemoryAuthProfileRepository(),
+      oauthService: _MutableOauthService(),
+      biometricLockService: _FakeBiometricLockService(),
+      sensitiveStorageService: _FakeSensitiveStorageService(),
+      retentionPolicy: HitobitoDataRetentionPolicy(
+        maxDataAge: const Duration(days: 90),
+        refreshInterval: const Duration(hours: 24),
+      ),
+      logger: logger,
+    );
+    final arbeitskontextModel = ArbeitskontextModel(
+      localRepository: _ImmediateArbeitskontextLocalRepository(),
+      readModelRepository: _FakeArbeitskontextReadModelRepository(),
+      groupsService: groupsService,
+      bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+      logger: logger,
+    );
+    final stammRepository = _FakeStammMapRepository();
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
+          ChangeNotifierProvider<ArbeitskontextModel>.value(
+            value: arbeitskontextModel,
+          ),
+          ChangeNotifierProvider<HitobitoAuthConfigController>.value(
+            value: configController,
+          ),
+          Provider<LoggerService>.value(value: logger),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            AppLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('de'), Locale('en')],
+          locale: const Locale('de'),
+          home: DebugToolsPage(stammMapRepository: stammRepository),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView), const Offset(0, -700));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Stammesuche jetzt laden'));
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(stammRepository.forceRefreshCalls, 1);
+    expect(
+      find.text('Stammesuche aktualisiert: 1 Marker geladen.'),
+      findsOneWidget,
+    );
+  });
 }
 
 class _MutableOauthService extends HitobitoOauthService {
@@ -340,6 +418,43 @@ class _InMemoryAuthProfileRepository implements AuthProfileRepository {
   @override
   Future<void> saveLastSyncAt(DateTime timestamp) async {
     _lastSyncAt = timestamp;
+  }
+}
+
+class _FakeStammMapRepository implements StammMapMarkerRepository {
+  int forceRefreshCalls = 0;
+
+  @override
+  Future<StammMapMarkerSnapshot> forceRefresh() async {
+    forceRefreshCalls++;
+    return StammMapMarkerSnapshot(
+      markers: const [
+        StammMapMarker(
+          id: '1',
+          name: 'Teststamm',
+          latitude: 53.0,
+          longitude: 10.0,
+          city: 'Hamburg',
+          postalCode: '20095',
+        ),
+      ],
+      fetchedAt: DateTime(2026, 4, 8),
+      source: StammMapMarkerSource.remote,
+    );
+  }
+
+  @override
+  Future<StammMapMarkerSnapshot> loadCachedOrFallback() async {
+    return StammMapMarkerSnapshot(
+      markers: const [],
+      fetchedAt: DateTime(2026, 4, 1),
+      source: StammMapMarkerSource.asset,
+    );
+  }
+
+  @override
+  Future<StammMapMarkerSnapshot?> refreshIfDue() async {
+    return null;
   }
 }
 

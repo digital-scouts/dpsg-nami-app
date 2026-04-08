@@ -7,6 +7,9 @@ class MapsEnv {
   static double get stammOfflineRadiusKm =>
       _positiveDouble('MAPS_STAMM_OFFLINE_RADIUS_KM', fallback: 5);
 
+    static double get stammMinVisibleZoom =>
+      _nonNegativeDouble('MAPS_STAMM_MIN_VISIBLE_ZOOM', fallback: 0);
+
   static double get memberOfflineRadiusKm =>
       _positiveDouble('MAPS_MEMBER_OFFLINE_RADIUS_KM', fallback: 0.5);
 
@@ -39,6 +42,15 @@ class MapsEnv {
     final raw = _env(key);
     final value = double.tryParse(raw ?? '');
     if (value == null || value <= 0) {
+      return fallback;
+    }
+    return value;
+  }
+
+  static double _nonNegativeDouble(String key, {required double fallback}) {
+    final raw = _env(key);
+    final value = double.tryParse(raw ?? '');
+    if (value == null || value < 0) {
       return fallback;
     }
     return value;
