@@ -66,21 +66,11 @@ void main() {
 
     var now = DateTime(2025, 12, 9, 12, 0, 0);
     DateTime nowProvider() => now;
-    bool hookCalled = false;
 
     final logger = LoggerService(
       settingsRepository: repo,
       navigatorKey: GlobalKey<NavigatorState>(),
       logFileProvider: () async => logFile,
-      wiredashEventHook: (name, props) async {
-        if (name == 'session_duration') {
-          hookCalled = true;
-        }
-        await logFile.writeAsString(
-          '[hook] $name ${props['seconds']}\n',
-          mode: FileMode.append,
-        );
-      },
     );
 
     final usage = UsageTrackingService(
@@ -93,7 +83,8 @@ void main() {
 
     final exists = await logFile.exists();
     expect(exists, isTrue);
-    expect(hookCalled, isTrue);
+    final content = await logFile.readAsString();
+    expect(content.contains('[usage] session_duration seconds=42'), isTrue);
   });
 
   test('UsageTrackingService does nothing if not started', () async {

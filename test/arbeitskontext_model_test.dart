@@ -414,7 +414,9 @@ void main() {
       expect(
         logger.messages,
         contains(
-          contains('Arbeitskontext-Wechsel fehlgeschlagen: Bad state: offline'),
+          contains(
+            'layer switch failure from=11 to=20 StateError: Bad state: offline',
+          ),
         ),
       );
     },
@@ -1229,6 +1231,27 @@ class _FakeLoggerService extends LoggerService {
   @override
   Future<void> log(String service, String message) async {
     messages.add(message);
+  }
+
+  @override
+  Future<void> logInfo(String service, String message) async {
+    messages.add(message);
+  }
+
+  @override
+  Future<void> logWarn(String service, String message) async {
+    messages.add(message);
+  }
+
+  @override
+  Future<void> logError(
+    String service,
+    String message, {
+    Object? error,
+    StackTrace? stackTrace,
+  }) async {
+    final suffix = error == null ? '' : ' ${error.runtimeType}: $error';
+    messages.add('$message$suffix');
   }
 }
 

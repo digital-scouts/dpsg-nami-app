@@ -42,6 +42,19 @@ class DebugToolsPage extends StatefulWidget {
 class _DebugToolsPageState extends State<DebugToolsPage> {
   final ScrollController _scrollController = ScrollController();
   bool _isRefreshingStammMarkers = false;
+  String _selectedLogSelectionId = LoggerService.allLogsSelectionId;
+  int _logFilesRevision = 0;
+
+  Future<void> _trackDebugAction(
+    LoggerService logger,
+    String action, {
+    Map<String, Object?> properties = const <String, Object?>{},
+  }) {
+    return logger.trackAndLog('debug_tools', 'debug_action', {
+      'action': action,
+      ...properties,
+    });
+  }
 
   @override
   void dispose() {
@@ -49,7 +62,11 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
     super.dispose();
   }
 
-  Future<void> _openOauthOverrideDialog(BuildContext context) async {
+  Future<void> _openOauthOverrideDialog(
+    BuildContext context,
+    LoggerService logger,
+  ) async {
+    await _trackDebugAction(logger, 'oauth_override_open');
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -58,8 +75,12 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
     );
   }
 
-  Future<void> _confirmAndResetApp(BuildContext context) async {
+  Future<void> _confirmAndResetApp(
+    BuildContext context,
+    LoggerService logger,
+  ) async {
     final t = AppLocalizations.of(context);
+    await _trackDebugAction(logger, 'reset_app_prompt_open');
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
@@ -68,11 +89,21 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
           content: Text(t.t('debug_reset_confirm_body')),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
+              onPressed: () async {
+                await _trackDebugAction(logger, 'reset_app_prompt_cancel');
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop(false);
+                }
+              },
               child: Text(t.t('ignore')),
             ),
             FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
+              onPressed: () async {
+                await _trackDebugAction(logger, 'reset_app_prompt_confirm');
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop(true);
+                }
+              },
               child: Text(t.t('debug_reset_confirm_action')),
             ),
           ],
@@ -89,9 +120,15 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
     await handler();
   }
 
-  Future<void> sendLogsEmail(File file) async {
-    final exists = await file.exists();
-    if (!exists) {
+  Future<void> sendLogsEmail(List<File> files) async {
+    final existingFiles = <File>[];
+    for (final file in files) {
+      if (await file.exists()) {
+        existingFiles.add(file);
+      }
+    }
+
+    if (existingFiles.isEmpty) {
       return;
     }
     try {
@@ -99,7 +136,7 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
         Email(
           body:
               'Beschreibe dein Problem. Wie hat sich die App verhalten, was ist passiert? Was hättest du erwartet?',
-          attachmentPaths: [file.path],
+          attachmentPaths: existingFiles.map((file) => file.path).toList(),
           subject: "NaMi App Logs",
           recipients: ["dev@jannecklange.de"],
         ),
@@ -107,9 +144,14 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
     } catch (_) {}
   }
 
+  Future<List<String>> _loadLogFileNames(LoggerService logger) {
+    return logger.listLogFileNames();
+  }
+
   Future<void> _refreshStammMarkers(LoggerService logger) async {
     final repository =
         widget.stammMapRepository ?? StammMapSyncService(logger: logger);
+    await _trackDebugAction(logger, 'refresh_stamm_markers');
     setState(() {
       _isRefreshingStammMarkers = true;
     });
@@ -144,6 +186,22 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
     }
   }
 
+  Future<void> _deleteMapCache(
+    LoggerService logger,
+    MapTileCacheService mapTileCacheService,
+  ) async {
+    await _trackDebugAction(logger, 'delete_map_cache');
+    await mapTileCacheService.deleteRoot();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {});
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Kartendaten gelöscht')));
+  }
+
   MapTileCacheService _resolveMapTileCacheService(LoggerService logger) {
     try {
       return context.read<MapTileCacheService>();
@@ -155,6 +213,8 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final logger = Provider.of<LoggerService>(context, listen: false);
     final mapTileCacheService = _resolveMapTileCacheService(logger);
     final authModel = context.watch<AuthSessionModel>();
@@ -162,233 +222,512 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
     final configController = context.watch<HitobitoAuthConfigController>();
     return Scaffold(
       appBar: AppBar(title: const Text('Debug & Tools')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Scrollbar(
-          controller: _scrollController,
-          thumbVisibility: true,
-          child: ListView(
+      body: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              colorScheme.surfaceContainerHighest.withValues(alpha: 0.42),
+              colorScheme.surface,
+            ],
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(5),
+          child: Scrollbar(
             controller: _scrollController,
-            children: [
-              const Text('Log-Datei verwalten'),
-              const SizedBox(height: 8),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  final file = await logger.getLogFile();
-                  await sendLogsEmail(file);
-                },
-                icon: const Icon(Icons.mail_outline),
-                label: const Text('Log per Mail senden'),
-              ),
+            thumbVisibility: true,
+            child: ListView(
+              controller: _scrollController,
+              children: [
+                _DebugSectionCard(
+                  icon: Icons.article_outlined,
+                  title: 'Logs & Diagnose',
+                  subtitle:
+                      'Logdateien auswählen, prüfen, versenden oder gesammelt löschen.',
+                  child: FutureBuilder<List<String>>(
+                    key: ValueKey(_logFilesRevision),
+                    future: _loadLogFileNames(logger),
+                    builder: (context, snapshot) {
+                      final names = snapshot.data ?? const <String>[];
+                      final hasLogs = names.isNotEmpty;
+                      final selectedId = names.contains(_selectedLogSelectionId)
+                          ? _selectedLogSelectionId
+                          : LoggerService.allLogsSelectionId;
 
-              ElevatedButton.icon(
-                onPressed: () async {
-                  final file = await logger.getLogFile();
-                  final exists = await file.exists();
-                  if (exists) {
-                    await file.delete();
-                  }
-                  // Recreate empty file for continued logging
-                  await (await logger.getLogFile()).create(recursive: true);
+                      if (selectedId != _selectedLogSelectionId) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (!mounted) {
+                            return;
+                          }
+                          setState(() {
+                            _selectedLogSelectionId =
+                                LoggerService.allLogsSelectionId;
+                          });
+                        });
+                      }
 
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Logdatei gelöscht')),
-                  );
-                },
-                icon: const Icon(Icons.delete_outline),
-                label: const Text('Logs löschen'),
-              ),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  final file = await logger.getLogFile();
-                  final exists = await file.exists();
-                  final content = exists ? await file.readAsString() : '';
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: colorScheme.surfaceContainerHigh,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: colorScheme.outlineVariant,
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Log-Auswahl',
+                                  style: theme.textTheme.titleMedium,
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  hasLogs
+                                      ? '${names.length} Datei${names.length == 1 ? '' : 'en'} verfügbar'
+                                      : 'Aktuell sind keine Logdateien vorhanden.',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                DropdownButtonFormField<String>(
+                                  initialValue: selectedId,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Log-Auswahl',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  items: [
+                                    const DropdownMenuItem<String>(
+                                      value: LoggerService.allLogsSelectionId,
+                                      child: Text('Alle Dateien'),
+                                    ),
+                                    ...names.map(
+                                      (name) => DropdownMenuItem<String>(
+                                        value: name,
+                                        child: Text(name),
+                                      ),
+                                    ),
+                                  ],
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _selectedLogSelectionId =
+                                          value ??
+                                          LoggerService.allLogsSelectionId;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          _DebugButtonGroup(
+                            children: [
+                              _DebugActionButton(
+                                icon: Icons.mail_outline,
+                                label:
+                                    selectedId ==
+                                        LoggerService.allLogsSelectionId
+                                    ? 'Logs per Mail senden'
+                                    : 'Gewähltes Log per Mail senden',
+                                onPressed: !hasLogs
+                                    ? null
+                                    : () async {
+                                        await _trackDebugAction(
+                                          logger,
+                                          'send_logs_email',
+                                          properties: <String, Object?>{
+                                            'selection': selectedId,
+                                          },
+                                        );
+                                        final files = await logger
+                                            .resolveLogFiles(
+                                              selectionId: selectedId,
+                                            );
+                                        await sendLogsEmail(files);
+                                      },
+                              ),
+                              _DebugActionButton(
+                                icon: Icons.article_outlined,
+                                label:
+                                    selectedId ==
+                                        LoggerService.allLogsSelectionId
+                                    ? 'Logs anzeigen'
+                                    : 'Gewähltes Log anzeigen',
+                                onPressed: () async {
+                                  await _trackDebugAction(
+                                    logger,
+                                    'view_logs',
+                                    properties: <String, Object?>{
+                                      'selection': selectedId,
+                                    },
+                                  );
+                                  final content = await logger.readLogs(
+                                    selectionId: selectedId,
+                                  );
 
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => _LogViewerPage(content: content),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.article_outlined),
-                label: const Text('Log anzeigen'),
-              ),
+                                  if (!context.mounted) {
+                                    return;
+                                  }
 
-              const SizedBox(height: 20),
-              const Text('Feedback senden'),
-              const SizedBox(height: 8),
-
-              ElevatedButton.icon(
-                onPressed: () {
-                  final ctx = navigatorKey.currentContext;
-                  if (ctx != null) {
-                    Wiredash.of(ctx).show(inheritMaterialTheme: true);
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Wiredash konnte nicht gefunden werden (Root-Kontext fehlt).',
-                        ),
+                                  final title =
+                                      selectedId ==
+                                          LoggerService.allLogsSelectionId
+                                      ? 'Alle Logs anzeigen'
+                                      : '$selectedId anzeigen';
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      settings: const RouteSettings(
+                                        name: '/settings/debug/logs',
+                                      ),
+                                      builder: (_) => _LogViewerPage(
+                                        title: title,
+                                        content: content,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                              _DebugActionButton(
+                                icon: Icons.delete_outline,
+                                label: 'Logs löschen',
+                                isDestructive: true,
+                                buttonKey: const Key(
+                                  'debug_logs_delete_button',
+                                ),
+                                onPressed: !hasLogs
+                                    ? null
+                                    : () async {
+                                        await _trackDebugAction(
+                                          logger,
+                                          'delete_logs',
+                                          properties: <String, Object?>{
+                                            'selection': selectedId,
+                                          },
+                                        );
+                                        await logger.clearAllLogs();
+                                        if (!mounted) {
+                                          return;
+                                        }
+                                        setState(() {
+                                          _selectedLogSelectionId =
+                                              LoggerService.allLogsSelectionId;
+                                          _logFilesRevision++;
+                                        });
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Alle Logdateien gelöscht',
+                                            ),
+                                          ),
+                                        );
+                                      },
+                              ),
+                            ],
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _DebugSectionCard(
+                  icon: Icons.feedback_outlined,
+                  title: 'Feedback & Bewertung',
+                  subtitle:
+                      'Öffnet direkt die bestehenden Wiredash-Abläufe für Rückmeldungen und Bewertung.',
+                  child: _DebugButtonGroup(
+                    children: [
+                      _DebugActionButton(
+                        icon: Icons.feedback_outlined,
+                        label: 'Feedback senden',
+                        onPressed: () async {
+                          await _trackDebugAction(logger, 'open_feedback');
+                          final ctx = navigatorKey.currentContext;
+                          if (ctx != null) {
+                            Wiredash.of(ctx).show(inheritMaterialTheme: true);
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Wiredash konnte nicht gefunden werden (Root-Kontext fehlt).',
+                                ),
+                              ),
+                            );
+                          }
+                        },
                       ),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.feedback_outlined),
-                label: const Text('Feedback senden'),
-              ),
-              ElevatedButton.icon(
-                onPressed: () {
-                  final ctx = navigatorKey.currentContext;
-                  if (ctx != null) {
-                    Wiredash.of(ctx).showPromoterSurvey(force: true);
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Wiredash konnte nicht gefunden werden (Root-Kontext fehlt).',
-                        ),
+                      _DebugActionButton(
+                        icon: Icons.star_outline,
+                        label: 'App bewerten',
+                        onPressed: () async {
+                          await _trackDebugAction(logger, 'open_app_rating');
+                          final ctx = navigatorKey.currentContext;
+                          if (ctx != null) {
+                            Wiredash.of(ctx).showPromoterSurvey(force: true);
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Wiredash konnte nicht gefunden werden (Root-Kontext fehlt).',
+                                ),
+                              ),
+                            );
+                          }
+                        },
                       ),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.star_outline),
-                label: const Text('App bewerten'),
-              ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _DebugSectionCard(
+                  icon: Icons.sync_alt_outlined,
+                  title: 'Daten & Synchronisation',
+                  subtitle:
+                      'Manuelle Aktualisierung und technische Sicht auf Datenänderungen.',
+                  child: _DebugButtonGroup(
+                    children: [
+                      _DebugActionButton(
+                        icon: Icons.refresh_outlined,
+                        label: 'Daten jetzt aktualisieren',
+                        onPressed: authModel.isSyncingHitobitoData
+                            ? null
+                            : () async {
+                                await _trackDebugAction(
+                                  logger,
+                                  'sync_data_now',
+                                );
+                                await authModel.syncHitobitoData(
+                                  syncMembers: (accessToken) async {
+                                    await arbeitskontextModel.refreshFromRemote(
+                                      session: authModel.session,
+                                      profile: authModel.profile,
+                                    );
+                                  },
+                                  force: true,
+                                  trigger: 'debug_tools',
+                                );
 
-              const SizedBox(height: 20),
-              const Text('Daten aktualisieren'),
-              const SizedBox(height: 8),
+                                if (!context.mounted) {
+                                  return;
+                                }
 
-              ElevatedButton.icon(
-                onPressed: authModel.isSyncingHitobitoData
-                    ? null
-                    : () async {
-                        await authModel.syncHitobitoData(
-                          syncMembers: (accessToken) async {
-                            await arbeitskontextModel.refreshFromRemote(
-                              session: authModel.session,
-                              profile: authModel.profile,
+                                final messenger = ScaffoldMessenger.of(context);
+                                final message =
+                                    authModel.state == AuthState.reloginRequired
+                                    ? 'Neuanmeldung erforderlich, Daten konnten nicht synchronisiert werden.'
+                                    : (authModel.errorMessage?.isNotEmpty ==
+                                              true
+                                          ? 'Hitobito-Daten konnten nicht vollständig synchronisiert werden.'
+                                          : 'Hitobito-Daten wurden synchronisiert.');
+                                messenger.showSnackBar(
+                                  SnackBar(content: Text(message)),
+                                );
+                              },
+                      ),
+                      _DebugActionButton(
+                        icon: Icons.visibility_outlined,
+                        label: 'Datenänderungen anzeigen',
+                        onPressed: () async {
+                          await _trackDebugAction(logger, 'view_data_changes');
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Nicht implementiert: Datenänderungen angezeigt',
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _DebugSectionCard(
+                  icon: Icons.map_outlined,
+                  title: 'Karten & Cache',
+                  subtitle:
+                      'Status des Karten-Caches und manuelle Aktualisierung der Stammesuche.',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceContainerHigh,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: FutureBuilder<double>(
+                          future: mapTileCacheService.realSizeKiB(),
+                          builder: (context, snapshot) {
+                            final text = switch (snapshot.connectionState) {
+                              ConnectionState.done when snapshot.hasData =>
+                                _formatMapCacheSize(snapshot.data!),
+                              ConnectionState.done =>
+                                'Größe derzeit nicht verfügbar',
+                              _ => 'Größe wird geladen ...',
+                            };
+                            return Row(
+                              children: [
+                                Icon(
+                                  Icons.layers_outlined,
+                                  color: colorScheme.primary,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Offline-Karten',
+                                        style: theme.textTheme.titleMedium,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        text,
+                                        style: theme.textTheme.bodyMedium
+                                            ?.copyWith(
+                                              color:
+                                                  colorScheme.onSurfaceVariant,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             );
                           },
-                          force: true,
-                          trigger: 'debug_tools',
-                        );
-
-                        if (!context.mounted) {
-                          return;
-                        }
-
-                        final messenger = ScaffoldMessenger.of(context);
-                        final message =
-                            authModel.state == AuthState.reloginRequired
-                            ? 'Neuanmeldung erforderlich, Daten konnten nicht synchronisiert werden.'
-                            : (authModel.errorMessage?.isNotEmpty == true
-                                  ? 'Hitobito-Daten konnten nicht vollständig synchronisiert werden.'
-                                  : 'Hitobito-Daten wurden synchronisiert.');
-                        messenger.showSnackBar(
-                          SnackBar(content: Text(message)),
-                        );
-                      },
-                icon: const Icon(Icons.refresh_outlined),
-                label: const Text('Daten jetzt aktualisieren'),
-              ),
-              ElevatedButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Nicht implementiert: Datenänderungen angezeigt',
+                        ),
                       ),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.visibility_outlined),
-                label: const Text('Datenänderungen anzeigen'),
-              ),
-
-              const SizedBox(height: 20),
-              Text(t.t('debug_reset_title')),
-              const SizedBox(height: 8),
-              ElevatedButton.icon(
-                onPressed: () => _confirmAndResetApp(context),
-                icon: const Icon(Icons.delete_forever_outlined),
-                label: Text(t.t('debug_reset_action')),
-              ),
-
-              const SizedBox(height: 20),
-              const Text('Karten-Cache'),
-              const SizedBox(height: 8),
-              FutureBuilder<double>(
-                future: mapTileCacheService.realSizeKiB(),
-                builder: (context, snapshot) {
-                  final text = switch (snapshot.connectionState) {
-                    ConnectionState.done when snapshot.hasData =>
-                      _formatMapCacheSize(snapshot.data!),
-                    ConnectionState.done => 'Größe derzeit nicht verfügbar',
-                    _ => 'Größe wird geladen ...',
-                  };
-                  return ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.map_outlined),
-                    title: const Text('Offline-Karten'),
-                    subtitle: Text(text),
-                  );
-                },
-              ),
-              const SizedBox(height: 8),
-              ElevatedButton.icon(
-                onPressed: _isRefreshingStammMarkers
-                    ? null
-                    : () => _refreshStammMarkers(logger),
-                icon: const Icon(Icons.travel_explore_outlined),
-                label: Text(
-                  _isRefreshingStammMarkers
-                      ? 'Stammesuche wird aktualisiert ...'
-                      : 'Stammesuche jetzt laden',
+                      const SizedBox(height: 16),
+                      _DebugActionButton(
+                        icon: Icons.travel_explore_outlined,
+                        label: _isRefreshingStammMarkers
+                            ? 'Stammesuche wird aktualisiert ...'
+                            : 'Stammesuche jetzt laden',
+                        buttonKey: const Key(
+                          'debug_refresh_stamm_markers_button',
+                        ),
+                        onPressed: _isRefreshingStammMarkers
+                            ? null
+                            : () => _refreshStammMarkers(logger),
+                      ),
+                      const SizedBox(height: 10),
+                      _DebugActionButton(
+                        icon: Icons.delete_sweep_outlined,
+                        label: 'Kartendaten löschen',
+                        isDestructive: true,
+                        buttonKey: const Key('debug_delete_map_cache_button'),
+                        onPressed: () =>
+                            _deleteMapCache(logger, mapTileCacheService),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-
-              const SizedBox(height: 20),
-              const Text('Hitobito OAuth'),
-              const SizedBox(height: 8),
-              Text(
-                configController.hasOverride
-                    ? 'Aktiver Override fuer Client ID ${configController.effectiveClientId}'
-                    : 'Aktuell werden die Hitobito OAuth-Werte aus der lokalen Env genutzt.',
-              ),
-              const SizedBox(height: 8),
-              ElevatedButton.icon(
-                onPressed: authModel.state == AuthState.authenticating
-                    ? null
-                    : () => _openOauthOverrideDialog(context),
-                icon: const Icon(Icons.verified_user_outlined),
-                label: const Text('OAuth-Zugangsdaten prüfen'),
-              ),
-
-              const SizedBox(height: 20),
-              const Text('Changelog anzeigen'),
-              const SizedBox(height: 8),
-
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const ChangelogPage()),
-                  );
-                },
-                icon: const Icon(Icons.list_alt_outlined),
-                label: const Text('Changelog anzeigen'),
-              ),
-
-              const SizedBox(height: 20),
-              const Text('Mitteilungen'),
-              const SizedBox(height: 8),
-
-              ElevatedButton.icon(
-                onPressed: () => Navigator.pushNamed(context, '/notifications'),
-                icon: const Icon(Icons.notifications_outlined),
-                label: const Text('Mitteilungen anzeigen'),
-              ),
-            ],
+                const SizedBox(height: 16),
+                _DebugSectionCard(
+                  icon: Icons.verified_user_outlined,
+                  title: 'Hitobito OAuth',
+                  subtitle:
+                      'Aktuelle OAuth-Quelle prüfen und temporäre Zugangsdaten testen.',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: configController.hasOverride
+                              ? colorScheme.tertiaryContainer
+                              : colorScheme.surfaceContainerHigh,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Text(
+                          configController.hasOverride
+                              ? 'Aktiver Override fuer Client ID ${configController.effectiveClientId}'
+                              : 'Aktuell werden die Hitobito OAuth-Werte aus der lokalen Env genutzt.',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: configController.hasOverride
+                                ? colorScheme.onTertiaryContainer
+                                : colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _DebugActionButton(
+                        icon: Icons.verified_user_outlined,
+                        label: 'OAuth-Zugangsdaten prüfen',
+                        buttonKey: const Key('debug_oauth_override_button'),
+                        onPressed: authModel.state == AuthState.authenticating
+                            ? null
+                            : () => _openOauthOverrideDialog(context, logger),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _DebugSectionCard(
+                  icon: Icons.library_books_outlined,
+                  title: 'Referenzen',
+                  subtitle:
+                      'Schneller Zugriff auf Changelog und eingehende Mitteilungen.',
+                  child: _DebugButtonGroup(
+                    children: [
+                      _DebugActionButton(
+                        icon: Icons.list_alt_outlined,
+                        label: 'Changelog anzeigen',
+                        onPressed: () async {
+                          await _trackDebugAction(logger, 'open_changelog');
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              settings: const RouteSettings(
+                                name: '/settings/debug/changelog',
+                              ),
+                              builder: (_) => const ChangelogPage(),
+                            ),
+                          );
+                        },
+                      ),
+                      _DebugActionButton(
+                        icon: Icons.notifications_outlined,
+                        label: 'Mitteilungen anzeigen',
+                        onPressed: () async {
+                          await _trackDebugAction(logger, 'open_notifications');
+                          if (!context.mounted) {
+                            return;
+                          }
+                          Navigator.pushNamed(context, '/notifications');
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _DebugSectionCard(
+                  icon: Icons.warning_amber_rounded,
+                  title: t.t('debug_reset_title'),
+                  subtitle:
+                      'Diese Aktionen greifen stark ein. Die Darstellung ist bewusst auffälliger, das Verhalten bleibt unverändert.',
+                  tone: _DebugSectionTone.danger,
+                  child: _DebugActionButton(
+                    icon: Icons.delete_forever_outlined,
+                    label: t.t('debug_reset_action'),
+                    isDestructive: true,
+                    buttonKey: const Key('debug_reset_app_button'),
+                    onPressed: () => _confirmAndResetApp(context, logger),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -399,11 +738,179 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
     if (sizeKiB <= 0) {
       return 'Noch keine Offline-Kartendaten gespeichert';
     }
-    final sizeMiB = sizeKiB / 1024;
-    if (sizeMiB < 1) {
-      return '${sizeKiB.toStringAsFixed(0)} KiB gespeichert';
+    if (sizeKiB < 1024) {
+      return '${sizeKiB.toStringAsFixed(0)} KB gespeichert';
     }
-    return '${sizeMiB.toStringAsFixed(2)} MiB gespeichert';
+
+    final sizeMb = sizeKiB / 1024;
+    if (sizeMb < 1024) {
+      return '${sizeMb.toStringAsFixed(2)} MB gespeichert';
+    }
+
+    final sizeGb = sizeMb / 1024;
+    return '${sizeGb.toStringAsFixed(2)} GB gespeichert';
+  }
+}
+
+enum _DebugSectionTone { normal, danger }
+
+class _DebugSectionCard extends StatelessWidget {
+  const _DebugSectionCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.child,
+    this.tone = _DebugSectionTone.normal,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Widget child;
+  final _DebugSectionTone tone;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDanger = tone == _DebugSectionTone.danger;
+    final accent = isDanger ? colorScheme.error : colorScheme.primary;
+    final containerColor = isDanger
+        ? colorScheme.errorContainer.withValues(alpha: 0.45)
+        : colorScheme.surfaceContainerLow;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: containerColor,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isDanger
+              ? colorScheme.error.withValues(alpha: 0.28)
+              : colorScheme.outlineVariant,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: accent),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _DebugButtonGroup extends StatelessWidget {
+  const _DebugButtonGroup({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < children.length; i++) ...[
+          children[i],
+          if (i != children.length - 1) const SizedBox(height: 10),
+        ],
+      ],
+    );
+  }
+}
+
+class _DebugActionButton extends StatelessWidget {
+  const _DebugActionButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    this.isDestructive = false,
+    this.buttonKey,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onPressed;
+  final bool isDestructive;
+  final Key? buttonKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final style = isDestructive
+        ? FilledButton.styleFrom(
+            backgroundColor: colorScheme.error,
+            foregroundColor: colorScheme.onError,
+            disabledBackgroundColor: colorScheme.error.withValues(alpha: 0.26),
+            disabledForegroundColor: colorScheme.onError.withValues(
+              alpha: 0.72,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          )
+        : FilledButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          );
+
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton.icon(
+        key: buttonKey,
+        onPressed: onPressed,
+        style: style,
+        icon: Icon(icon),
+        label: Align(alignment: Alignment.centerLeft, child: Text(label)),
+      ),
+    );
   }
 }
 
@@ -453,6 +960,9 @@ class _OauthOverrideDialogState extends State<_OauthOverrideDialog> {
     final authModel = context.read<AuthSessionModel>();
     final arbeitskontextModel = context.read<ArbeitskontextModel>();
     final logger = context.read<LoggerService>();
+    await logger.trackAndLog('debug_tools', 'debug_action', {
+      'action': 'oauth_override_submit',
+    });
     final clientId = _clientIdController.text.trim();
     final clientSecret = _clientSecretController.text.trim();
     final previousConfig = configController.config;
@@ -487,9 +997,21 @@ class _OauthOverrideDialogState extends State<_OauthOverrideDialog> {
         return;
       }
 
+      await logger.trackAndLog('debug_tools', 'debug_action', {
+        'action': 'oauth_override_submit_success',
+      });
+
       Navigator.of(context).pop();
     } catch (error) {
       configController.restoreConfig(previousConfig);
+      await logger.logError(
+        'debug_tools',
+        'oauth_override_submit_failed',
+        error: error,
+      );
+      await logger.trackEvent('debug_action', {
+        'action': 'oauth_override_submit_failed',
+      });
       if (!mounted) {
         return;
       }
@@ -550,7 +1072,17 @@ class _OauthOverrideDialogState extends State<_OauthOverrideDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
+          onPressed: _isSubmitting
+              ? null
+              : () async {
+                  final logger = context.read<LoggerService>();
+                  await logger.trackAndLog('debug_tools', 'debug_action', {
+                    'action': 'oauth_override_cancel',
+                  });
+                  if (context.mounted) {
+                    Navigator.of(context).pop();
+                  }
+                },
           child: const Text('Abbrechen'),
         ),
         FilledButton(
@@ -569,13 +1101,14 @@ class _OauthOverrideDialogState extends State<_OauthOverrideDialog> {
 }
 
 class _LogViewerPage extends StatelessWidget {
+  final String title;
   final String content;
-  const _LogViewerPage({required this.content});
+  const _LogViewerPage({required this.title, required this.content});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Logdatei anzeigen')),
+      appBar: AppBar(title: Text(title)),
       body: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
         child: Column(
@@ -601,39 +1134,41 @@ class _ColoredLogView extends StatelessWidget {
     String line,
     TextStyle base, {
     required TextStyle tsStyle,
-    required TextStyle catEventStyle,
-    required TextStyle catWarnStyle,
-    required TextStyle catErrorStyle,
-    required TextStyle catServiceStyle,
-    required TextStyle catDebugStyle,
+    required TextStyle levelInfoStyle,
+    required TextStyle levelWarnStyle,
+    required TextStyle levelErrorStyle,
+    required TextStyle levelDebugStyle,
+    required TextStyle domainStyle,
     required TextStyle msgStyle,
   }) {
-    final regex = RegExp(r"^\[(.*?)\]\s*(\[\w+\])?\s*(.*)$");
+    final regex = RegExp(r"^\[(.*?)\]\s*(\[\w+\])?\s*(\[[^\]]+\])?\s*(.*)$");
     final m = regex.firstMatch(line);
     if (m == null) {
       return TextSpan(text: line, style: msgStyle);
     }
     final ts = m.group(1) ?? '';
-    final cat = m.group(2) ?? '';
-    final msg = m.group(3) ?? '';
+    final level = m.group(2) ?? '';
+    final domain = m.group(3) ?? '';
+    final msg = m.group(4) ?? '';
 
-    TextStyle catStyle = msgStyle;
-    if (cat.toLowerCase() == '[event]') {
-      catStyle = catEventStyle;
-    } else if (cat.toLowerCase() == '[warn]') {
-      catStyle = catWarnStyle;
-    } else if (cat.toLowerCase() == '[error]') {
-      catStyle = catErrorStyle;
-    } else if (cat.toLowerCase() == '[debug]') {
-      catStyle = catDebugStyle;
+    TextStyle levelStyle = msgStyle;
+    if (level.toLowerCase() == '[info]') {
+      levelStyle = levelInfoStyle;
+    } else if (level.toLowerCase() == '[warn]') {
+      levelStyle = levelWarnStyle;
+    } else if (level.toLowerCase() == '[error]') {
+      levelStyle = levelErrorStyle;
+    } else if (level.toLowerCase() == '[debug]') {
+      levelStyle = levelDebugStyle;
     } else {
-      catStyle = catServiceStyle;
+      levelStyle = domainStyle;
     }
 
     return TextSpan(
       children: [
         TextSpan(text: '[$ts] ', style: tsStyle),
-        if (cat.isNotEmpty) TextSpan(text: '$cat ', style: catStyle),
+        if (level.isNotEmpty) TextSpan(text: '$level ', style: levelStyle),
+        if (domain.isNotEmpty) TextSpan(text: '$domain ', style: domainStyle),
         TextSpan(text: msg, style: msgStyle),
       ],
     );
@@ -648,11 +1183,11 @@ class _ColoredLogView extends StatelessWidget {
     final tsStyle = base.copyWith(
       color: isDark ? Colors.grey.shade400 : Colors.grey,
     );
-    final catEventStyle = base.copyWith(color: Colors.green);
-    final catWarnStyle = base.copyWith(color: Colors.orange);
-    final catErrorStyle = base.copyWith(color: Colors.red);
-    final catServiceStyle = base.copyWith(color: Colors.blue);
-    final catDebugStyle = base.copyWith(color: Colors.purple);
+    final levelInfoStyle = base.copyWith(color: Colors.green);
+    final levelWarnStyle = base.copyWith(color: Colors.orange);
+    final levelErrorStyle = base.copyWith(color: Colors.red);
+    final domainStyle = base.copyWith(color: Colors.blue);
+    final levelDebugStyle = base.copyWith(color: Colors.purple);
     final msgStyle = base.copyWith(color: isDark ? Colors.white : Colors.black);
 
     return SelectableText.rich(
@@ -666,11 +1201,11 @@ class _ColoredLogView extends StatelessWidget {
                         l,
                         base,
                         tsStyle: tsStyle,
-                        catEventStyle: catEventStyle,
-                        catWarnStyle: catWarnStyle,
-                        catErrorStyle: catErrorStyle,
-                        catServiceStyle: catServiceStyle,
-                        catDebugStyle: catDebugStyle,
+                        levelInfoStyle: levelInfoStyle,
+                        levelWarnStyle: levelWarnStyle,
+                        levelErrorStyle: levelErrorStyle,
+                        domainStyle: domainStyle,
+                        levelDebugStyle: levelDebugStyle,
                         msgStyle: msgStyle,
                       ),
                       const TextSpan(text: '\n'),

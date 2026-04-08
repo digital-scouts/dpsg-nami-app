@@ -19,6 +19,7 @@ import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
+import 'package:nami/presentation/navigation/app_router.dart';
 import 'package:nami/presentation/screens/member_people_page.dart';
 import 'package:nami/presentation/widgets/member_basis.dart';
 import 'package:nami/presentation/widgets/member_list_group_filter_bar.dart';
@@ -260,20 +261,63 @@ void main() {
     expect(find.text('Allgemeine Informationen'), findsOneWidget);
     expect(find.text('Mitgliedschaft'), findsOneWidget);
   });
+
+  testWidgets('loggt die Navigation in die Mitglied-Detailansicht', (
+    tester,
+  ) async {
+    final logger = _RecordingLoggerService();
+    final authModel = await _createSignedInAuthModel();
+    final arbeitskontextModel = await _createArbeitskontextModel(
+      mitglieder: <Mitglied>[
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '4711',
+          vorname: 'Julia',
+          nachname: 'Keller',
+        ),
+      ],
+      authModel: authModel,
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        authModel: authModel,
+        arbeitskontextModel: arbeitskontextModel,
+        logger: logger,
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Julia Keller'));
+    await tester.pumpAndSettle();
+
+    final memberDetailLog = logger.navigationLogs.where(
+      (entry) => entry.$1 == 'route_open' && entry.$2 == AppRoutes.memberDetail,
+    );
+
+    expect(memberDetailLog, hasLength(1));
+    expect(memberDetailLog.single.$3, AppRoutes.home);
+  });
 }
 
 Widget _buildTestApp({
   required AuthSessionModel authModel,
   required ArbeitskontextModel arbeitskontextModel,
+  LoggerService? logger,
 }) {
+  final effectiveLogger = logger ?? _FakeLoggerService();
   return MultiProvider(
     providers: [
       ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
       ChangeNotifierProvider<ArbeitskontextModel>.value(
         value: arbeitskontextModel,
       ),
+      Provider<LoggerService>.value(value: effectiveLogger),
     ],
     child: MaterialApp(
+      navigatorObservers: [
+        AppNavigationLoggingObserver(logger: effectiveLogger),
+      ],
       localizationsDelegates: [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -561,6 +605,41 @@ class _FakeLoggerService extends LoggerService {
 
   @override
   Future<void> log(String service, String message) async {}
+
+  @override
+  Future<void> logInfo(String service, String message) async {}
+
+  @override
+  Future<void> logWarn(String service, String message) async {}
+
+  @override
+  Future<void> logError(
+    String service,
+    String message, {
+    Object? error,
+    StackTrace? stackTrace,
+  }) async {}
+}
+
+class _RecordingLoggerService extends _FakeLoggerService {
+  final List<(String, String?, String?, Map<String, Object?>)> navigationLogs =
+      <(String, String?, String?, Map<String, Object?>)>[];
+
+  @override
+  Future<void> logNavigationAction(
+    String action, {
+    String? route,
+    String? fromRoute,
+    String? toRoute,
+    Map<String, Object?> properties = const <String, Object?>{},
+  }) async {
+    navigationLogs.add((
+      action,
+      route,
+      fromRoute ?? toRoute,
+      Map<String, Object?>.from(properties),
+    ));
+  }
 }
 
 class _FakeAppSettingsRepository implements AppSettingsRepository {

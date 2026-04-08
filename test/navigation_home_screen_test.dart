@@ -81,6 +81,7 @@ Widget _buildTestApp({
       ChangeNotifierProvider<ArbeitskontextModel>.value(
         value: arbeitskontextModel,
       ),
+      Provider<LoggerService>.value(value: _FakeLoggerService()),
     ],
     child: MaterialApp(
       localizationsDelegates: [
@@ -367,6 +368,20 @@ class _FakeLoggerService extends LoggerService {
 
   @override
   Future<void> log(String service, String message) async {}
+
+  @override
+  Future<void> logInfo(String service, String message) async {}
+
+  @override
+  Future<void> logWarn(String service, String message) async {}
+
+  @override
+  Future<void> logError(
+    String service,
+    String message, {
+    Object? error,
+    StackTrace? stackTrace,
+  }) async {}
 }
 
 class _NoopAppSettingsRepository implements AppSettingsRepository {

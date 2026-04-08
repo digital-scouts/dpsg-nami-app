@@ -8,6 +8,7 @@ import 'sensitive_storage_service.dart';
 
 typedef ResetPreferencesProvider = Future<SharedPreferences> Function();
 typedef ResetLogFileProvider = Future<File> Function();
+typedef ResetLogsCleaner = Future<void> Function();
 
 class AppResetService {
   AppResetService({
@@ -15,12 +16,14 @@ class AppResetService {
     required SensitiveStorageService sensitiveStorageService,
     ResetPreferencesProvider? preferencesProvider,
     ResetLogFileProvider? logFileProvider,
+    ResetLogsCleaner? clearLogs,
     Future<void> Function()? clearMapCache,
   }) : _authSessionRepository = authSessionRepository,
        _sensitiveStorageService = sensitiveStorageService,
        _preferencesProvider =
            preferencesProvider ?? SharedPreferences.getInstance,
        _logFileProvider = logFileProvider,
+       _clearLogs = clearLogs,
        _clearMapCache = clearMapCache;
 
   static const List<String> plainHiveBoxes = <String>[
@@ -33,6 +36,7 @@ class AppResetService {
   final SensitiveStorageService _sensitiveStorageService;
   final ResetPreferencesProvider _preferencesProvider;
   final ResetLogFileProvider? _logFileProvider;
+  final ResetLogsCleaner? _clearLogs;
   final Future<void> Function()? _clearMapCache;
 
   Future<void> resetAllData({bool clearLogFile = true}) async {
@@ -59,6 +63,12 @@ class AppResetService {
     }
 
     if (!clearLogFile) {
+      return;
+    }
+
+    final clearLogs = _clearLogs;
+    if (clearLogs != null) {
+      await clearLogs();
       return;
     }
 

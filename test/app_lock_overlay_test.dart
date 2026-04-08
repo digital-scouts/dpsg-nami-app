@@ -267,6 +267,20 @@ class _FakeLoggerService extends LoggerService {
   Future<void> log(String service, String message) async {}
 
   @override
+  Future<void> logInfo(String service, String message) async {}
+
+  @override
+  Future<void> logWarn(String service, String message) async {}
+
+  @override
+  Future<void> logError(
+    String service,
+    String message, {
+    Object? error,
+    StackTrace? stackTrace,
+  }) async {}
+
+  @override
   Future<void> trackEvent(String name, Map<String, Object?> properties) async {}
 
   @override

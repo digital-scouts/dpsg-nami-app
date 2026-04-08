@@ -17,15 +17,25 @@ class _RecordingLoggerService extends LoggerService {
   _RecordingLoggerService({required super.settingsRepository})
     : super(navigatorKey: GlobalKey<NavigatorState>());
 
-  final List<(String, String, Map<String, Object?>)> calls = [];
+  final List<(String, Map<String, Object?>)> trackedCalls = [];
 
   @override
-  Future<void> trackAndLog(
+  Future<void> logInfo(String service, String message) async {}
+
+  @override
+  Future<void> logWarn(String service, String message) async {}
+
+  @override
+  Future<void> logError(
     String service,
-    String name,
-    Map<String, Object?> properties,
-  ) async {
-    calls.add((service, name, properties));
+    String message, {
+    Object? error,
+    StackTrace? stackTrace,
+  }) async {}
+
+  @override
+  Future<void> trackEvent(String name, Map<String, Object?> properties) async {
+    trackedCalls.add((name, properties));
   }
 }
 
@@ -73,9 +83,8 @@ class _FakeRepo implements AppSettingsRepository {
 }
 
 void main() {
-  test('LoggerService writes to file and console', () async {
+  test('LoggerService writes to daily log file', () async {
     final tempDir = await Directory.systemTemp.createTemp('logger_test');
-    final logFile = File('${tempDir.path}/app.log');
 
     final repo = _FakeRepo(
       const AppSettings(
@@ -88,13 +97,42 @@ void main() {
     final service = LoggerService(
       settingsRepository: repo,
       navigatorKey: GlobalKey<NavigatorState>(),
-      logFileProvider: () async => logFile,
+      logsDirectoryProvider: () async => tempDir,
+      nowProvider: () => DateTime(2026, 4, 8, 12, 0, 0),
       wiredashEventHook: (name, props) async {},
     );
 
     await service.log('test', 'hello');
+    final logFile = File('${tempDir.path}/app-2026-04-08.log');
     final content = await logFile.readAsString();
-    expect(content.contains('[test] hello'), isTrue);
+    expect(content.contains('[info] [test] hello'), isTrue);
+    expect(await service.listLogFileNames(), ['app-2026-04-08.log']);
+  });
+
+  test('clearAllLogs loescht alle Daily-Logdateien', () async {
+    final tempDir = await Directory.systemTemp.createTemp('logger_test_clear');
+
+    final repo = _FakeRepo(
+      const AppSettings(
+        themeMode: ThemeMode.system,
+        languageCode: 'de',
+        analyticsEnabled: true,
+      ),
+    );
+
+    final service = LoggerService(
+      settingsRepository: repo,
+      navigatorKey: GlobalKey<NavigatorState>(),
+      logsDirectoryProvider: () async => tempDir,
+      nowProvider: () => DateTime(2026, 4, 8, 12, 0, 0),
+    );
+
+    await File('${tempDir.path}/app-2026-04-07.log').writeAsString('a');
+    await File('${tempDir.path}/app-2026-04-08.log').writeAsString('b');
+
+    await service.clearAllLogs();
+
+    expect(await service.listLogFiles(), isEmpty);
   });
 
   test('trackEvent calls wiredash when analytics enabled', () async {
@@ -256,14 +294,42 @@ void main() {
         });
         async.elapse(const Duration(seconds: 29));
 
-        expect(service.calls, isEmpty);
+        expect(service.trackedCalls, isEmpty);
 
         async.elapse(const Duration(seconds: 1));
 
-        expect(service.calls, hasLength(1));
-        expect(service.calls.single.$1, 'settings');
-        expect(service.calls.single.$2, 'theme_changed');
-        expect(service.calls.single.$3['value'], 'b');
+        expect(service.trackedCalls, hasLength(1));
+        expect(service.trackedCalls.single.$1, 'theme_changed');
+        expect(service.trackedCalls.single.$2['value'], 'b');
+      });
+    },
+  );
+
+  test(
+    'debounceTrackAndLog unterscheidet settings_changed nach setting-key',
+    () {
+      final repo = _FakeRepo(
+        const AppSettings(
+          themeMode: ThemeMode.system,
+          languageCode: 'de',
+          analyticsEnabled: true,
+        ),
+      );
+      final service = _RecordingLoggerService(settingsRepository: repo);
+
+      fakeAsync((async) {
+        service.debounceTrackAndLog('settings', 'settings_changed', {
+          'setting': 'theme',
+          'mode': 'dark',
+        });
+        service.debounceTrackAndLog('settings', 'settings_changed', {
+          'setting': 'language',
+          'code': 'en',
+        });
+
+        async.elapse(const Duration(seconds: 30));
+
+        expect(service.trackedCalls, hasLength(2));
       });
     },
   );

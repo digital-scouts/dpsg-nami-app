@@ -284,6 +284,20 @@ class _FakeLoggerService extends LoggerService {
 
   @override
   Future<void> log(String category, String message) async {}
+
+  @override
+  Future<void> logInfo(String service, String message) async {}
+
+  @override
+  Future<void> logWarn(String service, String message) async {}
+
+  @override
+  Future<void> logError(
+    String service,
+    String message, {
+    Object? error,
+    StackTrace? stackTrace,
+  }) async {}
 }
 
 class _FakeAppSettingsRepository implements AppSettingsRepository {

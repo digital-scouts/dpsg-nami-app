@@ -27,8 +27,9 @@ The analytics setting can be changed by the user inside the app.
 
 Analytics and diagnostics events may include, for example:
 
-- usage duration
 - app settings changes
+- login and logout events
+- work context or layer changes
 - runtime errors
 - technical event metadata required for diagnostics
 

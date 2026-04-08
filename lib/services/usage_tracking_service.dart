@@ -29,7 +29,7 @@ class UsageTrackingService {
     final end = now();
     final duration = end.difference(s);
     final seconds = duration.inSeconds;
-    await logger.trackAndLog('usage', 'session_duration', {'seconds': seconds});
+    await logger.logInfo('usage', 'session_duration seconds=$seconds');
     _start = null;
     _pausedAt = null;
   }
@@ -52,9 +52,7 @@ class UsageTrackingService {
     final delta = now().difference(paused);
     if (delta >= resumeThreshold) {
       final seconds = paused.difference(start).inSeconds;
-      await logger.trackAndLog('usage', 'session_duration', {
-        'seconds': seconds,
-      });
+      await logger.logInfo('usage', 'session_duration seconds=$seconds');
       // await logger.log('usage', 'flushed_pending_session seconds=$seconds');
       await prefs.remove('usage.pending_start_iso');
       await prefs.remove('usage.pending_paused_iso');

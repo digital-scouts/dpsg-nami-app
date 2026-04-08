@@ -320,6 +320,10 @@ class ArbeitskontextModel extends ChangeNotifier {
   }) async {
     final current = _arbeitskontext;
     if (current == null || session == null || profile == null) {
+      await _logger.logWarn(
+        'arbeitskontext',
+        'layer switch rejected reason=missing_context target=${targetLayer.id}',
+      );
       _errorMessage =
           'Der Arbeitskontext kann ohne gueltige Sitzung nicht gewechselt werden.';
       notifyListeners();
@@ -338,11 +342,29 @@ class ArbeitskontextModel extends ChangeNotifier {
       (layer) => layer.id == targetLayer.id,
     );
     if (!allowedTarget) {
+      await _logger.logWarn(
+        'arbeitskontext',
+        'layer switch rejected reason=unavailable_target target=${targetLayer.id}',
+      );
       _errorMessage =
           'Der ausgewaehlte Layer ist kein erreichbares Wechselziel.';
       notifyListeners();
       return false;
     }
+
+    await _logger.logInfo(
+      'arbeitskontext',
+      'layer switch started from=${current.aktiverLayer.id} to=${targetLayer.id}',
+    );
+    await _logger.trackLayerSwitch(
+      'started',
+      properties: {
+        'from_layer_id': current.aktiverLayer.id,
+        'from_layer_name': current.aktiverLayer.name,
+        'to_layer_id': targetLayer.id,
+        'to_layer_name': targetLayer.name,
+      },
+    );
 
     _session = session;
     _isSwitchingLayer = true;
@@ -359,6 +381,16 @@ class ArbeitskontextModel extends ChangeNotifier {
         targetLayerId: targetLayer.id,
       );
       if (nextArbeitskontext == null) {
+        await _logger.trackLayerSwitch(
+          'failure',
+          properties: {
+            'from_layer_id': current.aktiverLayer.id,
+            'from_layer_name': current.aktiverLayer.name,
+            'to_layer_id': targetLayer.id,
+            'to_layer_name': targetLayer.name,
+            'reason': 'target_not_resolvable',
+          },
+        );
         _setUnauthorizedState();
         return false;
       }
@@ -370,17 +402,38 @@ class ArbeitskontextModel extends ChangeNotifier {
       _status = ArbeitskontextStatus.ready;
       _errorMessage = null;
       if (_arbeitskontext != null) {
-        await _logger.log(
+        await _logger.logInfo(
           'arbeitskontext',
-          'Arbeitskontext erfolgreich gewechselt: layer=${_arbeitskontext!.aktiverLayer.id} name=${_arbeitskontext!.aktiverLayer.name} gruppen=${_readModel?.gruppen.length ?? 0} mitglieder=${_readModel?.mitglieder.length ?? 0}',
+          'layer switch success from=${current.aktiverLayer.id} to=${_arbeitskontext!.aktiverLayer.id} gruppen=${_readModel?.gruppen.length ?? 0} mitglieder=${_readModel?.mitglieder.length ?? 0}',
+        );
+        await _logger.trackLayerSwitch(
+          'success',
+          properties: {
+            'from_layer_id': current.aktiverLayer.id,
+            'from_layer_name': current.aktiverLayer.name,
+            'to_layer_id': _arbeitskontext!.aktiverLayer.id,
+            'to_layer_name': _arbeitskontext!.aktiverLayer.name,
+          },
         );
       }
       _scheduleRolesPreload();
       return true;
     } catch (error, stack) {
-      await _logger.log(
+      await _logger.logError(
         'arbeitskontext',
-        'Arbeitskontext-Wechsel fehlgeschlagen: $error\n$stack',
+        'layer switch failure from=${current.aktiverLayer.id} to=${targetLayer.id}',
+        error: error,
+        stackTrace: stack,
+      );
+      await _logger.trackLayerSwitch(
+        'failure',
+        properties: {
+          'from_layer_id': current.aktiverLayer.id,
+          'from_layer_name': current.aktiverLayer.name,
+          'to_layer_id': targetLayer.id,
+          'to_layer_name': targetLayer.name,
+          'error_type': error.runtimeType.toString(),
+        },
       );
       _errorMessage = layerSwitchFailedMessage;
       return false;
