@@ -42,6 +42,7 @@ app.*.map.json
 .vscode/launch.json
 
 venv
+.venv
 .cache_ggshield
 download
 
@@ -49,3 +50,5 @@ download
 .env
 .env.*
 !.env.example
+
+assets/territorialgrenzen_bistumsatlas

@@ -17,6 +17,7 @@ import '../notifications/notifications_page.dart';
 import '../screens/profile_page.dart';
 import '../screens/settings_app_page.dart';
 import '../screens/settings_debug_tools_page.dart';
+import '../screens/settings_map_page.dart';
 import '../screens/settings_notification_page.dart';
 import '../screens/settings_stamm_page.dart';
 import '../theme/theme.dart';
@@ -26,6 +27,7 @@ class AppRoutes {
   static const String settingsStamm = '/settings/stamm';
   static const String settingsApp = '/settings/app';
   static const String settingsNotification = '/settings/notifications';
+  static const String settingsMap = '/settings/map';
   static const String debugTools = '/settings/debug';
   static const String pullNotifications = '/notifications';
   static const String profile = '/profile';
@@ -192,6 +194,8 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
           );
         },
       );
+    case AppRoutes.settingsMap:
+      return MaterialPageRoute(builder: (context) => const SettingsMapPage());
     case AppRoutes.pullNotifications:
       return MaterialPageRoute(builder: (context) => const NotificationsPage());
     case AppRoutes.debugTools:

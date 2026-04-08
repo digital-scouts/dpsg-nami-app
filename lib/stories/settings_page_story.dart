@@ -5,6 +5,7 @@ import 'package:nami/domain/stufe/altersgrenzen.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/screens/settings_app_page.dart';
+import 'package:nami/presentation/screens/settings_map_page.dart';
 import 'package:nami/presentation/screens/settings_notification_page.dart';
 import 'package:nami/presentation/screens/settings_page.dart';
 import 'package:nami/presentation/screens/settings_stamm_page.dart';
@@ -35,6 +36,9 @@ Story settingsPageStory() => Story(
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Benachrichtigungseinstellungen')),
             ),
+        onMapSettings: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const SettingsMapPage())),
         onDebugTools: () => ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Debug & Tools'))),

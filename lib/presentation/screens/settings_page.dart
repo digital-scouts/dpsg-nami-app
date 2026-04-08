@@ -15,6 +15,7 @@ class SettingsPage extends StatefulWidget {
   final VoidCallback? onStammSettings;
   final VoidCallback? onNotificationSettings;
   final VoidCallback? onAppSettings;
+  final VoidCallback? onMapSettings;
   final VoidCallback? onDebugTools;
   final VoidCallback? onProfile;
   final String? appVersion;
@@ -24,6 +25,7 @@ class SettingsPage extends StatefulWidget {
     this.onStammSettings,
     this.onNotificationSettings,
     this.onAppSettings,
+    this.onMapSettings,
     this.onDebugTools,
     this.onProfile,
     this.appVersion,
@@ -255,6 +257,12 @@ class _SettingsPageState extends State<SettingsPage> {
                     trailing: const Icon(Icons.chevron_right),
                     title: Text(t.t('settings_notifications')),
                     onTap: widget.onNotificationSettings,
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.map_outlined),
+                    trailing: const Icon(Icons.chevron_right),
+                    title: Text(t.t('settings_map')),
+                    onTap: widget.onMapSettings,
                   ),
 
                   ListTile(

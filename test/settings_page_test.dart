@@ -20,6 +20,45 @@ import 'package:nami/services/sensitive_storage_service.dart';
 import 'package:provider/provider.dart';
 
 void main() {
+  testWidgets('zeigt Karte als Eintrag in den Einstellungen', (tester) async {
+    final authModel = AuthSessionModel(
+      repository: _InMemoryAuthSessionRepository(),
+      profileRepository: _InMemoryAuthProfileRepository(),
+      oauthService: _FakeOauthService(),
+      biometricLockService: _FakeBiometricLockService(),
+      sensitiveStorageService: _FakeSensitiveStorageService(),
+      retentionPolicy: HitobitoDataRetentionPolicy(
+        maxDataAge: const Duration(days: 90),
+        refreshInterval: const Duration(hours: 24),
+      ),
+      logger: _FakeLoggerService(),
+    );
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
+          Provider<LoggerService>.value(value: _FakeLoggerService()),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            AppLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('de'), Locale('en')],
+          locale: const Locale('de'),
+          home: const SettingsPage(),
+        ),
+      ),
+    );
+
+    await tester.pump();
+
+    expect(find.text('Karte'), findsOneWidget);
+  });
+
   testWidgets(
     'zeigt Hitobito-Warnung in den Einstellungen bei Remote-Problemen',
     (tester) async {
