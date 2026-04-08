@@ -5,11 +5,13 @@ set -e
 FLUTTER_VERSION="3.38.4"
 FLUTTER_ARCHIVE="flutter_macos_${FLUTTER_VERSION}-stable.zip"
 COCOAPODS_VERSION="1.16.2"
+FFI_VERSION="1.17.4"
 
 install_cocoapods() {
 	echo "Installing CocoaPods ${COCOAPODS_VERSION} via RubyGems"
 	export GEM_HOME="$HOME/.gem"
 	export PATH="$GEM_HOME/bin:$PATH"
+	gem install ffi -v "$FFI_VERSION" --no-document
 	gem install cocoapods -v "$COCOAPODS_VERSION" --no-document
 	pod --version
 }
