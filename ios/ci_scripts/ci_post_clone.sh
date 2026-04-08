@@ -5,14 +5,31 @@ set -e
 FLUTTER_VERSION="3.38.4"
 FLUTTER_ARCHIVE="flutter_macos_${FLUTTER_VERSION}-stable.zip"
 COCOAPODS_VERSION="1.16.2"
-FFI_VERSION="1.17.4"
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
+REPO_ROOT="${CI_PRIMARY_REPOSITORY_PATH:-$(CDPATH= cd -- "$SCRIPT_DIR/../.." && pwd)}"
+
+ensure_flutter() {
+	if command -v flutter >/dev/null 2>&1; then
+		echo "Using local Flutter $(flutter --version | head -n 1)"
+		return 0
+	fi
+
+	echo "Downloading Flutter ${FLUTTER_VERSION}..."
+	curl -sLO "https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/${FLUTTER_ARCHIVE}"
+	echo "Extracting Flutter..."
+	unzip -qq "$FLUTTER_ARCHIVE" -d "$HOME"
+	export PATH="$PATH:$HOME/flutter/bin"
+}
 
 install_cocoapods() {
-	echo "Installing CocoaPods ${COCOAPODS_VERSION} via RubyGems"
-	export GEM_HOME="$HOME/.gem"
-	export PATH="$GEM_HOME/bin:$PATH"
-	gem install ffi -v "$FFI_VERSION" --no-document
-	gem install cocoapods -v "$COCOAPODS_VERSION" --no-document
+	if command -v pod >/dev/null 2>&1; then
+		echo "Using preinstalled CocoaPods $(pod --version)"
+		return 0
+	fi
+
+	echo "Installing CocoaPods ${COCOAPODS_VERSION} via Homebrew"
+	export HOMEBREW_NO_AUTO_UPDATE=1
+	brew install cocoapods
 	pod --version
 }
 
@@ -43,14 +60,10 @@ pod_install_with_retry() {
 
 echo "Running post clone script"
 
-# The default execution directory of this script is the ci_scripts directory.
-cd "$CI_PRIMARY_REPOSITORY_PATH"
+echo "Using repository root: $REPO_ROOT"
+cd "$REPO_ROOT"
 
-echo "Downloading Flutter ${FLUTTER_VERSION}..."
-curl -sLO "https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/${FLUTTER_ARCHIVE}"
-echo "Extracting Flutter..."
-unzip -qq "$FLUTTER_ARCHIVE" -d "$HOME"
-export PATH="$PATH:$HOME/flutter/bin"
+ensure_flutter
 
 echo "Flutter version:"
 flutter --version
@@ -69,6 +82,6 @@ flutter pub get
 pod_install_with_retry
 
 echo "Cleaning up..."
-rm -f "$CI_PRIMARY_REPOSITORY_PATH/${FLUTTER_ARCHIVE}"
+rm -f "$REPO_ROOT/${FLUTTER_ARCHIVE}"
 
 exit 0
