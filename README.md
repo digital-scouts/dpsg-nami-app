@@ -109,6 +109,22 @@ Zum Starten:
 flutter run -t lib/main_storybook.dart
 ```
 
+### Karten-Geodaten
+
+Für die Kartenansicht unter Einstellungen wird zur Laufzeit kein Shapefile geladen, sondern ein leichtgewichtiges GeoJSON-Asset unter [assets/maps/dioeceses.geojson](assets/maps/dioeceses.geojson).
+
+Die Quelldaten stammen aus generalisierten Bistumsgrenzen im Shapefile-Format und werden vorab lokal nach WGS84/EPSG:4326 konvertiert. Das Konvertierungsskript liegt unter [tool/convert_bistum_shapefile.py](tool/convert_bistum_shapefile.py), reduziert den Attributsatz auf die für die App benötigten Felder und kanonisiert die Nutzerbezeichnungen auf stabile fachliche Diözesanverbände. Der Offizialatsbezirk Oldenburg wird dabei fachlich dem Diözesanverband Münster zugeordnet und bereits im GeoJSON zusammengeführt.
+
+Die Vereinfachung bleibt bewusst konfigurierbar. Aktuell ist das eingebundene Karten-Asset mit 85 Prozent Genauigkeit erzeugt, also mit 15 Prozent Vereinfachung:
+
+```sh
+python3 -m venv .venv
+./.venv/bin/pip install pyshp pyproj
+./.venv/bin/python tool/convert_bistum_shapefile.py --simplify-percent 15
+```
+
+Die aktuell eingebundene Kartenansicht zeigt generalisierte Bistumsgrenzen als erste fachliche Näherung für DPSG-Diözesen. Weitere Kartenebenen oder Stammstandorte bauen künftig auf demselben GeoJSON-basierten Laufzeitpfad auf.
+
 ### Dokumentationsstil
 
 Für deutschsprachige Fließtexte in [README.md](README.md), unter [docs](docs) und unter [specs](specs) gilt UTF-8-Schreibweise mit echten Umlauten und ß.
@@ -168,6 +184,7 @@ Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den
 - Das eigene Profil wird nach dem Login über Hitobito OAuth geladen und zeigt nami-id, E-Mail, bevorzugte Sprache als Sprachbadge und die zugewiesenen Rollen.
 - Wenn Hitobito später nicht erreichbar ist oder eine erneute Anmeldung für Updates erforderlich wird, bleibt der lokale Datenstand bis zum Ablauf von `HITOBITO_DATA_MAX_AGE_DAYS` nutzbar; die App zeigt dazu einen fachlichen Hinweis statt einer generischen Plattformfehlermeldung.
 - Die Stamm-Einstellungen und Debug & Tools bleiben auch dann erreichbar, wenn noch kein Login vorliegt oder der Arbeitskontext nicht initialisiert werden konnte. Das Profil bleibt in diesen Zuständen gesperrt.
+- Unter Einstellungen steht zusätzlich eine Kartenansicht zur Verfügung, die aktuell generalisierte Bistumsgrenzen als erste Näherung für DPSG-Diözesen rendert.
 - Die App-Sprache wird nach dem Login auf Basis der bevorzugten Profilsprache gesetzt. Unbekannte oder fehlende Sprachcodes fallen auf Deutsch zurück.
 - Jeder Nutzer sieht auch nur die Funktionen, die er aufgrund seiner Rechte ausführen kann. Die Rechte sind im eigenen Profil aufgelistet.
 - Jeder Nutzer hat die Möglichkeit das Bearbeiten von Daten zu deaktiven und braucht so keine Angst haben 'Etwas kaput zu machen'
@@ -181,7 +198,7 @@ Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den
   - Ablaufende Ausbildungen (Präventionsschulung)
 - Statistik historische Entwicklung im Stamm
   - Wann verlassen Mitglieder den Stamm, wann kommen sie
-- Stammeskarte
+- Stammstandorte und weitere fachliche Kartenebenen auf Basis der neuen Karteninfrastruktur
 
 ## Externe Apis
 

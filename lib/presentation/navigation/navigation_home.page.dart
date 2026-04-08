@@ -58,6 +58,8 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
               Navigator.pushNamed(context, AppRoutes.settingsStamm),
           onAppSettings: () =>
               Navigator.pushNamed(context, AppRoutes.settingsApp),
+          onMapSettings: () =>
+              Navigator.pushNamed(context, AppRoutes.settingsMap),
           onProfile: _isProfileAvailable(authModel, arbeitskontextModel)
               ? () => Navigator.pushNamed(context, AppRoutes.profile)
               : null,
