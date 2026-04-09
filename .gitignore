@@ -52,3 +52,8 @@ download
 !.env.example
 
 assets/territorialgrenzen_bistumsatlas
+
+# Node/Server related
+/server/node_modules/
+/server/dist/
+/server/.npm/
