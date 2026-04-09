@@ -29,6 +29,8 @@
     "/^flutter test$/": {
       "approve": true,
       "matchCommandLine": true
-    }
+    },
+    "pushd": true,
+    "npm run typecheck": true
   },
 }
