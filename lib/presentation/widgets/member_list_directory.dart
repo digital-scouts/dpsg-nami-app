@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:nami/domain/member/member_list_preferences.dart';
 import 'package:nami/domain/member/mitglied.dart';
+import 'package:nami/domain/member_filters/member_custom_filter.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/presentation/stufe/stufe_visuals.dart';
+import 'package:nami/presentation/widgets/member_custom_filter_icons.dart';
 import 'package:nami/presentation/widgets/member_list.dart';
 import 'package:nami/presentation/widgets/member_list_group_filter_bar.dart';
 import 'package:nami/presentation/widgets/member_list_search_bar.dart';
-import 'package:nami/presentation/widgets/member_list_tile.dart';
 
 class MemberDirectory extends StatefulWidget {
   const MemberDirectory({
     super.key,
     required this.mitglieder,
-    this.mitgliedsStufen = const <String, Set<Stufe>>{},
+    this.mitgliedsFilterKeys = const <String, Set<String>>{},
+    this.customFilterGroups = const <MemberCustomFilterGroup>[],
     this.showBiberFilter = false,
     this.initialSearch = '',
-    this.initialStufen = const {},
     this.initialFavourites = const {},
     this.sortKey = MemberSortKey.name,
     this.subtitleMode = MemberSubtitleMode.mitgliedsnummer,
@@ -22,13 +24,14 @@ class MemberDirectory extends StatefulWidget {
     this.subtitleTextBuilder,
     this.trailingTextBuilder,
     this.enableGroupFilter = true,
+    this.onOpenFilterOptions,
     this.onTapMember,
   });
   final List<Mitglied> mitglieder;
-  final Map<String, Set<Stufe>> mitgliedsStufen;
+  final Map<String, Set<String>> mitgliedsFilterKeys;
+  final List<MemberCustomFilterGroup> customFilterGroups;
   final bool showBiberFilter;
   final String initialSearch;
-  final Set<Stufe> initialStufen;
   final Set<String> initialFavourites;
   final MemberSortKey sortKey;
   final MemberSubtitleMode subtitleMode;
@@ -36,6 +39,7 @@ class MemberDirectory extends StatefulWidget {
   final String? Function(Mitglied mitglied)? subtitleTextBuilder;
   final String? Function(Mitglied mitglied)? trailingTextBuilder;
   final bool enableGroupFilter;
+  final VoidCallback? onOpenFilterOptions;
   final ValueChanged<String>? onTapMember;
 
   @override
@@ -43,19 +47,28 @@ class MemberDirectory extends StatefulWidget {
 }
 
 class _MemberDirectoryState extends State<MemberDirectory> {
-  static const String _nichtZugeordnetKey = 'nicht_zugeordnet';
-
   late String search;
-  late Set<Stufe> selectedStufen;
+  late Set<String> selectedFilterKeys;
   late Set<String> favourites;
-  bool includeNichtZugeordnet = false;
 
   @override
   void initState() {
     super.initState();
     search = widget.initialSearch;
-    selectedStufen = Set<Stufe>.from(widget.initialStufen);
+    selectedFilterKeys = <String>{};
     favourites = Set<String>.from(widget.initialFavourites);
+  }
+
+  @override
+  void didUpdateWidget(covariant MemberDirectory oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final availableKeys = _buildItems().map((item) => item.keyName).toSet();
+    final nextSelectedKeys = selectedFilterKeys.intersection(availableKeys);
+    if (nextSelectedKeys.length != selectedFilterKeys.length) {
+      setState(() {
+        selectedFilterKeys = nextSelectedKeys;
+      });
+    }
   }
 
   void toggleFavourite(String id) {
@@ -71,53 +84,56 @@ class _MemberDirectoryState extends State<MemberDirectory> {
   void _resetFilters() {
     setState(() {
       search = '';
-      selectedStufen.clear();
-      includeNichtZugeordnet = false;
+      selectedFilterKeys.clear();
     });
+  }
+
+  List<GroupFilterItem> _buildItems() {
+    final items = Stufe.values
+        .where(
+          (stufe) =>
+              stufe != Stufe.leitung &&
+              (stufe != Stufe.biber || widget.showBiberFilter),
+        )
+        .map(
+          (stufe) => GroupFilterItem(
+            keyName: stufe.name,
+            imageAssetPath: StufeVisuals.assetFor(stufe),
+            semanticLabel: stufe.displayName,
+          ),
+        )
+        .toList(growable: true);
+
+    for (final group in widget.customFilterGroups.where(
+      (group) => group.isActive,
+    )) {
+      items.add(
+        GroupFilterItem(
+          keyName: group.filterKey,
+          iconData: memberCustomFilterIconForKey(group.iconKey),
+          semanticLabel: group.displayChipLabel,
+          textLabel: group.displayChipLabel,
+        ),
+      );
+    }
+    return items;
   }
 
   @override
   Widget build(BuildContext context) {
-    final items =
-        Stufe.values
-            .where(
-              (stufe) =>
-                  stufe != Stufe.leitung &&
-                  (stufe != Stufe.biber || widget.showBiberFilter),
-            )
-            .map(
-              (s) => GroupFilterItem(
-                keyName: s.name,
-                imageAssetPath: StufeVisuals.assetFor(s),
-                semanticLabel: s.displayName,
-              ),
-            )
-            .toList()
-          ..add(
-            const GroupFilterItem(
-              keyName: _nichtZugeordnetKey,
-              semanticLabel: 'Alle anderen',
-              textLabel: 'Rest',
-            ),
-          );
+    final items = _buildItems();
 
     return Column(
       children: [
         GroupFilterBar(
           items: items,
-          selectedKeys: <String>{
-            ...selectedStufen.map((e) => e.name),
-            if (includeNichtZugeordnet) _nichtZugeordnetKey,
-          },
+          selectedKeys: selectedFilterKeys,
           onChanged: (next) {
             if (!widget.enableGroupFilter) {
               return;
             }
             setState(() {
-              selectedStufen
-                ..clear()
-                ..addAll(Stufe.values.where((s) => next.contains(s.name)));
-              includeNichtZugeordnet = next.contains(_nichtZugeordnetKey);
+              selectedFilterKeys = next;
             });
           },
           itemSize: 54,
@@ -125,6 +141,7 @@ class _MemberDirectoryState extends State<MemberDirectory> {
         MemberSearchBar(
           initial: search,
           onChanged: (v) => setState(() => search = v),
+          onTunePressed: widget.onOpenFilterOptions,
         ),
         Expanded(
           child: MemberList(
@@ -136,11 +153,10 @@ class _MemberDirectoryState extends State<MemberDirectory> {
             subtitleTextBuilder: widget.subtitleTextBuilder,
             trailingTextBuilder: widget.trailingTextBuilder,
             favourites: favourites,
-            stufenFilter: widget.enableGroupFilter ? selectedStufen : const {},
-            mitgliedsStufen: widget.mitgliedsStufen,
-            includeNichtZugeordnet: widget.enableGroupFilter
-                ? includeNichtZugeordnet
-                : false,
+            selectedFilterKeys: widget.enableGroupFilter
+                ? selectedFilterKeys
+                : const <String>{},
+            mitgliedsFilterKeys: widget.mitgliedsFilterKeys,
             onResetFilters: _resetFilters,
             onToggleFavourite: toggleFavourite,
             onTapMember: (id) {

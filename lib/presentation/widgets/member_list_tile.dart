@@ -1,16 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:nami/domain/member/member_list_preferences.dart';
 import 'package:nami/domain/member/member_utils.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/presentation/format/date_formatters.dart';
 import 'package:nami/presentation/stufe/stufe_visuals.dart';
 import 'package:nami/presentation/theme/theme.dart';
-
-enum MemberSubtitleMode {
-  mitgliedsnummer,
-  geburtstag,
-  spitzname,
-  eintrittsdatum,
-}
 
 class MemberSubtitleHighlight {
   const MemberSubtitleHighlight({

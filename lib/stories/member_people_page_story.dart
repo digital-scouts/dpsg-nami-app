@@ -11,12 +11,14 @@ import 'package:nami/domain/auth/auth_profile_repository.dart';
 import 'package:nami/domain/auth/auth_session.dart';
 import 'package:nami/domain/auth/auth_session_repository.dart';
 import 'package:nami/domain/member/mitglied.dart';
+import 'package:nami/domain/member_filters/member_filter_repository.dart';
 import 'package:nami/domain/settings/app_settings.dart';
 import 'package:nami/domain/settings/app_settings_repository.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
+import 'package:nami/presentation/model/member_filters_model.dart';
 import 'package:nami/presentation/screens/member_people_page.dart';
 import 'package:nami/services/biometric_lock_service.dart';
 import 'package:nami/services/hitobito_auth_env.dart';
@@ -65,6 +67,7 @@ class _MemberPeopleStoryShell extends StatefulWidget {
 class _MemberPeopleStoryShellState extends State<_MemberPeopleStoryShell> {
   late final AuthSessionModel _authModel;
   late final ArbeitskontextModel _arbeitskontextModel;
+  late final MemberFiltersModel _memberFiltersModel;
   late final Future<void> _initializeFuture;
 
   @override
@@ -99,6 +102,7 @@ class _MemberPeopleStoryShellState extends State<_MemberPeopleStoryShell> {
       bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
       logger: _FakeLoggerService(),
     );
+    _memberFiltersModel = MemberFiltersModel(_InMemoryMemberFilterRepository());
     _initializeFuture = _initialize();
   }
 
@@ -109,6 +113,7 @@ class _MemberPeopleStoryShellState extends State<_MemberPeopleStoryShell> {
       session: _authModel.session,
       profile: _authModel.profile,
     );
+    await _memberFiltersModel.ensureLoadedForLayer(11);
   }
 
   @override
@@ -118,6 +123,9 @@ class _MemberPeopleStoryShellState extends State<_MemberPeopleStoryShell> {
         ChangeNotifierProvider<AuthSessionModel>.value(value: _authModel),
         ChangeNotifierProvider<ArbeitskontextModel>.value(
           value: _arbeitskontextModel,
+        ),
+        ChangeNotifierProvider<MemberFiltersModel>.value(
+          value: _memberFiltersModel,
         ),
       ],
       child: FutureBuilder<void>(
@@ -201,6 +209,24 @@ class _FakeHitobitoGroupsService extends HitobitoGroupsService {
   Future<List<HitobitoGroupResource>> fetchAccessibleGroups(
     String accessToken,
   ) async => const <HitobitoGroupResource>[];
+}
+
+class _InMemoryMemberFilterRepository implements MemberFilterRepository {
+  final Map<int, MemberFilterLayerSettings> _values =
+      <int, MemberFilterLayerSettings>{};
+
+  @override
+  Future<MemberFilterLayerSettings> loadForLayer(int layerId) async {
+    return _values[layerId] ?? const MemberFilterLayerSettings();
+  }
+
+  @override
+  Future<void> saveForLayer(
+    int layerId,
+    MemberFilterLayerSettings settings,
+  ) async {
+    _values[layerId] = settings;
+  }
 }
 
 class _InMemoryAuthProfileRepository implements AuthProfileRepository {

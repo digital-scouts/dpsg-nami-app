@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../domain/member/member_list_preferences.dart';
 import '../../domain/member/mitglied.dart';
+import '../../domain/member_filters/usecases/ermittle_member_filter_treffer_usecase.dart';
 import '../../domain/stufe/usecases/ermittle_stufen_im_arbeitskontext_usecase.dart';
 import '../../domain/taetigkeit/stufe.dart';
 import '../../l10n/app_localizations.dart';
 import '../model/app_settings_model.dart';
 import '../model/arbeitskontext_model.dart';
 import '../model/auth_session_model.dart';
+import '../model/member_filters_model.dart';
 import '../navigation/app_router.dart';
-import '../widgets/member_list.dart';
+import '../widgets/member_filter_sort_sheet.dart';
 import '../widgets/member_list_directory.dart';
-import '../widgets/member_list_tile.dart';
 import 'member_detail_page.dart';
 
 class MemberPeoplePage extends StatefulWidget {
@@ -26,12 +28,11 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
   static const ErmittleStufenImArbeitskontextUseCase
   _ermittleStufenImArbeitskontextUseCase =
       ErmittleStufenImArbeitskontextUseCase();
+    static const ErmittleMemberFilterTrefferUseCase
+    _ermittleMemberFilterTrefferUseCase = ErmittleMemberFilterTrefferUseCase();
 
   String? _lastShownIssueKey;
-
-  // TODO: Arbeitskontext liefert aktuell reduzierte People-List-Mitglieder; fuer alle Subtitle-Modi bei Bedarf auf ein vollstaendigeres Mitglied-Modell umstellen.
-  static const MemberSubtitleMode _subtitleMode =
-      MemberSubtitleMode.mitgliedsnummer;
+    int? _lastMemberFiltersLayerId;
 
   Mitglied? _findMemberById(List<Mitglied> members, String memberId) {
     for (final member in members) {
@@ -91,19 +92,29 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
     final authModel = context.watch<AuthSessionModel>();
     final arbeitskontextModel = context.watch<ArbeitskontextModel>();
     final appSettingsModel = context.watch<AppSettingsModel?>();
+    final memberFiltersModel = context.watch<MemberFiltersModel?>();
     final highlightSearchMatches =
         appSettingsModel?.memberListSearchResultHighlightEnabled ?? false;
+    final layerId = arbeitskontextModel.readModel?.arbeitskontext.aktiverLayer.id;
+    _ensureMemberFiltersLoaded(memberFiltersModel, layerId);
     final showBiberFilter = _hatMitgliedInGruppenTyp(
       arbeitskontextModel,
       _biberGruppenTyp,
     );
     final mitgliedsStufen = arbeitskontextModel.readModel == null
-        ? const <String, Set<Stufe>>{}
-        : _ermittleStufenImArbeitskontextUseCase(
-            arbeitskontextModel.readModel!,
-          );
+      ? const <String, Set<Stufe>>{}
+      : _ermittleStufenImArbeitskontextUseCase(arbeitskontextModel.readModel!);
+    final mitgliedsFilterKeys = arbeitskontextModel.readModel == null
+      ? const <String, Set<String>>{}
+      : _ermittleMemberFilterTrefferUseCase(
+        arbeitskontextModel.readModel!,
+        customGroups: memberFiltersModel?.customGroups ?? const [],
+        );
     final members =
         arbeitskontextModel.readModel?.mitglieder ?? const <Mitglied>[];
+    final sortKey = memberFiltersModel?.sortKey ?? MemberSortKey.name;
+    final subtitleMode =
+      memberFiltersModel?.subtitleMode ?? MemberSubtitleMode.mitgliedsnummer;
 
     _scheduleIssueSnackbar(context, t, authModel);
 
@@ -120,11 +131,25 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
             highlightSearchMatches: highlightSearchMatches,
             showBiberFilter: showBiberFilter,
             mitgliedsStufen: mitgliedsStufen,
+            mitgliedsFilterKeys: mitgliedsFilterKeys,
+            memberFiltersModel: memberFiltersModel,
+            sortKey: sortKey,
+            subtitleMode: subtitleMode,
             members: members,
           ),
         ),
       ],
     );
+  }
+
+  void _ensureMemberFiltersLoaded(MemberFiltersModel? model, int? layerId) {
+    if (model == null || layerId == null || _lastMemberFiltersLayerId == layerId) {
+      return;
+    }
+    _lastMemberFiltersLayerId = layerId;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      model.ensureLoadedForLayer(layerId);
+    });
   }
 
   void _scheduleIssueSnackbar(
@@ -166,6 +191,10 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
     required bool highlightSearchMatches,
     required bool showBiberFilter,
     required Map<String, Set<Stufe>> mitgliedsStufen,
+    required Map<String, Set<String>> mitgliedsFilterKeys,
+    required MemberFiltersModel? memberFiltersModel,
+    required MemberSortKey sortKey,
+    required MemberSubtitleMode subtitleMode,
     required List<Mitglied> members,
   }) {
     if ((arbeitskontextModel.isLoading || authModel.isSyncingHitobitoData) &&
@@ -176,14 +205,24 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
     if (members.isNotEmpty) {
       return MemberDirectory(
         mitglieder: members,
-        sortKey: MemberSortKey.name,
-        subtitleMode: _subtitleMode,
+        sortKey: sortKey,
+        subtitleMode: subtitleMode,
         highlightSearchMatches: highlightSearchMatches,
         trailingTextBuilder: (member) =>
             _buildPrimaryGroupRole(member, arbeitskontextModel),
-        mitgliedsStufen: mitgliedsStufen,
+        mitgliedsFilterKeys: mitgliedsFilterKeys,
+        customFilterGroups: memberFiltersModel?.customGroups ?? const [],
         showBiberFilter: showBiberFilter,
         enableGroupFilter: true,
+        onOpenFilterOptions: memberFiltersModel == null || arbeitskontextModel.readModel == null
+            ? null
+            : () {
+                showMemberFilterSortSheet(
+                  context,
+                  model: memberFiltersModel,
+                  readModel: arbeitskontextModel.readModel!,
+                );
+              },
         onTapMember: (memberId) {
           final selectedMember = _findMemberById(members, memberId);
           if (selectedMember == null) {

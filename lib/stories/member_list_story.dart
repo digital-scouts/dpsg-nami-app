@@ -1,7 +1,7 @@
+import 'package:nami/domain/member/member_list_preferences.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/presentation/widgets/member_list.dart';
-import 'package:nami/presentation/widgets/member_list_tile.dart';
 // ignore: depend_on_referenced_packages
 import 'package:storybook_flutter/storybook_flutter.dart';
 
@@ -51,14 +51,13 @@ Story memberListStory() => Story(
         .map((m) => m.mitgliedsnummer)
         .toSet();
 
-    // Stufen-Filter über einzelne Booleans
-    final stufenFilter = <Stufe>{};
+    final selectedFilterKeys = <String>{};
     for (final s in Stufe.values) {
       final active = context.knobs.boolean(
         label: 'Filter ${s.displayName}',
         initial: false,
       );
-      if (active) stufenFilter.add(s);
+      if (active) selectedFilterKeys.add(s.name);
     }
     return MemberList(
       mitglieder: members,
@@ -66,7 +65,7 @@ Story memberListStory() => Story(
       sortKey: sort,
       subtitleMode: subtitle,
       favourites: favourites,
-      stufenFilter: stufenFilter,
+      selectedFilterKeys: selectedFilterKeys,
     );
   },
 );

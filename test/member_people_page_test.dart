@@ -13,12 +13,14 @@ import 'package:nami/domain/auth/auth_profile_repository.dart';
 import 'package:nami/domain/auth/auth_session.dart';
 import 'package:nami/domain/auth/auth_session_repository.dart';
 import 'package:nami/domain/member/mitglied.dart';
+import 'package:nami/domain/member_filters/member_filter_repository.dart';
 import 'package:nami/domain/settings/app_settings.dart';
 import 'package:nami/domain/settings/app_settings_repository.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
+import 'package:nami/presentation/model/member_filters_model.dart';
 import 'package:nami/presentation/navigation/app_router.dart';
 import 'package:nami/presentation/screens/member_people_page.dart';
 import 'package:nami/presentation/widgets/member_basis.dart';
@@ -497,6 +499,80 @@ void main() {
     expect(find.text('Keine Mitglieder gefunden'), findsNothing);
   });
 
+  testWidgets('oeffnet das Modal Filtern und Sortieren', (tester) async {
+    final authModel = await _createSignedInAuthModel();
+    final arbeitskontextModel = await _createArbeitskontextModel(
+      mitglieder: <Mitglied>[
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '1',
+          vorname: 'Julia',
+          nachname: 'Keller',
+        ),
+      ],
+      authModel: authModel,
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        authModel: authModel,
+        arbeitskontextModel: arbeitskontextModel,
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Filtern und sortieren'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Filtern & Sortieren'), findsOneWidget);
+    expect(find.text('Sortiere nach'), findsOneWidget);
+    expect(find.text('Zusatztext'), findsOneWidget);
+    expect(find.text('Rest'), findsWidgets);
+    expect(find.text('CustomGroup erstellen'), findsOneWidget);
+
+    await tester.tap(find.text('CustomGroup erstellen'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Gruppe'), findsOneWidget);
+    expect(find.text('Rolle'), findsOneWidget);
+  });
+
+  testWidgets('kann die Default-CustomGroup Rest loeschen', (tester) async {
+    final authModel = await _createSignedInAuthModel();
+    final arbeitskontextModel = await _createArbeitskontextModel(
+      mitglieder: <Mitglied>[
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '1',
+          vorname: 'Julia',
+          nachname: 'Keller',
+        ),
+      ],
+      authModel: authModel,
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        authModel: authModel,
+        arbeitskontextModel: arbeitskontextModel,
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Rest'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Filtern und sortieren'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('CustomGroup löschen').first);
+    await tester.pumpAndSettle();
+
+    Navigator.of(tester.element(find.text('Filtern & Sortieren'))).pop();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Rest'), findsNothing);
+  });
+
   testWidgets('loggt die Navigation in die Mitglied-Detailansicht', (
     tester,
   ) async {
@@ -543,6 +619,9 @@ Widget _buildTestApp({
   final effectiveLogger = logger ?? _FakeLoggerService();
   return MultiProvider(
     providers: [
+      ChangeNotifierProvider<MemberFiltersModel>(
+        create: (_) => MemberFiltersModel(_FakeMemberFilterRepository()),
+      ),
       ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
       ChangeNotifierProvider<ArbeitskontextModel>.value(
         value: arbeitskontextModel,
@@ -905,4 +984,22 @@ class _FakeAppSettingsRepository implements AppSettingsRepository {
 
   @override
   Future<void> saveThemeMode(ThemeMode mode) async {}
+}
+
+class _FakeMemberFilterRepository implements MemberFilterRepository {
+  final Map<int, MemberFilterLayerSettings> _values =
+      <int, MemberFilterLayerSettings>{};
+
+  @override
+  Future<MemberFilterLayerSettings> loadForLayer(int layerId) async {
+    return _values[layerId] ?? const MemberFilterLayerSettings();
+  }
+
+  @override
+  Future<void> saveForLayer(
+    int layerId,
+    MemberFilterLayerSettings settings,
+  ) async {
+    _values[layerId] = settings;
+  }
 }
