@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:nami/domain/member/member_utils.dart';
 import 'package:nami/domain/member/mitglied.dart';
-import 'package:nami/domain/taetigkeit/role_derivation.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
+import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/widgets/member_list_tile.dart';
 
 class _FilteredMemberEntry {
@@ -36,6 +36,9 @@ class MemberList extends StatelessWidget {
     this.trailingTextBuilder,
     this.favourites = const {},
     this.stufenFilter = const {},
+    this.mitgliedsStufen = const <String, Set<Stufe>>{},
+    this.includeNichtZugeordnet = false,
+    this.onResetFilters,
     this.onToggleFavourite,
     this.onTapMember,
   });
@@ -48,11 +51,15 @@ class MemberList extends StatelessWidget {
   final String? Function(Mitglied mitglied)? trailingTextBuilder;
   final Set<String> favourites;
   final Set<Stufe> stufenFilter;
+  final Map<String, Set<Stufe>> mitgliedsStufen;
+  final bool includeNichtZugeordnet;
+  final VoidCallback? onResetFilters;
   final ValueChanged<String>? onToggleFavourite;
   final ValueChanged<String>? onTapMember;
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final search = searchString.toLowerCase();
     final filteredSearch = search.isEmpty
         ? mitglieder
@@ -64,16 +71,25 @@ class MemberList extends StatelessWidget {
               .toList(growable: false);
 
     final filtered = stufenFilter.isEmpty
-        ? filteredSearch
+        ? (includeNichtZugeordnet
+              ? filteredSearch.where((entry) {
+                  final aktiveStufen =
+                      mitgliedsStufen[entry.mitglied.mitgliedsnummer] ??
+                      const <Stufe>{};
+                  return aktiveStufen.isEmpty;
+                }).toList()
+              : filteredSearch)
         : filteredSearch.where((entry) {
-            // TODO: Aktueller Filter arbeitet noch auf Stufen aus Taetigkeiten; fuer Ticket 6 auf echte Arbeitskontext-Gruppen umstellen.
-            // Nutze alle aktiven Roles fuer den Filter (nicht nur neueste)
-            final aktiveStufen = entry.mitglied.roles
-                .where((t) => t.istAktiv)
-                .map((t) => t.stufe)
-                .toSet();
-            return aktiveStufen.any(stufenFilter.contains);
+            final aktiveStufen =
+                mitgliedsStufen[entry.mitglied.mitgliedsnummer] ??
+                const <Stufe>{};
+            return aktiveStufen.any(stufenFilter.contains) ||
+                (includeNichtZugeordnet && aktiveStufen.isEmpty);
           }).toList();
+    final hasActiveFilterState =
+        searchString.trim().isNotEmpty ||
+        stufenFilter.isNotEmpty ||
+        includeNichtZugeordnet;
 
     filtered.sort((a, b) {
       final first = a.mitglied;
@@ -109,11 +125,25 @@ class MemberList extends StatelessWidget {
         if (i == filtered.length) {
           return ListTile(
             title: Center(
-              child: Text(
-                filtered.isEmpty
-                    ? 'Keine Mitglieder gefunden'
-                    : 'Mitglieder: ${filtered.length}',
-              ),
+              child: filtered.isEmpty
+                  ? Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(t.t('member_list_no_results')),
+                        if (hasActiveFilterState && onResetFilters != null) ...[
+                          const SizedBox(height: 8),
+                          TextButton(
+                            onPressed: onResetFilters,
+                            child: Text(t.t('member_list_reset_filters')),
+                          ),
+                        ],
+                      ],
+                    )
+                  : Text(
+                      t.tParams('member_list_count', <String, Object>{
+                        'count': filtered.length,
+                      }),
+                    ),
             ),
           );
         }

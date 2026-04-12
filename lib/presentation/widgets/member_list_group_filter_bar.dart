@@ -4,11 +4,13 @@ class GroupFilterItem {
   final String keyName;
   final String? imageAssetPath;
   final String? semanticLabel;
+  final String? textLabel;
 
   const GroupFilterItem({
     required this.keyName,
     this.imageAssetPath,
     this.semanticLabel,
+    this.textLabel,
   });
 }
 
@@ -39,13 +41,28 @@ class GroupFilterBar extends StatelessWidget {
             final isActive = selectedKeys.contains(item.keyName);
             final double imageSize = itemSize * 0.6;
 
-            Widget inner = Image.asset(
-              item.imageAssetPath ?? 'assets/icons/lilie_schwarz.png',
-              semanticLabel: item.semanticLabel ?? '${item.keyName} Filter',
-              width: imageSize,
-              height: imageSize,
-              fit: BoxFit.contain,
-            );
+            final semanticLabel =
+                item.semanticLabel ?? '${item.keyName} Filter';
+
+            Widget inner;
+            if (item.imageAssetPath != null) {
+              inner = Image.asset(
+                item.imageAssetPath!,
+                semanticLabel: semanticLabel,
+                width: imageSize,
+                height: imageSize,
+                fit: BoxFit.contain,
+              );
+            } else {
+              inner = Semantics(
+                label: semanticLabel,
+                child: Text(
+                  item.textLabel ?? item.keyName,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
+              );
+            }
 
             final circle = Container(
               width: itemSize,

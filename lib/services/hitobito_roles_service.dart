@@ -26,9 +26,8 @@ class HitobitoRolesService {
   }
 
   Future<List<HitobitoPersonRoleResource>> fetchRoleResources(
-    String accessToken, {
-    bool? active,
-  }) async {
+    String accessToken,
+  ) async {
     final requestUri = config.rolesUri;
     if (requestUri == null) {
       throw const HitobitoRolesException(
@@ -37,11 +36,12 @@ class HitobitoRolesService {
     }
 
     final resources = <HitobitoPersonRoleResource>[];
-    Uri? nextUri = _decorateRolesRequestUri(requestUri, active: active);
+    Uri? nextUri = requestUri;
 
     while (nextUri != null) {
+      final effectiveRequestUri = _decorateRolesRequestUri(nextUri);
       final decoded = await _fetchRolesPage(
-        requestUri: nextUri,
+        requestUri: effectiveRequestUri,
         accessToken: accessToken,
       );
       final data = decoded['data'];
@@ -54,19 +54,20 @@ class HitobitoRolesService {
       resources.addAll(
         data.whereType<Map<String, dynamic>>().map(_mapRoleResource),
       );
-      nextUri = _resolveNextUri(decoded, currentUri: nextUri);
+      nextUri = _resolveNextUri(decoded, currentUri: effectiveRequestUri);
     }
 
     return resources;
   }
 
-  Uri _decorateRolesRequestUri(Uri uri, {bool? active}) {
+  Uri _decorateRolesRequestUri(Uri uri) {
     final queryParameters = Map<String, String>.from(uri.queryParameters);
     queryParameters['fields[roles]'] =
         'created_at,updated_at,start_on,end_on,name,person_id,group_id,type,label';
-    if (active != null) {
-      queryParameters['filter[active][eq]'] = active.toString();
-    }
+
+    // Hitobito erwartet fuer filter[active][eq] ein Datum als Stichtag.
+    // Solange die API keinen verlaesslichen Modus fuer historische oder
+    // inaktive Rollen anbietet, setzen wir hier bewusst keinen Active-Filter.
     return uri.replace(queryParameters: queryParameters);
   }
 

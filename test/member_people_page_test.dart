@@ -262,6 +262,241 @@ void main() {
     expect(find.text('Mitgliedschaft'), findsOneWidget);
   });
 
+  testWidgets(
+    'filtert die Members-Page lokal nach Stufen aus dem Arbeitskontext',
+    (tester) async {
+      final authModel = await _createSignedInAuthModel();
+      final arbeitskontextModel = await _createArbeitskontextModel(
+        mitglieder: <Mitglied>[
+          Mitglied.peopleListItem(
+            mitgliedsnummer: '1',
+            vorname: 'Julia',
+            nachname: 'Keller',
+          ),
+          Mitglied.peopleListItem(
+            mitgliedsnummer: '2',
+            vorname: 'Mara',
+            nachname: 'Schmidt',
+          ),
+        ],
+        gruppen: const <ArbeitskontextGruppe>[
+          ArbeitskontextGruppe(
+            id: 21,
+            name: 'Woelflinge',
+            layerId: 11,
+            gruppenTyp: 'Group::Meute',
+          ),
+          ArbeitskontextGruppe(
+            id: 22,
+            name: 'Pfadis',
+            layerId: 11,
+            gruppenTyp: 'Group::Sippe',
+          ),
+        ],
+        mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
+          ArbeitskontextMitgliedsZuordnung(
+            mitgliedsnummer: '1',
+            gruppenId: 21,
+            rollenLabel: 'Woelfling',
+          ),
+          ArbeitskontextMitgliedsZuordnung(
+            mitgliedsnummer: '2',
+            gruppenId: 22,
+            rollenLabel: 'Pfadfinder in',
+          ),
+        ],
+        authModel: authModel,
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          authModel: authModel,
+          arbeitskontextModel: arbeitskontextModel,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Julia Keller'), findsOneWidget);
+      expect(find.text('Mara Schmidt'), findsOneWidget);
+
+      await tester.tap(find.bySemanticsLabel('Wölfling'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Julia Keller'), findsOneWidget);
+      expect(find.text('Mara Schmidt'), findsNothing);
+
+      await tester.tap(find.bySemanticsLabel('Pfadfinder'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Julia Keller'), findsOneWidget);
+      expect(find.text('Mara Schmidt'), findsOneWidget);
+    },
+  );
+
+  testWidgets('zeigt den Biber-Filter nur wenn mindestens ein Biber da ist', (
+    tester,
+  ) async {
+    final authModel = await _createSignedInAuthModel();
+    final ohneBiberModel = await _createArbeitskontextModel(
+      mitglieder: <Mitglied>[
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '1',
+          vorname: 'Julia',
+          nachname: 'Keller',
+        ),
+      ],
+      gruppen: const <ArbeitskontextGruppe>[
+        ArbeitskontextGruppe(
+          id: 21,
+          name: 'Woelflinge',
+          layerId: 11,
+          gruppenTyp: 'Group::Meute',
+        ),
+      ],
+      mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
+        ArbeitskontextMitgliedsZuordnung(mitgliedsnummer: '1', gruppenId: 21),
+      ],
+      authModel: authModel,
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(authModel: authModel, arbeitskontextModel: ohneBiberModel),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.bySemanticsLabel('Biber'), findsNothing);
+
+    final mitBiberModel = await _createArbeitskontextModel(
+      mitglieder: <Mitglied>[
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '1',
+          vorname: 'Ben',
+          nachname: 'Biber',
+        ),
+      ],
+      gruppen: const <ArbeitskontextGruppe>[
+        ArbeitskontextGruppe(
+          id: 22,
+          name: 'Bibergruppe',
+          layerId: 11,
+          gruppenTyp: 'Group::Biber',
+        ),
+      ],
+      mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
+        ArbeitskontextMitgliedsZuordnung(mitgliedsnummer: '1', gruppenId: 22),
+      ],
+      authModel: authModel,
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(authModel: authModel, arbeitskontextModel: mitBiberModel),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.bySemanticsLabel('Biber'), findsOneWidget);
+  });
+
+  testWidgets('filtert ueber Alle anderen nicht zugeordnete Mitglieder', (
+    tester,
+  ) async {
+    final authModel = await _createSignedInAuthModel();
+    final arbeitskontextModel = await _createArbeitskontextModel(
+      mitglieder: <Mitglied>[
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '1',
+          vorname: 'Julia',
+          nachname: 'Keller',
+        ),
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '2',
+          vorname: 'Mara',
+          nachname: 'Schmidt',
+        ),
+      ],
+      gruppen: const <ArbeitskontextGruppe>[
+        ArbeitskontextGruppe(
+          id: 21,
+          name: 'Woelflinge',
+          layerId: 11,
+          gruppenTyp: 'Group::Meute',
+        ),
+      ],
+      mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
+        ArbeitskontextMitgliedsZuordnung(mitgliedsnummer: '1', gruppenId: 21),
+      ],
+      authModel: authModel,
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        authModel: authModel,
+        arbeitskontextModel: arbeitskontextModel,
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Julia Keller'), findsOneWidget);
+    expect(find.text('Mara Schmidt'), findsOneWidget);
+
+    await tester.tap(find.text('Rest'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Julia Keller'), findsNothing);
+    expect(find.text('Mara Schmidt'), findsOneWidget);
+  });
+
+  testWidgets('bietet bei leerem Filterergebnis das Zuruecksetzen an', (
+    tester,
+  ) async {
+    final authModel = await _createSignedInAuthModel();
+    final arbeitskontextModel = await _createArbeitskontextModel(
+      mitglieder: <Mitglied>[
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '1',
+          vorname: 'Julia',
+          nachname: 'Keller',
+        ),
+      ],
+      gruppen: const <ArbeitskontextGruppe>[
+        ArbeitskontextGruppe(
+          id: 21,
+          name: 'Woelflinge',
+          layerId: 11,
+          gruppenTyp: 'Group::Meute',
+        ),
+      ],
+      mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
+        ArbeitskontextMitgliedsZuordnung(mitgliedsnummer: '1', gruppenId: 21),
+      ],
+      authModel: authModel,
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        authModel: authModel,
+        arbeitskontextModel: arbeitskontextModel,
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.bySemanticsLabel('Pfadfinder'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Keine Mitglieder gefunden'), findsOneWidget);
+    expect(find.text('Filter zurücksetzen'), findsOneWidget);
+
+    await tester.tap(find.text('Filter zurücksetzen'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Julia Keller'), findsOneWidget);
+    expect(find.text('Keine Mitglieder gefunden'), findsNothing);
+  });
+
   testWidgets('loggt die Navigation in die Mitglied-Detailansicht', (
     tester,
   ) async {
