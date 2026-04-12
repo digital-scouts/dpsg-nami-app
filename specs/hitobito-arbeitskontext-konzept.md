@@ -78,7 +78,7 @@ Die App arbeitet immer in genau einem aktiven Arbeitskontext. Alle Seiten der Ap
 - Nicht-Layer-Gruppen dienen primär als Filter, Teilmengen oder spätere Vorlagen für persönliche Dashboards.
 - Die Mitgliedsliste zeigt ohne Filter alle Mitglieder des aktiven Arbeitskontexts.
 - Gruppenfilter schränken diese Menge nur ein.
-- Sonstige Gruppen sind im MVP keine vordefinierten Hauptfilter, können aber später in benutzerdefinierten Filtern genutzt werden.
+- Sonstige Gruppen sind im MVP keine vordefinierten Hauptfilter, können aber in benutzerdefinierten Filtern genutzt werden.
 
 ### 2a. Rechte verkleinern die sichtbare Teilmenge
 
@@ -137,9 +137,9 @@ Die App arbeitet immer in genau einem aktiven Arbeitskontext. Alle Seiten der Ap
 ### Stufen und Gruppen
 
 - Hitobito kennt die in der App genutzte Stufenlogik nicht als eigene fachliche Domäne.
-- Für den MVP wird deshalb global im Code gepflegt, welche Hitobito-Gruppe genau einer In-App-Stufe entspricht.
-- Eine Hitobito-Gruppe wird im MVP höchstens genau einer In-App-Stufe zugeordnet.
-- Die Zuordnung bleibt bewusst konfigurierbar, weil noch nicht feststeht, über welches Gruppenattribut sich die Stufen in Hitobito stabil erkennen lassen.
+- Für den MVP wird die In-App-Stufe deshalb global im Code über feste Regeln zu Hitobito-Gruppentypen abgeleitet.
+- Eine einzelne Hitobito-Gruppe entspricht darüber höchstens einer In-App-Stufe.
+- Die Ableitung ist zentral im Code hinterlegt und nutzt aktuell bekannte Gruppentypen wie `Group::Meute`, `Group::Sippe`, `Group::Runde` und `Group::Gilde`.
 - Personen werden Gruppen in der App über ihre Rollen zugeordnet. Hat eine Person Rollen in mehreren Gruppen, erscheint sie in mehreren Filtern.
 - Leere Gruppen ohne Personen werden in der Leseansicht nicht angezeigt.
 
@@ -191,7 +191,7 @@ Diese Punkte sind bewusst noch offen und sollen später separat entschieden werd
 - Statistikoptionen für einen Layer plus Unterlayer
 - Rolle von Tags als zusätzliche Teilmengen innerhalb des Arbeitskontexts
 - Rolle persönlicher Auswahlen für "Meine Gruppe"
-- Erweiterung der Stufenzuordnung über das MVP-Modell "eine Gruppe -> eine In-App-Stufe" hinaus
+- Erweiterung der Stufenzuordnung über die aktuelle zentrale Ableitung aus Hitobito-Gruppentypen hinaus
 
 ## Ableitbare Ticket-Schnitte
 
@@ -205,7 +205,7 @@ Aus diesem Dokument lassen sich später unter anderem folgende Ticketbereiche ab
 - Mitgliedsliste für alle Personen des aktiven Arbeitskontexts
 - Ableitung des lesbaren Teilbestands innerhalb eines Arbeitskontexts aus Hitobito-Rechten
 - Gruppenfilter innerhalb des Arbeitskontexts
-- global konfigurierbare Zuordnung von Hitobito-Gruppen zu In-App-Stufen
+- zentrale Ableitung von In-App-Stufen aus Hitobito-Gruppentypen
 - Kontextgebundene Suche
 - Kontextgebundene Statistiken
 - Grundlagen für einen späteren Ausbau auf mehrere Offline-Arbeitskontexte

@@ -16,8 +16,8 @@ Dieses Dokument übersetzt das Arbeitskontext-Konzept in kleine, kopierfertige T
 - Leere Gruppen ohne Personen werden in der Leseansicht nicht angezeigt.
 - Leere Layer bleiben als mögliche Arbeitskontexte zulässig.
 - Sonstige Gruppen sind keine vordefinierten Hauptfilter.
-- In-App-Stufen werden im MVP global im Code aus genau einer zugeordneten Hitobito-Gruppe hergeleitet.
-- Eine Hitobito-Gruppe wird im MVP höchstens genau einer In-App-Stufe zugeordnet.
+- In-App-Stufen werden im MVP global im Code über zentrale Regeln zu Hitobito-Gruppentypen hergeleitet.
+- Eine einzelne Hitobito-Gruppe wird darüber im MVP höchstens genau einer In-App-Stufe zugeordnet.
 - Kontextwechsel ist bewusst und wechselt zwischen Layern.
 - Offline ist im MVP genau ein Arbeitskontext lokal verfügbar.
 - Unterlayer gehören nicht automatisch dazu.
@@ -260,10 +260,10 @@ Dieses Dokument übersetzt das Arbeitskontext-Konzept in kleine, kopierfertige T
 - Titel: Mitgliederliste für den aktiven Arbeitskontext mit Gruppenfiltern umsetzen
 - Typ: Feature
 - Priorität: P0
-- Status: in Arbeit
-- Umsetzungsstand: Die Standardliste ist bereits umgesetzt und zeigt die Mitglieder des aktiven Arbeitskontexts. Offen sind die gruppenbasierten Filter und die dafür nötige Datengrundlage aus Ticket 3b.
+- Status: umgesetzt
+- Umsetzungsstand: Die Mitgliederliste zeigt produktiv alle Mitglieder des aktiven Arbeitskontexts. Vordefinierte Stufenfilter sowie persistierte benutzerdefinierte Filtergruppen sind angebunden; die Auswertung basiert auf Rollen- und Gruppenzuordnungen aus Ticket 3b und ist unter anderem durch `test/ermittle_member_filter_treffer_usecase_test.dart` sowie `test/shared_prefs_member_filter_repository_test.dart` abgesichert.
 - Ziel: Die Mitgliederliste soll den gesamten lesbaren Bestand des aktiven Arbeitskontexts zeigen und über Gruppen sinnvoll einschränkbar sein.
-- Kurzbeschreibung: Die Standardliste zeigt bereits alle Personen des aktiven Arbeitskontexts. Offen sind gruppenbasierte Filter innerhalb dieses Kontexts. Dafür müssen Personen über ihre Rollen fachlich belastbar Gruppen zugeordnet werden können; diese Datengrundlage ist Gegenstand von Ticket 3b. Leere Gruppen ohne Personen werden in der Leseansicht nicht angezeigt, und sonstige Gruppen sind im MVP keine vordefinierten Hauptfilter.
+- Kurzbeschreibung: Die Mitgliederliste zeigt alle Personen des aktiven Arbeitskontexts. Gruppen- und Stufenfilter schränken diese Menge innerhalb desselben Kontexts ein. Zusätzlich können benutzerdefinierte Filtergruppen mehrere Regeln über Stufen sowie Gruppen- und Rollenzuordnungen kombinieren. Leere Gruppen ohne Personen werden in der Leseansicht nicht angezeigt, und sonstige Gruppen bleiben keine vordefinierten Hauptfilter.
 - Akzeptanzkriterien:
   - Ohne aktiven Filter zeigt die Liste alle lesbaren Personen des aktiven Arbeitskontexts.
   - Gruppenfilter schränken die Liste ein, ohne den aktiven Arbeitskontext zu ändern.
@@ -272,20 +272,21 @@ Dieses Dokument übersetzt das Arbeitskontext-Konzept in kleine, kopierfertige T
   - Leere Gruppen ohne Personen werden in der Leseansicht nicht angezeigt.
   - Sonstige Gruppen erscheinen nicht als vordefinierte Hauptfilter des MVP.
 - Abhängigkeiten: Ticket 3, Ticket 3b.
-- Nicht Teil dieses Tickets: Benutzerdefinierte Filter, Tags, "Meine Gruppe" als personalisierte Teilmenge.
+- Nicht Teil dieses Tickets: Tags, "Meine Gruppe" als personalisierte Teilmenge.
 
-### Ticket 7: Stufenzuordnung aus Hitobito-Gruppen global im Code ableiten
+### Ticket 7: Stufenzuordnung aus Hitobito-Gruppentypen global im Code ableiten
 
-- Titel: Stufenzuordnung aus Hitobito-Gruppen global im Code ableiten
+- Titel: Stufenzuordnung aus Hitobito-Gruppentypen global im Code ableiten
 - Typ: Feature
 - Priorität: P1
-- Status: offen
+- Status: umgesetzt
+- Umsetzungsstand: Die zentrale Stufenableitung ist in `lib/domain/stufe/arbeitskontext_stufen_mapping.dart` und `lib/domain/stufe/usecases/ermittle_stufen_im_arbeitskontext_usecase.dart` umgesetzt. `test/ermittle_stufen_im_arbeitskontext_usecase_test.dart` sichert die Ableitung über Gruppentypen, Mehrfachzuordnungen derselben Stufe und fehlende Regeln ab.
 - Ziel: Die bestehenden In-App-Stufen im MVP weiterhin nutzbar machen, obwohl Hitobito diese Domäne nicht direkt bereitstellt.
-- Kurzbeschreibung: Für das MVP wird global im Code gepflegt, welche Hitobito-Gruppen genau einer In-App-Stufe entsprechen. Eine Hitobito-Gruppe darf dabei höchstens einer In-App-Stufe zugeordnet sein. Die Ableitung soll nachvollziehbar, testbar und später austauschbar bleiben.
+- Kurzbeschreibung: Für das MVP wird global im Code gepflegt, welche Hitobito-Gruppentypen einer In-App-Stufe entsprechen. Eine einzelne Hitobito-Gruppe darf darüber höchstens einer In-App-Stufe zugeordnet sein. Die Ableitung soll nachvollziehbar, testbar und später austauschbar bleiben.
 - Akzeptanzkriterien:
   - Die Stufenzuordnung ist zentral und global im Code definiert.
-  - Eine Hitobito-Gruppe kann im MVP höchstens einer In-App-Stufe zugeordnet werden.
-  - Fehlt für eine Gruppe eine Zuordnung, führt das nicht zu einer falschen Stufe.
+  - Eine einzelne Hitobito-Gruppe kann im MVP höchstens einer In-App-Stufe zugeordnet werden.
+  - Fehlt für einen relevanten Gruppentyp eine Regel, führt das nicht zu einer falschen Stufe.
   - Die Zuordnung kann für Anzeigen und Filter des MVP verwendet werden.
 - Abhängigkeiten: Ticket 3, Ticket 3b, Ticket 6.
 - Nicht Teil dieses Tickets: Automatische Heuristiken aus Gruppenattributen, benutzerseitige Konfiguration der Zuordnung.
@@ -424,20 +425,18 @@ Dieses Dokument übersetzt das Arbeitskontext-Konzept in kleine, kopierfertige T
 - Akzeptanzkriterien:
   - Es gibt eine klare Abgrenzung zwischen Arbeitskontext und persönlicher Teilmenge.
   - Mögliche Quellen für persönliche Teilmengen wie Rollen, Gruppen, Tags oder gespeicherte Filter sind beschrieben.
-  - Die Beziehung zu bestehenden Gruppenfiltern und Stufenfiltern ist geklärt.
+  - Die Beziehung zu bestehenden Gruppenfiltern, Stufenfiltern und benutzerdefinierten Filtergruppen ist geklärt.
 - Abhängigkeiten: Ticket 6, Ticket 7.
 - Nicht Teil dieses Tickets: Konkrete Umsetzung von Tags, Dashboards oder personalisierten Filtern.
 
 ## Empfohlene weitere Reihenfolge ab aktuellem Stand
 
-1. Ticket 6: Mitgliederliste für den aktiven Arbeitskontext mit Gruppenfiltern umsetzen
-2. Ticket 7: Stufenzuordnung aus Hitobito-Gruppen global im Code ableiten
-3. Ticket 8b: Historischen Rollenverlauf für spätere Statistiken und Verlaufssichten laden
-4. Ticket 9: Schreib- und Bearbeitungslogik für teilweise sichtbare Layer fachlich klären
-5. Ticket 9a: Offene Personenfelder und nicht exponierte API-Felder fachlich klären
-6. Ticket 10: Mehrere offline verfügbare Arbeitskontexte konzipieren
-7. Ticket 11: Rekursive Sichten über Unterlayer als eigener Produktentscheid vorbereiten
-8. Ticket 12: Persönliche Teilmengen, Tags und "Meine Gruppe" nach dem MVP definieren
+1. Ticket 8b: Historischen Rollenverlauf für spätere Statistiken und Verlaufssichten laden
+2. Ticket 9: Schreib- und Bearbeitungslogik für teilweise sichtbare Layer fachlich klären
+3. Ticket 9a: Offene Personenfelder und nicht exponierte API-Felder fachlich klären
+4. Ticket 10: Mehrere offline verfügbare Arbeitskontexte konzipieren
+5. Ticket 11: Rekursive Sichten über Unterlayer als eigener Produktentscheid vorbereiten
+6. Ticket 12: Persönliche Teilmengen, Tags und "Meine Gruppe" nach dem MVP definieren
 
 ## Hinweis zur Nutzung in GitHub
 

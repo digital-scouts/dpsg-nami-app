@@ -34,19 +34,19 @@ Für die App wird das technische Hitobito-Modell bewusst nicht 1:1 in die Naviga
 - Gruppenrechte wie `group_read`, `group_and_below_read` und `group_and_below_full` machen den zugehörigen Layer relevant, schränken aber primär die sichtbare Teilmenge innerhalb dieses Layers ein.
 - Zusatzrechte wie `contact_data`, `approve_applications`, `finance` oder `layer_and_below_finance` erweitern die angebotene Layerliste nicht.
 - Rollen mit `admin` oder `impersonation` werden für den normalen App-Fall zunächst nicht als eigener Produktpfad modelliert.
-- Für den MVP wird die In-App-Stufe global im Code aus genau einer zugeordneten Hitobito-Gruppe hergeleitet. Welche Gruppe zu welcher In-App-Stufe gehört, bleibt bewusst konfigurierbar.
+- Für den MVP wird die In-App-Stufe global im Code über zentrale Regeln zu Hitobito-Gruppentypen hergeleitet.
 - Personen werden Gruppen in der App über ihre Rollen zugeordnet. Hat eine Person Rollen in mehreren Gruppen, kann sie in mehreren Filtern erscheinen.
 - Leere Gruppen ohne Personen werden in der Leseansicht nicht angezeigt.
 - Leere Layer bleiben dagegen als mögliche Arbeitskontexte zulässig.
-- Sonstige Gruppen sind im MVP keine vordefinierten Hauptfilter, können später aber in benutzerdefinierten Filtern genutzt werden.
+- Sonstige Gruppen sind im MVP keine vordefinierten Hauptfilter, können aber in benutzerdefinierten Filtern genutzt werden.
 
 Dieses Dokument beschreibt weiterhin primär das technische Hitobito-Datenmodell. Die ausführliche App-Konzeption dazu liegt in [specs/hitobito-arbeitskontext-konzept.md](specs/hitobito-arbeitskontext-konzept.md).
 
 ### Vorläufige MVP-Ableitungen für die App
 
-- Eine Hitobito-Gruppe wird im MVP höchstens genau einer In-App-Stufe zugeordnet.
+- Eine einzelne Hitobito-Gruppe wird über diese Regeln höchstens genau einer In-App-Stufe zugeordnet.
 - Die Zuordnung liegt global im Code und nicht in einer benutzerseitigen Konfiguration.
-- Welche Gruppenattribute sich langfristig am besten für automatische Vorschläge eignen, ist derzeit noch offen.
+- Ob die aktuelle Ableitung über `gruppenTyp` langfristig ausreicht oder später feinere Regeln braucht, ist derzeit noch offen.
 - Für den Lesemodus gilt pragmatisch: Was aus Hitobito nicht lesbar zurückkommt, existiert in der App nicht.
 - Für spätere Bearbeitungs- und Anlegeflows dürfen zusätzliche, im Lesemodus verborgene Gruppen separat betrachtet werden.
 - Ohne mindestens ein arbeitskontextrelevantes Layer- oder Gruppen-Lese- beziehungsweise Schreibrecht ist die App fachlich nicht für den Nutzer vorgesehen.

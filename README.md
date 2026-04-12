@@ -147,10 +147,10 @@ Für die aktuelle Hitobito-Ausbaustufe gilt fachlich folgendes Modell:
 - Gruppen innerhalb eines Arbeitskontexts sind in der App primär Filter oder Teilmengen und keine eigenständigen Hauptkontexte.
 - Gruppenrechte wie `group_read` oder `group_and_below_read` können einen Layer für die App relevant machen, schränken aber primär die sichtbare Teilmenge innerhalb dieses Layers ein.
 - Layerrechte wie `layer_read`, `layer_full`, `layer_and_below_read` oder `layer_and_below_full` bestimmen, welche Layer als Arbeitskontexte angeboten werden.
-- Für den MVP wird die In-App-Stufe global im Code aus genau einer zugeordneten Hitobito-Gruppe hergeleitet. Diese Zuordnung bleibt bewusst konfigurierbar.
+- Für den MVP wird die In-App-Stufe global im Code über zentrale Regeln zu Hitobito-Gruppentypen abgeleitet. Eine einzelne Gruppe entspricht darüber höchstens einer In-App-Stufe.
 - Personen werden Gruppen in der App über ihre Rollen zugeordnet. Hat eine Person Rollen in mehreren Gruppen, kann sie in mehreren Filtern erscheinen.
 - Leere Gruppen ohne Personen werden in der Leseansicht nicht angezeigt.
-- Sonstige Gruppen sind keine vordefinierten Hauptfilter, können später aber in benutzerdefinierten Filtern genutzt werden.
+- Sonstige Gruppen sind keine vordefinierten Hauptfilter, können aber in benutzerdefinierten Filtern genutzt werden.
 - Leere Layer bleiben grundsätzlich zulässige Arbeitskontexte, weil sie für erste Anlage- oder Aufbauprozesse relevant sein können.
 - Ohne mindestens ein relevantes Layer- oder Gruppen-Lese- beziehungsweise Schreibrecht zeigt die App für kontextabhängige Bereiche einen expliziten Nicht-berechtigt-Zustand mit Logout an. Die Stamm-Einstellungen bleiben weiterhin erreichbar.
 - Der initiale Arbeitskontext wird aus dem Primary Layer der Person bestimmt, sofern dieser innerhalb der relevanten Layer liegt. Falls dies ausnahmsweise nicht sinnvoll bestimmbar ist, wird der erste relevante Layer aus einer stabil sortierten Liste verwendet.
@@ -171,6 +171,7 @@ Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den
 ## Aktuelle Funktionen
 
 - Mitglieder und deren Details auflisten, sortieren und filtern
+  - Stufenfilter und benutzerdefinierte Filtergruppen auf Basis von Gruppen- und Rollenzuordnungen verwenden.
   - Adresse und Entfernung zum Stammesheim auf der Karte anzeigen.
   - Über Grafiken und Auflistung den Tätigkeitsverlauf eines Mitglieds ansehen.
   - Wie in den Kontakten E-Mails schreiben und einen Anruf starten
