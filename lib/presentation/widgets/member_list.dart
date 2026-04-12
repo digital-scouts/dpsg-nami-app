@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nami/domain/member/member_list_preferences.dart';
 import 'package:nami/domain/member/member_utils.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
@@ -22,8 +23,6 @@ class MemberListSettingsHandler extends ChangeNotifier {
   }
 }
 
-enum MemberSortKey { age, group, name, vorname, memberTime }
-
 class MemberList extends StatelessWidget {
   const MemberList({
     super.key,
@@ -35,9 +34,8 @@ class MemberList extends StatelessWidget {
     this.subtitleTextBuilder,
     this.trailingTextBuilder,
     this.favourites = const {},
-    this.stufenFilter = const {},
-    this.mitgliedsStufen = const <String, Set<Stufe>>{},
-    this.includeNichtZugeordnet = false,
+    this.selectedFilterKeys = const <String>{},
+    this.mitgliedsFilterKeys = const <String, Set<String>>{},
     this.onResetFilters,
     this.onToggleFavourite,
     this.onTapMember,
@@ -50,9 +48,8 @@ class MemberList extends StatelessWidget {
   final String? Function(Mitglied mitglied)? subtitleTextBuilder;
   final String? Function(Mitglied mitglied)? trailingTextBuilder;
   final Set<String> favourites;
-  final Set<Stufe> stufenFilter;
-  final Map<String, Set<Stufe>> mitgliedsStufen;
-  final bool includeNichtZugeordnet;
+  final Set<String> selectedFilterKeys;
+  final Map<String, Set<String>> mitgliedsFilterKeys;
   final VoidCallback? onResetFilters;
   final ValueChanged<String>? onToggleFavourite;
   final ValueChanged<String>? onTapMember;
@@ -70,26 +67,16 @@ class MemberList extends StatelessWidget {
               .whereType<_FilteredMemberEntry>()
               .toList(growable: false);
 
-    final filtered = stufenFilter.isEmpty
-        ? (includeNichtZugeordnet
-              ? filteredSearch.where((entry) {
-                  final aktiveStufen =
-                      mitgliedsStufen[entry.mitglied.mitgliedsnummer] ??
-                      const <Stufe>{};
-                  return aktiveStufen.isEmpty;
-                }).toList()
-              : filteredSearch)
+    final filtered = selectedFilterKeys.isEmpty
+        ? filteredSearch
         : filteredSearch.where((entry) {
-            final aktiveStufen =
-                mitgliedsStufen[entry.mitglied.mitgliedsnummer] ??
-                const <Stufe>{};
-            return aktiveStufen.any(stufenFilter.contains) ||
-                (includeNichtZugeordnet && aktiveStufen.isEmpty);
+            final aktiveFilter =
+                mitgliedsFilterKeys[entry.mitglied.mitgliedsnummer] ??
+                const <String>{};
+            return aktiveFilter.any(selectedFilterKeys.contains);
           }).toList();
     final hasActiveFilterState =
-        searchString.trim().isNotEmpty ||
-        stufenFilter.isNotEmpty ||
-        includeNichtZugeordnet;
+        searchString.trim().isNotEmpty || selectedFilterKeys.isNotEmpty;
 
     filtered.sort((a, b) {
       final first = a.mitglied;

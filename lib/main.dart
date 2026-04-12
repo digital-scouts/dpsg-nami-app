@@ -26,6 +26,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:wiredash/wiredash.dart';
 
+import 'data/member_filters/shared_prefs_member_filter_repository.dart';
 import 'data/settings/shared_prefs_app_settings_repository.dart';
 import 'domain/auth/auth_profile.dart';
 import 'domain/auth/auth_state.dart';
@@ -34,6 +35,7 @@ import 'domain/settings/app_settings_repository.dart';
 import 'l10n/app_localizations.dart';
 import 'presentation/model/app_settings_model.dart';
 import 'presentation/model/locale_model.dart';
+import 'presentation/model/member_filters_model.dart';
 import 'presentation/navigation/app_router.dart';
 import 'services/app_reset_service.dart';
 import 'services/app_runtime_controller.dart';
@@ -68,12 +70,14 @@ void main() {
       // Settings laden und Provider initialisieren
       final AppSettingsRepository settingsRepo =
           SharedPrefsAppSettingsRepository();
+      final memberFilterRepository = SharedPrefsMemberFilterRepository();
       final appStartupStateService = AppStartupStateService();
       final AppSettings initial = await settingsRepo.load();
       final localeModel = LocaleModel(
         persist: (code) => settingsRepo.saveLanguageCode(code),
       )..setLocale(Locale(initial.languageCode), persist: false);
       final appSettingsModel = AppSettingsModel(initial, settingsRepo);
+      final memberFiltersModel = MemberFiltersModel(memberFilterRepository);
 
       logger = LoggerService(
         settingsRepository: settingsRepo,
@@ -217,6 +221,9 @@ void main() {
             Provider<AppResetService>.value(value: appResetService),
             ChangeNotifierProvider<AppSettingsModel>.value(
               value: appSettingsModel,
+            ),
+            ChangeNotifierProvider<MemberFiltersModel>.value(
+              value: memberFiltersModel,
             ),
             ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
             ChangeNotifierProvider<ArbeitskontextModel>.value(

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 
+import '../../l10n/app_localizations.dart';
+
 class MemberSearchBar extends StatelessWidget {
   const MemberSearchBar({
     super.key,
@@ -14,6 +16,7 @@ class MemberSearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
       child: Row(
@@ -44,7 +47,7 @@ class MemberSearchBar extends StatelessWidget {
                     borderSide: BorderSide.none,
                   ),
                   prefixIcon: const Icon(Icons.search),
-                  hintText: 'Suche nach Name, Mail oder ID',
+                  hintText: t.t('member_list_search_hint'),
                 ),
               ),
             ),
@@ -52,7 +55,7 @@ class MemberSearchBar extends StatelessWidget {
           const SizedBox(width: 8),
           IconButton(
             icon: const Icon(Icons.tune),
-            tooltip: 'Filter',
+            tooltip: t.t('member_filter_open_tooltip'),
             onPressed: onTunePressed,
           ),
         ],

@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 class GroupFilterItem {
   final String keyName;
   final String? imageAssetPath;
+  final IconData? iconData;
   final String? semanticLabel;
   final String? textLabel;
 
   const GroupFilterItem({
     required this.keyName,
     this.imageAssetPath,
+    this.iconData,
     this.semanticLabel,
     this.textLabel,
   });
@@ -53,6 +55,8 @@ class GroupFilterBar extends StatelessWidget {
                 height: imageSize,
                 fit: BoxFit.contain,
               );
+            } else if (item.iconData != null) {
+              inner = Icon(item.iconData, semanticLabel: semanticLabel);
             } else {
               inner = Semantics(
                 label: semanticLabel,

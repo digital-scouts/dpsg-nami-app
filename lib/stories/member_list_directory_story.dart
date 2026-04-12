@@ -1,7 +1,6 @@
+import 'package:nami/domain/member/member_list_preferences.dart';
 import 'package:nami/domain/member/mitglied.dart';
-import 'package:nami/presentation/widgets/member_list.dart';
 import 'package:nami/presentation/widgets/member_list_directory.dart';
-import 'package:nami/presentation/widgets/member_list_tile.dart';
 // ignore: depend_on_referenced_packages
 import 'package:storybook_flutter/storybook_flutter.dart';
 
