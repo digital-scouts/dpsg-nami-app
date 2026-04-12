@@ -49,8 +49,21 @@ void main() {
       verfuegbareLayer: const <ArbeitskontextLayer>[
         ArbeitskontextLayer(id: 20, name: 'Bezirk Rhein'),
       ],
-      gruppen: const <ArbeitskontextGruppe>[
-        ArbeitskontextGruppe(id: 101, name: 'Woelflinge', layerId: 11),
+      gruppen: <ArbeitskontextGruppe>[
+        const ArbeitskontextGruppe(
+          id: 101,
+          name: 'Woelflinge',
+          layerId: 11,
+          displayName: 'Fuechse',
+          shortName: 'F',
+          description: 'Wolfsstufe',
+          gruppenTyp: 'Group::Meute',
+          selfRegistrationUrl:
+              'https://demo.hitobito.com/de/groups/101/self_registration',
+        ).copyWith(
+          createdAt: DateTime(2026, 4, 10, 3, 0, 29),
+          updatedAt: DateTime(2026, 4, 11, 0, 45, 44),
+        ),
       ],
       mitglieder: <Mitglied>[
         Mitglied(

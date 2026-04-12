@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../domain/member/mitglied.dart';
+import '../../domain/stufe/usecases/ermittle_stufen_im_arbeitskontext_usecase.dart';
+import '../../domain/taetigkeit/stufe.dart';
 import '../../l10n/app_localizations.dart';
 import '../model/app_settings_model.dart';
 import '../model/arbeitskontext_model.dart';
@@ -20,6 +22,11 @@ class MemberPeoplePage extends StatefulWidget {
 }
 
 class _MemberPeoplePageState extends State<MemberPeoplePage> {
+  static const String _biberGruppenTyp = 'Group::Biber';
+  static const ErmittleStufenImArbeitskontextUseCase
+  _ermittleStufenImArbeitskontextUseCase =
+      ErmittleStufenImArbeitskontextUseCase();
+
   String? _lastShownIssueKey;
 
   // TODO: Arbeitskontext liefert aktuell reduzierte People-List-Mitglieder; fuer alle Subtitle-Modi bei Bedarf auf ein vollstaendigeres Mitglied-Modell umstellen.
@@ -72,10 +79,10 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
 
     final rollenLabel = ersteZuordnung.displayRollenLabel;
     if (rollenLabel == null || rollenLabel.isEmpty) {
-      return gruppe.name;
+      return gruppe.anzeigename;
     }
 
-    return '${gruppe.name} - $rollenLabel';
+    return '${gruppe.anzeigename} - $rollenLabel';
   }
 
   @override
@@ -86,6 +93,15 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
     final appSettingsModel = context.watch<AppSettingsModel?>();
     final highlightSearchMatches =
         appSettingsModel?.memberListSearchResultHighlightEnabled ?? false;
+    final showBiberFilter = _hatMitgliedInGruppenTyp(
+      arbeitskontextModel,
+      _biberGruppenTyp,
+    );
+    final mitgliedsStufen = arbeitskontextModel.readModel == null
+        ? const <String, Set<Stufe>>{}
+        : _ermittleStufenImArbeitskontextUseCase(
+            arbeitskontextModel.readModel!,
+          );
     final members =
         arbeitskontextModel.readModel?.mitglieder ?? const <Mitglied>[];
 
@@ -102,6 +118,8 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
             authModel: authModel,
             arbeitskontextModel: arbeitskontextModel,
             highlightSearchMatches: highlightSearchMatches,
+            showBiberFilter: showBiberFilter,
+            mitgliedsStufen: mitgliedsStufen,
             members: members,
           ),
         ),
@@ -146,6 +164,8 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
     required AuthSessionModel authModel,
     required ArbeitskontextModel arbeitskontextModel,
     required bool highlightSearchMatches,
+    required bool showBiberFilter,
+    required Map<String, Set<Stufe>> mitgliedsStufen,
     required List<Mitglied> members,
   }) {
     if ((arbeitskontextModel.isLoading || authModel.isSyncingHitobitoData) &&
@@ -161,7 +181,9 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
         highlightSearchMatches: highlightSearchMatches,
         trailingTextBuilder: (member) =>
             _buildPrimaryGroupRole(member, arbeitskontextModel),
-        enableGroupFilter: false,
+        mitgliedsStufen: mitgliedsStufen,
+        showBiberFilter: showBiberFilter,
+        enableGroupFilter: true,
         onTapMember: (memberId) {
           final selectedMember = _findMemberById(members, memberId);
           if (selectedMember == null) {
@@ -191,5 +213,24 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
         child: Text(t.t('members_empty'), textAlign: TextAlign.center),
       ),
     );
+  }
+
+  bool _hatMitgliedInGruppenTyp(
+    ArbeitskontextModel arbeitskontextModel,
+    String gruppenTyp,
+  ) {
+    final readModel = arbeitskontextModel.readModel;
+    if (readModel == null) {
+      return false;
+    }
+
+    for (final zuordnung in readModel.mitgliedsZuordnungen) {
+      final gruppe = readModel.findeGruppe(zuordnung.gruppenId);
+      if (gruppe?.gruppenTyp == gruppenTyp) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }

@@ -97,6 +97,9 @@ class AppLocalizations {
           'Hitobito-Daten konnten nicht aktualisiert werden. Es werden lokale Daten angezeigt.',
       'members_sync_issue_relogin':
           'Hitobito-Daten konnten nicht aktualisiert werden. Bitte melde dich erneut an.',
+      'member_list_no_results': 'Keine Mitglieder gefunden',
+      'member_list_count': 'Mitglieder: {count}',
+      'member_list_reset_filters': 'Filter zurücksetzen',
       'settings_stamm': 'Stammeseinstellungen',
       'settings_app': 'App-Einstellungen',
       'settings_map': 'Karte',
@@ -280,6 +283,9 @@ class AppLocalizations {
           'Hitobito data could not be refreshed. Showing local data instead.',
       'members_sync_issue_relogin':
           'Hitobito data could not be refreshed. Please sign in again.',
+      'member_list_no_results': 'No members found',
+      'member_list_count': 'Members: {count}',
+      'member_list_reset_filters': 'Reset filters',
       'settings_stamm': 'Troop settings',
       'settings_app': 'App settings',
       'settings_map': 'Map',
@@ -386,6 +392,14 @@ class AppLocalizations {
   String t(String key) {
     final lang = locale.languageCode;
     return _localizedValues[lang]?[key] ?? _localizedValues['en']![key] ?? key;
+  }
+
+  String tParams(String key, Map<String, Object> params) {
+    var value = t(key);
+    for (final entry in params.entries) {
+      value = value.replaceAll('{${entry.key}}', entry.value.toString());
+    }
+    return value;
   }
 }
 

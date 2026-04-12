@@ -11,6 +11,8 @@ class MemberDirectory extends StatefulWidget {
   const MemberDirectory({
     super.key,
     required this.mitglieder,
+    this.mitgliedsStufen = const <String, Set<Stufe>>{},
+    this.showBiberFilter = false,
     this.initialSearch = '',
     this.initialStufen = const {},
     this.initialFavourites = const {},
@@ -23,6 +25,8 @@ class MemberDirectory extends StatefulWidget {
     this.onTapMember,
   });
   final List<Mitglied> mitglieder;
+  final Map<String, Set<Stufe>> mitgliedsStufen;
+  final bool showBiberFilter;
   final String initialSearch;
   final Set<Stufe> initialStufen;
   final Set<String> initialFavourites;
@@ -39,9 +43,12 @@ class MemberDirectory extends StatefulWidget {
 }
 
 class _MemberDirectoryState extends State<MemberDirectory> {
+  static const String _nichtZugeordnetKey = 'nicht_zugeordnet';
+
   late String search;
   late Set<Stufe> selectedStufen;
   late Set<String> favourites;
+  bool includeNichtZugeordnet = false;
 
   @override
   void initState() {
@@ -61,25 +68,48 @@ class _MemberDirectoryState extends State<MemberDirectory> {
     });
   }
 
+  void _resetFilters() {
+    setState(() {
+      search = '';
+      selectedStufen.clear();
+      includeNichtZugeordnet = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final items = Stufe.values
-        .map(
-          (s) => GroupFilterItem(
-            keyName: s.name,
-            imageAssetPath: StufeVisuals.assetFor(s),
-            semanticLabel: s.displayName,
-          ),
-        )
-        .toList();
+    final items =
+        Stufe.values
+            .where(
+              (stufe) =>
+                  stufe != Stufe.leitung &&
+                  (stufe != Stufe.biber || widget.showBiberFilter),
+            )
+            .map(
+              (s) => GroupFilterItem(
+                keyName: s.name,
+                imageAssetPath: StufeVisuals.assetFor(s),
+                semanticLabel: s.displayName,
+              ),
+            )
+            .toList()
+          ..add(
+            const GroupFilterItem(
+              keyName: _nichtZugeordnetKey,
+              semanticLabel: 'Alle anderen',
+              textLabel: 'Rest',
+            ),
+          );
 
     return Column(
       children: [
         GroupFilterBar(
           items: items,
-          selectedKeys: selectedStufen.map((e) => e.name).toSet(),
+          selectedKeys: <String>{
+            ...selectedStufen.map((e) => e.name),
+            if (includeNichtZugeordnet) _nichtZugeordnetKey,
+          },
           onChanged: (next) {
-            // TODO: Gruppenfilterleiste wird im Produktpfad vorerst nur angezeigt; echte Anbindung an Arbeitskontext-Gruppen folgt in Ticket 6.
             if (!widget.enableGroupFilter) {
               return;
             }
@@ -87,6 +117,7 @@ class _MemberDirectoryState extends State<MemberDirectory> {
               selectedStufen
                 ..clear()
                 ..addAll(Stufe.values.where((s) => next.contains(s.name)));
+              includeNichtZugeordnet = next.contains(_nichtZugeordnetKey);
             });
           },
           itemSize: 54,
@@ -106,6 +137,11 @@ class _MemberDirectoryState extends State<MemberDirectory> {
             trailingTextBuilder: widget.trailingTextBuilder,
             favourites: favourites,
             stufenFilter: widget.enableGroupFilter ? selectedStufen : const {},
+            mitgliedsStufen: widget.mitgliedsStufen,
+            includeNichtZugeordnet: widget.enableGroupFilter
+                ? includeNichtZugeordnet
+                : false,
+            onResetFilters: _resetFilters,
             onToggleFavourite: toggleFavourite,
             onTapMember: (id) {
               widget.onTapMember?.call(id);

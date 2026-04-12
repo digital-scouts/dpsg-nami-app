@@ -105,7 +105,37 @@ class HitobitoGroupsService {
       isLayer: attributesMap['layer'] == true,
       parentId: _toNullableInt(attributesMap['parent_id']),
       layerGroupId: _toNullableInt(attributesMap['layer_group_id']),
+      displayName: _trimToNull(attributesMap['display_name']?.toString()),
+      shortName: _trimToNull(attributesMap['short_name']?.toString()),
+      description: _trimToNull(attributesMap['description']?.toString()),
+      groupType: _trimToNull(attributesMap['type']?.toString()),
+      selfRegistrationUrl: _trimToNull(
+        attributesMap['self_registration_url']?.toString(),
+      ),
+      selfRegistrationRequireAdultConsent:
+          attributesMap['self_registration_require_adult_consent'] == true,
+      archivedAt: _toDateTime(attributesMap['archived_at']),
+      createdAt: _toDateTime(attributesMap['created_at']),
+      updatedAt: _toDateTime(attributesMap['updated_at']),
+      deletedAt: _toDateTime(attributesMap['deleted_at']),
     );
+  }
+
+  DateTime? _toDateTime(Object? value) {
+    final raw = value?.toString().trim();
+    if (raw == null || raw.isEmpty) {
+      return null;
+    }
+
+    return DateTime.tryParse(raw);
+  }
+
+  String? _trimToNull(String? value) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) {
+      return null;
+    }
+    return trimmed;
   }
 
   int _toInt(Object? value) {

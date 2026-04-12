@@ -40,6 +40,8 @@ void main() {
               isLayer: false,
               parentId: 11,
               layerGroupId: 11,
+              displayName: 'Fuechse',
+              groupType: 'Group::Meute',
             ),
             HitobitoGroupResource(
               id: 102,
@@ -111,6 +113,8 @@ void main() {
         <String>['1001'],
       );
       expect(readModel.gruppen.map((gruppe) => gruppe.id), <int>[101, 102]);
+      expect(readModel.findeGruppe(101)?.displayName, 'Fuechse');
+      expect(readModel.findeGruppe(101)?.gruppenTyp, 'Group::Meute');
       expect(
         readModel.mitgliedsZuordnungen,
         const <ArbeitskontextMitgliedsZuordnung>[
@@ -648,7 +652,6 @@ class _FakeHitobitoRolesService extends HitobitoRolesService {
 
   @override
   Future<List<HitobitoPersonRoleResource>> fetchRoleResources(
-    String accessToken, {
-    bool? active,
-  }) async => _roles;
+    String accessToken,
+  ) async => _roles;
 }

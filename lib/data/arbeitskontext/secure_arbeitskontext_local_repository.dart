@@ -154,6 +154,17 @@ class SecureArbeitskontextLocalRepository
       'id': gruppe.id,
       'name': gruppe.name,
       'layer_id': gruppe.layerId,
+      'display_name': gruppe.displayName,
+      'short_name': gruppe.shortName,
+      'description': gruppe.description,
+      'gruppen_typ': gruppe.gruppenTyp,
+      'self_registration_url': gruppe.selfRegistrationUrl,
+      'self_registration_require_adult_consent':
+          gruppe.selfRegistrationRequireAdultConsent,
+      'archived_at': gruppe.archivedAt?.toIso8601String(),
+      'created_at': gruppe.createdAt?.toIso8601String(),
+      'updated_at': gruppe.updatedAt?.toIso8601String(),
+      'deleted_at': gruppe.deletedAt?.toIso8601String(),
     };
   }
 
@@ -165,7 +176,24 @@ class SecureArbeitskontextLocalRepository
       return null;
     }
 
-    return ArbeitskontextGruppe(id: id, name: name, layerId: layerId);
+    return ArbeitskontextGruppe(
+      id: id,
+      name: name,
+      layerId: layerId,
+      displayName: _trimToNull(json['display_name']?.toString()),
+      shortName: _trimToNull(json['short_name']?.toString()),
+      description: _trimToNull(json['description']?.toString()),
+      gruppenTyp: _trimToNull(json['gruppen_typ']?.toString()),
+      selfRegistrationUrl: _trimToNull(
+        json['self_registration_url']?.toString(),
+      ),
+      selfRegistrationRequireAdultConsent:
+          json['self_registration_require_adult_consent'] == true,
+      archivedAt: _toDateTime(json['archived_at']),
+      createdAt: _toDateTime(json['created_at']),
+      updatedAt: _toDateTime(json['updated_at']),
+      deletedAt: _toDateTime(json['deleted_at']),
+    );
   }
 
   Map<String, dynamic> _mitgliedsZuordnungToJson(
@@ -209,5 +237,23 @@ class SecureArbeitskontextLocalRepository
       return null;
     }
     return parsed;
+  }
+
+  DateTime? _toDateTime(Object? value) {
+    final raw = value?.toString().trim();
+    if (raw == null || raw.isEmpty) {
+      return null;
+    }
+
+    return DateTime.tryParse(raw);
+  }
+
+  String? _trimToNull(String? value) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) {
+      return null;
+    }
+
+    return trimmed;
   }
 }

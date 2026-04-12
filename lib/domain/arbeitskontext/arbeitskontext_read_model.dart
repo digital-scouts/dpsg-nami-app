@@ -76,6 +76,16 @@ class ArbeitskontextGruppe {
     required this.id,
     required this.name,
     required this.layerId,
+    this.displayName,
+    this.shortName,
+    this.description,
+    this.gruppenTyp,
+    this.selfRegistrationUrl,
+    this.selfRegistrationRequireAdultConsent = false,
+    this.archivedAt,
+    this.createdAt,
+    this.updatedAt,
+    this.deletedAt,
   }) : assert(id > 0),
        assert(name != ''),
        assert(layerId > 0);
@@ -83,28 +93,113 @@ class ArbeitskontextGruppe {
   final int id;
   final String name;
   final int layerId;
+  final String? displayName;
+  final String? shortName;
+  final String? description;
+  final String? gruppenTyp;
+  final String? selfRegistrationUrl;
+  final bool selfRegistrationRequireAdultConsent;
+  final DateTime? archivedAt;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final DateTime? deletedAt;
 
-  ArbeitskontextGruppe copyWith({int? id, String? name, int? layerId}) =>
-      ArbeitskontextGruppe(
-        id: id ?? this.id,
-        name: name ?? this.name,
-        layerId: layerId ?? this.layerId,
-      );
+  String get anzeigename {
+    final trimmedDisplayName = displayName?.trim();
+    if (trimmedDisplayName != null && trimmedDisplayName.isNotEmpty) {
+      return trimmedDisplayName;
+    }
+
+    final trimmedShortName = shortName?.trim();
+    if (trimmedShortName != null && trimmedShortName.isNotEmpty) {
+      return trimmedShortName;
+    }
+
+    return name;
+  }
+
+  ArbeitskontextGruppe copyWith({
+    int? id,
+    String? name,
+    int? layerId,
+    String? displayName,
+    String? shortName,
+    String? description,
+    String? gruppenTyp,
+    String? selfRegistrationUrl,
+    bool? selfRegistrationRequireAdultConsent,
+    DateTime? archivedAt,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    DateTime? deletedAt,
+    bool displayNameLoeschen = false,
+    bool shortNameLoeschen = false,
+    bool descriptionLoeschen = false,
+    bool gruppenTypLoeschen = false,
+    bool selfRegistrationUrlLoeschen = false,
+    bool archivedAtLoeschen = false,
+    bool createdAtLoeschen = false,
+    bool updatedAtLoeschen = false,
+    bool deletedAtLoeschen = false,
+  }) => ArbeitskontextGruppe(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    layerId: layerId ?? this.layerId,
+    displayName: displayNameLoeschen ? null : displayName ?? this.displayName,
+    shortName: shortNameLoeschen ? null : shortName ?? this.shortName,
+    description: descriptionLoeschen ? null : description ?? this.description,
+    gruppenTyp: gruppenTypLoeschen ? null : gruppenTyp ?? this.gruppenTyp,
+    selfRegistrationUrl: selfRegistrationUrlLoeschen
+        ? null
+        : selfRegistrationUrl ?? this.selfRegistrationUrl,
+    selfRegistrationRequireAdultConsent:
+        selfRegistrationRequireAdultConsent ??
+        this.selfRegistrationRequireAdultConsent,
+    archivedAt: archivedAtLoeschen ? null : archivedAt ?? this.archivedAt,
+    createdAt: createdAtLoeschen ? null : createdAt ?? this.createdAt,
+    updatedAt: updatedAtLoeschen ? null : updatedAt ?? this.updatedAt,
+    deletedAt: deletedAtLoeschen ? null : deletedAt ?? this.deletedAt,
+  );
 
   @override
   bool operator ==(Object other) {
     return other is ArbeitskontextGruppe &&
         other.id == id &&
         other.name == name &&
-        other.layerId == layerId;
+        other.layerId == layerId &&
+        other.displayName == displayName &&
+        other.shortName == shortName &&
+        other.description == description &&
+        other.gruppenTyp == gruppenTyp &&
+        other.selfRegistrationUrl == selfRegistrationUrl &&
+        other.selfRegistrationRequireAdultConsent ==
+            selfRegistrationRequireAdultConsent &&
+        other.archivedAt == archivedAt &&
+        other.createdAt == createdAt &&
+        other.updatedAt == updatedAt &&
+        other.deletedAt == deletedAt;
   }
 
   @override
-  int get hashCode => Object.hash(id, name, layerId);
+  int get hashCode => Object.hash(
+    id,
+    name,
+    layerId,
+    displayName,
+    shortName,
+    description,
+    gruppenTyp,
+    selfRegistrationUrl,
+    selfRegistrationRequireAdultConsent,
+    archivedAt,
+    createdAt,
+    updatedAt,
+    deletedAt,
+  );
 
   @override
   String toString() {
-    return 'ArbeitskontextGruppe(id: $id, name: $name, layerId: $layerId)';
+    return 'ArbeitskontextGruppe(id: $id, name: $name, layerId: $layerId, displayName: $displayName, shortName: $shortName, description: $description, gruppenTyp: $gruppenTyp, selfRegistrationUrl: $selfRegistrationUrl, selfRegistrationRequireAdultConsent: $selfRegistrationRequireAdultConsent, archivedAt: $archivedAt, createdAt: $createdAt, updatedAt: $updatedAt, deletedAt: $deletedAt)';
   }
 }
 
