@@ -8,6 +8,7 @@ import '../../domain/auth/auth_session.dart';
 import '../../domain/auth/auth_session_repository.dart';
 import '../../domain/auth/auth_state.dart';
 import '../../services/biometric_lock_service.dart';
+import '../../services/hitobito_api_exception.dart';
 import '../../services/hitobito_data_retention_policy.dart';
 import '../../services/hitobito_oauth_service.dart';
 import '../../services/logger_service.dart';
@@ -258,6 +259,13 @@ class AuthSessionModel extends ChangeNotifier {
   Future<void> _completeSuccessfulSignIn(
     AuthSession authenticatedSession,
   ) async {
+    await _persistAuthenticatedSession(authenticatedSession);
+    await ensureProfileLoaded(force: true);
+  }
+
+  Future<void> _persistAuthenticatedSession(
+    AuthSession authenticatedSession,
+  ) async {
     final previousPrincipal = await _sensitiveStorageService.loadPrincipal();
     final nextPrincipal = authenticatedSession.principal;
     final mustPurgeExistingData =
@@ -272,6 +280,13 @@ class AuthSessionModel extends ChangeNotifier {
       );
       await _profileRepository.clear();
       await _sensitiveStorageService.purgeSensitiveData();
+      _profile = null;
+      _lastProfileSyncAt = null;
+      _lastSensitiveSyncAt = null;
+      _lastSensitiveSyncAttemptAt = null;
+      _remoteAccessIssueMessage = null;
+      _requiresInteractiveLogin = false;
+      _errorMessage = null;
     }
 
     await _repository.save(authenticatedSession);
@@ -282,9 +297,9 @@ class AuthSessionModel extends ChangeNotifier {
     _session = authenticatedSession;
     _lastBackgroundedAt = null;
     _lastSensitiveSyncAttemptAt = null;
+    _errorMessage = null;
     _requiresInteractiveLogin = false;
     _remoteAccessIssueMessage = null;
-    await ensureProfileLoaded(force: true);
     _state = AuthState.signedIn;
   }
 
@@ -425,17 +440,28 @@ class AuthSessionModel extends ChangeNotifier {
     required String trigger,
     bool forceRefresh = false,
   }) async {
+    final preparation = await _prepareSessionForRemoteAccess(
+      trigger: trigger,
+      forceRefresh: forceRefresh,
+    );
+    return preparation.session;
+  }
+
+  Future<_PreparedRemoteAccess> _prepareSessionForRemoteAccess({
+    required String trigger,
+    bool forceRefresh = false,
+  }) async {
     if (_session == null || _state == AuthState.reloginRequired) {
-      return null;
+      return const _PreparedRemoteAccess(session: null);
     }
 
     if (_requiresInteractiveLogin) {
-      return null;
+      return const _PreparedRemoteAccess(session: null);
     }
 
     if (_retentionPolicy.isReloginRequired(_lastSensitiveSyncAt)) {
       await _expireSensitiveData();
-      return null;
+      return const _PreparedRemoteAccess(session: null);
     }
 
     try {
@@ -452,21 +478,196 @@ class AuthSessionModel extends ChangeNotifier {
       }
       _clearRemoteAccessIssue(notify: false);
     } catch (error, stack) {
+      if (_requiresInteractiveLogin) {
+        return const _PreparedRemoteAccess(session: null);
+      }
+      if (_isUnauthorized(error)) {
+        await _logExpiredLoginRetry(trigger: trigger);
+        final reloggedInSession = await _attemptInteractiveRelogin(
+          trigger: '${trigger}_interactive_relogin',
+        );
+        if (reloggedInSession == null) {
+          await _requireReloginForRemoteFailure(
+            error.toString(),
+            trigger: trigger,
+          );
+          return const _PreparedRemoteAccess(
+            session: null,
+            interactiveReloginAttempted: true,
+          );
+        }
+        return _PreparedRemoteAccess(
+          session: reloggedInSession,
+          interactiveReloginAttempted: true,
+        );
+      }
       await _logger.log(
         'auth',
         'Session-Auffrischung fehlgeschlagen ($trigger): $error\n$stack',
       );
       reportRemoteDataIssue(
         error.toString(),
-        requiresInteractiveLogin: _isUnauthorized(error),
+        requiresInteractiveLogin: false,
         notify: false,
       );
-      if (_requiresInteractiveLogin) {
-        return null;
-      }
     }
 
-    return _session;
+    return _PreparedRemoteAccess(session: _session);
+  }
+
+  Future<T?> executeRemoteAccess<T>({
+    required String trigger,
+    required Future<T> Function(AuthSession session) action,
+    bool forceRefresh = false,
+    bool retryOnUnauthorized = true,
+  }) async {
+    final initialPreparation = await _prepareSessionForRemoteAccess(
+      trigger: '${trigger}_session',
+      forceRefresh: forceRefresh,
+    );
+    final activeSession = initialPreparation.session;
+    if (activeSession == null) {
+      return null;
+    }
+
+    try {
+      return await action(activeSession);
+    } catch (error) {
+      if (!_isUnauthorized(error)) {
+        rethrow;
+      }
+
+      await _logExpiredLoginRetry(trigger: trigger);
+
+      if (initialPreparation.interactiveReloginAttempted) {
+        await _requireReloginForRemoteFailure(
+          error.toString(),
+          trigger: trigger,
+        );
+        return null;
+      }
+
+      if (!retryOnUnauthorized) {
+        await _requireReloginForRemoteFailure(
+          error.toString(),
+          trigger: trigger,
+        );
+        return null;
+      }
+
+      final retryPreparation = await _prepareSessionForRemoteAccess(
+        trigger: '${trigger}_retry',
+        forceRefresh: true,
+      );
+      final refreshedSession = retryPreparation.session;
+      if (refreshedSession == null) {
+        return null;
+      }
+
+      try {
+        return await action(refreshedSession);
+      } catch (retryError) {
+        if (_isUnauthorized(retryError)) {
+          if (retryPreparation.interactiveReloginAttempted) {
+            await _requireReloginForRemoteFailure(
+              retryError.toString(),
+              trigger: trigger,
+            );
+            return null;
+          }
+          return _retryActionAfterInteractiveRelogin(
+            trigger: '${trigger}_retry',
+            action: action,
+            unauthorizedError: retryError,
+          );
+        }
+        rethrow;
+      }
+    }
+  }
+
+  Future<T?> _retryActionAfterInteractiveRelogin<T>({
+    required String trigger,
+    required Future<T> Function(AuthSession session) action,
+    required Object unauthorizedError,
+  }) async {
+    final reloggedInSession = await _attemptInteractiveRelogin(
+      trigger: '${trigger}_interactive_relogin',
+    );
+    if (reloggedInSession == null) {
+      await _requireReloginForRemoteFailure(
+        unauthorizedError.toString(),
+        trigger: trigger,
+      );
+      return null;
+    }
+
+    try {
+      return await action(reloggedInSession);
+    } catch (error) {
+      if (_isUnauthorized(error)) {
+        await _requireReloginForRemoteFailure(
+          error.toString(),
+          trigger: trigger,
+        );
+        return null;
+      }
+      rethrow;
+    }
+  }
+
+  Future<AuthSession?> _attemptInteractiveRelogin({
+    required String trigger,
+  }) async {
+    await _logger.logInfo(
+      'auth_flow',
+      'interaktiver relogin gestartet trigger=$trigger',
+    );
+
+    try {
+      final authenticatedSession = await _oauthService
+          .authenticateInteractive();
+      await _persistAuthenticatedSession(authenticatedSession);
+      try {
+        await _loadProfileFromRemote(authenticatedSession);
+      } catch (error, stack) {
+        if (_isUnauthorized(error)) {
+          _errorMessage = error.toString();
+          return null;
+        }
+        await _logger.logError(
+          'auth',
+          'Profil nach interaktivem relogin fehlgeschlagen trigger=$trigger',
+          error: error,
+          stackTrace: stack,
+        );
+        _errorMessage = error.toString();
+        return null;
+      }
+      await _logger.logInfo(
+        'auth_flow',
+        'interaktiver relogin erfolgreich trigger=$trigger',
+      );
+      notifyListeners();
+      return authenticatedSession;
+    } catch (error, stack) {
+      if (error is HitobitoAuthException &&
+          error.isExpectedInteractionFailure) {
+        await _logger.logInfo(
+          'auth_flow',
+          'interaktiver relogin abgebrochen trigger=$trigger error_type=${error.runtimeType}',
+        );
+      } else {
+        await _logger.logError(
+          'auth',
+          'interaktiver relogin fehlgeschlagen trigger=$trigger',
+          error: error,
+          stackTrace: stack,
+        );
+      }
+      _errorMessage = error.toString();
+      return null;
+    }
   }
 
   Future<void> ensureProfileLoaded({bool force = false}) async {
@@ -494,14 +695,13 @@ class AuthSessionModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final activeSession = await prepareSessionForRemoteAccess(
+      await executeRemoteAccess<void>(
         trigger: force ? 'profile_force' : 'profile_load',
+        action: _loadProfileFromRemote,
       );
-      if (activeSession == null) {
+      if (_requiresInteractiveLogin) {
         return;
       }
-
-      await _loadProfileFromRemote(activeSession);
     } catch (error, stack) {
       if (!_isUnauthorized(error)) {
         await _logger.log(
@@ -536,19 +736,25 @@ class AuthSessionModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final activeSession = await prepareSessionForRemoteAccess(
-        trigger: '${trigger}_session',
+      await executeRemoteAccess<void>(
+        trigger: '${trigger}_profile',
         forceRefresh: force,
+        action: _loadProfileFromRemote,
       );
-      if (activeSession == null) {
-        return;
-      }
-
-      await _loadProfileFromRemote(activeSession);
       if (_requiresInteractiveLogin) {
         return;
       }
-      await syncMembers(activeSession.accessToken);
+      if (_requiresInteractiveLogin) {
+        return;
+      }
+      await executeRemoteAccess<void>(
+        trigger: '${trigger}_members',
+        forceRefresh: force,
+        action: (session) => syncMembers(session.accessToken),
+      );
+      if (_requiresInteractiveLogin) {
+        return;
+      }
 
       await markSensitiveDataSynced();
       _errorMessage = null;
@@ -570,10 +776,7 @@ class AuthSessionModel extends ChangeNotifier {
     }
   }
 
-  Future<void> _loadProfileFromRemote(
-    AuthSession session, {
-    bool retryOnUnauthorized = true,
-  }) async {
+  Future<void> _loadProfileFromRemote(AuthSession session) async {
     try {
       final loadedProfile = await _oauthService.fetchProfile(session);
       final syncAt = _retentionPolicy.now();
@@ -589,31 +792,13 @@ class AuthSessionModel extends ChangeNotifier {
           'auth',
           'Profil konnte nicht geladen werden: $error\n$stack',
         );
-      }
-
-      if (retryOnUnauthorized && error.statusCode == 401) {
-        final refreshedSession = await prepareSessionForRemoteAccess(
-          trigger: 'profile_retry',
-          forceRefresh: true,
+        _errorMessage = error.toString();
+        reportRemoteDataIssue(
+          error.toString(),
+          requiresInteractiveLogin: false,
+          notify: false,
         );
-        if (refreshedSession != null &&
-            refreshedSession.accessToken != session.accessToken) {
-          return _loadProfileFromRemote(
-            refreshedSession,
-            retryOnUnauthorized: false,
-          );
-        }
-
-        reportRemoteDataIssue(error.toString(), requiresInteractiveLogin: true);
-        return;
       }
-
-      _errorMessage = error.toString();
-      reportRemoteDataIssue(
-        error.toString(),
-        requiresInteractiveLogin: false,
-        notify: false,
-      );
       rethrow;
     }
   }
@@ -709,7 +894,33 @@ class AuthSessionModel extends ChangeNotifier {
   }
 
   bool _isUnauthorized(Object error) {
-    return error is HitobitoAuthException && error.statusCode == 401;
+    return (error is HitobitoAuthException && error.statusCode == 401) ||
+        (error is HitobitoApiException && error.statusCode == 401);
+  }
+
+  Future<void> _logExpiredLoginRetry({required String trigger}) async {
+    await _logger.logInfo(
+      'auth_flow',
+      'Login abgelaufen, versuche Retry trigger=$trigger',
+    );
+  }
+
+  Future<void> _requireReloginForRemoteFailure(
+    String message, {
+    String? trigger,
+  }) async {
+    _errorMessage = message;
+    reportRemoteDataIssue(
+      message,
+      requiresInteractiveLogin: true,
+      notify: false,
+    );
+    _state = AuthState.reloginRequired;
+    await _logger.logInfo(
+      'auth_flow',
+      'Retry fehlgeschlagen, Relogin erforderlich${trigger == null ? '' : ' trigger=$trigger'}',
+    );
+    notifyListeners();
   }
 
   Future<void> _expireSensitiveData() async {
@@ -719,4 +930,14 @@ class AuthSessionModel extends ChangeNotifier {
     );
     await logout();
   }
+}
+
+class _PreparedRemoteAccess {
+  const _PreparedRemoteAccess({
+    required this.session,
+    this.interactiveReloginAttempted = false,
+  });
+
+  final AuthSession? session;
+  final bool interactiveReloginAttempted;
 }

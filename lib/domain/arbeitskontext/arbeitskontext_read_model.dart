@@ -76,6 +76,7 @@ class ArbeitskontextGruppe {
     required this.id,
     required this.name,
     required this.layerId,
+    this.parentId,
     this.displayName,
     this.shortName,
     this.description,
@@ -93,6 +94,7 @@ class ArbeitskontextGruppe {
   final int id;
   final String name;
   final int layerId;
+  final int? parentId;
   final String? displayName;
   final String? shortName;
   final String? description;
@@ -122,6 +124,7 @@ class ArbeitskontextGruppe {
     int? id,
     String? name,
     int? layerId,
+    int? parentId,
     String? displayName,
     String? shortName,
     String? description,
@@ -145,6 +148,7 @@ class ArbeitskontextGruppe {
     id: id ?? this.id,
     name: name ?? this.name,
     layerId: layerId ?? this.layerId,
+    parentId: parentId ?? this.parentId,
     displayName: displayNameLoeschen ? null : displayName ?? this.displayName,
     shortName: shortNameLoeschen ? null : shortName ?? this.shortName,
     description: descriptionLoeschen ? null : description ?? this.description,
@@ -167,6 +171,7 @@ class ArbeitskontextGruppe {
         other.id == id &&
         other.name == name &&
         other.layerId == layerId &&
+        other.parentId == parentId &&
         other.displayName == displayName &&
         other.shortName == shortName &&
         other.description == description &&
@@ -185,6 +190,7 @@ class ArbeitskontextGruppe {
     id,
     name,
     layerId,
+    parentId,
     displayName,
     shortName,
     description,
@@ -199,7 +205,7 @@ class ArbeitskontextGruppe {
 
   @override
   String toString() {
-    return 'ArbeitskontextGruppe(id: $id, name: $name, layerId: $layerId, displayName: $displayName, shortName: $shortName, description: $description, gruppenTyp: $gruppenTyp, selfRegistrationUrl: $selfRegistrationUrl, selfRegistrationRequireAdultConsent: $selfRegistrationRequireAdultConsent, archivedAt: $archivedAt, createdAt: $createdAt, updatedAt: $updatedAt, deletedAt: $deletedAt)';
+    return 'ArbeitskontextGruppe(id: $id, name: $name, layerId: $layerId, parentId: $parentId, displayName: $displayName, shortName: $shortName, description: $description, gruppenTyp: $gruppenTyp, selfRegistrationUrl: $selfRegistrationUrl, selfRegistrationRequireAdultConsent: $selfRegistrationRequireAdultConsent, archivedAt: $archivedAt, createdAt: $createdAt, updatedAt: $updatedAt, deletedAt: $deletedAt)';
   }
 }
 

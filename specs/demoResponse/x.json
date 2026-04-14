@@ -1,0 +1,102 @@
+{
+    "errors": [
+        {
+            "code": "bad_request",
+            "status": "400",
+            "title": "Request Error",
+            "detail": "data.attributes.exit_date is an unknown attribute",
+            "source": {
+                "pointer": "data/attributes/exit_date"
+            },
+            "meta": {
+                "attribute": "data.attributes.exit_date",
+                "message": "is an unknown attribute",
+                "code": "unknown_attribute"
+            }
+        },
+        {
+            "code": "bad_request",
+            "status": "400",
+            "title": "Request Error",
+            "detail": "data.attributes.pronoun is an unknown attribute",
+            "source": {
+                "pointer": "data/attributes/pronoun"
+            },
+            "meta": {
+                "attribute": "data.attributes.pronoun",
+                "message": "is an unknown attribute",
+                "code": "unknown_attribute"
+            }
+        },
+        {
+            "code": "bad_request",
+            "status": "400",
+            "title": "Request Error",
+            "detail": "data.attributes.bank_account_owner is an unknown attribute",
+            "source": {
+                "pointer": "data/attributes/bank_account_owner"
+            },
+            "meta": {
+                "attribute": "data.attributes.bank_account_owner",
+                "message": "is an unknown attribute",
+                "code": "unknown_attribute"
+            }
+        },
+        {
+            "code": "bad_request",
+            "status": "400",
+            "title": "Request Error",
+            "detail": "data.attributes.iban is an unknown attribute",
+            "source": {
+                "pointer": "data/attributes/iban"
+            },
+            "meta": {
+                "attribute": "data.attributes.iban",
+                "message": "is an unknown attribute",
+                "code": "unknown_attribute"
+            }
+        },
+        {
+            "code": "bad_request",
+            "status": "400",
+            "title": "Request Error",
+            "detail": "data.attributes.bic is an unknown attribute",
+            "source": {
+                "pointer": "data/attributes/bic"
+            },
+            "meta": {
+                "attribute": "data.attributes.bic",
+                "message": "is an unknown attribute",
+                "code": "unknown_attribute"
+            }
+        },
+        {
+            "code": "bad_request",
+            "status": "400",
+            "title": "Request Error",
+            "detail": "data.attributes.bank_name is an unknown attribute",
+            "source": {
+                "pointer": "data/attributes/bank_name"
+            },
+            "meta": {
+                "attribute": "data.attributes.bank_name",
+                "message": "is an unknown attribute",
+                "code": "unknown_attribute"
+            }
+        },
+        {
+            "code": "bad_request",
+            "status": "400",
+            "title": "Request Error",
+            "detail": "data.attributes.payment_method is an unknown attribute",
+            "source": {
+                "pointer": "data/attributes/payment_method"
+            },
+            "meta": {
+                "attribute": "data.attributes.payment_method",
+                "message": "is an unknown attribute",
+                "code": "unknown_attribute"
+            }
+        }
+    ]
+}

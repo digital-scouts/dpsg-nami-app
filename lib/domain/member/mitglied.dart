@@ -4,21 +4,28 @@ import '../taetigkeit/stufe.dart';
 
 class MitgliedKontaktEmail {
   const MitgliedKontaktEmail({
+    this.additionalEmailId,
     required this.wert,
     this.label,
     this.istPrimaer = false,
   }) : assert(wert != '');
 
+  final int? additionalEmailId;
   final String wert;
   final String? label;
   final bool istPrimaer;
 
   MitgliedKontaktEmail copyWith({
+    int? additionalEmailId,
     String? wert,
     String? label,
     bool? istPrimaer,
+    bool additionalEmailIdLoeschen = false,
     bool labelLoeschen = false,
   }) => MitgliedKontaktEmail(
+    additionalEmailId: additionalEmailIdLoeschen
+        ? null
+        : additionalEmailId ?? this.additionalEmailId,
     wert: wert ?? this.wert,
     label: labelLoeschen ? null : label ?? this.label,
     istPrimaer: istPrimaer ?? this.istPrimaer,
@@ -26,6 +33,7 @@ class MitgliedKontaktEmail {
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
+      'additional_email_id': additionalEmailId,
       'wert': wert,
       'label': label,
       'ist_primaer': istPrimaer,
@@ -35,6 +43,7 @@ class MitgliedKontaktEmail {
   factory MitgliedKontaktEmail.fromJson(Map<String, dynamic> json) {
     final wert = json['wert']?.toString().trim() ?? '';
     return MitgliedKontaktEmail(
+      additionalEmailId: _parseInt(json['additional_email_id']),
       wert: wert,
       label: _trimToNull(json['label']?.toString()),
       istPrimaer: json['ist_primaer'] == true,
@@ -44,38 +53,53 @@ class MitgliedKontaktEmail {
   @override
   bool operator ==(Object other) {
     return other is MitgliedKontaktEmail &&
+        other.additionalEmailId == additionalEmailId &&
         other.wert == wert &&
         other.label == label &&
         other.istPrimaer == istPrimaer;
   }
 
   @override
-  int get hashCode => Object.hash(wert, label, istPrimaer);
+  int get hashCode => Object.hash(additionalEmailId, wert, label, istPrimaer);
 }
 
 class MitgliedKontaktTelefon {
-  const MitgliedKontaktTelefon({required this.wert, this.label})
-    : assert(wert != '');
+  const MitgliedKontaktTelefon({
+    this.phoneNumberId,
+    required this.wert,
+    this.label,
+  }) : assert(wert != '');
 
+  final int? phoneNumberId;
   final String wert;
   final String? label;
 
   MitgliedKontaktTelefon copyWith({
+    int? phoneNumberId,
     String? wert,
     String? label,
+    bool phoneNumberIdLoeschen = false,
     bool labelLoeschen = false,
   }) => MitgliedKontaktTelefon(
+    phoneNumberId: phoneNumberIdLoeschen
+        ? null
+        : phoneNumberId ?? this.phoneNumberId,
     wert: wert ?? this.wert,
     label: labelLoeschen ? null : label ?? this.label,
   );
 
   Map<String, dynamic> toJson() {
-    return <String, dynamic>{'wert': wert, 'label': label};
+    return <String, dynamic>{
+      'phone_number_id': phoneNumberId,
+      'wert': wert,
+      'label': label,
+    };
   }
 
   factory MitgliedKontaktTelefon.fromJson(Map<String, dynamic> json) {
     final wert = json['wert']?.toString().trim() ?? '';
     return MitgliedKontaktTelefon(
+      phoneNumberId: _parseInt(json['phone_number_id']),
       wert: wert,
       label: _trimToNull(json['label']?.toString()),
     );
@@ -84,12 +108,13 @@ class MitgliedKontaktTelefon {
   @override
   bool operator ==(Object other) {
     return other is MitgliedKontaktTelefon &&
+        other.phoneNumberId == phoneNumberId &&
         other.wert == wert &&
         other.label == label;
   }
 
   @override
-  int get hashCode => Object.hash(wert, label);
+  int get hashCode => Object.hash(phoneNumberId, wert, label);
 }
 
 class MitgliedKontaktAdresse {
@@ -233,10 +258,12 @@ class Mitglied {
     this.austrittsdatum,
     this.updatedAt,
     this.personId,
+    this.primaryGroupId,
     required this.mitgliedsnummer,
     List<MitgliedKontaktTelefon>? telefonnummern,
     List<MitgliedKontaktEmail>? emailAdressen,
     List<MitgliedKontaktAdresse>? adressen,
+    this.gender,
     this.pronoun,
     this.bankAccountOwner,
     this.iban,
@@ -261,9 +288,11 @@ class Mitglied {
     this.fahrtenname,
     this.updatedAt,
     this.personId,
+    this.primaryGroupId,
     List<MitgliedKontaktTelefon>? telefonnummern,
     List<MitgliedKontaktEmail>? emailAdressen,
     List<MitgliedKontaktAdresse>? adressen,
+    this.gender,
     this.pronoun,
     this.bankAccountOwner,
     this.iban,
@@ -291,10 +320,12 @@ class Mitglied {
   final DateTime? austrittsdatum;
   final DateTime? updatedAt;
   final int? personId;
+  final int? primaryGroupId;
   final String mitgliedsnummer;
   final List<MitgliedKontaktTelefon> telefonnummern;
   final List<MitgliedKontaktEmail> emailAdressen;
   final List<MitgliedKontaktAdresse> adressen;
+  final String? gender;
   final String? pronoun;
   final String? bankAccountOwner;
   final String? iban;
@@ -331,10 +362,12 @@ class Mitglied {
     DateTime? austrittsdatum,
     DateTime? updatedAt,
     int? personId,
+    int? primaryGroupId,
     String? mitgliedsnummer,
     List<MitgliedKontaktTelefon>? telefonnummern,
     List<MitgliedKontaktEmail>? emailAdressen,
     List<MitgliedKontaktAdresse>? adressen,
+    String? gender,
     String? pronoun,
     String? bankAccountOwner,
     String? iban,
@@ -346,6 +379,8 @@ class Mitglied {
     bool austrittsdatumLoeschen = false,
     bool updatedAtLoeschen = false,
     bool personIdLoeschen = false,
+    bool primaryGroupIdLoeschen = false,
+    bool genderLoeschen = false,
     bool pronounLoeschen = false,
     bool bankAccountOwnerLoeschen = false,
     bool ibanLoeschen = false,
@@ -363,10 +398,14 @@ class Mitglied {
         : austrittsdatum ?? this.austrittsdatum,
     updatedAt: updatedAtLoeschen ? null : updatedAt ?? this.updatedAt,
     personId: personIdLoeschen ? null : personId ?? this.personId,
+    primaryGroupId: primaryGroupIdLoeschen
+        ? null
+        : primaryGroupId ?? this.primaryGroupId,
     mitgliedsnummer: mitgliedsnummer ?? this.mitgliedsnummer,
     telefonnummern: telefonnummern ?? this.telefonnummern,
     emailAdressen: emailAdressen ?? this.emailAdressen,
     adressen: adressen ?? this.adressen,
+    gender: genderLoeschen ? null : gender ?? this.gender,
     pronoun: pronounLoeschen ? null : pronoun ?? this.pronoun,
     bankAccountOwner: bankAccountOwnerLoeschen
         ? null
@@ -393,6 +432,7 @@ class Mitglied {
       'austrittsdatum': austrittsdatum?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
       'person_id': personId,
+      'primary_group_id': primaryGroupId,
       'telefonnummern': telefonnummern
           .map((telefonnummer) => telefonnummer.toJson())
           .toList(growable: false),
@@ -403,6 +443,7 @@ class Mitglied {
           .map((adresse) => adresse.toJson())
           .toList(growable: false),
       'roles': roles.map((role) => role.toJson()).toList(growable: false),
+      'gender': gender,
       'pronoun': pronoun,
       'bank_account_owner': bankAccountOwner,
       'iban': iban,
@@ -455,10 +496,12 @@ class Mitglied {
       austrittsdatum: _parseDateTime(json['austrittsdatum']),
       updatedAt: _parseDateTime(json['updated_at']),
       personId: _parseInt(json['person_id']),
+      primaryGroupId: _parseInt(json['primary_group_id']),
       telefonnummern: telefonnummern,
       emailAdressen: emailAdressen,
       adressen: adressen,
       roles: roles,
+      gender: _trimToNull(json['gender']?.toString()),
       pronoun: _trimToNull(json['pronoun']?.toString()),
       bankAccountOwner: _trimToNull(json['bank_account_owner']?.toString()),
       iban: _trimToNull(json['iban']?.toString()),
@@ -479,7 +522,9 @@ class Mitglied {
         other.austrittsdatum == austrittsdatum &&
         other.updatedAt == updatedAt &&
         other.personId == personId &&
+        other.primaryGroupId == primaryGroupId &&
         other.mitgliedsnummer == mitgliedsnummer &&
+        other.gender == gender &&
         other.pronoun == pronoun &&
         other.bankAccountOwner == bankAccountOwner &&
         other.iban == iban &&
@@ -493,7 +538,7 @@ class Mitglied {
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll(<Object?>[
     vorname,
     nachname,
     fahrtenname,
@@ -502,7 +547,9 @@ class Mitglied {
     austrittsdatum,
     updatedAt,
     personId,
+    primaryGroupId,
     mitgliedsnummer,
+    gender,
     pronoun,
     bankAccountOwner,
     iban,
@@ -513,7 +560,7 @@ class Mitglied {
     Object.hashAll(emailAdressen),
     Object.hashAll(adressen),
     Object.hashAll(roles),
-  );
+  ]);
 
   @override
   String toString() {
@@ -541,6 +588,9 @@ class Mitglied {
     if (personId != null) {
       buffer.write(', personId: $personId');
     }
+    if (primaryGroupId != null) {
+      buffer.write(', primaryGroupId: $primaryGroupId');
+    }
     if (emailAdressen.isNotEmpty) {
       buffer.write(', emailAdressen: $emailAdressen');
     }
@@ -549,6 +599,9 @@ class Mitglied {
     }
     if (adressen.isNotEmpty) {
       buffer.write(', adressen: $adressen');
+    }
+    if (gender != null) {
+      buffer.write(', gender: $gender');
     }
     if (pronoun != null) {
       buffer.write(', pronoun: $pronoun');
@@ -587,11 +640,12 @@ class Mitglied {
       }
 
       final normalized = emailAdresse.copyWith(
+        additionalEmailId: emailAdresse.additionalEmailId,
         wert: wert,
         label: _trimToNull(emailAdresse.label),
       );
       final key =
-          '${wert.toLowerCase()}|${normalized.label ?? ''}|${normalized.istPrimaer}';
+          '${normalized.additionalEmailId?.toString() ?? ''}|${wert.toLowerCase()}|${normalized.label ?? ''}|${normalized.istPrimaer}';
       if (!seen.add(key)) {
         continue;
       }
@@ -614,10 +668,12 @@ class Mitglied {
       }
 
       final normalized = telefonnummer.copyWith(
+        phoneNumberId: telefonnummer.phoneNumberId,
         wert: wert,
         label: _trimToNull(telefonnummer.label),
       );
-      final key = '${wert.toLowerCase()}|${normalized.label ?? ''}';
+      final key =
+          '${normalized.phoneNumberId?.toString() ?? ''}|${wert.toLowerCase()}|${normalized.label ?? ''}';
       if (!seen.add(key)) {
         continue;
       }

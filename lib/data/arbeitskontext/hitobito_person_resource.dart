@@ -79,6 +79,7 @@ class HitobitoPersonResource {
     this.entryDate,
     this.exitDate,
     this.updatedAt,
+    this.gender,
     this.pronoun,
     this.bankAccountOwner,
     this.iban,
@@ -101,6 +102,7 @@ class HitobitoPersonResource {
   final DateTime? entryDate;
   final DateTime? exitDate;
   final DateTime? updatedAt;
+  final String? gender;
   final String? pronoun;
   final String? bankAccountOwner;
   final String? iban;
@@ -127,6 +129,7 @@ class HitobitoPersonResource {
 
     return Mitglied(
       personId: id,
+      primaryGroupId: primaryGroupId,
       mitgliedsnummer: memberId,
       vorname: firstName,
       nachname: lastName,
@@ -135,6 +138,7 @@ class HitobitoPersonResource {
       eintrittsdatum: resolvedEntryDate,
       austrittsdatum: resolvedExitDate,
       updatedAt: updatedAt,
+      gender: gender,
       telefonnummern: telefonnummern,
       emailAdressen: emailAdressen,
       adressen: adressen,

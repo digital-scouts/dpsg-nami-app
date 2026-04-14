@@ -31,6 +31,7 @@
       "matchCommandLine": true
     },
     "pushd": true,
-    "npm run typecheck": true
+    "npm run typecheck": true,
+    "flutter": true
   },
 }

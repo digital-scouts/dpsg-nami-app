@@ -14,10 +14,18 @@ import '../../domain/arbeitskontext/usecases/bestimme_startkontext_usecase.dart'
 import '../../domain/auth/auth_profile.dart';
 import '../../domain/auth/auth_session.dart';
 import '../../domain/auth/auth_state.dart';
+import '../../domain/member/mitglied.dart';
 import '../../services/hitobito_groups_service.dart';
 import '../../services/logger_service.dart';
 
 enum ArbeitskontextStatus { initial, loading, ready, unauthorized, error }
+
+typedef ArbeitskontextRemoteAccessExecutor =
+    Future<T?> Function<T>({
+      required String trigger,
+      required Future<T> Function(AuthSession session) action,
+      bool forceRefresh,
+    });
 
 class ArbeitskontextModel extends ChangeNotifier {
   static const String layerSwitchFailedMessage =
@@ -30,12 +38,14 @@ class ArbeitskontextModel extends ChangeNotifier {
     required BestimmeStartkontextUseCase bestimmeStartkontextUseCase,
     BestimmeRelevanteLayerUseCase bestimmeRelevanteLayerUseCase =
         const BestimmeRelevanteLayerUseCase(),
+    ArbeitskontextRemoteAccessExecutor? remoteAccessExecutor,
     required LoggerService logger,
   }) : _localRepository = localRepository,
        _readModelRepository = readModelRepository,
        _groupsService = groupsService,
        _bestimmeStartkontextUseCase = bestimmeStartkontextUseCase,
        _bestimmeRelevanteLayerUseCase = bestimmeRelevanteLayerUseCase,
+       _remoteAccessExecutor = remoteAccessExecutor,
        _logger = logger;
 
   final ArbeitskontextLocalRepository _localRepository;
@@ -43,6 +53,7 @@ class ArbeitskontextModel extends ChangeNotifier {
   final HitobitoGroupsService _groupsService;
   final BestimmeStartkontextUseCase _bestimmeStartkontextUseCase;
   final BestimmeRelevanteLayerUseCase _bestimmeRelevanteLayerUseCase;
+  final ArbeitskontextRemoteAccessExecutor? _remoteAccessExecutor;
   final LoggerService _logger;
 
   static const String unauthorizedMessage =
@@ -58,11 +69,20 @@ class ArbeitskontextModel extends ChangeNotifier {
     'layer_and_below_full',
     'layer_and_below_read',
   };
+  static const Set<String> _writeLayerPermissions = <String>{'layer_full'};
+  static const Set<String> _writeLayerAndBelowPermissions = <String>{
+    'layer_and_below_full',
+  };
+  static const Set<String> _writeGroupPermissions = <String>{'group_full'};
+  static const Set<String> _writeGroupAndBelowPermissions = <String>{
+    'group_and_below_full',
+  };
 
   ArbeitskontextStatus _status = ArbeitskontextStatus.initial;
   Arbeitskontext? _arbeitskontext;
   ArbeitskontextReadModel? _readModel;
   AuthSession? _session;
+  AuthProfile? _profile;
   String? _errorMessage;
   int? _activeProfileId;
   String? _profileFingerprint;
@@ -82,6 +102,66 @@ class ArbeitskontextModel extends ChangeNotifier {
   bool get isLoadingRoles => _isLoadingRoles;
   bool get areRolesLoaded => _readModel?.rolesSindGeladen ?? false;
 
+  bool istMitgliedSchreibbar(Mitglied mitglied) {
+    final readModel = _readModel;
+    final arbeitskontext = _arbeitskontext;
+    final profile = _profile;
+    if (readModel == null || arbeitskontext == null || profile == null) {
+      return false;
+    }
+
+    final zielGruppenIds = <int>{
+      if (mitglied.primaryGroupId != null && mitglied.primaryGroupId! > 0)
+        mitglied.primaryGroupId!,
+      ...readModel
+          .findeMitgliedsZuordnungen(mitglied.mitgliedsnummer)
+          .map((zuordnung) => zuordnung.gruppenId),
+    };
+
+    for (final role in profile.roles) {
+      final permissions = role.permissions
+          .map((permission) => permission.trim().toLowerCase())
+          .toSet();
+      if (_hasWritePermissionOnActiveLayer(
+        roleGroupId: role.groupId,
+        permissions: permissions,
+        arbeitskontext: arbeitskontext,
+        readModel: readModel,
+      )) {
+        return true;
+      }
+      if (_hasWritePermissionOnTargetGroups(
+        roleGroupId: role.groupId,
+        permissions: permissions,
+        zielGruppenIds: zielGruppenIds,
+        readModel: readModel,
+      )) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  Future<void> ersetzeMitglied(Mitglied mitglied) async {
+    final readModel = _readModel;
+    if (readModel == null) {
+      return;
+    }
+
+    final nextMitglieder = readModel.mitglieder
+        .map((existing) {
+          if (existing.mitgliedsnummer == mitglied.mitgliedsnummer) {
+            return mitglied;
+          }
+          return existing;
+        })
+        .toList(growable: false);
+    _readModel = readModel.copyWith(mitglieder: nextMitglieder);
+    await _localRepository.saveCached(_readModel!);
+    notifyListeners();
+  }
+
   Future<void> syncForAuth({
     required AuthState authState,
     required AuthSession? session,
@@ -90,7 +170,6 @@ class ArbeitskontextModel extends ChangeNotifier {
     final mustClear =
         authState == AuthState.signedOut ||
         authState == AuthState.error ||
-        authState == AuthState.reloginRequired ||
         profile == null;
 
     if (mustClear) {
@@ -98,7 +177,14 @@ class ArbeitskontextModel extends ChangeNotifier {
       return;
     }
 
+    if (authState == AuthState.reloginRequired) {
+      _session = session;
+      _profile = profile;
+      return;
+    }
+
     _session = session;
+    _profile = profile;
     await initializeForProfile(profile, session: session);
   }
 
@@ -108,6 +194,7 @@ class ArbeitskontextModel extends ChangeNotifier {
     bool force = false,
   }) async {
     final fingerprint = _buildProfileFingerprint(profile);
+    _profile = profile;
     if (_isSynchronizing) {
       return;
     }
@@ -146,9 +233,19 @@ class ArbeitskontextModel extends ChangeNotifier {
         );
       }
 
-      final accessibleGroups = await _groupsService.fetchAccessibleGroups(
-        session.accessToken,
-      );
+      final accessibleGroups =
+          await _executeRemoteAccess<List<HitobitoGroupResource>>(
+            trigger: 'arbeitskontext_initialize_groups',
+            session: session,
+            action: (activeSession) =>
+                _groupsService.fetchAccessibleGroups(activeSession.accessToken),
+          );
+      if (accessibleGroups == null) {
+        _status = _readModel != null
+            ? ArbeitskontextStatus.ready
+            : ArbeitskontextStatus.initial;
+        return;
+      }
       final arbeitskontext = _bestimmeStartkontext(
         profile: profile,
         accessibleGroups: accessibleGroups,
@@ -158,10 +255,20 @@ class ArbeitskontextModel extends ChangeNotifier {
         return;
       }
 
-      _readModel = await _readModelRepository.refresh(
-        accessToken: session.accessToken,
-        arbeitskontext: arbeitskontext,
+      _readModel = await _executeRemoteAccess<ArbeitskontextReadModel>(
+        trigger: 'arbeitskontext_initialize_read_model',
+        session: session,
+        action: (activeSession) => _readModelRepository.refresh(
+          accessToken: activeSession.accessToken,
+          arbeitskontext: arbeitskontext,
+        ),
       );
+      if (_readModel == null) {
+        _status = _arbeitskontext != null
+            ? ArbeitskontextStatus.ready
+            : ArbeitskontextStatus.initial;
+        return;
+      }
       _arbeitskontext = _readModel?.arbeitskontext;
       _status = ArbeitskontextStatus.ready;
       if (_arbeitskontext != null) {
@@ -203,6 +310,7 @@ class ArbeitskontextModel extends ChangeNotifier {
     }
 
     _session = session;
+    _profile = profile;
     if (_isSynchronizing) {
       return;
     }
@@ -215,9 +323,17 @@ class ArbeitskontextModel extends ChangeNotifier {
     }
 
     try {
-      final accessibleGroups = await _groupsService.fetchAccessibleGroups(
-        session.accessToken,
-      );
+      final accessibleGroups =
+          await _executeRemoteAccess<List<HitobitoGroupResource>>(
+            trigger: 'arbeitskontext_refresh_groups',
+            session: session,
+            action: (activeSession) =>
+                _groupsService.fetchAccessibleGroups(activeSession.accessToken),
+          );
+      if (accessibleGroups == null) {
+        _status = previousStatus;
+        return;
+      }
       final nextArbeitskontext = _arbeitskontext != null
           ? _mergeCurrentKontext(
               current: _arbeitskontext!,
@@ -232,10 +348,18 @@ class ArbeitskontextModel extends ChangeNotifier {
         _setUnauthorizedState();
         return;
       }
-      _readModel = await _readModelRepository.refresh(
-        accessToken: session.accessToken,
-        arbeitskontext: nextArbeitskontext,
+      _readModel = await _executeRemoteAccess<ArbeitskontextReadModel>(
+        trigger: 'arbeitskontext_refresh_read_model',
+        session: session,
+        action: (activeSession) => _readModelRepository.refresh(
+          accessToken: activeSession.accessToken,
+          arbeitskontext: nextArbeitskontext,
+        ),
       );
+      if (_readModel == null) {
+        _status = previousStatus;
+        return;
+      }
       _arbeitskontext = _readModel?.arbeitskontext;
       _errorMessage = null;
       _status = ArbeitskontextStatus.ready;
@@ -288,10 +412,17 @@ class ArbeitskontextModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _readModel = await _readModelRepository.loadRoles(
-        accessToken: session.accessToken,
-        readModel: currentReadModel,
+      _readModel = await _executeRemoteAccess<ArbeitskontextReadModel>(
+        trigger: 'arbeitskontext_load_roles',
+        session: session,
+        action: (activeSession) => _readModelRepository.loadRoles(
+          accessToken: activeSession.accessToken,
+          readModel: currentReadModel,
+        ),
       );
+      if (_readModel == null) {
+        return false;
+      }
       _arbeitskontext = _readModel?.arbeitskontext;
       await _logger.log(
         'arbeitskontext',
@@ -372,9 +503,16 @@ class ArbeitskontextModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final accessibleGroups = await _groupsService.fetchAccessibleGroups(
-        session.accessToken,
-      );
+      final accessibleGroups =
+          await _executeRemoteAccess<List<HitobitoGroupResource>>(
+            trigger: 'arbeitskontext_switch_layer_groups',
+            session: session,
+            action: (activeSession) =>
+                _groupsService.fetchAccessibleGroups(activeSession.accessToken),
+          );
+      if (accessibleGroups == null) {
+        return false;
+      }
       final nextArbeitskontext = _buildArbeitskontextForTargetLayer(
         profile: profile,
         accessibleGroups: accessibleGroups,
@@ -394,10 +532,17 @@ class ArbeitskontextModel extends ChangeNotifier {
         _setUnauthorizedState();
         return false;
       }
-      _readModel = await _readModelRepository.refresh(
-        accessToken: session.accessToken,
-        arbeitskontext: nextArbeitskontext,
+      _readModel = await _executeRemoteAccess<ArbeitskontextReadModel>(
+        trigger: 'arbeitskontext_switch_layer_read_model',
+        session: session,
+        action: (activeSession) => _readModelRepository.refresh(
+          accessToken: activeSession.accessToken,
+          arbeitskontext: nextArbeitskontext,
+        ),
       );
+      if (_readModel == null) {
+        return false;
+      }
       _arbeitskontext = _readModel?.arbeitskontext;
       _status = ArbeitskontextStatus.ready;
       _errorMessage = null;
@@ -459,6 +604,7 @@ class ArbeitskontextModel extends ChangeNotifier {
     _arbeitskontext = null;
     _readModel = null;
     _session = null;
+    _profile = null;
     _errorMessage = null;
     _activeProfileId = null;
     _profileFingerprint = null;
@@ -655,6 +801,18 @@ class ArbeitskontextModel extends ChangeNotifier {
     _errorMessage = unauthorizedMessage;
   }
 
+  Future<T?> _executeRemoteAccess<T>({
+    required String trigger,
+    required AuthSession session,
+    required Future<T> Function(AuthSession session) action,
+  }) async {
+    final executor = _remoteAccessExecutor;
+    if (executor != null) {
+      return executor<T>(trigger: trigger, action: action);
+    }
+    return action(session);
+  }
+
   int? _resolveLayerId(
     HitobitoGroupResource group,
     Map<int, HitobitoGroupResource> groupsById,
@@ -689,5 +847,115 @@ class ArbeitskontextModel extends ChangeNotifier {
             .toList(growable: false)
           ..sort();
     return '${profile.namiId}|${roles.join('|')}';
+  }
+
+  bool _hasWritePermissionOnActiveLayer({
+    required int roleGroupId,
+    required Set<String> permissions,
+    required Arbeitskontext arbeitskontext,
+    required ArbeitskontextReadModel readModel,
+  }) {
+    final roleLayerId = _resolveRoleLayerIdInCurrentContext(
+      roleGroupId: roleGroupId,
+      arbeitskontext: arbeitskontext,
+      readModel: readModel,
+    );
+    if (permissions.any(_writeLayerPermissions.contains) &&
+        roleLayerId == arbeitskontext.aktiverLayer.id) {
+      return true;
+    }
+
+    if (!permissions.any(_writeLayerAndBelowPermissions.contains)) {
+      return false;
+    }
+    if (roleLayerId == null) {
+      return false;
+    }
+
+    var currentLayer = arbeitskontext.aktiverLayer;
+    if (currentLayer.id == roleLayerId) {
+      return true;
+    }
+
+    final layersById = <int, ArbeitskontextLayer>{
+      for (final layer in arbeitskontext.verfuegbareLayer) layer.id: layer,
+      currentLayer.id: currentLayer,
+    };
+    while (currentLayer.parentLayerId != null) {
+      final parentLayerId = currentLayer.parentLayerId!;
+      if (parentLayerId == roleLayerId) {
+        return true;
+      }
+      final parentLayer = layersById[parentLayerId];
+      if (parentLayer == null) {
+        break;
+      }
+      currentLayer = parentLayer;
+    }
+
+    return false;
+  }
+
+  int? _resolveRoleLayerIdInCurrentContext({
+    required int roleGroupId,
+    required Arbeitskontext arbeitskontext,
+    required ArbeitskontextReadModel readModel,
+  }) {
+    if (arbeitskontext.enthaeltLayer(roleGroupId)) {
+      return roleGroupId;
+    }
+
+    return readModel.findeGruppe(roleGroupId)?.layerId;
+  }
+
+  bool _hasWritePermissionOnTargetGroups({
+    required int roleGroupId,
+    required Set<String> permissions,
+    required Set<int> zielGruppenIds,
+    required ArbeitskontextReadModel readModel,
+  }) {
+    if (permissions.any(_writeGroupPermissions.contains) &&
+        zielGruppenIds.contains(roleGroupId)) {
+      return true;
+    }
+
+    if (!permissions.any(_writeGroupAndBelowPermissions.contains)) {
+      return false;
+    }
+
+    for (final zielGruppenId in zielGruppenIds) {
+      if (_isGroupDescendantOrSame(
+        gruppenId: zielGruppenId,
+        ancestorGroupId: roleGroupId,
+        readModel: readModel,
+      )) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  bool _isGroupDescendantOrSame({
+    required int gruppenId,
+    required int ancestorGroupId,
+    required ArbeitskontextReadModel readModel,
+  }) {
+    if (gruppenId == ancestorGroupId) {
+      return true;
+    }
+
+    final gruppenById = <int, ArbeitskontextGruppe>{
+      for (final gruppe in readModel.gruppen) gruppe.id: gruppe,
+    };
+    var current = gruppenById[gruppenId];
+    while (current?.parentId != null) {
+      if (current!.parentId == ancestorGroupId) {
+        return true;
+      }
+      current = gruppenById[current.parentId!];
+    }
+
+    return false;
   }
 }

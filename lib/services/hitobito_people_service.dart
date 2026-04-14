@@ -4,15 +4,11 @@ import 'package:http/http.dart' as http;
 
 import '../data/arbeitskontext/hitobito_person_resource.dart';
 import '../domain/member/mitglied.dart';
+import 'hitobito_api_exception.dart';
 import 'hitobito_auth_env.dart';
 
-class HitobitoPeopleException implements Exception {
-  const HitobitoPeopleException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => message;
+class HitobitoPeopleException extends HitobitoApiException {
+  const HitobitoPeopleException(super.message, {super.statusCode});
 }
 
 class HitobitoPeopleService {
@@ -77,6 +73,281 @@ class HitobitoPeopleService {
     return resources;
   }
 
+  Future<HitobitoPersonResource> fetchPersonResourceById(
+    String accessToken,
+    int personId,
+  ) async {
+    if (personId <= 0) {
+      throw const HitobitoPeopleException(
+        'Die Person-ID fuer den Detailabruf ist ungueltig.',
+      );
+    }
+
+    final requestUri = _resourceUri('/api/people/$personId');
+    final effectiveRequestUri = _decoratePeopleRequestUri(requestUri);
+    final decoded = await _fetchPeoplePage(
+      requestUri: effectiveRequestUri,
+      accessToken: accessToken,
+    );
+    final data = decoded['data'];
+    if (data is! Map<String, dynamic>) {
+      throw const HitobitoPeopleException(
+        'People-Detailantwort enthaelt keine gueltige Person.',
+      );
+    }
+
+    final includedPeopleResources = _extractIncludedPeopleResources(decoded);
+    return _mapPersonResource(
+      data,
+      includedRolesById: includedPeopleResources.rolesById,
+      includedRolesByPersonId: includedPeopleResources.rolesByPersonId,
+      includedPeopleResources: includedPeopleResources,
+    );
+  }
+
+  Future<void> updatePerson(
+    String accessToken, {
+    required Mitglied mitglied,
+  }) async {
+    final personId = mitglied.personId;
+    if (personId == null || personId <= 0) {
+      throw const HitobitoPeopleException(
+        'Die Person kann ohne gueltige Person-ID nicht aktualisiert werden.',
+      );
+    }
+
+    final primaryEmail = _resolvePrimaryEmail(mitglied.emailAdressen);
+    final primaryAddress = _resolvePrimaryAddress(mitglied.adressen);
+    await _sendJsonApiMutation(
+      method: 'PUT',
+      accessToken: accessToken,
+      requestUri: _resourceUri('/api/people/$personId'),
+      body: <String, dynamic>{
+        'data': <String, dynamic>{
+          'type': 'people',
+          'id': personId.toString(),
+          'attributes': <String, dynamic>{
+            'first_name': mitglied.vorname,
+            'last_name': mitglied.nachname,
+            'nickname': mitglied.fahrtenname,
+            'gender': mitglied.gender,
+            'email': primaryEmail?.wert,
+            'address_care_of': primaryAddress?.addressCareOf,
+            'street': primaryAddress?.street,
+            'housenumber': primaryAddress?.housenumber,
+            'postbox': primaryAddress?.postbox,
+            'zip_code': primaryAddress?.zipCode,
+            'town': primaryAddress?.town,
+            'country': primaryAddress?.country,
+            'birthday': _toDateString(mitglied.geburtsdatum),
+          },
+        },
+      },
+    );
+  }
+
+  Future<void> createPhoneNumber(
+    String accessToken, {
+    required int personId,
+    required MitgliedKontaktTelefon telefonnummer,
+  }) {
+    return _sendJsonApiMutation(
+      method: 'POST',
+      accessToken: accessToken,
+      requestUri: _resourceUri('/api/phone_numbers'),
+      body: <String, dynamic>{
+        'data': <String, dynamic>{
+          'type': 'phone_numbers',
+          'attributes': <String, dynamic>{
+            'label': telefonnummer.label,
+            'contactable_id': personId,
+            'contactable_type': 'Person',
+            'number': telefonnummer.wert,
+          },
+        },
+      },
+    );
+  }
+
+  Future<void> updatePhoneNumber(
+    String accessToken, {
+    required MitgliedKontaktTelefon telefonnummer,
+  }) {
+    final phoneNumberId = telefonnummer.phoneNumberId;
+    if (phoneNumberId == null || phoneNumberId <= 0) {
+      throw const HitobitoPeopleException(
+        'Die Telefonnummer kann ohne gueltige ID nicht aktualisiert werden.',
+      );
+    }
+
+    return _sendJsonApiMutation(
+      method: 'PUT',
+      accessToken: accessToken,
+      requestUri: _resourceUri('/api/phone_numbers/$phoneNumberId'),
+      body: <String, dynamic>{
+        'data': <String, dynamic>{
+          'type': 'phone_numbers',
+          'id': phoneNumberId.toString(),
+          'attributes': <String, dynamic>{
+            'label': telefonnummer.label,
+            'number': telefonnummer.wert,
+          },
+        },
+      },
+    );
+  }
+
+  Future<void> deletePhoneNumber(
+    String accessToken, {
+    required int phoneNumberId,
+  }) {
+    return _sendJsonApiMutation(
+      method: 'DELETE',
+      accessToken: accessToken,
+      requestUri: _resourceUri('/api/phone_numbers/$phoneNumberId'),
+    );
+  }
+
+  Future<void> createAdditionalEmail(
+    String accessToken, {
+    required int personId,
+    required MitgliedKontaktEmail email,
+  }) {
+    return _sendJsonApiMutation(
+      method: 'POST',
+      accessToken: accessToken,
+      requestUri: _resourceUri('/api/additional_emails'),
+      body: <String, dynamic>{
+        'data': <String, dynamic>{
+          'type': 'additional_emails',
+          'attributes': <String, dynamic>{
+            'label': email.label,
+            'contactable_id': personId,
+            'contactable_type': 'Person',
+            'email': email.wert,
+          },
+        },
+      },
+    );
+  }
+
+  Future<void> updateAdditionalEmail(
+    String accessToken, {
+    required MitgliedKontaktEmail email,
+  }) {
+    final additionalEmailId = email.additionalEmailId;
+    if (additionalEmailId == null || additionalEmailId <= 0) {
+      throw const HitobitoPeopleException(
+        'Die Zusatzmail kann ohne gueltige ID nicht aktualisiert werden.',
+      );
+    }
+
+    return _sendJsonApiMutation(
+      method: 'PUT',
+      accessToken: accessToken,
+      requestUri: _resourceUri('/api/additional_emails/$additionalEmailId'),
+      body: <String, dynamic>{
+        'data': <String, dynamic>{
+          'type': 'additional_emails',
+          'id': additionalEmailId.toString(),
+          'attributes': <String, dynamic>{
+            'label': email.label,
+            'email': email.wert,
+          },
+        },
+      },
+    );
+  }
+
+  Future<void> deleteAdditionalEmail(
+    String accessToken, {
+    required int additionalEmailId,
+  }) {
+    return _sendJsonApiMutation(
+      method: 'DELETE',
+      accessToken: accessToken,
+      requestUri: _resourceUri('/api/additional_emails/$additionalEmailId'),
+    );
+  }
+
+  Future<void> createAdditionalAddress(
+    String accessToken, {
+    required int personId,
+    required MitgliedKontaktAdresse adresse,
+  }) {
+    return _sendJsonApiMutation(
+      method: 'POST',
+      accessToken: accessToken,
+      requestUri: _resourceUri('/api/additional_addresses'),
+      body: <String, dynamic>{
+        'data': <String, dynamic>{
+          'type': 'additional_addresses',
+          'attributes': <String, dynamic>{
+            'label': adresse.label,
+            'contactable_id': personId,
+            'contactable_type': 'Person',
+            'address_care_of': adresse.addressCareOf,
+            'street': adresse.street,
+            'housenumber': adresse.housenumber,
+            'postbox': adresse.postbox,
+            'zip_code': adresse.zipCode,
+            'town': adresse.town,
+            'country': adresse.country,
+          },
+        },
+      },
+    );
+  }
+
+  Future<void> updateAdditionalAddress(
+    String accessToken, {
+    required MitgliedKontaktAdresse adresse,
+  }) {
+    final additionalAddressId = adresse.additionalAddressId;
+    if (additionalAddressId == null || additionalAddressId <= 0) {
+      throw const HitobitoPeopleException(
+        'Die Zusatzadresse kann ohne gueltige ID nicht aktualisiert werden.',
+      );
+    }
+
+    return _sendJsonApiMutation(
+      method: 'PUT',
+      accessToken: accessToken,
+      requestUri: _resourceUri(
+        '/api/additional_addresses/$additionalAddressId',
+      ),
+      body: <String, dynamic>{
+        'data': <String, dynamic>{
+          'type': 'additional_addresses',
+          'id': additionalAddressId.toString(),
+          'attributes': <String, dynamic>{
+            'label': adresse.label,
+            'address_care_of': adresse.addressCareOf,
+            'street': adresse.street,
+            'housenumber': adresse.housenumber,
+            'postbox': adresse.postbox,
+            'zip_code': adresse.zipCode,
+            'town': adresse.town,
+            'country': adresse.country,
+          },
+        },
+      },
+    );
+  }
+
+  Future<void> deleteAdditionalAddress(
+    String accessToken, {
+    required int additionalAddressId,
+  }) {
+    return _sendJsonApiMutation(
+      method: 'DELETE',
+      accessToken: accessToken,
+      requestUri: _resourceUri(
+        '/api/additional_addresses/$additionalAddressId',
+      ),
+    );
+  }
+
   Uri _decoratePeopleRequestUri(Uri uri) {
     final queryParameters = Map<String, String>.from(uri.queryParameters);
     var includeValue = queryParameters['include'];
@@ -107,7 +378,7 @@ class HitobitoPeopleService {
     final response = await _httpClient.get(
       requestUri,
       headers: <String, String>{
-        'Accept': 'application/json',
+        'Accept': 'application/vnd.api+json, application/json',
         'Authorization': 'Bearer $accessToken',
       },
     );
@@ -115,6 +386,7 @@ class HitobitoPeopleService {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw HitobitoPeopleException(
         'People-Anfrage fehlgeschlagen (${response.statusCode}).',
+        statusCode: response.statusCode,
       );
     }
 
@@ -125,6 +397,34 @@ class HitobitoPeopleService {
       );
     }
     return decoded;
+  }
+
+  Future<void> _sendJsonApiMutation({
+    required String method,
+    required String accessToken,
+    required Uri requestUri,
+    Map<String, dynamic>? body,
+  }) async {
+    final request = http.Request(method, requestUri)
+      ..headers.addAll(<String, String>{
+        'Accept': 'application/vnd.api+json, application/json',
+        'Authorization': 'Bearer $accessToken',
+        if (body != null) 'Content-Type': 'application/vnd.api+json',
+      });
+    if (body != null) {
+      request.body = jsonEncode(body);
+    }
+
+    final streamedResponse = await _httpClient.send(request);
+    final response = await http.Response.fromStream(streamedResponse);
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return;
+    }
+
+    throw HitobitoPeopleException(
+      _buildMutationErrorMessage(method: method, response: response),
+      statusCode: response.statusCode,
+    );
   }
 
   HitobitoPersonResource _mapPersonResource(
@@ -191,6 +491,7 @@ class HitobitoPeopleService {
       entryDate: _toDateTime(attributesMap['entry_date']),
       exitDate: _toDateTime(attributesMap['exit_date']),
       updatedAt: _toDateTime(attributesMap['updated_at']),
+      gender: _toNullableString(attributesMap['gender']),
       pronoun: _toNullableString(attributesMap['pronoun']),
       bankAccountOwner: _toNullableString(attributesMap['bank_account_owner']),
       iban: _toNullableString(attributesMap['iban']),
@@ -360,6 +661,7 @@ class HitobitoPeopleService {
       id: id,
       personId: personId,
       value: MitgliedKontaktTelefon(
+        phoneNumberId: id,
         wert: number,
         label: _toNullableString(attributesMap['label']),
       ),
@@ -384,6 +686,7 @@ class HitobitoPeopleService {
       id: id,
       personId: personId,
       value: MitgliedKontaktEmail(
+        additionalEmailId: id,
         wert: email,
         label: _toNullableString(attributesMap['label']),
       ),
@@ -621,6 +924,136 @@ class HitobitoPeopleService {
     );
 
     return result;
+  }
+
+  Uri _resourceUri(String path) {
+    final baseUri = config.peopleUri;
+    if (baseUri == null) {
+      throw const HitobitoPeopleException(
+        'Der People-Endpoint konnte nicht aus der OAuth-Konfiguration abgeleitet werden.',
+      );
+    }
+
+    return baseUri.replace(path: path, queryParameters: null);
+  }
+
+  MitgliedKontaktEmail? _resolvePrimaryEmail(
+    List<MitgliedKontaktEmail> emailAdressen,
+  ) {
+    for (final email in emailAdressen) {
+      if (email.istPrimaer) {
+        return email;
+      }
+    }
+    return emailAdressen.isEmpty ? null : emailAdressen.first;
+  }
+
+  MitgliedKontaktAdresse? _resolvePrimaryAddress(
+    List<MitgliedKontaktAdresse> adressen,
+  ) {
+    for (final adresse in adressen) {
+      if ((adresse.additionalAddressId ?? 0) == 0) {
+        return adresse;
+      }
+    }
+    return adressen.isEmpty ? null : adressen.first;
+  }
+
+  String _toDateString(DateTime value) {
+    final normalized = value.toUtc();
+    return normalized.toIso8601String().split('T').first;
+  }
+
+  String _mutationLabel(String method) {
+    switch (method.toUpperCase()) {
+      case 'POST':
+        return 'Anlage';
+      case 'PUT':
+        return 'Aktualisierung';
+      case 'DELETE':
+        return 'Loeschen';
+      default:
+        return 'Mutation';
+    }
+  }
+
+  String _buildMutationErrorMessage({
+    required String method,
+    required http.Response response,
+  }) {
+    final baseMessage =
+        '${_mutationLabel(method)} fehlgeschlagen (${response.statusCode}).';
+    final detail = _extractMutationFailureDetail(response.body);
+    if (detail == null) {
+      return baseMessage;
+    }
+    return '$baseMessage Grund: $detail';
+  }
+
+  String? _extractMutationFailureDetail(String body) {
+    final trimmedBody = body.trim();
+    if (trimmedBody.isEmpty) {
+      return null;
+    }
+
+    try {
+      final decoded = jsonDecode(trimmedBody);
+      if (decoded is Map<String, dynamic>) {
+        final errors = decoded['errors'];
+        if (errors is List) {
+          final details = errors
+              .whereType<Map<String, dynamic>>()
+              .map(_extractMutationFailureItemDetail)
+              .whereType<String>()
+              .map((detail) => detail.trim())
+              .where((detail) => detail.isNotEmpty)
+              .toList(growable: false);
+          if (details.isNotEmpty) {
+            return details.join(' | ');
+          }
+        }
+
+        final detail = _toNullableString(decoded['detail']);
+        if (detail != null) {
+          return detail;
+        }
+      }
+    } catch (_) {
+      // Fallback auf kompakten Klartext weiter unten.
+    }
+
+    if (trimmedBody.contains('<html') ||
+        trimmedBody.contains('<!DOCTYPE html')) {
+      return null;
+    }
+
+    return trimmedBody.replaceAll(RegExp(r'\s+'), ' ');
+  }
+
+  String? _extractMutationFailureItemDetail(Map<String, dynamic> error) {
+    final detail = _toNullableString(error['detail']);
+    final title = _toNullableString(error['title']);
+    final source = error['source'];
+    final sourceMap = source is Map<String, dynamic>
+        ? source
+        : const <String, dynamic>{};
+    final pointer = _toNullableString(sourceMap['pointer']);
+    final meta = error['meta'];
+    final metaMap = meta is Map<String, dynamic>
+        ? meta
+        : const <String, dynamic>{};
+    final attribute = _toNullableString(metaMap['attribute']);
+
+    final reason = detail ?? title;
+    if (reason == null) {
+      return attribute ?? pointer;
+    }
+
+    final sourceHint = attribute ?? pointer;
+    if (sourceHint == null) {
+      return reason;
+    }
+    return '$reason [$sourceHint]';
   }
 }
 

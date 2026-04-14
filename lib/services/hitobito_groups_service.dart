@@ -3,15 +3,11 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../data/arbeitskontext/hitobito_group_resource.dart';
+import 'hitobito_api_exception.dart';
 import 'hitobito_auth_env.dart';
 
-class HitobitoGroupsException implements Exception {
-  const HitobitoGroupsException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => message;
+class HitobitoGroupsException extends HitobitoApiException {
+  const HitobitoGroupsException(super.message, {super.statusCode});
 }
 
 class HitobitoGroupsService {
@@ -72,6 +68,7 @@ class HitobitoGroupsService {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw HitobitoGroupsException(
         'Groups-Anfrage fehlgeschlagen (${response.statusCode}).',
+        statusCode: response.statusCode,
       );
     }
 
