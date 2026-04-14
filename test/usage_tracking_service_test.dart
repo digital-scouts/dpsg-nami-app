@@ -10,7 +10,7 @@ import 'package:nami/services/logger_service.dart';
 import 'package:nami/services/usage_tracking_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class _FakeRepo implements AppSettingsRepository {
+class _FakeRepo extends AppSettingsRepository {
   AppSettings value;
   _FakeRepo(this.value);
   @override

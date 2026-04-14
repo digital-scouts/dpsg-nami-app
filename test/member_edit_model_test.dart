@@ -62,6 +62,49 @@ void main() {
     },
   );
 
+  test('setzt lokalen Draft beim erneuten Editieren fort', () async {
+    final logger = _FakeLoggerService();
+    final basisMitglied = Mitglied.peopleListItem(
+      mitgliedsnummer: '4711',
+      personId: 23,
+      vorname: 'Julia',
+      nachname: 'Keller',
+    );
+    final pendingRepository = _InMemoryPendingPersonUpdateRepository(
+      entries: <PendingPersonUpdate>[
+        PendingPersonUpdate(
+          entryId: 'person-23',
+          personId: 23,
+          mitgliedsnummer: '4711',
+          displayName: 'Julia Keller',
+          basisMitglied: basisMitglied,
+          zielMitglied: basisMitglied.copyWith(vorname: 'Juliane'),
+          queuedAt: DateTime(2026, 4, 14, 10, 0),
+        ),
+      ],
+    );
+    final model = MemberEditModel(
+      memberWriteRepository: _FakeMemberWriteRepository(
+        fetchResultsByPersonId: <int, Object>{
+          23: basisMitglied.copyWith(vorname: 'Remote'),
+        },
+      ),
+      pendingRepository: pendingRepository,
+      logger: logger,
+      onMemberUpdated: (_) async {},
+    );
+    await model.loadPending();
+
+    final result = await model.prepareForEdit(
+      accessToken: 'token-123',
+      mitglied: basisMitglied,
+    );
+
+    expect(result.success, isTrue);
+    expect(result.member?.vorname, 'Juliane');
+    expect(result.message, contains('Lokaler Bearbeitungsstand'));
+  });
+
   test('queuet das Update bei generischem Fehler', () async {
     final pendingRepository = _InMemoryPendingPersonUpdateRepository();
     final logger = _FakeLoggerService();
@@ -109,6 +152,47 @@ void main() {
         ),
       ),
     );
+  });
+
+  test('ersetzt vorhandenen Draft derselben Person', () async {
+    final pendingRepository = _InMemoryPendingPersonUpdateRepository(
+      entries: <PendingPersonUpdate>[
+        _pendingEntry(
+          entryId: 'person-23',
+          personId: 23,
+          mitgliedsnummer: '4711',
+        ),
+      ],
+    );
+    final model = MemberEditModel(
+      memberWriteRepository: _FakeMemberWriteRepository(
+        updateResultsByPersonId: <int, Object>{
+          23: const MemberWriteNetworkBlockedException('Nur ueber WLAN.'),
+        },
+      ),
+      pendingRepository: pendingRepository,
+      logger: _FakeLoggerService(),
+      onMemberUpdated: (_) async {},
+      nowProvider: () => DateTime(2026, 4, 14, 11, 30),
+    );
+    await model.loadPending();
+    final basisMitglied = Mitglied.peopleListItem(
+      mitgliedsnummer: '4711',
+      personId: 23,
+      vorname: 'Julia',
+      nachname: 'Keller',
+    );
+
+    final result = await model.submitUpdate(
+      accessToken: 'token-123',
+      basisMitglied: basisMitglied,
+      zielMitglied: basisMitglied.copyWith(vorname: 'Neu'),
+    );
+
+    expect(result.wasQueued, isTrue);
+    expect(model.pendingUpdates, hasLength(1));
+    expect(model.pendingUpdates.single.entryId, 'person-23');
+    expect(model.pendingUpdates.single.zielMitglied.vorname, 'Neu');
   });
 
   test('queuet das Update bei Auth-Fall nicht', () async {
@@ -436,7 +520,9 @@ class _InMemoryPendingPersonUpdateRepository
   @override
   Future<void> save(PendingPersonUpdate entry) async {
     final index = _entries.indexWhere(
-      (existing) => existing.entryId == entry.entryId,
+      (existing) =>
+          existing.entryId == entry.entryId ||
+          existing.personId == entry.personId,
     );
     if (index >= 0) {
       _entries[index] = entry;
@@ -527,7 +613,7 @@ class _TrackedEvent {
   }
 }
 
-class _FakeAppSettingsRepository implements AppSettingsRepository {
+class _FakeAppSettingsRepository extends AppSettingsRepository {
   @override
   Future<AppSettings> load() async => const AppSettings(
     themeMode: ThemeMode.system,

@@ -11,6 +11,7 @@ class SharedPrefsAppSettingsRepository implements AppSettingsRepository {
   static const String _keyAnalyticsEnabled = 'analyticsEnabled';
   static const String _keyBiometricLockEnabled = 'biometricLockEnabled';
   static const String _keyNotificationsEnabled = 'notificationsEnabled';
+  static const String _keyNoMobileDataEnabled = 'noMobileDataEnabled';
   static const String _keyMemberListSearchResultHighlightEnabled =
       'memberListSearchResultHighlightEnabled';
   static const String _keyGeburstagsbenachrichtigungStufen =
@@ -26,6 +27,7 @@ class SharedPrefsAppSettingsRepository implements AppSettingsRepository {
     final analytics = prefs.getBool(_keyAnalyticsEnabled);
     final biometricLock = prefs.getBool(_keyBiometricLockEnabled);
     final notifications = prefs.getBool(_keyNotificationsEnabled);
+    final noMobileData = prefs.getBool(_keyNoMobileDataEnabled);
     final searchResultHighlight = prefs.getBool(
       _keyMemberListSearchResultHighlightEnabled,
     );
@@ -39,6 +41,7 @@ class SharedPrefsAppSettingsRepository implements AppSettingsRepository {
     final analyticsEnabled = analytics ?? true;
     final biometricLockEnabled = biometricLock ?? false;
     final notificationsEnabled = notifications ?? true;
+    final noMobileDataEnabled = noMobileData ?? false;
     final memberListSearchResultHighlightEnabled =
         searchResultHighlight ?? false;
     final geburstagsbenachrichtigungStufen = stufenList != null
@@ -57,6 +60,7 @@ class SharedPrefsAppSettingsRepository implements AppSettingsRepository {
       analyticsEnabled: analyticsEnabled,
       biometricLockEnabled: biometricLockEnabled,
       notificationsEnabled: notificationsEnabled,
+      noMobileDataEnabled: noMobileDataEnabled,
       memberListSearchResultHighlightEnabled:
           memberListSearchResultHighlightEnabled,
       geburstagsbenachrichtigungStufen: geburstagsbenachrichtigungStufen,
@@ -91,6 +95,12 @@ class SharedPrefsAppSettingsRepository implements AppSettingsRepository {
   Future<void> saveNotificationsEnabled(bool enabled) async {
     final prefs = await _prefs();
     await prefs.setBool(_keyNotificationsEnabled, enabled);
+  }
+
+  @override
+  Future<void> saveNoMobileDataEnabled(bool enabled) async {
+    final prefs = await _prefs();
+    await prefs.setBool(_keyNoMobileDataEnabled, enabled);
   }
 
   @override

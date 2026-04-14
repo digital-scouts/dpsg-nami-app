@@ -11,6 +11,7 @@ import 'package:latlong2/latlong.dart';
 
 import 'logger_service.dart';
 import 'maps_env.dart';
+import 'network_access_policy.dart';
 
 class MapTileCacheService {
   MapTileCacheService({
@@ -19,12 +20,14 @@ class MapTileCacheService {
     Connectivity? connectivity,
     Client? httpClient,
     LoggerService? logger,
+    NetworkAccessPolicy? networkAccessPolicy,
   }) : _backendFactory = backendFactory ?? FMTCObjectBoxBackend.new,
        _backend = backend ?? (backendFactory ?? FMTCObjectBoxBackend.new)(),
        _connectivity = connectivity ?? Connectivity(),
        _httpClient =
            httpClient ?? IOClient(HttpClient()..userAgent = userAgentValue),
-       _logger = logger;
+       _logger = logger,
+       _networkAccessPolicy = networkAccessPolicy;
 
   static const String storeName = 'offline_map_tiles';
   static const String userAgentPackageName = 'de.jlange.nami.app';
@@ -40,10 +43,12 @@ class MapTileCacheService {
   final Connectivity _connectivity;
   final Client _httpClient;
   final LoggerService? _logger;
+  final NetworkAccessPolicy? _networkAccessPolicy;
 
   bool _initialized = false;
   Future<void>? _initializing;
-  FMTCTileProvider? _tileProvider;
+  FMTCTileProvider? _onlineTileProvider;
+  FMTCTileProvider? _offlineTileProvider;
 
   Future<void> initialize() {
     if (_initialized) {
@@ -60,9 +65,9 @@ class MapTileCacheService {
     });
   }
 
-  Future<FMTCTileProvider> tileProvider() async {
+  Future<FMTCTileProvider> tileProvider({bool allowNetwork = true}) async {
     await initialize();
-    return _tileProvider!;
+    return allowNetwork ? _onlineTileProvider! : _offlineTileProvider!;
   }
 
   TileLayer buildTileLayer(FMTCTileProvider tileProvider) {
@@ -153,7 +158,8 @@ class MapTileCacheService {
       _backend = _backendFactory();
       _initialized = false;
       _initializing = null;
-      _tileProvider = null;
+      _onlineTileProvider = null;
+      _offlineTileProvider = null;
     }
 
     if (deleteError != null) {
@@ -170,9 +176,16 @@ class MapTileCacheService {
       await store.manage.create();
     }
     final headers = <String, String>{'User-Agent': userAgentValue};
-    _tileProvider ??= FMTCTileProvider(
+    _onlineTileProvider ??= FMTCTileProvider(
       stores: {storeName: BrowseStoreStrategy.readUpdateCreate},
       loadingStrategy: BrowseLoadingStrategy.onlineFirst,
+      recordHitsAndMisses: false,
+      httpClient: _httpClient,
+      headers: headers,
+    );
+    _offlineTileProvider ??= FMTCTileProvider(
+      stores: {storeName: BrowseStoreStrategy.readUpdateCreate},
+      loadingStrategy: BrowseLoadingStrategy.cacheOnly,
       recordHitsAndMisses: false,
       httpClient: _httpClient,
       headers: headers,
@@ -203,6 +216,15 @@ class MapTileCacheService {
   }
 
   Future<bool> _hasWifiConnection() async {
+    if (_networkAccessPolicy != null) {
+      final decision = await _networkAccessPolicy.evaluateAccess(
+        trigger: 'map_offline_download',
+        feature: 'Kartendownload',
+      );
+      return decision.allowed &&
+          decision.connectionType == NetworkConnectionType.wifi;
+    }
+
     final results = await _connectivity.checkConnectivity();
     return results.contains(ConnectivityResult.wifi) ||
         results.contains(ConnectivityResult.ethernet);

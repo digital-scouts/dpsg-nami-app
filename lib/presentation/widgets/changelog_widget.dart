@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/services/app_update_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:provider/provider.dart';
 
 class ChangelogWidget extends StatefulWidget {
   const ChangelogWidget({super.key});
@@ -24,7 +25,7 @@ class _ChangelogWidgetState extends State<ChangelogWidget> {
   }
 
   Future<_ChangelogData> _loadData() async {
-    final manifest = await AppUpdateService().loadVersionManifest();
+    final manifest = await _resolveAppUpdateService().loadVersionManifest();
     String? currentVersion;
     try {
       final info = await PackageInfo.fromPlatform();
@@ -55,6 +56,14 @@ class _ChangelogWidgetState extends State<ChangelogWidget> {
       platformInfo: platformInfo,
       entries: entries,
     );
+  }
+
+  AppUpdateService _resolveAppUpdateService() {
+    try {
+      return context.read<AppUpdateService>();
+    } catch (_) {
+      return AppUpdateService();
+    }
   }
 
   String? _platformKey() {

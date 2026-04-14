@@ -36,6 +36,16 @@ void main() {
       expect(s1.notificationsEnabled, isFalse);
     });
 
+    test('noMobileDataEnabled defaults and persists', () async {
+      SharedPreferences.setMockInitialValues({});
+      final repo = SharedPrefsAppSettingsRepository();
+      final s0 = await repo.load();
+      expect(s0.noMobileDataEnabled, isFalse);
+      await repo.saveNoMobileDataEnabled(true);
+      final s1 = await repo.load();
+      expect(s1.noMobileDataEnabled, isTrue);
+    });
+
     test(
       'memberListSearchResultHighlightEnabled defaults and persists',
       () async {

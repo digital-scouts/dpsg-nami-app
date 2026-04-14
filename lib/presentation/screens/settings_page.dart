@@ -7,6 +7,7 @@ import 'package:nami/presentation/notifications/notification_card.dart';
 import 'package:nami/presentation/widgets/confetti_overlay.dart';
 import 'package:nami/services/app_update_service.dart';
 import 'package:nami/services/logger_service.dart';
+import 'package:nami/services/network_access_policy.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -67,7 +68,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<AppUpdateInfo?> _loadAppUpdateInfo() async {
     try {
-      return await AppUpdateService().checkForUpdate();
+      return await _resolveAppUpdateService().checkForUpdate();
     } catch (_) {
       return null;
     }
@@ -87,7 +88,10 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _acknowledgeNotification(PullNotification notification) async {
     final logger = context.read<LoggerService>();
-    final repo = await createPullNotificationsRepository(logger: logger);
+    final repo = await createPullNotificationsRepository(
+      logger: logger,
+      networkAccessPolicy: _resolveNetworkAccessPolicy(),
+    );
     await repo.acknowledgeNotification(notification.id);
     if (!mounted) return;
     setState(() {
@@ -97,7 +101,10 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<PullNotification?> _loadUnreadNotification() async {
     final logger = context.read<LoggerService>();
-    final repo = await createPullNotificationsRepository(logger: logger);
+    final repo = await createPullNotificationsRepository(
+      logger: logger,
+      networkAccessPolicy: _resolveNetworkAccessPolicy(),
+    );
     final notifications = await repo.fetchNotifications();
     final acknowledged = await repo.getAcknowledgedIds();
 
@@ -142,6 +149,24 @@ class _SettingsPageState extends State<SettingsPage> {
       return;
     }
     await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  AppUpdateService _resolveAppUpdateService() {
+    try {
+      return context.read<AppUpdateService>();
+    } catch (_) {
+      return AppUpdateService(
+        networkAccessPolicy: _resolveNetworkAccessPolicy(),
+      );
+    }
+  }
+
+  NetworkAccessPolicy? _resolveNetworkAccessPolicy() {
+    try {
+      return context.read<NetworkAccessPolicy>();
+    } catch (_) {
+      return null;
+    }
   }
 
   PullNotification _buildUpdateNotification(

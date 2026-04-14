@@ -1,3 +1,4 @@
+import '../../services/network_access_policy.dart';
 import 'local_notifications_data_source.dart';
 import 'pull_notification.dart';
 import 'pull_notifications_repository.dart';
@@ -9,12 +10,14 @@ class PullNotificationsRepositoryImpl implements PullNotificationsRepository {
   final LocalNotificationsDataSource local;
   final Duration cacheExpiration;
   final Duration minFetchInterval;
+  final NetworkAccessPolicy? networkAccessPolicy;
 
   PullNotificationsRepositoryImpl({
     required this.remote,
     required this.local,
     this.cacheExpiration = const Duration(days: 7),
     this.minFetchInterval = const Duration(hours: 1),
+    this.networkAccessPolicy,
   });
 
   @override
@@ -45,10 +48,16 @@ class PullNotificationsRepositoryImpl implements PullNotificationsRepository {
 
     // 2. Remote holen (und speichern)
     try {
+      await networkAccessPolicy?.ensureNetworkAllowed(
+        trigger: 'pull_notifications_fetch',
+        feature: 'Mitteilungen',
+      );
       final fresh = await remote.fetch();
       await local.saveNotifications(fresh);
       await local.setLastFetchAt(now);
       return fresh;
+    } on NetworkAccessBlockedException {
+      return cached;
     } catch (e) {
       // Bei Fehler: Fallback auf Cache
       if (cached.isNotEmpty) return cached;
@@ -57,8 +66,13 @@ class PullNotificationsRepositoryImpl implements PullNotificationsRepository {
   }
 
   void _refreshInBackground() {
-    remote
-        .fetch()
+    (() async {
+          await networkAccessPolicy?.ensureNetworkAllowed(
+            trigger: 'pull_notifications_background_refresh',
+            feature: 'Mitteilungen',
+          );
+          return remote.fetch();
+        })()
         .then((fresh) async {
           await local.saveNotifications(fresh);
           await local.setLastFetchAt(DateTime.now());

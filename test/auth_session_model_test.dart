@@ -255,7 +255,7 @@ void main() {
 
       await model.initialize();
 
-      expect(model.state, AuthState.reloginRequired);
+      expect(model.state, AuthState.signedIn);
       expect(model.hasRemoteAccessIssue, isTrue);
       expect(model.requiresInteractiveLogin, isTrue);
       expect(
@@ -427,7 +427,7 @@ void main() {
   );
 
   test(
-    'setzt bei wiederholtem 401 waehrend Sync reloginRequired',
+    'bleibt bei wiederholtem 401 waehrend Sync signedIn und blockiert weitere Remote-Zugriffe',
     () async {
       final oauthService = _FakeOauthService(
         sessionToReturn: AuthSession(
@@ -466,7 +466,7 @@ void main() {
 
       await model.syncHitobitoData(syncMembers: (_) async {}, force: true);
 
-      expect(model.state, AuthState.reloginRequired);
+      expect(model.state, AuthState.signedIn);
       expect(model.hasRemoteAccessIssue, isTrue);
       expect(model.requiresInteractiveLogin, isTrue);
     },
@@ -611,6 +611,85 @@ void main() {
       expect(model.state, AuthState.signedIn);
       expect(model.session?.accessToken, 'interactive-token');
       expect(model.requiresInteractiveLogin, isFalse);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  test(
+    'bleibt nach abgebrochenem interaktivem Relogin bei vorhandener Session und lokalem Profil signedIn',
+    () async {
+      final oauthService =
+          _FakeOauthService(
+              sessionToReturn: AuthSession(
+                accessToken: 'interactive-token',
+                refreshToken: 'interactive-refresh-token',
+                receivedAt: DateTime(2026, 3, 28, 12),
+              ),
+              profileToReturn: const AuthProfile(
+                namiId: 96,
+                firstName: 'Cached',
+                lastName: 'Profile',
+                language: 'de',
+              ),
+            )
+            ..refreshError = const HitobitoAuthException(
+              'Token-Anfrage fehlgeschlagen (401).',
+              statusCode: 401,
+            )
+            ..authenticateError = HitobitoAuthException.fromPlatformException(
+              PlatformException(
+                code: 'CANCELED',
+                message: 'User canceled login',
+              ),
+            );
+      final cachedProfile = const AuthProfile(
+        namiId: 96,
+        firstName: 'Cached',
+        lastName: 'Profile',
+        language: 'de',
+      );
+      final model = AuthSessionModel(
+        repository: _InMemoryAuthSessionRepository(
+          initialSession: AuthSession(
+            accessToken: 'stale-token',
+            refreshToken: 'stale-refresh-token',
+            receivedAt: DateTime(2026, 3, 27),
+          ),
+        ),
+        profileRepository: _InMemoryAuthProfileRepository(
+          profile: cachedProfile,
+          lastSyncAt: DateTime(2026, 3, 28, 8),
+        ),
+        oauthService: oauthService,
+        biometricLockService: _FakeBiometricLockService(),
+        sensitiveStorageService: _FakeSensitiveStorageService(),
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => DateTime(2026, 3, 28, 12),
+        ),
+        logger: _createLogger(),
+      );
+
+      await model.initialize();
+
+      final result = await model.executeRemoteAccess<String>(
+        trigger: 'members_load',
+        action: (session) async {
+          throw const HitobitoPeopleException(
+            'People-Anfrage fehlgeschlagen (401).',
+            statusCode: 401,
+          );
+        },
+      );
+
+      expect(result, isNull);
+      expect(model.state, AuthState.signedIn);
+      expect(model.profile, cachedProfile);
+      expect(model.hasRemoteAccessIssue, isTrue);
+      expect(model.requiresInteractiveLogin, isTrue);
+      expect(model.session?.accessToken, 'stale-token');
+      expect(oauthService.authenticateInteractiveCallCount, 1);
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
@@ -1239,7 +1318,7 @@ class _FakeLoggerService extends LoggerService {
   ) async {}
 }
 
-class _FakeAppSettingsRepository implements AppSettingsRepository {
+class _FakeAppSettingsRepository extends AppSettingsRepository {
   @override
   Future<AppSettings> load() async => const AppSettings(
     themeMode: ThemeMode.system,

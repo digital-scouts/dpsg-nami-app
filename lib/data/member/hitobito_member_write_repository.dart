@@ -4,6 +4,7 @@ import '../../domain/member/mitglied.dart';
 import '../../services/hitobito_api_exception.dart';
 import '../../services/hitobito_people_service.dart';
 import '../../services/logger_service.dart';
+import '../../services/network_access_policy.dart';
 
 typedef MemberWriteRemoteAccessExecutor =
     Future<T?> Function<T>({
@@ -45,6 +46,8 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
       return remoteMember;
     } on MemberWriteException {
       rethrow;
+    } on NetworkAccessBlockedException catch (error) {
+      throw MemberWriteNetworkBlockedException(error.message);
     } on HitobitoApiException catch (error) {
       await _logger.logWarn(
         'member_write',
@@ -140,6 +143,8 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
       );
     } on MemberWriteException {
       rethrow;
+    } on NetworkAccessBlockedException catch (error) {
+      throw MemberWriteNetworkBlockedException(error.message);
     } on HitobitoApiException catch (error) {
       await _logger.logWarn(
         'member_write',

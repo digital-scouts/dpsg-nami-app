@@ -2,6 +2,15 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Hardware iPhone",
+            "request": "launch",
+            "type": "dart",
+            "deviceId": "00008150-000A424A0A40401C",
+            "toolArgs": [
+                "--dart-define=USE_LOGGING=true"
+            ]
+        },
+        {
             "name": "Android",
             "request": "launch",
             "type": "dart",

@@ -53,6 +53,7 @@ import 'services/hitobito_oauth_service.dart';
 import 'services/hitobito_people_service.dart';
 import 'services/logger_service.dart';
 import 'services/map_tile_cache_service.dart';
+import 'services/network_access_policy.dart';
 import 'services/sensitive_storage_service.dart';
 import 'services/usage_tracking_service.dart';
 
@@ -93,7 +94,17 @@ void main() {
           } catch (_) {}
         },
       );
-      final mapTileCacheService = MapTileCacheService(logger: logger);
+      final networkAccessPolicy = NetworkAccessPolicy(
+        logger: logger,
+        noMobileDataEnabled: () => appSettingsModel.noMobileDataEnabled,
+      );
+      final appUpdateService = AppUpdateService(
+        networkAccessPolicy: networkAccessPolicy,
+      );
+      final mapTileCacheService = MapTileCacheService(
+        logger: logger,
+        networkAccessPolicy: networkAccessPolicy,
+      );
 
       final sensitiveStorageService = SensitiveStorageService();
       final authSessionRepository = SecureAuthSessionRepository();
@@ -151,6 +162,7 @@ void main() {
           refreshInterval: HitobitoAuthEnv.refreshInterval,
         ),
         logger: logger!,
+        networkAccessPolicy: networkAccessPolicy,
         isAppLockEnabled: () => appSettingsModel.biometricLockEnabled,
         lockTimeout: HitobitoAuthEnv.appLockTimeout,
         onPreferredLanguageChanged: (languageCode) async {
@@ -174,10 +186,9 @@ void main() {
         session: authModel.session,
         profile: authModel.profile,
       );
-      final pendingPersonUpdateRepository =
-          SecurePendingPersonUpdateRepository(
-            sensitiveStorageService: sensitiveStorageService,
-          );
+      final pendingPersonUpdateRepository = SecurePendingPersonUpdateRepository(
+        sensitiveStorageService: sensitiveStorageService,
+      );
       final memberWriteRepository = HitobitoMemberWriteRepository(
         peopleService: hitobitoPeopleService,
         remoteAccessExecutor: authModel.executeRemoteAccess,
@@ -235,6 +246,8 @@ void main() {
             ),
             ChangeNotifierProvider<LocaleModel>.value(value: localeModel),
             Provider<AppSettingsRepository>.value(value: settingsRepo),
+            Provider<NetworkAccessPolicy>.value(value: networkAccessPolicy),
+            Provider<AppUpdateService>.value(value: appUpdateService),
             Provider<AppStartupStateService>.value(
               value: appStartupStateService,
             ),
@@ -249,7 +262,9 @@ void main() {
             ChangeNotifierProvider<ArbeitskontextModel>.value(
               value: arbeitskontextModel,
             ),
-            ChangeNotifierProvider<MemberEditModel>.value(value: memberEditModel),
+            ChangeNotifierProvider<MemberEditModel>.value(
+              value: memberEditModel,
+            ),
             ChangeNotifierProvider<HitobitoAuthConfigController>.value(
               value: hitobitoAuthConfigController,
             ),
@@ -443,7 +458,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _didCheckForAppUpdate = true;
 
     try {
-      final info = await AppUpdateService().checkForUpdate();
+      final info = await context.read<AppUpdateService>().checkForUpdate();
       final dialogContext = navigatorKey.currentContext;
       if (!mounted || dialogContext == null || info == null) {
         return;
@@ -461,7 +476,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     await _notificationsSubscription?.cancel();
     await _notificationsCubit?.close();
 
-    final repo = await createPullNotificationsRepository(logger: logger);
+    final repo = await createPullNotificationsRepository(
+      logger: logger,
+      networkAccessPolicy: context.read<NetworkAccessPolicy>(),
+    );
     final cubit = PullNotificationsCubit(repo);
     _notificationsSubscription = cubit.stream.listen(_handleNotificationsState);
     _notificationsCubit = cubit;
