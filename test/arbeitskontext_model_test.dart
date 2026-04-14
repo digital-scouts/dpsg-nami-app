@@ -269,6 +269,232 @@ void main() {
     },
   );
 
+  test('behaelt den geladenen Arbeitskontext bei reloginRequired', () async {
+    final cached = _buildReadModel(
+      aktiverLayerId: 11,
+      aktiverLayerName: 'Stamm Musterdorf',
+      mitglieder: <Mitglied>[
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '1001',
+          personId: 1,
+          vorname: 'Julia',
+          nachname: 'Keller',
+        ),
+      ],
+    );
+    final model = ArbeitskontextModel(
+      localRepository: _FakeArbeitskontextLocalRepository(cached: cached),
+      readModelRepository: _FakeArbeitskontextReadModelRepository(),
+      groupsService: _FakeHitobitoGroupsService(),
+      bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+      logger: _FakeLoggerService(),
+    );
+
+    await model.syncForAuth(
+      authState: AuthState.signedIn,
+      session: AuthSession(
+        accessToken: 'token-relogin',
+        receivedAt: DateTime(2026, 3, 31),
+      ),
+      profile: const AuthProfile(
+        namiId: 4,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 11,
+            groupName: 'Stamm Musterdorf',
+            roleName: 'Leitung',
+            roleClass: 'Group::Stamm::Leitung',
+            permissions: <String>['layer_read'],
+          ),
+        ],
+      ),
+    );
+
+    final beforeReloginReadModel = model.readModel;
+    final beforeReloginLayer = model.arbeitskontext;
+
+    await model.syncForAuth(
+      authState: AuthState.reloginRequired,
+      session: AuthSession(
+        accessToken: 'token-relogin',
+        receivedAt: DateTime(2026, 3, 31),
+      ),
+      profile: const AuthProfile(
+        namiId: 4,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 11,
+            groupName: 'Stamm Musterdorf',
+            roleName: 'Leitung',
+            roleClass: 'Group::Stamm::Leitung',
+            permissions: <String>['layer_read'],
+          ),
+        ],
+      ),
+    );
+
+    expect(model.status, ArbeitskontextStatus.ready);
+    expect(model.readModel, same(beforeReloginReadModel));
+    expect(model.arbeitskontext, same(beforeReloginLayer));
+    expect(model.readModel?.mitglieder.single.mitgliedsnummer, '1001');
+  });
+
+  test('nutzt den Remote-Access-Wrapper beim Roles-Nachladen', () async {
+    final triggers = <String>[];
+    final cached = _buildReadModel(
+      aktiverLayerId: 42,
+      aktiverLayerName: 'Bezirk Sieg',
+      mitglieder: <Mitglied>[
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '1001',
+          personId: 1,
+          vorname: 'Julia',
+          nachname: 'Keller',
+        ),
+      ],
+    );
+    final loaded = cached.copyWith(rolesSindGeladen: true);
+    final model = ArbeitskontextModel(
+      localRepository: _FakeArbeitskontextLocalRepository(cached: cached),
+      readModelRepository: _FakeArbeitskontextReadModelRepository(
+        loadRolesResultsByLayer: <int, ArbeitskontextReadModel>{42: loaded},
+      ),
+      groupsService: _FakeHitobitoGroupsService(),
+      bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+      remoteAccessExecutor:
+          <T>({
+            required String trigger,
+            required Future<T> Function(AuthSession session) action,
+            bool forceRefresh = false,
+          }) async {
+            triggers.add(trigger);
+            return action(
+              AuthSession(
+                accessToken: 'wrapped-token',
+                receivedAt: DateTime(2026, 4, 14),
+              ),
+            );
+          },
+      logger: _FakeLoggerService(),
+    );
+
+    await model.syncForAuth(
+      authState: AuthState.signedIn,
+      session: AuthSession(
+        accessToken: 'token-cache-roles',
+        receivedAt: DateTime(2026, 3, 31),
+      ),
+      profile: const AuthProfile(
+        namiId: 101,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 42,
+            groupName: 'Bezirk Sieg',
+            roleName: 'Leitung',
+            roleClass: 'Group::Bezirk::Leitung',
+            permissions: <String>['layer_read'],
+          ),
+        ],
+      ),
+    );
+    await _waitForBackgroundWork();
+
+    expect(triggers, contains('arbeitskontext_load_roles'));
+  });
+
+  test('nutzt den Remote-Access-Wrapper beim Layer-Wechsel', () async {
+    final triggers = <String>[];
+    final currentReadModel = _buildReadModel(
+      aktiverLayerId: 11,
+      aktiverLayerName: 'Stamm Musterdorf',
+      verfuegbareLayer: const <ArbeitskontextLayer>[
+        ArbeitskontextLayer(id: 11, name: 'Stamm Musterdorf'),
+        ArbeitskontextLayer(id: 20, name: 'Bezirk Rhein'),
+      ],
+    );
+    final model = ArbeitskontextModel(
+      localRepository: _FakeArbeitskontextLocalRepository(
+        cached: currentReadModel,
+      ),
+      readModelRepository: _FakeArbeitskontextReadModelRepository(
+        refreshResultsByLayer: <int, ArbeitskontextReadModel>{
+          20: currentReadModel,
+        },
+      ),
+      groupsService: _FakeHitobitoGroupsService(
+        groups: const <HitobitoGroupResource>[
+          HitobitoGroupResource(
+            id: 11,
+            name: 'Stamm Musterdorf',
+            isLayer: true,
+          ),
+          HitobitoGroupResource(id: 20, name: 'Bezirk Rhein', isLayer: true),
+        ],
+      ),
+      bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+      remoteAccessExecutor:
+          <T>({
+            required String trigger,
+            required Future<T> Function(AuthSession session) action,
+            bool forceRefresh = false,
+          }) async {
+            triggers.add(trigger);
+            return action(
+              AuthSession(
+                accessToken: 'wrapped-token',
+                receivedAt: DateTime(2026, 4, 14),
+              ),
+            );
+          },
+      logger: _FakeLoggerService(),
+    );
+
+    await model.syncForAuth(
+      authState: AuthState.signedIn,
+      session: AuthSession(
+        accessToken: 'token-switch',
+        receivedAt: DateTime(2026, 3, 31),
+      ),
+      profile: const AuthProfile(
+        namiId: 2,
+        primaryGroupId: 20,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 20,
+            groupName: 'Bezirk Rhein',
+            roleName: 'Bezirksleitung',
+            roleClass: 'Group::Bezirk::Leitung',
+            permissions: <String>['layer_read'],
+          ),
+        ],
+      ),
+    );
+
+    await model.switchToLayer(
+      targetLayer: const ArbeitskontextLayer(id: 20, name: 'Bezirk Rhein'),
+      session: AuthSession(
+        accessToken: 'token-switch',
+        receivedAt: DateTime(2026, 3, 31),
+      ),
+      profile: const AuthProfile(
+        namiId: 2,
+        primaryGroupId: 20,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 20,
+            groupName: 'Bezirk Rhein',
+            roleName: 'Bezirksleitung',
+            roleClass: 'Group::Bezirk::Leitung',
+            permissions: <String>['layer_read'],
+          ),
+        ],
+      ),
+    );
+
+    expect(triggers, contains('arbeitskontext_switch_layer_groups'));
+    expect(triggers, contains('arbeitskontext_switch_layer_read_model'));
+  });
+
   test(
     'wechselt zu einem erreichbaren Layer und behaelt den neuen Kontext',
     () async {
@@ -1087,6 +1313,230 @@ void main() {
           start: DateTime(2022, 1, 1),
         ),
       ]);
+    },
+  );
+
+  test(
+    'markiert ein Mitglied bei group_and_below_full in passender Gruppenhierarchie als schreibbar',
+    () async {
+      final mitglied = Mitglied.peopleListItem(
+        mitgliedsnummer: '4711',
+        personId: 23,
+        primaryGroupId: 111,
+        vorname: 'Julia',
+        nachname: 'Keller',
+      );
+      final cached = _buildReadModel(
+        aktiverLayerId: 11,
+        aktiverLayerName: 'Stamm Musterdorf',
+        gruppen: const <ArbeitskontextGruppe>[
+          ArbeitskontextGruppe(id: 100, name: 'Meute', layerId: 11),
+          ArbeitskontextGruppe(
+            id: 111,
+            name: 'Woelflinge 1',
+            layerId: 11,
+            parentId: 100,
+          ),
+        ],
+        mitglieder: <Mitglied>[mitglied],
+      );
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(cached: cached),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: _FakeHitobitoGroupsService(),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: AuthSession(
+          accessToken: 'token-write',
+          receivedAt: DateTime(2026, 4, 14),
+        ),
+        profile: const AuthProfile(
+          namiId: 4711,
+          roles: <AuthProfileRole>[
+            AuthProfileRole(
+              groupId: 100,
+              groupName: 'Meute',
+              roleName: 'Leitung',
+              roleClass: 'Group::Woelfe::Leitung',
+              permissions: <String>['group_and_below_full'],
+            ),
+          ],
+        ),
+      );
+
+      expect(model.istMitgliedSchreibbar(mitglied), isTrue);
+    },
+  );
+
+  test(
+    'markiert ein Mitglied bei layer_full auf einer Gruppe im aktiven Layer als schreibbar',
+    () async {
+      final mitglied = Mitglied.peopleListItem(
+        mitgliedsnummer: '4713',
+        personId: 25,
+        primaryGroupId: 111,
+        vorname: 'Lena',
+        nachname: 'Becker',
+      );
+      final cached = _buildReadModel(
+        aktiverLayerId: 11,
+        aktiverLayerName: 'Stamm Musterdorf',
+        gruppen: const <ArbeitskontextGruppe>[
+          ArbeitskontextGruppe(id: 100, name: 'Meute', layerId: 11),
+          ArbeitskontextGruppe(
+            id: 111,
+            name: 'Woelflinge 1',
+            layerId: 11,
+            parentId: 100,
+          ),
+        ],
+        mitglieder: <Mitglied>[mitglied],
+      );
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(cached: cached),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: _FakeHitobitoGroupsService(),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: AuthSession(
+          accessToken: 'token-layer-full-group',
+          receivedAt: DateTime(2026, 4, 14),
+        ),
+        profile: const AuthProfile(
+          namiId: 4713,
+          roles: <AuthProfileRole>[
+            AuthProfileRole(
+              groupId: 100,
+              groupName: 'Meute',
+              roleName: 'Leitung',
+              roleClass: 'Group::Woelfe::Leitung',
+              permissions: <String>['layer_full'],
+            ),
+          ],
+        ),
+      );
+
+      expect(model.istMitgliedSchreibbar(mitglied), isTrue);
+    },
+  );
+
+  test(
+    'markiert ein direkt dem Layer zugeordnetes Mitglied bei layer_full als schreibbar',
+    () async {
+      final mitglied = Mitglied.peopleListItem(
+        mitgliedsnummer: '4714',
+        personId: 26,
+        vorname: 'Paul',
+        nachname: 'Schneider',
+      );
+      final cached = _buildReadModel(
+        aktiverLayerId: 11,
+        aktiverLayerName: 'Stamm Musterdorf',
+        gruppen: const <ArbeitskontextGruppe>[
+          ArbeitskontextGruppe(id: 100, name: 'Meute', layerId: 11),
+        ],
+        mitglieder: <Mitglied>[mitglied],
+      );
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(cached: cached),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: _FakeHitobitoGroupsService(),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: AuthSession(
+          accessToken: 'token-layer-full-direct',
+          receivedAt: DateTime(2026, 4, 14),
+        ),
+        profile: const AuthProfile(
+          namiId: 4714,
+          roles: <AuthProfileRole>[
+            AuthProfileRole(
+              groupId: 100,
+              groupName: 'Meute',
+              roleName: 'Leitung',
+              roleClass: 'Group::Woelfe::Leitung',
+              permissions: <String>['layer_full'],
+            ),
+          ],
+        ),
+      );
+
+      expect(model.istMitgliedSchreibbar(mitglied), isTrue);
+    },
+  );
+
+  test(
+    'markiert ein Mitglied bei reinen Read-Rechten nicht als schreibbar',
+    () async {
+      final mitglied = Mitglied.peopleListItem(
+        mitgliedsnummer: '4712',
+        personId: 24,
+        primaryGroupId: 111,
+        vorname: 'Max',
+        nachname: 'Mustermann',
+      );
+      final cached = _buildReadModel(
+        aktiverLayerId: 11,
+        aktiverLayerName: 'Stamm Musterdorf',
+        gruppen: const <ArbeitskontextGruppe>[
+          ArbeitskontextGruppe(id: 100, name: 'Meute', layerId: 11),
+          ArbeitskontextGruppe(
+            id: 111,
+            name: 'Woelflinge 1',
+            layerId: 11,
+            parentId: 100,
+          ),
+        ],
+        mitglieder: <Mitglied>[mitglied],
+      );
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(cached: cached),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: _FakeHitobitoGroupsService(),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: AuthSession(
+          accessToken: 'token-read-only',
+          receivedAt: DateTime(2026, 4, 14),
+        ),
+        profile: const AuthProfile(
+          namiId: 4712,
+          roles: <AuthProfileRole>[
+            AuthProfileRole(
+              groupId: 100,
+              groupName: 'Meute',
+              roleName: 'Leitung',
+              roleClass: 'Group::Woelfe::Leitung',
+              permissions: <String>['group_and_below_read'],
+            ),
+            AuthProfileRole(
+              groupId: 11,
+              groupName: 'Stamm Musterdorf',
+              roleName: 'Leserechte',
+              roleClass: 'Group::Stamm::Lesen',
+              permissions: <String>['layer_read'],
+            ),
+          ],
+        ),
+      );
+
+      expect(model.istMitgliedSchreibbar(mitglied), isFalse);
     },
   );
 }

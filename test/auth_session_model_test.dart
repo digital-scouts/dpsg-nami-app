@@ -14,6 +14,7 @@ import 'package:nami/services/biometric_lock_service.dart';
 import 'package:nami/services/hitobito_auth_env.dart';
 import 'package:nami/services/hitobito_data_retention_policy.dart';
 import 'package:nami/services/hitobito_oauth_service.dart';
+import 'package:nami/services/hitobito_people_service.dart';
 import 'package:nami/services/logger_service.dart';
 import 'package:nami/services/sensitive_storage_service.dart';
 
@@ -254,6 +255,7 @@ void main() {
 
       await model.initialize();
 
+      expect(model.state, AuthState.reloginRequired);
       expect(model.hasRemoteAccessIssue, isTrue);
       expect(model.requiresInteractiveLogin, isTrue);
       expect(
@@ -425,7 +427,7 @@ void main() {
   );
 
   test(
-    'setzt bei 401 waehrend Sync nur einen nicht-blockierenden Remote-Hinweis',
+    'setzt bei wiederholtem 401 waehrend Sync reloginRequired',
     () async {
       final oauthService = _FakeOauthService(
         sessionToReturn: AuthSession(
@@ -464,9 +466,305 @@ void main() {
 
       await model.syncHitobitoData(syncMembers: (_) async {}, force: true);
 
-      expect(model.state, AuthState.signedIn);
+      expect(model.state, AuthState.reloginRequired);
       expect(model.hasRemoteAccessIssue, isTrue);
       expect(model.requiresInteractiveLogin, isTrue);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  test(
+    'retryt Mitgliedersync nach 401 einmal mit aufgefrischter Session',
+    () async {
+      final oauthService = _FakeOauthService(
+        sessionToReturn: AuthSession(
+          accessToken: 'refreshed-token',
+          refreshToken: 'refresh-token',
+          receivedAt: DateTime(2026, 3, 28, 12),
+        ),
+        profileToReturn: const AuthProfile(
+          namiId: 94,
+          firstName: 'Retry',
+          lastName: 'MemberSync',
+          language: 'de',
+        ),
+      );
+      final model = AuthSessionModel(
+        repository: _InMemoryAuthSessionRepository(
+          initialSession: AuthSession(
+            accessToken: 'stale-token',
+            refreshToken: 'refresh-token',
+            receivedAt: DateTime(2026, 3, 27),
+          ),
+        ),
+        profileRepository: _InMemoryAuthProfileRepository(
+          profile: const AuthProfile(
+            namiId: 94,
+            firstName: 'Retry',
+            lastName: 'MemberSync',
+            language: 'de',
+          ),
+          lastSyncAt: DateTime(2026, 3, 28, 8),
+        ),
+        oauthService: oauthService,
+        biometricLockService: _FakeBiometricLockService(),
+        sensitiveStorageService: _FakeSensitiveStorageService(),
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => DateTime(2026, 3, 28, 12),
+        ),
+        logger: _createLogger(),
+      );
+      final memberSyncTokens = <String>[];
+
+      await model.initialize();
+      await model.syncHitobitoData(
+        syncMembers: (accessToken) async {
+          memberSyncTokens.add(accessToken);
+          if (memberSyncTokens.length == 1) {
+            throw const HitobitoPeopleException(
+              'People-Anfrage fehlgeschlagen (401).',
+              statusCode: 401,
+            );
+          }
+        },
+      );
+
+      expect(model.state, AuthState.signedIn);
+      expect(memberSyncTokens, <String>['stale-token', 'refreshed-token']);
+      expect(model.session?.accessToken, 'refreshed-token');
+      expect(model.requiresInteractiveLogin, isFalse);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  test(
+    'executeRemoteAccess versucht nach 401 und fehlgeschlagenem Refresh einen interaktiven Re-Login und macht erfolgreich weiter',
+    () async {
+      final oauthService =
+          _FakeOauthService(
+              sessionToReturn: AuthSession(
+                accessToken: 'interactive-token',
+                refreshToken: 'interactive-refresh-token',
+                receivedAt: DateTime(2026, 3, 28, 12),
+              ),
+              profileToReturn: const AuthProfile(
+                namiId: 95,
+                firstName: 'Interactive',
+                lastName: 'Relogin',
+                language: 'de',
+              ),
+            )
+            ..refreshError = const HitobitoAuthException(
+              'Token-Anfrage fehlgeschlagen (401).',
+              statusCode: 401,
+            );
+      final model = AuthSessionModel(
+        repository: _InMemoryAuthSessionRepository(
+          initialSession: AuthSession(
+            accessToken: 'stale-token',
+            refreshToken: 'stale-refresh-token',
+            receivedAt: DateTime(2026, 3, 27),
+          ),
+        ),
+        profileRepository: _InMemoryAuthProfileRepository(
+          profile: const AuthProfile(
+            namiId: 95,
+            firstName: 'Interactive',
+            lastName: 'Relogin',
+            language: 'de',
+          ),
+          lastSyncAt: DateTime(2026, 3, 28, 8),
+        ),
+        oauthService: oauthService,
+        biometricLockService: _FakeBiometricLockService(),
+        sensitiveStorageService: _FakeSensitiveStorageService(),
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => DateTime(2026, 3, 28, 12),
+        ),
+        logger: _createLogger(),
+      );
+      final usedTokens = <String>[];
+
+      await model.initialize();
+      final result = await model.executeRemoteAccess<String>(
+        trigger: 'members_load',
+        action: (session) async {
+          usedTokens.add(session.accessToken);
+          if (usedTokens.length == 1) {
+            throw const HitobitoPeopleException(
+              'People-Anfrage fehlgeschlagen (401).',
+              statusCode: 401,
+            );
+          }
+          return 'ok';
+        },
+      );
+
+      expect(result, 'ok');
+      expect(usedTokens, <String>['stale-token', 'interactive-token']);
+      expect(oauthService.refreshCallCount, 1);
+      expect(oauthService.authenticateInteractiveCallCount, 1);
+      expect(model.state, AuthState.signedIn);
+      expect(model.session?.accessToken, 'interactive-token');
+      expect(model.requiresInteractiveLogin, isFalse);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  test(
+    'interaktiver relogin mit Benutzerwechsel verwirft altes Profil und alten Sync-Stand',
+    () async {
+      final oauthService =
+          _FakeOauthService(
+              sessionToReturn: AuthSession(
+                accessToken: 'interactive-token',
+                refreshToken: 'interactive-refresh-token',
+                receivedAt: DateTime(2026, 3, 28, 12),
+                principal: 'principal-new',
+              ),
+              profileToReturn: const AuthProfile(
+                namiId: 222,
+                firstName: 'Neu',
+                lastName: 'Profil',
+                language: 'de',
+              ),
+            )
+            ..refreshError = const HitobitoAuthException(
+              'Token-Anfrage fehlgeschlagen (401).',
+              statusCode: 401,
+            );
+      final sensitiveStorage = _FakeSensitiveStorageService()
+        .._principal = 'principal-old'
+        .._lastSensitiveSyncAt = DateTime(2026, 3, 27, 8)
+        .._lastSensitiveSyncAttemptAt = DateTime(2026, 3, 27, 9);
+      final model = AuthSessionModel(
+        repository: _InMemoryAuthSessionRepository(
+          initialSession: AuthSession(
+            accessToken: 'stale-token',
+            refreshToken: 'stale-refresh-token',
+            receivedAt: DateTime(2026, 3, 27),
+            principal: 'principal-old',
+          ),
+        ),
+        profileRepository: _InMemoryAuthProfileRepository(
+          profile: const AuthProfile(
+            namiId: 111,
+            firstName: 'Alt',
+            lastName: 'Profil',
+            language: 'de',
+          ),
+          lastSyncAt: DateTime(2026, 3, 27, 8),
+        ),
+        oauthService: oauthService,
+        biometricLockService: _FakeBiometricLockService(),
+        sensitiveStorageService: sensitiveStorage,
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => DateTime(2026, 3, 28, 12),
+        ),
+        logger: _createLogger(),
+      );
+
+      await model.initialize();
+      final result = await model.executeRemoteAccess<String>(
+        trigger: 'members_load',
+        action: (session) async {
+          if (session.accessToken == 'stale-token') {
+            throw const HitobitoPeopleException(
+              'People-Anfrage fehlgeschlagen (401).',
+              statusCode: 401,
+            );
+          }
+          return 'ok';
+        },
+      );
+
+      expect(result, 'ok');
+      expect(model.session?.principal, 'principal-new');
+      expect(model.profile?.namiId, 222);
+      expect(model.lastSensitiveSyncAt, isNull);
+      expect(model.lastSensitiveSyncAttemptAt, isNull);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  test(
+    'loggt technisch abgefangene 401 als Retry-Hinweis ohne technischen Fehlertext',
+    () async {
+      final logger = _createLogger();
+      final oauthService = _FakeOauthService(
+        sessionToReturn: AuthSession(
+          accessToken: 'refreshed-token',
+          refreshToken: 'refresh-token',
+          receivedAt: DateTime(2026, 3, 28, 12),
+        ),
+        profileToReturn: const AuthProfile(
+          namiId: 94,
+          firstName: 'Retry',
+          lastName: 'Logging',
+          language: 'de',
+        ),
+      );
+      final model = AuthSessionModel(
+        repository: _InMemoryAuthSessionRepository(
+          initialSession: AuthSession(
+            accessToken: 'stale-token',
+            refreshToken: 'refresh-token',
+            receivedAt: DateTime(2026, 3, 27),
+          ),
+        ),
+        profileRepository: _InMemoryAuthProfileRepository(
+          profile: const AuthProfile(
+            namiId: 94,
+            firstName: 'Retry',
+            lastName: 'Logging',
+            language: 'de',
+          ),
+          lastSyncAt: DateTime(2026, 3, 28, 8),
+        ),
+        oauthService: oauthService,
+        biometricLockService: _FakeBiometricLockService(),
+        sensitiveStorageService: _FakeSensitiveStorageService(),
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => DateTime(2026, 3, 28, 12),
+        ),
+        logger: logger,
+      );
+
+      await model.initialize();
+      await model.executeRemoteAccess<String>(
+        trigger: 'members_load',
+        action: (session) async {
+          if (session.accessToken == 'stale-token') {
+            throw const HitobitoPeopleException(
+              'People-Anfrage fehlgeschlagen (401).',
+              statusCode: 401,
+            );
+          }
+          return 'ok';
+        },
+      );
+
+      expect(
+        logger.entries.where(
+          (entry) => entry.message.contains('Login abgelaufen, versuche Retry'),
+        ),
+        isNotEmpty,
+      );
+      expect(
+        logger.entries.where(
+          (entry) =>
+              entry.message.contains('Session-Auffrischung fehlgeschlagen'),
+        ),
+        isEmpty,
+      );
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
@@ -774,10 +1072,13 @@ class _FakeOauthService extends HitobitoOauthService {
   Object? authenticateError;
   Object? refreshError;
   Object? fetchProfileError;
+  int authenticateInteractiveCallCount = 0;
+  int refreshCallCount = 0;
   int fetchProfileCallCount = 0;
 
   @override
   Future<AuthSession> authenticateInteractive() async {
+    authenticateInteractiveCallCount += 1;
     final error = authenticateError;
     if (error != null) {
       throw error;
@@ -787,6 +1088,7 @@ class _FakeOauthService extends HitobitoOauthService {
 
   @override
   Future<AuthSession> refresh(AuthSession session) async {
+    refreshCallCount += 1;
     final error = refreshError;
     if (error != null) {
       throw error;

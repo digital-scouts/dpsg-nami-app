@@ -14,9 +14,12 @@ import 'package:nami/data/arbeitskontext/hitobito_arbeitskontext_read_model_repo
 import 'package:nami/data/arbeitskontext/secure_arbeitskontext_local_repository.dart';
 import 'package:nami/data/auth/secure_auth_profile_repository.dart';
 import 'package:nami/data/auth/secure_auth_session_repository.dart';
+import 'package:nami/data/member/hitobito_member_write_repository.dart';
+import 'package:nami/data/member/secure_pending_person_update_repository.dart';
 import 'package:nami/domain/arbeitskontext/usecases/bestimme_startkontext_usecase.dart';
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
+import 'package:nami/presentation/model/member_edit_model.dart';
 import 'package:nami/presentation/notifications/app_update_dialog.dart';
 import 'package:nami/presentation/notifications/welcome_dialog.dart';
 import 'package:nami/presentation/screens/auth_gate_screen.dart';
@@ -163,6 +166,7 @@ void main() {
         readModelRepository: arbeitskontextReadModelRepository,
         groupsService: hitobitoGroupsService,
         bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        remoteAccessExecutor: authModel.executeRemoteAccess,
         logger: logger!,
       );
       await arbeitskontextModel.syncForAuth(
@@ -170,6 +174,22 @@ void main() {
         session: authModel.session,
         profile: authModel.profile,
       );
+      final pendingPersonUpdateRepository =
+          SecurePendingPersonUpdateRepository(
+            sensitiveStorageService: sensitiveStorageService,
+          );
+      final memberWriteRepository = HitobitoMemberWriteRepository(
+        peopleService: hitobitoPeopleService,
+        remoteAccessExecutor: authModel.executeRemoteAccess,
+        logger: logger!,
+      );
+      final memberEditModel = MemberEditModel(
+        memberWriteRepository: memberWriteRepository,
+        pendingRepository: pendingPersonUpdateRepository,
+        logger: logger!,
+        onMemberUpdated: arbeitskontextModel.ersetzeMitglied,
+      );
+      await memberEditModel.loadPending();
 
       // Globale Fehlerbehandlung: Framework- und ungefangene Fehler loggen/tracken
       FlutterError.onError = (FlutterErrorDetails details) async {
@@ -229,6 +249,7 @@ void main() {
             ChangeNotifierProvider<ArbeitskontextModel>.value(
               value: arbeitskontextModel,
             ),
+            ChangeNotifierProvider<MemberEditModel>.value(value: memberEditModel),
             ChangeNotifierProvider<HitobitoAuthConfigController>.value(
               value: hitobitoAuthConfigController,
             ),

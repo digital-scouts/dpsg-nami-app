@@ -3,15 +3,11 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../data/arbeitskontext/hitobito_person_resource.dart';
+import 'hitobito_api_exception.dart';
 import 'hitobito_auth_env.dart';
 
-class HitobitoRolesException implements Exception {
-  const HitobitoRolesException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => message;
+class HitobitoRolesException extends HitobitoApiException {
+  const HitobitoRolesException(super.message, {super.statusCode});
 }
 
 class HitobitoRolesService {
@@ -86,6 +82,7 @@ class HitobitoRolesService {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw HitobitoRolesException(
         'Roles-Anfrage fehlgeschlagen (${response.statusCode}).',
+        statusCode: response.statusCode,
       );
     }
 

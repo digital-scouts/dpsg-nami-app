@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -88,6 +90,7 @@ void main() {
                 "birthday": "2008-05-12",
                 "entry_date": "2021-09-01",
                 "updated_at": "2024-11-07T14:35:00Z",
+                "gender": "w",
                 "pronoun": "sie/ihr",
                 "street": "Musterweg",
                 "housenumber": "4",
@@ -238,7 +241,7 @@ void main() {
       );
       expect(
         requestedUris.first.queryParameters['fields[roles]'],
-        'person_id,group_id,type,label,name',
+        'created_at,updated_at,start_on,end_on,name,person_id,group_id,type,label',
       );
       expect(
         requestedUris.first.queryParameters['fields[phone_numbers]'],
@@ -265,6 +268,7 @@ void main() {
       expect(people.first.fahrtenname, 'Polka');
       expect(people.first.personId, 23);
       expect(people.first.mitgliedsnummer, '1001');
+      expect(people.first.gender, 'w');
       expect(people.first.pronoun, 'sie/ihr');
       expect(people.first.emailAdressen, const <MitgliedKontaktEmail>[
         MitgliedKontaktEmail(
@@ -272,12 +276,27 @@ void main() {
           label: Mitglied.primaryEmailLabel,
           istPrimaer: true,
         ),
-        MitgliedKontaktEmail(wert: 'julia.privat@example.org', label: 'Privat'),
-        MitgliedKontaktEmail(wert: 'eltern@example.org'),
+        MitgliedKontaktEmail(
+          additionalEmailId: 601,
+          wert: 'julia.privat@example.org',
+          label: 'Privat',
+        ),
+        MitgliedKontaktEmail(
+          additionalEmailId: 602,
+          wert: 'eltern@example.org',
+        ),
       ]);
       expect(people.first.telefonnummern, const <MitgliedKontaktTelefon>[
-        MitgliedKontaktTelefon(wert: '+49 170 1234567', label: 'Mobil'),
-        MitgliedKontaktTelefon(wert: '+49 40 9876543', label: 'Festnetz'),
+        MitgliedKontaktTelefon(
+          phoneNumberId: 701,
+          wert: '+49 170 1234567',
+          label: 'Mobil',
+        ),
+        MitgliedKontaktTelefon(
+          phoneNumberId: 702,
+          wert: '+49 40 9876543',
+          label: 'Festnetz',
+        ),
       ]);
       expect(people.first.adressen, const <MitgliedKontaktAdresse>[
         MitgliedKontaktAdresse(
@@ -316,6 +335,7 @@ void main() {
       expect(resources.first.telefonnummern, people.first.telefonnummern);
       expect(resources.first.adressen, people.first.adressen);
       expect(resources.first.updatedAt, DateTime.parse('2024-11-07T14:35:00Z'));
+      expect(resources.first.gender, 'w');
       expect(resources.first.roles, hasLength(1));
       expect(resources.first.roles.first.groupId, 11);
       expect(
@@ -330,4 +350,302 @@ void main() {
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
+
+  test(
+    'sendet JSON-API-Mutationen fuer Person und Unterressourcen mit demo-kompatiblem Contract',
+    () async {
+      final requests = <http.Request>[];
+      final client = MockClient((request) async {
+        requests.add(request);
+        return http.Response('', 204);
+      });
+
+      final service = HitobitoPeopleService(
+        config: const HitobitoAuthConfig(
+          clientId: 'client',
+          clientSecret: 'secret',
+          authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
+          tokenUrl: 'https://demo.hitobito.com/oauth/token',
+          redirectUri: 'de.jlange.nami.app:/oauth/callback',
+          scopeString: 'openid email api',
+          discoveryUrl: '',
+          profileUrl: 'https://demo.hitobito.com/oauth/profile',
+        ),
+        httpClient: client,
+      );
+
+      final mitglied = Mitglied(
+        personId: 23,
+        mitgliedsnummer: '4711',
+        vorname: 'Julia',
+        nachname: 'Keller',
+        fahrtenname: 'Polka',
+        geburtsdatum: DateTime.utc(2010, 4, 6),
+        eintrittsdatum: DateTime(2020, 5, 1),
+        austrittsdatum: DateTime.utc(2026, 4, 14),
+        gender: 'divers',
+        pronoun: 'sie/ihr',
+        bankAccountOwner: 'Julia Keller',
+        iban: 'DE02120300000000202051',
+        bic: 'BYLADEM1001',
+        bankName: 'Testbank',
+        paymentMethod: 'manual',
+        emailAdressen: const <MitgliedKontaktEmail>[
+          MitgliedKontaktEmail(
+            wert: 'julia@example.org',
+            label: Mitglied.primaryEmailLabel,
+            istPrimaer: true,
+          ),
+        ],
+        adressen: const <MitgliedKontaktAdresse>[
+          MitgliedKontaktAdresse(
+            addressCareOf: 'c/o Familie Keller',
+            street: 'Musterweg',
+            housenumber: '4',
+            zipCode: '50667',
+            town: 'Koeln',
+            country: 'DE',
+          ),
+        ],
+      );
+
+      await service.updatePerson('token-123', mitglied: mitglied);
+      await service.createPhoneNumber(
+        'token-123',
+        personId: 23,
+        telefonnummer: const MitgliedKontaktTelefon(
+          wert: '+49 170 1234567',
+          label: 'Mobil',
+        ),
+      );
+      await service.updateAdditionalEmail(
+        'token-123',
+        email: const MitgliedKontaktEmail(
+          additionalEmailId: 601,
+          wert: 'julia.privat@example.org',
+          label: 'Privat',
+        ),
+      );
+      await service.deleteAdditionalAddress(
+        'token-123',
+        additionalAddressId: 801,
+      );
+
+      expect(requests, hasLength(4));
+
+      final updatePersonRequest = requests[0];
+      final updatePersonBody =
+          jsonDecode(updatePersonRequest.body) as Map<String, dynamic>;
+      expect(updatePersonRequest.method, 'PUT');
+      expect(updatePersonRequest.url.path, '/api/people/23');
+      expect(
+        updatePersonRequest.headers['Accept'],
+        'application/vnd.api+json, application/json',
+      );
+      expect(
+        updatePersonRequest.headers['Content-Type'],
+        'application/vnd.api+json',
+      );
+      expect(updatePersonRequest.headers['Authorization'], 'Bearer token-123');
+      expect(updatePersonBody['data']['type'], 'people');
+      expect(updatePersonBody['data']['id'], '23');
+      expect(updatePersonBody['data']['attributes']['first_name'], 'Julia');
+      expect(updatePersonBody['data']['attributes']['last_name'], 'Keller');
+      expect(updatePersonBody['data']['attributes']['nickname'], 'Polka');
+      expect(updatePersonBody['data']['attributes']['gender'], 'divers');
+      expect(
+        updatePersonBody['data']['attributes']['email'],
+        'julia@example.org',
+      );
+      expect(
+        updatePersonBody['data']['attributes']['address_care_of'],
+        'c/o Familie Keller',
+      );
+      expect(updatePersonBody['data']['attributes']['street'], 'Musterweg');
+      expect(updatePersonBody['data']['attributes']['housenumber'], '4');
+      expect(updatePersonBody['data']['attributes']['postbox'], isNull);
+      expect(updatePersonBody['data']['attributes']['zip_code'], '50667');
+      expect(updatePersonBody['data']['attributes']['town'], 'Koeln');
+      expect(updatePersonBody['data']['attributes']['country'], 'DE');
+      expect(updatePersonBody['data']['attributes']['birthday'], '2010-04-06');
+      expect(
+        updatePersonBody['data']['attributes'],
+        isNot(contains('exit_date')),
+      );
+      expect(
+        updatePersonBody['data']['attributes'],
+        isNot(contains('pronoun')),
+      );
+      expect(
+        updatePersonBody['data']['attributes'],
+        isNot(contains('bank_account_owner')),
+      );
+      expect(updatePersonBody['data']['attributes'], isNot(contains('iban')));
+      expect(updatePersonBody['data']['attributes'], isNot(contains('bic')));
+      expect(
+        updatePersonBody['data']['attributes'],
+        isNot(contains('bank_name')),
+      );
+      expect(
+        updatePersonBody['data']['attributes'],
+        isNot(contains('payment_method')),
+      );
+
+      final createPhoneRequest = requests[1];
+      final createPhoneBody =
+          jsonDecode(createPhoneRequest.body) as Map<String, dynamic>;
+      expect(createPhoneRequest.method, 'POST');
+      expect(createPhoneRequest.url.path, '/api/phone_numbers');
+      expect(
+        createPhoneRequest.headers['Accept'],
+        'application/vnd.api+json, application/json',
+      );
+      expect(
+        createPhoneRequest.headers['Content-Type'],
+        'application/vnd.api+json',
+      );
+      expect(createPhoneBody['data']['type'], 'phone_numbers');
+      expect(createPhoneBody['data']['attributes']['label'], 'Mobil');
+      expect(createPhoneBody['data']['attributes']['contactable_id'], 23);
+      expect(
+        createPhoneBody['data']['attributes']['contactable_type'],
+        'Person',
+      );
+      expect(
+        createPhoneBody['data']['attributes']['number'],
+        '+49 170 1234567',
+      );
+
+      final updateAdditionalEmailRequest = requests[2];
+      final updateAdditionalEmailBody =
+          jsonDecode(updateAdditionalEmailRequest.body) as Map<String, dynamic>;
+      expect(updateAdditionalEmailRequest.method, 'PUT');
+      expect(
+        updateAdditionalEmailRequest.url.path,
+        '/api/additional_emails/601',
+      );
+      expect(
+        updateAdditionalEmailRequest.headers['Accept'],
+        'application/vnd.api+json, application/json',
+      );
+      expect(
+        updateAdditionalEmailRequest.headers['Content-Type'],
+        'application/vnd.api+json',
+      );
+      expect(updateAdditionalEmailBody['data']['type'], 'additional_emails');
+      expect(updateAdditionalEmailBody['data']['id'], '601');
+      expect(
+        updateAdditionalEmailBody['data']['attributes']['label'],
+        'Privat',
+      );
+      expect(
+        updateAdditionalEmailBody['data']['attributes']['email'],
+        'julia.privat@example.org',
+      );
+
+      final deleteAdditionalAddressRequest = requests[3];
+      expect(deleteAdditionalAddressRequest.method, 'DELETE');
+      expect(
+        deleteAdditionalAddressRequest.url.path,
+        '/api/additional_addresses/801',
+      );
+      expect(
+        deleteAdditionalAddressRequest.headers['Accept'],
+        'application/vnd.api+json, application/json',
+      );
+      expect(
+        deleteAdditionalAddressRequest.headers.containsKey('Content-Type'),
+        isFalse,
+      );
+      expect(deleteAdditionalAddressRequest.body, isEmpty);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  test('haelt den HTTP-Status bei 401 aus dem People-Endpoint fest', () async {
+    final client = MockClient((_) async => http.Response('Unauthorized', 401));
+    final service = HitobitoPeopleService(
+      config: const HitobitoAuthConfig(
+        clientId: 'client',
+        clientSecret: 'secret',
+        authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
+        tokenUrl: 'https://demo.hitobito.com/oauth/token',
+        redirectUri: 'de.jlange.nami.app:/oauth/callback',
+        scopeString: 'openid email api',
+        discoveryUrl: '',
+        profileUrl: 'https://demo.hitobito.com/oauth/profile',
+      ),
+      httpClient: client,
+    );
+
+    await expectLater(
+      () => service.fetchPeopleResources('token-401'),
+      throwsA(
+        isA<HitobitoPeopleException>().having(
+          (error) => error.statusCode,
+          'statusCode',
+          401,
+        ),
+      ),
+    );
+  });
+
+  test('haelt den genauen JSON-API-Fehlergrund bei Mutation fest', () async {
+    final client = MockClient(
+      (_) async => http.Response(
+        '''
+          {
+            "errors": [
+              {
+                "status": "400",
+                "title": "Request Error",
+                "detail": "data.attributes.exit_date is an unknown attribute",
+                "source": {"pointer": "data/attributes/exit_date"},
+                "meta": {
+                  "attribute": "data.attributes.exit_date",
+                  "message": "is an unknown attribute"
+                }
+              }
+            ]
+          }
+          ''',
+        400,
+        headers: <String, String>{'content-type': 'application/vnd.api+json'},
+      ),
+    );
+    final service = HitobitoPeopleService(
+      config: const HitobitoAuthConfig(
+        clientId: 'client',
+        clientSecret: 'secret',
+        authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
+        tokenUrl: 'https://demo.hitobito.com/oauth/token',
+        redirectUri: 'de.jlange.nami.app:/oauth/callback',
+        scopeString: 'openid email api',
+        discoveryUrl: '',
+        profileUrl: 'https://demo.hitobito.com/oauth/profile',
+      ),
+      httpClient: client,
+    );
+
+    await expectLater(
+      () => service.updatePerson(
+        'token-123',
+        mitglied: Mitglied.peopleListItem(
+          mitgliedsnummer: '4711',
+          personId: 23,
+          vorname: 'Julia',
+          nachname: 'Keller',
+        ),
+      ),
+      throwsA(
+        isA<HitobitoPeopleException>().having(
+          (error) => error.message,
+          'message',
+          contains(
+            'Grund: data.attributes.exit_date is an unknown attribute [data.attributes.exit_date]',
+          ),
+        ),
+      ),
+    );
+  });
 }

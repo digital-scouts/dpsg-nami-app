@@ -166,6 +166,8 @@ Die App ist darauf ausgelegt, sich direkt mit dem NaMi-Backend zu verbinden, sod
 
 Für Hitobito gilt aktuell: Die App muss beim ersten Start erfolgreich per Hitobito angemeldet werden, damit Profil- und Mitgliedsdaten erstmals lokal geladen werden können. Danach bleiben die lokal verschlüsselten Daten auch ohne erreichbares Hitobito lesbar. Aktualisierungsversuche laufen über das konfigurierte Intervall `HITOBITO_REFRESH_INTERVAL_HOURS`. Schlägt ein Update fehl, bleiben die vorhandenen lokalen Daten weiter nutzbar. Nach manuellem Logout oder wenn der letzte erfolgreiche Datenstand älter als `HITOBITO_DATA_MAX_AGE_DAYS` ist, werden die lokalen Hitobito-Daten gelöscht.
 
+Läuft ein Hitobito-Zugriff mit `401` in eine abgelaufene Sitzung, versucht die App zunächst den technischen Retry-Pfad einschließlich erneuter Anmeldung. Der zuletzt geladene Arbeitskontext bleibt dabei erhalten. Gelöscht wird weiterhin nur nach den bestehenden Regeln bei manuellem Logout oder nach Ablauf von `HITOBITO_DATA_MAX_AGE_DAYS`.
+
 Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den jeweils aktiven Arbeitskontext gekoppelt. Die App soll dabei im ersten Schritt genau einen lokalen Arbeitskontext vorhalten und diesen bei einem bewussten Kontextwechsel ersetzen.
 
 ## Aktuelle Funktionen
@@ -177,6 +179,7 @@ Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den
   - Wie in den Kontakten E-Mails schreiben und einen Anruf starten
 - Mitglieder und Tätigkeiten bearbeiten, erstellen und löschen/Mitgliedschaft beenden
 - Mitgliedsdaten sind nach erstem erfolgreichem Hitobito-Login und initialem Laden offline verfügbar; Aktualisierungen werden im konfigurierten Hitobito-Refresh-Intervall versucht
+- Schlägt das Senden einer Personenänderung wegen eines retrybaren Remote-Fehlers fehl, wird die Änderung lokal vorgemerkt und kann über Debug & Tools erneut gesendet werden
 - Der Statistik-Tab zeigt aktuell die Mitgliederanzahl im aktiven Arbeitskontext
 - Empfehlung für den nächsten Stufenwechsel eines Mitglieds.
   - Die gewünschte Altersgrenzen der Stufen können angepasst werden.

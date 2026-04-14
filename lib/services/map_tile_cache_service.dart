@@ -74,6 +74,14 @@ class MapTileCacheService {
     );
   }
 
+  TileLayer buildDownloadTileLayer() {
+    return TileLayer(
+      urlTemplate: tileUrlTemplate,
+      userAgentPackageName: userAgentPackageName,
+      maxZoom: 19,
+    );
+  }
+
   Future<void> downloadRegion({
     required LatLng center,
     required double radiusKm,
@@ -92,12 +100,12 @@ class MapTileCacheService {
     }
 
     try {
-      final tileProvider = await this.tileProvider();
+      await initialize();
       final store = FMTCStore(storeName);
       final region = CircleRegion(center, radiusKm).toDownloadable(
         minZoom: minCachedZoom,
         maxZoom: maxCachedZoom,
-        options: buildTileLayer(tileProvider),
+        options: buildDownloadTileLayer(),
       );
       final instanceId = '$reason:${DateTime.now().microsecondsSinceEpoch}';
       await _log(

@@ -2,12 +2,14 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_email_sender/flutter_email_sender.dart';
+import 'package:intl/intl.dart';
 import 'package:nami/domain/auth/auth_state.dart';
 import 'package:nami/domain/maps/stamm_map_marker_repository.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/main.dart' show navigatorKey;
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
+import 'package:nami/presentation/model/member_edit_model.dart';
 import 'package:nami/presentation/screens/changelog_page.dart';
 import 'package:provider/provider.dart';
 import 'package:wiredash/wiredash.dart';
@@ -40,6 +42,7 @@ class DebugToolsPage extends StatefulWidget {
 }
 
 class _DebugToolsPageState extends State<DebugToolsPage> {
+  static final DateFormat _pendingDateFormat = DateFormat('dd.MM.yyyy, HH:mm');
   final ScrollController _scrollController = ScrollController();
   bool _isRefreshingStammMarkers = false;
   String _selectedLogSelectionId = LoggerService.allLogsSelectionId;
@@ -210,6 +213,43 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
     }
   }
 
+  Future<void> _retryPendingPersonUpdates(
+    MemberEditModel memberEditModel,
+    AuthSessionModel authModel, {
+    String? entryId,
+  }) async {
+    final accessToken = authModel.session?.accessToken;
+    if (accessToken == null || accessToken.isEmpty) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Kein gueltiger Access Token fuer den Retry verfuegbar.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final summary = await memberEditModel.retryPending(
+      accessToken: accessToken,
+      entryIds: entryId == null ? null : <String>[entryId],
+      trigger: 'manual_debug',
+    );
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Retry abgeschlossen: ${summary.successCount} erfolgreich, ${summary.discardedCount} verworfen, ${summary.retainedCount} behalten.',
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
@@ -219,6 +259,7 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
     final mapTileCacheService = _resolveMapTileCacheService(logger);
     final authModel = context.watch<AuthSessionModel>();
     final arbeitskontextModel = context.read<ArbeitskontextModel>();
+    final memberEditModel = context.watch<MemberEditModel>();
     final configController = context.watch<HitobitoAuthConfigController>();
     return Scaffold(
       appBar: AppBar(title: const Text('Debug & Tools')),
@@ -436,6 +477,74 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                         ],
                       );
                     },
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _DebugSectionCard(
+                  icon: Icons.schedule_send_outlined,
+                  title: 'Ausstehende Personenänderungen',
+                  subtitle:
+                      'Pending-Änderungen prüfen und bei Bedarf manuell erneut senden.',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (memberEditModel.pendingUpdates.isEmpty)
+                        Text(
+                          'Aktuell sind keine ausstehenden Änderungen gespeichert.',
+                          style: theme.textTheme.bodyMedium,
+                        )
+                      else ...[
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: FilledButton.icon(
+                            key: const Key(
+                              'debug_retry_all_pending_person_updates_button',
+                            ),
+                            onPressed: memberEditModel.isBusy
+                                ? null
+                                : () => _retryPendingPersonUpdates(
+                                    memberEditModel,
+                                    authModel,
+                                  ),
+                            icon: memberEditModel.isBusy
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.refresh),
+                            label: const Text('Alle erneut senden'),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        for (final entry in memberEditModel.pendingUpdates)
+                          Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            child: ListTile(
+                              title: Text(entry.displayName),
+                              subtitle: Text(
+                                'Mitgliedsnr. ${entry.mitgliedsnummer}\n'
+                                'Vorgemerkt: ${_pendingDateFormat.format(entry.queuedAt)}\n'
+                                'Versuche: ${entry.attemptCount}',
+                              ),
+                              isThreeLine: true,
+                              trailing: IconButton(
+                                tooltip: 'Eintrag erneut senden',
+                                onPressed: memberEditModel.isBusy
+                                    ? null
+                                    : () => _retryPendingPersonUpdates(
+                                        memberEditModel,
+                                        authModel,
+                                        entryId: entry.entryId,
+                                      ),
+                                icon: const Icon(Icons.refresh_outlined),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ],
                   ),
                 ),
                 const SizedBox(height: 16),
