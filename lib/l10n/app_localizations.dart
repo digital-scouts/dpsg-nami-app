@@ -154,6 +154,9 @@ class AppLocalizations {
       'member_filter_icon_home': 'Heim',
       'settings_stamm': 'Stammeseinstellungen',
       'settings_app': 'App-Einstellungen',
+      'no_mobile_data_title': 'Keine Mobilen Daten',
+      'no_mobile_data_hint':
+          'Blockiert Netzwerkzugriffe ueber mobile Daten. Online-Funktionen laufen dann nur ueber WLAN.',
       'settings_map': 'Karte',
       'settings_map_title': 'Karte',
       'settings_map_loading': 'Kartendaten werden geladen',
@@ -207,6 +210,9 @@ class AppLocalizations {
       'map_not_available': 'Karte nicht verfügbar',
       'map_address_not_found': 'Adresse nicht gefunden',
       'map_technical_error': 'Technischer Fehler',
+      'map_device_offline': 'Gerät offline',
+      'map_mobile_data_blocked':
+          'Keine Mobilen Daten ist aktiviert. Karte nur über WLAN verfügbar.',
       'map_wifi_only_refresh':
           'Kartenvorschau wird nur über WLAN aktualisiert.',
       'auth_loading_title': 'Sichere Sitzung wird vorbereitet',
@@ -391,6 +397,9 @@ class AppLocalizations {
       'member_filter_icon_home': 'Home',
       'settings_stamm': 'Troop settings',
       'settings_app': 'App settings',
+      'no_mobile_data_title': 'No mobile data',
+      'no_mobile_data_hint':
+          'Blocks network access over mobile data. Online features then only work over Wi-Fi.',
       'settings_map': 'Map',
       'settings_map_title': 'Map',
       'settings_map_loading': 'Loading map data',
@@ -444,6 +453,9 @@ class AppLocalizations {
       'map_not_available': 'Map not available',
       'map_address_not_found': 'Address not found',
       'map_technical_error': 'Technical error',
+      'map_device_offline': 'Device offline',
+      'map_mobile_data_blocked':
+          'No mobile data is enabled. Map is only available over Wi-Fi.',
       'map_wifi_only_refresh': 'Map preview is only refreshed over Wi-Fi.',
       'auth_loading_title': 'Preparing secure session',
       'auth_loading_body':

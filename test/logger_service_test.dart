@@ -39,7 +39,7 @@ class _RecordingLoggerService extends LoggerService {
   }
 }
 
-class _FakeRepo implements AppSettingsRepository {
+class _FakeRepo extends AppSettingsRepository {
   AppSettings value;
   _FakeRepo(this.value);
   @override

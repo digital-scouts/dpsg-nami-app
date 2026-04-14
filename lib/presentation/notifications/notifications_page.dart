@@ -4,6 +4,7 @@ import 'package:nami/core/notifications/pull_notifications_repository_factory.da
 
 import '../../core/notifications/pull_notifications_cubit.dart';
 import '../../services/logger_service.dart';
+import '../../services/network_access_policy.dart';
 import 'notifications_list.dart';
 
 class NotificationsPage extends StatefulWidget {
@@ -25,7 +26,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   Future<void> _initHiveAndCubit() async {
     final logger = context.read<LoggerService>();
-    final repo = await createPullNotificationsRepository(logger: logger);
+    final repo = await createPullNotificationsRepository(
+      logger: logger,
+      networkAccessPolicy: _resolveNetworkAccessPolicy(),
+    );
     final c = PullNotificationsCubit(repo);
     if (!mounted) {
       await c.close();
@@ -37,6 +41,14 @@ class _NotificationsPageState extends State<NotificationsPage> {
     });
     // Sofort Cache anzeigen, dann im Hintergrund laden
     c.load();
+  }
+
+  NetworkAccessPolicy? _resolveNetworkAccessPolicy() {
+    try {
+      return context.read<NetworkAccessPolicy>();
+    } catch (_) {
+      return null;
+    }
   }
 
   @override

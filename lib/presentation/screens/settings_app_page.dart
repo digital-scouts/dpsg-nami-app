@@ -6,10 +6,12 @@ class AppSettingsPage extends StatefulWidget {
   final bool analyticsEnabled;
   final bool biometricLockEnabled;
   final bool memberListSearchResultHighlightEnabled;
+  final bool noMobileDataEnabled;
   final ThemeMode themeMode;
   final String languageCode; // e.g. 'de', 'en'
   final ValueChanged<bool>? onAnalyticsChanged;
   final ValueChanged<bool>? onBiometricLockChanged;
+  final ValueChanged<bool>? onNoMobileDataChanged;
   final ValueChanged<bool>? onMemberListSearchResultHighlightChanged;
   final ValueChanged<ThemeMode>? onThemeModeChanged;
   final ValueChanged<String>? onLanguageChanged;
@@ -19,10 +21,12 @@ class AppSettingsPage extends StatefulWidget {
     this.analyticsEnabled = false,
     this.biometricLockEnabled = false,
     this.memberListSearchResultHighlightEnabled = false,
+    this.noMobileDataEnabled = false,
     this.themeMode = ThemeMode.system,
     this.languageCode = 'de',
     this.onAnalyticsChanged,
     this.onBiometricLockChanged,
+    this.onNoMobileDataChanged,
     this.onMemberListSearchResultHighlightChanged,
     this.onThemeModeChanged,
     this.onLanguageChanged,
@@ -36,6 +40,7 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
   late bool _analyticsEnabled;
   late bool _biometricLockEnabled;
   late bool _memberListSearchResultHighlightEnabled;
+  late bool _noMobileDataEnabled;
   late ThemeMode _currentMode;
   late String _languageCode;
 
@@ -46,6 +51,7 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
     _biometricLockEnabled = widget.biometricLockEnabled;
     _memberListSearchResultHighlightEnabled =
         widget.memberListSearchResultHighlightEnabled;
+    _noMobileDataEnabled = widget.noMobileDataEnabled;
     _currentMode = widget.themeMode;
     _languageCode = widget.languageCode;
   }
@@ -85,6 +91,18 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
             onChanged: (v) {
               setState(() => _biometricLockEnabled = v);
               widget.onBiometricLockChanged?.call(v);
+            },
+          ),
+
+          SwitchListTile(
+            title: Text(AppLocalizations.of(context).t('no_mobile_data_title')),
+            subtitle: Text(
+              AppLocalizations.of(context).t('no_mobile_data_hint'),
+            ),
+            value: _noMobileDataEnabled,
+            onChanged: (v) {
+              setState(() => _noMobileDataEnabled = v);
+              widget.onNoMobileDataChanged?.call(v);
             },
           ),
 

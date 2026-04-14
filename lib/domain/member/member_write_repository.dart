@@ -21,6 +21,10 @@ class MemberWriteAuthRequiredException extends MemberWriteException {
   const MemberWriteAuthRequiredException(super.message);
 }
 
+class MemberWriteNetworkBlockedException extends MemberWriteException {
+  const MemberWriteNetworkBlockedException(super.message);
+}
+
 class MemberWriteRejectedException extends MemberWriteException {
   const MemberWriteRejectedException(super.message);
 }

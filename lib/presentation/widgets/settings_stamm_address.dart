@@ -8,6 +8,8 @@ import 'package:nami/presentation/widgets/address_map_preview.dart';
 import 'package:nami/services/geoapify_address_map_service.dart';
 import 'package:nami/services/map_tile_cache_service.dart';
 import 'package:nami/services/maps_env.dart';
+import 'package:nami/services/network_access_policy.dart';
+import 'package:provider/provider.dart';
 
 class StammAddressSettings extends StatefulWidget {
   final AddressSettingsRepository repository;
@@ -134,8 +136,13 @@ class _StammAddressSettingsState extends State<StammAddressSettings> {
   }
 
   Future<void> _downloadOfflineRegion(String addressText) async {
-    final mapService = widget.mapService ?? GeoapifyAddressMapService();
-    final tileCacheService = widget.tileCacheService ?? MapTileCacheService();
+    final networkAccessPolicy = _resolveNetworkAccessPolicy();
+    final mapService =
+        widget.mapService ??
+        GeoapifyAddressMapService(networkAccessPolicy: networkAccessPolicy);
+    final tileCacheService =
+        widget.tileCacheService ??
+        MapTileCacheService(networkAccessPolicy: networkAccessPolicy);
     if (!mapService.hasApiKey) {
       return;
     }
@@ -150,5 +157,13 @@ class _StammAddressSettingsState extends State<StammAddressSettings> {
       reason: 'stamm:0',
       wifiOnly: true,
     );
+  }
+
+  NetworkAccessPolicy? _resolveNetworkAccessPolicy() {
+    try {
+      return context.read<NetworkAccessPolicy>();
+    } catch (_) {
+      return null;
+    }
   }
 }

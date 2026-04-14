@@ -8,6 +8,7 @@ class AppSettings {
   final bool analyticsEnabled;
   final bool biometricLockEnabled;
   final bool notificationsEnabled;
+  final bool noMobileDataEnabled;
   final bool memberListSearchResultHighlightEnabled;
   final Set<Stufe> geburstagsbenachrichtigungStufen;
 
@@ -17,6 +18,7 @@ class AppSettings {
     required this.analyticsEnabled,
     this.biometricLockEnabled = false,
     this.notificationsEnabled = true,
+    this.noMobileDataEnabled = false,
     this.memberListSearchResultHighlightEnabled = false,
     this.geburstagsbenachrichtigungStufen = const {
       Stufe.biber,
@@ -34,6 +36,7 @@ class AppSettings {
     bool? analyticsEnabled,
     bool? biometricLockEnabled,
     bool? notificationsEnabled,
+    bool? noMobileDataEnabled,
     bool? memberListSearchResultHighlightEnabled,
     Set<Stufe>? geburstagsbenachrichtigungStufen,
   }) => AppSettings(
@@ -42,6 +45,7 @@ class AppSettings {
     analyticsEnabled: analyticsEnabled ?? this.analyticsEnabled,
     biometricLockEnabled: biometricLockEnabled ?? this.biometricLockEnabled,
     notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
+    noMobileDataEnabled: noMobileDataEnabled ?? this.noMobileDataEnabled,
     memberListSearchResultHighlightEnabled:
         memberListSearchResultHighlightEnabled ??
         this.memberListSearchResultHighlightEnabled,

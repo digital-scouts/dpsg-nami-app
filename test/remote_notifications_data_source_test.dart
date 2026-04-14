@@ -8,7 +8,7 @@ import 'package:nami/domain/settings/app_settings_repository.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/services/logger_service.dart';
 
-class _FakeSettingsRepository implements AppSettingsRepository {
+class _FakeSettingsRepository extends AppSettingsRepository {
   @override
   Future<AppSettings> load() async => const AppSettings(
     themeMode: ThemeMode.system,

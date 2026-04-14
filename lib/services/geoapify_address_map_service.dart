@@ -6,12 +6,16 @@ import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
 import 'logger_service.dart';
+import 'network_access_policy.dart';
 
 class GeoapifyGeocodeResult {
   const GeoapifyGeocodeResult._({
     this.location,
     this.addressNotFound = false,
     this.technicalError = false,
+    this.networkBlocked = false,
+    this.deviceOffline = false,
+    this.mobileDataBlocked = false,
   });
 
   const GeoapifyGeocodeResult.success(LatLng location)
@@ -21,9 +25,21 @@ class GeoapifyGeocodeResult {
 
   const GeoapifyGeocodeResult.technicalError() : this._(technicalError: true);
 
+  const GeoapifyGeocodeResult.networkBlocked({
+    required bool deviceOffline,
+    required bool mobileDataBlocked,
+  }) : this._(
+         networkBlocked: true,
+         deviceOffline: deviceOffline,
+         mobileDataBlocked: mobileDataBlocked,
+       );
+
   final LatLng? location;
   final bool addressNotFound;
   final bool technicalError;
+  final bool networkBlocked;
+  final bool deviceOffline;
+  final bool mobileDataBlocked;
 }
 
 class GeoapifyAddressMapService {
@@ -34,15 +50,18 @@ class GeoapifyAddressMapService {
     http.Client? httpClient,
     String? apiKeyOverride,
     LoggerService? logger,
+    NetworkAccessPolicy? networkAccessPolicy,
     Duration requestTimeout = const Duration(seconds: 10),
   }) : _httpClient = httpClient ?? http.Client(),
        _apiKeyOverride = apiKeyOverride,
        _logger = logger,
+       _networkAccessPolicy = networkAccessPolicy,
        _requestTimeout = requestTimeout;
 
   final http.Client _httpClient;
   final String? _apiKeyOverride;
   final LoggerService? _logger;
+  final NetworkAccessPolicy? _networkAccessPolicy;
   final Duration _requestTimeout;
 
   bool get hasApiKey {
@@ -78,6 +97,10 @@ class GeoapifyAddressMapService {
     });
 
     try {
+      await _networkAccessPolicy?.ensureNetworkAllowed(
+        trigger: 'geoapify_geocode',
+        feature: 'Adresssuche',
+      );
       final response = await _httpClient.get(uri).timeout(_requestTimeout);
       await _logger?.log(
         'maps',
@@ -130,6 +153,15 @@ class GeoapifyAddressMapService {
         'Geoapify Geocoding Timeout nach $_requestTimeout',
       );
       return const GeoapifyGeocodeResult.technicalError();
+    } on NetworkAccessBlockedException catch (error) {
+      await _logger?.log(
+        'maps',
+        'Geoapify Geocoding blockiert: ${error.message}',
+      );
+      return GeoapifyGeocodeResult.networkBlocked(
+        deviceOffline: error.isOffline,
+        mobileDataBlocked: error.isBlockedByNoMobileData,
+      );
     } catch (error, stackTrace) {
       await _logger?.log(
         'maps',

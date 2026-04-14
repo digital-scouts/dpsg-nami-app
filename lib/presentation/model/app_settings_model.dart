@@ -12,6 +12,7 @@ class AppSettingsModel extends ChangeNotifier {
   bool analyticsEnabled;
   bool biometricLockEnabled;
   bool notificationsEnabled;
+  bool noMobileDataEnabled;
   bool memberListSearchResultHighlightEnabled;
   Set<Stufe> geburstagsbenachrichtigungStufen;
 
@@ -21,6 +22,7 @@ class AppSettingsModel extends ChangeNotifier {
       analyticsEnabled = initial.analyticsEnabled,
       biometricLockEnabled = initial.biometricLockEnabled,
       notificationsEnabled = initial.notificationsEnabled,
+      noMobileDataEnabled = initial.noMobileDataEnabled,
       memberListSearchResultHighlightEnabled =
           initial.memberListSearchResultHighlightEnabled,
       geburstagsbenachrichtigungStufen =
@@ -32,6 +34,7 @@ class AppSettingsModel extends ChangeNotifier {
     analyticsEnabled = settings.analyticsEnabled;
     biometricLockEnabled = settings.biometricLockEnabled;
     notificationsEnabled = settings.notificationsEnabled;
+    noMobileDataEnabled = settings.noMobileDataEnabled;
     memberListSearchResultHighlightEnabled =
         settings.memberListSearchResultHighlightEnabled;
     geburstagsbenachrichtigungStufen =
@@ -71,6 +74,12 @@ class AppSettingsModel extends ChangeNotifier {
     notificationsEnabled = enabled;
     notifyListeners();
     await _repo.saveNotificationsEnabled(enabled);
+  }
+
+  Future<void> setNoMobileDataEnabled(bool enabled) async {
+    noMobileDataEnabled = enabled;
+    notifyListeners();
+    await _repo.saveNoMobileDataEnabled(enabled);
   }
 
   Future<void> setMemberListSearchResultHighlightEnabled(bool enabled) async {

@@ -12,6 +12,7 @@ import 'package:nami/presentation/widgets/skeletton_map.dart';
 import 'package:nami/services/geoapify_address_map_service.dart';
 import 'package:nami/services/logger_service.dart';
 import 'package:nami/services/map_tile_cache_service.dart';
+import 'package:nami/services/network_access_policy.dart';
 import 'package:provider/provider.dart';
 
 class AddressMapPreview extends StatefulWidget {
@@ -108,6 +109,22 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
           );
         }
 
+        if (result?.deviceOffline == true) {
+          return _MapMessagePlaceholder(
+            height: widget.height,
+            message:
+                '${t.t('map_not_available')}\n${t.t('map_device_offline')}',
+          );
+        }
+
+        if (result?.mobileDataBlocked == true) {
+          return _MapMessagePlaceholder(
+            height: widget.height,
+            message:
+                '${t.t('map_not_available')}\n${t.t('map_mobile_data_blocked')}',
+          );
+        }
+
         if (result?.addressNotFound == true) {
           return _MapMessagePlaceholder(
             height: widget.height,
@@ -151,12 +168,14 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
 
   Future<_AddressMapPreviewResult> _loadPreview() async {
     final logger = _resolveLogger();
+    final networkAccessPolicy = _resolveNetworkAccessPolicy();
     final repository =
         widget.repository ?? SharedPrefsAddressMapLocationRepository();
     final mapService =
         widget.mapService ??
         GeoapifyAddressMapService(
           logger: logger,
+          networkAccessPolicy: networkAccessPolicy,
           requestTimeout: widget.previewTimeout,
         );
     final tileCacheService =
@@ -181,6 +200,8 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
     if (primary.location == null) {
       return _AddressMapPreviewResult(
         blockedByWifiPolicy: primary.blockedByWifiPolicy,
+        deviceOffline: primary.deviceOffline,
+        mobileDataBlocked: primary.mobileDataBlocked,
         apiKeyMissing: primary.apiKeyMissing,
         timedOut: primary.timedOut,
         addressNotFound: primary.addressNotFound,
@@ -212,7 +233,17 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
 
     TileProvider? tileProvider;
     try {
-      tileProvider = await tileCacheService.tileProvider();
+      final allowNetwork =
+          await networkAccessPolicy
+              ?.evaluateAccess(
+                trigger: 'map_preview_tiles',
+                feature: 'Kartenansicht',
+              )
+              .then((decision) => decision.allowed) ??
+          true;
+      tileProvider = await tileCacheService.tileProvider(
+        allowNetwork: allowNetwork,
+      );
     } catch (error, stackTrace) {
       _log(
         logger,
@@ -243,7 +274,18 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
     try {
       return Provider.of<MapTileCacheService>(context, listen: false);
     } catch (_) {
-      return MapTileCacheService(logger: _resolveLogger());
+      return MapTileCacheService(
+        logger: _resolveLogger(),
+        networkAccessPolicy: _resolveNetworkAccessPolicy(),
+      );
+    }
+  }
+
+  NetworkAccessPolicy? _resolveNetworkAccessPolicy() {
+    try {
+      return Provider.of<NetworkAccessPolicy>(context, listen: false);
+    } catch (_) {
+      return null;
     }
   }
 
@@ -359,6 +401,13 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
       await repository.save(notFoundEntry);
       _log(logger, 'Negativ-Cache gespeichert: ${request.cacheKey}');
       return const _ResolvedAddressLocation(addressNotFound: true);
+    }
+    if (geocodeResult.networkBlocked) {
+      return _ResolvedAddressLocation(
+        location: cachedMatches && cached.hasCoordinates ? cached : null,
+        deviceOffline: geocodeResult.deviceOffline,
+        mobileDataBlocked: geocodeResult.mobileDataBlocked,
+      );
     }
     if (geocodeResult.technicalError || geocodeResult.location == null) {
       _log(
@@ -591,6 +640,8 @@ class _AddressMapPreviewResult {
     this.secondaryLocation,
     this.tileProvider,
     this.blockedByWifiPolicy = false,
+    this.deviceOffline = false,
+    this.mobileDataBlocked = false,
     this.apiKeyMissing = false,
     this.timedOut = false,
     this.addressNotFound = false,
@@ -601,6 +652,8 @@ class _AddressMapPreviewResult {
   final AddressMapLocation? secondaryLocation;
   final TileProvider? tileProvider;
   final bool blockedByWifiPolicy;
+  final bool deviceOffline;
+  final bool mobileDataBlocked;
   final bool apiKeyMissing;
   final bool timedOut;
   final bool addressNotFound;
@@ -611,6 +664,8 @@ class _ResolvedAddressLocation {
   const _ResolvedAddressLocation({
     this.location,
     this.blockedByWifiPolicy = false,
+    this.deviceOffline = false,
+    this.mobileDataBlocked = false,
     this.apiKeyMissing = false,
     this.timedOut = false,
     this.addressNotFound = false,
@@ -619,6 +674,8 @@ class _ResolvedAddressLocation {
 
   final AddressMapLocation? location;
   final bool blockedByWifiPolicy;
+  final bool deviceOffline;
+  final bool mobileDataBlocked;
   final bool apiKeyMissing;
   final bool timedOut;
   final bool addressNotFound;

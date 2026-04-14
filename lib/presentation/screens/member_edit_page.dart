@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -17,17 +19,11 @@ class MemberEditPage extends StatefulWidget {
 
 class _MemberEditPageState extends State<MemberEditPage> {
   static final DateFormat _dateFormat = DateFormat('dd.MM.yyyy');
-  static const List<String> _defaultGenderValues = <String>[
-    'w',
-    'm',
-    'divers',
-    'keine_angabe',
-  ];
+  static const List<String> _defaultGenderValues = <String>['w', 'm', ''];
   static const Map<String, String> _genderLabels = <String, String>{
     'w': 'Weiblich',
     'm': 'Männlich',
-    'divers': 'Divers',
-    'keine_angabe': 'Keine Angabe',
+    '': 'Unbekannt',
   };
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
@@ -97,98 +93,84 @@ class _MemberEditPageState extends State<MemberEditPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Person bearbeiten')),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _SectionCard(
-              title: 'Allgemein',
-              child: Column(
-                children: [
-                  _buildTextField(
-                    _vornameController,
-                    'Vorname',
-                    required: true,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildTextField(
-                    _nachnameController,
-                    'Nachname',
-                    required: true,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildTextField(_fahrtennameController, 'Fahrtenname'),
-                  const SizedBox(height: 12),
-                  _buildGenderField(),
-                  const SizedBox(height: 12),
-                  _buildDateField(
-                    label: 'Geburtsdatum',
-                    value: _geburtsdatum,
-                    onChanged: (value) {
-                      if (value == null) {
-                        return;
-                      }
-                      setState(() => _geburtsdatum = value);
-                    },
-                  ),
-                ],
+      body: Column(
+        children: [
+          Expanded(
+            child: Form(
+              key: _formKey,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final horizontalPadding = switch (constraints.maxWidth) {
+                    >= 1100 => 28.0,
+                    >= 700 => 20.0,
+                    _ => 12.0,
+                  };
+
+                  return ListView(
+                    padding: EdgeInsets.fromLTRB(
+                      horizontalPadding,
+                      12,
+                      horizontalPadding,
+                      20,
+                    ),
+                    children: [
+                      Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 1320),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _SectionCard(
+                                title: 'Allgemein',
+                                child: _buildGeneralSection(),
+                              ),
+                              const SizedBox(height: 12),
+                              _SectionCard(
+                                title: 'Kontakt',
+                                child: _buildContactSection(),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
-            const SizedBox(height: 16),
-            _SectionCard(
-              title: 'Kontakt',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _ContactGroup(
-                    title: 'E-Mail',
-                    child: Column(
-                      children: [
-                        _buildTextField(
-                          _primaryEmailController,
-                          'Primäre E-Mail',
-                          keyboardType: TextInputType.emailAddress,
-                        ),
-                        const SizedBox(height: 16),
-                        _buildAdditionalEmailSection(),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _ContactGroup(title: 'Telefon', child: _buildPhoneSection()),
-                  const SizedBox(height: 16),
-                  _ContactGroup(
-                    title: 'Adressen',
-                    child: Column(
-                      children: [
-                        _buildAddressSection(
-                          title: 'Primäradresse',
-                          drafts: <_AddressDraft>[_primaryAddressDraft],
-                          removable: false,
-                        ),
-                        const SizedBox(height: 16),
-                        _buildAddressSection(
-                          title: 'Zusatzadressen',
-                          drafts: _additionalAddressDrafts,
-                          removable: true,
-                          onAdd: () {
-                            setState(() {
-                              _additionalAddressDrafts.add(
-                                _AddressDraft.empty(),
-                              );
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+          ),
+          _buildStickySaveBar(context),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStickySaveBar(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return SafeArea(
+      top: false,
+      child: Container(
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          border: Border(top: BorderSide(color: colorScheme.outlineVariant)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 14,
+              offset: const Offset(0, -4),
             ),
-            const SizedBox(height: 24),
-            FilledButton.icon(
+          ],
+        ),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1320),
+            child: FilledButton.icon(
+              key: const Key('member-edit-save-button'),
               onPressed: _isSubmitting ? null : _save,
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(52),
+              ),
               icon: _isSubmitting
                   ? const SizedBox(
                       width: 18,
@@ -198,123 +180,195 @@ class _MemberEditPageState extends State<MemberEditPage> {
                   : const Icon(Icons.save_outlined),
               label: Text(_isSubmitting ? 'Speichert...' : 'Speichern'),
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildPhoneSection() {
-    return _RepeatingSection(
-      title: 'Telefonnummern',
+  Widget _buildGeneralSection() {
+    return _ResponsiveWrap(
+      minChildWidth: 240,
+      spacing: 12,
+      runSpacing: 12,
+      children: [
+        _buildTextField(_vornameController, 'Vorname', required: true),
+        _buildTextField(_nachnameController, 'Nachname', required: true),
+        _buildTextField(_fahrtennameController, 'Fahrtenname'),
+        _buildGenderField(),
+        _buildDateField(
+          label: 'Geburtsdatum',
+          value: _geburtsdatum,
+          onChanged: (value) {
+            if (value == null) {
+              return;
+            }
+            setState(() => _geburtsdatum = value);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildContactSection() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 860;
+        final topRow = isWide
+            ? Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: _buildEmailGroup()),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildPhoneGroup()),
+                ],
+              )
+            : Column(
+                children: [
+                  _buildEmailGroup(),
+                  const SizedBox(height: 12),
+                  _buildPhoneGroup(),
+                ],
+              );
+
+        return Column(
+          children: [topRow, const SizedBox(height: 12), _buildAddressGroup()],
+        );
+      },
+    );
+  }
+
+  Widget _buildEmailGroup() {
+    return _ContactGroup(
+      title: 'E-Mail',
+      addLabel: 'E-Mail hinzufügen',
+      onAdd: () {
+        setState(() {
+          _additionalEmailDrafts.add(_EmailDraft.empty());
+        });
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _DetailPanel(
+            child: _buildTextField(
+              _primaryEmailController,
+              'E-Mail',
+              keyboardType: TextInputType.emailAddress,
+            ),
+          ),
+          if (_additionalEmailDrafts.isNotEmpty) const SizedBox(height: 10),
+          for (
+            var index = 0;
+            index < _additionalEmailDrafts.length;
+            index++
+          ) ...[
+            if (index > 0) const SizedBox(height: 10),
+            _buildAdditionalEmailDraft(index, _additionalEmailDrafts[index]),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPhoneGroup() {
+    return _ContactGroup(
+      title: 'Telefon',
       addLabel: 'Telefon hinzufügen',
       onAdd: () {
         setState(() {
           _phoneDrafts.add(_PhoneDraft.empty());
         });
       },
-      children: [
-        for (var index = 0; index < _phoneDrafts.length; index++)
-          _buildPhoneDraft(index, _phoneDrafts[index]),
-      ],
+      child: _phoneDrafts.isEmpty
+          ? const _EmptyState(message: 'Noch keine Telefonnummer hinterlegt.')
+          : Column(
+              children: [
+                for (var index = 0; index < _phoneDrafts.length; index++) ...[
+                  if (index > 0) const SizedBox(height: 10),
+                  _buildPhoneDraft(index, _phoneDrafts[index]),
+                ],
+              ],
+            ),
     );
   }
 
-  Widget _buildAdditionalEmailSection() {
-    return _RepeatingSection(
-      title: 'Zusatzmails',
-      addLabel: 'Zusatzmail hinzufügen',
+  Widget _buildAddressGroup() {
+    return _ContactGroup(
+      title: 'Adresse',
+      addLabel: 'Adresse hinzufügen',
       onAdd: () {
         setState(() {
-          _additionalEmailDrafts.add(_EmailDraft.empty());
+          _additionalAddressDrafts.add(_AddressDraft.empty());
         });
       },
-      children: [
-        for (var index = 0; index < _additionalEmailDrafts.length; index++)
-          _buildAdditionalEmailDraft(index, _additionalEmailDrafts[index]),
-      ],
-    );
-  }
-
-  Widget _buildAddressSection({
-    required String title,
-    required List<_AddressDraft> drafts,
-    required bool removable,
-    VoidCallback? onAdd,
-  }) {
-    return _RepeatingSection(
-      title: title,
-      addLabel: onAdd == null ? null : 'Adresse hinzufügen',
-      onAdd: onAdd,
-      children: [
-        for (var index = 0; index < drafts.length; index++)
-          _buildAddressDraft(index, drafts[index], removable: removable),
-      ],
+      child: Column(
+        children: [
+          _buildAddressDraft(-1, _primaryAddressDraft, removable: false),
+          if (_additionalAddressDrafts.isNotEmpty) const SizedBox(height: 10),
+          for (
+            var index = 0;
+            index < _additionalAddressDrafts.length;
+            index++
+          ) ...[
+            if (index > 0) const SizedBox(height: 10),
+            _buildAddressDraft(
+              index,
+              _additionalAddressDrafts[index],
+              removable: true,
+            ),
+          ],
+        ],
+      ),
     );
   }
 
   Widget _buildPhoneDraft(int index, _PhoneDraft draft) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            _buildTextField(
-              draft.wertController,
-              'Nummer',
-              keyboardType: TextInputType.phone,
-            ),
-            const SizedBox(height: 12),
-            _buildTextField(draft.labelController, 'Label'),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: () {
-                  setState(() {
-                    final removed = _phoneDrafts.removeAt(index);
-                    removed.dispose();
-                  });
-                },
-                icon: const Icon(Icons.delete_outline),
-                label: const Text('Entfernen'),
-              ),
-            ),
-          ],
-        ),
+    return _DetailPanel(
+      child: Column(
+        children: [
+          _buildDetailLabelRow(
+            controller: draft.labelController,
+            label: 'Bezeichnung',
+            onRemove: () {
+              setState(() {
+                final removed = _phoneDrafts.removeAt(index);
+                removed.dispose();
+              });
+            },
+          ),
+          const SizedBox(height: 10),
+          _buildTextField(
+            draft.wertController,
+            'Telefon',
+            keyboardType: TextInputType.phone,
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildAdditionalEmailDraft(int index, _EmailDraft draft) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            _buildTextField(
-              draft.wertController,
-              'E-Mail',
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 12),
-            _buildTextField(draft.labelController, 'Label'),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: () {
-                  setState(() {
-                    final removed = _additionalEmailDrafts.removeAt(index);
-                    removed.dispose();
-                  });
-                },
-                icon: const Icon(Icons.delete_outline),
-                label: const Text('Entfernen'),
-              ),
-            ),
-          ],
-        ),
+    return _DetailPanel(
+      child: Column(
+        children: [
+          _buildDetailLabelRow(
+            controller: draft.labelController,
+            label: 'Bezeichnung',
+            onRemove: () {
+              setState(() {
+                final removed = _additionalEmailDrafts.removeAt(index);
+                removed.dispose();
+              });
+            },
+          ),
+          const SizedBox(height: 10),
+          _buildTextField(
+            draft.wertController,
+            'E-Mail',
+            keyboardType: TextInputType.emailAddress,
+          ),
+        ],
       ),
     );
   }
@@ -324,44 +378,75 @@ class _MemberEditPageState extends State<MemberEditPage> {
     _AddressDraft draft, {
     required bool removable,
   }) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            _buildTextField(draft.labelController, 'Label'),
-            const SizedBox(height: 12),
-            _buildTextField(draft.addressCareOfController, 'Adresszusatz'),
-            const SizedBox(height: 12),
-            _buildTextField(draft.streetController, 'Straße'),
-            const SizedBox(height: 12),
-            _buildTextField(draft.housenumberController, 'Hausnummer'),
-            const SizedBox(height: 12),
-            _buildTextField(draft.postboxController, 'Postfach'),
-            const SizedBox(height: 12),
-            _buildTextField(draft.zipCodeController, 'PLZ'),
-            const SizedBox(height: 12),
-            _buildTextField(draft.townController, 'Ort'),
-            const SizedBox(height: 12),
-            _buildTextField(draft.countryController, 'Land'),
-            if (removable)
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      final removed = _additionalAddressDrafts.removeAt(index);
-                      removed.dispose();
-                    });
-                  },
-                  icon: const Icon(Icons.delete_outline),
-                  label: const Text('Entfernen'),
-                ),
-              ),
-          ],
-        ),
+    return _DetailPanel(
+      child: Column(
+        children: [
+          if (removable) ...[
+            _buildDetailLabelRow(
+              controller: draft.labelController,
+              label: 'Bezeichnung',
+              onRemove: () {
+                setState(() {
+                  final removed = _additionalAddressDrafts.removeAt(index);
+                  removed.dispose();
+                });
+              },
+            ),
+            const SizedBox(height: 10),
+            _buildTextField(draft.addressCareOfController, 'c/o'),
+          ] else
+            _ResponsiveWrap(
+              minChildWidth: 220,
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                _buildTextField(draft.labelController, 'Bezeichnung'),
+                _buildTextField(draft.addressCareOfController, 'c/o'),
+              ],
+            ),
+          const SizedBox(height: 10),
+          _ResponsiveWrap(
+            minChildWidth: 180,
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _buildTextField(draft.streetController, 'Straße'),
+              _buildTextField(draft.housenumberController, 'Hausnr.'),
+            ],
+          ),
+          const SizedBox(height: 10),
+          _ResponsiveWrap(
+            minChildWidth: 150,
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _buildTextField(draft.postboxController, 'Postfach'),
+              _buildTextField(draft.zipCodeController, 'PLZ'),
+              _buildTextField(draft.townController, 'Ort'),
+              _buildTextField(draft.countryController, 'Land'),
+            ],
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildDetailLabelRow({
+    required TextEditingController controller,
+    required String label,
+    required VoidCallback onRemove,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: _buildTextField(controller, label)),
+        const SizedBox(width: 8),
+        IconButton(
+          tooltip: 'Entfernen',
+          onPressed: onRemove,
+          icon: const Icon(Icons.delete_outline),
+        ),
+      ],
     );
   }
 
@@ -376,6 +461,11 @@ class _MemberEditPageState extends State<MemberEditPage> {
       keyboardType: keyboardType,
       decoration: InputDecoration(
         labelText: label,
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 14,
+        ),
         border: const OutlineInputBorder(),
       ),
       validator: required
@@ -393,11 +483,14 @@ class _MemberEditPageState extends State<MemberEditPage> {
   Widget _buildGenderField() {
     final items = _buildGenderItems();
     return DropdownButtonFormField<String>(
+      key: const Key('member-edit-gender-field'),
       initialValue: _gender,
       decoration: const InputDecoration(
         labelText: 'Geschlecht',
+        isDense: true,
         border: OutlineInputBorder(),
       ),
+      hint: const Text('Auswählen'),
       items: items
           .map(
             (value) => DropdownMenuItem<String>(
@@ -436,6 +529,11 @@ class _MemberEditPageState extends State<MemberEditPage> {
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 14,
+          ),
           border: const OutlineInputBorder(),
           suffixIcon: Row(
             mainAxisSize: MainAxisSize.min,
@@ -536,8 +634,8 @@ class _MemberEditPageState extends State<MemberEditPage> {
       fahrtenname: _trimToNull(_fahrtennameController.text),
       fahrtennameLoeschen: _trimToNull(_fahrtennameController.text) == null,
       geburtsdatum: _geburtsdatum,
-      gender: _gender,
-      genderLoeschen: _gender == null,
+      gender: _gender ?? '',
+      genderLoeschen: false,
       telefonnummern: phones,
       emailAdressen: emails,
       adressen: <MitgliedKontaktAdresse>[
@@ -585,7 +683,26 @@ class _MemberEditPageState extends State<MemberEditPage> {
   }
 
   String? _normalizeGenderValue(String? value) {
-    return _trimToNull(value ?? '');
+    if (value == null) {
+      return '';
+    }
+
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      return '';
+    }
+
+    switch (trimmed.toLowerCase()) {
+      case 'w':
+      case 'weiblich':
+        return 'w';
+      case 'm':
+      case 'maennlich':
+      case 'männlich':
+        return 'm';
+      default:
+        return '';
+    }
   }
 
   String _labelForGender(String value) {
@@ -609,14 +726,18 @@ class _SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Card(
+      elevation: 0,
+      color: colorScheme.surfaceContainerLow,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(title, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             child,
           ],
         ),
@@ -626,10 +747,17 @@ class _SectionCard extends StatelessWidget {
 }
 
 class _ContactGroup extends StatelessWidget {
-  const _ContactGroup({required this.title, required this.child});
+  const _ContactGroup({
+    required this.title,
+    required this.child,
+    required this.addLabel,
+    this.onAdd,
+  });
 
   final String title;
   final Widget child;
+  final String addLabel;
+  final VoidCallback? onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -638,60 +766,123 @@ class _ContactGroup extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(12),
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title, style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           child,
+          if (onAdd != null) ...[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: OutlinedButton.icon(
+                onPressed: onAdd,
+                icon: const Icon(Icons.add),
+                label: Text(addLabel),
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-class _RepeatingSection extends StatelessWidget {
-  const _RepeatingSection({
-    required this.title,
-    required this.children,
-    this.addLabel,
-    this.onAdd,
-  });
+class _DetailPanel extends StatelessWidget {
+  const _DetailPanel({required this.child});
 
-  final String title;
-  final List<Widget> children;
-  final String? addLabel;
-  final VoidCallback? onAdd;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(title, style: Theme.of(context).textTheme.titleSmall),
-            ),
-            if (addLabel != null && onAdd != null)
-              TextButton.icon(
-                onPressed: onAdd,
-                icon: const Icon(Icons.add),
-                label: Text(addLabel!),
-              ),
-          ],
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.8),
         ),
-        if (children.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
-            child: Text('Keine Einträge.'),
-          ),
-        ...children,
-      ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [child],
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+      ),
+      child: Text(message),
+    );
+  }
+}
+
+class _ResponsiveWrap extends StatelessWidget {
+  const _ResponsiveWrap({
+    required this.children,
+    this.minChildWidth = 260,
+    this.spacing = 12,
+    this.runSpacing = 12,
+  });
+
+  final List<Widget> children;
+  final double minChildWidth;
+  final double spacing;
+  final double runSpacing;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        if (!width.isFinite || width <= 0) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var index = 0; index < children.length; index++) ...[
+                children[index],
+                if (index < children.length - 1) SizedBox(height: runSpacing),
+              ],
+            ],
+          );
+        }
+
+        final estimatedColumns = ((width + spacing) / (minChildWidth + spacing))
+            .floor();
+        final columns = math.max(1, estimatedColumns);
+        final itemWidth = (width - (spacing * (columns - 1))) / columns;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: runSpacing,
+          children: [
+            for (final child in children)
+              SizedBox(width: itemWidth, child: child),
+          ],
+        );
+      },
     );
   }
 }

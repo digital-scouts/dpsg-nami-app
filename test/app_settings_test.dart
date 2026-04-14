@@ -13,6 +13,7 @@ void main() {
       );
       expect(s.biometricLockEnabled, isFalse);
       expect(s.notificationsEnabled, isTrue);
+      expect(s.noMobileDataEnabled, isFalse);
       expect(s.memberListSearchResultHighlightEnabled, isFalse);
       expect(s.geburstagsbenachrichtigungStufen, {
         Stufe.biber,
@@ -34,12 +35,14 @@ void main() {
         languageCode: 'en',
         analyticsEnabled: false,
         biometricLockEnabled: true,
+        noMobileDataEnabled: true,
         memberListSearchResultHighlightEnabled: true,
       );
       expect(s2.themeMode, ThemeMode.dark);
       expect(s2.languageCode, 'en');
       expect(s2.analyticsEnabled, false);
       expect(s2.biometricLockEnabled, isTrue);
+      expect(s2.noMobileDataEnabled, isTrue);
       expect(s2.memberListSearchResultHighlightEnabled, isTrue);
       // original unchanged
       expect(s.themeMode, ThemeMode.light);
@@ -62,6 +65,7 @@ void main() {
       // defaults for new fields persist
       expect(s2.biometricLockEnabled, isFalse);
       expect(s2.notificationsEnabled, isTrue);
+      expect(s2.noMobileDataEnabled, isFalse);
       expect(s2.memberListSearchResultHighlightEnabled, isFalse);
       expect(s2.geburstagsbenachrichtigungStufen, {
         Stufe.biber,

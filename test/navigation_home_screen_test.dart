@@ -384,8 +384,8 @@ class _FakeLoggerService extends LoggerService {
   }) async {}
 }
 
-class _NoopAppSettingsRepository implements AppSettingsRepository {
-  const _NoopAppSettingsRepository();
+class _NoopAppSettingsRepository extends AppSettingsRepository {
+  _NoopAppSettingsRepository();
 
   @override
   Future<AppSettings> load() async => const AppSettings(

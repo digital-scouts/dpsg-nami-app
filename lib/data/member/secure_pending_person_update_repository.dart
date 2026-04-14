@@ -63,7 +63,8 @@ class SecurePendingPersonUpdateRepository
     final next = <PendingPersonUpdate>[];
     var replaced = false;
     for (final existing in current) {
-      if (existing.entryId == entry.entryId) {
+      if (existing.entryId == entry.entryId ||
+          existing.personId == entry.personId) {
         next.add(entry);
         replaced = true;
         continue;

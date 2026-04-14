@@ -717,7 +717,7 @@ class _FakeLoggerService extends LoggerService {
   }
 }
 
-class _FakeAppSettingsRepository implements AppSettingsRepository {
+class _FakeAppSettingsRepository extends AppSettingsRepository {
   @override
   Future<AppSettings> load() async => const AppSettings(
     themeMode: ThemeMode.system,

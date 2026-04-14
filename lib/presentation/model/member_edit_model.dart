@@ -106,6 +106,15 @@ class MemberEditModel extends ChangeNotifier {
     );
   }
 
+  PendingPersonUpdate? pendingForMitglied(String mitgliedsnummer) {
+    for (final entry in _pendingUpdates) {
+      if (entry.mitgliedsnummer == mitgliedsnummer) {
+        return entry;
+      }
+    }
+    return null;
+  }
+
   Future<void> loadPending() async {
     _pendingUpdates = await _pendingRepository.loadAll();
     notifyListeners();
@@ -116,6 +125,23 @@ class MemberEditModel extends ChangeNotifier {
     required Mitglied mitglied,
     String trigger = 'detail_edit',
   }) async {
+    final pendingEntry = pendingForMitglied(mitglied.mitgliedsnummer);
+    if (pendingEntry != null) {
+      await _logMemberEditEvent(
+        action: 'prepare_result',
+        trigger: trigger,
+        outcome: 'local_pending',
+        personId: pendingEntry.personId,
+        track: true,
+      );
+      return MemberEditPrepareResult(
+        success: true,
+        member: pendingEntry.zielMitglied,
+        message:
+            'Lokaler Bearbeitungsstand fortgesetzt. Netzabgleich erfolgt spaeter erneut.',
+      );
+    }
+
     final personId = mitglied.personId;
     if (personId == null || personId <= 0) {
       return const MemberEditPrepareResult(
@@ -184,6 +210,20 @@ class MemberEditModel extends ChangeNotifier {
         action: 'prepare_result',
         trigger: trigger,
         outcome: 'auth_required',
+        personId: personId,
+      );
+      return MemberEditPrepareResult(success: false, message: error.message);
+    } on MemberWriteNetworkBlockedException catch (error) {
+      await _logMemberEditFailure(
+        trigger: trigger,
+        personId: personId,
+        outcome: 'network_blocked',
+        message: error.message,
+      );
+      await _logMemberEditEvent(
+        action: 'prepare_result',
+        trigger: trigger,
+        outcome: 'network_blocked',
         personId: personId,
       );
       return MemberEditPrepareResult(success: false, message: error.message);
@@ -334,6 +374,39 @@ class MemberEditModel extends ChangeNotifier {
         wasQueued: false,
         message: error.message,
       );
+    } on MemberWriteNetworkBlockedException catch (error) {
+      final entry = PendingPersonUpdate(
+        entryId: 'person-$personId',
+        personId: personId,
+        mitgliedsnummer: zielMitglied.mitgliedsnummer,
+        displayName: zielMitglied.fullName.isEmpty
+            ? zielMitglied.mitgliedsnummer
+            : zielMitglied.fullName,
+        basisMitglied: basisMitglied,
+        zielMitglied: zielMitglied,
+        queuedAt: _now(),
+      );
+      await _pendingRepository.save(entry);
+      await _logMemberEditFailure(
+        trigger: trigger,
+        personId: personId,
+        outcome: 'queued_network_blocked',
+        message: error.message,
+      );
+      await _logMemberEditEvent(
+        action: 'submit_result',
+        trigger: trigger,
+        outcome: 'queued_network_blocked',
+        personId: personId,
+        track: true,
+      );
+      await loadPending();
+      return MemberEditSubmitResult(
+        success: false,
+        wasQueued: true,
+        pendingEntry: entry,
+        message: 'Die Aenderung wurde lokal gespeichert. ${error.message}',
+      );
     } on MemberWriteRejectedException catch (error) {
       await _logMemberEditFailure(
         trigger: trigger,
@@ -354,7 +427,7 @@ class MemberEditModel extends ChangeNotifier {
       );
     } catch (error) {
       final entry = PendingPersonUpdate(
-        entryId: '$personId-${_now().microsecondsSinceEpoch}',
+        entryId: 'person-$personId',
         personId: personId,
         mitgliedsnummer: zielMitglied.mitgliedsnummer,
         displayName: zielMitglied.fullName.isEmpty

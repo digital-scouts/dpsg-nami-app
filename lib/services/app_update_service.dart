@@ -6,6 +6,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app_update_env.dart';
+import 'network_access_policy.dart';
 
 enum AppUpdateAvailability { available, required }
 
@@ -65,6 +66,7 @@ class AppUpdateService {
     String? manifestUrl,
     Duration? minFetchInterval,
     Duration? fetchTimeout,
+    this.networkAccessPolicy,
     this.platformOverride,
   }) : _currentVersionProvider =
            currentVersionProvider ?? _defaultCurrentVersionProvider,
@@ -86,6 +88,7 @@ class AppUpdateService {
   final String _manifestUrl;
   final Duration _minFetchInterval;
   final Duration _fetchTimeout;
+  final NetworkAccessPolicy? networkAccessPolicy;
   final String? platformOverride;
 
   Future<RemoteVersionManifest?> loadVersionManifest() async {
@@ -185,6 +188,10 @@ class AppUpdateService {
     }
 
     try {
+      await networkAccessPolicy?.ensureNetworkAllowed(
+        trigger: 'app_update_manifest',
+        feature: 'Update-Pruefung',
+      );
       final responseBody = await _manifestBodyFetcher(
         _manifestUrl,
         _fetchTimeout,
@@ -192,6 +199,11 @@ class AppUpdateService {
       await prefs.setString(_manifestCacheKey, responseBody);
       await prefs.setString(_lastFetchAtKey, now.toIso8601String());
       return _decodeManifest(responseBody);
+    } on NetworkAccessBlockedException {
+      if (cachedRaw != null) {
+        return _decodeManifest(cachedRaw);
+      }
+      rethrow;
     } catch (_) {
       if (cachedRaw != null) {
         return _decodeManifest(cachedRaw);

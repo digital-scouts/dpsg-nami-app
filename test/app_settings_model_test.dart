@@ -5,12 +5,13 @@ import 'package:nami/domain/settings/app_settings_repository.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/presentation/model/app_settings_model.dart';
 
-class _FakeRepo implements AppSettingsRepository {
+class _FakeRepo extends AppSettingsRepository {
   ThemeMode? savedMode;
   String? savedLang;
   bool? savedAnalytics;
   bool? savedBiometricLock;
   bool? savedNotifications;
+  bool? savedNoMobileData;
   bool? savedSearchResultHighlight;
   Set<Stufe>? savedBirthdayStages;
 
@@ -55,6 +56,11 @@ class _FakeRepo implements AppSettingsRepository {
   Future<void> saveNotificationsEnabled(bool enabled) async {
     savedNotifications = enabled;
   }
+
+  @override
+  Future<void> saveNoMobileDataEnabled(bool enabled) async {
+    savedNoMobileData = enabled;
+  }
 }
 
 void main() {
@@ -66,6 +72,10 @@ void main() {
     await model.setNotificationsEnabled(false);
     expect(model.notificationsEnabled, isFalse);
     expect(repo.savedNotifications, isFalse);
+
+    await model.setNoMobileDataEnabled(true);
+    expect(model.noMobileDataEnabled, isTrue);
+    expect(repo.savedNoMobileData, isTrue);
 
     await model.setMemberListSearchResultHighlightEnabled(true);
     expect(model.memberListSearchResultHighlightEnabled, isTrue);

@@ -12,6 +12,7 @@ import '../../services/hitobito_api_exception.dart';
 import '../../services/hitobito_data_retention_policy.dart';
 import '../../services/hitobito_oauth_service.dart';
 import '../../services/logger_service.dart';
+import '../../services/network_access_policy.dart';
 import '../../services/sensitive_storage_service.dart';
 
 class AuthSessionModel extends ChangeNotifier {
@@ -23,6 +24,7 @@ class AuthSessionModel extends ChangeNotifier {
     required SensitiveStorageService sensitiveStorageService,
     required HitobitoDataRetentionPolicy retentionPolicy,
     required LoggerService logger,
+    NetworkAccessPolicy? networkAccessPolicy,
     Future<void> Function(String languageCode)? onPreferredLanguageChanged,
     bool Function()? isAppLockEnabled,
     Duration lockTimeout = const Duration(seconds: 60),
@@ -33,6 +35,7 @@ class AuthSessionModel extends ChangeNotifier {
        _sensitiveStorageService = sensitiveStorageService,
        _retentionPolicy = retentionPolicy,
        _logger = logger,
+       _networkAccessPolicy = networkAccessPolicy,
        _onPreferredLanguageChanged = onPreferredLanguageChanged,
        _isAppLockEnabled = isAppLockEnabled ?? _appLockDisabled,
        _lockTimeout = lockTimeout;
@@ -44,6 +47,7 @@ class AuthSessionModel extends ChangeNotifier {
   final SensitiveStorageService _sensitiveStorageService;
   final HitobitoDataRetentionPolicy _retentionPolicy;
   final LoggerService _logger;
+  final NetworkAccessPolicy? _networkAccessPolicy;
   final Future<void> Function(String languageCode)? _onPreferredLanguageChanged;
   final bool Function() _isAppLockEnabled;
   final Duration _lockTimeout;
@@ -463,6 +467,11 @@ class AuthSessionModel extends ChangeNotifier {
       await _expireSensitiveData();
       return const _PreparedRemoteAccess(session: null);
     }
+
+    await _networkAccessPolicy?.ensureNetworkAllowed(
+      trigger: trigger,
+      feature: 'Hitobito',
+    );
 
     try {
       final currentSession = _session!;
@@ -915,10 +924,10 @@ class AuthSessionModel extends ChangeNotifier {
       requiresInteractiveLogin: true,
       notify: false,
     );
-    _state = AuthState.reloginRequired;
+    _state = AuthState.signedIn;
     await _logger.logInfo(
       'auth_flow',
-      'Retry fehlgeschlagen, Relogin erforderlich${trigger == null ? '' : ' trigger=$trigger'}',
+      'Retry fehlgeschlagen, interaktiver Relogin fuer Remote-Zugriffe erforderlich${trigger == null ? '' : ' trigger=$trigger'}',
     );
     notifyListeners();
   }
