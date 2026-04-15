@@ -409,31 +409,42 @@ void main() {
         ],
       );
 
-      await service.updatePerson('token-123', mitglied: mitglied);
-      await service.createPhoneNumber(
+      await service.updatePersonWithRelationships(
         'token-123',
-        personId: 23,
-        telefonnummer: const MitgliedKontaktTelefon(
-          wert: '+49 170 1234567',
-          label: 'Mobil',
-        ),
-      );
-      await service.updateAdditionalEmail(
-        'token-123',
-        email: const MitgliedKontaktEmail(
-          additionalEmailId: 601,
-          wert: 'julia.privat@example.org',
-          label: 'Privat',
-        ),
-      );
-      await service.deleteAdditionalAddress(
-        'token-123',
-        additionalAddressId: 801,
+        mitglied: mitglied,
+        phoneNumberMutations:
+            const <HitobitoRelationshipMutation<MitgliedKontaktTelefon>>[
+              HitobitoRelationshipMutation<MitgliedKontaktTelefon>(
+                method: HitobitoRelationshipMutationMethod.create,
+                value: MitgliedKontaktTelefon(
+                  wert: '+49 170 1234567',
+                  label: 'Mobil',
+                ),
+              ),
+            ],
+        additionalEmailMutations:
+            const <HitobitoRelationshipMutation<MitgliedKontaktEmail>>[
+              HitobitoRelationshipMutation<MitgliedKontaktEmail>(
+                method: HitobitoRelationshipMutationMethod.update,
+                value: MitgliedKontaktEmail(
+                  additionalEmailId: 601,
+                  wert: 'julia.privat@example.org',
+                  label: 'Privat',
+                ),
+              ),
+            ],
+        additionalAddressMutations:
+            const <HitobitoRelationshipMutation<MitgliedKontaktAdresse>>[
+              HitobitoRelationshipMutation<MitgliedKontaktAdresse>(
+                method: HitobitoRelationshipMutationMethod.destroy,
+                value: MitgliedKontaktAdresse(additionalAddressId: 801),
+              ),
+            ],
       );
 
-      expect(requests, hasLength(4));
+      expect(requests, hasLength(1));
 
-      final updatePersonRequest = requests[0];
+      final updatePersonRequest = requests.single;
       final updatePersonBody =
           jsonDecode(updatePersonRequest.body) as Map<String, dynamic>;
       expect(updatePersonRequest.method, 'PUT');
@@ -491,73 +502,51 @@ void main() {
         isNot(contains('payment_method')),
       );
 
-      final createPhoneRequest = requests[1];
-      final createPhoneBody =
-          jsonDecode(createPhoneRequest.body) as Map<String, dynamic>;
-      expect(createPhoneRequest.method, 'POST');
-      expect(createPhoneRequest.url.path, '/api/phone_numbers');
+      final relationships =
+          updatePersonBody['data']['relationships'] as Map<String, dynamic>;
+      expect(relationships['phone_numbers']['data'], <Map<String, dynamic>>[
+        <String, dynamic>{
+          'type': 'phone_numbers',
+          'temp-id': 'new-phone-1',
+          'method': 'create',
+        },
+      ]);
+      expect(relationships['additional_emails']['data'], <Map<String, dynamic>>[
+        <String, dynamic>{
+          'type': 'additional_emails',
+          'id': '601',
+          'method': 'update',
+        },
+      ]);
       expect(
-        createPhoneRequest.headers['Accept'],
-        'application/vnd.api+json, application/json',
-      );
-      expect(
-        createPhoneRequest.headers['Content-Type'],
-        'application/vnd.api+json',
-      );
-      expect(createPhoneBody['data']['type'], 'phone_numbers');
-      expect(createPhoneBody['data']['attributes']['label'], 'Mobil');
-      expect(createPhoneBody['data']['attributes']['contactable_id'], 23);
-      expect(
-        createPhoneBody['data']['attributes']['contactable_type'],
-        'Person',
-      );
-      expect(
-        createPhoneBody['data']['attributes']['number'],
-        '+49 170 1234567',
-      );
-
-      final updateAdditionalEmailRequest = requests[2];
-      final updateAdditionalEmailBody =
-          jsonDecode(updateAdditionalEmailRequest.body) as Map<String, dynamic>;
-      expect(updateAdditionalEmailRequest.method, 'PUT');
-      expect(
-        updateAdditionalEmailRequest.url.path,
-        '/api/additional_emails/601',
-      );
-      expect(
-        updateAdditionalEmailRequest.headers['Accept'],
-        'application/vnd.api+json, application/json',
-      );
-      expect(
-        updateAdditionalEmailRequest.headers['Content-Type'],
-        'application/vnd.api+json',
-      );
-      expect(updateAdditionalEmailBody['data']['type'], 'additional_emails');
-      expect(updateAdditionalEmailBody['data']['id'], '601');
-      expect(
-        updateAdditionalEmailBody['data']['attributes']['label'],
-        'Privat',
-      );
-      expect(
-        updateAdditionalEmailBody['data']['attributes']['email'],
-        'julia.privat@example.org',
+        relationships['additional_addresses']['data'],
+        <Map<String, dynamic>>[
+          <String, dynamic>{
+            'type': 'additional_addresses',
+            'id': '801',
+            'method': 'destroy',
+          },
+        ],
       );
 
-      final deleteAdditionalAddressRequest = requests[3];
-      expect(deleteAdditionalAddressRequest.method, 'DELETE');
-      expect(
-        deleteAdditionalAddressRequest.url.path,
-        '/api/additional_addresses/801',
-      );
-      expect(
-        deleteAdditionalAddressRequest.headers['Accept'],
-        'application/vnd.api+json, application/json',
-      );
-      expect(
-        deleteAdditionalAddressRequest.headers.containsKey('Content-Type'),
-        isFalse,
-      );
-      expect(deleteAdditionalAddressRequest.body, isEmpty);
+      expect(updatePersonBody['included'], <Map<String, dynamic>>[
+        <String, dynamic>{
+          'type': 'phone_numbers',
+          'temp-id': 'new-phone-1',
+          'attributes': <String, dynamic>{
+            'label': 'Mobil',
+            'number': '+49 170 1234567',
+          },
+        },
+        <String, dynamic>{
+          'type': 'additional_emails',
+          'id': '601',
+          'attributes': <String, dynamic>{
+            'label': 'Privat',
+            'email': 'julia.privat@example.org',
+          },
+        },
+      ]);
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );

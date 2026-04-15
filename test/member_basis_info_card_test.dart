@@ -19,7 +19,7 @@ void main() {
       geburtsdatum: DateTime(2010, 4, 6),
       eintrittsdatum: DateTime(2020, 5, 1),
       telefonnummern: const <MitgliedKontaktTelefon>[
-        MitgliedKontaktTelefon(wert: '040123456', label: 'Festnetznummer'),
+        MitgliedKontaktTelefon(wert: '+4940123456', label: 'Festnetznummer'),
       ],
     );
 

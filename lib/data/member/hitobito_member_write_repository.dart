@@ -112,27 +112,21 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
           }
 
           final normalizedTarget = zielMitglied.copyWith(personId: personId);
-          await _peopleService.updatePerson(
+          await _peopleService.updatePersonWithRelationships(
             effectiveAccessToken,
             mitglied: normalizedTarget,
-          );
-          await _syncPhoneNumbers(
-            accessToken: effectiveAccessToken,
-            personId: personId,
-            remoteMitglied: remoteMitglied,
-            zielMitglied: normalizedTarget,
-          );
-          await _syncAdditionalEmails(
-            accessToken: effectiveAccessToken,
-            personId: personId,
-            remoteMitglied: remoteMitglied,
-            zielMitglied: normalizedTarget,
-          );
-          await _syncAdditionalAddresses(
-            accessToken: effectiveAccessToken,
-            personId: personId,
-            remoteMitglied: remoteMitglied,
-            zielMitglied: normalizedTarget,
+            phoneNumberMutations: _buildPhoneNumberMutations(
+              remoteMitglied: remoteMitglied,
+              zielMitglied: normalizedTarget,
+            ),
+            additionalEmailMutations: _buildAdditionalEmailMutations(
+              remoteMitglied: remoteMitglied,
+              zielMitglied: normalizedTarget,
+            ),
+            additionalAddressMutations: _buildAdditionalAddressMutations(
+              remoteMitglied: remoteMitglied,
+              zielMitglied: normalizedTarget,
+            ),
           );
 
           return _fetchRemoteMemberDirect(
@@ -152,6 +146,183 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
       );
       throw _mapApiException(error);
     }
+  }
+
+  List<HitobitoRelationshipMutation<MitgliedKontaktTelefon>>
+  _buildPhoneNumberMutations({
+    required Mitglied remoteMitglied,
+    required Mitglied zielMitglied,
+  }) {
+    final mutations = <HitobitoRelationshipMutation<MitgliedKontaktTelefon>>[];
+    final remoteById = <int, MitgliedKontaktTelefon>{
+      for (final telefonnummer in remoteMitglied.telefonnummern)
+        if ((telefonnummer.phoneNumberId ?? 0) > 0)
+          telefonnummer.phoneNumberId!: telefonnummer,
+    };
+    final zielById = <int, MitgliedKontaktTelefon>{
+      for (final telefonnummer in zielMitglied.telefonnummern)
+        if ((telefonnummer.phoneNumberId ?? 0) > 0)
+          telefonnummer.phoneNumberId!: telefonnummer,
+    };
+
+    for (final entry in remoteById.entries) {
+      if (!zielById.containsKey(entry.key)) {
+        mutations.add(
+          HitobitoRelationshipMutation<MitgliedKontaktTelefon>(
+            method: HitobitoRelationshipMutationMethod.destroy,
+            value: entry.value,
+          ),
+        );
+      }
+    }
+
+    for (final telefonnummer in zielMitglied.telefonnummern) {
+      final phoneNumberId = telefonnummer.phoneNumberId;
+      if (phoneNumberId == null || phoneNumberId <= 0) {
+        mutations.add(
+          HitobitoRelationshipMutation<MitgliedKontaktTelefon>(
+            method: HitobitoRelationshipMutationMethod.create,
+            value: telefonnummer,
+          ),
+        );
+        continue;
+      }
+
+      final remote = remoteById[phoneNumberId];
+      if (remote != null && remote == telefonnummer) {
+        continue;
+      }
+      mutations.add(
+        HitobitoRelationshipMutation<MitgliedKontaktTelefon>(
+          method: HitobitoRelationshipMutationMethod.update,
+          value: telefonnummer,
+        ),
+      );
+    }
+
+    return mutations;
+  }
+
+  List<HitobitoRelationshipMutation<MitgliedKontaktEmail>>
+  _buildAdditionalEmailMutations({
+    required Mitglied remoteMitglied,
+    required Mitglied zielMitglied,
+  }) {
+    final mutations = <HitobitoRelationshipMutation<MitgliedKontaktEmail>>[];
+    final remoteEmails = remoteMitglied.emailAdressen
+        .where((email) => !email.istPrimaer)
+        .toList(growable: false);
+    final zielEmails = zielMitglied.emailAdressen
+        .where((email) => !email.istPrimaer)
+        .toList(growable: false);
+    final remoteById = <int, MitgliedKontaktEmail>{
+      for (final email in remoteEmails)
+        if ((email.additionalEmailId ?? 0) > 0) email.additionalEmailId!: email,
+    };
+    final zielById = <int, MitgliedKontaktEmail>{
+      for (final email in zielEmails)
+        if ((email.additionalEmailId ?? 0) > 0) email.additionalEmailId!: email,
+    };
+
+    for (final entry in remoteById.entries) {
+      if (!zielById.containsKey(entry.key)) {
+        mutations.add(
+          HitobitoRelationshipMutation<MitgliedKontaktEmail>(
+            method: HitobitoRelationshipMutationMethod.destroy,
+            value: entry.value,
+          ),
+        );
+      }
+    }
+
+    for (final email in zielEmails) {
+      final additionalEmailId = email.additionalEmailId;
+      if (additionalEmailId == null || additionalEmailId <= 0) {
+        mutations.add(
+          HitobitoRelationshipMutation<MitgliedKontaktEmail>(
+            method: HitobitoRelationshipMutationMethod.create,
+            value: email,
+          ),
+        );
+        continue;
+      }
+
+      final remote = remoteById[additionalEmailId];
+      if (remote != null && remote == email) {
+        continue;
+      }
+      mutations.add(
+        HitobitoRelationshipMutation<MitgliedKontaktEmail>(
+          method: HitobitoRelationshipMutationMethod.update,
+          value: email,
+        ),
+      );
+    }
+
+    return mutations;
+  }
+
+  List<HitobitoRelationshipMutation<MitgliedKontaktAdresse>>
+  _buildAdditionalAddressMutations({
+    required Mitglied remoteMitglied,
+    required Mitglied zielMitglied,
+  }) {
+    final mutations = <HitobitoRelationshipMutation<MitgliedKontaktAdresse>>[];
+    final remoteAdressen = remoteMitglied.adressen
+        .where((adresse) => (adresse.additionalAddressId ?? 0) > 0)
+        .toList(growable: false);
+    final zielAdressen = zielMitglied.adressen
+        .where(
+          (adresse) => adresse.additionalAddressId != 0 && !adresse.istLeer,
+        )
+        .toList(growable: false);
+    final remoteById = <int, MitgliedKontaktAdresse>{
+      for (final adresse in remoteAdressen)
+        if ((adresse.additionalAddressId ?? 0) > 0)
+          adresse.additionalAddressId!: adresse,
+    };
+    final zielById = <int, MitgliedKontaktAdresse>{
+      for (final adresse in zielAdressen)
+        if ((adresse.additionalAddressId ?? 0) > 0)
+          adresse.additionalAddressId!: adresse,
+    };
+
+    for (final entry in remoteById.entries) {
+      if (!zielById.containsKey(entry.key)) {
+        mutations.add(
+          HitobitoRelationshipMutation<MitgliedKontaktAdresse>(
+            method: HitobitoRelationshipMutationMethod.destroy,
+            value: entry.value,
+          ),
+        );
+      }
+    }
+
+    for (final adresse in zielAdressen) {
+      final additionalAddressId = adresse.additionalAddressId;
+      if ((additionalAddressId ?? 0) <= 0) {
+        mutations.add(
+          HitobitoRelationshipMutation<MitgliedKontaktAdresse>(
+            method: HitobitoRelationshipMutationMethod.create,
+            value: adresse.copyWith(additionalAddressIdLoeschen: true),
+          ),
+        );
+        continue;
+      }
+
+      final remote = remoteById[additionalAddressId!];
+      if (remote != null && remote == adresse) {
+        continue;
+      }
+      mutations.add(
+        HitobitoRelationshipMutation<MitgliedKontaktAdresse>(
+          method: HitobitoRelationshipMutationMethod.update,
+          value: adresse,
+        ),
+      );
+    }
+
+    return mutations;
   }
 
   Future<Mitglied> _fetchRemoteMemberDirect({
@@ -207,161 +378,5 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
 
   String _compactLogValue(String value) {
     return value.replaceAll(RegExp(r'\s+'), ' ').trim();
-  }
-
-  Future<void> _syncPhoneNumbers({
-    required String accessToken,
-    required int personId,
-    required Mitglied remoteMitglied,
-    required Mitglied zielMitglied,
-  }) async {
-    final remoteById = <int, MitgliedKontaktTelefon>{
-      for (final telefonnummer in remoteMitglied.telefonnummern)
-        if ((telefonnummer.phoneNumberId ?? 0) > 0)
-          telefonnummer.phoneNumberId!: telefonnummer,
-    };
-    final zielById = <int, MitgliedKontaktTelefon>{
-      for (final telefonnummer in zielMitglied.telefonnummern)
-        if ((telefonnummer.phoneNumberId ?? 0) > 0)
-          telefonnummer.phoneNumberId!: telefonnummer,
-    };
-
-    for (final entry in remoteById.entries) {
-      if (!zielById.containsKey(entry.key)) {
-        await _peopleService.deletePhoneNumber(
-          accessToken,
-          phoneNumberId: entry.key,
-        );
-      }
-    }
-
-    for (final telefonnummer in zielMitglied.telefonnummern) {
-      final phoneNumberId = telefonnummer.phoneNumberId;
-      if (phoneNumberId == null || phoneNumberId <= 0) {
-        await _peopleService.createPhoneNumber(
-          accessToken,
-          personId: personId,
-          telefonnummer: telefonnummer,
-        );
-        continue;
-      }
-
-      final remote = remoteById[phoneNumberId];
-      if (remote != null && remote == telefonnummer) {
-        continue;
-      }
-      await _peopleService.updatePhoneNumber(
-        accessToken,
-        telefonnummer: telefonnummer,
-      );
-    }
-  }
-
-  Future<void> _syncAdditionalEmails({
-    required String accessToken,
-    required int personId,
-    required Mitglied remoteMitglied,
-    required Mitglied zielMitglied,
-  }) async {
-    final remoteEmails = remoteMitglied.emailAdressen
-        .where((email) => !email.istPrimaer)
-        .toList(growable: false);
-    final zielEmails = zielMitglied.emailAdressen
-        .where((email) => !email.istPrimaer)
-        .toList(growable: false);
-    final remoteById = <int, MitgliedKontaktEmail>{
-      for (final email in remoteEmails)
-        if ((email.additionalEmailId ?? 0) > 0) email.additionalEmailId!: email,
-    };
-    final zielById = <int, MitgliedKontaktEmail>{
-      for (final email in zielEmails)
-        if ((email.additionalEmailId ?? 0) > 0) email.additionalEmailId!: email,
-    };
-
-    for (final entry in remoteById.entries) {
-      if (!zielById.containsKey(entry.key)) {
-        await _peopleService.deleteAdditionalEmail(
-          accessToken,
-          additionalEmailId: entry.key,
-        );
-      }
-    }
-
-    for (final email in zielEmails) {
-      final additionalEmailId = email.additionalEmailId;
-      if (additionalEmailId == null || additionalEmailId <= 0) {
-        await _peopleService.createAdditionalEmail(
-          accessToken,
-          personId: personId,
-          email: email,
-        );
-        continue;
-      }
-
-      final remote = remoteById[additionalEmailId];
-      if (remote != null && remote == email) {
-        continue;
-      }
-      await _peopleService.updateAdditionalEmail(accessToken, email: email);
-    }
-  }
-
-  Future<void> _syncAdditionalAddresses({
-    required String accessToken,
-    required int personId,
-    required Mitglied remoteMitglied,
-    required Mitglied zielMitglied,
-  }) async {
-    final remoteAdressen = remoteMitglied.adressen
-        .where((adresse) => (adresse.additionalAddressId ?? 0) > 0)
-        .toList(growable: false);
-    final zielAdressen = zielMitglied.adressen
-        .where(
-          (adresse) => adresse.additionalAddressId != 0 && !adresse.istLeer,
-        )
-        .toList(growable: false);
-    final remoteById = <int, MitgliedKontaktAdresse>{
-      for (final adresse in remoteAdressen)
-        if ((adresse.additionalAddressId ?? 0) > 0)
-          adresse.additionalAddressId!: adresse,
-    };
-    final zielById = <int, MitgliedKontaktAdresse>{
-      for (final adresse in zielAdressen)
-        if ((adresse.additionalAddressId ?? 0) > 0)
-          adresse.additionalAddressId!: adresse,
-    };
-
-    for (final entry in remoteById.entries) {
-      if (!zielById.containsKey(entry.key)) {
-        await _peopleService.deleteAdditionalAddress(
-          accessToken,
-          additionalAddressId: entry.key,
-        );
-      }
-    }
-
-    for (final adresse in zielAdressen) {
-      final additionalAddressId = adresse.additionalAddressId;
-      if ((additionalAddressId ?? 0) <= 0) {
-        if (adresse.istLeer) {
-          continue;
-        }
-        await _peopleService.createAdditionalAddress(
-          accessToken,
-          personId: personId,
-          adresse: adresse.copyWith(additionalAddressIdLoeschen: true),
-        );
-        continue;
-      }
-
-      final remote = remoteById[additionalAddressId!];
-      if (remote != null && remote == adresse) {
-        continue;
-      }
-      await _peopleService.updateAdditionalAddress(
-        accessToken,
-        adresse: adresse,
-      );
-    }
   }
 }

@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../domain/member/mitglied.dart';
 import '../model/auth_session_model.dart';
 import '../model/member_edit_model.dart';
+import '../model/member_phone_input.dart';
 
 class MemberEditPage extends StatefulWidget {
   const MemberEditPage({
@@ -412,11 +413,54 @@ class _MemberEditPageState extends State<MemberEditPage> {
             },
           ),
           const SizedBox(height: 10),
-          _buildTextField(
-            draft.wertController,
-            'Telefon',
-            keyboardType: TextInputType.phone,
-            validator: (value) => _validatePhone(value, required: true),
+          Row(
+            key: Key('member-edit-phone-row-$index'),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 5,
+                child: DropdownButtonFormField<String>(
+                  key: Key('member-edit-phone-country-$index'),
+                  initialValue: draft.countryId,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Vorwahl',
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 14,
+                    ),
+                    border: OutlineInputBorder(),
+                  ),
+                  items: MemberPhoneInput.options
+                      .map(
+                        (option) => DropdownMenuItem<String>(
+                          value: option.id,
+                          child: Text(option.displayLabel),
+                        ),
+                      )
+                      .toList(growable: false),
+                  onChanged: (value) {
+                    setState(() {
+                      draft.countryId =
+                          value ?? MemberPhoneInput.defaultCountryId;
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 7,
+                child: _buildTextField(
+                  draft.wertController,
+                  draft.isOtherCountry ? 'Telefon mit +XX' : 'Telefonnummer',
+                  fieldKey: Key('member-edit-phone-number-$index'),
+                  keyboardType: TextInputType.phone,
+                  validator: (value) =>
+                      _validatePhoneDraft(draft, value, required: true),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -529,11 +573,13 @@ class _MemberEditPageState extends State<MemberEditPage> {
   Widget _buildTextField(
     TextEditingController controller,
     String label, {
+    Key? fieldKey,
     bool required = false,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
   }) {
     return TextFormField(
+      key: fieldKey,
       controller: controller,
       keyboardType: keyboardType,
       decoration: InputDecoration(
@@ -838,17 +884,16 @@ class _MemberEditPageState extends State<MemberEditPage> {
     return null;
   }
 
-  String? _validatePhone(String? value, {bool required = false}) {
-    final trimmed = value?.trim() ?? '';
-    if (trimmed.isEmpty) {
-      return required ? 'Telefon darf nicht leer sein.' : null;
-    }
-    final allowedPattern = RegExp(r'^[0-9+\-() /]+$');
-    if (!allowedPattern.hasMatch(trimmed) ||
-        !RegExp(r'[0-9]').hasMatch(trimmed)) {
-      return 'Bitte eine gültige Telefonnummer eingeben.';
-    }
-    return null;
+  String? _validatePhoneDraft(
+    _PhoneDraft draft,
+    String? value, {
+    bool required = false,
+  }) {
+    return MemberPhoneInput.validate(
+      countryId: draft.countryId,
+      localNumber: value,
+      required: required,
+    );
   }
 
   String? _validateAdditionalAddress(_AddressDraft draft) {
@@ -1025,26 +1070,41 @@ class _ResponsiveWrap extends StatelessWidget {
 }
 
 class _PhoneDraft {
-  _PhoneDraft({required this.phoneNumberId, String? wert, String? label})
-    : wertController = TextEditingController(text: wert ?? ''),
-      labelController = TextEditingController(text: label ?? '');
+  _PhoneDraft({
+    required this.phoneNumberId,
+    required this.countryId,
+    String? wert,
+    String? label,
+  }) : wertController = TextEditingController(text: wert ?? ''),
+       labelController = TextEditingController(text: label ?? '');
 
   factory _PhoneDraft.fromTelefon(MitgliedKontaktTelefon telefon) {
+    final split = MemberPhoneInput.split(telefon.wert);
     return _PhoneDraft(
       phoneNumberId: telefon.phoneNumberId,
-      wert: telefon.wert,
+      countryId: split.countryId,
+      wert: split.localNumber,
       label: telefon.label,
     );
   }
 
-  factory _PhoneDraft.empty() => _PhoneDraft(phoneNumberId: null);
+  factory _PhoneDraft.empty() => _PhoneDraft(
+    phoneNumberId: null,
+    countryId: MemberPhoneInput.defaultCountryId,
+  );
 
   final int? phoneNumberId;
+  String countryId;
   final TextEditingController wertController;
   final TextEditingController labelController;
 
+  bool get isOtherCountry => countryId == MemberPhoneInput.otherCountryId;
+
   MitgliedKontaktTelefon? toTelefon() {
-    final wert = _trimToNull(wertController.text);
+    final wert = MemberPhoneInput.compose(
+      countryId: countryId,
+      localNumber: wertController.text,
+    );
     if (wert == null) {
       return null;
     }

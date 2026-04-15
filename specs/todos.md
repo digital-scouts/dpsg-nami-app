@@ -61,22 +61,121 @@ Konfliktlogik im Write-Flow erweitern
   - Konflikt melden
 - Merge-Erzeugung gehört in Model oder UseCase, nicht in den API-Client
 
-### Offen: 4 Hinzufügen von additional_field
+### Solved: 4 Hinzufügen von additional_field
 
-Die Aktuellen Requests wenn additional_emails oder additional_phone_numbers hinzugefügt werden, führen zu einem 404 Fehler, da die Datenbank diese Felder noch nicht kennt.
+Die Aktuellen Requests wenn additional_emails oder additional_phone_numbers hinzugefügt werden, führen zu einem 404 Fehler, da die Datenbank diese Felder noch nicht kennt. Außerdem sind änderungen mit additional Fields mehrere PUT Requests.
 
-Prüfen wie der Server die Daten erwartet, ggf alle felder in einem Request vereinen.
+Behebe den fehler und sende alle Änderungen in einem Request.
+
+So Funktioniert update:
+
+```json
+{
+  "data": {
+    "type": "people",
+    "id": "123",
+    "attributes": {
+            "first_name": "Mio",
+            "last_name": "Wollmann"
+        },
+    "relationships": {
+      "phone_numbers": {
+        "data": [
+          {
+            "type": "phone_numbers",
+            "id": "456",
+            "method": "update"
+          }
+        ]
+      }
+    }
+  },
+  "included": [
+    {
+      "type": "phone_numbers",
+      "id": "456",
+      "attributes": {
+        "number": "+41791111111"
+      }
+    }
+  ]
+}
+```
+
+So Funktioniert create:
+
+```json
+
+{
+  "data": {
+    "type": "people",
+    "id": "123",
+    "relationships": {
+      "phone_numbers": {
+        "data": [
+          {
+            "type": "phone_numbers",
+            "temp-id": "new-phone-1",
+            "method": "create"
+          }
+        ]
+      }
+    }
+  },
+  "included": [
+    {
+      "type": "phone_numbers",
+      "temp-id": "new-phone-1",
+      "attributes": {
+        "label": "Mobil",
+        "number": "+41790000000",
+        "public": true
+      }
+    }
+  ]
+}
+
+```
+
+So Funktioniert delete:
+
+```json
+
+{
+  "data": {
+    "type": "people",
+    "id": "123",
+    "relationships": {
+      "phone_numbers": {
+        "data": [
+          {
+            "type": "phone_numbers",
+            "id": "456",
+            "method": "destroy"
+          }
+        ]
+      }
+    }
+  }
+}
+
+```
 
 ## Änderungswünsche
 
 ## Weitere Funktionen
 
 - Adresse Automatisch vervollständigen mit Geocoding API
-  - Dazu müssen nicht mehr alle Felder zur Adresse angezeigt werden, die Eingabe und Auswahl kann in einem einzelnen Feld erfolgen. bezeichnung und c/o sind weiterhin eigene Felder. Postfach und Land kann entfallen. Wir gehen immer von Deutschland aus.
-- Adresse validieren
+  - Dazu müssen nicht mehr alle Felder zur Adresse angezeigt werden, die Eingabe und Auswahl kann in einem einzelnen Feld erfolgen. Bezeichnung und c/o sind weiterhin eigene Felder.
+  - Feld Postfach kann entfallen.
+  - Feld Land als Dropdown, nur Deutschland (default) und Nachbarländer.
+  - Aktuelle Ansicht bleibt Fallback, wenn Bearbeitung offline oder Geocoding API nicht verfügbar ist.
+- Adresse validieren (erst mit merge dialog umsetzten)
+  - Nur relevant bei Offline bearbeitung und späterem Sync. Sollte dann ebenfalls über den Merge Dialog laufen. (Adresse nicht gefunden, eingaben prüfen)
 
 ## Manuelle Tests
 
 - [ ] Mitglied offline bearbeiten: Änderungen lokal speichern, später synchronisieren, Merge-Dialog bei Konflikten
 - [ ] Merge-Dialog: Bei gleichzeitigen Änderungen an einem Mitglied, Merge-Dialog öffnen, Auswahlmöglichkeiten prüfen, Ergebnis validieren.
 - [ ] Verschiedene Online Funktionen im Offline-Modus testen
+- [ ] Update, Delete und Create von additional_fields testen.
