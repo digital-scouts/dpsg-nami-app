@@ -20,7 +20,7 @@ class MemberDetails extends StatelessWidget {
     this.addressSettingsRepository,
     this.tileCacheService,
     this.previewTimeout,
-    this.spacing = 16,
+    this.spacing = 10,
     this.showGeneralInfo = true,
     this.showMembershipInfo = true,
   });

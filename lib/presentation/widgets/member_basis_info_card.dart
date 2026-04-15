@@ -8,6 +8,8 @@ import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/presentation/format/date_formatters.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
+const double _memberDetailsCardRadius = 16;
+
 /// Zeigt allgemeine Informationen zu einem Mitglied.
 /// Input: Nur die Domain-Entität `Mitglied`.
 class MemberGeneralInfoCard extends StatelessWidget {
@@ -65,19 +67,12 @@ class MemberGeneralInfoCard extends StatelessWidget {
       ...emailRows,
     ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Allgemeine Informationen',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: 5),
-        Card(
-          margin: const EdgeInsets.symmetric(vertical: 5.0),
-          child: Column(children: [...infoRows.map((r) => _InfoTile(row: r))]),
-        ),
-      ],
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 5.0),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(_memberDetailsCardRadius),
+      ),
+      child: Column(children: [...infoRows.map((r) => _InfoTile(row: r))]),
     );
   }
 }
@@ -288,29 +283,25 @@ class MemberMembershipInfoCard extends StatelessWidget {
         value: mitglied.istAusgetreten ? 'Beendet' : 'Aktiv',
       ),
     ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Mitgliedschaft', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 5),
-        Card(
-          margin: const EdgeInsets.symmetric(vertical: 5.0),
-          child: Column(
-            children: [
-              ...infoRows.map((r) => _InfoTile(row: r)),
-              if (onEndMembership != null)
-                ListTile(
-                  leading: const Icon(Icons.delete, color: Colors.redAccent),
-                  title: const Text(
-                    'Mitgliedschaft beenden',
-                    style: TextStyle(color: Colors.redAccent),
-                  ),
-                  onTap: onEndMembership,
-                ),
-            ],
-          ),
-        ),
-      ],
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 5.0),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(_memberDetailsCardRadius),
+      ),
+      child: Column(
+        children: [
+          ...infoRows.map((r) => _InfoTile(row: r)),
+          if (onEndMembership != null)
+            ListTile(
+              leading: const Icon(Icons.delete, color: Colors.redAccent),
+              title: const Text(
+                'Mitgliedschaft beenden',
+                style: TextStyle(color: Colors.redAccent),
+              ),
+              onTap: onEndMembership,
+            ),
+        ],
+      ),
     );
   }
 }

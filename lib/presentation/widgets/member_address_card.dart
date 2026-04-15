@@ -10,6 +10,8 @@ import 'package:nami/services/geoapify_address_map_service.dart';
 import 'package:nami/services/map_tile_cache_service.dart';
 import 'package:nami/services/maps_env.dart';
 
+const double _memberAddressCardRadius = 16;
+
 class MemberAddressCard extends StatelessWidget {
   const MemberAddressCard({
     super.key,
@@ -45,65 +47,56 @@ class MemberAddressCard extends StatelessWidget {
     final stammRepository =
         addressSettingsRepository ?? SharedPrefsAddressSettingsRepository();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Adresse', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 5),
-        Card(
-          margin: const EdgeInsets.symmetric(vertical: 5.0),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _AddressLink(
-                  displayAddress: formattedAddress,
-                  queryAddress: mapQueryAddress,
-                  onLaunchAddress: onLaunchAddress,
-                ),
-                if (cacheKey != null) ...[
-                  const SizedBox(height: 16),
-                  FutureBuilder<String?>(
-                    future: stammRepository.loadAddress(),
-                    builder: (context, snapshot) {
-                      final stammAddress = snapshot.data?.trim();
-                      return AddressMapPreview(
-                        addressText: MemberAddressUtils.formatSingleLineAddress(
-                          address,
-                        ),
-                        cacheKey: cacheKey,
-                        addressFingerprint: MemberAddressUtils.fingerprint(
-                          address,
-                        ),
-                        secondaryAddressText:
-                            (stammAddress?.isNotEmpty ?? false)
-                            ? stammAddress
-                            : null,
-                        secondaryCacheKey: (stammAddress?.isNotEmpty ?? false)
-                            ? 'stamm:0'
-                            : null,
-                        secondaryAddressFingerprint:
-                            (stammAddress?.isNotEmpty ?? false)
-                            ? MemberAddressUtils.fingerprintFromText(
-                                stammAddress!,
-                              )
-                            : null,
-                        previewTimeout:
-                            previewTimeout ?? const Duration(seconds: 5),
-                        repository: addressLocationRepository,
-                        mapService: mapService,
-                        tileCacheService: tileCacheService,
-                        offlineDownloadRadiusKm: MapsEnv.memberOfflineRadiusKm,
-                      );
-                    },
-                  ),
-                ],
-              ],
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 5.0),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(_memberAddressCardRadius),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _AddressLink(
+              displayAddress: formattedAddress,
+              queryAddress: mapQueryAddress,
+              onLaunchAddress: onLaunchAddress,
             ),
-          ),
+            if (cacheKey != null) ...[
+              const SizedBox(height: 16),
+              FutureBuilder<String?>(
+                future: stammRepository.loadAddress(),
+                builder: (context, snapshot) {
+                  final stammAddress = snapshot.data?.trim();
+                  return AddressMapPreview(
+                    addressText: MemberAddressUtils.formatSingleLineAddress(
+                      address,
+                    ),
+                    cacheKey: cacheKey,
+                    addressFingerprint: MemberAddressUtils.fingerprint(address),
+                    secondaryAddressText: (stammAddress?.isNotEmpty ?? false)
+                        ? stammAddress
+                        : null,
+                    secondaryCacheKey: (stammAddress?.isNotEmpty ?? false)
+                        ? 'stamm:0'
+                        : null,
+                    secondaryAddressFingerprint:
+                        (stammAddress?.isNotEmpty ?? false)
+                        ? MemberAddressUtils.fingerprintFromText(stammAddress!)
+                        : null,
+                    previewTimeout:
+                        previewTimeout ?? const Duration(seconds: 5),
+                    repository: addressLocationRepository,
+                    mapService: mapService,
+                    tileCacheService: tileCacheService,
+                    offlineDownloadRadiusKm: MapsEnv.memberOfflineRadiusKm,
+                  );
+                },
+              ),
+            ],
+          ],
         ),
-      ],
+      ),
     );
   }
 }

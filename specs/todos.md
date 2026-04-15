@@ -4,7 +4,7 @@ Liste an problemen, die noch behoben werden müssen.
 
 ## Fehler
 
-### 1 Netzwerkzugriff blockiert fehler
+### Prüfen: 1 Netzwerkzugriff blockiert fehler
 
 Im offline modus über debug tools den Hitobito Sync triggern, wirft fehler. Fehler sollte abgefangen sein und in der UI als Hinweis auftauchen, dass Hitobito nur über WLAN erreichbar ist. In den Logs taucht zusätzlich eine Warnung zum blockierten Netzwerkzugriff auf.
 
@@ -17,7 +17,7 @@ flutter: [2026-04-15 00:37:54] [info] [hitobito_sync] Hitobito-Sync fehlgeschlag
  3      AuthSessionModel.syncHitobitoData (package:nami/presentation/model/auth_session_model.dart:748:7)
  4      DebugToolsPageState.build.anonymous closure (package:nami/presentation/screens/settings_debug_tools_page.dart:617:33)
 
-### 2 Mitglied bearbeitung - offline nicht möglich
+### Prüfen: 2 Mitglied bearbeitung - offline nicht möglich
 
 Im Offline Modus wird versucht zuerst das mitgleid zu laden um es zu bearbeiten. Das laden vorm Bearbeiten öffnen ist optinal, wenn online. Ablauf für Offline
 
@@ -28,7 +28,7 @@ Im Offline Modus wird versucht zuerst das mitgleid zu laden um es zu bearbeiten.
 5. Änderungen syncronisieren sobald wieder online
 6. Bei Abweichenden  Daten Merge dialog öffnen
 
-### 3 Merge Dialog vergessen
+### Offen: 3 Merge Dialog vergessen
 
 Merge-Dialog Variante 1
 
@@ -61,13 +61,22 @@ Konfliktlogik im Write-Flow erweitern
   - Konflikt melden
 - Merge-Erzeugung gehört in Model oder UseCase, nicht in den API-Client
 
+### Offen: 4 Hinzufügen von additional_field
+
+Die Aktuellen Requests wenn additional_emails oder additional_phone_numbers hinzugefügt werden, führen zu einem 404 Fehler, da die Datenbank diese Felder noch nicht kennt.
+
+Prüfen wie der Server die Daten erwartet, ggf alle felder in einem Request vereinen.
+
+## Änderungswünsche
+
 ## Weitere Funktionen
 
 - Adresse Automatisch vervollständigen mit Geocoding API
-  - Dazu müssen nicht mehr alle Felder zur Adresse angezeigt werden, die Eingabe und Auswahl kann in einem einzelnen Feld erfolgen. bezeichnung und c/o sind weiterhin eigene Felder
+  - Dazu müssen nicht mehr alle Felder zur Adresse angezeigt werden, die Eingabe und Auswahl kann in einem einzelnen Feld erfolgen. bezeichnung und c/o sind weiterhin eigene Felder. Postfach und Land kann entfallen. Wir gehen immer von Deutschland aus.
 - Adresse validieren
 
 ## Manuelle Tests
 
 - [ ] Mitglied offline bearbeiten: Änderungen lokal speichern, später synchronisieren, Merge-Dialog bei Konflikten
 - [ ] Merge-Dialog: Bei gleichzeitigen Änderungen an einem Mitglied, Merge-Dialog öffnen, Auswahlmöglichkeiten prüfen, Ergebnis validieren.
+- [ ] Verschiedene Online Funktionen im Offline-Modus testen

@@ -562,6 +562,43 @@ void main() {
     timeout: const Timeout(Duration(seconds: 3)),
   );
 
+  test('sendet leeres Geburtsdatum nicht als 1900 an Hitobito', () async {
+    final requests = <http.Request>[];
+    final client = MockClient((request) async {
+      requests.add(request);
+      return http.Response('', 204);
+    });
+
+    final service = HitobitoPeopleService(
+      config: const HitobitoAuthConfig(
+        clientId: 'client',
+        clientSecret: 'secret',
+        authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
+        tokenUrl: 'https://demo.hitobito.com/oauth/token',
+        redirectUri: 'de.jlange.nami.app:/oauth/callback',
+        scopeString: 'openid email api',
+        discoveryUrl: '',
+        profileUrl: 'https://demo.hitobito.com/oauth/profile',
+      ),
+      httpClient: client,
+    );
+
+    final mitglied = Mitglied(
+      personId: 23,
+      mitgliedsnummer: '4711',
+      vorname: 'Julia',
+      nachname: 'Keller',
+      geburtsdatum: Mitglied.peoplePlaceholderDate,
+      eintrittsdatum: DateTime(2020, 5, 1),
+    );
+
+    await service.updatePerson('token-123', mitglied: mitglied);
+
+    final updatePersonBody =
+        jsonDecode(requests.single.body) as Map<String, dynamic>;
+    expect(updatePersonBody['data']['attributes']['birthday'], isNull);
+  });
+
   test('haelt den HTTP-Status bei 401 aus dem People-Endpoint fest', () async {
     final client = MockClient((_) async => http.Response('Unauthorized', 401));
     final service = HitobitoPeopleService(

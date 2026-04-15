@@ -9,9 +9,14 @@ import '../model/auth_session_model.dart';
 import '../model/member_edit_model.dart';
 
 class MemberEditPage extends StatefulWidget {
-  const MemberEditPage({super.key, required this.mitglied});
+  const MemberEditPage({
+    super.key,
+    required this.mitglied,
+    this.initialNoticeMessage,
+  });
 
   final Mitglied mitglied;
+  final String? initialNoticeMessage;
 
   @override
   State<MemberEditPage> createState() => _MemberEditPageState();
@@ -19,6 +24,8 @@ class MemberEditPage extends StatefulWidget {
 
 class _MemberEditPageState extends State<MemberEditPage> {
   static final DateFormat _dateFormat = DateFormat('dd.MM.yyyy');
+  static const double _pagePadding = 10;
+  static const double _cardRadius = 16;
   static const List<String> _defaultGenderValues = <String>['w', 'm', ''];
   static const Map<String, String> _genderLabels = <String, String>{
     'w': 'Weiblich',
@@ -31,7 +38,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
   late final TextEditingController _nachnameController;
   late final TextEditingController _fahrtennameController;
   late final TextEditingController _primaryEmailController;
-  late DateTime _geburtsdatum;
+  late DateTime? _geburtsdatum;
   late String? _gender;
   late final _AddressDraft _primaryAddressDraft;
   late final List<_PhoneDraft> _phoneDrafts;
@@ -52,7 +59,10 @@ class _MemberEditPageState extends State<MemberEditPage> {
     _primaryEmailController = TextEditingController(
       text: primaryEmail?.wert ?? '',
     );
-    _geburtsdatum = widget.mitglied.geburtsdatum;
+    _geburtsdatum =
+        widget.mitglied.geburtsdatum == Mitglied.peoplePlaceholderDate
+        ? null
+        : widget.mitglied.geburtsdatum;
     _gender = _normalizeGenderValue(widget.mitglied.gender);
     _primaryAddressDraft = _AddressDraft.fromAdresse(
       primaryAddress ?? const MitgliedKontaktAdresse(additionalAddressId: 0),
@@ -68,6 +78,16 @@ class _MemberEditPageState extends State<MemberEditPage> {
         .where((adresse) => (adresse.additionalAddressId ?? 0) != 0)
         .map(_AddressDraft.fromAdresse)
         .toList(growable: true);
+
+    final initialNoticeMessage = widget.initialNoticeMessage;
+    if (initialNoticeMessage != null && initialNoticeMessage.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        _showMessage(initialNoticeMessage);
+      });
+    }
   }
 
   @override
@@ -101,17 +121,17 @@ class _MemberEditPageState extends State<MemberEditPage> {
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final horizontalPadding = switch (constraints.maxWidth) {
-                    >= 1100 => 28.0,
-                    >= 700 => 20.0,
-                    _ => 12.0,
+                    >= 1100 => 24.0,
+                    >= 700 => 16.0,
+                    _ => _pagePadding,
                   };
 
                   return ListView(
                     padding: EdgeInsets.fromLTRB(
                       horizontalPadding,
-                      12,
+                      _pagePadding,
                       horizontalPadding,
-                      20,
+                      18,
                     ),
                     children: [
                       Center(
@@ -124,10 +144,20 @@ class _MemberEditPageState extends State<MemberEditPage> {
                                 title: 'Allgemein',
                                 child: _buildGeneralSection(),
                               ),
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 10),
                               _SectionCard(
-                                title: 'Kontakt',
-                                child: _buildContactSection(),
+                                title: 'E-Mail',
+                                child: _buildEmailSection(),
+                              ),
+                              const SizedBox(height: 10),
+                              _SectionCard(
+                                title: 'Telefon',
+                                child: _buildPhoneSection(),
+                              ),
+                              const SizedBox(height: 10),
+                              _SectionCard(
+                                title: 'Adresse',
+                                child: _buildAddressSection(),
                               ),
                             ],
                           ),
@@ -187,60 +217,85 @@ class _MemberEditPageState extends State<MemberEditPage> {
   }
 
   Widget _buildGeneralSection() {
-    return _ResponsiveWrap(
-      minChildWidth: 240,
-      spacing: 12,
-      runSpacing: 12,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildTextField(_vornameController, 'Vorname', required: true),
-        _buildTextField(_nachnameController, 'Nachname', required: true),
-        _buildTextField(_fahrtennameController, 'Fahrtenname'),
-        _buildGenderField(),
-        _buildDateField(
-          label: 'Geburtsdatum',
-          value: _geburtsdatum,
-          onChanged: (value) {
-            if (value == null) {
-              return;
+        _buildTwoColumnFields(
+          first: _buildTextField(_vornameController, 'Vorname'),
+          second: _buildTextField(_fahrtennameController, 'Fahrtenname'),
+        ),
+        const SizedBox(height: 12),
+        _buildTextField(_nachnameController, 'Nachname'),
+        FormField<void>(
+          validator: (_) => _hasAtLeastOneName()
+              ? null
+              : 'Mindestens Vorname, Nachname oder Fahrtenname angeben.',
+          builder: (state) {
+            if (!state.hasError) {
+              return const SizedBox.shrink();
             }
-            setState(() => _geburtsdatum = value);
+            return Padding(
+              padding: const EdgeInsets.only(top: 8, left: 12),
+              child: Text(
+                state.errorText!,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                  fontSize: 12,
+                ),
+              ),
+            );
           },
+        ),
+        const SizedBox(height: 12),
+        _ResponsiveWrap(
+          minChildWidth: 240,
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            _buildGenderField(),
+            _buildDateField(
+              label: 'Geburtsdatum',
+              fieldKey: const Key('member-edit-birthdate-field'),
+              allowClear: true,
+              value: _geburtsdatum,
+              onChanged: (value) {
+                setState(() => _geburtsdatum = value);
+              },
+              validator: _validateBirthDate,
+            ),
+          ],
         ),
       ],
     );
   }
 
-  Widget _buildContactSection() {
+  Widget _buildTwoColumnFields({
+    required Widget first,
+    required Widget second,
+  }) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isWide = constraints.maxWidth >= 860;
-        final topRow = isWide
-            ? Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: _buildEmailGroup()),
-                  const SizedBox(width: 12),
-                  Expanded(child: _buildPhoneGroup()),
-                ],
-              )
-            : Column(
-                children: [
-                  _buildEmailGroup(),
-                  const SizedBox(height: 12),
-                  _buildPhoneGroup(),
-                ],
-              );
+        if (constraints.maxWidth < 320) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [first, const SizedBox(height: 12), second],
+          );
+        }
 
-        return Column(
-          children: [topRow, const SizedBox(height: 12), _buildAddressGroup()],
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: first),
+            const SizedBox(width: 12),
+            Expanded(child: second),
+          ],
         );
       },
     );
   }
 
-  Widget _buildEmailGroup() {
-    return _ContactGroup(
-      title: 'E-Mail',
+  Widget _buildEmailSection() {
+    return _SectionBodyWithAddAction(
       addLabel: 'E-Mail hinzufügen',
       onAdd: () {
         setState(() {
@@ -255,6 +310,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
               _primaryEmailController,
               'E-Mail',
               keyboardType: TextInputType.emailAddress,
+              validator: _validateEmail,
             ),
           ),
           if (_additionalEmailDrafts.isNotEmpty) const SizedBox(height: 10),
@@ -271,9 +327,8 @@ class _MemberEditPageState extends State<MemberEditPage> {
     );
   }
 
-  Widget _buildPhoneGroup() {
-    return _ContactGroup(
-      title: 'Telefon',
+  Widget _buildPhoneSection() {
+    return _SectionBodyWithAddAction(
       addLabel: 'Telefon hinzufügen',
       onAdd: () {
         setState(() {
@@ -293,9 +348,8 @@ class _MemberEditPageState extends State<MemberEditPage> {
     );
   }
 
-  Widget _buildAddressGroup() {
-    return _ContactGroup(
-      title: 'Adresse',
+  Widget _buildAddressSection() {
+    return _SectionBodyWithAddAction(
       addLabel: 'Adresse hinzufügen',
       onAdd: () {
         setState(() {
@@ -303,6 +357,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
         });
       },
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildAddressDraft(-1, _primaryAddressDraft, removable: false),
           if (_additionalAddressDrafts.isNotEmpty) const SizedBox(height: 10),
@@ -316,6 +371,25 @@ class _MemberEditPageState extends State<MemberEditPage> {
               index,
               _additionalAddressDrafts[index],
               removable: true,
+            ),
+            FormField<void>(
+              validator: (_) =>
+                  _validateAdditionalAddress(_additionalAddressDrafts[index]),
+              builder: (state) {
+                if (!state.hasError) {
+                  return const SizedBox.shrink();
+                }
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8, left: 12),
+                  child: Text(
+                    state.errorText!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                      fontSize: 12,
+                    ),
+                  ),
+                );
+              },
             ),
           ],
         ],
@@ -342,6 +416,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
             draft.wertController,
             'Telefon',
             keyboardType: TextInputType.phone,
+            validator: (value) => _validatePhone(value, required: true),
           ),
         ],
       ),
@@ -367,6 +442,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
             draft.wertController,
             'E-Mail',
             keyboardType: TextInputType.emailAddress,
+            validator: (value) => _validateEmail(value, required: true),
           ),
         ],
       ),
@@ -455,6 +531,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
     String label, {
     bool required = false,
     TextInputType? keyboardType,
+    String? Function(String?)? validator,
   }) {
     return TextFormField(
       controller: controller,
@@ -474,9 +551,9 @@ class _MemberEditPageState extends State<MemberEditPage> {
               if (trimmed.isEmpty) {
                 return '$label darf nicht leer sein.';
               }
-              return null;
+              return validator?.call(value);
             }
-          : null,
+          : validator,
     );
   }
 
@@ -485,6 +562,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
     return DropdownButtonFormField<String>(
       key: const Key('member-edit-gender-field'),
       initialValue: _gender,
+      isExpanded: true,
       decoration: const InputDecoration(
         labelText: 'Geschlecht',
         isDense: true,
@@ -508,52 +586,68 @@ class _MemberEditPageState extends State<MemberEditPage> {
   }
 
   Widget _buildDateField({
+    Key? fieldKey,
     required String label,
     required DateTime? value,
     required ValueChanged<DateTime?> onChanged,
     bool allowClear = false,
+    String? Function(DateTime?)? validator,
   }) {
-    return InkWell(
-      onTap: () async {
-        final selected = await showDatePicker(
-          context: context,
-          initialDate: value ?? DateTime.now(),
-          firstDate: DateTime(1900),
-          lastDate: DateTime(2100),
-          locale: const Locale('de'),
-        );
-        if (selected != null) {
-          onChanged(selected);
-        }
-      },
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          isDense: true,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 14,
-          ),
-          border: const OutlineInputBorder(),
-          suffixIcon: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (allowClear && value != null)
-                IconButton(
-                  onPressed: () => onChanged(null),
-                  icon: const Icon(Icons.clear),
-                ),
-              const Padding(
-                padding: EdgeInsets.only(right: 12),
-                child: Icon(Icons.calendar_today_outlined),
+    return FormField<DateTime?>(
+      initialValue: value,
+      validator: (_) => validator?.call(value),
+      builder: (state) {
+        return InkWell(
+          onTap: () async {
+            final selected = await showDatePicker(
+              context: context,
+              initialDate: value ?? DateTime.now(),
+              firstDate: DateTime(1900),
+              lastDate: DateTime(2100),
+              locale: const Locale('de'),
+            );
+            if (selected != null) {
+              state.didChange(selected);
+              onChanged(selected);
+            }
+          },
+          child: InputDecorator(
+            key: fieldKey,
+            decoration: InputDecoration(
+              labelText: label,
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 14,
               ),
-            ],
+              border: const OutlineInputBorder(),
+              errorText: state.errorText,
+              suffixIcon: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (allowClear && value != null)
+                    IconButton(
+                      onPressed: () {
+                        state.didChange(null);
+                        onChanged(null);
+                      },
+                      icon: const Icon(Icons.clear),
+                    )
+                  else
+                    const SizedBox(width: 18),
+                  const Padding(
+                    padding: EdgeInsets.only(right: 12),
+                    child: Icon(Icons.calendar_today_outlined),
+                  ),
+                ],
+              ),
+            ),
+            child: Text(
+              value == null ? 'Nicht gesetzt' : _dateFormat.format(value),
+            ),
           ),
-        ),
-        child: Text(
-          value == null ? 'Nicht gesetzt' : _dateFormat.format(value),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -633,7 +727,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
       nachname: _nachnameController.text.trim(),
       fahrtenname: _trimToNull(_fahrtennameController.text),
       fahrtennameLoeschen: _trimToNull(_fahrtennameController.text) == null,
-      geburtsdatum: _geburtsdatum,
+      geburtsdatum: _geburtsdatum ?? Mitglied.peoplePlaceholderDate,
       gender: _gender ?? '',
       genderLoeschen: false,
       telefonnummern: phones,
@@ -708,6 +802,60 @@ class _MemberEditPageState extends State<MemberEditPage> {
   String _labelForGender(String value) {
     return _genderLabels[value] ?? value;
   }
+
+  bool _hasAtLeastOneName() {
+    return _trimToNull(_vornameController.text) != null ||
+        _trimToNull(_nachnameController.text) != null ||
+        _trimToNull(_fahrtennameController.text) != null;
+  }
+
+  String? _validateBirthDate(DateTime? value) {
+    if (value == null) {
+      return null;
+    }
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final oldestAllowed = DateTime(today.year - 120, today.month, today.day);
+    final selectedDay = DateTime(value.year, value.month, value.day);
+    if (selectedDay.isAfter(today)) {
+      return 'Geburtsdatum darf nicht in der Zukunft liegen.';
+    }
+    if (selectedDay.isBefore(oldestAllowed)) {
+      return 'Geburtsdatum ist zu weit in der Vergangenheit.';
+    }
+    return null;
+  }
+
+  String? _validateEmail(String? value, {bool required = false}) {
+    final trimmed = value?.trim() ?? '';
+    if (trimmed.isEmpty) {
+      return required ? 'E-Mail darf nicht leer sein.' : null;
+    }
+    final pattern = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
+    if (!pattern.hasMatch(trimmed)) {
+      return 'Bitte eine gültige E-Mail-Adresse eingeben.';
+    }
+    return null;
+  }
+
+  String? _validatePhone(String? value, {bool required = false}) {
+    final trimmed = value?.trim() ?? '';
+    if (trimmed.isEmpty) {
+      return required ? 'Telefon darf nicht leer sein.' : null;
+    }
+    final allowedPattern = RegExp(r'^[0-9+\-() /]+$');
+    if (!allowedPattern.hasMatch(trimmed) ||
+        !RegExp(r'[0-9]').hasMatch(trimmed)) {
+      return 'Bitte eine gültige Telefonnummer eingeben.';
+    }
+    return null;
+  }
+
+  String? _validateAdditionalAddress(_AddressDraft draft) {
+    return draft.toAdresse().istLeer
+        ? 'Leere Zusatzadresse bitte entfernen oder ausfüllen.'
+        : null;
+  }
 }
 
 String? _trimToNull(String value) {
@@ -729,8 +877,11 @@ class _SectionCard extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     return Card(
       elevation: 0,
+      margin: const EdgeInsets.symmetric(vertical: 5),
       color: colorScheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(_MemberEditPageState._cardRadius),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -746,49 +897,35 @@ class _SectionCard extends StatelessWidget {
   }
 }
 
-class _ContactGroup extends StatelessWidget {
-  const _ContactGroup({
-    required this.title,
+class _SectionBodyWithAddAction extends StatelessWidget {
+  const _SectionBodyWithAddAction({
     required this.child,
     required this.addLabel,
     this.onAdd,
   });
 
-  final String title;
   final Widget child;
   final String addLabel;
   final VoidCallback? onAdd;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: colorScheme.outlineVariant),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: Theme.of(context).textTheme.titleSmall),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        child,
+        if (onAdd != null) ...[
           const SizedBox(height: 8),
-          child,
-          if (onAdd != null) ...[
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: OutlinedButton.icon(
-                onPressed: onAdd,
-                icon: const Icon(Icons.add),
-                label: Text(addLabel),
-              ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: OutlinedButton.icon(
+              onPressed: onAdd,
+              icon: const Icon(Icons.add),
+              label: Text(addLabel),
             ),
-          ],
+          ),
         ],
-      ),
+      ],
     );
   }
 }

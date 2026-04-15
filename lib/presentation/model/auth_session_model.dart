@@ -63,6 +63,7 @@ class AuthSessionModel extends ChangeNotifier {
   DateTime? _lastBackgroundedAt;
   String? _errorMessage;
   String? _remoteAccessIssueMessage;
+  NetworkAccessBlockedReason? _remoteAccessBlockedReason;
   bool _requiresInteractiveLogin = false;
   bool _isLoadingProfile = false;
   bool _isSyncingHitobitoData = false;
@@ -75,10 +76,14 @@ class AuthSessionModel extends ChangeNotifier {
   DateTime? get lastProfileSyncAt => _lastProfileSyncAt;
   String? get errorMessage => _errorMessage;
   String? get remoteAccessIssueMessage => _remoteAccessIssueMessage;
+  NetworkAccessBlockedReason? get remoteAccessBlockedReason =>
+      _remoteAccessBlockedReason;
   bool get isLoadingProfile => _isLoadingProfile;
   bool get isSyncingHitobitoData => _isSyncingHitobitoData;
   bool get isConfigured => _oauthService.config.isConfigured;
   bool get hasRemoteAccessIssue => _remoteAccessIssueMessage != null;
+  bool get isRemoteAccessBlockedByNetworkPolicy =>
+      _remoteAccessBlockedReason != null;
   bool get requiresInteractiveLogin => _requiresInteractiveLogin;
   bool get isRefreshDue => _retentionPolicy.isRefreshDue(_lastSensitiveSyncAt);
   bool get isRefreshAttemptDue =>
@@ -768,6 +773,12 @@ class AuthSessionModel extends ChangeNotifier {
       await markSensitiveDataSynced();
       _errorMessage = null;
       _clearRemoteAccessIssue(notify: false);
+    } on NetworkAccessBlockedException catch (error) {
+      await _logger.logInfo(
+        'hitobito_sync',
+        'Hitobito-Sync blockiert ($trigger): ${error.message}',
+      );
+      _reportNetworkAccessBlockedIssue(error, notify: false);
     } catch (error, stack) {
       await _logger.log(
         'hitobito_sync',
@@ -887,6 +898,9 @@ class AuthSessionModel extends ChangeNotifier {
     bool notify = true,
   }) {
     _remoteAccessIssueMessage = message;
+    if (requiresInteractiveLogin) {
+      _remoteAccessBlockedReason = null;
+    }
     _requiresInteractiveLogin =
         _requiresInteractiveLogin || requiresInteractiveLogin;
     if (notify) {
@@ -894,8 +908,22 @@ class AuthSessionModel extends ChangeNotifier {
     }
   }
 
+  void _reportNetworkAccessBlockedIssue(
+    NetworkAccessBlockedException error, {
+    required bool notify,
+  }) {
+    _errorMessage = error.message;
+    _remoteAccessBlockedReason = error.reason;
+    _remoteAccessIssueMessage = error.message;
+    _requiresInteractiveLogin = false;
+    if (notify) {
+      notifyListeners();
+    }
+  }
+
   void _clearRemoteAccessIssue({required bool notify}) {
     _remoteAccessIssueMessage = null;
+    _remoteAccessBlockedReason = null;
     _requiresInteractiveLogin = false;
     if (notify) {
       notifyListeners();

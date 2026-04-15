@@ -139,7 +139,7 @@ class HitobitoPeopleService {
             'zip_code': primaryAddress?.zipCode,
             'town': primaryAddress?.town,
             'country': primaryAddress?.country,
-            'birthday': _toDateString(mitglied.geburtsdatum),
+            'birthday': _toDateStringOrNull(mitglied.geburtsdatum),
           },
         },
       },
@@ -959,7 +959,10 @@ class HitobitoPeopleService {
     return adressen.isEmpty ? null : adressen.first;
   }
 
-  String _toDateString(DateTime value) {
+  String? _toDateStringOrNull(DateTime value) {
+    if (value == Mitglied.peoplePlaceholderDate) {
+      return null;
+    }
     final normalized = value.toUtc();
     return normalized.toIso8601String().split('T').first;
   }
