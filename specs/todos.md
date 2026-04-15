@@ -166,6 +166,7 @@ So Funktioniert delete:
 ## Weitere Funktionen
 
 - Adresse Automatisch vervollständigen mit Geocoding API
+  - Nutze bestehenden Dienst GEOAPIFY
   - Dazu müssen nicht mehr alle Felder zur Adresse angezeigt werden, die Eingabe und Auswahl kann in einem einzelnen Feld erfolgen. Bezeichnung und c/o sind weiterhin eigene Felder.
   - Feld Postfach kann entfallen.
   - Feld Land als Dropdown, nur Deutschland (default) und Nachbarländer.

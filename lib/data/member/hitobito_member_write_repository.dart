@@ -361,7 +361,19 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
       case 400:
       case 403:
       case 404:
+        return const MemberWriteRejectedException(
+          'Die Aenderung wurde von Hitobito abgelehnt und kann nicht automatisch erneut versucht werden.',
+        );
       case 422:
+        final validationErrors = error.validationErrors
+            .map(_mapValidationError)
+            .toList(growable: false);
+        if (validationErrors.isNotEmpty) {
+          return MemberWriteValidationException(
+            validationErrors.first.message,
+            errors: validationErrors,
+          );
+        }
         return const MemberWriteRejectedException(
           'Die Aenderung wurde von Hitobito abgelehnt und kann nicht automatisch erneut versucht werden.',
         );
@@ -374,6 +386,21 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
       default:
         return MemberWriteException(error.message);
     }
+  }
+
+  MemberWriteFieldValidationError _mapValidationError(
+    HitobitoApiValidationError error,
+  ) {
+    return MemberWriteFieldValidationError(
+      message: error.message,
+      pointer: error.pointer,
+      attribute: error.attribute,
+      relationshipName: error.relationshipName,
+      relationshipAttribute: error.relationshipAttribute,
+      relationshipType: error.relationshipType,
+      relationshipId: error.relationshipId,
+      code: error.code,
+    );
   }
 
   String _compactLogValue(String value) {

@@ -45,6 +45,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
   late final List<_PhoneDraft> _phoneDrafts;
   late final List<_EmailDraft> _additionalEmailDrafts;
   late final List<_AddressDraft> _additionalAddressDrafts;
+  final Map<int, String> _serverPhoneErrorsById = <int, String>{};
   bool _isSubmitting = false;
 
   @override
@@ -408,6 +409,10 @@ class _MemberEditPageState extends State<MemberEditPage> {
             onRemove: () {
               setState(() {
                 final removed = _phoneDrafts.removeAt(index);
+                final phoneNumberId = removed.phoneNumberId;
+                if (phoneNumberId != null) {
+                  _serverPhoneErrorsById.remove(phoneNumberId);
+                }
                 removed.dispose();
               });
             },
@@ -444,6 +449,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
                     setState(() {
                       draft.countryId =
                           value ?? MemberPhoneInput.defaultCountryId;
+                      _clearPhoneServerError(draft);
                     });
                   },
                 ),
@@ -456,6 +462,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
                   draft.isOtherCountry ? 'Telefon mit +XX' : 'Telefonnummer',
                   fieldKey: Key('member-edit-phone-number-$index'),
                   keyboardType: TextInputType.phone,
+                  onChanged: (_) => _clearPhoneServerError(draft),
                   validator: (value) =>
                       _validatePhoneDraft(draft, value, required: true),
                 ),
@@ -576,12 +583,14 @@ class _MemberEditPageState extends State<MemberEditPage> {
     Key? fieldKey,
     bool required = false,
     TextInputType? keyboardType,
+    ValueChanged<String>? onChanged,
     String? Function(String?)? validator,
   }) {
     return TextFormField(
       key: fieldKey,
       controller: controller,
       keyboardType: keyboardType,
+      onChanged: onChanged,
       decoration: InputDecoration(
         labelText: label,
         isDense: true,
@@ -698,6 +707,9 @@ class _MemberEditPageState extends State<MemberEditPage> {
   }
 
   Future<void> _save() async {
+    setState(() {
+      _serverPhoneErrorsById.clear();
+    });
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -731,7 +743,10 @@ class _MemberEditPageState extends State<MemberEditPage> {
         Navigator.of(context).pop(result);
         return;
       }
-      _showMessage(result.message ?? 'Speichern fehlgeschlagen.');
+      final hasMappedValidationErrors = _applyValidationErrors(result);
+      if (!hasMappedValidationErrors) {
+        _showMessage(result.message ?? 'Speichern fehlgeschlagen.');
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -889,17 +904,70 @@ class _MemberEditPageState extends State<MemberEditPage> {
     String? value, {
     bool required = false,
   }) {
-    return MemberPhoneInput.validate(
+    final localError = MemberPhoneInput.validate(
       countryId: draft.countryId,
       localNumber: value,
       required: required,
     );
+    if (localError != null) {
+      return localError;
+    }
+
+    final phoneNumberId = draft.phoneNumberId;
+    if (phoneNumberId == null) {
+      return null;
+    }
+    return _serverPhoneErrorsById[phoneNumberId];
   }
 
   String? _validateAdditionalAddress(_AddressDraft draft) {
     return draft.toAdresse().istLeer
         ? 'Leere Zusatzadresse bitte entfernen oder ausfüllen.'
         : null;
+  }
+
+  void _clearPhoneServerError(_PhoneDraft draft) {
+    final phoneNumberId = draft.phoneNumberId;
+    if (phoneNumberId == null) {
+      return;
+    }
+    _serverPhoneErrorsById.remove(phoneNumberId);
+  }
+
+  bool _applyValidationErrors(MemberEditSubmitResult result) {
+    if (result.validationErrors.isEmpty) {
+      return false;
+    }
+
+    final nextPhoneErrors = <int, String>{};
+    for (final error in result.validationErrors) {
+      if (!error.isPhoneNumberField) {
+        continue;
+      }
+      final relationshipId = error.relationshipId;
+      if (relationshipId == null) {
+        continue;
+      }
+      final hasDraft = _phoneDrafts.any(
+        (draft) => draft.phoneNumberId == relationshipId,
+      );
+      if (!hasDraft) {
+        continue;
+      }
+      nextPhoneErrors[relationshipId] = error.message;
+    }
+
+    if (nextPhoneErrors.isEmpty) {
+      return false;
+    }
+
+    setState(() {
+      _serverPhoneErrorsById
+        ..clear()
+        ..addAll(nextPhoneErrors);
+    });
+    _formKey.currentState?.validate();
+    return true;
   }
 }
 

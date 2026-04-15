@@ -33,6 +33,8 @@ class MemberPhoneSplitResult {
 class MemberPhoneInput {
   static const String defaultCountryId = 'de';
   static const String otherCountryId = 'other';
+  static const int minDigits = 6;
+  static const int maxDigits = 15;
 
   static const List<MemberPhoneCountryOption> options =
       <MemberPhoneCountryOption>[
@@ -160,19 +162,28 @@ class MemberPhoneInput {
       if (normalized == null) {
         return 'Bitte bei Sonstige die vollständige Telefonnummer mit +XX angeben.';
       }
-      if (_digitsOnly(normalized).length < 4) {
+      if (!_hasValidLength(normalized)) {
         return 'Bitte eine gültige Telefonnummer eingeben.';
       }
       return null;
     }
 
-    if (trimmed.startsWith('+')) {
-      return 'Bitte Nummer ohne Ländervorwahl eingeben.';
+    if (_looksInternational(trimmed)) {
+      final normalized = normalizeInternational(trimmed);
+      if (normalized == null || !_hasValidLength(normalized)) {
+        return 'Bitte eine gültige Telefonnummer eingeben.';
+      }
+      return null;
     }
 
     final allowedPattern = RegExp(r'^[0-9\-() /]+$');
     if (!allowedPattern.hasMatch(trimmed) ||
         !RegExp(r'[0-9]').hasMatch(trimmed)) {
+      return 'Bitte eine gültige Telefonnummer eingeben.';
+    }
+
+    final normalized = '${option.dialCode}${_digitsOnly(trimmed)}';
+    if (!_hasValidLength(normalized)) {
       return 'Bitte eine gültige Telefonnummer eingeben.';
     }
 
@@ -193,6 +204,10 @@ class MemberPhoneInput {
       return normalizeInternational(trimmed);
     }
 
+    if (_looksInternational(trimmed)) {
+      return normalizeInternational(trimmed);
+    }
+
     final digits = _digitsOnly(trimmed);
     if (digits.isEmpty) {
       return null;
@@ -202,16 +217,32 @@ class MemberPhoneInput {
 
   static String? normalizeInternational(String? value) {
     final trimmed = value?.trim() ?? '';
-    if (trimmed.isEmpty || !trimmed.startsWith('+')) {
+    if (trimmed.isEmpty) {
       return null;
     }
 
-    final digits = _digitsOnly(trimmed.substring(1));
+    final normalizedPrefix = trimmed.startsWith('00')
+        ? '+${trimmed.substring(2)}'
+        : trimmed;
+    if (!normalizedPrefix.startsWith('+')) {
+      return null;
+    }
+
+    final digits = _digitsOnly(normalizedPrefix.substring(1));
     if (digits.isEmpty) {
       return null;
     }
 
     return '+$digits';
+  }
+
+  static bool _looksInternational(String value) {
+    return value.startsWith('+') || value.startsWith('00');
+  }
+
+  static bool _hasValidLength(String normalizedValue) {
+    final digitCount = _digitsOnly(normalizedValue).length;
+    return digitCount >= minDigits && digitCount <= maxDigits;
   }
 
   static String _digitsOnly(String value) {

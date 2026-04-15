@@ -7,6 +7,7 @@ import 'package:nami/domain/member/member_write_repository.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/settings/app_settings.dart';
 import 'package:nami/domain/settings/app_settings_repository.dart';
+import 'package:nami/services/hitobito_api_exception.dart';
 import 'package:nami/services/hitobito_auth_env.dart';
 import 'package:nami/services/hitobito_people_service.dart';
 import 'package:nami/services/logger_service.dart';
@@ -75,6 +76,66 @@ void main() {
       );
     },
   );
+
+  test('ordnet 422 mit Felddetails als Validierungsfehler ein', () async {
+    final peopleService = _FakeHitobitoPeopleService()
+      ..updateError = const HitobitoPeopleException(
+        'Validation Error',
+        statusCode: 422,
+        validationErrors: <HitobitoApiValidationError>[
+          HitobitoApiValidationError(
+            message: 'Nummer ist nicht gültig',
+            pointer: '/data/attributes/number',
+            relationshipName: 'phone_numbers',
+            relationshipAttribute: 'number',
+            relationshipType: 'phone_numbers',
+            relationshipId: 288,
+            code: 'invalid',
+          ),
+        ],
+      );
+    final repository = HitobitoMemberWriteRepository(
+      peopleService: peopleService,
+      logger: _FakeLoggerService(),
+    );
+    final basisMitglied = Mitglied.peopleListItem(
+      mitgliedsnummer: '4711',
+      personId: 23,
+      vorname: 'Julia',
+      nachname: 'Keller',
+    ).copyWith(updatedAt: DateTime.parse('2026-04-14T09:00:00Z'));
+
+    await expectLater(
+      () => repository.updateMember(
+        accessToken: 'token-123',
+        basisMitglied: basisMitglied,
+        zielMitglied: basisMitglied.copyWith(vorname: 'Juliane'),
+      ),
+      throwsA(
+        isA<MemberWriteValidationException>()
+            .having(
+              (error) => error.message,
+              'message',
+              'Nummer ist nicht gültig',
+            )
+            .having(
+              (error) => error.errors.single.relationshipId,
+              'relationshipId',
+              288,
+            )
+            .having(
+              (error) => error.errors.single.relationshipName,
+              'relationshipName',
+              'phone_numbers',
+            )
+            .having(
+              (error) => error.errors.single.relationshipAttribute,
+              'relationshipAttribute',
+              'number',
+            ),
+      ),
+    );
+  });
 
   test('loggt den genauen API-Grund bei abgelehntem Personen-Update', () async {
     final logger = _FakeLoggerService();

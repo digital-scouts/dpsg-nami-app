@@ -25,6 +25,15 @@ void main() {
     expect(value, '+491701234567');
   });
 
+  test('normalisiert internationale Eingaben mit 00-Praefix', () {
+    final value = MemberPhoneInput.compose(
+      countryId: 'de',
+      localNumber: '0049 170 123 45 67',
+    );
+
+    expect(value, '+491701234567');
+  });
+
   test('akzeptiert Sonstige nur mit internationalem Plus-Praefix', () {
     final error = MemberPhoneInput.validate(
       countryId: MemberPhoneInput.otherCountryId,
@@ -36,5 +45,35 @@ void main() {
       error,
       'Bitte bei Sonstige die vollständige Telefonnummer mit +XX angeben.',
     );
+  });
+
+  test('akzeptiert Sonstige auch mit 00-Praefix', () {
+    final error = MemberPhoneInput.validate(
+      countryId: MemberPhoneInput.otherCountryId,
+      localNumber: '00412125550123',
+      required: true,
+    );
+
+    expect(error, isNull);
+  });
+
+  test('lehnt zu kurze Telefonnummern ab', () {
+    final error = MemberPhoneInput.validate(
+      countryId: 'de',
+      localNumber: '123',
+      required: true,
+    );
+
+    expect(error, 'Bitte eine gültige Telefonnummer eingeben.');
+  });
+
+  test('lehnt zu lange Telefonnummern ab', () {
+    final error = MemberPhoneInput.validate(
+      countryId: MemberPhoneInput.otherCountryId,
+      localNumber: '+1234567890123456',
+      required: true,
+    );
+
+    expect(error, 'Bitte eine gültige Telefonnummer eingeben.');
   });
 }

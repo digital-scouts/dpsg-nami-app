@@ -98,7 +98,7 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
                         content: AwesomeSnackbarContent(
                           title: l10n.t('snackbar_invalid_altersgrenzen_title'),
                           message: e.message,
-                          contentType: ContentType.failure,
+                          contentType: ContentType.help,
                         ),
                       ),
                     );
