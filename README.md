@@ -168,6 +168,10 @@ Für Hitobito gilt aktuell: Die App muss beim ersten Start erfolgreich per Hitob
 
 Läuft ein Hitobito-Zugriff mit `401` in eine abgelaufene Sitzung, versucht die App zunächst den technischen Retry-Pfad einschließlich erneuter Anmeldung. Der zuletzt geladene Arbeitskontext bleibt dabei erhalten. Gelöscht wird weiterhin nur nach den bestehenden Regeln bei manuellem Logout oder nach Ablauf von `HITOBITO_DATA_MAX_AGE_DAYS`.
 
+Personenänderungen werden im Hitobito-Schreibpfad nicht mehr pauschal am globalen `updatedAt` abgebrochen. Die App vergleicht Basisstand, lokalen Bearbeitungsstand und aktuellen Serverstand pro Änderungseinheit. Unabhängige Änderungen werden automatisch zusammengeführt. Nur wenn dieselbe Änderungseinheit unterschiedlich geändert wurde oder ein späterer Retry einen nicht direkt zuordenbaren Validierungsfehler meldet, entsteht ein eigener Problemlösungsfall pro Mitglied. Die aktuelle Nutzerdokumentation dazu liegt unter [docs/konfliktdialog.markdown](docs/konfliktdialog.markdown).
+
+Wenn Analytics in der App aktiviert sind, protokolliert die App zusätzlich fachliche Tracking-Ereignisse für Bearbeiten, Retry und Problemlösungsfälle. Die Übersicht der derzeit vorhandenen Wiredash-Events liegt unter [docs/wiredash.markdown](docs/wiredash.markdown).
+
 Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den jeweils aktiven Arbeitskontext gekoppelt. Die App soll dabei im ersten Schritt genau einen lokalen Arbeitskontext vorhalten und diesen bei einem bewussten Kontextwechsel ersetzen.
 
 ## Aktuelle Funktionen
@@ -180,6 +184,8 @@ Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den
 - Mitglieder und Tätigkeiten bearbeiten, erstellen und löschen/Mitgliedschaft beenden
 - Mitgliedsdaten sind nach erstem erfolgreichem Hitobito-Login und initialem Laden offline verfügbar; Aktualisierungen werden im konfigurierten Hitobito-Refresh-Intervall versucht
 - Schlägt das Senden einer Personenänderung wegen eines retrybaren Remote-Fehlers fehl, wird die Änderung lokal vorgemerkt und kann über Debug & Tools erneut gesendet werden
+- Echte Konflikte bei Personenänderungen sowie bestimmte spätere Validierungsfehler werden als Problemlösungsfall pro Mitglied gespeichert. Offene Fälle sind über Einstellungen, Mitglieddetails und die Mitgliederliste sichtbar und können von dort erneut geöffnet werden.
+- Die App erfasst bei aktivierter Analytics-Option Tracking-Ereignisse für Bearbeiten, Retry und Problemlösungsfälle, damit Konflikte und nicht automatisch lösbare Fälle fachlich ausgewertet werden können.
 - Der Statistik-Tab zeigt aktuell die Mitgliederanzahl im aktiven Arbeitskontext
 - Empfehlung für den nächsten Stufenwechsel eines Mitglieds.
   - Die gewünschte Altersgrenzen der Stufen können angepasst werden.
@@ -195,6 +201,7 @@ Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den
 
 ## Geplante Funktionen
 
+- Adresse automatisch vervollständigen über Geoapify im Online-Bearbeiten-Pfad; die separate Adressvalidierung bleibt auf Offline- und spätere Sync-Fälle begrenzt
 - Mitglieder anlegen per Texterkennung / Foto vom Anmeldebogen
 - Export von Zuschusslisten
 - Erinnerungen und Kalenderintegration für
@@ -211,3 +218,9 @@ Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den
 - [OpenStreetMap Tiles](https://operations.osmfoundation.org/policies/tiles/): Fallback, wenn kein expliziter Tile-Endpoint konfiguriert ist
 - [openplzapi](https://www.openplzapi.org/de/): Fallback für Geoapify (Unlimited)
 - [openiban](https://openiban.com): Validierung der IBAN beim anlegen eines Nutzers (Unlimited)
+
+## Dokumentation
+
+- [docs/index.markdown](docs/index.markdown) ist die Startseite des GitHub-Pages-Wikis.
+- [docs/konfliktdialog.markdown](docs/konfliktdialog.markdown) beschreibt das aktuelle Verhalten des Problemlösungsfalls.
+- [docs/wiredash.markdown](docs/wiredash.markdown) listet die aktuell implementierten Wiredash-Trackings auf.

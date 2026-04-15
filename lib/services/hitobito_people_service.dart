@@ -159,6 +159,7 @@ class HitobitoPeopleService {
   Future<void> updatePersonWithRelationships(
     String accessToken, {
     required Mitglied mitglied,
+    Map<String, dynamic>? changedAttributes,
     List<HitobitoRelationshipMutation<MitgliedKontaktTelefon>>
         phoneNumberMutations =
         const <HitobitoRelationshipMutation<MitgliedKontaktTelefon>>[],
@@ -203,6 +204,8 @@ class HitobitoPeopleService {
       included.addAll(payload.included);
     }
 
+    final attributes = changedAttributes ?? _buildPersonAttributes(mitglied);
+
     await _sendJsonApiMutation(
       method: 'PUT',
       accessToken: accessToken,
@@ -211,7 +214,7 @@ class HitobitoPeopleService {
         'data': <String, dynamic>{
           'type': 'people',
           'id': personId.toString(),
-          'attributes': _buildPersonAttributes(mitglied),
+          if (attributes.isNotEmpty) 'attributes': attributes,
           if (relationships.isNotEmpty) 'relationships': relationships,
         },
         if (included.isNotEmpty) 'included': included,

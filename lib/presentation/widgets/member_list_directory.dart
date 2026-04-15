@@ -23,6 +23,7 @@ class MemberDirectory extends StatefulWidget {
     this.highlightSearchMatches = false,
     this.subtitleTextBuilder,
     this.trailingTextBuilder,
+    this.warningBuilder,
     this.enableGroupFilter = true,
     this.onOpenFilterOptions,
     this.onTapMember,
@@ -38,6 +39,7 @@ class MemberDirectory extends StatefulWidget {
   final bool highlightSearchMatches;
   final String? Function(Mitglied mitglied)? subtitleTextBuilder;
   final String? Function(Mitglied mitglied)? trailingTextBuilder;
+  final bool Function(Mitglied mitglied)? warningBuilder;
   final bool enableGroupFilter;
   final VoidCallback? onOpenFilterOptions;
   final ValueChanged<String>? onTapMember;
@@ -152,6 +154,7 @@ class _MemberDirectoryState extends State<MemberDirectory> {
             subtitleMode: widget.subtitleMode,
             subtitleTextBuilder: widget.subtitleTextBuilder,
             trailingTextBuilder: widget.trailingTextBuilder,
+            warningBuilder: widget.warningBuilder,
             favourites: favourites,
             selectedFilterKeys: widget.enableGroupFilter
                 ? selectedFilterKeys

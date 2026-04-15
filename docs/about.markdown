@@ -12,6 +12,8 @@ Aktuell wird die App für Hitobito fachlich auf ein Arbeitskontext-Modell vorber
 
 Eine kurze Zusammenfassung für die Projektdokumentation liegt unter [Arbeitskontext-Modell](/arbeitskontext/).
 
+Die geplante Konflikt- und Problemlösungslogik für Personenänderungen ist vor Implementierungsstart ausführlich unter [Konfliktdialog und Problemlösungsfall](/konfliktdialog/) beschrieben.
+
 Die ausführliche, fortlaufend gepflegte Konzeptfassung und die technische Analyse liegen weiterhin im Repository unter specs/.
 
 Stand dieser Seite: vor dem Implementierungsstart der nächsten Hitobito-Ausbaustufe.

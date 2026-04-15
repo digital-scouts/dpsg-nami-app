@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../domain/member/member_resolution.dart';
 import '../../domain/member/mitglied.dart';
+import '../../domain/member/pending_person_update.dart';
 import '../model/auth_session_model.dart';
 import '../model/member_edit_model.dart';
 import '../model/member_phone_input.dart';
@@ -14,11 +16,15 @@ class MemberEditPage extends StatefulWidget {
   const MemberEditPage({
     super.key,
     required this.mitglied,
+    this.pendingEntry,
     this.initialNoticeMessage,
+    this.resolutionEntryPoint,
   });
 
   final Mitglied mitglied;
+  final PendingPersonUpdate? pendingEntry;
   final String? initialNoticeMessage;
+  final String? resolutionEntryPoint;
 
   @override
   State<MemberEditPage> createState() => _MemberEditPageState();
@@ -47,7 +53,12 @@ class _MemberEditPageState extends State<MemberEditPage> {
   late final List<_EmailDraft> _additionalEmailDrafts;
   late final List<_AddressDraft> _additionalAddressDrafts;
   final Map<int, String> _serverPhoneErrorsById = <int, String>{};
+  final Set<String> _dismissedResolutionItemIds = <String>{};
   bool _isSubmitting = false;
+
+  MemberResolutionCase? get _resolutionCase =>
+      widget.pendingEntry?.resolutionCase;
+  bool get _isResolutionMode => _resolutionCase != null;
 
   @override
   void initState() {
@@ -91,6 +102,17 @@ class _MemberEditPageState extends State<MemberEditPage> {
         _showMessage(initialNoticeMessage);
       });
     }
+    if (_isResolutionMode && widget.pendingEntry != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) {
+          return;
+        }
+        await context.read<MemberEditModel?>()?.logResolutionOpened(
+          entry: widget.pendingEntry!,
+          entryPoint: widget.resolutionEntryPoint ?? 'unknown',
+        );
+      });
+    }
   }
 
   @override
@@ -115,7 +137,11 @@ class _MemberEditPageState extends State<MemberEditPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Person bearbeiten')),
+      appBar: AppBar(
+        title: Text(
+          _isResolutionMode ? 'Problemloesung Mitglied' : 'Person bearbeiten',
+        ),
+      ),
       body: Column(
         children: [
           Expanded(
@@ -143,6 +169,10 @@ class _MemberEditPageState extends State<MemberEditPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
+                              if (_isResolutionMode) ...[
+                                _buildResolutionSection(),
+                                const SizedBox(height: 10),
+                              ],
                               _SectionCard(
                                 title: 'Allgemein',
                                 child: _buildGeneralSection(),
@@ -215,6 +245,110 @@ class _MemberEditPageState extends State<MemberEditPage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildResolutionSection() {
+    final resolutionCase = _resolutionCase;
+    if (resolutionCase == null) {
+      return const SizedBox.shrink();
+    }
+
+    final visibleItems = resolutionCase.items
+        .where((item) => !_dismissedResolutionItemIds.contains(item.itemId))
+        .toList(growable: false);
+    return _SectionCard(
+      title: 'Offene Probleme',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Nur die betroffenen Felder werden gezeigt. Du kannst den Serverstand uebernehmen, lokale Aenderungen behalten oder die Werte direkt im Formular anpassen.',
+          ),
+          if (visibleItems.isNotEmpty) const SizedBox(height: 12),
+          if (visibleItems.isEmpty)
+            const _EmptyState(
+              message:
+                  'Alle aktuell sichtbaren Problemfaelle wurden fuer diesen Durchgang bearbeitet.',
+            ),
+          for (var index = 0; index < visibleItems.length; index++) ...[
+            if (index > 0) const SizedBox(height: 10),
+            _buildResolutionItemCard(visibleItems[index]),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResolutionItemCard(MemberResolutionItem item) {
+    final isConflict = item.problemType == MemberResolutionProblemType.conflict;
+    final localValue = _describeCurrentFormValue(item.target);
+    final remoteValue = _describeMemberValue(
+      _resolutionCase?.remoteMitglied,
+      item.target,
+    );
+    final fallbackValue = _describeMemberValue(
+      widget.pendingEntry?.basisMitglied,
+      item.target,
+    );
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _labelForResolutionTarget(item.target),
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          const SizedBox(height: 4),
+          Text(item.message),
+          const SizedBox(height: 10),
+          if (isConflict) ...[
+            Text('Lokal: $localValue'),
+            const SizedBox(height: 4),
+            Text('Hitobito: $remoteValue'),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () {
+                    _recordResolutionChoice(item, 'keep_local');
+                    setState(() {
+                      _dismissedResolutionItemIds.add(item.itemId);
+                    });
+                  },
+                  icon: const Icon(Icons.edit_outlined),
+                  label: const Text('Lokal behalten'),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: () => _applyServerChoice(item),
+                  icon: const Icon(Icons.sync_alt_outlined),
+                  label: const Text('Serverstand verwenden'),
+                ),
+              ],
+            ),
+          ] else ...[
+            Text('Aktueller Wert: $localValue'),
+            if (fallbackValue != 'Nicht verfuegbar') ...[
+              const SizedBox(height: 4),
+              Text('Vorheriger Stand: $fallbackValue'),
+            ],
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: () => _discardValidationChange(item),
+              icon: const Icon(Icons.undo_outlined),
+              label: const Text('Lokale Aenderung verwerfen'),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -734,11 +868,25 @@ class _MemberEditPageState extends State<MemberEditPage> {
       final targetMember = _buildTargetMember();
       final result = await memberEditModel.submitUpdate(
         accessToken: accessToken,
-        basisMitglied: widget.mitglied,
+        basisMitglied: _resolutionCase?.remoteMitglied ?? widget.mitglied,
         zielMitglied: targetMember,
-        trigger: 'manual_edit',
+        trigger: _isResolutionMode ? 'manual_resolution' : 'manual_edit',
+        existingResolutionCase: _resolutionCase,
       );
       if (!mounted) {
+        return;
+      }
+      if (result.requiresResolution && result.pendingEntry != null) {
+        await Navigator.of(context).pushReplacement(
+          MaterialPageRoute<void>(
+            builder: (_) => MemberEditPage(
+              mitglied: result.pendingEntry!.zielMitglied,
+              pendingEntry: result.pendingEntry,
+              initialNoticeMessage: result.message,
+              resolutionEntryPoint: 'submit_result',
+            ),
+          ),
+        );
         return;
       }
       if (result.success || result.wasQueued) {
@@ -930,6 +1078,300 @@ class _MemberEditPageState extends State<MemberEditPage> {
     return draft.toAdresse().istLeer
         ? 'Leere Zusatzadresse bitte entfernen oder ausfüllen.'
         : null;
+  }
+
+  void _applyServerChoice(MemberResolutionItem item) {
+    final remoteMember = _resolutionCase?.remoteMitglied;
+    if (remoteMember == null) {
+      return;
+    }
+    _recordResolutionChoice(item, 'use_server');
+    setState(() {
+      _applyMemberValue(item.target, remoteMember);
+      _dismissedResolutionItemIds.add(item.itemId);
+    });
+  }
+
+  void _discardValidationChange(MemberResolutionItem item) {
+    final fallbackMember = widget.pendingEntry?.basisMitglied;
+    if (fallbackMember == null) {
+      return;
+    }
+    _recordResolutionChoice(item, 'discard_local');
+    setState(() {
+      _applyMemberValue(item.target, fallbackMember);
+      _dismissedResolutionItemIds.add(item.itemId);
+    });
+  }
+
+  void _recordResolutionChoice(MemberResolutionItem item, String choice) {
+    final pendingEntry = widget.pendingEntry;
+    final memberEditModel = context.read<MemberEditModel?>();
+    if (pendingEntry == null || memberEditModel == null) {
+      return;
+    }
+    memberEditModel.logResolutionChoice(
+      entry: pendingEntry,
+      item: item,
+      choice: choice,
+    );
+  }
+
+  void _applyMemberValue(MemberResolutionTarget target, Mitglied source) {
+    switch (target.type) {
+      case MemberResolutionTargetType.firstName:
+        _vornameController.text = source.vorname;
+        return;
+      case MemberResolutionTargetType.lastName:
+        _nachnameController.text = source.nachname;
+        return;
+      case MemberResolutionTargetType.nickname:
+        _fahrtennameController.text = source.fahrtenname ?? '';
+        return;
+      case MemberResolutionTargetType.gender:
+        _gender = _normalizeGenderValue(source.gender);
+        return;
+      case MemberResolutionTargetType.birthday:
+        _geburtsdatum = source.geburtsdatum == Mitglied.peoplePlaceholderDate
+            ? null
+            : source.geburtsdatum;
+        return;
+      case MemberResolutionTargetType.primaryEmail:
+        _primaryEmailController.text =
+            _resolvePrimaryEmail(source.emailAdressen)?.wert ?? '';
+        return;
+      case MemberResolutionTargetType.phone:
+        _replacePhoneDraft(target.relationshipId, source);
+        return;
+      case MemberResolutionTargetType.additionalEmail:
+        _replaceAdditionalEmailDraft(target.relationshipId, source);
+        return;
+      case MemberResolutionTargetType.primaryAddress:
+        _primaryAddressDraft.replaceWith(
+          _resolvePrimaryAddress(source.adressen) ??
+              const MitgliedKontaktAdresse(additionalAddressId: 0),
+        );
+        return;
+      case MemberResolutionTargetType.additionalAddress:
+        _replaceAdditionalAddressDraft(target.relationshipId, source);
+        return;
+    }
+  }
+
+  void _replacePhoneDraft(int? relationshipId, Mitglied source) {
+    if (relationshipId == null) {
+      return;
+    }
+    final index = _phoneDrafts.indexWhere(
+      (draft) => draft.phoneNumberId == relationshipId,
+    );
+    final replacement = source.telefonnummern.where(
+      (phone) => phone.phoneNumberId == relationshipId,
+    );
+    if (replacement.isEmpty) {
+      if (index >= 0) {
+        final removed = _phoneDrafts.removeAt(index);
+        removed.dispose();
+      }
+      return;
+    }
+    final nextDraft = _PhoneDraft.fromTelefon(replacement.first);
+    if (index >= 0) {
+      final removed = _phoneDrafts.removeAt(index);
+      removed.dispose();
+      _phoneDrafts.insert(index, nextDraft);
+      return;
+    }
+    _phoneDrafts.add(nextDraft);
+  }
+
+  void _replaceAdditionalEmailDraft(int? relationshipId, Mitglied source) {
+    if (relationshipId == null) {
+      return;
+    }
+    final index = _additionalEmailDrafts.indexWhere(
+      (draft) => draft.additionalEmailId == relationshipId,
+    );
+    final replacement = source.emailAdressen.where(
+      (email) => !email.istPrimaer && email.additionalEmailId == relationshipId,
+    );
+    if (replacement.isEmpty) {
+      if (index >= 0) {
+        final removed = _additionalEmailDrafts.removeAt(index);
+        removed.dispose();
+      }
+      return;
+    }
+    final nextDraft = _EmailDraft.fromEmail(replacement.first);
+    if (index >= 0) {
+      final removed = _additionalEmailDrafts.removeAt(index);
+      removed.dispose();
+      _additionalEmailDrafts.insert(index, nextDraft);
+      return;
+    }
+    _additionalEmailDrafts.add(nextDraft);
+  }
+
+  void _replaceAdditionalAddressDraft(int? relationshipId, Mitglied source) {
+    if (relationshipId == null) {
+      return;
+    }
+    final index = _additionalAddressDrafts.indexWhere(
+      (draft) => draft.additionalAddressId == relationshipId,
+    );
+    final replacement = source.adressen.where(
+      (address) => address.additionalAddressId == relationshipId,
+    );
+    if (replacement.isEmpty) {
+      if (index >= 0) {
+        final removed = _additionalAddressDrafts.removeAt(index);
+        removed.dispose();
+      }
+      return;
+    }
+    final nextDraft = _AddressDraft.fromAdresse(replacement.first);
+    if (index >= 0) {
+      final removed = _additionalAddressDrafts.removeAt(index);
+      removed.dispose();
+      _additionalAddressDrafts.insert(index, nextDraft);
+      return;
+    }
+    _additionalAddressDrafts.add(nextDraft);
+  }
+
+  String _labelForResolutionTarget(MemberResolutionTarget target) {
+    switch (target.type) {
+      case MemberResolutionTargetType.firstName:
+        return 'Vorname';
+      case MemberResolutionTargetType.lastName:
+        return 'Nachname';
+      case MemberResolutionTargetType.nickname:
+        return 'Fahrtenname';
+      case MemberResolutionTargetType.gender:
+        return 'Geschlecht';
+      case MemberResolutionTargetType.birthday:
+        return 'Geburtsdatum';
+      case MemberResolutionTargetType.primaryEmail:
+        return 'Primaere E-Mail';
+      case MemberResolutionTargetType.phone:
+        return 'Telefon';
+      case MemberResolutionTargetType.additionalEmail:
+        return 'Zusaetzliche E-Mail';
+      case MemberResolutionTargetType.primaryAddress:
+        return 'Primaere Adresse';
+      case MemberResolutionTargetType.additionalAddress:
+        return 'Zusatzadresse';
+    }
+  }
+
+  String _describeCurrentFormValue(MemberResolutionTarget target) {
+    switch (target.type) {
+      case MemberResolutionTargetType.firstName:
+        return _fallbackValue(_vornameController.text);
+      case MemberResolutionTargetType.lastName:
+        return _fallbackValue(_nachnameController.text);
+      case MemberResolutionTargetType.nickname:
+        return _fallbackValue(_fahrtennameController.text);
+      case MemberResolutionTargetType.gender:
+        return _fallbackValue(_labelForGender(_gender ?? ''));
+      case MemberResolutionTargetType.birthday:
+        return _geburtsdatum == null
+            ? 'Nicht gesetzt'
+            : _dateFormat.format(_geburtsdatum!);
+      case MemberResolutionTargetType.primaryEmail:
+        return _fallbackValue(_primaryEmailController.text);
+      case MemberResolutionTargetType.phone:
+        final draft = _phoneDrafts.where(
+          (value) => value.phoneNumberId == target.relationshipId,
+        );
+        return draft.isEmpty
+            ? 'Nicht vorhanden'
+            : _fallbackValue(draft.first.wertController.text);
+      case MemberResolutionTargetType.additionalEmail:
+        final draft = _additionalEmailDrafts.where(
+          (value) => value.additionalEmailId == target.relationshipId,
+        );
+        return draft.isEmpty
+            ? 'Nicht vorhanden'
+            : _fallbackValue(draft.first.wertController.text);
+      case MemberResolutionTargetType.primaryAddress:
+        return _describeAdresse(_primaryAddressDraft.toAdresse());
+      case MemberResolutionTargetType.additionalAddress:
+        final draft = _additionalAddressDrafts.where(
+          (value) => value.additionalAddressId == target.relationshipId,
+        );
+        return draft.isEmpty
+            ? 'Nicht vorhanden'
+            : _describeAdresse(draft.first.toAdresse());
+    }
+  }
+
+  String _describeMemberValue(Mitglied? member, MemberResolutionTarget target) {
+    if (member == null) {
+      return 'Nicht verfuegbar';
+    }
+    switch (target.type) {
+      case MemberResolutionTargetType.firstName:
+        return _fallbackValue(member.vorname);
+      case MemberResolutionTargetType.lastName:
+        return _fallbackValue(member.nachname);
+      case MemberResolutionTargetType.nickname:
+        return _fallbackValue(member.fahrtenname ?? '');
+      case MemberResolutionTargetType.gender:
+        return _fallbackValue(
+          _labelForGender(_normalizeGenderValue(member.gender) ?? ''),
+        );
+      case MemberResolutionTargetType.birthday:
+        return member.geburtsdatum == Mitglied.peoplePlaceholderDate
+            ? 'Nicht gesetzt'
+            : _dateFormat.format(member.geburtsdatum);
+      case MemberResolutionTargetType.primaryEmail:
+        return _fallbackValue(
+          _resolvePrimaryEmail(member.emailAdressen)?.wert ?? '',
+        );
+      case MemberResolutionTargetType.phone:
+        for (final phone in member.telefonnummern) {
+          if (phone.phoneNumberId == target.relationshipId) {
+            return _fallbackValue(phone.wert);
+          }
+        }
+        return 'Nicht vorhanden';
+      case MemberResolutionTargetType.additionalEmail:
+        for (final email in member.emailAdressen) {
+          if (!email.istPrimaer &&
+              email.additionalEmailId == target.relationshipId) {
+            return _fallbackValue(email.wert);
+          }
+        }
+        return 'Nicht vorhanden';
+      case MemberResolutionTargetType.primaryAddress:
+        return _describeAdresse(_resolvePrimaryAddress(member.adressen));
+      case MemberResolutionTargetType.additionalAddress:
+        for (final address in member.adressen) {
+          if (address.additionalAddressId == target.relationshipId) {
+            return _describeAdresse(address);
+          }
+        }
+        return 'Nicht vorhanden';
+    }
+  }
+
+  String _describeAdresse(MitgliedKontaktAdresse? adresse) {
+    if (adresse == null || adresse.istLeer) {
+      return 'Nicht vorhanden';
+    }
+    return [
+      _trimToNull(adresse.street ?? ''),
+      _trimToNull(adresse.housenumber ?? ''),
+      _trimToNull(adresse.zipCode ?? ''),
+      _trimToNull(adresse.town ?? ''),
+      _trimToNull(adresse.country ?? ''),
+    ].whereType<String>().join(' ');
+  }
+
+  String _fallbackValue(String value) {
+    final trimmed = _trimToNull(value);
+    return trimmed ?? 'Nicht gesetzt';
   }
 
   void _clearPhoneServerError(_PhoneDraft draft) {
@@ -1292,6 +1734,17 @@ class _AddressDraft {
       town: _trimToNull(townController.text),
       country: _trimToNull(countryController.text),
     );
+  }
+
+  void replaceWith(MitgliedKontaktAdresse adresse) {
+    labelController.text = adresse.label ?? '';
+    addressCareOfController.text = adresse.addressCareOf ?? '';
+    streetController.text = adresse.street ?? '';
+    housenumberController.text = adresse.housenumber ?? '';
+    postboxController.text = adresse.postbox ?? '';
+    zipCodeController.text = adresse.zipCode ?? '';
+    townController.text = adresse.town ?? '';
+    countryController.text = adresse.country ?? '';
   }
 
   void dispose() {

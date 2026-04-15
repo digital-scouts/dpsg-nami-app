@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nami/domain/member/member_resolution.dart';
 import 'package:nami/domain/member/member_write_repository.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/member/pending_person_update.dart';
@@ -345,6 +346,110 @@ void main() {
     },
   );
 
+  test('trackt die Erzeugung eines Merge-Konflikt-Falls getrennt', () async {
+    final logger = _FakeLoggerService();
+    final basisMitglied = Mitglied.peopleListItem(
+      mitgliedsnummer: '4711',
+      personId: 23,
+      vorname: 'Julia',
+      nachname: 'Keller',
+    );
+    final resolutionCase = MemberResolutionCase(
+      remoteMitglied: basisMitglied.copyWith(vorname: 'Remote Julia'),
+      source: MemberResolutionSource.manualSave,
+      items: const <MemberResolutionItem>[
+        MemberResolutionItem(
+          problemType: MemberResolutionProblemType.conflict,
+          cause: MemberResolutionCause.overlappingChange,
+          target: MemberResolutionTarget(
+            type: MemberResolutionTargetType.firstName,
+          ),
+          message: 'Vorname kollidiert.',
+        ),
+      ],
+    );
+    final model = MemberEditModel(
+      memberWriteRepository: _FakeMemberWriteRepository(
+        updateResultsByPersonId: <int, Object>{
+          23: MemberWriteNeedsResolutionException(
+            'Konflikt',
+            resolutionCase: resolutionCase,
+          ),
+        },
+      ),
+      pendingRepository: _InMemoryPendingPersonUpdateRepository(),
+      logger: logger,
+      onMemberUpdated: (_) async {},
+    );
+
+    await model.submitUpdate(
+      accessToken: 'token-123',
+      basisMitglied: basisMitglied,
+      zielMitglied: basisMitglied.copyWith(vorname: 'Lokale Julia'),
+    );
+
+    expect(
+      logger.events.any(
+        (event) =>
+            event.name == 'member_resolution_created' &&
+            event.properties['resolution_category'] == 'merge_conflict' &&
+            event.properties['resolution_causes'] == 'overlapping_change' &&
+            event.properties['conflict_count'] == 1 &&
+            event.properties['non_merge_count'] == 0,
+      ),
+      isTrue,
+    );
+  });
+
+  test('trackt Retry-Validierung als non-merge-Problemfall', () async {
+    final logger = _FakeLoggerService();
+    final pendingRepository = _InMemoryPendingPersonUpdateRepository(
+      entries: <PendingPersonUpdate>[
+        _pendingEntry(
+          entryId: 'validation-1',
+          personId: 1,
+          mitgliedsnummer: '1',
+        ),
+      ],
+    );
+    final model = MemberEditModel(
+      memberWriteRepository: _FakeMemberWriteRepository(
+        updateResultsByPersonId: <int, Object>{
+          1: const MemberWriteValidationException(
+            'Nummer ist nicht gueltig',
+            errors: <MemberWriteFieldValidationError>[
+              MemberWriteFieldValidationError(
+                message: 'Nummer ist nicht gueltig',
+                relationshipName: 'phone_numbers',
+                relationshipAttribute: 'number',
+                relationshipId: 5,
+                code: 'invalid',
+              ),
+            ],
+          ),
+        },
+      ),
+      pendingRepository: pendingRepository,
+      logger: logger,
+      onMemberUpdated: (_) async {},
+    );
+    await model.loadPending();
+
+    await model.retryPending(accessToken: 'token-123');
+
+    expect(
+      logger.events.any(
+        (event) =>
+            event.name == 'member_resolution_created' &&
+            event.properties['resolution_category'] == 'non_merge_problem' &&
+            event.properties['resolution_causes'] == 'server_validation' &&
+            event.properties['validation_count'] == 1 &&
+            event.properties['non_merge_count'] == 1,
+      ),
+      isTrue,
+    );
+  });
+
   test('trackt erfolgreichen Submit anonymisiert', () async {
     final logger = _FakeLoggerService();
     final basisMitglied = Mitglied.peopleListItem(
@@ -384,6 +489,66 @@ void main() {
           },
         ),
       ),
+    );
+  });
+
+  test('trackt Resend-Start und Resend-Erfolg fuer Problemloesungen', () async {
+    final logger = _FakeLoggerService();
+    final basisMitglied = Mitglied.peopleListItem(
+      mitgliedsnummer: '4711',
+      personId: 23,
+      vorname: 'Julia',
+      nachname: 'Keller',
+    );
+    final resolutionCase = MemberResolutionCase(
+      remoteMitglied: basisMitglied.copyWith(vorname: 'Remote Julia'),
+      source: MemberResolutionSource.manualSave,
+      items: const <MemberResolutionItem>[
+        MemberResolutionItem(
+          problemType: MemberResolutionProblemType.conflict,
+          cause: MemberResolutionCause.overlappingChange,
+          target: MemberResolutionTarget(
+            type: MemberResolutionTargetType.firstName,
+          ),
+          message: 'Vorname kollidiert.',
+        ),
+      ],
+    );
+    final model = MemberEditModel(
+      memberWriteRepository: _FakeMemberWriteRepository(
+        updateResultsByPersonId: <int, Object>{
+          23: basisMitglied.copyWith(vorname: 'Lokale Julia'),
+        },
+      ),
+      pendingRepository: _InMemoryPendingPersonUpdateRepository(),
+      logger: logger,
+      onMemberUpdated: (_) async {},
+    );
+
+    await model.submitUpdate(
+      accessToken: 'token-123',
+      basisMitglied: basisMitglied.copyWith(vorname: 'Remote Julia'),
+      zielMitglied: basisMitglied.copyWith(vorname: 'Lokale Julia'),
+      trigger: 'manual_resolution',
+      existingResolutionCase: resolutionCase,
+    );
+
+    expect(
+      logger.events.any(
+        (event) =>
+            event.name == 'member_resolution_resend_started' &&
+            event.properties['trigger'] == 'manual_resolution',
+      ),
+      isTrue,
+    );
+    expect(
+      logger.events.any(
+        (event) =>
+            event.name == 'member_resolution_resend_result' &&
+            event.properties['outcome'] == 'success' &&
+            event.properties['remaining_item_count'] == 0,
+      ),
+      isTrue,
     );
   });
 
@@ -484,21 +649,18 @@ void main() {
       ),
     );
     expect(
-      logger.events,
-      contains(
-        _TrackedEvent(
-          name: 'member_edit',
-          properties: const <String, Object?>{
-            'action': 'retry_result',
-            'trigger': 'manual_debug',
-            'outcome': 'succeeded',
-            'success_count': 1,
-            'retained_count': 0,
-            'discarded_count': 0,
-            'source': 'member_edit',
-          },
-        ),
+      logger.events.any(
+        (event) =>
+            event.name == 'member_edit' &&
+            event.properties['action'] == 'retry_result' &&
+            event.properties['trigger'] == 'manual_debug' &&
+            event.properties['outcome'] == 'succeeded' &&
+            event.properties['success_count'] == 1 &&
+            event.properties['retained_count'] == 0 &&
+            event.properties['discarded_count'] == 0 &&
+            event.properties['needs_resolution_count'] == 0,
       ),
+      isTrue,
     );
   });
 }

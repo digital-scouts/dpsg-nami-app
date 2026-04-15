@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../domain/maps/address_map_location_repository.dart';
 import '../../domain/member/mitglied.dart';
+import '../../domain/member/pending_person_update.dart';
 import '../../domain/settings/address_settings_repository.dart';
 import '../../services/geoapify_address_map_service.dart';
 import '../../services/map_tile_cache_service.dart';
@@ -40,13 +41,17 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
 
   Future<void> _openEditPage(
     Mitglied mitglied, {
+    PendingPersonUpdate? pendingEntry,
     String? initialNoticeMessage,
+    String? resolutionEntryPoint,
   }) async {
     final result = await Navigator.of(context).push<MemberEditSubmitResult>(
       MaterialPageRoute<MemberEditSubmitResult>(
         builder: (_) => MemberEditPage(
           mitglied: mitglied,
+          pendingEntry: pendingEntry,
           initialNoticeMessage: initialNoticeMessage,
+          resolutionEntryPoint: resolutionEntryPoint,
         ),
       ),
     );
@@ -73,6 +78,19 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
 
     final authModel = context.read<AuthSessionModel?>();
     final memberEditModel = context.read<MemberEditModel?>();
+    final pendingEntry = memberEditModel?.pendingForMitglied(
+      mitglied.mitgliedsnummer,
+    );
+    if (pendingEntry?.needsResolution ?? false) {
+      await _openEditPage(
+        pendingEntry!.zielMitglied,
+        pendingEntry: pendingEntry,
+        initialNoticeMessage:
+            'Fuer diese Person ist eine Problemloesung noetig, bevor die Aenderung gesendet werden kann.',
+        resolutionEntryPoint: 'detail',
+      );
+      return;
+    }
     final accessToken = authModel?.session?.accessToken;
     if (memberEditModel == null || accessToken == null || accessToken.isEmpty) {
       _showMessage(
@@ -134,6 +152,10 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
           currentMitglied.mitgliedsnummer,
         ) ??
         false;
+    final pendingEntry = memberEditModel?.pendingForMitglied(
+      currentMitglied.mitgliedsnummer,
+    );
+    final needsResolution = pendingEntry?.needsResolution ?? false;
     final isWritable =
         arbeitskontextModel?.istMitgliedSchreibbar(currentMitglied) ?? false;
     final title = currentMitglied.fullName.trim().isEmpty
@@ -145,9 +167,13 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
         title: Text(title),
         actions: [
           if (hasPending)
-            const Padding(
-              padding: EdgeInsets.only(right: 4),
-              child: Icon(Icons.schedule_outlined),
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: Icon(
+                needsResolution
+                    ? Icons.warning_amber_rounded
+                    : Icons.schedule_outlined,
+              ),
             ),
           if (isWritable)
             IconButton(
@@ -169,10 +195,24 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
         children: [
           if (hasPending)
             MaterialBanner(
-              content: const Text(
-                'Für diese Person liegt eine ausstehende Änderung vor. Ein Retry ist in den Debug-Tools möglich.',
+              content: Text(
+                needsResolution
+                    ? 'Fuer diese Person gibt es offene Problemfaelle. Bitte pruefe die betroffenen Felder und sende die Aenderung danach erneut.'
+                    : 'Fuer diese Person liegt eine ausstehende Aenderung vor. Ein Retry ist in den Debug-Tools moeglich.',
               ),
-              actions: const <Widget>[SizedBox.shrink()],
+              actions: <Widget>[
+                if (needsResolution && pendingEntry != null)
+                  TextButton(
+                    onPressed: () => _openEditPage(
+                      pendingEntry.zielMitglied,
+                      pendingEntry: pendingEntry,
+                      resolutionEntryPoint: 'detail',
+                    ),
+                    child: const Text('Problem loesen'),
+                  )
+                else
+                  const SizedBox.shrink(),
+              ],
             ),
           Expanded(
             child: MemberDetails(

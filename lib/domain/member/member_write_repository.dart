@@ -1,3 +1,4 @@
+import 'member_resolution.dart';
 import 'mitglied.dart';
 
 class MemberWriteException implements Exception {
@@ -63,6 +64,15 @@ class MemberWriteFieldValidationError {
 
 class MemberWriteConflictException extends MemberWriteException {
   const MemberWriteConflictException(super.message);
+}
+
+class MemberWriteNeedsResolutionException extends MemberWriteException {
+  const MemberWriteNeedsResolutionException(
+    super.message, {
+    required this.resolutionCase,
+  });
+
+  final MemberResolutionCase resolutionCase;
 }
 
 class MemberWriteUpdatedAtMissingException extends MemberWriteException {

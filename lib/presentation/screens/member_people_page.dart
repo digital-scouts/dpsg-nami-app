@@ -10,6 +10,7 @@ import '../../l10n/app_localizations.dart';
 import '../model/app_settings_model.dart';
 import '../model/arbeitskontext_model.dart';
 import '../model/auth_session_model.dart';
+import '../model/member_edit_model.dart';
 import '../model/member_filters_model.dart';
 import '../navigation/app_router.dart';
 import '../notifications/app_snackbar.dart';
@@ -33,6 +34,7 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
   _ermittleMemberFilterTrefferUseCase = ErmittleMemberFilterTrefferUseCase();
 
   String? _lastShownIssueKey;
+  String? _lastShownResolutionKey;
   int? _lastMemberFiltersLayerId;
 
   Mitglied? _findMemberById(List<Mitglied> members, String memberId) {
@@ -92,6 +94,7 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
     final t = AppLocalizations.of(context);
     final authModel = context.watch<AuthSessionModel>();
     final arbeitskontextModel = context.watch<ArbeitskontextModel>();
+    final memberEditModel = context.watch<MemberEditModel?>();
     final appSettingsModel = context.watch<AppSettingsModel?>();
     final memberFiltersModel = context.watch<MemberFiltersModel?>();
     final highlightSearchMatches =
@@ -121,6 +124,7 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
         memberFiltersModel?.subtitleMode ?? MemberSubtitleMode.mitgliedsnummer;
 
     _scheduleIssueSnackbar(context, t, authModel);
+    _scheduleResolutionSnackbar(context, memberEditModel);
 
     return Column(
       children: [
@@ -140,6 +144,7 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
             sortKey: sortKey,
             subtitleMode: subtitleMode,
             members: members,
+            memberEditModel: memberEditModel,
           ),
         ),
       ],
@@ -192,6 +197,42 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
     });
   }
 
+  void _scheduleResolutionSnackbar(
+    BuildContext context,
+    MemberEditModel? memberEditModel,
+  ) {
+    final resolutionCount = memberEditModel?.openResolutionCount ?? 0;
+    if (resolutionCount <= 0) {
+      _lastShownResolutionKey = null;
+      return;
+    }
+
+    final issueKey = 'resolution:$resolutionCount';
+    if (_lastShownResolutionKey == issueKey) {
+      return;
+    }
+
+    _lastShownResolutionKey = issueKey;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      memberEditModel?.logResolutionHintShown(
+        entryPoint: 'people_list',
+        openResolutionCount: resolutionCount,
+      );
+
+      AppSnackbar.show(
+        context,
+        message:
+            'Es gibt $resolutionCount offene Problemfaelle bei Mitglieds-Aenderungen.',
+        type: AppSnackbarType.warning,
+        replaceCurrent: true,
+      );
+    });
+  }
+
   Widget _buildBody(
     BuildContext context,
     AppLocalizations t, {
@@ -205,6 +246,7 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
     required MemberSortKey sortKey,
     required MemberSubtitleMode subtitleMode,
     required List<Mitglied> members,
+    required MemberEditModel? memberEditModel,
   }) {
     if ((arbeitskontextModel.isLoading || authModel.isSyncingHitobitoData) &&
         members.isEmpty) {
@@ -217,6 +259,9 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
         sortKey: sortKey,
         subtitleMode: subtitleMode,
         highlightSearchMatches: highlightSearchMatches,
+        warningBuilder: (member) =>
+            memberEditModel?.hasResolutionForMitglied(member.mitgliedsnummer) ??
+            false,
         trailingTextBuilder: (member) =>
             _buildPrimaryGroupRole(member, arbeitskontextModel),
         mitgliedsFilterKeys: mitgliedsFilterKeys,

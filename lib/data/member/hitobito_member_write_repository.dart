@@ -1,4 +1,5 @@
 import '../../domain/auth/auth_session.dart';
+import '../../domain/member/member_resolution.dart';
 import '../../domain/member/member_write_repository.dart';
 import '../../domain/member/mitglied.dart';
 import '../../services/hitobito_api_exception.dart';
@@ -101,32 +102,67 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
             );
           }
 
-          if (remoteUpdatedAt != basisUpdatedAt) {
+          final normalizedTarget = zielMitglied.copyWith(personId: personId);
+          final mergePlan = MemberConflictResolver.resolve(
+            basisMitglied: basisMitglied,
+            zielMitglied: normalizedTarget,
+            remoteMitglied: remoteMitglied,
+          );
+          if (mergePlan.requiresResolution) {
+            final targetTypes =
+                mergePlan.items
+                    .map((item) => item.target.type.name)
+                    .toSet()
+                    .toList(growable: false)
+                  ..sort();
             await _logger.logWarn(
               'member_write',
-              'Update verworfen reason=updated_at_conflict person_id=$personId local=$basisUpdatedAt remote=$remoteUpdatedAt',
+              'Update braucht problemloesung reason=field_conflict person_id=$personId local=$basisUpdatedAt remote=$remoteUpdatedAt resolution_category=merge_conflict conflict_count=${mergePlan.items.length} target_types=${targetTypes.join(',')}',
             );
-            throw const MemberWriteConflictException(
-              'Die Person wurde zwischenzeitlich geaendert. Bitte neu laden und erneut versuchen.',
+            throw MemberWriteNeedsResolutionException(
+              'Einige Felder wurden lokal und in Hitobito unterschiedlich geaendert.',
+              resolutionCase: MemberResolutionCase(
+                remoteMitglied: remoteMitglied,
+                items: mergePlan.items,
+                source: MemberResolutionSource.manualSave,
+              ),
             );
           }
 
-          final normalizedTarget = zielMitglied.copyWith(personId: personId);
+          final mergedTarget = mergePlan.mergedMitglied.copyWith(
+            personId: personId,
+          );
+          final changedAttributes = _buildChangedPersonAttributes(
+            remoteMitglied: remoteMitglied,
+            zielMitglied: mergedTarget,
+          );
+          final phoneNumberMutations = _buildPhoneNumberMutations(
+            remoteMitglied: remoteMitglied,
+            zielMitglied: mergedTarget,
+          );
+          final additionalEmailMutations = _buildAdditionalEmailMutations(
+            remoteMitglied: remoteMitglied,
+            zielMitglied: mergedTarget,
+          );
+          final additionalAddressMutations = _buildAdditionalAddressMutations(
+            remoteMitglied: remoteMitglied,
+            zielMitglied: mergedTarget,
+          );
+
+          if (changedAttributes.isEmpty &&
+              phoneNumberMutations.isEmpty &&
+              additionalEmailMutations.isEmpty &&
+              additionalAddressMutations.isEmpty) {
+            return remoteMitglied;
+          }
+
           await _peopleService.updatePersonWithRelationships(
             effectiveAccessToken,
-            mitglied: normalizedTarget,
-            phoneNumberMutations: _buildPhoneNumberMutations(
-              remoteMitglied: remoteMitglied,
-              zielMitglied: normalizedTarget,
-            ),
-            additionalEmailMutations: _buildAdditionalEmailMutations(
-              remoteMitglied: remoteMitglied,
-              zielMitglied: normalizedTarget,
-            ),
-            additionalAddressMutations: _buildAdditionalAddressMutations(
-              remoteMitglied: remoteMitglied,
-              zielMitglied: normalizedTarget,
-            ),
+            mitglied: mergedTarget,
+            changedAttributes: changedAttributes,
+            phoneNumberMutations: phoneNumberMutations,
+            additionalEmailMutations: additionalEmailMutations,
+            additionalAddressMutations: additionalAddressMutations,
           );
 
           return _fetchRemoteMemberDirect(
@@ -323,6 +359,92 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
     }
 
     return mutations;
+  }
+
+  Map<String, dynamic> _buildChangedPersonAttributes({
+    required Mitglied remoteMitglied,
+    required Mitglied zielMitglied,
+  }) {
+    final attributes = <String, dynamic>{};
+
+    void assignIfChanged(String key, Object? remoteValue, Object? localValue) {
+      if (remoteValue == localValue) {
+        return;
+      }
+      attributes[key] = localValue;
+    }
+
+    assignIfChanged('first_name', remoteMitglied.vorname, zielMitglied.vorname);
+    assignIfChanged(
+      'last_name',
+      remoteMitglied.nachname,
+      zielMitglied.nachname,
+    );
+    assignIfChanged(
+      'nickname',
+      remoteMitglied.fahrtenname,
+      zielMitglied.fahrtenname,
+    );
+    assignIfChanged('gender', remoteMitglied.gender, zielMitglied.gender);
+    if (remoteMitglied.geburtsdatum != zielMitglied.geburtsdatum) {
+      attributes['birthday'] = zielMitglied.geburtsdatum
+          .toIso8601String()
+          .split('T')
+          .first;
+    }
+
+    final remotePrimaryEmail = _primaryEmail(remoteMitglied)?.wert;
+    final localPrimaryEmail = _primaryEmail(zielMitglied)?.wert;
+    assignIfChanged('email', remotePrimaryEmail, localPrimaryEmail);
+
+    final remotePrimaryAddress = remoteMitglied.primaryAddress;
+    final localPrimaryAddress = zielMitglied.primaryAddress;
+    assignIfChanged(
+      'address_care_of',
+      remotePrimaryAddress?.addressCareOf,
+      localPrimaryAddress?.addressCareOf,
+    );
+    assignIfChanged(
+      'street',
+      remotePrimaryAddress?.street,
+      localPrimaryAddress?.street,
+    );
+    assignIfChanged(
+      'housenumber',
+      remotePrimaryAddress?.housenumber,
+      localPrimaryAddress?.housenumber,
+    );
+    assignIfChanged(
+      'postbox',
+      remotePrimaryAddress?.postbox,
+      localPrimaryAddress?.postbox,
+    );
+    assignIfChanged(
+      'zip_code',
+      remotePrimaryAddress?.zipCode,
+      localPrimaryAddress?.zipCode,
+    );
+    assignIfChanged(
+      'town',
+      remotePrimaryAddress?.town,
+      localPrimaryAddress?.town,
+    );
+    assignIfChanged(
+      'country',
+      remotePrimaryAddress?.country,
+      localPrimaryAddress?.country,
+    );
+
+    return attributes;
+  }
+
+  MitgliedKontaktEmail? _primaryEmail(Mitglied mitglied) {
+    for (final email in mitglied.emailAdressen) {
+      if (email.istPrimaer) {
+        return email;
+      }
+    }
+    return null;
   }
 
   Future<Mitglied> _fetchRemoteMemberDirect({

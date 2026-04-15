@@ -18,6 +18,7 @@ import 'package:nami/domain/auth/auth_profile_repository.dart';
 import 'package:nami/domain/auth/auth_session.dart';
 import 'package:nami/domain/auth/auth_session_repository.dart';
 import 'package:nami/domain/auth/auth_state.dart';
+import 'package:nami/domain/member/member_resolution.dart';
 import 'package:nami/domain/member/member_write_repository.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/member/pending_person_update.dart';
@@ -282,7 +283,7 @@ void main() {
 
     expect(
       find.text(
-        'Für diese Person liegt eine ausstehende Änderung vor. Ein Retry ist in den Debug-Tools möglich.',
+        'Fuer diese Person liegt eine ausstehende Aenderung vor. Ein Retry ist in den Debug-Tools moeglich.',
       ),
       findsOneWidget,
     );
@@ -392,6 +393,76 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('trackt das Oeffnen einer Problemloesung aus der Detailansicht', (
+    tester,
+  ) async {
+    final member = Mitglied.peopleListItem(
+      mitgliedsnummer: '4711',
+      personId: 23,
+      primaryGroupId: 111,
+      vorname: 'Julia',
+      nachname: 'Keller',
+    );
+    final pendingEntry = PendingPersonUpdate(
+      entryId: 'person-23',
+      personId: 23,
+      mitgliedsnummer: '4711',
+      displayName: 'Julia Keller',
+      basisMitglied: member,
+      zielMitglied: member.copyWith(vorname: 'Juliane'),
+      queuedAt: DateTime(2026, 4, 14, 12, 0),
+      status: PendingPersonUpdateStatus.needsResolution,
+      resolutionCase: MemberResolutionCase(
+        remoteMitglied: member.copyWith(vorname: 'Remote Julia'),
+        source: MemberResolutionSource.manualSave,
+        items: const <MemberResolutionItem>[
+          MemberResolutionItem(
+            problemType: MemberResolutionProblemType.conflict,
+            cause: MemberResolutionCause.overlappingChange,
+            target: MemberResolutionTarget(
+              type: MemberResolutionTargetType.firstName,
+            ),
+            message: 'Vorname kollidiert.',
+          ),
+        ],
+      ),
+    );
+    final arbeitskontextModel = await _buildArbeitskontextModel(
+      member: member,
+      permissions: const <String>['group_and_below_full'],
+    );
+    final memberEditModel = _ResolutionTrackingMemberEditModel(
+      pendingEntry: pendingEntry,
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        MemberDetailPage(mitglied: member),
+        providers: <SingleChildWidget>[
+          ChangeNotifierProvider<ArbeitskontextModel>.value(
+            value: arbeitskontextModel,
+          ),
+          ChangeNotifierProvider<AuthSessionModel>.value(
+            value: _StubAuthSessionModel(
+              session: AuthSession(
+                accessToken: 'token-123',
+                receivedAt: DateTime(2026, 4, 14),
+              ),
+            ),
+          ),
+          ChangeNotifierProvider<MemberEditModel>.value(value: memberEditModel),
+        ],
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Person bearbeiten'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Problemloesung Mitglied'), findsOneWidget);
+    expect(memberEditModel.openedEntryPoints, <String>['detail']);
   });
 }
 
@@ -532,6 +603,37 @@ class _PreparingMemberEditModel extends MemberEditModel {
       member: refreshedMember,
       message: message,
     );
+  }
+}
+
+class _ResolutionTrackingMemberEditModel extends MemberEditModel {
+  _ResolutionTrackingMemberEditModel({required this.pendingEntry})
+    : super(
+        memberWriteRepository: _NoopMemberWriteRepository(),
+        pendingRepository: _NoopPendingPersonUpdateRepository(),
+        logger: _FakeLoggerService(),
+        onMemberUpdated: (_) async {},
+      );
+
+  final PendingPersonUpdate pendingEntry;
+  final List<String> openedEntryPoints = <String>[];
+
+  @override
+  bool hasPendingForMitglied(String mitgliedsnummer) {
+    return pendingEntry.mitgliedsnummer == mitgliedsnummer;
+  }
+
+  @override
+  PendingPersonUpdate? pendingForMitglied(String mitgliedsnummer) {
+    return pendingEntry.mitgliedsnummer == mitgliedsnummer ? pendingEntry : null;
+  }
+
+  @override
+  Future<void> logResolutionOpened({
+    required PendingPersonUpdate entry,
+    required String entryPoint,
+  }) async {
+    openedEntryPoints.add(entryPoint);
   }
 }
 
