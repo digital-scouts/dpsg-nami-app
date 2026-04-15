@@ -9,6 +9,7 @@ import '../../services/map_tile_cache_service.dart';
 import '../model/arbeitskontext_model.dart';
 import '../model/auth_session_model.dart';
 import '../model/member_edit_model.dart';
+import '../notifications/app_snackbar.dart';
 import '../widgets/member_basis.dart';
 import 'member_edit_page.dart';
 
@@ -57,9 +58,11 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
         ? 'Person erfolgreich aktualisiert.'
         : result.message;
     if (message != null && message.isNotEmpty) {
-      ScaffoldMessenger.of(
+      AppSnackbar.show(
         context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+        message: message,
+        type: result.success ? AppSnackbarType.success : AppSnackbarType.error,
+      );
     }
   }
 
@@ -74,6 +77,7 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
     if (memberEditModel == null || accessToken == null || accessToken.isEmpty) {
       _showMessage(
         'Aktuell ist keine gueltige Sitzung zum Bearbeiten verfuegbar.',
+        type: AppSnackbarType.warning,
       );
       return;
     }
@@ -96,6 +100,7 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
         _showMessage(
           result.message ??
               'Die Person konnte nicht neu geladen werden. Bitte erneut versuchen.',
+          type: AppSnackbarType.warning,
         );
         return;
       }
@@ -112,10 +117,11 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
     }
   }
 
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+  void _showMessage(
+    String message, {
+    AppSnackbarType type = AppSnackbarType.info,
+  }) {
+    AppSnackbar.show(context, message: message, type: type);
   }
 
   @override

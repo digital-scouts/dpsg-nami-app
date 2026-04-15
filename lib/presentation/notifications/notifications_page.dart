@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nami/core/notifications/pull_notifications_repository_factory.dart';
+import 'package:nami/presentation/notifications/app_snackbar.dart';
 
 import '../../core/notifications/pull_notifications_cubit.dart';
 import '../../services/logger_service.dart';
@@ -88,10 +89,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       onPressed: () async {
                         await cubit!.resetAcknowledged();
                         if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Mitteilungsstatus zurückgesetzt'),
-                          ),
+                        AppSnackbar.show(
+                          context,
+                          message: 'Mitteilungsstatus zurückgesetzt',
+                          type: AppSnackbarType.success,
                         );
                       },
                       icon: const Icon(Icons.restart_alt),

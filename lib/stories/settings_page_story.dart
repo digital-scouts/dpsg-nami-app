@@ -4,6 +4,7 @@ import 'package:nami/data/settings/in_memory_address_settings_repository.dart';
 import 'package:nami/domain/stufe/altersgrenzen.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/l10n/app_localizations.dart';
+import 'package:nami/presentation/notifications/app_snackbar.dart';
 import 'package:nami/presentation/screens/settings_app_page.dart';
 import 'package:nami/presentation/screens/settings_map_page.dart';
 import 'package:nami/presentation/screens/settings_notification_page.dart';
@@ -26,25 +27,34 @@ Story settingsPageStory() => Story(
       supportedLocales: const [Locale('de'), Locale('en')],
       home: SettingsPage(
         appVersion: version,
-        onStammSettings: () => ScaffoldMessenger.of(
+        onStammSettings: () => AppSnackbar.show(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Stammeseinstellungen'))),
-        onAppSettings: () => ScaffoldMessenger.of(
+          message: 'Stammeseinstellungen',
+          type: AppSnackbarType.info,
+        ),
+        onAppSettings: () => AppSnackbar.show(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Appeinstellungen'))),
-        onNotificationSettings: () =>
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Benachrichtigungseinstellungen')),
-            ),
+          message: 'Appeinstellungen',
+          type: AppSnackbarType.info,
+        ),
+        onNotificationSettings: () => AppSnackbar.show(
+          context,
+          message: 'Benachrichtigungseinstellungen',
+          type: AppSnackbarType.info,
+        ),
         onMapSettings: () => Navigator.of(
           context,
         ).push(MaterialPageRoute(builder: (_) => const SettingsMapPage())),
-        onDebugTools: () => ScaffoldMessenger.of(
+        onDebugTools: () => AppSnackbar.show(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Debug & Tools'))),
-        onProfile: () => ScaffoldMessenger.of(
+          message: 'Debug & Tools',
+          type: AppSnackbarType.info,
+        ),
+        onProfile: () => AppSnackbar.show(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Profil'))),
+          message: 'Profil',
+          type: AppSnackbarType.info,
+        ),
       ),
     );
   },
@@ -67,24 +77,32 @@ Story appSettingsPageStory() => Story(
         memberListSearchResultHighlightEnabled: true,
         themeMode: ThemeMode.system,
         onAnalyticsChanged: (v) {
-          ScaffoldMessenger.of(
+          AppSnackbar.show(
             context,
-          ).showSnackBar(SnackBar(content: Text('Analytics geändert: $v')));
+            message: 'Analytics geändert: $v',
+            type: AppSnackbarType.info,
+          );
         },
         onBiometricLockChanged: (v) {
-          ScaffoldMessenger.of(
+          AppSnackbar.show(
             context,
-          ).showSnackBar(SnackBar(content: Text('App-Sperre geändert: $v')));
+            message: 'App-Sperre geändert: $v',
+            type: AppSnackbarType.info,
+          );
         },
         onMemberListSearchResultHighlightChanged: (v) {
-          ScaffoldMessenger.of(
+          AppSnackbar.show(
             context,
-          ).showSnackBar(SnackBar(content: Text('Suchhighlight geändert: $v')));
+            message: 'Suchhighlight geändert: $v',
+            type: AppSnackbarType.info,
+          );
         },
         onThemeModeChanged: (mode) {
-          ScaffoldMessenger.of(
+          AppSnackbar.show(
             context,
-          ).showSnackBar(SnackBar(content: Text('ThemeMode geändert: $mode')));
+            message: 'ThemeMode geändert: $mode',
+            type: AppSnackbarType.info,
+          );
         },
         languageCode: 'de',
         onLanguageChanged: (code) {},
@@ -136,17 +154,18 @@ Story settingsNotificationPageStory() => Story(
         notificationsEnabled: true,
         geburstagsbenachrichtigungStufen: {Stufe.woelfling, Stufe.pfadfinder},
         onNotificationsChanged: (v) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Benachrichtigungen geändert: $v')),
+          AppSnackbar.show(
+            context,
+            message: 'Benachrichtigungen geändert: $v',
+            type: AppSnackbarType.info,
           );
         },
         geburstagsbenachrichtigungStufenChanged: (stufen) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
+          AppSnackbar.show(
+            context,
+            message:
                 'Geburtstagsstufen: ${stufen.map((s) => s.shortDisplayName).join(', ')}',
-              ),
-            ),
+            type: AppSnackbarType.info,
           );
         },
       ),
@@ -190,8 +209,10 @@ Story buildSettingsStammPageStory() => Story(
         addressRepository: repo,
         initialAltersgrenzen: grenzen,
         onSaveAltersgrenzen: (g) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Altersgrenzen gespeichert')),
+          AppSnackbar.show(
+            context,
+            message: 'Altersgrenzen gespeichert',
+            type: AppSnackbarType.success,
           );
         },
         onStufenwechselChanged: (d) {},

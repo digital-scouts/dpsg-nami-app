@@ -10,6 +10,7 @@ import 'package:nami/main.dart' show navigatorKey;
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/model/member_edit_model.dart';
+import 'package:nami/presentation/notifications/app_snackbar.dart';
 import 'package:nami/presentation/screens/changelog_page.dart';
 import 'package:provider/provider.dart';
 import 'package:wiredash/wiredash.dart';
@@ -63,6 +64,16 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _showSnackbar(
+    String message, {
+    AppSnackbarType type = AppSnackbarType.info,
+  }) {
+    if (!mounted) {
+      return;
+    }
+    AppSnackbar.show(context, message: message, type: type);
   }
 
   Future<void> _openOauthOverrideDialog(
@@ -164,21 +175,17 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Stammesuche aktualisiert: ${snapshot.markers.length} Marker geladen.',
-          ),
-        ),
+      _showSnackbar(
+        'Stammesuche aktualisiert: ${snapshot.markers.length} Marker geladen.',
+        type: AppSnackbarType.success,
       );
     } catch (_) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Stammesuche konnte nicht aktualisiert werden.'),
-        ),
+      _showSnackbar(
+        'Stammesuche konnte nicht aktualisiert werden.',
+        type: AppSnackbarType.error,
       );
     } finally {
       if (mounted) {
@@ -200,9 +207,7 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
     }
 
     setState(() {});
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Kartendaten gelöscht')));
+    _showSnackbar('Kartendaten gelöscht', type: AppSnackbarType.success);
   }
 
   MapTileCacheService _resolveMapTileCacheService(LoggerService logger) {
@@ -223,12 +228,9 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Kein gueltiger Access Token fuer den Retry verfuegbar.',
-          ),
-        ),
+      _showSnackbar(
+        'Kein gueltiger Access Token fuer den Retry verfuegbar.',
+        type: AppSnackbarType.warning,
       );
       return;
     }
@@ -241,12 +243,9 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Retry abgeschlossen: ${summary.successCount} erfolgreich, ${summary.discardedCount} verworfen, ${summary.retainedCount} behalten.',
-        ),
-      ),
+    _showSnackbar(
+      'Retry abgeschlossen: ${summary.successCount} erfolgreich, ${summary.discardedCount} verworfen, ${summary.retainedCount} behalten.',
+      type: AppSnackbarType.info,
     );
   }
 
@@ -461,14 +460,9 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                                               LoggerService.allLogsSelectionId;
                                           _logFilesRevision++;
                                         });
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'Alle Logdateien gelöscht',
-                                            ),
-                                          ),
+                                        _showSnackbar(
+                                          'Alle Logdateien gelöscht',
+                                          type: AppSnackbarType.success,
                                         );
                                       },
                               ),
@@ -569,12 +563,9 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                           if (ctx != null) {
                             Wiredash.of(ctx).show(inheritMaterialTheme: true);
                           } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Wiredash konnte nicht gefunden werden (Root-Kontext fehlt).',
-                                ),
-                              ),
+                            _showSnackbar(
+                              'Wiredash konnte nicht gefunden werden (Root-Kontext fehlt).',
+                              type: AppSnackbarType.error,
                             );
                           }
                         },
@@ -588,12 +579,9 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                           if (ctx != null) {
                             Wiredash.of(ctx).showPromoterSurvey(force: true);
                           } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Wiredash konnte nicht gefunden werden (Root-Kontext fehlt).',
-                                ),
-                              ),
+                            _showSnackbar(
+                              'Wiredash konnte nicht gefunden werden (Root-Kontext fehlt).',
+                              type: AppSnackbarType.error,
                             );
                           }
                         },
@@ -651,8 +639,22 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                                     'Hitobito-Daten konnten nicht vollständig synchronisiert werden.',
                                   _ => 'Hitobito-Daten wurden synchronisiert.',
                                 };
-                                messenger.showSnackBar(
-                                  SnackBar(content: Text(message)),
+                                final type = switch ((
+                                  authModel
+                                      .isRemoteAccessBlockedByNetworkPolicy,
+                                  authModel.state == AuthState.reloginRequired,
+                                  authModel.errorMessage?.isNotEmpty == true,
+                                )) {
+                                  (true, _, _) => AppSnackbarType.warning,
+                                  (_, true, _) => AppSnackbarType.warning,
+                                  (_, _, true) => AppSnackbarType.warning,
+                                  _ => AppSnackbarType.success,
+                                };
+                                AppSnackbar.showOnMessenger(
+                                  messenger: messenger,
+                                  context: context,
+                                  message: message,
+                                  type: type,
                                 );
                               },
                       ),
@@ -661,12 +663,9 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                         label: 'Datenänderungen anzeigen',
                         onPressed: () async {
                           await _trackDebugAction(logger, 'view_data_changes');
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Nicht implementiert: Datenänderungen angezeigt',
-                              ),
-                            ),
+                          _showSnackbar(
+                            'Nicht implementiert: Datenänderungen angezeigt',
+                            type: AppSnackbarType.info,
                           );
                         },
                       ),

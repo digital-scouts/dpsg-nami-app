@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:nami/stories/app_bottom_navigation_story.dart';
 import 'package:nami/stories/app_sidebar_story.dart';
+import 'package:nami/stories/app_snackbar_story.dart';
 import 'package:nami/stories/message_of_the_day_card_story.dart';
 import 'package:nami/stories/notifications_story.dart';
 import 'package:nami/stories/profile_page_story.dart';
@@ -50,6 +51,7 @@ class StorybookEntry extends StatelessWidget {
       themeMode: ThemeMode.system,
       home: Storybook(
         stories: [
+          appSnackbarStory(),
           memberListTileStory(),
           memberGeneralInfoCardStory(),
           memberMembershipInfoCardStory(),

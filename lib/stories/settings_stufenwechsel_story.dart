@@ -4,6 +4,7 @@ import 'package:nami/data/settings/in_memory_stufen_settings_repository.dart';
 import 'package:nami/domain/stufe/altersgrenzen.dart';
 import 'package:nami/domain/stufe/usecases/update_altersgrenzen_usecase.dart';
 import 'package:nami/l10n/app_localizations.dart';
+import 'package:nami/presentation/notifications/app_snackbar.dart';
 import 'package:nami/presentation/widgets/settings_stufenwechsel.dart';
 // ignore: depend_on_referenced_packages
 import 'package:storybook_flutter/storybook_flutter.dart';
@@ -37,17 +38,27 @@ Story stufenwechselSettingsStory() {
             onSave: (g) async {
               try {
                 await usecase.call(g);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Altersgrenzen gespeichert')),
+                AppSnackbar.show(
+                  context,
+                  title: AppLocalizations.of(context).t('snackbar_saved_title'),
+                  message: 'Altersgrenzen gespeichert',
+                  type: AppSnackbarType.success,
                 );
                 grenzen = g;
               } on AltersgrenzenValidationError catch (e) {
-                ScaffoldMessenger.of(
+                AppSnackbar.show(
                   context,
-                ).showSnackBar(SnackBar(content: Text(e.message)));
+                  title: AppLocalizations.of(
+                    context,
+                  ).t('snackbar_invalid_altersgrenzen_title'),
+                  message: e.message,
+                  type: AppSnackbarType.warning,
+                );
               } catch (_) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Speichern fehlgeschlagen.')),
+                AppSnackbar.show(
+                  context,
+                  message: 'Speichern fehlgeschlagen.',
+                  type: AppSnackbarType.error,
                 );
               }
             },
