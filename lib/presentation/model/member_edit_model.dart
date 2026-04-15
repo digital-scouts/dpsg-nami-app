@@ -1,17 +1,24 @@
 import 'package:flutter/foundation.dart';
 
+import '../../domain/member/member_resolution.dart';
 import '../../domain/member/member_write_repository.dart';
 import '../../domain/member/mitglied.dart';
 import '../../domain/member/pending_person_update.dart';
 import '../../domain/member/pending_person_update_repository.dart';
 import '../../services/logger_service.dart';
 
-enum PendingPersonUpdateRetryDisposition { success, retained, discarded }
+enum PendingPersonUpdateRetryDisposition {
+  success,
+  retained,
+  discarded,
+  needsResolution,
+}
 
 class MemberEditSubmitResult {
   const MemberEditSubmitResult({
     required this.success,
     required this.wasQueued,
+    this.requiresResolution = false,
     this.message,
     this.updatedMember,
     this.pendingEntry,
@@ -20,6 +27,7 @@ class MemberEditSubmitResult {
 
   final bool success;
   final bool wasQueued;
+  final bool requiresResolution;
   final String? message;
   final Mitglied? updatedMember;
   final PendingPersonUpdate? pendingEntry;
@@ -75,6 +83,13 @@ class PendingPersonUpdateRetrySummary {
             result.disposition == PendingPersonUpdateRetryDisposition.retained,
       )
       .length;
+  int get needsResolutionCount => results
+      .where(
+        (result) =>
+            result.disposition ==
+            PendingPersonUpdateRetryDisposition.needsResolution,
+      )
+      .length;
 }
 
 class MemberEditModel extends ChangeNotifier {
@@ -108,6 +123,25 @@ class MemberEditModel extends ChangeNotifier {
     );
   }
 
+  bool hasResolutionForMitglied(String mitgliedsnummer) {
+    return _pendingUpdates.any(
+      (entry) =>
+          entry.mitgliedsnummer == mitgliedsnummer && entry.needsResolution,
+    );
+  }
+
+  int get openResolutionCount =>
+      _pendingUpdates.where((entry) => entry.needsResolution).length;
+
+  PendingPersonUpdate? get firstResolutionEntry {
+    for (final entry in _pendingUpdates) {
+      if (entry.needsResolution) {
+        return entry;
+      }
+    }
+    return null;
+  }
+
   PendingPersonUpdate? pendingForMitglied(String mitgliedsnummer) {
     for (final entry in _pendingUpdates) {
       if (entry.mitgliedsnummer == mitgliedsnummer) {
@@ -115,6 +149,62 @@ class MemberEditModel extends ChangeNotifier {
       }
     }
     return null;
+  }
+
+  Future<void> logResolutionOpened({
+    required PendingPersonUpdate entry,
+    required String entryPoint,
+  }) async {
+    final resolutionCase = entry.resolutionCase;
+    if (resolutionCase == null) {
+      return;
+    }
+    await _logResolutionEvent(
+      eventName: 'member_resolution_opened',
+      personId: entry.personId,
+      properties: <String, Object?>{
+        'entry_point': entryPoint,
+        ..._resolutionProperties(resolutionCase),
+      },
+      track: true,
+    );
+  }
+
+  Future<void> logResolutionChoice({
+    required PendingPersonUpdate entry,
+    required MemberResolutionItem item,
+    required String choice,
+  }) async {
+    final resolutionCase = entry.resolutionCase;
+    if (resolutionCase == null) {
+      return;
+    }
+    await _logResolutionEvent(
+      eventName: 'member_resolution_choice',
+      personId: entry.personId,
+      properties: <String, Object?>{
+        'choice': choice,
+        'target_type': item.target.type.name,
+        'item_cause': _resolutionCauseName(item.effectiveCause),
+        'item_problem_type': item.problemType.name,
+        ..._resolutionProperties(resolutionCase),
+      },
+      track: true,
+    );
+  }
+
+  Future<void> logResolutionHintShown({
+    required String entryPoint,
+    required int openResolutionCount,
+  }) async {
+    await _logResolutionEvent(
+      eventName: 'member_resolution_hint_shown',
+      properties: <String, Object?>{
+        'entry_point': entryPoint,
+        'open_resolution_count': openResolutionCount,
+      },
+      track: true,
+    );
   }
 
   Future<void> loadPending() async {
@@ -132,15 +222,18 @@ class MemberEditModel extends ChangeNotifier {
       await _logMemberEditEvent(
         action: 'prepare_result',
         trigger: trigger,
-        outcome: 'local_pending',
+        outcome: pendingEntry.needsResolution
+            ? 'needs_resolution'
+            : 'local_pending',
         personId: pendingEntry.personId,
         track: true,
       );
       return MemberEditPrepareResult(
         success: true,
         member: pendingEntry.zielMitglied,
-        message:
-            'Lokaler Bearbeitungsstand fortgesetzt. Netzabgleich erfolgt spaeter erneut.',
+        message: pendingEntry.needsResolution
+            ? 'Fuer diese Person ist eine Problemloesung noetig, bevor die Aenderung gesendet werden kann.'
+            : 'Lokaler Bearbeitungsstand fortgesetzt. Netzabgleich erfolgt spaeter erneut.',
       );
     }
 
@@ -291,6 +384,7 @@ class MemberEditModel extends ChangeNotifier {
     required Mitglied basisMitglied,
     required Mitglied zielMitglied,
     String trigger = 'manual_edit',
+    MemberResolutionCase? existingResolutionCase,
   }) async {
     final personId = zielMitglied.personId ?? basisMitglied.personId;
     if (personId == null || personId <= 0) {
@@ -304,6 +398,17 @@ class MemberEditModel extends ChangeNotifier {
 
     _setBusy(true);
     try {
+      if (existingResolutionCase != null) {
+        await _logResolutionEvent(
+          eventName: 'member_resolution_resend_started',
+          personId: personId,
+          properties: <String, Object?>{
+            'trigger': trigger,
+            ..._resolutionProperties(existingResolutionCase),
+          },
+          track: true,
+        );
+      }
       await _logMemberEditEvent(
         action: 'submit_started',
         trigger: trigger,
@@ -323,6 +428,19 @@ class MemberEditModel extends ChangeNotifier {
         personId: personId,
         track: true,
       );
+      if (existingResolutionCase != null) {
+        await _logResolutionEvent(
+          eventName: 'member_resolution_resend_result',
+          personId: personId,
+          properties: <String, Object?>{
+            'trigger': trigger,
+            'outcome': 'success',
+            'remaining_item_count': 0,
+            ..._resolutionProperties(existingResolutionCase),
+          },
+          track: true,
+        );
+      }
       return MemberEditSubmitResult(
         success: true,
         wasQueued: false,
@@ -364,6 +482,58 @@ class MemberEditModel extends ChangeNotifier {
         wasQueued: false,
         message: error.message,
       );
+    } on MemberWriteNeedsResolutionException catch (error) {
+      final entry = _buildPendingEntry(
+        personId: personId,
+        basisMitglied: basisMitglied,
+        zielMitglied: zielMitglied,
+        status: PendingPersonUpdateStatus.needsResolution,
+        resolutionCase: MemberResolutionCase(
+          remoteMitglied: error.resolutionCase.remoteMitglied,
+          items: error.resolutionCase.items,
+          source: MemberResolutionSource.manualSave,
+        ),
+      );
+      await _pendingRepository.save(entry);
+      await _logResolutionCreated(
+        trigger: trigger,
+        entry: entry,
+        outcome: 'needs_resolution',
+      );
+      await _logMemberEditFailure(
+        trigger: trigger,
+        personId: personId,
+        outcome: 'needs_resolution',
+        message: error.message,
+      );
+      await _logMemberEditEvent(
+        action: 'submit_result',
+        trigger: trigger,
+        outcome: 'needs_resolution',
+        personId: personId,
+        track: true,
+      );
+      if (existingResolutionCase != null) {
+        await _logResolutionEvent(
+          eventName: 'member_resolution_resend_result',
+          personId: personId,
+          properties: <String, Object?>{
+            'trigger': trigger,
+            'outcome': 'still_open',
+            'remaining_item_count': entry.resolutionCase?.items.length ?? 0,
+            ..._resolutionProperties(entry.resolutionCase),
+          },
+          track: true,
+        );
+      }
+      await loadPending();
+      return MemberEditSubmitResult(
+        success: false,
+        wasQueued: false,
+        requiresResolution: true,
+        pendingEntry: entry,
+        message: error.message,
+      );
     } on MemberWriteAuthRequiredException catch (error) {
       await _logMemberEditFailure(
         trigger: trigger,
@@ -383,16 +553,10 @@ class MemberEditModel extends ChangeNotifier {
         message: error.message,
       );
     } on MemberWriteNetworkBlockedException catch (error) {
-      final entry = PendingPersonUpdate(
-        entryId: 'person-$personId',
+      final entry = _buildPendingEntry(
         personId: personId,
-        mitgliedsnummer: zielMitglied.mitgliedsnummer,
-        displayName: zielMitglied.fullName.isEmpty
-            ? zielMitglied.mitgliedsnummer
-            : zielMitglied.fullName,
         basisMitglied: basisMitglied,
         zielMitglied: zielMitglied,
-        queuedAt: _now(),
       );
       await _pendingRepository.save(entry);
       await _logMemberEditFailure(
@@ -408,6 +572,18 @@ class MemberEditModel extends ChangeNotifier {
         personId: personId,
         track: true,
       );
+      if (existingResolutionCase != null) {
+        await _logResolutionEvent(
+          eventName: 'member_resolution_resend_result',
+          personId: personId,
+          properties: <String, Object?>{
+            'trigger': trigger,
+            'outcome': 'queued_network_blocked',
+            ..._resolutionProperties(existingResolutionCase),
+          },
+          track: true,
+        );
+      }
       await loadPending();
       return MemberEditSubmitResult(
         success: false,
@@ -434,6 +610,23 @@ class MemberEditModel extends ChangeNotifier {
         message: error.message,
       );
     } on MemberWriteValidationException catch (error) {
+      if (existingResolutionCase != null) {
+        final validationCase = _buildValidationResolutionCase(
+          zielMitglied: zielMitglied,
+          errors: error.errors,
+        );
+        await _logResolutionEvent(
+          eventName: 'member_resolution_resend_result',
+          personId: personId,
+          properties: <String, Object?>{
+            'trigger': trigger,
+            'outcome': 'validation_failed',
+            'remaining_item_count': validationCase.items.length,
+            ..._resolutionProperties(validationCase),
+          },
+          track: true,
+        );
+      }
       await _logMemberEditFailure(
         trigger: trigger,
         personId: personId,
@@ -453,16 +646,10 @@ class MemberEditModel extends ChangeNotifier {
         validationErrors: error.errors,
       );
     } catch (error) {
-      final entry = PendingPersonUpdate(
-        entryId: 'person-$personId',
+      final entry = _buildPendingEntry(
         personId: personId,
-        mitgliedsnummer: zielMitglied.mitgliedsnummer,
-        displayName: zielMitglied.fullName.isEmpty
-            ? zielMitglied.mitgliedsnummer
-            : zielMitglied.fullName,
         basisMitglied: basisMitglied,
         zielMitglied: zielMitglied,
-        queuedAt: _now(),
       );
       await _pendingRepository.save(entry);
       await _logMemberEditFailure(
@@ -478,6 +665,18 @@ class MemberEditModel extends ChangeNotifier {
         personId: personId,
         track: true,
       );
+      if (existingResolutionCase != null) {
+        await _logResolutionEvent(
+          eventName: 'member_resolution_resend_result',
+          personId: personId,
+          properties: <String, Object?>{
+            'trigger': trigger,
+            'outcome': 'queued',
+            ..._resolutionProperties(existingResolutionCase),
+          },
+          track: true,
+        );
+      }
       await loadPending();
       return MemberEditSubmitResult(
         success: false,
@@ -498,9 +697,13 @@ class MemberEditModel extends ChangeNotifier {
   }) async {
     final requestedIds = entryIds?.toSet();
     final entries = requestedIds == null
-        ? _pendingUpdates
+        ? _pendingUpdates.where((entry) => !entry.needsResolution).toList()
         : _pendingUpdates
-              .where((entry) => requestedIds.contains(entry.entryId))
+              .where(
+                (entry) =>
+                    requestedIds.contains(entry.entryId) &&
+                    !entry.needsResolution,
+              )
               .toList(growable: false);
     final results = <PendingPersonUpdateRetryItemResult>[];
     if (entries.isEmpty) {
@@ -553,6 +756,28 @@ class MemberEditModel extends ChangeNotifier {
               message: error.message,
             ),
           );
+        } on MemberWriteNeedsResolutionException catch (error) {
+          final resolutionEntry = attemptedEntry.copyWith(
+            status: PendingPersonUpdateStatus.needsResolution,
+            resolutionCase: MemberResolutionCase(
+              remoteMitglied: error.resolutionCase.remoteMitglied,
+              items: error.resolutionCase.items,
+              source: MemberResolutionSource.pendingRetry,
+            ),
+          );
+          await _pendingRepository.save(resolutionEntry);
+          await _logResolutionCreated(
+            trigger: trigger,
+            entry: resolutionEntry,
+            outcome: 'needs_resolution',
+          );
+          results.add(
+            PendingPersonUpdateRetryItemResult(
+              entry: resolutionEntry,
+              disposition: PendingPersonUpdateRetryDisposition.needsResolution,
+              message: error.message,
+            ),
+          );
         } on MemberWriteAuthRequiredException catch (error) {
           results.add(
             PendingPersonUpdateRetryItemResult(
@@ -562,11 +787,23 @@ class MemberEditModel extends ChangeNotifier {
             ),
           );
         } on MemberWriteValidationException catch (error) {
-          await _pendingRepository.remove(attemptedEntry.entryId);
+          final resolutionEntry = attemptedEntry.copyWith(
+            status: PendingPersonUpdateStatus.needsResolution,
+            resolutionCase: _buildValidationResolutionCase(
+              zielMitglied: attemptedEntry.zielMitglied,
+              errors: error.errors,
+            ),
+          );
+          await _pendingRepository.save(resolutionEntry);
+          await _logResolutionCreated(
+            trigger: trigger,
+            entry: resolutionEntry,
+            outcome: 'validation_needs_resolution',
+          );
           results.add(
             PendingPersonUpdateRetryItemResult(
-              entry: attemptedEntry,
-              disposition: PendingPersonUpdateRetryDisposition.discarded,
+              entry: resolutionEntry,
+              disposition: PendingPersonUpdateRetryDisposition.needsResolution,
               message: error.message,
             ),
           );
@@ -594,15 +831,23 @@ class MemberEditModel extends ChangeNotifier {
       final outcome =
           summary.successCount > 0 &&
               summary.retainedCount == 0 &&
-              summary.discardedCount == 0
+              summary.discardedCount == 0 &&
+              summary.needsResolutionCount == 0
           ? 'succeeded'
           : summary.successCount == 0 &&
                 summary.retainedCount > 0 &&
-                summary.discardedCount == 0
+                summary.discardedCount == 0 &&
+                summary.needsResolutionCount == 0
           ? 'retained'
           : summary.successCount == 0 &&
                 summary.retainedCount == 0 &&
-                summary.discardedCount > 0
+                summary.discardedCount == 0 &&
+                summary.needsResolutionCount > 0
+          ? 'needs_resolution'
+          : summary.successCount == 0 &&
+                summary.retainedCount == 0 &&
+                summary.discardedCount > 0 &&
+                summary.needsResolutionCount == 0
           ? 'discarded'
           : 'mixed';
       await _logRetryEvent(
@@ -612,6 +857,7 @@ class MemberEditModel extends ChangeNotifier {
         successCount: summary.successCount,
         retainedCount: summary.retainedCount,
         discardedCount: summary.discardedCount,
+        needsResolutionCount: summary.needsResolutionCount,
         track: true,
       );
       return summary;
@@ -670,6 +916,7 @@ class MemberEditModel extends ChangeNotifier {
     int? successCount,
     int? retainedCount,
     int? discardedCount,
+    int? needsResolutionCount,
     bool track = false,
   }) async {
     final message = [
@@ -680,6 +927,8 @@ class MemberEditModel extends ChangeNotifier {
       if (successCount != null) 'success_count=$successCount',
       if (retainedCount != null) 'retained_count=$retainedCount',
       if (discardedCount != null) 'discarded_count=$discardedCount',
+      if (needsResolutionCount != null)
+        'needs_resolution_count=$needsResolutionCount',
     ].join(' ');
     await _logger.logInfo('member_edit', message);
     if (!track) {
@@ -693,8 +942,235 @@ class MemberEditModel extends ChangeNotifier {
       if (successCount != null) 'success_count': successCount,
       if (retainedCount != null) 'retained_count': retainedCount,
       if (discardedCount != null) 'discarded_count': discardedCount,
+      if (needsResolutionCount != null)
+        'needs_resolution_count': needsResolutionCount,
       'source': 'member_edit',
     });
+  }
+
+  Future<void> _logResolutionCreated({
+    required String trigger,
+    required PendingPersonUpdate entry,
+    required String outcome,
+  }) async {
+    final resolutionCase = entry.resolutionCase;
+    if (resolutionCase == null) {
+      return;
+    }
+    await _logResolutionEvent(
+      eventName: 'member_resolution_created',
+      personId: entry.personId,
+      properties: <String, Object?>{
+        'trigger': trigger,
+        'outcome': outcome,
+        ..._resolutionProperties(resolutionCase),
+      },
+      track: true,
+    );
+  }
+
+  Future<void> _logResolutionEvent({
+    required String eventName,
+    int? personId,
+    required Map<String, Object?> properties,
+    bool track = false,
+  }) async {
+    final logProperties = <String, Object?>{
+      if (personId != null) 'person_id': personId,
+      ...properties,
+    };
+    await _logger.logInfo(
+      'member_resolution',
+      _composeTelemetryMessage(eventName, logProperties),
+    );
+    if (!track) {
+      return;
+    }
+    await _logger.trackEvent(eventName, properties);
+  }
+
+  Map<String, Object?> _resolutionProperties(MemberResolutionCase? resolution) {
+    if (resolution == null) {
+      return const <String, Object?>{};
+    }
+    final causeCounts = <MemberResolutionCause, int>{};
+    final targetTypes = <String>{};
+    var conflictCount = 0;
+    var validationCount = 0;
+    for (final item in resolution.items) {
+      targetTypes.add(item.target.type.name);
+      causeCounts.update(
+        item.effectiveCause,
+        (count) => count + 1,
+        ifAbsent: () => 1,
+      );
+      switch (item.problemType) {
+        case MemberResolutionProblemType.conflict:
+          conflictCount++;
+        case MemberResolutionProblemType.validation:
+          validationCount++;
+      }
+    }
+    return <String, Object?>{
+      'resolution_source': resolution.source.name,
+      'resolution_category': _resolutionCategoryName(resolution.category),
+      'resolution_causes': _joinOrdered(
+        resolution.causes.map(_resolutionCauseName),
+      ),
+      'item_count': resolution.items.length,
+      'conflict_count': conflictCount,
+      'validation_count': validationCount,
+      'non_merge_count': resolution.items
+          .where(
+            (item) =>
+                item.effectiveCause != MemberResolutionCause.overlappingChange,
+          )
+          .length,
+      'address_validation_count':
+          causeCounts[MemberResolutionCause.addressValidation] ?? 0,
+      'server_validation_count':
+          causeCounts[MemberResolutionCause.serverValidation] ?? 0,
+      'target_types': _joinOrdered(targetTypes),
+    };
+  }
+
+  String _composeTelemetryMessage(
+    String eventName,
+    Map<String, Object?> properties,
+  ) {
+    final details = properties.entries
+        .map((entry) => '${entry.key}=${entry.value}')
+        .join(' ');
+    return details.isEmpty ? eventName : '$eventName $details';
+  }
+
+  String _joinOrdered(Iterable<String> values) {
+    final sorted = values.toSet().toList(growable: false)..sort();
+    return sorted.join(',');
+  }
+
+  String _resolutionCategoryName(MemberResolutionCategory category) {
+    return switch (category) {
+      MemberResolutionCategory.mergeConflict => 'merge_conflict',
+      MemberResolutionCategory.nonMergeProblem => 'non_merge_problem',
+      MemberResolutionCategory.mixed => 'mixed',
+    };
+  }
+
+  String _resolutionCauseName(MemberResolutionCause cause) {
+    return switch (cause) {
+      MemberResolutionCause.overlappingChange => 'overlapping_change',
+      MemberResolutionCause.serverValidation => 'server_validation',
+      MemberResolutionCause.addressValidation => 'address_validation',
+      MemberResolutionCause.remoteDeletedLocalEdited =>
+        'remote_deleted_local_edited',
+      MemberResolutionCause.unknown => 'unknown',
+    };
+  }
+
+  PendingPersonUpdate _buildPendingEntry({
+    required int personId,
+    required Mitglied basisMitglied,
+    required Mitglied zielMitglied,
+    PendingPersonUpdateStatus status = PendingPersonUpdateStatus.queued,
+    MemberResolutionCase? resolutionCase,
+  }) {
+    return PendingPersonUpdate(
+      entryId: 'person-$personId',
+      personId: personId,
+      mitgliedsnummer: zielMitglied.mitgliedsnummer,
+      displayName: zielMitglied.fullName.isEmpty
+          ? zielMitglied.mitgliedsnummer
+          : zielMitglied.fullName,
+      basisMitglied: basisMitglied,
+      zielMitglied: zielMitglied,
+      queuedAt: _now(),
+      status: status,
+      resolutionCase: resolutionCase,
+    );
+  }
+
+  MemberResolutionCase _buildValidationResolutionCase({
+    required Mitglied zielMitglied,
+    required List<MemberWriteFieldValidationError> errors,
+  }) {
+    return MemberResolutionCase(
+      remoteMitglied: zielMitglied,
+      source: MemberResolutionSource.pendingRetry,
+      items: errors
+          .map(
+            (error) => MemberResolutionItem(
+              problemType: MemberResolutionProblemType.validation,
+              target: _mapValidationTarget(error),
+              message: error.message,
+              code: error.code,
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+
+  MemberResolutionTarget _mapValidationTarget(
+    MemberWriteFieldValidationError error,
+  ) {
+    if (error.relationshipName == 'phone_numbers') {
+      return MemberResolutionTarget(
+        type: MemberResolutionTargetType.phone,
+        relationshipId: error.relationshipId,
+      );
+    }
+    if (error.relationshipName == 'additional_emails') {
+      return MemberResolutionTarget(
+        type: MemberResolutionTargetType.additionalEmail,
+        relationshipId: error.relationshipId,
+      );
+    }
+    if (error.relationshipName == 'additional_addresses') {
+      return MemberResolutionTarget(
+        type: MemberResolutionTargetType.additionalAddress,
+        relationshipId: error.relationshipId,
+      );
+    }
+    switch (error.effectiveAttribute) {
+      case 'first_name':
+        return const MemberResolutionTarget(
+          type: MemberResolutionTargetType.firstName,
+        );
+      case 'last_name':
+        return const MemberResolutionTarget(
+          type: MemberResolutionTargetType.lastName,
+        );
+      case 'nickname':
+        return const MemberResolutionTarget(
+          type: MemberResolutionTargetType.nickname,
+        );
+      case 'gender':
+        return const MemberResolutionTarget(
+          type: MemberResolutionTargetType.gender,
+        );
+      case 'birthday':
+        return const MemberResolutionTarget(
+          type: MemberResolutionTargetType.birthday,
+        );
+      case 'email':
+        return const MemberResolutionTarget(
+          type: MemberResolutionTargetType.primaryEmail,
+        );
+      case 'street':
+      case 'housenumber':
+      case 'postbox':
+      case 'zip_code':
+      case 'town':
+      case 'country':
+      case 'address_care_of':
+        return const MemberResolutionTarget(
+          type: MemberResolutionTargetType.primaryAddress,
+        );
+      default:
+        return const MemberResolutionTarget(
+          type: MemberResolutionTargetType.firstName,
+        );
+    }
   }
 
   Future<void> _logMemberEditFailure({

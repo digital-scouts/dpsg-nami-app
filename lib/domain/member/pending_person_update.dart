@@ -1,3 +1,4 @@
+import 'member_resolution.dart';
 import 'mitglied.dart';
 
 class PendingPersonUpdate {
@@ -9,6 +10,8 @@ class PendingPersonUpdate {
     required this.basisMitglied,
     required this.zielMitglied,
     required this.queuedAt,
+    this.status = PendingPersonUpdateStatus.queued,
+    this.resolutionCase,
     this.attemptCount = 0,
     this.lastAttemptAt,
   }) : assert(entryId != ''),
@@ -22,10 +25,14 @@ class PendingPersonUpdate {
   final Mitglied basisMitglied;
   final Mitglied zielMitglied;
   final DateTime queuedAt;
+  final PendingPersonUpdateStatus status;
+  final MemberResolutionCase? resolutionCase;
   final int attemptCount;
   final DateTime? lastAttemptAt;
 
   DateTime? get basisUpdatedAt => basisMitglied.updatedAt;
+  bool get needsResolution =>
+      status == PendingPersonUpdateStatus.needsResolution;
 
   PendingPersonUpdate copyWith({
     String? entryId,
@@ -35,8 +42,11 @@ class PendingPersonUpdate {
     Mitglied? basisMitglied,
     Mitglied? zielMitglied,
     DateTime? queuedAt,
+    PendingPersonUpdateStatus? status,
+    MemberResolutionCase? resolutionCase,
     int? attemptCount,
     DateTime? lastAttemptAt,
+    bool resolutionCaseLoeschen = false,
     bool lastAttemptAtLoeschen = false,
   }) => PendingPersonUpdate(
     entryId: entryId ?? this.entryId,
@@ -46,6 +56,10 @@ class PendingPersonUpdate {
     basisMitglied: basisMitglied ?? this.basisMitglied,
     zielMitglied: zielMitglied ?? this.zielMitglied,
     queuedAt: queuedAt ?? this.queuedAt,
+    status: status ?? this.status,
+    resolutionCase: resolutionCaseLoeschen
+        ? null
+        : resolutionCase ?? this.resolutionCase,
     attemptCount: attemptCount ?? this.attemptCount,
     lastAttemptAt: lastAttemptAtLoeschen
         ? null
@@ -65,6 +79,8 @@ class PendingPersonUpdate {
       'basis_mitglied': basisMitglied.toPeopleListJson(),
       'ziel_mitglied': zielMitglied.toPeopleListJson(),
       'queued_at': queuedAt.toIso8601String(),
+      'status': status.name,
+      'resolution_case': resolutionCase?.toJson(),
       'attempt_count': attemptCount,
       'last_attempt_at': lastAttemptAt?.toIso8601String(),
     };
@@ -87,6 +103,15 @@ class PendingPersonUpdate {
       queuedAt:
           _parseDateTime(json['queued_at']) ??
           DateTime.fromMillisecondsSinceEpoch(0),
+      status: PendingPersonUpdateStatus.values.firstWhere(
+        (value) => value.name == json['status'],
+        orElse: () => PendingPersonUpdateStatus.queued,
+      ),
+      resolutionCase: (json['resolution_case'] as Map?) != null
+          ? MemberResolutionCase.fromJson(
+              (json['resolution_case'] as Map).cast<String, dynamic>(),
+            )
+          : null,
       attemptCount: _parseInt(json['attempt_count']) ?? 0,
       lastAttemptAt: _parseDateTime(json['last_attempt_at']),
     );

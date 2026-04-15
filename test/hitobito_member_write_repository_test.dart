@@ -41,8 +41,6 @@ void main() {
         'fetch:stale-token',
         'update:stale-token',
         'fetch:refreshed-token',
-        'update:refreshed-token',
-        'fetch:refreshed-token',
       ]);
     },
   );
@@ -178,6 +176,32 @@ void main() {
     'fuehrt Zusatzfeld-Aenderungen in genau einem Sammelwrite aus',
     () async {
       final peopleService = _FakeHitobitoPeopleService();
+      peopleService.remoteResource = HitobitoPersonResource(
+        id: 23,
+        firstName: 'Julia',
+        lastName: 'Keller',
+        membershipNumber: 4711,
+        updatedAt: DateTime.parse('2026-04-14T09:00:00Z'),
+        telefonnummern: const <MitgliedKontaktTelefon>[
+          MitgliedKontaktTelefon(phoneNumberId: 701, wert: '+4940123456'),
+        ],
+        emailAdressen: const <MitgliedKontaktEmail>[
+          MitgliedKontaktEmail(
+            additionalEmailId: 601,
+            wert: 'julia@example.org',
+            label: 'Privat',
+          ),
+        ],
+        adressen: const <MitgliedKontaktAdresse>[
+          MitgliedKontaktAdresse(
+            additionalAddressId: 801,
+            street: 'Altweg',
+            housenumber: '4',
+            zipCode: '50667',
+            town: 'Koeln',
+          ),
+        ],
+      );
       final repository = HitobitoMemberWriteRepository(
         peopleService: peopleService,
         logger: _FakeLoggerService(),
@@ -316,6 +340,7 @@ class _FakeHitobitoPeopleService extends HitobitoPeopleService {
   List<HitobitoRelationshipMutation<MitgliedKontaktAdresse>>
   lastAdditionalAddressMutations =
       const <HitobitoRelationshipMutation<MitgliedKontaktAdresse>>[];
+  HitobitoPersonResource? remoteResource;
   Object? updateError;
 
   @override
@@ -324,6 +349,10 @@ class _FakeHitobitoPeopleService extends HitobitoPeopleService {
     int personId,
   ) async {
     calls.add('fetch:$accessToken');
+    final configuredResource = remoteResource;
+    if (configuredResource != null) {
+      return configuredResource;
+    }
     return HitobitoPersonResource(
       id: personId,
       firstName: accessToken == 'refreshed-token' ? 'Juliane' : 'Julia',
@@ -354,6 +383,7 @@ class _FakeHitobitoPeopleService extends HitobitoPeopleService {
   Future<void> updatePersonWithRelationships(
     String accessToken, {
     required Mitglied mitglied,
+    Map<String, dynamic>? changedAttributes,
     List<HitobitoRelationshipMutation<MitgliedKontaktTelefon>>
         phoneNumberMutations =
         const <HitobitoRelationshipMutation<MitgliedKontaktTelefon>>[],

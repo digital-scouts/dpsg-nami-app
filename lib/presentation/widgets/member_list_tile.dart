@@ -26,6 +26,7 @@ class MemberListTile extends StatelessWidget {
     required this.mitglied,
     required this.isFavourite,
     required this.subtitleMode,
+    this.showWarning = false,
     this.subtitleText,
     this.subtitleHighlight,
     this.trailingText,
@@ -36,6 +37,7 @@ class MemberListTile extends StatelessWidget {
   final Mitglied mitglied;
   final bool isFavourite;
   final MemberSubtitleMode subtitleMode;
+  final bool showWarning;
   final String? subtitleText;
   final MemberSubtitleHighlight? subtitleHighlight;
   final String? trailingText;
@@ -118,6 +120,18 @@ class MemberListTile extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                if (showWarning) ...[
+                  const Center(
+                    child: Tooltip(
+                      message: 'Offener Problemfall',
+                      child: Icon(
+                        Icons.warning_amber_rounded,
+                        color: Colors.orange,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 if (resolvedTrailingText != null &&
                     resolvedTrailingText.isNotEmpty)
                   Center(

@@ -12,7 +12,10 @@ import 'package:nami/domain/auth/auth_profile.dart';
 import 'package:nami/domain/auth/auth_profile_repository.dart';
 import 'package:nami/domain/auth/auth_session.dart';
 import 'package:nami/domain/auth/auth_session_repository.dart';
+import 'package:nami/domain/member/member_write_repository.dart';
 import 'package:nami/domain/member/mitglied.dart';
+import 'package:nami/domain/member/pending_person_update.dart';
+import 'package:nami/domain/member/pending_person_update_repository.dart';
 import 'package:nami/domain/member_filters/member_filter_repository.dart';
 import 'package:nami/domain/settings/app_settings.dart';
 import 'package:nami/domain/settings/app_settings_repository.dart';
@@ -20,6 +23,7 @@ import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
+import 'package:nami/presentation/model/member_edit_model.dart';
 import 'package:nami/presentation/model/member_filters_model.dart';
 import 'package:nami/presentation/navigation/app_router.dart';
 import 'package:nami/presentation/screens/member_people_page.dart';
@@ -156,6 +160,42 @@ void main() {
       );
     },
   );
+
+  testWidgets('trackt den Resolution-Hinweis auf der Members-Page', (
+    tester,
+  ) async {
+    final authModel = await _createSignedInAuthModel();
+    final arbeitskontextModel = await _createArbeitskontextModel(
+      mitglieder: <Mitglied>[
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '1',
+          vorname: 'Julia',
+          nachname: 'Keller',
+        ),
+      ],
+      authModel: authModel,
+    );
+    final memberEditModel = _HintTrackingMemberEditModel(
+      openResolutionCount: 2,
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        authModel: authModel,
+        arbeitskontextModel: arbeitskontextModel,
+        memberEditModel: memberEditModel,
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(
+      find.text('Es gibt 2 offene Problemfaelle bei Mitglieds-Aenderungen.'),
+      findsOneWidget,
+    );
+    expect(memberEditModel.loggedHints, <(String, int)>[('people_list', 2)]);
+  });
 
   testWidgets('rendert die neue Listen-UI auch mit leerem Vor- und Nachnamen', (
     tester,
@@ -620,6 +660,7 @@ Widget _buildTestApp({
   required AuthSessionModel authModel,
   required ArbeitskontextModel arbeitskontextModel,
   LoggerService? logger,
+  MemberEditModel? memberEditModel,
 }) {
   final effectiveLogger = logger ?? _FakeLoggerService();
   return MultiProvider(
@@ -631,6 +672,8 @@ Widget _buildTestApp({
       ChangeNotifierProvider<ArbeitskontextModel>.value(
         value: arbeitskontextModel,
       ),
+      if (memberEditModel != null)
+        ChangeNotifierProvider<MemberEditModel>.value(value: memberEditModel),
       Provider<LoggerService>.value(value: effectiveLogger),
     ],
     child: MaterialApp(
@@ -940,6 +983,29 @@ class _FakeLoggerService extends LoggerService {
   }) async {}
 }
 
+class _HintTrackingMemberEditModel extends MemberEditModel {
+  _HintTrackingMemberEditModel({required this.openResolutionCount})
+    : super(
+        memberWriteRepository: _NoopMemberWriteRepository(),
+        pendingRepository: _NoopPendingPersonUpdateRepository(),
+        logger: _FakeLoggerService(),
+        onMemberUpdated: (_) async {},
+      );
+
+  @override
+  final int openResolutionCount;
+
+  final List<(String, int)> loggedHints = <(String, int)>[];
+
+  @override
+  Future<void> logResolutionHintShown({
+    required String entryPoint,
+    required int openResolutionCount,
+  }) async {
+    loggedHints.add((entryPoint, openResolutionCount));
+  }
+}
+
 class _RecordingLoggerService extends _FakeLoggerService {
   final List<(String, String?, String?, Map<String, Object?>)> navigationLogs =
       <(String, String?, String?, Map<String, Object?>)>[];
@@ -989,6 +1055,41 @@ class _FakeAppSettingsRepository extends AppSettingsRepository {
 
   @override
   Future<void> saveThemeMode(ThemeMode mode) async {}
+}
+
+class _NoopMemberWriteRepository implements MemberWriteRepository {
+  @override
+  Future<Mitglied> fetchRemoteMember({
+    required String accessToken,
+    required int personId,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Mitglied> updateMember({
+    required String accessToken,
+    required Mitglied basisMitglied,
+    required Mitglied zielMitglied,
+  }) async {
+    throw UnimplementedError();
+  }
+}
+
+class _NoopPendingPersonUpdateRepository
+    implements PendingPersonUpdateRepository {
+  @override
+  Future<void> clear() async {}
+
+  @override
+  Future<List<PendingPersonUpdate>> loadAll() async =>
+      const <PendingPersonUpdate>[];
+
+  @override
+  Future<void> remove(String entryId) async {}
+
+  @override
+  Future<void> save(PendingPersonUpdate entry) async {}
 }
 
 class _FakeMemberFilterRepository implements MemberFilterRepository {

@@ -3,7 +3,9 @@ import 'package:nami/core/notifications/pull_notification.dart';
 import 'package:nami/core/notifications/pull_notifications_repository_factory.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
+import 'package:nami/presentation/model/member_edit_model.dart';
 import 'package:nami/presentation/notifications/notification_card.dart';
+import 'package:nami/presentation/screens/member_edit_page.dart';
 import 'package:nami/presentation/widgets/confetti_overlay.dart';
 import 'package:nami/services/app_update_service.dart';
 import 'package:nami/services/logger_service.dart';
@@ -215,6 +217,42 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  PullNotification _buildMemberResolutionNotification(int count) {
+    return PullNotification(
+      id: 'member-resolution-$count',
+      title: const LocalizedString(
+        de: 'Mitglieds-Aenderungen brauchen Aufmerksamkeit',
+        en: 'Member changes need attention',
+      ),
+      body: LocalizedString(
+        de: 'Es gibt $count offene Problemfaelle bei gespeicherten Mitglieds-Aenderungen. Tippe hier, um den ersten Fall zu bearbeiten.',
+        en: 'There are $count open issue cases for stored member changes. Tap here to resolve the first one.',
+      ),
+      type: 'warn',
+    );
+  }
+
+  Future<void> _openFirstResolution(
+    BuildContext context,
+    MemberEditModel? memberEditModel,
+  ) async {
+    final entry = memberEditModel?.firstResolutionEntry;
+    if (entry == null) {
+      return;
+    }
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => MemberEditPage(
+          mitglied: entry.zielMitglied,
+          pendingEntry: entry,
+          initialNoticeMessage:
+              'Bitte pruefe die betroffenen Felder und sende die Aenderung danach erneut.',
+          resolutionEntryPoint: 'settings',
+        ),
+      ),
+    );
+  }
+
   void _handleTippleTapInTwoSeconds() {
     final now = DateTime.now();
     if (_firstTapAt == null ||
@@ -246,6 +284,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final theme = Theme.of(context);
     final t = AppLocalizations.of(context);
     final authModel = context.watch<AuthSessionModel>();
+    final memberEditModel = context.watch<MemberEditModel?>();
     return Scaffold(
       appBar: AppBar(title: Text(t.t('settings_title'))),
       body: SafeArea(
@@ -308,6 +347,16 @@ class _SettingsPageState extends State<SettingsPage> {
                     authModel,
                   ),
                   onTap: authModel.isConfigured ? authModel.signIn : null,
+                ),
+              ),
+            if ((memberEditModel?.openResolutionCount ?? 0) > 0)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: NotificationCard(
+                  notification: _buildMemberResolutionNotification(
+                    memberEditModel!.openResolutionCount,
+                  ),
+                  onTap: () => _openFirstResolution(context, memberEditModel),
                 ),
               ),
             FutureBuilder<AppUpdateInfo?>(

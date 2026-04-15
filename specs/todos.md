@@ -4,164 +4,103 @@ Liste an problemen, die noch behoben werden müssen.
 
 ## Fehler
 
-### Prüfen: 1 Netzwerkzugriff blockiert fehler
+### Prüfen: 3 Konfliktdialog und Problemlösungsfall
 
-Im offline modus über debug tools den Hitobito Sync triggern, wirft fehler. Fehler sollte abgefangen sein und in der UI als Hinweis auftauchen, dass Hitobito nur über WLAN erreichbar ist. In den Logs taucht zusätzlich eine Warnung zum blockierten Netzwerkzugriff auf.
+Die nächste Ausbaustufe für Personenänderungen ersetzt den pauschalen Konflikt auf Basis von `updatedAt` durch einen feld- und objektbezogenen Problemlösungsfall pro Mitglied.
 
-flutter: [2026-04-15 00:37:54] [info] [network] Netzwerkzugriff blockiert: trigger=debug_tools_profile_session feature=Hitobito reason=noMobileDataEnabled connection=mobile
-flutter: [2026-04-15 00:37:54] [info] [hitobito_sync] Hitobito-Sync fehlgeschlagen (debug_tools): Keine Mobilen Daten ist aktiviert. Hitobito ist nur ueber WLAN verfuegbar.
+Ziel:
 
- 0      NetworkAccessPolicy.ensureNetworkAllowed (package:nami/services/network_access_policy.dart:123:5)
- 1      AuthSessionModel._prepareSessionForRemoteAccess (package:nami/presentation/model/auth_session_model.dart:471:5)
- 2      AuthSessionModel.executeRemoteAccess (package:nami/presentation/model/auth_session_model.dart:533:32)
- 3      AuthSessionModel.syncHitobitoData (package:nami/presentation/model/auth_session_model.dart:748:7)
- 4      DebugToolsPageState.build.anonymous closure (package:nami/presentation/screens/settings_debug_tools_page.dart:617:33)
+- Unabhängige Änderungen zwischen lokalem und aktuellem Serverstand automatisch zusammenführen.
+- Nur echte Überschneidungen auf derselben Änderungseinheit oder fachliche Sync-Probleme eskalieren.
+- Keine lokalen Änderungen still überschreiben oder verlieren.
 
-### Prüfen: 2 Mitglied bearbeitung - offline nicht möglich
+Geplante Änderungseinheiten:
 
-Im Offline Modus wird versucht zuerst das mitgleid zu laden um es zu bearbeiten. Das laden vorm Bearbeiten öffnen ist optinal, wenn online. Ablauf für Offline
+- Vorname
+- Nachname
+- Fahrtenname
+- Geschlecht
+- Geburtsdatum
+- primäre E-Mail
+- jede Telefonnummer über ihre `phoneNumberId`
+- jede Zusatzmail über ihre `additionalEmailId`
+- primäre Adresse als Block
+- jede Zusatzadresse als Block über ihre `additionalAddressId`
 
-1. Mitglied bearbeiten öffnen
-2. Änderungen vornehmen
-3. Änderungen speichern
-4. Mitglied wird lokal gespeichert
-5. Änderungen syncronisieren sobald wieder online
-6. Bei Abweichenden  Daten Merge dialog öffnen
+Automatische Merge-Regeln:
 
-### Offen: 3 Merge Dialog vergessen
+1. Nur lokal geändert: lokale Änderung übernehmen.
+2. Nur auf dem Server geändert: Serverstand übernehmen.
+3. Beide gleich geändert: automatisch übernehmen.
+4. Beide geändert, aber nicht dieselbe Änderungseinheit: automatisch zusammenführen.
+5. Beide dieselbe Änderungseinheit unterschiedlich geändert: Problemlösungsfall.
 
-Merge-Dialog Variante 1
+UX-Regeln für den Problemlösungsfall:
 
-Werden Daten geändert, während ich sie in der app bearbeite oder habe ich daten offline geändert, dann soll ein Merge-Dialog auftauchen, wenn ich die Änderungen speichern möchte. In diesem Dialog werden die Datenfelder aufgelistet, die sich zwischen meinem lokalen Stand und dem Remote-Stand unterscheiden. Für jedes Feld kann ich auswählen, ob ich meine lokale Änderung behalten oder die Remote-Änderung übernehmen möchte.
-Bei komplexen Feldern, die nicht zusammengeführt werden können, wird angezeigt, dass die lokale Änderung verworfen wird und ich muss dies explizit bestätigen.
+- eigener Screen statt kleinem Dialog
+- immer genau ein Mitglied gleichzeitig
+- betroffene Änderungen untereinander statt lokal und Server dauerhaft nebeneinander
+- klare visuelle Trennung für lokalen Stand, Serverstand und Konfliktstatus
+- nur betroffene Änderungen anzeigen, nicht das gesamte Mitglied
+- Entscheidungen pro Mitglied in einem Durchgang treffen und danach erneut senden
 
-- Neuer eigener Dialog oder Screen
-- Eingaben:
-  - Basisstand
-  - lokaler Stand
-  - aktueller Remote-Stand
-- Nur einfache Felder listen
-- Für jedes einfache Konfliktfeld Auswahl lokal oder online
-- Komplexe Felder eigener Abschnitt:
-  - nicht automatisch mergebar
-  - lokale Änderung wird verworfen
-  - explizit im Dialog anzeigen
-- Nach Bestätigung:
-  - gemergten Zielstand erzeugen
-  - nicht mergebare lokale Teiländerungen entfernen
-  - Upload erneut ausführen
+Direkt bearbeitbar im Problemlösungs-Screen:
 
-Konfliktlogik im Write-Flow erweitern
+- Name
+- Geschlecht
+- Geburtsdatum
+- primäre E-Mail
+- Zusatzmails
+- Telefonnummern
+- primäre Adresse
+- Zusatzadressen
 
-- Heute führt Konflikt nur zu MemberWriteConflictException
-- Künftig sollte der Application-/Presentation-Pfad daraus einen Merge-Fall machen
-- Repository bleibt eher bei:
-  - Daten laden
-  - updatedAt vergleichen
-  - Konflikt melden
-- Merge-Erzeugung gehört in Model oder UseCase, nicht in den API-Client
+Verhalten je Einstieg:
 
-### Solved: 4 Hinzufügen von additional_field
+- manueller Save: direkt zuordenbare Validierungsfehler bleiben im Bearbeiten-Screen; echte Konflikte öffnen den Problemlösungs-Screen direkt
+- Hintergrund-Sync: einmalige Snackbar, danach persistenter Hinweis bis alle offenen Fälle gelöst sind
 
-Die Aktuellen Requests wenn additional_emails oder additional_phone_numbers hinzugefügt werden, führen zu einem 404 Fehler, da die Datenbank diese Felder noch nicht kennt. Außerdem sind änderungen mit additional Fields mehrere PUT Requests.
+Geplante sichtbare Einstiege für offene Fälle:
 
-Behebe den fehler und sende alle Änderungen in einem Request.
+- Einstellungen
+- Mitglieddetails des betroffenen Mitglieds
+- Warnsymbol in der Mitgliederliste
 
-So Funktioniert update:
+Abbruchverhalten:
 
-```json
-{
-  "data": {
-    "type": "people",
-    "id": "123",
-    "attributes": {
-            "first_name": "Mio",
-            "last_name": "Wollmann"
-        },
-    "relationships": {
-      "phone_numbers": {
-        "data": [
-          {
-            "type": "phone_numbers",
-            "id": "456",
-            "method": "update"
-          }
-        ]
-      }
-    }
-  },
-  "included": [
-    {
-      "type": "phone_numbers",
-      "id": "456",
-      "attributes": {
-        "number": "+41791111111"
-      }
-    }
-  ]
-}
-```
+- vollständig abgearbeitete Mitglieder werden direkt gesendet
+- bei Abbruch bleibt der Fall offen
+- Teilentscheidungen müssen nicht persistiert werden
+- beim erneuten Öffnen beginnt dieses Mitglied wieder von vorn
 
-So Funktioniert create:
+Architekturgrenze:
 
-```json
+- Repository und API-Client melden Datenstände, Validierungsfehler und Versionsabweichungen
+- Merge-Erzeugung und Problemlösungsfall gehören in Model oder UseCase, nicht in den API-Client
+- die ausführliche Projektbeschreibung liegt unter [docs/konfliktdialog.markdown](../docs/konfliktdialog.markdown)
 
-{
-  "data": {
-    "type": "people",
-    "id": "123",
-    "relationships": {
-      "phone_numbers": {
-        "data": [
-          {
-            "type": "phone_numbers",
-            "temp-id": "new-phone-1",
-            "method": "create"
-          }
-        ]
-      }
-    }
-  },
-  "included": [
-    {
-      "type": "phone_numbers",
-      "temp-id": "new-phone-1",
-      "attributes": {
-        "label": "Mobil",
-        "number": "+41790000000",
-        "public": true
-      }
-    }
-  ]
-}
+### Offen: 5 Änderung von bezeichnung im vergleich nicht sichtbar
 
-```
+Wird nur die Bezeichnung gehändert und steht in konflikt ist wird es nicht angezeigt. Stattdessen landen im vergleich die identischen E-Mail Adressen.
 
-So Funktioniert delete:
+### Offen 6: Löschen und Bearbeiten Konflikt
 
-```json
+Wird auf dem Server ein zusatzfeld gelöscht und lokal bearbeitet, entsteht ein Konflikt. Entscheide ich mich für die lokale Änderung kommt es zu einem 404 Fehler. Die App muss das geänderte feld neu hinzufügen, damit die Änderung gespeichert werden kann.
 
-{
-  "data": {
-    "type": "people",
-    "id": "123",
-    "relationships": {
-      "phone_numbers": {
-        "data": [
-          {
-            "type": "phone_numbers",
-            "id": "456",
-            "method": "destroy"
-          }
-        ]
-      }
-    }
-  }
-}
+### Offen 7: Adressvalidierung
 
-```
+Die Adressvalidierung im Offline- oder späteren Sync-Pfad ist noch nicht fachlich angeschlossen. Im Problemlösungsmodell werden nur Server-Validierungsfehler in ResolutionCases übersetzt in member_edit_model.dart:823; ein eigener Address-Validation-Trigger aus Retry oder Sync ist im Produktionspfad hier noch nicht sichtbar.
+
+### Offen 8: Umlaute
+
+Teilweise fehlen Umlaute. Aktuell an mehreren Stellen ZB ae statt ä
 
 ## Änderungswünsche
+
+- Länderflagen auch im MemberDetail an Telefonnummern
+- GithubPages Wiki/Userguide
+  - Konfliklösung
+  - Regulatoren (Datenspeicherung, Löschung)
 
 ## Weitere Funktionen
 
@@ -171,12 +110,17 @@ So Funktioniert delete:
   - Feld Postfach kann entfallen.
   - Feld Land als Dropdown, nur Deutschland (default) und Nachbarländer.
   - Aktuelle Ansicht bleibt Fallback, wenn Bearbeitung offline oder Geocoding API nicht verfügbar ist.
-- Adresse validieren (erst mit merge dialog umsetzten)
-  - Nur relevant bei Offline bearbeitung und späterem Sync. Sollte dann ebenfalls über den Merge Dialog laufen. (Adresse nicht gefunden, eingaben prüfen)
+- Adresse validieren (erst mit Konfliktdialog umsetzen)
+  - Nur relevant bei Offline-Bearbeitung und späterem Sync.
+  - Läuft über denselben Problemlösungsfall wie Konflikte oder andere fachliche Sync-Probleme.
+  - Im normalen Online-Bearbeiten-Pfad bleibt die spätere automatische Adressvervollständigung der Hauptpfad.
+  - Problemfall: Adresse nicht gefunden oder semantisch unplausibel, Eingaben prüfen oder lokale Änderung verwerfen.
 
 ## Manuelle Tests
 
-- [ ] Mitglied offline bearbeiten: Änderungen lokal speichern, später synchronisieren, Merge-Dialog bei Konflikten
-- [ ] Merge-Dialog: Bei gleichzeitigen Änderungen an einem Mitglied, Merge-Dialog öffnen, Auswahlmöglichkeiten prüfen, Ergebnis validieren.
-- [ ] Verschiedene Online Funktionen im Offline-Modus testen
-- [ ] Update, Delete und Create von additional_fields testen.
+- [ ] Fehlerhafte Telefonnummer im offline Modus: Ungültige Telefonnummer eingeben, Änderungen speichern, später synchronisieren, Validierungsfehler vom Server im Problemlösungsfall prüfen.
+- [ ] Gültige Adresse offline bearbeiten: Adresse ändern, Änderungen speichern, später synchronisieren
+- [ ] Ungültige Adresse offline bearbeiten: Ungültige Adresse eingeben, Änderungen speichern, später synchronisieren, Validierungsfehler von der App im Problemlösungsfall prüfen.
+- [x] Konfliktlösung Online: Mitglied bearbeiten, gleichzeitig Serverstand ändern, Merge-Dialog öffnet automatisch, Konfliktlösung durchführen, Ergebnis prüfen.
+- [ ] Konfliktlösung offline: Lokale Änderung an einem Mitglied vornehmen,  Serverstand ändern, später synchronisieren, Meldung erscheint, Merge-Dialog öffnen, Konfliktlösung durchführen, Ergebnis prüfen.
+- [x] Automatische Zusammenführung: Lokale Änderung an einem Mitglied vornehmen, gleichzeitig Serverstand ändern, aber unterschiedliche Felder, später synchronisieren, automatisches Zusammenführen prüfen.

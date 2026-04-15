@@ -33,6 +33,7 @@ class MemberList extends StatelessWidget {
     this.subtitleMode = MemberSubtitleMode.mitgliedsnummer,
     this.subtitleTextBuilder,
     this.trailingTextBuilder,
+    this.warningBuilder,
     this.favourites = const {},
     this.selectedFilterKeys = const <String>{},
     this.mitgliedsFilterKeys = const <String, Set<String>>{},
@@ -47,6 +48,7 @@ class MemberList extends StatelessWidget {
   final MemberSubtitleMode subtitleMode;
   final String? Function(Mitglied mitglied)? subtitleTextBuilder;
   final String? Function(Mitglied mitglied)? trailingTextBuilder;
+  final bool Function(Mitglied mitglied)? warningBuilder;
   final Set<String> favourites;
   final Set<String> selectedFilterKeys;
   final Map<String, Set<String>> mitgliedsFilterKeys;
@@ -144,6 +146,7 @@ class MemberList extends StatelessWidget {
           subtitleHighlight: highlightSearchMatches
               ? entry.subtitleHighlight
               : null,
+          showWarning: warningBuilder?.call(m) ?? false,
           trailingText: trailingTextBuilder?.call(m),
           onTap: () {
             if (onTapMember != null) {
