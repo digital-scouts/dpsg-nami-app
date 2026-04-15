@@ -57,7 +57,7 @@ void main() {
         eintrittsdatum: DateTime(2020, 5, 1),
         updatedAt: DateTime(2024, 11, 7, 14, 35),
         telefonnummern: const <MitgliedKontaktTelefon>[
-          MitgliedKontaktTelefon(wert: '040123456', label: 'Festnetznummer'),
+          MitgliedKontaktTelefon(wert: '+4940123456', label: 'Festnetznummer'),
         ],
         emailAdressen: const <MitgliedKontaktEmail>[
           MitgliedKontaktEmail(wert: 'julia@example.com', label: 'E-Mail'),

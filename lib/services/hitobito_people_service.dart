@@ -11,6 +11,28 @@ class HitobitoPeopleException extends HitobitoApiException {
   const HitobitoPeopleException(super.message, {super.statusCode});
 }
 
+enum HitobitoRelationshipMutationMethod { create, update, destroy }
+
+class HitobitoRelationshipMutation<T> {
+  const HitobitoRelationshipMutation({
+    required this.method,
+    required this.value,
+  });
+
+  final HitobitoRelationshipMutationMethod method;
+  final T value;
+}
+
+class _HitobitoRelationshipPayload {
+  const _HitobitoRelationshipPayload({
+    required this.data,
+    required this.included,
+  });
+
+  final List<Map<String, dynamic>> data;
+  final List<Map<String, dynamic>> included;
+}
+
 class HitobitoPeopleService {
   HitobitoPeopleService({required this.config, http.Client? httpClient})
     : _httpClient = httpClient ?? http.Client();
@@ -116,8 +138,6 @@ class HitobitoPeopleService {
       );
     }
 
-    final primaryEmail = _resolvePrimaryEmail(mitglied.emailAdressen);
-    final primaryAddress = _resolvePrimaryAddress(mitglied.adressen);
     await _sendJsonApiMutation(
       method: 'PUT',
       accessToken: accessToken,
@@ -126,22 +146,71 @@ class HitobitoPeopleService {
         'data': <String, dynamic>{
           'type': 'people',
           'id': personId.toString(),
-          'attributes': <String, dynamic>{
-            'first_name': mitglied.vorname,
-            'last_name': mitglied.nachname,
-            'nickname': mitglied.fahrtenname,
-            'gender': mitglied.gender,
-            'email': primaryEmail?.wert,
-            'address_care_of': primaryAddress?.addressCareOf,
-            'street': primaryAddress?.street,
-            'housenumber': primaryAddress?.housenumber,
-            'postbox': primaryAddress?.postbox,
-            'zip_code': primaryAddress?.zipCode,
-            'town': primaryAddress?.town,
-            'country': primaryAddress?.country,
-            'birthday': _toDateStringOrNull(mitglied.geburtsdatum),
-          },
+          'attributes': _buildPersonAttributes(mitglied),
         },
+      },
+    );
+  }
+
+  Future<void> updatePersonWithRelationships(
+    String accessToken, {
+    required Mitglied mitglied,
+    List<HitobitoRelationshipMutation<MitgliedKontaktTelefon>>
+        phoneNumberMutations =
+        const <HitobitoRelationshipMutation<MitgliedKontaktTelefon>>[],
+    List<HitobitoRelationshipMutation<MitgliedKontaktEmail>>
+        additionalEmailMutations =
+        const <HitobitoRelationshipMutation<MitgliedKontaktEmail>>[],
+    List<HitobitoRelationshipMutation<MitgliedKontaktAdresse>>
+        additionalAddressMutations =
+        const <HitobitoRelationshipMutation<MitgliedKontaktAdresse>>[],
+  }) async {
+    final personId = mitglied.personId;
+    if (personId == null || personId <= 0) {
+      throw const HitobitoPeopleException(
+        'Die Person kann ohne gueltige Person-ID nicht aktualisiert werden.',
+      );
+    }
+
+    final relationships = <String, dynamic>{};
+    final included = <Map<String, dynamic>>[];
+
+    if (phoneNumberMutations.isNotEmpty) {
+      final payload = _buildPhoneNumberPayload(phoneNumberMutations);
+      relationships['phone_numbers'] = <String, dynamic>{'data': payload.data};
+      included.addAll(payload.included);
+    }
+
+    if (additionalEmailMutations.isNotEmpty) {
+      final payload = _buildAdditionalEmailPayload(additionalEmailMutations);
+      relationships['additional_emails'] = <String, dynamic>{
+        'data': payload.data,
+      };
+      included.addAll(payload.included);
+    }
+
+    if (additionalAddressMutations.isNotEmpty) {
+      final payload = _buildAdditionalAddressPayload(
+        additionalAddressMutations,
+      );
+      relationships['additional_addresses'] = <String, dynamic>{
+        'data': payload.data,
+      };
+      included.addAll(payload.included);
+    }
+
+    await _sendJsonApiMutation(
+      method: 'PUT',
+      accessToken: accessToken,
+      requestUri: _resourceUri('/api/people/$personId'),
+      body: <String, dynamic>{
+        'data': <String, dynamic>{
+          'type': 'people',
+          'id': personId.toString(),
+          'attributes': _buildPersonAttributes(mitglied),
+          if (relationships.isNotEmpty) 'relationships': relationships,
+        },
+        if (included.isNotEmpty) 'included': included,
       },
     );
   }
@@ -346,6 +415,231 @@ class HitobitoPeopleService {
         '/api/additional_addresses/$additionalAddressId',
       ),
     );
+  }
+
+  Map<String, dynamic> _buildPersonAttributes(Mitglied mitglied) {
+    final primaryEmail = _resolvePrimaryEmail(mitglied.emailAdressen);
+    final primaryAddress = _resolvePrimaryAddress(mitglied.adressen);
+    return <String, dynamic>{
+      'first_name': mitglied.vorname,
+      'last_name': mitglied.nachname,
+      'nickname': mitglied.fahrtenname,
+      'gender': mitglied.gender,
+      'email': primaryEmail?.wert,
+      'address_care_of': primaryAddress?.addressCareOf,
+      'street': primaryAddress?.street,
+      'housenumber': primaryAddress?.housenumber,
+      'postbox': primaryAddress?.postbox,
+      'zip_code': primaryAddress?.zipCode,
+      'town': primaryAddress?.town,
+      'country': primaryAddress?.country,
+      'birthday': _toDateStringOrNull(mitglied.geburtsdatum),
+    };
+  }
+
+  _HitobitoRelationshipPayload _buildPhoneNumberPayload(
+    List<HitobitoRelationshipMutation<MitgliedKontaktTelefon>> mutations,
+  ) {
+    var nextTempId = 1;
+    final data = <Map<String, dynamic>>[];
+    final included = <Map<String, dynamic>>[];
+
+    for (final mutation in mutations) {
+      final telefonnummer = mutation.value;
+      switch (mutation.method) {
+        case HitobitoRelationshipMutationMethod.create:
+          final tempId = 'new-phone-$nextTempId';
+          nextTempId++;
+          data.add(<String, dynamic>{
+            'type': 'phone_numbers',
+            'temp-id': tempId,
+            'method': 'create',
+          });
+          included.add(<String, dynamic>{
+            'type': 'phone_numbers',
+            'temp-id': tempId,
+            'attributes': <String, dynamic>{
+              'label': telefonnummer.label,
+              'number': telefonnummer.wert,
+              "public": false,
+            },
+          });
+        case HitobitoRelationshipMutationMethod.update:
+          final phoneNumberId = telefonnummer.phoneNumberId;
+          if (phoneNumberId == null || phoneNumberId <= 0) {
+            throw const HitobitoPeopleException(
+              'Telefon-Update ohne gueltige ID ist nicht moeglich.',
+            );
+          }
+          data.add(<String, dynamic>{
+            'type': 'phone_numbers',
+            'id': phoneNumberId.toString(),
+            'method': 'update',
+          });
+          included.add(<String, dynamic>{
+            'type': 'phone_numbers',
+            'id': phoneNumberId.toString(),
+            'attributes': <String, dynamic>{
+              'label': telefonnummer.label,
+              'number': telefonnummer.wert,
+            },
+          });
+        case HitobitoRelationshipMutationMethod.destroy:
+          final phoneNumberId = telefonnummer.phoneNumberId;
+          if (phoneNumberId == null || phoneNumberId <= 0) {
+            throw const HitobitoPeopleException(
+              'Telefon-Loeschen ohne gueltige ID ist nicht moeglich.',
+            );
+          }
+          data.add(<String, dynamic>{
+            'type': 'phone_numbers',
+            'id': phoneNumberId.toString(),
+            'method': 'destroy',
+          });
+      }
+    }
+
+    return _HitobitoRelationshipPayload(data: data, included: included);
+  }
+
+  _HitobitoRelationshipPayload _buildAdditionalEmailPayload(
+    List<HitobitoRelationshipMutation<MitgliedKontaktEmail>> mutations,
+  ) {
+    var nextTempId = 1;
+    final data = <Map<String, dynamic>>[];
+    final included = <Map<String, dynamic>>[];
+
+    for (final mutation in mutations) {
+      final email = mutation.value;
+      switch (mutation.method) {
+        case HitobitoRelationshipMutationMethod.create:
+          final tempId = 'new-email-$nextTempId';
+          nextTempId++;
+          data.add(<String, dynamic>{
+            'type': 'additional_emails',
+            'temp-id': tempId,
+            'method': 'create',
+          });
+          included.add(<String, dynamic>{
+            'type': 'additional_emails',
+            'temp-id': tempId,
+            'attributes': <String, dynamic>{
+              'label': email.label,
+              'email': email.wert,
+            },
+          });
+        case HitobitoRelationshipMutationMethod.update:
+          final additionalEmailId = email.additionalEmailId;
+          if (additionalEmailId == null || additionalEmailId <= 0) {
+            throw const HitobitoPeopleException(
+              'Zusatzmail-Update ohne gueltige ID ist nicht moeglich.',
+            );
+          }
+          data.add(<String, dynamic>{
+            'type': 'additional_emails',
+            'id': additionalEmailId.toString(),
+            'method': 'update',
+          });
+          included.add(<String, dynamic>{
+            'type': 'additional_emails',
+            'id': additionalEmailId.toString(),
+            'attributes': <String, dynamic>{
+              'label': email.label,
+              'email': email.wert,
+            },
+          });
+        case HitobitoRelationshipMutationMethod.destroy:
+          final additionalEmailId = email.additionalEmailId;
+          if (additionalEmailId == null || additionalEmailId <= 0) {
+            throw const HitobitoPeopleException(
+              'Zusatzmail-Loeschen ohne gueltige ID ist nicht moeglich.',
+            );
+          }
+          data.add(<String, dynamic>{
+            'type': 'additional_emails',
+            'id': additionalEmailId.toString(),
+            'method': 'destroy',
+          });
+      }
+    }
+
+    return _HitobitoRelationshipPayload(data: data, included: included);
+  }
+
+  _HitobitoRelationshipPayload _buildAdditionalAddressPayload(
+    List<HitobitoRelationshipMutation<MitgliedKontaktAdresse>> mutations,
+  ) {
+    var nextTempId = 1;
+    final data = <Map<String, dynamic>>[];
+    final included = <Map<String, dynamic>>[];
+
+    for (final mutation in mutations) {
+      final adresse = mutation.value;
+      switch (mutation.method) {
+        case HitobitoRelationshipMutationMethod.create:
+          final tempId = 'new-address-$nextTempId';
+          nextTempId++;
+          data.add(<String, dynamic>{
+            'type': 'additional_addresses',
+            'temp-id': tempId,
+            'method': 'create',
+          });
+          included.add(<String, dynamic>{
+            'type': 'additional_addresses',
+            'temp-id': tempId,
+            'attributes': <String, dynamic>{
+              'label': adresse.label,
+              'address_care_of': adresse.addressCareOf,
+              'street': adresse.street,
+              'housenumber': adresse.housenumber,
+              'postbox': adresse.postbox,
+              'zip_code': adresse.zipCode,
+              'town': adresse.town,
+              'country': adresse.country,
+            },
+          });
+        case HitobitoRelationshipMutationMethod.update:
+          final additionalAddressId = adresse.additionalAddressId;
+          if (additionalAddressId == null || additionalAddressId <= 0) {
+            throw const HitobitoPeopleException(
+              'Zusatzadresse-Update ohne gueltige ID ist nicht moeglich.',
+            );
+          }
+          data.add(<String, dynamic>{
+            'type': 'additional_addresses',
+            'id': additionalAddressId.toString(),
+            'method': 'update',
+          });
+          included.add(<String, dynamic>{
+            'type': 'additional_addresses',
+            'id': additionalAddressId.toString(),
+            'attributes': <String, dynamic>{
+              'label': adresse.label,
+              'address_care_of': adresse.addressCareOf,
+              'street': adresse.street,
+              'housenumber': adresse.housenumber,
+              'postbox': adresse.postbox,
+              'zip_code': adresse.zipCode,
+              'town': adresse.town,
+              'country': adresse.country,
+            },
+          });
+        case HitobitoRelationshipMutationMethod.destroy:
+          final additionalAddressId = adresse.additionalAddressId;
+          if (additionalAddressId == null || additionalAddressId <= 0) {
+            throw const HitobitoPeopleException(
+              'Zusatzadresse-Loeschen ohne gueltige ID ist nicht moeglich.',
+            );
+          }
+          data.add(<String, dynamic>{
+            'type': 'additional_addresses',
+            'id': additionalAddressId.toString(),
+            'method': 'destroy',
+          });
+      }
+    }
+
+    return _HitobitoRelationshipPayload(data: data, included: included);
   }
 
   Uri _decoratePeopleRequestUri(Uri uri) {

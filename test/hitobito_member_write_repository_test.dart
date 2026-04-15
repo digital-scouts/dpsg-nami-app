@@ -112,6 +112,96 @@ void main() {
       ),
     );
   });
+
+  test(
+    'fuehrt Zusatzfeld-Aenderungen in genau einem Sammelwrite aus',
+    () async {
+      final peopleService = _FakeHitobitoPeopleService();
+      final repository = HitobitoMemberWriteRepository(
+        peopleService: peopleService,
+        logger: _FakeLoggerService(),
+      );
+      final basisMitglied = Mitglied(
+        mitgliedsnummer: '4711',
+        personId: 23,
+        vorname: 'Julia',
+        nachname: 'Keller',
+        geburtsdatum: Mitglied.peoplePlaceholderDate,
+        eintrittsdatum: Mitglied.peoplePlaceholderDate,
+        updatedAt: DateTime.parse('2026-04-14T09:00:00Z'),
+        telefonnummern: const <MitgliedKontaktTelefon>[
+          MitgliedKontaktTelefon(phoneNumberId: 701, wert: '+4940123456'),
+        ],
+        emailAdressen: const <MitgliedKontaktEmail>[
+          MitgliedKontaktEmail(
+            additionalEmailId: 601,
+            wert: 'julia@example.org',
+            label: 'Privat',
+          ),
+        ],
+        adressen: const <MitgliedKontaktAdresse>[
+          MitgliedKontaktAdresse(
+            additionalAddressId: 801,
+            street: 'Altweg',
+            housenumber: '4',
+            zipCode: '50667',
+            town: 'Koeln',
+          ),
+        ],
+      );
+      final zielMitglied = basisMitglied.copyWith(
+        telefonnummern: const <MitgliedKontaktTelefon>[
+          MitgliedKontaktTelefon(phoneNumberId: 701, wert: '+4940999999'),
+          MitgliedKontaktTelefon(wert: '+49 170 1234567', label: 'Mobil'),
+        ],
+        emailAdressen: const <MitgliedKontaktEmail>[
+          MitgliedKontaktEmail(
+            additionalEmailId: 601,
+            wert: 'julia.neu@example.org',
+            label: 'Privat',
+          ),
+        ],
+        adressen: const <MitgliedKontaktAdresse>[
+          MitgliedKontaktAdresse(
+            additionalAddressId: 801,
+            street: 'Neuweg',
+            housenumber: '5',
+            zipCode: '50668',
+            town: 'Koeln',
+          ),
+        ],
+      );
+
+      await repository.updateMember(
+        accessToken: 'token-123',
+        basisMitglied: basisMitglied,
+        zielMitglied: zielMitglied,
+      );
+
+      expect(
+        peopleService.calls.where((entry) => entry == 'update:token-123'),
+        hasLength(1),
+      );
+      expect(peopleService.lastPhoneNumberMutations, hasLength(2));
+      expect(
+        peopleService.lastPhoneNumberMutations.map((m) => m.method),
+        containsAll(<HitobitoRelationshipMutationMethod>[
+          HitobitoRelationshipMutationMethod.update,
+          HitobitoRelationshipMutationMethod.create,
+        ]),
+      );
+      expect(peopleService.lastAdditionalEmailMutations, hasLength(1));
+      expect(
+        peopleService.lastAdditionalEmailMutations.single.method,
+        HitobitoRelationshipMutationMethod.update,
+      );
+      expect(peopleService.lastAdditionalAddressMutations, hasLength(1));
+      expect(
+        peopleService.lastAdditionalAddressMutations.single.method,
+        HitobitoRelationshipMutationMethod.update,
+      );
+    },
+  );
 }
 
 Future<T?> _retryingExecutor<T>({
@@ -156,6 +246,15 @@ class _FakeHitobitoPeopleService extends HitobitoPeopleService {
       );
 
   final List<String> calls = <String>[];
+  List<HitobitoRelationshipMutation<MitgliedKontaktTelefon>>
+  lastPhoneNumberMutations =
+      const <HitobitoRelationshipMutation<MitgliedKontaktTelefon>>[];
+  List<HitobitoRelationshipMutation<MitgliedKontaktEmail>>
+  lastAdditionalEmailMutations =
+      const <HitobitoRelationshipMutation<MitgliedKontaktEmail>>[];
+  List<HitobitoRelationshipMutation<MitgliedKontaktAdresse>>
+  lastAdditionalAddressMutations =
+      const <HitobitoRelationshipMutation<MitgliedKontaktAdresse>>[];
   Object? updateError;
 
   @override
@@ -188,6 +287,26 @@ class _FakeHitobitoPeopleService extends HitobitoPeopleService {
         statusCode: 401,
       );
     }
+  }
+
+  @override
+  Future<void> updatePersonWithRelationships(
+    String accessToken, {
+    required Mitglied mitglied,
+    List<HitobitoRelationshipMutation<MitgliedKontaktTelefon>>
+        phoneNumberMutations =
+        const <HitobitoRelationshipMutation<MitgliedKontaktTelefon>>[],
+    List<HitobitoRelationshipMutation<MitgliedKontaktEmail>>
+        additionalEmailMutations =
+        const <HitobitoRelationshipMutation<MitgliedKontaktEmail>>[],
+    List<HitobitoRelationshipMutation<MitgliedKontaktAdresse>>
+        additionalAddressMutations =
+        const <HitobitoRelationshipMutation<MitgliedKontaktAdresse>>[],
+  }) async {
+    lastPhoneNumberMutations = phoneNumberMutations;
+    lastAdditionalEmailMutations = additionalEmailMutations;
+    lastAdditionalAddressMutations = additionalAddressMutations;
+    await updatePerson(accessToken, mitglied: mitglied);
   }
 }
 
