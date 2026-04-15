@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:nami/domain/member/member_utils.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/presentation/format/date_formatters.dart';
+import 'package:nami/presentation/notifications/app_snackbar.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 const double _memberDetailsCardRadius = 16;
@@ -205,8 +206,10 @@ class _InfoTileState extends State<_InfoTile> {
                 if (await canLaunchUrlString(uri)) {
                   await launchUrlString(uri);
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Kann Link nicht öffnen')),
+                  AppSnackbar.show(
+                    context,
+                    message: 'Kann Link nicht öffnen',
+                    type: AppSnackbarType.error,
                   );
                 }
               },

@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:nami/domain/member/mitglied.dart';
+import 'package:nami/presentation/notifications/app_snackbar.dart';
 import 'package:nami/presentation/widgets/member_basis_info_card.dart';
 // ignore: depend_on_referenced_packages
 import 'package:storybook_flutter/storybook_flutter.dart';
@@ -122,8 +122,10 @@ Story memberMembershipInfoCardStory() => Story(
     return MemberMembershipInfoCard(
       mitglied: mitglied,
       onEndMembership: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Mitgliedschaft beenden ausgelöst')),
+        AppSnackbar.show(
+          context,
+          message: 'Mitgliedschaft beenden ausgelöst',
+          type: AppSnackbarType.info,
         );
       },
     );

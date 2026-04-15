@@ -1,4 +1,3 @@
-import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -13,6 +12,7 @@ import '../../services/logger_service.dart';
 import '../model/app_settings_model.dart';
 import '../model/locale_model.dart';
 import '../navigation/navigation_home.page.dart';
+import '../notifications/app_snackbar.dart';
 import '../notifications/notifications_page.dart';
 import '../screens/profile_page.dart';
 import '../screens/settings_app_page.dart';
@@ -76,31 +76,19 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
                   try {
                     await usecase.call(grenzen);
                     final l10n = AppLocalizations.of(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        behavior: SnackBarBehavior.floating,
-                        backgroundColor: Colors.transparent,
-                        elevation: 0,
-                        content: AwesomeSnackbarContent(
-                          title: l10n.t('snackbar_saved_title'),
-                          message: l10n.t('snackbar_saved_altersgrenzen'),
-                          contentType: ContentType.success,
-                        ),
-                      ),
+                    AppSnackbar.show(
+                      context,
+                      title: l10n.t('snackbar_saved_title'),
+                      message: l10n.t('snackbar_saved_altersgrenzen'),
+                      type: AppSnackbarType.success,
                     );
                   } on AltersgrenzenValidationError catch (e) {
                     final l10n = AppLocalizations.of(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        behavior: SnackBarBehavior.floating,
-                        backgroundColor: Colors.transparent,
-                        elevation: 0,
-                        content: AwesomeSnackbarContent(
-                          title: l10n.t('snackbar_invalid_altersgrenzen_title'),
-                          message: e.message,
-                          contentType: ContentType.help,
-                        ),
-                      ),
+                    AppSnackbar.show(
+                      context,
+                      title: l10n.t('snackbar_invalid_altersgrenzen_title'),
+                      message: e.message,
+                      type: AppSnackbarType.warning,
                     );
                   }
                 },

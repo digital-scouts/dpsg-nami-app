@@ -40,6 +40,7 @@ import 'presentation/model/app_settings_model.dart';
 import 'presentation/model/locale_model.dart';
 import 'presentation/model/member_filters_model.dart';
 import 'presentation/navigation/app_router.dart';
+import 'presentation/notifications/app_snackbar.dart';
 import 'services/app_reset_service.dart';
 import 'services/app_runtime_controller.dart';
 import 'services/app_startup_state_service.dart';
@@ -609,12 +610,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
     final snackbarContext = navigatorKey.currentContext;
     if (snackbarContext != null) {
-      scaffoldMessengerKey.currentState?.showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.of(snackbarContext).t('debug_reset_done'),
-          ),
-        ),
+      AppSnackbar.showOnMessenger(
+        messenger: scaffoldMessengerKey.currentState,
+        context: snackbarContext,
+        message: AppLocalizations.of(snackbarContext).t('debug_reset_done'),
+        type: AppSnackbarType.success,
       );
     }
   }

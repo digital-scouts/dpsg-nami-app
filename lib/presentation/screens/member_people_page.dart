@@ -12,6 +12,7 @@ import '../model/arbeitskontext_model.dart';
 import '../model/auth_session_model.dart';
 import '../model/member_filters_model.dart';
 import '../navigation/app_router.dart';
+import '../notifications/app_snackbar.dart';
 import '../widgets/member_filter_sort_sheet.dart';
 import '../widgets/member_list_directory.dart';
 import 'member_detail_page.dart';
@@ -28,11 +29,11 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
   static const ErmittleStufenImArbeitskontextUseCase
   _ermittleStufenImArbeitskontextUseCase =
       ErmittleStufenImArbeitskontextUseCase();
-    static const ErmittleMemberFilterTrefferUseCase
-    _ermittleMemberFilterTrefferUseCase = ErmittleMemberFilterTrefferUseCase();
+  static const ErmittleMemberFilterTrefferUseCase
+  _ermittleMemberFilterTrefferUseCase = ErmittleMemberFilterTrefferUseCase();
 
   String? _lastShownIssueKey;
-    int? _lastMemberFiltersLayerId;
+  int? _lastMemberFiltersLayerId;
 
   Mitglied? _findMemberById(List<Mitglied> members, String memberId) {
     for (final member in members) {
@@ -95,26 +96,29 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
     final memberFiltersModel = context.watch<MemberFiltersModel?>();
     final highlightSearchMatches =
         appSettingsModel?.memberListSearchResultHighlightEnabled ?? false;
-    final layerId = arbeitskontextModel.readModel?.arbeitskontext.aktiverLayer.id;
+    final layerId =
+        arbeitskontextModel.readModel?.arbeitskontext.aktiverLayer.id;
     _ensureMemberFiltersLoaded(memberFiltersModel, layerId);
     final showBiberFilter = _hatMitgliedInGruppenTyp(
       arbeitskontextModel,
       _biberGruppenTyp,
     );
     final mitgliedsStufen = arbeitskontextModel.readModel == null
-      ? const <String, Set<Stufe>>{}
-      : _ermittleStufenImArbeitskontextUseCase(arbeitskontextModel.readModel!);
+        ? const <String, Set<Stufe>>{}
+        : _ermittleStufenImArbeitskontextUseCase(
+            arbeitskontextModel.readModel!,
+          );
     final mitgliedsFilterKeys = arbeitskontextModel.readModel == null
-      ? const <String, Set<String>>{}
-      : _ermittleMemberFilterTrefferUseCase(
-        arbeitskontextModel.readModel!,
-        customGroups: memberFiltersModel?.customGroups ?? const [],
-        );
+        ? const <String, Set<String>>{}
+        : _ermittleMemberFilterTrefferUseCase(
+            arbeitskontextModel.readModel!,
+            customGroups: memberFiltersModel?.customGroups ?? const [],
+          );
     final members =
         arbeitskontextModel.readModel?.mitglieder ?? const <Mitglied>[];
     final sortKey = memberFiltersModel?.sortKey ?? MemberSortKey.name;
     final subtitleMode =
-      memberFiltersModel?.subtitleMode ?? MemberSubtitleMode.mitgliedsnummer;
+        memberFiltersModel?.subtitleMode ?? MemberSubtitleMode.mitgliedsnummer;
 
     _scheduleIssueSnackbar(context, t, authModel);
 
@@ -143,7 +147,9 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
   }
 
   void _ensureMemberFiltersLoaded(MemberFiltersModel? model, int? layerId) {
-    if (model == null || layerId == null || _lastMemberFiltersLayerId == layerId) {
+    if (model == null ||
+        layerId == null ||
+        _lastMemberFiltersLayerId == layerId) {
       return;
     }
     _lastMemberFiltersLayerId = layerId;
@@ -177,9 +183,12 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
           context.read<AuthSessionModel>().requiresInteractiveLogin
           ? 'members_sync_issue_relogin'
           : 'members_sync_issue_cached';
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(t.t(snackbarKey))));
+      AppSnackbar.show(
+        context,
+        message: t.t(snackbarKey),
+        type: AppSnackbarType.warning,
+        replaceCurrent: true,
+      );
     });
   }
 
@@ -214,7 +223,8 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
         customFilterGroups: memberFiltersModel?.customGroups ?? const [],
         showBiberFilter: showBiberFilter,
         enableGroupFilter: true,
-        onOpenFilterOptions: memberFiltersModel == null || arbeitskontextModel.readModel == null
+        onOpenFilterOptions:
+            memberFiltersModel == null || arbeitskontextModel.readModel == null
             ? null
             : () {
                 showMemberFilterSortSheet(

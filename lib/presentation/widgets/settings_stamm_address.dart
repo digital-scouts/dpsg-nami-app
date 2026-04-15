@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:nami/domain/member/member_address_utils.dart';
 import 'package:nami/domain/settings/address_settings_repository.dart';
 import 'package:nami/l10n/app_localizations.dart';
+import 'package:nami/presentation/notifications/app_snackbar.dart';
 import 'package:nami/presentation/widgets/address_map_preview.dart';
 import 'package:nami/services/geoapify_address_map_service.dart';
 import 'package:nami/services/map_tile_cache_service.dart';
@@ -101,10 +102,10 @@ class _StammAddressSettingsState extends State<StammAddressSettings> {
               _controller.text = selection;
             });
             widget.onDownloadRegion?.call();
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(AppLocalizations.of(context).t('address_saved')),
-              ),
+            AppSnackbar.show(
+              context,
+              message: AppLocalizations.of(context).t('address_saved'),
+              type: AppSnackbarType.success,
             );
           },
           fieldViewBuilder: (context, textController, focusNode, onSubmitted) {

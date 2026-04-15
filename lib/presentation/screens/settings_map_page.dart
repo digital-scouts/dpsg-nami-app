@@ -9,6 +9,7 @@ import 'package:nami/domain/maps/diocese_boundary_repository.dart';
 import 'package:nami/domain/maps/stamm_map_marker.dart';
 import 'package:nami/domain/maps/stamm_map_marker_repository.dart';
 import 'package:nami/l10n/app_localizations.dart';
+import 'package:nami/presentation/notifications/app_snackbar.dart';
 import 'package:nami/presentation/widgets/stamm_cluster_layer.dart';
 import 'package:nami/services/map_tile_cache_service.dart';
 import 'package:nami/services/maps_env.dart';
@@ -332,9 +333,11 @@ class _SettingsMapPageState extends State<SettingsMapPage> {
     final opener = widget.externalUrlOpener ?? _launchExternalUrl;
     final didOpen = await opener(Uri.parse(normalizedWebsite));
     if (!didOpen && mounted) {
-      ScaffoldMessenger.of(
+      AppSnackbar.show(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Kann Link nicht öffnen')));
+        message: 'Kann Link nicht öffnen',
+        type: AppSnackbarType.error,
+      );
     }
   }
 

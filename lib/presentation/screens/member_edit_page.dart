@@ -8,6 +8,7 @@ import '../../domain/member/mitglied.dart';
 import '../model/auth_session_model.dart';
 import '../model/member_edit_model.dart';
 import '../model/member_phone_input.dart';
+import '../notifications/app_snackbar.dart';
 
 class MemberEditPage extends StatefulWidget {
   const MemberEditPage({
@@ -720,6 +721,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
     if (memberEditModel == null || accessToken == null || accessToken.isEmpty) {
       _showMessage(
         'Aktuell ist keine gueltige Sitzung zum Speichern verfuegbar.',
+        type: AppSnackbarType.warning,
       );
       return;
     }
@@ -745,7 +747,10 @@ class _MemberEditPageState extends State<MemberEditPage> {
       }
       final hasMappedValidationErrors = _applyValidationErrors(result);
       if (!hasMappedValidationErrors) {
-        _showMessage(result.message ?? 'Speichern fehlgeschlagen.');
+        _showMessage(
+          result.message ?? 'Speichern fehlgeschlagen.',
+          type: AppSnackbarType.error,
+        );
       }
     } finally {
       if (mounted) {
@@ -800,10 +805,11 @@ class _MemberEditPageState extends State<MemberEditPage> {
     );
   }
 
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+  void _showMessage(
+    String message, {
+    AppSnackbarType type = AppSnackbarType.info,
+  }) {
+    AppSnackbar.show(context, message: message, type: type);
   }
 
   MitgliedKontaktEmail? _resolvePrimaryEmail(
