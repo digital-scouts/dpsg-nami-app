@@ -105,6 +105,38 @@ void main() {
     expect(result.message, contains('Lokaler Bearbeitungsstand'));
   });
 
+  test(
+    'faellt beim Vorbereiten offline auf den lokalen Stand zurueck',
+    () async {
+      final logger = _FakeLoggerService();
+      final basisMitglied = Mitglied.peopleListItem(
+        mitgliedsnummer: '4711',
+        personId: 23,
+        vorname: 'Julia',
+        nachname: 'Keller',
+      );
+      final model = MemberEditModel(
+        memberWriteRepository: _FakeMemberWriteRepository(
+          fetchResultsByPersonId: <int, Object>{
+            23: const MemberWriteNetworkBlockedException('Nur ueber WLAN.'),
+          },
+        ),
+        pendingRepository: _InMemoryPendingPersonUpdateRepository(),
+        logger: logger,
+        onMemberUpdated: (_) async {},
+      );
+
+      final result = await model.prepareForEdit(
+        accessToken: 'token-123',
+        mitglied: basisMitglied,
+      );
+
+      expect(result.success, isTrue);
+      expect(result.member, basisMitglied);
+      expect(result.message, contains('lokal gespeicherten Daten'));
+    },
+  );
+
   test('queuet das Update bei generischem Fehler', () async {
     final pendingRepository = _InMemoryPendingPersonUpdateRepository();
     final logger = _FakeLoggerService();

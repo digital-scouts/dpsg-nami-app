@@ -259,7 +259,7 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
     final mapTileCacheService = _resolveMapTileCacheService(logger);
     final authModel = context.watch<AuthSessionModel>();
     final arbeitskontextModel = context.read<ArbeitskontextModel>();
-    final memberEditModel = context.watch<MemberEditModel>();
+    final memberEditModel = context.watch<MemberEditModel?>();
     final configController = context.watch<HitobitoAuthConfigController>();
     return Scaffold(
       appBar: AppBar(title: const Text('Debug & Tools')),
@@ -488,7 +488,12 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (memberEditModel.pendingUpdates.isEmpty)
+                      if (memberEditModel == null)
+                        Text(
+                          'Pending-Änderungen sind in diesem Kontext nicht verfügbar.',
+                          style: theme.textTheme.bodyMedium,
+                        )
+                      else if (memberEditModel.pendingUpdates.isEmpty)
                         Text(
                           'Aktuell sind keine ausstehenden Änderungen gespeichert.',
                           style: theme.textTheme.bodyMedium,
@@ -630,13 +635,22 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                                 }
 
                                 final messenger = ScaffoldMessenger.of(context);
-                                final message =
-                                    authModel.state == AuthState.reloginRequired
-                                    ? 'Neuanmeldung erforderlich, Daten konnten nicht synchronisiert werden.'
-                                    : (authModel.errorMessage?.isNotEmpty ==
-                                              true
-                                          ? 'Hitobito-Daten konnten nicht vollständig synchronisiert werden.'
-                                          : 'Hitobito-Daten wurden synchronisiert.');
+                                final message = switch ((
+                                  authModel
+                                      .isRemoteAccessBlockedByNetworkPolicy,
+                                  authModel.state == AuthState.reloginRequired,
+                                  authModel.errorMessage?.isNotEmpty == true,
+                                )) {
+                                  (true, _, _) =>
+                                    authModel.remoteAccessIssueMessage ??
+                                        authModel.errorMessage ??
+                                        'Hitobito ist aktuell nur ueber WLAN erreichbar.',
+                                  (_, true, _) =>
+                                    'Neuanmeldung erforderlich, Daten konnten nicht synchronisiert werden.',
+                                  (_, _, true) =>
+                                    'Hitobito-Daten konnten nicht vollständig synchronisiert werden.',
+                                  _ => 'Hitobito-Daten wurden synchronisiert.',
+                                };
                                 messenger.showSnackBar(
                                   SnackBar(content: Text(message)),
                                 );

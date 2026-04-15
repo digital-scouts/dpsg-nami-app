@@ -71,8 +71,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Julia Keller'), findsOneWidget);
-      expect(find.text('Allgemeine Informationen'), findsOneWidget);
-      expect(find.text('Mitgliedschaft'), findsOneWidget);
+      expect(find.text('Allgemeine Informationen'), findsNothing);
+      expect(find.text('Mitgliedschaft'), findsNothing);
       expect(find.text('4711'), findsOneWidget);
       expect(find.text('Zuletzt aktualisiert'), findsOneWidget);
       expect(find.text('07.11.2024, 14:35'), findsOneWidget);
@@ -97,7 +97,7 @@ void main() {
 
       expect(find.text('Geburtstag'), findsNothing);
       expect(find.text('Eintrittsdatum'), findsNothing);
-      expect(find.text('Mitgliedschaft'), findsOneWidget);
+      expect(find.text('Mitgliedschaft'), findsNothing);
       expect(find.text('9'), findsOneWidget);
     },
     timeout: const Timeout(Duration(seconds: 3)),
@@ -137,7 +137,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 150));
 
-    expect(find.text('Adresse'), findsOneWidget);
+    expect(find.text('Adresse'), findsNothing);
     expect(find.text('Musterweg 4, 50667 Koeln'), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsNothing);
   });
@@ -180,7 +180,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 150));
       await tester.pump();
 
-      expect(find.text('Adresse'), findsOneWidget);
+      expect(find.text('Adresse'), findsNothing);
       expect(find.byType(CircularProgressIndicator), findsNothing);
     },
     timeout: const Timeout(Duration(seconds: 3)),
@@ -339,6 +339,60 @@ void main() {
     );
     expect(vornameField.controller?.text, 'Juliane');
   });
+
+  testWidgets('oeffnet den Editor auch mit lokalem Offline-Hinweis', (
+    tester,
+  ) async {
+    final member = Mitglied.peopleListItem(
+      mitgliedsnummer: '4711',
+      personId: 23,
+      primaryGroupId: 111,
+      vorname: 'Julia',
+      nachname: 'Keller',
+    );
+    final arbeitskontextModel = await _buildArbeitskontextModel(
+      member: member,
+      permissions: const <String>['group_and_below_full'],
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        MemberDetailPage(mitglied: member),
+        providers: <SingleChildWidget>[
+          ChangeNotifierProvider<ArbeitskontextModel>.value(
+            value: arbeitskontextModel,
+          ),
+          ChangeNotifierProvider<AuthSessionModel>.value(
+            value: _StubAuthSessionModel(
+              session: AuthSession(
+                accessToken: 'token-123',
+                receivedAt: DateTime(2026, 4, 14),
+              ),
+            ),
+          ),
+          ChangeNotifierProvider<MemberEditModel>.value(
+            value: _PreparingMemberEditModel(
+              refreshedMember: member,
+              message:
+                  'Bearbeitung erfolgt mit lokal gespeicherten Daten. Nur ueber WLAN.',
+            ),
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Person bearbeiten'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Person bearbeiten'), findsOneWidget);
+    expect(
+      find.text(
+        'Bearbeitung erfolgt mit lokal gespeicherten Daten. Nur ueber WLAN.',
+      ),
+      findsOneWidget,
+    );
+  });
 }
 
 Widget _buildTestApp(
@@ -456,7 +510,7 @@ class _StubMemberEditModel extends MemberEditModel {
 }
 
 class _PreparingMemberEditModel extends MemberEditModel {
-  _PreparingMemberEditModel({required this.refreshedMember})
+  _PreparingMemberEditModel({required this.refreshedMember, this.message})
     : super(
         memberWriteRepository: _NoopMemberWriteRepository(),
         pendingRepository: _NoopPendingPersonUpdateRepository(),
@@ -465,6 +519,7 @@ class _PreparingMemberEditModel extends MemberEditModel {
       );
 
   final Mitglied refreshedMember;
+  final String? message;
 
   @override
   Future<MemberEditPrepareResult> prepareForEdit({
@@ -472,7 +527,11 @@ class _PreparingMemberEditModel extends MemberEditModel {
     required Mitglied mitglied,
     String trigger = 'detail_edit',
   }) async {
-    return MemberEditPrepareResult(success: true, member: refreshedMember);
+    return MemberEditPrepareResult(
+      success: true,
+      member: refreshedMember,
+      message: message,
+    );
   }
 }
 

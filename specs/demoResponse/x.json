@@ -1,21 +1,11 @@
 {
     "data": {
-        "type": "people",
-        "id": "80",
+        "type": "additional_emails",
         "attributes": {
-            "first_name": "Jeremie",
-            "last_name": "Behnert",
-            "nickname": "Animi",
-            "gender": "m",
-            "email": "jeremie_behnert@hitobito.example.com",
-            "address_care_of": null,
-            "street": "Niekampsweg",
-            "housenumber": "24",
-            "postbox": null,
-            "zip_code": "22523",
-            "town": "Hamburg",
-            "country": "DE",
-            "birthday": "1976-02-14"
+            "label": "Home",
+            "contactable_id": 80,
+            "contactable_type": "Person",
+            "email": "second@mail.de"
         }
     }
 }

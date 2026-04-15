@@ -214,19 +214,25 @@ class MemberEditModel extends ChangeNotifier {
       );
       return MemberEditPrepareResult(success: false, message: error.message);
     } on MemberWriteNetworkBlockedException catch (error) {
-      await _logMemberEditFailure(
-        trigger: trigger,
-        personId: personId,
-        outcome: 'network_blocked',
-        message: error.message,
-      );
       await _logMemberEditEvent(
         action: 'prepare_result',
         trigger: trigger,
-        outcome: 'network_blocked',
+        outcome: 'network_blocked_local_fallback',
+        personId: personId,
+        track: true,
+      );
+      await _logMemberEditEvent(
+        action: 'prepare_notice',
+        trigger: trigger,
+        outcome: 'network_blocked_local_fallback',
         personId: personId,
       );
-      return MemberEditPrepareResult(success: false, message: error.message);
+      return MemberEditPrepareResult(
+        success: true,
+        member: mitglied,
+        message:
+            'Bearbeitung erfolgt mit lokal gespeicherten Daten. ${error.message}',
+      );
     } on MemberWriteRejectedException catch (error) {
       await _logMemberEditFailure(
         trigger: trigger,

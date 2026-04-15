@@ -16,6 +16,7 @@ import 'package:nami/services/hitobito_data_retention_policy.dart';
 import 'package:nami/services/hitobito_oauth_service.dart';
 import 'package:nami/services/hitobito_people_service.dart';
 import 'package:nami/services/logger_service.dart';
+import 'package:nami/services/network_access_policy.dart';
 import 'package:nami/services/sensitive_storage_service.dart';
 
 void main() {
@@ -535,6 +536,66 @@ void main() {
       expect(memberSyncTokens, <String>['stale-token', 'refreshed-token']);
       expect(model.session?.accessToken, 'refreshed-token');
       expect(model.requiresInteractiveLogin, isFalse);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  test(
+    'markiert blockierten Netzwerkzugriff beim Sync ohne Relogin-Pflicht',
+    () async {
+      final oauthService = _FakeOauthService(
+        sessionToReturn: AuthSession(
+          accessToken: 'access-token',
+          refreshToken: 'refresh-token',
+          receivedAt: DateTime(2026, 3, 27),
+        ),
+        profileToReturn: const AuthProfile(
+          namiId: 92,
+          firstName: 'Offline',
+          lastName: 'Sync',
+          language: 'de',
+        ),
+      );
+      final sensitiveStorage = _FakeSensitiveStorageService();
+      final model = AuthSessionModel(
+        repository: _InMemoryAuthSessionRepository(),
+        profileRepository: _InMemoryAuthProfileRepository(),
+        oauthService: oauthService,
+        biometricLockService: _FakeBiometricLockService(),
+        sensitiveStorageService: sensitiveStorage,
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => DateTime(2026, 3, 28, 12),
+        ),
+        logger: _createLogger(),
+        networkAccessPolicy: _BlockedNetworkAccessPolicy(
+          const NetworkAccessBlockedException(
+            reason: NetworkAccessBlockedReason.noMobileDataEnabled,
+            connectionType: NetworkConnectionType.mobile,
+            message:
+                'Keine Mobilen Daten ist aktiviert. Hitobito ist nur ueber WLAN verfuegbar.',
+          ),
+        ),
+      );
+
+      await model.signIn();
+      sensitiveStorage._lastSensitiveSyncAt = DateTime(2026, 3, 27, 8);
+
+      await model.syncHitobitoData(
+        syncMembers: (_) async {},
+        force: true,
+        trigger: 'debug_tools',
+      );
+
+      expect(model.state, AuthState.signedIn);
+      expect(model.requiresInteractiveLogin, isFalse);
+      expect(model.isRemoteAccessBlockedByNetworkPolicy, isTrue);
+      expect(
+        model.remoteAccessIssueMessage,
+        'Keine Mobilen Daten ist aktiviert. Hitobito ist nur ueber WLAN verfuegbar.',
+      );
+      expect(model.lastSensitiveSyncAt, isNull);
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
@@ -1263,6 +1324,20 @@ class _LogEntry {
 
   final String service;
   final String message;
+}
+
+class _BlockedNetworkAccessPolicy extends NetworkAccessPolicy {
+  _BlockedNetworkAccessPolicy(this.error);
+
+  final NetworkAccessBlockedException error;
+
+  @override
+  Future<void> ensureNetworkAllowed({
+    required String trigger,
+    String feature = 'Netzwerkzugriff',
+  }) async {
+    throw error;
+  }
 }
 
 class _FakeLoggerService extends LoggerService {

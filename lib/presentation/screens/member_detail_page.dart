@@ -37,10 +37,16 @@ class MemberDetailPage extends StatefulWidget {
 class _MemberDetailPageState extends State<MemberDetailPage> {
   bool _isPreparingEdit = false;
 
-  Future<void> _openEditPage(Mitglied mitglied) async {
+  Future<void> _openEditPage(
+    Mitglied mitglied, {
+    String? initialNoticeMessage,
+  }) async {
     final result = await Navigator.of(context).push<MemberEditSubmitResult>(
       MaterialPageRoute<MemberEditSubmitResult>(
-        builder: (_) => MemberEditPage(mitglied: mitglied),
+        builder: (_) => MemberEditPage(
+          mitglied: mitglied,
+          initialNoticeMessage: initialNoticeMessage,
+        ),
       ),
     );
     if (!mounted || result == null) {
@@ -93,7 +99,10 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
         );
         return;
       }
-      await _openEditPage(refreshedMember);
+      await _openEditPage(
+        refreshedMember,
+        initialNoticeMessage: result.message,
+      );
     } finally {
       if (mounted) {
         setState(() {

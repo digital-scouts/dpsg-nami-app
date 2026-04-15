@@ -30,6 +30,7 @@ import 'package:nami/services/hitobito_oauth_service.dart';
 import 'package:nami/services/hitobito_people_service.dart';
 import 'package:nami/services/logger_service.dart';
 import 'package:nami/services/map_tile_cache_service.dart';
+import 'package:nami/services/network_access_policy.dart';
 import 'package:nami/services/sensitive_storage_service.dart';
 import 'package:provider/provider.dart';
 
@@ -203,7 +204,7 @@ void main() {
     final resetButton = find.byKey(const Key('debug_reset_app_button'));
     await _scrollDownUntilFinderExists(tester, resetButton);
     await tester.ensureVisible(resetButton);
-    await tester.tap(resetButton, warnIfMissed: false);
+    tester.widget<FilledButton>(resetButton).onPressed!.call();
     await tester.pumpAndSettle();
 
     expect(find.text('Alle Daten löschen?'), findsOneWidget);
@@ -377,6 +378,96 @@ void main() {
     expect(logger.debugActions, contains('delete_map_cache'));
     expect(find.text('Kartendaten gelöscht'), findsOneWidget);
   });
+
+  testWidgets(
+    'zeigt beim manuellen Sync einen WLAN-Hinweis statt generischer Fehlermeldung',
+    (tester) async {
+      final logger = _FakeLoggerService();
+      final groupsService = _FakeHitobitoGroupsService();
+      final peopleService = HitobitoPeopleService(config: groupsService.config);
+      final configController = HitobitoAuthConfigController(
+        sensitiveStorageService: _FakeSensitiveStorageService(),
+        oauthService: _MutableOauthService(),
+        groupsService: groupsService,
+        peopleService: peopleService,
+        logger: logger,
+        envConfig: groupsService.config,
+      );
+      await configController.initialize();
+
+      final authModel = AuthSessionModel(
+        repository: _InMemoryAuthSessionRepository(),
+        profileRepository: _InMemoryAuthProfileRepository(),
+        oauthService: _MutableOauthService(),
+        biometricLockService: _FakeBiometricLockService(),
+        sensitiveStorageService: _FakeSensitiveStorageService(),
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+        ),
+        logger: logger,
+        networkAccessPolicy: _BlockedNetworkAccessPolicy(
+          const NetworkAccessBlockedException(
+            reason: NetworkAccessBlockedReason.noMobileDataEnabled,
+            connectionType: NetworkConnectionType.mobile,
+            message:
+                'Keine Mobilen Daten ist aktiviert. Hitobito ist nur ueber WLAN verfuegbar.',
+          ),
+        ),
+      );
+      final arbeitskontextModel = ArbeitskontextModel(
+        localRepository: _ImmediateArbeitskontextLocalRepository(),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: groupsService,
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: logger,
+      );
+
+      await authModel.signIn();
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
+            ChangeNotifierProvider<ArbeitskontextModel>.value(
+              value: arbeitskontextModel,
+            ),
+            ChangeNotifierProvider<HitobitoAuthConfigController>.value(
+              value: configController,
+            ),
+            Provider<LoggerService>.value(value: logger),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+              AppLocalizations.delegate,
+            ],
+            supportedLocales: const [Locale('de'), Locale('en')],
+            locale: const Locale('de'),
+            home: const DebugToolsPage(),
+          ),
+        ),
+      );
+
+      await _pumpBriefly(tester);
+      final syncButtonLabel = find.text('Daten jetzt aktualisieren');
+      await _scrollDownUntilFinderExists(tester, syncButtonLabel);
+      await tester.ensureVisible(syncButtonLabel);
+      await tester.tap(syncButtonLabel);
+      await tester.pump();
+      await _pumpBriefly(tester);
+
+      expect(
+        find.text(
+          'Keine Mobilen Daten ist aktiviert. Hitobito ist nur ueber WLAN verfuegbar.',
+        ),
+        findsOneWidget,
+      );
+    },
+    timeout: const Timeout(Duration(seconds: 5)),
+  );
 }
 
 Future<void> _scrollDownUntilFinderExists(
@@ -388,10 +479,16 @@ Future<void> _scrollDownUntilFinderExists(
       return;
     }
     await tester.drag(find.byType(ListView), const Offset(0, -300));
-    await tester.pumpAndSettle();
+    await _pumpBriefly(tester);
   }
 
   expect(finder, findsWidgets);
+}
+
+Future<void> _pumpBriefly(WidgetTester tester) async {
+  for (var i = 0; i < 6; i++) {
+    await tester.pump(const Duration(milliseconds: 50));
+  }
 }
 
 class _MutableOauthService extends HitobitoOauthService {
@@ -404,6 +501,13 @@ class _MutableOauthService extends HitobitoOauthService {
           redirectUri: 'de.jlange.nami.app:/oauth/callback',
         ),
       );
+
+  @override
+  Future<AuthSession> authenticateInteractive() async => AuthSession(
+    accessToken: 'access-token',
+    refreshToken: 'refresh-token',
+    receivedAt: DateTime(2026, 4, 1, 12),
+  );
 
   @override
   Future<AuthProfile> fetchProfile(AuthSession session) async =>
@@ -577,6 +681,20 @@ class _FakeMapTileCacheService extends MapTileCacheService {
   @override
   Future<void> deleteRoot() async {
     deleteRootCalls++;
+  }
+}
+
+class _BlockedNetworkAccessPolicy extends NetworkAccessPolicy {
+  _BlockedNetworkAccessPolicy(this.error);
+
+  final NetworkAccessBlockedException error;
+
+  @override
+  Future<void> ensureNetworkAllowed({
+    required String trigger,
+    String feature = 'Netzwerkzugriff',
+  }) async {
+    throw error;
   }
 }
 

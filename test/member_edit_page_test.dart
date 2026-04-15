@@ -22,8 +22,27 @@ void main() {
     expect(find.text('Allgemein', skipOffstage: false), findsOneWidget);
     expect(find.text('Vorname', skipOffstage: false), findsOneWidget);
     expect(find.text('Nachname', skipOffstage: false), findsOneWidget);
-    expect(find.text('Kontakt', skipOffstage: false), findsOneWidget);
+    expect(find.text('Kontakt', skipOffstage: false), findsNothing);
+    expect(find.text('E-Mail', skipOffstage: false), findsWidgets);
+    expect(find.text('Telefon', skipOffstage: false), findsWidgets);
+    expect(find.text('Adresse', skipOffstage: false), findsWidgets);
     expect(find.byKey(const Key('member-edit-save-button')), findsOneWidget);
+
+    final vornameRect = tester.getRect(
+      find.widgetWithText(TextFormField, 'Vorname'),
+    );
+    final fahrtennameRect = tester.getRect(
+      find.widgetWithText(TextFormField, 'Fahrtenname'),
+    );
+    final genderRect = tester.getRect(
+      find.byKey(const Key('member-edit-gender-field')),
+    );
+    final geburtsdatumRect = tester.getRect(
+      find.byKey(const Key('member-edit-birthdate-field')),
+    );
+
+    expect((vornameRect.top - fahrtennameRect.top).abs(), lessThan(2));
+    expect(geburtsdatumRect.left, greaterThan(genderRect.left + 20));
   });
 
   testWidgets(
@@ -94,6 +113,129 @@ void main() {
     expect(find.text('Unbekannt', skipOffstage: false), findsOneWidget);
     expect(find.text('Divers', skipOffstage: false), findsNothing);
     expect(find.text('Keine Angabe', skipOffstage: false), findsNothing);
+  });
+
+  testWidgets('blockiert Speichern ohne Namen oder Fahrtenname', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildTestApp(
+        MemberEditPage(
+          mitglied: _buildMember(gender: '').copyWith(
+            vorname: '',
+            nachname: '',
+            fahrtenname: '',
+            fahrtennameLoeschen: true,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('member-edit-save-button')));
+    await tester.pump();
+
+    expect(
+      find.text('Mindestens Vorname, Nachname oder Fahrtenname angeben.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('blockiert zu altes Geburtsdatum', (tester) async {
+    final oldDate = DateTime(DateTime.now().year - 121, 1, 1);
+    await tester.pumpWidget(
+      _buildTestApp(
+        MemberEditPage(
+          mitglied: _buildMember(gender: '').copyWith(geburtsdatum: oldDate),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('member-edit-save-button')));
+    await tester.pump();
+
+    expect(
+      find.text('Geburtsdatum ist zu weit in der Vergangenheit.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('blockiert ungueltige E-Mail-Adressen', (tester) async {
+    await tester.pumpWidget(
+      _buildTestApp(
+        MemberEditPage(
+          mitglied: _buildMember(gender: '').copyWith(
+            emailAdressen: const <MitgliedKontaktEmail>[
+              MitgliedKontaktEmail(
+                additionalEmailId: 1,
+                wert: 'ungueltig',
+                label: Mitglied.primaryEmailLabel,
+                istPrimaer: true,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('member-edit-save-button')));
+    await tester.pump();
+
+    expect(
+      find.text('Bitte eine gültige E-Mail-Adresse eingeben.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('blockiert ungueltige Telefonnummern', (tester) async {
+    await tester.pumpWidget(
+      _buildTestApp(
+        MemberEditPage(
+          mitglied: _buildMember(gender: '').copyWith(
+            telefonnummern: const <MitgliedKontaktTelefon>[
+              MitgliedKontaktTelefon(phoneNumberId: 1, wert: 'abc'),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('member-edit-save-button')));
+    await tester.pump();
+
+    expect(
+      find.text('Bitte eine gültige Telefonnummer eingeben.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('blockiert leere Zusatz-E-Mails', (tester) async {
+    await tester.pumpWidget(
+      _buildTestApp(MemberEditPage(mitglied: _buildMember(gender: ''))),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('E-Mail hinzufügen'));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('member-edit-save-button')));
+    await tester.pump();
+
+    expect(find.text('E-Mail darf nicht leer sein.'), findsOneWidget);
+  });
+
+  testWidgets('zeigt leeres Geburtsdatum statt 01.01.1900', (tester) async {
+    await tester.pumpWidget(
+      _buildTestApp(
+        MemberEditPage(
+          mitglied: _buildMember(
+            gender: '',
+          ).copyWith(geburtsdatum: Mitglied.peoplePlaceholderDate),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Nicht gesetzt'), findsOneWidget);
+    expect(find.text('01.01.1900'), findsNothing);
   });
 }
 

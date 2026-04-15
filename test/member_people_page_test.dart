@@ -260,8 +260,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(MemberDetails), findsOneWidget);
-    expect(find.text('Allgemeine Informationen'), findsOneWidget);
-    expect(find.text('Mitgliedschaft'), findsOneWidget);
+    expect(find.text('Allgemeine Informationen'), findsNothing);
+    expect(find.text('Mitgliedschaft'), findsNothing);
+    expect(find.text('Festnetznummer'), findsOneWidget);
+    expect(find.text('4711'), findsOneWidget);
   });
 
   testWidgets(
@@ -528,9 +530,9 @@ void main() {
     expect(find.text('Sortiere nach'), findsOneWidget);
     expect(find.text('Zusatztext'), findsOneWidget);
     expect(find.text('Rest'), findsWidgets);
-    expect(find.text('CustomGroup erstellen'), findsOneWidget);
+    expect(find.text('Filtergruppe erstellen'), findsOneWidget);
 
-    await tester.tap(find.text('CustomGroup erstellen'));
+    await tester.tap(find.text('Filtergruppe erstellen'));
     await tester.pumpAndSettle();
 
     expect(find.text('Gruppe'), findsOneWidget);
@@ -564,7 +566,7 @@ void main() {
     await tester.tap(find.byTooltip('Filtern und sortieren'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('CustomGroup löschen').first);
+    await tester.tap(find.byTooltip('Filtergruppe löschen').first);
     await tester.pumpAndSettle();
 
     Navigator.of(tester.element(find.text('Filtern & Sortieren'))).pop();
