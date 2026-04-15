@@ -15,6 +15,7 @@ class MemberEditSubmitResult {
     this.message,
     this.updatedMember,
     this.pendingEntry,
+    this.validationErrors = const <MemberWriteFieldValidationError>[],
   });
 
   final bool success;
@@ -22,6 +23,7 @@ class MemberEditSubmitResult {
   final String? message;
   final Mitglied? updatedMember;
   final PendingPersonUpdate? pendingEntry;
+  final List<MemberWriteFieldValidationError> validationErrors;
 }
 
 class MemberEditPrepareResult {
@@ -431,6 +433,25 @@ class MemberEditModel extends ChangeNotifier {
         wasQueued: false,
         message: error.message,
       );
+    } on MemberWriteValidationException catch (error) {
+      await _logMemberEditFailure(
+        trigger: trigger,
+        personId: personId,
+        outcome: 'discarded_validation',
+        message: error.message,
+      );
+      await _logMemberEditEvent(
+        action: 'submit_result',
+        trigger: trigger,
+        outcome: 'discarded_validation',
+        personId: personId,
+      );
+      return MemberEditSubmitResult(
+        success: false,
+        wasQueued: false,
+        message: error.message,
+        validationErrors: error.errors,
+      );
     } catch (error) {
       final entry = PendingPersonUpdate(
         entryId: 'person-$personId',
@@ -537,6 +558,15 @@ class MemberEditModel extends ChangeNotifier {
             PendingPersonUpdateRetryItemResult(
               entry: attemptedEntry,
               disposition: PendingPersonUpdateRetryDisposition.retained,
+              message: error.message,
+            ),
+          );
+        } on MemberWriteValidationException catch (error) {
+          await _pendingRepository.remove(attemptedEntry.entryId);
+          results.add(
+            PendingPersonUpdateRetryItemResult(
+              entry: attemptedEntry,
+              disposition: PendingPersonUpdateRetryDisposition.discarded,
               message: error.message,
             ),
           );

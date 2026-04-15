@@ -674,4 +674,108 @@ void main() {
       ),
     );
   });
+
+  test(
+    'extrahiert strukturierte 422-Validierungsfehler aus Mutationen',
+    () async {
+      final client = MockClient((request) async {
+        return http.Response(
+          '''
+        {
+          "errors": [
+            {
+              "code": "unprocessable_entity",
+              "status": "422",
+              "title": "Validation Error",
+              "detail": "Nummer ist nicht gültig",
+              "source": {
+                "pointer": "/data/attributes/number"
+              },
+              "meta": {
+                "relationship": {
+                  "attribute": "number",
+                  "message": "ist nicht gültig",
+                  "code": "invalid",
+                  "name": "phone_numbers",
+                  "type": "phone_numbers",
+                  "id": 288
+                }
+              }
+            }
+          ]
+        }
+        ''',
+          422,
+          headers: <String, String>{'content-type': 'application/json'},
+        );
+      });
+
+      final service = HitobitoPeopleService(
+        config: const HitobitoAuthConfig(
+          clientId: 'client',
+          clientSecret: 'secret',
+          authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
+          tokenUrl: 'https://demo.hitobito.com/oauth/token',
+          redirectUri: 'de.jlange.nami.app:/oauth/callback',
+          scopeString: 'openid email api',
+          discoveryUrl: '',
+          profileUrl: 'https://demo.hitobito.com/oauth/profile',
+        ),
+        httpClient: client,
+      );
+
+      final mitglied = Mitglied(
+        personId: 23,
+        mitgliedsnummer: '4711',
+        vorname: 'Julia',
+        nachname: 'Keller',
+        geburtsdatum: Mitglied.peoplePlaceholderDate,
+        eintrittsdatum: Mitglied.peoplePlaceholderDate,
+        telefonnummern: const <MitgliedKontaktTelefon>[
+          MitgliedKontaktTelefon(phoneNumberId: 288, wert: '+49123456789'),
+        ],
+      );
+
+      await expectLater(
+        () => service.updatePersonWithRelationships(
+          'token-123',
+          mitglied: mitglied,
+          phoneNumberMutations:
+              const <HitobitoRelationshipMutation<MitgliedKontaktTelefon>>[
+                HitobitoRelationshipMutation<MitgliedKontaktTelefon>(
+                  method: HitobitoRelationshipMutationMethod.update,
+                  value: MitgliedKontaktTelefon(
+                    phoneNumberId: 288,
+                    wert: '+49123456789',
+                  ),
+                ),
+              ],
+        ),
+        throwsA(
+          isA<HitobitoPeopleException>()
+              .having((error) => error.statusCode, 'statusCode', 422)
+              .having(
+                (error) => error.validationErrors.single.relationshipId,
+                'relationshipId',
+                288,
+              )
+              .having(
+                (error) => error.validationErrors.single.relationshipName,
+                'relationshipName',
+                'phone_numbers',
+              )
+              .having(
+                (error) => error.validationErrors.single.relationshipAttribute,
+                'relationshipAttribute',
+                'number',
+              )
+              .having(
+                (error) => error.validationErrors.single.message,
+                'message',
+                'Nummer ist nicht gültig',
+              ),
+        ),
+      );
+    },
+  );
 }

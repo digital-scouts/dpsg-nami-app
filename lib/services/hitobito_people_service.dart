@@ -8,7 +8,11 @@ import 'hitobito_api_exception.dart';
 import 'hitobito_auth_env.dart';
 
 class HitobitoPeopleException extends HitobitoApiException {
-  const HitobitoPeopleException(super.message, {super.statusCode});
+  const HitobitoPeopleException(
+    super.message, {
+    super.statusCode,
+    super.validationErrors = const <HitobitoApiValidationError>[],
+  });
 }
 
 enum HitobitoRelationshipMutationMethod { create, update, destroy }
@@ -718,6 +722,7 @@ class HitobitoPeopleService {
     throw HitobitoPeopleException(
       _buildMutationErrorMessage(method: method, response: response),
       statusCode: response.statusCode,
+      validationErrors: _extractMutationValidationErrors(response.body),
     );
   }
 
@@ -1327,7 +1332,37 @@ class HitobitoPeopleService {
     return trimmedBody.replaceAll(RegExp(r'\s+'), ' ');
   }
 
-  String? _extractMutationFailureItemDetail(Map<String, dynamic> error) {
+  List<HitobitoApiValidationError> _extractMutationValidationErrors(
+    String body,
+  ) {
+    final trimmedBody = body.trim();
+    if (trimmedBody.isEmpty) {
+      return const <HitobitoApiValidationError>[];
+    }
+
+    try {
+      final decoded = jsonDecode(trimmedBody);
+      if (decoded is! Map<String, dynamic>) {
+        return const <HitobitoApiValidationError>[];
+      }
+      final errors = decoded['errors'];
+      if (errors is! List) {
+        return const <HitobitoApiValidationError>[];
+      }
+
+      return errors
+          .whereType<Map<String, dynamic>>()
+          .map(_extractMutationValidationError)
+          .whereType<HitobitoApiValidationError>()
+          .toList(growable: false);
+    } catch (_) {
+      return const <HitobitoApiValidationError>[];
+    }
+  }
+
+  HitobitoApiValidationError? _extractMutationValidationError(
+    Map<String, dynamic> error,
+  ) {
     final detail = _toNullableString(error['detail']);
     final title = _toNullableString(error['title']);
     final source = error['source'];
@@ -1340,13 +1375,55 @@ class HitobitoPeopleService {
         ? meta
         : const <String, dynamic>{};
     final attribute = _toNullableString(metaMap['attribute']);
+    final relationship = metaMap['relationship'];
+    final relationshipMap = relationship is Map<String, dynamic>
+        ? relationship
+        : const <String, dynamic>{};
+    final relationshipAttribute = _toNullableString(
+      relationshipMap['attribute'],
+    );
+    final relationshipName = _toNullableString(relationshipMap['name']);
+    final relationshipType = _toNullableString(relationshipMap['type']);
+    final relationshipId = _toNullableInt(relationshipMap['id']);
+    final relationshipMessage = _toNullableString(relationshipMap['message']);
+    final code =
+        _toNullableString(relationshipMap['code']) ??
+        _toNullableString(metaMap['code']);
 
-    final reason = detail ?? title;
-    if (reason == null) {
-      return attribute ?? pointer;
+    final message = detail ?? relationshipMessage ?? title;
+    if (message == null &&
+        pointer == null &&
+        attribute == null &&
+        relationshipAttribute == null &&
+        relationshipName == null &&
+        relationshipType == null &&
+        relationshipId == null) {
+      return null;
     }
 
-    final sourceHint = attribute ?? pointer;
+    return HitobitoApiValidationError(
+      message: message ?? 'Validierungsfehler',
+      pointer: pointer,
+      attribute: attribute,
+      relationshipName: relationshipName,
+      relationshipAttribute: relationshipAttribute,
+      relationshipType: relationshipType,
+      relationshipId: relationshipId,
+      code: code,
+    );
+  }
+
+  String? _extractMutationFailureItemDetail(Map<String, dynamic> error) {
+    final validationError = _extractMutationValidationError(error);
+    final reason = validationError?.message;
+    if (reason == null) {
+      return null;
+    }
+
+    final sourceHint =
+        validationError?.relationshipAttribute ??
+        validationError?.attribute ??
+        validationError?.pointer;
     if (sourceHint == null) {
       return reason;
     }

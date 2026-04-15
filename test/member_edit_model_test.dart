@@ -291,6 +291,60 @@ void main() {
     expect(model.pendingUpdates, isEmpty);
   });
 
+  test(
+    'reicht feldbezogene Validierungsfehler im Submit-Result durch',
+    () async {
+      final pendingRepository = _InMemoryPendingPersonUpdateRepository();
+      final model = MemberEditModel(
+        memberWriteRepository: _FakeMemberWriteRepository(
+          updateResultsByPersonId: <int, Object>{
+            23: const MemberWriteValidationException(
+              'Nummer ist nicht gültig',
+              errors: <MemberWriteFieldValidationError>[
+                MemberWriteFieldValidationError(
+                  message: 'Nummer ist nicht gültig',
+                  relationshipName: 'phone_numbers',
+                  relationshipAttribute: 'number',
+                  relationshipId: 1,
+                  code: 'invalid',
+                ),
+              ],
+            ),
+          },
+        ),
+        pendingRepository: pendingRepository,
+        logger: _FakeLoggerService(),
+        onMemberUpdated: (_) async {},
+      );
+      final basisMitglied = Mitglied.peopleListItem(
+        mitgliedsnummer: '4711',
+        personId: 23,
+        vorname: 'Julia',
+        nachname: 'Keller',
+      );
+
+      final result = await model.submitUpdate(
+        accessToken: 'token-123',
+        basisMitglied: basisMitglied,
+        zielMitglied: basisMitglied.copyWith(vorname: 'Juliane'),
+      );
+
+      expect(result.success, isFalse);
+      expect(result.wasQueued, isFalse);
+      expect(result.message, 'Nummer ist nicht gültig');
+      expect(result.validationErrors, const <MemberWriteFieldValidationError>[
+        MemberWriteFieldValidationError(
+          message: 'Nummer ist nicht gültig',
+          relationshipName: 'phone_numbers',
+          relationshipAttribute: 'number',
+          relationshipId: 1,
+          code: 'invalid',
+        ),
+      ]);
+      expect(model.pendingUpdates, isEmpty);
+    },
+  );
+
   test('trackt erfolgreichen Submit anonymisiert', () async {
     final logger = _FakeLoggerService();
     final basisMitglied = Mitglied.peopleListItem(
