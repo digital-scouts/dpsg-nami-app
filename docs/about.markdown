@@ -1,18 +1,20 @@
 ---
 layout: page
-title: About
+title: Projektdokumentation
 permalink: /about/
 ---
 
-This is the base Jekyll theme. You can find out more info about customizing your Jekyll theme, as well as basic Jekyll usage documentation at [jekyllrb.com](https://jekyllrb.com/)
+<!-- markdownlint-disable MD012 -->
 
-You can find the source code for Minima at GitHub:
-[jekyll][jekyll-organization] /
-[minima](https://github.com/jekyll/minima)
+Diese Seite sammelt projektbezogene Dokumentation, die vor größeren Implementierungsschritten mit dem aktuellen Code- und Konzeptstand abgeglichen wird.
 
-You can find the source code for Jekyll at GitHub:
-[jekyll][jekyll-organization] /
-[jekyll](https://github.com/jekyll/jekyll)
+Aktuell wird die App für Hitobito fachlich auf ein Arbeitskontext-Modell vorbereitet. Dabei arbeitet die App immer in genau einem aktiven Layer. Hitobito-Rechte können den darin sichtbaren Bestand verkleinern, ohne dass dadurch ein anderer Arbeitskontext entsteht. Mehrere technisch sichtbare Layer werden nur dann angeboten, wenn sie sich aus eigenen Rollen mit arbeitskontextrelevanten Rechten ableiten lassen. Höhere Ebenen werden über bewussten Kontextwechsel unterstützt, ohne den Stammfokus der App aufzugeben.
 
+Eine kurze Zusammenfassung für die Projektdokumentation liegt unter [Arbeitskontext-Modell](/arbeitskontext/).
 
-[jekyll-organization]: https://github.com/jekyll
+Die geplante Konflikt- und Problemlösungslogik für Personenänderungen ist vor Implementierungsstart ausführlich unter [Konfliktdialog und Problemlösungsfall](/konfliktdialog/) beschrieben.
+
+Die ausführliche, fortlaufend gepflegte Konzeptfassung und die technische Analyse liegen weiterhin im Repository unter specs/.
+
+Stand dieser Seite: vor dem Implementierungsstart der nächsten Hitobito-Ausbaustufe.
+

@@ -2,11 +2,20 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Hardware iPhone",
+            "request": "launch",
+            "type": "dart",
+            "deviceId": "00008150-000A424A0A40401C",
+            "toolArgs": [
+                "--dart-define=USE_LOGGING=true"
+            ]
+        },
+        {
             "name": "Android",
             "request": "launch",
             "type": "dart",
             "deviceId": "emulator-5554",
-            "args": [
+            "toolArgs": [
                 "--dart-define=USE_LOGGING=true"
             ]
         },
@@ -14,8 +23,8 @@
             "name": "iPhone",
             "request": "launch",
             "type": "dart",
-            "deviceId": "29AA1963-EC2E-4DE0-969E-AA4737731BB4",
-            "args": [
+            "deviceId": "AB64C873-1F92-481C-9351-EE646A08C256",
+            "toolArgs": [
                 "--dart-define=USE_LOGGING=true"
             ]
         },
@@ -23,7 +32,8 @@
             "name": "iPad",
             "request": "launch",
             "type": "dart",
-            "args": [
+            "program": "lib/main_storybook.dart",
+            "toolArgs": [
                 "--dart-define=USE_LOGGING=true"
             ]
         },

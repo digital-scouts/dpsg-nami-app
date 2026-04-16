@@ -1,0 +1,23 @@
+{
+    "items": [
+        {
+            "id": "test-1",
+            "title": {
+                "de": "Hallo",
+                "en": "Hello"
+            },
+            "body": {
+                "de": "Text",
+                "en": "Text"
+            },
+            "type": "info",
+            "platform": "all",
+            "created_at": null,
+            "updated_at": null,
+            "starts_at": null,
+            "ends_at": null,
+            "deep_link": null,
+            "external_link": null
+        }
+    ]
+}

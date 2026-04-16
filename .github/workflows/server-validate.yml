@@ -1,0 +1,48 @@
+name: Validate Server
+
+on:
+  pull_request:
+    branches: [develop, master]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "server/**"
+      - ".github/workflows/server-validate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-server:
+    name: Validate statistics server
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          cache: "npm"
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install server dependencies
+        run: npm ci
+
+      - name: Typecheck server
+        run: npm run typecheck
+
+      - name: Run server tests
+        run: npm run test
+
+      - name: Build server
+        run: npm run build
+
+      - name: Build server Docker image
+        run: docker build --target production -t nami-statistics-server:test .

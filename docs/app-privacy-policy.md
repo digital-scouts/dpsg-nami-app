@@ -3,77 +3,99 @@ layout: page
 title: App Privacy Policy
 ---
 
-**Privacy Policy**
+## Privacy Policy
 
-This privacy policy is applicable to the NaMi app (hereinafter referred to as "Application") for mobile devices, which was developed by Janneck Lange (hereinafter referred to as "Service Provider") as a an Open Source service. This service is provided "AS IS".
+This privacy policy applies to the NaMi app for mobile devices. The app is developed and maintained by Janneck Lange.
 
-**What information does the Application obtain and how is it used?**  
-**User Provided Information**
+## Scope
 
-The Application acquires the information you supply when you download and register the Application. Registration with the Service Provider is not mandatory. However, bear in mind that you might not be able to utilize some of the features offered by the Application unless you register with them.
+The app is intended to support work with DPSG-related member administration data. It is developed privately and is not an official service of the DPSG.
 
-The Service Provider may also use the information you provided them to contact you from time to time to provide you with important information, required notices and marketing promotions.
+This privacy policy describes which data is processed by the app itself and which third-party services are used.
 
-**Automatically Collected Information**
+## Data processed in the app
 
-In addition, the Application may collect certain information automatically, including, but not limited to, the type of mobile device you use, your mobile devices unique device ID, the IP address of your mobile device, your mobile operating system, the type of mobile Internet browsers you use, and information about the way you use the Application.
+The app can process member-related content that is entered by users or loaded from external systems. This data is processed on the device to provide app functionality.
 
-**Does the Application collect precise real time location information of the device?**
+Member data loaded from Hitobito is stored locally on the device in encrypted form so it can be used offline after the first successful sign-in and initial data load.
 
-This Application does not gather precise information about the location of your mobile device.
+## Analytics and diagnostics
 
-This Application collects your device's location, which helps the Service Provider determine your approximate geographical location and make use of in below ways:
+The app can send analytics and diagnostics events if analytics are enabled in the app settings. This is used to better understand app usage, detect problems and improve the app.
 
-*   Geolocation Services: The Service Provider utilizes location data to provide features such as personalized content, relevant recommendations, and location-based services.
-*   Analytics and Improvements: Aggregated and anonymized location data helps the Service Provider to analyze user behavior, identify trends, and improve the overall performance and functionality of the Application.
-*   Third-Party Services: Periodically, the Service Provider may transmit anonymized location data to external services. These services assist them in enhancing the Application and optimizing their offerings.
+The analytics setting can be changed by the user inside the app.
 
-**Do third parties see and/or have access to information obtained by the Application?**
+Analytics and diagnostics events may include, for example:
 
-Only aggregated, anonymized data is periodically transmitted to external services to aid the Service Provider in improving the Application and their service. The Service Provider may share your information with third parties in the ways that are described in this privacy statement.
+- app settings changes
+- login and logout events
+- work context or layer changes
+- runtime errors
+- technical event metadata required for diagnostics
 
-Please note that the Application utilizes third-party services that have their own Privacy Policy about handling data. Below are the links to the Privacy Policy of the third-party service providers used by the Application:
+The app is designed so that no intentional transfer of member data in plain text should take place as part of these analytics events.
 
-*   [Google Play Services](https://www.google.com/policies/privacy/)
+## Feedback
 
-The Service Provider may disclose User Provided and Automatically Collected Information:
+The app integrates a feedback service so users can send feedback from within the app. If this feature is used, the information entered by the user is transmitted to that service.
 
-*   as required by law, such as to comply with a subpoena, or similar legal process;
-*   when they believe in good faith that disclosure is necessary to protect their rights, protect your safety or the safety of others, investigate fraud, or respond to a government request;
-*   with their trusted services providers who work on their behalf, do not have an independent use of the information we disclose to them, and have agreed to adhere to the rules set forth in this privacy statement.
+## Location and address features
 
-**What are my opt-out rights?**
+The app itself does not continuously collect precise location data for analytics purposes.
 
-You can halt all collection of information by the Application easily by uninstalling the Application. You may use the standard uninstall processes as may be available as part of your mobile device or via the mobile application marketplace or network.
+For address-related features, user input may be sent to an external geocoding service to retrieve address suggestions. This happens only when the corresponding feature is used.
 
-**Data Retention Policy, Managing Your Information**
+For member detail maps and the map around the saved Stamm address, postal address data may also be sent to Geoapify to geocode the address. The app stores resulting coordinates locally on the device to reduce repeated requests. If no sufficiently precise address match can be determined, the app may also store a local "address not found" cache state for that address input to avoid repeated geocoding requests. Map tiles may additionally be cached locally for offline use and may be delivered via a configured tile provider such as MapTiler, with an OpenStreetMap-based fallback used if no explicit tile URL is configured.
 
-The Service Provider will retain User Provided data for as long as you use the Application and for a reasonable time thereafter. The Service Provider will retain Automatically Collected information for up to 24 months and thereafter may store it in aggregate. If you'd like the Service Provider to delete User Provided Data that you have provided via the Application, please contact them at dev@jannecklange.de and we will respond in a reasonable time. Please note that some or all of the User Provided Data may be required in order for the Application to function properly.
+TODO: Before broader rollout of map features, refine this section and the in-app first-start notice with a more explicit consent flow for Privacy Policy acknowledgement.
 
-**Children**
+## Third-party services
 
-The Service Provider does not use the Application to knowingly solicit data from or market to children under the age of 13.
+The app currently uses third-party services such as:
 
-The Application does not address anyone under the age of 13\. The Service Provider does not knowingly collect personally identifiable information from children under 13 years of age. In the case the Service Provider discover that a child under 13 has provided personal information, the Service Provider will immediately delete this from their servers. If you are a parent or guardian and you are aware that your child has provided us with personal information, please contact the Service Provider (dev@jannecklange.de) so that they will be able to take the necessary actions.
+- Wiredash for feedback and event tracking
+- Geoapify for address autocomplete and geocoding
+- MapTiler for configured map tile delivery, with an OpenStreetMap-based fallback when no explicit tile endpoint is configured
+- platform and store infrastructure provided by Apple and Google
 
-**Security**
+These services process data under their own privacy policies:
 
-The Service Provider are concerned about safeguarding the confidentiality of your information. The Service Provider provide physical, electronic, and procedural safeguards to protect information we process and maintain. For example, we limit access to this information to authorized employees and contractors who need to know that information in order to operate, develop or improve their Application. Please be aware that, although we endeavor provide reasonable security for information we process and maintain, no security system can prevent all potential security breaches.
+- [Wiredash Privacy Policy](https://wiredash.io/legal/privacy-policy)
+- [Geoapify Privacy Policy](https://www.geoapify.com/privacy-policy/)
+- [MapTiler Privacy Policy](https://www.maptiler.com/privacy-policy/)
+- [Google Play Services](https://www.google.com/policies/privacy/)
+- [Apple Privacy Policy](https://www.apple.com/legal/privacy/)
 
-**Changes**
+## Data retention
 
-This Privacy Policy may be updated from time to time for any reason. The Service Provider will notify you of any changes to the Privacy Policy by updating this page with the new Privacy Policy. You are advised to consult this Privacy Policy regularly for any changes, as continued use is deemed approval of all changes.
+Hitobito profile and member data remain on the device until the user logs out or the locally stored data exceeds the configured maximum retention period used by the app.
 
-This privacy policy is effective as of 2024-03-28
+If an update from Hitobito fails, the app can continue to use the existing local data until that retention period is exceeded.
 
-**Your Consent**
+Analytics, diagnostics and feedback data may also be retained by the respective third-party providers according to their own retention policies.
 
-By using the Application, you are giving your consent to the Service Provider processing of your information as set forth in this Privacy Policy now and as amended by us. "Processing,” means using cookies on a computer/hand held device or using or touching information in any way, including, but not limited to, collecting, storing, deleting, using, combining and disclosing information.
+## Security
 
-**Contact us**
+Reasonable care is taken to avoid unnecessary exposure of sensitive data.
 
-If you have any questions regarding privacy while using the Application, or have questions about the practices, please contact the Service Provider via email at dev@jannecklange.de.
+Sensitive Hitobito-related data used by the app is stored locally in encrypted form and is deleted on logout or when the locally cached data is considered too old by the app.
 
-* * *
+## Your choices
 
-This privacy policy page was generated by [App Privacy Policy Generator](https://app-privacy-policy-generator.nisrulz.com/)
+You can:
+
+- disable analytics in the app settings
+- stop using the app at any time
+- uninstall the app from your device
+
+## Changes
+
+This privacy policy may be updated if app behavior or third-party services change.
+
+Effective date: 2026-04-06
+
+## Contact
+
+If you have questions about privacy or data processing in the app, contact:
+
+- [dev@jannecklange.de](mailto:dev@jannecklange.de)

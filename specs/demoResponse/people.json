@@ -1,0 +1,1275 @@
+{
+    "data": [
+        {
+            "id": "3",
+            "type": "people",
+            "attributes": {
+                "first_name": "Lydia",
+                "last_name": "Anding",
+                "nickname": "Ut",
+                "company_name": null,
+                "company": false,
+                "email": "lydia-anding@hitobito.example.com",
+                "address": "Hebbelstr. 52b",
+                "address_care_of": null,
+                "street": "Hebbelstr.",
+                "housenumber": "52b",
+                "postbox": null,
+                "zip_code": "6698",
+                "town": "Guntherbrunn",
+                "country": "CH",
+                "primary_group_id": 3,
+                "language": "de",
+                "picture": "https://demo.hitobito.com/packs/media/images/profile-c150952c7e2ec2cf298980d55b2bcde3.svg",
+                "updated_at": "2026-03-31T05:00:33+02:00",
+                "additional_information": null
+            },
+            "relationships": {
+                "primary_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "roles": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "4",
+            "type": "people",
+            "attributes": {
+                "first_name": "Nelson",
+                "last_name": "Maybach",
+                "nickname": "Ut",
+                "company_name": null,
+                "company": false,
+                "email": "nelson-maybach@hitobito.example.com",
+                "address": "Max-Ernst-Str. 65a",
+                "address_care_of": null,
+                "street": "Max-Ernst-Str.",
+                "housenumber": "65a",
+                "postbox": null,
+                "zip_code": "9457",
+                "town": "Nord Sebastianstadt",
+                "country": "CH",
+                "primary_group_id": 3,
+                "language": "de",
+                "picture": "https://demo.hitobito.com/packs/media/images/profile-c150952c7e2ec2cf298980d55b2bcde3.svg",
+                "updated_at": "2026-03-31T05:00:33+02:00",
+                "additional_information": null
+            },
+            "relationships": {
+                "primary_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "roles": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "5",
+            "type": "people",
+            "attributes": {
+                "first_name": "Yaren",
+                "last_name": "Evers",
+                "nickname": "Dolor",
+                "company_name": null,
+                "company": false,
+                "email": "evers-yaren@hitobito.example.com",
+                "address": "Am Ehrenfriedhof 995",
+                "address_care_of": null,
+                "street": "Am Ehrenfriedhof",
+                "housenumber": "995",
+                "postbox": null,
+                "zip_code": "0767",
+                "town": "West Liaburg",
+                "country": "CH",
+                "primary_group_id": 3,
+                "language": "de",
+                "picture": "https://demo.hitobito.com/packs/media/images/profile-c150952c7e2ec2cf298980d55b2bcde3.svg",
+                "updated_at": "2026-03-31T05:00:33+02:00",
+                "additional_information": null
+            },
+            "relationships": {
+                "primary_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "roles": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "28",
+            "type": "people",
+            "attributes": {
+                "first_name": "Judith",
+                "last_name": "Holzdeppe",
+                "nickname": "Qui",
+                "company_name": null,
+                "company": false,
+                "email": "judith-holzdeppe@hitobito.example.com",
+                "address": "Mittelstr. 818",
+                "address_care_of": null,
+                "street": "Mittelstr.",
+                "housenumber": "818",
+                "postbox": null,
+                "zip_code": "8855",
+                "town": "Theoberg",
+                "country": "CH",
+                "primary_group_id": 6,
+                "gender": "w",
+                "birthday": "1978-07-28",
+                "language": "de",
+                "picture": "https://demo.hitobito.com/packs/media/images/profile-c150952c7e2ec2cf298980d55b2bcde3.svg",
+                "updated_at": "2026-03-31T05:00:35+02:00",
+                "additional_information": null
+            },
+            "relationships": {
+                "primary_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "roles": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "31",
+            "type": "people",
+            "attributes": {
+                "first_name": "Andrew",
+                "last_name": "Cordes",
+                "nickname": "Sint",
+                "company_name": null,
+                "company": false,
+                "email": "cordes_andrew@hitobito.example.com",
+                "address": "Eichenkamp 66a",
+                "address_care_of": null,
+                "street": "Eichenkamp",
+                "housenumber": "66a",
+                "postbox": null,
+                "zip_code": "8147",
+                "town": "Marlenaland",
+                "country": "CH",
+                "primary_group_id": 21,
+                "language": "de",
+                "picture": "https://demo.hitobito.com/packs/media/images/profile-c150952c7e2ec2cf298980d55b2bcde3.svg",
+                "updated_at": "2026-03-31T05:00:35+02:00",
+                "additional_information": null
+            },
+            "relationships": {
+                "primary_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "roles": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "39",
+            "type": "people",
+            "attributes": {
+                "first_name": "Luca",
+                "last_name": "Karrass",
+                "nickname": "Excepturi",
+                "company_name": null,
+                "company": false,
+                "email": "karrass-luca@hitobito.example.com",
+                "address": "Zur alten Fabrik 129",
+                "address_care_of": null,
+                "street": "Zur alten Fabrik",
+                "housenumber": "129",
+                "postbox": null,
+                "zip_code": "7428",
+                "town": "Ginobrunn",
+                "country": "CH",
+                "primary_group_id": 23,
+                "language": "de",
+                "picture": "https://demo.hitobito.com/packs/media/images/profile-c150952c7e2ec2cf298980d55b2bcde3.svg",
+                "updated_at": "2026-03-31T05:00:35+02:00",
+                "additional_information": null
+            },
+            "relationships": {
+                "primary_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "roles": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "47",
+            "type": "people",
+            "attributes": {
+                "first_name": "Jesper",
+                "last_name": "Paukner",
+                "nickname": "Velit",
+                "company_name": null,
+                "company": false,
+                "email": "jesper-paukner@hitobito.example.com",
+                "address": "Otto-Varnhagen-Str. 11b",
+                "address_care_of": null,
+                "street": "Otto-Varnhagen-Str.",
+                "housenumber": "11b",
+                "postbox": null,
+                "zip_code": "0923",
+                "town": "Süd Connor",
+                "country": "CH",
+                "primary_group_id": 24,
+                "language": "de",
+                "picture": "https://demo.hitobito.com/packs/media/images/profile-c150952c7e2ec2cf298980d55b2bcde3.svg",
+                "updated_at": "2026-03-31T05:00:36+02:00",
+                "additional_information": null
+            },
+            "relationships": {
+                "primary_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "roles": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "53",
+            "type": "people",
+            "attributes": {
+                "first_name": "Tia",
+                "last_name": "Strohschank",
+                "nickname": "Sit",
+                "company_name": null,
+                "company": false,
+                "email": "tia-strohschank@hitobito.example.com",
+                "address": "Alte Landstr. 77b",
+                "address_care_of": null,
+                "street": "Alte Landstr.",
+                "housenumber": "77b",
+                "postbox": null,
+                "zip_code": "8088",
+                "town": "Wieserheim",
+                "country": "CH",
+                "primary_group_id": 8,
+                "gender": "m",
+                "birthday": "1993-09-11",
+                "language": "de",
+                "picture": "https://demo.hitobito.com/packs/media/images/profile-c150952c7e2ec2cf298980d55b2bcde3.svg",
+                "updated_at": "2026-03-31T05:00:36+02:00",
+                "additional_information": null
+            },
+            "relationships": {
+                "primary_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "roles": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "54",
+            "type": "people",
+            "attributes": {
+                "first_name": "Rick",
+                "last_name": "Gradzki",
+                "nickname": "Nam",
+                "company_name": null,
+                "company": false,
+                "email": "rick_gradzki@hitobito.example.com",
+                "address": "An der Kante 69",
+                "address_care_of": null,
+                "street": "An der Kante",
+                "housenumber": "69",
+                "postbox": null,
+                "zip_code": "2536",
+                "town": "Klein Felicitas",
+                "country": "CH",
+                "primary_group_id": 8,
+                "gender": "w",
+                "birthday": "1981-05-28",
+                "language": "de",
+                "picture": "https://demo.hitobito.com/packs/media/images/profile-c150952c7e2ec2cf298980d55b2bcde3.svg",
+                "updated_at": "2026-03-31T05:00:36+02:00",
+                "additional_information": null
+            },
+            "relationships": {
+                "primary_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "roles": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "55",
+            "type": "people",
+            "attributes": {
+                "first_name": "Laurin",
+                "last_name": "Dragu",
+                "nickname": "Itaque",
+                "company_name": null,
+                "company": false,
+                "email": "laurin_dragu@hitobito.example.com",
+                "address": "Drosselweg 63a",
+                "address_care_of": null,
+                "street": "Drosselweg",
+                "housenumber": "63a",
+                "postbox": null,
+                "zip_code": "9959",
+                "town": "Neu Calvin",
+                "country": "CH",
+                "primary_group_id": 8,
+                "gender": "w",
+                "birthday": "1990-07-15",
+                "language": "de",
+                "picture": "https://demo.hitobito.com/packs/media/images/profile-c150952c7e2ec2cf298980d55b2bcde3.svg",
+                "updated_at": "2026-03-31T05:00:36+02:00",
+                "additional_information": null
+            },
+            "relationships": {
+                "primary_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "roles": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "58",
+            "type": "people",
+            "attributes": {
+                "first_name": "Veronika",
+                "last_name": "Reichardt",
+                "nickname": "Rem",
+                "company_name": null,
+                "company": false,
+                "email": "veronika_reichardt@hitobito.example.com",
+                "address": "Oskar-Schlemmer-Str. 7",
+                "address_care_of": null,
+                "street": "Oskar-Schlemmer-Str.",
+                "housenumber": "7",
+                "postbox": null,
+                "zip_code": "7082",
+                "town": "Groß Marenstadt",
+                "country": "CH",
+                "primary_group_id": 25,
+                "language": "de",
+                "picture": "https://demo.hitobito.com/packs/media/images/profile-c150952c7e2ec2cf298980d55b2bcde3.svg",
+                "updated_at": "2026-03-31T05:00:36+02:00",
+                "additional_information": null
+            },
+            "relationships": {
+                "primary_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "roles": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "66",
+            "type": "people",
+            "attributes": {
+                "first_name": "Charlotte",
+                "last_name": "Bosler",
+                "nickname": "Occaecati",
+                "company_name": null,
+                "company": false,
+                "email": "charlotte_bosler@hitobito.example.com",
+                "address": "Am Falkenberg 1",
+                "address_care_of": null,
+                "street": "Am Falkenberg",
+                "housenumber": "1",
+                "postbox": null,
+                "zip_code": "0080",
+                "town": "Schön Fatima",
+                "country": "CH",
+                "primary_group_id": 22,
+                "language": "de",
+                "picture": "https://demo.hitobito.com/packs/media/images/profile-c150952c7e2ec2cf298980d55b2bcde3.svg",
+                "updated_at": "2026-03-31T05:00:37+02:00",
+                "additional_information": null
+            },
+            "relationships": {
+                "primary_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "roles": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "72",
+            "type": "people",
+            "attributes": {
+                "first_name": "Luzie",
+                "last_name": "Marquart",
+                "nickname": "Officiis",
+                "company_name": null,
+                "company": false,
+                "email": "marquart-luzie@hitobito.example.com",
+                "address": "Steinweg 3",
+                "address_care_of": null,
+                "street": "Steinweg",
+                "housenumber": "3",
+                "postbox": null,
+                "zip_code": "6683",
+                "town": "Zinserstadt",
+                "country": "CH",
+                "primary_group_id": 9,
+                "gender": "w",
+                "birthday": "1984-07-22",
+                "language": "de",
+                "picture": "https://demo.hitobito.com/packs/media/images/profile-c150952c7e2ec2cf298980d55b2bcde3.svg",
+                "updated_at": "2026-03-31T05:00:37+02:00",
+                "additional_information": null
+            },
+            "relationships": {
+                "primary_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "roles": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "73",
+            "type": "people",
+            "attributes": {
+                "first_name": "Aaron",
+                "last_name": "Northoff",
+                "nickname": "Laborum",
+                "company_name": null,
+                "company": false,
+                "email": "northoff-aaron@hitobito.example.com",
+                "address": "Am Kronefeld 45b",
+                "address_care_of": null,
+                "street": "Am Kronefeld",
+                "housenumber": "45b",
+                "postbox": null,
+                "zip_code": "9327",
+                "town": "Emiliehagen",
+                "country": "CH",
+                "primary_group_id": 9,
+                "gender": "m",
+                "birthday": "1976-05-20",
+                "language": "de",
+                "picture": "https://demo.hitobito.com/packs/media/images/profile-c150952c7e2ec2cf298980d55b2bcde3.svg",
+                "updated_at": "2026-03-31T05:00:37+02:00",
+                "additional_information": null
+            },
+            "relationships": {
+                "primary_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "roles": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "74",
+            "type": "people",
+            "attributes": {
+                "first_name": "Kenan",
+                "last_name": "Leimbach",
+                "nickname": "Eligendi",
+                "company_name": null,
+                "company": false,
+                "email": "leimbach-kenan@hitobito.example.com",
+                "address": "Diepental 52a",
+                "address_care_of": null,
+                "street": "Diepental",
+                "housenumber": "52a",
+                "postbox": null,
+                "zip_code": "3879",
+                "town": "Hujogrün",
+                "country": "CH",
+                "primary_group_id": 9,
+                "gender": "w",
+                "birthday": "1979-12-10",
+                "language": "de",
+                "picture": "https://demo.hitobito.com/packs/media/images/profile-c150952c7e2ec2cf298980d55b2bcde3.svg",
+                "updated_at": "2026-03-31T05:00:37+02:00",
+                "additional_information": null
+            },
+            "relationships": {
+                "primary_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "roles": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "75",
+            "type": "people",
+            "attributes": {
+                "first_name": "Ayman",
+                "last_name": "Zintl",
+                "nickname": "Ipsa",
+                "company_name": null,
+                "company": false,
+                "email": "ayman-zintl@hitobito.example.com",
+                "address": "Diedenhofener Str. 67",
+                "address_care_of": null,
+                "street": "Diedenhofener Str.",
+                "housenumber": "67",
+                "postbox": null,
+                "zip_code": "3162",
+                "town": "Dariastadt",
+                "country": "CH",
+                "primary_group_id": 9,
+                "gender": "m",
+                "birthday": "1992-02-22",
+                "language": "de",
+                "picture": "https://demo.hitobito.com/packs/media/images/profile-c150952c7e2ec2cf298980d55b2bcde3.svg",
+                "updated_at": "2026-03-31T05:00:37+02:00",
+                "additional_information": null
+            },
+            "relationships": {
+                "primary_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "roles": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "76",
+            "type": "people",
+            "attributes": {
+                "first_name": "Alexandra",
+                "last_name": "Schüler",
+                "nickname": "Placeat",
+                "company_name": null,
+                "company": false,
+                "email": "alexandra-schueler@hitobito.example.com",
+                "address": "Feuerbachstr. 96a",
+                "address_care_of": null,
+                "street": "Feuerbachstr.",
+                "housenumber": "96a",
+                "postbox": null,
+                "zip_code": "2144",
+                "town": "Ost Jonah",
+                "country": "CH",
+                "primary_group_id": 9,
+                "gender": "m",
+                "birthday": "1976-01-12",
+                "language": "de",
+                "picture": "https://demo.hitobito.com/packs/media/images/profile-c150952c7e2ec2cf298980d55b2bcde3.svg",
+                "updated_at": "2026-03-31T05:00:37+02:00",
+                "additional_information": null
+            },
+            "relationships": {
+                "primary_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "roles": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "77",
+            "type": "people",
+            "attributes": {
+                "first_name": "Lorenzo",
+                "last_name": "Zandt",
+                "nickname": "Illo",
+                "company_name": null,
+                "company": false,
+                "email": "zandt-lorenzo@hitobito.example.com",
+                "address": "Auf der Grieße 393",
+                "address_care_of": null,
+                "street": "Auf der Grieße",
+                "housenumber": "393",
+                "postbox": null,
+                "zip_code": "1770",
+                "town": "Thrienefeld",
+                "country": "CH",
+                "primary_group_id": 9,
+                "gender": "m",
+                "birthday": "1998-01-26",
+                "language": "de",
+                "picture": "https://demo.hitobito.com/packs/media/images/profile-c150952c7e2ec2cf298980d55b2bcde3.svg",
+                "updated_at": "2026-03-31T05:00:38+02:00",
+                "additional_information": null
+            },
+            "relationships": {
+                "primary_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "roles": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "78",
+            "type": "people",
+            "attributes": {
+                "first_name": "Dion",
+                "last_name": "Waldmann",
+                "nickname": "Quia",
+                "company_name": null,
+                "company": false,
+                "email": "dion_waldmann@hitobito.example.com",
+                "address": "Fichtenweg 6",
+                "address_care_of": null,
+                "street": "Fichtenweg",
+                "housenumber": "6",
+                "postbox": null,
+                "zip_code": "6348",
+                "town": "Ruthgrün",
+                "country": "CH",
+                "primary_group_id": 9,
+                "gender": "m",
+                "birthday": "1997-11-02",
+                "language": "de",
+                "picture": "https://demo.hitobito.com/packs/media/images/profile-c150952c7e2ec2cf298980d55b2bcde3.svg",
+                "updated_at": "2026-03-31T05:00:38+02:00",
+                "additional_information": null
+            },
+            "relationships": {
+                "primary_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "roles": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "79",
+            "type": "people",
+            "attributes": {
+                "first_name": "Julienne",
+                "last_name": "Heberstreit",
+                "nickname": "Voluptatibus",
+                "company_name": null,
+                "company": false,
+                "email": "heberstreit_julienne@hitobito.example.com",
+                "address": "Feldsiefer Weg 154",
+                "address_care_of": null,
+                "street": "Feldsiefer Weg",
+                "housenumber": "154",
+                "postbox": null,
+                "zip_code": "1206",
+                "town": "Noemidorf",
+                "country": "CH",
+                "primary_group_id": 9,
+                "gender": "m",
+                "birthday": "1990-12-07",
+                "language": "de",
+                "picture": "https://demo.hitobito.com/packs/media/images/profile-c150952c7e2ec2cf298980d55b2bcde3.svg",
+                "updated_at": "2026-03-31T05:00:38+02:00",
+                "additional_information": null
+            },
+            "relationships": {
+                "primary_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "roles": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        }
+    ],
+    "links": {
+        "self": "/api/people?page%5Bnumber%5D=1\u0026page%5Bsize%5D=20",
+        "first": "/api/people?page%5Bnumber%5D=1\u0026page%5Bsize%5D=20",
+        "last": "/api/people?page%5Bnumber%5D=5\u0026page%5Bsize%5D=20",
+        "next": "/api/people?page%5Bnumber%5D=2\u0026page%5Bsize%5D=20"
+    },
+    "meta": {}
+}

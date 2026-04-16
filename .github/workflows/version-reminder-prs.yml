@@ -1,0 +1,89 @@
+name: Create Version Reminder PRs
+
+on:
+  pull_request:
+    branches: [master]
+    types: [closed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  prepare:
+    name: Read app version
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.release_version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ vars.DART_VERSION }}
+      - id: version
+        name: Read version from pubspec
+        run: |
+          VERSION=$(grep "^version:" pubspec.yaml | awk '{print $2}')
+          RELEASE_VERSION="${VERSION%%+*}"
+          echo "release_version=$RELEASE_VERSION" >> "$GITHUB_OUTPUT"
+
+  android:
+    name: Android PR
+    needs: prepare
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ vars.DART_VERSION }}
+      - name: Update Android version manifest
+        run: dart tool/update_remote_version.dart android ${{ needs.prepare.outputs.version }}
+      - name: Create Android PR
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "chore: update Android remote version to ${{ needs.prepare.outputs.version }}"
+          branch: "chore/version-android-${{ needs.prepare.outputs.version }}"
+          delete-branch: true
+          title: "chore: Android release reminder for ${{ needs.prepare.outputs.version }}"
+          body: |
+            Diese PR aktualisiert `docs/version.json` für Android auf `${{ needs.prepare.outputs.version }}`.
+
+            Merge diese PR erst, wenn die Android-Version tatsächlich im Store verfügbar sein soll.
+          labels: |
+            release
+            android
+
+  ios:
+    name: iOS PR
+    needs: prepare
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ vars.DART_VERSION }}
+      - name: Update iOS version manifest
+        run: dart tool/update_remote_version.dart ios ${{ needs.prepare.outputs.version }}
+      - name: Create iOS PR
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "chore: update iOS remote version to ${{ needs.prepare.outputs.version }}"
+          branch: "chore/version-ios-${{ needs.prepare.outputs.version }}"
+          delete-branch: true
+          title: "chore: iOS release reminder for ${{ needs.prepare.outputs.version }}"
+          body: |
+            Diese PR aktualisiert `docs/version.json` für iOS auf `${{ needs.prepare.outputs.version }}`.
+
+            Merge diese PR erst, wenn die iOS-Version tatsächlich im App Store verfügbar sein soll.
+          labels: |
+            release
+            ios

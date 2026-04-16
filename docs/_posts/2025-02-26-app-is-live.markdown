@@ -10,6 +10,7 @@ Nach viel Entwicklungszeit, unzähligen Tests und eurem wertvollen Feedback ist 
 ## Was kann die App?
 
 Die App macht die Mitgliedsdatenbank der DPSG (NaMi) für Leitende schnell und einfach zugänglich – ganz ohne eigenes Backend. Ihr könnt:
+
 - ✅ Mitglieder durchsuchen, filtern & verwalten
 - ✅ Adressen & Entfernungen auf einer Karte sehen
 - ✅ Aktivitäten planen & synchronisieren
@@ -26,4 +27,4 @@ Als Pfadfinder wissen wir: Flexibilität ist alles. Wer hat schon Lust, sich am 
 🔗 [App Store](https://apps.apple.com/de/app/nami/id6468066816)  
 🔗 [Play Store](https://play.google.com/store/apps/details?id=de.jlange.nami.app)
 
-Probiert die App aus und gebt mir gerne Feedback! Ich freue mich über eure Unterstützung und hoffe, dass die App euch den Pfadfinder-Alltag erleichtert. 
+Probiert die App aus und gebt mir gerne Feedback! Ich freue mich über eure Unterstützung und hoffe, dass die App euch den Pfadfinder-Alltag erleichtert.

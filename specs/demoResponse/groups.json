@@ -1,0 +1,1671 @@
+{
+    "data": [
+        {
+            "id": "3",
+            "type": "groups",
+            "attributes": {
+                "name": "Geschäftsstelle",
+                "short_name": null,
+                "display_name": "Geschäftsstelle",
+                "description": null,
+                "layer": false,
+                "parent_id": 1,
+                "layer_group_id": 1,
+                "type": "Group::TopLayerOffice",
+                "email": "noma.grant@hitobito.example.com",
+                "address": "Forellental 89b",
+                "zip_code": 8086,
+                "town": "Presslerhagen",
+                "country": null,
+                "require_person_add_requests": false,
+                "self_registration_url": null,
+                "self_registration_require_adult_consent": false,
+                "archived_at": null,
+                "created_at": "2026-03-31T05:00:31+02:00",
+                "updated_at": "2026-03-31T05:00:31+02:00",
+                "deleted_at": null
+            },
+            "relationships": {
+                "contact": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "creator": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "updater": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "deleter": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "parent": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "mailing_lists": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "4",
+            "type": "groups",
+            "attributes": {
+                "name": "Kontakte",
+                "short_name": null,
+                "display_name": "Kontakte",
+                "description": null,
+                "layer": false,
+                "parent_id": 1,
+                "layer_group_id": 1,
+                "type": "Group::TopLayerContacts",
+                "email": "janeth_larkin@hitobito.example.com",
+                "address": "Im Bühl 78c",
+                "zip_code": 9926,
+                "town": "Moormannscheid",
+                "country": null,
+                "require_person_add_requests": false,
+                "self_registration_url": null,
+                "self_registration_require_adult_consent": false,
+                "archived_at": null,
+                "created_at": "2026-03-31T05:00:31+02:00",
+                "updated_at": "2026-03-31T05:00:31+02:00",
+                "deleted_at": null
+            },
+            "relationships": {
+                "contact": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "creator": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "updater": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "deleter": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "parent": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "mailing_lists": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "5",
+            "type": "groups",
+            "attributes": {
+                "name": "Mitglieder",
+                "short_name": null,
+                "display_name": "Mitglieder",
+                "description": null,
+                "layer": false,
+                "parent_id": 1,
+                "layer_group_id": 1,
+                "type": "Group::TopLayerMembers",
+                "email": "franklin@hitobito.example.com",
+                "address": "Lärchenweg 92a",
+                "zip_code": 5784,
+                "town": "Richardfeld",
+                "country": null,
+                "require_person_add_requests": false,
+                "self_registration_url": null,
+                "self_registration_require_adult_consent": false,
+                "archived_at": null,
+                "created_at": "2026-03-31T05:00:31+02:00",
+                "updated_at": "2026-03-31T05:00:31+02:00",
+                "deleted_at": null
+            },
+            "relationships": {
+                "contact": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "creator": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "updater": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "deleter": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "parent": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "mailing_lists": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "6",
+            "type": "groups",
+            "attributes": {
+                "name": "Region Bern",
+                "short_name": null,
+                "display_name": "Region Bern",
+                "description": null,
+                "layer": true,
+                "parent_id": 1,
+                "layer_group_id": 6,
+                "type": "Group::Region",
+                "email": "bern@be.ch",
+                "address": "Klostergasse 3",
+                "zip_code": 3333,
+                "town": "Bern",
+                "country": "Svizzera",
+                "require_person_add_requests": false,
+                "self_registration_url": null,
+                "self_registration_require_adult_consent": false,
+                "archived_at": null,
+                "created_at": "2026-03-31T05:00:32+02:00",
+                "updated_at": "2026-03-31T05:00:32+02:00",
+                "deleted_at": null
+            },
+            "relationships": {
+                "contact": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "creator": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "updater": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "deleter": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "parent": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "mailing_lists": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "7",
+            "type": "groups",
+            "attributes": {
+                "name": "Vorstand",
+                "short_name": null,
+                "display_name": "Vorstand",
+                "description": null,
+                "layer": false,
+                "parent_id": 6,
+                "layer_group_id": 6,
+                "type": "Group::RegionBoard",
+                "email": "sonja.williamson@hitobito.example.com",
+                "address": "Schillerstr. 90a",
+                "zip_code": 6170,
+                "town": "Ost Laurenzland",
+                "country": null,
+                "require_person_add_requests": false,
+                "self_registration_url": null,
+                "self_registration_require_adult_consent": false,
+                "archived_at": null,
+                "created_at": "2026-03-31T05:00:32+02:00",
+                "updated_at": "2026-03-31T05:00:32+02:00",
+                "deleted_at": null
+            },
+            "relationships": {
+                "contact": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "creator": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "updater": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "deleter": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "parent": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "mailing_lists": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "8",
+            "type": "groups",
+            "attributes": {
+                "name": "Geschäftsstelle",
+                "short_name": null,
+                "display_name": "Geschäftsstelle",
+                "description": null,
+                "layer": false,
+                "parent_id": 6,
+                "layer_group_id": 6,
+                "type": "Group::RegionOffice",
+                "email": null,
+                "address": null,
+                "zip_code": null,
+                "town": null,
+                "country": null,
+                "require_person_add_requests": false,
+                "self_registration_url": null,
+                "self_registration_require_adult_consent": false,
+                "archived_at": null,
+                "created_at": "2026-03-31T05:00:32+02:00",
+                "updated_at": "2026-03-31T05:00:32+02:00",
+                "deleted_at": null
+            },
+            "relationships": {
+                "contact": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "creator": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "updater": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "deleter": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "parent": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "mailing_lists": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "10",
+            "type": "groups",
+            "attributes": {
+                "name": "Mitglieder",
+                "short_name": null,
+                "display_name": "Mitglieder",
+                "description": null,
+                "layer": false,
+                "parent_id": 6,
+                "layer_group_id": 6,
+                "type": "Group::RegionMembers",
+                "email": null,
+                "address": null,
+                "zip_code": null,
+                "town": null,
+                "country": null,
+                "require_person_add_requests": false,
+                "self_registration_url": null,
+                "self_registration_require_adult_consent": false,
+                "archived_at": null,
+                "created_at": "2026-03-31T05:00:32+02:00",
+                "updated_at": "2026-03-31T05:00:32+02:00",
+                "deleted_at": null
+            },
+            "relationships": {
+                "contact": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "creator": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "updater": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "deleter": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "parent": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "mailing_lists": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "9",
+            "type": "groups",
+            "attributes": {
+                "name": "Kontakte",
+                "short_name": null,
+                "display_name": "Kontakte",
+                "description": null,
+                "layer": false,
+                "parent_id": 6,
+                "layer_group_id": 6,
+                "type": "Group::RegionContacts",
+                "email": null,
+                "address": null,
+                "zip_code": null,
+                "town": null,
+                "country": null,
+                "require_person_add_requests": false,
+                "self_registration_url": null,
+                "self_registration_require_adult_consent": false,
+                "archived_at": null,
+                "created_at": "2026-03-31T05:00:32+02:00",
+                "updated_at": "2026-03-31T05:00:32+02:00",
+                "deleted_at": null
+            },
+            "relationships": {
+                "contact": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "creator": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "updater": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "deleter": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "parent": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "mailing_lists": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "21",
+            "type": "groups",
+            "attributes": {
+                "name": "Verein Bern Stadt",
+                "short_name": "Bern Stadt",
+                "display_name": "Bern Stadt",
+                "description": null,
+                "layer": true,
+                "parent_id": 6,
+                "layer_group_id": 21,
+                "type": "Group::Local",
+                "email": "melina@hitobito.example.com",
+                "address": "Leichlinger Str. 30",
+                "zip_code": 2969,
+                "town": "Neu Annie",
+                "country": null,
+                "require_person_add_requests": false,
+                "self_registration_url": null,
+                "self_registration_require_adult_consent": false,
+                "archived_at": null,
+                "created_at": "2026-03-31T05:00:32+02:00",
+                "updated_at": "2026-03-31T05:00:32+02:00",
+                "deleted_at": null
+            },
+            "relationships": {
+                "contact": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "creator": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "updater": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "deleter": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "parent": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "mailing_lists": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "23",
+            "type": "groups",
+            "attributes": {
+                "name": "Verein Biel",
+                "short_name": "Biel",
+                "display_name": "Biel",
+                "description": null,
+                "layer": true,
+                "parent_id": 6,
+                "layer_group_id": 23,
+                "type": "Group::Local",
+                "email": "birgit@hitobito.example.com",
+                "address": "Emil-Fischer-Str. 22b",
+                "zip_code": 2609,
+                "town": "Schön Gretabrunn",
+                "country": null,
+                "require_person_add_requests": false,
+                "self_registration_url": null,
+                "self_registration_require_adult_consent": false,
+                "archived_at": null,
+                "created_at": "2026-03-31T05:00:32+02:00",
+                "updated_at": "2026-03-31T05:00:32+02:00",
+                "deleted_at": null
+            },
+            "relationships": {
+                "contact": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "creator": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "updater": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "deleter": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "parent": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "mailing_lists": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "24",
+            "type": "groups",
+            "attributes": {
+                "name": "Verein Düdingen",
+                "short_name": "Düdingen",
+                "display_name": "Düdingen",
+                "description": null,
+                "layer": true,
+                "parent_id": 6,
+                "layer_group_id": 24,
+                "type": "Group::Local",
+                "email": "lou@hitobito.example.com",
+                "address": "Elisabeth-von-Thadden-Str. 380",
+                "zip_code": 3852,
+                "town": "Gatzkafeld",
+                "country": null,
+                "require_person_add_requests": false,
+                "self_registration_url": null,
+                "self_registration_require_adult_consent": false,
+                "archived_at": null,
+                "created_at": "2026-03-31T05:00:32+02:00",
+                "updated_at": "2026-03-31T05:00:32+02:00",
+                "deleted_at": null
+            },
+            "relationships": {
+                "contact": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "creator": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "updater": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "deleter": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "parent": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "mailing_lists": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "20",
+            "type": "groups",
+            "attributes": {
+                "name": "Mitglieder",
+                "short_name": null,
+                "display_name": "Mitglieder",
+                "description": null,
+                "layer": false,
+                "parent_id": 16,
+                "layer_group_id": 16,
+                "type": "Group::RegionMembers",
+                "email": null,
+                "address": null,
+                "zip_code": null,
+                "town": null,
+                "country": null,
+                "require_person_add_requests": false,
+                "self_registration_url": null,
+                "self_registration_require_adult_consent": false,
+                "archived_at": null,
+                "created_at": "2026-03-31T05:00:32+02:00",
+                "updated_at": "2026-03-31T05:00:32+02:00",
+                "deleted_at": null
+            },
+            "relationships": {
+                "contact": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "creator": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "updater": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "deleter": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "parent": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "mailing_lists": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "19",
+            "type": "groups",
+            "attributes": {
+                "name": "Kontakte",
+                "short_name": null,
+                "display_name": "Kontakte",
+                "description": null,
+                "layer": false,
+                "parent_id": 16,
+                "layer_group_id": 16,
+                "type": "Group::RegionContacts",
+                "email": null,
+                "address": null,
+                "zip_code": null,
+                "town": null,
+                "country": null,
+                "require_person_add_requests": false,
+                "self_registration_url": null,
+                "self_registration_require_adult_consent": false,
+                "archived_at": null,
+                "created_at": "2026-03-31T05:00:32+02:00",
+                "updated_at": "2026-03-31T05:00:32+02:00",
+                "deleted_at": null
+            },
+            "relationships": {
+                "contact": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "creator": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "updater": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "deleter": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "parent": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "mailing_lists": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "18",
+            "type": "groups",
+            "attributes": {
+                "name": "Geschäftsstelle",
+                "short_name": null,
+                "display_name": "Geschäftsstelle",
+                "description": null,
+                "layer": false,
+                "parent_id": 16,
+                "layer_group_id": 16,
+                "type": "Group::RegionOffice",
+                "email": null,
+                "address": null,
+                "zip_code": null,
+                "town": null,
+                "country": null,
+                "require_person_add_requests": false,
+                "self_registration_url": null,
+                "self_registration_require_adult_consent": false,
+                "archived_at": null,
+                "created_at": "2026-03-31T05:00:32+02:00",
+                "updated_at": "2026-03-31T05:00:32+02:00",
+                "deleted_at": null
+            },
+            "relationships": {
+                "contact": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "creator": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "updater": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "deleter": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "parent": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "mailing_lists": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "15",
+            "type": "groups",
+            "attributes": {
+                "name": "Mitglieder",
+                "short_name": null,
+                "display_name": "Mitglieder",
+                "description": null,
+                "layer": false,
+                "parent_id": 11,
+                "layer_group_id": 11,
+                "type": "Group::RegionMembers",
+                "email": null,
+                "address": null,
+                "zip_code": null,
+                "town": null,
+                "country": null,
+                "require_person_add_requests": false,
+                "self_registration_url": null,
+                "self_registration_require_adult_consent": false,
+                "archived_at": null,
+                "created_at": "2026-03-31T05:00:32+02:00",
+                "updated_at": "2026-03-31T05:00:32+02:00",
+                "deleted_at": null
+            },
+            "relationships": {
+                "contact": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "creator": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "updater": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "deleter": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "parent": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "mailing_lists": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "22",
+            "type": "groups",
+            "attributes": {
+                "name": "Verein Konolfingen",
+                "short_name": "Konolfingen",
+                "display_name": "Konolfingen",
+                "description": null,
+                "layer": true,
+                "parent_id": 6,
+                "layer_group_id": 22,
+                "type": "Group::Local",
+                "email": "haywood_bartoletti@hitobito.example.com",
+                "address": "Vereinsstr. 59a",
+                "zip_code": 4630,
+                "town": "Davindorf",
+                "country": null,
+                "require_person_add_requests": false,
+                "self_registration_url": null,
+                "self_registration_require_adult_consent": false,
+                "archived_at": null,
+                "created_at": "2026-03-31T05:00:32+02:00",
+                "updated_at": "2026-03-31T05:00:32+02:00",
+                "deleted_at": null
+            },
+            "relationships": {
+                "contact": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "creator": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "updater": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "deleter": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "parent": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "mailing_lists": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "25",
+            "type": "groups",
+            "attributes": {
+                "name": "Verein Kerzers",
+                "short_name": "Kerzers",
+                "display_name": "Kerzers",
+                "description": null,
+                "layer": true,
+                "parent_id": 6,
+                "layer_group_id": 25,
+                "type": "Group::Local",
+                "email": "margherita@hitobito.example.com",
+                "address": "Legienstr. 36b",
+                "zip_code": 1899,
+                "town": "Alt Evelynbrunn",
+                "country": null,
+                "require_person_add_requests": false,
+                "self_registration_url": null,
+                "self_registration_require_adult_consent": false,
+                "archived_at": null,
+                "created_at": "2026-03-31T05:00:33+02:00",
+                "updated_at": "2026-03-31T05:00:33+02:00",
+                "deleted_at": null
+            },
+            "relationships": {
+                "contact": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "creator": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "updater": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "deleter": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "parent": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "mailing_lists": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "11",
+            "type": "groups",
+            "attributes": {
+                "name": "Region Zürich",
+                "short_name": null,
+                "display_name": "Region Zürich",
+                "description": null,
+                "layer": true,
+                "parent_id": 1,
+                "layer_group_id": 11,
+                "type": "Group::Region",
+                "email": "zuerich@zh.ch",
+                "address": "Tellgasse 3",
+                "zip_code": 8888,
+                "town": "Zürich",
+                "country": "Svizzera",
+                "require_person_add_requests": false,
+                "self_registration_url": null,
+                "self_registration_require_adult_consent": false,
+                "archived_at": null,
+                "created_at": "2026-03-31T05:00:32+02:00",
+                "updated_at": "2026-03-31T05:00:32+02:00",
+                "deleted_at": null
+            },
+            "relationships": {
+                "contact": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "creator": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "updater": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "deleter": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "parent": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "mailing_lists": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "13",
+            "type": "groups",
+            "attributes": {
+                "name": "Geschäftsstelle",
+                "short_name": null,
+                "display_name": "Geschäftsstelle",
+                "description": null,
+                "layer": false,
+                "parent_id": 11,
+                "layer_group_id": 11,
+                "type": "Group::RegionOffice",
+                "email": null,
+                "address": null,
+                "zip_code": null,
+                "town": null,
+                "country": null,
+                "require_person_add_requests": false,
+                "self_registration_url": null,
+                "self_registration_require_adult_consent": false,
+                "archived_at": null,
+                "created_at": "2026-03-31T05:00:32+02:00",
+                "updated_at": "2026-03-31T05:00:32+02:00",
+                "deleted_at": null
+            },
+            "relationships": {
+                "contact": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "creator": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "updater": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "deleter": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "parent": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "mailing_lists": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        },
+        {
+            "id": "1",
+            "type": "groups",
+            "attributes": {
+                "name": "Dachverband",
+                "short_name": "Dachverband",
+                "display_name": "Dachverband",
+                "description": null,
+                "layer": true,
+                "parent_id": null,
+                "layer_group_id": 1,
+                "type": "Group::TopLayer",
+                "email": "lyndon@hitobito.example.com",
+                "address": "Schellingstr. 8",
+                "zip_code": 4692,
+                "town": "Charleenhagen",
+                "country": null,
+                "require_person_add_requests": false,
+                "self_registration_url": null,
+                "self_registration_require_adult_consent": false,
+                "archived_at": null,
+                "created_at": "2026-03-31T05:00:31+02:00",
+                "updated_at": "2026-03-31T05:00:31+02:00",
+                "deleted_at": null
+            },
+            "relationships": {
+                "contact": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "creator": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "updater": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "deleter": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "parent": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "layer_group": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "phone_numbers": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "social_accounts": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_emails": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "additional_addresses": {
+                    "meta": {
+                        "included": false
+                    }
+                },
+                "mailing_lists": {
+                    "meta": {
+                        "included": false
+                    }
+                }
+            }
+        }
+    ],
+    "links": {
+        "self": "/api/groups?page%5Bnumber%5D=1\u0026page%5Bsize%5D=20",
+        "first": "/api/groups?page%5Bnumber%5D=1\u0026page%5Bsize%5D=20",
+        "last": "/api/groups?page%5Bnumber%5D=2\u0026page%5Bsize%5D=20",
+        "next": "/api/groups?page%5Bnumber%5D=2\u0026page%5Bsize%5D=20"
+    },
+    "meta": {}
+}
