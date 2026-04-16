@@ -83,16 +83,24 @@ Jeder Einstieg öffnet immer genau einen Fall für genau ein Mitglied.
 
 ## Wie der Screen aussieht
 
-Der Problemlösungs-Screen verwendet denselben Bearbeiten-Screen wie die normale Personenbearbeitung und ergänzt ihn um den Abschnitt Offene Probleme.
+Der Problemlösungs-Screen verwendet denselben Bearbeiten-Screen wie die normale Personenbearbeitung, startet aber mit einem eigenen Fokus auf das Speichern des betroffenen Mitglieds.
 
-Im Abschnitt Offene Probleme zeigt die App pro betroffenem Eintrag:
+Im Kopf des Screens zeigt die App einen Titel mit Bezug auf das Mitglied und eine kurze Handlungsaufforderung.
+
+Im Abschnitt Speicherprobleme zeigt die App pro betroffenem Eintrag:
 
 - die betroffene Änderungseinheit
 - die Problembeschreibung
-- bei Konflikten den lokalen Stand und den Serverstand
-- bei Retry-Validierungen den aktuellen lokalen Wert und den vorherigen Stand
+- bei Konflikten einen Vergleich Lokal und Server nebeneinander
+- bei Retry-Validierungen einen Vergleich Aktuell und Vorheriger Stand nebeneinander
 
-Zusätzlich bleiben die normalen Bearbeitungsbereiche sichtbar, damit Werte direkt angepasst werden können.
+Telefonnummern und Zusatzmails werden dabei mit Bezeichnung und Wert angezeigt.
+
+Adressen werden nicht als ein einziger String gezeigt, sondern mit ihren einzelnen Feldern untereinander, zum Beispiel Bezeichnung, c/o, Straße, Hausnummer, PLZ, Ort und Land.
+
+Der normale Bearbeiten-Bereich bleibt im selben Screen verfügbar, ist beim Einstieg in den Problemlösungsfall aber zunächst eingeklappt.
+
+Wenn der Nutzer bei einem Problemfeld Bearbeiten wählt, klappt die App den Bearbeiten-Bereich auf und setzt den Fokus auf das passende Eingabefeld. Für Adressprobleme gilt dabei eine Standardregel und der Fokus landet auf dem Straßenfeld der betroffenen Adresse.
 
 Direkt bearbeitbar sind heute:
 
