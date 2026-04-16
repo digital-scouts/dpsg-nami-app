@@ -391,7 +391,57 @@ void main() {
   });
 
   testWidgets(
-    'zeigt im Problemlosungsfall bei Telefon und Zusatz-E-Mail immer Bezeichnung plus Wert',
+    'zeigt im Problemlösungsfall neuen Titel, Intro und eingeklappten Bearbeiten-Bereich',
+    (tester) async {
+      final member = _buildMember(gender: '');
+      final pendingEntry = _buildResolutionEntry(
+        basisMitglied: member,
+        zielMitglied: member.copyWith(vorname: 'Juliane'),
+        remoteMitglied: member.copyWith(vorname: 'Jule'),
+        items: const <MemberResolutionItem>[
+          MemberResolutionItem(
+            problemType: MemberResolutionProblemType.conflict,
+            cause: MemberResolutionCause.overlappingChange,
+            target: MemberResolutionTarget(
+              type: MemberResolutionTargetType.firstName,
+            ),
+            message:
+                'Vorname wurde lokal und auf dem Server unterschiedlich geändert.',
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberEditPage(
+            mitglied: pendingEntry.zielMitglied,
+            pendingEntry: pendingEntry,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Speicherprobleme bei Juliane Keller'), findsOneWidget);
+      expect(
+        find.text(
+          'Behebe die folgenden Probleme, um das Mitglied zu speichern.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Mitglied bearbeiten'), findsOneWidget);
+      expect(find.text('Allgemein', skipOffstage: false), findsNothing);
+
+      await tester.tap(
+        find.byKey(const Key('member-edit-resolution-edit-section-toggle')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Allgemein', skipOffstage: false), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'zeigt im Problemlösungsfall Telefon und Zusatz-E-Mail im Vergleich nebeneinander',
     (tester) async {
       final basisMitglied = _buildMember(gender: '').copyWith(
         telefonnummern: const <MitgliedKontaktTelefon>[
@@ -472,15 +522,18 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Lokal: Mobil: +49123456789'), findsOneWidget);
-      expect(find.text('Hitobito: Privat: +49123456789'), findsOneWidget);
-      expect(find.text('Lokal: Schule: jule@example.org'), findsOneWidget);
-      expect(find.text('Hitobito: Privat: jule@example.org'), findsOneWidget);
+      expect(find.text('Lokal'), findsNWidgets(2));
+      expect(find.text('Server'), findsNWidgets(2));
+      expect(find.text('Mobil'), findsOneWidget);
+      expect(find.text('Schule'), findsOneWidget);
+      expect(find.text('Privat'), findsNWidgets(2));
+      expect(find.text('+49123456789'), findsNWidgets(2));
+      expect(find.text('jule@example.org'), findsNWidgets(2));
     },
   );
 
   testWidgets(
-    'zeigt im Problemlösungsfall Zusatzadresse mit Bezeichnung und Adressblock ohne leere Labelanteile',
+    'zeigt im Problemlösungsfall Zusatzadresse mit einzelnen Adressfeldern im Vergleich',
     (tester) async {
       final basisMitglied = _buildMember(gender: '').copyWith(
         adressen: const <MitgliedKontaktAdresse>[
@@ -544,12 +597,85 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      expect(find.text('Bezeichnung'), findsAtLeastNWidgets(2));
+      expect(find.text('Straße'), findsAtLeastNWidgets(2));
+      expect(find.text('Hausnr.'), findsAtLeastNWidgets(2));
+      expect(find.text('PLZ'), findsAtLeastNWidgets(2));
+      expect(find.text('Ort'), findsAtLeastNWidgets(2));
+      expect(find.text('Lager'), findsOneWidget);
+      expect(find.text('Zeltplatz'), findsNWidgets(2));
+      expect(find.text('7'), findsNWidgets(2));
+      expect(find.text('50667'), findsNWidgets(2));
+      expect(find.text('Koeln'), findsNWidgets(2));
+      expect(find.text('Nicht gesetzt'), findsAtLeastNWidgets(1));
+    },
+  );
+
+  testWidgets(
+    'Bearbeiten öffnet den Bearbeiten-Bereich und fokussiert das passende Feld',
+    (tester) async {
+      final basisMitglied = _buildMember(gender: '').copyWith(
+        telefonnummern: const <MitgliedKontaktTelefon>[
+          MitgliedKontaktTelefon(
+            phoneNumberId: 1,
+            wert: '+49123456789',
+            label: 'Privat',
+          ),
+        ],
+      );
+      final zielMitglied = basisMitglied.copyWith(
+        telefonnummern: const <MitgliedKontaktTelefon>[
+          MitgliedKontaktTelefon(
+            phoneNumberId: 1,
+            wert: '+49123456789',
+            label: 'Mobil',
+          ),
+        ],
+      );
+      final pendingEntry = _buildResolutionEntry(
+        basisMitglied: basisMitglied,
+        zielMitglied: zielMitglied,
+        remoteMitglied: basisMitglied,
+        items: const <MemberResolutionItem>[
+          MemberResolutionItem(
+            problemType: MemberResolutionProblemType.conflict,
+            cause: MemberResolutionCause.overlappingChange,
+            target: MemberResolutionTarget(
+              type: MemberResolutionTargetType.phone,
+              relationshipId: 1,
+            ),
+            message:
+                'Telefonnummer wurde lokal und auf dem Server unterschiedlich geändert.',
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberEditPage(mitglied: zielMitglied, pendingEntry: pendingEntry),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('member-edit-phone-number-0')), findsNothing);
+
+      await tester.tap(
+        find.byKey(const Key('member-edit-resolution-edit-conflict:phone:1')),
+      );
+      await tester.pumpAndSettle();
+
+      final editableText = tester.widget<EditableText>(
+        find.descendant(
+          of: find.byKey(const Key('member-edit-phone-number-0')),
+          matching: find.byType(EditableText),
+        ),
+      );
+
       expect(
-        find.text('Lokal: Lager: Zeltplatz 7, 50667 Koeln'),
+        find.byKey(const Key('member-edit-phone-number-0')),
         findsOneWidget,
       );
-      expect(find.text('Hitobito: Zeltplatz 7, 50667 Koeln'), findsOneWidget);
-      expect(find.textContaining('Hitobito: :'), findsNothing);
+      expect(editableText.focusNode.hasFocus, isTrue);
     },
   );
 }

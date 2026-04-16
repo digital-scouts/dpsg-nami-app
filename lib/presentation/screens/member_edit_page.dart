@@ -38,6 +38,22 @@ class _MemberEditPageState extends State<MemberEditPage> {
   static const List<String> _defaultGenderValues = <String>['w', 'm', ''];
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final GlobalKey _generalSectionKey = GlobalKey();
+  final GlobalKey _emailSectionKey = GlobalKey();
+  final GlobalKey _phoneSectionKey = GlobalKey();
+  final GlobalKey _addressSectionKey = GlobalKey();
+  final GlobalKey _vornameFieldKey = GlobalKey();
+  final GlobalKey _nachnameFieldKey = GlobalKey();
+  final GlobalKey _fahrtennameFieldKey = GlobalKey();
+  final GlobalKey _primaryEmailFieldKey = GlobalKey();
+  final GlobalKey _genderFieldTargetKey = GlobalKey();
+  final GlobalKey _birthdayFieldTargetKey = GlobalKey();
+  final FocusNode _vornameFocusNode = FocusNode();
+  final FocusNode _nachnameFocusNode = FocusNode();
+  final FocusNode _fahrtennameFocusNode = FocusNode();
+  final FocusNode _primaryEmailFocusNode = FocusNode();
+  final FocusNode _genderFocusNode = FocusNode();
+  final FocusNode _birthdayFocusNode = FocusNode();
   late final TextEditingController _vornameController;
   late final TextEditingController _nachnameController;
   late final TextEditingController _fahrtennameController;
@@ -50,12 +66,24 @@ class _MemberEditPageState extends State<MemberEditPage> {
   late final List<_AddressDraft> _additionalAddressDrafts;
   final Map<int, String> _serverPhoneErrorsById = <int, String>{};
   final Set<String> _dismissedResolutionItemIds = <String>{};
+  late bool _editSectionExpanded;
   bool _isSubmitting = false;
 
   MemberResolutionCase? get _resolutionCase =>
       widget.pendingEntry?.resolutionCase;
   bool get _isResolutionMode => _resolutionCase != null;
   AppLocalizations get _t => AppLocalizations.of(context);
+  String get _resolutionDisplayName {
+    final pendingName = widget.pendingEntry?.displayName.trim();
+    if (pendingName != null && pendingName.isNotEmpty) {
+      return pendingName;
+    }
+    final fullName = widget.mitglied.fullName.trim();
+    if (fullName.isNotEmpty) {
+      return fullName;
+    }
+    return widget.mitglied.mitgliedsnummer;
+  }
 
   bool get _cannotSendNow {
     final authModel = _maybeWatch<AuthSessionModel>(context);
@@ -84,6 +112,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
         ? null
         : widget.mitglied.geburtsdatum;
     _gender = _normalizeGenderValue(widget.mitglied.gender);
+    _editSectionExpanded = !_isResolutionMode;
     _primaryAddressDraft = _AddressDraft.fromAdresse(
       primaryAddress ?? const MitgliedKontaktAdresse(additionalAddressId: 0),
     );
@@ -123,6 +152,12 @@ class _MemberEditPageState extends State<MemberEditPage> {
 
   @override
   void dispose() {
+    _vornameFocusNode.dispose();
+    _nachnameFocusNode.dispose();
+    _fahrtennameFocusNode.dispose();
+    _primaryEmailFocusNode.dispose();
+    _genderFocusNode.dispose();
+    _birthdayFocusNode.dispose();
     _vornameController.dispose();
     _nachnameController.dispose();
     _fahrtennameController.dispose();
@@ -146,7 +181,9 @@ class _MemberEditPageState extends State<MemberEditPage> {
       appBar: AppBar(
         title: Text(
           _isResolutionMode
-              ? _t.t('member_edit_title_resolution')
+              ? _t.t('member_edit_title_resolution_named', {
+                  'name': _resolutionDisplayName,
+                })
               : _t.t('member_edit_title_edit'),
         ),
       ),
@@ -180,26 +217,9 @@ class _MemberEditPageState extends State<MemberEditPage> {
                               if (_isResolutionMode) ...[
                                 _buildResolutionSection(),
                                 const SizedBox(height: 10),
-                              ],
-                              _SectionCard(
-                                title: _t.t('member_edit_section_general'),
-                                child: _buildGeneralSection(),
-                              ),
-                              const SizedBox(height: 10),
-                              _SectionCard(
-                                title: _t.t('member_edit_section_email'),
-                                child: _buildEmailSection(),
-                              ),
-                              const SizedBox(height: 10),
-                              _SectionCard(
-                                title: _t.t('member_edit_section_phone'),
-                                child: _buildPhoneSection(),
-                              ),
-                              const SizedBox(height: 10),
-                              _SectionCard(
-                                title: _t.t('member_edit_section_address'),
-                                child: _buildAddressSection(),
-                              ),
+                                _buildEditableMemberSection(),
+                              ] else
+                                _buildEditSectionsContent(),
                             ],
                           ),
                         ),
@@ -213,6 +233,51 @@ class _MemberEditPageState extends State<MemberEditPage> {
           _buildStickySaveBar(context),
         ],
       ),
+    );
+  }
+
+  Widget _buildEditSectionsContent() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _SectionCard(
+          key: _generalSectionKey,
+          title: _t.t('member_edit_section_general'),
+          child: _buildGeneralSection(),
+        ),
+        const SizedBox(height: 10),
+        _SectionCard(
+          key: _emailSectionKey,
+          title: _t.t('member_edit_section_email'),
+          child: _buildEmailSection(),
+        ),
+        const SizedBox(height: 10),
+        _SectionCard(
+          key: _phoneSectionKey,
+          title: _t.t('member_edit_section_phone'),
+          child: _buildPhoneSection(),
+        ),
+        const SizedBox(height: 10),
+        _SectionCard(
+          key: _addressSectionKey,
+          title: _t.t('member_edit_section_address'),
+          child: _buildAddressSection(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEditableMemberSection() {
+    return _ExpandableSectionCard(
+      key: const Key('member-edit-resolution-edit-section'),
+      title: _t.t('member_edit_edit_section_title'),
+      expanded: _editSectionExpanded,
+      onToggle: () {
+        setState(() {
+          _editSectionExpanded = !_editSectionExpanded;
+        });
+      },
+      child: _buildEditSectionsContent(),
     );
   }
 
@@ -299,13 +364,17 @@ class _MemberEditPageState extends State<MemberEditPage> {
 
   Widget _buildResolutionItemCard(MemberResolutionItem item) {
     final isConflict = item.problemType == MemberResolutionProblemType.conflict;
-    final localValue = _describeCurrentFormValue(item.target);
-    final remoteValue = _describeMemberValue(
-      _resolutionCase?.remoteMitglied,
-      item.target,
-    );
-    final fallbackValue = _describeMemberValue(
-      widget.pendingEntry?.basisMitglied,
+    final leftTitle = isConflict
+        ? _t.t('member_edit_resolution_local_title')
+        : _t.t('member_edit_resolution_current_title');
+    final rightTitle = isConflict
+        ? _t.t('member_edit_resolution_remote_title')
+        : _t.t('member_edit_resolution_previous_title');
+    final leftLines = _buildResolutionLinesFromCurrent(item.target);
+    final rightLines = _buildResolutionLinesFromMember(
+      isConflict
+          ? _resolutionCase?.remoteMitglied
+          : widget.pendingEntry?.basisMitglied,
       item.target,
     );
 
@@ -318,58 +387,146 @@ class _MemberEditPageState extends State<MemberEditPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            _labelForResolutionTarget(item.target),
-            style: Theme.of(context).textTheme.titleSmall,
-          ),
-          const SizedBox(height: 4),
-          Text(item.message),
-          const SizedBox(height: 10),
-          if (isConflict) ...[
-            Text(_t.t('member_edit_resolution_local', {'value': localValue})),
-            const SizedBox(height: 4),
-            Text(_t.t('member_edit_resolution_remote', {'value': remoteValue})),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: () {
-                    _recordResolutionChoice(item, 'keep_local');
-                    setState(() {
-                      _dismissedResolutionItemIds.add(item.itemId);
-                    });
-                  },
-                  icon: const Icon(Icons.edit_outlined),
-                  label: Text(_t.t('member_edit_resolution_keep_local')),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _labelForResolutionTarget(item.target),
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(item.message),
+                  ],
                 ),
-                FilledButton.tonalIcon(
-                  onPressed: () => _applyServerChoice(item),
-                  icon: const Icon(Icons.sync_alt_outlined),
-                  label: Text(_t.t('member_edit_resolution_use_server')),
-                ),
-              ],
-            ),
-          ] else ...[
-            Text(_t.t('member_edit_resolution_current', {'value': localValue})),
-            if (fallbackValue != _t.t('member_edit_value_not_available')) ...[
-              const SizedBox(height: 4),
-              Text(
-                _t.t('member_edit_resolution_previous', {
-                  'value': fallbackValue,
-                }),
+              ),
+              const SizedBox(width: 12),
+              TextButton.icon(
+                key: Key('member-edit-resolution-edit-${item.itemId}'),
+                onPressed: () => _openEditorForTarget(item.target),
+                icon: const Icon(Icons.edit_outlined),
+                label: Text(_t.t('member_edit_resolution_edit')),
               ),
             ],
-            const SizedBox(height: 10),
-            OutlinedButton.icon(
-              onPressed: () => _discardValidationChange(item),
-              icon: const Icon(Icons.undo_outlined),
-              label: Text(_t.t('member_edit_resolution_discard_local')),
-            ),
-          ],
+          ),
+          const SizedBox(height: 12),
+          _buildResolutionComparison(
+            leftTitle: leftTitle,
+            rightTitle: rightTitle,
+            leftLines: leftLines,
+            rightLines: rightLines,
+          ),
+          const SizedBox(height: 12),
+          if (isConflict)
+            _buildConflictActionRow(item)
+          else
+            _buildValidationActionRow(item),
         ],
       ),
+    );
+  }
+
+  Widget _buildResolutionComparison({
+    required String leftTitle,
+    required String rightTitle,
+    required List<_ResolutionValueLine> leftLines,
+    required List<_ResolutionValueLine> rightLines,
+  }) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final comparisonChildren = [
+          Expanded(
+            child: _ResolutionValuePanel(title: leftTitle, lines: leftLines),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _ResolutionValuePanel(title: rightTitle, lines: rightLines),
+          ),
+        ];
+
+        if (constraints.maxWidth < 420) {
+          return Column(
+            children: [
+              _ResolutionValuePanel(title: leftTitle, lines: leftLines),
+              const SizedBox(height: 10),
+              _ResolutionValuePanel(title: rightTitle, lines: rightLines),
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: comparisonChildren,
+        );
+      },
+    );
+  }
+
+  Widget _buildConflictActionRow(MemberResolutionItem item) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final leftButton = OutlinedButton.icon(
+          onPressed: () {
+            _recordResolutionChoice(item, 'keep_local');
+            setState(() {
+              _dismissedResolutionItemIds.add(item.itemId);
+            });
+          },
+          icon: const Icon(Icons.edit_outlined),
+          label: Text(_t.t('member_edit_resolution_keep_local')),
+        );
+        final rightButton = FilledButton.tonalIcon(
+          onPressed: () => _applyServerChoice(item),
+          icon: const Icon(Icons.sync_alt_outlined),
+          label: Text(_t.t('member_edit_resolution_use_server')),
+        );
+        if (constraints.maxWidth < 420) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [leftButton, const SizedBox(height: 8), rightButton],
+          );
+        }
+        return Row(
+          children: [
+            Expanded(child: leftButton),
+            const SizedBox(width: 10),
+            Expanded(child: rightButton),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildValidationActionRow(MemberResolutionItem item) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final editButton = FilledButton.tonalIcon(
+          onPressed: () => _openEditorForTarget(item.target),
+          icon: const Icon(Icons.edit_outlined),
+          label: Text(_t.t('member_edit_resolution_edit')),
+        );
+        final discardButton = OutlinedButton.icon(
+          onPressed: () => _discardValidationChange(item),
+          icon: const Icon(Icons.undo_outlined),
+          label: Text(_t.t('member_edit_resolution_discard_local')),
+        );
+        if (constraints.maxWidth < 420) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [editButton, const SizedBox(height: 8), discardButton],
+          );
+        }
+        return Row(
+          children: [
+            Expanded(child: editButton),
+            const SizedBox(width: 10),
+            Expanded(child: discardButton),
+          ],
+        );
+      },
     );
   }
 
@@ -378,19 +535,34 @@ class _MemberEditPageState extends State<MemberEditPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildTwoColumnFields(
-          first: _buildTextField(
-            _vornameController,
-            _t.t('member_edit_field_first_name'),
+          first: SizedBox(
+            key: _vornameFieldKey,
+            child: _buildTextField(
+              _vornameController,
+              _t.t('member_edit_field_first_name'),
+              fieldKey: const Key('member-edit-first-name-field'),
+              focusNode: _vornameFocusNode,
+            ),
           ),
-          second: _buildTextField(
-            _fahrtennameController,
-            _t.t('member_edit_field_nickname'),
+          second: SizedBox(
+            key: _fahrtennameFieldKey,
+            child: _buildTextField(
+              _fahrtennameController,
+              _t.t('member_edit_field_nickname'),
+              fieldKey: const Key('member-edit-nickname-field'),
+              focusNode: _fahrtennameFocusNode,
+            ),
           ),
         ),
         const SizedBox(height: 12),
-        _buildTextField(
-          _nachnameController,
-          _t.t('member_edit_field_last_name'),
+        SizedBox(
+          key: _nachnameFieldKey,
+          child: _buildTextField(
+            _nachnameController,
+            _t.t('member_edit_field_last_name'),
+            fieldKey: const Key('member-edit-last-name-field'),
+            focusNode: _nachnameFocusNode,
+          ),
         ),
         FormField<void>(
           validator: (_) =>
@@ -417,16 +589,20 @@ class _MemberEditPageState extends State<MemberEditPage> {
           spacing: 12,
           runSpacing: 12,
           children: [
-            _buildGenderField(),
-            _buildDateField(
-              label: _t.t('member_edit_field_birthday'),
-              fieldKey: const Key('member-edit-birthdate-field'),
-              allowClear: true,
-              value: _geburtsdatum,
-              onChanged: (value) {
-                setState(() => _geburtsdatum = value);
-              },
-              validator: _validateBirthDate,
+            SizedBox(key: _genderFieldTargetKey, child: _buildGenderField()),
+            SizedBox(
+              key: _birthdayFieldTargetKey,
+              child: _buildDateField(
+                label: _t.t('member_edit_field_birthday'),
+                fieldKey: const Key('member-edit-birthdate-field'),
+                focusNode: _birthdayFocusNode,
+                allowClear: true,
+                value: _geburtsdatum,
+                onChanged: (value) {
+                  setState(() => _geburtsdatum = value);
+                },
+                validator: _validateBirthDate,
+              ),
             ),
           ],
         ),
@@ -471,11 +647,16 @@ class _MemberEditPageState extends State<MemberEditPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _DetailPanel(
-            child: _buildTextField(
-              _primaryEmailController,
-              _t.t('member_edit_section_email'),
-              keyboardType: TextInputType.emailAddress,
-              validator: _validateEmail,
+            child: SizedBox(
+              key: _primaryEmailFieldKey,
+              child: _buildTextField(
+                _primaryEmailController,
+                _t.t('member_edit_section_email'),
+                fieldKey: const Key('member-edit-primary-email-field'),
+                focusNode: _primaryEmailFocusNode,
+                keyboardType: TextInputType.emailAddress,
+                validator: _validateEmail,
+              ),
             ),
           ),
           if (_additionalEmailDrafts.isNotEmpty) const SizedBox(height: 10),
@@ -626,6 +807,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
                       ? _t.t('member_edit_field_phone_with_country')
                       : _t.t('member_edit_field_phone_number'),
                   fieldKey: Key('member-edit-phone-number-$index'),
+                  focusNode: draft.wertFocusNode,
                   keyboardType: TextInputType.phone,
                   onChanged: (_) => _clearPhoneServerError(draft),
                   validator: (value) =>
@@ -657,6 +839,8 @@ class _MemberEditPageState extends State<MemberEditPage> {
           _buildTextField(
             draft.wertController,
             _t.t('member_edit_section_email'),
+            fieldKey: draft.wertFieldKey,
+            focusNode: draft.wertFocusNode,
             keyboardType: TextInputType.emailAddress,
             validator: (value) => _validateEmail(value, required: true),
           ),
@@ -698,10 +882,12 @@ class _MemberEditPageState extends State<MemberEditPage> {
                 _buildTextField(
                   draft.labelController,
                   _t.t('member_edit_field_label'),
+                  fieldKey: draft.labelFieldKey,
                 ),
                 _buildTextField(
                   draft.addressCareOfController,
                   _t.t('member_edit_field_care_of'),
+                  fieldKey: draft.addressCareOfFieldKey,
                 ),
               ],
             ),
@@ -714,10 +900,13 @@ class _MemberEditPageState extends State<MemberEditPage> {
               _buildTextField(
                 draft.streetController,
                 _t.t('member_edit_field_street'),
+                fieldKey: draft.streetFieldKey,
+                focusNode: draft.streetFocusNode,
               ),
               _buildTextField(
                 draft.housenumberController,
                 _t.t('member_edit_field_house_number'),
+                fieldKey: draft.housenumberFieldKey,
               ),
             ],
           ),
@@ -730,18 +919,22 @@ class _MemberEditPageState extends State<MemberEditPage> {
               _buildTextField(
                 draft.postboxController,
                 _t.t('member_edit_field_postbox'),
+                fieldKey: draft.postboxFieldKey,
               ),
               _buildTextField(
                 draft.zipCodeController,
                 _t.t('member_edit_field_zip_code'),
+                fieldKey: draft.zipCodeFieldKey,
               ),
               _buildTextField(
                 draft.townController,
                 _t.t('member_edit_field_town'),
+                fieldKey: draft.townFieldKey,
               ),
               _buildTextField(
                 draft.countryController,
                 _t.t('member_edit_field_country'),
+                fieldKey: draft.countryFieldKey,
               ),
             ],
           ),
@@ -773,6 +966,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
     TextEditingController controller,
     String label, {
     Key? fieldKey,
+    FocusNode? focusNode,
     bool required = false,
     TextInputType? keyboardType,
     ValueChanged<String>? onChanged,
@@ -781,6 +975,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
     return TextFormField(
       key: fieldKey,
       controller: controller,
+      focusNode: focusNode,
       keyboardType: keyboardType,
       onChanged: onChanged,
       decoration: InputDecoration(
@@ -808,6 +1003,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
     final items = _buildGenderItems();
     return DropdownButtonFormField<String>(
       key: const Key('member-edit-gender-field'),
+      focusNode: _genderFocusNode,
       initialValue: _gender,
       isExpanded: true,
       decoration: InputDecoration(
@@ -834,6 +1030,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
 
   Widget _buildDateField({
     Key? fieldKey,
+    FocusNode? focusNode,
     required String label,
     required DateTime? value,
     required ValueChanged<DateTime?> onChanged,
@@ -844,55 +1041,58 @@ class _MemberEditPageState extends State<MemberEditPage> {
       initialValue: value,
       validator: (_) => validator?.call(value),
       builder: (state) {
-        return InkWell(
-          onTap: () async {
-            final selected = await showDatePicker(
-              context: context,
-              initialDate: value ?? DateTime.now(),
-              firstDate: DateTime(1900),
-              lastDate: DateTime(2100),
-              locale: Localizations.localeOf(context),
-            );
-            if (selected != null) {
-              state.didChange(selected);
-              onChanged(selected);
-            }
-          },
-          child: InputDecorator(
-            key: fieldKey,
-            decoration: InputDecoration(
-              labelText: label,
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 14,
+        return Focus(
+          focusNode: focusNode,
+          child: InkWell(
+            onTap: () async {
+              final selected = await showDatePicker(
+                context: context,
+                initialDate: value ?? DateTime.now(),
+                firstDate: DateTime(1900),
+                lastDate: DateTime(2100),
+                locale: Localizations.localeOf(context),
+              );
+              if (selected != null) {
+                state.didChange(selected);
+                onChanged(selected);
+              }
+            },
+            child: InputDecorator(
+              key: fieldKey,
+              decoration: InputDecoration(
+                labelText: label,
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 14,
+                ),
+                border: const OutlineInputBorder(),
+                errorText: state.errorText,
+                suffixIcon: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (allowClear && value != null)
+                      IconButton(
+                        onPressed: () {
+                          state.didChange(null);
+                          onChanged(null);
+                        },
+                        icon: const Icon(Icons.clear),
+                      )
+                    else
+                      const SizedBox(width: 18),
+                    const Padding(
+                      padding: EdgeInsets.only(right: 12),
+                      child: Icon(Icons.calendar_today_outlined),
+                    ),
+                  ],
+                ),
               ),
-              border: const OutlineInputBorder(),
-              errorText: state.errorText,
-              suffixIcon: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (allowClear && value != null)
-                    IconButton(
-                      onPressed: () {
-                        state.didChange(null);
-                        onChanged(null);
-                      },
-                      icon: const Icon(Icons.clear),
-                    )
-                  else
-                    const SizedBox(width: 18),
-                  const Padding(
-                    padding: EdgeInsets.only(right: 12),
-                    child: Icon(Icons.calendar_today_outlined),
-                  ),
-                ],
+              child: Text(
+                value == null
+                    ? _t.t('member_edit_value_not_set')
+                    : _dateFormat.format(value),
               ),
-            ),
-            child: Text(
-              value == null
-                  ? _t.t('member_edit_value_not_set')
-                  : _dateFormat.format(value),
             ),
           ),
         );
@@ -1193,6 +1393,143 @@ class _MemberEditPageState extends State<MemberEditPage> {
     );
   }
 
+  Future<void> _openEditorForTarget(MemberResolutionTarget target) async {
+    if (!_editSectionExpanded) {
+      setState(() {
+        _editSectionExpanded = true;
+      });
+      await WidgetsBinding.instance.endOfFrame;
+    }
+
+    switch (target.type) {
+      case MemberResolutionTargetType.firstName:
+        await _ensureVisibleAndFocus(
+          _generalSectionKey,
+          _vornameFieldKey,
+          _vornameFocusNode,
+        );
+        return;
+      case MemberResolutionTargetType.lastName:
+        await _ensureVisibleAndFocus(
+          _generalSectionKey,
+          _nachnameFieldKey,
+          _nachnameFocusNode,
+        );
+        return;
+      case MemberResolutionTargetType.nickname:
+        await _ensureVisibleAndFocus(
+          _generalSectionKey,
+          _fahrtennameFieldKey,
+          _fahrtennameFocusNode,
+        );
+        return;
+      case MemberResolutionTargetType.gender:
+        await _ensureVisibleAndFocus(
+          _generalSectionKey,
+          _genderFieldTargetKey,
+          _genderFocusNode,
+        );
+        return;
+      case MemberResolutionTargetType.birthday:
+        await _ensureVisibleAndFocus(
+          _generalSectionKey,
+          _birthdayFieldTargetKey,
+          _birthdayFocusNode,
+        );
+        return;
+      case MemberResolutionTargetType.primaryEmail:
+        await _ensureVisibleAndFocus(
+          _emailSectionKey,
+          _primaryEmailFieldKey,
+          _primaryEmailFocusNode,
+        );
+        return;
+      case MemberResolutionTargetType.phone:
+        final draft = _findPhoneDraft(target.relationshipId);
+        await _ensureVisibleAndFocus(
+          _phoneSectionKey,
+          draft?.wertFieldKey,
+          draft?.wertFocusNode,
+        );
+        return;
+      case MemberResolutionTargetType.additionalEmail:
+        final draft = _findAdditionalEmailDraft(target.relationshipId);
+        await _ensureVisibleAndFocus(
+          _emailSectionKey,
+          draft?.wertFieldKey,
+          draft?.wertFocusNode,
+        );
+        return;
+      case MemberResolutionTargetType.primaryAddress:
+        await _ensureVisibleAndFocus(
+          _addressSectionKey,
+          _primaryAddressDraft.streetFieldKey,
+          _primaryAddressDraft.streetFocusNode,
+        );
+        return;
+      case MemberResolutionTargetType.additionalAddress:
+        final draft = _findAdditionalAddressDraft(target.relationshipId);
+        await _ensureVisibleAndFocus(
+          _addressSectionKey,
+          draft?.streetFieldKey,
+          draft?.streetFocusNode,
+        );
+        return;
+    }
+  }
+
+  Future<void> _ensureVisibleAndFocus(
+    GlobalKey sectionKey,
+    GlobalKey? fieldKey,
+    FocusNode? focusNode,
+  ) async {
+    final targetContext = fieldKey?.currentContext ?? sectionKey.currentContext;
+    if (targetContext != null) {
+      await Scrollable.ensureVisible(
+        targetContext,
+        duration: const Duration(milliseconds: 250),
+        alignment: 0.12,
+      );
+    }
+    focusNode?.requestFocus();
+  }
+
+  _PhoneDraft? _findPhoneDraft(int? relationshipId) {
+    if (relationshipId == null) {
+      return null;
+    }
+    for (final draft in _phoneDrafts) {
+      if (draft.phoneNumberId == relationshipId) {
+        return draft;
+      }
+    }
+    return null;
+  }
+
+  _EmailDraft? _findAdditionalEmailDraft(int? relationshipId) {
+    if (relationshipId == null) {
+      return null;
+    }
+    for (final draft in _additionalEmailDrafts) {
+      if (draft.additionalEmailId == relationshipId) {
+        return draft;
+      }
+    }
+    return null;
+  }
+
+  _AddressDraft? _findAdditionalAddressDraft(int? relationshipId) {
+    if (relationshipId == null) {
+      return null;
+    }
+    for (final draft in _additionalAddressDrafts) {
+      if (draft.additionalAddressId == relationshipId) {
+        return draft;
+      }
+    }
+    return null;
+  }
+
   void _applyMemberValue(MemberResolutionTarget target, Mitglied source) {
     switch (target.type) {
       case MemberResolutionTargetType.firstName:
@@ -1340,177 +1677,194 @@ class _MemberEditPageState extends State<MemberEditPage> {
     }
   }
 
-  String _describeCurrentFormValue(MemberResolutionTarget target) {
+  List<_ResolutionValueLine> _buildResolutionLinesFromCurrent(
+    MemberResolutionTarget target,
+  ) {
     switch (target.type) {
       case MemberResolutionTargetType.firstName:
-        return _fallbackValue(_vornameController.text);
+        return _singleResolutionValueLine(_vornameController.text);
       case MemberResolutionTargetType.lastName:
-        return _fallbackValue(_nachnameController.text);
+        return _singleResolutionValueLine(_nachnameController.text);
       case MemberResolutionTargetType.nickname:
-        return _fallbackValue(_fahrtennameController.text);
+        return _singleResolutionValueLine(_fahrtennameController.text);
       case MemberResolutionTargetType.gender:
-        return _fallbackValue(_labelForGender(_gender ?? ''));
+        return _singleResolutionValueLine(_labelForGender(_gender ?? ''));
       case MemberResolutionTargetType.birthday:
-        return _geburtsdatum == null
-            ? _t.t('member_edit_value_not_set')
-            : _dateFormat.format(_geburtsdatum!);
+        return _singleResolutionValueLine(
+          _geburtsdatum == null ? null : _dateFormat.format(_geburtsdatum!),
+        );
       case MemberResolutionTargetType.primaryEmail:
-        return _fallbackValue(_primaryEmailController.text);
+        return _singleResolutionValueLine(_primaryEmailController.text);
       case MemberResolutionTargetType.phone:
-        final draft = _phoneDrafts.where(
-          (value) => value.phoneNumberId == target.relationshipId,
+        final draft = _findPhoneDraft(target.relationshipId);
+        return _buildPhoneResolutionLines(
+          label: draft?.labelController.text,
+          value: draft?.toTelefon()?.wert ?? draft?.wertController.text,
         );
-        return draft.isEmpty
-            ? _t.t('member_edit_value_not_present')
-            : _describeLabeledValue(
-                label: draft.first.labelController.text,
-                value:
-                    draft.first.toTelefon()?.wert ??
-                    draft.first.wertController.text,
-              );
       case MemberResolutionTargetType.additionalEmail:
-        final draft = _additionalEmailDrafts.where(
-          (value) => value.additionalEmailId == target.relationshipId,
+        final draft = _findAdditionalEmailDraft(target.relationshipId);
+        return _buildEmailResolutionLines(
+          label: draft?.labelController.text,
+          value: draft?.wertController.text,
         );
-        return draft.isEmpty
-            ? _t.t('member_edit_value_not_present')
-            : _describeLabeledValue(
-                label: draft.first.labelController.text,
-                value: draft.first.wertController.text,
-              );
       case MemberResolutionTargetType.primaryAddress:
-        return _describeAdresse(_primaryAddressDraft.toAdresse());
+        return _buildAddressResolutionLines(_primaryAddressDraft.toAdresse());
       case MemberResolutionTargetType.additionalAddress:
-        final draft = _additionalAddressDrafts.where(
-          (value) => value.additionalAddressId == target.relationshipId,
-        );
-        return draft.isEmpty
-            ? _t.t('member_edit_value_not_present')
-            : _describeLabeledAddress(draft.first.toAdresse());
+        final draft = _findAdditionalAddressDraft(target.relationshipId);
+        return _buildAddressResolutionLines(draft?.toAdresse());
     }
   }
 
-  String _describeMemberValue(Mitglied? member, MemberResolutionTarget target) {
+  List<_ResolutionValueLine> _buildResolutionLinesFromMember(
+    Mitglied? member,
+    MemberResolutionTarget target,
+  ) {
     if (member == null) {
-      return _t.t('member_edit_value_not_available');
+      return <_ResolutionValueLine>[
+        _ResolutionValueLine(
+          label: _t.t('member_edit_resolution_value_label'),
+          value: _t.t('member_edit_value_not_available'),
+        ),
+      ];
     }
     switch (target.type) {
       case MemberResolutionTargetType.firstName:
-        return _fallbackValue(member.vorname);
+        return _singleResolutionValueLine(member.vorname);
       case MemberResolutionTargetType.lastName:
-        return _fallbackValue(member.nachname);
+        return _singleResolutionValueLine(member.nachname);
       case MemberResolutionTargetType.nickname:
-        return _fallbackValue(member.fahrtenname ?? '');
+        return _singleResolutionValueLine(member.fahrtenname);
       case MemberResolutionTargetType.gender:
-        return _fallbackValue(
+        return _singleResolutionValueLine(
           _labelForGender(_normalizeGenderValue(member.gender) ?? ''),
         );
       case MemberResolutionTargetType.birthday:
-        return member.geburtsdatum == Mitglied.peoplePlaceholderDate
-            ? _t.t('member_edit_value_not_set')
-            : _dateFormat.format(member.geburtsdatum);
+        return _singleResolutionValueLine(
+          member.geburtsdatum == Mitglied.peoplePlaceholderDate
+              ? null
+              : _dateFormat.format(member.geburtsdatum),
+        );
       case MemberResolutionTargetType.primaryEmail:
-        return _fallbackValue(
-          _resolvePrimaryEmail(member.emailAdressen)?.wert ?? '',
+        return _singleResolutionValueLine(
+          _resolvePrimaryEmail(member.emailAdressen)?.wert,
         );
       case MemberResolutionTargetType.phone:
         for (final phone in member.telefonnummern) {
           if (phone.phoneNumberId == target.relationshipId) {
-            return _describeLabeledValue(label: phone.label, value: phone.wert);
+            return _buildPhoneResolutionLines(
+              label: phone.label,
+              value: phone.wert,
+            );
           }
         }
-        return _t.t('member_edit_value_not_present');
+        return _buildPhoneResolutionLines(label: null, value: null);
       case MemberResolutionTargetType.additionalEmail:
         for (final email in member.emailAdressen) {
           if (!email.istPrimaer &&
               email.additionalEmailId == target.relationshipId) {
-            return _describeLabeledValue(label: email.label, value: email.wert);
+            return _buildEmailResolutionLines(
+              label: email.label,
+              value: email.wert,
+            );
           }
         }
-        return _t.t('member_edit_value_not_present');
+        return _buildEmailResolutionLines(label: null, value: null);
       case MemberResolutionTargetType.primaryAddress:
-        return _describeAdresse(_resolvePrimaryAddress(member.adressen));
+        return _buildAddressResolutionLines(
+          _resolvePrimaryAddress(member.adressen),
+        );
       case MemberResolutionTargetType.additionalAddress:
         for (final address in member.adressen) {
           if (address.additionalAddressId == target.relationshipId) {
-            return _describeLabeledAddress(address);
+            return _buildAddressResolutionLines(address);
           }
         }
-        return _t.t('member_edit_value_not_present');
+        return _buildAddressResolutionLines(null);
     }
   }
 
-  String _describeLabeledValue({String? label, String? value}) {
-    final normalizedLabel = _trimOptionalToNull(label);
-    final normalizedValue = _trimOptionalToNull(value);
-    if (normalizedLabel != null && normalizedValue != null) {
-      if (normalizedLabel == normalizedValue) {
-        return normalizedValue;
-      }
-      return '$normalizedLabel: $normalizedValue';
-    }
-    return normalizedValue ??
-        normalizedLabel ??
-        _t.t('member_edit_value_not_set');
+  List<_ResolutionValueLine> _singleResolutionValueLine(String? value) {
+    return <_ResolutionValueLine>[
+      _ResolutionValueLine(
+        label: _t.t('member_edit_resolution_value_label'),
+        value: _normalizeResolutionLineValue(value),
+      ),
+    ];
   }
 
-  String _describeLabeledAddress(MitgliedKontaktAdresse? adresse) {
-    if (adresse == null) {
-      return _t.t('member_edit_value_not_present');
-    }
-    final normalizedLabel = _trimOptionalToNull(adresse.label);
-    final addressBlock = _describeAddressBlock(adresse);
-    if (normalizedLabel != null && addressBlock != null) {
-      if (normalizedLabel == addressBlock) {
-        return addressBlock;
-      }
-      return '$normalizedLabel: $addressBlock';
-    }
-    return normalizedLabel ??
-        addressBlock ??
-        _t.t('member_edit_value_not_present');
+  List<_ResolutionValueLine> _buildPhoneResolutionLines({
+    String? label,
+    String? value,
+  }) {
+    return <_ResolutionValueLine>[
+      _ResolutionValueLine(
+        label: _t.t('member_edit_field_label'),
+        value: _normalizeResolutionLineValue(label),
+      ),
+      _ResolutionValueLine(
+        label: _t.t('member_edit_field_phone_number'),
+        value: _normalizeResolutionLineValue(value),
+      ),
+    ];
   }
 
-  String? _describeAddressBlock(MitgliedKontaktAdresse? adresse) {
-    if (adresse == null) {
-      return null;
-    }
-    final addressCareOf = _trimOptionalToNull(adresse.addressCareOf);
-    final street = _trimOptionalToNull(adresse.street);
-    final housenumber = _trimOptionalToNull(adresse.housenumber);
-    final postbox = _trimOptionalToNull(adresse.postbox);
-    final zipCode = _trimOptionalToNull(adresse.zipCode);
-    final town = _trimOptionalToNull(adresse.town);
-    final country = _trimOptionalToNull(adresse.country);
-    final segments =
-        <String>[
-              if (addressCareOf != null)
-                '${_t.t('member_edit_field_care_of')} $addressCareOf',
-              [street, housenumber].whereType<String>().join(' '),
-              if (postbox != null)
-                '${_t.t('member_edit_field_postbox')} $postbox',
-              [zipCode, town].whereType<String>().join(' '),
-              country ?? '',
-            ]
-            .map((segment) => segment.trim())
-            .where((segment) => segment.isNotEmpty)
-            .toList(growable: false);
-    if (segments.isEmpty) {
-      return null;
-    }
-    return segments.join(', ');
+  List<_ResolutionValueLine> _buildEmailResolutionLines({
+    String? label,
+    String? value,
+  }) {
+    return <_ResolutionValueLine>[
+      _ResolutionValueLine(
+        label: _t.t('member_edit_field_label'),
+        value: _normalizeResolutionLineValue(label),
+      ),
+      _ResolutionValueLine(
+        label: _t.t('member_edit_section_email'),
+        value: _normalizeResolutionLineValue(value),
+      ),
+    ];
   }
 
-  String _describeAdresse(MitgliedKontaktAdresse? adresse) {
-    final addressBlock = _describeAddressBlock(adresse);
-    if (addressBlock == null) {
-      return _t.t('member_edit_value_not_present');
-    }
-    return addressBlock;
+  List<_ResolutionValueLine> _buildAddressResolutionLines(
+    MitgliedKontaktAdresse? adresse,
+  ) {
+    return <_ResolutionValueLine>[
+      _ResolutionValueLine(
+        label: _t.t('member_edit_field_label'),
+        value: _normalizeResolutionLineValue(adresse?.label),
+      ),
+      _ResolutionValueLine(
+        label: _t.t('member_edit_field_care_of'),
+        value: _normalizeResolutionLineValue(adresse?.addressCareOf),
+      ),
+      _ResolutionValueLine(
+        label: _t.t('member_edit_field_street'),
+        value: _normalizeResolutionLineValue(adresse?.street),
+      ),
+      _ResolutionValueLine(
+        label: _t.t('member_edit_field_house_number'),
+        value: _normalizeResolutionLineValue(adresse?.housenumber),
+      ),
+      _ResolutionValueLine(
+        label: _t.t('member_edit_field_postbox'),
+        value: _normalizeResolutionLineValue(adresse?.postbox),
+      ),
+      _ResolutionValueLine(
+        label: _t.t('member_edit_field_zip_code'),
+        value: _normalizeResolutionLineValue(adresse?.zipCode),
+      ),
+      _ResolutionValueLine(
+        label: _t.t('member_edit_field_town'),
+        value: _normalizeResolutionLineValue(adresse?.town),
+      ),
+      _ResolutionValueLine(
+        label: _t.t('member_edit_field_country'),
+        value: _normalizeResolutionLineValue(adresse?.country),
+      ),
+    ];
   }
 
-  String _fallbackValue(String value) {
-    final trimmed = _trimToNull(value);
+  String _normalizeResolutionLineValue(String? value) {
+    final trimmed = _trimOptionalToNull(value);
     return trimmed ?? _t.t('member_edit_value_not_set');
   }
 
@@ -1575,7 +1929,7 @@ String? _trimToNull(String value) {
 }
 
 class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.title, required this.child});
+  const _SectionCard({super.key, required this.title, required this.child});
 
   final String title;
   final Widget child;
@@ -1598,6 +1952,66 @@ class _SectionCard extends StatelessWidget {
             Text(title, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 14),
             child,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ExpandableSectionCard extends StatelessWidget {
+  const _ExpandableSectionCard({
+    super.key,
+    required this.title,
+    required this.expanded,
+    required this.onToggle,
+    required this.child,
+  });
+
+  final String title;
+  final bool expanded;
+  final VoidCallback onToggle;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.symmetric(vertical: 5),
+      color: colorScheme.surfaceContainerLow,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(_MemberEditPageState._cardRadius),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            InkWell(
+              key: const Key('member-edit-resolution-edit-section-toggle'),
+              onTap: onToggle,
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                    Icon(
+                      expanded
+                          ? Icons.expand_less_outlined
+                          : Icons.expand_more_outlined,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (expanded) ...[const SizedBox(height: 14), child],
           ],
         ),
       ),
@@ -1732,6 +2146,67 @@ class _ResponsiveWrap extends StatelessWidget {
   }
 }
 
+class _ResolutionValueLine {
+  const _ResolutionValueLine({required this.label, required this.value});
+
+  final String label;
+  final String value;
+}
+
+class _ResolutionValuePanel extends StatelessWidget {
+  const _ResolutionValuePanel({required this.title, required this.lines});
+
+  final String title;
+  final List<_ResolutionValueLine> lines;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleSmall),
+          const SizedBox(height: 8),
+          Table(
+            columnWidths: const <int, TableColumnWidth>{
+              0: IntrinsicColumnWidth(),
+              1: FlexColumnWidth(),
+            },
+            defaultVerticalAlignment: TableCellVerticalAlignment.top,
+            children: lines
+                .map(
+                  (line) => TableRow(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(right: 12, bottom: 8),
+                        child: Text(
+                          line.label,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(line.value),
+                      ),
+                    ],
+                  ),
+                )
+                .toList(growable: false),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _PhoneDraft {
   _PhoneDraft({
     required this.phoneNumberId,
@@ -1760,6 +2235,8 @@ class _PhoneDraft {
   String countryId;
   final TextEditingController wertController;
   final TextEditingController labelController;
+  final GlobalKey wertFieldKey = GlobalKey();
+  final FocusNode wertFocusNode = FocusNode();
 
   bool get isOtherCountry => countryId == MemberPhoneInput.otherCountryId;
 
@@ -1781,6 +2258,7 @@ class _PhoneDraft {
   void dispose() {
     wertController.dispose();
     labelController.dispose();
+    wertFocusNode.dispose();
   }
 }
 
@@ -1802,6 +2280,8 @@ class _EmailDraft {
   final int? additionalEmailId;
   final TextEditingController wertController;
   final TextEditingController labelController;
+  final GlobalKey wertFieldKey = GlobalKey();
+  final FocusNode wertFocusNode = FocusNode();
 
   MitgliedKontaktEmail? toEmail() {
     final wert = _trimToNull(wertController.text);
@@ -1818,6 +2298,7 @@ class _EmailDraft {
   void dispose() {
     wertController.dispose();
     labelController.dispose();
+    wertFocusNode.dispose();
   }
 }
 
@@ -1868,6 +2349,15 @@ class _AddressDraft {
   final TextEditingController zipCodeController;
   final TextEditingController townController;
   final TextEditingController countryController;
+  final GlobalKey labelFieldKey = GlobalKey();
+  final GlobalKey addressCareOfFieldKey = GlobalKey();
+  final GlobalKey streetFieldKey = GlobalKey();
+  final GlobalKey housenumberFieldKey = GlobalKey();
+  final GlobalKey postboxFieldKey = GlobalKey();
+  final GlobalKey zipCodeFieldKey = GlobalKey();
+  final GlobalKey townFieldKey = GlobalKey();
+  final GlobalKey countryFieldKey = GlobalKey();
+  final FocusNode streetFocusNode = FocusNode();
 
   MitgliedKontaktAdresse toAdresse() {
     return MitgliedKontaktAdresse(
@@ -1903,5 +2393,6 @@ class _AddressDraft {
     zipCodeController.dispose();
     townController.dispose();
     countryController.dispose();
+    streetFocusNode.dispose();
   }
 }
