@@ -306,17 +306,24 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  static const Duration _pendingRetryInterval = Duration(minutes: 1);
+
   late UsageTrackingService _usage;
   bool _isPaused = false;
+  bool _isForegroundSyncRunning = false;
   late final LoggerService logger;
   late final AuthSessionModel _authModel;
   late final ArbeitskontextModel _arbeitskontextModel;
+  late final AppSettingsModel _appSettingsModel;
+  late final MemberEditModel _memberEditModel;
   late final AppResetService _appResetService;
   late final AppStartupStateService _appStartupStateService;
   late final AppRuntimeController _appRuntimeController;
   late final Connectivity _connectivity;
   late final WifiSyncTrigger _wifiSyncTrigger;
+  late bool _lastNoMobileDataEnabled;
   Timer? _authMaintenanceTimer;
+  Timer? _pendingRetryTimer;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
   PullNotificationsCubit? _notificationsCubit;
   StreamSubscription<PullNotificationsState>? _notificationsSubscription;
@@ -334,20 +341,41 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     logger = context.read<LoggerService>();
     _authModel = context.read<AuthSessionModel>();
     _arbeitskontextModel = context.read<ArbeitskontextModel>();
+    _appSettingsModel = context.read<AppSettingsModel>();
+    _memberEditModel = context.read<MemberEditModel>();
     _appResetService = context.read<AppResetService>();
     _appStartupStateService = context.read<AppStartupStateService>();
     _appRuntimeController = AppRuntimeController(resetApp: _performFullReset);
     _connectivity = Connectivity();
     _wifiSyncTrigger = WifiSyncTrigger();
+    _lastNoMobileDataEnabled = _appSettingsModel.noMobileDataEnabled;
     _authModel.addListener(_handleAuthModelChanged);
+    _appSettingsModel.addListener(_handleAppSettingsChanged);
     _usage = UsageTrackingService(logger: logger);
     // Ausstehende Pause/Sessions vom letzten Lauf auswerten
     _usage.flushPendingSession();
     _usage.startSession();
     _initGlobalNotifications();
     _startAuthMaintenanceTimer();
+    _startPendingRetryTimer();
     _startConnectivityListener();
+    unawaited(_checkCurrentConnectivityForForegroundSync(trigger: 'startup'));
     _scheduleStartupFlow();
+  }
+
+  void _handleAppSettingsChanged() {
+    final noMobileDataEnabled = _appSettingsModel.noMobileDataEnabled;
+    if (_lastNoMobileDataEnabled == noMobileDataEnabled) {
+      return;
+    }
+    _lastNoMobileDataEnabled = noMobileDataEnabled;
+    unawaited(
+      _checkCurrentConnectivityForForegroundSync(
+        trigger: noMobileDataEnabled
+            ? 'mobile_data_disabled'
+            : 'mobile_data_enabled',
+      ),
+    );
   }
 
   void _handleAuthModelChanged() {
@@ -466,35 +494,104 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       results,
     ) {
       unawaited(
-        _triggerWifiSyncIfNeeded(
+        _handleForegroundSyncOpportunity(
           NetworkAccessPolicy.classifyConnectivityResults(results),
+          trigger: 'connectivity_changed',
         ),
       );
     });
   }
 
-  Future<void> _checkCurrentConnectivityForWifiSync() async {
-    final results = await _connectivity.checkConnectivity();
-    await _triggerWifiSyncIfNeeded(
-      NetworkAccessPolicy.classifyConnectivityResults(results),
-    );
+  void _startPendingRetryTimer() {
+    _pendingRetryTimer?.cancel();
+    _pendingRetryTimer = Timer.periodic(_pendingRetryInterval, (_) {
+      unawaited(
+        _retryPendingPersonUpdatesIfPossible(trigger: 'pending_retry_timer'),
+      );
+    });
   }
 
-  Future<void> _triggerWifiSyncIfNeeded(
-    NetworkConnectionType connectionType,
-  ) async {
-    if (_isPaused || !_wifiSyncTrigger.shouldTrigger(connectionType)) {
+  Future<NetworkConnectionType> _resolveCurrentConnectionType() async {
+    final results = await _connectivity.checkConnectivity();
+    return NetworkAccessPolicy.classifyConnectivityResults(results);
+  }
+
+  Future<void> _checkCurrentConnectivityForForegroundSync({
+    required String trigger,
+  }) async {
+    final connectionType = await _resolveCurrentConnectionType();
+    await _handleForegroundSyncOpportunity(connectionType, trigger: trigger);
+  }
+
+  Future<void> _handleForegroundSyncOpportunity(
+    NetworkConnectionType connectionType, {
+    required String trigger,
+  }) async {
+    if (_isPaused ||
+        !_wifiSyncTrigger.shouldTrigger(
+          connectionType,
+          noMobileDataEnabled: _appSettingsModel.noMobileDataEnabled,
+        )) {
       return;
     }
 
-    await _authModel.syncHitobitoData(
-      syncMembers: (accessToken) async {
-        await _arbeitskontextModel.refreshFromRemote(
-          session: _authModel.session,
-          profile: _authModel.profile,
-        );
-      },
-      trigger: 'wifi_available',
+    await _runForegroundSync(trigger: trigger);
+  }
+
+  Future<void> _runForegroundSync({required String trigger}) async {
+    if (_isForegroundSyncRunning) {
+      return;
+    }
+
+    _isForegroundSyncRunning = true;
+    try {
+      await _authModel.syncHitobitoData(
+        syncMembers: (accessToken) async {
+          await _arbeitskontextModel.refreshFromRemote(
+            session: _authModel.session,
+            profile: _authModel.profile,
+          );
+        },
+        trigger: trigger,
+      );
+      await _retryPendingPersonUpdatesIfPossible(trigger: '${trigger}_pending');
+    } finally {
+      _isForegroundSyncRunning = false;
+    }
+  }
+
+  Future<void> _retryPendingPersonUpdatesIfPossible({
+    required String trigger,
+  }) async {
+    if (_isPaused || _memberEditModel.isBusy) {
+      return;
+    }
+
+    final hasRetryablePending = _memberEditModel.pendingUpdates.any(
+      (entry) => !entry.needsResolution,
+    );
+    if (!hasRetryablePending) {
+      return;
+    }
+
+    final accessToken = _authModel.session?.accessToken;
+    if (accessToken == null ||
+        accessToken.isEmpty ||
+        _authModel.requiresInteractiveLogin) {
+      return;
+    }
+
+    final connectionType = await _resolveCurrentConnectionType();
+    if (!_wifiSyncTrigger.isSyncAllowed(
+      connectionType,
+      noMobileDataEnabled: _appSettingsModel.noMobileDataEnabled,
+    )) {
+      return;
+    }
+
+    await _memberEditModel.retryPending(
+      accessToken: accessToken,
+      trigger: trigger,
     );
   }
 
@@ -651,7 +748,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _resetStartupFlowState();
     _usage.startSession();
     _startAuthMaintenanceTimer();
+    _startPendingRetryTimer();
     await _initGlobalNotifications();
+    unawaited(_checkCurrentConnectivityForForegroundSync(trigger: 'app_reset'));
     _scheduleStartupFlow();
 
     final snackbarContext = navigatorKey.currentContext;
@@ -669,7 +768,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _authModel.removeListener(_handleAuthModelChanged);
+    _appSettingsModel.removeListener(_handleAppSettingsChanged);
     _authMaintenanceTimer?.cancel();
+    _pendingRetryTimer?.cancel();
     _connectivitySubscription?.cancel();
     _notificationsSubscription?.cancel();
     _notificationsCubit?.close();
@@ -686,8 +787,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       _isPaused = false;
       _wifiSyncTrigger.reset();
       authModel.onAppResumed();
-      _notificationsCubit?.load(force: true);
-      unawaited(_checkCurrentConnectivityForWifiSync());
+      _notificationsCubit?.load();
+      unawaited(_checkCurrentConnectivityForForegroundSync(trigger: 'resume'));
     } else if (state == AppLifecycleState.hidden ||
         state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {

@@ -6,7 +6,7 @@ import 'package:storybook_flutter/storybook_flutter.dart';
 
 Story appSidebarStory() {
   return Story(
-    name: 'App/Sidebar',
+    name: 'App/Navigation/Sidebar',
     builder: (context) {
       final userName = context.knobs.text(
         label: 'Benutzername',

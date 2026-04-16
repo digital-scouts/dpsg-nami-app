@@ -5,7 +5,7 @@ import 'package:storybook_flutter/storybook_flutter.dart';
 
 Story appBottomNavigationStory() {
   return Story(
-    name: 'App/BottomNavigation',
+    name: 'App/Navigation/BottomNavigation',
     builder: (context) {
       final current = context.knobs
           .slider(label: 'Aktiver Tab', initial: 0, min: 0, max: 3)

@@ -98,6 +98,7 @@ void main() {
 
       final saveFinder = find.byKey(const Key('member-edit-save-button'));
       expect(saveFinder, findsOneWidget);
+      expect(find.text('Speichern'), findsOneWidget);
       expect(
         find.text('E-Mail hinzufügen', skipOffstage: false),
         findsOneWidget,

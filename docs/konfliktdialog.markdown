@@ -123,14 +123,14 @@ Bei späteren Validierungsproblemen:
 
 Anschließend sendet die App den verbleibenden Stand für dieses Mitglied erneut.
 
-## Verhalten bei manuellem Speichern und Hintergrund-Sync
+## Verhalten bei manuellem Speichern und späterem Retry
 
 Beim manuellen Speichern:
 
 - direkt zuordenbare Validierungsfehler bleiben im Bearbeiten-Screen
 - echte Konflikte öffnen den Problemlösungs-Screen direkt
 
-Beim späteren Retry aus der lokalen Queue:
+Beim späteren Retry aus der lokalen Queue, egal ob manuell oder automatisch während aktiver App-Nutzung:
 
 - wird bei Erfolg der Queue-Eintrag entfernt
 - bleibt ein technischer Fehler bestehen, bleibt der Queue-Eintrag erhalten

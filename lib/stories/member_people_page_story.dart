@@ -32,7 +32,7 @@ import 'package:provider/provider.dart';
 import 'package:storybook_flutter/storybook_flutter.dart';
 
 Story memberPeoplePageLoadedStory() => Story(
-  name: 'Screens/MemberPeoplePage/Loaded',
+  name: 'Mitglieder/Screens/Liste/Geladen',
   builder: (context) => _MemberPeopleStoryShell(
     cached: <Mitglied>[
       Mitglied.peopleListItem(
@@ -50,7 +50,7 @@ Story memberPeoplePageLoadedStory() => Story(
 );
 
 Story memberPeoplePageEmptyStory() => Story(
-  name: 'Screens/MemberPeoplePage/Empty',
+  name: 'Mitglieder/Screens/Liste/Leer',
   builder: (context) => _MemberPeopleStoryShell(cached: const <Mitglied>[]),
 );
 

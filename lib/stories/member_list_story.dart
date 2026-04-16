@@ -6,7 +6,7 @@ import 'package:nami/presentation/widgets/member_list.dart';
 import 'package:storybook_flutter/storybook_flutter.dart';
 
 Story memberListStory() => Story(
-  name: 'MemberList/ListTile List',
+  name: 'Mitglieder/Widgets/Liste/Uebersicht',
   builder: (context) {
     final count = context.knobs
         .slider(label: 'Anzahl Mitglieder', initial: 8, min: 0, max: 40)

@@ -21,6 +21,7 @@ import 'stories/confetti_overlay_story.dart';
 import 'stories/member_basis_info_card_story.dart';
 import 'stories/member_basis_story.dart';
 import 'stories/member_detail_page_story.dart';
+import 'stories/member_edit_resolution_story.dart';
 import 'stories/member_list_directory_story.dart';
 import 'stories/member_list_group_filter_bar_story.dart';
 import 'stories/member_list_search_bar_story.dart';
@@ -40,8 +41,61 @@ Future<void> main() async {
   runApp(const StorybookEntry());
 }
 
+List<Story> buildStorybookStories() {
+  return [
+    appBottomNavigationStory(),
+    appSidebarStory(),
+    appSnackbarStory(),
+    notificationsListStory(),
+    storyMessageOfTheDayCard(),
+    confettiOverlayStory(),
+    memberPeoplePageLoadedStory(),
+    memberPeoplePageEmptyStory(),
+    memberDetailPageStory(),
+    memberEditResolutionServerConflictStory(),
+    memberEditResolutionServerValidationStory(),
+    memberEditResolutionMixedFieldsStory(),
+    memberListStory(),
+    memberListTileStory(),
+    memberListSearchBarStory(),
+    groupFilterStory(),
+    memberDirectoryStory(),
+    memberDetailsStory(),
+    memberGeneralInfoCardStory(),
+    memberMembershipInfoCardStory(),
+    memberRolesListStory(),
+    memberRolesListTileStory(),
+    memberRolesRecommendationTileStory(),
+    memberRolesPieNurMitgliedStory(),
+    memberRolesPieNurLeitungStory(),
+    memberRolesPieMitgliedUndLeitungStory(),
+    memberRolesPieNurEineStufeStory(),
+    memberRolesPieMaxStory(),
+    memberRolesPieUeberlappStory(),
+    profilePageStory(),
+    profilePageWithoutNicknameStory(),
+    profilePageUnknownLanguageStory(),
+    settingsPageStory(),
+    appSettingsPageStory(),
+    appSettingsPageEnglishStory(),
+    settingsNotificationPageStory(),
+    settingsNotificationPageDisabledStory(),
+    settingsMapPageStory(),
+    buildSettingsStammPageStory(),
+    stammAddressSettingsStory(),
+    stufenwechselSettingsStory(),
+    ageDistributionStory(),
+    groupDistributionStory(),
+    stufenChoiceChipsStory(),
+    stufenwechselTimelineStory(),
+    stufenwechselEmpfehlungStory(),
+  ];
+}
+
 class StorybookEntry extends StatelessWidget {
-  const StorybookEntry({super.key});
+  const StorybookEntry({super.key, this.stories});
+
+  final List<Story>? stories;
 
   @override
   Widget build(BuildContext context) {
@@ -49,72 +103,7 @@ class StorybookEntry extends StatelessWidget {
       theme: lightTheme,
       darkTheme: darkTheme,
       themeMode: ThemeMode.system,
-      home: Storybook(
-        stories: [
-          appSnackbarStory(),
-          memberListTileStory(),
-          memberGeneralInfoCardStory(),
-          memberMembershipInfoCardStory(),
-          memberDetailsStory(),
-          memberDetailPageStory(),
-          memberPeoplePageLoadedStory(),
-          memberPeoplePageEmptyStory(),
-          memberListStory(),
-          memberRolesListTileStory(),
-          memberRolesRecommendationTileStory(),
-          memberRolesListStory(),
-          memberRolesPieNurMitgliedStory(),
-          memberRolesPieNurLeitungStory(),
-          memberRolesPieMitgliedUndLeitungStory(),
-          memberRolesPieNurEineStufeStory(),
-          memberRolesPieMaxStory(),
-          memberRolesPieUeberlappStory(),
-          ageDistributionStory(),
-          groupDistributionStory(),
-          groupFilterStory(),
-          memberListSearchBarStory(),
-          memberDirectoryStory(),
-          stufenwechselEmpfehlungStory(),
-          stufenChoiceChipsStory(),
-          stufenwechselTimelineStory(),
-          appSidebarStory(),
-          appBottomNavigationStory(),
-          profilePageStory(),
-          profilePageWithoutNicknameStory(),
-          profilePageUnknownLanguageStory(),
-          settingsPageStory(),
-          settingsMapPageStory(),
-          appSettingsPageStory(),
-          appSettingsPageEnglishStory(),
-          settingsNotificationPageStory(),
-          settingsNotificationPageDisabledStory(),
-          buildSettingsStammPageStory(),
-          stammAddressSettingsStory(),
-          stufenwechselSettingsStory(),
-          notificationsListStory(),
-          storyMessageOfTheDayCard(),
-          confettiOverlayStory(),
-          Story(
-            name: 'App/ThemeToggleInfo',
-            builder: (context) => Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Aktuelles Brightness: ${Theme.of(context).brightness.name}',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Um das Theme zu wechseln, ändere den System-Dark-Mode oder erweitere Storybook mit einem eigenen Theme-Mode-Knob.',
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+      home: Storybook(stories: stories ?? buildStorybookStories()),
     );
   }
 }

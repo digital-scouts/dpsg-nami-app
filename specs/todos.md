@@ -117,13 +117,13 @@ Sitzung ungültig kommt bei jedem aufruf der Mitgliedsliste seite. Soll nur einn
 
 Wenn Sitzung nicht mehr gültig, soll trotzdem bearbeiten möglich sein - Ablauf wie offline Modus
 
-### Offen 12: Notifications werden zu oft geladen
+### Done 12: Notifications werden zu oft geladen
 
 Benachrichtigungen Fetch kommt zu oft
 
-### Offen 13: Automatischer Background Sync
+### Prüfen 13: Automatischer Background Sync
 
-Wann geschieht background auto sync. Sollte sobald W-Lan verfügbar ist
+Auto-Sync läuft während aktiver App-Nutzung, sobald Senden wieder erlaubt ist. Das umfasst insbesondere verfügbare WLAN-Verbindung, die Freigabe mobiler Daten über die Einstellung und gedrosselte Retry-Versuche für bereits gequeue-te Änderungen.
 
 ## Änderungswünsche
 

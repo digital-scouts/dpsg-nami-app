@@ -9,7 +9,7 @@ Story stufenChoiceChipsStory({
   bool showLeader = false,
 }) {
   return Story(
-    name: 'Stufenwechsel/ChoiceChips',
+    name: 'Stufenwechsel/Widgets/Auswahlchips',
     builder: (context) {
       final singleSelectKnob = context.knobs.boolean(
         label: 'Single Select',
@@ -25,7 +25,7 @@ Story stufenChoiceChipsStory({
       );
       Set<Stufe> selected = {Stufe.woelfling};
       return StatefulBuilder(
-        builder: (context, setState) => Padding(
+        builder: (context, setState) => SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,7 +38,7 @@ Story stufenChoiceChipsStory({
                 ausgewaehlteStufenChanged: (s) => setState(() => selected = s),
               ),
               const SizedBox(height: 16),
-              Text('Ausgewählt: ${selected.map((s) => s.name).join(', ')}'),
+              Text('Ausgewaehlt: ${selected.map((s) => s.name).join(', ')}'),
             ],
           ),
         ),

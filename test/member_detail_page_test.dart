@@ -38,6 +38,7 @@ import 'package:nami/services/hitobito_data_retention_policy.dart';
 import 'package:nami/services/hitobito_groups_service.dart';
 import 'package:nami/services/hitobito_oauth_service.dart';
 import 'package:nami/services/logger_service.dart';
+import 'package:nami/services/network_access_policy.dart';
 import 'package:nami/services/sensitive_storage_service.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
@@ -341,7 +342,7 @@ void main() {
     expect(vornameField.controller?.text, 'Juliane');
   });
 
-  testWidgets('oeffnet den Editor auch mit lokalem Offline-Hinweis', (
+  testWidgets('oeffnet den Editor mit Spaeter speichern bei blockiertem Netz', (
     tester,
   ) async {
     final member = Mitglied.peopleListItem(
@@ -369,6 +370,7 @@ void main() {
                 accessToken: 'token-123',
                 receivedAt: DateTime(2026, 4, 14),
               ),
+              blockedReason: NetworkAccessBlockedReason.noMobileDataEnabled,
             ),
           ),
           ChangeNotifierProvider<MemberEditModel>.value(
@@ -376,6 +378,7 @@ void main() {
               refreshedMember: member,
               message:
                   'Bearbeitung erfolgt mit lokal gespeicherten Daten. Nur ueber WLAN.',
+              preferDeferredSaveUi: true,
             ),
           ),
         ],
@@ -387,11 +390,71 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Person bearbeiten'), findsOneWidget);
+    expect(find.text('Später speichern'), findsOneWidget);
+    expect(find.byIcon(Icons.schedule_outlined), findsOneWidget);
     expect(
       find.text(
         'Bearbeitung erfolgt mit lokal gespeicherten Daten. Nur ueber WLAN.',
       ),
-      findsOneWidget,
+      findsNothing,
+    );
+  });
+
+  testWidgets('oeffnet den Editor mit Spaeter speichern bei Anmeldebedarf', (
+    tester,
+  ) async {
+    final member = Mitglied.peopleListItem(
+      mitgliedsnummer: '4711',
+      personId: 23,
+      primaryGroupId: 111,
+      vorname: 'Julia',
+      nachname: 'Keller',
+    );
+    final arbeitskontextModel = await _buildArbeitskontextModel(
+      member: member,
+      permissions: const <String>['group_and_below_full'],
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        MemberDetailPage(mitglied: member),
+        providers: <SingleChildWidget>[
+          ChangeNotifierProvider<ArbeitskontextModel>.value(
+            value: arbeitskontextModel,
+          ),
+          ChangeNotifierProvider<AuthSessionModel>.value(
+            value: _StubAuthSessionModel(
+              session: AuthSession(
+                accessToken: 'token-123',
+                receivedAt: DateTime(2026, 4, 14),
+              ),
+              requiresLogin: true,
+            ),
+          ),
+          ChangeNotifierProvider<MemberEditModel>.value(
+            value: _PreparingMemberEditModel(
+              refreshedMember: member,
+              message:
+                  'Die Bearbeitung erfolgt mit lokal gespeicherten Daten. Für das Senden ist eine erneute Anmeldung erforderlich.',
+              preferDeferredSaveUi: true,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Person bearbeiten'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Person bearbeiten'), findsOneWidget);
+    expect(find.text('Später speichern'), findsOneWidget);
+    expect(find.byIcon(Icons.schedule_outlined), findsOneWidget);
+    expect(
+      find.text(
+        'Die Bearbeitung erfolgt mit lokal gespeicherten Daten. Für das Senden ist eine erneute Anmeldung erforderlich.',
+      ),
+      findsNothing,
     );
   });
 
@@ -582,16 +645,20 @@ class _StubMemberEditModel extends MemberEditModel {
 }
 
 class _PreparingMemberEditModel extends MemberEditModel {
-  _PreparingMemberEditModel({required this.refreshedMember, this.message})
-    : super(
-        memberWriteRepository: _NoopMemberWriteRepository(),
-        pendingRepository: _NoopPendingPersonUpdateRepository(),
-        logger: _FakeLoggerService(),
-        onMemberUpdated: (_) async {},
-      );
+  _PreparingMemberEditModel({
+    required this.refreshedMember,
+    this.message,
+    this.preferDeferredSaveUi = false,
+  }) : super(
+         memberWriteRepository: _NoopMemberWriteRepository(),
+         pendingRepository: _NoopPendingPersonUpdateRepository(),
+         logger: _FakeLoggerService(),
+         onMemberUpdated: (_) async {},
+       );
 
   final Mitglied refreshedMember;
   final String? message;
+  final bool preferDeferredSaveUi;
 
   @override
   Future<MemberEditPrepareResult> prepareForEdit({
@@ -602,6 +669,7 @@ class _PreparingMemberEditModel extends MemberEditModel {
     return MemberEditPrepareResult(
       success: true,
       member: refreshedMember,
+      preferDeferredSaveUi: preferDeferredSaveUi,
       message: message,
     );
   }
@@ -641,25 +709,36 @@ class _ResolutionTrackingMemberEditModel extends MemberEditModel {
 }
 
 class _StubAuthSessionModel extends AuthSessionModel {
-  _StubAuthSessionModel({required AuthSession session})
-    : _sessionOverride = session,
-      super(
-        repository: _InMemoryAuthSessionRepository(initial: session),
-        profileRepository: _InMemoryAuthProfileRepository(),
-        oauthService: _FakeOauthService(),
-        biometricLockService: _FakeBiometricLockService(),
-        sensitiveStorageService: _FakeSensitiveStorageService(),
-        retentionPolicy: HitobitoDataRetentionPolicy(
-          maxDataAge: const Duration(days: 30),
-          refreshInterval: const Duration(days: 1),
-        ),
-        logger: _FakeLoggerService(),
-      );
+  _StubAuthSessionModel({
+    required AuthSession session,
+    this.blockedReason,
+    this.requiresLogin = false,
+  }) : _sessionOverride = session,
+       super(
+         repository: _InMemoryAuthSessionRepository(initial: session),
+         profileRepository: _InMemoryAuthProfileRepository(),
+         oauthService: _FakeOauthService(),
+         biometricLockService: _FakeBiometricLockService(),
+         sensitiveStorageService: _FakeSensitiveStorageService(),
+         retentionPolicy: HitobitoDataRetentionPolicy(
+           maxDataAge: const Duration(days: 30),
+           refreshInterval: const Duration(days: 1),
+         ),
+         logger: _FakeLoggerService(),
+       );
 
   final AuthSession _sessionOverride;
+  final NetworkAccessBlockedReason? blockedReason;
+  final bool requiresLogin;
 
   @override
   AuthSession? get session => _sessionOverride;
+
+  @override
+  NetworkAccessBlockedReason? get remoteAccessBlockedReason => blockedReason;
+
+  @override
+  bool get requiresInteractiveLogin => requiresLogin;
 }
 
 class _FakeArbeitskontextLocalRepository

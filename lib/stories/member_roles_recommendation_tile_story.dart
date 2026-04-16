@@ -9,7 +9,7 @@ import '../presentation/widgets/member_roles_list_tile.dart';
 
 Story memberRolesRecommendationTileStory() {
   return Story(
-    name: 'MemberDetails/Role/MemberRolesListTileRecommendation',
+    name: 'Mitglieder/Widgets/Rollen/Empfehlung',
     builder: (context) {
       final knobs = context.knobs;
       final stufe = knobs.options(

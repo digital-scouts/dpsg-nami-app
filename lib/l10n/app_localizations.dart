@@ -298,6 +298,7 @@ class AppLocalizations {
       'member_edit_section_phone': 'Telefon',
       'member_edit_section_address': 'Adresse',
       'member_edit_saving': 'Speichert...',
+      'member_edit_saving_later': 'Speichert später...',
       'member_edit_resolution_title': 'Offene Probleme',
       'member_edit_resolution_intro':
           'Nur die betroffenen Felder werden gezeigt. Du kannst den Serverstand übernehmen, lokale Änderungen behalten oder die Werte direkt im Formular anpassen.',
@@ -359,6 +360,7 @@ class AppLocalizations {
           'Leere Zusatzadresse bitte entfernen oder ausfüllen.',
       'member_edit_prepare_local_pending':
           'Lokaler Bearbeitungsstand fortgesetzt. Netzabgleich erfolgt später erneut.',
+      'member_edit_save_later': 'Später speichern',
       'member_edit_invalid_person_id':
           'Die Person kann ohne gültige Person-ID nicht bearbeitet werden.',
       'member_edit_prepare_auth_required':
@@ -786,6 +788,7 @@ class AppLocalizations {
       'member_edit_section_phone': 'Phone',
       'member_edit_section_address': 'Address',
       'member_edit_saving': 'Saving...',
+      'member_edit_saving_later': 'Saving for later...',
       'member_edit_resolution_title': 'Open issues',
       'member_edit_resolution_intro':
           'Only the affected fields are shown. You can apply the server value, keep local changes, or edit the values directly in the form.',
@@ -844,6 +847,7 @@ class AppLocalizations {
           'Please remove or complete the empty additional address.',
       'member_edit_prepare_local_pending':
           'Resumed local editing state. Network sync will be retried later.',
+      'member_edit_save_later': 'Save later',
       'member_edit_invalid_person_id':
           'The person cannot be edited without a valid person ID.',
       'member_edit_prepare_auth_required':

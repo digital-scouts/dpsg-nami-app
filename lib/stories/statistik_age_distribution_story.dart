@@ -8,7 +8,7 @@ import '../presentation/widgets/statistik_agedistribution.dart';
 
 Story ageDistributionStory() {
   return Story(
-    name: 'Statistik/AgeDistribution',
+    name: 'Statistik/Widgets/Altersverteilung',
     builder: (context) {
       final minAge = context.knobs.sliderInt(
         label: 'Global Mindestalter',

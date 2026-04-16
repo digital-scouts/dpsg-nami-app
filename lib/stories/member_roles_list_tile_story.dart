@@ -7,7 +7,7 @@ import 'package:nami/presentation/widgets/member_roles_list_tile.dart';
 import 'package:storybook_flutter/storybook_flutter.dart';
 
 Story memberRolesListTileStory() => Story(
-  name: 'MemberDetails/Role/MemberRolesListTile',
+  name: 'Mitglieder/Widgets/Rollen/ListTile',
   builder: (context) {
     final stufe = context.knobs.options<Stufe>(
       label: 'Stufe',

@@ -5,7 +5,7 @@ import 'package:storybook_flutter/storybook_flutter.dart';
 
 Story confettiOverlayStory() {
   return Story(
-    name: 'Fun/ConfettiOverlay',
+    name: 'App/Overlay/Confetti',
     description: 'Animiertes Konfetti mit steuerbaren Parametern',
     builder: (context) {
       final knobs = context.knobs;

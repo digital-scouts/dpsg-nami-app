@@ -36,6 +36,7 @@ class MemberEditSubmitResult {
     required this.success,
     required this.wasQueued,
     this.requiresResolution = false,
+    this.suppressNotice = false,
     this.message,
     this.messageSpec,
     this.updatedMember,
@@ -46,6 +47,7 @@ class MemberEditSubmitResult {
   final bool success;
   final bool wasQueued;
   final bool requiresResolution;
+  final bool suppressNotice;
   final String? message;
   final UiMessageSpec? messageSpec;
   final Mitglied? updatedMember;
@@ -71,12 +73,14 @@ class MemberEditPrepareResult {
   const MemberEditPrepareResult({
     required this.success,
     this.member,
+    this.preferDeferredSaveUi = false,
     this.message,
     this.messageSpec,
   });
 
   final bool success;
   final Mitglied? member;
+  final bool preferDeferredSaveUi;
   final String? message;
   final UiMessageSpec? messageSpec;
 
@@ -351,6 +355,7 @@ class MemberEditModel extends ChangeNotifier {
       return MemberEditPrepareResult(
         success: true,
         member: mitglied,
+        preferDeferredSaveUi: true,
         messageSpec: UiMessageSpec('member_edit_prepare_auth_required', {
           'details': error.message,
         }),
@@ -372,6 +377,7 @@ class MemberEditModel extends ChangeNotifier {
       return MemberEditPrepareResult(
         success: true,
         member: mitglied,
+        preferDeferredSaveUi: true,
         messageSpec: UiMessageSpec('member_edit_prepare_network_blocked', {
           'details': error.message,
         }),
@@ -616,6 +622,7 @@ class MemberEditModel extends ChangeNotifier {
       return MemberEditSubmitResult(
         success: false,
         wasQueued: true,
+        suppressNotice: true,
         pendingEntry: entry,
         messageSpec: UiMessageSpec('member_edit_submit_auth_required', {
           'details': error.message,
@@ -657,6 +664,7 @@ class MemberEditModel extends ChangeNotifier {
       return MemberEditSubmitResult(
         success: false,
         wasQueued: true,
+        suppressNotice: true,
         pendingEntry: entry,
         messageSpec: UiMessageSpec('member_edit_submit_network_blocked', {
           'details': error.message,

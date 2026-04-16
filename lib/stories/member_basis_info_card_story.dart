@@ -5,7 +5,7 @@ import 'package:nami/presentation/widgets/member_basis_info_card.dart';
 import 'package:storybook_flutter/storybook_flutter.dart';
 
 Story memberGeneralInfoCardStory() => Story(
-  name: 'MemberDetails/Basis/Allgemeine Info',
+  name: 'Mitglieder/Widgets/Basis/Allgemein',
   builder: (context) {
     final now = DateTime.now();
     final mitglieder = [
@@ -80,7 +80,7 @@ Story memberGeneralInfoCardStory() => Story(
 );
 
 Story memberMembershipInfoCardStory() => Story(
-  name: 'MemberDetails/Basis/Mitgliedschaft Info',
+  name: 'Mitglieder/Widgets/Basis/Mitgliedschaft',
   builder: (context) {
     final now = DateTime.now();
     final options = [

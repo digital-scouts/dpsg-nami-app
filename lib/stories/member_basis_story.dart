@@ -5,7 +5,7 @@ import 'package:nami/presentation/widgets/member_basis.dart';
 import 'package:storybook_flutter/storybook_flutter.dart';
 
 Story memberDetailsStory() => Story(
-  name: 'MemberDetails/Basis/CombinedDetails',
+  name: 'Mitglieder/Widgets/Basis/Gesamt',
   builder: (context) {
     final m1 = MitgliedFactory.demo(index: 1);
     final m2 = MitgliedFactory.demo(index: 2);

@@ -8,7 +8,7 @@ import 'package:storybook_flutter/storybook_flutter.dart';
 
 Story stammAddressSettingsStory() {
   return Story(
-    name: 'Settings/Stamm Address',
+    name: 'Einstellungen/Widgets/Stammadresse',
     builder: (context) {
       final repo = InMemoryAddressSettingsRepository();
       return MaterialApp(
@@ -19,18 +19,22 @@ Story stammAddressSettingsStory() {
           AppLocalizations.delegate,
         ],
         supportedLocales: const [Locale('de'), Locale('en')],
-        home: Padding(
-          padding: const EdgeInsets.all(16),
-          child: StammAddressSettings(
-            repository: repo,
-            autocompleteProvider: (q) async {
-              return [
-                '$q, 12345 Musterstadt',
-                '$q, 20095 Hamburg',
-                '$q, 10115 Berlin',
-              ];
-            },
-            onDownloadRegion: () {},
+        home: Scaffold(
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: StammAddressSettings(
+                repository: repo,
+                autocompleteProvider: (q) async {
+                  return [
+                    '$q, 12345 Musterstadt',
+                    '$q, 20095 Hamburg',
+                    '$q, 10115 Berlin',
+                  ];
+                },
+                onDownloadRegion: () {},
+              ),
+            ),
           ),
         ),
       );

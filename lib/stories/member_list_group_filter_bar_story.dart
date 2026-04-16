@@ -6,7 +6,7 @@ import '../domain/taetigkeit/stufe.dart';
 import '../presentation/widgets/member_list_group_filter_bar.dart';
 
 Story groupFilterStory() => Story(
-  name: 'MemberList/Group Filter',
+  name: 'Mitglieder/Widgets/Liste/Gruppenfilter',
   builder: (context) {
     final itemSize = context.knobs.slider(
       label: 'Item Size',

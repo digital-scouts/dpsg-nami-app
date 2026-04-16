@@ -9,7 +9,7 @@ import '../presentation/widgets/member_roles_list.dart';
 
 Story memberRolesListStory() {
   return Story(
-    name: 'MemberDetails/Role/MemberRolesList',
+    name: 'Mitglieder/Widgets/Rollen/Liste',
     builder: (context) {
       final knobs = context.knobs;
       final futureCount = knobs.sliderInt(
