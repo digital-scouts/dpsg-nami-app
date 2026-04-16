@@ -164,7 +164,7 @@ Die ausführliche Fassung dieses Konzepts liegt in [specs/hitobito-arbeitskontex
 
 Die App ist darauf ausgelegt, sich direkt mit dem NaMi-Backend zu verbinden, sodass keine Mitgliedsdaten auf externen Servern dieser App gespeichert oder verarbeitet werden.
 
-Für Hitobito gilt aktuell: Die App muss beim ersten Start erfolgreich per Hitobito angemeldet werden, damit Profil- und Mitgliedsdaten erstmals lokal geladen werden können. Danach bleiben die lokal verschlüsselten Daten auch ohne erreichbares Hitobito lesbar. Aktualisierungsversuche laufen über das konfigurierte Intervall `HITOBITO_REFRESH_INTERVAL_HOURS`. Schlägt ein Update fehl, bleiben die vorhandenen lokalen Daten weiter nutzbar. Nach manuellem Logout oder wenn der letzte erfolgreiche Datenstand älter als `HITOBITO_DATA_MAX_AGE_DAYS` ist, werden die lokalen Hitobito-Daten gelöscht.
+Für Hitobito gilt aktuell: Die App muss beim ersten Start erfolgreich per Hitobito angemeldet werden, damit Profil- und Mitgliedsdaten erstmals lokal geladen werden können. Danach bleiben die lokal verschlüsselten Daten auch ohne erreichbares Hitobito lesbar. Aktualisierungsversuche laufen weiter über das konfigurierte Intervall `HITOBITO_REFRESH_INTERVAL_HOURS`. Zusätzlich prüft die App während aktiver Nutzung, ob ein zuvor blockierter Sync wieder möglich ist, etwa bei verfügbarer WLAN-Verbindung oder wenn die Einstellung für mobile Daten den Netzwerkzugriff wieder erlaubt. Schlägt ein Update fehl, bleiben die vorhandenen lokalen Daten weiter nutzbar. Nach manuellem Logout oder wenn der letzte erfolgreiche Datenstand älter als `HITOBITO_DATA_MAX_AGE_DAYS` ist, werden die lokalen Hitobito-Daten gelöscht.
 
 Läuft ein Hitobito-Zugriff mit `401` in eine abgelaufene Sitzung, versucht die App zunächst den technischen Retry-Pfad einschließlich erneuter Anmeldung. Der zuletzt geladene Arbeitskontext bleibt dabei erhalten. Gelöscht wird weiterhin nur nach den bestehenden Regeln bei manuellem Logout oder nach Ablauf von `HITOBITO_DATA_MAX_AGE_DAYS`.
 
@@ -183,7 +183,7 @@ Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den
   - Wie in den Kontakten E-Mails schreiben und einen Anruf starten
 - Mitglieder und Tätigkeiten bearbeiten, erstellen und löschen/Mitgliedschaft beenden
 - Mitgliedsdaten sind nach erstem erfolgreichem Hitobito-Login und initialem Laden offline verfügbar; Aktualisierungen werden im konfigurierten Hitobito-Refresh-Intervall versucht
-- Schlägt das Senden einer Personenänderung wegen eines retrybaren Remote-Fehlers fehl, wird die Änderung lokal vorgemerkt und kann über Debug & Tools erneut gesendet werden
+- Schlägt das Senden einer Personenänderung wegen eines retrybaren Remote-Fehlers fehl, wird die Änderung lokal vorgemerkt und während aktiver App-Nutzung automatisch erneut versucht, sobald Senden wieder erlaubt ist; zusätzlich bleibt ein manueller Retry über Debug & Tools möglich
 - Echte Konflikte bei Personenänderungen sowie bestimmte spätere Validierungsfehler werden als Problemlösungsfall pro Mitglied gespeichert. Offene Fälle sind über Einstellungen, Mitglieddetails und die Mitgliederliste sichtbar und können von dort erneut geöffnet werden.
 - Die App erfasst bei aktivierter Analytics-Option Tracking-Ereignisse für Bearbeiten, Retry und Problemlösungsfälle, damit Konflikte und nicht automatisch lösbare Fälle fachlich ausgewertet werden können.
 - Der Statistik-Tab zeigt aktuell die Mitgliederanzahl im aktiven Arbeitskontext

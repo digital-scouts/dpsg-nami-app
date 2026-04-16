@@ -7,7 +7,7 @@ import 'package:storybook_flutter/storybook_flutter.dart';
 
 Story stufenwechselTimelineStory() {
   return Story(
-    name: 'Stufenwechsel/Timeline',
+    name: 'Stufenwechsel/Widgets/Timeline',
     builder: (context) {
       final stufeIndex = context.knobs.options(
         label: 'Stufe',
@@ -58,7 +58,7 @@ Story stufenwechselTimelineStory() {
         heute.day,
       );
 
-      return Padding(
+      return SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

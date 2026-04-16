@@ -5,7 +5,7 @@ import 'package:storybook_flutter/storybook_flutter.dart';
 
 Story memberListSearchBarStory() {
   return Story(
-    name: 'MemberList/Suchleiste',
+    name: 'Mitglieder/Widgets/Liste/Suche',
     builder: (context) {
       final initial = context.knobs.text(label: 'Initialer Text', initial: '');
       final showSnack = context.knobs.boolean(

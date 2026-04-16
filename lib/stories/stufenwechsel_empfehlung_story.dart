@@ -49,7 +49,7 @@ Story stufenwechselEmpfehlungStory() {
     ),
   ];
   return Story(
-    name: 'Stufenwechsel/EmpfehlungTabelle',
+    name: 'Stufenwechsel/Widgets/Empfehlungstabelle',
     builder: (context) {
       final showBiber = context.knobs.boolean(label: 'Biber', initial: false);
       final showWoe = context.knobs.boolean(label: 'Wölfling', initial: true);

@@ -10,7 +10,7 @@ import 'package:storybook_flutter/storybook_flutter.dart';
 import '../presentation/widgets/member_list_tile.dart';
 
 Story memberListTileStory() => Story(
-  name: 'MemberList/ListTile',
+  name: 'Mitglieder/Widgets/Liste/Tile',
   builder: (context) {
     final now = DateTime.now();
     final isFavourite = context.knobs.boolean(

@@ -9,7 +9,7 @@ import '../presentation/widgets/statistik_groupdistribution.dart';
 
 Story groupDistributionStory() {
   return Story(
-    name: 'Statistik/GroupDistribution',
+    name: 'Statistik/Widgets/Gruppenverteilung',
     builder: (context) {
       final seed = context.knobs.sliderInt(
         label: 'Seed',

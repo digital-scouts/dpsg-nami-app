@@ -7,7 +7,7 @@ import '../presentation/widgets/message_of_the_day_card.dart';
 
 Story storyMessageOfTheDayCard() {
   return Story(
-    name: 'App/MessageOfTheDayCard',
+    name: 'App/Cards/MessageOfTheDay',
     builder: (context) {
       final k = context.knobs;
 

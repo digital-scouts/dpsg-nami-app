@@ -60,6 +60,10 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
       return;
     }
 
+    if (result.suppressNotice) {
+      return;
+    }
+
     final t = AppLocalizations.of(context);
     final message = result.success
         ? t.t('member_detail_updated_success')
@@ -128,9 +132,9 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
       }
       await _openEditPage(
         refreshedMember,
-        initialNoticeMessage: result.resolveMessage(
-          AppLocalizations.of(context),
-        ),
+        initialNoticeMessage: result.preferDeferredSaveUi
+            ? null
+            : result.resolveMessage(AppLocalizations.of(context)),
       );
     } finally {
       if (mounted) {

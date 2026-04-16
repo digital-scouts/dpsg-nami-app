@@ -14,7 +14,7 @@ import 'package:nami/presentation/screens/settings_stamm_page.dart';
 import 'package:storybook_flutter/storybook_flutter.dart';
 
 Story settingsPageStory() => Story(
-  name: 'Screens/SettingsPage',
+  name: 'Einstellungen/Screens/Uebersicht',
   builder: (context) {
     final version = context.knobs.text(label: 'App Version', initial: 'v0.2.0');
     return MaterialApp(
@@ -61,7 +61,7 @@ Story settingsPageStory() => Story(
 );
 
 Story appSettingsPageStory() => Story(
-  name: 'Screens/AppSettingsPage',
+  name: 'Einstellungen/Screens/App',
   builder: (context) {
     return MaterialApp(
       localizationsDelegates: [
@@ -112,7 +112,7 @@ Story appSettingsPageStory() => Story(
 );
 
 Story appSettingsPageEnglishStory() => Story(
-  name: 'Screens/AppSettingsPage/EnglishAnalyticsOn',
+  name: 'Einstellungen/Screens/App/EnglischAnalyticsAn',
   builder: (context) {
     return MaterialApp(
       localizationsDelegates: [
@@ -140,7 +140,7 @@ Story appSettingsPageEnglishStory() => Story(
 );
 
 Story settingsNotificationPageStory() => Story(
-  name: 'Screens/SettingsNotificationPage',
+  name: 'Einstellungen/Screens/Benachrichtigungen',
   builder: (context) {
     return MaterialApp(
       localizationsDelegates: [
@@ -174,7 +174,7 @@ Story settingsNotificationPageStory() => Story(
 );
 
 Story settingsNotificationPageDisabledStory() => Story(
-  name: 'Screens/SettingsNotificationPage/Disabled',
+  name: 'Einstellungen/Screens/Benachrichtigungen/Deaktiviert',
   builder: (context) {
     return MaterialApp(
       localizationsDelegates: [
@@ -193,7 +193,7 @@ Story settingsNotificationPageDisabledStory() => Story(
 );
 
 Story buildSettingsStammPageStory() => Story(
-  name: 'Screens/Settings Stamm',
+  name: 'Einstellungen/Screens/Stamm',
   builder: (context) {
     final repo = InMemoryAddressSettingsRepository();
     final grenzen = StufenDefaults.build();

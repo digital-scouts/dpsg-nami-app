@@ -11,7 +11,7 @@ final DateTime _storybookNow = DateTime(2025, 10, 1);
 
 Story memberRolesPieNurMitgliedStory() {
   return Story(
-    name: 'MemberDetails/StatistikPie/NurMitglied',
+    name: 'Mitglieder/Widgets/Rollen/Statistik/NurMitglied',
     builder: (context) {
       final size = context.knobs
           .sliderInt(label: 'Größe', initial: 180, min: 120, max: 300)
@@ -39,7 +39,7 @@ Story memberRolesPieNurMitgliedStory() {
 
 Story memberRolesPieNurLeitungStory() {
   return Story(
-    name: 'MemberDetails/StatistikPie/NurLeitung',
+    name: 'Mitglieder/Widgets/Rollen/Statistik/NurLeitung',
     builder: (context) {
       final size = context.knobs
           .sliderInt(label: 'Größe', initial: 180, min: 120, max: 300)
@@ -67,7 +67,7 @@ Story memberRolesPieNurLeitungStory() {
 
 Story memberRolesPieMitgliedUndLeitungStory() {
   return Story(
-    name: 'MemberDetails/StatistikPie/MitgliedUndLeitung',
+    name: 'Mitglieder/Widgets/Rollen/Statistik/MitgliedUndLeitung',
     builder: (context) {
       final size = context.knobs
           .sliderInt(label: 'Größe', initial: 180, min: 120, max: 300)
@@ -95,7 +95,7 @@ Story memberRolesPieMitgliedUndLeitungStory() {
 
 Story memberRolesPieNurEineStufeStory() {
   return Story(
-    name: 'MemberDetails/StatistikPie/NurEineStufe',
+    name: 'Mitglieder/Widgets/Rollen/Statistik/NurEineStufe',
     description: 'Einfarbig -> leerer Container',
     builder: (context) {
       final size = context.knobs
@@ -124,7 +124,7 @@ Story memberRolesPieNurEineStufeStory() {
 
 Story memberRolesPieMaxStory() {
   return Story(
-    name: 'MemberDetails/StatistikPie/Maximal',
+    name: 'Mitglieder/Widgets/Rollen/Statistik/Maximal',
     builder: (context) {
       final size = context.knobs
           .sliderInt(label: 'Größe', initial: 180, min: 120, max: 300)
@@ -175,7 +175,7 @@ Story memberRolesPieMaxStory() {
 
 Story memberRolesPieUeberlappStory() {
   return Story(
-    name: 'MemberDetails/StatistikPie/Ueberlapp',
+    name: 'Mitglieder/Widgets/Rollen/Statistik/Ueberlappung',
     description: 'Überlappende Zeiten, neuere Tätigkeit zählt im Overlap',
     builder: (context) {
       final size = context.knobs

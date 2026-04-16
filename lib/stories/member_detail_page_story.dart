@@ -4,7 +4,7 @@ import 'package:nami/presentation/screens/member_detail_page.dart';
 import 'package:storybook_flutter/storybook_flutter.dart';
 
 Story memberDetailPageStory() => Story(
-  name: 'MemberDetails/Page/ReadOnly',
+  name: 'Mitglieder/Screens/Detail/Uebersicht',
   builder: (context) {
     final activeMember = MitgliedFactory.demo(index: 1);
     final endedMember = MitgliedFactory.demo(

@@ -57,6 +57,15 @@ class _MemberEditPageState extends State<MemberEditPage> {
   bool get _isResolutionMode => _resolutionCase != null;
   AppLocalizations get _t => AppLocalizations.of(context);
 
+  bool get _cannotSendNow {
+    final authModel = _maybeWatch<AuthSessionModel>(context);
+    if (authModel == null) {
+      return false;
+    }
+    return authModel.requiresInteractiveLogin ||
+        authModel.remoteAccessBlockedReason != null;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -209,6 +218,19 @@ class _MemberEditPageState extends State<MemberEditPage> {
 
   Widget _buildStickySaveBar(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final cannotSendNow = _cannotSendNow;
+    final label = _isSubmitting
+        ? _t.t(
+            cannotSendNow ? 'member_edit_saving_later' : 'member_edit_saving',
+          )
+        : _t.t(cannotSendNow ? 'member_edit_save_later' : 'save');
+    final icon = _isSubmitting
+        ? const SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+        : Icon(cannotSendNow ? Icons.schedule_outlined : Icons.save_outlined);
     return SafeArea(
       top: false,
       child: Container(
@@ -232,17 +254,15 @@ class _MemberEditPageState extends State<MemberEditPage> {
               onPressed: _isSubmitting ? null : _save,
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(52),
+                backgroundColor: cannotSendNow
+                    ? colorScheme.tertiaryContainer
+                    : null,
+                foregroundColor: cannotSendNow
+                    ? colorScheme.onTertiaryContainer
+                    : null,
               ),
-              icon: _isSubmitting
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.save_outlined),
-              label: Text(
-                _isSubmitting ? _t.t('member_edit_saving') : _t.t('save'),
-              ),
+              icon: icon,
+              label: Text(label),
             ),
           ),
         ),
@@ -945,6 +965,14 @@ class _MemberEditPageState extends State<MemberEditPage> {
           _isSubmitting = false;
         });
       }
+    }
+  }
+
+  T? _maybeWatch<T>(BuildContext context) {
+    try {
+      return context.watch<T>();
+    } catch (_) {
+      return null;
     }
   }
 

@@ -11,7 +11,7 @@ import 'package:nami/presentation/screens/settings_map_page.dart';
 import 'package:storybook_flutter/storybook_flutter.dart';
 
 Story settingsMapPageStory() => Story(
-  name: 'Screens/SettingsMapPage',
+  name: 'Einstellungen/Screens/Karte',
   builder: (context) {
     return MaterialApp(
       localizationsDelegates: [

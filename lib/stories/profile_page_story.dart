@@ -29,7 +29,7 @@ import 'package:provider/provider.dart';
 import 'package:storybook_flutter/storybook_flutter.dart';
 
 Story profilePageStory() => Story(
-  name: 'Screens/ProfilePage/WithNicknameAndRoles',
+  name: 'Profil/Screens/Uebersicht/MitSpitznameUndRollen',
   builder: (context) => _ProfileStoryShell(
     profile: const AuthProfile(
       namiId: 34,
@@ -52,7 +52,7 @@ Story profilePageStory() => Story(
 );
 
 Story profilePageWithoutNicknameStory() => Story(
-  name: 'Screens/ProfilePage/WithoutNicknameNoRoles',
+  name: 'Profil/Screens/Uebersicht/OhneSpitznameOhneRollen',
   builder: (context) => _ProfileStoryShell(
     profile: const AuthProfile(
       namiId: 35,
@@ -65,7 +65,7 @@ Story profilePageWithoutNicknameStory() => Story(
 );
 
 Story profilePageUnknownLanguageStory() => Story(
-  name: 'Screens/ProfilePage/UnknownLanguageFallback',
+  name: 'Profil/Screens/Uebersicht/SprachFallback',
   builder: (context) => _ProfileStoryShell(
     profile: const AuthProfile(
       namiId: 36,

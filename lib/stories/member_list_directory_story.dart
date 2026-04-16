@@ -5,7 +5,7 @@ import 'package:nami/presentation/widgets/member_list_directory.dart';
 import 'package:storybook_flutter/storybook_flutter.dart';
 
 Story memberDirectoryStory() => Story(
-  name: 'MemberList/View',
+  name: 'Mitglieder/Widgets/Liste/Verzeichnis',
   description: 'Komplette Liste mit Suchleiste und Filterleiste.',
   builder: (context) {
     final count = context.knobs

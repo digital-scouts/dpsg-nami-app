@@ -6,7 +6,7 @@ import 'package:nami/presentation/notifications/app_snackbar.dart';
 import 'package:storybook_flutter/storybook_flutter.dart';
 
 Story appSnackbarStory() => Story(
-  name: 'App/Snackbars',
+  name: 'App/Feedback/Snackbar',
   builder: (context) {
     final longMessage = context.knobs.boolean(
       label: 'Lange Nachricht',
