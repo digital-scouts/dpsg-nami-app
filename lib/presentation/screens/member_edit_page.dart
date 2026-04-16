@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../domain/member/member_resolution.dart';
 import '../../domain/member/mitglied.dart';
 import '../../domain/member/pending_person_update.dart';
+import '../../l10n/app_localizations.dart';
 import '../model/auth_session_model.dart';
 import '../model/member_edit_model.dart';
 import '../model/member_phone_input.dart';
@@ -35,11 +36,6 @@ class _MemberEditPageState extends State<MemberEditPage> {
   static const double _pagePadding = 10;
   static const double _cardRadius = 16;
   static const List<String> _defaultGenderValues = <String>['w', 'm', ''];
-  static const Map<String, String> _genderLabels = <String, String>{
-    'w': 'Weiblich',
-    'm': 'Männlich',
-    '': 'Unbekannt',
-  };
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   late final TextEditingController _vornameController;
@@ -59,6 +55,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
   MemberResolutionCase? get _resolutionCase =>
       widget.pendingEntry?.resolutionCase;
   bool get _isResolutionMode => _resolutionCase != null;
+  AppLocalizations get _t => AppLocalizations.of(context);
 
   @override
   void initState() {
@@ -139,7 +136,9 @@ class _MemberEditPageState extends State<MemberEditPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          _isResolutionMode ? 'Problemloesung Mitglied' : 'Person bearbeiten',
+          _isResolutionMode
+              ? _t.t('member_edit_title_resolution')
+              : _t.t('member_edit_title_edit'),
         ),
       ),
       body: Column(
@@ -174,22 +173,22 @@ class _MemberEditPageState extends State<MemberEditPage> {
                                 const SizedBox(height: 10),
                               ],
                               _SectionCard(
-                                title: 'Allgemein',
+                                title: _t.t('member_edit_section_general'),
                                 child: _buildGeneralSection(),
                               ),
                               const SizedBox(height: 10),
                               _SectionCard(
-                                title: 'E-Mail',
+                                title: _t.t('member_edit_section_email'),
                                 child: _buildEmailSection(),
                               ),
                               const SizedBox(height: 10),
                               _SectionCard(
-                                title: 'Telefon',
+                                title: _t.t('member_edit_section_phone'),
                                 child: _buildPhoneSection(),
                               ),
                               const SizedBox(height: 10),
                               _SectionCard(
-                                title: 'Adresse',
+                                title: _t.t('member_edit_section_address'),
                                 child: _buildAddressSection(),
                               ),
                             ],
@@ -241,7 +240,9 @@ class _MemberEditPageState extends State<MemberEditPage> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.save_outlined),
-              label: Text(_isSubmitting ? 'Speichert...' : 'Speichern'),
+              label: Text(
+                _isSubmitting ? _t.t('member_edit_saving') : _t.t('save'),
+              ),
             ),
           ),
         ),
@@ -259,19 +260,14 @@ class _MemberEditPageState extends State<MemberEditPage> {
         .where((item) => !_dismissedResolutionItemIds.contains(item.itemId))
         .toList(growable: false);
     return _SectionCard(
-      title: 'Offene Probleme',
+      title: _t.t('member_edit_resolution_title'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            'Nur die betroffenen Felder werden gezeigt. Du kannst den Serverstand uebernehmen, lokale Aenderungen behalten oder die Werte direkt im Formular anpassen.',
-          ),
+          Text(_t.t('member_edit_resolution_intro')),
           if (visibleItems.isNotEmpty) const SizedBox(height: 12),
           if (visibleItems.isEmpty)
-            const _EmptyState(
-              message:
-                  'Alle aktuell sichtbaren Problemfaelle wurden fuer diesen Durchgang bearbeitet.',
-            ),
+            _EmptyState(message: _t.t('member_edit_resolution_empty')),
           for (var index = 0; index < visibleItems.length; index++) ...[
             if (index > 0) const SizedBox(height: 10),
             _buildResolutionItemCard(visibleItems[index]),
@@ -310,9 +306,9 @@ class _MemberEditPageState extends State<MemberEditPage> {
           Text(item.message),
           const SizedBox(height: 10),
           if (isConflict) ...[
-            Text('Lokal: $localValue'),
+            Text(_t.t('member_edit_resolution_local', {'value': localValue})),
             const SizedBox(height: 4),
-            Text('Hitobito: $remoteValue'),
+            Text(_t.t('member_edit_resolution_remote', {'value': remoteValue})),
             const SizedBox(height: 10),
             Wrap(
               spacing: 8,
@@ -326,26 +322,30 @@ class _MemberEditPageState extends State<MemberEditPage> {
                     });
                   },
                   icon: const Icon(Icons.edit_outlined),
-                  label: const Text('Lokal behalten'),
+                  label: Text(_t.t('member_edit_resolution_keep_local')),
                 ),
                 FilledButton.tonalIcon(
                   onPressed: () => _applyServerChoice(item),
                   icon: const Icon(Icons.sync_alt_outlined),
-                  label: const Text('Serverstand verwenden'),
+                  label: Text(_t.t('member_edit_resolution_use_server')),
                 ),
               ],
             ),
           ] else ...[
-            Text('Aktueller Wert: $localValue'),
-            if (fallbackValue != 'Nicht verfuegbar') ...[
+            Text(_t.t('member_edit_resolution_current', {'value': localValue})),
+            if (fallbackValue != _t.t('member_edit_value_not_available')) ...[
               const SizedBox(height: 4),
-              Text('Vorheriger Stand: $fallbackValue'),
+              Text(
+                _t.t('member_edit_resolution_previous', {
+                  'value': fallbackValue,
+                }),
+              ),
             ],
             const SizedBox(height: 10),
             OutlinedButton.icon(
               onPressed: () => _discardValidationChange(item),
               icon: const Icon(Icons.undo_outlined),
-              label: const Text('Lokale Aenderung verwerfen'),
+              label: Text(_t.t('member_edit_resolution_discard_local')),
             ),
           ],
         ],
@@ -358,15 +358,23 @@ class _MemberEditPageState extends State<MemberEditPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildTwoColumnFields(
-          first: _buildTextField(_vornameController, 'Vorname'),
-          second: _buildTextField(_fahrtennameController, 'Fahrtenname'),
+          first: _buildTextField(
+            _vornameController,
+            _t.t('member_edit_field_first_name'),
+          ),
+          second: _buildTextField(
+            _fahrtennameController,
+            _t.t('member_edit_field_nickname'),
+          ),
         ),
         const SizedBox(height: 12),
-        _buildTextField(_nachnameController, 'Nachname'),
+        _buildTextField(
+          _nachnameController,
+          _t.t('member_edit_field_last_name'),
+        ),
         FormField<void>(
-          validator: (_) => _hasAtLeastOneName()
-              ? null
-              : 'Mindestens Vorname, Nachname oder Fahrtenname angeben.',
+          validator: (_) =>
+              _hasAtLeastOneName() ? null : _t.t('member_edit_name_required'),
           builder: (state) {
             if (!state.hasError) {
               return const SizedBox.shrink();
@@ -391,7 +399,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
           children: [
             _buildGenderField(),
             _buildDateField(
-              label: 'Geburtsdatum',
+              label: _t.t('member_edit_field_birthday'),
               fieldKey: const Key('member-edit-birthdate-field'),
               allowClear: true,
               value: _geburtsdatum,
@@ -433,7 +441,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
 
   Widget _buildEmailSection() {
     return _SectionBodyWithAddAction(
-      addLabel: 'E-Mail hinzufügen',
+      addLabel: _t.t('member_edit_add_email'),
       onAdd: () {
         setState(() {
           _additionalEmailDrafts.add(_EmailDraft.empty());
@@ -445,7 +453,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
           _DetailPanel(
             child: _buildTextField(
               _primaryEmailController,
-              'E-Mail',
+              _t.t('member_edit_section_email'),
               keyboardType: TextInputType.emailAddress,
               validator: _validateEmail,
             ),
@@ -466,14 +474,14 @@ class _MemberEditPageState extends State<MemberEditPage> {
 
   Widget _buildPhoneSection() {
     return _SectionBodyWithAddAction(
-      addLabel: 'Telefon hinzufügen',
+      addLabel: _t.t('member_edit_add_phone'),
       onAdd: () {
         setState(() {
           _phoneDrafts.add(_PhoneDraft.empty());
         });
       },
       child: _phoneDrafts.isEmpty
-          ? const _EmptyState(message: 'Noch keine Telefonnummer hinterlegt.')
+          ? _EmptyState(message: _t.t('member_edit_phone_empty'))
           : Column(
               children: [
                 for (var index = 0; index < _phoneDrafts.length; index++) ...[
@@ -487,7 +495,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
 
   Widget _buildAddressSection() {
     return _SectionBodyWithAddAction(
-      addLabel: 'Adresse hinzufügen',
+      addLabel: _t.t('member_edit_add_address'),
       onAdd: () {
         setState(() {
           _additionalAddressDrafts.add(_AddressDraft.empty());
@@ -540,7 +548,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
         children: [
           _buildDetailLabelRow(
             controller: draft.labelController,
-            label: 'Bezeichnung',
+            label: _t.t('member_edit_field_label'),
             onRemove: () {
               setState(() {
                 final removed = _phoneDrafts.removeAt(index);
@@ -563,14 +571,14 @@ class _MemberEditPageState extends State<MemberEditPage> {
                   key: Key('member-edit-phone-country-$index'),
                   initialValue: draft.countryId,
                   isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Vorwahl',
+                  decoration: InputDecoration(
+                    labelText: _t.t('member_edit_field_prefix'),
                     isDense: true,
-                    contentPadding: EdgeInsets.symmetric(
+                    contentPadding: const EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 14,
                     ),
-                    border: OutlineInputBorder(),
+                    border: const OutlineInputBorder(),
                   ),
                   items: MemberPhoneInput.options
                       .map(
@@ -594,7 +602,9 @@ class _MemberEditPageState extends State<MemberEditPage> {
                 flex: 7,
                 child: _buildTextField(
                   draft.wertController,
-                  draft.isOtherCountry ? 'Telefon mit +XX' : 'Telefonnummer',
+                  draft.isOtherCountry
+                      ? _t.t('member_edit_field_phone_with_country')
+                      : _t.t('member_edit_field_phone_number'),
                   fieldKey: Key('member-edit-phone-number-$index'),
                   keyboardType: TextInputType.phone,
                   onChanged: (_) => _clearPhoneServerError(draft),
@@ -615,7 +625,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
         children: [
           _buildDetailLabelRow(
             controller: draft.labelController,
-            label: 'Bezeichnung',
+            label: _t.t('member_edit_field_label'),
             onRemove: () {
               setState(() {
                 final removed = _additionalEmailDrafts.removeAt(index);
@@ -626,7 +636,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
           const SizedBox(height: 10),
           _buildTextField(
             draft.wertController,
-            'E-Mail',
+            _t.t('member_edit_section_email'),
             keyboardType: TextInputType.emailAddress,
             validator: (value) => _validateEmail(value, required: true),
           ),
@@ -646,7 +656,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
           if (removable) ...[
             _buildDetailLabelRow(
               controller: draft.labelController,
-              label: 'Bezeichnung',
+              label: _t.t('member_edit_field_label'),
               onRemove: () {
                 setState(() {
                   final removed = _additionalAddressDrafts.removeAt(index);
@@ -655,15 +665,24 @@ class _MemberEditPageState extends State<MemberEditPage> {
               },
             ),
             const SizedBox(height: 10),
-            _buildTextField(draft.addressCareOfController, 'c/o'),
+            _buildTextField(
+              draft.addressCareOfController,
+              _t.t('member_edit_field_care_of'),
+            ),
           ] else
             _ResponsiveWrap(
               minChildWidth: 220,
               spacing: 10,
               runSpacing: 10,
               children: [
-                _buildTextField(draft.labelController, 'Bezeichnung'),
-                _buildTextField(draft.addressCareOfController, 'c/o'),
+                _buildTextField(
+                  draft.labelController,
+                  _t.t('member_edit_field_label'),
+                ),
+                _buildTextField(
+                  draft.addressCareOfController,
+                  _t.t('member_edit_field_care_of'),
+                ),
               ],
             ),
           const SizedBox(height: 10),
@@ -672,8 +691,14 @@ class _MemberEditPageState extends State<MemberEditPage> {
             spacing: 10,
             runSpacing: 10,
             children: [
-              _buildTextField(draft.streetController, 'Straße'),
-              _buildTextField(draft.housenumberController, 'Hausnr.'),
+              _buildTextField(
+                draft.streetController,
+                _t.t('member_edit_field_street'),
+              ),
+              _buildTextField(
+                draft.housenumberController,
+                _t.t('member_edit_field_house_number'),
+              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -682,10 +707,22 @@ class _MemberEditPageState extends State<MemberEditPage> {
             spacing: 10,
             runSpacing: 10,
             children: [
-              _buildTextField(draft.postboxController, 'Postfach'),
-              _buildTextField(draft.zipCodeController, 'PLZ'),
-              _buildTextField(draft.townController, 'Ort'),
-              _buildTextField(draft.countryController, 'Land'),
+              _buildTextField(
+                draft.postboxController,
+                _t.t('member_edit_field_postbox'),
+              ),
+              _buildTextField(
+                draft.zipCodeController,
+                _t.t('member_edit_field_zip_code'),
+              ),
+              _buildTextField(
+                draft.townController,
+                _t.t('member_edit_field_town'),
+              ),
+              _buildTextField(
+                draft.countryController,
+                _t.t('member_edit_field_country'),
+              ),
             ],
           ),
         ],
@@ -704,7 +741,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
         Expanded(child: _buildTextField(controller, label)),
         const SizedBox(width: 8),
         IconButton(
-          tooltip: 'Entfernen',
+          tooltip: _t.t('common_remove'),
           onPressed: onRemove,
           icon: const Icon(Icons.delete_outline),
         ),
@@ -739,7 +776,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
           ? (value) {
               final trimmed = value?.trim() ?? '';
               if (trimmed.isEmpty) {
-                return '$label darf nicht leer sein.';
+                return _t.t('member_edit_required_field', {'field': label});
               }
               return validator?.call(value);
             }
@@ -753,12 +790,12 @@ class _MemberEditPageState extends State<MemberEditPage> {
       key: const Key('member-edit-gender-field'),
       initialValue: _gender,
       isExpanded: true,
-      decoration: const InputDecoration(
-        labelText: 'Geschlecht',
+      decoration: InputDecoration(
+        labelText: _t.t('member_edit_field_gender'),
         isDense: true,
-        border: OutlineInputBorder(),
+        border: const OutlineInputBorder(),
       ),
-      hint: const Text('Auswählen'),
+      hint: Text(_t.t('member_edit_select_hint')),
       items: items
           .map(
             (value) => DropdownMenuItem<String>(
@@ -794,7 +831,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
               initialDate: value ?? DateTime.now(),
               firstDate: DateTime(1900),
               lastDate: DateTime(2100),
-              locale: const Locale('de'),
+              locale: Localizations.localeOf(context),
             );
             if (selected != null) {
               state.didChange(selected);
@@ -833,7 +870,9 @@ class _MemberEditPageState extends State<MemberEditPage> {
               ),
             ),
             child: Text(
-              value == null ? 'Nicht gesetzt' : _dateFormat.format(value),
+              value == null
+                  ? _t.t('member_edit_value_not_set')
+                  : _dateFormat.format(value),
             ),
           ),
         );
@@ -854,7 +893,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
     final accessToken = authModel?.session?.accessToken;
     if (memberEditModel == null || accessToken == null || accessToken.isEmpty) {
       _showMessage(
-        'Aktuell ist keine gueltige Sitzung zum Speichern verfuegbar.',
+        _t.t('member_edit_session_missing'),
         type: AppSnackbarType.warning,
       );
       return;
@@ -882,7 +921,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
             builder: (_) => MemberEditPage(
               mitglied: result.pendingEntry!.zielMitglied,
               pendingEntry: result.pendingEntry,
-              initialNoticeMessage: result.message,
+              initialNoticeMessage: result.resolveMessage(_t),
               resolutionEntryPoint: 'submit_result',
             ),
           ),
@@ -896,7 +935,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
       final hasMappedValidationErrors = _applyValidationErrors(result);
       if (!hasMappedValidationErrors) {
         _showMessage(
-          result.message ?? 'Speichern fehlgeschlagen.',
+          result.resolveMessage(_t) ?? _t.t('member_edit_save_failed'),
           type: AppSnackbarType.error,
         );
       }
@@ -1015,7 +1054,16 @@ class _MemberEditPageState extends State<MemberEditPage> {
   }
 
   String _labelForGender(String value) {
-    return _genderLabels[value] ?? value;
+    switch (value) {
+      case 'w':
+        return _t.t('member_edit_gender_female');
+      case 'm':
+        return _t.t('member_edit_gender_male');
+      case '':
+        return _t.t('member_edit_gender_unknown');
+      default:
+        return value;
+    }
   }
 
   bool _hasAtLeastOneName() {
@@ -1033,10 +1081,10 @@ class _MemberEditPageState extends State<MemberEditPage> {
     final oldestAllowed = DateTime(today.year - 120, today.month, today.day);
     final selectedDay = DateTime(value.year, value.month, value.day);
     if (selectedDay.isAfter(today)) {
-      return 'Geburtsdatum darf nicht in der Zukunft liegen.';
+      return _t.t('member_edit_birthdate_future');
     }
     if (selectedDay.isBefore(oldestAllowed)) {
-      return 'Geburtsdatum ist zu weit in der Vergangenheit.';
+      return _t.t('member_edit_birthdate_past');
     }
     return null;
   }
@@ -1044,11 +1092,11 @@ class _MemberEditPageState extends State<MemberEditPage> {
   String? _validateEmail(String? value, {bool required = false}) {
     final trimmed = value?.trim() ?? '';
     if (trimmed.isEmpty) {
-      return required ? 'E-Mail darf nicht leer sein.' : null;
+      return required ? _t.t('member_edit_email_required') : null;
     }
     final pattern = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
     if (!pattern.hasMatch(trimmed)) {
-      return 'Bitte eine gültige E-Mail-Adresse eingeben.';
+      return _t.t('member_edit_email_invalid');
     }
     return null;
   }
@@ -1076,7 +1124,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
 
   String? _validateAdditionalAddress(_AddressDraft draft) {
     return draft.toAdresse().istLeer
-        ? 'Leere Zusatzadresse bitte entfernen oder ausfüllen.'
+        ? _t.t('member_edit_additional_address_empty')
         : null;
   }
 
@@ -1242,25 +1290,25 @@ class _MemberEditPageState extends State<MemberEditPage> {
   String _labelForResolutionTarget(MemberResolutionTarget target) {
     switch (target.type) {
       case MemberResolutionTargetType.firstName:
-        return 'Vorname';
+        return _t.t('member_edit_field_first_name');
       case MemberResolutionTargetType.lastName:
-        return 'Nachname';
+        return _t.t('member_edit_field_last_name');
       case MemberResolutionTargetType.nickname:
-        return 'Fahrtenname';
+        return _t.t('member_edit_field_nickname');
       case MemberResolutionTargetType.gender:
-        return 'Geschlecht';
+        return _t.t('member_edit_field_gender');
       case MemberResolutionTargetType.birthday:
-        return 'Geburtsdatum';
+        return _t.t('member_edit_field_birthday');
       case MemberResolutionTargetType.primaryEmail:
-        return 'Primaere E-Mail';
+        return _t.t('member_edit_field_primary_email');
       case MemberResolutionTargetType.phone:
-        return 'Telefon';
+        return _t.t('member_edit_field_phone');
       case MemberResolutionTargetType.additionalEmail:
-        return 'Zusaetzliche E-Mail';
+        return _t.t('member_edit_field_additional_email');
       case MemberResolutionTargetType.primaryAddress:
-        return 'Primaere Adresse';
+        return _t.t('member_edit_field_primary_address');
       case MemberResolutionTargetType.additionalAddress:
-        return 'Zusatzadresse';
+        return _t.t('member_edit_field_additional_address');
     }
   }
 
@@ -1276,7 +1324,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
         return _fallbackValue(_labelForGender(_gender ?? ''));
       case MemberResolutionTargetType.birthday:
         return _geburtsdatum == null
-            ? 'Nicht gesetzt'
+            ? _t.t('member_edit_value_not_set')
             : _dateFormat.format(_geburtsdatum!);
       case MemberResolutionTargetType.primaryEmail:
         return _fallbackValue(_primaryEmailController.text);
@@ -1285,15 +1333,23 @@ class _MemberEditPageState extends State<MemberEditPage> {
           (value) => value.phoneNumberId == target.relationshipId,
         );
         return draft.isEmpty
-            ? 'Nicht vorhanden'
-            : _fallbackValue(draft.first.wertController.text);
+            ? _t.t('member_edit_value_not_present')
+            : _describeLabeledValue(
+                label: draft.first.labelController.text,
+                value:
+                    draft.first.toTelefon()?.wert ??
+                    draft.first.wertController.text,
+              );
       case MemberResolutionTargetType.additionalEmail:
         final draft = _additionalEmailDrafts.where(
           (value) => value.additionalEmailId == target.relationshipId,
         );
         return draft.isEmpty
-            ? 'Nicht vorhanden'
-            : _fallbackValue(draft.first.wertController.text);
+            ? _t.t('member_edit_value_not_present')
+            : _describeLabeledValue(
+                label: draft.first.labelController.text,
+                value: draft.first.wertController.text,
+              );
       case MemberResolutionTargetType.primaryAddress:
         return _describeAdresse(_primaryAddressDraft.toAdresse());
       case MemberResolutionTargetType.additionalAddress:
@@ -1301,14 +1357,14 @@ class _MemberEditPageState extends State<MemberEditPage> {
           (value) => value.additionalAddressId == target.relationshipId,
         );
         return draft.isEmpty
-            ? 'Nicht vorhanden'
-            : _describeAdresse(draft.first.toAdresse());
+            ? _t.t('member_edit_value_not_present')
+            : _describeLabeledAddress(draft.first.toAdresse());
     }
   }
 
   String _describeMemberValue(Mitglied? member, MemberResolutionTarget target) {
     if (member == null) {
-      return 'Nicht verfuegbar';
+      return _t.t('member_edit_value_not_available');
     }
     switch (target.type) {
       case MemberResolutionTargetType.firstName:
@@ -1323,7 +1379,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
         );
       case MemberResolutionTargetType.birthday:
         return member.geburtsdatum == Mitglied.peoplePlaceholderDate
-            ? 'Nicht gesetzt'
+            ? _t.t('member_edit_value_not_set')
             : _dateFormat.format(member.geburtsdatum);
       case MemberResolutionTargetType.primaryEmail:
         return _fallbackValue(
@@ -1332,46 +1388,109 @@ class _MemberEditPageState extends State<MemberEditPage> {
       case MemberResolutionTargetType.phone:
         for (final phone in member.telefonnummern) {
           if (phone.phoneNumberId == target.relationshipId) {
-            return _fallbackValue(phone.wert);
+            return _describeLabeledValue(label: phone.label, value: phone.wert);
           }
         }
-        return 'Nicht vorhanden';
+        return _t.t('member_edit_value_not_present');
       case MemberResolutionTargetType.additionalEmail:
         for (final email in member.emailAdressen) {
           if (!email.istPrimaer &&
               email.additionalEmailId == target.relationshipId) {
-            return _fallbackValue(email.wert);
+            return _describeLabeledValue(label: email.label, value: email.wert);
           }
         }
-        return 'Nicht vorhanden';
+        return _t.t('member_edit_value_not_present');
       case MemberResolutionTargetType.primaryAddress:
         return _describeAdresse(_resolvePrimaryAddress(member.adressen));
       case MemberResolutionTargetType.additionalAddress:
         for (final address in member.adressen) {
           if (address.additionalAddressId == target.relationshipId) {
-            return _describeAdresse(address);
+            return _describeLabeledAddress(address);
           }
         }
-        return 'Nicht vorhanden';
+        return _t.t('member_edit_value_not_present');
     }
   }
 
-  String _describeAdresse(MitgliedKontaktAdresse? adresse) {
-    if (adresse == null || adresse.istLeer) {
-      return 'Nicht vorhanden';
+  String _describeLabeledValue({String? label, String? value}) {
+    final normalizedLabel = _trimOptionalToNull(label);
+    final normalizedValue = _trimOptionalToNull(value);
+    if (normalizedLabel != null && normalizedValue != null) {
+      if (normalizedLabel == normalizedValue) {
+        return normalizedValue;
+      }
+      return '$normalizedLabel: $normalizedValue';
     }
-    return [
-      _trimToNull(adresse.street ?? ''),
-      _trimToNull(adresse.housenumber ?? ''),
-      _trimToNull(adresse.zipCode ?? ''),
-      _trimToNull(adresse.town ?? ''),
-      _trimToNull(adresse.country ?? ''),
-    ].whereType<String>().join(' ');
+    return normalizedValue ??
+        normalizedLabel ??
+        _t.t('member_edit_value_not_set');
+  }
+
+  String _describeLabeledAddress(MitgliedKontaktAdresse? adresse) {
+    if (adresse == null) {
+      return _t.t('member_edit_value_not_present');
+    }
+    final normalizedLabel = _trimOptionalToNull(adresse.label);
+    final addressBlock = _describeAddressBlock(adresse);
+    if (normalizedLabel != null && addressBlock != null) {
+      if (normalizedLabel == addressBlock) {
+        return addressBlock;
+      }
+      return '$normalizedLabel: $addressBlock';
+    }
+    return normalizedLabel ??
+        addressBlock ??
+        _t.t('member_edit_value_not_present');
+  }
+
+  String? _describeAddressBlock(MitgliedKontaktAdresse? adresse) {
+    if (adresse == null) {
+      return null;
+    }
+    final addressCareOf = _trimOptionalToNull(adresse.addressCareOf);
+    final street = _trimOptionalToNull(adresse.street);
+    final housenumber = _trimOptionalToNull(adresse.housenumber);
+    final postbox = _trimOptionalToNull(adresse.postbox);
+    final zipCode = _trimOptionalToNull(adresse.zipCode);
+    final town = _trimOptionalToNull(adresse.town);
+    final country = _trimOptionalToNull(adresse.country);
+    final segments =
+        <String>[
+              if (addressCareOf != null)
+                '${_t.t('member_edit_field_care_of')} $addressCareOf',
+              [street, housenumber].whereType<String>().join(' '),
+              if (postbox != null)
+                '${_t.t('member_edit_field_postbox')} $postbox',
+              [zipCode, town].whereType<String>().join(' '),
+              country ?? '',
+            ]
+            .map((segment) => segment.trim())
+            .where((segment) => segment.isNotEmpty)
+            .toList(growable: false);
+    if (segments.isEmpty) {
+      return null;
+    }
+    return segments.join(', ');
+  }
+
+  String _describeAdresse(MitgliedKontaktAdresse? adresse) {
+    final addressBlock = _describeAddressBlock(adresse);
+    if (addressBlock == null) {
+      return _t.t('member_edit_value_not_present');
+    }
+    return addressBlock;
   }
 
   String _fallbackValue(String value) {
     final trimmed = _trimToNull(value);
-    return trimmed ?? 'Nicht gesetzt';
+    return trimmed ?? _t.t('member_edit_value_not_set');
+  }
+
+  String? _trimOptionalToNull(String? value) {
+    if (value == null) {
+      return null;
+    }
+    return _trimToNull(value);
   }
 
   void _clearPhoneServerError(_PhoneDraft draft) {

@@ -170,6 +170,11 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
   ) {
     final issueMessage = authModel.remoteAccessIssueMessage;
     if (issueMessage == null || issueMessage.isEmpty) {
+      _lastShownIssueKey = null;
+      return;
+    }
+
+    if (!authModel.hasUnseenRemoteAccessIssueNotice) {
       return;
     }
 
@@ -184,8 +189,13 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
         return;
       }
 
-      final snackbarKey =
-          context.read<AuthSessionModel>().requiresInteractiveLogin
+      final authModel = context.read<AuthSessionModel>();
+      if (!authModel.hasUnseenRemoteAccessIssueNotice) {
+        return;
+      }
+      authModel.markRemoteAccessIssueNoticeShown();
+
+      final snackbarKey = authModel.requiresInteractiveLogin
           ? 'members_sync_issue_relogin'
           : 'members_sync_issue_cached';
       AppSnackbar.show(
@@ -221,14 +231,6 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
       memberEditModel?.logResolutionHintShown(
         entryPoint: 'people_list',
         openResolutionCount: resolutionCount,
-      );
-
-      AppSnackbar.show(
-        context,
-        message:
-            'Es gibt $resolutionCount offene Problemfaelle bei Mitglieds-Aenderungen.',
-        type: AppSnackbarType.warning,
-        replaceCurrent: true,
       );
     });
   }

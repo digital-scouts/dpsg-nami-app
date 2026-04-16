@@ -79,6 +79,23 @@ class NetworkAccessPolicy {
 
   static bool _defaultNoMobileDataMode() => false;
 
+  static NetworkConnectionType classifyConnectivityResults(
+    Iterable<ConnectivityResult> results,
+  ) {
+    final values = results.toSet();
+    if (values.contains(ConnectivityResult.wifi) ||
+        values.contains(ConnectivityResult.ethernet)) {
+      return NetworkConnectionType.wifi;
+    }
+    if (values.contains(ConnectivityResult.mobile)) {
+      return NetworkConnectionType.mobile;
+    }
+    if (values.isEmpty || values.contains(ConnectivityResult.none)) {
+      return NetworkConnectionType.offline;
+    }
+    return NetworkConnectionType.unknown;
+  }
+
   bool get isNoMobileDataEnabled => _noMobileDataEnabled();
 
   Future<NetworkAccessDecision> evaluateAccess({
@@ -132,17 +149,6 @@ class NetworkAccessPolicy {
       _checkTimeout,
       onTimeout: () => const <ConnectivityResult>[],
     );
-    final values = results.toSet();
-    if (values.contains(ConnectivityResult.wifi) ||
-        values.contains(ConnectivityResult.ethernet)) {
-      return NetworkConnectionType.wifi;
-    }
-    if (values.contains(ConnectivityResult.mobile)) {
-      return NetworkConnectionType.mobile;
-    }
-    if (values.isEmpty || values.contains(ConnectivityResult.none)) {
-      return NetworkConnectionType.offline;
-    }
-    return NetworkConnectionType.unknown;
+    return classifyConnectivityResults(results);
   }
 }

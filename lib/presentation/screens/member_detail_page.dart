@@ -5,6 +5,7 @@ import '../../domain/maps/address_map_location_repository.dart';
 import '../../domain/member/mitglied.dart';
 import '../../domain/member/pending_person_update.dart';
 import '../../domain/settings/address_settings_repository.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/geoapify_address_map_service.dart';
 import '../../services/map_tile_cache_service.dart';
 import '../model/arbeitskontext_model.dart';
@@ -59,15 +60,17 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
       return;
     }
 
+    final t = AppLocalizations.of(context);
     final message = result.success
-        ? 'Person erfolgreich aktualisiert.'
-        : result.message;
+        ? t.t('member_detail_updated_success')
+        : result.resolveMessage(t);
     if (message != null && message.isNotEmpty) {
-      AppSnackbar.show(
-        context,
-        message: message,
-        type: result.success ? AppSnackbarType.success : AppSnackbarType.error,
-      );
+      final type = switch (result.notice) {
+        MemberEditSubmitNotice.success => AppSnackbarType.success,
+        MemberEditSubmitNotice.warning => AppSnackbarType.warning,
+        MemberEditSubmitNotice.error => AppSnackbarType.error,
+      };
+      AppSnackbar.show(context, message: message, type: type);
     }
   }
 
@@ -85,8 +88,9 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
       await _openEditPage(
         pendingEntry!.zielMitglied,
         pendingEntry: pendingEntry,
-        initialNoticeMessage:
-            'Fuer diese Person ist eine Problemloesung noetig, bevor die Aenderung gesendet werden kann.',
+        initialNoticeMessage: AppLocalizations.of(
+          context,
+        ).t('member_detail_resolution_required_notice'),
         resolutionEntryPoint: 'detail',
       );
       return;
@@ -94,7 +98,7 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
     final accessToken = authModel?.session?.accessToken;
     if (memberEditModel == null || accessToken == null || accessToken.isEmpty) {
       _showMessage(
-        'Aktuell ist keine gueltige Sitzung zum Bearbeiten verfuegbar.',
+        AppLocalizations.of(context).t('member_detail_session_missing'),
         type: AppSnackbarType.warning,
       );
       return;
@@ -116,15 +120,17 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
       final refreshedMember = result.member;
       if (!result.success || refreshedMember == null) {
         _showMessage(
-          result.message ??
-              'Die Person konnte nicht neu geladen werden. Bitte erneut versuchen.',
+          result.resolveMessage(AppLocalizations.of(context)) ??
+              AppLocalizations.of(context).t('member_detail_reload_failed'),
           type: AppSnackbarType.warning,
         );
         return;
       }
       await _openEditPage(
         refreshedMember,
-        initialNoticeMessage: result.message,
+        initialNoticeMessage: result.resolveMessage(
+          AppLocalizations.of(context),
+        ),
       );
     } finally {
       if (mounted) {
@@ -161,6 +167,7 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
     final title = currentMitglied.fullName.trim().isEmpty
         ? currentMitglied.mitgliedsnummer
         : currentMitglied.fullName;
+    final t = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -177,7 +184,7 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
             ),
           if (isWritable)
             IconButton(
-              tooltip: 'Person bearbeiten',
+              tooltip: t.t('member_detail_edit_tooltip'),
               onPressed: _isPreparingEdit
                   ? null
                   : () => _prepareAndOpenEditPage(currentMitglied),
@@ -197,8 +204,8 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
             MaterialBanner(
               content: Text(
                 needsResolution
-                    ? 'Fuer diese Person gibt es offene Problemfaelle. Bitte pruefe die betroffenen Felder und sende die Aenderung danach erneut.'
-                    : 'Fuer diese Person liegt eine ausstehende Aenderung vor. Ein Retry ist in den Debug-Tools moeglich.',
+                    ? t.t('member_detail_pending_resolution_banner')
+                    : t.t('member_detail_pending_retry_banner'),
               ),
               actions: <Widget>[
                 if (needsResolution && pendingEntry != null)
@@ -208,7 +215,7 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
                       pendingEntry: pendingEntry,
                       resolutionEntryPoint: 'detail',
                     ),
-                    child: const Text('Problem loesen'),
+                    child: Text(t.t('member_detail_resolve_action')),
                   )
                 else
                   const SizedBox.shrink(),

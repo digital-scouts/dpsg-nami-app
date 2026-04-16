@@ -4,6 +4,14 @@ Liste an problemen, die noch behoben werden müssen.
 
 ## Fehler
 
+Umsetzungsreihenfolge:
+
+1. Fehler 9, 10 und 11
+2. Fehler 5 und 6
+3. Fehler 12 und 13
+4. Fehler 7
+5. Fehler 8
+
 ### Prüfen: 3 Konfliktdialog und Problemlösungsfall
 
 Die nächste Ausbaustufe für Personenänderungen ersetzt den pauschalen Konflikt auf Basis von `updatedAt` durch einen feld- und objektbezogenen Problemlösungsfall pro Mitglied.
@@ -79,11 +87,11 @@ Architekturgrenze:
 - Merge-Erzeugung und Problemlösungsfall gehören in Model oder UseCase, nicht in den API-Client
 - die ausführliche Projektbeschreibung liegt unter [docs/konfliktdialog.markdown](../docs/konfliktdialog.markdown)
 
-### Offen: 5 Änderung von bezeichnung im vergleich nicht sichtbar
+### Done: 5 Änderung von bezeichnung im vergleich nicht sichtbar
 
 Wird nur die Bezeichnung gehändert und steht in konflikt ist wird es nicht angezeigt. Stattdessen landen im vergleich die identischen E-Mail Adressen.
 
-### Offen 6: Löschen und Bearbeiten Konflikt
+### Done 6: Löschen und Bearbeiten Konflikt
 
 Wird auf dem Server ein zusatzfeld gelöscht und lokal bearbeitet, entsteht ein Konflikt. Entscheide ich mich für die lokale Änderung kommt es zu einem 404 Fehler. Die App muss das geänderte feld neu hinzufügen, damit die Änderung gespeichert werden kann.
 
@@ -91,9 +99,31 @@ Wird auf dem Server ein zusatzfeld gelöscht und lokal bearbeitet, entsteht ein 
 
 Die Adressvalidierung im Offline- oder späteren Sync-Pfad ist noch nicht fachlich angeschlossen. Im Problemlösungsmodell werden nur Server-Validierungsfehler in ResolutionCases übersetzt in member_edit_model.dart:823; ein eigener Address-Validation-Trigger aus Retry oder Sync ist im Produktionspfad hier noch nicht sichtbar.
 
-### Offen 8: Umlaute
+### Done 8: Umlaute
 
 Teilweise fehlen Umlaute. Aktuell an mehreren Stellen ZB ae statt ä
+
+### Done 9: Meldung beim offline speichern
+
+Meldung bei offline Speichern ist Fehler und sollte Hinweis sein
+
+### Prüfen 10: Meldung wenn Sitzung ungültig bearbeiten
+
+Sitzung ungültig kommt bei jedem aufruf der Mitgliedsliste seite. Soll nur einnal, dann info in settings
+
+- Nach Usetzung, meldung scheint nicht mehr zu kommen
+
+### Done 11: Bearbeiten wenn sitzung ungültig
+
+Wenn Sitzung nicht mehr gültig, soll trotzdem bearbeiten möglich sein - Ablauf wie offline Modus
+
+### Offen 12: Notifications werden zu oft geladen
+
+Benachrichtigungen Fetch kommt zu oft
+
+### Offen 13: Automatischer Background Sync
+
+Wann geschieht background auto sync. Sollte sobald W-Lan verfügbar ist
 
 ## Änderungswünsche
 
@@ -101,6 +131,7 @@ Teilweise fehlen Umlaute. Aktuell an mehreren Stellen ZB ae statt ä
 - GithubPages Wiki/Userguide
   - Konfliklösung
   - Regulatoren (Datenspeicherung, Löschung)
+- Problemdialog: Mitglied bearbeiten kann aufgeklappt werden, bei Einstieg nicht sichtbar
 
 ## Weitere Funktionen
 

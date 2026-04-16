@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -57,6 +58,7 @@ import 'services/map_tile_cache_service.dart';
 import 'services/network_access_policy.dart';
 import 'services/sensitive_storage_service.dart';
 import 'services/usage_tracking_service.dart';
+import 'services/wifi_sync_trigger.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
@@ -312,7 +314,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   late final AppResetService _appResetService;
   late final AppStartupStateService _appStartupStateService;
   late final AppRuntimeController _appRuntimeController;
+  late final Connectivity _connectivity;
+  late final WifiSyncTrigger _wifiSyncTrigger;
   Timer? _authMaintenanceTimer;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
   PullNotificationsCubit? _notificationsCubit;
   StreamSubscription<PullNotificationsState>? _notificationsSubscription;
   String? _currentUrgentId;
@@ -332,6 +337,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _appResetService = context.read<AppResetService>();
     _appStartupStateService = context.read<AppStartupStateService>();
     _appRuntimeController = AppRuntimeController(resetApp: _performFullReset);
+    _connectivity = Connectivity();
+    _wifiSyncTrigger = WifiSyncTrigger();
     _authModel.addListener(_handleAuthModelChanged);
     _usage = UsageTrackingService(logger: logger);
     // Ausstehende Pause/Sessions vom letzten Lauf auswerten
@@ -339,6 +346,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _usage.startSession();
     _initGlobalNotifications();
     _startAuthMaintenanceTimer();
+    _startConnectivityListener();
     _scheduleStartupFlow();
   }
 
@@ -449,6 +457,44 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         },
         trigger: 'interval',
       ),
+    );
+  }
+
+  void _startConnectivityListener() {
+    _connectivitySubscription?.cancel();
+    _connectivitySubscription = _connectivity.onConnectivityChanged.listen((
+      results,
+    ) {
+      unawaited(
+        _triggerWifiSyncIfNeeded(
+          NetworkAccessPolicy.classifyConnectivityResults(results),
+        ),
+      );
+    });
+  }
+
+  Future<void> _checkCurrentConnectivityForWifiSync() async {
+    final results = await _connectivity.checkConnectivity();
+    await _triggerWifiSyncIfNeeded(
+      NetworkAccessPolicy.classifyConnectivityResults(results),
+    );
+  }
+
+  Future<void> _triggerWifiSyncIfNeeded(
+    NetworkConnectionType connectionType,
+  ) async {
+    if (_isPaused || !_wifiSyncTrigger.shouldTrigger(connectionType)) {
+      return;
+    }
+
+    await _authModel.syncHitobitoData(
+      syncMembers: (accessToken) async {
+        await _arbeitskontextModel.refreshFromRemote(
+          session: _authModel.session,
+          profile: _authModel.profile,
+        );
+      },
+      trigger: 'wifi_available',
     );
   }
 
@@ -624,6 +670,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _authModel.removeListener(_handleAuthModelChanged);
     _authMaintenanceTimer?.cancel();
+    _connectivitySubscription?.cancel();
     _notificationsSubscription?.cancel();
     _notificationsCubit?.close();
     super.dispose();
@@ -637,8 +684,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       // App kommt in den Vordergrund: einmaliges Resume
       _usage.resume();
       _isPaused = false;
+      _wifiSyncTrigger.reset();
       authModel.onAppResumed();
       _notificationsCubit?.load(force: true);
+      unawaited(_checkCurrentConnectivityForWifiSync());
     } else if (state == AppLifecycleState.hidden ||
         state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {

@@ -5,6 +5,7 @@ import 'package:nami/domain/maps/address_map_location_repository.dart';
 import 'package:nami/domain/member/member_address_utils.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/settings/address_settings_repository.dart';
+import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/notifications/app_snackbar.dart';
 import 'package:nami/presentation/widgets/address_map_preview.dart';
 import 'package:nami/services/geoapify_address_map_service.dart';
@@ -135,7 +136,9 @@ class _AddressLink extends StatelessWidget {
         }
         AppSnackbar.show(
           context,
-          message: 'Kann Adresse nicht in Karten öffnen',
+          message: AppLocalizations.of(
+            context,
+          ).t('member_address_open_maps_failed'),
           type: AppSnackbarType.error,
         );
       },

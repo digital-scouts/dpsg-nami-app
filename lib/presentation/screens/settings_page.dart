@@ -171,26 +171,34 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  AppLocalizations _l10nFor(Locale locale) {
+    return AppLocalizations(locale);
+  }
+
   PullNotification _buildUpdateNotification(
     BuildContext context,
     AppUpdateInfo info,
   ) {
-    final t = AppLocalizations.of(context);
-    final body = info.isRequired
-        ? '${t.t('update_required_body')}\n${t.t('version')} ${info.currentVersion} → ${info.latestVersion}'
-        : '${t.t('update_available_body')}\n${t.t('version')} ${info.currentVersion} → ${info.latestVersion}';
+    final de = _l10nFor(const Locale('de'));
+    final en = _l10nFor(const Locale('en'));
+    final bodyDe = info.isRequired
+        ? '${de.t('update_required_body')}\n${de.t('settings_version_details', {'versionLabel': de.t('version'), 'currentVersion': info.currentVersion, 'latestVersion': info.latestVersion})}'
+        : '${de.t('update_available_body')}\n${de.t('settings_version_details', {'versionLabel': de.t('version'), 'currentVersion': info.currentVersion, 'latestVersion': info.latestVersion})}';
+    final bodyEn = info.isRequired
+        ? '${en.t('update_required_body')}\n${en.t('settings_version_details', {'versionLabel': en.t('version'), 'currentVersion': info.currentVersion, 'latestVersion': info.latestVersion})}'
+        : '${en.t('update_available_body')}\n${en.t('settings_version_details', {'versionLabel': en.t('version'), 'currentVersion': info.currentVersion, 'latestVersion': info.latestVersion})}';
 
     return PullNotification(
       id: 'app-update-${info.latestVersion}-${info.currentVersion}',
       title: LocalizedString(
         de: info.isRequired
-            ? t.t('update_required_title')
-            : t.t('update_available_title'),
+            ? de.t('update_required_title')
+            : de.t('update_available_title'),
         en: info.isRequired
-            ? t.t('update_required_title')
-            : t.t('update_available_title'),
+            ? en.t('update_required_title')
+            : en.t('update_available_title'),
       ),
-      body: LocalizedString(de: body, en: body),
+      body: LocalizedString(de: bodyDe, en: bodyEn),
       type: info.isRequired ? 'urgent' : 'warn',
       externalLink: info.storeUrl,
     );
@@ -200,33 +208,38 @@ class _SettingsPageState extends State<SettingsPage> {
     BuildContext context,
     AuthSessionModel authModel,
   ) {
-    final t = AppLocalizations.of(context);
+    final de = _l10nFor(const Locale('de'));
+    final en = _l10nFor(const Locale('en'));
     final bodyKey = authModel.requiresInteractiveLogin
         ? 'settings_hitobito_issue_relogin_body'
         : 'settings_hitobito_issue_body';
-    final body = t.t(bodyKey);
 
     return PullNotification(
       id: 'hitobito-issue',
       title: LocalizedString(
-        de: t.t('settings_hitobito_issue_title'),
-        en: t.t('settings_hitobito_issue_title'),
+        de: de.t('settings_hitobito_issue_title'),
+        en: en.t('settings_hitobito_issue_title'),
       ),
-      body: LocalizedString(de: body, en: body),
+      body: LocalizedString(de: de.t(bodyKey), en: en.t(bodyKey)),
       type: 'warn',
     );
   }
 
-  PullNotification _buildMemberResolutionNotification(int count) {
+  PullNotification _buildMemberResolutionNotification(
+    BuildContext context,
+    int count,
+  ) {
+    final de = _l10nFor(const Locale('de'));
+    final en = _l10nFor(const Locale('en'));
     return PullNotification(
       id: 'member-resolution-$count',
-      title: const LocalizedString(
-        de: 'Mitglieds-Aenderungen brauchen Aufmerksamkeit',
-        en: 'Member changes need attention',
+      title: LocalizedString(
+        de: de.t('settings_member_resolution_title'),
+        en: en.t('settings_member_resolution_title'),
       ),
       body: LocalizedString(
-        de: 'Es gibt $count offene Problemfaelle bei gespeicherten Mitglieds-Aenderungen. Tippe hier, um den ersten Fall zu bearbeiten.',
-        en: 'There are $count open issue cases for stored member changes. Tap here to resolve the first one.',
+        de: de.t('settings_member_resolution_body', {'count': count}),
+        en: en.t('settings_member_resolution_body', {'count': count}),
       ),
       type: 'warn',
     );
@@ -245,8 +258,9 @@ class _SettingsPageState extends State<SettingsPage> {
         builder: (_) => MemberEditPage(
           mitglied: entry.zielMitglied,
           pendingEntry: entry,
-          initialNoticeMessage:
-              'Bitte pruefe die betroffenen Felder und sende die Aenderung danach erneut.',
+          initialNoticeMessage: AppLocalizations.of(
+            context,
+          ).t('settings_member_resolution_notice'),
           resolutionEntryPoint: 'settings',
         ),
       ),
@@ -354,6 +368,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                 child: NotificationCard(
                   notification: _buildMemberResolutionNotification(
+                    context,
                     memberEditModel!.openResolutionCount,
                   ),
                   onTap: () => _openFirstResolution(context, memberEditModel),

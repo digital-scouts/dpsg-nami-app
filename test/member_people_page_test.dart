@@ -161,6 +161,71 @@ void main() {
     },
   );
 
+  testWidgets(
+    'zeigt den Remote-Issue-Hinweis nur einmal pro zusammenhaengender Issue-Phase',
+    (tester) async {
+      final authModel = await _createSignedInAuthModel();
+      final arbeitskontextModel = await _createArbeitskontextModel(
+        mitglieder: <Mitglied>[
+          Mitglied.peopleListItem(
+            mitgliedsnummer: '1',
+            vorname: 'Julia',
+            nachname: 'Keller',
+          ),
+        ],
+        authModel: authModel,
+      );
+      authModel.reportRemoteDataIssue('offline');
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          authModel: authModel,
+          arbeitskontextModel: arbeitskontextModel,
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(authModel.hasUnseenRemoteAccessIssueNotice, isFalse);
+      expect(
+        find.text(
+          'Hitobito-Daten konnten nicht aktualisiert werden. Es werden lokale Daten angezeigt.',
+        ),
+        findsOneWidget,
+      );
+
+      ScaffoldMessenger.of(
+        tester.element(find.byType(MemberPeoplePage)),
+      ).hideCurrentSnackBar();
+      await tester.pumpAndSettle();
+
+      authModel.reportRemoteDataIssue('weiterhin offline');
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(authModel.hasUnseenRemoteAccessIssueNotice, isFalse);
+      expect(
+        find.text(
+          'Hitobito-Daten konnten nicht aktualisiert werden. Es werden lokale Daten angezeigt.',
+        ),
+        findsNothing,
+      );
+
+      authModel.clearRemoteDataIssue();
+      authModel.reportRemoteDataIssue('erneut offline');
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(
+        find.text(
+          'Hitobito-Daten konnten nicht aktualisiert werden. Es werden lokale Daten angezeigt.',
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
   testWidgets('trackt den Resolution-Hinweis auf der Members-Page', (
     tester,
   ) async {

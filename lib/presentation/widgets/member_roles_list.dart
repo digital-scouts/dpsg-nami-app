@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nami/domain/taetigkeit/role_derivation.dart';
 import 'package:nami/domain/taetigkeit/roles.dart';
+import 'package:nami/l10n/app_localizations.dart';
 
 import 'member_roles_list_tile.dart';
 
@@ -20,6 +21,7 @@ class MemberRolesList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final now = DateTime.now();
     final sorted = [...roles]..sort((a, b) => b.start.compareTo(a.start));
     final futureRoles = sorted.where((t) => t.start.isAfter(now)).toList();
@@ -37,7 +39,7 @@ class MemberRolesList extends StatelessWidget {
       children: [
         if (futureRoles.isNotEmpty)
           _Section(
-            title: 'Zukünftig',
+            title: t.t('member_roles_future'),
             roles: futureRoles,
             recommendation: recommendation,
             onRecommendationRequested: onRecommendationRequested,
@@ -45,13 +47,13 @@ class MemberRolesList extends StatelessWidget {
           ),
         if (activeRoles.isNotEmpty)
           _Section(
-            title: 'Aktiv',
+            title: t.t('member_roles_active'),
             roles: activeRoles,
             onDismissRequested: onDismissRequested,
           ),
         if (pastRoles.isNotEmpty)
           _Section(
-            title: 'Abgeschlossen',
+            title: t.t('member_roles_completed'),
             roles: pastRoles,
             onDismissRequested: onDismissRequested,
           ),

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:nami/domain/member/member_utils.dart';
 import 'package:nami/domain/member/mitglied.dart';
+import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/format/date_formatters.dart';
 import 'package:nami/presentation/notifications/app_snackbar.dart';
 import 'package:url_launcher/url_launcher_string.dart';
@@ -20,6 +21,7 @@ class MemberGeneralInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final hasKnownBirthday =
         mitglied.geburtsdatum != Mitglied.peoplePlaceholderDate;
     final alter = hasKnownBirthday ? MemberUtils.alterInJahren(mitglied) : null;
@@ -29,7 +31,7 @@ class MemberGeneralInfoCard extends StatelessWidget {
             icon: telefonnummer.label == Mitglied.phoneMobileLabel
                 ? Icons.phone_android
                 : Icons.call,
-            label: telefonnummer.label ?? 'Telefonnummer',
+            label: telefonnummer.label ?? t.t('member_info_default_phone'),
             value: telefonnummer.wert,
             copy: true,
             isLink: true,
@@ -41,7 +43,7 @@ class MemberGeneralInfoCard extends StatelessWidget {
         .map(
           (emailAdresse) => _InfoRow(
             icon: Icons.email,
-            label: emailAdresse.label ?? 'E-Mail',
+            label: emailAdresse.label ?? t.t('member_info_default_email'),
             value: emailAdresse.wert,
             copy: true,
             isLink: true,
@@ -54,14 +56,14 @@ class MemberGeneralInfoCard extends StatelessWidget {
       if (hasKnownBirthday)
         _InfoRow(
           icon: Icons.cake,
-          label: 'Geburtstag',
+          label: t.t('member_info_birthday'),
           value:
               '$alter (${DateFormatter.formatGermanShortDate(mitglied.geburtsdatum)})',
         ),
       if (mitglied.fahrtenname != null && mitglied.fahrtenname!.isNotEmpty)
         _InfoRow(
           icon: Icons.tag,
-          label: 'Fahrtenname',
+          label: t.t('member_info_nickname'),
           value: mitglied.fahrtenname!,
         ),
       ...telefonRows,
@@ -162,7 +164,7 @@ class _InfoTileState extends State<_InfoTile> {
                     size: 18,
                     color: _isCopyHighlighted ? _copyHighlightColor : null,
                   ),
-                  tooltip: 'Kopieren',
+                  tooltip: AppLocalizations.of(context).t('common_copy'),
                   onPressed: _copyValue,
                 ),
               ),
@@ -208,7 +210,9 @@ class _InfoTileState extends State<_InfoTile> {
                 } else {
                   AppSnackbar.show(
                     context,
-                    message: 'Kann Link nicht öffnen',
+                    message: AppLocalizations.of(
+                      context,
+                    ).t('member_info_link_open_failed'),
                     type: AppSnackbarType.error,
                   );
                 }
@@ -259,31 +263,34 @@ class MemberMembershipInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final hasKnownEntryDate =
         mitglied.eintrittsdatum != Mitglied.peoplePlaceholderDate;
     final infoRows = <_InfoRow>[
       _InfoRow(
         icon: Icons.confirmation_number,
-        label: 'Mitgliedsnummer',
+        label: t.t('member_info_member_number'),
         value: mitglied.mitgliedsnummer,
         copy: true,
       ),
       if (hasKnownEntryDate)
         _InfoRow(
           icon: Icons.login,
-          label: 'Eintrittsdatum',
+          label: t.t('member_info_join_date'),
           value: DateFormatter.formatGermanShortDate(mitglied.eintrittsdatum),
         ),
       if (mitglied.updatedAt != null)
         _InfoRow(
           icon: Icons.update,
-          label: 'Zuletzt aktualisiert',
+          label: t.t('member_info_updated_at'),
           value: DateFormatter.formatGermanShortDateTime(mitglied.updatedAt!),
         ),
       _InfoRow(
         icon: mitglied.istAusgetreten ? Icons.cancel : Icons.check_circle,
-        label: 'Status',
-        value: mitglied.istAusgetreten ? 'Beendet' : 'Aktiv',
+        label: t.t('member_info_status'),
+        value: mitglied.istAusgetreten
+            ? t.t('member_info_status_ended')
+            : t.t('member_info_status_active'),
       ),
     ];
     return Card(
@@ -297,8 +304,8 @@ class MemberMembershipInfoCard extends StatelessWidget {
           if (onEndMembership != null)
             ListTile(
               leading: const Icon(Icons.delete, color: Colors.redAccent),
-              title: const Text(
-                'Mitgliedschaft beenden',
+              title: Text(
+                t.t('member_info_end_membership'),
                 style: TextStyle(color: Colors.redAccent),
               ),
               onTap: onEndMembership,

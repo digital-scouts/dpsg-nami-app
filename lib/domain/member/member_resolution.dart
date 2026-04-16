@@ -276,7 +276,7 @@ class MemberConflictResolver {
       target: const MemberResolutionTarget(
         type: MemberResolutionTargetType.firstName,
       ),
-      message: 'Vorname wurde lokal und in Hitobito unterschiedlich geaendert.',
+      message: 'Vorname wurde lokal und in Hitobito unterschiedlich geändert.',
     );
     mergeScalar<String>(
       basisValue: basisMitglied.nachname,
@@ -286,8 +286,7 @@ class MemberConflictResolver {
       target: const MemberResolutionTarget(
         type: MemberResolutionTargetType.lastName,
       ),
-      message:
-          'Nachname wurde lokal und in Hitobito unterschiedlich geaendert.',
+      message: 'Nachname wurde lokal und in Hitobito unterschiedlich geändert.',
     );
     mergeScalar<String?>(
       basisValue: basisMitglied.fahrtenname,
@@ -298,7 +297,7 @@ class MemberConflictResolver {
         type: MemberResolutionTargetType.nickname,
       ),
       message:
-          'Fahrtenname wurde lokal und in Hitobito unterschiedlich geaendert.',
+          'Fahrtenname wurde lokal und in Hitobito unterschiedlich geändert.',
     );
     mergeScalar<String?>(
       basisValue: basisMitglied.gender,
@@ -309,7 +308,7 @@ class MemberConflictResolver {
         type: MemberResolutionTargetType.gender,
       ),
       message:
-          'Geschlecht wurde lokal und in Hitobito unterschiedlich geaendert.',
+          'Geschlecht wurde lokal und in Hitobito unterschiedlich geändert.',
     );
     mergeScalar<DateTime>(
       basisValue: basisMitglied.geburtsdatum,
@@ -320,7 +319,7 @@ class MemberConflictResolver {
         type: MemberResolutionTargetType.birthday,
       ),
       message:
-          'Geburtsdatum wurde lokal und in Hitobito unterschiedlich geaendert.',
+          'Geburtsdatum wurde lokal und in Hitobito unterschiedlich geändert.',
     );
     mergeScalar<String?>(
       basisValue: _primaryEmail(basisMitglied)?.wert,
@@ -331,7 +330,7 @@ class MemberConflictResolver {
         type: MemberResolutionTargetType.primaryEmail,
       ),
       message:
-          'Primaere E-Mail wurde lokal und in Hitobito unterschiedlich geaendert.',
+          'Primäre E-Mail wurde lokal und in Hitobito unterschiedlich geändert.',
     );
     mergeScalar<MitgliedKontaktAdresse?>(
       basisValue: basisMitglied.primaryAddress,
@@ -342,7 +341,7 @@ class MemberConflictResolver {
         type: MemberResolutionTargetType.primaryAddress,
       ),
       message:
-          'Primaere Adresse wurde lokal und in Hitobito unterschiedlich geaendert.',
+          'Primäre Adresse wurde lokal und in Hitobito unterschiedlich geändert.',
     );
 
     final mergedPhones = _mergePhones(
@@ -433,7 +432,7 @@ class MemberConflictResolver {
             relationshipId: id,
           ),
           message:
-              'Telefonnummer wurde lokal und in Hitobito unterschiedlich geaendert.',
+              'Telefonnummer wurde lokal und in Hitobito unterschiedlich geändert.',
         ),
       );
       if (remote != null) {
@@ -503,7 +502,7 @@ class MemberConflictResolver {
             relationshipId: id,
           ),
           message:
-              'Zusaetzliche E-Mail wurde lokal und in Hitobito unterschiedlich geaendert.',
+              'Zusätzliche E-Mail wurde lokal und in Hitobito unterschiedlich geändert.',
         ),
       );
       if (remote != null) {
@@ -576,7 +575,7 @@ class MemberConflictResolver {
             relationshipId: id,
           ),
           message:
-              'Zusatzadresse wurde lokal und in Hitobito unterschiedlich geaendert.',
+              'Zusatzadresse wurde lokal und in Hitobito unterschiedlich geändert.',
         ),
       );
       if (remote != null) {

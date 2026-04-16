@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nami/core/notifications/pull_notification.dart';
+import 'package:nami/l10n/app_localizations.dart';
 
 import 'notification_card.dart';
 
@@ -19,14 +20,15 @@ class NotificationsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     if (notifications.isEmpty) {
-      return const Center(child: Text('Keine Mitteilungen'));
+      return Center(child: Text(t.t('notifications_empty')));
     }
     final visible = notifications
         .where((n) => !acknowledged.contains(n.id))
         .toList();
     if (visible.isEmpty) {
-      return const Center(child: Text('Keine Mitteilungen'));
+      return Center(child: Text(t.t('notifications_empty')));
     }
     return ListView.separated(
       padding: const EdgeInsets.all(16),
