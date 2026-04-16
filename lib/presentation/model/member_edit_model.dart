@@ -5,6 +5,7 @@ import '../../domain/member/member_write_repository.dart';
 import '../../domain/member/mitglied.dart';
 import '../../domain/member/pending_person_update.dart';
 import '../../domain/member/pending_person_update_repository.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/logger_service.dart';
 
 enum PendingPersonUpdateRetryDisposition {
@@ -14,12 +15,29 @@ enum PendingPersonUpdateRetryDisposition {
   needsResolution,
 }
 
+enum MemberEditSubmitNotice { success, warning, error }
+
+class UiMessageSpec {
+  const UiMessageSpec(
+    this.key, [
+    this.placeholders = const <String, Object?>{},
+  ]);
+
+  final String key;
+  final Map<String, Object?> placeholders;
+
+  String resolve(AppLocalizations localizations) {
+    return localizations.t(key, placeholders);
+  }
+}
+
 class MemberEditSubmitResult {
   const MemberEditSubmitResult({
     required this.success,
     required this.wasQueued,
     this.requiresResolution = false,
     this.message,
+    this.messageSpec,
     this.updatedMember,
     this.pendingEntry,
     this.validationErrors = const <MemberWriteFieldValidationError>[],
@@ -29,9 +47,24 @@ class MemberEditSubmitResult {
   final bool wasQueued;
   final bool requiresResolution;
   final String? message;
+  final UiMessageSpec? messageSpec;
   final Mitglied? updatedMember;
   final PendingPersonUpdate? pendingEntry;
   final List<MemberWriteFieldValidationError> validationErrors;
+
+  String? resolveMessage(AppLocalizations localizations) {
+    return messageSpec?.resolve(localizations) ?? message;
+  }
+
+  MemberEditSubmitNotice get notice {
+    if (success) {
+      return MemberEditSubmitNotice.success;
+    }
+    if (wasQueued || requiresResolution) {
+      return MemberEditSubmitNotice.warning;
+    }
+    return MemberEditSubmitNotice.error;
+  }
 }
 
 class MemberEditPrepareResult {
@@ -39,11 +72,17 @@ class MemberEditPrepareResult {
     required this.success,
     this.member,
     this.message,
+    this.messageSpec,
   });
 
   final bool success;
   final Mitglied? member;
   final String? message;
+  final UiMessageSpec? messageSpec;
+
+  String? resolveMessage(AppLocalizations localizations) {
+    return messageSpec?.resolve(localizations) ?? message;
+  }
 }
 
 class PendingPersonUpdateRetryItemResult {
@@ -231,9 +270,11 @@ class MemberEditModel extends ChangeNotifier {
       return MemberEditPrepareResult(
         success: true,
         member: pendingEntry.zielMitglied,
-        message: pendingEntry.needsResolution
-            ? 'Fuer diese Person ist eine Problemloesung noetig, bevor die Aenderung gesendet werden kann.'
-            : 'Lokaler Bearbeitungsstand fortgesetzt. Netzabgleich erfolgt spaeter erneut.',
+        messageSpec: UiMessageSpec(
+          pendingEntry.needsResolution
+              ? 'member_detail_resolution_required_notice'
+              : 'member_edit_prepare_local_pending',
+        ),
       );
     }
 
@@ -241,8 +282,7 @@ class MemberEditModel extends ChangeNotifier {
     if (personId == null || personId <= 0) {
       return const MemberEditPrepareResult(
         success: false,
-        message:
-            'Die Person kann ohne gueltige Person-ID nicht bearbeitet werden.',
+        messageSpec: UiMessageSpec('member_edit_invalid_person_id'),
       );
     }
 
@@ -295,19 +335,26 @@ class MemberEditModel extends ChangeNotifier {
       );
       return MemberEditPrepareResult(success: false, message: error.message);
     } on MemberWriteAuthRequiredException catch (error) {
-      await _logMemberEditFailure(
-        trigger: trigger,
-        personId: personId,
-        outcome: 'auth_required',
-        message: error.message,
-      );
       await _logMemberEditEvent(
         action: 'prepare_result',
         trigger: trigger,
-        outcome: 'auth_required',
+        outcome: 'auth_required_local_fallback',
+        personId: personId,
+        track: true,
+      );
+      await _logMemberEditEvent(
+        action: 'prepare_notice',
+        trigger: trigger,
+        outcome: 'auth_required_local_fallback',
         personId: personId,
       );
-      return MemberEditPrepareResult(success: false, message: error.message);
+      return MemberEditPrepareResult(
+        success: true,
+        member: mitglied,
+        messageSpec: UiMessageSpec('member_edit_prepare_auth_required', {
+          'details': error.message,
+        }),
+      );
     } on MemberWriteNetworkBlockedException catch (error) {
       await _logMemberEditEvent(
         action: 'prepare_result',
@@ -325,8 +372,9 @@ class MemberEditModel extends ChangeNotifier {
       return MemberEditPrepareResult(
         success: true,
         member: mitglied,
-        message:
-            'Bearbeitung erfolgt mit lokal gespeicherten Daten. ${error.message}',
+        messageSpec: UiMessageSpec('member_edit_prepare_network_blocked', {
+          'details': error.message,
+        }),
       );
     } on MemberWriteRejectedException catch (error) {
       await _logMemberEditFailure(
@@ -371,8 +419,7 @@ class MemberEditModel extends ChangeNotifier {
       );
       return const MemberEditPrepareResult(
         success: false,
-        message:
-            'Die Person konnte nicht neu geladen werden. Bitte erneut versuchen.',
+        messageSpec: UiMessageSpec('member_edit_prepare_failed'),
       );
     } finally {
       _setBusy(false);
@@ -391,8 +438,7 @@ class MemberEditModel extends ChangeNotifier {
       return const MemberEditSubmitResult(
         success: false,
         wasQueued: false,
-        message:
-            'Die Person kann ohne gueltige Person-ID nicht bearbeitet werden.',
+        messageSpec: UiMessageSpec('member_edit_invalid_person_id'),
       );
     }
 
@@ -535,22 +581,45 @@ class MemberEditModel extends ChangeNotifier {
         message: error.message,
       );
     } on MemberWriteAuthRequiredException catch (error) {
+      final entry = _buildPendingEntry(
+        personId: personId,
+        basisMitglied: basisMitglied,
+        zielMitglied: zielMitglied,
+      );
+      await _pendingRepository.save(entry);
       await _logMemberEditFailure(
         trigger: trigger,
         personId: personId,
-        outcome: 'auth_required',
+        outcome: 'queued_auth_required',
         message: error.message,
       );
       await _logMemberEditEvent(
         action: 'submit_result',
         trigger: trigger,
-        outcome: 'auth_required',
+        outcome: 'queued_auth_required',
         personId: personId,
+        track: true,
       );
+      if (existingResolutionCase != null) {
+        await _logResolutionEvent(
+          eventName: 'member_resolution_resend_result',
+          personId: personId,
+          properties: <String, Object?>{
+            'trigger': trigger,
+            'outcome': 'queued_auth_required',
+            ..._resolutionProperties(existingResolutionCase),
+          },
+          track: true,
+        );
+      }
+      await loadPending();
       return MemberEditSubmitResult(
         success: false,
-        wasQueued: false,
-        message: error.message,
+        wasQueued: true,
+        pendingEntry: entry,
+        messageSpec: UiMessageSpec('member_edit_submit_auth_required', {
+          'details': error.message,
+        }),
       );
     } on MemberWriteNetworkBlockedException catch (error) {
       final entry = _buildPendingEntry(
@@ -589,7 +658,9 @@ class MemberEditModel extends ChangeNotifier {
         success: false,
         wasQueued: true,
         pendingEntry: entry,
-        message: 'Die Aenderung wurde lokal gespeichert. ${error.message}',
+        messageSpec: UiMessageSpec('member_edit_submit_network_blocked', {
+          'details': error.message,
+        }),
       );
     } on MemberWriteRejectedException catch (error) {
       await _logMemberEditFailure(
@@ -682,8 +753,7 @@ class MemberEditModel extends ChangeNotifier {
         success: false,
         wasQueued: true,
         pendingEntry: entry,
-        message:
-            'Die Aenderung konnte nicht direkt gesendet werden und wurde fuer einen spaeteren Retry gespeichert.',
+        messageSpec: UiMessageSpec('member_edit_submit_queued'),
       );
     } finally {
       _setBusy(false);
@@ -821,7 +891,7 @@ class MemberEditModel extends ChangeNotifier {
             PendingPersonUpdateRetryItemResult(
               entry: attemptedEntry,
               disposition: PendingPersonUpdateRetryDisposition.retained,
-              message: 'Retry fehlgeschlagen. Der Eintrag bleibt in der Queue.',
+              message: 'member_edit_retry_failed',
             ),
           );
         }

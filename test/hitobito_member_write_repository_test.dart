@@ -287,6 +287,215 @@ void main() {
       );
     },
   );
+
+  test(
+    'sendet fuer serverseitig geloeschte lokale Telefonnummer ein create ohne ID',
+    () async {
+      final peopleService = _FakeHitobitoPeopleService()
+        ..remoteResource = HitobitoPersonResource(
+          id: 23,
+          firstName: 'Julia',
+          lastName: 'Keller',
+          membershipNumber: 4711,
+          updatedAt: DateTime.parse('2026-04-14T09:00:00Z'),
+        );
+      final repository = HitobitoMemberWriteRepository(
+        peopleService: peopleService,
+        logger: _FakeLoggerService(),
+      );
+      final basisMitglied = Mitglied.peopleListItem(
+        mitgliedsnummer: '4711',
+        personId: 23,
+        vorname: 'Julia',
+        nachname: 'Keller',
+      ).copyWith(updatedAt: DateTime.parse('2026-04-14T09:00:00Z'));
+      final zielMitglied = basisMitglied.copyWith(
+        telefonnummern: const <MitgliedKontaktTelefon>[
+          MitgliedKontaktTelefon(
+            phoneNumberId: 701,
+            wert: '+491701234567',
+            label: 'Mobil',
+          ),
+        ],
+      );
+
+      await repository.updateMember(
+        accessToken: 'token-123',
+        basisMitglied: basisMitglied,
+        zielMitglied: zielMitglied,
+      );
+
+      expect(peopleService.lastPhoneNumberMutations, hasLength(1));
+      expect(
+        peopleService.lastPhoneNumberMutations.single.method,
+        HitobitoRelationshipMutationMethod.create,
+      );
+      expect(
+        peopleService.lastPhoneNumberMutations.single.value,
+        const MitgliedKontaktTelefon(wert: '+491701234567', label: 'Mobil'),
+      );
+    },
+  );
+
+  test(
+    'sendet fuer serverseitig geloeschte lokale Zusatz-E-Mail ein create ohne ID',
+    () async {
+      final peopleService = _FakeHitobitoPeopleService()
+        ..remoteResource = HitobitoPersonResource(
+          id: 23,
+          firstName: 'Julia',
+          lastName: 'Keller',
+          membershipNumber: 4711,
+          updatedAt: DateTime.parse('2026-04-14T09:00:00Z'),
+          emailAdressen: const <MitgliedKontaktEmail>[
+            MitgliedKontaktEmail(
+              wert: 'julia@example.org',
+              label: Mitglied.primaryEmailLabel,
+              istPrimaer: true,
+            ),
+          ],
+        );
+      final repository = HitobitoMemberWriteRepository(
+        peopleService: peopleService,
+        logger: _FakeLoggerService(),
+      );
+      final basisMitglied =
+          Mitglied.peopleListItem(
+            mitgliedsnummer: '4711',
+            personId: 23,
+            vorname: 'Julia',
+            nachname: 'Keller',
+          ).copyWith(
+            updatedAt: DateTime.parse('2026-04-14T09:00:00Z'),
+            emailAdressen: const <MitgliedKontaktEmail>[
+              MitgliedKontaktEmail(
+                wert: 'julia@example.org',
+                label: Mitglied.primaryEmailLabel,
+                istPrimaer: true,
+              ),
+            ],
+          );
+      final zielMitglied = basisMitglied.copyWith(
+        emailAdressen: const <MitgliedKontaktEmail>[
+          MitgliedKontaktEmail(
+            wert: 'julia@example.org',
+            label: Mitglied.primaryEmailLabel,
+            istPrimaer: true,
+          ),
+          MitgliedKontaktEmail(
+            additionalEmailId: 601,
+            wert: 'jule@schule.example',
+            label: 'Schule',
+          ),
+        ],
+      );
+
+      await repository.updateMember(
+        accessToken: 'token-123',
+        basisMitglied: basisMitglied,
+        zielMitglied: zielMitglied,
+      );
+
+      expect(peopleService.lastAdditionalEmailMutations, hasLength(1));
+      expect(
+        peopleService.lastAdditionalEmailMutations.single.method,
+        HitobitoRelationshipMutationMethod.create,
+      );
+      expect(
+        peopleService.lastAdditionalEmailMutations.single.value,
+        const MitgliedKontaktEmail(
+          wert: 'jule@schule.example',
+          label: 'Schule',
+        ),
+      );
+    },
+  );
+
+  test(
+    'sendet fuer serverseitig geloeschte lokale Zusatzadresse ein create ohne ID',
+    () async {
+      final peopleService = _FakeHitobitoPeopleService()
+        ..remoteResource = HitobitoPersonResource(
+          id: 23,
+          firstName: 'Julia',
+          lastName: 'Keller',
+          membershipNumber: 4711,
+          updatedAt: DateTime.parse('2026-04-14T09:00:00Z'),
+          adressen: const <MitgliedKontaktAdresse>[
+            MitgliedKontaktAdresse(
+              additionalAddressId: 0,
+              street: 'Musterweg',
+              housenumber: '5',
+              zipCode: '12345',
+              town: 'Koeln',
+            ),
+          ],
+        );
+      final repository = HitobitoMemberWriteRepository(
+        peopleService: peopleService,
+        logger: _FakeLoggerService(),
+      );
+      final basisMitglied =
+          Mitglied.peopleListItem(
+            mitgliedsnummer: '4711',
+            personId: 23,
+            vorname: 'Julia',
+            nachname: 'Keller',
+          ).copyWith(
+            updatedAt: DateTime.parse('2026-04-14T09:00:00Z'),
+            adressen: const <MitgliedKontaktAdresse>[
+              MitgliedKontaktAdresse(
+                additionalAddressId: 0,
+                street: 'Musterweg',
+                housenumber: '5',
+                zipCode: '12345',
+                town: 'Koeln',
+              ),
+            ],
+          );
+      final zielMitglied = basisMitglied.copyWith(
+        adressen: const <MitgliedKontaktAdresse>[
+          MitgliedKontaktAdresse(
+            additionalAddressId: 0,
+            street: 'Musterweg',
+            housenumber: '5',
+            zipCode: '12345',
+            town: 'Koeln',
+          ),
+          MitgliedKontaktAdresse(
+            additionalAddressId: 801,
+            label: 'Lager',
+            street: 'Zeltplatz',
+            housenumber: '7',
+            zipCode: '50667',
+            town: 'Koeln',
+          ),
+        ],
+      );
+
+      await repository.updateMember(
+        accessToken: 'token-123',
+        basisMitglied: basisMitglied,
+        zielMitglied: zielMitglied,
+      );
+
+      expect(peopleService.lastAdditionalAddressMutations, hasLength(1));
+      expect(
+        peopleService.lastAdditionalAddressMutations.single.method,
+        HitobitoRelationshipMutationMethod.create,
+      );
+      expect(
+        peopleService.lastAdditionalAddressMutations.single.value,
+        const MitgliedKontaktAdresse(
+          label: 'Lager',
+          street: 'Zeltplatz',
+          housenumber: '7',
+          zipCode: '50667',
+          town: 'Koeln',
+        ),
+      );
+    },
+  );
 }
 
 Future<T?> _retryingExecutor<T>({

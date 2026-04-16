@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:nami/domain/member/mitglied.dart';
+import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/widgets/member_basis_info_card.dart';
 
 void main() {
@@ -25,6 +27,14 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('de'), Locale('en')],
+        locale: const Locale('de'),
         home: Scaffold(body: MemberGeneralInfoCard(mitglied: member)),
       ),
     );

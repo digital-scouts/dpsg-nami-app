@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nami/domain/stufenwechsel/stufenwechsel_info.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
+import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/format/date_formatters.dart';
 import 'package:nami/presentation/stufe/stufe_visuals.dart';
 
@@ -17,11 +18,13 @@ class StufenwechselEmpfehlung extends StatelessWidget {
     this.onTap,
     required this.stichtag,
   });
-  String _formatAlter(Duration d) {
+  String _formatAlter(BuildContext context, Duration d) {
     final jahre = (d.inDays / 365).floor();
     final restTage = d.inDays - jahre * 365;
     final monate = (restTage / 30).floor();
-    return '${jahre}J ${monate}M';
+    return AppLocalizations.of(
+      context,
+    ).t('stufenwechsel_age_format', {'years': jahre, 'months': monate});
   }
 
   String _formatWechsel(Wechselzeitraum w) {
@@ -40,6 +43,7 @@ class StufenwechselEmpfehlung extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     // Alle gewünschten Stufen zusammenführen und in einer Liste darstellen.
     final combined =
         infos.where((i) => i.stufe != null && stufen.contains(i.stufe)).toList()
@@ -47,13 +51,16 @@ class StufenwechselEmpfehlung extends StatelessWidget {
 
     if (combined.isEmpty) {
       final stufenText = stufen.isEmpty
-          ? 'Stufe'
+          ? t.t('stufenwechsel_column_stage')
           : stufen.map((s) => s.shortDisplayName).join(', ');
       final datumText = DateFormatter.formatGermanShortDate(stichtag);
       return Padding(
         padding: const EdgeInsets.all(16),
         child: Text(
-          'Kein Wechsel der $stufenText zum $datumText',
+          t.t('stufenwechsel_no_change', {
+            'stages': stufenText,
+            'date': datumText,
+          }),
           textAlign: TextAlign.center,
         ),
       );
@@ -62,10 +69,11 @@ class StufenwechselEmpfehlung extends StatelessWidget {
     final showStufeCol = stufen.length > 1;
 
     final columns = <DataColumn>[
-      if (showStufeCol) const DataColumn(label: Text('Stufe')),
-      const DataColumn(label: Text('Name')),
-      const DataColumn(label: Text('Alter')),
-      const DataColumn(label: Text('Wechsel')),
+      if (showStufeCol)
+        DataColumn(label: Text(t.t('stufenwechsel_column_stage'))),
+      DataColumn(label: Text(t.t('stufenwechsel_column_name'))),
+      DataColumn(label: Text(t.t('stufenwechsel_column_age'))),
+      DataColumn(label: Text(t.t('stufenwechsel_column_change'))),
     ];
 
     return SizedBox(
@@ -74,7 +82,7 @@ class StufenwechselEmpfehlung extends StatelessWidget {
         columns: columns,
         rows: combined.map((info) {
           final name = info.vorname;
-          final alter = _formatAlter(info.alterZumStichtag);
+          final alter = _formatAlter(context, info.alterZumStichtag);
           final wechsel = _formatWechsel(info.wechselzeitraum);
           final cells = <DataCell>[];
 

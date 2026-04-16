@@ -28,7 +28,7 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
   final LoggerService _logger;
 
   static const String _authRequiredMessage =
-      'Die Sitzung ist nicht mehr gueltig. Bitte erneut anmelden und danach den Vorgang wiederholen.';
+      'Die Sitzung ist nicht mehr gültig. Bitte erneut anmelden und danach den Vorgang wiederholen.';
 
   @override
   Future<Mitglied> fetchRemoteMember({
@@ -67,7 +67,7 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
     final personId = zielMitglied.personId ?? basisMitglied.personId;
     if (personId == null || personId <= 0) {
       throw const MemberWriteException(
-        'Die Person kann ohne gueltige Person-ID nicht bearbeitet werden.',
+        'Die Person kann ohne gültige Person-ID nicht bearbeitet werden.',
       );
     }
 
@@ -120,7 +120,7 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
               'Update braucht problemloesung reason=field_conflict person_id=$personId local=$basisUpdatedAt remote=$remoteUpdatedAt resolution_category=merge_conflict conflict_count=${mergePlan.items.length} target_types=${targetTypes.join(',')}',
             );
             throw MemberWriteNeedsResolutionException(
-              'Einige Felder wurden lokal und in Hitobito unterschiedlich geaendert.',
+              'Einige Felder wurden lokal und in Hitobito unterschiedlich geändert.',
               resolutionCase: MemberResolutionCase(
                 remoteMitglied: remoteMitglied,
                 items: mergePlan.items,
@@ -225,7 +225,16 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
       }
 
       final remote = remoteById[phoneNumberId];
-      if (remote != null && remote == telefonnummer) {
+      if (remote == null) {
+        mutations.add(
+          HitobitoRelationshipMutation<MitgliedKontaktTelefon>(
+            method: HitobitoRelationshipMutationMethod.create,
+            value: telefonnummer.copyWith(phoneNumberIdLoeschen: true),
+          ),
+        );
+        continue;
+      }
+      if (remote == telefonnummer) {
         continue;
       }
       mutations.add(
@@ -284,7 +293,16 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
       }
 
       final remote = remoteById[additionalEmailId];
-      if (remote != null && remote == email) {
+      if (remote == null) {
+        mutations.add(
+          HitobitoRelationshipMutation<MitgliedKontaktEmail>(
+            method: HitobitoRelationshipMutationMethod.create,
+            value: email.copyWith(additionalEmailIdLoeschen: true),
+          ),
+        );
+        continue;
+      }
+      if (remote == email) {
         continue;
       }
       mutations.add(
@@ -347,7 +365,16 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
       }
 
       final remote = remoteById[additionalAddressId!];
-      if (remote != null && remote == adresse) {
+      if (remote == null) {
+        mutations.add(
+          HitobitoRelationshipMutation<MitgliedKontaktAdresse>(
+            method: HitobitoRelationshipMutationMethod.create,
+            value: adresse.copyWith(additionalAddressIdLoeschen: true),
+          ),
+        );
+        continue;
+      }
+      if (remote == adresse) {
         continue;
       }
       mutations.add(
@@ -484,7 +511,7 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
       case 403:
       case 404:
         return const MemberWriteRejectedException(
-          'Die Aenderung wurde von Hitobito abgelehnt und kann nicht automatisch erneut versucht werden.',
+          'Die Änderung wurde von Hitobito abgelehnt und kann nicht automatisch erneut versucht werden.',
         );
       case 422:
         final validationErrors = error.validationErrors
@@ -497,11 +524,11 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
           );
         }
         return const MemberWriteRejectedException(
-          'Die Aenderung wurde von Hitobito abgelehnt und kann nicht automatisch erneut versucht werden.',
+          'Die Änderung wurde von Hitobito abgelehnt und kann nicht automatisch erneut versucht werden.',
         );
       case 409:
         return const MemberWriteConflictException(
-          'Die Person wurde zwischenzeitlich geaendert. Bitte neu laden und erneut versuchen.',
+          'Die Person wurde zwischenzeitlich geändert. Bitte neu laden und erneut versuchen.',
         );
       case 401:
         return const MemberWriteAuthRequiredException(_authRequiredMessage);

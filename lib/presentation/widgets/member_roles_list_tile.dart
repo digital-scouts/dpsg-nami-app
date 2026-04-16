@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:nami/domain/taetigkeit/role_derivation.dart';
 import 'package:nami/domain/taetigkeit/roles.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
+import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/stufe/stufe_visuals.dart';
 
 class MemberRolesListTile extends StatelessWidget {
@@ -20,7 +21,10 @@ class MemberRolesListTile extends StatelessWidget {
     final title =
         '${taetigkeit.art.displayName} - ${taetigkeit.stufe.displayName}';
 
-    final monthFmt = DateFormat('MMMM yyyy', 'de');
+    final monthFmt = DateFormat(
+      'MMMM yyyy',
+      Localizations.localeOf(context).toLanguageTag(),
+    );
     final startStr = monthFmt.format(taetigkeit.start);
     final endStr = taetigkeit.ende != null
         ? monthFmt.format(taetigkeit.ende!)
@@ -90,8 +94,14 @@ class MemberRolesRecommendationListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final title = taetigkeit.stufe.displayName;
-    final monthFmt = DateFormat('MMMM yyyy', 'de');
-    final subtitle = 'Stufenwechsel am ${monthFmt.format(taetigkeit.start)}';
+    final monthFmt = DateFormat(
+      'MMMM yyyy',
+      Localizations.localeOf(context).toLanguageTag(),
+    );
+    final subtitle = AppLocalizations.of(context).t(
+      'member_roles_stage_change_at',
+      {'date': monthFmt.format(taetigkeit.start)},
+    );
 
     final tile = Card(
       child: ListTile(
@@ -101,7 +111,7 @@ class MemberRolesRecommendationListTile extends StatelessWidget {
         subtitle: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
         trailing: TextButton(
           onPressed: () => onActionRequested?.call(taetigkeit),
-          child: const Text('Wechseln'),
+          child: Text(AppLocalizations.of(context).t('member_roles_switch')),
         ),
       ),
     );

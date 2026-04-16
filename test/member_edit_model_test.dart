@@ -138,6 +138,55 @@ void main() {
     },
   );
 
+  test(
+    'faellt beim Vorbereiten mit auth_required auf den lokalen Stand zurueck',
+    () async {
+      final logger = _FakeLoggerService();
+      final basisMitglied = Mitglied.peopleListItem(
+        mitgliedsnummer: '4711',
+        personId: 23,
+        vorname: 'Julia',
+        nachname: 'Keller',
+      );
+      final model = MemberEditModel(
+        memberWriteRepository: _FakeMemberWriteRepository(
+          fetchResultsByPersonId: <int, Object>{
+            23: const MemberWriteAuthRequiredException(
+              'Bitte erneut anmelden.',
+            ),
+          },
+        ),
+        pendingRepository: _InMemoryPendingPersonUpdateRepository(),
+        logger: logger,
+        onMemberUpdated: (_) async {},
+      );
+
+      final result = await model.prepareForEdit(
+        accessToken: 'token-123',
+        mitglied: basisMitglied,
+      );
+
+      expect(result.success, isTrue);
+      expect(result.member, basisMitglied);
+      expect(result.message, contains('lokal gespeicherten Daten'));
+      expect(result.message, contains('erneute Anmeldung erforderlich'));
+      expect(
+        logger.events,
+        contains(
+          _TrackedEvent(
+            name: 'member_edit',
+            properties: const <String, Object?>{
+              'action': 'prepare_result',
+              'trigger': 'detail_edit',
+              'outcome': 'auth_required_local_fallback',
+              'source': 'member_edit',
+            },
+          ),
+        ),
+      );
+    },
+  );
+
   test('queuet das Update bei generischem Fehler', () async {
     final pendingRepository = _InMemoryPendingPersonUpdateRepository();
     final logger = _FakeLoggerService();
@@ -166,6 +215,7 @@ void main() {
 
     expect(result.success, isFalse);
     expect(result.wasQueued, isTrue);
+    expect(result.notice, MemberEditSubmitNotice.warning);
     expect(result.pendingEntry, isNotNull);
     expect(model.pendingUpdates, hasLength(1));
     expect(model.pendingUpdates.single.personId, 23);
@@ -228,37 +278,84 @@ void main() {
     expect(model.pendingUpdates.single.zielMitglied.vorname, 'Neu');
   });
 
-  test('queuet das Update bei Auth-Fall nicht', () async {
-    final pendingRepository = _InMemoryPendingPersonUpdateRepository();
-    final model = MemberEditModel(
-      memberWriteRepository: _FakeMemberWriteRepository(
-        updateResultsByPersonId: <int, Object>{
-          23: const MemberWriteAuthRequiredException('Bitte erneut anmelden.'),
-        },
-      ),
-      pendingRepository: pendingRepository,
-      logger: _FakeLoggerService(),
-      onMemberUpdated: (_) async {},
-      nowProvider: () => DateTime(2026, 4, 14, 10, 45),
-    );
-    final basisMitglied = Mitglied.peopleListItem(
-      mitgliedsnummer: '4711',
-      personId: 23,
-      vorname: 'Julia',
-      nachname: 'Keller',
-    );
+  test(
+    'queuet das Update bei Auth-Fall lokal und markiert es als Warning',
+    () async {
+      final pendingRepository = _InMemoryPendingPersonUpdateRepository();
+      final logger = _FakeLoggerService();
+      final basisMitglied = Mitglied.peopleListItem(
+        mitgliedsnummer: '4711',
+        personId: 23,
+        vorname: 'Julia',
+        nachname: 'Keller',
+      );
+      final resolutionCase = MemberResolutionCase(
+        remoteMitglied: basisMitglied.copyWith(vorname: 'Remote Julia'),
+        source: MemberResolutionSource.manualSave,
+        items: const <MemberResolutionItem>[
+          MemberResolutionItem(
+            problemType: MemberResolutionProblemType.conflict,
+            cause: MemberResolutionCause.overlappingChange,
+            target: MemberResolutionTarget(
+              type: MemberResolutionTargetType.firstName,
+            ),
+            message: 'Vorname kollidiert.',
+          ),
+        ],
+      );
+      final model = MemberEditModel(
+        memberWriteRepository: _FakeMemberWriteRepository(
+          updateResultsByPersonId: <int, Object>{
+            23: const MemberWriteAuthRequiredException(
+              'Bitte erneut anmelden.',
+            ),
+          },
+        ),
+        pendingRepository: pendingRepository,
+        logger: logger,
+        onMemberUpdated: (_) async {},
+        nowProvider: () => DateTime(2026, 4, 14, 10, 45),
+      );
 
-    final result = await model.submitUpdate(
-      accessToken: 'token-123',
-      basisMitglied: basisMitglied,
-      zielMitglied: basisMitglied.copyWith(vorname: 'Juliane'),
-    );
+      final result = await model.submitUpdate(
+        accessToken: 'token-123',
+        basisMitglied: basisMitglied,
+        zielMitglied: basisMitglied.copyWith(vorname: 'Juliane'),
+        existingResolutionCase: resolutionCase,
+      );
 
-    expect(result.success, isFalse);
-    expect(result.wasQueued, isFalse);
-    expect(result.message, 'Bitte erneut anmelden.');
-    expect(model.pendingUpdates, isEmpty);
-  });
+      expect(result.success, isFalse);
+      expect(result.wasQueued, isTrue);
+      expect(result.notice, MemberEditSubmitNotice.warning);
+      expect(result.message, contains('lokal gespeichert'));
+      expect(result.message, contains('erneute Anmeldung erforderlich'));
+      expect(result.pendingEntry, isNotNull);
+      expect(model.pendingUpdates, hasLength(1));
+      expect(model.pendingUpdates.single.personId, 23);
+      expect(
+        logger.events,
+        contains(
+          _TrackedEvent(
+            name: 'member_edit',
+            properties: const <String, Object?>{
+              'action': 'submit_result',
+              'trigger': 'manual_edit',
+              'outcome': 'queued_auth_required',
+              'source': 'member_edit',
+            },
+          ),
+        ),
+      );
+      expect(
+        logger.events.any(
+          (event) =>
+              event.name == 'member_resolution_resend_result' &&
+              event.properties['outcome'] == 'queued_auth_required',
+        ),
+        isTrue,
+      );
+    },
+  );
 
   test('queuet das Update bei abgelehntem 4xx-Fehler nicht', () async {
     final pendingRepository = _InMemoryPendingPersonUpdateRepository();
@@ -332,6 +429,7 @@ void main() {
 
       expect(result.success, isFalse);
       expect(result.wasQueued, isFalse);
+      expect(result.notice, MemberEditSubmitNotice.error);
       expect(result.message, 'Nummer ist nicht gültig');
       expect(result.validationErrors, const <MemberWriteFieldValidationError>[
         MemberWriteFieldValidationError(

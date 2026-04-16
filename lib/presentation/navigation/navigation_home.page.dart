@@ -137,10 +137,9 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
     switch (authModel.state) {
       case AuthState.initializing:
       case AuthState.authenticating:
-        return const _ShellStatusView(
-          title: 'Anmeldung wird vorbereitet',
-          message:
-              'Die App initialisiert die Anmeldung. Einstellungen bleiben bereits erreichbar.',
+        return _ShellStatusView(
+          title: t.t('nav_auth_preparing_title'),
+          message: t.t('nav_auth_preparing_body'),
           child: CircularProgressIndicator(),
         );
       case AuthState.reloginRequired:
@@ -172,38 +171,35 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
       case AuthState.signedIn:
         if (arbeitskontextModel.status == ArbeitskontextStatus.initial ||
             arbeitskontextModel.isLoading) {
-          return const _ShellStatusView(
-            title: 'Arbeitskontext wird geladen',
-            message:
-                'Der aktive Arbeitskontext wird initialisiert. Danach stehen die kontextgebundenen Funktionen zur Verfuegung.',
+          return _ShellStatusView(
+            title: t.t('nav_work_context_loading_title'),
+            message: t.t('nav_work_context_loading_body'),
             child: CircularProgressIndicator(),
           );
         }
         if (arbeitskontextModel.isUnauthorized) {
           return _ShellStatusView(
             title: ArbeitskontextModel.unauthorizedMessage,
-            message:
-                'Melde dich mit einem Konto an, das mindestens ein relevantes Layer- oder Gruppenrecht besitzt.',
+            message: t.t('nav_work_context_unauthorized_body'),
             errorMessage: arbeitskontextModel.errorMessage,
             child: FilledButton.icon(
               onPressed: authModel.logout,
               icon: const Icon(Icons.logout),
-              label: const Text('Abmelden'),
+              label: Text(t.t('logout')),
             ),
           );
         }
         if (arbeitskontextModel.hasError) {
           return _ShellStatusView(
-            title: 'Arbeitskontext konnte nicht initialisiert werden',
-            message:
-                'Der App-Start konnte keinen gueltigen Arbeitskontext herstellen. Die Einstellungen bleiben erreichbar.',
+            title: t.t('nav_work_context_error_title'),
+            message: t.t('nav_work_context_error_body'),
             errorMessage: arbeitskontextModel.errorMessage,
             child: FilledButton.icon(
               onPressed: authModel.profile == null
                   ? null
                   : () => arbeitskontextModel.retry(authModel.profile),
               icon: const Icon(Icons.refresh),
-              label: const Text('Erneut versuchen'),
+              label: Text(t.t('common_retry')),
             ),
           );
         }

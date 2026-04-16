@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nami/core/notifications/pull_notifications_repository_factory.dart';
+import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/notifications/app_snackbar.dart';
 
 import '../../core/notifications/pull_notifications_cubit.dart';
@@ -60,16 +61,17 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     if (!_boxReady || cubit == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Mitteilungen')),
+        appBar: AppBar(title: Text(t.t('pull_notifications_title'))),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
     return BlocProvider.value(
       value: cubit!,
       child: Scaffold(
-        appBar: AppBar(title: const Text('Mitteilungen')),
+        appBar: AppBar(title: Text(t.t('pull_notifications_title'))),
         body: Column(
           children: [
             Padding(
@@ -80,7 +82,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     child: OutlinedButton.icon(
                       onPressed: () => cubit!.load(force: true),
                       icon: const Icon(Icons.sync),
-                      label: const Text('Aktualisieren'),
+                      label: Text(t.t('notifications_refresh')),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -91,12 +93,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
                         if (!context.mounted) return;
                         AppSnackbar.show(
                           context,
-                          message: 'Mitteilungsstatus zurückgesetzt',
+                          message: t.t('notifications_reset_done'),
                           type: AppSnackbarType.success,
                         );
                       },
                       icon: const Icon(Icons.restart_alt),
-                      label: const Text('Gelesen zurücksetzen'),
+                      label: Text(t.t('notifications_reset_read')),
                     ),
                   ),
                 ],
@@ -119,7 +121,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     );
                   }
                   if (state is PullNotificationsError) {
-                    return Center(child: Text('Fehler: ${state.message}'));
+                    return Center(
+                      child: Text(
+                        t.t('notifications_error', {'message': state.message}),
+                      ),
+                    );
                   }
                   // Default: Zeige leere Liste
                   return NotificationsList(

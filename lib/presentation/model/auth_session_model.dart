@@ -65,6 +65,7 @@ class AuthSessionModel extends ChangeNotifier {
   String? _remoteAccessIssueMessage;
   NetworkAccessBlockedReason? _remoteAccessBlockedReason;
   bool _requiresInteractiveLogin = false;
+  bool _hasShownRemoteAccessIssueNotice = false;
   bool _isLoadingProfile = false;
   bool _isSyncingHitobitoData = false;
 
@@ -82,6 +83,8 @@ class AuthSessionModel extends ChangeNotifier {
   bool get isSyncingHitobitoData => _isSyncingHitobitoData;
   bool get isConfigured => _oauthService.config.isConfigured;
   bool get hasRemoteAccessIssue => _remoteAccessIssueMessage != null;
+  bool get hasUnseenRemoteAccessIssueNotice =>
+      hasRemoteAccessIssue && !_hasShownRemoteAccessIssueNotice;
   bool get isRemoteAccessBlockedByNetworkPolicy =>
       _remoteAccessBlockedReason != null;
   bool get requiresInteractiveLogin => _requiresInteractiveLogin;
@@ -295,6 +298,7 @@ class AuthSessionModel extends ChangeNotifier {
       _lastSensitiveSyncAttemptAt = null;
       _remoteAccessIssueMessage = null;
       _requiresInteractiveLogin = false;
+      _hasShownRemoteAccessIssueNotice = false;
       _errorMessage = null;
     }
 
@@ -309,6 +313,7 @@ class AuthSessionModel extends ChangeNotifier {
     _errorMessage = null;
     _requiresInteractiveLogin = false;
     _remoteAccessIssueMessage = null;
+    _hasShownRemoteAccessIssueNotice = false;
     _state = AuthState.signedIn;
   }
 
@@ -357,6 +362,7 @@ class AuthSessionModel extends ChangeNotifier {
     _errorMessage = null;
     _remoteAccessIssueMessage = null;
     _requiresInteractiveLogin = false;
+    _hasShownRemoteAccessIssueNotice = false;
     _state = AuthState.signedOut;
     await _logger.logInfo(
       'auth_flow',
@@ -892,17 +898,28 @@ class AuthSessionModel extends ChangeNotifier {
     _clearRemoteAccessIssue(notify: true);
   }
 
+  void markRemoteAccessIssueNoticeShown() {
+    if (!hasRemoteAccessIssue || _hasShownRemoteAccessIssueNotice) {
+      return;
+    }
+    _hasShownRemoteAccessIssueNotice = true;
+  }
+
   void reportRemoteDataIssue(
     String message, {
     bool requiresInteractiveLogin = false,
     bool notify = true,
   }) {
+    final hadRemoteAccessIssue = hasRemoteAccessIssue;
     _remoteAccessIssueMessage = message;
     if (requiresInteractiveLogin) {
       _remoteAccessBlockedReason = null;
     }
     _requiresInteractiveLogin =
         _requiresInteractiveLogin || requiresInteractiveLogin;
+    if (!hadRemoteAccessIssue) {
+      _hasShownRemoteAccessIssueNotice = false;
+    }
     if (notify) {
       notifyListeners();
     }
@@ -912,10 +929,14 @@ class AuthSessionModel extends ChangeNotifier {
     NetworkAccessBlockedException error, {
     required bool notify,
   }) {
+    final hadRemoteAccessIssue = hasRemoteAccessIssue;
     _errorMessage = error.message;
     _remoteAccessBlockedReason = error.reason;
     _remoteAccessIssueMessage = error.message;
     _requiresInteractiveLogin = false;
+    if (!hadRemoteAccessIssue) {
+      _hasShownRemoteAccessIssueNotice = false;
+    }
     if (notify) {
       notifyListeners();
     }
@@ -925,6 +946,7 @@ class AuthSessionModel extends ChangeNotifier {
     _remoteAccessIssueMessage = null;
     _remoteAccessBlockedReason = null;
     _requiresInteractiveLogin = false;
+    _hasShownRemoteAccessIssueNotice = false;
     if (notify) {
       notifyListeners();
     }

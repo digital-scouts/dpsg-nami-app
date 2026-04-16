@@ -283,7 +283,7 @@ void main() {
 
     expect(
       find.text(
-        'Fuer diese Person liegt eine ausstehende Aenderung vor. Ein Retry ist in den Debug-Tools moeglich.',
+        'Für diese Person liegt eine ausstehende Änderung vor. Ein Retry ist in den Debug-Tools möglich.',
       ),
       findsOneWidget,
     );
@@ -395,7 +395,7 @@ void main() {
     );
   });
 
-  testWidgets('trackt das Oeffnen einer Problemloesung aus der Detailansicht', (
+  testWidgets('trackt das Öffnen einer Problemlösung aus der Detailansicht', (
     tester,
   ) async {
     final member = Mitglied.peopleListItem(
@@ -461,7 +461,7 @@ void main() {
     await tester.tap(find.byTooltip('Person bearbeiten'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Problemloesung Mitglied'), findsOneWidget);
+    expect(find.text('Problemlösung Mitglied'), findsOneWidget);
     expect(memberEditModel.openedEntryPoints, <String>['detail']);
   });
 }
@@ -478,6 +478,7 @@ Widget _buildTestApp(
       GlobalCupertinoLocalizations.delegate,
     ],
     supportedLocales: const [Locale('de'), Locale('en')],
+    locale: const Locale('de'),
     home: home,
   );
 
@@ -625,7 +626,9 @@ class _ResolutionTrackingMemberEditModel extends MemberEditModel {
 
   @override
   PendingPersonUpdate? pendingForMitglied(String mitgliedsnummer) {
-    return pendingEntry.mitgliedsnummer == mitgliedsnummer ? pendingEntry : null;
+    return pendingEntry.mitgliedsnummer == mitgliedsnummer
+        ? pendingEntry
+        : null;
   }
 
   @override

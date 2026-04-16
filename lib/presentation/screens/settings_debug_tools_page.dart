@@ -146,12 +146,12 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
       return;
     }
     try {
+      final t = AppLocalizations.of(context);
       FlutterEmailSender.send(
         Email(
-          body:
-              'Beschreibe dein Problem. Wie hat sich die App verhalten, was ist passiert? Was hättest du erwartet?',
+          body: t.t('debug_logs_email_body'),
           attachmentPaths: existingFiles.map((file) => file.path).toList(),
-          subject: "NaMi App Logs",
+          subject: t.t('debug_logs_email_subject'),
           recipients: ["dev@jannecklange.de"],
         ),
       );
@@ -176,7 +176,9 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
         return;
       }
       _showSnackbar(
-        'Stammesuche aktualisiert: ${snapshot.markers.length} Marker geladen.',
+        AppLocalizations.of(
+          context,
+        ).t('debug_map_refresh_success', {'count': snapshot.markers.length}),
         type: AppSnackbarType.success,
       );
     } catch (_) {
@@ -184,7 +186,7 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
         return;
       }
       _showSnackbar(
-        'Stammesuche konnte nicht aktualisiert werden.',
+        AppLocalizations.of(context).t('debug_map_refresh_failed'),
         type: AppSnackbarType.error,
       );
     } finally {
@@ -207,7 +209,10 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
     }
 
     setState(() {});
-    _showSnackbar('Kartendaten gelöscht', type: AppSnackbarType.success);
+    _showSnackbar(
+      AppLocalizations.of(context).t('debug_map_deleted'),
+      type: AppSnackbarType.success,
+    );
   }
 
   MapTileCacheService _resolveMapTileCacheService(LoggerService logger) {
@@ -229,7 +234,7 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
         return;
       }
       _showSnackbar(
-        'Kein gueltiger Access Token fuer den Retry verfuegbar.',
+        AppLocalizations.of(context).t('debug_retry_missing_token'),
         type: AppSnackbarType.warning,
       );
       return;
@@ -244,7 +249,11 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
       return;
     }
     _showSnackbar(
-      'Retry abgeschlossen: ${summary.successCount} erfolgreich, ${summary.discardedCount} verworfen, ${summary.retainedCount} behalten.',
+      AppLocalizations.of(context).t('debug_retry_summary', {
+        'successCount': summary.successCount,
+        'discardedCount': summary.discardedCount,
+        'retainedCount': summary.retainedCount,
+      }),
       type: AppSnackbarType.info,
     );
   }
@@ -261,7 +270,7 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
     final memberEditModel = context.watch<MemberEditModel?>();
     final configController = context.watch<HitobitoAuthConfigController>();
     return Scaffold(
-      appBar: AppBar(title: const Text('Debug & Tools')),
+      appBar: AppBar(title: Text(t.t('debug_title'))),
       body: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -283,9 +292,8 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
               children: [
                 _DebugSectionCard(
                   icon: Icons.article_outlined,
-                  title: 'Logs & Diagnose',
-                  subtitle:
-                      'Logdateien auswählen, prüfen, versenden oder gesammelt löschen.',
+                  title: t.t('debug_logs_section_title'),
+                  subtitle: t.t('debug_logs_section_subtitle'),
                   child: FutureBuilder<List<String>>(
                     key: ValueKey(_logFilesRevision),
                     future: _loadLogFileNames(logger),
@@ -324,14 +332,19 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Log-Auswahl',
+                                  t.t('debug_logs_selection'),
                                   style: theme.textTheme.titleMedium,
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
                                   hasLogs
-                                      ? '${names.length} Datei${names.length == 1 ? '' : 'en'} verfügbar'
-                                      : 'Aktuell sind keine Logdateien vorhanden.',
+                                      ? t.t('debug_logs_available_count', {
+                                          'count': names.length,
+                                          'suffix': names.length == 1
+                                              ? ''
+                                              : 'en',
+                                        })
+                                      : t.t('debug_logs_empty'),
                                   style: theme.textTheme.bodyMedium?.copyWith(
                                     color: colorScheme.onSurfaceVariant,
                                   ),
@@ -339,14 +352,14 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                                 const SizedBox(height: 12),
                                 DropdownButtonFormField<String>(
                                   initialValue: selectedId,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Log-Auswahl',
-                                    border: OutlineInputBorder(),
+                                  decoration: InputDecoration(
+                                    labelText: t.t('debug_logs_selection'),
+                                    border: const OutlineInputBorder(),
                                   ),
                                   items: [
-                                    const DropdownMenuItem<String>(
+                                    DropdownMenuItem<String>(
                                       value: LoggerService.allLogsSelectionId,
-                                      child: Text('Alle Dateien'),
+                                      child: Text(t.t('debug_logs_all_files')),
                                     ),
                                     ...names.map(
                                       (name) => DropdownMenuItem<String>(
@@ -374,8 +387,8 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                                 label:
                                     selectedId ==
                                         LoggerService.allLogsSelectionId
-                                    ? 'Logs per Mail senden'
-                                    : 'Gewähltes Log per Mail senden',
+                                    ? t.t('debug_logs_send_all')
+                                    : t.t('debug_logs_send_selected'),
                                 onPressed: !hasLogs
                                     ? null
                                     : () async {
@@ -398,8 +411,8 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                                 label:
                                     selectedId ==
                                         LoggerService.allLogsSelectionId
-                                    ? 'Logs anzeigen'
-                                    : 'Gewähltes Log anzeigen',
+                                    ? t.t('debug_logs_view_all')
+                                    : t.t('debug_logs_view_selected'),
                                 onPressed: () async {
                                   await _trackDebugAction(
                                     logger,
@@ -419,8 +432,11 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                                   final title =
                                       selectedId ==
                                           LoggerService.allLogsSelectionId
-                                      ? 'Alle Logs anzeigen'
-                                      : '$selectedId anzeigen';
+                                      ? t.t('debug_logs_viewer_title_all')
+                                      : t.t(
+                                          'debug_logs_viewer_title_selected',
+                                          {'selection': selectedId},
+                                        );
                                   Navigator.of(context).push(
                                     MaterialPageRoute(
                                       settings: const RouteSettings(
@@ -436,7 +452,7 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                               ),
                               _DebugActionButton(
                                 icon: Icons.delete_outline,
-                                label: 'Logs löschen',
+                                label: t.t('debug_logs_delete'),
                                 isDestructive: true,
                                 buttonKey: const Key(
                                   'debug_logs_delete_button',
@@ -461,7 +477,7 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                                           _logFilesRevision++;
                                         });
                                         _showSnackbar(
-                                          'Alle Logdateien gelöscht',
+                                          t.t('debug_logs_deleted'),
                                           type: AppSnackbarType.success,
                                         );
                                       },
@@ -476,20 +492,19 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                 const SizedBox(height: 16),
                 _DebugSectionCard(
                   icon: Icons.schedule_send_outlined,
-                  title: 'Ausstehende Personenänderungen',
-                  subtitle:
-                      'Pending-Änderungen prüfen und bei Bedarf manuell erneut senden.',
+                  title: t.t('debug_pending_section_title'),
+                  subtitle: t.t('debug_pending_section_subtitle'),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (memberEditModel == null)
                         Text(
-                          'Pending-Änderungen sind in diesem Kontext nicht verfügbar.',
+                          t.t('debug_pending_unavailable'),
                           style: theme.textTheme.bodyMedium,
                         )
                       else if (memberEditModel.pendingUpdates.isEmpty)
                         Text(
-                          'Aktuell sind keine ausstehenden Änderungen gespeichert.',
+                          t.t('debug_pending_empty'),
                           style: theme.textTheme.bodyMedium,
                         )
                       else ...[
@@ -514,7 +529,7 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                                     ),
                                   )
                                 : const Icon(Icons.refresh),
-                            label: const Text('Alle erneut senden'),
+                            label: Text(t.t('debug_pending_retry_all')),
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -524,13 +539,17 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                             child: ListTile(
                               title: Text(entry.displayName),
                               subtitle: Text(
-                                'Mitgliedsnr. ${entry.mitgliedsnummer}\n'
-                                'Vorgemerkt: ${_pendingDateFormat.format(entry.queuedAt)}\n'
-                                'Versuche: ${entry.attemptCount}',
+                                t.t('debug_pending_entry_summary', {
+                                  'memberNumber': entry.mitgliedsnummer,
+                                  'queuedAt': _pendingDateFormat.format(
+                                    entry.queuedAt,
+                                  ),
+                                  'attemptCount': entry.attemptCount,
+                                }),
                               ),
                               isThreeLine: true,
                               trailing: IconButton(
-                                tooltip: 'Eintrag erneut senden',
+                                tooltip: t.t('debug_pending_retry_single'),
                                 onPressed: memberEditModel.isBusy
                                     ? null
                                     : () => _retryPendingPersonUpdates(
@@ -549,14 +568,13 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                 const SizedBox(height: 16),
                 _DebugSectionCard(
                   icon: Icons.feedback_outlined,
-                  title: 'Feedback & Bewertung',
-                  subtitle:
-                      'Öffnet direkt die bestehenden Wiredash-Abläufe für Rückmeldungen und Bewertung.',
+                  title: t.t('debug_feedback_section_title'),
+                  subtitle: t.t('debug_feedback_section_subtitle'),
                   child: _DebugButtonGroup(
                     children: [
                       _DebugActionButton(
                         icon: Icons.feedback_outlined,
-                        label: 'Feedback senden',
+                        label: t.t('debug_feedback_send'),
                         onPressed: () async {
                           await _trackDebugAction(logger, 'open_feedback');
                           final ctx = navigatorKey.currentContext;
@@ -564,7 +582,7 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                             Wiredash.of(ctx).show(inheritMaterialTheme: true);
                           } else {
                             _showSnackbar(
-                              'Wiredash konnte nicht gefunden werden (Root-Kontext fehlt).',
+                              t.t('debug_feedback_missing_root'),
                               type: AppSnackbarType.error,
                             );
                           }
@@ -572,7 +590,7 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                       ),
                       _DebugActionButton(
                         icon: Icons.star_outline,
-                        label: 'App bewerten',
+                        label: t.t('debug_feedback_rate'),
                         onPressed: () async {
                           await _trackDebugAction(logger, 'open_app_rating');
                           final ctx = navigatorKey.currentContext;
@@ -580,7 +598,7 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                             Wiredash.of(ctx).showPromoterSurvey(force: true);
                           } else {
                             _showSnackbar(
-                              'Wiredash konnte nicht gefunden werden (Root-Kontext fehlt).',
+                              t.t('debug_feedback_missing_root'),
                               type: AppSnackbarType.error,
                             );
                           }
@@ -592,14 +610,13 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                 const SizedBox(height: 16),
                 _DebugSectionCard(
                   icon: Icons.sync_alt_outlined,
-                  title: 'Daten & Synchronisation',
-                  subtitle:
-                      'Manuelle Aktualisierung und technische Sicht auf Datenänderungen.',
+                  title: t.t('debug_sync_section_title'),
+                  subtitle: t.t('debug_sync_section_subtitle'),
                   child: _DebugButtonGroup(
                     children: [
                       _DebugActionButton(
                         icon: Icons.refresh_outlined,
-                        label: 'Daten jetzt aktualisieren',
+                        label: t.t('debug_sync_now'),
                         onPressed: authModel.isSyncingHitobitoData
                             ? null
                             : () async {
@@ -632,12 +649,14 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                                   (true, _, _) =>
                                     authModel.remoteAccessIssueMessage ??
                                         authModel.errorMessage ??
-                                        'Hitobito ist aktuell nur ueber WLAN erreichbar.',
-                                  (_, true, _) =>
-                                    'Neuanmeldung erforderlich, Daten konnten nicht synchronisiert werden.',
-                                  (_, _, true) =>
-                                    'Hitobito-Daten konnten nicht vollständig synchronisiert werden.',
-                                  _ => 'Hitobito-Daten wurden synchronisiert.',
+                                        t.t('debug_sync_network_blocked'),
+                                  (_, true, _) => t.t(
+                                    'debug_sync_relogin_required',
+                                  ),
+                                  (_, _, true) => t.t(
+                                    'debug_sync_partial_failure',
+                                  ),
+                                  _ => t.t('debug_sync_success'),
                                 };
                                 final type = switch ((
                                   authModel
@@ -660,11 +679,11 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                       ),
                       _DebugActionButton(
                         icon: Icons.visibility_outlined,
-                        label: 'Datenänderungen anzeigen',
+                        label: t.t('debug_sync_view_changes'),
                         onPressed: () async {
                           await _trackDebugAction(logger, 'view_data_changes');
                           _showSnackbar(
-                            'Nicht implementiert: Datenänderungen angezeigt',
+                            t.t('debug_sync_changes_not_implemented'),
                             type: AppSnackbarType.info,
                           );
                         },
@@ -675,9 +694,8 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                 const SizedBox(height: 16),
                 _DebugSectionCard(
                   icon: Icons.map_outlined,
-                  title: 'Karten & Cache',
-                  subtitle:
-                      'Status des Karten-Caches und manuelle Aktualisierung der Stammesuche.',
+                  title: t.t('debug_map_section_title'),
+                  subtitle: t.t('debug_map_section_subtitle'),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -693,9 +711,10 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                             final text = switch (snapshot.connectionState) {
                               ConnectionState.done when snapshot.hasData =>
                                 _formatMapCacheSize(snapshot.data!),
-                              ConnectionState.done =>
-                                'Größe derzeit nicht verfügbar',
-                              _ => 'Größe wird geladen ...',
+                              ConnectionState.done => t.t(
+                                'debug_map_size_unavailable',
+                              ),
+                              _ => t.t('debug_map_size_loading'),
                             };
                             return Row(
                               children: [
@@ -710,7 +729,7 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Offline-Karten',
+                                        t.t('debug_map_offline_maps'),
                                         style: theme.textTheme.titleMedium,
                                       ),
                                       const SizedBox(height: 4),
@@ -734,8 +753,8 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                       _DebugActionButton(
                         icon: Icons.travel_explore_outlined,
                         label: _isRefreshingStammMarkers
-                            ? 'Stammesuche wird aktualisiert ...'
-                            : 'Stammesuche jetzt laden',
+                            ? t.t('debug_map_refresh_markers_loading')
+                            : t.t('debug_map_refresh_markers'),
                         buttonKey: const Key(
                           'debug_refresh_stamm_markers_button',
                         ),
@@ -746,7 +765,7 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                       const SizedBox(height: 10),
                       _DebugActionButton(
                         icon: Icons.delete_sweep_outlined,
-                        label: 'Kartendaten löschen',
+                        label: t.t('debug_map_delete_cache'),
                         isDestructive: true,
                         buttonKey: const Key('debug_delete_map_cache_button'),
                         onPressed: () =>
@@ -758,9 +777,8 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                 const SizedBox(height: 16),
                 _DebugSectionCard(
                   icon: Icons.verified_user_outlined,
-                  title: 'Hitobito OAuth',
-                  subtitle:
-                      'Aktuelle OAuth-Quelle prüfen und temporäre Zugangsdaten testen.',
+                  title: t.t('debug_oauth_section_title'),
+                  subtitle: t.t('debug_oauth_section_subtitle'),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -775,8 +793,11 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                         ),
                         child: Text(
                           configController.hasOverride
-                              ? 'Aktiver Override fuer Client ID ${configController.effectiveClientId}'
-                              : 'Aktuell werden die Hitobito OAuth-Werte aus der lokalen Env genutzt.',
+                              ? t.t('debug_oauth_override_active', {
+                                  'clientId':
+                                      configController.effectiveClientId,
+                                })
+                              : t.t('debug_oauth_env_active'),
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: configController.hasOverride
                                 ? colorScheme.onTertiaryContainer
@@ -787,7 +808,7 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                       const SizedBox(height: 16),
                       _DebugActionButton(
                         icon: Icons.verified_user_outlined,
-                        label: 'OAuth-Zugangsdaten prüfen',
+                        label: t.t('debug_oauth_check'),
                         buttonKey: const Key('debug_oauth_override_button'),
                         onPressed: authModel.state == AuthState.authenticating
                             ? null
@@ -799,14 +820,13 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                 const SizedBox(height: 16),
                 _DebugSectionCard(
                   icon: Icons.library_books_outlined,
-                  title: 'Referenzen',
-                  subtitle:
-                      'Schneller Zugriff auf Changelog und eingehende Mitteilungen.',
+                  title: t.t('debug_references_section_title'),
+                  subtitle: t.t('debug_references_section_subtitle'),
                   child: _DebugButtonGroup(
                     children: [
                       _DebugActionButton(
                         icon: Icons.list_alt_outlined,
-                        label: 'Changelog anzeigen',
+                        label: t.t('debug_references_show_changelog'),
                         onPressed: () async {
                           await _trackDebugAction(logger, 'open_changelog');
                           Navigator.of(context).push(
@@ -821,7 +841,7 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                       ),
                       _DebugActionButton(
                         icon: Icons.notifications_outlined,
-                        label: 'Mitteilungen anzeigen',
+                        label: t.t('debug_references_show_notifications'),
                         onPressed: () async {
                           await _trackDebugAction(logger, 'open_notifications');
                           if (!context.mounted) {
@@ -837,8 +857,7 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                 _DebugSectionCard(
                   icon: Icons.warning_amber_rounded,
                   title: t.t('debug_reset_title'),
-                  subtitle:
-                      'Diese Aktionen greifen stark ein. Die Darstellung ist bewusst auffälliger, das Verhalten bleibt unverändert.',
+                  subtitle: t.t('debug_reset_subtitle'),
                   tone: _DebugSectionTone.danger,
                   child: _DebugActionButton(
                     icon: Icons.delete_forever_outlined,
@@ -857,20 +876,21 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
   }
 
   String _formatMapCacheSize(double sizeKiB) {
+    final t = AppLocalizations.of(context);
     if (sizeKiB <= 0) {
-      return 'Noch keine Offline-Kartendaten gespeichert';
+      return t.t('debug_map_size_empty');
     }
     if (sizeKiB < 1024) {
-      return '${sizeKiB.toStringAsFixed(0)} KB gespeichert';
+      return t.t('debug_map_size_kib', {'size': sizeKiB.toStringAsFixed(0)});
     }
 
     final sizeMb = sizeKiB / 1024;
     if (sizeMb < 1024) {
-      return '${sizeMb.toStringAsFixed(2)} MB gespeichert';
+      return t.t('debug_map_size_mib', {'size': sizeMb.toStringAsFixed(2)});
     }
 
     final sizeGb = sizeMb / 1024;
-    return '${sizeGb.toStringAsFixed(2)} GB gespeichert';
+    return t.t('debug_map_size_gib', {'size': sizeGb.toStringAsFixed(2)});
   }
 }
 
@@ -1151,8 +1171,9 @@ class _OauthOverrideDialogState extends State<_OauthOverrideDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return AlertDialog(
-      title: const Text('Hitobito OAuth prüfen'),
+      title: Text(t.t('debug_oauth_dialog_title')),
       content: Form(
         key: _formKey,
         child: Column(
@@ -1160,11 +1181,13 @@ class _OauthOverrideDialogState extends State<_OauthOverrideDialog> {
           children: [
             TextFormField(
               controller: _clientIdController,
-              decoration: const InputDecoration(labelText: 'Client ID'),
+              decoration: InputDecoration(
+                labelText: t.t('debug_oauth_client_id'),
+              ),
               enabled: !_isSubmitting,
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Client ID ist erforderlich';
+                  return t.t('debug_oauth_client_id_required');
                 }
                 return null;
               },
@@ -1172,12 +1195,14 @@ class _OauthOverrideDialogState extends State<_OauthOverrideDialog> {
             const SizedBox(height: 12),
             TextFormField(
               controller: _clientSecretController,
-              decoration: const InputDecoration(labelText: 'Client Secret'),
+              decoration: InputDecoration(
+                labelText: t.t('debug_oauth_client_secret'),
+              ),
               enabled: !_isSubmitting,
               obscureText: true,
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Client Secret ist erforderlich';
+                  return t.t('debug_oauth_client_secret_required');
                 }
                 return null;
               },
@@ -1205,7 +1230,7 @@ class _OauthOverrideDialogState extends State<_OauthOverrideDialog> {
                     Navigator.of(context).pop();
                   }
                 },
-          child: const Text('Abbrechen'),
+          child: Text(t.t('debug_oauth_cancel')),
         ),
         FilledButton(
           onPressed: _isSubmitting ? null : _submit,
@@ -1215,7 +1240,7 @@ class _OauthOverrideDialogState extends State<_OauthOverrideDialog> {
                   height: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Prüfen'),
+              : Text(t.t('debug_oauth_submit')),
         ),
       ],
     );

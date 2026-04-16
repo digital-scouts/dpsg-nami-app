@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nami/domain/member/member_resolution.dart';
 import 'package:nami/domain/member/mitglied.dart';
+import 'package:nami/domain/member/pending_person_update.dart';
+import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/member_phone_input.dart';
 import 'package:nami/presentation/screens/member_edit_page.dart';
 
@@ -384,10 +388,206 @@ void main() {
     expect(find.text('Nicht gesetzt'), findsOneWidget);
     expect(find.text('01.01.1900'), findsNothing);
   });
+
+  testWidgets(
+    'zeigt im Problemlosungsfall bei Telefon und Zusatz-E-Mail immer Bezeichnung plus Wert',
+    (tester) async {
+      final basisMitglied = _buildMember(gender: '').copyWith(
+        telefonnummern: const <MitgliedKontaktTelefon>[
+          MitgliedKontaktTelefon(
+            phoneNumberId: 1,
+            wert: '+49123456789',
+            label: 'Privat',
+          ),
+        ],
+        emailAdressen: const <MitgliedKontaktEmail>[
+          MitgliedKontaktEmail(
+            additionalEmailId: 1,
+            wert: 'julia@example.org',
+            label: Mitglied.primaryEmailLabel,
+            istPrimaer: true,
+          ),
+          MitgliedKontaktEmail(
+            additionalEmailId: 2,
+            wert: 'jule@example.org',
+            label: 'Privat',
+          ),
+        ],
+      );
+      final zielMitglied = basisMitglied.copyWith(
+        telefonnummern: const <MitgliedKontaktTelefon>[
+          MitgliedKontaktTelefon(
+            phoneNumberId: 1,
+            wert: '+49123456789',
+            label: 'Mobil',
+          ),
+        ],
+        emailAdressen: const <MitgliedKontaktEmail>[
+          MitgliedKontaktEmail(
+            additionalEmailId: 1,
+            wert: 'julia@example.org',
+            label: Mitglied.primaryEmailLabel,
+            istPrimaer: true,
+          ),
+          MitgliedKontaktEmail(
+            additionalEmailId: 2,
+            wert: 'jule@example.org',
+            label: 'Schule',
+          ),
+        ],
+      );
+      final pendingEntry = _buildResolutionEntry(
+        basisMitglied: basisMitglied,
+        zielMitglied: zielMitglied,
+        remoteMitglied: basisMitglied,
+        items: const <MemberResolutionItem>[
+          MemberResolutionItem(
+            problemType: MemberResolutionProblemType.conflict,
+            cause: MemberResolutionCause.overlappingChange,
+            target: MemberResolutionTarget(
+              type: MemberResolutionTargetType.phone,
+              relationshipId: 1,
+            ),
+            message:
+                'Telefonnummer wurde lokal und in Hitobito unterschiedlich geändert.',
+          ),
+          MemberResolutionItem(
+            problemType: MemberResolutionProblemType.conflict,
+            cause: MemberResolutionCause.overlappingChange,
+            target: MemberResolutionTarget(
+              type: MemberResolutionTargetType.additionalEmail,
+              relationshipId: 2,
+            ),
+            message:
+                'Zusätzliche E-Mail wurde lokal und in Hitobito unterschiedlich geändert.',
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberEditPage(mitglied: zielMitglied, pendingEntry: pendingEntry),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Lokal: Mobil: +49123456789'), findsOneWidget);
+      expect(find.text('Hitobito: Privat: +49123456789'), findsOneWidget);
+      expect(find.text('Lokal: Schule: jule@example.org'), findsOneWidget);
+      expect(find.text('Hitobito: Privat: jule@example.org'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'zeigt im Problemlösungsfall Zusatzadresse mit Bezeichnung und Adressblock ohne leere Labelanteile',
+    (tester) async {
+      final basisMitglied = _buildMember(gender: '').copyWith(
+        adressen: const <MitgliedKontaktAdresse>[
+          MitgliedKontaktAdresse(
+            additionalAddressId: 0,
+            street: 'Musterweg',
+            housenumber: '5',
+            zipCode: '12345',
+            town: 'Koeln',
+          ),
+          MitgliedKontaktAdresse(
+            additionalAddressId: 8,
+            street: 'Zeltplatz',
+            housenumber: '7',
+            zipCode: '50667',
+            town: 'Koeln',
+          ),
+        ],
+      );
+      final zielMitglied = basisMitglied.copyWith(
+        adressen: const <MitgliedKontaktAdresse>[
+          MitgliedKontaktAdresse(
+            additionalAddressId: 0,
+            street: 'Musterweg',
+            housenumber: '5',
+            zipCode: '12345',
+            town: 'Koeln',
+          ),
+          MitgliedKontaktAdresse(
+            additionalAddressId: 8,
+            label: 'Lager',
+            street: 'Zeltplatz',
+            housenumber: '7',
+            zipCode: '50667',
+            town: 'Koeln',
+          ),
+        ],
+      );
+      final pendingEntry = _buildResolutionEntry(
+        basisMitglied: basisMitglied,
+        zielMitglied: zielMitglied,
+        remoteMitglied: basisMitglied,
+        items: const <MemberResolutionItem>[
+          MemberResolutionItem(
+            problemType: MemberResolutionProblemType.conflict,
+            cause: MemberResolutionCause.overlappingChange,
+            target: MemberResolutionTarget(
+              type: MemberResolutionTargetType.additionalAddress,
+              relationshipId: 8,
+            ),
+            message:
+                'Zusatzadresse wurde lokal und in Hitobito unterschiedlich geändert.',
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberEditPage(mitglied: zielMitglied, pendingEntry: pendingEntry),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Lokal: Lager: Zeltplatz 7, 50667 Koeln'),
+        findsOneWidget,
+      );
+      expect(find.text('Hitobito: Zeltplatz 7, 50667 Koeln'), findsOneWidget);
+      expect(find.textContaining('Hitobito: :'), findsNothing);
+    },
+  );
 }
 
 Widget _buildTestApp(Widget home) {
-  return MaterialApp(home: home);
+  return MaterialApp(
+    localizationsDelegates: [
+      AppLocalizations.delegate,
+      GlobalMaterialLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
+    ],
+    supportedLocales: const [Locale('de'), Locale('en')],
+    locale: const Locale('de'),
+    home: home,
+  );
+}
+
+PendingPersonUpdate _buildResolutionEntry({
+  required Mitglied basisMitglied,
+  required Mitglied zielMitglied,
+  required Mitglied remoteMitglied,
+  required List<MemberResolutionItem> items,
+}) {
+  return PendingPersonUpdate(
+    entryId: 'person-${zielMitglied.personId ?? 0}',
+    personId: zielMitglied.personId ?? 23,
+    mitgliedsnummer: zielMitglied.mitgliedsnummer,
+    displayName: zielMitglied.fullName,
+    basisMitglied: basisMitglied,
+    zielMitglied: zielMitglied,
+    queuedAt: DateTime(2026, 4, 14, 12, 0),
+    status: PendingPersonUpdateStatus.needsResolution,
+    resolutionCase: MemberResolutionCase(
+      remoteMitglied: remoteMitglied,
+      items: items,
+      source: MemberResolutionSource.manualSave,
+    ),
+  );
 }
 
 Mitglied _buildMember({required String gender}) {
