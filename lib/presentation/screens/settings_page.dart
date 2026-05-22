@@ -19,6 +19,10 @@ class SettingsPage extends StatefulWidget {
   final VoidCallback? onNotificationSettings;
   final VoidCallback? onAppSettings;
   final VoidCallback? onMapSettings;
+  final VoidCallback? onMessages;
+  final VoidCallback? onImpressum;
+  final VoidCallback? onDatenschutz;
+  final VoidCallback? onStufenwechsel;
   final VoidCallback? onDebugTools;
   final VoidCallback? onProfile;
   final String? appVersion;
@@ -29,6 +33,10 @@ class SettingsPage extends StatefulWidget {
     this.onNotificationSettings,
     this.onAppSettings,
     this.onMapSettings,
+    this.onMessages,
+    this.onImpressum,
+    this.onDatenschutz,
+    this.onStufenwechsel,
     this.onDebugTools,
     this.onProfile,
     this.appVersion,
@@ -89,60 +97,66 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _acknowledgeNotification(PullNotification notification) async {
-    final logger = context.read<LoggerService>();
-    final repo = await createPullNotificationsRepository(
-      logger: logger,
-      networkAccessPolicy: _resolveNetworkAccessPolicy(),
-    );
-    await repo.acknowledgeNotification(notification.id);
-    if (!mounted) return;
-    setState(() {
-      _unreadNotificationFuture = _loadUnreadNotification();
-    });
+    try {
+      final logger = context.read<LoggerService>();
+      final repo = await createPullNotificationsRepository(
+        logger: logger,
+        networkAccessPolicy: _resolveNetworkAccessPolicy(),
+      );
+      await repo.acknowledgeNotification(notification.id);
+      if (!mounted) return;
+      setState(() {
+        _unreadNotificationFuture = _loadUnreadNotification();
+      });
+    } catch (_) {}
   }
 
   Future<PullNotification?> _loadUnreadNotification() async {
-    final logger = context.read<LoggerService>();
-    final repo = await createPullNotificationsRepository(
-      logger: logger,
-      networkAccessPolicy: _resolveNetworkAccessPolicy(),
-    );
-    final notifications = await repo.fetchNotifications();
-    final acknowledged = await repo.getAcknowledgedIds();
+    try {
+      final logger = context.read<LoggerService>();
+      final repo = await createPullNotificationsRepository(
+        logger: logger,
+        networkAccessPolicy: _resolveNetworkAccessPolicy(),
+      );
+      final notifications = await repo.fetchNotifications();
+      final acknowledged = await repo.getAcknowledgedIds();
 
-    final unread =
-        notifications
-            .where((notification) => !acknowledged.contains(notification.id))
-            .toList()
-          ..sort((left, right) {
-            final priorityCompare = _notificationPriority(
-              left,
-            ).compareTo(_notificationPriority(right));
-            if (priorityCompare != 0) {
-              return priorityCompare;
-            }
+      final unread =
+          notifications
+              .where((notification) => !acknowledged.contains(notification.id))
+              .toList()
+            ..sort((left, right) {
+              final priorityCompare = _notificationPriority(
+                left,
+              ).compareTo(_notificationPriority(right));
+              if (priorityCompare != 0) {
+                return priorityCompare;
+              }
 
-            final leftDate = left.updatedAt ?? left.createdAt;
-            final rightDate = right.updatedAt ?? right.createdAt;
+              final leftDate = left.updatedAt ?? left.createdAt;
+              final rightDate = right.updatedAt ?? right.createdAt;
 
-            if (leftDate == null && rightDate == null) {
-              return 0;
-            }
-            if (leftDate == null) {
-              return 1;
-            }
-            if (rightDate == null) {
-              return -1;
-            }
+              if (leftDate == null && rightDate == null) {
+                return 0;
+              }
+              if (leftDate == null) {
+                return 1;
+              }
+              if (rightDate == null) {
+                return -1;
+              }
 
-            return rightDate.compareTo(leftDate);
-          });
+              return rightDate.compareTo(leftDate);
+            });
 
-    if (unread.isEmpty) {
+      if (unread.isEmpty) {
+        return null;
+      }
+
+      return unread.first;
+    } catch (_) {
       return null;
     }
-
-    return unread.first;
   }
 
   Future<void> _openStore(String url) async {
@@ -299,62 +313,101 @@ class _SettingsPageState extends State<SettingsPage> {
     final t = AppLocalizations.of(context);
     final authModel = context.watch<AuthSessionModel>();
     final memberEditModel = context.watch<MemberEditModel?>();
+    final unresolvedCount = (memberEditModel?.openResolutionCount ?? 0);
+    final hasIssue = authModel.hasRemoteAccessIssue;
+    final visualMessageCount =
+        (hasIssue ? 1 : 0) + (unresolvedCount > 0 ? 1 : 0);
+
     return Scaffold(
       appBar: AppBar(title: Text(t.t('settings_title'))),
       body: SafeArea(
-        child: Column(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
           children: [
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(8),
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.person),
-                    trailing: widget.onProfile == null
-                        ? const Icon(Icons.lock_outline)
-                        : const Icon(Icons.chevron_right),
-                    title: Text(t.t('profile')),
-                    onTap: widget.onProfile,
+            Card(
+              margin: EdgeInsets.zero,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: widget.onProfile,
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(
+                          Icons.person,
+                          color: theme.colorScheme.onPrimary,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              t.t('profile'),
+                              style: theme.textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Arbeitskontext, Rollen und Konto',
+                              style: theme.textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        widget.onProfile == null
+                            ? Icons.lock_outline
+                            : Icons.chevron_right,
+                      ),
+                    ],
                   ),
-
-                  const Divider(),
-                  ListTile(
-                    leading: const Icon(Icons.flag),
-                    trailing: const Icon(Icons.chevron_right),
-                    title: Text(t.t('settings_stamm')),
-                    onTap: widget.onStammSettings,
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.settings_suggest),
-                    trailing: const Icon(Icons.chevron_right),
-                    title: Text(t.t('settings_app')),
-                    onTap: widget.onAppSettings,
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.tune),
-                    trailing: const Icon(Icons.chevron_right),
-                    title: Text(t.t('settings_notifications')),
-                    onTap: widget.onNotificationSettings,
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.map_outlined),
-                    trailing: const Icon(Icons.chevron_right),
-                    title: Text(t.t('settings_map')),
-                    onTap: widget.onMapSettings,
-                  ),
-
-                  ListTile(
-                    leading: const Icon(Icons.build_circle),
-                    trailing: const Icon(Icons.chevron_right),
-                    title: Text(t.t('settings_debug_tools')),
-                    onTap: widget.onDebugTools,
-                  ),
-                ],
+                ),
               ),
             ),
-            if (authModel.hasRemoteAccessIssue)
+            const SizedBox(height: 12),
+            Card(
+              margin: EdgeInsets.zero,
+              color: const Color(0xFFFFF8E1),
+              child: ListTile(
+                onTap: widget.onMessages,
+                leading: const Icon(Icons.warning_amber_rounded),
+                title: const Text('Meldungen'),
+                subtitle: Text(
+                  hasIssue
+                      ? 'Hitobito nicht erreichbar - lokale Daten aktiv.'
+                      : 'Systemhinweise und Sync-Meldungen.',
+                ),
+                trailing: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade700,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '$visualMessageCount',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (hasIssue)
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                padding: const EdgeInsets.only(bottom: 12),
                 child: NotificationCard(
                   notification: _buildHitobitoIssueNotification(
                     context,
@@ -363,13 +416,13 @@ class _SettingsPageState extends State<SettingsPage> {
                   onTap: authModel.isConfigured ? authModel.signIn : null,
                 ),
               ),
-            if ((memberEditModel?.openResolutionCount ?? 0) > 0)
+            if (unresolvedCount > 0)
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                padding: const EdgeInsets.only(bottom: 12),
                 child: NotificationCard(
                   notification: _buildMemberResolutionNotification(
                     context,
-                    memberEditModel!.openResolutionCount,
+                    unresolvedCount,
                   ),
                   onTap: () => _openFirstResolution(context, memberEditModel),
                 ),
@@ -383,7 +436,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 }
 
                 return Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  padding: const EdgeInsets.only(bottom: 12),
                   child: NotificationCard(
                     notification: _buildUpdateNotification(context, updateInfo),
                     onTap: () => _openStore(updateInfo.storeUrl),
@@ -400,7 +453,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 }
 
                 return Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  padding: const EdgeInsets.only(bottom: 12),
                   child: NotificationCard(
                     notification: notification,
                     onClose: () => _acknowledgeNotification(notification),
@@ -408,6 +461,88 @@ class _SettingsPageState extends State<SettingsPage> {
                 );
               },
             ),
+            _SettingsSectionLabel(label: 'Schnellzugriff'),
+            Card(
+              margin: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  _SettingsNavTile(
+                    icon: Icons.swap_horiz,
+                    title: 'Stufenwechsel',
+                    subtitle: 'Mitglieder in neue Stufe versetzen',
+                    onTap: widget.onStufenwechsel,
+                  ),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  _SettingsNavTile(
+                    icon: Icons.map,
+                    title: t.t('settings_map'),
+                    subtitle: 'Stammes- und DV-Karte',
+                    onTap: widget.onMapSettings,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            _SettingsSectionLabel(label: 'Einstellungen'),
+            Card(
+              margin: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  _SettingsNavTile(
+                    icon: Icons.home,
+                    title: t.t('settings_stamm'),
+                    subtitle: 'Daten, Altersgrenzen',
+                    onTap: widget.onStammSettings,
+                  ),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  _SettingsNavTile(
+                    icon: Icons.tune,
+                    title: t.t('settings_app'),
+                    subtitle: 'Darstellung, Sicherheit, Verhalten',
+                    onTap: widget.onAppSettings,
+                  ),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  _SettingsNavTile(
+                    icon: Icons.notifications,
+                    title: t.t('settings_notifications'),
+                    subtitle: 'Geburtstage, Erinnerungen',
+                    onTap: widget.onNotificationSettings,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            _SettingsSectionLabel(label: 'Entwicklung'),
+            Card(
+              margin: EdgeInsets.zero,
+              child: _SettingsNavTile(
+                icon: Icons.bug_report,
+                title: t.t('settings_debug_tools'),
+                subtitle: 'Fehlerberichte, Cache, Tools',
+                onTap: widget.onDebugTools,
+              ),
+            ),
+            const SizedBox(height: 12),
+            _SettingsSectionLabel(label: 'Rechtliches'),
+            Card(
+              margin: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  _SettingsNavTile(
+                    icon: Icons.gavel,
+                    title: 'Impressum',
+                    onTap: widget.onImpressum,
+                  ),
+                  const Divider(height: 1, indent: 16, endIndent: 16),
+                  _SettingsNavTile(
+                    icon: Icons.shield,
+                    title: 'Datenschutz',
+                    onTap: widget.onDatenschutz,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
             const Divider(height: 1),
             GestureDetector(
               behavior: HitTestBehavior.opaque,
@@ -451,6 +586,50 @@ class _SettingsPageState extends State<SettingsPage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _SettingsSectionLabel extends StatelessWidget {
+  const _SettingsSectionLabel({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 6),
+      child: Text(
+        label,
+        style: Theme.of(
+          context,
+        ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+}
+
+class _SettingsNavTile extends StatelessWidget {
+  const _SettingsNavTile({
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      onTap: onTap,
+      leading: Icon(icon),
+      title: Text(title),
+      subtitle: subtitle == null ? null : Text(subtitle!),
+      trailing: Icon(onTap == null ? Icons.lock_outline : Icons.chevron_right),
     );
   }
 }
