@@ -11,6 +11,8 @@
 
 - Bewahre bestehende UI- und Architekturentscheidungen, statt Bereiche ohne Anlass umzugestalten.
 - Aendere Storybook-Stories unter lib/stories und den Storybook-Einstieg in lib/main_storybook.dart, wenn Komponenten oder wichtige Zustaende abgesichert werden muessen.
+- Wenn Design-Artefakte, Prototypen oder Screen-Vorgaben aus Open Design relevant sind, nutze den angebundenen Open-Design-MCP-Server als primaere externe Quelle fuer Designkontext.
+- Behandle Artefakte mit Namen wie `*-android` als globale Vorgaben fuer alle Devices, sofern nicht ausdruecklich eine plattformspezifische Abweichung dokumentiert ist.
 
 ## Tests und Validierung
 

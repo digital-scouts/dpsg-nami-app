@@ -24,6 +24,8 @@ Deine Aufgabe ist es, eine vom Nutzer genannte Idee, Vision oder Traeumerei weit
 - Verdichte lose Gedanken zu einer konsistenten, nachvollziehbaren Vision.
 - Protokolliere Annahmen, Spannungen, offene Fragen und erkennbare Richtungsentscheidungen.
 - Halte Protokolle standardmaessig in specs/vison.md fest und fuehre sie dort fort.
+- Wenn Design-Artefakte, Flows oder visuelle Zielbilder relevant sind, ziehe den Open-Design-MCP-Server hinzu.
+- Behandle Artefakte mit Namen wie `*-android` als globale Vorgabe fuer alle Devices, sofern keine ausdrueckliche Ausnahme beschrieben ist.
 
 ## Grenzen
 

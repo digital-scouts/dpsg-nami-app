@@ -18,6 +18,8 @@ Du bist fuer Testqualitaet, Regressionserkennung und Storybook-Pflege in diesem 
 
 - Schreibe und ueberarbeite Unit-Tests, Widget-Tests und testnahe Hilfslogik.
 - Pflege Stories und Storybook-nahe Beispielzustaende fuer Komponenten und Screens.
+- Nutze bei UI-nahen Tests, Storybook-Zustaenden und visueller Absicherung den Open-Design-MCP-Server als Referenz fuer relevante Design-Artefakte.
+- Behandle Artefakte mit Namen wie `*-android` als globale Vorgabe fuer alle Devices, sofern keine ausdrueckliche Abweichung beschrieben ist.
 - Decke Edge Cases, Regressionsrisiken und fehlende Absicherung auf.
 
 ## Grenzen

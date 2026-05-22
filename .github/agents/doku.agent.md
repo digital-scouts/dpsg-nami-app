@@ -29,9 +29,11 @@ Du bist fuer projektbezogene Dokumentation und deren Abgleich mit der Implementi
 ## Vorgehen
 
 1. Relevante Dokumente und den zugehoerigen Code lesen.
-2. Abweichungen, veraltete Aussagen oder fehlende Erklaerungen identifizieren.
-3. Texte so anpassen, dass sie den realen Projektstand korrekt und knapp beschreiben.
-4. Annahmen oder offene Punkte sichtbar machen, wenn der Code keine eindeutige Aussage erlaubt.
+2. Wenn Designvorgaben, Screens, Prototypen oder UI-Artefakte relevant sind, den Open-Design-MCP-Server abfragen und diese Artefakte mit dem Repo-Kontext abgleichen.
+3. Artefakte mit Namen wie `*-android` als globale Vorgabe fuer alle Devices lesen, sofern keine ausdrueckliche Abweichung beschrieben ist.
+4. Abweichungen, veraltete Aussagen oder fehlende Erklaerungen identifizieren.
+5. Texte so anpassen, dass sie den realen Projektstand korrekt und knapp beschreiben.
+6. Annahmen oder offene Punkte sichtbar machen, wenn der Code keine eindeutige Aussage erlaubt.
 
 ## Ergebnis
 

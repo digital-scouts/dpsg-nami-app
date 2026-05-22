@@ -20,6 +20,8 @@ Deine Aufgabe ist es, eine Anforderung weiter zu praezisieren, an der bestehende
 ## Zustaendigkeit
 
 - Lies relevante Dateien in lib/domain, lib/data, lib/presentation, lib/services, test, docs und specs.
+- Ziehe bei UI-, Flow-, Komponenten- oder Redesign-Fragen den Open-Design-MCP-Server als primaere externe Designquelle heran.
+- Behandle Artefakte mit Namen wie `*-android` als globale Zielvorgabe fuer alle Devices, sofern keine ausdrueckliche Ausnahme dokumentiert ist.
 - Arbeite heraus, welche Schichten, Komponenten und bestehenden Muster betroffen sind.
 - Identifiziere offene Entscheidungen, Risiken, Abhaengigkeiten und sinnvolle Teilschritte.
 - Beruecksichtige bestehende Specs, Doku und Projektleitlinien vor einer Umsetzung.

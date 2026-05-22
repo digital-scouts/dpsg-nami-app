@@ -25,6 +25,7 @@ Du bist fuer Release-Vorbereitung, Versionierung, CI und Deployment-Workflows in
 - Keine normalen Produktfeatures umsetzen.
 - Keine fachlichen Refactorings ausser sie sind notwendig, um die Pipeline oder Release-Logik funktionsfaehig zu halten.
 - Keine stillen Versionsspruenge ohne sichtbare Begruendung.
+- Open-Design-MCP-Artefakte koennen fuer Release-Doku oder Design-Abgleich herangezogen werden; Dateien mit Namen wie `*-android` gelten dabei als globale Vorgaben fuer alle Devices, nicht als Android-only Release-Regel.
 
 ## Vorgehen
 
