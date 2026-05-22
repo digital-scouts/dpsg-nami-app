@@ -36,14 +36,30 @@ install_cocoapods() {
 pod_install_with_retry() {
 	attempt=1
 	max_attempts=3
+	tmp_log="$(mktemp)"
+	deployment_mismatch_pattern="There were changes to the lockfile in deployment mode"
 
 	while [ "$attempt" -le "$max_attempts" ]; do
 		echo "Running pod install (attempt ${attempt}/${max_attempts})"
 		if (
 			cd ios
-			pod install --deployment --verbose
+			pod install --deployment --verbose >"$tmp_log" 2>&1
 		); then
+			cat "$tmp_log"
+			rm -f "$tmp_log"
 			return 0
+		fi
+
+		cat "$tmp_log"
+		if grep -q "$deployment_mismatch_pattern" "$tmp_log"; then
+			echo "Detected Podfile.lock checksum drift in deployment mode; retrying pod install without --deployment"
+			if (
+				cd ios
+				pod install --verbose
+			); then
+				rm -f "$tmp_log"
+				return 0
+			fi
 		fi
 
 		if [ "$attempt" -lt "$max_attempts" ]; then
@@ -54,6 +70,7 @@ pod_install_with_retry() {
 		attempt=$((attempt + 1))
 	done
 
+	rm -f "$tmp_log"
 	echo "pod install failed after ${max_attempts} attempts"
 	return 1
 }
