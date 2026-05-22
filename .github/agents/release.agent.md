@@ -1,7 +1,7 @@
 ---
 name: Release
 description: "Use when: preparing releases, bumping app versions, updating changelog entries, validating docs/version.json, adjusting GitHub Actions, CI pipelines, deployment workflows, release automation"
-tools: [read, edit, search, execute, todo]
+tools: [read, edit, search, execute, todo, open-design/*]
 argument-hint: "Beschreibe Release-, Versions-, CI- oder Deployment-Aufgabe und nenne Plattform oder Workflow."
 handoffs:
   - label: Release-Doku pruefen

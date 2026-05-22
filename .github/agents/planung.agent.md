@@ -1,7 +1,7 @@
 ---
 name: Planung
 description: "Use when: refining requirements, clarifying feature scope, defining architecture impact, creating implementation plans, mapping work to project structure, checking specs before coding"
-tools: [read, search, todo, agent]
+tools: [read, search, todo, agent, open-design/*]
 agents: [Doku, Entwicklung]
 argument-hint: "Beschreibe die Anforderung, den gewuenschten Nutzen und bekannte Randbedingungen oder Specs."
 handoffs:

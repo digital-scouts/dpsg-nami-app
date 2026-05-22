@@ -1,7 +1,7 @@
 ---
 name: Doku
 description: "Use when: updating README, technical documentation, user-facing docs, specs, setup guides, workflow docs, privacy text, release notes, changelog wording, feature documentation"
-tools: [read, edit, search, todo]
+tools: [read, edit, search, todo, open-design/*]
 argument-hint: "Beschreibe, welche Dokumentation angepasst, erstellt oder mit dem Code abgeglichen werden soll."
 handoffs:
   - label: Code angleichen

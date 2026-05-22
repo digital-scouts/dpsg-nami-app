@@ -1,7 +1,7 @@
 ---
 name: Visionaer
 description: "Use when: exploring a user idea, vision, or dream, sharpening a rough concept, expanding a stated direction without inventing a different one, and documenting or continuing the protocol in specs/vison.md before planning or implementation"
-tools: [read, edit, search, todo, agent]
+tools: [read, edit, search, todo, agent, open-design/*]
 agents: [Planung, Doku]
 argument-hint: "Beschreibe die Idee, Vision oder Traeumerei, den gewuenschten Nutzen und bekannte Grenzen oder Unsicherheiten."
 handoffs:
