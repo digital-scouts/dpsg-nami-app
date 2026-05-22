@@ -69,59 +69,76 @@ class _StammAddressSettingsState extends State<StammAddressSettings> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          AppLocalizations.of(context).t('address_help'),
-          style: theme.textTheme.bodyMedium,
-        ),
-        Autocomplete<String>(
-          optionsBuilder: (TextEditingValue value) async {
-            final query = value.text;
-            if (query.length < 5) {
-              _results = [];
-              return const Iterable<String>.empty();
-            }
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Autocomplete<String>(
+                optionsBuilder: (TextEditingValue value) async {
+                  final query = value.text;
+                  if (query.length < 5) {
+                    _results = [];
+                    return const Iterable<String>.empty();
+                  }
 
-            if (_lastQuery == query) {
-              return _results;
-            }
-            _lastQuery = query;
+                  if (_lastQuery == query) {
+                    return _results;
+                  }
+                  _lastQuery = query;
 
-            _debounce?.cancel();
-            final completer = Completer<Iterable<String>>();
-            _debounce = Timer(const Duration(milliseconds: 400), () async {
-              _results = await widget.autocompleteProvider(query);
-              completer.complete(_results);
-            });
-            return completer.future;
-          },
-          onSelected: (selection) async {
-            await widget.repository.saveAddress(selection);
-            unawaited(_downloadOfflineRegion(selection));
-            setState(() {
-              _savedAddress = selection;
-              _controller.text = selection;
-            });
-            widget.onDownloadRegion?.call();
-            AppSnackbar.show(
-              context,
-              message: AppLocalizations.of(context).t('address_saved'),
-              type: AppSnackbarType.success,
-            );
-          },
-          fieldViewBuilder: (context, textController, focusNode, onSubmitted) {
-            textController.text = _controller.text;
-            return TextFormField(
-              controller: textController,
-              focusNode: focusNode,
-              style: Theme.of(context).textTheme.bodySmall,
-              decoration: InputDecoration(
-                labelText: AppLocalizations.of(context).t('address_label'),
-                labelStyle: Theme.of(context).textTheme.bodyMedium,
+                  _debounce?.cancel();
+                  final completer = Completer<Iterable<String>>();
+                  _debounce = Timer(
+                    const Duration(milliseconds: 400),
+                    () async {
+                      _results = await widget.autocompleteProvider(query);
+                      completer.complete(_results);
+                    },
+                  );
+                  return completer.future;
+                },
+                onSelected: (selection) async {
+                  await widget.repository.saveAddress(selection);
+                  unawaited(_downloadOfflineRegion(selection));
+                  setState(() {
+                    _savedAddress = selection;
+                    _controller.text = selection;
+                  });
+                  widget.onDownloadRegion?.call();
+                  AppSnackbar.show(
+                    context,
+                    message: AppLocalizations.of(context).t('address_saved'),
+                    type: AppSnackbarType.success,
+                  );
+                },
+                fieldViewBuilder:
+                    (context, textController, focusNode, onSubmitted) {
+                      textController.text = _controller.text;
+                      return TextFormField(
+                        controller: textController,
+                        focusNode: focusNode,
+                        style: theme.textTheme.bodySmall,
+                        decoration: InputDecoration(
+                          labelText: AppLocalizations.of(
+                            context,
+                          ).t('address_label'),
+                          labelStyle: theme.textTheme.labelMedium,
+                          prefixIcon: const Icon(Icons.search),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      );
+                    },
               ),
-            );
-          },
+            ],
+          ),
         ),
-        const SizedBox(height: 12),
         if ((_savedAddress ?? '').trim().isNotEmpty)
           AddressMapPreview(
             addressText: (_savedAddress ?? '').trim(),
