@@ -20,6 +20,7 @@ import '../screens/settings_debug_tools_page.dart';
 import '../screens/settings_map_page.dart';
 import '../screens/settings_notification_page.dart';
 import '../screens/settings_stamm_page.dart';
+import '../screens/statistics_group_detail_page.dart';
 import '../theme/theme.dart';
 
 class AppRoutes {
@@ -32,6 +33,7 @@ class AppRoutes {
   static const String debugTools = '/settings/debug';
   static const String pullNotifications = '/notifications';
   static const String profile = '/profile';
+  static const String statisticsGroupDetail = '/statistics/group-detail';
 }
 
 Route<dynamic> onGenerateRoute(RouteSettings settings) {
@@ -204,6 +206,16 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         settings: settings,
         builder: (context) => const NotificationsPage(),
+      );
+    case AppRoutes.statisticsGroupDetail:
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) {
+          final groupId = settings.arguments is String
+              ? settings.arguments! as String
+              : 'woe';
+          return StatisticsGroupDetailPage(groupId: groupId);
+        },
       );
     case AppRoutes.debugTools:
       return MaterialPageRoute(
