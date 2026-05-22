@@ -25,6 +25,7 @@ class MemberDirectory extends StatefulWidget {
     this.trailingTextBuilder,
     this.warningBuilder,
     this.enableGroupFilter = true,
+    this.hasFilterDeviation = false,
     this.onOpenFilterOptions,
     this.onTapMember,
   });
@@ -41,6 +42,7 @@ class MemberDirectory extends StatefulWidget {
   final String? Function(Mitglied mitglied)? trailingTextBuilder;
   final bool Function(Mitglied mitglied)? warningBuilder;
   final bool enableGroupFilter;
+  final bool hasFilterDeviation;
   final VoidCallback? onOpenFilterOptions;
   final ValueChanged<String>? onTapMember;
 
@@ -100,7 +102,8 @@ class _MemberDirectoryState extends State<MemberDirectory> {
         .map(
           (stufe) => GroupFilterItem(
             keyName: stufe.name,
-            imageAssetPath: StufeVisuals.assetFor(stufe),
+            label: stufe.displayName,
+            chipColor: StufeVisuals.colorFor(stufe),
             semanticLabel: stufe.displayName,
           ),
         )
@@ -112,9 +115,9 @@ class _MemberDirectoryState extends State<MemberDirectory> {
       items.add(
         GroupFilterItem(
           keyName: group.filterKey,
+          label: group.displayChipLabel,
           iconData: memberCustomFilterIconForKey(group.iconKey),
           semanticLabel: group.displayChipLabel,
-          textLabel: group.displayChipLabel,
         ),
       );
     }
@@ -127,23 +130,35 @@ class _MemberDirectoryState extends State<MemberDirectory> {
 
     return Column(
       children: [
-        GroupFilterBar(
-          items: items,
-          selectedKeys: selectedFilterKeys,
-          onChanged: (next) {
-            if (!widget.enableGroupFilter) {
-              return;
-            }
-            setState(() {
-              selectedFilterKeys = next;
-            });
-          },
-          itemSize: 54,
-        ),
-        MemberSearchBar(
-          initial: search,
-          onChanged: (v) => setState(() => search = v),
-          onTunePressed: widget.onOpenFilterOptions,
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            border: Border(
+              bottom: BorderSide(color: Theme.of(context).colorScheme.outline),
+            ),
+          ),
+          child: Column(
+            children: [
+              MemberSearchBar(
+                initial: search,
+                onChanged: (v) => setState(() => search = v),
+                showFilterIndicator: widget.hasFilterDeviation,
+                onTunePressed: widget.onOpenFilterOptions,
+              ),
+              GroupFilterBar(
+                items: items,
+                selectedKeys: selectedFilterKeys,
+                onChanged: (next) {
+                  if (!widget.enableGroupFilter) {
+                    return;
+                  }
+                  setState(() {
+                    selectedFilterKeys = next;
+                  });
+                },
+              ),
+            ],
+          ),
         ),
         Expanded(
           child: MemberList(
@@ -162,6 +177,7 @@ class _MemberDirectoryState extends State<MemberDirectory> {
             mitgliedsFilterKeys: widget.mitgliedsFilterKeys,
             onResetFilters: _resetFilters,
             onToggleFavourite: toggleFavourite,
+            onTapSortHint: widget.onOpenFilterOptions,
             onTapMember: (id) {
               widget.onTapMember?.call(id);
             },

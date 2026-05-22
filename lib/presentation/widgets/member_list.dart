@@ -40,6 +40,7 @@ class MemberList extends StatelessWidget {
     this.onResetFilters,
     this.onToggleFavourite,
     this.onTapMember,
+    this.onTapSortHint,
   });
   final List<Mitglied> mitglieder;
   final String searchString;
@@ -55,6 +56,7 @@ class MemberList extends StatelessWidget {
   final VoidCallback? onResetFilters;
   final ValueChanged<String>? onToggleFavourite;
   final ValueChanged<String>? onTapMember;
+  final VoidCallback? onTapSortHint;
 
   @override
   Widget build(BuildContext context) {
@@ -107,60 +109,120 @@ class MemberList extends StatelessWidget {
       }
     });
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(8),
-      itemCount: filtered.length + 1,
-      itemBuilder: (ctx, i) {
-        if (i == filtered.length) {
-          return ListTile(
-            title: Center(
-              child: filtered.isEmpty
-                  ? Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(t.t('member_list_no_results')),
-                        if (hasActiveFilterState && onResetFilters != null) ...[
-                          const SizedBox(height: 8),
-                          TextButton(
-                            onPressed: onResetFilters,
-                            child: Text(t.t('member_list_reset_filters')),
-                          ),
-                        ],
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  t.tParams('member_list_count', <String, Object>{
+                    'count': filtered.length,
+                  }),
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    fontSize: 13,
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: onTapSortHint,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 2,
+                    vertical: 4,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.swap_vert,
+                        size: 14,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 2),
+                      Text(
+                        _sortHintLabel(t, sortKey),
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: filtered.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(t.t('member_list_no_results')),
+                      if (hasActiveFilterState && onResetFilters != null) ...[
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: onResetFilters,
+                          child: Text(t.t('member_list_reset_filters')),
+                        ),
                       ],
-                    )
-                  : Text(
-                      t.tParams('member_list_count', <String, Object>{
-                        'count': filtered.length,
-                      }),
-                    ),
-            ),
-          );
-        }
-        final entry = filtered[i];
-        final m = entry.mitglied;
-        return MemberListTile(
-          mitglied: m,
-          isFavourite: favourites.contains(m.mitgliedsnummer),
-          subtitleMode: subtitleMode,
-          subtitleText: subtitleTextBuilder?.call(m),
-          subtitleHighlight: highlightSearchMatches
-              ? entry.subtitleHighlight
-              : null,
-          showWarning: warningBuilder?.call(m) ?? false,
-          trailingText: trailingTextBuilder?.call(m),
-          onTap: () {
-            if (onTapMember != null) {
-              onTapMember!(m.mitgliedsnummer);
-            }
-          },
-          toggleFavorites: () {
-            if (onToggleFavourite != null) {
-              onToggleFavourite!(m.mitgliedsnummer);
-            }
-          },
-        );
-      },
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  itemCount: filtered.length,
+                  itemBuilder: (ctx, i) {
+                    final entry = filtered[i];
+                    final m = entry.mitglied;
+                    return MemberListTile(
+                      mitglied: m,
+                      isFavourite: favourites.contains(m.mitgliedsnummer),
+                      subtitleMode: subtitleMode,
+                      subtitleText: subtitleTextBuilder?.call(m),
+                      subtitleHighlight: highlightSearchMatches
+                          ? entry.subtitleHighlight
+                          : null,
+                      showWarning: warningBuilder?.call(m) ?? false,
+                      trailingText: trailingTextBuilder?.call(m),
+                      onTap: () {
+                        if (onTapMember != null) {
+                          onTapMember!(m.mitgliedsnummer);
+                        }
+                      },
+                      toggleFavorites: () {
+                        if (onToggleFavourite != null) {
+                          onToggleFavourite!(m.mitgliedsnummer);
+                        }
+                      },
+                    );
+                  },
+                ),
+        ),
+      ],
     );
+  }
+
+  String _sortHintLabel(AppLocalizations t, MemberSortKey key) {
+    switch (key) {
+      case MemberSortKey.age:
+        return t.t('member_list_sort_hint_age');
+      case MemberSortKey.group:
+        return t.t('member_list_sort_hint_group');
+      case MemberSortKey.name:
+        return t.t('member_list_sort_hint_name');
+      case MemberSortKey.vorname:
+        return t.t('member_list_sort_hint_vorname');
+      case MemberSortKey.memberTime:
+        return t.t('member_list_sort_hint_member_time');
+    }
   }
 
   _FilteredMemberEntry? _resolveFilteredMember(

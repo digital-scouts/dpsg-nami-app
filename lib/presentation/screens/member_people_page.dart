@@ -122,6 +122,7 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
     final sortKey = memberFiltersModel?.sortKey ?? MemberSortKey.name;
     final subtitleMode =
         memberFiltersModel?.subtitleMode ?? MemberSubtitleMode.mitgliedsnummer;
+    final hasFilterDeviation = _hasMemberFilterDeviation(memberFiltersModel);
 
     _scheduleIssueSnackbar(context, t, authModel);
     _scheduleResolutionSnackbar(context, memberEditModel);
@@ -143,6 +144,7 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
             memberFiltersModel: memberFiltersModel,
             sortKey: sortKey,
             subtitleMode: subtitleMode,
+            hasFilterDeviation: hasFilterDeviation,
             members: members,
             memberEditModel: memberEditModel,
           ),
@@ -247,6 +249,7 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
     required MemberFiltersModel? memberFiltersModel,
     required MemberSortKey sortKey,
     required MemberSubtitleMode subtitleMode,
+    required bool hasFilterDeviation,
     required List<Mitglied> members,
     required MemberEditModel? memberEditModel,
   }) {
@@ -270,6 +273,7 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
         customFilterGroups: memberFiltersModel?.customGroups ?? const [],
         showBiberFilter: showBiberFilter,
         enableGroupFilter: true,
+        hasFilterDeviation: hasFilterDeviation,
         onOpenFilterOptions:
             memberFiltersModel == null || arbeitskontextModel.readModel == null
             ? null
@@ -309,6 +313,24 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
         child: Text(t.t('members_empty'), textAlign: TextAlign.center),
       ),
     );
+  }
+
+  bool _hasMemberFilterDeviation(MemberFiltersModel? model) {
+    if (model == null) {
+      return false;
+    }
+    if (model.sortKey != MemberSortKey.name) {
+      return true;
+    }
+    if (model.subtitleMode != MemberSubtitleMode.mitgliedsnummer) {
+      return true;
+    }
+    for (final group in model.customGroups) {
+      if (group.isActive != group.isDefault) {
+        return true;
+      }
+    }
+    return false;
   }
 
   bool _hatMitgliedInGruppenTyp(
