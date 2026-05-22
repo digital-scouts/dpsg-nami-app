@@ -13,6 +13,16 @@ class AuthProfileRole {
   final String roleClass;
   final List<String> permissions;
 
+  bool get isLeitung {
+    final normalizedRoleClass = roleClass.trim().toLowerCase();
+    if (normalizedRoleClass.contains('leitung')) {
+      return true;
+    }
+
+    final normalizedRoleName = roleName.trim().toLowerCase();
+    return normalizedRoleName.contains('leitung');
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'group_id': groupId,
@@ -64,6 +74,8 @@ class AuthProfile {
   final String? nickname;
   final String? language;
   final List<AuthProfileRole> roles;
+
+  bool get hasLeitungsRole => roles.any((role) => role.isLeitung);
 
   Map<String, dynamic> toJson() {
     return {

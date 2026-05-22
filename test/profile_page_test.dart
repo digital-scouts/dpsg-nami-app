@@ -18,6 +18,7 @@ import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/screens/profile_page.dart';
+import 'package:nami/presentation/theme/theme.dart';
 import 'package:nami/services/biometric_lock_service.dart';
 import 'package:nami/services/hitobito_auth_env.dart';
 import 'package:nami/services/hitobito_data_retention_policy.dart';
@@ -31,7 +32,7 @@ const _layerSwitcherListKey = ValueKey('layer_switcher_list');
 
 void main() {
   testWidgets(
-    'zeigt Profil, Rollen und Sprachbadge statt technischer Sessioninfos',
+    'zeigt Profil und Rollen ohne zusätzliche persönliche Detailzeilen',
     (tester) async {
       await _pumpProfilePage(
         tester,
@@ -54,23 +55,19 @@ void main() {
         ),
       );
 
-      expect(find.text('Polka'), findsOneWidget);
+      expect(find.text('Polka'), findsNothing);
       expect(find.text('Julia Keller'), findsOneWidget);
       expect(find.text('nami-id'), findsOneWidget);
       expect(find.text('34'), findsOneWidget);
       expect(find.text('julia@example.com'), findsOneWidget);
-      expect(find.text('EN'), findsOneWidget);
-      expect(find.text('Arbeitskontext'), findsOneWidget);
-      expect(find.text('Stamm Musterdorf'), findsOneWidget);
+      expect(find.text('EN'), findsNothing);
+      expect(find.text('Persönliche Daten'.toUpperCase()), findsOneWidget);
+      expect(find.text('ARBEITSKONTEXT'), findsWidgets);
+      expect(find.text('Stamm Musterdorf'), findsWidgets);
       expect(find.text('Layer wechseln'), findsOneWidget);
-      await tester.scrollUntilVisible(
-        find.text('Anmeldestatus'),
-        200,
-        scrollable: find.byType(Scrollable),
-      );
-      expect(find.text('Anmeldestatus'), findsOneWidget);
-      expect(find.text('Letzte Datenbestaetigung'), findsOneWidget);
-      expect(find.text('Angemeldet'), findsOneWidget);
+      expect(find.text('Anmeldestatus'), findsNothing);
+      expect(find.text('Letzte Datenbestaetigung'), findsNothing);
+      expect(find.text('Angemeldet'), findsNothing);
 
       await tester.scrollUntilVisible(
         find.text('Mitarbeiter*in GS'),
@@ -100,9 +97,80 @@ void main() {
 
       expect(find.text('Max Mustermann'), findsOneWidget);
       expect(find.text('Polka'), findsNothing);
-      expect(find.text('DE'), findsOneWidget);
+      expect(find.text('DE'), findsNothing);
     },
     timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  testWidgets('nutzt fuer Leitungsprofile im Dark Theme das dunklere Blau', (
+    tester,
+  ) async {
+    await _pumpProfilePage(
+      tester,
+      themeMode: ThemeMode.dark,
+      profile: const AuthProfile(
+        namiId: 52,
+        firstName: 'Julia',
+        lastName: 'Keller',
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 11,
+            groupName: 'Stamm Musterdorf',
+            roleName: 'Leitung Stamm',
+            roleClass: 'Group::Stamm::Leitung',
+          ),
+        ],
+      ),
+    );
+
+    final header = tester.widget<Container>(
+      find.byKey(const ValueKey('profile_header')),
+    );
+    final contextCard = tester.widget<Container>(
+      find.byKey(const ValueKey('profile_context_card')),
+    );
+
+    expect(header.color, DPSGColors.primaryLight);
+    expect(
+      (contextCard.decoration! as BoxDecoration).color,
+      DPSGColors.primaryLight,
+    );
+  });
+
+  testWidgets(
+    'behaelt fuer Nicht-Leitungsprofile im Dark Theme das regulaere Profilblau',
+    (tester) async {
+      await _pumpProfilePage(
+        tester,
+        themeMode: ThemeMode.dark,
+        profile: const AuthProfile(
+          namiId: 53,
+          firstName: 'Max',
+          lastName: 'Mustermann',
+          roles: <AuthProfileRole>[
+            AuthProfileRole(
+              groupId: 11,
+              groupName: 'Stamm Musterdorf',
+              roleName: 'Mitglied',
+              roleClass: 'Group::Stamm::Mitglied',
+            ),
+          ],
+        ),
+      );
+
+      final header = tester.widget<Container>(
+        find.byKey(const ValueKey('profile_header')),
+      );
+      final contextCard = tester.widget<Container>(
+        find.byKey(const ValueKey('profile_context_card')),
+      );
+
+      expect(header.color, DPSGColors.primaryDark);
+      expect(
+        (contextCard.decoration! as BoxDecoration).color,
+        DPSGColors.primaryDark,
+      );
+    },
   );
 
   testWidgets(
@@ -121,7 +189,7 @@ void main() {
       );
 
       expect(find.text('Lea Beispiel'), findsOneWidget);
-      expect(find.text('DE'), findsOneWidget);
+      expect(find.text('DE'), findsNothing);
       await tester.scrollUntilVisible(
         find.text('Keine Rollen im Profil vorhanden'),
         200,
@@ -133,7 +201,7 @@ void main() {
   );
 
   testWidgets(
-    'zeigt bei Remote-Problemen einen cache-only Status statt Angemeldet',
+    'zeigt im Profil bei Remote-Problemen keine Offline-Hinweise',
     (tester) async {
       final authModel = AuthSessionModel(
         repository: _InMemoryAuthSessionRepository(),
@@ -190,17 +258,11 @@ void main() {
       );
 
       await tester.pump();
-      await tester.scrollUntilVisible(
-        find.text('Lokale Daten aktiv, Anmeldung fuer Updates erforderlich'),
-        200,
-        scrollable: find.byType(Scrollable),
-      );
-
       expect(
         find.text('Lokale Daten aktiv, Anmeldung fuer Updates erforderlich'),
-        findsOneWidget,
+        findsNothing,
       );
-      expect(find.text('Angemeldet'), findsNothing);
+      expect(find.text('Anmeldestatus'), findsNothing);
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
@@ -219,12 +281,15 @@ void main() {
         ),
       );
 
-      await tester.tap(find.text('Layer wechseln'));
+      final switchAction = find.text('Layer wechseln').first;
+      await tester.ensureVisible(switchAction);
+      await tester.pumpAndSettle();
+      await tester.tap(switchAction);
       await tester.pumpAndSettle();
 
       expect(find.text('Layer wechseln'), findsNWidgets(2));
       expect(find.text('Aktuell aktiv'), findsOneWidget);
-      expect(find.text('Bezirk Rhein'), findsOneWidget);
+      expect(find.text('Bezirk Rhein'), findsWidgets);
     },
   );
 
@@ -335,9 +400,12 @@ void main() {
         readModelRepository: readModelRepository,
       );
 
-      await tester.tap(find.text('Layer wechseln'));
+      final switchAction = find.text('Layer wechseln').first;
+      await tester.ensureVisible(switchAction);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Bezirk Rhein'));
+      await tester.tap(switchAction);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Bezirk Rhein').last);
       await tester.pump();
 
       expect(find.text('Arbeitskontext wird gewechselt'), findsOneWidget);
@@ -345,7 +413,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 60));
       await tester.pumpAndSettle();
 
-      expect(find.text('Bezirk Rhein'), findsOneWidget);
+      expect(find.text('Bezirk Rhein'), findsWidgets);
       expect(find.text('Arbeitskontext wird gewechselt'), findsNothing);
       expect(
         readModelRepository.lastRefreshArbeitskontext?.aktiverLayer.id,
@@ -388,9 +456,12 @@ void main() {
         readModelRepository: readModelRepository,
       );
 
-      await tester.tap(find.text('Layer wechseln'));
+      final switchAction = find.text('Layer wechseln').first;
+      await tester.ensureVisible(switchAction);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Bezirk Rhein'));
+      await tester.tap(switchAction);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Bezirk Rhein').last);
       await tester.pumpAndSettle();
 
       expect(
@@ -398,7 +469,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.textContaining('offline'), findsNothing);
-      expect(find.text('Stamm Musterdorf'), findsOneWidget);
+      expect(find.text('Stamm Musterdorf'), findsWidgets);
     },
   );
 }
@@ -406,6 +477,7 @@ void main() {
 Future<void> _pumpProfilePage(
   WidgetTester tester, {
   required AuthProfile profile,
+  ThemeMode themeMode = ThemeMode.light,
   Arbeitskontext? arbeitskontext,
   List<HitobitoGroupResource>? groups,
   ArbeitskontextReadModelRepository? readModelRepository,
@@ -446,6 +518,9 @@ Future<void> _pumpProfilePage(
         ),
       ],
       child: MaterialApp(
+        theme: lightTheme,
+        darkTheme: darkTheme,
+        themeMode: themeMode,
         localizationsDelegates: [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
