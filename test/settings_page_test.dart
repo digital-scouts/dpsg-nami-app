@@ -11,6 +11,7 @@ import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/screens/settings_page.dart';
+import 'package:nami/services/app_update_service.dart';
 import 'package:nami/services/biometric_lock_service.dart';
 import 'package:nami/services/hitobito_auth_env.dart';
 import 'package:nami/services/hitobito_data_retention_policy.dart';
@@ -20,6 +21,31 @@ import 'package:nami/services/sensitive_storage_service.dart';
 import 'package:provider/provider.dart';
 
 void main() {
+  Widget buildTestApp({
+    required AuthSessionModel authModel,
+    VoidCallback? onMessages,
+    List<dynamic> additionalProviders = const [],
+  }) {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
+        Provider<LoggerService>.value(value: _FakeLoggerService()),
+        ...additionalProviders,
+      ],
+      child: MaterialApp(
+        localizationsDelegates: [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          AppLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('de'), Locale('en')],
+        locale: const Locale('de'),
+        home: SettingsPage(onMessages: onMessages),
+      ),
+    );
+  }
+
   testWidgets('zeigt Karte als Eintrag in den Einstellungen', (tester) async {
     final authModel = AuthSessionModel(
       repository: _InMemoryAuthSessionRepository(),
@@ -34,29 +60,12 @@ void main() {
       logger: _FakeLoggerService(),
     );
 
-    await tester.pumpWidget(
-      MultiProvider(
-        providers: [
-          ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
-          Provider<LoggerService>.value(value: _FakeLoggerService()),
-        ],
-        child: MaterialApp(
-          localizationsDelegates: [
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-            AppLocalizations.delegate,
-          ],
-          supportedLocales: const [Locale('de'), Locale('en')],
-          locale: const Locale('de'),
-          home: const SettingsPage(),
-        ),
-      ),
-    );
+    await tester.pumpWidget(buildTestApp(authModel: authModel));
 
     await tester.pump();
 
     expect(find.text('Karte'), findsOneWidget);
+    expect(find.byKey(const Key('settings-messages-banner')), findsNothing);
   });
 
   testWidgets(
@@ -80,25 +89,21 @@ void main() {
         requiresInteractiveLogin: true,
       );
 
+      var openedMessages = false;
+
       await tester.pumpWidget(
-        ChangeNotifierProvider<AuthSessionModel>.value(
-          value: authModel,
-          child: MaterialApp(
-            localizationsDelegates: [
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-              AppLocalizations.delegate,
-            ],
-            supportedLocales: const [Locale('de'), Locale('en')],
-            locale: const Locale('de'),
-            home: const SettingsPage(),
-          ),
+        buildTestApp(
+          authModel: authModel,
+          onMessages: () {
+            openedMessages = true;
+          },
         ),
       );
 
       await tester.pump();
 
+      expect(find.byKey(const Key('settings-messages-banner')), findsOneWidget);
+      expect(find.byKey(const Key('settings-messages-badge')), findsOneWidget);
       expect(find.text('Hitobito derzeit nicht erreichbar'), findsOneWidget);
       expect(
         find.text(
@@ -106,8 +111,62 @@ void main() {
         ),
         findsOneWidget,
       );
+
+      await tester.tap(find.byKey(const Key('settings-messages-banner')));
+      await tester.pump();
+
+      expect(openedMessages, isTrue);
     },
   );
+
+  testWidgets('zeigt Stapel-Effekt bei mehreren Meldungen', (tester) async {
+    final authModel = AuthSessionModel(
+      repository: _InMemoryAuthSessionRepository(),
+      profileRepository: _InMemoryAuthProfileRepository(),
+      oauthService: _FakeOauthService(),
+      biometricLockService: _FakeBiometricLockService(),
+      sensitiveStorageService: _FakeSensitiveStorageService(),
+      retentionPolicy: HitobitoDataRetentionPolicy(
+        maxDataAge: const Duration(days: 90),
+        refreshInterval: const Duration(hours: 24),
+      ),
+      logger: _FakeLoggerService(),
+    );
+
+    authModel.reportRemoteDataIssue('offline');
+
+    final updateService = AppUpdateService(
+      platformOverride: 'android',
+      currentVersionProvider: () async => '1.0.0',
+      manifestProvider: () async => <String, dynamic>{
+        'android': <String, dynamic>{
+          'latest': '1.1.0',
+          'min_supported': '0.9.0',
+          'store_url': 'https://example.com/app',
+        },
+      },
+    );
+
+    await tester.pumpWidget(
+      buildTestApp(
+        authModel: authModel,
+        additionalProviders: [
+          Provider<AppUpdateService>.value(value: updateService),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('settings-messages-stack-back-1')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('settings-messages-stack-back-2')),
+      findsOneWidget,
+    );
+    expect(find.text('2'), findsOneWidget);
+  });
 }
 
 class _InMemoryAuthProfileRepository implements AuthProfileRepository {
