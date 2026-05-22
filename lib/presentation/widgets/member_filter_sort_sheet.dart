@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../domain/arbeitskontext/arbeitskontext_read_model.dart';
@@ -11,21 +13,64 @@ Future<void> showMemberFilterSortSheet(
   BuildContext context, {
   required MemberFiltersModel model,
   required ArbeitskontextReadModel readModel,
+  FutureOr<void> Function(MemberFilterSortApplySummary summary)? onApplied,
 }) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (sheetContext) =>
-        _MemberFilterSortSheet(model: model, readModel: readModel),
+    builder: (sheetContext) => _MemberFilterSortSheet(
+      model: model,
+      readModel: readModel,
+      onApplied: onApplied,
+    ),
   );
 }
 
+class MemberFilterSortApplySummary {
+  const MemberFilterSortApplySummary({
+    required this.sortKey,
+    required this.subtitleMode,
+    required this.customGroupCount,
+    required this.activeCustomGroupCount,
+    required this.changed,
+    required this.sortChanged,
+    required this.subtitleChanged,
+    required this.customGroupsChanged,
+  });
+
+  final MemberSortKey sortKey;
+  final MemberSubtitleMode subtitleMode;
+  final int customGroupCount;
+  final int activeCustomGroupCount;
+  final bool changed;
+  final bool sortChanged;
+  final bool subtitleChanged;
+  final bool customGroupsChanged;
+
+  Map<String, Object?> toTelemetryProperties() => <String, Object?>{
+    'sort_key': sortKey.name,
+    'subtitle_mode': subtitleMode.name,
+    'custom_group_count': customGroupCount,
+    'active_custom_group_count': activeCustomGroupCount,
+    'changed': changed,
+    'sort_changed': sortChanged,
+    'subtitle_changed': subtitleChanged,
+    'custom_groups_changed': customGroupsChanged,
+  };
+}
+
 class _MemberFilterSortSheet extends StatefulWidget {
-  const _MemberFilterSortSheet({required this.model, required this.readModel});
+  const _MemberFilterSortSheet({
+    required this.model,
+    required this.readModel,
+    this.onApplied,
+  });
 
   final MemberFiltersModel model;
   final ArbeitskontextReadModel readModel;
+  final FutureOr<void> Function(MemberFilterSortApplySummary summary)?
+  onApplied;
 
   @override
   State<_MemberFilterSortSheet> createState() => _MemberFilterSortSheetState();
@@ -273,14 +318,75 @@ class _MemberFilterSortSheetState extends State<_MemberFilterSortSheet> {
   }
 
   Future<void> _applyDraft() async {
+    final summary = _buildApplySummary();
     await widget.model.applySettings(
       sortKey: _draftSortKey,
       subtitleMode: _draftSubtitleMode,
       customGroups: _draftCustomGroups,
     );
+    await widget.onApplied?.call(summary);
     if (mounted) {
       Navigator.of(context).pop();
     }
+  }
+
+  MemberFilterSortApplySummary _buildApplySummary() {
+    final sortChanged = widget.model.sortKey != _draftSortKey;
+    final subtitleChanged = widget.model.subtitleMode != _draftSubtitleMode;
+    final customGroupsChanged = !_hasSameCustomGroups(
+      widget.model.customGroups,
+      _draftCustomGroups,
+    );
+    return MemberFilterSortApplySummary(
+      sortKey: _draftSortKey,
+      subtitleMode: _draftSubtitleMode,
+      customGroupCount: _draftCustomGroups.length,
+      activeCustomGroupCount: _draftCustomGroups
+          .where((group) => group.isActive)
+          .length,
+      changed: sortChanged || subtitleChanged || customGroupsChanged,
+      sortChanged: sortChanged,
+      subtitleChanged: subtitleChanged,
+      customGroupsChanged: customGroupsChanged,
+    );
+  }
+
+  bool _hasSameCustomGroups(
+    List<MemberCustomFilterGroup> current,
+    List<MemberCustomFilterGroup> draft,
+  ) {
+    if (current.length != draft.length) {
+      return false;
+    }
+    for (var index = 0; index < current.length; index += 1) {
+      final left = current[index];
+      final right = draft[index];
+      if (left.id != right.id ||
+          left.shortLabel != right.shortLabel ||
+          left.isActive != right.isActive ||
+          left.isDefault != right.isDefault ||
+          left.logic != right.logic ||
+          left.iconKey != right.iconKey ||
+          !_hasSameRules(left.rules, right.rules)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool _hasSameRules(
+    List<MemberCustomFilterRule> current,
+    List<MemberCustomFilterRule> draft,
+  ) {
+    if (current.length != draft.length) {
+      return false;
+    }
+    for (var index = 0; index < current.length; index += 1) {
+      if (current[index] != draft[index]) {
+        return false;
+      }
+    }
+    return true;
   }
 
   List<MemberCustomFilterGroup> _upsertGroup(

@@ -5,6 +5,7 @@ import 'package:nami/domain/member/member_list_preferences.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/widgets/member_list.dart';
+import 'package:nami/presentation/widgets/member_list_group_filter_bar.dart';
 import 'package:nami/presentation/widgets/member_list_tile.dart';
 
 void main() {
@@ -199,6 +200,57 @@ void main() {
             widget is RichText && widget.text.toPlainText() == 'test@google.de',
       );
       expect(richTextFinder, findsNothing);
+    },
+  );
+
+  testWidgets(
+    'Gruppenfilter klappt viele Chips ohne horizontales Scrollen auf',
+    (tester) async {
+      final selectedKeys = <String>{};
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            AppLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('de'), Locale('en')],
+          locale: const Locale('de'),
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.topLeft,
+              child: SizedBox(
+                width: 180,
+                child: GroupFilterBar(
+                  items: List<GroupFilterItem>.generate(
+                    8,
+                    (index) => GroupFilterItem(
+                      keyName: 'filter_$index',
+                      label: 'Gruppe $index',
+                    ),
+                  ),
+                  selectedKeys: selectedKeys,
+                  onChanged: (_) {},
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SingleChildScrollView), findsNothing);
+      expect(find.text('Mehr anzeigen'), findsOneWidget);
+      expect(find.text('Gruppe 7').hitTestable(), findsNothing);
+
+      await tester.tap(find.text('Mehr anzeigen'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Weniger anzeigen'), findsOneWidget);
+      expect(find.text('Gruppe 7').hitTestable(), findsOneWidget);
     },
   );
 }

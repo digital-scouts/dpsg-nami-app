@@ -261,9 +261,9 @@ Dieses Dokument übersetzt das Arbeitskontext-Konzept in kleine, kopierfertige T
 - Typ: Feature
 - Priorität: P0
 - Status: umgesetzt
-- Umsetzungsstand: Die Mitgliederliste zeigt produktiv alle Mitglieder des aktiven Arbeitskontexts. Vordefinierte Stufenfilter sowie persistierte benutzerdefinierte Filtergruppen sind angebunden; die Auswertung basiert auf Rollen- und Gruppenzuordnungen aus Ticket 3b und ist unter anderem durch `test/ermittle_member_filter_treffer_usecase_test.dart` sowie `test/shared_prefs_member_filter_repository_test.dart` abgesichert.
+- Umsetzungsstand: Die Mitgliederliste zeigt produktiv alle Mitglieder des aktiven Arbeitskontexts. Vordefinierte Stufenfilter sowie persistierte benutzerdefinierte Filtergruppen sind angebunden; die Auswertung basiert auf Rollen- und Gruppenzuordnungen aus Ticket 3b und ist unter anderem durch `test/ermittle_member_filter_treffer_usecase_test.dart`, `test/shared_prefs_member_filter_repository_test.dart` und `test/member_people_page_test.dart` abgesichert. Die Listen-UI nutzt eine Open-Design-nahe Kopfzeile mit Mitgliederzahl und Sortier-Trigger, eine Suchleiste mit Filterindikator, mehrzeilige Chips ohne horizontales Scrollen sowie ein Filter-und-Sortieren-Sheet mit Anwenden-Flow.
 - Ziel: Die Mitgliederliste soll den gesamten lesbaren Bestand des aktiven Arbeitskontexts zeigen und über Gruppen sinnvoll einschränkbar sein.
-- Kurzbeschreibung: Die Mitgliederliste zeigt alle Personen des aktiven Arbeitskontexts. Gruppen- und Stufenfilter schränken diese Menge innerhalb desselben Kontexts ein. Zusätzlich können benutzerdefinierte Filtergruppen mehrere Regeln über Stufen sowie Gruppen- und Rollenzuordnungen kombinieren. Leere Gruppen ohne Personen werden in der Leseansicht nicht angezeigt, und sonstige Gruppen bleiben keine vordefinierten Hauptfilter.
+- Kurzbeschreibung: Die Mitgliederliste zeigt alle Personen des aktiven Arbeitskontexts. Gruppen- und Stufenfilter schränken diese Menge innerhalb desselben Kontexts ein. Zusätzlich können benutzerdefinierte Filtergruppen mehrere Regeln über Stufen sowie Gruppen- und Rollenzuordnungen kombinieren. Leere Gruppen ohne Personen werden in der Leseansicht nicht angezeigt, und sonstige Gruppen bleiben keine vordefinierten Hauptfilter. Sortierung, Zusatztext und eigene Gruppen werden im Filter-und-Sortieren-Sheet zunächst als Entwurf geändert und erst mit "Anwenden" gespeichert.
 - Akzeptanzkriterien:
   - Ohne aktiven Filter zeigt die Liste alle lesbaren Personen des aktiven Arbeitskontexts.
   - Gruppenfilter schränken die Liste ein, ohne den aktiven Arbeitskontext zu ändern.
@@ -271,6 +271,12 @@ Dieses Dokument übersetzt das Arbeitskontext-Konzept in kleine, kopierfertige T
   - Personen mit Rollen in mehreren Gruppen können in mehreren Filtern erscheinen.
   - Leere Gruppen ohne Personen werden in der Leseansicht nicht angezeigt.
   - Sonstige Gruppen erscheinen nicht als vordefinierte Hauptfilter des MVP.
+  - Kein ausgewählter Chip bedeutet alle Personen; es gibt kein eigenes "Alle"-Element in der Chipleiste.
+  - Leitung erscheint nicht als eigener Stufen-Chip.
+  - Die Standardgruppe "Rest" bildet Personen ohne abgeleitete Stufe ab und ist als eigene Gruppe steuerbar.
+  - Die Chipleiste wird mehrzeilig angezeigt und bei vielen Chips über einen Button erweitert statt horizontal gescrollt.
+  - Sortierung und Zusatztext sind im Filter-und-Sortieren-Sheet auswählbar; Änderungen werden erst durch "Anwenden" persistiert.
+  - Ein Indikator am Filter-Icon zeigt Abweichungen von den Standardeinstellungen an.
 - Abhängigkeiten: Ticket 3, Ticket 3b.
 - Nicht Teil dieses Tickets: Tags, "Meine Gruppe" als personalisierte Teilmenge.
 

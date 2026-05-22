@@ -157,7 +157,7 @@ class _GroupFilterBarState extends State<GroupFilterBar> {
     var currentLineWidth = 0.0;
 
     for (final item in items) {
-      final itemWidth = _estimateChipWidth(item, textStyle) + 3;
+      final itemWidth = _estimateChipWidth(item, textStyle) + 6;
       final requiredWidth = currentLineWidth == 0
           ? itemWidth
           : currentLineWidth + _chipSpacing + itemWidth;
@@ -238,12 +238,16 @@ class _GroupFilterBarState extends State<GroupFilterBar> {
                 ),
               ],
               const SizedBox(width: 6),
-              Text(
-                item.label,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: chipTextColor,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
+              Flexible(
+                child: Text(
+                  item.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: chipTextColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ],
