@@ -32,6 +32,7 @@ import 'stories/member_roles_list_story.dart';
 import 'stories/member_roles_list_tile_story.dart';
 import 'stories/member_roles_recommendation_tile_story.dart';
 import 'stories/member_roles_statistik_pie_story.dart';
+import 'stories/statistics_page_story.dart';
 import 'stories/statistik_age_distribution_story.dart';
 import 'stories/statistik_group_distribution_story.dart';
 
@@ -84,6 +85,8 @@ List<Story> buildStorybookStories() {
     buildSettingsStammPageStory(),
     stammAddressSettingsStory(),
     stufenwechselSettingsStory(),
+    statisticsPageStory(),
+    statisticsGroupDetailStory(),
     ageDistributionStory(),
     groupDistributionStory(),
     stufenChoiceChipsStory(),

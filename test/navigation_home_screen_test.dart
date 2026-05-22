@@ -61,7 +61,7 @@ void main() {
 
       expect(find.byType(AppBar), findsNothing);
       expect(find.byType(SafeArea), findsWidgets);
-      expect(find.text('Anzahl: 1'), findsOneWidget);
+      expect(find.text('Stamm St. Georg - Uebersicht'), findsOneWidget);
 
       await tester.tap(find.text('Einstellungen'));
       await tester.pumpAndSettle();
