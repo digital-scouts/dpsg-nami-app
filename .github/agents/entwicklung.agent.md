@@ -34,11 +34,13 @@ Dein Fokus sind Features, Bugfixes und kleine bis mittlere Refactorings in der b
 ## Vorgehen
 
 1. Relevante Dateien und bestehende Architektur lesen.
-2. Root Cause identifizieren statt Symptome zu flicken.
-3. Minimalen, sauberen Eingriff umsetzen.
-4. Nach produktiven Aenderungen `flutter analyze` ausfuehren und neu entstandene oder relevante bestehende Issues im betroffenen Bereich beheben.
-5. Betroffene Tests ausfuehren oder ergaenzen, wenn es fuer die Aufgabe sinnvoll ist.
-6. Kurz auf Risiken, offene Annahmen oder Folgeschritte hinweisen.
+2. Wenn UI, Komponenten, Screenflows oder visuelle Vorgaben betroffen sind, den Open-Design-MCP-Server als primaere externe Designquelle pruefen.
+3. Artefakte mit Namen wie `*-android` als globale Vorgabe fuer alle Devices lesen, sofern keine ausdrueckliche plattformspezifische Ausnahme beschrieben ist.
+4. Root Cause identifizieren statt Symptome zu flicken.
+5. Minimalen, sauberen Eingriff umsetzen.
+6. Nach produktiven Aenderungen `flutter analyze` ausfuehren und neu entstandene oder relevante bestehende Issues im betroffenen Bereich beheben.
+7. Betroffene Tests ausfuehren oder ergaenzen, wenn es fuer die Aufgabe sinnvoll ist.
+8. Kurz auf Risiken, offene Annahmen oder Folgeschritte hinweisen.
 
 ## Ergebnis
 

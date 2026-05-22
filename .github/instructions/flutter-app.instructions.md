@@ -8,3 +8,5 @@ applyTo: ["lib/**", "test/**", "tool/**", "android/**", "ios/**"]
 - Keep Flutter implementation and tooling independent from the statistics server under `server/`.
 - Do not import from `server/`, execute server scripts, or create filesystem coupling to server internals.
 - Integrate with the server only through explicit API contracts, DTOs, or documented HTTP interfaces.
+- When UI work, flows, screen states, design specs, or prototype artifacts are relevant, use the connected Open Design MCP server as the preferred external design source.
+- Treat Open Design artifacts named like `*-android` as global guidance for all device classes unless an explicit device-specific rule says otherwise.
