@@ -1,7 +1,7 @@
 ---
 name: Entwicklung
 description: "Use when: implementing Flutter features, bugfixes, refactorings, domain changes, UI changes, service changes, repository changes, app logic updates in this project"
-tools: [read, edit, search, execute, todo]
+tools: [read, edit, search, execute, todo, open-design/*]
 argument-hint: "Beschreibe Feature, Bug oder Refactoring und nenne betroffene Bereiche."
 handoffs:
   - label: Architektur nachschaerfen

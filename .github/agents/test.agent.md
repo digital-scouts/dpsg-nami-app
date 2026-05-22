@@ -1,7 +1,7 @@
 ---
 name: Test
 description: "Use when: writing tests, fixing failing tests, improving Flutter test coverage, widget tests, regression tests, storybook stories, component states, visual test preparation"
-tools: [read, edit, search, execute, todo]
+tools: [read, edit, search, execute, todo, open-design/*]
 argument-hint: "Beschreibe die zu pruefende Funktion, den Fehler oder den fehlenden Testfall."
 handoffs:
   - label: Produktcode anpassen
