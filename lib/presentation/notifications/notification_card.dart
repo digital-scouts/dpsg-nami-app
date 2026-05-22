@@ -18,14 +18,28 @@ class NotificationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final locale = Localizations.localeOf(context);
+    final isDark = theme.brightness == Brightness.dark;
     final isUrgent = notification.type == 'urgent';
     final isWarn = notification.type == 'warn';
-    final backgroundColor = theme.colorScheme.surfaceContainerHighest;
-    final foregroundColor = theme.colorScheme.onSurface;
-    final iconColor = isUrgent
-        ? theme.colorScheme.error
+    final backgroundColor = isUrgent
+        ? (isDark ? const Color(0xFF3A1418) : const Color(0xFFFDECEE))
         : isWarn
-        ? theme.colorScheme.tertiary
+        ? (isDark ? const Color(0xFF2A2010) : const Color(0xFFFFF8E1))
+        : theme.colorScheme.surfaceContainerHighest;
+    final borderColor = isUrgent
+        ? const Color(0xFFCC1F2F)
+        : isWarn
+        ? (isDark ? const Color(0xFF8A6A00) : const Color(0xFFFFB300))
+        : theme.colorScheme.outlineVariant.withValues(alpha: 0.5);
+    final foregroundColor = isUrgent
+        ? (isDark ? const Color(0xFFFFC9CF) : const Color(0xFF7A1020))
+        : isWarn
+        ? (isDark ? const Color(0xFFFFE7A3) : const Color(0xFF795B00))
+        : theme.colorScheme.onSurface;
+    final iconColor = isUrgent
+        ? borderColor
+        : isWarn
+        ? borderColor
         : foregroundColor;
 
     return Material(
@@ -39,9 +53,7 @@ class NotificationCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: backgroundColor,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
-            ),
+            border: Border.all(color: borderColor),
             boxShadow: [
               BoxShadow(
                 color: theme.colorScheme.shadow.withValues(alpha: 0.12),
@@ -65,7 +77,7 @@ class NotificationCard extends StatelessWidget {
                             padding: const EdgeInsets.only(top: 2, right: 8),
                             child: Icon(
                               isUrgent
-                                  ? Icons.warning_amber_rounded
+                                  ? Icons.error_outline
                                   : Icons.info_outline,
                               size: 20,
                               color: iconColor,

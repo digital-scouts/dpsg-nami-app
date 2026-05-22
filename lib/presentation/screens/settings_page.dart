@@ -4,15 +4,12 @@ import 'package:nami/core/notifications/pull_notifications_repository_factory.da
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/model/member_edit_model.dart';
-import 'package:nami/presentation/notifications/notification_card.dart';
-import 'package:nami/presentation/screens/member_edit_page.dart';
 import 'package:nami/presentation/widgets/confetti_overlay.dart';
 import 'package:nami/services/app_update_service.dart';
 import 'package:nami/services/logger_service.dart';
 import 'package:nami/services/network_access_policy.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class SettingsPage extends StatefulWidget {
   final VoidCallback? onStammSettings;
@@ -51,7 +48,7 @@ class _SettingsPageState extends State<SettingsPage> {
   DateTime? _firstTapAt;
   String? _appVersion;
   late Future<AppUpdateInfo?> _appUpdateFuture;
-  late Future<PullNotification?> _unreadNotificationFuture;
+  late Future<List<PullNotification>> _unreadNotificationsFuture;
 
   int _notificationPriority(PullNotification notification) {
     switch (notification.type) {
@@ -68,7 +65,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     super.initState();
-    _unreadNotificationFuture = _loadUnreadNotification();
+    _unreadNotificationsFuture = _loadUnreadNotifications();
     _appUpdateFuture = _loadAppUpdateInfo();
     _appVersion = widget.appVersion;
     if (_appVersion == null) {
@@ -96,22 +93,7 @@ class _SettingsPageState extends State<SettingsPage> {
     });
   }
 
-  Future<void> _acknowledgeNotification(PullNotification notification) async {
-    try {
-      final logger = context.read<LoggerService>();
-      final repo = await createPullNotificationsRepository(
-        logger: logger,
-        networkAccessPolicy: _resolveNetworkAccessPolicy(),
-      );
-      await repo.acknowledgeNotification(notification.id);
-      if (!mounted) return;
-      setState(() {
-        _unreadNotificationFuture = _loadUnreadNotification();
-      });
-    } catch (_) {}
-  }
-
-  Future<PullNotification?> _loadUnreadNotification() async {
+  Future<List<PullNotification>> _loadUnreadNotifications() async {
     try {
       final logger = context.read<LoggerService>();
       final repo = await createPullNotificationsRepository(
@@ -149,22 +131,62 @@ class _SettingsPageState extends State<SettingsPage> {
               return rightDate.compareTo(leftDate);
             });
 
-      if (unread.isEmpty) {
-        return null;
-      }
-
-      return unread.first;
+      return unread;
     } catch (_) {
-      return null;
+      return const <PullNotification>[];
     }
   }
 
-  Future<void> _openStore(String url) async {
-    final uri = Uri.tryParse(url);
-    if (uri == null) {
-      return;
+  List<PullNotification> _buildHubMessages({
+    required BuildContext context,
+    required AuthSessionModel authModel,
+    required int unresolvedCount,
+    required AppUpdateInfo? updateInfo,
+    required List<PullNotification> unreadNotifications,
+  }) {
+    final messages = <PullNotification>[];
+
+    if (authModel.hasRemoteAccessIssue) {
+      messages.add(_buildHitobitoIssueNotification(context, authModel));
     }
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+    if (unresolvedCount > 0) {
+      messages.add(
+        _buildMemberResolutionNotification(context, unresolvedCount),
+      );
+    }
+
+    if (updateInfo != null) {
+      messages.add(_buildUpdateNotification(context, updateInfo));
+    }
+
+    messages.addAll(unreadNotifications);
+
+    messages.sort((left, right) {
+      final priorityCompare = _notificationPriority(
+        left,
+      ).compareTo(_notificationPriority(right));
+      if (priorityCompare != 0) {
+        return priorityCompare;
+      }
+
+      final leftDate = left.updatedAt ?? left.createdAt;
+      final rightDate = right.updatedAt ?? right.createdAt;
+
+      if (leftDate == null && rightDate == null) {
+        return 0;
+      }
+      if (leftDate == null) {
+        return 1;
+      }
+      if (rightDate == null) {
+        return -1;
+      }
+
+      return rightDate.compareTo(leftDate);
+    });
+
+    return messages;
   }
 
   AppUpdateService _resolveAppUpdateService() {
@@ -259,28 +281,6 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Future<void> _openFirstResolution(
-    BuildContext context,
-    MemberEditModel? memberEditModel,
-  ) async {
-    final entry = memberEditModel?.firstResolutionEntry;
-    if (entry == null) {
-      return;
-    }
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => MemberEditPage(
-          mitglied: entry.zielMitglied,
-          pendingEntry: entry,
-          initialNoticeMessage: AppLocalizations.of(
-            context,
-          ).t('settings_member_resolution_notice'),
-          resolutionEntryPoint: 'settings',
-        ),
-      ),
-    );
-  }
-
   void _handleTippleTapInTwoSeconds() {
     final now = DateTime.now();
     if (_firstTapAt == null ||
@@ -314,278 +314,388 @@ class _SettingsPageState extends State<SettingsPage> {
     final authModel = context.watch<AuthSessionModel>();
     final memberEditModel = context.watch<MemberEditModel?>();
     final unresolvedCount = (memberEditModel?.openResolutionCount ?? 0);
-    final hasIssue = authModel.hasRemoteAccessIssue;
-    final visualMessageCount =
-        (hasIssue ? 1 : 0) + (unresolvedCount > 0 ? 1 : 0);
+    final locale = Localizations.localeOf(context);
 
     return Scaffold(
       appBar: AppBar(title: Text(t.t('settings_title'))),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Card(
-              margin: EdgeInsets.zero,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: widget.onProfile,
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primary,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Icon(
-                          Icons.person,
-                          color: theme.colorScheme.onPrimary,
+        child: FutureBuilder<AppUpdateInfo?>(
+          future: _appUpdateFuture,
+          builder: (context, updateSnapshot) {
+            return FutureBuilder<List<PullNotification>>(
+              future: _unreadNotificationsFuture,
+              builder: (context, notificationSnapshot) {
+                final hubMessages = _buildHubMessages(
+                  context: context,
+                  authModel: authModel,
+                  unresolvedCount: unresolvedCount,
+                  updateInfo: updateSnapshot.data,
+                  unreadNotifications:
+                      notificationSnapshot.data ?? const <PullNotification>[],
+                );
+                final primaryMessage = hubMessages.isNotEmpty
+                    ? hubMessages.first
+                    : null;
+
+                return ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    Card(
+                      margin: EdgeInsets.zero,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: widget.onProfile,
+                        child: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primary,
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Icon(
+                                  Icons.person,
+                                  color: theme.colorScheme.onPrimary,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      t.t('profile'),
+                                      style: theme.textTheme.titleMedium,
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Arbeitskontext, Rollen und Konto',
+                                      style: theme.textTheme.bodySmall,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(
+                                widget.onProfile == null
+                                    ? Icons.lock_outline
+                                    : Icons.chevron_right,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
+                    ),
+                    const SizedBox(height: 12),
+                    if (primaryMessage != null) ...[
+                      _SettingsMessagesBanner(
+                        key: const Key('settings-messages-banner'),
+                        title: primaryMessage.title.resolve(locale),
+                        body: primaryMessage.body.resolve(locale),
+                        count: hubMessages.length,
+                        hasStack: hubMessages.length > 1,
+                        onTap: widget.onMessages,
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    _SettingsSectionLabel(label: 'Schnellzugriff'),
+                    Card(
+                      margin: EdgeInsets.zero,
+                      child: Column(
+                        children: [
+                          _SettingsNavTile(
+                            icon: Icons.swap_horiz,
+                            iconBackgroundColor: const Color(0xFF00823C),
+                            title: 'Stufenwechsel',
+                            subtitle: 'Mitglieder in neue Stufe versetzen',
+                            onTap: widget.onStufenwechsel,
+                          ),
+                          const _SettingsRowDivider(),
+                          _SettingsNavTile(
+                            icon: Icons.map,
+                            iconBackgroundColor: const Color(0xFF007AFF),
+                            title: t.t('settings_map'),
+                            subtitle: 'Stammes- und DV-Karte',
+                            onTap: widget.onMapSettings,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _SettingsSectionLabel(label: 'Einstellungen'),
+                    Card(
+                      margin: EdgeInsets.zero,
+                      child: Column(
+                        children: [
+                          _SettingsNavTile(
+                            icon: Icons.home,
+                            iconBackgroundColor: theme.colorScheme.primary,
+                            title: t.t('settings_stamm'),
+                            subtitle: 'Daten, Altersgrenzen',
+                            onTap: widget.onStammSettings,
+                          ),
+                          const _SettingsRowDivider(),
+                          _SettingsNavTile(
+                            icon: Icons.tune,
+                            iconBackgroundColor: const Color(0xFF34C759),
+                            title: t.t('settings_app'),
+                            subtitle: 'Darstellung, Sicherheit, Verhalten',
+                            onTap: widget.onAppSettings,
+                          ),
+                          const _SettingsRowDivider(),
+                          _SettingsNavTile(
+                            icon: Icons.notifications,
+                            iconBackgroundColor: const Color(0xFFFF9500),
+                            title: t.t('settings_notifications'),
+                            subtitle: 'Geburtstage, Erinnerungen',
+                            onTap: widget.onNotificationSettings,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _SettingsSectionLabel(label: 'Entwicklung'),
+                    Card(
+                      margin: EdgeInsets.zero,
+                      child: _SettingsNavTile(
+                        icon: Icons.bug_report,
+                        iconBackgroundColor: const Color(0xFF8E8E93),
+                        title: t.t('settings_debug_tools'),
+                        subtitle: 'Fehlerberichte, Cache, Tools',
+                        onTap: widget.onDebugTools,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _SettingsSectionLabel(label: 'Rechtliches'),
+                    Card(
+                      margin: EdgeInsets.zero,
+                      child: Column(
+                        children: [
+                          _SettingsNavTile(
+                            icon: Icons.gavel,
+                            iconBackgroundColor: theme.colorScheme.tertiary,
+                            title: 'Impressum',
+                            onTap: widget.onImpressum,
+                          ),
+                          const _SettingsRowDivider(),
+                          _SettingsNavTile(
+                            icon: Icons.shield,
+                            iconBackgroundColor: theme.colorScheme.tertiary,
+                            title: 'Datenschutz',
+                            onTap: widget.onDatenschutz,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const _SettingsRowDivider(indent: 16),
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: _handleTippleTapInTwoSeconds,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                          horizontal: 16,
+                        ),
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              t.t('profile'),
-                              style: theme.textTheme.titleMedium,
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  t.t('developed_with'),
+                                  style: theme.textTheme.bodySmall,
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(
+                                  Icons.favorite,
+                                  size: 14,
+                                  color: theme.colorScheme.error,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  t.t('developed_in_hamburg'),
+                                  style: theme.textTheme.bodySmall,
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 2),
+                            const SizedBox(height: 6),
                             Text(
-                              'Arbeitskontext, Rollen und Konto',
+                              '${t.t('version_label')}: ${_appVersion ?? '...'}',
                               style: theme.textTheme.bodySmall,
                             ),
                           ],
                         ),
                       ),
-                      Icon(
-                        widget.onProfile == null
-                            ? Icons.lock_outline
-                            : Icons.chevron_right,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Card(
-              margin: EdgeInsets.zero,
-              color: const Color(0xFFFFF8E1),
-              child: ListTile(
-                onTap: widget.onMessages,
-                leading: const Icon(Icons.warning_amber_rounded),
-                title: const Text('Meldungen'),
-                subtitle: Text(
-                  hasIssue
-                      ? 'Hitobito nicht erreichbar - lokale Daten aktiv.'
-                      : 'Systemhinweise und Sync-Meldungen.',
-                ),
-                trailing: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.shade700,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    '$visualMessageCount',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            if (hasIssue)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: NotificationCard(
-                  notification: _buildHitobitoIssueNotification(
-                    context,
-                    authModel,
-                  ),
-                  onTap: authModel.isConfigured ? authModel.signIn : null,
-                ),
-              ),
-            if (unresolvedCount > 0)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: NotificationCard(
-                  notification: _buildMemberResolutionNotification(
-                    context,
-                    unresolvedCount,
-                  ),
-                  onTap: () => _openFirstResolution(context, memberEditModel),
-                ),
-              ),
-            FutureBuilder<AppUpdateInfo?>(
-              future: _appUpdateFuture,
-              builder: (context, snapshot) {
-                final updateInfo = snapshot.data;
-                if (updateInfo == null) {
-                  return const SizedBox.shrink();
-                }
-
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: NotificationCard(
-                    notification: _buildUpdateNotification(context, updateInfo),
-                    onTap: () => _openStore(updateInfo.storeUrl),
-                  ),
-                );
-              },
-            ),
-            FutureBuilder<PullNotification?>(
-              future: _unreadNotificationFuture,
-              builder: (context, snapshot) {
-                final notification = snapshot.data;
-                if (notification == null) {
-                  return const SizedBox.shrink();
-                }
-
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: NotificationCard(
-                    notification: notification,
-                    onClose: () => _acknowledgeNotification(notification),
-                  ),
-                );
-              },
-            ),
-            _SettingsSectionLabel(label: 'Schnellzugriff'),
-            Card(
-              margin: EdgeInsets.zero,
-              child: Column(
-                children: [
-                  _SettingsNavTile(
-                    icon: Icons.swap_horiz,
-                    title: 'Stufenwechsel',
-                    subtitle: 'Mitglieder in neue Stufe versetzen',
-                    onTap: widget.onStufenwechsel,
-                  ),
-                  const Divider(height: 1, indent: 16, endIndent: 16),
-                  _SettingsNavTile(
-                    icon: Icons.map,
-                    title: t.t('settings_map'),
-                    subtitle: 'Stammes- und DV-Karte',
-                    onTap: widget.onMapSettings,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            _SettingsSectionLabel(label: 'Einstellungen'),
-            Card(
-              margin: EdgeInsets.zero,
-              child: Column(
-                children: [
-                  _SettingsNavTile(
-                    icon: Icons.home,
-                    title: t.t('settings_stamm'),
-                    subtitle: 'Daten, Altersgrenzen',
-                    onTap: widget.onStammSettings,
-                  ),
-                  const Divider(height: 1, indent: 16, endIndent: 16),
-                  _SettingsNavTile(
-                    icon: Icons.tune,
-                    title: t.t('settings_app'),
-                    subtitle: 'Darstellung, Sicherheit, Verhalten',
-                    onTap: widget.onAppSettings,
-                  ),
-                  const Divider(height: 1, indent: 16, endIndent: 16),
-                  _SettingsNavTile(
-                    icon: Icons.notifications,
-                    title: t.t('settings_notifications'),
-                    subtitle: 'Geburtstage, Erinnerungen',
-                    onTap: widget.onNotificationSettings,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            _SettingsSectionLabel(label: 'Entwicklung'),
-            Card(
-              margin: EdgeInsets.zero,
-              child: _SettingsNavTile(
-                icon: Icons.bug_report,
-                title: t.t('settings_debug_tools'),
-                subtitle: 'Fehlerberichte, Cache, Tools',
-                onTap: widget.onDebugTools,
-              ),
-            ),
-            const SizedBox(height: 12),
-            _SettingsSectionLabel(label: 'Rechtliches'),
-            Card(
-              margin: EdgeInsets.zero,
-              child: Column(
-                children: [
-                  _SettingsNavTile(
-                    icon: Icons.gavel,
-                    title: 'Impressum',
-                    onTap: widget.onImpressum,
-                  ),
-                  const Divider(height: 1, indent: 16, endIndent: 16),
-                  _SettingsNavTile(
-                    icon: Icons.shield,
-                    title: 'Datenschutz',
-                    onTap: widget.onDatenschutz,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Divider(height: 1),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: _handleTippleTapInTwoSeconds,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 12,
-                  horizontal: 16,
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          t.t('developed_with'),
-                          style: theme.textTheme.bodySmall,
-                        ),
-                        const SizedBox(width: 4),
-                        Icon(
-                          Icons.favorite,
-                          size: 14,
-                          color: theme.colorScheme.error,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          t.t('developed_in_hamburg'),
-                          style: theme.textTheme.bodySmall,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '${t.t('version_label')}: ${_appVersion ?? '...'}',
-                      style: theme.textTheme.bodySmall,
                     ),
                   ],
+                );
+              },
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsMessagesBanner extends StatelessWidget {
+  const _SettingsMessagesBanner({
+    super.key,
+    required this.title,
+    required this.body,
+    required this.count,
+    required this.hasStack,
+    this.onTap,
+  });
+
+  final String title;
+  final String body;
+  final int count;
+  final bool hasStack;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bannerBackground = isDark
+        ? const Color(0xFF2A2010)
+        : const Color(0xFFFFF8E1);
+    final borderColor = isDark
+        ? const Color(0xFF8A6A00)
+        : const Color(0xFFFFB300);
+    final textColor = isDark
+        ? const Color(0xFFFFE7A3)
+        : const Color(0xFF795B00);
+
+    final banner = Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: bannerBackground,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: borderColor),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: textColor,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    key: const Key('settings-messages-badge'),
+                    height: 20,
+                    constraints: const BoxConstraints(minWidth: 20),
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFCC1F2F),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '$count',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    size: 16,
+                    color: borderColor,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      body,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: textColor,
+                        height: 1.35,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (!hasStack) {
+      return banner;
+    }
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          key: const Key('settings-messages-stack-back-1'),
+          left: 6,
+          right: 6,
+          top: 4,
+          bottom: -4,
+          child: IgnorePointer(
+            child: Opacity(
+              opacity: 0.55,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: bannerBackground,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: borderColor),
                 ),
               ),
             ),
-          ],
+          ),
         ),
-      ),
+        Positioned(
+          key: const Key('settings-messages-stack-back-2'),
+          left: 12,
+          right: 12,
+          top: 8,
+          bottom: -8,
+          child: IgnorePointer(
+            child: Opacity(
+              opacity: 0.3,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: bannerBackground,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: borderColor),
+                ),
+              ),
+            ),
+          ),
+        ),
+        Padding(padding: const EdgeInsets.only(bottom: 8), child: banner),
+      ],
     );
   }
 }
@@ -597,14 +707,36 @@ class _SettingsSectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 6),
       child: Text(
-        label,
-        style: Theme.of(
-          context,
-        ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
+        label.toUpperCase(),
+        style: theme.textTheme.labelMedium?.copyWith(
+          color: theme.colorScheme.primary,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.8,
+        ),
       ),
+    );
+  }
+}
+
+class _SettingsRowDivider extends StatelessWidget {
+  const _SettingsRowDivider({this.indent = 52});
+
+  final double indent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Divider(
+      height: 1,
+      indent: indent,
+      endIndent: 0,
+      color: Theme.of(
+        context,
+      ).colorScheme.outlineVariant.withValues(alpha: 0.28),
     );
   }
 }
@@ -612,24 +744,64 @@ class _SettingsSectionLabel extends StatelessWidget {
 class _SettingsNavTile extends StatelessWidget {
   const _SettingsNavTile({
     required this.icon,
+    required this.iconBackgroundColor,
     required this.title,
     this.subtitle,
     this.onTap,
   });
 
   final IconData icon;
+  final Color iconBackgroundColor;
   final String title;
   final String? subtitle;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
+    final theme = Theme.of(context);
+
+    return InkWell(
       onTap: onTap,
-      leading: Icon(icon),
-      title: Text(title),
-      subtitle: subtitle == null ? null : Text(subtitle!),
-      trailing: Icon(onTap == null ? Icons.lock_outline : Icons.chevron_right),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: iconBackgroundColor,
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: Icon(icon, size: 20, color: Colors.white),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: theme.textTheme.titleMedium),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 1),
+                    Text(
+                      subtitle!,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.outlineVariant,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              onTap == null ? Icons.lock_outline : Icons.chevron_right,
+              size: 18,
+              color: theme.colorScheme.outlineVariant,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
