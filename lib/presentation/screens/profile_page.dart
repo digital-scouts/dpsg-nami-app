@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../domain/arbeitskontext/arbeitskontext.dart';
 import '../../domain/auth/auth_profile.dart';
-import '../../domain/auth/auth_state.dart';
 import '../../l10n/app_localizations.dart';
 import '../model/arbeitskontext_model.dart';
 import '../model/auth_session_model.dart';
+import '../theme/theme.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -59,29 +59,37 @@ class _ProfilePageState extends State<ProfilePage> {
 
     return Consumer2<AuthSessionModel, ArbeitskontextModel>(
       builder: (context, authModel, arbeitskontextModel, _) {
+        final theme = Theme.of(context);
         final profile = authModel.profile;
+        final accentColor = _profileAccentColor(theme, profile);
 
         return Scaffold(
           appBar: AppBar(title: Text(t.t('profile'))),
           body: Stack(
             children: [
               ListView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.only(bottom: 16),
                 children: [
                   if (profile != null) ...[
-                    _ProfileHeader(profile: profile),
-                    const SizedBox(height: 8),
+                    _ProfileHeader(profile: profile, accentColor: accentColor),
+                    _ProfileSectionLabel(
+                      label: 'Persönliche Daten',
+                      accentColor: accentColor,
+                    ),
                     _ProfileInfoCard(profile: profile),
-                    const SizedBox(height: 8),
                   ] else ...[
                     _ProfilePlaceholder(
                       isLoading: authModel.isLoadingProfile,
                       errorMessage: authModel.errorMessage,
                     ),
-                    const SizedBox(height: 8),
                   ],
+                  _ProfileSectionLabel(
+                    label: t.t('profile_context_title'),
+                    accentColor: accentColor,
+                  ),
                   _ArbeitskontextCard(
                     arbeitskontextModel: arbeitskontextModel,
+                    accentColor: accentColor,
                     onOpenLayerSwitcher: arbeitskontextModel.isSwitchingLayer
                         ? null
                         : () => _openLayerSwitcher(
@@ -90,19 +98,36 @@ class _ProfilePageState extends State<ProfilePage> {
                             arbeitskontextModel: arbeitskontextModel,
                           ),
                   ),
-                  const SizedBox(height: 8),
                   if (profile != null) ...[
-                    _ProfileRolesCard(profile: profile),
-                    const SizedBox(height: 8),
+                    _ProfileSectionLabel(
+                      label: t.t('profile_roles_title'),
+                      accentColor: accentColor,
+                    ),
+                    _ProfileRolesCard(
+                      profile: profile,
+                      accentColor: accentColor,
+                    ),
                   ],
-                  _ProfileStatusCard(authModel: authModel),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: authModel.session != null
-                        ? authModel.logout
-                        : null,
-                    icon: const Icon(Icons.logout),
-                    label: Text(t.t('logout')),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    child: OutlinedButton.icon(
+                      onPressed: authModel.session != null
+                          ? authModel.logout
+                          : null,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: theme.colorScheme.error,
+                        side: BorderSide(
+                          color: theme.colorScheme.error,
+                          width: 1.5,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        minimumSize: const Size.fromHeight(48),
+                      ),
+                      icon: const Icon(Icons.logout),
+                      label: Text(t.t('logout')),
+                    ),
                   ),
                 ],
               ),
@@ -119,10 +144,12 @@ class _ProfilePageState extends State<ProfilePage> {
 class _ArbeitskontextCard extends StatelessWidget {
   const _ArbeitskontextCard({
     required this.arbeitskontextModel,
+    required this.accentColor,
     required this.onOpenLayerSwitcher,
   });
 
   final ArbeitskontextModel arbeitskontextModel;
+  final Color accentColor;
   final VoidCallback? onOpenLayerSwitcher;
 
   @override
@@ -131,62 +158,83 @@ class _ArbeitskontextCard extends StatelessWidget {
     final theme = Theme.of(context);
     final arbeitskontext = arbeitskontextModel.arbeitskontext;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              t.t('profile_context_title'),
-              style: theme.textTheme.titleLarge,
+    return Container(
+      key: const ValueKey('profile_context_card'),
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: accentColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            t.t('profile_context_title').toUpperCase(),
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: Colors.white.withValues(alpha: 0.65),
+              letterSpacing: 0.8,
+              fontWeight: FontWeight.w600,
             ),
-            const SizedBox(height: 12),
-            if (arbeitskontextModel.isLoading && arbeitskontext == null) ...[
-              const Center(child: CircularProgressIndicator()),
-              const SizedBox(height: 12),
-              Text(t.t('profile_context_loading')),
-            ] else if (arbeitskontext != null) ...[
-              _InfoTile(
-                icon: Icons.account_tree_outlined,
-                label: t.t('profile_context_current_layer_label'),
-                value: arbeitskontext.aktiverLayer.name,
+          ),
+          const SizedBox(height: 6),
+          if (arbeitskontextModel.isLoading && arbeitskontext == null) ...[
+            Text(
+              t.t('profile_context_loading'),
+              style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white),
+            ),
+          ] else if (arbeitskontext != null) ...[
+            Text(
+              arbeitskontext.aktiverLayer.name,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
               ),
-              if (arbeitskontextModel.errorMessage != null &&
-                  arbeitskontextModel.errorMessage!.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  arbeitskontextModel.errorMessage!,
-                  style: TextStyle(color: theme.colorScheme.error),
+            ),
+            if (arbeitskontextModel.errorMessage != null &&
+                arbeitskontextModel.errorMessage!.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                arbeitskontextModel.errorMessage!,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.white.withValues(alpha: 0.85),
                 ),
-              ],
-              const SizedBox(height: 12),
-              if (arbeitskontext.verfuegbareLayer.isNotEmpty)
-                FilledButton.icon(
-                  onPressed: onOpenLayerSwitcher,
-                  icon: const Icon(Icons.swap_horiz),
-                  label: Text(t.t('profile_context_switch_action')),
-                )
-              else
-                Text(
-                  t.t('profile_context_no_other_layers'),
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-            ] else ...[
-              Text(t.t('profile_context_unavailable')),
-              if (arbeitskontextModel.errorMessage != null &&
-                  arbeitskontextModel.errorMessage!.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  arbeitskontextModel.errorMessage!,
-                  style: TextStyle(color: theme.colorScheme.error),
-                ),
-              ],
+              ),
             ],
+            const SizedBox(height: 12),
+            if (arbeitskontext.verfuegbareLayer.isNotEmpty)
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: onOpenLayerSwitcher,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.35),
+                      width: 1.5,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  icon: const Icon(Icons.swap_horiz, size: 18),
+                  label: Text(t.t('profile_context_switch_action')),
+                ),
+              )
+            else
+              Text(
+                t.t('profile_context_no_other_layers'),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.white.withValues(alpha: 0.8),
+                ),
+              ),
+          ] else ...[
+            Text(
+              t.t('profile_context_unavailable'),
+              style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white),
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -288,145 +336,62 @@ class _ProfileLoadingOverlay extends StatelessWidget {
   }
 }
 
-class _ProfileStatusCard extends StatelessWidget {
-  const _ProfileStatusCard({required this.authModel});
-
-  final AuthSessionModel authModel;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = AppLocalizations.of(context);
-    final stateText = authModel.hasRemoteAccessIssue
-        ? authModel.requiresInteractiveLogin
-              ? t.t('auth_status_update_login_required')
-              : t.t('auth_status_cached_only')
-        : switch (authModel.state) {
-            AuthState.initializing => t.t('auth_status_initializing'),
-            AuthState.signedOut => t.t('auth_status_signed_out'),
-            AuthState.authenticating => t.t('auth_status_authenticating'),
-            AuthState.signedIn => t.t('auth_status_signed_in'),
-            AuthState.unlockRequired => t.t('auth_status_unlock_required'),
-            AuthState.reloginRequired => t.t('auth_status_relogin_required'),
-            AuthState.error => t.t('auth_status_error'),
-          };
-
-    return Card(
-      child: Column(
-        children: [
-          _InfoTile(
-            icon: Icons.verified_user_outlined,
-            label: t.t('auth_status_title'),
-            value: stateText,
-          ),
-          _InfoTile(
-            icon: Icons.update_outlined,
-            label: t.t('auth_last_data_sync_title'),
-            value: _formatTimestamp(
-              context,
-              authModel.lastSensitiveSyncAt,
-              fallback: t.t('auth_last_data_sync_unknown'),
-            ),
-          ),
-          _InfoTile(
-            icon: Icons.account_circle_outlined,
-            label: t.t('profile_last_sync_title'),
-            value: authModel.isLoadingProfile
-                ? t.t('profile_loading')
-                : _formatTimestamp(
-                    context,
-                    authModel.lastProfileSyncAt,
-                    fallback: t.t('auth_status_unknown_user'),
-                  ),
-          ),
-          if (authModel.isSyncingHitobitoData)
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: LinearProgressIndicator(minHeight: 2),
-            ),
-        ],
-      ),
-    );
-  }
-
-  String _formatTimestamp(
-    BuildContext context,
-    DateTime? value, {
-    required String fallback,
-  }) {
-    if (value == null) {
-      return fallback;
-    }
-
-    final locale = Localizations.localeOf(context).toLanguageTag();
-    return DateFormat('dd.MM.yyyy HH:mm', locale).format(value.toLocal());
-  }
-}
-
 class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader({required this.profile});
+  const _ProfileHeader({required this.profile, required this.accentColor});
 
   final AuthProfile profile;
+  final Color accentColor;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final avatarLabel = profile.primaryDisplayName.isNotEmpty
-        ? profile.primaryDisplayName.characters.first.toUpperCase()
+    final headline = profile.secondaryDisplayName ?? profile.primaryDisplayName;
+    final avatarLabel = headline.isNotEmpty
+        ? headline.characters.first.toUpperCase()
         : '?';
+    final secondaryLine = (profile.email?.trim().isNotEmpty ?? false)
+        ? profile.email!.trim()
+        : profile.secondaryDisplayName != null
+        ? profile.primaryDisplayName
+        : null;
 
-    return Card(
-      margin: EdgeInsets.zero,
-      clipBehavior: Clip.antiAlias,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              theme.colorScheme.primary,
-              theme.colorScheme.primary.withValues(alpha: 0.8),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: Colors.white.withValues(alpha: 0.2),
-              child: Text(
-                avatarLabel,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
-                ),
+    return Container(
+      key: const ValueKey('profile_header'),
+      color: accentColor,
+      padding: const EdgeInsets.fromLTRB(16, 32, 16, 24),
+      child: Column(
+        children: [
+          CircleAvatar(
+            radius: 36,
+            backgroundColor: Colors.white.withValues(alpha: 0.2),
+            child: Text(
+              avatarLabel,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    profile.primaryDisplayName,
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      color: Colors.white,
-                    ),
-                  ),
-                  if (profile.secondaryDisplayName != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      profile.secondaryDisplayName!,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.85),
-                      ),
-                    ),
-                  ],
-                ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            headline,
+            style: theme.textTheme.titleLarge?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          if (secondaryLine != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              secondaryLine,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.white.withValues(alpha: 0.75),
               ),
+              textAlign: TextAlign.center,
             ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -440,32 +405,28 @@ class _ProfileInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final theme = Theme.of(context);
 
     return Card(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
-          _InfoTile(
+          _ProfileInfoRow(
             icon: Icons.badge_outlined,
             label: t.t('profile_nami_id_label'),
             value: profile.namiId.toString(),
-          ),
-          _InfoTile(
-            icon: Icons.email_outlined,
-            label: t.t('profile_email_label'),
-            value: (profile.email?.trim().isNotEmpty ?? false)
-                ? profile.email!.trim()
-                : '–',
-          ),
-          _InfoTile(
-            icon: Icons.translate_outlined,
-            label: t.t('profile_language_label'),
-            child: Text(
-              profile.normalizedLanguage.toUpperCase(),
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: theme.colorScheme.onSecondaryContainer,
-                fontWeight: FontWeight.w700,
+            trailing: IconButton(
+              onPressed: () {
+                Clipboard.setData(
+                  ClipboardData(text: profile.namiId.toString()),
+                );
+              },
+              icon: Icon(
+                Icons.content_copy,
+                size: 18,
+                color: Theme.of(context).colorScheme.outlineVariant,
               ),
+              splashRadius: 18,
             ),
           ),
         ],
@@ -474,79 +435,205 @@ class _ProfileInfoCard extends StatelessWidget {
   }
 }
 
-class _ProfileRolesCard extends StatelessWidget {
-  const _ProfileRolesCard({required this.profile});
+class _ProfileSectionLabel extends StatelessWidget {
+  const _ProfileSectionLabel({required this.label, required this.accentColor});
 
-  final AuthProfile profile;
+  final String label;
+  final Color accentColor;
 
   @override
   Widget build(BuildContext context) {
-    final t = AppLocalizations.of(context);
     final theme = Theme.of(context);
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(t.t('profile_roles_title'), style: theme.textTheme.titleLarge),
-            const SizedBox(height: 12),
-            if (profile.roles.isEmpty)
-              Text(
-                t.t('profile_roles_empty'),
-                style: theme.textTheme.bodyMedium,
-              )
-            else
-              for (var index = 0; index < profile.roles.length; index++) ...[
-                _ProfileRoleTile(role: profile.roles[index]),
-                if (index < profile.roles.length - 1) const Divider(height: 24),
-              ],
-          ],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 6),
+      child: Text(
+        label.toUpperCase(),
+        style: theme.textTheme.labelMedium?.copyWith(
+          color: accentColor,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.8,
         ),
       ),
     );
   }
 }
 
-class _ProfileRoleTile extends StatelessWidget {
-  const _ProfileRoleTile({required this.role});
+class _ProfileDivider extends StatelessWidget {
+  const _ProfileDivider();
 
-  final AuthProfileRole role;
+  @override
+  Widget build(BuildContext context) {
+    return Divider(
+      height: 1,
+      indent: 16,
+      color: Theme.of(
+        context,
+      ).colorScheme.outlineVariant.withValues(alpha: 0.28),
+    );
+  }
+}
+
+class _ProfileInfoRow extends StatelessWidget {
+  const _ProfileInfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.trailing,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Icon(
+              icon,
+              size: 20,
+              color: theme.colorScheme.outlineVariant,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(value, style: theme.textTheme.titleMedium),
+                const SizedBox(height: 1),
+                Text(
+                  label,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.outlineVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (trailing != null) trailing!,
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileRolesCard extends StatelessWidget {
+  const _ProfileRolesCard({required this.profile, required this.accentColor});
+
+  final AuthProfile profile;
+  final Color accentColor;
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final permissions = role.permissions.join(', ');
+    final theme = Theme.of(context);
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.only(top: 2),
-          child: Icon(Icons.groups_2_outlined),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                role.roleName,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 2),
-              Text(role.groupName),
-              if (permissions.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Text('${t.t('profile_permissions_label')}: $permissions'),
-              ],
-            ],
+    if (profile.roles.isEmpty) {
+      return Card(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            t.t('profile_roles_empty'),
+            style: theme.textTheme.bodyMedium,
           ),
         ),
-      ],
+      );
+    }
+
+    return Card(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (var index = 0; index < profile.roles.length; index++) ...[
+            _ProfileRoleTile(
+              role: profile.roles[index],
+              accentColor: accentColor,
+            ),
+            if (index < profile.roles.length - 1) const _ProfileDivider(),
+          ],
+        ],
+      ),
     );
   }
+}
+
+class _ProfileRoleTile extends StatelessWidget {
+  const _ProfileRoleTile({required this.role, required this.accentColor});
+
+  final AuthProfileRole role;
+  final Color accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final permissions = role.permissions.join(', ');
+    final iconBackgroundColor = accentColor.withValues(
+      alpha: theme.brightness == Brightness.dark ? 0.24 : 0.12,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: iconBackgroundColor,
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Icon(Icons.military_tech, size: 20, color: accentColor),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(role.roleName, style: theme.textTheme.titleMedium),
+                const SizedBox(height: 2),
+                Text(
+                  role.groupName,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.outlineVariant,
+                  ),
+                ),
+                if (permissions.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '${t.t('profile_permissions_label')}: $permissions',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.outlineVariant,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+Color _profileAccentColor(ThemeData theme, AuthProfile? profile) {
+  if (profile?.hasLeitungsRole ?? false) {
+    return DPSGColors.primaryLight;
+  }
+
+  return theme.colorScheme.primary;
 }
 
 class _ProfilePlaceholder extends StatelessWidget {
@@ -561,6 +648,7 @@ class _ProfilePlaceholder extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Card(
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 4),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -589,29 +677,6 @@ class _ProfilePlaceholder extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _InfoTile extends StatelessWidget {
-  const _InfoTile({
-    required this.icon,
-    required this.label,
-    this.value,
-    this.child,
-  }) : assert(value != null || child != null);
-
-  final IconData icon;
-  final String label;
-  final String? value;
-  final Widget? child;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(icon),
-      title: Text(label),
-      subtitle: child ?? Text(value!),
     );
   }
 }
