@@ -16,10 +16,14 @@ import '../notifications/app_snackbar.dart';
 import '../notifications/notifications_page.dart';
 import '../screens/profile_page.dart';
 import '../screens/settings_app_page.dart';
+import '../screens/settings_datenschutz_page.dart';
 import '../screens/settings_debug_tools_page.dart';
+import '../screens/settings_impressum_page.dart';
 import '../screens/settings_map_page.dart';
+import '../screens/settings_messages_page.dart';
 import '../screens/settings_notification_page.dart';
 import '../screens/settings_stamm_page.dart';
+import '../screens/settings_stufenwechsel_page.dart';
 import '../screens/statistics_group_detail_page.dart';
 import '../theme/theme.dart';
 
@@ -30,6 +34,10 @@ class AppRoutes {
   static const String settingsApp = '/settings/app';
   static const String settingsNotification = '/settings/notifications';
   static const String settingsMap = '/settings/map';
+  static const String settingsMessages = '/settings/messages';
+  static const String settingsImpressum = '/settings/impressum';
+  static const String settingsDatenschutz = '/settings/datenschutz';
+  static const String settingsStufenwechsel = '/settings/stufenwechsel';
   static const String debugTools = '/settings/debug';
   static const String pullNotifications = '/notifications';
   static const String profile = '/profile';
@@ -201,6 +209,26 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         settings: settings,
         builder: (context) => const SettingsMapPage(),
+      );
+    case AppRoutes.settingsMessages:
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => const SettingsMessagesPage(),
+      );
+    case AppRoutes.settingsImpressum:
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => const SettingsImpressumPage(),
+      );
+    case AppRoutes.settingsDatenschutz:
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => const SettingsDatenschutzPage(),
+      );
+    case AppRoutes.settingsStufenwechsel:
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => const SettingsStufenwechselPage(),
       );
     case AppRoutes.pullNotifications:
       return MaterialPageRoute(

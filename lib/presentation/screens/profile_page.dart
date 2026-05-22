@@ -375,14 +375,32 @@ class _ProfileHeader extends StatelessWidget {
         : '?';
 
     return Card(
-      child: Padding(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              theme.colorScheme.primary,
+              theme.colorScheme.primary.withValues(alpha: 0.8),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
         padding: const EdgeInsets.all(20),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             CircleAvatar(
               radius: 28,
-              child: Text(avatarLabel, style: theme.textTheme.titleLarge),
+              backgroundColor: Colors.white.withValues(alpha: 0.2),
+              child: Text(
+                avatarLabel,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: Colors.white,
+                ),
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -391,14 +409,16 @@ class _ProfileHeader extends StatelessWidget {
                 children: [
                   Text(
                     profile.primaryDisplayName,
-                    style: theme.textTheme.headlineSmall,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      color: Colors.white,
+                    ),
                   ),
                   if (profile.secondaryDisplayName != null) ...[
                     const SizedBox(height: 4),
                     Text(
                       profile.secondaryDisplayName!,
                       style: theme.textTheme.bodyLarge?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                        color: Colors.white.withValues(alpha: 0.85),
                       ),
                     ),
                   ],
