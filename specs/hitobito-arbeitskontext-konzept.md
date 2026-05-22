@@ -125,6 +125,11 @@ Die App arbeitet immer in genau einem aktiven Arbeitskontext. Alle Seiten der Ap
 - Statistiken beziehen sich zunächst nur auf den aktiven Arbeitskontext.
 - Rekursive Statistiken über Unterlayer sind vorerst ausgeschlossen.
 - Sichtbarkeit und Filterung arbeiten dabei immer auf dem für den Nutzer lesbaren Teilbestand des aktiven Layers.
+- Die Mitgliedsliste ist eine filterbare Ansicht auf diesen Bestand: kein ausgewählter Chip bedeutet "alle", nicht ein eigener "Alle"-Filter.
+- Stufen- und eigene Gruppen-Chips können die Liste einschränken; sie ändern weder den Arbeitskontext noch die zugrunde liegende Datenbasis.
+- Leitung wird in der Mitgliederliste nicht als eigener Stufen-Chip geführt. Leitungsrollen bleiben in Daten und Detaildarstellung sichtbar, sind aber kein Hauptfilter der Stufenleiste.
+- Das Filter-und-Sortieren-Sheet speichert Sortierung, Zusatztext und eigene Gruppen erst beim expliziten Anwenden.
+- Eine sichtbare Abweichungsmarkierung am Filter-Icon bedeutet, dass Sortierung, Zusatztext oder aktive eigene Gruppen vom Standard abweichen.
 
 ### 7. Meine Gruppe
 
@@ -141,6 +146,7 @@ Die App arbeitet immer in genau einem aktiven Arbeitskontext. Alle Seiten der Ap
 - Eine einzelne Hitobito-Gruppe entspricht darüber höchstens einer In-App-Stufe.
 - Die Ableitung ist zentral im Code hinterlegt und nutzt aktuell bekannte Gruppentypen wie `Group::Meute`, `Group::Sippe`, `Group::Runde` und `Group::Gilde`.
 - Personen werden Gruppen in der App über ihre Rollen zugeordnet. Hat eine Person Rollen in mehreren Gruppen, erscheint sie in mehreren Filtern.
+- Eigene Gruppen können Stufenregeln sowie Gruppen- und Rollenregeln kombinieren. Die Standardgruppe "Rest" beschreibt Personen ohne abgeleitete Stufenzuordnung und kann wie andere eigene Gruppen ein- oder ausgeblendet werden.
 - Leere Gruppen ohne Personen werden in der Leseansicht nicht angezeigt.
 
 ### Stammleitung

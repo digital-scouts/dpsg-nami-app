@@ -9,6 +9,8 @@ import 'package:nami/presentation/widgets/member_list.dart';
 import 'package:nami/presentation/widgets/member_list_group_filter_bar.dart';
 import 'package:nami/presentation/widgets/member_list_search_bar.dart';
 
+enum MemberFilterOptionsTrigger { tuneButton, listHeader }
+
 class MemberDirectory extends StatefulWidget {
   const MemberDirectory({
     super.key,
@@ -27,6 +29,9 @@ class MemberDirectory extends StatefulWidget {
     this.enableGroupFilter = true,
     this.hasFilterDeviation = false,
     this.onOpenFilterOptions,
+    this.onSearchActivityChanged,
+    this.onGroupFilterChanged,
+    this.onResetFilters,
     this.onTapMember,
   });
   final List<Mitglied> mitglieder;
@@ -43,7 +48,11 @@ class MemberDirectory extends StatefulWidget {
   final bool Function(Mitglied mitglied)? warningBuilder;
   final bool enableGroupFilter;
   final bool hasFilterDeviation;
-  final VoidCallback? onOpenFilterOptions;
+  final ValueChanged<MemberFilterOptionsTrigger>? onOpenFilterOptions;
+  final ValueChanged<bool>? onSearchActivityChanged;
+  final ValueChanged<int>? onGroupFilterChanged;
+  final void Function({required bool hadSearch, required int selectedCount})?
+  onResetFilters;
   final ValueChanged<String>? onTapMember;
 
   @override
@@ -86,10 +95,27 @@ class _MemberDirectoryState extends State<MemberDirectory> {
   }
 
   void _resetFilters() {
+    final hadSearch = search.trim().isNotEmpty;
+    final selectedCount = selectedFilterKeys.length;
     setState(() {
       search = '';
       selectedFilterKeys.clear();
     });
+    if (hadSearch || selectedCount > 0) {
+      widget.onResetFilters?.call(
+        hadSearch: hadSearch,
+        selectedCount: selectedCount,
+      );
+    }
+  }
+
+  void _updateSearch(String value) {
+    final hadSearch = search.trim().isNotEmpty;
+    final hasSearch = value.trim().isNotEmpty;
+    setState(() => search = value);
+    if (hadSearch != hasSearch) {
+      widget.onSearchActivityChanged?.call(hasSearch);
+    }
   }
 
   List<GroupFilterItem> _buildItems() {
@@ -141,9 +167,11 @@ class _MemberDirectoryState extends State<MemberDirectory> {
             children: [
               MemberSearchBar(
                 initial: search,
-                onChanged: (v) => setState(() => search = v),
+                onChanged: _updateSearch,
                 showFilterIndicator: widget.hasFilterDeviation,
-                onTunePressed: widget.onOpenFilterOptions,
+                onTunePressed: () => widget.onOpenFilterOptions?.call(
+                  MemberFilterOptionsTrigger.tuneButton,
+                ),
               ),
               GroupFilterBar(
                 items: items,
@@ -155,6 +183,7 @@ class _MemberDirectoryState extends State<MemberDirectory> {
                   setState(() {
                     selectedFilterKeys = next;
                   });
+                  widget.onGroupFilterChanged?.call(selectedFilterKeys.length);
                 },
               ),
             ],
@@ -177,7 +206,9 @@ class _MemberDirectoryState extends State<MemberDirectory> {
             mitgliedsFilterKeys: widget.mitgliedsFilterKeys,
             onResetFilters: _resetFilters,
             onToggleFavourite: toggleFavourite,
-            onTapSortHint: widget.onOpenFilterOptions,
+            onTapSortHint: () => widget.onOpenFilterOptions?.call(
+              MemberFilterOptionsTrigger.listHeader,
+            ),
             onTapMember: (id) {
               widget.onTapMember?.call(id);
             },

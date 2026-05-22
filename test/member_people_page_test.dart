@@ -12,6 +12,7 @@ import 'package:nami/domain/auth/auth_profile.dart';
 import 'package:nami/domain/auth/auth_profile_repository.dart';
 import 'package:nami/domain/auth/auth_session.dart';
 import 'package:nami/domain/auth/auth_session_repository.dart';
+import 'package:nami/domain/member/member_list_preferences.dart';
 import 'package:nami/domain/member/member_write_repository.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/member/pending_person_update.dart';
@@ -582,6 +583,7 @@ void main() {
   testWidgets('bietet bei leerem Filterergebnis das Zuruecksetzen an', (
     tester,
   ) async {
+    final logger = _RecordingLoggerService();
     final authModel = await _createSignedInAuthModel();
     final arbeitskontextModel = await _createArbeitskontextModel(
       mitglieder: <Mitglied>[
@@ -609,6 +611,7 @@ void main() {
       _buildTestApp(
         authModel: authModel,
         arbeitskontextModel: arbeitskontextModel,
+        logger: logger,
       ),
     );
 
@@ -630,9 +633,19 @@ void main() {
 
     expect(find.text('Julia Keller'), findsOneWidget);
     expect(find.text('Keine Mitglieder gefunden'), findsNothing);
+    expect(
+      logger.trackedEvents.where(
+        (entry) => entry.$1 == 'member_list_filter_reset',
+      ),
+      hasLength(1),
+    );
+    expect(logger.trackedEvents.single.$2['selected_filter_count'], 1);
   });
 
-  testWidgets('oeffnet das Modal Filtern und Sortieren', (tester) async {
+  testWidgets('loggt Suche und Reset ohne Suchtext in Logs oder Telemetrie', (
+    tester,
+  ) async {
+    final logger = _RecordingLoggerService();
     final authModel = await _createSignedInAuthModel();
     final arbeitskontextModel = await _createArbeitskontextModel(
       mitglieder: <Mitglied>[
@@ -649,6 +662,53 @@ void main() {
       _buildTestApp(
         authModel: authModel,
         arbeitskontextModel: arbeitskontextModel,
+        logger: logger,
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'geheime-suche');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Keine Mitglieder gefunden'), findsOneWidget);
+
+    await tester.tap(find.text('Filter zurücksetzen'));
+    await tester.pumpAndSettle();
+
+    expect(
+      logger.infoLogs.where((entry) => entry.$2.contains('search_started')),
+      hasLength(1),
+    );
+    expect(
+      logger.trackedEvents.where(
+        (entry) => entry.$1 == 'member_list_filter_reset',
+      ),
+      hasLength(1),
+    );
+    expect(logger.infoLogs.toString(), isNot(contains('geheime-suche')));
+    expect(logger.trackedEvents.toString(), isNot(contains('geheime-suche')));
+  });
+
+  testWidgets('oeffnet das Modal Filtern und Sortieren', (tester) async {
+    final logger = _RecordingLoggerService();
+    final authModel = await _createSignedInAuthModel();
+    final arbeitskontextModel = await _createArbeitskontextModel(
+      mitglieder: <Mitglied>[
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '1',
+          vorname: 'Julia',
+          nachname: 'Keller',
+        ),
+      ],
+      authModel: authModel,
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        authModel: authModel,
+        arbeitskontextModel: arbeitskontextModel,
+        logger: logger,
       ),
     );
 
@@ -656,6 +716,15 @@ void main() {
 
     await tester.tap(find.byTooltip('Filtern und sortieren'));
     await tester.pumpAndSettle();
+
+    expect(
+      logger.infoLogs.where(
+        (entry) =>
+            entry.$1 == 'member_list' &&
+            entry.$2 == 'filter_sheet_opened trigger=tune_button',
+      ),
+      hasLength(1),
+    );
 
     expect(find.text('Filtern & Sortieren'), findsOneWidget);
     expect(find.text('Sortiere nach'), findsOneWidget);
@@ -673,6 +742,7 @@ void main() {
   testWidgets('oeffnet Filter und Sortieren ueber den Listenkopf-Trigger', (
     tester,
   ) async {
+    final logger = _RecordingLoggerService();
     final authModel = await _createSignedInAuthModel();
     final arbeitskontextModel = await _createArbeitskontextModel(
       mitglieder: <Mitglied>[
@@ -689,6 +759,7 @@ void main() {
       _buildTestApp(
         authModel: authModel,
         arbeitskontextModel: arbeitskontextModel,
+        logger: logger,
       ),
     );
 
@@ -700,6 +771,69 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Filtern & Sortieren'), findsOneWidget);
+    expect(
+      logger.infoLogs.where(
+        (entry) =>
+            entry.$1 == 'member_list' &&
+            entry.$2 == 'filter_sheet_opened trigger=list_header',
+      ),
+      hasLength(1),
+    );
+  });
+
+  testWidgets('speichert Sortierung aus Dropdown erst nach Anwenden', (
+    tester,
+  ) async {
+    final logger = _RecordingLoggerService();
+    final authModel = await _createSignedInAuthModel();
+    final arbeitskontextModel = await _createArbeitskontextModel(
+      mitglieder: <Mitglied>[
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '1',
+          vorname: 'Julia',
+          nachname: 'Keller',
+        ),
+      ],
+      authModel: authModel,
+    );
+    final memberFiltersModel = MemberFiltersModel(
+      _FakeMemberFilterRepository(),
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        authModel: authModel,
+        arbeitskontextModel: arbeitskontextModel,
+        memberFiltersModel: memberFiltersModel,
+        logger: logger,
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Filtern und sortieren'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(DropdownButtonFormField<MemberSortKey>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Alter').last);
+    await tester.pumpAndSettle();
+
+    expect(memberFiltersModel.sortKey, MemberSortKey.name);
+
+    await tester.tap(find.text('Anwenden'));
+    await tester.pumpAndSettle();
+
+    expect(memberFiltersModel.sortKey, MemberSortKey.age);
+    expect(
+      logger.trackedEvents.where(
+        (entry) => entry.$1 == 'member_filter_sort_applied',
+      ),
+      hasLength(1),
+    );
+    expect(logger.trackedEvents.single.$2['sort_key'], 'age');
+    expect(logger.trackedEvents.single.$2['changed'], isTrue);
+    expect(logger.trackedEvents.toString(), isNot(contains('Julia')));
   });
 
   testWidgets('kann die Default-CustomGroup Rest loeschen', (tester) async {
@@ -781,12 +915,15 @@ Widget _buildTestApp({
   required ArbeitskontextModel arbeitskontextModel,
   LoggerService? logger,
   MemberEditModel? memberEditModel,
+  MemberFiltersModel? memberFiltersModel,
 }) {
   final effectiveLogger = logger ?? _FakeLoggerService();
   return MultiProvider(
     providers: [
       ChangeNotifierProvider<MemberFiltersModel>(
-        create: (_) => MemberFiltersModel(_FakeMemberFilterRepository()),
+        create: (_) =>
+            memberFiltersModel ??
+            MemberFiltersModel(_FakeMemberFilterRepository()),
       ),
       ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
       ChangeNotifierProvider<ArbeitskontextModel>.value(
@@ -1127,8 +1264,26 @@ class _HintTrackingMemberEditModel extends MemberEditModel {
 }
 
 class _RecordingLoggerService extends _FakeLoggerService {
+  final List<(String, String)> infoLogs = <(String, String)>[];
+  final List<(String, Map<String, Object?>)> trackedEvents =
+      <(String, Map<String, Object?>)>[];
   final List<(String, String?, String?, Map<String, Object?>)> navigationLogs =
       <(String, String?, String?, Map<String, Object?>)>[];
+
+  @override
+  Future<void> logInfo(String service, String message) async {
+    infoLogs.add((service, message));
+  }
+
+  @override
+  Future<void> trackAndLog(
+    String service,
+    String name,
+    Map<String, Object?> properties,
+  ) async {
+    infoLogs.add((service, '$name ${properties.toString()}'));
+    trackedEvents.add((name, Map<String, Object?>.from(properties)));
+  }
 
   @override
   Future<void> logNavigationAction(
