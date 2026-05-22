@@ -46,6 +46,20 @@ class MemberFiltersModel extends ChangeNotifier {
     await _persist();
   }
 
+  Future<void> applySettings({
+    required MemberSortKey sortKey,
+    required MemberSubtitleMode subtitleMode,
+    required List<MemberCustomFilterGroup> customGroups,
+  }) async {
+    _settings = _settings.copyWith(
+      sortKey: sortKey,
+      subtitleMode: subtitleMode,
+      customGroups: List<MemberCustomFilterGroup>.from(customGroups),
+    );
+    notifyListeners();
+    await _persist();
+  }
+
   Future<void> setCustomGroupActive(String groupId, bool isActive) async {
     _settings = _settings.copyWith(
       customGroups: _settings.customGroups

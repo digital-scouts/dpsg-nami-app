@@ -77,90 +77,141 @@ class MemberListTile extends StatelessWidget {
         ? _HighlightedSubtitle(highlight: subtitleHighlight!)
         : Text(resolvedSubtitle);
 
-    final tile = Dismissible(
-      key: Key(mitglied.mitgliedsnummer),
-      direction: DismissDirection.endToStart,
-      confirmDismiss: (direction) async {
-        if (toggleFavorites != null) {
-          toggleFavorites!();
-        }
-        return false; // Prevent actual dismissal
-      },
-      onDismissed: (_) {},
-      background: Container(
-        color: isFavourite ? Colors.red : Colors.amber,
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Icon(
-          isFavourite ? Icons.bookmark_remove : Icons.bookmark_add,
-          color: Colors.white,
+    final tile = Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Dismissible(
+        key: Key(mitglied.mitgliedsnummer),
+        direction: DismissDirection.endToStart,
+        confirmDismiss: (direction) async {
+          if (toggleFavorites != null) {
+            toggleFavorites!();
+          }
+          return false;
+        },
+        onDismissed: (_) {},
+        background: Container(
+          decoration: BoxDecoration(
+            color: isFavourite ? Colors.red : Colors.amber,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Icon(
+            isFavourite ? Icons.bookmark_remove : Icons.bookmark_add,
+            color: Colors.white,
+          ),
         ),
-      ),
-      child: Card(
-        child: InkWell(
-          onTap: onTap,
-          child: ListTile(
-            contentPadding: const EdgeInsets.only(left: 5, right: 5),
-            leading: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  // TODO: Leading-Farbverlauf basiert noch auf Stufe/Taetigkeit; spaeter auf Gruppenkontext des Arbeitsmodells umstellen.
-                  colors: [secondaryColor, primaryColor],
-                  begin: const FractionalOffset(0.0, 0.0),
-                  end: const FractionalOffset(0.0, 1.0),
-                  stops: const [0.5, 0.5],
-                  tileMode: TileMode.clamp,
-                ),
-              ),
-              width: 5,
-            ),
-            title: Text('${mitglied.vorname} ${mitglied.nachname}'),
-            subtitle: subtitleWidget,
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (showWarning) ...[
-                  const Center(
-                    child: Tooltip(
-                      message: 'Offener Problemfall',
-                      child: Icon(
-                        Icons.warning_amber_rounded,
-                        color: Colors.orange,
+        child: Material(
+          color: Theme.of(context).colorScheme.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: Theme.of(context).colorScheme.outline),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(0, 12, 16, 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 4,
+                    height: 42,
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [secondaryColor, primaryColor],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        stops: const [0.5, 0.5],
+                      ),
+                      borderRadius: const BorderRadius.horizontal(
+                        right: Radius.circular(2),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                ],
-                if (resolvedTrailingText != null &&
-                    resolvedTrailingText.isNotEmpty)
-                  Center(
-                    child: ConstrainedBox(
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '${mitglied.vorname} ${mitglied.nachname}'.trim(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                        ),
+                        const SizedBox(height: 2),
+                        DefaultTextStyle.merge(
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                fontSize: 13,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.outlineVariant,
+                              ),
+                          child: subtitleWidget,
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (resolvedTrailingText != null &&
+                      resolvedTrailingText.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 140),
                       child: Text(
                         resolvedTrailingText,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.right,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.outlineVariant,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
+                  ],
+                  if (showWarning) ...[
+                    const SizedBox(width: 8),
+                    const Tooltip(
+                      message: 'Offener Problemfall',
+                      child: Icon(
+                        Icons.warning_amber_rounded,
+                        color: Colors.orange,
+                        size: 20,
+                      ),
+                    ),
+                  ],
+                  if (isFavourite) ...[
+                    const SizedBox(width: 8),
+                    const Icon(Icons.bookmark, size: 18, color: Colors.amber),
+                  ],
+                  const SizedBox(width: 6),
+                  Icon(
+                    Icons.chevron_right,
+                    size: 18,
+                    color: Theme.of(context).colorScheme.outline,
                   ),
-                if (isFavourite) ...[
-                  const SizedBox(width: 5),
-                  Container(
-                    width: 5,
-                    decoration: const BoxDecoration(color: Colors.amber),
-                  ),
-                ] else
-                  const SizedBox(width: 10),
-              ],
+                ],
+              ),
             ),
           ),
         ),
       ),
     );
 
-    return Material(child: tile);
+    return tile;
   }
 }
 
@@ -171,8 +222,9 @@ class _HighlightedSubtitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
-      color: Theme.of(context).listTileTheme.textColor,
+    final baseStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+      fontSize: 13,
+      color: Theme.of(context).colorScheme.outlineVariant,
     );
     final highlightedStyle = baseStyle?.copyWith(
       color: Theme.of(context).colorScheme.primary,

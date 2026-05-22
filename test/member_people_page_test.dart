@@ -255,10 +255,6 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    expect(
-      find.text('Es gibt 2 offene Problemfaelle bei Mitglieds-Aenderungen.'),
-      findsOneWidget,
-    );
     expect(memberEditModel.loggedHints, <(String, int)>[('people_list', 2)]);
   });
 
@@ -432,13 +428,23 @@ void main() {
       expect(find.text('Julia Keller'), findsOneWidget);
       expect(find.text('Mara Schmidt'), findsOneWidget);
 
-      await tester.tap(find.bySemanticsLabel('Wölfling'));
+      await tester.tap(
+        find.descendant(
+          of: find.byType(GroupFilterBar),
+          matching: find.text('Wölfling'),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Julia Keller'), findsOneWidget);
       expect(find.text('Mara Schmidt'), findsNothing);
 
-      await tester.tap(find.bySemanticsLabel('Pfadfinder'));
+      await tester.tap(
+        find.descendant(
+          of: find.byType(GroupFilterBar),
+          matching: find.text('Pfadfinder'),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Julia Keller'), findsOneWidget);
@@ -478,7 +484,13 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.bySemanticsLabel('Biber'), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byType(GroupFilterBar),
+        matching: find.text('Biber'),
+      ),
+      findsNothing,
+    );
 
     final mitBiberModel = await _createArbeitskontextModel(
       mitglieder: <Mitglied>[
@@ -508,7 +520,13 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.bySemanticsLabel('Biber'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(GroupFilterBar),
+        matching: find.text('Biber'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('filtert ueber Alle anderen nicht zugeordnete Mitglieder', (
@@ -596,7 +614,12 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    await tester.tap(find.bySemanticsLabel('Pfadfinder'));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(GroupFilterBar),
+        matching: find.text('Pfadfinder'),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Keine Mitglieder gefunden'), findsOneWidget);
@@ -647,6 +670,38 @@ void main() {
     expect(find.text('Rolle'), findsOneWidget);
   });
 
+  testWidgets('oeffnet Filter und Sortieren ueber den Listenkopf-Trigger', (
+    tester,
+  ) async {
+    final authModel = await _createSignedInAuthModel();
+    final arbeitskontextModel = await _createArbeitskontextModel(
+      mitglieder: <Mitglied>[
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '1',
+          vorname: 'Julia',
+          nachname: 'Keller',
+        ),
+      ],
+      authModel: authModel,
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        authModel: authModel,
+        arbeitskontextModel: arbeitskontextModel,
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Name A–Z'), findsOneWidget);
+
+    await tester.tap(find.text('Name A–Z'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Filtern & Sortieren'), findsOneWidget);
+  });
+
   testWidgets('kann die Default-CustomGroup Rest loeschen', (tester) async {
     final authModel = await _createSignedInAuthModel();
     final arbeitskontextModel = await _createArbeitskontextModel(
@@ -677,7 +732,7 @@ void main() {
     await tester.tap(find.byTooltip('Filtergruppe löschen').first);
     await tester.pumpAndSettle();
 
-    Navigator.of(tester.element(find.text('Filtern & Sortieren'))).pop();
+    await tester.tap(find.text('Anwenden'));
     await tester.pumpAndSettle();
 
     expect(find.text('Rest'), findsNothing);

@@ -8,19 +8,13 @@ import '../presentation/widgets/member_list_group_filter_bar.dart';
 Story groupFilterStory() => Story(
   name: 'Mitglieder/Widgets/Liste/Gruppenfilter',
   builder: (context) {
-    final itemSize = context.knobs.slider(
-      label: 'Item Size',
-      initial: 50,
-      min: 36,
-      max: 80,
-    );
-
     final stufen = Stufe.values;
     final items = stufen
         .map(
           (s) => GroupFilterItem(
             keyName: s.name,
-            imageAssetPath: StufeVisuals.assetFor(s),
+            label: s.displayName,
+            chipColor: StufeVisuals.colorFor(s),
             semanticLabel: '${s.displayName} Filter',
           ),
         )
@@ -39,7 +33,6 @@ Story groupFilterStory() => Story(
     return GroupFilterBar(
       items: items,
       selectedKeys: selectedKeys,
-      itemSize: itemSize,
       onChanged: (_) {}, // deaktiviert
     );
   },
