@@ -221,7 +221,9 @@ class AppLocalizations {
       'address_label': 'Heim-Adresse',
       'stufenwechsel_section': 'Stufenwechsel',
       'stufenwechsel_help':
-          'Für die Empfehlung des nächsten Stufenwechsels wird das Datum und die in deinem Stamm verwendeten Altersgrenzen berücksichtigt.',
+          'Für die Empfehlung des nächsten Stufenwechsels werden das Datum und die in deinem Stamm verwendeten Altersgrenzen berücksichtigt.',
+      'stufenwechsel_date_title': 'Datum',
+      'stufenwechsel_date_hint': 'Termin für den nächsten Wechsel',
       'no_date_chosen': 'Kein Datum für den nächsten Stufenwechsel festgelegt',
       'pick_date': 'Datum wählen',
       'altersgruppen': 'Altersgruppen',
@@ -736,7 +738,9 @@ class AppLocalizations {
       'address_label': 'Home address',
       'stufenwechsel_section': 'Stage change',
       'stufenwechsel_help':
-          'To recommend the next stage change, the date and the age ranges used in your troop are considered.',
+          'The date and the age ranges used in your troop are considered for the next stage change recommendation.',
+      'stufenwechsel_date_title': 'Date',
+      'stufenwechsel_date_hint': 'Date for the next change',
       'no_date_chosen': 'No date set for the next stage change',
       'pick_date': 'Pick date',
       'altersgruppen': 'Age groups',

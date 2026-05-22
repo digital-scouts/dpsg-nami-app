@@ -85,6 +85,7 @@ List<Story> buildStorybookStories() {
     buildSettingsStammPageStory(),
     stammAddressSettingsStory(),
     stufenwechselSettingsStory(),
+    stufenwechselSettingsMinMaxStory(),
     statisticsPageStory(),
     statisticsGroupDetailStory(),
     ageDistributionStory(),
