@@ -3,6 +3,7 @@ import 'package:nami/domain/maps/address_map_location_repository.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/settings/address_settings_repository.dart';
 import 'package:nami/presentation/widgets/member_address_card.dart';
+import 'package:nami/presentation/widgets/section_header.dart';
 import 'package:nami/services/geoapify_address_map_service.dart';
 import 'package:nami/services/map_tile_cache_service.dart';
 
@@ -20,7 +21,8 @@ class MemberDetails extends StatelessWidget {
     this.addressSettingsRepository,
     this.tileCacheService,
     this.previewTimeout,
-    this.spacing = 10,
+    this.leadingChildren = const <Widget>[],
+    this.spacing = 8,
     this.showGeneralInfo = true,
     this.showMembershipInfo = true,
   });
@@ -32,6 +34,7 @@ class MemberDetails extends StatelessWidget {
   final AddressSettingsRepository? addressSettingsRepository;
   final MapTileCacheService? tileCacheService;
   final Duration? previewTimeout;
+  final List<Widget> leadingChildren;
   final double spacing;
   final bool showGeneralInfo;
   final bool showMembershipInfo;
@@ -39,11 +42,20 @@ class MemberDetails extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final children = <Widget>[];
+    if (leadingChildren.isNotEmpty) {
+      children.addAll(leadingChildren);
+      children.add(SizedBox(height: spacing));
+    }
     if (showGeneralInfo) {
+      children.add(const DpsgSectionHeader(label: 'Persönliche Daten'));
       children.add(MemberGeneralInfoCard(mitglied: mitglied));
+      children.add(SizedBox(height: spacing));
+      children.add(const DpsgSectionHeader(label: 'Kontakt'));
+      children.add(MemberContactInfoCard(mitglied: mitglied));
     }
     if (showGeneralInfo && mitglied.primaryAddress != null) {
       children.add(SizedBox(height: spacing));
+      children.add(const DpsgSectionHeader(label: 'Adresse'));
       children.add(
         MemberAddressCard(
           mitglied: mitglied,
@@ -60,6 +72,7 @@ class MemberDetails extends StatelessWidget {
       children.add(SizedBox(height: spacing));
     }
     if (showMembershipInfo) {
+      children.add(const DpsgSectionHeader(label: 'Mitgliedschaft'));
       children.add(
         MemberMembershipInfoCard(
           mitglied: mitglied,
@@ -68,7 +81,7 @@ class MemberDetails extends StatelessWidget {
       );
     }
     return ListView(
-      padding: const EdgeInsets.all(10.0),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 12),
       children: <Widget>[...children],
     );
   }

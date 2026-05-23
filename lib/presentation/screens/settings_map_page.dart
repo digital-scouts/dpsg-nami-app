@@ -435,6 +435,7 @@ class _SettingsMapPageState extends State<SettingsMapPage> {
               child: _MapOverlayButton(
                 key: const ValueKey('settings-map-back-button'),
                 tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                label: 'Zurück',
                 icon: Icons.arrow_back,
                 onPressed: () => Navigator.of(context).maybePop(),
               ),
@@ -624,6 +625,7 @@ class _SettingsMapPageState extends State<SettingsMapPage> {
                               tooltip: MaterialLocalizations.of(
                                 context,
                               ).backButtonTooltip,
+                              label: 'Zurück',
                               icon: Icons.arrow_back,
                               onPressed: () => Navigator.of(context).maybePop(),
                             ),
@@ -656,6 +658,7 @@ class _SettingsMapPageState extends State<SettingsMapPage> {
                                       'settings-map-recenter-button',
                                     ),
                                     tooltip: t.t('settings_map_recenter'),
+                                    label: t.t('settings_map_recenter'),
                                     icon: Icons.center_focus_strong,
                                     onPressed: () => _recenterMap(allPoints),
                                   ),
@@ -799,8 +802,14 @@ class _SelectedBoundaryCard extends StatelessWidget {
     final theme = Theme.of(context);
     return Material(
       elevation: 4,
-      borderRadius: BorderRadius.circular(16),
-      color: theme.colorScheme.surface.withValues(alpha: 0.94),
+      borderRadius: BorderRadius.circular(14),
+      color: theme.colorScheme.surfaceContainerLow,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+          color: theme.colorScheme.outline.withValues(alpha: 0.22),
+        ),
+      ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
         child: Row(
@@ -851,24 +860,47 @@ class _MapOverlayButton extends StatelessWidget {
     required this.tooltip,
     required this.icon,
     required this.onPressed,
+    this.label,
   });
 
   final String tooltip;
+  final String? label;
   final IconData icon;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Material(
-      color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.88),
+      color: theme.colorScheme.surfaceContainerLow,
       elevation: 3,
-      shape: const CircleBorder(),
-      child: IconButton(
-        tooltip: tooltip,
-        constraints: const BoxConstraints.tightFor(width: 48, height: 48),
-        padding: EdgeInsets.zero,
-        onPressed: onPressed,
-        icon: Icon(icon, size: 24),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(
+          color: theme.colorScheme.outline.withValues(alpha: 0.22),
+        ),
+      ),
+      child: Tooltip(
+        message: tooltip,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: onPressed,
+          child: Padding(
+            padding: label == null
+                ? EdgeInsets.zero
+                : const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+            child: label == null
+                ? SizedBox(width: 44, height: 44, child: Icon(icon, size: 22))
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(icon, size: 18),
+                      const SizedBox(width: 6),
+                      Text(label!, style: theme.textTheme.labelMedium),
+                    ],
+                  ),
+          ),
+        ),
       ),
     );
   }
@@ -915,23 +947,29 @@ class _MapSearchControl extends StatelessWidget {
             ? Material(
                 key: const ValueKey('settings-map-search-open'),
                 elevation: 3,
-                color: theme.colorScheme.surface.withValues(alpha: 0.92),
-                borderRadius: BorderRadius.circular(20),
+                color: theme.colorScheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: BorderSide(
+                    color: theme.colorScheme.outline.withValues(alpha: 0.22),
+                  ),
+                ),
                 child: SizedBox(
                   width: expandedWidth,
-                  height: 48,
+                  height: 44,
                   child: Row(
                     children: [
                       IconButton(
                         key: const ValueKey('settings-map-search-close-button'),
                         tooltip: closeTooltip,
                         constraints: const BoxConstraints.tightFor(
-                          width: 48,
-                          height: 48,
+                          width: 44,
+                          height: 44,
                         ),
                         padding: EdgeInsets.zero,
                         onPressed: onClose,
-                        icon: const Icon(Icons.close, size: 24),
+                        icon: const Icon(Icons.close, size: 22),
                       ),
                       Expanded(
                         child: TextField(
@@ -955,10 +993,11 @@ class _MapSearchControl extends StatelessWidget {
             ? _MapOverlayButton(
                 key: const ValueKey('settings-map-search-button'),
                 tooltip: openTooltip,
+                label: openTooltip,
                 icon: Icons.search,
                 onPressed: onOpen,
               )
-            : const SizedBox(width: 48, height: 48),
+            : const SizedBox(width: 96, height: 44),
       ),
     );
   }
@@ -984,9 +1023,15 @@ class _SearchResultsCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Material(
-      color: theme.colorScheme.surface.withValues(alpha: 0.94),
+      color: theme.colorScheme.surfaceContainerLow,
       elevation: 4,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(14),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+          color: theme.colorScheme.outline.withValues(alpha: 0.22),
+        ),
+      ),
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth, maxHeight: 280),
         child: results.isEmpty

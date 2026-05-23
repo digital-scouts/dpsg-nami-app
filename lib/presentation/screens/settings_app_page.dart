@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nami/l10n/app_localizations.dart';
+import 'package:nami/presentation/widgets/section_header.dart';
 
 class AppSettingsPage extends StatefulWidget {
   final bool analyticsEnabled;
@@ -105,7 +106,7 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
         children: [
-          _AppSettingsSectionLabel(label: t.t('settings_app_section_security')),
+          DpsgSectionHeader(label: t.t('settings_app_section_security')),
           _AppSettingsCard(
             children: [
               _AppSettingsSwitchRow(
@@ -129,7 +130,7 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
             ],
           ),
           const SizedBox(height: 12),
-          _AppSettingsSectionLabel(label: t.t('settings_app_section_display')),
+          DpsgSectionHeader(label: t.t('settings_app_section_display')),
           _AppSettingsCard(
             children: [
               _AppSettingsRadioRow(
@@ -150,7 +151,7 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
             ],
           ),
           const SizedBox(height: 12),
-          _AppSettingsSectionLabel(label: t.t('language')),
+          DpsgSectionHeader(label: t.t('language')),
           _AppSettingsCard(
             children: [
               _AppSettingsRadioRow(
@@ -166,7 +167,7 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
             ],
           ),
           const SizedBox(height: 12),
-          _AppSettingsSectionLabel(label: t.t('settings_app_section_behavior')),
+          DpsgSectionHeader(label: t.t('settings_app_section_behavior')),
           _AppSettingsCard(
             children: [
               _AppSettingsSwitchRow(
@@ -192,29 +193,6 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _AppSettingsSectionLabel extends StatelessWidget {
-  const _AppSettingsSectionLabel({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 6),
-      child: Text(
-        label.toUpperCase(),
-        style: theme.textTheme.labelMedium?.copyWith(
-          color: theme.colorScheme.primary,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.8,
-        ),
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:nami/domain/settings/address_settings_repository.dart';
 import 'package:nami/domain/stufe/altersgrenzen.dart';
 import 'package:nami/l10n/app_localizations.dart';
+import 'package:nami/presentation/widgets/section_header.dart';
 import 'package:nami/presentation/widgets/settings_stamm_address.dart';
 import 'package:nami/presentation/widgets/settings_stufenwechsel.dart';
 import 'package:nami/presentation/widgets/settings_stufenwechsel_minmax.dart';
@@ -45,16 +46,9 @@ class _SettingsStammPageState extends State<SettingsStammPage> {
     final t = AppLocalizations.of(context);
 
     Widget sectionLabel(String label) {
-      return Padding(
+      return DpsgSectionHeader(
+        label: label,
         padding: const EdgeInsets.fromLTRB(16, 20, 16, 6),
-        child: Text(
-          label.toUpperCase(),
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: theme.colorScheme.primary,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.8,
-          ),
-        ),
       );
     }
 
