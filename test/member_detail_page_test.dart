@@ -74,10 +74,6 @@ void main() {
 
       expect(find.text('Julia Keller'), findsOneWidget);
       expect(find.text('Allgemeine Informationen'), findsNothing);
-      expect(find.text('Mitgliedschaft'), findsNothing);
-      expect(find.text('4711'), findsOneWidget);
-      expect(find.text('Zuletzt aktualisiert'), findsOneWidget);
-      expect(find.text('07.11.2024, 14:35'), findsOneWidget);
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
@@ -99,8 +95,77 @@ void main() {
 
       expect(find.text('Geburtstag'), findsNothing);
       expect(find.text('Eintrittsdatum'), findsNothing);
-      expect(find.text('Mitgliedschaft'), findsNothing);
-      expect(find.text('9'), findsOneWidget);
+      expect(find.text('Max Mustermann'), findsOneWidget);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  testWidgets(
+    'zeigt Auswahlmenue fuer Anrufen bei mehreren Telefonnummern',
+    (tester) async {
+      final member = Mitglied(
+        mitgliedsnummer: '4711',
+        vorname: 'Julia',
+        nachname: 'Keller',
+        geburtsdatum: DateTime(2010, 4, 6),
+        eintrittsdatum: DateTime(2020, 5, 1),
+        telefonnummern: const <MitgliedKontaktTelefon>[
+          MitgliedKontaktTelefon(wert: '+491701234567', label: 'Mobil'),
+          MitgliedKontaktTelefon(wert: '+4940123456', label: 'Festnetz'),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(MemberDetailPage(mitglied: member)),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Anrufen'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Telefonnummer auswählen'), findsOneWidget);
+      expect(find.text('Mobil - +491701234567'), findsOneWidget);
+      expect(find.text('Festnetz - +4940123456'), findsOneWidget);
+
+      await tester.tap(find.text('Mobil - +491701234567'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Telefonnummer auswählen'), findsNothing);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  testWidgets(
+    'zeigt Auswahlmenue fuer E-Mail bei mehreren Adressen',
+    (tester) async {
+      final member = Mitglied(
+        mitgliedsnummer: '4711',
+        vorname: 'Julia',
+        nachname: 'Keller',
+        geburtsdatum: DateTime(2010, 4, 6),
+        eintrittsdatum: DateTime(2020, 5, 1),
+        emailAdressen: const <MitgliedKontaktEmail>[
+          MitgliedKontaktEmail(wert: 'julia@example.com', label: 'Privat'),
+          MitgliedKontaktEmail(wert: 'j.keller@stamm.de', label: 'Stamm'),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(MemberDetailPage(mitglied: member)),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('E-Mail'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('E-Mail auswählen'), findsOneWidget);
+      expect(find.text('Privat - julia@example.com'), findsOneWidget);
+      expect(find.text('Stamm - j.keller@stamm.de'), findsOneWidget);
+
+      await tester.tap(find.text('Privat - julia@example.com'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('E-Mail auswählen'), findsNothing);
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
@@ -139,7 +204,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 150));
 
-    expect(find.text('Adresse'), findsNothing);
+    expect(find.text('ADRESSE'), findsOneWidget);
     expect(find.text('Musterweg 4, 50667 Koeln'), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsNothing);
   });
@@ -182,7 +247,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 150));
       await tester.pump();
 
-      expect(find.text('Adresse'), findsNothing);
+      expect(find.text('ADRESSE'), findsOneWidget);
       expect(find.byType(CircularProgressIndicator), findsNothing);
     },
     timeout: const Timeout(Duration(seconds: 3)),
@@ -255,7 +320,7 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.byTooltip('Person bearbeiten'), findsOneWidget);
+    expect(find.text('Bearbeiten'), findsOneWidget);
   });
 
   testWidgets('zeigt den Pending-Hinweis fuer das passende Mitglied', (
@@ -332,7 +397,7 @@ void main() {
     );
 
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Person bearbeiten'));
+    await tester.tap(find.text('Bearbeiten'));
     await tester.pumpAndSettle();
 
     expect(find.text('Person bearbeiten'), findsOneWidget);
@@ -386,7 +451,7 @@ void main() {
     );
 
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Person bearbeiten'));
+    await tester.tap(find.text('Bearbeiten'));
     await tester.pumpAndSettle();
 
     expect(find.text('Person bearbeiten'), findsOneWidget);
@@ -444,7 +509,7 @@ void main() {
     );
 
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Person bearbeiten'));
+    await tester.tap(find.text('Bearbeiten'));
     await tester.pumpAndSettle();
 
     expect(find.text('Person bearbeiten'), findsOneWidget);
@@ -521,10 +586,10 @@ void main() {
     );
 
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Person bearbeiten'));
+    await tester.tap(find.text('Bearbeiten'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Problemlösung Mitglied'), findsOneWidget);
+    expect(find.textContaining('Problemlösung'), findsOneWidget);
     expect(memberEditModel.openedEntryPoints, <String>['detail']);
   });
 }

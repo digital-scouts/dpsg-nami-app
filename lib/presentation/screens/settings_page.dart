@@ -5,6 +5,7 @@ import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/model/member_edit_model.dart';
 import 'package:nami/presentation/widgets/confetti_overlay.dart';
+import 'package:nami/presentation/widgets/section_header.dart';
 import 'package:nami/services/app_update_service.dart';
 import 'package:nami/services/logger_service.dart';
 import 'package:nami/services/network_access_policy.dart';
@@ -400,7 +401,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                       const SizedBox(height: 12),
                     ],
-                    _SettingsSectionLabel(label: 'Schnellzugriff'),
+                    const DpsgSectionHeader(label: 'Schnellzugriff'),
                     Card(
                       margin: EdgeInsets.zero,
                       child: Column(
@@ -424,7 +425,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _SettingsSectionLabel(label: 'Einstellungen'),
+                    const DpsgSectionHeader(label: 'Einstellungen'),
                     Card(
                       margin: EdgeInsets.zero,
                       child: Column(
@@ -456,7 +457,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _SettingsSectionLabel(label: 'Entwicklung'),
+                    const DpsgSectionHeader(label: 'Entwicklung'),
                     Card(
                       margin: EdgeInsets.zero,
                       child: _SettingsNavTile(
@@ -468,7 +469,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _SettingsSectionLabel(label: 'Rechtliches'),
+                    const DpsgSectionHeader(label: 'Rechtliches'),
                     Card(
                       margin: EdgeInsets.zero,
                       child: Column(
@@ -696,29 +697,6 @@ class _SettingsMessagesBanner extends StatelessWidget {
         ),
         Padding(padding: const EdgeInsets.only(bottom: 8), child: banner),
       ],
-    );
-  }
-}
-
-class _SettingsSectionLabel extends StatelessWidget {
-  const _SettingsSectionLabel({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 6),
-      child: Text(
-        label.toUpperCase(),
-        style: theme.textTheme.labelMedium?.copyWith(
-          color: theme.colorScheme.primary,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.8,
-        ),
-      ),
     );
   }
 }

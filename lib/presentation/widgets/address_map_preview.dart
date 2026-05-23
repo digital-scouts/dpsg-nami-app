@@ -31,6 +31,7 @@ class AddressMapPreview extends StatefulWidget {
     this.mapService,
     this.tileCacheService,
     this.offlineDownloadRadiusKm,
+    this.borderRadius = const BorderRadius.all(Radius.circular(14)),
   });
 
   final String addressText;
@@ -46,6 +47,7 @@ class AddressMapPreview extends StatefulWidget {
   final GeoapifyAddressMapService? mapService;
   final MapTileCacheService? tileCacheService;
   final double? offlineDownloadRadiusKm;
+  final BorderRadiusGeometry borderRadius;
 
   @override
   State<AddressMapPreview> createState() => _AddressMapPreviewState();
@@ -98,6 +100,7 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
             tileProvider: result!.tileProvider!,
             primaryLocation: result.primaryLocation!,
             secondaryLocation: result.secondaryLocation,
+            borderRadius: widget.borderRadius,
           );
         }
 
@@ -106,6 +109,7 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
           return _MapMessagePlaceholder(
             height: widget.height,
             message: t.t('map_wifi_only_refresh'),
+            borderRadius: widget.borderRadius,
           );
         }
 
@@ -114,6 +118,7 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
             height: widget.height,
             message:
                 '${t.t('map_not_available')}\n${t.t('map_device_offline')}',
+            borderRadius: widget.borderRadius,
           );
         }
 
@@ -122,6 +127,7 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
             height: widget.height,
             message:
                 '${t.t('map_not_available')}\n${t.t('map_mobile_data_blocked')}',
+            borderRadius: widget.borderRadius,
           );
         }
 
@@ -130,6 +136,7 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
             height: widget.height,
             message:
                 '${t.t('map_not_available')}\n${t.t('map_address_not_found')}',
+            borderRadius: widget.borderRadius,
           );
         }
 
@@ -138,6 +145,7 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
             height: widget.height,
             message:
                 '${t.t('map_not_available')}\n${t.t('map_technical_error')}',
+            borderRadius: widget.borderRadius,
           );
         }
 
@@ -146,6 +154,7 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
             height: widget.height,
             message:
                 '${t.t('map_not_available')}\n${t.t('map_technical_error')}',
+            borderRadius: widget.borderRadius,
           );
         }
 
@@ -154,6 +163,7 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
             height: widget.height,
             message:
                 '${t.t('map_not_available')}\n${t.t('map_technical_error')}',
+            borderRadius: widget.borderRadius,
           );
         }
 
@@ -161,6 +171,7 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
           height: widget.height,
           message:
               '${t.t('map_not_available')}\n${t.t('map_address_not_found')}',
+          borderRadius: widget.borderRadius,
         );
       },
     );
@@ -453,6 +464,7 @@ class _InteractiveMapPreview extends StatefulWidget {
     required this.height,
     required this.tileProvider,
     required this.primaryLocation,
+    required this.borderRadius,
     this.secondaryLocation,
   });
 
@@ -460,6 +472,7 @@ class _InteractiveMapPreview extends StatefulWidget {
   final TileProvider tileProvider;
   final AddressMapLocation primaryLocation;
   final AddressMapLocation? secondaryLocation;
+  final BorderRadiusGeometry borderRadius;
 
   @override
   State<_InteractiveMapPreview> createState() => _InteractiveMapPreviewState();
@@ -517,7 +530,7 @@ class _InteractiveMapPreviewState extends State<_InteractiveMapPreview> {
         : null;
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: widget.borderRadius,
       child: SizedBox(
         height: widget.height,
         child: Stack(
@@ -568,24 +581,44 @@ class _InteractiveMapPreviewState extends State<_InteractiveMapPreview> {
               ],
             ),
             Positioned(
-              top: 8,
+              bottom: 8,
               right: 8,
               child: Material(
-                color: Theme.of(
-                  context,
-                ).colorScheme.surface.withValues(alpha: 0.5),
+                color: Theme.of(context).colorScheme.surface,
                 elevation: 2,
-                shape: const CircleBorder(),
-                child: IconButton(
-                  tooltip: 'Karte zentrieren',
-                  constraints: const BoxConstraints.tightFor(
-                    width: 34,
-                    height: 34,
+                borderRadius: BorderRadius.circular(10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  side: BorderSide(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outline.withValues(alpha: 0.24),
                   ),
-                  padding: EdgeInsets.zero,
-                  visualDensity: VisualDensity.compact,
-                  onPressed: () => _recenterMap(points),
-                  icon: const Icon(Icons.center_focus_strong, size: 18),
+                ),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: () => _recenterMap(points),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 6,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.center_focus_strong,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Zentrieren',
+                          style: Theme.of(context).textTheme.labelSmall,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -604,15 +637,37 @@ class _MapMarker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(child: Icon(icon, color: color, size: 28));
+    return Center(
+      child: Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.22),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Icon(icon, color: color, size: 18),
+      ),
+    );
   }
 }
 
 class _MapMessagePlaceholder extends StatelessWidget {
-  const _MapMessagePlaceholder({required this.height, required this.message});
+  const _MapMessagePlaceholder({
+    required this.height,
+    required this.message,
+    required this.borderRadius,
+  });
 
   final double height;
   final String message;
+  final BorderRadiusGeometry borderRadius;
 
   @override
   Widget build(BuildContext context) {
@@ -620,7 +675,7 @@ class _MapMessagePlaceholder extends StatelessWidget {
     return Container(
       height: height,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: borderRadius,
         color: theme.colorScheme.surfaceContainerHighest,
       ),
       alignment: Alignment.center,

@@ -50,54 +50,60 @@ class MemberAddressCard extends StatelessWidget {
         addressSettingsRepository ?? SharedPrefsAddressSettingsRepository();
 
     return Card(
+      clipBehavior: Clip.antiAlias,
       margin: const EdgeInsets.symmetric(vertical: 5.0),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(_memberAddressCardRadius),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _AddressLink(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ListTile(
+            dense: true,
+            leading: const Icon(Icons.location_on, size: 20),
+            title: _AddressLink(
               displayAddress: formattedAddress,
               queryAddress: mapQueryAddress,
               onLaunchAddress: onLaunchAddress,
             ),
-            if (cacheKey != null) ...[
-              const SizedBox(height: 16),
-              FutureBuilder<String?>(
-                future: stammRepository.loadAddress(),
-                builder: (context, snapshot) {
-                  final stammAddress = snapshot.data?.trim();
-                  return AddressMapPreview(
-                    addressText: MemberAddressUtils.formatSingleLineAddress(
-                      address,
-                    ),
-                    cacheKey: cacheKey,
-                    addressFingerprint: MemberAddressUtils.fingerprint(address),
-                    secondaryAddressText: (stammAddress?.isNotEmpty ?? false)
-                        ? stammAddress
-                        : null,
-                    secondaryCacheKey: (stammAddress?.isNotEmpty ?? false)
-                        ? 'stamm:0'
-                        : null,
-                    secondaryAddressFingerprint:
-                        (stammAddress?.isNotEmpty ?? false)
-                        ? MemberAddressUtils.fingerprintFromText(stammAddress!)
-                        : null,
-                    previewTimeout:
-                        previewTimeout ?? const Duration(seconds: 5),
-                    repository: addressLocationRepository,
-                    mapService: mapService,
-                    tileCacheService: tileCacheService,
-                    offlineDownloadRadiusKm: MapsEnv.memberOfflineRadiusKm,
-                  );
-                },
-              ),
-            ],
-          ],
-        ),
+            subtitle: const Text('Wohnort'),
+          ),
+          if (cacheKey != null) ...[
+            FutureBuilder<String?>(
+              future: stammRepository.loadAddress(),
+              builder: (context, snapshot) {
+                final stammAddress = snapshot.data?.trim();
+                return AddressMapPreview(
+                  addressText: MemberAddressUtils.formatSingleLineAddress(
+                    address,
+                  ),
+                  cacheKey: cacheKey,
+                  addressFingerprint: MemberAddressUtils.fingerprint(address),
+                  secondaryAddressText: (stammAddress?.isNotEmpty ?? false)
+                      ? stammAddress
+                      : null,
+                  secondaryCacheKey: (stammAddress?.isNotEmpty ?? false)
+                      ? 'stamm:0'
+                      : null,
+                  secondaryAddressFingerprint:
+                      (stammAddress?.isNotEmpty ?? false)
+                      ? MemberAddressUtils.fingerprintFromText(stammAddress!)
+                      : null,
+                  previewTimeout: previewTimeout ?? const Duration(seconds: 5),
+                  repository: addressLocationRepository,
+                  mapService: mapService,
+                  tileCacheService: tileCacheService,
+                  offlineDownloadRadiusKm: MapsEnv.memberOfflineRadiusKm,
+                  height: 186,
+                  borderRadius: const BorderRadius.vertical(
+                    bottom: Radius.circular(_memberAddressCardRadius),
+                  ),
+                );
+              },
+            ),
+          ] else
+            const SizedBox(height: 16),
+        ],
       ),
     );
   }
@@ -118,10 +124,7 @@ class _AddressLink extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textStyle = theme.textTheme.titleMedium;
-    final linkStyle = textStyle?.copyWith(
-      color: Colors.blue,
-      decoration: TextDecoration.none,
-    );
+    final linkStyle = textStyle?.copyWith(decoration: TextDecoration.none);
 
     if (displayAddress.isEmpty || queryAddress.isEmpty) {
       return Text(displayAddress, style: textStyle);

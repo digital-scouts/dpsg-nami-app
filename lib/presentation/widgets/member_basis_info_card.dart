@@ -21,10 +21,44 @@ class MemberGeneralInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = AppLocalizations.of(context);
     final hasKnownBirthday =
         mitglied.geburtsdatum != Mitglied.peoplePlaceholderDate;
     final alter = hasKnownBirthday ? MemberUtils.alterInJahren(mitglied) : null;
+
+    final infoRows = <_InfoRow>[
+      if (hasKnownBirthday)
+        _InfoRow(
+          icon: Icons.cake,
+          label: AppLocalizations.of(context).t('member_info_birthday'),
+          value:
+              '$alter (${DateFormatter.formatGermanShortDate(mitglied.geburtsdatum)})',
+        ),
+      _InfoRow(icon: Icons.wc, label: 'Geschlecht', value: _dummyFieldValue),
+      _InfoRow(
+        icon: Icons.church_outlined,
+        label: 'Konfession',
+        value: _dummyFieldValue,
+      ),
+    ];
+
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 5.0),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(_memberDetailsCardRadius),
+      ),
+      child: Column(children: [...infoRows.map((r) => _InfoTile(row: r))]),
+    );
+  }
+}
+
+class MemberContactInfoCard extends StatelessWidget {
+  const MemberContactInfoCard({super.key, required this.mitglied});
+
+  final Mitglied mitglied;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final telefonRows = mitglied.telefonnummern
         .map(
           (telefonnummer) => _InfoRow(
@@ -42,7 +76,7 @@ class MemberGeneralInfoCard extends StatelessWidget {
     final emailRows = mitglied.emailAdressen
         .map(
           (emailAdresse) => _InfoRow(
-            icon: Icons.email,
+            icon: Icons.email_outlined,
             label: emailAdresse.label ?? t.t('member_info_default_email'),
             value: emailAdresse.wert,
             copy: true,
@@ -52,30 +86,24 @@ class MemberGeneralInfoCard extends StatelessWidget {
         )
         .toList(growable: false);
 
-    final infoRows = <_InfoRow>[
-      if (hasKnownBirthday)
+    final rows = <_InfoRow>[...telefonRows, ...emailRows];
+
+    if (rows.isEmpty) {
+      rows.add(
         _InfoRow(
-          icon: Icons.cake,
-          label: t.t('member_info_birthday'),
-          value:
-              '$alter (${DateFormatter.formatGermanShortDate(mitglied.geburtsdatum)})',
+          icon: Icons.contact_phone_outlined,
+          label: 'Kontakt',
+          value: _dummyFieldValue,
         ),
-      if (mitglied.fahrtenname != null && mitglied.fahrtenname!.isNotEmpty)
-        _InfoRow(
-          icon: Icons.tag,
-          label: t.t('member_info_nickname'),
-          value: mitglied.fahrtenname!,
-        ),
-      ...telefonRows,
-      ...emailRows,
-    ];
+      );
+    }
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 5.0),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(_memberDetailsCardRadius),
       ),
-      child: Column(children: [...infoRows.map((r) => _InfoTile(row: r))]),
+      child: Column(children: [...rows.map((r) => _InfoTile(row: r))]),
     );
   }
 }
@@ -202,7 +230,7 @@ class _InfoTileState extends State<_InfoTile> {
           textAlign: TextAlign.left,
           text: TextSpan(
             text: path,
-            style: fittedStyle.copyWith(color: Colors.blue),
+            style: fittedStyle.copyWith(color: theme.colorScheme.primary),
             recognizer: TapGestureRecognizer()
               ..onTap = () async {
                 if (await canLaunchUrlString(uri)) {
@@ -292,6 +320,21 @@ class MemberMembershipInfoCard extends StatelessWidget {
             ? t.t('member_info_status_ended')
             : t.t('member_info_status_active'),
       ),
+      _InfoRow(
+        icon: Icons.payments_outlined,
+        label: 'Beitragsart',
+        value: _dummyFieldValue,
+      ),
+      _InfoRow(
+        icon: Icons.home_work_outlined,
+        label: 'Stamm',
+        value: _dummyFieldValue,
+      ),
+      _InfoRow(
+        icon: Icons.groups_outlined,
+        label: 'Gruppe',
+        value: _dummyFieldValue,
+      ),
     ];
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 5.0),
@@ -315,3 +358,5 @@ class MemberMembershipInfoCard extends StatelessWidget {
     );
   }
 }
+
+const String _dummyFieldValue = 'Geplant (Dummy)';
