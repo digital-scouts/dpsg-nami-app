@@ -586,7 +586,6 @@ class _InteractiveMapPreviewState extends State<_InteractiveMapPreview> {
               child: Material(
                 color: Theme.of(context).colorScheme.surface,
                 elevation: 2,
-                borderRadius: BorderRadius.circular(10),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                   side: BorderSide(

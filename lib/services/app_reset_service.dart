@@ -17,6 +17,7 @@ class AppResetService {
     ResetPreferencesProvider? preferencesProvider,
     ResetLogFileProvider? logFileProvider,
     ResetLogsCleaner? clearLogs,
+    ResetLogsCleaner? clearHitobitoTrafficLogs,
     Future<void> Function()? clearMapCache,
   }) : _authSessionRepository = authSessionRepository,
        _sensitiveStorageService = sensitiveStorageService,
@@ -24,6 +25,7 @@ class AppResetService {
            preferencesProvider ?? SharedPreferences.getInstance,
        _logFileProvider = logFileProvider,
        _clearLogs = clearLogs,
+       _clearHitobitoTrafficLogs = clearHitobitoTrafficLogs,
        _clearMapCache = clearMapCache;
 
   static const List<String> plainHiveBoxes = <String>[
@@ -37,6 +39,7 @@ class AppResetService {
   final ResetPreferencesProvider _preferencesProvider;
   final ResetLogFileProvider? _logFileProvider;
   final ResetLogsCleaner? _clearLogs;
+  final ResetLogsCleaner? _clearHitobitoTrafficLogs;
   final Future<void> Function()? _clearMapCache;
 
   Future<void> resetAllData({bool clearLogFile = true}) async {
@@ -69,6 +72,10 @@ class AppResetService {
     final clearLogs = _clearLogs;
     if (clearLogs != null) {
       await clearLogs();
+      final clearHitobitoTrafficLogs = _clearHitobitoTrafficLogs;
+      if (clearHitobitoTrafficLogs != null) {
+        await clearHitobitoTrafficLogs();
+      }
       return;
     }
 
@@ -80,6 +87,11 @@ class AppResetService {
     final file = await logFileProvider();
     if (await file.exists()) {
       await file.delete();
+    }
+
+    final clearHitobitoTrafficLogs = _clearHitobitoTrafficLogs;
+    if (clearHitobitoTrafficLogs != null) {
+      await clearHitobitoTrafficLogs();
     }
   }
 }

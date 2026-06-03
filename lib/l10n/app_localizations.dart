@@ -440,6 +440,9 @@ class AppLocalizations {
       'debug_logs_section_title': 'Logs & Diagnose',
       'debug_logs_section_subtitle':
           'Logdateien auswählen, prüfen, versenden oder gesammelt löschen.',
+      'debug_logs_source_label': 'Log-Quelle',
+      'debug_logs_source_app': 'App-Logs',
+      'debug_logs_source_hitobito': 'Hitobito-Traffic',
       'debug_logs_selection': 'Log-Auswahl',
       'debug_logs_available_count': '{count} Datei{suffix} verfügbar',
       'debug_logs_empty': 'Aktuell sind keine Logdateien vorhanden.',
@@ -945,6 +948,9 @@ class AppLocalizations {
       'debug_logs_section_title': 'Logs & Diagnostics',
       'debug_logs_section_subtitle':
           'Select, inspect, send, or delete log files in bulk.',
+      'debug_logs_source_label': 'Log source',
+      'debug_logs_source_app': 'App logs',
+      'debug_logs_source_hitobito': 'Hitobito traffic',
       'debug_logs_selection': 'Log selection',
       'debug_logs_available_count': '{count} file{suffix} available',
       'debug_logs_empty': 'There are currently no log files available.',
