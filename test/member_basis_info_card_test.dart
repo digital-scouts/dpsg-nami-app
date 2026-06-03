@@ -105,6 +105,71 @@ void main() {
     },
   );
 
+  testWidgets('zeigt Geschlecht und vorhandene Pronomen in den Basisdaten', (
+    tester,
+  ) async {
+    final member = Mitglied(
+      mitgliedsnummer: '5001',
+      vorname: 'Alex',
+      nachname: 'Beispiel',
+      geburtsdatum: DateTime(2010, 4, 6),
+      eintrittsdatum: DateTime(2020, 5, 1),
+      gender: 'w',
+      pronoun: 'sie/ihr',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('de'), Locale('en')],
+        locale: const Locale('de'),
+        home: Scaffold(body: MemberGeneralInfoCard(mitglied: member)),
+      ),
+    );
+
+    expect(find.text('Geschlecht'), findsOneWidget);
+    expect(find.text('Weiblich'), findsOneWidget);
+    expect(find.text('Pronomen'), findsOneWidget);
+    expect(find.text('sie/ihr'), findsOneWidget);
+  });
+
+  testWidgets('blendet Pronomen aus, wenn kein Wert vorhanden ist', (
+    tester,
+  ) async {
+    final member = Mitglied(
+      mitgliedsnummer: '5002',
+      vorname: 'Sam',
+      nachname: 'Beispiel',
+      geburtsdatum: DateTime(2010, 4, 6),
+      eintrittsdatum: DateTime(2020, 5, 1),
+      gender: null,
+      pronoun: '   ',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('de'), Locale('en')],
+        locale: const Locale('de'),
+        home: Scaffold(body: MemberGeneralInfoCard(mitglied: member)),
+      ),
+    );
+
+    expect(find.text('Geschlecht'), findsOneWidget);
+    expect(find.text('-'), findsOneWidget);
+    expect(find.text('Pronomen'), findsNothing);
+  });
+
   testWidgets('zeigt bei fehlendem Stamm und Gruppe jeweils einen Strich', (
     tester,
   ) async {

@@ -69,6 +69,7 @@ void main() {
       eintrittsdatum: DateTime(2020, 1, 1),
       austrittsdatum: DateTime(2025, 2, 1),
       updatedAt: DateTime(2025, 3, 4, 16, 30),
+      picture: 'https://example.org/picture.svg',
       pronoun: 'er/ihm',
       bankAccountOwner: 'Max Muster',
       iban: 'DE02120300000000202051',

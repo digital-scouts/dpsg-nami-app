@@ -432,7 +432,7 @@ void main() {
       await tester.tap(
         find.descendant(
           of: find.byType(GroupFilterBar),
-          matching: find.text('Wölfling'),
+          matching: find.text('Woelflinge'),
         ),
       );
       await tester.pumpAndSettle();
@@ -443,7 +443,7 @@ void main() {
       await tester.tap(
         find.descendant(
           of: find.byType(GroupFilterBar),
-          matching: find.text('Pfadfinder'),
+          matching: find.text('Pfadis'),
         ),
       );
       await tester.pumpAndSettle();
@@ -453,7 +453,7 @@ void main() {
     },
   );
 
-  testWidgets('zeigt den Biber-Filter nur wenn mindestens ein Biber da ist', (
+  testWidgets('zeigt feste Gruppenchips auch ohne zugeordnete Mitglieder an', (
     tester,
   ) async {
     final authModel = await _createSignedInAuthModel();
@@ -468,14 +468,12 @@ void main() {
       gruppen: const <ArbeitskontextGruppe>[
         ArbeitskontextGruppe(
           id: 21,
-          name: 'Woelflinge',
+          name: 'Pfadis ohne Mitglied',
           layerId: 11,
-          gruppenTyp: 'Group::StammGruppeWoelflinge',
+          gruppenTyp: 'Group::StammGruppePfadfinder',
         ),
       ],
-      mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
-        ArbeitskontextMitgliedsZuordnung(mitgliedsnummer: '1', gruppenId: 21),
-      ],
+      mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[],
       authModel: authModel,
     );
 
@@ -488,49 +486,19 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(GroupFilterBar),
-        matching: find.text('Biber'),
-      ),
-      findsNothing,
-    );
-
-    final mitBiberModel = await _createArbeitskontextModel(
-      mitglieder: <Mitglied>[
-        Mitglied.peopleListItem(
-          mitgliedsnummer: '1',
-          vorname: 'Ben',
-          nachname: 'Biber',
-        ),
-      ],
-      gruppen: const <ArbeitskontextGruppe>[
-        ArbeitskontextGruppe(
-          id: 22,
-          name: 'Bibergruppe',
-          layerId: 11,
-          gruppenTyp: 'Group::StammGruppeBiber',
-        ),
-      ],
-      mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
-        ArbeitskontextMitgliedsZuordnung(mitgliedsnummer: '1', gruppenId: 22),
-      ],
-      authModel: authModel,
-    );
-
-    await tester.pumpWidget(
-      _buildTestApp(authModel: authModel, arbeitskontextModel: mitBiberModel),
-    );
-
-    await tester.pumpAndSettle();
-
-    expect(
-      find.descendant(
-        of: find.byType(GroupFilterBar),
-        matching: find.text('Biber'),
+        matching: find.text('Pfadis ohne Mitglied'),
       ),
       findsOneWidget,
     );
+
+    await tester.tap(find.text('Pfadis ohne Mitglied'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Julia Keller'), findsNothing);
+    expect(find.text('Keine Mitglieder gefunden'), findsOneWidget);
   });
 
-  testWidgets('zeigt den Biber-Filter ueber die abgeleitete Stufe an', (
+  testWidgets('erkennt den Gruppentyp robust ueber normalisierte Schreibweise', (
     tester,
   ) async {
     final authModel = await _createSignedInAuthModel();
@@ -568,13 +536,13 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(GroupFilterBar),
-        matching: find.text('Biber'),
+        matching: find.text('Bibergruppe'),
       ),
       findsOneWidget,
     );
   });
 
-  testWidgets('zeigt alle abgeleiteten Stufenchips fuer die Zieltypen an', (
+  testWidgets('zeigt alle Gruppenchips fuer die Zieltypen mit Gruppennamen an', (
     tester,
   ) async {
     final authModel = await _createSignedInAuthModel();
@@ -657,11 +625,41 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Biber'), findsOneWidget);
-    expect(find.text('Wölfling'), findsOneWidget);
-    expect(find.text('Jungpfadfinder'), findsOneWidget);
-    expect(find.text('Pfadfinder'), findsOneWidget);
-    expect(find.text('Rover'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(GroupFilterBar),
+        matching: find.text('Bibergruppe'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(GroupFilterBar),
+        matching: find.text('Woelflinge'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(GroupFilterBar),
+        matching: find.text('Juffis'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(GroupFilterBar),
+        matching: find.text('Pfadis'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(GroupFilterBar),
+        matching: find.text('Roverrunde'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('filtert ueber Alle anderen nicht zugeordnete Mitglieder', (
@@ -687,6 +685,12 @@ void main() {
           name: 'Woelflinge',
           layerId: 11,
           gruppenTyp: 'Group::StammGruppeWoelflinge',
+        ),
+        ArbeitskontextGruppe(
+          id: 22,
+          name: 'Pfadis',
+          layerId: 11,
+          gruppenTyp: 'Group::StammGruppePfadfinder',
         ),
       ],
       mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
@@ -734,6 +738,12 @@ void main() {
           layerId: 11,
           gruppenTyp: 'Group::StammGruppeWoelflinge',
         ),
+        ArbeitskontextGruppe(
+          id: 22,
+          name: 'Pfadis',
+          layerId: 11,
+          gruppenTyp: 'Group::StammGruppePfadfinder',
+        ),
       ],
       mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
         ArbeitskontextMitgliedsZuordnung(mitgliedsnummer: '1', gruppenId: 21),
@@ -754,7 +764,7 @@ void main() {
     await tester.tap(
       find.descendant(
         of: find.byType(GroupFilterBar),
-        matching: find.text('Pfadfinder'),
+        matching: find.text('Pfadis'),
       ),
     );
     await tester.pumpAndSettle();

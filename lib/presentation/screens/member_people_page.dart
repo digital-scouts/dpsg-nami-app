@@ -4,9 +4,8 @@ import 'package:provider/provider.dart';
 import '../../domain/arbeitskontext/arbeitskontext_read_model.dart';
 import '../../domain/member/member_list_preferences.dart';
 import '../../domain/member/mitglied.dart';
+import '../../domain/member_filters/member_fixed_filter_groups.dart';
 import '../../domain/member_filters/usecases/ermittle_member_filter_treffer_usecase.dart';
-import '../../domain/stufe/usecases/ermittle_stufen_im_arbeitskontext_usecase.dart';
-import '../../domain/taetigkeit/stufe.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/logger_service.dart';
 import '../model/app_settings_model.dart';
@@ -28,9 +27,6 @@ class MemberPeoplePage extends StatefulWidget {
 }
 
 class _MemberPeoplePageState extends State<MemberPeoplePage> {
-  static const ErmittleStufenImArbeitskontextUseCase
-  _ermittleStufenImArbeitskontextUseCase =
-      ErmittleStufenImArbeitskontextUseCase();
   static const ErmittleMemberFilterTrefferUseCase
   _ermittleMemberFilterTrefferUseCase = ErmittleMemberFilterTrefferUseCase();
 
@@ -103,17 +99,13 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
     final layerId =
         arbeitskontextModel.readModel?.arbeitskontext.aktiverLayer.id;
     _ensureMemberFiltersLoaded(memberFiltersModel, layerId);
-    final mitgliedsStufen = arbeitskontextModel.readModel == null
-        ? const <String, Set<Stufe>>{}
-        : _ermittleStufenImArbeitskontextUseCase(
-            arbeitskontextModel.readModel!,
-          );
-    final showBiberFilter = _hatAbgeleiteteStufe(mitgliedsStufen, Stufe.biber);
+    final fixedFilterGroups = arbeitskontextModel.readModel == null
+        ? const <MemberFixedFilterGroup>[]
+        : _buildFixedFilterGroups(arbeitskontextModel.readModel!);
     final mitgliedsFilterKeys = arbeitskontextModel.readModel == null
         ? const <String, Set<String>>{}
         : _ermittleMemberFilterTrefferUseCase(
             arbeitskontextModel.readModel!,
-            mitgliedsStufen: mitgliedsStufen,
             customGroups: memberFiltersModel?.customGroups ?? const [],
           );
     final members =
@@ -137,8 +129,7 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
             authModel: authModel,
             arbeitskontextModel: arbeitskontextModel,
             highlightSearchMatches: highlightSearchMatches,
-            showBiberFilter: showBiberFilter,
-            mitgliedsStufen: mitgliedsStufen,
+            fixedFilterGroups: fixedFilterGroups,
             mitgliedsFilterKeys: mitgliedsFilterKeys,
             memberFiltersModel: memberFiltersModel,
             sortKey: sortKey,
@@ -242,8 +233,7 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
     required AuthSessionModel authModel,
     required ArbeitskontextModel arbeitskontextModel,
     required bool highlightSearchMatches,
-    required bool showBiberFilter,
-    required Map<String, Set<Stufe>> mitgliedsStufen,
+    required List<MemberFixedFilterGroup> fixedFilterGroups,
     required Map<String, Set<String>> mitgliedsFilterKeys,
     required MemberFiltersModel? memberFiltersModel,
     required MemberSortKey sortKey,
@@ -269,8 +259,8 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
         trailingTextBuilder: (member) =>
             _buildPrimaryGroupRole(member, arbeitskontextModel),
         mitgliedsFilterKeys: mitgliedsFilterKeys,
+        fixedFilterGroups: fixedFilterGroups,
         customFilterGroups: memberFiltersModel?.customGroups ?? const [],
-        showBiberFilter: showBiberFilter,
         enableGroupFilter: true,
         hasFilterDeviation: hasFilterDeviation,
         onOpenFilterOptions:
@@ -454,16 +444,48 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
     return false;
   }
 
-  bool _hatAbgeleiteteStufe(
-    Map<String, Set<Stufe>> mitgliedsStufen,
-    Stufe stufe,
+  List<MemberFixedFilterGroup> _buildFixedFilterGroups(
+    ArbeitskontextReadModel readModel,
   ) {
-    for (final stufen in mitgliedsStufen.values) {
-      if (stufen.contains(stufe)) {
-        return true;
-      }
-    }
+    final groups =
+        readModel.gruppen
+            .where(
+              (gruppe) => MemberFixedFilterGroups.isSupportedGruppenTyp(
+                gruppe.gruppenTyp,
+              ),
+            )
+            .toList(growable: true)
+          ..sort((left, right) {
+            final typeOrder =
+                MemberFixedFilterGroups.orderIndexForGruppenTyp(
+                  left.gruppenTyp,
+                ).compareTo(
+                  MemberFixedFilterGroups.orderIndexForGruppenTyp(
+                    right.gruppenTyp,
+                  ),
+                );
+            if (typeOrder != 0) {
+              return typeOrder;
+            }
 
-    return false;
+            final labelCompare = left.anzeigename.toLowerCase().compareTo(
+              right.anzeigename.toLowerCase(),
+            );
+            if (labelCompare != 0) {
+              return labelCompare;
+            }
+
+            return left.id.compareTo(right.id);
+          });
+
+    return groups
+        .map(
+          (gruppe) => MemberFixedFilterGroup(
+            keyName: 'group:${gruppe.id}',
+            label: gruppe.anzeigename,
+            groupType: gruppe.gruppenTyp ?? '',
+          ),
+        )
+        .toList(growable: false);
   }
 }

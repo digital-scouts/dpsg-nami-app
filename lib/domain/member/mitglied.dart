@@ -265,6 +265,7 @@ class Mitglied {
     List<MitgliedKontaktAdresse>? adressen,
     this.gender,
     this.pronoun,
+    this.picture,
     this.bankAccountOwner,
     this.iban,
     this.bic,
@@ -294,6 +295,7 @@ class Mitglied {
     List<MitgliedKontaktAdresse>? adressen,
     this.gender,
     this.pronoun,
+    this.picture,
     this.bankAccountOwner,
     this.iban,
     this.bic,
@@ -327,6 +329,7 @@ class Mitglied {
   final List<MitgliedKontaktAdresse> adressen;
   final String? gender;
   final String? pronoun;
+  final String? picture;
   final String? bankAccountOwner;
   final String? iban;
   final String? bic;
@@ -369,6 +372,7 @@ class Mitglied {
     List<MitgliedKontaktAdresse>? adressen,
     String? gender,
     String? pronoun,
+    String? picture,
     String? bankAccountOwner,
     String? iban,
     String? bic,
@@ -382,6 +386,7 @@ class Mitglied {
     bool primaryGroupIdLoeschen = false,
     bool genderLoeschen = false,
     bool pronounLoeschen = false,
+    bool pictureLoeschen = false,
     bool bankAccountOwnerLoeschen = false,
     bool ibanLoeschen = false,
     bool bicLoeschen = false,
@@ -407,6 +412,7 @@ class Mitglied {
     adressen: adressen ?? this.adressen,
     gender: genderLoeschen ? null : gender ?? this.gender,
     pronoun: pronounLoeschen ? null : pronoun ?? this.pronoun,
+    picture: pictureLoeschen ? null : picture ?? this.picture,
     bankAccountOwner: bankAccountOwnerLoeschen
         ? null
         : bankAccountOwner ?? this.bankAccountOwner,
@@ -445,6 +451,7 @@ class Mitglied {
       'roles': roles.map((role) => role.toJson()).toList(growable: false),
       'gender': gender,
       'pronoun': pronoun,
+      'picture': picture,
       'bank_account_owner': bankAccountOwner,
       'iban': iban,
       'bic': bic,
@@ -503,6 +510,7 @@ class Mitglied {
       roles: roles,
       gender: _trimToNull(json['gender']?.toString()),
       pronoun: _trimToNull(json['pronoun']?.toString()),
+      picture: _trimToNull(json['picture']?.toString()),
       bankAccountOwner: _trimToNull(json['bank_account_owner']?.toString()),
       iban: _trimToNull(json['iban']?.toString()),
       bic: _trimToNull(json['bic']?.toString()),
@@ -526,6 +534,7 @@ class Mitglied {
         other.mitgliedsnummer == mitgliedsnummer &&
         other.gender == gender &&
         other.pronoun == pronoun &&
+        other.picture == picture &&
         other.bankAccountOwner == bankAccountOwner &&
         other.iban == iban &&
         other.bic == bic &&
@@ -551,6 +560,7 @@ class Mitglied {
     mitgliedsnummer,
     gender,
     pronoun,
+    picture,
     bankAccountOwner,
     iban,
     bic,
@@ -605,6 +615,9 @@ class Mitglied {
     }
     if (pronoun != null) {
       buffer.write(', pronoun: $pronoun');
+    }
+    if (picture != null) {
+      buffer.write(', picture: $picture');
     }
     if (roles.isNotEmpty) {
       buffer.write(', roles: [');
