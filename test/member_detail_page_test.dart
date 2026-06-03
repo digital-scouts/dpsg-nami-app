@@ -25,6 +25,7 @@ import 'package:nami/domain/member/pending_person_update.dart';
 import 'package:nami/domain/member/pending_person_update_repository.dart';
 import 'package:nami/domain/settings/app_settings.dart';
 import 'package:nami/domain/settings/app_settings_repository.dart';
+import 'package:nami/domain/taetigkeit/roles.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
@@ -96,6 +97,108 @@ void main() {
       expect(find.text('Geburtstag'), findsNothing);
       expect(find.text('Eintrittsdatum'), findsNothing);
       expect(find.text('Max Mustermann'), findsOneWidget);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  testWidgets(
+    'priorisiert fuer den Header Woe Leitung vor Rover Mitglied',
+    (tester) async {
+      final member = Mitglied(
+        mitgliedsnummer: '42',
+        vorname: 'Lea',
+        nachname: 'Beispiel',
+        geburtsdatum: DateTime(2010, 4, 6),
+        eintrittsdatum: DateTime(2020, 5, 1),
+        roles: <Role>[
+          Role(
+            type: 'Group::StammGruppeRover::Mitglied',
+            startOn: DateTime(2025, 5, 1),
+          ),
+          Role(
+            type: 'Group::StammGruppeWoelflinge::Leitung',
+            startOn: DateTime(2024, 5, 1),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(MemberDetailPage(mitglied: member)),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Wö'), findsOneWidget);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  testWidgets(
+    'priorisiert fuer den Header Rover vor Pfadfinder bei gleicher Leitungs-Art',
+    (tester) async {
+      final member = Mitglied(
+        mitgliedsnummer: '44',
+        vorname: 'Lina',
+        nachname: 'Beispiel',
+        geburtsdatum: DateTime(2010, 4, 6),
+        eintrittsdatum: DateTime(2020, 5, 1),
+        roles: <Role>[
+          Role(
+            type: 'Group::StammGruppePfadfinder::Leitung',
+            startOn: DateTime(2025, 5, 1),
+          ),
+          Role(
+            type: 'Group::StammGruppeRover::Leitung',
+            startOn: DateTime(2024, 5, 1),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(MemberDetailPage(mitglied: member)),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Rover'), findsOneWidget);
+      expect(find.text('Pfadi'), findsNothing);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  testWidgets(
+    'zeigt Group::Mitglieder Rollen nicht im Rollen-Tab an',
+    (tester) async {
+      final member = Mitglied(
+        mitgliedsnummer: '43',
+        vorname: 'Mia',
+        nachname: 'Test',
+        geburtsdatum: DateTime(2010, 4, 6),
+        eintrittsdatum: DateTime(2020, 5, 1),
+        roles: <Role>[
+          Role(
+            type: 'Group::Mitglieder::OrdentlicheMitgliedschaft',
+            startOn: DateTime(2025, 1, 1),
+          ),
+          Role(
+            type: 'Group::StammGruppePfadfinder::Mitglied',
+            startOn: DateTime(2024, 1, 1),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(MemberDetailPage(mitglied: member)),
+      );
+
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Rollen'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Mitglied - Pfadfinder'), findsOneWidget);
+      expect(find.text('Mitglied - Leitung'), findsNothing);
+      expect(find.textContaining('OrdentlicheMitgliedschaft'), findsNothing);
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
@@ -353,6 +456,94 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('sortiert Gruppenanzeige in Details aufsteigend nach Stufe', (
+    tester,
+  ) async {
+    final member = Mitglied.peopleListItem(
+      mitgliedsnummer: '4711',
+      personId: 23,
+      vorname: 'Julia',
+      nachname: 'Keller',
+    );
+    final readModel = ArbeitskontextReadModel(
+      arbeitskontext: Arbeitskontext(
+        aktiverLayer: const ArbeitskontextLayer(
+          id: 11,
+          name: 'Stamm Musterdorf',
+        ),
+        verfuegbareLayer: const <ArbeitskontextLayer>[],
+      ),
+      mitglieder: <Mitglied>[member],
+      gruppen: const <ArbeitskontextGruppe>[
+        ArbeitskontextGruppe(
+          id: 201,
+          name: 'Roverrunde',
+          layerId: 11,
+          gruppenTyp: 'Group::StammGruppeRover',
+        ),
+        ArbeitskontextGruppe(
+          id: 202,
+          name: 'Pfadis',
+          layerId: 11,
+          gruppenTyp: 'Group::StammGruppePfadfinder',
+        ),
+      ],
+      mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
+        ArbeitskontextMitgliedsZuordnung(
+          mitgliedsnummer: '4711',
+          gruppenId: 201,
+        ),
+        ArbeitskontextMitgliedsZuordnung(
+          mitgliedsnummer: '4711',
+          gruppenId: 202,
+        ),
+      ],
+    );
+    final arbeitskontextModel = ArbeitskontextModel(
+      localRepository: _FakeArbeitskontextLocalRepository(cached: readModel),
+      readModelRepository: _FakeArbeitskontextReadModelRepository(),
+      groupsService: _FakeHitobitoGroupsService(),
+      bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+      logger: _FakeLoggerService(),
+    );
+
+    await arbeitskontextModel.syncForAuth(
+      authState: AuthState.signedIn,
+      session: AuthSession(
+        accessToken: 'token-123',
+        receivedAt: DateTime(2026, 4, 14),
+      ),
+      profile: const AuthProfile(
+        namiId: 23,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 11,
+            groupName: 'Stamm Musterdorf',
+            roleName: 'Leitung',
+            roleClass: 'Group::Stamm::Leitung',
+            permissions: <String>['group_and_below_full'],
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        MemberDetailPage(mitglied: member),
+        providers: <SingleChildWidget>[
+          ChangeNotifierProvider<ArbeitskontextModel>.value(
+            value: arbeitskontextModel,
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Gruppe'), findsOneWidget);
+    expect(find.text('Pfadis, Roverrunde'), findsOneWidget);
   });
 
   testWidgets('oeffnet den Editor mit dem frisch geladenen Mitglied', (

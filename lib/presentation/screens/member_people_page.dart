@@ -28,7 +28,6 @@ class MemberPeoplePage extends StatefulWidget {
 }
 
 class _MemberPeoplePageState extends State<MemberPeoplePage> {
-  static const String _biberGruppenTyp = 'Group::Biber';
   static const ErmittleStufenImArbeitskontextUseCase
   _ermittleStufenImArbeitskontextUseCase =
       ErmittleStufenImArbeitskontextUseCase();
@@ -104,19 +103,17 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
     final layerId =
         arbeitskontextModel.readModel?.arbeitskontext.aktiverLayer.id;
     _ensureMemberFiltersLoaded(memberFiltersModel, layerId);
-    final showBiberFilter = _hatMitgliedInGruppenTyp(
-      arbeitskontextModel,
-      _biberGruppenTyp,
-    );
     final mitgliedsStufen = arbeitskontextModel.readModel == null
         ? const <String, Set<Stufe>>{}
         : _ermittleStufenImArbeitskontextUseCase(
             arbeitskontextModel.readModel!,
           );
+    final showBiberFilter = _hatAbgeleiteteStufe(mitgliedsStufen, Stufe.biber);
     final mitgliedsFilterKeys = arbeitskontextModel.readModel == null
         ? const <String, Set<String>>{}
         : _ermittleMemberFilterTrefferUseCase(
             arbeitskontextModel.readModel!,
+            mitgliedsStufen: mitgliedsStufen,
             customGroups: memberFiltersModel?.customGroups ?? const [],
           );
     final members =
@@ -457,18 +454,12 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
     return false;
   }
 
-  bool _hatMitgliedInGruppenTyp(
-    ArbeitskontextModel arbeitskontextModel,
-    String gruppenTyp,
+  bool _hatAbgeleiteteStufe(
+    Map<String, Set<Stufe>> mitgliedsStufen,
+    Stufe stufe,
   ) {
-    final readModel = arbeitskontextModel.readModel;
-    if (readModel == null) {
-      return false;
-    }
-
-    for (final zuordnung in readModel.mitgliedsZuordnungen) {
-      final gruppe = readModel.findeGruppe(zuordnung.gruppenId);
-      if (gruppe?.gruppenTyp == gruppenTyp) {
+    for (final stufen in mitgliedsStufen.values) {
+      if (stufen.contains(stufe)) {
         return true;
       }
     }

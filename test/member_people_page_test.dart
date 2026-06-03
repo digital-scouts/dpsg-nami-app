@@ -393,13 +393,13 @@ void main() {
             id: 21,
             name: 'Woelflinge',
             layerId: 11,
-            gruppenTyp: 'Group::Meute',
+            gruppenTyp: 'Group::StammGruppeWoelflinge',
           ),
           ArbeitskontextGruppe(
             id: 22,
             name: 'Pfadis',
             layerId: 11,
-            gruppenTyp: 'Group::Sippe',
+            gruppenTyp: 'Group::StammGruppePfadfinder',
           ),
         ],
         mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
@@ -470,7 +470,7 @@ void main() {
           id: 21,
           name: 'Woelflinge',
           layerId: 11,
-          gruppenTyp: 'Group::Meute',
+          gruppenTyp: 'Group::StammGruppeWoelflinge',
         ),
       ],
       mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
@@ -506,7 +506,7 @@ void main() {
           id: 22,
           name: 'Bibergruppe',
           layerId: 11,
-          gruppenTyp: 'Group::Biber',
+          gruppenTyp: 'Group::StammGruppeBiber',
         ),
       ],
       mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
@@ -528,6 +528,140 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('zeigt den Biber-Filter ueber die abgeleitete Stufe an', (
+    tester,
+  ) async {
+    final authModel = await _createSignedInAuthModel();
+    final arbeitskontextModel = await _createArbeitskontextModel(
+      mitglieder: <Mitglied>[
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '1',
+          vorname: 'Ben',
+          nachname: 'Biber',
+        ),
+      ],
+      gruppen: const <ArbeitskontextGruppe>[
+        ArbeitskontextGruppe(
+          id: 22,
+          name: 'Bibergruppe',
+          layerId: 11,
+          gruppenTyp: ' group::stammgruppebiber ',
+        ),
+      ],
+      mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
+        ArbeitskontextMitgliedsZuordnung(mitgliedsnummer: '1', gruppenId: 22),
+      ],
+      authModel: authModel,
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        authModel: authModel,
+        arbeitskontextModel: arbeitskontextModel,
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+        of: find.byType(GroupFilterBar),
+        matching: find.text('Biber'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('zeigt alle abgeleiteten Stufenchips fuer die Zieltypen an', (
+    tester,
+  ) async {
+    final authModel = await _createSignedInAuthModel();
+    final arbeitskontextModel = await _createArbeitskontextModel(
+      mitglieder: <Mitglied>[
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '1',
+          vorname: 'Ben',
+          nachname: 'Biber',
+        ),
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '2',
+          vorname: 'Willi',
+          nachname: 'Wolf',
+        ),
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '3',
+          vorname: 'Jana',
+          nachname: 'Jufi',
+        ),
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '4',
+          vorname: 'Pia',
+          nachname: 'Pfadi',
+        ),
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '5',
+          vorname: 'Rita',
+          nachname: 'Rover',
+        ),
+      ],
+      gruppen: const <ArbeitskontextGruppe>[
+        ArbeitskontextGruppe(
+          id: 21,
+          name: 'Bibergruppe',
+          layerId: 11,
+          gruppenTyp: 'Group::StammGruppeBiber',
+        ),
+        ArbeitskontextGruppe(
+          id: 22,
+          name: 'Woelflinge',
+          layerId: 11,
+          gruppenTyp: 'Group::StammGruppeWoelflinge',
+        ),
+        ArbeitskontextGruppe(
+          id: 23,
+          name: 'Juffis',
+          layerId: 11,
+          gruppenTyp: 'Group::StammGruppeJungpfadfinder',
+        ),
+        ArbeitskontextGruppe(
+          id: 24,
+          name: 'Pfadis',
+          layerId: 11,
+          gruppenTyp: 'Group::StammGruppePfadfinder',
+        ),
+        ArbeitskontextGruppe(
+          id: 25,
+          name: 'Roverrunde',
+          layerId: 11,
+          gruppenTyp: 'Group::StammGruppeRover',
+        ),
+      ],
+      mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
+        ArbeitskontextMitgliedsZuordnung(mitgliedsnummer: '1', gruppenId: 21),
+        ArbeitskontextMitgliedsZuordnung(mitgliedsnummer: '2', gruppenId: 22),
+        ArbeitskontextMitgliedsZuordnung(mitgliedsnummer: '3', gruppenId: 23),
+        ArbeitskontextMitgliedsZuordnung(mitgliedsnummer: '4', gruppenId: 24),
+        ArbeitskontextMitgliedsZuordnung(mitgliedsnummer: '5', gruppenId: 25),
+      ],
+      authModel: authModel,
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        authModel: authModel,
+        arbeitskontextModel: arbeitskontextModel,
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Biber'), findsOneWidget);
+    expect(find.text('Wölfling'), findsOneWidget);
+    expect(find.text('Jungpfadfinder'), findsOneWidget);
+    expect(find.text('Pfadfinder'), findsOneWidget);
+    expect(find.text('Rover'), findsOneWidget);
   });
 
   testWidgets('filtert ueber Alle anderen nicht zugeordnete Mitglieder', (
@@ -552,7 +686,7 @@ void main() {
           id: 21,
           name: 'Woelflinge',
           layerId: 11,
-          gruppenTyp: 'Group::Meute',
+          gruppenTyp: 'Group::StammGruppeWoelflinge',
         ),
       ],
       mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
@@ -598,7 +732,7 @@ void main() {
           id: 21,
           name: 'Woelflinge',
           layerId: 11,
-          gruppenTyp: 'Group::Meute',
+          gruppenTyp: 'Group::StammGruppeWoelflinge',
         ),
       ],
       mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[

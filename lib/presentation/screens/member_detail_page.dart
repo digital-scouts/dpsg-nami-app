@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
+import '../../domain/arbeitskontext/arbeitskontext_read_model.dart';
 import '../../domain/maps/address_map_location_repository.dart';
 import '../../domain/member/member_utils.dart';
 import '../../domain/member/mitglied.dart';
 import '../../domain/member/pending_person_update.dart';
+import '../../domain/member_filters/beitragsart.dart';
+import '../../domain/member_filters/usecases/ermittle_beitragsart_im_arbeitskontext_usecase.dart';
 import '../../domain/settings/address_settings_repository.dart';
 import '../../domain/taetigkeit/stufe.dart';
 import '../../l10n/app_localizations.dart';
@@ -43,6 +46,10 @@ class MemberDetailPage extends StatefulWidget {
 }
 
 class _MemberDetailPageState extends State<MemberDetailPage> {
+  static const ErmittleBeitragsartImArbeitskontextUseCase
+  _ermittleBeitragsartImArbeitskontextUseCase =
+      ErmittleBeitragsartImArbeitskontextUseCase();
+
   bool _isPreparingEdit = false;
 
   static const _quickActionSpacing = 8.0;
@@ -287,6 +294,23 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
     final hasNickname = nickname != null && nickname.isNotEmpty;
     final String title = hasNickname ? nickname : fullName;
     final activeStufe = MemberUtils.aktiveStufe(currentMitglied);
+    final sichtbareRollen = currentMitglied.roles
+        .where((role) => !MemberUtils.istMitgliederRolle(role))
+        .toList(growable: false);
+    final stammNamen = _resolveAnzeigeStaemme(
+      arbeitskontextModel?.readModel,
+      currentMitglied.mitgliedsnummer,
+    );
+    final gruppenNamen = _resolveAnzeigeGruppen(
+      arbeitskontextModel?.readModel,
+      currentMitglied.mitgliedsnummer,
+    );
+    final mitgliedsBeitragsarten = arbeitskontextModel?.readModel == null
+        ? const <String, Beitragsart>{}
+        : _ermittleBeitragsartImArbeitskontextUseCase(
+            arbeitskontextModel!.readModel!,
+          );
+    final beitragsart = mitgliedsBeitragsarten[currentMitglied.mitgliedsnummer];
     final t = AppLocalizations.of(context);
 
     return DefaultTabController(
@@ -344,6 +368,9 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
                 children: [
                   MemberDetails(
                     mitglied: currentMitglied,
+                    beitragsart: beitragsart,
+                    stammNamen: stammNamen,
+                    gruppenNamen: gruppenNamen,
                     addressLocationRepository: widget.addressLocationRepository,
                     mapService: widget.mapService,
                     addressSettingsRepository: widget.addressSettingsRepository,
@@ -384,14 +411,14 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
                       ),
                     ],
                   ),
-                  currentMitglied.roles.isEmpty
+                  sichtbareRollen.isEmpty
                       ? Center(
                           child: Text(
                             'Keine Rollen',
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
                         )
-                      : MemberRolesList(roles: currentMitglied.roles),
+                      : MemberRolesList(roles: sichtbareRollen),
                   Center(
                     child: Padding(
                       padding: const EdgeInsets.all(24),
@@ -440,6 +467,109 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
     } catch (_) {
       return null;
     }
+  }
+
+  List<String> _resolveAnzeigeStaemme(
+    ArbeitskontextReadModel? readModel,
+    String mitgliedsnummer,
+  ) {
+    if (readModel == null) {
+      return const <String>[];
+    }
+
+    final aktiverLayerName = readModel.arbeitskontext.aktiverLayer.name;
+    if (_istStammKontext(readModel)) {
+      return aktiverLayerName.trim().isEmpty
+          ? const <String>[]
+          : <String>[aktiverLayerName];
+    }
+
+    final gruppen = _resolveAnzeigeGruppen(readModel, mitgliedsnummer);
+    if (gruppen.isNotEmpty) {
+      return <String>[aktiverLayerName];
+    }
+
+    return aktiverLayerName.trim().isEmpty
+        ? const <String>[]
+        : <String>[aktiverLayerName];
+  }
+
+  List<String> _resolveAnzeigeGruppen(
+    ArbeitskontextReadModel? readModel,
+    String mitgliedsnummer,
+  ) {
+    if (readModel == null) {
+      return const <String>[];
+    }
+
+    final zuordnungen = readModel.findeMitgliedsZuordnungen(mitgliedsnummer);
+    final gruppen = <ArbeitskontextGruppe>[];
+    for (final zuordnung in zuordnungen) {
+      final rollenTyp = zuordnung.rollenTyp?.trim().toLowerCase();
+      final istMitgliederRolle =
+          rollenTyp != null && rollenTyp.startsWith('group::mitglieder::');
+      if (istMitgliederRolle) {
+        continue;
+      }
+
+      final gruppe = readModel.findeGruppe(zuordnung.gruppenId);
+      if (gruppe != null && gruppe.anzeigename.trim().isNotEmpty) {
+        gruppen.add(gruppe);
+      }
+    }
+
+    gruppen.sort((left, right) {
+      final stageCompare = _gruppenStufenSortierung(
+        left.gruppenTyp,
+      ).compareTo(_gruppenStufenSortierung(right.gruppenTyp));
+      if (stageCompare != 0) {
+        return stageCompare;
+      }
+      return left.anzeigename.toLowerCase().compareTo(
+        right.anzeigename.toLowerCase(),
+      );
+    });
+
+    final deduplicated = gruppen
+        .map((gruppe) => gruppe.anzeigename)
+        .toSet()
+        .toList(growable: false);
+    return deduplicated;
+  }
+
+  int _gruppenStufenSortierung(String? gruppenTyp) {
+    final normalized = gruppenTyp?.trim().toLowerCase();
+    if (normalized == null || normalized.isEmpty) {
+      return 99;
+    }
+    if (normalized.contains('stammgruppebiber')) {
+      return 0;
+    }
+    if (normalized.contains('stammgruppewoelflinge')) {
+      return 1;
+    }
+    if (normalized.contains('stammgruppejungpfadfinder')) {
+      return 2;
+    }
+    if (normalized.contains('stammgruppepfadfinder')) {
+      return 3;
+    }
+    if (normalized.contains('stammgrupperover')) {
+      return 4;
+    }
+    return 99;
+  }
+
+  bool _istStammKontext(ArbeitskontextReadModel readModel) {
+    for (final gruppe in readModel.gruppen) {
+      final gruppenTyp = gruppe.gruppenTyp?.trim().toLowerCase();
+      if (gruppenTyp != null && gruppenTyp.startsWith('group::stammgruppe')) {
+        return true;
+      }
+    }
+
+    final layerName = readModel.arbeitskontext.aktiverLayer.name.toLowerCase();
+    return layerName.contains('stamm');
   }
 }
 

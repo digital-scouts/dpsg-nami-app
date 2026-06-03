@@ -110,11 +110,11 @@ Diese Punkte sind f체r den aktuellen MVP nicht blockierend, bleiben aber als sp�
 
 ## Umsetzungspakete
 
-- P1: Stufen-Mapping auf die f체nf Zieltypen konsolidieren.
-- P2: Stufen-Ableitung und Filtertreffer fachlich deckungsgleich machen.
-- P3: Biber-Sichtbarkeit in der Mitgliederansicht eindeutig regeln.
-- P4: Beitragsarten in der UI konsistent als reine Anzeige f체hren.
-- P5: Zusammenspiel aus Stufen, Biber-Regel und Beitragsart gegen Regression absichern.
+- P1: Stufen-Mapping auf die f체nf Zieltypen konsolidieren. Umgesetzt.
+- P2: Stufen-Ableitung und Filtertreffer fachlich deckungsgleich machen. Umgesetzt.
+- P3: Biber-Sichtbarkeit in der Mitgliederansicht eindeutig regeln. Umgesetzt ueber dieselbe Stufen-Ableitung.
+- P4: Beitragsarten in der UI konsistent als reine Anzeige f체hren. Umgesetzt ohne zus채tzliche Fachlogik.
+- P5: Zusammenspiel aus Stufen, Biber-Regel und Beitragsart gegen Regression absichern. Im Code und in gezielten Tests umgesetzt; reale Testdaten und manuelle Pr체fliste bleiben offen.
 
 ### Doku-Folgen
 

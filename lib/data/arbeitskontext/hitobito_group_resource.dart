@@ -38,8 +38,12 @@ class HitobitoGroupResource {
   final DateTime? updatedAt;
   final DateTime? deletedAt;
 
-  ArbeitskontextLayer toArbeitskontextLayer() =>
-      ArbeitskontextLayer(id: id, name: name, parentLayerId: parentId);
+  ArbeitskontextLayer toArbeitskontextLayer() => ArbeitskontextLayer(
+    id: id,
+    name:
+        _trimmed(displayName) ?? _trimmed(shortName) ?? _trimmed(name) ?? name,
+    parentLayerId: parentId,
+  );
 
   PrimaryGroupLayerZuordnung? toPrimaryGroupLayerZuordnung(
     int? resolvedLayerId,
@@ -75,4 +79,12 @@ class HitobitoGroupResource {
       deletedAt: deletedAt,
     );
   }
+}
+
+String? _trimmed(String? value) {
+  final trimmed = value?.trim();
+  if (trimmed == null || trimmed.isEmpty) {
+    return null;
+  }
+  return trimmed;
 }
