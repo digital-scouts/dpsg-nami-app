@@ -81,6 +81,7 @@ class HitobitoPersonResource {
     this.updatedAt,
     this.gender,
     this.pronoun,
+    this.picture,
     this.bankAccountOwner,
     this.iban,
     this.bic,
@@ -104,6 +105,7 @@ class HitobitoPersonResource {
   final DateTime? updatedAt;
   final String? gender;
   final String? pronoun;
+  final String? picture;
   final String? bankAccountOwner;
   final String? iban;
   final String? bic;
@@ -139,6 +141,7 @@ class HitobitoPersonResource {
       austrittsdatum: resolvedExitDate,
       updatedAt: updatedAt,
       gender: gender,
+      picture: picture,
       telefonnummern: telefonnummern,
       emailAdressen: emailAdressen,
       adressen: adressen,

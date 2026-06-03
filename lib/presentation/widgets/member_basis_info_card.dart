@@ -25,6 +25,8 @@ class MemberGeneralInfoCard extends StatelessWidget {
     final hasKnownBirthday =
         mitglied.geburtsdatum != Mitglied.peoplePlaceholderDate;
     final alter = hasKnownBirthday ? MemberUtils.alterInJahren(mitglied) : null;
+    final pronoun = mitglied.pronoun?.trim();
+    final hasPronoun = pronoun != null && pronoun.isNotEmpty;
 
     final infoRows = <_InfoRow>[
       if (hasKnownBirthday)
@@ -34,7 +36,17 @@ class MemberGeneralInfoCard extends StatelessWidget {
           value:
               '$alter (${DateFormatter.formatGermanShortDate(mitglied.geburtsdatum)})',
         ),
-      _InfoRow(icon: Icons.wc, label: 'Geschlecht', value: _dummyFieldValue),
+      _InfoRow(
+        icon: Icons.wc,
+        label: 'Geschlecht',
+        value: _displayGender(context, mitglied.gender),
+      ),
+      if (hasPronoun)
+        _InfoRow(
+          icon: Icons.record_voice_over,
+          label: 'Pronomen',
+          value: pronoun,
+        ),
       _InfoRow(
         icon: Icons.church_outlined,
         label: 'Konfession',
@@ -367,6 +379,31 @@ class MemberMembershipInfoCard extends StatelessWidget {
 }
 
 const String _dummyFieldValue = 'Geplant (Dummy)';
+
+String _displayGender(BuildContext context, String? rawGender) {
+  final normalized = rawGender?.trim().toLowerCase();
+  final t = AppLocalizations.of(context);
+  if (normalized == null || normalized.isEmpty) {
+    return '-';
+  }
+  switch (normalized) {
+    case 'm':
+    case 'male':
+    case 'maennlich':
+    case 'männlich':
+      return t.t('member_edit_gender_male');
+    case 'w':
+    case 'f':
+    case 'female':
+    case 'weiblich':
+      return t.t('member_edit_gender_female');
+    case 'd':
+    case 'divers':
+      return 'Divers';
+    default:
+      return rawGender!.trim();
+  }
+}
 
 String _displayListeOderStrich(List<String> values) {
   final normalized = values

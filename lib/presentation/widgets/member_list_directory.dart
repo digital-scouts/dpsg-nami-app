@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:nami/domain/member/member_list_preferences.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/member_filters/member_custom_filter.dart';
-import 'package:nami/domain/taetigkeit/stufe.dart';
+import 'package:nami/domain/member_filters/member_fixed_filter_groups.dart';
 import 'package:nami/presentation/stufe/stufe_visuals.dart';
 import 'package:nami/presentation/widgets/member_custom_filter_icons.dart';
 import 'package:nami/presentation/widgets/member_list.dart';
@@ -11,13 +11,25 @@ import 'package:nami/presentation/widgets/member_list_search_bar.dart';
 
 enum MemberFilterOptionsTrigger { tuneButton, listHeader }
 
+class MemberFixedFilterGroup {
+  const MemberFixedFilterGroup({
+    required this.keyName,
+    required this.label,
+    required this.groupType,
+  });
+
+  final String keyName;
+  final String label;
+  final String groupType;
+}
+
 class MemberDirectory extends StatefulWidget {
   const MemberDirectory({
     super.key,
     required this.mitglieder,
     this.mitgliedsFilterKeys = const <String, Set<String>>{},
+    this.fixedFilterGroups = const <MemberFixedFilterGroup>[],
     this.customFilterGroups = const <MemberCustomFilterGroup>[],
-    this.showBiberFilter = false,
     this.initialSearch = '',
     this.initialFavourites = const {},
     this.sortKey = MemberSortKey.name,
@@ -36,8 +48,8 @@ class MemberDirectory extends StatefulWidget {
   });
   final List<Mitglied> mitglieder;
   final Map<String, Set<String>> mitgliedsFilterKeys;
+  final List<MemberFixedFilterGroup> fixedFilterGroups;
   final List<MemberCustomFilterGroup> customFilterGroups;
-  final bool showBiberFilter;
   final String initialSearch;
   final Set<String> initialFavourites;
   final MemberSortKey sortKey;
@@ -119,18 +131,13 @@ class _MemberDirectoryState extends State<MemberDirectory> {
   }
 
   List<GroupFilterItem> _buildItems() {
-    final items = Stufe.values
-        .where(
-          (stufe) =>
-              stufe != Stufe.leitung &&
-              (stufe != Stufe.biber || widget.showBiberFilter),
-        )
+    final items = widget.fixedFilterGroups
         .map(
-          (stufe) => GroupFilterItem(
-            keyName: stufe.name,
-            label: stufe.displayName,
-            chipColor: StufeVisuals.colorFor(stufe),
-            semanticLabel: stufe.displayName,
+          (group) => GroupFilterItem(
+            keyName: group.keyName,
+            label: group.label,
+            chipColor: _resolveChipColor(group.groupType),
+            semanticLabel: group.label,
           ),
         )
         .toList(growable: true);
@@ -216,5 +223,14 @@ class _MemberDirectoryState extends State<MemberDirectory> {
         ),
       ],
     );
+  }
+
+  Color? _resolveChipColor(String gruppenTyp) {
+    final stufe = MemberFixedFilterGroups.stufeForGruppenTyp(gruppenTyp);
+    if (stufe == null) {
+      return null;
+    }
+
+    return StufeVisuals.colorFor(stufe);
   }
 }

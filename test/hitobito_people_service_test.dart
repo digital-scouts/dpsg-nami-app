@@ -92,6 +92,7 @@ void main() {
                 "updated_at": "2024-11-07T14:35:00Z",
                 "gender": "w",
                 "pronoun": "sie/ihr",
+                "picture": "https://demo.hitobito.com/images/profile.svg",
                 "street": "Musterweg",
                 "housenumber": "4",
                 "zip_code": "50667",
@@ -270,6 +271,10 @@ void main() {
       expect(people.first.mitgliedsnummer, '1001');
       expect(people.first.gender, 'w');
       expect(people.first.pronoun, 'sie/ihr');
+      expect(
+        people.first.picture,
+        'https://demo.hitobito.com/images/profile.svg',
+      );
       expect(people.first.emailAdressen, const <MitgliedKontaktEmail>[
         MitgliedKontaktEmail(
           wert: 'julia@example.org',
@@ -336,6 +341,10 @@ void main() {
       expect(resources.first.adressen, people.first.adressen);
       expect(resources.first.updatedAt, DateTime.parse('2024-11-07T14:35:00Z'));
       expect(resources.first.gender, 'w');
+      expect(
+        resources.first.picture,
+        'https://demo.hitobito.com/images/profile.svg',
+      );
       expect(resources.first.roles, hasLength(1));
       expect(resources.first.roles.first.groupId, 11);
       expect(

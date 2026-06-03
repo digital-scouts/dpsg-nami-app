@@ -2,6 +2,7 @@ import '../../arbeitskontext/arbeitskontext_read_model.dart';
 import '../../stufe/usecases/ermittle_stufen_im_arbeitskontext_usecase.dart';
 import '../../taetigkeit/stufe.dart';
 import '../member_custom_filter.dart';
+import '../member_fixed_filter_groups.dart';
 
 class ErmittleMemberFilterTrefferUseCase {
   const ErmittleMemberFilterTrefferUseCase();
@@ -19,6 +20,11 @@ class ErmittleMemberFilterTrefferUseCase {
     final stufenTreffer = mitgliedsStufen ?? _stufenUseCase(readModel);
     final zuordnungenByMember =
         <String, List<ArbeitskontextMitgliedsZuordnung>>{};
+    final fixedGroupKeyById = <int, String>{
+      for (final gruppe in readModel.gruppen)
+        if (MemberFixedFilterGroups.isSupportedGruppenTyp(gruppe.gruppenTyp))
+          gruppe.id: 'group:${gruppe.id}',
+    };
 
     for (final zuordnung in readModel.mitgliedsZuordnungen) {
       zuordnungenByMember
@@ -43,6 +49,13 @@ class ErmittleMemberFilterTrefferUseCase {
       final memberZuordnungen =
           zuordnungenByMember[member.mitgliedsnummer] ??
           const <ArbeitskontextMitgliedsZuordnung>[];
+      for (final zuordnung in memberZuordnungen) {
+        final fixedGroupKey = fixedGroupKeyById[zuordnung.gruppenId];
+        if (fixedGroupKey != null) {
+          memberKeys.add(fixedGroupKey);
+        }
+      }
+
       for (final group in customGroups) {
         if (_matchesGroup(group, memberZuordnungen, memberStufen.isEmpty)) {
           memberKeys.add(group.filterKey);

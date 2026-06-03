@@ -43,12 +43,53 @@ void main() {
       );
 
       expect(result['1'], contains(Stufe.rover.name));
+      expect(result['1'], contains('group:21'));
       expect(
         result['1'] ?? const <String>{},
         isNot(contains(Stufe.woelfling.name)),
       );
     },
   );
+
+  test('fuegt nur fuer erlaubte Stammgruppen-Typen feste Gruppenschluessel hinzu', () {
+    const useCase = ErmittleMemberFilterTrefferUseCase();
+    final readModel = ArbeitskontextReadModel(
+      arbeitskontext: Arbeitskontext(
+        aktiverLayer: const ArbeitskontextLayer(id: 11, name: 'Stamm'),
+      ),
+      mitglieder: <Mitglied>[
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '1',
+          vorname: 'Julia',
+          nachname: 'Keller',
+        ),
+      ],
+      gruppen: const <ArbeitskontextGruppe>[
+        ArbeitskontextGruppe(
+          id: 21,
+          name: 'Pfadis',
+          layerId: 11,
+          gruppenTyp: 'Group::StammGruppePfadfinder',
+        ),
+        ArbeitskontextGruppe(
+          id: 99,
+          name: 'Mitglieder',
+          layerId: 11,
+          gruppenTyp: 'Group::Mitglieder',
+        ),
+      ],
+      mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
+        ArbeitskontextMitgliedsZuordnung(mitgliedsnummer: '1', gruppenId: 21),
+        ArbeitskontextMitgliedsZuordnung(mitgliedsnummer: '1', gruppenId: 99),
+      ],
+    );
+
+    final result = useCase(readModel);
+
+    expect(result['1'], contains('group:21'));
+    expect(result['1'] ?? const <String>{}, isNot(contains('group:99')));
+  });
+
   group('ErmittleMemberFilterTrefferUseCase', () {
     test('stage rule with hatNicht matches members without derived stage', () {
       const useCase = ErmittleMemberFilterTrefferUseCase();
