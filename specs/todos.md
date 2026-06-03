@@ -1,157 +1,123 @@
 # Todos
 
-Liste an problemen, die noch behoben werden müssen.
+Diese Liste hält nur noch die nächsten offenen Aufgaben fest. Bereits umgesetzte Arbeitskontext- und Konfliktlösungs-Tickets bleiben im Code, in Tests und im Arbeitskontext-Konzept nachvollziehbar, werden hier aber nicht mehr als aktive Aufgaben geführt.
 
-## Fehler
+## Priorität 1: Stufen und Gruppen mit den neuen Testdaten konsolidieren
 
-Umsetzungsreihenfolge:
+Ziel: Die Stufenableitung wird auf die echten Gruppentypen StammGruppeBiber, StammGruppeWoelflinge, StammGruppeJungpfadfinder, StammGruppePfadfinder und StammGruppeRover umgestellt; Beitragsarten werden als reine Ansicht ergänzt.
 
-1. Fehler 9, 10 und 11
-2. Fehler 5 und 6
-3. Fehler 12 und 13
-4. Fehler 7
-5. Fehler 8
+Nächste Aufgaben:
 
-### Prüfen: 3 Konfliktdialog und Problemlösungsfall
+- Gruppentypen aus den neuen Hitobito-Testdaten eindeutig erfassen und der zentralen Stufenableitung zuordnen.
+- `lib/domain/stufe/arbeitskontext_stufen_mapping.dart` auf die fünf Zieltypen umstellen.
+- Biber-Sichtbarkeit als Sonderregel festhalten: Standardmäßig ausgeblendet, wenn im aktiven Stamm kein Biber vorkommt.
+- Beitragsarten in der Ansicht ergänzen (kein Bearbeiten): Group::Mitglieder::OrdentlicheMitgliedschaft, Group::Mitglieder::Foerdermitgliedschaft, Group::Mitglieder::Zweitmitgliedschaft.
+- Beitragsart-Regel verankern: pro Layer genau eine Beitragsart; global Ordentliche/Förder jeweils nur einmal, sonst Zweitmitgliedschaft.
+- Keine Migration und keine Rückwärtskompatibilität berücksichtigen.
+- Tests für Stufenableitung, Filtertreffer und Mitgliederliste aktualisieren.
+- Arbeitskontext-Konzept und Aufgabenplanung synchron halten.
 
-Die nächste Ausbaustufe für Personenänderungen ersetzt den pauschalen Konflikt auf Basis von `updatedAt` durch einen feld- und objektbezogenen Problemlösungsfall pro Mitglied.
+## Priorität 2: Offline-Sync und Problemlösungsfälle fertig prüfen
 
-Ziel:
+Ziel: Der bestehende Problemlösungsfall soll für spätere Sync- und Retry-Situationen belastbar sein.
 
-- Unabhängige Änderungen zwischen lokalem und aktuellem Serverstand automatisch zusammenführen.
-- Nur echte Überschneidungen auf derselben Änderungseinheit oder fachliche Sync-Probleme eskalieren.
-- Keine lokalen Änderungen still überschreiben oder verlieren.
+Nächste Aufgaben:
 
-Geplante Änderungseinheiten:
+- Offline-Konflikt manuell testen: Mitglied lokal ändern, Serverstand ändern, später synchronisieren, Problemlösungsfall öffnen und lösen.
+- Fehlerhafte Telefonnummer offline speichern und später synchronisieren: Server-Validierungsfehler muss als Problemlösungsfall sichtbar werden.
+- Automatischen Sync während aktiver App-Nutzung mit Queue-Einträgen prüfen: WLAN, erlaubte mobile Daten, gedrosselte Retry-Versuche.
+- Verhalten bei ungültiger Sitzung erneut prüfen: Hinweis nur einmal anzeigen, Bearbeiten weiterhin wie im Offline-Modus möglich.
 
-- Vorname
-- Nachname
-- Fahrtenname
-- Geschlecht
-- Geburtsdatum
-- primäre E-Mail
-- jede Telefonnummer über ihre `phoneNumberId`
-- jede Zusatzmail über ihre `additionalEmailId`
-- primäre Adresse als Block
-- jede Zusatzadresse als Block über ihre `additionalAddressId`
+## Priorität 3: Adressvalidierung anschließen
 
-Automatische Merge-Regeln:
+Ziel: Adressprobleme aus Offline-Bearbeitung und späterem Sync sollen denselben Problemlösungsfall nutzen wie Konflikte und andere fachliche Sync-Probleme.
 
-1. Nur lokal geändert: lokale Änderung übernehmen.
-2. Nur auf dem Server geändert: Serverstand übernehmen.
-3. Beide gleich geändert: automatisch übernehmen.
-4. Beide geändert, aber nicht dieselbe Änderungseinheit: automatisch zusammenführen.
-5. Beide dieselbe Änderungseinheit unterschiedlich geändert: Problemlösungsfall.
+Nächste Aufgaben:
 
-UX-Regeln für den Problemlösungsfall:
+- Produktionspfad für Adressvalidierung definieren: wann wird geprüft, wann wird nur gespeichert, wann entsteht ein Problemlösungsfall.
+- Geoapify-basierte Prüfung für spätere Retry-/Sync-Fälle anbinden, ohne den normalen Offline-Speicherpfad zu blockieren.
+- Ungültige Adresse offline speichern und später synchronisieren: Adresse nicht gefunden oder semantisch unplausibel muss als Problemlösungsfall erscheinen.
+- Gültige Adresse offline bearbeiten und später synchronisieren: Änderung muss ohne unnötigen Problemlösungsfall gesendet werden.
 
-- eigener Screen statt kleinem Dialog
-- immer genau ein Mitglied gleichzeitig
-- betroffene Änderungen untereinander statt lokal und Server dauerhaft nebeneinander
-- klare visuelle Trennung für lokalen Stand, Serverstand und Konfliktstatus
-- nur betroffene Änderungen anzeigen, nicht das gesamte Mitglied
-- Entscheidungen pro Mitglied in einem Durchgang treffen und danach erneut senden
+## Priorität 4: Adressbearbeitung vereinfachen
 
-Direkt bearbeitbar im Problemlösungs-Screen:
+Ziel: Die spätere automatische Adressvervollständigung soll den Online-Bearbeiten-Pfad vereinfachen, ohne den Offline-Fallback zu verlieren.
 
-- Name
-- Geschlecht
-- Geburtsdatum
-- primäre E-Mail
-- Zusatzmails
-- Telefonnummern
-- primäre Adresse
-- Zusatzadressen
+Nächste Aufgaben:
 
-Verhalten je Einstieg:
+- Adresssuche über den bestehenden Geoapify-Dienst als primären Online-Pfad konzipieren.
+- Adresseingabe auf ein Such- und Auswahlfeld reduzieren; Bezeichnung und c/o bleiben eigene Felder.
+- Land als Dropdown vorbereiten: Deutschland als Default plus Nachbarländer.
+- Aktuelle strukturierte Adresseingabe als Fallback erhalten, wenn offline oder Geoapify nicht verfügbar ist.
+- Prüfen, ob das Postfach-Feld im neuen Online-Pfad entfallen kann und wie bestehende Daten weiter angezeigt werden.
 
-- manueller Save: direkt zuordenbare Validierungsfehler bleiben im Bearbeiten-Screen; echte Konflikte öffnen den Problemlösungs-Screen direkt
-- Hintergrund-Sync: einmalige Snackbar, danach persistenter Hinweis bis alle offenen Fälle gelöst sind
+## Priorität 5: Nützliche Ergänzungen
 
-Geplante sichtbare Einstiege für offene Fälle:
+- Länderflaggen auch im MemberDetail an Telefonnummern anzeigen.
+- Anrufen/E-Mail buttons disable wenn keine Telefon/Mail vorhanden
+- GitHub-Pages-Wiki/Userguide für Konfliktlösung, Datenspeicherung und Löschung schreiben.
+- Problemlösungs-Screen prüfen: Bereich "Mitglied bearbeiten" bleibt beim Einstieg eingeklappt, kann aber gut sichtbar aufgeklappt werden.
 
-- Einstellungen
-- Mitglieddetails des betroffenen Mitglieds
-- Warnsymbol in der Mitgliederliste
+## Task 6: Bei erststart nach Update alte daten löschen
 
-Abbruchverhalten:
+- Kommt ein User von der alten app (Version vor 1.0.0) passt die datenstruktur nicht zur neuen App.
+- Alten Datenstand komplett entfernen und app neu initalisieren um probleme zu vermeiden.
 
-- vollständig abgearbeitete Mitglieder werden direkt gesendet
-- bei Abbruch bleibt der Fall offen
-- Teilentscheidungen müssen nicht persistiert werden
-- beim erneuten Öffnen beginnt dieses Mitglied wieder von vorn
+## Später prüfen: Arbeitskontext-Ausbau
 
-Architekturgrenze:
+Diese Punkte sind für den aktuellen MVP nicht blockierend, bleiben aber als spätere Produktentscheidungen relevant.
 
-- Repository und API-Client melden Datenstände, Validierungsfehler und Versionsabweichungen
-- Merge-Erzeugung und Problemlösungsfall gehören in Model oder UseCase, nicht in den API-Client
-- die ausführliche Projektbeschreibung liegt unter [docs/konfliktdialog.markdown](../docs/konfliktdialog.markdown)
+- Schreib- und Bearbeitungslogik für teilweise sichtbare Layer klären, sobald Gruppenwechsel, Rollenwechsel, Verschieben oder Neuanlage von Personen geplant werden.
+- Offene API-Felder prüfen, wenn sie fachlich gebraucht werden: insbesondere Person-`created_at` und mögliche Tags. Rollen-`created_at`, `start_on` und `end_on` sind bereits im Roles-Modell berücksichtigt.
+- Mehrere offline verfügbare Arbeitskontexte nur dann konzipieren, wenn ein konkreter Bedarf für parallele Offline-Layer entsteht.
+- Rekursive Sichten über Unterlayer nur als eigenen Produktentscheid behandeln; sie gehören weiterhin nicht automatisch zum aktiven Arbeitskontext.
+- Persönliche Teilmengen, Tags und "Meine Gruppe" erst nach Stabilisierung der bestehenden Gruppen- und Stufenfilter konkretisieren.
 
-### Done: 5 Änderung von bezeichnung im vergleich nicht sichtbar
+## Manuelle Prüfliste
 
-Wird nur die Bezeichnung gehändert und steht in konflikt ist wird es nicht angezeigt. Stattdessen landen im vergleich die identischen E-Mail Adressen.
+- [ ] Neue Testdaten enthalten Biber, Wö, Jufi, Pfadi und Rover mit bestätigten Gruppentypen.
+- [ ] Stufenfilter zeigt mit neuen Testdaten alle erwarteten Stufen korrekt an.
+- [ ] Biber wird über die zentrale Stufenableitung erkannt und bei fehlendem Biber im aktiven Stamm standardmäßig ausgeblendet.
+- [ ] Jufi und Pfadi werden fachlich korrekt getrennt.
+- [ ] Mitglieder ohne Stufenzuordnung landen weiterhin in Rest beziehungsweise Alle anderen.
+- [ ] Konfliktlösung offline getestet.
+- [ ] Fehlerhafte Telefonnummer offline gespeichert und später als Problemlösungsfall geprüft.
+- [ ] Gültige Adresse offline gespeichert und später erfolgreich synchronisiert.
+- [ ] Ungültige Adresse offline gespeichert und später als Problemlösungsfall geprüft.
+- [ ] Automatischer Sync mit vorhandenen Queue-Einträgen geprüft.
 
-### Done 6: Löschen und Bearbeiten Konflikt
+## Umsetzungsplan (integriert aus tasks.md)
 
-Wird auf dem Server ein zusatzfeld gelöscht und lokal bearbeitet, entsteht ein Konflikt. Entscheide ich mich für die lokale Änderung kommt es zu einem 404 Fehler. Die App muss das geänderte feld neu hinzufügen, damit die Änderung gespeichert werden kann.
+### Handoff-Rahmen
 
-### Offen 7: Adressvalidierung
+- Keine Migration.
+- Keine Rückwärtskompatibilität.
+- Beitragsart nur Ansicht.
 
-Die Adressvalidierung im Offline- oder späteren Sync-Pfad ist noch nicht fachlich angeschlossen. Im Problemlösungsmodell werden nur Server-Validierungsfehler in ResolutionCases übersetzt in member_edit_model.dart:823; ein eigener Address-Validation-Trigger aus Retry oder Sync ist im Produktionspfad hier noch nicht sichtbar.
+### Betroffene Bereiche
 
-### Done 8: Umlaute
+- lib/domain/stufe/arbeitskontext_stufen_mapping.dart
+- lib/domain/stufe/usecases/ermittle_stufen_im_arbeitskontext_usecase.dart
+- lib/domain/member_filters/usecases/ermittle_member_filter_treffer_usecase.dart
+- lib/presentation/screens/member_people_page.dart
+- lib/presentation/widgets/member_list_directory.dart
+- lib/presentation/widgets/member_basis_info_card.dart
+- test/ermittle_stufen_im_arbeitskontext_usecase_test.dart
+- test/member_people_page_test.dart
+- specs/hitobito-arbeitskontext-konzept.md
+- specs/todos.md
+- specs/dpsg-org-hirachie.md
 
-Teilweise fehlen Umlaute. Aktuell an mehreren Stellen ZB ae statt ä
+## Umsetzungspakete
 
-### Done 9: Meldung beim offline speichern
+- P1: Stufen-Mapping auf die fünf Zieltypen konsolidieren.
+- P2: Stufen-Ableitung und Filtertreffer fachlich deckungsgleich machen.
+- P3: Biber-Sichtbarkeit in der Mitgliederansicht eindeutig regeln.
+- P4: Beitragsarten in der UI konsistent als reine Anzeige führen.
+- P5: Zusammenspiel aus Stufen, Biber-Regel und Beitragsart gegen Regression absichern.
 
-Meldung bei offline Speichern ist Fehler und sollte Hinweis sein
+### Doku-Folgen
 
-### Prüfen 10: Meldung wenn Sitzung ungültig bearbeiten
-
-Sitzung ungültig kommt bei jedem aufruf der Mitgliedsliste seite. Soll nur einnal, dann info in settings
-
-- Nach Usetzung, meldung scheint nicht mehr zu kommen
-
-### Done 11: Bearbeiten wenn sitzung ungültig
-
-Wenn Sitzung nicht mehr gültig, soll trotzdem bearbeiten möglich sein - Ablauf wie offline Modus
-
-### Done 12: Notifications werden zu oft geladen
-
-Benachrichtigungen Fetch kommt zu oft
-
-### Prüfen 13: Automatischer Background Sync
-
-Auto-Sync läuft während aktiver App-Nutzung, sobald Senden wieder erlaubt ist. Das umfasst insbesondere verfügbare WLAN-Verbindung, die Freigabe mobiler Daten über die Einstellung und gedrosselte Retry-Versuche für bereits gequeue-te Änderungen.
-
-## Änderungswünsche
-
-- Länderflagen auch im MemberDetail an Telefonnummern
-- GithubPages Wiki/Userguide
-  - Konfliklösung
-  - Regulatoren (Datenspeicherung, Löschung)
-- Problemdialog: Mitglied bearbeiten kann aufgeklappt werden, bei Einstieg nicht sichtbar
-
-## Weitere Funktionen
-
-- Adresse Automatisch vervollständigen mit Geocoding API
-  - Nutze bestehenden Dienst GEOAPIFY
-  - Dazu müssen nicht mehr alle Felder zur Adresse angezeigt werden, die Eingabe und Auswahl kann in einem einzelnen Feld erfolgen. Bezeichnung und c/o sind weiterhin eigene Felder.
-  - Feld Postfach kann entfallen.
-  - Feld Land als Dropdown, nur Deutschland (default) und Nachbarländer.
-  - Aktuelle Ansicht bleibt Fallback, wenn Bearbeitung offline oder Geocoding API nicht verfügbar ist.
-- Adresse validieren (erst mit Konfliktdialog umsetzen)
-  - Nur relevant bei Offline-Bearbeitung und späterem Sync.
-  - Läuft über denselben Problemlösungsfall wie Konflikte oder andere fachliche Sync-Probleme.
-  - Im normalen Online-Bearbeiten-Pfad bleibt die spätere automatische Adressvervollständigung der Hauptpfad.
-  - Problemfall: Adresse nicht gefunden oder semantisch unplausibel, Eingaben prüfen oder lokale Änderung verwerfen.
-
-## Manuelle Tests
-
-- [ ] Fehlerhafte Telefonnummer im offline Modus: Ungültige Telefonnummer eingeben, Änderungen speichern, später synchronisieren, Validierungsfehler vom Server im Problemlösungsfall prüfen.
-- [ ] Gültige Adresse offline bearbeiten: Adresse ändern, Änderungen speichern, später synchronisieren
-- [ ] Ungültige Adresse offline bearbeiten: Ungültige Adresse eingeben, Änderungen speichern, später synchronisieren, Validierungsfehler von der App im Problemlösungsfall prüfen.
-- [x] Konfliktlösung Online: Mitglied bearbeiten, gleichzeitig Serverstand ändern, Merge-Dialog öffnet automatisch, Konfliktlösung durchführen, Ergebnis prüfen.
-- [ ] Konfliktlösung offline: Lokale Änderung an einem Mitglied vornehmen,  Serverstand ändern, später synchronisieren, Meldung erscheint, Merge-Dialog öffnen, Konfliktlösung durchführen, Ergebnis prüfen.
-- [x] Automatische Zusammenführung: Lokale Änderung an einem Mitglied vornehmen, gleichzeitig Serverstand ändern, aber unterschiedliche Felder, später synchronisieren, automatisches Zusammenführen prüfen.
+- specs/hitobito-arbeitskontext-konzept.md auf den umgesetzten Stand abgleichen.
+- specs/todos.md Fortschritt je Paket fortlaufend nachführen.
+- specs/dpsg-org-hirachie.md Begriffe und Gruppentypbezüge harmonisieren.

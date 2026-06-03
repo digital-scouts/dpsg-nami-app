@@ -195,6 +195,38 @@ components:
           "$ref": "#/components/links/updateEventDateId"
         deleteEventDateId:
           "$ref": "#/components/links/deleteEventDateId"
+    event_guests_200:
+      description: 'OK: Guest resource'
+      content:
+        application/vnd.api+json:
+          schema:
+            "$ref": "#/components/schemas/event_guests_single"
+      links:
+        getEventGuestId:
+          "$ref": "#/components/links/getEventGuestId"
+        updateEventGuestId:
+          "$ref": "#/components/links/updateEventGuestId"
+        deleteEventGuestId:
+          "$ref": "#/components/links/deleteEventGuestId"
+    event_guests_200_collection:
+      description: 'OK: Guests collection'
+      content:
+        application/vnd.api+json:
+          schema:
+            "$ref": "#/components/schemas/event_guests_collection"
+    event_guests_201:
+      description: Created
+      content:
+        application/vnd.api+json:
+          schema:
+            "$ref": "#/components/schemas/event_guests_single"
+      links:
+        getEventGuestId:
+          "$ref": "#/components/links/getEventGuestId"
+        updateEventGuestId:
+          "$ref": "#/components/links/updateEventGuestId"
+        deleteEventGuestId:
+          "$ref": "#/components/links/deleteEventGuestId"
     event_kind_categories_200:
       description: 'OK: Kind category resource'
       content:
@@ -643,6 +675,70 @@ components:
           "$ref": "#/components/links/updatePhoneNumberId"
         deletePhoneNumberId:
           "$ref": "#/components/links/deletePhoneNumberId"
+    qualification_kinds_200:
+      description: 'OK: Qualification kind resource'
+      content:
+        application/vnd.api+json:
+          schema:
+            "$ref": "#/components/schemas/qualification_kinds_single"
+      links:
+        getQualificationKindId:
+          "$ref": "#/components/links/getQualificationKindId"
+        updateQualificationKindId:
+          "$ref": "#/components/links/updateQualificationKindId"
+        deleteQualificationKindId:
+          "$ref": "#/components/links/deleteQualificationKindId"
+    qualification_kinds_200_collection:
+      description: 'OK: Qualification kinds collection'
+      content:
+        application/vnd.api+json:
+          schema:
+            "$ref": "#/components/schemas/qualification_kinds_collection"
+    qualification_kinds_201:
+      description: Created
+      content:
+        application/vnd.api+json:
+          schema:
+            "$ref": "#/components/schemas/qualification_kinds_single"
+      links:
+        getQualificationKindId:
+          "$ref": "#/components/links/getQualificationKindId"
+        updateQualificationKindId:
+          "$ref": "#/components/links/updateQualificationKindId"
+        deleteQualificationKindId:
+          "$ref": "#/components/links/deleteQualificationKindId"
+    qualifications_200:
+      description: 'OK: Qualification resource'
+      content:
+        application/vnd.api+json:
+          schema:
+            "$ref": "#/components/schemas/qualifications_single"
+      links:
+        getQualificationId:
+          "$ref": "#/components/links/getQualificationId"
+        updateQualificationId:
+          "$ref": "#/components/links/updateQualificationId"
+        deleteQualificationId:
+          "$ref": "#/components/links/deleteQualificationId"
+    qualifications_200_collection:
+      description: 'OK: Qualifications collection'
+      content:
+        application/vnd.api+json:
+          schema:
+            "$ref": "#/components/schemas/qualifications_collection"
+    qualifications_201:
+      description: Created
+      content:
+        application/vnd.api+json:
+          schema:
+            "$ref": "#/components/schemas/qualifications_single"
+      links:
+        getQualificationId:
+          "$ref": "#/components/links/getQualificationId"
+        updateQualificationId:
+          "$ref": "#/components/links/updateQualificationId"
+        deleteQualificationId:
+          "$ref": "#/components/links/deleteQualificationId"
     roles_200:
       description: 'OK: Role resource'
       content:
@@ -747,6 +843,7 @@ components:
       - additional_emails
       - courses
       - dates
+      - event_guests
       - event_kind_categories
       - event_kinds
       - event_participations
@@ -761,6 +858,8 @@ components:
       - person-name
       - people
       - phone_numbers
+      - qualification_kinds
+      - qualifications
       - roles
       - self_registrations
       - social_accounts
@@ -798,7 +897,7 @@ components:
       properties:
         id:
           type: string
-          example: '15'
+          example: '73'
         type:
           type: string
           enum:
@@ -943,7 +1042,7 @@ components:
       properties:
         id:
           type: string
-          example: '13'
+          example: '57'
         type:
           type: string
           enum:
@@ -1183,7 +1282,7 @@ components:
       properties:
         id:
           type: string
-          example: '61'
+          example: '11'
         type:
           type: string
           enum:
@@ -1337,7 +1436,7 @@ components:
       properties:
         id:
           type: string
-          example: '97'
+          example: '70'
         type:
           type: string
           enum:
@@ -1429,6 +1528,156 @@ components:
         enum:
         - event
       uniqueItems: true
+    event_guests:
+      type: object
+      description: Guest attributes
+      properties:
+        first_name:
+          type: string
+          readOnly: true
+        last_name:
+          type: string
+          readOnly: true
+        nickname:
+          type: string
+          readOnly: true
+        email:
+          type: string
+          readOnly: true
+        address_care_of:
+          type: string
+          readOnly: true
+        street:
+          type: string
+          readOnly: true
+        housenumber:
+          type: string
+          readOnly: true
+        postbox:
+          type: string
+          readOnly: true
+        zip_code:
+          type: string
+          readOnly: true
+        town:
+          type: string
+          readOnly: true
+        country:
+          type: string
+          readOnly: true
+        language:
+          type: string
+          readOnly: true
+        phone_number:
+          type: string
+          readOnly: true
+      additionalProperties: false
+    event_guests_relationships:
+      "$ref": "#/components/schemas/jsonapi_relationships"
+    event_guests_resource:
+      type: object
+      properties:
+        id:
+          type: string
+          example: '70'
+        type:
+          type: string
+          enum:
+          - event_guests
+        attributes:
+          "$ref": "#/components/schemas/event_guests"
+        relationships:
+          "$ref": "#/components/schemas/event_guests_relationships"
+        links:
+          "$ref": "#/components/schemas/jsonapi_links"
+      additionalProperties: false
+    event_guests_single:
+      type: object
+      properties:
+        data:
+          "$ref": "#/components/schemas/event_guests_resource"
+        included:
+          description: To reduce the number of HTTP requests, servers **MAY** allow
+            responses that include related resources along with the requested primary
+            resources. Such responses are called "compound documents".
+          type: array
+          items:
+            "$ref": "#/components/schemas/jsonapi_resource"
+          uniqueItems: true
+        meta:
+          "$ref": "#/components/schemas/jsonapi_meta"
+        links:
+          description: Link members related to the primary data.
+          allOf:
+          - "$ref": "#/components/schemas/jsonapi_links"
+          - "$ref": "#/components/schemas/jsonapi_pagination"
+        jsonapi:
+          "$ref": "#/components/schemas/jsonapi_jsonapi"
+      additionalProperties: false
+    event_guests_collection:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/components/schemas/event_guests_resource"
+        included:
+          description: To reduce the number of HTTP requests, servers **MAY** allow
+            responses that include related resources along with the requested primary
+            resources. Such responses are called "compound documents".
+          type: array
+          items:
+            "$ref": "#/components/schemas/jsonapi_resource"
+          uniqueItems: true
+        meta:
+          "$ref": "#/components/schemas/jsonapi_meta"
+        links:
+          description: Link members related to the primary data.
+          allOf:
+          - "$ref": "#/components/schemas/jsonapi_links"
+          - "$ref": "#/components/schemas/jsonapi_pagination"
+        jsonapi:
+          "$ref": "#/components/schemas/jsonapi_jsonapi"
+      additionalProperties: false
+    event_guests_request:
+      type: object
+      properties:
+        data:
+          "$ref": "#/components/schemas/event_guests_resource"
+    event_guests_readable_attribute:
+      description: Guest readable attributes
+      type: string
+      enum:
+      - id
+      - first_name
+      - last_name
+      - nickname
+      - email
+      - address_care_of
+      - street
+      - housenumber
+      - postbox
+      - zip_code
+      - town
+      - country
+      - language
+      - phone_number
+    event_guests_sortable_attributes_list:
+      description: Guest sortable attributes
+      type: array
+      items:
+        type: string
+        enum:
+        - id
+        - "-id"
+      uniqueItems: true
+    event_guests_related:
+      description: Guest relationships available for inclusion
+      type: array
+      items:
+        type: string
+      uniqueItems: true
+      nullable: true
     event_kind_categories:
       type: object
       description: Kind category attributes
@@ -1447,7 +1696,7 @@ components:
       properties:
         id:
           type: string
-          example: '83'
+          example: '48'
         type:
           type: string
           enum:
@@ -1581,7 +1830,7 @@ components:
       properties:
         id:
           type: string
-          example: '88'
+          example: '0'
         type:
           type: string
           enum:
@@ -1721,6 +1970,15 @@ components:
               "$ref": "#/components/schemas/jsonapi_relationshipToOne"
             meta:
               "$ref": "#/components/schemas/jsonapi_meta"
+        participant:
+          type: object
+          properties:
+            links:
+              "$ref": "#/components/schemas/jsonapi_relationshipLinks"
+            data:
+              "$ref": "#/components/schemas/jsonapi_relationshipToOne"
+            meta:
+              "$ref": "#/components/schemas/jsonapi_meta"
         roles:
           type: object
           properties:
@@ -1736,7 +1994,7 @@ components:
       properties:
         id:
           type: string
-          example: '26'
+          example: '98'
         type:
           type: string
           enum:
@@ -1831,6 +2089,7 @@ components:
         type: string
         enum:
         - event
+        - participant
         - roles
       uniqueItems: true
     event_roles:
@@ -1865,7 +2124,7 @@ components:
       properties:
         id:
           type: string
-          example: '8'
+          example: '3'
         type:
           type: string
           enum:
@@ -2063,7 +2322,7 @@ components:
       properties:
         id:
           type: string
-          example: '61'
+          example: '43'
         type:
           type: string
           enum:
@@ -2220,7 +2479,7 @@ components:
       properties:
         id:
           type: string
-          example: '27'
+          example: '92'
         type:
           type: string
           enum:
@@ -2364,7 +2623,7 @@ components:
       properties:
         id:
           type: string
-          example: '88'
+          example: '41'
         type:
           type: string
           enum:
@@ -2669,7 +2928,7 @@ components:
       properties:
         id:
           type: string
-          example: '33'
+          example: '41'
         type:
           type: string
           enum:
@@ -2887,7 +3146,7 @@ components:
       properties:
         id:
           type: string
-          example: '23'
+          example: '25'
         type:
           type: string
           enum:
@@ -3048,7 +3307,7 @@ components:
       properties:
         id:
           type: string
-          example: '13'
+          example: '90'
         type:
           type: string
           enum:
@@ -3205,7 +3464,7 @@ components:
       properties:
         id:
           type: string
-          example: '39'
+          example: '15'
         type:
           type: string
           enum:
@@ -3357,7 +3616,7 @@ components:
       properties:
         id:
           type: string
-          example: '61'
+          example: '98'
         type:
           type: string
           enum:
@@ -3546,6 +3805,15 @@ components:
               "$ref": "#/components/schemas/jsonapi_relationshipToMany"
             meta:
               "$ref": "#/components/schemas/jsonapi_meta"
+        qualifications:
+          type: object
+          properties:
+            links:
+              "$ref": "#/components/schemas/jsonapi_relationshipLinks"
+            data:
+              "$ref": "#/components/schemas/jsonapi_relationshipToMany"
+            meta:
+              "$ref": "#/components/schemas/jsonapi_meta"
         phone_numbers:
           type: object
           properties:
@@ -3582,13 +3850,22 @@ components:
               "$ref": "#/components/schemas/jsonapi_relationshipToMany"
             meta:
               "$ref": "#/components/schemas/jsonapi_meta"
+        event_participations:
+          type: object
+          properties:
+            links:
+              "$ref": "#/components/schemas/jsonapi_relationshipLinks"
+            data:
+              "$ref": "#/components/schemas/jsonapi_relationshipToMany"
+            meta:
+              "$ref": "#/components/schemas/jsonapi_meta"
       additionalProperties: false
     people_resource:
       type: object
       properties:
         id:
           type: string
-          example: '20'
+          example: '55'
         type:
           type: string
           enum:
@@ -3763,10 +4040,12 @@ components:
         - primary_group
         - layer_group
         - roles
+        - qualifications
         - phone_numbers
         - social_accounts
         - additional_emails
         - additional_addresses
+        - event_participations
       uniqueItems: true
     phone_numbers:
       type: object
@@ -3790,7 +4069,7 @@ components:
       properties:
         id:
           type: string
-          example: '93'
+          example: '71'
         type:
           type: string
           enum:
@@ -3891,6 +4170,265 @@ components:
         type: string
       uniqueItems: true
       nullable: true
+    qualification_kinds:
+      type: object
+      description: Qualification kind attributes
+      properties:
+        label:
+          type: string
+          readOnly: true
+        description:
+          type: string
+          readOnly: true
+        validity:
+          type: integer
+          readOnly: true
+        reactivateable:
+          type: integer
+          readOnly: true
+        required_training_days:
+          type: integer
+          readOnly: true
+      additionalProperties: false
+    qualification_kinds_relationships:
+      "$ref": "#/components/schemas/jsonapi_relationships"
+    qualification_kinds_resource:
+      type: object
+      properties:
+        id:
+          type: string
+          example: '26'
+        type:
+          type: string
+          enum:
+          - qualification_kinds
+        attributes:
+          "$ref": "#/components/schemas/qualification_kinds"
+        relationships:
+          "$ref": "#/components/schemas/qualification_kinds_relationships"
+        links:
+          "$ref": "#/components/schemas/jsonapi_links"
+      additionalProperties: false
+    qualification_kinds_single:
+      type: object
+      properties:
+        data:
+          "$ref": "#/components/schemas/qualification_kinds_resource"
+        included:
+          description: To reduce the number of HTTP requests, servers **MAY** allow
+            responses that include related resources along with the requested primary
+            resources. Such responses are called "compound documents".
+          type: array
+          items:
+            "$ref": "#/components/schemas/jsonapi_resource"
+          uniqueItems: true
+        meta:
+          "$ref": "#/components/schemas/jsonapi_meta"
+        links:
+          description: Link members related to the primary data.
+          allOf:
+          - "$ref": "#/components/schemas/jsonapi_links"
+          - "$ref": "#/components/schemas/jsonapi_pagination"
+        jsonapi:
+          "$ref": "#/components/schemas/jsonapi_jsonapi"
+      additionalProperties: false
+    qualification_kinds_collection:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/components/schemas/qualification_kinds_resource"
+        included:
+          description: To reduce the number of HTTP requests, servers **MAY** allow
+            responses that include related resources along with the requested primary
+            resources. Such responses are called "compound documents".
+          type: array
+          items:
+            "$ref": "#/components/schemas/jsonapi_resource"
+          uniqueItems: true
+        meta:
+          "$ref": "#/components/schemas/jsonapi_meta"
+        links:
+          description: Link members related to the primary data.
+          allOf:
+          - "$ref": "#/components/schemas/jsonapi_links"
+          - "$ref": "#/components/schemas/jsonapi_pagination"
+        jsonapi:
+          "$ref": "#/components/schemas/jsonapi_jsonapi"
+      additionalProperties: false
+    qualification_kinds_request:
+      type: object
+      properties:
+        data:
+          "$ref": "#/components/schemas/qualification_kinds_resource"
+    qualification_kinds_readable_attribute:
+      description: Qualification kind readable attributes
+      type: string
+      enum:
+      - id
+      - label
+      - description
+      - validity
+      - reactivateable
+      - required_training_days
+    qualification_kinds_sortable_attributes_list:
+      description: Qualification kind sortable attributes
+      type: array
+      items:
+        type: string
+        enum:
+        - id
+        - "-id"
+      uniqueItems: true
+    qualification_kinds_related:
+      description: Qualification kind relationships available for inclusion
+      type: array
+      items:
+        type: string
+      uniqueItems: true
+      nullable: true
+    qualifications:
+      type: object
+      description: Qualification attributes
+      properties:
+        person_id:
+          type: integer
+        qualification_kind_id:
+          type: integer
+        start_at:
+          type: string
+          format: date
+        finish_at:
+          type: string
+          format: date
+        qualified_at:
+          type: string
+          format: date
+        origin:
+          type: string
+      additionalProperties: false
+    qualifications_relationships:
+      type: object
+      properties:
+        person:
+          type: object
+          properties:
+            links:
+              "$ref": "#/components/schemas/jsonapi_relationshipLinks"
+            data:
+              "$ref": "#/components/schemas/jsonapi_relationshipToOne"
+            meta:
+              "$ref": "#/components/schemas/jsonapi_meta"
+        qualification_kind:
+          type: object
+          properties:
+            links:
+              "$ref": "#/components/schemas/jsonapi_relationshipLinks"
+            data:
+              "$ref": "#/components/schemas/jsonapi_relationshipToOne"
+            meta:
+              "$ref": "#/components/schemas/jsonapi_meta"
+      additionalProperties: false
+    qualifications_resource:
+      type: object
+      properties:
+        id:
+          type: string
+          example: '76'
+        type:
+          type: string
+          enum:
+          - qualifications
+        attributes:
+          "$ref": "#/components/schemas/qualifications"
+        relationships:
+          "$ref": "#/components/schemas/qualifications_relationships"
+        links:
+          "$ref": "#/components/schemas/jsonapi_links"
+      additionalProperties: false
+    qualifications_single:
+      type: object
+      properties:
+        data:
+          "$ref": "#/components/schemas/qualifications_resource"
+        included:
+          description: To reduce the number of HTTP requests, servers **MAY** allow
+            responses that include related resources along with the requested primary
+            resources. Such responses are called "compound documents".
+          type: array
+          items:
+            "$ref": "#/components/schemas/jsonapi_resource"
+          uniqueItems: true
+        meta:
+          "$ref": "#/components/schemas/jsonapi_meta"
+        links:
+          description: Link members related to the primary data.
+          allOf:
+          - "$ref": "#/components/schemas/jsonapi_links"
+          - "$ref": "#/components/schemas/jsonapi_pagination"
+        jsonapi:
+          "$ref": "#/components/schemas/jsonapi_jsonapi"
+      additionalProperties: false
+    qualifications_collection:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/components/schemas/qualifications_resource"
+        included:
+          description: To reduce the number of HTTP requests, servers **MAY** allow
+            responses that include related resources along with the requested primary
+            resources. Such responses are called "compound documents".
+          type: array
+          items:
+            "$ref": "#/components/schemas/jsonapi_resource"
+          uniqueItems: true
+        meta:
+          "$ref": "#/components/schemas/jsonapi_meta"
+        links:
+          description: Link members related to the primary data.
+          allOf:
+          - "$ref": "#/components/schemas/jsonapi_links"
+          - "$ref": "#/components/schemas/jsonapi_pagination"
+        jsonapi:
+          "$ref": "#/components/schemas/jsonapi_jsonapi"
+      additionalProperties: false
+    qualifications_request:
+      type: object
+      properties:
+        data:
+          "$ref": "#/components/schemas/qualifications_resource"
+    qualifications_readable_attribute:
+      description: Qualification readable attributes
+      type: string
+      enum:
+      - id
+      - person_id
+      - qualification_kind_id
+      - start_at
+      - finish_at
+      - qualified_at
+      - origin
+    qualifications_sortable_attributes_list:
+      description: Qualification sortable attributes
+      type: array
+      items:
+        type: string
+        enum:
+        - id
+        - "-id"
+      uniqueItems: true
+    qualifications_related:
+      description: Qualification relationships available for inclusion
+      type: array
+      items:
+        type: string
+        enum:
+        - person
+        - qualification_kind
+      uniqueItems: true
     roles:
       type: object
       description: Role attributes
@@ -3922,6 +4460,8 @@ components:
           type: string
         label:
           type: string
+        fee_kind_id:
+          type: integer
       additionalProperties: false
     roles_relationships:
       type: object
@@ -3953,13 +4493,22 @@ components:
               "$ref": "#/components/schemas/jsonapi_relationshipToOne"
             meta:
               "$ref": "#/components/schemas/jsonapi_meta"
+        fee_kind:
+          type: object
+          properties:
+            links:
+              "$ref": "#/components/schemas/jsonapi_relationshipLinks"
+            data:
+              "$ref": "#/components/schemas/jsonapi_relationshipToOne"
+            meta:
+              "$ref": "#/components/schemas/jsonapi_meta"
       additionalProperties: false
     roles_resource:
       type: object
       properties:
         id:
           type: string
-          example: '3'
+          example: '69'
         type:
           type: string
           enum:
@@ -4038,6 +4587,7 @@ components:
       - group_id
       - type
       - label
+      - fee_kind_id
     roles_sortable_attributes_list:
       description: Role sortable attributes
       type: array
@@ -4064,6 +4614,8 @@ components:
         - "-type"
         - label
         - "-label"
+        - fee_kind_id
+        - "-fee_kind_id"
       uniqueItems: true
     roles_related:
       description: Role relationships available for inclusion
@@ -4074,6 +4626,7 @@ components:
         - person
         - group
         - layer_group
+        - fee_kind
       uniqueItems: true
     self_registrations:
       type: object
@@ -4092,6 +4645,9 @@ components:
           writeOnly: true
         privacy_policy_accepted:
           type: boolean
+        fee_kind_id:
+          type: integer
+          writeOnly: true
       additionalProperties: false
     self_registrations_relationships:
       "$ref": "#/components/schemas/jsonapi_relationships"
@@ -4100,7 +4656,7 @@ components:
       properties:
         id:
           type: string
-          example: '61'
+          example: '34'
         type:
           type: string
           enum:
@@ -4213,7 +4769,7 @@ components:
       properties:
         id:
           type: string
-          example: '18'
+          example: '61'
         type:
           type: string
           enum:
@@ -4389,6 +4945,7 @@ components:
       - "$ref": "#/components/schemas/additional_emails_resource"
       - "$ref": "#/components/schemas/courses_resource"
       - "$ref": "#/components/schemas/dates_resource"
+      - "$ref": "#/components/schemas/event_guests_resource"
       - "$ref": "#/components/schemas/event_kind_categories_resource"
       - "$ref": "#/components/schemas/event_kinds_resource"
       - "$ref": "#/components/schemas/event_participations_resource"
@@ -4403,6 +4960,8 @@ components:
       - "$ref": "#/components/schemas/person-name_resource"
       - "$ref": "#/components/schemas/people_resource"
       - "$ref": "#/components/schemas/phone_numbers_resource"
+      - "$ref": "#/components/schemas/qualification_kinds_resource"
+      - "$ref": "#/components/schemas/qualifications_resource"
       - "$ref": "#/components/schemas/roles_resource"
       - "$ref": "#/components/schemas/self_registrations_resource"
       - "$ref": "#/components/schemas/social_accounts_resource"
@@ -4456,7 +5015,7 @@ components:
           "$ref": "#/components/schemas/jsonapi_meta"
         id:
           type: string
-          example: '35'
+          example: '22'
       additionalProperties: false
     jsonapi_pagination:
       type: object
@@ -6523,6 +7082,89 @@ components:
       explode: false
       name: filter[event_id][lte]
       description: "[Filter Date by event_id using lte operator](https://jsonapi.org/format/#fetching-filtering)"
+    event_guests_id:
+      in: path
+      required: true
+      schema:
+        type: string
+      name: id
+      description: ID of the resource
+    event_guests_fields:
+      in: query
+      schema:
+        description: Guest readable attributes list
+        type: array
+        items:
+          "$ref": "#/components/schemas/event_guests_readable_attribute"
+        uniqueItems: true
+      explode: false
+      name: fields[event_guests]
+      description: "[Include only specified fields of Guest in response](https://jsonapi.org/format/#fetching-sparse-fieldsets)"
+    event_guests_sort:
+      in: query
+      schema:
+        "$ref": "#/components/schemas/event_guests_sortable_attributes_list"
+      explode: false
+      name: sort
+      description: |+
+        [Sort event_guests according to one or more criteria](https://jsonapi.org/format/#fetching-sorting)
+
+        You should not include both ascending `id` and descending `-id` fields the same time
+
+    event_guests_filter_id_eq:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[id][eq]
+      description: "[Filter Guest by id using eq operator](https://jsonapi.org/format/#fetching-filtering)"
+    event_guests_filter_id_not_eq:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[id][not_eq]
+      description: "[Filter Guest by id using not_eq operator](https://jsonapi.org/format/#fetching-filtering)"
+    event_guests_filter_id_gt:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[id][gt]
+      description: "[Filter Guest by id using gt operator](https://jsonapi.org/format/#fetching-filtering)"
+    event_guests_filter_id_gte:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[id][gte]
+      description: "[Filter Guest by id using gte operator](https://jsonapi.org/format/#fetching-filtering)"
+    event_guests_filter_id_lt:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[id][lt]
+      description: "[Filter Guest by id using lt operator](https://jsonapi.org/format/#fetching-filtering)"
+    event_guests_filter_id_lte:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[id][lte]
+      description: "[Filter Guest by id using lte operator](https://jsonapi.org/format/#fetching-filtering)"
     event_kind_categories_id:
       in: path
       required: true
@@ -14491,6 +15133,287 @@ components:
       explode: false
       name: filter[number][not_match]
       description: "[Filter Phone number by number using not_match operator](https://jsonapi.org/format/#fetching-filtering)"
+    qualification_kinds_id:
+      in: path
+      required: true
+      schema:
+        type: string
+      name: id
+      description: ID of the resource
+    qualification_kinds_fields:
+      in: query
+      schema:
+        description: Qualification kind readable attributes list
+        type: array
+        items:
+          "$ref": "#/components/schemas/qualification_kinds_readable_attribute"
+        uniqueItems: true
+      explode: false
+      name: fields[qualification_kinds]
+      description: "[Include only specified fields of Qualification kind in response](https://jsonapi.org/format/#fetching-sparse-fieldsets)"
+    qualification_kinds_sort:
+      in: query
+      schema:
+        "$ref": "#/components/schemas/qualification_kinds_sortable_attributes_list"
+      explode: false
+      name: sort
+      description: |+
+        [Sort qualification_kinds according to one or more criteria](https://jsonapi.org/format/#fetching-sorting)
+
+        You should not include both ascending `id` and descending `-id` fields the same time
+
+    qualification_kinds_filter_id_eq:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[id][eq]
+      description: "[Filter Qualification kind by id using eq operator](https://jsonapi.org/format/#fetching-filtering)"
+    qualification_kinds_filter_id_not_eq:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[id][not_eq]
+      description: "[Filter Qualification kind by id using not_eq operator](https://jsonapi.org/format/#fetching-filtering)"
+    qualification_kinds_filter_id_gt:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[id][gt]
+      description: "[Filter Qualification kind by id using gt operator](https://jsonapi.org/format/#fetching-filtering)"
+    qualification_kinds_filter_id_gte:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[id][gte]
+      description: "[Filter Qualification kind by id using gte operator](https://jsonapi.org/format/#fetching-filtering)"
+    qualification_kinds_filter_id_lt:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[id][lt]
+      description: "[Filter Qualification kind by id using lt operator](https://jsonapi.org/format/#fetching-filtering)"
+    qualification_kinds_filter_id_lte:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[id][lte]
+      description: "[Filter Qualification kind by id using lte operator](https://jsonapi.org/format/#fetching-filtering)"
+    qualifications_id:
+      in: path
+      required: true
+      schema:
+        type: string
+      name: id
+      description: ID of the resource
+    qualifications_include:
+      in: query
+      schema:
+        "$ref": "#/components/schemas/qualifications_related"
+      explode: false
+      name: include
+      description: "[Include related resources](https://jsonapi.org/format/#fetching-includes)"
+    qualifications_fields:
+      in: query
+      schema:
+        description: Qualification readable attributes list
+        type: array
+        items:
+          "$ref": "#/components/schemas/qualifications_readable_attribute"
+        uniqueItems: true
+      explode: false
+      name: fields[qualifications]
+      description: "[Include only specified fields of Qualification in response](https://jsonapi.org/format/#fetching-sparse-fieldsets)"
+    qualifications_sort:
+      in: query
+      schema:
+        "$ref": "#/components/schemas/qualifications_sortable_attributes_list"
+      explode: false
+      name: sort
+      description: |+
+        [Sort qualifications according to one or more criteria](https://jsonapi.org/format/#fetching-sorting)
+
+        You should not include both ascending `id` and descending `-id` fields the same time
+
+    qualifications_filter_id_eq:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[id][eq]
+      description: "[Filter Qualification by id using eq operator](https://jsonapi.org/format/#fetching-filtering)"
+    qualifications_filter_id_not_eq:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[id][not_eq]
+      description: "[Filter Qualification by id using not_eq operator](https://jsonapi.org/format/#fetching-filtering)"
+    qualifications_filter_id_gt:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[id][gt]
+      description: "[Filter Qualification by id using gt operator](https://jsonapi.org/format/#fetching-filtering)"
+    qualifications_filter_id_gte:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[id][gte]
+      description: "[Filter Qualification by id using gte operator](https://jsonapi.org/format/#fetching-filtering)"
+    qualifications_filter_id_lt:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[id][lt]
+      description: "[Filter Qualification by id using lt operator](https://jsonapi.org/format/#fetching-filtering)"
+    qualifications_filter_id_lte:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[id][lte]
+      description: "[Filter Qualification by id using lte operator](https://jsonapi.org/format/#fetching-filtering)"
+    qualifications_filter_person_id_eq:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[person_id][eq]
+      description: "[Filter Qualification by person_id using eq operator](https://jsonapi.org/format/#fetching-filtering)"
+    qualifications_filter_person_id_not_eq:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[person_id][not_eq]
+      description: "[Filter Qualification by person_id using not_eq operator](https://jsonapi.org/format/#fetching-filtering)"
+    qualifications_filter_person_id_gt:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[person_id][gt]
+      description: "[Filter Qualification by person_id using gt operator](https://jsonapi.org/format/#fetching-filtering)"
+    qualifications_filter_person_id_gte:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[person_id][gte]
+      description: "[Filter Qualification by person_id using gte operator](https://jsonapi.org/format/#fetching-filtering)"
+    qualifications_filter_person_id_lt:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[person_id][lt]
+      description: "[Filter Qualification by person_id using lt operator](https://jsonapi.org/format/#fetching-filtering)"
+    qualifications_filter_person_id_lte:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[person_id][lte]
+      description: "[Filter Qualification by person_id using lte operator](https://jsonapi.org/format/#fetching-filtering)"
+    qualifications_filter_qualification_kind_id_eq:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[qualification_kind_id][eq]
+      description: "[Filter Qualification by qualification_kind_id using eq operator](https://jsonapi.org/format/#fetching-filtering)"
+    qualifications_filter_qualification_kind_id_not_eq:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[qualification_kind_id][not_eq]
+      description: "[Filter Qualification by qualification_kind_id using not_eq operator](https://jsonapi.org/format/#fetching-filtering)"
+    qualifications_filter_qualification_kind_id_gt:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[qualification_kind_id][gt]
+      description: "[Filter Qualification by qualification_kind_id using gt operator](https://jsonapi.org/format/#fetching-filtering)"
+    qualifications_filter_qualification_kind_id_gte:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[qualification_kind_id][gte]
+      description: "[Filter Qualification by qualification_kind_id using gte operator](https://jsonapi.org/format/#fetching-filtering)"
+    qualifications_filter_qualification_kind_id_lt:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[qualification_kind_id][lt]
+      description: "[Filter Qualification by qualification_kind_id using lt operator](https://jsonapi.org/format/#fetching-filtering)"
+    qualifications_filter_qualification_kind_id_lte:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[qualification_kind_id][lte]
+      description: "[Filter Qualification by qualification_kind_id using lte operator](https://jsonapi.org/format/#fetching-filtering)"
     roles_id:
       in: path
       required: true
@@ -15207,6 +16130,60 @@ components:
       explode: false
       name: filter[active][eq]
       description: "[Filter Role by active using eq operator](https://jsonapi.org/format/#fetching-filtering)"
+    roles_filter_fee_kind_id_eq:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[fee_kind_id][eq]
+      description: "[Filter Role by fee_kind_id using eq operator](https://jsonapi.org/format/#fetching-filtering)"
+    roles_filter_fee_kind_id_not_eq:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[fee_kind_id][not_eq]
+      description: "[Filter Role by fee_kind_id using not_eq operator](https://jsonapi.org/format/#fetching-filtering)"
+    roles_filter_fee_kind_id_gt:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[fee_kind_id][gt]
+      description: "[Filter Role by fee_kind_id using gt operator](https://jsonapi.org/format/#fetching-filtering)"
+    roles_filter_fee_kind_id_gte:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[fee_kind_id][gte]
+      description: "[Filter Role by fee_kind_id using gte operator](https://jsonapi.org/format/#fetching-filtering)"
+    roles_filter_fee_kind_id_lt:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[fee_kind_id][lt]
+      description: "[Filter Role by fee_kind_id using lt operator](https://jsonapi.org/format/#fetching-filtering)"
+    roles_filter_fee_kind_id_lte:
+      in: query
+      schema:
+        type: array
+        items:
+          type: integer
+      explode: false
+      name: filter[fee_kind_id][lte]
+      description: "[Filter Role by fee_kind_id using lte operator](https://jsonapi.org/format/#fetching-filtering)"
     self_registrations_id:
       in: path
       required: true
@@ -15729,6 +16706,12 @@ components:
         application/vnd.api+json:
           schema:
             "$ref": "#/components/schemas/dates_request"
+    event_guests:
+      required: true
+      content:
+        application/vnd.api+json:
+          schema:
+            "$ref": "#/components/schemas/event_guests_request"
     event_kind_categories:
       required: true
       content:
@@ -15813,6 +16796,18 @@ components:
         application/vnd.api+json:
           schema:
             "$ref": "#/components/schemas/phone_numbers_request"
+    qualification_kinds:
+      required: true
+      content:
+        application/vnd.api+json:
+          schema:
+            "$ref": "#/components/schemas/qualification_kinds_request"
+    qualifications:
+      required: true
+      content:
+        application/vnd.api+json:
+          schema:
+            "$ref": "#/components/schemas/qualifications_request"
     roles:
       required: true
       content:
@@ -15878,6 +16873,18 @@ components:
         id: "$response.body#/data/id"
     deleteEventDateId:
       operationId: deleteEventDate
+      parameters:
+        id: "$response.body#/data/id"
+    getEventGuestId:
+      operationId: getEventGuest
+      parameters:
+        id: "$response.body#/data/id"
+    updateEventGuestId:
+      operationId: updateEventGuest
+      parameters:
+        id: "$response.body#/data/id"
+    deleteEventGuestId:
+      operationId: deleteEventGuest
       parameters:
         id: "$response.body#/data/id"
     getEventKindCategoryId:
@@ -16048,6 +17055,30 @@ components:
       operationId: deletePhoneNumber
       parameters:
         id: "$response.body#/data/id"
+    getQualificationKindId:
+      operationId: getQualificationKind
+      parameters:
+        id: "$response.body#/data/id"
+    updateQualificationKindId:
+      operationId: updateQualificationKind
+      parameters:
+        id: "$response.body#/data/id"
+    deleteQualificationKindId:
+      operationId: deleteQualificationKind
+      parameters:
+        id: "$response.body#/data/id"
+    getQualificationId:
+      operationId: getQualification
+      parameters:
+        id: "$response.body#/data/id"
+    updateQualificationId:
+      operationId: updateQualification
+      parameters:
+        id: "$response.body#/data/id"
+    deleteQualificationId:
+      operationId: deleteQualification
+      parameters:
+        id: "$response.body#/data/id"
     getRoleId:
       operationId: getRole
       parameters:
@@ -16099,6 +17130,8 @@ tags:
   description: Course operations
 - name: dates
   description: Date operations
+- name: event_guests
+  description: Guest operations
 - name: event_kind_categories
   description: Kind category operations
 - name: event_kinds
@@ -16127,6 +17160,10 @@ tags:
   description: Person operations
 - name: phone_numbers
   description: Phone number operations
+- name: qualification_kinds
+  description: Qualification kind operations
+- name: qualifications
+  description: Qualification operations
 - name: roles
   description: Role operations
 - name: self_registrations
@@ -16270,6 +17307,8 @@ paths:
       - "$ref": "#/components/parameters/event_participations_filter_participant_type_match"
       - "$ref": "#/components/parameters/event_participations_filter_participant_type_not_match"
       - "$ref": "#/components/parameters/events_fields"
+      - "$ref": "#/components/parameters/people_fields"
+      - "$ref": "#/components/parameters/event_guests_fields"
       - "$ref": "#/components/parameters/event_roles_fields"
     parameters: []
   "/api/event_participations/{id}":
@@ -16315,6 +17354,8 @@ paths:
       - "$ref": "#/components/parameters/event_participations_filter_participant_type_match"
       - "$ref": "#/components/parameters/event_participations_filter_participant_type_not_match"
       - "$ref": "#/components/parameters/events_fields"
+      - "$ref": "#/components/parameters/people_fields"
+      - "$ref": "#/components/parameters/event_guests_fields"
       - "$ref": "#/components/parameters/event_roles_fields"
     parameters: []
   "/api/events":
@@ -17709,10 +18750,12 @@ paths:
       - "$ref": "#/components/parameters/people_filter_consent_data_retention_eq"
       - "$ref": "#/components/parameters/groups_fields"
       - "$ref": "#/components/parameters/roles_fields"
+      - "$ref": "#/components/parameters/qualifications_fields"
       - "$ref": "#/components/parameters/phone_numbers_fields"
       - "$ref": "#/components/parameters/social_accounts_fields"
       - "$ref": "#/components/parameters/additional_emails_fields"
       - "$ref": "#/components/parameters/additional_addresses_fields"
+      - "$ref": "#/components/parameters/event_participations_fields"
     parameters: []
   "/api/people/{id}":
     get:
@@ -17997,10 +19040,12 @@ paths:
       - "$ref": "#/components/parameters/people_filter_consent_data_retention_eq"
       - "$ref": "#/components/parameters/groups_fields"
       - "$ref": "#/components/parameters/roles_fields"
+      - "$ref": "#/components/parameters/qualifications_fields"
       - "$ref": "#/components/parameters/phone_numbers_fields"
       - "$ref": "#/components/parameters/social_accounts_fields"
       - "$ref": "#/components/parameters/additional_emails_fields"
       - "$ref": "#/components/parameters/additional_addresses_fields"
+      - "$ref": "#/components/parameters/event_participations_fields"
     put:
       operationId: updatePerson
       summary: Update Person
@@ -18025,6 +19070,120 @@ paths:
         "$ref": "#/components/requestBodies/people"
       parameters:
       - "$ref": "#/components/parameters/people_id"
+    parameters: []
+  "/api/qualifications":
+    get:
+      operationId: listQualifications
+      summary: List Qualifications
+      tags:
+      - qualifications
+      responses:
+        '200':
+          "$ref": "#/components/responses/qualifications_200_collection"
+        '401':
+          "$ref": "#/components/responses/401"
+        '403':
+          "$ref": "#/components/responses/403"
+      parameters:
+      - "$ref": "#/components/parameters/qualifications_include"
+      - "$ref": "#/components/parameters/qualifications_sort"
+      - "$ref": "#/components/parameters/qualifications_fields"
+      - "$ref": "#/components/parameters/qualifications_filter_id_eq"
+      - "$ref": "#/components/parameters/qualifications_filter_id_not_eq"
+      - "$ref": "#/components/parameters/qualifications_filter_id_gt"
+      - "$ref": "#/components/parameters/qualifications_filter_id_gte"
+      - "$ref": "#/components/parameters/qualifications_filter_id_lt"
+      - "$ref": "#/components/parameters/qualifications_filter_id_lte"
+      - "$ref": "#/components/parameters/qualifications_filter_person_id_eq"
+      - "$ref": "#/components/parameters/qualifications_filter_person_id_not_eq"
+      - "$ref": "#/components/parameters/qualifications_filter_person_id_gt"
+      - "$ref": "#/components/parameters/qualifications_filter_person_id_gte"
+      - "$ref": "#/components/parameters/qualifications_filter_person_id_lt"
+      - "$ref": "#/components/parameters/qualifications_filter_person_id_lte"
+      - "$ref": "#/components/parameters/qualifications_filter_qualification_kind_id_eq"
+      - "$ref": "#/components/parameters/qualifications_filter_qualification_kind_id_not_eq"
+      - "$ref": "#/components/parameters/qualifications_filter_qualification_kind_id_gt"
+      - "$ref": "#/components/parameters/qualifications_filter_qualification_kind_id_gte"
+      - "$ref": "#/components/parameters/qualifications_filter_qualification_kind_id_lt"
+      - "$ref": "#/components/parameters/qualifications_filter_qualification_kind_id_lte"
+      - "$ref": "#/components/parameters/people_fields"
+      - "$ref": "#/components/parameters/qualification_kinds_fields"
+    post:
+      operationId: createQualification
+      summary: Create Qualification
+      tags:
+      - qualifications
+      responses:
+        '201':
+          "$ref": "#/components/responses/qualifications_201"
+        '202':
+          "$ref": "#/components/responses/202"
+        '204':
+          "$ref": "#/components/responses/204"
+        '401':
+          "$ref": "#/components/responses/401"
+        '403':
+          "$ref": "#/components/responses/409"
+        '422':
+          "$ref": "#/components/responses/422"
+      requestBody:
+        "$ref": "#/components/requestBodies/qualifications"
+      parameters: []
+    parameters: []
+  "/api/qualifications/{id}":
+    get:
+      operationId: getQualification
+      summary: Fetch Qualification
+      tags:
+      - qualifications
+      responses:
+        '200':
+          "$ref": "#/components/responses/qualifications_200"
+        '401':
+          "$ref": "#/components/responses/401"
+        '403':
+          "$ref": "#/components/responses/403"
+        '404':
+          "$ref": "#/components/responses/404"
+      parameters:
+      - "$ref": "#/components/parameters/qualifications_id"
+      - "$ref": "#/components/parameters/qualifications_include"
+      - "$ref": "#/components/parameters/qualifications_sort"
+      - "$ref": "#/components/parameters/qualifications_fields"
+      - "$ref": "#/components/parameters/qualifications_filter_person_id_eq"
+      - "$ref": "#/components/parameters/qualifications_filter_person_id_not_eq"
+      - "$ref": "#/components/parameters/qualifications_filter_person_id_gt"
+      - "$ref": "#/components/parameters/qualifications_filter_person_id_gte"
+      - "$ref": "#/components/parameters/qualifications_filter_person_id_lt"
+      - "$ref": "#/components/parameters/qualifications_filter_person_id_lte"
+      - "$ref": "#/components/parameters/qualifications_filter_qualification_kind_id_eq"
+      - "$ref": "#/components/parameters/qualifications_filter_qualification_kind_id_not_eq"
+      - "$ref": "#/components/parameters/qualifications_filter_qualification_kind_id_gt"
+      - "$ref": "#/components/parameters/qualifications_filter_qualification_kind_id_gte"
+      - "$ref": "#/components/parameters/qualifications_filter_qualification_kind_id_lt"
+      - "$ref": "#/components/parameters/qualifications_filter_qualification_kind_id_lte"
+      - "$ref": "#/components/parameters/people_fields"
+      - "$ref": "#/components/parameters/qualification_kinds_fields"
+    delete:
+      operationId: deleteQualification
+      summary: Destroy Qualification
+      tags:
+      - qualifications
+      responses:
+        '200':
+          "$ref": "#/components/responses/200"
+        '202':
+          "$ref": "#/components/responses/202"
+        '204':
+          "$ref": "#/components/responses/204"
+        '401':
+          "$ref": "#/components/responses/401"
+        '403':
+          "$ref": "#/components/responses/403"
+        '404':
+          "$ref": "#/components/responses/404"
+      parameters:
+      - "$ref": "#/components/parameters/qualifications_id"
     parameters: []
   "/api/roles":
     get:
@@ -18116,8 +19275,15 @@ paths:
       - "$ref": "#/components/parameters/roles_filter_label_match"
       - "$ref": "#/components/parameters/roles_filter_label_not_match"
       - "$ref": "#/components/parameters/roles_filter_active_eq"
+      - "$ref": "#/components/parameters/roles_filter_fee_kind_id_eq"
+      - "$ref": "#/components/parameters/roles_filter_fee_kind_id_not_eq"
+      - "$ref": "#/components/parameters/roles_filter_fee_kind_id_gt"
+      - "$ref": "#/components/parameters/roles_filter_fee_kind_id_gte"
+      - "$ref": "#/components/parameters/roles_filter_fee_kind_id_lt"
+      - "$ref": "#/components/parameters/roles_filter_fee_kind_id_lte"
       - "$ref": "#/components/parameters/people_fields"
       - "$ref": "#/components/parameters/groups_fields"
+      - "$ref": "#/components/parameters/fee_kinds_fields"
     post:
       operationId: createRole
       summary: Create Role
@@ -18227,8 +19393,15 @@ paths:
       - "$ref": "#/components/parameters/roles_filter_label_match"
       - "$ref": "#/components/parameters/roles_filter_label_not_match"
       - "$ref": "#/components/parameters/roles_filter_active_eq"
+      - "$ref": "#/components/parameters/roles_filter_fee_kind_id_eq"
+      - "$ref": "#/components/parameters/roles_filter_fee_kind_id_not_eq"
+      - "$ref": "#/components/parameters/roles_filter_fee_kind_id_gt"
+      - "$ref": "#/components/parameters/roles_filter_fee_kind_id_gte"
+      - "$ref": "#/components/parameters/roles_filter_fee_kind_id_lt"
+      - "$ref": "#/components/parameters/roles_filter_fee_kind_id_lte"
       - "$ref": "#/components/parameters/people_fields"
       - "$ref": "#/components/parameters/groups_fields"
+      - "$ref": "#/components/parameters/fee_kinds_fields"
     put:
       operationId: updateRole
       summary: Update Role

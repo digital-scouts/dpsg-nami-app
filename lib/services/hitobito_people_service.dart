@@ -6,6 +6,7 @@ import '../data/arbeitskontext/hitobito_person_resource.dart';
 import '../domain/member/mitglied.dart';
 import 'hitobito_api_exception.dart';
 import 'hitobito_auth_env.dart';
+import 'hitobito_traffic_log_service.dart';
 
 class HitobitoPeopleException extends HitobitoApiException {
   const HitobitoPeopleException(
@@ -38,11 +39,16 @@ class _HitobitoRelationshipPayload {
 }
 
 class HitobitoPeopleService {
-  HitobitoPeopleService({required this.config, http.Client? httpClient})
-    : _httpClient = httpClient ?? http.Client();
+  HitobitoPeopleService({
+    required this.config,
+    http.Client? httpClient,
+    HitobitoTrafficLogService? trafficLogService,
+  }) : _httpClient = httpClient ?? http.Client(),
+       _trafficLogService = trafficLogService;
 
   HitobitoAuthConfig config;
   final http.Client _httpClient;
+  final HitobitoTrafficLogService? _trafficLogService;
 
   void updateConfig(HitobitoAuthConfig nextConfig) {
     config = nextConfig;
@@ -676,12 +682,38 @@ class HitobitoPeopleService {
     required Uri requestUri,
     required String accessToken,
   }) async {
-    final response = await _httpClient.get(
-      requestUri,
-      headers: <String, String>{
-        'Accept': 'application/vnd.api+json, application/json',
-        'Authorization': 'Bearer $accessToken',
-      },
+    final headers = <String, String>{
+      'Accept': 'application/vnd.api+json, application/json',
+      'Authorization': 'Bearer $accessToken',
+    };
+    await _trafficLogService?.logRequest(
+      source: 'people',
+      method: 'GET',
+      uri: requestUri,
+      headers: headers,
+    );
+
+    http.Response response;
+    try {
+      response = await _httpClient.get(requestUri, headers: headers);
+    } catch (error, stackTrace) {
+      await _trafficLogService?.logResponse(
+        source: 'people',
+        method: 'GET',
+        uri: requestUri,
+        error: error,
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
+
+    await _trafficLogService?.logResponse(
+      source: 'people',
+      method: 'GET',
+      uri: requestUri,
+      statusCode: response.statusCode,
+      headers: response.headers,
+      body: response.body,
     );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -706,18 +738,49 @@ class HitobitoPeopleService {
     required Uri requestUri,
     Map<String, dynamic>? body,
   }) async {
+    final headers = <String, String>{
+      'Accept': 'application/vnd.api+json, application/json',
+      'Authorization': 'Bearer $accessToken',
+      if (body != null) 'Content-Type': 'application/vnd.api+json',
+    };
+    final encodedBody = body == null ? null : jsonEncode(body);
+
+    await _trafficLogService?.logRequest(
+      source: 'people',
+      method: method,
+      uri: requestUri,
+      headers: headers,
+      body: encodedBody,
+    );
+
     final request = http.Request(method, requestUri)
-      ..headers.addAll(<String, String>{
-        'Accept': 'application/vnd.api+json, application/json',
-        'Authorization': 'Bearer $accessToken',
-        if (body != null) 'Content-Type': 'application/vnd.api+json',
-      });
-    if (body != null) {
-      request.body = jsonEncode(body);
+      ..headers.addAll(<String, String>{...headers});
+    if (encodedBody != null) {
+      request.body = encodedBody;
     }
 
-    final streamedResponse = await _httpClient.send(request);
+    http.StreamedResponse streamedResponse;
+    try {
+      streamedResponse = await _httpClient.send(request);
+    } catch (error, stackTrace) {
+      await _trafficLogService?.logResponse(
+        source: 'people',
+        method: method,
+        uri: requestUri,
+        error: error,
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
     final response = await http.Response.fromStream(streamedResponse);
+    await _trafficLogService?.logResponse(
+      source: 'people',
+      method: method,
+      uri: requestUri,
+      statusCode: response.statusCode,
+      headers: response.headers,
+      body: response.body,
+    );
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return;
     }

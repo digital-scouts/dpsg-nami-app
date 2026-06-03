@@ -18,6 +18,7 @@ import 'package:wiredash/wiredash.dart';
 import '../../services/app_runtime_controller.dart';
 import '../../services/hitobito_auth_config_controller.dart';
 import '../../services/hitobito_oauth_service.dart';
+import '../../services/hitobito_traffic_log_service.dart';
 import '../../services/logger_service.dart';
 import '../../services/map_tile_cache_service.dart';
 import '../../services/stamm_map_sync_service.dart';
@@ -46,6 +47,11 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
   static final DateFormat _pendingDateFormat = DateFormat('dd.MM.yyyy, HH:mm');
   final ScrollController _scrollController = ScrollController();
   bool _isRefreshingStammMarkers = false;
+  _DebugLogSource _selectedLogSource = _DebugLogSource.app;
+  final HitobitoTrafficLogService _fallbackHitobitoTrafficLogService =
+      HitobitoTrafficLogService(
+        logsDirectoryProvider: () async => Directory.systemTemp,
+      );
   String _selectedLogSelectionId = LoggerService.allLogsSelectionId;
   int _logFilesRevision = 0;
 
@@ -158,7 +164,13 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
     } catch (_) {}
   }
 
-  Future<List<String>> _loadLogFileNames(LoggerService logger) {
+  Future<List<String>> _loadLogFileNames(
+    LoggerService logger,
+    HitobitoTrafficLogService hitobitoTrafficLogService,
+  ) {
+    if (_selectedLogSource == _DebugLogSource.hitobitoTraffic) {
+      return hitobitoTrafficLogService.listLogFileNames();
+    }
     return logger.listLogFileNames();
   }
 
@@ -223,6 +235,14 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
     }
   }
 
+  HitobitoTrafficLogService _resolveHitobitoTrafficLogService() {
+    try {
+      return context.read<HitobitoTrafficLogService>();
+    } catch (_) {
+      return _fallbackHitobitoTrafficLogService;
+    }
+  }
+
   Future<void> _retryPendingPersonUpdates(
     MemberEditModel memberEditModel,
     AuthSessionModel authModel, {
@@ -264,6 +284,7 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final logger = Provider.of<LoggerService>(context, listen: false);
+    final hitobitoTrafficLogService = _resolveHitobitoTrafficLogService();
     final mapTileCacheService = _resolveMapTileCacheService(logger);
     final authModel = context.watch<AuthSessionModel>();
     final arbeitskontextModel = context.read<ArbeitskontextModel>();
@@ -296,7 +317,10 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                   subtitle: t.t('debug_logs_section_subtitle'),
                   child: FutureBuilder<List<String>>(
                     key: ValueKey(_logFilesRevision),
-                    future: _loadLogFileNames(logger),
+                    future: _loadLogFileNames(
+                      logger,
+                      hitobitoTrafficLogService,
+                    ),
                     builder: (context, snapshot) {
                       final names = snapshot.data ?? const <String>[];
                       final hasLogs = names.isNotEmpty;
@@ -350,21 +374,84 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                                   ),
                                 ),
                                 const SizedBox(height: 12),
+                                DropdownButtonFormField<_DebugLogSource>(
+                                  initialValue: _selectedLogSource,
+                                  decoration: InputDecoration(
+                                    labelText: t.t('debug_logs_source_label'),
+                                    border: const OutlineInputBorder(),
+                                  ),
+                                  items: [
+                                    DropdownMenuItem<_DebugLogSource>(
+                                      value: _DebugLogSource.app,
+                                      child: Text(t.t('debug_logs_source_app')),
+                                    ),
+                                    DropdownMenuItem<_DebugLogSource>(
+                                      value: _DebugLogSource.hitobitoTraffic,
+                                      child: Text(
+                                        t.t('debug_logs_source_hitobito'),
+                                      ),
+                                    ),
+                                  ],
+                                  onChanged: (value) {
+                                    if (value == null ||
+                                        value == _selectedLogSource) {
+                                      return;
+                                    }
+                                    setState(() {
+                                      _selectedLogSource = value;
+                                      _selectedLogSelectionId =
+                                          LoggerService.allLogsSelectionId;
+                                      _logFilesRevision++;
+                                    });
+                                  },
+                                ),
+                                const SizedBox(height: 12),
                                 DropdownButtonFormField<String>(
                                   initialValue: selectedId,
+                                  isExpanded: true,
                                   decoration: InputDecoration(
                                     labelText: t.t('debug_logs_selection'),
                                     border: const OutlineInputBorder(),
                                   ),
+                                  selectedItemBuilder: (context) {
+                                    return [
+                                      Text(
+                                        t.t('debug_logs_all_files'),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      ...names.map(
+                                        (name) => Tooltip(
+                                          message: name,
+                                          child: Text(
+                                            name,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ),
+                                    ];
+                                  },
                                   items: [
                                     DropdownMenuItem<String>(
                                       value: LoggerService.allLogsSelectionId,
-                                      child: Text(t.t('debug_logs_all_files')),
+                                      child: Text(
+                                        t.t('debug_logs_all_files'),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
                                     ...names.map(
                                       (name) => DropdownMenuItem<String>(
                                         value: name,
-                                        child: Text(name),
+                                        child: Tooltip(
+                                          message: name,
+                                          child: Text(
+                                            name,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -396,13 +483,20 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                                           logger,
                                           'send_logs_email',
                                           properties: <String, Object?>{
+                                            'source': _selectedLogSource.name,
                                             'selection': selectedId,
                                           },
                                         );
-                                        final files = await logger
-                                            .resolveLogFiles(
-                                              selectionId: selectedId,
-                                            );
+                                        final files =
+                                            _selectedLogSource ==
+                                                _DebugLogSource.hitobitoTraffic
+                                            ? await hitobitoTrafficLogService
+                                                  .resolveLogFiles(
+                                                    selectionId: selectedId,
+                                                  )
+                                            : await logger.resolveLogFiles(
+                                                selectionId: selectedId,
+                                              );
                                         await sendLogsEmail(files);
                                       },
                               ),
@@ -418,12 +512,18 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                                     logger,
                                     'view_logs',
                                     properties: <String, Object?>{
+                                      'source': _selectedLogSource.name,
                                       'selection': selectedId,
                                     },
                                   );
-                                  final content = await logger.readLogs(
-                                    selectionId: selectedId,
-                                  );
+                                  final content =
+                                      _selectedLogSource ==
+                                          _DebugLogSource.hitobitoTraffic
+                                      ? await hitobitoTrafficLogService
+                                            .readLogs(selectionId: selectedId)
+                                      : await logger.readLogs(
+                                          selectionId: selectedId,
+                                        );
 
                                   if (!context.mounted) {
                                     return;
@@ -445,6 +545,7 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                                       builder: (_) => _LogViewerPage(
                                         title: title,
                                         content: content,
+                                        reverseLines: false,
                                       ),
                                     ),
                                   );
@@ -464,10 +565,17 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                                           logger,
                                           'delete_logs',
                                           properties: <String, Object?>{
+                                            'source': _selectedLogSource.name,
                                             'selection': selectedId,
                                           },
                                         );
-                                        await logger.clearAllLogs();
+                                        if (_selectedLogSource ==
+                                            _DebugLogSource.hitobitoTraffic) {
+                                          await hitobitoTrafficLogService
+                                              .clearAllLogs();
+                                        } else {
+                                          await logger.clearAllLogs();
+                                        }
                                         if (!mounted) {
                                           return;
                                         }
@@ -894,6 +1002,8 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
   }
 }
 
+enum _DebugLogSource { app, hitobitoTraffic }
+
 enum _DebugSectionTone { normal, danger }
 
 class _DebugSectionCard extends StatelessWidget {
@@ -1247,27 +1357,107 @@ class _OauthOverrideDialogState extends State<_OauthOverrideDialog> {
   }
 }
 
-class _LogViewerPage extends StatelessWidget {
+class _LogViewerPage extends StatefulWidget {
   final String title;
   final String content;
-  const _LogViewerPage({required this.title, required this.content});
+  final bool reverseLines;
+  const _LogViewerPage({
+    required this.title,
+    required this.content,
+    this.reverseLines = true,
+  });
+
+  @override
+  State<_LogViewerPage> createState() => _LogViewerPageState();
+}
+
+class _LogViewerPageState extends State<_LogViewerPage> {
+  final ScrollController _scrollController = ScrollController();
+  bool _showJumpToBottom = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_updateJumpButtonVisibility);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _jumpToBottom();
+      _updateJumpButtonVisibility();
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_updateJumpButtonVisibility);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _jumpToBottom() {
+    if (!_scrollController.hasClients) {
+      return;
+    }
+    _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+  }
+
+  void _animateToBottom() {
+    if (!_scrollController.hasClients) {
+      return;
+    }
+    _scrollController.animateTo(
+      _scrollController.position.maxScrollExtent,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
+    );
+  }
+
+  void _updateJumpButtonVisibility() {
+    if (!_scrollController.hasClients) {
+      return;
+    }
+    final max = _scrollController.position.maxScrollExtent;
+    final current = _scrollController.offset;
+    final shouldShow = max > 0 && current < (max - 48);
+    if (shouldShow == _showJumpToBottom) {
+      return;
+    }
+    setState(() {
+      _showJumpToBottom = shouldShow;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                child: _ColoredLogView(content: content),
+      appBar: AppBar(title: Text(widget.title)),
+      body: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: _scrollController,
+                    child: _ColoredLogView(
+                      content: widget.content,
+                      reverseLines: widget.reverseLines,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (_showJumpToBottom)
+            Positioned(
+              right: 16,
+              bottom: 16,
+              child: FloatingActionButton.small(
+                onPressed: _animateToBottom,
+                child: const Icon(Icons.arrow_downward),
               ),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -1275,7 +1465,8 @@ class _LogViewerPage extends StatelessWidget {
 
 class _ColoredLogView extends StatelessWidget {
   final String content;
-  const _ColoredLogView({required this.content});
+  final bool reverseLines;
+  const _ColoredLogView({required this.content, this.reverseLines = true});
 
   TextSpan _spanForLine(
     String line,
@@ -1324,7 +1515,7 @@ class _ColoredLogView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final lines = content.isEmpty ? const <String>[] : content.split('\n');
-    final ordered = lines.reversed.toList();
+    final ordered = reverseLines ? lines.reversed.toList() : lines;
     final base = const TextStyle(fontFamily: 'monospace', fontSize: 13);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final tsStyle = base.copyWith(

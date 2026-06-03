@@ -536,6 +536,7 @@ void main() {
           'attributes': <String, dynamic>{
             'label': 'Mobil',
             'number': '+49 170 1234567',
+            'public': false,
           },
         },
         <String, dynamic>{

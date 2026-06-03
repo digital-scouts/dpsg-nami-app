@@ -5,17 +5,23 @@ import 'package:http/http.dart' as http;
 import '../data/arbeitskontext/hitobito_person_resource.dart';
 import 'hitobito_api_exception.dart';
 import 'hitobito_auth_env.dart';
+import 'hitobito_traffic_log_service.dart';
 
 class HitobitoRolesException extends HitobitoApiException {
   const HitobitoRolesException(super.message, {super.statusCode});
 }
 
 class HitobitoRolesService {
-  HitobitoRolesService({required this.config, http.Client? httpClient})
-    : _httpClient = httpClient ?? http.Client();
+  HitobitoRolesService({
+    required this.config,
+    http.Client? httpClient,
+    HitobitoTrafficLogService? trafficLogService,
+  }) : _httpClient = httpClient ?? http.Client(),
+       _trafficLogService = trafficLogService;
 
   HitobitoAuthConfig config;
   final http.Client _httpClient;
+  final HitobitoTrafficLogService? _trafficLogService;
 
   void updateConfig(HitobitoAuthConfig nextConfig) {
     config = nextConfig;
@@ -71,12 +77,38 @@ class HitobitoRolesService {
     required Uri requestUri,
     required String accessToken,
   }) async {
-    final response = await _httpClient.get(
-      requestUri,
-      headers: <String, String>{
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $accessToken',
-      },
+    final headers = <String, String>{
+      'Accept': 'application/json',
+      'Authorization': 'Bearer $accessToken',
+    };
+    await _trafficLogService?.logRequest(
+      source: 'roles',
+      method: 'GET',
+      uri: requestUri,
+      headers: headers,
+    );
+
+    http.Response response;
+    try {
+      response = await _httpClient.get(requestUri, headers: headers);
+    } catch (error, stackTrace) {
+      await _trafficLogService?.logResponse(
+        source: 'roles',
+        method: 'GET',
+        uri: requestUri,
+        error: error,
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
+
+    await _trafficLogService?.logResponse(
+      source: 'roles',
+      method: 'GET',
+      uri: requestUri,
+      statusCode: response.statusCode,
+      headers: response.headers,
+      body: response.body,
     );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
