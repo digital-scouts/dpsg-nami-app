@@ -25,6 +25,7 @@ import 'package:nami/presentation/notifications/app_update_dialog.dart';
 import 'package:nami/presentation/notifications/welcome_dialog.dart';
 import 'package:nami/presentation/screens/auth_gate_screen.dart';
 import 'package:nami/presentation/theme/theme.dart';
+import 'package:nami/presentation/widgets/global_loading_top_bar.dart';
 import 'package:nami/services/hitobito_roles_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
@@ -482,6 +483,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             );
           },
           trigger: 'startup',
+          userInitiated: false,
         ),
       );
     }
@@ -495,6 +497,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           );
         },
         trigger: 'interval',
+        userInitiated: false,
       ),
     );
   }
@@ -564,6 +567,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           );
         },
         trigger: trigger,
+        userInitiated: false,
       );
       await _retryPendingPersonUpdatesIfPossible(trigger: '${trigger}_pending');
     } finally {
@@ -815,6 +819,21 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final authModel = context.watch<AuthSessionModel>();
+    final arbeitskontextModel = context.watch<ArbeitskontextModel>();
+    final memberFiltersModel = context.watch<MemberFiltersModel>();
+    final isGlobalLoading =
+        authModel.isLoadingProfile ||
+        authModel.isSyncingHitobitoData ||
+        arbeitskontextModel.isLoading ||
+        arbeitskontextModel.isLoadingRoles ||
+        arbeitskontextModel.isSwitchingLayer ||
+        memberFiltersModel.isLoading;
+    final useImmediateFeedback =
+        authModel.state == AuthState.authenticating ||
+        authModel.isUserInitiatedSyncInProgress ||
+        arbeitskontextModel.isSwitchingLayer;
+
     final projectId = dotenv.env['WIREDASH_PROJECT_ID'];
     final secret = dotenv.env['WIREDASH_SECRET'];
 
@@ -862,7 +881,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               builder: (context, child) {
                 return Stack(
                   fit: StackFit.expand,
-                  children: [if (child != null) child, const AppLockOverlay()],
+                  children: [
+                    if (child != null) child,
+                    const AppLockOverlay(),
+                    GlobalLoadingTopBar(
+                      active: isGlobalLoading,
+                      immediate: useImmediateFeedback,
+                    ),
+                  ],
                 );
               },
               supportedLocales: const [Locale('de'), Locale('en')],

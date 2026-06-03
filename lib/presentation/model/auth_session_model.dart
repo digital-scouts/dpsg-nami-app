@@ -68,6 +68,7 @@ class AuthSessionModel extends ChangeNotifier {
   bool _hasShownRemoteAccessIssueNotice = false;
   bool _isLoadingProfile = false;
   bool _isSyncingHitobitoData = false;
+  bool _isUserInitiatedSyncInProgress = false;
 
   AuthState get state => _state;
   AuthSession? get session => _session;
@@ -81,6 +82,7 @@ class AuthSessionModel extends ChangeNotifier {
       _remoteAccessBlockedReason;
   bool get isLoadingProfile => _isLoadingProfile;
   bool get isSyncingHitobitoData => _isSyncingHitobitoData;
+  bool get isUserInitiatedSyncInProgress => _isUserInitiatedSyncInProgress;
   bool get isConfigured => _oauthService.config.isConfigured;
   bool get hasRemoteAccessIssue => _remoteAccessIssueMessage != null;
   bool get hasUnseenRemoteAccessIssueNotice =>
@@ -355,6 +357,7 @@ class AuthSessionModel extends ChangeNotifier {
     _profile = null;
     _isLoadingProfile = false;
     _isSyncingHitobitoData = false;
+    _isUserInitiatedSyncInProgress = false;
     _lastSensitiveSyncAt = null;
     _lastSensitiveSyncAttemptAt = null;
     _lastProfileSyncAt = null;
@@ -740,6 +743,7 @@ class AuthSessionModel extends ChangeNotifier {
     required Future<void> Function(String accessToken) syncMembers,
     bool force = false,
     String trigger = 'manual',
+    bool userInitiated = true,
   }) async {
     if (_isSyncingHitobitoData ||
         _session == null ||
@@ -753,6 +757,7 @@ class AuthSessionModel extends ChangeNotifier {
 
     await markSensitiveDataSyncAttempted();
     _isSyncingHitobitoData = true;
+    _isUserInitiatedSyncInProgress = userInitiated;
     notifyListeners();
 
     try {
@@ -798,6 +803,7 @@ class AuthSessionModel extends ChangeNotifier {
       );
     } finally {
       _isSyncingHitobitoData = false;
+      _isUserInitiatedSyncInProgress = false;
       notifyListeners();
     }
   }

@@ -120,8 +120,6 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
 
     return Column(
       children: [
-        if (authModel.isSyncingHitobitoData || arbeitskontextModel.isLoading)
-          const LinearProgressIndicator(minHeight: 2),
         Expanded(
           child: _buildBody(
             context,
