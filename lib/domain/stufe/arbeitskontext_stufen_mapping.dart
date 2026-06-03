@@ -22,19 +22,29 @@ class ArbeitskontextStufenRegel {
 class ArbeitskontextStufenMapping {
   const ArbeitskontextStufenMapping._();
 
-  static const List<ArbeitskontextStufenRegel>
-  regeln = <ArbeitskontextStufenRegel>[
-    ArbeitskontextStufenRegel(
-      gruppenTyp: 'Group::Meute',
-      stufe: Stufe.woelfling,
-    ),
-    ArbeitskontextStufenRegel(
-      gruppenTyp: 'Group::Sippe',
-      stufe: Stufe.pfadfinder,
-    ),
-    ArbeitskontextStufenRegel(gruppenTyp: 'Group::Runde', stufe: Stufe.rover),
-    ArbeitskontextStufenRegel(gruppenTyp: 'Group::Gilde', stufe: Stufe.rover),
-  ];
+  static const List<ArbeitskontextStufenRegel> regeln =
+      <ArbeitskontextStufenRegel>[
+        ArbeitskontextStufenRegel(
+          gruppenTyp: 'Group::StammGruppeBiber',
+          stufe: Stufe.biber,
+        ),
+        ArbeitskontextStufenRegel(
+          gruppenTyp: 'Group::StammGruppeWoelflinge',
+          stufe: Stufe.woelfling,
+        ),
+        ArbeitskontextStufenRegel(
+          gruppenTyp: 'Group::StammGruppeJungpfadfinder',
+          stufe: Stufe.jungpfadfinder,
+        ),
+        ArbeitskontextStufenRegel(
+          gruppenTyp: 'Group::StammGruppePfadfinder',
+          stufe: Stufe.pfadfinder,
+        ),
+        ArbeitskontextStufenRegel(
+          gruppenTyp: 'Group::StammGruppeRover',
+          stufe: Stufe.rover,
+        ),
+      ];
 }
 
 String _normalisiereSchluessel(String? value) {

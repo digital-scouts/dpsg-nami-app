@@ -1,5 +1,7 @@
 # DPSG Organization Hierarchy
 
+Hinweis für die App-Ableitung: Für die Mitgliederliste werden die Stufen derzeit über die Stamm-Gruppentypen `Group::StammGruppeBiber`, `Group::StammGruppeWoelflinge`, `Group::StammGruppeJungpfadfinder`, `Group::StammGruppePfadfinder` und `Group::StammGruppeRover` abgeleitet. Die globalen Mitgliedschaften unter "Mitglieder" dienen aktuell nur als reine Anzeige der Beitragsart.
+
 Struktur vorhandener Gruppen und Rollen. Diese Datei ist eher eine Notiz und fachlich nicht 100% so vorhanden.
 
 * Bundesebene

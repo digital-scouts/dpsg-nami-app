@@ -105,10 +105,6 @@ class HitobitoArbeitskontextReadModelRepository
         if (mitglied.personId != null && mitglied.personId! > 0)
           mitglied.personId!: mitglied,
     };
-    final relevanteGruppenIds = <int>{
-      readModel.arbeitskontext.aktiverLayer.id,
-      ...readModel.gruppen.map((gruppe) => gruppe.id),
-    };
     final gruppenNamenById = <int, String>{
       readModel.arbeitskontext.aktiverLayer.id:
           readModel.arbeitskontext.aktiverLayer.name,
@@ -119,7 +115,7 @@ class HitobitoArbeitskontextReadModelRepository
 
     for (final role in rollen) {
       final personId = role.personId;
-      if (personId == null || !relevanteGruppenIds.contains(role.groupId)) {
+      if (personId == null) {
         continue;
       }
 

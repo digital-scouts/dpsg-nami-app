@@ -144,9 +144,11 @@ Die App arbeitet immer in genau einem aktiven Arbeitskontext. Alle Seiten der Ap
 - Hitobito kennt die in der App genutzte Stufenlogik nicht als eigene fachliche Domäne.
 - Für den MVP wird die In-App-Stufe deshalb global im Code über feste Regeln zu Hitobito-Gruppentypen abgeleitet.
 - Eine einzelne Hitobito-Gruppe entspricht darüber höchstens einer In-App-Stufe.
-- Die Ableitung ist zentral im Code hinterlegt und nutzt aktuell bekannte Gruppentypen wie `Group::Meute`, `Group::Sippe`, `Group::Runde` und `Group::Gilde`.
+- Die Ableitung ist zentral im Code hinterlegt und nutzt die Stamm-Gruppentypen `Group::StammGruppeBiber`, `Group::StammGruppeWoelflinge`, `Group::StammGruppeJungpfadfinder`, `Group::StammGruppePfadfinder` und `Group::StammGruppeRover`.
+- Biber bleibt ein normal abgeleiteter Stufentreffer, wird in der Mitgliederliste aber nur als eigener Chip angezeigt, wenn im aktiven Arbeitskontext mindestens ein Biber abgeleitet wurde.
 - Personen werden Gruppen in der App über ihre Rollen zugeordnet. Hat eine Person Rollen in mehreren Gruppen, erscheint sie in mehreren Filtern.
 - Eigene Gruppen können Stufenregeln sowie Gruppen- und Rollenregeln kombinieren. Die Standardgruppe "Rest" beschreibt Personen ohne abgeleitete Stufenzuordnung und kann wie andere eigene Gruppen ein- oder ausgeblendet werden.
+- Beitragsarten werden in der aktuellen Ausbaustufe nur in der Detailansicht angezeigt. Eine fachliche Regelvalidierung für Ordentliche, Förder- oder Zweitmitgliedschaft ist erst relevant, wenn Bearbeitungsfunktionen dafür hinzukommen.
 - Leere Gruppen ohne Personen werden in der Leseansicht nicht angezeigt.
 
 ### Stammleitung

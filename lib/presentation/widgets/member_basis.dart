@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nami/domain/maps/address_map_location_repository.dart';
 import 'package:nami/domain/member/mitglied.dart';
+import 'package:nami/domain/member_filters/beitragsart.dart';
 import 'package:nami/domain/settings/address_settings_repository.dart';
 import 'package:nami/presentation/widgets/member_address_card.dart';
 import 'package:nami/presentation/widgets/section_header.dart';
@@ -15,6 +16,9 @@ class MemberDetails extends StatelessWidget {
   const MemberDetails({
     super.key,
     required this.mitglied,
+    this.beitragsart,
+    this.stammNamen = const <String>[],
+    this.gruppenNamen = const <String>[],
     this.onEndMembership,
     this.addressLocationRepository,
     this.mapService,
@@ -28,6 +32,9 @@ class MemberDetails extends StatelessWidget {
   });
 
   final Mitglied mitglied;
+  final Beitragsart? beitragsart;
+  final List<String> stammNamen;
+  final List<String> gruppenNamen;
   final VoidCallback? onEndMembership;
   final AddressMapLocationRepository? addressLocationRepository;
   final GeoapifyAddressMapService? mapService;
@@ -76,6 +83,9 @@ class MemberDetails extends StatelessWidget {
       children.add(
         MemberMembershipInfoCard(
           mitglied: mitglied,
+          beitragsart: beitragsart,
+          stammNamen: stammNamen,
+          gruppenNamen: gruppenNamen,
           onEndMembership: onEndMembership,
         ),
       );

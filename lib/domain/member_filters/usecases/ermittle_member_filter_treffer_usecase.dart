@@ -13,9 +13,10 @@ class ErmittleMemberFilterTrefferUseCase {
     ArbeitskontextReadModel readModel, {
     Iterable<MemberCustomFilterGroup> customGroups =
         const <MemberCustomFilterGroup>[],
+    Map<String, Set<Stufe>>? mitgliedsStufen,
   }) {
     final treffer = <String, Set<String>>{};
-    final stufenTreffer = _stufenUseCase(readModel);
+    final stufenTreffer = mitgliedsStufen ?? _stufenUseCase(readModel);
     final zuordnungenByMember =
         <String, List<ArbeitskontextMitgliedsZuordnung>>{};
 

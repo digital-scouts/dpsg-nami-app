@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:nami/domain/member/member_utils.dart';
 import 'package:nami/domain/member/mitglied.dart';
+import 'package:nami/domain/member_filters/beitragsart.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/format/date_formatters.dart';
 import 'package:nami/presentation/notifications/app_snackbar.dart';
@@ -283,10 +284,16 @@ class MemberMembershipInfoCard extends StatelessWidget {
   const MemberMembershipInfoCard({
     super.key,
     required this.mitglied,
+    this.beitragsart,
+    this.stammNamen = const <String>[],
+    this.gruppenNamen = const <String>[],
     this.onEndMembership,
   });
 
   final Mitglied mitglied;
+  final Beitragsart? beitragsart;
+  final List<String> stammNamen;
+  final List<String> gruppenNamen;
   final VoidCallback? onEndMembership;
 
   @override
@@ -323,17 +330,17 @@ class MemberMembershipInfoCard extends StatelessWidget {
       _InfoRow(
         icon: Icons.payments_outlined,
         label: 'Beitragsart',
-        value: _dummyFieldValue,
+        value: beitragsart?.displayName ?? '-',
       ),
       _InfoRow(
         icon: Icons.home_work_outlined,
         label: 'Stamm',
-        value: _dummyFieldValue,
+        value: _displayListeOderStrich(stammNamen),
       ),
       _InfoRow(
         icon: Icons.groups_outlined,
         label: 'Gruppe',
-        value: _dummyFieldValue,
+        value: _displayListeOderStrich(gruppenNamen),
       ),
     ];
     return Card(
@@ -360,3 +367,18 @@ class MemberMembershipInfoCard extends StatelessWidget {
 }
 
 const String _dummyFieldValue = 'Geplant (Dummy)';
+
+String _displayListeOderStrich(List<String> values) {
+  final normalized = values
+      .map((value) => value.trim())
+      .where((value) => value.isNotEmpty)
+      .toSet()
+      .toList(growable: false);
+  if (normalized.isEmpty) {
+    return '-';
+  }
+  if (normalized.length == 1) {
+    return normalized.first;
+  }
+  return normalized.join(', ');
+}

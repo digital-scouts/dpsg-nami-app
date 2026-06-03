@@ -4,8 +4,51 @@ import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/member_filters/member_custom_filter.dart';
 import 'package:nami/domain/member_filters/usecases/ermittle_member_filter_treffer_usecase.dart';
+import 'package:nami/domain/taetigkeit/stufe.dart';
 
 void main() {
+  test(
+    'nutzt vorab berechnete Stufen als einzige Quelle fuer Stufenfilter',
+    () {
+      const useCase = ErmittleMemberFilterTrefferUseCase();
+      final readModel = ArbeitskontextReadModel(
+        arbeitskontext: Arbeitskontext(
+          aktiverLayer: const ArbeitskontextLayer(id: 11, name: 'Stamm'),
+        ),
+        mitglieder: <Mitglied>[
+          Mitglied.peopleListItem(
+            mitgliedsnummer: '1',
+            vorname: 'Julia',
+            nachname: 'Keller',
+          ),
+        ],
+        gruppen: const <ArbeitskontextGruppe>[
+          ArbeitskontextGruppe(
+            id: 21,
+            name: 'Woelflinge',
+            layerId: 11,
+            gruppenTyp: 'Group::StammGruppeWoelflinge',
+          ),
+        ],
+        mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
+          ArbeitskontextMitgliedsZuordnung(mitgliedsnummer: '1', gruppenId: 21),
+        ],
+      );
+
+      final result = useCase(
+        readModel,
+        mitgliedsStufen: const <String, Set<Stufe>>{
+          '1': <Stufe>{Stufe.rover},
+        },
+      );
+
+      expect(result['1'], contains(Stufe.rover.name));
+      expect(
+        result['1'] ?? const <String>{},
+        isNot(contains(Stufe.woelfling.name)),
+      );
+    },
+  );
   group('ErmittleMemberFilterTrefferUseCase', () {
     test('stage rule with hatNicht matches members without derived stage', () {
       const useCase = ErmittleMemberFilterTrefferUseCase();
@@ -30,7 +73,7 @@ void main() {
             id: 21,
             name: 'Woelflinge',
             layerId: 11,
-            gruppenTyp: 'Group::Meute',
+            gruppenTyp: 'Group::StammGruppeWoelflinge',
           ),
         ],
         mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
