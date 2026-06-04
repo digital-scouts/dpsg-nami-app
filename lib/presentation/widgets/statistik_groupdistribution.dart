@@ -14,10 +14,14 @@ class GroupDistributionChart extends StatelessWidget {
     this.barWidth = 32,
     this.spacing = 12,
   });
+
   final List<GroupDistribution> data;
   final double height;
   final double barWidth;
   final double spacing;
+
+  static const double _topPadding = 14.0;
+  static const double _bottomPadding = 20.0;
 
   @override
   Widget build(BuildContext context) {
@@ -26,6 +30,7 @@ class GroupDistributionChart extends StatelessWidget {
     if (maxTotal == 0) return const SizedBox.shrink();
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : Colors.black;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         const axisPadding = 32.0; // Platz für Stufenlabels unten
@@ -55,17 +60,23 @@ class GroupDistributionChart extends StatelessWidget {
             usedSpacing = (spacing * shrink).clamp(2, spacing);
           }
         }
+
         final totalWidth =
             axisPadding +
             (n == 0 ? 0 : n * usedBarWidth + (n - 1) * usedSpacing);
+        final canvasWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : totalWidth;
+
         return SizedBox(
-          height: height + 48,
-          width: totalWidth,
+          height: height + _topPadding + _bottomPadding,
+          width: canvasWidth,
           child: CustomPaint(
             painter: _GroupDistributionPainter(
               data: data,
               maxTotal: maxTotal,
               height: height,
+              topPadding: _topPadding,
               barWidth: usedBarWidth,
               spacing: usedSpacing,
               textColor: textColor,
@@ -83,19 +94,21 @@ class _GroupDistributionPainter extends CustomPainter {
     required this.data,
     required this.maxTotal,
     required this.height,
+    required this.topPadding,
     required this.barWidth,
     required this.spacing,
     required this.textColor,
     required this.isDark,
   });
+
   final List<GroupDistribution> data;
   final int maxTotal;
   final double height;
+  final double topPadding;
   final double barWidth;
   final double spacing;
   final Color textColor;
   final bool isDark;
-  static const double originX = 16;
 
   TextPainter _tp(
     String text, {
@@ -120,6 +133,12 @@ class _GroupDistributionPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    final contentWidth = data.isEmpty
+        ? 0.0
+        : data.length * barWidth + (data.length - 1) * spacing;
+    final originX = (size.width - contentWidth) / 2;
+    final originY = topPadding + height;
+
     double x = originX;
     for (final dist in data) {
       final totalFrac = dist.total / maxTotal;
@@ -133,7 +152,7 @@ class _GroupDistributionPainter extends CustomPainter {
 
       // Leitung Segment (unten)
       if (leaderHeight > 0) {
-        final topY = height - leaderHeight;
+        final topY = originY - leaderHeight;
         final rect = Rect.fromLTWH(x, topY, barWidth, leaderHeight);
         canvas.drawRect(rect, Paint()..color = leaderColor);
         final tp = _tp(
@@ -150,7 +169,7 @@ class _GroupDistributionPainter extends CustomPainter {
 
       // Mitglieder Segment (oben) mit abgerundeten Ecken
       if (memberHeight > 0) {
-        final topY = height - leaderHeight - memberHeight;
+        final topY = originY - leaderHeight - memberHeight;
         final rect = Rect.fromLTWH(x, topY, barWidth, memberHeight);
         final rrect = RRect.fromRectAndCorners(
           rect,
@@ -178,14 +197,14 @@ class _GroupDistributionPainter extends CustomPainter {
         tp.paint(canvas, Offset(x + (barWidth - tp.width) / 2, ty));
       }
 
-      // Gesamtzahl oben über dem Balken (optional wenn Platz)
+      // Gesamtzahl oben über dem Balken
       if (dist.total > 0) {
         final tpTotal = _tp(
           dist.total.toString(),
           fontSize: 11,
           fw: FontWeight.w600,
         );
-        final topOfBar = height - totalHeight;
+        final topOfBar = originY - totalHeight;
         tpTotal.paint(
           canvas,
           Offset(
@@ -197,7 +216,10 @@ class _GroupDistributionPainter extends CustomPainter {
 
       // X-Achsen Label (Stufenname) unter dem Balken
       final label = _tp(dist.stufe.shortDisplayName, fontSize: 12);
-      label.paint(canvas, Offset(x + (barWidth - label.width) / 2, height + 8));
+      label.paint(
+        canvas,
+        Offset(x + (barWidth - label.width) / 2, originY + 6),
+      );
 
       x += barWidth + spacing;
     }
@@ -217,6 +239,7 @@ class _GroupDistributionPainter extends CustomPainter {
     return old.data != data ||
         old.maxTotal != maxTotal ||
         old.height != height ||
+        old.topPadding != topPadding ||
         old.barWidth != barWidth ||
         old.spacing != spacing ||
         old.textColor != textColor ||

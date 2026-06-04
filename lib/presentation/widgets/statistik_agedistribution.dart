@@ -26,6 +26,8 @@ class AgeDistributionChart extends StatefulWidget {
 class _AgeDistributionChartState extends State<AgeDistributionChart> {
   int? _hoverIndex;
   static const double _originX = 20.0; // mit Painter Origin abgestimmt
+  static const double _topPadding = 14.0;
+  static const double _bottomPadding = 20.0;
 
   void _updateHover(Offset localPos, double barW, double spacing) {
     final bars = widget.data.bars;
@@ -93,15 +95,19 @@ class _AgeDistributionChartState extends State<AgeDistributionChart> {
         final totalWidth =
             axisPadding +
             (n == 0 ? 0 : (n * usedBarWidth + (n - 1) * usedSpacing));
+        final canvasWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : totalWidth;
         Widget chart = SizedBox(
-          height: widget.height + 48,
-          width: totalWidth,
+          height: widget.height + _topPadding + _bottomPadding,
+          width: canvasWidth,
           child: CustomPaint(
             painter: _AgeDistributionPainter(
               data: data,
               barWidth: usedBarWidth,
               spacing: usedSpacing,
               chartHeight: widget.height,
+              topPadding: _topPadding,
               textColor: textColor,
               isDark: isDark,
               highlightIndex: _hoverIndex,
@@ -190,6 +196,7 @@ class _AgeDistributionPainter extends CustomPainter {
     required this.barWidth,
     required this.spacing,
     required this.chartHeight,
+    required this.topPadding,
     required this.textColor,
     required this.isDark,
     required this.highlightIndex,
@@ -198,9 +205,11 @@ class _AgeDistributionPainter extends CustomPainter {
   final double barWidth;
   final double spacing;
   final double chartHeight;
+  final double topPadding;
   final Color textColor;
   final bool isDark;
   final int? highlightIndex;
+  static const double _originX = 20.0;
 
   TextPainter textPainter(
     String text, {
@@ -220,37 +229,15 @@ class _AgeDistributionPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final axisPaint = Paint()
-      ..color = textColor
-      ..strokeWidth = 1;
-    final origin = Offset(20, chartHeight);
-
-    canvas.drawLine(origin, Offset(size.width, origin.dy), axisPaint);
-
-    // Grid-Linien für jeden Schritt; Labels nur für gerade Werte
-    final gridPaint = Paint()
-      ..color = textColor.withValues(alpha: 0.12)
-      ..strokeWidth = 1;
-    final maxCount = data.maxCount;
-    final gridLineStep = (maxCount >= 20) ? 2 : 1; // ab 20 => jede zweite Linie
-    final labelStep = (maxCount >= 40) ? 4 : 2; // ab 40 Labels alle 4
-
-    for (int v = gridLineStep; v <= maxCount; v += gridLineStep) {
-      final y = origin.dy - (v / maxCount) * chartHeight;
-      _drawDashedLine(
-        canvas,
-        Offset(origin.dx, y),
-        Offset(size.width, y),
-        gridPaint,
-      );
-      if (v % labelStep == 0) {
-        final label = textPainter(v.toString(), color: textColor);
-        label.paint(
-          canvas,
-          Offset(origin.dx - label.width - 4, y - label.height / 2),
-        );
-      }
-    }
+    final contentWidth = data.bars.isEmpty
+        ? 0.0
+        : data.bars.length * barWidth + (data.bars.length - 1) * spacing;
+    final dynamicOriginX =
+        (_originX + (size.width - _originX - contentWidth) / 2)
+            .clamp(_originX, size.width - contentWidth)
+            .toDouble();
+    final originY = topPadding + chartHeight;
+    final origin = Offset(dynamicOriginX, originY);
 
     double x = origin.dx;
     for (int barIndex = 0; barIndex < data.bars.length; barIndex++) {
@@ -290,12 +277,24 @@ class _AgeDistributionPainter extends CustomPainter {
             canvas.drawRect(rect, borderPaint);
           }
         }
+
+        if (entry.count > 0) {
+          final tp = textPainter(
+            entry.count.toString(),
+            fontSize: 10,
+            color: _bestTextColor(StufeVisuals.colorFor(entry.stufe)),
+          );
+          final fits = h >= tp.height + 4;
+          final ty = fits ? top + (h - tp.height) / 2 : top - tp.height - 2;
+          tp.paint(canvas, Offset(x + (barWidth - tp.width) / 2, ty));
+        }
+
         currentBottom -= h;
       }
       final ageLabel = textPainter(bar.age.toString(), color: textColor);
       ageLabel.paint(
         canvas,
-        Offset(x + (barWidth - ageLabel.width) / 2, origin.dy + 4),
+        Offset(x + (barWidth - ageLabel.width) / 2, origin.dy + 6),
       );
       if (highlightIndex == barIndex) {
         final barTop = origin.dy - (total / data.maxCount) * chartHeight;
@@ -312,13 +311,6 @@ class _AgeDistributionPainter extends CustomPainter {
       }
       x += barWidth + spacing;
     }
-
-    // X-Achsen Titel
-    final xTitle = textPainter('Alter', fontSize: 12, color: textColor);
-    xTitle.paint(
-      canvas,
-      Offset(size.width / 2 - xTitle.width / 2, origin.dy + 24),
-    );
   }
 
   @override
@@ -327,27 +319,17 @@ class _AgeDistributionPainter extends CustomPainter {
         oldDelegate.barWidth != barWidth ||
         oldDelegate.spacing != spacing ||
         oldDelegate.chartHeight != chartHeight ||
+        oldDelegate.topPadding != topPadding ||
         oldDelegate.textColor != textColor ||
         oldDelegate.isDark != isDark ||
         oldDelegate.highlightIndex != highlightIndex;
   }
-}
 
-void _drawDashedLine(
-  Canvas canvas,
-  Offset p1,
-  Offset p2,
-  Paint paint, {
-  double dashLength = 6,
-  double gap = 4,
-}) {
-  final total = (p2 - p1).distance;
-  final dir = (p2 - p1) / total;
-  double drawn = 0;
-  while (drawn < total) {
-    final start = p1 + dir * drawn;
-    final end = p1 + dir * (drawn + dashLength).clamp(0, total);
-    canvas.drawLine(start, end, paint);
-    drawn += dashLength + gap;
+  Color _bestTextColor(Color bg) {
+    final luma =
+        0.299 * ((bg.r * 255.0).round() & 0xff) +
+        0.587 * ((bg.g * 255.0).round() & 0xff) +
+        0.114 * ((bg.b * 255.0).round() & 0xff);
+    return luma > 140 ? Colors.black : Colors.white;
   }
 }

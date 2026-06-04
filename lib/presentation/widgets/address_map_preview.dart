@@ -8,6 +8,7 @@ import 'package:nami/data/maps/shared_prefs_address_map_location_repository.dart
 import 'package:nami/domain/maps/address_map_location.dart';
 import 'package:nami/domain/maps/address_map_location_repository.dart';
 import 'package:nami/l10n/app_localizations.dart';
+import 'package:nami/presentation/widgets/map_recenter_button.dart';
 import 'package:nami/presentation/widgets/skeletton_map.dart';
 import 'package:nami/services/geoapify_address_map_service.dart';
 import 'package:nami/services/logger_service.dart';
@@ -594,43 +595,7 @@ class _InteractiveMapPreviewState extends State<_InteractiveMapPreview> {
             Positioned(
               bottom: 8,
               right: 8,
-              child: Material(
-                color: Theme.of(context).colorScheme.surface,
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  side: BorderSide(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.outline.withValues(alpha: 0.24),
-                  ),
-                ),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(10),
-                  onTap: () => _recenterMap(points),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 6,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.center_focus_strong,
-                          size: 16,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Zentrieren',
-                          style: Theme.of(context).textTheme.labelSmall,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+              child: MapRecenterButton(onTap: () => _recenterMap(points)),
             ),
           ],
         ),

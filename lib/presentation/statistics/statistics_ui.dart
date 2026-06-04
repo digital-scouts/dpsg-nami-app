@@ -5,7 +5,8 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../services/map_tile_cache_service.dart';
-import 'statistics_dummy_data.dart';
+import '../widgets/map_recenter_button.dart';
+import 'statistics_snapshot_builder.dart';
 
 class StatisticsCard extends StatelessWidget {
   const StatisticsCard({
@@ -21,25 +22,37 @@ class StatisticsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: padding ?? const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: theme.textTheme.labelSmall?.copyWith(
-                letterSpacing: 0.7,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 12),
-            child,
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _StatisticsSectionHeader(title: title),
+        const SizedBox(height: 8),
+        Card(
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: padding ?? const EdgeInsets.all(16),
+            child: child,
+          ),
         ),
+      ],
+    );
+  }
+}
+
+class _StatisticsSectionHeader extends StatelessWidget {
+  const _StatisticsSectionHeader({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Text(
+      title.toUpperCase(),
+      style: theme.textTheme.labelSmall?.copyWith(
+        letterSpacing: 0.9,
+        fontWeight: FontWeight.w700,
+        color: theme.colorScheme.primary,
       ),
     );
   }
@@ -115,7 +128,7 @@ class _KpiTile extends StatelessWidget {
 class StatisticsLegendList extends StatelessWidget {
   const StatisticsLegendList({super.key, required this.items});
 
-  final List<LegendDatum> items;
+  final List<StatisticsLegendItem> items;
 
   @override
   Widget build(BuildContext context) {
@@ -162,7 +175,7 @@ class StatisticsLegendList extends StatelessWidget {
 class StatisticsPieLegend extends StatelessWidget {
   const StatisticsPieLegend({super.key, required this.items});
 
-  final List<LegendDatum> items;
+  final List<StatisticsLegendItem> items;
 
   @override
   Widget build(BuildContext context) {
@@ -176,9 +189,7 @@ class StatisticsPieLegend extends StatelessWidget {
         SizedBox(
           width: 128,
           height: 128,
-          child: CustomPaint(
-            painter: _PieLegendPainter(items: items),
-          ),
+          child: CustomPaint(painter: _PieLegendPainter(items: items)),
         ),
         const SizedBox(width: 16),
         Expanded(child: StatisticsLegendList(items: items)),
@@ -190,7 +201,7 @@ class StatisticsPieLegend extends StatelessWidget {
 class _PieLegendPainter extends CustomPainter {
   _PieLegendPainter({required this.items});
 
-  final List<LegendDatum> items;
+  final List<StatisticsLegendItem> items;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -233,7 +244,7 @@ class _PieLegendPainter extends CustomPainter {
 class StatisticsBarList extends StatelessWidget {
   const StatisticsBarList({super.key, required this.items});
 
-  final List<LegendDatum> items;
+  final List<StatisticsLegendItem> items;
 
   @override
   Widget build(BuildContext context) {
@@ -253,7 +264,7 @@ class StatisticsBarList extends StatelessWidget {
 class _BarRow extends StatelessWidget {
   const _BarRow({required this.item, required this.maxValue});
 
-  final LegendDatum item;
+  final StatisticsLegendItem item;
   final int maxValue;
 
   @override
@@ -266,7 +277,9 @@ class _BarRow extends StatelessWidget {
       children: [
         Row(
           children: [
-            Expanded(child: Text(item.label, style: theme.textTheme.bodyMedium)),
+            Expanded(
+              child: Text(item.label, style: theme.textTheme.bodyMedium),
+            ),
             Text('${item.value}', style: theme.textTheme.bodyMedium),
           ],
         ),
@@ -300,7 +313,7 @@ class StatisticsGroupList extends StatelessWidget {
     required this.onOpenGroup,
   });
 
-  final List<StammGroupItem> items;
+  final List<StatisticsGroupItem> items;
   final ValueChanged<String> onOpenGroup;
 
   @override
@@ -318,7 +331,10 @@ class StatisticsGroupList extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
                 child: Row(
                   children: [
                     DecoratedBox(
@@ -329,7 +345,11 @@ class StatisticsGroupList extends StatelessWidget {
                       child: SizedBox(
                         width: 32,
                         height: 32,
-                        child: Icon(item.icon, size: 18, color: item.stageColor),
+                        child: Icon(
+                          item.icon,
+                          size: 18,
+                          color: item.stageColor,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -339,7 +359,10 @@ class StatisticsGroupList extends StatelessWidget {
                         children: [
                           Text(item.name, style: theme.textTheme.titleSmall),
                           const SizedBox(height: 1),
-                          Text(item.stageLabel, style: theme.textTheme.bodySmall),
+                          Text(
+                            item.stageLabel,
+                            style: theme.textTheme.bodySmall,
+                          ),
                         ],
                       ),
                     ),
@@ -389,10 +412,7 @@ class StatisticsOptInCard extends StatelessWidget {
                   child: SizedBox(
                     width: 44,
                     height: 44,
-                    child: Icon(
-                      Icons.public,
-                      color: theme.colorScheme.primary,
-                    ),
+                    child: Icon(Icons.public, color: theme.colorScheme.primary),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -414,11 +434,15 @@ class StatisticsOptInCard extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               'Was dein Stamm spaeter beitraegt:',
-              style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const SizedBox(height: 6),
             const _BulletLine(text: 'Anzahl aktiver Mitglieder pro Stufe'),
-            const _BulletLine(text: 'Altersverteilung in Gruppen (keine Einzeldaten)'),
+            const _BulletLine(
+              text: 'Altersverteilung in Gruppen (keine Einzeldaten)',
+            ),
             const _BulletLine(text: 'Anzahl Leitende'),
             const SizedBox(height: 12),
             Text(
@@ -477,40 +501,93 @@ class StatisticsMapCard extends StatelessWidget {
     super.key,
     required this.title,
     required this.markers,
+    this.stammLocation,
   });
 
   final String title;
   final List<LatLng> markers;
+  final LatLng? stammLocation;
 
   @override
   Widget build(BuildContext context) {
-    return StatisticsCard(
-      title: title,
-      padding: const EdgeInsets.fromLTRB(0, 16, 0, 0),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: SizedBox(
-          height: 180,
-          child: _StatisticsPlaceholderMap(markers: markers),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _StatisticsSectionHeader(title: title),
+        const SizedBox(height: 8),
+        Card(
+          margin: EdgeInsets.zero,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
+              height: 180,
+              child: _StatisticsPlaceholderMap(
+                markers: markers,
+                stammLocation: stammLocation,
+              ),
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 }
 
-class _StatisticsPlaceholderMap extends StatelessWidget {
-  const _StatisticsPlaceholderMap({required this.markers});
+class _StatisticsPlaceholderMap extends StatefulWidget {
+  const _StatisticsPlaceholderMap({required this.markers, this.stammLocation});
 
   final List<LatLng> markers;
+  final LatLng? stammLocation;
+
+  @override
+  State<_StatisticsPlaceholderMap> createState() =>
+      _StatisticsPlaceholderMapState();
+}
+
+class _StatisticsPlaceholderMapState extends State<_StatisticsPlaceholderMap> {
+  late final MapController _mapController;
+
+  @override
+  void initState() {
+    super.initState();
+    _mapController = MapController();
+  }
+
+  @override
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
+  }
+
+  void _recenterMap(List<LatLng> points) {
+    if (points.length > 1) {
+      _mapController.fitCamera(
+        CameraFit.bounds(
+          bounds: LatLngBounds.fromPoints(points),
+          padding: const EdgeInsets.all(28),
+          maxZoom: 14,
+        ),
+      );
+      return;
+    }
+
+    if (points.isNotEmpty) {
+      _mapController.move(points.first, 12, id: 'recenter');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final center = markers.isEmpty
+    final points = <LatLng>[
+      ...widget.markers,
+      if (widget.stammLocation != null) widget.stammLocation!,
+    ];
+    final center = points.isEmpty
         ? const LatLng(51.2000, 6.6900)
-        : markers.first;
-    final bounds = markers.length > 1
+        : points.first;
+    final bounds = points.length > 1
         ? CameraFit.bounds(
-            bounds: LatLngBounds.fromPoints(markers),
+            bounds: LatLngBounds.fromPoints(points),
             padding: const EdgeInsets.all(24),
             maxZoom: 14,
           )
@@ -519,6 +596,7 @@ class _StatisticsPlaceholderMap extends StatelessWidget {
     return Stack(
       children: [
         FlutterMap(
+          mapController: _mapController,
           options: MapOptions(
             initialCenter: center,
             initialZoom: 12,
@@ -537,30 +615,28 @@ class _StatisticsPlaceholderMap extends StatelessWidget {
             ),
             MarkerLayer(
               markers: [
-                for (final point in markers)
+                for (final point in widget.markers)
                   Marker(
                     point: point,
                     width: 34,
                     height: 34,
                     child: const _MarkerPin(),
                   ),
+                if (widget.stammLocation != null)
+                  Marker(
+                    point: widget.stammLocation!,
+                    width: 38,
+                    height: 38,
+                    child: const _StammPin(),
+                  ),
               ],
             ),
           ],
         ),
         Positioned(
-          top: 8,
           right: 8,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              child: Text('Dummy-Marker', style: TextStyle(fontSize: 11)),
-            ),
-          ),
+          bottom: 8,
+          child: MapRecenterButton(onTap: () => _recenterMap(points)),
         ),
       ],
     );
@@ -573,5 +649,14 @@ class _MarkerPin extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Icon(Icons.location_on, color: Color(0xFFCC1F2F), size: 26);
+  }
+}
+
+class _StammPin extends StatelessWidget {
+  const _StammPin();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Icon(Icons.home, color: Color(0xFF1565C0), size: 22);
   }
 }
