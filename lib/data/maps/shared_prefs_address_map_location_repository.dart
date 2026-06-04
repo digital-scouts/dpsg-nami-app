@@ -41,4 +41,10 @@ class SharedPrefsAddressMapLocationRepository
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('$_keyPrefix$cacheKey');
   }
+
+  @override
+  Future<int> countEntries() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getKeys().where((key) => key.startsWith(_keyPrefix)).length;
+  }
 }

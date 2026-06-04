@@ -503,6 +503,12 @@ class AppLocalizations {
       'debug_map_size_unavailable': 'Größe derzeit nicht verfügbar',
       'debug_map_size_loading': 'Größe wird geladen ...',
       'debug_map_offline_maps': 'Offline-Karten',
+      'debug_map_cached_addresses_label': 'Gecachte Adressen',
+      'debug_map_cached_addresses_loading': 'Anzahl wird geladen ...',
+      'debug_map_cached_addresses_unavailable':
+          'Anzahl derzeit nicht verfügbar',
+      'debug_map_cached_addresses_count':
+          '{count} Adressen im Koordinaten-Cache',
       'debug_map_refresh_markers_loading': 'Stammesuche wird aktualisiert ...',
       'debug_map_refresh_markers': 'Stammesuche jetzt laden',
       'debug_map_delete_cache': 'Kartendaten löschen',
@@ -1030,6 +1036,12 @@ class AppLocalizations {
       'debug_map_size_unavailable': 'Size currently unavailable',
       'debug_map_size_loading': 'Loading size ...',
       'debug_map_offline_maps': 'Offline maps',
+      'debug_map_cached_addresses_label': 'Cached addresses',
+      'debug_map_cached_addresses_loading': 'Loading count ...',
+      'debug_map_cached_addresses_unavailable':
+          'Count currently unavailable',
+      'debug_map_cached_addresses_count':
+          '{count} addresses in coordinate cache',
       'debug_map_refresh_markers_loading': 'Refreshing group search ...',
       'debug_map_refresh_markers': 'Load group search now',
       'debug_map_delete_cache': 'Delete map data',
