@@ -106,6 +106,7 @@ class _StatisticsGroupDetailPageState extends State<StatisticsGroupDetailPage> {
     final hasGenderData = group.gender.any(
       (item) => item.label != 'Ohne Angabe' && item.value > 0,
     );
+    final hasConfessionData = group.confessions.isNotEmpty;
     final hasLocationInput = members.any(
       (member) => member.primaryAddress != null,
     );
@@ -145,6 +146,13 @@ class _StatisticsGroupDetailPageState extends State<StatisticsGroupDetailPage> {
             StatisticsCard(
               title: 'Geschlecht',
               child: StatisticsPieLegend(items: group.gender),
+            ),
+          ],
+          if (hasConfessionData) ...[
+            const SizedBox(height: 12),
+            StatisticsCard(
+              title: 'Konfession',
+              child: StatisticsPieLegend(items: group.confessions),
             ),
           ],
           if (hasLocationInput || hasStammAddress) ...[
