@@ -168,6 +168,7 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
 
   Future<void> _launchQuickPhone(Mitglied mitglied) async {
     final options = mitglied.telefonnummern
+        .where((entry) => entry.wert.trim().isNotEmpty)
         .map(
           (entry) => _ContactOption(
             label:
@@ -186,6 +187,7 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
 
   Future<void> _launchQuickMail(Mitglied mitglied) async {
     final options = mitglied.emailAdressen
+        .where((entry) => entry.wert.trim().isNotEmpty)
         .map(
           (entry) => _ContactOption(
             label:
@@ -312,6 +314,12 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
           );
     final beitragsart = mitgliedsBeitragsarten[currentMitglied.mitgliedsnummer];
     final t = AppLocalizations.of(context);
+    final hasCallablePhone = currentMitglied.telefonnummern.any(
+      (entry) => entry.wert.trim().isNotEmpty,
+    );
+    final hasMailableEmail = currentMitglied.emailAdressen.any(
+      (entry) => entry.wert.trim().isNotEmpty,
+    );
 
     return DefaultTabController(
       length: 3,
@@ -383,8 +391,9 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
                             child: _MemberQuickActionChip(
                               icon: Icons.phone_outlined,
                               label: 'Anrufen',
-                              onPressed: () =>
-                                  _launchQuickPhone(currentMitglied),
+                              onPressed: hasCallablePhone
+                                  ? () => _launchQuickPhone(currentMitglied)
+                                  : null,
                             ),
                           ),
                           const SizedBox(width: _quickActionSpacing),
@@ -392,8 +401,9 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
                             child: _MemberQuickActionChip(
                               icon: Icons.email_outlined,
                               label: 'E-Mail',
-                              onPressed: () =>
-                                  _launchQuickMail(currentMitglied),
+                              onPressed: hasMailableEmail
+                                  ? () => _launchQuickMail(currentMitglied)
+                                  : null,
                             ),
                           ),
                           const SizedBox(width: _quickActionSpacing),

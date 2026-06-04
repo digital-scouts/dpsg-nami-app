@@ -1,48 +1,115 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:nami/core/notifications/pull_notification.dart';
 import 'package:nami/core/notifications/pull_notifications_repository_factory.dart';
 import 'package:nami/l10n/app_localizations.dart';
+import 'package:nami/presentation/model/auth_session_model.dart';
+import 'package:nami/presentation/model/member_edit_model.dart';
 import 'package:nami/presentation/notifications/app_snackbar.dart';
-
-import '../../core/notifications/pull_notifications_cubit.dart';
-import '../../services/logger_service.dart';
-import '../../services/network_access_policy.dart';
-import 'notifications_list.dart';
+import 'package:nami/presentation/notifications/notification_card.dart';
+import 'package:nami/presentation/notifications/notifications_hub.dart';
+import 'package:nami/services/app_update_service.dart';
+import 'package:nami/services/logger_service.dart';
+import 'package:nami/services/network_access_policy.dart';
+import 'package:provider/provider.dart';
 
 class NotificationsPage extends StatefulWidget {
-  const NotificationsPage({super.key});
+  const NotificationsPage({
+    super.key,
+    this.includeInternalMessages = false,
+    this.showStatusButtons = true,
+    this.showAllAcknowledged = false,
+  });
+
+  final bool includeInternalMessages;
+  final bool showStatusButtons;
+  final bool showAllAcknowledged;
 
   @override
   State<NotificationsPage> createState() => _NotificationsPageState();
 }
 
 class _NotificationsPageState extends State<NotificationsPage> {
-  PullNotificationsCubit? cubit;
-  bool _boxReady = false;
+  late Future<_ExternalNotificationsData> _externalFuture;
+  late Future<AppUpdateInfo?> _appUpdateFuture;
 
   @override
   void initState() {
     super.initState();
-    _initHiveAndCubit();
+    _externalFuture = _loadExternalData();
+    _appUpdateFuture = _loadAppUpdateInfo();
   }
 
-  Future<void> _initHiveAndCubit() async {
+  Future<AppUpdateInfo?> _loadAppUpdateInfo() async {
+    try {
+      return await _resolveAppUpdateService().checkForUpdate();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<_ExternalNotificationsData> _loadExternalData({
+    bool forceRefresh = false,
+  }) async {
     final logger = context.read<LoggerService>();
     final repo = await createPullNotificationsRepository(
       logger: logger,
       networkAccessPolicy: _resolveNetworkAccessPolicy(),
     );
-    final c = PullNotificationsCubit(repo);
+    final notifications = await repo.fetchNotifications(
+      forceRefresh: forceRefresh,
+    );
+    final acknowledged = await repo.getAcknowledgedIds();
+    return _ExternalNotificationsData(
+      notifications: notifications,
+      acknowledged: acknowledged,
+    );
+  }
+
+  Future<void> _reload({bool forceRefresh = false}) async {
+    setState(() {
+      _externalFuture = _loadExternalData(forceRefresh: forceRefresh);
+    });
+  }
+
+  Future<void> _acknowledge(String id) async {
+    final logger = context.read<LoggerService>();
+    final repo = await createPullNotificationsRepository(
+      logger: logger,
+      networkAccessPolicy: _resolveNetworkAccessPolicy(),
+    );
+    await repo.acknowledgeNotification(id);
     if (!mounted) {
-      await c.close();
       return;
     }
-    setState(() {
-      cubit = c;
-      _boxReady = true;
-    });
-    // Sofort Cache anzeigen, dann im Hintergrund laden
-    c.load();
+    await _reload();
+  }
+
+  Future<void> _resetAcknowledged() async {
+    final logger = context.read<LoggerService>();
+    final repo = await createPullNotificationsRepository(
+      logger: logger,
+      networkAccessPolicy: _resolveNetworkAccessPolicy(),
+    );
+    await repo.resetAcknowledgedNotifications();
+    if (!mounted) {
+      return;
+    }
+    AppSnackbar.show(
+      context,
+      message: AppLocalizations.of(context).t('notifications_reset_done'),
+      type: AppSnackbarType.success,
+    );
+    await _reload();
+  }
+
+  AppUpdateService _resolveAppUpdateService() {
+    try {
+      return context.read<AppUpdateService>();
+    } catch (_) {
+      return AppUpdateService(
+        networkAccessPolicy: _resolveNetworkAccessPolicy(),
+      );
+    }
   }
 
   NetworkAccessPolicy? _resolveNetworkAccessPolicy() {
@@ -54,92 +121,143 @@ class _NotificationsPageState extends State<NotificationsPage> {
   }
 
   @override
-  void dispose() {
-    cubit?.close();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    if (!_boxReady || cubit == null) {
-      return Scaffold(
-        appBar: AppBar(title: Text(t.t('pull_notifications_title'))),
-        body: const Center(child: CircularProgressIndicator()),
-      );
-    }
-    return BlocProvider.value(
-      value: cubit!,
-      child: Scaffold(
-        appBar: AppBar(title: Text(t.t('pull_notifications_title'))),
-        body: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => cubit!.load(force: true),
-                      icon: const Icon(Icons.sync),
-                      label: Text(t.t('notifications_refresh')),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () async {
-                        await cubit!.resetAcknowledged();
-                        if (!context.mounted) return;
-                        AppSnackbar.show(
-                          context,
-                          message: t.t('notifications_reset_done'),
-                          type: AppSnackbarType.success,
-                        );
-                      },
-                      icon: const Icon(Icons.restart_alt),
-                      label: Text(t.t('notifications_reset_read')),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: BlocBuilder<PullNotificationsCubit, PullNotificationsState>(
-                builder: (context, state) {
-                  if (state is PullNotificationsLoading) {
+
+    return Scaffold(
+      appBar: AppBar(title: Text(t.t('pull_notifications_title'))),
+      body: Consumer<AuthSessionModel>(
+        builder: (context, authModel, _) {
+          final unresolvedCount =
+              context.watch<MemberEditModel?>()?.openResolutionCount ?? 0;
+
+          return FutureBuilder<AppUpdateInfo?>(
+            future: _appUpdateFuture,
+            builder: (context, updateSnapshot) {
+              return FutureBuilder<_ExternalNotificationsData>(
+                future: _externalFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
-                  if (state is PullNotificationsLoaded) {
-                    return NotificationsList(
-                      notifications: state.notifications,
-                      acknowledged: state.acknowledged,
-                      onTap: (n) {
-                        // TODO(pull_notifications): Detailansicht sowie `deep_link`/`external_link` oeffnen.
-                      },
-                      onAcknowledge: (n) => cubit!.acknowledge(n.id),
-                    );
-                  }
-                  if (state is PullNotificationsError) {
+                  if (snapshot.hasError) {
                     return Center(
                       child: Text(
-                        t.t('notifications_error', {'message': state.message}),
+                        t.t('notifications_error', {
+                          'message': snapshot.error.toString(),
+                        }),
                       ),
                     );
                   }
-                  // Default: Zeige leere Liste
-                  return NotificationsList(
-                    notifications: const [],
-                    acknowledged: const {},
-                    onTap: (_) {},
-                    onAcknowledge: (_) {},
+
+                  final data = snapshot.data;
+                  if (data == null) {
+                    return Center(child: Text(t.t('notifications_empty')));
+                  }
+
+                  final external = NotificationsHub.mapVisibleExternal(
+                    notifications: data.notifications,
+                    acknowledged: data.acknowledged,
+                    includeAcknowledged: widget.showAllAcknowledged,
+                  );
+
+                  final internal = widget.includeInternalMessages
+                      ? NotificationsHub.buildInternal(
+                          authModel: authModel,
+                          unresolvedCount: unresolvedCount,
+                          updateInfo: updateSnapshot.data,
+                        )
+                      : const <AppHubNotification>[];
+
+                  final messages = NotificationsHub.mergeSorted(
+                    internal: internal,
+                    external: external,
+                  );
+
+                  if (messages.isEmpty) {
+                    return Center(child: Text(t.t('notifications_empty')));
+                  }
+
+                  return Column(
+                    children: [
+                      if (widget.showStatusButtons)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () => _reload(forceRefresh: true),
+                                  icon: const Icon(Icons.sync),
+                                  label: Text(t.t('notifications_refresh')),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: _resetAcknowledged,
+                                  icon: const Icon(Icons.restart_alt),
+                                  label: Text(t.t('notifications_reset_read')),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      Expanded(
+                        child: ListView.separated(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: messages.length,
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final message = messages[index];
+                            return NotificationCard(
+                              notification: _toPullNotification(message),
+                              onTap: () {
+                                // TODO(pull_notifications): Open deep/external links.
+                              },
+                              onClose: message.ackable && !message.acknowledged
+                                  ? () => _acknowledge(message.id)
+                                  : null,
+                            );
+                          },
+                        ),
+                      ),
+                    ],
                   );
                 },
-              ),
-            ),
-          ],
-        ),
+              );
+            },
+          );
+        },
       ),
     );
   }
+
+  PullNotification _toPullNotification(AppHubNotification message) {
+    return PullNotification(
+      id: message.id,
+      title: message.title,
+      body: message.body,
+      type: switch (message.severity) {
+        AppNotificationSeverity.urgent => 'urgent',
+        AppNotificationSeverity.warn => 'warn',
+        AppNotificationSeverity.info => 'info',
+      },
+      createdAt: message.createdAt,
+      updatedAt: message.updatedAt,
+      deepLink: message.deepLink,
+      externalLink: message.externalLink,
+    );
+  }
+}
+
+class _ExternalNotificationsData {
+  const _ExternalNotificationsData({
+    required this.notifications,
+    required this.acknowledged,
+  });
+
+  final List<PullNotification> notifications;
+  final Set<String> acknowledged;
 }

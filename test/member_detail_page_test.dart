@@ -273,6 +273,35 @@ void main() {
     timeout: const Timeout(Duration(seconds: 3)),
   );
 
+  testWidgets(
+    'deaktiviert Anrufen und E-Mail wenn keine Daten vorhanden sind',
+    (tester) async {
+      final member = Mitglied(
+        mitgliedsnummer: '4815',
+        vorname: 'Alex',
+        nachname: 'OhneKontakt',
+        geburtsdatum: DateTime(2010, 4, 6),
+        eintrittsdatum: DateTime(2020, 5, 1),
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(MemberDetailPage(mitglied: member)),
+      );
+      await tester.pumpAndSettle();
+
+      final anrufenInkWell = tester.widget<InkWell>(
+        find.ancestor(of: find.text('Anrufen'), matching: find.byType(InkWell)),
+      );
+      final emailInkWell = tester.widget<InkWell>(
+        find.ancestor(of: find.text('E-Mail'), matching: find.byType(InkWell)),
+      );
+
+      expect(anrufenInkWell.onTap, isNull);
+      expect(emailInkWell.onTap, isNull);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
   testWidgets('zeigt die erste Adresse in den Details an', (tester) async {
     final member = Mitglied(
       personId: 23,

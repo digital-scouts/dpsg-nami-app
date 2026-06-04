@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_email_sender/flutter_email_sender.dart';
 import 'package:intl/intl.dart';
+import 'package:nami/core/notifications/pull_notifications_repository_factory.dart';
 import 'package:nami/domain/auth/auth_state.dart';
 import 'package:nami/domain/maps/stamm_map_marker_repository.dart';
 import 'package:nami/l10n/app_localizations.dart';
@@ -21,6 +22,7 @@ import '../../services/hitobito_oauth_service.dart';
 import '../../services/hitobito_traffic_log_service.dart';
 import '../../services/logger_service.dart';
 import '../../services/map_tile_cache_service.dart';
+import '../../services/network_access_policy.dart';
 import '../../services/stamm_map_sync_service.dart';
 
 class DebugToolsPage extends StatefulWidget {
@@ -207,6 +209,86 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
           _isRefreshingStammMarkers = false;
         });
       }
+    }
+  }
+
+  NetworkAccessPolicy? _resolveNetworkAccessPolicy() {
+    try {
+      return context.read<NetworkAccessPolicy>();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _openAllExternalNotifications(LoggerService logger) async {
+    await _trackDebugAction(logger, 'open_external_notifications_all');
+    if (!mounted) {
+      return;
+    }
+    Navigator.pushNamed(
+      context,
+      '/notifications',
+      arguments: <String, dynamic>{'showAllAcknowledged': true},
+    );
+  }
+
+  Future<void> _resetExternalNotificationAcks(LoggerService logger) async {
+    try {
+      await _trackDebugAction(logger, 'reset_external_notification_acks');
+      final repo = await createPullNotificationsRepository(
+        logger: logger,
+        networkAccessPolicy: _resolveNetworkAccessPolicy(),
+      );
+      await repo.resetAcknowledgedNotifications();
+      if (!mounted) {
+        return;
+      }
+      _showSnackbar(
+        AppLocalizations.of(
+          context,
+        ).t('debug_external_notifications_reset_done'),
+        type: AppSnackbarType.success,
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      _showSnackbar(
+        AppLocalizations.of(
+          context,
+        ).t('debug_external_notifications_action_failed'),
+        type: AppSnackbarType.error,
+      );
+    }
+  }
+
+  Future<void> _refreshExternalNotificationsNow(LoggerService logger) async {
+    try {
+      await _trackDebugAction(logger, 'refresh_external_notifications_now');
+      final repo = await createPullNotificationsRepository(
+        logger: logger,
+        networkAccessPolicy: _resolveNetworkAccessPolicy(),
+      );
+      await repo.fetchNotifications(forceRefresh: true);
+      if (!mounted) {
+        return;
+      }
+      _showSnackbar(
+        AppLocalizations.of(
+          context,
+        ).t('debug_external_notifications_refresh_done'),
+        type: AppSnackbarType.success,
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      _showSnackbar(
+        AppLocalizations.of(
+          context,
+        ).t('debug_external_notifications_action_failed'),
+        type: AppSnackbarType.error,
+      );
     }
   }
 
@@ -957,6 +1039,34 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                           }
                           Navigator.pushNamed(context, '/notifications');
                         },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _DebugSectionCard(
+                  icon: Icons.campaign_outlined,
+                  title: t.t('debug_external_notifications_section_title'),
+                  subtitle: t.t(
+                    'debug_external_notifications_section_subtitle',
+                  ),
+                  child: _DebugButtonGroup(
+                    children: [
+                      _DebugActionButton(
+                        icon: Icons.visibility_outlined,
+                        label: t.t('debug_external_notifications_show_all'),
+                        onPressed: () => _openAllExternalNotifications(logger),
+                      ),
+                      _DebugActionButton(
+                        icon: Icons.restart_alt,
+                        label: t.t('debug_external_notifications_reset_ack'),
+                        onPressed: () => _resetExternalNotificationAcks(logger),
+                      ),
+                      _DebugActionButton(
+                        icon: Icons.sync,
+                        label: t.t('debug_external_notifications_refresh_now'),
+                        onPressed: () =>
+                            _refreshExternalNotificationsNow(logger),
                       ),
                     ],
                   ),

@@ -34,7 +34,7 @@ class AppLocalizations {
       'general': 'Allgemein',
       'settings_notifications': 'Benachrichtigungen',
       'pull_notifications_title': 'Mitteilungen',
-      'settings_unread_notifications_title': 'Ungelesene Mitteilungen',
+      'settings_unread_notifications_title': 'Mitteilungen',
       'settings_unread_notifications_hint':
           'Du hast {count} ungelesene Mitteilungen. Vollständige Ansicht über Debug & Tools.',
       'settings_unread_notifications_urgent_hint':
@@ -208,6 +208,13 @@ class AppLocalizations {
           'Die App zeigt weiter lokale Daten an. Tippe hier, um die Verbindung erneut zu pruefen.',
       'settings_hitobito_issue_relogin_body':
           'Die App zeigt weiter lokale Daten an. Tippe hier, um dich erneut bei Hitobito anzumelden.',
+      'settings_hitobito_issue_offline_body':
+          'Du bist gerade offline. Die App zeigt lokale Daten an und verbindet sich wieder, sobald eine Verbindung verfuegbar ist.',
+      'settings_data_expiry_soon_title': 'Lokale Daten laufen bald ab',
+      'settings_data_expiry_soon_body':
+          'Melde dich innerhalb von {days} Tagen erneut an, damit die lokalen Daten verfuegbar bleiben.',
+      'settings_messages_retention_hint':
+          'Hinweis: Externe Meldungen werden nach spaetestens 3 Tagen automatisch ausgeblendet.',
       'logout': 'Logout',
       'developed_with': 'Entwickelt mit',
       'developed_in_hamburg': 'in Hamburg',
@@ -525,6 +532,19 @@ class AppLocalizations {
           'Schneller Zugriff auf Changelog und eingehende Mitteilungen.',
       'debug_references_show_changelog': 'Changelog anzeigen',
       'debug_references_show_notifications': 'Mitteilungen anzeigen',
+      'debug_external_notifications_section_title':
+          'Externe Benachrichtigungen',
+      'debug_external_notifications_section_subtitle':
+          'Diagnose und Steuerung der externen Mitteilungsquelle.',
+      'debug_external_notifications_show_all': 'Alle anzeigen',
+      'debug_external_notifications_reset_ack': 'Ack-Status zurücksetzen',
+      'debug_external_notifications_refresh_now': 'Jetzt laden',
+      'debug_external_notifications_reset_done':
+          'Ack-Status wurde zurückgesetzt.',
+      'debug_external_notifications_refresh_done':
+          'Externe Mitteilungen wurden neu geladen.',
+      'debug_external_notifications_action_failed':
+          'Aktion für externe Mitteilungen fehlgeschlagen.',
       'debug_reset_subtitle':
           'Diese Aktionen greifen stark ein. Die Darstellung ist bewusst auffälliger, das Verhalten bleibt unverändert.',
       'debug_oauth_dialog_title': 'Hitobito OAuth prüfen',
@@ -552,7 +572,7 @@ class AppLocalizations {
       'general': 'General',
       'settings_notifications': 'Notification settings',
       'pull_notifications_title': 'Announcements',
-      'settings_unread_notifications_title': 'Unread announcements',
+      'settings_unread_notifications_title': 'Announcements',
       'settings_unread_notifications_hint':
           'You have {count} unread announcements. Open the full list in Debug & Tools.',
       'settings_unread_notifications_urgent_hint':
@@ -722,6 +742,13 @@ class AppLocalizations {
           'The app continues to show local data. Tap here to try the connection again.',
       'settings_hitobito_issue_relogin_body':
           'The app continues to show local data. Tap here to sign in to Hitobito again.',
+      'settings_hitobito_issue_offline_body':
+          'You are currently offline. The app shows local data and reconnects automatically once network access is available.',
+      'settings_data_expiry_soon_title': 'Local data will expire soon',
+      'settings_data_expiry_soon_body':
+          'Sign in again within {days} days to keep local data available.',
+      'settings_messages_retention_hint':
+          'Note: External notifications are automatically hidden after at most 3 days.',
       'logout': 'Logout',
       'developed_with': 'Built with',
       'developed_in_hamburg': 'in Hamburg',
@@ -1029,6 +1056,18 @@ class AppLocalizations {
           'Quick access to the changelog and incoming announcements.',
       'debug_references_show_changelog': 'Show changelog',
       'debug_references_show_notifications': 'Show announcements',
+      'debug_external_notifications_section_title': 'External notifications',
+      'debug_external_notifications_section_subtitle':
+          'Inspect and control the external notifications source.',
+      'debug_external_notifications_show_all': 'Show all',
+      'debug_external_notifications_reset_ack': 'Reset acknowledged status',
+      'debug_external_notifications_refresh_now': 'Refresh now',
+      'debug_external_notifications_reset_done':
+          'Acknowledged status was reset.',
+      'debug_external_notifications_refresh_done':
+          'External notifications were refreshed.',
+      'debug_external_notifications_action_failed':
+          'External notifications action failed.',
       'debug_reset_subtitle':
           'These actions are invasive. The styling is intentionally more prominent while the behavior remains unchanged.',
       'debug_oauth_dialog_title': 'Check Hitobito OAuth',

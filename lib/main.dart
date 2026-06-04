@@ -22,6 +22,7 @@ import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/model/member_edit_model.dart';
 import 'package:nami/presentation/notifications/app_update_dialog.dart';
+import 'package:nami/presentation/notifications/notifications_hub.dart';
 import 'package:nami/presentation/notifications/welcome_dialog.dart';
 import 'package:nami/presentation/screens/auth_gate_screen.dart';
 import 'package:nami/presentation/theme/theme.dart';
@@ -41,6 +42,7 @@ import 'l10n/app_localizations.dart';
 import 'presentation/model/app_settings_model.dart';
 import 'presentation/model/locale_model.dart';
 import 'presentation/model/member_filters_model.dart';
+import 'presentation/model/urgent_notification_model.dart';
 import 'presentation/navigation/app_router.dart';
 import 'presentation/notifications/app_snackbar.dart';
 import 'services/app_reset_service.dart';
@@ -48,6 +50,7 @@ import 'services/app_runtime_controller.dart';
 import 'services/app_startup_state_service.dart';
 import 'services/app_update_service.dart';
 import 'services/biometric_lock_service.dart';
+import 'services/data_expiry_notification_service.dart';
 import 'services/hitobito_auth_config_controller.dart';
 import 'services/hitobito_auth_env.dart';
 import 'services/hitobito_data_retention_policy.dart';
@@ -82,6 +85,7 @@ void main() {
       final memberFilterRepository = SharedPrefsMemberFilterRepository();
       final appStartupStateService = AppStartupStateService();
       final AppSettings initial = await settingsRepo.load();
+      final urgentNotificationModel = UrgentNotificationModel();
       final localeModel = LocaleModel(
         persist: (code) => settingsRepo.saveLanguageCode(code),
       )..setLocale(Locale(initial.languageCode), persist: false);
@@ -105,6 +109,9 @@ void main() {
       );
       final appUpdateService = AppUpdateService(
         networkAccessPolicy: networkAccessPolicy,
+      );
+      final dataExpiryNotificationService = DataExpiryNotificationService(
+        logger: logger!,
       );
       final mapTileCacheService = MapTileCacheService(
         logger: logger,
@@ -260,6 +267,9 @@ void main() {
             Provider<AppSettingsRepository>.value(value: settingsRepo),
             Provider<NetworkAccessPolicy>.value(value: networkAccessPolicy),
             Provider<AppUpdateService>.value(value: appUpdateService),
+            Provider<DataExpiryNotificationService>.value(
+              value: dataExpiryNotificationService,
+            ),
             Provider<AppStartupStateService>.value(
               value: appStartupStateService,
             ),
@@ -269,6 +279,9 @@ void main() {
             ),
             ChangeNotifierProvider<MemberFiltersModel>.value(
               value: memberFiltersModel,
+            ),
+            ChangeNotifierProvider<UrgentNotificationModel>.value(
+              value: urgentNotificationModel,
             ),
             ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
             ChangeNotifierProvider<ArbeitskontextModel>.value(
@@ -330,6 +343,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   late final MemberEditModel _memberEditModel;
   late final AppResetService _appResetService;
   late final AppStartupStateService _appStartupStateService;
+  late final DataExpiryNotificationService _dataExpiryNotificationService;
+  late final UrgentNotificationModel _urgentNotificationModel;
   late final AppRuntimeController _appRuntimeController;
   late final Connectivity _connectivity;
   late final WifiSyncTrigger _wifiSyncTrigger;
@@ -339,7 +354,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
   PullNotificationsCubit? _notificationsCubit;
   StreamSubscription<PullNotificationsState>? _notificationsSubscription;
-  String? _currentUrgentId;
   PullNotificationsLoaded? _pendingNotificationsState;
   bool _didCheckForAppUpdate = false;
   bool _startupFlowCompleted = false;
@@ -357,12 +371,18 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _memberEditModel = context.read<MemberEditModel>();
     _appResetService = context.read<AppResetService>();
     _appStartupStateService = context.read<AppStartupStateService>();
+    _dataExpiryNotificationService = context
+        .read<DataExpiryNotificationService>();
+    _urgentNotificationModel = context.read<UrgentNotificationModel>();
     _appRuntimeController = AppRuntimeController(resetApp: _performFullReset);
     _connectivity = Connectivity();
     _wifiSyncTrigger = WifiSyncTrigger();
     _lastNoMobileDataEnabled = _appSettingsModel.noMobileDataEnabled;
     _authModel.addListener(_handleAuthModelChanged);
     _appSettingsModel.addListener(_handleAppSettingsChanged);
+    _urgentNotificationModel.setAcknowledgeHandler((id) async {
+      await _notificationsCubit?.acknowledge(id);
+    });
     _usage = UsageTrackingService(logger: logger);
     // Ausstehende Pause/Sessions vom letzten Lauf auswerten
     _usage.flushPendingSession();
@@ -372,6 +392,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _startPendingRetryTimer();
     _startConnectivityListener();
     unawaited(_checkCurrentConnectivityForForegroundSync(trigger: 'startup'));
+    _syncDataExpiryReminder();
     _scheduleStartupFlow();
   }
 
@@ -392,6 +413,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   void _handleAuthModelChanged() {
     _syncArbeitskontextWithAuth();
+    _syncDataExpiryReminder();
 
     final authState = _authModel.state;
     if (authState == AuthState.signedIn) {
@@ -401,11 +423,31 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     }
 
     if (authState == AuthState.unlockRequired) {
-      scaffoldMessengerKey.currentState?.hideCurrentMaterialBanner();
+      _urgentNotificationModel.setNotification(null);
       return;
     }
 
     _resetStartupFlowState();
+  }
+
+  void _syncDataExpiryReminder() {
+    final remaining = _authModel.remainingUntilRelogin;
+    final isActive =
+        _authModel.hasRemoteAccessIssue &&
+        remaining != null &&
+        remaining > Duration.zero &&
+        remaining <= const Duration(days: 3);
+
+    final daysRemaining = remaining == null
+        ? 0
+        : (remaining.inHours <= 24 ? 1 : (remaining.inHours / 24).ceil());
+
+    unawaited(
+      _dataExpiryNotificationService.updateExpiryReminder(
+        active: isActive,
+        daysRemaining: daysRemaining,
+      ),
+    );
   }
 
   void _syncArbeitskontextWithAuth() {
@@ -423,8 +465,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _startupFlowRunning = false;
     _didCheckForAppUpdate = false;
     _pendingNotificationsState = null;
-    _currentUrgentId = null;
-    scaffoldMessengerKey.currentState?.hideCurrentMaterialBanner();
+    _urgentNotificationModel.setNotification(null);
   }
 
   bool _canShowStartupUi() => _authModel.state == AuthState.signedIn;
@@ -651,13 +692,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     }
 
     if (!_startupFlowCompleted || !_canShowStartupUi()) {
-      scaffoldMessengerKey.currentState?.hideCurrentMaterialBanner();
+      _urgentNotificationModel.setNotification(null);
       return;
     }
 
     if (state is! PullNotificationsLoaded) return;
 
-    _showNotificationBanner(state);
+    _syncUrgentNotification(state);
   }
 
   void _flushPendingNotificationBanner() {
@@ -666,71 +707,52 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       return;
     }
 
-    _showNotificationBanner(state);
+    _syncUrgentNotification(state);
   }
 
-  void _showNotificationBanner(PullNotificationsLoaded state) {
+  void _syncUrgentNotification(PullNotificationsLoaded state) {
     if (!_canShowStartupUi()) {
+      _urgentNotificationModel.setNotification(null);
       return;
     }
 
-    PullNotification? urgent;
+    AppHubNotification? urgent;
+    final visibleExternal = NotificationsHub.mapVisibleExternal(
+      notifications: state.notifications,
+      acknowledged: state.acknowledged,
+    );
     try {
-      urgent = state.notifications.firstWhere(
+      urgent = visibleExternal.firstWhere(
         (notification) =>
-            notification.type == 'urgent' &&
-            !state.acknowledged.contains(notification.id),
+            notification.severity == AppNotificationSeverity.urgent,
       );
     } catch (_) {
       urgent = null;
     }
 
-    final messenger = scaffoldMessengerKey.currentState;
     if (urgent == null) {
-      _currentUrgentId = null;
-      messenger?.hideCurrentMaterialBanner();
+      _urgentNotificationModel.setNotification(null);
       return;
     }
 
-    if (_currentUrgentId == urgent.id) {
-      return;
-    }
+    _urgentNotificationModel.setNotification(_toPullNotification(urgent));
+  }
 
-    _currentUrgentId = urgent.id;
-    final locale = context.read<LocaleModel>().currentLocale;
-    final localizations =
-        AppLocalizations.maybeOf(context) ?? AppLocalizations(locale);
-    messenger
-      ?..hideCurrentMaterialBanner()
-      ..showMaterialBanner(
-        MaterialBanner(
-          backgroundColor: Theme.of(context).colorScheme.errorContainer,
-          leading: Icon(
-            Icons.notification_important_outlined,
-            color: Theme.of(context).colorScheme.onErrorContainer,
-          ),
-          content: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                urgent.title.resolve(locale),
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              const SizedBox(height: 4),
-              Text(urgent.body.resolve(locale)),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                await _notificationsCubit?.acknowledge(urgent!.id);
-              },
-              child: Text(localizations.t('acknowledge')),
-            ),
-          ],
-        ),
-      );
+  PullNotification _toPullNotification(AppHubNotification message) {
+    return PullNotification(
+      id: message.id,
+      title: message.title,
+      body: message.body,
+      type: switch (message.severity) {
+        AppNotificationSeverity.urgent => 'urgent',
+        AppNotificationSeverity.warn => 'warn',
+        AppNotificationSeverity.info => 'info',
+      },
+      createdAt: message.createdAt,
+      updatedAt: message.updatedAt,
+      deepLink: message.deepLink,
+      externalLink: message.externalLink,
+    );
   }
 
   Future<void> _performFullReset() async {
@@ -746,7 +768,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     await _notificationsCubit?.close();
     _notificationsCubit = null;
     _pendingNotificationsState = null;
-    _currentUrgentId = null;
+    _urgentNotificationModel.setNotification(null);
 
     await _authModel.logout();
     await _appResetService.resetAllData();
@@ -784,6 +806,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _authModel.removeListener(_handleAuthModelChanged);
     _appSettingsModel.removeListener(_handleAppSettingsChanged);
+    _urgentNotificationModel.setAcknowledgeHandler(null);
     _authMaintenanceTimer?.cancel();
     _pendingRetryTimer?.cancel();
     _connectivitySubscription?.cancel();

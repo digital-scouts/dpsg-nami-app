@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nami/l10n/app_localizations.dart';
 
 import '../../core/notifications/pull_notification.dart';
 
@@ -68,34 +69,25 @@ class NotificationCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (isUrgent || isWarn) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2, right: 8),
+                      child: Icon(
+                        isUrgent ? Icons.error_outline : Icons.info_outline,
+                        size: 20,
+                        color: iconColor,
+                      ),
+                    ),
+                  ],
                   Expanded(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (isUrgent || isWarn) ...[
-                          Padding(
-                            padding: const EdgeInsets.only(top: 2, right: 8),
-                            child: Icon(
-                              isUrgent
-                                  ? Icons.error_outline
-                                  : Icons.info_outline,
-                              size: 20,
-                              color: iconColor,
-                            ),
-                          ),
-                        ],
-                        Expanded(
-                          child: Text(
-                            notification.title.resolve(locale),
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: foregroundColor,
-                            ),
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      notification.title.resolve(locale),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: foregroundColor,
+                      ),
                     ),
                   ),
-                  if (onClose != null)
+                  if (onClose != null && !isUrgent)
                     IconButton(
                       visualDensity: VisualDensity.compact,
                       splashRadius: 18,
@@ -111,6 +103,17 @@ class NotificationCard extends StatelessWidget {
                   color: foregroundColor,
                 ),
               ),
+              if (onClose != null && isUrgent) ...[
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: OutlinedButton.icon(
+                    onPressed: onClose,
+                    icon: const Icon(Icons.check),
+                    label: Text(AppLocalizations.of(context).t('acknowledge')),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
