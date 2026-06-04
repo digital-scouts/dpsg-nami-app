@@ -456,7 +456,12 @@ void main() {
       await _pumpBriefly(tester);
       final syncButtonLabel = find.text('Daten jetzt aktualisieren');
       await _scrollDownUntilFinderExists(tester, syncButtonLabel);
-      await tester.ensureVisible(syncButtonLabel);
+      await tester.scrollUntilVisible(
+        syncButtonLabel,
+        80,
+        scrollable: find.byType(Scrollable),
+      );
+      await _pumpBriefly(tester);
       await tester.tap(syncButtonLabel);
       await tester.pump();
       await _pumpBriefly(tester);
@@ -695,6 +700,7 @@ class _BlockedNetworkAccessPolicy extends NetworkAccessPolicy {
   Future<void> ensureNetworkAllowed({
     required String trigger,
     String feature = 'Netzwerkzugriff',
+    bool allowMobileDataOverride = false,
   }) async {
     throw error;
   }

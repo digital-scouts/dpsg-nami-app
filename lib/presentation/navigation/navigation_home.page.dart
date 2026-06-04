@@ -259,9 +259,52 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
             ),
           );
         }
+        if (!authModel.dataSyncStatus.hasValidLocalData) {
+          return _ShellStatusView(
+            title: t.t('nav_work_context_error_title'),
+            message: t.t('nav_work_context_error_body'),
+            errorMessage: authModel.errorMessage,
+            child: FilledButton.icon(
+              onPressed: authModel.profile == null
+                  ? null
+                  : () => _retryInitialDataLoad(
+                      authModel: authModel,
+                      arbeitskontextModel: arbeitskontextModel,
+                    ),
+              icon: const Icon(Icons.refresh),
+              label: Text(t.t('common_retry')),
+            ),
+          );
+        }
 
         return null;
     }
+  }
+
+  Future<void> _retryInitialDataLoad({
+    required AuthSessionModel authModel,
+    required ArbeitskontextModel arbeitskontextModel,
+  }) async {
+    await arbeitskontextModel.clearCachedData();
+    await authModel.syncHitobitoData(
+      force: true,
+      trigger: 'initial_data_retry',
+      allowMobileDataOverride: true,
+      syncMembers: (accessToken) async {
+        await arbeitskontextModel.refreshFromRemote(
+          session: authModel.session,
+          profile: authModel.profile,
+          allowMobileDataOverride: true,
+          scheduleRolesPreload: false,
+        );
+        final rolesLoaded = await arbeitskontextModel.ensureRolesLoaded(
+          allowMobileDataOverride: true,
+        );
+        if (!rolesLoaded) {
+          throw StateError('Rollen konnten nicht vollstaendig geladen werden.');
+        }
+      },
+    );
   }
 }
 

@@ -366,6 +366,7 @@ void main() {
             required String trigger,
             required Future<T> Function(AuthSession session) action,
             bool forceRefresh = false,
+            bool allowMobileDataOverride = false,
           }) async {
             triggers.add(trigger);
             return action(
@@ -437,6 +438,7 @@ void main() {
             required String trigger,
             required Future<T> Function(AuthSession session) action,
             bool forceRefresh = false,
+            bool allowMobileDataOverride = false,
           }) async {
             triggers.add(trigger);
             return action(

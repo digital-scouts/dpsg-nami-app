@@ -40,6 +40,8 @@ class MemberDirectory extends StatefulWidget {
     this.trailingTextBuilder,
     this.roleCategoryBuilder,
     this.warningBuilder,
+    this.lastUpdateAt,
+    this.isRefreshing = false,
     this.enableGroupFilter = true,
     this.hasFilterDeviation = false,
     this.onOpenFilterOptions,
@@ -47,6 +49,7 @@ class MemberDirectory extends StatefulWidget {
     this.onGroupFilterChanged,
     this.onResetFilters,
     this.onTapMember,
+    this.onRefresh,
   });
   final List<Mitglied> mitglieder;
   final Map<String, Set<String>> mitgliedsFilterKeys;
@@ -61,6 +64,8 @@ class MemberDirectory extends StatefulWidget {
   final String? Function(Mitglied mitglied)? trailingTextBuilder;
   final RoleCategory? Function(Mitglied mitglied)? roleCategoryBuilder;
   final bool Function(Mitglied mitglied)? warningBuilder;
+  final DateTime? lastUpdateAt;
+  final bool isRefreshing;
   final bool enableGroupFilter;
   final bool hasFilterDeviation;
   final ValueChanged<MemberFilterOptionsTrigger>? onOpenFilterOptions;
@@ -69,6 +74,7 @@ class MemberDirectory extends StatefulWidget {
   final void Function({required bool hadSearch, required int selectedCount})?
   onResetFilters;
   final ValueChanged<String>? onTapMember;
+  final Future<void> Function()? onRefresh;
 
   @override
   State<MemberDirectory> createState() => _MemberDirectoryState();
@@ -210,6 +216,8 @@ class _MemberDirectoryState extends State<MemberDirectory> {
             trailingTextBuilder: widget.trailingTextBuilder,
             roleCategoryBuilder: widget.roleCategoryBuilder,
             warningBuilder: widget.warningBuilder,
+            lastUpdateAt: widget.lastUpdateAt,
+            isRefreshing: widget.isRefreshing,
             favourites: favourites,
             selectedFilterKeys: widget.enableGroupFilter
                 ? selectedFilterKeys
@@ -223,6 +231,7 @@ class _MemberDirectoryState extends State<MemberDirectory> {
             onTapMember: (id) {
               widget.onTapMember?.call(id);
             },
+            onRefresh: widget.onRefresh,
           ),
         ),
       ],

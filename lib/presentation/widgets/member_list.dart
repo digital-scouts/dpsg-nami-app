@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:nami/domain/member/member_list_preferences.dart';
 import 'package:nami/domain/member/member_utils.dart';
@@ -36,6 +38,8 @@ class MemberList extends StatelessWidget {
     this.trailingTextBuilder,
     this.roleCategoryBuilder,
     this.warningBuilder,
+    this.lastUpdateAt,
+    this.isRefreshing = false,
     this.favourites = const {},
     this.selectedFilterKeys = const <String>{},
     this.mitgliedsFilterKeys = const <String, Set<String>>{},
@@ -43,6 +47,7 @@ class MemberList extends StatelessWidget {
     this.onToggleFavourite,
     this.onTapMember,
     this.onTapSortHint,
+    this.onRefresh,
   });
   final List<Mitglied> mitglieder;
   final String searchString;
@@ -53,6 +58,8 @@ class MemberList extends StatelessWidget {
   final String? Function(Mitglied mitglied)? trailingTextBuilder;
   final RoleCategory? Function(Mitglied mitglied)? roleCategoryBuilder;
   final bool Function(Mitglied mitglied)? warningBuilder;
+  final DateTime? lastUpdateAt;
+  final bool isRefreshing;
   final Set<String> favourites;
   final Set<String> selectedFilterKeys;
   final Map<String, Set<String>> mitgliedsFilterKeys;
@@ -60,6 +67,7 @@ class MemberList extends StatelessWidget {
   final ValueChanged<String>? onToggleFavourite;
   final ValueChanged<String>? onTapMember;
   final VoidCallback? onTapSortHint;
+  final Future<void> Function()? onRefresh;
 
   @override
   Widget build(BuildContext context) {
@@ -112,7 +120,7 @@ class MemberList extends StatelessWidget {
       }
     });
 
-    return Column(
+    final listContent = Column(
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -120,9 +128,11 @@ class MemberList extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  t.tParams('member_list_count', <String, Object>{
-                    'count': filtered.length,
-                  }),
+                  _lastUpdateLabel(context, t).isEmpty
+                      ? t.tParams('member_list_count', <String, Object>{
+                          'count': filtered.length,
+                        })
+                      : _lastUpdateLabel(context, t),
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
                     fontSize: 13,
                     color: Theme.of(context).colorScheme.outlineVariant,
@@ -181,8 +191,26 @@ class MemberList extends StatelessWidget {
                 )
               : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  itemCount: filtered.length,
+                  itemCount: filtered.length + 1,
                   itemBuilder: (ctx, i) {
+                    if (i == filtered.length) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        child: Text(
+                          t.tParams(
+                            'member_list_footer_count',
+                            <String, Object>{'count': filtered.length},
+                          ),
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.outlineVariant,
+                              ),
+                        ),
+                      );
+                    }
                     final entry = filtered[i];
                     final m = entry.mitglied;
                     return MemberListTile(
@@ -212,6 +240,54 @@ class MemberList extends StatelessWidget {
         ),
       ],
     );
+
+    if (onRefresh == null) {
+      return listContent;
+    }
+
+    return RefreshIndicator(
+      onRefresh: () {
+        unawaited(onRefresh!());
+        return Future<void>.value();
+      },
+      child: listContent,
+    );
+  }
+
+  String _lastUpdateLabel(BuildContext context, AppLocalizations t) {
+    final updatedAt = lastUpdateAt;
+    if (updatedAt == null) {
+      return '';
+    }
+    final difference = DateTime.now().difference(updatedAt);
+    final label = _relativeLastUpdateLabel(t, difference);
+    return t.tParams('member_list_last_update', <String, Object>{
+      'time': label,
+    });
+  }
+
+  String _relativeLastUpdateLabel(AppLocalizations t, Duration difference) {
+    if (difference.inSeconds < 5) {
+      return t.t('member_list_last_update_now');
+    }
+    if (difference.inMinutes < 1) {
+      return t.tParams('member_list_last_update_seconds', <String, Object>{
+        'count': difference.inSeconds,
+      });
+    }
+    if (difference.inHours < 1) {
+      return t.tParams('member_list_last_update_minutes', <String, Object>{
+        'count': difference.inMinutes,
+      });
+    }
+    if (difference.inDays < 1) {
+      return t.tParams('member_list_last_update_hours', <String, Object>{
+        'count': difference.inHours,
+      });
+    }
+    return t.tParams('member_list_last_update_days', <String, Object>{
+      'count': difference.inDays,
+    });
   }
 
   String _sortHintLabel(AppLocalizations t, MemberSortKey key) {

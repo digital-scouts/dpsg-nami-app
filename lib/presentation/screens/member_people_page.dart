@@ -9,6 +9,7 @@ import '../../domain/member_filters/usecases/ermittle_member_filter_treffer_usec
 import '../../domain/taetigkeit/klassifiziere_mitglied_usecase.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/logger_service.dart';
+import '../../services/network_access_policy.dart';
 import '../model/app_settings_model.dart';
 import '../model/arbeitskontext_model.dart';
 import '../model/auth_session_model.dart';
@@ -249,6 +250,7 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
     }
 
     if (members.isNotEmpty) {
+      final syncStatus = authModel.dataSyncStatus;
       return MemberDirectory(
         mitglieder: members,
         sortKey: sortKey,
@@ -265,6 +267,8 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
               ),
         trailingTextBuilder: (member) =>
             _buildPrimaryGroupRole(member, arbeitskontextModel),
+        lastUpdateAt: syncStatus.lastSuccessfulSyncAt,
+        isRefreshing: syncStatus.isSyncing,
         mitgliedsFilterKeys: mitgliedsFilterKeys,
         fixedFilterGroups: fixedFilterGroups,
         customFilterGroups: memberFiltersModel?.customGroups ?? const [],
@@ -302,6 +306,7 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
           _logMemberDetailOpened(context);
           _openMemberDetails(context, selectedMember);
         },
+        onRefresh: () => _refreshMembers(context),
       );
     }
 
@@ -323,6 +328,71 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
         padding: const EdgeInsets.all(24),
         child: Text(t.t('members_empty'), textAlign: TextAlign.center),
       ),
+    );
+  }
+
+  Future<void> _refreshMembers(BuildContext context) async {
+    final t = AppLocalizations.of(context);
+    final authModel = context.read<AuthSessionModel>();
+    final arbeitskontextModel = context.read<ArbeitskontextModel>();
+    final networkAccessPolicy = context.read<NetworkAccessPolicy>();
+    final hasValidLocalData = authModel.dataSyncStatus.hasValidLocalData;
+    var allowMobileDataOverride = false;
+
+    final accessDecision = await networkAccessPolicy.evaluateAccess(
+      trigger: 'member_list_pull_refresh_preview',
+      feature: 'Hitobito',
+    );
+    if (!context.mounted) {
+      return;
+    }
+    if (!accessDecision.allowed &&
+        accessDecision.blockedReason ==
+            NetworkAccessBlockedReason.noMobileDataEnabled &&
+        hasValidLocalData) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(t.t('member_list_mobile_refresh_title')),
+          content: Text(t.t('member_list_mobile_refresh_body')),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(t.t('member_list_mobile_refresh_cancel')),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(t.t('member_list_mobile_refresh_confirm')),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) {
+        return;
+      }
+      allowMobileDataOverride = true;
+    }
+
+    await authModel.syncHitobitoData(
+      force: true,
+      trigger: 'member_list_pull_refresh',
+      allowMobileDataOverride: allowMobileDataOverride || !hasValidLocalData,
+      syncMembers: (accessToken) async {
+        await arbeitskontextModel.refreshFromRemote(
+          session: authModel.session,
+          profile: authModel.profile,
+          allowMobileDataOverride:
+              allowMobileDataOverride || !hasValidLocalData,
+          scheduleRolesPreload: false,
+        );
+        final rolesLoaded = await arbeitskontextModel.ensureRolesLoaded(
+          allowMobileDataOverride:
+              allowMobileDataOverride || !hasValidLocalData,
+        );
+        if (!rolesLoaded) {
+          throw StateError('Rollen konnten nicht vollstaendig geladen werden.');
+        }
+      },
     );
   }
 

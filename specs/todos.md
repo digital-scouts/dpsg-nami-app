@@ -72,12 +72,18 @@ Nächste Aufgaben:
 - Anrufen/E-Mail buttons disable wenn keine Telefon/Mail vorhanden
 - GitHub-Pages-Wiki/Userguide für Konfliktlösung, Datenspeicherung und Löschung schreiben.
 - Problemlösungs-Screen prüfen: Bereich "Mitglied bearbeiten" bleibt beim Einstieg eingeklappt, kann aber gut sichtbar aufgeklappt werden.
-- Debug&Tools Adress-Cache löschen.
+- Debug&Tools Adress-Cache löschen button
+- Einsettungen Messages bleiben stehen auch wenn sie ackn worden sind. Erst bei tab wechsel und neu öffnen von einstellungen verschwinden sie wie gewünscht.
 
 ## Task 6: Bei erststart nach Update alte daten löschen
 
 - Kommt ein User von der alten app (Version vor 1.0.0) passt die datenstruktur nicht zur neuen App.
 - Alten Datenstand komplett entfernen und app neu initalisieren um probleme zu vermeiden.
+
+## Task 7: Erstes Laden unabhängig von WLAN
+
+- Das erste Laden (keine Daten vorhanden) muss unabhängig von der Wlan einstellung immer gemacht werden. Ansonsten kommt es zu problemen
+- Skelloton anzeigen beim ersten laden um fortschritt zu signalisieren
 
 ## Später prüfen: Arbeitskontext-Ausbau
 

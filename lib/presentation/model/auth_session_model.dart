@@ -15,6 +15,37 @@ import '../../services/logger_service.dart';
 import '../../services/network_access_policy.dart';
 import '../../services/sensitive_storage_service.dart';
 
+enum SyncAttemptResult {
+  success,
+  wifiOnly,
+  loginRequired,
+  networkError,
+  serverError,
+  unknownError,
+}
+
+enum NextSyncDisplayKind { atTime, whenWifiAvailable, loginRequired }
+
+class DataSyncStatus {
+  const DataSyncStatus({
+    required this.isSyncing,
+    required this.hasValidLocalData,
+    required this.lastSuccessfulSyncAt,
+    required this.lastAttemptAt,
+    required this.lastAttemptResult,
+    required this.nextSyncKind,
+    required this.nextSyncAt,
+  });
+
+  final bool isSyncing;
+  final bool hasValidLocalData;
+  final DateTime? lastSuccessfulSyncAt;
+  final DateTime? lastAttemptAt;
+  final SyncAttemptResult? lastAttemptResult;
+  final NextSyncDisplayKind? nextSyncKind;
+  final DateTime? nextSyncAt;
+}
+
 class AuthSessionModel extends ChangeNotifier {
   AuthSessionModel({
     required AuthSessionRepository repository,
@@ -69,6 +100,7 @@ class AuthSessionModel extends ChangeNotifier {
   bool _isLoadingProfile = false;
   bool _isSyncingHitobitoData = false;
   bool _isUserInitiatedSyncInProgress = false;
+  SyncAttemptResult? _lastSyncAttemptResult;
 
   AuthState get state => _state;
   AuthSession? get session => _session;
@@ -83,6 +115,16 @@ class AuthSessionModel extends ChangeNotifier {
   bool get isLoadingProfile => _isLoadingProfile;
   bool get isSyncingHitobitoData => _isSyncingHitobitoData;
   bool get isUserInitiatedSyncInProgress => _isUserInitiatedSyncInProgress;
+  SyncAttemptResult? get lastSyncAttemptResult => _lastSyncAttemptResult;
+  DataSyncStatus get dataSyncStatus => DataSyncStatus(
+    isSyncing: _isSyncingHitobitoData,
+    hasValidLocalData: _lastSensitiveSyncAt != null,
+    lastSuccessfulSyncAt: _lastSensitiveSyncAt,
+    lastAttemptAt: _lastSensitiveSyncAttemptAt,
+    lastAttemptResult: _lastSyncAttemptResult,
+    nextSyncKind: _resolveNextSyncKind(),
+    nextSyncAt: _resolveNextSyncAt(),
+  );
   bool get isConfigured => _oauthService.config.isConfigured;
   bool get hasRemoteAccessIssue => _remoteAccessIssueMessage != null;
   bool get hasUnseenRemoteAccessIssueNotice =>
@@ -358,6 +400,7 @@ class AuthSessionModel extends ChangeNotifier {
     _isLoadingProfile = false;
     _isSyncingHitobitoData = false;
     _isUserInitiatedSyncInProgress = false;
+    _lastSyncAttemptResult = null;
     _lastSensitiveSyncAt = null;
     _lastSensitiveSyncAttemptAt = null;
     _lastProfileSyncAt = null;
@@ -457,10 +500,12 @@ class AuthSessionModel extends ChangeNotifier {
   Future<AuthSession?> prepareSessionForRemoteAccess({
     required String trigger,
     bool forceRefresh = false,
+    bool allowMobileDataOverride = false,
   }) async {
     final preparation = await _prepareSessionForRemoteAccess(
       trigger: trigger,
       forceRefresh: forceRefresh,
+      allowMobileDataOverride: allowMobileDataOverride,
     );
     return preparation.session;
   }
@@ -468,6 +513,7 @@ class AuthSessionModel extends ChangeNotifier {
   Future<_PreparedRemoteAccess> _prepareSessionForRemoteAccess({
     required String trigger,
     bool forceRefresh = false,
+    bool allowMobileDataOverride = false,
   }) async {
     if (_session == null || _state == AuthState.reloginRequired) {
       return const _PreparedRemoteAccess(session: null);
@@ -485,6 +531,7 @@ class AuthSessionModel extends ChangeNotifier {
     await _networkAccessPolicy?.ensureNetworkAllowed(
       trigger: trigger,
       feature: 'Hitobito',
+      allowMobileDataOverride: allowMobileDataOverride,
     );
 
     try {
@@ -543,10 +590,12 @@ class AuthSessionModel extends ChangeNotifier {
     required Future<T> Function(AuthSession session) action,
     bool forceRefresh = false,
     bool retryOnUnauthorized = true,
+    bool allowMobileDataOverride = false,
   }) async {
     final initialPreparation = await _prepareSessionForRemoteAccess(
       trigger: '${trigger}_session',
       forceRefresh: forceRefresh,
+      allowMobileDataOverride: allowMobileDataOverride,
     );
     final activeSession = initialPreparation.session;
     if (activeSession == null) {
@@ -581,6 +630,7 @@ class AuthSessionModel extends ChangeNotifier {
       final retryPreparation = await _prepareSessionForRemoteAccess(
         trigger: '${trigger}_retry',
         forceRefresh: true,
+        allowMobileDataOverride: allowMobileDataOverride,
       );
       final refreshedSession = retryPreparation.session;
       if (refreshedSession == null) {
@@ -744,6 +794,7 @@ class AuthSessionModel extends ChangeNotifier {
     bool force = false,
     String trigger = 'manual',
     bool userInitiated = true,
+    bool allowMobileDataOverride = false,
   }) async {
     if (_isSyncingHitobitoData ||
         _session == null ||
@@ -764,24 +815,26 @@ class AuthSessionModel extends ChangeNotifier {
       await executeRemoteAccess<void>(
         trigger: '${trigger}_profile',
         forceRefresh: force,
+        allowMobileDataOverride: allowMobileDataOverride,
         action: _loadProfileFromRemote,
       );
       if (_requiresInteractiveLogin) {
-        return;
-      }
-      if (_requiresInteractiveLogin) {
+        _lastSyncAttemptResult = SyncAttemptResult.loginRequired;
         return;
       }
       await executeRemoteAccess<void>(
         trigger: '${trigger}_members',
         forceRefresh: force,
+        allowMobileDataOverride: allowMobileDataOverride,
         action: (session) => syncMembers(session.accessToken),
       );
       if (_requiresInteractiveLogin) {
+        _lastSyncAttemptResult = SyncAttemptResult.loginRequired;
         return;
       }
 
       await markSensitiveDataSynced();
+      _lastSyncAttemptResult = SyncAttemptResult.success;
       _errorMessage = null;
       _clearRemoteAccessIssue(notify: false);
     } on NetworkAccessBlockedException catch (error) {
@@ -789,6 +842,9 @@ class AuthSessionModel extends ChangeNotifier {
         'hitobito_sync',
         'Hitobito-Sync blockiert ($trigger): ${error.message}',
       );
+      _lastSyncAttemptResult = error.isBlockedByNoMobileData
+          ? SyncAttemptResult.wifiOnly
+          : SyncAttemptResult.networkError;
       _reportNetworkAccessBlockedIssue(error, notify: false);
     } catch (error, stack) {
       await _logger.log(
@@ -796,6 +852,7 @@ class AuthSessionModel extends ChangeNotifier {
         'Hitobito-Sync fehlgeschlagen ($trigger): $error\n$stack',
       );
       _errorMessage ??= error.toString();
+      _lastSyncAttemptResult = _classifySyncError(error);
       reportRemoteDataIssue(
         error.toString(),
         requiresInteractiveLogin: _isUnauthorized(error),
@@ -806,6 +863,51 @@ class AuthSessionModel extends ChangeNotifier {
       _isUserInitiatedSyncInProgress = false;
       notifyListeners();
     }
+  }
+
+  NextSyncDisplayKind? _resolveNextSyncKind() {
+    if (_isSyncingHitobitoData) {
+      return null;
+    }
+    return switch (_lastSyncAttemptResult) {
+      SyncAttemptResult.wifiOnly => NextSyncDisplayKind.whenWifiAvailable,
+      SyncAttemptResult.loginRequired => NextSyncDisplayKind.loginRequired,
+      SyncAttemptResult.networkError ||
+      SyncAttemptResult.serverError ||
+      SyncAttemptResult.unknownError => NextSyncDisplayKind.atTime,
+      SyncAttemptResult.success => NextSyncDisplayKind.atTime,
+      null => _lastSensitiveSyncAt == null ? null : NextSyncDisplayKind.atTime,
+    };
+  }
+
+  DateTime? _resolveNextSyncAt() {
+    if (_isSyncingHitobitoData) {
+      return null;
+    }
+    final attemptAt = _lastSensitiveSyncAttemptAt;
+    return switch (_lastSyncAttemptResult) {
+      SyncAttemptResult.networkError ||
+      SyncAttemptResult.serverError ||
+      SyncAttemptResult.unknownError => attemptAt?.add(
+        const Duration(minutes: 10),
+      ),
+      SyncAttemptResult.success => _lastSensitiveSyncAt?.add(
+        _retentionPolicy.refreshInterval,
+      ),
+      SyncAttemptResult.wifiOnly || SyncAttemptResult.loginRequired => null,
+      null => _lastSensitiveSyncAt?.add(_retentionPolicy.refreshInterval),
+    };
+  }
+
+  SyncAttemptResult _classifySyncError(Object error) {
+    if (_isUnauthorized(error)) {
+      return SyncAttemptResult.loginRequired;
+    }
+    final statusCode = error is HitobitoApiException ? error.statusCode : null;
+    if (statusCode != null && statusCode >= 500) {
+      return SyncAttemptResult.serverError;
+    }
+    return SyncAttemptResult.unknownError;
   }
 
   Future<void> _loadProfileFromRemote(AuthSession session) async {
@@ -897,6 +999,7 @@ class AuthSessionModel extends ChangeNotifier {
   Future<void> markSensitiveDataSyncAttempted() async {
     final attemptedAt = _retentionPolicy.now();
     _lastSensitiveSyncAttemptAt = attemptedAt;
+    _lastSyncAttemptResult = null;
     await _sensitiveStorageService.saveLastSensitiveSyncAttemptAt(attemptedAt);
   }
 

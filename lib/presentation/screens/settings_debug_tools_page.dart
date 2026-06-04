@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_email_sender/flutter_email_sender.dart';
 import 'package:intl/intl.dart';
-import 'package:nami/core/notifications/pull_notifications_repository_factory.dart';
 import 'package:nami/data/maps/shared_prefs_address_map_location_repository.dart';
 import 'package:nami/domain/auth/auth_state.dart';
 import 'package:nami/domain/maps/stamm_map_marker_repository.dart';
@@ -23,7 +22,6 @@ import '../../services/hitobito_oauth_service.dart';
 import '../../services/hitobito_traffic_log_service.dart';
 import '../../services/logger_service.dart';
 import '../../services/map_tile_cache_service.dart';
-import '../../services/network_access_policy.dart';
 import '../../services/stamm_map_sync_service.dart';
 
 class DebugToolsPage extends StatefulWidget {
@@ -177,6 +175,68 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
     return logger.listLogFileNames();
   }
 
+  List<String> _buildSyncStatusLines(
+    AppLocalizations t,
+    DataSyncStatus status,
+  ) {
+    return [
+      t.t('debug_sync_last_success', {
+        'value': _formatSyncDateTime(t, status.lastSuccessfulSyncAt),
+      }),
+      t.t('debug_sync_last_attempt', {
+        'value': _formatLastSyncAttempt(t, status),
+      }),
+      t.t('debug_sync_next', {'value': _formatNextSync(t, status)}),
+    ];
+  }
+
+  String _formatLastSyncAttempt(AppLocalizations t, DataSyncStatus status) {
+    final attemptedAt = status.lastAttemptAt;
+    final result = status.lastAttemptResult;
+    if (attemptedAt == null || result == null) {
+      return t.t('debug_sync_status_never');
+    }
+    final time = _formatSyncDateTime(t, attemptedAt);
+    if (result == SyncAttemptResult.success) {
+      return t.t('debug_sync_attempt_success', {'time': time});
+    }
+    return t.t('debug_sync_attempt_failed', {
+      'time': time,
+      'reason': _formatSyncAttemptReason(t, result),
+    });
+  }
+
+  String _formatSyncAttemptReason(
+    AppLocalizations t,
+    SyncAttemptResult result,
+  ) {
+    return switch (result) {
+      SyncAttemptResult.success => '',
+      SyncAttemptResult.wifiOnly => t.t('debug_sync_reason_wifi'),
+      SyncAttemptResult.loginRequired => t.t('debug_sync_reason_login'),
+      SyncAttemptResult.networkError => t.t('debug_sync_reason_network'),
+      SyncAttemptResult.serverError => t.t('debug_sync_reason_server'),
+      SyncAttemptResult.unknownError => t.t('debug_sync_reason_unknown'),
+    };
+  }
+
+  String _formatNextSync(AppLocalizations t, DataSyncStatus status) {
+    return switch (status.nextSyncKind) {
+      NextSyncDisplayKind.whenWifiAvailable => t.t('debug_sync_next_wifi'),
+      NextSyncDisplayKind.loginRequired => t.t('debug_sync_next_login'),
+      NextSyncDisplayKind.atTime => _formatSyncDateTime(t, status.nextSyncAt),
+      null => t.t('debug_sync_status_never'),
+    };
+  }
+
+  String _formatSyncDateTime(AppLocalizations t, DateTime? value) {
+    if (value == null) {
+      return t.t('debug_sync_status_never');
+    }
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    return DateFormat('dd.MM.yyyy, HH:mm', locale).format(value);
+  }
+
   Future<void> _refreshStammMarkers(LoggerService logger) async {
     final repository =
         widget.stammMapRepository ?? StammMapSyncService(logger: logger);
@@ -213,14 +273,6 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
     }
   }
 
-  NetworkAccessPolicy? _resolveNetworkAccessPolicy() {
-    try {
-      return context.read<NetworkAccessPolicy>();
-    } catch (_) {
-      return null;
-    }
-  }
-
   Future<void> _openAllExternalNotifications(LoggerService logger) async {
     await _trackDebugAction(logger, 'open_external_notifications_all');
     if (!mounted) {
@@ -231,66 +283,6 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
       '/notifications',
       arguments: <String, dynamic>{'showAllAcknowledged': true},
     );
-  }
-
-  Future<void> _resetExternalNotificationAcks(LoggerService logger) async {
-    try {
-      await _trackDebugAction(logger, 'reset_external_notification_acks');
-      final repo = await createPullNotificationsRepository(
-        logger: logger,
-        networkAccessPolicy: _resolveNetworkAccessPolicy(),
-      );
-      await repo.resetAcknowledgedNotifications();
-      if (!mounted) {
-        return;
-      }
-      _showSnackbar(
-        AppLocalizations.of(
-          context,
-        ).t('debug_external_notifications_reset_done'),
-        type: AppSnackbarType.success,
-      );
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      _showSnackbar(
-        AppLocalizations.of(
-          context,
-        ).t('debug_external_notifications_action_failed'),
-        type: AppSnackbarType.error,
-      );
-    }
-  }
-
-  Future<void> _refreshExternalNotificationsNow(LoggerService logger) async {
-    try {
-      await _trackDebugAction(logger, 'refresh_external_notifications_now');
-      final repo = await createPullNotificationsRepository(
-        logger: logger,
-        networkAccessPolicy: _resolveNetworkAccessPolicy(),
-      );
-      await repo.fetchNotifications(forceRefresh: true);
-      if (!mounted) {
-        return;
-      }
-      _showSnackbar(
-        AppLocalizations.of(
-          context,
-        ).t('debug_external_notifications_refresh_done'),
-        type: AppSnackbarType.success,
-      );
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      _showSnackbar(
-        AppLocalizations.of(
-          context,
-        ).t('debug_external_notifications_action_failed'),
-        type: AppSnackbarType.error,
-      );
-    }
   }
 
   Future<void> _deleteMapCache(
@@ -808,81 +800,117 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                   icon: Icons.sync_alt_outlined,
                   title: t.t('debug_sync_section_title'),
                   subtitle: t.t('debug_sync_section_subtitle'),
-                  child: _DebugButtonGroup(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _DebugActionButton(
-                        icon: Icons.refresh_outlined,
-                        label: t.t('debug_sync_now'),
-                        onPressed: authModel.isSyncingHitobitoData
-                            ? null
-                            : () async {
-                                await _trackDebugAction(
-                                  logger,
-                                  'sync_data_now',
-                                );
-                                await authModel.syncHitobitoData(
-                                  syncMembers: (accessToken) async {
-                                    await arbeitskontextModel.refreshFromRemote(
-                                      session: authModel.session,
-                                      profile: authModel.profile,
+                      ..._buildSyncStatusLines(t, authModel.dataSyncStatus).map(
+                        (line) => Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Text(
+                            line,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      _DebugButtonGroup(
+                        children: [
+                          _DebugActionButton(
+                            icon: Icons.refresh_outlined,
+                            label: t.t('debug_sync_now'),
+                            onPressed: authModel.isSyncingHitobitoData
+                                ? null
+                                : () async {
+                                    await _trackDebugAction(
+                                      logger,
+                                      'sync_data_now',
+                                    );
+                                    await authModel.syncHitobitoData(
+                                      syncMembers: (accessToken) async {
+                                        await arbeitskontextModel
+                                            .refreshFromRemote(
+                                              session: authModel.session,
+                                              profile: authModel.profile,
+                                              scheduleRolesPreload: false,
+                                            );
+                                        final rolesLoaded =
+                                            await arbeitskontextModel
+                                                .ensureRolesLoaded();
+                                        if (!rolesLoaded) {
+                                          throw StateError(
+                                            'Rollen konnten nicht vollstaendig geladen werden.',
+                                          );
+                                        }
+                                      },
+                                      force: true,
+                                      trigger: 'debug_tools',
+                                    );
+
+                                    if (!context.mounted) {
+                                      return;
+                                    }
+
+                                    final messenger = ScaffoldMessenger.of(
+                                      context,
+                                    );
+                                    final message = switch ((
+                                      authModel
+                                          .isRemoteAccessBlockedByNetworkPolicy,
+                                      authModel.state ==
+                                          AuthState.reloginRequired,
+                                      authModel.errorMessage?.isNotEmpty ==
+                                          true,
+                                    )) {
+                                      (true, _, _) =>
+                                        authModel.remoteAccessIssueMessage ??
+                                            authModel.errorMessage ??
+                                            t.t('debug_sync_network_blocked'),
+                                      (_, true, _) => t.t(
+                                        'debug_sync_relogin_required',
+                                      ),
+                                      (_, _, true) => t.t(
+                                        'debug_sync_partial_failure',
+                                      ),
+                                      _ => t.t('debug_sync_success'),
+                                    };
+                                    final type = switch ((
+                                      authModel
+                                          .isRemoteAccessBlockedByNetworkPolicy,
+                                      authModel.state ==
+                                          AuthState.reloginRequired,
+                                      authModel.errorMessage?.isNotEmpty ==
+                                          true,
+                                    )) {
+                                      (true, _, _) => AppSnackbarType.warning,
+                                      (_, true, _) => AppSnackbarType.warning,
+                                      (_, _, true) => AppSnackbarType.warning,
+                                      _ => AppSnackbarType.success,
+                                    };
+                                    AppSnackbar.showOnMessenger(
+                                      messenger: messenger,
+                                      context: context,
+                                      message: message,
+                                      type: type,
                                     );
                                   },
-                                  force: true,
-                                  trigger: 'debug_tools',
-                                );
-
-                                if (!context.mounted) {
-                                  return;
-                                }
-
-                                final messenger = ScaffoldMessenger.of(context);
-                                final message = switch ((
-                                  authModel
-                                      .isRemoteAccessBlockedByNetworkPolicy,
-                                  authModel.state == AuthState.reloginRequired,
-                                  authModel.errorMessage?.isNotEmpty == true,
-                                )) {
-                                  (true, _, _) =>
-                                    authModel.remoteAccessIssueMessage ??
-                                        authModel.errorMessage ??
-                                        t.t('debug_sync_network_blocked'),
-                                  (_, true, _) => t.t(
-                                    'debug_sync_relogin_required',
-                                  ),
-                                  (_, _, true) => t.t(
-                                    'debug_sync_partial_failure',
-                                  ),
-                                  _ => t.t('debug_sync_success'),
-                                };
-                                final type = switch ((
-                                  authModel
-                                      .isRemoteAccessBlockedByNetworkPolicy,
-                                  authModel.state == AuthState.reloginRequired,
-                                  authModel.errorMessage?.isNotEmpty == true,
-                                )) {
-                                  (true, _, _) => AppSnackbarType.warning,
-                                  (_, true, _) => AppSnackbarType.warning,
-                                  (_, _, true) => AppSnackbarType.warning,
-                                  _ => AppSnackbarType.success,
-                                };
-                                AppSnackbar.showOnMessenger(
-                                  messenger: messenger,
-                                  context: context,
-                                  message: message,
-                                  type: type,
-                                );
-                              },
-                      ),
-                      _DebugActionButton(
-                        icon: Icons.visibility_outlined,
-                        label: t.t('debug_sync_view_changes'),
-                        onPressed: () async {
-                          await _trackDebugAction(logger, 'view_data_changes');
-                          _showSnackbar(
-                            t.t('debug_sync_changes_not_implemented'),
-                            type: AppSnackbarType.info,
-                          );
-                        },
+                          ),
+                          _DebugActionButton(
+                            icon: Icons.visibility_outlined,
+                            label: t.t('debug_sync_view_changes'),
+                            onPressed: () async {
+                              await _trackDebugAction(
+                                logger,
+                                'view_data_changes',
+                              );
+                              _showSnackbar(
+                                t.t('debug_sync_changes_not_implemented'),
+                                type: AppSnackbarType.info,
+                              );
+                            },
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -941,24 +969,21 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                                       FutureBuilder<int>(
                                         future: _loadCachedAddressCount(),
                                         builder: (context, countSnapshot) {
-                                          final countText =
-                                              switch (countSnapshot
-                                                  .connectionState) {
-                                                ConnectionState.done when
-                                                countSnapshot.hasData => t.t(
-                                                  'debug_map_cached_addresses_count',
-                                                  {
-                                                    'count':
-                                                        countSnapshot.data!,
-                                                  },
-                                                ),
-                                                ConnectionState.done => t.t(
-                                                  'debug_map_cached_addresses_unavailable',
-                                                ),
-                                                _ => t.t(
-                                                  'debug_map_cached_addresses_loading',
-                                                ),
-                                              };
+                                          final countText = switch (countSnapshot
+                                              .connectionState) {
+                                            ConnectionState.done
+                                                when countSnapshot.hasData =>
+                                              t.t(
+                                                'debug_map_cached_addresses_count',
+                                                {'count': countSnapshot.data!},
+                                              ),
+                                            ConnectionState.done => t.t(
+                                              'debug_map_cached_addresses_unavailable',
+                                            ),
+                                            _ => t.t(
+                                              'debug_map_cached_addresses_loading',
+                                            ),
+                                          };
                                           return Column(
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.start,
@@ -973,7 +998,9 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                                               const SizedBox(height: 4),
                                               Text(
                                                 countText,
-                                                style: theme.textTheme.bodyMedium
+                                                style: theme
+                                                    .textTheme
+                                                    .bodyMedium
                                                     ?.copyWith(
                                                       color: colorScheme
                                                           .onSurfaceVariant,
@@ -1108,17 +1135,6 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                         icon: Icons.visibility_outlined,
                         label: t.t('debug_external_notifications_show_all'),
                         onPressed: () => _openAllExternalNotifications(logger),
-                      ),
-                      _DebugActionButton(
-                        icon: Icons.restart_alt,
-                        label: t.t('debug_external_notifications_reset_ack'),
-                        onPressed: () => _resetExternalNotificationAcks(logger),
-                      ),
-                      _DebugActionButton(
-                        icon: Icons.sync,
-                        label: t.t('debug_external_notifications_refresh_now'),
-                        onPressed: () =>
-                            _refreshExternalNotificationsNow(logger),
                       ),
                     ],
                   ),

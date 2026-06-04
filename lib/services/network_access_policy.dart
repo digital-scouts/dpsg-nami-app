@@ -101,6 +101,7 @@ class NetworkAccessPolicy {
   Future<NetworkAccessDecision> evaluateAccess({
     required String trigger,
     String feature = 'Netzwerk',
+    bool allowMobileDataOverride = false,
   }) async {
     final connectionType = await _resolveConnectionType();
     if (connectionType == NetworkConnectionType.offline) {
@@ -112,7 +113,9 @@ class NetworkAccessPolicy {
       );
     }
 
-    if (isNoMobileDataEnabled && connectionType != NetworkConnectionType.wifi) {
+    if (!allowMobileDataOverride &&
+        isNoMobileDataEnabled &&
+        connectionType != NetworkConnectionType.wifi) {
       return NetworkAccessDecision.blocked(
         type: connectionType,
         reason: NetworkAccessBlockedReason.noMobileDataEnabled,
@@ -127,8 +130,13 @@ class NetworkAccessPolicy {
   Future<void> ensureNetworkAllowed({
     required String trigger,
     String feature = 'Netzwerkzugriff',
+    bool allowMobileDataOverride = false,
   }) async {
-    final decision = await evaluateAccess(trigger: trigger, feature: feature);
+    final decision = await evaluateAccess(
+      trigger: trigger,
+      feature: feature,
+      allowMobileDataOverride: allowMobileDataOverride,
+    );
     if (decision.allowed) {
       return;
     }
