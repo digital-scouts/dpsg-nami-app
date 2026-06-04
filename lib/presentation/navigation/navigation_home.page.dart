@@ -9,6 +9,7 @@ import 'package:nami/presentation/navigation/app_router.dart';
 import 'package:nami/presentation/notifications/notification_card.dart';
 import 'package:nami/presentation/screens/member_people_page.dart';
 import 'package:nami/presentation/screens/settings_page.dart';
+import 'package:nami/presentation/screens/settings_stufenwechsel_page.dart';
 import 'package:nami/presentation/screens/statistics_page.dart';
 import 'package:nami/presentation/widgets/app_bottom_navigation.dart';
 import 'package:nami/services/logger_service.dart';
@@ -25,30 +26,20 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
   int _index = 0;
 
   static const List<String> _tabIds = <String>[
-    'my_stage',
     'members',
     'statistics',
+    'stage_change',
     'settings',
   ];
 
   @override
   Widget build(BuildContext context) {
-    final t = AppLocalizations.of(context);
     final authModel = context.watch<AuthSessionModel>();
     final arbeitskontextModel = context.watch<ArbeitskontextModel>();
     final urgentNotification = _currentUrgentNotification(context);
-    final startseitenTitel = t.t('nav_my_stage');
     Widget body;
     switch (_index) {
       case 0:
-        body = _buildProtectedBody(
-          context,
-          readyBody: Center(child: Text(startseitenTitel)),
-          authModel: authModel,
-          arbeitskontextModel: arbeitskontextModel,
-        );
-        break;
-      case 1:
         body = _buildProtectedBody(
           context,
           readyBody: const MemberPeoplePage(),
@@ -56,10 +47,18 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
           arbeitskontextModel: arbeitskontextModel,
         );
         break;
-      case 2:
+      case 1:
         body = _buildProtectedBody(
           context,
           readyBody: const StatisticsPage(),
+          authModel: authModel,
+          arbeitskontextModel: arbeitskontextModel,
+        );
+        break;
+      case 2:
+        body = _buildProtectedBody(
+          context,
+          readyBody: const SettingsStufenwechselPage(showAppBar: false),
           authModel: authModel,
           arbeitskontextModel: arbeitskontextModel,
         );
@@ -70,8 +69,6 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
               Navigator.pushNamed(context, AppRoutes.settingsStamm),
           onAppSettings: () =>
               Navigator.pushNamed(context, AppRoutes.settingsApp),
-          onStufenwechsel: () =>
-              Navigator.pushNamed(context, AppRoutes.settingsStufenwechsel),
           onMessages: () =>
               Navigator.pushNamed(context, AppRoutes.settingsMessages),
           onImpressum: () =>
@@ -90,7 +87,7 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
         );
         break;
       default:
-        body = Center(child: Text(t.t('nav_my_stage')));
+        body = const MemberPeoplePage();
     }
 
     return Scaffold(

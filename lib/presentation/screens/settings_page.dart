@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:nami/core/notifications/pull_notifications_repository_factory.dart';
 import 'package:nami/l10n/app_localizations.dart';
@@ -17,13 +19,14 @@ class SettingsPage extends StatefulWidget {
   final VoidCallback? onNotificationSettings;
   final VoidCallback? onAppSettings;
   final VoidCallback? onMapSettings;
-  final VoidCallback? onMessages;
+  final FutureOr<void> Function()? onMessages;
   final VoidCallback? onImpressum;
   final VoidCallback? onDatenschutz;
-  final VoidCallback? onStufenwechsel;
   final VoidCallback? onDebugTools;
   final VoidCallback? onProfile;
   final String? appVersion;
+  final Future<List<AppHubNotification>> Function()?
+  unreadExternalNotificationsLoader;
 
   const SettingsPage({
     super.key,
@@ -34,10 +37,10 @@ class SettingsPage extends StatefulWidget {
     this.onMessages,
     this.onImpressum,
     this.onDatenschutz,
-    this.onStufenwechsel,
     this.onDebugTools,
     this.onProfile,
     this.appVersion,
+    this.unreadExternalNotificationsLoader,
   });
 
   @override
@@ -83,6 +86,10 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<List<AppHubNotification>> _loadUnreadExternalNotifications() async {
+    final loader = widget.unreadExternalNotificationsLoader;
+    if (loader != null) {
+      return loader();
+    }
     try {
       final logger = context.read<LoggerService>();
       final repo = await createPullNotificationsRepository(
@@ -98,6 +105,16 @@ class _SettingsPageState extends State<SettingsPage> {
     } catch (_) {
       return const <AppHubNotification>[];
     }
+  }
+
+  Future<void> _openMessages() async {
+    await widget.onMessages?.call();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _unreadExternalNotificationsFuture = _loadUnreadExternalNotifications();
+    });
   }
 
   AppUpdateService _resolveAppUpdateService() {
@@ -237,7 +254,9 @@ class _SettingsPageState extends State<SettingsPage> {
                           body: primaryMessage.body.resolve(locale),
                           count: hubMessages.length,
                           hasStack: hubMessages.length > 1,
-                          onTap: widget.onMessages,
+                          onTap: widget.onMessages == null
+                              ? null
+                              : () => unawaited(_openMessages()),
                         ),
                         const SizedBox(height: 12),
                       ],
@@ -247,11 +266,24 @@ class _SettingsPageState extends State<SettingsPage> {
                         child: Column(
                           children: [
                             _SettingsNavTile(
-                              icon: Icons.swap_horiz,
-                              iconBackgroundColor: const Color(0xFF00823C),
-                              title: 'Stufenwechsel',
-                              subtitle: 'Mitglieder in neue Stufe versetzen',
-                              onTap: widget.onStufenwechsel,
+                              icon: Icons.receipt_long_outlined,
+                              iconBackgroundColor: const Color(0xFF8E8E93),
+                              title: t.t('settings_quick_invoices'),
+                              subtitle: t.t('settings_quick_placeholder'),
+                            ),
+                            const _SettingsRowDivider(),
+                            _SettingsNavTile(
+                              icon: Icons.event_outlined,
+                              iconBackgroundColor: const Color(0xFF8E8E93),
+                              title: t.t('settings_quick_events'),
+                              subtitle: t.t('settings_quick_placeholder'),
+                            ),
+                            const _SettingsRowDivider(),
+                            _SettingsNavTile(
+                              icon: Icons.alternate_email,
+                              iconBackgroundColor: const Color(0xFF8E8E93),
+                              title: t.t('settings_quick_subscriptions'),
+                              subtitle: t.t('settings_quick_placeholder'),
                             ),
                             const _SettingsRowDivider(),
                             _SettingsNavTile(

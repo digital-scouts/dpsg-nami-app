@@ -1,10 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nami/l10n/app_localizations.dart';
+import 'package:nami/presentation/screens/member_detail_page.dart';
 import 'package:nami/presentation/screens/settings_stufenwechsel_page.dart';
 
 void main() {
   Widget buildTestApp(Widget child) {
-    return MaterialApp(home: child);
+    return MaterialApp(
+      localizationsDelegates: [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('de'), Locale('en')],
+      locale: const Locale('de'),
+      home: child,
+    );
   }
 
   Future<void> scrollUntilFound(
@@ -83,6 +96,18 @@ void main() {
     },
   );
 
+  testWidgets('Tap auf Mitglied oeffnet Mitgliedsdetails', (tester) async {
+    await tester.pumpWidget(buildTestApp(const SettingsStufenwechselPage()));
+
+    final memberRow = find.byKey(const Key('stufenwechsel-member-row-w1'));
+    await scrollUntilFound(tester, memberRow);
+    await tester.tap(memberRow);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MemberDetailPage), findsOneWidget);
+    expect(find.text('Emma Mueller'), findsWidgets);
+  });
+
   testWidgets('Empty-State und Rover-Block werden gerendert', (tester) async {
     await tester.pumpWidget(
       buildTestApp(
@@ -97,7 +122,9 @@ void main() {
     );
   });
 
-  testWidgets('Es gibt mehrere Übernehmen-Buttons pro Tabelle', (tester) async {
+  testWidgets('Es gibt Übernehmen-Buttons nur für Stufen mit Mitgliedern', (
+    tester,
+  ) async {
     await tester.pumpWidget(buildTestApp(const SettingsStufenwechselPage()));
 
     final biberFinder = find.byKey(
@@ -113,17 +140,14 @@ void main() {
       const Key('stufenwechsel-transfer-button-pfadfinder'),
     );
 
-    await scrollUntilFound(tester, biberFinder);
-    expect(biberFinder, findsOneWidget);
-
     await scrollUntilFound(tester, woelflingFinder);
     expect(woelflingFinder, findsOneWidget);
 
-    await scrollUntilFound(tester, jufiFinder);
-    expect(jufiFinder, findsOneWidget);
-
     await scrollUntilFound(tester, pfadiFinder);
     expect(pfadiFinder, findsOneWidget);
+
+    expect(biberFinder, findsNothing);
+    expect(jufiFinder, findsNothing);
 
     expect(
       find.byKey(const Key('stufenwechsel-transfer-button')),
@@ -131,7 +155,7 @@ void main() {
     );
   });
 
-  testWidgets('Leere Stufen werden angezeigt und sind deaktiviert', (
+  testWidgets('Leere Stufen werden ohne Auswahlzeile und Button angezeigt', (
     tester,
   ) async {
     await tester.pumpWidget(buildTestApp(const SettingsStufenwechselPage()));
@@ -139,25 +163,14 @@ void main() {
     final biberButtonFinder = find.byKey(
       const Key('stufenwechsel-transfer-button-biber'),
     );
-    await scrollUntilFound(tester, biberButtonFinder);
-    await tester.pumpAndSettle();
-
-    final biberButton = tester.widget<FilledButton>(biberButtonFinder);
-    expect(biberButton.onPressed, isNull);
-
-    final jufiButtonFinder = find.byKey(
-      const Key('stufenwechsel-transfer-button-jungpfadfinder'),
+    final biberTransferRowFinder = find.byKey(
+      const Key('stufenwechsel-transfer-row-biber'),
     );
-    await scrollUntilFound(tester, jufiButtonFinder);
-    await tester.pumpAndSettle();
-
-    expect(find.text('Jungpfadfinder'), findsWidgets);
     expect(
       find.text('Keine passenden Mitglieder für diese Stufe.'),
       findsAtLeastNWidgets(1),
     );
-
-    final jufiButton = tester.widget<FilledButton>(jufiButtonFinder);
-    expect(jufiButton.onPressed, isNull);
+    expect(biberTransferRowFinder, findsNothing);
+    expect(biberButtonFinder, findsNothing);
   });
 }

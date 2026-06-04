@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nami/core/notifications/pull_notification.dart';
 import 'package:nami/domain/auth/auth_profile.dart';
 import 'package:nami/domain/auth/auth_profile_repository.dart';
 import 'package:nami/domain/auth/auth_session.dart';
@@ -10,6 +13,7 @@ import 'package:nami/domain/settings/app_settings_repository.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
+import 'package:nami/presentation/notifications/notifications_hub.dart';
 import 'package:nami/presentation/screens/settings_page.dart';
 import 'package:nami/services/app_update_service.dart';
 import 'package:nami/services/biometric_lock_service.dart';
@@ -23,7 +27,9 @@ import 'package:provider/provider.dart';
 void main() {
   Widget buildTestApp({
     required AuthSessionModel authModel,
-    VoidCallback? onMessages,
+    FutureOr<void> Function()? onMessages,
+    Future<List<AppHubNotification>> Function()?
+    unreadExternalNotificationsLoader,
     List<dynamic> additionalProviders = const [],
   }) {
     return MultiProvider(
@@ -41,7 +47,10 @@ void main() {
         ],
         supportedLocales: const [Locale('de'), Locale('en')],
         locale: const Locale('de'),
-        home: SettingsPage(onMessages: onMessages),
+        home: SettingsPage(
+          onMessages: onMessages,
+          unreadExternalNotificationsLoader: unreadExternalNotificationsLoader,
+        ),
       ),
     );
   }
@@ -65,6 +74,10 @@ void main() {
     await tester.pump();
 
     expect(find.text('Karte'), findsOneWidget);
+    expect(find.text('Rechnungen'), findsOneWidget);
+    expect(find.text('Events'), findsOneWidget);
+    expect(find.text('Abos'), findsOneWidget);
+    expect(find.text('Stufenwechsel'), findsNothing);
     expect(find.byKey(const Key('settings-messages-banner')), findsNothing);
   });
 
@@ -118,6 +131,51 @@ void main() {
       expect(openedMessages, isTrue);
     },
   );
+
+  testWidgets('laedt Messages nach Rueckkehr von der Meldungsseite neu', (
+    tester,
+  ) async {
+    final authModel = AuthSessionModel(
+      repository: _InMemoryAuthSessionRepository(),
+      profileRepository: _InMemoryAuthProfileRepository(),
+      oauthService: _FakeOauthService(),
+      biometricLockService: _FakeBiometricLockService(),
+      sensitiveStorageService: _FakeSensitiveStorageService(),
+      retentionPolicy: HitobitoDataRetentionPolicy(
+        maxDataAge: const Duration(days: 90),
+        refreshInterval: const Duration(hours: 24),
+      ),
+      logger: _FakeLoggerService(),
+    );
+    var unreadExternal = <AppHubNotification>[
+      AppHubNotification(
+        id: 'external-1',
+        source: AppNotificationSource.external,
+        severity: AppNotificationSeverity.warn,
+        title: const LocalizedString(de: 'Meldung', en: 'Message'),
+        body: const LocalizedString(de: 'Bitte lesen', en: 'Please read'),
+      ),
+    ];
+
+    await tester.pumpWidget(
+      buildTestApp(
+        authModel: authModel,
+        unreadExternalNotificationsLoader: () async => unreadExternal,
+        onMessages: () async {
+          unreadExternal = const <AppHubNotification>[];
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('settings-messages-banner')), findsOneWidget);
+    expect(find.text('Meldung'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('settings-messages-banner')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('settings-messages-banner')), findsNothing);
+  });
 
   testWidgets('zeigt bei zwei Meldungen genau einen Stapel-Layer', (
     tester,

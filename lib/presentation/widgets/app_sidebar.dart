@@ -7,7 +7,7 @@ import 'message_of_the_day_card.dart';
 class AppSidebar extends StatefulWidget {
   final String userName;
   final String userId;
-  final VoidCallback? onMeineStufe;
+  final VoidCallback? onStufenwechsel;
   final VoidCallback? onMitglieder;
   final VoidCallback? onStatistiken;
   final VoidCallback? onSettings;
@@ -18,7 +18,7 @@ class AppSidebar extends StatefulWidget {
     super.key,
     required this.userName,
     required this.userId,
-    this.onMeineStufe,
+    this.onStufenwechsel,
     this.onMitglieder,
     this.onStatistiken,
     this.onSettings,
@@ -84,11 +84,6 @@ class _AppSidebarState extends State<AppSidebar> {
             // Nav items
             const Divider(),
             ListTile(
-              leading: const Icon(Icons.people),
-              title: Text(t.t('nav_my_stage')),
-              onTap: widget.onMeineStufe,
-            ),
-            ListTile(
               leading: const Icon(Icons.groups),
               title: Text(t.t('nav_members')),
               onTap: widget.onMitglieder,
@@ -97,6 +92,11 @@ class _AppSidebarState extends State<AppSidebar> {
               leading: const Icon(Icons.insert_chart),
               title: Text(t.t('nav_statistics')),
               onTap: widget.onStatistiken,
+            ),
+            ListTile(
+              leading: const Icon(Icons.swap_horiz),
+              title: Text(t.t('nav_stage_change')),
+              onTap: widget.onStufenwechsel,
             ),
             const Spacer(),
 

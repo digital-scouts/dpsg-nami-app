@@ -1,36 +1,17 @@
 # Todos
 
-Diese Liste hält nur noch die nächsten offenen Aufgaben fest. Bereits umgesetzte Arbeitskontext- und Konfliktlösungs-Tickets bleiben im Code, in Tests und im Arbeitskontext-Konzept nachvollziehbar, werden hier aber nicht mehr als aktive Aufgaben geführt.
+Diese Liste führt nur offene Aufgaben. Umgesetzte Arbeitskontext-, Stufen-, Beitragsart-, Statistik- und Sync-Pakete bleiben im Code, in Tests und im Arbeitskontext-Konzept nachvollziehbar, werden hier aber nicht mehr als aktive Aufgaben geführt.
 
-## Status-Update: Echte Stammstatistik umgesetzt
+## Priorität 1: Feldtests und Doku-Abgleich
 
-Umgesetzt im Code:
-
-- Statistikseiten laufen auf realen Arbeitskontextdaten statt Dummy-Daten.
-- Global-Tab und Konfession wurden aus der Statistikansicht entfernt (out of scope).
-- Gruppen werden dynamisch aus Gruppen + Mitgliedszuordnungen aufgebaut.
-- Rollenzaehlung erfolgt als Mitglied/Leitung; Hilfsleiter wird als Leitung gezaehlt.
-- Kartenmarker werden aus Mitgliederadressen aufgebaut und nutzen den globalen Adress-Hash-Cache.
-
-Offen als Nacharbeit:
-
-- Feldtests mit echten Layerdaten (insbesondere sehr grosse Staemme und unvollstaendige Adressen).
-- Feinschliff der Statistiktexte/Lokalisierung fuer alle neuen Stati.
-
-## Priorität 1: Stufen und Gruppen mit den neuen Testdaten konsolidieren
-
-Ziel: Die Stufenableitung wird auf die echten Gruppentypen StammGruppeBiber, StammGruppeWoelflinge, StammGruppeJungpfadfinder, StammGruppePfadfinder und StammGruppeRover umgestellt; Beitragsarten werden als reine Ansicht ergänzt.
+Ziel: Die bereits implementierten Stammstatistik-, Stufen-, Beitragsart- und Sync-Anpassungen mit echten Daten prüfen und die Projektdokumentation auf den aktuellen Stand bringen.
 
 Nächste Aufgaben:
 
-- Gruppentypen aus den neuen Hitobito-Testdaten eindeutig erfassen und der zentralen Stufenableitung zuordnen.
-- `lib/domain/stufe/arbeitskontext_stufen_mapping.dart` auf die fünf Zieltypen umstellen.
-- Biber-Sichtbarkeit als Sonderregel festhalten: Standardmäßig ausgeblendet, wenn im aktiven Stamm kein Biber vorkommt.
-- Beitragsarten in der Ansicht ergänzen (kein Bearbeiten): Group::Mitglieder::OrdentlicheMitgliedschaft, Group::Mitglieder::Foerdermitgliedschaft, Group::Mitglieder::Zweitmitgliedschaft.
-- Beitragsart-Regel verankern: pro Layer genau eine Beitragsart; global Ordentliche/Förder jeweils nur einmal, sonst Zweitmitgliedschaft.
-- Keine Migration und keine Rückwärtskompatibilität berücksichtigen.
-- Tests für Stufenableitung, Filtertreffer und Mitgliederliste aktualisieren.
-- Arbeitskontext-Konzept und Aufgabenplanung synchron halten.
+- Feldtests mit echten Layerdaten durchführen, insbesondere sehr große Stämme, unvollständige Adressen und reale Biber-/Wö-/Jufi-/Pfadi-/Rover-Gruppen.
+- Statistiktexte und Lokalisierung für neue oder seltene Statusfälle prüfen und bei Bedarf nachschärfen.
+- [specs/hitobito-arbeitskontext-konzept.md](hitobito-arbeitskontext-konzept.md) mit dem umgesetzten Stand zu Stufen, Beitragsarten, Rollenladen und Sync-Status abgleichen.
+- Prüfen, ob zusätzliche Begriffs- oder Gruppentyp-Dokumentation nötig ist; aktuell existiert dafür keine eigene `dpsg-org-hierarchie`-Spec.
 
 ## Priorität 2: Offline-Sync und Problemlösungsfälle fertig prüfen
 
@@ -66,24 +47,13 @@ Nächste Aufgaben:
 - Aktuelle strukturierte Adresseingabe als Fallback erhalten, wenn offline oder Geoapify nicht verfügbar ist.
 - Prüfen, ob das Postfach-Feld im neuen Online-Pfad entfallen kann und wie bestehende Daten weiter angezeigt werden.
 
-## Priorität 5: Nützliche Ergänzungen
+## Priorität 5: App-Wartung und nützliche Ergänzungen
 
-- Länderflaggen auch im MemberDetail an Telefonnummern anzeigen.
-- Anrufen/E-Mail buttons disable wenn keine Telefon/Mail vorhanden
+- Länderflaggen auch im Mitgliedsdetail an Telefonnummern anzeigen.
 - GitHub-Pages-Wiki/Userguide für Konfliktlösung, Datenspeicherung und Löschung schreiben.
 - Problemlösungs-Screen prüfen: Bereich "Mitglied bearbeiten" bleibt beim Einstieg eingeklappt, kann aber gut sichtbar aufgeklappt werden.
-- Debug&Tools Adress-Cache löschen button
-- Einsettungen Messages bleiben stehen auch wenn sie ackn worden sind. Erst bei tab wechsel und neu öffnen von einstellungen verschwinden sie wie gewünscht.
-
-## Task 6: Bei erststart nach Update alte daten löschen
-
-- Kommt ein User von der alten app (Version vor 1.0.0) passt die datenstruktur nicht zur neuen App.
-- Alten Datenstand komplett entfernen und app neu initalisieren um probleme zu vermeiden.
-
-## Task 7: Erstes Laden unabhängig von WLAN
-
-- Das erste Laden (keine Daten vorhanden) muss unabhängig von der Wlan einstellung immer gemacht werden. Ansonsten kommt es zu problemen
-- Skelloton anzeigen beim ersten laden um fortschritt zu signalisieren
+- Erstes Laden: Skeleton oder gleichwertige Fortschrittsanzeige prüfen.
+- Erststart nach Update von Versionen vor 1.0.0: alten Datenstand vollständig entfernen und App neu initialisieren, wenn die alte Datenstruktur nicht kompatibel ist.
 
 ## Später prüfen: Arbeitskontext-Ausbau
 
@@ -107,39 +77,3 @@ Diese Punkte sind für den aktuellen MVP nicht blockierend, bleiben aber als sp�
 - [ ] Gültige Adresse offline gespeichert und später erfolgreich synchronisiert.
 - [ ] Ungültige Adresse offline gespeichert und später als Problemlösungsfall geprüft.
 - [ ] Automatischer Sync mit vorhandenen Queue-Einträgen geprüft.
-
-## Umsetzungsplan (integriert aus tasks.md)
-
-### Handoff-Rahmen
-
-- Keine Migration.
-- Keine Rückwärtskompatibilität.
-- Beitragsart nur Ansicht.
-
-### Betroffene Bereiche
-
-- lib/domain/stufe/arbeitskontext_stufen_mapping.dart
-- lib/domain/stufe/usecases/ermittle_stufen_im_arbeitskontext_usecase.dart
-- lib/domain/member_filters/usecases/ermittle_member_filter_treffer_usecase.dart
-- lib/presentation/screens/member_people_page.dart
-- lib/presentation/widgets/member_list_directory.dart
-- lib/presentation/widgets/member_basis_info_card.dart
-- test/ermittle_stufen_im_arbeitskontext_usecase_test.dart
-- test/member_people_page_test.dart
-- specs/hitobito-arbeitskontext-konzept.md
-- specs/todos.md
-- specs/dpsg-org-hirachie.md
-
-## Umsetzungspakete
-
-- P1: Stufen-Mapping auf die fünf Zieltypen konsolidieren. Umgesetzt.
-- P2: Stufen-Ableitung und Filtertreffer fachlich deckungsgleich machen. Umgesetzt.
-- P3: Biber-Sichtbarkeit in der Mitgliederansicht eindeutig regeln. Umgesetzt ueber dieselbe Stufen-Ableitung.
-- P4: Beitragsarten in der UI konsistent als reine Anzeige führen. Umgesetzt ohne zusätzliche Fachlogik.
-- P5: Zusammenspiel aus Stufen, Biber-Regel und Beitragsart gegen Regression absichern. Im Code und in gezielten Tests umgesetzt; reale Testdaten und manuelle Prüfliste bleiben offen.
-
-### Doku-Folgen
-
-- specs/hitobito-arbeitskontext-konzept.md auf den umgesetzten Stand abgleichen.
-- specs/todos.md Fortschritt je Paket fortlaufend nachführen.
-- specs/dpsg-org-hirachie.md Begriffe und Gruppentypbezüge harmonisieren.

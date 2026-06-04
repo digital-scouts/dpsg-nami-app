@@ -802,7 +802,6 @@ class _SelectedBoundaryCard extends StatelessWidget {
     final theme = Theme.of(context);
     return Material(
       elevation: 4,
-      borderRadius: BorderRadius.circular(14),
       color: theme.colorScheme.surfaceContainerLow,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
@@ -948,7 +947,6 @@ class _MapSearchControl extends StatelessWidget {
                 key: const ValueKey('settings-map-search-open'),
                 elevation: 3,
                 color: theme.colorScheme.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                   side: BorderSide(
@@ -1025,7 +1023,6 @@ class _SearchResultsCard extends StatelessWidget {
     return Material(
       color: theme.colorScheme.surfaceContainerLow,
       elevation: 4,
-      borderRadius: BorderRadius.circular(14),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
         side: BorderSide(

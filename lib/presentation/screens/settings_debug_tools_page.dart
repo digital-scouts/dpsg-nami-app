@@ -302,6 +302,20 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
     );
   }
 
+  Future<void> _deleteAddressCoordinateCache(LoggerService logger) async {
+    await _trackDebugAction(logger, 'delete_address_coordinate_cache');
+    await SharedPrefsAddressMapLocationRepository().clearAll();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {});
+    _showSnackbar(
+      AppLocalizations.of(context).t('debug_map_address_cache_deleted'),
+      type: AppSnackbarType.success,
+    );
+  }
+
   MapTileCacheService _resolveMapTileCacheService(LoggerService logger) {
     try {
       return context.read<MapTileCacheService>();
@@ -1039,6 +1053,16 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                         buttonKey: const Key('debug_delete_map_cache_button'),
                         onPressed: () =>
                             _deleteMapCache(logger, mapTileCacheService),
+                      ),
+                      const SizedBox(height: 10),
+                      _DebugActionButton(
+                        icon: Icons.location_off_outlined,
+                        label: t.t('debug_map_delete_address_cache'),
+                        isDestructive: true,
+                        buttonKey: const Key(
+                          'debug_delete_address_cache_button',
+                        ),
+                        onPressed: () => _deleteAddressCoordinateCache(logger),
                       ),
                     ],
                   ),
