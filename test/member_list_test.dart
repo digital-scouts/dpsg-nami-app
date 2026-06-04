@@ -204,6 +204,118 @@ void main() {
     },
   );
 
+  testWidgets('zeigt im Geburtstag-Subtitle keinen Placeholder-Wert', (
+    tester,
+  ) async {
+    final mitglieder = <Mitglied>[
+      Mitglied.peopleListItem(
+        mitgliedsnummer: '1001',
+        vorname: 'Sven',
+        nachname: 'Stamm',
+      ),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          AppLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('de'), Locale('en')],
+        locale: const Locale('de'),
+        home: Scaffold(
+          body: MemberList(
+            mitglieder: mitglieder,
+            subtitleMode: MemberSubtitleMode.geburtstag,
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+
+    expect(find.text('Sven Stamm'), findsOneWidget);
+    expect(find.text('1. Januar 1900'), findsNothing);
+  });
+
+  testWidgets(
+    'sortiert Mitglieder ohne bekanntes Geburtsdatum bei Alterssortierung ans Ende nach Name',
+    (tester) async {
+      final mitglieder = <Mitglied>[
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '1003',
+          vorname: 'Zara',
+          nachname: 'Unbekannt',
+        ),
+        Mitglied(
+          mitgliedsnummer: '1002',
+          vorname: 'Cem',
+          nachname: 'Jung',
+          geburtsdatum: DateTime(2015, 5, 1),
+          eintrittsdatum: DateTime(2022, 9, 1),
+        ),
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '1004',
+          vorname: 'Aaron',
+          nachname: 'Unbekannt',
+        ),
+        Mitglied(
+          mitgliedsnummer: '1001',
+          vorname: 'Berta',
+          nachname: 'Alt',
+          geburtsdatum: DateTime(2010, 5, 1),
+          eintrittsdatum: DateTime(2022, 9, 1),
+        ),
+      ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            AppLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('de'), Locale('en')],
+          locale: const Locale('de'),
+          home: Scaffold(
+            body: MemberList(
+              mitglieder: mitglieder,
+              sortKey: MemberSortKey.age,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+
+      final visibleNames = tester
+          .widgetList<Text>(
+            find.byWidgetPredicate(
+              (widget) =>
+                  widget is Text &&
+                  <String>{
+                    'Berta Alt',
+                    'Cem Jung',
+                    'Aaron Unbekannt',
+                    'Zara Unbekannt',
+                  }.contains(widget.data),
+            ),
+          )
+          .map((text) => text.data)
+          .toList(growable: false);
+
+      expect(visibleNames, [
+        'Berta Alt',
+        'Cem Jung',
+        'Aaron Unbekannt',
+        'Zara Unbekannt',
+      ]);
+    },
+  );
+
   testWidgets('faerbt den Listenstreifen fuer Sonstige grau', (tester) async {
     final mitglieder = <Mitglied>[
       Mitglied.peopleListItem(

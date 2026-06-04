@@ -339,6 +339,11 @@ class Mitglied {
 
   static DateTime get peoplePlaceholderDate => _peoplePlaceholderDate;
 
+  bool get hatBekanntesGeburtsdatum =>
+      geburtsdatum.year != peoplePlaceholderDate.year ||
+      geburtsdatum.month != peoplePlaceholderDate.month ||
+      geburtsdatum.day != peoplePlaceholderDate.day;
+
   MitgliedKontaktAdresse? get primaryAddress =>
       adressen.isEmpty ? null : adressen.first;
 

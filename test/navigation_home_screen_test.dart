@@ -29,11 +29,13 @@ import 'package:nami/services/hitobito_oauth_service.dart';
 import 'package:nami/services/logger_service.dart';
 import 'package:nami/services/sensitive_storage_service.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   testWidgets(
     'zeigt Mitglieder, Statistik und Stufenwechsel ohne AppBar, aber mit SafeArea',
     (tester) async {
+      SharedPreferences.setMockInitialValues({});
       final authModel = await _createSignedInAuthModel();
       final arbeitskontextModel = await _createArbeitskontextModel(
         authModel: authModel,
@@ -59,14 +61,13 @@ void main() {
       expect(find.byType(StatisticsPage), findsOneWidget);
 
       await tester.tap(find.byIcon(Icons.swap_horiz));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.byType(AppBar), findsNothing);
       expect(find.byType(SafeArea), findsWidgets);
-      expect(
-        find.byKey(const Key('stufenwechsel-transfer-button-woelfling')),
-        findsOneWidget,
-      );
+      expect(find.text('Stufenwechsel'), findsWidgets);
+      expect(find.byType(Checkbox), findsNothing);
 
       await tester.tap(find.byIcon(Icons.settings));
       await tester.pumpAndSettle();
