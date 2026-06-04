@@ -119,7 +119,9 @@ void main() {
     },
   );
 
-  testWidgets('zeigt Stapel-Effekt bei mehreren Meldungen', (tester) async {
+  testWidgets('zeigt bei zwei Meldungen genau einen Stapel-Layer', (
+    tester,
+  ) async {
     final authModel = AuthSessionModel(
       repository: _InMemoryAuthSessionRepository(),
       profileRepository: _InMemoryAuthProfileRepository(),
@@ -163,7 +165,7 @@ void main() {
     );
     expect(
       find.byKey(const Key('settings-messages-stack-back-2')),
-      findsOneWidget,
+      findsNothing,
     );
     expect(find.text('2'), findsOneWidget);
   });

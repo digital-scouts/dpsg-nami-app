@@ -20,7 +20,6 @@ import '../screens/settings_datenschutz_page.dart';
 import '../screens/settings_debug_tools_page.dart';
 import '../screens/settings_impressum_page.dart';
 import '../screens/settings_map_page.dart';
-import '../screens/settings_messages_page.dart';
 import '../screens/settings_notification_page.dart';
 import '../screens/settings_stamm_page.dart';
 import '../screens/settings_stufenwechsel_page.dart';
@@ -213,7 +212,10 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
     case AppRoutes.settingsMessages:
       return MaterialPageRoute(
         settings: settings,
-        builder: (context) => const SettingsMessagesPage(),
+        builder: (context) => const NotificationsPage(
+          includeInternalMessages: true,
+          showStatusButtons: false,
+        ),
       );
     case AppRoutes.settingsImpressum:
       return MaterialPageRoute(
@@ -231,9 +233,14 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
         builder: (context) => const SettingsStufenwechselPage(),
       );
     case AppRoutes.pullNotifications:
+      final arguments = settings.arguments;
+      final showAllAcknowledged = arguments is Map<String, dynamic>
+          ? (arguments['showAllAcknowledged'] as bool? ?? false)
+          : false;
       return MaterialPageRoute(
         settings: settings,
-        builder: (context) => const NotificationsPage(),
+        builder: (context) =>
+            NotificationsPage(showAllAcknowledged: showAllAcknowledged),
       );
     case AppRoutes.statisticsGroupDetail:
       return MaterialPageRoute(

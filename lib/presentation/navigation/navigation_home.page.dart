@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:nami/core/notifications/pull_notification.dart';
 import 'package:nami/domain/auth/auth_state.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
+import 'package:nami/presentation/model/urgent_notification_model.dart';
 import 'package:nami/presentation/navigation/app_router.dart';
+import 'package:nami/presentation/notifications/notification_card.dart';
 import 'package:nami/presentation/screens/member_people_page.dart';
 import 'package:nami/presentation/screens/settings_page.dart';
 import 'package:nami/presentation/screens/statistics_page.dart';
@@ -33,6 +36,7 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
     final t = AppLocalizations.of(context);
     final authModel = context.watch<AuthSessionModel>();
     final arbeitskontextModel = context.watch<ArbeitskontextModel>();
+    final urgentNotification = _currentUrgentNotification(context);
     final startseitenTitel = t.t('nav_my_stage');
     Widget body;
     switch (_index) {
@@ -90,7 +94,13 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
     }
 
     return Scaffold(
-      body: body,
+      body: _index == 3
+          ? body
+          : _buildMainTabShell(
+              context,
+              content: body,
+              urgentNotification: urgentNotification,
+            ),
       bottomNavigationBar: AppBottomNavigation(
         currentIndex: _index,
         onTap: (i) {
@@ -109,6 +119,44 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
           setState(() => _index = i);
         },
       ),
+    );
+  }
+
+  PullNotification? _currentUrgentNotification(BuildContext context) {
+    if (_index == 3) {
+      return null;
+    }
+    return context.watch<UrgentNotificationModel>().notification;
+  }
+
+  Widget _buildMainTabShell(
+    BuildContext context, {
+    required Widget content,
+    required PullNotification? urgentNotification,
+  }) {
+    return Column(
+      children: [
+        if (urgentNotification != null)
+          SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+              child: NotificationCard(
+                notification: urgentNotification,
+                onClose: () {
+                  context.read<UrgentNotificationModel>().acknowledgeCurrent();
+                },
+              ),
+            ),
+          ),
+        Expanded(
+          child: SafeArea(
+            top: urgentNotification == null,
+            bottom: false,
+            child: content,
+          ),
+        ),
+      ],
     );
   }
 
@@ -133,7 +181,7 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
       authModel: authModel,
       arbeitskontextModel: arbeitskontextModel,
     );
-    return SafeArea(bottom: false, child: placeholder ?? readyBody);
+    return placeholder ?? readyBody;
   }
 
   Widget? _buildPlaceholder(

@@ -1,119 +1,167 @@
-# Pull Notifications
+# Notifications Hub (intern + extern)
 
-In der App sollen Mitteilungen angezeigt werden können, die alle Nutzer gleichermaßen betreffen. Es werden keine Push-Dienste (FCM/APNs) verwendet, die App holt die Nachrichten aktiv per Pull. Der Feed wird beim App-Start initialisiert; Remote-Checks werden über ein konfigurierbares Mindestintervall gedrosselt.
+Diese Spezifikation beschreibt den gemeinsamen Meldungs-Hub der App. Der Hub behandelt **alle** Meldungen unabhängig von der Quelle:
+
+- **Extern**: geladene Pull Notifications
+- **Intern**: von der App erzeugte Zustandsmeldungen (Sync, Login, Konflikte, Update)
+
+Die Quelle ist fachlich wichtig, aber nicht die primäre Anzeigeachse. Für die Anzeige gelten gemeinsame Regeln für Priorität, Sichtbarkeit und Navigation.
 
 ## Ziel
 
-Pulled Notifications sind zeitlich relevante, öffentliche Mitteilungen (z. B. Hinweise, Wartungsfenster, Ankündigungen). Für das MVP ist die Quelle eine statische JSON-Datei auf GitHub (einfach zu pflegen, PR-basiert), konfigurierbar in der App.
+Ein einheitlicher Meldungsfluss für die gesamte App:
 
-## Annahmen
+- In **Settings** als gestapelter Hinweis (Top-Meldung + Anzahl)
+- Bei Klick in einen **Meldungen-Screen** als vollständige Liste
+- Auf anderen Seiten als **prominente Meldung**, wenn die Priorität hoch genug ist
 
-- Keine Push-Services (Firebase, APNs) oder Server-gestützte Push-Infrastruktur.
-- Primäre Quelle für das MVP: statische JSON-Datei in einem Git-Repository (GitHub).
-- Geladene Mitteilungen werden lokal in Hive gecached, damit sie auch offline angezeigt werden können.
+## Fest entschiedene Regeln
 
-## Anforderungen (angepasst)
+- Prioritätsskala ist fix: `info`, `warn`, `urgent`.
+- Externe Meldungen sind lokal **acknowledgebar**.
+- Interne Meldungen sind **zustandsgetrieben** (kein manuelles Ack, solange der Zustand aktiv ist).
+- „Bald gelöscht“-Hinweis erscheint ab **3 Tagen Restlaufzeit**.
+- Für „bald gelöscht“ wird zusätzlich eine **tägliche lokale Push-Notification** gesendet, solange der Zustand aktiv ist.
 
-- **R1 — Quelle & Default:** Default-Quelle für MVP ist eine GitHub-JSON-Datei. **Die URL zur JSON-Datei wird in der `.env`-Datei hinterlegt** und beim Start eingelesen. Ein optionaler Asset-Fallback ist nur für Entwicklungszwecke vorgesehen und aktuell noch offen.
-- **R2 — Laden beim Start:** Beim App-Start wird der Notifications-Flow initialisiert. Es wird zuerst der Cache angezeigt; ein Remote-Pull erfolgt nur dann, wenn das konfigurierte Mindestintervall seit dem letzten erfolgreichen Fetch abgelaufen ist oder noch kein Cache vorhanden ist.
-- **R3 — Mindestintervall statt Hintergrund-Timer:** Es gibt aktuell keinen periodischen Hintergrund-Pull. Stattdessen wird ein Mindestintervall für Remote-Checks verwendet, konfiguriert über `.env` (`PULL_NOTIFICATIONS_MIN_FETCH_INTERVAL_HOURS`), Default aktuell **1 Stunde**. Ein echter automatischer Intervall-Pull bleibt eine mögliche spätere Alternative.
-- **R4 — Manuelles Aktualisieren:** Ein manueller Pull-Trigger ist in der Mitteilungsansicht vorhanden, die aktuell über Debug & Tools erreichbar ist.
-- **R5 — Anzeige:** Mitteilungen werden in einer eigenen Komponente angezeigt; Pflicht: `title`, `body`. Optional: `type` (info/warn/urgent), `starts_at`, `ends_at`, `deep_link`, `external_link`, `platform`.
-- **R6 — Priorisierung & Sichtbarkeit:** `urgent`-Mitteilungen werden appweit als hervorgehobenes Banner angezeigt, bis sie bestätigt werden. Andere Typen erscheinen als Vorschau der neuesten ungelesenen Mitteilung in den Einstellungen sowie vollständig in der Debug-Mitteilungsansicht.
-- **R7 — Entität & Schema:** Das JSON-Schema unterstützt Mehrsprachigkeit (siehe Schema). Items sind idempotent über `id`.
-- **R8 — Cache & Persistence:** Geladene Mitteilungen werden in Hive-Box `notifications_box` gespeichert. Zusätzliche Metadaten wie der letzte erfolgreiche Fetch-Zeitpunkt werden separat persistiert. Anzeige-Logik benutzt Cache zuerst; Remote-Checks werden per Mindestintervall gedrosselt.
-- **R9 — Offline & Acknowledgement:** Bei Offline-Status wird der Cache angezeigt. Nutzer können Mitteilungen lokal bestätigen/ausblenden (Ack), dieser Zustand wird pro Gerät in Hive persistiert.
-- **R10 — Duplikat-/Idempotenz:** Items werden anhand `id` dedupliziert; Änderungen werden angewendet wenn `updated_at` neuer ist.
-- **R11 — Sicherheit & Datenschutz:** Mitteilungen enthalten keine personenbezogenen Daten. Logs enthalten keine Klartext-Personendaten.
-- **R12 — Fehlerverhalten:** Es gibt aktuell keine eigene Retry-Strategie. Fehler beim Laden werden geloggt; Hintergrund-Refresh-Fehler werden in der App ignoriert und bei späterer normaler Nutzung wird erneut versucht.
-- **R13 — Autorisierung & Pflege:** Für das MVP werden Mitteilungen via Git-Workflow gepflegt (Push auf Branch + PR → Merge). Das ist das vereinbarte Erstell-/Änderungsmodell.
-- **R14 — Tests:** Unit-Tests für Parser/Mapper, Integrationstests für Repository gegen Mock-Endpoint, Widget-Tests für Anzeige, Contract-Tests für JSON-Schema.
+## Begriffe
 
-## JSON-Schema
+- **Meldung**: ein einheitlicher Eintrag im Notifications-Hub.
+- **Quelle**:
+  - `internal` (App erzeugt)
+  - `external` (Pull-Feed)
+- **Kanal**:
+  - Settings-Stapel
+  - Meldungen-Liste
+  - Appweites Banner / Snackbar / Dialog
 
-Minimalobjekt (Titel/Body unterstützen Mehrsprachigkeit; einfache String-Felder werden als Legacy-Shortcut noch akzeptiert):
+## Anforderungen
 
-```json
-{
-    "id": "string",
-    "title": { "de": "string", "en": "string" },
-    "body": { "de": "string", "en": "string" },
-    "type": "info|warn|urgent",
-    "created_at": "ISO8601|null",
-    "updated_at": "ISO8601|null",
-    "starts_at": "ISO8601|null",
-    "ends_at": "ISO8601|null",
-    "deep_link": "string|null",
-    "external_link": "string|null",
-    "platform": "android|ios|all|null"
-}
-```
+- **R1 — Einheitliches Modell:** Interne und externe Meldungen werden in ein gemeinsames Domainmodell gemappt.
+- **R2 — Gemeinsame Sortierung:** Sortierung nach Priorität (`urgent`, `warn`, `info`) und danach Aktualität.
+- **R3 — Einheitlicher Einstieg:** Settings zeigt einen gestapelten Hub-Hinweis; Klick öffnet die vollständige Liste.
+- **R4 — Dringliche Sichtbarkeit:** `urgent`-Meldungen können appweit prominent erscheinen.
+- **R5 — Ack-Regeln:** Nur externe Meldungen sind ackbar; interne Meldungen verschwinden automatisch, wenn der Zustand endet.
+- **R6 — Trigger-Transparenz:** Für interne Meldungen sind Auslöser und Priorität eindeutig dokumentiert.
+- **R7 — Dummy-frei:** Statische Platzhalterlisten und Dummy-Meldungen werden entfernt.
+- **R8 — Offline-Fähigkeit:** Externe Meldungen bleiben über Cache verfügbar; interne Meldungen sind aus lokalem Zustand ableitbar.
+- **R9 — Datenschutz:** Keine personenbezogenen Inhalte in Hub-Meldungen.
 
-API-Wrapper:
+## Zielmodell (Domain)
+
+Vorgeschlagenes Hub-Modell:
 
 ```json
 {
-    "items": [ ... ]
+  "id": "string",
+  "source": "internal|external",
+  "severity": "info|warn|urgent",
+  "title": { "de": "string", "en": "string" },
+  "body": { "de": "string", "en": "string" },
+  "created_at": "ISO8601|null",
+  "updated_at": "ISO8601|null",
+  "is_ackable": "boolean",
+  "is_active": "boolean",
+  "dedupe_key": "string|null",
+  "deep_link": "string|null",
+  "external_link": "string|null",
+  "platform": "android|ios|all|null"
 }
 ```
 
-Hinweis: Die App wählt die passende Sprache anhand der Device-Locale (Fallback: `de`, dann erstes verfügbares).
+Regeln:
 
-## Anzeige & UX
+- `is_ackable=true` nur für `source=external`.
+- `is_active` bei internen Meldungen aus Zustand abgeleitet.
+- `dedupe_key` verhindert doppelte Darstellung derselben Ursache über Kanäle.
 
-- **Urgent:** `urgent`-Items → appweites Banner bis zur Bestätigung; aktuelles Verhalten ist gewünscht, hat aber noch offene Probleme in der Ausgestaltung.
-- **Weitere Items:** In den Einstellungen wird die neueste ungelesene Mitteilung angezeigt; die vollständige Liste ist aktuell über Debug & Tools erreichbar. Dort können Mitteilungen bestätigt/ausgeblendet werden (lokaler Ack).
-- **Filter & Sortierung:** Anzeige filtern nach Plattform-Relevanz; wenn `platform` fehlt oder `null`, gilt `all`. Sortierung: Typ (urgent,warn,info) und nach Reihenfolge im Feed.
-- **Details:** Tap → Detail-View bzw. `deep_link`/`external_link` ist vorgesehen, aber noch nicht umgesetzt.
+## Externe Meldungen (Pull)
 
-## Betriebsanforderungen
+### Quelle und Laden
 
-- **B1 — Quelle erreichbar:** Für MVP ist GitHub ausreichend (statische Datei + PR-Workflow). Ein optionaler Asset-Fallback ist nur für Entwicklungszwecke als spätere Ergänzung vorgesehen.
-- **B2 — Performance:** Pull darf App-Start nicht blockieren — Cache zuerst, Pull asynchron.
+- Quelle bleibt eine JSON-Datei über URL aus `.env`.
+- Cache-first mit gedrosseltem Remote-Check.
 
-## Konkrete Entscheidungen (aus Antworten übernommen)
+### Externe Felder
 
-- Default-Quelle: GitHub (JSON-Datei, Pflege via branch+PR).
-- Mindestintervall für Remote-Checks: 1 Stunde via `.env`.
-- Plattform-spezifische Items: supported (optional, `platform`-Feld).
-- Umgang mit `urgent`: appweites Banner bis Bestätigung.
-- Erstellen/Ändern: PR-basiert im GitHub-Repo.
-- Acknowledgement: ja, lokal in Hive speichern per Gerät.
-- Mehrsprachigkeit: ja, `de`/`en` unterstützt.
-- Sichtbarkeit: neueste ungelesene Mitteilung in Einstellungen, vollständige Liste in Debug & Tools.
+- `type` wird auf `severity` gemappt (`info|warn|urgent`).
+- `platform`, `starts_at`, `ends_at` werden zentral vor Anzeige ausgewertet.
 
-## Implementierungshinweise
+### Ack
 
-- Architektur: `PullNotificationsRepository`, `RemotePullNotificationsDataSource`, `HiveNotificationsDataSource`.
-- State-Management: `PullNotificationsCubit` / `PullNotificationsBloc` (States: `initial`, `loading`, `loaded`, `empty`, `error`).
-- Persistenz: Hive-Box `notifications_box`, ACK-Box `notifications_ack_box`, Meta-Box für letzten Fetch-Zeitpunkt.
-- Tests: Mock-HTTP + Contract-Tests gegen das JSON-Schema.
+- Externe Meldungen bleiben ackbar (lokale Persistenz in Hive).
 
-## Offene TODOs
+## Vollständige Liste interner Meldungen
 
-- Plattform-Filterung über `platform` zentral vor der Anzeige anwenden.
-- Zeitfenster über `starts_at` und `ends_at` auswerten.
-- Tap auf Mitteilungen für Detailansicht, `deep_link` oder `external_link` umsetzen.
-- Optionalen Asset-Fallback für Entwicklungszwecke ergänzen.
+Die folgende Liste bildet den aktuellen internen Meldungsumfang ab, inkl. Priorität und Auslöser.
 
-## Beispiel API-Response (mit Mehrsprachigkeit)
+| ID | Meldung | Priorität | Auslöser (technisch) | Quelle | Kanal(e) | Status |
+|---|---|---|---|---|---|---|
+| `internal.hitobito.unreachable.cached` | Hitobito nicht erreichbar, lokale Daten werden angezeigt | `warn` | `AuthSessionModel.hasRemoteAccessIssue == true` und `requiresInteractiveLogin == false` | internal | Settings-Stapel, Members-Snackbar | implementiert |
+| `internal.hitobito.unreachable.offline` | Gerät offline, Remote-Zugriff blockiert | `warn` | `NetworkAccessBlockedReason.offline` über `reportRemoteDataIssue`/`_reportNetworkAccessBlockedIssue` | internal | Settings-Stapel, Debug-Sync-Feedback | implementiert |
+| `internal.hitobito.unreachable.server` | Hitobito aktuell nicht erreichbar (nicht offline, nicht relogin) | `warn` | Remote-Fehler ohne Offline-Reason und ohne Relogin-Zwang | internal | Settings-Stapel, Members-Snackbar | implementiert |
+| `internal.hitobito.relogin_required` | Login abgelaufen, erneute Anmeldung erforderlich | `urgent` | `requiresInteractiveLogin == true` oder `AuthState.reloginRequired` | internal | Auth-Shell-Status, Settings-Stapel, Members-Snackbar | implementiert (Priorität im Hub anzupassen) |
+| `internal.member.sync_conflict` | Offene Problemlösungsfälle bei Mitgliedsänderungen | `warn` | `MemberEditModel.openResolutionCount > 0` | internal | Settings-Stapel, Member-Detail-Banner | implementiert |
+| `internal.member.sync_pending_retry` | Ausstehende Mitgliedsänderung ohne direkten Konflikt | `info` | `hasPending == true` und `needsResolution == false` im Detailkontext | internal | Member-Detail-Banner | implementiert |
+| `internal.data.expiry_soon` | Hitobito nicht erreichbar, Daten werden bald gelöscht | `urgent` | `remainingUntilRelogin <= 3 Tage` | internal | Settings-Stapel, appweites Banner (optional), tägliche lokale Push | geplant |
+| `internal.update.available` | Neuere App-Version verfügbar | `warn` | `AppUpdateService.checkForUpdate()` liefert `isRequired == false` | internal | Settings-Stapel, optional Dialog | implementiert |
+| `internal.update.required` | Update erforderlich | `urgent` | `AppUpdateService.checkForUpdate()` liefert `isRequired == true` | internal | Settings-Stapel, Startup-Dialog | implementiert |
+| `internal.sync.manual.result.success` | Manueller Sync erfolgreich | `info` | Debug-Trigger „Daten jetzt aktualisieren“ erfolgreich | internal | Debug-Snackbar | implementiert |
+| `internal.sync.manual.result.partial` | Manueller Sync teilweise fehlgeschlagen | `warn` | Debug-Trigger mit Fehlerzustand | internal | Debug-Snackbar | implementiert |
+| `internal.sync.manual.result.blocked` | Manueller Sync durch Netzregeln blockiert | `warn` | NetworkAccessPolicy blockiert | internal | Debug-Snackbar | implementiert |
 
-```json
-{
-    "items": [
-        {
-            "id": "2025-12-15-001",
-            "title": { "de": "Wartung am 18.12.", "en": "Maintenance on 18 Dec" },
-            "body": { "de": "Am 18.12. findet eine Serverwartung statt...", "en": "Maintenance will occur on 18 Dec..." },
-            "type": "info",
-            "created_at": "2025-12-15T08:00:00Z",
-            "updated_at": "2025-12-15T08:00:00Z",
-            "starts_at": "2025-12-18T06:00:00Z",
-            "ends_at": "2025-12-18T08:00:00Z",
-            "deep_link": null,
-            "external_link": null,
-            "platform": "all"
-        }
-    ]
-}
-```
+Hinweise:
+
+- Einige Meldungen existieren aktuell nur in bestimmten Kanälen (z. B. Detail-Banner, Debug-Snackbar) und sind noch nicht im zentralen Hub konsolidiert.
+- Für `internal.hitobito.relogin_required` wird die endgültige Hub-Priorität auf `urgent` festgelegt.
+
+## Sichtbarkeit und Prioritätsrouting
+
+- **Settings-Stapel:** zeigt höchste aktive Meldung + Count über alle aktiven Meldungen.
+- **Meldungen-Screen:** zeigt vollständige Liste (intern + extern), gefiltert nach aktiv/ackbar.
+- **Andere Seiten:**
+  - `urgent`: appweit prominent (Banner/Dialog, je nach Kontext)
+  - `warn`: kontextabhängig (z. B. Members-Snackbar einmalig)
+  - `info`: primär im Hub/Listenkontext
+
+## „Bald gelöscht“-Regel (3 Tage + tägliche Push)
+
+Fachregel:
+
+- Wenn Restlaufzeit bis Relogin (`remainingUntilRelogin`) `<= 3 Tage` ist, wird `internal.data.expiry_soon` aktiv.
+- Solange dieser Zustand aktiv ist, wird täglich eine lokale Push-Notification ausgelöst.
+- Endet der Zustand (neuer Login/Sync), werden diese täglichen Erinnerungen beendet.
+
+Technische Notiz:
+
+- `flutter_local_notifications` ist als Paket vorhanden, aber bisher nicht angebunden.
+- Die tägliche Push-Erinnerung ist daher als nächster technischer Ausbau vorgesehen.
+
+## Architekturhinweise
+
+- Bestehende Pull-Architektur bleibt erhalten, wird aber in den Hub integriert.
+- Interne Builder werden zentralisiert (statt Verteilung über einzelne Screens).
+- Dummy-Listen in der Meldungsansicht werden durch echten Hub-Feed ersetzt.
+
+## Umsetzungsreihenfolge (technisch)
+
+1. Gemeinsames Hub-Modell einführen (`AppMessage` o. ä.).
+2. Interne Meldungsbuilder zentralisieren (Auth/Sync/Resolution/Update).
+3. Externe Pull-Meldungen mappen und zentral filtern (`platform`, `starts_at`, `ends_at`).
+4. Settings-Stapel und Meldungen-Screen auf denselben Hub-Feed stellen.
+5. Dummy-Meldungen entfernen.
+6. Prioritätsrouting für appweite Darstellung vereinheitlichen.
+7. „Bald gelöscht“ + tägliche lokale Push ergänzen.
+
+## Tests
+
+- Unit-Tests für Mapping intern/extern auf Hub-Modell.
+- Unit-Tests für Priorität, Sortierung, Dedupe.
+- Unit-Tests für Zustandslogik „bald gelöscht“ (3-Tage-Schwelle).
+- Tests für Ack-Policy (extern ackbar, intern nicht ackbar).
+- Widget-Tests für Settings-Stapel und Meldungen-Liste aus gemeinsamer Quelle.
+
+## Offene Punkte
+
+- Endgültiger Kanal für `urgent` intern außerhalb Settings (globales Banner vs. Dialog) im Feindesign festlegen.
+- Verhalten bei gleichzeitigen `urgent`-Meldungen (Queue/Rotation) definieren.
+- Deep-Link-Verhalten für externe Meldungen abschließen.
