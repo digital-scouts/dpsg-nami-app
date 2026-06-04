@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/domain/member/member_list_preferences.dart';
 import 'package:nami/domain/member/mitglied.dart';
+import 'package:nami/domain/taetigkeit/roles.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/widgets/member_list.dart';
 import 'package:nami/presentation/widgets/member_list_group_filter_bar.dart';
@@ -202,6 +203,51 @@ void main() {
       expect(richTextFinder, findsNothing);
     },
   );
+
+  testWidgets('faerbt den Listenstreifen fuer Sonstige grau', (tester) async {
+    final mitglieder = <Mitglied>[
+      Mitglied.peopleListItem(
+        mitgliedsnummer: '1001',
+        vorname: 'Sven',
+        nachname: 'Stamm',
+      ),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          AppLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('de'), Locale('en')],
+        locale: const Locale('de'),
+        home: Scaffold(
+          body: MemberList(
+            mitglieder: mitglieder,
+            roleCategoryBuilder: (_) => RoleCategory.sonstiges,
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump();
+
+    final stripeFinder = find.byWidgetPredicate(
+      (widget) =>
+          widget is Container &&
+          widget.decoration is BoxDecoration &&
+          (widget.decoration! as BoxDecoration).color != null,
+    );
+    final stripe = tester.widget<Container>(stripeFinder.first);
+    final decoration = stripe.decoration! as BoxDecoration;
+
+    final colorScheme = Theme.of(tester.element(find.byType(MemberListTile)));
+
+    expect(decoration.color, colorScheme.colorScheme.outline);
+    expect(decoration.gradient, isNull);
+  });
 
   testWidgets(
     'Gruppenfilter klappt viele Chips ohne horizontales Scrollen auf',

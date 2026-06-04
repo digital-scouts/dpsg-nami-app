@@ -6,6 +6,7 @@ import '../../domain/member/member_list_preferences.dart';
 import '../../domain/member/mitglied.dart';
 import '../../domain/member_filters/member_fixed_filter_groups.dart';
 import '../../domain/member_filters/usecases/ermittle_member_filter_treffer_usecase.dart';
+import '../../domain/taetigkeit/klassifiziere_mitglied_usecase.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/logger_service.dart';
 import '../model/app_settings_model.dart';
@@ -29,6 +30,8 @@ class MemberPeoplePage extends StatefulWidget {
 class _MemberPeoplePageState extends State<MemberPeoplePage> {
   static const ErmittleMemberFilterTrefferUseCase
   _ermittleMemberFilterTrefferUseCase = ErmittleMemberFilterTrefferUseCase();
+  static const KlassifiziereMitgliedUseCase _klassifiziereMitgliedUseCase =
+      KlassifiziereMitgliedUseCase();
 
   String? _lastShownIssueKey;
   String? _lastShownResolutionKey;
@@ -254,6 +257,12 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
         warningBuilder: (member) =>
             memberEditModel?.hasResolutionForMitglied(member.mitgliedsnummer) ??
             false,
+        roleCategoryBuilder: arbeitskontextModel.readModel == null
+            ? null
+            : (member) => _klassifiziereMitgliedUseCase.klassifiziere(
+                member.mitgliedsnummer,
+                arbeitskontextModel.readModel!,
+              ),
         trailingTextBuilder: (member) =>
             _buildPrimaryGroupRole(member, arbeitskontextModel),
         mitgliedsFilterKeys: mitgliedsFilterKeys,

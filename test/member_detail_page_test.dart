@@ -167,6 +167,42 @@ void main() {
   );
 
   testWidgets(
+    'zeigt im Header Sonstige fuer Rollen ohne Stamm-Gruppen-Zuordnung',
+    (tester) async {
+      final member = Mitglied(
+        mitgliedsnummer: '45',
+        vorname: 'Sven',
+        nachname: 'Stamm',
+        geburtsdatum: DateTime(1985, 4, 6),
+        eintrittsdatum: DateTime(2020, 5, 1),
+        roles: <Role>[
+          Role(label: 'Stammesführer*in', startOn: DateTime(2024, 5, 1)),
+        ],
+      );
+      final arbeitskontextModel = await _buildArbeitskontextModel(
+        member: member,
+        permissions: const <String>[],
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberDetailPage(mitglied: member),
+          providers: <SingleChildWidget>[
+            ChangeNotifierProvider<ArbeitskontextModel>.value(
+              value: arbeitskontextModel,
+            ),
+          ],
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sonstige'), findsOneWidget);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  testWidgets(
     'zeigt Group::Mitglieder Rollen nicht im Rollen-Tab an',
     (tester) async {
       final member = Mitglied(
@@ -196,7 +232,7 @@ void main() {
       await tester.tap(find.text('Rollen'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Mitglied - Pfadfinder'), findsOneWidget);
+      expect(find.text('Mitglied'), findsOneWidget);
       expect(find.text('Mitglied - Leitung'), findsNothing);
       expect(find.textContaining('OrdentlicheMitgliedschaft'), findsNothing);
     },

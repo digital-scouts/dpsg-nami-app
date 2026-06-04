@@ -10,6 +10,8 @@ import '../../domain/member/pending_person_update.dart';
 import '../../domain/member_filters/beitragsart.dart';
 import '../../domain/member_filters/usecases/ermittle_beitragsart_im_arbeitskontext_usecase.dart';
 import '../../domain/settings/address_settings_repository.dart';
+import '../../domain/taetigkeit/klassifiziere_mitglied_usecase.dart';
+import '../../domain/taetigkeit/roles.dart';
 import '../../domain/taetigkeit/stufe.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/geoapify_address_map_service.dart';
@@ -49,6 +51,8 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
   static const ErmittleBeitragsartImArbeitskontextUseCase
   _ermittleBeitragsartImArbeitskontextUseCase =
       ErmittleBeitragsartImArbeitskontextUseCase();
+  static const KlassifiziereMitgliedUseCase _klassifiziereMitgliedUseCase =
+      KlassifiziereMitgliedUseCase();
 
   bool _isPreparingEdit = false;
 
@@ -295,6 +299,12 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
     final nickname = currentMitglied.fahrtenname?.trim();
     final hasNickname = nickname != null && nickname.isNotEmpty;
     final String title = hasNickname ? nickname : fullName;
+    final roleCategory = arbeitskontextModel?.readModel == null
+        ? MemberUtils.visualRole(currentMitglied)?.category
+        : _klassifiziereMitgliedUseCase.klassifiziere(
+            currentMitglied.mitgliedsnummer,
+            arbeitskontextModel!.readModel!,
+          );
     final activeStufe = MemberUtils.aktiveStufe(currentMitglied);
     final sichtbareRollen = currentMitglied.roles
         .where((role) => !MemberUtils.istMitgliederRolle(role))
@@ -334,6 +344,7 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
               title: title,
               subtitle: hasNickname ? fullName : null,
               stage: activeStufe,
+              roleCategory: roleCategory,
               member: currentMitglied,
               hasPending: hasPending,
               needsResolution: needsResolution,
@@ -599,11 +610,13 @@ class _MemberDetailTopBar extends StatelessWidget {
     required this.onBack,
     this.subtitle,
     this.stage,
+    this.roleCategory,
   });
 
   final String title;
   final String? subtitle;
   final Stufe? stage;
+  final RoleCategory? roleCategory;
   final Mitglied member;
   final bool hasPending;
   final bool needsResolution;
@@ -643,7 +656,10 @@ class _MemberDetailTopBar extends StatelessWidget {
             ],
           ),
         ),
-        if (stage != null) ...[
+        if (roleCategory == RoleCategory.sonstiges) ...[
+          const _SonstigesBadge(),
+          const SizedBox(width: 6),
+        ] else if (stage != null) ...[
           _StageBadge(stage: stage!),
           const SizedBox(width: 6),
         ],
@@ -714,6 +730,49 @@ class _StageBadge extends StatelessWidget {
             style: Theme.of(
               context,
             ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SonstigesBadge extends StatelessWidget {
+  const _SonstigesBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final containerColor = colorScheme.surfaceContainerHighest;
+    final borderColor = colorScheme.outlineVariant;
+    final contentColor = colorScheme.onSurface;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: containerColor,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: borderColor),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Image.asset(
+            StufeVisuals.assetFor(Stufe.leitung),
+            width: 14,
+            height: 14,
+            color: contentColor,
+            colorBlendMode: BlendMode.srcIn,
+            cacheWidth: 40,
+            cacheHeight: 40,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            'Sonstige',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: contentColor,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),

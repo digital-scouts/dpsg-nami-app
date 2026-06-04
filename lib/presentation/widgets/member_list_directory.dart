@@ -3,6 +3,7 @@ import 'package:nami/domain/member/member_list_preferences.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/member_filters/member_custom_filter.dart';
 import 'package:nami/domain/member_filters/member_fixed_filter_groups.dart';
+import 'package:nami/domain/taetigkeit/roles.dart';
 import 'package:nami/presentation/stufe/stufe_visuals.dart';
 import 'package:nami/presentation/widgets/member_custom_filter_icons.dart';
 import 'package:nami/presentation/widgets/member_list.dart';
@@ -37,6 +38,7 @@ class MemberDirectory extends StatefulWidget {
     this.highlightSearchMatches = false,
     this.subtitleTextBuilder,
     this.trailingTextBuilder,
+    this.roleCategoryBuilder,
     this.warningBuilder,
     this.enableGroupFilter = true,
     this.hasFilterDeviation = false,
@@ -57,6 +59,7 @@ class MemberDirectory extends StatefulWidget {
   final bool highlightSearchMatches;
   final String? Function(Mitglied mitglied)? subtitleTextBuilder;
   final String? Function(Mitglied mitglied)? trailingTextBuilder;
+  final RoleCategory? Function(Mitglied mitglied)? roleCategoryBuilder;
   final bool Function(Mitglied mitglied)? warningBuilder;
   final bool enableGroupFilter;
   final bool hasFilterDeviation;
@@ -205,6 +208,7 @@ class _MemberDirectoryState extends State<MemberDirectory> {
             subtitleMode: widget.subtitleMode,
             subtitleTextBuilder: widget.subtitleTextBuilder,
             trailingTextBuilder: widget.trailingTextBuilder,
+            roleCategoryBuilder: widget.roleCategoryBuilder,
             warningBuilder: widget.warningBuilder,
             favourites: favourites,
             selectedFilterKeys: widget.enableGroupFilter

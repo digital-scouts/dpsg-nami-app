@@ -7,6 +7,7 @@ import '../../domain/statistiks/group_distribution.dart';
 import '../../domain/stufe/altersgrenzen.dart';
 import '../../domain/stufe/arbeitskontext_stufen_mapping.dart';
 import '../../domain/stufe/usecases/ermittle_stufen_im_arbeitskontext_usecase.dart';
+import '../../domain/taetigkeit/klassifiziere_mitglied_usecase.dart';
 import '../../domain/taetigkeit/roles.dart';
 import '../../domain/taetigkeit/stufe.dart';
 import '../stufe/stufe_visuals.dart';
@@ -84,6 +85,7 @@ class StatisticsSnapshot {
     required this.confessions,
     required this.groupDetails,
     required this.memberById,
+    required this.memberClassification,
   });
 
   final String stammTitle;
@@ -97,6 +99,7 @@ class StatisticsSnapshot {
   final List<StatisticsLegendItem> confessions;
   final Map<String, StatisticsGroupDetailSnapshot> groupDetails;
   final Map<String, Mitglied> memberById;
+  final Map<String, RoleCategory> memberClassification;
 
   StatisticsGroupDetailSnapshot? detailById(String id) => groupDetails[id];
 }
@@ -105,9 +108,13 @@ class StatisticsSnapshotBuilder {
   const StatisticsSnapshotBuilder({
     ErmittleStufenImArbeitskontextUseCase ermittleStufenUseCase =
         const ErmittleStufenImArbeitskontextUseCase(),
-  }) : _ermittleStufenUseCase = ermittleStufenUseCase;
+    KlassifiziereMitgliedUseCase klassifiziereMitgliedUseCase =
+        const KlassifiziereMitgliedUseCase(),
+  }) : _ermittleStufenUseCase = ermittleStufenUseCase,
+       _klassifiziereMitgliedUseCase = klassifiziereMitgliedUseCase;
 
   final ErmittleStufenImArbeitskontextUseCase _ermittleStufenUseCase;
+  final KlassifiziereMitgliedUseCase _klassifiziereMitgliedUseCase;
 
   StatisticsSnapshot build(
     ArbeitskontextReadModel readModel, {
@@ -118,9 +125,13 @@ class StatisticsSnapshotBuilder {
     final memberById = <String, Mitglied>{
       for (final member in readModel.mitglieder) member.mitgliedsnummer: member,
     };
+    final gruppenById = <int, ArbeitskontextGruppe>{
+      for (final gruppe in readModel.gruppen) gruppe.id: gruppe,
+    };
     final stammMemberIds = _collectMemberRoleIds(
       readModel.mitgliedsZuordnungen,
       memberById,
+      gruppenById,
     );
 
     final assignmentByGroup = <int, List<ArbeitskontextMitgliedsZuordnung>>{};
@@ -156,10 +167,13 @@ class StatisticsSnapshotBuilder {
           assignment.mitgliedsnummer,
           () => const _RoleFlags.none(),
         );
-        final isLeader = _isLeaderRole(assignment);
+        final isLeader = _klassifiziereMitgliedUseCase
+            .istLeitungsrolleInStammGruppe(assignment, gruppenById);
+        final isMember = _klassifiziereMitgliedUseCase
+            .istMitgliedsrolleInStammGruppe(assignment, gruppenById);
         roleFlagsByMember[assignment.mitgliedsnummer] = flags.copyWith(
           hasLeaderRole: flags.hasLeaderRole || isLeader,
-          hasMemberRole: flags.hasMemberRole || !isLeader,
+          hasMemberRole: flags.hasMemberRole || isMember,
         );
       }
 
@@ -226,31 +240,27 @@ class StatisticsSnapshotBuilder {
 
     groupItems.sort((a, b) => a.name.compareTo(b.name));
 
-    final members = readModel.mitglieder.where((member) {
-      final memberAssignments = readModel.findeMitgliedsZuordnungen(
-        member.mitgliedsnummer,
-      );
-      return memberAssignments.any((entry) => !_isLeaderRole(entry));
-    }).length;
+    var members = 0;
+    var leaders = 0;
+    var sonstige = 0;
+    final memberClassification = <String, RoleCategory>{};
 
-    final leaders = readModel.mitglieder.where((member) {
-      final memberAssignments = readModel.findeMitgliedsZuordnungen(
+    for (final member in readModel.mitglieder) {
+      final classification = _klassifiziereMitgliedUseCase.klassifiziere(
         member.mitgliedsnummer,
+        readModel,
       );
-      return memberAssignments.any(_isLeaderRole);
-    }).length;
+      memberClassification[member.mitgliedsnummer] = classification;
 
-    final sonstige = readModel.mitglieder.where((member) {
-      final memberAssignments = readModel.findeMitgliedsZuordnungen(
-        member.mitgliedsnummer,
-      );
-      if (memberAssignments.isEmpty) {
-        return false;
+      switch (classification) {
+        case RoleCategory.mitglied:
+          members++;
+        case RoleCategory.leitung:
+          leaders++;
+        case RoleCategory.sonstiges:
+          sonstige++;
       }
-      final hasLeader = memberAssignments.any(_isLeaderRole);
-      final hasMember = memberAssignments.any((entry) => !_isLeaderRole(entry));
-      return !hasLeader && !hasMember;
-    }).length;
+    }
 
     final groupDistributions =
         distributionByStage.entries
@@ -305,6 +315,7 @@ class StatisticsSnapshotBuilder {
       ),
       groupDetails: detailById,
       memberById: memberById,
+      memberClassification: memberClassification,
     );
   }
 
@@ -470,16 +481,18 @@ class StatisticsSnapshotBuilder {
   Set<String> _collectMemberRoleIds(
     Iterable<ArbeitskontextMitgliedsZuordnung> assignments,
     Map<String, Mitglied> memberById,
+    Map<int, ArbeitskontextGruppe> gruppenById,
   ) {
     final memberIds = <String>{};
     for (final assignment in assignments) {
-      if (_isLeaderRole(assignment)) {
-        continue;
+      if (_klassifiziereMitgliedUseCase.istMitgliedsrolleInStammGruppe(
+        assignment,
+        gruppenById,
+      )) {
+        if (memberById.containsKey(assignment.mitgliedsnummer)) {
+          memberIds.add(assignment.mitgliedsnummer);
+        }
       }
-      if (!memberById.containsKey(assignment.mitgliedsnummer)) {
-        continue;
-      }
-      memberIds.add(assignment.mitgliedsnummer);
     }
     return memberIds;
   }
@@ -496,19 +509,6 @@ class StatisticsSnapshotBuilder {
       baseMinAge: hasBiber ? biberMin : woelflingMin,
       baseMaxAge: roverMax,
     );
-  }
-
-  bool _isLeaderRole(ArbeitskontextMitgliedsZuordnung assignment) {
-    final raw = '${assignment.rollenTyp ?? ''} ${assignment.rollenLabel ?? ''}'
-        .trim()
-        .toLowerCase();
-    return raw.contains('hilfsleiter') ||
-        raw.contains('leitung') ||
-        raw.contains('leiter') ||
-        raw.contains('vorstand') ||
-        raw.contains('vorsitz') ||
-        raw.contains('kurat') ||
-        raw.contains('praeses');
   }
 
   Stufe? _resolveStage(String? gruppenTyp) {

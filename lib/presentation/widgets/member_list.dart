@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:nami/domain/member/member_list_preferences.dart';
 import 'package:nami/domain/member/member_utils.dart';
 import 'package:nami/domain/member/mitglied.dart';
+import 'package:nami/domain/taetigkeit/roles.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/widgets/member_list_tile.dart';
@@ -33,6 +34,7 @@ class MemberList extends StatelessWidget {
     this.subtitleMode = MemberSubtitleMode.mitgliedsnummer,
     this.subtitleTextBuilder,
     this.trailingTextBuilder,
+    this.roleCategoryBuilder,
     this.warningBuilder,
     this.favourites = const {},
     this.selectedFilterKeys = const <String>{},
@@ -49,6 +51,7 @@ class MemberList extends StatelessWidget {
   final MemberSubtitleMode subtitleMode;
   final String? Function(Mitglied mitglied)? subtitleTextBuilder;
   final String? Function(Mitglied mitglied)? trailingTextBuilder;
+  final RoleCategory? Function(Mitglied mitglied)? roleCategoryBuilder;
   final bool Function(Mitglied mitglied)? warningBuilder;
   final Set<String> favourites;
   final Set<String> selectedFilterKeys;
@@ -192,6 +195,7 @@ class MemberList extends StatelessWidget {
                           : null,
                       showWarning: warningBuilder?.call(m) ?? false,
                       trailingText: trailingTextBuilder?.call(m),
+                      roleCategory: roleCategoryBuilder?.call(m),
                       onTap: () {
                         if (onTapMember != null) {
                           onTapMember!(m.mitgliedsnummer);
