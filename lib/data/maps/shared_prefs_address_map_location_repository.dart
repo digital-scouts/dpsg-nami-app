@@ -43,6 +43,13 @@ class SharedPrefsAddressMapLocationRepository
   }
 
   @override
+  Future<void> clearAll() async {
+    final prefs = await SharedPreferences.getInstance();
+    final keys = prefs.getKeys().where((key) => key.startsWith(_keyPrefix));
+    await Future.wait(keys.map(prefs.remove));
+  }
+
+  @override
   Future<int> countEntries() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getKeys().where((key) => key.startsWith(_keyPrefix)).length;

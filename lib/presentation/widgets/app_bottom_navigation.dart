@@ -20,16 +20,16 @@ class AppBottomNavigation extends StatelessWidget {
       unselectedItemColor: theme.colorScheme.onSurfaceVariant,
       items: [
         BottomNavigationBarItem(
-          icon: const Icon(Icons.people),
-          label: t.t('nav_my_stage'),
-        ),
-        BottomNavigationBarItem(
           icon: const Icon(Icons.groups),
           label: t.t('nav_members'),
         ),
         BottomNavigationBarItem(
           icon: const Icon(Icons.insert_chart),
           label: t.t('nav_statistics'),
+        ),
+        BottomNavigationBarItem(
+          icon: const Icon(Icons.swap_horiz),
+          label: t.t('nav_stage_change'),
         ),
         BottomNavigationBarItem(
           icon: const Icon(Icons.settings),

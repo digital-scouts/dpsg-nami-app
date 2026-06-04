@@ -18,7 +18,9 @@ import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
+import 'package:nami/presentation/model/urgent_notification_model.dart';
 import 'package:nami/presentation/navigation/navigation_home.page.dart';
+import 'package:nami/presentation/screens/statistics_page.dart';
 import 'package:nami/services/biometric_lock_service.dart';
 import 'package:nami/services/hitobito_auth_env.dart';
 import 'package:nami/services/hitobito_data_retention_policy.dart';
@@ -30,7 +32,7 @@ import 'package:provider/provider.dart';
 
 void main() {
   testWidgets(
-    'zeigt Meine Stufe, Mitglieder und Statistik ohne AppBar, aber mit SafeArea',
+    'zeigt Mitglieder, Statistik und Stufenwechsel ohne AppBar, aber mit SafeArea',
     (tester) async {
       final authModel = await _createSignedInAuthModel();
       final arbeitskontextModel = await _createArbeitskontextModel(
@@ -47,26 +49,29 @@ void main() {
 
       expect(find.byType(AppBar), findsNothing);
       expect(find.byType(SafeArea), findsWidgets);
-      expect(find.text('Meine Stufe'), findsWidgets);
-
-      await tester.tap(find.text('Mitglieder'));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(AppBar), findsNothing);
-      expect(find.byType(SafeArea), findsWidgets);
       expect(find.text('Mitglieder'), findsWidgets);
 
-      await tester.tap(find.text('Statistiken'));
+      await tester.tap(find.byIcon(Icons.insert_chart));
       await tester.pumpAndSettle();
 
       expect(find.byType(AppBar), findsNothing);
       expect(find.byType(SafeArea), findsWidgets);
-      expect(find.text('Stamm St. Georg - Uebersicht'), findsOneWidget);
+      expect(find.byType(StatisticsPage), findsOneWidget);
 
-      await tester.tap(find.text('Einstellungen'));
+      await tester.tap(find.byIcon(Icons.swap_horiz));
       await tester.pumpAndSettle();
 
-      expect(find.byType(AppBar), findsOneWidget);
+      expect(find.byType(AppBar), findsNothing);
+      expect(find.byType(SafeArea), findsWidgets);
+      expect(
+        find.byKey(const Key('stufenwechsel-transfer-button-woelfling')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byIcon(Icons.settings));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Einstellungen'), findsWidgets);
     },
   );
 }
@@ -80,6 +85,9 @@ Widget _buildTestApp({
       ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
       ChangeNotifierProvider<ArbeitskontextModel>.value(
         value: arbeitskontextModel,
+      ),
+      ChangeNotifierProvider<UrgentNotificationModel>(
+        create: (_) => UrgentNotificationModel(),
       ),
       Provider<LoggerService>.value(value: _FakeLoggerService()),
     ],
@@ -111,6 +119,7 @@ Future<AuthSessionModel> _createSignedInAuthModel() async {
     logger: _FakeLoggerService(),
   );
   await authModel.signIn();
+  await authModel.markSensitiveDataSynced();
   return authModel;
 }
 

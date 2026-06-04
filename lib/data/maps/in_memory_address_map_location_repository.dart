@@ -20,5 +20,10 @@ class InMemoryAddressMapLocationRepository
   }
 
   @override
+  Future<void> clearAll() async {
+    _entries.clear();
+  }
+
+  @override
   Future<int> countEntries() async => _entries.length;
 }

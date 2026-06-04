@@ -45,11 +45,6 @@ Story settingsPageStory() => Story(
         onMapSettings: () => Navigator.of(
           context,
         ).push(MaterialPageRoute(builder: (_) => const SettingsMapPage())),
-        onStufenwechsel: () => AppSnackbar.show(
-          context,
-          message: 'Stufenwechsel (Dummy)',
-          type: AppSnackbarType.info,
-        ),
         onMessages: () => AppSnackbar.show(
           context,
           message: 'Meldungen',

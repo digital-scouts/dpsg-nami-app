@@ -36,9 +36,9 @@ Story appSidebarStory() {
           userName: userName,
           userId: userId,
           motd: motd,
-          onMeineStufe: () => ScaffoldMessenger.of(
+          onStufenwechsel: () => ScaffoldMessenger.of(
             context,
-          ).showSnackBar(const SnackBar(content: Text('Meine Stufe'))),
+          ).showSnackBar(const SnackBar(content: Text('Stufenwechsel'))),
           onMitglieder: () => ScaffoldMessenger.of(
             context,
           ).showSnackBar(const SnackBar(content: Text('Mitglieder'))),

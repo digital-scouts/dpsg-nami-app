@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/data/arbeitskontext/hitobito_group_resource.dart';
+import 'package:nami/data/maps/shared_prefs_address_map_location_repository.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext_local_repository.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model.dart';
@@ -12,6 +13,7 @@ import 'package:nami/domain/auth/auth_profile_repository.dart';
 import 'package:nami/domain/auth/auth_session.dart';
 import 'package:nami/domain/auth/auth_session_repository.dart';
 import 'package:nami/domain/auth/auth_state.dart';
+import 'package:nami/domain/maps/address_map_location.dart';
 import 'package:nami/domain/maps/stamm_map_marker.dart';
 import 'package:nami/domain/maps/stamm_map_marker_repository.dart';
 import 'package:nami/domain/settings/app_settings.dart';
@@ -33,6 +35,7 @@ import 'package:nami/services/map_tile_cache_service.dart';
 import 'package:nami/services/network_access_policy.dart';
 import 'package:nami/services/sensitive_storage_service.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   testWidgets(
@@ -299,6 +302,7 @@ void main() {
   });
 
   testWidgets('loescht Kartendaten manuell', (tester) async {
+    SharedPreferences.setMockInitialValues({});
     final logger = _FakeLoggerService();
     final groupsService = _FakeHitobitoGroupsService();
     final peopleService = HitobitoPeopleService(config: groupsService.config);
@@ -332,6 +336,15 @@ void main() {
       logger: logger,
     );
     final mapTileCacheService = _FakeMapTileCacheService();
+    final addressRepository = SharedPrefsAddressMapLocationRepository();
+    await addressRepository.save(
+      AddressMapLocation(
+        cacheKey: 'stamm:1',
+        latitude: 53.5511,
+        longitude: 9.9937,
+        resolvedAt: DateTime(2026, 6, 4, 12),
+      ),
+    );
 
     await tester.pumpWidget(
       MultiProvider(
@@ -363,6 +376,28 @@ void main() {
     await tester.pumpAndSettle();
     await _scrollDownUntilFinderExists(tester, find.text('Gecachte Adressen'));
     expect(find.text('Gecachte Adressen'), findsOneWidget);
+    expect(find.text('1 Adressen im Koordinaten-Cache'), findsOneWidget);
+    await _scrollDownUntilFinderExists(
+      tester,
+      find.byKey(const Key('debug_delete_address_cache_button')),
+    );
+    final deleteAddressCacheButton = find.byKey(
+      const Key('debug_delete_address_cache_button'),
+    );
+    await tester.ensureVisible(deleteAddressCacheButton);
+
+    tester.widget<FilledButton>(deleteAddressCacheButton).onPressed!.call();
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(await addressRepository.countEntries(), 0);
+    expect(logger.debugActions, contains('delete_address_coordinate_cache'));
+    expect(find.text('Adress-Cache gelöscht'), findsOneWidget);
+    ScaffoldMessenger.of(
+      tester.element(find.byType(DebugToolsPage)),
+    ).clearSnackBars();
+    await tester.pumpAndSettle();
+
     await _scrollDownUntilFinderExists(
       tester,
       find.byKey(const Key('debug_delete_map_cache_button')),

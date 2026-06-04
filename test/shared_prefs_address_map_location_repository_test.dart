@@ -78,4 +78,29 @@ void main() {
 
     expect(await repository.countEntries(), 2);
   });
+
+  test('loescht alle gecachten AddressMapLocation-Eintraege', () async {
+    final repository = SharedPrefsAddressMapLocationRepository();
+    await repository.save(
+      AddressMapLocation(
+        cacheKey: 'hash-a',
+        latitude: 53.5511,
+        longitude: 9.9937,
+        resolvedAt: DateTime(2026, 4, 6, 10, 15),
+      ),
+    );
+    await repository.save(
+      AddressMapLocation(
+        cacheKey: 'hash-b',
+        resolvedAt: DateTime(2026, 4, 6, 10, 16),
+        addressNotFound: true,
+      ),
+    );
+
+    await repository.clearAll();
+
+    expect(await repository.countEntries(), 0);
+    expect(await repository.load('hash-a'), isNull);
+    expect(await repository.load('hash-b'), isNull);
+  });
 }

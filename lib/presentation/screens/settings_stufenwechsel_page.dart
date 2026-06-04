@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/presentation/navigation/app_router.dart';
+import 'package:nami/presentation/screens/member_detail_page.dart';
 import 'package:nami/presentation/stufe/stufe_visuals.dart';
 import 'package:nami/presentation/theme/theme.dart';
 
@@ -9,11 +11,13 @@ enum StufenwechselDummyMode { populated, empty }
 class SettingsStufenwechselPage extends StatefulWidget {
   final StufenwechselDummyMode mode;
   final void Function(int selectedCount)? onTransferTap;
+  final bool showAppBar;
 
   const SettingsStufenwechselPage({
     super.key,
     this.mode = StufenwechselDummyMode.populated,
     this.onTransferTap,
+    this.showAppBar = true,
   });
 
   @override
@@ -119,12 +123,27 @@ class _SettingsStufenwechselPageState extends State<SettingsStufenwechselPage> {
     widget.onTransferTap?.call(selectedCount);
   }
 
+  Future<void> _openMemberDetails(_DummyMember member) async {
+    final mitglied = member.toMitglied();
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        settings: RouteSettings(
+          name: AppRoutes.memberDetail,
+          arguments: mitglied.mitgliedsnummer,
+        ),
+        builder: (_) => MemberDetailPage(mitglied: mitglied),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Stufenwechsel')),
+      appBar: widget.showAppBar
+          ? AppBar(title: const Text('Stufenwechsel'))
+          : null,
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
         children: [
@@ -259,11 +278,16 @@ class _SettingsStufenwechselPageState extends State<SettingsStufenwechselPage> {
               section: section,
               selectedIds: _selectedIdsFor(section.stageFrom),
               onMemberTap: (id) => _toggleSelection(section.stageFrom, id),
+              onMemberDetailsTap: _openMemberDetails,
               onTransferTap: () => _onTransferPressed(section.stageFrom),
             ),
             const SizedBox(height: 12),
           ],
-          if (_roverMembers.isNotEmpty) _RoverInfoCard(members: _roverMembers),
+          if (_roverMembers.isNotEmpty)
+            _RoverInfoCard(
+              members: _roverMembers,
+              onMemberDetailsTap: _openMemberDetails,
+            ),
         ],
       ),
     );
@@ -274,12 +298,14 @@ class _StageSectionCard extends StatelessWidget {
   final _DummyStageSection section;
   final Set<String> selectedIds;
   final ValueChanged<String> onMemberTap;
+  final ValueChanged<_DummyMember> onMemberDetailsTap;
   final VoidCallback onTransferTap;
 
   const _StageSectionCard({
     required this.section,
     required this.selectedIds,
     required this.onMemberTap,
+    required this.onMemberDetailsTap,
     required this.onTransferTap,
   });
 
@@ -398,6 +424,7 @@ class _StageSectionCard extends StatelessWidget {
               member: section.members[i],
               isSelected: selectedIds.contains(section.members[i].id),
               onTap: () => onMemberTap(section.members[i].id),
+              onOpenDetails: () => onMemberDetailsTap(section.members[i]),
               stage: section.stageFrom,
             ),
             if (i < section.members.length - 1)
@@ -425,48 +452,50 @@ class _StageSectionCard extends StatelessWidget {
                 ],
               ),
             ),
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-            decoration: BoxDecoration(
-              border: Border(
-                top: BorderSide(
-                  color: theme.colorScheme.outline.withValues(alpha: 0.22),
+          if (section.members.isNotEmpty)
+            Container(
+              key: Key('stufenwechsel-transfer-row-${section.stageFrom.name}'),
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(
+                    color: theme.colorScheme.outline.withValues(alpha: 0.22),
+                  ),
                 ),
               ),
-            ),
-            child: Row(
-              children: [
-                Text(
-                  '${selectedIds.length} ausgewählt',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.outlineVariant,
-                  ),
-                ),
-                const Spacer(),
-                FilledButton.icon(
-                  key: Key(
-                    'stufenwechsel-transfer-button-${section.stageFrom.name}',
-                  ),
-                  onPressed: selectedIds.isNotEmpty ? onTransferTap : null,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: stageColor,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: theme.colorScheme.outline
-                        .withValues(alpha: 0.35),
-                    disabledForegroundColor: Colors.white.withValues(
-                      alpha: 0.85,
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 8,
+              child: Row(
+                children: [
+                  Text(
+                    '${selectedIds.length} ausgewählt',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.outlineVariant,
                     ),
                   ),
-                  icon: const Icon(Icons.done_all, size: 16),
-                  label: const Text('Auswahl übernehmen'),
-                ),
-              ],
+                  const Spacer(),
+                  FilledButton.icon(
+                    key: Key(
+                      'stufenwechsel-transfer-button-${section.stageFrom.name}',
+                    ),
+                    onPressed: selectedIds.isNotEmpty ? onTransferTap : null,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: stageColor,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: theme.colorScheme.outline
+                          .withValues(alpha: 0.35),
+                      disabledForegroundColor: Colors.white.withValues(
+                        alpha: 0.85,
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                    ),
+                    icon: const Icon(Icons.done_all, size: 16),
+                    label: const Text('Auswahl übernehmen'),
+                  ),
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -477,6 +506,7 @@ class _SelectableMemberRow extends StatelessWidget {
   final _DummyMember member;
   final bool isSelected;
   final VoidCallback onTap;
+  final VoidCallback onOpenDetails;
   final Stufe stage;
   final bool showCheckbox;
 
@@ -484,6 +514,7 @@ class _SelectableMemberRow extends StatelessWidget {
     required this.member,
     required this.isSelected,
     required this.onTap,
+    required this.onOpenDetails,
     required this.stage,
     this.showCheckbox = true,
   });
@@ -534,35 +565,52 @@ class _SelectableMemberRow extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(member.name, style: theme.textTheme.bodyMedium),
-                const SizedBox(height: 2),
-                Text(
-                  member.subtitle,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.outlineVariant,
+            child: GestureDetector(
+              key: Key('stufenwechsel-member-row-${member.id}'),
+              behavior: HitTestBehavior.opaque,
+              onTap: onOpenDetails,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(member.name, style: theme.textTheme.bodyMedium),
+                        const SizedBox(height: 2),
+                        Text(
+                          member.subtitle,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.outlineVariant,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  if (member.dueLabel != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _dueBackgroundColor(
+                          member.dueState,
+                          theme.brightness,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        member.dueLabel!,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: _dueForegroundColor(member.dueState),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
-          if (member.dueLabel != null)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: _dueBackgroundColor(member.dueState, theme.brightness),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                member.dueLabel!,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: _dueForegroundColor(member.dueState),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -571,8 +619,12 @@ class _SelectableMemberRow extends StatelessWidget {
 
 class _RoverInfoCard extends StatelessWidget {
   final List<_DummyMember> members;
+  final ValueChanged<_DummyMember> onMemberDetailsTap;
 
-  const _RoverInfoCard({required this.members});
+  const _RoverInfoCard({
+    required this.members,
+    required this.onMemberDetailsTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -673,6 +725,7 @@ class _RoverInfoCard extends StatelessWidget {
               member: members[i],
               isSelected: false,
               onTap: () {},
+              onOpenDetails: () => onMemberDetailsTap(members[i]),
               stage: Stufe.rover,
               showCheckbox: false,
             ),
@@ -732,6 +785,18 @@ class _DummyMember {
     this.dueLabel,
     this.dueState = _DueState.none,
   });
+
+  Mitglied toMitglied() {
+    final parts = name.trim().split(RegExp(r'\s+'));
+    final vorname = parts.isEmpty ? name : parts.first;
+    final nachname = parts.length <= 1 ? '' : parts.skip(1).join(' ');
+
+    return Mitglied.peopleListItem(
+      mitgliedsnummer: id,
+      vorname: vorname,
+      nachname: nachname,
+    );
+  }
 }
 
 enum _DueState { none, upcoming, overdue }
