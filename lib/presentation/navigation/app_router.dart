@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../data/settings/shared_prefs_address_settings_repository.dart';
 import '../../data/settings/shared_prefs_stufen_settings_repository.dart';
 import '../../data/settings/stufen_settings_repo_adapter.dart';
+import '../../domain/arbeitskontext/arbeitskontext_read_model.dart';
 import '../../domain/settings/stufen_settings.dart';
 import '../../domain/stufe/altersgrenzen.dart';
 import '../../domain/stufe/usecases/update_altersgrenzen_usecase.dart';
@@ -246,10 +247,21 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         settings: settings,
         builder: (context) {
-          final groupId = settings.arguments is String
-              ? settings.arguments! as String
-              : 'woe';
-          return StatisticsGroupDetailPage(groupId: groupId);
+          final arguments = settings.arguments;
+          final groupId = arguments is Map<String, Object?>
+              ? (arguments['groupId'] as String? ?? '')
+              : arguments is String
+              ? arguments
+              : '';
+          final readModel = arguments is Map<String, Object?>
+              ? arguments['readModel']
+              : null;
+          return StatisticsGroupDetailPage(
+            groupId: groupId,
+            debugReadModel: readModel is ArbeitskontextReadModel
+                ? readModel
+                : null,
+          );
         },
       );
     case AppRoutes.debugTools:

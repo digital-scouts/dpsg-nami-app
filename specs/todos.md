@@ -2,6 +2,21 @@
 
 Diese Liste hält nur noch die nächsten offenen Aufgaben fest. Bereits umgesetzte Arbeitskontext- und Konfliktlösungs-Tickets bleiben im Code, in Tests und im Arbeitskontext-Konzept nachvollziehbar, werden hier aber nicht mehr als aktive Aufgaben geführt.
 
+## Status-Update: Echte Stammstatistik umgesetzt
+
+Umgesetzt im Code:
+
+- Statistikseiten laufen auf realen Arbeitskontextdaten statt Dummy-Daten.
+- Global-Tab und Konfession wurden aus der Statistikansicht entfernt (out of scope).
+- Gruppen werden dynamisch aus Gruppen + Mitgliedszuordnungen aufgebaut.
+- Rollenzaehlung erfolgt als Mitglied/Leitung; Hilfsleiter wird als Leitung gezaehlt.
+- Kartenmarker werden aus Mitgliederadressen aufgebaut und nutzen den globalen Adress-Hash-Cache.
+
+Offen als Nacharbeit:
+
+- Feldtests mit echten Layerdaten (insbesondere sehr grosse Staemme und unvollstaendige Adressen).
+- Feinschliff der Statistiktexte/Lokalisierung fuer alle neuen Stati.
+
 ## Priorität 1: Stufen und Gruppen mit den neuen Testdaten konsolidieren
 
 Ziel: Die Stufenableitung wird auf die echten Gruppentypen StammGruppeBiber, StammGruppeWoelflinge, StammGruppeJungpfadfinder, StammGruppePfadfinder und StammGruppeRover umgestellt; Beitragsarten werden als reine Ansicht ergänzt.
@@ -57,6 +72,7 @@ Nächste Aufgaben:
 - Anrufen/E-Mail buttons disable wenn keine Telefon/Mail vorhanden
 - GitHub-Pages-Wiki/Userguide für Konfliktlösung, Datenspeicherung und Löschung schreiben.
 - Problemlösungs-Screen prüfen: Bereich "Mitglied bearbeiten" bleibt beim Einstieg eingeklappt, kann aber gut sichtbar aufgeklappt werden.
+- Debug&Tools Adress-Cache löschen.
 
 ## Task 6: Bei erststart nach Update alte daten löschen
 

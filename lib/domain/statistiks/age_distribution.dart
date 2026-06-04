@@ -45,14 +45,29 @@ class AgeDistributionData {
   );
 }
 
+class AgeDistributionBounds {
+  const AgeDistributionBounds({
+    required this.baseMinAge,
+    required this.baseMaxAge,
+    this.maxYearsBelow = 2,
+    this.maxYearsAbove = 2,
+  });
+
+  final int baseMinAge;
+  final int baseMaxAge;
+  final int maxYearsBelow;
+  final int maxYearsAbove;
+}
+
 AgeDistributionData computeAgeDistribution(
   List<MemberAgeInfo> members, {
   DateTime? referenceDate,
+  AgeDistributionBounds? bounds,
 }) {
   if (members.isEmpty) return AgeDistributionData.empty;
   final now = referenceDate ?? DateTime.now();
   final filtered = members
-      .where((m) => m.art == RoleCategory.mitglied)
+      .where((m) => m.art == RoleCategory.mitglied && m.stufe != Stufe.leitung)
       .toList();
   if (filtered.isEmpty) return AgeDistributionData.empty;
 
@@ -65,23 +80,56 @@ AgeDistributionData computeAgeDistribution(
     return age;
   }
 
-  final Map<int, Map<Stufe, int>> byAge = {};
+  final ages = <int>[];
+  final stagedCounts = <int, Map<Stufe, int>>{};
   for (final m in filtered) {
     final age = calcAge(m.birthDate);
     if (age < 0) continue;
-    final stufeMap = byAge.putIfAbsent(age, () => {});
+    ages.add(age);
+    final stufeMap = stagedCounts.putIfAbsent(age, () => {});
     stufeMap.update(m.stufe, (v) => v + 1, ifAbsent: () => 1);
   }
-  if (byAge.isEmpty) return AgeDistributionData.empty;
+  if (stagedCounts.isEmpty || ages.isEmpty) return AgeDistributionData.empty;
 
-  final ages = byAge.keys.toList()..sort();
-  final minAge = ages.first;
-  final maxAge = ages.last;
+  final youngestAge = ages.reduce((a, b) => a < b ? a : b);
+  final oldestAge = ages.reduce((a, b) => a > b ? a : b);
+
+  late final int minAge;
+  late final int maxAge;
+  if (bounds != null) {
+    final lowerFloor = bounds.baseMinAge - bounds.maxYearsBelow;
+    final upperCeil = bounds.baseMaxAge + bounds.maxYearsAbove;
+    final nearbyAgesAboveBase = ages
+        .where((age) => age > bounds.baseMaxAge && age <= upperCeil)
+        .toList(growable: false);
+
+    minAge = youngestAge < bounds.baseMinAge
+        ? (youngestAge < lowerFloor ? lowerFloor : youngestAge)
+        : bounds.baseMinAge;
+    if (nearbyAgesAboveBase.isNotEmpty) {
+      final nearestVisibleMax = nearbyAgesAboveBase.reduce(
+        (a, b) => a > b ? a : b,
+      );
+      maxAge = nearestVisibleMax;
+    } else {
+      maxAge = bounds.baseMaxAge;
+    }
+  } else {
+    final stufenMinAge = filtered
+        .map((entry) => entry.stufe.defaultMinAge.toInt())
+        .reduce((a, b) => a < b ? a : b);
+    final stufenMaxAge = filtered
+        .map((entry) => entry.stufe.defaultMaxAge.toInt())
+        .reduce((a, b) => a > b ? a : b);
+
+    minAge = youngestAge < stufenMinAge ? youngestAge : stufenMinAge;
+    maxAge = oldestAge > stufenMaxAge ? oldestAge : stufenMaxAge;
+  }
 
   final bars = <AgeDistributionBar>[];
   int maxCount = 0;
   for (int age = minAge; age <= maxAge; age++) {
-    final stufeMap = byAge[age];
+    final stufeMap = stagedCounts[age];
     if (stufeMap == null) {
       bars.add(AgeDistributionBar(age: age, entries: const []));
       continue;
