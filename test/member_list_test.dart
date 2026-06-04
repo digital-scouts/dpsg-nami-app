@@ -249,6 +249,47 @@ void main() {
     expect(decoration.gradient, isNull);
   });
 
+  testWidgets('zeigt letztes Update als relative Zeit an', (tester) async {
+    final mitglieder = <Mitglied>[
+      Mitglied.peopleListItem(
+        mitgliedsnummer: '1001',
+        vorname: 'Sven',
+        nachname: 'Stamm',
+      ),
+    ];
+
+    Future<void> pumpList(DateTime lastUpdateAt) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            AppLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('de'), Locale('en')],
+          locale: const Locale('de'),
+          home: Scaffold(
+            body: MemberList(
+              mitglieder: mitglieder,
+              lastUpdateAt: lastUpdateAt,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+    }
+
+    await pumpList(DateTime.now());
+    expect(find.text('Letztes Update: Jetzt'), findsOneWidget);
+
+    await pumpList(DateTime.now().subtract(const Duration(seconds: 10)));
+    expect(find.text('Letztes Update: vor 10 Sekunden'), findsOneWidget);
+
+    await pumpList(DateTime.now().subtract(const Duration(minutes: 30)));
+    expect(find.text('Letztes Update: vor 30 Minuten'), findsOneWidget);
+  });
+
   testWidgets(
     'Gruppenfilter klappt viele Chips ohne horizontales Scrollen auf',
     (tester) async {

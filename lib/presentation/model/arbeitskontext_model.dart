@@ -25,6 +25,7 @@ typedef ArbeitskontextRemoteAccessExecutor =
       required String trigger,
       required Future<T> Function(AuthSession session) action,
       bool forceRefresh,
+      bool allowMobileDataOverride,
     });
 
 class ArbeitskontextModel extends ChangeNotifier {
@@ -301,9 +302,20 @@ class ArbeitskontextModel extends ChangeNotifier {
     await initializeForProfile(profile, session: _session, force: true);
   }
 
+  Future<void> clearCachedData() async {
+    await _localRepository.clearCached();
+    _readModel = null;
+    _arbeitskontext = null;
+    _status = ArbeitskontextStatus.initial;
+    _errorMessage = null;
+    notifyListeners();
+  }
+
   Future<void> refreshFromRemote({
     required AuthSession? session,
     required AuthProfile? profile,
+    bool allowMobileDataOverride = false,
+    bool scheduleRolesPreload = true,
   }) async {
     if (session == null || profile == null || session.accessToken.isEmpty) {
       return;
@@ -327,6 +339,7 @@ class ArbeitskontextModel extends ChangeNotifier {
           await _executeRemoteAccess<List<HitobitoGroupResource>>(
             trigger: 'arbeitskontext_refresh_groups',
             session: session,
+            allowMobileDataOverride: allowMobileDataOverride,
             action: (activeSession) =>
                 _groupsService.fetchAccessibleGroups(activeSession.accessToken),
           );
@@ -351,6 +364,7 @@ class ArbeitskontextModel extends ChangeNotifier {
       _readModel = await _executeRemoteAccess<ArbeitskontextReadModel>(
         trigger: 'arbeitskontext_refresh_read_model',
         session: session,
+        allowMobileDataOverride: allowMobileDataOverride,
         action: (activeSession) => _readModelRepository.refresh(
           accessToken: activeSession.accessToken,
           arbeitskontext: nextArbeitskontext,
@@ -369,7 +383,9 @@ class ArbeitskontextModel extends ChangeNotifier {
           'Arbeitskontext erfolgreich aktualisiert: layer=${_arbeitskontext!.aktiverLayer.id} name=${_arbeitskontext!.aktiverLayer.name} gruppen=${_readModel?.gruppen.length ?? 0} mitglieder=${_readModel?.mitglieder.length ?? 0}',
         );
       }
-      _scheduleRolesPreload();
+      if (scheduleRolesPreload) {
+        _scheduleRolesPreload();
+      }
     } catch (error, stack) {
       await _logger.log(
         'arbeitskontext',
@@ -385,11 +401,17 @@ class ArbeitskontextModel extends ChangeNotifier {
     }
   }
 
-  Future<bool> ensureRolesLoaded() async {
-    return _loadRoles(surfaceErrors: true);
+  Future<bool> ensureRolesLoaded({bool allowMobileDataOverride = false}) async {
+    return _loadRoles(
+      surfaceErrors: true,
+      allowMobileDataOverride: allowMobileDataOverride,
+    );
   }
 
-  Future<bool> _loadRoles({required bool surfaceErrors}) async {
+  Future<bool> _loadRoles({
+    required bool surfaceErrors,
+    bool allowMobileDataOverride = false,
+  }) async {
     final currentReadModel = _readModel;
     final session = _session;
     if (currentReadModel == null) {
@@ -415,6 +437,7 @@ class ArbeitskontextModel extends ChangeNotifier {
       _readModel = await _executeRemoteAccess<ArbeitskontextReadModel>(
         trigger: 'arbeitskontext_load_roles',
         session: session,
+        allowMobileDataOverride: allowMobileDataOverride,
         action: (activeSession) => _readModelRepository.loadRoles(
           accessToken: activeSession.accessToken,
           readModel: currentReadModel,
@@ -805,10 +828,15 @@ class ArbeitskontextModel extends ChangeNotifier {
     required String trigger,
     required AuthSession session,
     required Future<T> Function(AuthSession session) action,
+    bool allowMobileDataOverride = false,
   }) async {
     final executor = _remoteAccessExecutor;
     if (executor != null) {
-      return executor<T>(trigger: trigger, action: action);
+      return executor<T>(
+        trigger: trigger,
+        action: action,
+        allowMobileDataOverride: allowMobileDataOverride,
+      );
     }
     return action(session);
   }

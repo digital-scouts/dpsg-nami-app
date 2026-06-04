@@ -515,32 +515,44 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _authMaintenanceTimer?.cancel();
     final authModel = context.read<AuthSessionModel>();
     if (authModel.isRefreshAttemptDue) {
+      final allowMobileDataOverride =
+          !authModel.dataSyncStatus.hasValidLocalData;
       unawaited(
         authModel.syncHitobitoData(
-          syncMembers: (accessToken) async {
-            await _arbeitskontextModel.refreshFromRemote(
-              session: _authModel.session,
-              profile: _authModel.profile,
-            );
-          },
+          syncMembers: (accessToken) => _syncArbeitskontextComplete(
+            allowMobileDataOverride: allowMobileDataOverride,
+          ),
           trigger: 'startup',
           userInitiated: false,
+          allowMobileDataOverride: allowMobileDataOverride,
         ),
       );
     }
     _authMaintenanceTimer = Timer.periodic(
       HitobitoAuthEnv.refreshInterval,
       (_) => authModel.syncHitobitoData(
-        syncMembers: (accessToken) async {
-          await _arbeitskontextModel.refreshFromRemote(
-            session: _authModel.session,
-            profile: _authModel.profile,
-          );
-        },
+        syncMembers: (accessToken) => _syncArbeitskontextComplete(),
         trigger: 'interval',
         userInitiated: false,
       ),
     );
+  }
+
+  Future<void> _syncArbeitskontextComplete({
+    bool allowMobileDataOverride = false,
+  }) async {
+    await _arbeitskontextModel.refreshFromRemote(
+      session: _authModel.session,
+      profile: _authModel.profile,
+      allowMobileDataOverride: allowMobileDataOverride,
+      scheduleRolesPreload: false,
+    );
+    final rolesLoaded = await _arbeitskontextModel.ensureRolesLoaded(
+      allowMobileDataOverride: allowMobileDataOverride,
+    );
+    if (!rolesLoaded) {
+      throw StateError('Rollen konnten nicht vollstaendig geladen werden.');
+    }
   }
 
   void _startConnectivityListener() {
@@ -601,12 +613,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _isForegroundSyncRunning = true;
     try {
       await _authModel.syncHitobitoData(
-        syncMembers: (accessToken) async {
-          await _arbeitskontextModel.refreshFromRemote(
-            session: _authModel.session,
-            profile: _authModel.profile,
-          );
-        },
+        syncMembers: (accessToken) => _syncArbeitskontextComplete(),
         trigger: trigger,
         userInitiated: false,
       );

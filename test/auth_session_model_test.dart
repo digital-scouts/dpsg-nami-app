@@ -1335,6 +1335,7 @@ class _BlockedNetworkAccessPolicy extends NetworkAccessPolicy {
   Future<void> ensureNetworkAllowed({
     required String trigger,
     String feature = 'Netzwerkzugriff',
+    bool allowMobileDataOverride = false,
   }) async {
     throw error;
   }
