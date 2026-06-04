@@ -1,12 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nami/domain/arbeitskontext/arbeitskontext.dart';
+import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model.dart';
+import 'package:nami/domain/member/mitglied.dart';
+import 'package:nami/domain/settings/stufen_settings.dart';
+import 'package:nami/domain/stufe/altersgrenzen.dart';
+import 'package:nami/domain/taetigkeit/role_derivation.dart';
+import 'package:nami/domain/taetigkeit/roles.dart';
+import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/screens/member_detail_page.dart';
 import 'package:nami/presentation/screens/settings_stufenwechsel_page.dart';
 
 void main() {
-  Widget buildTestApp(Widget child) {
+  Widget buildTestApp({
+    required ArbeitskontextReadModel readModel,
+    StufenSettings? settings,
+    DateTime Function()? todayProvider,
+  }) {
     return MaterialApp(
       localizationsDelegates: [
         AppLocalizations.delegate,
@@ -16,7 +28,16 @@ void main() {
       ],
       supportedLocales: const [Locale('de'), Locale('en')],
       locale: const Locale('de'),
-      home: child,
+      home: SettingsStufenwechselPage(
+        debugReadModel: readModel,
+        stufenSettingsLoader: () async =>
+            settings ??
+            StufenSettings(
+              grenzen: StufenDefaults.build(),
+              stufenwechselDatum: DateTime(2026, 9, 1),
+            ),
+        todayProvider: todayProvider,
+      ),
     );
   }
 
@@ -34,70 +55,37 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('Button ist initial deaktiviert und wird durch Checkbox aktiv', (
+  testWidgets('zeigt echte Mitglieder im Wechselfenster ohne Auswahl-UI', (
     tester,
   ) async {
-    await tester.pumpWidget(buildTestApp(const SettingsStufenwechselPage()));
+    await tester.pumpWidget(buildTestApp(readModel: _readModel()));
+    await tester.pumpAndSettle();
 
-    final buttonFinder = find.byKey(
-      const Key('stufenwechsel-transfer-button-woelfling'),
+    expect(find.text('Emma Mueller'), findsOneWidget);
+    expect(find.text('Anna Alt'), findsOneWidget);
+    expect(
+      find.byKey(const Key('stufenwechsel-member-row-w1')),
+      findsOneWidget,
     );
-    await tester.pumpAndSettle();
-    expect(buttonFinder, findsOneWidget);
-
-    var button = tester.widget<FilledButton>(buttonFinder);
-    expect(button.onPressed, isNull);
-
-    final firstCheckbox = find.byKey(const Key('stufenwechsel-checkbox-w1'));
-    await scrollUntilFound(tester, firstCheckbox);
-    await tester.tap(firstCheckbox);
-    await tester.pumpAndSettle();
-
-    button = tester.widget<FilledButton>(buttonFinder);
-    expect(button.onPressed, isNotNull);
-    expect(find.text('1 ausgewählt'), findsOneWidget);
+    expect(find.byKey(const Key('stufenwechsel-member-row-w2')), findsNothing);
+    expect(
+      find.byKey(const Key('stufenwechsel-member-row-w3')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('stufenwechsel-member-row-r1')), findsNothing);
+    expect(find.text('Überfällig'), findsOneWidget);
+    expect(find.byType(Checkbox), findsNothing);
+    expect(find.textContaining('ausgewählt'), findsNothing);
+    expect(find.text('Auswahl übernehmen'), findsNothing);
+    expect(find.byKey(const Key('stufenwechsel-rover-section')), findsNothing);
+    expect(find.text('Rover erreichen Maximalalter'), findsNothing);
   });
 
-  testWidgets(
-    'Klick auf Stufe wechseln liefert Anzahl ausgewaehlter Elemente',
-    (tester) async {
-      int? capturedCount;
-
-      await tester.pumpWidget(
-        buildTestApp(
-          SettingsStufenwechselPage(
-            onTransferTap: (count) => capturedCount = count,
-          ),
-        ),
-      );
-
-      final firstCheckbox = find.byKey(const Key('stufenwechsel-checkbox-w1'));
-      final secondCheckbox = find.byKey(const Key('stufenwechsel-checkbox-w2'));
-
-      await scrollUntilFound(tester, firstCheckbox);
-      await tester.ensureVisible(firstCheckbox);
-      await tester.tap(firstCheckbox);
-
-      await scrollUntilFound(tester, secondCheckbox);
-      await tester.ensureVisible(secondCheckbox);
-      await tester.tap(secondCheckbox);
-      await tester.pumpAndSettle();
-
-      final buttonFinder = find.byKey(
-        const Key('stufenwechsel-transfer-button-woelfling'),
-      );
-      await scrollUntilFound(tester, buttonFinder);
-      await tester.pumpAndSettle();
-
-      await tester.tap(buttonFinder);
-      await tester.pumpAndSettle();
-
-      expect(capturedCount, 2);
-    },
-  );
-
-  testWidgets('Tap auf Mitglied oeffnet Mitgliedsdetails', (tester) async {
-    await tester.pumpWidget(buildTestApp(const SettingsStufenwechselPage()));
+  testWidgets('Tap auf Mitglied oeffnet Mitgliedsdetails mit echtem Mitglied', (
+    tester,
+  ) async {
+    await tester.pumpWidget(buildTestApp(readModel: _readModel()));
+    await tester.pumpAndSettle();
 
     final memberRow = find.byKey(const Key('stufenwechsel-member-row-w1'));
     await scrollUntilFound(tester, memberRow);
@@ -108,69 +96,116 @@ void main() {
     expect(find.text('Emma Mueller'), findsWidgets);
   });
 
-  testWidgets('Empty-State und Rover-Block werden gerendert', (tester) async {
+  testWidgets('fehlendes Datum nutzt heute und zeigt Warnhinweis', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       buildTestApp(
-        const SettingsStufenwechselPage(mode: StufenwechselDummyMode.empty),
+        readModel: _readModel(),
+        settings: StufenSettings(grenzen: StufenDefaults.build()),
+        todayProvider: () => DateTime(2026, 6, 4, 15),
       ),
     );
+    await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('stufenwechsel-empty-state')), findsOneWidget);
-    expect(
-      find.byKey(const Key('stufenwechsel-rover-section')),
-      findsOneWidget,
-    );
+    expect(find.byKey(const Key('stufenwechsel-date-warning')), findsOneWidget);
+    expect(find.textContaining('Bitte Datum setzen'), findsOneWidget);
+    expect(find.textContaining('Stichtag: 04.06.2026'), findsOneWidget);
   });
 
-  testWidgets('Es gibt Übernehmen-Buttons nur für Stufen mit Mitgliedern', (
+  testWidgets('leere Stufen werden ohne Auswahlzeile und Button angezeigt', (
     tester,
   ) async {
-    await tester.pumpWidget(buildTestApp(const SettingsStufenwechselPage()));
+    await tester.pumpWidget(buildTestApp(readModel: _readModel()));
+    await tester.pumpAndSettle();
 
-    final biberFinder = find.byKey(
-      const Key('stufenwechsel-transfer-button-biber'),
-    );
-    final woelflingFinder = find.byKey(
-      const Key('stufenwechsel-transfer-button-woelfling'),
-    );
-    final jufiFinder = find.byKey(
-      const Key('stufenwechsel-transfer-button-jungpfadfinder'),
-    );
-    final pfadiFinder = find.byKey(
-      const Key('stufenwechsel-transfer-button-pfadfinder'),
-    );
-
-    await scrollUntilFound(tester, woelflingFinder);
-    expect(woelflingFinder, findsOneWidget);
-
-    await scrollUntilFound(tester, pfadiFinder);
-    expect(pfadiFinder, findsOneWidget);
-
-    expect(biberFinder, findsNothing);
-    expect(jufiFinder, findsNothing);
-
-    expect(
-      find.byKey(const Key('stufenwechsel-transfer-button')),
-      findsNothing,
-    );
-  });
-
-  testWidgets('Leere Stufen werden ohne Auswahlzeile und Button angezeigt', (
-    tester,
-  ) async {
-    await tester.pumpWidget(buildTestApp(const SettingsStufenwechselPage()));
-
-    final biberButtonFinder = find.byKey(
-      const Key('stufenwechsel-transfer-button-biber'),
-    );
-    final biberTransferRowFinder = find.byKey(
-      const Key('stufenwechsel-transfer-row-biber'),
-    );
     expect(
       find.text('Keine passenden Mitglieder für diese Stufe.'),
       findsAtLeastNWidgets(1),
     );
-    expect(biberTransferRowFinder, findsNothing);
-    expect(biberButtonFinder, findsNothing);
+    expect(
+      find.byKey(const Key('stufenwechsel-transfer-row-biber')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('stufenwechsel-transfer-button-biber')),
+      findsNothing,
+    );
   });
+
+  testWidgets('zeigt Empty-State, wenn keine Wechsel faellig sind', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      buildTestApp(readModel: _readModel(mitglieder: const <Mitglied>[])),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('stufenwechsel-empty-state')), findsOneWidget);
+    expect(find.text('Kein Stufenwechsel fällig'), findsOneWidget);
+  });
+}
+
+ArbeitskontextReadModel _readModel({List<Mitglied>? mitglieder}) {
+  return ArbeitskontextReadModel(
+    arbeitskontext: Arbeitskontext(
+      aktiverLayer: const ArbeitskontextLayer(id: 11, name: 'Stamm Musterdorf'),
+    ),
+    rolesSindGeladen: true,
+    mitglieder:
+        mitglieder ??
+        <Mitglied>[
+          _mitglied(
+            id: 'w1',
+            vorname: 'Emma',
+            nachname: 'Mueller',
+            geburtsdatum: DateTime(2017, 7, 1),
+            stufe: Stufe.woelfling,
+          ),
+          _mitglied(
+            id: 'w2',
+            vorname: 'Leo',
+            nachname: 'Jung',
+            geburtsdatum: DateTime(2020, 6, 1),
+            stufe: Stufe.woelfling,
+          ),
+          _mitglied(
+            id: 'w3',
+            vorname: 'Anna',
+            nachname: 'Alt',
+            geburtsdatum: DateTime(2014, 1, 1),
+            stufe: Stufe.woelfling,
+          ),
+          _mitglied(
+            id: 'r1',
+            vorname: 'Tim',
+            nachname: 'Koch',
+            geburtsdatum: DateTime(2004, 1, 1),
+            stufe: Stufe.rover,
+          ),
+        ],
+  );
+}
+
+Mitglied _mitglied({
+  required String id,
+  required String vorname,
+  required String nachname,
+  required DateTime geburtsdatum,
+  required Stufe stufe,
+}) {
+  return Mitglied(
+    vorname: vorname,
+    nachname: nachname,
+    geburtsdatum: geburtsdatum,
+    eintrittsdatum: DateTime(2023, 9, 1),
+    mitgliedsnummer: id,
+    roles: [
+      roleFromLegacy(
+        stufe: stufe,
+        art: RoleCategory.mitglied,
+        start: DateTime(2023, 9, 1),
+      ),
+    ],
+  );
 }

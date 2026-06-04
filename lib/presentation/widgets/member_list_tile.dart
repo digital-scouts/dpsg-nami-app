@@ -61,6 +61,9 @@ class MemberListTile extends StatelessWidget {
             case MemberSubtitleMode.mitgliedsnummer:
               return mitglied.mitgliedsnummer;
             case MemberSubtitleMode.geburtstag:
+              if (!mitglied.hatBekanntesGeburtsdatum) {
+                return '';
+              }
               return DateFormatter.formatGermanLongDate(mitglied.geburtsdatum);
             case MemberSubtitleMode.spitzname:
               return mitglied.fahrtenname ?? '';

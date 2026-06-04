@@ -98,8 +98,7 @@ class MemberList extends StatelessWidget {
       final second = b.mitglied;
       switch (sortKey) {
         case MemberSortKey.age:
-          // Ältere zuerst (früheres Geburtsdatum)
-          return first.geburtsdatum.compareTo(second.geburtsdatum);
+          return _compareByAge(first, second);
         case MemberSortKey.group:
           final sa =
               MemberUtils.aktiveStufe(first)?.index ?? Stufe.values.length + 1;
@@ -107,9 +106,7 @@ class MemberList extends StatelessWidget {
               MemberUtils.aktiveStufe(second)?.index ?? Stufe.values.length + 1;
           return sa.compareTo(sb);
         case MemberSortKey.name:
-          final ln = first.nachname.compareTo(second.nachname);
-          if (ln != 0) return ln;
-          return first.vorname.compareTo(second.vorname);
+          return _compareByName(first, second);
         case MemberSortKey.vorname:
           final fn = first.vorname.compareTo(second.vorname);
           if (fn != 0) return fn;
@@ -303,6 +300,32 @@ class MemberList extends StatelessWidget {
       case MemberSortKey.memberTime:
         return t.t('member_list_sort_hint_member_time');
     }
+  }
+
+  int _compareByAge(Mitglied first, Mitglied second) {
+    final firstKnown = first.hatBekanntesGeburtsdatum;
+    final secondKnown = second.hatBekanntesGeburtsdatum;
+    if (!firstKnown && !secondKnown) {
+      return _compareByName(first, second);
+    }
+    if (!firstKnown) {
+      return 1;
+    }
+    if (!secondKnown) {
+      return -1;
+    }
+
+    final ageCompare = first.geburtsdatum.compareTo(second.geburtsdatum);
+    if (ageCompare != 0) {
+      return ageCompare;
+    }
+    return _compareByName(first, second);
+  }
+
+  int _compareByName(Mitglied first, Mitglied second) {
+    final ln = first.nachname.compareTo(second.nachname);
+    if (ln != 0) return ln;
+    return first.vorname.compareTo(second.vorname);
   }
 
   _FilteredMemberEntry? _resolveFilteredMember(
