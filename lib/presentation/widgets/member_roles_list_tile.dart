@@ -18,8 +18,9 @@ class MemberRolesListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title =
+    final fallbackTitle =
         '${taetigkeit.art.displayName} - ${taetigkeit.stufe.displayName}';
+    final title = taetigkeit.resolvedLabel ?? fallbackTitle;
 
     final monthFmt = DateFormat(
       'MMMM yyyy',
@@ -31,9 +32,6 @@ class MemberRolesListTile extends StatelessWidget {
         : null;
     final periode = endStr != null ? '$startStr - $endStr' : startStr;
 
-    final showPermissionLine =
-        taetigkeit.istAktiv &&
-        (taetigkeit.permission != null && taetigkeit.permission!.isNotEmpty);
     final endsInFuture =
         taetigkeit.ende != null && taetigkeit.ende!.isAfter(DateTime.now());
 
@@ -65,7 +63,9 @@ class MemberRolesListTile extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(periode, maxLines: 1, overflow: TextOverflow.ellipsis),
-              if (showPermissionLine)
+              if (title == fallbackTitle &&
+                  taetigkeit.permission != null &&
+                  taetigkeit.permission!.isNotEmpty)
                 Text(
                   taetigkeit.permission ?? '',
                   maxLines: 1,

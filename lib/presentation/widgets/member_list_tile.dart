@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:nami/domain/member/member_list_preferences.dart';
 import 'package:nami/domain/member/member_utils.dart';
 import 'package:nami/domain/member/mitglied.dart';
+import 'package:nami/domain/taetigkeit/roles.dart';
 import 'package:nami/presentation/format/date_formatters.dart';
 import 'package:nami/presentation/stufe/stufe_visuals.dart';
 import 'package:nami/presentation/theme/theme.dart';
@@ -30,6 +31,7 @@ class MemberListTile extends StatelessWidget {
     this.subtitleText,
     this.subtitleHighlight,
     this.trailingText,
+    this.roleCategory,
     this.onTap,
     this.toggleFavorites,
   });
@@ -41,6 +43,7 @@ class MemberListTile extends StatelessWidget {
   final String? subtitleText;
   final MemberSubtitleHighlight? subtitleHighlight;
   final String? trailingText;
+  final RoleCategory? roleCategory;
   final VoidCallback? onTap;
   final VoidCallback? toggleFavorites;
 
@@ -67,12 +70,14 @@ class MemberListTile extends StatelessWidget {
               );
           }
         }();
+    final isSonstiges = roleCategory == RoleCategory.sonstiges;
     final primaryColor = stufe != null
         ? StufeVisuals.colorFor(stufe)
         : DPSGColors.keineStufeFarbe;
     final secondaryColor = MemberUtils.isLeitung(mitglied)
         ? DPSGColors.leiterFarbe
         : primaryColor;
+    final stripeColor = Theme.of(context).colorScheme.outline;
     final subtitleWidget = subtitleHighlight != null
         ? _HighlightedSubtitle(highlight: subtitleHighlight!)
         : Text(resolvedSubtitle);
@@ -121,12 +126,15 @@ class MemberListTile extends StatelessWidget {
                     height: 42,
                     margin: const EdgeInsets.symmetric(vertical: 4),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [secondaryColor, primaryColor],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        stops: const [0.5, 0.5],
-                      ),
+                      color: isSonstiges ? stripeColor : null,
+                      gradient: isSonstiges
+                          ? null
+                          : LinearGradient(
+                              colors: [secondaryColor, primaryColor],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              stops: const [0.5, 0.5],
+                            ),
                       borderRadius: const BorderRadius.horizontal(
                         right: Radius.circular(2),
                       ),

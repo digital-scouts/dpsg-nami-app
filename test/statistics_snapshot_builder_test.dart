@@ -161,4 +161,48 @@ void main() {
     expect(snapshot.gender.single.label, 'Weiblich');
     expect(snapshot.gender.single.value, 1);
   });
+
+  test(
+    'Personen ohne Stamm-Gruppen-Rolle werden als Sonstiges klassifiziert',
+    () {
+      final readModel = ArbeitskontextReadModel(
+        arbeitskontext: Arbeitskontext(
+          aktiverLayer: const ArbeitskontextLayer(id: 11, name: 'Stamm Test'),
+        ),
+        mitglieder: <Mitglied>[
+          Mitglied.peopleListItem(
+            mitgliedsnummer: '1',
+            vorname: 'Mara',
+            nachname: 'Mitglied',
+          ),
+          Mitglied.peopleListItem(
+            mitgliedsnummer: '2',
+            vorname: 'Susi',
+            nachname: 'Sonstiges',
+          ),
+        ],
+        gruppen: const <ArbeitskontextGruppe>[
+          ArbeitskontextGruppe(
+            id: 21,
+            name: 'Meute Nord',
+            layerId: 11,
+            gruppenTyp: 'Group::StammGruppeWoelflinge',
+          ),
+        ],
+        mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
+          ArbeitskontextMitgliedsZuordnung(
+            mitgliedsnummer: '1',
+            gruppenId: 21,
+            rollenLabel: 'Mitglied',
+          ),
+        ],
+      );
+
+      final snapshot = builder.build(readModel);
+
+      expect(snapshot.members, 1);
+      expect(snapshot.leaders, 0);
+      expect(snapshot.sonstige, 1);
+    },
+  );
 }
