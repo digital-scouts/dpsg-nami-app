@@ -55,6 +55,7 @@ class StatisticsGroupDetailSnapshot {
     required this.leaders,
     required this.ageDistribution,
     required this.gender,
+    required this.confessions,
     required this.memberIds,
   });
 
@@ -66,6 +67,7 @@ class StatisticsGroupDetailSnapshot {
   final int leaders;
   final AgeDistributionData ageDistribution;
   final List<StatisticsLegendItem> gender;
+  final List<StatisticsLegendItem> confessions;
   final List<String> memberIds;
 }
 
@@ -79,6 +81,7 @@ class StatisticsSnapshot {
     required this.groupDistributions,
     required this.ageDistribution,
     required this.gender,
+    required this.confessions,
     required this.groupDetails,
     required this.memberById,
   });
@@ -91,6 +94,7 @@ class StatisticsSnapshot {
   final List<GroupDistribution> groupDistributions;
   final AgeDistributionData ageDistribution;
   final List<StatisticsLegendItem> gender;
+  final List<StatisticsLegendItem> confessions;
   final Map<String, StatisticsGroupDetailSnapshot> groupDetails;
   final Map<String, Mitglied> memberById;
 
@@ -215,6 +219,7 @@ class StatisticsSnapshotBuilder {
           grenzen: grenzen,
         ),
         gender: _buildGenderLegend(groupMemberRoleIds, memberById),
+        confessions: _buildMockConfessionLegend(groupMemberRoleIds),
         memberIds: groupMemberIds,
       );
     }
@@ -295,9 +300,67 @@ class StatisticsSnapshotBuilder {
         stammMemberIds.toList(growable: false),
         memberById,
       ),
+      confessions: _buildMockConfessionLegend(
+        stammMemberIds.toList(growable: false),
+      ),
       groupDetails: detailById,
       memberById: memberById,
     );
+  }
+
+  List<StatisticsLegendItem> _buildMockConfessionLegend(
+    List<String> memberIds,
+  ) {
+    final total = memberIds.toSet().length;
+    if (total <= 0) {
+      return const <StatisticsLegendItem>[];
+    }
+
+    final katholisch = (total * 0.62).round();
+    final evangelisch = (total * 0.18).round();
+    final konfessionslos = (total * 0.14).round();
+    final sonstige = (total - katholisch - evangelisch - konfessionslos)
+        .clamp(0, total)
+        .toInt();
+
+    final items = <StatisticsLegendItem>[];
+    if (katholisch > 0) {
+      items.add(
+        StatisticsLegendItem(
+          label: 'Katholisch',
+          value: katholisch,
+          color: Color(0xFF1B5E20),
+        ),
+      );
+    }
+    if (evangelisch > 0) {
+      items.add(
+        StatisticsLegendItem(
+          label: 'Evangelisch',
+          value: evangelisch,
+          color: Color(0xFF0277BD),
+        ),
+      );
+    }
+    if (konfessionslos > 0) {
+      items.add(
+        StatisticsLegendItem(
+          label: 'Konfessionslos',
+          value: konfessionslos,
+          color: Color(0xFF616161),
+        ),
+      );
+    }
+    if (sonstige > 0) {
+      items.add(
+        StatisticsLegendItem(
+          label: 'Andere',
+          value: sonstige,
+          color: Color(0xFF6A1B9A),
+        ),
+      );
+    }
+    return items;
   }
 
   List<StatisticsLegendItem> _buildGenderLegend(

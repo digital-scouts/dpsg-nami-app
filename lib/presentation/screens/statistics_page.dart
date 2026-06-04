@@ -30,10 +30,10 @@ class _StatisticsPageState extends State<StatisticsPage> {
       StatisticsSnapshotBuilder();
   final SharedPrefsStufenSettingsRepository _stufenSettingsRepository =
       SharedPrefsStufenSettingsRepository();
-    final SharedPrefsAddressSettingsRepository _addressSettingsRepository =
+  final SharedPrefsAddressSettingsRepository _addressSettingsRepository =
       SharedPrefsAddressSettingsRepository();
   Altersgrenzen _altersgrenzen = StufenDefaults.build();
-    String? _stammAddress;
+  String? _stammAddress;
 
   @override
   void initState() {
@@ -123,6 +123,7 @@ class _StammStatisticsView extends StatelessWidget {
     final hasGenderData = snapshot.gender.any(
       (item) => item.label != 'Ohne Angabe' && item.value > 0,
     );
+    final hasConfessionData = snapshot.confessions.isNotEmpty;
     final hasLocationInput = snapshot.memberById.values.any(
       (member) => member.primaryAddress != null,
     );
@@ -182,6 +183,13 @@ class _StammStatisticsView extends StatelessWidget {
           StatisticsCard(
             title: 'Geschlecht',
             child: StatisticsPieLegend(items: snapshot.gender),
+          ),
+        ],
+        if (hasConfessionData) ...[
+          const SizedBox(height: 12),
+          StatisticsCard(
+            title: 'Konfession',
+            child: StatisticsPieLegend(items: snapshot.confessions),
           ),
         ],
         if (hasLocationInput || hasStammAddress) ...[
@@ -267,7 +275,10 @@ class _StatisticsLocationsCardState extends State<_StatisticsLocationsCard> {
 
         final resolved =
             snapshot.data ??
-            const StatisticsResolvedLocations(memberPoints: <LatLng>[], stammPoint: null);
+            const StatisticsResolvedLocations(
+              memberPoints: <LatLng>[],
+              stammPoint: null,
+            );
         final markers = resolved.memberPoints;
         if (markers.isEmpty && resolved.stammPoint == null) {
           return const SizedBox.shrink();
