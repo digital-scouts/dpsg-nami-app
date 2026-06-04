@@ -361,6 +361,8 @@ void main() {
     );
 
     await tester.pumpAndSettle();
+    await _scrollDownUntilFinderExists(tester, find.text('Gecachte Adressen'));
+    expect(find.text('Gecachte Adressen'), findsOneWidget);
     await _scrollDownUntilFinderExists(
       tester,
       find.byKey(const Key('debug_delete_map_cache_button')),

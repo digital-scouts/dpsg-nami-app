@@ -140,14 +140,20 @@ class _StammAddressSettingsState extends State<StammAddressSettings> {
           ),
         ),
         if ((_savedAddress ?? '').trim().isNotEmpty)
-          AddressMapPreview(
-            addressText: (_savedAddress ?? '').trim(),
-            cacheKey: 'stamm:0',
-            addressFingerprint: MemberAddressUtils.fingerprintFromText(
-              (_savedAddress ?? '').trim(),
-            ),
-            mapService: widget.mapService,
-            tileCacheService: widget.tileCacheService,
+          Builder(
+            builder: (context) {
+              final savedAddress = (_savedAddress ?? '').trim();
+              final fingerprint = MemberAddressUtils.fingerprintFromText(
+                savedAddress,
+              );
+              return AddressMapPreview(
+                addressText: savedAddress,
+                cacheKey: fingerprint,
+                addressFingerprint: fingerprint,
+                mapService: widget.mapService,
+                tileCacheService: widget.tileCacheService,
+              );
+            },
           ),
       ],
     );
@@ -169,10 +175,11 @@ class _StammAddressSettingsState extends State<StammAddressSettings> {
     if (location == null) {
       return;
     }
+    final fingerprint = MemberAddressUtils.fingerprintFromText(addressText);
     await tileCacheService.downloadRegion(
       center: location,
       radiusKm: MapsEnv.stammOfflineRadiusKm,
-      reason: 'stamm:0',
+      reason: fingerprint,
       wifiOnly: true,
     );
   }

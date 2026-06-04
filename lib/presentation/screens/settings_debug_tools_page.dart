@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_email_sender/flutter_email_sender.dart';
 import 'package:intl/intl.dart';
 import 'package:nami/core/notifications/pull_notifications_repository_factory.dart';
+import 'package:nami/data/maps/shared_prefs_address_map_location_repository.dart';
 import 'package:nami/domain/auth/auth_state.dart';
 import 'package:nami/domain/maps/stamm_map_marker_repository.dart';
 import 'package:nami/l10n/app_localizations.dart';
@@ -323,6 +324,11 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
     } catch (_) {
       return _fallbackHitobitoTrafficLogService;
     }
+  }
+
+  Future<int> _loadCachedAddressCount() async {
+    final repository = SharedPrefsAddressMapLocationRepository();
+    return repository.countEntries();
   }
 
   Future<void> _retryPendingPersonUpdates(
@@ -930,6 +936,52 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                                               color:
                                                   colorScheme.onSurfaceVariant,
                                             ),
+                                      ),
+                                      const SizedBox(height: 10),
+                                      FutureBuilder<int>(
+                                        future: _loadCachedAddressCount(),
+                                        builder: (context, countSnapshot) {
+                                          final countText =
+                                              switch (countSnapshot
+                                                  .connectionState) {
+                                                ConnectionState.done when
+                                                countSnapshot.hasData => t.t(
+                                                  'debug_map_cached_addresses_count',
+                                                  {
+                                                    'count':
+                                                        countSnapshot.data!,
+                                                  },
+                                                ),
+                                                ConnectionState.done => t.t(
+                                                  'debug_map_cached_addresses_unavailable',
+                                                ),
+                                                _ => t.t(
+                                                  'debug_map_cached_addresses_loading',
+                                                ),
+                                              };
+                                          return Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                t.t(
+                                                  'debug_map_cached_addresses_label',
+                                                ),
+                                                style:
+                                                    theme.textTheme.titleMedium,
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                countText,
+                                                style: theme.textTheme.bodyMedium
+                                                    ?.copyWith(
+                                                      color: colorScheme
+                                                          .onSurfaceVariant,
+                                                    ),
+                                              ),
+                                            ],
+                                          );
+                                        },
                                       ),
                                     ],
                                   ),

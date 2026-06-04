@@ -45,7 +45,7 @@ class MemberAddressCard extends StatelessWidget {
       address,
     );
     final mapQueryAddress = MemberAddressUtils.formatMapQueryAddress(address);
-    final cacheKey = mitglied.primaryAddressCacheKey;
+    final addressFingerprint = MemberAddressUtils.fingerprint(address);
     final stammRepository =
         addressSettingsRepository ?? SharedPrefsAddressSettingsRepository();
 
@@ -68,41 +68,36 @@ class MemberAddressCard extends StatelessWidget {
             ),
             subtitle: const Text('Wohnort'),
           ),
-          if (cacheKey != null) ...[
-            FutureBuilder<String?>(
-              future: stammRepository.loadAddress(),
-              builder: (context, snapshot) {
-                final stammAddress = snapshot.data?.trim();
-                return AddressMapPreview(
-                  addressText: MemberAddressUtils.formatSingleLineAddress(
-                    address,
-                  ),
-                  cacheKey: cacheKey,
-                  addressFingerprint: MemberAddressUtils.fingerprint(address),
-                  secondaryAddressText: (stammAddress?.isNotEmpty ?? false)
-                      ? stammAddress
-                      : null,
-                  secondaryCacheKey: (stammAddress?.isNotEmpty ?? false)
-                      ? 'stamm:0'
-                      : null,
-                  secondaryAddressFingerprint:
-                      (stammAddress?.isNotEmpty ?? false)
-                      ? MemberAddressUtils.fingerprintFromText(stammAddress!)
-                      : null,
-                  previewTimeout: previewTimeout ?? const Duration(seconds: 5),
-                  repository: addressLocationRepository,
-                  mapService: mapService,
-                  tileCacheService: tileCacheService,
-                  offlineDownloadRadiusKm: MapsEnv.memberOfflineRadiusKm,
-                  height: 186,
-                  borderRadius: const BorderRadius.vertical(
-                    bottom: Radius.circular(_memberAddressCardRadius),
-                  ),
-                );
-              },
-            ),
-          ] else
-            const SizedBox(height: 16),
+          FutureBuilder<String?>(
+            future: stammRepository.loadAddress(),
+            builder: (context, snapshot) {
+              final stammAddress = snapshot.data?.trim();
+              final stammFingerprint = (stammAddress?.isNotEmpty ?? false)
+                  ? MemberAddressUtils.fingerprintFromText(stammAddress!)
+                  : null;
+              return AddressMapPreview(
+                addressText: MemberAddressUtils.formatSingleLineAddress(
+                  address,
+                ),
+                cacheKey: addressFingerprint,
+                addressFingerprint: addressFingerprint,
+                secondaryAddressText: (stammAddress?.isNotEmpty ?? false)
+                    ? stammAddress
+                    : null,
+                secondaryCacheKey: stammFingerprint,
+                secondaryAddressFingerprint: stammFingerprint,
+                previewTimeout: previewTimeout ?? const Duration(seconds: 5),
+                repository: addressLocationRepository,
+                mapService: mapService,
+                tileCacheService: tileCacheService,
+                offlineDownloadRadiusKm: MapsEnv.memberOfflineRadiusKm,
+                height: 186,
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(_memberAddressCardRadius),
+                ),
+              );
+            },
+          ),
         ],
       ),
     );

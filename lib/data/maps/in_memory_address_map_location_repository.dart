@@ -18,4 +18,7 @@ class InMemoryAddressMapLocationRepository
   Future<void> remove(String cacheKey) async {
     _entries.remove(cacheKey);
   }
+
+  @override
+  Future<int> countEntries() async => _entries.length;
 }

@@ -55,4 +55,27 @@ void main() {
       expect(await repository.load('stamm:0'), location);
     },
   );
+
+  test('zaehlt gecachte AddressMapLocation-Eintraege', () async {
+    final repository = SharedPrefsAddressMapLocationRepository();
+    await repository.save(
+      AddressMapLocation(
+        cacheKey: 'hash-a',
+        latitude: 53.5511,
+        longitude: 9.9937,
+        resolvedAt: DateTime(2026, 4, 6, 10, 15),
+        addressFingerprint: 'hash-a',
+      ),
+    );
+    await repository.save(
+      AddressMapLocation(
+        cacheKey: 'hash-b',
+        resolvedAt: DateTime(2026, 4, 6, 10, 16),
+        addressFingerprint: 'hash-b',
+        addressNotFound: true,
+      ),
+    );
+
+    expect(await repository.countEntries(), 2);
+  });
 }

@@ -198,7 +198,7 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
     final primary = await _resolveLocation(
       request: _AddressLocationRequest(
         addressText: widget.addressText,
-        cacheKey: widget.cacheKey,
+        legacyCacheKey: widget.cacheKey,
         addressFingerprint: widget.addressFingerprint,
         wifiOnlyRefresh: widget.wifiOnlyRefresh,
         offlineDownloadRadiusKm: widget.offlineDownloadRadiusKm,
@@ -231,7 +231,7 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
       final secondary = await _resolveLocation(
         request: _AddressLocationRequest(
           addressText: secondaryText,
-          cacheKey: secondaryCacheKey,
+          legacyCacheKey: secondaryCacheKey,
           addressFingerprint: secondaryFingerprint,
         ),
         logger: logger,
@@ -314,7 +314,24 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
     required GeoapifyAddressMapService mapService,
     required MapTileCacheService tileCacheService,
   }) async {
-    final cached = await repository.load(request.cacheKey);
+    final globalCacheKey = request.addressFingerprint;
+    AddressMapLocation? cached = await repository.load(globalCacheKey);
+    if (cached == null && request.legacyCacheKey != globalCacheKey) {
+      final legacy = await repository.load(request.legacyCacheKey);
+      final legacyMatches =
+          legacy != null &&
+          legacy.addressFingerprint == request.addressFingerprint;
+      if (legacyMatches) {
+        final migrated = legacy.copyWith(cacheKey: globalCacheKey);
+        await repository.save(migrated);
+        cached = migrated;
+        _log(
+          logger,
+          'Legacy-Adresscache migriert: ${request.legacyCacheKey} -> $globalCacheKey',
+        );
+      }
+    }
+
     final cachedMatches =
         cached != null &&
         cached.addressFingerprint == request.addressFingerprint;
@@ -323,20 +340,17 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
       if (cached.addressNotFound) {
         _log(
           logger,
-          'Cache-Treffer fuer nicht gefundene Adresse: ${request.cacheKey}',
+          'Cache-Treffer fuer nicht gefundene Adresse: $globalCacheKey',
         );
         return const _ResolvedAddressLocation(addressNotFound: true);
       }
-      _log(
-        logger,
-        'Cache-Treffer fuer Karten-Koordinaten: ${request.cacheKey}',
-      );
+      _log(logger, 'Cache-Treffer fuer Karten-Koordinaten: $globalCacheKey');
       return _ResolvedAddressLocation(location: cached);
     }
     if (cached != null) {
-      _log(logger, 'Cache-Fingerprint veraltet: ${request.cacheKey}');
+      _log(logger, 'Cache-Fingerprint veraltet: $globalCacheKey');
     } else {
-      _log(logger, 'Kein Karten-Cache vorhanden: ${request.cacheKey}');
+      _log(logger, 'Kein Karten-Cache vorhanden: $globalCacheKey');
     }
 
     if (request.wifiOnlyRefresh) {
@@ -349,7 +363,7 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
         },
       );
       if (connectivityTimedOut) {
-        _log(logger, 'Connectivity-Pruefung Timeout: ${request.cacheKey}');
+        _log(logger, 'Connectivity-Pruefung Timeout: $globalCacheKey');
         return _ResolvedAddressLocation(
           location: cachedMatches ? cached : null,
           timedOut: true,
@@ -363,7 +377,7 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
       if (!hasWifi) {
         _log(
           logger,
-          'Karten-Refresh durch WLAN-Policy blockiert: ${request.cacheKey}',
+          'Karten-Refresh durch WLAN-Policy blockiert: $globalCacheKey',
         );
         return _ResolvedAddressLocation(
           location: cachedMatches ? cached : null,
@@ -374,7 +388,7 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
     }
 
     if (!mapService.hasApiKey) {
-      _log(logger, 'Kein Geoapify-API-Key verfuegbar: ${request.cacheKey}');
+      _log(logger, 'Kein Geoapify-API-Key verfuegbar: $globalCacheKey');
       return _ResolvedAddressLocation(
         location: cachedMatches ? cached : null,
         apiKeyMissing: true,
@@ -382,7 +396,7 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
       );
     }
 
-    _log(logger, 'Starte Geocoding: ${request.cacheKey}');
+    _log(logger, 'Starte Geocoding: $globalCacheKey');
     var geocodeTimedOut = false;
     final geocodeResult = await mapService
         .resolveAddress(request.addressText)
@@ -394,7 +408,7 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
           },
         );
     if (geocodeTimedOut) {
-      _log(logger, 'Geocoding Timeout: ${request.cacheKey}');
+      _log(logger, 'Geocoding Timeout: $globalCacheKey');
       return _ResolvedAddressLocation(
         location: cachedMatches ? cached : null,
         timedOut: true,
@@ -402,15 +416,15 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
       );
     }
     if (geocodeResult.addressNotFound) {
-      _log(logger, 'Geocoding ohne Treffer beendet: ${request.cacheKey}');
+      _log(logger, 'Geocoding ohne Treffer beendet: $globalCacheKey');
       final notFoundEntry = AddressMapLocation(
-        cacheKey: request.cacheKey,
+        cacheKey: globalCacheKey,
         resolvedAt: DateTime.now(),
         addressFingerprint: request.addressFingerprint,
         addressNotFound: true,
       );
       await repository.save(notFoundEntry);
-      _log(logger, 'Negativ-Cache gespeichert: ${request.cacheKey}');
+      _log(logger, 'Negativ-Cache gespeichert: $globalCacheKey');
       return const _ResolvedAddressLocation(addressNotFound: true);
     }
     if (geocodeResult.networkBlocked) {
@@ -421,10 +435,7 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
       );
     }
     if (geocodeResult.technicalError || geocodeResult.location == null) {
-      _log(
-        logger,
-        'Geocoding mit technischem Fehler beendet: ${request.cacheKey}',
-      );
+      _log(logger, 'Geocoding mit technischem Fehler beendet: $globalCacheKey');
       return _ResolvedAddressLocation(
         location: cachedMatches && cached.hasCoordinates ? cached : null,
         technicalError: true,
@@ -434,14 +445,14 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
     final latLng = geocodeResult.location!;
 
     final resolved = AddressMapLocation(
-      cacheKey: request.cacheKey,
+      cacheKey: globalCacheKey,
       latitude: latLng.latitude,
       longitude: latLng.longitude,
       resolvedAt: DateTime.now(),
       addressFingerprint: request.addressFingerprint,
     );
     await repository.save(resolved);
-    _log(logger, 'Karten-Koordinaten gespeichert: ${request.cacheKey}');
+    _log(logger, 'Karten-Koordinaten gespeichert: $globalCacheKey');
 
     final offlineDownloadRadiusKm = request.offlineDownloadRadiusKm;
     if (offlineDownloadRadiusKm != null) {
@@ -449,7 +460,7 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
         tileCacheService.downloadRegion(
           center: latLng,
           radiusKm: offlineDownloadRadiusKm,
-          reason: request.cacheKey,
+          reason: globalCacheKey,
           wifiOnly: true,
         ),
       );
@@ -739,14 +750,14 @@ class _ResolvedAddressLocation {
 class _AddressLocationRequest {
   const _AddressLocationRequest({
     required this.addressText,
-    required this.cacheKey,
+    required this.legacyCacheKey,
     required this.addressFingerprint,
     this.wifiOnlyRefresh = false,
     this.offlineDownloadRadiusKm,
   });
 
   final String addressText;
-  final String cacheKey;
+  final String legacyCacheKey;
   final String addressFingerprint;
   final bool wifiOnlyRefresh;
   final double? offlineDownloadRadiusKm;
