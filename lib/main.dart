@@ -109,6 +109,7 @@ void main() {
       );
       final appUpdateService = AppUpdateService(
         networkAccessPolicy: networkAccessPolicy,
+        logger: logger,
       );
       final dataExpiryNotificationService = DataExpiryNotificationService(
         logger: logger!,
@@ -135,14 +136,17 @@ void main() {
       final hitobitoGroupsService = HitobitoGroupsService(
         config: envAuthConfig,
         trafficLogService: hitobitoTrafficLogService,
+        logger: logger,
       );
       final hitobitoPeopleService = HitobitoPeopleService(
         config: envAuthConfig,
         trafficLogService: hitobitoTrafficLogService,
+        logger: logger,
       );
       final hitobitoRolesService = HitobitoRolesService(
         config: envAuthConfig,
         trafficLogService: hitobitoTrafficLogService,
+        logger: logger,
       );
       final hitobitoAuthConfigController = HitobitoAuthConfigController(
         sensitiveStorageService: sensitiveStorageService,

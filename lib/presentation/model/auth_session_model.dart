@@ -795,14 +795,59 @@ class AuthSessionModel extends ChangeNotifier {
     String trigger = 'manual',
     bool userInitiated = true,
     bool allowMobileDataOverride = false,
+    bool interactiveLoginOnRequired = false,
   }) async {
-    if (_isSyncingHitobitoData ||
-        _session == null ||
-        _state == AuthState.reloginRequired) {
+    await _logger.logInfo(
+      'hitobito_sync',
+      'Hitobito-Sync angefragt trigger=$trigger force=$force userInitiated=$userInitiated interactiveLoginOnRequired=$interactiveLoginOnRequired',
+    );
+
+    if (_isSyncingHitobitoData) {
+      await _logger.logInfo(
+        'hitobito_sync',
+        'Hitobito-Sync uebersprungen trigger=$trigger reason=already_running',
+      );
       return;
     }
 
+    if (_session == null ||
+        _state == AuthState.reloginRequired ||
+        _requiresInteractiveLogin) {
+      await markSensitiveDataSyncAttempted();
+      _lastSyncAttemptResult = SyncAttemptResult.loginRequired;
+      notifyListeners();
+
+      if (interactiveLoginOnRequired && userInitiated) {
+        await _logger.logInfo(
+          'hitobito_sync',
+          'Hitobito-Sync startet interaktiven Login trigger=$trigger reason=login_required',
+        );
+        await _attemptInteractiveRelogin(
+          trigger: '${trigger}_interactive_relogin',
+        );
+        if (_session == null ||
+            _state == AuthState.reloginRequired ||
+            _requiresInteractiveLogin) {
+          await _logger.logInfo(
+            'hitobito_sync',
+            'Hitobito-Sync abgebrochen trigger=$trigger reason=login_required',
+          );
+          return;
+        }
+      } else {
+        await _logger.logInfo(
+          'hitobito_sync',
+          'Hitobito-Sync uebersprungen trigger=$trigger reason=login_required',
+        );
+        return;
+      }
+    }
+
     if (!force && !isRefreshAttemptDue) {
+      await _logger.logInfo(
+        'hitobito_sync',
+        'Hitobito-Sync uebersprungen trigger=$trigger reason=not_due',
+      );
       return;
     }
 
@@ -820,6 +865,10 @@ class AuthSessionModel extends ChangeNotifier {
       );
       if (_requiresInteractiveLogin) {
         _lastSyncAttemptResult = SyncAttemptResult.loginRequired;
+        await _logger.logInfo(
+          'hitobito_sync',
+          'Hitobito-Sync abgebrochen trigger=$trigger phase=profile reason=login_required',
+        );
         return;
       }
       await executeRemoteAccess<void>(
@@ -830,6 +879,10 @@ class AuthSessionModel extends ChangeNotifier {
       );
       if (_requiresInteractiveLogin) {
         _lastSyncAttemptResult = SyncAttemptResult.loginRequired;
+        await _logger.logInfo(
+          'hitobito_sync',
+          'Hitobito-Sync abgebrochen trigger=$trigger phase=members reason=login_required',
+        );
         return;
       }
 
@@ -837,6 +890,10 @@ class AuthSessionModel extends ChangeNotifier {
       _lastSyncAttemptResult = SyncAttemptResult.success;
       _errorMessage = null;
       _clearRemoteAccessIssue(notify: false);
+      await _logger.logInfo(
+        'hitobito_sync',
+        'Hitobito-Sync erfolgreich trigger=$trigger',
+      );
     } on NetworkAccessBlockedException catch (error) {
       await _logger.logInfo(
         'hitobito_sync',

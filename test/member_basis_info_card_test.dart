@@ -66,6 +66,34 @@ void main() {
     expect(highlightDecoration().color, Colors.transparent);
   });
 
+  testWidgets('zeigt Info wenn keine Kontaktangaben vorhanden sind', (
+    tester,
+  ) async {
+    final member = Mitglied.peopleListItem(
+      mitgliedsnummer: '4712',
+      vorname: 'Alex',
+      nachname: 'OhneKontakt',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('de'), Locale('en')],
+        locale: const Locale('de'),
+        home: Scaffold(body: MemberContactInfoCard(mitglied: member)),
+      ),
+    );
+
+    expect(find.text('Info'), findsOneWidget);
+    expect(find.text('Keine Angaben vorhanden'), findsOneWidget);
+    expect(find.text('Geplant (Dummy)'), findsNothing);
+  });
+
   testWidgets(
     'zeigt Beitragsart als reine Anzeige in der Mitgliedschaftskarte',
     (tester) async {

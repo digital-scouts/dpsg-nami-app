@@ -11,6 +11,7 @@ import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/widgets/map_recenter_button.dart';
 import 'package:nami/presentation/widgets/skeletton_map.dart';
 import 'package:nami/services/geoapify_address_map_service.dart';
+import 'package:nami/services/geoapify_env.dart';
 import 'package:nami/services/logger_service.dart';
 import 'package:nami/services/map_tile_cache_service.dart';
 import 'package:nami/services/network_access_policy.dart';
@@ -339,14 +340,22 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
 
     if (cachedMatches) {
       if (cached.addressNotFound) {
-        _log(
-          logger,
-          'Cache-Treffer fuer nicht gefundene Adresse: $globalCacheKey',
-        );
-        return const _ResolvedAddressLocation(addressNotFound: true);
+        if (!cached.isFreshNegativeCache(
+          now: DateTime.now(),
+          ttl: GeoapifyEnv.negativeCacheTtl,
+        )) {
+          _log(logger, 'Negativ-Cache abgelaufen: $globalCacheKey');
+        } else {
+          _log(
+            logger,
+            'Cache-Treffer fuer nicht gefundene Adresse: $globalCacheKey',
+          );
+          return const _ResolvedAddressLocation(addressNotFound: true);
+        }
+      } else {
+        _log(logger, 'Cache-Treffer fuer Karten-Koordinaten: $globalCacheKey');
+        return _ResolvedAddressLocation(location: cached);
       }
-      _log(logger, 'Cache-Treffer fuer Karten-Koordinaten: $globalCacheKey');
-      return _ResolvedAddressLocation(location: cached);
     }
     if (cached != null) {
       _log(logger, 'Cache-Fingerprint veraltet: $globalCacheKey');

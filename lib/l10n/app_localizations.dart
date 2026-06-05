@@ -222,6 +222,9 @@ class AppLocalizations {
       'settings_hitobito_issue_title': 'Hitobito derzeit nicht erreichbar',
       'settings_hitobito_issue_body':
           'Die App zeigt weiter lokale Daten an. Tippe hier, um die Verbindung erneut zu pruefen.',
+      'settings_hitobito_login_expired_title': 'Login abgelaufen',
+      'settings_hitobito_login_expired_body':
+          'Klicke, um dich neu anzumelden. Die App kann weiter lokale Daten anzeigen.',
       'settings_hitobito_issue_relogin_body':
           'Die App zeigt weiter lokale Daten an. Tippe hier, um dich erneut bei Hitobito anzumelden.',
       'settings_hitobito_issue_offline_body':
@@ -793,6 +796,9 @@ class AppLocalizations {
       'settings_hitobito_issue_title': 'Hitobito currently unavailable',
       'settings_hitobito_issue_body':
           'The app continues to show local data. Tap here to try the connection again.',
+      'settings_hitobito_login_expired_title': 'Sign-in expired',
+      'settings_hitobito_login_expired_body':
+          'Tap to sign in again. The app can continue showing local data.',
       'settings_hitobito_issue_relogin_body':
           'The app continues to show local data. Tap here to sign in to Hitobito again.',
       'settings_hitobito_issue_offline_body':

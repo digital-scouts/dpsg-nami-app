@@ -54,6 +54,14 @@ class _SettingsMessagesPageState extends State<SettingsMessagesPage> {
   }
 
   Future<void> _acknowledgeIfNeeded(AppHubNotification notification) async {
+    if (notification.id == 'hitobito-issue') {
+      final authModel = context.read<AuthSessionModel>();
+      if (authModel.requiresInteractiveLogin) {
+        await authModel.signIn();
+      }
+      return;
+    }
+
     if (!notification.ackable || notification.acknowledged) {
       return;
     }
@@ -82,6 +90,7 @@ class _SettingsMessagesPageState extends State<SettingsMessagesPage> {
     } catch (_) {
       return AppUpdateService(
         networkAccessPolicy: _resolveNetworkAccessPolicy(),
+        logger: context.read<LoggerService>(),
       );
     }
   }

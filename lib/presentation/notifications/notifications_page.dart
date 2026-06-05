@@ -71,6 +71,17 @@ class _NotificationsPageState extends State<NotificationsPage> {
     });
   }
 
+  Future<void> _handleMessageTap(AppHubNotification message) async {
+    if (message.id != 'hitobito-issue') {
+      return;
+    }
+
+    final authModel = context.read<AuthSessionModel>();
+    if (authModel.requiresInteractiveLogin) {
+      await authModel.signIn();
+    }
+  }
+
   Future<void> _acknowledge(String id) async {
     final logger = context.read<LoggerService>();
     final repo = await createPullNotificationsRepository(
@@ -108,6 +119,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     } catch (_) {
       return AppUpdateService(
         networkAccessPolicy: _resolveNetworkAccessPolicy(),
+        logger: context.read<LoggerService>(),
       );
     }
   }
@@ -213,9 +225,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                             final message = messages[index];
                             return NotificationCard(
                               notification: _toPullNotification(message),
-                              onTap: () {
-                                // TODO(pull_notifications): Open deep/external links.
-                              },
+                              onTap: () => _handleMessageTap(message),
                               onClose: message.ackable && !message.acknowledged
                                   ? () => _acknowledge(message.id)
                                   : null,

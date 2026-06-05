@@ -6,6 +6,7 @@ import '../data/arbeitskontext/hitobito_group_resource.dart';
 import 'hitobito_api_exception.dart';
 import 'hitobito_auth_env.dart';
 import 'hitobito_traffic_log_service.dart';
+import 'logger_service.dart';
 
 class HitobitoGroupsException extends HitobitoApiException {
   const HitobitoGroupsException(super.message, {super.statusCode});
@@ -16,12 +17,15 @@ class HitobitoGroupsService {
     required this.config,
     http.Client? httpClient,
     HitobitoTrafficLogService? trafficLogService,
+    LoggerService? logger,
   }) : _httpClient = httpClient ?? http.Client(),
-       _trafficLogService = trafficLogService;
+       _trafficLogService = trafficLogService,
+       _logger = logger;
 
   HitobitoAuthConfig config;
   final http.Client _httpClient;
   final HitobitoTrafficLogService? _trafficLogService;
+  final LoggerService? _logger;
 
   void updateConfig(HitobitoAuthConfig nextConfig) {
     config = nextConfig;
@@ -78,6 +82,12 @@ class HitobitoGroupsService {
     try {
       response = await _httpClient.get(requestUri, headers: headers);
     } catch (error, stackTrace) {
+      await _logger?.logHttpRequest(
+        source: 'hitobito_groups',
+        method: 'GET',
+        uri: requestUri,
+        error: error,
+      );
       await _trafficLogService?.logResponse(
         source: 'groups',
         method: 'GET',
@@ -88,6 +98,12 @@ class HitobitoGroupsService {
       rethrow;
     }
 
+    await _logger?.logHttpRequest(
+      source: 'hitobito_groups',
+      method: 'GET',
+      uri: requestUri,
+      statusCode: response.statusCode,
+    );
     await _trafficLogService?.logResponse(
       source: 'groups',
       method: 'GET',

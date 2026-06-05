@@ -11,9 +11,27 @@ class RemoteNotificationsDataSource {
   RemoteNotificationsDataSource(this.url, {required this.logger});
 
   Future<List<PullNotification>> fetch() async {
-    final response = await http.get(Uri.parse(url));
+    final uri = Uri.parse(url);
+    http.Response response;
+    try {
+      response = await http.get(uri);
+    } catch (error) {
+      await logger.logHttpRequest(
+        source: 'remote_notifications',
+        method: 'GET',
+        uri: uri,
+        error: error,
+      );
+      rethrow;
+    }
+    await logger.logHttpRequest(
+      source: 'remote_notifications',
+      method: 'GET',
+      uri: uri,
+      statusCode: response.statusCode,
+    );
     if (response.statusCode != 200) {
-      logger.log(
+      await logger.log(
         'RemoteNotificationsDataSource',
         'Fehler beim Laden der Notifications: ${response.statusCode}',
       );
@@ -30,7 +48,7 @@ class RemoteNotificationsDataSource {
     } else {
       items = [];
     }
-    logger.log(
+    await logger.log(
       'RemoteNotificationsDataSource',
       'Fetched ${items.length} Notifications',
     );

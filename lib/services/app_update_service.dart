@@ -6,6 +6,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app_update_env.dart';
+import 'logger_service.dart';
 import 'network_access_policy.dart';
 
 enum AppUpdateAvailability { available, required }
@@ -68,21 +69,22 @@ class AppUpdateService {
     Duration? fetchTimeout,
     this.networkAccessPolicy,
     this.platformOverride,
+    LoggerService? logger,
   }) : _currentVersionProvider =
            currentVersionProvider ?? _defaultCurrentVersionProvider,
        _manifestProvider = manifestProvider,
-       _manifestBodyFetcher =
-           manifestBodyFetcher ?? _defaultManifestBodyFetcher,
+       _manifestBodyFetcher = manifestBodyFetcher,
        _preferencesProvider =
            preferencesProvider ?? SharedPreferences.getInstance,
        _nowProvider = nowProvider ?? DateTime.now,
        _manifestUrl = manifestUrl ?? AppUpdateEnv.url,
        _minFetchInterval = minFetchInterval ?? AppUpdateEnv.minFetchInterval,
-       _fetchTimeout = fetchTimeout ?? AppUpdateEnv.fetchTimeout;
+       _fetchTimeout = fetchTimeout ?? AppUpdateEnv.fetchTimeout,
+       _logger = logger;
 
   final AppVersionProvider _currentVersionProvider;
   final VersionManifestProvider? _manifestProvider;
-  final VersionManifestBodyFetcher _manifestBodyFetcher;
+  final VersionManifestBodyFetcher? _manifestBodyFetcher;
   final PreferencesProvider _preferencesProvider;
   final DateTime Function() _nowProvider;
   final String _manifestUrl;
@@ -90,6 +92,7 @@ class AppUpdateService {
   final Duration _fetchTimeout;
   final NetworkAccessPolicy? networkAccessPolicy;
   final String? platformOverride;
+  final LoggerService? _logger;
 
   Future<RemoteVersionManifest?> loadVersionManifest() async {
     final manifest = await _loadManifest();
@@ -192,10 +195,13 @@ class AppUpdateService {
         trigger: 'app_update_manifest',
         feature: 'Update-Pruefung',
       );
-      final responseBody = await _manifestBodyFetcher(
-        _manifestUrl,
-        _fetchTimeout,
-      );
+      final responseBody = _manifestBodyFetcher == null
+          ? await _defaultManifestBodyFetcher(
+              _manifestUrl,
+              _fetchTimeout,
+              logger: _logger,
+            )
+          : await _manifestBodyFetcher(_manifestUrl, _fetchTimeout);
       await prefs.setString(_manifestCacheKey, responseBody);
       await prefs.setString(_lastFetchAtKey, now.toIso8601String());
       return _decodeManifest(responseBody);
@@ -214,9 +220,28 @@ class AppUpdateService {
 
   static Future<String> _defaultManifestBodyFetcher(
     String url,
-    Duration timeout,
-  ) async {
-    final response = await http.get(Uri.parse(url)).timeout(timeout);
+    Duration timeout, {
+    LoggerService? logger,
+  }) async {
+    final uri = Uri.parse(url);
+    http.Response response;
+    try {
+      response = await http.get(uri).timeout(timeout);
+    } catch (error) {
+      await logger?.logHttpRequest(
+        source: 'app_update_manifest',
+        method: 'GET',
+        uri: uri,
+        error: error,
+      );
+      rethrow;
+    }
+    await logger?.logHttpRequest(
+      source: 'app_update_manifest',
+      method: 'GET',
+      uri: uri,
+      statusCode: response.statusCode,
+    );
     if (response.statusCode != 200) {
       throw Exception('Version Manifest konnte nicht geladen werden.');
     }

@@ -6,6 +6,7 @@ import '../domain/maps/address_map_location_repository.dart';
 import '../domain/member/member_address_utils.dart';
 import '../domain/member/mitglied.dart';
 import 'geoapify_address_map_service.dart';
+import 'geoapify_env.dart';
 import 'logger_service.dart';
 
 class StatisticsResolvedLocations {
@@ -23,13 +24,19 @@ class StatisticsLocationService {
     AddressMapLocationRepository? repository,
     GeoapifyAddressMapService? mapService,
     LoggerService? logger,
+    Duration? negativeCacheTtl,
+    DateTime Function()? nowProvider,
   }) : _repository = repository ?? SharedPrefsAddressMapLocationRepository(),
        _mapService = mapService ?? GeoapifyAddressMapService(logger: logger),
-       _logger = logger;
+       _logger = logger,
+       _negativeCacheTtl = negativeCacheTtl ?? GeoapifyEnv.negativeCacheTtl,
+       _now = nowProvider ?? DateTime.now;
 
   final AddressMapLocationRepository _repository;
   final GeoapifyAddressMapService _mapService;
   final LoggerService? _logger;
+  final Duration _negativeCacheTtl;
+  final DateTime Function() _now;
 
   Future<StatisticsResolvedLocations> resolveLocations({
     required Iterable<Mitglied> members,
@@ -43,7 +50,9 @@ class StatisticsLocationService {
     );
   }
 
-  Future<List<LatLng>> resolveMemberLocations(Iterable<Mitglied> members) async {
+  Future<List<LatLng>> resolveMemberLocations(
+    Iterable<Mitglied> members,
+  ) async {
     final byFingerprint = <String, MitgliedKontaktAdresse>{};
 
     for (final member in members) {
@@ -65,11 +74,21 @@ class StatisticsLocationService {
       final cached = await _repository.load(fingerprint);
       if (cached != null) {
         if (cached.addressNotFound) {
-          continue;
-        }
-        if (cached.hasCoordinates) {
+          if (!cached.isFreshNegativeCache(
+            now: _now(),
+            ttl: _negativeCacheTtl,
+          )) {
+            await _logger?.log(
+              'statistics',
+              'Negativ-Cache fuer Statistik-Adresse abgelaufen: $fingerprint',
+            );
+          } else {
+            continue;
+          }
+        } else if (cached.hasCoordinates) {
           final point = LatLng(cached.latitude!, cached.longitude!);
-          final pointKey = '${point.latitude.toStringAsFixed(6)}:${point.longitude.toStringAsFixed(6)}';
+          final pointKey =
+              '${point.latitude.toStringAsFixed(6)}:${point.longitude.toStringAsFixed(6)}';
           if (seenPoints.add(pointKey)) {
             points.add(point);
           }
@@ -87,7 +106,7 @@ class StatisticsLocationService {
         await _repository.save(
           AddressMapLocation(
             cacheKey: fingerprint,
-            resolvedAt: DateTime.now(),
+            resolvedAt: _now(),
             addressFingerprint: fingerprint,
             addressNotFound: true,
           ),
@@ -108,7 +127,7 @@ class StatisticsLocationService {
           cacheKey: fingerprint,
           latitude: location.latitude,
           longitude: location.longitude,
-          resolvedAt: DateTime.now(),
+          resolvedAt: _now(),
           addressFingerprint: fingerprint,
         ),
       );
@@ -129,13 +148,26 @@ class StatisticsLocationService {
       return null;
     }
 
-    final fingerprint = MemberAddressUtils.fingerprintFromText(normalizedAddress);
+    final fingerprint = MemberAddressUtils.fingerprintFromText(
+      normalizedAddress,
+    );
     final cached = await _repository.load(fingerprint);
     if (cached != null) {
-      if (cached.addressNotFound || !cached.hasCoordinates) {
+      if (cached.addressNotFound &&
+          cached.isFreshNegativeCache(now: _now(), ttl: _negativeCacheTtl)) {
         return null;
       }
-      return LatLng(cached.latitude!, cached.longitude!);
+      if (!cached.addressNotFound && cached.hasCoordinates) {
+        return LatLng(cached.latitude!, cached.longitude!);
+      }
+      if (cached.addressNotFound) {
+        await _logger?.log(
+          'statistics',
+          'Negativ-Cache fuer Stamm-Adresse abgelaufen: $fingerprint',
+        );
+      } else if (!cached.hasCoordinates) {
+        return null;
+      }
     }
 
     final result = await _mapService.resolveAddress(normalizedAddress);
@@ -143,7 +175,7 @@ class StatisticsLocationService {
       await _repository.save(
         AddressMapLocation(
           cacheKey: fingerprint,
-          resolvedAt: DateTime.now(),
+          resolvedAt: _now(),
           addressFingerprint: fingerprint,
           addressNotFound: true,
         ),
@@ -165,7 +197,7 @@ class StatisticsLocationService {
         cacheKey: fingerprint,
         latitude: location.latitude,
         longitude: location.longitude,
-        resolvedAt: DateTime.now(),
+        resolvedAt: _now(),
         addressFingerprint: fingerprint,
       ),
     );

@@ -6,6 +6,7 @@ import '../data/arbeitskontext/hitobito_person_resource.dart';
 import 'hitobito_api_exception.dart';
 import 'hitobito_auth_env.dart';
 import 'hitobito_traffic_log_service.dart';
+import 'logger_service.dart';
 
 class HitobitoRolesException extends HitobitoApiException {
   const HitobitoRolesException(super.message, {super.statusCode});
@@ -16,12 +17,15 @@ class HitobitoRolesService {
     required this.config,
     http.Client? httpClient,
     HitobitoTrafficLogService? trafficLogService,
+    LoggerService? logger,
   }) : _httpClient = httpClient ?? http.Client(),
-       _trafficLogService = trafficLogService;
+       _trafficLogService = trafficLogService,
+       _logger = logger;
 
   HitobitoAuthConfig config;
   final http.Client _httpClient;
   final HitobitoTrafficLogService? _trafficLogService;
+  final LoggerService? _logger;
 
   void updateConfig(HitobitoAuthConfig nextConfig) {
     config = nextConfig;
@@ -92,6 +96,12 @@ class HitobitoRolesService {
     try {
       response = await _httpClient.get(requestUri, headers: headers);
     } catch (error, stackTrace) {
+      await _logger?.logHttpRequest(
+        source: 'hitobito_roles',
+        method: 'GET',
+        uri: requestUri,
+        error: error,
+      );
       await _trafficLogService?.logResponse(
         source: 'roles',
         method: 'GET',
@@ -102,6 +112,12 @@ class HitobitoRolesService {
       rethrow;
     }
 
+    await _logger?.logHttpRequest(
+      source: 'hitobito_roles',
+      method: 'GET',
+      uri: requestUri,
+      statusCode: response.statusCode,
+    );
     await _trafficLogService?.logResponse(
       source: 'roles',
       method: 'GET',
