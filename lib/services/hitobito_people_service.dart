@@ -7,6 +7,7 @@ import '../domain/member/mitglied.dart';
 import 'hitobito_api_exception.dart';
 import 'hitobito_auth_env.dart';
 import 'hitobito_traffic_log_service.dart';
+import 'logger_service.dart';
 
 class HitobitoPeopleException extends HitobitoApiException {
   const HitobitoPeopleException(
@@ -43,12 +44,15 @@ class HitobitoPeopleService {
     required this.config,
     http.Client? httpClient,
     HitobitoTrafficLogService? trafficLogService,
+    LoggerService? logger,
   }) : _httpClient = httpClient ?? http.Client(),
-       _trafficLogService = trafficLogService;
+       _trafficLogService = trafficLogService,
+       _logger = logger;
 
   HitobitoAuthConfig config;
   final http.Client _httpClient;
   final HitobitoTrafficLogService? _trafficLogService;
+  final LoggerService? _logger;
 
   void updateConfig(HitobitoAuthConfig nextConfig) {
     config = nextConfig;
@@ -697,6 +701,12 @@ class HitobitoPeopleService {
     try {
       response = await _httpClient.get(requestUri, headers: headers);
     } catch (error, stackTrace) {
+      await _logger?.logHttpRequest(
+        source: 'hitobito_people',
+        method: 'GET',
+        uri: requestUri,
+        error: error,
+      );
       await _trafficLogService?.logResponse(
         source: 'people',
         method: 'GET',
@@ -707,6 +717,12 @@ class HitobitoPeopleService {
       rethrow;
     }
 
+    await _logger?.logHttpRequest(
+      source: 'hitobito_people',
+      method: 'GET',
+      uri: requestUri,
+      statusCode: response.statusCode,
+    );
     await _trafficLogService?.logResponse(
       source: 'people',
       method: 'GET',
@@ -763,6 +779,12 @@ class HitobitoPeopleService {
     try {
       streamedResponse = await _httpClient.send(request);
     } catch (error, stackTrace) {
+      await _logger?.logHttpRequest(
+        source: 'hitobito_people',
+        method: method,
+        uri: requestUri,
+        error: error,
+      );
       await _trafficLogService?.logResponse(
         source: 'people',
         method: method,
@@ -773,6 +795,12 @@ class HitobitoPeopleService {
       rethrow;
     }
     final response = await http.Response.fromStream(streamedResponse);
+    await _logger?.logHttpRequest(
+      source: 'hitobito_people',
+      method: method,
+      uri: requestUri,
+      statusCode: response.statusCode,
+    );
     await _trafficLogService?.logResponse(
       source: 'people',
       method: method,

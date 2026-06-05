@@ -117,10 +117,10 @@ void main() {
 
       expect(find.byKey(const Key('settings-messages-banner')), findsOneWidget);
       expect(find.byKey(const Key('settings-messages-badge')), findsOneWidget);
-      expect(find.text('Hitobito derzeit nicht erreichbar'), findsOneWidget);
+      expect(find.text('Login abgelaufen'), findsOneWidget);
       expect(
         find.text(
-          'Die App zeigt weiter lokale Daten an. Tippe hier, um dich erneut bei Hitobito anzumelden.',
+          'Klicke, um dich neu anzumelden. Die App kann weiter lokale Daten anzeigen.',
         ),
         findsOneWidget,
       );

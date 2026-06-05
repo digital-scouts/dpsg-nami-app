@@ -109,6 +109,45 @@ void main() {
     expect(await service.listLogFileNames(), ['app-2026-04-08.log']);
   });
 
+  test('logHttpRequest schreibt kurze Zeile ohne Query oder Body', () async {
+    final tempDir = await Directory.systemTemp.createTemp('logger_http_test');
+    final repo = _FakeRepo(
+      const AppSettings(
+        themeMode: ThemeMode.system,
+        languageCode: 'de',
+        analyticsEnabled: true,
+      ),
+    );
+    final service = LoggerService(
+      settingsRepository: repo,
+      navigatorKey: GlobalKey<NavigatorState>(),
+      logsDirectoryProvider: () async => tempDir,
+      nowProvider: () => DateTime(2026, 4, 8, 12, 0, 0),
+    );
+
+    await service.logHttpRequest(
+      source: 'geoapify_geocode',
+      method: 'GET',
+      uri: Uri.parse(
+        'https://api.geoapify.com/v1/geocode/search?text=secret&apiKey=token',
+      ),
+      statusCode: 401,
+    );
+
+    final content = await File(
+      '${tempDir.path}/app-2026-04-08.log',
+    ).readAsString();
+    expect(content.contains('[http]'), isTrue);
+    expect(content.contains('source=geoapify_geocode'), isTrue);
+    expect(
+      content.contains('url=https://api.geoapify.com/v1/geocode/search'),
+      isTrue,
+    );
+    expect(content.contains('status=401'), isTrue);
+    expect(content.contains('text=secret'), isFalse);
+    expect(content.contains('apiKey=token'), isFalse);
+  });
+
   test('clearAllLogs loescht alle Daily-Logdateien', () async {
     final tempDir = await Directory.systemTemp.createTemp('logger_test_clear');
 
@@ -133,6 +172,49 @@ void main() {
     await service.clearAllLogs();
 
     expect(await service.listLogFiles(), isEmpty);
+  });
+
+  test('readLogs zeigt bei allen Dateien die neuesten Logs unten', () async {
+    final tempDir = await Directory.systemTemp.createTemp(
+      'logger_read_all_order_test',
+    );
+    final repo = _FakeRepo(
+      const AppSettings(
+        themeMode: ThemeMode.system,
+        languageCode: 'de',
+        analyticsEnabled: true,
+      ),
+    );
+    final service = LoggerService(
+      settingsRepository: repo,
+      navigatorKey: GlobalKey<NavigatorState>(),
+      logsDirectoryProvider: () async => tempDir,
+      nowProvider: () => DateTime(2026, 4, 8, 12, 0, 0),
+    );
+
+    await File(
+      '${tempDir.path}/app-2026-04-07.log',
+    ).writeAsString('alter log\n');
+    await File(
+      '${tempDir.path}/app-2026-04-08.log',
+    ).writeAsString('neuer log\n');
+
+    expect(await service.listLogFileNames(), <String>[
+      'app-2026-04-08.log',
+      'app-2026-04-07.log',
+    ]);
+
+    final content = await service.readLogs(
+      selectionId: LoggerService.allLogsSelectionId,
+    );
+    expect(
+      content.indexOf('app-2026-04-07.log'),
+      lessThan(content.indexOf('app-2026-04-08.log')),
+    );
+    expect(
+      content.indexOf('alter log'),
+      lessThan(content.indexOf('neuer log')),
+    );
   });
 
   test('trackEvent calls wiredash when analytics enabled', () async {

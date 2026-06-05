@@ -105,8 +105,8 @@ class MemberContactInfoCard extends StatelessWidget {
       rows.add(
         _InfoRow(
           icon: Icons.contact_phone_outlined,
-          label: 'Kontakt',
-          value: _dummyFieldValue,
+          label: 'Info',
+          value: 'Keine Angaben vorhanden',
         ),
       );
     }

@@ -377,6 +377,7 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
       force: true,
       trigger: 'member_list_pull_refresh',
       allowMobileDataOverride: allowMobileDataOverride || !hasValidLocalData,
+      interactiveLoginOnRequired: true,
       syncMembers: (accessToken) async {
         await arbeitskontextModel.refreshFromRemote(
           session: authModel.session,

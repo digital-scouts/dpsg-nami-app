@@ -118,7 +118,10 @@ class LoggerService {
   }
 
   Future<String> readLogs({String? selectionId}) async {
-    final files = await resolveLogFiles(selectionId: selectionId);
+    final resolvedFiles = await resolveLogFiles(selectionId: selectionId);
+    final files = selectionId == null || selectionId == allLogsSelectionId
+        ? resolvedFiles.reversed.toList(growable: false)
+        : resolvedFiles;
     if (files.isEmpty) {
       return '';
     }
@@ -158,6 +161,35 @@ class LoggerService {
 
   Future<void> logWarn(String service, String message) {
     return _writeLogLine(LogLevel.warn, service, message);
+  }
+
+  Future<void> logHttpRequest({
+    required String source,
+    required String method,
+    required Uri uri,
+    int? statusCode,
+    Object? error,
+  }) {
+    final status = statusCode?.toString() ?? 'exception';
+    final errorSuffix = error == null ? '' : ' error_type=${error.runtimeType}';
+    return logInfo(
+      'http',
+      'source=$source method=${method.toUpperCase()} url=${_uriWithoutQuery(uri)} status=$status$errorSuffix',
+    );
+  }
+
+  String _uriWithoutQuery(Uri uri) {
+    if (!uri.hasQuery) {
+      return uri.toString();
+    }
+    return Uri(
+      scheme: uri.scheme,
+      userInfo: uri.userInfo,
+      host: uri.host,
+      port: uri.hasPort ? uri.port : null,
+      path: uri.path,
+      fragment: uri.fragment.isEmpty ? null : uri.fragment,
+    ).toString();
   }
 
   Future<void> logError(

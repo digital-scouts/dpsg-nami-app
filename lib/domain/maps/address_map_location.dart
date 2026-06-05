@@ -17,6 +17,13 @@ class AddressMapLocation {
 
   bool get hasCoordinates => latitude != null && longitude != null;
 
+  bool isFreshNegativeCache({required DateTime now, required Duration ttl}) {
+    if (!addressNotFound) {
+      return false;
+    }
+    return !resolvedAt.add(ttl).isBefore(now);
+  }
+
   AddressMapLocation copyWith({
     String? cacheKey,
     double? latitude,

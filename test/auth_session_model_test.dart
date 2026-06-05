@@ -677,6 +677,90 @@ void main() {
   );
 
   test(
+    'Pull-Sync startet bei Loginbedarf interaktiven Login und synchronisiert danach weiter',
+    () async {
+      final oauthService = _FakeOauthService(
+        sessionToReturn: AuthSession(
+          accessToken: 'interactive-token',
+          refreshToken: 'interactive-refresh-token',
+          receivedAt: DateTime(2026, 3, 28, 12),
+        ),
+        profileToReturn: const AuthProfile(
+          namiId: 97,
+          firstName: 'Pull',
+          lastName: 'Refresh',
+          language: 'de',
+        ),
+      );
+      final sensitiveStorage = _FakeSensitiveStorageService()
+        .._lastSensitiveSyncAt = DateTime(2026, 3, 27, 8);
+      final logger = _createLogger();
+      final model = AuthSessionModel(
+        repository: _InMemoryAuthSessionRepository(
+          initialSession: AuthSession(
+            accessToken: 'stale-token',
+            refreshToken: 'stale-refresh-token',
+            receivedAt: DateTime(2026, 3, 27),
+          ),
+        ),
+        profileRepository: _InMemoryAuthProfileRepository(
+          profile: const AuthProfile(
+            namiId: 97,
+            firstName: 'Cached',
+            lastName: 'Profile',
+            language: 'de',
+          ),
+          lastSyncAt: DateTime(2026, 3, 28, 8),
+        ),
+        oauthService: oauthService,
+        biometricLockService: _FakeBiometricLockService(),
+        sensitiveStorageService: sensitiveStorage,
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => DateTime(2026, 3, 28, 12),
+        ),
+        logger: logger,
+      );
+      final memberSyncTokens = <String>[];
+      final observedStates = <AuthState>[];
+
+      await model.initialize();
+      model.reportRemoteDataIssue(
+        'Profil-Anfrage fehlgeschlagen (401).',
+        requiresInteractiveLogin: true,
+      );
+      model.addListener(() {
+        observedStates.add(model.state);
+      });
+
+      await model.syncHitobitoData(
+        force: true,
+        trigger: 'member_list_pull_refresh',
+        interactiveLoginOnRequired: true,
+        syncMembers: (accessToken) async {
+          memberSyncTokens.add(accessToken);
+        },
+      );
+
+      expect(oauthService.authenticateInteractiveCallCount, 1);
+      expect(memberSyncTokens, <String>['interactive-token']);
+      expect(observedStates, isNot(contains(AuthState.authenticating)));
+      expect(model.requiresInteractiveLogin, isFalse);
+      expect(model.lastSensitiveSyncAt, DateTime(2026, 3, 28, 12));
+      expect(
+        logger.entries.any(
+          (entry) => entry.message.contains(
+            'Hitobito-Sync startet interaktiven Login trigger=member_list_pull_refresh',
+          ),
+        ),
+        isTrue,
+      );
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  test(
     'bleibt nach abgebrochenem interaktivem Relogin bei vorhandener Session und lokalem Profil signedIn',
     () async {
       final oauthService =

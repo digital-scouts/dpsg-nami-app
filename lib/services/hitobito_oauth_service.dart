@@ -175,13 +175,31 @@ class HitobitoOauthService {
 
     final requestUri = Uri.parse(config.profileUrl);
 
-    final response = await _httpClient.get(
-      requestUri,
-      headers: <String, String>{
-        'Accept': 'application/json',
-        'Authorization': 'Bearer ${session.accessToken}',
-        'X-Scope': 'with_roles',
-      },
+    http.Response response;
+    try {
+      response = await _httpClient.get(
+        requestUri,
+        headers: <String, String>{
+          'Accept': 'application/json',
+          'Authorization': 'Bearer ${session.accessToken}',
+          'X-Scope': 'with_roles',
+        },
+      );
+    } catch (error) {
+      await _logger?.logHttpRequest(
+        source: 'hitobito_profile',
+        method: 'GET',
+        uri: requestUri,
+        error: error,
+      );
+      rethrow;
+    }
+
+    await _logger?.logHttpRequest(
+      source: 'hitobito_profile',
+      method: 'GET',
+      uri: requestUri,
+      statusCode: response.statusCode,
     );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -204,13 +222,32 @@ class HitobitoOauthService {
   Future<Map<String, dynamic>> _requestToken(
     Map<String, String> payload,
   ) async {
-    final response = await _httpClient.post(
-      Uri.parse(config.tokenUrl),
-      headers: const <String, String>{
-        'Accept': 'application/json',
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: payload,
+    final requestUri = Uri.parse(config.tokenUrl);
+    http.Response response;
+    try {
+      response = await _httpClient.post(
+        requestUri,
+        headers: const <String, String>{
+          'Accept': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: payload,
+      );
+    } catch (error) {
+      await _logger?.logHttpRequest(
+        source: 'hitobito_token',
+        method: 'POST',
+        uri: requestUri,
+        error: error,
+      );
+      rethrow;
+    }
+
+    await _logger?.logHttpRequest(
+      source: 'hitobito_token',
+      method: 'POST',
+      uri: requestUri,
+      statusCode: response.statusCode,
     );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {

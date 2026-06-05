@@ -31,8 +31,18 @@ class StammStorelocatorService {
       'radius': radiusKm.toString(),
     });
 
-    await _log?.call('Stammesuche-Request gestartet: $uri');
-    final response = await _client.get(uri).timeout(_requestTimeout);
+    http.Response response;
+    try {
+      response = await _client.get(uri).timeout(_requestTimeout);
+    } catch (error) {
+      await _log?.call(
+        'HTTP source=stamm_storelocator method=GET url=${_uriWithoutQuery(uri)} status=exception error_type=${error.runtimeType}',
+      );
+      rethrow;
+    }
+    await _log?.call(
+      'HTTP source=stamm_storelocator method=GET url=${_uriWithoutQuery(uri)} status=${response.statusCode}',
+    );
     if (response.statusCode != 200) {
       throw Exception('Stammesuche lieferte Status ${response.statusCode}.');
     }
@@ -42,6 +52,20 @@ class StammStorelocatorService {
       'Stammesuche erfolgreich geladen: ${markers.length} Marker',
     );
     return markers;
+  }
+
+  String _uriWithoutQuery(Uri uri) {
+    if (!uri.hasQuery) {
+      return uri.toString();
+    }
+    return Uri(
+      scheme: uri.scheme,
+      userInfo: uri.userInfo,
+      host: uri.host,
+      port: uri.hasPort ? uri.port : null,
+      path: uri.path,
+      fragment: uri.fragment.isEmpty ? null : uri.fragment,
+    ).toString();
   }
 
   static List<StammMapMarker> parseMarkers(String xmlBody) {

@@ -245,12 +245,16 @@ class NotificationsHub {
     final de = AppLocalizations(const Locale('de'));
     final en = AppLocalizations(const Locale('en'));
     String bodyKey;
+    String titleKey;
     if (authModel.requiresInteractiveLogin) {
-      bodyKey = 'settings_hitobito_issue_relogin_body';
+      titleKey = 'settings_hitobito_login_expired_title';
+      bodyKey = 'settings_hitobito_login_expired_body';
     } else if (authModel.remoteAccessBlockedReason ==
         NetworkAccessBlockedReason.offline) {
+      titleKey = 'settings_hitobito_issue_title';
       bodyKey = 'settings_hitobito_issue_offline_body';
     } else {
+      titleKey = 'settings_hitobito_issue_title';
       bodyKey = 'settings_hitobito_issue_body';
     }
 
@@ -260,10 +264,7 @@ class NotificationsHub {
       severity: authModel.requiresInteractiveLogin
           ? AppNotificationSeverity.urgent
           : AppNotificationSeverity.warn,
-      title: LocalizedString(
-        de: de.t('settings_hitobito_issue_title'),
-        en: en.t('settings_hitobito_issue_title'),
-      ),
+      title: LocalizedString(de: de.t(titleKey), en: en.t(titleKey)),
       body: LocalizedString(de: de.t(bodyKey), en: en.t(bodyKey)),
       ackable: false,
     );
