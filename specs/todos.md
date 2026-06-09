@@ -49,7 +49,6 @@ Nächste Aufgaben:
 
 ## Priorität 5: App-Wartung und nützliche Ergänzungen
 
-- Länderflaggen auch im Mitgliedsdetail an Telefonnummern anzeigen.
 - GitHub-Pages-Wiki/Userguide für Konfliktlösung, Datenspeicherung und Löschung schreiben.
 - Problemlösungs-Screen prüfen: Bereich "Mitglied bearbeiten" bleibt beim Einstieg eingeklappt, kann aber gut sichtbar aufgeklappt werden.
 - Erstes Laden: Skeleton oder gleichwertige Fortschrittsanzeige prüfen.

@@ -1,6 +1,7 @@
 {
     "version": "0.2.0",
     "configurations": [
+
         {
             "name": "Hardware iPhone",
             "request": "launch",
@@ -23,7 +24,7 @@
             "name": "iPhone",
             "request": "launch",
             "type": "dart",
-            "deviceId": "FEC06346-9B2A-47E6-B993-C479E35EF67F",
+            "deviceId": "8E72DBBA-35B7-44A6-BB9E-D168EF90F8C4",
             "toolArgs": [
                 "--dart-define=USE_LOGGING=true"
             ]

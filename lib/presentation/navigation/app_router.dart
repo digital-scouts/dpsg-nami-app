@@ -15,6 +15,8 @@ import '../model/locale_model.dart';
 import '../navigation/navigation_home.page.dart';
 import '../notifications/app_snackbar.dart';
 import '../notifications/notifications_page.dart';
+import '../screens/nami_ai_chat_page.dart';
+import '../screens/nami_ai_paywall_page.dart';
 import '../screens/profile_page.dart';
 import '../screens/settings_app_page.dart';
 import '../screens/settings_datenschutz_page.dart';
@@ -42,6 +44,8 @@ class AppRoutes {
   static const String pullNotifications = '/notifications';
   static const String profile = '/profile';
   static const String statisticsGroupDetail = '/statistics/group-detail';
+  static const String namiAiChat = '/nami-ai/chat';
+  static const String namiAiPaywall = '/nami-ai/paywall';
 }
 
 Route<dynamic> onGenerateRoute(RouteSettings settings) {
@@ -55,6 +59,16 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         settings: settings,
         builder: (context) => const ProfilePage(),
+      );
+    case AppRoutes.namiAiChat:
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => const NamiAiChatPage(),
+      );
+    case AppRoutes.namiAiPaywall:
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => const NamiAiPaywallPage(),
       );
     case AppRoutes.settingsStamm:
       return MaterialPageRoute(

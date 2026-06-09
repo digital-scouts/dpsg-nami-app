@@ -95,3 +95,77 @@ Dieses Dokument sammelt und fortschreibt visionaere Nutzerideen als Arbeitsproto
 - Welche Berichte der Bundesversammlung enthalten überhaupt belastbare und regelmäßig nutzbare statische Zahlen?
 - Wie werden statische Verbandszahlen und freiwillig geteilte App-Metadaten sichtbar voneinander abgegrenzt, damit kein falscher Eindruck einer einheitlichen Datenquelle entsteht?
 - Wie weit lässt sich das Modell sinnvoll auf Diözesanebenen herunterbrechen, ohne dass die Datenbasis zu klein oder zu leicht rückführbar wird?
+
+## Eintrag 2026-06-08 Apple On-Device KI-Chat für DPSG-Arbeit
+
+### Kernidee
+
+- In der App soll ein KI-Chat für Apple-Geräte entstehen, der Apples On-Device-LLM nutzt.
+- Der Chat soll Fragen zur DPSG, zur Mitgliedsverwaltung, zu Abläufen in der App und zu konkreten Mitgliedsdaten beantworten können.
+- Zusätzlich soll der Chat nicht nur informieren, sondern auf ausdrücklichen Befehl auch Änderungen ausführen können, zum Beispiel Adressen aktualisieren.
+
+### Geschärfte Vision
+
+- Die App bekommt einen vertrauenswürdigen Assistenten, der Leitenden in Alltagssprache hilft, statt sie durch Menüs und Listen zu zwingen.
+- Der Assistent verbindet drei Wissensräume in einem Dialog: Verbandswissen (DPSG-Regeln und Kontext), App-Funktionswissen (Wie geht etwas?) und lokale Stammesdaten (Mitglieder, Gruppen, Adressen, Geburtstage).
+- Für sensible Datenabfragen und insbesondere für schreibende Aktionen gilt ein klares Sicherheitsmodell: verständliche Vorschau, explizite Bestätigung und nachvollziehbares Änderungsprotokoll.
+- Der Assistent soll als beschleunigendes Werkzeug wirken, nicht als autonome Entscheidungsinstanz. Entscheidungen bleiben bei den Verantwortlichen.
+- Das Vorhaben startet bewusst als Lern- und Testspielerei mit engem Scope: Apple-only, ohne Anspruch auf breite Geräteabdeckung.
+
+### Mögliche Ausprägung der Funktionen
+
+- Informationsfragen: "Wer wechselt die Stufe?", "Wer hat nächste Woche Geburtstag?", "Wie viele Mitglieder wohnen weiter als 1 km vom Gruppenraum entfernt?"
+- App-Hilfe: "Wie ändere ich eine Beitragsart?", "Wo finde ich den Export?"
+- Datenaktionen mit Freigabe: "Ändere die Adresse von Emma zu Sumpfweg 7" mit Vorher-Nachher-Vorschau und Bestätigung.
+- Mehrdeutigkeits-Dialoge: "Ich habe Emma X und Emma Y gefunden. Welche möchtest du bearbeiten?"
+- Rechtehinweis bei fehlender Berechtigung: "Du hast für diese Aktion keine ausreichenden Rechte. So bekommst du sie: ..."
+- Transparenzmodus: Der Chat zeigt an, welche Datenquelle genutzt wurde (lokal auf Gerät, lokales App-Modell, Serverdaten, statisches Verbandswissen).
+- Assistenz über App-Grenzen hinweg (optional): Kombination mit Siri-nahen Flows wie "Trage den Stufenwechsel aus meinem Kalender in der Nami App ein" oder "Aus dieser Nachricht: Wie alt ist das Kind und wann wechselt es die Stufe?"
+
+### Technische Möglichkeiten: Flutter vs. nativ
+
+- Flutter kann die Produktlogik, UI, Dialogführung, Tool-Aufrufe, Berechtigungsgates, Freigabe-Dialoge und Audit-Ansichten umsetzen.
+- Flutter kann auch den strukturierten Orchestrierungs-Layer bauen: Intent erkennen, passende Datenabfrage/Funktion auswählen, Ergebnis aufbereiten, Sicherheitsprüfung erzwingen.
+- Die direkte Nutzung von Apples On-Device-LLM ist voraussichtlich nativ zu kapseln (Swift/Apple-Frameworks) und per Platform Channel oder FFI an Flutter anzubinden.
+- Nativ ist zudem wichtig für enge OS-Integration: verfügbare Modellfähigkeiten je iOS-Version, lokale Ressourcensteuerung, Hintergrundgrenzen, Datenschutz-APIs.
+- Für diese Phase gilt bewusst: Apple-only-Testspielerei ohne Fallback für andere Plattformen oder ältere Geräte.
+- Zielrahmen der Spielerei: iOS 16/17 auf ausgewählten Apple-Geräten, sofern die benötigten KI-Funktionen dort stabil verfügbar sind.
+
+### Sicherheits- und Datenschutzbild
+
+- On-Device-Verarbeitung reduziert das Risiko externer Datenabflüsse deutlich, weil Prompts und Antworten das Gerät nicht zwingend verlassen.
+- Das Risiko verschiebt sich auf lokale Sicherheit: Geräteschutz, App-Sandbox, Backup-Verhalten, Logging, Rollen- und Rechtekonzept in der App.
+- Schreibende Aktionen dürfen nie "still" erfolgen. Erforderlich sind: Berechtigungsprüfung, explizite Nutzerfreigabe, Undo- oder Korrekturpfad und revisionssicheres Änderungsprotokoll.
+- Wenn Rechte fehlen, darf keine implizite Teil-Ausführung passieren. Stattdessen braucht es einen klaren Hinweis, welche Rolle fehlt und wie der Nutzer diese Rechte erhalten kann.
+- Besonders sensible Felder (z. B. Adressen, Kontaktdaten, Geburtsdaten) brauchen striktere Regeln als reine Aggregatfragen.
+- Für Vertrauensaufbau wichtig: klarer Hinweis, ob eine Antwort deterministisch aus Datenabfrage stammt oder ein KI-generierter Text mit Unsicherheit ist.
+
+### Kostenbild
+
+- Bei echtem On-Device-Betrieb entstehen in der Regel keine laufenden Tokenkosten pro Anfrage wie bei Cloud-LLMs.
+- Es entstehen dennoch Produktkosten: native Entwicklung, Geräte-/OS-Matrix, Qualitätssicherung, Prompt- und Tool-Design, Monitoring, Support.
+- Indirekte Kosten können durch Performance- und Akku-Themen entstehen, insbesondere bei längeren oder komplexen Dialogen auf älteren Geräten.
+- Falls ein Cloud-Fallback für bestimmte Geräte/Fälle nötig wird, entstehen zusätzliche variable Kosten (API-Nutzung, Infrastruktur, Datenschutzbetrieb).
+- Insgesamt ist das Modell potenziell kostenschonender im laufenden Betrieb als reine Cloud-KI, aber mit höherer initialer Integrationskomplexität.
+- Durch den bewusst kleinen Apple-only-Testscope sinken kurzfristig Integrations- und Supportkosten, während Lerngewinn zu Apple-AI-Patterns früh entsteht.
+
+### Leitplanken und Annahmen
+
+- Nutzerkontrolle vor Automatisierung: Jede schreibende Änderung braucht explizite Freigabe.
+- Sicherheitsmodell vor Komfort: Rollenrechte, Protokollierung und Nachvollziehbarkeit sind Pflichtbestandteile.
+- Rechteklarheit vor Ausführung: Bei fehlenden Rechten werden Aktion und Grund verständlich angezeigt, inklusive Weg zur Rechteerweiterung.
+- Eindeutigkeit vor Mutation: Bei mehrdeutigen Personentreffern wird immer nachgefragt, bevor Daten geändert werden.
+- Architekturtrennung: KI-Inferenz nativ kapseln, Fachlogik und UX in Flutter zentral halten.
+- Die Vision setzt voraus, dass Apples On-Device-LLM auf den Zielgeräten verfügbar, stabil und qualitativ ausreichend ist.
+- Die Vision setzt außerdem voraus, dass Mitgliedsdaten für KI-gestützte Verarbeitung rechtlich und organisatorisch sauber eingeordnet sind.
+- Scope-Leitplanke der Spielerei: Apple-only, iOS 16/17, kein Plattform-Fallback in dieser frühen Phase.
+
+### Offene Fragen
+
+- Welche konkreten Apple-Frameworks und iOS-Mindestversionen tragen das gewünschte On-Device-Szenario verlässlich?
+- Welche Abfragen dürfen ohne zusätzliche Bestätigung laufen und welche müssen immer einen Freigabedialog erzwingen?
+- Wie wird ein robustes Rollenmodell mit bestehenden Berechtigungen der App verheiratet, ohne Parallelstrukturen zu schaffen?
+- Wie wird verhindert, dass der Chat bei Mehrdeutigkeit falsche Personen ändert (z. B. mehrere "Emma")?
+- Welche minimalen Siri-/Apple-Integrationen sind im Lernscope realistisch, ohne den Prototyp zu überfrachten?
+- Wie robust läuft der Ansatz auf den konkret verfügbaren Testgeräten mit iOS 16/17 unter realer Last?
+- Wie wird der Nutzen gemessen: gesparte Zeit, weniger Fehlbedienung, höhere Datenqualität, schnellere Einarbeitung neuer Leitender?
