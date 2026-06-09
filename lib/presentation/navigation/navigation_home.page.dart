@@ -77,6 +77,9 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
               Navigator.pushNamed(context, AppRoutes.settingsDatenschutz),
           onMapSettings: () =>
               Navigator.pushNamed(context, AppRoutes.settingsMap),
+          onNamiAi: () => Navigator.pushNamed(context, AppRoutes.namiAiChat),
+          onNamiAiPaywall: () =>
+              Navigator.pushNamed(context, AppRoutes.namiAiPaywall),
           onProfile: _isProfileAvailable(authModel, arbeitskontextModel)
               ? () => Navigator.pushNamed(context, AppRoutes.profile)
               : null,

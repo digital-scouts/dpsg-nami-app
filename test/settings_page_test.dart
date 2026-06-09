@@ -21,6 +21,7 @@ import 'package:nami/services/hitobito_auth_env.dart';
 import 'package:nami/services/hitobito_data_retention_policy.dart';
 import 'package:nami/services/hitobito_oauth_service.dart';
 import 'package:nami/services/logger_service.dart';
+import 'package:nami/services/nami_ai_access_service.dart';
 import 'package:nami/services/sensitive_storage_service.dart';
 import 'package:provider/provider.dart';
 
@@ -28,6 +29,9 @@ void main() {
   Widget buildTestApp({
     required AuthSessionModel authModel,
     FutureOr<void> Function()? onMessages,
+    VoidCallback? onNamiAi,
+    VoidCallback? onNamiAiPaywall,
+    Future<NamiAiAccessDecision> Function()? namiAiAccessLoader,
     Future<List<AppHubNotification>> Function()?
     unreadExternalNotificationsLoader,
     List<dynamic> additionalProviders = const [],
@@ -49,6 +53,9 @@ void main() {
         locale: const Locale('de'),
         home: SettingsPage(
           onMessages: onMessages,
+          onNamiAi: onNamiAi,
+          onNamiAiPaywall: onNamiAiPaywall,
+          namiAiAccessLoader: namiAiAccessLoader,
           unreadExternalNotificationsLoader: unreadExternalNotificationsLoader,
         ),
       ),
@@ -77,8 +84,82 @@ void main() {
     expect(find.text('Rechnungen'), findsOneWidget);
     expect(find.text('Events'), findsOneWidget);
     expect(find.text('Abos'), findsOneWidget);
+    expect(find.text('NaMi AI'), findsNothing);
     expect(find.text('Stufenwechsel'), findsNothing);
     expect(find.byKey(const Key('settings-messages-banner')), findsNothing);
+  });
+
+  testWidgets('oeffnet NaMi AI bei aktiviertem Zugriff', (tester) async {
+    final authModel = AuthSessionModel(
+      repository: _InMemoryAuthSessionRepository(),
+      profileRepository: _InMemoryAuthProfileRepository(),
+      oauthService: _FakeOauthService(),
+      biometricLockService: _FakeBiometricLockService(),
+      sensitiveStorageService: _FakeSensitiveStorageService(),
+      retentionPolicy: HitobitoDataRetentionPolicy(
+        maxDataAge: const Duration(days: 90),
+        refreshInterval: const Duration(hours: 24),
+      ),
+      logger: _FakeLoggerService(),
+    );
+
+    var openedChat = false;
+
+    await tester.pumpWidget(
+      buildTestApp(
+        authModel: authModel,
+        onNamiAi: () => openedChat = true,
+        namiAiAccessLoader: () async =>
+            const NamiAiAccessDecision(state: NamiAiAccessState.enabled),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('NaMi AI'), findsOneWidget);
+    expect(find.text('AI-Chat (Test)'), findsOneWidget);
+
+    await tester.tap(find.text('NaMi AI'));
+    await tester.pump();
+
+    expect(openedChat, isTrue);
+  });
+
+  testWidgets('oeffnet Paywall bei Membership-Lock', (tester) async {
+    final authModel = AuthSessionModel(
+      repository: _InMemoryAuthSessionRepository(),
+      profileRepository: _InMemoryAuthProfileRepository(),
+      oauthService: _FakeOauthService(),
+      biometricLockService: _FakeBiometricLockService(),
+      sensitiveStorageService: _FakeSensitiveStorageService(),
+      retentionPolicy: HitobitoDataRetentionPolicy(
+        maxDataAge: const Duration(days: 90),
+        refreshInterval: const Duration(hours: 24),
+      ),
+      logger: _FakeLoggerService(),
+    );
+
+    var openedPaywall = false;
+
+    await tester.pumpWidget(
+      buildTestApp(
+        authModel: authModel,
+        onNamiAiPaywall: () => openedPaywall = true,
+        namiAiAccessLoader: () async => const NamiAiAccessDecision(
+          state: NamiAiAccessState.lockedByMembership,
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('NaMi AI'), findsOneWidget);
+    expect(find.text('Premium erforderlich'), findsOneWidget);
+
+    await tester.tap(find.text('NaMi AI'));
+    await tester.pump();
+
+    expect(openedPaywall, isTrue);
   });
 
   testWidgets(

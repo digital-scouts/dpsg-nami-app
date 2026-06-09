@@ -83,6 +83,8 @@ Die gleiche Versionsprüfung läuft zusätzlich in GitHub Actions:
 
 Zusätzlich validieren [validate-pull-requests.yml](.github/workflows/validate-pull-requests.yml) und [deploy-android-internal.yml](.github/workflows/deploy-android-internal.yml) die Env-Vorlage über [tool/validate_env_files.dart](tool/validate_env_files.dart), damit neue oder entfernte Keys nicht unbemerkt an [.env.example](.env.example) vorbeilaufen.
 
+Für PRs enthält [validate-pull-requests.yml](.github/workflows/validate-pull-requests.yml) jetzt auch eine macOS-Jobstufe, die native iOS-Swift-Quelltexte formatiert und den iOS-Runner mit `xcodebuild` für den Simulator kompiliert.
+
 Dadurch kann eine inkonsistente Versionierung nicht unbemerkt in den Hauptbranch gelangen, auch wenn lokal kein Hook aktiviert ist. Der GitHub Release enthält bewusst nur Tag und Release-Notizen, aber kein angehängtes Android-Binärfile.
 
 Der iOS-Release-Pfad läuft weiterhin außerhalb von GitHub Actions über Xcode Cloud beziehungsweise App Store Connect.

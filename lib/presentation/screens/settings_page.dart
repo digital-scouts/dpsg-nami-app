@@ -10,6 +10,7 @@ import 'package:nami/presentation/widgets/confetti_overlay.dart';
 import 'package:nami/presentation/widgets/section_header.dart';
 import 'package:nami/services/app_update_service.dart';
 import 'package:nami/services/logger_service.dart';
+import 'package:nami/services/nami_ai_access_service.dart';
 import 'package:nami/services/network_access_policy.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
@@ -23,8 +24,11 @@ class SettingsPage extends StatefulWidget {
   final VoidCallback? onImpressum;
   final VoidCallback? onDatenschutz;
   final VoidCallback? onDebugTools;
+  final VoidCallback? onNamiAi;
+  final VoidCallback? onNamiAiPaywall;
   final VoidCallback? onProfile;
   final String? appVersion;
+  final Future<NamiAiAccessDecision> Function()? namiAiAccessLoader;
   final Future<List<AppHubNotification>> Function()?
   unreadExternalNotificationsLoader;
 
@@ -38,8 +42,11 @@ class SettingsPage extends StatefulWidget {
     this.onImpressum,
     this.onDatenschutz,
     this.onDebugTools,
+    this.onNamiAi,
+    this.onNamiAiPaywall,
     this.onProfile,
     this.appVersion,
+    this.namiAiAccessLoader,
     this.unreadExternalNotificationsLoader,
   });
 
@@ -53,15 +60,29 @@ class _SettingsPageState extends State<SettingsPage> {
   String? _appVersion;
   late Future<AppUpdateInfo?> _appUpdateFuture;
   late Future<List<AppHubNotification>> _unreadExternalNotificationsFuture;
+  late Future<NamiAiAccessDecision> _namiAiAccessFuture;
 
   @override
   void initState() {
     super.initState();
     _unreadExternalNotificationsFuture = _loadUnreadExternalNotifications();
     _appUpdateFuture = _loadAppUpdateInfo();
+    _namiAiAccessFuture = _loadNamiAiAccessDecision();
     _appVersion = widget.appVersion;
     if (_appVersion == null) {
       _loadAppVersion();
+    }
+  }
+
+  Future<NamiAiAccessDecision> _loadNamiAiAccessDecision() async {
+    final loader = widget.namiAiAccessLoader;
+    if (loader != null) {
+      return loader();
+    }
+    try {
+      return await context.read<NamiAiAccessService>().evaluate();
+    } catch (_) {
+      return NamiAiAccessService().evaluate();
     }
   }
 
@@ -193,218 +214,250 @@ class _SettingsPageState extends State<SettingsPage> {
                     ? hubMessages.first
                     : null;
 
-                return SafeArea(
-                  child: ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      Card(
-                        margin: EdgeInsets.zero,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: widget.onProfile,
-                          child: Padding(
-                            padding: const EdgeInsets.all(14),
-                            child: Row(
+                return FutureBuilder<NamiAiAccessDecision>(
+                  future: _namiAiAccessFuture,
+                  builder: (context, namiAiSnapshot) {
+                    final namiAiDecision =
+                        namiAiSnapshot.data ??
+                        const NamiAiAccessDecision(
+                          state: NamiAiAccessState.hidden,
+                        );
+
+                    return SafeArea(
+                      child: ListView(
+                        padding: const EdgeInsets.all(16),
+                        children: [
+                          Card(
+                            margin: EdgeInsets.zero,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: widget.onProfile,
+                              child: Padding(
+                                padding: const EdgeInsets.all(14),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 44,
+                                      height: 44,
+                                      decoration: BoxDecoration(
+                                        color: theme.colorScheme.primary,
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                      child: Icon(
+                                        Icons.person,
+                                        color: theme.colorScheme.onPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            t.t('profile'),
+                                            style: theme.textTheme.titleMedium,
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            'Arbeitskontext, Rollen und Konto',
+                                            style: theme.textTheme.bodySmall,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Icon(
+                                      widget.onProfile == null
+                                          ? Icons.lock_outline
+                                          : Icons.chevron_right,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          if (primaryMessage != null) ...[
+                            _SettingsMessagesBanner(
+                              key: const Key('settings-messages-banner'),
+                              title: primaryMessage.title.resolve(locale),
+                              body: primaryMessage.body.resolve(locale),
+                              count: hubMessages.length,
+                              hasStack: hubMessages.length > 1,
+                              onTap: widget.onMessages == null
+                                  ? null
+                                  : () => unawaited(_openMessages()),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+                          const DpsgSectionHeader(label: 'Schnellzugriff'),
+                          Card(
+                            margin: EdgeInsets.zero,
+                            child: Column(
                               children: [
-                                Container(
-                                  width: 44,
-                                  height: 44,
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme.primary,
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  child: Icon(
-                                    Icons.person,
-                                    color: theme.colorScheme.onPrimary,
-                                  ),
+                                _SettingsNavTile(
+                                  icon: Icons.receipt_long_outlined,
+                                  iconBackgroundColor: const Color(0xFF8E8E93),
+                                  title: t.t('settings_quick_invoices'),
+                                  subtitle: t.t('settings_quick_placeholder'),
                                 ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        t.t('profile'),
-                                        style: theme.textTheme.titleMedium,
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        'Arbeitskontext, Rollen und Konto',
-                                        style: theme.textTheme.bodySmall,
-                                      ),
-                                    ],
-                                  ),
+                                const _SettingsRowDivider(),
+                                _SettingsNavTile(
+                                  icon: Icons.event_outlined,
+                                  iconBackgroundColor: const Color(0xFF8E8E93),
+                                  title: t.t('settings_quick_events'),
+                                  subtitle: t.t('settings_quick_placeholder'),
                                 ),
-                                Icon(
-                                  widget.onProfile == null
-                                      ? Icons.lock_outline
-                                      : Icons.chevron_right,
+                                const _SettingsRowDivider(),
+                                _SettingsNavTile(
+                                  icon: Icons.alternate_email,
+                                  iconBackgroundColor: const Color(0xFF8E8E93),
+                                  title: t.t('settings_quick_subscriptions'),
+                                  subtitle: t.t('settings_quick_placeholder'),
+                                ),
+                                const _SettingsRowDivider(),
+                                _SettingsNavTile(
+                                  icon: Icons.map,
+                                  iconBackgroundColor: const Color(0xFF007AFF),
+                                  title: t.t('settings_map'),
+                                  subtitle: 'Stammes- und DV-Karte',
+                                  onTap: widget.onMapSettings,
+                                ),
+                                if (!namiAiDecision.isHidden) ...[
+                                  const _SettingsRowDivider(),
+                                  _SettingsNavTile(
+                                    icon: Icons.auto_awesome,
+                                    iconBackgroundColor:
+                                        namiAiDecision.isEnabled
+                                        ? const Color(0xFF34C759)
+                                        : const Color(0xFFFF9500),
+                                    title: 'NaMi AI',
+                                    subtitle: namiAiDecision.isEnabled
+                                        ? 'AI-Chat (Test)'
+                                        : 'Premium erforderlich',
+                                    onTap: namiAiDecision.isEnabled
+                                        ? widget.onNamiAi
+                                        : widget.onNamiAiPaywall,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          const DpsgSectionHeader(label: 'Einstellungen'),
+                          Card(
+                            margin: EdgeInsets.zero,
+                            child: Column(
+                              children: [
+                                _SettingsNavTile(
+                                  icon: Icons.home,
+                                  iconBackgroundColor:
+                                      theme.colorScheme.primary,
+                                  title: t.t('settings_stamm'),
+                                  subtitle: 'Daten, Altersgrenzen',
+                                  onTap: widget.onStammSettings,
+                                ),
+                                const _SettingsRowDivider(),
+                                _SettingsNavTile(
+                                  icon: Icons.tune,
+                                  iconBackgroundColor: const Color(0xFF34C759),
+                                  title: t.t('settings_app'),
+                                  subtitle:
+                                      'Darstellung, Sicherheit, Verhalten',
+                                  onTap: widget.onAppSettings,
+                                ),
+                                const _SettingsRowDivider(),
+                                _SettingsNavTile(
+                                  icon: Icons.notifications,
+                                  iconBackgroundColor: const Color(0xFFFF9500),
+                                  title: t.t('settings_notifications'),
+                                  subtitle: 'Geburtstage, Erinnerungen',
+                                  onTap: widget.onNotificationSettings,
                                 ),
                               ],
                             ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      if (primaryMessage != null) ...[
-                        _SettingsMessagesBanner(
-                          key: const Key('settings-messages-banner'),
-                          title: primaryMessage.title.resolve(locale),
-                          body: primaryMessage.body.resolve(locale),
-                          count: hubMessages.length,
-                          hasStack: hubMessages.length > 1,
-                          onTap: widget.onMessages == null
-                              ? null
-                              : () => unawaited(_openMessages()),
-                        ),
-                        const SizedBox(height: 12),
-                      ],
-                      const DpsgSectionHeader(label: 'Schnellzugriff'),
-                      Card(
-                        margin: EdgeInsets.zero,
-                        child: Column(
-                          children: [
-                            _SettingsNavTile(
-                              icon: Icons.receipt_long_outlined,
+                          const SizedBox(height: 12),
+                          const DpsgSectionHeader(label: 'Entwicklung'),
+                          Card(
+                            margin: EdgeInsets.zero,
+                            child: _SettingsNavTile(
+                              icon: Icons.bug_report,
                               iconBackgroundColor: const Color(0xFF8E8E93),
-                              title: t.t('settings_quick_invoices'),
-                              subtitle: t.t('settings_quick_placeholder'),
+                              title: t.t('settings_debug_tools'),
+                              subtitle: 'Fehlerberichte, Cache, Tools',
+                              onTap: widget.onDebugTools,
                             ),
-                            const _SettingsRowDivider(),
-                            _SettingsNavTile(
-                              icon: Icons.event_outlined,
-                              iconBackgroundColor: const Color(0xFF8E8E93),
-                              title: t.t('settings_quick_events'),
-                              subtitle: t.t('settings_quick_placeholder'),
-                            ),
-                            const _SettingsRowDivider(),
-                            _SettingsNavTile(
-                              icon: Icons.alternate_email,
-                              iconBackgroundColor: const Color(0xFF8E8E93),
-                              title: t.t('settings_quick_subscriptions'),
-                              subtitle: t.t('settings_quick_placeholder'),
-                            ),
-                            const _SettingsRowDivider(),
-                            _SettingsNavTile(
-                              icon: Icons.map,
-                              iconBackgroundColor: const Color(0xFF007AFF),
-                              title: t.t('settings_map'),
-                              subtitle: 'Stammes- und DV-Karte',
-                              onTap: widget.onMapSettings,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      const DpsgSectionHeader(label: 'Einstellungen'),
-                      Card(
-                        margin: EdgeInsets.zero,
-                        child: Column(
-                          children: [
-                            _SettingsNavTile(
-                              icon: Icons.home,
-                              iconBackgroundColor: theme.colorScheme.primary,
-                              title: t.t('settings_stamm'),
-                              subtitle: 'Daten, Altersgrenzen',
-                              onTap: widget.onStammSettings,
-                            ),
-                            const _SettingsRowDivider(),
-                            _SettingsNavTile(
-                              icon: Icons.tune,
-                              iconBackgroundColor: const Color(0xFF34C759),
-                              title: t.t('settings_app'),
-                              subtitle: 'Darstellung, Sicherheit, Verhalten',
-                              onTap: widget.onAppSettings,
-                            ),
-                            const _SettingsRowDivider(),
-                            _SettingsNavTile(
-                              icon: Icons.notifications,
-                              iconBackgroundColor: const Color(0xFFFF9500),
-                              title: t.t('settings_notifications'),
-                              subtitle: 'Geburtstage, Erinnerungen',
-                              onTap: widget.onNotificationSettings,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      const DpsgSectionHeader(label: 'Entwicklung'),
-                      Card(
-                        margin: EdgeInsets.zero,
-                        child: _SettingsNavTile(
-                          icon: Icons.bug_report,
-                          iconBackgroundColor: const Color(0xFF8E8E93),
-                          title: t.t('settings_debug_tools'),
-                          subtitle: 'Fehlerberichte, Cache, Tools',
-                          onTap: widget.onDebugTools,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      const DpsgSectionHeader(label: 'Rechtliches'),
-                      Card(
-                        margin: EdgeInsets.zero,
-                        child: Column(
-                          children: [
-                            _SettingsNavTile(
-                              icon: Icons.gavel,
-                              iconBackgroundColor: theme.colorScheme.tertiary,
-                              title: 'Impressum',
-                              onTap: widget.onImpressum,
-                            ),
-                            const _SettingsRowDivider(),
-                            _SettingsNavTile(
-                              icon: Icons.shield,
-                              iconBackgroundColor: theme.colorScheme.tertiary,
-                              title: 'Datenschutz',
-                              onTap: widget.onDatenschutz,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      const _SettingsRowDivider(indent: 16),
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: _handleTippleTapInTwoSeconds,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 12,
-                            horizontal: 16,
                           ),
-                          child: Column(
-                            children: [
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
+                          const SizedBox(height: 12),
+                          const DpsgSectionHeader(label: 'Rechtliches'),
+                          Card(
+                            margin: EdgeInsets.zero,
+                            child: Column(
+                              children: [
+                                _SettingsNavTile(
+                                  icon: Icons.gavel,
+                                  iconBackgroundColor:
+                                      theme.colorScheme.tertiary,
+                                  title: 'Impressum',
+                                  onTap: widget.onImpressum,
+                                ),
+                                const _SettingsRowDivider(),
+                                _SettingsNavTile(
+                                  icon: Icons.shield,
+                                  iconBackgroundColor:
+                                      theme.colorScheme.tertiary,
+                                  title: 'Datenschutz',
+                                  onTap: widget.onDatenschutz,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          const _SettingsRowDivider(indent: 16),
+                          GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: _handleTippleTapInTwoSeconds,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 12,
+                                horizontal: 16,
+                              ),
+                              child: Column(
                                 children: [
-                                  Text(
-                                    t.t('developed_with'),
-                                    style: theme.textTheme.bodySmall,
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        t.t('developed_with'),
+                                        style: theme.textTheme.bodySmall,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Icon(
+                                        Icons.favorite,
+                                        size: 14,
+                                        color: theme.colorScheme.error,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        t.t('developed_in_hamburg'),
+                                        style: theme.textTheme.bodySmall,
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(width: 4),
-                                  Icon(
-                                    Icons.favorite,
-                                    size: 14,
-                                    color: theme.colorScheme.error,
-                                  ),
-                                  const SizedBox(width: 4),
+                                  const SizedBox(height: 6),
                                   Text(
-                                    t.t('developed_in_hamburg'),
+                                    '${t.t('version_label')}: ${_appVersion ?? '...'}',
                                     style: theme.textTheme.bodySmall,
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 6),
-                              Text(
-                                '${t.t('version_label')}: ${_appVersion ?? '...'}',
-                                style: theme.textTheme.bodySmall,
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
+                    );
+                  },
                 );
               },
             );
