@@ -1,0 +1,269 @@
+{
+  "fill" : "automatic",
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "image-name" : "knoten.png",
+          "name" : "knoten",
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              0,
+              83.8574500944602
+            ]
+          }
+        },
+        {
+          "fill-specializations" : [
+            {
+              "value" : {
+                "solid" : "extended-gray:0.50000,1.00000"
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "solid" : "gray:0.25000,1.00000"
+              }
+            }
+          ],
+          "image-name" : "tuch.png",
+          "name" : "tuch",
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              0,
+              58
+            ]
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.6
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.2
+      }
+    },
+    {
+      "layers" : [
+        {
+          "fill-specializations" : [
+            {
+              "value" : {
+                "solid" : "extended-srgb:0.00000,0.53333,1.00000,1.00000"
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "solid" : "srgb:0.00000,0.03849,1.00000,1.00000"
+              }
+            }
+          ],
+          "image-name" : "Körper.png",
+          "name" : "Körper",
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              1,
+              66.97500000000002
+            ]
+          }
+        }
+      ],
+      "position" : {
+        "scale" : 1,
+        "translation-in-points" : [
+          -2.0576381745090657,
+          -35.29797065810908
+        ]
+      },
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.6
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.2
+      }
+    },
+    {
+      "layers" : [
+        {
+          "image-name" : "knoten.png",
+          "name" : "knoten",
+          "position" : {
+            "scale" : 0.75,
+            "translation-in-points" : [
+              -253,
+              57
+            ]
+          }
+        },
+        {
+          "fill-specializations" : [
+            {
+              "value" : {
+                "solid" : "extended-gray:0.50000,1.00000"
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "solid" : "gray:0.25000,1.00000"
+              }
+            }
+          ],
+          "image-name" : "tuch.png",
+          "name" : "tuch",
+          "position" : {
+            "scale" : 0.75,
+            "translation-in-points" : [
+              -253,
+              33.65612622724677
+            ]
+          }
+        },
+        {
+          "fill-specializations" : [
+            {
+              "appearance" : "dark",
+              "value" : "none"
+            }
+          ],
+          "image-name" : "knoten.png",
+          "name" : "knoten",
+          "position" : {
+            "scale" : 0.75,
+            "translation-in-points" : [
+              258.9893850689293,
+              57
+            ]
+          }
+        },
+        {
+          "fill-specializations" : [
+            {
+              "value" : {
+                "solid" : "extended-gray:0.50000,1.00000"
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "solid" : "gray:0.25000,1.00000"
+              }
+            }
+          ],
+          "image-name" : "tuch.png",
+          "name" : "tuch",
+          "position" : {
+            "scale" : 0.75,
+            "translation-in-points" : [
+              255.69088821299488,
+              33.65612622724677
+            ]
+          }
+        }
+      ],
+      "position" : {
+        "scale" : 1,
+        "translation-in-points" : [
+          -6.309119707044147,
+          -63.934104352424356
+        ]
+      },
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.6
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.2
+      }
+    },
+    {
+      "layers" : [
+        {
+          "fill-specializations" : [
+            {
+              "value" : {
+                "solid" : "srgb:0.89020,0.02353,0.07451,1.00000"
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "solid" : "srgb:0.73925,0.02353,0.07451,1.00000"
+              }
+            }
+          ],
+          "image-name" : "Körper.png",
+          "name" : "Körper",
+          "position" : {
+            "scale" : 0.75,
+            "translation-in-points" : [
+              -255.73790353639424,
+              -13.4
+            ]
+          }
+        },
+        {
+          "blend-mode-specializations" : [
+            {
+              "appearance" : "tinted",
+              "value" : "darken"
+            }
+          ],
+          "fill-specializations" : [
+            {
+              "value" : {
+                "solid" : "extended-srgb:1.00000,0.55294,0.15686,1.00000"
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "solid" : "srgb:1.00000,0.31568,0.15686,1.00000"
+              }
+            }
+          ],
+          "image-name" : "Körper.png",
+          "name" : "Körper",
+          "position" : {
+            "scale" : 0.75,
+            "translation-in-points" : [
+              252.95298467660064,
+              -13.375
+            ]
+          }
+        }
+      ],
+      "position" : {
+        "scale" : 1,
+        "translation-in-points" : [
+          -2.0576381745090657,
+          -35.29797065810908
+        ]
+      },
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.6
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.2
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}
