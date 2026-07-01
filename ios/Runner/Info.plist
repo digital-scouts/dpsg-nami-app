@@ -7,9 +7,11 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>NaMi</string>
+	<string>DPSG Mitglieder</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIconFile</key>
+	<string>NamiAppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
@@ -20,6 +22,19 @@
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(FLUTTER_BUILD_NAME)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>de.jlange.nami.app.oauth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>de.jlange.nami.app</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
@@ -42,7 +57,8 @@
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Nutzung der Karte</string>
 	<key>NSUserNotificationsUsageDescription</key>
-	<string>Diese App benötigt Zugriff auf Benachrichtigungen, um Sie über Ereignisse zu informieren.</string>
+	<string>Diese App benötigt Zugriff auf Benachrichtigungen, um Sie über Ereignisse zu
+			informieren.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
@@ -61,8 +77,6 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
-	<false/>
-	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<false/>
 </dict>
 </plist>

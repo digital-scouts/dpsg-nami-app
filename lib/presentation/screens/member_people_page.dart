@@ -1,0 +1,569 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../domain/arbeitskontext/arbeitskontext_read_model.dart';
+import '../../domain/member/member_list_preferences.dart';
+import '../../domain/member/mitglied.dart';
+import '../../domain/member_filters/member_fixed_filter_groups.dart';
+import '../../domain/member_filters/usecases/ermittle_member_filter_treffer_usecase.dart';
+import '../../domain/taetigkeit/klassifiziere_mitglied_usecase.dart';
+import '../../l10n/app_localizations.dart';
+import '../../services/logger_service.dart';
+import '../../services/network_access_policy.dart';
+import '../model/app_settings_model.dart';
+import '../model/arbeitskontext_model.dart';
+import '../model/auth_session_model.dart';
+import '../model/member_edit_model.dart';
+import '../model/member_filters_model.dart';
+import '../navigation/app_router.dart';
+import '../notifications/app_snackbar.dart';
+import '../widgets/member_filter_sort_sheet.dart';
+import '../widgets/member_list_directory.dart';
+import 'member_detail_page.dart';
+
+class MemberPeoplePage extends StatefulWidget {
+  const MemberPeoplePage({super.key});
+
+  @override
+  State<MemberPeoplePage> createState() => _MemberPeoplePageState();
+}
+
+class _MemberPeoplePageState extends State<MemberPeoplePage> {
+  static const ErmittleMemberFilterTrefferUseCase
+  _ermittleMemberFilterTrefferUseCase = ErmittleMemberFilterTrefferUseCase();
+  static const KlassifiziereMitgliedUseCase _klassifiziereMitgliedUseCase =
+      KlassifiziereMitgliedUseCase();
+
+  String? _lastShownIssueKey;
+  String? _lastShownResolutionKey;
+  int? _lastMemberFiltersLayerId;
+
+  Mitglied? _findMemberById(List<Mitglied> members, String memberId) {
+    for (final member in members) {
+      if (member.mitgliedsnummer == memberId) {
+        return member;
+      }
+    }
+
+    return null;
+  }
+
+  Future<void> _openMemberDetails(BuildContext context, Mitglied member) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        settings: RouteSettings(
+          name: AppRoutes.memberDetail,
+          arguments: member.mitgliedsnummer,
+        ),
+        builder: (_) => MemberDetailPage(mitglied: member),
+      ),
+    );
+  }
+
+  String? _buildPrimaryGroupRole(
+    Mitglied member,
+    ArbeitskontextModel arbeitskontextModel,
+  ) {
+    final readModel = arbeitskontextModel.readModel;
+    if (readModel == null) {
+      return null;
+    }
+
+    final zuordnungen = readModel.findeMitgliedsZuordnungen(
+      member.mitgliedsnummer,
+    );
+    if (zuordnungen.isEmpty) {
+      return null;
+    }
+
+    final ersteZuordnung = zuordnungen.first;
+    final gruppe = readModel.findeGruppe(ersteZuordnung.gruppenId);
+    if (gruppe == null) {
+      return null;
+    }
+
+    final rollenLabel = ersteZuordnung.displayRollenLabel;
+    if (rollenLabel == null || rollenLabel.isEmpty) {
+      return gruppe.anzeigename;
+    }
+
+    return '${gruppe.anzeigename} - $rollenLabel';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final authModel = context.watch<AuthSessionModel>();
+    final arbeitskontextModel = context.watch<ArbeitskontextModel>();
+    final memberEditModel = context.watch<MemberEditModel?>();
+    final appSettingsModel = context.watch<AppSettingsModel?>();
+    final memberFiltersModel = context.watch<MemberFiltersModel?>();
+    final highlightSearchMatches =
+        appSettingsModel?.memberListSearchResultHighlightEnabled ?? false;
+    final layerId =
+        arbeitskontextModel.readModel?.arbeitskontext.aktiverLayer.id;
+    _ensureMemberFiltersLoaded(memberFiltersModel, layerId);
+    final fixedFilterGroups = arbeitskontextModel.readModel == null
+        ? const <MemberFixedFilterGroup>[]
+        : _buildFixedFilterGroups(arbeitskontextModel.readModel!);
+    final mitgliedsFilterKeys = arbeitskontextModel.readModel == null
+        ? const <String, Set<String>>{}
+        : _ermittleMemberFilterTrefferUseCase(
+            arbeitskontextModel.readModel!,
+            customGroups: memberFiltersModel?.customGroups ?? const [],
+          );
+    final members =
+        arbeitskontextModel.readModel?.mitglieder ?? const <Mitglied>[];
+    final sortKey = memberFiltersModel?.sortKey ?? MemberSortKey.name;
+    final subtitleMode =
+        memberFiltersModel?.subtitleMode ?? MemberSubtitleMode.mitgliedsnummer;
+    final hasFilterDeviation = _hasMemberFilterDeviation(memberFiltersModel);
+
+    _scheduleIssueSnackbar(context, t, authModel);
+    _scheduleResolutionSnackbar(context, memberEditModel);
+
+    return Column(
+      children: [
+        Expanded(
+          child: _buildBody(
+            context,
+            t,
+            authModel: authModel,
+            arbeitskontextModel: arbeitskontextModel,
+            highlightSearchMatches: highlightSearchMatches,
+            fixedFilterGroups: fixedFilterGroups,
+            mitgliedsFilterKeys: mitgliedsFilterKeys,
+            memberFiltersModel: memberFiltersModel,
+            sortKey: sortKey,
+            subtitleMode: subtitleMode,
+            hasFilterDeviation: hasFilterDeviation,
+            members: members,
+            memberEditModel: memberEditModel,
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _ensureMemberFiltersLoaded(MemberFiltersModel? model, int? layerId) {
+    if (model == null ||
+        layerId == null ||
+        _lastMemberFiltersLayerId == layerId) {
+      return;
+    }
+    _lastMemberFiltersLayerId = layerId;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      model.ensureLoadedForLayer(layerId);
+    });
+  }
+
+  void _scheduleIssueSnackbar(
+    BuildContext context,
+    AppLocalizations t,
+    AuthSessionModel authModel,
+  ) {
+    final issueMessage = authModel.remoteAccessIssueMessage;
+    if (issueMessage == null || issueMessage.isEmpty) {
+      _lastShownIssueKey = null;
+      return;
+    }
+
+    if (!authModel.hasUnseenRemoteAccessIssueNotice) {
+      return;
+    }
+
+    final issueKey = '${authModel.requiresInteractiveLogin}|$issueMessage';
+    if (_lastShownIssueKey == issueKey) {
+      return;
+    }
+
+    _lastShownIssueKey = issueKey;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      final authModel = context.read<AuthSessionModel>();
+      if (!authModel.hasUnseenRemoteAccessIssueNotice) {
+        return;
+      }
+      authModel.markRemoteAccessIssueNoticeShown();
+
+      final snackbarKey = authModel.requiresInteractiveLogin
+          ? 'members_sync_issue_relogin'
+          : 'members_sync_issue_cached';
+      AppSnackbar.show(
+        context,
+        message: t.t(snackbarKey),
+        type: AppSnackbarType.warning,
+        replaceCurrent: true,
+      );
+    });
+  }
+
+  void _scheduleResolutionSnackbar(
+    BuildContext context,
+    MemberEditModel? memberEditModel,
+  ) {
+    final resolutionCount = memberEditModel?.openResolutionCount ?? 0;
+    if (resolutionCount <= 0) {
+      _lastShownResolutionKey = null;
+      return;
+    }
+
+    final issueKey = 'resolution:$resolutionCount';
+    if (_lastShownResolutionKey == issueKey) {
+      return;
+    }
+
+    _lastShownResolutionKey = issueKey;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      memberEditModel?.logResolutionHintShown(
+        entryPoint: 'people_list',
+        openResolutionCount: resolutionCount,
+      );
+    });
+  }
+
+  Widget _buildBody(
+    BuildContext context,
+    AppLocalizations t, {
+    required AuthSessionModel authModel,
+    required ArbeitskontextModel arbeitskontextModel,
+    required bool highlightSearchMatches,
+    required List<MemberFixedFilterGroup> fixedFilterGroups,
+    required Map<String, Set<String>> mitgliedsFilterKeys,
+    required MemberFiltersModel? memberFiltersModel,
+    required MemberSortKey sortKey,
+    required MemberSubtitleMode subtitleMode,
+    required bool hasFilterDeviation,
+    required List<Mitglied> members,
+    required MemberEditModel? memberEditModel,
+  }) {
+    if ((arbeitskontextModel.isLoading || authModel.isSyncingHitobitoData) &&
+        members.isEmpty) {
+      return Center(child: Text(t.t('members_loading')));
+    }
+
+    if (members.isNotEmpty) {
+      final syncStatus = authModel.dataSyncStatus;
+      return MemberDirectory(
+        mitglieder: members,
+        sortKey: sortKey,
+        subtitleMode: subtitleMode,
+        highlightSearchMatches: highlightSearchMatches,
+        warningBuilder: (member) =>
+            memberEditModel?.hasResolutionForMitglied(member.mitgliedsnummer) ??
+            false,
+        roleCategoryBuilder: arbeitskontextModel.readModel == null
+            ? null
+            : (member) => _klassifiziereMitgliedUseCase.klassifiziere(
+                member.mitgliedsnummer,
+                arbeitskontextModel.readModel!,
+              ),
+        trailingTextBuilder: (member) =>
+            _buildPrimaryGroupRole(member, arbeitskontextModel),
+        lastUpdateAt: syncStatus.lastSuccessfulSyncAt,
+        isRefreshing: syncStatus.isSyncing,
+        mitgliedsFilterKeys: mitgliedsFilterKeys,
+        fixedFilterGroups: fixedFilterGroups,
+        customFilterGroups: memberFiltersModel?.customGroups ?? const [],
+        enableGroupFilter: true,
+        hasFilterDeviation: hasFilterDeviation,
+        onOpenFilterOptions:
+            memberFiltersModel == null || arbeitskontextModel.readModel == null
+            ? null
+            : (trigger) {
+                _openFilterOptions(
+                  context,
+                  trigger: trigger,
+                  model: memberFiltersModel,
+                  readModel: arbeitskontextModel.readModel!,
+                );
+              },
+        onSearchActivityChanged: (hasSearchText) {
+          _logSearchActivity(context, hasSearchText: hasSearchText);
+        },
+        onGroupFilterChanged: (selectedCount) {
+          _logGroupFilterChanged(context, selectedCount: selectedCount);
+        },
+        onResetFilters: ({required hadSearch, required selectedCount}) {
+          _logFiltersReset(
+            context,
+            hadSearch: hadSearch,
+            selectedCount: selectedCount,
+          );
+        },
+        onTapMember: (memberId) {
+          final selectedMember = _findMemberById(members, memberId);
+          if (selectedMember == null) {
+            return;
+          }
+          _logMemberDetailOpened(context);
+          _openMemberDetails(context, selectedMember);
+        },
+        onRefresh: () => _refreshMembers(context),
+      );
+    }
+
+    if (authModel.session == null) {
+      return Center(child: Text(t.t('members_login_required')));
+    }
+
+    if (arbeitskontextModel.hasError || authModel.hasRemoteAccessIssue) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(t.t('members_error'), textAlign: TextAlign.center),
+        ),
+      );
+    }
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text(t.t('members_empty'), textAlign: TextAlign.center),
+      ),
+    );
+  }
+
+  Future<void> _refreshMembers(BuildContext context) async {
+    final t = AppLocalizations.of(context);
+    final authModel = context.read<AuthSessionModel>();
+    final arbeitskontextModel = context.read<ArbeitskontextModel>();
+    final networkAccessPolicy = context.read<NetworkAccessPolicy>();
+    final hasValidLocalData = authModel.dataSyncStatus.hasValidLocalData;
+    var allowMobileDataOverride = false;
+
+    final accessDecision = await networkAccessPolicy.evaluateAccess(
+      trigger: 'member_list_pull_refresh_preview',
+      feature: 'Hitobito',
+    );
+    if (!context.mounted) {
+      return;
+    }
+    if (!accessDecision.allowed &&
+        accessDecision.blockedReason ==
+            NetworkAccessBlockedReason.noMobileDataEnabled &&
+        hasValidLocalData) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(t.t('member_list_mobile_refresh_title')),
+          content: Text(t.t('member_list_mobile_refresh_body')),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(t.t('member_list_mobile_refresh_cancel')),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(t.t('member_list_mobile_refresh_confirm')),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) {
+        return;
+      }
+      allowMobileDataOverride = true;
+    }
+
+    await authModel.syncHitobitoData(
+      force: true,
+      trigger: 'member_list_pull_refresh',
+      allowMobileDataOverride: allowMobileDataOverride || !hasValidLocalData,
+      interactiveLoginOnRequired: true,
+      syncMembers: (accessToken) async {
+        await arbeitskontextModel.refreshFromRemote(
+          session: authModel.session,
+          profile: authModel.profile,
+          allowMobileDataOverride:
+              allowMobileDataOverride || !hasValidLocalData,
+          scheduleRolesPreload: false,
+        );
+        final rolesLoaded = await arbeitskontextModel.ensureRolesLoaded(
+          allowMobileDataOverride:
+              allowMobileDataOverride || !hasValidLocalData,
+        );
+        if (!rolesLoaded) {
+          throw StateError('Rollen konnten nicht vollstaendig geladen werden.');
+        }
+      },
+    );
+  }
+
+  Future<void> _openFilterOptions(
+    BuildContext context, {
+    required MemberFilterOptionsTrigger trigger,
+    required MemberFiltersModel model,
+    required ArbeitskontextReadModel readModel,
+  }) async {
+    final logger = context.read<LoggerService>();
+    await logger.logInfo(
+      'member_list',
+      'filter_sheet_opened trigger=${_filterTriggerName(trigger)}',
+    );
+    if (!context.mounted) {
+      return;
+    }
+
+    await showMemberFilterSortSheet(
+      context,
+      model: model,
+      readModel: readModel,
+      onApplied: (summary) =>
+          _logFilterSortApplied(context, trigger: trigger, summary: summary),
+    );
+  }
+
+  Future<void> _logFilterSortApplied(
+    BuildContext context, {
+    required MemberFilterOptionsTrigger trigger,
+    required MemberFilterSortApplySummary summary,
+  }) async {
+    final properties = <String, Object?>{
+      'trigger': _filterTriggerName(trigger),
+      ...summary.toTelemetryProperties(),
+    };
+    final logger = context.read<LoggerService>();
+    if (summary.changed) {
+      await logger.trackAndLog(
+        'member_list',
+        'member_filter_sort_applied',
+        properties,
+      );
+      return;
+    }
+    await logger.logInfo(
+      'member_list',
+      'member_filter_sort_applied ${_formatLogProperties(properties)}',
+    );
+  }
+
+  Future<void> _logSearchActivity(
+    BuildContext context, {
+    required bool hasSearchText,
+  }) {
+    final action = hasSearchText ? 'search_started' : 'search_cleared';
+    return context.read<LoggerService>().logInfo(
+      'member_list',
+      '$action source=member_list',
+    );
+  }
+
+  Future<void> _logGroupFilterChanged(
+    BuildContext context, {
+    required int selectedCount,
+  }) {
+    return context.read<LoggerService>().logInfo(
+      'member_list',
+      'group_filter_changed selected_count=$selectedCount',
+    );
+  }
+
+  Future<void> _logFiltersReset(
+    BuildContext context, {
+    required bool hadSearch,
+    required int selectedCount,
+  }) {
+    return context.read<LoggerService>().trackAndLog(
+      'member_list',
+      'member_list_filter_reset',
+      <String, Object?>{
+        'had_search': hadSearch,
+        'selected_filter_count': selectedCount,
+      },
+    );
+  }
+
+  Future<void> _logMemberDetailOpened(BuildContext context) {
+    return context.read<LoggerService>().trackAndLog(
+      'member_list',
+      'member_detail_opened',
+      const <String, Object?>{'source': 'member_list'},
+    );
+  }
+
+  String _filterTriggerName(MemberFilterOptionsTrigger trigger) {
+    switch (trigger) {
+      case MemberFilterOptionsTrigger.tuneButton:
+        return 'tune_button';
+      case MemberFilterOptionsTrigger.listHeader:
+        return 'list_header';
+    }
+  }
+
+  String _formatLogProperties(Map<String, Object?> properties) {
+    final entries = properties.entries.toList(growable: false)
+      ..sort((left, right) => left.key.compareTo(right.key));
+    return entries.map((entry) => '${entry.key}=${entry.value}').join(' ');
+  }
+
+  bool _hasMemberFilterDeviation(MemberFiltersModel? model) {
+    if (model == null) {
+      return false;
+    }
+    if (model.sortKey != MemberSortKey.name) {
+      return true;
+    }
+    if (model.subtitleMode != MemberSubtitleMode.mitgliedsnummer) {
+      return true;
+    }
+    for (final group in model.customGroups) {
+      if (group.isActive != group.isDefault) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  List<MemberFixedFilterGroup> _buildFixedFilterGroups(
+    ArbeitskontextReadModel readModel,
+  ) {
+    final groups =
+        readModel.gruppen
+            .where(
+              (gruppe) => MemberFixedFilterGroups.isSupportedGruppenTyp(
+                gruppe.gruppenTyp,
+              ),
+            )
+            .toList(growable: true)
+          ..sort((left, right) {
+            final typeOrder =
+                MemberFixedFilterGroups.orderIndexForGruppenTyp(
+                  left.gruppenTyp,
+                ).compareTo(
+                  MemberFixedFilterGroups.orderIndexForGruppenTyp(
+                    right.gruppenTyp,
+                  ),
+                );
+            if (typeOrder != 0) {
+              return typeOrder;
+            }
+
+            final labelCompare = left.anzeigename.toLowerCase().compareTo(
+              right.anzeigename.toLowerCase(),
+            );
+            if (labelCompare != 0) {
+              return labelCompare;
+            }
+
+            return left.id.compareTo(right.id);
+          });
+
+    return groups
+        .map(
+          (gruppe) => MemberFixedFilterGroup(
+            keyName: 'group:${gruppe.id}',
+            label: gruppe.anzeigename,
+            groupType: gruppe.gruppenTyp ?? '',
+          ),
+        )
+        .toList(growable: false);
+  }
+}

@@ -1,0 +1,120 @@
+name: Deploy Android Internal
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+    branches: [master]
+    types: [closed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-android-internal-${{ github.event_name == 'push' && github.ref_name || github.event.pull_request.base.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Validate, build and deploy Android AAB
+    if: github.event_name == 'push' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.merge_commit_sha || github.sha }}
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ vars.JAVA_VERSION }}
+
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ vars.DART_VERSION }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Validate app version consistency
+        run: dart tool/validate_versions.dart
+
+      - name: Validate env example syntax
+        shell: bash
+        run: |
+          cp .env.example .env.ci
+          dart tool/validate_env_files.dart .env.ci .env.example
+          rm .env.ci
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze Flutter project
+        run: flutter analyze
+
+      - name: Run Flutter tests
+        run: flutter test
+
+      - name: Read release version from pubspec
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          FULL_VERSION=$(awk '/^version:/{print $2}' pubspec.yaml)
+          RELEASE_VERSION="${FULL_VERSION%%+*}"
+          BUILD_NUMBER=$(printf '%s%02d' "${{ github.run_number }}" "${{ github.run_attempt }}")
+          echo "full_version=$FULL_VERSION" >> "$GITHUB_OUTPUT"
+          echo "release_version=$RELEASE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "build_number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "### Android build" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Release version: $RELEASE_VERSION" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Build number: $BUILD_NUMBER" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Create env file
+        shell: bash
+        env:
+          WIREDASH_SECRET: ${{ secrets.PROD_WIREDASH_SECRET }}
+          WIREDASH_PROJECT_ID: ${{ secrets.PROD_WIREDASH_PROJECT_ID }}
+          GEOAPIFY_KEY: ${{ secrets.GEOAPIFY_KEY }}
+        run: |
+          awk -F= '/^[A-Z][A-Z0-9_]*=/{print $1}' .env.example | while read -r key; do
+            printf '%s=%s\n' "$key" "$(printenv "$key" || true)"
+          done > .env
+          dart tool/validate_env_files.dart
+
+      - name: Build Android App Bundle
+        run: |
+          flutter build appbundle \
+            --build-name "${{ steps.version.outputs.release_version }}" \
+            --build-number "${{ steps.version.outputs.build_number }}" \
+            --obfuscate \
+            --split-debug-info=build/app/outputs/symbols
+
+      - name: Sign Android App Bundle
+        uses: r0adkll/sign-android-release@v1
+        with:
+          releaseDirectory: build/app/outputs/bundle/release
+          signingKeyBase64: ${{ secrets.ANDROID_KEYSTORE }}
+          alias: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
+          keyPassword: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
+
+      - name: Upload to Play Console Internal Testing
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.ANDROID_SERVICE_ACCOUNT_JSON }}
+          packageName: de.jlange.nami.app
+          releaseFiles: build/app/outputs/bundle/release/app-release.aab
+          releaseName: ${{ steps.version.outputs.release_version }}+${{ steps.version.outputs.build_number }}
+          track: internal

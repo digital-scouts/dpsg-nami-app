@@ -1,0 +1,1289 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:nami/data/arbeitskontext/hitobito_group_resource.dart';
+import 'package:nami/data/maps/in_memory_address_map_location_repository.dart';
+import 'package:nami/data/settings/in_memory_address_settings_repository.dart';
+import 'package:nami/domain/arbeitskontext/arbeitskontext.dart';
+import 'package:nami/domain/arbeitskontext/arbeitskontext_local_repository.dart';
+import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model.dart';
+import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model_repository.dart';
+import 'package:nami/domain/arbeitskontext/usecases/bestimme_startkontext_usecase.dart';
+import 'package:nami/domain/auth/auth_profile.dart';
+import 'package:nami/domain/auth/auth_profile_repository.dart';
+import 'package:nami/domain/auth/auth_session.dart';
+import 'package:nami/domain/auth/auth_session_repository.dart';
+import 'package:nami/domain/auth/auth_state.dart';
+import 'package:nami/domain/member/member_resolution.dart';
+import 'package:nami/domain/member/member_write_repository.dart';
+import 'package:nami/domain/member/mitglied.dart';
+import 'package:nami/domain/member/pending_person_update.dart';
+import 'package:nami/domain/member/pending_person_update_repository.dart';
+import 'package:nami/domain/settings/app_settings.dart';
+import 'package:nami/domain/settings/app_settings_repository.dart';
+import 'package:nami/domain/taetigkeit/roles.dart';
+import 'package:nami/domain/taetigkeit/stufe.dart';
+import 'package:nami/l10n/app_localizations.dart';
+import 'package:nami/presentation/model/arbeitskontext_model.dart';
+import 'package:nami/presentation/model/auth_session_model.dart';
+import 'package:nami/presentation/model/member_edit_model.dart';
+import 'package:nami/presentation/screens/member_detail_page.dart';
+import 'package:nami/services/biometric_lock_service.dart';
+import 'package:nami/services/geoapify_address_map_service.dart';
+import 'package:nami/services/hitobito_auth_env.dart';
+import 'package:nami/services/hitobito_data_retention_policy.dart';
+import 'package:nami/services/hitobito_groups_service.dart';
+import 'package:nami/services/hitobito_oauth_service.dart';
+import 'package:nami/services/logger_service.dart';
+import 'package:nami/services/network_access_policy.dart';
+import 'package:nami/services/sensitive_storage_service.dart';
+import 'package:provider/provider.dart';
+import 'package:provider/single_child_widget.dart';
+
+void main() {
+  setUpAll(() async {
+    await initializeDateFormatting('de');
+  });
+
+  testWidgets(
+    'rendert Read-only-Details fuer ein Mitglied',
+    (tester) async {
+      final member = Mitglied(
+        mitgliedsnummer: '4711',
+        vorname: 'Julia',
+        nachname: 'Keller',
+        geburtsdatum: DateTime(2010, 4, 6),
+        eintrittsdatum: DateTime(2020, 5, 1),
+        updatedAt: DateTime(2024, 11, 7, 14, 35),
+        telefonnummern: const <MitgliedKontaktTelefon>[
+          MitgliedKontaktTelefon(wert: '+4940123456', label: 'Festnetznummer'),
+        ],
+        emailAdressen: const <MitgliedKontaktEmail>[
+          MitgliedKontaktEmail(wert: 'julia@example.com', label: 'E-Mail'),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(MemberDetailPage(mitglied: member)),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Julia Keller'), findsOneWidget);
+      expect(find.text('Allgemeine Informationen'), findsNothing);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  testWidgets(
+    'blendet Platzhalterdaten fuer Geburtstag und Eintritt aus',
+    (tester) async {
+      final member = Mitglied.peopleListItem(
+        mitgliedsnummer: '9',
+        vorname: 'Max',
+        nachname: 'Mustermann',
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(MemberDetailPage(mitglied: member)),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Geburtstag'), findsNothing);
+      expect(find.text('Eintrittsdatum'), findsNothing);
+      expect(find.text('Max Mustermann'), findsOneWidget);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  testWidgets(
+    'priorisiert fuer den Header Woe Leitung vor Rover Mitglied',
+    (tester) async {
+      final member = Mitglied(
+        mitgliedsnummer: '42',
+        vorname: 'Lea',
+        nachname: 'Beispiel',
+        geburtsdatum: DateTime(2010, 4, 6),
+        eintrittsdatum: DateTime(2020, 5, 1),
+        roles: <Role>[
+          Role(
+            type: 'Group::StammGruppeRover::Mitglied',
+            startOn: DateTime(2025, 5, 1),
+          ),
+          Role(
+            type: 'Group::StammGruppeWoelflinge::Leitung',
+            startOn: DateTime(2024, 5, 1),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(MemberDetailPage(mitglied: member)),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Wö'), findsOneWidget);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  testWidgets(
+    'priorisiert fuer den Header Rover vor Pfadfinder bei gleicher Leitungs-Art',
+    (tester) async {
+      final member = Mitglied(
+        mitgliedsnummer: '44',
+        vorname: 'Lina',
+        nachname: 'Beispiel',
+        geburtsdatum: DateTime(2010, 4, 6),
+        eintrittsdatum: DateTime(2020, 5, 1),
+        roles: <Role>[
+          Role(
+            type: 'Group::StammGruppePfadfinder::Leitung',
+            startOn: DateTime(2025, 5, 1),
+          ),
+          Role(
+            type: 'Group::StammGruppeRover::Leitung',
+            startOn: DateTime(2024, 5, 1),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(MemberDetailPage(mitglied: member)),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Rover'), findsOneWidget);
+      expect(find.text('Pfadi'), findsNothing);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  testWidgets(
+    'zeigt im Header Sonstige fuer Rollen ohne Stamm-Gruppen-Zuordnung',
+    (tester) async {
+      final member = Mitglied(
+        mitgliedsnummer: '45',
+        vorname: 'Sven',
+        nachname: 'Stamm',
+        geburtsdatum: DateTime(1985, 4, 6),
+        eintrittsdatum: DateTime(2020, 5, 1),
+        roles: <Role>[
+          Role(label: 'Stammesführer*in', startOn: DateTime(2024, 5, 1)),
+        ],
+      );
+      final arbeitskontextModel = await _buildArbeitskontextModel(
+        member: member,
+        permissions: const <String>[],
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberDetailPage(mitglied: member),
+          providers: <SingleChildWidget>[
+            ChangeNotifierProvider<ArbeitskontextModel>.value(
+              value: arbeitskontextModel,
+            ),
+          ],
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sonstige'), findsOneWidget);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  testWidgets(
+    'zeigt Group::Mitglieder Rollen nicht im Rollen-Tab an',
+    (tester) async {
+      final member = Mitglied(
+        mitgliedsnummer: '43',
+        vorname: 'Mia',
+        nachname: 'Test',
+        geburtsdatum: DateTime(2010, 4, 6),
+        eintrittsdatum: DateTime(2020, 5, 1),
+        roles: <Role>[
+          Role(
+            type: 'Group::Mitglieder::OrdentlicheMitgliedschaft',
+            startOn: DateTime(2025, 1, 1),
+          ),
+          Role(
+            type: 'Group::StammGruppePfadfinder::Mitglied',
+            startOn: DateTime(2024, 1, 1),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(MemberDetailPage(mitglied: member)),
+      );
+
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Rollen'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Mitglied'), findsOneWidget);
+      expect(find.text('Mitglied - Leitung'), findsNothing);
+      expect(find.textContaining('OrdentlicheMitgliedschaft'), findsNothing);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  testWidgets(
+    'zeigt Auswahlmenue fuer Anrufen bei mehreren Telefonnummern',
+    (tester) async {
+      final member = Mitglied(
+        mitgliedsnummer: '4711',
+        vorname: 'Julia',
+        nachname: 'Keller',
+        geburtsdatum: DateTime(2010, 4, 6),
+        eintrittsdatum: DateTime(2020, 5, 1),
+        telefonnummern: const <MitgliedKontaktTelefon>[
+          MitgliedKontaktTelefon(wert: '+491701234567', label: 'Mobil'),
+          MitgliedKontaktTelefon(wert: '+4940123456', label: 'Festnetz'),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(MemberDetailPage(mitglied: member)),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Anrufen'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Telefonnummer auswählen'), findsOneWidget);
+      expect(find.text('Mobil - +491701234567'), findsOneWidget);
+      expect(find.text('Festnetz - +4940123456'), findsOneWidget);
+
+      await tester.tap(find.text('Mobil - +491701234567'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Telefonnummer auswählen'), findsNothing);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  testWidgets(
+    'zeigt Auswahlmenue fuer E-Mail bei mehreren Adressen',
+    (tester) async {
+      final member = Mitglied(
+        mitgliedsnummer: '4711',
+        vorname: 'Julia',
+        nachname: 'Keller',
+        geburtsdatum: DateTime(2010, 4, 6),
+        eintrittsdatum: DateTime(2020, 5, 1),
+        emailAdressen: const <MitgliedKontaktEmail>[
+          MitgliedKontaktEmail(wert: 'julia@example.com', label: 'Privat'),
+          MitgliedKontaktEmail(wert: 'j.keller@stamm.de', label: 'Stamm'),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(MemberDetailPage(mitglied: member)),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('E-Mail'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('E-Mail auswählen'), findsOneWidget);
+      expect(find.text('Privat - julia@example.com'), findsOneWidget);
+      expect(find.text('Stamm - j.keller@stamm.de'), findsOneWidget);
+
+      await tester.tap(find.text('Privat - julia@example.com'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('E-Mail auswählen'), findsNothing);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  testWidgets(
+    'deaktiviert Anrufen und E-Mail wenn keine Daten vorhanden sind',
+    (tester) async {
+      final member = Mitglied(
+        mitgliedsnummer: '4815',
+        vorname: 'Alex',
+        nachname: 'OhneKontakt',
+        geburtsdatum: DateTime(2010, 4, 6),
+        eintrittsdatum: DateTime(2020, 5, 1),
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(MemberDetailPage(mitglied: member)),
+      );
+      await tester.pumpAndSettle();
+
+      final anrufenInkWell = tester.widget<InkWell>(
+        find.ancestor(of: find.text('Anrufen'), matching: find.byType(InkWell)),
+      );
+      final emailInkWell = tester.widget<InkWell>(
+        find.ancestor(of: find.text('E-Mail'), matching: find.byType(InkWell)),
+      );
+
+      expect(anrufenInkWell.onTap, isNull);
+      expect(emailInkWell.onTap, isNull);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  testWidgets('zeigt die erste Adresse in den Details an', (tester) async {
+    final member = Mitglied(
+      personId: 23,
+      mitgliedsnummer: '4711',
+      vorname: 'Julia',
+      nachname: 'Keller',
+      geburtsdatum: DateTime(2010, 4, 6),
+      eintrittsdatum: DateTime(2020, 5, 1),
+      adressen: const <MitgliedKontaktAdresse>[
+        MitgliedKontaktAdresse(
+          additionalAddressId: 0,
+          street: 'Musterweg',
+          housenumber: '4',
+          zipCode: '50667',
+          town: 'Koeln',
+          country: 'DE',
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        MemberDetailPage(
+          mitglied: member,
+          addressLocationRepository: InMemoryAddressMapLocationRepository(),
+          mapService: _NeverCompletingGeoapifyAddressMapService(),
+          previewTimeout: const Duration(milliseconds: 100),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+
+    expect(find.text('ADRESSE'), findsOneWidget);
+    expect(find.text('Musterweg 4, 50667 Koeln'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+  });
+
+  testWidgets(
+    'bricht eine haengende Kartenauflosung nach Timeout ab',
+    (tester) async {
+      final member = Mitglied(
+        personId: 23,
+        mitgliedsnummer: '4711',
+        vorname: 'Julia',
+        nachname: 'Keller',
+        geburtsdatum: DateTime(2010, 4, 6),
+        eintrittsdatum: DateTime(2020, 5, 1),
+        adressen: const <MitgliedKontaktAdresse>[
+          MitgliedKontaktAdresse(
+            additionalAddressId: 0,
+            street: 'Musterweg',
+            housenumber: '4',
+            zipCode: '50667',
+            town: 'Koeln',
+            country: 'DE',
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberDetailPage(
+            mitglied: member,
+            addressLocationRepository: InMemoryAddressMapLocationRepository(),
+            addressSettingsRepository: InMemoryAddressSettingsRepository(),
+            mapService: _NeverCompletingGeoapifyAddressMapService(),
+            previewTimeout: const Duration(milliseconds: 100),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 150));
+      await tester.pump();
+
+      expect(find.text('ADRESSE'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  testWidgets(
+    'zeigt Adresse nicht gefunden bei leerem Geocoding-Treffer',
+    (tester) async {
+      final member = Mitglied(
+        personId: 23,
+        mitgliedsnummer: '4711',
+        vorname: 'Julia',
+        nachname: 'Keller',
+        geburtsdatum: DateTime(2010, 4, 6),
+        eintrittsdatum: DateTime(2020, 5, 1),
+        adressen: const <MitgliedKontaktAdresse>[
+          MitgliedKontaktAdresse(
+            additionalAddressId: 0,
+            street: 'Musterweg',
+            housenumber: '4',
+            zipCode: '50667',
+            town: 'Koeln',
+            country: 'DE',
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberDetailPage(
+            mitglied: member,
+            addressLocationRepository: InMemoryAddressMapLocationRepository(),
+            addressSettingsRepository: InMemoryAddressSettingsRepository(),
+            mapService: _NullGeoapifyAddressMapService(),
+            previewTimeout: const Duration(milliseconds: 100),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 150));
+      await tester.pump();
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  testWidgets('zeigt den Bearbeiten-Button bei Schreibrecht', (tester) async {
+    final member = Mitglied.peopleListItem(
+      mitgliedsnummer: '4711',
+      personId: 23,
+      primaryGroupId: 111,
+      vorname: 'Julia',
+      nachname: 'Keller',
+    );
+    final arbeitskontextModel = await _buildArbeitskontextModel(
+      member: member,
+      permissions: const <String>['group_and_below_full'],
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        MemberDetailPage(mitglied: member),
+        providers: <SingleChildWidget>[
+          ChangeNotifierProvider<ArbeitskontextModel>.value(
+            value: arbeitskontextModel,
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Bearbeiten'), findsOneWidget);
+  });
+
+  testWidgets('zeigt den Pending-Hinweis fuer das passende Mitglied', (
+    tester,
+  ) async {
+    final member = Mitglied.peopleListItem(
+      mitgliedsnummer: '4711',
+      personId: 23,
+      vorname: 'Julia',
+      nachname: 'Keller',
+    );
+    final memberEditModel = _StubMemberEditModel(
+      pendingMitgliedsnummern: const <String>{'4711'},
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        MemberDetailPage(mitglied: member),
+        providers: <SingleChildWidget>[
+          ChangeNotifierProvider<MemberEditModel>.value(value: memberEditModel),
+        ],
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'Für diese Person liegt eine ausstehende Änderung vor. Ein Retry ist in den Debug-Tools möglich.',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('sortiert Gruppenanzeige in Details aufsteigend nach Stufe', (
+    tester,
+  ) async {
+    final member = Mitglied.peopleListItem(
+      mitgliedsnummer: '4711',
+      personId: 23,
+      vorname: 'Julia',
+      nachname: 'Keller',
+    );
+    final readModel = ArbeitskontextReadModel(
+      arbeitskontext: Arbeitskontext(
+        aktiverLayer: const ArbeitskontextLayer(
+          id: 11,
+          name: 'Stamm Musterdorf',
+        ),
+        verfuegbareLayer: const <ArbeitskontextLayer>[],
+      ),
+      mitglieder: <Mitglied>[member],
+      gruppen: const <ArbeitskontextGruppe>[
+        ArbeitskontextGruppe(
+          id: 201,
+          name: 'Roverrunde',
+          layerId: 11,
+          gruppenTyp: 'Group::StammGruppeRover',
+        ),
+        ArbeitskontextGruppe(
+          id: 202,
+          name: 'Pfadis',
+          layerId: 11,
+          gruppenTyp: 'Group::StammGruppePfadfinder',
+        ),
+      ],
+      mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
+        ArbeitskontextMitgliedsZuordnung(
+          mitgliedsnummer: '4711',
+          gruppenId: 201,
+        ),
+        ArbeitskontextMitgliedsZuordnung(
+          mitgliedsnummer: '4711',
+          gruppenId: 202,
+        ),
+      ],
+    );
+    final arbeitskontextModel = ArbeitskontextModel(
+      localRepository: _FakeArbeitskontextLocalRepository(cached: readModel),
+      readModelRepository: _FakeArbeitskontextReadModelRepository(),
+      groupsService: _FakeHitobitoGroupsService(),
+      bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+      logger: _FakeLoggerService(),
+    );
+
+    await arbeitskontextModel.syncForAuth(
+      authState: AuthState.signedIn,
+      session: AuthSession(
+        accessToken: 'token-123',
+        receivedAt: DateTime(2026, 4, 14),
+      ),
+      profile: const AuthProfile(
+        namiId: 23,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 11,
+            groupName: 'Stamm Musterdorf',
+            roleName: 'Leitung',
+            roleClass: 'Group::Stamm::Leitung',
+            permissions: <String>['group_and_below_full'],
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        MemberDetailPage(mitglied: member),
+        providers: <SingleChildWidget>[
+          ChangeNotifierProvider<ArbeitskontextModel>.value(
+            value: arbeitskontextModel,
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Gruppe'), findsOneWidget);
+    expect(find.text('Pfadis, Roverrunde'), findsOneWidget);
+  });
+
+  testWidgets('oeffnet den Editor mit dem frisch geladenen Mitglied', (
+    tester,
+  ) async {
+    final member = Mitglied.peopleListItem(
+      mitgliedsnummer: '4711',
+      personId: 23,
+      primaryGroupId: 111,
+      vorname: 'Julia',
+      nachname: 'Keller',
+    );
+    final refreshedMember = member.copyWith(
+      vorname: 'Juliane',
+      updatedAt: DateTime(2026, 4, 14, 12, 0),
+    );
+    final arbeitskontextModel = await _buildArbeitskontextModel(
+      member: member,
+      permissions: const <String>['group_and_below_full'],
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        MemberDetailPage(mitglied: member),
+        providers: <SingleChildWidget>[
+          ChangeNotifierProvider<ArbeitskontextModel>.value(
+            value: arbeitskontextModel,
+          ),
+          ChangeNotifierProvider<AuthSessionModel>.value(
+            value: _StubAuthSessionModel(
+              session: AuthSession(
+                accessToken: 'token-123',
+                receivedAt: DateTime(2026, 4, 14),
+              ),
+            ),
+          ),
+          ChangeNotifierProvider<MemberEditModel>.value(
+            value: _PreparingMemberEditModel(refreshedMember: refreshedMember),
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bearbeiten'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Person bearbeiten'), findsOneWidget);
+    final vornameField = tester.widget<TextFormField>(
+      find.byType(TextFormField).first,
+    );
+    expect(vornameField.controller?.text, 'Juliane');
+  });
+
+  testWidgets('oeffnet den Editor mit Spaeter speichern bei blockiertem Netz', (
+    tester,
+  ) async {
+    final member = Mitglied.peopleListItem(
+      mitgliedsnummer: '4711',
+      personId: 23,
+      primaryGroupId: 111,
+      vorname: 'Julia',
+      nachname: 'Keller',
+    );
+    final arbeitskontextModel = await _buildArbeitskontextModel(
+      member: member,
+      permissions: const <String>['group_and_below_full'],
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        MemberDetailPage(mitglied: member),
+        providers: <SingleChildWidget>[
+          ChangeNotifierProvider<ArbeitskontextModel>.value(
+            value: arbeitskontextModel,
+          ),
+          ChangeNotifierProvider<AuthSessionModel>.value(
+            value: _StubAuthSessionModel(
+              session: AuthSession(
+                accessToken: 'token-123',
+                receivedAt: DateTime(2026, 4, 14),
+              ),
+              blockedReason: NetworkAccessBlockedReason.noMobileDataEnabled,
+            ),
+          ),
+          ChangeNotifierProvider<MemberEditModel>.value(
+            value: _PreparingMemberEditModel(
+              refreshedMember: member,
+              message:
+                  'Bearbeitung erfolgt mit lokal gespeicherten Daten. Nur ueber WLAN.',
+              preferDeferredSaveUi: true,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bearbeiten'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Person bearbeiten'), findsOneWidget);
+    expect(find.text('Später speichern'), findsOneWidget);
+    expect(find.byIcon(Icons.schedule_outlined), findsOneWidget);
+    expect(
+      find.text(
+        'Bearbeitung erfolgt mit lokal gespeicherten Daten. Nur ueber WLAN.',
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets('oeffnet den Editor mit Spaeter speichern bei Anmeldebedarf', (
+    tester,
+  ) async {
+    final member = Mitglied.peopleListItem(
+      mitgliedsnummer: '4711',
+      personId: 23,
+      primaryGroupId: 111,
+      vorname: 'Julia',
+      nachname: 'Keller',
+    );
+    final arbeitskontextModel = await _buildArbeitskontextModel(
+      member: member,
+      permissions: const <String>['group_and_below_full'],
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        MemberDetailPage(mitglied: member),
+        providers: <SingleChildWidget>[
+          ChangeNotifierProvider<ArbeitskontextModel>.value(
+            value: arbeitskontextModel,
+          ),
+          ChangeNotifierProvider<AuthSessionModel>.value(
+            value: _StubAuthSessionModel(
+              session: AuthSession(
+                accessToken: 'token-123',
+                receivedAt: DateTime(2026, 4, 14),
+              ),
+              requiresLogin: true,
+            ),
+          ),
+          ChangeNotifierProvider<MemberEditModel>.value(
+            value: _PreparingMemberEditModel(
+              refreshedMember: member,
+              message:
+                  'Die Bearbeitung erfolgt mit lokal gespeicherten Daten. Für das Senden ist eine erneute Anmeldung erforderlich.',
+              preferDeferredSaveUi: true,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bearbeiten'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Person bearbeiten'), findsOneWidget);
+    expect(find.text('Später speichern'), findsOneWidget);
+    expect(find.byIcon(Icons.schedule_outlined), findsOneWidget);
+    expect(
+      find.text(
+        'Die Bearbeitung erfolgt mit lokal gespeicherten Daten. Für das Senden ist eine erneute Anmeldung erforderlich.',
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets('trackt das Öffnen einer Problemlösung aus der Detailansicht', (
+    tester,
+  ) async {
+    final member = Mitglied.peopleListItem(
+      mitgliedsnummer: '4711',
+      personId: 23,
+      primaryGroupId: 111,
+      vorname: 'Julia',
+      nachname: 'Keller',
+    );
+    final pendingEntry = PendingPersonUpdate(
+      entryId: 'person-23',
+      personId: 23,
+      mitgliedsnummer: '4711',
+      displayName: 'Julia Keller',
+      basisMitglied: member,
+      zielMitglied: member.copyWith(vorname: 'Juliane'),
+      queuedAt: DateTime(2026, 4, 14, 12, 0),
+      status: PendingPersonUpdateStatus.needsResolution,
+      resolutionCase: MemberResolutionCase(
+        remoteMitglied: member.copyWith(vorname: 'Remote Julia'),
+        source: MemberResolutionSource.manualSave,
+        items: const <MemberResolutionItem>[
+          MemberResolutionItem(
+            problemType: MemberResolutionProblemType.conflict,
+            cause: MemberResolutionCause.overlappingChange,
+            target: MemberResolutionTarget(
+              type: MemberResolutionTargetType.firstName,
+            ),
+            message: 'Vorname kollidiert.',
+          ),
+        ],
+      ),
+    );
+    final arbeitskontextModel = await _buildArbeitskontextModel(
+      member: member,
+      permissions: const <String>['group_and_below_full'],
+    );
+    final memberEditModel = _ResolutionTrackingMemberEditModel(
+      pendingEntry: pendingEntry,
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        MemberDetailPage(mitglied: member),
+        providers: <SingleChildWidget>[
+          ChangeNotifierProvider<ArbeitskontextModel>.value(
+            value: arbeitskontextModel,
+          ),
+          ChangeNotifierProvider<AuthSessionModel>.value(
+            value: _StubAuthSessionModel(
+              session: AuthSession(
+                accessToken: 'token-123',
+                receivedAt: DateTime(2026, 4, 14),
+              ),
+            ),
+          ),
+          ChangeNotifierProvider<MemberEditModel>.value(value: memberEditModel),
+        ],
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bearbeiten'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Problemlösung'), findsOneWidget);
+    expect(memberEditModel.openedEntryPoints, <String>['detail']);
+  });
+}
+
+Widget _buildTestApp(
+  Widget home, {
+  List<SingleChildWidget> providers = const <SingleChildWidget>[],
+}) {
+  final app = MaterialApp(
+    localizationsDelegates: [
+      AppLocalizations.delegate,
+      GlobalMaterialLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
+    ],
+    supportedLocales: const [Locale('de'), Locale('en')],
+    locale: const Locale('de'),
+    home: home,
+  );
+
+  if (providers.isEmpty) {
+    return app;
+  }
+
+  return MultiProvider(providers: providers, child: app);
+}
+
+class _NeverCompletingGeoapifyAddressMapService
+    extends GeoapifyAddressMapService {
+  _NeverCompletingGeoapifyAddressMapService()
+    : super(apiKeyOverride: 'test-key');
+
+  @override
+  bool get hasApiKey => true;
+
+  @override
+  Future<LatLng?> geocodeAddress(String addressText) {
+    return Completer<LatLng?>().future;
+  }
+}
+
+class _NullGeoapifyAddressMapService extends GeoapifyAddressMapService {
+  _NullGeoapifyAddressMapService() : super(apiKeyOverride: 'test-key');
+
+  @override
+  bool get hasApiKey => true;
+
+  @override
+  Future<LatLng?> geocodeAddress(String addressText) async => null;
+}
+
+Future<ArbeitskontextModel> _buildArbeitskontextModel({
+  required Mitglied member,
+  required List<String> permissions,
+}) async {
+  final readModel = ArbeitskontextReadModel(
+    arbeitskontext: Arbeitskontext(
+      aktiverLayer: const ArbeitskontextLayer(id: 11, name: 'Stamm Musterdorf'),
+      verfuegbareLayer: const <ArbeitskontextLayer>[],
+    ),
+    mitglieder: <Mitglied>[member],
+    gruppen: const <ArbeitskontextGruppe>[
+      ArbeitskontextGruppe(id: 100, name: 'Meute', layerId: 11),
+      ArbeitskontextGruppe(
+        id: 111,
+        name: 'Wölflinge 1',
+        layerId: 11,
+        parentId: 100,
+      ),
+    ],
+  );
+  final model = ArbeitskontextModel(
+    localRepository: _FakeArbeitskontextLocalRepository(cached: readModel),
+    readModelRepository: _FakeArbeitskontextReadModelRepository(),
+    groupsService: _FakeHitobitoGroupsService(),
+    bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+    logger: _FakeLoggerService(),
+  );
+
+  await model.syncForAuth(
+    authState: AuthState.signedIn,
+    session: AuthSession(
+      accessToken: 'token-123',
+      receivedAt: DateTime(2026, 4, 14),
+    ),
+    profile: AuthProfile(
+      namiId: 23,
+      roles: <AuthProfileRole>[
+        AuthProfileRole(
+          groupId: 100,
+          groupName: 'Meute',
+          roleName: 'Leitung',
+          roleClass: 'Group::Woelfe::Leitung',
+          permissions: permissions,
+        ),
+      ],
+    ),
+  );
+
+  return model;
+}
+
+class _StubMemberEditModel extends MemberEditModel {
+  _StubMemberEditModel({required this.pendingMitgliedsnummern})
+    : super(
+        memberWriteRepository: _NoopMemberWriteRepository(),
+        pendingRepository: _NoopPendingPersonUpdateRepository(),
+        logger: _FakeLoggerService(),
+        onMemberUpdated: (_) async {},
+      );
+
+  final Set<String> pendingMitgliedsnummern;
+
+  @override
+  bool hasPendingForMitglied(String mitgliedsnummer) {
+    return pendingMitgliedsnummern.contains(mitgliedsnummer);
+  }
+}
+
+class _PreparingMemberEditModel extends MemberEditModel {
+  _PreparingMemberEditModel({
+    required this.refreshedMember,
+    this.message,
+    this.preferDeferredSaveUi = false,
+  }) : super(
+         memberWriteRepository: _NoopMemberWriteRepository(),
+         pendingRepository: _NoopPendingPersonUpdateRepository(),
+         logger: _FakeLoggerService(),
+         onMemberUpdated: (_) async {},
+       );
+
+  final Mitglied refreshedMember;
+  final String? message;
+  final bool preferDeferredSaveUi;
+
+  @override
+  Future<MemberEditPrepareResult> prepareForEdit({
+    required String accessToken,
+    required Mitglied mitglied,
+    String trigger = 'detail_edit',
+  }) async {
+    return MemberEditPrepareResult(
+      success: true,
+      member: refreshedMember,
+      preferDeferredSaveUi: preferDeferredSaveUi,
+      message: message,
+    );
+  }
+}
+
+class _ResolutionTrackingMemberEditModel extends MemberEditModel {
+  _ResolutionTrackingMemberEditModel({required this.pendingEntry})
+    : super(
+        memberWriteRepository: _NoopMemberWriteRepository(),
+        pendingRepository: _NoopPendingPersonUpdateRepository(),
+        logger: _FakeLoggerService(),
+        onMemberUpdated: (_) async {},
+      );
+
+  final PendingPersonUpdate pendingEntry;
+  final List<String> openedEntryPoints = <String>[];
+
+  @override
+  bool hasPendingForMitglied(String mitgliedsnummer) {
+    return pendingEntry.mitgliedsnummer == mitgliedsnummer;
+  }
+
+  @override
+  PendingPersonUpdate? pendingForMitglied(String mitgliedsnummer) {
+    return pendingEntry.mitgliedsnummer == mitgliedsnummer
+        ? pendingEntry
+        : null;
+  }
+
+  @override
+  Future<void> logResolutionOpened({
+    required PendingPersonUpdate entry,
+    required String entryPoint,
+  }) async {
+    openedEntryPoints.add(entryPoint);
+  }
+}
+
+class _StubAuthSessionModel extends AuthSessionModel {
+  _StubAuthSessionModel({
+    required AuthSession session,
+    this.blockedReason,
+    this.requiresLogin = false,
+  }) : _sessionOverride = session,
+       super(
+         repository: _InMemoryAuthSessionRepository(initial: session),
+         profileRepository: _InMemoryAuthProfileRepository(),
+         oauthService: _FakeOauthService(),
+         biometricLockService: _FakeBiometricLockService(),
+         sensitiveStorageService: _FakeSensitiveStorageService(),
+         retentionPolicy: HitobitoDataRetentionPolicy(
+           maxDataAge: const Duration(days: 30),
+           refreshInterval: const Duration(days: 1),
+         ),
+         logger: _FakeLoggerService(),
+       );
+
+  final AuthSession _sessionOverride;
+  final NetworkAccessBlockedReason? blockedReason;
+  final bool requiresLogin;
+
+  @override
+  AuthSession? get session => _sessionOverride;
+
+  @override
+  NetworkAccessBlockedReason? get remoteAccessBlockedReason => blockedReason;
+
+  @override
+  bool get requiresInteractiveLogin => requiresLogin;
+}
+
+class _FakeArbeitskontextLocalRepository
+    implements ArbeitskontextLocalRepository {
+  _FakeArbeitskontextLocalRepository({this.cached});
+
+  final ArbeitskontextReadModel? cached;
+
+  @override
+  Future<void> clearCached() async {}
+
+  @override
+  Future<ArbeitskontextReadModel?> loadLastCached() async => cached;
+
+  @override
+  Future<void> saveCached(ArbeitskontextReadModel readModel) async {}
+}
+
+class _FakeArbeitskontextReadModelRepository
+    implements ArbeitskontextReadModelRepository {
+  @override
+  Future<ArbeitskontextReadModel> loadCached(
+    Arbeitskontext arbeitskontext,
+  ) async {
+    return ArbeitskontextReadModel(arbeitskontext: arbeitskontext);
+  }
+
+  @override
+  Future<ArbeitskontextReadModel> loadRoles({
+    required String accessToken,
+    required ArbeitskontextReadModel readModel,
+  }) async {
+    return readModel;
+  }
+
+  @override
+  Future<ArbeitskontextReadModel> refresh({
+    required String accessToken,
+    required Arbeitskontext arbeitskontext,
+  }) async {
+    return ArbeitskontextReadModel(arbeitskontext: arbeitskontext);
+  }
+}
+
+class _FakeHitobitoGroupsService extends HitobitoGroupsService {
+  _FakeHitobitoGroupsService()
+    : super(
+        config: const HitobitoAuthConfig(
+          clientId: 'client',
+          clientSecret: 'secret',
+          authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
+          tokenUrl: 'https://demo.hitobito.com/oauth/token',
+          redirectUri: 'de.jlange.nami.app:/oauth/callback',
+          scopeString: 'openid email',
+          discoveryUrl: '',
+          profileUrl: 'https://demo.hitobito.com/oauth/profile',
+        ),
+      );
+
+  @override
+  Future<List<HitobitoGroupResource>> fetchAccessibleGroups(
+    String accessToken,
+  ) async => const <HitobitoGroupResource>[];
+}
+
+class _NoopMemberWriteRepository implements MemberWriteRepository {
+  @override
+  Future<Mitglied> fetchRemoteMember({
+    required String accessToken,
+    required int personId,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Mitglied> updateMember({
+    required String accessToken,
+    required Mitglied basisMitglied,
+    required Mitglied zielMitglied,
+  }) async {
+    return zielMitglied;
+  }
+}
+
+class _NoopPendingPersonUpdateRepository
+    implements PendingPersonUpdateRepository {
+  @override
+  Future<void> clear() async {}
+
+  @override
+  Future<List<PendingPersonUpdate>> loadAll() async {
+    return const <PendingPersonUpdate>[];
+  }
+
+  @override
+  Future<void> remove(String entryId) async {}
+
+  @override
+  Future<void> save(PendingPersonUpdate entry) async {}
+}
+
+class _InMemoryAuthSessionRepository implements AuthSessionRepository {
+  _InMemoryAuthSessionRepository({this.initial});
+
+  final AuthSession? initial;
+
+  @override
+  Future<void> clear() async {}
+
+  @override
+  Future<AuthSession?> load() async => initial;
+
+  @override
+  Future<void> save(AuthSession session) async {}
+}
+
+class _InMemoryAuthProfileRepository implements AuthProfileRepository {
+  @override
+  Future<void> clear() async {}
+
+  @override
+  Future<AuthProfile?> loadCached() async => null;
+
+  @override
+  Future<DateTime?> loadLastSyncAt() async => null;
+
+  @override
+  Future<void> save(AuthProfile profile) async {}
+
+  @override
+  Future<void> saveLastSyncAt(DateTime timestamp) async {}
+}
+
+class _FakeOauthService extends HitobitoOauthService {
+  _FakeOauthService()
+    : super(
+        config: const HitobitoAuthConfig(
+          clientId: 'client',
+          clientSecret: 'secret',
+          authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
+          tokenUrl: 'https://demo.hitobito.com/oauth/token',
+          redirectUri: 'de.jlange.nami.app:/oauth/callback',
+          scopeString: 'openid email',
+          discoveryUrl: '',
+          profileUrl: 'https://demo.hitobito.com/oauth/profile',
+        ),
+      );
+}
+
+class _FakeBiometricLockService extends BiometricLockService {
+  _FakeBiometricLockService();
+
+  @override
+  Future<bool> authenticate() async => true;
+
+  @override
+  Future<bool> isAvailable() async => false;
+}
+
+class _FakeSensitiveStorageService extends SensitiveStorageService {
+  @override
+  Future<DateTime?> loadLastBackgroundedAt() async => null;
+
+  @override
+  Future<DateTime?> loadLastSensitiveSyncAt() async => null;
+
+  @override
+  Future<DateTime?> loadLastSensitiveSyncAttemptAt() async => null;
+
+  @override
+  Future<void> purgeSensitiveData() async {}
+}
+
+class _FakeLoggerService extends LoggerService {
+  _FakeLoggerService()
+    : super(
+        settingsRepository: _FakeAppSettingsRepository(),
+        navigatorKey: GlobalKey<NavigatorState>(),
+      );
+
+  @override
+  Future<void> log(String service, String message) async {}
+
+  @override
+  Future<void> logInfo(String service, String message) async {}
+
+  @override
+  Future<void> logWarn(String service, String message) async {}
+
+  @override
+  Future<void> logError(
+    String service,
+    String message, {
+    Object? error,
+    StackTrace? stackTrace,
+  }) async {}
+}
+
+class _FakeAppSettingsRepository extends AppSettingsRepository {
+  @override
+  Future<AppSettings> load() async => const AppSettings(
+    themeMode: ThemeMode.system,
+    languageCode: 'de',
+    analyticsEnabled: false,
+  );
+
+  @override
+  Future<void> saveAnalyticsEnabled(bool enabled) async {}
+
+  @override
+  Future<void> saveBiometricLockEnabled(bool enabled) async {}
+
+  @override
+  Future<void> saveMemberListSearchResultHighlightEnabled(bool enabled) async {}
+
+  @override
+  Future<void> saveGeburstagsbenachrichtigungStufen(Set<Stufe> stufen) async {}
+
+  @override
+  Future<void> saveLanguageCode(String code) async {}
+
+  @override
+  Future<void> saveNotificationsEnabled(bool enabled) async {}
+
+  @override
+  Future<void> saveThemeMode(ThemeMode mode) async {}
+}
