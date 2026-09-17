@@ -165,7 +165,6 @@ void main() {
         logger: logger,
         envConfig: envAuthConfig,
       );
-      await hitobitoAuthConfigController.initialize();
       final arbeitskontextReadModelRepository =
           HitobitoArbeitskontextReadModelRepository(
             groupsService: hitobitoGroupsService,
@@ -202,7 +201,6 @@ void main() {
           await appSettingsModel.setLanguageCode(normalized);
         },
       );
-      await authModel.initialize();
 
       final arbeitskontextModel = ArbeitskontextModel(
         localRepository: arbeitskontextLocalRepository,
@@ -211,11 +209,6 @@ void main() {
         bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
         remoteAccessExecutor: authModel.executeRemoteAccess,
         logger: logger!,
-      );
-      await arbeitskontextModel.syncForAuth(
-        authState: authModel.state,
-        session: authModel.session,
-        profile: authModel.profile,
       );
       final pendingPersonUpdateRepository = SecurePendingPersonUpdateRepository(
         sensitiveStorageService: sensitiveStorageService,
@@ -231,7 +224,6 @@ void main() {
         logger: logger!,
         onMemberUpdated: arbeitskontextModel.ersetzeMitglied,
       );
-      await memberEditModel.loadPending();
 
       // Globale Fehlerbehandlung: Framework- und ungefangene Fehler loggen/tracken
       FlutterError.onError = (FlutterErrorDetails details) async {
@@ -266,6 +258,35 @@ void main() {
         );
         return true; // Fehler als behandelt markieren
       };
+
+      // Session-/Arbeitskontext-Initialisierung (inkl. moeglicher voller
+      // Netzwerk-Reloads von Gruppen/Mitgliedern) laeuft bewusst NACH
+      // runApp() statt davor: vorher blockierte diese Kette den allerersten
+      // Flutter-Frame - beim Kaltstart mit unterbrochenem/unvollstaendigem
+      // lokalem Cache blieb der Screen dadurch komplett weiss, bis alles
+      // fertig geladen war. AuthSessionModel/ArbeitskontextModel starten in
+      // einem definierten "initial/initializing"-Zustand und aktualisieren
+      // sich reaktiv per notifyListeners() - die bereits vorhandene Lade-UI
+      // (_buildPlaceholder in navigation_home.page.dart) zeichnet damit auch
+      // hier ihren Spinner/ihre Checkliste, sobald die App-Shell einmal
+      // gemountet ist.
+      Future<void> runStartupInitialization() async {
+        try {
+          await hitobitoAuthConfigController.initialize();
+          await authModel.initialize();
+          await arbeitskontextModel.syncForAuth(
+            authState: authModel.state,
+            session: authModel.session,
+            profile: authModel.profile,
+          );
+          await memberEditModel.loadPending();
+        } catch (error, stack) {
+          await logger?.log(
+            'startup',
+            'Kaltstart-Initialisierung fehlgeschlagen: $error\n$stack',
+          );
+        }
+      }
 
       runApp(
         MultiProvider(
@@ -316,6 +337,7 @@ void main() {
           child: const MyApp(),
         ),
       );
+      unawaited(runStartupInitialization());
     },
     (error, stack) {
       // Letzte Schutzschicht für unvorhergesehene Fehler

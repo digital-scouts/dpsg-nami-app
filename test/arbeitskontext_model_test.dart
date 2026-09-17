@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/data/arbeitskontext/hitobito_group_resource.dart';
@@ -218,6 +220,331 @@ void main() {
   );
 
   test(
+    'behaelt vorhandenen Arbeitskontext bei fehlschlagendem Folgeversuch',
+    () async {
+      final groupsService = _FakeHitobitoGroupsService(
+        groups: const <HitobitoGroupResource>[
+          HitobitoGroupResource(id: 30, name: 'Stamm Waldheim', isLayer: true),
+        ],
+      );
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: groupsService,
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+      final profile = const AuthProfile(
+        namiId: 30,
+        primaryGroupId: 30,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 30,
+            groupName: 'Stamm Waldheim',
+            roleName: 'Leitung',
+            roleClass: 'Group::Stamm::Leitung',
+            permissions: <String>['layer_read'],
+          ),
+        ],
+      );
+      final session = AuthSession(
+        accessToken: 'token-30',
+        receivedAt: DateTime(2026, 3, 31),
+      );
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: session,
+        profile: profile,
+      );
+      expect(model.isReady, isTrue);
+      final arbeitskontextNachErstemLauf = model.arbeitskontext;
+      final readModelNachErstemLauf = model.readModel;
+      expect(arbeitskontextNachErstemLauf, isNotNull);
+      expect(readModelNachErstemLauf, isNotNull);
+
+      groupsService.fetchErrorOverride = Exception('Netzwerkfehler');
+      await model.initializeForProfile(profile, session: session, force: true);
+
+      expect(model.status, ArbeitskontextStatus.ready);
+      expect(model.arbeitskontext, arbeitskontextNachErstemLauf);
+      expect(model.readModel, readModelNachErstemLauf);
+      expect(model.errorMessage, contains('Netzwerkfehler'));
+    },
+  );
+
+  test(
+    'zeigt weiterhin den Vollbild-Fehlerzustand, wenn noch nie erfolgreich geladen wurde',
+    () async {
+      final groupsService = _FakeHitobitoGroupsService()
+        ..fetchErrorOverride = Exception('Netzwerkfehler');
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: groupsService,
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: AuthSession(
+          accessToken: 'token-31',
+          receivedAt: DateTime(2026, 3, 31),
+        ),
+        profile: const AuthProfile(namiId: 31),
+      );
+
+      expect(model.hasError, isTrue);
+      expect(model.arbeitskontext, isNull);
+    },
+  );
+
+  test(
+    'setzt den Arbeitskontext bereits, bevor die Mitgliederliste fertig geladen ist',
+    () async {
+      final readModelRepository = _FakeArbeitskontextReadModelRepository();
+      final delayCompleter = Completer<void>();
+      readModelRepository.refreshDelay = delayCompleter.future;
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(),
+        readModelRepository: readModelRepository,
+        groupsService: _FakeHitobitoGroupsService(
+          groups: const <HitobitoGroupResource>[
+            HitobitoGroupResource(id: 32, name: 'Stamm Bergland', isLayer: true),
+          ],
+        ),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+
+      final syncFuture = model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: AuthSession(
+          accessToken: 'token-32',
+          receivedAt: DateTime(2026, 3, 31),
+        ),
+        profile: const AuthProfile(
+          namiId: 32,
+          primaryGroupId: 32,
+          roles: <AuthProfileRole>[
+            AuthProfileRole(
+              groupId: 32,
+              groupName: 'Stamm Bergland',
+              roleName: 'Leitung',
+              roleClass: 'Group::Stamm::Leitung',
+              permissions: <String>['layer_read'],
+            ),
+          ],
+        ),
+      );
+
+      await _waitForBackgroundWork();
+      expect(model.arbeitskontext, isNotNull);
+      expect(model.arbeitskontext?.aktiverLayer.id, 32);
+      expect(model.isLoading, isTrue);
+      expect(model.readModel, isNull);
+
+      delayCompleter.complete();
+      await syncFuture;
+
+      expect(model.isReady, isTrue);
+      expect(model.readModel, isNotNull);
+    },
+  );
+
+  test('durchlaeuft die Ladeschritte in der erwarteten Reihenfolge', () async {
+    final model = ArbeitskontextModel(
+      localRepository: _FakeArbeitskontextLocalRepository(),
+      readModelRepository: _FakeArbeitskontextReadModelRepository(
+        loadRolesResultsByLayer: <int, ArbeitskontextReadModel>{
+          33: ArbeitskontextReadModel(
+            arbeitskontext: Arbeitskontext(
+              aktiverLayer: const ArbeitskontextLayer(
+                id: 33,
+                name: 'Stamm Feldberg',
+              ),
+            ),
+            rolesSindGeladen: true,
+          ),
+        },
+      ),
+      groupsService: _FakeHitobitoGroupsService(
+        groups: const <HitobitoGroupResource>[
+          HitobitoGroupResource(id: 33, name: 'Stamm Feldberg', isLayer: true),
+        ],
+      ),
+      bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+      logger: _FakeLoggerService(),
+    );
+
+    final observedStates = <List<ArbeitskontextLoadingStepState>>[];
+    model.addListener(() {
+      observedStates.add(
+        model.loadingSteps.map((step) => step.state).toList(),
+      );
+    });
+
+    await model.syncForAuth(
+      authState: AuthState.signedIn,
+      session: AuthSession(
+        accessToken: 'token-33',
+        receivedAt: DateTime(2026, 3, 31),
+      ),
+      profile: const AuthProfile(
+        namiId: 33,
+        primaryGroupId: 33,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 33,
+            groupName: 'Stamm Feldberg',
+            roleName: 'Leitung',
+            roleClass: 'Group::Stamm::Leitung',
+            permissions: <String>['layer_read'],
+          ),
+        ],
+      ),
+    );
+    await _waitForBackgroundWork();
+
+    // Erste Benachrichtigung: nur "Login" laeuft, alles andere wartet noch.
+    expect(observedStates.first, <ArbeitskontextLoadingStepState>[
+      ArbeitskontextLoadingStepState.loading,
+      ArbeitskontextLoadingStepState.waiting,
+      ArbeitskontextLoadingStepState.waiting,
+      ArbeitskontextLoadingStepState.waiting,
+    ]);
+
+    // Nach Abschluss (inkl. Rollen im Hintergrund): alle vier Schritte fertig.
+    final finalSteps = model.loadingSteps;
+    expect(
+      finalSteps.map((step) => step.state),
+      everyElement(ArbeitskontextLoadingStepState.done),
+    );
+    expect(finalSteps[1].detailCount, 1);
+    expect(finalSteps[2].detailCount, 0);
+    expect(model.isInitialSequenceActive, isFalse);
+  });
+
+  test(
+    'zeigt keinen Vollbild-Fehler, wenn der allererste Ladevorgang ueber '
+    'refreshFromRemote beim Laden der Mitglieder scheitert',
+    () async {
+      // Viele Startup-Trigger (main.dart: _syncArbeitskontextComplete,
+      // Auth-Maintenance-Timer) fuehren den allerersten Ladevorgang der
+      // Session ueber refreshFromRemote statt initializeForProfile aus.
+      final readModelRepository = _FakeArbeitskontextReadModelRepository(
+        refreshError: Exception('Netzwerkfehler beim Laden der Mitglieder'),
+      );
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(),
+        readModelRepository: readModelRepository,
+        groupsService: _FakeHitobitoGroupsService(
+          groups: const <HitobitoGroupResource>[
+            HitobitoGroupResource(id: 40, name: 'Stamm Talblick', isLayer: true),
+          ],
+        ),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+
+      await model.refreshFromRemote(
+        session: AuthSession(
+          accessToken: 'token-40',
+          receivedAt: DateTime(2026, 3, 31),
+        ),
+        profile: const AuthProfile(
+          namiId: 40,
+          primaryGroupId: 40,
+          roles: <AuthProfileRole>[
+            AuthProfileRole(
+              groupId: 40,
+              groupName: 'Stamm Talblick',
+              roleName: 'Leitung',
+              roleClass: 'Group::Stamm::Leitung',
+              permissions: <String>['layer_read'],
+            ),
+          ],
+        ),
+      );
+
+      expect(model.hasError, isFalse);
+      expect(model.isReady, isTrue);
+      expect(model.arbeitskontext, isNotNull);
+      expect(model.arbeitskontext?.aktiverLayer.id, 40);
+      expect(model.errorMessage, contains('Netzwerkfehler'));
+    },
+  );
+
+  test(
+    'durchlaeuft die Ladeschritte auch, wenn refreshFromRemote der '
+    'allererste Ladevorgang der Session ist',
+    () async {
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(
+          loadRolesResultsByLayer: <int, ArbeitskontextReadModel>{
+            41: ArbeitskontextReadModel(
+              arbeitskontext: Arbeitskontext(
+                aktiverLayer: const ArbeitskontextLayer(
+                  id: 41,
+                  name: 'Stamm Suedhang',
+                ),
+              ),
+              rolesSindGeladen: true,
+            ),
+          },
+        ),
+        groupsService: _FakeHitobitoGroupsService(
+          groups: const <HitobitoGroupResource>[
+            HitobitoGroupResource(id: 41, name: 'Stamm Suedhang', isLayer: true),
+          ],
+        ),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+
+      expect(model.isInitialSequenceActive, isFalse);
+      final observedArbeitskontextDuringLoad = <bool>[];
+      model.addListener(
+        () => observedArbeitskontextDuringLoad.add(model.arbeitskontext != null),
+      );
+
+      final refreshFuture = model.refreshFromRemote(
+        session: AuthSession(
+          accessToken: 'token-41',
+          receivedAt: DateTime(2026, 3, 31),
+        ),
+        profile: const AuthProfile(
+          namiId: 41,
+          primaryGroupId: 41,
+          roles: <AuthProfileRole>[
+            AuthProfileRole(
+              groupId: 41,
+              groupName: 'Stamm Suedhang',
+              roleName: 'Leitung',
+              roleClass: 'Group::Stamm::Leitung',
+              permissions: <String>['layer_read'],
+            ),
+          ],
+        ),
+      );
+
+      await refreshFuture;
+      await _waitForBackgroundWork();
+
+      // Der Kontext war schon vor Abschluss (waehrend Mitglieder noch
+      // luden) gesetzt - genau das erlaubt der Shell, sich frueh zu zeigen.
+      expect(observedArbeitskontextDuringLoad, contains(true));
+      expect(
+        model.loadingSteps.map((step) => step.state),
+        everyElement(ArbeitskontextLoadingStepState.done),
+      );
+      expect(model.isInitialSequenceActive, isFalse);
+    },
+  );
+
+  test(
     'setzt den Arbeitskontext bei Sign-out wieder in den Initialzustand',
     () async {
       final model = ArbeitskontextModel(
@@ -266,6 +593,42 @@ void main() {
       expect(model.arbeitskontext, isNull);
       expect(model.readModel, isNull);
       expect(model.errorMessage, isNull);
+    },
+  );
+
+  test(
+    'zeigt einen echten Fehlerzustand statt still auf initial zurueckzufallen, '
+    'wenn signedIn aber kein Profil verfuegbar ist (z.B. Profil-Abruf '
+    'fehlgeschlagen)',
+    () async {
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: _FakeHitobitoGroupsService(
+          groups: const <HitobitoGroupResource>[
+            HitobitoGroupResource(
+              id: 11,
+              name: 'Stamm Musterdorf',
+              isLayer: true,
+            ),
+          ],
+        ),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: AuthSession(
+          accessToken: 'token-no-profile',
+          receivedAt: DateTime(2026, 3, 31),
+        ),
+        profile: null,
+      );
+
+      expect(model.hasError, isTrue);
+      expect(model.status, isNot(ArbeitskontextStatus.initial));
+      expect(model.errorMessage, isNotNull);
     },
   );
 
@@ -1580,6 +1943,21 @@ class _FakeArbeitskontextReadModelRepository
   Arbeitskontext? lastRefreshArbeitskontext;
   ArbeitskontextReadModel? lastLoadRolesReadModel;
   int loadRolesCallCount = 0;
+  int refreshCallCount = 0;
+  // Ueberschreibt refreshError ab dem naechsten Aufruf, ohne einen neuen Fake
+  // konstruieren zu muessen - nuetzlich, um "erster Versuch erfolgreich,
+  // zweiter Versuch schlaegt fehl" zu simulieren.
+  Object? refreshErrorOverride;
+  // Verzoegert refresh() bis dieser Future abgeschlossen ist - nuetzlich, um
+  // zu pruefen, was das Model waehrend eines noch laufenden refresh() bereits
+  // anzeigt.
+  Future<void>? refreshDelay;
+  // Simuliert paginiertes Nachladen: jeder Eintrag wird nacheinander per
+  // onProgress gemeldet (mit optionalem Delay davor), bevor refresh() mit dem
+  // finalen Ergebnis zurueckkehrt.
+  List<ArbeitskontextReadModel> progressReadModels =
+      const <ArbeitskontextReadModel>[];
+  Future<void>? progressDelay;
 
   @override
   Future<ArbeitskontextReadModel> loadRoles({
@@ -1610,14 +1988,32 @@ class _FakeArbeitskontextReadModelRepository
   Future<ArbeitskontextReadModel> refresh({
     required String accessToken,
     required Arbeitskontext arbeitskontext,
+    List<HitobitoGroupResource>? accessibleGroups,
+    void Function(ArbeitskontextReadModel partial)? onProgress,
   }) async {
+    refreshCallCount += 1;
     lastRefreshArbeitskontext = arbeitskontext;
-    if (refreshError != null) {
-      throw refreshError!;
+    for (final partial in progressReadModels) {
+      final delay = progressDelay;
+      if (delay != null) {
+        await delay;
+      }
+      onProgress?.call(partial);
+    }
+    final delay = refreshDelay;
+    if (delay != null) {
+      await delay;
+    }
+    final error = refreshErrorOverride ?? refreshError;
+    if (error != null) {
+      throw error;
     }
     final configured = _refreshResultsByLayer[arbeitskontext.aktiverLayer.id];
     if (configured != null) {
       return configured.copyWith(arbeitskontext: arbeitskontext);
+    }
+    if (progressReadModels.isNotEmpty) {
+      return progressReadModels.last;
     }
     return ArbeitskontextReadModel(arbeitskontext: arbeitskontext);
   }
@@ -1664,11 +2060,22 @@ class _FakeHitobitoGroupsService extends HitobitoGroupsService {
        );
 
   final List<HitobitoGroupResource> _groups;
+  // Wird ab dem naechsten Aufruf geworfen, wenn gesetzt - simuliert einen
+  // fehlschlagenden Folgeversuch nach einem zuvor erfolgreichen Ladevorgang.
+  Object? fetchErrorOverride;
+  int fetchCallCount = 0;
 
   @override
   Future<List<HitobitoGroupResource>> fetchAccessibleGroups(
     String accessToken,
-  ) async => _groups;
+  ) async {
+    fetchCallCount += 1;
+    final error = fetchErrorOverride;
+    if (error != null) {
+      throw error;
+    }
+    return _groups;
+  }
 }
 
 class _FakeLoggerService extends LoggerService {

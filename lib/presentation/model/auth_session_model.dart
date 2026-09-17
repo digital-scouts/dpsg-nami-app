@@ -148,35 +148,50 @@ class AuthSessionModel extends ChangeNotifier {
     _state = AuthState.initializing;
     notifyListeners();
 
-    _session = await _repository.load();
-    _lastSensitiveSyncAt = await _sensitiveStorageService
-        .loadLastSensitiveSyncAt();
-    _lastSensitiveSyncAttemptAt = await _sensitiveStorageService
-        .loadLastSensitiveSyncAttemptAt();
-    _lastBackgroundedAt = await _sensitiveStorageService
-        .loadLastBackgroundedAt();
-    _lastProfileSyncAt = await _profileRepository.loadLastSyncAt();
-    _profile = await _profileRepository.loadCached();
+    try {
+      _session = await _repository.load();
+      _lastSensitiveSyncAt = await _sensitiveStorageService
+          .loadLastSensitiveSyncAt();
+      _lastSensitiveSyncAttemptAt = await _sensitiveStorageService
+          .loadLastSensitiveSyncAttemptAt();
+      _lastBackgroundedAt = await _sensitiveStorageService
+          .loadLastBackgroundedAt();
+      _lastProfileSyncAt = await _profileRepository.loadLastSyncAt();
+      _profile = await _profileRepository.loadCached();
 
-    if (await _shouldResetStaleSessionBeforeUnlock()) {
+      if (await _shouldResetStaleSessionBeforeUnlock()) {
+        await _logger.log(
+          'auth_flow',
+          'Uebernommene Session ohne restorable Profildaten erkannt, Login wird zurueckgesetzt',
+        );
+        await _repository.clear();
+        await _profileRepository.clear();
+        await _sensitiveStorageService.purgeSensitiveData();
+        _session = null;
+        _profile = null;
+        _lastSensitiveSyncAt = null;
+        _lastSensitiveSyncAttemptAt = null;
+        _lastProfileSyncAt = null;
+        _lastBackgroundedAt = null;
+      }
+
+      await _deriveState(requireUnlock: true);
+      if (_state == AuthState.signedIn) {
+        await ensureProfileLoaded();
+      }
+    } catch (error, stack) {
+      // Ohne dieses catch wuerde ein Fehler hier (z.B. Storage-Zugriff beim
+      // Kaltstart) unbehandelt aus main() propagieren, bevor die App-Shell
+      // ueberhaupt existiert - der Nutzer saehe dann dauerhaft nur einen
+      // leeren/weissen Screen statt einer Fehleranzeige mit Retry.
       await _logger.log(
         'auth_flow',
-        'Uebernommene Session ohne restorable Profildaten erkannt, Login wird zurueckgesetzt',
+        'Initialisierung fehlgeschlagen: $error\n$stack',
       );
-      await _repository.clear();
-      await _profileRepository.clear();
-      await _sensitiveStorageService.purgeSensitiveData();
-      _session = null;
-      _profile = null;
-      _lastSensitiveSyncAt = null;
-      _lastSensitiveSyncAttemptAt = null;
-      _lastProfileSyncAt = null;
-      _lastBackgroundedAt = null;
-    }
-
-    await _deriveState(requireUnlock: true);
-    if (_state == AuthState.signedIn) {
-      await ensureProfileLoaded();
+      _state = AuthState.error;
+      _errorMessage = error.toString();
+    } finally {
+      notifyListeners();
     }
   }
 

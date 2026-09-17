@@ -102,6 +102,8 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
               context,
               content: body,
               urgentNotification: urgentNotification,
+              authModel: authModel,
+              arbeitskontextModel: arbeitskontextModel,
             ),
       bottomNavigationBar: AppBottomNavigation(
         currentIndex: _index,
@@ -135,7 +137,22 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
     BuildContext context, {
     required Widget content,
     required PullNotification? urgentNotification,
+    required AuthSessionModel authModel,
+    required ArbeitskontextModel arbeitskontextModel,
   }) {
+    final showsStaleDataWarning = arbeitskontextModel.hasStaleDataWarning;
+    // arbeitskontext == null ausgeschlossen: in dem Fall zeigt bereits der
+    // Vollbild-Platzhalter (_buildPlaceholder) dieselbe Checkliste zentriert
+    // an - hier wuerde sie sonst doppelt erscheinen. Sobald der Arbeitskontext
+    // gesetzt ist, deckt isSynchronizing/isLoadingRoles sowohl den initialen
+    // Ladevorgang (ohne Luecke waehrend "Mitglieder laden") als auch spaetere
+    // Syncs (Pull-to-refresh, Debug-Tools) ab.
+    final showsLoadingChecklist =
+        !showsStaleDataWarning &&
+        arbeitskontextModel.arbeitskontext != null &&
+        (arbeitskontextModel.isSynchronizing ||
+            arbeitskontextModel.isLoadingRoles);
+    final showsTopBanner = showsStaleDataWarning || showsLoadingChecklist;
     return Column(
       children: [
         if (urgentNotification != null)
@@ -151,9 +168,34 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
               ),
             ),
           ),
+        if (showsStaleDataWarning)
+          SafeArea(
+            bottom: false,
+            top: urgentNotification == null,
+            child: _StaleDataWarningBanner(
+              onRetry: () => arbeitskontextModel.refreshFromRemote(
+                session: authModel.session,
+                profile: authModel.profile,
+              ),
+            ),
+          ),
+        if (showsLoadingChecklist)
+          SafeArea(
+            bottom: false,
+            top: urgentNotification == null,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: Theme.of(context).colorScheme.surfaceContainerHigh,
+              child: _ArbeitskontextLoadingChecklist(
+                steps: arbeitskontextModel.loadingSteps,
+                dense: true,
+              ),
+            ),
+          ),
         Expanded(
           child: SafeArea(
-            top: urgentNotification == null,
+            top: urgentNotification == null && !showsTopBanner,
             bottom: false,
             child: content,
           ),
@@ -227,12 +269,15 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
         );
       case AuthState.unlockRequired:
       case AuthState.signedIn:
-        if (arbeitskontextModel.status == ArbeitskontextStatus.initial ||
-            arbeitskontextModel.isLoading) {
+        if (arbeitskontextModel.arbeitskontext == null &&
+            (arbeitskontextModel.status == ArbeitskontextStatus.initial ||
+                arbeitskontextModel.isLoading)) {
           return _ShellStatusView(
             title: t.t('nav_work_context_loading_title'),
             message: t.t('nav_work_context_loading_body'),
-            child: CircularProgressIndicator(),
+            child: _ArbeitskontextLoadingChecklist(
+              steps: arbeitskontextModel.loadingSteps,
+            ),
           );
         }
         if (arbeitskontextModel.isUnauthorized) {
@@ -253,26 +298,24 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
             message: t.t('nav_work_context_error_body'),
             errorMessage: arbeitskontextModel.errorMessage,
             child: FilledButton.icon(
-              onPressed: authModel.profile == null
-                  ? null
-                  : () => arbeitskontextModel.retry(authModel.profile),
+              onPressed: () =>
+                  _retryArbeitskontext(authModel, arbeitskontextModel),
               icon: const Icon(Icons.refresh),
               label: Text(t.t('common_retry')),
             ),
           );
         }
-        if (!authModel.dataSyncStatus.hasValidLocalData) {
+        if (arbeitskontextModel.arbeitskontext == null &&
+            !authModel.dataSyncStatus.hasValidLocalData) {
           return _ShellStatusView(
             title: t.t('nav_work_context_error_title'),
             message: t.t('nav_work_context_error_body'),
             errorMessage: authModel.errorMessage,
             child: FilledButton.icon(
-              onPressed: authModel.profile == null
-                  ? null
-                  : () => _retryInitialDataLoad(
-                      authModel: authModel,
-                      arbeitskontextModel: arbeitskontextModel,
-                    ),
+              onPressed: () => _retryInitialDataLoad(
+                authModel: authModel,
+                arbeitskontextModel: arbeitskontextModel,
+              ),
               icon: const Icon(Icons.refresh),
               label: Text(t.t('common_retry')),
             ),
@@ -281,6 +324,23 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
 
         return null;
     }
+  }
+
+  Future<void> _retryArbeitskontext(
+    AuthSessionModel authModel,
+    ArbeitskontextModel arbeitskontextModel,
+  ) async {
+    // Ohne Profil (z.B. weil dessen Abruf zuvor fehlgeschlagen ist) kann
+    // ArbeitskontextModel.retry() nichts tun - zuerst das Profil erneut
+    // laden, bevor der eigentliche Arbeitskontext-Retry versucht wird.
+    if (authModel.profile == null) {
+      await authModel.ensureProfileLoaded(force: true);
+    }
+    final profile = authModel.profile;
+    if (profile == null) {
+      return;
+    }
+    await arbeitskontextModel.retry(profile);
   }
 
   Future<void> _retryInitialDataLoad({
@@ -367,6 +427,139 @@ class _ShellStatusView extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _StaleDataWarningBanner extends StatelessWidget {
+  const _StaleDataWarningBanner({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: theme.colorScheme.errorContainer,
+      child: Row(
+        children: [
+          Icon(
+            Icons.sync_problem,
+            size: 18,
+            color: theme.colorScheme.onErrorContainer,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              t.t('nav_work_context_sync_warning'),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onErrorContainer,
+              ),
+            ),
+          ),
+          IconButton(
+            iconSize: 18,
+            color: theme.colorScheme.onErrorContainer,
+            icon: const Icon(Icons.refresh),
+            onPressed: onRetry,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ArbeitskontextLoadingChecklist extends StatelessWidget {
+  const _ArbeitskontextLoadingChecklist({
+    required this.steps,
+    this.dense = false,
+  });
+
+  final List<ArbeitskontextLoadingStepStatus> steps;
+  final bool dense;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final step in steps)
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: dense ? 2 : 4),
+            child: _ArbeitskontextLoadingStepRow(step: step, dense: dense),
+          ),
+      ],
+    );
+  }
+}
+
+class _ArbeitskontextLoadingStepRow extends StatelessWidget {
+  const _ArbeitskontextLoadingStepRow({required this.step, required this.dense});
+
+  final ArbeitskontextLoadingStepStatus step;
+  final bool dense;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final iconSize = dense ? 16.0 : 20.0;
+    final Widget icon = switch (step.state) {
+      ArbeitskontextLoadingStepState.done => Icon(
+        Icons.check_circle,
+        size: iconSize,
+        color: theme.colorScheme.primary,
+      ),
+      ArbeitskontextLoadingStepState.loading => SizedBox(
+        width: iconSize,
+        height: iconSize,
+        child: const CircularProgressIndicator(strokeWidth: 2),
+      ),
+      ArbeitskontextLoadingStepState.waiting => Icon(
+        Icons.circle_outlined,
+        size: iconSize,
+        color: theme.colorScheme.outline,
+      ),
+    };
+    final statusText = step.detailKey != null && step.detailCount != null
+        ? t.t(step.detailKey!, {'count': '${step.detailCount}'})
+        : t.t(switch (step.state) {
+            ArbeitskontextLoadingStepState.done =>
+              'nav_work_context_step_state_done',
+            ArbeitskontextLoadingStepState.loading =>
+              'nav_work_context_step_state_loading',
+            ArbeitskontextLoadingStepState.waiting =>
+              'nav_work_context_step_state_waiting',
+          });
+    final textStyle = dense ? theme.textTheme.bodySmall : theme.textTheme.bodyMedium;
+    final dimmed = step.state == ArbeitskontextLoadingStepState.waiting;
+    return Row(
+      children: [
+        icon,
+        const SizedBox(width: 10),
+        Text(
+          t.t(step.labelKey),
+          style: textStyle?.copyWith(
+            color: dimmed ? theme.colorScheme.outline : null,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            statusText,
+            textAlign: TextAlign.right,
+            style: textStyle?.copyWith(
+              color: dimmed
+                  ? theme.colorScheme.outline
+                  : theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

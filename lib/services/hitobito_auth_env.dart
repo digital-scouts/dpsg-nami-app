@@ -32,7 +32,7 @@ class HitobitoAuthConfig {
       redirectUri: redirectUri,
       scopeString: scopeString,
       discoveryUrl: _deriveUrl(baseUri, '/.well-known/openid-configuration'),
-      profileUrl: _deriveUrl(baseUri, '/de/oauth/profile'),
+      profileUrl: _deriveUrl(baseUri, '/oauth/profile'),
     );
   }
 

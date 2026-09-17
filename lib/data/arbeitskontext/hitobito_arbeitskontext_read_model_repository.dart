@@ -45,16 +45,18 @@ class HitobitoArbeitskontextReadModelRepository
   Future<ArbeitskontextReadModel> refresh({
     required String accessToken,
     required Arbeitskontext arbeitskontext,
+    List<HitobitoGroupResource>? accessibleGroups,
+    void Function(ArbeitskontextReadModel partial)? onProgress,
   }) async {
-    final accessibleGroupsFuture = _groupsService.fetchAccessibleGroups(
-      accessToken,
-    );
-    final peopleResourcesFuture = _peopleService.fetchPeopleResources(
-      accessToken,
-    );
-    final accessibleGroups = await accessibleGroupsFuture;
-    final peopleResources = await peopleResourcesFuture;
-    final accessibleLayers = _extractAccessibleLayers(accessibleGroups);
+    // Gruppen werden bewusst VOR den Mitgliedern vollstaendig geladen (statt
+    // wie frueher parallel): fuer ein Fortschritts-Readmodel pro People-Seite
+    // (onProgress) muessen die Gruppen schon vollstaendig bekannt sein, damit
+    // _extractKontextMitgliedsdaten() die Layer-Zugehoerigkeit korrekt filtern
+    // kann. Gruppen sind ueblicherweise 1-3 schnelle Requests, People macht
+    // die dominante Ladezeit aus - der Verlust der Parallelitaet ist gering.
+    final resolvedAccessibleGroups =
+        accessibleGroups ?? await _groupsService.fetchAccessibleGroups(accessToken);
+    final accessibleLayers = _extractAccessibleLayers(resolvedAccessibleGroups);
     final relevanteLayer = _resolveRelevantLayers(
       requestedArbeitskontext: arbeitskontext,
       accessibleLayers: accessibleLayers,
@@ -68,12 +70,33 @@ class HitobitoArbeitskontextReadModelRepository
       verfuegbareLayer: relevanteLayer,
     );
     final gruppen = _extractKontextGruppen(
-      accessibleGroups: accessibleGroups,
+      accessibleGroups: resolvedAccessibleGroups,
       aktiverLayerId: aktuellerKontext.aktiverLayer.id,
+    );
+    final peopleResources = await _peopleService.fetchPeopleResources(
+      accessToken,
+      onPageLoaded: onProgress == null
+          ? null
+          : (loadedSoFar) {
+              final partialMitgliedsdaten = _extractKontextMitgliedsdaten(
+                peopleResources: loadedSoFar,
+                accessibleGroups: resolvedAccessibleGroups,
+                aktiverLayerId: aktuellerKontext.aktiverLayer.id,
+              );
+              onProgress(
+                ArbeitskontextReadModel(
+                  arbeitskontext: aktuellerKontext,
+                  mitglieder: partialMitgliedsdaten.mitglieder,
+                  gruppen: gruppen,
+                  mitgliedsZuordnungen:
+                      partialMitgliedsdaten.mitgliedsZuordnungen,
+                ),
+              );
+            },
     );
     final mitgliedsdaten = _extractKontextMitgliedsdaten(
       peopleResources: peopleResources,
-      accessibleGroups: accessibleGroups,
+      accessibleGroups: resolvedAccessibleGroups,
       aktiverLayerId: aktuellerKontext.aktiverLayer.id,
     );
     final readModel = ArbeitskontextReadModel(

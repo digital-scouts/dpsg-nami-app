@@ -361,6 +361,75 @@ void main() {
   );
 
   test(
+    'ruft onPageLoaded nach jeder Pagination-Seite mit kumulativ wachsender Liste auf',
+    () async {
+      final client = MockClient((request) async {
+        if (request.url.queryParameters['page'] == '2') {
+          return http.Response(
+            '''
+        {
+          "data": [
+            {
+              "id": "24",
+              "type": "people",
+              "attributes": {"first_name": "Max", "last_name": "Mustermann"}
+            }
+          ],
+          "links": {"next": null}
+        }
+        ''',
+            200,
+            headers: <String, String>{'content-type': 'application/json'},
+          );
+        }
+
+        return http.Response(
+          '''
+        {
+          "data": [
+            {
+              "id": "23",
+              "type": "people",
+              "attributes": {"first_name": "Julia", "last_name": "Keller"}
+            }
+          ],
+          "links": {"next": "https://demo.hitobito.com/api/people?page=2"}
+        }
+        ''',
+          200,
+          headers: <String, String>{'content-type': 'application/json'},
+        );
+      });
+
+      final service = HitobitoPeopleService(
+        config: const HitobitoAuthConfig(
+          clientId: 'client',
+          clientSecret: 'secret',
+          authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
+          tokenUrl: 'https://demo.hitobito.com/oauth/token',
+          redirectUri: 'de.jlange.nami.app:/oauth/callback',
+          scopeString: 'openid email api',
+          discoveryUrl: '',
+          profileUrl: 'https://demo.hitobito.com/oauth/profile',
+        ),
+        httpClient: client,
+      );
+
+      final progressSnapshots = <int>[];
+      final resources = await service.fetchPeopleResources(
+        'token-123',
+        onPageLoaded: (loadedSoFar) => progressSnapshots.add(loadedSoFar.length),
+      );
+
+      expect(progressSnapshots, [1, 2]);
+      expect(resources, hasLength(2));
+      expect(resources.first.firstName, 'Julia');
+      expect(resources.last.firstName, 'Max');
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  test(
     'sendet JSON-API-Mutationen fuer Person und Unterressourcen mit demo-kompatiblem Contract',
     () async {
       final requests = <http.Request>[];

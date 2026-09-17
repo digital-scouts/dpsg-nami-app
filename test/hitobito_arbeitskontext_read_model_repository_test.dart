@@ -137,6 +137,119 @@ void main() {
   );
 
   test(
+    'refresh laedt Gruppen nicht erneut, wenn accessibleGroups bereits uebergeben wird',
+    () async {
+      final localRepository = _FakeArbeitskontextLocalRepository();
+      final groupsService = _FakeHitobitoGroupsService(
+        groups: const <HitobitoGroupResource>[
+          HitobitoGroupResource(id: 11, name: 'Stamm Musterdorf', isLayer: true),
+        ],
+      );
+      final repository = HitobitoArbeitskontextReadModelRepository(
+        groupsService: groupsService,
+        peopleService: _FakeHitobitoPeopleService(),
+        localRepository: localRepository,
+      );
+
+      final readModel = await repository.refresh(
+        accessToken: 'token-123',
+        arbeitskontext: Arbeitskontext(
+          aktiverLayer: const ArbeitskontextLayer(
+            id: 11,
+            name: 'Stamm Musterdorf',
+          ),
+        ),
+        accessibleGroups: const <HitobitoGroupResource>[
+          HitobitoGroupResource(id: 11, name: 'Stamm Musterdorf', isLayer: true),
+        ],
+      );
+
+      expect(groupsService.fetchCallCount, 0);
+      expect(readModel.arbeitskontext.aktiverLayer.id, 11);
+    },
+  );
+
+  test(
+    'refresh meldet pro People-Seite ein korrekt gefiltertes Zwischen-Readmodel ueber onProgress',
+    () async {
+      final repository = HitobitoArbeitskontextReadModelRepository(
+        groupsService: _FakeHitobitoGroupsService(
+          groups: const <HitobitoGroupResource>[
+            HitobitoGroupResource(
+              id: 11,
+              name: 'Stamm Musterdorf',
+              isLayer: true,
+              layerGroupId: 11,
+            ),
+            HitobitoGroupResource(
+              id: 999,
+              name: 'Fremde Gruppe',
+              isLayer: false,
+              parentId: 88,
+              layerGroupId: 88,
+            ),
+          ],
+        ),
+        peopleService: _FakeHitobitoPeopleService(
+          pages: const <List<HitobitoPersonResource>>[
+            <HitobitoPersonResource>[
+              HitobitoPersonResource(
+                id: 1,
+                firstName: 'Julia',
+                lastName: 'Keller',
+                membershipNumber: 1001,
+                primaryGroupId: 11,
+              ),
+            ],
+            <HitobitoPersonResource>[
+              // Gehoert zu einer fremden Gruppe/Layer - muss auch im
+              // Zwischenstand korrekt herausgefiltert werden.
+              HitobitoPersonResource(
+                id: 2,
+                firstName: 'Fremd',
+                lastName: 'Person',
+                membershipNumber: 2002,
+                primaryGroupId: 999,
+              ),
+              HitobitoPersonResource(
+                id: 3,
+                firstName: 'Max',
+                lastName: 'Mustermann',
+                membershipNumber: 1002,
+                primaryGroupId: 11,
+              ),
+            ],
+          ],
+        ),
+        localRepository: _FakeArbeitskontextLocalRepository(),
+      );
+
+      final progressSnapshots = <List<String>>[];
+      final readModel = await repository.refresh(
+        accessToken: 'token-123',
+        arbeitskontext: Arbeitskontext(
+          aktiverLayer: const ArbeitskontextLayer(
+            id: 11,
+            name: 'Stamm Musterdorf',
+          ),
+        ),
+        onProgress: (partial) => progressSnapshots.add(
+          partial.mitglieder.map((mitglied) => mitglied.mitgliedsnummer).toList(),
+        ),
+      );
+
+      expect(progressSnapshots, [
+        ['1001'],
+        ['1001', '1002'],
+      ]);
+      expect(
+        readModel.mitglieder.map((mitglied) => mitglied.mitgliedsnummer),
+        <String>['1001', '1002'],
+      );
+    },
+  );
+
+  test(
     'refresh behaelt Personen mit Layer-Zugehoerigkeit ueber Rollen auch ohne passende primary_group',
     () async {
       final repository = HitobitoArbeitskontextReadModelRepository(
@@ -598,17 +711,23 @@ class _FakeHitobitoGroupsService extends HitobitoGroupsService {
        );
 
   final List<HitobitoGroupResource> _groups;
+  int fetchCallCount = 0;
 
   @override
   Future<List<HitobitoGroupResource>> fetchAccessibleGroups(
     String accessToken,
-  ) async => _groups;
+  ) async {
+    fetchCallCount += 1;
+    return _groups;
+  }
 }
 
 class _FakeHitobitoPeopleService extends HitobitoPeopleService {
   _FakeHitobitoPeopleService({
     List<HitobitoPersonResource> people = const <HitobitoPersonResource>[],
+    List<List<HitobitoPersonResource>>? pages,
   }) : _people = people,
+       _pages = pages,
        super(
          config: const HitobitoAuthConfig(
            clientId: 'client',
@@ -623,11 +742,24 @@ class _FakeHitobitoPeopleService extends HitobitoPeopleService {
        );
 
   final List<HitobitoPersonResource> _people;
+  final List<List<HitobitoPersonResource>>? _pages;
 
   @override
   Future<List<HitobitoPersonResource>> fetchPeopleResources(
-    String accessToken,
-  ) async => _people;
+    String accessToken, {
+    void Function(List<HitobitoPersonResource> loadedSoFar)? onPageLoaded,
+  }) async {
+    final pages = _pages;
+    if (pages == null) {
+      return _people;
+    }
+    final loaded = <HitobitoPersonResource>[];
+    for (final page in pages) {
+      loaded.addAll(page);
+      onPageLoaded?.call(List.unmodifiable(loaded));
+    }
+    return loaded;
+  }
 }
 
 class _FakeHitobitoRolesService extends HitobitoRolesService {

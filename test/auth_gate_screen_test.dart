@@ -313,6 +313,8 @@ class _FakeArbeitskontextReadModelRepository
   Future<ArbeitskontextReadModel> refresh({
     required String accessToken,
     required Arbeitskontext arbeitskontext,
+    List<HitobitoGroupResource>? accessibleGroups,
+    void Function(ArbeitskontextReadModel partial)? onProgress,
   }) async {
     return ArbeitskontextReadModel(arbeitskontext: arbeitskontext);
   }

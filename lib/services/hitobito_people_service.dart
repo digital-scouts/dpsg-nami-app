@@ -66,8 +66,9 @@ class HitobitoPeopleService {
   }
 
   Future<List<HitobitoPersonResource>> fetchPeopleResources(
-    String accessToken,
-  ) async {
+    String accessToken, {
+    void Function(List<HitobitoPersonResource> loadedSoFar)? onPageLoaded,
+  }) async {
     final requestUri = config.peopleUri;
     if (requestUri == null) {
       throw const HitobitoPeopleException(
@@ -103,6 +104,7 @@ class HitobitoPeopleService {
           ),
         ),
       );
+      onPageLoaded?.call(List.unmodifiable(resources));
       nextUri = _resolveNextUri(decoded, currentUri: effectiveRequestUri);
     }
 
