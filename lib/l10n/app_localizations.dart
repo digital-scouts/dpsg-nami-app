@@ -234,7 +234,7 @@ class AppLocalizations {
           'Melde dich innerhalb von {days} Tagen erneut an, damit die lokalen Daten verfuegbar bleiben.',
       'settings_messages_retention_hint':
           'Hinweis: Externe Meldungen werden nach spaetestens 3 Tagen automatisch ausgeblendet.',
-      'logout': 'Logout',
+      'logout': 'Abmelden',
       'developed_with': 'Entwickelt mit',
       'developed_in_hamburg': 'in Hamburg',
       'version_label': 'Version',

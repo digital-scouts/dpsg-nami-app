@@ -19,6 +19,7 @@ import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
+import 'package:nami/presentation/model/urgent_notification_model.dart';
 import 'package:nami/presentation/screens/auth_gate_screen.dart';
 import 'package:nami/services/biometric_lock_service.dart';
 import 'package:nami/services/hitobito_auth_env.dart';
@@ -76,6 +77,9 @@ void main() {
             ChangeNotifierProvider<ArbeitskontextModel>.value(
               value: arbeitskontextModel,
             ),
+            ChangeNotifierProvider<UrgentNotificationModel>.value(
+              value: UrgentNotificationModel(),
+            ),
             Provider<LoggerService>.value(value: _FakeLoggerService()),
           ],
           child: MaterialApp(
@@ -128,6 +132,9 @@ void main() {
             ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
             ChangeNotifierProvider<ArbeitskontextModel>.value(
               value: arbeitskontextModel,
+            ),
+            ChangeNotifierProvider<UrgentNotificationModel>.value(
+              value: UrgentNotificationModel(),
             ),
             Provider<LoggerService>.value(value: _FakeLoggerService()),
           ],
@@ -194,6 +201,9 @@ void main() {
             ChangeNotifierProvider<ArbeitskontextModel>.value(
               value: arbeitskontextModel,
             ),
+            ChangeNotifierProvider<UrgentNotificationModel>.value(
+              value: UrgentNotificationModel(),
+            ),
             Provider<LoggerService>.value(value: _FakeLoggerService()),
           ],
           child: MaterialApp(
@@ -215,7 +225,16 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.textContaining('Stamm'), findsOneWidget);
-      expect(find.byIcon(Icons.lock_outline), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.ancestor(
+            of: find.text('Profil'),
+            matching: find.byType(Card),
+          ),
+          matching: find.byIcon(Icons.lock_outline),
+        ),
+        findsOneWidget,
+      );
     },
   );
 }

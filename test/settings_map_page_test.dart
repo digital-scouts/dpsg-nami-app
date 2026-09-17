@@ -79,14 +79,20 @@ void main() {
       findsOneWidget,
     );
 
-    final backButton = tester.widget<IconButton>(
+    expect(
       find.descendant(
         of: find.byKey(const ValueKey('settings-map-back-button')),
-        matching: find.byType(IconButton),
+        matching: find.byIcon(Icons.arrow_back),
       ),
+      findsOneWidget,
     );
-    expect(backButton.constraints?.minWidth, 48);
-    expect(backButton.constraints?.minHeight, 48);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('settings-map-back-button')),
+        matching: find.text('Zurück'),
+      ),
+      findsOneWidget,
+    );
 
     final polygonLayer = tester.widget<PolygonLayer<String>>(
       find.byType(PolygonLayer<String>),
