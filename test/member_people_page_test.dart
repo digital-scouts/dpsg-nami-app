@@ -326,6 +326,68 @@ void main() {
     );
   });
 
+  testWidgets(
+    'zeigt Fehlermeldung statt Leerstand nach fehlgeschlagenem Sync ohne Mitglieder',
+    (tester) async {
+      final authModel = await _createSignedInAuthModel();
+      final groupsService = _FakeHitobitoGroupsService(
+        groups: const <HitobitoGroupResource>[
+          HitobitoGroupResource(id: 11, name: 'Stamm Musterdorf', isLayer: true),
+        ],
+      );
+      final arbeitskontextModel = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: groupsService,
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+      const profile = AuthProfile(
+        namiId: 1,
+        primaryGroupId: 11,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 11,
+            groupName: 'Stamm Musterdorf',
+            roleName: 'Leitung',
+            roleClass: 'Group::Stamm::Leader',
+            permissions: <String>['layer_read'],
+          ),
+        ],
+      );
+
+      await arbeitskontextModel.syncForAuth(
+        authState: authModel.state,
+        session: authModel.session,
+        profile: profile,
+      );
+      expect(arbeitskontextModel.isReady, isTrue);
+      expect(arbeitskontextModel.readModel?.mitglieder, isEmpty);
+
+      groupsService.fetchErrorOverride = Exception('Netzwerkfehler');
+      await arbeitskontextModel.initializeForProfile(
+        profile,
+        session: authModel.session,
+        force: true,
+      );
+      expect(arbeitskontextModel.hasStaleDataWarning, isTrue);
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          authModel: authModel,
+          arbeitskontextModel: arbeitskontextModel,
+        ),
+      );
+      await tester.pump();
+
+      expect(
+        find.text('Mitglieder konnten nicht geladen werden.'),
+        findsOneWidget,
+      );
+      expect(find.text('Keine Mitglieder vorhanden'), findsNothing);
+    },
+  );
+
   testWidgets('oeffnet bei Tap auf ein Mitglied die Read-only-Detailansicht', (
     tester,
   ) async {
@@ -1184,30 +1246,43 @@ class _FakeArbeitskontextReadModelRepository
   Future<ArbeitskontextReadModel> refresh({
     required String accessToken,
     required Arbeitskontext arbeitskontext,
+    List<HitobitoGroupResource>? accessibleGroups,
+    void Function(ArbeitskontextReadModel partial)? onProgress,
   }) async {
     return ArbeitskontextReadModel(arbeitskontext: arbeitskontext);
   }
 }
 
 class _FakeHitobitoGroupsService extends HitobitoGroupsService {
-  _FakeHitobitoGroupsService()
-    : super(
-        config: const HitobitoAuthConfig(
-          clientId: 'client',
-          clientSecret: 'secret',
-          authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
-          tokenUrl: 'https://demo.hitobito.com/oauth/token',
-          redirectUri: 'de.jlange.nami.app:/oauth/callback',
-          scopeString: 'openid email api',
-          discoveryUrl: '',
-          profileUrl: 'https://demo.hitobito.com/oauth/profile',
-        ),
-      );
+  _FakeHitobitoGroupsService({
+    List<HitobitoGroupResource> groups = const <HitobitoGroupResource>[],
+  }) : _groups = groups,
+       super(
+         config: const HitobitoAuthConfig(
+           clientId: 'client',
+           clientSecret: 'secret',
+           authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
+           tokenUrl: 'https://demo.hitobito.com/oauth/token',
+           redirectUri: 'de.jlange.nami.app:/oauth/callback',
+           scopeString: 'openid email api',
+           discoveryUrl: '',
+           profileUrl: 'https://demo.hitobito.com/oauth/profile',
+         ),
+       );
+
+  final List<HitobitoGroupResource> _groups;
+  Object? fetchErrorOverride;
 
   @override
   Future<List<HitobitoGroupResource>> fetchAccessibleGroups(
     String accessToken,
-  ) async => const <HitobitoGroupResource>[];
+  ) async {
+    final error = fetchErrorOverride;
+    if (error != null) {
+      throw error;
+    }
+    return _groups;
+  }
 }
 
 class _InMemoryAuthProfileRepository implements AuthProfileRepository {

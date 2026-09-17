@@ -462,6 +462,18 @@ class AppLocalizations {
           'Arbeitskontext konnte nicht initialisiert werden',
       'nav_work_context_error_body':
           'Der App-Start konnte keinen gültigen Arbeitskontext herstellen. Die Einstellungen bleiben erreichbar.',
+      'nav_work_context_step_login': 'Login',
+      'nav_work_context_step_groups': 'Gruppen',
+      'nav_work_context_step_members': 'Mitglieder',
+      'nav_work_context_step_roles': 'Rollen',
+      'nav_work_context_step_groups_done': '{count} Gruppen gefunden',
+      'nav_work_context_step_members_done': '{count} Mitglieder geladen',
+      'nav_work_context_step_members_loading_count': '{count} geladen…',
+      'nav_work_context_step_state_waiting': 'Wartet',
+      'nav_work_context_step_state_loading': 'Lädt…',
+      'nav_work_context_step_state_done': 'OK',
+      'nav_work_context_sync_warning':
+          'Aktualisierung fehlgeschlagen – zuletzt geladene Daten werden angezeigt.',
       'debug_title': 'Debug & Tools',
       'debug_logs_section_title': 'Logs & Diagnose',
       'debug_logs_section_subtitle':
@@ -1030,6 +1042,18 @@ class AppLocalizations {
       'nav_work_context_error_title': 'Work context could not be initialized',
       'nav_work_context_error_body':
           'App startup could not establish a valid work context. Settings remain available.',
+      'nav_work_context_step_login': 'Sign-in',
+      'nav_work_context_step_groups': 'Groups',
+      'nav_work_context_step_members': 'Members',
+      'nav_work_context_step_roles': 'Roles',
+      'nav_work_context_step_groups_done': '{count} groups found',
+      'nav_work_context_step_members_done': '{count} members loaded',
+      'nav_work_context_step_members_loading_count': '{count} loaded…',
+      'nav_work_context_step_state_waiting': 'Waiting',
+      'nav_work_context_step_state_loading': 'Loading…',
+      'nav_work_context_step_state_done': 'OK',
+      'nav_work_context_sync_warning':
+          'Update failed – showing the most recently loaded data.',
       'debug_title': 'Debug & Tools',
       'debug_logs_section_title': 'Logs & Diagnostics',
       'debug_logs_section_subtitle':

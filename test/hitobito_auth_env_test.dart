@@ -40,7 +40,7 @@ void main() {
         config.discoveryUrl,
         'https://demo.hitobito.com/.well-known/openid-configuration',
       );
-      expect(config.profileUrl, 'https://demo.hitobito.com/de/oauth/profile');
+      expect(config.profileUrl, 'https://demo.hitobito.com/oauth/profile');
       expect(
         config.peopleUri,
         Uri.parse('https://demo.hitobito.com/api/people'),

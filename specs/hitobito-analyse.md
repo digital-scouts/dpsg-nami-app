@@ -323,9 +323,17 @@ Die App leitet daraus aktuell diese Endpunkte ab:
 - Discovery Endpoint: <https://demo.hitobito.com/.well-known/openid-configuration>
 - Authorization Endpoint: <https://demo.hitobito.com/oauth/authorize>
 - Token Endpoint: <https://demo.hitobito.com/oauth/token>
-- Profile Endpoint: <https://demo.hitobito.com/de/oauth/profile>
+- Profile Endpoint: <https://demo.hitobito.com/oauth/profile>
 - People Endpoint: <https://demo.hitobito.com/api/people>
 
 Die App fordert beim OAuth-Login aktuell standardmäßig die Scopes `openid name email api with_roles` an.
 
-Profile Informationen des Benutzers können über den aktuell in der App verwendeten Endpoint `/de/oauth/profile` bezogen werden. Dabei muss das Access Token im Authorization Header übergeben werden. Für die Profilansicht der App werden Rollen über den Header `X-Scope: with_roles` mitgeladen. Zusätzlich ist `with_roles` aktuell auch Teil der beim Login angeforderten OAuth-Scopes.
+Profile Informationen des Benutzers können über den aktuell in der App verwendeten Endpoint `/oauth/profile` bezogen werden. Dabei muss das Access Token im Authorization Header übergeben werden. Für die Profilansicht der App werden Rollen über den Header `X-Scope: with_roles` mitgeladen. Zusätzlich ist `with_roles` aktuell auch Teil der beim Login angeforderten OAuth-Scopes.
+
+> Hinweis (2026-09-17): Der Endpoint wurde zwischenzeitlich testweise auf
+> `/de/oauth/profile` geändert (vermeintlich laut dieser Spec erforderlich).
+> Ein Live-Test gegen die produktive Instanz `dpsg.puzzle.ch` zeigte jedoch
+> einen 404 auf `/de/oauth/profile`, waehrend `/oauth/profile` (ohne
+> Locale-Praefix) dort funktioniert. Andere Hitobito-Instanzen koennten
+> abweichend konfiguriert sein - vor einer erneuten Aenderung dieses
+> Endpoints unbedingt gegen die tatsaechlich genutzte(n) Instanz(en) pruefen.

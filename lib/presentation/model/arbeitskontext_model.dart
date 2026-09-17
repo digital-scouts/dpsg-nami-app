@@ -20,6 +20,27 @@ import '../../services/logger_service.dart';
 
 enum ArbeitskontextStatus { initial, loading, ready, unauthorized, error }
 
+enum ArbeitskontextLoadingStep { checkingLogin, loadingGroups, loadingMembers }
+
+enum ArbeitskontextLoadingStepState { waiting, loading, done }
+
+class ArbeitskontextLoadingStepStatus {
+  const ArbeitskontextLoadingStepStatus({
+    required this.labelKey,
+    required this.state,
+    this.detailKey,
+    this.detailCount,
+  });
+
+  /// l10n-Key fuer den Zeilentitel (z.B. "Gruppen").
+  final String labelKey;
+  final ArbeitskontextLoadingStepState state;
+  /// l10n-Key fuer einen abweichenden Statustext (z.B. "{count} Gruppen
+  /// gefunden"), nur gesetzt wenn state == done und ein Zaehler bekannt ist.
+  final String? detailKey;
+  final int? detailCount;
+}
+
 typedef ArbeitskontextRemoteAccessExecutor =
     Future<T?> Function<T>({
       required String trigger,
@@ -97,6 +118,19 @@ class ArbeitskontextModel extends ChangeNotifier {
   // stillschweigend mit einem veralteten ReadModel abzubrechen.
   Future<void>? _syncInFlight;
   Future<bool>? _rolesInFlight;
+  // Nur waehrend des initialen Ladevorgangs (initializeForProfile ohne
+  // Cache-Treffer) gesetzt, damit die UI dem Nutzer zeigen kann, welcher von
+  // mehreren Schritten gerade laeuft. Hintergrund-Refreshes beeinflussen
+  // dieses Feld bewusst nicht.
+  ArbeitskontextLoadingStep? _loadingStep;
+  int? _lastGroupsCount;
+  int? _lastMembersCount;
+  // Ab dem ersten initializeForProfile-Durchlauf (egal ob per Cache oder
+  // remote) bis zum Abschluss des zugehoerigen Rollen-Nachladens true -
+  // steuert die kompakte Checklisten-Anzeige, nachdem die Shell schon
+  // sichtbar ist. Spaetere Refreshes/Layerwechsel setzen dieses Feld
+  // bewusst nicht erneut, damit es kein Dauer-Banner wird.
+  bool _isInitialSequenceActive = false;
 
   ArbeitskontextStatus get status => _status;
   Arbeitskontext? get arbeitskontext => _arbeitskontext;
@@ -108,7 +142,83 @@ class ArbeitskontextModel extends ChangeNotifier {
   bool get hasError => _status == ArbeitskontextStatus.error;
   bool get isSwitchingLayer => _isSwitchingLayer;
   bool get isLoadingRoles => _isLoadingRoles;
+  /// True waehrend initializeForProfile/refreshFromRemote laufen (Login-
+  /// Pruefung bis Mitglieder geladen) - unabhaengig davon, ob es sich um den
+  /// initialen Login oder einen spaeteren Sync (Pull-to-refresh, Debug-Tools)
+  /// handelt.
+  bool get isSynchronizing => _isSynchronizing;
   bool get areRolesLoaded => _readModel?.rolesSindGeladen ?? false;
+  bool get hasStaleDataWarning =>
+      status == ArbeitskontextStatus.ready && errorMessage != null;
+  /// True, solange die dem Login folgende Erstladesequenz (Gruppen,
+  /// Mitglieder, Rollen) noch nicht vollstaendig abgeschlossen ist - auch
+  /// nachdem die Shell (arbeitskontext != null) schon sichtbar ist.
+  bool get isInitialSequenceActive => _isInitialSequenceActive;
+
+  /// Die vier Phasen des initialen Ladevorgangs (Login, Gruppen, Mitglieder,
+  /// Rollen) samt aktuellem Status - fuer eine Checklisten-Anzeige waehrend
+  /// des Logins. Rollen laden im Hintergrund weiter, auch nachdem die
+  /// ersten drei Schritte bereits abgeschlossen sind.
+  List<ArbeitskontextLoadingStepStatus> get loadingSteps {
+    final currentPhaseIndex = switch (_loadingStep) {
+      ArbeitskontextLoadingStep.checkingLogin => 0,
+      ArbeitskontextLoadingStep.loadingGroups => 1,
+      ArbeitskontextLoadingStep.loadingMembers => 2,
+      null => _status == ArbeitskontextStatus.initial ? -1 : 3,
+    };
+
+    ArbeitskontextLoadingStepState stateFor(int index) {
+      if (currentPhaseIndex < 0) {
+        return ArbeitskontextLoadingStepState.waiting;
+      }
+      if (index < currentPhaseIndex) {
+        return ArbeitskontextLoadingStepState.done;
+      }
+      if (index == currentPhaseIndex) {
+        return ArbeitskontextLoadingStepState.loading;
+      }
+      return ArbeitskontextLoadingStepState.waiting;
+    }
+
+    final groupsState = stateFor(1);
+    final membersState = stateFor(2);
+    final rolesState = areRolesLoaded
+        ? ArbeitskontextLoadingStepState.done
+        : (_isLoadingRoles
+              ? ArbeitskontextLoadingStepState.loading
+              : ArbeitskontextLoadingStepState.waiting);
+
+    return <ArbeitskontextLoadingStepStatus>[
+      ArbeitskontextLoadingStepStatus(
+        labelKey: 'nav_work_context_step_login',
+        state: stateFor(0),
+      ),
+      ArbeitskontextLoadingStepStatus(
+        labelKey: 'nav_work_context_step_groups',
+        state: groupsState,
+        detailKey: groupsState == ArbeitskontextLoadingStepState.done
+            ? 'nav_work_context_step_groups_done'
+            : null,
+        detailCount: _lastGroupsCount,
+      ),
+      ArbeitskontextLoadingStepStatus(
+        labelKey: 'nav_work_context_step_members',
+        state: membersState,
+        detailKey: switch (membersState) {
+          ArbeitskontextLoadingStepState.done =>
+            'nav_work_context_step_members_done',
+          ArbeitskontextLoadingStepState.loading when _lastMembersCount != null =>
+            'nav_work_context_step_members_loading_count',
+          _ => null,
+        },
+        detailCount: _lastMembersCount,
+      ),
+      ArbeitskontextLoadingStepStatus(
+        labelKey: 'nav_work_context_step_roles',
+        state: rolesState,
+      ),
+    ];
+  }
 
   bool istMitgliedSchreibbar(Mitglied mitglied) {
     final readModel = _readModel;
@@ -175,12 +285,11 @@ class ArbeitskontextModel extends ChangeNotifier {
     required AuthSession? session,
     required AuthProfile? profile,
   }) async {
-    final mustClear =
-        authState == AuthState.signedOut ||
-        authState == AuthState.error ||
-        profile == null;
+    final isSignedInState =
+        authState == AuthState.signedIn ||
+        authState == AuthState.unlockRequired;
 
-    if (mustClear) {
+    if (!isSignedInState && authState != AuthState.reloginRequired) {
       _resetState();
       return;
     }
@@ -192,6 +301,23 @@ class ArbeitskontextModel extends ChangeNotifier {
     }
 
     _session = session;
+
+    if (profile == null) {
+      // Angemeldet, aber (noch) kein Profil verfuegbar - z.B. weil der
+      // Profil-Abruf fehlgeschlagen ist. Ohne Profil (insb. profile.roles)
+      // kann kein Startkontext bestimmt werden. Statt still auf "initial"
+      // zurueckzufallen (unsichtbarer, dauerhafter Ladezustand ohne
+      // Fehleranzeige/Retry), zeigen wir einen echten Fehlerzustand, sofern
+      // noch kein Arbeitskontext aus einer frueheren Sitzung vorhanden ist.
+      if (_arbeitskontext == null) {
+        _status = ArbeitskontextStatus.error;
+        _errorMessage =
+            'Profil konnte nicht geladen werden. Bitte erneut versuchen.';
+        notifyListeners();
+      }
+      return;
+    }
+
     _profile = profile;
     await initializeForProfile(profile, session: session);
   }
@@ -243,6 +369,7 @@ class ArbeitskontextModel extends ChangeNotifier {
     _errorMessage = null;
     _activeProfileId = profile.namiId;
     _profileFingerprint = fingerprint;
+    _loadingStep = ArbeitskontextLoadingStep.checkingLogin;
     notifyListeners();
 
     try {
@@ -255,6 +382,7 @@ class ArbeitskontextModel extends ChangeNotifier {
           'arbeitskontext',
           'Arbeitskontext erfolgreich aus lokalem Cache geladen: layer=${cached.arbeitskontext.aktiverLayer.id} name=${cached.arbeitskontext.aktiverLayer.name}',
         );
+        _isInitialSequenceActive = true;
         _scheduleRolesPreload();
         return;
       }
@@ -265,6 +393,10 @@ class ArbeitskontextModel extends ChangeNotifier {
         );
       }
 
+      _loadingStep = ArbeitskontextLoadingStep.loadingGroups;
+      _lastGroupsCount = null;
+      _lastMembersCount = null;
+      notifyListeners();
       final accessibleGroups =
           await _executeRemoteAccess<List<HitobitoGroupResource>>(
             trigger: 'arbeitskontext_initialize_groups',
@@ -278,6 +410,7 @@ class ArbeitskontextModel extends ChangeNotifier {
             : ArbeitskontextStatus.initial;
         return;
       }
+      _lastGroupsCount = accessibleGroups.length;
       final arbeitskontext = _bestimmeStartkontext(
         profile: profile,
         accessibleGroups: accessibleGroups,
@@ -287,12 +420,21 @@ class ArbeitskontextModel extends ChangeNotifier {
         return;
       }
 
+      // Kontext schon freigeben, bevor die (potenziell langsame)
+      // Mitgliederliste vollstaendig da ist: die App-Shell kann damit schon
+      // angezeigt werden, waehrend Mitglieder im Hintergrund weiterladen.
+      _arbeitskontext = arbeitskontext;
+      _loadingStep = ArbeitskontextLoadingStep.loadingMembers;
+      notifyListeners();
+
       _readModel = await _executeRemoteAccess<ArbeitskontextReadModel>(
         trigger: 'arbeitskontext_initialize_read_model',
         session: session,
         action: (activeSession) => _readModelRepository.refresh(
           accessToken: activeSession.accessToken,
           arbeitskontext: arbeitskontext,
+          accessibleGroups: accessibleGroups,
+          onProgress: _applyProgressReadModel,
         ),
       );
       if (_readModel == null) {
@@ -301,28 +443,42 @@ class ArbeitskontextModel extends ChangeNotifier {
             : ArbeitskontextStatus.initial;
         return;
       }
-      _arbeitskontext = _readModel?.arbeitskontext;
+      _arbeitskontext = _readModel?.arbeitskontext ?? _arbeitskontext;
       _status = ArbeitskontextStatus.ready;
+      _lastMembersCount = _readModel?.mitglieder.length;
       if (_arbeitskontext != null) {
         await _logger.log(
           'arbeitskontext',
           'Arbeitskontext erfolgreich remote geladen: layer=${_arbeitskontext!.aktiverLayer.id} name=${_arbeitskontext!.aktiverLayer.name} gruppen=${_readModel?.gruppen.length ?? 0} mitglieder=${_readModel?.mitglieder.length ?? 0}',
         );
       }
+      _isInitialSequenceActive = true;
       _scheduleRolesPreload();
     } catch (error, stack) {
       await _logger.log(
         'arbeitskontext',
         'Arbeitskontext konnte nicht initialisiert werden: $error\n$stack',
       );
-      _arbeitskontext = null;
-      _readModel = null;
-      _status = ArbeitskontextStatus.error;
+      _status = _arbeitskontext != null
+          ? ArbeitskontextStatus.ready
+          : ArbeitskontextStatus.error;
       _errorMessage = error.toString();
     } finally {
       _isSynchronizing = false;
+      _loadingStep = null;
       notifyListeners();
     }
+  }
+
+  /// Wird pro geladener People-Seite aufgerufen (siehe
+  /// ArbeitskontextReadModelRepository.refresh's onProgress-Parameter), damit
+  /// bereits geladene Mitglieder sofort sichtbar werden, waehrend weitere
+  /// Seiten im Hintergrund nachladen.
+  void _applyProgressReadModel(ArbeitskontextReadModel partial) {
+    _readModel = partial;
+    _arbeitskontext = partial.arbeitskontext;
+    _lastMembersCount = partial.mitglieder.length;
+    notifyListeners();
   }
 
   Future<void> retry(AuthProfile? profile) async {
@@ -384,13 +540,30 @@ class ArbeitskontextModel extends ChangeNotifier {
     required bool scheduleRolesPreload,
   }) async {
     final previousStatus = _status;
+    // Viele Startup-/Maintenance-Trigger (main.dart: _syncArbeitskontextComplete,
+    // Auth-Maintenance-Timer, Connectivity-Listener) fuehren den allerersten
+    // Ladevorgang der Session ueber refreshFromRemote statt initializeForProfile
+    // aus. Ohne diese Erkennung wuerde die gleiche Fehlerbehandlung/Progress-
+    // Anzeige, die initializeForProfile bereits bekommen hat, hier fehlen.
+    final isInitialLoad = _arbeitskontext == null;
     _isSynchronizing = true;
     if (_status != ArbeitskontextStatus.ready) {
       _status = ArbeitskontextStatus.loading;
+      if (isInitialLoad) {
+        _loadingStep = ArbeitskontextLoadingStep.checkingLogin;
+      }
       notifyListeners();
     }
 
     try {
+      // Anders als isInitialSequenceActive laeuft die Schritt-Anzeige
+      // (loadingStep) hier bewusst auch fuer spaetere Syncs (Pull-to-refresh,
+      // Debug-Tools) mit, damit die Ladeinfo-Checkliste im Tab-Shell-Banner
+      // bei jedem Sync sinnvolle Zwischenstaende zeigt statt nur "OK".
+      _loadingStep = ArbeitskontextLoadingStep.loadingGroups;
+      _lastGroupsCount = null;
+      _lastMembersCount = null;
+      notifyListeners();
       final accessibleGroups =
           await _executeRemoteAccess<List<HitobitoGroupResource>>(
             trigger: 'arbeitskontext_refresh_groups',
@@ -409,6 +582,7 @@ class ArbeitskontextModel extends ChangeNotifier {
         _status = previousStatus;
         return;
       }
+      _lastGroupsCount = accessibleGroups.length;
       final nextArbeitskontext = _arbeitskontext != null
           ? _mergeCurrentKontext(
               current: _arbeitskontext!,
@@ -423,6 +597,13 @@ class ArbeitskontextModel extends ChangeNotifier {
         _setUnauthorizedState();
         return;
       }
+      if (isInitialLoad) {
+        // Kontext schon freigeben, bevor die Mitgliederliste fertig ist -
+        // siehe initializeForProfile fuer die identische Begruendung.
+        _arbeitskontext = nextArbeitskontext;
+      }
+      _loadingStep = ArbeitskontextLoadingStep.loadingMembers;
+      notifyListeners();
       _readModel = await _executeRemoteAccess<ArbeitskontextReadModel>(
         trigger: 'arbeitskontext_refresh_read_model',
         session: session,
@@ -430,6 +611,8 @@ class ArbeitskontextModel extends ChangeNotifier {
         action: (activeSession) => _readModelRepository.refresh(
           accessToken: activeSession.accessToken,
           arbeitskontext: nextArbeitskontext,
+          accessibleGroups: accessibleGroups,
+          onProgress: _applyProgressReadModel,
         ),
       );
       if (_readModel == null) {
@@ -442,14 +625,18 @@ class ArbeitskontextModel extends ChangeNotifier {
         _status = previousStatus;
         return;
       }
-      _arbeitskontext = _readModel?.arbeitskontext;
+      _arbeitskontext = _readModel?.arbeitskontext ?? _arbeitskontext;
       _errorMessage = null;
       _status = ArbeitskontextStatus.ready;
+      _lastMembersCount = _readModel?.mitglieder.length;
       if (_arbeitskontext != null) {
         await _logger.log(
           'arbeitskontext',
           'Arbeitskontext erfolgreich aktualisiert: layer=${_arbeitskontext!.aktiverLayer.id} name=${_arbeitskontext!.aktiverLayer.name} gruppen=${_readModel?.gruppen.length ?? 0} mitglieder=${_readModel?.mitglieder.length ?? 0}',
         );
+      }
+      if (isInitialLoad) {
+        _isInitialSequenceActive = true;
       }
       if (scheduleRolesPreload) {
         _scheduleRolesPreload();
@@ -459,12 +646,16 @@ class ArbeitskontextModel extends ChangeNotifier {
         'arbeitskontext',
         'Arbeitskontext-Refresh fehlgeschlagen: $error\n$stack',
       );
-      _status = previousStatus == ArbeitskontextStatus.initial
-          ? ArbeitskontextStatus.error
-          : previousStatus;
+      // War schon ein Kontext bekannt (entweder von vorher, oder weil dieser
+      // Durchlauf ihn bereits fruehzeitig gesetzt hat), zeigen wir keinen
+      // Vollbild-Fehler, sondern behalten die Daten mit dezentem Hinweis.
+      _status = _arbeitskontext != null
+          ? ArbeitskontextStatus.ready
+          : ArbeitskontextStatus.error;
       _errorMessage = error.toString();
     } finally {
       _isSynchronizing = false;
+      _loadingStep = null;
       notifyListeners();
     }
   }
@@ -490,38 +681,48 @@ class ArbeitskontextModel extends ChangeNotifier {
     required bool surfaceErrors,
     bool allowMobileDataOverride = false,
   }) async {
-    final inFlightRoles = _rolesInFlight;
-    if (inFlightRoles != null) {
-      return inFlightRoles;
-    }
-
-    final currentReadModel = _readModel;
-    final session = _session;
-    if (currentReadModel == null) {
-      return false;
-    }
-    if (currentReadModel.rolesSindGeladen) {
-      return true;
-    }
-    if (_isSynchronizing || _isSwitchingLayer) {
-      return false;
-    }
-    if (session == null || session.accessToken.isEmpty) {
-      return false;
-    }
-
-    final operation = _runLoadRoles(
-      currentReadModel: currentReadModel,
-      session: session,
-      surfaceErrors: surfaceErrors,
-      allowMobileDataOverride: allowMobileDataOverride,
-    );
-    _rolesInFlight = operation;
     try {
-      return await operation;
+      final inFlightRoles = _rolesInFlight;
+      if (inFlightRoles != null) {
+        return await inFlightRoles;
+      }
+
+      final currentReadModel = _readModel;
+      final session = _session;
+      if (currentReadModel == null) {
+        return false;
+      }
+      if (currentReadModel.rolesSindGeladen) {
+        return true;
+      }
+      if (_isSynchronizing || _isSwitchingLayer) {
+        return false;
+      }
+      if (session == null || session.accessToken.isEmpty) {
+        return false;
+      }
+
+      final operation = _runLoadRoles(
+        currentReadModel: currentReadModel,
+        session: session,
+        surfaceErrors: surfaceErrors,
+        allowMobileDataOverride: allowMobileDataOverride,
+      );
+      _rolesInFlight = operation;
+      try {
+        return await operation;
+      } finally {
+        if (identical(_rolesInFlight, operation)) {
+          _rolesInFlight = null;
+        }
+      }
     } finally {
-      if (identical(_rolesInFlight, operation)) {
-        _rolesInFlight = null;
+      // Unabhaengig davon, ueber welchen Pfad _loadRoles endet (Rollen
+      // schon geladen, kein ReadModel, tatsaechlicher Remote-Aufruf, ...):
+      // die Erstladesequenz-Anzeige darf danach nicht haengen bleiben.
+      if (_isInitialSequenceActive) {
+        _isInitialSequenceActive = false;
+        notifyListeners();
       }
     }
   }
@@ -671,6 +872,7 @@ class ArbeitskontextModel extends ChangeNotifier {
         action: (activeSession) => _readModelRepository.refresh(
           accessToken: activeSession.accessToken,
           arbeitskontext: nextArbeitskontext,
+          accessibleGroups: accessibleGroups,
         ),
       );
       if (_readModel == null) {

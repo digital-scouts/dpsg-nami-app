@@ -314,7 +314,9 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
       return Center(child: Text(t.t('members_login_required')));
     }
 
-    if (arbeitskontextModel.hasError || authModel.hasRemoteAccessIssue) {
+    if (arbeitskontextModel.hasError ||
+        authModel.hasRemoteAccessIssue ||
+        arbeitskontextModel.errorMessage != null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),

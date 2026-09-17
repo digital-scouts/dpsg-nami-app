@@ -160,6 +160,48 @@ void main() {
   );
 
   test(
+    'setzt state auf error statt eine Exception unbehandelt zu lassen, wenn initialize fehlschlaegt',
+    () async {
+      final repository = _InMemoryAuthSessionRepository()
+        ..loadError = Exception('Storage nicht verfuegbar');
+
+      final model = AuthSessionModel(
+        repository: repository,
+        profileRepository: _InMemoryAuthProfileRepository(),
+        oauthService: _FakeOauthService(
+          sessionToReturn: AuthSession(
+            accessToken: 'unused',
+            receivedAt: DateTime(2026, 3, 27),
+          ),
+          profileToReturn: const AuthProfile(
+            namiId: 37,
+            firstName: 'Lea',
+            lastName: 'Beispiel',
+          ),
+        ),
+        biometricLockService: _FakeBiometricLockService(),
+        sensitiveStorageService: _FakeSensitiveStorageService(),
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => DateTime(2026, 3, 27, 12),
+        ),
+        logger: _createLogger(),
+      );
+
+      // Darf nicht mit einer unbehandelten Exception fehlschlagen - main.dart
+      // ruft initialize() erst NACH runApp() auf; eine hier unbehandelte
+      // Exception wuerde sonst (ausserhalb dieses Tests) den Nutzer ohne
+      // jede Fehleranzeige zuruecklassen.
+      await model.initialize();
+
+      expect(model.state, AuthState.error);
+      expect(model.errorMessage, isNotNull);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  test(
     'setzt uebernommene Session ohne Profildaten und Sync-Stand bei initialize auf signedOut zurueck',
     () async {
       final repository = _InMemoryAuthSessionRepository(
@@ -1259,6 +1301,7 @@ class _InMemoryAuthSessionRepository implements AuthSessionRepository {
     : _session = initialSession;
 
   AuthSession? _session;
+  Object? loadError;
 
   @override
   Future<void> clear() async {
@@ -1266,7 +1309,13 @@ class _InMemoryAuthSessionRepository implements AuthSessionRepository {
   }
 
   @override
-  Future<AuthSession?> load() async => _session;
+  Future<AuthSession?> load() async {
+    final error = loadError;
+    if (error != null) {
+      throw error;
+    }
+    return _session;
+  }
 
   @override
   Future<void> save(AuthSession session) async {
