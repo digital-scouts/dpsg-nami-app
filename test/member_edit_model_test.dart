@@ -8,6 +8,7 @@ import 'package:nami/domain/member/pending_person_update_repository.dart';
 import 'package:nami/domain/settings/app_settings.dart';
 import 'package:nami/domain/settings/app_settings_repository.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
+import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/member_edit_model.dart';
 import 'package:nami/services/logger_service.dart';
 
@@ -103,7 +104,10 @@ void main() {
 
     expect(result.success, isTrue);
     expect(result.member?.vorname, 'Juliane');
-    expect(result.message, contains('Lokaler Bearbeitungsstand'));
+    expect(
+      result.resolveMessage(AppLocalizations(const Locale('de'))),
+      contains('Lokaler Bearbeitungsstand'),
+    );
   });
 
   test(
@@ -134,7 +138,10 @@ void main() {
 
       expect(result.success, isTrue);
       expect(result.member, basisMitglied);
-      expect(result.message, contains('lokal gespeicherten Daten'));
+      expect(
+        result.resolveMessage(AppLocalizations(const Locale('de'))),
+        contains('lokal gespeicherten Daten'),
+      );
     },
   );
 
@@ -168,8 +175,11 @@ void main() {
 
       expect(result.success, isTrue);
       expect(result.member, basisMitglied);
-      expect(result.message, contains('lokal gespeicherten Daten'));
-      expect(result.message, contains('erneute Anmeldung erforderlich'));
+      final resolvedMessage = result.resolveMessage(
+        AppLocalizations(const Locale('de')),
+      );
+      expect(resolvedMessage, contains('lokal gespeicherten Daten'));
+      expect(resolvedMessage, contains('erneute Anmeldung erforderlich'));
       expect(
         logger.events,
         contains(
@@ -327,8 +337,11 @@ void main() {
       expect(result.success, isFalse);
       expect(result.wasQueued, isTrue);
       expect(result.notice, MemberEditSubmitNotice.warning);
-      expect(result.message, contains('lokal gespeichert'));
-      expect(result.message, contains('erneute Anmeldung erforderlich'));
+      final resolvedMessage = result.resolveMessage(
+        AppLocalizations(const Locale('de')),
+      );
+      expect(resolvedMessage, contains('lokal gespeichert'));
+      expect(resolvedMessage, contains('erneute Anmeldung erforderlich'));
       expect(result.pendingEntry, isNotNull);
       expect(model.pendingUpdates, hasLength(1));
       expect(model.pendingUpdates.single.personId, 23);

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/domain/member/member_address_utils.dart';
 import 'package:nami/domain/member/mitglied.dart';
+import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/widgets/member_address_card.dart';
 
 void main() {
@@ -60,6 +62,14 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          AppLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('de'), Locale('en')],
+        locale: const Locale('de'),
         home: Scaffold(
           body: MemberAddressCard(
             mitglied: member,
