@@ -516,14 +516,30 @@ class AuthSessionModel extends ChangeNotifier {
     bool allowMobileDataOverride = false,
   }) async {
     if (_session == null || _state == AuthState.reloginRequired) {
+      await _logger.log(
+        'auth_flow',
+        'Remote-Zugriff abgebrochen ($trigger): '
+            'session=${_session != null} state=$_state',
+      );
       return const _PreparedRemoteAccess(session: null);
     }
 
     if (_requiresInteractiveLogin) {
+      await _logger.log(
+        'auth_flow',
+        'Remote-Zugriff abgebrochen ($trigger): '
+            'interaktiver Login erforderlich',
+      );
       return const _PreparedRemoteAccess(session: null);
     }
 
     if (_retentionPolicy.isReloginRequired(_lastSensitiveSyncAt)) {
+      await _logger.log(
+        'auth_flow',
+        'Remote-Zugriff abgebrochen ($trigger): '
+            'Aufbewahrungsrichtlinie verlangt Relogin '
+            '(lastSensitiveSyncAt=$_lastSensitiveSyncAt)',
+      );
       await _expireSensitiveData();
       return const _PreparedRemoteAccess(session: null);
     }
