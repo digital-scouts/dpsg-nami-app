@@ -553,9 +553,7 @@ class ArbeitskontextModel extends ChangeNotifier {
         if (fresh.roles.isEmpty &&
             (previousByNummer[fresh.mitgliedsnummer]?.roles.isNotEmpty ??
                 false))
-          fresh.copyWith(
-            roles: previousByNummer[fresh.mitgliedsnummer]!.roles,
-          )
+          fresh.copyWith(roles: previousByNummer[fresh.mitgliedsnummer]!.roles)
         else
           fresh,
       for (final stale in previous.mitglieder)

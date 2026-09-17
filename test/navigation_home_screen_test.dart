@@ -197,7 +197,11 @@ void main() {
       final authModel = await _createSignedInAuthModel();
       final groupsService = _FakeHitobitoGroupsService(
         groups: const <HitobitoGroupResource>[
-          HitobitoGroupResource(id: 11, name: 'Stamm Musterdorf', isLayer: true),
+          HitobitoGroupResource(
+            id: 11,
+            name: 'Stamm Musterdorf',
+            isLayer: true,
+          ),
         ],
       );
       final delayCompleter = Completer<void>();
@@ -235,11 +239,12 @@ void main() {
       // Navigation - hier interessiert nur das oberste Vorkommen (die
       // Checkliste), daher wird ueber die y-Position gefiltert.
       Offset topmostTopLeft(String label) {
-        final positions = tester
-            .renderObjectList<RenderBox>(find.text(label))
-            .map((box) => box.localToGlobal(Offset.zero))
-            .toList()
-          ..sort((a, b) => a.dy.compareTo(b.dy));
+        final positions =
+            tester
+                .renderObjectList<RenderBox>(find.text(label))
+                .map((box) => box.localToGlobal(Offset.zero))
+                .toList()
+              ..sort((a, b) => a.dy.compareTo(b.dy));
         return positions.first;
       }
 
@@ -264,8 +269,9 @@ void main() {
           .style;
       expect(qualifikationenStyle?.color, theme.colorScheme.onSurfaceVariant);
       expect(qualifikationenStyle?.color, isNot(theme.colorScheme.outline));
-      final waitingIcon = tester
-          .widget<Icon>(find.byIcon(Icons.circle_outlined).first);
+      final waitingIcon = tester.widget<Icon>(
+        find.byIcon(Icons.circle_outlined).first,
+      );
       expect(waitingIcon.color, theme.colorScheme.onSurfaceVariant);
       expect(waitingIcon.color, isNot(theme.colorScheme.outline));
 
