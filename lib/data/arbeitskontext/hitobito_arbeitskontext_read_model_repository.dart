@@ -7,6 +7,7 @@ import '../../domain/taetigkeit/roles.dart';
 import '../../services/hitobito_groups_service.dart';
 import '../../services/hitobito_people_service.dart';
 import '../../services/hitobito_roles_service.dart';
+import '../../services/logger_service.dart';
 import 'hitobito_group_resource.dart';
 import 'hitobito_person_resource.dart';
 
@@ -17,15 +18,18 @@ class HitobitoArbeitskontextReadModelRepository
     required HitobitoPeopleService peopleService,
     HitobitoRolesService? rolesService,
     required ArbeitskontextLocalRepository localRepository,
+    LoggerService? logger,
   }) : _groupsService = groupsService,
        _peopleService = peopleService,
        _rolesService = rolesService,
-       _localRepository = localRepository;
+       _localRepository = localRepository,
+       _logger = logger;
 
   final HitobitoGroupsService _groupsService;
   final HitobitoPeopleService _peopleService;
   final HitobitoRolesService? _rolesService;
   final ArbeitskontextLocalRepository _localRepository;
+  final LoggerService? _logger;
 
   @override
   Future<ArbeitskontextReadModel> loadCached(
@@ -48,12 +52,12 @@ class HitobitoArbeitskontextReadModelRepository
     List<HitobitoGroupResource>? accessibleGroups,
     void Function(ArbeitskontextReadModel partial)? onProgress,
   }) async {
-    // Gruppen werden bewusst VOR den Mitgliedern vollstaendig geladen (statt
-    // wie frueher parallel): fuer ein Fortschritts-Readmodel pro People-Seite
-    // (onProgress) muessen die Gruppen schon vollstaendig bekannt sein, damit
-    // _extractKontextMitgliedsdaten() die Layer-Zugehoerigkeit korrekt filtern
-    // kann. Gruppen sind ueblicherweise 1-3 schnelle Requests, People macht
-    // die dominante Ladezeit aus - der Verlust der Parallelitaet ist gering.
+    // Gruppen werden bewusst VOR den Mitgliedern/Rollen vollstaendig geladen:
+    // fuer ein Fortschritts-Readmodel pro Seite (onProgress) muessen die
+    // Gruppen schon vollstaendig bekannt sein, damit
+    // _extractKontextMitgliedsdaten() die Layer-Zugehoerigkeit korrekt
+    // filtern kann. Gruppen sind ueblicherweise 1-3 schnelle Requests, der
+    // Verlust der Parallelitaet dazu ist gering.
     final resolvedAccessibleGroups =
         accessibleGroups ??
         await _groupsService.fetchAccessibleGroups(accessToken);
@@ -74,40 +78,118 @@ class HitobitoArbeitskontextReadModelRepository
       accessibleGroups: resolvedAccessibleGroups,
       aktiverLayerId: aktuellerKontext.aktiverLayer.id,
     );
-    final peopleResources = await _peopleService.fetchPeopleResources(
+
+    // Personen und Rollen werden bewusst PARALLEL geladen (statt erst alle
+    // Personen, dann alle Rollen): beides sind unabhaengige GET-Endpunkte,
+    // und bereits eingetroffene Rollen koennen so sofort auf bereits bekannte
+    // Mitglieder angewendet werden, statt erst ganz am Ende in einem Rutsch
+    // sichtbar zu werden. Ein Fehler beim Rollen-Fetch darf den
+    // Mitglieder-Refresh nicht scheitern lassen (siehe _fetchRolesIsolated) -
+    // ensureRolesLoaded() holt Rollen in dem Fall eigenstaendig nochmal nach.
+    var latestPeople = const <HitobitoPersonResource>[];
+    var latestRoles = const <HitobitoPersonRoleResource>[];
+
+    void emitProgress() {
+      if (onProgress == null) {
+        return;
+      }
+      final partialMitgliedsdaten = _extractKontextMitgliedsdaten(
+        peopleResources: latestPeople,
+        accessibleGroups: resolvedAccessibleGroups,
+        aktiverLayerId: aktuellerKontext.aktiverLayer.id,
+      );
+      onProgress(
+        ArbeitskontextReadModel(
+          arbeitskontext: aktuellerKontext,
+          mitglieder: _attachRollenZuMitgliedern(
+            mitglieder: partialMitgliedsdaten.mitglieder,
+            rollen: latestRoles,
+            gruppen: gruppen,
+            arbeitskontext: aktuellerKontext,
+          ),
+          gruppen: gruppen,
+          mitgliedsZuordnungen: partialMitgliedsdaten.mitgliedsZuordnungen,
+        ),
+      );
+    }
+
+    final peopleFuture = _peopleService.fetchPeopleResources(
       accessToken,
-      onPageLoaded: onProgress == null
-          ? null
-          : (loadedSoFar) {
-              final partialMitgliedsdaten = _extractKontextMitgliedsdaten(
-                peopleResources: loadedSoFar,
-                accessibleGroups: resolvedAccessibleGroups,
-                aktiverLayerId: aktuellerKontext.aktiverLayer.id,
-              );
-              onProgress(
-                ArbeitskontextReadModel(
-                  arbeitskontext: aktuellerKontext,
-                  mitglieder: partialMitgliedsdaten.mitglieder,
-                  gruppen: gruppen,
-                  mitgliedsZuordnungen:
-                      partialMitgliedsdaten.mitgliedsZuordnungen,
-                ),
-              );
-            },
+      onPageLoaded: (loadedSoFar) {
+        latestPeople = loadedSoFar;
+        emitProgress();
+      },
     );
+    final rolesFuture = _fetchRolesIsolated(
+      accessToken: accessToken,
+      onLoadedSoFar: (loadedSoFar) {
+        latestRoles = loadedSoFar;
+        emitProgress();
+      },
+    );
+
+    final peopleResources = await peopleFuture;
+    final rolesResult = await rolesFuture;
+
     final mitgliedsdaten = _extractKontextMitgliedsdaten(
       peopleResources: peopleResources,
       accessibleGroups: resolvedAccessibleGroups,
       aktiverLayerId: aktuellerKontext.aktiverLayer.id,
     );
+    final mitgliederMitRollen = rolesResult.succeeded
+        ? _attachRollenZuMitgliedern(
+            mitglieder: mitgliedsdaten.mitglieder,
+            rollen: rolesResult.rollen,
+            gruppen: gruppen,
+            arbeitskontext: aktuellerKontext,
+          )
+        : mitgliedsdaten.mitglieder;
+
     final readModel = ArbeitskontextReadModel(
       arbeitskontext: aktuellerKontext,
-      mitglieder: mitgliedsdaten.mitglieder,
+      mitglieder: mitgliederMitRollen,
       gruppen: gruppen,
       mitgliedsZuordnungen: mitgliedsdaten.mitgliedsZuordnungen,
+      rolesSindGeladen: rolesResult.succeeded,
     );
     await _localRepository.saveCached(readModel);
     return readModel;
+  }
+
+  /// Kapselt den zu [refresh] parallel laufenden Rollen-Fetch: ein Fehler
+  /// hier darf den Mitglieder-Refresh nicht mit reissen. ensureRolesLoaded()
+  /// (ueber ArbeitskontextModel.loadRoles) holt Rollen in dem Fall separat
+  /// nochmal nach.
+  Future<_RollenFetchResult> _fetchRolesIsolated({
+    required String accessToken,
+    required void Function(List<HitobitoPersonRoleResource> loadedSoFar)
+    onLoadedSoFar,
+  }) async {
+    final rolesService = _rolesService;
+    if (rolesService == null) {
+      return const _RollenFetchResult(
+        rollen: <HitobitoPersonRoleResource>[],
+        succeeded: false,
+      );
+    }
+
+    try {
+      final rollen = await rolesService.fetchRoleResources(
+        accessToken,
+        onPageLoaded: onLoadedSoFar,
+      );
+      return _RollenFetchResult(rollen: rollen, succeeded: true);
+    } catch (error, stack) {
+      await _logger?.logWarn(
+        'arbeitskontext_repository',
+        'Paralleles Rollen-Laden waehrend refresh() fehlgeschlagen: '
+            '$error\n$stack',
+      );
+      return const _RollenFetchResult(
+        rollen: <HitobitoPersonRoleResource>[],
+        succeeded: false,
+      );
+    }
   }
 
   @override
@@ -124,17 +206,39 @@ class HitobitoArbeitskontextReadModelRepository
       return readModel;
     }
 
+    final rollen = await rolesService.fetchRoleResources(accessToken);
+    final updated = readModel.copyWith(
+      rolesSindGeladen: true,
+      mitglieder: _attachRollenZuMitgliedern(
+        mitglieder: readModel.mitglieder,
+        rollen: rollen,
+        gruppen: readModel.gruppen,
+        arbeitskontext: readModel.arbeitskontext,
+      ),
+    );
+    await _localRepository.saveCached(updated);
+    return updated;
+  }
+
+  /// Ordnet [rollen] den passenden [mitglieder] per personId zu und liefert
+  /// eine neue Mitgliederliste mit gesetztem `roles`-Feld. Wird sowohl vom
+  /// parallelen Rollen-Fetch in [refresh] als auch von [loadRoles] genutzt,
+  /// damit die Zuordnungslogik nicht doppelt gepflegt werden muss.
+  List<Mitglied> _attachRollenZuMitgliedern({
+    required List<Mitglied> mitglieder,
+    required List<HitobitoPersonRoleResource> rollen,
+    required List<ArbeitskontextGruppe> gruppen,
+    required Arbeitskontext arbeitskontext,
+  }) {
     final personIdsToMitglieder = <int, Mitglied>{
-      for (final mitglied in readModel.mitglieder)
+      for (final mitglied in mitglieder)
         if (mitglied.personId != null && mitglied.personId! > 0)
           mitglied.personId!: mitglied,
     };
     final gruppenNamenById = <int, String>{
-      readModel.arbeitskontext.aktiverLayer.id:
-          readModel.arbeitskontext.aktiverLayer.name,
-      for (final gruppe in readModel.gruppen) gruppe.id: gruppe.name,
+      arbeitskontext.aktiverLayer.id: arbeitskontext.aktiverLayer.name,
+      for (final gruppe in gruppen) gruppe.id: gruppe.name,
     };
-    final rollen = await rolesService.fetchRoleResources(accessToken);
     final rolesByMitgliedsnummer = <String, List<Role>>{};
 
     for (final role in rollen) {
@@ -159,15 +263,15 @@ class HitobitoArbeitskontextReadModelRepository
           );
     }
 
-    final updated = readModel.copyWith(
-      rolesSindGeladen: true,
-      mitglieder: readModel.mitglieder.map((mitglied) {
-        final roles = rolesByMitgliedsnummer[mitglied.mitgliedsnummer];
-        return mitglied.copyWith(roles: roles ?? const <Role>[]);
-      }),
-    );
-    await _localRepository.saveCached(updated);
-    return updated;
+    return mitglieder
+        .map(
+          (mitglied) => mitglied.copyWith(
+            roles:
+                rolesByMitgliedsnummer[mitglied.mitgliedsnummer] ??
+                const <Role>[],
+          ),
+        )
+        .toList(growable: false);
   }
 
   List<ArbeitskontextLayer> _resolveRelevantLayers({
@@ -416,4 +520,11 @@ class _KontextMitgliedsdaten {
 
   final List<Mitglied> mitglieder;
   final List<ArbeitskontextMitgliedsZuordnung> mitgliedsZuordnungen;
+}
+
+class _RollenFetchResult {
+  const _RollenFetchResult({required this.rollen, required this.succeeded});
+
+  final List<HitobitoPersonRoleResource> rollen;
+  final bool succeeded;
 }

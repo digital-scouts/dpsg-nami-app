@@ -511,6 +511,9 @@ class _ArbeitskontextLoadingStepRow extends StatelessWidget {
     final t = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final iconSize = dense ? 16.0 : 20.0;
+    // "Wartet" wird bewusst nicht mit theme.colorScheme.outline eingefaerbt:
+    // dieser Farbton ist in Material 3 fuer Raender/Trenner gedacht und in
+    // beiden Themes zu kontrastarm fuer Text/Icons.
     final Widget icon = switch (step.state) {
       ArbeitskontextLoadingStepState.done => Icon(
         Icons.check_circle,
@@ -525,46 +528,40 @@ class _ArbeitskontextLoadingStepRow extends StatelessWidget {
       ArbeitskontextLoadingStepState.waiting => Icon(
         Icons.circle_outlined,
         size: iconSize,
-        color: theme.colorScheme.outline,
+        color: theme.colorScheme.onSurfaceVariant,
       ),
     };
-    final statusText = step.detailKey != null && step.detailCount != null
-        ? t.t(step.detailKey!, {'count': '${step.detailCount}'})
-        : t.t(switch (step.state) {
-            ArbeitskontextLoadingStepState.done =>
-              'nav_work_context_step_state_done',
-            ArbeitskontextLoadingStepState.loading =>
-              'nav_work_context_step_state_loading',
-            ArbeitskontextLoadingStepState.waiting =>
-              'nav_work_context_step_state_waiting',
-          });
+    final hasDetail = step.detailKey != null && step.detailCount != null;
     final textStyle = dense
         ? theme.textTheme.bodySmall
         : theme.textTheme.bodyMedium;
     final dimmed = step.state == ArbeitskontextLoadingStepState.waiting;
-    return Row(
-      children: [
-        icon,
-        const SizedBox(width: 10),
-        Text(
-          t.t(step.labelKey),
-          style: textStyle?.copyWith(
-            color: dimmed ? theme.colorScheme.outline : null,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            statusText,
-            textAlign: TextAlign.right,
+    return Padding(
+      padding: EdgeInsets.only(left: step.indent ? (dense ? 20 : 28) : 0),
+      child: Row(
+        children: [
+          icon,
+          const SizedBox(width: 10),
+          Text(
+            t.t(step.labelKey),
             style: textStyle?.copyWith(
-              color: dimmed
-                  ? theme.colorScheme.outline
-                  : theme.colorScheme.onSurfaceVariant,
+              color: dimmed ? theme.colorScheme.onSurfaceVariant : null,
             ),
           ),
-        ),
-      ],
+          if (hasDetail) ...[
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                t.t(step.detailKey!, {'count': '${step.detailCount}'}),
+                textAlign: TextAlign.right,
+                style: textStyle?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

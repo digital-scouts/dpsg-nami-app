@@ -171,6 +171,7 @@ void main() {
             peopleService: hitobitoPeopleService,
             rolesService: hitobitoRolesService,
             localRepository: arbeitskontextLocalRepository,
+            logger: logger,
           );
       final appResetService = AppResetService(
         authSessionRepository: authSessionRepository,
