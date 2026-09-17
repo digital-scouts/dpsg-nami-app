@@ -552,12 +552,86 @@ void main() {
     expect(model.isInitialSequenceActive, isFalse);
   });
 
-  test(
-    'leert die Mitgliederliste waehrend eines laufenden Refreshs nicht, '
-    'sondern zeigt noch nicht erneut bestaetigte Mitglieder samt alter '
-    'Rollen weiter an, bis das finale Ergebnis vorliegt',
-    () async {
-      final initialReadModel = _buildReadModel(
+  test('leert die Mitgliederliste waehrend eines laufenden Refreshs nicht, '
+      'sondern zeigt noch nicht erneut bestaetigte Mitglieder samt alter '
+      'Rollen weiter an, bis das finale Ergebnis vorliegt', () async {
+    final initialReadModel = _buildReadModel(
+      aktiverLayerId: 55,
+      aktiverLayerName: 'Stamm Talrand',
+      mitglieder: <Mitglied>[
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '1001',
+          personId: 1,
+          vorname: 'Julia',
+          nachname: 'Keller',
+        ).copyWith(
+          roles: <Role>[
+            roleFromLegacy(
+              stufe: Stufe.woelfling,
+              art: RoleCategory.mitglied,
+              start: DateTime(2021, 1, 1),
+            ),
+          ],
+        ),
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '1002',
+          personId: 2,
+          vorname: 'Max',
+          nachname: 'Muster',
+        ),
+      ],
+    ).copyWith(rolesSindGeladen: true);
+
+    final readModelRepository = _FakeArbeitskontextReadModelRepository()
+      ..progressReadModels = <ArbeitskontextReadModel>[initialReadModel];
+    final model = ArbeitskontextModel(
+      localRepository: _FakeArbeitskontextLocalRepository(),
+      readModelRepository: readModelRepository,
+      groupsService: _FakeHitobitoGroupsService(
+        groups: const <HitobitoGroupResource>[
+          HitobitoGroupResource(id: 55, name: 'Stamm Talrand', isLayer: true),
+        ],
+      ),
+      bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+      logger: _FakeLoggerService(),
+    );
+    final session = AuthSession(
+      accessToken: 'token-55',
+      receivedAt: DateTime(2026, 3, 31),
+    );
+    const profile = AuthProfile(
+      namiId: 55,
+      primaryGroupId: 55,
+      roles: <AuthProfileRole>[
+        AuthProfileRole(
+          groupId: 55,
+          groupName: 'Stamm Talrand',
+          roleName: 'Leitung',
+          roleClass: 'Group::Stamm::Leitung',
+          permissions: <String>['layer_read'],
+        ),
+      ],
+    );
+
+    await model.syncForAuth(
+      authState: AuthState.signedIn,
+      session: session,
+      profile: profile,
+    );
+    await _waitForBackgroundWork();
+    expect(
+      model.readModel?.mitglieder.map((m) => m.mitgliedsnummer).toSet(),
+      <String>{'1001', '1002'},
+    );
+
+    // Zweiter Sync (Pull-to-refresh/Debug-Tools): die Personen-Seite, die
+    // bisher eingetroffen ist, enthaelt nur noch 1001 - und zwar frisch
+    // vom Server (also ohne Rollen, die erst separat/parallel dazu
+    // geladen werden). 1002 ist in diesem Zwischenstand schlicht noch
+    // nicht wieder aufgetaucht.
+    final refreshDelayCompleter = Completer<void>();
+    readModelRepository.progressReadModels = <ArbeitskontextReadModel>[
+      _buildReadModel(
         aktiverLayerId: 55,
         aktiverLayerName: 'Stamm Talrand',
         mitglieder: <Mitglied>[
@@ -566,117 +640,40 @@ void main() {
             personId: 1,
             vorname: 'Julia',
             nachname: 'Keller',
-          ).copyWith(
-            roles: <Role>[
-              roleFromLegacy(
-                stufe: Stufe.woelfling,
-                art: RoleCategory.mitglied,
-                start: DateTime(2021, 1, 1),
-              ),
-            ],
-          ),
-          Mitglied.peopleListItem(
-            mitgliedsnummer: '1002',
-            personId: 2,
-            vorname: 'Max',
-            nachname: 'Muster',
           ),
         ],
-      ).copyWith(rolesSindGeladen: true);
+      ),
+    ];
+    readModelRepository.refreshDelay = refreshDelayCompleter.future;
 
-      final readModelRepository = _FakeArbeitskontextReadModelRepository()
-        ..progressReadModels = <ArbeitskontextReadModel>[initialReadModel];
-      final model = ArbeitskontextModel(
-        localRepository: _FakeArbeitskontextLocalRepository(),
-        readModelRepository: readModelRepository,
-        groupsService: _FakeHitobitoGroupsService(
-          groups: const <HitobitoGroupResource>[
-            HitobitoGroupResource(id: 55, name: 'Stamm Talrand', isLayer: true),
-          ],
-        ),
-        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
-        logger: _FakeLoggerService(),
-      );
-      final session = AuthSession(
-        accessToken: 'token-55',
-        receivedAt: DateTime(2026, 3, 31),
-      );
-      const profile = AuthProfile(
-        namiId: 55,
-        primaryGroupId: 55,
-        roles: <AuthProfileRole>[
-          AuthProfileRole(
-            groupId: 55,
-            groupName: 'Stamm Talrand',
-            roleName: 'Leitung',
-            roleClass: 'Group::Stamm::Leitung',
-            permissions: <String>['layer_read'],
-          ),
-        ],
-      );
+    final refreshFuture = model.refreshFromRemote(
+      session: session,
+      profile: profile,
+    );
+    await _waitForBackgroundWork();
 
-      await model.syncForAuth(
-        authState: AuthState.signedIn,
-        session: session,
-        profile: profile,
-      );
-      await _waitForBackgroundWork();
-      expect(
-        model.readModel?.mitglieder.map((m) => m.mitgliedsnummer).toSet(),
-        <String>{'1001', '1002'},
-      );
+    // Waehrend des laufenden Refreshs: 1002 bleibt sichtbar (noch nicht
+    // geloescht), und 1001 behaelt seine zuvor geladene Rolle, obwohl die
+    // frische Kopie noch keine Rolle mitbringt.
+    final duringRefresh = model.readModel;
+    expect(
+      duringRefresh?.mitglieder.map((m) => m.mitgliedsnummer).toSet(),
+      <String>{'1001', '1002'},
+    );
+    expect(duringRefresh?.findeMitglied('1001')?.roles, isNotEmpty);
+    expect(duringRefresh?.rolesSindGeladen, isFalse);
 
-      // Zweiter Sync (Pull-to-refresh/Debug-Tools): die Personen-Seite, die
-      // bisher eingetroffen ist, enthaelt nur noch 1001 - und zwar frisch
-      // vom Server (also ohne Rollen, die erst separat/parallel dazu
-      // geladen werden). 1002 ist in diesem Zwischenstand schlicht noch
-      // nicht wieder aufgetaucht.
-      final refreshDelayCompleter = Completer<void>();
-      readModelRepository.progressReadModels = <ArbeitskontextReadModel>[
-        _buildReadModel(
-          aktiverLayerId: 55,
-          aktiverLayerName: 'Stamm Talrand',
-          mitglieder: <Mitglied>[
-            Mitglied.peopleListItem(
-              mitgliedsnummer: '1001',
-              personId: 1,
-              vorname: 'Julia',
-              nachname: 'Keller',
-            ),
-          ],
-        ),
-      ];
-      readModelRepository.refreshDelay = refreshDelayCompleter.future;
+    refreshDelayCompleter.complete();
+    await refreshFuture;
+    await _waitForBackgroundWork();
 
-      final refreshFuture = model.refreshFromRemote(
-        session: session,
-        profile: profile,
-      );
-      await _waitForBackgroundWork();
-
-      // Waehrend des laufenden Refreshs: 1002 bleibt sichtbar (noch nicht
-      // geloescht), und 1001 behaelt seine zuvor geladene Rolle, obwohl die
-      // frische Kopie noch keine Rolle mitbringt.
-      final duringRefresh = model.readModel;
-      expect(
-        duringRefresh?.mitglieder.map((m) => m.mitgliedsnummer).toSet(),
-        <String>{'1001', '1002'},
-      );
-      expect(duringRefresh?.findeMitglied('1001')?.roles, isNotEmpty);
-      expect(duringRefresh?.rolesSindGeladen, isFalse);
-
-      refreshDelayCompleter.complete();
-      await refreshFuture;
-      await _waitForBackgroundWork();
-
-      // Nach Abschluss des Refreshs: das finale, vollstaendige Ergebnis
-      // ersetzt die Liste korrekt - 1002 ist jetzt tatsaechlich entfernt.
-      expect(
-        model.readModel?.mitglieder.map((m) => m.mitgliedsnummer).toSet(),
-        <String>{'1001'},
-      );
-    },
-  );
+    // Nach Abschluss des Refreshs: das finale, vollstaendige Ergebnis
+    // ersetzt die Liste korrekt - 1002 ist jetzt tatsaechlich entfernt.
+    expect(
+      model.readModel?.mitglieder.map((m) => m.mitgliedsnummer).toSet(),
+      <String>{'1001'},
+    );
+  });
 
   test(
     'zeigt isLoadingRoles bereits waehrend des gesamten refresh()-Fensters an, '
@@ -690,7 +687,11 @@ void main() {
         readModelRepository: readModelRepository,
         groupsService: _FakeHitobitoGroupsService(
           groups: const <HitobitoGroupResource>[
-            HitobitoGroupResource(id: 66, name: 'Stamm Sonnberg', isLayer: true),
+            HitobitoGroupResource(
+              id: 66,
+              name: 'Stamm Sonnberg',
+              isLayer: true,
+            ),
           ],
         ),
         bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
@@ -731,100 +732,93 @@ void main() {
     },
   );
 
-  test(
-    'zeigt fuer Rollen sofort "Laedt..." statt kurz den veralteten '
-    '"Fertig"-Stand, wenn ein neuer Sync startet, waehrend der letzte '
-    'Durchlauf bereits Rollen geladen hatte',
-    () async {
-      final initialReadModel = _buildReadModel(
-        aktiverLayerId: 77,
-        aktiverLayerName: 'Stamm Bergquell',
-      ).copyWith(rolesSindGeladen: true);
+  test('zeigt fuer Rollen sofort "Laedt..." statt kurz den veralteten '
+      '"Fertig"-Stand, wenn ein neuer Sync startet, waehrend der letzte '
+      'Durchlauf bereits Rollen geladen hatte', () async {
+    final initialReadModel = _buildReadModel(
+      aktiverLayerId: 77,
+      aktiverLayerName: 'Stamm Bergquell',
+    ).copyWith(rolesSindGeladen: true);
 
-      final readModelRepository = _FakeArbeitskontextReadModelRepository()
-        ..progressReadModels = <ArbeitskontextReadModel>[initialReadModel];
-      final groupsService = _FakeHitobitoGroupsService(
-        groups: const <HitobitoGroupResource>[
-          HitobitoGroupResource(
-            id: 77,
-            name: 'Stamm Bergquell',
-            isLayer: true,
-          ),
-        ],
-      );
-      final model = ArbeitskontextModel(
-        localRepository: _FakeArbeitskontextLocalRepository(),
-        readModelRepository: readModelRepository,
-        groupsService: groupsService,
-        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
-        logger: _FakeLoggerService(),
-      );
-      final session = AuthSession(
-        accessToken: 'token-77',
-        receivedAt: DateTime(2026, 3, 31),
-      );
-      const profile = AuthProfile(
-        namiId: 77,
-        primaryGroupId: 77,
-        roles: <AuthProfileRole>[
-          AuthProfileRole(
-            groupId: 77,
-            groupName: 'Stamm Bergquell',
-            roleName: 'Leitung',
-            roleClass: 'Group::Stamm::Leitung',
-            permissions: <String>['layer_read'],
-          ),
-        ],
-      );
+    final readModelRepository = _FakeArbeitskontextReadModelRepository()
+      ..progressReadModels = <ArbeitskontextReadModel>[initialReadModel];
+    final groupsService = _FakeHitobitoGroupsService(
+      groups: const <HitobitoGroupResource>[
+        HitobitoGroupResource(id: 77, name: 'Stamm Bergquell', isLayer: true),
+      ],
+    );
+    final model = ArbeitskontextModel(
+      localRepository: _FakeArbeitskontextLocalRepository(),
+      readModelRepository: readModelRepository,
+      groupsService: groupsService,
+      bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+      logger: _FakeLoggerService(),
+    );
+    final session = AuthSession(
+      accessToken: 'token-77',
+      receivedAt: DateTime(2026, 3, 31),
+    );
+    const profile = AuthProfile(
+      namiId: 77,
+      primaryGroupId: 77,
+      roles: <AuthProfileRole>[
+        AuthProfileRole(
+          groupId: 77,
+          groupName: 'Stamm Bergquell',
+          roleName: 'Leitung',
+          roleClass: 'Group::Stamm::Leitung',
+          permissions: <String>['layer_read'],
+        ),
+      ],
+    );
 
-      await model.syncForAuth(
-        authState: AuthState.signedIn,
-        session: session,
-        profile: profile,
-      );
-      await _waitForBackgroundWork();
-      expect(model.areRolesLoaded, isTrue);
+    await model.syncForAuth(
+      authState: AuthState.signedIn,
+      session: session,
+      profile: profile,
+    );
+    await _waitForBackgroundWork();
+    expect(model.areRolesLoaded, isTrue);
 
-      // Zweiter Sync: Der Gruppen-Fetch wird zunaechst verzoegert, damit wir
-      // genau die Login-/Gruppen-Phase beobachten koennen - also bevor die
-      // Mitglieder-Phase (und damit refresh(), das Rollen parallel mitlaedt)
-      // ueberhaupt beginnt.
-      final groupsDelayCompleter = Completer<void>();
-      groupsService.fetchDelay = groupsDelayCompleter.future;
-      final refreshDelayCompleter = Completer<void>();
-      readModelRepository.refreshDelay = refreshDelayCompleter.future;
+    // Zweiter Sync: Der Gruppen-Fetch wird zunaechst verzoegert, damit wir
+    // genau die Login-/Gruppen-Phase beobachten koennen - also bevor die
+    // Mitglieder-Phase (und damit refresh(), das Rollen parallel mitlaedt)
+    // ueberhaupt beginnt.
+    final groupsDelayCompleter = Completer<void>();
+    groupsService.fetchDelay = groupsDelayCompleter.future;
+    final refreshDelayCompleter = Completer<void>();
+    readModelRepository.refreshDelay = refreshDelayCompleter.future;
 
-      final refreshFuture = model.refreshFromRemote(
-        session: session,
-        profile: profile,
-      );
-      await _waitForBackgroundWork();
+    final refreshFuture = model.refreshFromRemote(
+      session: session,
+      profile: profile,
+    );
+    await _waitForBackgroundWork();
 
-      expect(model.isSynchronizing, isTrue);
-      // Waehrend Login/Gruppen noch laufen, ist fuer Rollen schlicht noch
-      // nichts gestartet - "Wartet" ist hier korrekt, nicht der veraltete
-      // "Fertig"-Stand vom letzten Durchlauf.
-      var rolesStep = model.loadingSteps[3];
-      expect(rolesStep.labelKey, 'nav_work_context_step_roles');
-      expect(rolesStep.state, ArbeitskontextLoadingStepState.waiting);
+    expect(model.isSynchronizing, isTrue);
+    // Waehrend Login/Gruppen noch laufen, ist fuer Rollen schlicht noch
+    // nichts gestartet - "Wartet" ist hier korrekt, nicht der veraltete
+    // "Fertig"-Stand vom letzten Durchlauf.
+    var rolesStep = model.loadingSteps[3];
+    expect(rolesStep.labelKey, 'nav_work_context_step_roles');
+    expect(rolesStep.state, ArbeitskontextLoadingStepState.waiting);
 
-      // Sobald die Mitglieder-Phase beginnt (Rollen laden jetzt parallel
-      // mit), darf "Rollen" nicht mehr auf "Fertig" zurueckfallen, sondern
-      // muss direkt "Laedt..." zeigen.
-      groupsDelayCompleter.complete();
-      await _waitForBackgroundWork();
+    // Sobald die Mitglieder-Phase beginnt (Rollen laden jetzt parallel
+    // mit), darf "Rollen" nicht mehr auf "Fertig" zurueckfallen, sondern
+    // muss direkt "Laedt..." zeigen.
+    groupsDelayCompleter.complete();
+    await _waitForBackgroundWork();
 
-      expect(model.isSynchronizing, isTrue);
-      rolesStep = model.loadingSteps[3];
-      expect(rolesStep.state, ArbeitskontextLoadingStepState.loading);
+    expect(model.isSynchronizing, isTrue);
+    rolesStep = model.loadingSteps[3];
+    expect(rolesStep.state, ArbeitskontextLoadingStepState.loading);
 
-      refreshDelayCompleter.complete();
-      await refreshFuture;
-      await _waitForBackgroundWork();
+    refreshDelayCompleter.complete();
+    await refreshFuture;
+    await _waitForBackgroundWork();
 
-      expect(model.isReady, isTrue);
-    },
-  );
+    expect(model.isReady, isTrue);
+  });
 
   test(
     'setzt den Arbeitskontext bei Sign-out wieder in den Initialzustand',

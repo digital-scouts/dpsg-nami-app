@@ -683,120 +683,114 @@ void main() {
     },
   );
 
-  test(
-    'refresh laedt Rollen parallel zu Personen und ordnet sie im finalen '
-    'Ergebnis korrekt zu',
-    () async {
-      final repository = HitobitoArbeitskontextReadModelRepository(
-        groupsService: _FakeHitobitoGroupsService(
-          groups: const <HitobitoGroupResource>[
-            HitobitoGroupResource(
-              id: 11,
-              name: 'Stamm Musterdorf',
-              isLayer: true,
-              layerGroupId: 11,
-            ),
-          ],
-        ),
-        peopleService: _FakeHitobitoPeopleService(
-          people: const <HitobitoPersonResource>[
-            HitobitoPersonResource(
-              id: 1,
-              firstName: 'Julia',
-              lastName: 'Keller',
-              membershipNumber: 1001,
-              primaryGroupId: 11,
-            ),
-          ],
-        ),
-        rolesService: _FakeHitobitoRolesService(
-          roles: <HitobitoPersonRoleResource>[
-            HitobitoPersonRoleResource(
-              id: 701,
-              personId: 1,
-              groupId: 11,
-              roleType: 'Group::Leiter',
-              roleLabel: 'Leitung',
-            ),
-          ],
-        ),
-        localRepository: _FakeArbeitskontextLocalRepository(),
-      );
-
-      final readModel = await repository.refresh(
-        accessToken: 'token-123',
-        arbeitskontext: Arbeitskontext(
-          aktiverLayer: const ArbeitskontextLayer(
+  test('refresh laedt Rollen parallel zu Personen und ordnet sie im finalen '
+      'Ergebnis korrekt zu', () async {
+    final repository = HitobitoArbeitskontextReadModelRepository(
+      groupsService: _FakeHitobitoGroupsService(
+        groups: const <HitobitoGroupResource>[
+          HitobitoGroupResource(
             id: 11,
             name: 'Stamm Musterdorf',
+            isLayer: true,
+            layerGroupId: 11,
           ),
-        ),
-      );
+        ],
+      ),
+      peopleService: _FakeHitobitoPeopleService(
+        people: const <HitobitoPersonResource>[
+          HitobitoPersonResource(
+            id: 1,
+            firstName: 'Julia',
+            lastName: 'Keller',
+            membershipNumber: 1001,
+            primaryGroupId: 11,
+          ),
+        ],
+      ),
+      rolesService: _FakeHitobitoRolesService(
+        roles: <HitobitoPersonRoleResource>[
+          HitobitoPersonRoleResource(
+            id: 701,
+            personId: 1,
+            groupId: 11,
+            roleType: 'Group::Leiter',
+            roleLabel: 'Leitung',
+          ),
+        ],
+      ),
+      localRepository: _FakeArbeitskontextLocalRepository(),
+    );
 
-      expect(readModel.rolesSindGeladen, isTrue);
-      expect(readModel.findeMitglied('1001')?.roles, <Role>[
-        Role(
-          id: 701,
-          personId: 1,
-          groupId: 11,
-          type: 'Group::Leiter',
-          label: 'Leitung',
-          startOn: readModel.findeMitglied('1001')?.eintrittsdatum,
+    final readModel = await repository.refresh(
+      accessToken: 'token-123',
+      arbeitskontext: Arbeitskontext(
+        aktiverLayer: const ArbeitskontextLayer(
+          id: 11,
+          name: 'Stamm Musterdorf',
         ),
-      ]);
-    },
-  );
+      ),
+    );
 
-  test(
-    'refresh liefert weiterhin ein gueltiges Mitglieder-Ergebnis, wenn der '
-    'parallele Rollen-Fetch fehlschlaegt',
-    () async {
-      final repository = HitobitoArbeitskontextReadModelRepository(
-        groupsService: _FakeHitobitoGroupsService(
-          groups: const <HitobitoGroupResource>[
-            HitobitoGroupResource(
-              id: 11,
-              name: 'Stamm Musterdorf',
-              isLayer: true,
-              layerGroupId: 11,
-            ),
-          ],
-        ),
-        peopleService: _FakeHitobitoPeopleService(
-          people: const <HitobitoPersonResource>[
-            HitobitoPersonResource(
-              id: 1,
-              firstName: 'Julia',
-              lastName: 'Keller',
-              membershipNumber: 1001,
-              primaryGroupId: 11,
-            ),
-          ],
-        ),
-        rolesService: _FakeHitobitoRolesService(
-          error: const HitobitoRolesException('Rollen nicht erreichbar'),
-        ),
-        localRepository: _FakeArbeitskontextLocalRepository(),
-      );
+    expect(readModel.rolesSindGeladen, isTrue);
+    expect(readModel.findeMitglied('1001')?.roles, <Role>[
+      Role(
+        id: 701,
+        personId: 1,
+        groupId: 11,
+        type: 'Group::Leiter',
+        label: 'Leitung',
+        startOn: readModel.findeMitglied('1001')?.eintrittsdatum,
+      ),
+    ]);
+  });
 
-      final readModel = await repository.refresh(
-        accessToken: 'token-123',
-        arbeitskontext: Arbeitskontext(
-          aktiverLayer: const ArbeitskontextLayer(
+  test('refresh liefert weiterhin ein gueltiges Mitglieder-Ergebnis, wenn der '
+      'parallele Rollen-Fetch fehlschlaegt', () async {
+    final repository = HitobitoArbeitskontextReadModelRepository(
+      groupsService: _FakeHitobitoGroupsService(
+        groups: const <HitobitoGroupResource>[
+          HitobitoGroupResource(
             id: 11,
             name: 'Stamm Musterdorf',
+            isLayer: true,
+            layerGroupId: 11,
           ),
-        ),
-      );
+        ],
+      ),
+      peopleService: _FakeHitobitoPeopleService(
+        people: const <HitobitoPersonResource>[
+          HitobitoPersonResource(
+            id: 1,
+            firstName: 'Julia',
+            lastName: 'Keller',
+            membershipNumber: 1001,
+            primaryGroupId: 11,
+          ),
+        ],
+      ),
+      rolesService: _FakeHitobitoRolesService(
+        error: const HitobitoRolesException('Rollen nicht erreichbar'),
+      ),
+      localRepository: _FakeArbeitskontextLocalRepository(),
+    );
 
-      expect(readModel.rolesSindGeladen, isFalse);
-      expect(
-        readModel.mitglieder.map((mitglied) => mitglied.mitgliedsnummer),
-        <String>['1001'],
-      );
-      expect(readModel.findeMitglied('1001')?.roles, isEmpty);
-    },
-  );
+    final readModel = await repository.refresh(
+      accessToken: 'token-123',
+      arbeitskontext: Arbeitskontext(
+        aktiverLayer: const ArbeitskontextLayer(
+          id: 11,
+          name: 'Stamm Musterdorf',
+        ),
+      ),
+    );
+
+    expect(readModel.rolesSindGeladen, isFalse);
+    expect(
+      readModel.mitglieder.map((mitglied) => mitglied.mitgliedsnummer),
+      <String>['1001'],
+    );
+    expect(readModel.findeMitglied('1001')?.roles, isEmpty);
+  });
 }
 
 class _FakeArbeitskontextLocalRepository
