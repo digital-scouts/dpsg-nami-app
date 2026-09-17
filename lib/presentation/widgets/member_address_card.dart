@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:maps_launcher/maps_launcher.dart';
+import 'package:map_launcher/map_launcher.dart';
 import 'package:nami/data/settings/shared_prefs_address_settings_repository.dart';
 import 'package:nami/domain/maps/address_map_location_repository.dart';
 import 'package:nami/domain/member/member_address_utils.dart';
@@ -13,6 +13,15 @@ import 'package:nami/services/map_tile_cache_service.dart';
 import 'package:nami/services/maps_env.dart';
 
 const double _memberAddressCardRadius = 16;
+
+Future<bool> _launchMapQuery(String query) async {
+  try {
+    await MapLauncher.marker(Location.search(query)).show();
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
 
 class MemberAddressCard extends StatelessWidget {
   const MemberAddressCard({
@@ -127,7 +136,7 @@ class _AddressLink extends StatelessWidget {
 
     return InkWell(
       onTap: () async {
-        final launch = onLaunchAddress ?? MapsLauncher.launchQuery;
+        final launch = onLaunchAddress ?? _launchMapQuery;
         final success = await launch(queryAddress);
         if (!context.mounted || success) {
           return;
