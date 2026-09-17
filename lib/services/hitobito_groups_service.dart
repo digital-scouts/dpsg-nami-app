@@ -12,6 +12,25 @@ class HitobitoGroupsException extends HitobitoApiException {
   const HitobitoGroupsException(super.message, {super.statusCode});
 }
 
+class HitobitoBrokenGroupInfo {
+  const HitobitoBrokenGroupInfo({required this.groupId, this.groupName});
+
+  final int groupId;
+  final String? groupName;
+}
+
+class HitobitoGroupsDiagnosisResult {
+  const HitobitoGroupsDiagnosisResult({
+    this.brokenGroups = const <HitobitoBrokenGroupInfo>[],
+    this.probedGroupCount = 0,
+  });
+
+  final List<HitobitoBrokenGroupInfo> brokenGroups;
+  final int probedGroupCount;
+
+  bool get found => brokenGroups.isNotEmpty;
+}
+
 class HitobitoGroupsService {
   HitobitoGroupsService({
     required this.config,
@@ -61,6 +80,220 @@ class HitobitoGroupsService {
     }
 
     return resources;
+  }
+
+  /// Übergangs-Diagnosewerkzeug: grenzt per Teile-und-herrsche über
+  /// Gruppen-ID-Bereiche ALLE Gruppen ein, deren Hitobito-Datensatz die
+  /// Serialisierung von `/api/groups` zum Absturz bringt (z.B. ein
+  /// nicht-numerisches `zip_code`). Wird ausschliesslich vom Debug & Tools-
+  /// Screen aufgerufen.
+  Future<HitobitoGroupsDiagnosisResult> diagnoseBrokenGroup(
+    String accessToken,
+  ) async {
+    final ids = await _fetchAllGroupIds(accessToken);
+    if (ids.isEmpty) {
+      return const HitobitoGroupsDiagnosisResult();
+    }
+
+    final brokenIds = <int>[];
+    await _collectBrokenIds(
+      ids: ids,
+      lo: 0,
+      hi: ids.length - 1,
+      accessToken: accessToken,
+      brokenIds: brokenIds,
+    );
+
+    final brokenGroups = <HitobitoBrokenGroupInfo>[];
+    for (final id in brokenIds) {
+      final name = await _fetchGroupNameSafely(id, accessToken);
+      brokenGroups.add(HitobitoBrokenGroupInfo(groupId: id, groupName: name));
+    }
+
+    return HitobitoGroupsDiagnosisResult(
+      brokenGroups: brokenGroups,
+      probedGroupCount: ids.length,
+    );
+  }
+
+  /// Testet den ID-Teilbereich `ids[lo..hi]` als Ganzes; schlaegt er fehl,
+  /// wird er rekursiv halbiert, bis einzelne defekte IDs uebrig bleiben.
+  /// Findet so ALLE defekten Gruppen in einem Bereich, nicht nur die erste.
+  Future<void> _collectBrokenIds({
+    required List<int> ids,
+    required int lo,
+    required int hi,
+    required String accessToken,
+    required List<int> brokenIds,
+  }) async {
+    final rangeOk = await _probeRangeSucceeds(
+      loId: ids[lo],
+      hiId: ids[hi],
+      accessToken: accessToken,
+    );
+    if (rangeOk) {
+      return;
+    }
+
+    if (lo == hi) {
+      brokenIds.add(ids[lo]);
+      return;
+    }
+
+    final mid = lo + (hi - lo) ~/ 2;
+    await _collectBrokenIds(
+      ids: ids,
+      lo: lo,
+      hi: mid,
+      accessToken: accessToken,
+      brokenIds: brokenIds,
+    );
+    await _collectBrokenIds(
+      ids: ids,
+      lo: mid + 1,
+      hi: hi,
+      accessToken: accessToken,
+      brokenIds: brokenIds,
+    );
+  }
+
+  Future<List<int>> _fetchAllGroupIds(String accessToken) async {
+    final base = config.groupsUri;
+    if (base == null) {
+      return const <int>[];
+    }
+
+    final ids = <int>[];
+    Uri? nextUri = base.replace(
+      queryParameters: {'fields[groups]': 'id', 'sort': 'id'},
+    );
+
+    while (nextUri != null) {
+      final decoded = await _fetchGroupsPage(
+        requestUri: nextUri,
+        accessToken: accessToken,
+      );
+      final data = decoded['data'];
+      if (data is List) {
+        ids.addAll(
+          data
+              .whereType<Map<String, dynamic>>()
+              .map((resource) => _toInt(resource['id']))
+              .where((id) => id > 0),
+        );
+      }
+      nextUri = _resolveNextUri(decoded, currentUri: nextUri);
+    }
+
+    ids.sort();
+    return ids;
+  }
+
+  Future<bool> _probeRangeSucceeds({
+    required int loId,
+    required int hiId,
+    required String accessToken,
+  }) async {
+    final base = config.groupsUri;
+    if (base == null) {
+      return false;
+    }
+
+    Uri? nextUri = base.replace(
+      queryParameters: {
+        'filter[id][gte]': '$loId',
+        'filter[id][lte]': '$hiId',
+      },
+    );
+
+    while (nextUri != null) {
+      try {
+        final decoded = await _fetchGroupsPage(
+          requestUri: nextUri,
+          accessToken: accessToken,
+        );
+        nextUri = _resolveNextUri(decoded, currentUri: nextUri);
+      } on HitobitoGroupsException {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  Future<String?> _fetchGroupNameSafely(int id, String accessToken) async {
+    final base = config.groupsUri;
+    if (base == null) {
+      return null;
+    }
+
+    final requestUri = base.replace(
+      queryParameters: {
+        'filter[id][eq]': '$id',
+        'fields[groups]': 'id,name,short_name',
+      },
+    );
+
+    try {
+      final decoded = await _fetchGroupsPage(
+        requestUri: requestUri,
+        accessToken: accessToken,
+      );
+      final data = decoded['data'];
+      if (data is List && data.isNotEmpty) {
+        final first = data.first;
+        if (first is Map<String, dynamic>) {
+          final attributes = first['attributes'];
+          if (attributes is Map<String, dynamic>) {
+            return attributes['name']?.toString();
+          }
+        }
+      }
+    } on HitobitoGroupsException {
+      return null;
+    }
+
+    return null;
+  }
+
+  String? _extractFailureDetail(String body) {
+    final trimmedBody = body.trim();
+    if (trimmedBody.isEmpty) {
+      return null;
+    }
+
+    try {
+      final decoded = jsonDecode(trimmedBody);
+      if (decoded is Map<String, dynamic>) {
+        final errors = decoded['errors'];
+        if (errors is List) {
+          final details = errors
+              .whereType<Map<String, dynamic>>()
+              .map((error) => error['detail'] ?? error['title'])
+              .whereType<String>()
+              .map((detail) => detail.trim())
+              .where((detail) => detail.isNotEmpty)
+              .toList(growable: false);
+          if (details.isNotEmpty) {
+            return details.join(' | ');
+          }
+        }
+
+        final detail = decoded['detail'];
+        if (detail is String && detail.trim().isNotEmpty) {
+          return detail.trim();
+        }
+      }
+    } catch (_) {
+      // Fallback auf kompakten Klartext weiter unten.
+    }
+
+    if (trimmedBody.contains('<html') ||
+        trimmedBody.contains('<!DOCTYPE html')) {
+      return null;
+    }
+
+    return trimmedBody.replaceAll(RegExp(r'\s+'), ' ');
   }
 
   Future<Map<String, dynamic>> _fetchGroupsPage({
@@ -114,10 +347,11 @@ class HitobitoGroupsService {
     );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw HitobitoGroupsException(
-        'Groups-Anfrage fehlgeschlagen (${response.statusCode}).',
-        statusCode: response.statusCode,
-      );
+      final detail = _extractFailureDetail(response.body);
+      final message = detail == null
+          ? 'Groups-Anfrage fehlgeschlagen (${response.statusCode}).'
+          : 'Groups-Anfrage fehlgeschlagen (${response.statusCode}). Grund: $detail';
+      throw HitobitoGroupsException(message, statusCode: response.statusCode);
     }
 
     final decoded = jsonDecode(response.body);

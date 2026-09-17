@@ -90,6 +90,13 @@ class ArbeitskontextModel extends ChangeNotifier {
   bool _isSynchronizing = false;
   bool _isSwitchingLayer = false;
   bool _isLoadingRoles = false;
+  // Wird von initializeForProfile/refreshFromRemote gemeinsam genutzt, damit
+  // ein zweiter, ueberlappender Aufruf (z.B. reaktiv durch einen
+  // AuthSessionModel-Listener waehrend ein manueller Sync laeuft) auf das
+  // Ergebnis des bereits laufenden Vorgangs wartet, statt sofort und
+  // stillschweigend mit einem veralteten ReadModel abzubrechen.
+  Future<void>? _syncInFlight;
+  Future<bool>? _rolesInFlight;
 
   ArbeitskontextStatus get status => _status;
   Arbeitskontext? get arbeitskontext => _arbeitskontext;
@@ -196,9 +203,13 @@ class ArbeitskontextModel extends ChangeNotifier {
   }) async {
     final fingerprint = _buildProfileFingerprint(profile);
     _profile = profile;
-    if (_isSynchronizing) {
+
+    final inFlightSync = _syncInFlight;
+    if (inFlightSync != null) {
+      await inFlightSync;
       return;
     }
+
     if (!force &&
         _status == ArbeitskontextStatus.ready &&
         _activeProfileId == profile.namiId &&
@@ -207,6 +218,26 @@ class ArbeitskontextModel extends ChangeNotifier {
       return;
     }
 
+    final operation = _runInitializeForProfile(
+      profile,
+      session: session,
+      fingerprint: fingerprint,
+    );
+    _syncInFlight = operation;
+    try {
+      await operation;
+    } finally {
+      if (identical(_syncInFlight, operation)) {
+        _syncInFlight = null;
+      }
+    }
+  }
+
+  Future<void> _runInitializeForProfile(
+    AuthProfile profile, {
+    required AuthSession? session,
+    required String fingerprint,
+  }) async {
     _isSynchronizing = true;
     _status = ArbeitskontextStatus.loading;
     _errorMessage = null;
@@ -323,10 +354,35 @@ class ArbeitskontextModel extends ChangeNotifier {
 
     _session = session;
     _profile = profile;
-    if (_isSynchronizing) {
+
+    final inFlightSync = _syncInFlight;
+    if (inFlightSync != null) {
+      await inFlightSync;
       return;
     }
 
+    final operation = _runRefreshFromRemote(
+      session: session,
+      profile: profile,
+      allowMobileDataOverride: allowMobileDataOverride,
+      scheduleRolesPreload: scheduleRolesPreload,
+    );
+    _syncInFlight = operation;
+    try {
+      await operation;
+    } finally {
+      if (identical(_syncInFlight, operation)) {
+        _syncInFlight = null;
+      }
+    }
+  }
+
+  Future<void> _runRefreshFromRemote({
+    required AuthSession session,
+    required AuthProfile profile,
+    required bool allowMobileDataOverride,
+    required bool scheduleRolesPreload,
+  }) async {
     final previousStatus = _status;
     _isSynchronizing = true;
     if (_status != ArbeitskontextStatus.ready) {
@@ -344,6 +400,12 @@ class ArbeitskontextModel extends ChangeNotifier {
                 _groupsService.fetchAccessibleGroups(activeSession.accessToken),
           );
       if (accessibleGroups == null) {
+        await _logger.log(
+          'arbeitskontext',
+          'Arbeitskontext-Refresh abgebrochen: '
+              'Remote-Zugriff fuer Groups lieferte kein Ergebnis '
+              '(siehe auth_flow-Log fuer den Grund)',
+        );
         _status = previousStatus;
         return;
       }
@@ -371,6 +433,12 @@ class ArbeitskontextModel extends ChangeNotifier {
         ),
       );
       if (_readModel == null) {
+        await _logger.log(
+          'arbeitskontext',
+          'Arbeitskontext-Refresh abgebrochen: '
+              'Remote-Zugriff fuer ReadModel lieferte kein Ergebnis '
+              '(siehe auth_flow-Log fuer den Grund)',
+        );
         _status = previousStatus;
         return;
       }
@@ -402,6 +470,16 @@ class ArbeitskontextModel extends ChangeNotifier {
   }
 
   Future<bool> ensureRolesLoaded({bool allowMobileDataOverride = false}) async {
+    final inFlightSync = _syncInFlight;
+    if (inFlightSync != null) {
+      // Ein Arbeitskontext-Sync (initializeForProfile/refreshFromRemote)
+      // laeuft bereits (z.B. reaktiv durch einen AuthSessionModel-Listener
+      // ausgeloest) und liefert gleich ein frisches ReadModel. Ohne dieses
+      // Warten wuerde der folgende _loadRoles-Aufruf sofort mit "kein
+      // ReadModel" scheitern, obwohl der Sync Sekunden spaeter erfolgreich
+      // durchlaeuft.
+      await inFlightSync;
+    }
     return _loadRoles(
       surfaceErrors: true,
       allowMobileDataOverride: allowMobileDataOverride,
@@ -412,6 +490,11 @@ class ArbeitskontextModel extends ChangeNotifier {
     required bool surfaceErrors,
     bool allowMobileDataOverride = false,
   }) async {
+    final inFlightRoles = _rolesInFlight;
+    if (inFlightRoles != null) {
+      return inFlightRoles;
+    }
+
     final currentReadModel = _readModel;
     final session = _session;
     if (currentReadModel == null) {
@@ -420,13 +503,35 @@ class ArbeitskontextModel extends ChangeNotifier {
     if (currentReadModel.rolesSindGeladen) {
       return true;
     }
-    if (_isSynchronizing || _isSwitchingLayer || _isLoadingRoles) {
+    if (_isSynchronizing || _isSwitchingLayer) {
       return false;
     }
     if (session == null || session.accessToken.isEmpty) {
       return false;
     }
 
+    final operation = _runLoadRoles(
+      currentReadModel: currentReadModel,
+      session: session,
+      surfaceErrors: surfaceErrors,
+      allowMobileDataOverride: allowMobileDataOverride,
+    );
+    _rolesInFlight = operation;
+    try {
+      return await operation;
+    } finally {
+      if (identical(_rolesInFlight, operation)) {
+        _rolesInFlight = null;
+      }
+    }
+  }
+
+  Future<bool> _runLoadRoles({
+    required ArbeitskontextReadModel currentReadModel,
+    required AuthSession session,
+    required bool surfaceErrors,
+    required bool allowMobileDataOverride,
+  }) async {
     _isLoadingRoles = true;
     if (surfaceErrors) {
       _errorMessage = null;
@@ -444,6 +549,11 @@ class ArbeitskontextModel extends ChangeNotifier {
         ),
       );
       if (_readModel == null) {
+        await _logger.log(
+          'arbeitskontext',
+          'Roles-Nachladen abgebrochen: Remote-Zugriff lieferte kein '
+              'Ergebnis (siehe auth_flow-Log fuer den Grund)',
+        );
         return false;
       }
       _arbeitskontext = _readModel?.arbeitskontext;

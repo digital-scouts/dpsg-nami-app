@@ -18,6 +18,7 @@ import 'package:wiredash/wiredash.dart';
 
 import '../../services/app_runtime_controller.dart';
 import '../../services/hitobito_auth_config_controller.dart';
+import '../../services/hitobito_groups_service.dart';
 import '../../services/hitobito_oauth_service.dart';
 import '../../services/hitobito_traffic_log_service.dart';
 import '../../services/logger_service.dart';
@@ -48,6 +49,7 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
   static final DateFormat _pendingDateFormat = DateFormat('dd.MM.yyyy, HH:mm');
   final ScrollController _scrollController = ScrollController();
   bool _isRefreshingStammMarkers = false;
+  bool _isDiagnosingGroups = false;
   _DebugLogSource _selectedLogSource = _DebugLogSource.app;
   final HitobitoTrafficLogService _fallbackHitobitoTrafficLogService =
       HitobitoTrafficLogService(
@@ -332,9 +334,83 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
     }
   }
 
+  HitobitoGroupsService _resolveHitobitoGroupsService(
+    HitobitoAuthConfigController configController,
+    HitobitoTrafficLogService trafficLogService,
+    LoggerService logger,
+  ) {
+    try {
+      return context.read<HitobitoGroupsService>();
+    } catch (_) {
+      return HitobitoGroupsService(
+        config: configController.config,
+        trafficLogService: trafficLogService,
+        logger: logger,
+      );
+    }
+  }
+
   Future<int> _loadCachedAddressCount() async {
     final repository = SharedPrefsAddressMapLocationRepository();
     return repository.countEntries();
+  }
+
+  Future<void> _showGroupsDiagnosisDialog(
+    HitobitoGroupsDiagnosisResult result,
+  ) async {
+    if (!mounted) {
+      return;
+    }
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Gruppen-Diagnose'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: result.found
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${result.brokenGroups.length} von '
+                      '${result.probedGroupCount} Gruppen mit ungueltigem '
+                      'zip_code gefunden:',
+                    ),
+                    const SizedBox(height: 12),
+                    Flexible(
+                      child: ListView(
+                        shrinkWrap: true,
+                        children: result.brokenGroups
+                            .map(
+                              (group) => ListTile(
+                                dense: true,
+                                contentPadding: EdgeInsets.zero,
+                                leading: const Icon(Icons.error_outline),
+                                title: Text(
+                                  '#${group.groupId} '
+                                  '${group.groupName ?? 'unbekannt'}',
+                                ),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ),
+                  ],
+                )
+              : Text(
+                  'Kein Serialisierungsfehler unter '
+                  '${result.probedGroupCount} Gruppen reproduzierbar.',
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Schliessen'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _retryPendingPersonUpdates(
@@ -923,6 +999,63 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                                 type: AppSnackbarType.info,
                               );
                             },
+                          ),
+                          _DebugActionButton(
+                            icon: Icons.bug_report_outlined,
+                            label: 'Fehlerhafte Gruppe suchen (zip_code)',
+                            onPressed: _isDiagnosingGroups
+                                ? null
+                                : () async {
+                                    final accessToken =
+                                        authModel.session?.accessToken;
+                                    if (accessToken == null ||
+                                        accessToken.isEmpty) {
+                                      _showSnackbar(
+                                        t.t('debug_retry_missing_token'),
+                                        type: AppSnackbarType.warning,
+                                      );
+                                      return;
+                                    }
+
+                                    setState(
+                                      () => _isDiagnosingGroups = true,
+                                    );
+                                    await _trackDebugAction(
+                                      logger,
+                                      'groups_diagnose_broken_group',
+                                    );
+
+                                    final groupsService =
+                                        _resolveHitobitoGroupsService(
+                                          configController,
+                                          hitobitoTrafficLogService,
+                                          logger,
+                                        );
+                                    try {
+                                      final result = await groupsService
+                                          .diagnoseBrokenGroup(accessToken);
+                                      if (!mounted) {
+                                        return;
+                                      }
+                                      await _showGroupsDiagnosisDialog(
+                                        result,
+                                      );
+                                    } catch (error) {
+                                      if (!mounted) {
+                                        return;
+                                      }
+                                      _showSnackbar(
+                                        'Diagnose fehlgeschlagen: $error',
+                                        type: AppSnackbarType.warning,
+                                      );
+                                    } finally {
+                                      if (mounted) {
+                                        setState(
+                                          () => _isDiagnosingGroups = false,
+                                        );
+                                      }
+                                    }
+                                  },
                           ),
                         ],
                       ),
