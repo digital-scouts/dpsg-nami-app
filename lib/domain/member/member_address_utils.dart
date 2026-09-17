@@ -28,10 +28,7 @@ class MemberAddressUtils {
       _trimToNull(address.town),
     );
 
-    return [
-      if (streetLine != null) streetLine,
-      if (cityLine != null) cityLine,
-    ].join(', ');
+    return [?streetLine, ?cityLine].join(', ');
   }
 
   static String formatMapQueryAddress(MitgliedKontaktAdresse address) {
@@ -45,11 +42,7 @@ class MemberAddressUtils {
     );
     final country = _trimToNull(address.country);
 
-    return [
-      if (streetLine != null) streetLine,
-      if (cityLine != null) cityLine,
-      if (country != null) country,
-    ].join(', ');
+    return [?streetLine, ?cityLine, ?country].join(', ');
   }
 
   static String fingerprint(MitgliedKontaktAdresse address) {
