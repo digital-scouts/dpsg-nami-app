@@ -85,7 +85,11 @@ void main() {
       final authModel = await _createSignedInAuthModel();
       final groupsService = _FakeHitobitoGroupsService(
         groups: const <HitobitoGroupResource>[
-          HitobitoGroupResource(id: 11, name: 'Stamm Musterdorf', isLayer: true),
+          HitobitoGroupResource(
+            id: 11,
+            name: 'Stamm Musterdorf',
+            isLayer: true,
+          ),
         ],
       );
       final arbeitskontextModel = ArbeitskontextModel(
@@ -128,57 +132,56 @@ void main() {
     },
   );
 
-  testWidgets(
-    'zeigt den Ladefortschritt waehrend des initialen Ladens',
-    (tester) async {
-      SharedPreferences.setMockInitialValues({});
-      final authModel = await _createSignedInAuthModel();
-      final groupsService = _FakeHitobitoGroupsService(
-        groups: const <HitobitoGroupResource>[
-          HitobitoGroupResource(id: 11, name: 'Stamm Musterdorf', isLayer: true),
-        ],
-      );
-      final delayCompleter = Completer<void>();
-      // Der Gruppen-Fetch wird absichtlich verzoegert: der Vollbild-Stepper
-      // ist per Design nur sichtbar, solange arbeitskontext noch null ist -
-      // das ist waehrend der Login-/Gruppen-Schritte der Fall, aber nicht
-      // mehr sobald "Mitglieder laden" beginnt (dann ist die Shell schon
-      // sichtbar, siehe Punkt 3 "Progressive Anzeige").
-      groupsService.fetchDelay = delayCompleter.future;
-      final arbeitskontextModel = ArbeitskontextModel(
-        localRepository: _FakeArbeitskontextLocalRepository(),
-        readModelRepository: _FakeArbeitskontextReadModelRepository(),
-        groupsService: groupsService,
-        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
-        logger: _FakeLoggerService(),
-      );
+  testWidgets('zeigt den Ladefortschritt waehrend des initialen Ladens', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final authModel = await _createSignedInAuthModel();
+    final groupsService = _FakeHitobitoGroupsService(
+      groups: const <HitobitoGroupResource>[
+        HitobitoGroupResource(id: 11, name: 'Stamm Musterdorf', isLayer: true),
+      ],
+    );
+    final delayCompleter = Completer<void>();
+    // Der Gruppen-Fetch wird absichtlich verzoegert: der Vollbild-Stepper
+    // ist per Design nur sichtbar, solange arbeitskontext noch null ist -
+    // das ist waehrend der Login-/Gruppen-Schritte der Fall, aber nicht
+    // mehr sobald "Mitglieder laden" beginnt (dann ist die Shell schon
+    // sichtbar, siehe Punkt 3 "Progressive Anzeige").
+    groupsService.fetchDelay = delayCompleter.future;
+    final arbeitskontextModel = ArbeitskontextModel(
+      localRepository: _FakeArbeitskontextLocalRepository(),
+      readModelRepository: _FakeArbeitskontextReadModelRepository(),
+      groupsService: groupsService,
+      bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+      logger: _FakeLoggerService(),
+    );
 
-      unawaited(
-        arbeitskontextModel.syncForAuth(
-          authState: authModel.state,
-          session: authModel.session,
-          profile: authModel.profile,
-        ),
-      );
+    unawaited(
+      arbeitskontextModel.syncForAuth(
+        authState: authModel.state,
+        session: authModel.session,
+        profile: authModel.profile,
+      ),
+    );
 
-      await tester.pumpWidget(
-        _buildTestApp(
-          authModel: authModel,
-          arbeitskontextModel: arbeitskontextModel,
-        ),
-      );
-      await tester.pump();
+    await tester.pumpWidget(
+      _buildTestApp(
+        authModel: authModel,
+        arbeitskontextModel: arbeitskontextModel,
+      ),
+    );
+    await tester.pump();
 
-      expect(find.text('Gruppen'), findsOneWidget);
-      expect(find.text('Lädt…'), findsOneWidget);
-      expect(find.text('Wartet'), findsNWidgets(2));
+    expect(find.text('Gruppen'), findsOneWidget);
+    expect(find.text('Lädt…'), findsOneWidget);
+    expect(find.text('Wartet'), findsNWidgets(2));
 
-      delayCompleter.complete();
-      await tester.pumpAndSettle();
+    delayCompleter.complete();
+    await tester.pumpAndSettle();
 
-      expect(arbeitskontextModel.isReady, isTrue);
-    },
-  );
+    expect(arbeitskontextModel.isReady, isTrue);
+  });
 
   testWidgets(
     'zeigt die Ladeinfo luechenlos als Banner weiter an, waehrend Mitglieder '
@@ -188,7 +191,11 @@ void main() {
       final authModel = await _createSignedInAuthModel();
       final groupsService = _FakeHitobitoGroupsService(
         groups: const <HitobitoGroupResource>[
-          HitobitoGroupResource(id: 11, name: 'Stamm Musterdorf', isLayer: true),
+          HitobitoGroupResource(
+            id: 11,
+            name: 'Stamm Musterdorf',
+            isLayer: true,
+          ),
         ],
       );
       final readModelRepository = _FakeArbeitskontextReadModelRepository();
@@ -246,7 +253,11 @@ void main() {
       final authModel = await _createSignedInAuthModel();
       final groupsService = _FakeHitobitoGroupsService(
         groups: const <HitobitoGroupResource>[
-          HitobitoGroupResource(id: 11, name: 'Stamm Musterdorf', isLayer: true),
+          HitobitoGroupResource(
+            id: 11,
+            name: 'Stamm Musterdorf',
+            isLayer: true,
+          ),
         ],
       );
       final arbeitskontext = Arbeitskontext(
@@ -334,7 +345,11 @@ void main() {
       final authModel = await _createSignedInAuthModel();
       final groupsService = _FakeHitobitoGroupsService(
         groups: const <HitobitoGroupResource>[
-          HitobitoGroupResource(id: 11, name: 'Stamm Musterdorf', isLayer: true),
+          HitobitoGroupResource(
+            id: 11,
+            name: 'Stamm Musterdorf',
+            isLayer: true,
+          ),
         ],
       );
       final readModelRepository = _FakeArbeitskontextReadModelRepository();
@@ -404,7 +419,11 @@ void main() {
 
       final groupsService = _FakeHitobitoGroupsService(
         groups: const <HitobitoGroupResource>[
-          HitobitoGroupResource(id: 11, name: 'Stamm Musterdorf', isLayer: true),
+          HitobitoGroupResource(
+            id: 11,
+            name: 'Stamm Musterdorf',
+            isLayer: true,
+          ),
         ],
       );
       final arbeitskontextModel = ArbeitskontextModel(
@@ -463,7 +482,11 @@ void main() {
 
       final groupsService = _FakeHitobitoGroupsService(
         groups: const <HitobitoGroupResource>[
-          HitobitoGroupResource(id: 11, name: 'Stamm Musterdorf', isLayer: true),
+          HitobitoGroupResource(
+            id: 11,
+            name: 'Stamm Musterdorf',
+            isLayer: true,
+          ),
         ],
       );
       final arbeitskontextModel = ArbeitskontextModel(

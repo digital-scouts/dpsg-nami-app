@@ -17,7 +17,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -89,7 +89,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -110,7 +110,7 @@ jobs:
       - name: Verify Swift formatting
         run: |
           swift format --recursive --in-place ios
-          git diff --exit-code -- ios
+          git diff --exit-code -- ios ':!ios/Podfile.lock'
 
       - name: Build iOS app target
         run: |

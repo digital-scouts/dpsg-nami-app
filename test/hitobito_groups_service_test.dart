@@ -115,8 +115,14 @@ void main() {
         'https://demo.hitobito.com/de/groups/101/self_registration',
       );
       expect(groups.last.selfRegistrationRequireAdultConsent, isFalse);
-      expect(groups.last.createdAt, DateTime.parse('2026-04-10T05:00:29+02:00'));
-      expect(groups.last.updatedAt, DateTime.parse('2026-04-11T02:45:44+02:00'));
+      expect(
+        groups.last.createdAt,
+        DateTime.parse('2026-04-10T05:00:29+02:00'),
+      );
+      expect(
+        groups.last.updatedAt,
+        DateTime.parse('2026-04-11T02:45:44+02:00'),
+      );
     },
   );
 }

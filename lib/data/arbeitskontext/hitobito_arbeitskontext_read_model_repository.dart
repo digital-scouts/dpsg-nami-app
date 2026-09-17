@@ -55,7 +55,8 @@ class HitobitoArbeitskontextReadModelRepository
     // kann. Gruppen sind ueblicherweise 1-3 schnelle Requests, People macht
     // die dominante Ladezeit aus - der Verlust der Parallelitaet ist gering.
     final resolvedAccessibleGroups =
-        accessibleGroups ?? await _groupsService.fetchAccessibleGroups(accessToken);
+        accessibleGroups ??
+        await _groupsService.fetchAccessibleGroups(accessToken);
     final accessibleLayers = _extractAccessibleLayers(resolvedAccessibleGroups);
     final relevanteLayer = _resolveRelevantLayers(
       requestedArbeitskontext: arbeitskontext,

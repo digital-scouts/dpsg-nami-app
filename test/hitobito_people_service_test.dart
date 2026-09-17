@@ -418,7 +418,8 @@ void main() {
       final progressSnapshots = <int>[];
       final resources = await service.fetchPeopleResources(
         'token-123',
-        onPageLoaded: (loadedSoFar) => progressSnapshots.add(loadedSoFar.length),
+        onPageLoaded: (loadedSoFar) =>
+            progressSnapshots.add(loadedSoFar.length),
       );
 
       expect(progressSnapshots, [1, 2]);
