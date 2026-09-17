@@ -4,28 +4,19 @@ PODS:
     - Flutter
   - flutter_web_auth_2 (3.0.0):
     - Flutter
-  - fluttertoast (0.0.2):
-    - Flutter
   - maps_launcher (0.0.1):
     - Flutter
   - ObjectBox (4.4.1)
   - objectbox_flutter_libs (0.0.1):
     - Flutter
     - ObjectBox (= 4.4.1)
-  - open_file_ios (0.0.1):
-    - Flutter
-  - permission_handler_apple (9.3.0):
-    - Flutter
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
   - flutter_secure_storage (from `.symlinks/plugins/flutter_secure_storage/ios`)
   - flutter_web_auth_2 (from `.symlinks/plugins/flutter_web_auth_2/ios`)
-  - fluttertoast (from `.symlinks/plugins/fluttertoast/ios`)
   - maps_launcher (from `.symlinks/plugins/maps_launcher/ios`)
   - objectbox_flutter_libs (from `.symlinks/plugins/objectbox_flutter_libs/ios`)
-  - open_file_ios (from `.symlinks/plugins/open_file_ios/ios`)
-  - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
 
 SPEC REPOS:
   trunk:
@@ -38,27 +29,18 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/flutter_secure_storage/ios"
   flutter_web_auth_2:
     :path: ".symlinks/plugins/flutter_web_auth_2/ios"
-  fluttertoast:
-    :path: ".symlinks/plugins/fluttertoast/ios"
   maps_launcher:
     :path: ".symlinks/plugins/maps_launcher/ios"
   objectbox_flutter_libs:
     :path: ".symlinks/plugins/objectbox_flutter_libs/ios"
-  open_file_ios:
-    :path: ".symlinks/plugins/open_file_ios/ios"
-  permission_handler_apple:
-    :path: ".symlinks/plugins/permission_handler_apple/ios"
 
 SPEC CHECKSUMS:
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_secure_storage: d33dac7ae2ea08509be337e775f6b59f1ff45f12
   flutter_web_auth_2: 06d500582775790a0d4c323222fcb6d7990f9603
-  fluttertoast: 21eecd6935e7064cc1fcb733a4c5a428f3f24f0f
   maps_launcher: 2e5b6a2d664ec6c27f82ffa81b74228d770ab203
   ObjectBox: 7da4aceb5013d041bfafdbc6d744a26918b09757
   objectbox_flutter_libs: 7a6ea1d74b43f5d970e6571d1b79e4b181b33d81
-  open_file_ios: 461db5853723763573e140de3193656f91990d9e
-  permission_handler_apple: 9878588469a2b0d0fc1e048d9f43605f92e6cec2
 
 PODFILE CHECKSUM: ec086c5b3075523d1a253bd3e3f30e75b394416b
 
