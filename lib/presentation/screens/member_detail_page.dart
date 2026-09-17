@@ -21,6 +21,7 @@ import '../model/auth_session_model.dart';
 import '../model/member_edit_model.dart';
 import '../notifications/app_snackbar.dart';
 import '../stufe/stufe_visuals.dart';
+import '../widgets/efz_status_section.dart';
 import '../widgets/member_basis.dart';
 import '../widgets/member_roles_list.dart';
 import 'member_edit_page.dart';
@@ -440,31 +441,7 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
                           ),
                         )
                       : MemberRolesList(roles: sichtbareRollen),
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.workspace_premium_outlined,
-                            size: 44,
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'Qualifikationen',
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Geplant (Dummy)',
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  EfzStatusSection(mitglied: currentMitglied),
                 ],
               ),
             ),
