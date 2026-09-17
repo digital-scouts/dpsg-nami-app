@@ -498,7 +498,10 @@ class _ArbeitskontextLoadingChecklist extends StatelessWidget {
 }
 
 class _ArbeitskontextLoadingStepRow extends StatelessWidget {
-  const _ArbeitskontextLoadingStepRow({required this.step, required this.dense});
+  const _ArbeitskontextLoadingStepRow({
+    required this.step,
+    required this.dense,
+  });
 
   final ArbeitskontextLoadingStepStatus step;
   final bool dense;
@@ -535,7 +538,9 @@ class _ArbeitskontextLoadingStepRow extends StatelessWidget {
             ArbeitskontextLoadingStepState.waiting =>
               'nav_work_context_step_state_waiting',
           });
-    final textStyle = dense ? theme.textTheme.bodySmall : theme.textTheme.bodyMedium;
+    final textStyle = dense
+        ? theme.textTheme.bodySmall
+        : theme.textTheme.bodyMedium;
     final dimmed = step.state == ArbeitskontextLoadingStepState.waiting;
     return Row(
       children: [

@@ -200,10 +200,7 @@ class HitobitoGroupsService {
     }
 
     Uri? nextUri = base.replace(
-      queryParameters: {
-        'filter[id][gte]': '$loId',
-        'filter[id][lte]': '$hiId',
-      },
+      queryParameters: {'filter[id][gte]': '$loId', 'filter[id][lte]': '$hiId'},
     );
 
     while (nextUri != null) {

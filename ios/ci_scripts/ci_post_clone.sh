@@ -2,7 +2,7 @@
 
 set -e
 
-FLUTTER_VERSION="3.41.9"
+FLUTTER_VERSION="3.44.5"
 FLUTTER_ARCHIVE="flutter_macos_${FLUTTER_VERSION}-stable.zip"
 COCOAPODS_VERSION="1.16.2"
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"

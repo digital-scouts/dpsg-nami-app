@@ -35,6 +35,7 @@ class ArbeitskontextLoadingStepStatus {
   /// l10n-Key fuer den Zeilentitel (z.B. "Gruppen").
   final String labelKey;
   final ArbeitskontextLoadingStepState state;
+
   /// l10n-Key fuer einen abweichenden Statustext (z.B. "{count} Gruppen
   /// gefunden"), nur gesetzt wenn state == done und ein Zaehler bekannt ist.
   final String? detailKey;
@@ -142,6 +143,7 @@ class ArbeitskontextModel extends ChangeNotifier {
   bool get hasError => _status == ArbeitskontextStatus.error;
   bool get isSwitchingLayer => _isSwitchingLayer;
   bool get isLoadingRoles => _isLoadingRoles;
+
   /// True waehrend initializeForProfile/refreshFromRemote laufen (Login-
   /// Pruefung bis Mitglieder geladen) - unabhaengig davon, ob es sich um den
   /// initialen Login oder einen spaeteren Sync (Pull-to-refresh, Debug-Tools)
@@ -150,6 +152,7 @@ class ArbeitskontextModel extends ChangeNotifier {
   bool get areRolesLoaded => _readModel?.rolesSindGeladen ?? false;
   bool get hasStaleDataWarning =>
       status == ArbeitskontextStatus.ready && errorMessage != null;
+
   /// True, solange die dem Login folgende Erstladesequenz (Gruppen,
   /// Mitglieder, Rollen) noch nicht vollstaendig abgeschlossen ist - auch
   /// nachdem die Shell (arbeitskontext != null) schon sichtbar ist.
@@ -207,7 +210,8 @@ class ArbeitskontextModel extends ChangeNotifier {
         detailKey: switch (membersState) {
           ArbeitskontextLoadingStepState.done =>
             'nav_work_context_step_members_done',
-          ArbeitskontextLoadingStepState.loading when _lastMembersCount != null =>
+          ArbeitskontextLoadingStepState.loading
+              when _lastMembersCount != null =>
             'nav_work_context_step_members_loading_count',
           _ => null,
         },

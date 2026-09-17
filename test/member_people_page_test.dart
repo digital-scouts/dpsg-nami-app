@@ -332,7 +332,11 @@ void main() {
       final authModel = await _createSignedInAuthModel();
       final groupsService = _FakeHitobitoGroupsService(
         groups: const <HitobitoGroupResource>[
-          HitobitoGroupResource(id: 11, name: 'Stamm Musterdorf', isLayer: true),
+          HitobitoGroupResource(
+            id: 11,
+            name: 'Stamm Musterdorf',
+            isLayer: true,
+          ),
         ],
       );
       final arbeitskontextModel = ArbeitskontextModel(
@@ -560,169 +564,171 @@ void main() {
     expect(find.text('Keine Mitglieder gefunden'), findsOneWidget);
   });
 
-  testWidgets('erkennt den Gruppentyp robust ueber normalisierte Schreibweise', (
-    tester,
-  ) async {
-    final authModel = await _createSignedInAuthModel();
-    final arbeitskontextModel = await _createArbeitskontextModel(
-      mitglieder: <Mitglied>[
-        Mitglied.peopleListItem(
-          mitgliedsnummer: '1',
-          vorname: 'Ben',
-          nachname: 'Biber',
-        ),
-      ],
-      gruppen: const <ArbeitskontextGruppe>[
-        ArbeitskontextGruppe(
-          id: 22,
-          name: 'Bibergruppe',
-          layerId: 11,
-          gruppenTyp: ' group::stammgruppebiber ',
-        ),
-      ],
-      mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
-        ArbeitskontextMitgliedsZuordnung(mitgliedsnummer: '1', gruppenId: 22),
-      ],
-      authModel: authModel,
-    );
-
-    await tester.pumpWidget(
-      _buildTestApp(
+  testWidgets(
+    'erkennt den Gruppentyp robust ueber normalisierte Schreibweise',
+    (tester) async {
+      final authModel = await _createSignedInAuthModel();
+      final arbeitskontextModel = await _createArbeitskontextModel(
+        mitglieder: <Mitglied>[
+          Mitglied.peopleListItem(
+            mitgliedsnummer: '1',
+            vorname: 'Ben',
+            nachname: 'Biber',
+          ),
+        ],
+        gruppen: const <ArbeitskontextGruppe>[
+          ArbeitskontextGruppe(
+            id: 22,
+            name: 'Bibergruppe',
+            layerId: 11,
+            gruppenTyp: ' group::stammgruppebiber ',
+          ),
+        ],
+        mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
+          ArbeitskontextMitgliedsZuordnung(mitgliedsnummer: '1', gruppenId: 22),
+        ],
         authModel: authModel,
-        arbeitskontextModel: arbeitskontextModel,
-      ),
-    );
+      );
 
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        _buildTestApp(
+          authModel: authModel,
+          arbeitskontextModel: arbeitskontextModel,
+        ),
+      );
 
-    expect(
-      find.descendant(
-        of: find.byType(GroupFilterBar),
-        matching: find.text('Bibergruppe'),
-      ),
-      findsOneWidget,
-    );
-  });
+      await tester.pumpAndSettle();
 
-  testWidgets('zeigt alle Gruppenchips fuer die Zieltypen mit Gruppennamen an', (
-    tester,
-  ) async {
-    final authModel = await _createSignedInAuthModel();
-    final arbeitskontextModel = await _createArbeitskontextModel(
-      mitglieder: <Mitglied>[
-        Mitglied.peopleListItem(
-          mitgliedsnummer: '1',
-          vorname: 'Ben',
-          nachname: 'Biber',
+      expect(
+        find.descendant(
+          of: find.byType(GroupFilterBar),
+          matching: find.text('Bibergruppe'),
         ),
-        Mitglied.peopleListItem(
-          mitgliedsnummer: '2',
-          vorname: 'Willi',
-          nachname: 'Wolf',
-        ),
-        Mitglied.peopleListItem(
-          mitgliedsnummer: '3',
-          vorname: 'Jana',
-          nachname: 'Jufi',
-        ),
-        Mitglied.peopleListItem(
-          mitgliedsnummer: '4',
-          vorname: 'Pia',
-          nachname: 'Pfadi',
-        ),
-        Mitglied.peopleListItem(
-          mitgliedsnummer: '5',
-          vorname: 'Rita',
-          nachname: 'Rover',
-        ),
-      ],
-      gruppen: const <ArbeitskontextGruppe>[
-        ArbeitskontextGruppe(
-          id: 21,
-          name: 'Bibergruppe',
-          layerId: 11,
-          gruppenTyp: 'Group::StammGruppeBiber',
-        ),
-        ArbeitskontextGruppe(
-          id: 22,
-          name: 'Woelflinge',
-          layerId: 11,
-          gruppenTyp: 'Group::StammGruppeWoelflinge',
-        ),
-        ArbeitskontextGruppe(
-          id: 23,
-          name: 'Juffis',
-          layerId: 11,
-          gruppenTyp: 'Group::StammGruppeJungpfadfinder',
-        ),
-        ArbeitskontextGruppe(
-          id: 24,
-          name: 'Pfadis',
-          layerId: 11,
-          gruppenTyp: 'Group::StammGruppePfadfinder',
-        ),
-        ArbeitskontextGruppe(
-          id: 25,
-          name: 'Roverrunde',
-          layerId: 11,
-          gruppenTyp: 'Group::StammGruppeRover',
-        ),
-      ],
-      mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
-        ArbeitskontextMitgliedsZuordnung(mitgliedsnummer: '1', gruppenId: 21),
-        ArbeitskontextMitgliedsZuordnung(mitgliedsnummer: '2', gruppenId: 22),
-        ArbeitskontextMitgliedsZuordnung(mitgliedsnummer: '3', gruppenId: 23),
-        ArbeitskontextMitgliedsZuordnung(mitgliedsnummer: '4', gruppenId: 24),
-        ArbeitskontextMitgliedsZuordnung(mitgliedsnummer: '5', gruppenId: 25),
-      ],
-      authModel: authModel,
-    );
+        findsOneWidget,
+      );
+    },
+  );
 
-    await tester.pumpWidget(
-      _buildTestApp(
+  testWidgets(
+    'zeigt alle Gruppenchips fuer die Zieltypen mit Gruppennamen an',
+    (tester) async {
+      final authModel = await _createSignedInAuthModel();
+      final arbeitskontextModel = await _createArbeitskontextModel(
+        mitglieder: <Mitglied>[
+          Mitglied.peopleListItem(
+            mitgliedsnummer: '1',
+            vorname: 'Ben',
+            nachname: 'Biber',
+          ),
+          Mitglied.peopleListItem(
+            mitgliedsnummer: '2',
+            vorname: 'Willi',
+            nachname: 'Wolf',
+          ),
+          Mitglied.peopleListItem(
+            mitgliedsnummer: '3',
+            vorname: 'Jana',
+            nachname: 'Jufi',
+          ),
+          Mitglied.peopleListItem(
+            mitgliedsnummer: '4',
+            vorname: 'Pia',
+            nachname: 'Pfadi',
+          ),
+          Mitglied.peopleListItem(
+            mitgliedsnummer: '5',
+            vorname: 'Rita',
+            nachname: 'Rover',
+          ),
+        ],
+        gruppen: const <ArbeitskontextGruppe>[
+          ArbeitskontextGruppe(
+            id: 21,
+            name: 'Bibergruppe',
+            layerId: 11,
+            gruppenTyp: 'Group::StammGruppeBiber',
+          ),
+          ArbeitskontextGruppe(
+            id: 22,
+            name: 'Woelflinge',
+            layerId: 11,
+            gruppenTyp: 'Group::StammGruppeWoelflinge',
+          ),
+          ArbeitskontextGruppe(
+            id: 23,
+            name: 'Juffis',
+            layerId: 11,
+            gruppenTyp: 'Group::StammGruppeJungpfadfinder',
+          ),
+          ArbeitskontextGruppe(
+            id: 24,
+            name: 'Pfadis',
+            layerId: 11,
+            gruppenTyp: 'Group::StammGruppePfadfinder',
+          ),
+          ArbeitskontextGruppe(
+            id: 25,
+            name: 'Roverrunde',
+            layerId: 11,
+            gruppenTyp: 'Group::StammGruppeRover',
+          ),
+        ],
+        mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
+          ArbeitskontextMitgliedsZuordnung(mitgliedsnummer: '1', gruppenId: 21),
+          ArbeitskontextMitgliedsZuordnung(mitgliedsnummer: '2', gruppenId: 22),
+          ArbeitskontextMitgliedsZuordnung(mitgliedsnummer: '3', gruppenId: 23),
+          ArbeitskontextMitgliedsZuordnung(mitgliedsnummer: '4', gruppenId: 24),
+          ArbeitskontextMitgliedsZuordnung(mitgliedsnummer: '5', gruppenId: 25),
+        ],
         authModel: authModel,
-        arbeitskontextModel: arbeitskontextModel,
-      ),
-    );
+      );
 
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        _buildTestApp(
+          authModel: authModel,
+          arbeitskontextModel: arbeitskontextModel,
+        ),
+      );
 
-    expect(
-      find.descendant(
-        of: find.byType(GroupFilterBar),
-        matching: find.text('Bibergruppe'),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(
-        of: find.byType(GroupFilterBar),
-        matching: find.text('Woelflinge'),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(
-        of: find.byType(GroupFilterBar),
-        matching: find.text('Juffis'),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(
-        of: find.byType(GroupFilterBar),
-        matching: find.text('Pfadis'),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(
-        of: find.byType(GroupFilterBar),
-        matching: find.text('Roverrunde'),
-      ),
-      findsOneWidget,
-    );
-  });
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(
+          of: find.byType(GroupFilterBar),
+          matching: find.text('Bibergruppe'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(GroupFilterBar),
+          matching: find.text('Woelflinge'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(GroupFilterBar),
+          matching: find.text('Juffis'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(GroupFilterBar),
+          matching: find.text('Pfadis'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(GroupFilterBar),
+          matching: find.text('Roverrunde'),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
 
   testWidgets('filtert ueber Alle anderen nicht zugeordnete Mitglieder', (
     tester,

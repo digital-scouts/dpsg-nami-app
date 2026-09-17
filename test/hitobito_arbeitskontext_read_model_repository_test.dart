@@ -142,7 +142,11 @@ void main() {
       final localRepository = _FakeArbeitskontextLocalRepository();
       final groupsService = _FakeHitobitoGroupsService(
         groups: const <HitobitoGroupResource>[
-          HitobitoGroupResource(id: 11, name: 'Stamm Musterdorf', isLayer: true),
+          HitobitoGroupResource(
+            id: 11,
+            name: 'Stamm Musterdorf',
+            isLayer: true,
+          ),
         ],
       );
       final repository = HitobitoArbeitskontextReadModelRepository(
@@ -160,7 +164,11 @@ void main() {
           ),
         ),
         accessibleGroups: const <HitobitoGroupResource>[
-          HitobitoGroupResource(id: 11, name: 'Stamm Musterdorf', isLayer: true),
+          HitobitoGroupResource(
+            id: 11,
+            name: 'Stamm Musterdorf',
+            isLayer: true,
+          ),
         ],
       );
 
@@ -234,7 +242,9 @@ void main() {
           ),
         ),
         onProgress: (partial) => progressSnapshots.add(
-          partial.mitglieder.map((mitglied) => mitglied.mitgliedsnummer).toList(),
+          partial.mitglieder
+              .map((mitglied) => mitglied.mitgliedsnummer)
+              .toList(),
         ),
       );
 

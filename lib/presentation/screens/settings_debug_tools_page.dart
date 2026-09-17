@@ -1017,9 +1017,7 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                                       return;
                                     }
 
-                                    setState(
-                                      () => _isDiagnosingGroups = true,
-                                    );
+                                    setState(() => _isDiagnosingGroups = true);
                                     await _trackDebugAction(
                                       logger,
                                       'groups_diagnose_broken_group',
@@ -1037,9 +1035,7 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                                       if (!mounted) {
                                         return;
                                       }
-                                      await _showGroupsDiagnosisDialog(
-                                        result,
-                                      );
+                                      await _showGroupsDiagnosisDialog(result);
                                     } catch (error) {
                                       if (!mounted) {
                                         return;

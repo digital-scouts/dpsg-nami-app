@@ -311,7 +311,11 @@ void main() {
         readModelRepository: readModelRepository,
         groupsService: _FakeHitobitoGroupsService(
           groups: const <HitobitoGroupResource>[
-            HitobitoGroupResource(id: 32, name: 'Stamm Bergland', isLayer: true),
+            HitobitoGroupResource(
+              id: 32,
+              name: 'Stamm Bergland',
+              isLayer: true,
+            ),
           ],
         ),
         bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
@@ -380,9 +384,7 @@ void main() {
 
     final observedStates = <List<ArbeitskontextLoadingStepState>>[];
     model.addListener(() {
-      observedStates.add(
-        model.loadingSteps.map((step) => step.state).toList(),
-      );
+      observedStates.add(model.loadingSteps.map((step) => step.state).toList());
     });
 
     await model.syncForAuth(
@@ -426,123 +428,117 @@ void main() {
     expect(model.isInitialSequenceActive, isFalse);
   });
 
-  test(
-    'zeigt keinen Vollbild-Fehler, wenn der allererste Ladevorgang ueber '
-    'refreshFromRemote beim Laden der Mitglieder scheitert',
-    () async {
-      // Viele Startup-Trigger (main.dart: _syncArbeitskontextComplete,
-      // Auth-Maintenance-Timer) fuehren den allerersten Ladevorgang der
-      // Session ueber refreshFromRemote statt initializeForProfile aus.
-      final readModelRepository = _FakeArbeitskontextReadModelRepository(
-        refreshError: Exception('Netzwerkfehler beim Laden der Mitglieder'),
-      );
-      final model = ArbeitskontextModel(
-        localRepository: _FakeArbeitskontextLocalRepository(),
-        readModelRepository: readModelRepository,
-        groupsService: _FakeHitobitoGroupsService(
-          groups: const <HitobitoGroupResource>[
-            HitobitoGroupResource(id: 40, name: 'Stamm Talblick', isLayer: true),
-          ],
-        ),
-        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
-        logger: _FakeLoggerService(),
-      );
+  test('zeigt keinen Vollbild-Fehler, wenn der allererste Ladevorgang ueber '
+      'refreshFromRemote beim Laden der Mitglieder scheitert', () async {
+    // Viele Startup-Trigger (main.dart: _syncArbeitskontextComplete,
+    // Auth-Maintenance-Timer) fuehren den allerersten Ladevorgang der
+    // Session ueber refreshFromRemote statt initializeForProfile aus.
+    final readModelRepository = _FakeArbeitskontextReadModelRepository(
+      refreshError: Exception('Netzwerkfehler beim Laden der Mitglieder'),
+    );
+    final model = ArbeitskontextModel(
+      localRepository: _FakeArbeitskontextLocalRepository(),
+      readModelRepository: readModelRepository,
+      groupsService: _FakeHitobitoGroupsService(
+        groups: const <HitobitoGroupResource>[
+          HitobitoGroupResource(id: 40, name: 'Stamm Talblick', isLayer: true),
+        ],
+      ),
+      bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+      logger: _FakeLoggerService(),
+    );
 
-      await model.refreshFromRemote(
-        session: AuthSession(
-          accessToken: 'token-40',
-          receivedAt: DateTime(2026, 3, 31),
-        ),
-        profile: const AuthProfile(
-          namiId: 40,
-          primaryGroupId: 40,
-          roles: <AuthProfileRole>[
-            AuthProfileRole(
-              groupId: 40,
-              groupName: 'Stamm Talblick',
-              roleName: 'Leitung',
-              roleClass: 'Group::Stamm::Leitung',
-              permissions: <String>['layer_read'],
-            ),
-          ],
-        ),
-      );
+    await model.refreshFromRemote(
+      session: AuthSession(
+        accessToken: 'token-40',
+        receivedAt: DateTime(2026, 3, 31),
+      ),
+      profile: const AuthProfile(
+        namiId: 40,
+        primaryGroupId: 40,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 40,
+            groupName: 'Stamm Talblick',
+            roleName: 'Leitung',
+            roleClass: 'Group::Stamm::Leitung',
+            permissions: <String>['layer_read'],
+          ),
+        ],
+      ),
+    );
 
-      expect(model.hasError, isFalse);
-      expect(model.isReady, isTrue);
-      expect(model.arbeitskontext, isNotNull);
-      expect(model.arbeitskontext?.aktiverLayer.id, 40);
-      expect(model.errorMessage, contains('Netzwerkfehler'));
-    },
-  );
+    expect(model.hasError, isFalse);
+    expect(model.isReady, isTrue);
+    expect(model.arbeitskontext, isNotNull);
+    expect(model.arbeitskontext?.aktiverLayer.id, 40);
+    expect(model.errorMessage, contains('Netzwerkfehler'));
+  });
 
-  test(
-    'durchlaeuft die Ladeschritte auch, wenn refreshFromRemote der '
-    'allererste Ladevorgang der Session ist',
-    () async {
-      final model = ArbeitskontextModel(
-        localRepository: _FakeArbeitskontextLocalRepository(),
-        readModelRepository: _FakeArbeitskontextReadModelRepository(
-          loadRolesResultsByLayer: <int, ArbeitskontextReadModel>{
-            41: ArbeitskontextReadModel(
-              arbeitskontext: Arbeitskontext(
-                aktiverLayer: const ArbeitskontextLayer(
-                  id: 41,
-                  name: 'Stamm Suedhang',
-                ),
+  test('durchlaeuft die Ladeschritte auch, wenn refreshFromRemote der '
+      'allererste Ladevorgang der Session ist', () async {
+    final model = ArbeitskontextModel(
+      localRepository: _FakeArbeitskontextLocalRepository(),
+      readModelRepository: _FakeArbeitskontextReadModelRepository(
+        loadRolesResultsByLayer: <int, ArbeitskontextReadModel>{
+          41: ArbeitskontextReadModel(
+            arbeitskontext: Arbeitskontext(
+              aktiverLayer: const ArbeitskontextLayer(
+                id: 41,
+                name: 'Stamm Suedhang',
               ),
-              rolesSindGeladen: true,
             ),
-          },
-        ),
-        groupsService: _FakeHitobitoGroupsService(
-          groups: const <HitobitoGroupResource>[
-            HitobitoGroupResource(id: 41, name: 'Stamm Suedhang', isLayer: true),
-          ],
-        ),
-        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
-        logger: _FakeLoggerService(),
-      );
+            rolesSindGeladen: true,
+          ),
+        },
+      ),
+      groupsService: _FakeHitobitoGroupsService(
+        groups: const <HitobitoGroupResource>[
+          HitobitoGroupResource(id: 41, name: 'Stamm Suedhang', isLayer: true),
+        ],
+      ),
+      bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+      logger: _FakeLoggerService(),
+    );
 
-      expect(model.isInitialSequenceActive, isFalse);
-      final observedArbeitskontextDuringLoad = <bool>[];
-      model.addListener(
-        () => observedArbeitskontextDuringLoad.add(model.arbeitskontext != null),
-      );
+    expect(model.isInitialSequenceActive, isFalse);
+    final observedArbeitskontextDuringLoad = <bool>[];
+    model.addListener(
+      () => observedArbeitskontextDuringLoad.add(model.arbeitskontext != null),
+    );
 
-      final refreshFuture = model.refreshFromRemote(
-        session: AuthSession(
-          accessToken: 'token-41',
-          receivedAt: DateTime(2026, 3, 31),
-        ),
-        profile: const AuthProfile(
-          namiId: 41,
-          primaryGroupId: 41,
-          roles: <AuthProfileRole>[
-            AuthProfileRole(
-              groupId: 41,
-              groupName: 'Stamm Suedhang',
-              roleName: 'Leitung',
-              roleClass: 'Group::Stamm::Leitung',
-              permissions: <String>['layer_read'],
-            ),
-          ],
-        ),
-      );
+    final refreshFuture = model.refreshFromRemote(
+      session: AuthSession(
+        accessToken: 'token-41',
+        receivedAt: DateTime(2026, 3, 31),
+      ),
+      profile: const AuthProfile(
+        namiId: 41,
+        primaryGroupId: 41,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 41,
+            groupName: 'Stamm Suedhang',
+            roleName: 'Leitung',
+            roleClass: 'Group::Stamm::Leitung',
+            permissions: <String>['layer_read'],
+          ),
+        ],
+      ),
+    );
 
-      await refreshFuture;
-      await _waitForBackgroundWork();
+    await refreshFuture;
+    await _waitForBackgroundWork();
 
-      // Der Kontext war schon vor Abschluss (waehrend Mitglieder noch
-      // luden) gesetzt - genau das erlaubt der Shell, sich frueh zu zeigen.
-      expect(observedArbeitskontextDuringLoad, contains(true));
-      expect(
-        model.loadingSteps.map((step) => step.state),
-        everyElement(ArbeitskontextLoadingStepState.done),
-      );
-      expect(model.isInitialSequenceActive, isFalse);
-    },
-  );
+    // Der Kontext war schon vor Abschluss (waehrend Mitglieder noch
+    // luden) gesetzt - genau das erlaubt der Shell, sich frueh zu zeigen.
+    expect(observedArbeitskontextDuringLoad, contains(true));
+    expect(
+      model.loadingSteps.map((step) => step.state),
+      everyElement(ArbeitskontextLoadingStepState.done),
+    );
+    expect(model.isInitialSequenceActive, isFalse);
+  });
 
   test(
     'setzt den Arbeitskontext bei Sign-out wieder in den Initialzustand',
