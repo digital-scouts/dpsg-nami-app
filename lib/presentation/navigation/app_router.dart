@@ -24,6 +24,7 @@ import '../screens/settings_debug_tools_page.dart';
 import '../screens/settings_impressum_page.dart';
 import '../screens/settings_map_page.dart';
 import '../screens/settings_notification_page.dart';
+import '../screens/settings_qualifikationen_page.dart';
 import '../screens/settings_stamm_page.dart';
 import '../screens/settings_stufenwechsel_page.dart';
 import '../screens/statistics_group_detail_page.dart';
@@ -40,6 +41,7 @@ class AppRoutes {
   static const String settingsImpressum = '/settings/impressum';
   static const String settingsDatenschutz = '/settings/datenschutz';
   static const String settingsStufenwechsel = '/settings/stufenwechsel';
+  static const String settingsQualifikationen = '/settings/qualifikationen';
   static const String debugTools = '/settings/debug';
   static const String pullNotifications = '/notifications';
   static const String profile = '/profile';
@@ -246,6 +248,11 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         settings: settings,
         builder: (context) => const SettingsStufenwechselPage(),
+      );
+    case AppRoutes.settingsQualifikationen:
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => const SettingsQualifikationenPage(),
       );
     case AppRoutes.pullNotifications:
       final arguments = settings.arguments;

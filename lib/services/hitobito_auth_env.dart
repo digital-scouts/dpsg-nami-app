@@ -112,6 +112,34 @@ class HitobitoAuthConfig {
     return base.replace(path: '/api/roles', queryParameters: null);
   }
 
+  Uri? get efzEinsichtnahmenUri {
+    final base = Uri.tryParse(
+      profileUrl.isNotEmpty ? profileUrl : authorizationUrl,
+    );
+    if (base == null) {
+      return null;
+    }
+
+    return base.replace(path: '/api/efz_einsichtnahmen', queryParameters: null);
+  }
+
+  // Nicht Teil der oeffentlichen /api/*-JSON:API, sondern derselbe Web-Endpoint,
+  // ueber den auch die NAMI-Weboberflaeche das Antrags-PDF ausliefert
+  // (People::EfzAntragsController im hitobito_pfadi_de-Wagon).
+  Uri? efzAntragUri({required int groupId, required int personId}) {
+    final base = Uri.tryParse(
+      profileUrl.isNotEmpty ? profileUrl : authorizationUrl,
+    );
+    if (base == null) {
+      return null;
+    }
+
+    return base.replace(
+      path: '/groups/$groupId/people/$personId/efz_antrag',
+      queryParameters: null,
+    );
+  }
+
   List<String> get scopes => scopeString
       .split(RegExp(r'\s+'))
       .where((scope) => scope.isNotEmpty)

@@ -20,6 +20,7 @@ class SettingsPage extends StatefulWidget {
   final VoidCallback? onNotificationSettings;
   final VoidCallback? onAppSettings;
   final VoidCallback? onMapSettings;
+  final VoidCallback? onQualifikationen;
   final FutureOr<void> Function()? onMessages;
   final VoidCallback? onImpressum;
   final VoidCallback? onDatenschutz;
@@ -38,6 +39,7 @@ class SettingsPage extends StatefulWidget {
     this.onNotificationSettings,
     this.onAppSettings,
     this.onMapSettings,
+    this.onQualifikationen,
     this.onMessages,
     this.onImpressum,
     this.onDatenschutz,
@@ -322,6 +324,14 @@ class _SettingsPageState extends State<SettingsPage> {
                                   title: t.t('settings_map'),
                                   subtitle: 'Stammes- und DV-Karte',
                                   onTap: widget.onMapSettings,
+                                ),
+                                const _SettingsRowDivider(),
+                                _SettingsNavTile(
+                                  icon: Icons.verified_outlined,
+                                  iconBackgroundColor: const Color(0xFF34C759),
+                                  title: 'Qualifikationen',
+                                  subtitle: 'EFZ-Status der Leitenden',
+                                  onTap: widget.onQualifikationen,
                                 ),
                                 if (!namiAiDecision.isHidden) ...[
                                   const _SettingsRowDivider(),
