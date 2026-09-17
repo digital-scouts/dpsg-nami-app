@@ -174,14 +174,107 @@ void main() {
     await tester.pump();
 
     expect(find.text('Gruppen'), findsOneWidget);
-    expect(find.text('Lädt…'), findsOneWidget);
-    expect(find.text('Wartet'), findsNWidgets(2));
+    // Kein Text mehr fuer den generischen Lade-/Wartezustand - nur noch
+    // Icons: Login ist fertig (Haken), Gruppen laedt (Spinner). Rollen laden
+    // erst ab der Mitglieder-Phase parallel mit und warten bis dahin genau
+    // wie Mitglieder/Qualifikationen/Veranstaltungen (Kreis-Icon).
+    expect(find.byIcon(Icons.check_circle), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byIcon(Icons.circle_outlined), findsNWidgets(4));
 
     delayCompleter.complete();
     await tester.pumpAndSettle();
 
     expect(arbeitskontextModel.isReady, isTrue);
   });
+
+  testWidgets(
+    'zeigt Qualifikationen/Veranstaltungen als Platzhalter-Zeilen, rueckt '
+    'Rollen/Qualifikationen unter Mitglieder ein und faerbt wartende Zeilen '
+    'lesbar statt mit dem kontrastarmen outline-Ton',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final authModel = await _createSignedInAuthModel();
+      final groupsService = _FakeHitobitoGroupsService(
+        groups: const <HitobitoGroupResource>[
+          HitobitoGroupResource(id: 11, name: 'Stamm Musterdorf', isLayer: true),
+        ],
+      );
+      final delayCompleter = Completer<void>();
+      groupsService.fetchDelay = delayCompleter.future;
+      final arbeitskontextModel = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: groupsService,
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+
+      unawaited(
+        arbeitskontextModel.syncForAuth(
+          authState: authModel.state,
+          session: authModel.session,
+          profile: authModel.profile,
+        ),
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          authModel: authModel,
+          arbeitskontextModel: arbeitskontextModel,
+        ),
+      );
+      await tester.pump();
+
+      // Die beiden Platzhalter-Zeilen sind sichtbar, obwohl es dafuer noch
+      // keine echte Lade-Logik gibt.
+      expect(find.text('Qualifikationen'), findsOneWidget);
+      expect(find.text('Veranstaltungen'), findsOneWidget);
+
+      // "Mitglieder" erscheint zusaetzlich als Tab-Label in der unteren
+      // Navigation - hier interessiert nur das oberste Vorkommen (die
+      // Checkliste), daher wird ueber die y-Position gefiltert.
+      Offset topmostTopLeft(String label) {
+        final positions = tester
+            .renderObjectList<RenderBox>(find.text(label))
+            .map((box) => box.localToGlobal(Offset.zero))
+            .toList()
+          ..sort((a, b) => a.dy.compareTo(b.dy));
+        return positions.first;
+      }
+
+      // Rollen und Qualifikationen sind als Unterpunkte von Mitgliedern
+      // eingerueckt, Gruppen/Mitglieder/Veranstaltungen dagegen nicht.
+      final gruppenLeft = topmostTopLeft('Gruppen').dx;
+      final mitgliederLeft = topmostTopLeft('Mitglieder').dx;
+      final rollenLeft = topmostTopLeft('Rollen').dx;
+      final qualifikationenLeft = topmostTopLeft('Qualifikationen').dx;
+      final veranstaltungenLeft = topmostTopLeft('Veranstaltungen').dx;
+
+      expect(rollenLeft, greaterThan(gruppenLeft));
+      expect(rollenLeft, greaterThan(mitgliederLeft));
+      expect(qualifikationenLeft, rollenLeft);
+      expect(veranstaltungenLeft, gruppenLeft);
+
+      // Wartende Zeilen (hier: Qualifikationen) sind nicht mehr mit dem
+      // kontrastarmen outline-Ton eingefaerbt, sondern mit onSurfaceVariant.
+      final theme = Theme.of(tester.element(find.text('Qualifikationen')));
+      final qualifikationenStyle = tester
+          .widget<Text>(find.text('Qualifikationen'))
+          .style;
+      expect(qualifikationenStyle?.color, theme.colorScheme.onSurfaceVariant);
+      expect(qualifikationenStyle?.color, isNot(theme.colorScheme.outline));
+      final waitingIcon = tester
+          .widget<Icon>(find.byIcon(Icons.circle_outlined).first);
+      expect(waitingIcon.color, theme.colorScheme.onSurfaceVariant);
+      expect(waitingIcon.color, isNot(theme.colorScheme.outline));
+
+      delayCompleter.complete();
+      await tester.pumpAndSettle();
+
+      expect(arbeitskontextModel.isReady, isTrue);
+    },
+  );
 
   testWidgets(
     'zeigt die Ladeinfo luechenlos als Banner weiter an, waehrend Mitglieder '
@@ -236,7 +329,9 @@ void main() {
         find.text('Arbeitskontext konnte nicht initialisiert werden'),
         findsNothing,
       );
-      expect(find.text('Lädt…'), findsOneWidget);
+      // Mitglieder laden noch, und Rollen laden ab sofort parallel dazu mit -
+      // beide Zeilen zeigen daher gleichzeitig den Lade-Spinner.
+      expect(find.byType(CircularProgressIndicator), findsNWidgets(2));
 
       refreshCompleter.complete();
       await tester.pumpAndSettle();
@@ -394,7 +489,11 @@ void main() {
       await tester.pump();
 
       expect(arbeitskontextModel.isSynchronizing, isTrue);
-      expect(find.text('Lädt…'), findsWidgets);
+      // "Mitglieder" und "Rollen" zeigen hier beide einen Spinner: Rollen
+      // laedt von Anfang an parallel mit, statt kurz den veralteten
+      // "Fertig"-Stand vom letzten Sync zu zeigen (das war das urspruengliche
+      // Flacker-Problem: Haken -> kurz weg -> Spinner).
+      expect(find.byType(CircularProgressIndicator), findsNWidgets(2));
 
       refreshCompleter.complete();
       await tester.pumpAndSettle();

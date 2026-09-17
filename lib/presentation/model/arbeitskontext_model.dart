@@ -30,6 +30,7 @@ class ArbeitskontextLoadingStepStatus {
     required this.state,
     this.detailKey,
     this.detailCount,
+    this.indent = false,
   });
 
   /// l10n-Key fuer den Zeilentitel (z.B. "Gruppen").
@@ -40,6 +41,10 @@ class ArbeitskontextLoadingStepStatus {
   /// gefunden"), nur gesetzt wenn state == done und ein Zaehler bekannt ist.
   final String? detailKey;
   final int? detailCount;
+
+  /// True, wenn diese Zeile als Unterpunkt einer vorherigen Zeile dargestellt
+  /// werden soll (z.B. "Rollen"/"Qualifikationen" unter "Mitglieder").
+  final bool indent;
 }
 
 typedef ArbeitskontextRemoteAccessExecutor =
@@ -185,11 +190,24 @@ class ArbeitskontextModel extends ChangeNotifier {
 
     final groupsState = stateFor(1);
     final membersState = stateFor(2);
-    final rolesState = areRolesLoaded
-        ? ArbeitskontextLoadingStepState.done
+    // Rollen laden erst ab der Mitglieder-Phase parallel mit (siehe
+    // refresh()) - waehrend Login/Gruppen noch laufen, ist dafuer schlicht
+    // noch nichts gestartet, auch wenn ein vorheriger Durchlauf schon Rollen
+    // geladen hatte. Deshalb "Wartet" statt eines veralteten "Fertig".
+    // Sobald die Mitglieder-Phase erreicht ist, hat _isLoadingRoles Vorrang
+    // vor areRolesLoaded: sonst wuerde kurzzeitig wieder "Fertig" gezeigt,
+    // weil _readModel noch den (veralteten, aber noch nicht widerlegten)
+    // Stand des letzten erfolgreichen Durchlaufs traegt, bis die erste
+    // Fortschrittsmeldung eintrifft - das sah wie ein Rueckschritt aus
+    // (Haken -> wieder Spinner).
+    final rollenPhaseErreicht = currentPhaseIndex >= 2;
+    final rolesState = !rollenPhaseErreicht
+        ? ArbeitskontextLoadingStepState.waiting
         : (_isLoadingRoles
               ? ArbeitskontextLoadingStepState.loading
-              : ArbeitskontextLoadingStepState.waiting);
+              : (areRolesLoaded
+                    ? ArbeitskontextLoadingStepState.done
+                    : ArbeitskontextLoadingStepState.waiting));
 
     return <ArbeitskontextLoadingStepStatus>[
       ArbeitskontextLoadingStepStatus(
@@ -220,6 +238,20 @@ class ArbeitskontextModel extends ChangeNotifier {
       ArbeitskontextLoadingStepStatus(
         labelKey: 'nav_work_context_step_roles',
         state: rolesState,
+        indent: true,
+      ),
+      // Platzhalter-Zeilen ohne eigene Lade-Logik: bereiten die Anzeige
+      // grafisch auf spaeter folgende Features vor (Qualifikationen als
+      // Unterpunkt von Mitgliedern, Veranstaltungen als eigene Top-Level-
+      // Zeile).
+      const ArbeitskontextLoadingStepStatus(
+        labelKey: 'nav_work_context_step_qualifikationen',
+        state: ArbeitskontextLoadingStepState.waiting,
+        indent: true,
+      ),
+      const ArbeitskontextLoadingStepStatus(
+        labelKey: 'nav_work_context_step_veranstaltungen',
+        state: ArbeitskontextLoadingStepState.waiting,
       ),
     ];
   }
@@ -429,6 +461,10 @@ class ArbeitskontextModel extends ChangeNotifier {
       // angezeigt werden, waehrend Mitglieder im Hintergrund weiterladen.
       _arbeitskontext = arbeitskontext;
       _loadingStep = ArbeitskontextLoadingStep.loadingMembers;
+      // refresh() laedt Rollen ab hier parallel zu den Mitgliedern (statt
+      // erst danach) - die Rollen-Zeile soll daher genau jetzt "Laedt..."
+      // zeigen.
+      _isLoadingRoles = true;
       notifyListeners();
 
       _readModel = await _executeRemoteAccess<ArbeitskontextReadModel>(
@@ -469,20 +505,73 @@ class ArbeitskontextModel extends ChangeNotifier {
       _errorMessage = error.toString();
     } finally {
       _isSynchronizing = false;
+      _isLoadingRoles = false;
       _loadingStep = null;
       notifyListeners();
     }
   }
 
-  /// Wird pro geladener People-Seite aufgerufen (siehe
+  /// Wird pro geladener People-/Rollen-Seite aufgerufen (siehe
   /// ArbeitskontextReadModelRepository.refresh's onProgress-Parameter), damit
   /// bereits geladene Mitglieder sofort sichtbar werden, waehrend weitere
   /// Seiten im Hintergrund nachladen.
   void _applyProgressReadModel(ArbeitskontextReadModel partial) {
-    _readModel = partial;
-    _arbeitskontext = partial.arbeitskontext;
-    _lastMembersCount = partial.mitglieder.length;
+    final previous = _readModel;
+    final merged = previous == null
+        ? partial
+        : _mergeProgressWithPrevious(previous: previous, partial: partial);
+    _readModel = merged;
+    _arbeitskontext = merged.arbeitskontext;
+    _lastMembersCount = merged.mitglieder.length;
     notifyListeners();
+  }
+
+  /// Verhindert, dass ein laufender Refresh die bereits angezeigte
+  /// Mitgliederliste zwischenzeitlich leert: noch nicht in diesem Durchlauf
+  /// (wieder-)bestaetigte Mitglieder aus [previous] bleiben sichtbar, bis das
+  /// finale, vollstaendige Ergebnis von refresh() sie ggf. korrekt entfernt.
+  /// Fuer Mitglieder, deren frische Kopie noch keine Rollen hat, werden die
+  /// alten Rollen uebernommen, damit z.B. Leiter-Farbstreifen nicht kurz auf
+  /// "keine Rolle" umspringen. rolesSindGeladen wird bewusst NICHT von
+  /// [previous] uebernommen, sondern bleibt exakt der Stand von [partial] -
+  /// sonst wuerde ensureRolesLoaded()'s Kurzschluss-Check veraltete Rollen
+  /// faelschlich dauerhaft stehen lassen.
+  ArbeitskontextReadModel _mergeProgressWithPrevious({
+    required ArbeitskontextReadModel previous,
+    required ArbeitskontextReadModel partial,
+  }) {
+    final partialIds = partial.mitglieder
+        .map((mitglied) => mitglied.mitgliedsnummer)
+        .toSet();
+    final previousByNummer = <String, Mitglied>{
+      for (final mitglied in previous.mitglieder)
+        mitglied.mitgliedsnummer: mitglied,
+    };
+
+    final mergedMitglieder = <Mitglied>[
+      for (final fresh in partial.mitglieder)
+        if (fresh.roles.isEmpty &&
+            (previousByNummer[fresh.mitgliedsnummer]?.roles.isNotEmpty ??
+                false))
+          fresh.copyWith(
+            roles: previousByNummer[fresh.mitgliedsnummer]!.roles,
+          )
+        else
+          fresh,
+      for (final stale in previous.mitglieder)
+        if (!partialIds.contains(stale.mitgliedsnummer)) stale,
+    ];
+
+    final mergedZuordnungen = <ArbeitskontextMitgliedsZuordnung>[
+      ...partial.mitgliedsZuordnungen,
+      for (final zuordnung in previous.mitgliedsZuordnungen)
+        if (!partialIds.contains(zuordnung.mitgliedsnummer)) zuordnung,
+    ];
+
+    return partial.copyWith(
+      mitglieder: mergedMitglieder,
+      mitgliedsZuordnungen: mergedZuordnungen,
+    );
   }
 
   Future<void> retry(AuthProfile? profile) async {
@@ -607,6 +696,10 @@ class ArbeitskontextModel extends ChangeNotifier {
         _arbeitskontext = nextArbeitskontext;
       }
       _loadingStep = ArbeitskontextLoadingStep.loadingMembers;
+      // refresh() laedt Rollen ab hier parallel zu den Mitgliedern (statt
+      // erst danach) - die Rollen-Zeile soll daher genau jetzt "Laedt..."
+      // zeigen.
+      _isLoadingRoles = true;
       notifyListeners();
       _readModel = await _executeRemoteAccess<ArbeitskontextReadModel>(
         trigger: 'arbeitskontext_refresh_read_model',
@@ -659,6 +752,7 @@ class ArbeitskontextModel extends ChangeNotifier {
       _errorMessage = error.toString();
     } finally {
       _isSynchronizing = false;
+      _isLoadingRoles = false;
       _loadingStep = null;
       notifyListeners();
     }

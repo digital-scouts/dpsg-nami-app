@@ -32,8 +32,9 @@ class HitobitoRolesService {
   }
 
   Future<List<HitobitoPersonRoleResource>> fetchRoleResources(
-    String accessToken,
-  ) async {
+    String accessToken, {
+    void Function(List<HitobitoPersonRoleResource> loadedSoFar)? onPageLoaded,
+  }) async {
     final requestUri = config.rolesUri;
     if (requestUri == null) {
       throw const HitobitoRolesException(
@@ -60,6 +61,7 @@ class HitobitoRolesService {
       resources.addAll(
         data.whereType<Map<String, dynamic>>().map(_mapRoleResource),
       );
+      onPageLoaded?.call(List.unmodifiable(resources));
       nextUri = _resolveNextUri(decoded, currentUri: effectiveRequestUri);
     }
 
