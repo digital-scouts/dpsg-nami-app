@@ -58,6 +58,9 @@ jobs:
           dart tool/validate_env_files.dart .env.ci .env.example
           rm .env.ci
 
+      - name: Create env file for analysis
+        run: cp .env.example .env
+
       - name: Verify formatting
         run: dart format --output=none --set-exit-if-changed .
 

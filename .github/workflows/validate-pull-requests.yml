@@ -52,6 +52,9 @@ jobs:
           dart tool/validate_env_files.dart .env.ci .env.example
           rm .env.ci
 
+      - name: Create env file for analysis
+        run: cp .env.example .env
+
       - name: Require version bump for master PRs
         if: github.event_name == 'pull_request' && github.base_ref == 'master'
         shell: bash
@@ -103,6 +106,9 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Create env file for build
+        run: cp .env.example .env
 
       - name: Install CocoaPods
         run: |

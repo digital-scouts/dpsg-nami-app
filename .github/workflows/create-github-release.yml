@@ -49,6 +49,9 @@ jobs:
       - name: Validate app version consistency
         run: dart tool/validate_versions.dart
 
+      - name: Create env file for analysis
+        run: cp .env.example .env
+
       - name: Verify formatting
         run: dart format --output=none --set-exit-if-changed .
 
