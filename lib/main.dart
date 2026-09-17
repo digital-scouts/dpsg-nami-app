@@ -948,7 +948,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 return Stack(
                   fit: StackFit.expand,
                   children: [
-                    if (child != null) child,
+                    ?child,
                     const AppLockOverlay(),
                     GlobalLoadingTopBar(
                       active: isGlobalLoading,

@@ -981,7 +981,7 @@ class MemberEditModel extends ChangeNotifier {
     await _logger.trackEvent('member_edit', <String, Object?>{
       'action': action,
       'trigger': trigger,
-      if (outcome != null) 'outcome': outcome,
+      'outcome': ?outcome,
       'source': 'member_edit',
     });
   }
@@ -1015,13 +1015,12 @@ class MemberEditModel extends ChangeNotifier {
     await _logger.trackEvent('member_edit', <String, Object?>{
       'action': action,
       'trigger': trigger,
-      if (batchSize != null) 'batch_size': batchSize,
-      if (outcome != null) 'outcome': outcome,
-      if (successCount != null) 'success_count': successCount,
-      if (retainedCount != null) 'retained_count': retainedCount,
-      if (discardedCount != null) 'discarded_count': discardedCount,
-      if (needsResolutionCount != null)
-        'needs_resolution_count': needsResolutionCount,
+      'batch_size': ?batchSize,
+      'outcome': ?outcome,
+      'success_count': ?successCount,
+      'retained_count': ?retainedCount,
+      'discarded_count': ?discardedCount,
+      'needs_resolution_count': ?needsResolutionCount,
       'source': 'member_edit',
     });
   }
@@ -1054,7 +1053,7 @@ class MemberEditModel extends ChangeNotifier {
     bool track = false,
   }) async {
     final logProperties = <String, Object?>{
-      if (personId != null) 'person_id': personId,
+      'person_id': ?personId,
       ...properties,
     };
     await _logger.logInfo(

@@ -216,9 +216,9 @@ class LoggerService {
     Map<String, Object?> properties = const <String, Object?>{},
   }) {
     final details = <String, Object?>{
-      if (route != null) 'route': route,
-      if (fromRoute != null) 'from': fromRoute,
-      if (toRoute != null) 'to': toRoute,
+      'route': ?route,
+      'from': ?fromRoute,
+      'to': ?toRoute,
       ...properties,
     };
     return logInfo('nav', _composeMessage(action, details));

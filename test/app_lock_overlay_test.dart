@@ -63,7 +63,7 @@ void main() {
             builder: (context, child) {
               return Stack(
                 fit: StackFit.expand,
-                children: [if (child != null) child, const AppLockOverlay()],
+                children: [?child, const AppLockOverlay()],
               );
             },
             home: Scaffold(
