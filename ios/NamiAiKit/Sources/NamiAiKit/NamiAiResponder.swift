@@ -29,37 +29,54 @@ import Foundation
       """
 
     private static let systemInstructions = """
-      Du beantwortest Fragen zur DPSG (Satzung, Ordnung, Vereinsstrukturen) \
-      ausschließlich auf Basis der unten aufgeführten Auszüge. Das Glossar erklärt \
-      dir nur Abkürzungen, die Nutzer:innen in ihrer Frage verwenden könnten - es ist \
+      Du beantwortest Fragen zur DPSG (Satzung, Ordnung, Vereinsstrukturen) ausschließlich auf \
+      Basis der Ergebnisse des Tools "search_regelwerk". Rufe das Tool für jede inhaltliche \
+      Frage auf, bevor du antwortest - bei Bedarf mehrfach mit unterschiedlichen \
+      Suchbegriffen, wenn eine Antwort mehrere Abschnitte zusammenführen muss. Das Glossar \
+      erklärt dir nur Abkürzungen, die Nutzer:innen in ihrer Frage verwenden könnten - es ist \
       keine zusätzliche Quelle für Inhalte. Wenn sich eine Frage nicht anhand der \
-      Auszüge beantworten lässt, lehne die Antwort höflich ab und weise darauf hin, \
-      dass dir dazu keine passende Quelle vorliegt. Erfinde keine Inhalte, die nicht \
-      in den Auszügen stehen.
+      Tool-Ergebnisse beantworten lässt, setze unclear auf true und lasse sources leer. \
+      Erfinde keine Inhalte und keine Quellenangaben, die nicht aus den Tool-Ergebnissen \
+      stammen.
       """
 
-    /// Runs one turn against the fixed context. Never surfaces raw framework error text:
-    /// all failure modes are mapped to NamiAiError.
+    /// Runs one turn with retrieval via NamiAiSearchTool and technically enforces the citation
+    /// requirement afterwards (NamiAiGroundingGate) - @Generable alone only guarantees
+    /// structure, not that a cited source was actually retrieved. Never surfaces raw framework
+    /// error text: all failure modes are mapped to NamiAiError.
     static func respond(
       to prompt: String,
       completion: @escaping (Result<NamiAiAnswer, NamiAiError>) -> Void
     ) {
-      guard let chunks = NamiAiContext.loadChunks() else {
+      guard NamiAiCorpus.index() != nil else {
         completion(.failure(.contextMissing))
         return
       }
 
-      let instructions =
-        systemInstructions + "\n\n" + glossary + "\n\nSatzungsauszüge:\n"
-        + chunks.enumerated()
-        .map { "\($0.offset + 1). \($0.element)" }
-        .joined(separator: "\n\n")
+      let recorder = NamiAiRetrievalRecorder()
+      let instructions = systemInstructions + "\n\n" + glossary
+      let session = LanguageModelSession(
+        tools: [NamiAiSearchTool(recorder: recorder)],
+        instructions: instructions
+      )
 
       Task {
         do {
-          let session = LanguageModelSession(instructions: instructions)
-          let response = try await session.respond(to: prompt)
-          completion(.success(NamiAiAnswer(text: response.content, contextChunks: chunks)))
+          let response = try await session.respond(
+            to: prompt, generating: NamiAiGeneratedAnswer.self)
+          let generated = response.content
+          let sources = generated.sources.map {
+            NamiAiSourceRef(
+              docTitle: $0.docTitle, sectionNumber: $0.sectionNumber, docStand: $0.docStand)
+          }
+          let answer = NamiAiGroundingGate.verify(
+            text: generated.answer,
+            sources: sources,
+            unclear: generated.unclear,
+            deliveredKeys: await recorder.deliveredKeys,
+            contextChunks: await recorder.deliveredChunkTexts
+          )
+          completion(.success(answer))
         } catch {
           completion(.failure(.generationFailed))
         }

@@ -8,8 +8,22 @@ enum NamiAiFlutterBridge {
   static let channelName = "com.namiapp/nami_ai"
 
   static func register(with messenger: FlutterBinaryMessenger) {
+    configureCorpus()
     let channel = FlutterMethodChannel(name: channelName, binaryMessenger: messenger)
     channel.setMethodCallHandler(handle)
+  }
+
+  /// Resolves the shared corpus asset (single source of truth, specs/nami-ai-roadmap.md
+  /// section 3.2) and hands the path to NamiAiKit, which has no Flutter dependency of its own.
+  /// If resolution fails, NamiAiKit simply reports contextMissing on the next request instead
+  /// of crashing here.
+  private static func configureCorpus() {
+    let assetKey = FlutterDartProject.lookupKey(
+      forAsset: "assets/ai_kontext/nami_ai_corpus_v1.json")
+    guard let path = Bundle.main.path(forResource: assetKey, ofType: nil) else {
+      return
+    }
+    NamiAiAssistant.configure(corpusFileURL: URL(fileURLWithPath: path))
   }
 
   private static func handle(
@@ -39,7 +53,18 @@ enum NamiAiFlutterBridge {
         DispatchQueue.main.async {
           switch outcome {
           case .success(let answer):
-            result(["answer": answer.text, "contextChunks": answer.contextChunks])
+            result([
+              "answer": answer.text,
+              "contextChunks": answer.contextChunks,
+              "sources": answer.sources.map {
+                [
+                  "docTitle": $0.docTitle,
+                  "sectionNumber": $0.sectionNumber,
+                  "docStand": $0.docStand,
+                ]
+              },
+              "unclear": answer.unclear,
+            ])
           case .failure(let error):
             result(
               FlutterError(
