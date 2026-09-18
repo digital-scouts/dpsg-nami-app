@@ -11,7 +11,8 @@ enum NamiAiGroundingGate {
     sources: [NamiAiSourceRef],
     unclear: Bool,
     deliveredKeys: Set<NamiAiChunkKey>,
-    contextChunks: [String]
+    contextChunks: [String],
+    contextTruncated: Bool = false
   ) -> NamiAiAnswer {
     let verifiedSources = sources.filter {
       deliveredKeys.contains(NamiAiChunkKey(docTitle: $0.docTitle, sectionNumber: $0.sectionNumber))
@@ -20,7 +21,8 @@ enum NamiAiGroundingGate {
       text: text,
       contextChunks: contextChunks,
       sources: verifiedSources,
-      unclear: unclear || verifiedSources.isEmpty
+      unclear: unclear || verifiedSources.isEmpty,
+      contextTruncated: contextTruncated
     )
   }
 }

@@ -37,19 +37,47 @@ enum NamiAiFlutterBridge {
       } else {
         result(["available": true])
       }
-    case "generateReply":
+    case "startChatSession":
+      NamiAiAssistant.startSession { outcome in
+        DispatchQueue.main.async {
+          switch outcome {
+          case .success(let sessionId):
+            result(["sessionId": sessionId])
+          case .failure(let error):
+            result(
+              FlutterError(code: error.flutterErrorCode, message: error.userMessage, details: nil)
+            )
+          }
+        }
+      }
+    case "endChatSession":
       guard let args = call.arguments as? [String: Any],
-        let prompt = args["prompt"] as? String
+        let sessionId = args["sessionId"] as? String
       else {
         result(
           FlutterError(
             code: "invalid_arguments",
-            message: "Missing prompt for NaMi AI.",
+            message: "Missing sessionId for NaMi AI.",
             details: nil
           ))
         return
       }
-      NamiAiAssistant.respond(to: prompt) { outcome in
+      NamiAiAssistant.endSession(sessionId: sessionId)
+      result(nil)
+    case "generateReply":
+      guard let args = call.arguments as? [String: Any],
+        let prompt = args["prompt"] as? String,
+        let sessionId = args["sessionId"] as? String
+      else {
+        result(
+          FlutterError(
+            code: "invalid_arguments",
+            message: "Missing prompt/sessionId for NaMi AI.",
+            details: nil
+          ))
+        return
+      }
+      NamiAiAssistant.respond(sessionId: sessionId, to: prompt) { outcome in
         DispatchQueue.main.async {
           switch outcome {
           case .success(let answer):
@@ -64,6 +92,7 @@ enum NamiAiFlutterBridge {
                 ]
               },
               "unclear": answer.unclear,
+              "contextTruncated": answer.contextTruncated,
             ])
           case .failure(let error):
             result(
