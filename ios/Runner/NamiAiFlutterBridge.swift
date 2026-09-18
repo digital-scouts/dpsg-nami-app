@@ -11,6 +11,9 @@ enum NamiAiFlutterBridge {
     configureCorpus()
     let channel = FlutterMethodChannel(name: channelName, binaryMessenger: messenger)
     channel.setMethodCallHandler(handle)
+    let streamChannel = FlutterEventChannel(
+      name: NamiAiStreamHandler.channelName, binaryMessenger: messenger)
+    streamChannel.setStreamHandler(NamiAiStreamHandler())
   }
 
   /// Resolves the shared corpus asset (single source of truth, specs/nami-ai-roadmap.md

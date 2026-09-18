@@ -31,31 +31,102 @@ import Foundation
         completion(.failure(.contextMissing))
         return
       }
-
       Task {
+        let result = await performWithOverflowRetry { contextTruncated in
+          try await NamiAiResponder.runTurn(
+            session: self.session, recorder: self.recorder, prompt: prompt,
+            contextTruncated: contextTruncated)
+        }
+        completion(result)
+      }
+    }
+
+    /// Streaming counterpart of respond() (specs/nami-ai-roadmap.md section 3.7:
+    /// session.streamResponse via a new EventChannel instead of waiting for the full answer).
+    /// onPartial delivers only the growing answer text — sources/unclear (the grounding-gate
+    /// verified result) are only meaningful once the whole turn, including every tool call, has
+    /// finished, so they're only ever part of the final NamiAiAnswer passed to completion.
+    func streamRespond(
+      to prompt: String,
+      onPartial: @escaping (String) -> Void,
+      completion: @escaping (Result<NamiAiAnswer, NamiAiError>) -> Void
+    ) {
+      guard NamiAiCorpus.index() != nil else {
+        completion(.failure(.contextMissing))
+        return
+      }
+      Task {
+        let result = await performWithOverflowRetry { contextTruncated in
+          try await self.runStreamingTurn(
+            prompt: prompt, contextTruncated: contextTruncated, onPartial: onPartial)
+        }
+        completion(result)
+      }
+    }
+
+    /// Shared retry orchestration for both respond() and streamRespond(): resets the recorder,
+    /// runs the turn once, and on a context-overflow error rebuilds the session (sliding-window
+    /// truncation) and retries exactly once before giving up — truncating repeatedly risks
+    /// dropping the current prompt itself.
+    private func performWithOverflowRetry(
+      runOnce: (Bool) async throws -> NamiAiAnswer
+    ) async -> Result<NamiAiAnswer, NamiAiError> {
+      await recorder.reset()
+      do {
+        let answer = try await runOnce(false)
+        return .success(answer)
+      } catch let error as LanguageModelSession.GenerationError where Self.isContextOverflow(error)
+      {
+        rebuildAfterOverflow()
         await recorder.reset()
         do {
-          let answer = try await NamiAiResponder.runTurn(
-            session: session, recorder: recorder, prompt: prompt, contextTruncated: false)
-          completion(.success(answer))
-        } catch let error as LanguageModelSession.GenerationError
-          where Self.isContextOverflow(error)
-        {
-          rebuildAfterOverflow()
-          await recorder.reset()
-          do {
-            let answer = try await NamiAiResponder.runTurn(
-              session: session, recorder: recorder, prompt: prompt, contextTruncated: true)
-            completion(.success(answer))
-          } catch {
-            // Truncating once and retrying still overflowed (or hit a different error) — give up
-            // rather than truncating repeatedly, which risks dropping the current prompt itself.
-            completion(.failure(NamiAiResponder.mapGenerationError(error)))
-          }
+          let answer = try await runOnce(true)
+          return .success(answer)
         } catch {
-          completion(.failure(NamiAiResponder.mapGenerationError(error)))
+          return .failure(NamiAiResponder.mapGenerationError(error))
+        }
+      } catch {
+        return .failure(NamiAiResponder.mapGenerationError(error))
+      }
+    }
+
+    /// Runs one streaming turn, forwarding each growing answer-text prefix to onPartial, and
+    /// wraps the final snapshot through NamiAiGroundingGate exactly like the non-streaming path.
+    private func runStreamingTurn(
+      prompt: String,
+      contextTruncated: Bool,
+      onPartial: @escaping (String) -> Void
+    ) async throws -> NamiAiAnswer {
+      let stream = session.streamResponse(to: prompt, generating: NamiAiGeneratedAnswer.self)
+      var lastSnapshotContent: NamiAiGeneratedAnswer.PartiallyGenerated?
+      var lastAnswerText = ""
+      for try await snapshot in stream {
+        lastSnapshotContent = snapshot.content
+        if let partialAnswer = snapshot.content.answer, partialAnswer != lastAnswerText {
+          lastAnswerText = partialAnswer
+          onPartial(partialAnswer)
         }
       }
+      let sources =
+        lastSnapshotContent?.sources?.compactMap { partial -> NamiAiSourceRef? in
+          guard let docTitle = partial.docTitle, let sectionNumber = partial.sectionNumber,
+            let docStand = partial.docStand
+          else {
+            return nil
+          }
+          return NamiAiSourceRef(
+            docTitle: docTitle, sectionNumber: sectionNumber, docStand: docStand)
+        } ?? []
+      return NamiAiGroundingGate.verify(
+        text: lastSnapshotContent?.answer ?? lastAnswerText,
+        sources: sources,
+        // nil here means the model never finished declaring unclear - fail safe towards true
+        // rather than assuming a confident answer that was never actually confirmed complete.
+        unclear: lastSnapshotContent?.unclear ?? true,
+        deliveredKeys: await recorder.deliveredKeys,
+        contextChunks: await recorder.deliveredChunkTexts,
+        contextTruncated: contextTruncated
+      )
     }
 
     private static func isContextOverflow(_ error: LanguageModelSession.GenerationError) -> Bool {

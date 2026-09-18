@@ -134,4 +134,40 @@ public enum NamiAiAssistant {
       completion(.failure(.apiUnavailable))
     #endif
   }
+
+  /// Streaming counterpart of respond(sessionId:to:completion:) (specs/nami-ai-roadmap.md
+  /// section 3.7: session.streamResponse over a new EventChannel instead of a plain
+  /// MethodChannel). onPartial delivers only the growing answer text; the final,
+  /// grounding-gate-verified NamiAiAnswer (with sources/unclear/contextTruncated) is only ever
+  /// passed to onComplete.
+  public static func streamRespond(
+    sessionId: String,
+    to prompt: String,
+    onPartial: @escaping (String) -> Void,
+    onComplete: @escaping (Result<NamiAiAnswer, NamiAiError>) -> Void
+  ) {
+    if let availabilityError = checkAvailability() {
+      onComplete(.failure(availabilityError))
+      return
+    }
+    if NamiAiWriteIntentFilter.matches(prompt) {
+      onComplete(.success(writeIntentRejection))
+      return
+    }
+    #if canImport(FoundationModels)
+      guard #available(iOS 26.0, macOS 26.0, *) else {
+        onComplete(.failure(.unsupportedOS))
+        return
+      }
+      Task {
+        guard let chatSession = await sessionStore.session(for: sessionId) else {
+          onComplete(.failure(.sessionNotFound))
+          return
+        }
+        chatSession.streamRespond(to: prompt, onPartial: onPartial, completion: onComplete)
+      }
+    #else
+      onComplete(.failure(.apiUnavailable))
+    #endif
+  }
 }

@@ -10,6 +10,7 @@
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		17C45F5D1A5C42E88DD15FB6 /* NamiAiKit in Frameworks */ = {isa = PBXBuildFile; productRef = 8C3F3CB35E8A4D0CAD2D3248 /* NamiAiKit */; };
 		D70E66441E9A42148EA9A276 /* NamiAiFlutterBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 468FDAB820BD41EDAA044467 /* NamiAiFlutterBridge.swift */; };
+		4AD14BC51513D660A6369004 /* NamiAiStreamHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C8DE28F4EF380A612A514FF /* NamiAiStreamHandler.swift */; };
 		331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C807B294A618700263BE5 /* RunnerTests.swift */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
@@ -55,6 +56,7 @@
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		74858FB11ED2DC5600515821 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		468FDAB820BD41EDAA044467 /* NamiAiFlutterBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NamiAiFlutterBridge.swift; sourceTree = "<group>"; };
+		4C8DE28F4EF380A612A514FF /* NamiAiStreamHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NamiAiStreamHandler.swift; sourceTree = "<group>"; };
 		78E0A7A72DC9AD7400C4905E /* FlutterGeneratedPluginSwiftPackage */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = FlutterGeneratedPluginSwiftPackage; path = Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
 		7C90637A2FF2F9B600732BDA /* NamiAppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = NamiAppIcon.icon; sourceTree = "<group>"; };
@@ -138,6 +140,7 @@
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
 				74858FB11ED2DC5600515821 /* SceneDelegate.swift */,
 				468FDAB820BD41EDAA044467 /* NamiAiFlutterBridge.swift */,
+				4C8DE28F4EF380A612A514FF /* NamiAiStreamHandler.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 				7C90637A2FF2F9B600732BDA /* NamiAppIcon.icon */,
 			);
@@ -362,6 +365,7 @@
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
 				74858FB01ED2DC5600515820 /* SceneDelegate.swift in Sources */,
 				D70E66441E9A42148EA9A276 /* NamiAiFlutterBridge.swift in Sources */,
+				4AD14BC51513D660A6369004 /* NamiAiStreamHandler.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
