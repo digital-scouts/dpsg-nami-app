@@ -13,7 +13,7 @@ void main() {
   });
 
   test(
-    'generateReply sends prompt to native channel and returns text',
+    'generateReply sends prompt to native channel and returns answer with context',
     () async {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (call) async {
@@ -21,12 +21,16 @@ void main() {
             expect(call.arguments, isA<Map>());
             final args = call.arguments as Map<dynamic, dynamic>;
             expect(args['prompt'], 'Hallo');
-            return 'Antwort von iOS';
+            return {
+              'answer': 'Antwort von iOS',
+              'contextChunks': ['18. Chunk eins', '19. Chunk zwei'],
+            };
           });
 
       final result = await service.generateReply('Hallo');
 
-      expect(result, 'Antwort von iOS');
+      expect(result.answer, 'Antwort von iOS');
+      expect(result.contextChunks, ['18. Chunk eins', '19. Chunk zwei']);
     },
   );
 
