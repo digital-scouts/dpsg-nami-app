@@ -54,4 +54,35 @@ void main() {
       ),
     );
   });
+
+  test(
+    'checkAvailability returns available true from native channel',
+    () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            expect(call.method, 'checkAvailability');
+            return {'available': true};
+          });
+
+      final result = await service.checkAvailability();
+
+      expect(result.available, isTrue);
+      expect(result.reason, isNull);
+    },
+  );
+
+  test(
+    'checkAvailability returns available false with reason from native channel',
+    () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            return {'available': false, 'reason': 'ai_device_not_eligible'};
+          });
+
+      final result = await service.checkAvailability();
+
+      expect(result.available, isFalse);
+      expect(result.reason, 'ai_device_not_eligible');
+    },
+  );
 }

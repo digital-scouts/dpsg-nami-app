@@ -12,20 +12,26 @@ public enum NamiAiAssistant {
     to prompt: String,
     completion: @escaping (Result<NamiAiAnswer, NamiAiError>) -> Void
   ) {
+    if let availabilityError = checkAvailability() {
+      completion(.failure(availabilityError))
+      return
+    }
+    #if canImport(FoundationModels)
+      NamiAiResponder.respond(to: prompt, completion: completion)
+    #endif
+  }
+
+  /// Synchronous availability check, exposed so the Flutter bridge can offer a dedicated
+  /// checkAvailability MethodChannel call instead of gating solely on a device whitelist.
+  /// Returns nil when the model is available and ready; otherwise the mapped error.
+  public static func checkAvailability() -> NamiAiError? {
     #if canImport(FoundationModels)
       guard #available(iOS 26.0, macOS 26.0, *) else {
-        completion(.failure(.unsupportedOS))
-        return
+        return .unsupportedOS
       }
-      if let availabilityError = NamiAiAvailabilityMapper.error(
-        for: SystemLanguageModel.default.availability
-      ) {
-        completion(.failure(availabilityError))
-        return
-      }
-      NamiAiResponder.respond(to: prompt, completion: completion)
+      return NamiAiAvailabilityMapper.error(for: SystemLanguageModel.default.availability)
     #else
-      completion(.failure(.apiUnavailable))
+      return .apiUnavailable
     #endif
   }
 }

@@ -1,8 +1,7 @@
 import 'dart:io';
 
-import 'package:device_info_plus/device_info_plus.dart';
-
 import 'nami_ai_env.dart';
+import 'nami_ai_service.dart';
 
 enum NamiAiAccessState { hidden, lockedByMembership, enabled }
 
@@ -31,34 +30,33 @@ class NamiAiMembershipService {
   }
 }
 
-class NamiAiDeviceService {
-  NamiAiDeviceService({DeviceInfoPlugin? plugin}) : _plugin = plugin;
+class NamiAiAvailabilityService {
+  NamiAiAvailabilityService({NamiAiService? service}) : _service = service;
 
-  final DeviceInfoPlugin? _plugin;
+  final NamiAiService? _service;
 
-  Future<String?> iosModelIdentifier() async {
-    if (!Platform.isIOS) {
-      return null;
-    }
-    final plugin = _plugin ?? DeviceInfoPlugin();
-    final info = await plugin.iosInfo;
-    return info.utsname.machine.trim();
-  }
+  Future<NamiAiAvailability> check() =>
+      (_service ?? NamiAiService()).checkAvailability();
 }
 
 class NamiAiAccessService {
+  /// Reale Mindestversion des FoundationModels-Frameworks (siehe specs/nami-ai-roadmap.md
+  /// Abschnitt 2.3/2.6) - ein technisches API-Faktum, kein Rollout-Hebel, deshalb bewusst
+  /// fest codiert statt per Env-Flag konfigurierbar.
+  static const int _minIosMajorVersion = 26;
+
   NamiAiAccessService({
     NamiAiMembershipService? membershipService,
-    NamiAiDeviceService? deviceService,
+    NamiAiAvailabilityService? availabilityService,
     bool Function()? isIosPlatform,
     String Function()? osVersionProvider,
   }) : _membershipService = membershipService,
-       _deviceService = deviceService,
+       _availabilityService = availabilityService,
        _isIosPlatform = isIosPlatform,
        _osVersionProvider = osVersionProvider;
 
   final NamiAiMembershipService? _membershipService;
-  final NamiAiDeviceService? _deviceService;
+  final NamiAiAvailabilityService? _availabilityService;
   final bool Function()? _isIosPlatform;
   final String Function()? _osVersionProvider;
 
@@ -79,25 +77,20 @@ class NamiAiAccessService {
     }
 
     final iosMajorVersion = _resolveIosMajorVersion();
-    if (iosMajorVersion == null ||
-        iosMajorVersion < NamiAiEnv.minIosMajorVersion) {
+    if (iosMajorVersion == null || iosMajorVersion < _minIosMajorVersion) {
       return const NamiAiAccessDecision(
         state: NamiAiAccessState.hidden,
         reason: NamiAiBlockReason.unsupportedIosVersion,
       );
     }
 
-    final deviceGateMode = NamiAiEnv.deviceGateMode;
-    if (deviceGateMode != 'off') {
-      final modelIdentifier = await (_deviceService ?? NamiAiDeviceService())
-          .iosModelIdentifier();
-      final allowed = _isAllowedDevice(modelIdentifier, mode: deviceGateMode);
-      if (!allowed) {
-        return const NamiAiAccessDecision(
-          state: NamiAiAccessState.hidden,
-          reason: NamiAiBlockReason.unsupportedDevice,
-        );
-      }
+    final availability =
+        await (_availabilityService ?? NamiAiAvailabilityService()).check();
+    if (!availability.available) {
+      return const NamiAiAccessDecision(
+        state: NamiAiAccessState.hidden,
+        reason: NamiAiBlockReason.unsupportedDevice,
+      );
     }
 
     final requiresPremium = NamiAiEnv.requirePremium;
@@ -123,37 +116,5 @@ class NamiAiAccessService {
       return null;
     }
     return int.tryParse(match.group(1)!);
-  }
-
-  bool _isAllowedDevice(String? modelIdentifier, {required String mode}) {
-    final model = (modelIdentifier ?? '').trim();
-    if (model.isEmpty) {
-      return false;
-    }
-
-    final patterns = switch (mode) {
-      'apple_intelligence' => NamiAiEnv.appleIntelligenceWhitelist,
-      'whitelist' => NamiAiEnv.deviceWhitelist,
-      _ => NamiAiEnv.deviceWhitelist,
-    };
-
-    for (final pattern in patterns) {
-      if (_matchesPattern(model, pattern)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  bool _matchesPattern(String value, String pattern) {
-    final normalized = pattern.trim();
-    if (normalized.isEmpty) {
-      return false;
-    }
-    if (!normalized.contains('*')) {
-      return value == normalized;
-    }
-    final escaped = RegExp.escape(normalized).replaceAll('\\*', '.*');
-    return RegExp('^$escaped\$').hasMatch(value);
   }
 }

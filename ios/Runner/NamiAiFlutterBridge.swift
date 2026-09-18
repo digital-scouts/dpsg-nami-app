@@ -17,6 +17,12 @@ enum NamiAiFlutterBridge {
     result: @escaping FlutterResult
   ) {
     switch call.method {
+    case "checkAvailability":
+      if let error = NamiAiAssistant.checkAvailability() {
+        result(["available": false, "reason": error.flutterErrorCode])
+      } else {
+        result(["available": true])
+      }
     case "generateReply":
       guard let args = call.arguments as? [String: Any],
         let prompt = args["prompt"] as? String
