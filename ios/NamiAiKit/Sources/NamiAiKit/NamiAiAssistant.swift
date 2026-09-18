@@ -15,12 +15,28 @@ public enum NamiAiAssistant {
     NamiAiCorpus.configure(fileURL: corpusFileURL)
   }
 
+  /// Fixed, non-model rejection text for explicit write intents (specs/nami-ai-roadmap.md
+  /// section 3.7). unclear is false here: this is a deliberate, correct rejection, not a
+  /// grounding failure — callers should be able to tell the two apart.
+  private static let writeIntentRejection = NamiAiAnswer(
+    text:
+      "Ich kann aktuell keine Änderungen in NaMi vornehmen, sondern nur Fragen beantworten. "
+      + "Bitte nutze dafür die passende Stelle in der App.",
+    contextChunks: [],
+    sources: [],
+    unclear: false
+  )
+
   public static func respond(
     to prompt: String,
     completion: @escaping (Result<NamiAiAnswer, NamiAiError>) -> Void
   ) {
     if let availabilityError = checkAvailability() {
       completion(.failure(availabilityError))
+      return
+    }
+    if NamiAiWriteIntentFilter.matches(prompt) {
+      completion(.success(writeIntentRejection))
       return
     }
     #if canImport(FoundationModels)
