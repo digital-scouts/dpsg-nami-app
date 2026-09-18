@@ -15,6 +15,7 @@ public enum NamiAiError: Error, Equatable {
   case generationFailed
   case guardrailViolation
   case contextWindowExceeded
+  case sessionNotFound
 
   public var flutterErrorCode: String {
     switch self {
@@ -28,6 +29,7 @@ public enum NamiAiError: Error, Equatable {
     case .generationFailed: return "ai_generation_failed"
     case .guardrailViolation: return "ai_guardrail_violation"
     case .contextWindowExceeded: return "ai_context_window_exceeded"
+    case .sessionNotFound: return "ai_session_not_found"
     }
   }
 
@@ -53,6 +55,8 @@ public enum NamiAiError: Error, Equatable {
       return "Diese Anfrage kann aus Sicherheitsgründen nicht beantwortet werden."
     case .contextWindowExceeded:
       return "Das Gespräch ist zu lang geworden. Bitte beginne ein neues Gespräch."
+    case .sessionNotFound:
+      return "Die Unterhaltung ist nicht mehr aktiv. Bitte starte eine neue Unterhaltung."
     }
   }
 }

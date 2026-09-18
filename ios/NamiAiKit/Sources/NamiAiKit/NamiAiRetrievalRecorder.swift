@@ -13,8 +13,13 @@ struct NamiAiChunkKey: Hashable {
 /// different terms, possibly concurrently — Tool.call is @concurrent), so this accumulates
 /// across all of them rather than keeping only the last call — relevant for the multi-chunk
 /// synthesis case found in the 3.3 spike. An actor since Tool requires Sendable and calls may
-/// overlap. One instance is created per respond() call, so there's no reset needed between
-/// turns.
+/// overlap.
+///
+/// Since section 3.7, a NamiAiChatSession holds one LanguageModelSession (and therefore one
+/// NamiAiSearchTool/recorder instance) across multiple turns instead of building a fresh one
+/// per respond() call — so reset() must run at the start of every turn, or deliveredKeys would
+/// wrongly accumulate across follow-up questions and let the grounding gate accept sources that
+/// were only ever retrieved in an earlier turn.
 actor NamiAiRetrievalRecorder {
   private(set) var deliveredKeys: Set<NamiAiChunkKey> = []
   private(set) var deliveredChunkTexts: [String] = []
@@ -26,5 +31,10 @@ actor NamiAiRetrievalRecorder {
         deliveredChunkTexts.append(chunk.text)
       }
     }
+  }
+
+  func reset() {
+    deliveredKeys.removeAll()
+    deliveredChunkTexts.removeAll()
   }
 }
