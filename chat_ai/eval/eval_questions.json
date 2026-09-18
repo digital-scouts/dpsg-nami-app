@@ -1,0 +1,358 @@
+{
+  "eval_set_version": 1,
+  "updated_at": "2026-09-18",
+  "known_limitations": "3.8-Befund: NamiAiRetrievalIndex tokenisiert ohne Stemming/Lemmatisierung (siehe NamiAiRetrieval.swift). Deutsche Flexionsformen ausserhalb der im Korpus-Chunk vorkommenden Form (z. B. Frage 'Mitglieder', Chunk-Text 'Mitgliedern'; Frage 'des Bezirksvorstands', Chunk-Text 'Der Bezirksvorstand') werden dadurch NICHT als Treffer erkannt, obwohl inhaltlich exakt passend. Das ist keine Frage falsch formuliert, sondern eine reale, im ersten automatisierten Testlauf (2026-09-18) gemessene Schwaeche der BM25-Variante A (rund 41 Prozent Pass-Rate ueber alle automatisiert pruefbaren general/jargon/regression-Fragen). Direkt relevant fuer die B/D-Entscheidung in 3.6/3.8 - siehe NamiAiEvalTests.swift und chat_ai/eval/README.md.",
+  "questions": [
+    {
+      "id": "jargon-sv-mitglieder",
+      "category": "jargon",
+      "question": "Wer gehört zur Stammesversammlung?",
+      "expected_sources": [{"doc_id": "satzung_stamm", "section_number": "20"}],
+      "match_mode": "all",
+      "expects_reject": false,
+      "automated_check": true
+    },
+    {
+      "id": "jargon-woe-jufi-vertretung-sv",
+      "category": "jargon",
+      "question": "Wie sind Wölflinge und Jungpfadfinder*innen in der Stammesversammlung vertreten?",
+      "expected_sources": [{"doc_id": "satzung_stamm", "section_number": "20"}],
+      "match_mode": "all",
+      "expects_reject": false,
+      "automated_check": true
+    },
+    {
+      "id": "jargon-stalei-vs-lr",
+      "category": "jargon",
+      "question": "Was ist der Unterschied zwischen Stammesleitung (StaLei) und Stammesleiter*innenrunde (LR)?",
+      "expected_sources": [
+        {"doc_id": "satzung_stamm", "section_number": "25"},
+        {"doc_id": "satzung_stamm", "section_number": "26"},
+        {"doc_id": "satzung_stamm", "section_number": "27"},
+        {"doc_id": "satzung_stamm", "section_number": "28"}
+      ],
+      "match_mode": "any",
+      "expects_reject": false,
+      "automated_check": true,
+      "note": "StaLei (Ziffer 25/26) und LR (Ziffer 27/28) sind zwei verschiedene Organe - 'any' statt 'all', da beide Themenfelder je eigene Chunks haben und BM25 nicht garantiert alle vier gleichzeitig in den Top-5 liefert."
+    },
+    {
+      "id": "jargon-stavo-zusammensetzung",
+      "category": "jargon",
+      "question": "Aus wem besteht der Stavo?",
+      "expected_sources": [{"doc_id": "satzung_stamm", "section_number": "29"}],
+      "match_mode": "all",
+      "expects_reject": false,
+      "automated_check": true
+    },
+    {
+      "id": "regression-stavo-aufgaben-sv",
+      "category": "regression",
+      "question": "Was sind die Aufgaben des Stavo in der SV?",
+      "expected_sources": [
+        {"doc_id": "satzung_stamm", "section_number": "31"},
+        {"doc_id": "satzung_stamm", "section_number": "29"},
+        {"doc_id": "satzung_stamm", "section_number": "23"},
+        {"doc_id": "satzung_stamm", "section_number": "55"},
+        {"doc_id": "satzung_stamm", "section_number": "56"}
+      ],
+      "match_mode": "any",
+      "expects_reject": false,
+      "automated_check": true,
+      "note": "Regressionstest fuer den 3.3-Spike-Bug: Im damaligen 38-Chunk-Stammesversammlung-Piloten antwortete das Modell mit den SV-eigenen Aufgaben (Ziffer 24) statt den Stavo-Aufgaben, weil kein Chunk explizit 'Stavo hat folgende Aufgaben' auflistete. Im seit 3.4/3.6 aktiven Vollkorpus existiert dieser Chunk jetzt (Ziffer 31, 'Der Stammesvorstand hat folgende Aufgaben'). Ziffer 24 (SV-eigene Aufgaben) ist bewusst NICHT als erwartete Quelle gelistet - genau das war die falsche Antwort im Spike. Dieser Test prueft nur, ob BM25 Ziffer 31 (oder verwandte Stavo-Chunks) ueberhaupt findet, nicht ob das Modell korrekt synthetisiert - das bleibt manuelle Pruefung."
+    },
+    {
+      "id": "general-sv-frequenz",
+      "category": "general",
+      "question": "Wie oft muss die Stammesversammlung mindestens stattfinden?",
+      "expected_sources": [{"doc_id": "satzung_stamm", "section_number": "23"}],
+      "match_mode": "all",
+      "expects_reject": false,
+      "automated_check": true
+    },
+    {
+      "id": "general-stavo-aufgaben",
+      "category": "general",
+      "question": "Was sind die Aufgaben des Stammesvorstands?",
+      "expected_sources": [{"doc_id": "satzung_stamm", "section_number": "31"}],
+      "match_mode": "all",
+      "expects_reject": false,
+      "automated_check": true
+    },
+    {
+      "id": "general-stavo-mitgliederzahl",
+      "category": "general",
+      "question": "Wie viele Mitglieder hat der Stammesvorstand?",
+      "expected_sources": [{"doc_id": "satzung_stamm", "section_number": "29"}],
+      "match_mode": "all",
+      "expects_reject": false,
+      "automated_check": true
+    },
+    {
+      "id": "guardrail-elternbeirat-frequenz",
+      "category": "guardrail-negative",
+      "question": "Wie oft tagt der Elternbeirat im Stamm?",
+      "expected_sources": [],
+      "match_mode": "all",
+      "expects_reject": true,
+      "automated_check": false,
+      "note": "3.3-Spike-Grenzfall-Muster: 'Elternbeirat' ist kein definiertes Organ (nur 'Elternversammlung', Ziffer 35, mit anderer Funktion). Lexikalische Naehe zu 'Eltern'-Chunks macht das Risiko real, dass das Modell auf die thematisch verwandte, aber falsche Elternversammlung-Frequenz ausweicht statt korrekt abzulehnen. Nicht automatisiert pruefbar (Retrieval findet ggf. echte Chunks, das eigentliche Problem liegt im Modellverhalten danach)."
+    },
+    {
+      "id": "guardrail-ausschluss-mehrheitsbeschluss",
+      "category": "guardrail-negative",
+      "question": "Kann ein Mitglied per einfachem Mehrheitsbeschluss der Stammesversammlung sofort aus dem Stamm ausgeschlossen werden?",
+      "expected_sources": [],
+      "match_mode": "all",
+      "expects_reject": true,
+      "automated_check": false,
+      "note": "3.3-Spike-Grenzfall-Muster (Ausschlussfrage): Ziffer 12 verlangt ein foermliches Ausschlussverfahren aus wichtigem Grund, nicht einen einfachen SV-Mehrheitsbeschluss. Im Spike hat das Modell den Kern korrekt abgelehnt, aber lose verwandte Zusatzinfos angehaengt statt sauber zu stoppen - genau dieses Muster soll hier erneut beobachtet werden. Nicht automatisiert pruefbar."
+    },
+    {
+      "id": "general-bezirksvorstand-aufgaben",
+      "category": "general",
+      "question": "Was sind die Aufgaben des Bezirksvorstands?",
+      "expected_sources": [{"doc_id": "satzung_bezirk", "section_number": "31"}],
+      "match_mode": "all",
+      "expects_reject": false,
+      "automated_check": true
+    },
+    {
+      "id": "general-bezirksvorstand-mitgliederzahl",
+      "category": "general",
+      "question": "Wie viele Mitglieder hat der Bezirksvorstand?",
+      "expected_sources": [{"doc_id": "satzung_bezirk", "section_number": "30"}],
+      "match_mode": "all",
+      "expects_reject": false,
+      "automated_check": true
+    },
+    {
+      "id": "general-bezirksversammlung-frequenz",
+      "category": "general",
+      "question": "Wie oft muss die Bezirksversammlung mindestens stattfinden?",
+      "expected_sources": [{"doc_id": "satzung_bezirk", "section_number": "23"}],
+      "match_mode": "all",
+      "expects_reject": false,
+      "automated_check": true
+    },
+    {
+      "id": "general-bezirksversammlung-aufgaben",
+      "category": "general",
+      "question": "Was sind die Aufgaben der Bezirksversammlung?",
+      "expected_sources": [{"doc_id": "satzung_bezirk", "section_number": "25"}],
+      "match_mode": "all",
+      "expects_reject": false,
+      "automated_check": true
+    },
+    {
+      "id": "general-bezirkskonferenzen-frequenz",
+      "category": "general",
+      "question": "Wie oft finden die Bezirkskonferenzen statt?",
+      "expected_sources": [{"doc_id": "satzung_bezirk", "section_number": "36"}],
+      "match_mode": "all",
+      "expects_reject": false,
+      "automated_check": true
+    },
+    {
+      "id": "general-dioezesanvorstand-aufgaben",
+      "category": "general",
+      "question": "Was sind die Aufgaben des Diözesanvorstands?",
+      "expected_sources": [{"doc_id": "satzung_dioezese", "section_number": "30"}],
+      "match_mode": "all",
+      "expects_reject": false,
+      "automated_check": true
+    },
+    {
+      "id": "general-dioezesanvorstand-mitgliederzahl",
+      "category": "general",
+      "question": "Wie viele Mitglieder hat der Diözesanvorstand?",
+      "expected_sources": [{"doc_id": "satzung_dioezese", "section_number": "29"}],
+      "match_mode": "all",
+      "expects_reject": false,
+      "automated_check": true
+    },
+    {
+      "id": "general-dioezesanversammlung-aufgaben",
+      "category": "general",
+      "question": "Was sind die Aufgaben der Diözesanversammlung?",
+      "expected_sources": [{"doc_id": "satzung_dioezese", "section_number": "24"}],
+      "match_mode": "all",
+      "expects_reject": false,
+      "automated_check": true
+    },
+    {
+      "id": "general-dioezesanleitung-aufgaben",
+      "category": "general",
+      "question": "Was sind die Aufgaben der Diözesanleitung?",
+      "expected_sources": [{"doc_id": "satzung_dioezese", "section_number": "28"}],
+      "match_mode": "all",
+      "expects_reject": false,
+      "automated_check": true
+    },
+    {
+      "id": "general-dioezesankonferenzen-frequenz",
+      "category": "general",
+      "question": "Wie oft finden die Diözesankonferenzen statt?",
+      "expected_sources": [{"doc_id": "satzung_dioezese", "section_number": "36"}],
+      "match_mode": "all",
+      "expects_reject": false,
+      "automated_check": true
+    },
+    {
+      "id": "general-bundesvorstand-aufgaben",
+      "category": "general",
+      "question": "Was sind die Aufgaben des Bundesvorstands?",
+      "expected_sources": [{"doc_id": "satzung_bund", "section_number": "32"}],
+      "match_mode": "all",
+      "expects_reject": false,
+      "automated_check": true
+    },
+    {
+      "id": "general-bundesvorstand-mitgliederzahl",
+      "category": "general",
+      "question": "Wie viele Mitglieder hat der Bundesvorstand?",
+      "expected_sources": [{"doc_id": "satzung_bund", "section_number": "31"}],
+      "match_mode": "all",
+      "expects_reject": false,
+      "automated_check": true
+    },
+    {
+      "id": "general-bundesversammlung-aufgaben",
+      "category": "general",
+      "question": "Was sind die Aufgaben der Bundesversammlung?",
+      "expected_sources": [{"doc_id": "satzung_bund", "section_number": "26"}],
+      "match_mode": "all",
+      "expects_reject": false,
+      "automated_check": true
+    },
+    {
+      "id": "general-bundesleitung-aufgaben",
+      "category": "general",
+      "question": "Was sind die Aufgaben der Bundesleitung?",
+      "expected_sources": [{"doc_id": "satzung_bund", "section_number": "30"}],
+      "match_mode": "all",
+      "expects_reject": false,
+      "automated_check": true
+    },
+    {
+      "id": "general-bund-hauptausschuss",
+      "category": "general",
+      "question": "Wer bildet den Hauptausschuss der Bundesversammlung?",
+      "expected_sources": [{"doc_id": "satzung_bund", "section_number": "34"}],
+      "match_mode": "all",
+      "expects_reject": false,
+      "automated_check": true
+    },
+    {
+      "id": "general-woelflingsstufe-alter",
+      "category": "general",
+      "question": "Ab welchem Alter kann man in der Wölflingsstufe Mitglied werden?",
+      "expected_sources": [{"doc_id": "ordnung", "section_number": "Kapitel 24.1-1"}],
+      "match_mode": "all",
+      "expects_reject": false,
+      "automated_check": true
+    },
+    {
+      "id": "general-jungpfadfinderstufe-alter",
+      "category": "general",
+      "question": "In welchem Alter ist man in der Jungpfadfinderstufe?",
+      "expected_sources": [{"doc_id": "ordnung", "section_number": "Kapitel 24.1-1"}],
+      "match_mode": "all",
+      "expects_reject": false,
+      "automated_check": true
+    },
+    {
+      "id": "general-pfadfinderstufe-alter",
+      "category": "general",
+      "question": "In welchem Alter ist man in der Pfadfinderstufe?",
+      "expected_sources": [{"doc_id": "ordnung", "section_number": "Kapitel 24.1-1"}],
+      "match_mode": "all",
+      "expects_reject": false,
+      "automated_check": true
+    },
+    {
+      "id": "general-roverstufe-alter",
+      "category": "general",
+      "question": "Bis zu welchem Alter kann man in der Roverstufe sein?",
+      "expected_sources": [{"doc_id": "ordnung", "section_number": "Kapitel 24.1-1"}],
+      "match_mode": "all",
+      "expects_reject": false,
+      "automated_check": true
+    },
+    {
+      "id": "general-bibergruppe-groesse",
+      "category": "general",
+      "question": "Wie viele Kinder sollte eine Bibergruppe maximal haben?",
+      "expected_sources": [{"doc_id": "ordnung", "section_number": "Kapitel 71.36"}],
+      "match_mode": "all",
+      "expects_reject": false,
+      "automated_check": true
+    },
+    {
+      "id": "general-verweildauer-altersstufe",
+      "category": "general",
+      "question": "Wie lange sollte ein Kind durchschnittlich in einer Altersstufe bleiben?",
+      "expected_sources": [{"doc_id": "ordnung", "section_number": "Kapitel 24.1-1"}],
+      "match_mode": "all",
+      "expects_reject": false,
+      "automated_check": true
+    },
+    {
+      "id": "general-altersstufen-anzahl",
+      "category": "general",
+      "question": "Aus wie vielen Altersstufen besteht das pfadfinderische Leben in der DPSG?",
+      "expected_sources": [{"doc_id": "ordnung", "section_number": "Kapitel 7"}],
+      "match_mode": "all",
+      "expects_reject": false,
+      "automated_check": true
+    },
+    {
+      "id": "general-bibergruppe-leitungsschluessel",
+      "category": "general",
+      "question": "Welcher Betreuungsschlüssel gilt als Richtlinie für das Leitungsteam einer Bibergruppe?",
+      "expected_sources": [{"doc_id": "ordnung", "section_number": "Kapitel 71.47"}],
+      "match_mode": "all",
+      "expects_reject": false,
+      "automated_check": true
+    },
+    {
+      "id": "general-gesetz-versprechen-einheit",
+      "category": "general",
+      "question": "Was drücken Gesetz und Versprechen der Pfadfinder*innen gemeinsam aus?",
+      "expected_sources": [{"doc_id": "ordnung", "section_number": "Kapitel 5.6"}],
+      "match_mode": "all",
+      "expects_reject": false,
+      "automated_check": true
+    },
+    {
+      "id": "offtopic-wetter",
+      "category": "off-topic",
+      "question": "Wie wird morgen das Wetter in Köln?",
+      "expected_sources": [],
+      "match_mode": "all",
+      "expects_reject": true,
+      "automated_check": false,
+      "note": "3.8-Befund: NamiAiRetrievalIndex.topMatches liefert gegen den echten 667-Chunk-Korpus auch fuer klar fachfremde Fragen 5 Treffer, teils mit hoeherem BM25-Score als bei echten Satzungsfragen. Ursache: seltene, umgangssprachliche Woerter (z. B. 'koche') haben im foermlichen Satzungs-/Ordnungstext eine sehr niedrige Dokumentfrequenz und bekommen dadurch eine unverhaeltnismaessig hohe IDF-Gewichtung, besonders wenn sie kurze Chunks treffen. minScore=0.01 filtert das nicht. 'Retrieval liefert leer' ist daher KEIN verlaesslicher automatisierter Ablehnungs-Indikator - die Ablehnung muss laut Systemprompt vom Modell selbst kommen (unclear=true), nicht aus einer leeren Trefferliste. Nur manuell pruefbar."
+    },
+    {
+      "id": "offtopic-kochrezept",
+      "category": "off-topic",
+      "question": "Wie koche ich Spaghetti Carbonara?",
+      "expected_sources": [],
+      "match_mode": "all",
+      "expects_reject": true,
+      "automated_check": false,
+      "note": "Siehe Befund bei offtopic-wetter - dieser Fall zeigt den IDF-Ausreisser am deutlichsten (Score 15.4, hoeher als jede getestete echte Satzungsfrage)."
+    },
+    {
+      "id": "offtopic-fussball-wm",
+      "category": "off-topic",
+      "question": "Wer hat die Fußball-Weltmeisterschaft 2014 gewonnen?",
+      "expected_sources": [],
+      "match_mode": "all",
+      "expects_reject": true,
+      "automated_check": false,
+      "note": "Siehe Befund bei offtopic-wetter."
+    }
+  ]
+}

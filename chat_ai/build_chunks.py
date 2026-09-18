@@ -15,6 +15,7 @@ chat_ai/files/*.pdf in ein einziges, metadatentragendes Korpus-JSON
 Nutzung:
     python3 chat_ai/build_chunks.py build [--doc-id ID] [--dry-run]
     python3 chat_ai/build_chunks.py validate [--input PFAD]
+    python3 chat_ai/build_chunks.py validate-eval [--eval-file PFAD] [--corpus PFAD]
 
 Siehe chat_ai/README.md fuer den Pflegeprozess (neue PDF-Version -> Skript neu
 laufen lassen -> Diff sichten -> corpus_version bumpen -> normales Release).
@@ -660,6 +661,96 @@ def validate_command(input_path: Path) -> int:
 
 
 # ---------------------------------------------------------------------------
+# Eval-Set-Validierung (nami-ai-roadmap.md, Abschnitt 3.8)
+# ---------------------------------------------------------------------------
+
+DEFAULT_EVAL_QUESTIONS = REPO_ROOT / "chat_ai" / "eval" / "eval_questions.json"
+ALLOWED_EVAL_CATEGORIES = {"jargon", "regression", "guardrail-negative", "off-topic", "general"}
+ALLOWED_MATCH_MODES = {"any", "all"}
+
+
+def validate_eval_questions(
+    questions: list[dict], known_doc_ids: set[str], corpus_keys: set[tuple[str, str]]
+) -> tuple[list[str], list[str]]:
+    hard_fails: list[str] = []
+    warnings: list[str] = []
+
+    if not questions:
+        hard_fails.append("Keine Fragen im Eval-Set.")
+        return hard_fails, warnings
+
+    seen_ids: Counter[str] = Counter()
+
+    for q in questions:
+        qid = q.get("id", "?")
+        seen_ids[qid] += 1
+
+        category = q.get("category")
+        if category not in ALLOWED_EVAL_CATEGORIES:
+            hard_fails.append(f"{qid}: unbekannte category '{category}'.")
+
+        if q.get("match_mode") not in ALLOWED_MATCH_MODES:
+            hard_fails.append(f"{qid}: match_mode muss 'any' oder 'all' sein, ist '{q.get('match_mode')}'.")
+
+        expects_reject = q.get("expects_reject")
+        expected_sources = q.get("expected_sources", [])
+        if expects_reject and expected_sources:
+            hard_fails.append(f"{qid}: expects_reject=true, aber expected_sources ist nicht leer.")
+        if not expects_reject and not expected_sources:
+            hard_fails.append(f"{qid}: expects_reject=false, aber expected_sources ist leer.")
+
+        for source in expected_sources:
+            doc_id = source.get("doc_id")
+            section_number = source.get("section_number")
+            if doc_id not in known_doc_ids:
+                hard_fails.append(f"{qid}: unbekannte doc_id '{doc_id}'.")
+                continue
+            if (doc_id, section_number) not in corpus_keys:
+                hard_fails.append(
+                    f"{qid}: (doc_id, section_number) '{doc_id}'/'{section_number}' existiert nicht im Korpus."
+                )
+
+    for qid, count in seen_ids.items():
+        if count > 1:
+            hard_fails.append(f"id '{qid}' ist nicht eindeutig ({count}x).")
+
+    total = len(questions)
+    if not (30 <= total <= 50):
+        warnings.append(f"Fragenanzahl {total} ausserhalb des Zielbands 30-50 (siehe nami-ai-roadmap.md 3.8).")
+
+    return hard_fails, warnings
+
+
+def validate_eval_command(eval_path: Path, corpus_path: Path) -> int:
+    if not eval_path.exists():
+        print(f"Datei nicht gefunden: {eval_path}", file=sys.stderr)
+        return 1
+    if not corpus_path.exists():
+        print(f"Korpus nicht gefunden: {corpus_path}", file=sys.stderr)
+        return 1
+
+    eval_data = json.loads(eval_path.read_text(encoding="utf-8"))
+    corpus = json.loads(corpus_path.read_text(encoding="utf-8"))
+
+    questions = eval_data.get("questions", [])
+    known_doc_ids = {d.doc_id for d in DOCS}
+    corpus_keys = {(c.get("doc_id"), c.get("section_number")) for c in corpus.get("chunks", [])}
+
+    hard_fails, warnings = validate_eval_questions(questions, known_doc_ids, corpus_keys)
+    for w in warnings:
+        print(f"WARNUNG: {w}")
+    for f in hard_fails:
+        print(f"FEHLER: {f}", file=sys.stderr)
+
+    print(f"\n{len(questions)} Frage(n) geprueft.")
+    if hard_fails:
+        print(f"{len(hard_fails)} Hard-Fail(s), {len(warnings)} Warnung(en).", file=sys.stderr)
+        return 1
+    print(f"Validierung ok ({len(warnings)} Warnung(en)).")
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -676,12 +767,20 @@ def main() -> int:
     validate_parser = subparsers.add_parser("validate", help="Vorhandenes Korpus-JSON pruefen")
     validate_parser.add_argument("--input", type=Path, default=DEFAULT_OUTPUT)
 
+    validate_eval_parser = subparsers.add_parser(
+        "validate-eval", help="chat_ai/eval/eval_questions.json gegen das Korpus pruefen"
+    )
+    validate_eval_parser.add_argument("--eval-file", type=Path, default=DEFAULT_EVAL_QUESTIONS)
+    validate_eval_parser.add_argument("--corpus", type=Path, default=DEFAULT_OUTPUT)
+
     args = parser.parse_args()
 
     if args.command == "build":
         return build(args.doc_id, args.dry_run, args.output)
     if args.command == "validate":
         return validate_command(args.input)
+    if args.command == "validate-eval":
+        return validate_eval_command(args.eval_file, args.corpus)
     parser.print_help()
     return 1
 
