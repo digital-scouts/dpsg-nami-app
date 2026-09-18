@@ -10,7 +10,6 @@ let package = Package(
   targets: [
     .target(
       name: "NamiAiKit",
-      resources: [.process("Resources")],
       swiftSettings: [.swiftLanguageMode(.v5)]
     ),
     .testTarget(
