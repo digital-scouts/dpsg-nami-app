@@ -32,8 +32,8 @@ enum NamiAiFlutterBridge {
       NamiAiAssistant.respond(to: prompt) { outcome in
         DispatchQueue.main.async {
           switch outcome {
-          case .success(let text):
-            result(text)
+          case .success(let answer):
+            result(["answer": answer.text, "contextChunks": answer.contextChunks])
           case .failure(let error):
             result(
               FlutterError(

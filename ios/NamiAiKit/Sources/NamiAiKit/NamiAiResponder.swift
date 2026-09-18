@@ -18,7 +18,7 @@ import Foundation
     /// all failure modes are mapped to NamiAiError.
     static func respond(
       to prompt: String,
-      completion: @escaping (Result<String, NamiAiError>) -> Void
+      completion: @escaping (Result<NamiAiAnswer, NamiAiError>) -> Void
     ) {
       guard let chunks = NamiAiContext.loadChunks() else {
         completion(.failure(.contextMissing))
@@ -35,7 +35,7 @@ import Foundation
         do {
           let session = LanguageModelSession(instructions: instructions)
           let response = try await session.respond(to: prompt)
-          completion(.success(response.content))
+          completion(.success(NamiAiAnswer(text: response.content, contextChunks: chunks)))
         } catch {
           completion(.failure(.generationFailed))
         }

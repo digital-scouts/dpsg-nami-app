@@ -1,6 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:nami/presentation/notifications/app_snackbar.dart';
+import 'package:nami/services/nami_ai/nami_ai_debug_log_service.dart';
 import 'package:nami/services/nami_ai/nami_ai_service.dart';
+import 'package:open_file/open_file.dart';
 import 'package:provider/provider.dart';
+
+enum _ChatMenuAction { shareDebugLog }
 
 class NamiAiChatPage extends StatefulWidget {
   const NamiAiChatPage({super.key});
@@ -26,7 +33,21 @@ class _NamiAiChatPageState extends State<NamiAiChatPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('NaMi AI')),
+      appBar: AppBar(
+        title: const Text('NaMi AI'),
+        actions: [
+          PopupMenuButton<_ChatMenuAction>(
+            tooltip: 'Menü',
+            onSelected: _handleMenuAction,
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: _ChatMenuAction.shareDebugLog,
+                child: Text('Debug-Log teilen'),
+              ),
+            ],
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -90,6 +111,30 @@ class _NamiAiChatPageState extends State<NamiAiChatPage> {
     );
   }
 
+  Future<void> _handleMenuAction(_ChatMenuAction action) async {
+    switch (action) {
+      case _ChatMenuAction.shareDebugLog:
+        await _shareDebugLog();
+    }
+  }
+
+  Future<void> _shareDebugLog() async {
+    final logService = context.read<NamiAiDebugLogService>();
+    final file = await logService.exportableLogFile();
+    if (!mounted) {
+      return;
+    }
+    final result = await OpenFile.open(file.path);
+    if (!mounted || result.type == ResultType.done) {
+      return;
+    }
+    AppSnackbar.show(
+      context,
+      message: 'Das Debug-Log konnte nicht geöffnet werden.',
+      type: AppSnackbarType.warning,
+    );
+  }
+
   Future<void> _sendMessage() async {
     final message = _inputController.text.trim();
     if (message.isEmpty || _isSending) {
@@ -104,18 +149,42 @@ class _NamiAiChatPageState extends State<NamiAiChatPage> {
     _scrollToBottom();
 
     final service = context.read<NamiAiService>();
+    final logService = context.read<NamiAiDebugLogService>();
+    final stopwatch = Stopwatch()..start();
     try {
-      final response = await service.generateReply(message);
+      final reply = await service.generateReply(message);
+      stopwatch.stop();
       setState(() {
-        _messages.add(_ChatMessage(text: response, isUser: false));
+        _messages.add(_ChatMessage(text: reply.answer, isUser: false));
       });
+      unawaited(
+        logService.logEntry(
+          prompt: message,
+          success: true,
+          answer: reply.answer,
+          contextChunks: reply.contextChunks,
+          latencyMs: stopwatch.elapsedMilliseconds,
+        ),
+      );
     } catch (error) {
+      stopwatch.stop();
       final fallback = error is NamiAiException
           ? 'Fehler: ${error.message}'
           : 'Fehler: Die AI-Antwort konnte nicht geladen werden.';
       setState(() {
         _messages.add(_ChatMessage(text: fallback, isUser: false));
       });
+      unawaited(
+        logService.logEntry(
+          prompt: message,
+          success: false,
+          errorCode: error is NamiAiException ? error.code : 'unknown',
+          errorMessage: error is NamiAiException
+              ? error.message
+              : error.toString(),
+          latencyMs: stopwatch.elapsedMilliseconds,
+        ),
+      );
     } finally {
       setState(() {
         _isSending = false;

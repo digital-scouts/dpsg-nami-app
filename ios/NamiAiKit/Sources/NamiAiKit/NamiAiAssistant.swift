@@ -6,11 +6,11 @@ import Foundation
 
 /// Public facade of NamiAiKit — the only entry point a host app needs to know about.
 /// No Flutter dependency anywhere in this package; callers pass a plain String prompt
-/// and get a plain String answer or a NamiAiError back.
+/// and get a NamiAiAnswer (text + the context chunks that grounded it) or a NamiAiError back.
 public enum NamiAiAssistant {
   public static func respond(
     to prompt: String,
-    completion: @escaping (Result<String, NamiAiError>) -> Void
+    completion: @escaping (Result<NamiAiAnswer, NamiAiError>) -> Void
   ) {
     #if canImport(FoundationModels)
       guard #available(iOS 26.0, *) else {

@@ -29,6 +29,7 @@ import 'package:nami/presentation/theme/theme.dart';
 import 'package:nami/presentation/widgets/global_loading_top_bar.dart';
 import 'package:nami/services/hitobito_efz_service.dart';
 import 'package:nami/services/hitobito_roles_service.dart';
+import 'package:nami/services/nami_ai/nami_ai_debug_log_service.dart';
 import 'package:nami/services/nami_ai/nami_ai_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
@@ -121,6 +122,7 @@ void main() {
         networkAccessPolicy: networkAccessPolicy,
       );
       final hitobitoTrafficLogService = HitobitoTrafficLogService();
+      final namiAiDebugLogService = NamiAiDebugLogService();
 
       final sensitiveStorageService = SensitiveStorageService();
       final authSessionRepository = SecureAuthSessionRepository();
@@ -334,6 +336,9 @@ void main() {
             Provider<MapTileCacheService>.value(value: mapTileCacheService),
             Provider<HitobitoEfzService>.value(value: hitobitoEfzService),
             Provider<NamiAiService>.value(value: NamiAiService()),
+            Provider<NamiAiDebugLogService>.value(
+              value: namiAiDebugLogService,
+            ),
           ],
           child: const MyApp(),
         ),
