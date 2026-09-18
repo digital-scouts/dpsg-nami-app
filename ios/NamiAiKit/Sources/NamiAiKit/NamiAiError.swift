@@ -13,6 +13,8 @@ public enum NamiAiError: Error, Equatable {
   case availabilityUnknown
   case contextMissing
   case generationFailed
+  case guardrailViolation
+  case contextWindowExceeded
 
   public var flutterErrorCode: String {
     switch self {
@@ -24,6 +26,8 @@ public enum NamiAiError: Error, Equatable {
     case .availabilityUnknown: return "ai_availability_unknown"
     case .contextMissing: return "ai_context_missing"
     case .generationFailed: return "ai_generation_failed"
+    case .guardrailViolation: return "ai_guardrail_violation"
+    case .contextWindowExceeded: return "ai_context_window_exceeded"
     }
   }
 
@@ -45,6 +49,10 @@ public enum NamiAiError: Error, Equatable {
       return "Der Satzungskontext konnte nicht geladen werden."
     case .generationFailed:
       return "Bei der Antworterstellung ist ein Fehler aufgetreten."
+    case .guardrailViolation:
+      return "Diese Anfrage kann aus Sicherheitsgründen nicht beantwortet werden."
+    case .contextWindowExceeded:
+      return "Das Gespräch ist zu lang geworden. Bitte beginne ein neues Gespräch."
     }
   }
 }

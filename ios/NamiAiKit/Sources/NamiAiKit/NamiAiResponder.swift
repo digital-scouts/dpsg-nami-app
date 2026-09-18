@@ -78,8 +78,28 @@ import Foundation
           )
           completion(.success(answer))
         } catch {
-          completion(.failure(.generationFailed))
+          completion(.failure(Self.mapGenerationError(error)))
         }
+      }
+    }
+
+    /// Maps FoundationModels' GenerationError cases to the small, stable NamiAiError surface -
+    /// never forwards raw framework error text to the UI. GenerationError itself is deprecated
+    /// starting iOS/macOS 27 in favor of LanguageModelError, but LanguageModelError is only
+    /// available from iOS/macOS 27 onward while this app's minimum target is iOS 26 (see
+    /// NamiAiAccessService._minIosMajorVersion) - GenerationError therefore stays the correct
+    /// type to catch here despite the deprecation warning under newer SDKs.
+    private static func mapGenerationError(_ error: Error) -> NamiAiError {
+      guard let generationError = error as? LanguageModelSession.GenerationError else {
+        return .generationFailed
+      }
+      switch generationError {
+      case .guardrailViolation:
+        return .guardrailViolation
+      case .exceededContextWindowSize:
+        return .contextWindowExceeded
+      default:
+        return .generationFailed
       }
     }
   }
