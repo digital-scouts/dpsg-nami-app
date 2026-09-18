@@ -17,6 +17,8 @@ import 'package:nami/data/auth/secure_auth_profile_repository.dart';
 import 'package:nami/data/auth/secure_auth_session_repository.dart';
 import 'package:nami/data/member/hitobito_member_write_repository.dart';
 import 'package:nami/data/member/secure_pending_person_update_repository.dart';
+import 'package:nami/data/nami_ai/nami_ai_chat_history_local_repository.dart';
+import 'package:nami/domain/nami_ai/nami_ai_chat_history_repository.dart';
 import 'package:nami/domain/arbeitskontext/usecases/bestimme_startkontext_usecase.dart';
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
@@ -130,6 +132,9 @@ void main() {
         sensitiveStorageService: sensitiveStorageService,
       );
       final arbeitskontextLocalRepository = SecureArbeitskontextLocalRepository(
+        sensitiveStorageService: sensitiveStorageService,
+      );
+      final namiAiChatHistoryRepository = NamiAiChatHistoryLocalRepository(
         sensitiveStorageService: sensitiveStorageService,
       );
       final envAuthConfig = HitobitoAuthEnv.authConfig;
@@ -337,6 +342,9 @@ void main() {
             Provider<HitobitoEfzService>.value(value: hitobitoEfzService),
             Provider<NamiAiService>.value(value: NamiAiService()),
             Provider<NamiAiDebugLogService>.value(value: namiAiDebugLogService),
+            Provider<NamiAiChatHistoryRepository>.value(
+              value: namiAiChatHistoryRepository,
+            ),
           ],
           child: const MyApp(),
         ),
