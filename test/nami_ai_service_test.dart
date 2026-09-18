@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nami/services/nami_ai_service.dart';
+import 'package:nami/services/nami_ai/nami_ai_service.dart';
 
 void main() {
   const channel = MethodChannel('com.namiapp/nami_ai');

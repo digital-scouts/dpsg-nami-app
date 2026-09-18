@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:nami/services/nami_ai_service.dart';
+import 'package:nami/services/nami_ai/nami_ai_service.dart';
 import 'package:provider/provider.dart';
 
 class NamiAiChatPage extends StatefulWidget {

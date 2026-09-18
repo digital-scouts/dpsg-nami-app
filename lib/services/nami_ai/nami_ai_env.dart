@@ -4,7 +4,7 @@ class NamiAiEnv {
   static bool get enabled => _bool('NAMI_AI_ENABLED', fallback: false);
 
   static int get minIosMajorVersion =>
-      _int('NAMI_AI_MIN_IOS_MAJOR', fallback: 27);
+      _int('NAMI_AI_MIN_IOS_MAJOR', fallback: 26);
 
   static String get deviceGateMode =>
       (_env('NAMI_AI_DEVICE_GATE_MODE') ?? 'whitelist').trim().toLowerCase();
