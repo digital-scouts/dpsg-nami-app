@@ -1,20 +1,22 @@
-// swift-tools-version: 5.9
+// swift-tools-version: 6.2
 import PackageDescription
 
 let package = Package(
-    name: "NamiAiKit",
-    platforms: [.iOS(.v15)],
-    products: [
-        .library(name: "NamiAiKit", targets: ["NamiAiKit"])
-    ],
-    targets: [
-        .target(
-            name: "NamiAiKit",
-            resources: [.process("Resources")]
-        ),
-        .testTarget(
-            name: "NamiAiKitTests",
-            dependencies: ["NamiAiKit"]
-        ),
-    ]
+  name: "NamiAiKit",
+  platforms: [.iOS(.v15), .macOS(.v26)],
+  products: [
+    .library(name: "NamiAiKit", targets: ["NamiAiKit"])
+  ],
+  targets: [
+    .target(
+      name: "NamiAiKit",
+      resources: [.process("Resources")],
+      swiftSettings: [.swiftLanguageMode(.v5)]
+    ),
+    .testTarget(
+      name: "NamiAiKitTests",
+      dependencies: ["NamiAiKit"],
+      swiftSettings: [.swiftLanguageMode(.v5)]
+    ),
+  ]
 )
