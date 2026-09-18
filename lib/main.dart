@@ -336,9 +336,7 @@ void main() {
             Provider<MapTileCacheService>.value(value: mapTileCacheService),
             Provider<HitobitoEfzService>.value(value: hitobitoEfzService),
             Provider<NamiAiService>.value(value: NamiAiService()),
-            Provider<NamiAiDebugLogService>.value(
-              value: namiAiDebugLogService,
-            ),
+            Provider<NamiAiDebugLogService>.value(value: namiAiDebugLogService),
           ],
           child: const MyApp(),
         ),
