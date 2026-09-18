@@ -45,8 +45,7 @@ class NamiAiService {
         );
       }
       final contextChunks =
-          (map['contextChunks'] as List?)?.cast<String>() ??
-          const <String>[];
+          (map['contextChunks'] as List?)?.cast<String>() ?? const <String>[];
       return NamiAiReply(answer: answer, contextChunks: contextChunks);
     } on PlatformException catch (error) {
       throw NamiAiException(

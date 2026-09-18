@@ -41,9 +41,7 @@ void main() {
     );
     expect(decoded['outcome'], 'success');
     expect(decoded['answer'], 'Mindestens einmal im Jahr.');
-    expect(decoded['contextChunks'], [
-      '23. Die Stammesversammlung findet ...',
-    ]);
+    expect(decoded['contextChunks'], ['23. Die Stammesversammlung findet ...']);
     expect(decoded['chunkCount'], 1);
     expect(decoded['errorCode'], isNull);
     expect(decoded['latencyMs'], 842);
