@@ -15,6 +15,9 @@
 *.iws
 .idea/
 
+# Swift Package Manager related
+ios/NamiAiKit/.build/
+
 # Flutter/Dart/Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id

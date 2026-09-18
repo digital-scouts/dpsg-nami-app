@@ -147,23 +147,16 @@ Pflegeprozess: Satzungen/Ordnung ändern sich selten (Bundesversammlungs-Rhythmu
 Zwischenergebnis: Skript läuft lokal über alle 5 PDFs, JSON validiert (keine leeren Chunks, Pflichtfelder gesetzt), Stichprobe manuell geprüft.
 
 ### 3.5 Phase 2 – Natives Grundgerüst + echtes Verfügbarkeits-Gate (2–3 Tage)
-Erster Schritt: lokal und im CI-Runner prüfen, ob die installierte Xcode-Version das FoundationModels-SDK überhaupt enthält. Danach `SceneDelegate.swift`: `#if canImport(AppleIntelligence)` → `#if canImport(FoundationModels)`, Logik in dedizierte Dateien auslagern. Neue MethodChannel-Methode `checkAvailability`:
 
-```swift
-if #available(iOS 26.0, *) {
-  switch SystemLanguageModel.default.availability {
-  case .available: ...
-  case .unavailable(.deviceNotEligible): ...          // Gerät ungeeignet
-  case .unavailable(.appleIntelligenceNotEnabled): ... // Toggle aus
-  case .unavailable(.modelNotReady): ...                // lädt noch
-  case .unavailable: ...                                 // Zukunftssicherheit
-  }
-} else { /* unsupported_os */ }
-```
+**Umgesetzt:** Der Bugfix `#if canImport(AppleIntelligence)` → `#if canImport(FoundationModels)` sowie die Auslagerung in dedizierte Dateien war bereits vor diesem Schritt erledigt: `SceneDelegate.swift` registriert nur noch `NamiAiFlutterBridge`, die eigentliche Verfügbarkeitslogik liegt in `NamiAiKit` (`NamiAiAvailability.swift`, `NamiAiAssistant.swift`, `NamiAiError.swift`) und bildet bereits alle vier `SystemLanguageModel.Availability`-Fälle ab, unit-getestet in `NamiAiAvailabilityTests.swift`.
 
-Jede Codestelle braucht beide Guards zusammen: `#if canImport(FoundationModels)` (Compile-Zeit) und `@available(iOS 26, *)` (Laufzeit). In `nami_ai_access_service.dart`/`nami_ai_env.dart`: Geräte-Identifier-Whitelist (`NAMI_AI_DEVICE_GATE_MODE`, `_WHITELIST`, `_APPLE_INTELLIGENCE_WHITELIST`) entfernen statt nur stilllegen, `checkAvailability` wird alleinige Quelle der Wahrheit. `minIosMajorVersion`-Fallback von 27 auf 26 korrigieren (siehe auch Abschnitt 7).
+In diesem Schritt ergänzt: `NamiAiAssistant.checkAvailability() -> NamiAiError?` als eigenständige, von `respond` wiederverwendete Prüfung, dazu die neue MethodChannel-Methode `checkAvailability` in `NamiAiFlutterBridge.swift` (liefert `{"available": true}` bzw. `{"available": false, "reason": <flutterErrorCode>}`). Jede Codestelle braucht weiterhin beide Guards zusammen: `#if canImport(FoundationModels)` (Compile-Zeit) und `@available(iOS 26, *)` (Laufzeit).
 
-Zwischenergebnis: Auf echtem iOS-26(+)-Gerät zeigen die Einstellungen die richtigen Zustände (Toggle testweise aus/an); `checkAvailability`-Mapping unit-getestet mit gemocktem Channel für alle vier Reason-Fälle.
+In `nami_ai_access_service.dart`/`nami_ai_env.dart`: Geräte-Identifier-Whitelist (`NAMI_AI_DEVICE_GATE_MODE`, `_WHITELIST`, `_APPLE_INTELLIGENCE_WHITELIST`) vollständig entfernt statt nur stillgelegt; `checkAvailability` (über die neue `NamiAiAvailabilityService`-Wrapperklasse) ist jetzt alleinige Quelle der Wahrheit für das Geräte-Gate. Die dadurch ungenutzte `NamiAiDeviceService`-Klasse und die `device_info_plus`-Abhängigkeit wurden ebenfalls entfernt. Die Mindestversion war zuvor über `NAMI_AI_MIN_IOS_MAJOR` per Env-Flag konfigurierbar (Fallback bereits in Commit `173a7bd` auf 26 korrigiert, siehe auch Abschnitt 7); da es sich um ein reales API-Faktum von FoundationModels handelt und nicht um einen Rollout-Hebel wie `NAMI_AI_ENABLED`, wurde der Env-Key entfernt und `26` stattdessen als Konstante `NamiAiAccessService._minIosMajorVersion` fest codiert.
+
+CI-seitige Absicherung (Xcode-Version pinnen, aktiver Check ob das FoundationModels-SDK auf dem Runner vorhanden ist) ist bewusst nicht Teil dieses Schritts, sondern bleibt Aufgabe von Abschnitt 3.9.
+
+Zwischenergebnis: `checkAvailability`-Mapping unit-getestet mit gemocktem Dart-`MethodChannel` (`test/nami_ai_service_test.dart`) für Erfolgs- und Fehlerfall; `NamiAiAccessService.evaluate()` erstmals vollständig getestet für alle `NamiAiBlockReason`-Fälle (`test/nami_ai_access_service_test.dart`). Manueller Test auf echtem iOS-26(+)-Gerät (Toggle testweise aus/an) steht noch aus.
 
 ### 3.6 Phase 3 – Retrieval-Tool + Quellenpflicht technisch erzwingen (2 Tage)
 
@@ -323,7 +316,7 @@ Automatisiert, kein Gerät nötig: `flutter test`, `xcodebuild test` für `NamiA
 ## 7) Offene Fragen und Entscheidungen
 
 - ~~Welche Mindestgeräteklassen gelten verbindlich für Apple Foundation im Feld?~~ Beantwortet: keine feste Geräteklassenliste, sondern Laufzeitprüfung via `SystemLanguageModel.default.availability` (siehe 2.6, 3.5).
-- Inkonsistenz beheben: `.env.example` setzt `NAMI_AI_MIN_IOS_MAJOR=26`, der Dart-Fallback in `nami_ai_env.dart` ist aktuell `27` — vor Umsetzung von 3.5 auf 26 vereinheitlichen.
+- ~~Inkonsistenz beheben: `.env.example` setzt `NAMI_AI_MIN_IOS_MAJOR=26`, der Dart-Fallback in `nami_ai_env.dart` ist aktuell `27`~~ Beantwortet: Fallback war bereits in Commit `173a7bd` auf 26 vereinheitlicht; der Env-Key `NAMI_AI_MIN_IOS_MAJOR` wurde in 3.5 danach ganz entfernt und die Mindestversion als Konstante fest codiert (kein Rollout-Hebel, sondern reales FoundationModels-API-Faktum).
 - CI-Runner-/Xcode-Pin (3.9) muss zum tatsächlichen Umsetzungszeitpunkt neu verifiziert werden, da sich CI-Infrastruktur schnell ändert.
 - Welche Rollen dürfen schreibende Mitgliedsänderungen via KI auslösen?
 - Welche Datenfelder sind für Basis-Mitgliedsinfos im MVP enthalten?
@@ -343,4 +336,4 @@ Automatisiert, kein Gerät nötig: `flutter test`, `xcodebuild test` für `NamiA
 - Der erste Test validiert kontrolliert den Nutzen bei minimalem Risiko.
 - Der MVP baut darauf auf und erweitert gezielt um sichere Aktionen, Statistik und Export.
 - Gates bleiben durchgängig aktiv, mit Env-Flag default false als zentrale Sicherheitslinie.
-- Die technische Machbarkeit von T1/T2 ist bestätigt (Abschnitt 3.1); nichts Grundsätzliches steht mehr aus. Der Sprachqualitäts- und Guardrail-Spike (Abschnitt 3.3) ist mit Go-Ergebnis abgeschlossen. Nächster konkreter Schritt: Phase 1 (Abschnitt 3.4), die Dokumenten-Pipeline über alle 5 Dokumente — der im Spike gefundene Multi-Chunk-Synthese-Schwachpunkt gehört in das Grounding-Gate-Design von 3.6.
+- Die technische Machbarkeit von T1/T2 ist bestätigt (Abschnitt 3.1); nichts Grundsätzliches steht mehr aus. Der Sprachqualitäts- und Guardrail-Spike (Abschnitt 3.3) ist mit Go-Ergebnis abgeschlossen. Phase 1 (Abschnitt 3.4, Dokumenten-Pipeline) und Phase 2 (Abschnitt 3.5, natives Verfügbarkeits-Gate inkl. `checkAvailability`-MethodChannel) sind umgesetzt. Nächster konkreter Schritt: Phase 3 (Abschnitt 3.6), Retrieval-Tool und technisch erzwungene Quellenpflicht — der im Spike gefundene Multi-Chunk-Synthese-Schwachpunkt gehört in dieses Grounding-Gate-Design.

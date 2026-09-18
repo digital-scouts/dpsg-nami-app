@@ -20,6 +20,15 @@ class NamiAiReply {
   final List<String> contextChunks;
 }
 
+/// Result of the native checkAvailability call. reason is one of NamiAiError's
+/// flutterErrorCode values (e.g. ai_device_not_eligible) when available is false.
+class NamiAiAvailability {
+  const NamiAiAvailability({required this.available, this.reason});
+
+  final bool available;
+  final String? reason;
+}
+
 class NamiAiService {
   static const String _channelName = 'com.namiapp/nami_ai';
   static const MethodChannel _channel = MethodChannel(_channelName);
@@ -59,6 +68,39 @@ class NamiAiService {
       throw NamiAiException(
         code: 'unknown',
         message: 'Unbekannter Fehler beim AI-Aufruf: $error',
+        details: error,
+      );
+    }
+  }
+
+  Future<NamiAiAvailability> checkAvailability() async {
+    try {
+      final dynamic result = await _channel.invokeMethod<dynamic>(
+        'checkAvailability',
+      );
+      if (result is! Map) {
+        throw NamiAiException(
+          code: 'empty_response',
+          message: 'Die iOS-Verfügbarkeitsantwort war leer.',
+        );
+      }
+      final map = result.cast<Object?, Object?>();
+      return NamiAiAvailability(
+        available: map['available'] as bool? ?? false,
+        reason: map['reason'] as String?,
+      );
+    } on PlatformException catch (error) {
+      throw NamiAiException(
+        code: error.code,
+        message: error.message ?? 'Fehler bei der iOS-Verfügbarkeitsprüfung.',
+        details: error.details,
+      );
+    } on NamiAiException {
+      rethrow;
+    } catch (error) {
+      throw NamiAiException(
+        code: 'unknown',
+        message: 'Unbekannter Fehler bei der Verfügbarkeitsprüfung: $error',
         details: error,
       );
     }
