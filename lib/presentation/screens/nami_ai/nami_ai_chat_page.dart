@@ -21,11 +21,18 @@ class _NamiAiChatPageState extends State<NamiAiChatPage> {
   final ScrollController _scrollController = ScrollController();
   final List<_ChatMessage> _messages = <_ChatMessage>[];
   bool _isSending = false;
+  // Started lazily on the first message rather than in initState: starting a native
+  // LanguageModelSession is meaningless (and would be wasted) if the user never sends anything.
+  String? _sessionId;
 
   @override
   void dispose() {
     _inputController.dispose();
     _scrollController.dispose();
+    final sessionId = _sessionId;
+    if (sessionId != null) {
+      unawaited(context.read<NamiAiService>().endSession(sessionId));
+    }
     super.dispose();
   }
 
@@ -152,7 +159,8 @@ class _NamiAiChatPageState extends State<NamiAiChatPage> {
     final logService = context.read<NamiAiDebugLogService>();
     final stopwatch = Stopwatch()..start();
     try {
-      final reply = await service.generateReply(message);
+      final sessionId = _sessionId ??= await service.startSession();
+      final reply = await service.generateReply(message, sessionId: sessionId);
       stopwatch.stop();
       setState(() {
         _messages.add(_ChatMessage(text: reply.answer, isUser: false));
