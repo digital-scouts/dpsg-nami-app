@@ -10,7 +10,7 @@ import 'package:nami/presentation/widgets/confetti_overlay.dart';
 import 'package:nami/presentation/widgets/section_header.dart';
 import 'package:nami/services/app_update_service.dart';
 import 'package:nami/services/logger_service.dart';
-import 'package:nami/services/nami_ai_access_service.dart';
+import 'package:nami/services/nami_ai/nami_ai_access_service.dart';
 import 'package:nami/services/network_access_policy.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';

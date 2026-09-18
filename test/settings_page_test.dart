@@ -21,7 +21,7 @@ import 'package:nami/services/hitobito_auth_env.dart';
 import 'package:nami/services/hitobito_data_retention_policy.dart';
 import 'package:nami/services/hitobito_oauth_service.dart';
 import 'package:nami/services/logger_service.dart';
-import 'package:nami/services/nami_ai_access_service.dart';
+import 'package:nami/services/nami_ai/nami_ai_access_service.dart';
 import 'package:nami/services/sensitive_storage_service.dart';
 import 'package:provider/provider.dart';
 

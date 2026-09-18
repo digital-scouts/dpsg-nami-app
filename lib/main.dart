@@ -29,7 +29,7 @@ import 'package:nami/presentation/theme/theme.dart';
 import 'package:nami/presentation/widgets/global_loading_top_bar.dart';
 import 'package:nami/services/hitobito_efz_service.dart';
 import 'package:nami/services/hitobito_roles_service.dart';
-import 'package:nami/services/nami_ai_service.dart';
+import 'package:nami/services/nami_ai/nami_ai_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:wiredash/wiredash.dart';
