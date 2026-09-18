@@ -6,7 +6,7 @@ import Foundation
   /// Pure mapping from SystemLanguageModel.Availability to our internal error type.
   /// No side effects, no model access — safe to unit test without a real device by
   /// constructing SystemLanguageModel.Availability enum cases directly.
-  @available(iOS 26.0, *)
+  @available(iOS 26.0, macOS 26.0, *)
   enum NamiAiAvailabilityMapper {
     /// Returns nil when the model is available and ready; otherwise the mapped error.
     static func error(for availability: SystemLanguageModel.Availability) -> NamiAiError? {

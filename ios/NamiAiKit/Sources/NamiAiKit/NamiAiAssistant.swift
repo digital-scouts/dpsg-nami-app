@@ -13,7 +13,7 @@ public enum NamiAiAssistant {
     completion: @escaping (Result<NamiAiAnswer, NamiAiError>) -> Void
   ) {
     #if canImport(FoundationModels)
-      guard #available(iOS 26.0, *) else {
+      guard #available(iOS 26.0, macOS 26.0, *) else {
         completion(.failure(.unsupportedOS))
         return
       }

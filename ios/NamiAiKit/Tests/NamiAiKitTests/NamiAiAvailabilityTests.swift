@@ -7,14 +7,14 @@ import XCTest
 
   final class NamiAiAvailabilityTests: XCTestCase {
     func testAvailableMapsToNoError() throws {
-      guard #available(iOS 26.0, *) else {
+      guard #available(iOS 26.0, macOS 26.0, *) else {
         throw XCTSkip("Requires iOS 26 runtime for SystemLanguageModel.Availability")
       }
       XCTAssertNil(NamiAiAvailabilityMapper.error(for: .available))
     }
 
     func testDeviceNotEligibleMapsCorrectly() throws {
-      guard #available(iOS 26.0, *) else {
+      guard #available(iOS 26.0, macOS 26.0, *) else {
         throw XCTSkip("Requires iOS 26 runtime for SystemLanguageModel.Availability")
       }
       XCTAssertEqual(
@@ -24,7 +24,7 @@ import XCTest
     }
 
     func testAppleIntelligenceNotEnabledMapsCorrectly() throws {
-      guard #available(iOS 26.0, *) else {
+      guard #available(iOS 26.0, macOS 26.0, *) else {
         throw XCTSkip("Requires iOS 26 runtime for SystemLanguageModel.Availability")
       }
       XCTAssertEqual(
@@ -34,7 +34,7 @@ import XCTest
     }
 
     func testModelNotReadyMapsCorrectly() throws {
-      guard #available(iOS 26.0, *) else {
+      guard #available(iOS 26.0, macOS 26.0, *) else {
         throw XCTSkip("Requires iOS 26 runtime for SystemLanguageModel.Availability")
       }
       XCTAssertEqual(

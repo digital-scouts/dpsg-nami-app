@@ -124,6 +124,16 @@ Retrieval läuft zwingend nativ in Swift als `Tool`, nicht in Dart — `Tool.cal
 ### 3.3 Phase 0 – Spike: deutsche Antwortqualität & Guardrail-Verhalten (manuell, 0,5–1 Tag)
 Minimale `LanguageModelSession` auf echtem Testgerät (oder Simulator mit Apple-Intelligence-Unterstützung), 10–15 handverlesene Satzungsfragen, roher Chunk-Text im Prompt ohne Tooling. Beobachten: Sprachqualität bei Verbandsjargon, Guardrail-Fehlrate. Deliverable: Kurznotiz mit Go/No-Go-Einschätzung, steuert den Umfang von Prompt-Tuning in 3.8. Muss auf echtem Gerät erfolgen, nicht automatisierbar.
 
+**Ergebnis (echtes Gerät, Stand 2026-09-18):** Ausgangspunkt war ein konkreter Bug im 3.1-Testlog: Auf "Was sind die Aufgaben des Stavo in der SV?" kam die Antwort zu den Aufgaben der SV selbst. Als erste Maßnahme wurde ein statisches DPSG-Verbandsjargon-Glossar (SV, Stavo, StaLei, LR, Wö, Jufi, Pfadi, Rover, Biber, Kurat*in, BDKJ, rdp, StuKo, DV, DL) in `NamiAiResponder.swift` ergänzt, dazu der System-Prompt von einer hartcodierten "nur Stammesversammlung"-Themenzeile auf eine allgemeine, rein grounding-basierte DPSG-Beschreibung umgestellt (Ablehnung hängt jetzt ausschließlich daran, ob die Auszüge die Frage abdecken, nicht an einer festen Themen-Zeile) — realistischer für das spätere Produkt, in dem es keine hartcodierte Themenbeschränkung mehr geben wird.
+
+- **Jargon-Auflösung funktioniert gut:** Reine Abkürzungsfragen (Stavo-Zusammensetzung, StaLei vs. LR, Wö/Jufi-Vertretung in der SV, SV vs. StuKo) wurden nach Glossar-Einführung korrekt aufgelöst.
+- **Der ursprüngliche Stavo/SV-Bug ist weiterhin reproduzierbar — trotz Glossar.** Das legt eine falsche Ursachenzuschreibung offen: Es war nie ein Vokabular-Problem. Der Korpus enthält keinen Chunk, der explizit "Aufgaben des Stammesvorstands" auflistet (Stavo-Zuständigkeiten stehen verstreut in Ziffer 23, 29, 55/56); Ziffer 24 ist der einzige Chunk mit einer klaren "hat folgende Aufgaben"-Struktur, und das Modell greift strukturell danach, unabhängig vom gefragten Organ. Das ist ein Retrieval-/Synthese-Problem, kein Prompt-Tuning-Fall — gehört fachlich in 3.6 (natives Grounding-Gate, Tool-basierte Suche über mehrere Chunks), nicht in weiteres Glossar-Tuning in 3.8.
+- **Zwei weiche Guardrail-Grenzfälle:** Bei einer Frequenzfrage zu einem im Korpus nicht geregelten Gremium wich das Modell auf eine thematisch verwandte, aber nicht zutreffende Aussage aus statt korrekt abzulehnen. Bei einer Ausschlussfrage lehnte es den Kern korrekt ab ("nicht explizit beschrieben"), hängte aber lose verwandte Zusatzinfos an, statt sauber zu stoppen. Kein Halluzinieren harter Fakten, aber auch kein sauberes binäres Antworten-oder-Ablehnen.
+- **Der grounding-only System-Prompt (ohne hartcodierte Themen-Zeile) hat sich bewährt:** Eine komplett fachfremde Frage wurde korrekt und ausschließlich mit Verweis auf die fehlende Quellenabdeckung abgelehnt — bestätigt, dass die Ablehnung nicht an der alten "nur SV"-Formulierung hing.
+- **UI-Fund (kein Modellproblem):** Das Modell liefert von sich aus Markdown-Formatierung (Fett, Listen), die aktuelle Chat-UI rendert `message.text` aber als reinen `Text`-Widget ohne Markdown-Unterstützung (`nami_ai_chat_page.dart:234`) — Rohsternchen sichtbar. Siehe TODO in 3.7.
+
+**Go/No-Go:** Go für die Fortsetzung mit 3.4–3.7. Die Sprachqualität und Guardrail-Grundfunktion sind tragfähig; der verbleibende Schwachpunkt (Multi-Chunk-Synthese für Organe ohne eigene "Aufgaben"-Liste) ist kein Blocker für den nächsten Schritt, muss aber explizit im Grounding-Gate/Retrieval-Design von 3.6 berücksichtigt werden, nicht durch weiteres Prompt-Tuning in 3.8 "wegoptimiert" werden.
+
 ### 3.4 Phase 1 – Dokumenten-Pipeline (2–3 Tage)
 Ein konfigurationsgetriebenes Skript statt vier Kopien, zweigleisige Chunking-Strategie:
 - Satzungen (Stamm/Bezirk/Diözese/Bund): nummerierte Absätze als natürliche Chunk-Grenze, TOC-Erkennung per Heuristik statt hartcodierter Seitenzahl, Section-Header-Vererbung als Metadatum.
@@ -191,6 +201,8 @@ Retrieval-Varianten geprüft:
 
 A jetzt umsetzen, B/D als datengetriebene Option nach 3.8 (Eval zeigt, ob Recall-Grenzen real ein Problem sind).
 
+**TODO:** `NamiAiGlossaryTool` — das in 3.3 als statischer, immer mitgeschickter String eingeführte Verbandsjargon-Glossar (`NamiAiResponder.glossary`) als eigenes `Tool` neben `NamiAiSearchTool` umsetzen, das das Modell nur bei Bedarf aufruft, statt die Liste in jedem Prompt mitzuschleppen. Lohnt sich erst, sobald hier ohnehin ein Tool-Grundgerüst entsteht — bei aktuell 15 Einträgen ist der Umbau kein eigenständiger Aufwand.
+
 Wichtiger Befund: `@Generable`/`@Guide` erzwingen nur die Struktur, nicht die Wahrheit — deshalb natives Grounding-Gate nach jedem `respond`-Aufruf: jede zurückgegebene `source` gegen die tatsächlich im letzten Tool-Aufruf gelieferten Chunk-IDs abgleichen, nicht verifizierbare Quellen herausfiltern bzw. Antwort als `unclear` behandeln. Zusätzlich Mindest-Score-Schwelle im Tool.
 
 Zwischenergebnis: `NamiAiRetrievalTests.swift` mit ersten 10–15 Eval-Fragen, grün in CI — reiner Algorithmus, kein Gerät/Modell nötig.
@@ -201,6 +213,8 @@ Anfrage verstehen: keine vorgeschaltete ML-Intent-Klassifikation nötig für den
 Folgefragen: eine `LanguageModelSession` pro Chat-Session nativ am Leben halten, nicht bei jedem Turn neu aufbauen. Bei Kontextüberlauf: Sliding-Window-Truncation (letzte 1–2 Turns behalten, neue Session mit gleichem Systemprompt) statt LLM-Zusammenfassung — deterministisch, kein zusätzliches Halluzinationsrisiko. Nach App-Neustart: nativer Session-Zustand ist zwangsläufig weg → bewusst neues Gespräch beginnen.
 
 Persistenz: neues `NamiAiChatHistoryLocalRepository` nach dem Muster von `lib/data/arbeitskontext/secure_arbeitskontext_local_repository.dart` (verschlüsselte Hive_ce-Box). Streaming: `session.streamResponse` → neuer `EventChannel` (`com.namiapp/nami_ai_stream`) statt reinem MethodChannel.
+
+**TODO:** Markdown-Rendering für Chat-Bubbles. Fund aus dem 3.3-Spike: Das Modell liefert von sich aus Markdown (Fett, Listen), `nami_ai_chat_page.dart:234` rendert `message.text` aber aktuell als reinen `Text`-Widget ohne Markdown-Unterstützung — Rohsternchen/Listenzeichen sichtbar. Umstellung auf ein Markdown-Widget (z. B. `flutter_markdown`, noch keine Dependency in `pubspec.yaml`) statt dem Modell Markdown per Prompt zu verbieten, da die Struktur (Listen bei Aufgabenkatalogen etc.) die Antworten inhaltlich klarer macht.
 
 Zwischenergebnis: Widget-Tests für alle UI-Zustände inkl. Quellenanzeige; manueller End-to-End-Test auf Gerät mit sichtbaren §-Referenzen.
 
@@ -329,4 +343,4 @@ Automatisiert, kein Gerät nötig: `flutter test`, `xcodebuild test` für `NamiA
 - Der erste Test validiert kontrolliert den Nutzen bei minimalem Risiko.
 - Der MVP baut darauf auf und erweitert gezielt um sichere Aktionen, Statistik und Export.
 - Gates bleiben durchgängig aktiv, mit Env-Flag default false als zentrale Sicherheitslinie.
-- Die technische Machbarkeit von T1/T2 ist bestätigt (Abschnitt 3.1); nichts Grundsätzliches steht mehr aus. Nächster konkreter Schritt: Phase 0 (Abschnitt 3.3), der Sprachqualitäts- und Guardrail-Spike auf einem echten Gerät.
+- Die technische Machbarkeit von T1/T2 ist bestätigt (Abschnitt 3.1); nichts Grundsätzliches steht mehr aus. Der Sprachqualitäts- und Guardrail-Spike (Abschnitt 3.3) ist mit Go-Ergebnis abgeschlossen. Nächster konkreter Schritt: Phase 1 (Abschnitt 3.4), die Dokumenten-Pipeline über alle 5 Dokumente — der im Spike gefundene Multi-Chunk-Synthese-Schwachpunkt gehört in das Grounding-Gate-Design von 3.6.
