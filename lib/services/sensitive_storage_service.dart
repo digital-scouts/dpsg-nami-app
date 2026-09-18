@@ -29,6 +29,7 @@ class SensitiveStorageService {
     'hitobito_roles_box',
     'hitobito_mailing_lists_box',
     'hitobito_people_box',
+    'nami_ai_chat_history_box',
   ];
   static final Map<String, Future<Box<String>>> _openingStringBoxes =
       <String, Future<Box<String>>>{};
