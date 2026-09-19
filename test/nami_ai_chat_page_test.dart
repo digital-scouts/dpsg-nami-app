@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/domain/nami_ai/nami_ai_chat_history_entry.dart';
 import 'package:nami/domain/nami_ai/nami_ai_chat_history_repository.dart';
 import 'package:nami/presentation/screens/nami_ai/nami_ai_chat_page.dart';
+import 'package:nami/services/nami_ai/nami_ai_corpus_lookup_service.dart';
 import 'package:nami/services/nami_ai/nami_ai_debug_log_service.dart';
 import 'package:nami/services/nami_ai/nami_ai_service.dart';
 import 'package:nami/services/nami_ai/nami_ai_stream_service.dart';
@@ -14,15 +15,40 @@ import 'package:provider/provider.dart';
 /// logEntry() is the straightforward way to stub it out.
 class _NoOpDebugLogService extends NamiAiDebugLogService {
   @override
-  Future<void> logEntry({
+  Future<String> logEntry({
     required String prompt,
     required bool success,
     String? answer,
     List<String> contextChunks = const <String>[],
+    List<Map<String, String>> sources = const <Map<String, String>>[],
+    bool unclear = false,
+    String? sessionId,
+    int? turnIndex,
+    bool contextTruncated = false,
     String? errorCode,
     String? errorMessage,
     required int latencyMs,
+  }) async => 'no-op-request-id';
+
+  @override
+  Future<void> updateFeedback({
+    required String requestId,
+    required String rating,
   }) async {}
+}
+
+/// Records updateFeedback() calls so a test can assert the chat page called it with the right
+/// requestId/rating, without touching the real file-backed implementation.
+class _SpyDebugLogService extends _NoOpDebugLogService {
+  final List<({String requestId, String rating})> feedbackCalls = [];
+
+  @override
+  Future<void> updateFeedback({
+    required String requestId,
+    required String rating,
+  }) async {
+    feedbackCalls.add((requestId: requestId, rating: rating));
+  }
 }
 
 /// Returns a canned `Stream<NamiAiStreamChunk>` instead of going through the real
@@ -117,6 +143,7 @@ void main() {
       required String prompt,
     })
     streamBuilder,
+    NamiAiDebugLogService? debugLogService,
   }) async {
     await tester.pumpWidget(
       MultiProvider(
@@ -125,7 +152,12 @@ void main() {
           Provider<NamiAiStreamService>.value(
             value: _FakeNamiAiStreamService(streamBuilder),
           ),
-          Provider<NamiAiDebugLogService>.value(value: _NoOpDebugLogService()),
+          Provider<NamiAiDebugLogService>.value(
+            value: debugLogService ?? _NoOpDebugLogService(),
+          ),
+          Provider<NamiAiCorpusLookupService>.value(
+            value: NamiAiCorpusLookupService(),
+          ),
           Provider<NamiAiChatHistoryRepository>.value(value: historyRepository),
         ],
         child: const MaterialApp(home: NamiAiChatPage()),
@@ -208,6 +240,45 @@ void main() {
 
     expect(find.textContaining('Satzung Stamm § 18'), findsOneWidget);
   });
+
+  testWidgets(
+    'Daumen-hoch-Tap markiert die Bubble und ruft updateFeedback auf',
+    (tester) async {
+      final logService = _SpyDebugLogService();
+      await pumpChatPage(
+        tester,
+        debugLogService: logService,
+        streamBuilder: ({required sessionId, required prompt}) =>
+            _doneOnlyStream(
+              const NamiAiReply(
+                answer: 'Mindestens einmal jaehrlich.',
+                contextChunks: [],
+              ),
+            ),
+      );
+
+      await tester.enterText(find.byType(TextField), 'Wie oft tagt die SV?');
+      await tester.tap(find.byIcon(Icons.send));
+      await pumpBriefly(tester);
+
+      expect(find.byIcon(Icons.thumb_up_outlined), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.thumb_up_outlined));
+      await tester.pump();
+
+      expect(find.byIcon(Icons.thumb_up), findsOneWidget);
+      expect(logService.feedbackCalls, [
+        (requestId: 'no-op-request-id', rating: 'up'),
+      ]);
+
+      await tester.tap(find.byIcon(Icons.thumb_up));
+      await tester.pump();
+
+      expect(find.byIcon(Icons.thumb_up_outlined), findsOneWidget);
+      expect(logService.feedbackCalls.length, 2);
+      expect(logService.feedbackCalls.last.rating, 'up');
+    },
+  );
 
   testWidgets('zeigt einen Hinweis, wenn die Antwort unclear ist', (
     tester,

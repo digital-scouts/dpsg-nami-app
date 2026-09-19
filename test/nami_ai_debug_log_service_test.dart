@@ -17,11 +17,20 @@ void main() {
       nowProvider: () => DateTime.utc(2026, 6, 3, 10, 0, 0),
     );
 
-    await service.logEntry(
+    final requestId = await service.logEntry(
       prompt: 'Wie oft muss die Stammesversammlung stattfinden?',
       success: true,
       answer: 'Mindestens einmal im Jahr.',
-      contextChunks: const ['23. Die Stammesversammlung findet ...'],
+      contextChunks: const ['satzung_stamm#23'],
+      sources: const [
+        {
+          'docTitle': 'Satzung Stamm',
+          'sectionNumber': '23',
+          'docStand': 'Mai 2024',
+        },
+      ],
+      sessionId: 'session-1',
+      turnIndex: 1,
       latencyMs: 842,
     );
 
@@ -41,12 +50,25 @@ void main() {
     );
     expect(decoded['outcome'], 'success');
     expect(decoded['answer'], 'Mindestens einmal im Jahr.');
-    expect(decoded['contextChunks'], ['23. Die Stammesversammlung findet ...']);
+    expect(decoded['contextChunks'], ['satzung_stamm#23']);
     expect(decoded['chunkCount'], 1);
+    expect(decoded['sources'], [
+      {
+        'docTitle': 'Satzung Stamm',
+        'sectionNumber': '23',
+        'docStand': 'Mai 2024',
+      },
+    ]);
+    expect(decoded['unclear'], false);
+    expect(decoded['sessionId'], 'session-1');
+    expect(decoded['turnIndex'], 1);
+    expect(decoded['contextTruncated'], false);
+    expect(decoded['feedback'], isNull);
     expect(decoded['errorCode'], isNull);
     expect(decoded['latencyMs'], 842);
     expect(decoded['timestamp'], '2026-06-03T10:00:00.000Z');
     expect(decoded['requestId'], isNotEmpty);
+    expect(decoded['requestId'], requestId);
     expect(decoded['osVersion'], isNotEmpty);
 
     await tempDir.delete(recursive: true);
@@ -171,4 +193,138 @@ void main() {
 
     await tempDir.delete(recursive: true);
   });
+
+  test(
+    'updateFeedback sets the feedback field of the matching entry',
+    () async {
+      final tempDir = await Directory.systemTemp.createTemp(
+        'nami_ai_debug_log_service_feedback_test',
+      );
+
+      final service = NamiAiDebugLogService(
+        logsDirectoryProvider: () async => tempDir,
+        nowProvider: () => DateTime.utc(2026, 6, 3, 10, 0, 0),
+      );
+
+      final requestId = await service.logEntry(
+        prompt: 'Frage',
+        success: true,
+        answer: 'Antwort',
+        latencyMs: 5,
+      );
+
+      await service.updateFeedback(requestId: requestId, rating: 'up');
+
+      final file = File('${tempDir.path}/nami_ai_debug_log.jsonl');
+      final decoded =
+          jsonDecode((await file.readAsLines()).single) as Map<String, dynamic>;
+      expect(decoded['feedback'], 'up');
+
+      await tempDir.delete(recursive: true);
+    },
+  );
+
+  test('updateFeedback with the same rating again clears it (undo)', () async {
+    final tempDir = await Directory.systemTemp.createTemp(
+      'nami_ai_debug_log_service_feedback_undo_test',
+    );
+
+    final service = NamiAiDebugLogService(
+      logsDirectoryProvider: () async => tempDir,
+      nowProvider: () => DateTime.utc(2026, 6, 3, 10, 0, 0),
+    );
+
+    final requestId = await service.logEntry(
+      prompt: 'Frage',
+      success: true,
+      answer: 'Antwort',
+      latencyMs: 5,
+    );
+
+    await service.updateFeedback(requestId: requestId, rating: 'down');
+    await service.updateFeedback(requestId: requestId, rating: 'down');
+
+    final file = File('${tempDir.path}/nami_ai_debug_log.jsonl');
+    final decoded =
+        jsonDecode((await file.readAsLines()).single) as Map<String, dynamic>;
+    expect(decoded['feedback'], isNull);
+
+    await tempDir.delete(recursive: true);
+  });
+
+  test('updateFeedback only touches the matching requestId', () async {
+    final tempDir = await Directory.systemTemp.createTemp(
+      'nami_ai_debug_log_service_feedback_multi_test',
+    );
+
+    var tick = 0;
+    final service = NamiAiDebugLogService(
+      logsDirectoryProvider: () async => tempDir,
+      nowProvider: () {
+        tick += 1;
+        return DateTime.utc(2026, 6, 3, 10, 0, tick);
+      },
+    );
+
+    final firstId = await service.logEntry(
+      prompt: 'Erste Frage',
+      success: true,
+      answer: 'Erste Antwort',
+      latencyMs: 5,
+    );
+    await service.logEntry(
+      prompt: 'Zweite Frage',
+      success: true,
+      answer: 'Zweite Antwort',
+      latencyMs: 5,
+    );
+
+    await service.updateFeedback(requestId: firstId, rating: 'up');
+
+    final file = File('${tempDir.path}/nami_ai_debug_log.jsonl');
+    final decodedLines = (await file.readAsLines())
+        .map((line) => jsonDecode(line) as Map<String, dynamic>)
+        .toList();
+
+    expect(
+      decodedLines.firstWhere((e) => e['prompt'] == 'Erste Frage')['feedback'],
+      'up',
+    );
+    expect(
+      decodedLines.firstWhere((e) => e['prompt'] == 'Zweite Frage')['feedback'],
+      isNull,
+    );
+
+    await tempDir.delete(recursive: true);
+  });
+
+  test(
+    'updateFeedback for an unknown requestId leaves the file unchanged',
+    () async {
+      final tempDir = await Directory.systemTemp.createTemp(
+        'nami_ai_debug_log_service_feedback_unknown_test',
+      );
+
+      final service = NamiAiDebugLogService(
+        logsDirectoryProvider: () async => tempDir,
+        nowProvider: () => DateTime.utc(2026, 6, 3, 10, 0, 0),
+      );
+
+      await service.logEntry(
+        prompt: 'Frage',
+        success: true,
+        answer: 'Antwort',
+        latencyMs: 5,
+      );
+
+      await service.updateFeedback(requestId: 'unbekannt', rating: 'up');
+
+      final file = File('${tempDir.path}/nami_ai_debug_log.jsonl');
+      final decoded =
+          jsonDecode((await file.readAsLines()).single) as Map<String, dynamic>;
+      expect(decoded['feedback'], isNull);
+
+      await tempDir.delete(recursive: true);
+    },
+  );
 }

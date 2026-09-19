@@ -14,18 +14,38 @@ class NamiAiSourceRef {
 
 /// One chat bubble, either the user's question or the assistant's (already grounding-gate
 /// verified, see specs/nami-ai-roadmap.md section 3.6/3.7) reply.
+///
+/// debugRequestId/feedback are deliberately transient, live-chat-only state (not persisted by
+/// NamiAiChatHistoryLocalRepository): debugRequestId links a bubble back to its
+/// NamiAiDebugLogService entry so a thumbs up/down tap can call updateFeedback(), and feedback
+/// mirrors that tap's current state for the icon's highlight. Both reset to null once a
+/// conversation is reloaded from history - a saved conversation is read-only anyway (section
+/// 3.7), so there's nothing to rate there.
 class NamiAiChatMessage {
   const NamiAiChatMessage({
     required this.text,
     required this.isUser,
     this.sources = const <NamiAiSourceRef>[],
     this.unclear = false,
+    this.debugRequestId,
+    this.feedback,
   });
 
   final String text;
   final bool isUser;
   final List<NamiAiSourceRef> sources;
   final bool unclear;
+  final String? debugRequestId;
+  final String? feedback;
+
+  NamiAiChatMessage copyWith({String? feedback}) => NamiAiChatMessage(
+    text: text,
+    isUser: isUser,
+    sources: sources,
+    unclear: unclear,
+    debugRequestId: debugRequestId,
+    feedback: feedback,
+  );
 }
 
 /// One past conversation, persisted read-only for 30 days (specs/nami-ai-roadmap.md section

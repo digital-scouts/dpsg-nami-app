@@ -7,9 +7,22 @@ import 'package:nami/domain/nami_ai/nami_ai_chat_history_entry.dart';
 /// roadmap.md section 3.7) so both stay visually identical without duplicating the
 /// bubble/markdown/source-line logic.
 class NamiAiMessageBubble extends StatelessWidget {
-  const NamiAiMessageBubble({super.key, required this.message});
+  const NamiAiMessageBubble({
+    super.key,
+    required this.message,
+    this.onSourceTap,
+    this.onFeedback,
+  });
 
   final NamiAiChatMessage message;
+
+  /// Tapped a source chip - the bubble stays presentation-only, the caller resolves the source
+  /// to its paragraph text (specs/nami-ai-roadmap.md section 3.12) and decides how to show it.
+  final void Function(NamiAiSourceRef source)? onSourceTap;
+
+  /// Tapped a thumbs up/down button ('up'/'down') - null in the read-only history detail view
+  /// (no debugRequestId there, see NamiAiChatMessage), which is how that view hides the buttons.
+  final void Function(String rating)? onFeedback;
 
   @override
   Widget build(BuildContext context) {
@@ -79,16 +92,54 @@ class NamiAiMessageBubble extends StatelessWidget {
                   runSpacing: 4,
                   children: message.sources
                       .map(
-                        (source) => Chip(
+                        (source) => ActionChip(
                           label: Text(
                             '${source.docTitle} § ${source.sectionNumber}',
                           ),
                           visualDensity: VisualDensity.compact,
                           materialTapTargetSize:
                               MaterialTapTargetSize.shrinkWrap,
+                          onPressed: onSourceTap == null
+                              ? null
+                              : () => onSourceTap!(source),
                         ),
                       )
                       .toList(growable: false),
+                ),
+              ),
+            if (onFeedback != null && !isUser && message.debugRequestId != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      iconSize: 18,
+                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints(),
+                      padding: const EdgeInsets.all(4),
+                      tooltip: 'Antwort war hilfreich',
+                      icon: Icon(
+                        message.feedback == 'up'
+                            ? Icons.thumb_up
+                            : Icons.thumb_up_outlined,
+                      ),
+                      onPressed: () => onFeedback!('up'),
+                    ),
+                    IconButton(
+                      iconSize: 18,
+                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints(),
+                      padding: const EdgeInsets.all(4),
+                      tooltip: 'Antwort war nicht hilfreich',
+                      icon: Icon(
+                        message.feedback == 'down'
+                            ? Icons.thumb_down
+                            : Icons.thumb_down_outlined,
+                      ),
+                      onPressed: () => onFeedback!('down'),
+                    ),
+                  ],
                 ),
               ),
           ],

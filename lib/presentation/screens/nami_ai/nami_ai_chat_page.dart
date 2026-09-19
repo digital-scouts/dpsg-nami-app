@@ -6,6 +6,8 @@ import 'package:nami/domain/nami_ai/nami_ai_chat_history_repository.dart';
 import 'package:nami/presentation/notifications/app_snackbar.dart';
 import 'package:nami/presentation/screens/nami_ai/nami_ai_chat_history_list_page.dart';
 import 'package:nami/presentation/screens/nami_ai/widgets/nami_ai_message_bubble.dart';
+import 'package:nami/presentation/screens/nami_ai/widgets/nami_ai_source_sheet.dart';
+import 'package:nami/services/nami_ai/nami_ai_corpus_lookup_service.dart';
 import 'package:nami/services/nami_ai/nami_ai_debug_log_service.dart';
 import 'package:nami/services/nami_ai/nami_ai_service.dart';
 import 'package:nami/services/nami_ai/nami_ai_stream_service.dart';
@@ -35,6 +37,10 @@ class _NamiAiChatPageState extends State<NamiAiChatPage> {
   // Started lazily on the first message rather than in initState: starting a native
   // LanguageModelSession is meaningless (and would be wasted) if the user never sends anything.
   String? _sessionId;
+  // 1-based count of messages sent within the current native session (reset alongside
+  // _sessionId) - logged so a debug-log line shows whether a question was the first in its
+  // session (no prior context) or a follow-up that had the held session's context available.
+  int _turnIndex = 0;
   // Set together on the first message of a conversation; title = that first question,
   // startedAt = its timestamp (specs/nami-ai-roadmap.md section 3.7 persistence design).
   String? _conversationId;
@@ -44,11 +50,13 @@ class _NamiAiChatPageState extends State<NamiAiChatPage> {
   // (InheritedWidget/Provider) from dispose() is unsafe once the widget tree is being torn down
   // - the ancestor's element can already be deactivated by the time dispose() runs.
   NamiAiService? _service;
+  NamiAiCorpusLookupService? _corpusLookupService;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _service ??= context.read<NamiAiService>();
+    _corpusLookupService ??= context.read<NamiAiCorpusLookupService>();
   }
 
   @override
@@ -109,7 +117,16 @@ class _NamiAiChatPageState extends State<NamiAiChatPage> {
                       padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
                       itemCount: _messages.length,
                       itemBuilder: (context, index) {
-                        return NamiAiMessageBubble(message: _messages[index]);
+                        return NamiAiMessageBubble(
+                          message: _messages[index],
+                          onSourceTap: (source) => showNamiAiSourceSheet(
+                            context,
+                            _corpusLookupService!,
+                            source,
+                          ),
+                          onFeedback: (rating) =>
+                              _handleFeedback(index, rating),
+                        );
                       },
                     ),
             ),
@@ -181,6 +198,7 @@ class _NamiAiChatPageState extends State<NamiAiChatPage> {
     setState(() {
       _messages.clear();
       _sessionId = null;
+      _turnIndex = 0;
       _conversationId = null;
       _conversationStartedAt = null;
       _conversationTitle = null;
@@ -221,7 +239,10 @@ class _NamiAiChatPageState extends State<NamiAiChatPage> {
     }
 
     late final int placeholderIndex;
+    late final int turnIndex;
     setState(() {
+      _turnIndex += 1;
+      turnIndex = _turnIndex;
       _messages.add(NamiAiChatMessage(text: message, isUser: true));
       placeholderIndex = _messages.length;
       _messages.add(const NamiAiChatMessage(text: '', isUser: false));
@@ -269,23 +290,42 @@ class _NamiAiChatPageState extends State<NamiAiChatPage> {
         );
       }
 
+      // Awaited (not fire-and-forget) so the requestId is available to attach to the message
+      // below - that's what lets a thumbs up/down tap on this bubble later call
+      // logService.updateFeedback() for the right log line. The write itself is a cheap local
+      // JSONL append, negligible next to the model round-trip that already happened.
+      final requestId = await logService.logEntry(
+        prompt: message,
+        success: true,
+        answer: reply.answer,
+        contextChunks: reply.contextChunks,
+        sources: reply.sources
+            .map(
+              (source) => {
+                'docTitle': source.docTitle,
+                'sectionNumber': source.sectionNumber,
+                'docStand': source.docStand,
+              },
+            )
+            .toList(growable: false),
+        unclear: reply.unclear,
+        sessionId: sessionId,
+        turnIndex: turnIndex,
+        contextTruncated: reply.contextTruncated,
+        latencyMs: stopwatch.elapsedMilliseconds,
+      );
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _messages[placeholderIndex] = NamiAiChatMessage(
           text: reply.answer,
           isUser: false,
           sources: reply.sources,
           unclear: reply.unclear,
+          debugRequestId: requestId,
         );
       });
-      unawaited(
-        logService.logEntry(
-          prompt: message,
-          success: true,
-          answer: reply.answer,
-          contextChunks: reply.contextChunks,
-          latencyMs: stopwatch.elapsedMilliseconds,
-        ),
-      );
       unawaited(_saveConversation(historyRepository));
 
       if (reply.contextTruncated && mounted) {
@@ -317,6 +357,8 @@ class _NamiAiChatPageState extends State<NamiAiChatPage> {
           errorMessage: error is NamiAiException
               ? error.message
               : error.toString(),
+          sessionId: _sessionId,
+          turnIndex: turnIndex,
           latencyMs: stopwatch.elapsedMilliseconds,
         ),
       );
@@ -328,6 +370,27 @@ class _NamiAiChatPageState extends State<NamiAiChatPage> {
         _scrollToBottom();
       }
     }
+  }
+
+  /// Toggling a thumbs up/down tap: updates the shown bubble state and the matching debug-log
+  /// line (via its debugRequestId - see NamiAiChatMessage). A repeated tap with the same rating
+  /// clears it, mirroring NamiAiDebugLogService.updateFeedback()'s own undo behaviour.
+  void _handleFeedback(int index, String rating) {
+    final message = _messages[index];
+    final requestId = message.debugRequestId;
+    if (requestId == null) {
+      return;
+    }
+    final newFeedback = message.feedback == rating ? null : rating;
+    setState(() {
+      _messages[index] = message.copyWith(feedback: newFeedback);
+    });
+    unawaited(
+      context.read<NamiAiDebugLogService>().updateFeedback(
+        requestId: requestId,
+        rating: rating,
+      ),
+    );
   }
 
   Future<void> _saveConversation(NamiAiChatHistoryRepository repository) async {

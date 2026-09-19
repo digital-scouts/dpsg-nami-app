@@ -99,7 +99,7 @@ import Foundation
         sources: sources,
         unclear: generated.unclear,
         deliveredKeys: await recorder.deliveredKeys,
-        contextChunks: await recorder.deliveredChunkTexts,
+        contextChunks: await recorder.deliveredChunkRefs,
         contextTruncated: contextTruncated
       )
     }
