@@ -127,3 +127,23 @@ Startheuristik, kalibrierbar nach den ersten echten Runden (siehe Roadmap
   Xcode-/macOS-Version.
 - Modellantworten sind nicht deterministisch — Wiederholung derselben Frage
   kann leicht unterschiedliche Formulierungen/Bewertungen ergeben.
+
+## Embedding-Hybrid (Variante B) seit 2026-09-19
+
+`NamiAiSearchTool` nutzt jetzt `NamiAiRetrievalIndex.topMatchesHybrid`: BM25
+wird per Reciprocal Rank Fusion mit semantischer Ähnlichkeit aus
+`NamiAiContextualEmbeddingScorer` (`NLContextualEmbedding`, Deutsch)
+kombiniert, um Umformulierungen/Komposita abzufangen, die auch das Stemming
+oben nicht löst. Stiller Fallback auf reines BM25 (`topMatches`), wenn das
+Embedding-Modell/die Assets nicht verfügbar sind — kein Fehlerzustand für
+Nutzer:innen.
+
+Automatisiert abgesichert sind nur die modellunabhängigen Teile: die
+Fusionslogik (`NamiAiRankFusionTests.swift`, mit einem Fake-Scorer auch in
+`NamiAiRetrievalTests.swift`) und die Kosinus-Ähnlichkeit
+(`NamiAiContextualEmbeddingScorerTests.swift`). Der eigentliche
+`NLContextualEmbedding`-Pfad (Asset-Download, Laden, Embedding-Berechnung)
+ist wie der Rest der FoundationModels-Anbindung nur manuell auf einem
+echten Gerät verifizierbar — Simulator/CI können die Modell-Assets nicht
+laden. Offen für die nächste Geräte-Runde: tatsächliche
+Pass-Rate-/Korrektheits-Wirkung gegenüber dem reinen Stemming-Stand messen.

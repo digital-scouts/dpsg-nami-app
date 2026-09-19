@@ -106,15 +106,57 @@ struct NamiAiRetrievalIndex {
     return scores
   }
 
-  /// Top-k chunks above a minimum score, highest first. A strictly-positive default threshold
-  /// (rather than >= 0) guards against chunks whose only "match" is a term so common that BM25
-  /// assigns it a near-zero or negative idf.
-  func topMatches(for query: String, limit: Int = 5, minScore: Double = 0.01) -> [NamiAiChunk] {
+  /// Chunk indices scoring at least minScore, highest BM25 score first. A strictly-positive
+  /// default threshold (rather than >= 0) guards against chunks whose only "match" is a term so
+  /// common that BM25 assigns it a near-zero or negative idf. Shared by topMatches (BM25-only)
+  /// and topMatchesHybrid (BM25 candidate pool for fusion) below.
+  private func rankedIndices(for query: String, minScore: Double) -> [Int] {
     scores(for: query)
       .enumerated()
       .filter { $0.element >= minScore }
       .sorted { $0.element > $1.element }
+      .map(\.offset)
+  }
+
+  /// Top-k chunks above a minimum score, highest first. Pure BM25, no embedding model involved -
+  /// this is what NamiAiEvalTests/NamiAiSearchTool used before section 3.6's Variante B/D
+  /// (embedding hybrid), and stays available on its own for automated, device-free testing.
+  func topMatches(for query: String, limit: Int = 5, minScore: Double = 0.01) -> [NamiAiChunk] {
+    rankedIndices(for: query, minScore: minScore)
       .prefix(limit)
-      .map { chunks[$0.offset] }
+      .map { chunks[$0] }
+  }
+
+  /// Like topMatches, but additionally consults `semanticScorer` (specs/nami-ai-roadmap.md
+  /// section 3.6, Variante B: NLContextualEmbedding) to catch paraphrases/compound-word
+  /// mismatches BM25's lexical matching (even with the stemming above) can't. Widens the BM25
+  /// candidate pool before fusing, so a chunk that's only mediocre lexically but strongly
+  /// matches semantically still has a chance to surface. Falls back to plain topMatches
+  /// unchanged whenever no scorer is configured or it reports unavailable (nil) - a device
+  /// without usable embedding model assets behaves exactly like before this method existed.
+  func topMatchesHybrid(
+    for query: String,
+    limit: Int = 5,
+    minScore: Double = 0.01,
+    semanticScorer: NamiAiSemanticScorer?
+  ) async -> [NamiAiChunk] {
+    let bm25Candidates = rankedIndices(for: query, minScore: minScore)
+    guard let semanticScorer,
+      let semanticScores = await semanticScorer.similarityScores(for: query, against: chunks)
+    else {
+      return bm25Candidates.prefix(limit).map { chunks[$0] }
+    }
+
+    let widenedBM25Candidates = Array(bm25Candidates.prefix(max(limit * 4, 20)))
+    let semanticRanking = semanticScores.enumerated()
+      .sorted { $0.element > $1.element }
+      .map(\.offset)
+      .prefix(max(limit * 4, 20))
+
+    let fusedScores = NamiAiRankFusion.reciprocalRankFusion(
+      rankings: [widenedBM25Candidates, Array(semanticRanking)])
+    return fusedScores.sorted { $0.value > $1.value }
+      .prefix(limit)
+      .map { chunks[$0.key] }
   }
 }
