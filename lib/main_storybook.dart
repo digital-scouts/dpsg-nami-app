@@ -4,6 +4,7 @@ import 'package:nami/stories/app_bottom_navigation_story.dart';
 import 'package:nami/stories/app_sidebar_story.dart';
 import 'package:nami/stories/app_snackbar_story.dart';
 import 'package:nami/stories/message_of_the_day_card_story.dart';
+import 'package:nami/stories/nami_ai_chat_page_story.dart';
 import 'package:nami/stories/notifications_story.dart';
 import 'package:nami/stories/profile_page_story.dart';
 import 'package:nami/stories/settings_map_page_story.dart';
@@ -50,6 +51,14 @@ List<Story> buildStorybookStories() {
     notificationsListStory(),
     storyMessageOfTheDayCard(),
     confettiOverlayStory(),
+    namiAiChatPageEmptyStory(),
+    namiAiChatPageWithSourcesStory(),
+    namiAiChatPageUnclearStory(),
+    namiAiChatPageStreamingStory(),
+    namiAiChatPageErrorStory(),
+    namiAiChatHistoryListEmptyStory(),
+    namiAiChatHistoryListFilledStory(),
+    namiAiChatHistoryDetailStory(),
     memberPeoplePageLoadedStory(),
     memberPeoplePageEmptyStory(),
     memberDetailPageStory(),

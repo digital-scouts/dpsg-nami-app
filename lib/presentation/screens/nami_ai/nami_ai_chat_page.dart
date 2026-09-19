@@ -15,7 +15,12 @@ import 'package:provider/provider.dart';
 enum _ChatMenuAction { newConversation, history, shareDebugLog }
 
 class NamiAiChatPage extends StatefulWidget {
-  const NamiAiChatPage({super.key});
+  const NamiAiChatPage({super.key, this.debugInitialMessages});
+
+  /// Seeds the transcript for Storybook/tests, so a story can show a specific answer state
+  /// (sources, unclear, an in-progress-looking partial, ...) without scripting the send
+  /// interaction - same pattern as StatisticsPage.debugReadModel.
+  final List<NamiAiChatMessage>? debugInitialMessages;
 
   @override
   State<NamiAiChatPage> createState() => _NamiAiChatPageState();
@@ -24,7 +29,8 @@ class NamiAiChatPage extends StatefulWidget {
 class _NamiAiChatPageState extends State<NamiAiChatPage> {
   final TextEditingController _inputController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final List<NamiAiChatMessage> _messages = <NamiAiChatMessage>[];
+  late final List<NamiAiChatMessage> _messages =
+      widget.debugInitialMessages?.toList() ?? <NamiAiChatMessage>[];
   bool _isSending = false;
   // Started lazily on the first message rather than in initState: starting a native
   // LanguageModelSession is meaningless (and would be wasted) if the user never sends anything.
