@@ -7,6 +7,7 @@ import XCTest
 /// that are never present in CI/the simulator (see the type's own doc comment). End-to-end
 /// behavior (does it actually improve retrieval quality) is a manual-device verification item,
 /// same class of limitation as the rest of this package's FoundationModels-dependent code.
+@available(iOS 17.0, macOS 14.0, *)
 final class NamiAiContextualEmbeddingScorerTests: XCTestCase {
   func testCosineSimilarityOfIdenticalVectorsIsOne() {
     let similarity = NamiAiContextualEmbeddingScorer.cosineSimilarity([1, 2, 3], [1, 2, 3])
