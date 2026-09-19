@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:nami/domain/nami_ai/nami_ai_chat_history_entry.dart';
 import 'package:nami/domain/nami_ai/nami_ai_chat_history_repository.dart';
 import 'package:nami/presentation/notifications/app_snackbar.dart';
+import 'package:nami/presentation/screens/nami_ai/nami_ai_chat_history_list_page.dart';
 import 'package:nami/presentation/screens/nami_ai/widgets/nami_ai_message_bubble.dart';
 import 'package:nami/services/nami_ai/nami_ai_debug_log_service.dart';
 import 'package:nami/services/nami_ai/nami_ai_service.dart';
@@ -11,7 +12,7 @@ import 'package:nami/services/nami_ai/nami_ai_stream_service.dart';
 import 'package:open_file/open_file.dart';
 import 'package:provider/provider.dart';
 
-enum _ChatMenuAction { newConversation, shareDebugLog }
+enum _ChatMenuAction { newConversation, history, shareDebugLog }
 
 class NamiAiChatPage extends StatefulWidget {
   const NamiAiChatPage({super.key});
@@ -69,6 +70,10 @@ class _NamiAiChatPageState extends State<NamiAiChatPage> {
               PopupMenuItem(
                 value: _ChatMenuAction.newConversation,
                 child: Text('Neue Unterhaltung'),
+              ),
+              PopupMenuItem(
+                value: _ChatMenuAction.history,
+                child: Text('Verlauf'),
               ),
               PopupMenuItem(
                 value: _ChatMenuAction.shareDebugLog,
@@ -144,9 +149,17 @@ class _NamiAiChatPageState extends State<NamiAiChatPage> {
     switch (action) {
       case _ChatMenuAction.newConversation:
         await _startNewConversation();
+      case _ChatMenuAction.history:
+        _openHistory();
       case _ChatMenuAction.shareDebugLog:
         await _shareDebugLog();
     }
+  }
+
+  void _openHistory() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const NamiAiChatHistoryListPage()),
+    );
   }
 
   /// Manual counterpart to the automatic "new session after app restart" behaviour (specs/
