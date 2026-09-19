@@ -39,14 +39,18 @@ private struct NamiAiCorpusFile: Decodable {
 enum NamiAiCorpus {
   private static var configuredFileURL: URL?
   private static var cachedIndex: NamiAiRetrievalIndex?
+  @available(iOS 17.0, macOS 14.0, *)
   private static var cachedSemanticScorer: NamiAiContextualEmbeddingScorer?
 
   static func configure(fileURL: URL) {
     configuredFileURL = fileURL
     cachedIndex = nil
     // A new corpus invalidates any embeddings the old scorer cached by (docTitle,
-    // sectionNumber) - those keys could point at different text now.
-    cachedSemanticScorer = nil
+    // sectionNumber) - those keys could point at different text now. Only relevant once the
+    // embedding path is available at all (iOS 17+/macOS 14+, see NamiAiContextualEmbeddingScorer).
+    if #available(iOS 17.0, macOS 14.0, *) {
+      cachedSemanticScorer = nil
+    }
   }
 
   /// Returns the retrieval index for the configured corpus, decoding and building it once and
@@ -72,6 +76,7 @@ enum NamiAiCorpus {
   /// corpus so its per-chunk embedding cache (NamiAiContextualEmbeddingScorer) survives across
   /// search calls within the same session instead of recomputing every turn - model
   /// load/asset-download state is likewise cached, not repeated per call.
+  @available(iOS 17.0, macOS 14.0, *)
   static func semanticScorer() -> NamiAiContextualEmbeddingScorer {
     if let cached = cachedSemanticScorer {
       return cached

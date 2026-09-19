@@ -16,10 +16,12 @@ import NaturalLanguage
 /// makes this return nil, which NamiAiRetrievalIndex.topMatchesHybrid treats as "fall back to
 /// BM25 only" - never a user-facing error.
 ///
-/// NLContextualEmbedding requires iOS 17/macOS 14 (NS_CLASS_AVAILABLE(14_0, 17_0)), already
-/// covered by this app's iOS 26 minimum (specs/nami-ai-roadmap.md section 3.5) - no new
-/// availability gate needed beyond what NamiAiAvailability already enforces for the language
-/// model itself.
+/// NLContextualEmbedding requires iOS 17/macOS 14 (NS_CLASS_AVAILABLE(14_0, 17_0)) - lower than
+/// FoundationModels' iOS 26, but still above this app's actual deployment target (iOS 15, see
+/// Runner's IPHONEOS_DEPLOYMENT_TARGET and NamiAiKit's Package.swift `.iOS(.v15)`), so this
+/// still needs its own explicit `@available` gate, same pattern as NamiAiResponder/
+/// NamiAiSearchTool use for FoundationModels' iOS 26 requirement.
+@available(iOS 17.0, macOS 14.0, *)
 actor NamiAiContextualEmbeddingScorer: NamiAiSemanticScorer {
   private enum PreparationState {
     case notPrepared
