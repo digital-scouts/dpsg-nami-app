@@ -124,7 +124,7 @@ import Foundation
         // rather than assuming a confident answer that was never actually confirmed complete.
         unclear: lastSnapshotContent?.unclear ?? true,
         deliveredKeys: await recorder.deliveredKeys,
-        contextChunks: await recorder.deliveredChunkTexts,
+        contextChunks: await recorder.deliveredChunkRefs,
         contextTruncated: contextTruncated
       )
     }

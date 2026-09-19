@@ -22,19 +22,23 @@ struct NamiAiChunkKey: Hashable {
 /// were only ever retrieved in an earlier turn.
 actor NamiAiRetrievalRecorder {
   private(set) var deliveredKeys: Set<NamiAiChunkKey> = []
-  private(set) var deliveredChunkTexts: [String] = []
+  /// Compact "<doc_id>#<section_number>" refs, not full chunk text - doc_id+section_number is
+  /// already the stable, corpus-wide-unique identifier (see NamiAiChunk), so this is enough to
+  /// look the paragraph back up later (e.g. from the debug log) without bloating every log line
+  /// with full paragraph text.
+  private(set) var deliveredChunkRefs: [String] = []
 
   func record(_ chunks: [NamiAiChunk]) {
     for chunk in chunks {
       let key = NamiAiChunkKey(docTitle: chunk.docTitle, sectionNumber: chunk.sectionNumber)
       if deliveredKeys.insert(key).inserted {
-        deliveredChunkTexts.append(chunk.text)
+        deliveredChunkRefs.append("\(chunk.docId)#\(chunk.sectionNumber)")
       }
     }
   }
 
   func reset() {
     deliveredKeys.removeAll()
-    deliveredChunkTexts.removeAll()
+    deliveredChunkRefs.removeAll()
   }
 }

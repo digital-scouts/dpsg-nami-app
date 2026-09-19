@@ -58,26 +58,42 @@ class NamiAiDebugLogService {
     return file;
   }
 
-  Future<void> logEntry({
+  /// Writes one log line and returns its requestId, so a caller can later attach feedback via
+  /// updateFeedback(). sources/unclear surface the grounding-gate result (see NamiAiAnswer),
+  /// sessionId/turnIndex make follow-up questions within a held chat session identifiable in the
+  /// log (turnIndex == 1: no prior context; > 1: follow-up within the same native session).
+  Future<String> logEntry({
     required String prompt,
     required bool success,
     String? answer,
     List<String> contextChunks = const <String>[],
+    List<Map<String, String>> sources = const <Map<String, String>>[],
+    bool unclear = false,
+    String? sessionId,
+    int? turnIndex,
+    bool contextTruncated = false,
     String? errorCode,
     String? errorMessage,
     required int latencyMs,
   }) async {
     final now = _now();
     final packageInfo = await _packageInfo();
+    final requestId = _newRequestId(now);
 
     final entry = <String, Object?>{
       'timestamp': now.toUtc().toIso8601String(),
-      'requestId': _newRequestId(now),
+      'requestId': requestId,
+      'sessionId': sessionId,
+      'turnIndex': turnIndex,
       'prompt': prompt,
       'outcome': success ? 'success' : 'error',
       'answer': answer,
       'contextChunks': contextChunks,
       'chunkCount': contextChunks.length,
+      'sources': sources,
+      'unclear': unclear,
+      'contextTruncated': contextTruncated,
+      'feedback': null,
       'errorCode': errorCode,
       'errorMessage': errorMessage,
       'latencyMs': latencyMs,
@@ -97,6 +113,55 @@ class NamiAiDebugLogService {
     );
 
     await _pruneOldEntries();
+    return requestId;
+  }
+
+  /// Sets (or, on a repeated call with the same rating, clears) the 'feedback' field of the log
+  /// line matching requestId. Rewrites the whole file, same approach as _pruneOldEntries() -
+  /// acceptable since this log is bounded to LoggingEnv.maxDays of interactive usage.
+  Future<void> updateFeedback({
+    required String requestId,
+    required String rating,
+  }) async {
+    final file = await _logFile();
+    if (!await file.exists()) {
+      return;
+    }
+
+    final lines = await file.readAsLines();
+    if (lines.isEmpty) {
+      return;
+    }
+
+    final updated = <String>[];
+    for (final line in lines) {
+      if (line.trim().isEmpty) {
+        continue;
+      }
+      final decoded = _tryDecodeEntry(line);
+      if (decoded != null && decoded['requestId'] == requestId) {
+        final current = decoded['feedback'] as String?;
+        decoded['feedback'] = current == rating ? null : rating;
+        updated.add(jsonEncode(decoded));
+      } else {
+        updated.add(line);
+      }
+    }
+
+    final content = updated.isEmpty ? '' : '${updated.join('\n')}\n';
+    await file.writeAsString(content, flush: true);
+  }
+
+  Map<String, dynamic>? _tryDecodeEntry(String jsonLine) {
+    try {
+      final decoded = jsonDecode(jsonLine);
+      if (decoded is Map<String, dynamic>) {
+        return decoded;
+      }
+    } catch (_) {
+      // Malformed line: keep it verbatim rather than losing data on a parse hiccup.
+    }
+    return null;
   }
 
   Future<void> _pruneOldEntries() async {

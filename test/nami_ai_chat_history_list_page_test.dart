@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/domain/nami_ai/nami_ai_chat_history_entry.dart';
 import 'package:nami/domain/nami_ai/nami_ai_chat_history_repository.dart';
 import 'package:nami/presentation/screens/nami_ai/nami_ai_chat_history_list_page.dart';
+import 'package:nami/services/nami_ai/nami_ai_corpus_lookup_service.dart';
 import 'package:provider/provider.dart';
 
 class _FakeNamiAiChatHistoryRepository implements NamiAiChatHistoryRepository {
@@ -25,7 +26,12 @@ class _FakeNamiAiChatHistoryRepository implements NamiAiChatHistoryRepository {
 
 Widget _buildTestApp(NamiAiChatHistoryRepository repository) {
   return MultiProvider(
-    providers: [Provider<NamiAiChatHistoryRepository>.value(value: repository)],
+    providers: [
+      Provider<NamiAiChatHistoryRepository>.value(value: repository),
+      Provider<NamiAiCorpusLookupService>.value(
+        value: NamiAiCorpusLookupService(),
+      ),
+    ],
     child: const MaterialApp(home: NamiAiChatHistoryListPage()),
   );
 }

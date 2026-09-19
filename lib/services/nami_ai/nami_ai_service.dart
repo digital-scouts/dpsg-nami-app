@@ -31,8 +31,10 @@ NamiAiSourceRef? _sourceFromMap(Object? value) {
   );
 }
 
-/// A successful NamiAiService reply. contextChunks carries the context chunks the native side
-/// actually grounded the answer in (useful for debugging, see NamiAiDebugLogService); sources/
+/// A successful NamiAiService reply. contextChunks carries a compact `doc_id#section_number`
+/// ref for every chunk the native side actually grounded the answer in (useful for debugging,
+/// see NamiAiDebugLogService; the full paragraph text can be looked up from the bundled corpus
+/// via NamiAiCorpusLookupService); sources/
 /// unclear are the technically-enforced citation result from NamiAiGroundingGate (section 3.6).
 /// contextTruncated is true exactly for the turn in which a held multi-turn session (section
 /// 3.7) had to drop older messages after a context-overflow error.
