@@ -1,0 +1,2434 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:nami/data/arbeitskontext/hitobito_group_resource.dart';
+import 'package:nami/domain/arbeitskontext/arbeitskontext.dart';
+import 'package:nami/domain/arbeitskontext/arbeitskontext_local_repository.dart';
+import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model.dart';
+import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model_repository.dart';
+import 'package:nami/domain/arbeitskontext/usecases/bestimme_startkontext_usecase.dart';
+import 'package:nami/domain/auth/auth_profile.dart';
+import 'package:nami/domain/auth/auth_session.dart';
+import 'package:nami/domain/auth/auth_state.dart';
+import 'package:nami/domain/member/mitglied.dart';
+import 'package:nami/domain/settings/app_settings.dart';
+import 'package:nami/domain/settings/app_settings_repository.dart';
+import 'package:nami/domain/taetigkeit/role_derivation.dart';
+import 'package:nami/domain/taetigkeit/roles.dart';
+import 'package:nami/domain/taetigkeit/stufe.dart';
+import 'package:nami/presentation/model/arbeitskontext_model.dart';
+import 'package:nami/services/hitobito_auth_env.dart';
+import 'package:nami/services/hitobito_groups_service.dart';
+import 'package:nami/services/logger_service.dart';
+
+void main() {
+  test(
+    'stellt zuerst den lokal gespeicherten Arbeitskontext wieder her',
+    () async {
+      final cached = ArbeitskontextReadModel(
+        arbeitskontext: Arbeitskontext(
+          aktiverLayer: const ArbeitskontextLayer(id: 42, name: 'Bezirk Sieg'),
+          verfuegbareLayer: const <ArbeitskontextLayer>[
+            ArbeitskontextLayer(id: 11, name: 'Stamm Musterdorf'),
+          ],
+        ),
+      );
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(cached: cached),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: _FakeHitobitoGroupsService(),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: AuthSession(
+          accessToken: 'token-1',
+          receivedAt: DateTime(2026, 3, 31),
+        ),
+        profile: const AuthProfile(
+          namiId: 1,
+          roles: <AuthProfileRole>[
+            AuthProfileRole(
+              groupId: 11,
+              groupName: 'Stamm Musterdorf',
+              roleName: 'Mitglied',
+              roleClass: 'Group::Mitglied',
+            ),
+          ],
+        ),
+      );
+
+      expect(model.isReady, isTrue);
+      expect(model.readModel, cached);
+      expect(model.arbeitskontext?.aktiverLayer.id, 42);
+    },
+  );
+
+  test(
+    'laedt Roles nach Cache-Wiederherstellung automatisch im Hintergrund nach',
+    () async {
+      final cached = _buildReadModel(
+        aktiverLayerId: 42,
+        aktiverLayerName: 'Bezirk Sieg',
+        mitglieder: <Mitglied>[
+          Mitglied.peopleListItem(
+            mitgliedsnummer: '1001',
+            personId: 1,
+            vorname: 'Julia',
+            nachname: 'Keller',
+          ),
+        ],
+      );
+      final loaded = cached.copyWith(
+        rolesSindGeladen: true,
+        mitglieder: <Mitglied>[
+          Mitglied.peopleListItem(
+            mitgliedsnummer: '1001',
+            personId: 1,
+            vorname: 'Julia',
+            nachname: 'Keller',
+          ).copyWith(
+            roles: <Role>[
+              roleFromLegacy(
+                stufe: Stufe.rover,
+                art: RoleCategory.leitung,
+                start: DateTime(2024, 1, 1),
+              ),
+            ],
+          ),
+        ],
+      );
+      final readModelRepository = _FakeArbeitskontextReadModelRepository(
+        loadRolesResultsByLayer: <int, ArbeitskontextReadModel>{42: loaded},
+      );
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(cached: cached),
+        readModelRepository: readModelRepository,
+        groupsService: _FakeHitobitoGroupsService(),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: AuthSession(
+          accessToken: 'token-cache-roles',
+          receivedAt: DateTime(2026, 3, 31),
+        ),
+        profile: const AuthProfile(
+          namiId: 101,
+          roles: <AuthProfileRole>[
+            AuthProfileRole(
+              groupId: 42,
+              groupName: 'Bezirk Sieg',
+              roleName: 'Leitung',
+              roleClass: 'Group::Bezirk::Leitung',
+              permissions: <String>['layer_read'],
+            ),
+          ],
+        ),
+      );
+      await _waitForBackgroundWork();
+
+      expect(readModelRepository.loadRolesCallCount, 1);
+      expect(model.areRolesLoaded, isTrue);
+      expect(model.readModel?.findeMitglied('1001')?.roles, <Role>[
+        roleFromLegacy(
+          stufe: Stufe.rover,
+          art: RoleCategory.leitung,
+          start: DateTime(2024, 1, 1),
+        ),
+      ]);
+    },
+  );
+
+  test(
+    'leitet ohne Cache einen Startkontext deterministisch aus Rollen ab',
+    () async {
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: _FakeHitobitoGroupsService(
+          groups: const <HitobitoGroupResource>[
+            HitobitoGroupResource(id: 20, name: 'Bezirk Rhein', isLayer: true),
+            HitobitoGroupResource(
+              id: 11,
+              name: 'Stamm Auenland',
+              isLayer: true,
+            ),
+          ],
+        ),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: AuthSession(
+          accessToken: 'token-2',
+          receivedAt: DateTime(2026, 3, 31),
+        ),
+        profile: const AuthProfile(
+          namiId: 2,
+          primaryGroupId: 20,
+          roles: <AuthProfileRole>[
+            AuthProfileRole(
+              groupId: 20,
+              groupName: 'Bezirk Rhein',
+              roleName: 'Bezirksleitung',
+              roleClass: 'Group::Bezirk::Leitung',
+              permissions: <String>['layer_read'],
+            ),
+          ],
+        ),
+      );
+
+      expect(model.isReady, isTrue);
+      expect(model.arbeitskontext?.aktiverLayer.id, 20);
+      expect(model.arbeitskontext?.aktiverLayer.name, 'Bezirk Rhein');
+      expect(model.readModel?.mitglieder, isEmpty);
+      expect(model.readModel?.gruppen, isEmpty);
+    },
+  );
+
+  test(
+    'meldet einen expliziten Zustand ohne App-Berechtigung, wenn kein relevanter Layer ableitbar ist',
+    () async {
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: _FakeHitobitoGroupsService(),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: AuthSession(
+          accessToken: 'token-3',
+          receivedAt: DateTime(2026, 3, 31),
+        ),
+        profile: const AuthProfile(namiId: 3),
+      );
+
+      expect(model.isUnauthorized, isTrue);
+      expect(model.errorMessage, ArbeitskontextModel.unauthorizedMessage);
+    },
+  );
+
+  test(
+    'behaelt vorhandenen Arbeitskontext bei fehlschlagendem Folgeversuch',
+    () async {
+      final groupsService = _FakeHitobitoGroupsService(
+        groups: const <HitobitoGroupResource>[
+          HitobitoGroupResource(id: 30, name: 'Stamm Waldheim', isLayer: true),
+        ],
+      );
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: groupsService,
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+      final profile = const AuthProfile(
+        namiId: 30,
+        primaryGroupId: 30,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 30,
+            groupName: 'Stamm Waldheim',
+            roleName: 'Leitung',
+            roleClass: 'Group::Stamm::Leitung',
+            permissions: <String>['layer_read'],
+          ),
+        ],
+      );
+      final session = AuthSession(
+        accessToken: 'token-30',
+        receivedAt: DateTime(2026, 3, 31),
+      );
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: session,
+        profile: profile,
+      );
+      expect(model.isReady, isTrue);
+      final arbeitskontextNachErstemLauf = model.arbeitskontext;
+      final readModelNachErstemLauf = model.readModel;
+      expect(arbeitskontextNachErstemLauf, isNotNull);
+      expect(readModelNachErstemLauf, isNotNull);
+
+      groupsService.fetchErrorOverride = Exception('Netzwerkfehler');
+      await model.initializeForProfile(profile, session: session, force: true);
+
+      expect(model.status, ArbeitskontextStatus.ready);
+      expect(model.arbeitskontext, arbeitskontextNachErstemLauf);
+      expect(model.readModel, readModelNachErstemLauf);
+      expect(model.errorMessage, contains('Netzwerkfehler'));
+    },
+  );
+
+  test(
+    'zeigt weiterhin den Vollbild-Fehlerzustand, wenn noch nie erfolgreich geladen wurde',
+    () async {
+      final groupsService = _FakeHitobitoGroupsService()
+        ..fetchErrorOverride = Exception('Netzwerkfehler');
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: groupsService,
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: AuthSession(
+          accessToken: 'token-31',
+          receivedAt: DateTime(2026, 3, 31),
+        ),
+        profile: const AuthProfile(namiId: 31),
+      );
+
+      expect(model.hasError, isTrue);
+      expect(model.arbeitskontext, isNull);
+    },
+  );
+
+  test(
+    'setzt den Arbeitskontext bereits, bevor die Mitgliederliste fertig geladen ist',
+    () async {
+      final readModelRepository = _FakeArbeitskontextReadModelRepository();
+      final delayCompleter = Completer<void>();
+      readModelRepository.refreshDelay = delayCompleter.future;
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(),
+        readModelRepository: readModelRepository,
+        groupsService: _FakeHitobitoGroupsService(
+          groups: const <HitobitoGroupResource>[
+            HitobitoGroupResource(
+              id: 32,
+              name: 'Stamm Bergland',
+              isLayer: true,
+            ),
+          ],
+        ),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+
+      final syncFuture = model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: AuthSession(
+          accessToken: 'token-32',
+          receivedAt: DateTime(2026, 3, 31),
+        ),
+        profile: const AuthProfile(
+          namiId: 32,
+          primaryGroupId: 32,
+          roles: <AuthProfileRole>[
+            AuthProfileRole(
+              groupId: 32,
+              groupName: 'Stamm Bergland',
+              roleName: 'Leitung',
+              roleClass: 'Group::Stamm::Leitung',
+              permissions: <String>['layer_read'],
+            ),
+          ],
+        ),
+      );
+
+      await _waitForBackgroundWork();
+      expect(model.arbeitskontext, isNotNull);
+      expect(model.arbeitskontext?.aktiverLayer.id, 32);
+      expect(model.isLoading, isTrue);
+      expect(model.readModel, isNull);
+
+      delayCompleter.complete();
+      await syncFuture;
+
+      expect(model.isReady, isTrue);
+      expect(model.readModel, isNotNull);
+    },
+  );
+
+  test('durchlaeuft die Ladeschritte in der erwarteten Reihenfolge', () async {
+    final model = ArbeitskontextModel(
+      localRepository: _FakeArbeitskontextLocalRepository(),
+      readModelRepository: _FakeArbeitskontextReadModelRepository(
+        loadRolesResultsByLayer: <int, ArbeitskontextReadModel>{
+          33: ArbeitskontextReadModel(
+            arbeitskontext: Arbeitskontext(
+              aktiverLayer: const ArbeitskontextLayer(
+                id: 33,
+                name: 'Stamm Feldberg',
+              ),
+            ),
+            rolesSindGeladen: true,
+          ),
+        },
+      ),
+      groupsService: _FakeHitobitoGroupsService(
+        groups: const <HitobitoGroupResource>[
+          HitobitoGroupResource(id: 33, name: 'Stamm Feldberg', isLayer: true),
+        ],
+      ),
+      bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+      logger: _FakeLoggerService(),
+    );
+
+    final observedStates = <List<ArbeitskontextLoadingStepState>>[];
+    model.addListener(() {
+      observedStates.add(model.loadingSteps.map((step) => step.state).toList());
+    });
+
+    await model.syncForAuth(
+      authState: AuthState.signedIn,
+      session: AuthSession(
+        accessToken: 'token-33',
+        receivedAt: DateTime(2026, 3, 31),
+      ),
+      profile: const AuthProfile(
+        namiId: 33,
+        primaryGroupId: 33,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 33,
+            groupName: 'Stamm Feldberg',
+            roleName: 'Leitung',
+            roleClass: 'Group::Stamm::Leitung',
+            permissions: <String>['layer_read'],
+          ),
+        ],
+      ),
+    );
+    await _waitForBackgroundWork();
+
+    // Erste Benachrichtigung: nur "Login" laeuft. "Rollen" laedt erst ab der
+    // Mitglieder-Phase parallel mit (siehe refresh()) und wartet bis dahin
+    // ebenfalls, genau wie Gruppen/Mitglieder. Die letzten beiden Eintraege
+    // (Qualifikationen/Veranstaltungen) sind reine Platzhalter-Zeilen ohne
+    // eigene Lade-Logik und bleiben dauerhaft "waiting".
+    expect(observedStates.first, <ArbeitskontextLoadingStepState>[
+      ArbeitskontextLoadingStepState.loading,
+      ArbeitskontextLoadingStepState.waiting,
+      ArbeitskontextLoadingStepState.waiting,
+      ArbeitskontextLoadingStepState.waiting,
+      ArbeitskontextLoadingStepState.waiting,
+      ArbeitskontextLoadingStepState.waiting,
+    ]);
+
+    // Nach Abschluss (inkl. Rollen im Hintergrund): die vier echten Schritte
+    // sind fertig, die beiden Platzhalter-Zeilen bleiben "waiting".
+    final finalSteps = model.loadingSteps;
+    expect(
+      finalSteps.take(4).map((step) => step.state),
+      everyElement(ArbeitskontextLoadingStepState.done),
+    );
+    expect(finalSteps[4].state, ArbeitskontextLoadingStepState.waiting);
+    expect(finalSteps[5].state, ArbeitskontextLoadingStepState.waiting);
+    expect(finalSteps[1].detailCount, 1);
+    expect(finalSteps[2].detailCount, 0);
+    expect(model.isInitialSequenceActive, isFalse);
+  });
+
+  test('zeigt keinen Vollbild-Fehler, wenn der allererste Ladevorgang ueber '
+      'refreshFromRemote beim Laden der Mitglieder scheitert', () async {
+    // Viele Startup-Trigger (main.dart: _syncArbeitskontextComplete,
+    // Auth-Maintenance-Timer) fuehren den allerersten Ladevorgang der
+    // Session ueber refreshFromRemote statt initializeForProfile aus.
+    final readModelRepository = _FakeArbeitskontextReadModelRepository(
+      refreshError: Exception('Netzwerkfehler beim Laden der Mitglieder'),
+    );
+    final model = ArbeitskontextModel(
+      localRepository: _FakeArbeitskontextLocalRepository(),
+      readModelRepository: readModelRepository,
+      groupsService: _FakeHitobitoGroupsService(
+        groups: const <HitobitoGroupResource>[
+          HitobitoGroupResource(id: 40, name: 'Stamm Talblick', isLayer: true),
+        ],
+      ),
+      bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+      logger: _FakeLoggerService(),
+    );
+
+    await model.refreshFromRemote(
+      session: AuthSession(
+        accessToken: 'token-40',
+        receivedAt: DateTime(2026, 3, 31),
+      ),
+      profile: const AuthProfile(
+        namiId: 40,
+        primaryGroupId: 40,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 40,
+            groupName: 'Stamm Talblick',
+            roleName: 'Leitung',
+            roleClass: 'Group::Stamm::Leitung',
+            permissions: <String>['layer_read'],
+          ),
+        ],
+      ),
+    );
+
+    expect(model.hasError, isFalse);
+    expect(model.isReady, isTrue);
+    expect(model.arbeitskontext, isNotNull);
+    expect(model.arbeitskontext?.aktiverLayer.id, 40);
+    expect(model.errorMessage, contains('Netzwerkfehler'));
+  });
+
+  test('durchlaeuft die Ladeschritte auch, wenn refreshFromRemote der '
+      'allererste Ladevorgang der Session ist', () async {
+    final model = ArbeitskontextModel(
+      localRepository: _FakeArbeitskontextLocalRepository(),
+      readModelRepository: _FakeArbeitskontextReadModelRepository(
+        loadRolesResultsByLayer: <int, ArbeitskontextReadModel>{
+          41: ArbeitskontextReadModel(
+            arbeitskontext: Arbeitskontext(
+              aktiverLayer: const ArbeitskontextLayer(
+                id: 41,
+                name: 'Stamm Suedhang',
+              ),
+            ),
+            rolesSindGeladen: true,
+          ),
+        },
+      ),
+      groupsService: _FakeHitobitoGroupsService(
+        groups: const <HitobitoGroupResource>[
+          HitobitoGroupResource(id: 41, name: 'Stamm Suedhang', isLayer: true),
+        ],
+      ),
+      bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+      logger: _FakeLoggerService(),
+    );
+
+    expect(model.isInitialSequenceActive, isFalse);
+    final observedArbeitskontextDuringLoad = <bool>[];
+    model.addListener(
+      () => observedArbeitskontextDuringLoad.add(model.arbeitskontext != null),
+    );
+
+    final refreshFuture = model.refreshFromRemote(
+      session: AuthSession(
+        accessToken: 'token-41',
+        receivedAt: DateTime(2026, 3, 31),
+      ),
+      profile: const AuthProfile(
+        namiId: 41,
+        primaryGroupId: 41,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 41,
+            groupName: 'Stamm Suedhang',
+            roleName: 'Leitung',
+            roleClass: 'Group::Stamm::Leitung',
+            permissions: <String>['layer_read'],
+          ),
+        ],
+      ),
+    );
+
+    await refreshFuture;
+    await _waitForBackgroundWork();
+
+    // Der Kontext war schon vor Abschluss (waehrend Mitglieder noch
+    // luden) gesetzt - genau das erlaubt der Shell, sich frueh zu zeigen.
+    expect(observedArbeitskontextDuringLoad, contains(true));
+    final finalSteps = model.loadingSteps;
+    expect(
+      finalSteps.take(4).map((step) => step.state),
+      everyElement(ArbeitskontextLoadingStepState.done),
+    );
+    expect(finalSteps[4].state, ArbeitskontextLoadingStepState.waiting);
+    expect(finalSteps[5].state, ArbeitskontextLoadingStepState.waiting);
+    expect(model.isInitialSequenceActive, isFalse);
+  });
+
+  test('leert die Mitgliederliste waehrend eines laufenden Refreshs nicht, '
+      'sondern zeigt noch nicht erneut bestaetigte Mitglieder samt alter '
+      'Rollen weiter an, bis das finale Ergebnis vorliegt', () async {
+    final initialReadModel = _buildReadModel(
+      aktiverLayerId: 55,
+      aktiverLayerName: 'Stamm Talrand',
+      mitglieder: <Mitglied>[
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '1001',
+          personId: 1,
+          vorname: 'Julia',
+          nachname: 'Keller',
+        ).copyWith(
+          roles: <Role>[
+            roleFromLegacy(
+              stufe: Stufe.woelfling,
+              art: RoleCategory.mitglied,
+              start: DateTime(2021, 1, 1),
+            ),
+          ],
+        ),
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '1002',
+          personId: 2,
+          vorname: 'Max',
+          nachname: 'Muster',
+        ),
+      ],
+    ).copyWith(rolesSindGeladen: true);
+
+    final readModelRepository = _FakeArbeitskontextReadModelRepository()
+      ..progressReadModels = <ArbeitskontextReadModel>[initialReadModel];
+    final model = ArbeitskontextModel(
+      localRepository: _FakeArbeitskontextLocalRepository(),
+      readModelRepository: readModelRepository,
+      groupsService: _FakeHitobitoGroupsService(
+        groups: const <HitobitoGroupResource>[
+          HitobitoGroupResource(id: 55, name: 'Stamm Talrand', isLayer: true),
+        ],
+      ),
+      bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+      logger: _FakeLoggerService(),
+    );
+    final session = AuthSession(
+      accessToken: 'token-55',
+      receivedAt: DateTime(2026, 3, 31),
+    );
+    const profile = AuthProfile(
+      namiId: 55,
+      primaryGroupId: 55,
+      roles: <AuthProfileRole>[
+        AuthProfileRole(
+          groupId: 55,
+          groupName: 'Stamm Talrand',
+          roleName: 'Leitung',
+          roleClass: 'Group::Stamm::Leitung',
+          permissions: <String>['layer_read'],
+        ),
+      ],
+    );
+
+    await model.syncForAuth(
+      authState: AuthState.signedIn,
+      session: session,
+      profile: profile,
+    );
+    await _waitForBackgroundWork();
+    expect(
+      model.readModel?.mitglieder.map((m) => m.mitgliedsnummer).toSet(),
+      <String>{'1001', '1002'},
+    );
+
+    // Zweiter Sync (Pull-to-refresh/Debug-Tools): die Personen-Seite, die
+    // bisher eingetroffen ist, enthaelt nur noch 1001 - und zwar frisch
+    // vom Server (also ohne Rollen, die erst separat/parallel dazu
+    // geladen werden). 1002 ist in diesem Zwischenstand schlicht noch
+    // nicht wieder aufgetaucht.
+    final refreshDelayCompleter = Completer<void>();
+    readModelRepository.progressReadModels = <ArbeitskontextReadModel>[
+      _buildReadModel(
+        aktiverLayerId: 55,
+        aktiverLayerName: 'Stamm Talrand',
+        mitglieder: <Mitglied>[
+          Mitglied.peopleListItem(
+            mitgliedsnummer: '1001',
+            personId: 1,
+            vorname: 'Julia',
+            nachname: 'Keller',
+          ),
+        ],
+      ),
+    ];
+    readModelRepository.refreshDelay = refreshDelayCompleter.future;
+
+    final refreshFuture = model.refreshFromRemote(
+      session: session,
+      profile: profile,
+    );
+    await _waitForBackgroundWork();
+
+    // Waehrend des laufenden Refreshs: 1002 bleibt sichtbar (noch nicht
+    // geloescht), und 1001 behaelt seine zuvor geladene Rolle, obwohl die
+    // frische Kopie noch keine Rolle mitbringt.
+    final duringRefresh = model.readModel;
+    expect(
+      duringRefresh?.mitglieder.map((m) => m.mitgliedsnummer).toSet(),
+      <String>{'1001', '1002'},
+    );
+    expect(duringRefresh?.findeMitglied('1001')?.roles, isNotEmpty);
+    expect(duringRefresh?.rolesSindGeladen, isFalse);
+
+    refreshDelayCompleter.complete();
+    await refreshFuture;
+    await _waitForBackgroundWork();
+
+    // Nach Abschluss des Refreshs: das finale, vollstaendige Ergebnis
+    // ersetzt die Liste korrekt - 1002 ist jetzt tatsaechlich entfernt.
+    expect(
+      model.readModel?.mitglieder.map((m) => m.mitgliedsnummer).toSet(),
+      <String>{'1001'},
+    );
+  });
+
+  test(
+    'zeigt isLoadingRoles bereits waehrend des gesamten refresh()-Fensters an, '
+    'da Rollen ab sofort parallel zu Mitgliedern laden',
+    () async {
+      final readModelRepository = _FakeArbeitskontextReadModelRepository();
+      final delayCompleter = Completer<void>();
+      readModelRepository.refreshDelay = delayCompleter.future;
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(),
+        readModelRepository: readModelRepository,
+        groupsService: _FakeHitobitoGroupsService(
+          groups: const <HitobitoGroupResource>[
+            HitobitoGroupResource(
+              id: 66,
+              name: 'Stamm Sonnberg',
+              isLayer: true,
+            ),
+          ],
+        ),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+
+      final syncFuture = model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: AuthSession(
+          accessToken: 'token-66',
+          receivedAt: DateTime(2026, 3, 31),
+        ),
+        profile: const AuthProfile(
+          namiId: 66,
+          primaryGroupId: 66,
+          roles: <AuthProfileRole>[
+            AuthProfileRole(
+              groupId: 66,
+              groupName: 'Stamm Sonnberg',
+              roleName: 'Leitung',
+              roleClass: 'Group::Stamm::Leitung',
+              permissions: <String>['layer_read'],
+            ),
+          ],
+        ),
+      );
+
+      await _waitForBackgroundWork();
+      expect(model.isSynchronizing, isTrue);
+      expect(model.isLoadingRoles, isTrue);
+
+      delayCompleter.complete();
+      await syncFuture;
+      await _waitForBackgroundWork();
+
+      expect(model.isSynchronizing, isFalse);
+      expect(model.isLoadingRoles, isFalse);
+    },
+  );
+
+  test('zeigt fuer Rollen sofort "Laedt..." statt kurz den veralteten '
+      '"Fertig"-Stand, wenn ein neuer Sync startet, waehrend der letzte '
+      'Durchlauf bereits Rollen geladen hatte', () async {
+    final initialReadModel = _buildReadModel(
+      aktiverLayerId: 77,
+      aktiverLayerName: 'Stamm Bergquell',
+    ).copyWith(rolesSindGeladen: true);
+
+    final readModelRepository = _FakeArbeitskontextReadModelRepository()
+      ..progressReadModels = <ArbeitskontextReadModel>[initialReadModel];
+    final groupsService = _FakeHitobitoGroupsService(
+      groups: const <HitobitoGroupResource>[
+        HitobitoGroupResource(id: 77, name: 'Stamm Bergquell', isLayer: true),
+      ],
+    );
+    final model = ArbeitskontextModel(
+      localRepository: _FakeArbeitskontextLocalRepository(),
+      readModelRepository: readModelRepository,
+      groupsService: groupsService,
+      bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+      logger: _FakeLoggerService(),
+    );
+    final session = AuthSession(
+      accessToken: 'token-77',
+      receivedAt: DateTime(2026, 3, 31),
+    );
+    const profile = AuthProfile(
+      namiId: 77,
+      primaryGroupId: 77,
+      roles: <AuthProfileRole>[
+        AuthProfileRole(
+          groupId: 77,
+          groupName: 'Stamm Bergquell',
+          roleName: 'Leitung',
+          roleClass: 'Group::Stamm::Leitung',
+          permissions: <String>['layer_read'],
+        ),
+      ],
+    );
+
+    await model.syncForAuth(
+      authState: AuthState.signedIn,
+      session: session,
+      profile: profile,
+    );
+    await _waitForBackgroundWork();
+    expect(model.areRolesLoaded, isTrue);
+
+    // Zweiter Sync: Der Gruppen-Fetch wird zunaechst verzoegert, damit wir
+    // genau die Login-/Gruppen-Phase beobachten koennen - also bevor die
+    // Mitglieder-Phase (und damit refresh(), das Rollen parallel mitlaedt)
+    // ueberhaupt beginnt.
+    final groupsDelayCompleter = Completer<void>();
+    groupsService.fetchDelay = groupsDelayCompleter.future;
+    final refreshDelayCompleter = Completer<void>();
+    readModelRepository.refreshDelay = refreshDelayCompleter.future;
+
+    final refreshFuture = model.refreshFromRemote(
+      session: session,
+      profile: profile,
+    );
+    await _waitForBackgroundWork();
+
+    expect(model.isSynchronizing, isTrue);
+    // Waehrend Login/Gruppen noch laufen, ist fuer Rollen schlicht noch
+    // nichts gestartet - "Wartet" ist hier korrekt, nicht der veraltete
+    // "Fertig"-Stand vom letzten Durchlauf.
+    var rolesStep = model.loadingSteps[3];
+    expect(rolesStep.labelKey, 'nav_work_context_step_roles');
+    expect(rolesStep.state, ArbeitskontextLoadingStepState.waiting);
+
+    // Sobald die Mitglieder-Phase beginnt (Rollen laden jetzt parallel
+    // mit), darf "Rollen" nicht mehr auf "Fertig" zurueckfallen, sondern
+    // muss direkt "Laedt..." zeigen.
+    groupsDelayCompleter.complete();
+    await _waitForBackgroundWork();
+
+    expect(model.isSynchronizing, isTrue);
+    rolesStep = model.loadingSteps[3];
+    expect(rolesStep.state, ArbeitskontextLoadingStepState.loading);
+
+    refreshDelayCompleter.complete();
+    await refreshFuture;
+    await _waitForBackgroundWork();
+
+    expect(model.isReady, isTrue);
+  });
+
+  test(
+    'setzt den Arbeitskontext bei Sign-out wieder in den Initialzustand',
+    () async {
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: _FakeHitobitoGroupsService(
+          groups: const <HitobitoGroupResource>[
+            HitobitoGroupResource(
+              id: 11,
+              name: 'Stamm Musterdorf',
+              isLayer: true,
+            ),
+          ],
+        ),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: AuthSession(
+          accessToken: 'token-4',
+          receivedAt: DateTime(2026, 3, 31),
+        ),
+        profile: const AuthProfile(
+          namiId: 4,
+          primaryGroupId: 11,
+          roles: <AuthProfileRole>[
+            AuthProfileRole(
+              groupId: 11,
+              groupName: 'Stamm Musterdorf',
+              roleName: 'Leitung',
+              roleClass: 'Group::Stamm::Leitung',
+              permissions: <String>['layer_read'],
+            ),
+          ],
+        ),
+      );
+      await model.syncForAuth(
+        authState: AuthState.signedOut,
+        session: null,
+        profile: null,
+      );
+
+      expect(model.status, ArbeitskontextStatus.initial);
+      expect(model.arbeitskontext, isNull);
+      expect(model.readModel, isNull);
+      expect(model.errorMessage, isNull);
+    },
+  );
+
+  test(
+    'zeigt einen echten Fehlerzustand statt still auf initial zurueckzufallen, '
+    'wenn signedIn aber kein Profil verfuegbar ist (z.B. Profil-Abruf '
+    'fehlgeschlagen)',
+    () async {
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: _FakeHitobitoGroupsService(
+          groups: const <HitobitoGroupResource>[
+            HitobitoGroupResource(
+              id: 11,
+              name: 'Stamm Musterdorf',
+              isLayer: true,
+            ),
+          ],
+        ),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: AuthSession(
+          accessToken: 'token-no-profile',
+          receivedAt: DateTime(2026, 3, 31),
+        ),
+        profile: null,
+      );
+
+      expect(model.hasError, isTrue);
+      expect(model.status, isNot(ArbeitskontextStatus.initial));
+      expect(model.errorMessage, isNotNull);
+    },
+  );
+
+  test('behaelt den geladenen Arbeitskontext bei reloginRequired', () async {
+    final cached = _buildReadModel(
+      aktiverLayerId: 11,
+      aktiverLayerName: 'Stamm Musterdorf',
+      mitglieder: <Mitglied>[
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '1001',
+          personId: 1,
+          vorname: 'Julia',
+          nachname: 'Keller',
+        ),
+      ],
+    );
+    final model = ArbeitskontextModel(
+      localRepository: _FakeArbeitskontextLocalRepository(cached: cached),
+      readModelRepository: _FakeArbeitskontextReadModelRepository(),
+      groupsService: _FakeHitobitoGroupsService(),
+      bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+      logger: _FakeLoggerService(),
+    );
+
+    await model.syncForAuth(
+      authState: AuthState.signedIn,
+      session: AuthSession(
+        accessToken: 'token-relogin',
+        receivedAt: DateTime(2026, 3, 31),
+      ),
+      profile: const AuthProfile(
+        namiId: 4,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 11,
+            groupName: 'Stamm Musterdorf',
+            roleName: 'Leitung',
+            roleClass: 'Group::Stamm::Leitung',
+            permissions: <String>['layer_read'],
+          ),
+        ],
+      ),
+    );
+
+    final beforeReloginReadModel = model.readModel;
+    final beforeReloginLayer = model.arbeitskontext;
+
+    await model.syncForAuth(
+      authState: AuthState.reloginRequired,
+      session: AuthSession(
+        accessToken: 'token-relogin',
+        receivedAt: DateTime(2026, 3, 31),
+      ),
+      profile: const AuthProfile(
+        namiId: 4,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 11,
+            groupName: 'Stamm Musterdorf',
+            roleName: 'Leitung',
+            roleClass: 'Group::Stamm::Leitung',
+            permissions: <String>['layer_read'],
+          ),
+        ],
+      ),
+    );
+
+    expect(model.status, ArbeitskontextStatus.ready);
+    expect(model.readModel, same(beforeReloginReadModel));
+    expect(model.arbeitskontext, same(beforeReloginLayer));
+    expect(model.readModel?.mitglieder.single.mitgliedsnummer, '1001');
+  });
+
+  test('nutzt den Remote-Access-Wrapper beim Roles-Nachladen', () async {
+    final triggers = <String>[];
+    final cached = _buildReadModel(
+      aktiverLayerId: 42,
+      aktiverLayerName: 'Bezirk Sieg',
+      mitglieder: <Mitglied>[
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '1001',
+          personId: 1,
+          vorname: 'Julia',
+          nachname: 'Keller',
+        ),
+      ],
+    );
+    final loaded = cached.copyWith(rolesSindGeladen: true);
+    final model = ArbeitskontextModel(
+      localRepository: _FakeArbeitskontextLocalRepository(cached: cached),
+      readModelRepository: _FakeArbeitskontextReadModelRepository(
+        loadRolesResultsByLayer: <int, ArbeitskontextReadModel>{42: loaded},
+      ),
+      groupsService: _FakeHitobitoGroupsService(),
+      bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+      remoteAccessExecutor:
+          <T>({
+            required String trigger,
+            required Future<T> Function(AuthSession session) action,
+            bool forceRefresh = false,
+            bool allowMobileDataOverride = false,
+          }) async {
+            triggers.add(trigger);
+            return action(
+              AuthSession(
+                accessToken: 'wrapped-token',
+                receivedAt: DateTime(2026, 4, 14),
+              ),
+            );
+          },
+      logger: _FakeLoggerService(),
+    );
+
+    await model.syncForAuth(
+      authState: AuthState.signedIn,
+      session: AuthSession(
+        accessToken: 'token-cache-roles',
+        receivedAt: DateTime(2026, 3, 31),
+      ),
+      profile: const AuthProfile(
+        namiId: 101,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 42,
+            groupName: 'Bezirk Sieg',
+            roleName: 'Leitung',
+            roleClass: 'Group::Bezirk::Leitung',
+            permissions: <String>['layer_read'],
+          ),
+        ],
+      ),
+    );
+    await _waitForBackgroundWork();
+
+    expect(triggers, contains('arbeitskontext_load_roles'));
+  });
+
+  test('nutzt den Remote-Access-Wrapper beim Layer-Wechsel', () async {
+    final triggers = <String>[];
+    final currentReadModel = _buildReadModel(
+      aktiverLayerId: 11,
+      aktiverLayerName: 'Stamm Musterdorf',
+      verfuegbareLayer: const <ArbeitskontextLayer>[
+        ArbeitskontextLayer(id: 11, name: 'Stamm Musterdorf'),
+        ArbeitskontextLayer(id: 20, name: 'Bezirk Rhein'),
+      ],
+    );
+    final model = ArbeitskontextModel(
+      localRepository: _FakeArbeitskontextLocalRepository(
+        cached: currentReadModel,
+      ),
+      readModelRepository: _FakeArbeitskontextReadModelRepository(
+        refreshResultsByLayer: <int, ArbeitskontextReadModel>{
+          20: currentReadModel,
+        },
+      ),
+      groupsService: _FakeHitobitoGroupsService(
+        groups: const <HitobitoGroupResource>[
+          HitobitoGroupResource(
+            id: 11,
+            name: 'Stamm Musterdorf',
+            isLayer: true,
+          ),
+          HitobitoGroupResource(id: 20, name: 'Bezirk Rhein', isLayer: true),
+        ],
+      ),
+      bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+      remoteAccessExecutor:
+          <T>({
+            required String trigger,
+            required Future<T> Function(AuthSession session) action,
+            bool forceRefresh = false,
+            bool allowMobileDataOverride = false,
+          }) async {
+            triggers.add(trigger);
+            return action(
+              AuthSession(
+                accessToken: 'wrapped-token',
+                receivedAt: DateTime(2026, 4, 14),
+              ),
+            );
+          },
+      logger: _FakeLoggerService(),
+    );
+
+    await model.syncForAuth(
+      authState: AuthState.signedIn,
+      session: AuthSession(
+        accessToken: 'token-switch',
+        receivedAt: DateTime(2026, 3, 31),
+      ),
+      profile: const AuthProfile(
+        namiId: 2,
+        primaryGroupId: 20,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 20,
+            groupName: 'Bezirk Rhein',
+            roleName: 'Bezirksleitung',
+            roleClass: 'Group::Bezirk::Leitung',
+            permissions: <String>['layer_read'],
+          ),
+        ],
+      ),
+    );
+
+    await model.switchToLayer(
+      targetLayer: const ArbeitskontextLayer(id: 20, name: 'Bezirk Rhein'),
+      session: AuthSession(
+        accessToken: 'token-switch',
+        receivedAt: DateTime(2026, 3, 31),
+      ),
+      profile: const AuthProfile(
+        namiId: 2,
+        primaryGroupId: 20,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 20,
+            groupName: 'Bezirk Rhein',
+            roleName: 'Bezirksleitung',
+            roleClass: 'Group::Bezirk::Leitung',
+            permissions: <String>['layer_read'],
+          ),
+        ],
+      ),
+    );
+
+    expect(triggers, contains('arbeitskontext_switch_layer_groups'));
+    expect(triggers, contains('arbeitskontext_switch_layer_read_model'));
+  });
+
+  test(
+    'wechselt zu einem erreichbaren Layer und behaelt den neuen Kontext',
+    () async {
+      final readModelRepository = _FakeArbeitskontextReadModelRepository();
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(),
+        readModelRepository: readModelRepository,
+        groupsService: _FakeHitobitoGroupsService(
+          groups: const <HitobitoGroupResource>[
+            HitobitoGroupResource(
+              id: 11,
+              name: 'Stamm Musterdorf',
+              isLayer: true,
+            ),
+            HitobitoGroupResource(id: 20, name: 'Bezirk Rhein', isLayer: true),
+          ],
+        ),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+      final session = AuthSession(
+        accessToken: 'token-5',
+        receivedAt: DateTime(2026, 3, 31),
+      );
+      const profile = AuthProfile(
+        namiId: 5,
+        primaryGroupId: 11,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 11,
+            groupName: 'Stamm Musterdorf',
+            roleName: 'Leitung Stamm',
+            roleClass: 'Group::Stamm::Leitung',
+            permissions: <String>['layer_read'],
+          ),
+          AuthProfileRole(
+            groupId: 20,
+            groupName: 'Bezirk Rhein',
+            roleName: 'Leitung Bezirk',
+            roleClass: 'Group::Bezirk::Leitung',
+            permissions: <String>['layer_read'],
+          ),
+        ],
+      );
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: session,
+        profile: profile,
+      );
+
+      final success = await model.switchToLayer(
+        targetLayer: const ArbeitskontextLayer(id: 20, name: 'Bezirk Rhein'),
+        session: session,
+        profile: profile,
+      );
+
+      expect(success, isTrue);
+      expect(model.isSwitchingLayer, isFalse);
+      expect(model.arbeitskontext?.aktiverLayer.id, 20);
+      expect(
+        readModelRepository.lastRefreshArbeitskontext?.aktiverLayer.id,
+        20,
+      );
+    },
+  );
+
+  test(
+    'behaelt den bisherigen Kontext bei fehlgeschlagenem Layerwechsel',
+    () async {
+      final logger = _FakeLoggerService();
+      final readModelRepository = _FakeArbeitskontextReadModelRepository(
+        refreshError: StateError('offline'),
+      );
+      final cached = ArbeitskontextReadModel(
+        arbeitskontext: Arbeitskontext(
+          aktiverLayer: const ArbeitskontextLayer(
+            id: 11,
+            name: 'Stamm Musterdorf',
+          ),
+          verfuegbareLayer: const <ArbeitskontextLayer>[
+            ArbeitskontextLayer(id: 20, name: 'Bezirk Rhein'),
+          ],
+        ),
+      );
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(cached: cached),
+        readModelRepository: readModelRepository,
+        groupsService: _FakeHitobitoGroupsService(
+          groups: const <HitobitoGroupResource>[
+            HitobitoGroupResource(
+              id: 11,
+              name: 'Stamm Musterdorf',
+              isLayer: true,
+            ),
+            HitobitoGroupResource(id: 20, name: 'Bezirk Rhein', isLayer: true),
+          ],
+        ),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: logger,
+      );
+      final session = AuthSession(
+        accessToken: 'token-6',
+        receivedAt: DateTime(2026, 3, 31),
+      );
+      const profile = AuthProfile(
+        namiId: 6,
+        primaryGroupId: 11,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 11,
+            groupName: 'Stamm Musterdorf',
+            roleName: 'Leitung Stamm',
+            roleClass: 'Group::Stamm::Leitung',
+            permissions: <String>['layer_read'],
+          ),
+          AuthProfileRole(
+            groupId: 20,
+            groupName: 'Bezirk Rhein',
+            roleName: 'Leitung Bezirk',
+            roleClass: 'Group::Bezirk::Leitung',
+            permissions: <String>['layer_read'],
+          ),
+        ],
+      );
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: session,
+        profile: profile,
+      );
+
+      final success = await model.switchToLayer(
+        targetLayer: const ArbeitskontextLayer(id: 20, name: 'Bezirk Rhein'),
+        session: session,
+        profile: profile,
+      );
+
+      expect(success, isFalse);
+      expect(model.arbeitskontext?.aktiverLayer.id, 11);
+      expect(model.errorMessage, ArbeitskontextModel.layerSwitchFailedMessage);
+      expect(model.isSwitchingLayer, isFalse);
+      expect(
+        logger.messages,
+        contains(
+          contains(
+            'layer switch failure from=11 to=20 StateError: Bad state: offline',
+          ),
+        ),
+      );
+    },
+  );
+
+  test(
+    'haelt beim erfolgreichen Layerwechsel den vollstaendigen neuen Read-Model-Bestand mit Kontakten und Zuordnungen',
+    () async {
+      final readModelRepository = _FakeArbeitskontextReadModelRepository(
+        refreshResultsByLayer: <int, ArbeitskontextReadModel>{
+          11: _buildReadModel(
+            aktiverLayerId: 11,
+            aktiverLayerName: 'Stamm Musterdorf',
+            verfuegbareLayer: const <ArbeitskontextLayer>[
+              ArbeitskontextLayer(id: 20, name: 'Bezirk Rhein'),
+            ],
+            gruppen: const <ArbeitskontextGruppe>[
+              ArbeitskontextGruppe(id: 101, name: 'Woelflinge', layerId: 11),
+            ],
+            mitglieder: <Mitglied>[
+              Mitglied.peopleListItem(
+                mitgliedsnummer: '1001',
+                vorname: 'Julia',
+                nachname: 'Keller',
+                emailAdressen: const <MitgliedKontaktEmail>[
+                  MitgliedKontaktEmail(
+                    wert: 'julia@example.org',
+                    label: Mitglied.primaryEmailLabel,
+                    istPrimaer: true,
+                  ),
+                ],
+              ),
+            ],
+            mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
+              ArbeitskontextMitgliedsZuordnung(
+                mitgliedsnummer: '1001',
+                gruppenId: 101,
+                rollenTyp: 'Group::Leiter',
+                rollenLabel: 'Leitung',
+              ),
+            ],
+          ),
+          20: _buildReadModel(
+            aktiverLayerId: 20,
+            aktiverLayerName: 'Bezirk Rhein',
+            verfuegbareLayer: const <ArbeitskontextLayer>[
+              ArbeitskontextLayer(id: 11, name: 'Stamm Musterdorf'),
+            ],
+            gruppen: const <ArbeitskontextGruppe>[
+              ArbeitskontextGruppe(id: 201, name: 'Bezirksteam', layerId: 20),
+            ],
+            mitglieder: <Mitglied>[
+              Mitglied.peopleListItem(
+                mitgliedsnummer: '2001',
+                vorname: 'Mara',
+                nachname: 'Schmidt',
+                pronoun: 'dey/deren',
+                emailAdressen: const <MitgliedKontaktEmail>[
+                  MitgliedKontaktEmail(
+                    wert: 'mara@example.org',
+                    label: Mitglied.primaryEmailLabel,
+                    istPrimaer: true,
+                  ),
+                  MitgliedKontaktEmail(
+                    wert: 'familie@example.org',
+                    label: 'Familie',
+                  ),
+                ],
+                telefonnummern: const <MitgliedKontaktTelefon>[
+                  MitgliedKontaktTelefon(
+                    wert: '+49 40 9876543',
+                    label: 'Festnetz',
+                  ),
+                ],
+                adressen: const <MitgliedKontaktAdresse>[
+                  MitgliedKontaktAdresse(
+                    label: 'Post',
+                    postbox: 'PF 12',
+                    zipCode: '50669',
+                    town: 'Koeln',
+                    country: 'DE',
+                  ),
+                ],
+              ),
+            ],
+            mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
+              ArbeitskontextMitgliedsZuordnung(
+                mitgliedsnummer: '2001',
+                gruppenId: 201,
+                rollenTyp: 'Group::Bezirk::Vorstand',
+                rollenLabel: 'Vorstand',
+              ),
+            ],
+          ),
+        },
+      );
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(),
+        readModelRepository: readModelRepository,
+        groupsService: _FakeHitobitoGroupsService(
+          groups: const <HitobitoGroupResource>[
+            HitobitoGroupResource(
+              id: 11,
+              name: 'Stamm Musterdorf',
+              isLayer: true,
+            ),
+            HitobitoGroupResource(id: 20, name: 'Bezirk Rhein', isLayer: true),
+          ],
+        ),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+      final session = AuthSession(
+        accessToken: 'token-7',
+        receivedAt: DateTime(2026, 3, 31),
+      );
+      const profile = AuthProfile(
+        namiId: 7,
+        primaryGroupId: 11,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 11,
+            groupName: 'Stamm Musterdorf',
+            roleName: 'Leitung Stamm',
+            roleClass: 'Group::Stamm::Leitung',
+            permissions: <String>['layer_read'],
+          ),
+          AuthProfileRole(
+            groupId: 20,
+            groupName: 'Bezirk Rhein',
+            roleName: 'Leitung Bezirk',
+            roleClass: 'Group::Bezirk::Leitung',
+            permissions: <String>['layer_read'],
+          ),
+        ],
+      );
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: session,
+        profile: profile,
+      );
+
+      final success = await model.switchToLayer(
+        targetLayer: const ArbeitskontextLayer(id: 20, name: 'Bezirk Rhein'),
+        session: session,
+        profile: profile,
+      );
+
+      expect(success, isTrue);
+      expect(model.arbeitskontext?.aktiverLayer.id, 20);
+      expect(model.readModel?.findeMitglied('1001'), isNull);
+      expect(model.readModel?.findeMitglied('2001')?.pronoun, 'dey/deren');
+      expect(
+        model.readModel?.findeMitglied('2001')?.emailAdressen,
+        const <MitgliedKontaktEmail>[
+          MitgliedKontaktEmail(
+            wert: 'mara@example.org',
+            label: Mitglied.primaryEmailLabel,
+            istPrimaer: true,
+          ),
+          MitgliedKontaktEmail(wert: 'familie@example.org', label: 'Familie'),
+        ],
+      );
+      expect(
+        model.readModel?.findeMitglied('2001')?.telefonnummern,
+        const <MitgliedKontaktTelefon>[
+          MitgliedKontaktTelefon(wert: '+49 40 9876543', label: 'Festnetz'),
+        ],
+      );
+      expect(
+        model.readModel?.findeMitglied('2001')?.adressen,
+        const <MitgliedKontaktAdresse>[
+          MitgliedKontaktAdresse(
+            label: 'Post',
+            postbox: 'PF 12',
+            zipCode: '50669',
+            town: 'Koeln',
+            country: 'DE',
+          ),
+        ],
+      );
+      expect(model.readModel?.gruppen, const <ArbeitskontextGruppe>[
+        ArbeitskontextGruppe(id: 201, name: 'Bezirksteam', layerId: 20),
+      ]);
+      expect(
+        model.readModel?.mitgliedsZuordnungen,
+        const <ArbeitskontextMitgliedsZuordnung>[
+          ArbeitskontextMitgliedsZuordnung(
+            mitgliedsnummer: '2001',
+            gruppenId: 201,
+            rollenTyp: 'Group::Bezirk::Vorstand',
+            rollenLabel: 'Vorstand',
+          ),
+        ],
+      );
+    },
+  );
+
+  test(
+    'group_and_below_read macht genau den zugehoerigen Layer relevant',
+    () async {
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: _FakeHitobitoGroupsService(
+          groups: const <HitobitoGroupResource>[
+            HitobitoGroupResource(id: 10, name: 'Bezirk Rhein', isLayer: true),
+            HitobitoGroupResource(
+              id: 11,
+              name: 'Stamm Musterdorf',
+              isLayer: true,
+              parentId: 10,
+              layerGroupId: 11,
+            ),
+            HitobitoGroupResource(
+              id: 101,
+              name: 'Vorstand',
+              isLayer: false,
+              parentId: 10,
+              layerGroupId: 10,
+            ),
+          ],
+        ),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: AuthSession(
+          accessToken: 'token-7',
+          receivedAt: DateTime(2026, 3, 31),
+        ),
+        profile: const AuthProfile(
+          namiId: 7,
+          primaryGroupId: 101,
+          roles: <AuthProfileRole>[
+            AuthProfileRole(
+              groupId: 101,
+              groupName: 'Vorstand',
+              roleName: 'Vorsitz',
+              roleClass: 'Group::Bezirk::Vorstand',
+              permissions: <String>['group_and_below_read'],
+            ),
+          ],
+        ),
+      );
+
+      expect(model.isReady, isTrue);
+      expect(model.arbeitskontext?.aktiverLayer.id, 10);
+      expect(model.arbeitskontext?.verfuegbareLayer, isEmpty);
+    },
+  );
+
+  test(
+    'laedt Roles nach Kontextaufbau automatisch im Hintergrund nach',
+    () async {
+      final initialReadModel = _buildReadModel(
+        aktiverLayerId: 11,
+        aktiverLayerName: 'Stamm Musterdorf',
+        gruppen: const <ArbeitskontextGruppe>[
+          ArbeitskontextGruppe(id: 101, name: 'Woelflinge', layerId: 11),
+        ],
+        mitglieder: <Mitglied>[
+          Mitglied.peopleListItem(
+            mitgliedsnummer: '1001',
+            personId: 1,
+            vorname: 'Julia',
+            nachname: 'Keller',
+          ),
+        ],
+      );
+      final loadedReadModel = initialReadModel.copyWith(
+        rolesSindGeladen: true,
+        mitglieder: <Mitglied>[
+          Mitglied.peopleListItem(
+            mitgliedsnummer: '1001',
+            personId: 1,
+            vorname: 'Julia',
+            nachname: 'Keller',
+          ).copyWith(
+            roles: <Role>[
+              roleFromLegacy(
+                stufe: Stufe.woelfling,
+                art: RoleCategory.mitglied,
+                start: DateTime(2021, 1, 1),
+                ende: DateTime(2022, 1, 1),
+              ),
+            ],
+          ),
+        ],
+      );
+      final readModelRepository = _FakeArbeitskontextReadModelRepository(
+        refreshResultsByLayer: <int, ArbeitskontextReadModel>{
+          11: initialReadModel,
+        },
+        loadRolesResult: loadedReadModel,
+      );
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(),
+        readModelRepository: readModelRepository,
+        groupsService: _FakeHitobitoGroupsService(
+          groups: const <HitobitoGroupResource>[
+            HitobitoGroupResource(
+              id: 11,
+              name: 'Stamm Musterdorf',
+              isLayer: true,
+            ),
+          ],
+        ),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+      final session = AuthSession(
+        accessToken: 'token-8',
+        receivedAt: DateTime(2026, 3, 31),
+      );
+      const profile = AuthProfile(
+        namiId: 8,
+        primaryGroupId: 11,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 11,
+            groupName: 'Stamm Musterdorf',
+            roleName: 'Leitung Stamm',
+            roleClass: 'Group::Stamm::Leitung',
+            permissions: <String>['layer_read'],
+          ),
+        ],
+      );
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: session,
+        profile: profile,
+      );
+      await _waitForBackgroundWork();
+
+      expect(model.areRolesLoaded, isTrue);
+      expect(readModelRepository.lastLoadRolesReadModel, isNotNull);
+      expect(readModelRepository.loadRolesCallCount, 1);
+      expect(model.readModel?.findeMitglied('1001')?.roles, <Role>[
+        roleFromLegacy(
+          stufe: Stufe.woelfling,
+          art: RoleCategory.mitglied,
+          start: DateTime(2021, 1, 1),
+          ende: DateTime(2022, 1, 1),
+        ),
+      ]);
+    },
+  );
+
+  test(
+    'behaelt den aktuellen Kontext wenn das automatische Nachladen der Roles fehlschlaegt',
+    () async {
+      final initialReadModel = _buildReadModel(
+        aktiverLayerId: 11,
+        aktiverLayerName: 'Stamm Musterdorf',
+        mitglieder: <Mitglied>[
+          Mitglied.peopleListItem(
+            mitgliedsnummer: '1001',
+            personId: 1,
+            vorname: 'Julia',
+            nachname: 'Keller',
+          ),
+        ],
+      );
+      final readModelRepository = _FakeArbeitskontextReadModelRepository(
+        refreshResultsByLayer: <int, ArbeitskontextReadModel>{
+          11: initialReadModel,
+        },
+        loadRolesError: StateError('roles offline'),
+      );
+      final logger = _FakeLoggerService();
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(),
+        readModelRepository: readModelRepository,
+        groupsService: _FakeHitobitoGroupsService(
+          groups: const <HitobitoGroupResource>[
+            HitobitoGroupResource(
+              id: 11,
+              name: 'Stamm Musterdorf',
+              isLayer: true,
+            ),
+          ],
+        ),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: logger,
+      );
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: AuthSession(
+          accessToken: 'token-9',
+          receivedAt: DateTime(2026, 3, 31),
+        ),
+        profile: const AuthProfile(
+          namiId: 9,
+          primaryGroupId: 11,
+          roles: <AuthProfileRole>[
+            AuthProfileRole(
+              groupId: 11,
+              groupName: 'Stamm Musterdorf',
+              roleName: 'Leitung Stamm',
+              roleClass: 'Group::Stamm::Leitung',
+              permissions: <String>['layer_read'],
+            ),
+          ],
+        ),
+      );
+      final readModelBefore = model.readModel;
+      await _waitForBackgroundWork();
+
+      expect(model.areRolesLoaded, isFalse);
+      expect(model.readModel, same(readModelBefore));
+      expect(model.errorMessage, isNull);
+      expect(readModelRepository.loadRolesCallCount, 1);
+      expect(
+        logger.messages,
+        contains(
+          contains('Roles-Nachladen fehlgeschlagen: Bad state: roles offline'),
+        ),
+      );
+    },
+  );
+
+  test(
+    'laedt Roles nach Refresh automatisch erneut im Hintergrund nach',
+    () async {
+      final initialReadModel = _buildReadModel(
+        aktiverLayerId: 11,
+        aktiverLayerName: 'Stamm Musterdorf',
+        mitglieder: <Mitglied>[
+          Mitglied.peopleListItem(
+            mitgliedsnummer: '1001',
+            personId: 1,
+            vorname: 'Julia',
+            nachname: 'Keller',
+          ),
+        ],
+      );
+      final loadedReadModel = initialReadModel.copyWith(
+        rolesSindGeladen: true,
+        mitglieder: <Mitglied>[
+          Mitglied.peopleListItem(
+            mitgliedsnummer: '1001',
+            personId: 1,
+            vorname: 'Julia',
+            nachname: 'Keller',
+          ).copyWith(
+            roles: <Role>[
+              roleFromLegacy(
+                stufe: Stufe.woelfling,
+                art: RoleCategory.mitglied,
+                start: DateTime(2021, 1, 1),
+              ),
+            ],
+          ),
+        ],
+      );
+      final readModelRepository = _FakeArbeitskontextReadModelRepository(
+        refreshResultsByLayer: <int, ArbeitskontextReadModel>{
+          11: initialReadModel,
+        },
+        loadRolesResultsByLayer: <int, ArbeitskontextReadModel>{
+          11: loadedReadModel,
+        },
+      );
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(),
+        readModelRepository: readModelRepository,
+        groupsService: _FakeHitobitoGroupsService(
+          groups: const <HitobitoGroupResource>[
+            HitobitoGroupResource(
+              id: 11,
+              name: 'Stamm Musterdorf',
+              isLayer: true,
+            ),
+          ],
+        ),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+      final session = AuthSession(
+        accessToken: 'token-refresh-roles',
+        receivedAt: DateTime(2026, 3, 31),
+      );
+      const profile = AuthProfile(
+        namiId: 102,
+        primaryGroupId: 11,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 11,
+            groupName: 'Stamm Musterdorf',
+            roleName: 'Leitung Stamm',
+            roleClass: 'Group::Stamm::Leitung',
+            permissions: <String>['layer_read'],
+          ),
+        ],
+      );
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: session,
+        profile: profile,
+      );
+      await _waitForBackgroundWork();
+      expect(readModelRepository.loadRolesCallCount, 1);
+
+      await model.refreshFromRemote(session: session, profile: profile);
+      await _waitForBackgroundWork();
+
+      expect(readModelRepository.loadRolesCallCount, 2);
+      expect(model.areRolesLoaded, isTrue);
+    },
+  );
+
+  test(
+    'laedt Roles nach Layerwechsel automatisch fuer den neuen Layer nach',
+    () async {
+      final readModelRepository = _FakeArbeitskontextReadModelRepository(
+        refreshResultsByLayer: <int, ArbeitskontextReadModel>{
+          11: _buildReadModel(
+            aktiverLayerId: 11,
+            aktiverLayerName: 'Stamm Musterdorf',
+            verfuegbareLayer: const <ArbeitskontextLayer>[
+              ArbeitskontextLayer(id: 20, name: 'Bezirk Rhein'),
+            ],
+            mitglieder: <Mitglied>[
+              Mitglied.peopleListItem(
+                mitgliedsnummer: '1001',
+                personId: 1,
+                vorname: 'Julia',
+                nachname: 'Keller',
+              ),
+            ],
+          ),
+          20: _buildReadModel(
+            aktiverLayerId: 20,
+            aktiverLayerName: 'Bezirk Rhein',
+            verfuegbareLayer: const <ArbeitskontextLayer>[
+              ArbeitskontextLayer(id: 11, name: 'Stamm Musterdorf'),
+            ],
+            mitglieder: <Mitglied>[
+              Mitglied.peopleListItem(
+                mitgliedsnummer: '2001',
+                personId: 2,
+                vorname: 'Mara',
+                nachname: 'Schmidt',
+              ),
+            ],
+          ),
+        },
+        loadRolesResultsByLayer: <int, ArbeitskontextReadModel>{
+          11: _buildReadModel(
+            aktiverLayerId: 11,
+            aktiverLayerName: 'Stamm Musterdorf',
+            mitglieder: <Mitglied>[
+              Mitglied.peopleListItem(
+                mitgliedsnummer: '1001',
+                personId: 1,
+                vorname: 'Julia',
+                nachname: 'Keller',
+              ).copyWith(
+                roles: <Role>[
+                  roleFromLegacy(
+                    stufe: Stufe.woelfling,
+                    art: RoleCategory.mitglied,
+                    start: DateTime(2021, 1, 1),
+                  ),
+                ],
+              ),
+            ],
+          ).copyWith(rolesSindGeladen: true),
+          20: _buildReadModel(
+            aktiverLayerId: 20,
+            aktiverLayerName: 'Bezirk Rhein',
+            mitglieder: <Mitglied>[
+              Mitglied.peopleListItem(
+                mitgliedsnummer: '2001',
+                personId: 2,
+                vorname: 'Mara',
+                nachname: 'Schmidt',
+              ).copyWith(
+                roles: <Role>[
+                  roleFromLegacy(
+                    stufe: Stufe.leitung,
+                    art: RoleCategory.leitung,
+                    start: DateTime(2022, 1, 1),
+                  ),
+                ],
+              ),
+            ],
+          ).copyWith(rolesSindGeladen: true),
+        },
+      );
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(),
+        readModelRepository: readModelRepository,
+        groupsService: _FakeHitobitoGroupsService(
+          groups: const <HitobitoGroupResource>[
+            HitobitoGroupResource(
+              id: 11,
+              name: 'Stamm Musterdorf',
+              isLayer: true,
+            ),
+            HitobitoGroupResource(id: 20, name: 'Bezirk Rhein', isLayer: true),
+          ],
+        ),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+      final session = AuthSession(
+        accessToken: 'token-switch-roles',
+        receivedAt: DateTime(2026, 3, 31),
+      );
+      const profile = AuthProfile(
+        namiId: 103,
+        primaryGroupId: 11,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 11,
+            groupName: 'Stamm Musterdorf',
+            roleName: 'Leitung Stamm',
+            roleClass: 'Group::Stamm::Leitung',
+            permissions: <String>['layer_read'],
+          ),
+          AuthProfileRole(
+            groupId: 20,
+            groupName: 'Bezirk Rhein',
+            roleName: 'Leitung Bezirk',
+            roleClass: 'Group::Bezirk::Leitung',
+            permissions: <String>['layer_read'],
+          ),
+        ],
+      );
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: session,
+        profile: profile,
+      );
+      await _waitForBackgroundWork();
+
+      final success = await model.switchToLayer(
+        targetLayer: const ArbeitskontextLayer(id: 20, name: 'Bezirk Rhein'),
+        session: session,
+        profile: profile,
+      );
+      await _waitForBackgroundWork();
+
+      expect(success, isTrue);
+      expect(readModelRepository.loadRolesCallCount, 2);
+      expect(
+        readModelRepository
+            .lastLoadRolesReadModel
+            ?.arbeitskontext
+            .aktiverLayer
+            .id,
+        20,
+      );
+      expect(model.areRolesLoaded, isTrue);
+      expect(model.readModel?.findeMitglied('2001')?.roles, <Role>[
+        roleFromLegacy(
+          stufe: Stufe.leitung,
+          art: RoleCategory.leitung,
+          start: DateTime(2022, 1, 1),
+        ),
+      ]);
+    },
+  );
+
+  test(
+    'markiert ein Mitglied bei group_and_below_full in passender Gruppenhierarchie als schreibbar',
+    () async {
+      final mitglied = Mitglied.peopleListItem(
+        mitgliedsnummer: '4711',
+        personId: 23,
+        primaryGroupId: 111,
+        vorname: 'Julia',
+        nachname: 'Keller',
+      );
+      final cached = _buildReadModel(
+        aktiverLayerId: 11,
+        aktiverLayerName: 'Stamm Musterdorf',
+        gruppen: const <ArbeitskontextGruppe>[
+          ArbeitskontextGruppe(id: 100, name: 'Meute', layerId: 11),
+          ArbeitskontextGruppe(
+            id: 111,
+            name: 'Woelflinge 1',
+            layerId: 11,
+            parentId: 100,
+          ),
+        ],
+        mitglieder: <Mitglied>[mitglied],
+      );
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(cached: cached),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: _FakeHitobitoGroupsService(),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: AuthSession(
+          accessToken: 'token-write',
+          receivedAt: DateTime(2026, 4, 14),
+        ),
+        profile: const AuthProfile(
+          namiId: 4711,
+          roles: <AuthProfileRole>[
+            AuthProfileRole(
+              groupId: 100,
+              groupName: 'Meute',
+              roleName: 'Leitung',
+              roleClass: 'Group::Woelfe::Leitung',
+              permissions: <String>['group_and_below_full'],
+            ),
+          ],
+        ),
+      );
+
+      expect(model.istMitgliedSchreibbar(mitglied), isTrue);
+    },
+  );
+
+  test(
+    'markiert ein Mitglied bei layer_full auf einer Gruppe im aktiven Layer als schreibbar',
+    () async {
+      final mitglied = Mitglied.peopleListItem(
+        mitgliedsnummer: '4713',
+        personId: 25,
+        primaryGroupId: 111,
+        vorname: 'Lena',
+        nachname: 'Becker',
+      );
+      final cached = _buildReadModel(
+        aktiverLayerId: 11,
+        aktiverLayerName: 'Stamm Musterdorf',
+        gruppen: const <ArbeitskontextGruppe>[
+          ArbeitskontextGruppe(id: 100, name: 'Meute', layerId: 11),
+          ArbeitskontextGruppe(
+            id: 111,
+            name: 'Woelflinge 1',
+            layerId: 11,
+            parentId: 100,
+          ),
+        ],
+        mitglieder: <Mitglied>[mitglied],
+      );
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(cached: cached),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: _FakeHitobitoGroupsService(),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: AuthSession(
+          accessToken: 'token-layer-full-group',
+          receivedAt: DateTime(2026, 4, 14),
+        ),
+        profile: const AuthProfile(
+          namiId: 4713,
+          roles: <AuthProfileRole>[
+            AuthProfileRole(
+              groupId: 100,
+              groupName: 'Meute',
+              roleName: 'Leitung',
+              roleClass: 'Group::Woelfe::Leitung',
+              permissions: <String>['layer_full'],
+            ),
+          ],
+        ),
+      );
+
+      expect(model.istMitgliedSchreibbar(mitglied), isTrue);
+    },
+  );
+
+  test(
+    'markiert ein direkt dem Layer zugeordnetes Mitglied bei layer_full als schreibbar',
+    () async {
+      final mitglied = Mitglied.peopleListItem(
+        mitgliedsnummer: '4714',
+        personId: 26,
+        vorname: 'Paul',
+        nachname: 'Schneider',
+      );
+      final cached = _buildReadModel(
+        aktiverLayerId: 11,
+        aktiverLayerName: 'Stamm Musterdorf',
+        gruppen: const <ArbeitskontextGruppe>[
+          ArbeitskontextGruppe(id: 100, name: 'Meute', layerId: 11),
+        ],
+        mitglieder: <Mitglied>[mitglied],
+      );
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(cached: cached),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: _FakeHitobitoGroupsService(),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: AuthSession(
+          accessToken: 'token-layer-full-direct',
+          receivedAt: DateTime(2026, 4, 14),
+        ),
+        profile: const AuthProfile(
+          namiId: 4714,
+          roles: <AuthProfileRole>[
+            AuthProfileRole(
+              groupId: 100,
+              groupName: 'Meute',
+              roleName: 'Leitung',
+              roleClass: 'Group::Woelfe::Leitung',
+              permissions: <String>['layer_full'],
+            ),
+          ],
+        ),
+      );
+
+      expect(model.istMitgliedSchreibbar(mitglied), isTrue);
+    },
+  );
+
+  test(
+    'markiert ein Mitglied bei reinen Read-Rechten nicht als schreibbar',
+    () async {
+      final mitglied = Mitglied.peopleListItem(
+        mitgliedsnummer: '4712',
+        personId: 24,
+        primaryGroupId: 111,
+        vorname: 'Max',
+        nachname: 'Mustermann',
+      );
+      final cached = _buildReadModel(
+        aktiverLayerId: 11,
+        aktiverLayerName: 'Stamm Musterdorf',
+        gruppen: const <ArbeitskontextGruppe>[
+          ArbeitskontextGruppe(id: 100, name: 'Meute', layerId: 11),
+          ArbeitskontextGruppe(
+            id: 111,
+            name: 'Woelflinge 1',
+            layerId: 11,
+            parentId: 100,
+          ),
+        ],
+        mitglieder: <Mitglied>[mitglied],
+      );
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(cached: cached),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: _FakeHitobitoGroupsService(),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: AuthSession(
+          accessToken: 'token-read-only',
+          receivedAt: DateTime(2026, 4, 14),
+        ),
+        profile: const AuthProfile(
+          namiId: 4712,
+          roles: <AuthProfileRole>[
+            AuthProfileRole(
+              groupId: 100,
+              groupName: 'Meute',
+              roleName: 'Leitung',
+              roleClass: 'Group::Woelfe::Leitung',
+              permissions: <String>['group_and_below_read'],
+            ),
+            AuthProfileRole(
+              groupId: 11,
+              groupName: 'Stamm Musterdorf',
+              roleName: 'Leserechte',
+              roleClass: 'Group::Stamm::Lesen',
+              permissions: <String>['layer_read'],
+            ),
+          ],
+        ),
+      );
+
+      expect(model.istMitgliedSchreibbar(mitglied), isFalse);
+    },
+  );
+}
+
+class _FakeArbeitskontextLocalRepository
+    implements ArbeitskontextLocalRepository {
+  _FakeArbeitskontextLocalRepository({this.cached});
+
+  final ArbeitskontextReadModel? cached;
+
+  @override
+  Future<void> clearCached() async {}
+
+  @override
+  Future<ArbeitskontextReadModel?> loadLastCached() async => cached;
+
+  @override
+  Future<void> saveCached(ArbeitskontextReadModel readModel) async {}
+}
+
+class _FakeArbeitskontextReadModelRepository
+    implements ArbeitskontextReadModelRepository {
+  _FakeArbeitskontextReadModelRepository({
+    this.refreshError,
+    this.loadRolesResult,
+    this.loadRolesError,
+    Map<int, ArbeitskontextReadModel> loadRolesResultsByLayer =
+        const <int, ArbeitskontextReadModel>{},
+    Map<int, ArbeitskontextReadModel> refreshResultsByLayer =
+        const <int, ArbeitskontextReadModel>{},
+  }) : _loadRolesResultsByLayer = loadRolesResultsByLayer,
+       _refreshResultsByLayer = refreshResultsByLayer;
+
+  final Object? refreshError;
+  final ArbeitskontextReadModel? loadRolesResult;
+  final Object? loadRolesError;
+  final Map<int, ArbeitskontextReadModel> _loadRolesResultsByLayer;
+  final Map<int, ArbeitskontextReadModel> _refreshResultsByLayer;
+  Arbeitskontext? lastRefreshArbeitskontext;
+  ArbeitskontextReadModel? lastLoadRolesReadModel;
+  int loadRolesCallCount = 0;
+  int refreshCallCount = 0;
+  // Ueberschreibt refreshError ab dem naechsten Aufruf, ohne einen neuen Fake
+  // konstruieren zu muessen - nuetzlich, um "erster Versuch erfolgreich,
+  // zweiter Versuch schlaegt fehl" zu simulieren.
+  Object? refreshErrorOverride;
+  // Verzoegert refresh() bis dieser Future abgeschlossen ist - nuetzlich, um
+  // zu pruefen, was das Model waehrend eines noch laufenden refresh() bereits
+  // anzeigt.
+  Future<void>? refreshDelay;
+  // Simuliert paginiertes Nachladen: jeder Eintrag wird nacheinander per
+  // onProgress gemeldet (mit optionalem Delay davor), bevor refresh() mit dem
+  // finalen Ergebnis zurueckkehrt.
+  List<ArbeitskontextReadModel> progressReadModels =
+      const <ArbeitskontextReadModel>[];
+  Future<void>? progressDelay;
+
+  @override
+  Future<ArbeitskontextReadModel> loadRoles({
+    required String accessToken,
+    required ArbeitskontextReadModel readModel,
+  }) async {
+    loadRolesCallCount += 1;
+    lastLoadRolesReadModel = readModel;
+    if (loadRolesError != null) {
+      throw loadRolesError!;
+    }
+    final configured =
+        _loadRolesResultsByLayer[readModel.arbeitskontext.aktiverLayer.id];
+    if (configured != null) {
+      return configured.copyWith(arbeitskontext: readModel.arbeitskontext);
+    }
+    return loadRolesResult ?? readModel;
+  }
+
+  @override
+  Future<ArbeitskontextReadModel> loadCached(
+    Arbeitskontext arbeitskontext,
+  ) async {
+    return ArbeitskontextReadModel(arbeitskontext: arbeitskontext);
+  }
+
+  @override
+  Future<ArbeitskontextReadModel> refresh({
+    required String accessToken,
+    required Arbeitskontext arbeitskontext,
+    List<HitobitoGroupResource>? accessibleGroups,
+    void Function(ArbeitskontextReadModel partial)? onProgress,
+  }) async {
+    refreshCallCount += 1;
+    lastRefreshArbeitskontext = arbeitskontext;
+    for (final partial in progressReadModels) {
+      final delay = progressDelay;
+      if (delay != null) {
+        await delay;
+      }
+      onProgress?.call(partial);
+    }
+    final delay = refreshDelay;
+    if (delay != null) {
+      await delay;
+    }
+    final error = refreshErrorOverride ?? refreshError;
+    if (error != null) {
+      throw error;
+    }
+    final configured = _refreshResultsByLayer[arbeitskontext.aktiverLayer.id];
+    if (configured != null) {
+      return configured.copyWith(arbeitskontext: arbeitskontext);
+    }
+    if (progressReadModels.isNotEmpty) {
+      return progressReadModels.last;
+    }
+    return ArbeitskontextReadModel(arbeitskontext: arbeitskontext);
+  }
+}
+
+ArbeitskontextReadModel _buildReadModel({
+  required int aktiverLayerId,
+  required String aktiverLayerName,
+  List<ArbeitskontextLayer> verfuegbareLayer = const <ArbeitskontextLayer>[],
+  List<ArbeitskontextGruppe> gruppen = const <ArbeitskontextGruppe>[],
+  List<Mitglied> mitglieder = const <Mitglied>[],
+  List<ArbeitskontextMitgliedsZuordnung> mitgliedsZuordnungen =
+      const <ArbeitskontextMitgliedsZuordnung>[],
+}) {
+  return ArbeitskontextReadModel(
+    arbeitskontext: Arbeitskontext(
+      aktiverLayer: ArbeitskontextLayer(
+        id: aktiverLayerId,
+        name: aktiverLayerName,
+      ),
+      verfuegbareLayer: verfuegbareLayer,
+    ),
+    gruppen: gruppen,
+    mitglieder: mitglieder,
+    mitgliedsZuordnungen: mitgliedsZuordnungen,
+  );
+}
+
+class _FakeHitobitoGroupsService extends HitobitoGroupsService {
+  _FakeHitobitoGroupsService({
+    List<HitobitoGroupResource> groups = const <HitobitoGroupResource>[],
+  }) : _groups = groups,
+       super(
+         config: const HitobitoAuthConfig(
+           clientId: 'client',
+           clientSecret: 'secret',
+           authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
+           tokenUrl: 'https://demo.hitobito.com/oauth/token',
+           redirectUri: 'de.jlange.nami.app:/oauth/callback',
+           scopeString: 'openid email',
+           discoveryUrl: '',
+           profileUrl: 'https://demo.hitobito.com/oauth/profile',
+         ),
+       );
+
+  final List<HitobitoGroupResource> _groups;
+  // Wird ab dem naechsten Aufruf geworfen, wenn gesetzt - simuliert einen
+  // fehlschlagenden Folgeversuch nach einem zuvor erfolgreichen Ladevorgang.
+  Object? fetchErrorOverride;
+  int fetchCallCount = 0;
+  // Verzoegert fetchAccessibleGroups bis dieser Future abgeschlossen ist -
+  // nuetzlich, um zu pruefen, was das Model waehrend der Login-/Gruppen-
+  // Phase (also VOR dem Laden der Mitglieder/Rollen) bereits anzeigt.
+  Future<void>? fetchDelay;
+
+  @override
+  Future<List<HitobitoGroupResource>> fetchAccessibleGroups(
+    String accessToken,
+  ) async {
+    fetchCallCount += 1;
+    final delay = fetchDelay;
+    if (delay != null) {
+      await delay;
+    }
+    final error = fetchErrorOverride;
+    if (error != null) {
+      throw error;
+    }
+    return _groups;
+  }
+}
+
+class _FakeLoggerService extends LoggerService {
+  _FakeLoggerService()
+    : super(
+        settingsRepository: _FakeAppSettingsRepository(),
+        navigatorKey: GlobalKey<NavigatorState>(),
+      );
+
+  final List<String> messages = <String>[];
+
+  @override
+  Future<void> log(String service, String message) async {
+    messages.add(message);
+  }
+
+  @override
+  Future<void> logInfo(String service, String message) async {
+    messages.add(message);
+  }
+
+  @override
+  Future<void> logWarn(String service, String message) async {
+    messages.add(message);
+  }
+
+  @override
+  Future<void> logError(
+    String service,
+    String message, {
+    Object? error,
+    StackTrace? stackTrace,
+  }) async {
+    final suffix = error == null ? '' : ' ${error.runtimeType}: $error';
+    messages.add('$message$suffix');
+  }
+}
+
+Future<void> _waitForBackgroundWork() async {
+  await Future<void>.delayed(Duration.zero);
+  await Future<void>.delayed(Duration.zero);
+}
+
+class _FakeAppSettingsRepository extends AppSettingsRepository {
+  @override
+  Future<AppSettings> load() async => const AppSettings(
+    themeMode: ThemeMode.system,
+    languageCode: 'de',
+    analyticsEnabled: false,
+  );
+
+  @override
+  Future<void> saveAnalyticsEnabled(bool enabled) async {}
+
+  @override
+  Future<void> saveBiometricLockEnabled(bool enabled) async {}
+
+  @override
+  Future<void> saveGeburstagsbenachrichtigungStufen(Set<Stufe> stufen) async {}
+
+  @override
+  Future<void> saveLanguageCode(String code) async {}
+
+  @override
+  Future<void> saveNotificationsEnabled(bool enabled) async {}
+
+  @override
+  Future<void> saveMemberListSearchResultHighlightEnabled(bool enabled) async {}
+
+  @override
+  Future<void> saveThemeMode(ThemeMode mode) async {}
+}

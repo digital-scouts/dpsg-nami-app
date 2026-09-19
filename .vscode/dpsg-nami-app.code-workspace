@@ -1,0 +1,23 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		}
+	],
+	"settings": {
+		"dart.enableSdkFormatter": true,
+		"chat.tools.terminal.autoApprove": {
+			"/^flutter analyze$/": {
+				"approve": true,
+				"matchCommandLine": true
+			},
+			"/^flutter test$/": {
+				"approve": true,
+				"matchCommandLine": true
+			},
+			"pushd": true,
+			"npm run typecheck": true,
+			"flutter": true
+		}
+	}
+}

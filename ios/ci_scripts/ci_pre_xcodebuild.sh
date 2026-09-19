@@ -1,40 +1,42 @@
 #!/bin/sh
 
+set -eu
+
 echo "Stage: PRE-Xcode Build is activated .... "
 
-# Überprüfen, ob die Umgebungsvariablen gesetzt sind
-if [ -z "$WIREDASH_SECRET" ]; then
-    echo "Fehler: WIREDASH_SECRET ist nicht gesetzt."
-    exit 1
-fi
-if [ -z "$WIREDASH_PROJECT_ID" ]; then
-    echo "Fehler: WIREDASH_PROJECT_ID ist nicht gesetzt."
-    exit 1
-fi
-if [ -z "$GEOAPIFY_KEY" ]; then
-    echo "Fehler: GEOAPIFY_KEY ist nicht gesetzt."
-    exit 1
-fi
-if [ -z "$OPEN_AI_KEY" ]; then
-    echo "Fehler: OPEN_AI_KEY ist nicht gesetzt."
-    exit 1
-fi
+require_env() {
+    key="$1"
+    value="$(printenv "$key" || true)"
+    if [ -z "$value" ]; then
+        echo "Fehler: $key ist nicht gesetzt."
+        exit 1
+    fi
+}
 
-# Überprüfen, ob die .env-Datei existiert
-cd $CI_PRIMARY_REPOSITORY_PATH || exit 1
-if [ ! -f .env ]; then
-   exit 1
-fi
+write_env() {
+    key="$1"
+    value="$(printenv "$key" || true)"
+    printf '%s=%s\n' "$key" "$value" >> .env
+}
 
-# Schreiben der Umgebungsvariablen in die .env-Datei
-echo "WIREDASH_SECRET=$WIREDASH_SECRET" > .env
-echo "WIREDASH_PROJECT_ID=$WIREDASH_PROJECT_ID" >> .env
-echo "GEOAPIFY_KEY=$GEOAPIFY_KEY" >> .env
-echo "OPEN_AI_KEY=$OPEN_AI_KEY" >> .env
-echo "APPSTORE_ID=$APPSTORE_ID" >> .env
-echo "WIREDASH_SECRET=$WIREDASH_SECRET | WIREDASH_PROJECT_ID=$WIREDASH_PROJECT_ID | GEOAPIFY_KEY=$GEOAPIFY_KEY | OPEN_AI_KEY=$OPEN_AI_KEY"
+require_env "CI_PRIMARY_REPOSITORY_PATH"
+require_env "WIREDASH_SECRET"
+require_env "WIREDASH_PROJECT_ID"
+require_env "GEOAPIFY_KEY"
+require_env "HITOBITO_BASE_URL"
+require_env "HITOBITO_OAUTH_CLIENT_ID"
+require_env "HITOBITO_OAUTH_CLIENT_SECRET"
+require_env "HITOBITO_OAUTH_REDIRECT_URI"
 
-echo "Die Umgebungsvariablen wurden erfolgreich in die .env-Datei geschrieben."
+cd "$CI_PRIMARY_REPOSITORY_PATH" || exit 1
 
+: > .env
+
+awk -F= '/^[A-Z][A-Z0-9_]*=/{print $1}' .env.example | while read -r key; do
+    write_env "$key"
+done
+
+echo "Die .env-Datei wurde fuer Xcode Cloud aktualisiert."
+echo "Geschriebene Keys entsprechen .env.example."
 echo "Stage: PRE-Xcode Build is DONE .... "
 
