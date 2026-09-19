@@ -58,14 +58,18 @@ final class NamiAiEvalTests: XCTestCase {
   /// Starting threshold for general/jargon/regression questions — deliberately not 100%, since
   /// BM25 doesn't guarantee rephrasing/compound-word/multi-chunk-synthesis matches (see
   /// nami-ai-roadmap.md 3.6). Calibrated 2026-09-18 against the real production corpus: measured
-  /// pass rate 40.6% (13/32) — well below the original 80% starting value, because
-  /// NamiAiRetrievalIndex tokenizes without stemming/lemmatization and German inflected forms
-  /// (e.g. question "Mitglieder" vs. chunk text "Mitgliedern") therefore don't match. Threshold
-  /// set with a safety margin below the measured value to catch real regressions (e.g. a broken
+  /// pass rate 40.6% (13/32), because NamiAiRetrievalIndex tokenized without stemming/
+  /// lemmatization and German inflected forms (e.g. question "Mitglieder" vs. chunk text
+  /// "Mitgliedern") didn't match. Re-measured 2026-09-19 after adding a lightweight German
+  /// suffix stemmer to NamiAiRetrievalIndex.tokenize (targeted at exactly that inflection
+  /// pattern plus genitive "-s", e.g. "des Bezirksvorstands" vs. "Der Bezirksvorstand"): 43.75%
+  /// (14/32) — a real but modest gain, since most of the remaining failures are multi-chunk-
+  /// synthesis/wrong-organ cases (see NamiAiResponder.systemInstructions) or vocabulary
+  /// mismatches stemming can't fix, not further inflection mismatches. Threshold set with a
+  /// safety margin below the newly measured value to catch real regressions (e.g. a broken
   /// tokenizer) without treating the known limitation itself as a failure — the actual finding
-  /// (BM25 variant A has a real weakness against German inflection) is a section-3.8 result that
   /// feeds the section-3.6 variant B/D decision, not a test bug.
-  private static let minimumPassRate = 0.35
+  private static let minimumPassRate = 0.40
 
   func testGroundedQuestionsMeetPassRateThreshold() throws {
     let (index, questions) = try loadCorpusAndQuestions()
