@@ -1,5 +1,7 @@
 import 'package:flutter/services.dart';
 
+import '../../domain/nami_ai/nami_ai_chat_history_entry.dart';
+
 class NamiAiException implements Exception {
   NamiAiException({required this.code, required this.message, this.details});
 
@@ -11,36 +13,22 @@ class NamiAiException implements Exception {
   String toString() => 'NamiAiException($code): $message';
 }
 
-/// A grounding-gate-verified citation (specs/nami-ai-roadmap.md section 3.6) - never a raw,
-/// unverified model claim.
-class NamiAiSourceRef {
-  const NamiAiSourceRef({
-    required this.docTitle,
-    required this.sectionNumber,
-    required this.docStand,
-  });
-
-  final String docTitle;
-  final String sectionNumber;
-  final String docStand;
-
-  static NamiAiSourceRef? tryFromMap(Object? value) {
-    if (value is! Map) {
-      return null;
-    }
-    final map = value.cast<Object?, Object?>();
-    final docTitle = map['docTitle'] as String?;
-    final sectionNumber = map['sectionNumber'] as String?;
-    final docStand = map['docStand'] as String?;
-    if (docTitle == null || sectionNumber == null || docStand == null) {
-      return null;
-    }
-    return NamiAiSourceRef(
-      docTitle: docTitle,
-      sectionNumber: sectionNumber,
-      docStand: docStand,
-    );
+NamiAiSourceRef? _sourceFromMap(Object? value) {
+  if (value is! Map) {
+    return null;
   }
+  final map = value.cast<Object?, Object?>();
+  final docTitle = map['docTitle'] as String?;
+  final sectionNumber = map['sectionNumber'] as String?;
+  final docStand = map['docStand'] as String?;
+  if (docTitle == null || sectionNumber == null || docStand == null) {
+    return null;
+  }
+  return NamiAiSourceRef(
+    docTitle: docTitle,
+    sectionNumber: sectionNumber,
+    docStand: docStand,
+  );
 }
 
 /// A successful NamiAiService reply. contextChunks carries the context chunks the native side
@@ -79,7 +67,7 @@ class NamiAiReply {
         (map['contextChunks'] as List?)?.cast<String>() ?? const <String>[];
     final sources =
         (map['sources'] as List?)
-            ?.map(NamiAiSourceRef.tryFromMap)
+            ?.map(_sourceFromMap)
             .whereType<NamiAiSourceRef>()
             .toList(growable: false) ??
         const <NamiAiSourceRef>[];

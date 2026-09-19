@@ -69,6 +69,7 @@ dependencies:
   syncfusion_flutter_sliders: ^31.2.16
   xml: ^6.6.1
   flutter_map_marker_cluster: ^8.2.2
+  flutter_markdown_plus: ^1.0.12
 
 dev_dependencies:
   flutter_test:
