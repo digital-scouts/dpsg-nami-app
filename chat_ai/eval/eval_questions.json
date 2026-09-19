@@ -115,7 +115,8 @@
       "expected_sources": [{"doc_id": "satzung_bezirk", "section_number": "31"}],
       "match_mode": "all",
       "expects_reject": false,
-      "automated_check": true
+      "automated_check": true,
+      "note": "Manuelle Runde 2026-09-19 (chat_ai/eval/results/2026-09-19.md): Modell antwortete mit den Aufgaben der Bezirkskonferenzen statt des Bezirksvorstands - strukturell dasselbe 'falsches Organ'-Muster wie der Stavo/SV-Regressionsfall aus 3.3, jetzt auf Bezirksebene. Systemprompt seit dem entsprechend geschaerft (NamiAiResponder.systemInstructions); Wirkung nur manuell auf Geraet pruefbar."
     },
     {
       "id": "general-bezirksvorstand-mitgliederzahl",
@@ -142,7 +143,8 @@
       "expected_sources": [{"doc_id": "satzung_bezirk", "section_number": "25"}],
       "match_mode": "all",
       "expects_reject": false,
-      "automated_check": true
+      "automated_check": true,
+      "note": "Manuelle Runde 2026-09-19 (chat_ai/eval/results/2026-09-19.md): Thema verfehlt, gleiches 'falsches Organ'-Muster wie general-bezirksvorstand-aufgaben. Systemprompt seit dem entsprechend geschaerft; Wirkung nur manuell auf Geraet pruefbar."
     },
     {
       "id": "general-bezirkskonferenzen-frequenz",
@@ -160,7 +162,8 @@
       "expected_sources": [{"doc_id": "satzung_dioezese", "section_number": "30"}],
       "match_mode": "all",
       "expects_reject": false,
-      "automated_check": true
+      "automated_check": true,
+      "note": "Manuelle Runde 2026-09-19 (chat_ai/eval/results/2026-09-19.md): keine Quelle genannt, Antwort thematisierte stattdessen die Anerkennung von Staemmen (anderer Abschnitt). Verwandtes 'falsches Organ/Thema'-Muster wie general-bezirksvorstand-aufgaben. Systemprompt seit dem entsprechend geschaerft; Wirkung nur manuell auf Geraet pruefbar."
     },
     {
       "id": "general-dioezesanvorstand-mitgliederzahl",
@@ -187,7 +190,8 @@
       "expected_sources": [{"doc_id": "satzung_dioezese", "section_number": "28"}],
       "match_mode": "all",
       "expects_reject": false,
-      "automated_check": true
+      "automated_check": true,
+      "note": "Manuelle Runde 2026-09-19 (chat_ai/eval/results/2026-09-19.md): Thema verfehlt, Antwort ging nur auf Ausschuesse ein. Gleiches 'falsches Organ/Thema'-Muster wie general-bezirksvorstand-aufgaben. Systemprompt seit dem entsprechend geschaerft; Wirkung nur manuell auf Geraet pruefbar."
     },
     {
       "id": "general-dioezesankonferenzen-frequenz",
@@ -205,7 +209,8 @@
       "expected_sources": [{"doc_id": "satzung_bund", "section_number": "32"}],
       "match_mode": "all",
       "expects_reject": false,
-      "automated_check": true
+      "automated_check": true,
+      "note": "Manuelle Runde 2026-09-19 (chat_ai/eval/results/2026-09-19.md): Thema verfehlt, lange Antwort zu den Aufgaben des Hauptausschusses statt des Bundesvorstands. Gleiches 'falsches Organ'-Muster wie general-bezirksvorstand-aufgaben. Systemprompt seit dem entsprechend geschaerft; Wirkung nur manuell auf Geraet pruefbar."
     },
     {
       "id": "general-bundesvorstand-mitgliederzahl",
