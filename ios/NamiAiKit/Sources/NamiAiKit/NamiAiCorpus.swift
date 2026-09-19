@@ -39,10 +39,14 @@ private struct NamiAiCorpusFile: Decodable {
 enum NamiAiCorpus {
   private static var configuredFileURL: URL?
   private static var cachedIndex: NamiAiRetrievalIndex?
+  private static var cachedSemanticScorer: NamiAiContextualEmbeddingScorer?
 
   static func configure(fileURL: URL) {
     configuredFileURL = fileURL
     cachedIndex = nil
+    // A new corpus invalidates any embeddings the old scorer cached by (docTitle,
+    // sectionNumber) - those keys could point at different text now.
+    cachedSemanticScorer = nil
   }
 
   /// Returns the retrieval index for the configured corpus, decoding and building it once and
@@ -61,5 +65,19 @@ enum NamiAiCorpus {
     let index = NamiAiRetrievalIndex(chunks: file.chunks)
     cachedIndex = index
     return index
+  }
+
+  /// The shared NamiAiSemanticScorer used to enrich BM25 retrieval with semantic-embedding
+  /// fusion (specs/nami-ai-roadmap.md section 3.6, Variante B/D). One instance per configured
+  /// corpus so its per-chunk embedding cache (NamiAiContextualEmbeddingScorer) survives across
+  /// search calls within the same session instead of recomputing every turn - model
+  /// load/asset-download state is likewise cached, not repeated per call.
+  static func semanticScorer() -> NamiAiContextualEmbeddingScorer {
+    if let cached = cachedSemanticScorer {
+      return cached
+    }
+    let scorer = NamiAiContextualEmbeddingScorer()
+    cachedSemanticScorer = scorer
+    return scorer
   }
 }

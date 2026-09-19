@@ -126,4 +126,89 @@ final class NamiAiRetrievalTests: XCTestCase {
     // in "n" - only "en"/"ern" suffixes are stripped, not a bare trailing "n".
     XCTAssertEqual(NamiAiRetrievalIndex.stem("verein"), "verein")
   }
+
+  // MARK: - topMatchesHybrid (section 3.6 Variante B/D: semantic-embedding fusion)
+
+  private struct FakeSemanticScorer: NamiAiSemanticScorer {
+    let scoresByChunkText: [String: Double]
+
+    func similarityScores(for query: String, against chunks: [NamiAiChunk]) async -> [Double]? {
+      chunks.map { scoresByChunkText[$0.text] ?? 0 }
+    }
+  }
+
+  private struct UnavailableSemanticScorer: NamiAiSemanticScorer {
+    func similarityScores(for query: String, against chunks: [NamiAiChunk]) async -> [Double]? {
+      nil
+    }
+  }
+
+  func testTopMatchesHybridFallsBackToBM25WhenNoScorerConfigured() async {
+    let chunks = [
+      makeChunk(sectionNumber: "1", text: "Die Stammesversammlung wählt den Stammesvorstand.")
+    ]
+    let index = NamiAiRetrievalIndex(chunks: chunks)
+
+    let matches = await index.topMatchesHybrid(
+      for: "Stammesversammlung", semanticScorer: nil)
+
+    XCTAssertEqual(
+      matches.map(\.sectionNumber), index.topMatches(for: "Stammesversammlung").map(\.sectionNumber)
+    )
+  }
+
+  func testTopMatchesHybridFallsBackToBM25WhenScorerReportsUnavailable() async {
+    let chunks = [
+      makeChunk(sectionNumber: "1", text: "Die Stammesversammlung wählt den Stammesvorstand.")
+    ]
+    let index = NamiAiRetrievalIndex(chunks: chunks)
+
+    let matches = await index.topMatchesHybrid(
+      for: "Stammesversammlung", semanticScorer: UnavailableSemanticScorer())
+
+    XCTAssertEqual(matches.map(\.sectionNumber), ["1"])
+  }
+
+  func testTopMatchesHybridSurfacesLexicallyWeakButSemanticallyStrongChunk() async {
+    // "distractor" shares every query term (highest possible BM25 rank) but is off-topic
+    // content-wise; "paraphrase" shares only two of the five query terms (a mediocre, not the
+    // worst, BM25 rank) but is the actually relevant paragraph, reflected by a much higher
+    // semantic score. Two filler chunks occupy the remaining BM25/semantic ranks so this isn't
+    // just a clean two-item rank swap (which would tie exactly under Reciprocal Rank Fusion).
+    // Without semantic fusion (plain topMatches), "distractor" would win top-1 purely on
+    // lexical overlap.
+    let distractorText =
+      "Die sonnenblume und die rakete und die gitarre und die tulpe und der anker sind Beispiele."
+    let fillerAText = "Die sonnenblume und die rakete und die gitarre sind Beispiele."
+    let paraphraseText = "Die tulpe und der anker sind Beispiele."
+    let fillerBText = "Die sonnenblume ist ein Beispiel."
+    let unrelatedText = "Nichts davon kommt hier vor."
+    let chunks = [
+      makeChunk(sectionNumber: "distractor", text: distractorText),
+      makeChunk(sectionNumber: "fillerA", text: fillerAText),
+      makeChunk(sectionNumber: "paraphrase", text: paraphraseText),
+      makeChunk(sectionNumber: "fillerB", text: fillerBText),
+      makeChunk(sectionNumber: "unrelated", text: unrelatedText),
+    ]
+    let index = NamiAiRetrievalIndex(chunks: chunks)
+    let query = "sonnenblume rakete gitarre tulpe anker"
+
+    // Sanity check on the premise: plain BM25 ranks the off-topic distractor first, not the
+    // actually relevant paraphrase.
+    XCTAssertEqual(
+      index.topMatches(for: query, limit: 1, minScore: 0).first?.sectionNumber, "distractor")
+
+    let scorer = FakeSemanticScorer(scoresByChunkText: [
+      paraphraseText: 0.99,
+      fillerBText: 0.6,
+      fillerAText: 0.4,
+      unrelatedText: 0.2,
+      distractorText: 0.05,
+    ])
+
+    let hybridMatches = await index.topMatchesHybrid(
+      for: query, limit: 1, minScore: 0, semanticScorer: scorer)
+
+    XCTAssertEqual(hybridMatches.map(\.sectionNumber), ["paraphrase"])
+  }
 }
