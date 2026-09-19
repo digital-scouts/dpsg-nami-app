@@ -327,4 +327,84 @@ void main() {
       await tempDir.delete(recursive: true);
     },
   );
+
+  test('deleteAll removes the log file entirely', () async {
+    final tempDir = await Directory.systemTemp.createTemp(
+      'nami_ai_debug_log_service_delete_test',
+    );
+
+    final service = NamiAiDebugLogService(
+      logsDirectoryProvider: () async => tempDir,
+      nowProvider: () => DateTime.utc(2026, 6, 3, 10, 0, 0),
+    );
+
+    await service.logEntry(
+      prompt: 'Frage',
+      success: true,
+      answer: 'Antwort',
+      latencyMs: 5,
+    );
+    expect(await tempDir.list().toList(), isNotEmpty);
+
+    await service.deleteAll();
+
+    expect(await tempDir.list().toList(), isEmpty);
+
+    await tempDir.delete(recursive: true);
+  });
+
+  test('deleteAll on an already-empty log directory is a no-op', () async {
+    final tempDir = await Directory.systemTemp.createTemp(
+      'nami_ai_debug_log_service_delete_noop_test',
+    );
+
+    final service = NamiAiDebugLogService(
+      logsDirectoryProvider: () async => tempDir,
+      nowProvider: () => DateTime.utc(2026, 6, 3, 10, 0, 0),
+    );
+
+    await service.deleteAll();
+
+    expect(await tempDir.list().toList(), isEmpty);
+
+    await tempDir.delete(recursive: true);
+  });
+
+  test(
+    'logging again after deleteAll recreates the file from scratch',
+    () async {
+      final tempDir = await Directory.systemTemp.createTemp(
+        'nami_ai_debug_log_service_delete_recreate_test',
+      );
+
+      final service = NamiAiDebugLogService(
+        logsDirectoryProvider: () async => tempDir,
+        nowProvider: () => DateTime.utc(2026, 6, 3, 10, 0, 0),
+      );
+
+      await service.logEntry(
+        prompt: 'Alte Frage',
+        success: true,
+        answer: 'Alte Antwort',
+        latencyMs: 5,
+      );
+      await service.deleteAll();
+      await service.logEntry(
+        prompt: 'Neue Frage',
+        success: true,
+        answer: 'Neue Antwort',
+        latencyMs: 5,
+      );
+
+      final file = File('${tempDir.path}/nami_ai_debug_log.jsonl');
+      final lines = (await file.readAsLines())
+          .where((line) => line.trim().isNotEmpty)
+          .map((line) => jsonDecode(line) as Map<String, dynamic>)
+          .toList();
+      expect(lines.length, 1);
+      expect(lines.single['prompt'], 'Neue Frage');
+
+      await tempDir.delete(recursive: true);
+    },
+  );
 }
