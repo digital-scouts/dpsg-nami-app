@@ -152,6 +152,15 @@ class NamiAiDebugLogService {
     await file.writeAsString(content, flush: true);
   }
 
+  /// Deletes the entire log file. The next logEntry()/exportableLogFile() call recreates it
+  /// from scratch, same as if the app had never logged anything.
+  Future<void> deleteAll() async {
+    final file = await _logFile();
+    if (await file.exists()) {
+      await file.delete();
+    }
+  }
+
   Map<String, dynamic>? _tryDecodeEntry(String jsonLine) {
     try {
       final decoded = jsonDecode(jsonLine);

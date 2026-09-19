@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/domain/nami_ai/nami_ai_chat_history_entry.dart';
 import 'package:nami/domain/nami_ai/nami_ai_chat_history_repository.dart';
+import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/screens/nami_ai/nami_ai_chat_page.dart';
 import 'package:nami/services/nami_ai/nami_ai_corpus_lookup_service.dart';
 import 'package:nami/services/nami_ai/nami_ai_debug_log_service.dart';
@@ -35,12 +36,16 @@ class _NoOpDebugLogService extends NamiAiDebugLogService {
     required String requestId,
     required String rating,
   }) async {}
+
+  @override
+  Future<void> deleteAll() async {}
 }
 
-/// Records updateFeedback() calls so a test can assert the chat page called it with the right
-/// requestId/rating, without touching the real file-backed implementation.
+/// Records updateFeedback()/deleteAll() calls so a test can assert the chat page called them
+/// correctly, without touching the real file-backed implementation.
 class _SpyDebugLogService extends _NoOpDebugLogService {
   final List<({String requestId, String rating})> feedbackCalls = [];
+  int deleteAllCallCount = 0;
 
   @override
   Future<void> updateFeedback({
@@ -48,6 +53,11 @@ class _SpyDebugLogService extends _NoOpDebugLogService {
     required String rating,
   }) async {
     feedbackCalls.add((requestId: requestId, rating: rating));
+  }
+
+  @override
+  Future<void> deleteAll() async {
+    deleteAllCallCount += 1;
   }
 }
 
@@ -160,7 +170,14 @@ void main() {
           ),
           Provider<NamiAiChatHistoryRepository>.value(value: historyRepository),
         ],
-        child: const MaterialApp(home: NamiAiChatPage()),
+        child: MaterialApp(
+          // AppSnackbar.show() (used by "Logs löschen"/share failures) reads
+          // AppLocalizations.of(context) - needs the delegate registered even though this test
+          // suite otherwise doesn't care about localization.
+          localizationsDelegates: [AppLocalizations.delegate],
+          supportedLocales: const [Locale('de'), Locale('en')],
+          home: const NamiAiChatPage(),
+        ),
       ),
     );
     await tester.pump();
@@ -277,6 +294,29 @@ void main() {
       expect(find.byIcon(Icons.thumb_up_outlined), findsOneWidget);
       expect(logService.feedbackCalls.length, 2);
       expect(logService.feedbackCalls.last.rating, 'up');
+    },
+  );
+
+  testWidgets(
+    '"Logs löschen" im Menü ruft deleteAll auf und zeigt eine Bestaetigung',
+    (tester) async {
+      final logService = _SpyDebugLogService();
+      await pumpChatPage(
+        tester,
+        debugLogService: logService,
+        streamBuilder: ({required sessionId, required prompt}) =>
+            _doneOnlyStream(
+              const NamiAiReply(answer: 'egal', contextChunks: []),
+            ),
+      );
+
+      await tester.tap(find.byTooltip('Menü'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Logs löschen'));
+      await tester.pumpAndSettle();
+
+      expect(logService.deleteAllCallCount, 1);
+      expect(find.text('Debug-Log gelöscht.'), findsOneWidget);
     },
   );
 

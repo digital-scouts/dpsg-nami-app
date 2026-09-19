@@ -14,7 +14,7 @@ import 'package:nami/services/nami_ai/nami_ai_stream_service.dart';
 import 'package:open_file/open_file.dart';
 import 'package:provider/provider.dart';
 
-enum _ChatMenuAction { newConversation, history, shareDebugLog }
+enum _ChatMenuAction { newConversation, history, shareDebugLog, deleteDebugLog }
 
 class NamiAiChatPage extends StatefulWidget {
   const NamiAiChatPage({super.key, this.debugInitialMessages});
@@ -92,6 +92,10 @@ class _NamiAiChatPageState extends State<NamiAiChatPage> {
               PopupMenuItem(
                 value: _ChatMenuAction.shareDebugLog,
                 child: Text('Debug-Log teilen'),
+              ),
+              PopupMenuItem(
+                value: _ChatMenuAction.deleteDebugLog,
+                child: Text('Logs löschen'),
               ),
             ],
           ),
@@ -176,6 +180,8 @@ class _NamiAiChatPageState extends State<NamiAiChatPage> {
         _openHistory();
       case _ChatMenuAction.shareDebugLog:
         await _shareDebugLog();
+      case _ChatMenuAction.deleteDebugLog:
+        await _deleteDebugLog();
     }
   }
 
@@ -222,6 +228,19 @@ class _NamiAiChatPageState extends State<NamiAiChatPage> {
       context,
       message: 'Das Debug-Log konnte nicht geöffnet werden.',
       type: AppSnackbarType.warning,
+    );
+  }
+
+  Future<void> _deleteDebugLog() async {
+    final logService = context.read<NamiAiDebugLogService>();
+    await logService.deleteAll();
+    if (!mounted) {
+      return;
+    }
+    AppSnackbar.show(
+      context,
+      message: 'Debug-Log gelöscht.',
+      type: AppSnackbarType.info,
     );
   }
 

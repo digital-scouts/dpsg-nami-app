@@ -227,6 +227,9 @@ class _StoryDebugLogService extends NamiAiDebugLogService {
     required String requestId,
     required String rating,
   }) async {}
+
+  @override
+  Future<void> deleteAll() async {}
 }
 
 class _StoryNamiAiChatHistoryRepository implements NamiAiChatHistoryRepository {
