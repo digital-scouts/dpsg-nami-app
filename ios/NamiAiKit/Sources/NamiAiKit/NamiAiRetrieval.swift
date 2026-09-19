@@ -36,12 +36,48 @@ struct NamiAiRetrievalIndex {
     self.documentFrequency = documentFrequency
   }
 
-  /// Lowercases and splits on anything that isn't a letter/digit. Umlaute and ß are letters in
-  /// Unicode terms, so they stay part of the token instead of being split off.
+  /// Lowercases and splits on anything that isn't a letter/digit, then stems each token.
+  /// Umlaute and ß are letters in Unicode terms, so they stay part of the token instead of being
+  /// split off. Applied identically to chunk text at index-build time (init above) and to every
+  /// query (scores(for:) below), so stemmed forms only ever get compared against other stemmed
+  /// forms.
   static func tokenize(_ text: String) -> [String] {
     text.lowercased()
       .components(separatedBy: CharacterSet.alphanumerics.inverted)
       .filter { !$0.isEmpty }
+      .map(stem)
+  }
+
+  /// Lightweight, deterministic German suffix stripper - not a full Snowball port, targeted at
+  /// the two inflection patterns measured to actually break retrieval (specs/nami-ai-roadmap.md
+  /// section 3.8, NamiAiEvalTests.swift's known 40.6% pass-rate finding): dative plural "-ern"
+  /// (Mitglieder/Mitgliedern) and genitive "-s" (Bezirksvorstand/Bezirksvorstands). Each rule
+  /// keeps a minimum resulting-stem length so short/unrelated words aren't mangled into
+  /// accidentally colliding with something else, and only ever strips at most one suffix.
+  static func stem(_ token: String) -> String {
+    // Valid s-preceding consonants for the genitive/plural "-s" case, same set the German
+    // Snowball stemmer uses - deliberately excludes vowels, so vowel+s loanwords/plurals (e.g.
+    // "Fokus", "Bonus") are left untouched rather than incorrectly truncated.
+    let validSPredecessors: Set<Character> = [
+      "b", "d", "f", "g", "h", "k", "l", "m", "n", "r", "t",
+    ]
+
+    if token.hasSuffix("ern"), token.count >= 7 {
+      return String(token.dropLast())
+    }
+    if token.hasSuffix("en"), token.count >= 6 {
+      return String(token.dropLast(2))
+    }
+    if token.hasSuffix("es"), token.count >= 6 {
+      return String(token.dropLast(2))
+    }
+    if token.hasSuffix("s"), token.count >= 5,
+      let predecessor = token.dropLast().last,
+      validSPredecessors.contains(predecessor)
+    {
+      return String(token.dropLast())
+    }
+    return token
   }
 
   /// BM25 score of every chunk against the query, standard k1=1.5/b=0.75 defaults. Not

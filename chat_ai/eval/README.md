@@ -96,14 +96,19 @@ Startheuristik, kalibrierbar nach den ersten echten Runden (siehe Roadmap
 
 ## Bekannte Grenzen
 
-- **BM25 ohne Stemming/Lemmatisierung matcht keine deutschen Flexionsformen**
+- **BM25 ohne Stemming/Lemmatisierung matchte keine deutschen Flexionsformen**
   außerhalb der im Chunk vorkommenden Wortform (z. B. Frage "Mitglieder" vs.
   Chunk-Text "Mitgliedern"; "des Bezirksvorstands" vs. "Der Bezirksvorstand").
   Im ersten automatisierten Testlauf (2026-09-18) lag die Pass-Rate der
-  automatisiert prüfbaren general/jargon/regression-Fragen bei ca. 41 %
+  automatisiert prüfbaren general/jargon/regression-Fragen bei ca. 41 %.
+  Seit 2026-09-19 stemmt `NamiAiRetrievalIndex.tokenize` leichtgewichtig genau
+  gegen diese beiden Muster (siehe `NamiAiRetrieval.swift`); neu gemessene
+  Pass-Rate ca. 44 % (14/32) — ein echter, aber moderater Gewinn, da die
+  meisten verbleibenden Fehlschläge Multi-Chunk-Synthese-/"falsches
+  Organ"-Fälle oder Vokabular-Mismatches sind, die Stemming allein nicht löst
   (siehe `known_limitations` in `eval_questions.json` und Kommentar in
-  `NamiAiEvalTests.swift`). Das ist ein realer Befund für die B/D-Entscheidung,
-  keine falsch formulierte Testfrage.
+  `NamiAiEvalTests.swift`). Das bleibt ein realer Befund für die
+  B/D-Entscheidung, keine falsch formulierte Testfrage.
 - **Retrieval-Score allein ist kein verlässlicher Ablehnungs-Indikator.**
   `topMatches` liefert auch für klar fachfremde Fragen Treffer, teils mit
   höherem BM25-Score als bei echten Satzungsfragen (seltene Alltagswörter
