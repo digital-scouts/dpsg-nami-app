@@ -38,6 +38,19 @@ import Foundation
       Tool-Ergebnisse beantworten lässt, setze unclear auf true und lasse sources leer. \
       Erfinde keine Inhalte und keine Quellenangaben, die nicht aus den Tool-Ergebnissen \
       stammen.
+
+      Bei Fragen nach Aufgaben, Zusammensetzung oder Zuständigkeiten eines konkreten Organs \
+      (z. B. Stammesvorstand, Stammesversammlung, Bezirksvorstand, Bezirksversammlung, \
+      Bezirkskonferenz, Diözesanvorstand, Diözesanversammlung, Bundesvorstand) prüfe bei jedem \
+      Treffer zuerst, ob er tatsächlich von genau diesem Organ und dieser Ebene handelt, bevor \
+      du ihn verwendest. Die Satzungen mehrerer Ebenen (Stamm, Bezirk, Diözese, Bund) enthalten \
+      strukturell fast identische Abschnitte für unterschiedliche Organe (z. B. "hat folgende \
+      Aufgaben" sowohl für ein Organ als auch für ein anderes, ähnlich benanntes Gremium \
+      derselben oder einer anderen Ebene) - übernimm nie den erstbesten strukturell passenden \
+      Treffer, ohne Organ und Ebene gegen die Frage abzugleichen. Wenn die ersten Treffer ein \
+      anderes Organ oder eine andere Ebene betreffen als gefragt, suche erneut mit \
+      präziseren Suchbegriffen (Organname und Ebene explizit nennen). Fasse für die Antwort \
+      alle passenden Treffer zum richtigen Organ zusammen, statt nur den ersten zu nutzen.
       """
 
     /// Builds a fresh session with its bound recorder, ready for a first turn. Both the one-shot

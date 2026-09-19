@@ -60,7 +60,14 @@ Modellverhalten danach.
 3. Kurz-Fazit der Runde: Auffälligkeiten je Kategorie (`jargon`, `regression`,
    `guardrail-negative`, `off-topic`, `general`), insbesondere ob der
    Stavo/SV-Regressionsfall (`regression-stavo-aufgaben-sv`) weiterhin
-   fehlerhaft beantwortet wird.
+   fehlerhaft beantwortet wird. Seit der Runde 2026-09-19 zusätzlich gezielt
+   prüfen, ob dasselbe "falsches Organ"-Muster auch auf Bezirks-/Diözese-/
+   Bundesebene weiterhin auftritt (`general-bezirksvorstand-aufgaben`,
+   `general-bezirksversammlung-aufgaben`, `general-dioezesanvorstand-aufgaben`,
+   `general-dioezesanleitung-aufgaben`, `general-bundesvorstand-aufgaben` -
+   siehe deren `note`-Felder in `eval_questions.json`), nachdem der
+   Systemprompt (`NamiAiResponder.systemInstructions`) dagegen geschärft
+   wurde.
 
 ## Ergebnis-Dokumentation
 
