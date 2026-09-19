@@ -267,4 +267,31 @@ void main() {
 
     expect(find.textContaining('Fehler'), findsOneWidget);
   });
+
+  testWidgets('zeigt die feste Ablehnungsantwort bei Schreibverben unveraendert an', (
+    tester,
+  ) async {
+    // Der Schreibverben-Vorfilter selbst laeuft nativ (NamiAiWriteIntentFilter, siehe
+    // NamiAiWriteIntentFilterTests.swift) und liefert diesen festen Text als ganz normales
+    // done-Event ohne Partials - aus Dart-Sicht ist das nicht von jeder anderen Antwort zu
+    // unterscheiden. Dieser Test sichert nur ab, dass die UI diesen Text unveraendert anzeigt.
+    const rejectionText =
+        'Ich kann aktuell keine Änderungen in NaMi vornehmen, sondern nur Fragen '
+        'beantworten. Bitte nutze dafür die passende Stelle in der App.';
+    await pumpChatPage(
+      tester,
+      streamBuilder: ({required sessionId, required prompt}) => _doneOnlyStream(
+        const NamiAiReply(answer: rejectionText, contextChunks: []),
+      ),
+    );
+
+    await tester.enterText(
+      find.byType(TextField),
+      'Lösche den Eintrag von Max Mustermann',
+    );
+    await tester.tap(find.byIcon(Icons.send));
+    await pumpBriefly(tester);
+
+    expect(find.text(rejectionText), findsOneWidget);
+  });
 }
