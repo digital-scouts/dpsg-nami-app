@@ -27,12 +27,17 @@ actor NamiAiRetrievalRecorder {
   /// look the paragraph back up later (e.g. from the debug log) without bloating every log line
   /// with full paragraph text.
   private(set) var deliveredChunkRefs: [String] = []
+  /// Full chunk objects (incl. text), needed by NamiAiAnswerVerifier (specs/nami-ai-roadmap.md
+  /// 3.12) to check factual coverage against the actual source text - unlike deliveredChunkRefs,
+  /// a compact ref alone isn't enough for that check.
+  private(set) var deliveredChunks: [NamiAiChunk] = []
 
   func record(_ chunks: [NamiAiChunk]) {
     for chunk in chunks {
       let key = NamiAiChunkKey(docTitle: chunk.docTitle, sectionNumber: chunk.sectionNumber)
       if deliveredKeys.insert(key).inserted {
         deliveredChunkRefs.append("\(chunk.docId)#\(chunk.sectionNumber)")
+        deliveredChunks.append(chunk)
       }
     }
   }
@@ -40,5 +45,6 @@ actor NamiAiRetrievalRecorder {
   func reset() {
     deliveredKeys.removeAll()
     deliveredChunkRefs.removeAll()
+    deliveredChunks.removeAll()
   }
 }

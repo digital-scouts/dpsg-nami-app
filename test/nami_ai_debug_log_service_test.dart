@@ -74,6 +74,93 @@ void main() {
     await tempDir.delete(recursive: true);
   });
 
+  test(
+    'logEntry records verificationFailed and per-attempt verifier data',
+    () async {
+      final tempDir = await Directory.systemTemp.createTemp(
+        'nami_ai_debug_log_service_verification_test',
+      );
+
+      final service = NamiAiDebugLogService(
+        logsDirectoryProvider: () async => tempDir,
+        nowProvider: () => DateTime.utc(2026, 6, 3, 10, 0, 0),
+      );
+
+      await service.logEntry(
+        prompt: 'Was sind die Aufgaben des Bezirksvorstands?',
+        success: true,
+        answer: 'Antwort nach Retry',
+        verificationFailed: false,
+        attempts: const [
+          {
+            'attemptNumber': 1,
+            'answer': 'Erste, falsche Antwort',
+            'expectedIntent': 'Liste',
+            'intentMatches': false,
+            'factsSupportedBySources': true,
+            'containsIrrelevantInformation': false,
+            'passed': false,
+            'feedback': 'falsches Organ',
+            'retryReason': 'Antwortform passt nicht zum erwarteten Typ (Liste)',
+          },
+          {
+            'attemptNumber': 2,
+            'answer': 'Antwort nach Retry',
+            'expectedIntent': 'Liste',
+            'intentMatches': true,
+            'factsSupportedBySources': true,
+            'containsIrrelevantInformation': false,
+            'passed': true,
+            'feedback': '',
+            'retryReason': null,
+          },
+        ],
+        latencyMs: 1500,
+      );
+
+      final file = File('${tempDir.path}/nami_ai_debug_log.jsonl');
+      final decoded =
+          jsonDecode((await file.readAsLines()).single) as Map<String, dynamic>;
+
+      expect(decoded['verificationFailed'], false);
+      expect(decoded['attempts'], hasLength(2));
+      expect(decoded['attempts'][0]['retryReason'], isNotNull);
+      expect(decoded['attempts'][1]['passed'], true);
+
+      await tempDir.delete(recursive: true);
+    },
+  );
+
+  test(
+    'logEntry defaults verificationFailed to false and attempts to empty',
+    () async {
+      final tempDir = await Directory.systemTemp.createTemp(
+        'nami_ai_debug_log_service_verification_default_test',
+      );
+
+      final service = NamiAiDebugLogService(
+        logsDirectoryProvider: () async => tempDir,
+        nowProvider: () => DateTime.utc(2026, 6, 3, 10, 0, 0),
+      );
+
+      await service.logEntry(
+        prompt: 'Frage',
+        success: true,
+        answer: 'Antwort',
+        latencyMs: 5,
+      );
+
+      final file = File('${tempDir.path}/nami_ai_debug_log.jsonl');
+      final decoded =
+          jsonDecode((await file.readAsLines()).single) as Map<String, dynamic>;
+
+      expect(decoded['verificationFailed'], false);
+      expect(decoded['attempts'], isEmpty);
+
+      await tempDir.delete(recursive: true);
+    },
+  );
+
   test('multiple entries append to the same single file', () async {
     final tempDir = await Directory.systemTemp.createTemp(
       'nami_ai_debug_log_service_append_test',

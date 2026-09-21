@@ -29,6 +29,7 @@ class NamiAiChatMessage {
     this.unclear = false,
     this.debugRequestId,
     this.feedback,
+    this.isRevising = false,
   });
 
   final String text;
@@ -37,6 +38,11 @@ class NamiAiChatMessage {
   final bool unclear;
   final String? debugRequestId;
   final String? feedback;
+
+  /// True while the verifier pass (specs/nami-ai-roadmap.md section 3.12) rejected the previous
+  /// attempt and a retry is streaming a replacement - always false once a conversation is
+  /// reloaded from history, same lifetime as debugRequestId/feedback above.
+  final bool isRevising;
 
   NamiAiChatMessage copyWith({String? feedback}) => NamiAiChatMessage(
     text: text,

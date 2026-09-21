@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 
 import '../../domain/nami_ai/nami_ai_chat_history_entry.dart';
+import 'nami_ai_env.dart';
 
 class NamiAiException implements Exception {
   NamiAiException({required this.code, required this.message, this.details});
@@ -31,13 +32,78 @@ NamiAiSourceRef? _sourceFromMap(Object? value) {
   );
 }
 
+/// One logged verifier-pass attempt (specs/nami-ai-roadmap.md section 3.12) - debug/logging use
+/// (see NamiAiDebugLogService), not for user-facing UI. Mirrors the native
+/// NamiAiVerificationAttempt payload shape 1:1.
+class NamiAiVerificationAttempt {
+  const NamiAiVerificationAttempt({
+    required this.attemptNumber,
+    required this.answer,
+    this.expectedIntent,
+    this.intentMatches,
+    this.factsSupportedBySources,
+    this.containsIrrelevantInformation,
+    required this.passed,
+    required this.feedback,
+    this.retryReason,
+  });
+
+  final int attemptNumber;
+  final String answer;
+  final String? expectedIntent;
+  final bool? intentMatches;
+  final bool? factsSupportedBySources;
+  final bool? containsIrrelevantInformation;
+  final bool passed;
+  final String feedback;
+  final String? retryReason;
+
+  static NamiAiVerificationAttempt? tryFromMap(Object? value) {
+    if (value is! Map) {
+      return null;
+    }
+    final map = value.cast<Object?, Object?>();
+    final attemptNumber = map['attemptNumber'] as int?;
+    final answer = map['answer'] as String?;
+    if (attemptNumber == null || answer == null) {
+      return null;
+    }
+    return NamiAiVerificationAttempt(
+      attemptNumber: attemptNumber,
+      answer: answer,
+      expectedIntent: map['expectedIntent'] as String?,
+      intentMatches: map['intentMatches'] as bool?,
+      factsSupportedBySources: map['factsSupportedBySources'] as bool?,
+      containsIrrelevantInformation:
+          map['containsIrrelevantInformation'] as bool?,
+      passed: map['passed'] as bool? ?? false,
+      feedback: map['feedback'] as String? ?? '',
+      retryReason: map['retryReason'] as String?,
+    );
+  }
+
+  /// JSON-serializable shape for NamiAiDebugLogService.logEntry's `attempts` parameter.
+  Map<String, Object?> toJson() => <String, Object?>{
+    'attemptNumber': attemptNumber,
+    'answer': answer,
+    'expectedIntent': expectedIntent,
+    'intentMatches': intentMatches,
+    'factsSupportedBySources': factsSupportedBySources,
+    'containsIrrelevantInformation': containsIrrelevantInformation,
+    'passed': passed,
+    'feedback': feedback,
+    'retryReason': retryReason,
+  };
+}
+
 /// A successful NamiAiService reply. contextChunks carries a compact `doc_id#section_number`
 /// ref for every chunk the native side actually grounded the answer in (useful for debugging,
 /// see NamiAiDebugLogService; the full paragraph text can be looked up from the bundled corpus
 /// via NamiAiCorpusLookupService); sources/
 /// unclear are the technically-enforced citation result from NamiAiGroundingGate (section 3.6).
 /// contextTruncated is true exactly for the turn in which a held multi-turn session (section
-/// 3.7) had to drop older messages after a context-overflow error.
+/// 3.7) had to drop older messages after a context-overflow error. verificationFailed/
+/// verificationAttempts surface the verifier-pass self-correction result (section 3.12).
 class NamiAiReply {
   const NamiAiReply({
     required this.answer,
@@ -45,6 +111,8 @@ class NamiAiReply {
     this.sources = const <NamiAiSourceRef>[],
     this.unclear = false,
     this.contextTruncated = false,
+    this.verificationFailed = false,
+    this.verificationAttempts = const <NamiAiVerificationAttempt>[],
   });
 
   final String answer;
@@ -52,6 +120,8 @@ class NamiAiReply {
   final List<NamiAiSourceRef> sources;
   final bool unclear;
   final bool contextTruncated;
+  final bool verificationFailed;
+  final List<NamiAiVerificationAttempt> verificationAttempts;
 
   /// Shared parsing for the identically-shaped payload generateReply's MethodChannel result and
   /// the stream EventChannel's "done" event both carry (see NamiAiFlutterBridge/
@@ -73,12 +143,20 @@ class NamiAiReply {
             .whereType<NamiAiSourceRef>()
             .toList(growable: false) ??
         const <NamiAiSourceRef>[];
+    final verificationAttempts =
+        (map['verificationAttempts'] as List?)
+            ?.map(NamiAiVerificationAttempt.tryFromMap)
+            .whereType<NamiAiVerificationAttempt>()
+            .toList(growable: false) ??
+        const <NamiAiVerificationAttempt>[];
     return NamiAiReply(
       answer: answer,
       contextChunks: contextChunks,
       sources: sources,
       unclear: map['unclear'] as bool? ?? false,
       contextTruncated: map['contextTruncated'] as bool? ?? false,
+      verificationFailed: map['verificationFailed'] as bool? ?? false,
+      verificationAttempts: verificationAttempts,
     );
   }
 }
@@ -137,6 +215,9 @@ class NamiAiService {
     try {
       final dynamic result = await _channel.invokeMethod<dynamic>(
         'startChatSession',
+        <String, dynamic>{
+          'selfCorrectionEnabled': NamiAiEnv.selfCorrectionEnabled,
+        },
       );
       if (result is! Map) {
         throw NamiAiException(

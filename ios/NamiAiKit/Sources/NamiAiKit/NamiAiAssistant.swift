@@ -25,7 +25,9 @@ public enum NamiAiAssistant {
     contextChunks: [],
     sources: [],
     unclear: false,
-    contextTruncated: false
+    contextTruncated: false,
+    verificationFailed: false,
+    verificationAttempts: []
   )
 
   public static func respond(
@@ -73,8 +75,13 @@ public enum NamiAiAssistant {
   /// Starts a new held chat session for follow-up questions (specs/nami-ai-roadmap.md section
   /// 3.7): the returned id is opaque to callers and must be passed to respond(sessionId:to:)/
   /// endSession(sessionId:). Keying by id instead of one implicit session guards against races
-  /// from screen navigation/hot restart, see NamiAiChatSessionStore.
-  public static func startSession(completion: @escaping (Result<String, NamiAiError>) -> Void) {
+  /// from screen navigation/hot restart, see NamiAiChatSessionStore. selfCorrectionEnabled
+  /// (section 3.12) is fixed for the session's whole lifetime, driven by NamiAiEnv on the Dart
+  /// side - a build-time kill switch for the verifier-pass retry loop, not a per-turn setting.
+  public static func startSession(
+    selfCorrectionEnabled: Bool,
+    completion: @escaping (Result<String, NamiAiError>) -> Void
+  ) {
     if let availabilityError = checkAvailability() {
       completion(.failure(availabilityError))
       return
@@ -85,7 +92,7 @@ public enum NamiAiAssistant {
         return
       }
       Task {
-        let id = await sessionStore.startSession()
+        let id = await sessionStore.startSession(selfCorrectionEnabled: selfCorrectionEnabled)
         completion(.success(id))
       }
     #else
@@ -139,11 +146,14 @@ public enum NamiAiAssistant {
   /// section 3.7: session.streamResponse over a new EventChannel instead of a plain
   /// MethodChannel). onPartial delivers only the growing answer text; the final,
   /// grounding-gate-verified NamiAiAnswer (with sources/unclear/contextTruncated) is only ever
-  /// passed to onComplete.
+  /// passed to onComplete. onRevising (section 3.12) fires once whenever the verifier pass
+  /// rejects an attempt and a retry starts, so the host app can show a brief "wird überprüft"
+  /// state instead of silently replacing already-streamed text.
   public static func streamRespond(
     sessionId: String,
     to prompt: String,
     onPartial: @escaping (String) -> Void,
+    onRevising: @escaping () -> Void,
     onComplete: @escaping (Result<NamiAiAnswer, NamiAiError>) -> Void
   ) {
     if let availabilityError = checkAvailability() {
@@ -164,7 +174,8 @@ public enum NamiAiAssistant {
           onComplete(.failure(.sessionNotFound))
           return
         }
-        chatSession.streamRespond(to: prompt, onPartial: onPartial, completion: onComplete)
+        chatSession.streamRespond(
+          to: prompt, onPartial: onPartial, onRevising: onRevising, completion: onComplete)
       }
     #else
       onComplete(.failure(.apiUnavailable))

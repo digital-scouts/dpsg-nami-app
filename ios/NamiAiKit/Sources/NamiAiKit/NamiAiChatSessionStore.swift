@@ -12,9 +12,9 @@ import Foundation
   actor NamiAiChatSessionStore {
     private var sessions: [String: NamiAiChatSession] = [:]
 
-    func startSession() -> String {
+    func startSession(selfCorrectionEnabled: Bool) -> String {
       let id = UUID().uuidString
-      sessions[id] = NamiAiChatSession(id: id)
+      sessions[id] = NamiAiChatSession(id: id, selfCorrectionEnabled: selfCorrectionEnabled)
       return id
     }
 

@@ -295,6 +295,7 @@ class _NamiAiChatPageState extends State<NamiAiChatPage> {
           _messages[placeholderIndex] = NamiAiChatMessage(
             text: chunk.text,
             isUser: false,
+            isRevising: chunk.isRevising,
           );
         });
         _scrollToBottom();
@@ -331,6 +332,10 @@ class _NamiAiChatPageState extends State<NamiAiChatPage> {
         sessionId: sessionId,
         turnIndex: turnIndex,
         contextTruncated: reply.contextTruncated,
+        verificationFailed: reply.verificationFailed,
+        attempts: reply.verificationAttempts
+            .map((attempt) => attempt.toJson())
+            .toList(growable: false),
         latencyMs: stopwatch.elapsedMilliseconds,
       );
       if (!mounted) {

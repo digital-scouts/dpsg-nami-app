@@ -32,6 +32,11 @@ final class NamiAiStreamHandler: NSObject, FlutterStreamHandler {
           eventSink(["type": "partial", "text": text])
         }
       },
+      onRevising: {
+        DispatchQueue.main.async {
+          eventSink(["type": "revising"])
+        }
+      },
       onComplete: { outcome in
         DispatchQueue.main.async {
           switch outcome {
@@ -49,6 +54,9 @@ final class NamiAiStreamHandler: NSObject, FlutterStreamHandler {
               },
               "unclear": answer.unclear,
               "contextTruncated": answer.contextTruncated,
+              "verificationFailed": answer.verificationFailed,
+              "verificationAttempts": answer.verificationAttempts.map(
+                NamiAiFlutterBridge.attemptPayload),
             ])
             eventSink(FlutterEndOfEventStream)
           case .failure(let error):

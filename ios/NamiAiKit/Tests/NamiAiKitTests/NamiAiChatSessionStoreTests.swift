@@ -12,8 +12,8 @@ import XCTest
       }
       let store = NamiAiChatSessionStore()
 
-      let firstId = await store.startSession()
-      let secondId = await store.startSession()
+      let firstId = await store.startSession(selfCorrectionEnabled: false)
+      let secondId = await store.startSession(selfCorrectionEnabled: false)
 
       XCTAssertNotEqual(firstId, secondId)
     }
@@ -23,7 +23,7 @@ import XCTest
         throw XCTSkip("Requires iOS 26 runtime for LanguageModelSession")
       }
       let store = NamiAiChatSessionStore()
-      let id = await store.startSession()
+      let id = await store.startSession(selfCorrectionEnabled: false)
 
       let session = await store.session(for: id)
 
@@ -47,7 +47,7 @@ import XCTest
         throw XCTSkip("Requires iOS 26 runtime for LanguageModelSession")
       }
       let store = NamiAiChatSessionStore()
-      let id = await store.startSession()
+      let id = await store.startSession(selfCorrectionEnabled: false)
 
       await store.endSession(id)
 

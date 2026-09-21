@@ -34,6 +34,21 @@ void main() {
               ],
               'unclear': false,
               'contextTruncated': true,
+              'verificationFailed': true,
+              'verificationAttempts': [
+                {
+                  'attemptNumber': 1,
+                  'answer': 'Erster Versuch',
+                  'expectedIntent': 'Liste',
+                  'intentMatches': false,
+                  'factsSupportedBySources': true,
+                  'containsIrrelevantInformation': false,
+                  'passed': false,
+                  'feedback': 'sollte eine Liste sein',
+                  'retryReason':
+                      'Antwortform passt nicht zum erwarteten Typ (Liste)',
+                },
+              ],
             };
           });
 
@@ -48,6 +63,36 @@ void main() {
       expect(result.sources.single.docTitle, 'Satzung Stamm');
       expect(result.unclear, isFalse);
       expect(result.contextTruncated, isTrue);
+      expect(result.verificationFailed, isTrue);
+      expect(result.verificationAttempts, hasLength(1));
+      expect(result.verificationAttempts.single.attemptNumber, 1);
+      expect(result.verificationAttempts.single.expectedIntent, 'Liste');
+      expect(result.verificationAttempts.single.intentMatches, isFalse);
+      expect(
+        result.verificationAttempts.single.retryReason,
+        'Antwortform passt nicht zum erwarteten Typ (Liste)',
+      );
+    },
+  );
+
+  test(
+    'generateReply defaults verificationFailed/verificationAttempts when native payload omits them',
+    () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            return {
+              'answer': 'Antwort ohne Verifier-Feld (altes Payload)',
+              'contextChunks': <String>[],
+            };
+          });
+
+      final result = await service.generateReply(
+        'Hallo',
+        sessionId: 'session-1',
+      );
+
+      expect(result.verificationFailed, isFalse);
+      expect(result.verificationAttempts, isEmpty);
     },
   );
 
@@ -78,6 +123,9 @@ void main() {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (call) async {
             expect(call.method, 'startChatSession');
+            expect(call.arguments, isA<Map>());
+            final args = call.arguments as Map<dynamic, dynamic>;
+            expect(args['selfCorrectionEnabled'], isA<bool>());
             return {'sessionId': 'session-42'};
           });
 
