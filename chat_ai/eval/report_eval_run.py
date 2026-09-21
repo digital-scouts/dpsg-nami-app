@@ -72,12 +72,19 @@ class LatencyStats:
 
 
 @dataclass
-class FailedFixture:
+class FixtureDetail:
     fixture_key: str
     category: str
     prompt: str
     answer_excerpt: str
     outcome: str
+    passed: bool
+    source_match: bool
+    guardrail_match: bool
+    expected_sources: list[dict]
+    cited_sources: list[dict]
+    context_chunks: list[str]
+    attempts: list[dict]
 
 
 @dataclass
@@ -88,7 +95,11 @@ class ReportSummary:
     latency: Optional[LatencyStats]
     consistency_rate: Optional[float]
     inconsistent_fixture_keys: list[str]
-    failed: list[FailedFixture]
+    results: list[FixtureDetail]
+
+    @property
+    def failed(self) -> list[FixtureDetail]:
+        return [detail for detail in self.results if not detail.passed]
 
 
 def _latency_stats(entries: list[dict]) -> Optional[LatencyStats]:
@@ -121,6 +132,23 @@ def _consistency(entries: list[dict]) -> tuple[Optional[float], list[str]]:
     return rate, sorted(inconsistent)
 
 
+def _fixture_detail(entry: dict) -> FixtureDetail:
+    return FixtureDetail(
+        fixture_key=_fixture_key(entry),
+        category=entry.get("category", "unbekannt"),
+        prompt=entry.get("prompt", ""),
+        answer_excerpt=(entry.get("answer") or "")[:280],
+        outcome=entry.get("outcome", "unbekannt"),
+        passed=_passed(entry),
+        source_match=bool(entry.get("sourceMatch")),
+        guardrail_match=bool(entry.get("guardrailMatch")),
+        expected_sources=entry.get("expectedSources") or [],
+        cited_sources=entry.get("sources") or [],
+        context_chunks=entry.get("contextChunks") or [],
+        attempts=entry.get("verificationAttempts") or [],
+    )
+
+
 def summarize(entries: list[dict], run_path: str) -> ReportSummary:
     by_category: dict[str, list[dict]] = defaultdict(list)
     for entry in entries:
@@ -136,18 +164,7 @@ def summarize(entries: list[dict], run_path: str) -> ReportSummary:
     ]
 
     consistency_rate, inconsistent = _consistency(entries)
-
-    failed = [
-        FailedFixture(
-            fixture_key=_fixture_key(entry),
-            category=entry.get("category", "unbekannt"),
-            prompt=entry.get("prompt", ""),
-            answer_excerpt=(entry.get("answer") or "")[:200],
-            outcome=entry.get("outcome", "unbekannt"),
-        )
-        for entry in entries
-        if not _passed(entry)
-    ]
+    results = [_fixture_detail(entry) for entry in entries]
 
     return ReportSummary(
         run_path=run_path,
@@ -156,8 +173,44 @@ def summarize(entries: list[dict], run_path: str) -> ReportSummary:
         latency=_latency_stats(entries),
         consistency_rate=consistency_rate,
         inconsistent_fixture_keys=inconsistent,
-        failed=failed,
+        results=results,
     )
+
+
+def _format_expected_sources(expected: list[dict]) -> str:
+    if not expected:
+        return "–"
+    return ", ".join(f"`{s.get('doc_id')}#{s.get('section_number')}`" for s in expected)
+
+
+def _format_cited_sources(sources: list[dict]) -> str:
+    if not sources:
+        return "–"
+    return ", ".join(f"`{s.get('docTitle')} §{s.get('sectionNumber')}`" for s in sources)
+
+
+def _format_context_chunks(chunks: list[str]) -> str:
+    return ", ".join(f"`{chunk}`" for chunk in chunks) if chunks else "–"
+
+
+def _format_attempt_lines(attempts: list[dict]) -> list[str]:
+    """Renders the verifier-pass self-correction history (NamiAiAnswerVerifier,
+    specs/nami-ai-roadmap.md 3.12) - empty when the run used --self-correction false (the
+    default), one entry per attempt (1 = no retry needed) when enabled."""
+    if not attempts:
+        return []
+    retry_note = " (mit Retry)" if len(attempts) > 1 else ""
+    lines = [f"**Verifier:** {len(attempts)} Versuch(e){retry_note}"]
+    for attempt in attempts:
+        mark = "✅" if attempt.get("passed") else "❌"
+        number = attempt.get("attemptNumber", "?")
+        line = f"  - {mark} Versuch {number}"
+        if not attempt.get("passed"):
+            reason = attempt.get("retryReason") or attempt.get("feedback") or ""
+            if reason:
+                line += f": {reason}"
+        lines.append(line)
+    return lines
 
 
 def render_markdown(summary: ReportSummary) -> str:
@@ -195,20 +248,44 @@ def render_markdown(summary: ReportSummary) -> str:
                 lines.append(f"- {key}")
         lines.append("")
 
-    if summary.failed:
-        lines.append("## Fehlgeschlagen (sourceMatch/guardrailMatch nicht erfuellt)")
+    lines.append("## Ergebnisse im Detail")
+    lines.append("")
+    lines.append(
+        "✅ = sourceMatch UND guardrailMatch erfuellt, ❌ = mindestens eines davon nicht "
+        "(siehe einzelne Markierungen je Zeile fuer welches)."
+    )
+    lines.append("")
+
+    by_category: dict[str, list[FixtureDetail]] = defaultdict(list)
+    for detail in summary.results:
+        by_category[detail.category].append(detail)
+
+    for category in sorted(by_category):
+        lines.append(f"### {category}")
         lines.append("")
-        for failure in summary.failed:
-            lines.append(f"### {failure.fixture_key} ({failure.category}, outcome={failure.outcome})")
+        for detail in by_category[category]:
+            overall_mark = "✅" if detail.passed else "❌"
+            lines.append(f"#### {overall_mark} {detail.fixture_key} (outcome={detail.outcome})")
             lines.append("")
-            lines.append(f"Frage: {failure.prompt}")
+            lines.append(f"**Frage:** {detail.prompt}")
             lines.append("")
-            if failure.answer_excerpt:
-                lines.append(f"Antwort (Ausschnitt): {failure.answer_excerpt}")
+            if detail.answer_excerpt:
+                lines.append(f"**Antwort:** {detail.answer_excerpt}")
                 lines.append("")
-    else:
-        lines.append("## Keine Fehlschlaege")
-        lines.append("")
+            source_mark = "✅" if detail.source_match else "❌"
+            guardrail_mark = "✅" if detail.guardrail_match else "❌"
+            lines.append(
+                f"**Quellen** {source_mark} — erwartet: {_format_expected_sources(detail.expected_sources)} "
+                f"· zitiert: {_format_cited_sources(detail.cited_sources)}"
+            )
+            lines.append(f"**Retrieval (roh):** {_format_context_chunks(detail.context_chunks)}")
+            lines.append("")
+            lines.append(f"**Guardrail** {guardrail_mark}")
+            attempt_lines = _format_attempt_lines(detail.attempts)
+            if attempt_lines:
+                lines.append("")
+                lines.extend(attempt_lines)
+            lines.append("")
 
     return "\n".join(lines).rstrip() + "\n"
 
@@ -285,7 +362,9 @@ def render_diff_markdown(diff: RunDiff) -> str:
     lines.append("")
     if diff.regressions:
         for delta in diff.regressions:
-            lines.append(f"- {delta.fixture_key} ({delta.category}), Latenzdelta {delta.latency_delta_ms:+.0f} ms")
+            lines.append(
+                f"- ❌ {delta.fixture_key} ({delta.category}), Latenzdelta {delta.latency_delta_ms:+.0f} ms"
+            )
     else:
         lines.append("Keine.")
     lines.append("")
@@ -294,7 +373,9 @@ def render_diff_markdown(diff: RunDiff) -> str:
     lines.append("")
     if diff.improvements:
         for delta in diff.improvements:
-            lines.append(f"- {delta.fixture_key} ({delta.category}), Latenzdelta {delta.latency_delta_ms:+.0f} ms")
+            lines.append(
+                f"- ✅ {delta.fixture_key} ({delta.category}), Latenzdelta {delta.latency_delta_ms:+.0f} ms"
+            )
     else:
         lines.append("Keine.")
     lines.append("")

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import unittest
 
-from report_eval_run import diff_runs, summarize
+from report_eval_run import _format_attempt_lines, diff_runs, render_markdown, summarize
 
 
 def _entry(
@@ -23,6 +23,10 @@ def _entry(
     prompt: str = "Frage?",
     answer: str = "Antwort.",
     outcome: str = "success",
+    expected_sources: list[dict] | None = None,
+    sources: list[dict] | None = None,
+    context_chunks: list[str] | None = None,
+    attempts: list[dict] | None = None,
 ) -> dict:
     return {
         "fixtureId": fixture_id,
@@ -35,6 +39,10 @@ def _entry(
         "prompt": prompt,
         "answer": answer,
         "outcome": outcome,
+        "expectedSources": expected_sources or [],
+        "sources": sources or [],
+        "contextChunks": context_chunks or [],
+        "verificationAttempts": attempts or [],
     }
 
 
@@ -94,6 +102,70 @@ class SummarizeTests(unittest.TestCase):
         self.assertEqual(summary.latency.min_ms, 100)
         self.assertEqual(summary.latency.max_ms, 300)
         self.assertEqual(summary.latency.median_ms, 200)
+
+    def test_results_include_all_fixtures_not_just_failures(self) -> None:
+        entries = [
+            _entry("q1", source_match=True, guardrail_match=True),
+            _entry("q2", source_match=False, guardrail_match=True),
+        ]
+        summary = summarize(entries, "run.jsonl")
+        self.assertEqual({r.fixture_key for r in summary.results}, {"q1", "q2"})
+
+
+class RenderMarkdownTests(unittest.TestCase):
+    def test_marks_passed_and_failed_fixtures_with_emoji(self) -> None:
+        entries = [
+            _entry("q1", source_match=True, guardrail_match=True),
+            _entry("q2", source_match=False, guardrail_match=True),
+        ]
+        markdown = render_markdown(summarize(entries, "run.jsonl"))
+        self.assertIn("✅ q1", markdown)
+        self.assertIn("❌ q2", markdown)
+
+    def test_includes_expected_vs_cited_sources(self) -> None:
+        entries = [
+            _entry(
+                "q1",
+                source_match=False,
+                expected_sources=[{"doc_id": "satzung_stamm", "section_number": "23"}],
+                sources=[{"docTitle": "Satzung Stamm", "sectionNumber": "46", "docStand": "Mai 2024"}],
+                context_chunks=["satzung_stamm#46", "satzung_stamm#23"],
+            )
+        ]
+        markdown = render_markdown(summarize(entries, "run.jsonl"))
+        self.assertIn("satzung_stamm#23", markdown)
+        self.assertIn("Satzung Stamm §46", markdown)
+        self.assertIn("satzung_stamm#46", markdown)
+
+    def test_includes_verifier_retry_history(self) -> None:
+        entries = [
+            _entry(
+                "q1",
+                attempts=[
+                    {"attemptNumber": 1, "passed": False, "retryReason": "Antwortform passt nicht"},
+                    {"attemptNumber": 2, "passed": True},
+                ],
+            )
+        ]
+        markdown = render_markdown(summarize(entries, "run.jsonl"))
+        self.assertIn("2 Versuch(e) (mit Retry)", markdown)
+        self.assertIn("❌ Versuch 1: Antwortform passt nicht", markdown)
+        self.assertIn("✅ Versuch 2", markdown)
+
+    def test_no_verifier_section_when_self_correction_was_off(self) -> None:
+        entries = [_entry("q1", attempts=[])]
+        markdown = render_markdown(summarize(entries, "run.jsonl"))
+        self.assertNotIn("Verifier:", markdown)
+
+
+class FormatAttemptLinesTests(unittest.TestCase):
+    def test_empty_attempts_render_nothing(self) -> None:
+        self.assertEqual(_format_attempt_lines([]), [])
+
+    def test_single_passing_attempt_has_no_retry_note(self) -> None:
+        lines = _format_attempt_lines([{"attemptNumber": 1, "passed": True}])
+        self.assertEqual(lines[0], "**Verifier:** 1 Versuch(e)")
+        self.assertNotIn("Retry", lines[0])
 
 
 class DiffTests(unittest.TestCase):

@@ -55,6 +55,21 @@ swift run nami-ai-eval --only general-sv-frequenz,jargon-sv-mitglieder
 swift run nami-ai-eval --help                # alle Optionen
 ```
 
+**Ein-Kommando-Variante** (`chat_ai/eval/run_eval.sh`): prüft zuerst
+`NamiAiEvalKitTests` (kein Modell nötig, bricht bei Fehlschlag ab, bevor ein
+echter Modell-Lauf verschwendet wird), führt dann `nami-ai-eval` aus und
+formatiert das Ergebnis direkt als Markdown-Report:
+
+```
+chat_ai/eval/run_eval.sh                                         # alles, mit Tests
+chat_ai/eval/run_eval.sh --only jargon-sv-mitglieder --skip-conversations
+chat_ai/eval/run_eval.sh --skip-tests --repeat 3                 # Tests ueberspringen
+```
+
+Nicht erkannte Optionen werden unverändert an `nami-ai-eval` durchgereicht.
+Auch als Launch-Konfiguration „NaMi AI: Eval-Tests + Lauf + Report" in
+`.vscode/launch.json` hinterlegt (Run-and-Debug-Panel in VS Code).
+
 Schreibt eine JSONL-Zeile pro Turn nach
 `chat_ai/eval/results/runs/<runId>.jsonl` (nicht versioniert, siehe
 `.gitignore`) — Feldnamen angelehnt an
