@@ -49,5 +49,12 @@
                 "--dart-define=USE_LOGGING=true"
             ]
         },
+        {
+            "name": "NaMi AI: Eval-Tests + Lauf + Report",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "${workspaceFolder}/chat_ai/eval/run_eval.sh",
+            "cwd": "${workspaceFolder}"
+        },
     ],
 }
