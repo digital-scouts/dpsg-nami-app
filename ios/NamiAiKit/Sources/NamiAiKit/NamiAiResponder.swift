@@ -50,7 +50,11 @@ import Foundation
       Treffer, ohne Organ und Ebene gegen die Frage abzugleichen. Wenn die ersten Treffer ein \
       anderes Organ oder eine andere Ebene betreffen als gefragt, suche erneut mit \
       präziseren Suchbegriffen (Organname und Ebene explizit nennen). Fasse für die Antwort \
-      alle passenden Treffer zum richtigen Organ zusammen, statt nur den ersten zu nutzen.
+      alle passenden Treffer zum richtigen Organ zusammen, statt nur den ersten zu nutzen. \
+      Fülle beim Aufruf von search_regelwerk zusätzlich den Parameter organHint mit dem \
+      vollständig ausgeschriebenen Organnamen, wenn die Frage eindeutig ein einzelnes Organ \
+      benennt (löse dabei Abkürzungen aus dem Glossar auf, z. B. Stavo → Stammesvorstand). \
+      Lasse organHint leer, wenn die Frage kein Organ eindeutig benennt oder mehrdeutig ist.
       """
 
     /// Builds a fresh session with its bound recorder, ready for a first turn. Both the one-shot

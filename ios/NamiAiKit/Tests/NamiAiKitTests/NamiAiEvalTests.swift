@@ -63,13 +63,24 @@ final class NamiAiEvalTests: XCTestCase {
   /// "Mitgliedern") didn't match. Re-measured 2026-09-19 after adding a lightweight German
   /// suffix stemmer to NamiAiRetrievalIndex.tokenize (targeted at exactly that inflection
   /// pattern plus genitive "-s", e.g. "des Bezirksvorstands" vs. "Der Bezirksvorstand"): 43.75%
-  /// (14/32) — a real but modest gain, since most of the remaining failures are multi-chunk-
+  /// (14/32) — a real but modest gain, since most of the remaining failures were multi-chunk-
   /// synthesis/wrong-organ cases (see NamiAiResponder.systemInstructions) or vocabulary
-  /// mismatches stemming can't fix, not further inflection mismatches. Threshold set with a
-  /// safety margin below the newly measured value to catch real regressions (e.g. a broken
-  /// tokenizer) without treating the known limitation itself as a failure — the actual finding
-  /// feeds the section-3.6 variant B/D decision, not a test bug.
-  private static let minimumPassRate = 0.40
+  /// mismatches stemming alone couldn't fix.
+  ///
+  /// Re-measured 2026-09-21 after the "falsches Organ" retrieval fix (a real end-to-end
+  /// `nami-ai-eval` run had exposed only ~10% pass rate for organ/Aufgaben-style questions,
+  /// see chat_ai/eval/results/): added a German stopword filter to
+  /// NamiAiRetrievalIndex.tokenize, and — the actual fix for the wrong-organ pattern — indexed
+  /// section_title (the strongest existing organ/topic signal, previously completely ignored)
+  /// ahead of chunk.text, repeated and length-capped (NamiAiRetrievalIndex.indexableText). New
+  /// pass rate: 93.75% (30/32) — a large, real gain, since most previously-failing questions
+  /// were exactly the "chunk mentions the organ in passing but isn't about it" pattern this
+  /// directly targets. The two remaining failures (jargon-stavo-zusammensetzung,
+  /// regression-stavo-aufgaben-sv) are the harder multi-chunk-synthesis/composition cases the
+  /// eval notes already flagged as not purely retrieval-fixable. Threshold set with a safety
+  /// margin below the newly measured value to catch real regressions without treating the two
+  /// known remaining cases as a test bug.
+  private static let minimumPassRate = 0.85
 
   func testGroundedQuestionsMeetPassRateThreshold() throws {
     let (index, questions) = try loadCorpusAndQuestions()

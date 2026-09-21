@@ -6,6 +6,7 @@ final class NamiAiRetrievalTests: XCTestCase {
   private func makeChunk(
     docTitle: String = "Satzung Stamm",
     sectionNumber: String,
+    sectionTitle: String = "Test",
     text: String
   ) -> NamiAiChunk {
     NamiAiChunk(
@@ -14,7 +15,7 @@ final class NamiAiRetrievalTests: XCTestCase {
       docTitle: docTitle,
       docStand: "Mai 2024",
       sectionNumber: sectionNumber,
-      sectionTitle: "Test",
+      sectionTitle: sectionTitle,
       pageStart: 1,
       pageEnd: 1,
       text: text,
@@ -125,6 +126,89 @@ final class NamiAiRetrievalTests: XCTestCase {
     // "Verein" is already the singular base form and must not be truncated just because it ends
     // in "n" - only "en"/"ern" suffixes are stripped, not a bare trailing "n".
     XCTAssertEqual(NamiAiRetrievalIndex.stem("verein"), "verein")
+  }
+
+  // MARK: - Stoppwortfilter
+
+  func testTokenizeDropsStopwordsButKeepsStemmedContentWords() {
+    let tokens = NamiAiRetrievalIndex.tokenize("Was sind die Aufgaben des Stammesvorstands?")
+
+    XCTAssertFalse(tokens.contains("was"))
+    XCTAssertFalse(tokens.contains("sind"))
+    XCTAssertFalse(tokens.contains("die"))
+    XCTAssertFalse(tokens.contains("des"))
+    XCTAssertTrue(tokens.contains("aufgab"))
+    XCTAssertTrue(tokens.contains("stammesvorstand"))
+  }
+
+  // MARK: - section_title boost ("falsches Organ" root cause)
+
+  func testTopMatchesRanksChunkWithMatchingSectionTitleAboveOneThatOnlyMentionsTermInPassing() {
+    // Nachbau des echten Produktionsbefunds (satzung_stamm#31 vs. #34): der "falsche" Chunk
+    // erwaehnt "Aufgaben" haeufiger im Fliesstext und wuerde bei reiner Text-Indexierung (ohne
+    // section_title-Boost) hoeher scoren, obwohl er inhaltlich von einem anderen Thema handelt.
+    // Nur section_title des "richtigen" Chunks benennt tatsaechlich den Stammesvorstand.
+    let correctChunk = makeChunk(
+      sectionNumber: "correct", sectionTitle: "Der Stammesvorstand",
+      text: "Der Stammesvorstand hat folgende Aufgaben: Leitung, Vertretung, Berufung.")
+    let wrongChunk = makeChunk(
+      sectionNumber: "wrong", sectionTitle: "Leitungsteams der Gruppen",
+      text:
+        "Die Aufgaben der Leitungsteams ergeben sich aus der Ordnung. Sie arbeiten mit dem "
+        + "Stammesvorstand zusammen. Aufgaben, Aufgaben, Aufgaben.")
+    let index = NamiAiRetrievalIndex(chunks: [correctChunk, wrongChunk])
+
+    let matches = index.topMatches(for: "Aufgaben des Stammesvorstands", limit: 2)
+
+    XCTAssertEqual(matches.first?.sectionNumber, "correct")
+  }
+
+  // MARK: - organHint
+
+  func testOrganHintBoostsChunkWithMatchingSectionTitleOverAHigherRawBM25Match() {
+    let hintedChunk = makeChunk(
+      sectionNumber: "hinted", sectionTitle: "Der Stammesvorstand",
+      text: "Der Stammesvorstand ist zuständig.")
+    let higherRawScoreChunk = makeChunk(
+      sectionNumber: "higherRaw", sectionTitle: "Sonstiges",
+      text: "Zuständig zuständig zuständig zuständig zuständig.")
+    let index = NamiAiRetrievalIndex(chunks: [hintedChunk, higherRawScoreChunk])
+    let query = "Wer ist zuständig?"
+
+    // Sanity check on the premise: without a hint, the chunk with more raw term repetitions
+    // wins, even though it's not the one whose section_title names the asked-about organ.
+    XCTAssertEqual(index.topMatches(for: query, limit: 1).first?.sectionNumber, "higherRaw")
+
+    let hintedMatches = index.topMatches(
+      for: query, limit: 1, organHint: "Stammesvorstand")
+
+    XCTAssertEqual(hintedMatches.first?.sectionNumber, "hinted")
+  }
+
+  func testOrganHintWithNoSectionTitleMatchFallsBackToNormalRanking() {
+    let chunks = [
+      makeChunk(sectionNumber: "1", text: "Die Stammesversammlung wählt den Stammesvorstand.")
+    ]
+    let index = NamiAiRetrievalIndex(chunks: chunks)
+
+    let matches = index.topMatches(
+      for: "Stammesversammlung", organHint: "Ein Organ, das es gar nicht gibt")
+
+    XCTAssertEqual(matches.map(\.sectionNumber), ["1"])
+  }
+
+  func testCallsWithoutOrganHintBehaveExactlyAsBefore() {
+    let chunks = [
+      makeChunk(sectionNumber: "1", text: "Die Stammesversammlung wählt den Stammesvorstand."),
+      makeChunk(sectionNumber: "2", text: "Der Bezirk gliedert sich in mehrere Stämme."),
+    ]
+    let index = NamiAiRetrievalIndex(chunks: chunks)
+
+    let withoutHintArgument = index.topMatches(for: "Stammesversammlung")
+    let withExplicitNilHint = index.topMatches(for: "Stammesversammlung", organHint: nil)
+
+    XCTAssertEqual(
+      withoutHintArgument.map(\.sectionNumber), withExplicitNilHint.map(\.sectionNumber))
   }
 
   // MARK: - topMatchesHybrid (section 3.6 Variante B/D: semantic-embedding fusion)
