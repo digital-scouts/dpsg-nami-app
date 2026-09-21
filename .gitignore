@@ -60,3 +60,7 @@ assets/territorialgrenzen_bistumsatlas
 /server/node_modules/
 /server/dist/
 /server/.npm/
+
+# NaMi AI eval runs (chat_ai/eval/report_eval_run.py reads these locally; only curated
+# chat_ai/eval/results/*.md summaries are versioned, not the raw per-run JSONL logs)
+chat_ai/eval/results/runs/*.jsonl

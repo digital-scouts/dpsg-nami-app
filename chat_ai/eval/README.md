@@ -8,24 +8,70 @@ End-to-End-Prüfung auf echtem Gerät (siehe
 ## Zweck
 
 `eval_questions.json` ist die einzige Quelle der Wahrheit für Testfragen mit
-erwarteten Dokument-/Abschnittsreferenzen. Zwei unterschiedliche Prüfungen
-nutzen dieselbe Datei, aber nicht dieselben Fragen:
+erwarteten Dokument-/Abschnittsreferenzen. Drei unterschiedliche Prüfungen
+nutzen dieselbe Datei (bzw. `eval_conversations.json` für Mehrfach-Turn-Fälle),
+aber nicht dieselben Fragen:
 
 - **Retrieval-only, automatisiert, CI-fähig:** `NamiAiEvalTests.swift`
   (`ios/NamiAiKit/Tests/NamiAiKitTests/`) prüft für jede Frage mit
   `automated_check: true`, ob `NamiAiRetrievalIndex.topMatches` (dieselben
   Defaults wie `NamiAiSearchTool` in Produktion) die erwarteten Quellen
   liefert. Läuft ohne Gerät und ohne geladenes Sprachmodell.
-- **End-to-End, manuell, dieses Runbook:** Antworttext, Zitate und
-  Halluzination lassen sich nicht automatisiert prüfen — Simulator/CI haben
-  kein geladenes FoundationModels-Modell. Das gilt für **alle** Fragen aus
-  `eval_questions.json`, nicht nur für die mit `automated_check: false`.
+- **End-to-End, automatisiert, nur lokal auf einem Mac mit Apple
+  Intelligence:** `nami-ai-eval` (siehe unten) — prüft zitierte Quellen und
+  Guardrail-Verhalten der tatsächlichen Modellantwort, nicht nur das
+  Retrieval. Ersetzt das manuelle Abtippen für alles, was sich objektiv
+  auswerten lässt.
+- **End-to-End, manuell, dieses Runbook:** die inhaltliche
+  Korrektheits-/Halluzinations-Einschätzung durch einen Menschen lässt sich
+  nicht automatisieren — das bleibt so, auch mit `nami-ai-eval`. Nützlich vor
+  allem für neue/veränderte Fragen, bei denen noch unklar ist, ob überhaupt
+  die richtigen `expected_sources` hinterlegt sind, und für Nuancen, die kein
+  automatischer Check abdeckt (Tonfall, Markdown-Artefakte, Ausführlichkeit).
 
 `automated_check: false` markiert Fragen, bei denen schon die
 Retrieval-Prüfung allein nicht sinnvoll automatisierbar ist (siehe
 `known_limitations` und die einzelnen `note`-Felder in `eval_questions.json`)
 — das eigentliche Problem liegt dort nicht im Retrieval, sondern im
-Modellverhalten danach.
+Modellverhalten danach. `nami-ai-eval` prüft trotzdem auch diese Fragen (per
+`unclear`/Guardrail-Abgleich statt per Retrieval-Score), da dort ja eine
+echte Modellantwort vorliegt.
+
+## Automatisiertes CLI-Tool (`nami-ai-eval`)
+
+`ios/NamiAiKit` enthält ein zusätzliches SwiftPM-Executable-Target
+`nami-ai-eval` (`ios/NamiAiKit/Sources/NamiAiEvalCLI/`), das dieselben
+`NamiAiAssistant`-Aufrufe nutzt wie die Flutter-Chat-UI (`startSession` →
+`streamRespond` je Turn → `endSession`, nie den One-Shot-Pfad) — die Logik ist
+also identisch zur App, nur ohne UI. Läuft **nur lokal**, nicht in CI, aus
+demselben Grund wie oben: FoundationModels braucht ein echtes, geladenes
+Modell.
+
+```
+cd ios/NamiAiKit
+swift run nami-ai-eval                      # alle Fragen + Konversationen, 1x
+swift run nami-ai-eval --repeat 3            # Konsistenz ueber Wiederholungen pruefen
+swift run nami-ai-eval --only general-sv-frequenz,jargon-sv-mitglieder
+swift run nami-ai-eval --help                # alle Optionen
+```
+
+Schreibt eine JSONL-Zeile pro Turn nach
+`chat_ai/eval/results/runs/<runId>.jsonl` (nicht versioniert, siehe
+`.gitignore`) — Feldnamen angelehnt an
+`lib/services/nami_ai/nami_ai_debug_log_service.dart`s Schema, plus
+Eval-spezifische Felder (`sourceMatch`, `guardrailMatch`, `expectedSources`
+u. a.). Auswertung:
+
+```
+python3 chat_ai/eval/report_eval_run.py summarize chat_ai/eval/results/runs/<runId>.jsonl
+python3 chat_ai/eval/report_eval_run.py diff <vorher>.jsonl <nachher>.jsonl
+```
+
+`diff` eignet sich, um die Wirkung einer Änderung an
+`NamiAiResponder.systemInstructions` oder am Retrieval zwischen zwei Läufen
+zu vergleichen, ohne wieder alle Fragen von Hand durchzugehen. Mehrfach-Turn-
+Konversationen liegen in `eval_conversations.json` (gleiches Schema wie
+`eval_questions.json`, aber als Sequenz von Turns pro gehaltener Session).
 
 ## Voraussetzungen
 
