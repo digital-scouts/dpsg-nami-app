@@ -21,5 +21,18 @@ import XCTest
         )
       }
     }
+
+    func testVerifierInstructionsMentionAllExpectedIntentCategories() throws {
+      guard #available(iOS 26.0, macOS 26.0, *) else {
+        throw XCTSkip("Requires iOS 26 runtime for NamiAiAnswerVerifier")
+      }
+      let expectedCategories = ["Liste", "Vergleich", "Definition", "Begründung"]
+      for category in expectedCategories {
+        XCTAssertTrue(
+          NamiAiAnswerVerifier.instructions.contains(category),
+          "Verifier-Instructions sollten \(category) erwähnen"
+        )
+      }
+    }
   }
 #endif

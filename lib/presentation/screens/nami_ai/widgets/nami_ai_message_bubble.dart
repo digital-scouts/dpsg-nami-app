@@ -54,6 +54,30 @@ class NamiAiMessageBubble extends StatelessWidget {
           children: [
             if (isUser)
               Text(message.text)
+            else if (message.isRevising)
+              // Verifier pass (specs/nami-ai-roadmap.md section 3.12) rejected the previous
+              // attempt and a retry is starting - shown instead of the just-streamed, rejected
+              // text so the replacement doesn't look like a bug.
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Antwort wird überprüft…',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              )
             else
               MarkdownBody(
                 // Empty during the very first streaming instant, before the first partial

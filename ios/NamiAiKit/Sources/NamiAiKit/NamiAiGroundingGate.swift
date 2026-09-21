@@ -22,7 +22,9 @@ enum NamiAiGroundingGate {
       contextChunks: contextChunks,
       sources: verifiedSources,
       unclear: unclear || verifiedSources.isEmpty,
-      contextTruncated: contextTruncated
+      contextTruncated: contextTruncated,
+      verificationFailed: false,
+      verificationAttempts: []
     )
   }
 }

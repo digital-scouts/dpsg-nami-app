@@ -70,7 +70,10 @@ import Foundation
     /// Runs one turn with retrieval via NamiAiSearchTool and technically enforces the citation
     /// requirement afterwards (NamiAiGroundingGate) - @Generable alone only guarantees
     /// structure, not that a cited source was actually retrieved. Never surfaces raw framework
-    /// error text: all failure modes are mapped to NamiAiError.
+    /// error text: all failure modes are mapped to NamiAiError. Wrapped in the verifier-pass
+    /// self-correction loop (section 3.12) - each retry gets a brand-new throwaway session via
+    /// makeSession(), since this session is discarded after the call anyway (no transcript-
+    /// hygiene concern here, unlike the held NamiAiChatSession case).
     static func respond(
       to prompt: String,
       completion: @escaping (Result<NamiAiAnswer, NamiAiError>) -> Void
@@ -80,12 +83,21 @@ import Foundation
         return
       }
 
-      let (session, recorder) = makeSession()
       Task {
         do {
-          let answer = try await runTurn(
-            session: session, recorder: recorder, prompt: prompt, contextTruncated: false)
-          completion(.success(answer))
+          var (session, recorder) = makeSession()
+          let (answer, verificationFailed, attempts) = try await performSelfCorrection(
+            question: prompt
+          ) { attemptPrompt, attemptNumber in
+            if attemptNumber > 1 {
+              (session, recorder) = makeSession()
+            }
+            let answer = try await runTurn(
+              session: session, recorder: recorder, prompt: attemptPrompt, contextTruncated: false)
+            return (answer, await recorder.deliveredChunks)
+          }
+          completion(
+            .success(answer.withVerification(failed: verificationFailed, attempts: attempts)))
         } catch {
           completion(.failure(Self.mapGenerationError(error)))
         }
@@ -115,6 +127,103 @@ import Foundation
         contextChunks: await recorder.deliveredChunkRefs,
         contextTruncated: contextTruncated
       )
+    }
+
+    /// Max. number of retries after a failed verifier pass (user decision, specs/nami-ai-
+    /// roadmap.md section 3.12) - so at most 3 generation attempts total per user question (1
+    /// initial + 2 retries).
+    static let maxSelfCorrectionRetries = 2
+
+    /// Shared verify-and-retry policy for the one-shot path (respond() above) and
+    /// NamiAiChatSession - the policy itself (attempt cap, stop criterion, retry-prompt wording,
+    /// logging shape) must not drift between the two, exactly like runTurn already keeps the
+    /// grounding-gate wiring from drifting. HOW the session is managed between attempts (rebuild
+    /// a throwaway session vs. roll back a held one) is the caller's job via the `attempt`
+    /// closure - this function only decides WHETHER another attempt happens and WHAT prompt it
+    /// gets.
+    ///
+    /// `verify` is injectable so this policy is unit-testable without any FoundationModels
+    /// runtime (see NamiAiSelfCorrectionTests.swift), the same reason NamiAiSlidingWindow takes
+    /// its entry classification via closures instead of depending on Transcript.Entry directly.
+    ///
+    /// Fail-open on a verifier error: if NamiAiAnswerVerifier itself throws (e.g. a transient
+    /// generation error in the *second* model pass), that is treated as passed rather than
+    /// blocking delivery of an answer that otherwise cleared the grounding gate - the verifier is
+    /// an additional quality layer on top of the grounding gate, not a second hard gate with its
+    /// own failure risk.
+    static func performSelfCorrection(
+      question: String,
+      attempt: (_ prompt: String, _ attemptNumber: Int) async throws -> (
+        answer: NamiAiAnswer, deliveredChunks: [NamiAiChunk]
+      ),
+      verify: (_ question: String, _ answerText: String, _ deliveredChunks: [NamiAiChunk])
+        async throws -> NamiAiVerificationResult = NamiAiAnswerVerifier.verify
+    ) async throws -> (
+      answer: NamiAiAnswer, verificationFailed: Bool, attempts: [NamiAiVerificationAttempt]
+    ) {
+      var attempts: [NamiAiVerificationAttempt] = []
+      var currentPrompt = question
+      var attemptNumber = 1
+
+      while true {
+        let (answer, deliveredChunks) = try await attempt(currentPrompt, attemptNumber)
+
+        let verification: NamiAiVerificationResult?
+        do {
+          verification = try await verify(question, answer.text, deliveredChunks)
+        } catch {
+          verification = nil
+        }
+        let passed = verification?.passed ?? true
+        let isLastAllowedAttempt = attemptNumber == maxSelfCorrectionRetries + 1
+        let reason =
+          (passed || verification == nil) ? nil : Self.retryReason(for: verification!)
+
+        attempts.append(
+          NamiAiVerificationAttempt(
+            attemptNumber: attemptNumber,
+            answerText: answer.text,
+            expectedIntent: verification?.expectedIntent,
+            intentMatches: verification?.intentMatches,
+            factsSupportedBySources: verification?.factsSupportedBySources,
+            containsIrrelevantInformation: verification?.containsIrrelevantInformation,
+            passed: passed,
+            feedback: verification?.feedbackForRetry ?? "Verifier nicht verfügbar/fehlgeschlagen.",
+            retryReason: isLastAllowedAttempt ? nil : reason))
+
+        if passed || isLastAllowedAttempt {
+          return (answer, !passed, attempts)
+        }
+
+        currentPrompt = Self.retryPrompt(
+          original: question, feedback: verification?.feedbackForRetry ?? "")
+        attemptNumber += 1
+      }
+    }
+
+    private static func retryReason(for verification: NamiAiVerificationResult) -> String {
+      var reasons: [String] = []
+      if !verification.intentMatches {
+        reasons.append(
+          "Antwortform passt nicht zum erwarteten Typ (\(verification.expectedIntent))")
+      }
+      if !verification.factsSupportedBySources {
+        reasons.append("Nicht alle Fakten durch Quellen gedeckt")
+      }
+      if verification.containsIrrelevantInformation {
+        reasons.append("Enthält nicht zur Frage gehörende Zusatzinfos")
+      }
+      return reasons.joined(separator: "; ")
+    }
+
+    private static func retryPrompt(original: String, feedback: String) -> String {
+      """
+      \(original)
+
+      [Interner Korrekturhinweis, nicht Teil der ursprünglichen Nutzerfrage: Eine vorherige \
+      eigene Antwort auf genau diese Frage wurde geprüft und hatte folgendes Problem: \
+      \(feedback) Beantworte die Frage oben erneut und behebe dieses Problem.]
+      """
     }
 
     /// Maps FoundationModels' GenerationError cases to the small, stable NamiAiError surface -

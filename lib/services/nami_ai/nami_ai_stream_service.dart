@@ -3,18 +3,32 @@ import 'package:flutter/services.dart';
 import 'nami_ai_service.dart';
 
 /// One chunk of a streamed NaMi AI answer (specs/nami-ai-roadmap.md section 3.7): either a
-/// partial (the growing answer text so far) or the final, grounding-gate-verified reply -
-/// sources/unclear/contextTruncated are only ever meaningful once the whole turn, including
-/// every tool call, has finished, so they only ever arrive on the done chunk.
+/// partial (the growing answer text so far), a revising signal (section 3.12: the verifier pass
+/// rejected an attempt and a retry is starting - the caller should replace the just-streamed,
+/// rejected text with a brief "wird überprüft" state rather than silently overwriting it with a
+/// new stream), or the final, grounding-gate-verified reply - sources/unclear/contextTruncated/
+/// verificationFailed are only ever meaningful once the whole turn, including every tool call,
+/// has finished, so they only ever arrive on the done chunk.
 class NamiAiStreamChunk {
-  const NamiAiStreamChunk.partial(this.text) : isDone = false, reply = null;
+  const NamiAiStreamChunk.partial(this.text)
+    : isDone = false,
+      isRevising = false,
+      reply = null;
+
+  const NamiAiStreamChunk.revising()
+    : isDone = false,
+      isRevising = true,
+      text = '',
+      reply = null;
 
   NamiAiStreamChunk.done(NamiAiReply this.reply)
     : isDone = true,
+      isRevising = false,
       text = reply.answer;
 
   final String text;
   final bool isDone;
+  final bool isRevising;
   final NamiAiReply? reply;
 }
 
@@ -58,6 +72,8 @@ class NamiAiStreamService {
     switch (type) {
       case 'partial':
         return NamiAiStreamChunk.partial(map['text'] as String? ?? '');
+      case 'revising':
+        return const NamiAiStreamChunk.revising();
       case 'done':
         final reply = NamiAiReply.tryFromMap(map);
         if (reply == null) {

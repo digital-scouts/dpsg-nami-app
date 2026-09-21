@@ -41,7 +41,9 @@ enum NamiAiFlutterBridge {
         result(["available": true])
       }
     case "startChatSession":
-      NamiAiAssistant.startSession { outcome in
+      let selfCorrectionEnabled =
+        (call.arguments as? [String: Any])?["selfCorrectionEnabled"] as? Bool ?? false
+      NamiAiAssistant.startSession(selfCorrectionEnabled: selfCorrectionEnabled) { outcome in
         DispatchQueue.main.async {
           switch outcome {
           case .success(let sessionId):
@@ -96,6 +98,8 @@ enum NamiAiFlutterBridge {
               },
               "unclear": answer.unclear,
               "contextTruncated": answer.contextTruncated,
+              "verificationFailed": answer.verificationFailed,
+              "verificationAttempts": answer.verificationAttempts.map(attemptPayload),
             ])
           case .failure(let error):
             result(
@@ -110,5 +114,21 @@ enum NamiAiFlutterBridge {
     default:
       result(FlutterMethodNotImplemented)
     }
+  }
+
+  /// Shared verifier-attempt payload shape for both the MethodChannel result (here) and the
+  /// EventChannel "done" event (NamiAiStreamHandler) - specs/nami-ai-roadmap.md section 3.12.
+  static func attemptPayload(_ attempt: NamiAiVerificationAttempt) -> [String: Any?] {
+    [
+      "attemptNumber": attempt.attemptNumber,
+      "answer": attempt.answerText,
+      "expectedIntent": attempt.expectedIntent,
+      "intentMatches": attempt.intentMatches,
+      "factsSupportedBySources": attempt.factsSupportedBySources,
+      "containsIrrelevantInformation": attempt.containsIrrelevantInformation,
+      "passed": attempt.passed,
+      "feedback": attempt.feedback,
+      "retryReason": attempt.retryReason,
+    ]
   }
 }

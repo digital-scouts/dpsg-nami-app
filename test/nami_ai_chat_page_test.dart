@@ -26,6 +26,8 @@ class _NoOpDebugLogService extends NamiAiDebugLogService {
     String? sessionId,
     int? turnIndex,
     bool contextTruncated = false,
+    bool verificationFailed = false,
+    List<Map<String, Object?>> attempts = const <Map<String, Object?>>[],
     String? errorCode,
     String? errorMessage,
     required int latencyMs,
