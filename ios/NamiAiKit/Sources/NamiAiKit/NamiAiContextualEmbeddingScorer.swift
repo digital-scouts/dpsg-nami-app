@@ -97,12 +97,26 @@ actor NamiAiContextualEmbeddingScorer: NamiAiSemanticScorer {
     if let cached = chunkVectorsByChunkKey[key] {
       return cached
     }
-    guard let vector = Self.meanPooledVector(for: chunk.text, model: model, language: language)
+    guard
+      let vector = Self.meanPooledVector(
+        for: Self.embeddingText(for: chunk), model: model, language: language)
     else {
       return nil
     }
     chunkVectorsByChunkKey[key] = vector
     return vector
+  }
+
+  /// Prepends section_title once (same "falsches Organ" motivation as
+  /// NamiAiRetrievalIndex.indexableText, see its doc comment) so the pooled sentence vector is
+  /// pulled toward the chunk's actual topic/organ, not just whatever it happens to mention in
+  /// passing. A single prepend, not a repetition like the BM25 side: NLContextualEmbedding is a
+  /// contextual sentence model, not bag-of-words - repeating text would produce unnatural input
+  /// unlike anything the model saw in training, with unpredictable pooling effects. Pulled out
+  /// as a pure static function (no actor/model state) so it's unit-testable without a real
+  /// device, same reasoning as `cosineSimilarity` below.
+  static func embeddingText(for chunk: NamiAiChunk) -> String {
+    "\(chunk.sectionTitle). \(chunk.text)"
   }
 
   /// Mean-pools NLContextualEmbedding's per-subword-token vectors into a single sentence

@@ -45,4 +45,16 @@ final class NamiAiContextualEmbeddingScorerTests: XCTestCase {
     let similarity = NamiAiContextualEmbeddingScorer.cosineSimilarity([0, 0, 0], [1, 2, 3])
     XCTAssertEqual(similarity, 0.0, accuracy: 0.0001)
   }
+
+  func testEmbeddingTextPrependsSectionTitleOnce() {
+    let chunk = NamiAiChunk(
+      docId: "satzung_stamm", ebene: "Stamm", docTitle: "Satzung Stamm", docStand: "Mai 2024",
+      sectionNumber: "31", sectionTitle: "Der Stammesvorstand",
+      pageStart: 8, pageEnd: 8, text: "Der Stammesvorstand hat folgende Aufgaben: ...",
+      sourceFile: "test.pdf")
+
+    XCTAssertEqual(
+      NamiAiContextualEmbeddingScorer.embeddingText(for: chunk),
+      "Der Stammesvorstand. Der Stammesvorstand hat folgende Aufgaben: ...")
+  }
 }
