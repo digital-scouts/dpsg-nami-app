@@ -1,0 +1,24 @@
+#!/bin/sh
+
+set -e
+
+repo_root=$(git rev-parse --show-toplevel)
+cd "$repo_root"
+
+tracked_env_files=$(git ls-files '.env' '.env.*' | awk '$0 != ".env.example"')
+
+if [ -n "$tracked_env_files" ]; then
+	echo "Fehler: Lokale Env-Dateien duerfen nicht committed werden."
+	echo "Entferne diese Dateien aus dem Index, zum Beispiel mit: git rm --cached -- <datei>"
+	echo "Nutze .env.example als Vorlage."
+	echo "$tracked_env_files"
+	exit 1
+fi
+
+echo "Pruefe Versionskonsistenz..."
+dart tool/validate_versions.dart
+
+if [ -f .env ]; then
+	echo "Pruefe Env-Konsistenz..."
+	dart tool/validate_env_files.dart
+fi

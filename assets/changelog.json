@@ -78,6 +78,16 @@
         "Der Feedback-Button auf der Loginseite funktioniert nun wieder.",
         "Das DPSG Logo wurde aktualisiert."
       ]
+    },
+    {
+      "version": "1.0.0",
+      "data_reset": true,
+      "features": [
+        "Die App verwendet nun NaMi 3.0.",
+        "Die App wurde komplett überarbeitet und neu gestaltet.",
+        "Die App ist nun auf Englisch und Deutsch verfügbar."
+      ],
+      "bugFixes": []
     }
   ]
 }

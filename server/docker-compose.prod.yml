@@ -1,0 +1,34 @@
+services:
+  app:
+    build:
+      context: .
+      target: production
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3000
+      LOG_LEVEL: info
+      MONGODB_URI: mongodb://mongodb:27017
+      MONGODB_DATABASE: nami_statistics
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:7.0
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand({ ping: 1 })"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+    volumes:
+      - mongodb_prod_data:/data/db
+
+volumes:
+  mongodb_prod_data:
