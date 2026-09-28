@@ -23,7 +23,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: "temurin"
-          java-version: ${{ vars.JAVA_VERSION }}
+          java-version: "21"
       - name: Setup Dart
         uses: dart-lang/setup-dart@v1
         with:
@@ -78,7 +78,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: "temurin"
-          java-version: ${{ vars.JAVA_VERSION }}
+          java-version: "21"
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: ${{ vars.DART_VERSION }}
