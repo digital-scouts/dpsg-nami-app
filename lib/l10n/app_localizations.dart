@@ -418,6 +418,8 @@ class AppLocalizations {
           'Die Bearbeitung erfolgt mit lokal gespeicherten Daten. Für das Senden ist eine erneute Anmeldung erforderlich. {details}',
       'member_edit_prepare_network_blocked':
           'Bearbeitung erfolgt mit lokal gespeicherten Daten. {details}',
+      'member_edit_prepare_network_unavailable':
+          '{details} Die Bearbeitung erfolgt mit lokal gespeicherten Daten. Änderungen werden gesendet, sobald Hitobito erreichbar ist.',
       'member_edit_prepare_failed':
           'Die Person konnte nicht neu geladen werden. Bitte erneut versuchen.',
       'member_edit_submit_auth_required':
@@ -1008,6 +1010,8 @@ class AppLocalizations {
           'Editing continues with locally stored data. Signing in again is required for sending. {details}',
       'member_edit_prepare_network_blocked':
           'Editing continues with locally stored data. {details}',
+      'member_edit_prepare_network_unavailable':
+          '{details} Editing continues with locally stored data. Changes will be sent once Hitobito is reachable.',
       'member_edit_prepare_failed':
           'The person could not be reloaded. Please try again.',
       'member_edit_submit_auth_required':

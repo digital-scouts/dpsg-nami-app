@@ -29,7 +29,14 @@ class SecurePendingPersonUpdateRepository
       return const <PendingPersonUpdate>[];
     }
 
-    final decoded = jsonDecode(raw);
+    // Ein unlesbarer Box-Inhalt darf das Vormerken neuer Aenderungen nicht
+    // dauerhaft blockieren; er wird beim naechsten Speichern ueberschrieben.
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(raw);
+    } on FormatException {
+      return const <PendingPersonUpdate>[];
+    }
     if (decoded is! List) {
       return const <PendingPersonUpdate>[];
     }

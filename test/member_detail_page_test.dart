@@ -848,6 +848,80 @@ void main() {
     expect(find.textContaining('Problemlösung'), findsOneWidget);
     expect(memberEditModel.openedEntryPoints, <String>['detail']);
   });
+
+  testWidgets(
+    'zeigt Problemfall-Banner und oeffnet ueber Problem loesen die Problemloesung',
+    (tester) async {
+      final member = Mitglied.peopleListItem(
+        mitgliedsnummer: '4711',
+        personId: 23,
+        primaryGroupId: 111,
+        vorname: 'Julia',
+        nachname: 'Keller',
+      );
+      final pendingEntry = PendingPersonUpdate(
+        entryId: 'person-23',
+        personId: 23,
+        mitgliedsnummer: '4711',
+        displayName: 'Juliane Keller',
+        basisMitglied: member,
+        zielMitglied: member.copyWith(vorname: 'Juliane'),
+        queuedAt: DateTime(2026, 4, 14, 12, 0),
+        status: PendingPersonUpdateStatus.needsResolution,
+        resolutionCase: MemberResolutionCase(
+          remoteMitglied: member.copyWith(vorname: 'Remote Julia'),
+          source: MemberResolutionSource.manualSave,
+          items: const <MemberResolutionItem>[
+            MemberResolutionItem(
+              problemType: MemberResolutionProblemType.conflict,
+              cause: MemberResolutionCause.overlappingChange,
+              target: MemberResolutionTarget(
+                type: MemberResolutionTargetType.firstName,
+              ),
+              message: 'Vorname kollidiert.',
+            ),
+          ],
+        ),
+      );
+      final memberEditModel = _ResolutionTrackingMemberEditModel(
+        pendingEntry: pendingEntry,
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberDetailPage(mitglied: member),
+          providers: <SingleChildWidget>[
+            ChangeNotifierProvider<MemberEditModel>.value(
+              value: memberEditModel,
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Für diese Person gibt es offene Problemfälle. Bitte prüfe die betroffenen Felder und sende die Änderung danach erneut.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'Für diese Person liegt eine ausstehende Änderung vor. Ein Retry ist in den Debug-Tools möglich.',
+        ),
+        findsNothing,
+      );
+      expect(find.text('Problem lösen'), findsOneWidget);
+
+      await tester.tap(find.text('Problem lösen'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Speicherprobleme bei Juliane Keller'), findsOneWidget);
+      expect(find.text('Vorname kollidiert.'), findsOneWidget);
+      expect(find.text('Lokal behalten'), findsOneWidget);
+      expect(memberEditModel.openedEntryPoints, <String>['detail']);
+    },
+  );
 }
 
 Widget _buildTestApp(

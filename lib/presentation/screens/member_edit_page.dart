@@ -1101,9 +1101,19 @@ class _MemberEditPageState extends State<MemberEditPage> {
   }
 
   Future<void> _save() async {
+    final mustExpand = !_editSectionExpanded;
     setState(() {
       _serverPhoneErrorsById.clear();
+      // Die Validatoren greifen nur fuer aufgebaute Felder; im
+      // Problemloesungsmodus ist der Bereich anfangs eingeklappt.
+      _editSectionExpanded = true;
     });
+    if (mustExpand) {
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted) {
+        return;
+      }
+    }
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -1136,16 +1146,22 @@ class _MemberEditPageState extends State<MemberEditPage> {
         return;
       }
       if (result.requiresResolution && result.pendingEntry != null) {
-        await Navigator.of(context).pushReplacement(
-          MaterialPageRoute<void>(
-            builder: (_) => MemberEditPage(
-              mitglied: result.pendingEntry!.zielMitglied,
-              pendingEntry: result.pendingEntry,
-              initialNoticeMessage: result.resolveMessage(_t),
-              resolutionEntryPoint: 'submit_result',
-            ),
-          ),
-        );
+        // Kein pushReplacement: Dann erhielte der Aufrufer sofort null statt
+        // des Ergebnisses der naechsten Problemloesung.
+        final nextResult = await Navigator.of(context)
+            .push<MemberEditSubmitResult>(
+              MaterialPageRoute<MemberEditSubmitResult>(
+                builder: (_) => MemberEditPage(
+                  mitglied: result.pendingEntry!.zielMitglied,
+                  pendingEntry: result.pendingEntry,
+                  initialNoticeMessage: result.resolveMessage(_t),
+                  resolutionEntryPoint: 'submit_result',
+                ),
+              ),
+            );
+        if (mounted) {
+          Navigator.of(context).pop(nextResult);
+        }
         return;
       }
       if (result.success || result.wasQueued) {

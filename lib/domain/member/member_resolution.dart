@@ -162,11 +162,10 @@ class MemberResolutionCase {
   Set<MemberResolutionCause> get causes =>
       items.map((item) => item.effectiveCause).toSet();
 
-  bool get hasMergeConflicts =>
-      causes.contains(MemberResolutionCause.overlappingChange);
+  bool get hasMergeConflicts => causes.any(_isMergeConflictCause);
 
   bool get hasNonMergeProblems =>
-      causes.any((cause) => cause != MemberResolutionCause.overlappingChange);
+      causes.any((cause) => !_isMergeConflictCause(cause));
 
   MemberResolutionCategory get category {
     if (items.isEmpty) {
@@ -391,65 +390,19 @@ class MemberConflictResolver {
     required Mitglied remoteMitglied,
     required List<MemberResolutionItem> items,
   }) {
-    final merged = <MitgliedKontaktTelefon>[];
-    final basisById = {
-      for (final item in basisMitglied.telefonnummern)
-        if ((item.phoneNumberId ?? 0) > 0) item.phoneNumberId!: item,
-    };
-    final localById = {
-      for (final item in zielMitglied.telefonnummern)
-        if ((item.phoneNumberId ?? 0) > 0) item.phoneNumberId!: item,
-    };
-    final remoteById = {
-      for (final item in remoteMitglied.telefonnummern)
-        if ((item.phoneNumberId ?? 0) > 0) item.phoneNumberId!: item,
-    };
-    final ids = <int>{...basisById.keys, ...localById.keys, ...remoteById.keys};
-    for (final id in ids) {
-      final basis = basisById[id];
-      final local = localById[id];
-      final remote = remoteById[id];
-      final localChanged = local != basis;
-      if (!localChanged) {
-        if (remote != null) {
-          merged.add(remote);
-        }
-        continue;
-      }
-      final remoteChanged = remote != basis;
-      if (!remoteChanged || local == remote) {
-        if (local != null) {
-          merged.add(local);
-        }
-        continue;
-      }
-      items.add(
-        MemberResolutionItem(
-          problemType: MemberResolutionProblemType.conflict,
-          cause: MemberResolutionCause.overlappingChange,
-          target: MemberResolutionTarget(
-            type: MemberResolutionTargetType.phone,
-            relationshipId: id,
-          ),
-          message:
-              'Telefonnummer wurde lokal und in Hitobito unterschiedlich geändert.',
-        ),
-      );
-      if (remote != null) {
-        merged.add(remote);
-      }
-    }
-    for (final local in zielMitglied.telefonnummern.where(
-      (item) => (item.phoneNumberId ?? 0) <= 0,
-    )) {
-      merged.add(local);
-    }
-    for (final remote in remoteMitglied.telefonnummern.where(
-      (item) => (item.phoneNumberId ?? 0) <= 0,
-    )) {
-      merged.add(remote);
-    }
-    return merged;
+    return _mergeRelationships<MitgliedKontaktTelefon>(
+      basis: basisMitglied.telefonnummern,
+      local: zielMitglied.telefonnummern,
+      remote: remoteMitglied.telefonnummern,
+      idOf: (item) => item.phoneNumberId,
+      withoutId: (item) => item.copyWith(phoneNumberIdLoeschen: true),
+      targetType: MemberResolutionTargetType.phone,
+      conflictMessage:
+          'Telefonnummer wurde lokal und in Hitobito unterschiedlich geändert.',
+      remoteDeletedMessage:
+          'Telefonnummer wurde lokal geändert, in Hitobito aber gelöscht.',
+      items: items,
+    );
   }
 
   static List<MitgliedKontaktEmail> _mergeAdditionalEmails({
@@ -458,68 +411,19 @@ class MemberConflictResolver {
     required Mitglied remoteMitglied,
     required List<MemberResolutionItem> items,
   }) {
-    final merged = <MitgliedKontaktEmail>[];
-    final basisEmails = _additionalEmails(basisMitglied);
-    final localEmails = _additionalEmails(zielMitglied);
-    final remoteEmails = _additionalEmails(remoteMitglied);
-    final basisById = {
-      for (final item in basisEmails)
-        if ((item.additionalEmailId ?? 0) > 0) item.additionalEmailId!: item,
-    };
-    final localById = {
-      for (final item in localEmails)
-        if ((item.additionalEmailId ?? 0) > 0) item.additionalEmailId!: item,
-    };
-    final remoteById = {
-      for (final item in remoteEmails)
-        if ((item.additionalEmailId ?? 0) > 0) item.additionalEmailId!: item,
-    };
-    final ids = <int>{...basisById.keys, ...localById.keys, ...remoteById.keys};
-    for (final id in ids) {
-      final basis = basisById[id];
-      final local = localById[id];
-      final remote = remoteById[id];
-      final localChanged = local != basis;
-      if (!localChanged) {
-        if (remote != null) {
-          merged.add(remote);
-        }
-        continue;
-      }
-      final remoteChanged = remote != basis;
-      if (!remoteChanged || local == remote) {
-        if (local != null) {
-          merged.add(local);
-        }
-        continue;
-      }
-      items.add(
-        MemberResolutionItem(
-          problemType: MemberResolutionProblemType.conflict,
-          cause: MemberResolutionCause.overlappingChange,
-          target: MemberResolutionTarget(
-            type: MemberResolutionTargetType.additionalEmail,
-            relationshipId: id,
-          ),
-          message:
-              'Zusätzliche E-Mail wurde lokal und in Hitobito unterschiedlich geändert.',
-        ),
-      );
-      if (remote != null) {
-        merged.add(remote);
-      }
-    }
-    for (final local in localEmails.where(
-      (item) => (item.additionalEmailId ?? 0) <= 0,
-    )) {
-      merged.add(local);
-    }
-    for (final remote in remoteEmails.where(
-      (item) => (item.additionalEmailId ?? 0) <= 0,
-    )) {
-      merged.add(remote);
-    }
-    return merged;
+    return _mergeRelationships<MitgliedKontaktEmail>(
+      basis: _additionalEmails(basisMitglied),
+      local: _additionalEmails(zielMitglied),
+      remote: _additionalEmails(remoteMitglied),
+      idOf: (item) => item.additionalEmailId,
+      withoutId: (item) => item.copyWith(additionalEmailIdLoeschen: true),
+      targetType: MemberResolutionTargetType.additionalEmail,
+      conflictMessage:
+          'Zusätzliche E-Mail wurde lokal und in Hitobito unterschiedlich geändert.',
+      remoteDeletedMessage:
+          'Zusätzliche E-Mail wurde lokal geändert, in Hitobito aber gelöscht.',
+      items: items,
+    );
   }
 
   static List<MitgliedKontaktAdresse> _mergeAdditionalAddresses({
@@ -528,69 +432,102 @@ class MemberConflictResolver {
     required Mitglied remoteMitglied,
     required List<MemberResolutionItem> items,
   }) {
-    final merged = <MitgliedKontaktAdresse>[];
-    final basisAddresses = _additionalAddresses(basisMitglied);
-    final localAddresses = _additionalAddresses(zielMitglied);
-    final remoteAddresses = _additionalAddresses(remoteMitglied);
-    final basisById = {
-      for (final item in basisAddresses)
-        if ((item.additionalAddressId ?? 0) > 0)
-          item.additionalAddressId!: item,
+    return _mergeRelationships<MitgliedKontaktAdresse>(
+      basis: _additionalAddresses(basisMitglied),
+      local: _additionalAddresses(zielMitglied),
+      remote: _additionalAddresses(remoteMitglied),
+      idOf: (item) => item.additionalAddressId,
+      withoutId: (item) => item.copyWith(additionalAddressIdLoeschen: true),
+      targetType: MemberResolutionTargetType.additionalAddress,
+      conflictMessage:
+          'Zusatzadresse wurde lokal und in Hitobito unterschiedlich geändert.',
+      remoteDeletedMessage:
+          'Zusatzadresse wurde lokal geändert, in Hitobito aber gelöscht.',
+      items: items,
+    );
+  }
+
+  /// Drei-Wege-Merge fuer Kontakteintraege.
+  ///
+  /// Eintraege mit ID werden pro ID verglichen. Eintraege ohne ID (lokal neu
+  /// angelegt) werden ueber ihren Inhalt verglichen: lokal entfernte fallen
+  /// weg, lokal neue werden nur ergaenzt, wenn der Server denselben Inhalt
+  /// nicht schon hat, etwa weil ein frueheres Senden bereits angekommen ist.
+  static List<T> _mergeRelationships<T>({
+    required List<T> basis,
+    required List<T> local,
+    required List<T> remote,
+    required int? Function(T item) idOf,
+    required T Function(T item) withoutId,
+    required MemberResolutionTargetType targetType,
+    required String conflictMessage,
+    required String remoteDeletedMessage,
+    required List<MemberResolutionItem> items,
+  }) {
+    bool hasId(T item) => (idOf(item) ?? 0) > 0;
+    Map<int, T> byId(List<T> list) => {
+      for (final item in list)
+        if (hasId(item)) idOf(item)!: item,
     };
-    final localById = {
-      for (final item in localAddresses)
-        if ((item.additionalAddressId ?? 0) > 0)
-          item.additionalAddressId!: item,
-    };
-    final remoteById = {
-      for (final item in remoteAddresses)
-        if ((item.additionalAddressId ?? 0) > 0)
-          item.additionalAddressId!: item,
-    };
+
+    final merged = <T>[];
+    final basisById = byId(basis);
+    final localById = byId(local);
+    final remoteById = byId(remote);
     final ids = <int>{...basisById.keys, ...localById.keys, ...remoteById.keys};
     for (final id in ids) {
-      final basis = basisById[id];
-      final local = localById[id];
-      final remote = remoteById[id];
-      final localChanged = local != basis;
+      final basisItem = basisById[id];
+      final localItem = localById[id];
+      final remoteItem = remoteById[id];
+      final localChanged = localItem != basisItem;
       if (!localChanged) {
-        if (remote != null) {
-          merged.add(remote);
+        if (remoteItem != null) {
+          merged.add(remoteItem);
         }
         continue;
       }
-      final remoteChanged = remote != basis;
-      if (!remoteChanged || local == remote) {
-        if (local != null) {
-          merged.add(local);
+      final remoteChanged = remoteItem != basisItem;
+      if (!remoteChanged || localItem == remoteItem) {
+        if (localItem != null) {
+          merged.add(localItem);
         }
         continue;
       }
+      final remoteDeleted = remoteItem == null && localItem != null;
       items.add(
         MemberResolutionItem(
           problemType: MemberResolutionProblemType.conflict,
-          cause: MemberResolutionCause.overlappingChange,
-          target: MemberResolutionTarget(
-            type: MemberResolutionTargetType.additionalAddress,
-            relationshipId: id,
-          ),
-          message:
-              'Zusatzadresse wurde lokal und in Hitobito unterschiedlich geändert.',
+          cause: remoteDeleted
+              ? MemberResolutionCause.remoteDeletedLocalEdited
+              : MemberResolutionCause.overlappingChange,
+          target: MemberResolutionTarget(type: targetType, relationshipId: id),
+          message: remoteDeleted ? remoteDeletedMessage : conflictMessage,
         ),
       );
-      if (remote != null) {
-        merged.add(remote);
+      if (remoteItem != null) {
+        merged.add(remoteItem);
       }
     }
-    for (final local in localAddresses.where(
-      (item) => (item.additionalAddressId ?? 0) <= 0,
-    )) {
-      merged.add(local);
+
+    final basisWithoutId = basis.where((item) => !hasId(item)).toList();
+    final localWithoutId = local.where((item) => !hasId(item)).toList();
+    for (final remoteItem in remote.where((item) => !hasId(item))) {
+      final removedLocally =
+          basisWithoutId.contains(remoteItem) &&
+          !localWithoutId.contains(remoteItem);
+      if (!removedLocally) {
+        merged.add(remoteItem);
+      }
     }
-    for (final remote in remoteAddresses.where(
-      (item) => (item.additionalAddressId ?? 0) <= 0,
-    )) {
-      merged.add(remote);
+    for (final localItem in localWithoutId) {
+      if (basisWithoutId.contains(localItem)) {
+        continue;
+      }
+      final content = withoutId(localItem);
+      if (merged.any((item) => withoutId(item) == content)) {
+        continue;
+      }
+      merged.add(localItem);
     }
     return merged;
   }
@@ -665,6 +602,11 @@ String? _trimToNull(String? value) {
     return null;
   }
   return normalized;
+}
+
+bool _isMergeConflictCause(MemberResolutionCause cause) {
+  return cause == MemberResolutionCause.overlappingChange ||
+      cause == MemberResolutionCause.remoteDeletedLocalEdited;
 }
 
 MemberResolutionCause _defaultValidationCauseForTarget(

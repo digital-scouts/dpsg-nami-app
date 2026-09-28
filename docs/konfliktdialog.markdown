@@ -39,6 +39,8 @@ Aktuell werden folgende Änderungseinheiten verglichen:
 - die primäre Adresse als ein zusammenhängender Block
 - jede Zusatzadresse als ein zusammenhängender Block über ihre `additionalAddressId`
 
+Neu angelegte Telefonnummern, Zusatzmails und Zusatzadressen haben lokal noch keine ID. Sie werden über ihren Inhalt verglichen: Lokal entfernte Einträge fallen weg, und ein neuer Eintrag wird nicht doppelt angelegt, wenn Hitobito denselben Inhalt bereits enthält, etwa weil ein früheres Senden schon angekommen ist.
+
 ## Automatisches Zusammenführen
 
 Für jede Änderungseinheit gilt:
@@ -60,9 +62,10 @@ Das ist kein Konflikt, obwohl sich `updatedAt` geändert hat. Beide Änderungen 
 
 Ein Problemlösungsfall wird pro Mitglied gespeichert.
 
-Aktuell sind zwei Arten von Fällen angeschlossen:
+Aktuell sind drei Arten von Fällen angeschlossen:
 
 - dieselbe Änderungseinheit wurde lokal und auf dem Server unterschiedlich geändert
+- eine Telefonnummer, Zusatzmail oder Zusatzadresse wurde lokal geändert, auf dem Server aber gelöscht; Lokal behalten legt sie neu an, Serverstand übernehmen verwirft die lokale Änderung
 - ein späterer Retry meldet einen Validierungsfehler, der nicht mehr direkt im normalen Bearbeiten-Screen aufgelöst wird
 
 Direkt zuordenbare Validierungsfehler bei einem manuellen Online-Speichern, zum Beispiel eine ungültige Telefonnummer, bleiben weiterhin im normalen Bearbeiten-Screen.
@@ -145,6 +148,12 @@ Beim späteren Retry aus der lokalen Queue, egal ob manuell oder automatisch wä
 - wird ein Konflikt oder Retry-Validierungsfehler erkannt, wechselt der Eintrag in den Problemlösungsfall
 
 Die Mitgliederliste zeigt zusätzlich eine einmalige Snackbar, wenn offene Problemlösungsfälle vorhanden sind.
+
+## Erneutes Bearbeiten und nicht erreichbares Hitobito
+
+- Wird eine noch nicht gesendete Änderung erneut bearbeitet, bleibt der ursprüngliche Serverstand die Vergleichsbasis. Dadurch gehen die Änderungen aus der ersten Bearbeitung beim späteren Senden nicht verloren.
+- Ist Hitobito beim Öffnen des Bearbeiten-Screens wegen eines Verbindungsfehlers nicht erreichbar, arbeitet die App mit den lokal gespeicherten Daten weiter und sendet die Änderung später.
+- Ein laufender Retry und ein manuelles Speichern desselben Stands laufen nacheinander, nie gleichzeitig.
 
 ## Abbruch und erneutes Öffnen
 
