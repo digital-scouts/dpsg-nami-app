@@ -67,6 +67,7 @@ import 'services/hitobito_groups_service.dart';
 import 'services/hitobito_oauth_service.dart';
 import 'services/hitobito_people_service.dart';
 import 'services/hitobito_traffic_log_service.dart';
+import 'services/legacy_app_data_cleanup_service.dart';
 import 'services/logger_service.dart';
 import 'services/map_tile_cache_service.dart';
 import 'services/network_access_policy.dart';
@@ -127,6 +128,17 @@ void main() {
         logger: logger,
         networkAccessPolicy: networkAccessPolicy,
       );
+      // Update von 0.2.x: alte Daten entfernen, bevor eigene Boxen geoeffnet
+      // werden und die Session geladen wird. Danach ist ein Login noetig.
+      final legacyAppDataCleanupService = LegacyAppDataCleanupService(
+        documentsDirectoryProvider: () async => appDocDir,
+        cancelScheduledNotifications: dataExpiryNotificationService.cancelAll,
+        deleteLegacyMapStore: () => mapTileCacheService.deleteStore(
+          LegacyAppDataCleanupService.legacyMapStoreName,
+        ),
+        logger: logger,
+      );
+      await legacyAppDataCleanupService.runIfNeeded();
       final hitobitoTrafficLogService = HitobitoTrafficLogService();
       final namiAiDebugLogService = NamiAiDebugLogService();
       final namiAiCorpusLookupService = NamiAiCorpusLookupService();
@@ -192,6 +204,7 @@ void main() {
         clearLogs: logger!.clearAllLogs,
         clearHitobitoTrafficLogs: hitobitoTrafficLogService.clearAllLogs,
         clearMapCache: mapTileCacheService.deleteRoot,
+        clearLegacyData: legacyAppDataCleanupService.deleteLegacyData,
       );
 
       final authModel = AuthSessionModel(

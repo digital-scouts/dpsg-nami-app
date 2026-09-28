@@ -19,6 +19,7 @@ class AppResetService {
     ResetLogsCleaner? clearLogs,
     ResetLogsCleaner? clearHitobitoTrafficLogs,
     Future<void> Function()? clearMapCache,
+    Future<void> Function()? clearLegacyData,
   }) : _authSessionRepository = authSessionRepository,
        _sensitiveStorageService = sensitiveStorageService,
        _preferencesProvider =
@@ -26,7 +27,8 @@ class AppResetService {
        _logFileProvider = logFileProvider,
        _clearLogs = clearLogs,
        _clearHitobitoTrafficLogs = clearHitobitoTrafficLogs,
-       _clearMapCache = clearMapCache;
+       _clearMapCache = clearMapCache,
+       _clearLegacyData = clearLegacyData;
 
   static const List<String> plainHiveBoxes = <String>[
     'notifications_box',
@@ -41,6 +43,7 @@ class AppResetService {
   final ResetLogsCleaner? _clearLogs;
   final ResetLogsCleaner? _clearHitobitoTrafficLogs;
   final Future<void> Function()? _clearMapCache;
+  final Future<void> Function()? _clearLegacyData;
 
   Future<void> resetAllData({bool clearLogFile = true}) async {
     final prefs = await _preferencesProvider();
@@ -48,6 +51,10 @@ class AppResetService {
 
     await _authSessionRepository.clear();
     await _sensitiveStorageService.purgeSensitiveData();
+    final clearLegacyData = _clearLegacyData;
+    if (clearLegacyData != null) {
+      await clearLegacyData();
+    }
     final clearMapCache = _clearMapCache;
     if (clearMapCache != null) {
       await clearMapCache();

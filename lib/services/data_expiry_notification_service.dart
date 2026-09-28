@@ -52,6 +52,12 @@ class DataExpiryNotificationService {
     _initialized = true;
   }
 
+  /// Entfernt alle geplanten und angezeigten Benachrichtigungen der App,
+  /// ohne dafuer Berechtigungen anzufragen.
+  Future<void> cancelAll() {
+    return _plugin.cancelAll();
+  }
+
   Future<void> updateExpiryReminder({
     required bool active,
     required int daysRemaining,
