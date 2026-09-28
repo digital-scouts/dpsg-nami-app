@@ -56,6 +56,13 @@ class AppLocalizations {
       'welcome_body':
           'Willkommen in der App. Weitere Hinweise und Optionen folgen später. Vor dem breiteren Rollout der Kartenfunktion wird hier noch ein ausdrücklicher Privacy-Policy-Hinweis mit einer Bestätigung wie "Ich stimme Privacy Policy zu" ergänzt.',
       'welcome_action': 'Weiter',
+      'feedback_prompt_title': 'Wie gefällt dir die App?',
+      'feedback_prompt_body':
+          'Du nutzt die App jetzt seit einer Weile. Dein Feedback hilft uns, sie weiter zu verbessern – und eine Bewertung im Store hilft anderen Leitenden, die App zu finden.',
+      'feedback_prompt_feedback': 'Feedback geben',
+      'feedback_prompt_rate': 'App bewerten',
+      'feedback_prompt_later': 'Später',
+      'debug_feedback_prompt': 'Feedback-Dialog zeigen',
       'version': 'Version',
       'notifications_enable': 'Benachrichtigungen aktiviert',
       'analytics_enable': 'Analyse/Telemetry erlauben',
@@ -648,6 +655,13 @@ class AppLocalizations {
       'welcome_body':
           'Welcome to the app. More guidance and options will be added later. Before the broader rollout of the map feature, an explicit Privacy Policy notice with a confirmation such as "I agree to the Privacy Policy" will be added here.',
       'welcome_action': 'Continue',
+      'feedback_prompt_title': 'How do you like the app?',
+      'feedback_prompt_body':
+          'You have been using the app for a while now. Your feedback helps us improve it – and a store rating helps other leaders find the app.',
+      'feedback_prompt_feedback': 'Give feedback',
+      'feedback_prompt_rate': 'Rate app',
+      'feedback_prompt_later': 'Later',
+      'debug_feedback_prompt': 'Show feedback dialog',
       'version': 'Version',
       'notifications_enable': 'Notifications enabled',
       'analytics_enable': 'Allow analytics/telemetry',

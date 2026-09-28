@@ -12,6 +12,7 @@ import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/model/member_edit_model.dart';
 import 'package:nami/presentation/notifications/app_snackbar.dart';
+import 'package:nami/presentation/notifications/feedback_prompt_dialog.dart';
 import 'package:nami/presentation/screens/changelog_page.dart';
 import 'package:provider/provider.dart';
 import 'package:wiredash/wiredash.dart';
@@ -850,6 +851,29 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                   subtitle: t.t('debug_feedback_section_subtitle'),
                   child: _DebugButtonGroup(
                     children: [
+                      _DebugActionButton(
+                        icon: Icons.forum_outlined,
+                        label: t.t('debug_feedback_prompt'),
+                        onPressed: () async {
+                          await _trackDebugAction(
+                            logger,
+                            'open_feedback_prompt',
+                          );
+                          final ctx = navigatorKey.currentContext;
+                          if (ctx != null) {
+                            await runFeedbackPromptFlow(
+                              ctx,
+                              logger: logger,
+                              trigger: 'debug',
+                            );
+                          } else {
+                            _showSnackbar(
+                              t.t('debug_feedback_missing_root'),
+                              type: AppSnackbarType.error,
+                            );
+                          }
+                        },
+                      ),
                       _DebugActionButton(
                         icon: Icons.feedback_outlined,
                         label: t.t('debug_feedback_send'),

@@ -53,7 +53,7 @@ TODO: Before broader rollout of map features, refine this section and the in-app
 
 The app currently uses third-party services such as:
 
-- Wiredash for feedback and event tracking
+- Wiredash for feedback, optional satisfaction surveys (promoter score) and event tracking
 - Geoapify for address autocomplete and geocoding
 - MapTiler for configured map tile delivery, with an OpenStreetMap-based fallback when no explicit tile endpoint is configured
 - platform and store infrastructure provided by Apple and Google
