@@ -33,6 +33,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: "stable"
+          flutter-version: 3.44.5
       - run: flutter --version
       - run: flutter pub get
       - name: Verify formatting
@@ -86,6 +87,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: "stable"
+          flutter-version: 3.44.5
       - run: dart --version
       - run: flutter pub get
       - name: Build aab
