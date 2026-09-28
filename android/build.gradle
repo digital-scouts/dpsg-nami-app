@@ -4,14 +4,6 @@ allprojects {
         mavenCentral()
     }
 
-    // TODO (try to remove later) Force resolution of androidx.core to compatible version project-wide
-    configurations.all {
-        resolutionStrategy {
-            force 'androidx.core:core:1.13.1'
-            force 'androidx.core:core-ktx:1.13.1'
-        }
-    }
-
     subprojects {
         afterEvaluate { project ->
             if (project.hasProperty('android')) {
@@ -19,18 +11,28 @@ allprojects {
                     if (namespace == null) {
                         namespace project.group
                     }
+                    // Einige Plugins (z. B. objectbox_flutter_libs 4.x, durch
+                    // flutter_map_tile_caching 10.x festgelegt) kompilieren noch
+                    // gegen ein altes SDK; AGP 9 lehnt das bei der AAR-Pruefung ab.
+                    if (compileSdk != null && compileSdk < 36) {
+                        compileSdk 36
+                    }
                 }
             }
         }
     }
 }
 
-rootProject.buildDir = '../build'
+def newBuildDir = rootProject.layout.buildDirectory.dir('../../build').get()
+rootProject.layout.buildDirectory.value(newBuildDir)
+
 subprojects {
-    project.buildDir = "${rootProject.buildDir}/${project.name}"
+    project.layout.buildDirectory.value(newBuildDir.dir(project.name))
+}
+subprojects {
     project.evaluationDependsOn(':app')
 }
 
 tasks.register("clean", Delete) {
-    delete rootProject.buildDir
+    delete rootProject.layout.buildDirectory
 }
