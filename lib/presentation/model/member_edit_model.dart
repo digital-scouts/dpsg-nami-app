@@ -156,6 +156,8 @@ class MemberEditModel extends ChangeNotifier {
 
   List<PendingPersonUpdate> _pendingUpdates = const <PendingPersonUpdate>[];
   bool _isBusy = false;
+  bool _isSubmitting = false;
+  Future<PendingPersonUpdateRetrySummary>? _retryInFlight;
 
   List<PendingPersonUpdate> get pendingUpdates => _pendingUpdates;
   bool get isBusy => _isBusy;
@@ -382,6 +384,21 @@ class MemberEditModel extends ChangeNotifier {
           'details': error.message,
         }),
       );
+    } on MemberWriteNetworkUnavailableException catch (error) {
+      await _logMemberEditEvent(
+        action: 'prepare_result',
+        trigger: trigger,
+        outcome: 'network_unavailable_local_fallback',
+        personId: personId,
+        track: true,
+      );
+      return MemberEditPrepareResult(
+        success: true,
+        member: mitglied,
+        messageSpec: UiMessageSpec('member_edit_prepare_network_unavailable', {
+          'details': error.message,
+        }),
+      );
     } on MemberWriteRejectedException catch (error) {
       await _logMemberEditFailure(
         trigger: trigger,
@@ -448,8 +465,16 @@ class MemberEditModel extends ChangeNotifier {
       );
     }
 
+    _isSubmitting = true;
     _setBusy(true);
     try {
+      // Ein laufender Retry kann den Eintrag dieser Person noch entfernen oder
+      // ersetzen; erst danach ist die gespeicherte Basis verlaesslich.
+      final runningRetry = _retryInFlight;
+      if (runningRetry != null) {
+        await runningRetry;
+      }
+      basisMitglied = _queuedBasisFor(personId) ?? basisMitglied;
       if (existingResolutionCase != null) {
         await _logResolutionEvent(
           eventName: 'member_resolution_resend_started',
@@ -764,14 +789,62 @@ class MemberEditModel extends ChangeNotifier {
         messageSpec: UiMessageSpec('member_edit_submit_queued'),
       );
     } finally {
+      _isSubmitting = false;
       _setBusy(false);
     }
+  }
+
+  /// Liefert die urspruengliche Serverbasis eines wartenden Entwurfs.
+  ///
+  /// Wird ein wartender Entwurf erneut bearbeitet, uebergibt die UI den alten
+  /// Entwurf als Basis. Ohne die urspruengliche Basis wuerden dessen
+  /// Aenderungen beim Merge als "lokal unveraendert" gelten und vom
+  /// Serverstand ueberschrieben. Bei Merge-Konflikten ist der Serverstand aus
+  /// dem Konfliktfall die richtige Basis, daher bleibt die uebergebene Basis.
+  Mitglied? _queuedBasisFor(int personId) {
+    for (final entry in _pendingUpdates) {
+      if (entry.personId != personId) {
+        continue;
+      }
+      final resolutionCase = entry.resolutionCase;
+      if (resolutionCase != null && resolutionCase.hasMergeConflicts) {
+        return null;
+      }
+      return entry.basisMitglied;
+    }
+    return null;
   }
 
   Future<PendingPersonUpdateRetrySummary> retryPending({
     required String accessToken,
     Iterable<String>? entryIds,
     String trigger = 'manual_retry',
+  }) async {
+    // Timer, Connectivity und Resume koennen gleichzeitig ausloesen. Ein
+    // zweiter Lauf wuerde dieselben Aenderungen doppelt senden, und waehrend
+    // eines Speicherns wuerde er den neuen Entwurf ueberschreiben.
+    if (_retryInFlight != null || _isSubmitting) {
+      return const PendingPersonUpdateRetrySummary(
+        results: <PendingPersonUpdateRetryItemResult>[],
+      );
+    }
+    final retry = _retryPending(
+      accessToken: accessToken,
+      entryIds: entryIds,
+      trigger: trigger,
+    );
+    _retryInFlight = retry;
+    try {
+      return await retry;
+    } finally {
+      _retryInFlight = null;
+    }
+  }
+
+  Future<PendingPersonUpdateRetrySummary> _retryPending({
+    required String accessToken,
+    Iterable<String>? entryIds,
+    required String trigger,
   }) async {
     final requestedIds = entryIds?.toSet();
     final entries = requestedIds == null

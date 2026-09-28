@@ -1,3 +1,8 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:http/http.dart' as http;
+
 import '../../domain/auth/auth_session.dart';
 import '../../domain/member/member_resolution.dart';
 import '../../domain/member/member_write_repository.dart';
@@ -27,6 +32,8 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
   final MemberWriteRemoteAccessExecutor? _remoteAccessExecutor;
   final LoggerService _logger;
 
+  static const String _unreachableMessage =
+      'Hitobito ist gerade nicht erreichbar.';
   static const String _authRequiredMessage =
       'Die Sitzung ist nicht mehr gültig. Bitte erneut anmelden und danach den Vorgang wiederholen.';
 
@@ -49,6 +56,12 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
       rethrow;
     } on NetworkAccessBlockedException catch (error) {
       throw MemberWriteNetworkBlockedException(error.message);
+    } on TimeoutException {
+      throw const MemberWriteNetworkUnavailableException(_unreachableMessage);
+    } on IOException {
+      throw const MemberWriteNetworkUnavailableException(_unreachableMessage);
+    } on http.ClientException {
+      throw const MemberWriteNetworkUnavailableException(_unreachableMessage);
     } on HitobitoApiException catch (error) {
       await _logger.logWarn(
         'member_write',
@@ -175,6 +188,12 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
       rethrow;
     } on NetworkAccessBlockedException catch (error) {
       throw MemberWriteNetworkBlockedException(error.message);
+    } on TimeoutException {
+      throw const MemberWriteNetworkUnavailableException(_unreachableMessage);
+    } on IOException {
+      throw const MemberWriteNetworkUnavailableException(_unreachableMessage);
+    } on http.ClientException {
+      throw const MemberWriteNetworkUnavailableException(_unreachableMessage);
     } on HitobitoApiException catch (error) {
       await _logger.logWarn(
         'member_write',
