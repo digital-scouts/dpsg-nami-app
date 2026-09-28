@@ -22,7 +22,7 @@ jobs:
           ref: ${{ github.event.pull_request.merge_commit_sha }}
       - uses: dart-lang/setup-dart@v1
         with:
-          sdk: ${{ vars.DART_VERSION }}
+          sdk: "3.12.2" # Dart von Flutter 3.44.5
       - id: version
         name: Read version from pubspec
         run: |
@@ -41,7 +41,7 @@ jobs:
           ref: ${{ github.event.pull_request.merge_commit_sha }}
       - uses: dart-lang/setup-dart@v1
         with:
-          sdk: ${{ vars.DART_VERSION }}
+          sdk: "3.12.2" # Dart von Flutter 3.44.5
       - name: Update Android version manifest
         run: dart tool/update_remote_version.dart android ${{ needs.prepare.outputs.version }}
       - name: Create Android PR
@@ -70,7 +70,7 @@ jobs:
           ref: ${{ github.event.pull_request.merge_commit_sha }}
       - uses: dart-lang/setup-dart@v1
         with:
-          sdk: ${{ vars.DART_VERSION }}
+          sdk: "3.12.2" # Dart von Flutter 3.44.5
       - name: Update iOS version manifest
         run: dart tool/update_remote_version.dart ios ${{ needs.prepare.outputs.version }}
       - name: Create iOS PR

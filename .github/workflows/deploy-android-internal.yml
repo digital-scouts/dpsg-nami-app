@@ -33,10 +33,6 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      - name: Set up Dart
-        uses: dart-lang/setup-dart@v1
-        with:
-          sdk: ${{ vars.DART_VERSION }}
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -93,10 +89,29 @@ jobs:
           WIREDASH_SECRET: ${{ secrets.PROD_WIREDASH_SECRET }}
           WIREDASH_PROJECT_ID: ${{ secrets.PROD_WIREDASH_PROJECT_ID }}
           GEOAPIFY_KEY: ${{ secrets.GEOAPIFY_KEY }}
+          HITOBITO_BASE_URL: ${{ vars.HITOBITO_BASE_URL }}
+          HITOBITO_OAUTH_CLIENT_ID: ${{ secrets.HITOBITO_OAUTH_CLIENT_ID }}
+          HITOBITO_OAUTH_CLIENT_SECRET: ${{ secrets.HITOBITO_OAUTH_CLIENT_SECRET }}
+          HITOBITO_OAUTH_REDIRECT_URI: ${{ vars.HITOBITO_OAUTH_REDIRECT_URI }}
         run: |
-          awk -F= '/^[A-Z][A-Z0-9_]*=/{print $1}' .env.example | while read -r key; do
-            printf '%s=%s\n' "$key" "$(printenv "$key" || true)"
+          set -euo pipefail
+          # Wie ios/ci_scripts/ci_pre_xcodebuild.sh (require_env): diese Keys
+          # kommen nur aus CI, sonst liefe der Build z. B. gegen demo.hitobito.com.
+          REQUIRED_KEYS="WIREDASH_SECRET WIREDASH_PROJECT_ID GEOAPIFY_KEY HITOBITO_BASE_URL HITOBITO_OAUTH_CLIENT_ID HITOBITO_OAUTH_CLIENT_SECRET HITOBITO_OAUTH_REDIRECT_URI"
+          # Uebrige Keys: CI-Wert, sonst Default aus .env.example (URLs, Limits).
+          grep -E '^[A-Z][A-Z0-9_]*=' .env.example | while IFS= read -r line; do
+            key="${line%%=*}"
+            value="$(printenv "$key" || true)"
+            if [[ " $REQUIRED_KEYS " != *" $key "* ]]; then
+              value="${value:-${line#*=}}"
+            fi
+            printf '%s=%s\n' "$key" "$value"
           done > .env
+          for key in $REQUIRED_KEYS; do
+            if ! grep -Eq "^${key}=.+" .env; then
+              echo "::warning::$key ist nicht gesetzt; der Build ist so nicht produktiv nutzbar."
+            fi
+          done
           dart tool/validate_env_files.dart
 
       - name: Build Android App Bundle
