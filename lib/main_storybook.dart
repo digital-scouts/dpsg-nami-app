@@ -3,6 +3,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:nami/stories/app_bottom_navigation_story.dart';
 import 'package:nami/stories/app_sidebar_story.dart';
 import 'package:nami/stories/app_snackbar_story.dart';
+import 'package:nami/stories/feedback_prompt_dialog_story.dart';
 import 'package:nami/stories/message_of_the_day_card_story.dart';
 import 'package:nami/stories/nami_ai_chat_page_story.dart';
 import 'package:nami/stories/notifications_story.dart';
@@ -48,6 +49,7 @@ List<Story> buildStorybookStories() {
     appBottomNavigationStory(),
     appSidebarStory(),
     appSnackbarStory(),
+    feedbackPromptDialogStory(),
     notificationsListStory(),
     storyMessageOfTheDayCard(),
     confettiOverlayStory(),

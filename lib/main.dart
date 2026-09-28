@@ -24,6 +24,7 @@ import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/model/member_edit_model.dart';
 import 'package:nami/presentation/notifications/app_update_dialog.dart';
+import 'package:nami/presentation/notifications/feedback_prompt_dialog.dart';
 import 'package:nami/presentation/notifications/notifications_hub.dart';
 import 'package:nami/presentation/notifications/welcome_dialog.dart';
 import 'package:nami/presentation/screens/auth_gate_screen.dart';
@@ -58,6 +59,7 @@ import 'services/app_startup_state_service.dart';
 import 'services/app_update_service.dart';
 import 'services/biometric_lock_service.dart';
 import 'services/data_expiry_notification_service.dart';
+import 'services/feedback_prompt_service.dart';
 import 'services/hitobito_auth_config_controller.dart';
 import 'services/hitobito_auth_env.dart';
 import 'services/hitobito_data_retention_policy.dart';
@@ -387,6 +389,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   static const Duration _pendingRetryInterval = Duration(minutes: 1);
+  static const Duration _engagementPromptDelay = Duration(seconds: 5);
 
   late UsageTrackingService _usage;
   bool _isPaused = false;
@@ -413,6 +416,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   bool _didCheckForAppUpdate = false;
   bool _startupFlowCompleted = false;
   bool _startupFlowRunning = false;
+  bool _didRunEngagementPrompt = false;
+  final FeedbackPromptService _feedbackPromptService = FeedbackPromptService();
 
   @override
   void initState() {
@@ -552,12 +557,16 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       if (!hasSeenWelcome) {
         await showWelcomeDialog(dialogContext);
         await _appStartupStateService.markWelcomeSeen();
+        await _feedbackPromptService.recordFirstUse();
         _startupFlowCompleted = true;
         return;
       }
 
-      await _checkForAppUpdate();
+      final didShowUpdateDialog = await _checkForAppUpdate();
       _startupFlowCompleted = true;
+      if (!didShowUpdateDialog) {
+        unawaited(_runEngagementPromptIfNeeded());
+      }
     } finally {
       _startupFlowRunning = false;
       if (_startupFlowCompleted) {
@@ -713,9 +722,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     );
   }
 
-  Future<void> _checkForAppUpdate() async {
+  Future<bool> _checkForAppUpdate() async {
     if (_didCheckForAppUpdate) {
-      return;
+      return false;
     }
     _didCheckForAppUpdate = true;
 
@@ -723,13 +732,64 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       final info = await context.read<AppUpdateService>().checkForUpdate();
       final dialogContext = navigatorKey.currentContext;
       if (!mounted || dialogContext == null || info == null) {
-        return;
+        return false;
       }
       await showAppUpdateDialog(dialogContext, info);
+      return true;
     } catch (error, stack) {
       await logger.log(
         'update',
         'App-Update-Check fehlgeschlagen: $error\n$stack',
+      );
+      return false;
+    }
+  }
+
+  /// Zeigt pro App-Session hoechstens einen Engagement-Dialog: zuerst den
+  /// einmaligen Feedback-Dialog, sonst ggf. den Wiredash Promoter Score.
+  Future<void> _runEngagementPromptIfNeeded() async {
+    if (_didRunEngagementPrompt) {
+      return;
+    }
+    _didRunEngagementPrompt = true;
+
+    try {
+      await Future<void>.delayed(_engagementPromptDelay);
+      if (!mounted || !_canShowStartupUi()) {
+        return;
+      }
+
+      if (await _feedbackPromptService.shouldShow()) {
+        final ctx = navigatorKey.currentContext;
+        if (ctx == null || !ctx.mounted) {
+          return;
+        }
+        await runFeedbackPromptFlow(
+          ctx,
+          logger: logger,
+          trigger: 'startup',
+          service: _feedbackPromptService,
+        );
+        return;
+      }
+
+      final ctx = navigatorKey.currentContext;
+      if (!mounted || ctx == null || !ctx.mounted) {
+        return;
+      }
+      final didShowSurvey = await Wiredash.of(
+        ctx,
+      ).showPromoterSurvey(inheritMaterialTheme: true);
+      if (didShowSurvey) {
+        await logger.trackAndLog('feedback', 'promoter_survey', {
+          'action': 'shown',
+          'trigger': 'startup',
+        });
+      }
+    } catch (error, stack) {
+      await logger.log(
+        'feedback',
+        'Engagement-Dialog fehlgeschlagen: $error\n$stack',
       );
     }
   }
@@ -936,6 +996,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           child: Wiredash(
             projectId: projectId,
             secret: secret,
+            psOptions: const PsOptions(
+              initialDelay: Duration(days: 21),
+              frequency: Duration(days: 90),
+              minimumAppStarts: 3,
+            ),
             feedbackOptions: const WiredashFeedbackOptions(
               labels: [
                 Label(id: 'label-u26353u60f', title: 'Fehler'),

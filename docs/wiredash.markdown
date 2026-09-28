@@ -32,6 +32,51 @@ Für Problemlösungsfälle unterscheidet die App zusätzlich:
 
 Damit lässt sich später getrennt auswerten, wie oft echte Merge-Konflikte und wie oft andere nicht automatisch lösbare Fälle auftreten.
 
+## Feedback-Dialog und Promoter Score
+
+Neben dem Tracking nutzt die App Wiredash für Feedback und den Promoter Score. Beides ist unabhängig vom Analytics-Schalter, weil es sich um sichtbare, freiwillige Interaktionen handelt. Pro App-Start erscheint höchstens einer der beiden Dialoge, und nur wenn beim Start kein Welcome- oder Update-Dialog angezeigt wurde.
+
+### Feedback-Dialog
+
+- erscheint frühestens 7 Tage nach der ersten Nutzung (erster angemeldeter Start), einige Sekunden nach dem Start
+- bietet „Feedback geben“ (öffnet Wiredash-Feedback), „App bewerten“ (öffnet den Store-Eintrag) und „Später“
+- „Später“ oder Schließen verschiebt den Dialog um 14 Tage; insgesamt erscheint er höchstens zweimal
+- nach „Feedback geben“ oder „App bewerten“ erscheint er nicht mehr
+- der Zustand liegt in SharedPreferences unter `feedback_prompt.*` und wird beim App-Reset gelöscht
+- in den Debug-Tools lässt sich der Dialog ohne Speicherung des Zustands erzwingen
+
+### Promoter Score
+
+- wird über `Wiredash.of(context).showPromoterSurvey()` angefragt, wenn der Feedback-Dialog nicht dran ist
+- Wiredash entscheidet anhand von `PsOptions`: erstmals nach 21 Tagen und mindestens 3 App-Starts, danach alle 90 Tage
+- die 21 Tage sind bewusst länger als die 7 Tage des Feedback-Dialogs, damit beide nicht in dieselbe Woche fallen
+
+### feedback_prompt
+
+Typische Eigenschaften:
+
+- `action`: `shown`, `feedback`, `rate`, `later`
+- `trigger`: `startup` oder `debug`
+
+### promoter_survey
+
+Typische Eigenschaften:
+
+- `action`: `shown`
+- `trigger`: `startup`
+
+## Konvention für neue Ereignisse
+
+Damit sich Ereignisse später zu Funnels verbinden lassen, gilt für neue Ereignisse:
+
+- ein Ereignisname pro fachlichem Ablauf, z. B. `member_edit` oder `feedback_prompt`
+- der Schritt steht in `action`, das Ergebnis in `outcome`
+- Werte von `action`, `outcome` und `trigger` bleiben stabil und werden nicht umbenannt
+- höchstens 10 Eigenschaften pro Ereignis; Werte sind primitive Typen und höchstens 1024 Zeichen lang, sonst verwirft Wiredash sie
+- Ereignisnamen sind 3 bis 64 Zeichen lang, beginnen mit einem Buchstaben und nutzen `snake_case`
+
+Wiredash wertet Ereignisse aggregiert aus. Für echte Funnels pro Nutzer wäre später ein anderes Ziel am zentralen Event-Hook im `LoggerService` nötig.
+
 ## Allgemeine Bearbeiten-Ereignisse
 
 ### member_edit
