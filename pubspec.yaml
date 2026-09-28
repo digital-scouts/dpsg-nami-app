@@ -74,6 +74,8 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  integration_test:
+    sdk: flutter
   storybook_flutter: ^0.14.1
   flutter_lints: ^6.0.0
   hive_ce_generator: ^1.6.0

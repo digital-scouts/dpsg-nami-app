@@ -61,6 +61,19 @@ void main() {
       expect(ackBox.isEmpty, isTrue);
     },
   );
+
+  test('entfernt beim Reset auch Daten der App-Version 0.2.x', () async {
+    var legacyCleared = false;
+    final service = AppResetService(
+      authSessionRepository: _FakeAuthSessionRepository(),
+      sensitiveStorageService: _FakeSensitiveStorageService(),
+      clearLegacyData: () async => legacyCleared = true,
+    );
+
+    await service.resetAllData(clearLogFile: false);
+
+    expect(legacyCleared, isTrue);
+  });
 }
 
 class _FakeAuthSessionRepository implements AuthSessionRepository {

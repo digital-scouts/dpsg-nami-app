@@ -141,6 +141,23 @@ class MapTileCacheService {
     }
   }
 
+  /// Loescht einen einzelnen Store (z. B. den `mapStore` der App-Version
+  /// 0.2.x), ohne den eigenen Store [storeName] anzutasten.
+  Future<void> deleteStore(String name) async {
+    try {
+      await initialize();
+      final store = FMTCStore(name);
+      if (await store.manage.ready) {
+        await store.manage.delete();
+        await _log('Map-Store $name geloescht');
+      }
+    } catch (error, stackTrace) {
+      await _log(
+        'Map-Store $name konnte nicht geloescht werden: $error\n$stackTrace',
+      );
+    }
+  }
+
   Future<void> deleteRoot() async {
     Object? deleteError;
     StackTrace? deleteStackTrace;

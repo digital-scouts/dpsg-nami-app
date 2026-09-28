@@ -23,3 +23,5 @@ Gilt zusaetzlich zu den Root-Regeln in [../CLAUDE.md](../CLAUDE.md). Die Isolati
 - Formatierung anwenden: `dart format .`
 - Versionskonsistenz pruefen: `dart tool/validate_versions.dart`
 - Env-Konsistenz pruefen: `dart tool/validate_env_files.dart`
+- Upgrade-Test 0.2.8 → aktueller Stand auf Emulator/Simulator (lokal, nicht in CI): `tool/upgrade_test/run_upgrade_test.sh --platform android|ios --device <id>`. Installiert die App auf dem Gerät neu und löscht dabei deren Daten, deshalb nur auf Test-Geräten ausführen.
+- Legacy-Fixture für Unit-Tests neu erzeugen: `tool/legacy_fixture/generate_0_2_8_fixture.sh`
