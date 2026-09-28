@@ -1,19 +1,24 @@
 #!/usr/bin/env bash
-# Geraete-Upgrade-Test 0.2.8 -> aktueller Stand.
+# Geraete-Upgrade-Test letzte Release-Version -> aktueller Stand.
 #
-# 1. Baut aus v0.2.8 eine Seed-App (echter 0.2.8-Code, Fake-Daten, geplante
+# Quellversion ist LEGACY_REF (Default: neuester Tag vX.Y.Z unterhalb der
+# pubspec-Version, z. B. v0.2.8). Pro Quellversion werden erwartet:
+#   tool/legacy_fixture/vX_Y_Z/{legacy_seed.dart,main_seed.dart}
+#   integration_test/upgrade_from_X_Y_Z_test.dart
+#
+# 1. Baut aus LEGACY_REF eine Seed-App (echter alter Code, Fake-Daten, geplante
 #    Geburtstagsbenachrichtigungen) und installiert sie frisch.
 # 2. Startet sie und wartet, bis der Seed fertig ist.
 # 3. Installiert die aktuelle App darueber (Daten bleiben erhalten) und fuehrt
-#    integration_test/upgrade_from_0_2_8_test.dart aus.
+#    den passenden Integrationstest aus.
 #
 # Nutzung:
 #   tool/upgrade_test/run_upgrade_test.sh --platform android --device emulator-5554
 #   tool/upgrade_test/run_upgrade_test.sh --platform ios --device <simulator-udid>
+#   LEGACY_REF=v0.2.8 tool/upgrade_test/run_upgrade_test.sh ...
 set -euo pipefail
 
 APP_ID="de.jlange.nami.app"
-LEGACY_REF="${LEGACY_REF:-v0.2.8}"
 SEED_TIMEOUT_SECONDS=180
 STATUS_FILE="legacy_seed_status.txt"
 
@@ -46,6 +51,34 @@ if [[ "$PLATFORM" == "android" ]] && ! command -v adb >/dev/null 2>&1; then
 fi
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+
+if [[ -z "${LEGACY_REF:-}" ]]; then
+  CURRENT_VERSION="$(awk '/^version:/{print $2}' "$REPO_ROOT/pubspec.yaml")"
+  CURRENT_VERSION="${CURRENT_VERSION%%+*}"
+  LEGACY_REF="$(
+    git -C "$REPO_ROOT" tag --list 'v[0-9]*.[0-9]*.[0-9]*' |
+      awk -v current="$CURRENT_VERSION" '
+        function key(v, parts) { sub(/^v/, "", v); split(v, parts, "."); return sprintf("%06d%06d%06d", parts[1], parts[2], parts[3]) }
+        key($0) < key(current) && key($0) > best { best = key($0); ref = $0 }
+        END { print ref }'
+  )"
+  if [[ -z "$LEGACY_REF" ]]; then
+    echo "Kein Release-Tag unterhalb von $CURRENT_VERSION gefunden (git fetch --tags?)." >&2
+    exit 2
+  fi
+fi
+LEGACY_ID="${LEGACY_REF#v}"
+LEGACY_ID="${LEGACY_ID//./_}"
+SEED_DIR="$REPO_ROOT/tool/legacy_fixture/v${LEGACY_ID}"
+UPGRADE_TEST="integration_test/upgrade_from_${LEGACY_ID}_test.dart"
+SEED_TARGET="lib/main_seed_${LEGACY_ID}.dart"
+if [[ ! -f "$SEED_DIR/legacy_seed.dart" || ! -f "$SEED_DIR/main_seed.dart" || ! -f "$REPO_ROOT/$UPGRADE_TEST" ]]; then
+  echo "Fuer $LEGACY_REF fehlt der Upgrade-Test: erwartet ${SEED_DIR#"$REPO_ROOT"/}/{legacy_seed,main_seed}.dart" >&2
+  echo "und $UPGRADE_TEST. Nach einem Release Seed und Test fuer die neue Quellversion anlegen." >&2
+  exit 2
+fi
+echo "==> Upgrade-Test $LEGACY_REF -> aktueller Stand"
+
 # Die App startet ohne Wiredash-Konfiguration nicht (main.dart wirft).
 for key in WIREDASH_PROJECT_ID WIREDASH_SECRET; do
   if ! grep -Eq "^${key}=.+" "$REPO_ROOT/.env" 2>/dev/null; then
@@ -63,8 +96,8 @@ trap cleanup EXIT
 echo "==> Worktree $LEGACY_REF anlegen"
 git -C "$REPO_ROOT" worktree add --detach "$WORKTREE" "$LEGACY_REF" >/dev/null
 "$REPO_ROOT/tool/legacy_fixture/prepare_legacy_worktree.sh" "$WORKTREE"
-cp "$REPO_ROOT/tool/legacy_fixture/v0_2_8/legacy_seed.dart" "$WORKTREE/lib/legacy_seed.dart"
-cp "$REPO_ROOT/tool/legacy_fixture/v0_2_8/main_seed.dart" "$WORKTREE/lib/main_seed_0_2_8.dart"
+cp "$SEED_DIR/legacy_seed.dart" "$WORKTREE/lib/legacy_seed.dart"
+cp "$SEED_DIR/main_seed.dart" "$WORKTREE/$SEED_TARGET"
 
 read_status_android() {
   adb -s "$DEVICE" shell run-as "$APP_ID" cat "app_flutter/$STATUS_FILE" 2>/dev/null || true
@@ -81,9 +114,9 @@ echo "==> Seed-App ($LEGACY_REF) bauen und frisch installieren"
   cd "$WORKTREE"
   flutter pub get >/dev/null
   if [[ "$PLATFORM" == "android" ]]; then
-    flutter build apk --debug -t lib/main_seed_0_2_8.dart
+    flutter build apk --debug -t "$SEED_TARGET"
   else
-    flutter build ios --simulator --debug -t lib/main_seed_0_2_8.dart
+    flutter build ios --simulator --debug -t "$SEED_TARGET"
   fi
 )
 
@@ -121,4 +154,4 @@ fi
 
 echo "==> Aktuelle App darueber installieren und Upgrade-Test ausfuehren"
 cd "$REPO_ROOT"
-flutter test integration_test/upgrade_from_0_2_8_test.dart -d "$DEVICE"
+flutter test "$UPGRADE_TEST" -d "$DEVICE"

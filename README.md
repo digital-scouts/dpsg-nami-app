@@ -85,6 +85,8 @@ Zusätzlich validieren [validate-pull-requests.yml](.github/workflows/validate-p
 
 Für PRs enthält [validate-pull-requests.yml](.github/workflows/validate-pull-requests.yml) jetzt auch eine macOS-Jobstufe, die native iOS-Swift-Quelltexte formatiert und den iOS-Runner mit `xcodebuild` für den Simulator kompiliert.
 
+Android wird in PRs als Release-App-Bundle gebaut und auf 16-KB-Seitenunterstützung geprüft. Der Pflicht-Check `Update check Android` installiert auf einem Emulator die letzte Release-Version (neuester Tag unterhalb der pubspec-Version, aktuell `v0.2.8`) mit Testdaten, aktualisiert darauf auf den PR-Stand und prüft den Start. Anschließend startet er das Release-Bundle so, wie Google Play es ausliefert (siehe [tool/upgrade_test/run_upgrade_test.sh](tool/upgrade_test/run_upgrade_test.sh) und [tool/android/](tool/android/)).
+
 Dadurch kann eine inkonsistente Versionierung nicht unbemerkt in den Hauptbranch gelangen, auch wenn lokal kein Hook aktiviert ist. Der GitHub Release enthält bewusst nur Tag und Release-Notizen, aber kein angehängtes Android-Binärfile.
 
 Der iOS-Release-Pfad läuft weiterhin außerhalb von GitHub Actions über Xcode Cloud beziehungsweise App Store Connect.

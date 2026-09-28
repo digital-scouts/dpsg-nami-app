@@ -86,8 +86,89 @@ jobs:
       - name: Run Flutter tests
         run: flutter test
 
-      - name: Build Android debug APK
-        run: flutter build apk --debug
+      # Release statt Debug: R8/minify und AAB-Packaging brechen sonst erst im
+      # Deploy nach dem Merge.
+      - name: Build Android App Bundle (release, unsigned)
+        run: flutter build appbundle --release
+
+      - name: Verify 16 KB page size support
+        run: tool/android/check_16kb_alignment.sh build/app/outputs/bundle/release/app-release.aab
+
+      - name: Upload Android App Bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-aab
+          path: build/app/outputs/bundle/release/app-release.aab
+          retention-days: 3
+
+  update-check-android:
+    name: Update check Android
+    needs: validate
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          # run_upgrade_test.sh baut die letzte Release-Version aus ihrem Tag.
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ vars.JAVA_VERSION }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.5
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # Ohne Wiredash-Werte wirft main.dart; Dummy-Werte reichen.
+      - name: Create env file for emulator tests
+        run: |
+          sed -e 's/^WIREDASH_SECRET=.*/WIREDASH_SECRET=ci-dummy/' \
+              -e 's/^WIREDASH_PROJECT_ID=.*/WIREDASH_PROJECT_ID=ci-dummy/' \
+              .env.example > .env
+
+      - name: Download Android App Bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: android-release-aab
+          path: ${{ runner.temp }}/aab
+
+      - name: Download bundletool
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/bundletool.jar" \
+            https://github.com/google/bundletool/releases/download/1.18.1/bundletool-all-1.18.1.jar
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Upgrade from last release and release smoke start
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          BUNDLETOOL_JAR: ${{ runner.temp }}/bundletool.jar
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          # Jede Zeile laeuft in einer eigenen Shell.
+          script: |
+            tool/upgrade_test/run_upgrade_test.sh --platform android --device emulator-5554
+            tool/android/smoke_start_release.sh --aab "${{ runner.temp }}/aab/app-release.aab" --device emulator-5554
 
   validate-ios:
     name: Validate iOS Swift

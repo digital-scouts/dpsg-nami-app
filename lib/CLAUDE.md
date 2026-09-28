@@ -23,5 +23,6 @@ Gilt zusaetzlich zu den Root-Regeln in [../CLAUDE.md](../CLAUDE.md). Die Isolati
 - Formatierung anwenden: `dart format .`
 - Versionskonsistenz pruefen: `dart tool/validate_versions.dart`
 - Env-Konsistenz pruefen: `dart tool/validate_env_files.dart`
-- Upgrade-Test 0.2.8 → aktueller Stand auf Emulator/Simulator (lokal, nicht in CI): `tool/upgrade_test/run_upgrade_test.sh --platform android|ios --device <id>`. Installiert die App auf dem Gerät neu und löscht dabei deren Daten, deshalb nur auf Test-Geräten ausführen.
+- Upgrade-Test letzte Release-Version → aktueller Stand auf Emulator/Simulator: `tool/upgrade_test/run_upgrade_test.sh --platform android|ios --device <id>`. Installiert die App auf dem Gerät neu und löscht dabei deren Daten, deshalb nur auf Test-Geräten ausführen. Die Quellversion ist der neueste Tag `vX.Y.Z` unterhalb der pubspec-Version (überschreibbar per `LEGACY_REF`). Dafür müssen `tool/legacy_fixture/vX_Y_Z/{legacy_seed,main_seed}.dart` und `integration_test/upgrade_from_X_Y_Z_test.dart` existieren. Nach jedem Release beides für die neue Version anlegen und das Seed-Verzeichnis in `analysis_options.yaml` ausschließen. In PRs läuft der Test für Android als Pflicht-Check `Update check Android`.
+- Release-Build prüfen: `tool/android/check_16kb_alignment.sh <app.aab>` (16-KB-Seiten) und `BUNDLETOOL_JAR=<jar> tool/android/smoke_start_release.sh --aab <app.aab> --device <id>` (Release-Start ohne Absturz).
 - Legacy-Fixture für Unit-Tests neu erzeugen: `tool/legacy_fixture/generate_0_2_8_fixture.sh`
