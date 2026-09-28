@@ -13,3 +13,11 @@ echo "ref: refs/heads/legacy-fixture" >"$WORKTREE/.gitlink/HEAD"
 
 # Die App liest .env als Asset; Werte werden fuer den Seed nicht benoetigt.
 touch "$WORKTREE/.env"
+
+# 0.2.8 baut mit -Xmx1536M; der Jetifier laeuft damit (z. B. in CI) in
+# "Java heap space". Nur Build-Umgebung, der App-Code bleibt unveraendert.
+GRADLE_PROPERTIES="$WORKTREE/android/gradle.properties"
+if [[ -f "$GRADLE_PROPERTIES" ]]; then
+  sed -i.bak 's/^org\.gradle\.jvmargs=.*/org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=1G/' "$GRADLE_PROPERTIES"
+  rm -f "$GRADLE_PROPERTIES.bak"
+fi
