@@ -73,6 +73,7 @@ class AppStateHandler extends ChangeNotifier {
 
   void onResume(BuildContext context) async {
     _paused = false;
+    BirthdayNotificationService.rescheduleIfNeeded();
     try {
       await FMTCObjectBoxBackend().initialise();
     } catch (_) {}
@@ -175,7 +176,10 @@ class AppStateHandler extends ChangeNotifier {
     bool loadAll = false,
     background = false,
   }) async {
-    Wiredash.trackEvent('Data sync startet');
+    Wiredash.trackEvent(
+      'Data sync startet',
+      data: {'background': background, 'loadAll': loadAll},
+    );
     sensLog.i(
       'Start loading data with loadAll: $loadAll and background: $background',
     );
@@ -256,6 +260,11 @@ class AppStateHandler extends ChangeNotifier {
         rethrow;
       } catch (e) {
         if (memberAllProgressNotifier.value == 0) {
+          sensLog.i('sync failed with no permission to load members');
+          Wiredash.trackEvent(
+            'Data sync failed',
+            data: {'error': 'no permission', 'detail': e.toString()},
+          );
           showSnackBar(
             navigatorKey.currentContext!,
             'Dir fehlen Rechte, Mitglieder zu laden - Dieses Recht ist notwendig um die App zu nutzen.',
@@ -274,10 +283,11 @@ class AppStateHandler extends ChangeNotifier {
       await BirthdayNotificationService.scheduleAllBirthdays();
       syncState = SyncState.successful;
 
-      if (background) {
-        sensLog.i('sync successful in background');
-        Wiredash.trackEvent('Data sync successful');
-      }
+      sensLog.i('sync successful (background: $background)');
+      Wiredash.trackEvent(
+        'Data sync successful',
+        data: {'background': background, 'loadAll': loadAll},
+      );
       setReadyState();
     } on NoGruppierungException catch (_) {
       sensLog.i('sync failed with no gruppierung found');

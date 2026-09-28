@@ -32,7 +32,7 @@ class StatusInformationBannerState extends State<StatusInformationBanner> {
       transitionBuilder: (child, animation) {
         return SizeTransition(
           sizeFactor: animation,
-          axisAlignment: -1,
+          alignment: Alignment.topCenter,
           child: child,
         );
       },
