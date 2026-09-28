@@ -86,6 +86,9 @@ jobs:
       - name: Run Flutter tests
         run: flutter test
 
+      - name: Build Android debug APK
+        run: flutter build apk --debug
+
   validate-ios:
     name: Validate iOS Swift
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
