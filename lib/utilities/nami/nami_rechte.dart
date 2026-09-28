@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
+import 'package:nami/utilities/types.dart';
 
 // rechte enum
 enum AllowedFeatures {
@@ -73,9 +74,13 @@ Future<List<int>> loadRechte(int id) async {
   Map<int, String> rechte;
   try {
     rechte = await _loadRechteJson(id);
+  } on SessionExpiredException {
+    rethrow;
   } catch (e, st) {
+    // Bei einem temporären Fehler die bisherigen Rechte behalten, statt sie zu
+    // überschreiben und damit Funktionen wie das Bearbeiten auszublenden.
     sensLog.e('Failed to load rechte', error: e, stackTrace: st);
-    return [];
+    return getRechte();
   }
   return rechte.keys.toList();
 }

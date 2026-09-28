@@ -59,13 +59,6 @@ class NavigationHomeScreenState extends State<NavigationHomeScreen> {
   }
 
   void changeIndex(DrawerIndex drawerIndexdata) {
-    Wiredash.of(context).showPromoterSurvey(
-      options: const PsOptions(
-        frequency: Duration(days: 100),
-        initialDelay: Duration(days: 7),
-        minimumAppStarts: 3,
-      ),
-    );
     if (drawerIndex != drawerIndexdata) {
       drawerIndex = drawerIndexdata;
       if (drawerIndex == DrawerIndex.mitglieder) {

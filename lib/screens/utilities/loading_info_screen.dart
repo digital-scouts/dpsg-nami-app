@@ -120,20 +120,39 @@ class LoadingInfoScreenState extends State<LoadingInfoScreen> {
                 icon: const Icon(Icons.send),
                 label: const Text("Logs teilen"),
               ),
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.pop(context);
+              // Ohne vorhandene Daten (Erst-Sync) ist nur das Abmelden sinnvoll,
+              // sonst bleiben die bisherigen Daten erhalten.
+              if (widget.loadAll)
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
 
-                  AppStateHandler().setLoggedOutState();
-                },
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: Theme.of(
-                    context,
-                  ).colorScheme.onErrorContainer,
+                    AppStateHandler().setLoggedOutState();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    foregroundColor: Theme.of(
+                      context,
+                    ).colorScheme.onErrorContainer,
+                  ),
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Fehler. Du wirst ausgeloggt.'),
+                )
+              else
+                ElevatedButton.icon(
+                  onPressed: () {
+                    AppStateHandler().setReadyState();
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    foregroundColor: Theme.of(
+                      context,
+                    ).colorScheme.onErrorContainer,
+                  ),
+                  icon: const Icon(Icons.sync_problem),
+                  label: const Text(
+                    'Fehler beim Aktualisieren. Deine bisherigen Daten bleiben erhalten.',
+                  ),
                 ),
-                icon: const Icon(Icons.logout),
-                label: const Text('Fehler. Du wirst ausgeloggt.'),
-              ),
             ] else if (context.watch<AppStateHandler>().syncState ==
                 SyncState.offline)
               ElevatedButton.icon(

@@ -1008,38 +1008,54 @@ class MitgliedDetailState extends State<MitgliedDetail>
 
     Wiredash.trackEvent('Member Details edit');
 
-    Mitglied updatedMitglied;
+    Mitglied? updatedMitglied;
     try {
       updatedMitglied = await updateOneMember(widget.mitglied.id!);
     } on SessionExpiredException catch (_) {
-      if (!await AppStateHandler().setReloginState()) {
-        // ignore: use_build_context_synchronously
-        Navigator.of(context).pop();
-        updatedMitglied = await updateOneMember(widget.mitglied.id!);
-      } else {
-        return;
+      if (await AppStateHandler().setReloginState()) {
+        try {
+          updatedMitglied = await updateOneMember(widget.mitglied.id!);
+        } catch (e) {
+          sensLog.e('Failed to load member after relogin', error: e);
+        }
       }
+    } catch (e) {
+      sensLog.e('Failed to load member before editing', error: e);
     }
 
+    if (!mounted) return;
     setState(() {
       loadingEditMember = false;
     });
-    // ignore: use_build_context_synchronously
+    if (updatedMitglied == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Die aktuellen Daten des Mitglieds konnten nicht geladen werden. Bitte versuche es später erneut.',
+          ),
+        ),
+      );
+      return;
+    }
+    final mitgliedToEdit = updatedMitglied;
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
     Navigator.push(
-      // ignore: use_build_context_synchronously
       context,
       MaterialPageRoute(
-        builder: (context) => MitgliedBearbeiten(mitglied: updatedMitglied),
+        builder: (context) => MitgliedBearbeiten(mitglied: mitgliedToEdit),
       ),
     ).then((result) async {
       if (result != null) {
-        Mitglied newMitglied = await updateOneMember(widget.mitglied.id!);
-        setState(() {
-          widget.mitglied = newMitglied;
-          loadingEditMember = false;
-        });
+        try {
+          Mitglied newMitglied = await updateOneMember(widget.mitglied.id!);
+          if (!mounted) return;
+          setState(() {
+            widget.mitglied = newMitglied;
+          });
+        } catch (e) {
+          sensLog.e('Failed to reload member after editing', error: e);
+        }
       }
     });
   }

@@ -281,7 +281,7 @@ class HiveSettingsService implements SettingsService {
 
   @override
   bool getNamiChangesEnabled() {
-    return settingsBox.get(SettingValue.namiChangesEnabled.toString()) ?? false;
+    return settingsBox.get(SettingValue.namiChangesEnabled.toString()) ?? true;
   }
 
   @override
@@ -305,7 +305,7 @@ class HiveSettingsService implements SettingsService {
     return settingsBox.get(
           SettingValue.syncDataLoadingOverWifiOnly.toString(),
         ) ??
-        true;
+        false;
   }
 
   @override

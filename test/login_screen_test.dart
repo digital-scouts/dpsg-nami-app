@@ -1,9 +1,13 @@
 // ignore_for_file: avoid_print
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hive_ce/hive.dart';
 import 'package:logger/logger.dart';
 import 'package:nami/screens/login_screen.dart';
+import 'package:nami/utilities/hive/settings_service.dart';
 import 'package:nami/utilities/logger.dart' as logger_utils;
 
 // Einfache Test-Output-Klasse, die nichts ausgibt
@@ -15,8 +19,14 @@ class TestLogOutput extends LogOutput {
 }
 
 void main() {
+  late Directory hiveDir;
+
   // Initialisiere den Logger vor den Tests
-  setUpAll(() {
+  setUpAll(() async {
+    hiveDir = await Directory.systemTemp.createTemp('login_screen_test');
+    Hive.init(hiveDir.path);
+    settingsService = HiveSettingsService(await Hive.openBox('settingsBox'));
+
     // Initialisiere sensLog mit einem minimalen Logger für Tests
     logger_utils.sensLog = Logger(
       filter: ProductionFilter(),
@@ -29,6 +39,15 @@ void main() {
       ),
       output: TestLogOutput(), // Keine Ausgabe während der Tests
     );
+  });
+
+  tearDownAll(() async {
+    await Hive.close();
+    await hiveDir.delete(recursive: true);
+  });
+
+  setUp(() async {
+    await settingsBox.clear();
   });
 
   Widget createLoginScreen() {
@@ -45,6 +64,37 @@ void main() {
     await tester.drag(find.byType(SingleChildScrollView), Offset(0, amount));
     await tester.pumpAndSettle();
   }
+
+  group('LoginScreen gespeicherte Anmeldedaten', () {
+    testWidgets('Ohne gespeicherte Daten ist nichts vorausgewählt', (
+      WidgetTester tester,
+    ) async {
+      await setupLoginScreen(tester);
+
+      expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, false);
+      expect(
+        tester.widget<TextField>(find.byType(TextField).first).controller?.text,
+        isEmpty,
+      );
+    });
+
+    testWidgets(
+      'Bei erneuter Anmeldung bleiben Mitgliedsnummer und Daten speichern erhalten',
+      (WidgetTester tester) async {
+        // Hive schreibt asynchron auf die Platte, das klappt nur außerhalb
+        // der FakeAsync-Zone des Widget-Tests
+        await tester.runAsync(() async {
+          await settingsBox.put(SettingValue.namiLoginId.toString(), 123456);
+          await settingsBox.put(SettingValue.namiPassword.toString(), 'geheim');
+        });
+
+        await setupLoginScreen(tester);
+
+        expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, true);
+        expect(find.text('123456'), findsOneWidget);
+      },
+    );
+  });
 
   group('LoginScreen Widget Tests', () {
     testWidgets('LoginScreen zeigt alle wichtigen UI Elemente an', (

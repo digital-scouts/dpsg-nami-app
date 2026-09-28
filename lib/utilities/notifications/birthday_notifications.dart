@@ -109,7 +109,39 @@ class BirthdayNotificationService {
     }
   }
 
+  /// Wird gesetzt, wenn das Einplanen fehlgeschlagen ist (z.B. iOS
+  /// "Error 2003 Could not save notification", wenn der Notification-Store
+  /// bei gesperrtem Gerät im Hintergrund nicht beschreibbar ist).
+  static bool _rescheduleNeeded = false;
+
+  /// Holt ein fehlgeschlagenes Einplanen nach, z.B. beim nächsten Resume.
+  static Future<void> rescheduleIfNeeded() async {
+    if (_rescheduleNeeded) {
+      await scheduleAllBirthdays();
+    }
+  }
+
+  /// Plant die nächsten Geburtstagsbenachrichtigungen ein. Wirft keine
+  /// Fehler, damit z.B. der Daten-Sync nicht daran scheitert.
   static Future<void> scheduleAllBirthdays() async {
+    try {
+      await _scheduleAllBirthdays();
+      _rescheduleNeeded = false;
+    } catch (e, st) {
+      _rescheduleNeeded = true;
+      sensLog.e(
+        'Geburtstagsbenachrichtigungen konnten nicht eingeplant werden',
+        error: e,
+        stackTrace: st,
+      );
+      Wiredash.trackEvent(
+        'Geburtstagsbenachrichtigung',
+        data: {'type': 'Einplanen fehlgeschlagen', 'error': e.toString()},
+      );
+    }
+  }
+
+  static Future<void> _scheduleAllBirthdays() async {
     await cancelAllBirthdayNotifications();
 
     List<Stufe> stufen = getGeburtstagsbenachrichtigungenGruppen();

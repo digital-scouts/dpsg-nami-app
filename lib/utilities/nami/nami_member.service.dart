@@ -94,16 +94,18 @@ Future<NamiMemberDetailsModel> _loadMemberDetails(
   int id,
   String url,
   String path,
-  int gruppierung,
-  String cookie, {
+  int gruppierung, {
   int retry = 0,
 }) async {
   String fullUrl =
       '$url$path/mitglied/filtered-for-navigation/gruppierung/gruppierung/$gruppierung/$id';
   sensLog.i('Request: Load MemberDetails for ${sensId(id)}');
-  final http.Response response;
+  final dynamic source;
   try {
-    response = await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
+    source = await withMaybeRetry(() async {
+      final cookie = getNamiApiCookie();
+      return await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
+    }, 'Failed to load MemberDetails');
   } on SessionExpiredException catch (e, st) {
     sensLog.i(
       'Failed to load MemberDetails for ${sensId(id)}',
@@ -119,84 +121,75 @@ Future<NamiMemberDetailsModel> _loadMemberDetails(
     );
     throw Exception('Failed to load MemberDetails');
   }
-  final source = json.decode(const Utf8Decoder().convert(response.bodyBytes));
 
-  if (response.statusCode == 200 && source['success']) {
-    NamiMemberDetailsModel member = NamiMemberDetailsModel.fromJson(
-      source['data'],
+  NamiMemberDetailsModel member = NamiMemberDetailsModel.fromJson(
+    source['data'],
+  );
+  if (DateTime.now().difference(member.geburtsDatum).inDays > 36525) {
+    sensLog.w(
+      'Geburtsdatum von ${sensId(id)} ist fehlerhaft: ${member.geburtsDatum}. Versuche es erneut. Retry: $retry',
     );
-    if (DateTime.now().difference(member.geburtsDatum).inDays > 36525) {
-      sensLog.w(
-        'Geburtsdatum von ${sensId(id)} ist fehlerhaft: ${member.geburtsDatum}. Versuche es erneut. Retry: $retry',
+    if (retry <= 3) {
+      return await _loadMemberDetails(
+        id,
+        url,
+        path,
+        gruppierung,
+        retry: retry + 1,
       );
-      if (retry <= 3) {
-        return await _loadMemberDetails(
-          id,
-          url,
-          path,
-          gruppierung,
-          cookie,
-          retry: retry + 1,
-        );
-      }
     }
-    sensLog.t('Response: Loaded MemberDetails for ${sensMember(member)}');
-    return member;
-  } else {
-    sensLog.e(
-      'Failed to load MemberDetails for ${sensId(id)}: wrong status code: ${response.statusCode}',
-    );
-    throw Exception('Failed to load MemberDetails');
   }
+  sensLog.t('Response: Loaded MemberDetails for ${sensMember(member)}');
+  return member;
 }
 
-Future<List<NamiMemberTaetigkeitenModel>> _loadMemberTaetigkeiten(
+/// Returns null if the taetigkeiten could not be loaded.
+Future<List<NamiMemberTaetigkeitenModel>?> _loadMemberTaetigkeiten(
   int id,
   String url,
   String path,
-  String cookie,
 ) async {
   String fullUrl =
       '$url$path/zugeordnete-taetigkeiten/filtered-for-navigation/gruppierung-mitglied/mitglied/$id/flist';
   sensLog.i('Request: Taetigkeiten for ${sensId(id)}');
-  final response = await http.get(
-    Uri.parse(fullUrl),
-    headers: {'Cookie': cookie},
-  );
-  final source = json.decode(const Utf8Decoder().convert(response.bodyBytes));
+  final dynamic source;
+  try {
+    source = await withMaybeRetry(() async {
+      final cookie = getNamiApiCookie();
+      return await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
+    }, 'Failed to load Taetigkeiten');
+  } on SessionExpiredException {
+    rethrow;
+  } catch (e) {
+    sensLog.e('Failed to load Taetigkeiten for ${sensId(id)}', error: e);
+    return null;
+  }
 
   sensLog.t('Response: Taetigkeiten for ${sensId(id)}');
-
-  if (response.statusCode == 200 && source['success']) {
-    List<NamiMemberTaetigkeitenModel> taetigkeiten = [];
-    for (Map<String, dynamic> item in source['data']) {
-      final taetigkeit = NamiMemberTaetigkeitenModel.fromJson(item, true);
-      sensLog.t(
-        'Taetigkeit = ${taetigkeit.taetigkeit}, untergliederung = ${taetigkeit.untergliederung}, isActive = ${taetigkeit.aktivBis?.isAfter(DateTime.now()) ?? false} von ${sensId(id)}',
-      );
-      taetigkeiten.add(taetigkeit);
-    }
-    sensLog.t('Finalized Taetigkeiten for ${sensId(id)}');
-    return taetigkeiten;
-  } else {
-    sensLog.e('Failed to load Taetigkeiten for ${sensId(id)}');
-    return [];
+  List<NamiMemberTaetigkeitenModel> taetigkeiten = [];
+  for (Map<String, dynamic> item in source['data']) {
+    final taetigkeit = NamiMemberTaetigkeitenModel.fromJson(item, true);
+    sensLog.t(
+      'Taetigkeit = ${taetigkeit.taetigkeit}, untergliederung = ${taetigkeit.untergliederung}, isActive = ${taetigkeit.aktivBis?.isAfter(DateTime.now()) ?? false} von ${sensId(id)}',
+    );
+    taetigkeiten.add(taetigkeit);
   }
+  sensLog.t('Finalized Taetigkeiten for ${sensId(id)}');
+  return taetigkeiten;
 }
 
 Future<List<NamiMemberAusbildungModel>> _loadMemberAusbildungen(
   int id,
   String url,
   String path,
-  String cookie,
 ) async {
   String fullUrl =
       '$url$path/mitglied-ausbildung/filtered-for-navigation/mitglied/mitglied/$id/flist';
   sensLog.i('Request: Ausbildungen for ${sensId(id)}');
-  final response = await http.get(
-    Uri.parse(fullUrl),
-    headers: {'Cookie': cookie},
-  );
+  final response = await sendWithRelogin(() async {
+    final cookie = getNamiApiCookie();
+    return await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
+  });
   final source = json.decode(
     const Utf8Decoder().convert(response.bodyBytes).replaceAll("&#34;", '\\"'),
   );
@@ -235,7 +228,6 @@ Future<Mitglied> updateOneMember(int memberId) async {
       url,
       path,
       gruppierung,
-      cookie,
       DataChangesService(),
       ValueNotifier<double>(0),
       1,
@@ -351,9 +343,6 @@ Future<void> syncMembers(
     rethrow;
   }
 
-  /// Update cookie because it could be new after relogin
-  cookie = getNamiApiCookie();
-
   int? loggedInUserId = await findUserId(
     memberId,
     mitgliedIds,
@@ -379,7 +368,6 @@ Future<void> syncMembers(
         url,
         path,
         gruppierung,
-        cookie,
         dataChangesService,
         memberAllProgressNotifier,
         1 / mitgliedIds.length,
@@ -411,11 +399,6 @@ Future<void> endMembership(int memberId, DateTime endDate) async {
     return Future.value();
   }
 
-  final headers = {
-    'Cookie': cookie,
-    'Content-Type': 'application/x-www-form-urlencoded',
-  };
-
   // body is x-www-form-urlencoded
   final body = {
     'id': memberId.toString(),
@@ -428,6 +411,10 @@ Future<void> endMembership(int memberId, DateTime endDate) async {
   sensLog.i('Request: Mitgliedschaft beenden für ${sensId(memberId)}');
 
   final response = await withMaybeRetry(() async {
+    final headers = {
+      'Cookie': getNamiApiCookie(),
+      'Content-Type': 'application/x-www-form-urlencoded',
+    };
     return await http.post(Uri.parse(fullUrl), headers: headers, body: body);
   });
 
@@ -445,22 +432,15 @@ Future<Mitglied?> _storeMitgliedToHive(
   String url,
   String path,
   int gruppierung,
-  String cookie,
   DataChangesService dataChangesService,
   ValueNotifier<double> memberAllProgressNotifier,
   double progressStep,
 ) async {
   NamiMemberDetailsModel rawMember;
-  List<NamiMemberTaetigkeitenModel> rawTaetigkeiten;
+  List<NamiMemberTaetigkeitenModel>? rawTaetigkeiten;
   List<NamiMemberAusbildungModel> rawAusbildungen = [];
   try {
-    rawMember = await _loadMemberDetails(
-      mitgliedId,
-      url,
-      path,
-      gruppierung,
-      cookie,
-    );
+    rawMember = await _loadMemberDetails(mitgliedId, url, path, gruppierung);
   } catch (e, st) {
     sensLog.i(
       'Failed to load member ${sensId(mitgliedId)}',
@@ -470,30 +450,24 @@ Future<Mitglied?> _storeMitgliedToHive(
     rethrow;
   }
   try {
-    rawTaetigkeiten = await _loadMemberTaetigkeiten(
-      mitgliedId,
-      url,
-      path,
-      cookie,
-    );
+    rawTaetigkeiten = await _loadMemberTaetigkeiten(mitgliedId, url, path);
+  } on SessionExpiredException {
+    rethrow;
   } catch (e, st) {
     sensLog.e(
       'Failed to load member tätigkeiten ${sensId(mitgliedId)}',
       error: e,
       stackTrace: st,
     );
-    rawTaetigkeiten = [];
+    rawTaetigkeiten = null;
   }
 
   if (getAllowedFeatures().contains(AllowedFeatures.ausbildungRead) ||
       mitgliedId == getNamiLoginId()) {
     try {
-      rawAusbildungen = await _loadMemberAusbildungen(
-        mitgliedId,
-        url,
-        path,
-        cookie,
-      );
+      rawAusbildungen = await _loadMemberAusbildungen(mitgliedId, url, path);
+    } on SessionExpiredException {
+      rethrow;
     } catch (e, st) {
       sensLog.e(
         'Failed to load member ausbildungen ${sensId(mitgliedId)}',
@@ -503,7 +477,7 @@ Future<Mitglied?> _storeMitgliedToHive(
     }
   }
   List<Taetigkeit> taetigkeiten = [];
-  for (NamiMemberTaetigkeitenModel item in rawTaetigkeiten) {
+  for (NamiMemberTaetigkeitenModel item in rawTaetigkeiten ?? []) {
     taetigkeiten.add(
       Taetigkeit()
         ..id = item.id
@@ -554,7 +528,9 @@ Future<Mitglied?> _storeMitgliedToHive(
     ..telefon2 = rawMember.telefon2
     ..telefon3 = rawMember.telefon3
     ..lastUpdated = rawMember.lastUpdated ?? DateTime.now()
-    ..version = rawTaetigkeiten.isNotEmpty ? rawMember.version : 0
+    // Version 0 erzwingt ein erneutes Laden beim nächsten Sync, wenn die
+    // Tätigkeiten nicht geladen werden konnten
+    ..version = rawTaetigkeiten != null ? rawMember.version : 0
     ..mglTypeId = rawMember.mglTypeId ?? 'NICHT_MITGLIED'
     ..beitragsartId = rawMember.beitragsartId ?? 0
     ..status = rawMember.status ?? ''
