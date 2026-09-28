@@ -6,15 +6,20 @@ import 'package:nami/utilities/hive/mitglied.dart';
 import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/hive/taetigkeit.dart';
 import 'package:nami/utilities/logger.dart';
+import 'package:nami/utilities/nami/nami.service.dart';
 import 'package:nami/utilities/nami/nami_member.service.dart';
 import 'package:nami/utilities/stufe.dart';
+import 'package:nami/utilities/types.dart';
 import 'package:wiredash/wiredash.dart';
 
-String url = getNamiLUrl();
-String path = getNamiPath();
-int? gruppierungId = getGruppierungId();
-String? gruppierungName = getGruppierungName();
-String cookie = getNamiApiCookie();
+String get url => getNamiLUrl();
+String get path => getNamiPath();
+
+// Getter statt Top-Level-Variablen: Cookie und Gruppierung ändern sich nach
+// einem Relogin bzw. Gruppierungswechsel und dürfen nicht eingefroren werden.
+int? get gruppierungId => getGruppierungId();
+String? get gruppierungName => getGruppierungName();
+String get cookie => getNamiApiCookie();
 
 Future<Mitglied> stufenwechsel(
   int memberId,
@@ -47,7 +52,6 @@ Future<void> createTaetigkeit(
   String formattedStartDate = DateFormat(
     'yyyy-MM-ddTHH:mm:ss',
   ).format(startDate);
-  final headers = {'Cookie': cookie, 'Content-Type': 'application/json'};
   final body = jsonEncode({
     'gruppierung': gruppierungName,
     'gruppierungId': gruppierungId,
@@ -59,21 +63,10 @@ Future<void> createTaetigkeit(
     'caeaGroupForGfId': caeaGroup,
   });
 
-  http.Response response;
-  try {
-    response = await http.post(
-      Uri.parse(fullUrl),
-      headers: headers,
-      body: body,
-    );
-    sensLog.i('Complete: Erstelle Tätigkeit für ${sensId(memberId)}');
-  } catch (e) {
-    throw Exception('Failed to create taetigkeit for ${sensId(memberId)}');
-  }
-
-  if (response.statusCode != 200 || !jsonDecode(response.body)['success']) {
-    throw Exception('Failed to create taetigkeit for ${sensId(memberId)}');
-  }
+  await withMaybeRetry(() async {
+    final headers = {'Cookie': cookie, 'Content-Type': 'application/json'};
+    return await http.post(Uri.parse(fullUrl), headers: headers, body: body);
+  }, 'Failed to create taetigkeit for ${sensId(memberId)}');
   sensLog.i('Success: Tätigkeit erstellt für ${sensId(memberId)}');
 }
 
@@ -86,23 +79,15 @@ Future<void> completeTaetigkeit(
       '$url$path/zugeordnete-taetigkeiten/filtered-for-navigation/gruppierung-mitglied/mitglied/$memberId/${taetigkeit.id}';
   sensLog.i('Request: Complete Tätigkeit for ${sensId(memberId)}');
 
-  final headers = {'Cookie': cookie, 'Content-Type': 'application/json'};
   final body = jsonEncode({
     'aktivVon': DateFormat('yyyy-MM-ddTHH:mm:ss').format(taetigkeit.aktivVon),
     'aktivBis': DateFormat('yyyy-MM-ddTHH:mm:ss').format(endDate),
   });
 
-  http.Response response;
-  try {
-    response = await http.put(Uri.parse(fullUrl), headers: headers, body: body);
-    sensLog.i('Complete: Erstelle Tätigkeit für ${sensId(memberId)}');
-  } catch (e) {
-    throw Exception('Failed to update taetigkeit for ${sensId(memberId)}');
-  }
-
-  if (response.statusCode != 200 || !jsonDecode(response.body)['success']) {
-    throw Exception('Failed to update taetigkeit for ${sensId(memberId)}');
-  }
+  await withMaybeRetry(() async {
+    final headers = {'Cookie': cookie, 'Content-Type': 'application/json'};
+    return await http.put(Uri.parse(fullUrl), headers: headers, body: body);
+  }, 'Failed to update taetigkeit for ${sensId(memberId)}');
   sensLog.i('Success: Tätigkeit erstellt für ${sensId(memberId)}');
 }
 
@@ -159,16 +144,18 @@ Future<void> createTaetigkeitForStufe(
 Future<Map<int, String>> loadTaetigkeitAufGruppierung() async {
   String fullUrl =
       '$url$path/taetigkeitaufgruppierung/filtered/gruppierung/gruppierung/$gruppierungId';
-  final response = await http.get(
-    Uri.parse(fullUrl),
-    headers: {'Cookie': cookie},
-  );
-
-  if (response.statusCode != 200 || !jsonDecode(response.body)['success']) {
-    sensLog.e('Failed to load taetigkeiten.');
+  final dynamic data;
+  try {
+    final body = await withMaybeRetry(() async {
+      return await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
+    });
+    data = body['data'];
+  } on SessionExpiredException {
+    rethrow;
+  } catch (e) {
+    sensLog.e('Failed to load taetigkeiten.', error: e);
     return {};
   }
-  final data = jsonDecode(response.body)['data'];
   return Map<int, String>.fromEntries(
     data.map<MapEntry<int, String>>(
       (item) => MapEntry<int, String>(item['id'], item['descriptor']),
@@ -181,16 +168,18 @@ Future<Map<int, String>> loadUntergliederungAufTaetigkeit(
 ) async {
   String fullUrl =
       '$url$path/untergliederungauftaetigkeit/filtered/untergliederung/taetigkeit/$taetigkeit';
-  final response = await http.get(
-    Uri.parse(fullUrl),
-    headers: {'Cookie': cookie},
-  );
-
-  if (response.statusCode != 200 || !jsonDecode(response.body)['success']) {
-    sensLog.e('Failed to load untergliederungen.');
+  final dynamic data;
+  try {
+    final body = await withMaybeRetry(() async {
+      return await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
+    });
+    data = body['data'];
+  } on SessionExpiredException {
+    rethrow;
+  } catch (e) {
+    sensLog.e('Failed to load untergliederungen.', error: e);
     return {};
   }
-  final data = jsonDecode(response.body)['data'];
 
   return Map<int, String>.fromEntries(
     data.map<MapEntry<int, String>>(
@@ -203,16 +192,18 @@ Future<Map<int, String>> loadUntergliederungAufTaetigkeit(
 Future<Map<int, String>> loadCaeaGroupAufTaetigkeit(String taetigkeit) async {
   String fullUrl =
       '$url$path/caea-group/filtered-for-navigation/taetigkeit/taetigkeit/$taetigkeit';
-  final response = await http.get(
-    Uri.parse(fullUrl),
-    headers: {'Cookie': cookie},
-  );
-
-  if (response.statusCode != 200 || !jsonDecode(response.body)['success']) {
-    sensLog.e('Failed to load untergliederungen.');
+  final dynamic data;
+  try {
+    final body = await withMaybeRetry(() async {
+      return await http.get(Uri.parse(fullUrl), headers: {'Cookie': cookie});
+    });
+    data = body['data'];
+  } on SessionExpiredException {
+    rethrow;
+  } catch (e) {
+    sensLog.e('Failed to load untergliederungen.', error: e);
     return {};
   }
-  final data = jsonDecode(response.body)['data'];
   return Map<int, String>.fromEntries(
     data.map<MapEntry<int, String>>(
       (item) => MapEntry<int, String>(item['id'], item['descriptor']),

@@ -55,7 +55,13 @@ double getAlterAm({DateTime? referenceDate, required DateTime date}) {
   return age;
 }
 
-Future<void> openWiredash(BuildContext context, String feedbackType) async {
+/// Öffnet Wiredash. Mit [options] lassen sich z.B. die Labels für diesen
+/// Aufruf festlegen.
+Future<void> openWiredash(
+  BuildContext context,
+  String feedbackType, {
+  WiredashFeedbackOptions? options,
+}) async {
   Mitglied? user;
   String gitInfo = await getGitCommitId() ?? 'unknown';
   try {
@@ -77,6 +83,6 @@ Future<void> openWiredash(BuildContext context, String feedbackType) async {
         ..custom['gruppierungName'] = settingsService.getGruppierungName(),
     );
 
-    Wiredash.of(context).show(inheritMaterialTheme: true);
+    Wiredash.of(context).show(inheritMaterialTheme: true, options: options);
   });
 }

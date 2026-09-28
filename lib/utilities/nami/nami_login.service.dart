@@ -103,11 +103,33 @@ Future<bool> namiLoginWithPassword(int userId, String password) async {
   return true;
 }
 
-Future<bool> updateLoginData() async {
+Future<bool>? _runningRelogin;
+
+/// Meldet den Nutzer mit den gespeicherten Zugangsdaten neu an.
+///
+/// Parallele Aufrufe (z.B. viele Requests im Sync, deren Session gleichzeitig
+/// abläuft) teilen sich einen einzigen Login-Request, damit sich die Sessions
+/// nicht gegenseitig überschreiben. Wirft nie, sondern liefert false.
+Future<bool> updateLoginData() {
+  return _runningRelogin ??= _updateLoginData().whenComplete(() {
+    _runningRelogin = null;
+  });
+}
+
+Future<bool> _updateLoginData() async {
   int? loginId = getNamiLoginId();
   String? password = getNamiPassword();
-  if (loginId != null && password != null) {
-    return await namiLoginWithPassword(loginId, password);
+  if (loginId == null || password == null) {
+    return false;
   }
-  return false;
+  try {
+    return await namiLoginWithPassword(loginId, password);
+  } catch (e, st) {
+    sensLog.w(
+      'Relogin with saved credentials failed',
+      error: e,
+      stackTrace: st,
+    );
+    return false;
+  }
 }

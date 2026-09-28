@@ -1,5 +1,5 @@
 # Uncomment this line to define a global platform for your project
-platform :ios, '14.0'
+platform :ios, '15.0'
 source 'https://cdn.cocoapods.org/'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
@@ -43,7 +43,7 @@ post_install do |installer|
 
     target.build_configurations.each do |config|
   # Vereinheitlicht Deployment Target mit Podfile Plattform
-      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '14.0'
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
       # For xcode 15+ only
        if config.base_configuration_reference && Integer(xcode_base_version) >= 15
         xcconfig_path = config.base_configuration_reference.real_path

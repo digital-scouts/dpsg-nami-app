@@ -23,33 +23,85 @@ dynamic withMaybeRetry(
   Future<http.Response> Function() func, [
   String? errorMessage,
 ]) async {
-  final response = await func();
+  final response = await sendWithRelogin(func);
+  final body = tryDecodeNamiBody(response);
 
-  if (response.statusCode == 200 && jsonDecode(response.body)['success']) {
-    return jsonDecode(utf8.decode(response.bodyBytes));
-  } else if (response.statusCode == 500 ||
-      (response.statusCode == 200 &&
-          jsonDecode(response.body)["message"] == "Session expired")) {
-    final success = await updateLoginData();
-    if (success) {
-      final response = await func();
-      late final body = jsonDecode(response.body);
-      if (response.statusCode == 200 && body['success']) {
-        return body;
-      } else {
+  if (response.statusCode == 200 && body?['success'] == true) {
+    return body;
+  }
+  sensLog.e(
+    'withMaybeRetry: ${body?["message"]} Failed to load with status code ${response.statusCode}. Custom Message: $errorMessage',
+  );
+  throw Exception(
+    'Failed to load with status code ${response.statusCode}. Custom Message: $errorMessage',
+  );
+}
+
+/// Calls [func] and returns its response. If the session expired, it tries a
+/// silent relogin with the saved password and calls [func] once more.
+/// Throws [SessionExpiredException] if that's not possible.
+///
+/// Remeber to obtain the cookie in [func] to always use the latest one.
+Future<http.Response> sendWithRelogin(
+  Future<http.Response> Function() func,
+) async {
+  final cookieBeforeRequest = getNamiApiCookie();
+  final response = await func();
+  final body = tryDecodeNamiBody(response);
+  final successful = response.statusCode == 200 && body?['success'] == true;
+
+  if (!successful &&
+      (isNamiSessionExpired(response, body) ||
+          // a silent relogin is cheap, so retry unclear server errors of
+          // reading requests once (writing requests could be applied twice)
+          (response.statusCode == 500 &&
+              response.request?.method == 'GET' &&
+              getNamiPassword() != null))) {
+    // Another request may already have renewed the session in the meantime
+    if (getNamiApiCookie() == cookieBeforeRequest) {
+      sensLog.i('Session expired, try relogin');
+      if (!await updateLoginData()) {
         throw SessionExpiredException();
       }
-    } else {
+    }
+    final retryResponse = await func();
+    if (isNamiSessionExpired(retryResponse, tryDecodeNamiBody(retryResponse))) {
       throw SessionExpiredException();
     }
-  } else {
-    sensLog.e(
-      'withMaybeRetry: ${jsonDecode(response.body)["message"]} Failed to load with status code ${response.statusCode}. Custom Message: $errorMessage',
-    );
-    throw Exception(
-      'Failed to load with status code ${response.statusCode}. Custom Message: $errorMessage',
-    );
+    if (retryResponse.statusCode == 200) {
+      setLastLoginCheck(DateTime.now());
+    }
+    return retryResponse;
   }
+  if (successful) {
+    setLastLoginCheck(DateTime.now());
+  }
+  return response;
+}
+
+/// Decodes the NaMi json response. Returns null if the body is no json object,
+/// e.g. when NaMi answers with the HTML login page.
+Map<String, dynamic>? tryDecodeNamiBody(http.Response response) {
+  try {
+    final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+    return decoded is Map<String, dynamic> ? decoded : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+/// NaMi signals an expired session either with a json message, with a 500
+/// containing "session expired" or by answering with the html login page.
+bool isNamiSessionExpired(http.Response response, Map<String, dynamic>? body) {
+  final message = body?['message']?.toString().toLowerCase() ?? '';
+  if (message.contains('session expired')) return true;
+  if (response.statusCode == 401) return true;
+  if (response.statusCode == 500 &&
+      response.body.toLowerCase().contains('session expired')) {
+    return true;
+  }
+  // NaMi redirects to the html login page when the session is gone
+  return body == null && response.body.trimLeft().startsWith('<');
 }
 
 /// Calls [func] and returns the html body if reuqest ws succsessful

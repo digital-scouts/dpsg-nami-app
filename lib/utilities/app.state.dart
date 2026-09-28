@@ -18,6 +18,7 @@ import 'package:nami/utilities/hive/settings.dart';
 import 'package:nami/utilities/logger.dart';
 import 'package:nami/utilities/nami/model/nami_gruppierung.model.dart';
 import 'package:nami/utilities/nami/nami.service.dart';
+import 'package:nami/utilities/nami/nami_login.service.dart';
 import 'package:nami/utilities/nami/nami_member.service.dart';
 import 'package:nami/utilities/nami/nami_rechte.dart';
 import 'package:nami/utilities/notifications.dart';
@@ -116,12 +117,11 @@ class AppStateHandler extends ChangeNotifier {
     currentState = AppState.loggedOut;
   }
 
+  /// [getLastLoginCheck] wird bei jedem erfolgreichen NaMi-Request
+  /// aktualisiert, nicht nur beim Login mit Passwort.
   bool isTooLongOffline() {
     final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
-    final tooLongOffline =
-        getLastLoginCheck().isBefore(thirtyDaysAgo) ||
-        getLastNamiSync().isBefore(thirtyDaysAgo);
-    return tooLongOffline;
+    return getLastLoginCheck().isBefore(thirtyDaysAgo);
   }
 
   void showTooLongOfflineNotification() {
@@ -139,6 +139,12 @@ class AppStateHandler extends ChangeNotifier {
   /// Instead it will directly show the login screen.
   Future<bool> setReloginState({bool showDialog = true}) async {
     sensLog.i('Start relogin');
+    // Mit gespeicherten Zugangsdaten zuerst still neu anmelden
+    if (await updateLoginData()) {
+      sensLog.i('silent relogin with saved credentials successful');
+      setReadyState();
+      return true;
+    }
     var showLogin = true;
     final tooLongOffline = isTooLongOffline();
     if (tooLongOffline) {
@@ -242,6 +248,12 @@ class AppStateHandler extends ChangeNotifier {
           _dataChangesService,
           forceUpdate: loadAll,
         );
+      } on SessionExpiredException {
+        rethrow;
+      } on http.ClientException {
+        rethrow;
+      } on TimeoutException {
+        rethrow;
       } catch (e) {
         if (memberAllProgressNotifier.value == 0) {
           showSnackBar(
@@ -297,26 +309,17 @@ class AppStateHandler extends ChangeNotifier {
           /// pop with false to prevent going to ready or loggedOut state
           navigatorKey.currentState!.pop();
           setLoadDataState(loadAll: loadAll, background: background);
+          return;
+        }
+        if (loadAll) {
+          // Ohne erfolgreichen Erst-Sync gibt es keine Daten, der
+          // [LoadingInfoScreen] bietet dann das Abmelden an.
+          syncState = SyncState.error;
+          return;
         }
       }
-      if (isTooLongOffline()) {
-        syncState = SyncState.error;
-        sensLog.i('sync failed with too long offline');
-        Wiredash.trackEvent(
-          'Data sync failed',
-          data: {'error': 'Too long offline'},
-        );
-        if (background) {
-          showSnackBar(
-            navigatorKey.currentContext!,
-            'Du wirst ausgeloggt, da du zu lange offline warst. Wenn es sich um einen Fehler handelt, sende bitte die Logdatei (Einstellungen -> Debug&Tools).',
-          );
-          setLoggedOutState();
-        }
-        // if not [background] the user will be logged out in
-        // [LoadingInfoScreen] when pressing the button
-        return;
-      }
+      // Die Daten bleiben erhalten, der Nutzer wird über den
+      // [StatusInformationBanner] zur erneuten Anmeldung aufgefordert.
       syncState = SyncState.relogin;
       setReadyState();
     } catch (e, st) {
@@ -383,9 +386,9 @@ class AppStateHandler extends ChangeNotifier {
     /// but in offline mode [setReloginState] is not called in [setLoadState].
     if (isTooLongOffline()) {
       sensLog.i('too long offline, set relogin state');
-      final success = await setReloginState();
-
-      if (!success) setLoggedOutState();
+      // Bricht der Nutzer die Anmeldung ab, bleiben die Daten erhalten.
+      // Abgemeldet wird nur noch explizit über das Menü.
+      await setReloginState();
       return;
     }
     setReadyState();

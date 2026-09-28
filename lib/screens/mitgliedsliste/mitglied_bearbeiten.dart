@@ -887,10 +887,32 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
           navigator,
         );
       }
+    } on SessionExpiredException catch (_) {
+      // Eingaben bleiben erhalten, nach dem Anmelden kann erneut gespeichert werden
+      setState(() {
+        _submitInProgress = false;
+      });
+      final reloginSuccessful = await AppStateHandler().setReloginState();
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            reloginSuccessful
+                ? 'Du bist wieder angemeldet. Bitte speichere erneut.'
+                : 'Speichern nicht möglich, da deine Sitzung abgelaufen ist. Deine Eingaben bleiben erhalten.',
+          ),
+        ),
+      );
+      return;
     } catch (e) {
       sensLog.e('Failed to create/edit member');
       sensLog.e(e.toString());
-      scaffoldMessenger.showSnackBar(SnackBar(content: Text('Error: $e')));
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Speichern fehlgeschlagen: ${e is MemberCreationException ? e.message : e}',
+          ),
+        ),
+      );
       Wiredash.trackEvent(
         'Mitglied bearbeiten',
         data: {'type': 'edit/create', 'error': e.toString()},
@@ -940,12 +962,8 @@ class MitgliedBearbeitenState extends State<MitgliedBearbeiten> {
     ScaffoldMessengerState scaffoldMessenger,
     NavigatorState navigator,
   ) async {
-    try {
-      return await namiEditMember(formMitglied);
-    } on MemberCreationException catch (_) {
-      // Todo handle error
-      rethrow;
-    }
+    // Fehler werden in [submit] angezeigt, die Eingaben bleiben erhalten
+    return await namiEditMember(formMitglied);
   }
 
   Future<int> createNewMember(

@@ -8,9 +8,9 @@ import 'package:intl/intl.dart';
 import 'package:nami/screens/login_screen.dart';
 import 'package:nami/screens/navigation_home_screen.dart';
 import 'package:nami/screens/utilities/authenticate_screen.dart';
+import 'package:nami/screens/widgets/nami3_info_banner.dart';
 import 'package:nami/utilities/app.state.dart';
 import 'package:nami/utilities/custom_wiredash_translations_delegate.dart';
-import 'package:nami/utilities/helper_functions.dart';
 import 'package:nami/utilities/hive/hive.handler.dart';
 import 'package:nami/utilities/hive/hive_service.dart';
 import 'package:nami/utilities/hive/settings_service.dart';
@@ -29,9 +29,19 @@ void main() async {
   await registerAdapter();
   try {
     await openHive();
-  } on TypeError catch (_) {
-    deleteHiveMemberDataOnFail();
-    await openHive();
+  } on HiveKeyUnavailableException {
+    rethrow;
+  } catch (_) {
+    // z.B. TypeError durch veraltete Mitgliedsdaten oder beschädigte Box
+    await deleteHiveMemberDataOnFail();
+    try {
+      await openHive();
+    } on HiveKeyUnavailableException {
+      rethrow;
+    } catch (_) {
+      await deleteAllHiveDataOnFail();
+      await openHive();
+    }
   }
 
   // Initialisiere die Services
@@ -78,6 +88,7 @@ class MyApp extends StatelessWidget {
       secret: dotenv.env['WIREDASH_SECRET']!,
       feedbackOptions: const WiredashFeedbackOptions(
         labels: [
+          nami3WishLabel,
           Label(id: 'label-u26353u60f', title: 'Fehler'),
           Label(id: 'label-mtl2xk4esi', title: 'Verbesserung'),
           Label(id: 'label-p792odog4e', title: 'Lob'),
@@ -152,43 +163,66 @@ class _MaterialAppWrapperState extends State<MaterialAppWrapper>
       supportedLocales: const [Locale('de', 'DE')],
       builder: (context, child) {
         final mediaQuery = MediaQuery.of(context);
-        final bottomInset = mediaQuery.padding.bottom;
+
+        // Bei offener Tastatur wird der Hinweis ausgeblendet, um Platz zu sparen
+        final showInfoBanner = mediaQuery.viewInsets.bottom == 0;
 
         // Dynamische SafeArea unten - Android Button-Nav braucht platz, kein Button sollte darunter liegen
         final platform = Theme.of(context).platform;
         final bottomSystemPadding = mediaQuery.padding.bottom;
         final isAndroid = platform == TargetPlatform.android;
         final isButtonNavAndroid = isAndroid && bottomSystemPadding > 30.0;
-        final safeChild = SafeArea(
-          top: false,
-          bottom: isButtonNavAndroid,
-          child: child ?? const SizedBox.shrink(),
+
+        // Der Widget-Baum bleibt immer gleich, damit der Navigator beim Ein- und
+        // Ausblenden des Hinweises nicht neu aufgebaut wird.
+        final safeChild = LayoutBuilder(
+          builder: (context, constraints) {
+            // Der untere Rand wird vom Hinweis übernommen. Die Größe wird
+            // angepasst, da Screens wie der Drawer mit MediaQuery.size rechnen.
+            final bodyMediaQuery = MediaQuery.of(context);
+            final contentMediaQuery = showInfoBanner
+                ? bodyMediaQuery.copyWith(
+                    size: Size(constraints.maxWidth, constraints.maxHeight),
+                    padding: bodyMediaQuery.padding.copyWith(bottom: 0),
+                    viewPadding: bodyMediaQuery.viewPadding.copyWith(bottom: 0),
+                  )
+                : bodyMediaQuery;
+            return MediaQuery(
+              data: contentMediaQuery,
+              child: SafeArea(
+                top: false,
+                bottom: !showInfoBanner && isButtonNavAndroid,
+                child: child ?? const SizedBox.shrink(),
+              ),
+            );
+          },
         );
 
         return Scaffold(
-          floatingActionButton: Padding(
-            padding: EdgeInsets.only(
-              bottom: bottomInset > 0 ? bottomInset * 0.3 : 0,
-            ),
-            child: FloatingActionButton(
-              onPressed: () => openWiredash(context, 'Feedback Button Main'),
-              child: const Icon(Icons.feedback),
-            ),
-          ),
-          body: Consumer<AppStateHandler>(
-            builder: (context, appStateHandler, _) {
-              final currentState = appStateHandler.currentState;
-              return IndexedStack(
-                index: (currentState == AppState.retryAuthentication) ? 0 : 1,
-                children: [
-                  switch (currentState) {
-                    AppState.retryAuthentication => const AuthenticateScreen(),
-                    _ => const SizedBox(),
+          body: Column(
+            children: [
+              Expanded(
+                child: Consumer<AppStateHandler>(
+                  builder: (context, appStateHandler, _) {
+                    final currentState = appStateHandler.currentState;
+                    return IndexedStack(
+                      index: (currentState == AppState.retryAuthentication)
+                          ? 0
+                          : 1,
+                      children: [
+                        switch (currentState) {
+                          AppState.retryAuthentication =>
+                            const AuthenticateScreen(),
+                          _ => const SizedBox(),
+                        },
+                        safeChild,
+                      ],
+                    );
                   },
-                  safeChild,
-                ],
-              );
-            },
+                ),
+              ),
+              if (showInfoBanner) const Nami3InfoBanner(),
+            ],
           ),
         );
       },

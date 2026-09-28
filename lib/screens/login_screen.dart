@@ -33,6 +33,26 @@ class LoginScreenState extends State<LoginScreen> {
   bool _wrongCredentials = false;
   bool _loginFailed = false;
   bool _loading = false;
+  final _mitgliedsnummerController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Beim erneuten Anmelden die gespeicherte Auswahl übernehmen, damit das
+    // gespeicherte Passwort nicht versehentlich gelöscht wird.
+    final savedLoginId = getNamiLoginId();
+    if (savedLoginId != null) {
+      _mitgliedsnummer = savedLoginId;
+      _mitgliedsnummerController.text = savedLoginId.toString();
+    }
+    _rememberMe = getNamiPassword() != null;
+  }
+
+  @override
+  void dispose() {
+    _mitgliedsnummerController.dispose();
+    super.dispose();
+  }
 
   void wrongCredentials() {
     setState(() {
@@ -55,9 +75,6 @@ class LoginScreenState extends State<LoginScreen> {
     });
     final appStateHandler = context.read<AppStateHandler>();
     final differentUser = _mitgliedsnummer != getNamiLoginId();
-    if (differentUser) {
-      logout();
-    }
 
     bool login = false;
     try {
@@ -72,6 +89,13 @@ class LoginScreenState extends State<LoginScreen> {
     }
 
     if (login) {
+      if (differentUser) {
+        // Daten des vorherigen Nutzers erst nach erfolgreichem Login entfernen
+        final newCookie = getNamiApiCookie();
+        logout();
+        setNamiApiCookie(newCookie);
+        setLastLoginCheck(DateTime.now());
+      }
       setState(() {
         _loading = false;
       });
@@ -123,6 +147,7 @@ class LoginScreenState extends State<LoginScreen> {
           ),
           height: 60.0,
           child: TextField(
+            controller: _mitgliedsnummerController,
             onChanged: (number) {
               if (number.isNotEmpty) _mitgliedsnummer = int.parse(number);
             },
