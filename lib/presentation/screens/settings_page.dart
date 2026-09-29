@@ -19,6 +19,7 @@ class SettingsPage extends StatefulWidget {
   final VoidCallback? onStammSettings;
   final VoidCallback? onNotificationSettings;
   final VoidCallback? onAppSettings;
+  final VoidCallback? onAppearanceSettings;
   final VoidCallback? onMapSettings;
   final VoidCallback? onQualifikationen;
   final FutureOr<void> Function()? onMessages;
@@ -38,6 +39,7 @@ class SettingsPage extends StatefulWidget {
     this.onStammSettings,
     this.onNotificationSettings,
     this.onAppSettings,
+    this.onAppearanceSettings,
     this.onMapSettings,
     this.onQualifikationen,
     this.onMessages,
@@ -372,9 +374,16 @@ class _SettingsPageState extends State<SettingsPage> {
                                   icon: Icons.tune,
                                   iconBackgroundColor: const Color(0xFF34C759),
                                   title: t.t('settings_app'),
-                                  subtitle:
-                                      'Darstellung, Sicherheit, Verhalten',
+                                  subtitle: t.t('settings_app_hint'),
                                   onTap: widget.onAppSettings,
+                                ),
+                                const _SettingsRowDivider(),
+                                _SettingsNavTile(
+                                  icon: Icons.palette_outlined,
+                                  iconBackgroundColor: const Color(0xFFAF52DE),
+                                  title: t.t('settings_appearance'),
+                                  subtitle: t.t('settings_appearance_hint'),
+                                  onTap: widget.onAppearanceSettings,
                                 ),
                                 const _SettingsRowDivider(),
                                 _SettingsNavTile(

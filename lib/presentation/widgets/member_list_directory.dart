@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nami/domain/appearance/appearance_catalog.dart';
 import 'package:nami/domain/member/member_list_preferences.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/member_filters/member_custom_filter.dart';
@@ -9,6 +10,7 @@ import 'package:nami/presentation/widgets/member_custom_filter_icons.dart';
 import 'package:nami/presentation/widgets/member_list.dart';
 import 'package:nami/presentation/widgets/member_list_group_filter_bar.dart';
 import 'package:nami/presentation/widgets/member_list_search_bar.dart';
+import 'package:nami/presentation/widgets/supporter_background.dart';
 
 enum MemberFilterOptionsTrigger { tuneButton, listHeader }
 
@@ -40,6 +42,8 @@ class MemberDirectory extends StatefulWidget {
     this.trailingTextBuilder,
     this.roleCategoryBuilder,
     this.warningBuilder,
+    this.supporterBadgeBuilder,
+    this.headerBackground,
     this.lastUpdateAt,
     this.isRefreshing = false,
     this.enableGroupFilter = true,
@@ -64,6 +68,10 @@ class MemberDirectory extends StatefulWidget {
   final String? Function(Mitglied mitglied)? trailingTextBuilder;
   final RoleCategory? Function(Mitglied mitglied)? roleCategoryBuilder;
   final bool Function(Mitglied mitglied)? warningBuilder;
+  final SupporterBadgeId? Function(Mitglied mitglied)? supporterBadgeBuilder;
+
+  /// Optionaler Hintergrund hinter Suche und Gruppenfilter.
+  final AppearanceBackgroundId? headerBackground;
   final DateTime? lastUpdateAt;
   final bool isRefreshing;
   final bool enableGroupFilter;
@@ -179,30 +187,36 @@ class _MemberDirectoryState extends State<MemberDirectory> {
               bottom: BorderSide(color: Theme.of(context).colorScheme.outline),
             ),
           ),
-          child: Column(
-            children: [
-              MemberSearchBar(
-                initial: search,
-                onChanged: _updateSearch,
-                showFilterIndicator: widget.hasFilterDeviation,
-                onTunePressed: () => widget.onOpenFilterOptions?.call(
-                  MemberFilterOptionsTrigger.tuneButton,
+          child: _HeaderBackground(
+            background: widget.headerBackground,
+            child: Column(
+              children: [
+                if (widget.headerBackground != null) const SizedBox(height: 56),
+                MemberSearchBar(
+                  initial: search,
+                  onChanged: _updateSearch,
+                  showFilterIndicator: widget.hasFilterDeviation,
+                  onTunePressed: () => widget.onOpenFilterOptions?.call(
+                    MemberFilterOptionsTrigger.tuneButton,
+                  ),
                 ),
-              ),
-              GroupFilterBar(
-                items: items,
-                selectedKeys: selectedFilterKeys,
-                onChanged: (next) {
-                  if (!widget.enableGroupFilter) {
-                    return;
-                  }
-                  setState(() {
-                    selectedFilterKeys = next;
-                  });
-                  widget.onGroupFilterChanged?.call(selectedFilterKeys.length);
-                },
-              ),
-            ],
+                GroupFilterBar(
+                  items: items,
+                  selectedKeys: selectedFilterKeys,
+                  onChanged: (next) {
+                    if (!widget.enableGroupFilter) {
+                      return;
+                    }
+                    setState(() {
+                      selectedFilterKeys = next;
+                    });
+                    widget.onGroupFilterChanged?.call(
+                      selectedFilterKeys.length,
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ),
         Expanded(
@@ -216,6 +230,7 @@ class _MemberDirectoryState extends State<MemberDirectory> {
             trailingTextBuilder: widget.trailingTextBuilder,
             roleCategoryBuilder: widget.roleCategoryBuilder,
             warningBuilder: widget.warningBuilder,
+            supporterBadgeBuilder: widget.supporterBadgeBuilder,
             lastUpdateAt: widget.lastUpdateAt,
             isRefreshing: widget.isRefreshing,
             favourites: favourites,
@@ -245,5 +260,32 @@ class _MemberDirectoryState extends State<MemberDirectory> {
     }
 
     return StufeVisuals.colorFor(stufe);
+  }
+}
+
+/// Legt den gewaehlten Supporter-Hintergrund hinter Suche und Filter.
+class _HeaderBackground extends StatelessWidget {
+  const _HeaderBackground({required this.background, required this.child});
+
+  final AppearanceBackgroundId? background;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final background = this.background;
+    if (background == null) {
+      return child;
+    }
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: SupporterBackground(
+            key: ValueKey('member-list-background-${background.name}'),
+            background: background,
+          ),
+        ),
+        child,
+      ],
+    );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nami/domain/appearance/appearance_catalog.dart';
 import 'package:nami/domain/member/member_list_preferences.dart';
 import 'package:nami/domain/member/member_utils.dart';
 import 'package:nami/domain/member/mitglied.dart';
@@ -6,6 +7,7 @@ import 'package:nami/domain/taetigkeit/roles.dart';
 import 'package:nami/presentation/format/date_formatters.dart';
 import 'package:nami/presentation/stufe/stufe_visuals.dart';
 import 'package:nami/presentation/theme/theme.dart';
+import 'package:nami/presentation/widgets/supporter_badge.dart';
 
 class MemberSubtitleHighlight {
   const MemberSubtitleHighlight({
@@ -32,6 +34,7 @@ class MemberListTile extends StatelessWidget {
     this.subtitleHighlight,
     this.trailingText,
     this.roleCategory,
+    this.supporterBadge,
     this.onTap,
     this.toggleFavorites,
   });
@@ -44,6 +47,9 @@ class MemberListTile extends StatelessWidget {
   final MemberSubtitleHighlight? subtitleHighlight;
   final String? trailingText;
   final RoleCategory? roleCategory;
+
+  /// Supporter-Badge hinter dem Namen, z. B. beim eigenen Eintrag.
+  final SupporterBadgeId? supporterBadge;
   final VoidCallback? onTap;
   final VoidCallback? toggleFavorites;
 
@@ -149,16 +155,29 @@ class MemberListTile extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          '${mitglied.vorname} ${mitglied.nachname}'.trim(),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: Theme.of(context).colorScheme.onSurface,
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                '${mitglied.vorname} ${mitglied.nachname}'
+                                    .trim(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface,
+                                    ),
                               ),
+                            ),
+                            if (supporterBadge != null) ...[
+                              const SizedBox(width: 6),
+                              SupporterBadge(badge: supporterBadge!, size: 18),
+                            ],
+                          ],
                         ),
                         const SizedBox(height: 2),
                         DefaultTextStyle.merge(

@@ -37,6 +37,11 @@ Story settingsPageStory() => Story(
           message: 'Appeinstellungen',
           type: AppSnackbarType.info,
         ),
+        onAppearanceSettings: () => AppSnackbar.show(
+          context,
+          message: 'Erscheinungsbild',
+          type: AppSnackbarType.info,
+        ),
         onNotificationSettings: () => AppSnackbar.show(
           context,
           message: 'Benachrichtigungseinstellungen',
@@ -90,7 +95,6 @@ Story appSettingsPageStory() => Story(
         analyticsEnabled: false,
         biometricLockEnabled: false,
         memberListSearchResultHighlightEnabled: true,
-        themeMode: ThemeMode.system,
         onAnalyticsChanged: (v) {
           AppSnackbar.show(
             context,
@@ -109,13 +113,6 @@ Story appSettingsPageStory() => Story(
           AppSnackbar.show(
             context,
             message: 'Suchhighlight geändert: $v',
-            type: AppSnackbarType.info,
-          );
-        },
-        onThemeModeChanged: (mode) {
-          AppSnackbar.show(
-            context,
-            message: 'ThemeMode geändert: $mode',
             type: AppSnackbarType.info,
           );
         },
@@ -142,12 +139,10 @@ Story appSettingsPageEnglishStory() => Story(
         analyticsEnabled: true,
         biometricLockEnabled: true,
         memberListSearchResultHighlightEnabled: true,
-        themeMode: ThemeMode.dark,
         languageCode: 'en',
         onAnalyticsChanged: (_) {},
         onBiometricLockChanged: (_) {},
         onMemberListSearchResultHighlightChanged: (_) {},
-        onThemeModeChanged: (_) {},
         onLanguageChanged: (_) {},
       ),
     );

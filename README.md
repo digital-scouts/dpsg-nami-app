@@ -196,6 +196,7 @@ Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den
   - Die gewünschte Altersgrenzen der Stufen können angepasst werden.
   - Stufenwechsel durchführen
 - Führungszeugniss Antragsunterlagen und Bescheinigungen herrunterladen
+- Unter Einstellungen → Erscheinungsbild lassen sich Hell/Dunkel, eine Farbpalette, ein alternatives App-Icon (Pakete mit Morgen, Abend und Nacht; unter iOS zusätzlich „Automatisch“ passend zum Hell/Dunkel-Modus), ein animierter Hintergrund für die Mitgliederliste und ein Supporter-Badge wählen. Das Badge erscheint im eigenen Profil und beim eigenen Eintrag in der Mitgliederliste. Aktuell sind alle Optionen frei nutzbar; die Quellen der Designs und die Export-Skripte liegen unter `design/supporter/`.
 - Das eigene Profil wird nach dem Login über Hitobito OAuth geladen und zeigt nami-id, E-Mail, bevorzugte Sprache als Sprachbadge und die zugewiesenen Rollen.
 - Wenn Hitobito später nicht erreichbar ist oder eine erneute Anmeldung für Updates erforderlich wird, bleibt der lokale Datenstand bis zum Ablauf von `HITOBITO_DATA_MAX_AGE_DAYS` nutzbar; die App zeigt dazu einen fachlichen Hinweis statt einer generischen Plattformfehlermeldung.
 - Die Stamm-Einstellungen und Debug & Tools bleiben auch dann erreichbar, wenn noch kein Login vorliegt oder der Arbeitskontext nicht initialisiert werden konnte. Das Profil bleibt in diesen Zuständen gesperrt.
