@@ -78,6 +78,41 @@
         "Der Feedback-Button auf der Loginseite funktioniert nun wieder.",
         "Das DPSG Logo wurde aktualisiert."
       ]
+    },
+    {
+      "version": "0.2.7",
+      "data_reset": false,
+      "features": [],
+      "bugFixes": [
+        "Die App berücksichtigt nun Safe Areas bei Android Geräten mit 3-Button-Navigation.",
+        "Das Laden von Daten mit unterschiedlichen Berechtigungen sollte nun stabiler laufen und genauere Fehler liefern."
+      ]
+    },
+    {
+      "version": "0.2.8",
+      "data_reset": false,
+      "features": [
+        "Hinweis auf NaMi 3.0 und die neue App: Wünsche für die neue App können direkt aus der App geschickt werden.",
+        "Diese App wird nicht mehr weiterentwickelt, es gibt nur noch Fehlerbehebungen."
+      ],
+      "bugFixes": [
+        "Mit „Daten speichern“ bleibst du angemeldet: Eine abgelaufene Sitzung wird automatisch erneuert, auch bei „Du warst zu lange offline“.",
+        "Bei einer erneuten Anmeldung bleiben Mitgliedsnummer und „Daten speichern“ vorausgewählt.",
+        "Das Abbrechen einer erneuten Anmeldung oder ein Fehler beim Aktualisieren meldet dich nicht mehr ab.",
+        "Änderungen an Mitgliedern und Tätigkeiten funktionieren nach einer erneuten Anmeldung wieder zuverlässig. Eingaben bleiben erhalten, wenn die Sitzung abläuft.",
+        "Beschädigte lokale Daten führen nicht mehr zu einem Absturz beim Start.",
+        "Unterstützung für iOS 27."
+      ]
+    },
+    {
+      "version": "1.0.0",
+      "data_reset": true,
+      "features": [
+        "Die App verwendet nun NaMi 3.0.",
+        "Die App wurde komplett überarbeitet und neu gestaltet.",
+        "Die App ist nun auf Englisch und Deutsch verfügbar."
+      ],
+      "bugFixes": []
     }
   ]
 }
