@@ -47,6 +47,10 @@ Each app installation creates a random installation ID and secret that are used 
 
 Withdrawing consent stops further transfers. Figures already shared remain stored but are no longer included in the nationwide aggregate once they are older than two months. Resetting the app deletes the installation ID and secret. The last transferred figures can be viewed in the app.
 
+## Demo mode
+
+On the sign-in screen, the app offers a demo without a Hitobito account. The demo shows a fictional Stamm with invented names and contact details, is read-only and does not contact Hitobito. Demo data is kept in memory only and is discarded when the demo ends. For the nationwide comparison, the demo sends the figures of the fictional Stamm to a separate test instance of the statistics server that holds only synthetic data and no real Stämme.
+
 ## Feedback
 
 The app integrates a feedback service so users can send feedback from within the app. If this feature is used, the information entered by the user is transmitted to that service.
