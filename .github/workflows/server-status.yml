@@ -68,7 +68,7 @@ jobs:
           fi
 
           # 3) TLS-Zertifikat und HTTPS-Weiterleitung (Caddy)
-          cert_end="$(echo | openssl s_client -servername "$STATS_HOST" -connect "${STATS_HOST}:443" 2>/dev/null \
+          cert_end="$(echo | timeout 20 openssl s_client -servername "$STATS_HOST" -connect "${STATS_HOST}:443" 2>/dev/null \
             | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2)"
           if [ -z "$cert_end" ]; then
             failures+=("TLS-Zertifikat nicht lesbar")
@@ -85,7 +85,7 @@ jobs:
           esac
 
           # 5) MongoDB darf von aussen nicht erreichbar sein
-          if nc -z -w 5 "$STATS_HOST" 27017 2>/dev/null; then
+          if timeout 10 nc -z -w 5 "$STATS_HOST" 27017 2>/dev/null; then
             failures+=("Port 27017 ist oeffentlich erreichbar")
           fi
 
