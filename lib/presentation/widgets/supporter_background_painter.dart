@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/animation.dart';
@@ -70,49 +71,102 @@ const double _h = SupporterBackgroundPainter.designHeight;
 // ------------------------------------------------------------------ Farben
 
 class _Colors {
-  // Lagerfeuer
+  static const white = Color(0xFFFFFFFF);
+  // Lagerfeuer, Tag: Sitzkreis mit ausgebranntem, qualmendem Feuer
   static const lfDayTop = Color(0xFFE6EDF0);
   static const lfDayBottom = Color(0xFFF3E6D6);
   static const lfDayHill = Color(0xFFD8C7AE);
   static const lfDayTrees = Color(0xFFB9B08F);
   static const lfDaySmoke = Color(0xFF8F877F);
-  static const lfDayLog = Color(0xFF8A6A52);
-  static const lfDayEmber = Color(0xFFE98A4A);
   static const lfDayBird = Color(0xFF56606A);
+  static const lfDayBench = Color(0xFF7A5A44);
+  static const lfDayBenchTop = Color(0xFFA07A5C);
+  static const lfDayStone = Color(0xFFA8977F);
+  static const lfDayStoneLit = Color(0xFFC7B69C);
+  static const lfDayAsh = Color(0xFF5A4A40);
+  static const lfDayCharred = Color(0xFF4A3A30);
+  static const lfDayCharredAsh = Color(0xFF8C8278);
+  static const lfDayEmber = Color(0xFFE9713A);
+  static const lfDayEmber2 = Color(0xFFF08A45);
+  // Lagerfeuer, Nacht: Feuerstelle mit Sitzkreis
   static const lfNightTop = Color(0xFF1D1512);
   static const lfNightBottom = Color(0xFF3A241B);
   static const lfNightHill = Color(0xFF2C1C16);
   static const lfNightTrees = Color(0xFF24170F);
   static const lfNightGlow = Color(0xFFE07A3C);
   static const lfNightSpark = Color(0xFFFFB56B);
-  // Himmel
-  static const hDayTop = Color(0xFFB7D0E6);
-  static const hDayBottom = Color(0xFFEEF2EE);
+  static const lfNightLog = Color(0xFF3A2418);
+  static const lfNightLogLit = Color(0xFF6B4128);
+  static const lfNightStone = Color(0xFF3B2A22);
+  static const lfNightStoneLit = Color(0xFF7A4A30);
+  // Himmel, Tag: tiefe Sonne und Lager in der Weite
+  static const hDayTop = Color(0xFFB3CDE6);
+  static const hDayBottom = Color(0xFFF7E6CF);
   static const hDayHill = Color(0xFFBCCBC2);
   static const hDayTrees = Color(0xFF9FB3A6);
   static const hDayCloud = Color(0xFFFFFFFF);
   static const hDayBird = Color(0xFF4D5A66);
+  static const hDaySun = Color(0xFFFFF1D0);
+  static const hDaySunGlow = Color(0xFFFFF4DC);
+  static const hDayCamp = Color(0xFF6F7C84);
+  static const hDaySmoke = Color(0xFF9AA6AD);
+  // Himmel, Nacht: Milchstrasse mit Lager
   static const hNightTop = Color(0xFF0B1428);
   static const hNightBottom = Color(0xFF1D2F50);
   static const hNightHill = Color(0xFF15223B);
   static const hNightTrees = Color(0xFF0F1A2E);
   static const hNightStar = Color(0xFFE6ECF7);
-  // Wald
+  static const hNightHaze = Color(0xFFB9C3EF);
+  static const hNightCamp = Color(0xFF070B16);
+  static const campLight = Color(0xFFFFB45C);
+  // Wald, Tag: Waldsee mit Libellen
   static const wDayTop = Color(0xFFE3EBE2);
   static const wDayBottom = Color(0xFFCFDCCD);
   static const wDayFar = Color(0xFFB9CBB8);
-  static const wDayMid = Color(0xFF9FB69F);
   static const wDayNear = Color(0xFF85A086);
-  static const wDayFog = Color(0xFFF4F7F2);
-  static const wDayRay = Color(0xFFFFF6D6);
   static const wDayFly = Color(0xFF4E6660);
+  static const wDayWater = Color(0xFFC9DCD6);
+  // Wald, Nacht: Mondlicht am See
   static const wNightTop = Color(0xFF0D1612);
   static const wNightBottom = Color(0xFF16241D);
   static const wNightFar = Color(0xFF1B2C23);
-  static const wNightMid = Color(0xFF16251D);
   static const wNightNear = Color(0xFF101C16);
   static const wNightFog = Color(0xFF6D8A7A);
   static const wNightBug = Color(0xFFF4E79A);
+  static const wNightWater = Color(0xFF0E1A1F);
+  static const wNightReed = Color(0xFF0A120E);
+  static const wNightReflection = Color(0xFFC9D6EA);
+  static const wNightRipple = Color(0xFF9FB3CF);
+  static const wNightMoon = Color(0xFFE9EEF5);
+  static const wNightMoonGlow = Color(0xFFDFE8F2);
+  static const wNightBeam = Color(0xFFC9D9F0);
+}
+
+class _FireColors {
+  const _FireColors({
+    required this.glow,
+    required this.log,
+    required this.logLit,
+    required this.outer,
+    required this.mid,
+    required this.inner,
+  });
+
+  final Color glow;
+  final Color log;
+  final Color logLit;
+  final Color outer;
+  final Color mid;
+  final Color inner;
+
+  static const night = _FireColors(
+    glow: Color(0xFFE07A3C),
+    log: Color(0xFF3A2418),
+    logLit: Color(0xFF6B4128),
+    outer: Color(0xFFD9542A),
+    mid: Color(0xFFF5A03D),
+    inner: Color(0xFFFFD98A),
+  );
 }
 
 // ------------------------------------------------------------ Hilfsmittel
@@ -145,6 +199,12 @@ double _alternate(double t, double duration, [double delay = 0]) {
   final p = _fract((t - delay) / (duration * 2)) * 2;
   final linear = p <= 1 ? p : 2 - p;
   return Curves.easeInOut.transform(linear);
+}
+
+/// Lineare Phase 0..1..0 fuer CSS `alternate` mit mehreren Keyframes.
+double _alternatePhase(double t, double duration, [double delay = 0]) {
+  final p = _fract((t - delay) / (duration * 2)) * 2;
+  return p <= 1 ? p : 2 - p;
 }
 
 double _lerp(double a, double b, double t) => a + (b - a) * t;
@@ -313,143 +373,391 @@ class _Scene {
     );
   }
 
-  // ---------------------------------------------------------- Lagerfeuer
+  // ----------------------------------------------------------- Bausteine
 
-  void lagerfeuerTag() {
-    _sky(_Colors.lfDayTop, _Colors.lfDayBottom);
-    _birds(const [
-      _Flock(y: 90, dir: 1, duration: 46, delay: -8, count: 3),
-      _Flock(y: 150, dir: -1, duration: 58, delay: -30, count: 2, size: 0.8),
-    ], _Colors.lfDayBird);
-    _hillsAndCampTrees('lfDay', _Colors.lfDayHill, _Colors.lfDayTrees);
+  static const Curve _ease = Curves.easeInOut;
 
-    final rand = _Rng(17);
-    final smokePaint = Paint()
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
-    for (var i = 0; i < 7; i++) {
-      final duration = 13 + rand.next() * 5;
-      final dx = 60 + rand.next() * 90;
-      final p = _phase(t, duration, -(i / 7) * duration);
-      final eased = Curves.easeOut.transform(p);
-      final opacity = _keyframes(p, const [(0, 0), (0.15, 0.32), (1, 0)]);
-      final scale = _lerp(0.6, 3.2, eased);
-      smokePaint.color = _Colors.lfDaySmoke.withValues(alpha: opacity);
-      canvas.drawOval(
-        Rect.fromCenter(
-          center: Offset(600 + dx * eased, 380 - 330 * eased),
-          width: 52 * scale,
-          height: 40 * scale,
-        ),
-        smokePaint,
+  double _sway(double duration, {bool reverse = false}) {
+    final v = _alternate(t, duration);
+    return _lerp(-18, 18, reverse ? 1 - v : v);
+  }
+
+  void _radialEllipse(
+    Offset center,
+    double rx,
+    double ry,
+    List<Color> colors, [
+    List<double>? stops,
+  ]) {
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    canvas.scale(1, ry / rx);
+    canvas.drawCircle(
+      Offset.zero,
+      rx,
+      Paint()..shader = ui.Gradient.radial(Offset.zero, rx, colors, stops),
+    );
+    canvas.restore();
+  }
+
+  /// Weicher Lichthof, atmet langsam (9 s).
+  void _halo(Offset center, double r, Color color, double strength) {
+    final v = _alternate(t, 9);
+    final opacity = _lerp(0.7, 1, v);
+    final radius = r * _lerp(1, 1.06, v);
+    _radialEllipse(
+      center,
+      radius,
+      radius,
+      [
+        color.withValues(alpha: strength * opacity),
+        color.withValues(alpha: strength * 0.4 * opacity),
+        color.withValues(alpha: 0),
+      ],
+      const [0, 0.4, 1],
+    );
+  }
+
+  void _cloud(double duration, double delay, double y, double s, double o) {
+    final x = _lerp(-300, _w + 300, _phase(t, duration, delay));
+    final paint = _fill(_Colors.hDayCloud, o);
+    canvas.save();
+    canvas.translate(x, y);
+    canvas.scale(s);
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset.zero, width: 140, height: 44),
+      paint,
+    );
+    canvas.drawOval(
+      Rect.fromCenter(center: const Offset(-28, -14), width: 68, height: 48),
+      paint,
+    );
+    canvas.drawOval(
+      Rect.fromCenter(center: const Offset(20, -20), width: 80, height: 56),
+      paint,
+    );
+    canvas.restore();
+  }
+
+  void _kohte(
+    double cx,
+    double by,
+    double h, {
+    required Color cloth,
+    bool lit = false,
+  }) {
+    final w = h * 0.98;
+    final ay = by - h;
+    final pole = Paint()
+      ..color = cloth
+      ..strokeWidth = h * 0.024
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(
+      Offset(cx - h * 0.1, ay - h * 0.17),
+      Offset(cx + h * 0.05, ay + h * 0.09),
+      pole,
+    );
+    canvas.drawLine(
+      Offset(cx + h * 0.1, ay - h * 0.17),
+      Offset(cx - h * 0.05, ay + h * 0.09),
+      pole,
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(cx - w / 2, by)
+        ..quadraticBezierTo(cx - w * 0.2, by - h * 0.52, cx, ay)
+        ..quadraticBezierTo(cx + w * 0.2, by - h * 0.52, cx + w / 2, by)
+        ..close(),
+      _fill(cloth),
+    );
+    final dw = h * 0.15;
+    final dh = h * 0.44;
+    if (!lit) {
+      canvas.drawPath(
+        Path()
+          ..moveTo(cx - dw, by)
+          ..lineTo(cx, by - dh)
+          ..lineTo(cx + dw, by)
+          ..close(),
+        _fill(Color.lerp(cloth, _Colors.white, 0.1)!),
       );
+      return;
+    }
+    canvas.drawPath(
+      Path()
+        ..moveTo(cx - dw, by)
+        ..quadraticBezierTo(cx - dw * 0.35, by - dh * 0.55, cx, by - dh)
+        ..quadraticBezierTo(cx + dw * 0.35, by - dh * 0.55, cx + dw, by)
+        ..close(),
+      _fill(_Colors.campLight),
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(cx - dw * 0.45, by)
+        ..quadraticBezierTo(cx - dw * 0.1, by - dh * 0.4, cx, by - dh * 0.62)
+        ..quadraticBezierTo(cx + dw * 0.1, by - dh * 0.4, cx + dw * 0.45, by)
+        ..close(),
+      _fill(Color.lerp(_Colors.campLight, _Colors.white, 0.45)!, 0.75),
+    );
+  }
+
+  /// Kleines Lager auf fernem Huegel, Kohten dicht beisammen.
+  void _farCamp(double cx, double y, Color cloth, {bool lit = false}) {
+    const tents = [(-34.0, 0.0, 40.0), (0.0, -3.0, 46.0), (32.0, 1.0, 36.0)];
+    for (var i = 0; i < tents.length; i++) {
+      final (dx, dy, h) = tents[i];
+      _kohte(cx + dx, y + dy, h, cloth: cloth, lit: lit && i == 1);
+    }
+  }
+
+  Path _flamePath(double x, double y, double w, double h) => Path()
+    ..moveTo(x - w, y)
+    ..cubicTo(
+      x - w,
+      y - h * 0.45,
+      x - w * 0.15,
+      y - h * 0.6,
+      x + w * 0.1,
+      y - h,
+    )
+    ..cubicTo(x + w * 0.25, y - h * 0.62, x + w, y - h * 0.5, x + w, y)
+    ..close();
+
+  /// Animiertes Feuer: fuenf Flammenschichten, Scheite und Glut.
+  void _fire(double x, double y, double s, _FireColors c) {
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(x, y + 6 * s),
+        width: 80 * s,
+        height: 14 * s,
+      ),
+      _fill(c.glow, 0.55),
+    );
+    void layer(
+      double dx,
+      double w,
+      double h,
+      Color color,
+      double duration,
+      double delay,
+    ) {
+      final p = _alternatePhase(t, duration, delay);
+      final sx = _keyframes(p, const [
+        (0, 1),
+        (0.35, 0.94),
+        (0.7, 1.04),
+        (1, 0.98),
+      ], _ease);
+      final sy = _keyframes(p, const [
+        (0, 1),
+        (0.35, 1.08),
+        (0.7, 0.94),
+        (1, 1.04),
+      ], _ease);
+      final skew =
+          _keyframes(p, const [(0, 0), (0.35, -4), (0.7, 3), (1, -1)], _ease) *
+          math.pi /
+          180;
+      final ox = x + dx * s;
+      canvas.save();
+      canvas.translate(ox, y);
+      // CSS scale(sx, sy) skewX(skew), Ursprung unten mittig.
+      canvas.transform(
+        Float64List.fromList([
+          sx,
+          0,
+          0,
+          0,
+          sx * math.tan(skew),
+          sy,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+        ]),
+      );
+      canvas.translate(-ox, -y);
+      canvas.drawPath(_flamePath(ox, y, w * s, h * s), _fill(color));
+      canvas.restore();
     }
 
-    final ember = _lerp(0.45, 0.8, _alternate(t, 4.5));
-    canvas.drawOval(
-      Rect.fromCenter(center: const Offset(600, 392), width: 92, height: 20),
-      _fill(_Colors.lfDayEmber, ember),
-    );
-    for (final angle in const [-10.0, 10.0]) {
+    layer(-16, 16, 44, c.outer, 1.7, -0.4);
+    layer(15, 15, 50, c.outer, 1.9, -1.1);
+    layer(0, 26, 74, c.outer, 2.1, 0);
+    layer(1, 18, 54, c.mid, 1.5, -0.7);
+    layer(0, 9, 32, c.inner, 1.2, -0.3);
+    for (final deg in const [-14.0, 14.0]) {
+      final pivot = Offset(x, y + 4 * s);
       canvas.save();
-      canvas.translate(600, 388);
-      canvas.rotate(angle * math.pi / 180);
+      canvas.translate(pivot.dx, pivot.dy);
+      canvas.rotate(deg * math.pi / 180);
+      canvas.translate(-pivot.dx, -pivot.dy);
       canvas.drawRRect(
         RRect.fromRectAndRadius(
-          const Rect.fromLTWH(-48, -6, 96, 12),
-          const Radius.circular(6),
+          Rect.fromLTWH(x - 46 * s, y - 2 * s, 92 * s, 12 * s),
+          Radius.circular(6 * s),
         ),
-        _fill(_Colors.lfDayLog),
+        _fill(c.log),
+      );
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(x - 46 * s, y - 2 * s, 92 * s, 4 * s),
+          Radius.circular(2 * s),
+        ),
+        _fill(c.logLit),
       );
       canvas.restore();
     }
   }
 
-  void lagerfeuerNacht() {
-    _sky(_Colors.lfNightTop, _Colors.lfNightBottom);
-    _hillsAndCampTrees('lfNight', _Colors.lfNightHill, _Colors.lfNightTrees);
-
-    void glow(double rx, double ry, double cy, double value) {
-      final scale = _lerp(1, 1.05, value);
-      final opacity = _lerp(0.55, 0.8, value);
-      final rect = Rect.fromCenter(
-        center: Offset(600, cy),
-        width: rx * 2 * scale,
-        height: ry * 2 * scale,
-      );
-      canvas.drawOval(
-        rect,
-        Paint()
-          ..shader = ui.Gradient.radial(
-            rect.center,
-            rect.width / 2,
-            [
-              _Colors.lfNightGlow.withValues(alpha: 0.55 * opacity),
-              _Colors.lfNightGlow.withValues(alpha: 0),
-            ],
-            null,
-            TileMode.clamp,
-            Matrix4.diagonal3Values(1, rect.height / rect.width, 1).storage,
-          ),
-      );
+  /// Flackernder Feuerschein (zwei Ellipsen, gegenlaeufig).
+  void _fireGlow(double x, double y, double rx, double ry, Color glow) {
+    void one(double cx, double cy, double rx, double ry, double v) {
+      final opacity = _lerp(0.55, 0.85, v);
+      final scale = _lerp(1, 1.06, v);
+      final originY = cy + 0.4 * ry;
+      canvas.save();
+      canvas.translate(cx, originY);
+      canvas.scale(scale);
+      canvas.translate(-cx, -originY);
+      _radialEllipse(Offset(cx, cy), rx, ry, [
+        glow.withValues(alpha: 0.55 * opacity),
+        glow.withValues(alpha: 0),
+      ]);
+      canvas.restore();
     }
 
-    glow(420, 260, 420, _alternate(t, 5.3));
-    glow(260, 160, 430, 1 - _alternate(t, 3.7));
+    one(x, y, rx, ry, _alternate(t, 5.3));
+    one(x, y + 10, rx * 0.6, ry * 0.6, 1 - _alternate(t, 3.7));
+  }
 
+  void _sparks(
+    double x,
+    double y,
+    int count,
+    double spread,
+    double rise,
+    Color color,
+  ) {
     final rand = _Rng(7);
-    for (var i = 0; i < 16; i++) {
-      final x = 600 + (rand.next() - 0.5) * 260;
-      final duration = 9 + rand.next() * 8;
-      final radius = 1.6 + rand.next() * 2.2;
+    for (var i = 0; i < count; i++) {
+      final duration = 7 + rand.next() * 7;
+      final cx = x + (rand.next() - 0.5) * spread;
+      final radius = 1.4 + rand.next() * 1.8;
       final dx = (rand.next() - 0.5) * 120;
       final delay = -rand.next() * duration;
       final p = _phase(t, duration, delay);
-      final opacity = _keyframes(p, const [(0, 0), (0.12, 0.8), (1, 0)]);
+      final opacity = _keyframes(p, const [(0, 0), (0.1, 0.85), (1, 0)]);
       canvas.drawCircle(
-        Offset(x + dx * p, 400 - 380 * p),
+        Offset(cx + dx * p, y - rise * p),
         radius,
-        _fill(_Colors.lfNightSpark, opacity),
+        _fill(color, opacity),
       );
     }
   }
 
-  // --------------------------------------------------------------- Himmel
-
-  void himmelTag() {
-    _sky(_Colors.hDayTop, _Colors.hDayBottom);
-    void cloud(double duration, double delay, double y, double s, double o) {
-      final x = _lerp(-300, _w + 300, _phase(t, duration, delay));
-      final paint = _fill(_Colors.hDayCloud, o);
-      canvas.save();
-      canvas.translate(x, y);
-      canvas.scale(s);
+  void _stoneRing(double x, double y, Color dark, Color lit) {
+    final rand = _Rng(12);
+    for (var i = 0; i < 11; i++) {
+      final a = i / 11 * math.pi * 2;
+      final rx = 15 + rand.next() * 5;
+      final ry = 8 + rand.next() * 3;
       canvas.drawOval(
-        Rect.fromCenter(center: Offset.zero, width: 140, height: 44),
-        paint,
+        Rect.fromCenter(
+          center: Offset(x + math.cos(a) * 92, y + math.sin(a) * 18),
+          width: rx * 2,
+          height: ry * 2,
+        ),
+        _fill(math.sin(a) > 0 ? lit : dark),
       );
-      canvas.drawOval(
-        Rect.fromCenter(center: const Offset(-28, -14), width: 68, height: 48),
-        paint,
-      );
-      canvas.drawOval(
-        Rect.fromCenter(center: const Offset(20, -20), width: 80, height: 56),
-        paint,
-      );
-      canvas.restore();
     }
+  }
 
-    cloud(110, 0, 90, 1.2, 0.85);
-    cloud(80, -40, 170, 0.8, 0.7);
-    cloud(140, -90, 60, 0.6, 0.6);
-    if (extraTop > 60) {
-      cloud(120, -60, -extraTop * 0.5, 0.9, 0.6);
+  void _bench(double x, double y, double w, Color log, Color top) {
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(x, y, w, 16),
+        const Radius.circular(8),
+      ),
+      _fill(log),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(x, y, w, 5),
+        const Radius.circular(2.5),
+      ),
+      _fill(top, 0.8),
+    );
+  }
+
+  void _smoke(
+    double x,
+    double y,
+    int count,
+    double rise,
+    Color color,
+    int seed,
+    double size,
+  ) {
+    final rand = _Rng(seed);
+    final paint = Paint()
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+    for (var i = 0; i < count; i++) {
+      final duration = 13 + rand.next() * 5;
+      final dx = 50 + rand.next() * 80;
+      final p = _phase(t, duration, -(i / count) * duration);
+      final eased = Curves.easeOut.transform(p);
+      final opacity = _keyframes(p, const [
+        (0, 0),
+        (0.15, 0.3),
+        (1, 0),
+      ], Curves.easeOut);
+      final scale = _lerp(0.6, 3, eased);
+      paint.color = color.withValues(alpha: opacity);
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(x + dx * eased, y - rise * eased),
+          width: 44 * size * scale,
+          height: 34 * size * scale,
+        ),
+        paint,
+      );
     }
-    _birds(const [
-      _Flock(y: 110, dir: 1, duration: 38, delay: -5, count: 5),
-      _Flock(y: 70, dir: -1, duration: 52, delay: -26, count: 3, size: 0.8),
-      _Flock(y: 190, dir: 1, duration: 64, delay: -44, count: 2, size: 0.7),
-    ], _Colors.hDayBird);
-    _skyline('hDay', _Colors.hDayHill, _Colors.hDayTrees);
+  }
+
+  void _twinkleStars(
+    int count,
+    int seed,
+    Color color, {
+    double top = 0,
+    double yMax = 300,
+    _Band? band,
+  }) {
+    final rand = _Rng(seed);
+    for (var i = 0; i < count; i++) {
+      var x = rand.next() * _w;
+      var y = top + rand.next() * yMax;
+      if (band != null) {
+        // Sterne entlang einer Diagonale verdichten (Milchstrasse).
+        final along = rand.next();
+        final spread =
+            (rand.next() + rand.next() + rand.next() - 1.5) * band.width;
+        x = band.x0 + (band.x1 - band.x0) * along - spread * band.ny;
+        y = band.y0 + (band.y1 - band.y0) * along + spread * band.nx;
+      }
+      final radius = 0.7 + math.pow(rand.next(), 3) * 2.2;
+      final duration = 3 + rand.next() * 4;
+      final delay = -rand.next() * duration;
+      final base = 0.45 + rand.next() * 0.45;
+      final opacity = _lerp(base, base * 0.15, _alternate(t, duration, delay));
+      canvas.drawCircle(Offset(x, y), radius.toDouble(), _fill(color, opacity));
+    }
   }
 
   static const List<_Shooting> _shootingStars = [
@@ -459,34 +767,7 @@ class _Scene {
     _Shooting(880, 120, -260, 70, 13, -3),
   ];
 
-  /// 140 Sterne je 1200 x 300 Designeinheiten. Jedes Band hat einen festen
-  /// Seed, damit Sterne beim Wachsen der Flaeche nicht springen.
-  void _starBand(int seed, double top) {
-    final rand = _Rng(seed);
-    for (var i = 0; i < 140; i++) {
-      final x = rand.next() * _w;
-      final y = top + rand.next() * 300;
-      final radius = 0.8 + math.pow(rand.next(), 3) * 2.4;
-      final duration = 3 + rand.next() * 4;
-      final delay = -rand.next() * duration;
-      final base = 0.55 + rand.next() * 0.4;
-      final opacity = _lerp(base, base * 0.15, _alternate(t, duration, delay));
-      canvas.drawCircle(
-        Offset(x, y),
-        radius.toDouble(),
-        _fill(_Colors.hNightStar, opacity),
-      );
-    }
-  }
-
-  void himmelNacht() {
-    _sky(_Colors.hNightTop, _Colors.hNightBottom);
-    _starBand(21, 0);
-    // Weitere Baender nach oben, solange die Verlaengerung reicht.
-    for (var band = 1; (band - 1) * 300 < extraTop; band++) {
-      _starBand(21 + band * 97, -band * 300.0);
-    }
-
+  void _shootingStarsLayer(Color color) {
     const shootCurve = Cubic(0.3, 0.1, 0.6, 1);
     for (final star in _shootingStars) {
       final p = _phase(t, star.duration, star.delay);
@@ -506,33 +787,218 @@ class _Scene {
           ..strokeWidth = 2.4
           ..strokeCap = StrokeCap.round
           ..shader = ui.Gradient.linear(head, tail, [
-            _Colors.hNightStar.withValues(alpha: opacity),
-            _Colors.hNightStar.withValues(alpha: 0),
+            color.withValues(alpha: opacity),
+            color.withValues(alpha: 0),
           ]),
       );
-      canvas.drawCircle(head, 2.2, _fill(_Colors.hNightStar, opacity));
+      canvas.drawCircle(head, 2.2, _fill(color, opacity));
     }
-    _skyline('hNight', _Colors.hNightHill, _Colors.hNightTrees);
   }
 
-  // ----------------------------------------------------------------- Wald
+  /// Glitzerlinie auf dem Wasser: wird schmaler und blasser, dann wieder
+  /// breiter (Mitte bleibt stehen).
+  void _shine(
+    double x,
+    double y,
+    double width,
+    double height,
+    Color color,
+    double duration,
+    double delay,
+  ) {
+    final v = _alternate(t, duration, delay);
+    final opacity = _lerp(0.55, 0.15, v);
+    final scaledWidth = width * _lerp(1, 0.6, v);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(
+          center: Offset(x + width / 2, y + height / 2),
+          width: scaledWidth,
+          height: height,
+        ),
+        Radius.circular(height / 2),
+      ),
+      _fill(color, opacity),
+    );
+  }
 
-  void _forest(
-    String prefix, {
-    required Color far,
-    required Color mid,
-    required Color near,
-    required Color fog,
-    required double fogOpacity,
-    void Function()? between,
+  /// Glitzer und Schilf eines Sees; gleicher Zufallsstrom wie der Entwurf.
+  void _lake({
+    required double top,
+    required Color reedColor,
+    Color? shineColor,
+    double? shineX,
+    bool drawShine = true,
+    required void Function() between,
   }) {
-    double sway(double duration, {bool reverse = false}) {
-      final v = _alternate(t, duration);
-      return _lerp(-18, 18, reverse ? 1 - v : v);
+    final rand = _Rng(5);
+    for (var i = 0; i < 10; i++) {
+      final duration = 5 + rand.next() * 4;
+      final x = shineX == null
+          ? 200 + rand.next() * 800
+          : shineX - 40 + (rand.next() - 0.5) * 60;
+      final width = shineX == null
+          ? 40 + rand.next() * 60
+          : 50 + rand.next() * 40;
+      final delay = -rand.next() * duration;
+      if (drawShine && shineColor != null) {
+        _shine(x, top + 8 + i * 5, width, 2.5, shineColor, duration, delay);
+      }
     }
+    between();
+    final reed = Paint()
+      ..color = reedColor
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    for (var i = 0; i < 14; i++) {
+      final x = i < 7 ? 190 + i * 12.0 : 900 + (i - 7) * 12.0;
+      final h = 40 + rand.next() * 40;
+      canvas.drawPath(
+        Path()
+          ..moveTo(x, top + 20)
+          ..quadraticBezierTo(x + 4, top + 20 - h * 0.6, x + 10, top + 20 - h),
+        reed,
+      );
+    }
+  }
 
+  /// Wasserkreise: gleichmaessig verteilt, alle `period / count` Sekunden
+  /// einer an einer anderen Stelle, nie mehrere gleichzeitig.
+  void _ripples(
+    int count,
+    int seed,
+    double yMin,
+    double yMax,
+    Color color,
+    double period,
+  ) {
+    final rand = _Rng(seed);
+    for (var i = 0; i < count; i++) {
+      final x = 240 + rand.next() * 720;
+      final y = yMin + rand.next() * (yMax - yMin);
+      final delay = -(i / count) * period;
+      for (final (k, extra) in const [(1.0, 0.0), (0.6, 0.5)]) {
+        final p = _phase(t, period, delay + extra);
+        if (p > 0.22) {
+          continue;
+        }
+        final scale = _keyframes(p, const [
+          (0, 0.1),
+          (0.22, 1),
+        ], Curves.easeOut);
+        final opacity = _keyframes(p, const [
+          (0, 0),
+          (0.03, 0.65),
+          (0.22, 0),
+        ], Curves.easeOut);
+        canvas.drawOval(
+          Rect.fromCenter(
+            center: Offset(x, y),
+            width: 60 * k * scale,
+            height: 14 * k * scale,
+          ),
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.6 * scale
+            ..color = color.withValues(alpha: opacity),
+        );
+      }
+    }
+  }
+
+  void _moonReflection(double x, double top, Color color) {
+    final rand = _Rng(44);
+    final v = _alternate(t, 9);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(x, top + 22),
+        width: 180 * _lerp(1, 1.06, v),
+        height: 32 * _lerp(1, 1.06, v),
+      ),
+      _fill(color, _lerp(0.7, 1, v))
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
+    );
+    for (var i = 0; i < 16; i++) {
+      final duration = 4 + rand.next() * 4;
+      final width = 70 - i * 3 + rand.next() * 30;
+      final lx = x - width / 2 + (rand.next() - 0.5) * 24;
+      final delay = -rand.next() * duration;
+      _shine(lx, top + 4 + i * 4, width, 2.4, color, duration, delay);
+    }
+    // Schwache Reflexe ueber die ganze Seebreite.
+    for (var i = 0; i < 14; i++) {
+      final duration = 6 + rand.next() * 5;
+      final lx = rand.next() * _w;
+      final ly = top + 6 + rand.next() * 50;
+      final width = 16 + rand.next() * 30;
+      final delay = -rand.next() * duration;
+      _shine(lx, ly, width, 1.6, color, duration, delay);
+    }
+  }
+
+  /// Zwei weiche Lichtkeile, die am Mond beginnen und nach unten auslaufen.
+  void _moonBeams(Offset moon, double bottom) {
+    const beams = [(-200.0, 90.0, 0.0), (10.0, 120.0, -5.0)];
+    for (final (dx, width, delay) in beams) {
+      final opacity = _lerp(0.35, 0.7, _alternate(t, 12, delay));
+      final path = Path()
+        ..moveTo(moon.dx - 6, moon.dy)
+        ..lineTo(moon.dx + 6, moon.dy)
+        ..lineTo(moon.dx + dx + width / 2, bottom)
+        ..lineTo(moon.dx + dx - width / 2, bottom)
+        ..close();
+      canvas.drawPath(
+        path,
+        Paint()
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10)
+          ..shader = ui.Gradient.linear(
+            moon,
+            Offset(moon.dx - 120, bottom),
+            [
+              _Colors.wNightBeam.withValues(alpha: 0.5 * opacity),
+              _Colors.wNightBeam.withValues(alpha: 0.18 * opacity),
+              _Colors.wNightBeam.withValues(alpha: 0),
+            ],
+            const [0, 0.5, 1],
+          ),
+      );
+    }
+  }
+
+  void _fireflies(int count, int seed, double peak) {
+    final rand = _Rng(seed);
+    for (var i = 0; i < count; i++) {
+      final x = rand.next() * _w;
+      final y = 160 + rand.next() * 220;
+      final duration = 9 + rand.next() * 6;
+      final radius = 1.6 + rand.next() * 1.4;
+      final dx = (rand.next() - 0.5) * 80;
+      final dy = -15 - rand.next() * 40;
+      final delay = -rand.next() * duration;
+      final p = _phase(t, duration, delay);
+      final opacity = _keyframes(p, [
+        (0, 0),
+        (0.3, peak),
+        (0.55, peak / 2),
+        (0.75, peak),
+        (1, 0),
+      ], _ease);
+      final moveX = _keyframes(p, const [(0, 0), (0.55, 0.6), (1, 1)], _ease);
+      final moveY = _keyframes(p, const [(0, 0), (0.55, 0.5), (1, 1)], _ease);
+      final center = Offset(x + dx * moveX, y + dy * moveY);
+      canvas.drawCircle(
+        center,
+        radius * 3,
+        _fill(_Colors.wNightBug, 0.14 * opacity),
+      );
+      canvas.drawCircle(center, radius, _fill(_Colors.wNightBug, opacity));
+    }
+  }
+
+  void _farPines(String prefix, Color color) {
     canvas.save();
-    canvas.translate(sway(26), 0);
+    canvas.translate(_sway(26), 0);
     _path(
       '$prefix.far',
       () => _pineRow(
@@ -544,123 +1010,233 @@ class _Scene {
         seed: 1,
         gap: 0.42,
       ),
-      far,
+      color,
     );
     canvas.restore();
+  }
 
-    final fogX = _lerp(-220, 220, _alternate(t, 34));
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(-250 + fogX, 250, 1700, 70),
-        const Radius.circular(35),
-      ),
-      _fill(fog, fogOpacity)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14),
-    );
-
+  void _nearPines(String prefix, Color color) {
     canvas.save();
-    canvas.translate(sway(19, reverse: true), 0);
-    _path(
-      '$prefix.mid',
-      () => _pineRow(
-        from: -60,
-        to: 1260,
-        y: 380,
-        hMin: 160,
-        hMax: 260,
-        seed: 2,
-        gap: 0.5,
-      ),
-      mid,
-    );
-    canvas.restore();
-
-    between?.call();
-
-    canvas.save();
-    canvas.translate(sway(14), 0);
+    canvas.translate(_sway(14), 0);
     _path(
       '$prefix.nearLeft',
       () => _pineRow(from: -80, to: 180, y: 420, hMin: 300, hMax: 380, seed: 3),
-      near,
+      color,
     );
     _path(
       '$prefix.nearRight',
       () =>
           _pineRow(from: 1030, to: 1290, y: 420, hMin: 300, hMax: 380, seed: 4),
-      near,
+      color,
     );
     canvas.restore();
-    canvas.drawRect(const Rect.fromLTWH(0, 390, _w, 10), _fill(near));
   }
 
+  // ---------------------------------------------------------- Lagerfeuer
+
+  /// Tag: Sitzkreis, das Feuer ist heruntergebrannt und qualmt.
+  void lagerfeuerTag() {
+    _sky(_Colors.lfDayTop, _Colors.lfDayBottom);
+    _birds(const [
+      _Flock(y: 90, dir: 1, duration: 46, delay: -8, count: 3),
+    ], _Colors.lfDayBird);
+    _hillsAndCampTrees('lfDay', _Colors.lfDayHill, _Colors.lfDayTrees);
+    canvas.drawOval(
+      Rect.fromCenter(center: const Offset(600, 372), width: 520, height: 72),
+      _fill(Color.lerp(_Colors.lfDayHill, _Colors.white, 0.25)!),
+    );
+    _bench(360, 376, 150, _Colors.lfDayBench, _Colors.lfDayBenchTop);
+    _bench(700, 380, 160, _Colors.lfDayBench, _Colors.lfDayBenchTop);
+    _stoneRing(600, 368, _Colors.lfDayStone, _Colors.lfDayStoneLit);
+    canvas.drawOval(
+      Rect.fromCenter(center: const Offset(600, 370), width: 92, height: 18),
+      _fill(_Colors.lfDayAsh),
+    );
+    const charred = [-12.0, 14.0, 0.0];
+    for (var i = 0; i < charred.length; i++) {
+      final pivot = Offset(600, 366.0 + i);
+      canvas.save();
+      canvas.translate(pivot.dx, pivot.dy);
+      canvas.rotate(charred[i] * math.pi / 180);
+      canvas.translate(-pivot.dx, -pivot.dy);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(548, 360.0 + i * 2, 104, 13),
+          const Radius.circular(6.5),
+        ),
+        _fill(_Colors.lfDayCharred),
+      );
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(560, 360.0 + i * 2, 30, 4),
+          const Radius.circular(2),
+        ),
+        _fill(_Colors.lfDayCharredAsh, 0.8),
+      );
+      canvas.restore();
+    }
+    canvas.drawOval(
+      Rect.fromCenter(center: const Offset(596, 366), width: 36, height: 8),
+      _fill(_Colors.lfDayEmber, _lerp(0.25, 0.6, _alternate(t, 6))),
+    );
+    canvas.drawOval(
+      Rect.fromCenter(center: const Offset(614, 369), width: 18, height: 5),
+      _fill(_Colors.lfDayEmber2, _lerp(0.25, 0.6, _alternate(t, 6, -2.5))),
+    );
+    _smoke(600, 352, 10, 320, _Colors.lfDaySmoke, 19, 0.9);
+  }
+
+  /// Nacht: Feuerstelle mit Steinring und Sitzbalken.
+  void lagerfeuerNacht() {
+    _sky(_Colors.lfNightTop, _Colors.lfNightBottom);
+    _hillsAndCampTrees('lfNight', _Colors.lfNightHill, _Colors.lfNightTrees);
+    canvas.drawOval(
+      Rect.fromCenter(center: const Offset(600, 372), width: 520, height: 76),
+      _fill(_Colors.lfNightGlow, 0.12),
+    );
+    _fireGlow(600, 350, 420, 250, _Colors.lfNightGlow);
+    _bench(360, 376, 150, _Colors.lfNightLog, _Colors.lfNightLogLit);
+    _bench(700, 380, 160, _Colors.lfNightLog, _Colors.lfNightLogLit);
+    _stoneRing(600, 368, _Colors.lfNightStone, _Colors.lfNightStoneLit);
+    _sparks(600, 330, 20, 70, 340, _Colors.lfNightSpark);
+    _fire(600, 366, 1.35, _FireColors.night);
+  }
+
+  // --------------------------------------------------------------- Himmel
+
+  /// Tag: tiefe Sonne, Wolken, Vögel und ein Lager in der Weite.
+  void himmelTag() {
+    _sky(_Colors.hDayTop, _Colors.hDayBottom);
+    const sun = Offset(900, 200);
+    canvas.save();
+    canvas.translate(sun.dx, sun.dy);
+    canvas.rotate(_phase(t, 120) * math.pi * 2);
+    final ray = Path()
+      ..moveTo(-6, -70)
+      ..lineTo(6, -70)
+      ..lineTo(40, -260)
+      ..lineTo(-40, -260)
+      ..close();
+    for (var i = 0; i < 8; i++) {
+      canvas.drawPath(ray, _fill(_Colors.hDaySunGlow, 0.14));
+      canvas.rotate(math.pi / 4);
+    }
+    canvas.restore();
+    _halo(sun, 150, _Colors.hDaySunGlow, 0.7);
+    canvas.drawCircle(sun, 42, _fill(_Colors.hDaySun));
+    _cloud(110, 0, 90, 1.1, 0.85);
+    _cloud(80, -40, 150, 0.8, 0.7);
+    if (extraTop > 60) {
+      _cloud(120, -60, -extraTop * 0.5, 0.9, 0.6);
+    }
+    _birds(const [
+      _Flock(y: 110, dir: -1, duration: 40, delay: -12, count: 5),
+    ], _Colors.hDayBird);
+    _path(
+      'hDay.farRidge',
+      () => _ridge(y: 262, amp: 14, seed: 30),
+      Color.lerp(_Colors.hDayHill, _Colors.white, 0.35)!,
+    );
+    _farCamp(520, 262, _Colors.hDayCamp);
+    _smoke(540, 244, 5, 150, _Colors.hDaySmoke, 31, 0.45);
+    _skyline('hDay', _Colors.hDayHill, _Colors.hDayTrees);
+  }
+
+  /// Nacht: Milchstrasse, Sternschnuppen und dasselbe Lager, eine Kohte
+  /// leuchtet.
+  void himmelNacht() {
+    _sky(_Colors.hNightTop, _Colors.hNightBottom);
+    final haze = _lerp(0.1, 0.2, _alternate(t, 14));
+    canvas.save();
+    canvas.translate(600, 140);
+    canvas.rotate(math.atan2(240, 1080));
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset.zero, width: 1240, height: 120),
+      _fill(_Colors.hNightHaze, haze)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 22),
+    );
+    canvas.restore();
+    _twinkleStars(80, 21, _Colors.hNightStar);
+    _twinkleStars(220, 51, _Colors.hNightStar, band: _Band.milkyWay);
+    // Weitere Baender nach oben, solange die Verlaengerung reicht.
+    for (var band = 1; (band - 1) * 300 < extraTop; band++) {
+      _twinkleStars(80, 21 + band * 97, _Colors.hNightStar, top: -band * 300.0);
+    }
+    _shootingStarsLayer(_Colors.hNightStar);
+    _path(
+      'hNight.farRidge',
+      () => _ridge(y: 262, amp: 14, seed: 30),
+      Color.lerp(_Colors.hNightHill, _Colors.white, 0.06)!,
+    );
+    _halo(const Offset(520, 256), 60, _Colors.campLight, 0.35);
+    _farCamp(520, 262, _Colors.hNightCamp, lit: true);
+    _skyline('hNight', _Colors.hNightHill, _Colors.hNightTrees);
+  }
+
+  // ----------------------------------------------------------------- Wald
+
+  /// Tag: Waldsee mit Libellen und einzelnen Wasserkreisen.
   void waldTag() {
     _sky(_Colors.wDayTop, _Colors.wDayBottom);
-    const rays = [(380.0, 160.0), (560.0, 220.0), (760.0, 150.0)];
-    for (var i = 0; i < rays.length; i++) {
-      final (x, width) = rays[i];
-      final opacity = _lerp(0.06, 0.24, _alternate(t, 10, -i * 3.3));
-      final path = Path()
-        ..moveTo(x, -10 - extraTop)
-        ..lineTo(x + 40, -10 - extraTop)
-        ..lineTo(x + width, _h)
-        ..lineTo(x + width - 160, _h)
-        ..close();
-      canvas.drawPath(path, _fill(_Colors.wDayRay, opacity));
-    }
-    _forest(
-      'wDay',
-      far: _Colors.wDayFar,
-      mid: _Colors.wDayMid,
-      near: _Colors.wDayNear,
-      fog: _Colors.wDayFog,
-      fogOpacity: 0.6,
-      between: () {
-        _dragonfly(y: 250, dir: 1, duration: 34, delay: -6);
-        _dragonfly(y: 210, dir: -1, duration: 42, delay: -22);
-        _dragonfly(y: 290, dir: 1, duration: 50, delay: -38);
-      },
+    _farPines('wDay', _Colors.wDayFar);
+    canvas.drawRect(
+      const Rect.fromLTWH(0, 330, _w, 70),
+      _fill(_Colors.wDayWater),
     );
+    _lake(
+      top: 330,
+      reedColor: _Colors.wDayNear,
+      shineColor: _Colors.white,
+      between: () => _ripples(5, 61, 338, 380, _Colors.white, 20),
+    );
+    _dragonfly(y: 300, dir: 1, duration: 30, delay: -4);
+    _dragonfly(y: 270, dir: -1, duration: 38, delay: -20);
+    _nearPines('wDay', _Colors.wDayNear);
   }
 
+  /// Nacht: Mondlicht über dem Wald, einige Sterne und ein See mit
+  /// Mondspiegelung.
   void waldNacht() {
     _sky(_Colors.wNightTop, _Colors.wNightBottom);
-    _forest(
-      'wNight',
-      far: _Colors.wNightFar,
-      mid: _Colors.wNightMid,
-      near: _Colors.wNightNear,
-      fog: _Colors.wNightFog,
-      fogOpacity: 0.28,
-    );
-    final rand = _Rng(33);
-    for (var i = 0; i < 24; i++) {
-      final x = rand.next() * _w;
-      final y = 140 + rand.next() * 240;
-      final duration = 9 + rand.next() * 6;
-      final radius = 1.6 + rand.next() * 1.4;
-      final dx = (rand.next() - 0.5) * 80;
-      final dy = -15 - rand.next() * 40;
-      final delay = -rand.next() * duration;
-      final p = _phase(t, duration, delay);
-      const ease = Curves.easeInOut;
-      final opacity = _keyframes(p, const [
-        (0, 0),
-        (0.3, 0.7),
-        (0.55, 0.35),
-        (0.75, 0.7),
-        (1, 0),
-      ], ease);
-      final move = _keyframes(p, const [(0, 0), (0.55, 0.6), (1, 1)], ease);
-      final moveY = _keyframes(p, const [(0, 0), (0.55, 0.5), (1, 1)], ease);
-      final center = Offset(x + dx * move, y + dy * moveY);
-      canvas.drawCircle(
-        center,
-        radius * 3,
-        _fill(_Colors.wNightBug, 0.14 * opacity),
+    _twinkleStars(28, 91, _Colors.wNightMoonGlow, yMax: 170);
+    for (var band = 1; (band - 1) * 300 < extraTop; band++) {
+      _twinkleStars(
+        40,
+        91 + band * 97,
+        _Colors.wNightMoonGlow,
+        top: -band * 300.0,
       );
-      canvas.drawCircle(center, radius, _fill(_Colors.wNightBug, opacity));
     }
+    const moon = Offset(820, 80);
+    _halo(moon, 110, _Colors.wNightMoonGlow, 0.25);
+    canvas.drawCircle(moon, 26, _fill(_Colors.wNightMoon));
+    _moonBeams(moon, 330);
+    _farPines('wNight', _Colors.wNightFar);
+    final fogX = _lerp(-220, 220, _alternate(t, 34));
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(-250 + fogX, 280, 1700, 60),
+        const Radius.circular(30),
+      ),
+      _fill(_Colors.wNightFog, 0.3)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14),
+    );
+    canvas.drawRect(
+      const Rect.fromLTWH(0, 330, _w, 70),
+      _fill(_Colors.wNightWater),
+    );
+    _lake(
+      top: 330,
+      reedColor: _Colors.wNightReed,
+      shineX: 820,
+      drawShine: false,
+      between: () {
+        _moonReflection(820, 330, _Colors.wNightReflection);
+        _ripples(3, 81, 340, 380, _Colors.wNightRipple, 21);
+      },
+    );
+    _nearPines('wNight', _Colors.wNightNear);
+    _fireflies(10, 71, 0.6);
   }
 
   // ------------------------------------------------------ Tagesfiguren
@@ -680,11 +1256,11 @@ class _Scene {
         (0.5, flock.y - 14),
         (1, flock.y + 20),
       ]);
-      final s = 7 * flock.size;
-      paint.strokeWidth = 1.8 * flock.size;
+      const s = 7.0;
+      paint.strokeWidth = 1.8;
       for (var i = 0; i < flock.count; i++) {
-        final ox = -flock.dir * i * 26 * flock.size;
-        final oy = (i.isEven ? 1 : -1) * (i / 2).ceil() * 12 * flock.size;
+        final ox = -flock.dir * i * 26.0;
+        final oy = (i.isEven ? 1 : -1) * (i / 2).ceil() * 12.0;
         final flap = _lerp(1, -0.35, _alternate(t, 1.1, -i * 0.27));
         canvas.save();
         canvas.translate(x + ox, y + oy - 0.2 * s);
@@ -779,7 +1355,6 @@ class _Flock {
     required this.duration,
     required this.delay,
     required this.count,
-    this.size = 1,
   });
 
   final double y;
@@ -787,7 +1362,6 @@ class _Flock {
   final double duration;
   final double delay;
   final int count;
-  final double size;
 }
 
 class _Shooting {
@@ -799,4 +1373,22 @@ class _Shooting {
   final double ty;
   final double duration;
   final double delay;
+}
+
+/// Diagonales Sternenband (Milchstrasse) in Designeinheiten.
+class _Band {
+  const _Band(this.x0, this.y0, this.x1, this.y1, this.width, this.nx, this.ny);
+
+  final double x0;
+  final double y0;
+  final double x1;
+  final double y1;
+  final double width;
+
+  /// Einheitsvektor entlang des Bandes.
+  final double nx;
+  final double ny;
+
+  // Richtung (1080, 240) normiert.
+  static const milkyWay = _Band(60, 20, 1140, 260, 70, 0.97619, 0.21693);
 }

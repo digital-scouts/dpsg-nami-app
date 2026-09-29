@@ -102,7 +102,7 @@ function backgroundsSection() {
   ).join('');
   return `<section id="hintergruende" aria-labelledby="h-bg">
 <h2 id="h-bg">Animierte Hintergründe</h2>
-<p class="lead">Für den Kopf der Mitgliederliste. Die Bewegungen dauern zwischen 3 und 34 Sekunden, Sternschnuppen kommen aus drei Richtungen und bleiben stehen, wenn „Bewegung reduzieren“ aktiv ist. Hell zeigt die Tagesszene, Dunkel die Nachtszene; umschalten kannst du oben.</p>
+<p class="lead">Für den Kopf der Mitgliederliste. Alle Bewegungen sind langsam und stehen still, wenn „Bewegung reduzieren“ aktiv ist. Hell zeigt die Tagesszene, Dunkel die Nachtszene; umschalten kannst du oben.</p>
 <div class="bg-grid">${items}</div>
 </section>`;
 }
