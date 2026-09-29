@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../domain/member/contact_category.dart';
 import '../../domain/member/member_resolution.dart';
 import '../../domain/member/mitglied.dart';
 import '../../domain/member/pending_person_update.dart';
 import '../../l10n/app_localizations.dart';
+import '../../services/hitobito_contact_category_env.dart';
 import '../model/auth_session_model.dart';
 import '../model/member_bank_input.dart';
 import '../model/member_edit_model.dart';
@@ -21,12 +23,16 @@ class MemberEditPage extends StatefulWidget {
     this.pendingEntry,
     this.initialNoticeMessage,
     this.resolutionEntryPoint,
+    this.contactCategories,
   });
 
   final Mitglied mitglied;
   final PendingPersonUpdate? pendingEntry;
   final String? initialNoticeMessage;
   final String? resolutionEntryPoint;
+
+  /// Kategorien fuer Kontakteintraege; ohne Angabe aus der Konfiguration.
+  final ContactCategoryCatalog? contactCategories;
 
   @override
   State<MemberEditPage> createState() => _MemberEditPageState();
@@ -90,6 +96,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
   late final List<_PhoneDraft> _phoneDrafts;
   late final List<_EmailDraft> _additionalEmailDrafts;
   late final List<_AddressDraft> _additionalAddressDrafts;
+  late final ContactCategoryCatalog _categories;
   final Map<int, String> _serverPhoneErrorsById = <int, String>{};
   final Map<String, String> _serverAttributeErrors = <String, String>{};
   final Set<String> _dismissedResolutionItemIds = <String>{};
@@ -129,6 +136,8 @@ class _MemberEditPageState extends State<MemberEditPage> {
   @override
   void initState() {
     super.initState();
+    _categories =
+        widget.contactCategories ?? HitobitoContactCategoryEnv.catalog;
     final primaryEmail = _resolvePrimaryEmail(widget.mitglied.emailAdressen);
     final primaryAddress = widget.mitglied.primaryAddress;
     _vornameController = TextEditingController(text: widget.mitglied.vorname);
@@ -816,11 +825,14 @@ class _MemberEditPageState extends State<MemberEditPage> {
   Widget _buildEmailSection() {
     return _SectionBodyWithAddAction(
       addLabel: _t.t('member_edit_add_email'),
-      onAdd: () {
-        setState(() {
-          _additionalEmailDrafts.add(_EmailDraft.empty());
-        });
-      },
+      disabledHint: _t.t('member_edit_categories_missing'),
+      onAdd: _categories.supports(ContactAccountType.additionalEmail)
+          ? () {
+              setState(() {
+                _additionalEmailDrafts.add(_EmailDraft.empty());
+              });
+            }
+          : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -855,11 +867,14 @@ class _MemberEditPageState extends State<MemberEditPage> {
   Widget _buildPhoneSection() {
     return _SectionBodyWithAddAction(
       addLabel: _t.t('member_edit_add_phone'),
-      onAdd: () {
-        setState(() {
-          _phoneDrafts.add(_PhoneDraft.empty());
-        });
-      },
+      disabledHint: _t.t('member_edit_categories_missing'),
+      onAdd: _categories.supports(ContactAccountType.phoneNumber)
+          ? () {
+              setState(() {
+                _phoneDrafts.add(_PhoneDraft.empty());
+              });
+            }
+          : null,
       child: _phoneDrafts.isEmpty
           ? _EmptyState(message: _t.t('member_edit_phone_empty'))
           : Column(
@@ -876,11 +891,16 @@ class _MemberEditPageState extends State<MemberEditPage> {
   Widget _buildAddressSection() {
     return _SectionBodyWithAddAction(
       addLabel: _t.t('member_edit_add_address'),
-      onAdd: () {
-        setState(() {
-          _additionalAddressDrafts.add(_AddressDraft.empty());
-        });
-      },
+      disabledHint: _t.t('member_edit_categories_missing'),
+      onAdd: _categories.supports(ContactAccountType.additionalAddress)
+          ? () {
+              setState(() {
+                _additionalAddressDrafts.add(
+                  _AddressDraft.forNewEntry(widget.mitglied),
+                );
+              });
+            }
+          : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -926,9 +946,16 @@ class _MemberEditPageState extends State<MemberEditPage> {
     return _DetailPanel(
       child: Column(
         children: [
-          _buildDetailLabelRow(
-            controller: draft.labelController,
-            label: _t.t('member_edit_field_label'),
+          _buildCategoryRow(
+            type: ContactAccountType.phoneNumber,
+            fieldKey: Key('member-edit-phone-category-$index'),
+            categoryId: draft.categoryId,
+            isNewEntry: draft.phoneNumberId == null,
+            freeLabel: draft.labelController.text,
+            takenCategoryIds: _takenCategoryIds(
+              _phoneDrafts.map((other) => other.categoryId),
+            ),
+            onChanged: (value) => setState(() => draft.categoryId = value),
             onRemove: () {
               setState(() {
                 final removed = _phoneDrafts.removeAt(index);
@@ -1028,9 +1055,16 @@ class _MemberEditPageState extends State<MemberEditPage> {
     return _DetailPanel(
       child: Column(
         children: [
-          _buildDetailLabelRow(
-            controller: draft.labelController,
-            label: _t.t('member_edit_field_label'),
+          _buildCategoryRow(
+            type: ContactAccountType.additionalEmail,
+            fieldKey: Key('member-edit-email-category-$index'),
+            categoryId: draft.categoryId,
+            isNewEntry: draft.additionalEmailId == null,
+            freeLabel: draft.labelController.text,
+            takenCategoryIds: _takenCategoryIds(
+              _additionalEmailDrafts.map((other) => other.categoryId),
+            ),
+            onChanged: (value) => setState(() => draft.categoryId = value),
             onRemove: () {
               setState(() {
                 final removed = _additionalEmailDrafts.removeAt(index);
@@ -1061,9 +1095,16 @@ class _MemberEditPageState extends State<MemberEditPage> {
       child: Column(
         children: [
           if (removable) ...[
-            _buildDetailLabelRow(
-              controller: draft.labelController,
-              label: _t.t('member_edit_field_label'),
+            _buildCategoryRow(
+              type: ContactAccountType.additionalAddress,
+              fieldKey: Key('member-edit-address-category-$index'),
+              categoryId: draft.categoryId,
+              isNewEntry: draft.additionalAddressId == null,
+              freeLabel: draft.labelController.text,
+              takenCategoryIds: _takenCategoryIds(
+                _additionalAddressDrafts.map((other) => other.categoryId),
+              ),
+              onChanged: (value) => setState(() => draft.categoryId = value),
               onRemove: () {
                 setState(() {
                   final removed = _additionalAddressDrafts.removeAt(index);
@@ -1072,9 +1113,29 @@ class _MemberEditPageState extends State<MemberEditPage> {
               },
             ),
             const SizedBox(height: 10),
-            _buildTextField(
-              draft.addressCareOfController,
-              _t.t('member_edit_field_care_of'),
+            _buildTwoColumnFields(
+              first: _buildTextField(
+                draft.firstNameController,
+                _t.t('member_edit_field_first_name'),
+                fieldKey: Key('member-edit-address-first-name-$index'),
+              ),
+              second: _buildTextField(
+                draft.lastNameController,
+                _t.t('member_edit_field_last_name'),
+                fieldKey: Key('member-edit-address-last-name-$index'),
+              ),
+            ),
+            const SizedBox(height: 10),
+            _buildTwoColumnFields(
+              first: _buildTextField(
+                draft.organizationNameController,
+                _t.t('member_edit_field_organization'),
+                fieldKey: Key('member-edit-address-organization-$index'),
+              ),
+              second: _buildTextField(
+                draft.addressCareOfController,
+                _t.t('member_edit_field_care_of'),
+              ),
             ),
           ] else
             // Hitobito kennt fuer die eigene Adresse der Person keine
@@ -1136,15 +1197,95 @@ class _MemberEditPageState extends State<MemberEditPage> {
     );
   }
 
-  Widget _buildDetailLabelRow({
-    required TextEditingController controller,
-    required String label,
+  Set<int> _takenCategoryIds(Iterable<int?> categoryIds) {
+    final seen = <int>{};
+    final taken = <int>{};
+    for (final id in categoryIds) {
+      if (id != null && !seen.add(id)) {
+        taken.add(id);
+      }
+    }
+    return taken;
+  }
+
+  /// Bezeichnung eines Kontakteintrags: Kategorie und optionaler Zusatz.
+  String? _contactLabel(
+    ContactAccountType type,
+    int? categoryId,
+    String? freeLabel,
+  ) {
+    final categoryName = categoryId == null
+        ? null
+        : _categories.byId(type, categoryId)?.name ??
+              _t.t('member_edit_category_unknown');
+    final parts = <String>[?categoryName, ?_trimToNull(freeLabel ?? '')];
+    return parts.isEmpty ? null : parts.join(', ');
+  }
+
+  Widget _buildCategoryRow({
+    required ContactAccountType type,
+    required Key fieldKey,
+    required int? categoryId,
+    required bool isNewEntry,
+    required String freeLabel,
+    required Set<int> takenCategoryIds,
+    required ValueChanged<int?> onChanged,
     required VoidCallback onRemove,
   }) {
+    final categories = _categories.forType(type);
+    final hasUnknownCategory =
+        categoryId != null && _categories.byId(type, categoryId) == null;
+    final label = _trimToNull(freeLabel);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(child: _buildTextField(controller, label)),
+        Expanded(
+          child: DropdownButtonFormField<int>(
+            key: fieldKey,
+            initialValue: categoryId,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: _t.t('member_edit_field_label'),
+              helperText: label == null
+                  ? null
+                  : _t.t('member_edit_category_free_label', {'label': label}),
+              isDense: true,
+              border: const OutlineInputBorder(),
+            ),
+            hint: Text(_t.t('member_edit_select_hint')),
+            items: <DropdownMenuItem<int>>[
+              for (final category in categories)
+                DropdownMenuItem<int>(
+                  value: category.id,
+                  child: Text(category.name, overflow: TextOverflow.ellipsis),
+                ),
+              if (hasUnknownCategory)
+                DropdownMenuItem<int>(
+                  value: categoryId,
+                  child: Text(_t.t('member_edit_category_unknown')),
+                ),
+            ],
+            validator: (value) {
+              // Bestehende Eintraege haben ihre Kategorie in Hitobito; nur fuer
+              // neue Eintraege muss die App sie mitsenden.
+              if (value == null) {
+                return isNewEntry
+                    ? _t.t('member_edit_category_required')
+                    : null;
+              }
+              final category = _categories.byId(type, value);
+              if (category != null &&
+                  category.uniquePerContactable &&
+                  takenCategoryIds.contains(value)) {
+                return _t.t('member_edit_category_taken', {
+                  'category': category.name,
+                });
+              }
+              return null;
+            },
+            onChanged: onChanged,
+          ),
+        ),
         const SizedBox(width: 8),
         IconButton(
           tooltip: _t.t('common_remove'),
@@ -1591,9 +1732,16 @@ class _MemberEditPageState extends State<MemberEditPage> {
   }
 
   String? _validateAdditionalAddress(_AddressDraft draft) {
-    return draft.toAdresse().istLeer
-        ? _t.t('member_edit_additional_address_empty')
-        : null;
+    final adresse = draft.toAdresse();
+    if (adresse.istLeer) {
+      return _t.t('member_edit_additional_address_empty');
+    }
+    // Unveraenderte bestehende Adressen werden nicht gesendet; Hitobito
+    // prueft den Namen erst, wenn eine Adresse geschrieben wird.
+    if (draft.additionalAddressId == null && !adresse.hatName) {
+      return _t.t('member_edit_additional_address_name_required');
+    }
+    return null;
   }
 
   void _applyServerChoice(MemberResolutionItem item) {
@@ -1972,14 +2120,22 @@ class _MemberEditPageState extends State<MemberEditPage> {
       case MemberResolutionTargetType.phone:
         final draft = _findPhoneDraft(target.relationshipId);
         return _buildPhoneResolutionLines(
-          label: draft?.labelController.text,
+          label: _contactLabel(
+            ContactAccountType.phoneNumber,
+            draft?.categoryId,
+            draft?.labelController.text,
+          ),
           value: draft?.toTelefon()?.wert ?? draft?.wertController.text,
           istOeffentlich: draft?.istOeffentlich,
         );
       case MemberResolutionTargetType.additionalEmail:
         final draft = _findAdditionalEmailDraft(target.relationshipId);
         return _buildEmailResolutionLines(
-          label: draft?.labelController.text,
+          label: _contactLabel(
+            ContactAccountType.additionalEmail,
+            draft?.categoryId,
+            draft?.labelController.text,
+          ),
           value: draft?.wertController.text,
         );
       case MemberResolutionTargetType.primaryAddress:
@@ -2037,7 +2193,11 @@ class _MemberEditPageState extends State<MemberEditPage> {
         for (final phone in member.telefonnummern) {
           if (phone.phoneNumberId == target.relationshipId) {
             return _buildPhoneResolutionLines(
-              label: phone.label,
+              label: _contactLabel(
+                ContactAccountType.phoneNumber,
+                phone.categoryId,
+                phone.label,
+              ),
               value: phone.wert,
               istOeffentlich: phone.istOeffentlich,
             );
@@ -2049,7 +2209,11 @@ class _MemberEditPageState extends State<MemberEditPage> {
           if (!email.istPrimaer &&
               email.additionalEmailId == target.relationshipId) {
             return _buildEmailResolutionLines(
-              label: email.label,
+              label: _contactLabel(
+                ContactAccountType.additionalEmail,
+                email.categoryId,
+                email.label,
+              ),
               value: email.wert,
             );
           }
@@ -2152,11 +2316,29 @@ class _MemberEditPageState extends State<MemberEditPage> {
   List<_ResolutionValueLine> _buildAddressResolutionLines(
     MitgliedKontaktAdresse? adresse,
   ) {
+    final isAdditional = adresse != null && adresse.additionalAddressId != 0;
+    final name = [
+      adresse?.firstName,
+      adresse?.lastName,
+      adresse?.organizationName,
+    ].map((part) => _trimToNull(part ?? '')).whereType<String>().join(' ');
     return <_ResolutionValueLine>[
-      _ResolutionValueLine(
-        label: _t.t('member_edit_field_label'),
-        value: _normalizeResolutionLineValue(adresse?.label),
-      ),
+      if (isAdditional) ...[
+        _ResolutionValueLine(
+          label: _t.t('member_edit_field_label'),
+          value: _normalizeResolutionLineValue(
+            _contactLabel(
+              ContactAccountType.additionalAddress,
+              adresse.categoryId,
+              adresse.label,
+            ),
+          ),
+        ),
+        _ResolutionValueLine(
+          label: _t.t('member_edit_field_address_name'),
+          value: _normalizeResolutionLineValue(name),
+        ),
+      ],
       _ResolutionValueLine(
         label: _t.t('member_edit_field_care_of'),
         value: _normalizeResolutionLineValue(adresse?.addressCareOf),
@@ -2362,11 +2544,15 @@ class _SectionBodyWithAddAction extends StatelessWidget {
     required this.child,
     required this.addLabel,
     this.onAdd,
+    this.disabledHint,
   });
 
   final Widget child;
   final String addLabel;
   final VoidCallback? onAdd;
+
+  /// Hinweis, warum ohne [onAdd] nichts hinzugefuegt werden kann.
+  final String? disabledHint;
 
   @override
   Widget build(BuildContext context) {
@@ -2384,6 +2570,9 @@ class _SectionBodyWithAddAction extends StatelessWidget {
               label: Text(addLabel),
             ),
           ),
+        ] else if (disabledHint != null) ...[
+          const SizedBox(height: 8),
+          Text(disabledHint!, style: Theme.of(context).textTheme.bodySmall),
         ],
       ],
     );
@@ -2551,6 +2740,7 @@ class _PhoneDraft {
     required this.countryId,
     String? wert,
     String? label,
+    this.categoryId,
     this.istOeffentlich = false,
   }) : wertController = TextEditingController(text: wert ?? ''),
        labelController = TextEditingController(text: label ?? '');
@@ -2562,6 +2752,7 @@ class _PhoneDraft {
       countryId: split.countryId,
       wert: split.localNumber,
       label: telefon.label,
+      categoryId: telefon.categoryId,
       istOeffentlich: telefon.istOeffentlich,
     );
   }
@@ -2573,6 +2764,7 @@ class _PhoneDraft {
 
   final int? phoneNumberId;
   String countryId;
+  int? categoryId;
   bool istOeffentlich;
   final TextEditingController wertController;
   final TextEditingController labelController;
@@ -2593,6 +2785,7 @@ class _PhoneDraft {
       phoneNumberId: phoneNumberId,
       wert: wert,
       label: _trimToNull(labelController.text),
+      categoryId: categoryId,
       istOeffentlich: istOeffentlich,
     );
   }
@@ -2605,21 +2798,27 @@ class _PhoneDraft {
 }
 
 class _EmailDraft {
-  _EmailDraft({required this.additionalEmailId, String? wert, String? label})
-    : wertController = TextEditingController(text: wert ?? ''),
-      labelController = TextEditingController(text: label ?? '');
+  _EmailDraft({
+    required this.additionalEmailId,
+    String? wert,
+    String? label,
+    this.categoryId,
+  }) : wertController = TextEditingController(text: wert ?? ''),
+       labelController = TextEditingController(text: label ?? '');
 
   factory _EmailDraft.fromEmail(MitgliedKontaktEmail email) {
     return _EmailDraft(
       additionalEmailId: email.additionalEmailId,
       wert: email.wert,
       label: email.label,
+      categoryId: email.categoryId,
     );
   }
 
   factory _EmailDraft.empty() => _EmailDraft(additionalEmailId: null);
 
   final int? additionalEmailId;
+  int? categoryId;
   final TextEditingController wertController;
   final TextEditingController labelController;
   final GlobalKey wertFieldKey = GlobalKey();
@@ -2634,6 +2833,7 @@ class _EmailDraft {
       additionalEmailId: additionalEmailId,
       wert: wert,
       label: _trimToNull(labelController.text),
+      categoryId: categoryId,
     );
   }
 
@@ -2648,6 +2848,10 @@ class _AddressDraft {
   _AddressDraft({
     required this.additionalAddressId,
     String? label,
+    this.categoryId,
+    String? firstName,
+    String? lastName,
+    String? organizationName,
     String? addressCareOf,
     String? street,
     String? housenumber,
@@ -2656,6 +2860,11 @@ class _AddressDraft {
     String? town,
     String? country,
   }) : labelController = TextEditingController(text: label ?? ''),
+       firstNameController = TextEditingController(text: firstName ?? ''),
+       lastNameController = TextEditingController(text: lastName ?? ''),
+       organizationNameController = TextEditingController(
+         text: organizationName ?? '',
+       ),
        addressCareOfController = TextEditingController(
          text: addressCareOf ?? '',
        ),
@@ -2670,6 +2879,10 @@ class _AddressDraft {
     return _AddressDraft(
       additionalAddressId: adresse.additionalAddressId,
       label: adresse.label,
+      categoryId: adresse.categoryId,
+      firstName: adresse.firstName,
+      lastName: adresse.lastName,
+      organizationName: adresse.organizationName,
       addressCareOf: adresse.addressCareOf,
       street: adresse.street,
       housenumber: adresse.housenumber,
@@ -2680,10 +2893,20 @@ class _AddressDraft {
     );
   }
 
-  factory _AddressDraft.empty() => _AddressDraft(additionalAddressId: null);
+  /// Neue Zusatzadresse; Hitobito verlangt einen Namen, deshalb ist der
+  /// Name der Person vorbelegt.
+  factory _AddressDraft.forNewEntry(Mitglied mitglied) => _AddressDraft(
+    additionalAddressId: null,
+    firstName: mitglied.vorname,
+    lastName: mitglied.nachname,
+  );
 
   final int? additionalAddressId;
+  int? categoryId;
   final TextEditingController labelController;
+  final TextEditingController firstNameController;
+  final TextEditingController lastNameController;
+  final TextEditingController organizationNameController;
   final TextEditingController addressCareOfController;
   final TextEditingController streetController;
   final TextEditingController housenumberController;
@@ -2705,6 +2928,10 @@ class _AddressDraft {
     return MitgliedKontaktAdresse(
       additionalAddressId: additionalAddressId,
       label: _trimToNull(labelController.text),
+      categoryId: categoryId,
+      firstName: _trimToNull(firstNameController.text),
+      lastName: _trimToNull(lastNameController.text),
+      organizationName: _trimToNull(organizationNameController.text),
       addressCareOf: _trimToNull(addressCareOfController.text),
       street: _trimToNull(streetController.text),
       housenumber: _trimToNull(housenumberController.text),
@@ -2717,6 +2944,10 @@ class _AddressDraft {
 
   void replaceWith(MitgliedKontaktAdresse adresse) {
     labelController.text = adresse.label ?? '';
+    categoryId = adresse.categoryId;
+    firstNameController.text = adresse.firstName ?? '';
+    lastNameController.text = adresse.lastName ?? '';
+    organizationNameController.text = adresse.organizationName ?? '';
     addressCareOfController.text = adresse.addressCareOf ?? '';
     streetController.text = adresse.street ?? '';
     housenumberController.text = adresse.housenumber ?? '';
@@ -2728,6 +2959,9 @@ class _AddressDraft {
 
   void dispose() {
     labelController.dispose();
+    firstNameController.dispose();
+    lastNameController.dispose();
+    organizationNameController.dispose();
     addressCareOfController.dispose();
     streetController.dispose();
     housenumberController.dispose();

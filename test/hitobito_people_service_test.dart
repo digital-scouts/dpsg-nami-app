@@ -143,7 +143,8 @@ void main() {
                 "contactable_type": "Person",
                 "label": "Mobil",
                 "number": "+49 170 1234567",
-                "public": true
+                "public": true,
+                "category_id": 2
               }
             },
             {
@@ -183,6 +184,11 @@ void main() {
                 "contactable_id": 23,
                 "contactable_type": "Person",
                 "label": "Elternhaus",
+                "category_id": 22,
+                "first_name": "Petra",
+                "last_name": "Keller",
+                "organization": false,
+                "organization_name": "Ignoriert",
                 "address_care_of": null,
                 "street": "Nebenweg",
                 "housenumber": "5",
@@ -247,15 +253,15 @@ void main() {
       );
       expect(
         requestedUris.first.queryParameters['fields[phone_numbers]'],
-        'contactable_id,contactable_type,label,number,public',
+        'contactable_id,contactable_type,label,category_id,number,public',
       );
       expect(
         requestedUris.first.queryParameters['fields[additional_emails]'],
-        'contactable_id,contactable_type,label,email',
+        'contactable_id,contactable_type,label,category_id,email',
       );
       expect(
         requestedUris.first.queryParameters['fields[additional_addresses]'],
-        'contactable_id,contactable_type,label,address_care_of,street,housenumber,postbox,zip_code,town,country',
+        'contactable_id,contactable_type,label,category_id,first_name,last_name,organization_name,organization,address_care_of,street,housenumber,postbox,zip_code,town,country',
       );
       expect(requestedUris.last.path, '/api/people');
       expect(requestedUris.last.queryParameters['page'], '2');
@@ -302,6 +308,7 @@ void main() {
           phoneNumberId: 701,
           wert: '+49 170 1234567',
           label: 'Mobil',
+          categoryId: 2,
           istOeffentlich: true,
         ),
         MitgliedKontaktTelefon(
@@ -322,6 +329,9 @@ void main() {
         MitgliedKontaktAdresse(
           additionalAddressId: 801,
           label: 'Elternhaus',
+          categoryId: 22,
+          firstName: 'Petra',
+          lastName: 'Keller',
           street: 'Nebenweg',
           housenumber: '5',
           zipCode: '50668',
@@ -736,6 +746,7 @@ void main() {
                   phoneNumberId: 301,
                   wert: '+491701234567',
                   label: 'Mobil',
+                  categoryId: 2,
                   istOeffentlich: true,
                 ),
               ),
@@ -753,6 +764,9 @@ void main() {
                 method: HitobitoRelationshipMutationMethod.create,
                 value: MitgliedKontaktAdresse(
                   label: 'Arbeit',
+                  categoryId: 22,
+                  firstName: 'Julia',
+                  lastName: 'Keller',
                   street: 'Werkstrasse',
                   housenumber: '2',
                   zipCode: '50667',
@@ -818,8 +832,26 @@ void main() {
         'label': 'Mobil',
         'number': '+491701234567',
         'public': true,
+        'category_id': 2,
       });
-      expect(included[1]['attributes']['street'], 'Werkstrasse');
+      expect(included[1]['attributes'], <String, dynamic>{
+        'label': 'Arbeit',
+        'category_id': 22,
+        'first_name': 'Julia',
+        'last_name': 'Keller',
+        'organization': false,
+        'organization_name': null,
+        'address_care_of': null,
+        'street': 'Werkstrasse',
+        'housenumber': '2',
+        'postbox': null,
+        'zip_code': '50667',
+        'town': 'Koeln',
+        'country': null,
+      });
+      // Ohne bekannte Kategorie wird keine category_id gesendet; Hitobito
+      // behaelt dann die bestehende.
+      expect(included[2]['attributes'], isNot(contains('category_id')));
       expect(included[2]['attributes']['town'], 'Bonn');
       expect(included[2]['attributes']['street'], isNull);
     },

@@ -483,6 +483,8 @@ class HitobitoPeopleService {
               'label': telefonnummer.label,
               'number': telefonnummer.wert,
               'public': telefonnummer.istOeffentlich,
+              if (telefonnummer.categoryId != null)
+                'category_id': telefonnummer.categoryId,
             },
           });
         case HitobitoRelationshipMutationMethod.update:
@@ -504,6 +506,8 @@ class HitobitoPeopleService {
               'label': telefonnummer.label,
               'number': telefonnummer.wert,
               'public': telefonnummer.istOeffentlich,
+              if (telefonnummer.categoryId != null)
+                'category_id': telefonnummer.categoryId,
             },
           });
         case HitobitoRelationshipMutationMethod.destroy:
@@ -548,6 +552,7 @@ class HitobitoPeopleService {
             'attributes': <String, dynamic>{
               'label': email.label,
               'email': email.wert,
+              if (email.categoryId != null) 'category_id': email.categoryId,
             },
           });
         case HitobitoRelationshipMutationMethod.update:
@@ -568,6 +573,7 @@ class HitobitoPeopleService {
             'attributes': <String, dynamic>{
               'label': email.label,
               'email': email.wert,
+              if (email.categoryId != null) 'category_id': email.categoryId,
             },
           });
         case HitobitoRelationshipMutationMethod.destroy:
@@ -611,6 +617,11 @@ class HitobitoPeopleService {
             'temp-id': tempId,
             'attributes': <String, dynamic>{
               'label': adresse.label,
+              if (adresse.categoryId != null) 'category_id': adresse.categoryId,
+              'first_name': adresse.firstName,
+              'last_name': adresse.lastName,
+              'organization': adresse.istOrganisation,
+              'organization_name': adresse.organizationName,
               'address_care_of': adresse.addressCareOf,
               'street': adresse.street,
               'housenumber': adresse.housenumber,
@@ -637,6 +648,11 @@ class HitobitoPeopleService {
             'id': additionalAddressId.toString(),
             'attributes': <String, dynamic>{
               'label': adresse.label,
+              if (adresse.categoryId != null) 'category_id': adresse.categoryId,
+              'first_name': adresse.firstName,
+              'last_name': adresse.lastName,
+              'organization': adresse.istOrganisation,
+              'organization_name': adresse.organizationName,
               'address_care_of': adresse.addressCareOf,
               'street': adresse.street,
               'housenumber': adresse.housenumber,
@@ -679,11 +695,11 @@ class HitobitoPeopleService {
     queryParameters['fields[roles]'] =
         'created_at,updated_at,start_on,end_on,name,person_id,group_id,type,label';
     queryParameters['fields[phone_numbers]'] =
-        'contactable_id,contactable_type,label,number,public';
+        'contactable_id,contactable_type,label,category_id,number,public';
     queryParameters['fields[additional_emails]'] =
-        'contactable_id,contactable_type,label,email';
+        'contactable_id,contactable_type,label,category_id,email';
     queryParameters['fields[additional_addresses]'] =
-        'contactable_id,contactable_type,label,address_care_of,street,housenumber,postbox,zip_code,town,country';
+        'contactable_id,contactable_type,label,category_id,first_name,last_name,organization_name,organization,address_care_of,street,housenumber,postbox,zip_code,town,country';
     return uri.replace(queryParameters: queryParameters);
   }
 
@@ -1068,6 +1084,7 @@ class HitobitoPeopleService {
         phoneNumberId: id,
         wert: number,
         label: _toNullableString(attributesMap['label']),
+        categoryId: _toNullableInt(attributesMap['category_id']),
         istOeffentlich: attributesMap['public'] == true,
       ),
     );
@@ -1094,6 +1111,7 @@ class HitobitoPeopleService {
         additionalEmailId: id,
         wert: email,
         label: _toNullableString(attributesMap['label']),
+        categoryId: _toNullableInt(attributesMap['category_id']),
       ),
     );
   }
@@ -1110,6 +1128,12 @@ class HitobitoPeopleService {
     final adresse = MitgliedKontaktAdresse(
       additionalAddressId: id,
       label: _toNullableString(attributesMap['label']),
+      categoryId: _toNullableInt(attributesMap['category_id']),
+      firstName: _toNullableString(attributesMap['first_name']),
+      lastName: _toNullableString(attributesMap['last_name']),
+      organizationName: attributesMap['organization'] == true
+          ? _toNullableString(attributesMap['organization_name'])
+          : null,
       addressCareOf: _toNullableString(attributesMap['address_care_of']),
       street: _toNullableString(attributesMap['street']),
       housenumber: _toNullableString(attributesMap['housenumber']),

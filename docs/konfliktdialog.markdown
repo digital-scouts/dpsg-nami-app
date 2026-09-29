@@ -119,8 +119,10 @@ Direkt bearbeitbar sind heute:
 - Zusatzmails
 - Telefonnummern samt Sichtbarkeit
 - primäre Adresse
-- Zusatzadressen
+- Zusatzadressen mit Name
 - Bankverbindung mit Zahlart
+
+Telefonnummern, Zusatzmails und Zusatzadressen werden über eine Auswahlliste bezeichnet, die den Hitobito-Kategorien entspricht. Ein vorhandener Freitext-Zusatz bleibt erhalten und wird angezeigt. Neue Einträge brauchen eine Kategorie; eindeutige Kategorien wie Mobil dürfen pro Person nur einmal vorkommen.
 
 Adressen und die Bankverbindung werden dabei als Blöcke behandelt.
 
