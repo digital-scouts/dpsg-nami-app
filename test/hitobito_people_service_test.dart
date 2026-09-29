@@ -632,6 +632,195 @@ void main() {
     timeout: const Timeout(Duration(seconds: 3)),
   );
 
+  test(
+    'sendet mit changedAttributes nur diese Attribute und alle Mutationsarten',
+    () async {
+      final requests = <http.Request>[];
+      final client = MockClient((request) async {
+        requests.add(request);
+        return http.Response('', 204);
+      });
+      final service = HitobitoPeopleService(
+        config: const HitobitoAuthConfig(
+          clientId: 'client',
+          clientSecret: 'secret',
+          authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
+          tokenUrl: 'https://demo.hitobito.com/oauth/token',
+          redirectUri: 'de.jlange.nami.app:/oauth/callback',
+          scopeString: 'openid email api',
+          discoveryUrl: '',
+          profileUrl: 'https://demo.hitobito.com/oauth/profile',
+        ),
+        httpClient: client,
+      );
+
+      await service.updatePersonWithRelationships(
+        'token-123',
+        mitglied: Mitglied.peopleListItem(
+          mitgliedsnummer: '4711',
+          personId: 23,
+          vorname: 'Julia',
+          nachname: 'Keller',
+        ),
+        changedAttributes: <String, dynamic>{
+          'nickname': null,
+          'birthday': null,
+        },
+        phoneNumberMutations:
+            const <HitobitoRelationshipMutation<MitgliedKontaktTelefon>>[
+              HitobitoRelationshipMutation<MitgliedKontaktTelefon>(
+                method: HitobitoRelationshipMutationMethod.update,
+                value: MitgliedKontaktTelefon(
+                  phoneNumberId: 301,
+                  wert: '+491701234567',
+                  label: 'Mobil',
+                ),
+              ),
+              HitobitoRelationshipMutation<MitgliedKontaktTelefon>(
+                method: HitobitoRelationshipMutationMethod.destroy,
+                value: MitgliedKontaktTelefon(
+                  phoneNumberId: 302,
+                  wert: '+4930123456',
+                ),
+              ),
+            ],
+        additionalAddressMutations:
+            const <HitobitoRelationshipMutation<MitgliedKontaktAdresse>>[
+              HitobitoRelationshipMutation<MitgliedKontaktAdresse>(
+                method: HitobitoRelationshipMutationMethod.create,
+                value: MitgliedKontaktAdresse(
+                  label: 'Arbeit',
+                  street: 'Werkstrasse',
+                  housenumber: '2',
+                  zipCode: '50667',
+                  town: 'Koeln',
+                ),
+              ),
+              HitobitoRelationshipMutation<MitgliedKontaktAdresse>(
+                method: HitobitoRelationshipMutationMethod.update,
+                value: MitgliedKontaktAdresse(
+                  additionalAddressId: 801,
+                  label: 'Sonstige',
+                  town: 'Bonn',
+                ),
+              ),
+            ],
+      );
+
+      final body = jsonDecode(requests.single.body) as Map<String, dynamic>;
+      expect(body['data']['attributes'], <String, dynamic>{
+        'nickname': null,
+        'birthday': null,
+      });
+      final relationships =
+          body['data']['relationships'] as Map<String, dynamic>;
+      expect(relationships.keys, <String>[
+        'phone_numbers',
+        'additional_addresses',
+      ]);
+      expect(relationships['phone_numbers']['data'], <Map<String, dynamic>>[
+        <String, dynamic>{
+          'type': 'phone_numbers',
+          'id': '301',
+          'method': 'update',
+        },
+        <String, dynamic>{
+          'type': 'phone_numbers',
+          'id': '302',
+          'method': 'destroy',
+        },
+      ]);
+      expect(
+        relationships['additional_addresses']['data'],
+        <Map<String, dynamic>>[
+          <String, dynamic>{
+            'type': 'additional_addresses',
+            'temp-id': 'new-address-1',
+            'method': 'create',
+          },
+          <String, dynamic>{
+            'type': 'additional_addresses',
+            'id': '801',
+            'method': 'update',
+          },
+        ],
+      );
+      final included = (body['included'] as List).cast<Map<String, dynamic>>();
+      expect(included.map((entry) => entry['id'] ?? entry['temp-id']), <String>[
+        '301',
+        'new-address-1',
+        '801',
+      ]);
+      expect(included[0]['attributes'], <String, dynamic>{
+        'label': 'Mobil',
+        'number': '+491701234567',
+      });
+      expect(included[1]['attributes']['street'], 'Werkstrasse');
+      expect(included[2]['attributes']['town'], 'Bonn');
+      expect(included[2]['attributes']['street'], isNull);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  test(
+    'laesst attributes weg, wenn keine Personenattribute geaendert sind',
+    () async {
+      final requests = <http.Request>[];
+      final client = MockClient((request) async {
+        requests.add(request);
+        return http.Response('', 204);
+      });
+      final service = HitobitoPeopleService(
+        config: const HitobitoAuthConfig(
+          clientId: 'client',
+          clientSecret: 'secret',
+          authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
+          tokenUrl: 'https://demo.hitobito.com/oauth/token',
+          redirectUri: 'de.jlange.nami.app:/oauth/callback',
+          scopeString: 'openid email api',
+          discoveryUrl: '',
+          profileUrl: 'https://demo.hitobito.com/oauth/profile',
+        ),
+        httpClient: client,
+      );
+
+      await service.updatePersonWithRelationships(
+        'token-123',
+        mitglied: Mitglied.peopleListItem(
+          mitgliedsnummer: '4711',
+          personId: 23,
+          vorname: 'Julia',
+          nachname: 'Keller',
+        ),
+        changedAttributes: const <String, dynamic>{},
+        additionalEmailMutations:
+            const <HitobitoRelationshipMutation<MitgliedKontaktEmail>>[
+              HitobitoRelationshipMutation<MitgliedKontaktEmail>(
+                method: HitobitoRelationshipMutationMethod.destroy,
+                value: MitgliedKontaktEmail(
+                  additionalEmailId: 601,
+                  wert: 'alt@example.org',
+                ),
+              ),
+            ],
+      );
+
+      final body = jsonDecode(requests.single.body) as Map<String, dynamic>;
+      expect(body['data'], isNot(contains('attributes')));
+      expect(body, isNot(contains('included')));
+      expect(
+        body['data']['relationships']['additional_emails']['data'],
+        <Map<String, dynamic>>[
+          <String, dynamic>{
+            'type': 'additional_emails',
+            'id': '601',
+            'method': 'destroy',
+          },
+        ],
+      );
+    },
+  );
+
   test('sendet leeres Geburtsdatum nicht als 1900 an Hitobito', () async {
     final requests = <http.Request>[];
     final client = MockClient((request) async {
