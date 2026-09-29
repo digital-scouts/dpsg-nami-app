@@ -182,7 +182,7 @@ class MemberPhoneInput {
       return 'Bitte eine gültige Telefonnummer eingeben.';
     }
 
-    final normalized = '${option.dialCode}${_digitsOnly(trimmed)}';
+    final normalized = '${option.dialCode}${_nationalDigits(trimmed)}';
     if (!_hasValidLength(normalized)) {
       return 'Bitte eine gültige Telefonnummer eingeben.';
     }
@@ -208,7 +208,7 @@ class MemberPhoneInput {
       return normalizeInternational(trimmed);
     }
 
-    final digits = _digitsOnly(trimmed);
+    final digits = _nationalDigits(trimmed);
     if (digits.isEmpty) {
       return null;
     }
@@ -243,6 +243,14 @@ class MemberPhoneInput {
   static bool _hasValidLength(String normalizedValue) {
     final digitCount = _digitsOnly(normalizedValue).length;
     return digitCount >= minDigits && digitCount <= maxDigits;
+  }
+
+  /// Ziffern einer national eingegebenen Nummer ohne Verkehrsausscheidungs-
+  /// ziffer: `0170 1234567` wird mit +49 zu `+491701234567`. Alle
+  /// auswaehlbaren Laender nutzen die fuehrende 0 nur national.
+  static String _nationalDigits(String value) {
+    final digits = _digitsOnly(value);
+    return digits.startsWith('0') ? digits.substring(1) : digits;
   }
 
   static String _digitsOnly(String value) {

@@ -1046,6 +1046,13 @@ void main() {
       );
     });
 
+    test('ordnet 400 als nicht retrybare Ablehnung ein', () async {
+      await expectUpdateThrows(
+        const HitobitoPeopleException('Bad Request', statusCode: 400),
+        isA<MemberWriteRejectedException>(),
+      );
+    });
+
     test('ordnet 409 als Konflikt ein', () async {
       await expectUpdateThrows(
         const HitobitoPeopleException('Conflict', statusCode: 409),

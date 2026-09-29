@@ -25,6 +25,21 @@ void main() {
     expect(value, '+491701234567');
   });
 
+  test('entfernt die nationale 0 bei bekannter Vorwahl', () {
+    expect(
+      MemberPhoneInput.compose(countryId: 'de', localNumber: '0170 1234567'),
+      '+491701234567',
+    );
+    expect(
+      MemberPhoneInput.compose(countryId: 'at', localNumber: '0664 123456'),
+      '+43664123456',
+    );
+    expect(
+      MemberPhoneInput.validate(countryId: 'de', localNumber: '0170 1234567'),
+      isNull,
+    );
+  });
+
   test('normalisiert internationale Eingaben mit 00-Praefix', () {
     final value = MemberPhoneInput.compose(
       countryId: 'de',

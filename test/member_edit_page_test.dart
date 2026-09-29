@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -241,6 +243,232 @@ void main() {
     expect(find.widgetWithText(TextField, 'Musterweg'), findsOneWidget);
     expect(find.text('Bezeichnung', skipOffstage: false), findsNothing);
     expect(find.text('c/o', skipOffstage: false), findsOneWidget);
+  });
+
+  group('Speichern', () {
+    Future<void> pumpEditor(
+      WidgetTester tester, {
+      required Mitglied mitglied,
+      MemberEditModel? model,
+      bool withSession = true,
+    }) async {
+      _useLargeViewport(tester);
+      final providers = model == null
+          ? const <SingleChildWidget>[]
+          : withSession
+          ? _buildEditProviders(model)
+          : <SingleChildWidget>[
+              ChangeNotifierProvider<MemberEditModel>.value(value: model),
+            ];
+      await tester.pumpWidget(
+        _buildTestApp(MemberEditPage(mitglied: mitglied), providers: providers),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> tapSave(WidgetTester tester) async {
+      await tester.tap(find.byKey(const Key('member-edit-save-button')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('schliesst die Seite bei Erfolg mit dem Ergebnis', (
+      tester,
+    ) async {
+      final model = _RecordingMemberEditModel(
+        result: const MemberEditSubmitResult(success: true, wasQueued: false),
+      );
+      MemberEditSubmitResult? received;
+
+      _useLargeViewport(tester);
+      await tester.pumpWidget(
+        _buildTestApp(
+          _EditPageLauncher(
+            pageBuilder: () =>
+                MemberEditPage(mitglied: _buildMember(gender: 'w')),
+            onResult: (result) => received = result,
+          ),
+          providers: _buildEditProviders(model),
+        ),
+      );
+      await tester.tap(find.text('Editor oeffnen'));
+      await tester.pumpAndSettle();
+      await tapSave(tester);
+
+      expect(received?.success, isTrue);
+      expect(find.byType(MemberEditPage), findsNothing);
+    });
+
+    testWidgets(
+      'zeigt Ladezustand und sperrt den Button waehrend des Sendens',
+      (tester) async {
+        final gate = Completer<void>();
+        final model = _RecordingMemberEditModel(
+          result: const MemberEditSubmitResult(success: true, wasQueued: false),
+          gate: gate.future,
+        );
+        await pumpEditor(
+          tester,
+          mitglied: _buildMember(gender: 'w'),
+          model: model,
+        );
+
+        await tester.tap(find.byKey(const Key('member-edit-save-button')));
+        await tester.pump();
+
+        expect(find.text('Speichert...'), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byKey(const Key('member-edit-save-button')),
+            matching: find.byType(CircularProgressIndicator),
+          ),
+          findsOneWidget,
+        );
+        final button = tester.widget<ButtonStyleButton>(
+          find.byKey(const Key('member-edit-save-button')),
+        );
+        expect(button.onPressed, isNull);
+
+        await tester.tap(
+          find.byKey(const Key('member-edit-save-button')),
+          warnIfMissed: false,
+        );
+        await tester.pump();
+        expect(model.submitCalls, hasLength(1));
+
+        gate.complete();
+        await tester.pumpAndSettle();
+      },
+    );
+
+    testWidgets('zeigt Fehlermeldung, wenn Speichern scheitert', (
+      tester,
+    ) async {
+      final model = _RecordingMemberEditModel(
+        result: const MemberEditSubmitResult(success: false, wasQueued: false),
+      );
+      await pumpEditor(
+        tester,
+        mitglied: _buildMember(gender: 'w'),
+        model: model,
+      );
+
+      await tapSave(tester);
+
+      expect(find.text('Speichern fehlgeschlagen.'), findsOneWidget);
+      expect(find.byType(MemberEditPage), findsOneWidget);
+      final button = tester.widget<ButtonStyleButton>(
+        find.byKey(const Key('member-edit-save-button')),
+      );
+      expect(button.onPressed, isNotNull);
+    });
+
+    testWidgets('warnt ohne Sitzung und sendet nichts', (tester) async {
+      final model = _RecordingMemberEditModel();
+      await pumpEditor(
+        tester,
+        mitglied: _buildMember(gender: 'w'),
+        model: model,
+        withSession: false,
+      );
+
+      await tapSave(tester);
+
+      expect(
+        find.text('Aktuell ist keine gültige Sitzung zum Speichern verfügbar.'),
+        findsOneWidget,
+      );
+      expect(model.submitCalls, isEmpty);
+    });
+
+    testWidgets('zeigt Server-Validierung einer Telefonnummer am Feld', (
+      tester,
+    ) async {
+      final model = _RecordingMemberEditModel(
+        result: const MemberEditSubmitResult(
+          success: false,
+          wasQueued: false,
+          message: 'Validierung fehlgeschlagen',
+          validationErrors: <MemberWriteFieldValidationError>[
+            MemberWriteFieldValidationError(
+              message: 'Nummer ist ungültig',
+              relationshipName: 'phone_numbers',
+              relationshipAttribute: 'number',
+              relationshipId: 1,
+            ),
+          ],
+        ),
+      );
+      await pumpEditor(
+        tester,
+        mitglied: _buildMember(gender: 'w'),
+        model: model,
+      );
+
+      await tapSave(tester);
+
+      expect(find.text('Nummer ist ungültig'), findsOneWidget);
+      expect(find.text('Validierung fehlgeschlagen'), findsNothing);
+    });
+
+    testWidgets('blockiert Geburtsdatum in der Zukunft', (tester) async {
+      final model = _RecordingMemberEditModel();
+      final zukunft = DateTime.now().add(const Duration(days: 30));
+      await pumpEditor(
+        tester,
+        mitglied: _buildMember(gender: 'w').copyWith(
+          geburtsdatum: DateTime(zukunft.year, zukunft.month, zukunft.day),
+        ),
+        model: model,
+      );
+
+      await tapSave(tester);
+
+      expect(
+        find.text('Geburtsdatum darf nicht in der Zukunft liegen.'),
+        findsOneWidget,
+      );
+      expect(model.submitCalls, isEmpty);
+    });
+
+    testWidgets('uebernimmt jedes Formularfeld in das Zielmitglied', (
+      tester,
+    ) async {
+      final model = _RecordingMemberEditModel();
+      await pumpEditor(
+        tester,
+        mitglied: _buildMember(gender: 'w'),
+        model: model,
+      );
+
+      Future<void> enter(String key, String value) async {
+        final field = find.byKey(Key(key));
+        await tester.ensureVisible(field);
+        await tester.enterText(field, value);
+      }
+
+      await enter('member-edit-first-name-field', ' Juliane ');
+      await enter('member-edit-last-name-field', 'Kellermann');
+      await enter('member-edit-nickname-field', '');
+      await enter('member-edit-primary-email-field', 'neu@example.org');
+      await enter('member-edit-phone-number-0', '0170 1234567');
+      await tester.pumpAndSettle();
+      await tapSave(tester);
+
+      final ziel = model.submitCalls.single.zielMitglied;
+      expect(ziel.vorname, 'Juliane');
+      expect(ziel.nachname, 'Kellermann');
+      expect(ziel.fahrtenname, isNull);
+      expect(ziel.gender, 'w');
+      expect(ziel.geburtsdatum, DateTime(2012, 5, 4));
+      expect(
+        ziel.emailAdressen.where((email) => email.istPrimaer).single.wert,
+        'neu@example.org',
+      );
+      expect(ziel.telefonnummern.single.phoneNumberId, 1);
+      expect(ziel.telefonnummern.single.wert, '+491701234567');
+      expect(ziel.primaryAddress?.street, 'Musterweg');
+      expect(ziel.primaryAddress?.label, isNull);
+    });
   });
 
   testWidgets('blockiert Speichern ohne Namen oder Fahrtenname', (
@@ -1579,6 +1807,7 @@ class _RecordingMemberEditModel extends MemberEditModel {
       wasQueued: true,
     ),
     List<MemberEditSubmitResult>? results,
+    this.gate,
   }) : _results = results ?? <MemberEditSubmitResult>[result],
        super(
          memberWriteRepository: _NoopMemberWriteRepository(),
@@ -1588,6 +1817,7 @@ class _RecordingMemberEditModel extends MemberEditModel {
        );
 
   final List<MemberEditSubmitResult> _results;
+  final Future<void>? gate;
   final List<_SubmitCall> submitCalls = <_SubmitCall>[];
   final List<String> choices = <String>[];
   final List<String> openedEntryPoints = <String>[];
@@ -1609,6 +1839,10 @@ class _RecordingMemberEditModel extends MemberEditModel {
         existingResolutionCase: existingResolutionCase,
       ),
     );
+    final pendingGate = gate;
+    if (pendingGate != null) {
+      await pendingGate;
+    }
     final index = submitCalls.length - 1;
     return index < _results.length ? _results[index] : _results.last;
   }
