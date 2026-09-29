@@ -71,7 +71,7 @@ Story bundesvergleichStory() {
       );
       final hatEinwilligung = status != BundesstatistikStatus.keineEinwilligung;
       final aggregat = switch (status) {
-        BundesstatistikStatus.bereit => _beispielAggregat,
+        BundesstatistikStatus.bereit => bundesstatistikBeispielAggregat,
         BundesstatistikStatus.zuWenigTeilnahme => _zuWenigAggregat,
         _ => null,
       };
@@ -82,7 +82,7 @@ Story bundesvergleichStory() {
             status: status,
             hatEinwilligung: hatEinwilligung,
             aggregat: aggregat,
-            eigeneKennzahlen: _beispielKennzahlen,
+            eigeneKennzahlen: bundesstatistikBeispielKennzahlen,
             einwilligungAm: hatEinwilligung ? DateTime(2026, 6, 1) : null,
             zuletztGesendet: hatEinwilligung
                 ? StammesSnapshot(
@@ -90,7 +90,7 @@ Story bundesvergleichStory() {
                     senderId: 'installation',
                     sentAt: DateTime(2026, 6, 14, 18, 5),
                     sourceDataAsOf: DateTime(2026, 6, 14, 18),
-                    kennzahlen: _beispielKennzahlen,
+                    kennzahlen: bundesstatistikBeispielKennzahlen,
                   )
                 : null,
             onEinwilligungAendern: (_) {},
@@ -110,7 +110,7 @@ Story bundesstatistikEinwilligungStory() {
   );
 }
 
-const _beispielKennzahlen = StammesKennzahlen(
+const bundesstatistikBeispielKennzahlen = StammesKennzahlen(
   aktiveMitglieder: 58,
   biber: GeschlechterVerteilung(
     gesamt: 6,
@@ -197,7 +197,7 @@ const _beispielKennzahlen = StammesKennzahlen(
 KennzahlAggregat _k(num summe, int staemme, num median) =>
     KennzahlAggregat(summe: summe, stammAnzahl: staemme, median: median);
 
-final _beispielAggregat = Bundesaggregat(
+final bundesstatistikBeispielAggregat = Bundesaggregat(
   status: BundesaggregatStatus.ok,
   teilnehmendeStaemme: 42,
   mindestAnzahlStaemme: 5,

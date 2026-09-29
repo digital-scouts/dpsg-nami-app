@@ -1,0 +1,69 @@
+<!doctype html>
+<!--
+  Ein Store-Screenshot in exakter Pixelgröße.
+  Parameter: ?target=iphone|ipad|play&slide=<index>&style=navy|hell|stufen
+  Wird von preview.html (verkleinert) und render.mjs (Export) genutzt.
+-->
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Store-Screenshot</title>
+<script src="content.js"></script>
+<link rel="stylesheet" href="store.css">
+<style>
+  .canvas { display: flex; flex-direction: column; align-items: center; }
+  .copy { text-align: center; z-index: 2; }
+  .headline { font-weight: 700; text-wrap: balance; letter-spacing: -0.02em; line-height: 1.05; margin: 0; }
+  .subline { font-weight: 400; text-wrap: balance; line-height: 1.3; margin: 0; }
+  .accent-bar { border-radius: 999px; margin: 0 auto; }
+
+  /* iPhone 6,9" – 1320 × 2868 */
+  .t-iphone { width: 1320px; height: 2868px; }
+  .t-iphone .copy { padding: 200px 110px 0; height: 520px; }
+  .t-iphone .headline { font-size: 116px; }
+  .t-iphone .subline { font-size: 54px; margin-top: 36px; }
+  .t-iphone .accent-bar { width: 120px; height: 14px; margin-bottom: 44px; }
+  .t-iphone .device { margin-top: 90px; }
+
+  /* iPad 13" – 2064 × 2752 */
+  .t-ipad { width: 2064px; height: 2752px; }
+  .t-ipad .copy { padding: 130px 200px 0; }
+  .t-ipad .headline { font-size: 112px; }
+  .t-ipad .subline { font-size: 56px; margin-top: 28px; }
+  .t-ipad .accent-bar { width: 140px; height: 16px; margin-bottom: 40px; }
+  .t-ipad .device { margin-top: 110px; }
+
+  /* Google Play Phone – 1080 × 1920 (9:16) */
+  .t-play { width: 1080px; height: 1920px; }
+  .t-play .copy { padding: 120px 80px 0; height: 330px; }
+  .t-play .headline { font-size: 84px; }
+  .t-play .subline { font-size: 40px; margin-top: 26px; }
+  .t-play .accent-bar { width: 90px; height: 11px; margin-bottom: 32px; }
+  .t-play .device { margin-top: 60px; }
+</style>
+</head>
+<body>
+<div id="canvas" class="canvas"></div>
+<script src="store.js"></script>
+<script>
+  const params = new URLSearchParams(location.search);
+  const target = params.get('target') || 'iphone';
+  const index = Number(params.get('slide') || 0);
+  const style = params.get('style') || StoreRender.defaultStyle();
+  const slide = STORE.slides[index];
+  const canvas = document.getElementById('canvas');
+  canvas.classList.add('t-' + target, 's-' + style);
+  canvas.style.setProperty('--accent', slide.accent);
+
+  canvas.innerHTML = `
+    ${StoreRender.watermark()}
+    <div class="copy">
+      <div class="accent-bar"></div>
+      <h1 class="headline">${slide.headline}</h1>
+      <p class="subline">${slide.subline}</p>
+    </div>
+    ${StoreRender.device(target, slide)}
+  `;
+</script>
+</body>
+</html>

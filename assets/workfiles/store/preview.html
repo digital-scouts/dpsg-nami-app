@@ -1,0 +1,162 @@
+<!doctype html>
+<!-- Gesamtübersicht der Store-Einträge. Einfach im Browser öffnen (file:// reicht). -->
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>NaMi Store-Vorschau</title>
+<script src="content.js"></script>
+<link rel="stylesheet" href="store.css">
+<style>
+  body { background: #e9ebef; color: #1c1c1e; font-family: 'Work Sans', system-ui, sans-serif; }
+  header { position: sticky; top: 0; z-index: 10; background: #003056; color: #fff; padding: 14px 28px; display: flex; gap: 24px; align-items: center; flex-wrap: wrap; box-shadow: 0 2px 10px rgba(0,0,0,.2); }
+  header h1 { font-size: 20px; margin: 0; font-weight: 700; }
+  header .styles { display: flex; gap: 8px; }
+  header button { font: inherit; font-size: 14px; border: 1px solid rgba(255,255,255,.4); background: transparent; color: #fff; padding: 6px 14px; border-radius: 999px; cursor: pointer; }
+  header button.active { background: #fff; color: #003056; }
+  header label { font-size: 14px; display: flex; gap: 8px; align-items: center; }
+  header nav a { color: #c9dcee; font-size: 14px; margin-right: 14px; }
+  main { padding: 20px 28px 80px; max-width: 1800px; }
+  h2 { font-size: 26px; margin: 36px 0 4px; color: #003056; }
+  h3 { font-size: 16px; margin: 22px 0 10px; text-transform: uppercase; letter-spacing: .06em; color: #555; }
+  .hint { color: #666; font-size: 14px; margin: 0 0 10px; }
+  .row { display: flex; gap: 16px; overflow-x: auto; padding: 6px 2px 14px; }
+  .frame { flex: none; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.12); position: relative; }
+  .frame iframe { border: 0; transform-origin: 0 0; display: block; pointer-events: none; }
+  .frame .no { position: absolute; left: 8px; top: 8px; background: rgba(0,0,0,.55); color: #fff; font-size: 12px; padding: 2px 8px; border-radius: 999px; z-index: 2; }
+  .frame a { position: absolute; inset: 0; z-index: 3; }
+  .texts { display: grid; grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); gap: 16px; }
+  .card { background: #fff; border-radius: 12px; padding: 16px 18px; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+  .card.wide { grid-column: 1 / -1; }
+  .card .head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .card .head strong { color: #003056; }
+  .variant { border: 1px solid #dde1e7; border-radius: 8px; padding: 10px 12px; margin-top: 8px; position: relative; }
+  .variant .txt { white-space: pre-wrap; outline: none; font-size: 15px; line-height: 1.45; }
+  .variant .meta { display: flex; justify-content: space-between; font-size: 12px; color: #777; margin-top: 6px; }
+  .count.over { color: #c0142a; font-weight: 700; }
+  .variant button { font: inherit; font-size: 12px; border: 0; background: #eef1f6; border-radius: 6px; padding: 3px 10px; cursor: pointer; }
+  .long .txt { max-height: 520px; overflow: auto; }
+</style>
+</head>
+<body>
+<header>
+  <h1>NaMi <span id="ver"></span> · Store-Vorschau</h1>
+  <div class="styles" id="styles"></div>
+  <label>Größe <input type="range" id="zoom" min="0.08" max="0.3" step="0.01"></label>
+  <nav><a href="#play">Google Play</a><a href="#appstore">App Store</a><a href="#texte">Texte</a></nav>
+</header>
+<main>
+  <section id="play">
+    <h2>Google Play</h2>
+    <h3>Vorstellungsgrafik · 1024 × 500</h3>
+    <div class="row" id="play-feature"></div>
+    <h3>Telefon-Screenshots · 1080 × 1920 (9:16)</h3>
+    <div class="row" id="play-shots"></div>
+  </section>
+  <section id="appstore">
+    <h2>App Store</h2>
+    <h3>iPhone 6,9" · 1320 × 2868</h3>
+    <div class="row" id="iphone-shots"></div>
+    <h3>iPad 13" · 2064 × 2752</h3>
+    <div class="row" id="ipad-shots"></div>
+  </section>
+  <section id="texte">
+    <h2>Texte</h2>
+    <p class="hint">Texte sind direkt editierbar (Zeichenzähler live). Änderungen werden nicht gespeichert – bitte als Feedback zurückgeben oder in content.js übernehmen.</p>
+    <h3>Google Play</h3>
+    <div class="texts" id="play-texts"></div>
+    <h3>App Store</h3>
+    <div class="texts" id="appstore-texts"></div>
+  </section>
+</main>
+<script src="store.js"></script>
+<script>
+  const STYLES = { navy: 'Navy', hell: 'Hell', stufen: 'Stufenfarben' };
+  let style = StoreRender.defaultStyle();
+  let zoom = Number(localStorage.getItem('store-zoom') || 0.14);
+  document.getElementById('ver').textContent = STORE.version;
+
+  function frame(src, w, h, scale, label) {
+    return `<div class="frame" style="width:${w * scale}px;height:${h * scale}px">
+      ${label ? `<span class="no">${label}</span>` : ''}
+      <iframe src="${src}" width="${w}" height="${h}" style="transform:scale(${scale})" loading="lazy"></iframe>
+      <a href="${src}" target="_blank" title="In Originalgröße öffnen"></a>
+    </div>`;
+  }
+
+  function renderImages() {
+    const q = `style=${style}`;
+    document.getElementById('play-feature').innerHTML =
+      frame(`feature-graphic.html?${q}`, 1024, 500, Math.min(zoom * 3.2, 0.9));
+    const shots = (target, w, h, scale) => STORE.slides
+      .map((s, i) => frame(`screenshot.html?target=${target}&slide=${i}&${q}`, w, h, scale, `${i + 1} · ${s.scene}`))
+      .join('');
+    document.getElementById('play-shots').innerHTML = shots('play', 1080, 1920, zoom * 1.3);
+    document.getElementById('iphone-shots').innerHTML = shots('iphone', 1320, 2868, zoom);
+    document.getElementById('ipad-shots').innerHTML = shots('ipad', 2064, 2752, zoom * 0.95);
+  }
+
+  function renderStyles() {
+    document.getElementById('styles').innerHTML = Object.entries(STYLES)
+      .map(([k, v]) => `<button data-style="${k}" class="${k === style ? 'active' : ''}">${v}</button>`)
+      .join('');
+  }
+
+  function variant(text, limit) {
+    const n = [...text].length;
+    return `<div class="variant ${limit >= 500 ? 'long' : ''}">
+      <div class="txt" contenteditable="true" data-limit="${limit}"></div>
+      <div class="meta"><span class="count ${n > limit ? 'over' : ''}">${n} / ${limit}</span><button>Kopieren</button></div>
+    </div>`;
+  }
+
+  function renderTexts(list, el) {
+    el.innerHTML = list.map((entry) => {
+      const variants = entry.ref ? [STORE[entry.ref]] : entry.variants;
+      return `<div class="card ${entry.limit >= 500 ? 'wide' : ''}">
+        <div class="head"><strong>${entry.key}</strong><span class="hint">max. ${entry.limit} Zeichen${variants.length > 1 ? ` · ${variants.length} Varianten` : ''}</span></div>
+        ${variants.map((v) => variant(v, entry.limit)).join('')}
+      </div>`;
+    }).join('');
+    // Text erst nachträglich setzen, damit nichts als HTML interpretiert wird.
+    const all = list.flatMap((e) => (e.ref ? [STORE[e.ref]] : e.variants));
+    el.querySelectorAll('.txt').forEach((node, i) => { node.textContent = all[i]; });
+  }
+
+  document.addEventListener('input', (e) => {
+    const node = e.target.closest('.txt');
+    if (!node) return;
+    const limit = Number(node.dataset.limit);
+    const n = [...node.innerText].length;
+    const count = node.parentElement.querySelector('.count');
+    count.textContent = `${n} / ${limit}`;
+    count.classList.toggle('over', n > limit);
+  });
+  document.addEventListener('click', (e) => {
+    if (e.target.matches('.variant button')) {
+      navigator.clipboard.writeText(e.target.closest('.variant').querySelector('.txt').innerText);
+      e.target.textContent = 'Kopiert ✓';
+      setTimeout(() => (e.target.textContent = 'Kopieren'), 1200);
+    }
+    const s = e.target.dataset.style;
+    if (s) {
+      style = s;
+      localStorage.setItem('store-style', s);
+      renderStyles();
+      renderImages();
+    }
+  });
+  const zoomInput = document.getElementById('zoom');
+  zoomInput.value = zoom;
+  zoomInput.addEventListener('change', () => {
+    zoom = Number(zoomInput.value);
+    localStorage.setItem('store-zoom', zoom);
+    renderImages();
+  });
+
+  renderStyles();
+  renderImages();
+  renderTexts(STORE.texts.play, document.getElementById('play-texts'));
+  renderTexts(STORE.texts.appStore, document.getElementById('appstore-texts'));
+</script>
+</body>
+</html>
