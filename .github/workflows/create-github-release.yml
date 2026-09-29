@@ -4,6 +4,20 @@ on:
   pull_request:
     branches: [master]
     types: [closed]
+    # Nur App-Aenderungen; docs/version.json (Version-Reminder) bewusst nicht.
+    paths:
+      - "lib/**"
+      - "test/**"
+      - "integration_test/**"
+      - "assets/**"
+      - "android/**"
+      - "ios/**"
+      - "tool/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - "analysis_options.yaml"
+      - ".env.example"
+      - ".github/workflows/create-github-release.yml"
   workflow_dispatch:
 
 permissions:
@@ -25,37 +39,13 @@ jobs:
         with:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.merge_commit_sha || github.sha }}
 
-      - name: Set up Java
-        uses: actions/setup-java@v4
+      # Format, Analyze und Tests laufen im PR und beim Merge in deploy-android-internal.yml.
+      - uses: dart-lang/setup-dart@v1
         with:
-          distribution: temurin
-          java-version: "21"
-
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          flutter-version: 3.44.5
-          cache: true
-
-      - name: Install dependencies
-        run: flutter pub get
+          sdk: "3.12.2" # Dart von Flutter 3.44.5
 
       - name: Validate app version consistency
         run: dart tool/validate_versions.dart
-
-      - name: Create env file for analysis
-        run: cp .env.example .env
-
-      - name: Verify formatting
-        run: dart format --output=none --set-exit-if-changed .
-
-      - name: Analyze Flutter project
-        run: flutter analyze
-
-      - name: Run Flutter tests
-        run: flutter test
 
       - name: Read release version from pubspec
         id: version

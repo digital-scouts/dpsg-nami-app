@@ -3,9 +3,34 @@ name: Deploy Android Internal
 on:
   push:
     branches: [develop]
+    # Nur Android-relevante App-Aenderungen; docs/version.json (Version-Reminder) bewusst nicht.
+    paths:
+      - "lib/**"
+      - "test/**"
+      - "integration_test/**"
+      - "assets/**"
+      - "android/**"
+      - "tool/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - "analysis_options.yaml"
+      - ".env.example"
+      - ".github/workflows/deploy-android-internal.yml"
   pull_request:
     branches: [master]
     types: [closed]
+    paths:
+      - "lib/**"
+      - "test/**"
+      - "integration_test/**"
+      - "assets/**"
+      - "android/**"
+      - "tool/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - "analysis_options.yaml"
+      - ".env.example"
+      - ".github/workflows/deploy-android-internal.yml"
   workflow_dispatch:
 
 permissions:
