@@ -191,6 +191,7 @@ Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den
 - Echte Konflikte bei Personenänderungen sowie bestimmte spätere Validierungsfehler werden als Problemlösungsfall pro Mitglied gespeichert. Offene Fälle sind über Einstellungen, Mitglieddetails und die Mitgliederliste sichtbar und können von dort erneut geöffnet werden.
 - Die App erfasst bei aktivierter Analytics-Option Tracking-Ereignisse für Bearbeiten, Retry und Problemlösungsfälle, damit Konflikte und nicht automatisch lösbare Fälle fachlich ausgewertet werden können.
 - Der Statistik-Tab zeigt aktuell die Mitgliederanzahl im aktiven Arbeitskontext
+- Optionaler bundesweiter Vergleich im Statistik-Tab: Nach ausdrücklicher Einwilligung teilt die App etwa wöchentlich zusammengefasste Stammeszahlen mit dem Statistikserver (`server/`) und zeigt dafür Median und Durchschnitt teilnehmender Stämme. Die Funktion ist nur sichtbar, wenn `STATS_SERVER_URL` gesetzt ist; die Einwilligung lässt sich in den App-Einstellungen widerrufen.
 - Empfehlung für den nächsten Stufenwechsel eines Mitglieds.
   - Die gewünschte Altersgrenzen der Stufen können angepasst werden.
   - Stufenwechsel durchführen
