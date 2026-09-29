@@ -35,7 +35,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
   static final DateFormat _dateFormat = DateFormat('dd.MM.yyyy');
   static const double _pagePadding = 10;
   static const double _cardRadius = 16;
-  static const List<String> _defaultGenderValues = <String>['w', 'm', ''];
+  static const List<String> _defaultGenderValues = <String>['w', 'm', 'd', ''];
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final GlobalKey _generalSectionKey = GlobalKey();
@@ -873,22 +873,12 @@ class _MemberEditPageState extends State<MemberEditPage> {
               _t.t('member_edit_field_care_of'),
             ),
           ] else
-            _ResponsiveWrap(
-              minChildWidth: 220,
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                _buildTextField(
-                  draft.labelController,
-                  _t.t('member_edit_field_label'),
-                  fieldKey: draft.labelFieldKey,
-                ),
-                _buildTextField(
-                  draft.addressCareOfController,
-                  _t.t('member_edit_field_care_of'),
-                  fieldKey: draft.addressCareOfFieldKey,
-                ),
-              ],
+            // Hitobito kennt fuer die eigene Adresse der Person keine
+            // Bezeichnung, deshalb gibt es hier nur c/o.
+            _buildTextField(
+              draft.addressCareOfController,
+              _t.t('member_edit_field_care_of'),
+              fieldKey: draft.addressCareOfFieldKey,
             ),
           const SizedBox(height: 10),
           _ResponsiveWrap(
@@ -1224,8 +1214,8 @@ class _MemberEditPageState extends State<MemberEditPage> {
       fahrtenname: _trimToNull(_fahrtennameController.text),
       fahrtennameLoeschen: _trimToNull(_fahrtennameController.text) == null,
       geburtsdatum: _geburtsdatum ?? Mitglied.peoplePlaceholderDate,
-      gender: _gender ?? '',
-      genderLoeschen: false,
+      gender: _gender,
+      genderLoeschen: (_gender ?? '').isEmpty,
       telefonnummern: phones,
       emailAdressen: emails,
       adressen: <MitgliedKontaktAdresse>[
@@ -1280,6 +1270,9 @@ class _MemberEditPageState extends State<MemberEditPage> {
       case 'maennlich':
       case 'männlich':
         return 'm';
+      case 'd':
+      case 'divers':
+        return 'd';
       default:
         return '';
     }
@@ -1291,6 +1284,8 @@ class _MemberEditPageState extends State<MemberEditPage> {
         return _t.t('member_edit_gender_female');
       case 'm':
         return _t.t('member_edit_gender_male');
+      case 'd':
+        return _t.t('member_edit_gender_diverse');
       case '':
         return _t.t('member_edit_gender_unknown');
       default:

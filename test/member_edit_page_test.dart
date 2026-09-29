@@ -161,15 +161,86 @@ void main() {
     },
   );
 
-  testWidgets('normalisiert alte Werte auf Unbekannt', (tester) async {
+  testWidgets('normalisiert unbekannte Werte auf Unbekannt', (tester) async {
     await tester.pumpWidget(
-      _buildTestApp(MemberEditPage(mitglied: _buildMember(gender: 'divers'))),
+      _buildTestApp(MemberEditPage(mitglied: _buildMember(gender: 'x'))),
     );
     await tester.pumpAndSettle();
 
     expect(find.text('Unbekannt', skipOffstage: false), findsOneWidget);
-    expect(find.text('Divers', skipOffstage: false), findsNothing);
     expect(find.text('Keine Angabe', skipOffstage: false), findsNothing);
+  });
+
+  testWidgets('zeigt Geschlecht d als Divers', (tester) async {
+    for (final gender in const <String>['d', 'divers']) {
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberEditPage(
+            key: ValueKey<String>(gender),
+            mitglied: _buildMember(gender: gender),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final field = tester.widget<DropdownButtonFormField<String>>(
+        find.byKey(const Key('member-edit-gender-field')),
+      );
+      expect(field.initialValue, 'd');
+      expect(find.text('Divers', skipOffstage: false), findsOneWidget);
+    }
+  });
+
+  testWidgets('speichert unbekanntes Geschlecht als null', (tester) async {
+    final model = _RecordingMemberEditModel();
+
+    _useLargeViewport(tester);
+    await tester.pumpWidget(
+      _buildTestApp(
+        MemberEditPage(mitglied: _buildMember(gender: '')),
+        providers: _buildEditProviders(model),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('member-edit-save-button')));
+    await tester.pumpAndSettle();
+
+    expect(model.submitCalls.single.zielMitglied.gender, isNull);
+  });
+
+  testWidgets('behaelt Geschlecht d beim Speichern', (tester) async {
+    final model = _RecordingMemberEditModel();
+
+    _useLargeViewport(tester);
+    await tester.pumpWidget(
+      _buildTestApp(
+        MemberEditPage(mitglied: _buildMember(gender: 'd')),
+        providers: _buildEditProviders(model),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('member-edit-save-button')));
+    await tester.pumpAndSettle();
+
+    expect(model.submitCalls.single.zielMitglied.gender, 'd');
+  });
+
+  testWidgets('zeigt keine Bezeichnung fuer die Hauptadresse', (tester) async {
+    _useLargeViewport(tester);
+    await tester.pumpWidget(
+      _buildTestApp(
+        MemberEditPage(
+          mitglied: _buildMember(
+            gender: 'w',
+          ).copyWith(telefonnummern: const <MitgliedKontaktTelefon>[]),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(TextField, 'Musterweg'), findsOneWidget);
+    expect(find.text('Bezeichnung', skipOffstage: false), findsNothing);
+    expect(find.text('c/o', skipOffstage: false), findsOneWidget);
   });
 
   testWidgets('blockiert Speichern ohne Namen oder Fahrtenname', (

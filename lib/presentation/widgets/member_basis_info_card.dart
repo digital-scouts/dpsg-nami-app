@@ -399,7 +399,7 @@ String _displayGender(BuildContext context, String? rawGender) {
       return t.t('member_edit_gender_female');
     case 'd':
     case 'divers':
-      return 'Divers';
+      return t.t('member_edit_gender_diverse');
     default:
       return rawGender!.trim();
   }
