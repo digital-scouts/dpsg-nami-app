@@ -2,16 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../../domain/achievements/achievement_progress.dart';
 import '../../domain/arbeitskontext/arbeitskontext.dart';
 import '../../domain/auth/auth_profile.dart';
 import '../../l10n/app_localizations.dart';
 import '../model/arbeitskontext_model.dart';
 import '../model/auth_session_model.dart';
 import '../theme/theme.dart';
+import '../widgets/achievement_badge.dart';
 import '../widgets/logout_flow.dart';
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key});
+  const ProfilePage({super.key, this.achievements, this.onAchievements});
+
+  /// Ohne Erfolge (z. B. in Stories) entfällt die Erfolge-Karte.
+  final List<AchievementProgress>? achievements;
+  final VoidCallback? onAchievements;
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -82,6 +88,16 @@ class _ProfilePageState extends State<ProfilePage> {
                     _ProfilePlaceholder(
                       isLoading: authModel.isLoadingProfile,
                       errorMessage: authModel.errorMessage,
+                    ),
+                  ],
+                  if (widget.achievements != null) ...[
+                    _ProfileSectionLabel(
+                      label: t.t('achievements_title'),
+                      accentColor: accentColor,
+                    ),
+                    _ProfileAchievementsCard(
+                      achievements: widget.achievements!,
+                      onTap: widget.onAchievements,
                     ),
                   ],
                   _ProfileSectionLabel(
@@ -434,6 +450,84 @@ class _ProfileInfoCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ProfileAchievementsCard extends StatelessWidget {
+  const _ProfileAchievementsCard({required this.achievements, this.onTap});
+
+  static const _maxBadges = 3;
+
+  final List<AchievementProgress> achievements;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final reached = achievements.fold<int>(0, (s, a) => s + a.reachedLevels);
+    final total = achievements.fold<int>(
+      0,
+      (s, a) => s + a.definition.levelCount,
+    );
+    // Höchste Stufen zuerst; einmalige Erfolge zählen wie Gold.
+    final best = achievements.where((a) => a.isUnlocked).toList()
+      ..sort((a, b) => _rank(b).compareTo(_rank(a)));
+
+    return Card(
+      key: const Key('profile-achievements-card'),
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              if (best.isEmpty)
+                const AchievementBadge(
+                  icon: Icons.emoji_events_rounded,
+                  progress: 0,
+                  size: 48,
+                )
+              else
+                for (final a in best.take(_maxBadges))
+                  AchievementBadge.fromProgress(a, size: 48),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      t.t('achievements_summary', {
+                        'reached': reached,
+                        'total': total,
+                      }),
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      t.t('achievements_profile_show_all'),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.outlineVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (onTap != null)
+                Icon(
+                  Icons.chevron_right,
+                  color: theme.colorScheme.outlineVariant,
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static int _rank(AchievementProgress a) =>
+      a.definition.isOneTime ? 2 : (a.currentTier?.index ?? -1);
 }
 
 class _ProfileSectionLabel extends StatelessWidget {

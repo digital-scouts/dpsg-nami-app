@@ -103,6 +103,38 @@ Dieses Dokument sammelt und fortschreibt visionaere Nutzerideen als Arbeitsproto
 - Die App fragt die Einwilligung personengebunden ab, zeigt den zuletzt geteilten Stand und vergleicht im Statistik-Tab den eigenen Stamm mit Median und Durchschnitt.
 - Offen bleiben regionale Vergleiche (Diözese), statische Verbandszahlen und eine Prüfung der Stammeszugehörigkeit über Hitobito statt über Installations-Credentials.
 
+## Eintrag 2026-09-29 Erfolge
+
+### Kernidee
+
+- Bestimmte Tätigkeiten in der App lösen kleine Erfolge aus, die Nutzer belohnen und zur weiteren Nutzung motivieren.
+- Vorbild sind die Abzeichen von Audible: gestufte Abzeichen, sichtbarer Fortschritt bis zur nächsten Stufe und ein kurzer Freischalt-Moment.
+
+### Geschärfte Vision
+
+- Gestufte Erfolge (Bronze, Silber, Gold, Platin, Diamant) für wiederkehrende Tätigkeiten und einmalige Erfolge für besondere Aktionen.
+- Die Abzeichen sind als Aufnäher gestaltet und passen so zur Pfadfinderwelt.
+- Nutzer sehen jederzeit alle Erfolge, auch die noch nicht erreichten, mit Fortschritt und Freischaltdatum.
+
+### Leitplanken und Annahmen
+
+- Erfolge sind rein lokal: kein Server-Sync, keine Abhängigkeit von der Analytics-Einstellung.
+- Beim Logout bleiben Erfolge erhalten; nur der vollständige App-Reset löscht sie.
+- Wiederholbare Anzeigen wie „Statistik geöffnet“ zählen höchstens einmal pro Tag, damit sich Erfolge nicht durch Hin- und Herwechseln sammeln lassen.
+- Bewertung und Feedback gelten beim Öffnen von Store bzw. Feedback-Formular als erledigt, weil sich das tatsächliche Absenden technisch nicht erkennen lässt.
+
+### Offene Fragen
+
+- Welche weiteren Tätigkeiten eignen sich als Erfolg, ohne zu Fehlanreizen bei echten Mitgliedsdaten zu führen?
+- Sollen später geheime Erfolge, Sound oder Haptik beim Freischalten dazukommen?
+- Wie wird der Erfolg „Unterstützung“ an die geplante Monetarisierung angebunden?
+
+### Umsetzungsstand (2026-09-29)
+
+- Aktiv: Tage mit geöffneter App, gespeicherte Mitgliedsänderungen (inklusive nachgesendeter Offline-Änderungen), Tage mit geöffneter Statistik, App bewertet, Feedback gesendet.
+- Vorbereitet, aber ausgeblendet, bis die Funktion existiert: Mitglied angelegt, Stufenwechsel durchgeführt, Unterstützung.
+- Freischaltungen zeigen immer Konfetti; Bronze und Silber als Snackbar, ab Gold und einmalige Erfolge als Dialog.
+
 ## Eintrag 2026-06-08 Apple On-Device KI-Chat für DPSG-Arbeit
 
 ### Kernidee
