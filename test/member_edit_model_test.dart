@@ -1774,6 +1774,121 @@ void main() {
       expect(result.messageSpec?.key, 'member_edit_invalid_person_id');
     });
   });
+
+  group('onMemberSaved', () {
+    final basisMitglied = Mitglied.peopleListItem(
+      mitgliedsnummer: '4711',
+      personId: 23,
+      vorname: 'Julia',
+      nachname: 'Keller',
+    );
+
+    test('wird nach jedem erfolgreichen Submit aufgerufen', () async {
+      var saved = 0;
+      final model = MemberEditModel(
+        memberWriteRepository: _FakeMemberWriteRepository(
+          updateResultsByPersonId: <int, Object>{
+            23: basisMitglied.copyWith(vorname: 'Juliane'),
+          },
+        ),
+        pendingRepository: _InMemoryPendingPersonUpdateRepository(),
+        logger: _FakeLoggerService(),
+        onMemberUpdated: (_) async {},
+        onMemberSaved: () async => saved++,
+      );
+
+      for (var i = 0; i < 2; i++) {
+        await model.submitUpdate(
+          accessToken: 'token-123',
+          basisMitglied: basisMitglied,
+          zielMitglied: basisMitglied.copyWith(vorname: 'Juliane'),
+        );
+      }
+
+      expect(saved, 2);
+    });
+
+    test(
+      'wird bei gequeuetem Update und beim Vorladen nicht aufgerufen',
+      () async {
+        var saved = 0;
+        final model = MemberEditModel(
+          memberWriteRepository: _FakeMemberWriteRepository(
+            fetchResultsByPersonId: <int, Object>{23: basisMitglied},
+            updateResultsByPersonId: <int, Object>{23: Exception('offline')},
+          ),
+          pendingRepository: _InMemoryPendingPersonUpdateRepository(),
+          logger: _FakeLoggerService(),
+          onMemberUpdated: (_) async {},
+          onMemberSaved: () async => saved++,
+        );
+
+        await model.prepareForEdit(
+          accessToken: 'token-123',
+          mitglied: basisMitglied,
+        );
+        final result = await model.submitUpdate(
+          accessToken: 'token-123',
+          basisMitglied: basisMitglied,
+          zielMitglied: basisMitglied.copyWith(vorname: 'Juliane'),
+        );
+
+        expect(result.wasQueued, isTrue);
+        expect(saved, 0);
+      },
+    );
+
+    test(
+      'zählt erfolgreich nachgesendete Updates aus der Warteschlange',
+      () async {
+        var saved = 0;
+        final model = MemberEditModel(
+          memberWriteRepository: _FakeMemberWriteRepository(
+            updateResultsByPersonId: <int, Object>{
+              1: _mitglied(personId: 1, mitgliedsnummer: '1'),
+              2: _mitglied(personId: 2, mitgliedsnummer: '2'),
+            },
+          ),
+          pendingRepository: _InMemoryPendingPersonUpdateRepository(
+            entries: <PendingPersonUpdate>[
+              _pendingEntry(entryId: 'a', personId: 1, mitgliedsnummer: '1'),
+              _pendingEntry(entryId: 'b', personId: 2, mitgliedsnummer: '2'),
+            ],
+          ),
+          logger: _FakeLoggerService(),
+          onMemberUpdated: (_) async {},
+          onMemberSaved: () async => saved++,
+        );
+        await model.loadPending();
+
+        await model.retryPending(accessToken: 'token-123');
+
+        expect(saved, 2);
+      },
+    );
+
+    test('Fehler im Callback lässt den Submit erfolgreich', () async {
+      final model = MemberEditModel(
+        memberWriteRepository: _FakeMemberWriteRepository(
+          updateResultsByPersonId: <int, Object>{
+            23: basisMitglied.copyWith(vorname: 'Juliane'),
+          },
+        ),
+        pendingRepository: _InMemoryPendingPersonUpdateRepository(),
+        logger: _FakeLoggerService(),
+        onMemberUpdated: (_) async {},
+        onMemberSaved: () async => throw StateError('kaputt'),
+      );
+
+      final result = await model.submitUpdate(
+        accessToken: 'token-123',
+        basisMitglied: basisMitglied,
+        zielMitglied: basisMitglied.copyWith(vorname: 'Juliane'),
+      );
+
+      expect(result.success, isTrue);
+    });
+  });
 }
 
 Future<void> _untilUpdateCalled(_FakeMemberWriteRepository repository) async {
