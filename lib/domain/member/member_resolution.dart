@@ -557,9 +557,13 @@ class MemberConflictResolver {
   }) {
     final list = <MitgliedKontaktAdresse>[];
     if (primaryAddress != null && !primaryAddress.istLeer) {
-      list.add(primaryAddress);
+      list.add(primaryAddress.copyWith(additionalAddressId: 0));
     }
-    list.addAll(additionalAddresses.where((address) => !address.istLeer));
+    list.addAll(
+      additionalAddresses.where(
+        (address) => !address.istLeer && address.additionalAddressId != 0,
+      ),
+    );
     return list;
   }
 
@@ -579,10 +583,7 @@ class MemberConflictResolver {
   }
 
   static List<MitgliedKontaktAdresse> _additionalAddresses(Mitglied mitglied) {
-    if (mitglied.adressen.length <= 1) {
-      return const <MitgliedKontaktAdresse>[];
-    }
-    return mitglied.adressen.skip(1).toList(growable: false);
+    return mitglied.additionalAddresses;
   }
 }
 

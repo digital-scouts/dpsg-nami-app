@@ -98,7 +98,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
   void initState() {
     super.initState();
     final primaryEmail = _resolvePrimaryEmail(widget.mitglied.emailAdressen);
-    final primaryAddress = _resolvePrimaryAddress(widget.mitglied.adressen);
+    final primaryAddress = widget.mitglied.primaryAddress;
     _vornameController = TextEditingController(text: widget.mitglied.vorname);
     _nachnameController = TextEditingController(text: widget.mitglied.nachname);
     _fahrtennameController = TextEditingController(
@@ -123,8 +123,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
         .where((email) => !email.istPrimaer)
         .map(_EmailDraft.fromEmail)
         .toList(growable: true);
-    _additionalAddressDrafts = widget.mitglied.adressen
-        .where((adresse) => (adresse.additionalAddressId ?? 0) != 0)
+    _additionalAddressDrafts = widget.mitglied.additionalAddresses
         .map(_AddressDraft.fromAdresse)
         .toList(growable: true);
 
@@ -1254,17 +1253,6 @@ class _MemberEditPageState extends State<MemberEditPage> {
     return emails.isEmpty ? null : emails.first;
   }
 
-  MitgliedKontaktAdresse? _resolvePrimaryAddress(
-    List<MitgliedKontaktAdresse> adressen,
-  ) {
-    for (final adresse in adressen) {
-      if ((adresse.additionalAddressId ?? 0) == 0) {
-        return adresse;
-      }
-    }
-    return adressen.isEmpty ? null : adressen.first;
-  }
-
   List<String> _buildGenderItems() {
     final items = <String>[..._defaultGenderValues];
     final currentGender = _gender;
@@ -1577,7 +1565,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
         return;
       case MemberResolutionTargetType.primaryAddress:
         _primaryAddressDraft.replaceWith(
-          _resolvePrimaryAddress(source.adressen) ??
+          source.primaryAddress ??
               const MitgliedKontaktAdresse(additionalAddressId: 0),
         );
         return;
@@ -1786,9 +1774,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
         }
         return _buildEmailResolutionLines(label: null, value: null);
       case MemberResolutionTargetType.primaryAddress:
-        return _buildAddressResolutionLines(
-          _resolvePrimaryAddress(member.adressen),
-        );
+        return _buildAddressResolutionLines(member.primaryAddress);
       case MemberResolutionTargetType.additionalAddress:
         for (final address in member.adressen) {
           if (address.additionalAddressId == target.relationshipId) {

@@ -107,4 +107,75 @@ void main() {
 
     expect(decoded, original);
   });
+
+  group('primaryAddress und additionalAddresses', () {
+    const hauptadresse = MitgliedKontaktAdresse(
+      additionalAddressId: 0,
+      street: 'Ringstrasse',
+      housenumber: '2',
+      zipCode: '50667',
+      town: 'Koeln',
+    );
+    const zusatzadresse = MitgliedKontaktAdresse(
+      additionalAddressId: 41,
+      label: 'Oma',
+      street: 'Nebenweg',
+      zipCode: '20095',
+      town: 'Hamburg',
+    );
+    const neueAdresse = MitgliedKontaktAdresse(street: 'Neuweg', town: 'Bonn');
+
+    Mitglied mitgliedMit(List<MitgliedKontaktAdresse> adressen) {
+      return Mitglied.peopleListItem(
+        mitgliedsnummer: '1003',
+        personId: 88,
+        vorname: 'Lea',
+        nachname: 'Muster',
+        adressen: adressen,
+      );
+    }
+
+    test('liefert Hauptadresse ueber id 0 unabhaengig von der Position', () {
+      final mitglied = mitgliedMit(const <MitgliedKontaktAdresse>[
+        zusatzadresse,
+        hauptadresse,
+        neueAdresse,
+      ]);
+
+      expect(mitglied.primaryAddress, hauptadresse);
+      expect(mitglied.additionalAddresses, [zusatzadresse, neueAdresse]);
+      expect(mitglied.primaryAddressCacheKey, '88:0');
+    });
+
+    test('liefert ohne Adressen weder Haupt- noch Zusatzadressen', () {
+      final mitglied = mitgliedMit(const <MitgliedKontaktAdresse>[]);
+
+      expect(mitglied.primaryAddress, isNull);
+      expect(mitglied.additionalAddresses, isEmpty);
+      expect(mitglied.primaryAddressCacheKey, isNull);
+    });
+
+    test('macht bei fehlender Hauptadresse keine Zusatzadresse zur '
+        'Hauptadresse', () {
+      final mitglied = mitgliedMit(const <MitgliedKontaktAdresse>[
+        zusatzadresse,
+        neueAdresse,
+      ]);
+
+      expect(mitglied.primaryAddress, isNull);
+      expect(mitglied.additionalAddresses, [zusatzadresse, neueAdresse]);
+      expect(mitglied.primaryAddressCacheKey, isNull);
+    });
+
+    test('behandelt geleerte Hauptadresse als fehlend', () {
+      final mitglied = mitgliedMit(const <MitgliedKontaktAdresse>[
+        MitgliedKontaktAdresse(additionalAddressId: 0, street: '  '),
+        zusatzadresse,
+      ]);
+
+      expect(mitglied.adressen, [zusatzadresse]);
+      expect(mitglied.primaryAddress, isNull);
+      expect(mitglied.additionalAddresses, [zusatzadresse]);
+    });
+  });
 }

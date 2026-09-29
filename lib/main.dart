@@ -420,6 +420,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   late final Connectivity _connectivity;
   late final WifiSyncTrigger _wifiSyncTrigger;
   late bool _lastNoMobileDataEnabled;
+  bool _pendingSessionActive = false;
+  String? _pendingSessionPrincipal;
   Timer? _authMaintenanceTimer;
   Timer? _pendingRetryTimer;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
@@ -451,6 +453,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _connectivity = Connectivity();
     _wifiSyncTrigger = WifiSyncTrigger();
     _lastNoMobileDataEnabled = _appSettingsModel.noMobileDataEnabled;
+    _pendingSessionActive = _authModel.session != null;
+    _pendingSessionPrincipal = _authModel.session?.principal;
     _authModel.addListener(_handleAuthModelChanged);
     _appSettingsModel.addListener(_handleAppSettingsChanged);
     _urgentNotificationModel.setAcknowledgeHandler((id) async {
@@ -487,6 +491,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void _handleAuthModelChanged() {
     _syncArbeitskontextWithAuth();
     _syncDataExpiryReminder();
+    _reloadPendingUpdatesOnSessionChange();
 
     final authState = _authModel.state;
     if (authState == AuthState.signedIn) {
@@ -501,6 +506,20 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     }
 
     _resetStartupFlowState();
+  }
+
+  /// Logout, Datenablauf und Nutzerwechsel leeren die Pending-Box; die Liste
+  /// im Speicher muss danach neu geladen werden.
+  void _reloadPendingUpdatesOnSessionChange() {
+    final session = _authModel.session;
+    final hasSession = session != null;
+    if (hasSession == _pendingSessionActive &&
+        session?.principal == _pendingSessionPrincipal) {
+      return;
+    }
+    _pendingSessionActive = hasSession;
+    _pendingSessionPrincipal = session?.principal;
+    unawaited(_memberEditModel.loadPending());
   }
 
   void _syncDataExpiryReminder() {
@@ -707,10 +726,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       return;
     }
 
-    final hasRetryablePending = _memberEditModel.pendingUpdates.any(
-      (entry) => !entry.needsResolution,
-    );
-    if (!hasRetryablePending) {
+    if (!_memberEditModel.hasDueAutomaticRetry) {
       return;
     }
 
@@ -732,6 +748,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     await _memberEditModel.retryPending(
       accessToken: accessToken,
       trigger: trigger,
+      automatic: true,
     );
   }
 

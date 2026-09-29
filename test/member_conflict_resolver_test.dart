@@ -23,6 +23,7 @@ const _festnetz = MitgliedKontaktTelefon(
   label: Mitglied.phoneLandlineLabel,
 );
 const _hauptadresse = MitgliedKontaktAdresse(
+  additionalAddressId: 0,
   street: 'Hauptstrasse',
   housenumber: '1',
   zipCode: '10115',
@@ -79,7 +80,7 @@ Mitglied _withPrimaryAddress(Mitglied mitglied, String street) {
   return mitglied.copyWith(
     adressen: <MitgliedKontaktAdresse>[
       _hauptadresse.copyWith(street: street),
-      ...mitglied.adressen.skip(1),
+      ...mitglied.additionalAddresses,
     ],
   );
 }
@@ -105,10 +106,7 @@ Mitglied _withAdditionalAddresses(
   List<MitgliedKontaktAdresse> addresses,
 ) {
   return mitglied.copyWith(
-    adressen: <MitgliedKontaktAdresse>[
-      ...mitglied.adressen.take(1),
-      ...addresses,
-    ],
+    adressen: <MitgliedKontaktAdresse>[?mitglied.primaryAddress, ...addresses],
   );
 }
 
@@ -871,25 +869,28 @@ void main() {
       );
     });
 
-    test('rueckt beim lokalen Leeren der Hauptadresse die Zusatzadresse '
-        'nach vorn und uebernimmt sie als Hauptadresse', () {
+    test('behaelt beim lokalen Leeren der Hauptadresse die Zusatzadresse '
+        'als Zusatzadresse und liefert keine Hauptadresse', () {
       final basis = _basis();
       final ziel = basis.copyWith(
         adressen: const <MitgliedKontaktAdresse>[
-          MitgliedKontaktAdresse(),
+          MitgliedKontaktAdresse(additionalAddressId: 0),
           _zusatzadresse,
         ],
       );
 
       final plan = _resolve(basis: basis, ziel: ziel);
 
-      expect(ziel.primaryAddress, _zusatzadresse);
+      expect(ziel.primaryAddress, isNull);
+      expect(ziel.additionalAddresses, [_zusatzadresse]);
       expect(plan.items, isEmpty);
       expect(plan.mergedMitglied.adressen, [_zusatzadresse]);
+      expect(plan.mergedMitglied.primaryAddress, isNull);
+      expect(plan.mergedMitglied.additionalAddresses, [_zusatzadresse]);
     });
 
-    test('erzeugt aktuell doppelte Adresse mit gleicher id wenn Hauptadresse '
-        'lokal geleert und Zusatzadresse remote geaendert wurde', () {
+    test('erzeugt keine doppelte Adresse wenn Hauptadresse lokal geleert '
+        'und Zusatzadresse remote geaendert wurde', () {
       final basis = _basis();
       final ziel = basis.copyWith(
         adressen: const <MitgliedKontaktAdresse>[_zusatzadresse],
@@ -899,16 +900,32 @@ void main() {
 
       final plan = _resolve(basis: basis, ziel: ziel, remote: remote);
 
+      expect(plan.items, isEmpty);
+      expect(plan.mergedMitglied.adressen, [remoteZusatz]);
+      expect(plan.mergedMitglied.primaryAddress, isNull);
+      expect(
+        plan.mergedMitglied.adressen.map((a) => a.additionalAddressId),
+        <int?>[41],
+      );
+    });
+
+    test('meldet Konflikt wenn Hauptadresse lokal geleert und remote '
+        'geaendert wurde', () {
+      final basis = _basis();
+      final ziel = basis.copyWith(
+        adressen: const <MitgliedKontaktAdresse>[_zusatzadresse],
+      );
+      final remote = _withPrimaryAddress(basis, 'Remoteweg');
+
+      final plan = _resolve(basis: basis, ziel: ziel, remote: remote);
+
       expect(plan.items, hasLength(1));
       expect(
         plan.items.single.target.type,
-        MemberResolutionTargetType.additionalAddress,
+        MemberResolutionTargetType.primaryAddress,
       );
-      expect(plan.mergedMitglied.adressen, [_zusatzadresse, remoteZusatz]);
-      expect(
-        plan.mergedMitglied.adressen.map((a) => a.additionalAddressId),
-        <int?>[41, 41],
-      );
+      expect(plan.mergedMitglied.primaryAddress?.street, 'Remoteweg');
+      expect(plan.mergedMitglied.additionalAddresses, [_zusatzadresse]);
     });
   });
 

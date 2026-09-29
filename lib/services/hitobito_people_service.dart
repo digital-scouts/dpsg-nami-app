@@ -438,7 +438,7 @@ class HitobitoPeopleService {
 
   Map<String, dynamic> _buildPersonAttributes(Mitglied mitglied) {
     final primaryEmail = _resolvePrimaryEmail(mitglied.emailAdressen);
-    final primaryAddress = _resolvePrimaryAddress(mitglied.adressen);
+    final primaryAddress = mitglied.primaryAddress;
     return <String, dynamic>{
       'first_name': mitglied.vorname,
       'last_name': mitglied.nachname,
@@ -1342,17 +1342,6 @@ class HitobitoPeopleService {
       }
     }
     return emailAdressen.isEmpty ? null : emailAdressen.first;
-  }
-
-  MitgliedKontaktAdresse? _resolvePrimaryAddress(
-    List<MitgliedKontaktAdresse> adressen,
-  ) {
-    for (final adresse in adressen) {
-      if ((adresse.additionalAddressId ?? 0) == 0) {
-        return adresse;
-      }
-    }
-    return adressen.isEmpty ? null : adressen.first;
   }
 
   String? _toDateStringOrNull(DateTime value) {

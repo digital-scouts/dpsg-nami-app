@@ -5,6 +5,7 @@ import '../../domain/member/member_write_repository.dart';
 import '../../domain/member/mitglied.dart';
 import '../../domain/member/pending_person_update.dart';
 import '../../domain/member/pending_person_update_repository.dart';
+import '../../domain/member/pending_retry_policy.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/logger_service.dart';
 
@@ -146,13 +147,16 @@ class MemberEditModel extends ChangeNotifier {
        _pendingRepository = pendingRepository,
        _logger = logger,
        _onMemberUpdated = onMemberUpdated,
-       _now = nowProvider ?? DateTime.now;
+       _now = nowProvider ?? DateTime.now {
+    _sessionStartedAt = _now();
+  }
 
   final MemberWriteRepository _memberWriteRepository;
   final PendingPersonUpdateRepository _pendingRepository;
   final LoggerService _logger;
   final Future<void> Function(Mitglied member) _onMemberUpdated;
   final DateTime Function() _now;
+  late final DateTime _sessionStartedAt;
 
   List<PendingPersonUpdate> _pendingUpdates = const <PendingPersonUpdate>[];
   bool _isBusy = false;
@@ -173,6 +177,28 @@ class MemberEditModel extends ChangeNotifier {
       (entry) =>
           entry.mitgliedsnummer == mitgliedsnummer && entry.needsResolution,
     );
+  }
+
+  /// Ob mindestens ein Eintrag nach [PendingRetryPolicy] automatisch
+  /// gesendet werden darf.
+  bool get hasDueAutomaticRetry {
+    final now = _now();
+    return _pendingUpdates.any(
+      (entry) => PendingRetryPolicy.isAutomaticRetryDue(
+        entry,
+        now: now,
+        sessionStartedAt: _sessionStartedAt,
+      ),
+    );
+  }
+
+  bool isAutomaticRetryPaused(String mitgliedsnummer) {
+    final entry = pendingForMitglied(mitgliedsnummer);
+    return entry != null &&
+        PendingRetryPolicy.isAutomaticRetryPaused(
+          entry,
+          sessionStartedAt: _sessionStartedAt,
+        );
   }
 
   int get openResolutionCount =>
@@ -819,6 +845,7 @@ class MemberEditModel extends ChangeNotifier {
     required String accessToken,
     Iterable<String>? entryIds,
     String trigger = 'manual_retry',
+    bool automatic = false,
   }) async {
     // Timer, Connectivity und Resume koennen gleichzeitig ausloesen. Ein
     // zweiter Lauf wuerde dieselben Aenderungen doppelt senden, und waehrend
@@ -832,6 +859,7 @@ class MemberEditModel extends ChangeNotifier {
       accessToken: accessToken,
       entryIds: entryIds,
       trigger: trigger,
+      automatic: automatic,
     );
     _retryInFlight = retry;
     try {
@@ -845,17 +873,27 @@ class MemberEditModel extends ChangeNotifier {
     required String accessToken,
     Iterable<String>? entryIds,
     required String trigger,
+    required bool automatic,
   }) async {
+    // Immer vom gespeicherten Stand ausgehen: Nach einem Logout ist die Box
+    // geleert, und alte Eintraege aus dem Speicher duerfen nicht mit der
+    // Sitzung eines anderen Nutzers gesendet werden.
+    _pendingUpdates = await _pendingRepository.loadAll();
     final requestedIds = entryIds?.toSet();
-    final entries = requestedIds == null
-        ? _pendingUpdates.where((entry) => !entry.needsResolution).toList()
-        : _pendingUpdates
-              .where(
-                (entry) =>
-                    requestedIds.contains(entry.entryId) &&
-                    !entry.needsResolution,
-              )
-              .toList(growable: false);
+    final now = _now();
+    final entries = _pendingUpdates
+        .where(
+          (entry) =>
+              !entry.needsResolution &&
+              (requestedIds == null || requestedIds.contains(entry.entryId)) &&
+              (!automatic ||
+                  PendingRetryPolicy.isAutomaticRetryDue(
+                    entry,
+                    now: now,
+                    sessionStartedAt: _sessionStartedAt,
+                  )),
+        )
+        .toList(growable: false);
     final results = <PendingPersonUpdateRetryItemResult>[];
     if (entries.isEmpty) {
       return const PendingPersonUpdateRetrySummary(

@@ -344,8 +344,22 @@ class Mitglied {
       geburtsdatum.month != peoplePlaceholderDate.month ||
       geburtsdatum.day != peoplePlaceholderDate.day;
 
-  MitgliedKontaktAdresse? get primaryAddress =>
-      adressen.isEmpty ? null : adressen.first;
+  /// Eigene Adresse der Person (Konvention: `additionalAddressId == 0`).
+  /// Die Position in [adressen] ist dafuer nicht massgeblich, damit eine
+  /// geleerte Hauptadresse nicht durch eine Zusatzadresse ersetzt wird.
+  MitgliedKontaktAdresse? get primaryAddress {
+    for (final adresse in adressen) {
+      if (adresse.additionalAddressId == 0) {
+        return adresse;
+      }
+    }
+    return null;
+  }
+
+  /// Zusatzadressen inklusive neuer lokaler Entwuerfe ohne Id.
+  List<MitgliedKontaktAdresse> get additionalAddresses => adressen
+      .where((adresse) => adresse.additionalAddressId != 0)
+      .toList(growable: false);
 
   String? get primaryAddressCacheKey {
     final address = primaryAddress;
