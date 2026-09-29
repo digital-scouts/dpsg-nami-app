@@ -1344,6 +1344,18 @@ class MemberEditModel extends ChangeNotifier {
         return const MemberResolutionTarget(
           type: MemberResolutionTargetType.primaryEmail,
         );
+      case 'pronoun':
+        return const MemberResolutionTarget(
+          type: MemberResolutionTargetType.pronoun,
+        );
+      case 'bank_account_owner':
+      case 'iban':
+      case 'bic':
+      case 'bank_name':
+      case 'payment_method':
+        return const MemberResolutionTarget(
+          type: MemberResolutionTargetType.bankAccount,
+        );
       case 'street':
       case 'housenumber':
       case 'postbox':

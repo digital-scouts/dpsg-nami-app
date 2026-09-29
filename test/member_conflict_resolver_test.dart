@@ -288,7 +288,7 @@ void main() {
         updatedAt: DateTime(2026, 4, 15, 8, 0),
         pronoun: 'sie',
       );
-      final ziel = basis.copyWith(vorname: 'Juliane', pronoun: 'er');
+      final ziel = basis.copyWith(vorname: 'Juliane');
 
       final plan = _resolve(basis: basis, ziel: ziel, remote: remote);
 
@@ -296,6 +296,84 @@ void main() {
       expect(plan.mergedMitglied.vorname, 'Juliane');
       expect(plan.mergedMitglied.updatedAt, DateTime(2026, 4, 15, 8, 0));
       expect(plan.mergedMitglied.pronoun, 'sie');
+    });
+
+    test('meldet Konflikt bei unterschiedlich geaendertem Pronomen', () {
+      final basis = _basis();
+      final plan = _resolve(
+        basis: basis,
+        ziel: basis.copyWith(pronoun: 'er'),
+        remote: basis.copyWith(pronoun: 'sie'),
+      );
+
+      expect(plan.items.single.target.type, MemberResolutionTargetType.pronoun);
+    });
+
+    test('uebernimmt lokales Leeren des Pronomens', () {
+      final basis = _basis().copyWith(pronoun: 'sie');
+      final plan = _resolve(
+        basis: basis,
+        ziel: basis.copyWith(pronounLoeschen: true),
+      );
+
+      expect(plan.items, isEmpty);
+      expect(plan.mergedMitglied.pronoun, isNull);
+    });
+  });
+
+  group('MemberConflictResolver Bankverbindung', () {
+    Mitglied mitBank() => _basis().copyWith(
+      bankAccountOwner: 'Julia Keller',
+      iban: 'DE02120300000000202051',
+      bic: 'BYLADEM1001',
+      bankName: 'Testbank',
+      paymentMethod: 'invoice',
+    );
+
+    test('uebernimmt lokale Bankaenderung als Block', () {
+      final basis = mitBank();
+      final plan = _resolve(
+        basis: basis,
+        ziel: basis.copyWith(paymentMethod: 'debit', bicLoeschen: true),
+        remote: basis.copyWith(vorname: 'Jule'),
+      );
+
+      expect(plan.items, isEmpty);
+      expect(plan.mergedMitglied.paymentMethod, 'debit');
+      expect(plan.mergedMitglied.bic, isNull);
+      expect(plan.mergedMitglied.iban, 'DE02120300000000202051');
+      expect(plan.mergedMitglied.vorname, 'Jule');
+    });
+
+    test(
+      'behaelt Serverstand, wenn lokal nichts an der Bank geaendert ist',
+      () {
+        final basis = mitBank();
+        final plan = _resolve(
+          basis: basis,
+          ziel: basis.copyWith(vorname: 'Juliane'),
+          remote: basis.copyWith(iban: 'DE89370400440532013000'),
+        );
+
+        expect(plan.items, isEmpty);
+        expect(plan.mergedMitglied.iban, 'DE89370400440532013000');
+      },
+    );
+
+    test('meldet Konflikt, wenn beide Seiten die Bank aendern', () {
+      final basis = mitBank();
+      final plan = _resolve(
+        basis: basis,
+        ziel: basis.copyWith(bankName: 'Andere Bank'),
+        remote: basis.copyWith(iban: 'DE89370400440532013000'),
+      );
+
+      expect(
+        plan.items.single.target.type,
+        MemberResolutionTargetType.bankAccount,
+      );
+      expect(plan.mergedMitglied.iban, 'DE89370400440532013000');
+      expect(plan.mergedMitglied.bankName, 'Testbank');
     });
 
     test('sammelt mehrere Konflikte in fester Feldreihenfolge', () {

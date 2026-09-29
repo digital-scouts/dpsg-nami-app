@@ -87,6 +87,7 @@ class HitobitoPersonResource {
     this.bic,
     this.bankName,
     this.paymentMethod,
+    this.detailsLesbar,
     this.telefonnummern = const <MitgliedKontaktTelefon>[],
     this.emailAdressen = const <MitgliedKontaktEmail>[],
     this.adressen = const <MitgliedKontaktAdresse>[],
@@ -111,6 +112,7 @@ class HitobitoPersonResource {
   final String? bic;
   final String? bankName;
   final String? paymentMethod;
+  final bool? detailsLesbar;
   final List<MitgliedKontaktTelefon> telefonnummern;
   final List<MitgliedKontaktEmail> emailAdressen;
   final List<MitgliedKontaktAdresse> adressen;
@@ -151,6 +153,7 @@ class HitobitoPersonResource {
       bic: bic,
       bankName: bankName,
       paymentMethod: paymentMethod,
+      detailsLesbar: detailsLesbar,
     );
   }
 

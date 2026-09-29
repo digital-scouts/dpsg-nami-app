@@ -447,6 +447,32 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
           : zielMitglied.geburtsdatum.toIso8601String().split('T').first;
     }
 
+    assignIfChanged('pronoun', remoteMitglied.pronoun, zielMitglied.pronoun);
+
+    // Ohne show_details liefert Hitobito keine Bankdaten; dann gibt es
+    // auch keinen verlaesslichen Stand, gegen den geschrieben werden darf.
+    if (remoteMitglied.bankdatenLesbar) {
+      assignIfChanged(
+        'bank_account_owner',
+        remoteMitglied.bankAccountOwner,
+        zielMitglied.bankAccountOwner,
+      );
+      assignIfChanged('iban', remoteMitglied.iban, zielMitglied.iban);
+      assignIfChanged('bic', remoteMitglied.bic, zielMitglied.bic);
+      assignIfChanged(
+        'bank_name',
+        remoteMitglied.bankName,
+        zielMitglied.bankName,
+      );
+      if (zielMitglied.paymentMethod != null) {
+        assignIfChanged(
+          'payment_method',
+          remoteMitglied.paymentMethod,
+          zielMitglied.paymentMethod,
+        );
+      }
+    }
+
     final remotePrimaryEmail = _primaryEmail(remoteMitglied)?.wert;
     final localPrimaryEmail = _primaryEmail(zielMitglied)?.wert;
     assignIfChanged('email', remotePrimaryEmail, localPrimaryEmail);

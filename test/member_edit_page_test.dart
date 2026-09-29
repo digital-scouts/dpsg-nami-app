@@ -471,6 +471,193 @@ void main() {
     });
   });
 
+  group('Pronomen, Bankverbindung und Berechtigung', () {
+    Mitglied mitBank() => _buildMember(gender: 'w').copyWith(
+      detailsLesbar: true,
+      bankAccountOwner: 'Julia Keller',
+      iban: 'DE02120300000000202051',
+      bic: 'BYLADEM1001',
+      bankName: 'Testbank',
+      paymentMethod: 'invoice',
+    );
+
+    Future<void> pumpEditor(
+      WidgetTester tester,
+      Mitglied mitglied, {
+      MemberEditModel? model,
+    }) async {
+      _useLargeViewport(tester);
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberEditPage(mitglied: mitglied),
+          providers: model == null
+              ? const <SingleChildWidget>[]
+              : _buildEditProviders(model),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> enter(WidgetTester tester, String key, String value) async {
+      final field = find.byKey(Key(key));
+      await tester.ensureVisible(field);
+      await tester.enterText(field, value);
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> tapSave(WidgetTester tester) async {
+      await tester.tap(find.byKey(const Key('member-edit-save-button')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('speichert Pronomen', (tester) async {
+      final model = _RecordingMemberEditModel();
+      await pumpEditor(tester, _buildMember(gender: 'w'), model: model);
+
+      await enter(tester, 'member-edit-pronoun-field', ' sie/ihr ');
+      await tapSave(tester);
+
+      expect(model.submitCalls.single.zielMitglied.pronoun, 'sie/ihr');
+    });
+
+    testWidgets('zeigt keine Bankverbindung ohne lesbare Bankdaten', (
+      tester,
+    ) async {
+      await pumpEditor(tester, _buildMember(gender: 'w'));
+
+      expect(find.text('Bankverbindung', skipOffstage: false), findsNothing);
+      expect(
+        find.byKey(const Key('member-edit-iban-field'), skipOffstage: false),
+        findsNothing,
+      );
+    });
+
+    testWidgets('bearbeitet Bankverbindung und normalisiert die IBAN', (
+      tester,
+    ) async {
+      final model = _RecordingMemberEditModel();
+      await pumpEditor(tester, mitBank(), model: model);
+
+      expect(find.text('Bankverbindung'), findsOneWidget);
+      await enter(
+        tester,
+        'member-edit-iban-field',
+        'de89 3704 0044 0532 0130 00',
+      );
+      await enter(tester, 'member-edit-bic-field', '');
+      final paymentField = find.byKey(
+        const Key('member-edit-payment-method-field'),
+      );
+      await tester.ensureVisible(paymentField);
+      await tester.tap(paymentField);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Lastschrift').last);
+      await tester.pumpAndSettle();
+      await tapSave(tester);
+
+      final ziel = model.submitCalls.single.zielMitglied;
+      expect(ziel.iban, 'DE89370400440532013000');
+      expect(ziel.bic, isNull);
+      expect(ziel.paymentMethod, 'debit');
+      expect(ziel.bankAccountOwner, 'Julia Keller');
+    });
+
+    testWidgets('bietet bei der Zahlart keine leere Auswahl an', (
+      tester,
+    ) async {
+      await pumpEditor(tester, mitBank());
+
+      final paymentField = find.byKey(
+        const Key('member-edit-payment-method-field'),
+      );
+      await tester.ensureVisible(paymentField);
+      await tester.tap(paymentField);
+      await tester.pumpAndSettle();
+
+      final values = tester
+          .widgetList<DropdownMenuItem<String>>(
+            find.byType(DropdownMenuItem<String>),
+          )
+          .map((item) => item.value)
+          .toSet();
+      expect(values, containsAll(<String>['invoice', 'debit']));
+      expect(values.contains(null), isFalse);
+      expect(values.contains(''), isFalse);
+    });
+
+    testWidgets('blockiert ungueltige IBAN und BIC', (tester) async {
+      final model = _RecordingMemberEditModel();
+      await pumpEditor(tester, mitBank(), model: model);
+
+      await enter(tester, 'member-edit-iban-field', 'DE00123456789012345678');
+      await enter(tester, 'member-edit-bic-field', 'ABC');
+      await tapSave(tester);
+
+      expect(find.text('Bitte eine gültige IBAN eingeben.'), findsOneWidget);
+      expect(find.text('Bitte eine gültige BIC eingeben.'), findsOneWidget);
+      expect(model.submitCalls, isEmpty);
+    });
+
+    testWidgets('zeigt Serverfehler zur IBAN direkt am Feld', (tester) async {
+      final model = _RecordingMemberEditModel(
+        result: const MemberEditSubmitResult(
+          success: false,
+          wasQueued: false,
+          message: 'Validierung fehlgeschlagen',
+          validationErrors: <MemberWriteFieldValidationError>[
+            MemberWriteFieldValidationError(
+              message: 'IBAN ist nicht gültig',
+              attribute: 'iban',
+            ),
+          ],
+        ),
+      );
+      await pumpEditor(tester, mitBank(), model: model);
+
+      await tapSave(tester);
+
+      expect(find.text('IBAN ist nicht gültig'), findsOneWidget);
+      expect(find.text('Validierung fehlgeschlagen'), findsNothing);
+
+      await enter(tester, 'member-edit-iban-field', 'DE89370400440532013000');
+      await tapSave(tester);
+      expect(model.submitCalls, hasLength(2));
+      expect(
+        model.submitCalls.last.zielMitglied.iban,
+        'DE89370400440532013000',
+      );
+    });
+
+    testWidgets(
+      'sperrt Geschlecht und Geburtsdatum ohne Berechtigung und behaelt sie',
+      (tester) async {
+        final model = _RecordingMemberEditModel();
+        final mitglied = _buildMember(gender: '').copyWith(
+          detailsLesbar: false,
+          geburtsdatum: Mitglied.peoplePlaceholderDate,
+          genderLoeschen: true,
+        );
+        await pumpEditor(tester, mitglied, model: model);
+
+        expect(
+          find.byKey(const Key('member-edit-details-locked')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const Key('member-edit-gender-field')), findsNothing);
+        expect(
+          find.byKey(const Key('member-edit-birthdate-field')),
+          findsNothing,
+        );
+
+        await tapSave(tester);
+
+        final ziel = model.submitCalls.single.zielMitglied;
+        expect(ziel.gender, isNull);
+        expect(ziel.geburtsdatum, Mitglied.peoplePlaceholderDate);
+      },
+    );
+  });
+
   testWidgets('blockiert Speichern ohne Namen oder Fahrtenname', (
     tester,
   ) async {
