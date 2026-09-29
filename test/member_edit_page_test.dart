@@ -1,12 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nami/domain/auth/auth_profile.dart';
+import 'package:nami/domain/auth/auth_profile_repository.dart';
+import 'package:nami/domain/auth/auth_session.dart';
+import 'package:nami/domain/auth/auth_session_repository.dart';
 import 'package:nami/domain/member/member_resolution.dart';
+import 'package:nami/domain/member/member_write_repository.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/member/pending_person_update.dart';
+import 'package:nami/domain/member/pending_person_update_repository.dart';
+import 'package:nami/domain/settings/app_settings.dart';
+import 'package:nami/domain/settings/app_settings_repository.dart';
+import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/l10n/app_localizations.dart';
+import 'package:nami/presentation/model/auth_session_model.dart';
+import 'package:nami/presentation/model/member_edit_model.dart';
 import 'package:nami/presentation/model/member_phone_input.dart';
 import 'package:nami/presentation/screens/member_edit_page.dart';
+import 'package:nami/services/biometric_lock_service.dart';
+import 'package:nami/services/hitobito_auth_env.dart';
+import 'package:nami/services/hitobito_data_retention_policy.dart';
+import 'package:nami/services/hitobito_oauth_service.dart';
+import 'package:nami/services/logger_service.dart';
+import 'package:nami/services/network_access_policy.dart';
+import 'package:nami/services/sensitive_storage_service.dart';
+import 'package:provider/provider.dart';
+import 'package:provider/single_child_widget.dart';
 
 void main() {
   testWidgets('zeigt Formularinhalt auch auf schmalem Viewport', (
@@ -533,6 +553,97 @@ void main() {
   );
 
   testWidgets(
+    'Leeren der Hauptadresse speichert Mitglied ohne Hauptadresse und '
+    'laesst Zusatzadresse unveraendert',
+    (tester) async {
+      const zusatzadresse = MitgliedKontaktAdresse(
+        additionalAddressId: 8,
+        label: 'Lager',
+        street: 'Zeltplatz',
+        housenumber: '7',
+        zipCode: '50667',
+        town: 'Bonn',
+      );
+      final member = _buildMember(gender: '').copyWith(
+        adressen: const <MitgliedKontaktAdresse>[
+          MitgliedKontaktAdresse(
+            additionalAddressId: 0,
+            street: 'Musterweg',
+            housenumber: '5',
+            zipCode: '12345',
+            town: 'Köln',
+          ),
+          zusatzadresse,
+        ],
+      );
+      final model = _RecordingMemberEditModel();
+
+      _useLargeViewport(tester);
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberEditPage(mitglied: member),
+          providers: _buildEditProviders(model),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Hauptadresse und Zusatzadresse erscheinen jeweils genau einmal.
+      expect(find.widgetWithText(TextField, 'Musterweg'), findsOneWidget);
+      expect(find.widgetWithText(TextField, 'Zeltplatz'), findsOneWidget);
+
+      for (final value in <String>['Musterweg', '5', '12345', 'Köln']) {
+        final field = find.widgetWithText(TextField, value);
+        await tester.ensureVisible(field);
+        await tester.enterText(field, '');
+      }
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('member-edit-save-button')));
+      await tester.pumpAndSettle();
+
+      expect(model.submitCalls, hasLength(1));
+      final ziel = model.submitCalls.single.zielMitglied;
+      expect(ziel.primaryAddress, isNull);
+      expect(ziel.additionalAddresses, [zusatzadresse]);
+      expect(ziel.adressen, [zusatzadresse]);
+    },
+  );
+
+  testWidgets(
+    'zeigt Zusatzadresse ohne Hauptadresse nicht zusaetzlich als Hauptadresse',
+    (tester) async {
+      const zusatzadresse = MitgliedKontaktAdresse(
+        additionalAddressId: 8,
+        label: 'Lager',
+        street: 'Zeltplatz',
+        housenumber: '7',
+        zipCode: '50667',
+        town: 'Bonn',
+      );
+      final member = _buildMember(
+        gender: '',
+      ).copyWith(adressen: const <MitgliedKontaktAdresse>[zusatzadresse]);
+      final model = _RecordingMemberEditModel();
+
+      _useLargeViewport(tester);
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberEditPage(mitglied: member),
+          providers: _buildEditProviders(model),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(TextField, 'Zeltplatz'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('member-edit-save-button')));
+      await tester.pumpAndSettle();
+
+      expect(model.submitCalls, hasLength(1));
+      expect(model.submitCalls.single.zielMitglied.adressen, [zusatzadresse]);
+    },
+  );
+
+  testWidgets(
     'zeigt im Problemlösungsfall Zusatzadresse mit einzelnen Adressfeldern im Vergleich',
     (tester) async {
       final basisMitglied = _buildMember(gender: '').copyWith(
@@ -678,10 +789,577 @@ void main() {
       expect(editableText.focusNode.hasFocus, isTrue);
     },
   );
+
+  group('Problemloesungsmodus', () {
+    const firstNameConflict = MemberResolutionItem(
+      problemType: MemberResolutionProblemType.conflict,
+      cause: MemberResolutionCause.overlappingChange,
+      target: MemberResolutionTarget(
+        type: MemberResolutionTargetType.firstName,
+      ),
+      message:
+          'Vorname wurde lokal und auf dem Server unterschiedlich geändert.',
+    );
+    const phoneConflict = MemberResolutionItem(
+      problemType: MemberResolutionProblemType.conflict,
+      cause: MemberResolutionCause.overlappingChange,
+      target: MemberResolutionTarget(
+        type: MemberResolutionTargetType.phone,
+        relationshipId: 1,
+      ),
+      message: 'Telefonnummer wurde lokal und auf dem Server geändert.',
+    );
+    const primaryEmailValidation = MemberResolutionItem(
+      problemType: MemberResolutionProblemType.validation,
+      cause: MemberResolutionCause.serverValidation,
+      target: MemberResolutionTarget(
+        type: MemberResolutionTargetType.primaryEmail,
+      ),
+      message: 'E-Mail wurde vom Server abgelehnt.',
+    );
+
+    const emptyStateText =
+        'Alle aktuell sichtbaren Problemfälle wurden für diesen Durchgang bearbeitet.';
+
+    Future<void> pumpResolutionPage(
+      WidgetTester tester, {
+      required PendingPersonUpdate pendingEntry,
+      required _RecordingMemberEditModel model,
+    }) async {
+      _useLargeViewport(tester);
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberEditPage(
+            mitglied: pendingEntry.zielMitglied,
+            pendingEntry: pendingEntry,
+          ),
+          providers: _buildEditProviders(model),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> expandEditSection(WidgetTester tester) async {
+      await tester.tap(
+        find.byKey(const Key('member-edit-resolution-edit-section-toggle')),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    String fieldText(WidgetTester tester, Key key) {
+      return tester.widget<TextFormField>(find.byKey(key)).controller!.text;
+    }
+
+    testWidgets(
+      'Lokal behalten blendet Konflikt aus und behaelt lokalen Wert',
+      (tester) async {
+        final member = _buildMember(gender: '');
+        final pendingEntry = _buildResolutionEntry(
+          basisMitglied: member,
+          zielMitglied: member.copyWith(vorname: 'Juliane'),
+          remoteMitglied: member.copyWith(vorname: 'Jule'),
+          items: const <MemberResolutionItem>[firstNameConflict],
+        );
+        final model = _RecordingMemberEditModel();
+
+        await pumpResolutionPage(
+          tester,
+          pendingEntry: pendingEntry,
+          model: model,
+        );
+
+        expect(find.text(firstNameConflict.message), findsOneWidget);
+        expect(find.text('Lokal'), findsOneWidget);
+        expect(find.text('Server'), findsOneWidget);
+        expect(find.text(emptyStateText), findsNothing);
+
+        await tester.tap(find.text('Lokal behalten'));
+        await tester.pumpAndSettle();
+
+        expect(find.text(firstNameConflict.message), findsNothing);
+        expect(find.text('Lokal behalten'), findsNothing);
+        expect(find.text('Serverstand verwenden'), findsNothing);
+        expect(model.choices, <String>['keep_local']);
+
+        await expandEditSection(tester);
+
+        expect(
+          fieldText(tester, const Key('member-edit-first-name-field')),
+          'Juliane',
+        );
+      },
+    );
+
+    testWidgets(
+      'Serverstand verwenden blendet Konflikt aus und uebernimmt Server-Vorname',
+      (tester) async {
+        final member = _buildMember(gender: '');
+        final pendingEntry = _buildResolutionEntry(
+          basisMitglied: member,
+          zielMitglied: member.copyWith(vorname: 'Juliane'),
+          remoteMitglied: member.copyWith(vorname: 'Jule'),
+          items: const <MemberResolutionItem>[firstNameConflict],
+        );
+        final model = _RecordingMemberEditModel();
+
+        await pumpResolutionPage(
+          tester,
+          pendingEntry: pendingEntry,
+          model: model,
+        );
+
+        await tester.tap(find.text('Serverstand verwenden'));
+        await tester.pumpAndSettle();
+
+        expect(find.text(firstNameConflict.message), findsNothing);
+        expect(find.text('Serverstand verwenden'), findsNothing);
+        expect(model.choices, <String>['use_server']);
+
+        await expandEditSection(tester);
+
+        expect(
+          fieldText(tester, const Key('member-edit-first-name-field')),
+          'Jule',
+        );
+      },
+    );
+
+    testWidgets(
+      'Serverstand verwenden ersetzt Telefonnummer inklusive Vorwahl und Bezeichnung',
+      (tester) async {
+        final member = _buildMember(gender: '').copyWith(
+          telefonnummern: const <MitgliedKontaktTelefon>[
+            MitgliedKontaktTelefon(
+              phoneNumberId: 1,
+              wert: '+49123456789',
+              label: 'Privat',
+            ),
+          ],
+        );
+        final pendingEntry = _buildResolutionEntry(
+          basisMitglied: member,
+          zielMitglied: member.copyWith(
+            telefonnummern: const <MitgliedKontaktTelefon>[
+              MitgliedKontaktTelefon(
+                phoneNumberId: 1,
+                wert: '+49987654321',
+                label: 'Privat',
+              ),
+            ],
+          ),
+          remoteMitglied: member.copyWith(
+            telefonnummern: const <MitgliedKontaktTelefon>[
+              MitgliedKontaktTelefon(
+                phoneNumberId: 1,
+                wert: '+352621123456',
+                label: 'Mobil',
+              ),
+            ],
+          ),
+          items: const <MemberResolutionItem>[phoneConflict],
+        );
+        final model = _RecordingMemberEditModel();
+
+        await pumpResolutionPage(
+          tester,
+          pendingEntry: pendingEntry,
+          model: model,
+        );
+        // Bearbeiten-Bereich vorher oeffnen, damit die bereits gebauten
+        // Felder nach dem Ersetzen des Entwurfs aktualisiert werden muessen.
+        await expandEditSection(tester);
+        expect(
+          fieldText(tester, const Key('member-edit-phone-number-0')),
+          '987654321',
+        );
+
+        await tester.ensureVisible(find.text('Serverstand verwenden'));
+        await tester.tap(find.text('Serverstand verwenden'));
+        await tester.pumpAndSettle();
+
+        expect(find.text(phoneConflict.message), findsNothing);
+        expect(model.choices, <String>['use_server']);
+        expect(
+          fieldText(tester, const Key('member-edit-phone-number-0')),
+          '621123456',
+        );
+        final countryDropdown = tester.widget<DropdownButton<String>>(
+          find.descendant(
+            of: find.byKey(const Key('member-edit-phone-country-0')),
+            matching: find.byType(DropdownButton<String>),
+          ),
+        );
+        expect(countryDropdown.value, 'lu');
+
+        await tester.tap(find.byKey(const Key('member-edit-save-button')));
+        await tester.pumpAndSettle();
+
+        expect(model.submitCalls, hasLength(1));
+        expect(
+          model.submitCalls.single.zielMitglied.telefonnummern,
+          const <MitgliedKontaktTelefon>[
+            MitgliedKontaktTelefon(
+              phoneNumberId: 1,
+              wert: '+352621123456',
+              label: 'Mobil',
+            ),
+          ],
+        );
+      },
+    );
+
+    testWidgets(
+      'Lokale Aenderung verwerfen uebernimmt Basiswert und blendet Validierungsfall aus',
+      (tester) async {
+        final member = _buildMember(gender: '');
+        final pendingEntry = _buildResolutionEntry(
+          basisMitglied: member,
+          zielMitglied: member.copyWith(
+            emailAdressen: const <MitgliedKontaktEmail>[
+              MitgliedKontaktEmail(
+                additionalEmailId: 1,
+                wert: 'juliane@example.org',
+                label: Mitglied.primaryEmailLabel,
+                istPrimaer: true,
+              ),
+            ],
+          ),
+          remoteMitglied: member.copyWith(
+            emailAdressen: const <MitgliedKontaktEmail>[
+              MitgliedKontaktEmail(
+                additionalEmailId: 1,
+                wert: 'remote@example.org',
+                label: Mitglied.primaryEmailLabel,
+                istPrimaer: true,
+              ),
+            ],
+          ),
+          items: const <MemberResolutionItem>[primaryEmailValidation],
+        );
+        final model = _RecordingMemberEditModel();
+
+        await pumpResolutionPage(
+          tester,
+          pendingEntry: pendingEntry,
+          model: model,
+        );
+
+        expect(find.text('Aktuell'), findsOneWidget);
+        expect(find.text('Vorheriger Stand'), findsOneWidget);
+        expect(find.text('juliane@example.org'), findsOneWidget);
+        expect(find.text('julia@example.org'), findsOneWidget);
+        expect(find.text('Lokal behalten'), findsNothing);
+
+        await tester.tap(find.text('Lokale Änderung verwerfen'));
+        await tester.pumpAndSettle();
+
+        expect(find.text(primaryEmailValidation.message), findsNothing);
+        expect(find.text('Lokale Änderung verwerfen'), findsNothing);
+        expect(model.choices, <String>['discard_local']);
+
+        await expandEditSection(tester);
+
+        expect(
+          fieldText(tester, const Key('member-edit-primary-email-field')),
+          'julia@example.org',
+        );
+      },
+    );
+
+    testWidgets('zeigt Leerzustand nachdem alle Problemfaelle erledigt sind', (
+      tester,
+    ) async {
+      final member = _buildMember(gender: '');
+      final pendingEntry = _buildResolutionEntry(
+        basisMitglied: member,
+        zielMitglied: member.copyWith(vorname: 'Juliane'),
+        remoteMitglied: member.copyWith(vorname: 'Jule'),
+        items: const <MemberResolutionItem>[
+          firstNameConflict,
+          primaryEmailValidation,
+        ],
+      );
+      final model = _RecordingMemberEditModel();
+
+      await pumpResolutionPage(
+        tester,
+        pendingEntry: pendingEntry,
+        model: model,
+      );
+
+      expect(find.text(firstNameConflict.message), findsOneWidget);
+      expect(find.text(primaryEmailValidation.message), findsOneWidget);
+      expect(find.text(emptyStateText), findsNothing);
+
+      await tester.tap(find.text('Lokal behalten'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(firstNameConflict.message), findsNothing);
+      expect(find.text(primaryEmailValidation.message), findsOneWidget);
+      expect(find.text(emptyStateText), findsNothing);
+
+      await tester.tap(find.text('Lokale Änderung verwerfen'));
+      await tester.pumpAndSettle();
+
+      expect(find.text(primaryEmailValidation.message), findsNothing);
+      expect(find.text(emptyStateText), findsOneWidget);
+      expect(find.text('Speicherprobleme'), findsOneWidget);
+      expect(model.choices, <String>['keep_local', 'discard_local']);
+    });
+
+    testWidgets(
+      'Speichern sendet mit Serverstand als Basis und bestehendem Problemfall',
+      (tester) async {
+        final member = _buildMember(gender: '');
+        final pendingEntry = _buildResolutionEntry(
+          basisMitglied: member,
+          zielMitglied: member.copyWith(vorname: 'Juliane'),
+          remoteMitglied: member.copyWith(vorname: 'Jule', nachname: 'Remote'),
+          items: const <MemberResolutionItem>[firstNameConflict],
+        );
+        final model = _RecordingMemberEditModel();
+
+        await pumpResolutionPage(
+          tester,
+          pendingEntry: pendingEntry,
+          model: model,
+        );
+
+        await tester.tap(find.text('Lokal behalten'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('member-edit-save-button')));
+        await tester.pumpAndSettle();
+
+        expect(model.submitCalls, hasLength(1));
+        final call = model.submitCalls.single;
+        expect(call.accessToken, 'token-123');
+        expect(
+          call.basisMitglied,
+          same(pendingEntry.resolutionCase!.remoteMitglied),
+        );
+        expect(call.trigger, 'manual_resolution');
+        expect(call.existingResolutionCase, same(pendingEntry.resolutionCase));
+        expect(call.zielMitglied.vorname, 'Juliane');
+        expect(call.zielMitglied.nachname, 'Keller');
+      },
+    );
+
+    testWidgets(
+      'validiert beim Speichern auch mit eingeklapptem Bearbeiten-Bereich',
+      (tester) async {
+        final member = _buildMember(gender: '');
+        final pendingEntry = _buildResolutionEntry(
+          basisMitglied: member,
+          zielMitglied: member.copyWith(
+            emailAdressen: const <MitgliedKontaktEmail>[
+              MitgliedKontaktEmail(
+                additionalEmailId: 1,
+                wert: 'ungueltig',
+                label: Mitglied.primaryEmailLabel,
+                istPrimaer: true,
+              ),
+            ],
+          ),
+          remoteMitglied: member,
+          items: const <MemberResolutionItem>[primaryEmailValidation],
+        );
+        final model = _RecordingMemberEditModel();
+
+        await pumpResolutionPage(
+          tester,
+          pendingEntry: pendingEntry,
+          model: model,
+        );
+
+        await tester.tap(find.byKey(const Key('member-edit-save-button')));
+        await tester.pumpAndSettle();
+
+        expect(model.submitCalls, isEmpty);
+        expect(
+          find.text('Bitte eine gültige E-Mail-Adresse eingeben.'),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'ersetzt die Seite bei erneutem Problemfall durch neue Problemloesung',
+      (tester) async {
+        final member = _buildMember(gender: '');
+        final pendingEntry = _buildResolutionEntry(
+          basisMitglied: member,
+          zielMitglied: member.copyWith(vorname: 'Juliane'),
+          remoteMitglied: member.copyWith(vorname: 'Jule'),
+          items: const <MemberResolutionItem>[firstNameConflict],
+        );
+        final nextZiel = member.copyWith(vorname: 'Julchen');
+        final nextEntry = _buildResolutionEntry(
+          basisMitglied: member,
+          zielMitglied: nextZiel,
+          remoteMitglied: member.copyWith(nachname: 'Schmidt'),
+          items: const <MemberResolutionItem>[
+            MemberResolutionItem(
+              problemType: MemberResolutionProblemType.conflict,
+              cause: MemberResolutionCause.overlappingChange,
+              target: MemberResolutionTarget(
+                type: MemberResolutionTargetType.lastName,
+              ),
+              message: 'Nachname wurde parallel geändert.',
+            ),
+          ],
+        );
+        final model = _RecordingMemberEditModel(
+          result: MemberEditSubmitResult(
+            success: false,
+            wasQueued: false,
+            requiresResolution: true,
+            message: 'Neue Konflikte gefunden.',
+            pendingEntry: nextEntry,
+          ),
+        );
+
+        await pumpResolutionPage(
+          tester,
+          pendingEntry: pendingEntry,
+          model: model,
+        );
+        await tester.tap(find.byKey(const Key('member-edit-save-button')));
+        await tester.pumpAndSettle();
+
+        expect(model.submitCalls, hasLength(1));
+        expect(find.byType(MemberEditPage), findsOneWidget);
+        expect(find.text('Speicherprobleme bei Juliane Keller'), findsNothing);
+        expect(
+          find.text('Speicherprobleme bei Julchen Keller'),
+          findsOneWidget,
+        );
+        expect(find.text('Neue Konflikte gefunden.'), findsOneWidget);
+        expect(find.text('Nachname wurde parallel geändert.'), findsOneWidget);
+        expect(find.text(firstNameConflict.message), findsNothing);
+        expect(model.openedEntryPoints, <String>['unknown', 'submit_result']);
+      },
+    );
+
+    testWidgets('schliesst die Seite bei eingereihter Aenderung mit Ergebnis', (
+      tester,
+    ) async {
+      final member = _buildMember(gender: '');
+      final pendingEntry = _buildResolutionEntry(
+        basisMitglied: member,
+        zielMitglied: member.copyWith(vorname: 'Juliane'),
+        remoteMitglied: member.copyWith(vorname: 'Jule'),
+        items: const <MemberResolutionItem>[firstNameConflict],
+      );
+      const queuedResult = MemberEditSubmitResult(
+        success: false,
+        wasQueued: true,
+        message: 'Änderung wird später gesendet.',
+      );
+      final model = _RecordingMemberEditModel(result: queuedResult);
+      final results = <MemberEditSubmitResult?>[];
+
+      _useLargeViewport(tester);
+      await tester.pumpWidget(
+        _buildTestApp(
+          _EditPageLauncher(
+            pageBuilder: () => MemberEditPage(
+              mitglied: pendingEntry.zielMitglied,
+              pendingEntry: pendingEntry,
+            ),
+            onResult: results.add,
+          ),
+          providers: _buildEditProviders(model),
+        ),
+      );
+      await tester.tap(find.text('Editor oeffnen'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(MemberEditPage), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('member-edit-save-button')));
+      await tester.pumpAndSettle();
+
+      expect(model.submitCalls, hasLength(1));
+      expect(find.byType(MemberEditPage), findsNothing);
+      expect(find.text('Editor oeffnen'), findsOneWidget);
+      expect(results, hasLength(1));
+      expect(results.single, same(queuedResult));
+    });
+
+    testWidgets(
+      'reicht das Ergebnis einer Folge-Problemloesung an den Aufrufer weiter',
+      (tester) async {
+        final member = _buildMember(gender: '');
+        final pendingEntry = _buildResolutionEntry(
+          basisMitglied: member,
+          zielMitglied: member.copyWith(vorname: 'Juliane'),
+          remoteMitglied: member.copyWith(vorname: 'Jule'),
+          items: const <MemberResolutionItem>[firstNameConflict],
+        );
+        final nextEntry = _buildResolutionEntry(
+          basisMitglied: member,
+          zielMitglied: member.copyWith(vorname: 'Julchen'),
+          remoteMitglied: member.copyWith(vorname: 'Jule'),
+          items: const <MemberResolutionItem>[firstNameConflict],
+        );
+        const queuedResult = MemberEditSubmitResult(
+          success: false,
+          wasQueued: true,
+        );
+        final model = _RecordingMemberEditModel(
+          results: <MemberEditSubmitResult>[
+            MemberEditSubmitResult(
+              success: false,
+              wasQueued: false,
+              requiresResolution: true,
+              pendingEntry: nextEntry,
+            ),
+            queuedResult,
+          ],
+        );
+        final results = <MemberEditSubmitResult?>[];
+
+        _useLargeViewport(tester);
+        await tester.pumpWidget(
+          _buildTestApp(
+            _EditPageLauncher(
+              pageBuilder: () => MemberEditPage(
+                mitglied: pendingEntry.zielMitglied,
+                pendingEntry: pendingEntry,
+              ),
+              onResult: results.add,
+            ),
+            providers: _buildEditProviders(model),
+          ),
+        );
+        await tester.tap(find.text('Editor oeffnen'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const Key('member-edit-save-button')));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text('Speicherprobleme bei Julchen Keller'),
+          findsOneWidget,
+        );
+        expect(results, isEmpty);
+
+        await tester.tap(find.byKey(const Key('member-edit-save-button')));
+        await tester.pumpAndSettle();
+
+        expect(model.submitCalls, hasLength(2));
+        expect(find.byType(MemberEditPage), findsNothing);
+        expect(results, <MemberEditSubmitResult?>[queuedResult]);
+      },
+    );
+  });
 }
 
-Widget _buildTestApp(Widget home) {
-  return MaterialApp(
+Widget _buildTestApp(
+  Widget home, {
+  List<SingleChildWidget> providers = const <SingleChildWidget>[],
+}) {
+  final app = MaterialApp(
     localizationsDelegates: [
       AppLocalizations.delegate,
       GlobalMaterialLocalizations.delegate,
@@ -692,6 +1370,12 @@ Widget _buildTestApp(Widget home) {
     locale: const Locale('de'),
     home: home,
   );
+
+  if (providers.isEmpty) {
+    return app;
+  }
+
+  return MultiProvider(providers: providers, child: app);
 }
 
 PendingPersonUpdate _buildResolutionEntry({
@@ -749,4 +1433,320 @@ Mitglied _buildMember({required String gender}) {
       ),
     ],
   );
+}
+
+void _useLargeViewport(WidgetTester tester) {
+  tester.view.physicalSize = const Size(1000, 1800);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(() {
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
+  });
+}
+
+List<SingleChildWidget> _buildEditProviders(MemberEditModel model) {
+  return <SingleChildWidget>[
+    ChangeNotifierProvider<AuthSessionModel>.value(
+      value: _StubAuthSessionModel(
+        session: AuthSession(
+          accessToken: 'token-123',
+          receivedAt: DateTime(2026, 4, 14),
+        ),
+      ),
+    ),
+    ChangeNotifierProvider<MemberEditModel>.value(value: model),
+  ];
+}
+
+class _EditPageLauncher extends StatelessWidget {
+  const _EditPageLauncher({required this.pageBuilder, required this.onResult});
+
+  final Widget Function() pageBuilder;
+  final void Function(MemberEditSubmitResult? result) onResult;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: TextButton(
+          onPressed: () async {
+            final result = await Navigator.of(context)
+                .push<MemberEditSubmitResult>(
+                  MaterialPageRoute<MemberEditSubmitResult>(
+                    builder: (_) => pageBuilder(),
+                  ),
+                );
+            onResult(result);
+          },
+          child: const Text('Editor oeffnen'),
+        ),
+      ),
+    );
+  }
+}
+
+class _SubmitCall {
+  const _SubmitCall({
+    required this.accessToken,
+    required this.basisMitglied,
+    required this.zielMitglied,
+    required this.trigger,
+    required this.existingResolutionCase,
+  });
+
+  final String accessToken;
+  final Mitglied basisMitglied;
+  final Mitglied zielMitglied;
+  final String trigger;
+  final MemberResolutionCase? existingResolutionCase;
+}
+
+class _RecordingMemberEditModel extends MemberEditModel {
+  _RecordingMemberEditModel({
+    MemberEditSubmitResult result = const MemberEditSubmitResult(
+      success: false,
+      wasQueued: true,
+    ),
+    List<MemberEditSubmitResult>? results,
+  }) : _results = results ?? <MemberEditSubmitResult>[result],
+       super(
+         memberWriteRepository: _NoopMemberWriteRepository(),
+         pendingRepository: _NoopPendingPersonUpdateRepository(),
+         logger: _FakeLoggerService(),
+         onMemberUpdated: (_) async {},
+       );
+
+  final List<MemberEditSubmitResult> _results;
+  final List<_SubmitCall> submitCalls = <_SubmitCall>[];
+  final List<String> choices = <String>[];
+  final List<String> openedEntryPoints = <String>[];
+
+  @override
+  Future<MemberEditSubmitResult> submitUpdate({
+    required String accessToken,
+    required Mitglied basisMitglied,
+    required Mitglied zielMitglied,
+    String trigger = 'manual_edit',
+    MemberResolutionCase? existingResolutionCase,
+  }) async {
+    submitCalls.add(
+      _SubmitCall(
+        accessToken: accessToken,
+        basisMitglied: basisMitglied,
+        zielMitglied: zielMitglied,
+        trigger: trigger,
+        existingResolutionCase: existingResolutionCase,
+      ),
+    );
+    final index = submitCalls.length - 1;
+    return index < _results.length ? _results[index] : _results.last;
+  }
+
+  @override
+  Future<void> logResolutionChoice({
+    required PendingPersonUpdate entry,
+    required MemberResolutionItem item,
+    required String choice,
+  }) async {
+    choices.add(choice);
+  }
+
+  @override
+  Future<void> logResolutionOpened({
+    required PendingPersonUpdate entry,
+    required String entryPoint,
+  }) async {
+    openedEntryPoints.add(entryPoint);
+  }
+}
+
+class _StubAuthSessionModel extends AuthSessionModel {
+  _StubAuthSessionModel({required AuthSession session})
+    : _sessionOverride = session,
+      super(
+        repository: _InMemoryAuthSessionRepository(initial: session),
+        profileRepository: _InMemoryAuthProfileRepository(),
+        oauthService: _FakeOauthService(),
+        biometricLockService: _FakeBiometricLockService(),
+        sensitiveStorageService: _FakeSensitiveStorageService(),
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 30),
+          refreshInterval: const Duration(days: 1),
+        ),
+        logger: _FakeLoggerService(),
+      );
+
+  final AuthSession _sessionOverride;
+
+  @override
+  AuthSession? get session => _sessionOverride;
+
+  @override
+  NetworkAccessBlockedReason? get remoteAccessBlockedReason => null;
+
+  @override
+  bool get requiresInteractiveLogin => false;
+}
+
+class _NoopMemberWriteRepository implements MemberWriteRepository {
+  @override
+  Future<Mitglied> fetchRemoteMember({
+    required String accessToken,
+    required int personId,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Mitglied> updateMember({
+    required String accessToken,
+    required Mitglied basisMitglied,
+    required Mitglied zielMitglied,
+  }) async {
+    return zielMitglied;
+  }
+}
+
+class _NoopPendingPersonUpdateRepository
+    implements PendingPersonUpdateRepository {
+  @override
+  Future<void> clear() async {}
+
+  @override
+  Future<List<PendingPersonUpdate>> loadAll() async {
+    return const <PendingPersonUpdate>[];
+  }
+
+  @override
+  Future<void> remove(String entryId) async {}
+
+  @override
+  Future<void> save(PendingPersonUpdate entry) async {}
+}
+
+class _InMemoryAuthSessionRepository implements AuthSessionRepository {
+  _InMemoryAuthSessionRepository({this.initial});
+
+  final AuthSession? initial;
+
+  @override
+  Future<void> clear() async {}
+
+  @override
+  Future<AuthSession?> load() async => initial;
+
+  @override
+  Future<void> save(AuthSession session) async {}
+}
+
+class _InMemoryAuthProfileRepository implements AuthProfileRepository {
+  @override
+  Future<void> clear() async {}
+
+  @override
+  Future<AuthProfile?> loadCached() async => null;
+
+  @override
+  Future<DateTime?> loadLastSyncAt() async => null;
+
+  @override
+  Future<void> save(AuthProfile profile) async {}
+
+  @override
+  Future<void> saveLastSyncAt(DateTime timestamp) async {}
+}
+
+class _FakeOauthService extends HitobitoOauthService {
+  _FakeOauthService()
+    : super(
+        config: const HitobitoAuthConfig(
+          clientId: 'client',
+          clientSecret: 'secret',
+          authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
+          tokenUrl: 'https://demo.hitobito.com/oauth/token',
+          redirectUri: 'de.jlange.nami.app:/oauth/callback',
+          scopeString: 'openid email',
+          discoveryUrl: '',
+          profileUrl: 'https://demo.hitobito.com/oauth/profile',
+        ),
+      );
+}
+
+class _FakeBiometricLockService extends BiometricLockService {
+  _FakeBiometricLockService();
+
+  @override
+  Future<bool> authenticate() async => true;
+
+  @override
+  Future<bool> isAvailable() async => false;
+}
+
+class _FakeSensitiveStorageService extends SensitiveStorageService {
+  @override
+  Future<DateTime?> loadLastBackgroundedAt() async => null;
+
+  @override
+  Future<DateTime?> loadLastSensitiveSyncAt() async => null;
+
+  @override
+  Future<DateTime?> loadLastSensitiveSyncAttemptAt() async => null;
+
+  @override
+  Future<void> purgeSensitiveData() async {}
+}
+
+class _FakeLoggerService extends LoggerService {
+  _FakeLoggerService()
+    : super(
+        settingsRepository: _FakeAppSettingsRepository(),
+        navigatorKey: GlobalKey<NavigatorState>(),
+      );
+
+  @override
+  Future<void> log(String service, String message) async {}
+
+  @override
+  Future<void> logInfo(String service, String message) async {}
+
+  @override
+  Future<void> logWarn(String service, String message) async {}
+
+  @override
+  Future<void> logError(
+    String service,
+    String message, {
+    Object? error,
+    StackTrace? stackTrace,
+  }) async {}
+}
+
+class _FakeAppSettingsRepository extends AppSettingsRepository {
+  @override
+  Future<AppSettings> load() async => const AppSettings(
+    themeMode: ThemeMode.system,
+    languageCode: 'de',
+    analyticsEnabled: false,
+  );
+
+  @override
+  Future<void> saveAnalyticsEnabled(bool enabled) async {}
+
+  @override
+  Future<void> saveBiometricLockEnabled(bool enabled) async {}
+
+  @override
+  Future<void> saveMemberListSearchResultHighlightEnabled(bool enabled) async {}
+
+  @override
+  Future<void> saveGeburstagsbenachrichtigungStufen(Set<Stufe> stufen) async {}
+
+  @override
+  Future<void> saveLanguageCode(String code) async {}
+
+  @override
+  Future<void> saveNotificationsEnabled(bool enabled) async {}
+
+  @override
+  Future<void> saveThemeMode(ThemeMode mode) async {}
 }

@@ -1,11 +1,19 @@
-import type { Db, IndexDescription } from 'mongodb';
+import { type Db, type IndexDescription, MongoServerError } from 'mongodb';
 
+import type { ServerDependencies } from '../../app/dependencies.js';
+import type { WeeklyAggregateDocument, WeeklyAggregatesRepository } from '../../modules/aggregation/aggregation.js';
+import type { EffectiveStateDocument, EffectiveStatesRepository } from '../../modules/effectiveState/effectiveState.js';
+import type { ReadinessProbe } from '../../modules/health/route.js';
+import type { SenderDocument, SenderRepository } from '../../modules/senderAuth/senderAuth.js';
 import type { RawSnapshotDocument, RawSnapshotsRepository } from '../../modules/stammesSnapshot/persistence.js';
+import { type Clock, systemClock } from '../../shared/time.js';
 
 export const statisticsCollectionNames = {
     rawSnapshots: 'raw_snapshots',
     effectiveStates: 'effective_states',
     weeklyAggregates: 'weekly_aggregates',
+    senders: 'senders',
+    opsStatus: 'ops_status',
 } as const;
 
 const rawSnapshotsIndexes: IndexDescription[] = [
@@ -22,6 +30,15 @@ const rawSnapshotsIndexes: IndexDescription[] = [
             sent_at: -1,
         },
         name: 'raw_snapshots_by_sent_at',
+    },
+    {
+        key: {
+            stamm_pseudonym: 1,
+            sender_pseudonym: 1,
+            source_data_as_of: 1,
+        },
+        name: 'raw_snapshots_dedup',
+        unique: true,
     },
 ];
 
@@ -46,6 +63,21 @@ const weeklyAggregatesIndexes: IndexDescription[] = [
     },
 ];
 
+const sendersIndexes: IndexDescription[] = [
+    {
+        key: {
+            sender_pseudonym: 1,
+        },
+        name: 'senders_by_pseudonym',
+        unique: true,
+    },
+];
+
+const DUPLICATE_KEY_ERROR_CODE = 11000;
+
+const isDuplicateKeyError = (error: unknown): boolean =>
+    error instanceof MongoServerError && error.code === DUPLICATE_KEY_ERROR_CODE;
+
 const ensureCollectionExists = async (db: Db, collectionName: string): Promise<void> => {
     const existingCollections = await db.listCollections({ name: collectionName }, { nameOnly: true }).toArray();
 
@@ -58,16 +90,165 @@ export const initializeStatisticsPersistence = async (db: Db): Promise<void> => 
     await ensureCollectionExists(db, statisticsCollectionNames.rawSnapshots);
     await ensureCollectionExists(db, statisticsCollectionNames.effectiveStates);
     await ensureCollectionExists(db, statisticsCollectionNames.weeklyAggregates);
+    await ensureCollectionExists(db, statisticsCollectionNames.senders);
 
     await db.collection(statisticsCollectionNames.rawSnapshots).createIndexes(rawSnapshotsIndexes);
     await db.collection(statisticsCollectionNames.effectiveStates).createIndexes(effectiveStatesIndexes);
     await db.collection(statisticsCollectionNames.weeklyAggregates).createIndexes(weeklyAggregatesIndexes);
+    await db.collection(statisticsCollectionNames.senders).createIndexes(sendersIndexes);
 };
 
-export const buildRawSnapshotsRepository = (db: Db): RawSnapshotsRepository => ({
-    insert: async (document: RawSnapshotDocument): Promise<void> => {
-        await db
-            .collection<RawSnapshotDocument>(statisticsCollectionNames.rawSnapshots)
-            .insertOne(document);
+// Dokumente ohne MongoDB-interne _id an die Fachlogik geben.
+const withoutId = { projection: { _id: 0 } } as const;
+
+export const buildRawSnapshotsRepository = (db: Db): RawSnapshotsRepository => {
+    const collection = db.collection<RawSnapshotDocument>(statisticsCollectionNames.rawSnapshots);
+
+    return {
+        insert: async (document) => {
+            try {
+                await collection.insertOne({ ...document });
+                return { inserted: true };
+            } catch (error) {
+                if (isDuplicateKeyError(error)) {
+                    return { inserted: false };
+                }
+                throw error;
+            }
+        },
+        findLatestPerStamm: async () =>
+            collection
+                .aggregate<RawSnapshotDocument>([
+                    { $sort: { stamm_pseudonym: 1, source_data_as_of: -1, sent_at: -1 } },
+                    { $group: { _id: '$stamm_pseudonym', latest: { $first: '$$ROOT' } } },
+                    { $replaceRoot: { newRoot: '$latest' } },
+                    { $project: { _id: 0 } },
+                ])
+                .toArray(),
+    };
+};
+
+export const buildSenderRepository = (db: Db): SenderRepository => {
+    const collection = db.collection<SenderDocument>(statisticsCollectionNames.senders);
+
+    return {
+        findByPseudonym: async (senderPseudonym) =>
+            collection.findOne({ sender_pseudonym: senderPseudonym }, withoutId),
+        registerIfAbsent: async (document) => {
+            try {
+                await collection.insertOne({ ...document });
+                return 'registered';
+            } catch (error) {
+                if (isDuplicateKeyError(error)) {
+                    return 'already_registered';
+                }
+                throw error;
+            }
+        },
+        markSuccessfulSend: async (senderPseudonym, sentAt) => {
+            await collection.updateOne(
+                { sender_pseudonym: senderPseudonym },
+                { $max: { last_successful_send_at: sentAt } },
+            );
+        },
+    };
+};
+
+export const buildEffectiveStatesRepository = (db: Db): EffectiveStatesRepository => {
+    const collection = db.collection<EffectiveStateDocument>(statisticsCollectionNames.effectiveStates);
+
+    return {
+        upsertIfNewer: async (state) => {
+            try {
+                // Trifft nur, wenn der gespeicherte Stand aelter ist. Existiert der Stamm mit
+                // gleichem oder neuerem Stand, versucht der Upsert ein Insert und scheitert am
+                // Unique-Index; das ist hier das gewuenschte "nichts tun".
+                await collection.replaceOne(
+                    {
+                        stamm_pseudonym: state.stamm_pseudonym,
+                        $or: [
+                            { source_data_as_of: { $lt: state.source_data_as_of } },
+                            {
+                                source_data_as_of: state.source_data_as_of,
+                                sent_at: { $lt: state.sent_at },
+                            },
+                        ],
+                    },
+                    { ...state },
+                    { upsert: true },
+                );
+            } catch (error) {
+                if (!isDuplicateKeyError(error)) {
+                    throw error;
+                }
+            }
+        },
+        replaceAll: async (states) => {
+            const stammPseudonyms = states.map((state) => state.stamm_pseudonym);
+
+            if (states.length > 0) {
+                await collection.bulkWrite(
+                    states.map((state) => ({
+                        replaceOne: {
+                            filter: { stamm_pseudonym: state.stamm_pseudonym },
+                            replacement: { ...state },
+                            upsert: true,
+                        },
+                    })),
+                );
+            }
+
+            await collection.deleteMany({ stamm_pseudonym: { $nin: stammPseudonyms } });
+        },
+        findAll: async () => collection.find({}, withoutId).toArray(),
+    };
+};
+
+export const buildWeeklyAggregatesRepository = (db: Db): WeeklyAggregatesRepository => {
+    const collection = db.collection<WeeklyAggregateDocument>(statisticsCollectionNames.weeklyAggregates);
+
+    return {
+        upsert: async (document) => {
+            await collection.replaceOne(
+                {
+                    aggregation_week: document.aggregation_week,
+                    aggregation_type: document.aggregation_type,
+                },
+                { ...document },
+                { upsert: true },
+            );
+        },
+        findLatest: async (aggregationType) =>
+            collection.findOne(
+                { aggregation_type: aggregationType },
+                { ...withoutId, sort: { generated_at: -1 } },
+            ),
+    };
+};
+
+type OpsStatusDocument = {
+    _id: string;
+    last_success_at?: Date;
+};
+
+export const buildReadinessProbe = (db: Db): ReadinessProbe => ({
+    pingDatabase: async () => {
+        await db.command({ ping: 1 });
     },
+    findLastBackupAt: async () => {
+        const status = await db
+            .collection<OpsStatusDocument>(statisticsCollectionNames.opsStatus)
+            .findOne({ _id: 'backup' });
+
+        return status?.last_success_at ?? null;
+    },
+});
+
+export const buildMongoDependencies = (db: Db, clock: Clock = systemClock): ServerDependencies => ({
+    clock,
+    rawSnapshotsRepository: buildRawSnapshotsRepository(db),
+    senderRepository: buildSenderRepository(db),
+    effectiveStatesRepository: buildEffectiveStatesRepository(db),
+    weeklyAggregatesRepository: buildWeeklyAggregatesRepository(db),
+    readinessProbe: buildReadinessProbe(db),
 });

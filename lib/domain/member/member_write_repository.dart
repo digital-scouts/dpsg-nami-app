@@ -87,6 +87,13 @@ class MemberWriteNetworkBlockedException extends MemberWriteException {
   const MemberWriteNetworkBlockedException(super.message);
 }
 
+/// Hitobito war wegen eines Transportfehlers (Timeout, Verbindungsabbruch)
+/// nicht erreichbar. Anders als bei [MemberWriteNetworkBlockedException] ist
+/// der Netzzugriff grundsaetzlich erlaubt.
+class MemberWriteNetworkUnavailableException extends MemberWriteException {
+  const MemberWriteNetworkUnavailableException(super.message);
+}
+
 class MemberWriteRejectedException extends MemberWriteException {
   const MemberWriteRejectedException(super.message);
 }

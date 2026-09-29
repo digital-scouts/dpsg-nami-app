@@ -1,0 +1,28 @@
+# Wird vom Deploy-Workflow nach /opt/caddy-sites/ kopiert und vom Caddyfile des
+# DPSG-News-Stacks per "import /etc/caddy/sites/*.caddy" eingebunden.
+namiapp.scout-link.de {
+  encode zstd gzip
+
+  @robots path /robots.txt
+  respond @robots "User-agent: *
+Disallow: /
+" 200
+
+  @disallowed_methods {
+    not method GET HEAD POST
+  }
+  respond @disallowed_methods "Method Not Allowed" 405
+
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    Referrer-Policy "no-referrer"
+    X-Robots-Tag "noindex, nofollow, noarchive"
+    -Server
+  }
+
+  reverse_proxy nami-statistics:3000 {
+    header_up X-Real-IP {remote_host}
+  }
+}

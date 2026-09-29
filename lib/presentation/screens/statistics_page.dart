@@ -12,9 +12,12 @@ import '../../domain/member/member_address_utils.dart';
 import '../../domain/member/mitglied.dart';
 import '../../services/statistics_location_service.dart';
 import '../model/arbeitskontext_model.dart';
+import '../model/bundesstatistik_model.dart';
 import '../navigation/app_router.dart';
+import '../statistics/bundesstatistik_card.dart';
 import '../statistics/statistics_snapshot_builder.dart';
 import '../statistics/statistics_ui.dart';
+import '../widgets/bundesstatistik_einwilligung_dialog.dart';
 
 class StatisticsPage extends StatefulWidget {
   const StatisticsPage({super.key, this.debugReadModel});
@@ -74,6 +77,32 @@ class _StatisticsPageState extends State<StatisticsPage> {
     ).pushNamed(AppRoutes.statisticsGroupDetail, arguments: arguments);
   }
 
+  Widget? _buildBundesstatistikCard(BuildContext context) {
+    final BundesstatistikModel model;
+    try {
+      model = context.watch<BundesstatistikModel>();
+    } on ProviderNotFoundException {
+      // Stories und Tests ohne Bundesstatistik-Provider.
+      return null;
+    }
+    if (!model.isAvailable) {
+      return null;
+    }
+
+    return BundesstatistikCard(
+      status: model.status,
+      teilnehmendeStaemme: model.aggregat?.teilnehmendeStaemme,
+      isBusy: model.isBusy,
+      onOeffnen: () =>
+          Navigator.of(context).pushNamed(AppRoutes.statisticsBundesvergleich),
+      onEinwilligen: () async {
+        if (await zeigeBundesstatistikEinwilligungDialog(context)) {
+          await model.setzeEinwilligung(true);
+        }
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final injectedReadModel = widget.debugReadModel;
@@ -102,6 +131,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
       snapshot: snapshot,
       onOpenGroup: _openGroup,
       stammAddress: _stammAddress,
+      bundesstatistikCard: _buildBundesstatistikCard(context),
     );
   }
 }
@@ -111,11 +141,13 @@ class _StammStatisticsView extends StatelessWidget {
     required this.snapshot,
     required this.onOpenGroup,
     required this.stammAddress,
+    this.bundesstatistikCard,
   });
 
   final StatisticsSnapshot snapshot;
   final ValueChanged<String> onOpenGroup;
   final String? stammAddress;
+  final Widget? bundesstatistikCard;
 
   @override
   Widget build(BuildContext context) {
@@ -152,6 +184,10 @@ class _StammStatisticsView extends StatelessWidget {
             ],
           ),
         ),
+        if (bundesstatistikCard case final card?) ...[
+          const SizedBox(height: 12),
+          card,
+        ],
         if (snapshot.groups.isNotEmpty) ...[
           const SizedBox(height: 12),
           StatisticsCard(

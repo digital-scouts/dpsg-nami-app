@@ -77,6 +77,7 @@ Mitglied _memberWithAddress() => Mitglied.peopleListItem(
   nachname: 'Muster',
   adressen: const <MitgliedKontaktAdresse>[
     MitgliedKontaktAdresse(
+      additionalAddressId: 0,
       street: 'Musterweg',
       housenumber: '4',
       zipCode: '50667',

@@ -1,32 +1,42 @@
+import rateLimit from '@fastify/rate-limit';
 import Fastify from 'fastify';
 
+import { buildMemoryDependencies } from '../infra/memory/statisticsMemoryStore.js';
+import { registerAggregateRoutes } from '../modules/aggregation/route.js';
 import { registerHealthRoutes } from '../modules/health/route.js';
-import { buildNoopRawSnapshotsRepository, type RawSnapshotsRepository } from '../modules/stammesSnapshot/persistence.js';
 import { registerStammesSnapshotRoutes } from '../modules/stammesSnapshot/route.js';
-import { asAppError } from '../shared/errors.js';
+import { AppError, asAppError } from '../shared/errors.js';
 import type { AppConfig } from './config.js';
+import type { ServerDependencies } from './dependencies.js';
 import { buildLoggerOptions } from './logger.js';
 
-export type ServerDependencies = {
-    rawSnapshotsRepository: RawSnapshotsRepository;
-};
-
-const buildDefaultDependencies = (): ServerDependencies => ({
-    rawSnapshotsRepository: buildNoopRawSnapshotsRepository(),
-});
+export type { ServerDependencies } from './dependencies.js';
 
 export const buildServer = (
     config: AppConfig,
-    dependencies: ServerDependencies = buildDefaultDependencies(),
+    dependencies: ServerDependencies = buildMemoryDependencies(),
 ) => {
     const server = Fastify({
         logger: buildLoggerOptions(config),
+        bodyLimit: config.bodyLimitBytes,
+        // Hinter Caddy liefert X-Forwarded-For die echte Client-IP fuer das Rate-Limit.
+        trustProxy: config.trustProxyHops > 0 ? config.trustProxyHops : false,
     });
 
     server.decorate('appConfig', config);
 
-    registerHealthRoutes(server);
-    registerStammesSnapshotRoutes(server, config, dependencies.rawSnapshotsRepository);
+    // Nur Routen mit eigener rateLimit-Konfiguration werden begrenzt (Ingest und Read).
+    void server.register(rateLimit, {
+        global: false,
+        errorResponseBuilder: () =>
+            new AppError('Too many requests', 429, 'rate_limited'),
+    });
+
+    void server.register(async (instance) => {
+        registerHealthRoutes(instance, config, dependencies);
+        registerStammesSnapshotRoutes(instance, config, dependencies);
+        registerAggregateRoutes(instance, config, dependencies);
+    });
 
     server.setNotFoundHandler((request, reply) => {
         reply.status(404).send({
@@ -37,8 +47,13 @@ export const buildServer = (
         });
     });
 
-    server.setErrorHandler((error, _request, reply) => {
+    server.setErrorHandler((error, request, reply) => {
         const appError = asAppError(error);
+
+        if (appError.statusCode >= 500) {
+            request.log.error(error, 'Unhandled request error');
+        }
+
         const errorPayload: {
             code: string;
             message: string;

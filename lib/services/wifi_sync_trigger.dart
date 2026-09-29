@@ -13,8 +13,11 @@ class WifiSyncTrigger {
   }) {
     return switch (connectionType) {
       NetworkConnectionType.wifi => true,
-      NetworkConnectionType.mobile => !noMobileDataEnabled,
-      NetworkConnectionType.offline || NetworkConnectionType.unknown => false,
+      // Unbekannte Verbindungen (VPN, Bluetooth, sonstige) werden wie mobile
+      // Daten behandelt, passend zu NetworkAccessPolicy.evaluateAccess.
+      NetworkConnectionType.mobile ||
+      NetworkConnectionType.unknown => !noMobileDataEnabled,
+      NetworkConnectionType.offline => false,
     };
   }
 
