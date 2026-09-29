@@ -894,6 +894,11 @@ class HitobitoPeopleService {
       bic: _toNullableString(attributesMap['bic']),
       bankName: _toNullableString(attributesMap['bank_name']),
       paymentMethod: _toNullableString(attributesMap['payment_method']),
+      // Hitobito laesst per show_details geschuetzte Attribute ohne
+      // Berechtigung ganz weg, statt sie mit null zu liefern.
+      detailsLesbar:
+          attributesMap.containsKey('birthday') ||
+          attributesMap.containsKey('gender'),
       telefonnummern: _mapTelefonnummern(
         personId: id,
         relationshipIds: phoneNumberIds,

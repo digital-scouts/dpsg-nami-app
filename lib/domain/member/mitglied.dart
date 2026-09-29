@@ -271,6 +271,7 @@ class Mitglied {
     this.bic,
     this.bankName,
     this.paymentMethod,
+    this.detailsLesbar,
     List<Role>? roles,
   }) : assert(mitgliedsnummer.isNotEmpty),
        telefonnummern = List.unmodifiable(
@@ -301,6 +302,7 @@ class Mitglied {
     this.bic,
     this.bankName,
     this.paymentMethod,
+    this.detailsLesbar,
   }) : assert(mitgliedsnummer.isNotEmpty),
        geburtsdatum = _peoplePlaceholderDate,
        eintrittsdatum = _peoplePlaceholderDate,
@@ -335,6 +337,11 @@ class Mitglied {
   final String? bic;
   final String? bankName;
   final String? paymentMethod;
+
+  /// Ob Hitobito die per `show_details` geschuetzten Angaben (Geschlecht,
+  /// Geburtsdatum, Bankdaten) mitgeliefert hat. `null` heisst unbekannt, etwa
+  /// bei Cache-Staenden aus aelteren App-Versionen.
+  final bool? detailsLesbar;
   final List<Role> roles;
 
   static DateTime get peoplePlaceholderDate => _peoplePlaceholderDate;
@@ -372,6 +379,10 @@ class Mitglied {
 
   String get fullName => '$vorname $nachname'.trim();
 
+  /// Bankdaten sind nur vorhanden, wenn Hitobito sie lesbar liefert: Die
+  /// Zahlart ist dort Pflicht und fehlt nur ohne Berechtigung.
+  bool get bankdatenLesbar => paymentMethod != null;
+
   bool get istAusgetreten =>
       austrittsdatum != null && austrittsdatum!.isBefore(DateTime.now());
 
@@ -397,6 +408,7 @@ class Mitglied {
     String? bic,
     String? bankName,
     String? paymentMethod,
+    bool? detailsLesbar,
     List<Role>? roles,
     bool fahrtennameLoeschen = false,
     bool austrittsdatumLoeschen = false,
@@ -441,6 +453,7 @@ class Mitglied {
     paymentMethod: paymentMethodLoeschen
         ? null
         : paymentMethod ?? this.paymentMethod,
+    detailsLesbar: detailsLesbar ?? this.detailsLesbar,
     roles: roles ?? this.roles,
   );
 
@@ -476,6 +489,7 @@ class Mitglied {
       'bic': bic,
       'bank_name': bankName,
       'payment_method': paymentMethod,
+      'details_lesbar': detailsLesbar,
     };
   }
 
@@ -535,6 +549,9 @@ class Mitglied {
       bic: _trimToNull(json['bic']?.toString()),
       bankName: _trimToNull(json['bank_name']?.toString()),
       paymentMethod: _trimToNull(json['payment_method']?.toString()),
+      detailsLesbar: json['details_lesbar'] is bool
+          ? json['details_lesbar'] as bool
+          : null,
     );
   }
 
@@ -559,6 +576,7 @@ class Mitglied {
         other.bic == bic &&
         other.bankName == bankName &&
         other.paymentMethod == paymentMethod &&
+        other.detailsLesbar == detailsLesbar &&
         _listEquals(other.telefonnummern, telefonnummern) &&
         _listEquals(other.emailAdressen, emailAdressen) &&
         _listEquals(other.adressen, adressen) &&
@@ -585,6 +603,7 @@ class Mitglied {
     bic,
     bankName,
     paymentMethod,
+    detailsLesbar,
     Object.hashAll(telefonnummern),
     Object.hashAll(emailAdressen),
     Object.hashAll(adressen),

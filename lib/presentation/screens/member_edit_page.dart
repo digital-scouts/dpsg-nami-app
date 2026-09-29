@@ -9,6 +9,7 @@ import '../../domain/member/mitglied.dart';
 import '../../domain/member/pending_person_update.dart';
 import '../../l10n/app_localizations.dart';
 import '../model/auth_session_model.dart';
+import '../model/member_bank_input.dart';
 import '../model/member_edit_model.dart';
 import '../model/member_phone_input.dart';
 import '../notifications/app_snackbar.dart';
@@ -35,6 +36,20 @@ class _MemberEditPageState extends State<MemberEditPage> {
   static final DateFormat _dateFormat = DateFormat('dd.MM.yyyy');
   static const double _pagePadding = 10;
   static const double _cardRadius = 16;
+
+  /// Personenattribute, deren Serverfehler direkt am Feld erscheinen.
+  static const Set<String> _fieldAttributes = <String>{
+    'first_name',
+    'last_name',
+    'nickname',
+    'pronoun',
+    'email',
+    'bank_account_owner',
+    'iban',
+    'bic',
+    'bank_name',
+    'payment_method',
+  };
   static const List<String> _defaultGenderValues = <String>['w', 'm', 'd', ''];
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
@@ -42,6 +57,9 @@ class _MemberEditPageState extends State<MemberEditPage> {
   final GlobalKey _emailSectionKey = GlobalKey();
   final GlobalKey _phoneSectionKey = GlobalKey();
   final GlobalKey _addressSectionKey = GlobalKey();
+  final GlobalKey _bankSectionKey = GlobalKey();
+  final GlobalKey _pronounFieldKey = GlobalKey();
+  final GlobalKey _ibanFieldKey = GlobalKey();
   final GlobalKey _vornameFieldKey = GlobalKey();
   final GlobalKey _nachnameFieldKey = GlobalKey();
   final GlobalKey _fahrtennameFieldKey = GlobalKey();
@@ -54,10 +72,18 @@ class _MemberEditPageState extends State<MemberEditPage> {
   final FocusNode _primaryEmailFocusNode = FocusNode();
   final FocusNode _genderFocusNode = FocusNode();
   final FocusNode _birthdayFocusNode = FocusNode();
+  final FocusNode _pronounFocusNode = FocusNode();
+  final FocusNode _ibanFocusNode = FocusNode();
   late final TextEditingController _vornameController;
   late final TextEditingController _nachnameController;
   late final TextEditingController _fahrtennameController;
   late final TextEditingController _primaryEmailController;
+  late final TextEditingController _pronounController;
+  late final TextEditingController _bankAccountOwnerController;
+  late final TextEditingController _ibanController;
+  late final TextEditingController _bicController;
+  late final TextEditingController _bankNameController;
+  late String? _paymentMethod;
   late DateTime? _geburtsdatum;
   late String? _gender;
   late final _AddressDraft _primaryAddressDraft;
@@ -65,6 +91,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
   late final List<_EmailDraft> _additionalEmailDrafts;
   late final List<_AddressDraft> _additionalAddressDrafts;
   final Map<int, String> _serverPhoneErrorsById = <int, String>{};
+  final Map<String, String> _serverAttributeErrors = <String, String>{};
   final Set<String> _dismissedResolutionItemIds = <String>{};
   late bool _editSectionExpanded;
   bool _isSubmitting = false;
@@ -72,6 +99,11 @@ class _MemberEditPageState extends State<MemberEditPage> {
   MemberResolutionCase? get _resolutionCase =>
       widget.pendingEntry?.resolutionCase;
   bool get _isResolutionMode => _resolutionCase != null;
+
+  /// Ohne `show_details` liefert Hitobito Geschlecht und Geburtsdatum nicht;
+  /// leere Felder duerfen dann nicht als bearbeitbar erscheinen.
+  bool get _detailsGesperrt => widget.mitglied.detailsLesbar == false;
+  bool get _zeigtBankdaten => widget.mitglied.bankdatenLesbar;
   AppLocalizations get _t => AppLocalizations.of(context);
   String get _resolutionDisplayName {
     final pendingName = widget.pendingEntry?.displayName.trim();
@@ -112,6 +144,14 @@ class _MemberEditPageState extends State<MemberEditPage> {
         ? null
         : widget.mitglied.geburtsdatum;
     _gender = _normalizeGenderValue(widget.mitglied.gender);
+    _pronounController = TextEditingController(
+      text: widget.mitglied.pronoun ?? '',
+    );
+    _bankAccountOwnerController = TextEditingController();
+    _ibanController = TextEditingController();
+    _bicController = TextEditingController();
+    _bankNameController = TextEditingController();
+    _applyBankValues(widget.mitglied);
     _editSectionExpanded = !_isResolutionMode;
     _primaryAddressDraft = _AddressDraft.fromAdresse(
       primaryAddress ?? const MitgliedKontaktAdresse(additionalAddressId: 0),
@@ -157,6 +197,13 @@ class _MemberEditPageState extends State<MemberEditPage> {
     _primaryEmailFocusNode.dispose();
     _genderFocusNode.dispose();
     _birthdayFocusNode.dispose();
+    _pronounFocusNode.dispose();
+    _ibanFocusNode.dispose();
+    _pronounController.dispose();
+    _bankAccountOwnerController.dispose();
+    _ibanController.dispose();
+    _bicController.dispose();
+    _bankNameController.dispose();
     _vornameController.dispose();
     _nachnameController.dispose();
     _fahrtennameController.dispose();
@@ -262,6 +309,14 @@ class _MemberEditPageState extends State<MemberEditPage> {
           title: _t.t('member_edit_section_address'),
           child: _buildAddressSection(),
         ),
+        if (_zeigtBankdaten) ...[
+          const SizedBox(height: 10),
+          _SectionCard(
+            key: _bankSectionKey,
+            title: _t.t('member_edit_section_bank'),
+            child: _buildBankSection(),
+          ),
+        ],
       ],
     );
   }
@@ -540,6 +595,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
               _vornameController,
               _t.t('member_edit_field_first_name'),
               fieldKey: const Key('member-edit-first-name-field'),
+              serverErrorAttribute: 'first_name',
               focusNode: _vornameFocusNode,
             ),
           ),
@@ -549,18 +605,32 @@ class _MemberEditPageState extends State<MemberEditPage> {
               _fahrtennameController,
               _t.t('member_edit_field_nickname'),
               fieldKey: const Key('member-edit-nickname-field'),
+              serverErrorAttribute: 'nickname',
               focusNode: _fahrtennameFocusNode,
             ),
           ),
         ),
         const SizedBox(height: 12),
-        SizedBox(
-          key: _nachnameFieldKey,
-          child: _buildTextField(
-            _nachnameController,
-            _t.t('member_edit_field_last_name'),
-            fieldKey: const Key('member-edit-last-name-field'),
-            focusNode: _nachnameFocusNode,
+        _buildTwoColumnFields(
+          first: SizedBox(
+            key: _nachnameFieldKey,
+            child: _buildTextField(
+              _nachnameController,
+              _t.t('member_edit_field_last_name'),
+              fieldKey: const Key('member-edit-last-name-field'),
+              serverErrorAttribute: 'last_name',
+              focusNode: _nachnameFocusNode,
+            ),
+          ),
+          second: SizedBox(
+            key: _pronounFieldKey,
+            child: _buildTextField(
+              _pronounController,
+              _t.t('member_edit_field_pronoun'),
+              fieldKey: const Key('member-edit-pronoun-field'),
+              focusNode: _pronounFocusNode,
+              serverErrorAttribute: 'pronoun',
+            ),
           ),
         ),
         FormField<void>(
@@ -583,30 +653,139 @@ class _MemberEditPageState extends State<MemberEditPage> {
           },
         ),
         const SizedBox(height: 12),
-        _ResponsiveWrap(
-          minChildWidth: 240,
-          spacing: 12,
-          runSpacing: 12,
-          children: [
-            SizedBox(key: _genderFieldTargetKey, child: _buildGenderField()),
-            SizedBox(
-              key: _birthdayFieldTargetKey,
-              child: _buildDateField(
-                label: _t.t('member_edit_field_birthday'),
-                fieldKey: const Key('member-edit-birthdate-field'),
-                focusNode: _birthdayFocusNode,
-                allowClear: true,
-                value: _geburtsdatum,
-                onChanged: (value) {
-                  setState(() => _geburtsdatum = value);
-                },
-                validator: _validateBirthDate,
+        if (_detailsGesperrt)
+          Text(
+            _t.t('member_edit_details_not_visible'),
+            key: const Key('member-edit-details-locked'),
+            style: Theme.of(context).textTheme.bodySmall,
+          )
+        else
+          _ResponsiveWrap(
+            minChildWidth: 240,
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              SizedBox(key: _genderFieldTargetKey, child: _buildGenderField()),
+              SizedBox(
+                key: _birthdayFieldTargetKey,
+                child: _buildDateField(
+                  label: _t.t('member_edit_field_birthday'),
+                  fieldKey: const Key('member-edit-birthdate-field'),
+                  focusNode: _birthdayFocusNode,
+                  allowClear: true,
+                  value: _geburtsdatum,
+                  onChanged: (value) {
+                    setState(() => _geburtsdatum = value);
+                  },
+                  validator: _validateBirthDate,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
+      ],
+    );
+  }
+
+  Widget _buildBankSection() {
+    final paymentMethods = <String>[
+      ...MemberBankInput.paymentMethods,
+      if (_paymentMethod != null &&
+          !MemberBankInput.paymentMethods.contains(_paymentMethod))
+        _paymentMethod!,
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        DropdownButtonFormField<String>(
+          key: const Key('member-edit-payment-method-field'),
+          initialValue: _paymentMethod,
+          isExpanded: true,
+          decoration: InputDecoration(
+            labelText: _t.t('member_edit_field_payment_method'),
+            isDense: true,
+            border: const OutlineInputBorder(),
+            errorText: _serverAttributeErrors['payment_method'],
+          ),
+          items: paymentMethods
+              .map(
+                (value) => DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(_labelForPaymentMethod(value)),
+                ),
+              )
+              .toList(growable: false),
+          validator: (value) => value == null
+              ? _t.t('member_edit_required_field', {
+                  'field': _t.t('member_edit_field_payment_method'),
+                })
+              : null,
+          onChanged: (value) {
+            setState(() {
+              _paymentMethod = value;
+              _serverAttributeErrors.remove('payment_method');
+            });
+          },
+        ),
+        const SizedBox(height: 12),
+        _buildTextField(
+          _bankAccountOwnerController,
+          _t.t('member_edit_field_bank_account_owner'),
+          fieldKey: const Key('member-edit-bank-account-owner-field'),
+          serverErrorAttribute: 'bank_account_owner',
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          key: _ibanFieldKey,
+          child: _buildTextField(
+            _ibanController,
+            _t.t('member_edit_field_iban'),
+            fieldKey: const Key('member-edit-iban-field'),
+            focusNode: _ibanFocusNode,
+            serverErrorAttribute: 'iban',
+            validator: (value) => MemberBankInput.isValidIban(value)
+                ? null
+                : _t.t('member_edit_iban_invalid'),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildTwoColumnFields(
+          first: _buildTextField(
+            _bicController,
+            _t.t('member_edit_field_bic'),
+            fieldKey: const Key('member-edit-bic-field'),
+            serverErrorAttribute: 'bic',
+            validator: (value) => MemberBankInput.isValidBic(value)
+                ? null
+                : _t.t('member_edit_bic_invalid'),
+          ),
+          second: _buildTextField(
+            _bankNameController,
+            _t.t('member_edit_field_bank_name'),
+            fieldKey: const Key('member-edit-bank-name-field'),
+            serverErrorAttribute: 'bank_name',
+          ),
         ),
       ],
     );
+  }
+
+  String _labelForPaymentMethod(String value) {
+    switch (value) {
+      case MemberBankInput.paymentMethodInvoice:
+        return _t.t('member_edit_payment_method_invoice');
+      case MemberBankInput.paymentMethodDebit:
+        return _t.t('member_edit_payment_method_debit');
+      default:
+        return value;
+    }
+  }
+
+  void _applyBankValues(Mitglied source) {
+    _bankAccountOwnerController.text = source.bankAccountOwner ?? '';
+    _ibanController.text = source.iban ?? '';
+    _bicController.text = source.bic ?? '';
+    _bankNameController.text = source.bankName ?? '';
+    _paymentMethod = source.paymentMethod;
   }
 
   Widget _buildTwoColumnFields({
@@ -652,6 +831,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
                 _primaryEmailController,
                 _t.t('member_edit_section_email'),
                 fieldKey: const Key('member-edit-primary-email-field'),
+                serverErrorAttribute: 'email',
                 focusNode: _primaryEmailFocusNode,
                 keyboardType: TextInputType.emailAddress,
                 validator: _validateEmail,
@@ -960,7 +1140,21 @@ class _MemberEditPageState extends State<MemberEditPage> {
     TextInputType? keyboardType,
     ValueChanged<String>? onChanged,
     String? Function(String?)? validator,
+    String? serverErrorAttribute,
   }) {
+    if (serverErrorAttribute != null) {
+      final localValidator = validator;
+      final localOnChanged = onChanged;
+      validator = (value) =>
+          _serverAttributeErrors[serverErrorAttribute] ??
+          localValidator?.call(value);
+      onChanged = (value) {
+        // Wie bei Telefonnummern: Der Hinweis bleibt bis zum naechsten
+        // Speichern sichtbar, blockiert es aber nicht mehr.
+        _serverAttributeErrors.remove(serverErrorAttribute);
+        localOnChanged?.call(value);
+      };
+    }
     return TextFormField(
       key: fieldKey,
       controller: controller,
@@ -1093,6 +1287,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
     final mustExpand = !_editSectionExpanded;
     setState(() {
       _serverPhoneErrorsById.clear();
+      _serverAttributeErrors.clear();
       // Die Validatoren greifen nur fuer aufgebaute Felder; im
       // Problemloesungsmodus ist der Bereich anfangs eingeklappt.
       _editSectionExpanded = true;
@@ -1208,20 +1403,42 @@ class _MemberEditPageState extends State<MemberEditPage> {
         .where((adresse) => !adresse.istLeer)
         .toList(growable: false);
 
-    return widget.mitglied.copyWith(
+    final target = widget.mitglied.copyWith(
       vorname: _vornameController.text.trim(),
       nachname: _nachnameController.text.trim(),
       fahrtenname: _trimToNull(_fahrtennameController.text),
       fahrtennameLoeschen: _trimToNull(_fahrtennameController.text) == null,
-      geburtsdatum: _geburtsdatum ?? Mitglied.peoplePlaceholderDate,
-      gender: _gender,
-      genderLoeschen: (_gender ?? '').isEmpty,
+      geburtsdatum: _detailsGesperrt
+          ? widget.mitglied.geburtsdatum
+          : _geburtsdatum ?? Mitglied.peoplePlaceholderDate,
+      gender: _detailsGesperrt ? widget.mitglied.gender : _gender,
+      genderLoeschen: !_detailsGesperrt && (_gender ?? '').isEmpty,
+      pronoun: _trimToNull(_pronounController.text),
+      pronounLoeschen: _trimToNull(_pronounController.text) == null,
       telefonnummern: phones,
       emailAdressen: emails,
       adressen: <MitgliedKontaktAdresse>[
         primaryAddress,
         ...additionalAddresses,
       ],
+    );
+    if (!_zeigtBankdaten) {
+      return target;
+    }
+    final bankAccountOwner = _trimToNull(_bankAccountOwnerController.text);
+    final iban = MemberBankInput.normalizeIban(_ibanController.text);
+    final bic = MemberBankInput.normalizeBic(_bicController.text);
+    final bankName = _trimToNull(_bankNameController.text);
+    return target.copyWith(
+      bankAccountOwner: bankAccountOwner,
+      bankAccountOwnerLoeschen: bankAccountOwner == null,
+      iban: iban,
+      ibanLoeschen: iban == null,
+      bic: bic,
+      bicLoeschen: bic == null,
+      bankName: bankName,
+      bankNameLoeschen: bankName == null,
+      paymentMethod: _paymentMethod,
     );
   }
 
@@ -1436,6 +1653,20 @@ class _MemberEditPageState extends State<MemberEditPage> {
           _birthdayFocusNode,
         );
         return;
+      case MemberResolutionTargetType.pronoun:
+        await _ensureVisibleAndFocus(
+          _generalSectionKey,
+          _pronounFieldKey,
+          _pronounFocusNode,
+        );
+        return;
+      case MemberResolutionTargetType.bankAccount:
+        await _ensureVisibleAndFocus(
+          _bankSectionKey,
+          _ibanFieldKey,
+          _ibanFocusNode,
+        );
+        return;
       case MemberResolutionTargetType.primaryEmail:
         await _ensureVisibleAndFocus(
           _emailSectionKey,
@@ -1547,6 +1778,12 @@ class _MemberEditPageState extends State<MemberEditPage> {
         _geburtsdatum = source.geburtsdatum == Mitglied.peoplePlaceholderDate
             ? null
             : source.geburtsdatum;
+        return;
+      case MemberResolutionTargetType.pronoun:
+        _pronounController.text = source.pronoun ?? '';
+        return;
+      case MemberResolutionTargetType.bankAccount:
+        _applyBankValues(source);
         return;
       case MemberResolutionTargetType.primaryEmail:
         _primaryEmailController.text =
@@ -1663,6 +1900,10 @@ class _MemberEditPageState extends State<MemberEditPage> {
         return _t.t('member_edit_field_gender');
       case MemberResolutionTargetType.birthday:
         return _t.t('member_edit_field_birthday');
+      case MemberResolutionTargetType.pronoun:
+        return _t.t('member_edit_field_pronoun');
+      case MemberResolutionTargetType.bankAccount:
+        return _t.t('member_edit_section_bank');
       case MemberResolutionTargetType.primaryEmail:
         return _t.t('member_edit_field_primary_email');
       case MemberResolutionTargetType.phone:
@@ -1691,6 +1932,16 @@ class _MemberEditPageState extends State<MemberEditPage> {
       case MemberResolutionTargetType.birthday:
         return _singleResolutionValueLine(
           _geburtsdatum == null ? null : _dateFormat.format(_geburtsdatum!),
+        );
+      case MemberResolutionTargetType.pronoun:
+        return _singleResolutionValueLine(_pronounController.text);
+      case MemberResolutionTargetType.bankAccount:
+        return _buildBankResolutionLines(
+          accountOwner: _bankAccountOwnerController.text,
+          iban: _ibanController.text,
+          bic: _bicController.text,
+          bankName: _bankNameController.text,
+          paymentMethod: _paymentMethod,
         );
       case MemberResolutionTargetType.primaryEmail:
         return _singleResolutionValueLine(_primaryEmailController.text);
@@ -1743,6 +1994,16 @@ class _MemberEditPageState extends State<MemberEditPage> {
               ? null
               : _dateFormat.format(member.geburtsdatum),
         );
+      case MemberResolutionTargetType.pronoun:
+        return _singleResolutionValueLine(member.pronoun);
+      case MemberResolutionTargetType.bankAccount:
+        return _buildBankResolutionLines(
+          accountOwner: member.bankAccountOwner,
+          iban: member.iban,
+          bic: member.bic,
+          bankName: member.bankName,
+          paymentMethod: member.paymentMethod,
+        );
       case MemberResolutionTargetType.primaryEmail:
         return _singleResolutionValueLine(
           _resolvePrimaryEmail(member.emailAdressen)?.wert,
@@ -1785,6 +2046,39 @@ class _MemberEditPageState extends State<MemberEditPage> {
       _ResolutionValueLine(
         label: _t.t('member_edit_resolution_value_label'),
         value: _normalizeResolutionLineValue(value),
+      ),
+    ];
+  }
+
+  List<_ResolutionValueLine> _buildBankResolutionLines({
+    String? accountOwner,
+    String? iban,
+    String? bic,
+    String? bankName,
+    String? paymentMethod,
+  }) {
+    return <_ResolutionValueLine>[
+      _ResolutionValueLine(
+        label: _t.t('member_edit_field_payment_method'),
+        value: _normalizeResolutionLineValue(
+          paymentMethod == null ? null : _labelForPaymentMethod(paymentMethod),
+        ),
+      ),
+      _ResolutionValueLine(
+        label: _t.t('member_edit_field_bank_account_owner'),
+        value: _normalizeResolutionLineValue(accountOwner),
+      ),
+      _ResolutionValueLine(
+        label: _t.t('member_edit_field_iban'),
+        value: _normalizeResolutionLineValue(iban),
+      ),
+      _ResolutionValueLine(
+        label: _t.t('member_edit_field_bic'),
+        value: _normalizeResolutionLineValue(bic),
+      ),
+      _ResolutionValueLine(
+        label: _t.t('member_edit_field_bank_name'),
+        value: _normalizeResolutionLineValue(bankName),
       ),
     ];
   }
@@ -1885,6 +2179,16 @@ class _MemberEditPageState extends State<MemberEditPage> {
       return false;
     }
 
+    final nextAttributeErrors = <String, String>{};
+    for (final error in result.validationErrors) {
+      final attribute = error.attribute;
+      if (error.relationshipName == null &&
+          attribute != null &&
+          _fieldAttributes.contains(attribute)) {
+        nextAttributeErrors.putIfAbsent(attribute, () => error.message);
+      }
+    }
+
     final nextPhoneErrors = <int, String>{};
     for (final error in result.validationErrors) {
       if (!error.isPhoneNumberField) {
@@ -1903,7 +2207,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
       nextPhoneErrors[relationshipId] = error.message;
     }
 
-    if (nextPhoneErrors.isEmpty) {
+    if (nextPhoneErrors.isEmpty && nextAttributeErrors.isEmpty) {
       return false;
     }
 
@@ -1911,6 +2215,9 @@ class _MemberEditPageState extends State<MemberEditPage> {
       _serverPhoneErrorsById
         ..clear()
         ..addAll(nextPhoneErrors);
+      _serverAttributeErrors
+        ..clear()
+        ..addAll(nextAttributeErrors);
     });
     _formKey.currentState?.validate();
     return true;

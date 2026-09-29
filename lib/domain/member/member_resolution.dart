@@ -20,11 +20,13 @@ enum MemberResolutionTargetType {
   nickname,
   gender,
   birthday,
+  pronoun,
   primaryEmail,
   phone,
   additionalEmail,
   primaryAddress,
   additionalAddress,
+  bankAccount,
 }
 
 enum MemberResolutionSource { manualSave, pendingRetry }
@@ -222,6 +224,62 @@ class MemberMergePlan {
   bool get requiresResolution => items.isNotEmpty;
 }
 
+/// Bankverbindung als eine Merge-Einheit, analog zur Hauptadresse.
+class MemberBankData {
+  const MemberBankData({
+    this.accountOwner,
+    this.iban,
+    this.bic,
+    this.bankName,
+    this.paymentMethod,
+  });
+
+  factory MemberBankData.of(Mitglied mitglied) {
+    return MemberBankData(
+      accountOwner: _trimToNull(mitglied.bankAccountOwner),
+      iban: _trimToNull(mitglied.iban),
+      bic: _trimToNull(mitglied.bic),
+      bankName: _trimToNull(mitglied.bankName),
+      paymentMethod: _trimToNull(mitglied.paymentMethod),
+    );
+  }
+
+  final String? accountOwner;
+  final String? iban;
+  final String? bic;
+  final String? bankName;
+  final String? paymentMethod;
+
+  Mitglied applyTo(Mitglied mitglied) {
+    return mitglied.copyWith(
+      bankAccountOwner: accountOwner,
+      bankAccountOwnerLoeschen: accountOwner == null,
+      iban: iban,
+      ibanLoeschen: iban == null,
+      bic: bic,
+      bicLoeschen: bic == null,
+      bankName: bankName,
+      bankNameLoeschen: bankName == null,
+      paymentMethod: paymentMethod,
+      paymentMethodLoeschen: paymentMethod == null,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is MemberBankData &&
+        other.accountOwner == accountOwner &&
+        other.iban == iban &&
+        other.bic == bic &&
+        other.bankName == bankName &&
+        other.paymentMethod == paymentMethod;
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(accountOwner, iban, bic, bankName, paymentMethod);
+}
+
 class MemberConflictResolver {
   const MemberConflictResolver._();
 
@@ -237,6 +295,8 @@ class MemberConflictResolver {
     String? fahrtenname = _trimToNull(remoteMitglied.fahrtenname);
     String? gender = _trimToNull(remoteMitglied.gender);
     DateTime geburtsdatum = remoteMitglied.geburtsdatum;
+    String? pronoun = _trimToNull(remoteMitglied.pronoun);
+    MemberBankData bankData = MemberBankData.of(remoteMitglied);
     String? primaryEmail = _primaryEmail(remoteMitglied)?.wert;
     MitgliedKontaktAdresse? primaryAddress = _primaryAddressWithoutLabel(
       remoteMitglied,
@@ -323,6 +383,16 @@ class MemberConflictResolver {
           'Geburtsdatum wurde lokal und in Hitobito unterschiedlich geändert.',
     );
     mergeScalar<String?>(
+      basisValue: _trimToNull(basisMitglied.pronoun),
+      localValue: _trimToNull(zielMitglied.pronoun),
+      remoteValue: _trimToNull(remoteMitglied.pronoun),
+      assignMerged: (value) => pronoun = value,
+      target: const MemberResolutionTarget(
+        type: MemberResolutionTargetType.pronoun,
+      ),
+      message: 'Pronomen wurde lokal und in Hitobito unterschiedlich geändert.',
+    );
+    mergeScalar<String?>(
       basisValue: _primaryEmail(basisMitglied)?.wert,
       localValue: _primaryEmail(zielMitglied)?.wert,
       remoteValue: _primaryEmail(remoteMitglied)?.wert,
@@ -343,6 +413,17 @@ class MemberConflictResolver {
       ),
       message:
           'Primäre Adresse wurde lokal und in Hitobito unterschiedlich geändert.',
+    );
+    mergeScalar<MemberBankData>(
+      basisValue: MemberBankData.of(basisMitglied),
+      localValue: MemberBankData.of(zielMitglied),
+      remoteValue: MemberBankData.of(remoteMitglied),
+      assignMerged: (value) => bankData = value,
+      target: const MemberResolutionTarget(
+        type: MemberResolutionTargetType.bankAccount,
+      ),
+      message:
+          'Bankverbindung wurde lokal und in Hitobito unterschiedlich geändert.',
     );
 
     final mergedPhones = _mergePhones(
@@ -372,6 +453,8 @@ class MemberConflictResolver {
       gender: gender,
       genderLoeschen: gender == null,
       geburtsdatum: geburtsdatum,
+      pronoun: pronoun,
+      pronounLoeschen: pronoun == null,
       telefonnummern: mergedPhones,
       emailAdressen: _buildEmailList(
         primaryEmail: primaryEmail,
@@ -383,7 +466,10 @@ class MemberConflictResolver {
       ),
     );
 
-    return MemberMergePlan(mergedMitglied: mergedMitglied, items: items);
+    return MemberMergePlan(
+      mergedMitglied: bankData.applyTo(mergedMitglied),
+      items: items,
+    );
   }
 
   static List<MitgliedKontaktTelefon> _mergePhones({

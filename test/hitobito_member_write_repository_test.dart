@@ -791,6 +791,29 @@ void main() {
             },
           ),
           (
+            description: 'Pronomen aendern',
+            ziel: (basis) => basis.copyWith(pronoun: 'er/ihm'),
+            expected: <String, dynamic>{'pronoun': 'er/ihm'},
+          ),
+          (
+            description: 'Pronomen leeren',
+            ziel: (basis) => basis.copyWith(pronounLoeschen: true),
+            expected: <String, dynamic>{'pronoun': null},
+          ),
+          (
+            description: 'Bankverbindung und Zahlart',
+            ziel: (basis) => basis.copyWith(
+              iban: 'DE89370400440532013000',
+              bicLoeschen: true,
+              paymentMethod: 'debit',
+            ),
+            expected: <String, dynamic>{
+              'iban': 'DE89370400440532013000',
+              'bic': null,
+              'payment_method': 'debit',
+            },
+          ),
+          (
             description: 'Bezeichnung der Hauptadresse wird nicht gesendet',
             ziel: (basis) => basis.copyWith(
               adressen: <MitgliedKontaktAdresse>[
@@ -825,6 +848,33 @@ void main() {
         }
       });
     }
+
+    test(
+      'sendet keine Bankdaten, wenn Hitobito sie nicht lesbar liefert',
+      () async {
+        final peopleService = _FakeHitobitoPeopleService()
+          ..remoteResource = _fullRemoteResource(withBank: false);
+        final repository = HitobitoMemberWriteRepository(
+          peopleService: peopleService,
+          logger: _FakeLoggerService(),
+        );
+        final basisMitglied = _fullRemoteResource(withBank: false).toMitglied();
+
+        await repository.updateMember(
+          accessToken: 'token-123',
+          basisMitglied: basisMitglied,
+          zielMitglied: basisMitglied.copyWith(
+            vorname: 'Juliane',
+            iban: 'DE89370400440532013000',
+            paymentMethod: 'debit',
+          ),
+        );
+
+        expect(peopleService.lastChangedAttributes, <String, dynamic>{
+          'first_name': 'Juliane',
+        });
+      },
+    );
 
     test(
       'sendet kein Geschlecht, wenn Server null und Formular Leerstring hat',
@@ -1358,34 +1408,42 @@ HitobitoPersonResource _remoteResource({
       : updatedAt ?? DateTime.parse('2026-04-14T09:00:00Z'),
 );
 
-HitobitoPersonResource _fullRemoteResource({String? gender = 'w'}) =>
-    HitobitoPersonResource(
-      id: 23,
-      firstName: 'Julia',
-      lastName: 'Keller',
-      nickname: 'Luchs',
-      membershipNumber: 4711,
-      birthday: DateTime(2010, 3, 4),
-      gender: gender,
-      updatedAt: DateTime.parse('2026-04-14T09:00:00Z'),
-      emailAdressen: const <MitgliedKontaktEmail>[
-        MitgliedKontaktEmail(
-          wert: 'julia@example.org',
-          label: Mitglied.primaryEmailLabel,
-          istPrimaer: true,
-        ),
-      ],
-      adressen: const <MitgliedKontaktAdresse>[
-        MitgliedKontaktAdresse(
-          additionalAddressId: 0,
-          street: 'Hauptstrasse',
-          housenumber: '1',
-          zipCode: '12345',
-          town: 'Musterstadt',
-          country: 'DE',
-        ),
-      ],
-    );
+HitobitoPersonResource _fullRemoteResource({
+  String? gender = 'w',
+  bool withBank = true,
+}) => HitobitoPersonResource(
+  id: 23,
+  pronoun: 'sie/ihr',
+  bankAccountOwner: withBank ? 'Julia Keller' : null,
+  iban: withBank ? 'DE02120300000000202051' : null,
+  bic: withBank ? 'BYLADEM1001' : null,
+  bankName: withBank ? 'Testbank' : null,
+  paymentMethod: withBank ? 'invoice' : null,
+  firstName: 'Julia',
+  lastName: 'Keller',
+  nickname: 'Luchs',
+  membershipNumber: 4711,
+  birthday: DateTime(2010, 3, 4),
+  gender: gender,
+  updatedAt: DateTime.parse('2026-04-14T09:00:00Z'),
+  emailAdressen: const <MitgliedKontaktEmail>[
+    MitgliedKontaktEmail(
+      wert: 'julia@example.org',
+      label: Mitglied.primaryEmailLabel,
+      istPrimaer: true,
+    ),
+  ],
+  adressen: const <MitgliedKontaktAdresse>[
+    MitgliedKontaktAdresse(
+      additionalAddressId: 0,
+      street: 'Hauptstrasse',
+      housenumber: '1',
+      zipCode: '12345',
+      town: 'Musterstadt',
+      country: 'DE',
+    ),
+  ],
+);
 
 class _FakeHitobitoPeopleService extends HitobitoPeopleService {
   _FakeHitobitoPeopleService()

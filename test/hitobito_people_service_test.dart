@@ -271,6 +271,11 @@ void main() {
       expect(people.first.mitgliedsnummer, '1001');
       expect(people.first.gender, 'w');
       expect(people.first.pronoun, 'sie/ihr');
+      // Julia liefert Geburtsdatum und Geschlecht mit, Max nicht: Ihm fehlt
+      // die Berechtigung show_details.
+      expect(people.first.detailsLesbar, isTrue);
+      expect(people.last.detailsLesbar, isFalse);
+      expect(people.first.bankdatenLesbar, isFalse);
       expect(
         people.first.picture,
         'https://demo.hitobito.com/images/profile.svg',
@@ -429,6 +434,61 @@ void main() {
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
+
+  test('liest Bankdaten und Zahlart aus dem Einzelabruf', () async {
+    final client = MockClient((request) async {
+      return http.Response(
+        '''
+        {
+          "data": {
+            "id": "23",
+            "type": "people",
+            "attributes": {
+              "first_name": "Julia",
+              "last_name": "Keller",
+              "birthday": null,
+              "gender": null,
+              "bank_account_owner": "Julia Keller",
+              "iban": "DE02120300000000202051",
+              "bic": "BYLADEM1001",
+              "bank_name": "Testbank",
+              "payment_method": "debit",
+              "updated_at": "2024-11-07T14:35:00Z"
+            },
+            "relationships": {}
+          },
+          "included": []
+        }
+        ''',
+        200,
+        headers: <String, String>{'content-type': 'application/json'},
+      );
+    });
+    final service = HitobitoPeopleService(
+      config: const HitobitoAuthConfig(
+        clientId: 'client',
+        clientSecret: 'secret',
+        authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
+        tokenUrl: 'https://demo.hitobito.com/oauth/token',
+        redirectUri: 'de.jlange.nami.app:/oauth/callback',
+        scopeString: 'openid email api',
+        discoveryUrl: '',
+        profileUrl: 'https://demo.hitobito.com/oauth/profile',
+      ),
+      httpClient: client,
+    );
+
+    final mitglied = (await service.fetchPersonResourceById(
+      'token-123',
+      23,
+    )).toMitglied();
+
+    expect(mitglied.detailsLesbar, isTrue);
+    expect(mitglied.bankdatenLesbar, isTrue);
+    expect(mitglied.paymentMethod, 'debit');
+    expect(mitglied.iban, 'DE02120300000000202051');
+    expect(mitglied.bankAccountOwner, 'Julia Keller');
+  });
 
   test(
     'sendet JSON-API-Mutationen fuer Person und Unterressourcen mit demo-kompatiblem Contract',
