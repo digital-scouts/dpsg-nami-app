@@ -74,7 +74,7 @@ void main() {
       isTrue,
     );
   });
-  test('WifiSyncTrigger triggert nie bei unbekannter Verbindung', () {
+  test('WifiSyncTrigger behandelt unbekannte Verbindung wie mobile Daten', () {
     final trigger = WifiSyncTrigger();
 
     expect(
@@ -82,18 +82,25 @@ void main() {
         NetworkConnectionType.unknown,
         noMobileDataEnabled: false,
       ),
-      isFalse,
+      isTrue,
     );
     expect(
-      trigger.shouldTrigger(
+      trigger.isSyncAllowed(
         NetworkConnectionType.unknown,
-        noMobileDataEnabled: false,
+        noMobileDataEnabled: true,
       ),
       isFalse,
     );
     expect(
       trigger.shouldTrigger(
-        NetworkConnectionType.wifi,
+        NetworkConnectionType.unknown,
+        noMobileDataEnabled: true,
+      ),
+      isFalse,
+    );
+    expect(
+      trigger.shouldTrigger(
+        NetworkConnectionType.unknown,
         noMobileDataEnabled: false,
       ),
       isTrue,
@@ -104,13 +111,6 @@ void main() {
         noMobileDataEnabled: false,
       ),
       isFalse,
-    );
-    expect(
-      trigger.shouldTrigger(
-        NetworkConnectionType.wifi,
-        noMobileDataEnabled: false,
-      ),
-      isTrue,
     );
   });
 

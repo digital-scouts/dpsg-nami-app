@@ -127,6 +127,7 @@ void main() {
         ],
         adressen: const <MitgliedKontaktAdresse>[
           MitgliedKontaktAdresse(
+            additionalAddressId: 0,
             street: 'Hauptstrasse',
             housenumber: '1',
             zipCode: '12345',

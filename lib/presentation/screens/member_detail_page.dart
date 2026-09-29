@@ -164,6 +164,52 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
     }
   }
 
+  Future<void> _sendPendingNow(PendingPersonUpdate entry) async {
+    final t = AppLocalizations.of(context);
+    final memberEditModel = context.read<MemberEditModel?>();
+    final accessToken = context.read<AuthSessionModel?>()?.session?.accessToken;
+    if (memberEditModel == null || accessToken == null || accessToken.isEmpty) {
+      _showMessage(
+        t.t('member_detail_session_missing'),
+        type: AppSnackbarType.warning,
+      );
+      return;
+    }
+    final summary = await memberEditModel.retryPending(
+      accessToken: accessToken,
+      entryIds: <String>[entry.entryId],
+      trigger: 'detail_manual',
+    );
+    if (!mounted || summary.results.isEmpty) {
+      return;
+    }
+    final result = summary.results.single;
+    switch (result.disposition) {
+      case PendingPersonUpdateRetryDisposition.success:
+        _showMessage(
+          t.t('member_detail_send_now_success'),
+          type: AppSnackbarType.success,
+        );
+      case PendingPersonUpdateRetryDisposition.retained:
+        _showMessage(
+          t.t('member_detail_send_now_retained'),
+          type: AppSnackbarType.warning,
+        );
+      case PendingPersonUpdateRetryDisposition.needsResolution:
+        _showMessage(
+          t.t('member_detail_send_now_needs_resolution'),
+          type: AppSnackbarType.warning,
+        );
+      case PendingPersonUpdateRetryDisposition.discarded:
+        _showMessage(
+          t.t('member_detail_send_now_discarded', {
+            'details': result.message ?? '',
+          }),
+          type: AppSnackbarType.error,
+        );
+    }
+  }
+
   void _showMessage(
     String message, {
     AppSnackbarType type = AppSnackbarType.info,
@@ -292,6 +338,11 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
       currentMitglied.mitgliedsnummer,
     );
     final needsResolution = pendingEntry?.needsResolution ?? false;
+    final retryPaused =
+        memberEditModel?.isAutomaticRetryPaused(
+          currentMitglied.mitgliedsnummer,
+        ) ??
+        false;
     final isWritable =
         arbeitskontextModel?.istMitgliedSchreibbar(currentMitglied) ?? false;
     final fullName = currentMitglied.fullName.trim().isEmpty
@@ -367,6 +418,8 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
                 content: Text(
                   needsResolution
                       ? t.t('member_detail_pending_resolution_banner')
+                      : retryPaused
+                      ? t.t('member_detail_pending_paused_banner')
                       : t.t('member_detail_pending_retry_banner'),
                 ),
                 actions: <Widget>[
@@ -378,6 +431,14 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
                         resolutionEntryPoint: 'detail',
                       ),
                       child: Text(t.t('member_detail_resolve_action')),
+                    )
+                  else if (pendingEntry != null)
+                    TextButton(
+                      key: const Key('member-detail-send-now'),
+                      onPressed: memberEditModel?.isBusy ?? true
+                          ? null
+                          : () => _sendPendingNow(pendingEntry),
+                      child: Text(t.t('member_detail_send_now_action')),
                     )
                   else
                     const SizedBox.shrink(),

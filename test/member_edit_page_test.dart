@@ -553,6 +553,97 @@ void main() {
   );
 
   testWidgets(
+    'Leeren der Hauptadresse speichert Mitglied ohne Hauptadresse und '
+    'laesst Zusatzadresse unveraendert',
+    (tester) async {
+      const zusatzadresse = MitgliedKontaktAdresse(
+        additionalAddressId: 8,
+        label: 'Lager',
+        street: 'Zeltplatz',
+        housenumber: '7',
+        zipCode: '50667',
+        town: 'Bonn',
+      );
+      final member = _buildMember(gender: '').copyWith(
+        adressen: const <MitgliedKontaktAdresse>[
+          MitgliedKontaktAdresse(
+            additionalAddressId: 0,
+            street: 'Musterweg',
+            housenumber: '5',
+            zipCode: '12345',
+            town: 'Köln',
+          ),
+          zusatzadresse,
+        ],
+      );
+      final model = _RecordingMemberEditModel();
+
+      _useLargeViewport(tester);
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberEditPage(mitglied: member),
+          providers: _buildEditProviders(model),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Hauptadresse und Zusatzadresse erscheinen jeweils genau einmal.
+      expect(find.widgetWithText(TextField, 'Musterweg'), findsOneWidget);
+      expect(find.widgetWithText(TextField, 'Zeltplatz'), findsOneWidget);
+
+      for (final value in <String>['Musterweg', '5', '12345', 'Köln']) {
+        final field = find.widgetWithText(TextField, value);
+        await tester.ensureVisible(field);
+        await tester.enterText(field, '');
+      }
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('member-edit-save-button')));
+      await tester.pumpAndSettle();
+
+      expect(model.submitCalls, hasLength(1));
+      final ziel = model.submitCalls.single.zielMitglied;
+      expect(ziel.primaryAddress, isNull);
+      expect(ziel.additionalAddresses, [zusatzadresse]);
+      expect(ziel.adressen, [zusatzadresse]);
+    },
+  );
+
+  testWidgets(
+    'zeigt Zusatzadresse ohne Hauptadresse nicht zusaetzlich als Hauptadresse',
+    (tester) async {
+      const zusatzadresse = MitgliedKontaktAdresse(
+        additionalAddressId: 8,
+        label: 'Lager',
+        street: 'Zeltplatz',
+        housenumber: '7',
+        zipCode: '50667',
+        town: 'Bonn',
+      );
+      final member = _buildMember(
+        gender: '',
+      ).copyWith(adressen: const <MitgliedKontaktAdresse>[zusatzadresse]);
+      final model = _RecordingMemberEditModel();
+
+      _useLargeViewport(tester);
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberEditPage(mitglied: member),
+          providers: _buildEditProviders(model),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(TextField, 'Zeltplatz'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('member-edit-save-button')));
+      await tester.pumpAndSettle();
+
+      expect(model.submitCalls, hasLength(1));
+      expect(model.submitCalls.single.zielMitglied.adressen, [zusatzadresse]);
+    },
+  );
+
+  testWidgets(
     'zeigt im Problemlösungsfall Zusatzadresse mit einzelnen Adressfeldern im Vergleich',
     (tester) async {
       final basisMitglied = _buildMember(gender: '').copyWith(

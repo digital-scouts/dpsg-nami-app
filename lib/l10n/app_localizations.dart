@@ -332,7 +332,23 @@ class AppLocalizations {
       'member_detail_pending_resolution_banner':
           'Für diese Person gibt es offene Problemfälle. Bitte prüfe die betroffenen Felder und sende die Änderung danach erneut.',
       'member_detail_pending_retry_banner':
-          'Für diese Person liegt eine ausstehende Änderung vor. Ein Retry ist in den Debug-Tools möglich.',
+          'Für diese Person liegt eine noch nicht gesendete Änderung vor. Sie wird automatisch gesendet, sobald Hitobito erreichbar ist.',
+      'member_detail_pending_paused_banner':
+          'Für diese Person liegt eine noch nicht gesendete Änderung vor. Das automatische Senden ist nach mehreren Fehlversuchen pausiert.',
+      'member_detail_send_now_action': 'Jetzt senden',
+      'member_detail_send_now_success': 'Die Änderung wurde gesendet.',
+      'member_detail_send_now_retained':
+          'Die Änderung konnte nicht gesendet werden und bleibt vorgemerkt.',
+      'member_detail_send_now_needs_resolution':
+          'Beim Senden ist ein Problem aufgetreten. Bitte löse es über „Problem lösen“.',
+      'member_detail_send_now_discarded':
+          'Die Änderung wurde von Hitobito abgelehnt und verworfen. {details}',
+      'logout_pending_sending': 'Ausstehende Änderungen werden gesendet …',
+      'logout_pending_title': 'Ungesendete Änderungen',
+      'logout_pending_message':
+          '{count} Änderung(en) wurden noch nicht an Hitobito gesendet und gehen beim Abmelden verloren.',
+      'logout_pending_cancel': 'Abbrechen',
+      'logout_pending_confirm': 'Trotzdem abmelden',
       'member_detail_resolve_action': 'Problem lösen',
       'member_edit_title_resolution': 'Problemlösung Mitglied',
       'member_edit_title_resolution_named': 'Speicherprobleme bei {name}',
@@ -927,7 +943,23 @@ class AppLocalizations {
       'member_detail_pending_resolution_banner':
           'There are open issue cases for this person. Please review the affected fields and send the change again afterwards.',
       'member_detail_pending_retry_banner':
-          'There is a pending change for this person. A retry is available in Debug & Tools.',
+          'There is an unsent change for this person. It will be sent automatically once Hitobito is reachable.',
+      'member_detail_pending_paused_banner':
+          'There is an unsent change for this person. Automatic sending is paused after several failed attempts.',
+      'member_detail_send_now_action': 'Send now',
+      'member_detail_send_now_success': 'The change was sent.',
+      'member_detail_send_now_retained':
+          'The change could not be sent and remains queued.',
+      'member_detail_send_now_needs_resolution':
+          'A problem occurred while sending. Please resolve it via "Resolve issue".',
+      'member_detail_send_now_discarded':
+          'Hitobito rejected the change and it was discarded. {details}',
+      'logout_pending_sending': 'Sending pending changes …',
+      'logout_pending_title': 'Unsent changes',
+      'logout_pending_message':
+          '{count} change(s) have not been sent to Hitobito yet and will be lost when signing out.',
+      'logout_pending_cancel': 'Cancel',
+      'logout_pending_confirm': 'Sign out anyway',
       'member_detail_resolve_action': 'Resolve issue',
       'member_edit_title_resolution': 'Resolve member issue',
       'member_edit_title_resolution_named': 'Save issues for {name}',

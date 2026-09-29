@@ -1533,6 +1533,109 @@ void main() {
     );
   });
 
+  group('automatisches Senden mit Backoff', () {
+    final jetzt = DateTime(2026, 4, 14, 12, 0);
+
+    MemberEditModel modelFor(
+      _InMemoryPendingPersonUpdateRepository repository,
+      _FakeMemberWriteRepository writeRepository,
+    ) {
+      return MemberEditModel(
+        memberWriteRepository: writeRepository,
+        pendingRepository: repository,
+        logger: _FakeLoggerService(),
+        onMemberUpdated: (_) async {},
+        nowProvider: () => jetzt,
+      );
+    }
+
+    test('sendet automatisch nur faellige Eintraege', () async {
+      final repository = _InMemoryPendingPersonUpdateRepository(
+        entries: <PendingPersonUpdate>[
+          _pendingEntry(entryId: 'person-1', personId: 1, mitgliedsnummer: '1'),
+          _pendingEntry(
+            entryId: 'person-2',
+            personId: 2,
+            mitgliedsnummer: '2',
+          ).copyWith(
+            attemptCount: 3,
+            lastAttemptAt: jetzt.subtract(const Duration(minutes: 1)),
+          ),
+        ],
+      );
+      final writeRepository = _FakeMemberWriteRepository();
+      final model = modelFor(repository, writeRepository);
+      await model.loadPending();
+
+      expect(model.hasDueAutomaticRetry, isTrue);
+      final summary = await model.retryPending(
+        accessToken: 'token-123',
+        trigger: 'pending_retry_timer',
+        automatic: true,
+      );
+
+      expect(summary.results.single.entry.entryId, 'person-1');
+      expect(writeRepository.updateCalls, hasLength(1));
+      expect(model.hasDueAutomaticRetry, isFalse);
+    });
+
+    test(
+      'sendet manuell auch nicht faellige und pausierte Eintraege',
+      () async {
+        final repository = _InMemoryPendingPersonUpdateRepository(
+          entries: <PendingPersonUpdate>[
+            _pendingEntry(
+              entryId: 'person-1',
+              personId: 1,
+              mitgliedsnummer: '1',
+            ).copyWith(
+              attemptCount: 10,
+              lastAttemptAt: jetzt.add(const Duration(seconds: 1)),
+            ),
+          ],
+        );
+        final writeRepository = _FakeMemberWriteRepository();
+        final model = modelFor(repository, writeRepository);
+        await model.loadPending();
+
+        expect(model.hasDueAutomaticRetry, isFalse);
+        expect(model.isAutomaticRetryPaused('1'), isTrue);
+        final summary = await model.retryPending(accessToken: 'token-123');
+
+        expect(summary.successCount, 1);
+        expect(writeRepository.updateCalls, hasLength(1));
+      },
+    );
+
+    test(
+      'sendet nach geleerter Box keine alten Eintraege aus dem Speicher',
+      () async {
+        final repository = _InMemoryPendingPersonUpdateRepository(
+          entries: <PendingPersonUpdate>[
+            _pendingEntry(
+              entryId: 'person-1',
+              personId: 1,
+              mitgliedsnummer: '1',
+            ),
+          ],
+        );
+        final writeRepository = _FakeMemberWriteRepository();
+        final model = modelFor(repository, writeRepository);
+        await model.loadPending();
+
+        // Logout oder Nutzerwechsel leeren die Box, ohne das Model zu
+        // informieren.
+        await repository.clear();
+        final summary = await model.retryPending(accessToken: 'fremd');
+
+        expect(summary.results, isEmpty);
+        expect(writeRepository.updateCalls, isEmpty);
+        expect(await repository.loadAll(), isEmpty);
+        expect(model.pendingUpdates, isEmpty);
+      },
+    );
+  });
+
   group('Abfragen zu offenen Problemfaellen', () {
     test('zaehlt und findet offene Problemfaelle', () async {
       final model = MemberEditModel(

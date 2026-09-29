@@ -147,6 +147,8 @@ Beim späteren Retry aus der lokalen Queue, egal ob manuell oder automatisch wä
 - bleibt ein technischer Fehler bestehen, bleibt der Queue-Eintrag erhalten
 - wird ein Konflikt oder Retry-Validierungsfehler erkannt, wechselt der Eintrag in den Problemlösungsfall
 
+Automatische Versuche werden gedrosselt: Nach jedem Fehlversuch verdoppelt sich die Wartezeit (1, 2, 4, … Minuten, höchstens 60 Minuten). Nach 10 Fehlversuchen pausiert das automatische Senden; nach einem Neustart der App folgt genau ein weiterer automatischer Versuch. In den Mitglieddetails lässt sich die Änderung jederzeit über „Jetzt senden“ manuell senden.
+
 Die Mitgliederliste zeigt zusätzlich eine einmalige Snackbar, wenn offene Problemlösungsfälle vorhanden sind.
 
 ## Erneutes Bearbeiten und nicht erreichbares Hitobito

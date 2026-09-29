@@ -503,6 +503,65 @@ void main() {
     },
   );
 
+  test('sendet beim Leeren der Hauptadresse null-Attribute und laesst '
+      'die Zusatzadresse unveraendert', () async {
+    const hauptadresse = MitgliedKontaktAdresse(
+      additionalAddressId: 0,
+      street: 'Musterweg',
+      housenumber: '5',
+      zipCode: '12345',
+      town: 'Koeln',
+    );
+    const zusatzadresse = MitgliedKontaktAdresse(
+      additionalAddressId: 801,
+      label: 'Lager',
+      street: 'Zeltplatz',
+      housenumber: '7',
+      zipCode: '50667',
+      town: 'Bonn',
+    );
+    final peopleService = _FakeHitobitoPeopleService()
+      ..remoteResource = HitobitoPersonResource(
+        id: 23,
+        firstName: 'Julia',
+        lastName: 'Keller',
+        membershipNumber: 4711,
+        updatedAt: DateTime.parse('2026-04-14T09:00:00Z'),
+        adressen: const <MitgliedKontaktAdresse>[hauptadresse, zusatzadresse],
+      );
+    final repository = HitobitoMemberWriteRepository(
+      peopleService: peopleService,
+      logger: _FakeLoggerService(),
+    );
+    final basisMitglied = _basisMitglied().copyWith(
+      adressen: const <MitgliedKontaktAdresse>[hauptadresse, zusatzadresse],
+    );
+    final zielMitglied = basisMitglied.copyWith(
+      adressen: const <MitgliedKontaktAdresse>[
+        MitgliedKontaktAdresse(additionalAddressId: 0),
+        zusatzadresse,
+      ],
+    );
+
+    await repository.updateMember(
+      accessToken: 'token-123',
+      basisMitglied: basisMitglied,
+      zielMitglied: zielMitglied,
+    );
+
+    expect(peopleService.lastChangedAttributes, <String, dynamic>{
+      'street': null,
+      'housenumber': null,
+      'zip_code': null,
+      'town': null,
+    });
+    expect(peopleService.lastAdditionalAddressMutations, isEmpty);
+    expect(peopleService.lastUpdatedMitglied?.primaryAddress, isNull);
+    expect(peopleService.lastUpdatedMitglied?.additionalAddresses, [
+      zusatzadresse,
+    ]);
+  });
+
   group('updateMember Merge und Konflikte', () {
     test(
       'wirft NeedsResolution bei ueberlappender Feldaenderung und sendet keinen Write',

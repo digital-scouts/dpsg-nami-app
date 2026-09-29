@@ -8,6 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../model/arbeitskontext_model.dart';
 import '../model/auth_session_model.dart';
 import '../theme/theme.dart';
+import '../widgets/logout_flow.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -112,7 +113,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                     child: OutlinedButton.icon(
                       onPressed: authModel.session != null
-                          ? authModel.logout
+                          ? () => runLogoutFlow(context)
                           : null,
                       style: OutlinedButton.styleFrom(
                         foregroundColor: theme.colorScheme.error,
