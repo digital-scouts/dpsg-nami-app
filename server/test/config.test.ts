@@ -25,6 +25,30 @@ describe('loadConfig', () => {
         expect(config.rateLimitReadMax).toBe(120);
         expect(config.minStammCountForRead).toBe(5);
         expect(config.gitSha).toBe('unknown');
+        expect(config.storageBackend).toBe('mongodb');
+        expect(config.mockSeedStammCount).toBe(0);
+    });
+
+    test('accepts the memory backend with mock seed', () => {
+        const config = loadConfig({
+            NODE_ENV: 'production',
+            ...requiredEnv,
+            STORAGE_BACKEND: 'memory',
+            MOCK_SEED_STAMM_COUNT: '30',
+        });
+
+        expect(config.storageBackend).toBe('memory');
+        expect(config.mockSeedStammCount).toBe(30);
+    });
+
+    test('rejects mock seed with the MongoDB backend', () => {
+        expect(() =>
+            loadConfig({
+                NODE_ENV: 'test',
+                ...requiredEnv,
+                MOCK_SEED_STAMM_COUNT: '30',
+            }),
+        ).toThrow();
     });
 
     test('reads explicit environment variables', () => {

@@ -26,3 +26,31 @@ Disallow: /
     header_up X-Real-IP {remote_host}
   }
 }
+
+# Mock-Instanz fuer Simulator-Tests, siehe server/deploy/README.md.
+mock-namiapp.scout-link.de {
+  encode zstd gzip
+
+  @robots path /robots.txt
+  respond @robots "User-agent: *
+Disallow: /
+" 200
+
+  @disallowed_methods {
+    not method GET HEAD POST
+  }
+  respond @disallowed_methods "Method Not Allowed" 405
+
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    Referrer-Policy "no-referrer"
+    X-Robots-Tag "noindex, nofollow, noarchive"
+    -Server
+  }
+
+  reverse_proxy nami-statistics-mock:3000 {
+    header_up X-Real-IP {remote_host}
+  }
+}
