@@ -96,6 +96,13 @@ Dieses Dokument sammelt und fortschreibt visionaere Nutzerideen als Arbeitsproto
 - Wie werden statische Verbandszahlen und freiwillig geteilte App-Metadaten sichtbar voneinander abgegrenzt, damit kein falscher Eindruck einer einheitlichen Datenquelle entsteht?
 - Wie weit lässt sich das Modell sinnvoll auf Diözesanebenen herunterbrechen, ohne dass die Datenbasis zu klein oder zu leicht rückführbar wird?
 
+### Umsetzungsstand (2026-09-29)
+
+- Der Statistikserver unter `server/` nimmt Stammes-Snapshots an, pseudonymisiert sie, leitet je Stamm einen effektiven Stand ab und liefert ein wöchentliches Bundesaggregat mit Transparenz-Metadaten aus (`server/spec/`).
+- Gegenseitigkeit ist umgesetzt: Bundeswerte erhalten nur Installationen, die in den letzten 14 Tagen selbst Zahlen geteilt haben. Kennzahlen mit zu wenigen beitragenden Stämmen werden unterdrückt.
+- Die App fragt die Einwilligung personengebunden ab, zeigt den zuletzt geteilten Stand und vergleicht im Statistik-Tab den eigenen Stamm mit Median und Durchschnitt.
+- Offen bleiben regionale Vergleiche (Diözese), statische Verbandszahlen und eine Prüfung der Stammeszugehörigkeit über Hitobito statt über Installations-Credentials.
+
 ## Eintrag 2026-06-08 Apple On-Device KI-Chat für DPSG-Arbeit
 
 ### Kernidee
