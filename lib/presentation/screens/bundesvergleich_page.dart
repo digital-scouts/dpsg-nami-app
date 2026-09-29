@@ -380,6 +380,10 @@ class _StatusHinweis extends StatelessWidget {
       BundesstatistikStatus.keineKennzahlen =>
         'In deinem Stamm wurden keine Mitglieder in den Stufen gefunden. '
             'Ohne eigene Zahlen kann nichts geteilt werden.',
+      BundesstatistikStatus.abgelehnt =>
+        'Der Statistikserver hat die Zahlen deines Stammes abgelehnt. '
+            'Vermutlich passen App und Server nicht zusammen; bitte die App '
+            'aktualisieren.',
       BundesstatistikStatus.fehler =>
         'Der Statistikserver ist derzeit nicht erreichbar. Die App versucht '
             'es beim nächsten Synchronisieren erneut.',

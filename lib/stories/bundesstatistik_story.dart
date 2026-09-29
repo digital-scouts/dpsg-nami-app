@@ -28,6 +28,7 @@ const List<Option<BundesstatistikStatus>> _statusOptionen = [
     label: 'Keine Kennzahlen',
     value: BundesstatistikStatus.keineKennzahlen,
   ),
+  Option(label: 'Abgelehnt', value: BundesstatistikStatus.abgelehnt),
   Option(label: 'Fehler', value: BundesstatistikStatus.fehler),
 ];
 

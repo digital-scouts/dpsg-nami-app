@@ -354,6 +354,19 @@ void main() {
     expect(model.hatEinwilligung, isTrue);
   });
 
+  test('unterscheidet abgelehnte Snapshots von Netzwerkfehlern', () async {
+    repository.sendeFehler.add(
+      const BundesstatistikException(
+        BundesstatistikFehlerArt.abgelehnt,
+        code: 'invalid_datetime',
+      ),
+    );
+
+    final model = await modelMitEinwilligung();
+
+    expect(model.status, BundesstatistikStatus.abgelehnt);
+  });
+
   test('respektiert die Netzwerkrichtlinie', () async {
     final model = buildModel(
       networkAccessPolicy: _BlockedNetworkAccessPolicy(),

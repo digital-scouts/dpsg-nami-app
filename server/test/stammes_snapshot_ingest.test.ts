@@ -158,6 +158,16 @@ describe('stammes snapshot ingest route', () => {
         expect(store.rawSnapshots[0]?.dv_id).toBeNull();
     });
 
+    test('accepts fractional seconds with microsecond precision', async () => {
+        const response = await postSnapshot(createValidPayload({
+            sent_at: '2026-04-09T18:30:00.123456Z',
+            source_data_as_of: '2026-04-09T18:00:00.123456789Z',
+        }));
+
+        expect(response.statusCode).toBe(204);
+        expect(store.rawSnapshots[0]?.sent_at).toEqual(new Date('2026-04-09T18:30:00.123Z'));
+    });
+
     test('rejects impossible calendar dates', async () => {
         const response = await postSnapshot(createValidPayload({ source_data_as_of: '2026-13-45T18:00:00Z' }));
 
