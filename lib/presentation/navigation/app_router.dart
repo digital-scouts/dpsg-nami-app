@@ -11,10 +11,12 @@ import '../../domain/stufe/usecases/update_altersgrenzen_usecase.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/logger_service.dart';
 import '../model/app_settings_model.dart';
+import '../model/bundesstatistik_model.dart';
 import '../model/locale_model.dart';
 import '../navigation/navigation_home.page.dart';
 import '../notifications/app_snackbar.dart';
 import '../notifications/notifications_page.dart';
+import '../screens/bundesvergleich_page.dart';
 import '../screens/nami_ai/nami_ai_chat_page.dart';
 import '../screens/nami_ai/nami_ai_paywall_page.dart';
 import '../screens/profile_page.dart';
@@ -29,6 +31,7 @@ import '../screens/settings_stamm_page.dart';
 import '../screens/settings_stufenwechsel_page.dart';
 import '../screens/statistics_group_detail_page.dart';
 import '../theme/theme.dart';
+import '../widgets/bundesstatistik_einwilligung_dialog.dart';
 
 class AppRoutes {
   static const String home = '/';
@@ -46,6 +49,7 @@ class AppRoutes {
   static const String pullNotifications = '/notifications';
   static const String profile = '/profile';
   static const String statisticsGroupDetail = '/statistics/group-detail';
+  static const String statisticsBundesvergleich = '/statistics/bundesvergleich';
   static const String namiAiChat = '/nami-ai/chat';
   static const String namiAiPaywall = '/nami-ai/paywall';
 }
@@ -136,8 +140,25 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
             context,
             listen: false,
           );
+          final bundesstatistik = Provider.of<BundesstatistikModel>(
+            context,
+            listen: false,
+          );
 
           return AppSettingsPage(
+            bundesstatistikVerfuegbar: bundesstatistik.isAvailable,
+            bundesstatistikTeilnahme: bundesstatistik.hatEinwilligung,
+            onBundesstatistikChanged: (v) async {
+              final logger = Provider.of<LoggerService>(context, listen: false);
+              if (v && !await zeigeBundesstatistikEinwilligungDialog(context)) {
+                return false;
+              }
+              await bundesstatistik.setzeEinwilligung(v);
+              await logger.debounceTrackSettingsChanged('bundesstatistik', {
+                'value': v,
+              });
+              return bundesstatistik.hatEinwilligung;
+            },
             analyticsEnabled: appSettings.analyticsEnabled,
             biometricLockEnabled: appSettings.biometricLockEnabled,
             noMobileDataEnabled: appSettings.noMobileDataEnabled,
@@ -284,6 +305,11 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
                 : null,
           );
         },
+      );
+    case AppRoutes.statisticsBundesvergleich:
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => const BundesvergleichPage(),
       );
     case AppRoutes.debugTools:
       return MaterialPageRoute(

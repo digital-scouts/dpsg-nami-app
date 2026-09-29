@@ -43,6 +43,7 @@ class HitobitoGroupResource {
     name:
         _trimmed(displayName) ?? _trimmed(shortName) ?? _trimmed(name) ?? name,
     parentLayerId: parentId,
+    layerTyp: groupType,
   );
 
   PrimaryGroupLayerZuordnung? toPrimaryGroupLayerZuordnung(

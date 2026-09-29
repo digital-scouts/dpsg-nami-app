@@ -109,4 +109,73 @@ void main() {
     expect(changedTheme, ThemeMode.dark);
     expect(changedLanguage, 'en');
   });
+
+  testWidgets(
+    'zeigt den Bundesstatistik-Schalter nur bei verfuegbarem Server',
+    (tester) async {
+      final localizations = AppLocalizations(const Locale('de'));
+      await tester.pumpWidget(buildTestApp(const AppSettingsPage()));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(localizations.t('settings_app_bundesstatistik_title')),
+        findsNothing,
+      );
+
+      await tester.pumpWidget(
+        buildTestApp(const AppSettingsPage(bundesstatistikVerfuegbar: true)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(localizations.t('settings_app_bundesstatistik_title')),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets('uebernimmt den tatsaechlichen Wert nach der Einwilligung', (
+    tester,
+  ) async {
+    final localizations = AppLocalizations(const Locale('de'));
+    final angefragt = <bool>[];
+    var ergebnis = false;
+    await tester.pumpWidget(
+      buildTestApp(
+        AppSettingsPage(
+          bundesstatistikVerfuegbar: true,
+          onBundesstatistikChanged: (value) async {
+            angefragt.add(value);
+            return ergebnis;
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    Switch schalter() => tester.widget<Switch>(
+      find.descendant(
+        of: find.ancestor(
+          of: find.text(localizations.t('settings_app_bundesstatistik_title')),
+          matching: find.byType(InkWell),
+        ),
+        matching: find.byType(Switch),
+      ),
+    );
+
+    // Abgelehnte Einwilligung: Schalter bleibt aus.
+    await tester.tap(
+      find.text(localizations.t('settings_app_bundesstatistik_title')),
+    );
+    await tester.pumpAndSettle();
+    expect(angefragt, [true]);
+    expect(schalter().value, isFalse);
+
+    ergebnis = true;
+    await tester.tap(
+      find.text(localizations.t('settings_app_bundesstatistik_title')),
+    );
+    await tester.pumpAndSettle();
+    expect(schalter().value, isTrue);
+  });
 }

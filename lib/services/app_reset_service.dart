@@ -20,6 +20,7 @@ class AppResetService {
     ResetLogsCleaner? clearHitobitoTrafficLogs,
     Future<void> Function()? clearMapCache,
     Future<void> Function()? clearLegacyData,
+    Future<void> Function()? clearInstallationCredentials,
   }) : _authSessionRepository = authSessionRepository,
        _sensitiveStorageService = sensitiveStorageService,
        _preferencesProvider =
@@ -28,7 +29,8 @@ class AppResetService {
        _clearLogs = clearLogs,
        _clearHitobitoTrafficLogs = clearHitobitoTrafficLogs,
        _clearMapCache = clearMapCache,
-       _clearLegacyData = clearLegacyData;
+       _clearLegacyData = clearLegacyData,
+       _clearInstallationCredentials = clearInstallationCredentials;
 
   static const List<String> plainHiveBoxes = <String>[
     'notifications_box',
@@ -44,6 +46,7 @@ class AppResetService {
   final ResetLogsCleaner? _clearHitobitoTrafficLogs;
   final Future<void> Function()? _clearMapCache;
   final Future<void> Function()? _clearLegacyData;
+  final Future<void> Function()? _clearInstallationCredentials;
 
   Future<void> resetAllData({bool clearLogFile = true}) async {
     final prefs = await _preferencesProvider();
@@ -51,6 +54,12 @@ class AppResetService {
 
     await _authSessionRepository.clear();
     await _sensitiveStorageService.purgeSensitiveData();
+    // Nach einem Reset tritt die App gegenueber dem Statistikserver als neue
+    // Installation auf.
+    final clearInstallationCredentials = _clearInstallationCredentials;
+    if (clearInstallationCredentials != null) {
+      await clearInstallationCredentials();
+    }
     final clearLegacyData = _clearLegacyData;
     if (clearLegacyData != null) {
       await clearLegacyData();
