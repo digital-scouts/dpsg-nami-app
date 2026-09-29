@@ -32,6 +32,10 @@ enum BundesstatistikStatus {
   nichtTeilnehmend,
   zuWenigTeilnahme,
   bereit,
+
+  /// Der Server hat den Snapshot fachlich abgelehnt (App und Server passen
+  /// nicht zusammen), kein Netzwerkproblem.
+  abgelehnt,
   fehler,
 }
 
@@ -142,6 +146,9 @@ class BundesstatistikModel extends ChangeNotifier {
     }
     if (!(_eigeneKennzahlen?.istPlausibel ?? false)) {
       return BundesstatistikStatus.keineKennzahlen;
+    }
+    if (_letzterFehler == BundesstatistikFehlerArt.abgelehnt) {
+      return BundesstatistikStatus.abgelehnt;
     }
     if (_letzterFehler != null) {
       return BundesstatistikStatus.fehler;
