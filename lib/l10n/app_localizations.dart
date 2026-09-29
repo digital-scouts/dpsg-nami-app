@@ -389,6 +389,16 @@ class AppLocalizations {
       'member_edit_gender_male': 'Männlich',
       'member_edit_gender_diverse': 'Divers',
       'member_edit_field_pronoun': 'Pronomen',
+      'member_edit_categories_missing':
+          'Neue Einträge sind erst möglich, wenn die Hitobito-Kategorien in der App hinterlegt sind.',
+      'member_edit_category_required': 'Bitte eine Bezeichnung wählen.',
+      'member_edit_category_taken': '{category} ist schon vergeben.',
+      'member_edit_category_unknown': 'Unbekannte Kategorie',
+      'member_edit_category_free_label': 'Zusatz: {label}',
+      'member_edit_field_organization': 'Organisation',
+      'member_edit_field_address_name': 'Name',
+      'member_edit_additional_address_name_required':
+          'Bitte Vorname, Nachname oder Organisation angeben.',
       'member_edit_field_phone_public': 'Öffentlich sichtbar',
       'member_edit_field_phone_public_hint':
           'Für alle sichtbar, die diese Person in Hitobito sehen dürfen.',
@@ -1022,6 +1032,16 @@ class AppLocalizations {
       'member_edit_gender_male': 'Male',
       'member_edit_gender_diverse': 'Diverse',
       'member_edit_field_pronoun': 'Pronoun',
+      'member_edit_categories_missing':
+          'New entries are only possible once the Hitobito categories are configured in the app.',
+      'member_edit_category_required': 'Please choose a label.',
+      'member_edit_category_taken': '{category} is already in use.',
+      'member_edit_category_unknown': 'Unknown category',
+      'member_edit_category_free_label': 'Note: {label}',
+      'member_edit_field_organization': 'Organization',
+      'member_edit_field_address_name': 'Name',
+      'member_edit_additional_address_name_required':
+          'Please enter a first name, last name or organization.',
       'member_edit_field_phone_public': 'Publicly visible',
       'member_edit_field_phone_public_hint':
           'Visible to everyone allowed to see this person in Hitobito.',

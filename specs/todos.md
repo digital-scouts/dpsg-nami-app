@@ -24,6 +24,11 @@ Nächste Aufgaben:
 - Automatischen Sync während aktiver App-Nutzung mit Queue-Einträgen prüfen: WLAN, erlaubte mobile Daten, gedrosselte Retry-Versuche.
 - Verhalten bei ungültiger Sitzung erneut prüfen: Hinweis nur einmal anzeigen, Bearbeiten weiterhin wie im Offline-Modus möglich.
 
+## Priorität 2a: Kontaktkategorien absichern
+
+- Kategorie-IDs der DPSG-Instanz einmalig von Puzzle oder einem root-Konto erfragen und als `HITOBITO_CONTACT_CATEGORY_IDS` in Repository-Variable und Xcode Cloud hinterlegen.
+- Upstream bei hitobito einen lesbaren JSON:API-Endpunkt für `ContactAccountCategory` (id, key, name, Typen, `unique_per_contactable`) anfragen; danach die Zuordnung zur Laufzeit laden statt konfigurieren.
+
 ## Priorität 3: Adressvalidierung anschließen
 
 Ziel: Adressprobleme aus Offline-Bearbeitung und späterem Sync sollen denselben Problemlösungsfall nutzen wie Konflikte und andere fachliche Sync-Probleme.
