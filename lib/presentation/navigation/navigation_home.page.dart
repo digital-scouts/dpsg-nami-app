@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nami/core/notifications/pull_notification.dart';
+import 'package:nami/domain/achievements/achievement_definition.dart';
 import 'package:nami/domain/auth/auth_state.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
@@ -13,6 +14,7 @@ import 'package:nami/presentation/screens/settings_stufenwechsel_page.dart';
 import 'package:nami/presentation/screens/statistics_page.dart';
 import 'package:nami/presentation/widgets/app_bottom_navigation.dart';
 import 'package:nami/presentation/widgets/logout_flow.dart';
+import 'package:nami/services/achievement_service.dart';
 import 'package:nami/services/logger_service.dart';
 import 'package:provider/provider.dart';
 
@@ -121,6 +123,11 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
             fromRoute: previousTab,
             toRoute: nextTab,
           );
+          if (nextTab == 'statistics') {
+            context.read<AchievementService>().recordDaily(
+              AchievementIds.statisticsOpened,
+            );
+          }
           setState(() => _index = i);
         },
       ),

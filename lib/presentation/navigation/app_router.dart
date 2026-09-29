@@ -10,12 +10,14 @@ import '../../domain/stufe/altersgrenzen.dart';
 import '../../domain/stufe/usecases/update_altersgrenzen_usecase.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/logger_service.dart';
+import '../model/achievements_model.dart';
 import '../model/app_settings_model.dart';
 import '../model/bundesstatistik_model.dart';
 import '../model/locale_model.dart';
 import '../navigation/navigation_home.page.dart';
 import '../notifications/app_snackbar.dart';
 import '../notifications/notifications_page.dart';
+import '../screens/achievements_page.dart';
 import '../screens/bundesvergleich_page.dart';
 import '../screens/nami_ai/nami_ai_chat_page.dart';
 import '../screens/nami_ai/nami_ai_paywall_page.dart';
@@ -52,6 +54,7 @@ class AppRoutes {
   static const String statisticsBundesvergleich = '/statistics/bundesvergleich';
   static const String namiAiChat = '/nami-ai/chat';
   static const String namiAiPaywall = '/nami-ai/paywall';
+  static const String achievements = '/achievements';
 }
 
 Route<dynamic> onGenerateRoute(RouteSettings settings) {
@@ -64,7 +67,18 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
     case AppRoutes.profile:
       return MaterialPageRoute(
         settings: settings,
-        builder: (context) => const ProfilePage(),
+        builder: (context) => ProfilePage(
+          achievements: context.watch<AchievementsModel>().achievements,
+          onAchievements: () =>
+              Navigator.pushNamed(context, AppRoutes.achievements),
+        ),
+      );
+    case AppRoutes.achievements:
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => AchievementsPage(
+          achievements: context.watch<AchievementsModel>().achievements,
+        ),
       );
     case AppRoutes.namiAiChat:
       return MaterialPageRoute(

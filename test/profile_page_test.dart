@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/data/arbeitskontext/hitobito_group_resource.dart';
+import 'package:nami/domain/achievements/achievement_definition.dart';
+import 'package:nami/domain/achievements/achievement_progress.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext_local_repository.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model.dart';
@@ -77,6 +79,65 @@ void main() {
       expect(find.text('Mitarbeiter*in GS'), findsOneWidget);
       expect(find.text('hitobito'), findsOneWidget);
       expect(find.textContaining('admin, contact_data'), findsOneWidget);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  testWidgets(
+    'zeigt Erfolge-Karte mit Zusammenfassung und öffnet die Übersicht',
+    (tester) async {
+      var opened = false;
+      await _pumpProfilePage(
+        tester,
+        profile: const AuthProfile(
+          namiId: 34,
+          email: 'julia@example.com',
+          firstName: 'Julia',
+          lastName: 'Keller',
+          language: 'de',
+        ),
+        achievements: [
+          AchievementProgress(
+            definition: achievementCatalog.firstWhere(
+              (d) => d.id == AchievementIds.appDays,
+            ),
+            count: 12,
+          ),
+          AchievementProgress(
+            definition: achievementCatalog.firstWhere(
+              (d) => d.id == AchievementIds.storeRating,
+            ),
+            count: 1,
+          ),
+        ],
+        onAchievements: () => opened = true,
+      );
+
+      expect(find.text('ERFOLGE'), findsOneWidget);
+      expect(find.text('3 von 6 Stufen erreicht'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('profile-achievements-card')));
+      await tester.pump();
+      expect(opened, isTrue);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  testWidgets(
+    'zeigt ohne Erfolge keine Erfolge-Karte',
+    (tester) async {
+      await _pumpProfilePage(
+        tester,
+        profile: const AuthProfile(
+          namiId: 35,
+          email: 'max@example.com',
+          firstName: 'Max',
+          lastName: 'Mustermann',
+          language: 'de',
+        ),
+      );
+
+      expect(find.byKey(const Key('profile-achievements-card')), findsNothing);
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
@@ -481,6 +542,8 @@ Future<void> _pumpProfilePage(
   Arbeitskontext? arbeitskontext,
   List<HitobitoGroupResource>? groups,
   ArbeitskontextReadModelRepository? readModelRepository,
+  List<AchievementProgress>? achievements,
+  VoidCallback? onAchievements,
 }) async {
   final authModel = AuthSessionModel(
     repository: _InMemoryAuthSessionRepository(),
@@ -529,7 +592,10 @@ Future<void> _pumpProfilePage(
         ],
         supportedLocales: const [Locale('de'), Locale('en')],
         locale: const Locale('de'),
-        home: const ProfilePage(),
+        home: ProfilePage(
+          achievements: achievements,
+          onAchievements: onAchievements,
+        ),
       ),
     ),
   );

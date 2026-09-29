@@ -142,11 +142,13 @@ class MemberEditModel extends ChangeNotifier {
     required PendingPersonUpdateRepository pendingRepository,
     required LoggerService logger,
     required Future<void> Function(Mitglied member) onMemberUpdated,
+    Future<void> Function()? onMemberSaved,
     DateTime Function()? nowProvider,
   }) : _memberWriteRepository = memberWriteRepository,
        _pendingRepository = pendingRepository,
        _logger = logger,
        _onMemberUpdated = onMemberUpdated,
+       _onMemberSaved = onMemberSaved,
        _now = nowProvider ?? DateTime.now {
     _sessionStartedAt = _now();
   }
@@ -155,6 +157,10 @@ class MemberEditModel extends ChangeNotifier {
   final PendingPersonUpdateRepository _pendingRepository;
   final LoggerService _logger;
   final Future<void> Function(Mitglied member) _onMemberUpdated;
+
+  /// Wird nach jeder erfolgreich an Hitobito übertragenen Bearbeitung
+  /// aufgerufen, auch beim Nachsenden aus der Offline-Warteschlange.
+  final Future<void> Function()? _onMemberSaved;
   final DateTime Function() _now;
   late final DateTime _sessionStartedAt;
 
@@ -524,6 +530,7 @@ class MemberEditModel extends ChangeNotifier {
       );
       await _onMemberUpdated(updated);
       await _removePendingForPerson(personId);
+      await _notifyMemberSaved();
       await _logMemberEditEvent(
         action: 'submit_result',
         trigger: trigger,
@@ -920,6 +927,7 @@ class MemberEditModel extends ChangeNotifier {
           );
           await _onMemberUpdated(updated);
           await _pendingRepository.remove(attemptedEntry.entryId);
+          await _notifyMemberSaved();
           results.add(
             PendingPersonUpdateRetryItemResult(
               entry: attemptedEntry,
@@ -1062,6 +1070,16 @@ class MemberEditModel extends ChangeNotifier {
     }
     _pendingUpdates = await _pendingRepository.loadAll();
     notifyListeners();
+  }
+
+  /// Fehler im Folge-Callback dürfen das bereits gespeicherte Ergebnis nicht
+  /// in einen Fehlschlag verwandeln.
+  Future<void> _notifyMemberSaved() async {
+    try {
+      await _onMemberSaved?.call();
+    } catch (error) {
+      await _logger.log('member_edit', 'onMemberSaved fehlgeschlagen: $error');
+    }
   }
 
   void _setBusy(bool value) {
