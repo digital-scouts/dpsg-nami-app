@@ -14,6 +14,11 @@ on:
 permissions:
   contents: read
 
+# Nur PR-Laeufe abbrechen; beim workflow_call ist die Gruppe pro Deploy-Lauf eindeutig.
+concurrency:
+  group: server-validate-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   validate-server:
     name: Validate statistics server

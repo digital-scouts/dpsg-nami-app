@@ -81,6 +81,15 @@ Die gleiche Versionsprüfung läuft zusätzlich in GitHub Actions:
 - [deploy-android-internal.yml](.github/workflows/deploy-android-internal.yml) baut ein Android App Bundle und deployed es nach Pushes auf `develop`, nach gemergten Pull Requests auf `master` oder manuell in den internen Play-Track. Die `.env` entsteht aus [.env.example](.env.example): Wiredash, Geoapify und Hitobito kommen wie in Xcode Cloud nur aus CI (Secrets `PROD_WIREDASH_SECRET`, `PROD_WIREDASH_PROJECT_ID`, `GEOAPIFY_KEY`, `HITOBITO_OAUTH_CLIENT_SECRET`; Variablen `HITOBITO_BASE_URL`, `HITOBITO_OAUTH_CLIENT_ID`, `HITOBITO_OAUTH_REDIRECT_URI`) und erzeugen bei fehlenden Werten eine Warnung. Alle übrigen Keys übernehmen den Default aus `.env.example`.
 - [create-github-release.yml](.github/workflows/create-github-release.yml) erstellt nach gemergten Pull Requests auf `master` oder manuell einen GitHub Release auf Basis der Version aus [pubspec.yaml](pubspec.yaml) und der Eintraege aus [assets/changelog.json](assets/changelog.json).
 
+Die Workflows laufen nur für den Bereich, der sich geändert hat:
+
+- In [validate-pull-requests.yml](.github/workflows/validate-pull-requests.yml) entscheidet der Job `changes` anhand der geänderten Pfade. Die Flutter-Validierung und `Update check Android` laufen nur bei App-Änderungen (`lib/`, `test/`, `integration_test/`, `assets/`, `android/`, `ios/`, `tool/`, `pubspec.*`, `analysis_options.yaml`, `.env.example`), der macOS-Job nur bei Änderungen an `ios/` oder `pubspec.*`. Übersprungene Pflicht-Checks gelten als bestanden, reine Server- oder Doku-PRs sind also ohne App-Lauf mergebar. PRs, die nur `docs/version.json` oder den Changelog ändern, prüfen ausschließlich die Versionskonsistenz. Auch der Versionssprung für `master`-PRs wird nur bei App-Änderungen verlangt.
+- [server-validate.yml](.github/workflows/server-validate.yml) und [server-deploy.yml](.github/workflows/server-deploy.yml) laufen nur bei Änderungen unter `server/`.
+- Deploy nach Play (ohne `ios/`), GitHub Release und Version-Reminder-PRs laufen nur, wenn der Merge App-Dateien enthält; `docs/version.json` allein löst sie nicht aus.
+- Ein neuer Push auf einen PR bricht den noch laufenden Validierungslauf ab.
+
+Neue App-Verzeichnisse oder -Dateien müssen in diese Pfadlisten aufgenommen werden.
+
 Zusätzlich validieren [validate-pull-requests.yml](.github/workflows/validate-pull-requests.yml) und [deploy-android-internal.yml](.github/workflows/deploy-android-internal.yml) die Env-Vorlage über [tool/validate_env_files.dart](tool/validate_env_files.dart), damit neue oder entfernte Keys nicht unbemerkt an [.env.example](.env.example) vorbeilaufen.
 
 Für PRs enthält [validate-pull-requests.yml](.github/workflows/validate-pull-requests.yml) jetzt auch eine macOS-Jobstufe, die native iOS-Swift-Quelltexte formatiert und den iOS-Runner mit `xcodebuild` für den Simulator kompiliert.

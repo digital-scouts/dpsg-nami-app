@@ -9,10 +9,76 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: validate-pr-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
+  # Weiche auf Job-Ebene statt Workflow-paths: develop verlangt die App-Checks,
+  # uebersprungene Jobs gelten als erfolgreich, nie gestartete Workflows nicht.
+  # Neue App-Verzeichnisse oder -Dateien hier ergaenzen.
+  changes:
+    name: Detect changes
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      app: ${{ github.event_name != 'pull_request' || steps.filter.outputs.app == 'true' }}
+      ios: ${{ github.event_name != 'pull_request' || steps.filter.outputs.ios == 'true' }}
+      versions: ${{ github.event_name != 'pull_request' || steps.filter.outputs.versions == 'true' }}
+    steps:
+      - name: Filter changed paths
+        id: filter
+        if: github.event_name == 'pull_request'
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            app:
+              - "lib/**"
+              - "test/**"
+              - "integration_test/**"
+              - "assets/**"
+              - "android/**"
+              - "ios/**"
+              - "tool/**"
+              - "pubspec.yaml"
+              - "pubspec.lock"
+              - "analysis_options.yaml"
+              - ".env.example"
+              - ".github/workflows/validate-pull-requests.yml"
+            # Dart-Fehler fangen analyze und test; der macOS-Lauf deckt Xcode ab.
+            ios:
+              - "ios/**"
+              - "pubspec.yaml"
+              - "pubspec.lock"
+              - ".github/workflows/validate-pull-requests.yml"
+            versions:
+              - "pubspec.yaml"
+              - "assets/changelog.json"
+              - "docs/version.json"
+
+  # Z. B. Version-Reminder-PRs, die nur docs/version.json aendern.
+  validate-versions:
+    name: Validate versions
+    needs: changes
+    if: needs.changes.outputs.versions == 'true' && needs.changes.outputs.app != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: "3.12.2" # Dart von Flutter 3.44.5
+
+      - name: Validate app version consistency
+        run: dart tool/validate_versions.dart
+
   validate:
     name: Validate Flutter project
-    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -100,7 +166,6 @@ jobs:
   update-check-android:
     name: Update check Android
     needs: validate
-    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
@@ -168,7 +233,8 @@ jobs:
 
   validate-ios:
     name: Validate iOS Swift
-    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    needs: changes
+    if: needs.changes.outputs.ios == 'true'
     runs-on: macos-latest
 
     steps:
