@@ -7,18 +7,25 @@ class MitgliedKontaktEmail {
     this.additionalEmailId,
     required this.wert,
     this.label,
+    this.categoryId,
     this.istPrimaer = false,
   }) : assert(wert != '');
 
   final int? additionalEmailId;
   final String wert;
+
+  /// Freitext-Zusatz; die eigentliche Einordnung steckt in [categoryId].
   final String? label;
+
+  /// Hitobito-`category_id`, siehe `ContactCategoryCatalog`.
+  final int? categoryId;
   final bool istPrimaer;
 
   MitgliedKontaktEmail copyWith({
     int? additionalEmailId,
     String? wert,
     String? label,
+    int? categoryId,
     bool? istPrimaer,
     bool additionalEmailIdLoeschen = false,
     bool labelLoeschen = false,
@@ -28,6 +35,7 @@ class MitgliedKontaktEmail {
         : additionalEmailId ?? this.additionalEmailId,
     wert: wert ?? this.wert,
     label: labelLoeschen ? null : label ?? this.label,
+    categoryId: categoryId ?? this.categoryId,
     istPrimaer: istPrimaer ?? this.istPrimaer,
   );
 
@@ -36,6 +44,7 @@ class MitgliedKontaktEmail {
       'additional_email_id': additionalEmailId,
       'wert': wert,
       'label': label,
+      'category_id': categoryId,
       'ist_primaer': istPrimaer,
     };
   }
@@ -46,6 +55,7 @@ class MitgliedKontaktEmail {
       additionalEmailId: _parseInt(json['additional_email_id']),
       wert: wert,
       label: _trimToNull(json['label']?.toString()),
+      categoryId: _parseInt(json['category_id']),
       istPrimaer: json['ist_primaer'] == true,
     );
   }
@@ -56,11 +66,13 @@ class MitgliedKontaktEmail {
         other.additionalEmailId == additionalEmailId &&
         other.wert == wert &&
         other.label == label &&
+        other.categoryId == categoryId &&
         other.istPrimaer == istPrimaer;
   }
 
   @override
-  int get hashCode => Object.hash(additionalEmailId, wert, label, istPrimaer);
+  int get hashCode =>
+      Object.hash(additionalEmailId, wert, label, categoryId, istPrimaer);
 }
 
 class MitgliedKontaktTelefon {
@@ -68,16 +80,28 @@ class MitgliedKontaktTelefon {
     this.phoneNumberId,
     required this.wert,
     this.label,
+    this.categoryId,
+    this.istOeffentlich = false,
   }) : assert(wert != '');
 
   final int? phoneNumberId;
   final String wert;
+
+  /// Freitext-Zusatz; die eigentliche Einordnung steckt in [categoryId].
   final String? label;
+
+  /// Hitobito-`category_id`, siehe `ContactCategoryCatalog`.
+  final int? categoryId;
+
+  /// Hitobito-Attribut `public`: Nummer ist fuer alle mit Leserecht sichtbar.
+  final bool istOeffentlich;
 
   MitgliedKontaktTelefon copyWith({
     int? phoneNumberId,
     String? wert,
     String? label,
+    int? categoryId,
+    bool? istOeffentlich,
     bool phoneNumberIdLoeschen = false,
     bool labelLoeschen = false,
   }) => MitgliedKontaktTelefon(
@@ -86,6 +110,8 @@ class MitgliedKontaktTelefon {
         : phoneNumberId ?? this.phoneNumberId,
     wert: wert ?? this.wert,
     label: labelLoeschen ? null : label ?? this.label,
+    categoryId: categoryId ?? this.categoryId,
+    istOeffentlich: istOeffentlich ?? this.istOeffentlich,
   );
 
   Map<String, dynamic> toJson() {
@@ -93,6 +119,8 @@ class MitgliedKontaktTelefon {
       'phone_number_id': phoneNumberId,
       'wert': wert,
       'label': label,
+      'category_id': categoryId,
+      'ist_oeffentlich': istOeffentlich,
     };
   }
 
@@ -102,6 +130,8 @@ class MitgliedKontaktTelefon {
       phoneNumberId: _parseInt(json['phone_number_id']),
       wert: wert,
       label: _trimToNull(json['label']?.toString()),
+      categoryId: _parseInt(json['category_id']),
+      istOeffentlich: json['ist_oeffentlich'] == true,
     );
   }
 
@@ -110,17 +140,24 @@ class MitgliedKontaktTelefon {
     return other is MitgliedKontaktTelefon &&
         other.phoneNumberId == phoneNumberId &&
         other.wert == wert &&
-        other.label == label;
+        other.label == label &&
+        other.categoryId == categoryId &&
+        other.istOeffentlich == istOeffentlich;
   }
 
   @override
-  int get hashCode => Object.hash(phoneNumberId, wert, label);
+  int get hashCode =>
+      Object.hash(phoneNumberId, wert, label, categoryId, istOeffentlich);
 }
 
 class MitgliedKontaktAdresse {
   const MitgliedKontaktAdresse({
     this.additionalAddressId,
     this.label,
+    this.categoryId,
+    this.firstName,
+    this.lastName,
+    this.organizationName,
     this.addressCareOf,
     this.street,
     this.housenumber,
@@ -132,6 +169,15 @@ class MitgliedKontaktAdresse {
 
   final int? additionalAddressId;
   final String? label;
+
+  /// Hitobito-`category_id`; nur bei Zusatzadressen gesetzt.
+  final int? categoryId;
+
+  /// Name an der Zusatzadresse. Hitobito verlangt Vor- oder Nachname oder
+  /// eine Organisation; die eigene Adresse der Person hat keinen Namen.
+  final String? firstName;
+  final String? lastName;
+  final String? organizationName;
   final String? addressCareOf;
   final String? street;
   final String? housenumber;
@@ -150,9 +196,20 @@ class MitgliedKontaktAdresse {
         _trimToNull(country) == null;
   }
 
+  bool get istOrganisation => _trimToNull(organizationName) != null;
+
+  bool get hatName =>
+      _trimToNull(firstName) != null ||
+      _trimToNull(lastName) != null ||
+      istOrganisation;
+
   MitgliedKontaktAdresse copyWith({
     int? additionalAddressId,
     String? label,
+    int? categoryId,
+    String? firstName,
+    String? lastName,
+    String? organizationName,
     String? addressCareOf,
     String? street,
     String? housenumber,
@@ -162,6 +219,9 @@ class MitgliedKontaktAdresse {
     String? country,
     bool additionalAddressIdLoeschen = false,
     bool labelLoeschen = false,
+    bool firstNameLoeschen = false,
+    bool lastNameLoeschen = false,
+    bool organizationNameLoeschen = false,
     bool addressCareOfLoeschen = false,
     bool streetLoeschen = false,
     bool housenumberLoeschen = false,
@@ -174,6 +234,12 @@ class MitgliedKontaktAdresse {
         ? null
         : additionalAddressId ?? this.additionalAddressId,
     label: labelLoeschen ? null : label ?? this.label,
+    categoryId: categoryId ?? this.categoryId,
+    firstName: firstNameLoeschen ? null : firstName ?? this.firstName,
+    lastName: lastNameLoeschen ? null : lastName ?? this.lastName,
+    organizationName: organizationNameLoeschen
+        ? null
+        : organizationName ?? this.organizationName,
     addressCareOf: addressCareOfLoeschen
         ? null
         : addressCareOf ?? this.addressCareOf,
@@ -189,6 +255,10 @@ class MitgliedKontaktAdresse {
     return <String, dynamic>{
       'additional_address_id': additionalAddressId,
       'label': label,
+      'category_id': categoryId,
+      'first_name': firstName,
+      'last_name': lastName,
+      'organization_name': organizationName,
       'address_care_of': addressCareOf,
       'street': street,
       'housenumber': housenumber,
@@ -203,6 +273,10 @@ class MitgliedKontaktAdresse {
     return MitgliedKontaktAdresse(
       additionalAddressId: _parseInt(json['additional_address_id']),
       label: _trimToNull(json['label']?.toString()),
+      categoryId: _parseInt(json['category_id']),
+      firstName: _trimToNull(json['first_name']?.toString()),
+      lastName: _trimToNull(json['last_name']?.toString()),
+      organizationName: _trimToNull(json['organization_name']?.toString()),
       addressCareOf: _trimToNull(json['address_care_of']?.toString()),
       street: _trimToNull(json['street']?.toString()),
       housenumber: _trimToNull(json['housenumber']?.toString()),
@@ -218,6 +292,10 @@ class MitgliedKontaktAdresse {
     return other is MitgliedKontaktAdresse &&
         other.additionalAddressId == additionalAddressId &&
         other.label == label &&
+        other.categoryId == categoryId &&
+        other.firstName == firstName &&
+        other.lastName == lastName &&
+        other.organizationName == organizationName &&
         other.addressCareOf == addressCareOf &&
         other.street == street &&
         other.housenumber == housenumber &&
@@ -231,6 +309,10 @@ class MitgliedKontaktAdresse {
   int get hashCode => Object.hash(
     additionalAddressId,
     label,
+    categoryId,
+    firstName,
+    lastName,
+    organizationName,
     addressCareOf,
     street,
     housenumber,
@@ -271,6 +353,7 @@ class Mitglied {
     this.bic,
     this.bankName,
     this.paymentMethod,
+    this.detailsLesbar,
     List<Role>? roles,
   }) : assert(mitgliedsnummer.isNotEmpty),
        telefonnummern = List.unmodifiable(
@@ -301,6 +384,7 @@ class Mitglied {
     this.bic,
     this.bankName,
     this.paymentMethod,
+    this.detailsLesbar,
   }) : assert(mitgliedsnummer.isNotEmpty),
        geburtsdatum = _peoplePlaceholderDate,
        eintrittsdatum = _peoplePlaceholderDate,
@@ -335,6 +419,11 @@ class Mitglied {
   final String? bic;
   final String? bankName;
   final String? paymentMethod;
+
+  /// Ob Hitobito die per `show_details` geschuetzten Angaben (Geschlecht,
+  /// Geburtsdatum, Bankdaten) mitgeliefert hat. `null` heisst unbekannt, etwa
+  /// bei Cache-Staenden aus aelteren App-Versionen.
+  final bool? detailsLesbar;
   final List<Role> roles;
 
   static DateTime get peoplePlaceholderDate => _peoplePlaceholderDate;
@@ -372,6 +461,10 @@ class Mitglied {
 
   String get fullName => '$vorname $nachname'.trim();
 
+  /// Bankdaten sind nur vorhanden, wenn Hitobito sie lesbar liefert: Die
+  /// Zahlart ist dort Pflicht und fehlt nur ohne Berechtigung.
+  bool get bankdatenLesbar => paymentMethod != null;
+
   bool get istAusgetreten =>
       austrittsdatum != null && austrittsdatum!.isBefore(DateTime.now());
 
@@ -397,6 +490,7 @@ class Mitglied {
     String? bic,
     String? bankName,
     String? paymentMethod,
+    bool? detailsLesbar,
     List<Role>? roles,
     bool fahrtennameLoeschen = false,
     bool austrittsdatumLoeschen = false,
@@ -441,6 +535,7 @@ class Mitglied {
     paymentMethod: paymentMethodLoeschen
         ? null
         : paymentMethod ?? this.paymentMethod,
+    detailsLesbar: detailsLesbar ?? this.detailsLesbar,
     roles: roles ?? this.roles,
   );
 
@@ -476,6 +571,7 @@ class Mitglied {
       'bic': bic,
       'bank_name': bankName,
       'payment_method': paymentMethod,
+      'details_lesbar': detailsLesbar,
     };
   }
 
@@ -535,6 +631,9 @@ class Mitglied {
       bic: _trimToNull(json['bic']?.toString()),
       bankName: _trimToNull(json['bank_name']?.toString()),
       paymentMethod: _trimToNull(json['payment_method']?.toString()),
+      detailsLesbar: json['details_lesbar'] is bool
+          ? json['details_lesbar'] as bool
+          : null,
     );
   }
 
@@ -559,6 +658,7 @@ class Mitglied {
         other.bic == bic &&
         other.bankName == bankName &&
         other.paymentMethod == paymentMethod &&
+        other.detailsLesbar == detailsLesbar &&
         _listEquals(other.telefonnummern, telefonnummern) &&
         _listEquals(other.emailAdressen, emailAdressen) &&
         _listEquals(other.adressen, adressen) &&
@@ -585,6 +685,7 @@ class Mitglied {
     bic,
     bankName,
     paymentMethod,
+    detailsLesbar,
     Object.hashAll(telefonnummern),
     Object.hashAll(emailAdressen),
     Object.hashAll(adressen),
@@ -677,7 +778,7 @@ class Mitglied {
         label: _trimToNull(emailAdresse.label),
       );
       final key =
-          '${normalized.additionalEmailId?.toString() ?? ''}|${wert.toLowerCase()}|${normalized.label ?? ''}|${normalized.istPrimaer}';
+          '${normalized.additionalEmailId?.toString() ?? ''}|${wert.toLowerCase()}|${normalized.label ?? ''}|${normalized.categoryId ?? ''}|${normalized.istPrimaer}';
       if (!seen.add(key)) {
         continue;
       }
@@ -705,7 +806,7 @@ class Mitglied {
         label: _trimToNull(telefonnummer.label),
       );
       final key =
-          '${normalized.phoneNumberId?.toString() ?? ''}|${wert.toLowerCase()}|${normalized.label ?? ''}';
+          '${normalized.phoneNumberId?.toString() ?? ''}|${wert.toLowerCase()}|${normalized.label ?? ''}|${normalized.categoryId ?? ''}|${normalized.istOeffentlich}';
       if (!seen.add(key)) {
         continue;
       }
@@ -729,6 +830,9 @@ class Mitglied {
       final normalized = adresse.copyWith(
         additionalAddressId: adresse.additionalAddressId,
         label: _trimToNull(adresse.label),
+        firstName: _trimToNull(adresse.firstName),
+        lastName: _trimToNull(adresse.lastName),
+        organizationName: _trimToNull(adresse.organizationName),
         addressCareOf: _trimToNull(adresse.addressCareOf),
         street: _trimToNull(adresse.street),
         housenumber: _trimToNull(adresse.housenumber),
@@ -740,6 +844,10 @@ class Mitglied {
       final key = [
         normalized.additionalAddressId?.toString() ?? '',
         normalized.label ?? '',
+        normalized.categoryId?.toString() ?? '',
+        normalized.firstName ?? '',
+        normalized.lastName ?? '',
+        normalized.organizationName ?? '',
         normalized.addressCareOf ?? '',
         normalized.street ?? '',
         normalized.housenumber ?? '',

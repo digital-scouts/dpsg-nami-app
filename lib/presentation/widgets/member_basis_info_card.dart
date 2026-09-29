@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:nami/domain/member/contact_category.dart';
 import 'package:nami/domain/member/member_utils.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/member_filters/beitragsart.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/format/date_formatters.dart';
 import 'package:nami/presentation/notifications/app_snackbar.dart';
+import 'package:nami/services/hitobito_contact_category_env.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 const double _memberDetailsCardRadius = 16;
@@ -72,13 +74,28 @@ class MemberContactInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
+    final categories = HitobitoContactCategoryEnv.catalog;
     final telefonRows = mitglied.telefonnummern
         .map(
           (telefonnummer) => _InfoRow(
-            icon: telefonnummer.label == Mitglied.phoneMobileLabel
+            icon:
+                telefonnummer.label == Mitglied.phoneMobileLabel ||
+                    categories
+                            .byId(
+                              ContactAccountType.phoneNumber,
+                              telefonnummer.categoryId,
+                            )
+                            ?.key ==
+                        'mobile'
                 ? Icons.phone_android
                 : Icons.call,
-            label: telefonnummer.label ?? t.t('member_info_default_phone'),
+            label:
+                categories.displayLabel(
+                  ContactAccountType.phoneNumber,
+                  telefonnummer.categoryId,
+                  telefonnummer.label,
+                ) ??
+                t.t('member_info_default_phone'),
             value: telefonnummer.wert,
             copy: true,
             isLink: true,
@@ -90,7 +107,13 @@ class MemberContactInfoCard extends StatelessWidget {
         .map(
           (emailAdresse) => _InfoRow(
             icon: Icons.email_outlined,
-            label: emailAdresse.label ?? t.t('member_info_default_email'),
+            label:
+                categories.displayLabel(
+                  ContactAccountType.additionalEmail,
+                  emailAdresse.categoryId,
+                  emailAdresse.label,
+                ) ??
+                t.t('member_info_default_email'),
             value: emailAdresse.wert,
             copy: true,
             isLink: true,
@@ -399,7 +422,7 @@ String _displayGender(BuildContext context, String? rawGender) {
       return t.t('member_edit_gender_female');
     case 'd':
     case 'divers':
-      return 'Divers';
+      return t.t('member_edit_gender_diverse');
     default:
       return rawGender!.trim();
   }

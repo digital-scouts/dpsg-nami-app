@@ -489,6 +489,39 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Bearbeiten'), findsOneWidget);
+    expect(_editButtonInkWell(tester).onTap, isNotNull);
+  });
+
+  testWidgets('deaktiviert den Bearbeiten-Button ohne Schreibrecht', (
+    tester,
+  ) async {
+    final member = Mitglied.peopleListItem(
+      mitgliedsnummer: '4711',
+      personId: 23,
+      primaryGroupId: 111,
+      vorname: 'Julia',
+      nachname: 'Keller',
+    );
+    final arbeitskontextModel = await _buildArbeitskontextModel(
+      member: member,
+      permissions: const <String>['group_and_below_read'],
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        MemberDetailPage(mitglied: member),
+        providers: <SingleChildWidget>[
+          ChangeNotifierProvider<ArbeitskontextModel>.value(
+            value: arbeitskontextModel,
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Bearbeiten'), findsOneWidget);
+    expect(_editButtonInkWell(tester).onTap, isNull);
   });
 
   testWidgets('zeigt den Pending-Hinweis fuer das passende Mitglied', (
@@ -1503,4 +1536,10 @@ class _FakeAppSettingsRepository extends AppSettingsRepository {
 
   @override
   Future<void> saveThemeMode(ThemeMode mode) async {}
+}
+
+InkWell _editButtonInkWell(WidgetTester tester) {
+  return tester.widget<InkWell>(
+    find.ancestor(of: find.text('Bearbeiten'), matching: find.byType(InkWell)),
+  );
 }

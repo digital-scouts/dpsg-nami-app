@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -5,6 +7,7 @@ import 'package:nami/domain/auth/auth_profile.dart';
 import 'package:nami/domain/auth/auth_profile_repository.dart';
 import 'package:nami/domain/auth/auth_session.dart';
 import 'package:nami/domain/auth/auth_session_repository.dart';
+import 'package:nami/domain/member/contact_category.dart';
 import 'package:nami/domain/member/member_resolution.dart';
 import 'package:nami/domain/member/member_write_repository.dart';
 import 'package:nami/domain/member/mitglied.dart';
@@ -40,7 +43,12 @@ void main() {
     });
 
     await tester.pumpWidget(
-      _buildTestApp(MemberEditPage(mitglied: _buildMember(gender: 'd'))),
+      _buildTestApp(
+        MemberEditPage(
+          contactCategories: _testCategories,
+          mitglied: _buildMember(gender: 'd'),
+        ),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -112,7 +120,12 @@ void main() {
       });
 
       await tester.pumpWidget(
-        _buildTestApp(MemberEditPage(mitglied: _buildMember(gender: 'd'))),
+        _buildTestApp(
+          MemberEditPage(
+            contactCategories: _testCategories,
+            mitglied: _buildMember(gender: 'd'),
+          ),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -161,15 +174,756 @@ void main() {
     },
   );
 
-  testWidgets('normalisiert alte Werte auf Unbekannt', (tester) async {
+  testWidgets('normalisiert unbekannte Werte auf Unbekannt', (tester) async {
     await tester.pumpWidget(
-      _buildTestApp(MemberEditPage(mitglied: _buildMember(gender: 'divers'))),
+      _buildTestApp(
+        MemberEditPage(
+          contactCategories: _testCategories,
+          mitglied: _buildMember(gender: 'x'),
+        ),
+      ),
     );
     await tester.pumpAndSettle();
 
     expect(find.text('Unbekannt', skipOffstage: false), findsOneWidget);
-    expect(find.text('Divers', skipOffstage: false), findsNothing);
     expect(find.text('Keine Angabe', skipOffstage: false), findsNothing);
+  });
+
+  testWidgets('zeigt Geschlecht d als Divers', (tester) async {
+    for (final gender in const <String>['d', 'divers']) {
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberEditPage(
+            contactCategories: _testCategories,
+            key: ValueKey<String>(gender),
+            mitglied: _buildMember(gender: gender),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final field = tester.widget<DropdownButtonFormField<String>>(
+        find.byKey(const Key('member-edit-gender-field')),
+      );
+      expect(field.initialValue, 'd');
+      expect(find.text('Divers', skipOffstage: false), findsOneWidget);
+    }
+  });
+
+  testWidgets('speichert unbekanntes Geschlecht als null', (tester) async {
+    final model = _RecordingMemberEditModel();
+
+    _useLargeViewport(tester);
+    await tester.pumpWidget(
+      _buildTestApp(
+        MemberEditPage(
+          contactCategories: _testCategories,
+          mitglied: _buildMember(gender: ''),
+        ),
+        providers: _buildEditProviders(model),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('member-edit-save-button')));
+    await tester.pumpAndSettle();
+
+    expect(model.submitCalls.single.zielMitglied.gender, isNull);
+  });
+
+  testWidgets('behaelt Geschlecht d beim Speichern', (tester) async {
+    final model = _RecordingMemberEditModel();
+
+    _useLargeViewport(tester);
+    await tester.pumpWidget(
+      _buildTestApp(
+        MemberEditPage(
+          contactCategories: _testCategories,
+          mitglied: _buildMember(gender: 'd'),
+        ),
+        providers: _buildEditProviders(model),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('member-edit-save-button')));
+    await tester.pumpAndSettle();
+
+    expect(model.submitCalls.single.zielMitglied.gender, 'd');
+  });
+
+  testWidgets('zeigt keine Bezeichnung fuer die Hauptadresse', (tester) async {
+    _useLargeViewport(tester);
+    await tester.pumpWidget(
+      _buildTestApp(
+        MemberEditPage(
+          contactCategories: _testCategories,
+          mitglied: _buildMember(
+            gender: 'w',
+          ).copyWith(telefonnummern: const <MitgliedKontaktTelefon>[]),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(TextField, 'Musterweg'), findsOneWidget);
+    expect(find.text('Bezeichnung', skipOffstage: false), findsNothing);
+    expect(find.text('c/o', skipOffstage: false), findsOneWidget);
+  });
+
+  group('Speichern', () {
+    Future<void> pumpEditor(
+      WidgetTester tester, {
+      required Mitglied mitglied,
+      MemberEditModel? model,
+      bool withSession = true,
+    }) async {
+      _useLargeViewport(tester);
+      final providers = model == null
+          ? const <SingleChildWidget>[]
+          : withSession
+          ? _buildEditProviders(model)
+          : <SingleChildWidget>[
+              ChangeNotifierProvider<MemberEditModel>.value(value: model),
+            ];
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberEditPage(
+            contactCategories: _testCategories,
+            mitglied: mitglied,
+          ),
+          providers: providers,
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> tapSave(WidgetTester tester) async {
+      await tester.tap(find.byKey(const Key('member-edit-save-button')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('schliesst die Seite bei Erfolg mit dem Ergebnis', (
+      tester,
+    ) async {
+      final model = _RecordingMemberEditModel(
+        result: const MemberEditSubmitResult(success: true, wasQueued: false),
+      );
+      MemberEditSubmitResult? received;
+
+      _useLargeViewport(tester);
+      await tester.pumpWidget(
+        _buildTestApp(
+          _EditPageLauncher(
+            pageBuilder: () => MemberEditPage(
+              contactCategories: _testCategories,
+              mitglied: _buildMember(gender: 'w'),
+            ),
+            onResult: (result) => received = result,
+          ),
+          providers: _buildEditProviders(model),
+        ),
+      );
+      await tester.tap(find.text('Editor oeffnen'));
+      await tester.pumpAndSettle();
+      await tapSave(tester);
+
+      expect(received?.success, isTrue);
+      expect(find.byType(MemberEditPage), findsNothing);
+    });
+
+    testWidgets(
+      'zeigt Ladezustand und sperrt den Button waehrend des Sendens',
+      (tester) async {
+        final gate = Completer<void>();
+        final model = _RecordingMemberEditModel(
+          result: const MemberEditSubmitResult(success: true, wasQueued: false),
+          gate: gate.future,
+        );
+        await pumpEditor(
+          tester,
+          mitglied: _buildMember(gender: 'w'),
+          model: model,
+        );
+
+        await tester.tap(find.byKey(const Key('member-edit-save-button')));
+        await tester.pump();
+
+        expect(find.text('Speichert...'), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byKey(const Key('member-edit-save-button')),
+            matching: find.byType(CircularProgressIndicator),
+          ),
+          findsOneWidget,
+        );
+        final button = tester.widget<ButtonStyleButton>(
+          find.byKey(const Key('member-edit-save-button')),
+        );
+        expect(button.onPressed, isNull);
+
+        await tester.tap(
+          find.byKey(const Key('member-edit-save-button')),
+          warnIfMissed: false,
+        );
+        await tester.pump();
+        expect(model.submitCalls, hasLength(1));
+
+        gate.complete();
+        await tester.pumpAndSettle();
+      },
+    );
+
+    testWidgets('zeigt Fehlermeldung, wenn Speichern scheitert', (
+      tester,
+    ) async {
+      final model = _RecordingMemberEditModel(
+        result: const MemberEditSubmitResult(success: false, wasQueued: false),
+      );
+      await pumpEditor(
+        tester,
+        mitglied: _buildMember(gender: 'w'),
+        model: model,
+      );
+
+      await tapSave(tester);
+
+      expect(find.text('Speichern fehlgeschlagen.'), findsOneWidget);
+      expect(find.byType(MemberEditPage), findsOneWidget);
+      final button = tester.widget<ButtonStyleButton>(
+        find.byKey(const Key('member-edit-save-button')),
+      );
+      expect(button.onPressed, isNotNull);
+    });
+
+    testWidgets('warnt ohne Sitzung und sendet nichts', (tester) async {
+      final model = _RecordingMemberEditModel();
+      await pumpEditor(
+        tester,
+        mitglied: _buildMember(gender: 'w'),
+        model: model,
+        withSession: false,
+      );
+
+      await tapSave(tester);
+
+      expect(
+        find.text('Aktuell ist keine gültige Sitzung zum Speichern verfügbar.'),
+        findsOneWidget,
+      );
+      expect(model.submitCalls, isEmpty);
+    });
+
+    testWidgets('zeigt Server-Validierung einer Telefonnummer am Feld', (
+      tester,
+    ) async {
+      final model = _RecordingMemberEditModel(
+        result: const MemberEditSubmitResult(
+          success: false,
+          wasQueued: false,
+          message: 'Validierung fehlgeschlagen',
+          validationErrors: <MemberWriteFieldValidationError>[
+            MemberWriteFieldValidationError(
+              message: 'Nummer ist ungültig',
+              relationshipName: 'phone_numbers',
+              relationshipAttribute: 'number',
+              relationshipId: 1,
+            ),
+          ],
+        ),
+      );
+      await pumpEditor(
+        tester,
+        mitglied: _buildMember(gender: 'w'),
+        model: model,
+      );
+
+      await tapSave(tester);
+
+      expect(find.text('Nummer ist ungültig'), findsOneWidget);
+      expect(find.text('Validierung fehlgeschlagen'), findsNothing);
+    });
+
+    testWidgets('blockiert Geburtsdatum in der Zukunft', (tester) async {
+      final model = _RecordingMemberEditModel();
+      final zukunft = DateTime.now().add(const Duration(days: 30));
+      await pumpEditor(
+        tester,
+        mitglied: _buildMember(gender: 'w').copyWith(
+          geburtsdatum: DateTime(zukunft.year, zukunft.month, zukunft.day),
+        ),
+        model: model,
+      );
+
+      await tapSave(tester);
+
+      expect(
+        find.text('Geburtsdatum darf nicht in der Zukunft liegen.'),
+        findsOneWidget,
+      );
+      expect(model.submitCalls, isEmpty);
+    });
+
+    testWidgets('uebernimmt jedes Formularfeld in das Zielmitglied', (
+      tester,
+    ) async {
+      final model = _RecordingMemberEditModel();
+      await pumpEditor(
+        tester,
+        mitglied: _buildMember(gender: 'w'),
+        model: model,
+      );
+
+      Future<void> enter(String key, String value) async {
+        final field = find.byKey(Key(key));
+        await tester.ensureVisible(field);
+        await tester.enterText(field, value);
+      }
+
+      await enter('member-edit-first-name-field', ' Juliane ');
+      await enter('member-edit-last-name-field', 'Kellermann');
+      await enter('member-edit-nickname-field', '');
+      await enter('member-edit-primary-email-field', 'neu@example.org');
+      await enter('member-edit-phone-number-0', '0170 1234567');
+      await tester.pumpAndSettle();
+      await tapSave(tester);
+
+      final ziel = model.submitCalls.single.zielMitglied;
+      expect(ziel.vorname, 'Juliane');
+      expect(ziel.nachname, 'Kellermann');
+      expect(ziel.fahrtenname, isNull);
+      expect(ziel.gender, 'w');
+      expect(ziel.geburtsdatum, DateTime(2012, 5, 4));
+      expect(
+        ziel.emailAdressen.where((email) => email.istPrimaer).single.wert,
+        'neu@example.org',
+      );
+      expect(ziel.telefonnummern.single.phoneNumberId, 1);
+      expect(ziel.telefonnummern.single.wert, '+491701234567');
+      expect(ziel.primaryAddress?.street, 'Musterweg');
+      expect(ziel.primaryAddress?.label, isNull);
+    });
+  });
+
+  group('Kategorien und Zusatzadressen', () {
+    Future<void> pumpEditor(
+      WidgetTester tester,
+      Mitglied mitglied, {
+      MemberEditModel? model,
+      ContactCategoryCatalog? categories,
+    }) async {
+      _useLargeViewport(tester);
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberEditPage(
+            contactCategories: categories ?? _testCategories,
+            mitglied: mitglied,
+          ),
+          providers: model == null
+              ? const <SingleChildWidget>[]
+              : _buildEditProviders(model),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> chooseCategory(
+      WidgetTester tester,
+      String key,
+      String name,
+    ) async {
+      final field = find.byKey(Key(key));
+      await tester.ensureVisible(field);
+      await tester.tap(field);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(name).last);
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> tapSave(WidgetTester tester) async {
+      await tester.tap(find.byKey(const Key('member-edit-save-button')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('verlangt fuer neue Telefonnummern eine Kategorie', (
+      tester,
+    ) async {
+      final model = _RecordingMemberEditModel();
+      await pumpEditor(tester, _buildMember(gender: 'w'), model: model);
+
+      await tester.ensureVisible(find.text('Telefon hinzufügen'));
+      await tester.tap(find.text('Telefon hinzufügen'));
+      await tester.pumpAndSettle();
+      final number = find.byKey(const Key('member-edit-phone-number-1'));
+      await tester.ensureVisible(number);
+      await tester.enterText(number, '0221 123456');
+      await tapSave(tester);
+
+      expect(find.text('Bitte eine Bezeichnung wählen.'), findsOneWidget);
+      expect(model.submitCalls, isEmpty);
+
+      await chooseCategory(tester, 'member-edit-phone-category-1', 'Privat');
+      await tapSave(tester);
+
+      final neu = model.submitCalls.single.zielMitglied.telefonnummern.last;
+      expect(neu.phoneNumberId, isNull);
+      expect(neu.categoryId, 1);
+      expect(neu.wert, '+49221123456');
+    });
+
+    testWidgets('verhindert doppelt vergebene eindeutige Kategorien', (
+      tester,
+    ) async {
+      final model = _RecordingMemberEditModel();
+      final mitglied = _buildMember(gender: 'w').copyWith(
+        telefonnummern: const <MitgliedKontaktTelefon>[
+          MitgliedKontaktTelefon(
+            phoneNumberId: 1,
+            wert: '+491701234567',
+            categoryId: 2,
+          ),
+          MitgliedKontaktTelefon(
+            phoneNumberId: 2,
+            wert: '+491707654321',
+            categoryId: 7,
+          ),
+        ],
+      );
+      await pumpEditor(tester, mitglied, model: model);
+
+      await chooseCategory(tester, 'member-edit-phone-category-1', 'Mobil');
+      await tapSave(tester);
+
+      expect(find.text('Mobil ist schon vergeben.'), findsNWidgets(2));
+      expect(model.submitCalls, isEmpty);
+    });
+
+    testWidgets('erlaubt Andere mehrfach', (tester) async {
+      final model = _RecordingMemberEditModel();
+      final mitglied = _buildMember(gender: 'w').copyWith(
+        telefonnummern: const <MitgliedKontaktTelefon>[
+          MitgliedKontaktTelefon(
+            phoneNumberId: 1,
+            wert: '+491701234567',
+            categoryId: 7,
+          ),
+          MitgliedKontaktTelefon(
+            phoneNumberId: 2,
+            wert: '+491707654321',
+            categoryId: 7,
+          ),
+        ],
+      );
+      await pumpEditor(tester, mitglied, model: model);
+
+      await tapSave(tester);
+
+      expect(model.submitCalls, hasLength(1));
+    });
+
+    testWidgets('behaelt Freitext-Zusatz und unbekannte Kategorie', (
+      tester,
+    ) async {
+      final model = _RecordingMemberEditModel();
+      final mitglied = _buildMember(gender: 'w').copyWith(
+        telefonnummern: const <MitgliedKontaktTelefon>[
+          MitgliedKontaktTelefon(
+            phoneNumberId: 1,
+            wert: '+491701234567',
+            label: 'Oma',
+            categoryId: 99,
+          ),
+        ],
+      );
+      await pumpEditor(tester, mitglied, model: model);
+
+      expect(find.text('Zusatz: Oma'), findsOneWidget);
+      expect(find.text('Unbekannte Kategorie'), findsWidgets);
+
+      await tapSave(tester);
+
+      final phone = model.submitCalls.single.zielMitglied.telefonnummern.single;
+      expect(phone.label, 'Oma');
+      expect(phone.categoryId, 99);
+    });
+
+    testWidgets('sperrt neue Kontakteintraege ohne Kategorien', (tester) async {
+      await pumpEditor(
+        tester,
+        _buildMember(gender: 'w'),
+        categories: const ContactCategoryCatalog.empty(),
+      );
+
+      expect(find.text('Telefon hinzufügen'), findsNothing);
+      expect(find.text('E-Mail hinzufügen'), findsNothing);
+      expect(find.text('Adresse hinzufügen'), findsNothing);
+      expect(
+        find.text(
+          'Neue Einträge sind erst möglich, wenn die Hitobito-Kategorien in der App hinterlegt sind.',
+          skipOffstage: false,
+        ),
+        findsNWidgets(3),
+      );
+    });
+
+    testWidgets('legt Zusatzadresse mit Namen der Person und Kategorie an', (
+      tester,
+    ) async {
+      final model = _RecordingMemberEditModel();
+      await pumpEditor(tester, _buildMember(gender: 'w'), model: model);
+
+      await tester.ensureVisible(find.text('Adresse hinzufügen'));
+      await tester.tap(find.text('Adresse hinzufügen'));
+      await tester.pumpAndSettle();
+
+      final firstName = tester.widget<TextFormField>(
+        find.byKey(const Key('member-edit-address-first-name-0')),
+      );
+      expect(firstName.controller?.text, 'Julia');
+
+      await chooseCategory(
+        tester,
+        'member-edit-address-category-0',
+        'Zweitanschrift',
+      );
+      await tester.enterText(
+        find.byKey(const Key('member-edit-address-last-name-0')),
+        '',
+      );
+      await tester.enterText(
+        find.byKey(const Key('member-edit-address-first-name-0')),
+        '',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Ort').last,
+        'Bonn',
+      );
+      await tester.pumpAndSettle();
+      await tapSave(tester);
+
+      expect(
+        find.text('Bitte Vorname, Nachname oder Organisation angeben.'),
+        findsOneWidget,
+      );
+      expect(model.submitCalls, isEmpty);
+
+      await tester.enterText(
+        find.byKey(const Key('member-edit-address-organization-0')),
+        'Stamm Musterdorf',
+      );
+      await tester.pumpAndSettle();
+      await tapSave(tester);
+
+      final adresse =
+          model.submitCalls.single.zielMitglied.additionalAddresses.single;
+      expect(adresse.additionalAddressId, isNull);
+      expect(adresse.categoryId, 22);
+      expect(adresse.organizationName, 'Stamm Musterdorf');
+      expect(adresse.town, 'Bonn');
+    });
+  });
+
+  group('Pronomen, Bankverbindung und Berechtigung', () {
+    Mitglied mitBank() => _buildMember(gender: 'w').copyWith(
+      detailsLesbar: true,
+      bankAccountOwner: 'Julia Keller',
+      iban: 'DE02120300000000202051',
+      bic: 'BYLADEM1001',
+      bankName: 'Testbank',
+      paymentMethod: 'invoice',
+    );
+
+    Future<void> pumpEditor(
+      WidgetTester tester,
+      Mitglied mitglied, {
+      MemberEditModel? model,
+    }) async {
+      _useLargeViewport(tester);
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberEditPage(
+            contactCategories: _testCategories,
+            mitglied: mitglied,
+          ),
+          providers: model == null
+              ? const <SingleChildWidget>[]
+              : _buildEditProviders(model),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> enter(WidgetTester tester, String key, String value) async {
+      final field = find.byKey(Key(key));
+      await tester.ensureVisible(field);
+      await tester.enterText(field, value);
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> tapSave(WidgetTester tester) async {
+      await tester.tap(find.byKey(const Key('member-edit-save-button')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('speichert Pronomen', (tester) async {
+      final model = _RecordingMemberEditModel();
+      await pumpEditor(tester, _buildMember(gender: 'w'), model: model);
+
+      await enter(tester, 'member-edit-pronoun-field', ' sie/ihr ');
+      await tapSave(tester);
+
+      expect(model.submitCalls.single.zielMitglied.pronoun, 'sie/ihr');
+    });
+
+    testWidgets('speichert Sichtbarkeit einer Telefonnummer', (tester) async {
+      final model = _RecordingMemberEditModel();
+      await pumpEditor(tester, _buildMember(gender: 'w'), model: model);
+
+      final toggle = find.byKey(const Key('member-edit-phone-public-0'));
+      await tester.ensureVisible(toggle);
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      await tapSave(tester);
+
+      final phone = model.submitCalls.single.zielMitglied.telefonnummern.single;
+      expect(phone.phoneNumberId, 1);
+      expect(phone.istOeffentlich, isTrue);
+    });
+
+    testWidgets('zeigt keine Bankverbindung ohne lesbare Bankdaten', (
+      tester,
+    ) async {
+      await pumpEditor(tester, _buildMember(gender: 'w'));
+
+      expect(find.text('Bankverbindung', skipOffstage: false), findsNothing);
+      expect(
+        find.byKey(const Key('member-edit-iban-field'), skipOffstage: false),
+        findsNothing,
+      );
+    });
+
+    testWidgets('bearbeitet Bankverbindung und normalisiert die IBAN', (
+      tester,
+    ) async {
+      final model = _RecordingMemberEditModel();
+      await pumpEditor(tester, mitBank(), model: model);
+
+      expect(find.text('Bankverbindung'), findsOneWidget);
+      await enter(
+        tester,
+        'member-edit-iban-field',
+        'de89 3704 0044 0532 0130 00',
+      );
+      await enter(tester, 'member-edit-bic-field', '');
+      final paymentField = find.byKey(
+        const Key('member-edit-payment-method-field'),
+      );
+      await tester.ensureVisible(paymentField);
+      await tester.tap(paymentField);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Lastschrift').last);
+      await tester.pumpAndSettle();
+      await tapSave(tester);
+
+      final ziel = model.submitCalls.single.zielMitglied;
+      expect(ziel.iban, 'DE89370400440532013000');
+      expect(ziel.bic, isNull);
+      expect(ziel.paymentMethod, 'debit');
+      expect(ziel.bankAccountOwner, 'Julia Keller');
+    });
+
+    testWidgets('bietet bei der Zahlart keine leere Auswahl an', (
+      tester,
+    ) async {
+      await pumpEditor(tester, mitBank());
+
+      final paymentField = find.byKey(
+        const Key('member-edit-payment-method-field'),
+      );
+      await tester.ensureVisible(paymentField);
+      await tester.tap(paymentField);
+      await tester.pumpAndSettle();
+
+      final values = tester
+          .widgetList<DropdownMenuItem<String>>(
+            find.byType(DropdownMenuItem<String>),
+          )
+          .map((item) => item.value)
+          .toSet();
+      expect(values, containsAll(<String>['invoice', 'debit']));
+      expect(values.contains(null), isFalse);
+      expect(values.contains(''), isFalse);
+    });
+
+    testWidgets('blockiert ungueltige IBAN und BIC', (tester) async {
+      final model = _RecordingMemberEditModel();
+      await pumpEditor(tester, mitBank(), model: model);
+
+      await enter(tester, 'member-edit-iban-field', 'DE00123456789012345678');
+      await enter(tester, 'member-edit-bic-field', 'ABC');
+      await tapSave(tester);
+
+      expect(find.text('Bitte eine gültige IBAN eingeben.'), findsOneWidget);
+      expect(find.text('Bitte eine gültige BIC eingeben.'), findsOneWidget);
+      expect(model.submitCalls, isEmpty);
+    });
+
+    testWidgets('zeigt Serverfehler zur IBAN direkt am Feld', (tester) async {
+      final model = _RecordingMemberEditModel(
+        result: const MemberEditSubmitResult(
+          success: false,
+          wasQueued: false,
+          message: 'Validierung fehlgeschlagen',
+          validationErrors: <MemberWriteFieldValidationError>[
+            MemberWriteFieldValidationError(
+              message: 'IBAN ist nicht gültig',
+              attribute: 'iban',
+            ),
+          ],
+        ),
+      );
+      await pumpEditor(tester, mitBank(), model: model);
+
+      await tapSave(tester);
+
+      expect(find.text('IBAN ist nicht gültig'), findsOneWidget);
+      expect(find.text('Validierung fehlgeschlagen'), findsNothing);
+
+      await enter(tester, 'member-edit-iban-field', 'DE89370400440532013000');
+      await tapSave(tester);
+      expect(model.submitCalls, hasLength(2));
+      expect(
+        model.submitCalls.last.zielMitglied.iban,
+        'DE89370400440532013000',
+      );
+    });
+
+    testWidgets(
+      'sperrt Geschlecht und Geburtsdatum ohne Berechtigung und behaelt sie',
+      (tester) async {
+        final model = _RecordingMemberEditModel();
+        final mitglied = _buildMember(gender: '').copyWith(
+          detailsLesbar: false,
+          geburtsdatum: Mitglied.peoplePlaceholderDate,
+          genderLoeschen: true,
+        );
+        await pumpEditor(tester, mitglied, model: model);
+
+        expect(
+          find.byKey(const Key('member-edit-details-locked')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const Key('member-edit-gender-field')), findsNothing);
+        expect(
+          find.byKey(const Key('member-edit-birthdate-field')),
+          findsNothing,
+        );
+
+        await tapSave(tester);
+
+        final ziel = model.submitCalls.single.zielMitglied;
+        expect(ziel.gender, isNull);
+        expect(ziel.geburtsdatum, Mitglied.peoplePlaceholderDate);
+      },
+    );
   });
 
   testWidgets('blockiert Speichern ohne Namen oder Fahrtenname', (
@@ -178,6 +932,7 @@ void main() {
     await tester.pumpWidget(
       _buildTestApp(
         MemberEditPage(
+          contactCategories: _testCategories,
           mitglied: _buildMember(gender: '').copyWith(
             vorname: '',
             nachname: '',
@@ -202,6 +957,7 @@ void main() {
     await tester.pumpWidget(
       _buildTestApp(
         MemberEditPage(
+          contactCategories: _testCategories,
           mitglied: _buildMember(gender: '').copyWith(geburtsdatum: oldDate),
         ),
       ),
@@ -220,6 +976,7 @@ void main() {
     await tester.pumpWidget(
       _buildTestApp(
         MemberEditPage(
+          contactCategories: _testCategories,
           mitglied: _buildMember(gender: '').copyWith(
             emailAdressen: const <MitgliedKontaktEmail>[
               MitgliedKontaktEmail(
@@ -245,7 +1002,12 @@ void main() {
 
   testWidgets('blockiert ungueltige Telefonnummern', (tester) async {
     await tester.pumpWidget(
-      _buildTestApp(MemberEditPage(mitglied: _buildMember(gender: ''))),
+      _buildTestApp(
+        MemberEditPage(
+          contactCategories: _testCategories,
+          mitglied: _buildMember(gender: ''),
+        ),
+      ),
     );
 
     await tester.enterText(
@@ -273,7 +1035,12 @@ void main() {
     });
 
     await tester.pumpWidget(
-      _buildTestApp(MemberEditPage(mitglied: _buildMember(gender: ''))),
+      _buildTestApp(
+        MemberEditPage(
+          contactCategories: _testCategories,
+          mitglied: _buildMember(gender: ''),
+        ),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -293,6 +1060,7 @@ void main() {
     await tester.pumpWidget(
       _buildTestApp(
         MemberEditPage(
+          contactCategories: _testCategories,
           mitglied: _buildMember(gender: '').copyWith(
             telefonnummern: const <MitgliedKontaktTelefon>[
               MitgliedKontaktTelefon(phoneNumberId: 1, wert: '+352621123456'),
@@ -318,6 +1086,7 @@ void main() {
     await tester.pumpWidget(
       _buildTestApp(
         MemberEditPage(
+          contactCategories: _testCategories,
           mitglied: _buildMember(gender: '').copyWith(
             telefonnummern: const <MitgliedKontaktTelefon>[
               MitgliedKontaktTelefon(phoneNumberId: 1, wert: '+12125550123'),
@@ -348,7 +1117,12 @@ void main() {
     });
 
     await tester.pumpWidget(
-      _buildTestApp(MemberEditPage(mitglied: _buildMember(gender: ''))),
+      _buildTestApp(
+        MemberEditPage(
+          contactCategories: _testCategories,
+          mitglied: _buildMember(gender: ''),
+        ),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -382,7 +1156,12 @@ void main() {
 
   testWidgets('blockiert leere Zusatz-E-Mails', (tester) async {
     await tester.pumpWidget(
-      _buildTestApp(MemberEditPage(mitglied: _buildMember(gender: ''))),
+      _buildTestApp(
+        MemberEditPage(
+          contactCategories: _testCategories,
+          mitglied: _buildMember(gender: ''),
+        ),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -398,6 +1177,7 @@ void main() {
     await tester.pumpWidget(
       _buildTestApp(
         MemberEditPage(
+          contactCategories: _testCategories,
           mitglied: _buildMember(
             gender: '',
           ).copyWith(geburtsdatum: Mitglied.peoplePlaceholderDate),
@@ -434,6 +1214,7 @@ void main() {
       await tester.pumpWidget(
         _buildTestApp(
           MemberEditPage(
+            contactCategories: _testCategories,
             mitglied: pendingEntry.zielMitglied,
             pendingEntry: pendingEntry,
           ),
@@ -537,7 +1318,11 @@ void main() {
 
       await tester.pumpWidget(
         _buildTestApp(
-          MemberEditPage(mitglied: zielMitglied, pendingEntry: pendingEntry),
+          MemberEditPage(
+            contactCategories: _testCategories,
+            mitglied: zielMitglied,
+            pendingEntry: pendingEntry,
+          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -581,7 +1366,7 @@ void main() {
       _useLargeViewport(tester);
       await tester.pumpWidget(
         _buildTestApp(
-          MemberEditPage(mitglied: member),
+          MemberEditPage(contactCategories: _testCategories, mitglied: member),
           providers: _buildEditProviders(model),
         ),
       );
@@ -627,7 +1412,7 @@ void main() {
       _useLargeViewport(tester);
       await tester.pumpWidget(
         _buildTestApp(
-          MemberEditPage(mitglied: member),
+          MemberEditPage(contactCategories: _testCategories, mitglied: member),
           providers: _buildEditProviders(model),
         ),
       );
@@ -703,7 +1488,11 @@ void main() {
 
       await tester.pumpWidget(
         _buildTestApp(
-          MemberEditPage(mitglied: zielMitglied, pendingEntry: pendingEntry),
+          MemberEditPage(
+            contactCategories: _testCategories,
+            mitglied: zielMitglied,
+            pendingEntry: pendingEntry,
+          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -763,7 +1552,11 @@ void main() {
 
       await tester.pumpWidget(
         _buildTestApp(
-          MemberEditPage(mitglied: zielMitglied, pendingEntry: pendingEntry),
+          MemberEditPage(
+            contactCategories: _testCategories,
+            mitglied: zielMitglied,
+            pendingEntry: pendingEntry,
+          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -830,6 +1623,7 @@ void main() {
       await tester.pumpWidget(
         _buildTestApp(
           MemberEditPage(
+            contactCategories: _testCategories,
             mitglied: pendingEntry.zielMitglied,
             pendingEntry: pendingEntry,
           ),
@@ -1263,6 +2057,7 @@ void main() {
         _buildTestApp(
           _EditPageLauncher(
             pageBuilder: () => MemberEditPage(
+              contactCategories: _testCategories,
               mitglied: pendingEntry.zielMitglied,
               pendingEntry: pendingEntry,
             ),
@@ -1324,6 +2119,7 @@ void main() {
           _buildTestApp(
             _EditPageLauncher(
               pageBuilder: () => MemberEditPage(
+                contactCategories: _testCategories,
                 mitglied: pendingEntry.zielMitglied,
                 pendingEntry: pendingEntry,
               ),
@@ -1354,6 +2150,12 @@ void main() {
     );
   });
 }
+
+final _testCategories = ContactCategoryCatalog.parse(
+  'phone_number.private=1,phone_number.mobile=2,phone_number.other=7,'
+  'additional_email.guardians=11,additional_email.other=14,'
+  'additional_address.secondary_address=22,additional_address.other=23',
+);
 
 Widget _buildTestApp(
   Widget home, {
@@ -1508,6 +2310,7 @@ class _RecordingMemberEditModel extends MemberEditModel {
       wasQueued: true,
     ),
     List<MemberEditSubmitResult>? results,
+    this.gate,
   }) : _results = results ?? <MemberEditSubmitResult>[result],
        super(
          memberWriteRepository: _NoopMemberWriteRepository(),
@@ -1517,6 +2320,7 @@ class _RecordingMemberEditModel extends MemberEditModel {
        );
 
   final List<MemberEditSubmitResult> _results;
+  final Future<void>? gate;
   final List<_SubmitCall> submitCalls = <_SubmitCall>[];
   final List<String> choices = <String>[];
   final List<String> openedEntryPoints = <String>[];
@@ -1538,6 +2342,10 @@ class _RecordingMemberEditModel extends MemberEditModel {
         existingResolutionCase: existingResolutionCase,
       ),
     );
+    final pendingGate = gate;
+    if (pendingGate != null) {
+      await pendingGate;
+    }
     final index = submitCalls.length - 1;
     return index < _results.length ? _results[index] : _results.last;
   }

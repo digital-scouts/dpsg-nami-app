@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../domain/member/contact_category.dart';
 import '../../domain/member/member_resolution.dart';
 import '../../domain/member/mitglied.dart';
 import '../../domain/member/pending_person_update.dart';
 import '../../l10n/app_localizations.dart';
+import '../../services/hitobito_contact_category_env.dart';
 import '../model/auth_session_model.dart';
+import '../model/member_bank_input.dart';
 import '../model/member_edit_model.dart';
 import '../model/member_phone_input.dart';
 import '../notifications/app_snackbar.dart';
@@ -20,12 +23,16 @@ class MemberEditPage extends StatefulWidget {
     this.pendingEntry,
     this.initialNoticeMessage,
     this.resolutionEntryPoint,
+    this.contactCategories,
   });
 
   final Mitglied mitglied;
   final PendingPersonUpdate? pendingEntry;
   final String? initialNoticeMessage;
   final String? resolutionEntryPoint;
+
+  /// Kategorien fuer Kontakteintraege; ohne Angabe aus der Konfiguration.
+  final ContactCategoryCatalog? contactCategories;
 
   @override
   State<MemberEditPage> createState() => _MemberEditPageState();
@@ -35,13 +42,30 @@ class _MemberEditPageState extends State<MemberEditPage> {
   static final DateFormat _dateFormat = DateFormat('dd.MM.yyyy');
   static const double _pagePadding = 10;
   static const double _cardRadius = 16;
-  static const List<String> _defaultGenderValues = <String>['w', 'm', ''];
+
+  /// Personenattribute, deren Serverfehler direkt am Feld erscheinen.
+  static const Set<String> _fieldAttributes = <String>{
+    'first_name',
+    'last_name',
+    'nickname',
+    'pronoun',
+    'email',
+    'bank_account_owner',
+    'iban',
+    'bic',
+    'bank_name',
+    'payment_method',
+  };
+  static const List<String> _defaultGenderValues = <String>['w', 'm', 'd', ''];
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final GlobalKey _generalSectionKey = GlobalKey();
   final GlobalKey _emailSectionKey = GlobalKey();
   final GlobalKey _phoneSectionKey = GlobalKey();
   final GlobalKey _addressSectionKey = GlobalKey();
+  final GlobalKey _bankSectionKey = GlobalKey();
+  final GlobalKey _pronounFieldKey = GlobalKey();
+  final GlobalKey _ibanFieldKey = GlobalKey();
   final GlobalKey _vornameFieldKey = GlobalKey();
   final GlobalKey _nachnameFieldKey = GlobalKey();
   final GlobalKey _fahrtennameFieldKey = GlobalKey();
@@ -54,17 +78,27 @@ class _MemberEditPageState extends State<MemberEditPage> {
   final FocusNode _primaryEmailFocusNode = FocusNode();
   final FocusNode _genderFocusNode = FocusNode();
   final FocusNode _birthdayFocusNode = FocusNode();
+  final FocusNode _pronounFocusNode = FocusNode();
+  final FocusNode _ibanFocusNode = FocusNode();
   late final TextEditingController _vornameController;
   late final TextEditingController _nachnameController;
   late final TextEditingController _fahrtennameController;
   late final TextEditingController _primaryEmailController;
+  late final TextEditingController _pronounController;
+  late final TextEditingController _bankAccountOwnerController;
+  late final TextEditingController _ibanController;
+  late final TextEditingController _bicController;
+  late final TextEditingController _bankNameController;
+  late String? _paymentMethod;
   late DateTime? _geburtsdatum;
   late String? _gender;
   late final _AddressDraft _primaryAddressDraft;
   late final List<_PhoneDraft> _phoneDrafts;
   late final List<_EmailDraft> _additionalEmailDrafts;
   late final List<_AddressDraft> _additionalAddressDrafts;
+  late final ContactCategoryCatalog _categories;
   final Map<int, String> _serverPhoneErrorsById = <int, String>{};
+  final Map<String, String> _serverAttributeErrors = <String, String>{};
   final Set<String> _dismissedResolutionItemIds = <String>{};
   late bool _editSectionExpanded;
   bool _isSubmitting = false;
@@ -72,6 +106,11 @@ class _MemberEditPageState extends State<MemberEditPage> {
   MemberResolutionCase? get _resolutionCase =>
       widget.pendingEntry?.resolutionCase;
   bool get _isResolutionMode => _resolutionCase != null;
+
+  /// Ohne `show_details` liefert Hitobito Geschlecht und Geburtsdatum nicht;
+  /// leere Felder duerfen dann nicht als bearbeitbar erscheinen.
+  bool get _detailsGesperrt => widget.mitglied.detailsLesbar == false;
+  bool get _zeigtBankdaten => widget.mitglied.bankdatenLesbar;
   AppLocalizations get _t => AppLocalizations.of(context);
   String get _resolutionDisplayName {
     final pendingName = widget.pendingEntry?.displayName.trim();
@@ -97,6 +136,8 @@ class _MemberEditPageState extends State<MemberEditPage> {
   @override
   void initState() {
     super.initState();
+    _categories =
+        widget.contactCategories ?? HitobitoContactCategoryEnv.catalog;
     final primaryEmail = _resolvePrimaryEmail(widget.mitglied.emailAdressen);
     final primaryAddress = widget.mitglied.primaryAddress;
     _vornameController = TextEditingController(text: widget.mitglied.vorname);
@@ -112,6 +153,14 @@ class _MemberEditPageState extends State<MemberEditPage> {
         ? null
         : widget.mitglied.geburtsdatum;
     _gender = _normalizeGenderValue(widget.mitglied.gender);
+    _pronounController = TextEditingController(
+      text: widget.mitglied.pronoun ?? '',
+    );
+    _bankAccountOwnerController = TextEditingController();
+    _ibanController = TextEditingController();
+    _bicController = TextEditingController();
+    _bankNameController = TextEditingController();
+    _applyBankValues(widget.mitglied);
     _editSectionExpanded = !_isResolutionMode;
     _primaryAddressDraft = _AddressDraft.fromAdresse(
       primaryAddress ?? const MitgliedKontaktAdresse(additionalAddressId: 0),
@@ -157,6 +206,13 @@ class _MemberEditPageState extends State<MemberEditPage> {
     _primaryEmailFocusNode.dispose();
     _genderFocusNode.dispose();
     _birthdayFocusNode.dispose();
+    _pronounFocusNode.dispose();
+    _ibanFocusNode.dispose();
+    _pronounController.dispose();
+    _bankAccountOwnerController.dispose();
+    _ibanController.dispose();
+    _bicController.dispose();
+    _bankNameController.dispose();
     _vornameController.dispose();
     _nachnameController.dispose();
     _fahrtennameController.dispose();
@@ -262,6 +318,14 @@ class _MemberEditPageState extends State<MemberEditPage> {
           title: _t.t('member_edit_section_address'),
           child: _buildAddressSection(),
         ),
+        if (_zeigtBankdaten) ...[
+          const SizedBox(height: 10),
+          _SectionCard(
+            key: _bankSectionKey,
+            title: _t.t('member_edit_section_bank'),
+            child: _buildBankSection(),
+          ),
+        ],
       ],
     );
   }
@@ -540,6 +604,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
               _vornameController,
               _t.t('member_edit_field_first_name'),
               fieldKey: const Key('member-edit-first-name-field'),
+              serverErrorAttribute: 'first_name',
               focusNode: _vornameFocusNode,
             ),
           ),
@@ -549,18 +614,32 @@ class _MemberEditPageState extends State<MemberEditPage> {
               _fahrtennameController,
               _t.t('member_edit_field_nickname'),
               fieldKey: const Key('member-edit-nickname-field'),
+              serverErrorAttribute: 'nickname',
               focusNode: _fahrtennameFocusNode,
             ),
           ),
         ),
         const SizedBox(height: 12),
-        SizedBox(
-          key: _nachnameFieldKey,
-          child: _buildTextField(
-            _nachnameController,
-            _t.t('member_edit_field_last_name'),
-            fieldKey: const Key('member-edit-last-name-field'),
-            focusNode: _nachnameFocusNode,
+        _buildTwoColumnFields(
+          first: SizedBox(
+            key: _nachnameFieldKey,
+            child: _buildTextField(
+              _nachnameController,
+              _t.t('member_edit_field_last_name'),
+              fieldKey: const Key('member-edit-last-name-field'),
+              serverErrorAttribute: 'last_name',
+              focusNode: _nachnameFocusNode,
+            ),
+          ),
+          second: SizedBox(
+            key: _pronounFieldKey,
+            child: _buildTextField(
+              _pronounController,
+              _t.t('member_edit_field_pronoun'),
+              fieldKey: const Key('member-edit-pronoun-field'),
+              focusNode: _pronounFocusNode,
+              serverErrorAttribute: 'pronoun',
+            ),
           ),
         ),
         FormField<void>(
@@ -583,30 +662,139 @@ class _MemberEditPageState extends State<MemberEditPage> {
           },
         ),
         const SizedBox(height: 12),
-        _ResponsiveWrap(
-          minChildWidth: 240,
-          spacing: 12,
-          runSpacing: 12,
-          children: [
-            SizedBox(key: _genderFieldTargetKey, child: _buildGenderField()),
-            SizedBox(
-              key: _birthdayFieldTargetKey,
-              child: _buildDateField(
-                label: _t.t('member_edit_field_birthday'),
-                fieldKey: const Key('member-edit-birthdate-field'),
-                focusNode: _birthdayFocusNode,
-                allowClear: true,
-                value: _geburtsdatum,
-                onChanged: (value) {
-                  setState(() => _geburtsdatum = value);
-                },
-                validator: _validateBirthDate,
+        if (_detailsGesperrt)
+          Text(
+            _t.t('member_edit_details_not_visible'),
+            key: const Key('member-edit-details-locked'),
+            style: Theme.of(context).textTheme.bodySmall,
+          )
+        else
+          _ResponsiveWrap(
+            minChildWidth: 240,
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              SizedBox(key: _genderFieldTargetKey, child: _buildGenderField()),
+              SizedBox(
+                key: _birthdayFieldTargetKey,
+                child: _buildDateField(
+                  label: _t.t('member_edit_field_birthday'),
+                  fieldKey: const Key('member-edit-birthdate-field'),
+                  focusNode: _birthdayFocusNode,
+                  allowClear: true,
+                  value: _geburtsdatum,
+                  onChanged: (value) {
+                    setState(() => _geburtsdatum = value);
+                  },
+                  validator: _validateBirthDate,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
+      ],
+    );
+  }
+
+  Widget _buildBankSection() {
+    final paymentMethods = <String>[
+      ...MemberBankInput.paymentMethods,
+      if (_paymentMethod != null &&
+          !MemberBankInput.paymentMethods.contains(_paymentMethod))
+        _paymentMethod!,
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        DropdownButtonFormField<String>(
+          key: const Key('member-edit-payment-method-field'),
+          initialValue: _paymentMethod,
+          isExpanded: true,
+          decoration: InputDecoration(
+            labelText: _t.t('member_edit_field_payment_method'),
+            isDense: true,
+            border: const OutlineInputBorder(),
+            errorText: _serverAttributeErrors['payment_method'],
+          ),
+          items: paymentMethods
+              .map(
+                (value) => DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(_labelForPaymentMethod(value)),
+                ),
+              )
+              .toList(growable: false),
+          validator: (value) => value == null
+              ? _t.t('member_edit_required_field', {
+                  'field': _t.t('member_edit_field_payment_method'),
+                })
+              : null,
+          onChanged: (value) {
+            setState(() {
+              _paymentMethod = value;
+              _serverAttributeErrors.remove('payment_method');
+            });
+          },
+        ),
+        const SizedBox(height: 12),
+        _buildTextField(
+          _bankAccountOwnerController,
+          _t.t('member_edit_field_bank_account_owner'),
+          fieldKey: const Key('member-edit-bank-account-owner-field'),
+          serverErrorAttribute: 'bank_account_owner',
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          key: _ibanFieldKey,
+          child: _buildTextField(
+            _ibanController,
+            _t.t('member_edit_field_iban'),
+            fieldKey: const Key('member-edit-iban-field'),
+            focusNode: _ibanFocusNode,
+            serverErrorAttribute: 'iban',
+            validator: (value) => MemberBankInput.isValidIban(value)
+                ? null
+                : _t.t('member_edit_iban_invalid'),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildTwoColumnFields(
+          first: _buildTextField(
+            _bicController,
+            _t.t('member_edit_field_bic'),
+            fieldKey: const Key('member-edit-bic-field'),
+            serverErrorAttribute: 'bic',
+            validator: (value) => MemberBankInput.isValidBic(value)
+                ? null
+                : _t.t('member_edit_bic_invalid'),
+          ),
+          second: _buildTextField(
+            _bankNameController,
+            _t.t('member_edit_field_bank_name'),
+            fieldKey: const Key('member-edit-bank-name-field'),
+            serverErrorAttribute: 'bank_name',
+          ),
         ),
       ],
     );
+  }
+
+  String _labelForPaymentMethod(String value) {
+    switch (value) {
+      case MemberBankInput.paymentMethodInvoice:
+        return _t.t('member_edit_payment_method_invoice');
+      case MemberBankInput.paymentMethodDebit:
+        return _t.t('member_edit_payment_method_debit');
+      default:
+        return value;
+    }
+  }
+
+  void _applyBankValues(Mitglied source) {
+    _bankAccountOwnerController.text = source.bankAccountOwner ?? '';
+    _ibanController.text = source.iban ?? '';
+    _bicController.text = source.bic ?? '';
+    _bankNameController.text = source.bankName ?? '';
+    _paymentMethod = source.paymentMethod;
   }
 
   Widget _buildTwoColumnFields({
@@ -637,11 +825,14 @@ class _MemberEditPageState extends State<MemberEditPage> {
   Widget _buildEmailSection() {
     return _SectionBodyWithAddAction(
       addLabel: _t.t('member_edit_add_email'),
-      onAdd: () {
-        setState(() {
-          _additionalEmailDrafts.add(_EmailDraft.empty());
-        });
-      },
+      disabledHint: _t.t('member_edit_categories_missing'),
+      onAdd: _categories.supports(ContactAccountType.additionalEmail)
+          ? () {
+              setState(() {
+                _additionalEmailDrafts.add(_EmailDraft.empty());
+              });
+            }
+          : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -652,6 +843,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
                 _primaryEmailController,
                 _t.t('member_edit_section_email'),
                 fieldKey: const Key('member-edit-primary-email-field'),
+                serverErrorAttribute: 'email',
                 focusNode: _primaryEmailFocusNode,
                 keyboardType: TextInputType.emailAddress,
                 validator: _validateEmail,
@@ -675,11 +867,14 @@ class _MemberEditPageState extends State<MemberEditPage> {
   Widget _buildPhoneSection() {
     return _SectionBodyWithAddAction(
       addLabel: _t.t('member_edit_add_phone'),
-      onAdd: () {
-        setState(() {
-          _phoneDrafts.add(_PhoneDraft.empty());
-        });
-      },
+      disabledHint: _t.t('member_edit_categories_missing'),
+      onAdd: _categories.supports(ContactAccountType.phoneNumber)
+          ? () {
+              setState(() {
+                _phoneDrafts.add(_PhoneDraft.empty());
+              });
+            }
+          : null,
       child: _phoneDrafts.isEmpty
           ? _EmptyState(message: _t.t('member_edit_phone_empty'))
           : Column(
@@ -696,11 +891,16 @@ class _MemberEditPageState extends State<MemberEditPage> {
   Widget _buildAddressSection() {
     return _SectionBodyWithAddAction(
       addLabel: _t.t('member_edit_add_address'),
-      onAdd: () {
-        setState(() {
-          _additionalAddressDrafts.add(_AddressDraft.empty());
-        });
-      },
+      disabledHint: _t.t('member_edit_categories_missing'),
+      onAdd: _categories.supports(ContactAccountType.additionalAddress)
+          ? () {
+              setState(() {
+                _additionalAddressDrafts.add(
+                  _AddressDraft.forNewEntry(widget.mitglied),
+                );
+              });
+            }
+          : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -746,9 +946,16 @@ class _MemberEditPageState extends State<MemberEditPage> {
     return _DetailPanel(
       child: Column(
         children: [
-          _buildDetailLabelRow(
-            controller: draft.labelController,
-            label: _t.t('member_edit_field_label'),
+          _buildCategoryRow(
+            type: ContactAccountType.phoneNumber,
+            fieldKey: Key('member-edit-phone-category-$index'),
+            categoryId: draft.categoryId,
+            isNewEntry: draft.phoneNumberId == null,
+            freeLabel: draft.labelController.text,
+            takenCategoryIds: _takenCategoryIds(
+              _phoneDrafts.map((other) => other.categoryId),
+            ),
+            onChanged: (value) => setState(() => draft.categoryId = value),
             onRemove: () {
               setState(() {
                 final removed = _phoneDrafts.removeAt(index);
@@ -815,6 +1022,30 @@ class _MemberEditPageState extends State<MemberEditPage> {
               ),
             ],
           ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(_t.t('member_edit_field_phone_public')),
+                    Text(
+                      _t.t('member_edit_field_phone_public_hint'),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                key: Key('member-edit-phone-public-$index'),
+                value: draft.istOeffentlich,
+                onChanged: (value) {
+                  setState(() => draft.istOeffentlich = value);
+                },
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -824,9 +1055,16 @@ class _MemberEditPageState extends State<MemberEditPage> {
     return _DetailPanel(
       child: Column(
         children: [
-          _buildDetailLabelRow(
-            controller: draft.labelController,
-            label: _t.t('member_edit_field_label'),
+          _buildCategoryRow(
+            type: ContactAccountType.additionalEmail,
+            fieldKey: Key('member-edit-email-category-$index'),
+            categoryId: draft.categoryId,
+            isNewEntry: draft.additionalEmailId == null,
+            freeLabel: draft.labelController.text,
+            takenCategoryIds: _takenCategoryIds(
+              _additionalEmailDrafts.map((other) => other.categoryId),
+            ),
+            onChanged: (value) => setState(() => draft.categoryId = value),
             onRemove: () {
               setState(() {
                 final removed = _additionalEmailDrafts.removeAt(index);
@@ -857,9 +1095,16 @@ class _MemberEditPageState extends State<MemberEditPage> {
       child: Column(
         children: [
           if (removable) ...[
-            _buildDetailLabelRow(
-              controller: draft.labelController,
-              label: _t.t('member_edit_field_label'),
+            _buildCategoryRow(
+              type: ContactAccountType.additionalAddress,
+              fieldKey: Key('member-edit-address-category-$index'),
+              categoryId: draft.categoryId,
+              isNewEntry: draft.additionalAddressId == null,
+              freeLabel: draft.labelController.text,
+              takenCategoryIds: _takenCategoryIds(
+                _additionalAddressDrafts.map((other) => other.categoryId),
+              ),
+              onChanged: (value) => setState(() => draft.categoryId = value),
               onRemove: () {
                 setState(() {
                   final removed = _additionalAddressDrafts.removeAt(index);
@@ -868,27 +1113,37 @@ class _MemberEditPageState extends State<MemberEditPage> {
               },
             ),
             const SizedBox(height: 10),
+            _buildTwoColumnFields(
+              first: _buildTextField(
+                draft.firstNameController,
+                _t.t('member_edit_field_first_name'),
+                fieldKey: Key('member-edit-address-first-name-$index'),
+              ),
+              second: _buildTextField(
+                draft.lastNameController,
+                _t.t('member_edit_field_last_name'),
+                fieldKey: Key('member-edit-address-last-name-$index'),
+              ),
+            ),
+            const SizedBox(height: 10),
+            _buildTwoColumnFields(
+              first: _buildTextField(
+                draft.organizationNameController,
+                _t.t('member_edit_field_organization'),
+                fieldKey: Key('member-edit-address-organization-$index'),
+              ),
+              second: _buildTextField(
+                draft.addressCareOfController,
+                _t.t('member_edit_field_care_of'),
+              ),
+            ),
+          ] else
+            // Hitobito kennt fuer die eigene Adresse der Person keine
+            // Bezeichnung, deshalb gibt es hier nur c/o.
             _buildTextField(
               draft.addressCareOfController,
               _t.t('member_edit_field_care_of'),
-            ),
-          ] else
-            _ResponsiveWrap(
-              minChildWidth: 220,
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                _buildTextField(
-                  draft.labelController,
-                  _t.t('member_edit_field_label'),
-                  fieldKey: draft.labelFieldKey,
-                ),
-                _buildTextField(
-                  draft.addressCareOfController,
-                  _t.t('member_edit_field_care_of'),
-                  fieldKey: draft.addressCareOfFieldKey,
-                ),
-              ],
+              fieldKey: draft.addressCareOfFieldKey,
             ),
           const SizedBox(height: 10),
           _ResponsiveWrap(
@@ -942,15 +1197,95 @@ class _MemberEditPageState extends State<MemberEditPage> {
     );
   }
 
-  Widget _buildDetailLabelRow({
-    required TextEditingController controller,
-    required String label,
+  Set<int> _takenCategoryIds(Iterable<int?> categoryIds) {
+    final seen = <int>{};
+    final taken = <int>{};
+    for (final id in categoryIds) {
+      if (id != null && !seen.add(id)) {
+        taken.add(id);
+      }
+    }
+    return taken;
+  }
+
+  /// Bezeichnung eines Kontakteintrags: Kategorie und optionaler Zusatz.
+  String? _contactLabel(
+    ContactAccountType type,
+    int? categoryId,
+    String? freeLabel,
+  ) {
+    final categoryName = categoryId == null
+        ? null
+        : _categories.byId(type, categoryId)?.name ??
+              _t.t('member_edit_category_unknown');
+    final parts = <String>[?categoryName, ?_trimToNull(freeLabel ?? '')];
+    return parts.isEmpty ? null : parts.join(', ');
+  }
+
+  Widget _buildCategoryRow({
+    required ContactAccountType type,
+    required Key fieldKey,
+    required int? categoryId,
+    required bool isNewEntry,
+    required String freeLabel,
+    required Set<int> takenCategoryIds,
+    required ValueChanged<int?> onChanged,
     required VoidCallback onRemove,
   }) {
+    final categories = _categories.forType(type);
+    final hasUnknownCategory =
+        categoryId != null && _categories.byId(type, categoryId) == null;
+    final label = _trimToNull(freeLabel);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(child: _buildTextField(controller, label)),
+        Expanded(
+          child: DropdownButtonFormField<int>(
+            key: fieldKey,
+            initialValue: categoryId,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: _t.t('member_edit_field_label'),
+              helperText: label == null
+                  ? null
+                  : _t.t('member_edit_category_free_label', {'label': label}),
+              isDense: true,
+              border: const OutlineInputBorder(),
+            ),
+            hint: Text(_t.t('member_edit_select_hint')),
+            items: <DropdownMenuItem<int>>[
+              for (final category in categories)
+                DropdownMenuItem<int>(
+                  value: category.id,
+                  child: Text(category.name, overflow: TextOverflow.ellipsis),
+                ),
+              if (hasUnknownCategory)
+                DropdownMenuItem<int>(
+                  value: categoryId,
+                  child: Text(_t.t('member_edit_category_unknown')),
+                ),
+            ],
+            validator: (value) {
+              // Bestehende Eintraege haben ihre Kategorie in Hitobito; nur fuer
+              // neue Eintraege muss die App sie mitsenden.
+              if (value == null) {
+                return isNewEntry
+                    ? _t.t('member_edit_category_required')
+                    : null;
+              }
+              final category = _categories.byId(type, value);
+              if (category != null &&
+                  category.uniquePerContactable &&
+                  takenCategoryIds.contains(value)) {
+                return _t.t('member_edit_category_taken', {
+                  'category': category.name,
+                });
+              }
+              return null;
+            },
+            onChanged: onChanged,
+          ),
+        ),
         const SizedBox(width: 8),
         IconButton(
           tooltip: _t.t('common_remove'),
@@ -970,7 +1305,21 @@ class _MemberEditPageState extends State<MemberEditPage> {
     TextInputType? keyboardType,
     ValueChanged<String>? onChanged,
     String? Function(String?)? validator,
+    String? serverErrorAttribute,
   }) {
+    if (serverErrorAttribute != null) {
+      final localValidator = validator;
+      final localOnChanged = onChanged;
+      validator = (value) =>
+          _serverAttributeErrors[serverErrorAttribute] ??
+          localValidator?.call(value);
+      onChanged = (value) {
+        // Wie bei Telefonnummern: Der Hinweis bleibt bis zum naechsten
+        // Speichern sichtbar, blockiert es aber nicht mehr.
+        _serverAttributeErrors.remove(serverErrorAttribute);
+        localOnChanged?.call(value);
+      };
+    }
     return TextFormField(
       key: fieldKey,
       controller: controller,
@@ -1103,6 +1452,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
     final mustExpand = !_editSectionExpanded;
     setState(() {
       _serverPhoneErrorsById.clear();
+      _serverAttributeErrors.clear();
       // Die Validatoren greifen nur fuer aufgebaute Felder; im
       // Problemloesungsmodus ist der Bereich anfangs eingeklappt.
       _editSectionExpanded = true;
@@ -1218,20 +1568,42 @@ class _MemberEditPageState extends State<MemberEditPage> {
         .where((adresse) => !adresse.istLeer)
         .toList(growable: false);
 
-    return widget.mitglied.copyWith(
+    final target = widget.mitglied.copyWith(
       vorname: _vornameController.text.trim(),
       nachname: _nachnameController.text.trim(),
       fahrtenname: _trimToNull(_fahrtennameController.text),
       fahrtennameLoeschen: _trimToNull(_fahrtennameController.text) == null,
-      geburtsdatum: _geburtsdatum ?? Mitglied.peoplePlaceholderDate,
-      gender: _gender ?? '',
-      genderLoeschen: false,
+      geburtsdatum: _detailsGesperrt
+          ? widget.mitglied.geburtsdatum
+          : _geburtsdatum ?? Mitglied.peoplePlaceholderDate,
+      gender: _detailsGesperrt ? widget.mitglied.gender : _gender,
+      genderLoeschen: !_detailsGesperrt && (_gender ?? '').isEmpty,
+      pronoun: _trimToNull(_pronounController.text),
+      pronounLoeschen: _trimToNull(_pronounController.text) == null,
       telefonnummern: phones,
       emailAdressen: emails,
       adressen: <MitgliedKontaktAdresse>[
         primaryAddress,
         ...additionalAddresses,
       ],
+    );
+    if (!_zeigtBankdaten) {
+      return target;
+    }
+    final bankAccountOwner = _trimToNull(_bankAccountOwnerController.text);
+    final iban = MemberBankInput.normalizeIban(_ibanController.text);
+    final bic = MemberBankInput.normalizeBic(_bicController.text);
+    final bankName = _trimToNull(_bankNameController.text);
+    return target.copyWith(
+      bankAccountOwner: bankAccountOwner,
+      bankAccountOwnerLoeschen: bankAccountOwner == null,
+      iban: iban,
+      ibanLoeschen: iban == null,
+      bic: bic,
+      bicLoeschen: bic == null,
+      bankName: bankName,
+      bankNameLoeschen: bankName == null,
+      paymentMethod: _paymentMethod,
     );
   }
 
@@ -1280,6 +1652,9 @@ class _MemberEditPageState extends State<MemberEditPage> {
       case 'maennlich':
       case 'männlich':
         return 'm';
+      case 'd':
+      case 'divers':
+        return 'd';
       default:
         return '';
     }
@@ -1291,6 +1666,8 @@ class _MemberEditPageState extends State<MemberEditPage> {
         return _t.t('member_edit_gender_female');
       case 'm':
         return _t.t('member_edit_gender_male');
+      case 'd':
+        return _t.t('member_edit_gender_diverse');
       case '':
         return _t.t('member_edit_gender_unknown');
       default:
@@ -1355,9 +1732,16 @@ class _MemberEditPageState extends State<MemberEditPage> {
   }
 
   String? _validateAdditionalAddress(_AddressDraft draft) {
-    return draft.toAdresse().istLeer
-        ? _t.t('member_edit_additional_address_empty')
-        : null;
+    final adresse = draft.toAdresse();
+    if (adresse.istLeer) {
+      return _t.t('member_edit_additional_address_empty');
+    }
+    // Unveraenderte bestehende Adressen werden nicht gesendet; Hitobito
+    // prueft den Namen erst, wenn eine Adresse geschrieben wird.
+    if (draft.additionalAddressId == null && !adresse.hatName) {
+      return _t.t('member_edit_additional_address_name_required');
+    }
+    return null;
   }
 
   void _applyServerChoice(MemberResolutionItem item) {
@@ -1439,6 +1823,20 @@ class _MemberEditPageState extends State<MemberEditPage> {
           _generalSectionKey,
           _birthdayFieldTargetKey,
           _birthdayFocusNode,
+        );
+        return;
+      case MemberResolutionTargetType.pronoun:
+        await _ensureVisibleAndFocus(
+          _generalSectionKey,
+          _pronounFieldKey,
+          _pronounFocusNode,
+        );
+        return;
+      case MemberResolutionTargetType.bankAccount:
+        await _ensureVisibleAndFocus(
+          _bankSectionKey,
+          _ibanFieldKey,
+          _ibanFocusNode,
         );
         return;
       case MemberResolutionTargetType.primaryEmail:
@@ -1552,6 +1950,12 @@ class _MemberEditPageState extends State<MemberEditPage> {
         _geburtsdatum = source.geburtsdatum == Mitglied.peoplePlaceholderDate
             ? null
             : source.geburtsdatum;
+        return;
+      case MemberResolutionTargetType.pronoun:
+        _pronounController.text = source.pronoun ?? '';
+        return;
+      case MemberResolutionTargetType.bankAccount:
+        _applyBankValues(source);
         return;
       case MemberResolutionTargetType.primaryEmail:
         _primaryEmailController.text =
@@ -1668,6 +2072,10 @@ class _MemberEditPageState extends State<MemberEditPage> {
         return _t.t('member_edit_field_gender');
       case MemberResolutionTargetType.birthday:
         return _t.t('member_edit_field_birthday');
+      case MemberResolutionTargetType.pronoun:
+        return _t.t('member_edit_field_pronoun');
+      case MemberResolutionTargetType.bankAccount:
+        return _t.t('member_edit_section_bank');
       case MemberResolutionTargetType.primaryEmail:
         return _t.t('member_edit_field_primary_email');
       case MemberResolutionTargetType.phone:
@@ -1697,18 +2105,37 @@ class _MemberEditPageState extends State<MemberEditPage> {
         return _singleResolutionValueLine(
           _geburtsdatum == null ? null : _dateFormat.format(_geburtsdatum!),
         );
+      case MemberResolutionTargetType.pronoun:
+        return _singleResolutionValueLine(_pronounController.text);
+      case MemberResolutionTargetType.bankAccount:
+        return _buildBankResolutionLines(
+          accountOwner: _bankAccountOwnerController.text,
+          iban: _ibanController.text,
+          bic: _bicController.text,
+          bankName: _bankNameController.text,
+          paymentMethod: _paymentMethod,
+        );
       case MemberResolutionTargetType.primaryEmail:
         return _singleResolutionValueLine(_primaryEmailController.text);
       case MemberResolutionTargetType.phone:
         final draft = _findPhoneDraft(target.relationshipId);
         return _buildPhoneResolutionLines(
-          label: draft?.labelController.text,
+          label: _contactLabel(
+            ContactAccountType.phoneNumber,
+            draft?.categoryId,
+            draft?.labelController.text,
+          ),
           value: draft?.toTelefon()?.wert ?? draft?.wertController.text,
+          istOeffentlich: draft?.istOeffentlich,
         );
       case MemberResolutionTargetType.additionalEmail:
         final draft = _findAdditionalEmailDraft(target.relationshipId);
         return _buildEmailResolutionLines(
-          label: draft?.labelController.text,
+          label: _contactLabel(
+            ContactAccountType.additionalEmail,
+            draft?.categoryId,
+            draft?.labelController.text,
+          ),
           value: draft?.wertController.text,
         );
       case MemberResolutionTargetType.primaryAddress:
@@ -1748,6 +2175,16 @@ class _MemberEditPageState extends State<MemberEditPage> {
               ? null
               : _dateFormat.format(member.geburtsdatum),
         );
+      case MemberResolutionTargetType.pronoun:
+        return _singleResolutionValueLine(member.pronoun);
+      case MemberResolutionTargetType.bankAccount:
+        return _buildBankResolutionLines(
+          accountOwner: member.bankAccountOwner,
+          iban: member.iban,
+          bic: member.bic,
+          bankName: member.bankName,
+          paymentMethod: member.paymentMethod,
+        );
       case MemberResolutionTargetType.primaryEmail:
         return _singleResolutionValueLine(
           _resolvePrimaryEmail(member.emailAdressen)?.wert,
@@ -1756,8 +2193,13 @@ class _MemberEditPageState extends State<MemberEditPage> {
         for (final phone in member.telefonnummern) {
           if (phone.phoneNumberId == target.relationshipId) {
             return _buildPhoneResolutionLines(
-              label: phone.label,
+              label: _contactLabel(
+                ContactAccountType.phoneNumber,
+                phone.categoryId,
+                phone.label,
+              ),
               value: phone.wert,
+              istOeffentlich: phone.istOeffentlich,
             );
           }
         }
@@ -1767,7 +2209,11 @@ class _MemberEditPageState extends State<MemberEditPage> {
           if (!email.istPrimaer &&
               email.additionalEmailId == target.relationshipId) {
             return _buildEmailResolutionLines(
-              label: email.label,
+              label: _contactLabel(
+                ContactAccountType.additionalEmail,
+                email.categoryId,
+                email.label,
+              ),
               value: email.wert,
             );
           }
@@ -1794,9 +2240,43 @@ class _MemberEditPageState extends State<MemberEditPage> {
     ];
   }
 
+  List<_ResolutionValueLine> _buildBankResolutionLines({
+    String? accountOwner,
+    String? iban,
+    String? bic,
+    String? bankName,
+    String? paymentMethod,
+  }) {
+    return <_ResolutionValueLine>[
+      _ResolutionValueLine(
+        label: _t.t('member_edit_field_payment_method'),
+        value: _normalizeResolutionLineValue(
+          paymentMethod == null ? null : _labelForPaymentMethod(paymentMethod),
+        ),
+      ),
+      _ResolutionValueLine(
+        label: _t.t('member_edit_field_bank_account_owner'),
+        value: _normalizeResolutionLineValue(accountOwner),
+      ),
+      _ResolutionValueLine(
+        label: _t.t('member_edit_field_iban'),
+        value: _normalizeResolutionLineValue(iban),
+      ),
+      _ResolutionValueLine(
+        label: _t.t('member_edit_field_bic'),
+        value: _normalizeResolutionLineValue(bic),
+      ),
+      _ResolutionValueLine(
+        label: _t.t('member_edit_field_bank_name'),
+        value: _normalizeResolutionLineValue(bankName),
+      ),
+    ];
+  }
+
   List<_ResolutionValueLine> _buildPhoneResolutionLines({
     String? label,
     String? value,
+    bool? istOeffentlich,
   }) {
     return <_ResolutionValueLine>[
       _ResolutionValueLine(
@@ -1807,6 +2287,13 @@ class _MemberEditPageState extends State<MemberEditPage> {
         label: _t.t('member_edit_field_phone_number'),
         value: _normalizeResolutionLineValue(value),
       ),
+      if (istOeffentlich != null)
+        _ResolutionValueLine(
+          label: _t.t('member_edit_field_phone_public'),
+          value: _t.t(
+            istOeffentlich ? 'member_edit_value_yes' : 'member_edit_value_no',
+          ),
+        ),
     ];
   }
 
@@ -1829,11 +2316,29 @@ class _MemberEditPageState extends State<MemberEditPage> {
   List<_ResolutionValueLine> _buildAddressResolutionLines(
     MitgliedKontaktAdresse? adresse,
   ) {
+    final isAdditional = adresse != null && adresse.additionalAddressId != 0;
+    final name = [
+      adresse?.firstName,
+      adresse?.lastName,
+      adresse?.organizationName,
+    ].map((part) => _trimToNull(part ?? '')).whereType<String>().join(' ');
     return <_ResolutionValueLine>[
-      _ResolutionValueLine(
-        label: _t.t('member_edit_field_label'),
-        value: _normalizeResolutionLineValue(adresse?.label),
-      ),
+      if (isAdditional) ...[
+        _ResolutionValueLine(
+          label: _t.t('member_edit_field_label'),
+          value: _normalizeResolutionLineValue(
+            _contactLabel(
+              ContactAccountType.additionalAddress,
+              adresse.categoryId,
+              adresse.label,
+            ),
+          ),
+        ),
+        _ResolutionValueLine(
+          label: _t.t('member_edit_field_address_name'),
+          value: _normalizeResolutionLineValue(name),
+        ),
+      ],
       _ResolutionValueLine(
         label: _t.t('member_edit_field_care_of'),
         value: _normalizeResolutionLineValue(adresse?.addressCareOf),
@@ -1890,6 +2395,16 @@ class _MemberEditPageState extends State<MemberEditPage> {
       return false;
     }
 
+    final nextAttributeErrors = <String, String>{};
+    for (final error in result.validationErrors) {
+      final attribute = error.attribute;
+      if (error.relationshipName == null &&
+          attribute != null &&
+          _fieldAttributes.contains(attribute)) {
+        nextAttributeErrors.putIfAbsent(attribute, () => error.message);
+      }
+    }
+
     final nextPhoneErrors = <int, String>{};
     for (final error in result.validationErrors) {
       if (!error.isPhoneNumberField) {
@@ -1908,7 +2423,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
       nextPhoneErrors[relationshipId] = error.message;
     }
 
-    if (nextPhoneErrors.isEmpty) {
+    if (nextPhoneErrors.isEmpty && nextAttributeErrors.isEmpty) {
       return false;
     }
 
@@ -1916,6 +2431,9 @@ class _MemberEditPageState extends State<MemberEditPage> {
       _serverPhoneErrorsById
         ..clear()
         ..addAll(nextPhoneErrors);
+      _serverAttributeErrors
+        ..clear()
+        ..addAll(nextAttributeErrors);
     });
     _formKey.currentState?.validate();
     return true;
@@ -2026,11 +2544,15 @@ class _SectionBodyWithAddAction extends StatelessWidget {
     required this.child,
     required this.addLabel,
     this.onAdd,
+    this.disabledHint,
   });
 
   final Widget child;
   final String addLabel;
   final VoidCallback? onAdd;
+
+  /// Hinweis, warum ohne [onAdd] nichts hinzugefuegt werden kann.
+  final String? disabledHint;
 
   @override
   Widget build(BuildContext context) {
@@ -2048,6 +2570,9 @@ class _SectionBodyWithAddAction extends StatelessWidget {
               label: Text(addLabel),
             ),
           ),
+        ] else if (disabledHint != null) ...[
+          const SizedBox(height: 8),
+          Text(disabledHint!, style: Theme.of(context).textTheme.bodySmall),
         ],
       ],
     );
@@ -2215,6 +2740,8 @@ class _PhoneDraft {
     required this.countryId,
     String? wert,
     String? label,
+    this.categoryId,
+    this.istOeffentlich = false,
   }) : wertController = TextEditingController(text: wert ?? ''),
        labelController = TextEditingController(text: label ?? '');
 
@@ -2225,6 +2752,8 @@ class _PhoneDraft {
       countryId: split.countryId,
       wert: split.localNumber,
       label: telefon.label,
+      categoryId: telefon.categoryId,
+      istOeffentlich: telefon.istOeffentlich,
     );
   }
 
@@ -2235,6 +2764,8 @@ class _PhoneDraft {
 
   final int? phoneNumberId;
   String countryId;
+  int? categoryId;
+  bool istOeffentlich;
   final TextEditingController wertController;
   final TextEditingController labelController;
   final GlobalKey wertFieldKey = GlobalKey();
@@ -2254,6 +2785,8 @@ class _PhoneDraft {
       phoneNumberId: phoneNumberId,
       wert: wert,
       label: _trimToNull(labelController.text),
+      categoryId: categoryId,
+      istOeffentlich: istOeffentlich,
     );
   }
 
@@ -2265,21 +2798,27 @@ class _PhoneDraft {
 }
 
 class _EmailDraft {
-  _EmailDraft({required this.additionalEmailId, String? wert, String? label})
-    : wertController = TextEditingController(text: wert ?? ''),
-      labelController = TextEditingController(text: label ?? '');
+  _EmailDraft({
+    required this.additionalEmailId,
+    String? wert,
+    String? label,
+    this.categoryId,
+  }) : wertController = TextEditingController(text: wert ?? ''),
+       labelController = TextEditingController(text: label ?? '');
 
   factory _EmailDraft.fromEmail(MitgliedKontaktEmail email) {
     return _EmailDraft(
       additionalEmailId: email.additionalEmailId,
       wert: email.wert,
       label: email.label,
+      categoryId: email.categoryId,
     );
   }
 
   factory _EmailDraft.empty() => _EmailDraft(additionalEmailId: null);
 
   final int? additionalEmailId;
+  int? categoryId;
   final TextEditingController wertController;
   final TextEditingController labelController;
   final GlobalKey wertFieldKey = GlobalKey();
@@ -2294,6 +2833,7 @@ class _EmailDraft {
       additionalEmailId: additionalEmailId,
       wert: wert,
       label: _trimToNull(labelController.text),
+      categoryId: categoryId,
     );
   }
 
@@ -2308,6 +2848,10 @@ class _AddressDraft {
   _AddressDraft({
     required this.additionalAddressId,
     String? label,
+    this.categoryId,
+    String? firstName,
+    String? lastName,
+    String? organizationName,
     String? addressCareOf,
     String? street,
     String? housenumber,
@@ -2316,6 +2860,11 @@ class _AddressDraft {
     String? town,
     String? country,
   }) : labelController = TextEditingController(text: label ?? ''),
+       firstNameController = TextEditingController(text: firstName ?? ''),
+       lastNameController = TextEditingController(text: lastName ?? ''),
+       organizationNameController = TextEditingController(
+         text: organizationName ?? '',
+       ),
        addressCareOfController = TextEditingController(
          text: addressCareOf ?? '',
        ),
@@ -2330,6 +2879,10 @@ class _AddressDraft {
     return _AddressDraft(
       additionalAddressId: adresse.additionalAddressId,
       label: adresse.label,
+      categoryId: adresse.categoryId,
+      firstName: adresse.firstName,
+      lastName: adresse.lastName,
+      organizationName: adresse.organizationName,
       addressCareOf: adresse.addressCareOf,
       street: adresse.street,
       housenumber: adresse.housenumber,
@@ -2340,10 +2893,20 @@ class _AddressDraft {
     );
   }
 
-  factory _AddressDraft.empty() => _AddressDraft(additionalAddressId: null);
+  /// Neue Zusatzadresse; Hitobito verlangt einen Namen, deshalb ist der
+  /// Name der Person vorbelegt.
+  factory _AddressDraft.forNewEntry(Mitglied mitglied) => _AddressDraft(
+    additionalAddressId: null,
+    firstName: mitglied.vorname,
+    lastName: mitglied.nachname,
+  );
 
   final int? additionalAddressId;
+  int? categoryId;
   final TextEditingController labelController;
+  final TextEditingController firstNameController;
+  final TextEditingController lastNameController;
+  final TextEditingController organizationNameController;
   final TextEditingController addressCareOfController;
   final TextEditingController streetController;
   final TextEditingController housenumberController;
@@ -2365,6 +2928,10 @@ class _AddressDraft {
     return MitgliedKontaktAdresse(
       additionalAddressId: additionalAddressId,
       label: _trimToNull(labelController.text),
+      categoryId: categoryId,
+      firstName: _trimToNull(firstNameController.text),
+      lastName: _trimToNull(lastNameController.text),
+      organizationName: _trimToNull(organizationNameController.text),
       addressCareOf: _trimToNull(addressCareOfController.text),
       street: _trimToNull(streetController.text),
       housenumber: _trimToNull(housenumberController.text),
@@ -2377,6 +2944,10 @@ class _AddressDraft {
 
   void replaceWith(MitgliedKontaktAdresse adresse) {
     labelController.text = adresse.label ?? '';
+    categoryId = adresse.categoryId;
+    firstNameController.text = adresse.firstName ?? '';
+    lastNameController.text = adresse.lastName ?? '';
+    organizationNameController.text = adresse.organizationName ?? '';
     addressCareOfController.text = adresse.addressCareOf ?? '';
     streetController.text = adresse.street ?? '';
     housenumberController.text = adresse.housenumber ?? '';
@@ -2388,6 +2959,9 @@ class _AddressDraft {
 
   void dispose() {
     labelController.dispose();
+    firstNameController.dispose();
+    lastNameController.dispose();
+    organizationNameController.dispose();
     addressCareOfController.dispose();
     streetController.dispose();
     housenumberController.dispose();

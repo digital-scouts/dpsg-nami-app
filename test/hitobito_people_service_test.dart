@@ -142,7 +142,9 @@ void main() {
                 "contactable_id": 23,
                 "contactable_type": "Person",
                 "label": "Mobil",
-                "number": "+49 170 1234567"
+                "number": "+49 170 1234567",
+                "public": true,
+                "category_id": 2
               }
             },
             {
@@ -182,6 +184,11 @@ void main() {
                 "contactable_id": 23,
                 "contactable_type": "Person",
                 "label": "Elternhaus",
+                "category_id": 22,
+                "first_name": "Petra",
+                "last_name": "Keller",
+                "organization": false,
+                "organization_name": "Ignoriert",
                 "address_care_of": null,
                 "street": "Nebenweg",
                 "housenumber": "5",
@@ -246,15 +253,15 @@ void main() {
       );
       expect(
         requestedUris.first.queryParameters['fields[phone_numbers]'],
-        'contactable_id,contactable_type,label,number',
+        'contactable_id,contactable_type,label,category_id,number,public',
       );
       expect(
         requestedUris.first.queryParameters['fields[additional_emails]'],
-        'contactable_id,contactable_type,label,email',
+        'contactable_id,contactable_type,label,category_id,email',
       );
       expect(
         requestedUris.first.queryParameters['fields[additional_addresses]'],
-        'contactable_id,contactable_type,label,address_care_of,street,housenumber,postbox,zip_code,town,country',
+        'contactable_id,contactable_type,label,category_id,first_name,last_name,organization_name,organization,address_care_of,street,housenumber,postbox,zip_code,town,country',
       );
       expect(requestedUris.last.path, '/api/people');
       expect(requestedUris.last.queryParameters['page'], '2');
@@ -271,6 +278,11 @@ void main() {
       expect(people.first.mitgliedsnummer, '1001');
       expect(people.first.gender, 'w');
       expect(people.first.pronoun, 'sie/ihr');
+      // Julia liefert Geburtsdatum und Geschlecht mit, Max nicht: Ihm fehlt
+      // die Berechtigung show_details.
+      expect(people.first.detailsLesbar, isTrue);
+      expect(people.last.detailsLesbar, isFalse);
+      expect(people.first.bankdatenLesbar, isFalse);
       expect(
         people.first.picture,
         'https://demo.hitobito.com/images/profile.svg',
@@ -296,6 +308,8 @@ void main() {
           phoneNumberId: 701,
           wert: '+49 170 1234567',
           label: 'Mobil',
+          categoryId: 2,
+          istOeffentlich: true,
         ),
         MitgliedKontaktTelefon(
           phoneNumberId: 702,
@@ -315,6 +329,9 @@ void main() {
         MitgliedKontaktAdresse(
           additionalAddressId: 801,
           label: 'Elternhaus',
+          categoryId: 22,
+          firstName: 'Petra',
+          lastName: 'Keller',
           street: 'Nebenweg',
           housenumber: '5',
           zipCode: '50668',
@@ -429,6 +446,61 @@ void main() {
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
+
+  test('liest Bankdaten und Zahlart aus dem Einzelabruf', () async {
+    final client = MockClient((request) async {
+      return http.Response(
+        '''
+        {
+          "data": {
+            "id": "23",
+            "type": "people",
+            "attributes": {
+              "first_name": "Julia",
+              "last_name": "Keller",
+              "birthday": null,
+              "gender": null,
+              "bank_account_owner": "Julia Keller",
+              "iban": "DE02120300000000202051",
+              "bic": "BYLADEM1001",
+              "bank_name": "Testbank",
+              "payment_method": "debit",
+              "updated_at": "2024-11-07T14:35:00Z"
+            },
+            "relationships": {}
+          },
+          "included": []
+        }
+        ''',
+        200,
+        headers: <String, String>{'content-type': 'application/json'},
+      );
+    });
+    final service = HitobitoPeopleService(
+      config: const HitobitoAuthConfig(
+        clientId: 'client',
+        clientSecret: 'secret',
+        authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
+        tokenUrl: 'https://demo.hitobito.com/oauth/token',
+        redirectUri: 'de.jlange.nami.app:/oauth/callback',
+        scopeString: 'openid email api',
+        discoveryUrl: '',
+        profileUrl: 'https://demo.hitobito.com/oauth/profile',
+      ),
+      httpClient: client,
+    );
+
+    final mitglied = (await service.fetchPersonResourceById(
+      'token-123',
+      23,
+    )).toMitglied();
+
+    expect(mitglied.detailsLesbar, isTrue);
+    expect(mitglied.bankdatenLesbar, isTrue);
+    expect(mitglied.paymentMethod, 'debit');
+    expect(mitglied.iban, 'DE02120300000000202051');
+    expect(mitglied.bankAccountOwner, 'Julia Keller');
+  });
 
   test(
     'sendet JSON-API-Mutationen fuer Person und Unterressourcen mit demo-kompatiblem Contract',
@@ -630,6 +702,219 @@ void main() {
       ]);
     },
     timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  test(
+    'sendet mit changedAttributes nur diese Attribute und alle Mutationsarten',
+    () async {
+      final requests = <http.Request>[];
+      final client = MockClient((request) async {
+        requests.add(request);
+        return http.Response('', 204);
+      });
+      final service = HitobitoPeopleService(
+        config: const HitobitoAuthConfig(
+          clientId: 'client',
+          clientSecret: 'secret',
+          authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
+          tokenUrl: 'https://demo.hitobito.com/oauth/token',
+          redirectUri: 'de.jlange.nami.app:/oauth/callback',
+          scopeString: 'openid email api',
+          discoveryUrl: '',
+          profileUrl: 'https://demo.hitobito.com/oauth/profile',
+        ),
+        httpClient: client,
+      );
+
+      await service.updatePersonWithRelationships(
+        'token-123',
+        mitglied: Mitglied.peopleListItem(
+          mitgliedsnummer: '4711',
+          personId: 23,
+          vorname: 'Julia',
+          nachname: 'Keller',
+        ),
+        changedAttributes: <String, dynamic>{
+          'nickname': null,
+          'birthday': null,
+        },
+        phoneNumberMutations:
+            const <HitobitoRelationshipMutation<MitgliedKontaktTelefon>>[
+              HitobitoRelationshipMutation<MitgliedKontaktTelefon>(
+                method: HitobitoRelationshipMutationMethod.update,
+                value: MitgliedKontaktTelefon(
+                  phoneNumberId: 301,
+                  wert: '+491701234567',
+                  label: 'Mobil',
+                  categoryId: 2,
+                  istOeffentlich: true,
+                ),
+              ),
+              HitobitoRelationshipMutation<MitgliedKontaktTelefon>(
+                method: HitobitoRelationshipMutationMethod.destroy,
+                value: MitgliedKontaktTelefon(
+                  phoneNumberId: 302,
+                  wert: '+4930123456',
+                ),
+              ),
+            ],
+        additionalAddressMutations:
+            const <HitobitoRelationshipMutation<MitgliedKontaktAdresse>>[
+              HitobitoRelationshipMutation<MitgliedKontaktAdresse>(
+                method: HitobitoRelationshipMutationMethod.create,
+                value: MitgliedKontaktAdresse(
+                  label: 'Arbeit',
+                  categoryId: 22,
+                  firstName: 'Julia',
+                  lastName: 'Keller',
+                  street: 'Werkstrasse',
+                  housenumber: '2',
+                  zipCode: '50667',
+                  town: 'Koeln',
+                ),
+              ),
+              HitobitoRelationshipMutation<MitgliedKontaktAdresse>(
+                method: HitobitoRelationshipMutationMethod.update,
+                value: MitgliedKontaktAdresse(
+                  additionalAddressId: 801,
+                  label: 'Sonstige',
+                  town: 'Bonn',
+                ),
+              ),
+            ],
+      );
+
+      final body = jsonDecode(requests.single.body) as Map<String, dynamic>;
+      expect(body['data']['attributes'], <String, dynamic>{
+        'nickname': null,
+        'birthday': null,
+      });
+      final relationships =
+          body['data']['relationships'] as Map<String, dynamic>;
+      expect(relationships.keys, <String>[
+        'phone_numbers',
+        'additional_addresses',
+      ]);
+      expect(relationships['phone_numbers']['data'], <Map<String, dynamic>>[
+        <String, dynamic>{
+          'type': 'phone_numbers',
+          'id': '301',
+          'method': 'update',
+        },
+        <String, dynamic>{
+          'type': 'phone_numbers',
+          'id': '302',
+          'method': 'destroy',
+        },
+      ]);
+      expect(
+        relationships['additional_addresses']['data'],
+        <Map<String, dynamic>>[
+          <String, dynamic>{
+            'type': 'additional_addresses',
+            'temp-id': 'new-address-1',
+            'method': 'create',
+          },
+          <String, dynamic>{
+            'type': 'additional_addresses',
+            'id': '801',
+            'method': 'update',
+          },
+        ],
+      );
+      final included = (body['included'] as List).cast<Map<String, dynamic>>();
+      expect(included.map((entry) => entry['id'] ?? entry['temp-id']), <String>[
+        '301',
+        'new-address-1',
+        '801',
+      ]);
+      expect(included[0]['attributes'], <String, dynamic>{
+        'label': 'Mobil',
+        'number': '+491701234567',
+        'public': true,
+        'category_id': 2,
+      });
+      expect(included[1]['attributes'], <String, dynamic>{
+        'label': 'Arbeit',
+        'category_id': 22,
+        'first_name': 'Julia',
+        'last_name': 'Keller',
+        'organization': false,
+        'organization_name': null,
+        'address_care_of': null,
+        'street': 'Werkstrasse',
+        'housenumber': '2',
+        'postbox': null,
+        'zip_code': '50667',
+        'town': 'Koeln',
+        'country': null,
+      });
+      // Ohne bekannte Kategorie wird keine category_id gesendet; Hitobito
+      // behaelt dann die bestehende.
+      expect(included[2]['attributes'], isNot(contains('category_id')));
+      expect(included[2]['attributes']['town'], 'Bonn');
+      expect(included[2]['attributes']['street'], isNull);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  test(
+    'laesst attributes weg, wenn keine Personenattribute geaendert sind',
+    () async {
+      final requests = <http.Request>[];
+      final client = MockClient((request) async {
+        requests.add(request);
+        return http.Response('', 204);
+      });
+      final service = HitobitoPeopleService(
+        config: const HitobitoAuthConfig(
+          clientId: 'client',
+          clientSecret: 'secret',
+          authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
+          tokenUrl: 'https://demo.hitobito.com/oauth/token',
+          redirectUri: 'de.jlange.nami.app:/oauth/callback',
+          scopeString: 'openid email api',
+          discoveryUrl: '',
+          profileUrl: 'https://demo.hitobito.com/oauth/profile',
+        ),
+        httpClient: client,
+      );
+
+      await service.updatePersonWithRelationships(
+        'token-123',
+        mitglied: Mitglied.peopleListItem(
+          mitgliedsnummer: '4711',
+          personId: 23,
+          vorname: 'Julia',
+          nachname: 'Keller',
+        ),
+        changedAttributes: const <String, dynamic>{},
+        additionalEmailMutations:
+            const <HitobitoRelationshipMutation<MitgliedKontaktEmail>>[
+              HitobitoRelationshipMutation<MitgliedKontaktEmail>(
+                method: HitobitoRelationshipMutationMethod.destroy,
+                value: MitgliedKontaktEmail(
+                  additionalEmailId: 601,
+                  wert: 'alt@example.org',
+                ),
+              ),
+            ],
+      );
+
+      final body = jsonDecode(requests.single.body) as Map<String, dynamic>;
+      expect(body['data'], isNot(contains('attributes')));
+      expect(body, isNot(contains('included')));
+      expect(
+        body['data']['relationships']['additional_emails']['data'],
+        <Map<String, dynamic>>[
+          <String, dynamic>{
+            'type': 'additional_emails',
+            'id': '601',
+            'method': 'destroy',
+          },
+        ],
+      );
+    },
   );
 
   test('sendet leeres Geburtsdatum nicht als 1900 an Hitobito', () async {

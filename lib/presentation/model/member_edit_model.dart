@@ -522,7 +522,7 @@ class MemberEditModel extends ChangeNotifier {
         basisMitglied: basisMitglied,
         zielMitglied: zielMitglied,
       );
-      await _onMemberUpdated(updated);
+      await _applyWrittenMember(updated, personId: personId);
       await _removePendingForPerson(personId);
       await _logMemberEditEvent(
         action: 'submit_result',
@@ -918,7 +918,7 @@ class MemberEditModel extends ChangeNotifier {
             basisMitglied: attemptedEntry.basisMitglied,
             zielMitglied: attemptedEntry.zielMitglied,
           );
-          await _onMemberUpdated(updated);
+          await _applyWrittenMember(updated, personId: attemptedEntry.personId);
           await _pendingRepository.remove(attemptedEntry.entryId);
           results.add(
             PendingPersonUpdateRetryItemResult(
@@ -1344,6 +1344,18 @@ class MemberEditModel extends ChangeNotifier {
         return const MemberResolutionTarget(
           type: MemberResolutionTargetType.primaryEmail,
         );
+      case 'pronoun':
+        return const MemberResolutionTarget(
+          type: MemberResolutionTargetType.pronoun,
+        );
+      case 'bank_account_owner':
+      case 'iban':
+      case 'bic':
+      case 'bank_name':
+      case 'payment_method':
+        return const MemberResolutionTarget(
+          type: MemberResolutionTargetType.bankAccount,
+        );
       case 'street':
       case 'housenumber':
       case 'postbox':
@@ -1358,6 +1370,25 @@ class MemberEditModel extends ChangeNotifier {
         return const MemberResolutionTarget(
           type: MemberResolutionTargetType.firstName,
         );
+    }
+  }
+
+  /// Uebernimmt den Serverstand nach einem erfolgreichen Schreiben lokal.
+  ///
+  /// Die Aenderung ist dann bereits in Hitobito. Scheitert nur das lokale
+  /// Speichern, darf sie deshalb nicht erneut in die Warteschlange; der
+  /// naechste Sync holt den Stand ohnehin nach.
+  Future<void> _applyWrittenMember(
+    Mitglied updated, {
+    required int personId,
+  }) async {
+    try {
+      await _onMemberUpdated(updated);
+    } catch (error) {
+      await _logger.logWarn(
+        'member_edit',
+        'local_update_failed person_id=$personId error_type=${error.runtimeType}',
+      );
     }
   }
 

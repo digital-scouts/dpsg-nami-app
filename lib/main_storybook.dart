@@ -23,6 +23,7 @@ import 'stories/confetti_overlay_story.dart';
 import 'stories/member_basis_info_card_story.dart';
 import 'stories/member_basis_story.dart';
 import 'stories/member_detail_page_story.dart';
+import 'stories/member_edit_form_story.dart';
 import 'stories/member_edit_resolution_story.dart';
 import 'stories/member_list_directory_story.dart';
 import 'stories/member_list_group_filter_bar_story.dart';
@@ -65,6 +66,8 @@ List<Story> buildStorybookStories() {
     memberPeoplePageLoadedStory(),
     memberPeoplePageEmptyStory(),
     memberDetailPageStory(),
+    memberEditFormWithBankStory(),
+    memberEditFormWithoutDetailsStory(),
     memberEditResolutionServerConflictStory(),
     memberEditResolutionServerValidationStory(),
     memberEditResolutionMixedFieldsStory(),

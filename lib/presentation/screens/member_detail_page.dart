@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../domain/arbeitskontext/arbeitskontext_read_model.dart';
 import '../../domain/maps/address_map_location_repository.dart';
+import '../../domain/member/contact_category.dart';
 import '../../domain/member/member_utils.dart';
 import '../../domain/member/mitglied.dart';
 import '../../domain/member/pending_person_update.dart';
@@ -15,6 +16,7 @@ import '../../domain/taetigkeit/roles.dart';
 import '../../domain/taetigkeit/stufe.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/geoapify_address_map_service.dart';
+import '../../services/hitobito_contact_category_env.dart';
 import '../../services/map_tile_cache_service.dart';
 import '../model/arbeitskontext_model.dart';
 import '../model/auth_session_model.dart';
@@ -223,7 +225,11 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
         .map(
           (entry) => _ContactOption(
             label:
-                entry.label ??
+                HitobitoContactCategoryEnv.catalog.displayLabel(
+                  ContactAccountType.phoneNumber,
+                  entry.categoryId,
+                  entry.label,
+                ) ??
                 AppLocalizations.of(context).t('member_info_default_phone'),
             value: entry.wert,
           ),
@@ -242,7 +248,11 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
         .map(
           (entry) => _ContactOption(
             label:
-                entry.label ??
+                HitobitoContactCategoryEnv.catalog.displayLabel(
+                  ContactAccountType.additionalEmail,
+                  entry.categoryId,
+                  entry.label,
+                ) ??
                 AppLocalizations.of(context).t('member_info_default_email'),
             value: entry.wert,
           ),

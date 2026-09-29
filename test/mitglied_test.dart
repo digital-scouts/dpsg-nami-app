@@ -59,6 +59,26 @@ void main() {
     ]);
   });
 
+  test('liest detailsLesbar aus alten Cache-Staenden als unbekannt', () {
+    final json = Mitglied.peopleListItem(
+      mitgliedsnummer: '1002',
+      vorname: 'Max',
+      nachname: 'Muster',
+    ).toPeopleListJson()..remove('details_lesbar');
+
+    final restored = Mitglied.fromPeopleListJson(json);
+
+    expect(restored.detailsLesbar, isNull);
+    expect(restored.bankdatenLesbar, isFalse);
+    expect(
+      Mitglied.fromPeopleListJson(<String, dynamic>{
+        ...json,
+        'details_lesbar': false,
+      }).detailsLesbar,
+      isFalse,
+    );
+  });
+
   test('serialisiert und deserialisiert das erweiterte Personenmodell', () {
     final original = Mitglied(
       personId: 77,
@@ -76,6 +96,7 @@ void main() {
       bic: 'BYLADEM1001',
       bankName: 'Testbank',
       paymentMethod: 'lsv',
+      detailsLesbar: true,
       emailAdressen: const <MitgliedKontaktEmail>[
         MitgliedKontaktEmail(
           wert: 'max@example.org',

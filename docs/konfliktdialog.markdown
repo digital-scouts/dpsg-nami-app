@@ -33,11 +33,15 @@ Aktuell werden folgende Änderungseinheiten verglichen:
 - Fahrtenname
 - Geschlecht
 - Geburtsdatum
+- Pronomen
 - primäre E-Mail
-- jede Telefonnummer über ihre `phoneNumberId`
+- jede Telefonnummer über ihre `phoneNumberId`, einschließlich der Sichtbarkeit
 - jede Zusatzmail über ihre `additionalEmailId`
 - die primäre Adresse als ein zusammenhängender Block
 - jede Zusatzadresse als ein zusammenhängender Block über ihre `additionalAddressId`
+- die Bankverbindung als ein zusammenhängender Block
+
+Leere und fehlende Werte gelten dabei als gleich. Die Bezeichnung der primären Adresse zählt nicht als Änderung, weil Hitobito dafür kein Feld hat.
 
 Neu angelegte Telefonnummern, Zusatzmails und Zusatzadressen haben lokal noch keine ID. Sie werden über ihren Inhalt verglichen: Lokal entfernte Einträge fallen weg, und ein neuer Eintrag wird nicht doppelt angelegt, wenn Hitobito denselben Inhalt bereits enthält, etwa weil ein früheres Senden schon angekommen ist.
 
@@ -99,7 +103,7 @@ Im Abschnitt Speicherprobleme zeigt die App pro betroffenem Eintrag:
 
 Telefonnummern und Zusatzmails werden dabei mit Bezeichnung und Wert angezeigt.
 
-Adressen werden nicht als ein einziger String gezeigt, sondern mit ihren einzelnen Feldern untereinander, zum Beispiel Bezeichnung, c/o, Straße, Hausnummer, PLZ, Ort und Land.
+Adressen werden nicht als ein einziger String gezeigt, sondern mit ihren einzelnen Feldern untereinander, zum Beispiel Bezeichnung, c/o, Straße, Hausnummer, PLZ, Ort und Land. Die Bankverbindung erscheint ebenso mit Zahlart, Kontoinhaber*in, IBAN, BIC und Bank.
 
 Der normale Bearbeiten-Bereich bleibt im selben Screen verfügbar, ist beim Einstieg in den Problemlösungsfall aber zunächst eingeklappt.
 
@@ -108,15 +112,21 @@ Wenn der Nutzer bei einem Problemfeld Bearbeiten wählt, klappt die App den Bear
 Direkt bearbeitbar sind heute:
 
 - Name
+- Pronomen
 - Geschlecht
 - Geburtsdatum
 - primäre E-Mail
 - Zusatzmails
-- Telefonnummern
+- Telefonnummern samt Sichtbarkeit
 - primäre Adresse
-- Zusatzadressen
+- Zusatzadressen mit Name
+- Bankverbindung mit Zahlart
 
-Adressen werden dabei als Blöcke behandelt.
+Telefonnummern, Zusatzmails und Zusatzadressen werden über eine Auswahlliste bezeichnet, die den Hitobito-Kategorien entspricht. Ein vorhandener Freitext-Zusatz bleibt erhalten und wird angezeigt. Neue Einträge brauchen eine Kategorie; eindeutige Kategorien wie Mobil dürfen pro Person nur einmal vorkommen.
+
+Adressen und die Bankverbindung werden dabei als Blöcke behandelt.
+
+Geschlecht, Geburtsdatum und Bankdaten liefert Hitobito nur mit der Berechtigung `show_details`. Fehlen Geschlecht und Geburtsdatum in der Antwort, sperrt die App beide Felder, statt sie leer anzubieten. Die Bankverbindung erscheint nur, wenn Hitobito sie mitliefert.
 
 ## Entscheidungen im Problemlösungsfall
 

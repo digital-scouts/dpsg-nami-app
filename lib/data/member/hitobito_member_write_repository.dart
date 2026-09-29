@@ -407,6 +407,13 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
     return mutations;
   }
 
+  static Object? _normalizeEmpty(Object? value) {
+    if (value is String && value.trim().isEmpty) {
+      return null;
+    }
+    return value;
+  }
+
   Map<String, dynamic> _buildChangedPersonAttributes({
     required Mitglied remoteMitglied,
     required Mitglied zielMitglied,
@@ -414,10 +421,11 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
     final attributes = <String, dynamic>{};
 
     void assignIfChanged(String key, Object? remoteValue, Object? localValue) {
-      if (remoteValue == localValue) {
+      final normalizedLocal = _normalizeEmpty(localValue);
+      if (_normalizeEmpty(remoteValue) == normalizedLocal) {
         return;
       }
-      attributes[key] = localValue;
+      attributes[key] = normalizedLocal;
     }
 
     assignIfChanged('first_name', remoteMitglied.vorname, zielMitglied.vorname);
@@ -433,10 +441,36 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
     );
     assignIfChanged('gender', remoteMitglied.gender, zielMitglied.gender);
     if (remoteMitglied.geburtsdatum != zielMitglied.geburtsdatum) {
-      attributes['birthday'] = zielMitglied.geburtsdatum
-          .toIso8601String()
-          .split('T')
-          .first;
+      attributes['birthday'] =
+          zielMitglied.geburtsdatum == Mitglied.peoplePlaceholderDate
+          ? null
+          : zielMitglied.geburtsdatum.toIso8601String().split('T').first;
+    }
+
+    assignIfChanged('pronoun', remoteMitglied.pronoun, zielMitglied.pronoun);
+
+    // Ohne show_details liefert Hitobito keine Bankdaten; dann gibt es
+    // auch keinen verlaesslichen Stand, gegen den geschrieben werden darf.
+    if (remoteMitglied.bankdatenLesbar) {
+      assignIfChanged(
+        'bank_account_owner',
+        remoteMitglied.bankAccountOwner,
+        zielMitglied.bankAccountOwner,
+      );
+      assignIfChanged('iban', remoteMitglied.iban, zielMitglied.iban);
+      assignIfChanged('bic', remoteMitglied.bic, zielMitglied.bic);
+      assignIfChanged(
+        'bank_name',
+        remoteMitglied.bankName,
+        zielMitglied.bankName,
+      );
+      if (zielMitglied.paymentMethod != null) {
+        assignIfChanged(
+          'payment_method',
+          remoteMitglied.paymentMethod,
+          zielMitglied.paymentMethod,
+        );
+      }
     }
 
     final remotePrimaryEmail = _primaryEmail(remoteMitglied)?.wert;
