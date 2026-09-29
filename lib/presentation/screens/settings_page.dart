@@ -29,6 +29,9 @@ class SettingsPage extends StatefulWidget {
   final VoidCallback? onNamiAi;
   final VoidCallback? onNamiAiPaywall;
   final VoidCallback? onProfile;
+
+  /// Nur im Demo-Modus gesetzt: zeigt den Demo-Hinweis mit Ausstieg.
+  final VoidCallback? onExitDemo;
   final String? appVersion;
   final Future<NamiAiAccessDecision> Function()? namiAiAccessLoader;
   final Future<List<AppHubNotification>> Function()?
@@ -49,6 +52,7 @@ class SettingsPage extends StatefulWidget {
     this.onNamiAi,
     this.onNamiAiPaywall,
     this.onProfile,
+    this.onExitDemo,
     this.appVersion,
     this.namiAiAccessLoader,
     this.unreadExternalNotificationsLoader,
@@ -231,6 +235,38 @@ class _SettingsPageState extends State<SettingsPage> {
                       child: ListView(
                         padding: const EdgeInsets.all(16),
                         children: [
+                          if (widget.onExitDemo != null) ...[
+                            Card(
+                              key: const Key('demo-mode-card'),
+                              margin: EdgeInsets.zero,
+                              color: theme.colorScheme.tertiaryContainer,
+                              child: Padding(
+                                padding: const EdgeInsets.all(14),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      t.t('demo_banner_title'),
+                                      style: theme.textTheme.titleMedium,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(t.t('demo_banner_body')),
+                                    const SizedBox(height: 8),
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child: FilledButton.tonalIcon(
+                                        key: const Key('demo-exit'),
+                                        onPressed: widget.onExitDemo,
+                                        icon: const Icon(Icons.logout),
+                                        label: Text(t.t('demo_exit_action')),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
                           Card(
                             margin: EdgeInsets.zero,
                             child: InkWell(
@@ -396,18 +432,20 @@ class _SettingsPageState extends State<SettingsPage> {
                               ],
                             ),
                           ),
-                          const SizedBox(height: 12),
-                          const DpsgSectionHeader(label: 'Entwicklung'),
-                          Card(
-                            margin: EdgeInsets.zero,
-                            child: _SettingsNavTile(
-                              icon: Icons.bug_report,
-                              iconBackgroundColor: const Color(0xFF8E8E93),
-                              title: t.t('settings_debug_tools'),
-                              subtitle: 'Fehlerberichte, Cache, Tools',
-                              onTap: widget.onDebugTools,
+                          if (widget.onDebugTools != null) ...[
+                            const SizedBox(height: 12),
+                            const DpsgSectionHeader(label: 'Entwicklung'),
+                            Card(
+                              margin: EdgeInsets.zero,
+                              child: _SettingsNavTile(
+                                icon: Icons.bug_report,
+                                iconBackgroundColor: const Color(0xFF8E8E93),
+                                title: t.t('settings_debug_tools'),
+                                subtitle: 'Fehlerberichte, Cache, Tools',
+                                onTap: widget.onDebugTools,
+                              ),
                             ),
-                          ),
+                          ],
                           const SizedBox(height: 12),
                           const DpsgSectionHeader(label: 'Rechtliches'),
                           Card(
