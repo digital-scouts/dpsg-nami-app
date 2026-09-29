@@ -16,7 +16,8 @@ open design/supporter/preview.html
 - `lib/icons.mjs`: 4 Szenen × 3 Tageszeiten (`icons/<motiv>-<zeit>.svg`, 1024 × 1024), jeweils in drei Ebenen teilbar
 - `build_ios_icons.mjs`: Icon-Composer-Bundles für iOS 26/27 mit Liquid Glass; `*Automatisch.icon` zeigt hell den Morgen und dunkel die Nacht
 - `lib/badges.mjs`: Kompass in 6 Farben plus Förderer-Badge Polarstern (`badges/*.svg`)
-- `lib/backgrounds.mjs`: 3 animierte Header-Hintergründe, jeweils Tag (hell) und Nacht (dunkel); die App zeichnet sie nach in `lib/presentation/widgets/supporter_background_painter.dart` (`backgrounds/*.svg`)
+- Hintergründe: 3 Szenen, jeweils Tag (hell) und Nacht (dunkel). Freigegeben sind die Entwürfe aus `lib/entwurf_lagerfeuer_nacht.mjs` und `lib/entwurf_szenen.mjs` (Zuordnung in `generate.mjs`, `FINAL_BACKGROUNDS`); `lib/backgrounds.mjs` liefert die gemeinsamen Bausteine. Die App zeichnet die Szenen nach in `lib/presentation/widgets/supporter_background_painter.dart`.
+- `entwurf-*.html`: Vorschauseiten der Feedback-Runden (ganze Szene, Handy-Kopf ohne und mit Suche) (`backgrounds/*.svg`)
 - `lib/palettes.mjs`: 5 Paletten mit denselben Tokens wie `DPSGColors` (`palettes.json`)
 - `preview.html`: Übersicht mit Auswahl; die Auswahl lässt sich als Liste kopieren
 
