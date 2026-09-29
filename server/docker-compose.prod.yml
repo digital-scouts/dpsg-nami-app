@@ -1,3 +1,6 @@
+# Vollstaendig containerisierter Start fuer lokale Produktionstests.
+# Secrets kommen aus server/.env.production (nicht committet), siehe README.
+# Der Serverbetrieb auf dem vServer nutzt server/deploy/docker-compose.server.yml.
 services:
   app:
     build:
@@ -6,21 +9,23 @@ services:
     depends_on:
       mongodb:
         condition: service_healthy
+    env_file:
+      - .env.production
     environment:
       NODE_ENV: production
       HOST: 0.0.0.0
       PORT: 3000
-      LOG_LEVEL: info
-      MONGODB_URI: mongodb://mongodb:27017
+      MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongodb:27017/?authSource=admin
       MONGODB_DATABASE: nami_statistics
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     restart: unless-stopped
 
   mongodb:
     image: mongo:7.0
-    ports:
-      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand({ ping: 1 })"]
       interval: 5s

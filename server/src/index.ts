@@ -3,25 +3,32 @@ import 'dotenv/config';
 import { buildServer } from './app/buildServer.js';
 import { loadConfig } from './app/config.js';
 import { buildMongoDbClient, connectToMongoDb } from './infra/mongodb/client.js';
-import { buildRawSnapshotsRepository, initializeStatisticsPersistence } from './infra/mongodb/statisticsPersistence.js';
+import { buildMongoDependencies, initializeStatisticsPersistence } from './infra/mongodb/statisticsPersistence.js';
+import { rebuildEffectiveStatesAndAggregate } from './modules/aggregation/refresh.js';
 
 const config = loadConfig();
 const mongoClient = buildMongoDbClient(config);
 const mongoDb = mongoClient.db(config.mongoDbDatabase);
-const server = buildServer(config, {
-    rawSnapshotsRepository: buildRawSnapshotsRepository(mongoDb),
-});
+const dependencies = buildMongoDependencies(mongoDb);
+const server = buildServer(config, dependencies);
 
 const start = async (): Promise<void> => {
     try {
         await connectToMongoDb(mongoClient, config);
         await initializeStatisticsPersistence(mongoDb);
+        await rebuildEffectiveStatesAndAggregate(
+            dependencies.rawSnapshotsRepository,
+            dependencies.effectiveStatesRepository,
+            dependencies.weeklyAggregatesRepository,
+            dependencies.clock(),
+        );
         await server.listen({ host: config.host, port: config.port });
         server.log.info(
             {
                 host: config.host,
                 port: config.port,
                 database: config.mongoDbDatabase,
+                version: config.gitSha,
             },
             'Statistics server listening',
         );

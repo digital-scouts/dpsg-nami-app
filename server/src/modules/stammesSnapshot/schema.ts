@@ -12,7 +12,7 @@ const unsupportedSchemaVersionCode = 'unsupported_schema_version';
 const invalidStammPlausibilityCode = 'invalid_stamm_plausibility';
 const invalidSnapshotPayloadCode = 'invalid_snapshot_payload';
 
-const requiredStringField = (_fieldName: string) =>
+const requiredStringField = () =>
     z.any().transform((value, ctx) => {
         if (typeof value !== 'string' || value.trim() === '') {
             ctx.addIssue({
@@ -43,7 +43,7 @@ const optionalStringField = z.any().optional().transform((value, ctx) => {
     return value.trim();
 });
 
-const isoDateTimeField = (_fieldName: string) =>
+const isoDateTimeField = () =>
     z.any().transform((value, ctx) => {
         if (value === undefined || value === null || value === '') {
             ctx.addIssue({
@@ -54,7 +54,11 @@ const isoDateTimeField = (_fieldName: string) =>
             return z.NEVER;
         }
 
-        if (typeof value !== 'string' || !ISO_TIMESTAMP_PATTERN.test(value.trim())) {
+        if (
+            typeof value !== 'string'
+            || !ISO_TIMESTAMP_PATTERN.test(value.trim())
+            || Number.isNaN(Date.parse(value.trim()))
+        ) {
             ctx.addIssue({
                 code: 'custom',
                 message: invalidDateTimeCode,
@@ -227,12 +231,12 @@ const metricsSchema = z
 
 const stammesSnapshotSchema = z.object({
     schema_version: schemaVersionField,
-    stamm_id: requiredStringField('stamm_id'),
-    dv_id: requiredStringField('dv_id'),
+    stamm_id: requiredStringField(),
+    dv_id: optionalStringField,
     bezirk_id: optionalStringField,
-    sender_id: requiredStringField('sender_id'),
-    sent_at: isoDateTimeField('sent_at'),
-    source_data_as_of: isoDateTimeField('source_data_as_of'),
+    sender_id: requiredStringField(),
+    sent_at: isoDateTimeField(),
+    source_data_as_of: isoDateTimeField(),
     metrics: z.any().transform((value, ctx) => {
         if (value === undefined || value === null) {
             ctx.addIssue({
@@ -307,13 +311,39 @@ const buildValidationError = (issues: z.ZodIssue[]): AppError => {
     );
 };
 
+// Zeitstempel in der Zukunft wuerden einen Stamm dauerhaft als "neuesten Stand" festschreiben.
+const MAX_CLOCK_SKEW_MS = 24 * 60 * 60 * 1000;
+
+const findFutureTimestampFields = (
+    snapshot: StammesSnapshotPayload,
+    now: Date,
+): string[] => {
+    const latestAllowed = now.getTime() + MAX_CLOCK_SKEW_MS;
+
+    return (['sent_at', 'source_data_as_of'] as const).filter(
+        (fieldName) => Date.parse(snapshot[fieldName]) > latestAllowed,
+    );
+};
+
 export const parseStammesSnapshotPayload = (
     input: unknown,
+    now: Date = new Date(),
 ): StammesSnapshotPayload => {
     const parsed = stammesSnapshotSchema.safeParse(input);
 
     if (!parsed.success) {
         throw buildValidationError(parsed.error.issues);
+    }
+
+    const futureFields = findFutureTimestampFields(parsed.data, now);
+
+    if (futureFields.length > 0) {
+        throw new AppError(
+            'Snapshot payload is invalid',
+            400,
+            invalidDateTimeCode,
+            futureFields,
+        );
     }
 
     return parsed.data;

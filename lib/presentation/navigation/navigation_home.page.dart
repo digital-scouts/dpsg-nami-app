@@ -12,6 +12,7 @@ import 'package:nami/presentation/screens/settings_page.dart';
 import 'package:nami/presentation/screens/settings_stufenwechsel_page.dart';
 import 'package:nami/presentation/screens/statistics_page.dart';
 import 'package:nami/presentation/widgets/app_bottom_navigation.dart';
+import 'package:nami/presentation/widgets/logout_flow.dart';
 import 'package:nami/services/logger_service.dart';
 import 'package:provider/provider.dart';
 
@@ -286,7 +287,7 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
             message: t.t('nav_work_context_unauthorized_body'),
             errorMessage: arbeitskontextModel.errorMessage,
             child: FilledButton.icon(
-              onPressed: authModel.logout,
+              onPressed: () => runLogoutFlow(context),
               icon: const Icon(Icons.logout),
               label: Text(t.t('logout')),
             ),

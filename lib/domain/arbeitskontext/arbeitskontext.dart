@@ -3,12 +3,17 @@ class ArbeitskontextLayer {
     required this.id,
     required this.name,
     this.parentLayerId,
+    this.layerTyp,
   }) : assert(id > 0),
        assert(name != '');
 
   final int id;
   final String name;
   final int? parentLayerId;
+
+  /// Hitobito-Gruppentyp des Layers, z. B. `Group::Stamm`. Fehlt bei Daten,
+  /// die vor Einfuehrung des Felds zwischengespeichert wurden.
+  final String? layerTyp;
 
   bool get hatParentLayer => parentLayerId != null;
 
@@ -17,12 +22,14 @@ class ArbeitskontextLayer {
     String? name,
     int? parentLayerId,
     bool parentLayerLoeschen = false,
+    String? layerTyp,
   }) => ArbeitskontextLayer(
     id: id ?? this.id,
     name: name ?? this.name,
     parentLayerId: parentLayerLoeschen
         ? null
         : parentLayerId ?? this.parentLayerId,
+    layerTyp: layerTyp ?? this.layerTyp,
   );
 
   @override
@@ -30,15 +37,16 @@ class ArbeitskontextLayer {
     return other is ArbeitskontextLayer &&
         other.id == id &&
         other.name == name &&
-        other.parentLayerId == parentLayerId;
+        other.parentLayerId == parentLayerId &&
+        other.layerTyp == layerTyp;
   }
 
   @override
-  int get hashCode => Object.hash(id, name, parentLayerId);
+  int get hashCode => Object.hash(id, name, parentLayerId, layerTyp);
 
   @override
   String toString() {
-    return 'ArbeitskontextLayer(id: $id, name: $name, parentLayerId: $parentLayerId)';
+    return 'ArbeitskontextLayer(id: $id, name: $name, parentLayerId: $parentLayerId, layerTyp: $layerTyp)';
   }
 }
 

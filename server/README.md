@@ -25,7 +25,11 @@ Danach ist der Health-Endpunkt unter `http://localhost:3000/health` erreichbar.
 
 MongoDB läuft lokal dabei in Docker unter `mongodb://localhost:27017`.
 
-Für den Start muss zusätzlich `PSEUDONYMIZATION_SECRET` gesetzt sein. Der Wert muss stabil bleiben, damit Stamm- und Sender-Pseudonyme für identische Eingaben reproduzierbar bleiben.
+Für den Start müssen zusätzlich `PSEUDONYMIZATION_SECRET` und `SENDER_SECRET_PEPPER` gesetzt sein, z. B. über `server/.env` nach dem Vorbild von `server/.env.example`. Beide Werte müssen stabil bleiben: Das Secret hält Stamm- und Sender-Pseudonyme reproduzierbar, der Pepper die gespeicherten Hashes der Installations-Secrets.
+
+Beim Start baut der Server `effective_states` und das aktuelle Wochenaggregat aus `raw_snapshots` neu auf.
+
+Datenbestände aus der Zeit vor der Umstellung auf UTC-Datumsfelder (Zeitstempel als Strings) werden nicht migriert. Lokale Entwicklungsdatenbanken dafür mit `npm run dev:db:down` und `docker volume rm server_mongodb_data` verwerfen.
 
 Der Server startet nur erfolgreich, wenn beim Boot eine MongoDB-Verbindung aufgebaut werden kann. Für die lokale Entwicklung läuft der Server direkt auf dem Host, damit Watch-Modus, Breakpoints und sonstige Dev-Tools einfacher nutzbar bleiben.
 
@@ -38,7 +42,7 @@ npm run dev:db:down
 
 ## Produktivstart mit Docker
 
-Für den containerisierten Produktivpfad werden Server und MongoDB gemeinsam über eine eigene Compose-Datei gestartet:
+Für einen vollständig containerisierten Test werden Server und MongoDB gemeinsam über `docker-compose.prod.yml` gestartet. Die Secrets kommen aus `server/.env.production` (nicht committet) mit `PSEUDONYMIZATION_SECRET`, `SENDER_SECRET_PEPPER`, `MONGO_ROOT_USERNAME` und `MONGO_ROOT_PASSWORD`. MongoDB ist dabei nur im Compose-Netz erreichbar, der Server nur unter `127.0.0.1:3000`.
 
 ```bash
 cd server
@@ -63,34 +67,38 @@ npm run dev
 ```
 
 Für diesen Pfad muss eine erreichbare MongoDB per `MONGODB_URI` konfiguriert sein.
-Zusätzlich muss `PSEUDONYMIZATION_SECRET` gesetzt sein.
+Zusätzlich müssen `PSEUDONYMIZATION_SECRET` und `SENDER_SECRET_PEPPER` gesetzt sein.
+
+Der Betrieb auf dem vServer mit Caddy, Deploy-Workflow, Backups und Monitoring ist in `server/deploy/README.md` beschrieben.
 
 ## Aktueller API-Stand
 
-- `GET /health`: einfacher Health-Check mit Statusantwort
-- `POST /snapshots/stamm`: validiert Stammes-Snapshots gegen die aktuell unterstützte Schema-Version `2026-04-01`
+- `GET /health`: Liveness-Check für den Docker-Healthcheck
+- `GET /health/ready`: Readiness-Check mit MongoDB-Ping, laufender Version (`GIT_SHA`), letztem Backup und Zeitpunkt des letzten Aggregats; `503`, wenn MongoDB nicht erreichbar ist
+- `POST /snapshots/stamm`: nimmt Stammes-Snapshots im Schema `2026-04-01` mit Installations-Credentials an, pseudonymisiert und speichert sie, aktualisiert den effektiven Stand des Stammes und das Wochenaggregat; Erfolg ist `204 No Content`
+- `GET /aggregates/bund/latest`: liefert das materialisierte Bundesaggregat an Installationen, die in den letzten 14 Tagen erfolgreich gesendet haben
 
-Der Snapshot-Ingest persistiert im aktuellen Stand gültige, pseudonymisierte Rohsnapshots in MongoDB. `effective_states` und `weekly_aggregates` werden dabei bereits strukturell vorbereitet, aber noch nicht fachlich befüllt. Bei erfolgreicher Verarbeitung liefert der Endpunkt `204 No Content`.
-
-Ungültige Anfragen liefern `400` mit einer strukturierten Fehlerantwort in der Form:
+Fehler liefern eine strukturierte Antwort in der Form:
 
 ```json
 {
   "error": {
     "code": "missing_required_field",
     "message": "Snapshot payload is invalid",
-    "fields": ["dv_id"]
+    "fields": ["stamm_id"]
   }
 }
 ```
 
-Die fachlichen Details des Snapshot-Vertrags liegen unter `server/spec/stammes_snapshot.md`.
+Interne Fehler werden ohne Details als `internal_error` ausgeliefert. Ingest und Read-API sind pro Client-IP begrenzt (`RATE_LIMIT_*`), Anfragen sind auf `BODY_LIMIT_BYTES` begrenzt. CORS ist bewusst nicht aktiviert, weil nur die native App zugreift.
+
+Die Verträge liegen unter `server/spec/stammes_snapshot.md` und `server/spec/bundesaggregat.md`.
 
 ## Skripte
 
 - `npm run dev`: Entwicklungsserver mit Watch-Modus
-- `npm run typecheck`: TypeScript-Prüfung ohne Build
-- `npm run test`: Testlauf
+- `npm run typecheck`: TypeScript-Prüfung von Quellcode und Tests ohne Build
+- `npm run test`: Unit- und Integrationstests; die Integrationstests starten per `mongodb-memory-server` eine echte MongoDB 7.0 (beim ersten Lauf wird das Binary heruntergeladen), Docker ist dafür nicht nötig
 - `npm run build`: Produktionsbuild nach `dist/`
 
 ## Trennung zum Flutter-Projekt

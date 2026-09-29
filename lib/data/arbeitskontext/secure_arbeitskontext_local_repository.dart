@@ -132,6 +132,7 @@ class SecureArbeitskontextLocalRepository
       'id': layer.id,
       'name': layer.name,
       'parent_layer_id': layer.parentLayerId,
+      'layer_typ': layer.layerTyp,
     };
   }
 
@@ -146,6 +147,7 @@ class SecureArbeitskontextLocalRepository
       id: id,
       name: name,
       parentLayerId: _toNullableInt(json['parent_layer_id']),
+      layerTyp: _trimToNull(json['layer_typ']?.toString()),
     );
   }
 

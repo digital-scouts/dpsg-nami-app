@@ -1,0 +1,404 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
+
+import '../../domain/arbeitskontext/arbeitskontext_read_model.dart';
+import '../../domain/bundesstatistik/baue_stammes_kennzahlen_usecase.dart';
+import '../../domain/bundesstatistik/bundesaggregat.dart';
+import '../../domain/bundesstatistik/bundesstatistik_repository.dart';
+import '../../domain/bundesstatistik/bundesstatistik_teilnahme.dart';
+import '../../domain/bundesstatistik/ermittle_stammes_hierarchie_usecase.dart';
+import '../../domain/bundesstatistik/installation_credentials.dart';
+import '../../domain/bundesstatistik/stammes_snapshot.dart';
+import '../../services/logger_service.dart';
+import '../../services/network_access_policy.dart';
+
+enum BundesstatistikStatus {
+  /// Kein Statistikserver konfiguriert.
+  nichtVerfuegbar,
+  keineEinwilligung,
+
+  /// Arbeitskontext oder Rollen sind noch nicht geladen.
+  wartetAufDaten,
+
+  /// Der aktive Layer ist kein Stamm.
+  keinStamm,
+
+  /// Der Stamm hat keine Mitglieder in den Stufen.
+  keineKennzahlen,
+
+  /// Der Server erkennt noch keine Teilnahme (z. B. vor dem ersten Senden).
+  nichtTeilnehmend,
+  zuWenigTeilnahme,
+  bereit,
+  fehler,
+}
+
+/// Steuert Einwilligung, Senden des Stammes-Snapshots und Abruf des
+/// Bundesaggregats. Ohne Einwilligung der aktuell angemeldeten Person wird
+/// nichts gesendet und nichts abgerufen.
+class BundesstatistikModel extends ChangeNotifier {
+  BundesstatistikModel({
+    required bool featureEnabled,
+    required BundesstatistikRepository repository,
+    required InstallationCredentialsRepository credentialsRepository,
+    required BundesstatistikTeilnahmeRepository teilnahmeRepository,
+    NetworkAccessPolicy? networkAccessPolicy,
+    LoggerService? logger,
+    Duration sendInterval = const Duration(days: 7),
+    Duration aggregatRefreshInterval = const Duration(hours: 6),
+    DateTime Function()? now,
+    BaueStammesKennzahlenUseCase baueKennzahlen =
+        const BaueStammesKennzahlenUseCase(),
+    ErmittleStammesHierarchieUseCase ermittleHierarchie =
+        const ErmittleStammesHierarchieUseCase(),
+  }) : _featureEnabled = featureEnabled,
+       _repository = repository,
+       _credentialsRepository = credentialsRepository,
+       _teilnahmeRepository = teilnahmeRepository,
+       _networkAccessPolicy = networkAccessPolicy,
+       _logger = logger,
+       _sendInterval = sendInterval,
+       _aggregatRefreshInterval = aggregatRefreshInterval,
+       _now = now ?? DateTime.now,
+       _baueKennzahlen = baueKennzahlen,
+       _ermittleHierarchie = ermittleHierarchie;
+
+  final bool _featureEnabled;
+  final BundesstatistikRepository _repository;
+  final InstallationCredentialsRepository _credentialsRepository;
+  final BundesstatistikTeilnahmeRepository _teilnahmeRepository;
+  final NetworkAccessPolicy? _networkAccessPolicy;
+  final LoggerService? _logger;
+  final Duration _sendInterval;
+  final Duration _aggregatRefreshInterval;
+  final DateTime Function() _now;
+  final BaueStammesKennzahlenUseCase _baueKennzahlen;
+  final ErmittleStammesHierarchieUseCase _ermittleHierarchie;
+
+  BundesstatistikTeilnahme _teilnahme = BundesstatistikTeilnahme.leer;
+  String? _personId;
+  ArbeitskontextReadModel? _readModel;
+  DateTime? _datenstand;
+  StammesHierarchie? _hierarchie;
+  StammesKennzahlen? _eigeneKennzahlen;
+  Bundesaggregat? _aggregat;
+  DateTime? _aggregatGeladenAm;
+  bool _nichtTeilnehmend = false;
+  BundesstatistikFehlerArt? _letzterFehler;
+  bool _isBusy = false;
+  bool _syncErneutAngefordert = false;
+
+  bool get isAvailable => _featureEnabled;
+  bool get isBusy => _isBusy;
+  bool get hatEinwilligung {
+    final personId = _personId;
+    return personId != null && _teilnahme.hatEinwilligungFuer(personId);
+  }
+
+  DateTime? get einwilligungAm =>
+      hatEinwilligung ? _teilnahme.einwilligungAm : null;
+  Bundesaggregat? get aggregat => _aggregat;
+  StammesKennzahlen? get eigeneKennzahlen => _eigeneKennzahlen;
+  BundesstatistikFehlerArt? get letzterFehler => _letzterFehler;
+
+  /// Zuletzt fuer den aktuellen Stamm gesendeter Snapshot (Transparenz).
+  StammesSnapshot? get zuletztGesendeterSnapshot {
+    final json = _teilnahme.zuletztGesendeterSnapshotJson;
+    final stammId = _hierarchie?.stammId;
+    if (json == null || stammId == null) {
+      return null;
+    }
+    try {
+      final snapshot = StammesSnapshot.fromJson(
+        jsonDecode(json) as Map<String, dynamic>,
+      );
+      return snapshot.stammId == stammId ? snapshot : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  BundesstatistikStatus get status {
+    if (!_featureEnabled) {
+      return BundesstatistikStatus.nichtVerfuegbar;
+    }
+    if (!hatEinwilligung) {
+      return BundesstatistikStatus.keineEinwilligung;
+    }
+    final aggregat = _aggregat;
+    if (aggregat != null && !_nichtTeilnehmend) {
+      return aggregat.status == BundesaggregatStatus.ok
+          ? BundesstatistikStatus.bereit
+          : BundesstatistikStatus.zuWenigTeilnahme;
+    }
+    final readModel = _readModel;
+    if (readModel == null || !readModel.rolesSindGeladen) {
+      return BundesstatistikStatus.wartetAufDaten;
+    }
+    if (_hierarchie == null) {
+      return BundesstatistikStatus.keinStamm;
+    }
+    if (!(_eigeneKennzahlen?.istPlausibel ?? false)) {
+      return BundesstatistikStatus.keineKennzahlen;
+    }
+    if (_letzterFehler != null) {
+      return BundesstatistikStatus.fehler;
+    }
+    if (_nichtTeilnehmend) {
+      return BundesstatistikStatus.nichtTeilnehmend;
+    }
+    return BundesstatistikStatus.wartetAufDaten;
+  }
+
+  Future<void> initialize() async {
+    if (!_featureEnabled) {
+      return;
+    }
+    _teilnahme = await _teilnahmeRepository.load();
+    notifyListeners();
+  }
+
+  /// Wird bei Aenderungen an Anmeldung oder Arbeitskontext aufgerufen.
+  Future<void> aktualisiereKontext({
+    required String? personId,
+    required ArbeitskontextReadModel? readModel,
+    required DateTime? datenstand,
+  }) async {
+    if (!_featureEnabled) {
+      return;
+    }
+    if (personId == _personId &&
+        identical(readModel, _readModel) &&
+        datenstand == _datenstand) {
+      return;
+    }
+
+    if (personId != _personId) {
+      _aggregat = null;
+      _aggregatGeladenAm = null;
+      _nichtTeilnehmend = false;
+      _letzterFehler = null;
+    }
+    _personId = personId;
+    _readModel = readModel;
+    _datenstand = datenstand;
+    _berechneEigeneKennzahlen();
+    notifyListeners();
+    await _synchronisiere();
+  }
+
+  Future<void> setzeEinwilligung(bool erteilt) async {
+    final personId = _personId;
+    if (!_featureEnabled || personId == null) {
+      return;
+    }
+
+    _teilnahme = erteilt
+        ? _teilnahme.mitEinwilligung(personId, _now())
+        : _teilnahme.ohneEinwilligung();
+    if (!erteilt) {
+      _aggregat = null;
+      _aggregatGeladenAm = null;
+      _nichtTeilnehmend = false;
+      _letzterFehler = null;
+    }
+    await _teilnahmeRepository.save(_teilnahme);
+    await _log(
+      erteilt
+          ? 'Einwilligung zur bundesweiten Statistik erteilt'
+          : 'Einwilligung zur bundesweiten Statistik widerrufen',
+    );
+    notifyListeners();
+
+    if (erteilt) {
+      await _synchronisiere(aggregatErzwingen: true);
+    }
+  }
+
+  /// Manuelles Aktualisieren, z. B. beim Oeffnen der Vergleichsseite.
+  Future<void> aktualisieren() => _synchronisiere(aggregatErzwingen: true);
+
+  void _berechneEigeneKennzahlen() {
+    final readModel = _readModel;
+    if (readModel == null || !readModel.rolesSindGeladen) {
+      _hierarchie = null;
+      _eigeneKennzahlen = null;
+      return;
+    }
+    _hierarchie = _ermittleHierarchie(readModel);
+    _eigeneKennzahlen = _hierarchie == null
+        ? null
+        : _baueKennzahlen(readModel, stichtag: _now());
+  }
+
+  Future<void> _synchronisiere({bool aggregatErzwingen = false}) async {
+    if (!_featureEnabled || !hatEinwilligung) {
+      return;
+    }
+    if (_isBusy) {
+      _syncErneutAngefordert = true;
+      return;
+    }
+
+    _isBusy = true;
+    notifyListeners();
+    try {
+      if (!await _netzwerkErlaubt()) {
+        return;
+      }
+
+      var credentials = await _credentialsRepository.loadOrCreate();
+      credentials = await _mitNeuenCredentialsBeiBedarf(
+        credentials,
+        _sendeWennFaellig,
+      );
+
+      // Lesen darf nur, wer beigetragen hat; ohne eigene Sendung waere die
+      // Antwort ohnehin 403.
+      final hatGesendet = _teilnahme.zuletztGesendetAm != null;
+      if (hatGesendet && (aggregatErzwingen || _aggregatFaellig())) {
+        await _mitNeuenCredentialsBeiBedarf(credentials, (aktuelle) async {
+          await _sendeWennFaellig(aktuelle);
+          await _ladeAggregat(aktuelle);
+        });
+      }
+      _letzterFehler = null;
+    } on BundesstatistikException catch (error) {
+      _letzterFehler = error.art;
+      await _log(
+        'Bundesstatistik fehlgeschlagen: ${error.art.name} (${error.code ?? '-'})',
+      );
+    } catch (error) {
+      _letzterFehler = BundesstatistikFehlerArt.unbekannt;
+      await _log('Bundesstatistik fehlgeschlagen: $error');
+    } finally {
+      _isBusy = false;
+      notifyListeners();
+    }
+
+    if (_syncErneutAngefordert) {
+      _syncErneutAngefordert = false;
+      await _synchronisiere();
+    }
+  }
+
+  /// Bei `invalid_sender_credentials` (z. B. nach Neuaufsetzen des Servers)
+  /// neue Credentials erzeugen, den Sendestand verwerfen und die Aktion genau
+  /// einmal mit den neuen Credentials wiederholen. Liefert die danach
+  /// gueltigen Credentials.
+  Future<InstallationCredentials> _mitNeuenCredentialsBeiBedarf(
+    InstallationCredentials credentials,
+    Future<void> Function(InstallationCredentials credentials) aktion,
+  ) async {
+    try {
+      await aktion(credentials);
+      return credentials;
+    } on BundesstatistikException catch (error) {
+      if (error.art != BundesstatistikFehlerArt.ungueltigeCredentials) {
+        rethrow;
+      }
+      await _log('Installations-Credentials ungueltig, erzeuge neue');
+      final neu = await _credentialsRepository.regenerate();
+      _teilnahme = _teilnahme.ohneSendestand();
+      await _teilnahmeRepository.save(_teilnahme);
+      await aktion(neu);
+      return neu;
+    }
+  }
+
+  Future<void> _sendeWennFaellig(InstallationCredentials credentials) async {
+    final hierarchie = _hierarchie;
+    final kennzahlen = _eigeneKennzahlen;
+    if (hierarchie == null || kennzahlen == null || !kennzahlen.istPlausibel) {
+      return;
+    }
+
+    final now = _now();
+    final zuletzt = _teilnahme.zuletztGesendetAm;
+    final faellig =
+        zuletzt == null ||
+        now.difference(zuletzt) >= _sendInterval ||
+        _teilnahme.zuletztGesendeterStammId != hierarchie.stammId;
+    if (!faellig) {
+      return;
+    }
+
+    final datenstand = _datenstand;
+    final snapshot = StammesSnapshot(
+      stammId: hierarchie.stammId,
+      bezirkId: hierarchie.bezirkId,
+      dvId: hierarchie.dvId,
+      senderId: credentials.id,
+      sentAt: now,
+      sourceDataAsOf: datenstand == null || datenstand.isAfter(now)
+          ? now
+          : datenstand,
+      kennzahlen: kennzahlen,
+    );
+
+    await _repository.sendeSnapshot(snapshot, credentials);
+    _teilnahme = _teilnahme.mitGesendetemSnapshot(
+      am: now,
+      stammId: hierarchie.stammId,
+      snapshotJson: jsonEncode(snapshot.toJson()),
+    );
+    await _teilnahmeRepository.save(_teilnahme);
+    _nichtTeilnehmend = false;
+    // Nach neuem Beitrag das Aggregat frisch laden.
+    _aggregatGeladenAm = null;
+    await _log('Stammes-Snapshot fuer die bundesweite Statistik gesendet');
+  }
+
+  bool _aggregatFaellig() {
+    final geladenAm = _aggregatGeladenAm;
+    return geladenAm == null ||
+        _now().difference(geladenAm) >= _aggregatRefreshInterval;
+  }
+
+  Future<void> _ladeAggregat(
+    InstallationCredentials credentials, {
+    bool nachsendenErlaubt = true,
+  }) async {
+    try {
+      _aggregat = await _repository.ladeBundesaggregat(credentials);
+      _aggregatGeladenAm = _now();
+      _nichtTeilnehmend = false;
+    } on BundesstatistikException catch (error) {
+      if (error.art != BundesstatistikFehlerArt.nichtTeilnehmend) {
+        rethrow;
+      }
+      _nichtTeilnehmend = true;
+      _aggregat = null;
+      _aggregatGeladenAm = null;
+      if (!nachsendenErlaubt || _teilnahme.zuletztGesendetAm == null) {
+        return;
+      }
+      // Die App haelt sich fuer teilnehmend, der Server nicht (z. B. nach
+      // Datenverlust): einmal neu senden und erneut lesen.
+      _teilnahme = _teilnahme.ohneSendestand();
+      await _teilnahmeRepository.save(_teilnahme);
+      await _sendeWennFaellig(credentials);
+      if (_teilnahme.zuletztGesendetAm != null) {
+        await _ladeAggregat(credentials, nachsendenErlaubt: false);
+      }
+    }
+  }
+
+  Future<bool> _netzwerkErlaubt() async {
+    final policy = _networkAccessPolicy;
+    if (policy == null) {
+      return true;
+    }
+    final decision = await policy.evaluateAccess(
+      trigger: 'bundesstatistik',
+      feature: 'Bundesweite Statistik',
+    );
+    return decision.allowed;
+  }
+
+  Future<void> _log(String message) async {
+    await _logger?.log('bundesstatistik', message);
+  }
+}

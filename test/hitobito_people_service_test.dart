@@ -478,6 +478,7 @@ void main() {
         ],
         adressen: const <MitgliedKontaktAdresse>[
           MitgliedKontaktAdresse(
+            additionalAddressId: 0,
             addressCareOf: 'c/o Familie Keller',
             street: 'Musterweg',
             housenumber: '4',

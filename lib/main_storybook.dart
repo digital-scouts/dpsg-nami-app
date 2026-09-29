@@ -27,6 +27,7 @@ import 'stories/member_edit_resolution_story.dart';
 import 'stories/member_list_directory_story.dart';
 import 'stories/member_list_group_filter_bar_story.dart';
 import 'stories/member_list_search_bar_story.dart';
+import 'stories/bundesstatistik_story.dart';
 import 'stories/member_list_story.dart';
 import 'stories/member_list_tile_story.dart';
 import 'stories/member_people_page_story.dart';
@@ -101,6 +102,9 @@ List<Story> buildStorybookStories() {
     statisticsGroupDetailStory(),
     ageDistributionStory(),
     groupDistributionStory(),
+    bundesstatistikCardStory(),
+    bundesvergleichStory(),
+    bundesstatistikEinwilligungStory(),
     stufenChoiceChipsStory(),
     stufenwechselTimelineStory(),
     stufenwechselEmpfehlungStory(),

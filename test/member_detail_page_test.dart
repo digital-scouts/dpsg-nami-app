@@ -517,7 +517,7 @@ void main() {
 
     expect(
       find.text(
-        'Für diese Person liegt eine ausstehende Änderung vor. Ein Retry ist in den Debug-Tools möglich.',
+        'Für diese Person liegt eine noch nicht gesendete Änderung vor. Sie wird automatisch gesendet, sobald Hitobito erreichbar ist.',
       ),
       findsOneWidget,
     );
@@ -848,6 +848,173 @@ void main() {
     expect(find.textContaining('Problemlösung'), findsOneWidget);
     expect(memberEditModel.openedEntryPoints, <String>['detail']);
   });
+
+  testWidgets(
+    'zeigt Problemfall-Banner und oeffnet ueber Problem loesen die Problemloesung',
+    (tester) async {
+      final member = Mitglied.peopleListItem(
+        mitgliedsnummer: '4711',
+        personId: 23,
+        primaryGroupId: 111,
+        vorname: 'Julia',
+        nachname: 'Keller',
+      );
+      final pendingEntry = PendingPersonUpdate(
+        entryId: 'person-23',
+        personId: 23,
+        mitgliedsnummer: '4711',
+        displayName: 'Juliane Keller',
+        basisMitglied: member,
+        zielMitglied: member.copyWith(vorname: 'Juliane'),
+        queuedAt: DateTime(2026, 4, 14, 12, 0),
+        status: PendingPersonUpdateStatus.needsResolution,
+        resolutionCase: MemberResolutionCase(
+          remoteMitglied: member.copyWith(vorname: 'Remote Julia'),
+          source: MemberResolutionSource.manualSave,
+          items: const <MemberResolutionItem>[
+            MemberResolutionItem(
+              problemType: MemberResolutionProblemType.conflict,
+              cause: MemberResolutionCause.overlappingChange,
+              target: MemberResolutionTarget(
+                type: MemberResolutionTargetType.firstName,
+              ),
+              message: 'Vorname kollidiert.',
+            ),
+          ],
+        ),
+      );
+      final memberEditModel = _ResolutionTrackingMemberEditModel(
+        pendingEntry: pendingEntry,
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberDetailPage(mitglied: member),
+          providers: <SingleChildWidget>[
+            ChangeNotifierProvider<MemberEditModel>.value(
+              value: memberEditModel,
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Für diese Person gibt es offene Problemfälle. Bitte prüfe die betroffenen Felder und sende die Änderung danach erneut.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'Für diese Person liegt eine noch nicht gesendete Änderung vor. Sie wird automatisch gesendet, sobald Hitobito erreichbar ist.',
+        ),
+        findsNothing,
+      );
+      expect(find.text('Problem lösen'), findsOneWidget);
+
+      await tester.tap(find.text('Problem lösen'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Speicherprobleme bei Juliane Keller'), findsOneWidget);
+      expect(find.text('Vorname kollidiert.'), findsOneWidget);
+      expect(find.text('Lokal behalten'), findsOneWidget);
+      expect(memberEditModel.openedEntryPoints, <String>['detail']);
+    },
+  );
+
+  group('Jetzt senden', () {
+    final member = Mitglied.peopleListItem(
+      mitgliedsnummer: '4711',
+      personId: 23,
+      vorname: 'Julia',
+      nachname: 'Keller',
+    );
+    final entry = PendingPersonUpdate(
+      entryId: 'person-23',
+      personId: 23,
+      mitgliedsnummer: '4711',
+      displayName: 'Juliane Keller',
+      basisMitglied: member,
+      zielMitglied: member.copyWith(vorname: 'Juliane'),
+      queuedAt: DateTime(2026, 4, 14, 12, 0),
+    );
+
+    Future<void> pumpDetail(
+      WidgetTester tester,
+      _SendNowMemberEditModel model,
+    ) async {
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberDetailPage(mitglied: member),
+          providers: <SingleChildWidget>[
+            ChangeNotifierProvider<MemberEditModel>.value(value: model),
+            ChangeNotifierProvider<AuthSessionModel>.value(
+              value: _StubAuthSessionModel(
+                session: AuthSession(
+                  accessToken: 'token-123',
+                  receivedAt: DateTime(2026, 4, 14),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('sendet den Eintrag gezielt und meldet Erfolg', (tester) async {
+      final model = _SendNowMemberEditModel(
+        entry: entry,
+        disposition: PendingPersonUpdateRetryDisposition.success,
+      );
+      await pumpDetail(tester, model);
+
+      await tester.tap(find.byKey(const Key('member-detail-send-now')));
+      await tester.pumpAndSettle();
+
+      expect(model.retryCalls.single.entryIds, <String>['person-23']);
+      expect(model.retryCalls.single.trigger, 'detail_manual');
+      expect(find.text('Die Änderung wurde gesendet.'), findsOneWidget);
+    });
+
+    testWidgets('meldet, wenn der Eintrag vorgemerkt bleibt', (tester) async {
+      final model = _SendNowMemberEditModel(
+        entry: entry,
+        disposition: PendingPersonUpdateRetryDisposition.retained,
+      );
+      await pumpDetail(tester, model);
+
+      await tester.tap(find.byKey(const Key('member-detail-send-now')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Die Änderung konnte nicht gesendet werden und bleibt vorgemerkt.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('zeigt bei pausiertem Senden einen eigenen Hinweis', (
+      tester,
+    ) async {
+      final model = _SendNowMemberEditModel(
+        entry: entry,
+        disposition: PendingPersonUpdateRetryDisposition.retained,
+        paused: true,
+      );
+      await pumpDetail(tester, model);
+
+      expect(
+        find.text(
+          'Für diese Person liegt eine noch nicht gesendete Änderung vor. Das automatische Senden ist nach mehreren Fehlversuchen pausiert.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Jetzt senden'), findsOneWidget);
+    });
+  });
 }
 
 Widget _buildTestApp(
@@ -946,6 +1113,54 @@ Future<ArbeitskontextModel> _buildArbeitskontextModel({
   );
 
   return model;
+}
+
+class _SendNowMemberEditModel extends MemberEditModel {
+  _SendNowMemberEditModel({
+    required this.entry,
+    required this.disposition,
+    this.paused = false,
+  }) : super(
+         memberWriteRepository: _NoopMemberWriteRepository(),
+         pendingRepository: _NoopPendingPersonUpdateRepository(),
+         logger: _FakeLoggerService(),
+         onMemberUpdated: (_) async {},
+       );
+
+  final PendingPersonUpdate entry;
+  final PendingPersonUpdateRetryDisposition disposition;
+  final bool paused;
+  final List<({Iterable<String>? entryIds, String trigger})> retryCalls =
+      <({Iterable<String>? entryIds, String trigger})>[];
+
+  @override
+  bool hasPendingForMitglied(String mitgliedsnummer) =>
+      mitgliedsnummer == entry.mitgliedsnummer;
+
+  @override
+  PendingPersonUpdate? pendingForMitglied(String mitgliedsnummer) =>
+      mitgliedsnummer == entry.mitgliedsnummer ? entry : null;
+
+  @override
+  bool isAutomaticRetryPaused(String mitgliedsnummer) => paused;
+
+  @override
+  Future<PendingPersonUpdateRetrySummary> retryPending({
+    required String accessToken,
+    Iterable<String>? entryIds,
+    String trigger = 'manual_retry',
+    bool automatic = false,
+  }) async {
+    retryCalls.add((entryIds: entryIds, trigger: trigger));
+    return PendingPersonUpdateRetrySummary(
+      results: <PendingPersonUpdateRetryItemResult>[
+        PendingPersonUpdateRetryItemResult(
+          entry: entry,
+          disposition: disposition,
+        ),
+      ],
+    );
+  }
 }
 
 class _StubMemberEditModel extends MemberEditModel {

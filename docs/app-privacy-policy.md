@@ -35,6 +35,16 @@ Analytics and diagnostics events may include, for example:
 
 The app is designed so that no intentional transfer of member data in plain text should take place as part of these analytics events.
 
+## Nationwide statistics (optional)
+
+The app offers an optional nationwide comparison of Stamm figures. It is only active after the signed-in user has explicitly agreed to share the figures of their Stamm. The consent applies only to that user and can be withdrawn at any time in the app settings or on the comparison page.
+
+If enabled, the app sends aggregated figures of the active Stamm to the statistics server of the NaMi app about once a week, for example the number of members per age section split by gender, the number of leaders per age section and by age group, the number of regular memberships and the number of other members. No names, dates of birth, addresses, contact details or other individual member data are sent, and no data identifying the user.
+
+Each app installation creates a random installation ID and secret that are used to recognise the installation. The server pseudonymises the Stamm and the installation ID before storing them. The IDs of the district and diocese are stored as sent, if the app can determine them. The server only returns nationwide aggregates, and only to installations that shared figures within the last 14 days. Figures reported by fewer than a minimum number of Stämme are not shown.
+
+Withdrawing consent stops further transfers. Figures already shared remain stored but are no longer included in the nationwide aggregate once they are older than two months. Resetting the app deletes the installation ID and secret. The last transferred figures can be viewed in the app.
+
 ## Feedback
 
 The app integrates a feedback service so users can send feedback from within the app. If this feature is used, the information entered by the user is transmitted to that service.
@@ -85,6 +95,7 @@ Sensitive Hitobito-related data used by the app is stored locally in encrypted f
 You can:
 
 - disable analytics in the app settings
+- withdraw consent to the nationwide statistics in the app settings
 - stop using the app at any time
 - uninstall the app from your device
 

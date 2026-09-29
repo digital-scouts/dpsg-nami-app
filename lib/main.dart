@@ -41,6 +41,9 @@ import 'package:provider/provider.dart';
 import 'package:wiredash/wiredash.dart';
 
 import 'data/member_filters/shared_prefs_member_filter_repository.dart';
+import 'data/bundesstatistik/http_bundesstatistik_repository.dart';
+import 'data/bundesstatistik/secure_installation_credentials_repository.dart';
+import 'data/bundesstatistik/shared_prefs_bundesstatistik_teilnahme_repository.dart';
 import 'data/settings/shared_prefs_app_settings_repository.dart';
 import 'domain/auth/auth_profile.dart';
 import 'domain/auth/auth_state.dart';
@@ -48,6 +51,7 @@ import 'domain/settings/app_settings.dart';
 import 'domain/settings/app_settings_repository.dart';
 import 'l10n/app_localizations.dart';
 import 'presentation/model/app_settings_model.dart';
+import 'presentation/model/bundesstatistik_model.dart';
 import 'presentation/model/locale_model.dart';
 import 'presentation/model/member_filters_model.dart';
 import 'presentation/model/urgent_notification_model.dart';
@@ -58,6 +62,7 @@ import 'services/app_runtime_controller.dart';
 import 'services/app_startup_state_service.dart';
 import 'services/app_update_service.dart';
 import 'services/biometric_lock_service.dart';
+import 'services/bundesstatistik_env.dart';
 import 'services/data_expiry_notification_service.dart';
 import 'services/feedback_prompt_service.dart';
 import 'services/hitobito_auth_config_controller.dart';
@@ -197,7 +202,10 @@ void main() {
             localRepository: arbeitskontextLocalRepository,
             logger: logger,
           );
+      final installationCredentialsRepository =
+          SecureInstallationCredentialsRepository();
       final appResetService = AppResetService(
+        clearInstallationCredentials: installationCredentialsRepository.clear,
         authSessionRepository: authSessionRepository,
         sensitiveStorageService: sensitiveStorageService,
         logFileProvider: logger!.getLogFile,
@@ -236,6 +244,35 @@ void main() {
         remoteAccessExecutor: authModel.executeRemoteAccess,
         logger: logger!,
       );
+      final bundesstatistikModel = BundesstatistikModel(
+        featureEnabled: BundesstatistikEnv.isEnabled,
+        repository: HttpBundesstatistikRepository(
+          baseUrl: BundesstatistikEnv.isEnabled
+              ? BundesstatistikEnv.serverUrl
+              : 'http://localhost',
+          timeout: BundesstatistikEnv.fetchTimeout,
+        ),
+        credentialsRepository: installationCredentialsRepository,
+        teilnahmeRepository: SharedPrefsBundesstatistikTeilnahmeRepository(),
+        networkAccessPolicy: networkAccessPolicy,
+        logger: logger,
+        sendInterval: BundesstatistikEnv.sendInterval,
+      );
+      await bundesstatistikModel.initialize();
+      // Anmeldung und Arbeitskontext bestimmen, ob und was geteilt wird.
+      void syncBundesstatistik() {
+        unawaited(
+          bundesstatistikModel.aktualisiereKontext(
+            personId: authModel.profile?.namiId.toString(),
+            readModel: arbeitskontextModel.readModel,
+            datenstand: authModel.lastSensitiveSyncAt,
+          ),
+        );
+      }
+
+      authModel.addListener(syncBundesstatistik);
+      arbeitskontextModel.addListener(syncBundesstatistik);
+
       final pendingPersonUpdateRepository = SecurePendingPersonUpdateRepository(
         sensitiveStorageService: sensitiveStorageService,
       );
@@ -346,6 +383,9 @@ void main() {
             ChangeNotifierProvider<ArbeitskontextModel>.value(
               value: arbeitskontextModel,
             ),
+            ChangeNotifierProvider<BundesstatistikModel>.value(
+              value: bundesstatistikModel,
+            ),
             ChangeNotifierProvider<MemberEditModel>.value(
               value: memberEditModel,
             ),
@@ -420,6 +460,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   late final Connectivity _connectivity;
   late final WifiSyncTrigger _wifiSyncTrigger;
   late bool _lastNoMobileDataEnabled;
+  bool _pendingSessionActive = false;
+  String? _pendingSessionPrincipal;
   Timer? _authMaintenanceTimer;
   Timer? _pendingRetryTimer;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
@@ -451,6 +493,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _connectivity = Connectivity();
     _wifiSyncTrigger = WifiSyncTrigger();
     _lastNoMobileDataEnabled = _appSettingsModel.noMobileDataEnabled;
+    _pendingSessionActive = _authModel.session != null;
+    _pendingSessionPrincipal = _authModel.session?.principal;
     _authModel.addListener(_handleAuthModelChanged);
     _appSettingsModel.addListener(_handleAppSettingsChanged);
     _urgentNotificationModel.setAcknowledgeHandler((id) async {
@@ -487,6 +531,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void _handleAuthModelChanged() {
     _syncArbeitskontextWithAuth();
     _syncDataExpiryReminder();
+    _reloadPendingUpdatesOnSessionChange();
 
     final authState = _authModel.state;
     if (authState == AuthState.signedIn) {
@@ -501,6 +546,20 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     }
 
     _resetStartupFlowState();
+  }
+
+  /// Logout, Datenablauf und Nutzerwechsel leeren die Pending-Box; die Liste
+  /// im Speicher muss danach neu geladen werden.
+  void _reloadPendingUpdatesOnSessionChange() {
+    final session = _authModel.session;
+    final hasSession = session != null;
+    if (hasSession == _pendingSessionActive &&
+        session?.principal == _pendingSessionPrincipal) {
+      return;
+    }
+    _pendingSessionActive = hasSession;
+    _pendingSessionPrincipal = session?.principal;
+    unawaited(_memberEditModel.loadPending());
   }
 
   void _syncDataExpiryReminder() {
@@ -707,10 +766,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       return;
     }
 
-    final hasRetryablePending = _memberEditModel.pendingUpdates.any(
-      (entry) => !entry.needsResolution,
-    );
-    if (!hasRetryablePending) {
+    if (!_memberEditModel.hasDueAutomaticRetry) {
       return;
     }
 
@@ -732,6 +788,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     await _memberEditModel.retryPending(
       accessToken: accessToken,
       trigger: trigger,
+      automatic: true,
     );
   }
 

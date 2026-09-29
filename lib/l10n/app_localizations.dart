@@ -200,6 +200,9 @@ class AppLocalizations {
       'settings_app_lock_hint': 'Biometrie oder PIN beim Start',
       'settings_app_analytics_title': 'Nutzungsanalyse',
       'settings_app_analytics_hint': 'Anonyme Fehlerberichte senden',
+      'settings_app_bundesstatistik_title': 'Bundesweite Statistik',
+      'settings_app_bundesstatistik_hint':
+          'Zusammengefasste Stammeszahlen für den Vergleich teilen',
       'settings_app_theme_system': 'System',
       'settings_app_language_en': 'English',
       'settings_app_mobile_data_title': 'Mobile Daten einschränken',
@@ -332,7 +335,23 @@ class AppLocalizations {
       'member_detail_pending_resolution_banner':
           'Für diese Person gibt es offene Problemfälle. Bitte prüfe die betroffenen Felder und sende die Änderung danach erneut.',
       'member_detail_pending_retry_banner':
-          'Für diese Person liegt eine ausstehende Änderung vor. Ein Retry ist in den Debug-Tools möglich.',
+          'Für diese Person liegt eine noch nicht gesendete Änderung vor. Sie wird automatisch gesendet, sobald Hitobito erreichbar ist.',
+      'member_detail_pending_paused_banner':
+          'Für diese Person liegt eine noch nicht gesendete Änderung vor. Das automatische Senden ist nach mehreren Fehlversuchen pausiert.',
+      'member_detail_send_now_action': 'Jetzt senden',
+      'member_detail_send_now_success': 'Die Änderung wurde gesendet.',
+      'member_detail_send_now_retained':
+          'Die Änderung konnte nicht gesendet werden und bleibt vorgemerkt.',
+      'member_detail_send_now_needs_resolution':
+          'Beim Senden ist ein Problem aufgetreten. Bitte löse es über „Problem lösen“.',
+      'member_detail_send_now_discarded':
+          'Die Änderung wurde von Hitobito abgelehnt und verworfen. {details}',
+      'logout_pending_sending': 'Ausstehende Änderungen werden gesendet …',
+      'logout_pending_title': 'Ungesendete Änderungen',
+      'logout_pending_message':
+          '{count} Änderung(en) wurden noch nicht an Hitobito gesendet und gehen beim Abmelden verloren.',
+      'logout_pending_cancel': 'Abbrechen',
+      'logout_pending_confirm': 'Trotzdem abmelden',
       'member_detail_resolve_action': 'Problem lösen',
       'member_edit_title_resolution': 'Problemlösung Mitglied',
       'member_edit_title_resolution_named': 'Speicherprobleme bei {name}',
@@ -418,6 +437,8 @@ class AppLocalizations {
           'Die Bearbeitung erfolgt mit lokal gespeicherten Daten. Für das Senden ist eine erneute Anmeldung erforderlich. {details}',
       'member_edit_prepare_network_blocked':
           'Bearbeitung erfolgt mit lokal gespeicherten Daten. {details}',
+      'member_edit_prepare_network_unavailable':
+          '{details} Die Bearbeitung erfolgt mit lokal gespeicherten Daten. Änderungen werden gesendet, sobald Hitobito erreichbar ist.',
       'member_edit_prepare_failed':
           'Die Person konnte nicht neu geladen werden. Bitte erneut versuchen.',
       'member_edit_submit_auth_required':
@@ -796,6 +817,9 @@ class AppLocalizations {
       'settings_app_lock_hint': 'Biometrics or PIN on launch',
       'settings_app_analytics_title': 'Usage analytics',
       'settings_app_analytics_hint': 'Send anonymous crash reports',
+      'settings_app_bundesstatistik_title': 'Nationwide statistics',
+      'settings_app_bundesstatistik_hint':
+          'Share aggregated group figures for the comparison',
       'settings_app_theme_system': 'System',
       'settings_app_language_en': 'English',
       'settings_app_mobile_data_title': 'Restrict mobile data',
@@ -925,7 +949,23 @@ class AppLocalizations {
       'member_detail_pending_resolution_banner':
           'There are open issue cases for this person. Please review the affected fields and send the change again afterwards.',
       'member_detail_pending_retry_banner':
-          'There is a pending change for this person. A retry is available in Debug & Tools.',
+          'There is an unsent change for this person. It will be sent automatically once Hitobito is reachable.',
+      'member_detail_pending_paused_banner':
+          'There is an unsent change for this person. Automatic sending is paused after several failed attempts.',
+      'member_detail_send_now_action': 'Send now',
+      'member_detail_send_now_success': 'The change was sent.',
+      'member_detail_send_now_retained':
+          'The change could not be sent and remains queued.',
+      'member_detail_send_now_needs_resolution':
+          'A problem occurred while sending. Please resolve it via "Resolve issue".',
+      'member_detail_send_now_discarded':
+          'Hitobito rejected the change and it was discarded. {details}',
+      'logout_pending_sending': 'Sending pending changes …',
+      'logout_pending_title': 'Unsent changes',
+      'logout_pending_message':
+          '{count} change(s) have not been sent to Hitobito yet and will be lost when signing out.',
+      'logout_pending_cancel': 'Cancel',
+      'logout_pending_confirm': 'Sign out anyway',
       'member_detail_resolve_action': 'Resolve issue',
       'member_edit_title_resolution': 'Resolve member issue',
       'member_edit_title_resolution_named': 'Save issues for {name}',
@@ -1008,6 +1048,8 @@ class AppLocalizations {
           'Editing continues with locally stored data. Signing in again is required for sending. {details}',
       'member_edit_prepare_network_blocked':
           'Editing continues with locally stored data. {details}',
+      'member_edit_prepare_network_unavailable':
+          '{details} Editing continues with locally stored data. Changes will be sent once Hitobito is reachable.',
       'member_edit_prepare_failed':
           'The person could not be reloaded. Please try again.',
       'member_edit_submit_auth_required':

@@ -15,6 +15,11 @@ class AppSettingsPage extends StatefulWidget {
   final ValueChanged<bool>? onMemberListSearchResultHighlightChanged;
   final ValueChanged<ThemeMode>? onThemeModeChanged;
   final ValueChanged<String>? onLanguageChanged;
+  final bool bundesstatistikVerfuegbar;
+  final bool bundesstatistikTeilnahme;
+
+  /// Liefert den tatsaechlichen neuen Wert, z. B. `false` bei abgelehnter Einwilligung.
+  final Future<bool> Function(bool)? onBundesstatistikChanged;
 
   const AppSettingsPage({
     super.key,
@@ -30,6 +35,9 @@ class AppSettingsPage extends StatefulWidget {
     this.onMemberListSearchResultHighlightChanged,
     this.onThemeModeChanged,
     this.onLanguageChanged,
+    this.bundesstatistikVerfuegbar = false,
+    this.bundesstatistikTeilnahme = false,
+    this.onBundesstatistikChanged,
   });
 
   @override
@@ -43,10 +51,12 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
   late bool _noMobileDataEnabled;
   late ThemeMode _currentMode;
   late String _languageCode;
+  late bool _bundesstatistikTeilnahme;
 
   @override
   void initState() {
     super.initState();
+    _bundesstatistikTeilnahme = widget.bundesstatistikTeilnahme;
     _analyticsEnabled = widget.analyticsEnabled;
     _biometricLockEnabled = widget.biometricLockEnabled;
     _memberListSearchResultHighlightEnabled =
@@ -79,6 +89,17 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
     if (oldWidget.languageCode != widget.languageCode) {
       _languageCode = widget.languageCode;
     }
+    if (oldWidget.bundesstatistikTeilnahme != widget.bundesstatistikTeilnahme) {
+      _bundesstatistikTeilnahme = widget.bundesstatistikTeilnahme;
+    }
+  }
+
+  Future<void> _setBundesstatistikTeilnahme(bool value) async {
+    final result = await widget.onBundesstatistikChanged?.call(value) ?? value;
+    if (!mounted) {
+      return;
+    }
+    setState(() => _bundesstatistikTeilnahme = result);
   }
 
   void _setThemeMode(ThemeMode mode) {
@@ -127,6 +148,13 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
                   widget.onAnalyticsChanged?.call(value);
                 },
               ),
+              if (widget.bundesstatistikVerfuegbar)
+                _AppSettingsSwitchRow(
+                  title: t.t('settings_app_bundesstatistik_title'),
+                  subtitle: t.t('settings_app_bundesstatistik_hint'),
+                  value: _bundesstatistikTeilnahme,
+                  onChanged: _setBundesstatistikTeilnahme,
+                ),
             ],
           ),
           const SizedBox(height: 12),
