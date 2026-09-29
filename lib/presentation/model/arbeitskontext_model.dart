@@ -306,6 +306,11 @@ class ArbeitskontextModel extends ChangeNotifier {
     final nextMitglieder = readModel.mitglieder
         .map((existing) {
           if (existing.mitgliedsnummer == mitglied.mitgliedsnummer) {
+            // Einzelabrufe einer Person liefern keine Taetigkeiten mit;
+            // bekannte Rollen duerfen dadurch nicht verloren gehen.
+            if (mitglied.roles.isEmpty && existing.roles.isNotEmpty) {
+              return mitglied.copyWith(roles: existing.roles);
+            }
             return mitglied;
           }
           return existing;

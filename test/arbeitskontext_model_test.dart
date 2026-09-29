@@ -23,6 +23,8 @@ import 'package:nami/services/hitobito_groups_service.dart';
 import 'package:nami/services/logger_service.dart';
 
 void main() {
+  _ersetzeMitgliedTests();
+
   test(
     'stellt zuerst den lokal gespeicherten Arbeitskontext wieder her',
     () async {
@@ -2182,6 +2184,96 @@ void main() {
   );
 }
 
+void _ersetzeMitgliedTests() {
+  group('ersetzeMitglied', () {
+    final role = roleFromLegacy(
+      stufe: Stufe.rover,
+      art: RoleCategory.leitung,
+      start: DateTime(2024, 1, 1),
+    );
+    final bekannt = Mitglied.peopleListItem(
+      mitgliedsnummer: '1001',
+      personId: 1,
+      vorname: 'Julia',
+      nachname: 'Keller',
+    ).copyWith(roles: <Role>[role]);
+
+    Future<
+      ({
+        ArbeitskontextModel model,
+        _FakeArbeitskontextLocalRepository localRepository,
+      })
+    >
+    readyModel() async {
+      final cached = _buildReadModel(
+        aktiverLayerId: 42,
+        aktiverLayerName: 'Bezirk Sieg',
+        mitglieder: <Mitglied>[bekannt],
+      ).copyWith(rolesSindGeladen: true);
+      final localRepository = _FakeArbeitskontextLocalRepository(
+        cached: cached,
+      );
+      final model = ArbeitskontextModel(
+        localRepository: localRepository,
+        readModelRepository: _FakeArbeitskontextReadModelRepository(
+          refreshResultsByLayer: <int, ArbeitskontextReadModel>{42: cached},
+          loadRolesResult: cached,
+        ),
+        groupsService: _FakeHitobitoGroupsService(),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: AuthSession(
+          accessToken: 'token-1',
+          receivedAt: DateTime(2026, 3, 31),
+        ),
+        profile: const AuthProfile(namiId: 1, roles: <AuthProfileRole>[]),
+      );
+      await _waitForBackgroundWork();
+      return (model: model, localRepository: localRepository);
+    }
+
+    test(
+      'behaelt bekannte Rollen, wenn das neue Mitglied keine mitbringt',
+      () async {
+        final setup = await readyModel();
+        final ohneRollen = Mitglied.peopleListItem(
+          mitgliedsnummer: '1001',
+          personId: 1,
+          vorname: 'Juliane',
+          nachname: 'Keller',
+        );
+
+        await setup.model.ersetzeMitglied(ohneRollen);
+
+        final ersetzt = setup.model.readModel!.mitglieder.single;
+        expect(ersetzt.vorname, 'Juliane');
+        expect(ersetzt.roles, <Role>[role]);
+        expect(setup.localRepository.lastSaved?.mitglieder.single.roles, <Role>[
+          role,
+        ]);
+      },
+    );
+
+    test('uebernimmt mitgelieferte Rollen', () async {
+      final setup = await readyModel();
+      final neueRolle = roleFromLegacy(
+        stufe: Stufe.pfadfinder,
+        art: RoleCategory.mitglied,
+        start: DateTime(2025, 1, 1),
+      );
+
+      await setup.model.ersetzeMitglied(
+        bekannt.copyWith(roles: <Role>[neueRolle]),
+      );
+
+      expect(setup.model.readModel!.mitglieder.single.roles, <Role>[neueRolle]);
+    });
+  });
+}
+
 class _FakeArbeitskontextLocalRepository
     implements ArbeitskontextLocalRepository {
   _FakeArbeitskontextLocalRepository({this.cached});
@@ -2194,8 +2286,12 @@ class _FakeArbeitskontextLocalRepository
   @override
   Future<ArbeitskontextReadModel?> loadLastCached() async => cached;
 
+  ArbeitskontextReadModel? lastSaved;
+
   @override
-  Future<void> saveCached(ArbeitskontextReadModel readModel) async {}
+  Future<void> saveCached(ArbeitskontextReadModel readModel) async {
+    lastSaved = readModel;
+  }
 }
 
 class _FakeArbeitskontextReadModelRepository
