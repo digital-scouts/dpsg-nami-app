@@ -1,0 +1,146 @@
+name: Deploy Statistics Server
+
+on:
+  push:
+    branches: [develop, master]
+    paths:
+      - "server/**"
+      - ".github/workflows/server-deploy.yml"
+      - ".github/workflows/server-validate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: statistics-server-deploy
+  cancel-in-progress: false
+
+env:
+  DOCKER_IMAGE_REPO: sapza/nami-statistics
+  APP_DIR: /opt/nami-statistics
+  CADDY_SITES_DIR: /opt/caddy-sites
+
+jobs:
+  validate:
+    name: Validate
+    uses: ./.github/workflows/server-validate.yml
+
+  build_and_push:
+    name: Build and push Docker image
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: statistics-server
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker Hub login
+        uses: docker/login-action@v3
+        with:
+          username: sapza
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Prepare image tag
+        id: meta
+        run: echo "image=${DOCKER_IMAGE_REPO}:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./server
+          file: ./server/Dockerfile
+          target: production
+          platforms: linux/amd64
+          push: true
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+          tags: |
+            ${{ steps.meta.outputs.image }}
+            ${{ env.DOCKER_IMAGE_REPO }}:latest
+
+  deploy:
+    name: Deploy on vServer via SSH
+    needs: build_and_push
+    runs-on: ubuntu-latest
+    environment: statistics-server
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Sync compose file and backup script
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ vars.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ vars.SSH_PORT }}
+          source: "server/deploy/docker-compose.server.yml,server/deploy/backup.sh"
+          target: ${{ env.APP_DIR }}
+          strip_components: 2
+
+      - name: Sync Caddy site
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ vars.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ vars.SSH_PORT }}
+          source: "server/deploy/namiapp.caddy"
+          target: ${{ env.CADDY_SITES_DIR }}
+          strip_components: 2
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          IMAGE: ${{ needs.build_and_push.outputs.image }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          APP_DIR: ${{ env.APP_DIR }}
+        with:
+          host: ${{ vars.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ vars.SSH_PORT }}
+          script_stop: true
+          envs: IMAGE,DOCKERHUB_TOKEN,APP_DIR
+          script: |
+            set -eu
+            cd "$APP_DIR"
+            chmod 700 backup.sh
+            echo "$DOCKERHUB_TOKEN" | docker login -u sapza --password-stdin
+            docker pull "$IMAGE"
+            SERVER_IMAGE="$IMAGE" docker compose -p nami-statistics --env-file "$APP_DIR/.env" \
+              -f docker-compose.server.yml up -d --remove-orphans --wait --wait-timeout 120
+
+            # Caddy gehoert zum DPSG-News-Stack und bindet /opt/caddy-sites per import ein.
+            caddy_container="$(docker ps -q \
+              --filter label=com.docker.compose.project=dpsg-news \
+              --filter label=com.docker.compose.service=caddy)"
+            if [ -z "$caddy_container" ]; then
+              echo "Caddy-Container des DPSG-News-Stacks nicht gefunden." >&2
+              exit 1
+            fi
+            if ! docker exec "$caddy_container" test -f /etc/caddy/sites/namiapp.caddy; then
+              echo "Caddy sieht /etc/caddy/sites/namiapp.caddy nicht. Ist der Import im DPSG-News-Repo deployt?" >&2
+              exit 1
+            fi
+            docker exec "$caddy_container" caddy reload --config /etc/caddy/Caddyfile
+            docker image prune -f
+
+      - name: Verify public health endpoint
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            version="$(curl -fsS https://namiapp.scout-link.de/health/ready | jq -r .version || true)"
+            if [ "$version" = "$GITHUB_SHA" ]; then
+              echo "Statistikserver laeuft mit $version"
+              exit 0
+            fi
+            echo "Versuch $attempt: erwartet $GITHUB_SHA, erhalten '${version}'"
+            sleep 10
+          done
+          exit 1

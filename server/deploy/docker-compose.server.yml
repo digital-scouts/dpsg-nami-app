@@ -1,0 +1,64 @@
+# Statistikserver auf dem vServer (/opt/nami-statistics).
+# Start immer mit festem Projektnamen, damit --remove-orphans den DPSG-News-Stack nicht beruehrt:
+#   docker compose -p nami-statistics --env-file /opt/nami-statistics/.env \
+#     -f /opt/nami-statistics/docker-compose.server.yml up -d --wait
+services:
+  nami-statistics:
+    image: ${SERVER_IMAGE}
+    restart: unless-stopped
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    env_file:
+      - .env
+    expose:
+      - "3000"
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - internal
+      # Netz des DPSG-News-Stacks, in dem Caddy laeuft.
+      - caddy
+
+  # Bewusst ohne ports: veroeffentlichte Docker-Ports umgehen ufw.
+  # Bewusst ohne Watchtower-Label: Datenbank-Updates nur kontrolliert.
+  mongodb:
+    image: mongo:7.0
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand({ ping: 1 })"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - internal
+
+networks:
+  internal:
+  caddy:
+    name: ${CADDY_NETWORK:-dpsg-news_default}
+    external: true
+
+volumes:
+  mongo-data:

@@ -8,6 +8,8 @@ on:
       - "server/**"
       - ".github/workflows/server-validate.yml"
   workflow_dispatch:
+  # Wird vom Deploy-Workflow vor dem Image-Build aufgerufen.
+  workflow_call:
 
 permissions:
   contents: read
@@ -31,6 +33,12 @@ jobs:
           node-version: "lts/*"
           cache: "npm"
           cache-dependency-path: server/package-lock.json
+
+      - name: Cache MongoDB binary for integration tests
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: mongodb-binaries-${{ runner.os }}-${{ hashFiles('server/package.json') }}
 
       - name: Install server dependencies
         run: npm ci

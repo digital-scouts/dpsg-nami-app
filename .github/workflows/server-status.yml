@@ -1,0 +1,122 @@
+name: Statistics Server Status
+
+on:
+  schedule:
+    # Taeglich 06:00 UTC. Geplante Workflows laufen nur auf dem Default-Branch.
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+env:
+  STATS_HOST: namiapp.scout-link.de
+  MAX_BACKUP_AGE_HOURS: 36
+  MIN_CERT_VALID_DAYS: 14
+
+jobs:
+  status:
+    name: Check statistics server
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run status checks
+        id: checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -u
+          failures=()
+          warnings=()
+          summary() { echo "$1" >> "$GITHUB_STEP_SUMMARY"; }
+          summary "## Statistikserver ${STATS_HOST}"
+
+          # 1) Readiness: Server und MongoDB
+          ready="$(curl -fsS --max-time 15 "https://${STATS_HOST}/health/ready" || true)"
+          if [ -z "$ready" ]; then
+            failures+=("/health/ready nicht erreichbar oder nicht 200 (Server, MongoDB oder Caddy down)")
+          else
+            summary '```json'; summary "$ready"; summary '```'
+            [ "$(jq -r .status <<<"$ready")" = "ok" ] || failures+=("Readiness-Status ist nicht ok")
+            [ "$(jq -r .checks.mongodb <<<"$ready")" = "ok" ] || failures+=("MongoDB meldet Fehler")
+
+            # 2) Backup-Alter
+            last_backup="$(jq -r '.checks.last_backup_at // empty' <<<"$ready")"
+            if [ -z "$last_backup" ]; then
+              failures+=("Kein Backup-Marker vorhanden (backup.sh/Cron pruefen)")
+            else
+              backup_age_hours=$(( ( $(date -u +%s) - $(date -u -d "$last_backup" +%s) ) / 3600 ))
+              [ "$backup_age_hours" -le "$MAX_BACKUP_AGE_HOURS" ] \
+                || failures+=("Letztes Backup ist ${backup_age_hours} h alt (Grenze ${MAX_BACKUP_AGE_HOURS} h)")
+            fi
+
+            aggregate="$(jq -r '.checks.aggregate_generated_at // empty' <<<"$ready")"
+            [ -n "$aggregate" ] || warnings+=("Noch kein Bundesaggregat erzeugt")
+
+            # 4) Deploy-Stand
+            # Deploys laufen von develop und master; massgeblich ist der zuletzt erfolgreiche.
+            deployed_sha="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow server-deploy.yml \
+              --status success --limit 20 --json headSha,headBranch,createdAt \
+              --jq '[.[] | select(.headBranch == "develop" or .headBranch == "master")] | sort_by(.createdAt) | last | .headSha // empty' || true)"
+            running_sha="$(jq -r .version <<<"$ready")"
+            if [ -z "$deployed_sha" ]; then
+              warnings+=("Noch kein erfolgreicher Deploy-Lauf auf develop oder master gefunden")
+            elif [ "$running_sha" != "$deployed_sha" ]; then
+              failures+=("Laufende Version ${running_sha} entspricht nicht dem letzten Deploy ${deployed_sha}")
+            fi
+          fi
+
+          # 3) TLS-Zertifikat und HTTPS-Weiterleitung (Caddy)
+          cert_end="$(echo | openssl s_client -servername "$STATS_HOST" -connect "${STATS_HOST}:443" 2>/dev/null \
+            | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2)"
+          if [ -z "$cert_end" ]; then
+            failures+=("TLS-Zertifikat nicht lesbar")
+          else
+            cert_days=$(( ( $(date -u -d "$cert_end" +%s) - $(date -u +%s) ) / 86400 ))
+            summary "- TLS-Zertifikat gueltig bis ${cert_end} (${cert_days} Tage)"
+            [ "$cert_days" -ge "$MIN_CERT_VALID_DAYS" ] \
+              || failures+=("TLS-Zertifikat laeuft in ${cert_days} Tagen ab")
+          fi
+          redirect="$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' --max-time 15 "http://${STATS_HOST}/health" || true)"
+          case "$redirect" in
+            30[178]\ https://*) ;;
+            *) failures+=("HTTP leitet nicht auf HTTPS weiter (${redirect})") ;;
+          esac
+
+          # 5) MongoDB darf von aussen nicht erreichbar sein
+          if nc -z -w 5 "$STATS_HOST" 27017 2>/dev/null; then
+            failures+=("Port 27017 ist oeffentlich erreichbar")
+          fi
+
+          for warning in "${warnings[@]}"; do summary "- Warnung: ${warning}"; echo "::warning::${warning}"; done
+          if [ "${#failures[@]}" -gt 0 ]; then
+            {
+              echo "report<<EOF"
+              for failure in "${failures[@]}"; do echo "- ${failure}"; done
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+            for failure in "${failures[@]}"; do summary "- Fehler: ${failure}"; echo "::error::${failure}"; done
+            exit 1
+          fi
+          summary "- Alle Pruefungen erfolgreich"
+
+      - name: Open or update status issue
+        if: failure() && steps.checks.outputs.report != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPORT: ${{ steps.checks.outputs.report }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -eu
+          gh label create server-status --repo "$GITHUB_REPOSITORY" --color B60205 \
+            --description "Automatischer Status-Check des Statistikservers" 2>/dev/null || true
+          body="$(printf 'Status-Check vom %s fehlgeschlagen:\n\n%s\n\nLauf: %s' "$(date -u +%FT%TZ)" "$REPORT" "$RUN_URL")"
+          issue="$(gh issue list --repo "$GITHUB_REPOSITORY" --label server-status --state open \
+            --limit 1 --json number --jq '.[0].number // empty')"
+          if [ -n "$issue" ]; then
+            gh issue comment "$issue" --repo "$GITHUB_REPOSITORY" --body "$body"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --label server-status \
+              --title "Statistikserver: Status-Check fehlgeschlagen" --body "$body"
+          fi
