@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nami/data/achievements/in_memory_achievement_repository.dart';
 import 'package:nami/data/arbeitskontext/hitobito_group_resource.dart';
+import 'package:nami/domain/achievements/achievement_definition.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext_local_repository.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model.dart';
@@ -23,6 +25,7 @@ import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/model/urgent_notification_model.dart';
 import 'package:nami/presentation/navigation/navigation_home.page.dart';
 import 'package:nami/presentation/screens/statistics_page.dart';
+import 'package:nami/services/achievement_service.dart';
 import 'package:nami/services/biometric_lock_service.dart';
 import 'package:nami/services/hitobito_auth_env.dart';
 import 'package:nami/services/hitobito_data_retention_policy.dart';
@@ -42,11 +45,15 @@ void main() {
       final arbeitskontextModel = await _createArbeitskontextModel(
         authModel: authModel,
       );
+      final achievementService = AchievementService(
+        repository: InMemoryAchievementRepository(),
+      );
 
       await tester.pumpWidget(
         _buildTestApp(
           authModel: authModel,
           arbeitskontextModel: arbeitskontextModel,
+          achievementService: achievementService,
         ),
       );
       await tester.pumpAndSettle();
@@ -61,6 +68,10 @@ void main() {
       expect(find.byType(AppBar), findsNothing);
       expect(find.byType(SafeArea), findsWidgets);
       expect(find.byType(StatisticsPage), findsOneWidget);
+      final statistics = (await achievementService.loadAll()).firstWhere(
+        (p) => p.id == AchievementIds.statisticsOpened,
+      );
+      expect(statistics.count, 1);
 
       await tester.tap(find.byIcon(Icons.swap_horiz));
       await tester.pump();
@@ -651,6 +662,7 @@ void main() {
 Widget _buildTestApp({
   required AuthSessionModel authModel,
   required ArbeitskontextModel arbeitskontextModel,
+  AchievementService? achievementService,
 }) {
   return MultiProvider(
     providers: [
@@ -662,6 +674,11 @@ Widget _buildTestApp({
         create: (_) => UrgentNotificationModel(),
       ),
       Provider<LoggerService>.value(value: _FakeLoggerService()),
+      Provider<AchievementService>.value(
+        value:
+            achievementService ??
+            AchievementService(repository: InMemoryAchievementRepository()),
+      ),
     ],
     child: MaterialApp(
       localizationsDelegates: [

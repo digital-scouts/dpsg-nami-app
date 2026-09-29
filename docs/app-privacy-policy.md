@@ -19,6 +19,8 @@ The app can process member-related content that is entered by users or loaded fr
 
 Member data loaded from Hitobito is stored locally on the device in encrypted form so it can be used offline after the first successful sign-in and initial data load.
 
+The app shows achievements for app usage, for example the number of days the app was opened or the number of saved member changes. The counters and unlock dates are stored only on the device, are never transferred and are deleted when the app is reset.
+
 ## Analytics and diagnostics
 
 The app can send analytics and diagnostics events if analytics are enabled in the app settings. This is used to better understand app usage, detect problems and improve the app.
