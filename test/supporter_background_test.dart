@@ -37,6 +37,30 @@ void main() {
     }
   });
 
+  testWidgets('verlaengert den Himmel auf hohen Flaechen', (tester) async {
+    for (final id in AppearanceBackgroundId.values) {
+      for (final dark in [false, true]) {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: ThemeData(
+              brightness: dark ? Brightness.dark : Brightness.light,
+            ),
+            home: Align(
+              alignment: Alignment.topCenter,
+              child: SizedBox(
+                width: 390,
+                height: 700,
+                child: SupporterBackground(background: id),
+              ),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(seconds: 5));
+        expect(tester.takeException(), isNull, reason: '${id.name} $dark');
+      }
+    }
+  });
+
   testWidgets('bleibt bei reduzierter Bewegung stehen', (tester) async {
     await tester.pumpWidget(
       build(AppearanceBackgroundId.wald, dark: true, disableAnimations: true),
