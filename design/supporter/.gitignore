@@ -1,0 +1,3 @@
+# Zwischenstaende von build_ios_icons.mjs; die finalen Bundles liegen in ios/Runner/.
+ios/
+.build/

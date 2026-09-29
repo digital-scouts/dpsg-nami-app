@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:nami/domain/appearance/appearance_catalog.dart';
 import 'package:nami/domain/member/member_list_preferences.dart';
 import 'package:nami/domain/member/member_utils.dart';
 import 'package:nami/domain/member/mitglied.dart';
@@ -38,6 +39,7 @@ class MemberList extends StatelessWidget {
     this.trailingTextBuilder,
     this.roleCategoryBuilder,
     this.warningBuilder,
+    this.supporterBadgeBuilder,
     this.lastUpdateAt,
     this.isRefreshing = false,
     this.favourites = const {},
@@ -58,6 +60,7 @@ class MemberList extends StatelessWidget {
   final String? Function(Mitglied mitglied)? trailingTextBuilder;
   final RoleCategory? Function(Mitglied mitglied)? roleCategoryBuilder;
   final bool Function(Mitglied mitglied)? warningBuilder;
+  final SupporterBadgeId? Function(Mitglied mitglied)? supporterBadgeBuilder;
   final DateTime? lastUpdateAt;
   final bool isRefreshing;
   final Set<String> favourites;
@@ -221,6 +224,7 @@ class MemberList extends StatelessWidget {
                       showWarning: warningBuilder?.call(m) ?? false,
                       trailingText: trailingTextBuilder?.call(m),
                       roleCategory: roleCategoryBuilder?.call(m),
+                      supporterBadge: supporterBadgeBuilder?.call(m),
                       onTap: () {
                         if (onTapMember != null) {
                           onTapMember!(m.mitgliedsnummer);

@@ -70,6 +70,8 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
               Navigator.pushNamed(context, AppRoutes.settingsStamm),
           onAppSettings: () =>
               Navigator.pushNamed(context, AppRoutes.settingsApp),
+          onAppearanceSettings: () =>
+              Navigator.pushNamed(context, AppRoutes.settingsAppearance),
           onMessages: () =>
               Navigator.pushNamed(context, AppRoutes.settingsMessages),
           onImpressum: () =>

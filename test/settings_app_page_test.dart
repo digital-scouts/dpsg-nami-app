@@ -60,9 +60,6 @@ void main() {
     final security = tester.getTopLeft(
       find.text(localizations.t('settings_app_section_security').toUpperCase()),
     );
-    final display = tester.getTopLeft(
-      find.text(localizations.t('settings_app_section_display').toUpperCase()),
-    );
     final language = tester.getTopLeft(
       find.text(localizations.t('language').toUpperCase()),
     );
@@ -70,43 +67,32 @@ void main() {
       find.text(localizations.t('settings_app_section_behavior').toUpperCase()),
     );
 
-    expect(security.dy, lessThan(display.dy));
-    expect(display.dy, lessThan(language.dy));
+    expect(security.dy, lessThan(language.dy));
     expect(language.dy, lessThan(behavior.dy));
+    // Hell/Dunkel ist in das Erscheinungsbild umgezogen.
+    expect(
+      find.text(localizations.t('settings_app_section_display').toUpperCase()),
+      findsNothing,
+    );
   });
 
-  testWidgets('schaltet Theme und Sprache ueber Radio-Zeilen', (tester) async {
-    ThemeMode? changedTheme;
+  testWidgets('schaltet die Sprache ueber Radio-Zeilen', (tester) async {
     String? changedLanguage;
     final localizations = AppLocalizations(const Locale('de'));
 
     await tester.pumpWidget(
       buildTestApp(
         AppSettingsPage(
-          themeMode: ThemeMode.system,
           languageCode: 'de',
-          onThemeModeChanged: (value) => changedTheme = value,
           onLanguageChanged: (value) => changedLanguage = value,
         ),
       ),
     );
     await tester.pumpAndSettle();
 
-    expect(
-      find.text(localizations.t('settings_app_theme_system')),
-      findsOneWidget,
-    );
-    expect(
-      find.text(localizations.t('settings_app_language_en')),
-      findsOneWidget,
-    );
-
-    await tester.tap(find.text(localizations.t('theme_dark')));
-    await tester.pumpAndSettle();
     await tester.tap(find.text(localizations.t('settings_app_language_en')));
     await tester.pumpAndSettle();
 
-    expect(changedTheme, ThemeMode.dark);
     expect(changedLanguage, 'en');
   });
 

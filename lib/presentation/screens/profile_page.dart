@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../../domain/appearance/appearance_catalog.dart';
 import '../../domain/arbeitskontext/arbeitskontext.dart';
 import '../../domain/auth/auth_profile.dart';
 import '../../l10n/app_localizations.dart';
+import '../model/appearance_model.dart';
 import '../model/arbeitskontext_model.dart';
 import '../model/auth_session_model.dart';
 import '../theme/theme.dart';
 import '../widgets/logout_flow.dart';
+import '../widgets/supporter_badge.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -72,7 +75,11 @@ class _ProfilePageState extends State<ProfilePage> {
                 padding: const EdgeInsets.only(bottom: 16),
                 children: [
                   if (profile != null) ...[
-                    _ProfileHeader(profile: profile, accentColor: accentColor),
+                    _ProfileHeader(
+                      profile: profile,
+                      accentColor: accentColor,
+                      badge: context.watch<AppearanceModel?>()?.badge,
+                    ),
                     _ProfileSectionLabel(
                       label: 'Persönliche Daten',
                       accentColor: accentColor,
@@ -338,10 +345,15 @@ class _ProfileLoadingOverlay extends StatelessWidget {
 }
 
 class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader({required this.profile, required this.accentColor});
+  const _ProfileHeader({
+    required this.profile,
+    required this.accentColor,
+    this.badge,
+  });
 
   final AuthProfile profile;
   final Color accentColor;
+  final SupporterBadgeId? badge;
 
   @override
   Widget build(BuildContext context) {
@@ -374,13 +386,24 @@ class _ProfileHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            headline,
-            style: theme.textTheme.titleLarge?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-            ),
-            textAlign: TextAlign.center,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(
+                child: Text(
+                  headline,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              if (badge != null) ...[
+                const SizedBox(width: 8),
+                SupporterBadge(badge: badge!, size: 26),
+              ],
+            ],
           ),
           if (secondaryLine != null) ...[
             const SizedBox(height: 2),
