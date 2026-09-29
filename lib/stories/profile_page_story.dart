@@ -22,6 +22,8 @@ import 'package:nami/services/hitobito_auth_env.dart';
 import 'package:nami/services/hitobito_data_retention_policy.dart';
 import 'package:nami/services/hitobito_groups_service.dart';
 import 'package:nami/services/hitobito_oauth_service.dart';
+import 'package:nami/domain/achievements/achievement_definition.dart';
+import 'package:nami/domain/achievements/achievement_progress.dart';
 import 'package:nami/services/logger_service.dart';
 import 'package:nami/services/sensitive_storage_service.dart';
 import 'package:provider/provider.dart';
@@ -31,6 +33,19 @@ import 'package:storybook_flutter/storybook_flutter.dart';
 Story profilePageStory() => Story(
   name: 'Profil/Screens/Uebersicht/MitSpitznameUndRollen',
   builder: (context) => _ProfileStoryShell(
+    achievements: [
+      for (final (id, count) in const [
+        (AchievementIds.appDays, 27),
+        (AchievementIds.memberEdited, 7),
+        (AchievementIds.statisticsOpened, 0),
+        (AchievementIds.storeRating, 1),
+        (AchievementIds.feedbackSent, 0),
+      ])
+        AchievementProgress(
+          definition: achievementCatalog.firstWhere((d) => d.id == id),
+          count: count,
+        ),
+    ],
     profile: const AuthProfile(
       namiId: 34,
       email: 'julia@example.com',
@@ -78,9 +93,10 @@ Story profilePageUnknownLanguageStory() => Story(
 );
 
 class _ProfileStoryShell extends StatefulWidget {
-  const _ProfileStoryShell({required this.profile});
+  const _ProfileStoryShell({required this.profile, this.achievements});
 
   final AuthProfile profile;
+  final List<AchievementProgress>? achievements;
 
   @override
   State<_ProfileStoryShell> createState() => _ProfileStoryShellState();
@@ -167,7 +183,10 @@ class _ProfileStoryShellState extends State<_ProfileStoryShell> {
             ],
             supportedLocales: const [Locale('de'), Locale('en')],
             locale: const Locale('de'),
-            home: const ProfilePage(),
+            home: ProfilePage(
+              achievements: widget.achievements,
+              onAchievements: widget.achievements == null ? null : () {},
+            ),
           ),
         );
       },

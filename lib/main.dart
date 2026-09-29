@@ -22,8 +22,10 @@ import 'package:nami/domain/nami_ai/nami_ai_chat_history_repository.dart';
 import 'package:nami/domain/arbeitskontext/usecases/bestimme_startkontext_usecase.dart';
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
+import 'package:nami/presentation/model/achievements_model.dart';
 import 'package:nami/presentation/model/member_edit_model.dart';
 import 'package:nami/presentation/notifications/app_update_dialog.dart';
+import 'package:nami/presentation/notifications/achievement_unlocked.dart';
 import 'package:nami/presentation/notifications/feedback_prompt_dialog.dart';
 import 'package:nami/presentation/notifications/notifications_hub.dart';
 import 'package:nami/presentation/notifications/welcome_dialog.dart';
@@ -45,6 +47,8 @@ import 'data/bundesstatistik/http_bundesstatistik_repository.dart';
 import 'data/bundesstatistik/secure_installation_credentials_repository.dart';
 import 'data/bundesstatistik/shared_prefs_bundesstatistik_teilnahme_repository.dart';
 import 'data/appearance/shared_prefs_appearance_settings_repository.dart';
+import 'data/achievements/shared_prefs_achievement_repository.dart';
+import 'domain/achievements/achievement_definition.dart';
 import 'data/settings/shared_prefs_app_settings_repository.dart';
 import 'domain/auth/auth_profile.dart';
 import 'domain/auth/auth_state.dart';
@@ -60,6 +64,7 @@ import 'presentation/model/urgent_notification_model.dart';
 import 'presentation/navigation/app_router.dart';
 import 'presentation/notifications/app_snackbar.dart';
 import 'services/app_icon_service.dart';
+import 'services/achievement_service.dart';
 import 'services/app_reset_service.dart';
 import 'services/app_runtime_controller.dart';
 import 'services/app_startup_state_service.dart';
@@ -289,11 +294,18 @@ void main() {
         remoteAccessExecutor: authModel.executeRemoteAccess,
         logger: logger!,
       );
+      final achievementService = AchievementService(
+        repository: SharedPrefsAchievementRepository(),
+      );
+      final achievementsModel = AchievementsModel(service: achievementService);
+      unawaited(achievementsModel.load());
       final memberEditModel = MemberEditModel(
         memberWriteRepository: memberWriteRepository,
         pendingRepository: pendingPersonUpdateRepository,
         logger: logger!,
         onMemberUpdated: arbeitskontextModel.ersetzeMitglied,
+        onMemberSaved: () =>
+            achievementService.record(AchievementIds.memberEdited),
       );
 
       // Globale Fehlerbehandlung: Framework- und ungefangene Fehler loggen/tracken
@@ -400,6 +412,10 @@ void main() {
             ChangeNotifierProvider<MemberEditModel>.value(
               value: memberEditModel,
             ),
+            Provider<AchievementService>.value(value: achievementService),
+            ChangeNotifierProvider<AchievementsModel>.value(
+              value: achievementsModel,
+            ),
             ChangeNotifierProvider<HitobitoAuthConfigController>.value(
               value: hitobitoAuthConfigController,
             ),
@@ -484,6 +500,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   bool _startupFlowRunning = false;
   bool _didRunEngagementPrompt = false;
   final FeedbackPromptService _feedbackPromptService = FeedbackPromptService();
+  late final AchievementService _achievementService;
+  StreamSubscription<AchievementUnlock>? _achievementSubscription;
+  final List<AchievementUnlock> _pendingAchievementUnlocks = [];
 
   @override
   void initState() {
@@ -500,6 +519,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _dataExpiryNotificationService = context
         .read<DataExpiryNotificationService>();
     _urgentNotificationModel = context.read<UrgentNotificationModel>();
+    _achievementService = context.read<AchievementService>();
+    _achievementSubscription = _achievementService.unlocks.listen(
+      _handleAchievementUnlock,
+    );
     _appRuntimeController = AppRuntimeController(resetApp: _performFullReset);
     _connectivity = Connectivity();
     _wifiSyncTrigger = WifiSyncTrigger();
@@ -515,6 +538,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     // Ausstehende Pause/Sessions vom letzten Lauf auswerten
     _usage.flushPendingSession();
     _usage.startSession();
+    unawaited(_achievementService.recordDaily(AchievementIds.appDays));
     _initGlobalNotifications();
     _startAuthMaintenanceTimer();
     _startPendingRetryTimer();
@@ -654,6 +678,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       _startupFlowRunning = false;
       if (_startupFlowCompleted) {
         _flushPendingNotificationBanner();
+        _flushAchievementUnlocks();
       }
     }
   }
@@ -850,6 +875,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           logger: logger,
           trigger: 'startup',
           service: _feedbackPromptService,
+          achievements: _achievementService,
         );
         return;
       }
@@ -958,6 +984,38 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     );
   }
 
+  void _handleAchievementUnlock(AchievementUnlock unlock) {
+    _pendingAchievementUnlocks.add(unlock);
+    _flushAchievementUnlocks();
+  }
+
+  /// Zeigt gesammelte Freischaltungen erst, wenn der Startup-Flow (Willkommen,
+  /// Update-Hinweis) durch ist. Von mehreren wird nur die höchste gezeigt.
+  void _flushAchievementUnlocks() {
+    if (_pendingAchievementUnlocks.isEmpty ||
+        !_startupFlowCompleted ||
+        !_canShowStartupUi()) {
+      return;
+    }
+    final ctx = navigatorKey.currentContext;
+    if (ctx == null || !ctx.mounted) {
+      return;
+    }
+    final unlock = _pendingAchievementUnlocks.reduce(
+      (a, b) => b.rank >= a.rank ? b : a,
+    );
+    _pendingAchievementUnlocks.clear();
+    unawaited(
+      showAchievementUnlocked(
+        ctx,
+        definition: unlock.definition,
+        tier: unlock.tier,
+        onShowAll: () =>
+            navigatorKey.currentState?.pushNamed(AppRoutes.achievements),
+      ),
+    );
+  }
+
   Future<void> _performFullReset() async {
     await logger.log('debug_tools', 'Vollstaendiger App-Reset gestartet');
     scaffoldMessengerKey.currentState
@@ -975,6 +1033,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
     await _authModel.logout();
     await _appResetService.resetAllData();
+    _pendingAchievementUnlocks.clear();
+    await context.read<AchievementsModel>().load();
 
     final settingsRepo = context.read<AppSettingsRepository>();
     final defaults = await settingsRepo.load();
@@ -1011,6 +1071,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _authModel.removeListener(_handleAuthModelChanged);
     _appSettingsModel.removeListener(_handleAppSettingsChanged);
     _urgentNotificationModel.setAcknowledgeHandler(null);
+    _achievementSubscription?.cancel();
     _authMaintenanceTimer?.cancel();
     _pendingRetryTimer?.cancel();
     _connectivitySubscription?.cancel();
@@ -1026,6 +1087,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       logger.log('lifecycle', 'App resumed');
       // App kommt in den Vordergrund: einmaliges Resume
       _usage.resume();
+      unawaited(_achievementService.recordDaily(AchievementIds.appDays));
       _isPaused = false;
       _wifiSyncTrigger.reset();
       authModel.onAppResumed();

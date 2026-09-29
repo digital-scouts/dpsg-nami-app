@@ -204,6 +204,7 @@ Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den
 - Die App-Sprache wird nach dem Login auf Basis der bevorzugten Profilsprache gesetzt. Unbekannte oder fehlende Sprachcodes fallen auf Deutsch zurück.
 - Jeder Nutzer sieht auch nur die Funktionen, die er aufgrund seiner Rechte ausführen kann. Die Rechte sind im eigenen Profil aufgelistet.
 - Jeder Nutzer hat die Möglichkeit das Bearbeiten von Daten zu deaktiven und braucht so keine Angst haben 'Etwas kaput zu machen'
+- Erfolge belohnen regelmäßige Nutzung mit Abzeichen in den Stufen Bronze, Silber, Gold, Platin und Diamant (Tage mit geöffneter App, gespeicherte Mitgliedsänderungen, Tage mit geöffneter Statistik) sowie mit einmaligen Abzeichen für App-Bewertung und Feedback. Die Übersicht ist über das Profil erreichbar. Erfolge werden nur lokal gespeichert, nicht synchronisiert und beim vollständigen App-Reset gelöscht.
 
 ## Geplante Funktionen
 
