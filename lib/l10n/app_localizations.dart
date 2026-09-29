@@ -389,6 +389,11 @@ class AppLocalizations {
       'member_edit_gender_male': 'Männlich',
       'member_edit_gender_diverse': 'Divers',
       'member_edit_field_pronoun': 'Pronomen',
+      'member_edit_field_phone_public': 'Öffentlich sichtbar',
+      'member_edit_field_phone_public_hint':
+          'Für alle sichtbar, die diese Person in Hitobito sehen dürfen.',
+      'member_edit_value_yes': 'Ja',
+      'member_edit_value_no': 'Nein',
       'member_edit_details_not_visible':
           'Geschlecht und Geburtsdatum sind für dich in Hitobito nicht sichtbar und können deshalb nicht bearbeitet werden.',
       'member_edit_section_bank': 'Bankverbindung',
@@ -1017,6 +1022,11 @@ class AppLocalizations {
       'member_edit_gender_male': 'Male',
       'member_edit_gender_diverse': 'Diverse',
       'member_edit_field_pronoun': 'Pronoun',
+      'member_edit_field_phone_public': 'Publicly visible',
+      'member_edit_field_phone_public_hint':
+          'Visible to everyone allowed to see this person in Hitobito.',
+      'member_edit_value_yes': 'Yes',
+      'member_edit_value_no': 'No',
       'member_edit_details_not_visible':
           'Gender and birthday are not visible to you in Hitobito and therefore cannot be edited.',
       'member_edit_section_bank': 'Bank account',

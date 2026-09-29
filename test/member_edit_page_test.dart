@@ -520,6 +520,21 @@ void main() {
       expect(model.submitCalls.single.zielMitglied.pronoun, 'sie/ihr');
     });
 
+    testWidgets('speichert Sichtbarkeit einer Telefonnummer', (tester) async {
+      final model = _RecordingMemberEditModel();
+      await pumpEditor(tester, _buildMember(gender: 'w'), model: model);
+
+      final toggle = find.byKey(const Key('member-edit-phone-public-0'));
+      await tester.ensureVisible(toggle);
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      await tapSave(tester);
+
+      final phone = model.submitCalls.single.zielMitglied.telefonnummern.single;
+      expect(phone.phoneNumberId, 1);
+      expect(phone.istOeffentlich, isTrue);
+    });
+
     testWidgets('zeigt keine Bankverbindung ohne lesbare Bankdaten', (
       tester,
     ) async {

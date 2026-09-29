@@ -251,6 +251,7 @@ class HitobitoPeopleService {
             'contactable_id': personId,
             'contactable_type': 'Person',
             'number': telefonnummer.wert,
+            'public': telefonnummer.istOeffentlich,
           },
         },
       },
@@ -279,6 +280,7 @@ class HitobitoPeopleService {
           'attributes': <String, dynamic>{
             'label': telefonnummer.label,
             'number': telefonnummer.wert,
+            'public': telefonnummer.istOeffentlich,
           },
         },
       },
@@ -480,7 +482,7 @@ class HitobitoPeopleService {
             'attributes': <String, dynamic>{
               'label': telefonnummer.label,
               'number': telefonnummer.wert,
-              "public": false,
+              'public': telefonnummer.istOeffentlich,
             },
           });
         case HitobitoRelationshipMutationMethod.update:
@@ -501,6 +503,7 @@ class HitobitoPeopleService {
             'attributes': <String, dynamic>{
               'label': telefonnummer.label,
               'number': telefonnummer.wert,
+              'public': telefonnummer.istOeffentlich,
             },
           });
         case HitobitoRelationshipMutationMethod.destroy:
@@ -676,7 +679,7 @@ class HitobitoPeopleService {
     queryParameters['fields[roles]'] =
         'created_at,updated_at,start_on,end_on,name,person_id,group_id,type,label';
     queryParameters['fields[phone_numbers]'] =
-        'contactable_id,contactable_type,label,number';
+        'contactable_id,contactable_type,label,number,public';
     queryParameters['fields[additional_emails]'] =
         'contactable_id,contactable_type,label,email';
     queryParameters['fields[additional_addresses]'] =
@@ -1065,6 +1068,7 @@ class HitobitoPeopleService {
         phoneNumberId: id,
         wert: number,
         label: _toNullableString(attributesMap['label']),
+        istOeffentlich: attributesMap['public'] == true,
       ),
     );
   }

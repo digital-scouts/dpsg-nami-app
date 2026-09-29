@@ -321,6 +321,19 @@ void main() {
     });
   });
 
+  test('uebernimmt geaenderte Sichtbarkeit einer Telefonnummer', () {
+    final basis = _basis();
+    final ziel = _withPhones(basis, <MitgliedKontaktTelefon>[
+      _mobil.copyWith(istOeffentlich: true),
+      _festnetz,
+    ]);
+
+    final plan = _resolve(basis: basis, ziel: ziel);
+
+    expect(plan.items, isEmpty);
+    expect(plan.mergedMitglied.telefonnummern.first.istOeffentlich, isTrue);
+  });
+
   group('MemberConflictResolver Bankverbindung', () {
     Mitglied mitBank() => _basis().copyWith(
       bankAccountOwner: 'Julia Keller',

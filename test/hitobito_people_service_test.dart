@@ -142,7 +142,8 @@ void main() {
                 "contactable_id": 23,
                 "contactable_type": "Person",
                 "label": "Mobil",
-                "number": "+49 170 1234567"
+                "number": "+49 170 1234567",
+                "public": true
               }
             },
             {
@@ -246,7 +247,7 @@ void main() {
       );
       expect(
         requestedUris.first.queryParameters['fields[phone_numbers]'],
-        'contactable_id,contactable_type,label,number',
+        'contactable_id,contactable_type,label,number,public',
       );
       expect(
         requestedUris.first.queryParameters['fields[additional_emails]'],
@@ -301,6 +302,7 @@ void main() {
           phoneNumberId: 701,
           wert: '+49 170 1234567',
           label: 'Mobil',
+          istOeffentlich: true,
         ),
         MitgliedKontaktTelefon(
           phoneNumberId: 702,
@@ -734,6 +736,7 @@ void main() {
                   phoneNumberId: 301,
                   wert: '+491701234567',
                   label: 'Mobil',
+                  istOeffentlich: true,
                 ),
               ),
               HitobitoRelationshipMutation<MitgliedKontaktTelefon>(
@@ -814,6 +817,7 @@ void main() {
       expect(included[0]['attributes'], <String, dynamic>{
         'label': 'Mobil',
         'number': '+491701234567',
+        'public': true,
       });
       expect(included[1]['attributes']['street'], 'Werkstrasse');
       expect(included[2]['attributes']['town'], 'Bonn');
