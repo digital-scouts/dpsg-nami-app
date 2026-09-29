@@ -1,0 +1,10 @@
+{
+  "servers": {
+    "open-design": {
+      "type": "stdio",
+      "command": "/private/var/folders/nv/1y23h6fn6qj4_rvbvgv0g23h0000gn/T/AppTranslocation/22D5497B-D421-4B14-A4A5-7CD53EFBA650/d/Open Design.app/Contents/Resources/open-design/bin/node",
+      "args": ["/private/var/folders/nv/1y23h6fn6qj4_rvbvgv0g23h0000gn/T/AppTranslocation/22D5497B-D421-4B14-A4A5-7CD53EFBA650/d/Open Design.app/Contents/Resources/app/prebundled/daemon/daemon-cli.mjs","mcp"],
+      "env": {"OD_DATA_DIR":"/Users/lange/Library/Application Support/Open Design/namespaces/release-stable/data","OD_SIDECAR_NAMESPACE":"release-stable"}
+    }
+  }
+}

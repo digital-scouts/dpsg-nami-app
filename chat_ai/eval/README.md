@@ -1,0 +1,210 @@
+# chat_ai/eval — Eval-Set und manuelles Runbook für NaMi AI
+
+Dieses Verzeichnis enthält das kuratierte Fragenset für die Qualitätsprüfung
+der on-device Wissensfragen-Funktion sowie das Runbook für die manuelle
+End-to-End-Prüfung auf echtem Gerät (siehe
+[`specs/nami-ai-roadmap.md`](../../specs/nami-ai-roadmap.md), Abschnitt 3.8).
+
+## Zweck
+
+`eval_questions.json` ist die einzige Quelle der Wahrheit für Testfragen mit
+erwarteten Dokument-/Abschnittsreferenzen. Drei unterschiedliche Prüfungen
+nutzen dieselbe Datei (bzw. `eval_conversations.json` für Mehrfach-Turn-Fälle),
+aber nicht dieselben Fragen:
+
+- **Retrieval-only, automatisiert, CI-fähig:** `NamiAiEvalTests.swift`
+  (`ios/NamiAiKit/Tests/NamiAiKitTests/`) prüft für jede Frage mit
+  `automated_check: true`, ob `NamiAiRetrievalIndex.topMatches` (dieselben
+  Defaults wie `NamiAiSearchTool` in Produktion) die erwarteten Quellen
+  liefert. Läuft ohne Gerät und ohne geladenes Sprachmodell.
+- **End-to-End, automatisiert, nur lokal auf einem Mac mit Apple
+  Intelligence:** `nami-ai-eval` (siehe unten) — prüft zitierte Quellen und
+  Guardrail-Verhalten der tatsächlichen Modellantwort, nicht nur das
+  Retrieval. Ersetzt das manuelle Abtippen für alles, was sich objektiv
+  auswerten lässt.
+- **End-to-End, manuell, dieses Runbook:** die inhaltliche
+  Korrektheits-/Halluzinations-Einschätzung durch einen Menschen lässt sich
+  nicht automatisieren — das bleibt so, auch mit `nami-ai-eval`. Nützlich vor
+  allem für neue/veränderte Fragen, bei denen noch unklar ist, ob überhaupt
+  die richtigen `expected_sources` hinterlegt sind, und für Nuancen, die kein
+  automatischer Check abdeckt (Tonfall, Markdown-Artefakte, Ausführlichkeit).
+
+`automated_check: false` markiert Fragen, bei denen schon die
+Retrieval-Prüfung allein nicht sinnvoll automatisierbar ist (siehe
+`known_limitations` und die einzelnen `note`-Felder in `eval_questions.json`)
+— das eigentliche Problem liegt dort nicht im Retrieval, sondern im
+Modellverhalten danach. `nami-ai-eval` prüft trotzdem auch diese Fragen (per
+`unclear`/Guardrail-Abgleich statt per Retrieval-Score), da dort ja eine
+echte Modellantwort vorliegt.
+
+## Automatisiertes CLI-Tool (`nami-ai-eval`)
+
+`ios/NamiAiKit` enthält ein zusätzliches SwiftPM-Executable-Target
+`nami-ai-eval` (`ios/NamiAiKit/Sources/NamiAiEvalCLI/`), das dieselben
+`NamiAiAssistant`-Aufrufe nutzt wie die Flutter-Chat-UI (`startSession` →
+`streamRespond` je Turn → `endSession`, nie den One-Shot-Pfad) — die Logik ist
+also identisch zur App, nur ohne UI. Läuft **nur lokal**, nicht in CI, aus
+demselben Grund wie oben: FoundationModels braucht ein echtes, geladenes
+Modell.
+
+```
+cd ios/NamiAiKit
+swift run nami-ai-eval                      # alle Fragen + Konversationen, 1x
+swift run nami-ai-eval --repeat 3            # Konsistenz ueber Wiederholungen pruefen
+swift run nami-ai-eval --only general-sv-frequenz,jargon-sv-mitglieder
+swift run nami-ai-eval --help                # alle Optionen
+```
+
+**Ein-Kommando-Variante** (`chat_ai/eval/run_eval.sh`): prüft zuerst
+`NamiAiEvalKitTests` (kein Modell nötig, bricht bei Fehlschlag ab, bevor ein
+echter Modell-Lauf verschwendet wird), führt dann `nami-ai-eval` aus und
+formatiert das Ergebnis direkt als Markdown-Report:
+
+```
+chat_ai/eval/run_eval.sh                                         # alles, mit Tests
+chat_ai/eval/run_eval.sh --only jargon-sv-mitglieder --skip-conversations
+chat_ai/eval/run_eval.sh --skip-tests --repeat 3                 # Tests ueberspringen
+```
+
+Nicht erkannte Optionen werden unverändert an `nami-ai-eval` durchgereicht.
+Auch als Launch-Konfiguration „NaMi AI: Eval-Tests + Lauf + Report" in
+`.vscode/launch.json` hinterlegt (Run-and-Debug-Panel in VS Code).
+
+Schreibt eine JSONL-Zeile pro Turn nach
+`chat_ai/eval/results/runs/<runId>.jsonl` (nicht versioniert, siehe
+`.gitignore`) — Feldnamen angelehnt an
+`lib/services/nami_ai/nami_ai_debug_log_service.dart`s Schema, plus
+Eval-spezifische Felder (`sourceMatch`, `guardrailMatch`, `expectedSources`
+u. a.). Auswertung:
+
+```
+python3 chat_ai/eval/report_eval_run.py summarize chat_ai/eval/results/runs/<runId>.jsonl
+python3 chat_ai/eval/report_eval_run.py diff <vorher>.jsonl <nachher>.jsonl
+```
+
+`diff` eignet sich, um die Wirkung einer Änderung an
+`NamiAiResponder.systemInstructions` oder am Retrieval zwischen zwei Läufen
+zu vergleichen, ohne wieder alle Fragen von Hand durchzugehen. Mehrfach-Turn-
+Konversationen liegen in `eval_conversations.json` (gleiches Schema wie
+`eval_questions.json`, aber als Sequenz von Turns pro gehaltener Session).
+
+## Voraussetzungen
+
+- Echtes iPhone mit iOS 26+, geeigneter Hardware und aktivierter Apple
+  Intelligence — oder ein Simulator auf einem Mac, der selbst Apple
+  Intelligence unterstützt (Apple-Silicon M1 Pro/Max oder neuer, passende
+  macOS-Version, Toggle aktiviert). Ein gewöhnlicher Simulator auf nicht
+  unterstützter Hardware liefert kein Modell (siehe Roadmap §3.1, Schritt 5).
+- Aktueller Build mit `NamiAiKit`, `NAMI_AI_ENABLED` aktiviert.
+- `eval_questions.json` als Referenz griffbereit (z. B. zweites Fenster/Gerät).
+- Solange Abschnitt 3.7 (Flutter-Chat-UI mit sichtbaren §-Referenzen) noch
+  nicht abgeschlossen ist: Zitate/`sources`/`unclear` ggf. über Xcode-Konsole
+  bzw. Debug-Logging von `NamiAiAssistant.respond` ablesen statt aus der
+  Chat-UI. Runde in diesem Fall unten als "vor 3.7" kennzeichnen.
+
+## Ablauf pro Runde
+
+1. Alle Fragen aus `eval_questions.json` der Reihe nach in der App stellen
+   (Kategorie und `id` mitführen).
+2. Pro Frage protokollieren:
+   - `id`
+   - Antworttext (gekürzt/paraphrasiert reicht, wörtliche Halluzinationen
+     möglichst exakt zitieren)
+   - zitierte Quellen laut UI/Log vs. `expected_sources`
+   - **Korrektheit:** korrekt / teilweise korrekt / halluziniert
+   - **Zitate:** vollständig+korrekt / unvollständig / falsch/keine
+   - nur bei `expects_reject: true`: **Guardrail-Verhalten** — sauber
+     abgelehnt / vermischt (Kern korrekt abgelehnt, aber unpassende
+     Zusatzinfos angehängt) / fälschlich beantwortet
+   - Freitext-Notiz (auffällige Formulierungen, Markdown-Rohzeichen,
+     Antwortzeit, alles Ungewöhnliche)
+3. Kurz-Fazit der Runde: Auffälligkeiten je Kategorie (`jargon`, `regression`,
+   `guardrail-negative`, `off-topic`, `general`), insbesondere ob der
+   Stavo/SV-Regressionsfall (`regression-stavo-aufgaben-sv`) weiterhin
+   fehlerhaft beantwortet wird. Seit der Runde 2026-09-19 zusätzlich gezielt
+   prüfen, ob dasselbe "falsches Organ"-Muster auch auf Bezirks-/Diözese-/
+   Bundesebene weiterhin auftritt (`general-bezirksvorstand-aufgaben`,
+   `general-bezirksversammlung-aufgaben`, `general-dioezesanvorstand-aufgaben`,
+   `general-dioezesanleitung-aufgaben`, `general-bundesvorstand-aufgaben` -
+   siehe deren `note`-Felder in `eval_questions.json`), nachdem der
+   Systemprompt (`NamiAiResponder.systemInstructions`) dagegen geschärft
+   wurde.
+
+## Ergebnis-Dokumentation
+
+Eine neue Datei pro Runde unter `chat_ai/eval/results/`, nicht überschreiben
+— Trends über mehrere Runden sind Voraussetzung für die
+Retrieval-Upgrade-Entscheidung unten:
+
+```
+chat_ai/eval/results/<YYYY-MM-DD>-<gerät-oder-kürzel>.md
+```
+
+Format: freie Markdown-Tabelle oder Liste, mindestens `id`, Bewertung,
+Notiz. Optional zusätzlich eine schlanke, laufend aktualisierte
+`chat_ai/eval/results/SUMMARY.md` mit nur den Kennzahlen (Pass-Raten je
+Kategorie) der jeweils letzten Runde, damit nicht jede Detaildatei geöffnet
+werden muss.
+
+## Entscheidungskriterien Retrieval-Upgrade (Variante B/D)
+
+Startheuristik, kalibrierbar nach den ersten echten Runden (siehe Roadmap
+§3.6 für die Varianten selbst):
+
+- **Hartes Signal:** der Stavo/SV-Regressionsfall oder ein strukturell
+  gleichartiger Multi-Chunk-Synthese-Fehler tritt über zwei aufeinanderfolgende
+  Runden reproduzierbar auf, obwohl das Grounding-Gate technisch korrekt
+  funktioniert.
+- **Weiches Signal:** End-to-End-Korrektheitsrate (korrekt UND korrekt
+  zitiert UND nicht halluziniert) über alle bewerteten Fragen einer Runde
+  < 80 %.
+- Guardrail-Fehlrate (falsches Ablehnen einer beantwortbaren Frage oder
+  falsches Beantworten einer Ablehnungsfrage) > 10 % ist primär ein
+  Prompt-/Guardrail-Thema, kein automatischer Retrieval-Upgrade-Auslöser.
+
+## Bekannte Grenzen
+
+- **BM25 ohne Stemming/Lemmatisierung matchte keine deutschen Flexionsformen**
+  außerhalb der im Chunk vorkommenden Wortform (z. B. Frage "Mitglieder" vs.
+  Chunk-Text "Mitgliedern"; "des Bezirksvorstands" vs. "Der Bezirksvorstand").
+  Im ersten automatisierten Testlauf (2026-09-18) lag die Pass-Rate der
+  automatisiert prüfbaren general/jargon/regression-Fragen bei ca. 41 %.
+  Seit 2026-09-19 stemmt `NamiAiRetrievalIndex.tokenize` leichtgewichtig genau
+  gegen diese beiden Muster (siehe `NamiAiRetrieval.swift`); neu gemessene
+  Pass-Rate ca. 44 % (14/32) — ein echter, aber moderater Gewinn, da die
+  meisten verbleibenden Fehlschläge Multi-Chunk-Synthese-/"falsches
+  Organ"-Fälle oder Vokabular-Mismatches sind, die Stemming allein nicht löst
+  (siehe `known_limitations` in `eval_questions.json` und Kommentar in
+  `NamiAiEvalTests.swift`). Das bleibt ein realer Befund für die
+  B/D-Entscheidung, keine falsch formulierte Testfrage.
+- **Retrieval-Score allein ist kein verlässlicher Ablehnungs-Indikator.**
+  `topMatches` liefert auch für klar fachfremde Fragen Treffer, teils mit
+  höherem BM25-Score als bei echten Satzungsfragen (seltene Alltagswörter
+  bekommen im förmlichen Satzungs-/Ordnungstext eine unverhältnismäßig hohe
+  IDF-Gewichtung). Die eigentliche Ablehnung muss vom Modell kommen
+  (`unclear: true`), nicht aus einer leeren Trefferliste — deshalb sind
+  Off-Topic-Fragen hier nur manuell geprüft.
+- Simulator-Verfügbarkeit von Apple Intelligence schwankt je nach
+  Xcode-/macOS-Version.
+- Modellantworten sind nicht deterministisch — Wiederholung derselben Frage
+  kann leicht unterschiedliche Formulierungen/Bewertungen ergeben.
+
+## Embedding-Hybrid (Variante B) seit 2026-09-19
+
+`NamiAiSearchTool` nutzt jetzt `NamiAiRetrievalIndex.topMatchesHybrid`: BM25
+wird per Reciprocal Rank Fusion mit semantischer Ähnlichkeit aus
+`NamiAiContextualEmbeddingScorer` (`NLContextualEmbedding`, Deutsch)
+kombiniert, um Umformulierungen/Komposita abzufangen, die auch das Stemming
+oben nicht löst. Stiller Fallback auf reines BM25 (`topMatches`), wenn das
+Embedding-Modell/die Assets nicht verfügbar sind — kein Fehlerzustand für
+Nutzer:innen.
+
+Automatisiert abgesichert sind nur die modellunabhängigen Teile: die
+Fusionslogik (`NamiAiRankFusionTests.swift`, mit einem Fake-Scorer auch in
+`NamiAiRetrievalTests.swift`) und die Kosinus-Ähnlichkeit
+(`NamiAiContextualEmbeddingScorerTests.swift`). Der eigentliche
+`NLContextualEmbedding`-Pfad (Asset-Download, Laden, Embedding-Berechnung)
+ist wie der Rest der FoundationModels-Anbindung nur manuell auf einem
+echten Gerät verifizierbar — Simulator/CI können die Modell-Assets nicht
+laden. Offen für die nächste Geräte-Runde: tatsächliche
+Pass-Rate-/Korrektheits-Wirkung gegenüber dem reinen Stemming-Stand messen.

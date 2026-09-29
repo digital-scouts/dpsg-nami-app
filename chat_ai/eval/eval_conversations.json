@@ -1,0 +1,67 @@
+{
+  "eval_set_version": 1,
+  "updated_at": "2026-09-21",
+  "conversations": [
+    {
+      "id": "conv-stavo-folgefragen",
+      "category": "general",
+      "self_correction_enabled": null,
+      "turns": [
+        {
+          "question": "Was sind die Aufgaben des Stammesvorstands?",
+          "expected_sources": [{"doc_id": "satzung_stamm", "section_number": "31"}],
+          "match_mode": "all",
+          "expects_reject": false
+        },
+        {
+          "question": "Und wer wählt ihn?",
+          "expected_sources": [{"doc_id": "satzung_stamm", "section_number": "24"}],
+          "match_mode": "all",
+          "expects_reject": false,
+          "note": "Folgefrage ohne explizites Subjekt - prueft, ob die gehaltene Session 'ihn' korrekt aus Turn 1 (Stammesvorstand) aufloest. Ziffer 24 listet die Aufgaben der Stammesversammlung, darunter explizit 'die Wahl der Mitglieder des Stammesvorstands'."
+        }
+      ]
+    },
+    {
+      "id": "conv-organebenen-wechsel",
+      "category": "regression",
+      "self_correction_enabled": null,
+      "turns": [
+        {
+          "question": "Was sind die Aufgaben des Bezirksvorstands?",
+          "expected_sources": [{"doc_id": "satzung_bezirk", "section_number": "31"}],
+          "match_mode": "all",
+          "expects_reject": false,
+          "note": "Gleiche Frage wie general-bezirksvorstand-aufgaben in eval_questions.json - dort als bekannter 'falsches Organ'-Regressionsfall dokumentiert (Modell antwortete mit Bezirkskonferenzen statt Bezirksvorstand)."
+        },
+        {
+          "question": "Und was sind stattdessen die Aufgaben des Diözesanvorstands?",
+          "expected_sources": [{"doc_id": "satzung_dioezese", "section_number": "30"}],
+          "match_mode": "all",
+          "expects_reject": false,
+          "note": "Prueft, ob ein expliziter Ebenenwechsel innerhalb derselben Session sauber funktioniert, statt Kontext von Turn 1 (Bezirk) auf die neue Ebene (Dioezese) zu uebertragen."
+        }
+      ]
+    },
+    {
+      "id": "conv-guardrail-nach-echter-frage",
+      "category": "guardrail-negative",
+      "self_correction_enabled": null,
+      "turns": [
+        {
+          "question": "Wie oft muss die Stammesversammlung mindestens stattfinden?",
+          "expected_sources": [{"doc_id": "satzung_stamm", "section_number": "23"}],
+          "match_mode": "all",
+          "expects_reject": false
+        },
+        {
+          "question": "Wie oft tagt der Elternbeirat im Stamm?",
+          "expected_sources": [],
+          "match_mode": "all",
+          "expects_reject": true,
+          "note": "Gleicher Grenzfall wie guardrail-elternbeirat-frequenz in eval_questions.json ('Elternbeirat' ist kein definiertes Organ), hier aber als Folgefrage nach einer echten Antwort - prueft, ob eine bereits gehaltene Session die Ablehnung genauso sauber trifft wie eine frische Session."
+        }
+      ]
+    }
+  ]
+}
