@@ -112,6 +112,10 @@ jobs:
             set -eu
             cd "$APP_DIR"
             chmod 700 backup.sh
+            if [ ! -f mock.env ]; then
+              echo "$APP_DIR/mock.env fehlt. Einrichtung siehe server/deploy/README.md (Mock-Instanz)." >&2
+              exit 1
+            fi
             echo "$DOCKERHUB_TOKEN" | docker login -u sapza --password-stdin
             docker pull "$IMAGE"
             SERVER_IMAGE="$IMAGE" docker compose -p nami-statistics --env-file "$APP_DIR/.env" \
@@ -132,15 +136,19 @@ jobs:
             docker exec "$caddy_container" caddy reload --config /etc/caddy/Caddyfile
             docker image prune -f
 
-      - name: Verify public health endpoint
+      - name: Verify public health endpoints
         run: |
-          for attempt in 1 2 3 4 5 6; do
-            version="$(curl -fsS https://namiapp.scout-link.de/health/ready | jq -r .version || true)"
-            if [ "$version" = "$GITHUB_SHA" ]; then
-              echo "Statistikserver laeuft mit $version"
-              exit 0
-            fi
-            echo "Versuch $attempt: erwartet $GITHUB_SHA, erhalten '${version}'"
-            sleep 10
-          done
-          exit 1
+          verify() {
+            for attempt in 1 2 3 4 5 6; do
+              version="$(curl -fsS "https://$1/health/ready" | jq -r .version || true)"
+              if [ "$version" = "$GITHUB_SHA" ]; then
+                echo "$1 laeuft mit $version"
+                return 0
+              fi
+              echo "$1, Versuch $attempt: erwartet $GITHUB_SHA, erhalten '${version}'"
+              sleep 10
+            done
+            return 1
+          }
+          verify namiapp.scout-link.de
+          verify mock-namiapp.scout-link.de

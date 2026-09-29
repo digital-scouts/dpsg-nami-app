@@ -6,16 +6,17 @@ Der Statistikserver läuft auf demselben vServer wie der DPSG-News-Stack und ist
 | --- | --- | --- |
 | `docker-compose.server.yml` | Statistikserver und MongoDB | `/opt/nami-statistics/` |
 | `server.env.example` | Vorlage für Secrets und Laufzeitkonfiguration | `/opt/nami-statistics/.env` |
+| `mock.env.example` | Vorlage für die Mock-Instanz | `/opt/nami-statistics/mock.env` |
 | `namiapp.caddy` | Caddy-Site für `namiapp.scout-link.de` | `/opt/caddy-sites/` |
 | `backup.sh` | Tägliches MongoDB-Backup | `/opt/nami-statistics/` |
 
-Compose-Datei, Backup-Skript und Caddy-Site kopiert der Workflow `.github/workflows/server-deploy.yml` bei jedem Deploy. Nur die `.env` wird einmalig von Hand angelegt.
+Compose-Datei, Backup-Skript und Caddy-Site kopiert der Workflow `.github/workflows/server-deploy.yml` bei jedem Deploy. Nur `.env` und `mock.env` werden einmalig von Hand angelegt.
 
 ## Voraussetzungen
 
 - Der News-Stack läuft unter `/opt/dpsg-news` mit dem Compose-Projekt `dpsg-news`. Docker, `ufw` (22/80/443) und der `deploy`-User sind vorhanden.
 - Das Caddyfile im Repo `DPSG-News-APP` enthält am Ende `import /etc/caddy/sites/*.caddy`. Die News-Compose mountet `/opt/caddy-sites:/etc/caddy/sites:ro` in den Caddy-Container. Der News-Deploy überschreibt das Caddyfile bei jedem Lauf, deshalb gehört diese Änderung ins News-Repo und nicht direkt auf den Server.
-- Der A-Record `namiapp.scout-link.de` zeigt auf den vServer.
+- Die A-Records `namiapp.scout-link.de` und `mock-namiapp.scout-link.de` zeigen auf den vServer.
 - Im GitHub-Repo `digital-scouts/dpsg-nami-app` gibt es das Environment `statistics-server` mit den Secrets `DOCKERHUB_TOKEN`, `SSH_USER` und `SSH_PRIVATE_KEY` sowie den Variablen `SSH_HOST` und `SSH_PORT`.
 
 ## Ersteinrichtung
@@ -40,6 +41,8 @@ openssl rand -hex 32   # je einmal für MONGO_ROOT_PASSWORD, PSEUDONYMIZATION_SE
 
 `MONGO_ROOT_PASSWORD` muss auch in `MONGODB_URI` stehen. Ein Passwort aus `openssl rand -hex` enthält keine Zeichen, die in der URI maskiert werden müssen.
 
+Ebenso `mock.env.example` als `/opt/nami-statistics/mock.env` anlegen (`chmod 600`) und dort eigene Werte für `PSEUDONYMIZATION_SECRET` und `SENDER_SECRET_PEPPER` eintragen. Ohne `mock.env` bricht der Deploy ab.
+
 Anschließend den ersten Deploy manuell über **Actions → Deploy Statistics Server → Run workflow** starten und den Backup-Cron einrichten:
 
 ```bash
@@ -62,6 +65,18 @@ docker compose -p nami-statistics --env-file .env -f docker-compose.server.yml l
 ```
 
 Immer mit `-p nami-statistics` arbeiten. Ohne festen Projektnamen könnte `--remove-orphans` Container des News-Stacks erfassen.
+
+## Mock-Instanz
+
+Unter `https://mock-namiapp.scout-link.de` läuft der Service `nami-statistics-mock`. Er nutzt dasselbe Image, wird mit jedem Deploy aktualisiert und dient zum Testen aus dem Simulator: Snapshots senden und plausible Bundeswerte lesen, ohne die Produktivdaten zu berühren.
+
+- `STORAGE_BACKEND=memory`: keine MongoDB, kein Backup. Ein Neustart oder Deploy setzt alle Daten zurück, auch die Registrierung der Test-Installation. Die App registriert sich beim nächsten Senden neu.
+- `MOCK_SEED_STAMM_COUNT=30` erzeugt beim Start und danach täglich synthetische Stämme (`mock-stamm-NN`) mit Datenständen der letzten 30 Tage. Die seltenen Kennzahlen (z. B. `divers`, `leitende.ueber_60`) liefern nur 3 Stämme, dadurch wird ihre Unterdrückung sichtbar.
+- API-Vertrag und Regeln sind dieselben wie in Produktion. Lesen darf also nur eine Installation, die selbst gesendet hat.
+- Eigene Secrets in `mock.env`, niemals die Werte aus `.env`. Aus dem Simulator gesendete echte Stammesdaten liegen pseudonymisiert und nur im Speicher.
+- Der tägliche Status-Check überwacht die Mock-Instanz nicht. Der Deploy prüft aber ihre Version über `/health/ready`.
+
+App im Simulator auf den Mock stellen: in der lokalen `.env` (nicht in `.env.example`) `STATS_SERVER_URL=https://mock-namiapp.scout-link.de` setzen und die App neu bauen.
 
 ## Backup und Restore
 
