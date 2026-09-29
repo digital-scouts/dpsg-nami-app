@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:nami/core/notifications/pull_notification.dart';
 import 'package:nami/domain/auth/auth_state.dart';
 import 'package:nami/l10n/app_localizations.dart';
+import 'package:nami/presentation/model/appearance_model.dart';
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/model/urgent_notification_model.dart';
@@ -13,6 +14,7 @@ import 'package:nami/presentation/screens/settings_stufenwechsel_page.dart';
 import 'package:nami/presentation/screens/statistics_page.dart';
 import 'package:nami/presentation/widgets/app_bottom_navigation.dart';
 import 'package:nami/presentation/widgets/logout_flow.dart';
+import 'package:nami/presentation/widgets/supporter_backdrop.dart';
 import 'package:nami/services/logger_service.dart';
 import 'package:provider/provider.dart';
 
@@ -156,54 +158,71 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
         (arbeitskontextModel.isSynchronizing ||
             arbeitskontextModel.isLoadingRoles);
     final showsTopBanner = showsStaleDataWarning || showsLoadingChecklist;
-    return Column(
-      children: [
-        if (urgentNotification != null)
-          SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-              child: NotificationCard(
-                notification: urgentNotification,
-                onClose: () {
-                  context.read<UrgentNotificationModel>().acknowledgeCurrent();
-                },
+    // Supporter-Hintergrund der Mitgliederliste laeuft bis hinter Safe Area
+    // und Lade-Info; die Unterkante meldet der Listen-Header.
+    final backdropBackground = _index == 0
+        ? context.watch<AppearanceModel?>()?.background
+        : null;
+    return SupporterBackdrop(
+      background: backdropBackground,
+      child: Column(
+        children: [
+          if (urgentNotification != null)
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                child: NotificationCard(
+                  notification: urgentNotification,
+                  onClose: () {
+                    context
+                        .read<UrgentNotificationModel>()
+                        .acknowledgeCurrent();
+                  },
+                ),
               ),
             ),
-          ),
-        if (showsStaleDataWarning)
-          SafeArea(
-            bottom: false,
-            top: urgentNotification == null,
-            child: _StaleDataWarningBanner(
-              onRetry: () => arbeitskontextModel.refreshFromRemote(
-                session: authModel.session,
-                profile: authModel.profile,
+          if (showsStaleDataWarning)
+            SafeArea(
+              bottom: false,
+              top: urgentNotification == null,
+              child: _StaleDataWarningBanner(
+                onRetry: () => arbeitskontextModel.refreshFromRemote(
+                  session: authModel.session,
+                  profile: authModel.profile,
+                ),
               ),
             ),
-          ),
-        if (showsLoadingChecklist)
-          SafeArea(
-            bottom: false,
-            top: urgentNotification == null,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: Theme.of(context).colorScheme.surfaceContainerHigh,
-              child: _ArbeitskontextLoadingChecklist(
-                steps: arbeitskontextModel.loadingSteps,
-                dense: true,
+          if (showsLoadingChecklist)
+            SafeArea(
+              bottom: false,
+              top: urgentNotification == null,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                color: backdropBackground == null
+                    ? Theme.of(context).colorScheme.surfaceContainerHigh
+                    : Theme.of(
+                        context,
+                      ).colorScheme.surface.withValues(alpha: 0.6),
+                child: _ArbeitskontextLoadingChecklist(
+                  steps: arbeitskontextModel.loadingSteps,
+                  dense: true,
+                ),
               ),
             ),
+          Expanded(
+            child: SafeArea(
+              top: urgentNotification == null && !showsTopBanner,
+              bottom: false,
+              child: content,
+            ),
           ),
-        Expanded(
-          child: SafeArea(
-            top: urgentNotification == null && !showsTopBanner,
-            bottom: false,
-            child: content,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

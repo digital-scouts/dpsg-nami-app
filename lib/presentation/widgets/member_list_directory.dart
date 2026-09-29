@@ -10,6 +10,7 @@ import 'package:nami/presentation/widgets/member_custom_filter_icons.dart';
 import 'package:nami/presentation/widgets/member_list.dart';
 import 'package:nami/presentation/widgets/member_list_group_filter_bar.dart';
 import 'package:nami/presentation/widgets/member_list_search_bar.dart';
+import 'package:nami/presentation/widgets/supporter_backdrop.dart';
 import 'package:nami/presentation/widgets/supporter_background.dart';
 
 enum MemberFilterOptionsTrigger { tuneButton, listHeader }
@@ -177,48 +178,54 @@ class _MemberDirectoryState extends State<MemberDirectory> {
   @override
   Widget build(BuildContext context) {
     final items = _buildItems();
+    // In der App zeichnet der SupporterBackdrop den Hintergrund durchgehend
+    // bis hinter die Safe Area; ohne Backdrop (Storybook, Tests) der Header.
+    final background = widget.headerBackground;
+    final useBackdrop =
+        background != null && SupporterBackdrop.maybeOf(context) != null;
+    final header = DecoratedBox(
+      decoration: BoxDecoration(
+        color: useBackdrop
+            ? Colors.transparent
+            : Theme.of(context).colorScheme.surface,
+        border: Border(
+          bottom: BorderSide(color: Theme.of(context).colorScheme.outline),
+        ),
+      ),
+      child: _HeaderBackground(
+        background: useBackdrop ? null : background,
+        child: Column(
+          children: [
+            if (background != null) SizedBox(height: useBackdrop ? 24 : 56),
+            MemberSearchBar(
+              initial: search,
+              onChanged: _updateSearch,
+              showFilterIndicator: widget.hasFilterDeviation,
+              onTunePressed: () => widget.onOpenFilterOptions?.call(
+                MemberFilterOptionsTrigger.tuneButton,
+              ),
+            ),
+            GroupFilterBar(
+              items: items,
+              selectedKeys: selectedFilterKeys,
+              onChanged: (next) {
+                if (!widget.enableGroupFilter) {
+                  return;
+                }
+                setState(() {
+                  selectedFilterKeys = next;
+                });
+                widget.onGroupFilterChanged?.call(selectedFilterKeys.length);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
 
     return Column(
       children: [
-        DecoratedBox(
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            border: Border(
-              bottom: BorderSide(color: Theme.of(context).colorScheme.outline),
-            ),
-          ),
-          child: _HeaderBackground(
-            background: widget.headerBackground,
-            child: Column(
-              children: [
-                if (widget.headerBackground != null) const SizedBox(height: 56),
-                MemberSearchBar(
-                  initial: search,
-                  onChanged: _updateSearch,
-                  showFilterIndicator: widget.hasFilterDeviation,
-                  onTunePressed: () => widget.onOpenFilterOptions?.call(
-                    MemberFilterOptionsTrigger.tuneButton,
-                  ),
-                ),
-                GroupFilterBar(
-                  items: items,
-                  selectedKeys: selectedFilterKeys,
-                  onChanged: (next) {
-                    if (!widget.enableGroupFilter) {
-                      return;
-                    }
-                    setState(() {
-                      selectedFilterKeys = next;
-                    });
-                    widget.onGroupFilterChanged?.call(
-                      selectedFilterKeys.length,
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
+        if (useBackdrop) SupporterBackdropAnchor(child: header) else header,
         Expanded(
           child: MemberList(
             mitglieder: widget.mitglieder,

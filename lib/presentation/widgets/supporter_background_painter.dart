@@ -26,12 +26,18 @@ class SupporterBackgroundPainter extends CustomPainter {
   static const double designWidth = 1200;
   static const double designHeight = 400;
 
+  /// Ab dieser Hoehe (logische Pixel) waechst die Szene nicht weiter; der
+  /// Platz darueber wird mit Himmel (und je nach Szene Sternen) gefuellt.
+  static const double maxSceneHeight = 220;
+
   @override
   void paint(Canvas canvas, Size size) {
     final scale = math.max(
       size.width / designWidth,
-      size.height / designHeight,
+      math.min(size.height, maxSceneHeight) / designHeight,
     );
+    // Hoehe oberhalb der Szene in Designeinheiten.
+    final extraTop = math.max(0.0, size.height / scale - designHeight);
     canvas.save();
     canvas.clipRect(Offset.zero & size);
     canvas.translate(
@@ -39,7 +45,7 @@ class SupporterBackgroundPainter extends CustomPainter {
       size.height - designHeight * scale,
     );
     canvas.scale(scale);
-    final scene = _Scene(canvas, seconds);
+    final scene = _Scene(canvas, seconds, extraTop);
     switch (background) {
       case AppearanceBackgroundId.lagerfeuer:
         dark ? scene.lagerfeuerNacht() : scene.lagerfeuerTag();
@@ -244,16 +250,25 @@ Path _cached(String key, Path Function() build) =>
 // ------------------------------------------------------------------ Szenen
 
 class _Scene {
-  _Scene(this.canvas, this.t);
+  _Scene(this.canvas, this.t, this.extraTop);
 
   final Canvas canvas;
   final double t;
+
+  /// Sichtbarer Bereich oberhalb der Szene (y von -extraTop bis 0).
+  final double extraTop;
 
   Paint _fill(Color color, [double opacity = 1]) => Paint()
     ..color = color.withValues(alpha: color.a * opacity)
     ..isAntiAlias = true;
 
   void _sky(Color top, Color bottom) {
+    if (extraTop > 0) {
+      canvas.drawRect(
+        Rect.fromLTWH(0, -extraTop - 1, _w, extraTop + 1),
+        _fill(top),
+      );
+    }
     canvas.drawRect(
       const Rect.fromLTWH(0, 0, _w, _h),
       Paint()
@@ -426,6 +441,9 @@ class _Scene {
     cloud(110, 0, 90, 1.2, 0.85);
     cloud(80, -40, 170, 0.8, 0.7);
     cloud(140, -90, 60, 0.6, 0.6);
+    if (extraTop > 60) {
+      cloud(120, -60, -extraTop * 0.5, 0.9, 0.6);
+    }
     _birds(const [
       _Flock(y: 110, dir: 1, duration: 38, delay: -5, count: 5),
       _Flock(y: 70, dir: -1, duration: 52, delay: -26, count: 3, size: 0.8),
@@ -441,12 +459,13 @@ class _Scene {
     _Shooting(880, 120, -260, 70, 13, -3),
   ];
 
-  void himmelNacht() {
-    _sky(_Colors.hNightTop, _Colors.hNightBottom);
-    final rand = _Rng(21);
+  /// 140 Sterne je 1200 x 300 Designeinheiten. Jedes Band hat einen festen
+  /// Seed, damit Sterne beim Wachsen der Flaeche nicht springen.
+  void _starBand(int seed, double top) {
+    final rand = _Rng(seed);
     for (var i = 0; i < 140; i++) {
       final x = rand.next() * _w;
-      final y = rand.next() * 300;
+      final y = top + rand.next() * 300;
       final radius = 0.8 + math.pow(rand.next(), 3) * 2.4;
       final duration = 3 + rand.next() * 4;
       final delay = -rand.next() * duration;
@@ -457,6 +476,15 @@ class _Scene {
         radius.toDouble(),
         _fill(_Colors.hNightStar, opacity),
       );
+    }
+  }
+
+  void himmelNacht() {
+    _sky(_Colors.hNightTop, _Colors.hNightBottom);
+    _starBand(21, 0);
+    // Weitere Baender nach oben, solange die Verlaengerung reicht.
+    for (var band = 1; (band - 1) * 300 < extraTop; band++) {
+      _starBand(21 + band * 97, -band * 300.0);
     }
 
     const shootCurve = Cubic(0.3, 0.1, 0.6, 1);
@@ -573,8 +601,8 @@ class _Scene {
       final (x, width) = rays[i];
       final opacity = _lerp(0.06, 0.24, _alternate(t, 10, -i * 3.3));
       final path = Path()
-        ..moveTo(x, -10)
-        ..lineTo(x + 40, -10)
+        ..moveTo(x, -10 - extraTop)
+        ..lineTo(x + 40, -10 - extraTop)
         ..lineTo(x + width, _h)
         ..lineTo(x + width - 160, _h)
         ..close();

@@ -9,6 +9,7 @@ import 'package:nami/presentation/model/appearance_model.dart';
 import 'package:nami/presentation/screens/settings_appearance_page.dart';
 import 'package:nami/presentation/theme/theme.dart';
 import 'package:nami/presentation/widgets/member_list_directory.dart';
+import 'package:nami/presentation/widgets/supporter_backdrop.dart';
 import 'package:nami/presentation/widgets/supporter_background.dart';
 import 'package:nami/presentation/widgets/supporter_badge.dart';
 import 'package:nami/services/app_icon_service.dart';
@@ -85,27 +86,74 @@ Story supporterBackgroundStory() => Story(
       label: 'Mit Mitgliederliste',
       initial: true,
     );
+    final withTopArea = context.knobs.boolean(
+      label: 'Mit Safe Area und Lade-Info',
+      initial: true,
+    );
     final mitglieder = [
       for (var i = 1; i <= 6; i++) MitgliedFactory.demo(index: i),
     ];
+    final directory = MemberDirectory(
+      mitglieder: mitglieder,
+      headerBackground: background,
+      supporterBadgeBuilder: (m) =>
+          m.mitgliedsnummer == mitglieder.first.mitgliedsnummer
+          ? SupporterBadgeId.kompassPfadfinder
+          : null,
+    );
     return _app(
       dark: dark,
       home: Scaffold(
-        body: SafeArea(
-          child: withList
-              ? MemberDirectory(
-                  mitglieder: mitglieder,
-                  headerBackground: background,
-                  supporterBadgeBuilder: (m) =>
-                      m.mitgliedsnummer == mitglieder.first.mitgliedsnummer
-                      ? SupporterBadgeId.kompassPfadfinder
-                      : null,
-                )
-              : SizedBox(
+        body: !withList
+            ? SafeArea(
+                child: SizedBox(
                   height: 200,
                   child: SupporterBackground(background: background),
                 ),
-        ),
+              )
+            : !withTopArea
+            ? SafeArea(child: directory)
+            // Wie im Tab-Rahmen: Backdrop hinter Dynamic Island und Lade-Info.
+            : Builder(
+                builder: (context) => MediaQuery(
+                  data: MediaQuery.of(
+                    context,
+                  ).copyWith(padding: const EdgeInsets.only(top: 59)),
+                  child: SupporterBackdrop(
+                    background: background,
+                    child: Column(
+                      children: [
+                        SafeArea(
+                          bottom: false,
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surface.withValues(alpha: 0.6),
+                            child: const Row(
+                              children: [
+                                SizedBox.square(
+                                  dimension: 14,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                Text('Mitglieder laden'),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Expanded(child: directory),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
       ),
     );
   },
