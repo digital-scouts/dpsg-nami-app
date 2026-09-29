@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 const logLevels = ['fatal', 'error', 'warn', 'info', 'debug', 'trace'] as const;
+const storageBackends = ['mongodb', 'memory'] as const;
 
 const envSchema = z.object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -22,7 +23,13 @@ const envSchema = z.object({
     RATE_LIMIT_READ_MAX: z.coerce.number().int().min(1).default(120),
     MIN_STAMM_COUNT_FOR_READ: z.coerce.number().int().min(1).default(5),
     GIT_SHA: z.string().trim().min(1).default('unknown'),
-});
+    STORAGE_BACKEND: z.enum(storageBackends).default('mongodb'),
+    MOCK_SEED_STAMM_COUNT: z.coerce.number().int().min(0).max(1000).default(0),
+}).refine(
+    // Synthetische Staemme nur fluechtig im Speicher, nie in der produktiven MongoDB.
+    (env) => env.MOCK_SEED_STAMM_COUNT === 0 || env.STORAGE_BACKEND === 'memory',
+    { message: 'MOCK_SEED_STAMM_COUNT requires STORAGE_BACKEND=memory', path: ['MOCK_SEED_STAMM_COUNT'] },
+);
 
 export type AppConfig = {
     nodeEnv: 'development' | 'test' | 'production';
@@ -40,6 +47,8 @@ export type AppConfig = {
     rateLimitReadMax: number;
     minStammCountForRead: number;
     gitSha: string;
+    storageBackend: (typeof storageBackends)[number];
+    mockSeedStammCount: number;
 };
 
 export const loadConfig = (
@@ -63,5 +72,7 @@ export const loadConfig = (
         rateLimitReadMax: parsed.RATE_LIMIT_READ_MAX,
         minStammCountForRead: parsed.MIN_STAMM_COUNT_FOR_READ,
         gitSha: parsed.GIT_SHA,
+        storageBackend: parsed.STORAGE_BACKEND,
+        mockSeedStammCount: parsed.MOCK_SEED_STAMM_COUNT,
     };
 };

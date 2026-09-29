@@ -31,6 +31,31 @@ services:
       # Netz des DPSG-News-Stacks, in dem Caddy laeuft.
       - caddy
 
+  # Mock-Instanz fuer Simulator-Tests (mock-namiapp.scout-link.de): gleiches Image, Daten nur
+  # im Speicher mit synthetischen Staemmen, eigene Secrets aus mock.env. Neustart setzt alles zurueck.
+  nami-statistics-mock:
+    image: ${SERVER_IMAGE}
+    restart: unless-stopped
+    env_file:
+      - mock.env
+    expose:
+      - "3000"
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - caddy
+
   # Bewusst ohne ports: veroeffentlichte Docker-Ports umgehen ufw.
   # Bewusst ohne Watchtower-Label: Datenbank-Updates nur kontrolliert.
   mongodb:
