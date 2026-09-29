@@ -995,6 +995,30 @@ class _MemberEditPageState extends State<MemberEditPage> {
               ),
             ],
           ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(_t.t('member_edit_field_phone_public')),
+                    Text(
+                      _t.t('member_edit_field_phone_public_hint'),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                key: Key('member-edit-phone-public-$index'),
+                value: draft.istOeffentlich,
+                onChanged: (value) {
+                  setState(() => draft.istOeffentlich = value);
+                },
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -1950,6 +1974,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
         return _buildPhoneResolutionLines(
           label: draft?.labelController.text,
           value: draft?.toTelefon()?.wert ?? draft?.wertController.text,
+          istOeffentlich: draft?.istOeffentlich,
         );
       case MemberResolutionTargetType.additionalEmail:
         final draft = _findAdditionalEmailDraft(target.relationshipId);
@@ -2014,6 +2039,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
             return _buildPhoneResolutionLines(
               label: phone.label,
               value: phone.wert,
+              istOeffentlich: phone.istOeffentlich,
             );
           }
         }
@@ -2086,6 +2112,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
   List<_ResolutionValueLine> _buildPhoneResolutionLines({
     String? label,
     String? value,
+    bool? istOeffentlich,
   }) {
     return <_ResolutionValueLine>[
       _ResolutionValueLine(
@@ -2096,6 +2123,13 @@ class _MemberEditPageState extends State<MemberEditPage> {
         label: _t.t('member_edit_field_phone_number'),
         value: _normalizeResolutionLineValue(value),
       ),
+      if (istOeffentlich != null)
+        _ResolutionValueLine(
+          label: _t.t('member_edit_field_phone_public'),
+          value: _t.t(
+            istOeffentlich ? 'member_edit_value_yes' : 'member_edit_value_no',
+          ),
+        ),
     ];
   }
 
@@ -2517,6 +2551,7 @@ class _PhoneDraft {
     required this.countryId,
     String? wert,
     String? label,
+    this.istOeffentlich = false,
   }) : wertController = TextEditingController(text: wert ?? ''),
        labelController = TextEditingController(text: label ?? '');
 
@@ -2527,6 +2562,7 @@ class _PhoneDraft {
       countryId: split.countryId,
       wert: split.localNumber,
       label: telefon.label,
+      istOeffentlich: telefon.istOeffentlich,
     );
   }
 
@@ -2537,6 +2573,7 @@ class _PhoneDraft {
 
   final int? phoneNumberId;
   String countryId;
+  bool istOeffentlich;
   final TextEditingController wertController;
   final TextEditingController labelController;
   final GlobalKey wertFieldKey = GlobalKey();
@@ -2556,6 +2593,7 @@ class _PhoneDraft {
       phoneNumberId: phoneNumberId,
       wert: wert,
       label: _trimToNull(labelController.text),
+      istOeffentlich: istOeffentlich,
     );
   }
 

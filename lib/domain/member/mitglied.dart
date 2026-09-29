@@ -68,16 +68,21 @@ class MitgliedKontaktTelefon {
     this.phoneNumberId,
     required this.wert,
     this.label,
+    this.istOeffentlich = false,
   }) : assert(wert != '');
 
   final int? phoneNumberId;
   final String wert;
   final String? label;
 
+  /// Hitobito-Attribut `public`: Nummer ist fuer alle mit Leserecht sichtbar.
+  final bool istOeffentlich;
+
   MitgliedKontaktTelefon copyWith({
     int? phoneNumberId,
     String? wert,
     String? label,
+    bool? istOeffentlich,
     bool phoneNumberIdLoeschen = false,
     bool labelLoeschen = false,
   }) => MitgliedKontaktTelefon(
@@ -86,6 +91,7 @@ class MitgliedKontaktTelefon {
         : phoneNumberId ?? this.phoneNumberId,
     wert: wert ?? this.wert,
     label: labelLoeschen ? null : label ?? this.label,
+    istOeffentlich: istOeffentlich ?? this.istOeffentlich,
   );
 
   Map<String, dynamic> toJson() {
@@ -93,6 +99,7 @@ class MitgliedKontaktTelefon {
       'phone_number_id': phoneNumberId,
       'wert': wert,
       'label': label,
+      'ist_oeffentlich': istOeffentlich,
     };
   }
 
@@ -102,6 +109,7 @@ class MitgliedKontaktTelefon {
       phoneNumberId: _parseInt(json['phone_number_id']),
       wert: wert,
       label: _trimToNull(json['label']?.toString()),
+      istOeffentlich: json['ist_oeffentlich'] == true,
     );
   }
 
@@ -110,11 +118,12 @@ class MitgliedKontaktTelefon {
     return other is MitgliedKontaktTelefon &&
         other.phoneNumberId == phoneNumberId &&
         other.wert == wert &&
-        other.label == label;
+        other.label == label &&
+        other.istOeffentlich == istOeffentlich;
   }
 
   @override
-  int get hashCode => Object.hash(phoneNumberId, wert, label);
+  int get hashCode => Object.hash(phoneNumberId, wert, label, istOeffentlich);
 }
 
 class MitgliedKontaktAdresse {
@@ -724,7 +733,7 @@ class Mitglied {
         label: _trimToNull(telefonnummer.label),
       );
       final key =
-          '${normalized.phoneNumberId?.toString() ?? ''}|${wert.toLowerCase()}|${normalized.label ?? ''}';
+          '${normalized.phoneNumberId?.toString() ?? ''}|${wert.toLowerCase()}|${normalized.label ?? ''}|${normalized.istOeffentlich}';
       if (!seen.add(key)) {
         continue;
       }
