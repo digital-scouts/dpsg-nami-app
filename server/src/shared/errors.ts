@@ -17,6 +17,20 @@ export class AppError extends Error {
     }
 }
 
+// Fastify-interne Fehlercodes (FST_*) werden auf stabile, dokumentierte Codes abgebildet.
+const codeForClientStatus = (statusCode: number): string => {
+    switch (statusCode) {
+        case 413:
+            return 'payload_too_large';
+        case 415:
+            return 'unsupported_media_type';
+        case 429:
+            return 'rate_limited';
+        default:
+            return 'invalid_request';
+    }
+};
+
 export const asAppError = (error: unknown): AppError => {
     if (error instanceof AppError) {
         return error;
@@ -24,11 +38,17 @@ export const asAppError = (error: unknown): AppError => {
 
     if (typeof error === 'object' && error != null) {
         const errorLike = error as ErrorLike;
+        const statusCode = errorLike.statusCode ?? 500;
+
+        // Interne Fehlermeldungen (z. B. von MongoDB) duerfen nicht an Clients gelangen.
+        if (statusCode >= 500) {
+            return new AppError('Unexpected server error');
+        }
 
         return new AppError(
-            errorLike.message ?? 'Unexpected server error',
-            errorLike.statusCode ?? 500,
-            errorLike.code ?? 'internal_error',
+            errorLike.message ?? 'Invalid request',
+            statusCode,
+            codeForClientStatus(statusCode),
             errorLike.fields,
         );
     }

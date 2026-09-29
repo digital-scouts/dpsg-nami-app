@@ -13,13 +13,14 @@
         "dev:db:down": "docker-compose down",
         "build": "tsc --project tsconfig.json",
         "start": "node dist/index.js",
-        "docker:prod:up": "docker-compose -f docker-compose.prod.yml up --build -d",
-        "docker:prod:down": "docker-compose -f docker-compose.prod.yml down",
-        "typecheck": "tsc --noEmit --project tsconfig.json",
+        "docker:prod:up": "docker-compose --env-file .env.production -f docker-compose.prod.yml up --build -d",
+        "docker:prod:down": "docker-compose --env-file .env.production -f docker-compose.prod.yml down",
+        "typecheck": "tsc --noEmit --project tsconfig.json && tsc --project tsconfig.test.json",
         "test": "vitest run",
         "test:watch": "vitest"
     },
     "dependencies": {
+        "@fastify/rate-limit": "^10.3.0",
         "dotenv": "^17.2.3",
         "fastify": "^5.6.1",
         "mongodb": "^6.17.0",
@@ -28,8 +29,14 @@
     },
     "devDependencies": {
         "@types/node": "^24.6.0",
+        "mongodb-memory-server": "^10.4.3",
         "tsx": "^4.20.6",
         "typescript": "^5.9.3",
         "vitest": "^3.2.4"
+    },
+    "config": {
+        "mongodbMemoryServer": {
+            "version": "7.0.14"
+        }
     }
 }

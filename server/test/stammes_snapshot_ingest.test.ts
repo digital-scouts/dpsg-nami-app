@@ -1,48 +1,36 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 
-import { buildServer } from '../src/app/buildServer.js';
-import { loadConfig } from '../src/app/config.js';
-import { initializeStatisticsPersistence, statisticsCollectionNames } from '../src/infra/mongodb/statisticsPersistence.js';
-import { buildRawSnapshotDocument, type RawSnapshotDocument } from '../src/modules/stammesSnapshot/persistence.js';
+import { createStatisticsMemoryStore } from '../src/infra/memory/statisticsMemoryStore.js';
+import { buildRawSnapshotDocument } from '../src/modules/stammesSnapshot/persistence.js';
 import { pseudonymizeStammesSnapshot } from '../src/modules/stammesSnapshot/pseudonymize.js';
 import {
     parseStammesSnapshotPayload,
     SUPPORTED_SCHEMA_VERSION,
 } from '../src/modules/stammesSnapshot/schema.js';
-
-const createValidPayload = () => ({
-    schema_version: SUPPORTED_SCHEMA_VERSION,
-    stamm_id: 'stamm-123',
-    dv_id: 'dv-1',
-    sender_id: 'person-77',
-    sent_at: '2026-04-09T18:30:00Z',
-    source_data_as_of: '2026-04-09T18:00:00Z',
-    metrics: {
-        biber: {
-            gesamt: 5,
-        },
-    },
-});
+import {
+    authHeader,
+    buildMemoryTestServer,
+    createValidPayload,
+    OTHER_SECRET,
+} from './support/fixtures.js';
 
 describe('stammes snapshot ingest route', () => {
-    const insertedRawSnapshots: RawSnapshotDocument[] = [];
-    const server = buildServer(
-        loadConfig({
-            NODE_ENV: 'test',
-            LOG_LEVEL: 'error',
-            PSEUDONYMIZATION_SECRET: 'test-secret',
-        }),
-        {
-            rawSnapshotsRepository: {
-                insert: async (document) => {
-                    insertedRawSnapshots.push(document);
-                },
-            },
-        },
-    );
+    const store = createStatisticsMemoryStore();
+    const { server } = buildMemoryTestServer({ store });
+
+    const postSnapshot = (payload: unknown, headers: Record<string, string> = authHeader()) =>
+        server.inject({
+            method: 'POST',
+            url: '/snapshots/stamm',
+            headers,
+            payload: payload as Record<string, unknown>,
+        });
 
     beforeEach(() => {
-        insertedRawSnapshots.length = 0;
+        store.rawSnapshots.length = 0;
+        store.senders.clear();
+        store.effectiveStates.clear();
+        store.weeklyAggregates.clear();
     });
 
     beforeAll(async () => {
@@ -53,34 +41,85 @@ describe('stammes snapshot ingest route', () => {
         await server.close();
     });
 
-    test('accepts a valid stamm snapshot with 204', async () => {
-        const response = await server.inject({
-            method: 'POST',
-            url: '/snapshots/stamm',
-            payload: createValidPayload(),
-        });
+    test('accepts a valid stamm snapshot with 204 and stores it pseudonymized', async () => {
+        const response = await postSnapshot(createValidPayload());
 
         expect(response.statusCode).toBe(204);
         expect(response.body).toBe('');
-        expect(insertedRawSnapshots).toHaveLength(1);
-        expect(insertedRawSnapshots[0]?.stamm_pseudonym).toMatch(/^stamm_[a-f0-9]{64}$/);
-        expect(insertedRawSnapshots[0]?.sender_pseudonym).toMatch(/^sender_[a-f0-9]{64}$/);
-        expect(insertedRawSnapshots[0]?.dv_id).toBe('dv-1');
-        expect(insertedRawSnapshots[0]?.bezirk_id).toBeNull();
-        expect(insertedRawSnapshots[0]?.received_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
-        expect(JSON.stringify(insertedRawSnapshots[0])).not.toContain('stamm-123');
-        expect(JSON.stringify(insertedRawSnapshots[0])).not.toContain('person-77');
+        expect(store.rawSnapshots).toHaveLength(1);
+        const [stored] = store.rawSnapshots;
+        expect(stored?.stamm_pseudonym).toMatch(/^stamm_[a-f0-9]{64}$/);
+        expect(stored?.sender_pseudonym).toMatch(/^sender_[a-f0-9]{64}$/);
+        expect(stored?.dv_id).toBe('dv-1');
+        expect(stored?.bezirk_id).toBeNull();
+        expect(stored?.received_at).toBeInstanceOf(Date);
+        expect(JSON.stringify(stored)).not.toContain('stamm-123');
+        expect(JSON.stringify(stored)).not.toContain('install-77');
+    });
+
+    test('registers the sender on first contact and derives effective state and aggregate', async () => {
+        await postSnapshot(createValidPayload());
+
+        const [sender] = [...store.senders.values()];
+        expect(sender?.secret_hash).toMatch(/^[a-f0-9]{64}$/);
+        expect(JSON.stringify(sender)).not.toContain('a'.repeat(64));
+        expect(sender?.last_successful_send_at).toEqual(new Date('2026-04-10T08:00:00Z'));
+        expect(store.effectiveStates.size).toBe(1);
+        expect(store.weeklyAggregates.size).toBe(1);
+    });
+
+    test('normalizes timestamps with offsets to UTC dates', async () => {
+        await postSnapshot(createValidPayload({
+            sent_at: '2026-04-09T20:30:00+02:00',
+            source_data_as_of: '2026-04-09T19:00:00+01:00',
+        }));
+
+        expect(store.rawSnapshots[0]?.sent_at).toEqual(new Date('2026-04-09T18:30:00Z'));
+        expect(store.rawSnapshots[0]?.source_data_as_of).toEqual(new Date('2026-04-09T18:00:00Z'));
+    });
+
+    test('treats a resent identical data state as idempotent success', async () => {
+        await postSnapshot(createValidPayload());
+        const response = await postSnapshot(createValidPayload({ sent_at: '2026-04-09T19:30:00Z' }));
+
+        expect(response.statusCode).toBe(204);
+        expect(store.rawSnapshots).toHaveLength(1);
+    });
+
+    test('rejects requests without sender credentials', async () => {
+        const response = await postSnapshot(createValidPayload(), {});
+
+        expect(response.statusCode).toBe(401);
+        expect(response.json()).toEqual({
+            error: {
+                code: 'missing_sender_credentials',
+                message: 'Sender credentials are missing',
+            },
+        });
+        expect(store.rawSnapshots).toHaveLength(0);
+    });
+
+    test('rejects too short secrets', async () => {
+        const response = await postSnapshot(createValidPayload(), { authorization: 'Bearer short' });
+
+        expect(response.statusCode).toBe(401);
+        expect(response.json().error.code).toBe('invalid_sender_credentials');
+    });
+
+    test('rejects a known sender id with a different secret', async () => {
+        await postSnapshot(createValidPayload());
+        const response = await postSnapshot(
+            createValidPayload({ source_data_as_of: '2026-04-09T18:10:00Z' }),
+            authHeader(OTHER_SECRET),
+        );
+
+        expect(response.statusCode).toBe(401);
+        expect(response.json().error.code).toBe('invalid_sender_credentials');
+        expect(store.rawSnapshots).toHaveLength(1);
     });
 
     test('rejects unsupported schema version', async () => {
-        const response = await server.inject({
-            method: 'POST',
-            url: '/snapshots/stamm',
-            payload: {
-                ...createValidPayload(),
-                schema_version: '2025-01-01',
-            },
-        });
+        const response = await postSnapshot(createValidPayload({ schema_version: '2025-01-01' }));
 
         expect(response.statusCode).toBe(400);
         expect(response.json()).toEqual({
@@ -90,44 +129,65 @@ describe('stammes snapshot ingest route', () => {
                 fields: ['schema_version'],
             },
         });
-        expect(insertedRawSnapshots).toHaveLength(0);
+        expect(store.rawSnapshots).toHaveLength(0);
     });
 
     test('rejects missing required metadata', async () => {
-        const payload = createValidPayload();
-        delete (payload as Partial<typeof payload>).dv_id;
+        const payload: Record<string, unknown> = createValidPayload();
+        delete payload.stamm_id;
 
-        const response = await server.inject({
-            method: 'POST',
-            url: '/snapshots/stamm',
-            payload,
-        });
+        const response = await postSnapshot(payload);
 
         expect(response.statusCode).toBe(400);
         expect(response.json()).toEqual({
             error: {
                 code: 'missing_required_field',
                 message: 'Snapshot payload is invalid',
-                fields: ['dv_id'],
+                fields: ['stamm_id'],
             },
         });
     });
 
-    test('rejects invalid stamm plausibility when all core levels are empty', async () => {
-        const response = await server.inject({
-            method: 'POST',
-            url: '/snapshots/stamm',
-            payload: {
-                ...createValidPayload(),
-                metrics: {
-                    biber: { gesamt: 0 },
-                    woelflinge: { gesamt: null },
-                    jungpfadfinder: { gesamt: null },
-                    pfadfinder: { gesamt: 0 },
-                    rover: { gesamt: null },
-                },
-            },
+    test('accepts snapshots without dv and bezirk', async () => {
+        const payload: Record<string, unknown> = createValidPayload();
+        delete payload.dv_id;
+
+        const response = await postSnapshot(payload);
+
+        expect(response.statusCode).toBe(204);
+        expect(store.rawSnapshots[0]?.dv_id).toBeNull();
+    });
+
+    test('rejects impossible calendar dates', async () => {
+        const response = await postSnapshot(createValidPayload({ source_data_as_of: '2026-13-45T18:00:00Z' }));
+
+        expect(response.statusCode).toBe(400);
+        expect(response.json().error).toMatchObject({
+            code: 'invalid_datetime',
+            fields: ['source_data_as_of'],
         });
+    });
+
+    test('rejects timestamps too far in the future', async () => {
+        const response = await postSnapshot(createValidPayload({ source_data_as_of: '2026-05-01T00:00:00Z' }));
+
+        expect(response.statusCode).toBe(400);
+        expect(response.json().error).toMatchObject({
+            code: 'invalid_datetime',
+            fields: ['source_data_as_of'],
+        });
+    });
+
+    test('rejects invalid stamm plausibility when all core levels are empty', async () => {
+        const response = await postSnapshot(createValidPayload({
+            metrics: {
+                biber: { gesamt: 0 },
+                woelflinge: { gesamt: null },
+                jungpfadfinder: { gesamt: null },
+                pfadfinder: { gesamt: 0 },
+                rover: { gesamt: null },
+            },
+        }));
 
         expect(response.statusCode).toBe(400);
         expect(response.json()).toEqual({
@@ -166,7 +226,7 @@ describe('parseStammesSnapshotPayload', () => {
             stamm_id: 'stamm-123',
             dv_id: 'dv-1',
             bezirk_id: null,
-            sender_id: 'person-77',
+            sender_id: 'install-77',
             sent_at: '2026-04-09T18:30:00Z',
             source_data_as_of: '2026-04-09T18:00:00Z',
             metrics: {
@@ -299,8 +359,9 @@ describe('pseudonymizeStammesSnapshot', () => {
         expect(firstResult.sender_pseudonym).toMatch(/^sender_[a-f0-9]{64}$/);
         expect(firstResult.dv_id).toBe('dv-1');
         expect(firstResult.bezirk_id).toBe('bezirk-5');
+        expect(firstResult.sent_at).toEqual(new Date('2026-04-09T18:30:00Z'));
         expect(JSON.stringify(firstResult)).not.toContain('stamm-123');
-        expect(JSON.stringify(firstResult)).not.toContain('person-77');
+        expect(JSON.stringify(firstResult)).not.toContain('install-77');
     });
 
     test('separates pseudonym scopes and secrets', () => {
@@ -325,55 +386,13 @@ describe('buildRawSnapshotDocument', () => {
         const pseudonymizedSnapshot = pseudonymizeStammesSnapshot(snapshot, 'test-secret');
         const document = buildRawSnapshotDocument(
             pseudonymizedSnapshot,
-            '2026-04-09T19:00:00Z',
+            new Date('2026-04-09T19:00:00Z'),
         );
 
         expect(document).toMatchObject({
             stamm_pseudonym: pseudonymizedSnapshot.stamm_pseudonym,
             sender_pseudonym: pseudonymizedSnapshot.sender_pseudonym,
-            received_at: '2026-04-09T19:00:00Z',
+            received_at: new Date('2026-04-09T19:00:00Z'),
         });
-    });
-});
-
-describe('initializeStatisticsPersistence', () => {
-    test('creates missing collections and expected indexes', async () => {
-        const createdCollections: string[] = [];
-        const createdIndexes: Record<string, Array<{ name?: string; unique?: boolean }>> = {};
-
-        const fakeDb = {
-            listCollections: () => ({
-                toArray: async () => [],
-            }),
-            createCollection: async (collectionName: string) => {
-                createdCollections.push(collectionName);
-            },
-            collection: (collectionName: string) => ({
-                createIndexes: async (
-                    indexes: Array<{ name?: string; unique?: boolean }>,
-                ) => {
-                    createdIndexes[collectionName] = indexes;
-                    return indexes.map((index) => index.name ?? 'unnamed');
-                },
-            }),
-        };
-
-        await initializeStatisticsPersistence(fakeDb as never);
-
-        expect(createdCollections).toEqual([
-            statisticsCollectionNames.rawSnapshots,
-            statisticsCollectionNames.effectiveStates,
-            statisticsCollectionNames.weeklyAggregates,
-        ]);
-        expect(createdIndexes[statisticsCollectionNames.rawSnapshots]).toMatchObject([
-            { name: 'raw_snapshots_by_stamm_and_recency' },
-            { name: 'raw_snapshots_by_sent_at' },
-        ]);
-        expect(createdIndexes[statisticsCollectionNames.effectiveStates]).toMatchObject([
-            { name: 'effective_states_by_stamm', unique: true },
-        ]);
-        expect(createdIndexes[statisticsCollectionNames.weeklyAggregates]).toMatchObject([
-            { name: 'weekly_aggregates_by_week_and_type', unique: true },
-        ]);
     });
 });

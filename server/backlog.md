@@ -133,7 +133,7 @@ Zielbild für den MVP ist ein transparenter Statistikserver, der versionierte St
 - Titel: Effektiven Stammestand fachlich ableiten
 - Typ: Feature
 - Priorität: P0
-- Status: offen
+- Status: erledigt
 - Ziel: Pro Stamm genau einen fachlich gültigen effektiven Stand aus den in `raw_snapshots` gespeicherten Snapshots bestimmen und in `effective_states` materialisieren.
 - Kurzbeschreibung: Aufbauend auf Ticket 4 wird die fachliche Auswahl des effektiven Stammestands implementiert. Maßgeblich ist zuerst `source_data_as_of`; nur bei Gleichstand entscheidet `sent_at`. Das Ergebnis wird je Stamm in `effective_states` geschrieben.
 - Akzeptanzkriterien:
@@ -150,7 +150,7 @@ Zielbild für den MVP ist ein transparenter Statistikserver, der versionierte St
 - Titel: Statistikserver: Teilnahme- und Zugangslogik klären
 - Typ: Feature
 - Priorität: P0
-- Status: offen
+- Status: erledigt
 - Ziel: Die fachlichen Regeln für Teilnahme am Senden und Berechtigung zum Lesen im Server konsistent abbilden.
 - Kurzbeschreibung: Der Server soll unterscheiden zwischen Sendezugang, Teilnahme an der Read-API und Widerruf. Im MVP stoppt ein Widerruf nur weitere Sendungen; historische Daten bleiben erhalten. Zugriff auf die Read-API erhalten nur aktive Teilnehmende, die in den vergangenen 14 Tagen mindestens einmal erfolgreich gesendet haben.
 - Akzeptanzkriterien:
@@ -166,7 +166,7 @@ Zielbild für den MVP ist ein transparenter Statistikserver, der versionierte St
 - Titel: Wöchentliche Bundesaggregation im Statistikserver einführen
 - Typ: Feature
 - Priorität: P1
-- Status: offen
+- Status: erledigt
 - Ziel: Aus dem Current State aller qualifizierten Stämme ein materialisiertes Bundesaggregat pro Woche erzeugen.
 - Kurzbeschreibung: Der Server soll aus dem aktuellen Stand je Stamm ein Wochenaggregat bilden. Berücksichtigt wird pro Stamm höchstens ein Snapshot, und ein Stamm fließt nur ein, wenn sein neuester gültiger Snapshot höchstens zwei Monate alt ist.
 - Akzeptanzkriterien:
@@ -182,7 +182,7 @@ Zielbild für den MVP ist ein transparenter Statistikserver, der versionierte St
 - Titel: Statistikserver: Read-API bereitstellen
 - Typ: Feature
 - Priorität: P1
-- Status: offen
+- Status: erledigt
 - Ziel: Eine lesende API für materialisierte Bundesaggregate mit klaren Transparenz-Metadaten bereitstellen.
 - Kurzbeschreibung: Die Read-API soll ausschließlich materialisierte Bundesaggregate ausliefern. Sie rechnet nicht live auf Rohsnapshots und gibt neben Statistikwerten die wesentlichen Transparenz-Metadaten zum Datenstand und zur Annäherungslogik zurück.
 - Akzeptanzkriterien:
@@ -198,7 +198,7 @@ Zielbild für den MVP ist ein transparenter Statistikserver, der versionierte St
 - Titel: Tests und lokales Setup dokumentieren und absichern
 - Typ: Qualität
 - Priorität: P1
-- Status: offen
+- Status: erledigt
 - Ziel: Lokale Entwicklung und Qualitätsabsicherung für den Server reproduzierbar machen.
 - Kurzbeschreibung: Für den MVP sollen lokales Docker-Setup, lokale MongoDB-Nutzung sowie automatisierte Tests so dokumentiert und abgesichert werden, dass Ingest, Persistenz, Aggregation und Read-API lokal nachvollziehbar geprüft werden können.
 - Akzeptanzkriterien:
@@ -214,7 +214,7 @@ Zielbild für den MVP ist ein transparenter Statistikserver, der versionierte St
 - Titel: Stabilen MongoDB-Betrieb für Serverumgebung absichern
 - Typ: Architektur
 - Priorität: P1
-- Status: offen
+- Status: erledigt
 - Ziel: Den produktionsnahen Betrieb der MongoDB für den Statistikserver robust und nachvollziehbar absichern.
 - Kurzbeschreibung: Für Serverumgebungen außerhalb der lokalen Entwicklung sollen Persistenz, Authentifizierung, Backup- und Restore-Abläufe, Monitoring sowie das Verhalten bei Datenbankausfällen konzipiert und dokumentiert werden. Dieses Ticket ergänzt bewusst erst nach dem Basisgerüst die Anforderungen für einen stabilen Datenbankbetrieb.
 - Akzeptanzkriterien:
@@ -240,14 +240,20 @@ Zielbild für den MVP ist ein transparenter Statistikserver, der versionierte St
 - Ein ausgefeilter Vollständigkeitsvergleich konkurrierender Sender ist nicht Teil des MVP.
 - Zu klären bleibt später, ob und wie historische Daten bei verschärften Datenschutzanforderungen nachträglich behandelt werden sollen.
 
-## Empfohlene nächste Reihenfolge ab aktuellem Stand
+## Umsetzungsstand
 
-1. Effektiven Stammestand je Stamm aus `raw_snapshots` in `effective_states` ableiten.
-2. Teilnahme-, Widerrufs- und 14-Tage-Zugangslogik fachlich und technisch in den Serverfluss integrieren.
-3. Wöchentliche Bundesaggregation auf Basis des materialisierten effektiven Stammestands einführen.
-4. Read-API für materialisierte Bundesaggregate mit Transparenz-Metadaten bereitstellen.
-5. Lokales Setup, Integrationstests und minimale Betriebsdokumentation absichern.
-6. Stabilen MongoDB-Betrieb für Serverumgebungen absichern.
+Die MVP-Tickets 1 bis 10 sind umgesetzt:
+
+- Die Teilnahme wird über Installations-Credentials (zufällige Installations-ID und Secret, Trust on First Use) geprüft. Sie belegen keine Stammeszugehörigkeit. Eine spätere Prüfung über Hitobito-Tokens bleibt möglich.
+- Der effektive Stand wird beim Ingest per Upsert-if-newer gepflegt und beim Start aus `raw_snapshots` neu aufgebaut. Das Wochenaggregat wird nach jedem neu gespeicherten Snapshot und beim Start materialisiert.
+- Kennzahlen mit weniger als `MIN_STAMM_COUNT_FOR_READ` beitragenden Stämmen werden in der Read-API unterdrückt.
+- Betrieb, Backup, Restore und Monitoring stehen in `server/deploy/README.md`.
+
+## Empfohlene nächste Schritte
+
+1. Erfahrungen aus dem Betrieb sammeln: Teilnahmequote, Missbrauchsversuche, Rate-Limits.
+2. Prüfen, ob die Installations-Credentials durch eine Prüfung der Stammeszugehörigkeit über Hitobito ergänzt werden sollen.
+3. Spätere Ausbaustufen (regionale Vergleiche, statische Verbandszahlen) fachlich schärfen.
 
 ## Hinweis zur Nutzung in GitHub
 
