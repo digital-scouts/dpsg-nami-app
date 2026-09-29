@@ -7,13 +7,11 @@ class AppSettingsPage extends StatefulWidget {
   final bool biometricLockEnabled;
   final bool memberListSearchResultHighlightEnabled;
   final bool noMobileDataEnabled;
-  final ThemeMode themeMode;
   final String languageCode; // e.g. 'de', 'en'
   final ValueChanged<bool>? onAnalyticsChanged;
   final ValueChanged<bool>? onBiometricLockChanged;
   final ValueChanged<bool>? onNoMobileDataChanged;
   final ValueChanged<bool>? onMemberListSearchResultHighlightChanged;
-  final ValueChanged<ThemeMode>? onThemeModeChanged;
   final ValueChanged<String>? onLanguageChanged;
   final bool bundesstatistikVerfuegbar;
   final bool bundesstatistikTeilnahme;
@@ -27,13 +25,11 @@ class AppSettingsPage extends StatefulWidget {
     this.biometricLockEnabled = false,
     this.memberListSearchResultHighlightEnabled = false,
     this.noMobileDataEnabled = false,
-    this.themeMode = ThemeMode.system,
     this.languageCode = 'de',
     this.onAnalyticsChanged,
     this.onBiometricLockChanged,
     this.onNoMobileDataChanged,
     this.onMemberListSearchResultHighlightChanged,
-    this.onThemeModeChanged,
     this.onLanguageChanged,
     this.bundesstatistikVerfuegbar = false,
     this.bundesstatistikTeilnahme = false,
@@ -49,7 +45,6 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
   late bool _biometricLockEnabled;
   late bool _memberListSearchResultHighlightEnabled;
   late bool _noMobileDataEnabled;
-  late ThemeMode _currentMode;
   late String _languageCode;
   late bool _bundesstatistikTeilnahme;
 
@@ -62,7 +57,6 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
     _memberListSearchResultHighlightEnabled =
         widget.memberListSearchResultHighlightEnabled;
     _noMobileDataEnabled = widget.noMobileDataEnabled;
-    _currentMode = widget.themeMode;
     _languageCode = widget.languageCode;
   }
 
@@ -83,9 +77,6 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
     if (oldWidget.noMobileDataEnabled != widget.noMobileDataEnabled) {
       _noMobileDataEnabled = widget.noMobileDataEnabled;
     }
-    if (oldWidget.themeMode != widget.themeMode) {
-      _currentMode = widget.themeMode;
-    }
     if (oldWidget.languageCode != widget.languageCode) {
       _languageCode = widget.languageCode;
     }
@@ -100,14 +91,6 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
       return;
     }
     setState(() => _bundesstatistikTeilnahme = result);
-  }
-
-  void _setThemeMode(ThemeMode mode) {
-    if (_currentMode == mode) {
-      return;
-    }
-    setState(() => _currentMode = mode);
-    widget.onThemeModeChanged?.call(mode);
   }
 
   void _setLanguageCode(String code) {
@@ -155,27 +138,6 @@ class _AppSettingsPageState extends State<AppSettingsPage> {
                   value: _bundesstatistikTeilnahme,
                   onChanged: _setBundesstatistikTeilnahme,
                 ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          DpsgSectionHeader(label: t.t('settings_app_section_display')),
-          _AppSettingsCard(
-            children: [
-              _AppSettingsRadioRow(
-                title: t.t('settings_app_theme_system'),
-                selected: _currentMode == ThemeMode.system,
-                onTap: () => _setThemeMode(ThemeMode.system),
-              ),
-              _AppSettingsRadioRow(
-                title: t.t('theme_light'),
-                selected: _currentMode == ThemeMode.light,
-                onTap: () => _setThemeMode(ThemeMode.light),
-              ),
-              _AppSettingsRadioRow(
-                title: t.t('theme_dark'),
-                selected: _currentMode == ThemeMode.dark,
-                onTap: () => _setThemeMode(ThemeMode.dark),
-              ),
             ],
           ),
           const SizedBox(height: 12),

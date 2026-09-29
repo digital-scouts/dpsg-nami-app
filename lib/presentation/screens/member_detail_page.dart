@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
+import '../../domain/appearance/appearance_catalog.dart';
 import '../../domain/arbeitskontext/arbeitskontext_read_model.dart';
 import '../../domain/maps/address_map_location_repository.dart';
 import '../../domain/member/member_utils.dart';
@@ -16,6 +17,7 @@ import '../../domain/taetigkeit/stufe.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/geoapify_address_map_service.dart';
 import '../../services/map_tile_cache_service.dart';
+import '../model/appearance_model.dart';
 import '../model/arbeitskontext_model.dart';
 import '../model/auth_session_model.dart';
 import '../model/member_edit_model.dart';
@@ -24,6 +26,7 @@ import '../stufe/stufe_visuals.dart';
 import '../widgets/efz_status_section.dart';
 import '../widgets/member_basis.dart';
 import '../widgets/member_roles_list.dart';
+import '../widgets/supporter_badge.dart';
 import 'member_edit_page.dart';
 
 class MemberDetailPage extends StatefulWidget {
@@ -660,9 +663,19 @@ class _MemberDetailTopBar extends StatelessWidget {
   final bool needsResolution;
   final VoidCallback onBack;
 
+  /// Eigenes Supporter-Badge; Badges anderer folgen mit der Synchronisation.
+  SupporterBadgeId? _ownBadge(BuildContext context) {
+    final ownId = context.watch<AuthSessionModel?>()?.profile?.namiId;
+    if (ownId == null || member.personId != ownId) {
+      return null;
+    }
+    return context.watch<AppearanceModel?>()?.badge;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final badge = _ownBadge(context);
 
     return Row(
       children: [
@@ -678,11 +691,21 @@ class _MemberDetailTopBar extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleMedium,
+              Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium,
+                    ),
+                  ),
+                  if (badge != null) ...[
+                    const SizedBox(width: 6),
+                    SupporterBadge(badge: badge, size: 20),
+                  ],
+                ],
               ),
               if (subtitle != null)
                 Text(

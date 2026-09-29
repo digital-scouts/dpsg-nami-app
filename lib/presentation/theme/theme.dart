@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../domain/appearance/appearance_catalog.dart';
+
 /// Zentrale Farbdefinitionen der DPSG App.
 /// Hinweis: Domain-Layer sollte diese Datei nicht importieren. Falls `Stufe`
 /// weiter rein domain-orientiert bleiben soll, kann man alternativ ein Mapping
@@ -42,68 +44,258 @@ abstract class DPSGColors {
   static const lightSuccess = Color(0xFF00823C); // --success
 }
 
-final darkTheme = ThemeData(
-  useMaterial3: true,
-  colorScheme: ColorScheme.dark(
-    brightness: Brightness.dark,
-    primary: DPSGColors.primaryDark, // #5A9AD8 (OD --primary)
-    onPrimary: DPSGColors.darkBg, // #0E0E12 (OD --bg)
-    primaryContainer: DPSGColors.darkPrimaryLite, // #1A253A (OD --primary-lite)
-    onPrimaryContainer: DPSGColors.darkFg, // #F0F0F5 (OD --fg)
-    secondary: DPSGColors.secondary,
-    onSecondary: Colors.white,
-    tertiary: DPSGColors.darkMuted,
-    onTertiary: DPSGColors.darkFg,
-    error: DPSGColors.darkError, // #FF5050 (OD --error)
-    onError: DPSGColors.darkBg,
-    errorContainer: DPSGColors.darkError.withValues(alpha: 0.12),
-    onErrorContainer: DPSGColors.darkError,
-    surface: DPSGColors.darkSurface, // #1A1A22 (OD --surface)
-    onSurface: DPSGColors.darkFg, // #F0F0F5 (OD --fg)
-    surfaceContainerHighest: DPSGColors.darkBorder, // #2E2E3A
-    outline: DPSGColors.darkBorder, // #2E2E3A (OD --border)
-    outlineVariant: DPSGColors.darkMuted, // #8A8A9A (OD --muted)
-    scrim: DPSGColors.darkBg, // #0E0E12 (OD --bg)
-    shadow: const Color(0xFF000000),
-  ),
-  scaffoldBackgroundColor: DPSGColors.darkBg, // #0E0E12 (OD --bg)
-  disabledColor: const Color(0xFF424242),
-  inputDecorationTheme: const InputDecorationTheme(
-    fillColor: Color(0xFF2B2B2B),
-  ),
-);
+/// Farbwerte einer Palette fuer eine Helligkeit. Die Tokens entsprechen den
+/// OD-Tokens aus [DPSGColors].
+class AppPaletteColors {
+  const AppPaletteColors({
+    required this.primary,
+    required this.onPrimary,
+    required this.secondary,
+    required this.bg,
+    required this.surface,
+    required this.fg,
+    required this.muted,
+    required this.border,
+    required this.primaryLite,
+    required this.error,
+    required this.success,
+  });
 
-final lightTheme = ThemeData(
-  useMaterial3: true,
-  colorScheme: ColorScheme.light(
-    brightness: Brightness.light,
-    primary: DPSGColors.primaryLight, // #003056 (OD --primary)
-    onPrimary: Colors.white,
-    primaryContainer:
-        DPSGColors.lightPrimaryLite, // #E8EDF5 (OD --primary-lite)
-    onPrimaryContainer: DPSGColors.primaryLight,
-    secondary: DPSGColors.secondary,
-    onSecondary: Colors.white,
-    tertiary: DPSGColors.lightMuted,
-    onTertiary: Colors.white,
-    error: DPSGColors.lightError, // #CC1F2F (OD --error)
-    onError: Colors.white,
-    errorContainer: DPSGColors.lightError.withValues(alpha: 0.12),
-    onErrorContainer: DPSGColors.lightError,
-    surface: DPSGColors.lightSurface, // #FFFFFF (OD --surface)
-    onSurface: DPSGColors.lightFg, // #1C1C1E (OD --fg)
-    surfaceContainerHighest: DPSGColors.lightBg, // #F5F5F7
-    outline: DPSGColors.lightBorder, // #E5E5EA (OD --border)
-    outlineVariant: DPSGColors.lightMuted, // #8E8E93 (OD --muted)
-    scrim: DPSGColors.lightBg, // #F5F5F7 (OD --bg)
-    shadow: const Color(0xFF000000).withValues(alpha: 0.12),
+  final Color primary;
+  final Color onPrimary;
+  final Color secondary;
+  final Color bg;
+  final Color surface;
+  final Color fg;
+  final Color muted;
+  final Color border;
+  final Color primaryLite;
+  final Color error;
+  final Color success;
+}
+
+class AppPalette {
+  const AppPalette({required this.light, required this.dark});
+
+  final AppPaletteColors light;
+  final AppPaletteColors dark;
+
+  AppPaletteColors of(Brightness brightness) =>
+      brightness == Brightness.dark ? dark : light;
+}
+
+/// Farbpaletten fuer das Erscheinungsbild. Quelle:
+/// design/supporter/palettes.json.
+const Map<AppPaletteId, AppPalette> appPalettes = {
+  AppPaletteId.standard: AppPalette(
+    light: AppPaletteColors(
+      primary: DPSGColors.primaryLight,
+      onPrimary: Colors.white,
+      secondary: DPSGColors.secondary,
+      bg: DPSGColors.lightBg,
+      surface: DPSGColors.lightSurface,
+      fg: DPSGColors.lightFg,
+      muted: DPSGColors.lightMuted,
+      border: DPSGColors.lightBorder,
+      primaryLite: DPSGColors.lightPrimaryLite,
+      error: DPSGColors.lightError,
+      success: DPSGColors.lightSuccess,
+    ),
+    dark: AppPaletteColors(
+      primary: DPSGColors.primaryDark,
+      onPrimary: DPSGColors.darkBg,
+      secondary: DPSGColors.secondary,
+      bg: DPSGColors.darkBg,
+      surface: DPSGColors.darkSurface,
+      fg: DPSGColors.darkFg,
+      muted: DPSGColors.darkMuted,
+      border: DPSGColors.darkBorder,
+      primaryLite: DPSGColors.darkPrimaryLite,
+      error: DPSGColors.darkError,
+      success: DPSGColors.darkSuccess,
+    ),
   ),
-  scaffoldBackgroundColor: DPSGColors.lightBg, // #F5F5F7 (OD --bg)
-  disabledColor: const Color.fromARGB(255, 222, 222, 222),
-  inputDecorationTheme: const InputDecorationTheme(
-    fillColor: Color.fromARGB(255, 242, 242, 242),
+  AppPaletteId.wald: AppPalette(
+    light: AppPaletteColors(
+      primary: Color(0xFF2F5D46),
+      onPrimary: Color(0xFFFFFFFF),
+      secondary: Color(0xFF8A5A2B),
+      bg: Color(0xFFF1F4EF),
+      surface: Color(0xFFFFFFFF),
+      fg: Color(0xFF1B2420),
+      muted: Color(0xFF6F7C74),
+      border: Color(0xFFDCE3DB),
+      primaryLite: Color(0xFFE2EBE4),
+      error: Color(0xFFB3261E),
+      success: Color(0xFF2E7D4F),
+    ),
+    dark: AppPaletteColors(
+      primary: Color(0xFF86C3A0),
+      onPrimary: Color(0xFF0D1510),
+      secondary: Color(0xFFC8955B),
+      bg: Color(0xFF0E1511),
+      surface: Color(0xFF17211B),
+      fg: Color(0xFFE8EFEA),
+      muted: Color(0xFF8A9A90),
+      border: Color(0xFF26332B),
+      primaryLite: Color(0xFF1B2B22),
+      error: Color(0xFFF2786E),
+      success: Color(0xFF5CCB86),
+    ),
   ),
-);
+  AppPaletteId.lagerfeuer: AppPalette(
+    light: AppPaletteColors(
+      primary: Color(0xFF9C421B),
+      onPrimary: Color(0xFFFFFFFF),
+      secondary: Color(0xFF3E5A6B),
+      bg: Color(0xFFF7F1EB),
+      surface: Color(0xFFFFFDFB),
+      fg: Color(0xFF2A1E18),
+      muted: Color(0xFF85766C),
+      border: Color(0xFFEBDFD4),
+      primaryLite: Color(0xFFF5E3D7),
+      error: Color(0xFFB3261E),
+      success: Color(0xFF3C7A4A),
+    ),
+    dark: AppPaletteColors(
+      primary: Color(0xFFF0985E),
+      onPrimary: Color(0xFF1A0F0A),
+      secondary: Color(0xFF8FB3C4),
+      bg: Color(0xFF15100D),
+      surface: Color(0xFF211915),
+      fg: Color(0xFFF3E9E2),
+      muted: Color(0xFFA08F84),
+      border: Color(0xFF372A23),
+      primaryLite: Color(0xFF3A2419),
+      error: Color(0xFFFF7A6B),
+      success: Color(0xFF6CC88A),
+    ),
+  ),
+  AppPaletteId.nachthimmel: AppPalette(
+    light: AppPaletteColors(
+      primary: Color(0xFF2E3F7A),
+      onPrimary: Color(0xFFFFFFFF),
+      secondary: Color(0xFF9A6F1F),
+      bg: Color(0xFFF2F3F8),
+      surface: Color(0xFFFFFFFF),
+      fg: Color(0xFF181C2B),
+      muted: Color(0xFF72778D),
+      border: Color(0xFFDFE1EB),
+      primaryLite: Color(0xFFE4E7F4),
+      error: Color(0xFFB3261E),
+      success: Color(0xFF2E7D4F),
+    ),
+    dark: AppPaletteColors(
+      primary: Color(0xFF9FB2F2),
+      onPrimary: Color(0xFF0B0F1D),
+      secondary: Color(0xFFE3B45A),
+      bg: Color(0xFF0B0F1D),
+      surface: Color(0xFF141A2C),
+      fg: Color(0xFFE9ECF7),
+      muted: Color(0xFF8A90A8),
+      border: Color(0xFF262D45),
+      primaryLite: Color(0xFF1B2446),
+      error: Color(0xFFFF7F7F),
+      success: Color(0xFF5CCB86),
+    ),
+  ),
+  AppPaletteId.hochkontrast: AppPalette(
+    light: AppPaletteColors(
+      primary: Color(0xFF002A4D),
+      onPrimary: Color(0xFFFFFFFF),
+      secondary: Color(0xFF7A0010),
+      bg: Color(0xFFFFFFFF),
+      surface: Color(0xFFFFFFFF),
+      fg: Color(0xFF000000),
+      muted: Color(0xFF3D3D3D),
+      border: Color(0xFF1A1A1A),
+      primaryLite: Color(0xFFD6E4F2),
+      error: Color(0xFFA30016),
+      success: Color(0xFF005C2A),
+    ),
+    dark: AppPaletteColors(
+      primary: Color(0xFF8CC8FF),
+      onPrimary: Color(0xFF000000),
+      secondary: Color(0xFFFF8A96),
+      bg: Color(0xFF000000),
+      surface: Color(0xFF0A0A0A),
+      fg: Color(0xFFFFFFFF),
+      muted: Color(0xFFCFCFCF),
+      border: Color(0xFFFFFFFF),
+      primaryLite: Color(0xFF0B2A45),
+      error: Color(0xFFFF6B6B),
+      success: Color(0xFF4CE08A),
+    ),
+  ),
+};
+
+ThemeData buildTheme(AppPaletteId paletteId, Brightness brightness) {
+  final c = appPalettes[paletteId]!.of(brightness);
+  final isDark = brightness == Brightness.dark;
+  // ColorScheme.light/.dark behalten die bisherigen Defaults der Standardpalette bei.
+  final scheme = isDark
+      ? ColorScheme.dark(
+          brightness: brightness,
+          primary: c.primary,
+          onPrimary: c.onPrimary,
+          primaryContainer: c.primaryLite,
+          onPrimaryContainer: c.fg,
+          secondary: c.secondary,
+          onSecondary: Colors.white,
+          tertiary: c.muted,
+          onTertiary: c.fg,
+          error: c.error,
+          onError: c.bg,
+          errorContainer: c.error.withValues(alpha: 0.12),
+          onErrorContainer: c.error,
+          surface: c.surface,
+          onSurface: c.fg,
+          surfaceContainerHighest: c.border,
+          outline: c.border,
+          outlineVariant: c.muted,
+          scrim: c.bg,
+          shadow: const Color(0xFF000000),
+        )
+      : ColorScheme.light(
+          brightness: brightness,
+          primary: c.primary,
+          onPrimary: c.onPrimary,
+          primaryContainer: c.primaryLite,
+          onPrimaryContainer: c.primary,
+          secondary: c.secondary,
+          onSecondary: Colors.white,
+          tertiary: c.muted,
+          onTertiary: Colors.white,
+          error: c.error,
+          onError: Colors.white,
+          errorContainer: c.error.withValues(alpha: 0.12),
+          onErrorContainer: c.error,
+          surface: c.surface,
+          onSurface: c.fg,
+          surfaceContainerHighest: c.bg,
+          outline: c.border,
+          outlineVariant: c.muted,
+          scrim: c.bg,
+          shadow: const Color(0xFF000000).withValues(alpha: 0.12),
+        );
+  return ThemeData(
+    useMaterial3: true,
+    colorScheme: scheme,
+    scaffoldBackgroundColor: c.bg,
+    disabledColor: isDark
+        ? const Color(0xFF424242)
+        : const Color.fromARGB(255, 222, 222, 222),
+    inputDecorationTheme: InputDecorationTheme(
+      fillColor: isDark
+          ? const Color(0xFF2B2B2B)
+          : const Color.fromARGB(255, 242, 242, 242),
+    ),
+  );
+}
+
+final darkTheme = buildTheme(AppPaletteId.standard, Brightness.dark);
+
+final lightTheme = buildTheme(AppPaletteId.standard, Brightness.light);
 
 class ThemeModel extends ChangeNotifier {
   ThemeMode currentMode = ThemeMode.system;

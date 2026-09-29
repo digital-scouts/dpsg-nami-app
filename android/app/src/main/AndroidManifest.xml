@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:tools="http://schemas.android.com/tools">
 
   <uses-permission android:name="android.permission.INTERNET" />
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -57,11 +58,119 @@
                  Flutter's first frame. -->
       <meta-data android:name="io.flutter.embedding.android.SplashScreenDrawable"
         android:resource="@drawable/launch_background" />
-      <intent-filter>
+      <!-- Nur für flutter_tools, das activity-alias nicht als Launch-Activity erkennt.
+           Der Manifest-Merger entfernt den Filter, den Launcher-Eintrag stellen die Aliase. -->
+      <intent-filter tools:node="remove">
         <action android:name="android.intent.action.MAIN" />
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
     </activity>
+    <!-- App-Icons: Genau ein Alias ist aktiv und stellt den Launcher-Eintrag.
+         Umschalten per MethodChannel com.namiapp/app_icon (AppIconChannel). -->
+    <activity-alias android:name=".IconDefault" android:targetActivity=".MainActivity"
+      android:enabled="true" android:exported="true"
+      android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".IconNachtlagerMorgen" android:targetActivity=".MainActivity"
+      android:enabled="false" android:exported="true"
+      android:icon="@mipmap/ic_launcher_nachtlager_morgen" android:roundIcon="@mipmap/ic_launcher_nachtlager_morgen">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".IconNachtlagerAbend" android:targetActivity=".MainActivity"
+      android:enabled="false" android:exported="true"
+      android:icon="@mipmap/ic_launcher_nachtlager_abend" android:roundIcon="@mipmap/ic_launcher_nachtlager_abend">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".IconNachtlagerNacht" android:targetActivity=".MainActivity"
+      android:enabled="false" android:exported="true"
+      android:icon="@mipmap/ic_launcher_nachtlager_nacht" android:roundIcon="@mipmap/ic_launcher_nachtlager_nacht">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".IconLagerfeuerMorgen" android:targetActivity=".MainActivity"
+      android:enabled="false" android:exported="true"
+      android:icon="@mipmap/ic_launcher_lagerfeuer_morgen" android:roundIcon="@mipmap/ic_launcher_lagerfeuer_morgen">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".IconLagerfeuerAbend" android:targetActivity=".MainActivity"
+      android:enabled="false" android:exported="true"
+      android:icon="@mipmap/ic_launcher_lagerfeuer_abend" android:roundIcon="@mipmap/ic_launcher_lagerfeuer_abend">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".IconLagerfeuerNacht" android:targetActivity=".MainActivity"
+      android:enabled="false" android:exported="true"
+      android:icon="@mipmap/ic_launcher_lagerfeuer_nacht" android:roundIcon="@mipmap/ic_launcher_lagerfeuer_nacht">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".IconKohteSeeMorgen" android:targetActivity=".MainActivity"
+      android:enabled="false" android:exported="true"
+      android:icon="@mipmap/ic_launcher_kohte_see_morgen" android:roundIcon="@mipmap/ic_launcher_kohte_see_morgen">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".IconKohteSeeAbend" android:targetActivity=".MainActivity"
+      android:enabled="false" android:exported="true"
+      android:icon="@mipmap/ic_launcher_kohte_see_abend" android:roundIcon="@mipmap/ic_launcher_kohte_see_abend">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".IconKohteSeeNacht" android:targetActivity=".MainActivity"
+      android:enabled="false" android:exported="true"
+      android:icon="@mipmap/ic_launcher_kohte_see_nacht" android:roundIcon="@mipmap/ic_launcher_kohte_see_nacht">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".IconHajkMorgen" android:targetActivity=".MainActivity"
+      android:enabled="false" android:exported="true"
+      android:icon="@mipmap/ic_launcher_hajk_morgen" android:roundIcon="@mipmap/ic_launcher_hajk_morgen">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".IconHajkAbend" android:targetActivity=".MainActivity"
+      android:enabled="false" android:exported="true"
+      android:icon="@mipmap/ic_launcher_hajk_abend" android:roundIcon="@mipmap/ic_launcher_hajk_abend">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".IconHajkNacht" android:targetActivity=".MainActivity"
+      android:enabled="false" android:exported="true"
+      android:icon="@mipmap/ic_launcher_hajk_nacht" android:roundIcon="@mipmap/ic_launcher_hajk_nacht">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+    </activity-alias>
     <activity android:name="com.linusu.flutter_web_auth_2.CallbackActivity"
       android:exported="true"
       android:taskAffinity="">
