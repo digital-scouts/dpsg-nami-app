@@ -277,6 +277,24 @@ void main() {
   });
 
   group('StammesSnapshot', () {
+    test('sendet Zeitstempel hoechstens mit Millisekunden', () {
+      final snapshot = StammesSnapshot(
+        stammId: '11',
+        senderId: 'install-1',
+        sentAt: DateTime.utc(2026, 6, 15, 10, 0, 0, 123, 456),
+        sourceDataAsOf: DateTime.utc(2026, 6, 15, 9, 0, 0, 0, 999),
+        kennzahlen: const BaueStammesKennzahlenUseCase()(
+          _stammReadModel(),
+          stichtag: DateTime(2026, 6, 15),
+        ),
+      );
+
+      final json = snapshot.toJson();
+
+      expect(json['sent_at'], '2026-06-15T10:00:00.123Z');
+      expect(json['source_data_as_of'], '2026-06-15T09:00:00.000Z');
+    });
+
     test('serialisiert nach Schema 2026-04-01 und liest sich zurueck', () {
       const useCase = BaueStammesKennzahlenUseCase();
       final kennzahlen = useCase(

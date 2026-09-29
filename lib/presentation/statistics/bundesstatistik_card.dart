@@ -125,6 +125,8 @@ class BundesstatistikCard extends StatelessWidget {
     BundesstatistikStatus.keinStamm => 'Nur für Stämme verfügbar',
     BundesstatistikStatus.keineKennzahlen =>
       'Keine Mitglieder in den Stufen gefunden',
+    BundesstatistikStatus.abgelehnt =>
+      'Vom Server abgelehnt, bitte App aktualisieren',
     BundesstatistikStatus.fehler => 'Derzeit nicht erreichbar',
     BundesstatistikStatus.nichtVerfuegbar => 'Nicht verfügbar',
   };

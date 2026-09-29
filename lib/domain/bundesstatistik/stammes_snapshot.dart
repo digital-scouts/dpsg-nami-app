@@ -297,8 +297,8 @@ class StammesSnapshot {
     'dv_id': dvId,
     'bezirk_id': bezirkId,
     'sender_id': senderId,
-    'sent_at': sentAt.toUtc().toIso8601String(),
-    'source_data_as_of': sourceDataAsOf.toUtc().toIso8601String(),
+    'sent_at': _isoMillis(sentAt),
+    'source_data_as_of': _isoMillis(sourceDataAsOf),
     'metrics': kennzahlen.toJson(),
   };
 
@@ -312,6 +312,16 @@ class StammesSnapshot {
         sourceDataAsOf: DateTime.parse(json['source_data_as_of'].toString()),
         kennzahlen: StammesKennzahlen.fromJson(_map(json['metrics']) ?? {}),
       );
+}
+
+/// ISO-Zeitstempel in UTC mit hoechstens Millisekunden; `toIso8601String`
+/// liefert auf manchen Plattformen Mikrosekunden.
+String _isoMillis(DateTime value) {
+  final utc = value.toUtc();
+  return DateTime.fromMillisecondsSinceEpoch(
+    utc.millisecondsSinceEpoch,
+    isUtc: true,
+  ).toIso8601String();
 }
 
 Map<String, dynamic>? _map(Object? value) =>
