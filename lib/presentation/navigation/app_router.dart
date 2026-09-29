@@ -23,6 +23,7 @@ import '../screens/nami_ai/nami_ai_chat_page.dart';
 import '../screens/nami_ai/nami_ai_paywall_page.dart';
 import '../screens/profile_page.dart';
 import '../screens/settings_app_page.dart';
+import '../screens/settings_appearance_page.dart';
 import '../screens/settings_datenschutz_page.dart';
 import '../screens/settings_debug_tools_page.dart';
 import '../screens/settings_impressum_page.dart';
@@ -40,6 +41,7 @@ class AppRoutes {
   static const String memberDetail = '/members/detail';
   static const String settingsStamm = '/settings/stamm';
   static const String settingsApp = '/settings/app';
+  static const String settingsAppearance = '/settings/appearance';
   static const String settingsNotification = '/settings/notifications';
   static const String settingsMap = '/settings/map';
   static const String settingsMessages = '/settings/messages';
@@ -148,7 +150,6 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
       return MaterialPageRoute(
         settings: settings,
         builder: (context) {
-          final themeModel = Provider.of<ThemeModel>(context, listen: false);
           final localeModel = Provider.of<LocaleModel>(context, listen: false);
           final appSettings = Provider.of<AppSettingsModel>(
             context,
@@ -178,7 +179,6 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
             noMobileDataEnabled: appSettings.noMobileDataEnabled,
             memberListSearchResultHighlightEnabled:
                 appSettings.memberListSearchResultHighlightEnabled,
-            themeMode: themeModel.currentMode,
             languageCode: localeModel.currentLocale.languageCode,
             onAnalyticsChanged: (v) async {
               final logger = Provider.of<LoggerService>(context, listen: false);
@@ -209,20 +209,34 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
                 {'value': v},
               );
             },
-            onThemeModeChanged: (mode) async {
-              final logger = Provider.of<LoggerService>(context, listen: false);
-              themeModel.setTheme(mode);
-              await appSettings.setThemeMode(mode);
-              await logger.debounceTrackSettingsChanged('theme', {
-                'mode': mode.name,
-              });
-            },
             onLanguageChanged: (code) async {
               final logger = Provider.of<LoggerService>(context, listen: false);
               localeModel.setLocale(Locale(code));
               await appSettings.setLanguageCode(code);
               await logger.debounceTrackSettingsChanged('language', {
                 'code': code,
+              });
+            },
+          );
+        },
+      );
+    case AppRoutes.settingsAppearance:
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) {
+          final themeModel = Provider.of<ThemeModel>(context, listen: false);
+          final appSettings = Provider.of<AppSettingsModel>(
+            context,
+            listen: false,
+          );
+          return SettingsAppearancePage(
+            themeMode: themeModel.currentMode,
+            onThemeModeChanged: (mode) async {
+              final logger = Provider.of<LoggerService>(context, listen: false);
+              themeModel.setTheme(mode);
+              await appSettings.setThemeMode(mode);
+              await logger.debounceTrackSettingsChanged('theme', {
+                'mode': mode.name,
               });
             },
           );

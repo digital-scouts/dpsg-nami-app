@@ -106,6 +106,8 @@ flutter:
     - assets/images/
     - assets/maps/
     - assets/icon/
+    - assets/supporter/badges/
+    - assets/supporter/icons/
     - assets/ai_kontext/
     - .env
     - assets/changelog.json

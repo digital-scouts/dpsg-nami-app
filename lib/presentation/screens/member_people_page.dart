@@ -11,6 +11,7 @@ import '../../l10n/app_localizations.dart';
 import '../../services/logger_service.dart';
 import '../../services/network_access_policy.dart';
 import '../model/app_settings_model.dart';
+import '../model/appearance_model.dart';
 import '../model/arbeitskontext_model.dart';
 import '../model/auth_session_model.dart';
 import '../model/member_edit_model.dart';
@@ -251,11 +252,20 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
 
     if (members.isNotEmpty) {
       final syncStatus = authModel.dataSyncStatus;
+      // Badges anderer Mitglieder folgen mit der Server-Synchronisation;
+      // bis dahin zeigt die Liste nur das eigene Badge.
+      final appearance = context.watch<AppearanceModel?>();
+      final ownBadge = appearance?.badge;
+      final ownPersonId = authModel.profile?.namiId;
       return MemberDirectory(
         mitglieder: members,
         sortKey: sortKey,
         subtitleMode: subtitleMode,
         highlightSearchMatches: highlightSearchMatches,
+        headerBackground: appearance?.background,
+        supporterBadgeBuilder: ownBadge == null || ownPersonId == null
+            ? null
+            : (member) => member.personId == ownPersonId ? ownBadge : null,
         warningBuilder: (member) =>
             memberEditModel?.hasResolutionForMitglied(member.mitgliedsnummer) ??
             false,

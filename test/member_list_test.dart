@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nami/domain/appearance/appearance_catalog.dart';
 import 'package:nami/domain/member/member_list_preferences.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/taetigkeit/roles.dart';
@@ -8,6 +9,7 @@ import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/widgets/member_list.dart';
 import 'package:nami/presentation/widgets/member_list_group_filter_bar.dart';
 import 'package:nami/presentation/widgets/member_list_tile.dart';
+import 'package:nami/presentation/widgets/supporter_badge.dart';
 
 void main() {
   testWidgets(
@@ -452,4 +454,69 @@ void main() {
       expect(find.text('Gruppe 7').hitTestable(), findsOneWidget);
     },
   );
+
+  testWidgets('zeigt das Supporter-Badge nur beim gewuenschten Mitglied', (
+    tester,
+  ) async {
+    final mitglieder = <Mitglied>[
+      Mitglied(
+        mitgliedsnummer: '2001',
+        personId: 42,
+        vorname: 'Eigene',
+        nachname: 'Person',
+        geburtsdatum: DateTime(1990, 1, 1),
+        eintrittsdatum: DateTime(2020, 1, 1),
+      ),
+      Mitglied(
+        mitgliedsnummer: '2002',
+        personId: 43,
+        vorname: 'Andere',
+        nachname: 'Person',
+        geburtsdatum: DateTime(1991, 1, 1),
+        eintrittsdatum: DateTime(2020, 1, 1),
+      ),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          AppLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('de'), Locale('en')],
+        locale: const Locale('de'),
+        home: Scaffold(
+          body: MemberList(
+            mitglieder: mitglieder,
+            searchString: '',
+            sortKey: MemberSortKey.name,
+            subtitleMode: MemberSubtitleMode.mitgliedsnummer,
+            favourites: const {},
+            selectedFilterKeys: const {},
+            mitgliedsFilterKeys: const {},
+            supporterBadgeBuilder: (m) => m.personId == 42
+                ? SupporterBadgeId.kompassJungpfadfinder
+                : null,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SupporterBadge), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('supporter-badge-kompass-jufi')),
+      findsOneWidget,
+    );
+    final ownTile = find.ancestor(
+      of: find.byType(SupporterBadge),
+      matching: find.byType(MemberListTile),
+    );
+    expect(
+      tester.widget<MemberListTile>(ownTile).mitglied.mitgliedsnummer,
+      '2001',
+    );
+  });
 }

@@ -46,6 +46,7 @@ import 'data/member_filters/shared_prefs_member_filter_repository.dart';
 import 'data/bundesstatistik/http_bundesstatistik_repository.dart';
 import 'data/bundesstatistik/secure_installation_credentials_repository.dart';
 import 'data/bundesstatistik/shared_prefs_bundesstatistik_teilnahme_repository.dart';
+import 'data/appearance/shared_prefs_appearance_settings_repository.dart';
 import 'data/achievements/shared_prefs_achievement_repository.dart';
 import 'domain/achievements/achievement_definition.dart';
 import 'data/settings/shared_prefs_app_settings_repository.dart';
@@ -55,12 +56,14 @@ import 'domain/settings/app_settings.dart';
 import 'domain/settings/app_settings_repository.dart';
 import 'l10n/app_localizations.dart';
 import 'presentation/model/app_settings_model.dart';
+import 'presentation/model/appearance_model.dart';
 import 'presentation/model/bundesstatistik_model.dart';
 import 'presentation/model/locale_model.dart';
 import 'presentation/model/member_filters_model.dart';
 import 'presentation/model/urgent_notification_model.dart';
 import 'presentation/navigation/app_router.dart';
 import 'presentation/notifications/app_snackbar.dart';
+import 'services/app_icon_service.dart';
 import 'services/achievement_service.dart';
 import 'services/app_reset_service.dart';
 import 'services/app_runtime_controller.dart';
@@ -110,6 +113,11 @@ void main() {
         persist: (code) => settingsRepo.saveLanguageCode(code),
       )..setLocale(Locale(initial.languageCode), persist: false);
       final appSettingsModel = AppSettingsModel(initial, settingsRepo);
+      final appearanceModel = AppearanceModel(
+        repository: SharedPrefsAppearanceSettingsRepository(),
+        appIconService: MethodChannelAppIconService(),
+      );
+      await appearanceModel.load();
       final memberFiltersModel = MemberFiltersModel(memberFilterRepository);
 
       logger = LoggerService(
@@ -372,6 +380,9 @@ void main() {
               )..currentMode = initial.themeMode,
             ),
             ChangeNotifierProvider<LocaleModel>.value(value: localeModel),
+            ChangeNotifierProvider<AppearanceModel>.value(
+              value: appearanceModel,
+            ),
             Provider<AppSettingsRepository>.value(value: settingsRepo),
             Provider<NetworkAccessPolicy>.value(value: networkAccessPolicy),
             Provider<AppUpdateService>.value(value: appUpdateService),
@@ -1029,6 +1040,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final defaults = await settingsRepo.load();
     context.read<AppSettingsModel>().replaceWith(defaults);
     context.read<ThemeModel>().setTheme(defaults.themeMode);
+    await context.read<AppearanceModel>().reset();
     context.read<LocaleModel>().setLocale(
       Locale(defaults.languageCode),
       persist: false,
@@ -1123,6 +1135,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
     return Consumer<ThemeModel>(
       builder: (context, themeModel, _) {
+        final palette = context.watch<AppearanceModel>().palette;
         return Provider<AppRuntimeController>.value(
           value: _appRuntimeController,
           child: Wiredash(
@@ -1145,8 +1158,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             ),
             collectMetaData: (metaData) => metaData,
             child: MaterialApp(
-              theme: lightTheme,
-              darkTheme: darkTheme,
+              theme: buildTheme(palette, Brightness.light),
+              darkTheme: buildTheme(palette, Brightness.dark),
               themeMode: themeModel.currentMode,
               navigatorKey: navigatorKey,
               navigatorObservers: [

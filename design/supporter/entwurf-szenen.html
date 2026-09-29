@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entwürfe: Hintergrund-Szenen</title>
+<style>
+body { margin:0; background:#121814; color:#e4eae3; font:17px/1.5 system-ui, sans-serif; }
+main { max-width:1100px; margin:0 auto; padding:32px 24px 64px; }
+h1 { font-size:2.2rem; margin:0 0 .4rem; }
+h2 { font-size:1.6rem; margin:0 0 .6rem; }
+h3 { font-size:1.15rem; margin:0 0 .2rem; }
+p { color:#9aa69e; margin:0 0 1rem; max-width:65ch; }
+nav { display:flex; gap:12px; flex-wrap:wrap; margin:1rem 0 0; }
+nav a { color:#e0b155; }
+section { border-top:1px solid #2b352f; padding:28px 0 8px; }
+.row { margin-bottom:36px; }
+.tag { font-size:.8rem; font-weight:600; background:#3a2f18; color:#e0b155; border-radius:999px; padding:2px 10px; vertical-align:middle; }
+.wide { width:100%; aspect-ratio:3/1; display:block; border-radius:16px; object-fit:cover; }
+.phones { display:flex; gap:20px; margin-top:16px; flex-wrap:wrap; }
+.phone { margin:0; width:390px; }
+.screen { position:relative; height:230px; overflow:hidden; border-radius:28px 28px 0 0; }
+.phone img { width:390px; height:230px; object-fit:cover; object-position:bottom; display:block; }
+.island { position:absolute; top:12px; left:50%; transform:translateX(-50%); width:120px; height:34px; border-radius:17px; background:#000; }
+.load { position:absolute; top:59px; left:0; right:0; padding:8px 16px; font-size:14px; }
+.search { position:absolute; top:128px; left:16px; right:16px; height:44px; border-radius:22px; padding:11px 16px; box-sizing:border-box; font-size:15px; }
+.chips { position:absolute; top:186px; left:16px; right:16px; display:flex; gap:8px; }
+.chips i { font-style:normal; font-size:13px; padding:6px 12px; border-radius:10px; }
+.dark .load { background:rgba(26,26,34,.6); color:#f0f0f5; }
+.dark .search { background:#2e2e3a; color:#8a8a9a; }
+.dark .chips i { background:#1a1a22; border:1px solid #2e2e3a; color:#c9c9d4; }
+.light .load { background:rgba(255,255,255,.6); color:#1c1c1e; }
+.light .search { background:#f5f5f7; color:#8e8e93; }
+.light .chips i { background:#ffffff; border:1px solid #e5e5ea; color:#1c1c1e; }
+figcaption { font-size:14px; color:#9aa69e; margin-top:6px; }
+</style>
+</head>
+<body>
+<main>
+<h1>Hintergrund-Szenen</h1>
+<p>Je Szene der aktuelle Stand (A) und zwei neue Varianten (B, C). Gleiche Verankerung wie in der App: Die Szene ist unten bündig, ihr unterer Teil liegt hinter Suche und Gruppenfilter.</p>
+<nav><a href="#lagerfeuer-nacht">Lagerfeuer, Nacht</a><a href="#lagerfeuer-tag">Lagerfeuer, Tag</a><a href="#himmel-tag">Himmel, Tag</a><a href="#himmel-nacht">Himmel, Nacht</a><a href="#wald-tag">Wald, Tag</a><a href="#wald-nacht">Wald, Nacht</a></nav>
+<section id="lagerfeuer-nacht">
+<h2>Lagerfeuer, Nacht</h2>
+<div class="row">
+<h3>B: Feuerstelle mit Sitzkreis <span class="tag">festgelegt</span></h3>
+<p>Aus der letzten Runde, bisherige Verankerung.</p>
+<img class="wide" src="backgrounds/entwurf-lagerfeuer-nacht-b.svg" alt="B: Feuerstelle mit Sitzkreis">
+<div class="phones"><figure class="phone dark">
+<div class="screen">
+<img src="backgrounds/entwurf-lagerfeuer-nacht-b.svg" alt="">
+<span class="island"></span>
+
+</div>
+<figcaption>Nur die Animation</figcaption>
+</figure><figure class="phone dark">
+<div class="screen">
+<img src="backgrounds/entwurf-lagerfeuer-nacht-b.svg" alt="">
+<span class="island"></span>
+<span class="load">Mitglieder laden</span><span class="search">Suche nach Name, Mail oder ID</span><span class="chips"><i>Wölflinge</i><i>Jufis</i><i>Pfadis</i><i>Rover</i></span>
+</div>
+<figcaption>Im Header mit Lade-Info, Suche und Gruppenfilter</figcaption>
+</figure></div>
+</div>
+</section>
+<section id="lagerfeuer-tag">
+<h2>Lagerfeuer, Tag</h2>
+<div class="row">
+<h3>A: Aktuell</h3>
+<p>Der bisherige Stand zum Vergleich.</p>
+<img class="wide" src="backgrounds/lagerfeuer-light.svg" alt="A: Aktuell">
+<div class="phones"><figure class="phone light">
+<div class="screen">
+<img src="backgrounds/lagerfeuer-light.svg" alt="">
+<span class="island"></span>
+
+</div>
+<figcaption>Nur die Animation</figcaption>
+</figure><figure class="phone light">
+<div class="screen">
+<img src="backgrounds/lagerfeuer-light.svg" alt="">
+<span class="island"></span>
+<span class="load">Mitglieder laden</span><span class="search">Suche nach Name, Mail oder ID</span><span class="chips"><i>Wölflinge</i><i>Jufis</i><i>Pfadis</i><i>Rover</i></span>
+</div>
+<figcaption>Im Header mit Lade-Info, Suche und Gruppenfilter</figcaption>
+</figure></div>
+</div>
+<div class="row">
+<h3>B: Feuerstelle mit Sitzkreis</h3>
+<p>Passend zur Nacht-Variante B: Steinring, Sitzbalken, kleines Feuer und Rauch.</p>
+<img class="wide" src="backgrounds/entwurf-lagerfeuer-tag-b.svg" alt="B: Feuerstelle mit Sitzkreis">
+<div class="phones"><figure class="phone light">
+<div class="screen">
+<img src="backgrounds/entwurf-lagerfeuer-tag-b.svg" alt="">
+<span class="island"></span>
+
+</div>
+<figcaption>Nur die Animation</figcaption>
+</figure><figure class="phone light">
+<div class="screen">
+<img src="backgrounds/entwurf-lagerfeuer-tag-b.svg" alt="">
+<span class="island"></span>
+<span class="load">Mitglieder laden</span><span class="search">Suche nach Name, Mail oder ID</span><span class="chips"><i>Wölflinge</i><i>Jufis</i><i>Pfadis</i><i>Rover</i></span>
+</div>
+<figcaption>Im Header mit Lade-Info, Suche und Gruppenfilter</figcaption>
+</figure></div>
+</div><div class="row">
+<h3>C: Zeltlager am Morgen</h3>
+<p>Zwei Kohten, Feuer dazwischen, ziehender Morgendunst und Vögel.</p>
+<img class="wide" src="backgrounds/entwurf-lagerfeuer-tag-c.svg" alt="C: Zeltlager am Morgen">
+<div class="phones"><figure class="phone light">
+<div class="screen">
+<img src="backgrounds/entwurf-lagerfeuer-tag-c.svg" alt="">
+<span class="island"></span>
+
+</div>
+<figcaption>Nur die Animation</figcaption>
+</figure><figure class="phone light">
+<div class="screen">
+<img src="backgrounds/entwurf-lagerfeuer-tag-c.svg" alt="">
+<span class="island"></span>
+<span class="load">Mitglieder laden</span><span class="search">Suche nach Name, Mail oder ID</span><span class="chips"><i>Wölflinge</i><i>Jufis</i><i>Pfadis</i><i>Rover</i></span>
+</div>
+<figcaption>Im Header mit Lade-Info, Suche und Gruppenfilter</figcaption>
+</figure></div>
+</div>
+</section><section id="himmel-tag">
+<h2>Himmel, Tag</h2>
+<div class="row">
+<h3>A: Aktuell</h3>
+<p>Der bisherige Stand zum Vergleich.</p>
+<img class="wide" src="backgrounds/sternenhimmel-light.svg" alt="A: Aktuell">
+<div class="phones"><figure class="phone light">
+<div class="screen">
+<img src="backgrounds/sternenhimmel-light.svg" alt="">
+<span class="island"></span>
+
+</div>
+<figcaption>Nur die Animation</figcaption>
+</figure><figure class="phone light">
+<div class="screen">
+<img src="backgrounds/sternenhimmel-light.svg" alt="">
+<span class="island"></span>
+<span class="load">Mitglieder laden</span><span class="search">Suche nach Name, Mail oder ID</span><span class="chips"><i>Wölflinge</i><i>Jufis</i><i>Pfadis</i><i>Rover</i></span>
+</div>
+<figcaption>Im Header mit Lade-Info, Suche und Gruppenfilter</figcaption>
+</figure></div>
+</div>
+<div class="row">
+<h3>B: Tiefe Sonne</h3>
+<p>Warme Sonne mit langsam drehenden Strahlen, Wolken und Vogelschwarm.</p>
+<img class="wide" src="backgrounds/entwurf-himmel-tag-b.svg" alt="B: Tiefe Sonne">
+<div class="phones"><figure class="phone light">
+<div class="screen">
+<img src="backgrounds/entwurf-himmel-tag-b.svg" alt="">
+<span class="island"></span>
+
+</div>
+<figcaption>Nur die Animation</figcaption>
+</figure><figure class="phone light">
+<div class="screen">
+<img src="backgrounds/entwurf-himmel-tag-b.svg" alt="">
+<span class="island"></span>
+<span class="load">Mitglieder laden</span><span class="search">Suche nach Name, Mail oder ID</span><span class="chips"><i>Wölflinge</i><i>Jufis</i><i>Pfadis</i><i>Rover</i></span>
+</div>
+<figcaption>Im Header mit Lade-Info, Suche und Gruppenfilter</figcaption>
+</figure></div>
+</div><div class="row">
+<h3>C: Lager in der Weite</h3>
+<p>Kleine Kohten auf einem fernen Hügel mit dünnem Rauch, Wolken und Vögel.</p>
+<img class="wide" src="backgrounds/entwurf-himmel-tag-c.svg" alt="C: Lager in der Weite">
+<div class="phones"><figure class="phone light">
+<div class="screen">
+<img src="backgrounds/entwurf-himmel-tag-c.svg" alt="">
+<span class="island"></span>
+
+</div>
+<figcaption>Nur die Animation</figcaption>
+</figure><figure class="phone light">
+<div class="screen">
+<img src="backgrounds/entwurf-himmel-tag-c.svg" alt="">
+<span class="island"></span>
+<span class="load">Mitglieder laden</span><span class="search">Suche nach Name, Mail oder ID</span><span class="chips"><i>Wölflinge</i><i>Jufis</i><i>Pfadis</i><i>Rover</i></span>
+</div>
+<figcaption>Im Header mit Lade-Info, Suche und Gruppenfilter</figcaption>
+</figure></div>
+</div>
+</section><section id="himmel-nacht">
+<h2>Himmel, Nacht</h2>
+<div class="row">
+<h3>A: Aktuell</h3>
+<p>Der bisherige Stand zum Vergleich.</p>
+<img class="wide" src="backgrounds/sternenhimmel-dark.svg" alt="A: Aktuell">
+<div class="phones"><figure class="phone dark">
+<div class="screen">
+<img src="backgrounds/sternenhimmel-dark.svg" alt="">
+<span class="island"></span>
+
+</div>
+<figcaption>Nur die Animation</figcaption>
+</figure><figure class="phone dark">
+<div class="screen">
+<img src="backgrounds/sternenhimmel-dark.svg" alt="">
+<span class="island"></span>
+<span class="load">Mitglieder laden</span><span class="search">Suche nach Name, Mail oder ID</span><span class="chips"><i>Wölflinge</i><i>Jufis</i><i>Pfadis</i><i>Rover</i></span>
+</div>
+<figcaption>Im Header mit Lade-Info, Suche und Gruppenfilter</figcaption>
+</figure></div>
+</div>
+<div class="row">
+<h3>B: Mondnacht</h3>
+<p>Mond mit atmendem Lichthof, Sterne und Sternschnuppen.</p>
+<img class="wide" src="backgrounds/entwurf-himmel-nacht-b.svg" alt="B: Mondnacht">
+<div class="phones"><figure class="phone dark">
+<div class="screen">
+<img src="backgrounds/entwurf-himmel-nacht-b.svg" alt="">
+<span class="island"></span>
+
+</div>
+<figcaption>Nur die Animation</figcaption>
+</figure><figure class="phone dark">
+<div class="screen">
+<img src="backgrounds/entwurf-himmel-nacht-b.svg" alt="">
+<span class="island"></span>
+<span class="load">Mitglieder laden</span><span class="search">Suche nach Name, Mail oder ID</span><span class="chips"><i>Wölflinge</i><i>Jufis</i><i>Pfadis</i><i>Rover</i></span>
+</div>
+<figcaption>Im Header mit Lade-Info, Suche und Gruppenfilter</figcaption>
+</figure></div>
+</div><div class="row">
+<h3>C: Milchstraße</h3>
+<p>Dichtes Sternenband mit sanftem Schimmer quer über den Himmel, dazu Sternschnuppen.</p>
+<img class="wide" src="backgrounds/entwurf-himmel-nacht-c.svg" alt="C: Milchstraße">
+<div class="phones"><figure class="phone dark">
+<div class="screen">
+<img src="backgrounds/entwurf-himmel-nacht-c.svg" alt="">
+<span class="island"></span>
+
+</div>
+<figcaption>Nur die Animation</figcaption>
+</figure><figure class="phone dark">
+<div class="screen">
+<img src="backgrounds/entwurf-himmel-nacht-c.svg" alt="">
+<span class="island"></span>
+<span class="load">Mitglieder laden</span><span class="search">Suche nach Name, Mail oder ID</span><span class="chips"><i>Wölflinge</i><i>Jufis</i><i>Pfadis</i><i>Rover</i></span>
+</div>
+<figcaption>Im Header mit Lade-Info, Suche und Gruppenfilter</figcaption>
+</figure></div>
+</div>
+</section><section id="wald-tag">
+<h2>Wald, Tag</h2>
+<div class="row">
+<h3>A: Aktuell</h3>
+<p>Der bisherige Stand zum Vergleich.</p>
+<img class="wide" src="backgrounds/wald-light.svg" alt="A: Aktuell">
+<div class="phones"><figure class="phone light">
+<div class="screen">
+<img src="backgrounds/wald-light.svg" alt="">
+<span class="island"></span>
+
+</div>
+<figcaption>Nur die Animation</figcaption>
+</figure><figure class="phone light">
+<div class="screen">
+<img src="backgrounds/wald-light.svg" alt="">
+<span class="island"></span>
+<span class="load">Mitglieder laden</span><span class="search">Suche nach Name, Mail oder ID</span><span class="chips"><i>Wölflinge</i><i>Jufis</i><i>Pfadis</i><i>Rover</i></span>
+</div>
+<figcaption>Im Header mit Lade-Info, Suche und Gruppenfilter</figcaption>
+</figure></div>
+</div>
+<div class="row">
+<h3>B: Waldsee</h3>
+<p>Libellen über einem See mit Schilf und glitzernder Oberfläche.</p>
+<img class="wide" src="backgrounds/entwurf-wald-tag-b.svg" alt="B: Waldsee">
+<div class="phones"><figure class="phone light">
+<div class="screen">
+<img src="backgrounds/entwurf-wald-tag-b.svg" alt="">
+<span class="island"></span>
+
+</div>
+<figcaption>Nur die Animation</figcaption>
+</figure><figure class="phone light">
+<div class="screen">
+<img src="backgrounds/entwurf-wald-tag-b.svg" alt="">
+<span class="island"></span>
+<span class="load">Mitglieder laden</span><span class="search">Suche nach Name, Mail oder ID</span><span class="chips"><i>Wölflinge</i><i>Jufis</i><i>Pfadis</i><i>Rover</i></span>
+</div>
+<figcaption>Im Header mit Lade-Info, Suche und Gruppenfilter</figcaption>
+</figure></div>
+</div><div class="row">
+<h3>C: Blätter im Wind</h3>
+<p>Einzelne Blätter segeln herab, dazu ein paar Vögel über den Wipfeln.</p>
+<img class="wide" src="backgrounds/entwurf-wald-tag-c.svg" alt="C: Blätter im Wind">
+<div class="phones"><figure class="phone light">
+<div class="screen">
+<img src="backgrounds/entwurf-wald-tag-c.svg" alt="">
+<span class="island"></span>
+
+</div>
+<figcaption>Nur die Animation</figcaption>
+</figure><figure class="phone light">
+<div class="screen">
+<img src="backgrounds/entwurf-wald-tag-c.svg" alt="">
+<span class="island"></span>
+<span class="load">Mitglieder laden</span><span class="search">Suche nach Name, Mail oder ID</span><span class="chips"><i>Wölflinge</i><i>Jufis</i><i>Pfadis</i><i>Rover</i></span>
+</div>
+<figcaption>Im Header mit Lade-Info, Suche und Gruppenfilter</figcaption>
+</figure></div>
+</div>
+</section><section id="wald-nacht">
+<h2>Wald, Nacht</h2>
+<div class="row">
+<h3>A: Aktuell</h3>
+<p>Der bisherige Stand zum Vergleich.</p>
+<img class="wide" src="backgrounds/wald-dark.svg" alt="A: Aktuell">
+<div class="phones"><figure class="phone dark">
+<div class="screen">
+<img src="backgrounds/wald-dark.svg" alt="">
+<span class="island"></span>
+
+</div>
+<figcaption>Nur die Animation</figcaption>
+</figure><figure class="phone dark">
+<div class="screen">
+<img src="backgrounds/wald-dark.svg" alt="">
+<span class="island"></span>
+<span class="load">Mitglieder laden</span><span class="search">Suche nach Name, Mail oder ID</span><span class="chips"><i>Wölflinge</i><i>Jufis</i><i>Pfadis</i><i>Rover</i></span>
+</div>
+<figcaption>Im Header mit Lade-Info, Suche und Gruppenfilter</figcaption>
+</figure></div>
+</div>
+<div class="row">
+<h3>B: Mondlicht</h3>
+<p>Mond über den Wipfeln, schwache Lichtbahnen, Nebel und nur wenige Glühwürmchen.</p>
+<img class="wide" src="backgrounds/entwurf-wald-nacht-b.svg" alt="B: Mondlicht">
+<div class="phones"><figure class="phone dark">
+<div class="screen">
+<img src="backgrounds/entwurf-wald-nacht-b.svg" alt="">
+<span class="island"></span>
+
+</div>
+<figcaption>Nur die Animation</figcaption>
+</figure><figure class="phone dark">
+<div class="screen">
+<img src="backgrounds/entwurf-wald-nacht-b.svg" alt="">
+<span class="island"></span>
+<span class="load">Mitglieder laden</span><span class="search">Suche nach Name, Mail oder ID</span><span class="chips"><i>Wölflinge</i><i>Jufis</i><i>Pfadis</i><i>Rover</i></span>
+</div>
+<figcaption>Im Header mit Lade-Info, Suche und Gruppenfilter</figcaption>
+</figure></div>
+</div><div class="row">
+<h3>C: Kohte im Wald</h3>
+<p>Eine leuchtende Kohte auf einer Lichtung, Nebel und Glühwürmchen.</p>
+<img class="wide" src="backgrounds/entwurf-wald-nacht-c.svg" alt="C: Kohte im Wald">
+<div class="phones"><figure class="phone dark">
+<div class="screen">
+<img src="backgrounds/entwurf-wald-nacht-c.svg" alt="">
+<span class="island"></span>
+
+</div>
+<figcaption>Nur die Animation</figcaption>
+</figure><figure class="phone dark">
+<div class="screen">
+<img src="backgrounds/entwurf-wald-nacht-c.svg" alt="">
+<span class="island"></span>
+<span class="load">Mitglieder laden</span><span class="search">Suche nach Name, Mail oder ID</span><span class="chips"><i>Wölflinge</i><i>Jufis</i><i>Pfadis</i><i>Rover</i></span>
+</div>
+<figcaption>Im Header mit Lade-Info, Suche und Gruppenfilter</figcaption>
+</figure></div>
+</div>
+</section>
+</main>
+</body>
+</html>

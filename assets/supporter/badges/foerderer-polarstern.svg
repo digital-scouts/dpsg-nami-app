@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256"><title>foerderer-polarstern</title><defs>
+<linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6dc8e"/><stop offset="0.5" stop-color="#c9973b"/><stop offset="1" stop-color="#f1d17a"/></linearGradient>
+<radialGradient id="night" cx="0.5" cy="0.35" r="0.7"><stop offset="0" stop-color="#2c4a80"/><stop offset="1" stop-color="#0d1a33"/></radialGradient>
+
+
+</defs>
+<path d="M128 4 L143 14 L160.1 8.2 L172 21.8 L190 20.6 L198 36.8 L215.7 40.3 L219.2 58 L235.4 66 L234.2 84 L247.8 95.9 L242 113 L252 128 L242 143 L247.8 160.1 L234.2 172 L235.4 190 L219.2 198 L215.7 215.7 L198 219.2 L190 235.4 L172 234.2 L160.1 247.8 L143 242 L128 252 L113 242 L95.9 247.8 L84 234.2 L66 235.4 L58 219.2 L40.3 215.7 L36.8 198 L20.6 190 L21.8 172 L8.2 160.1 L14 143 L4 128 L14 113 L8.2 95.9 L21.8 84 L20.6 66 L36.8 58 L40.3 40.3 L58 36.8 L66 20.6 L84 21.8 L95.9 8.2 L113 14 L128 4 Z" fill="url(#gold)"/>
+<circle cx="128" cy="128" r="100" fill="url(#night)"/>
+<circle cx="128" cy="128" r="90" fill="none" stroke="#e3c16e" stroke-width="4" stroke-dasharray="7.8 6.4" stroke-linecap="round"/>
+<circle cx="84" cy="90" r="3" fill="#fff" opacity="0.7"/><circle cx="176" cy="96" r="2.5" fill="#fff" opacity="0.6"/><circle cx="160" cy="176" r="2" fill="#fff" opacity="0.5"/><circle cx="92" cy="170" r="2.5" fill="#fff" opacity="0.6"/>
+<path d="M128 68 L139.3 112.7 L184 124 L139.3 135.3 L128 180 L116.7 135.3 L72 124 L116.7 112.7 Z" fill="url(#gold)"/>
+<path d="M128 94 L136.5 115.5 L158 124 L136.5 132.5 L128 154 L119.5 132.5 L98 124 L119.5 115.5 Z" fill="#fff6d8" transform="rotate(45 128 124)" opacity="0.9"/>
+</svg>

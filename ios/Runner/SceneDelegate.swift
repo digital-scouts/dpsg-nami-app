@@ -16,5 +16,6 @@ import UIKit
     }
 
     NamiAiFlutterBridge.register(with: messenger)
+    AppIconFlutterBridge.register(with: messenger)
   }
 }
