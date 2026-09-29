@@ -31,7 +31,16 @@ Beim Start baut der Server `effective_states` und das aktuelle Wochenaggregat au
 
 Datenbestände aus der Zeit vor der Umstellung auf UTC-Datumsfelder (Zeitstempel als Strings) werden nicht migriert. Lokale Entwicklungsdatenbanken dafür mit `npm run dev:db:down` und `docker volume rm server_mongodb_data` verwerfen.
 
-Der Server startet nur erfolgreich, wenn beim Boot eine MongoDB-Verbindung aufgebaut werden kann. Für die lokale Entwicklung läuft der Server direkt auf dem Host, damit Watch-Modus, Breakpoints und sonstige Dev-Tools einfacher nutzbar bleiben.
+Mit `STORAGE_BACKEND=mongodb` (Default) startet der Server nur erfolgreich, wenn beim Boot eine MongoDB-Verbindung aufgebaut werden kann. Für die lokale Entwicklung läuft der Server direkt auf dem Host, damit Watch-Modus, Breakpoints und sonstige Dev-Tools einfacher nutzbar bleiben.
+
+Ohne MongoDB lässt sich der Server im Speichermodus mit synthetischen Stämmen starten, so wie die Mock-Instanz unter `mock-namiapp.scout-link.de`:
+
+```bash
+cd server
+STORAGE_BACKEND=memory MOCK_SEED_STAMM_COUNT=30 npm run dev
+```
+
+Die Daten gehen beim Neustart verloren. `MOCK_SEED_STAMM_COUNT` ist nur mit `STORAGE_BACKEND=memory` erlaubt. Details zur Mock-Instanz stehen in `server/deploy/README.md`.
 
 Zum Stoppen und Bereinigen:
 
