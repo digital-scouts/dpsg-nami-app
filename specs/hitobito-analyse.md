@@ -230,12 +230,24 @@ Dieses Dokument beschreibt weiterhin primär das technische Hitobito-Datenmodell
 | `pronoun` | `string` | Anrede/Pronomen |
 | `entry_date` | `date` | read-only |
 | `exit_date` | `date` | Austrittsdatum |
-| `bank_account_owner` | `string` | Kontoinhaber |
-| `iban` | `string` | IBAN |
-| `bic` | `string` | BIC |
-| `bank_name` | `string` | Bankname |
-| `payment_method` | `string` | Zahlart |
-| `consent_data_retention` | `boolean` | Einwilligung zur Datenhaltung |
+| `bank_account_owner` | `string` | Kontoinhaber, lesbar nur mit `show_details` |
+| `iban` | `string` | IBAN, lesbar nur mit `show_details`, serverseitig validiert, darf leer sein |
+| `bic` | `string` | BIC, lesbar nur mit `show_details` |
+| `bank_name` | `string` | Bankname, lesbar nur mit `show_details` |
+| `payment_method` | `string` | Zahlart `invoice` oder `debit`, Pflicht (Default `invoice`), lesbar nur mit `show_details` |
+| `consent_data_retention` | `boolean` | Einwilligung zur Datenhaltung, lesbar nur mit `show_details` |
+
+Weitere Hinweise aus `hitobito_pfadi_de`:
+
+- Ohne `show_details` fehlen die geschützten Attribute im JSON ganz, statt `null` zu sein. Die App leitet daraus `detailsLesbar` (Geburtsdatum/Geschlecht vorhanden) und die Sichtbarkeit der Bankverbindung (`payment_method` vorhanden) ab.
+- Zum Schreiben der Bankdaten reicht das normale `update`-Recht auf der Person.
+- `Person::GENDERS` enthält zusätzlich `d`.
+
+#### Kontaktdaten und Kategorien
+
+Seit hitobito-Core #4359 (Migration `20260818090000_add_contact_account_categories`) haben `phone_numbers`, `additional_emails`, `additional_addresses` und `social_accounts` ein Attribut `category_id`. Die Kategorie ist Pflicht, `label` ist nur noch optionaler Freitext. Die DPSG-Instanz liefert `category_id` bereits. Einen JSON:API-Endpunkt zum Auflisten der Kategorien gibt es nicht; die IDs sind je Instanz verschieden.
+
+Zusatzadressen brauchen zusätzlich einen Namen (`first_name`/`last_name` oder `organization_name`), sonst schlägt `assert_has_any_name` fehl.
 
 ### Planungsableitungen für das App-Personenmodell
 
