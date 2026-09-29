@@ -47,7 +47,11 @@ void main() {
       aktiverLayerId: 11,
       aktiverLayerName: 'Stamm Musterdorf',
       verfuegbareLayer: const <ArbeitskontextLayer>[
-        ArbeitskontextLayer(id: 20, name: 'Bezirk Rhein'),
+        ArbeitskontextLayer(
+          id: 20,
+          name: 'Bezirk Rhein',
+          layerTyp: 'Group::Bezirk',
+        ),
       ],
       gruppen: <ArbeitskontextGruppe>[
         const ArbeitskontextGruppe(

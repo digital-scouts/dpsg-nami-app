@@ -93,6 +93,8 @@ jobs:
           HITOBITO_OAUTH_CLIENT_ID: ${{ vars.HITOBITO_OAUTH_CLIENT_ID }}
           HITOBITO_OAUTH_CLIENT_SECRET: ${{ secrets.HITOBITO_OAUTH_CLIENT_SECRET }}
           HITOBITO_OAUTH_REDIRECT_URI: ${{ vars.HITOBITO_OAUTH_REDIRECT_URI }}
+          # Optional; ohne Repository-Variable gilt der Default aus .env.example.
+          STATS_SERVER_URL: ${{ vars.STATS_SERVER_URL }}
         run: |
           set -euo pipefail
           # Wie ios/ci_scripts/ci_pre_xcodebuild.sh (require_env): diese Keys

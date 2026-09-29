@@ -41,6 +41,9 @@ import 'package:provider/provider.dart';
 import 'package:wiredash/wiredash.dart';
 
 import 'data/member_filters/shared_prefs_member_filter_repository.dart';
+import 'data/bundesstatistik/http_bundesstatistik_repository.dart';
+import 'data/bundesstatistik/secure_installation_credentials_repository.dart';
+import 'data/bundesstatistik/shared_prefs_bundesstatistik_teilnahme_repository.dart';
 import 'data/settings/shared_prefs_app_settings_repository.dart';
 import 'domain/auth/auth_profile.dart';
 import 'domain/auth/auth_state.dart';
@@ -48,6 +51,7 @@ import 'domain/settings/app_settings.dart';
 import 'domain/settings/app_settings_repository.dart';
 import 'l10n/app_localizations.dart';
 import 'presentation/model/app_settings_model.dart';
+import 'presentation/model/bundesstatistik_model.dart';
 import 'presentation/model/locale_model.dart';
 import 'presentation/model/member_filters_model.dart';
 import 'presentation/model/urgent_notification_model.dart';
@@ -58,6 +62,7 @@ import 'services/app_runtime_controller.dart';
 import 'services/app_startup_state_service.dart';
 import 'services/app_update_service.dart';
 import 'services/biometric_lock_service.dart';
+import 'services/bundesstatistik_env.dart';
 import 'services/data_expiry_notification_service.dart';
 import 'services/feedback_prompt_service.dart';
 import 'services/hitobito_auth_config_controller.dart';
@@ -197,7 +202,10 @@ void main() {
             localRepository: arbeitskontextLocalRepository,
             logger: logger,
           );
+      final installationCredentialsRepository =
+          SecureInstallationCredentialsRepository();
       final appResetService = AppResetService(
+        clearInstallationCredentials: installationCredentialsRepository.clear,
         authSessionRepository: authSessionRepository,
         sensitiveStorageService: sensitiveStorageService,
         logFileProvider: logger!.getLogFile,
@@ -236,6 +244,35 @@ void main() {
         remoteAccessExecutor: authModel.executeRemoteAccess,
         logger: logger!,
       );
+      final bundesstatistikModel = BundesstatistikModel(
+        featureEnabled: BundesstatistikEnv.isEnabled,
+        repository: HttpBundesstatistikRepository(
+          baseUrl: BundesstatistikEnv.isEnabled
+              ? BundesstatistikEnv.serverUrl
+              : 'http://localhost',
+          timeout: BundesstatistikEnv.fetchTimeout,
+        ),
+        credentialsRepository: installationCredentialsRepository,
+        teilnahmeRepository: SharedPrefsBundesstatistikTeilnahmeRepository(),
+        networkAccessPolicy: networkAccessPolicy,
+        logger: logger,
+        sendInterval: BundesstatistikEnv.sendInterval,
+      );
+      await bundesstatistikModel.initialize();
+      // Anmeldung und Arbeitskontext bestimmen, ob und was geteilt wird.
+      void syncBundesstatistik() {
+        unawaited(
+          bundesstatistikModel.aktualisiereKontext(
+            personId: authModel.profile?.namiId.toString(),
+            readModel: arbeitskontextModel.readModel,
+            datenstand: authModel.lastSensitiveSyncAt,
+          ),
+        );
+      }
+
+      authModel.addListener(syncBundesstatistik);
+      arbeitskontextModel.addListener(syncBundesstatistik);
+
       final pendingPersonUpdateRepository = SecurePendingPersonUpdateRepository(
         sensitiveStorageService: sensitiveStorageService,
       );
@@ -345,6 +382,9 @@ void main() {
             ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
             ChangeNotifierProvider<ArbeitskontextModel>.value(
               value: arbeitskontextModel,
+            ),
+            ChangeNotifierProvider<BundesstatistikModel>.value(
+              value: bundesstatistikModel,
             ),
             ChangeNotifierProvider<MemberEditModel>.value(
               value: memberEditModel,
