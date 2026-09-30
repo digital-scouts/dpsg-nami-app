@@ -227,10 +227,7 @@ void main() {
       expect(find.textContaining('Stamm'), findsOneWidget);
       expect(
         find.descendant(
-          of: find.ancestor(
-            of: find.text('Profil'),
-            matching: find.byType(Card),
-          ),
+          of: find.byKey(const Key('settings-profile-header')),
           matching: find.byIcon(Icons.lock_outline),
         ),
         findsOneWidget,

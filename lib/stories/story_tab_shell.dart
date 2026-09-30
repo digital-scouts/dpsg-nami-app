@@ -113,10 +113,14 @@ class StoryTabPage extends StatelessWidget {
     this.showLoadingInfo = false,
     this.simulateTopInset = true,
     this.providers = const [],
+    this.badge,
   });
 
   final int tabIndex;
   final AppearanceBackgroundId? background;
+
+  /// Eigenes Supporter-Badge, z. B. im Profil-Header der Einstellungen.
+  final SupporterBadgeId? badge;
   final Widget child;
   final bool dark;
   final bool showLoadingInfo;
@@ -127,11 +131,11 @@ class StoryTabPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final settings = AppearanceSettings(background: background);
+    final settings = AppearanceSettings(background: background, badge: badge);
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<AppearanceModel?>(
-          key: ValueKey(background),
+          key: ValueKey('$background-$badge'),
           create: (_) => AppearanceModel(
             repository: InMemoryAppearanceSettingsRepository(settings),
             appIconService: FakeAppIconService(),

@@ -92,17 +92,51 @@ Story profilePageUnknownLanguageStory() => Story(
   ),
 );
 
-class _ProfileStoryShell extends StatefulWidget {
+class _ProfileStoryShell extends StatelessWidget {
   const _ProfileStoryShell({required this.profile, this.achievements});
 
   final AuthProfile profile;
   final List<AchievementProgress>? achievements;
 
   @override
-  State<_ProfileStoryShell> createState() => _ProfileStoryShellState();
+  Widget build(BuildContext context) {
+    return StorySignedInScope(
+      profile: profile,
+      child: MaterialApp(
+        localizationsDelegates: [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          AppLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('de'), Locale('en')],
+        locale: const Locale('de'),
+        home: ProfilePage(
+          achievements: achievements,
+          onAchievements: achievements == null ? null : () {},
+        ),
+      ),
+    );
+  }
 }
 
-class _ProfileStoryShellState extends State<_ProfileStoryShell> {
+/// Stellt fuer Stories eine Fake-Anmeldung mit [profile] und einen
+/// Arbeitskontext "Stamm Musterdorf" bereit; ohne [profile] abgemeldet.
+class StorySignedInScope extends StatefulWidget {
+  const StorySignedInScope({
+    super.key,
+    required this.profile,
+    required this.child,
+  });
+
+  final AuthProfile? profile;
+  final Widget child;
+
+  @override
+  State<StorySignedInScope> createState() => _StorySignedInScopeState();
+}
+
+class _StorySignedInScopeState extends State<StorySignedInScope> {
   late final AuthSessionModel _authModel;
   late final ArbeitskontextModel _arbeitskontextModel;
   late final Future<void> _initializeFuture;
@@ -154,6 +188,9 @@ class _ProfileStoryShellState extends State<_ProfileStoryShell> {
   }
 
   Future<void> _initialize() async {
+    if (widget.profile == null) {
+      return;
+    }
     await _authModel.signIn();
     await _arbeitskontextModel.syncForAuth(
       authState: _authModel.state,
@@ -174,20 +211,7 @@ class _ProfileStoryShellState extends State<_ProfileStoryShell> {
               value: _arbeitskontextModel,
             ),
           ],
-          child: MaterialApp(
-            localizationsDelegates: [
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-              AppLocalizations.delegate,
-            ],
-            supportedLocales: const [Locale('de'), Locale('en')],
-            locale: const Locale('de'),
-            home: ProfilePage(
-              achievements: widget.achievements,
-              onAchievements: widget.achievements == null ? null : () {},
-            ),
-          ),
+          child: widget.child,
         );
       },
     );
@@ -308,7 +332,7 @@ class _InMemoryAuthSessionRepository implements AuthSessionRepository {
 }
 
 class _FakeOauthService extends HitobitoOauthService {
-  _FakeOauthService({required this.profileToReturn})
+  _FakeOauthService({this.profileToReturn})
     : super(
         config: const HitobitoAuthConfig(
           clientId: 'client',
@@ -322,7 +346,7 @@ class _FakeOauthService extends HitobitoOauthService {
         ),
       );
 
-  final AuthProfile profileToReturn;
+  final AuthProfile? profileToReturn;
 
   @override
   Future<AuthSession> authenticateInteractive() async => AuthSession(
@@ -333,7 +357,7 @@ class _FakeOauthService extends HitobitoOauthService {
 
   @override
   Future<AuthProfile> fetchProfile(AuthSession session) async =>
-      profileToReturn;
+      profileToReturn!;
 
   @override
   Future<AuthSession> refreshIfNeeded(

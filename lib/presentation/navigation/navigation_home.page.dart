@@ -112,15 +112,15 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
     }
 
     return Scaffold(
-      body: _index == 3
-          ? body
-          : _buildMainTabShell(
-              context,
-              content: body,
-              urgentNotification: urgentNotification,
-              authModel: authModel,
-              arbeitskontextModel: arbeitskontextModel,
-            ),
+      body: _buildMainTabShell(
+        context,
+        content: body,
+        urgentNotification: urgentNotification,
+        authModel: authModel,
+        arbeitskontextModel: arbeitskontextModel,
+        // Die Einstellungen bleiben ohne Sync- und Lade-Banner.
+        showStatusBanners: _index != 3,
+      ),
       bottomNavigationBar: AppBottomNavigation(
         currentIndex: _index,
         onTap: (i) {
@@ -160,8 +160,10 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
     required PullNotification? urgentNotification,
     required AuthSessionModel authModel,
     required ArbeitskontextModel arbeitskontextModel,
+    bool showStatusBanners = true,
   }) {
-    final showsStaleDataWarning = arbeitskontextModel.hasStaleDataWarning;
+    final showsStaleDataWarning =
+        showStatusBanners && arbeitskontextModel.hasStaleDataWarning;
     // arbeitskontext == null ausgeschlossen: in dem Fall zeigt bereits der
     // Vollbild-Platzhalter (_buildPlaceholder) dieselbe Checkliste zentriert
     // an - hier wuerde sie sonst doppelt erscheinen. Sobald der Arbeitskontext
@@ -169,6 +171,7 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
     // Ladevorgang (ohne Luecke waehrend "Mitglieder laden") als auch spaetere
     // Syncs (Pull-to-refresh, Debug-Tools) ab.
     final showsLoadingChecklist =
+        showStatusBanners &&
         !showsStaleDataWarning &&
         arbeitskontextModel.arbeitskontext != null &&
         (arbeitskontextModel.isSynchronizing ||
