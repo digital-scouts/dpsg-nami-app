@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -11,6 +12,7 @@ import 'package:intl/intl.dart';
 import 'package:nami/core/notifications/pull_notification.dart';
 import 'package:nami/core/notifications/pull_notifications_cubit.dart';
 import 'package:nami/core/notifications/pull_notifications_repository_factory.dart';
+import 'package:nami/data/achievements/in_memory_achievement_repository.dart';
 import 'package:nami/data/arbeitskontext/hitobito_arbeitskontext_read_model_repository.dart';
 import 'package:nami/data/arbeitskontext/secure_arbeitskontext_local_repository.dart';
 import 'package:nami/data/auth/secure_auth_profile_repository.dart';
@@ -18,6 +20,14 @@ import 'package:nami/data/auth/secure_auth_session_repository.dart';
 import 'package:nami/data/member/hitobito_member_write_repository.dart';
 import 'package:nami/data/member/secure_pending_person_update_repository.dart';
 import 'package:nami/data/nami_ai/nami_ai_chat_history_local_repository.dart';
+import 'package:nami/demo/demo_data.dart';
+import 'package:nami/demo/demo_services.dart';
+import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model_repository.dart';
+import 'package:nami/domain/auth/auth_session_repository.dart';
+import 'package:nami/domain/bundesstatistik/bundesstatistik_teilnahme.dart';
+import 'package:nami/domain/bundesstatistik/installation_credentials.dart';
+import 'package:nami/domain/member/member_write_repository.dart';
+import 'package:nami/domain/member_filters/member_filter_repository.dart';
 import 'package:nami/domain/nami_ai/nami_ai_chat_history_repository.dart';
 import 'package:nami/domain/arbeitskontext/usecases/bestimme_startkontext_usecase.dart';
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
@@ -65,6 +75,7 @@ import 'presentation/navigation/app_router.dart';
 import 'presentation/notifications/app_snackbar.dart';
 import 'services/app_icon_service.dart';
 import 'services/achievement_service.dart';
+import 'services/app_mode_controller.dart';
 import 'services/app_reset_service.dart';
 import 'services/app_runtime_controller.dart';
 import 'services/app_startup_state_service.dart';
@@ -91,8 +102,12 @@ import 'services/wifi_sync_trigger.dart';
 final navigatorKey = GlobalKey<NavigatorState>();
 final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
+/// Logger der aktuell laufenden App-Composition, fuer die globale
+/// Fehlerbehandlung.
+LoggerService? _activeLogger;
+int _appGeneration = 0;
+
 void main() {
-  LoggerService? logger;
   runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
@@ -101,352 +116,18 @@ void main() {
       await dotenv.load(fileName: ".env");
       await initializeDateFormatting("de_DE", null);
       Intl.defaultLocale = "de_DE";
+      _installGlobalErrorHandlers();
 
-      // Settings laden und Provider initialisieren
-      final AppSettingsRepository settingsRepo =
-          SharedPrefsAppSettingsRepository();
-      final memberFilterRepository = SharedPrefsMemberFilterRepository();
-      final appStartupStateService = AppStartupStateService();
-      final AppSettings initial = await settingsRepo.load();
-      final urgentNotificationModel = UrgentNotificationModel();
-      final localeModel = LocaleModel(
-        persist: (code) => settingsRepo.saveLanguageCode(code),
-      )..setLocale(Locale(initial.languageCode), persist: false);
-      final appSettingsModel = AppSettingsModel(initial, settingsRepo);
-      final appearanceModel = AppearanceModel(
-        repository: SharedPrefsAppearanceSettingsRepository(),
-        appIconService: MethodChannelAppIconService(),
-      );
-      await appearanceModel.load();
-      final memberFiltersModel = MemberFiltersModel(memberFilterRepository);
-
-      logger = LoggerService(
-        settingsRepository: settingsRepo,
-        navigatorKey: navigatorKey,
-        wiredashEventHook: (name, props) async {
-          final ctx = navigatorKey.currentContext;
-          if (ctx == null) return;
-          try {
-            await Wiredash.of(ctx).trackEvent(name, data: props);
-          } catch (_) {}
-        },
-      );
-      final networkAccessPolicy = NetworkAccessPolicy(
-        logger: logger,
-        noMobileDataEnabled: () => appSettingsModel.noMobileDataEnabled,
-      );
-      final appUpdateService = AppUpdateService(
-        networkAccessPolicy: networkAccessPolicy,
-        logger: logger,
-      );
-      final dataExpiryNotificationService = DataExpiryNotificationService(
-        logger: logger!,
-      );
-      final mapTileCacheService = MapTileCacheService(
-        logger: logger,
-        networkAccessPolicy: networkAccessPolicy,
-      );
-      // Update von 0.2.x: alte Daten entfernen, bevor eigene Boxen geoeffnet
-      // werden und die Session geladen wird. Danach ist ein Login noetig.
-      final legacyAppDataCleanupService = LegacyAppDataCleanupService(
-        documentsDirectoryProvider: () async => appDocDir,
-        cancelScheduledNotifications: dataExpiryNotificationService.cancelAll,
-        deleteLegacyMapStore: () => mapTileCacheService.deleteStore(
-          LegacyAppDataCleanupService.legacyMapStoreName,
-        ),
-        logger: logger,
-      );
-      await legacyAppDataCleanupService.runIfNeeded();
-      final hitobitoTrafficLogService = HitobitoTrafficLogService();
-      final namiAiDebugLogService = NamiAiDebugLogService();
-      final namiAiCorpusLookupService = NamiAiCorpusLookupService();
-
-      final sensitiveStorageService = SensitiveStorageService();
-      final authSessionRepository = SecureAuthSessionRepository();
-      final authProfileRepository = SecureAuthProfileRepository(
-        sensitiveStorageService: sensitiveStorageService,
-      );
-      final arbeitskontextLocalRepository = SecureArbeitskontextLocalRepository(
-        sensitiveStorageService: sensitiveStorageService,
-      );
-      final namiAiChatHistoryRepository = NamiAiChatHistoryLocalRepository(
-        sensitiveStorageService: sensitiveStorageService,
-      );
-      final envAuthConfig = HitobitoAuthEnv.authConfig;
-      final oauthService = HitobitoOauthService(
-        config: envAuthConfig,
-        logger: logger,
-      );
-      final hitobitoGroupsService = HitobitoGroupsService(
-        config: envAuthConfig,
-        trafficLogService: hitobitoTrafficLogService,
-        logger: logger,
-      );
-      final hitobitoPeopleService = HitobitoPeopleService(
-        config: envAuthConfig,
-        trafficLogService: hitobitoTrafficLogService,
-        logger: logger,
-      );
-      final hitobitoRolesService = HitobitoRolesService(
-        config: envAuthConfig,
-        trafficLogService: hitobitoTrafficLogService,
-        logger: logger,
-      );
-      final hitobitoEfzService = HitobitoEfzService(
-        config: envAuthConfig,
-        trafficLogService: hitobitoTrafficLogService,
-        logger: logger,
-      );
-      final hitobitoAuthConfigController = HitobitoAuthConfigController(
-        sensitiveStorageService: sensitiveStorageService,
-        oauthService: oauthService,
-        groupsService: hitobitoGroupsService,
-        peopleService: hitobitoPeopleService,
-        rolesService: hitobitoRolesService,
-        efzService: hitobitoEfzService,
-        logger: logger,
-        envConfig: envAuthConfig,
-      );
-      final arbeitskontextReadModelRepository =
-          HitobitoArbeitskontextReadModelRepository(
-            groupsService: hitobitoGroupsService,
-            peopleService: hitobitoPeopleService,
-            rolesService: hitobitoRolesService,
-            localRepository: arbeitskontextLocalRepository,
-            logger: logger,
-          );
-      final installationCredentialsRepository =
-          SecureInstallationCredentialsRepository();
-      final appResetService = AppResetService(
-        clearInstallationCredentials: installationCredentialsRepository.clear,
-        authSessionRepository: authSessionRepository,
-        sensitiveStorageService: sensitiveStorageService,
-        logFileProvider: logger!.getLogFile,
-        clearLogs: logger!.clearAllLogs,
-        clearHitobitoTrafficLogs: hitobitoTrafficLogService.clearAllLogs,
-        clearMapCache: mapTileCacheService.deleteRoot,
-        clearLegacyData: legacyAppDataCleanupService.deleteLegacyData,
-      );
-
-      final authModel = AuthSessionModel(
-        repository: authSessionRepository,
-        profileRepository: authProfileRepository,
-        oauthService: oauthService,
-        biometricLockService: BiometricLockService(logger: logger),
-        sensitiveStorageService: sensitiveStorageService,
-        retentionPolicy: HitobitoDataRetentionPolicy(
-          maxDataAge: HitobitoAuthEnv.maxDataAge,
-          refreshInterval: HitobitoAuthEnv.refreshInterval,
-        ),
-        logger: logger!,
-        networkAccessPolicy: networkAccessPolicy,
-        isAppLockEnabled: () => appSettingsModel.biometricLockEnabled,
-        lockTimeout: HitobitoAuthEnv.appLockTimeout,
-        onPreferredLanguageChanged: (languageCode) async {
-          final normalized = AuthProfile.normalizeLanguageCode(languageCode);
-          localeModel.setLocale(Locale(normalized), persist: false);
-          await appSettingsModel.setLanguageCode(normalized);
-        },
-      );
-
-      final arbeitskontextModel = ArbeitskontextModel(
-        localRepository: arbeitskontextLocalRepository,
-        readModelRepository: arbeitskontextReadModelRepository,
-        groupsService: hitobitoGroupsService,
-        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
-        remoteAccessExecutor: authModel.executeRemoteAccess,
-        logger: logger!,
-      );
-      final bundesstatistikModel = BundesstatistikModel(
-        featureEnabled: BundesstatistikEnv.isEnabled,
-        repository: HttpBundesstatistikRepository(
-          baseUrl: BundesstatistikEnv.isEnabled
-              ? BundesstatistikEnv.serverUrl
-              : 'http://localhost',
-          timeout: BundesstatistikEnv.fetchTimeout,
-        ),
-        credentialsRepository: installationCredentialsRepository,
-        teilnahmeRepository: SharedPrefsBundesstatistikTeilnahmeRepository(),
-        networkAccessPolicy: networkAccessPolicy,
-        logger: logger,
-        sendInterval: BundesstatistikEnv.sendInterval,
-      );
-      await bundesstatistikModel.initialize();
-      // Anmeldung und Arbeitskontext bestimmen, ob und was geteilt wird.
-      void syncBundesstatistik() {
-        unawaited(
-          bundesstatistikModel.aktualisiereKontext(
-            personId: authModel.profile?.namiId.toString(),
-            readModel: arbeitskontextModel.readModel,
-            datenstand: authModel.lastSensitiveSyncAt,
-          ),
-        );
-      }
-
-      authModel.addListener(syncBundesstatistik);
-      arbeitskontextModel.addListener(syncBundesstatistik);
-
-      final pendingPersonUpdateRepository = SecurePendingPersonUpdateRepository(
-        sensitiveStorageService: sensitiveStorageService,
-      );
-      final memberWriteRepository = HitobitoMemberWriteRepository(
-        peopleService: hitobitoPeopleService,
-        remoteAccessExecutor: authModel.executeRemoteAccess,
-        logger: logger!,
-      );
-      final achievementService = AchievementService(
-        repository: SharedPrefsAchievementRepository(),
-      );
-      final achievementsModel = AchievementsModel(service: achievementService);
-      unawaited(achievementsModel.load());
-      final memberEditModel = MemberEditModel(
-        memberWriteRepository: memberWriteRepository,
-        pendingRepository: pendingPersonUpdateRepository,
-        logger: logger!,
-        onMemberUpdated: arbeitskontextModel.ersetzeMitglied,
-        onMemberSaved: () =>
-            achievementService.record(AchievementIds.memberEdited),
-      );
-
-      // Globale Fehlerbehandlung: Framework- und ungefangene Fehler loggen/tracken
-      FlutterError.onError = (FlutterErrorDetails details) async {
-        FlutterError.presentError(details);
-        await logger?.logError(
-          'error',
-          'FlutterError',
-          error: details.exception,
-          stackTrace: details.stack,
-        );
-        await logger?.trackRuntimeError(
-          source: 'flutter',
-          error: details.exception,
-          stackTrace: details.stack,
-        );
-      };
-
-      PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
-        // Ungefangene, asynchrone Fehler
-        // ignore: discarded_futures
-        logger?.logError(
-          'error',
-          'Uncaught runtime error',
-          error: error,
-          stackTrace: stack,
-        );
-        // ignore: discarded_futures
-        logger?.trackRuntimeError(
-          source: 'uncaught',
-          error: error,
-          stackTrace: stack,
-        );
-        return true; // Fehler als behandelt markieren
-      };
-
-      // Session-/Arbeitskontext-Initialisierung (inkl. moeglicher voller
-      // Netzwerk-Reloads von Gruppen/Mitgliedern) laeuft bewusst NACH
-      // runApp() statt davor: vorher blockierte diese Kette den allerersten
-      // Flutter-Frame - beim Kaltstart mit unterbrochenem/unvollstaendigem
-      // lokalem Cache blieb der Screen dadurch komplett weiss, bis alles
-      // fertig geladen war. AuthSessionModel/ArbeitskontextModel starten in
-      // einem definierten "initial/initializing"-Zustand und aktualisieren
-      // sich reaktiv per notifyListeners() - die bereits vorhandene Lade-UI
-      // (_buildPlaceholder in navigation_home.page.dart) zeichnet damit auch
-      // hier ihren Spinner/ihre Checkliste, sobald die App-Shell einmal
-      // gemountet ist.
-      Future<void> runStartupInitialization() async {
-        try {
-          await hitobitoAuthConfigController.initialize();
-          await authModel.initialize();
-          await arbeitskontextModel.syncForAuth(
-            authState: authModel.state,
-            session: authModel.session,
-            profile: authModel.profile,
-          );
-          await memberEditModel.loadPending();
-        } catch (error, stack) {
-          await logger?.log(
-            'startup',
-            'Kaltstart-Initialisierung fehlgeschlagen: $error\n$stack',
-          );
-        }
-      }
-
-      runApp(
-        MultiProvider(
-          providers: [
-            ChangeNotifierProvider(
-              create: (_) => ThemeModel(
-                persist: (mode) => settingsRepo.saveThemeMode(mode),
-              )..currentMode = initial.themeMode,
-            ),
-            ChangeNotifierProvider<LocaleModel>.value(value: localeModel),
-            ChangeNotifierProvider<AppearanceModel>.value(
-              value: appearanceModel,
-            ),
-            Provider<AppSettingsRepository>.value(value: settingsRepo),
-            Provider<NetworkAccessPolicy>.value(value: networkAccessPolicy),
-            Provider<AppUpdateService>.value(value: appUpdateService),
-            Provider<DataExpiryNotificationService>.value(
-              value: dataExpiryNotificationService,
-            ),
-            Provider<AppStartupStateService>.value(
-              value: appStartupStateService,
-            ),
-            Provider<AppResetService>.value(value: appResetService),
-            ChangeNotifierProvider<AppSettingsModel>.value(
-              value: appSettingsModel,
-            ),
-            ChangeNotifierProvider<MemberFiltersModel>.value(
-              value: memberFiltersModel,
-            ),
-            ChangeNotifierProvider<UrgentNotificationModel>.value(
-              value: urgentNotificationModel,
-            ),
-            ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
-            ChangeNotifierProvider<ArbeitskontextModel>.value(
-              value: arbeitskontextModel,
-            ),
-            ChangeNotifierProvider<BundesstatistikModel>.value(
-              value: bundesstatistikModel,
-            ),
-            ChangeNotifierProvider<MemberEditModel>.value(
-              value: memberEditModel,
-            ),
-            Provider<AchievementService>.value(value: achievementService),
-            ChangeNotifierProvider<AchievementsModel>.value(
-              value: achievementsModel,
-            ),
-            ChangeNotifierProvider<HitobitoAuthConfigController>.value(
-              value: hitobitoAuthConfigController,
-            ),
-            Provider<LoggerService>.value(value: logger!),
-            Provider<HitobitoTrafficLogService>.value(
-              value: hitobitoTrafficLogService,
-            ),
-            Provider<MapTileCacheService>.value(value: mapTileCacheService),
-            Provider<HitobitoEfzService>.value(value: hitobitoEfzService),
-            Provider<NamiAiService>.value(value: NamiAiService()),
-            Provider<NamiAiStreamService>.value(value: NamiAiStreamService()),
-            Provider<NamiAiDebugLogService>.value(value: namiAiDebugLogService),
-            Provider<NamiAiCorpusLookupService>.value(
-              value: namiAiCorpusLookupService,
-            ),
-            Provider<NamiAiChatHistoryRepository>.value(
-              value: namiAiChatHistoryRepository,
-            ),
-          ],
-          child: const MyApp(),
-        ),
-      );
-      unawaited(runStartupInitialization());
+      await _startApp(appDocDir: appDocDir, mode: await AppModeStore().load());
     },
     (error, stack) {
+      final logger = _activeLogger;
       // Letzte Schutzschicht für unvorhergesehene Fehler
       if (logger != null) {
         // ignore: discarded_futures
-        logger!.log('error', 'Zoned: $error\n$stack');
+        logger.log('error', 'Zoned: $error\n$stack');
         // ignore: discarded_futures
-        logger!.trackRuntimeError(
+        logger.trackRuntimeError(
           source: 'zoned',
           error: error,
           stackTrace: stack,
@@ -458,6 +139,422 @@ void main() {
       }
     },
   );
+}
+
+void _installGlobalErrorHandlers() {
+  // Globale Fehlerbehandlung: Framework- und ungefangene Fehler loggen/tracken
+  FlutterError.onError = (FlutterErrorDetails details) async {
+    FlutterError.presentError(details);
+    await _activeLogger?.logError(
+      'error',
+      'FlutterError',
+      error: details.exception,
+      stackTrace: details.stack,
+    );
+    await _activeLogger?.trackRuntimeError(
+      source: 'flutter',
+      error: details.exception,
+      stackTrace: details.stack,
+    );
+  };
+
+  PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
+    // Ungefangene, asynchrone Fehler
+    // ignore: discarded_futures
+    _activeLogger?.logError(
+      'error',
+      'Uncaught runtime error',
+      error: error,
+      stackTrace: stack,
+    );
+    // ignore: discarded_futures
+    _activeLogger?.trackRuntimeError(
+      source: 'uncaught',
+      error: error,
+      stackTrace: stack,
+    );
+    return true; // Fehler als behandelt markieren
+  };
+}
+
+/// Baut alle App-Abhaengigkeiten fuer [mode] auf und startet die App. Im
+/// Demo-Modus liegen alle sensiblen Daten nur im Speicher, Hitobito wird nicht
+/// angesprochen und die Bundesstatistik laeuft gegen den Mock-Statistikserver.
+Future<void> _startApp({
+  required Directory appDocDir,
+  required AppMode mode,
+}) async {
+  final isDemo = mode == AppMode.demo;
+  // Settings laden und Provider initialisieren
+  final AppSettingsRepository settingsRepo = SharedPrefsAppSettingsRepository();
+  final MemberFilterRepository memberFilterRepository = isDemo
+      ? InMemoryMemberFilterRepository()
+      : SharedPrefsMemberFilterRepository();
+  final appStartupStateService = AppStartupStateService();
+  final AppSettings initial = await settingsRepo.load();
+  final urgentNotificationModel = UrgentNotificationModel();
+  final localeModel = LocaleModel(
+    persist: (code) => settingsRepo.saveLanguageCode(code),
+  )..setLocale(Locale(initial.languageCode), persist: false);
+  final appSettingsModel = AppSettingsModel(initial, settingsRepo);
+  final appearanceModel = AppearanceModel(
+    repository: SharedPrefsAppearanceSettingsRepository(),
+    appIconService: MethodChannelAppIconService(),
+  );
+  await appearanceModel.load();
+  final memberFiltersModel = MemberFiltersModel(memberFilterRepository);
+
+  final logger = LoggerService(
+    settingsRepository: settingsRepo,
+    navigatorKey: navigatorKey,
+    wiredashEventHook: (name, props) async {
+      final ctx = navigatorKey.currentContext;
+      if (ctx == null) return;
+      try {
+        await Wiredash.of(ctx).trackEvent(name, data: props);
+      } catch (_) {}
+    },
+  );
+  final networkAccessPolicy = NetworkAccessPolicy(
+    logger: logger,
+    noMobileDataEnabled: () => appSettingsModel.noMobileDataEnabled,
+  );
+  final appUpdateService = AppUpdateService(
+    networkAccessPolicy: networkAccessPolicy,
+    logger: logger,
+  );
+  _activeLogger = logger;
+  final dataExpiryNotificationService = DataExpiryNotificationService(
+    logger: logger,
+  );
+  final mapTileCacheService = MapTileCacheService(
+    logger: logger,
+    networkAccessPolicy: networkAccessPolicy,
+  );
+  // Update von 0.2.x: alte Daten entfernen, bevor eigene Boxen geoeffnet
+  // werden und die Session geladen wird. Danach ist ein Login noetig.
+  final legacyAppDataCleanupService = LegacyAppDataCleanupService(
+    documentsDirectoryProvider: () async => appDocDir,
+    cancelScheduledNotifications: dataExpiryNotificationService.cancelAll,
+    deleteLegacyMapStore: () => mapTileCacheService.deleteStore(
+      LegacyAppDataCleanupService.legacyMapStoreName,
+    ),
+    logger: logger,
+  );
+  if (!isDemo) {
+    await legacyAppDataCleanupService.runIfNeeded();
+  }
+  final hitobitoTrafficLogService = HitobitoTrafficLogService();
+  final namiAiDebugLogService = NamiAiDebugLogService();
+  final namiAiCorpusLookupService = NamiAiCorpusLookupService();
+
+  final sensitiveStorageService = isDemo
+      ? DemoSensitiveStorageService()
+      : SensitiveStorageService();
+  if (isDemo) {
+    // Jeder Demo-Start beginnt mit frischen Demo-Daten.
+    await sensitiveStorageService.purgeSensitiveData();
+  }
+  final AuthSessionRepository authSessionRepository = isDemo
+      ? InMemoryAuthSessionRepository()
+      : SecureAuthSessionRepository();
+  final authProfileRepository = SecureAuthProfileRepository(
+    sensitiveStorageService: sensitiveStorageService,
+  );
+  final arbeitskontextLocalRepository = SecureArbeitskontextLocalRepository(
+    sensitiveStorageService: sensitiveStorageService,
+  );
+  final namiAiChatHistoryRepository = NamiAiChatHistoryLocalRepository(
+    sensitiveStorageService: sensitiveStorageService,
+  );
+  final envAuthConfig = isDemo ? demoAuthConfig : HitobitoAuthEnv.authConfig;
+  final oauthService = isDemo
+      ? DemoOauthService()
+      : HitobitoOauthService(config: envAuthConfig, logger: logger);
+  final hitobitoGroupsService = isDemo
+      ? DemoHitobitoGroupsService()
+      : HitobitoGroupsService(
+          config: envAuthConfig,
+          trafficLogService: hitobitoTrafficLogService,
+          logger: logger,
+        );
+  final hitobitoPeopleService = HitobitoPeopleService(
+    config: envAuthConfig,
+    trafficLogService: hitobitoTrafficLogService,
+    logger: logger,
+  );
+  final hitobitoRolesService = HitobitoRolesService(
+    config: envAuthConfig,
+    trafficLogService: hitobitoTrafficLogService,
+    logger: logger,
+  );
+  final hitobitoEfzService = isDemo
+      ? DemoHitobitoEfzService()
+      : HitobitoEfzService(
+          config: envAuthConfig,
+          trafficLogService: hitobitoTrafficLogService,
+          logger: logger,
+        );
+  final hitobitoAuthConfigController = HitobitoAuthConfigController(
+    sensitiveStorageService: sensitiveStorageService,
+    oauthService: oauthService,
+    groupsService: hitobitoGroupsService,
+    peopleService: hitobitoPeopleService,
+    rolesService: hitobitoRolesService,
+    efzService: hitobitoEfzService,
+    logger: logger,
+    envConfig: envAuthConfig,
+  );
+  final ArbeitskontextReadModelRepository arbeitskontextReadModelRepository =
+      isDemo
+      ? DemoArbeitskontextReadModelRepository()
+      : HitobitoArbeitskontextReadModelRepository(
+          groupsService: hitobitoGroupsService,
+          peopleService: hitobitoPeopleService,
+          rolesService: hitobitoRolesService,
+          localRepository: arbeitskontextLocalRepository,
+          logger: logger,
+        );
+  final InstallationCredentialsRepository installationCredentialsRepository =
+      isDemo
+      ? InMemoryInstallationCredentialsRepository()
+      : SecureInstallationCredentialsRepository();
+  final appResetService = AppResetService(
+    clearInstallationCredentials: installationCredentialsRepository.clear,
+    authSessionRepository: authSessionRepository,
+    sensitiveStorageService: sensitiveStorageService,
+    logFileProvider: logger.getLogFile,
+    clearLogs: logger.clearAllLogs,
+    clearHitobitoTrafficLogs: hitobitoTrafficLogService.clearAllLogs,
+    clearMapCache: mapTileCacheService.deleteRoot,
+    clearLegacyData: legacyAppDataCleanupService.deleteLegacyData,
+  );
+
+  final authModel = AuthSessionModel(
+    repository: authSessionRepository,
+    profileRepository: authProfileRepository,
+    oauthService: oauthService,
+    biometricLockService: BiometricLockService(logger: logger),
+    sensitiveStorageService: sensitiveStorageService,
+    retentionPolicy: HitobitoDataRetentionPolicy(
+      maxDataAge: HitobitoAuthEnv.maxDataAge,
+      refreshInterval: HitobitoAuthEnv.refreshInterval,
+    ),
+    logger: logger,
+    networkAccessPolicy: networkAccessPolicy,
+    isAppLockEnabled: () => !isDemo && appSettingsModel.biometricLockEnabled,
+    lockTimeout: HitobitoAuthEnv.appLockTimeout,
+    onPreferredLanguageChanged: (languageCode) async {
+      final normalized = AuthProfile.normalizeLanguageCode(languageCode);
+      localeModel.setLocale(Locale(normalized), persist: false);
+      await appSettingsModel.setLanguageCode(normalized);
+    },
+  );
+
+  final arbeitskontextModel = ArbeitskontextModel(
+    localRepository: arbeitskontextLocalRepository,
+    readModelRepository: arbeitskontextReadModelRepository,
+    groupsService: hitobitoGroupsService,
+    bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+    remoteAccessExecutor: authModel.executeRemoteAccess,
+    logger: logger,
+  );
+  // Im Demo sendet der erfundene Stamm an den Mock-Statistikserver und
+  // erhaelt von dort synthetische Bundeswerte.
+  final bundesstatistikServerUrl = isDemo
+      ? BundesstatistikEnv.demoServerUrl
+      : BundesstatistikEnv.serverUrl;
+  final bundesstatistikEnabled = isDemo || BundesstatistikEnv.isEnabled;
+  final bundesstatistikModel = BundesstatistikModel(
+    featureEnabled: bundesstatistikEnabled,
+    repository: HttpBundesstatistikRepository(
+      baseUrl: bundesstatistikEnabled
+          ? bundesstatistikServerUrl
+          : 'http://localhost',
+      timeout: BundesstatistikEnv.fetchTimeout,
+    ),
+    credentialsRepository: installationCredentialsRepository,
+    teilnahmeRepository: isDemo
+        ? InMemoryBundesstatistikTeilnahmeRepository(
+            initial: BundesstatistikTeilnahme.leer.mitEinwilligung(
+              DemoData.profile.namiId.toString(),
+              DateTime.now(),
+            ),
+          )
+        : SharedPrefsBundesstatistikTeilnahmeRepository(),
+    networkAccessPolicy: networkAccessPolicy,
+    logger: logger,
+    sendInterval: BundesstatistikEnv.sendInterval,
+  );
+  await bundesstatistikModel.initialize();
+  // Anmeldung und Arbeitskontext bestimmen, ob und was geteilt wird.
+  void syncBundesstatistik() {
+    unawaited(
+      bundesstatistikModel.aktualisiereKontext(
+        personId: authModel.profile?.namiId.toString(),
+        readModel: arbeitskontextModel.readModel,
+        datenstand: authModel.lastSensitiveSyncAt,
+      ),
+    );
+  }
+
+  authModel.addListener(syncBundesstatistik);
+  arbeitskontextModel.addListener(syncBundesstatistik);
+
+  final pendingPersonUpdateRepository = SecurePendingPersonUpdateRepository(
+    sensitiveStorageService: sensitiveStorageService,
+  );
+  final MemberWriteRepository memberWriteRepository = isDemo
+      ? ReadOnlyMemberWriteRepository()
+      : HitobitoMemberWriteRepository(
+          peopleService: hitobitoPeopleService,
+          remoteAccessExecutor: authModel.executeRemoteAccess,
+          logger: logger,
+        );
+  final achievementService = AchievementService(
+    repository: isDemo
+        ? InMemoryAchievementRepository()
+        : SharedPrefsAchievementRepository(),
+  );
+  final achievementsModel = AchievementsModel(service: achievementService);
+  unawaited(achievementsModel.load());
+  final memberEditModel = MemberEditModel(
+    memberWriteRepository: memberWriteRepository,
+    pendingRepository: pendingPersonUpdateRepository,
+    logger: logger,
+    onMemberUpdated: arbeitskontextModel.ersetzeMitglied,
+    onMemberSaved: () => achievementService.record(AchievementIds.memberEdited),
+  );
+
+  // Session-/Arbeitskontext-Initialisierung (inkl. moeglicher voller
+  // Netzwerk-Reloads von Gruppen/Mitgliedern) laeuft bewusst NACH
+  // runApp() statt davor: vorher blockierte diese Kette den allerersten
+  // Flutter-Frame - beim Kaltstart mit unterbrochenem/unvollstaendigem
+  // lokalem Cache blieb der Screen dadurch komplett weiss, bis alles
+  // fertig geladen war. AuthSessionModel/ArbeitskontextModel starten in
+  // einem definierten "initial/initializing"-Zustand und aktualisieren
+  // sich reaktiv per notifyListeners() - die bereits vorhandene Lade-UI
+  // (_buildPlaceholder in navigation_home.page.dart) zeichnet damit auch
+  // hier ihren Spinner/ihre Checkliste, sobald die App-Shell einmal
+  // gemountet ist.
+  Future<void> runStartupInitialization() async {
+    try {
+      if (!isDemo) {
+        await hitobitoAuthConfigController.initialize();
+      }
+      await authModel.initialize();
+      if (isDemo && authModel.state == AuthState.signedOut) {
+        // Der Demo-Zugang meldet sich wie ein echter Login an und laedt
+        // danach den Demo-Stamm.
+        await authModel.signInWithAuthenticatedSession(DemoData.session());
+      }
+      await arbeitskontextModel.syncForAuth(
+        authState: authModel.state,
+        session: authModel.session,
+        profile: authModel.profile,
+      );
+      if (isDemo && arbeitskontextModel.readModel != null) {
+        await authModel.markSensitiveDataSynced();
+      }
+      await memberEditModel.loadPending();
+    } catch (error, stack) {
+      await logger.log(
+        'startup',
+        'Kaltstart-Initialisierung fehlgeschlagen: $error\n$stack',
+      );
+    }
+  }
+
+  late final AppModeController appModeController;
+  appModeController = AppModeController(
+    mode: mode,
+    switchMode: (nextMode) async {
+      if (nextMode == mode) {
+        return;
+      }
+      await logger.log(
+        'app_mode',
+        'Wechsel von ${mode.name} zu ${nextMode.name}',
+      );
+      scaffoldMessengerKey.currentState
+        ?..hideCurrentSnackBar()
+        ..hideCurrentMaterialBanner();
+      navigatorKey.currentState?.popUntil((route) => route.isFirst);
+      if (isDemo) {
+        await authModel.logout();
+      }
+      await AppModeStore().save(nextMode);
+      // Alten Baum vollstaendig abbauen, bevor der neue die globalen Keys
+      // (Navigator, ScaffoldMessenger) uebernimmt. Sonst wuerde Flutter
+      // deren State samt Referenzen auf die alten Models weiterverwenden.
+      runApp(const ColoredBox(color: Color(0xFFFFFFFF)));
+      await WidgetsBinding.instance.endOfFrame;
+      await _startApp(appDocDir: appDocDir, mode: nextMode);
+    },
+  );
+
+  runApp(
+    MultiProvider(
+      key: ValueKey<int>(++_appGeneration),
+      providers: [
+        Provider<AppModeController>.value(value: appModeController),
+        ChangeNotifierProvider(
+          create: (_) =>
+              ThemeModel(persist: (mode) => settingsRepo.saveThemeMode(mode))
+                ..currentMode = initial.themeMode,
+        ),
+        ChangeNotifierProvider<LocaleModel>.value(value: localeModel),
+        ChangeNotifierProvider<AppearanceModel>.value(value: appearanceModel),
+        Provider<AppSettingsRepository>.value(value: settingsRepo),
+        Provider<NetworkAccessPolicy>.value(value: networkAccessPolicy),
+        Provider<AppUpdateService>.value(value: appUpdateService),
+        Provider<DataExpiryNotificationService>.value(
+          value: dataExpiryNotificationService,
+        ),
+        Provider<AppStartupStateService>.value(value: appStartupStateService),
+        Provider<AppResetService>.value(value: appResetService),
+        ChangeNotifierProvider<AppSettingsModel>.value(value: appSettingsModel),
+        ChangeNotifierProvider<MemberFiltersModel>.value(
+          value: memberFiltersModel,
+        ),
+        ChangeNotifierProvider<UrgentNotificationModel>.value(
+          value: urgentNotificationModel,
+        ),
+        ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
+        ChangeNotifierProvider<ArbeitskontextModel>.value(
+          value: arbeitskontextModel,
+        ),
+        ChangeNotifierProvider<BundesstatistikModel>.value(
+          value: bundesstatistikModel,
+        ),
+        ChangeNotifierProvider<MemberEditModel>.value(value: memberEditModel),
+        Provider<AchievementService>.value(value: achievementService),
+        ChangeNotifierProvider<AchievementsModel>.value(
+          value: achievementsModel,
+        ),
+        ChangeNotifierProvider<HitobitoAuthConfigController>.value(
+          value: hitobitoAuthConfigController,
+        ),
+        Provider<LoggerService>.value(value: logger),
+        Provider<HitobitoTrafficLogService>.value(
+          value: hitobitoTrafficLogService,
+        ),
+        Provider<MapTileCacheService>.value(value: mapTileCacheService),
+        Provider<HitobitoEfzService>.value(value: hitobitoEfzService),
+        Provider<NamiAiService>.value(value: NamiAiService()),
+        Provider<NamiAiStreamService>.value(value: NamiAiStreamService()),
+        Provider<NamiAiDebugLogService>.value(value: namiAiDebugLogService),
+        Provider<NamiAiCorpusLookupService>.value(
+          value: namiAiCorpusLookupService,
+        ),
+        Provider<NamiAiChatHistoryRepository>.value(
+          value: namiAiChatHistoryRepository,
+        ),
+      ],
+      child: const MyApp(),
+    ),
+  );
+  unawaited(runStartupInitialization());
 }
 
 class MyApp extends StatefulWidget {
@@ -484,6 +581,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   late final DataExpiryNotificationService _dataExpiryNotificationService;
   late final UrgentNotificationModel _urgentNotificationModel;
   late final AppRuntimeController _appRuntimeController;
+  late final bool _isDemo;
   late final Connectivity _connectivity;
   late final WifiSyncTrigger _wifiSyncTrigger;
   late bool _lastNoMobileDataEnabled;
@@ -510,6 +608,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     // Start Nutzungs-Session beim App-Start
     logger = context.read<LoggerService>();
+    _isDemo = context.read<AppModeController>().isDemo;
     _authModel = context.read<AuthSessionModel>();
     _arbeitskontextModel = context.read<ArbeitskontextModel>();
     _appSettingsModel = context.read<AppSettingsModel>();
@@ -598,6 +697,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   }
 
   void _syncDataExpiryReminder() {
+    if (_isDemo) {
+      // Demo-Daten laufen nicht ab.
+      return;
+    }
     final remaining = _authModel.remainingUntilRelogin;
     final isActive =
         _authModel.hasRemoteAccessIssue &&
@@ -660,6 +763,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     scaffoldMessengerKey.currentState?.hideCurrentMaterialBanner();
 
     try {
+      if (_isDemo) {
+        // Willkommen, Update- und Feedback-Hinweise gehoeren zur echten
+        // Installation und sollen deren Zustand nicht veraendern.
+        _startupFlowCompleted = true;
+        return;
+      }
       final hasSeenWelcome = await _appStartupStateService.hasSeenWelcome();
       if (!hasSeenWelcome) {
         await showWelcomeDialog(dialogContext);
@@ -743,6 +852,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   void _startPendingRetryTimer() {
     _pendingRetryTimer?.cancel();
+    if (_isDemo) {
+      // Der Demo-Zugang ist nur lesend, es gibt nichts nachzusenden.
+      return;
+    }
     _pendingRetryTimer = Timer.periodic(_pendingRetryInterval, (_) {
       unawaited(
         _retryPendingPersonUpdatesIfPossible(trigger: 'pending_retry_timer'),
@@ -1174,7 +1287,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 AppLocalizations.delegate,
               ],
               builder: (context, child) {
-                return Stack(
+                final content = Stack(
                   fit: StackFit.expand,
                   children: [
                     ?child,
@@ -1184,6 +1297,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                       immediate: useImmediateFeedback,
                     ),
                   ],
+                );
+                if (!_isDemo) {
+                  return content;
+                }
+                return Banner(
+                  message: AppLocalizations.of(context).t('demo_ribbon'),
+                  location: BannerLocation.topStart,
+                  color: Theme.of(context).colorScheme.tertiary,
+                  child: content,
                 );
               },
               supportedLocales: const [Locale('de'), Locale('en')],

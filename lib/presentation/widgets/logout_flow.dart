@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../services/app_mode_controller.dart';
 import '../model/auth_session_model.dart';
 import '../model/member_edit_model.dart';
 
@@ -12,6 +13,12 @@ import '../model/member_edit_model.dart';
 /// Aenderungen. Deshalb wird zuerst einmal gesendet; bleibt danach etwas
 /// uebrig, muss der Nutzer den Verlust bestaetigen.
 Future<void> runLogoutFlow(BuildContext context) async {
+  final appModeController = context.read<AppModeController?>();
+  if (appModeController?.isDemo ?? false) {
+    // Abmelden beendet im Demo den Demo-Zugang; es gibt keine Aenderungen.
+    await appModeController!.exitDemo();
+    return;
+  }
   final authModel = context.read<AuthSessionModel>();
   final memberEditModel = context.read<MemberEditModel?>();
   final t = AppLocalizations.of(context);

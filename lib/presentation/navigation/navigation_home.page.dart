@@ -17,6 +17,7 @@ import 'package:nami/presentation/widgets/app_bottom_navigation.dart';
 import 'package:nami/presentation/widgets/logout_flow.dart';
 import 'package:nami/presentation/widgets/supporter_backdrop.dart';
 import 'package:nami/services/achievement_service.dart';
+import 'package:nami/services/app_mode_controller.dart';
 import 'package:nami/services/logger_service.dart';
 import 'package:provider/provider.dart';
 
@@ -36,6 +37,9 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
     'stage_change',
     'settings',
   ];
+
+  bool _isDemo(BuildContext context) =>
+      context.read<AppModeController?>()?.isDemo ?? false;
 
   @override
   Widget build(BuildContext context) {
@@ -92,8 +96,13 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
           onProfile: _isProfileAvailable(authModel, arbeitskontextModel)
               ? () => Navigator.pushNamed(context, AppRoutes.profile)
               : null,
-          onDebugTools: () =>
-              Navigator.pushNamed(context, AppRoutes.debugTools),
+          onExitDemo: _isDemo(context)
+              ? context.read<AppModeController>().exitDemo
+              : null,
+          // Die Debug-Tools wirken auf die echte Installation.
+          onDebugTools: _isDemo(context)
+              ? null
+              : () => Navigator.pushNamed(context, AppRoutes.debugTools),
           onNotificationSettings: () =>
               Navigator.pushNamed(context, AppRoutes.settingsNotification),
         );
@@ -290,10 +299,8 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
               ? t.t('auth_login_body')
               : t.t('auth_not_configured_body'),
           errorMessage: authModel.errorMessage,
-          child: FilledButton.icon(
-            onPressed: authModel.isConfigured ? authModel.signIn : null,
-            icon: const Icon(Icons.login),
-            label: Text(t.t('auth_login_action')),
+          child: _LoginActions(
+            onSignIn: authModel.isConfigured ? authModel.signIn : null,
           ),
         );
       case AuthState.unlockRequired:
@@ -395,6 +402,44 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
           throw StateError('Rollen konnten nicht vollstaendig geladen werden.');
         }
       },
+    );
+  }
+}
+
+class _LoginActions extends StatelessWidget {
+  const _LoginActions({required this.onSignIn});
+
+  final VoidCallback? onSignIn;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final appModeController = context.read<AppModeController?>();
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        FilledButton.icon(
+          onPressed: onSignIn,
+          icon: const Icon(Icons.login),
+          label: Text(t.t('auth_login_action')),
+        ),
+        if (appModeController != null) ...[
+          const SizedBox(height: 24),
+          OutlinedButton.icon(
+            key: const Key('demo-start'),
+            onPressed: appModeController.enterDemo,
+            icon: const Icon(Icons.visibility_outlined),
+            label: Text(t.t('demo_start_action')),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            t.t('demo_start_hint'),
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall,
+          ),
+        ],
+      ],
     );
   }
 }
