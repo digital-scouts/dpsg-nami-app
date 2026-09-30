@@ -9,14 +9,28 @@ import '../statistics/statistics_ui.dart';
 import '../widgets/bundesstatistik_einwilligung_dialog.dart';
 
 /// Bundesweiter Vergleich mit Einwilligung und Transparenz ueber geteilte Daten.
-class BundesvergleichPage extends StatefulWidget {
+class BundesvergleichPage extends StatelessWidget {
   const BundesvergleichPage({super.key});
 
   @override
-  State<BundesvergleichPage> createState() => _BundesvergleichPageState();
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Bundesweiter Vergleich')),
+      body: const BundesvergleichBody(),
+    );
+  }
 }
 
-class _BundesvergleichPageState extends State<BundesvergleichPage> {
+/// Inhalt des bundesweiten Vergleichs, angebunden an [BundesstatistikModel];
+/// genutzt von [BundesvergleichPage] und dem Statistik-Tab "Bundesweit".
+class BundesvergleichBody extends StatefulWidget {
+  const BundesvergleichBody({super.key});
+
+  @override
+  State<BundesvergleichBody> createState() => _BundesvergleichBodyState();
+}
+
+class _BundesvergleichBodyState extends State<BundesvergleichBody> {
   @override
   void initState() {
     super.initState();
@@ -42,20 +56,17 @@ class _BundesvergleichPageState extends State<BundesvergleichPage> {
   @override
   Widget build(BuildContext context) {
     final model = context.watch<BundesstatistikModel>();
-    return Scaffold(
-      appBar: AppBar(title: const Text('Bundesweiter Vergleich')),
-      body: RefreshIndicator(
-        onRefresh: model.hatEinwilligung ? model.aktualisieren : () async {},
-        child: BundesvergleichView(
-          status: model.status,
-          hatEinwilligung: model.hatEinwilligung,
-          isBusy: model.isBusy,
-          aggregat: model.aggregat,
-          eigeneKennzahlen: model.eigeneKennzahlen,
-          zuletztGesendet: model.zuletztGesendeterSnapshot,
-          einwilligungAm: model.einwilligungAm,
-          onEinwilligungAendern: _einwilligungAendern,
-        ),
+    return RefreshIndicator(
+      onRefresh: model.hatEinwilligung ? model.aktualisieren : () async {},
+      child: BundesvergleichView(
+        status: model.status,
+        hatEinwilligung: model.hatEinwilligung,
+        isBusy: model.isBusy,
+        aggregat: model.aggregat,
+        eigeneKennzahlen: model.eigeneKennzahlen,
+        zuletztGesendet: model.zuletztGesendeterSnapshot,
+        einwilligungAm: model.einwilligungAm,
+        onEinwilligungAendern: _einwilligungAendern,
       ),
     );
   }
@@ -97,15 +108,29 @@ class BundesvergleichView extends StatelessWidget {
     final zeigeVergleich =
         status == BundesstatistikStatus.bereit && aggregat != null;
 
+    if (status == BundesstatistikStatus.nichtVerfuegbar) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        children: [_StatusHinweis(status: status, aggregat: aggregat)],
+      );
+    }
+
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       children: [
-        _EinwilligungCard(
-          hatEinwilligung: hatEinwilligung,
-          einwilligungAm: einwilligungAm,
-          onChanged: onEinwilligungAendern,
-        ),
+        if (hatEinwilligung)
+          _EinwilligungCard(
+            hatEinwilligung: hatEinwilligung,
+            einwilligungAm: einwilligungAm,
+            onChanged: onEinwilligungAendern,
+          )
+        else
+          _TeilnahmeCard(
+            isBusy: isBusy,
+            onTeilnehmen: () => onEinwilligungAendern(true),
+          ),
         const SizedBox(height: 12),
         if (isBusy && aggregat == null)
           const Padding(
@@ -360,6 +385,59 @@ class _EinwilligungCard extends StatelessWidget {
   }
 }
 
+/// Einladung zum Opt-in, solange der Stamm seine Zahlen nicht teilt.
+class _TeilnahmeCard extends StatelessWidget {
+  const _TeilnahmeCard({required this.isBusy, required this.onTeilnehmen});
+
+  final bool isBusy;
+  final VoidCallback onTeilnehmen;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      key: const Key('bundesstatistik-teilnahme'),
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.public, color: theme.colorScheme.primary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Mit Stämmen bundesweit vergleichen',
+                    style: theme.textTheme.titleMedium,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Teile die zusammengefassten Anzahlen deines Stammes und sieh im '
+              'Gegenzug, wie sich Stufen, Leitende und Geschlechter bundesweit '
+              'verteilen. Namen oder Einzeldaten verlassen die App nicht.',
+              style: theme.textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton.icon(
+                onPressed: isBusy ? null : onTeilnehmen,
+                icon: const Icon(Icons.check),
+                label: const Text('Jetzt teilnehmen'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _StatusHinweis extends StatelessWidget {
   const _StatusHinweis({required this.status, required this.aggregat});
 
@@ -384,6 +462,8 @@ class _StatusHinweis extends StatelessWidget {
         'Der Statistikserver hat die Zahlen deines Stammes abgelehnt. '
             'Vermutlich passen App und Server nicht zusammen; bitte die App '
             'aktualisieren.',
+      BundesstatistikStatus.nichtVerfuegbar =>
+        'Der bundesweite Vergleich ist in dieser App-Version nicht verfügbar.',
       BundesstatistikStatus.fehler =>
         'Der Statistikserver ist derzeit nicht erreichbar. Die App versucht '
             'es beim nächsten Synchronisieren erneut.',

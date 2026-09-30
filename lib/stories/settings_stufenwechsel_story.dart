@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:nami/data/settings/in_memory_stufen_settings_repository.dart';
+import 'package:nami/domain/appearance/appearance_catalog.dart';
+import 'package:nami/domain/settings/stufen_settings.dart';
 import 'package:nami/domain/stufe/altersgrenzen.dart';
 import 'package:nami/domain/stufe/usecases/update_altersgrenzen_usecase.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/notifications/app_snackbar.dart';
+import 'package:nami/presentation/screens/settings_stufenwechsel_page.dart';
 import 'package:nami/presentation/widgets/settings_stufenwechsel.dart';
 import 'package:nami/presentation/widgets/settings_stufenwechsel_minmax.dart';
+import 'package:nami/stories/store/store_showcase_data.dart';
+import 'package:nami/stories/story_tab_shell.dart';
 // ignore: depend_on_referenced_packages
 import 'package:storybook_flutter/storybook_flutter.dart';
 
@@ -144,4 +149,73 @@ Story stufenwechselSettingsMinMaxStory() {
       );
     },
   );
+}
+
+Story stufenwechselPageStory() {
+  return Story(
+    name: 'Stufenwechsel/Seite',
+    builder: (context) {
+      final background = storyHeaderBackgroundKnob(context.knobs);
+      final dark = context.knobs.boolean(label: 'Dunkel', initial: false);
+      final mitDatum = context.knobs.boolean(
+        label: 'Stichtag festgelegt',
+        initial: true,
+      );
+      final loading = context.knobs.boolean(
+        label: 'Mit Lade-Info',
+        initial: false,
+      );
+      return StufenwechselPageStoryScene(
+        background: background,
+        dark: dark,
+        mitDatum: mitDatum,
+        showLoadingInfo: loading,
+      );
+    },
+  );
+}
+
+/// Stufenwechsel-Tab wie in der App, mit Beispieldaten. Der Stichtag wird
+/// nur im Speicher geaendert.
+class StufenwechselPageStoryScene extends StatelessWidget {
+  const StufenwechselPageStoryScene({
+    super.key,
+    required this.background,
+    this.dark = false,
+    this.mitDatum = true,
+    this.showLoadingInfo = false,
+    this.simulateTopInset = true,
+  });
+
+  final AppearanceBackgroundId? background;
+  final bool dark;
+  final bool mitDatum;
+  final bool showLoadingInfo;
+  final bool simulateTopInset;
+
+  @override
+  Widget build(BuildContext context) {
+    final today = DateTime.now();
+    final naechsterWechsel = today.isAfter(DateTime(today.year, 9, 1))
+        ? DateTime(today.year + 1, 9, 1)
+        : DateTime(today.year, 9, 1);
+    return StoryTabPage(
+      key: ValueKey('$background-$dark-$mitDatum-$showLoadingInfo'),
+      tabIndex: 2,
+      background: background,
+      dark: dark,
+      showLoadingInfo: showLoadingInfo,
+      simulateTopInset: simulateTopInset,
+      child: SettingsStufenwechselPage(
+        showAppBar: false,
+        debugReadModel: StoreShowcaseData.readModel(today: today),
+        stufenSettingsLoader: () async => StufenSettings(
+          grenzen: StufenDefaults.build(),
+          stufenwechselDatum: mitDatum ? naechsterWechsel : null,
+        ),
+        stufenwechselDatumSaver: (_) async {},
+        todayProvider: () => today,
+      ),
+    );
+  }
 }

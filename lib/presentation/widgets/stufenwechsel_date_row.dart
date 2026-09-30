@@ -2,6 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/format/date_formatters.dart';
 
+/// Waehlt das Datum des naechsten Stufenwechsels; `null` bei Abbruch.
+Future<DateTime?> pickStufenwechselDatum(
+  BuildContext context, {
+  DateTime? initial,
+}) {
+  final now = DateTime.now();
+  return showDatePicker(
+    context: context,
+    initialDate: initial ?? now,
+    firstDate: now.subtract(const Duration(days: 365 * 2)),
+    lastDate: now.add(const Duration(days: 365 * 2)),
+  );
+}
+
 class StufenwechselDateRow extends StatefulWidget {
   final DateTime? date;
   final void Function(DateTime? date)? onDateChanged;
@@ -30,13 +44,7 @@ class _StufenwechselDateRowState extends State<StufenwechselDateRow> {
   }
 
   Future<void> _pickDate() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _date ?? now,
-      firstDate: now.subtract(const Duration(days: 365 * 2)),
-      lastDate: now.add(const Duration(days: 365 * 2)),
-    );
+    final picked = await pickStufenwechselDatum(context, initial: _date);
     if (picked != null) {
       setState(() => _date = picked);
       widget.onDateChanged?.call(_date);

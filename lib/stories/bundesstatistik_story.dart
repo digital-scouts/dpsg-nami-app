@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 // ignore: depend_on_referenced_packages
 import 'package:storybook_flutter/storybook_flutter.dart';
 
+import '../domain/arbeitskontext/arbeitskontext_read_model.dart';
 import '../domain/bundesstatistik/bundesaggregat.dart';
+import '../domain/bundesstatistik/bundesstatistik_repository.dart';
+import '../domain/bundesstatistik/bundesstatistik_teilnahme.dart';
+import '../domain/bundesstatistik/installation_credentials.dart';
 import '../domain/bundesstatistik/stammes_snapshot.dart';
 import '../presentation/model/bundesstatistik_model.dart';
 import '../presentation/screens/bundesvergleich_page.dart';
-import '../presentation/statistics/bundesstatistik_card.dart';
 import '../presentation/widgets/bundesstatistik_einwilligung_dialog.dart';
 
 const List<Option<BundesstatistikStatus>> _statusOptionen = [
@@ -31,34 +34,6 @@ const List<Option<BundesstatistikStatus>> _statusOptionen = [
   Option(label: 'Abgelehnt', value: BundesstatistikStatus.abgelehnt),
   Option(label: 'Fehler', value: BundesstatistikStatus.fehler),
 ];
-
-Story bundesstatistikCardStory() {
-  return Story(
-    name: 'Statistik/Bundesweit/Karte',
-    builder: (context) {
-      final status = context.knobs.options<BundesstatistikStatus>(
-        label: 'Status',
-        initial: BundesstatistikStatus.keineEinwilligung,
-        options: _statusOptionen,
-      );
-      final isBusy = context.knobs.boolean(label: 'Lädt', initial: false);
-      return MaterialApp(
-        home: Scaffold(
-          body: Padding(
-            padding: const EdgeInsets.all(16),
-            child: BundesstatistikCard(
-              status: status,
-              teilnehmendeStaemme: 23,
-              isBusy: isBusy,
-              onEinwilligen: () {},
-              onOeffnen: () {},
-            ),
-          ),
-        ),
-      );
-    },
-  );
-}
 
 Story bundesvergleichStory() {
   return Story(
@@ -250,3 +225,97 @@ final _zuWenigAggregat = Bundesaggregat(
   hinweis: '',
   kennzahlen: const {},
 );
+
+/// Zustaende des Bundesweit-Tabs fuer Stories.
+enum StoryBundesstatistikSzenario {
+  optIn('Opt-in (keine Einwilligung)'),
+  daten('Vergleich mit Daten'),
+  zuWenigTeilnehmende('Zu wenig Teilnehmende'),
+  fehler('Technischer Fehler'),
+  nichtVerfuegbar('Nicht verfügbar');
+
+  const StoryBundesstatistikSzenario(this.label);
+
+  final String label;
+}
+
+/// [BundesstatistikModel] ohne Server fuer Stories. Beim Opt-in liefert es
+/// nach der Einwilligung [bundesstatistikBeispielAggregat].
+BundesstatistikModel storyBundesstatistikModel(
+  ArbeitskontextReadModel readModel, {
+  StoryBundesstatistikSzenario szenario = StoryBundesstatistikSzenario.optIn,
+}) {
+  final model = BundesstatistikModel(
+    featureEnabled: szenario != StoryBundesstatistikSzenario.nichtVerfuegbar,
+    repository: _StoryBundesstatistikRepository(switch (szenario) {
+      StoryBundesstatistikSzenario.zuWenigTeilnehmende => _zuWenigAggregat,
+      StoryBundesstatistikSzenario.fehler => null,
+      _ => bundesstatistikBeispielAggregat,
+    }),
+    credentialsRepository: _StoryCredentialsRepository(),
+    teilnahmeRepository: _StoryTeilnahmeRepository(),
+  );
+  model
+      .aktualisiereKontext(
+        personId: 'story',
+        readModel: readModel,
+        datenstand: null,
+      )
+      .then((_) {
+        if (szenario != StoryBundesstatistikSzenario.optIn) {
+          return model.setzeEinwilligung(true);
+        }
+      });
+  return model;
+}
+
+class _StoryBundesstatistikRepository implements BundesstatistikRepository {
+  _StoryBundesstatistikRepository(this._aggregat);
+
+  /// `null`: Server nicht erreichbar.
+  final Bundesaggregat? _aggregat;
+
+  @override
+  Future<void> sendeSnapshot(
+    StammesSnapshot snapshot,
+    InstallationCredentials credentials,
+  ) async {}
+
+  @override
+  Future<Bundesaggregat> ladeBundesaggregat(
+    InstallationCredentials credentials,
+  ) async {
+    final aggregat = _aggregat;
+    if (aggregat == null) {
+      throw const BundesstatistikException(BundesstatistikFehlerArt.netzwerk);
+    }
+    return aggregat;
+  }
+}
+
+class _StoryCredentialsRepository implements InstallationCredentialsRepository {
+  static const _credentials = InstallationCredentials(
+    id: 'story',
+    secret: 'story',
+  );
+
+  @override
+  Future<InstallationCredentials> loadOrCreate() async => _credentials;
+
+  @override
+  Future<InstallationCredentials> regenerate() async => _credentials;
+
+  @override
+  Future<void> clear() async {}
+}
+
+class _StoryTeilnahmeRepository implements BundesstatistikTeilnahmeRepository {
+  BundesstatistikTeilnahme _stored = BundesstatistikTeilnahme.leer;
+
+  @override
+  Future<BundesstatistikTeilnahme> load() async => _stored;
+
+  @override
+  Future<void> save(BundesstatistikTeilnahme teilnahme) async =>
+      _stored = teilnahme;
+}

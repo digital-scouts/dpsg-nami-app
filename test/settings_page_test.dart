@@ -31,6 +31,7 @@ void main() {
     FutureOr<void> Function()? onMessages,
     VoidCallback? onNamiAi,
     VoidCallback? onNamiAiPaywall,
+    VoidCallback? onProfile,
     Future<NamiAiAccessDecision> Function()? namiAiAccessLoader,
     Future<List<AppHubNotification>> Function()?
     unreadExternalNotificationsLoader,
@@ -55,12 +56,110 @@ void main() {
           onMessages: onMessages,
           onNamiAi: onNamiAi,
           onNamiAiPaywall: onNamiAiPaywall,
+          onProfile: onProfile,
           namiAiAccessLoader: namiAiAccessLoader,
           unreadExternalNotificationsLoader: unreadExternalNotificationsLoader,
         ),
       ),
     );
   }
+
+  AuthSessionModel buildAuthModel({AuthProfile? profile}) => _ProfileAuthModel(
+    fixedProfile: profile,
+    repository: _InMemoryAuthSessionRepository(),
+    profileRepository: _InMemoryAuthProfileRepository(),
+    oauthService: _FakeOauthService(),
+    biometricLockService: _FakeBiometricLockService(),
+    sensitiveStorageService: _FakeSensitiveStorageService(),
+    retentionPolicy: HitobitoDataRetentionPolicy(
+      maxDataAge: const Duration(days: 90),
+      refreshInterval: const Duration(hours: 24),
+    ),
+    logger: _FakeLoggerService(),
+  );
+
+  testWidgets('Profil-Header zeigt Name und oeffnet das Profil', (
+    tester,
+  ) async {
+    final authModel = buildAuthModel(
+      profile: const AuthProfile(
+        namiId: 34,
+        email: 'julia@example.com',
+        firstName: 'Julia',
+        lastName: 'Keller',
+        language: 'de',
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 11,
+            groupName: 'Stamm Testdorf',
+            roleName: 'Stammesvorstand',
+            roleClass: 'Group::Stamm::Stammesvorstand',
+            permissions: <String>['layer_and_below_full'],
+          ),
+          AuthProfileRole(
+            groupId: 21,
+            groupName: 'Meute',
+            roleName: 'Leitung',
+            roleClass: 'Group::StammGruppeWoelflinge::Leitung',
+          ),
+          AuthProfileRole(
+            groupId: 22,
+            groupName: 'Runde',
+            roleName: 'Mitglied',
+            roleClass: 'Group::StammGruppeRover::Mitglied',
+          ),
+        ],
+      ),
+    );
+    var opened = false;
+
+    await tester.pumpWidget(
+      buildTestApp(authModel: authModel, onProfile: () => opened = true),
+    );
+    await tester.pump();
+
+    final header = find.byKey(const Key('settings-profile-header'));
+    expect(header, findsOneWidget);
+    expect(
+      find.descendant(of: header, matching: find.text('Julia Keller')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: header, matching: find.text('julia@example.com')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: header, matching: find.byIcon(Icons.chevron_right)),
+      findsOneWidget,
+    );
+    for (final chip in ['Schreibrechte', 'Stammesvorstand', 'Leitung', '+1']) {
+      expect(
+        find.descendant(of: header, matching: find.text(chip)),
+        findsOneWidget,
+      );
+    }
+
+    await tester.tap(header);
+    expect(opened, isTrue);
+  });
+
+  testWidgets('Profil-Header ist ohne Anmeldung gesperrt', (tester) async {
+    await tester.pumpWidget(buildTestApp(authModel: buildAuthModel()));
+    await tester.pump();
+
+    final header = find.byKey(const Key('settings-profile-header'));
+    expect(
+      find.descendant(of: header, matching: find.byIcon(Icons.lock_outline)),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: header,
+        matching: find.text('Arbeitskontext, Rollen und Konto'),
+      ),
+      findsOneWidget,
+    );
+  });
 
   testWidgets('zeigt Karte als Eintrag in den Einstellungen', (tester) async {
     final authModel = AuthSessionModel(
@@ -336,6 +435,24 @@ class _InMemoryAuthSessionRepository implements AuthSessionRepository {
 
   @override
   Future<void> save(AuthSession session) async {}
+}
+
+class _ProfileAuthModel extends AuthSessionModel {
+  _ProfileAuthModel({
+    required this.fixedProfile,
+    required super.repository,
+    required super.profileRepository,
+    required super.oauthService,
+    required super.biometricLockService,
+    required super.sensitiveStorageService,
+    required super.retentionPolicy,
+    required super.logger,
+  });
+
+  final AuthProfile? fixedProfile;
+
+  @override
+  AuthProfile? get profile => fixedProfile;
 }
 
 class _FakeOauthService extends HitobitoOauthService {

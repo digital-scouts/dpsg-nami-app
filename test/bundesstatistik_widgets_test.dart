@@ -14,7 +14,6 @@ import 'package:nami/presentation/model/bundesstatistik_model.dart';
 import 'package:nami/presentation/navigation/app_router.dart';
 import 'package:nami/presentation/screens/bundesvergleich_page.dart';
 import 'package:nami/presentation/screens/statistics_page.dart';
-import 'package:nami/presentation/statistics/bundesstatistik_card.dart';
 import 'package:nami/presentation/widgets/bundesstatistik_einwilligung_dialog.dart';
 import 'package:provider/provider.dart';
 
@@ -91,50 +90,6 @@ Bundesaggregat _aggregat() => Bundesaggregat(
 );
 
 void main() {
-  group('BundesstatistikCard', () {
-    testWidgets('bietet ohne Einwilligung Aktivieren und Mehr erfahren an', (
-      tester,
-    ) async {
-      var eingewilligt = false;
-      var geoeffnet = false;
-      await tester.pumpWidget(
-        _app(
-          Scaffold(
-            body: BundesstatistikCard(
-              status: BundesstatistikStatus.keineEinwilligung,
-              onEinwilligen: () => eingewilligt = true,
-              onOeffnen: () => geoeffnet = true,
-            ),
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Teilen aktivieren'));
-      await tester.tap(find.text('Mehr erfahren'));
-
-      expect(eingewilligt, isTrue);
-      expect(geoeffnet, isTrue);
-    });
-
-    testWidgets('zeigt im Bereit-Zustand die Teilnehmerzahl', (tester) async {
-      await tester.pumpWidget(
-        _app(
-          Scaffold(
-            body: BundesstatistikCard(
-              status: BundesstatistikStatus.bereit,
-              teilnehmendeStaemme: 23,
-              onEinwilligen: () {},
-              onOeffnen: () {},
-            ),
-          ),
-        ),
-      );
-
-      expect(find.text('Aus 23 teilnehmenden Stämmen'), findsOneWidget);
-      expect(find.text('Teilen aktivieren'), findsNothing);
-    });
-  });
-
   group('BundesvergleichView', () {
     testWidgets('vergleicht eigene Werte mit Median und Durchschnitt', (
       tester,
@@ -178,8 +133,33 @@ void main() {
       );
 
       expect(find.text('MITGLIEDER JE STUFE'), findsNothing);
-      await tester.tap(find.byType(Switch));
+      expect(find.byType(Switch), findsNothing);
+      await tester.tap(find.text('Jetzt teilnehmen'));
       expect(angefragt, isTrue);
+    });
+
+    testWidgets('erklaert, wenn der Vergleich nicht verfuegbar ist', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _app(
+          Scaffold(
+            body: BundesvergleichView(
+              status: BundesstatistikStatus.nichtVerfuegbar,
+              hatEinwilligung: false,
+              onEinwilligungAendern: (_) {},
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        find.text(
+          'Der bundesweite Vergleich ist in dieser App-Version nicht verfügbar.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Jetzt teilnehmen'), findsNothing);
     });
 
     testWidgets('erklaert zu geringe Teilnahme', (tester) async {
@@ -268,7 +248,7 @@ void main() {
     });
   });
 
-  testWidgets('Statistik-Tab zeigt die Karte und aktiviert nach Einwilligung', (
+  testWidgets('Statistik-Tab Bundesweit aktiviert nach Einwilligung', (
     tester,
   ) async {
     final repository = _RecordingRepository();
@@ -293,8 +273,9 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('Bundesweiter Vergleich'), findsOneWidget);
-    await tester.tap(find.text('Teilen aktivieren'));
+    await tester.tap(find.text('Bundesweit'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Jetzt teilnehmen'));
     await tester.pumpAndSettle();
     await tester.tap(
       find.widgetWithText(FilledButton, 'Teilen aktivieren').last,
@@ -303,7 +284,7 @@ void main() {
 
     expect(model.hatEinwilligung, isTrue);
     expect(repository.sendungen, 1);
-    expect(find.text('Aus 7 teilnehmenden Stämmen'), findsOneWidget);
+    expect(find.text('Stammesdaten teilen'), findsOneWidget);
   });
 }
 

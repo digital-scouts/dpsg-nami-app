@@ -7,15 +7,42 @@ import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/navigation/app_router.dart';
 import 'package:nami/presentation/screens/statistics_page.dart';
+import 'package:nami/presentation/widgets/app_page_header.dart';
 
 void main() {
   testWidgets('zeigt Stammansicht mit Gruppenauswahl', (tester) async {
     await tester.pumpWidget(_buildTestApp(_buildReadModel()));
     await tester.pump();
 
-    expect(find.text('STAMM TESTDORF - ÜBERSICHT'), findsOneWidget);
+    expect(find.text('Stamm Testdorf'), findsOneWidget);
     expect(find.text('Meute Nord'), findsOneWidget);
     expect(find.text('GRUPPENVERTEILUNG'), findsOneWidget);
+  });
+
+  testWidgets('zeigt Kennzahlen im Header und immer beide Tabs', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_buildTestApp(_buildReadModel()));
+    await tester.pump();
+
+    final header = find.byType(AppPageHeader);
+    expect(header, findsOneWidget);
+    for (final label in ['Mitglieder', 'Leitende', 'Sonstige']) {
+      expect(
+        find.descendant(of: header, matching: find.text(label)),
+        findsOneWidget,
+      );
+    }
+    expect(find.text('Stamm'), findsOneWidget);
+
+    await tester.tap(find.text('Bundesweit'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        'Der bundesweite Vergleich ist in dieser App-Version nicht verfügbar.',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('zeigt keine Global-Ansicht mehr', (tester) async {

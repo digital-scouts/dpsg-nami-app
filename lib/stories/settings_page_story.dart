@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:nami/data/settings/in_memory_address_settings_repository.dart';
+import 'package:nami/domain/appearance/appearance_catalog.dart';
+import 'package:nami/domain/auth/auth_profile.dart';
 import 'package:nami/domain/stufe/altersgrenzen.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/l10n/app_localizations.dart';
@@ -10,6 +12,8 @@ import 'package:nami/presentation/screens/settings_map_page.dart';
 import 'package:nami/presentation/screens/settings_notification_page.dart';
 import 'package:nami/presentation/screens/settings_page.dart';
 import 'package:nami/presentation/screens/settings_stamm_page.dart';
+import 'package:nami/stories/profile_page_story.dart';
+import 'package:nami/stories/story_tab_shell.dart';
 // ignore: depend_on_referenced_packages
 import 'package:storybook_flutter/storybook_flutter.dart';
 
@@ -18,77 +22,113 @@ Story settingsPageStory() => Story(
   builder: (context) {
     final version = context.knobs.text(label: 'App Version', initial: 'v0.2.0');
     final demoMode = context.knobs.boolean(label: 'Demo-Modus', initial: false);
-    return MaterialApp(
-      localizationsDelegates: [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-        AppLocalizations.delegate,
-      ],
-      supportedLocales: const [Locale('de'), Locale('en')],
-      home: SettingsPage(
-        appVersion: version,
-        onStammSettings: () => AppSnackbar.show(
-          context,
-          message: 'Stammeseinstellungen',
-          type: AppSnackbarType.info,
-        ),
-        onAppSettings: () => AppSnackbar.show(
-          context,
-          message: 'Appeinstellungen',
-          type: AppSnackbarType.info,
-        ),
-        onAppearanceSettings: () => AppSnackbar.show(
-          context,
-          message: 'Erscheinungsbild',
-          type: AppSnackbarType.info,
-        ),
-        onNotificationSettings: () => AppSnackbar.show(
-          context,
-          message: 'Benachrichtigungseinstellungen',
-          type: AppSnackbarType.info,
-        ),
-        onMapSettings: () => Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => const SettingsMapPage())),
-        onMessages: () => AppSnackbar.show(
-          context,
-          message: 'Meldungen',
-          type: AppSnackbarType.info,
-        ),
-        onImpressum: () => AppSnackbar.show(
-          context,
-          message: 'Impressum',
-          type: AppSnackbarType.info,
-        ),
-        onDatenschutz: () => AppSnackbar.show(
-          context,
-          message: 'Datenschutz',
-          type: AppSnackbarType.info,
-        ),
-        onDebugTools: demoMode
-            ? null
-            : () => AppSnackbar.show(
-                context,
-                message: 'Debug & Tools',
-                type: AppSnackbarType.info,
-              ),
-        onExitDemo: demoMode
-            ? () => AppSnackbar.show(
-                context,
-                message: 'Demo beenden',
-                type: AppSnackbarType.info,
-              )
-            : null,
-        onProfile: () => AppSnackbar.show(
-          context,
-          message: 'Profil',
-          type: AppSnackbarType.info,
-        ),
-      ),
+    final background = storyHeaderBackgroundKnob(context.knobs);
+    final dark = context.knobs.boolean(label: 'Dunkel', initial: false);
+    final angemeldet = context.knobs.boolean(
+      label: 'Angemeldet',
+      initial: true,
+    );
+    return SettingsPageStoryScene(
+      background: background,
+      dark: dark,
+      angemeldet: angemeldet,
+      appVersion: version,
+      demoMode: demoMode,
     );
   },
 );
+
+/// Einstellungs-Tab wie in der App: Profil-Header im Tab-Rahmen, optional
+/// mit Fake-Anmeldung.
+class SettingsPageStoryScene extends StatelessWidget {
+  const SettingsPageStoryScene({
+    super.key,
+    required this.background,
+    this.dark = false,
+    this.angemeldet = true,
+    this.appVersion = 'v1.0.0',
+    this.demoMode = false,
+    this.simulateTopInset = true,
+  });
+
+  final AppearanceBackgroundId? background;
+  final bool dark;
+  final bool angemeldet;
+  final String appVersion;
+  final bool demoMode;
+  final bool simulateTopInset;
+
+  static const AuthProfile _profile = AuthProfile(
+    namiId: 34,
+    email: 'julia@example.com',
+    firstName: 'Julia',
+    lastName: 'Keller',
+    nickname: 'Polka',
+    language: 'de',
+    roles: <AuthProfileRole>[
+      AuthProfileRole(
+        groupId: 11,
+        groupName: 'Stamm Musterdorf',
+        roleName: 'Stammesvorstand',
+        roleClass: 'Group::Stamm::Stammesvorstand',
+        permissions: <String>['layer_and_below_full', 'contact_data'],
+      ),
+      AuthProfileRole(
+        groupId: 21,
+        groupName: 'Trupp Kompass',
+        roleName: 'Leitung',
+        roleClass: 'Group::StammGruppeJungpfadfinder::Leitung',
+        permissions: <String>['group_full'],
+      ),
+      AuthProfileRole(
+        groupId: 30,
+        groupName: 'Bezirk Rhein',
+        roleName: 'Mitglied Arbeitskreis',
+        roleClass: 'Group::Bezirk::Mitglied',
+      ),
+    ],
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final page = StoryTabPage(
+      key: ValueKey('$background-$dark-$angemeldet'),
+      tabIndex: 3,
+      background: background,
+      badge: angemeldet ? SupporterBadgeId.kompassPfadfinder : null,
+      dark: dark,
+      simulateTopInset: simulateTopInset,
+      child: Builder(
+        builder: (context) => SettingsPage(
+          appVersion: appVersion,
+          onStammSettings: () => _info(context, 'Stammeseinstellungen'),
+          onAppSettings: () => _info(context, 'Appeinstellungen'),
+          onAppearanceSettings: () => _info(context, 'Erscheinungsbild'),
+          onNotificationSettings: () =>
+              _info(context, 'Benachrichtigungseinstellungen'),
+          onMapSettings: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const SettingsMapPage())),
+          onMessages: () => _info(context, 'Meldungen'),
+          onImpressum: () => _info(context, 'Impressum'),
+          onDatenschutz: () => _info(context, 'Datenschutz'),
+          onDebugTools: demoMode ? null : () => _info(context, 'Debug & Tools'),
+          onExitDemo: demoMode ? () => _info(context, 'Demo beenden') : null,
+          onProfile: angemeldet ? () => _info(context, 'Profil') : null,
+        ),
+      ),
+    );
+    return StorySignedInScope(
+      key: ValueKey(angemeldet),
+      profile: angemeldet ? _profile : null,
+      child: page,
+    );
+  }
+
+  static void _info(BuildContext context, String message) {
+    AppSnackbar.show(context, message: message, type: AppSnackbarType.info);
+  }
+}
 
 Story appSettingsPageStory() => Story(
   name: 'Einstellungen/Screens/App',

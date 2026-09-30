@@ -74,7 +74,7 @@ class StatisticsGroupDetailSnapshot {
 
 class StatisticsSnapshot {
   const StatisticsSnapshot({
-    required this.stammTitle,
+    required this.stammName,
     required this.members,
     required this.sonstige,
     required this.leaders,
@@ -88,7 +88,7 @@ class StatisticsSnapshot {
     required this.memberClassification,
   });
 
-  final String stammTitle;
+  final String stammName;
   final int members;
   final int sonstige;
   final int leaders;
@@ -296,7 +296,7 @@ class StatisticsSnapshotBuilder {
     }
 
     return StatisticsSnapshot(
-      stammTitle: '${readModel.arbeitskontext.aktiverLayer.name} - Übersicht',
+      stammName: readModel.arbeitskontext.aktiverLayer.name,
       members: members,
       sonstige: sonstige,
       leaders: leaders,
