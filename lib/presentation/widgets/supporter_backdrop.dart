@@ -39,6 +39,15 @@ class SupporterBackdropController {
 
   void _requestMeasure() => _measureAnchor?.call();
 
+  /// Meldet [measure] ab, sofern nicht schon ein anderer Anker uebernommen
+  /// hat. Beim Tab-Wechsel meldet sich der neue Anker an, bevor der alte
+  /// entsorgt wird.
+  void _detach(VoidCallback measure) {
+    if (_measureAnchor == measure) {
+      _measureAnchor = null;
+    }
+  }
+
   void _report(double? value) {
     if (!_disposed && extent.value != value) {
       extent.value = value;
@@ -134,7 +143,7 @@ class _SupporterBackdropAnchorState extends State<SupporterBackdropAnchor> {
     super.didChangeDependencies();
     final controller = SupporterBackdrop.maybeOf(context);
     if (!identical(controller, _controller)) {
-      _controller?._measureAnchor = null;
+      _controller?._detach(_measure);
       _controller = controller?.._measureAnchor = _measure;
     }
   }
@@ -143,7 +152,7 @@ class _SupporterBackdropAnchorState extends State<SupporterBackdropAnchor> {
   void dispose() {
     final controller = _controller;
     if (controller != null) {
-      controller._measureAnchor = null;
+      controller._detach(_measure);
       // Nicht waehrend des Abbaus benachrichtigen, sondern im naechsten
       // Frame, und nur, wenn kein neuer Anker uebernommen hat.
       SchedulerBinding.instance.addPostFrameCallback((_) {
