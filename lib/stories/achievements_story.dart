@@ -88,13 +88,19 @@ Story achievementsPageStory() => Story(
   name: 'Erfolge/Screens/Übersicht',
   builder: (context) {
     final knobs = context.knobs;
-    final scenario = knobs.options<_Scenario>(
+    final scenario = knobs.options<AchievementSampleScenario>(
       label: 'Szenario',
-      initial: _Scenario.mixed,
+      initial: AchievementSampleScenario.mixed,
       options: const [
-        Option(label: 'Neu installiert', value: _Scenario.fresh),
-        Option(label: 'Gemischt', value: _Scenario.mixed),
-        Option(label: 'Alles erreicht', value: _Scenario.complete),
+        Option(
+          label: 'Neu installiert',
+          value: AchievementSampleScenario.fresh,
+        ),
+        Option(label: 'Gemischt', value: AchievementSampleScenario.mixed),
+        Option(
+          label: 'Alles erreicht',
+          value: AchievementSampleScenario.complete,
+        ),
       ],
     );
     final includePrepared = knobs.boolean(
@@ -115,7 +121,7 @@ Story achievementsPageStory() => Story(
       dark: dark,
       locale: locale,
       home: AchievementsPage(
-        achievements: _sampleProgress(
+        achievements: achievementSampleProgress(
           scenario,
           includePrepared: includePrepared,
         ),
@@ -135,8 +141,8 @@ Story achievementDetailSheetStory() => Story(
       ],
     );
     final dark = context.knobs.boolean(label: 'Dunkel', initial: false);
-    final achievement = _sampleProgress(
-      _Scenario.mixed,
+    final achievement = achievementSampleProgress(
+      AchievementSampleScenario.mixed,
       includePrepared: true,
     ).firstWhere((a) => a.id == id);
 
@@ -390,10 +396,11 @@ class _UnlockedPreview extends StatelessWidget {
   }
 }
 
-enum _Scenario { fresh, mixed, complete }
+/// Beispiel-Fortschritt, auch fuer die Store-Szenen.
+enum AchievementSampleScenario { fresh, mixed, complete }
 
-List<AchievementProgress> _sampleProgress(
-  _Scenario scenario, {
+List<AchievementProgress> achievementSampleProgress(
+  AchievementSampleScenario scenario, {
   required bool includePrepared,
 }) {
   final base = DateTime(2026, 9, 1);
@@ -413,9 +420,10 @@ List<AchievementProgress> _sampleProgress(
       if (d.available || includePrepared)
         () {
           final count = switch (scenario) {
-            _Scenario.fresh => 0,
-            _Scenario.mixed => mixedCounts[d.id] ?? 0,
-            _Scenario.complete => d.isOneTime ? 1 : d.thresholds.last,
+            AchievementSampleScenario.fresh => 0,
+            AchievementSampleScenario.mixed => mixedCounts[d.id] ?? 0,
+            AchievementSampleScenario.complete =>
+              d.isOneTime ? 1 : d.thresholds.last,
           };
           final probe = AchievementProgress(definition: d, count: count);
           return AchievementProgress(
