@@ -59,16 +59,25 @@ class _StatisticsSectionHeader extends StatelessWidget {
 }
 
 class StatisticsKpiRow extends StatelessWidget {
-  const StatisticsKpiRow({super.key, required this.items});
+  const StatisticsKpiRow({super.key, required this.items, this.dense = false});
 
   final List<StatisticsKpiItem> items;
+
+  /// Flache, einzeilige Kacheln, die die vorgegebene Hoehe ausfuellen,
+  /// z. B. im Seiten-Header.
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: dense
+          ? CrossAxisAlignment.stretch
+          : CrossAxisAlignment.center,
       children: [
         for (int i = 0; i < items.length; i++) ...[
-          Expanded(child: _KpiTile(item: items[i])),
+          Expanded(
+            child: _KpiTile(item: items[i], dense: dense),
+          ),
           if (i < items.length - 1) const SizedBox(width: 8),
         ],
       ],
@@ -89,33 +98,45 @@ class StatisticsKpiItem {
 }
 
 class _KpiTile extends StatelessWidget {
-  const _KpiTile({required this.item});
+  const _KpiTile({required this.item, required this.dense});
 
   final StatisticsKpiItem item;
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final valueStyle =
+        (dense ? theme.textTheme.titleMedium : theme.textTheme.headlineSmall)
+            ?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: item.highlight ? theme.colorScheme.primary : null,
+            );
     return DecoratedBox(
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: dense
+            ? const EdgeInsets.symmetric(horizontal: 8)
+            : const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              item.value,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: item.highlight ? theme.colorScheme.primary : null,
-              ),
-            ),
-            const SizedBox(height: 4),
+            if (dense)
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(item.value, maxLines: 1, style: valueStyle),
+              )
+            else
+              Text(item.value, style: valueStyle),
+            if (!dense) const SizedBox(height: 4),
             Text(
               item.label,
               textAlign: TextAlign.center,
+              maxLines: dense ? 1 : null,
+              overflow: dense ? TextOverflow.ellipsis : null,
               style: theme.textTheme.labelSmall,
             ),
           ],

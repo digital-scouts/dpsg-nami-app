@@ -180,19 +180,14 @@ class _MemberPeopleStoryShellState extends State<MemberPeopleStoryShell> {
             ],
             supportedLocales: const [Locale('de'), Locale('en')],
             locale: const Locale('de'),
-            home: widget.bottomNavigationBar == null
-                ? const MemberPeoplePage()
-                : Scaffold(
-                    // Wie in NavigationHomeScreen: die Shell liefert die SafeArea.
-                    body: SupporterBackdrop(
-                      background: widget.appearance?.background,
-                      child: const SafeArea(
-                        bottom: false,
-                        child: MemberPeoplePage(),
-                      ),
-                    ),
-                    bottomNavigationBar: widget.bottomNavigationBar,
-                  ),
+            home: Scaffold(
+              // Wie in NavigationHomeScreen: die Shell liefert die SafeArea.
+              body: SupporterBackdrop(
+                background: widget.appearance?.background,
+                child: const SafeArea(bottom: false, child: MemberPeoplePage()),
+              ),
+              bottomNavigationBar: widget.bottomNavigationBar,
+            ),
           );
         },
       ),

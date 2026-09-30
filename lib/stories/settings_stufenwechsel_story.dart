@@ -156,6 +156,7 @@ Story stufenwechselPageStory() {
     name: 'Stufenwechsel/Seite',
     builder: (context) {
       final background = storyHeaderBackgroundKnob(context.knobs);
+      final textScale = storyTextScaleKnob(context.knobs);
       final dark = context.knobs.boolean(label: 'Dunkel', initial: false);
       final mitDatum = context.knobs.boolean(
         label: 'Stichtag festgelegt',
@@ -166,6 +167,7 @@ Story stufenwechselPageStory() {
         initial: false,
       );
       return StufenwechselPageStoryScene(
+        textScale: textScale,
         background: background,
         dark: dark,
         mitDatum: mitDatum,
@@ -185,6 +187,7 @@ class StufenwechselPageStoryScene extends StatelessWidget {
     this.mitDatum = true,
     this.showLoadingInfo = false,
     this.simulateTopInset = true,
+    this.textScale = 1,
   });
 
   final AppearanceBackgroundId? background;
@@ -192,6 +195,7 @@ class StufenwechselPageStoryScene extends StatelessWidget {
   final bool mitDatum;
   final bool showLoadingInfo;
   final bool simulateTopInset;
+  final double textScale;
 
   @override
   Widget build(BuildContext context) {
@@ -200,12 +204,13 @@ class StufenwechselPageStoryScene extends StatelessWidget {
         ? DateTime(today.year + 1, 9, 1)
         : DateTime(today.year, 9, 1);
     return StoryTabPage(
-      key: ValueKey('$background-$dark-$mitDatum-$showLoadingInfo'),
+      key: ValueKey('$background-$dark-$mitDatum-$showLoadingInfo-$textScale'),
       tabIndex: 2,
       background: background,
       dark: dark,
       showLoadingInfo: showLoadingInfo,
       simulateTopInset: simulateTopInset,
+      textScale: textScale,
       child: SettingsStufenwechselPage(
         showAppBar: false,
         debugReadModel: StoreShowcaseData.readModel(today: today),

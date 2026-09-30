@@ -25,6 +25,8 @@ import 'package:nami/services/nami_ai/nami_ai_access_service.dart';
 import 'package:nami/services/sensitive_storage_service.dart';
 import 'package:provider/provider.dart';
 
+import 'support/page_header_height.dart';
+
 void main() {
   Widget buildTestApp({
     required AuthSessionModel authModel,
@@ -132,15 +134,102 @@ void main() {
       find.descendant(of: header, matching: find.byIcon(Icons.chevron_right)),
       findsOneWidget,
     );
-    for (final chip in ['Schreibrechte', 'Stammesvorstand', 'Leitung', '+1']) {
+    // Bei ausreichender Breite passen alle Rollen in die Zeile.
+    for (final chip in [
+      'Schreibrechte',
+      'Stammesvorstand',
+      'Leitung',
+      'Mitglied',
+    ]) {
       expect(
         find.descendant(of: header, matching: find.text(chip)),
         findsOneWidget,
       );
     }
+    expect(find.textContaining('+'), findsNothing);
 
     await tester.tap(header);
     expect(opened, isTrue);
+  });
+
+  testWidgets('Profil-Header fasst nicht passende Rollen zu +n zusammen', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final authModel = buildAuthModel(
+      profile: AuthProfile(
+        namiId: 34,
+        email: 'julia@example.com',
+        firstName: 'Julia',
+        lastName: 'Keller',
+        language: 'de',
+        roles: <AuthProfileRole>[
+          for (var i = 0; i < 6; i++)
+            AuthProfileRole(
+              groupId: 11 + i,
+              groupName: 'Gruppe $i',
+              roleName: 'Gruppenleitung Nummer $i',
+              roleClass: 'Group::Stamm::Leitung',
+              permissions: const <String>['layer_and_below_full'],
+            ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      buildTestApp(authModel: authModel, onProfile: () {}),
+    );
+    await tester.pump();
+
+    final header = find.byKey(const Key('settings-profile-header'));
+    final shown = [
+      for (var i = 0; i < 6; i++)
+        if (find
+            .descendant(
+              of: header,
+              matching: find.text('Gruppenleitung Nummer $i'),
+            )
+            .evaluate()
+            .isNotEmpty)
+          i,
+    ];
+    expect(shown.length, lessThan(6));
+    expect(
+      find.descendant(of: header, matching: find.text('+${6 - shown.length}')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Profil-Header folgt dem Header-Raster', (tester) async {
+    final authModel = buildAuthModel(
+      profile: AuthProfile(
+        namiId: 34,
+        email: 'julia@example.com',
+        firstName: 'Julia',
+        lastName: 'Keller-Mustermann-Langname',
+        language: 'de',
+        roles: <AuthProfileRole>[
+          for (var i = 0; i < 8; i++)
+            AuthProfileRole(
+              groupId: 11 + i,
+              groupName: 'Gruppe $i',
+              roleName: 'Stellvertretende Gruppenleitung $i',
+              roleClass: 'Group::Stamm::Leitung',
+              permissions: const <String>['layer_and_below_full'],
+            ),
+        ],
+      ),
+    );
+    await expectPageHeaderMatchesRaster(
+      tester,
+      () => buildTestApp(authModel: authModel, onProfile: () {}),
+    );
+    await expectPageHeaderMatchesRaster(
+      tester,
+      () => buildTestApp(authModel: buildAuthModel()),
+    );
   });
 
   testWidgets('Profil-Header ist ohne Anmeldung gesperrt', (tester) async {

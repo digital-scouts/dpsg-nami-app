@@ -8,6 +8,7 @@ import 'package:nami/presentation/model/appearance_model.dart';
 import 'package:nami/presentation/navigation/app_router.dart';
 import 'package:nami/presentation/theme/theme.dart';
 import 'package:nami/presentation/widgets/app_bottom_navigation.dart';
+import 'package:nami/presentation/widgets/app_page_header.dart';
 import 'package:nami/presentation/widgets/supporter_backdrop.dart';
 import 'package:nami/services/app_icon_service.dart';
 import 'package:provider/provider.dart';
@@ -27,6 +28,21 @@ AppearanceBackgroundId? storyHeaderBackgroundKnob(
       const Option(label: 'schlicht', value: null),
       for (final id in AppearanceBackgroundId.values)
         Option(label: id.name, value: id),
+    ],
+  );
+}
+
+/// Knob fuer die Textskalierung, um das Header-Raster bei grossen Schriften
+/// zu pruefen (der Header begrenzt auf [AppPageHeader.maxTextScaleFactor]).
+double storyTextScaleKnob(KnobsBuilder knobs) {
+  return knobs.options<double>(
+    label: 'Textskalierung',
+    initial: 1,
+    options: const [
+      Option(label: '1.0', value: 1),
+      Option(label: '1.3', value: 1.3),
+      Option(label: '1.4', value: 1.4),
+      Option(label: '2.0', value: 2),
     ],
   );
 }
@@ -114,6 +130,7 @@ class StoryTabPage extends StatelessWidget {
     this.simulateTopInset = true,
     this.providers = const [],
     this.badge,
+    this.textScale = 1,
   });
 
   final int tabIndex;
@@ -128,6 +145,9 @@ class StoryTabPage extends StatelessWidget {
 
   /// Zusaetzliche Provider der Seite, z. B. Bundesstatistik.
   final List<SingleChildWidget> providers;
+
+  /// Simulierte System-Textskalierung.
+  final double textScale;
 
   @override
   Widget build(BuildContext context) {
@@ -158,6 +178,12 @@ class StoryTabPage extends StatelessWidget {
         ],
         supportedLocales: const [Locale('de'), Locale('en')],
         onGenerateRoute: onGenerateRoute,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: TextScaler.linear(textScale)),
+          child: child!,
+        ),
         home: Scaffold(
           body: StoryTabShell(
             background: background,

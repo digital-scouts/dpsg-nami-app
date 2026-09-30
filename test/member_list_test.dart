@@ -10,6 +10,9 @@ import 'package:nami/presentation/widgets/member_list.dart';
 import 'package:nami/presentation/widgets/member_list_group_filter_bar.dart';
 import 'package:nami/presentation/widgets/member_list_tile.dart';
 import 'package:nami/presentation/widgets/supporter_badge.dart';
+import 'package:nami/presentation/widgets/member_list_directory.dart';
+
+import 'support/page_header_height.dart';
 
 void main() {
   testWidgets(
@@ -404,56 +407,91 @@ void main() {
     expect(find.text('Letztes Update: vor 30 Minuten'), findsOneWidget);
   });
 
-  testWidgets(
-    'Gruppenfilter klappt viele Chips ohne horizontales Scrollen auf',
-    (tester) async {
-      final selectedKeys = <String>{};
-
-      await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: [
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-            AppLocalizations.delegate,
-          ],
-          supportedLocales: const [Locale('de'), Locale('en')],
-          locale: const Locale('de'),
-          home: Scaffold(
-            body: Align(
-              alignment: Alignment.topLeft,
-              child: SizedBox(
-                width: 180,
-                child: GroupFilterBar(
-                  items: List<GroupFilterItem>.generate(
-                    8,
-                    (index) => GroupFilterItem(
-                      keyName: 'filter_$index',
-                      label: 'Gruppe $index',
-                    ),
-                  ),
-                  selectedKeys: selectedKeys,
-                  onChanged: (_) {},
+  testWidgets('Mitglieder-Header folgt dem Header-Raster', (tester) async {
+    await expectPageHeaderMatchesRaster(
+      tester,
+      () => MaterialApp(
+        localizationsDelegates: [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          AppLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('de'), Locale('en')],
+        locale: const Locale('de'),
+        home: Scaffold(
+          body: MemberDirectory(
+            mitglieder: [MitgliedFactory.demo(index: 1)],
+            fixedFilterGroups: [
+              for (var i = 0; i < 12; i++)
+                MemberFixedFilterGroup(
+                  keyName: 'gruppe_$i',
+                  label: 'Sehr lange Gruppe $i',
+                  groupType: 'sonstige',
                 ),
+            ],
+          ),
+        ),
+      ),
+    );
+  });
+
+  testWidgets('Gruppenfilter zeigt viele Chips in einer scrollbaren Zeile', (
+    tester,
+  ) async {
+    final selectedKeys = <String>{};
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          AppLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('de'), Locale('en')],
+        locale: const Locale('de'),
+        home: Scaffold(
+          body: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: 180,
+              child: GroupFilterBar(
+                items: List<GroupFilterItem>.generate(
+                  8,
+                  (index) => GroupFilterItem(
+                    keyName: 'filter_$index',
+                    label: 'Gruppe $index',
+                  ),
+                ),
+                selectedKeys: selectedKeys,
+                onChanged: (_) {},
               ),
             ),
           ),
         ),
-      );
+      ),
+    );
 
-      await tester.pumpAndSettle();
+    await tester.pumpAndSettle();
 
-      expect(find.byType(SingleChildScrollView), findsNothing);
-      expect(find.text('Mehr anzeigen'), findsOneWidget);
-      expect(find.text('Gruppe 7').hitTestable(), findsNothing);
+    final bar = find.byType(GroupFilterBar);
+    final height = tester.getSize(bar).height;
+    expect(find.text('Mehr anzeigen'), findsNothing);
+    expect(find.text('Gruppe 0').hitTestable(), findsOneWidget);
+    expect(find.text('Gruppe 7').hitTestable(), findsNothing);
 
-      await tester.tap(find.text('Mehr anzeigen'));
-      await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Gruppe 7'),
+      100,
+      scrollable: find.descendant(of: bar, matching: find.byType(Scrollable)),
+    );
+    await tester.pumpAndSettle();
 
-      expect(find.text('Weniger anzeigen'), findsOneWidget);
-      expect(find.text('Gruppe 7').hitTestable(), findsOneWidget);
-    },
-  );
+    expect(find.text('Gruppe 7').hitTestable(), findsOneWidget);
+    // Eine Zeile: die Hoehe bleibt unabhaengig von der Chip-Anzahl.
+    expect(tester.getSize(bar).height, height);
+  });
 
   testWidgets('zeigt das Supporter-Badge nur beim gewuenschten Mitglied', (
     tester,

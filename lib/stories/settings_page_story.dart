@@ -23,12 +23,14 @@ Story settingsPageStory() => Story(
     final version = context.knobs.text(label: 'App Version', initial: 'v0.2.0');
     final demoMode = context.knobs.boolean(label: 'Demo-Modus', initial: false);
     final background = storyHeaderBackgroundKnob(context.knobs);
+    final textScale = storyTextScaleKnob(context.knobs);
     final dark = context.knobs.boolean(label: 'Dunkel', initial: false);
     final angemeldet = context.knobs.boolean(
       label: 'Angemeldet',
       initial: true,
     );
     return SettingsPageStoryScene(
+      textScale: textScale,
       background: background,
       dark: dark,
       angemeldet: angemeldet,
@@ -49,6 +51,7 @@ class SettingsPageStoryScene extends StatelessWidget {
     this.appVersion = 'v1.0.0',
     this.demoMode = false,
     this.simulateTopInset = true,
+    this.textScale = 1,
   });
 
   final AppearanceBackgroundId? background;
@@ -57,6 +60,7 @@ class SettingsPageStoryScene extends StatelessWidget {
   final String appVersion;
   final bool demoMode;
   final bool simulateTopInset;
+  final double textScale;
 
   static const AuthProfile _profile = AuthProfile(
     namiId: 34,
@@ -92,12 +96,13 @@ class SettingsPageStoryScene extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final page = StoryTabPage(
-      key: ValueKey('$background-$dark-$angemeldet'),
+      key: ValueKey('$background-$dark-$angemeldet-$textScale'),
       tabIndex: 3,
       background: background,
       badge: angemeldet ? SupporterBadgeId.kompassPfadfinder : null,
       dark: dark,
       simulateTopInset: simulateTopInset,
+      textScale: textScale,
       child: Builder(
         builder: (context) => SettingsPage(
           appVersion: appVersion,
