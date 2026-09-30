@@ -5,8 +5,6 @@ import 'package:nami/domain/appearance/appearance_catalog.dart';
 import 'package:nami/domain/appearance/appearance_settings.dart';
 import 'package:nami/domain/appearance/support_access.dart';
 import 'package:nami/domain/bundesstatistik/stammes_snapshot.dart';
-import 'package:nami/domain/settings/stufen_settings.dart';
-import 'package:nami/domain/stufe/altersgrenzen.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/appearance_model.dart';
 import 'package:nami/presentation/model/bundesstatistik_model.dart';
@@ -16,8 +14,6 @@ import 'package:nami/presentation/screens/bundesvergleich_page.dart';
 import 'package:nami/presentation/screens/member_detail_page.dart';
 import 'package:nami/presentation/screens/settings_appearance_page.dart';
 import 'package:nami/presentation/screens/settings_map_page.dart';
-import 'package:nami/presentation/screens/settings_stufenwechsel_page.dart';
-import 'package:nami/presentation/screens/statistics_page.dart';
 import 'package:nami/presentation/theme/theme.dart';
 import 'package:nami/presentation/widgets/app_bottom_navigation.dart';
 import 'package:nami/services/app_icon_service.dart';
@@ -28,6 +24,8 @@ import 'package:storybook_flutter/storybook_flutter.dart';
 import '../achievements_story.dart';
 import '../bundesstatistik_story.dart';
 import '../member_people_page_story.dart';
+import '../settings_stufenwechsel_story.dart';
+import '../statistics_page_story.dart';
 import 'store_showcase_data.dart';
 
 /// Vollbild-Szenen fuer Store-Screenshots.
@@ -73,14 +71,9 @@ Story storeMitgliedDetailStory() => Story(
 
 Story storeStatistikStory() => Story(
   name: 'Store/Statistik',
-  builder: (context) => _StoreApp(
-    home: Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: StatisticsPage(debugReadModel: StoreShowcaseData.readModel()),
-      ),
-      bottomNavigationBar: const AppBottomNavigation(currentIndex: 1),
-    ),
+  builder: (context) => StatisticsPageStoryScene(
+    background: storeShowcaseAppearance.background,
+    simulateTopInset: false,
   ),
 );
 
@@ -110,7 +103,10 @@ Story storeBundesvergleichStory() => Story(
 
 Story storeStufenwechselStory() => Story(
   name: 'Store/Stufenwechsel',
-  builder: (context) => const _StufenwechselScene(),
+  builder: (context) => StufenwechselPageStoryScene(
+    background: storeShowcaseAppearance.background,
+    simulateTopInset: false,
+  ),
 );
 
 Story storeErfolgeStory() => Story(
@@ -164,39 +160,6 @@ class _ErscheinungsbildScene extends StatelessWidget {
       ),
     );
   }
-}
-
-class _StufenwechselScene extends StatelessWidget {
-  const _StufenwechselScene();
-
-  @override
-  Widget build(BuildContext context) {
-    final today = DateTime.now();
-    return _StoreApp(
-      home: Scaffold(
-        body: SafeArea(
-          bottom: false,
-          child: SettingsStufenwechselPage(
-            showAppBar: false,
-            debugReadModel: StoreShowcaseData.readModel(today: today),
-            stufenSettingsLoader: () async => StufenSettings(
-              grenzen: StufenDefaults.build(),
-              stufenwechselDatum: _naechsterStufenwechsel(today),
-            ),
-            todayProvider: () => today,
-          ),
-        ),
-        bottomNavigationBar: const AppBottomNavigation(currentIndex: 2),
-      ),
-    );
-  }
-}
-
-DateTime _naechsterStufenwechsel(DateTime today) {
-  final diesesJahr = DateTime(today.year, 9, 1);
-  return today.isAfter(diesesJahr)
-      ? DateTime(today.year + 1, 9, 1)
-      : diesesJahr;
 }
 
 class _NurFreieOptionen extends SupportAccess {

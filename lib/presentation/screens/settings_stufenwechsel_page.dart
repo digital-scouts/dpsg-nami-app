@@ -5,17 +5,21 @@ import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/settings/stufen_settings.dart';
 import 'package:nami/domain/stufenwechsel/ermittle_stufenwechsel_vorschlaege_usecase.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
+import 'package:nami/presentation/model/appearance_model.dart';
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/navigation/app_router.dart';
 import 'package:nami/presentation/screens/member_detail_page.dart';
 import 'package:nami/presentation/stufe/stufe_visuals.dart';
 import 'package:nami/presentation/theme/theme.dart';
+import 'package:nami/presentation/widgets/app_page_header.dart';
+import 'package:nami/presentation/widgets/stufenwechsel_date_row.dart';
 import 'package:provider/provider.dart';
 
 class SettingsStufenwechselPage extends StatefulWidget {
   final bool showAppBar;
   final ArbeitskontextReadModel? debugReadModel;
   final Future<StufenSettings> Function()? stufenSettingsLoader;
+  final Future<void> Function(DateTime date)? stufenwechselDatumSaver;
   final DateTime Function()? todayProvider;
 
   const SettingsStufenwechselPage({
@@ -23,6 +27,7 @@ class SettingsStufenwechselPage extends StatefulWidget {
     this.showAppBar = true,
     this.debugReadModel,
     this.stufenSettingsLoader,
+    this.stufenwechselDatumSaver,
     this.todayProvider,
   });
 
@@ -59,6 +64,39 @@ class _SettingsStufenwechselPageState extends State<SettingsStufenwechselPage> {
     return SharedPrefsStufenSettingsRepository().load();
   }
 
+  Future<void> _pickStufenwechselDatum(StufenSettings settings) async {
+    final picked = await pickStufenwechselDatum(
+      context,
+      initial: settings.stufenwechselDatum,
+    );
+    if (picked == null || !mounted) {
+      return;
+    }
+    final saver =
+        widget.stufenwechselDatumSaver ??
+        SharedPrefsStufenSettingsRepository().saveStufenwechselDatum;
+    await saver(picked);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _settingsFuture = Future.value(
+        settings.copyWith(stufenwechselDatum: picked),
+      );
+    });
+  }
+
+  Future<void> _openAltersgrenzen() async {
+    await Navigator.of(context).pushNamed(AppRoutes.settingsStamm);
+    if (!mounted) {
+      return;
+    }
+    // Altersgrenzen und Datum koennen dort geaendert worden sein.
+    setState(() {
+      _settingsFuture = _loadSettings();
+    });
+  }
+
   DateTime _today() {
     final now = widget.todayProvider?.call() ?? DateTime.now();
     return DateTime(now.year, now.month, now.day);
@@ -80,47 +118,69 @@ class _SettingsStufenwechselPageState extends State<SettingsStufenwechselPage> {
   @override
   Widget build(BuildContext context) {
     final readModel = _resolveReadModel(context);
+    final background = context.watch<AppearanceModel?>()?.background;
 
+    final body = FutureBuilder<StufenSettings>(
+      future: _settingsFuture,
+      builder: (context, snapshot) {
+        // Beim Neuladen nach einer Aenderung bleibt der alte Stand sichtbar.
+        if (readModel == null ||
+            (snapshot.connectionState == ConnectionState.waiting &&
+                !snapshot.hasData)) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError || snapshot.data == null) {
+          return const _StufenwechselStatusView(
+            icon: Icons.error_outline,
+            title: 'Stufenwechsel konnte nicht geladen werden',
+            message: 'Bitte versuche es später erneut.',
+          );
+        }
+
+        final settings = snapshot.data!;
+        final stichtag = settings.stufenwechselDatum ?? _today();
+        final sections = _useCase(
+          mitglieder: readModel.mitglieder,
+          stichtag: stichtag,
+          altersgrenzen: settings.grenzen,
+        );
+        final summaryCount = sections.fold<int>(
+          0,
+          (sum, section) => sum + section.vorschlaege.length,
+        );
+
+        return Column(
+          children: [
+            AppPageHeader(
+              background: background,
+              child: _StufenwechselHeader(
+                sections: sections,
+                summaryCount: summaryCount,
+                stichtag: settings.stufenwechselDatum,
+                onPickDate: () => _pickStufenwechselDatum(settings),
+                onOpenAltersgrenzen: _openAltersgrenzen,
+              ),
+            ),
+            Expanded(
+              child: _StufenwechselContent(
+                sections: sections,
+                summaryCount: summaryCount,
+                onMemberDetailsTap: _openMemberDetails,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    // Im Tab liegt die Seite ohne eigenes Scaffold direkt im Tab-Rahmen,
+    // damit dessen Header-Flaeche hinter dem Header sichtbar bleibt.
+    if (!widget.showAppBar) {
+      return body;
+    }
     return Scaffold(
-      appBar: widget.showAppBar
-          ? AppBar(title: const Text('Stufenwechsel'))
-          : null,
-      body: FutureBuilder<StufenSettings>(
-        future: _settingsFuture,
-        builder: (context, snapshot) {
-          if (readModel == null ||
-              snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError || snapshot.data == null) {
-            return const _StufenwechselStatusView(
-              icon: Icons.error_outline,
-              title: 'Stufenwechsel konnte nicht geladen werden',
-              message: 'Bitte versuche es später erneut.',
-            );
-          }
-
-          final settings = snapshot.data!;
-          final stichtag = settings.stufenwechselDatum ?? _today();
-          final sections = _useCase(
-            mitglieder: readModel.mitglieder,
-            stichtag: stichtag,
-            altersgrenzen: settings.grenzen,
-          );
-          final summaryCount = sections.fold<int>(
-            0,
-            (sum, section) => sum + section.vorschlaege.length,
-          );
-
-          return _StufenwechselContent(
-            stichtag: stichtag,
-            hasConfiguredDate: settings.stufenwechselDatum != null,
-            sections: sections,
-            summaryCount: summaryCount,
-            onMemberDetailsTap: _openMemberDetails,
-          );
-        },
-      ),
+      appBar: AppBar(title: const Text('Stufenwechsel')),
+      body: body,
     );
   }
 
@@ -149,82 +209,237 @@ class _SettingsStufenwechselPageState extends State<SettingsStufenwechselPage> {
   }
 }
 
+/// Kopf des Stufenwechsels als deckende Karte: Anzahl im Wechselalter und
+/// darunter Stufenwechsel-Datum und Altersgrenzen.
+class _StufenwechselHeader extends StatelessWidget {
+  const _StufenwechselHeader({
+    required this.sections,
+    required this.summaryCount,
+    required this.stichtag,
+    required this.onPickDate,
+    required this.onOpenAltersgrenzen,
+  });
+
+  final List<StufenwechselVorschlagsSection> sections;
+  final int summaryCount;
+
+  /// `null`: kein Datum festgelegt, gerechnet wird mit heute.
+  final DateTime? stichtag;
+  final VoidCallback onPickDate;
+  final VoidCallback onOpenAltersgrenzen;
+
+  int get _ueberfaellig => sections.fold<int>(
+    0,
+    (sum, s) => sum + s.vorschlaege.where((v) => v.istUeberfaellig).length,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      child: _buildKarte(context),
+    );
+  }
+
+  Widget _buildKarte(BuildContext context) {
+    final theme = Theme.of(context);
+    final ueberfaellig = _ueberfaellig;
+    final stichtag = this.stichtag;
+    return Material(
+      color: theme.colorScheme.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+            child: Row(
+              children: [
+                const Icon(Icons.swap_horiz),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: '$summaryCount ',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                        TextSpan(
+                          text: 'im Wechselalter',
+                          style: theme.textTheme.titleSmall,
+                        ),
+                      ],
+                    ),
+                    key: const Key('stufenwechsel-summary-count'),
+                  ),
+                ),
+                if (ueberfaellig > 0)
+                  _Badge(
+                    label: '$ueberfaellig überfällig',
+                    color: theme.colorScheme.error,
+                  ),
+              ],
+            ),
+          ),
+          Divider(height: 1, color: theme.colorScheme.outline),
+          IntrinsicHeight(
+            child: Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    key: Key(
+                      stichtag == null
+                          ? 'stufenwechsel-date-warning'
+                          : 'stufenwechsel-date-button',
+                    ),
+                    onTap: onPickDate,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            stichtag == null
+                                ? Icons.warning_amber_rounded
+                                : Icons.event,
+                            size: 18,
+                            color: stichtag == null
+                                ? const Color(0xFFC67C00)
+                                : null,
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: _PillLabel(
+                              caption: 'Stufenwechsel',
+                              label: stichtag == null
+                                  ? 'Datum festlegen'
+                                  : _formatDate(stichtag),
+                              color: stichtag == null
+                                  ? const Color(0xFFC67C00)
+                                  : theme.colorScheme.onSurface,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                VerticalDivider(width: 1, color: theme.colorScheme.outline),
+                InkWell(
+                  key: const Key('stufenwechsel-altersgrenzen-button'),
+                  onTap: onOpenAltersgrenzen,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.tune, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Altersgrenzen',
+                          style: theme.textTheme.labelLarge,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Badge extends StatelessWidget {
+  const _Badge({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: color,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _PillLabel extends StatelessWidget {
+  const _PillLabel({required this.label, required this.color, this.caption});
+
+  final String? caption;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final caption = this.caption;
+    final text = Text(
+      label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: theme.textTheme.labelLarge?.copyWith(color: color),
+    );
+    if (caption == null) {
+      return text;
+    }
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          caption,
+          maxLines: 1,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: color.withValues(alpha: 0.75),
+            height: 1.1,
+          ),
+        ),
+        text,
+      ],
+    );
+  }
+}
+
 class _StufenwechselContent extends StatelessWidget {
   const _StufenwechselContent({
-    required this.stichtag,
-    required this.hasConfiguredDate,
     required this.sections,
     required this.summaryCount,
     required this.onMemberDetailsTap,
   });
 
-  final DateTime stichtag;
-  final bool hasConfiguredDate;
   final List<StufenwechselVorschlagsSection> sections;
   final int summaryCount;
   final ValueChanged<StufenwechselVorschlag> onMemberDetailsTap;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
       children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.primary,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.swap_horiz, color: Colors.white),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '$summaryCount',
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    Text(
-                      'Mitglieder im Wechselfenster',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.8),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Stichtag: ${_formatDate(stichtag)}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.8),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        _StufenwechselHintCard(
-          stichtag: stichtag,
-          isWarning: !hasConfiguredDate,
-        ),
-        const SizedBox(height: 12),
         if (summaryCount == 0) ...[
           const _NoStageChangeCard(),
           const SizedBox(height: 12),
@@ -237,79 +452,6 @@ class _StufenwechselContent extends StatelessWidget {
           const SizedBox(height: 12),
         ],
       ],
-    );
-  }
-}
-
-class _StufenwechselHintCard extends StatelessWidget {
-  const _StufenwechselHintCard({
-    required this.stichtag,
-    required this.isWarning,
-  });
-
-  final DateTime stichtag;
-  final bool isWarning;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final foregroundColor = isWarning
-        ? theme.colorScheme.onTertiaryContainer
-        : theme.colorScheme.outlineVariant;
-    final backgroundColor = isWarning
-        ? theme.colorScheme.tertiaryContainer.withValues(alpha: 0.42)
-        : theme.colorScheme.surface;
-    final borderColor = isWarning
-        ? theme.colorScheme.tertiary.withValues(alpha: 0.38)
-        : theme.colorScheme.outline.withValues(alpha: 0.3);
-
-    return Container(
-      key: Key(isWarning ? 'stufenwechsel-date-warning' : 'stufenwechsel-hint'),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            isWarning ? Icons.warning_amber_outlined : Icons.info_outline,
-            color: foregroundColor,
-            size: 18,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isWarning
-                      ? 'Kein Datum für den nächsten Stufenwechsel festgelegt. Es wird vorläufig mit heute gerechnet. Bitte Datum setzen.'
-                      : 'Mitglieder erscheinen hier, sobald sie bis zum Stufenwechsel-Termin das Mindestalter der nächsten Stufe erreichen.',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: foregroundColor,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                GestureDetector(
-                  onTap: () =>
-                      Navigator.pushNamed(context, AppRoutes.settingsStamm),
-                  child: Text(
-                    'Altersgrenzen und Datum in Stammeseinstellungen anpassen',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.primary,
-                      decoration: TextDecoration.underline,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

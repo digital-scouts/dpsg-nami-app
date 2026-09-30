@@ -4,9 +4,10 @@ import 'package:flutter/scheduler.dart';
 import '../../domain/appearance/appearance_catalog.dart';
 import 'supporter_background.dart';
 
-/// Legt den Supporter-Hintergrund als durchgehende Flaeche vom oberen Rand
-/// (hinter Safe Area, Banner und Lade-Info) bis zur Unterkante des Bereichs,
-/// den ein [SupporterBackdropAnchor] markiert, z. B. den Listen-Header.
+/// Legt die Header-Flaeche durchgehend vom oberen Rand (hinter Safe Area,
+/// Banner und Lade-Info) bis zur Unterkante des Bereichs, den ein
+/// [SupporterBackdropAnchor] markiert, z. B. den Listen-Header. Mit
+/// Supporter-Hintergrund animiert, sonst schlicht in `surface`.
 class SupporterBackdrop extends StatefulWidget {
   const SupporterBackdrop({
     super.key,
@@ -14,7 +15,7 @@ class SupporterBackdrop extends StatefulWidget {
     required this.child,
   });
 
-  /// `null`: kein Hintergrund, der Inhalt bleibt unveraendert.
+  /// `null`: schlichte Flaeche in `surface`, sofern ein Anker sie anfordert.
   final AppearanceBackgroundId? background;
   final Widget child;
 
@@ -76,7 +77,7 @@ class _SupporterBackdropState extends State<SupporterBackdrop> {
           ValueListenableBuilder<double?>(
             valueListenable: _controller.extent,
             builder: (context, extent, _) {
-              if (background == null || extent == null || extent <= 0) {
+              if (extent == null || extent <= 0) {
                 return const SizedBox.shrink();
               }
               return Positioned(
@@ -84,7 +85,12 @@ class _SupporterBackdropState extends State<SupporterBackdrop> {
                 left: 0,
                 right: 0,
                 height: extent,
-                child: SupporterBackground(background: background),
+                child: background == null
+                    ? ColoredBox(
+                        key: const ValueKey('supporter-backdrop-plain'),
+                        color: Theme.of(context).colorScheme.surface,
+                      )
+                    : SupporterBackground(background: background),
               );
             },
           ),

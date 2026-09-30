@@ -18,8 +18,17 @@ void main() {
     required ArbeitskontextReadModel readModel,
     StufenSettings? settings,
     DateTime Function()? todayProvider,
+    Future<void> Function(DateTime date)? datumSaver,
+    VoidCallback? onLoad,
   }) {
     return MaterialApp(
+      onGenerateRoute: (routeSettings) => MaterialPageRoute<void>(
+        settings: routeSettings,
+        builder: (_) => Scaffold(
+          appBar: AppBar(),
+          body: Text('route:${routeSettings.name}'),
+        ),
+      ),
       localizationsDelegates: [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
@@ -30,12 +39,15 @@ void main() {
       locale: const Locale('de'),
       home: SettingsStufenwechselPage(
         debugReadModel: readModel,
-        stufenSettingsLoader: () async =>
-            settings ??
-            StufenSettings(
-              grenzen: StufenDefaults.build(),
-              stufenwechselDatum: DateTime(2026, 9, 1),
-            ),
+        stufenSettingsLoader: () async {
+          onLoad?.call();
+          return settings ??
+              StufenSettings(
+                grenzen: StufenDefaults.build(),
+                stufenwechselDatum: DateTime(2026, 9, 1),
+              );
+        },
+        stufenwechselDatumSaver: datumSaver,
         todayProvider: todayProvider,
       ),
     );
@@ -109,8 +121,71 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('stufenwechsel-date-warning')), findsOneWidget);
-    expect(find.textContaining('Bitte Datum setzen'), findsOneWidget);
-    expect(find.textContaining('Stichtag: 04.06.2026'), findsOneWidget);
+    expect(find.text('Datum festlegen'), findsOneWidget);
+    expect(find.byKey(const Key('stufenwechsel-hint')), findsNothing);
+  });
+
+  testWidgets('Header zeigt Anzahl und Stichtag', (tester) async {
+    await tester.pumpWidget(buildTestApp(readModel: _readModel()));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('im Wechselalter', findRichText: true),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('stufenwechsel-summary-count')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('stufenwechsel-date-button')),
+        matching: find.text('Stufenwechsel'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('01.09.2026'), findsOneWidget);
+  });
+
+  testWidgets('Stichtag-Button speichert das gewaehlte Datum', (tester) async {
+    final gespeichert = <DateTime>[];
+    await tester.pumpWidget(
+      buildTestApp(
+        readModel: _readModel(),
+        datumSaver: (date) async => gespeichert.add(date),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('stufenwechsel-date-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('15'));
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    expect(gespeichert, [DateTime(2026, 9, 15)]);
+    expect(find.text('15.09.2026'), findsOneWidget);
+  });
+
+  testWidgets('Altersgrenzen oeffnet Stammeinstellungen und laedt neu', (
+    tester,
+  ) async {
+    var loads = 0;
+    await tester.pumpWidget(
+      buildTestApp(readModel: _readModel(), onLoad: () => loads++),
+    );
+    await tester.pumpAndSettle();
+    expect(loads, 1);
+
+    await tester.tap(
+      find.byKey(const Key('stufenwechsel-altersgrenzen-button')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('route:/settings/stamm'), findsOneWidget);
+
+    tester.state<NavigatorState>(find.byType(Navigator)).pop();
+    await tester.pumpAndSettle();
+    expect(loads, 2);
   });
 
   testWidgets('leere Stufen werden ohne Auswahlzeile und Button angezeigt', (
