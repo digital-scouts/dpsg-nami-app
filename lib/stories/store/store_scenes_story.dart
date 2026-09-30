@@ -17,7 +17,6 @@ import 'package:nami/presentation/screens/member_detail_page.dart';
 import 'package:nami/presentation/screens/settings_appearance_page.dart';
 import 'package:nami/presentation/screens/settings_map_page.dart';
 import 'package:nami/presentation/screens/settings_stufenwechsel_page.dart';
-import 'package:nami/presentation/screens/statistics_page.dart';
 import 'package:nami/presentation/theme/theme.dart';
 import 'package:nami/presentation/widgets/app_bottom_navigation.dart';
 import 'package:nami/services/app_icon_service.dart';
@@ -28,6 +27,7 @@ import 'package:storybook_flutter/storybook_flutter.dart';
 import '../achievements_story.dart';
 import '../bundesstatistik_story.dart';
 import '../member_people_page_story.dart';
+import '../statistics_page_story.dart';
 import 'store_showcase_data.dart';
 
 /// Vollbild-Szenen fuer Store-Screenshots.
@@ -73,14 +73,9 @@ Story storeMitgliedDetailStory() => Story(
 
 Story storeStatistikStory() => Story(
   name: 'Store/Statistik',
-  builder: (context) => _StoreApp(
-    home: Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: StatisticsPage(debugReadModel: StoreShowcaseData.readModel()),
-      ),
-      bottomNavigationBar: const AppBottomNavigation(currentIndex: 1),
-    ),
+  builder: (context) => StatisticsPageStoryScene(
+    background: storeShowcaseAppearance.background,
+    simulateTopInset: false,
   ),
 );
 

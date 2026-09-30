@@ -113,7 +113,6 @@ List<Story> buildStorybookStories() {
     statisticsGroupDetailStory(),
     ageDistributionStory(),
     groupDistributionStory(),
-    bundesstatistikCardStory(),
     bundesvergleichStory(),
     bundesstatistikEinwilligungStory(),
     stufenChoiceChipsStory(),

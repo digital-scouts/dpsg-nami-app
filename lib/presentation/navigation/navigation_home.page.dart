@@ -174,11 +174,9 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
         (arbeitskontextModel.isSynchronizing ||
             arbeitskontextModel.isLoadingRoles);
     final showsTopBanner = showsStaleDataWarning || showsLoadingChecklist;
-    // Supporter-Hintergrund der Mitgliederliste laeuft bis hinter Safe Area
-    // und Lade-Info; die Unterkante meldet der Listen-Header.
-    final backdropBackground = _index == 0
-        ? context.watch<AppearanceModel?>()?.background
-        : null;
+    // Die Header-Flaeche der Seite laeuft bis hinter Safe Area und Lade-Info;
+    // die Unterkante meldet der AppPageHeader der jeweiligen Seite.
+    final backdropBackground = context.watch<AppearanceModel?>()?.background;
     return SupporterBackdrop(
       background: backdropBackground,
       child: Column(

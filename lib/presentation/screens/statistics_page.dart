@@ -11,13 +11,14 @@ import '../../domain/arbeitskontext/arbeitskontext_read_model.dart';
 import '../../domain/member/member_address_utils.dart';
 import '../../domain/member/mitglied.dart';
 import '../../services/statistics_location_service.dart';
+import '../model/appearance_model.dart';
 import '../model/arbeitskontext_model.dart';
 import '../model/bundesstatistik_model.dart';
 import '../navigation/app_router.dart';
-import '../statistics/bundesstatistik_card.dart';
+import 'bundesvergleich_page.dart';
 import '../statistics/statistics_snapshot_builder.dart';
 import '../statistics/statistics_ui.dart';
-import '../widgets/bundesstatistik_einwilligung_dialog.dart';
+import '../widgets/app_page_header.dart';
 
 class StatisticsPage extends StatefulWidget {
   const StatisticsPage({super.key, this.debugReadModel});
@@ -77,30 +78,14 @@ class _StatisticsPageState extends State<StatisticsPage> {
     ).pushNamed(AppRoutes.statisticsGroupDetail, arguments: arguments);
   }
 
-  Widget? _buildBundesstatistikCard(BuildContext context) {
-    final BundesstatistikModel model;
+  bool _hasBundesstatistik(BuildContext context) {
     try {
-      model = context.watch<BundesstatistikModel>();
+      context.watch<BundesstatistikModel>();
+      return true;
     } on ProviderNotFoundException {
       // Stories und Tests ohne Bundesstatistik-Provider.
-      return null;
+      return false;
     }
-    if (!model.isAvailable) {
-      return null;
-    }
-
-    return BundesstatistikCard(
-      status: model.status,
-      teilnehmendeStaemme: model.aggregat?.teilnehmendeStaemme,
-      isBusy: model.isBusy,
-      onOeffnen: () =>
-          Navigator.of(context).pushNamed(AppRoutes.statisticsBundesvergleich),
-      onEinwilligen: () async {
-        if (await zeigeBundesstatistikEinwilligungDialog(context)) {
-          await model.setzeEinwilligung(true);
-        }
-      },
-    );
   }
 
   @override
@@ -127,46 +112,67 @@ class _StatisticsPageState extends State<StatisticsPage> {
       altersgrenzen: _altersgrenzen,
     );
 
-    return _StammStatisticsView(
+    final stammView = _StammStatisticsView(
       snapshot: snapshot,
       onOpenGroup: _openGroup,
       stammAddress: _stammAddress,
-      bundesstatistikCard: _buildBundesstatistikCard(context),
+    );
+    final background = context.watch<AppearanceModel?>()?.background;
+    final bundesweitView = _hasBundesstatistik(context)
+        ? const BundesvergleichBody()
+        : BundesvergleichView(
+            status: BundesstatistikStatus.nichtVerfuegbar,
+            hatEinwilligung: false,
+            onEinwilligungAendern: (_) {},
+          );
+
+    return DefaultTabController(
+      length: 2,
+      child: Column(
+        children: [
+          AppPageHeader(
+            background: background,
+            child: _StatisticsHeader(snapshot: snapshot),
+          ),
+          Expanded(
+            child: TabBarView(
+              // Nur per Tab wechseln: die Karte im Stamm-Tab braucht die
+              // horizontalen Gesten selbst.
+              physics: const NeverScrollableScrollPhysics(),
+              children: [stammView, bundesweitView],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _StammStatisticsView extends StatelessWidget {
-  const _StammStatisticsView({
-    required this.snapshot,
-    required this.onOpenGroup,
-    required this.stammAddress,
-    this.bundesstatistikCard,
-  });
+/// Kopf der Statistik: Layer-Name, Kennzahlen und Tabs.
+class _StatisticsHeader extends StatelessWidget {
+  const _StatisticsHeader({required this.snapshot});
 
   final StatisticsSnapshot snapshot;
-  final ValueChanged<String> onOpenGroup;
-  final String? stammAddress;
-  final Widget? bundesstatistikCard;
 
   @override
   Widget build(BuildContext context) {
-    final hasAgeData = snapshot.ageDistribution.maxCount > 0;
-    final hasGenderData = snapshot.gender.any(
-      (item) => item.label != 'Ohne Angabe' && item.value > 0,
-    );
-    final hasConfessionData = snapshot.confessions.isNotEmpty;
-    final hasLocationInput = snapshot.memberById.values.any(
-      (member) => member.primaryAddress != null,
-    );
-    final hasStammAddress = (stammAddress ?? '').trim().isNotEmpty;
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      children: [
-        StatisticsCard(
-          title: snapshot.stammTitle,
-          child: StatisticsKpiRow(
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            snapshot.stammName,
+            key: const Key('statistics-header-title'),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
+          StatisticsKpiRow(
             items: [
               StatisticsKpiItem(
                 value: '${snapshot.members}',
@@ -183,13 +189,76 @@ class _StammStatisticsView extends StatelessWidget {
               ),
             ],
           ),
-        ),
-        if (bundesstatistikCard case final card?) ...[
           const SizedBox(height: 12),
-          card,
+          const _StatisticsTabBar(),
         ],
+      ),
+    );
+  }
+}
+
+/// Tabs "Stamm" und "Bundesweit" als Pille, lesbar auch auf dem
+/// Supporter-Hintergrund.
+class _StatisticsTabBar extends StatelessWidget {
+  const _StatisticsTabBar();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: TabBar(
+          indicatorSize: TabBarIndicatorSize.tab,
+          dividerColor: Colors.transparent,
+          indicator: BoxDecoration(
+            color: colorScheme.primary,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          labelColor: colorScheme.onPrimary,
+          unselectedLabelColor: colorScheme.onSurfaceVariant,
+          splashBorderRadius: BorderRadius.circular(20),
+          tabs: const [
+            Tab(height: 36, text: 'Stamm'),
+            Tab(height: 36, text: 'Bundesweit'),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StammStatisticsView extends StatelessWidget {
+  const _StammStatisticsView({
+    required this.snapshot,
+    required this.onOpenGroup,
+    required this.stammAddress,
+  });
+
+  final StatisticsSnapshot snapshot;
+  final ValueChanged<String> onOpenGroup;
+  final String? stammAddress;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasAgeData = snapshot.ageDistribution.maxCount > 0;
+    final hasGenderData = snapshot.gender.any(
+      (item) => item.label != 'Ohne Angabe' && item.value > 0,
+    );
+    final hasConfessionData = snapshot.confessions.isNotEmpty;
+    final hasLocationInput = snapshot.memberById.values.any(
+      (member) => member.primaryAddress != null,
+    );
+    final hasStammAddress = (stammAddress ?? '').trim().isNotEmpty;
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
         if (snapshot.groups.isNotEmpty) ...[
-          const SizedBox(height: 12),
           StatisticsCard(
             title: 'Gruppen',
             padding: const EdgeInsets.fromLTRB(12, 16, 12, 12),
