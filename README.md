@@ -201,6 +201,7 @@ Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den
 - Die App erfasst bei aktivierter Analytics-Option Tracking-Ereignisse für Bearbeiten, Retry und Problemlösungsfälle, damit Konflikte und nicht automatisch lösbare Fälle fachlich ausgewertet werden können.
 - Der Statistik-Tab zeigt aktuell die Mitgliederanzahl im aktiven Arbeitskontext
 - Optionaler bundesweiter Vergleich im Statistik-Tab: Nach ausdrücklicher Einwilligung teilt die App etwa wöchentlich zusammengefasste Stammeszahlen mit dem Statistikserver (`server/`) und zeigt dafür Median und Durchschnitt teilnehmender Stämme. Die Funktion ist nur sichtbar, wenn `STATS_SERVER_URL` gesetzt ist; die Einwilligung lässt sich in den App-Einstellungen widerrufen.
+- Demo-Zugang ohne Login: Auf dem Anmeldebildschirm startet „Demo ansehen“ die App mit dem erfundenen Stamm Silberfels, zum Beispiel für die App-Store-Prüfung, für Interessierte ohne Hitobito-Zugang oder für Vorführungen. Die Demo ist nur lesend, spricht Hitobito nicht an und hält alle Daten nur im Speicher. Für den bundesweiten Vergleich sendet sie an den Mock-Statistikserver `mock-namiapp.scout-link.de` (siehe `server/deploy/README.md`). Beendet wird die Demo über die Einstellungen oder über Abmelden. Der Demo-Modus bleibt auch über einen Neustart der App erhalten.
 - Empfehlung für den nächsten Stufenwechsel eines Mitglieds.
   - Die gewünschte Altersgrenzen der Stufen können angepasst werden.
   - Stufenwechsel durchführen

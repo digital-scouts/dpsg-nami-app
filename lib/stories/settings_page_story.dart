@@ -17,6 +17,7 @@ Story settingsPageStory() => Story(
   name: 'Einstellungen/Screens/Uebersicht',
   builder: (context) {
     final version = context.knobs.text(label: 'App Version', initial: 'v0.2.0');
+    final demoMode = context.knobs.boolean(label: 'Demo-Modus', initial: false);
     return MaterialApp(
       localizationsDelegates: [
         GlobalMaterialLocalizations.delegate,
@@ -65,11 +66,20 @@ Story settingsPageStory() => Story(
           message: 'Datenschutz',
           type: AppSnackbarType.info,
         ),
-        onDebugTools: () => AppSnackbar.show(
-          context,
-          message: 'Debug & Tools',
-          type: AppSnackbarType.info,
-        ),
+        onDebugTools: demoMode
+            ? null
+            : () => AppSnackbar.show(
+                context,
+                message: 'Debug & Tools',
+                type: AppSnackbarType.info,
+              ),
+        onExitDemo: demoMode
+            ? () => AppSnackbar.show(
+                context,
+                message: 'Demo beenden',
+                type: AppSnackbarType.info,
+              )
+            : null,
         onProfile: () => AppSnackbar.show(
           context,
           message: 'Profil',

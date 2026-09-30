@@ -332,6 +332,14 @@ class AppLocalizations {
       'auth_not_configured_body':
           'OAuth ist noch nicht konfiguriert. Hinterlege die Hitobito-Zugangsdaten in der .env, um den Login zu aktivieren.',
       'auth_login_action': 'Mit Hitobito anmelden',
+      'demo_start_action': 'Demo ansehen',
+      'demo_start_hint':
+          'Ohne Login ausprobieren: erfundener Stamm, nur lesend, keine echten Daten.',
+      'demo_banner_title': 'Demo-Modus',
+      'demo_banner_body':
+          'Du siehst den erfundenen Stamm Silberfels. Bearbeiten ist nicht möglich, Hitobito wird nicht angesprochen.',
+      'demo_ribbon': 'DEMO',
+      'demo_exit_action': 'Demo beenden',
       'auth_relogin_title': 'Erneute Anmeldung erforderlich',
       'auth_relogin_body':
           'Die lokal gespeicherten Daten sind abgelaufen. Bitte melde dich erneut an, um den Datenbestand zu entsperren.',
@@ -1039,6 +1047,14 @@ class AppLocalizations {
       'auth_not_configured_body':
           'OAuth is not configured yet. Add the Hitobito credentials to the .env file to enable sign-in.',
       'auth_login_action': 'Sign in with Hitobito',
+      'demo_start_action': 'Try the demo',
+      'demo_start_hint':
+          'Explore without signing in: fictional group, read-only, no real data.',
+      'demo_banner_title': 'Demo mode',
+      'demo_banner_body':
+          'You are viewing the fictional group Stamm Silberfels. Editing is disabled and Hitobito is not contacted.',
+      'demo_ribbon': 'DEMO',
+      'demo_exit_action': 'End demo',
       'auth_relogin_title': 'Sign-in required again',
       'auth_relogin_body':
           'The locally stored data has expired. Please sign in again to unlock the data set.',

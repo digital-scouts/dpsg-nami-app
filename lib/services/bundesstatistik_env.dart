@@ -4,6 +4,11 @@ class BundesstatistikEnv {
   /// Basis-URL des Statistikservers; leer schaltet die Funktion ab.
   static String get serverUrl => (_env('STATS_SERVER_URL') ?? '').trim();
 
+  /// Mock-Statistikserver fuer den Demo-Zugang. Er haelt nur synthetische
+  /// Staemme im Speicher, der erfundene Demo-Stamm beruehrt so nie die
+  /// Produktivdaten.
+  static const String demoServerUrl = 'https://mock-namiapp.scout-link.de';
+
   static bool get isEnabled => Uri.tryParse(serverUrl)?.hasScheme ?? false;
 
   static Duration get sendInterval {
