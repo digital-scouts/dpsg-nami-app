@@ -15,6 +15,7 @@ Story statisticsPageStory() {
     name: 'Statistik/Seite/Uebersicht',
     builder: (context) {
       final background = storyHeaderBackgroundKnob(context.knobs);
+      final textScale = storyTextScaleKnob(context.knobs);
       final dark = context.knobs.boolean(label: 'Dunkel', initial: false);
       final bundesweit = context.knobs.options<StoryBundesstatistikSzenario>(
         label: 'Bundesweit',
@@ -29,6 +30,7 @@ Story statisticsPageStory() {
         initial: false,
       );
       return StatisticsPageStoryScene(
+        textScale: textScale,
         background: background,
         dark: dark,
         bundesstatistik: bundesweit,
@@ -48,6 +50,7 @@ class StatisticsPageStoryScene extends StatelessWidget {
     this.bundesstatistik = StoryBundesstatistikSzenario.optIn,
     this.showLoadingInfo = false,
     this.simulateTopInset = true,
+    this.textScale = 1,
   });
 
   final AppearanceBackgroundId? background;
@@ -55,17 +58,21 @@ class StatisticsPageStoryScene extends StatelessWidget {
   final StoryBundesstatistikSzenario bundesstatistik;
   final bool showLoadingInfo;
   final bool simulateTopInset;
+  final double textScale;
 
   @override
   Widget build(BuildContext context) {
     final readModel = StoreShowcaseData.readModel();
     return StoryTabPage(
-      key: ValueKey('$background-$dark-$bundesstatistik-$showLoadingInfo'),
+      key: ValueKey(
+        '$background-$dark-$bundesstatistik-$showLoadingInfo-$textScale',
+      ),
       tabIndex: 1,
       background: background,
       dark: dark,
       showLoadingInfo: showLoadingInfo,
       simulateTopInset: simulateTopInset,
+      textScale: textScale,
       providers: [
         ChangeNotifierProvider<BundesstatistikModel>(
           create: (_) =>

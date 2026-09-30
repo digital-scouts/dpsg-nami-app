@@ -143,8 +143,6 @@ class AppLocalizations {
       'member_filter_subtitle_label': 'Zusatztext',
       'member_filter_subtitle_section': 'Zusatztext',
       'member_filter_custom_groups_title': 'Eigene Gruppen',
-      'member_filter_chips_expand': 'Mehr anzeigen',
-      'member_filter_chips_collapse': 'Weniger anzeigen',
       'member_filter_custom_groups_empty':
           'Es sind noch keine Filtergruppen vorhanden.',
       'member_filter_edit': 'Filtergruppe bearbeiten',
@@ -861,8 +859,6 @@ class AppLocalizations {
       'member_filter_subtitle_label': 'Additional text',
       'member_filter_subtitle_section': 'Additional text',
       'member_filter_custom_groups_title': 'Own groups',
-      'member_filter_chips_expand': 'Show more',
-      'member_filter_chips_collapse': 'Show less',
       'member_filter_custom_groups_empty': 'There are no filter groups yet.',
       'member_filter_edit': 'Edit filter group',
       'member_filter_delete': 'Delete filter group',

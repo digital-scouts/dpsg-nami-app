@@ -9,12 +9,14 @@ class MemberSearchBar extends StatefulWidget {
     required this.onChanged,
     this.showFilterIndicator = false,
     this.onTunePressed,
+    this.padding = const EdgeInsets.fromLTRB(16, 12, 16, 12),
   });
 
   final String initial;
   final ValueChanged<String> onChanged;
   final bool showFilterIndicator;
   final VoidCallback? onTunePressed;
+  final EdgeInsetsGeometry padding;
 
   @override
   State<MemberSearchBar> createState() => _MemberSearchBarState();
@@ -77,14 +79,14 @@ class _MemberSearchBarState extends State<MemberSearchBar> {
         : theme.colorScheme.surfaceContainerHighest;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      padding: widget.padding,
       child: Container(
         decoration: BoxDecoration(
           color: fillColor,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(color: borderColor, width: 1.5),
         ),
-        padding: const EdgeInsets.fromLTRB(16, 6, 8, 6),
+        padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
         child: Row(
           children: [
             Icon(

@@ -132,7 +132,25 @@ class _StatisticsPageState extends State<StatisticsPage> {
         children: [
           AppPageHeader(
             background: background,
-            child: _StatisticsHeader(snapshot: snapshot),
+            primary: StatisticsKpiRow(
+              dense: true,
+              items: [
+                StatisticsKpiItem(
+                  value: '${snapshot.members}',
+                  label: 'Mitglieder',
+                  highlight: true,
+                ),
+                StatisticsKpiItem(
+                  value: '${snapshot.leaders}',
+                  label: 'Leitende',
+                ),
+                StatisticsKpiItem(
+                  value: '${snapshot.sonstige}',
+                  label: 'Sonstige',
+                ),
+              ],
+            ),
+            secondary: _StatisticsTabBar(stammName: snapshot.stammName),
           ),
           Expanded(
             child: TabBarView(
@@ -148,86 +166,62 @@ class _StatisticsPageState extends State<StatisticsPage> {
   }
 }
 
-/// Kopf der Statistik: Layer-Name, Kennzahlen und Tabs.
-class _StatisticsHeader extends StatelessWidget {
-  const _StatisticsHeader({required this.snapshot});
-
-  final StatisticsSnapshot snapshot;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            snapshot.stammName,
-            key: const Key('statistics-header-title'),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 12),
-          StatisticsKpiRow(
-            items: [
-              StatisticsKpiItem(
-                value: '${snapshot.members}',
-                label: 'Mitglieder',
-                highlight: true,
-              ),
-              StatisticsKpiItem(
-                value: '${snapshot.leaders}',
-                label: 'Leitende',
-              ),
-              StatisticsKpiItem(
-                value: '${snapshot.sonstige}',
-                label: 'Sonstige',
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const _StatisticsTabBar(),
-        ],
-      ),
-    );
-  }
-}
-
-/// Tabs "Stamm" und "Bundesweit" als Pille, lesbar auch auf dem
-/// Supporter-Hintergrund.
+/// Tabs mit dem Namen des Stamms und "Bundesweit" als Pille, lesbar auch
+/// auf dem Supporter-Hintergrund. Fuellt die Zeilenhoehe des Headers.
 class _StatisticsTabBar extends StatelessWidget {
-  const _StatisticsTabBar();
+  const _StatisticsTabBar({required this.stammName});
+
+  final String stammName;
+
+  static const double _inset = 3;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(4),
-        child: TabBar(
-          indicatorSize: TabBarIndicatorSize.tab,
-          dividerColor: Colors.transparent,
-          indicator: BoxDecoration(
-            color: colorScheme.primary,
-            borderRadius: BorderRadius.circular(20),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final tabHeight = constraints.maxHeight - 2 * _inset;
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(constraints.maxHeight / 2),
           ),
-          labelColor: colorScheme.onPrimary,
-          unselectedLabelColor: colorScheme.onSurfaceVariant,
-          splashBorderRadius: BorderRadius.circular(20),
-          tabs: const [
-            Tab(height: 36, text: 'Stamm'),
-            Tab(height: 36, text: 'Bundesweit'),
-          ],
-        ),
-      ),
+          child: Padding(
+            padding: const EdgeInsets.all(_inset),
+            child: TabBar(
+              indicatorSize: TabBarIndicatorSize.tab,
+              dividerColor: Colors.transparent,
+              indicator: BoxDecoration(
+                color: colorScheme.primary,
+                borderRadius: BorderRadius.circular(tabHeight / 2),
+              ),
+              labelColor: colorScheme.onPrimary,
+              unselectedLabelColor: colorScheme.onSurfaceVariant,
+              labelPadding: const EdgeInsets.symmetric(horizontal: 12),
+              splashBorderRadius: BorderRadius.circular(tabHeight / 2),
+              tabs: [
+                Tab(
+                  height: tabHeight,
+                  child: Text(
+                    stammName,
+                    key: const Key('statistics-header-title'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Tab(
+                  height: tabHeight,
+                  child: const Text(
+                    'Bundesweit',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

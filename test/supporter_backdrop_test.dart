@@ -89,12 +89,19 @@ void main() {
     );
   });
 
-  testWidgets('ohne Hintergrund wird nichts gezeichnet', (tester) async {
+  testWidgets('ohne Hintergrund zeichnet der Backdrop die schlichte Flaeche', (
+    tester,
+  ) async {
     await tester.pumpWidget(build(background: null));
     await settle(tester);
 
+    // Wie auf den anderen Hauptseiten: kein Unterschied beim Tab-Wechsel.
     expect(find.byType(SupporterBackground), findsNothing);
-    expect(find.byType(SupporterBackdropAnchor), findsNothing);
+    final plain = find.byKey(const ValueKey('supporter-backdrop-plain'));
+    expect(
+      tester.getSize(plain).height,
+      tester.getBottomLeft(find.byType(SupporterBackdropAnchor)).dy,
+    );
   });
 
   group('AppPageHeader', () {
@@ -116,7 +123,8 @@ void main() {
                 children: [
                   AppPageHeader(
                     background: background,
-                    child: const SizedBox(height: 40),
+                    primary: const SizedBox.shrink(),
+                    secondary: const SizedBox.shrink(),
                   ),
                   const Expanded(child: SizedBox.expand()),
                 ],
@@ -175,7 +183,8 @@ void main() {
               data: MediaQueryData(disableAnimations: true),
               child: AppPageHeader(
                 background: AppearanceBackgroundId.lagerfeuer,
-                child: SizedBox(height: 40),
+                primary: SizedBox.shrink(),
+                secondary: SizedBox.shrink(),
               ),
             ),
           ),
@@ -199,7 +208,11 @@ void main() {
         1 => const Column(
           key: ValueKey('tab-statistik'),
           children: [
-            AppPageHeader(background: background, child: SizedBox(height: 120)),
+            AppPageHeader(
+              background: background,
+              primary: SizedBox.shrink(),
+              secondary: SizedBox.shrink(),
+            ),
             Expanded(child: SizedBox.expand()),
           ],
         ),
@@ -224,30 +237,33 @@ void main() {
       );
     }
 
-    void expectBackgroundUnderAnchor(WidgetTester tester) {
+    double expectBackgroundUnderAnchor(WidgetTester tester) {
       final backgrounds = find.byType(SupporterBackground);
       expect(backgrounds, findsOneWidget);
       final anchorBottom = tester
           .getBottomLeft(find.byType(SupporterBackdropAnchor))
           .dy;
       expect(tester.getSize(backgrounds).height, anchorBottom);
+      return anchorBottom;
     }
 
-    testWidgets('Hintergrund bleibt beim Wechsel zwischen Seiten mit Header', (
-      tester,
-    ) async {
-      await tester.pumpWidget(buildTabs(tab: 0));
-      await settle(tester);
-      expectBackgroundUnderAnchor(tester);
+    testWidgets(
+      'Hintergrund bleibt beim Wechsel zwischen Seiten mit Header stehen',
+      (tester) async {
+        await tester.pumpWidget(buildTabs(tab: 0));
+        await settle(tester);
+        final members = expectBackgroundUnderAnchor(tester);
 
-      await tester.pumpWidget(buildTabs(tab: 1));
-      await settle(tester);
-      expectBackgroundUnderAnchor(tester);
+        await tester.pumpWidget(buildTabs(tab: 1));
+        await settle(tester);
+        // Gleiches Header-Raster: die Unterkante springt nicht.
+        expect(expectBackgroundUnderAnchor(tester), members);
 
-      await tester.pumpWidget(buildTabs(tab: 0));
-      await settle(tester);
-      expectBackgroundUnderAnchor(tester);
-    });
+        await tester.pumpWidget(buildTabs(tab: 0));
+        await settle(tester);
+        expect(expectBackgroundUnderAnchor(tester), members);
+      },
+    );
 
     testWidgets(
       'ohne Header auf der neuen Seite verschwindet der Hintergrund',

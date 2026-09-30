@@ -6,6 +6,7 @@ import 'package:nami/domain/settings/stufen_settings.dart';
 import 'package:nami/domain/stufenwechsel/ermittle_stufenwechsel_vorschlaege_usecase.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/presentation/model/appearance_model.dart';
+import 'package:nami/domain/appearance/appearance_catalog.dart';
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/navigation/app_router.dart';
 import 'package:nami/presentation/screens/member_detail_page.dart';
@@ -151,15 +152,13 @@ class _SettingsStufenwechselPageState extends State<SettingsStufenwechselPage> {
 
         return Column(
           children: [
-            AppPageHeader(
+            _StufenwechselHeader(
               background: background,
-              child: _StufenwechselHeader(
-                sections: sections,
-                summaryCount: summaryCount,
-                stichtag: settings.stufenwechselDatum,
-                onPickDate: () => _pickStufenwechselDatum(settings),
-                onOpenAltersgrenzen: _openAltersgrenzen,
-              ),
+              sections: sections,
+              summaryCount: summaryCount,
+              stichtag: settings.stufenwechselDatum,
+              onPickDate: () => _pickStufenwechselDatum(settings),
+              onOpenAltersgrenzen: _openAltersgrenzen,
             ),
             Expanded(
               child: _StufenwechselContent(
@@ -209,10 +208,11 @@ class _SettingsStufenwechselPageState extends State<SettingsStufenwechselPage> {
   }
 }
 
-/// Kopf des Stufenwechsels als deckende Karte: Anzahl im Wechselalter und
-/// darunter Stufenwechsel-Datum und Altersgrenzen.
+/// Kopf des Stufenwechsels als Karte im Header-Raster: oben die Anzahl im
+/// Wechselalter, unten Stufenwechsel-Datum und Altersgrenzen.
 class _StufenwechselHeader extends StatelessWidget {
   const _StufenwechselHeader({
+    required this.background,
     required this.sections,
     required this.summaryCount,
     required this.stichtag,
@@ -220,6 +220,7 @@ class _StufenwechselHeader extends StatelessWidget {
     required this.onOpenAltersgrenzen,
   });
 
+  final AppearanceBackgroundId? background;
   final List<StufenwechselVorschlagsSection> sections;
   final int summaryCount;
 
@@ -228,6 +229,10 @@ class _StufenwechselHeader extends StatelessWidget {
   final VoidCallback onPickDate;
   final VoidCallback onOpenAltersgrenzen;
 
+  static const double _rowPadding = 14;
+  static const double _iconSize = 18;
+  static const double _iconGap = 8;
+
   int get _ueberfaellig => sections.fold<int>(
     0,
     (sum, s) => sum + s.vorschlaege.where((v) => v.istUeberfaellig).length,
@@ -235,129 +240,175 @@ class _StufenwechselHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      child: _buildKarte(context),
+    return AppPageHeader(
+      background: background,
+      card: const AppPageHeaderCard(divider: true, insetSecondary: false),
+      primary: _buildSummary(context),
+      secondary: _buildActions(context),
     );
   }
 
-  Widget _buildKarte(BuildContext context) {
+  Widget _buildSummary(BuildContext context) {
     final theme = Theme.of(context);
     final ueberfaellig = _ueberfaellig;
-    final stichtag = this.stichtag;
-    return Material(
-      color: theme.colorScheme.surfaceContainerHighest,
-      borderRadius: BorderRadius.circular(16),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
-            child: Row(
+    return Row(
+      children: [
+        const Icon(Icons.swap_horiz),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text.rich(
+            TextSpan(
               children: [
-                const Icon(Icons.swap_horiz),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(
-                          text: '$summaryCount ',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                        TextSpan(
-                          text: 'im Wechselalter',
-                          style: theme.textTheme.titleSmall,
-                        ),
-                      ],
-                    ),
-                    key: const Key('stufenwechsel-summary-count'),
+                TextSpan(
+                  text: '$summaryCount ',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: theme.colorScheme.primary,
                   ),
                 ),
-                if (ueberfaellig > 0)
-                  _Badge(
-                    label: '$ueberfaellig überfällig',
-                    color: theme.colorScheme.error,
-                  ),
+                TextSpan(
+                  text: 'im Wechselalter',
+                  style: theme.textTheme.titleSmall,
+                ),
               ],
             ),
+            key: const Key('stufenwechsel-summary-count'),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-          Divider(height: 1, color: theme.colorScheme.outline),
-          IntrinsicHeight(
-            child: Row(
-              children: [
-                Expanded(
-                  child: InkWell(
-                    key: Key(
-                      stichtag == null
-                          ? 'stufenwechsel-date-warning'
-                          : 'stufenwechsel-date-button',
-                    ),
-                    onTap: onPickDate,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
+        ),
+        if (ueberfaellig > 0)
+          _Badge(
+            label: '$ueberfaellig überfällig',
+            color: theme.colorScheme.error,
+          ),
+      ],
+    );
+  }
+
+  Widget _buildActions(BuildContext context) {
+    final theme = Theme.of(context);
+    final stichtag = this.stichtag;
+    final dateLabel = stichtag == null
+        ? 'Datum festlegen'
+        : _formatDate(stichtag);
+    final dateColor = stichtag == null
+        ? const Color(0xFFC67C00)
+        : theme.colorScheme.onSurface;
+    // Die Tap-Flaechen reichen bis an den Kartenrand (insetSecondary).
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = !_fitsAltersgrenzenLabel(
+          context,
+          maxWidth: constraints.maxWidth,
+          dateLabel: dateLabel,
+        );
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: InkWell(
+                key: Key(
+                  stichtag == null
+                      ? 'stufenwechsel-date-warning'
+                      : 'stufenwechsel-date-button',
+                ),
+                onTap: onPickDate,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: _rowPadding),
+                  child: Row(
+                    children: [
+                      Icon(
+                        stichtag == null
+                            ? Icons.warning_amber_rounded
+                            : Icons.event,
+                        size: _iconSize,
+                        color: stichtag == null
+                            ? const Color(0xFFC67C00)
+                            : null,
                       ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            stichtag == null
-                                ? Icons.warning_amber_rounded
-                                : Icons.event,
-                            size: 18,
-                            color: stichtag == null
-                                ? const Color(0xFFC67C00)
-                                : null,
-                          ),
-                          const SizedBox(width: 8),
-                          Flexible(
-                            child: _PillLabel(
-                              caption: 'Stufenwechsel',
-                              label: stichtag == null
-                                  ? 'Datum festlegen'
-                                  : _formatDate(stichtag),
-                              color: stichtag == null
-                                  ? const Color(0xFFC67C00)
-                                  : theme.colorScheme.onSurface,
-                            ),
-                          ),
-                        ],
+                      const SizedBox(width: _iconGap),
+                      Flexible(
+                        child: _PillLabel(
+                          caption: 'Stufenwechsel',
+                          label: dateLabel,
+                          color: dateColor,
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
-                VerticalDivider(width: 1, color: theme.colorScheme.outline),
-                InkWell(
-                  key: const Key('stufenwechsel-altersgrenzen-button'),
-                  onTap: onOpenAltersgrenzen,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 10,
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.tune, size: 18),
-                        const SizedBox(width: 8),
+              ),
+            ),
+            VerticalDivider(width: 1, color: theme.colorScheme.outline),
+            Tooltip(
+              message: 'Altersgrenzen',
+              excludeFromSemantics: true,
+              child: InkWell(
+                key: const Key('stufenwechsel-altersgrenzen-button'),
+                onTap: onOpenAltersgrenzen,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: _rowPadding),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.tune,
+                        size: _iconSize,
+                        semanticLabel: compact ? 'Altersgrenzen' : null,
+                      ),
+                      if (!compact) ...[
+                        const SizedBox(width: _iconGap),
                         Text(
                           'Altersgrenzen',
+                          maxLines: 1,
                           style: theme.textTheme.labelLarge,
                         ),
                       ],
-                    ),
+                    ],
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        );
+      },
     );
+  }
+
+  /// Das Datum hat Vorrang: passt beides nicht nebeneinander, bleibt von
+  /// "Altersgrenzen" nur das Icon.
+  bool _fitsAltersgrenzenLabel(
+    BuildContext context, {
+    required double maxWidth,
+    required String dateLabel,
+  }) {
+    final theme = Theme.of(context);
+    final textScaler = MediaQuery.textScalerOf(context);
+    double width(String text, TextStyle? style) {
+      final painter = TextPainter(
+        text: TextSpan(text: text, style: style),
+        maxLines: 1,
+        textDirection: Directionality.of(context),
+        textScaler: textScaler,
+      )..layout();
+      final result = painter.width;
+      painter.dispose();
+      return result;
+    }
+
+    final dateWidth = [
+      width('Stufenwechsel', theme.textTheme.labelSmall),
+      width(dateLabel, theme.textTheme.labelLarge),
+    ].reduce((a, b) => a > b ? a : b);
+    final altersgrenzenWidth = width(
+      'Altersgrenzen',
+      theme.textTheme.labelLarge,
+    );
+    final required =
+        (_rowPadding + _iconSize + _iconGap + dateWidth + _rowPadding) +
+        1 +
+        (_rowPadding + _iconSize + _iconGap + altersgrenzenWidth + _rowPadding);
+    return required <= maxWidth;
   }
 }
 

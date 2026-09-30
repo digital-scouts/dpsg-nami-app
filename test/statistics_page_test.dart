@@ -9,6 +9,8 @@ import 'package:nami/presentation/navigation/app_router.dart';
 import 'package:nami/presentation/screens/statistics_page.dart';
 import 'package:nami/presentation/widgets/app_page_header.dart';
 
+import 'support/page_header_height.dart';
+
 void main() {
   testWidgets('zeigt Stammansicht mit Gruppenauswahl', (tester) async {
     await tester.pumpWidget(_buildTestApp(_buildReadModel()));
@@ -33,7 +35,13 @@ void main() {
         findsOneWidget,
       );
     }
-    expect(find.text('Stamm'), findsOneWidget);
+    // Der Stammesname ersetzt "Stamm" im Tab-Switch.
+    expect(
+      tester
+          .widget<Text>(find.byKey(const Key('statistics-header-title')))
+          .data,
+      'Stamm Testdorf',
+    );
 
     await tester.tap(find.text('Bundesweit'));
     await tester.pumpAndSettle();
@@ -42,6 +50,13 @@ void main() {
         'Der bundesweite Vergleich ist in dieser App-Version nicht verfügbar.',
       ),
       findsOneWidget,
+    );
+  });
+
+  testWidgets('Statistik-Header folgt dem Header-Raster', (tester) async {
+    await expectPageHeaderMatchesRaster(
+      tester,
+      () => _buildTestApp(_buildReadModel()),
     );
   });
 
