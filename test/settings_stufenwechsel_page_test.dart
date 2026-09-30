@@ -13,6 +13,8 @@ import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/screens/member_detail_page.dart';
 import 'package:nami/presentation/screens/settings_stufenwechsel_page.dart';
 
+import 'support/page_header_height.dart';
+
 void main() {
   Widget buildTestApp({
     required ArbeitskontextReadModel readModel,
@@ -106,6 +108,13 @@ void main() {
 
     expect(find.byType(MemberDetailPage), findsOneWidget);
     expect(find.text('Emma Mueller'), findsWidgets);
+  });
+
+  testWidgets('Stufenwechsel-Header folgt dem Header-Raster', (tester) async {
+    await expectPageHeaderMatchesRaster(
+      tester,
+      () => buildTestApp(readModel: _readModel()),
+    );
   });
 
   testWidgets('fehlendes Datum nutzt heute und zeigt Warnhinweis', (

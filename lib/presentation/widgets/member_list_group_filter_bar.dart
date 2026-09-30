@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../l10n/app_localizations.dart';
-
 class GroupFilterItem {
   final String keyName;
   final Color? chipColor;
@@ -37,20 +35,25 @@ class GroupFilterBar extends StatefulWidget {
 }
 
 class _GroupFilterBarState extends State<GroupFilterBar> {
+  /// Hoehe ausserhalb des Headers, wenn der Aufrufer keine vorgibt.
   static const double _chipHeight = 34;
   static const double _chipSpacing = 8;
-  static const double _chipRunSpacing = 8;
+  static const double _fadeWidth = 24;
 
-  bool _expanded = false;
+  bool _fadeStart = false;
+  bool _fadeEnd = false;
 
-  @override
-  void didUpdateWidget(covariant GroupFilterBar oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.items.length != oldWidget.items.length && _expanded) {
+  /// Blendet die Raender aus, an denen weitere Chips folgen.
+  bool _handleMetrics(ScrollMetrics metrics) {
+    final fadeStart = metrics.extentBefore > 0.5;
+    final fadeEnd = metrics.extentAfter > 0.5;
+    if (fadeStart != _fadeStart || fadeEnd != _fadeEnd) {
       setState(() {
-        _expanded = false;
+        _fadeStart = fadeStart;
+        _fadeEnd = fadeEnd;
       });
     }
+    return false;
   }
 
   @override
@@ -59,126 +62,66 @@ class _GroupFilterBarState extends State<GroupFilterBar> {
       return const SizedBox.shrink();
     }
 
-    final theme = Theme.of(context);
-    final t = AppLocalizations.of(context);
+    // Eine Zeile, horizontal scrollbar: die Header-Hoehe bleibt unabhaengig
+    // von Anzahl und Laenge der Chips gleich.
+    final list = ListView.separated(
+      scrollDirection: Axis.horizontal,
+      padding: EdgeInsets.zero,
+      itemCount: widget.items.length,
+      separatorBuilder: (_, _) => const SizedBox(width: _chipSpacing),
+      itemBuilder: (context, index) {
+        final item = widget.items[index];
+        return Center(
+          child: _buildChip(
+            context,
+            item,
+            isActive: widget.selectedKeys.contains(item.keyName),
+          ),
+        );
+      },
+    );
 
     return Padding(
       padding: widget.padding,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final rowCount = _estimateRowCount(
-            maxWidth: constraints.maxWidth,
-            items: widget.items,
-            theme: theme,
-          );
-          final isExpandable = rowCount > 2;
-          final visibleRows = _expanded
-              ? rowCount
-              : rowCount.clamp(1, 2).toInt();
-          final maxHeight = _heightForRows(visibleRows);
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ClipRect(
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  curve: Curves.easeOut,
-                  constraints: BoxConstraints(maxHeight: maxHeight),
-                  child: Wrap(
-                    spacing: _chipSpacing,
-                    runSpacing: _chipRunSpacing,
-                    alignment: WrapAlignment.center,
-                    runAlignment: WrapAlignment.center,
-                    children: widget.items
-                        .map(
-                          (item) => _buildChip(
-                            context,
-                            item,
-                            isActive: widget.selectedKeys.contains(
-                              item.keyName,
-                            ),
-                          ),
-                        )
-                        .toList(growable: false),
-                  ),
+          // Im Header gibt die Zeile die Hoehe fest vor, sonst Chip-Hoehe.
+          return SizedBox(
+            height: constraints.hasTightHeight
+                ? constraints.maxHeight
+                : _chipHeight,
+            child: NotificationListener<ScrollMetricsNotification>(
+              onNotification: (notification) =>
+                  _handleMetrics(notification.metrics),
+              child: NotificationListener<ScrollNotification>(
+                onNotification: (notification) =>
+                    _handleMetrics(notification.metrics),
+                child: ShaderMask(
+                  blendMode: BlendMode.dstIn,
+                  shaderCallback: (bounds) => _fadeShader(bounds),
+                  child: list,
                 ),
               ),
-              if (isExpandable)
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    style: TextButton.styleFrom(
-                      foregroundColor: theme.colorScheme.outlineVariant,
-                      visualDensity: VisualDensity.compact,
-                      textStyle: theme.textTheme.labelSmall?.copyWith(
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    onPressed: () => setState(() => _expanded = !_expanded),
-                    icon: Icon(
-                      _expanded ? Icons.expand_less : Icons.expand_more,
-                      size: 18,
-                    ),
-                    label: Text(
-                      _expanded
-                          ? t.t('member_filter_chips_collapse')
-                          : t.t('member_filter_chips_expand'),
-                    ),
-                  ),
-                ),
-            ],
+            ),
           );
         },
       ),
     );
   }
 
-  double _heightForRows(int rowCount) {
-    if (rowCount <= 0) {
-      return 0;
-    }
-    return rowCount * _chipHeight + (rowCount - 1) * _chipRunSpacing;
-  }
-
-  int _estimateRowCount({
-    required double maxWidth,
-    required List<GroupFilterItem> items,
-    required ThemeData theme,
-  }) {
-    if (maxWidth.isInfinite || maxWidth <= 0) {
-      return 1;
-    }
-    final textStyle = theme.textTheme.labelMedium?.copyWith(
-      fontSize: 13,
-      fontWeight: FontWeight.w500,
-    );
-    var rows = 1;
-    var currentLineWidth = 0.0;
-
-    for (final item in items) {
-      final itemWidth = _estimateChipWidth(item, textStyle) + 6;
-      final requiredWidth = currentLineWidth == 0
-          ? itemWidth
-          : currentLineWidth + _chipSpacing + itemWidth;
-      if (requiredWidth <= maxWidth) {
-        currentLineWidth = requiredWidth;
-      } else {
-        rows += 1;
-        currentLineWidth = itemWidth;
-      }
-    }
-    return rows;
-  }
-
-  double _estimateChipWidth(GroupFilterItem item, TextStyle? textStyle) {
-    final textPainter = TextPainter(
-      text: TextSpan(text: item.label, style: textStyle),
-      textDirection: TextDirection.ltr,
-      maxLines: 1,
-    )..layout();
-    final indicatorWidth = item.iconData != null ? 15.0 : 8.0;
-    return 12 + indicatorWidth + 6 + textPainter.width + 12;
+  Shader _fadeShader(Rect bounds) {
+    final fade = bounds.width <= 0
+        ? 0.0
+        : (_fadeWidth / bounds.width).clamp(0.0, 0.5);
+    return LinearGradient(
+      colors: [
+        _fadeStart ? Colors.transparent : Colors.black,
+        Colors.black,
+        Colors.black,
+        _fadeEnd ? Colors.transparent : Colors.black,
+      ],
+      stops: [0, fade, 1 - fade, 1],
+    ).createShader(bounds);
   }
 
   Widget _buildChip(
@@ -215,8 +158,8 @@ class _GroupFilterBarState extends State<GroupFilterBar> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 140),
           curve: Curves.easeOut,
-          height: _chipHeight,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          height: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
             color: chipBackgroundColor,
             borderRadius: BorderRadius.circular(999),
@@ -238,7 +181,10 @@ class _GroupFilterBarState extends State<GroupFilterBar> {
                 ),
               ],
               const SizedBox(width: 6),
-              Flexible(
+              // In der scrollbaren Zeile ist die Breite unbegrenzt; sehr
+              // lange Namen kuerzt die Obergrenze.
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 200),
                 child: Text(
                   item.label,
                   maxLines: 1,

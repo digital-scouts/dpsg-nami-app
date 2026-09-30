@@ -245,17 +245,12 @@ class _SettingsPageState extends State<SettingsPage> {
                         .aktiverLayer;
                     return Column(
                       children: [
-                        AppPageHeader(
+                        _SettingsProfileHeader(
                           background: appearance?.background,
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                            child: _SettingsProfileHeader(
-                              profile: authModel.profile,
-                              layerName: layer?.name,
-                              badge: appearance?.badge,
-                              onTap: widget.onProfile,
-                            ),
-                          ),
+                          profile: authModel.profile,
+                          layerName: layer?.name,
+                          badge: appearance?.badge,
+                          onTap: widget.onProfile,
                         ),
                         Expanded(
                           child: ListView(
@@ -702,30 +697,40 @@ class _SettingsMessagesBanner extends StatelessWidget {
 /// gesperrter Platzhalter.
 class _SettingsProfileHeader extends StatelessWidget {
   const _SettingsProfileHeader({
+    required this.background,
     required this.profile,
     required this.layerName,
     required this.badge,
     required this.onTap,
   });
 
+  final AppearanceBackgroundId? background;
   final AuthProfile? profile;
   final String? layerName;
   final SupporterBadgeId? badge;
   final VoidCallback? onTap;
 
+  static const double _avatarRadius = 18;
+  static const double _avatarGap = 12;
+
   @override
   Widget build(BuildContext context) {
     final profile = this.profile;
-    final colorScheme = Theme.of(context).colorScheme;
-    final content = profile == null
-        ? _buildLocked(context)
-        : _buildProfile(context, profile);
-    return Material(
-      key: const Key('settings-profile-header'),
-      color: colorScheme.surfaceContainerHighest,
-      borderRadius: BorderRadius.circular(16),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(onTap: onTap, child: content),
+    return AppPageHeader(
+      background: background,
+      card: AppPageHeaderCard(
+        key: const Key('settings-profile-header'),
+        onTap: onTap,
+      ),
+      primary: profile == null
+          ? _buildLockedRow(context)
+          : _buildProfileRow(context, profile),
+      secondary: profile == null
+          ? _buildLockedHint(context)
+          : _ProfileChipRow(
+              rechte: _rechte(profile),
+              rollen: [for (final role in profile.roles) role.roleName],
+            ),
     );
   }
 
@@ -743,161 +748,239 @@ class _SettingsProfileHeader extends StatelessWidget {
     return null;
   }
 
-  Widget _avatar(BuildContext context, String name, {double radius = 24}) {
+  Widget _avatar(BuildContext context, {String? name}) {
     final theme = Theme.of(context);
     return CircleAvatar(
-      radius: radius,
+      radius: _avatarRadius,
       backgroundColor: theme.colorScheme.primary,
-      child: Text(
-        name.isNotEmpty ? name.characters.first.toUpperCase() : '?',
-        style: theme.textTheme.titleLarge?.copyWith(
-          color: theme.colorScheme.onPrimary,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-
-  Widget _nameRow(BuildContext context, String name, {TextStyle? style}) {
-    final theme = Theme.of(context);
-    final badge = this.badge;
-    return Row(
-      children: [
-        Flexible(
-          child: Text(
-            name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style:
-                style ??
-                theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-          ),
-        ),
-        if (badge != null) ...[
-          const SizedBox(width: 6),
-          SupporterBadge(badge: badge, size: 20),
-        ],
-      ],
+      child: name == null
+          ? Icon(Icons.person, color: theme.colorScheme.onPrimary)
+          : Text(
+              name.isNotEmpty ? name.characters.first.toUpperCase() : '?',
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.colorScheme.onPrimary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
     );
   }
 
   Widget _chevron() =>
       Icon(onTap == null ? Icons.lock_outline : Icons.chevron_right);
 
-  Widget _buildLocked(BuildContext context) {
+  Widget _buildLockedRow(BuildContext context) {
     final t = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 24,
-            backgroundColor: theme.colorScheme.primary,
-            child: Icon(Icons.person, color: theme.colorScheme.onPrimary),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  t.t('profile'),
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Arbeitskontext, Rollen und Konto',
-                  style: theme.textTheme.bodySmall,
-                ),
-              ],
+    return Row(
+      children: [
+        _avatar(context),
+        const SizedBox(width: _avatarGap),
+        Expanded(
+          child: Text(
+            t.t('profile'),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
             ),
           ),
-          _chevron(),
-        ],
+        ),
+        _chevron(),
+      ],
+    );
+  }
+
+  Widget _buildLockedHint(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 2 * _avatarRadius + _avatarGap),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          'Arbeitskontext, Rollen und Konto',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
       ),
     );
   }
 
-  Widget _buildProfile(BuildContext context, AuthProfile profile) {
+  Widget _buildProfileRow(BuildContext context, AuthProfile profile) {
     final theme = Theme.of(context);
     final name = _name(profile);
-    final rechte = _rechte(profile);
-    const maxChips = 2;
-    final rollen = profile.roles.take(maxChips).toList();
-    final weitere = profile.roles.length - rollen.length;
-    Widget chip(String label, {IconData? icon, bool accent = false}) {
-      final color = accent
-          ? theme.colorScheme.primary
-          : theme.colorScheme.onSurfaceVariant;
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: accent
-              ? theme.colorScheme.primary.withValues(alpha: 0.12)
-              : theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: 14, color: color),
-              const SizedBox(width: 4),
-            ],
-            Text(
-              label,
-              style: theme.textTheme.labelSmall?.copyWith(color: color),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    final badge = this.badge;
+    return Row(
+      children: [
+        _avatar(context, name: name),
+        const SizedBox(width: _avatarGap),
+        Expanded(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _avatar(context, name),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _nameRow(context, name),
-                    const SizedBox(height: 2),
-                    Text(
-                      layerName ?? profile.email ?? '',
+              Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
+                  ),
+                  if (badge != null) ...[
+                    const SizedBox(width: 6),
+                    SupporterBadge(badge: badge, size: 20),
                   ],
-                ),
+                ],
               ),
-              _chevron(),
+              Text(
+                layerName ?? profile.email ?? '',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall,
+              ),
             ],
           ),
-          if (rollen.isNotEmpty || rechte != null) ...[
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                if (rechte != null)
-                  chip(rechte, icon: Icons.key_outlined, accent: true),
-                for (final rolle in rollen) chip(rolle.roleName),
-                if (weitere > 0) chip('+$weitere'),
-              ],
+        ),
+        _chevron(),
+      ],
+    );
+  }
+}
+
+/// Rechte und Rollen in genau einer Zeile: so viele Rollen, wie in die
+/// Breite passen, der Rest als "+n". Es gibt keinen Umbruch, damit die
+/// Header-Hoehe gleich bleibt.
+class _ProfileChipRow extends StatelessWidget {
+  const _ProfileChipRow({required this.rechte, required this.rollen});
+
+  final String? rechte;
+  final List<String> rollen;
+
+  static const double _spacing = 6;
+  static const double _hPadding = 8;
+  static const double _iconSize = 14;
+  static const double _iconGap = 4;
+
+  /// Sehr lange Rollennamen werden gekuerzt statt die Zeile zu fuellen.
+  static const double _maxRoleWidth = 160;
+
+  @override
+  Widget build(BuildContext context) {
+    final rechte = this.rechte;
+    if (rechte == null && rollen.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final theme = Theme.of(context);
+    final style = theme.textTheme.labelSmall;
+    final textScaler = MediaQuery.textScalerOf(context);
+    final direction = Directionality.of(context);
+
+    double chipWidth(String label, {bool icon = false}) {
+      final painter = TextPainter(
+        text: TextSpan(text: label, style: style),
+        maxLines: 1,
+        textDirection: direction,
+        textScaler: textScaler,
+      )..layout();
+      final width =
+          2 * _hPadding + (icon ? _iconSize + _iconGap : 0) + painter.width;
+      painter.dispose();
+      return width;
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Etwas Spielraum gegen Rundungsdifferenzen beim Layout.
+        final available = constraints.maxWidth - 1;
+        var used = rechte == null ? 0.0 : chipWidth(rechte, icon: true);
+        var shown = 0;
+        for (var i = 0; i < rollen.length; i++) {
+          final width = chipWidth(rollen[i]).clamp(0.0, _maxRoleWidth);
+          final rest = rollen.length - i - 1;
+          final needed =
+              used +
+              (used > 0 ? _spacing : 0) +
+              width +
+              (rest > 0 ? _spacing + chipWidth('+$rest') : 0);
+          if (needed > available) {
+            break;
+          }
+          used += (used > 0 ? _spacing : 0) + width;
+          shown++;
+        }
+        final weitere = rollen.length - shown;
+        Widget limited(Widget chip, double maxWidth) => ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxWidth),
+          child: chip,
+        );
+        final chips = <Widget>[
+          if (rechte != null)
+            limited(
+              _chip(context, rechte, icon: Icons.key_outlined, accent: true),
+              constraints.maxWidth,
             ),
+          for (final rolle in rollen.take(shown))
+            limited(_chip(context, rolle), _maxRoleWidth),
+          if (weitere > 0)
+            limited(_chip(context, '+$weitere'), constraints.maxWidth),
+        ];
+        // Die Chips behalten ihre gemessene Breite; nur bei extrem schmaler
+        // Breite, wenn schon Rechte und "+n" nicht passen, wird abgeschnitten.
+        return UnconstrainedBox(
+          alignment: AlignmentDirectional.centerStart,
+          constrainedAxis: Axis.vertical,
+          clipBehavior: Clip.hardEdge,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (var i = 0; i < chips.length; i++) ...[
+                if (i > 0) const SizedBox(width: _spacing),
+                chips[i],
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _chip(
+    BuildContext context,
+    String label, {
+    IconData? icon,
+    bool accent = false,
+  }) {
+    final theme = Theme.of(context);
+    final color = accent
+        ? theme.colorScheme.primary
+        : theme.colorScheme.onSurfaceVariant;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: _hPadding, vertical: 4),
+      decoration: BoxDecoration(
+        color: accent
+            ? theme.colorScheme.primary.withValues(alpha: 0.12)
+            : theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: _iconSize, color: color),
+            const SizedBox(width: _iconGap),
           ],
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelSmall?.copyWith(color: color),
+            ),
+          ),
         ],
       ),
     );

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/stories/achievements_story.dart';
 import 'package:nami/stories/app_bottom_navigation_story.dart';
 import 'package:nami/stories/app_sidebar_story.dart';
@@ -134,7 +136,29 @@ class StorybookEntry extends StatelessWidget {
       theme: lightTheme,
       darkTheme: darkTheme,
       themeMode: ThemeMode.system,
-      home: Storybook(stories: stories ?? buildStorybookStories()),
+      home: Storybook(
+        stories: stories ?? buildStorybookStories(),
+        wrapperBuilder: _storyWrapper,
+      ),
     );
   }
 }
+
+/// Wie der Standard-Wrapper von Storybook, aber mit App-Theme und
+/// App-Uebersetzungen, damit Widgets mit [AppLocalizations] auch ohne eigene
+/// MaterialApp in der Story funktionieren.
+Widget _storyWrapper(BuildContext context, Widget? child) => MaterialApp(
+  debugShowCheckedModeBanner: false,
+  theme: lightTheme,
+  darkTheme: darkTheme,
+  themeMode: ThemeMode.system,
+  localizationsDelegates: [
+    GlobalMaterialLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+    AppLocalizations.delegate,
+  ],
+  supportedLocales: const [Locale('de'), Locale('en')],
+  locale: const Locale('de'),
+  home: Scaffold(body: Center(child: child)),
+);
