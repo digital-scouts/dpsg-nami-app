@@ -186,4 +186,80 @@ void main() {
       expect(find.byType(SupporterBackdropAnchor), findsNothing);
     });
   });
+
+  group('Tab-Wechsel', () {
+    Widget buildTabs({required int tab}) {
+      const background = AppearanceBackgroundId.lagerfeuer;
+      final Widget page = switch (tab) {
+        0 => MemberDirectory(
+          key: const ValueKey('tab-members'),
+          mitglieder: mitglieder,
+          headerBackground: background,
+        ),
+        1 => const Column(
+          key: ValueKey('tab-statistik'),
+          children: [
+            AppPageHeader(background: background, child: SizedBox(height: 120)),
+            Expanded(child: SizedBox.expand()),
+          ],
+        ),
+        _ => const SizedBox.expand(key: ValueKey('tab-ohne-header')),
+      };
+      return MaterialApp(
+        localizationsDelegates: [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          AppLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('de'), Locale('en')],
+        locale: const Locale('de'),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(disableAnimations: true),
+          child: child!,
+        ),
+        home: Scaffold(
+          body: SupporterBackdrop(background: background, child: page),
+        ),
+      );
+    }
+
+    void expectBackgroundUnderAnchor(WidgetTester tester) {
+      final backgrounds = find.byType(SupporterBackground);
+      expect(backgrounds, findsOneWidget);
+      final anchorBottom = tester
+          .getBottomLeft(find.byType(SupporterBackdropAnchor))
+          .dy;
+      expect(tester.getSize(backgrounds).height, anchorBottom);
+    }
+
+    testWidgets('Hintergrund bleibt beim Wechsel zwischen Seiten mit Header', (
+      tester,
+    ) async {
+      await tester.pumpWidget(buildTabs(tab: 0));
+      await settle(tester);
+      expectBackgroundUnderAnchor(tester);
+
+      await tester.pumpWidget(buildTabs(tab: 1));
+      await settle(tester);
+      expectBackgroundUnderAnchor(tester);
+
+      await tester.pumpWidget(buildTabs(tab: 0));
+      await settle(tester);
+      expectBackgroundUnderAnchor(tester);
+    });
+
+    testWidgets(
+      'ohne Header auf der neuen Seite verschwindet der Hintergrund',
+      (tester) async {
+        await tester.pumpWidget(buildTabs(tab: 0));
+        await settle(tester);
+        expectBackgroundUnderAnchor(tester);
+
+        await tester.pumpWidget(buildTabs(tab: 2));
+        await settle(tester);
+        expect(find.byType(SupporterBackground), findsNothing);
+      },
+    );
+  });
 }
