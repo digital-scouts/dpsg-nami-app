@@ -1,0 +1,71 @@
+/* Gemeinsame Gestaltung für Screenshots und Vorstellungsgrafik. */
+@font-face { font-family: 'Work Sans'; font-weight: 400; src: url('../../fonts/WorkSans-Regular.ttf'); }
+@font-face { font-family: 'Work Sans'; font-weight: 500; src: url('../../fonts/WorkSans-Medium.ttf'); }
+@font-face { font-family: 'Work Sans'; font-weight: 600; src: url('../../fonts/WorkSans-SemiBold.ttf'); }
+@font-face { font-family: 'Work Sans'; font-weight: 700; src: url('../../fonts/WorkSans-Bold.ttf'); }
+
+:root {
+  --navy: #003056;
+  --navy-dark: #00203b;
+  --red: #810a1a;
+  --woe: #FF6400;
+  --jufi: #2f53a7;
+  --pfadi: #00823c;
+  --rover: #cc1f2f;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { font-family: 'Work Sans', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+
+.canvas { position: relative; overflow: hidden; }
+
+/* ---------- Stile ---------- */
+.s-navy { background: radial-gradient(120% 70% at 50% 0%, #0a4a7d 0%, var(--navy) 45%, var(--navy-dark) 100%); color: #fff; }
+.s-navy .subline { color: #c9dcee; }
+.s-navy .accent-bar { background: var(--accent); box-shadow: 0 0 0 3px rgba(255,255,255,.15); }
+.s-navy .watermark { filter: brightness(0) invert(1); opacity: .05; }
+
+.s-hell { background: linear-gradient(180deg, #ffffff 0%, #eef1f6 100%); color: var(--navy); }
+.s-hell .subline { color: #3b4250; }
+.s-hell .accent-bar { background: var(--accent); }
+.s-hell .watermark { filter: brightness(0); opacity: .035; }
+.s-hell .device-frame { box-shadow: 0 40px 120px rgba(0, 48, 86, .22), 0 0 0 2px #2a2d33 inset; }
+.s-hell .play-card { box-shadow: 0 30px 80px rgba(0, 48, 86, .22), 0 0 0 1px rgba(0,0,0,.06); }
+
+.s-stufen { background: linear-gradient(165deg, color-mix(in srgb, var(--accent) 88%, #fff) 0%, var(--accent) 45%, color-mix(in srgb, var(--accent) 70%, #000) 100%); color: #fff; }
+.s-stufen .subline { color: rgba(255,255,255,.88); }
+.s-stufen .accent-bar { background: rgba(255,255,255,.9); }
+.s-stufen .watermark { filter: brightness(0) invert(1); opacity: .08; }
+
+.watermark { position: absolute; pointer-events: none; z-index: 0; }
+
+/* ---------- Geräte ---------- */
+.device { position: absolute; left: 50%; transform: translateX(-50%); z-index: 1; }
+.device-frame {
+  position: relative;
+  background: #0d0e11;
+  box-shadow: 0 50px 140px rgba(0, 0, 0, .45), 0 0 0 2px #3a3d44 inset;
+}
+.device-screen { position: relative; overflow: hidden; background: #f5f5f7; }
+.screen-layer { position: absolute; inset: 0; }
+.screen-layer img.raw { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.play-card .screen-layer img.raw { height: auto; }
+/* Diagonale Teilung für den Hell-/Dunkel-Vergleich. */
+.screen-layer.dark .statusbar { color: #fff; }
+.screen-layer.dark .statusbar svg { fill: #fff; }
+.screen-layer.dark .statusbar svg rect[stroke] { stroke: #fff; }
+
+.statusbar {
+  position: absolute; left: 0; right: 0; top: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  color: #000; font-family: -apple-system, 'SF Pro Text', system-ui, sans-serif; font-weight: 600;
+  z-index: 3;
+}
+.statusbar .icons { display: flex; align-items: center; }
+.statusbar svg { display: block; fill: #000; }
+
+.island { position: absolute; left: 50%; transform: translateX(-50%); background: #000; border-radius: 999px; z-index: 4; }
+
+.play-card { position: relative; overflow: hidden; background: #f5f5f7; box-shadow: 0 40px 100px rgba(0,0,0,.4); }
+

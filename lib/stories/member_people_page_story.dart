@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:nami/data/arbeitskontext/hitobito_group_resource.dart';
+import 'package:nami/data/appearance/in_memory_appearance_settings_repository.dart';
+import 'package:nami/domain/appearance/appearance_catalog.dart';
+import 'package:nami/domain/appearance/appearance_settings.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext_local_repository.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model.dart';
@@ -16,10 +19,14 @@ import 'package:nami/domain/settings/app_settings.dart';
 import 'package:nami/domain/settings/app_settings_repository.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/l10n/app_localizations.dart';
+import 'package:nami/presentation/model/appearance_model.dart';
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/model/member_filters_model.dart';
 import 'package:nami/presentation/screens/member_people_page.dart';
+import 'package:nami/presentation/theme/theme.dart';
+import 'package:nami/presentation/widgets/supporter_backdrop.dart';
+import 'package:nami/services/app_icon_service.dart';
 import 'package:nami/services/biometric_lock_service.dart';
 import 'package:nami/services/hitobito_auth_env.dart';
 import 'package:nami/services/hitobito_data_retention_policy.dart';
@@ -33,7 +40,7 @@ import 'package:storybook_flutter/storybook_flutter.dart';
 
 Story memberPeoplePageLoadedStory() => Story(
   name: 'Mitglieder/Screens/Liste/Geladen',
-  builder: (context) => _MemberPeopleStoryShell(
+  builder: (context) => MemberPeopleStoryShell(
     cached: <Mitglied>[
       Mitglied.peopleListItem(
         mitgliedsnummer: '1001',
@@ -51,28 +58,55 @@ Story memberPeoplePageLoadedStory() => Story(
 
 Story memberPeoplePageEmptyStory() => Story(
   name: 'Mitglieder/Screens/Liste/Leer',
-  builder: (context) => _MemberPeopleStoryShell(cached: const <Mitglied>[]),
+  builder: (context) => MemberPeopleStoryShell(cached: const <Mitglied>[]),
 );
 
-class _MemberPeopleStoryShell extends StatefulWidget {
-  const _MemberPeopleStoryShell({required this.cached});
+/// Mitgliederliste mit Fake-Login und vorbefuelltem Arbeitskontext.
+///
+/// Wird auch von den Store-Szenen genutzt; [readModel] ersetzt dann den
+/// minimalen Bestand aus [cached], [appearance] setzt Palette, Hintergrund
+/// und eigenes Supporter-Badge.
+class MemberPeopleStoryShell extends StatefulWidget {
+  const MemberPeopleStoryShell({
+    super.key,
+    this.cached = const <Mitglied>[],
+    this.readModel,
+    this.bottomNavigationBar,
+    this.appearance,
+    this.themeMode = ThemeMode.system,
+  });
 
   final List<Mitglied> cached;
+  final ArbeitskontextReadModel? readModel;
+  final Widget? bottomNavigationBar;
+  final AppearanceSettings? appearance;
+  final ThemeMode themeMode;
 
   @override
-  State<_MemberPeopleStoryShell> createState() =>
-      _MemberPeopleStoryShellState();
+  State<MemberPeopleStoryShell> createState() => _MemberPeopleStoryShellState();
 }
 
-class _MemberPeopleStoryShellState extends State<_MemberPeopleStoryShell> {
+class _MemberPeopleStoryShellState extends State<MemberPeopleStoryShell> {
   late final AuthSessionModel _authModel;
   late final ArbeitskontextModel _arbeitskontextModel;
+  AppearanceModel? _appearanceModel;
   late final MemberFiltersModel _memberFiltersModel;
   late final Future<void> _initializeFuture;
 
   @override
   void initState() {
     super.initState();
+    final cached =
+        widget.readModel ??
+        ArbeitskontextReadModel(
+          arbeitskontext: Arbeitskontext(
+            aktiverLayer: const ArbeitskontextLayer(
+              id: 11,
+              name: 'Stamm Musterdorf',
+            ),
+          ),
+          mitglieder: widget.cached,
+        );
     _authModel = AuthSessionModel(
       repository: _InMemoryAuthSessionRepository(),
       profileRepository: _InMemoryAuthProfileRepository(),
@@ -86,23 +120,23 @@ class _MemberPeopleStoryShellState extends State<_MemberPeopleStoryShell> {
       logger: _FakeLoggerService(),
     );
     _arbeitskontextModel = ArbeitskontextModel(
-      localRepository: _FakeArbeitskontextLocalRepository(
-        cached: ArbeitskontextReadModel(
-          arbeitskontext: Arbeitskontext(
-            aktiverLayer: const ArbeitskontextLayer(
-              id: 11,
-              name: 'Stamm Musterdorf',
-            ),
-          ),
-          mitglieder: widget.cached,
-        ),
+      localRepository: _FakeArbeitskontextLocalRepository(cached: cached),
+      readModelRepository: _FakeArbeitskontextReadModelRepository(
+        cached: cached,
       ),
-      readModelRepository: _FakeArbeitskontextReadModelRepository(),
       groupsService: _FakeHitobitoGroupsService(),
       bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
       logger: _FakeLoggerService(),
     );
     _memberFiltersModel = MemberFiltersModel(_InMemoryMemberFilterRepository());
+    final appearance = widget.appearance;
+    if (appearance != null) {
+      _appearanceModel = AppearanceModel(
+        repository: InMemoryAppearanceSettingsRepository(appearance),
+        appIconService: FakeAppIconService(),
+        initial: appearance,
+      );
+    }
     _initializeFuture = _initialize();
   }
 
@@ -127,11 +161,17 @@ class _MemberPeopleStoryShellState extends State<_MemberPeopleStoryShell> {
         ChangeNotifierProvider<MemberFiltersModel>.value(
           value: _memberFiltersModel,
         ),
+        ChangeNotifierProvider<AppearanceModel?>.value(value: _appearanceModel),
       ],
       child: FutureBuilder<void>(
         future: _initializeFuture,
         builder: (context, snapshot) {
+          final palette = widget.appearance?.palette ?? AppPaletteId.standard;
           return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: buildTheme(palette, Brightness.light),
+            darkTheme: buildTheme(palette, Brightness.dark),
+            themeMode: widget.themeMode,
             localizationsDelegates: [
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
@@ -140,7 +180,19 @@ class _MemberPeopleStoryShellState extends State<_MemberPeopleStoryShell> {
             ],
             supportedLocales: const [Locale('de'), Locale('en')],
             locale: const Locale('de'),
-            home: const MemberPeoplePage(),
+            home: widget.bottomNavigationBar == null
+                ? const MemberPeoplePage()
+                : Scaffold(
+                    // Wie in NavigationHomeScreen: die Shell liefert die SafeArea.
+                    body: SupporterBackdrop(
+                      background: widget.appearance?.background,
+                      child: const SafeArea(
+                        bottom: false,
+                        child: MemberPeoplePage(),
+                      ),
+                    ),
+                    bottomNavigationBar: widget.bottomNavigationBar,
+                  ),
           );
         },
       ),
@@ -166,6 +218,10 @@ class _FakeArbeitskontextLocalRepository
 
 class _FakeArbeitskontextReadModelRepository
     implements ArbeitskontextReadModelRepository {
+  _FakeArbeitskontextReadModelRepository({this.cached});
+
+  final ArbeitskontextReadModel? cached;
+
   @override
   Future<ArbeitskontextReadModel> loadRoles({
     required String accessToken,
@@ -188,7 +244,7 @@ class _FakeArbeitskontextReadModelRepository
     List<HitobitoGroupResource>? accessibleGroups,
     void Function(ArbeitskontextReadModel partial)? onProgress,
   }) async {
-    return ArbeitskontextReadModel(arbeitskontext: arbeitskontext);
+    return cached ?? ArbeitskontextReadModel(arbeitskontext: arbeitskontext);
   }
 }
 
