@@ -790,6 +790,37 @@ void main() {
     },
   );
 
+  testWidgets(
+    'sendet eine nur anders formatierte Nummer unveraendert zurueck',
+    (tester) async {
+      const formatted = MitgliedKontaktTelefon(
+        phoneNumberId: 1,
+        wert: '+49 (0170) 123-4567',
+        label: 'Mobil',
+      );
+      final member = _buildMember(
+        gender: '',
+      ).copyWith(telefonnummern: const <MitgliedKontaktTelefon>[formatted]);
+      final model = _RecordingMemberEditModel();
+
+      _useLargeViewport(tester);
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberEditPage(mitglied: member),
+          providers: _buildEditProviders(model),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('member-edit-save-button')));
+      await tester.pumpAndSettle();
+
+      expect(
+        model.submitCalls.single.zielMitglied.telefonnummern,
+        const <MitgliedKontaktTelefon>[formatted],
+      );
+    },
+  );
+
   group('Problemloesungsmodus', () {
     const firstNameConflict = MemberResolutionItem(
       problemType: MemberResolutionProblemType.conflict,
