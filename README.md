@@ -199,7 +199,9 @@ Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den
 - Schlägt das Senden einer Personenänderung wegen eines retrybaren Remote-Fehlers fehl, wird die Änderung lokal vorgemerkt und während aktiver App-Nutzung automatisch erneut versucht, sobald Senden wieder erlaubt ist; zusätzlich bleibt ein manueller Retry über Debug & Tools möglich
 - Echte Konflikte bei Personenänderungen sowie bestimmte spätere Validierungsfehler werden als Problemlösungsfall pro Mitglied gespeichert. Offene Fälle sind über Einstellungen, Mitglieddetails und die Mitgliederliste sichtbar und können von dort erneut geöffnet werden.
 - Die App erfasst bei aktivierter Analytics-Option Tracking-Ereignisse für Bearbeiten, Retry und Problemlösungsfälle, damit Konflikte und nicht automatisch lösbare Fälle fachlich ausgewertet werden können.
-- Der Statistik-Tab zeigt aktuell die Mitgliederanzahl im aktiven Arbeitskontext
+- Der Statistik-Tab zeigt den aktiven Stamm als Kacheln in den Themen Überblick, Stufen und Entwicklung: im Kopf die Personenzahl mit Stufenband, darunter unter anderem Gruppen je Stufe, Altersstruktur, Alter in Zahlen, Stufenwechsel zum eingestellten Stichtag, Neue in 12 Monaten und Bindung, Verlauf, Geschlecht, Konfession und Wohnorte. Gruppenzeilen öffnen die Gruppendetailseite; die übrigen Kacheln sind reine Anzeige.
+  - Über „Bearbeiten“ lässt sich der Überblick je Stamm anpassen: Kacheln aus einem Katalog hinzufügen, entfernen (mit Rückgängig), durch langes Drücken verschieben und über die Ecke in den erlaubten Größen 1×1, 2×1 oder 2×2 ändern. Eigene Zählkacheln nutzen dieselben Regeln wie die eigenen Gruppen der Mitgliederliste. Zielwerte (Gruppengröße je Stufe, Neue pro Jahr) setzen Marken in den Kacheln und sind anfangs leer. Die festen Themen Stufen und Entwicklung lassen sich ausblenden.
+  - Für den Verlauf merkt sich die App höchstens einmal im Monat die Summen des Stamms (Personen, Kinder und Jugendliche, Leitende, je Stufe), längstens 24 Monate. Verlauf und Kachel-Einstellungen liegen nur auf dem Gerät und werden beim vollständigen App-Reset gelöscht.
 - Optionaler bundesweiter Vergleich im Statistik-Tab „Bundesweit“: Nach ausdrücklicher Einwilligung teilt die App etwa wöchentlich zusammengefasste Stammeszahlen mit dem Statistikserver (`server/`) und zeigt dafür Median und Durchschnitt teilnehmender Stämme. Ohne Einwilligung lädt der Tab zur Teilnahme ein; bei zu wenig teilnehmenden Stämmen oder einem nicht erreichbaren Server zeigt er einen Hinweis. Ist `STATS_SERVER_URL` nicht gesetzt, meldet der Tab den Vergleich als nicht verfügbar. Die Einwilligung lässt sich in den App-Einstellungen widerrufen.
 - Demo-Zugang ohne Login: Auf dem Anmeldebildschirm startet „Demo ansehen“ die App mit dem erfundenen Stamm Silberfels, zum Beispiel für die App-Store-Prüfung, für Interessierte ohne Hitobito-Zugang oder für Vorführungen. Die Demo ist nur lesend, spricht Hitobito nicht an und hält alle Daten nur im Speicher. Für den bundesweiten Vergleich sendet sie an den Mock-Statistikserver `mock-namiapp.scout-link.de` (siehe `server/deploy/README.md`). Beendet wird die Demo über die Einstellungen oder über Abmelden. Der Demo-Modus bleibt auch über einen Neustart der App erhalten.
 - Empfehlung für den nächsten Stufenwechsel eines Mitglieds.
@@ -224,8 +226,7 @@ Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den
 - Erinnerungen und Kalenderintegration für
   - Geburtstage
   - Ablaufende Ausbildungen (Präventionsschulung)
-- Statistik historische Entwicklung im Stamm
-  - Wann verlassen Mitglieder den Stamm, wann kommen sie
+- Detailansichten hinter den Statistik-Kacheln, etwa wann Mitglieder den Stamm verlassen und wann sie kommen
 - Weitere fachliche Kartenebenen auf Basis der neuen Karteninfrastruktur
 
 ## Externe Apis
