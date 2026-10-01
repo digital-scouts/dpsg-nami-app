@@ -93,7 +93,7 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
           onNamiAi: () => Navigator.pushNamed(context, AppRoutes.namiAiChat),
           onNamiAiPaywall: () =>
               Navigator.pushNamed(context, AppRoutes.namiAiPaywall),
-          onProfile: _isProfileAvailable(authModel, arbeitskontextModel)
+          onProfile: _isProfileAvailable(authModel)
               ? () => Navigator.pushNamed(context, AppRoutes.profile)
               : null,
           onExitDemo: _isDemo(context)
@@ -243,14 +243,12 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
     );
   }
 
-  bool _isProfileAvailable(
-    AuthSessionModel authModel,
-    ArbeitskontextModel arbeitskontextModel,
-  ) {
+  /// Das Profil hängt nur an der Anmeldung. Auch wenn der Arbeitskontext
+  /// nicht geladen werden kann, bleibt es offen, damit man sich abmelden
+  /// kann.
+  bool _isProfileAvailable(AuthSessionModel authModel) {
     final state = authModel.state;
-    final authReady =
-        state == AuthState.signedIn || state == AuthState.unlockRequired;
-    return authReady && arbeitskontextModel.isReady;
+    return state == AuthState.signedIn || state == AuthState.unlockRequired;
   }
 
   Widget _buildProtectedBody(
@@ -334,11 +332,9 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
             title: t.t('nav_work_context_error_title'),
             message: t.t('nav_work_context_error_body'),
             errorMessage: arbeitskontextModel.errorMessage,
-            child: FilledButton.icon(
-              onPressed: () =>
+            child: _FehlerAktionen(
+              onRetry: () =>
                   _retryArbeitskontext(authModel, arbeitskontextModel),
-              icon: const Icon(Icons.refresh),
-              label: Text(t.t('common_retry')),
             ),
           );
         }
@@ -348,13 +344,11 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
             title: t.t('nav_work_context_error_title'),
             message: t.t('nav_work_context_error_body'),
             errorMessage: authModel.errorMessage,
-            child: FilledButton.icon(
-              onPressed: () => _retryInitialDataLoad(
+            child: _FehlerAktionen(
+              onRetry: () => _retryInitialDataLoad(
                 authModel: authModel,
                 arbeitskontextModel: arbeitskontextModel,
               ),
-              icon: const Icon(Icons.refresh),
-              label: Text(t.t('common_retry')),
             ),
           );
         }
@@ -440,6 +434,37 @@ class _LoginActions extends StatelessWidget {
             style: theme.textTheme.bodySmall,
           ),
         ],
+      ],
+    );
+  }
+}
+
+/// „Erneut versuchen“ und darunter „Abmelden“: Scheitert der Abruf
+/// dauerhaft (z. B. wegen eines Fehlers in Hitobito), kommt man so trotzdem
+/// aus dem Fehlerzustand heraus.
+class _FehlerAktionen extends StatelessWidget {
+  const _FehlerAktionen({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        FilledButton.icon(
+          onPressed: onRetry,
+          icon: const Icon(Icons.refresh),
+          label: Text(t.t('common_retry')),
+        ),
+        const SizedBox(height: 8),
+        TextButton.icon(
+          key: const Key('shell-error-logout'),
+          onPressed: () => runLogoutFlow(context),
+          icon: const Icon(Icons.logout),
+          label: Text(t.t('logout')),
+        ),
       ],
     );
   }
