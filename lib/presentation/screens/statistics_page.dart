@@ -1,29 +1,45 @@
 import 'package:flutter/material.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:nami/data/settings/shared_prefs_address_settings_repository.dart';
 import 'package:nami/data/settings/shared_prefs_stufen_settings_repository.dart';
 import 'package:nami/domain/stufe/altersgrenzen.dart';
-import 'package:nami/presentation/widgets/statistik_agedistribution.dart';
-import 'package:nami/presentation/widgets/statistik_groupdistribution.dart';
 import 'package:provider/provider.dart';
 
 import '../../domain/arbeitskontext/arbeitskontext_read_model.dart';
-import '../../domain/member/member_address_utils.dart';
-import '../../domain/member/mitglied.dart';
-import '../../services/statistics_location_service.dart';
+import '../../domain/statistiks/berechne_stamm_statistik_usecase.dart';
+import '../../domain/statistiks/statistik_kachel_einstellungen.dart';
+import '../../domain/statistiks/statistik_verlauf.dart';
+import '../../domain/statistiks/zaehle_eigene_kachel_usecase.dart';
+import '../../l10n/app_localizations.dart';
 import '../model/appearance_model.dart';
 import '../model/arbeitskontext_model.dart';
 import '../model/bundesstatistik_model.dart';
 import '../navigation/app_router.dart';
 import 'bundesvergleich_page.dart';
+import '../statistics/kacheln/kachel_daten.dart';
 import '../statistics/statistics_snapshot_builder.dart';
-import '../statistics/statistics_ui.dart';
+import '../statistics/statistik_kopf_zeile.dart';
+import '../statistics/statistik_stamm_ansicht.dart';
 import '../widgets/app_page_header.dart';
 
 class StatisticsPage extends StatefulWidget {
-  const StatisticsPage({super.key, this.debugReadModel});
+  const StatisticsPage({
+    super.key,
+    this.debugReadModel,
+    this.debugHeute,
+    this.debugStichtag,
+    this.debugThema = StatistikThema.ueberblick,
+  });
 
   final ArbeitskontextReadModel? debugReadModel;
+
+  /// Fester Tag für Stories und Tests.
+  final DateTime? debugHeute;
+
+  /// Fester Stufenwechsel-Stichtag für Stories und Tests.
+  final DateTime? debugStichtag;
+
+  /// Anfangs gezeigtes Thema im Stamm-Tab für Stories.
+  final StatistikThema debugThema;
 
   @override
   State<StatisticsPage> createState() => _StatisticsPageState();
@@ -36,8 +52,17 @@ class _StatisticsPageState extends State<StatisticsPage> {
       SharedPrefsStufenSettingsRepository();
   final SharedPrefsAddressSettingsRepository _addressSettingsRepository =
       SharedPrefsAddressSettingsRepository();
+  static const BerechneStammStatistikUseCase _statistikUseCase =
+      BerechneStammStatistikUseCase();
+  static const ZaehleEigeneKachelUseCase _eigeneKachelUseCase =
+      ZaehleEigeneKachelUseCase();
   Altersgrenzen _altersgrenzen = StufenDefaults.build();
+  DateTime? _stichtag;
   String? _stammAddress;
+  StatistikKachelEinstellungen _einstellungen =
+      const StatistikKachelEinstellungen();
+  List<StatistikVerlaufEintrag> _verlauf = const [];
+  int? _geladenFuerLayer;
 
   @override
   void initState() {
@@ -53,6 +78,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
     }
     setState(() {
       _altersgrenzen = settings.grenzen;
+      _stichtag = settings.stufenwechselDatum;
     });
   }
 
@@ -76,6 +102,61 @@ class _StatisticsPageState extends State<StatisticsPage> {
     Navigator.of(
       context,
     ).pushNamed(AppRoutes.statisticsGroupDetail, arguments: arguments);
+  }
+
+  /// Lädt Kachel-Einstellungen und Verlauf des Stamms, sobald der Layer
+  /// bekannt ist oder wechselt. Ohne Repositories (Stories, Tests) bleiben
+  /// die Standardwerte.
+  void _ladeFuerLayer(int layerId) {
+    if (_geladenFuerLayer == layerId) return;
+    _geladenFuerLayer = layerId;
+    StatistikKachelRepository? kacheln;
+    StatistikVerlaufRepository? verlauf;
+    try {
+      kacheln = context.read<StatistikKachelRepository>();
+      verlauf = context.read<StatistikVerlaufRepository>();
+    } on ProviderNotFoundException {
+      return;
+    }
+    kacheln.loadForLayer(layerId).then((wert) {
+      if (mounted && _geladenFuerLayer == layerId) {
+        setState(() => _einstellungen = wert);
+      }
+    });
+    verlauf.loadForLayer(layerId).then((wert) {
+      if (mounted && _geladenFuerLayer == layerId) {
+        setState(() => _verlauf = wert);
+      }
+    });
+  }
+
+  StatistikKachelDaten _kachelDaten(
+    ArbeitskontextReadModel readModel,
+    StatisticsSnapshot snapshot,
+  ) {
+    final jetzt = widget.debugHeute ?? DateTime.now();
+    final heute = DateTime(jetzt.year, jetzt.month, jetzt.day);
+    final statistik = _statistikUseCase(
+      readModel,
+      heute: heute,
+      altersgrenzen: _altersgrenzen,
+      stichtag: widget.debugStichtag ?? _stichtag ?? heute,
+    );
+    return StatistikKachelDaten(
+      statistik: statistik,
+      grenzen: _altersgrenzen,
+      heute: heute,
+      einstellungen: _einstellungen,
+      konfession: [for (final k in snapshot.confessions) k.value],
+      eigeneZaehlungen: {
+        for (final kachel in _einstellungen.eigeneKacheln)
+          kachel.id: _eigeneKachelUseCase(readModel, kachel.filter),
+      },
+      verlauf: _verlauf,
+      standortMitglieder: readModel.mitglieder,
+      stammAdresse: _stammAddress,
+      onGruppeOeffnen: (id) => _openGroup('$id'),
+    );
   }
 
   bool _hasBundesstatistik(BuildContext context) {
@@ -104,18 +185,21 @@ class _StatisticsPageState extends State<StatisticsPage> {
     }
 
     if (readModel == null) {
-      return const Center(child: Text('Keine Statistikdaten verfuegbar.'));
+      return Center(
+        child: Text(AppLocalizations.of(context).t('statistics_no_data')),
+      );
     }
 
+    _ladeFuerLayer(readModel.arbeitskontext.aktiverLayer.id);
     final snapshot = _snapshotBuilder.build(
       readModel,
       altersgrenzen: _altersgrenzen,
     );
+    final daten = _kachelDaten(readModel, snapshot);
 
-    final stammView = _StammStatisticsView(
-      snapshot: snapshot,
-      onOpenGroup: _openGroup,
-      stammAddress: _stammAddress,
+    final stammView = StatistikStammAnsicht(
+      daten: daten,
+      initialesThema: widget.debugThema,
     );
     final background = context.watch<AppearanceModel?>()?.background;
     final bundesweitView = _hasBundesstatistik(context)
@@ -132,24 +216,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
         children: [
           AppPageHeader(
             background: background,
-            primary: StatisticsKpiRow(
-              dense: true,
-              items: [
-                StatisticsKpiItem(
-                  value: '${snapshot.members}',
-                  label: 'Mitglieder',
-                  highlight: true,
-                ),
-                StatisticsKpiItem(
-                  value: '${snapshot.leaders}',
-                  label: 'Leitende',
-                ),
-                StatisticsKpiItem(
-                  value: '${snapshot.sonstige}',
-                  label: 'Sonstige',
-                ),
-              ],
-            ),
+            primary: StatistikKopfZeile(statistik: daten.statistik),
             secondary: _StatisticsTabBar(stammName: snapshot.stammName),
           ),
           Expanded(
@@ -223,187 +290,5 @@ class _StatisticsTabBar extends StatelessWidget {
         );
       },
     );
-  }
-}
-
-class _StammStatisticsView extends StatelessWidget {
-  const _StammStatisticsView({
-    required this.snapshot,
-    required this.onOpenGroup,
-    required this.stammAddress,
-  });
-
-  final StatisticsSnapshot snapshot;
-  final ValueChanged<String> onOpenGroup;
-  final String? stammAddress;
-
-  @override
-  Widget build(BuildContext context) {
-    final hasAgeData = snapshot.ageDistribution.maxCount > 0;
-    final hasGenderData = snapshot.gender.any(
-      (item) => item.label != 'Ohne Angabe' && item.value > 0,
-    );
-    final hasConfessionData = snapshot.confessions.isNotEmpty;
-    final hasLocationInput = snapshot.memberById.values.any(
-      (member) => member.primaryAddress != null,
-    );
-    final hasStammAddress = (stammAddress ?? '').trim().isNotEmpty;
-
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        if (snapshot.groups.isNotEmpty) ...[
-          StatisticsCard(
-            title: 'Gruppen',
-            padding: const EdgeInsets.fromLTRB(12, 16, 12, 12),
-            child: StatisticsGroupList(
-              items: snapshot.groups,
-              onOpenGroup: onOpenGroup,
-            ),
-          ),
-        ],
-        const SizedBox(height: 12),
-        StatisticsCard(
-          title: 'Gruppenverteilung',
-          child: GroupDistributionChart(data: snapshot.groupDistributions),
-        ),
-        if (hasAgeData) ...[
-          const SizedBox(height: 12),
-          StatisticsCard(
-            title: 'Altersverteilung',
-            child: AgeDistributionChart(
-              data: snapshot.ageDistribution,
-              enableInteraction: false,
-            ),
-          ),
-        ],
-        if (hasGenderData) ...[
-          const SizedBox(height: 12),
-          StatisticsCard(
-            title: 'Geschlecht',
-            child: StatisticsPieLegend(items: snapshot.gender),
-          ),
-        ],
-        if (hasConfessionData) ...[
-          const SizedBox(height: 12),
-          StatisticsCard(
-            title: 'Konfession',
-            child: StatisticsPieLegend(items: snapshot.confessions),
-          ),
-        ],
-        if (hasLocationInput || hasStammAddress) ...[
-          const SizedBox(height: 12),
-          _StatisticsLocationsCard(
-            title: 'Standorte',
-            members: snapshot.memberById.values.toList(growable: false),
-            stammAddress: stammAddress,
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _StatisticsLocationsCard extends StatefulWidget {
-  const _StatisticsLocationsCard({
-    required this.title,
-    required this.members,
-    required this.stammAddress,
-  });
-
-  final String title;
-  final List<Mitglied> members;
-  final String? stammAddress;
-
-  @override
-  State<_StatisticsLocationsCard> createState() =>
-      _StatisticsLocationsCardState();
-}
-
-class _StatisticsLocationsCardState extends State<_StatisticsLocationsCard> {
-  final StatisticsLocationService _locationService =
-      StatisticsLocationService();
-  late Future<StatisticsResolvedLocations> _future;
-  late String _memberSignature;
-  String? _stammAddressSignature;
-
-  @override
-  void initState() {
-    super.initState();
-    _memberSignature = _buildMemberSignature(widget.members);
-    _stammAddressSignature = _normalizeAddress(widget.stammAddress);
-    _future = _locationService.resolveLocations(
-      members: widget.members,
-      stammAddress: widget.stammAddress,
-    );
-  }
-
-  @override
-  void didUpdateWidget(covariant _StatisticsLocationsCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    final nextSignature = _buildMemberSignature(widget.members);
-    final nextStammAddress = _normalizeAddress(widget.stammAddress);
-    if (nextSignature == _memberSignature &&
-        nextStammAddress == _stammAddressSignature) {
-      return;
-    }
-    _memberSignature = nextSignature;
-    _stammAddressSignature = nextStammAddress;
-    _future = _locationService.resolveLocations(
-      members: widget.members,
-      stammAddress: widget.stammAddress,
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!widget.members.any((member) => member.primaryAddress != null) &&
-        _normalizeAddress(widget.stammAddress).isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return FutureBuilder<StatisticsResolvedLocations>(
-      future: _future,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const StatisticsCard(
-            title: 'Standorte',
-            child: Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        final resolved =
-            snapshot.data ??
-            const StatisticsResolvedLocations(
-              memberPoints: <LatLng>[],
-              stammPoint: null,
-            );
-        final markers = resolved.memberPoints;
-        if (markers.isEmpty && resolved.stammPoint == null) {
-          return const SizedBox.shrink();
-        }
-
-        return StatisticsMapCard(
-          title: widget.title,
-          markers: markers,
-          stammLocation: resolved.stammPoint,
-        );
-      },
-    );
-  }
-
-  String _normalizeAddress(String? value) => (value ?? '').trim();
-
-  String _buildMemberSignature(List<Mitglied> members) {
-    final keys = <String>[];
-    for (final member in members) {
-      final address = member.primaryAddress;
-      if (address == null) {
-        continue;
-      }
-      keys.add(MemberAddressUtils.fingerprint(address));
-    }
-    keys.sort();
-    return keys.join('|');
   }
 }

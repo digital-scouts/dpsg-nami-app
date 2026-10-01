@@ -435,7 +435,7 @@ class StatisticsMapCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             child: SizedBox(
               height: 180,
-              child: _StatisticsPlaceholderMap(
+              child: StatisticsMap(
                 markers: markers,
                 stammLocation: stammLocation,
               ),
@@ -447,18 +447,18 @@ class StatisticsMapCard extends StatelessWidget {
   }
 }
 
-class _StatisticsPlaceholderMap extends StatefulWidget {
-  const _StatisticsPlaceholderMap({required this.markers, this.stammLocation});
+/// Karte mit Wohnorten und Stammesheim; auch von der Standorte-Kachel genutzt.
+class StatisticsMap extends StatefulWidget {
+  const StatisticsMap({super.key, required this.markers, this.stammLocation});
 
   final List<LatLng> markers;
   final LatLng? stammLocation;
 
   @override
-  State<_StatisticsPlaceholderMap> createState() =>
-      _StatisticsPlaceholderMapState();
+  State<StatisticsMap> createState() => _StatisticsMapState();
 }
 
-class _StatisticsPlaceholderMapState extends State<_StatisticsPlaceholderMap> {
+class _StatisticsMapState extends State<StatisticsMap> {
   late final MapController _mapController;
 
   @override
