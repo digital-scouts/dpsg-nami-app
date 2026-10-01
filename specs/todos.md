@@ -25,34 +25,6 @@ Nächste Aufgaben:
 - Die übrigen duplizierten Test-Fakes (Logger, App-Settings, Auth, Pending- und Write-Repositories in etwa 15 Testdateien) auf `test/support/` umstellen.
 - Contract-Tests gegen einen lokalen Hitobito-Stack mit DPSG-Wagon prüfen: Service-Ebene in Dart mit Service-Token (`X-TOKEN`) statt Geräte-Integrationstests. Hürden sind der Port 3000, den auch der Statistikserver nutzt, eine Dev-Ausnahme für Cleartext-HTTP und der interaktive Login.
 
-Die manuelle Prüfung verlief ohne Befund. Die Fälle sollen künftig automatisiert abgesichert werden.
-
-**Stufe A, gemockt:**
-
-- Auto-Sync-Steuerung aus `lib/main.dart` herauslösen. Betroffen sind `_startConnectivityListener`, `_startPendingRetryTimer`, `_handleForegroundSyncOpportunity`, `_runForegroundSync`, `_retryPendingPersonUpdatesIfPossible` und der Reset beim Resume.
-- Daraus eine testbare Klasse machen, die `Connectivity`, Timer und Uhr injiziert bekommt. `fake_async` ist vorhanden, `MemberEditModel` hat bereits einen `nowProvider`.
-- Durchgehende Tests über die ganze Kette:
-  - `HitobitoPeopleService` mit `MockClient`
-  - `HitobitoMemberWriteRepository`
-  - `MemberEditModel`
-  - Pending-Repository
-- Szenarien:
-  - Offline-Konflikt bis zum Problemfall
-  - Antwort 422 bei `phone_numbers` bis zum Problemfall
-  - Auto-Sync mit WLAN und mobilen Daten samt Backoff
-  - ungültige Sitzung mit einmaligem Hinweis
-- Heute testet jede Schicht nur mit eigenen privaten Fakes. Durchgehend am Stück ist die Kette nicht abgesichert.
-- JSON:API-Fixtures und gemeinsame Fakes nach `test/support/` legen.
-
-**Stufe B, Spike mit lokalem Hitobito-Stack (Docker, DPSG-Wagon):**
-
-- Hürden:
-  - Port 3000 ist durch den Statistikserver belegt.
-  - Cleartext-HTTP braucht eine Dev-Ausnahme (ATS bzw. `networkSecurityConfig`).
-  - Der Login läuft interaktiv über `flutter_web_auth_2`.
-- Empfehlung: Contract-Tests auf Service-Ebene mit Service-Token (`X-TOKEN`) statt Geräte-Integrationstests.
-- `HITOBITO_BASE_URL` wird nur aus `.env` gelesen. Schema und Port bleiben beim Ableiten der API-URLs erhalten.
-
 ## Priorität 3: Adressvalidierung anschließen
 
 Ziel: Adressprobleme aus Offline-Bearbeitung und späterem Sync sollen denselben Problemlösungsfall nutzen wie Konflikte und andere fachliche Sync-Probleme.
