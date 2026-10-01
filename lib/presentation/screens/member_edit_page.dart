@@ -64,7 +64,10 @@ class _MemberEditPageState extends State<MemberEditPage> {
   late final List<_PhoneDraft> _phoneDrafts;
   late final List<_EmailDraft> _additionalEmailDrafts;
   late final List<_AddressDraft> _additionalAddressDrafts;
-  final Map<int, String> _serverPhoneErrorsById = <int, String>{};
+  final Map<_PhoneDraft, String> _serverPhoneNumberErrors =
+      <_PhoneDraft, String>{};
+  final Map<_PhoneDraft, String> _serverPhoneLabelErrors =
+      <_PhoneDraft, String>{};
   final Set<String> _dismissedResolutionItemIds = <String>{};
   late bool _editSectionExpanded;
   bool _isSubmitting = false;
@@ -235,31 +238,39 @@ class _MemberEditPageState extends State<MemberEditPage> {
     );
   }
 
-  Widget _buildEditSectionsContent() {
+  /// Im Problemloesungsmodus liegen die Abschnitte bereits in der
+  /// aufklappbaren Karte "Mitglied bearbeiten"; dort erscheinen sie ohne
+  /// eigene Karte, nur durch Abstand getrennt.
+  Widget _buildEditSectionsContent({bool embedded = false}) {
+    final separator = SizedBox(height: embedded ? 20 : 10);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _SectionCard(
           key: _generalSectionKey,
           title: _t.t('member_edit_section_general'),
+          embedded: embedded,
           child: _buildGeneralSection(),
         ),
-        const SizedBox(height: 10),
+        separator,
         _SectionCard(
           key: _emailSectionKey,
           title: _t.t('member_edit_section_email'),
+          embedded: embedded,
           child: _buildEmailSection(),
         ),
-        const SizedBox(height: 10),
+        separator,
         _SectionCard(
           key: _phoneSectionKey,
           title: _t.t('member_edit_section_phone'),
+          embedded: embedded,
           child: _buildPhoneSection(),
         ),
-        const SizedBox(height: 10),
+        separator,
         _SectionCard(
           key: _addressSectionKey,
           title: _t.t('member_edit_section_address'),
+          embedded: embedded,
           child: _buildAddressSection(),
         ),
       ],
@@ -276,7 +287,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
           _editSectionExpanded = !_editSectionExpanded;
         });
       },
-      child: _buildEditSectionsContent(),
+      child: _buildEditSectionsContent(embedded: true),
     );
   }
 
@@ -340,9 +351,18 @@ class _MemberEditPageState extends State<MemberEditPage> {
       return const SizedBox.shrink();
     }
 
-    final visibleItems = resolutionCase.items
-        .where((item) => !_dismissedResolutionItemIds.contains(item.itemId))
-        .toList(growable: false);
+    // Mehrere Meldungen zum selben Feld (etwa Kategorie und Nummer einer
+    // Telefonnummer) teilen sich eine Karte mit einem Vergleich.
+    final groupedItems = <String, List<MemberResolutionItem>>{};
+    for (final item in resolutionCase.items) {
+      if (_dismissedResolutionItemIds.contains(item.itemId)) {
+        continue;
+      }
+      groupedItems
+          .putIfAbsent(item.itemId, () => <MemberResolutionItem>[])
+          .add(item);
+    }
+    final visibleItems = groupedItems.values.toList(growable: false);
     return _SectionCard(
       title: _t.t('member_edit_resolution_title'),
       child: Column(
@@ -361,7 +381,12 @@ class _MemberEditPageState extends State<MemberEditPage> {
     );
   }
 
-  Widget _buildResolutionItemCard(MemberResolutionItem item) {
+  Widget _buildResolutionItemCard(List<MemberResolutionItem> items) {
+    final item = items.first;
+    final messages = <String>{
+      for (final entry in items)
+        if (entry.message.trim().isNotEmpty) entry.message.trim(),
+    }.toList(growable: false);
     final isConflict = item.problemType == MemberResolutionProblemType.conflict;
     final leftTitle = isConflict
         ? _t.t('member_edit_resolution_local_title')
@@ -397,8 +422,10 @@ class _MemberEditPageState extends State<MemberEditPage> {
                       _labelForResolutionTarget(item.target),
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
-                    const SizedBox(height: 4),
-                    Text(item.message),
+                    for (final message in messages) ...[
+                      const SizedBox(height: 4),
+                      Text(message),
+                    ],
                   ],
                 ),
               ),
@@ -749,13 +776,12 @@ class _MemberEditPageState extends State<MemberEditPage> {
           _buildDetailLabelRow(
             controller: draft.labelController,
             label: _t.t('member_edit_field_label'),
+            onChanged: (_) => _serverPhoneLabelErrors.remove(draft),
+            validator: (_) => _serverPhoneLabelErrors[draft],
             onRemove: () {
               setState(() {
                 final removed = _phoneDrafts.removeAt(index);
-                final phoneNumberId = removed.phoneNumberId;
-                if (phoneNumberId != null) {
-                  _serverPhoneErrorsById.remove(phoneNumberId);
-                }
+                _clearPhoneServerError(removed);
                 removed.dispose();
               });
             },
@@ -946,11 +972,20 @@ class _MemberEditPageState extends State<MemberEditPage> {
     required TextEditingController controller,
     required String label,
     required VoidCallback onRemove,
+    ValueChanged<String>? onChanged,
+    String? Function(String?)? validator,
   }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(child: _buildTextField(controller, label)),
+        Expanded(
+          child: _buildTextField(
+            controller,
+            label,
+            onChanged: onChanged,
+            validator: validator,
+          ),
+        ),
         const SizedBox(width: 8),
         IconButton(
           tooltip: _t.t('common_remove'),
@@ -1102,7 +1137,8 @@ class _MemberEditPageState extends State<MemberEditPage> {
   Future<void> _save() async {
     final mustExpand = !_editSectionExpanded;
     setState(() {
-      _serverPhoneErrorsById.clear();
+      _serverPhoneNumberErrors.clear();
+      _serverPhoneLabelErrors.clear();
       // Die Validatoren greifen nur fuer aufgebaute Felder; im
       // Problemloesungsmodus ist der Bereich anfangs eingeklappt.
       _editSectionExpanded = true;
@@ -1346,12 +1382,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
     if (localError != null) {
       return localError;
     }
-
-    final phoneNumberId = draft.phoneNumberId;
-    if (phoneNumberId == null) {
-      return null;
-    }
-    return _serverPhoneErrorsById[phoneNumberId];
+    return _serverPhoneNumberErrors[draft];
   }
 
   String? _validateAdditionalAddress(_AddressDraft draft) {
@@ -1449,7 +1480,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
         );
         return;
       case MemberResolutionTargetType.phone:
-        final draft = _findPhoneDraft(target.relationshipId);
+        final draft = _findPhoneDraft(target);
         await _ensureVisibleAndFocus(
           _phoneSectionKey,
           draft?.wertFieldKey,
@@ -1457,7 +1488,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
         );
         return;
       case MemberResolutionTargetType.additionalEmail:
-        final draft = _findAdditionalEmailDraft(target.relationshipId);
+        final draft = _findAdditionalEmailDraft(target);
         await _ensureVisibleAndFocus(
           _emailSectionKey,
           draft?.wertFieldKey,
@@ -1472,7 +1503,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
         );
         return;
       case MemberResolutionTargetType.additionalAddress:
-        final draft = _findAdditionalAddressDraft(target.relationshipId);
+        final draft = _findAdditionalAddressDraft(target);
         await _ensureVisibleAndFocus(
           _addressSectionKey,
           draft?.streetFieldKey,
@@ -1498,40 +1529,61 @@ class _MemberEditPageState extends State<MemberEditPage> {
     focusNode?.requestFocus();
   }
 
-  _PhoneDraft? _findPhoneDraft(int? relationshipId) {
-    if (relationshipId == null) {
-      return null;
-    }
-    for (final draft in _phoneDrafts) {
-      if (draft.phoneNumberId == relationshipId) {
-        return draft;
-      }
-    }
-    return null;
+  _PhoneDraft? _findPhoneDraft(MemberResolutionTarget target) {
+    return _findForTarget(
+      _phoneDrafts,
+      target,
+      idOf: (draft) => draft.phoneNumberId,
+      isPresent: (draft) => draft.toTelefon() != null,
+    );
   }
 
-  _EmailDraft? _findAdditionalEmailDraft(int? relationshipId) {
-    if (relationshipId == null) {
-      return null;
-    }
-    for (final draft in _additionalEmailDrafts) {
-      if (draft.additionalEmailId == relationshipId) {
-        return draft;
-      }
-    }
-    return null;
+  _EmailDraft? _findAdditionalEmailDraft(MemberResolutionTarget target) {
+    return _findForTarget(
+      _additionalEmailDrafts,
+      target,
+      idOf: (draft) => draft.additionalEmailId,
+      isPresent: (draft) => draft.toEmail() != null,
+    );
   }
 
-  _AddressDraft? _findAdditionalAddressDraft(int? relationshipId) {
-    if (relationshipId == null) {
+  _AddressDraft? _findAdditionalAddressDraft(MemberResolutionTarget target) {
+    return _findForTarget(
+      _additionalAddressDrafts,
+      target,
+      idOf: (draft) => draft.additionalAddressId,
+      isPresent: (draft) => !draft.toAdresse().istLeer,
+    );
+  }
+
+  /// Sucht den Kontakt zu [target] ueber die Hitobito-ID oder, bei neuen
+  /// Kontakten ohne ID, ueber die Position unter den neuen Kontakten.
+  T? _findForTarget<T>(
+    Iterable<T> values,
+    MemberResolutionTarget target, {
+    required int? Function(T value) idOf,
+    bool Function(T value)? isPresent,
+  }) {
+    final relationshipId = target.relationshipId;
+    if (relationshipId != null) {
+      for (final value in values) {
+        if (idOf(value) == relationshipId) {
+          return value;
+        }
+      }
       return null;
     }
-    for (final draft in _additionalAddressDrafts) {
-      if (draft.additionalAddressId == relationshipId) {
-        return draft;
-      }
+    final ordinal = target.newContactOrdinal;
+    if (ordinal == null || ordinal < 1) {
+      return null;
     }
-    return null;
+    final newValues = values
+        .where(
+          (value) =>
+              (idOf(value) ?? 0) <= 0 && (isPresent?.call(value) ?? true),
+        )
+        .toList(growable: false);
+    return ordinal <= newValues.length ? newValues[ordinal - 1] : null;
   }
 
   void _applyMemberValue(MemberResolutionTarget target, Mitglied source) {
@@ -1558,10 +1610,10 @@ class _MemberEditPageState extends State<MemberEditPage> {
             _resolvePrimaryEmail(source.emailAdressen)?.wert ?? '';
         return;
       case MemberResolutionTargetType.phone:
-        _replacePhoneDraft(target.relationshipId, source);
+        _replacePhoneDraft(target, source);
         return;
       case MemberResolutionTargetType.additionalEmail:
-        _replaceAdditionalEmailDraft(target.relationshipId, source);
+        _replaceAdditionalEmailDraft(target, source);
         return;
       case MemberResolutionTargetType.primaryAddress:
         _primaryAddressDraft.replaceWith(
@@ -1570,29 +1622,28 @@ class _MemberEditPageState extends State<MemberEditPage> {
         );
         return;
       case MemberResolutionTargetType.additionalAddress:
-        _replaceAdditionalAddressDraft(target.relationshipId, source);
+        _replaceAdditionalAddressDraft(target, source);
         return;
     }
   }
 
-  void _replacePhoneDraft(int? relationshipId, Mitglied source) {
-    if (relationshipId == null) {
-      return;
-    }
-    final index = _phoneDrafts.indexWhere(
-      (draft) => draft.phoneNumberId == relationshipId,
+  void _replacePhoneDraft(MemberResolutionTarget target, Mitglied source) {
+    final current = _findPhoneDraft(target);
+    final index = current == null ? -1 : _phoneDrafts.indexOf(current);
+    final replacement = _findForTarget(
+      source.telefonnummern,
+      target,
+      idOf: (phone) => phone.phoneNumberId,
     );
-    final replacement = source.telefonnummern.where(
-      (phone) => phone.phoneNumberId == relationshipId,
-    );
-    if (replacement.isEmpty) {
+    if (replacement == null) {
       if (index >= 0) {
         final removed = _phoneDrafts.removeAt(index);
+        _clearPhoneServerError(removed);
         removed.dispose();
       }
       return;
     }
-    final nextDraft = _PhoneDraft.fromTelefon(replacement.first);
+    final nextDraft = _PhoneDraft.fromTelefon(replacement);
     if (index >= 0) {
       final removed = _phoneDrafts.removeAt(index);
       removed.dispose();
@@ -1602,24 +1653,27 @@ class _MemberEditPageState extends State<MemberEditPage> {
     _phoneDrafts.add(nextDraft);
   }
 
-  void _replaceAdditionalEmailDraft(int? relationshipId, Mitglied source) {
-    if (relationshipId == null) {
-      return;
-    }
-    final index = _additionalEmailDrafts.indexWhere(
-      (draft) => draft.additionalEmailId == relationshipId,
+  void _replaceAdditionalEmailDraft(
+    MemberResolutionTarget target,
+    Mitglied source,
+  ) {
+    final current = _findAdditionalEmailDraft(target);
+    final index = current == null
+        ? -1
+        : _additionalEmailDrafts.indexOf(current);
+    final replacement = _findForTarget(
+      source.emailAdressen.where((email) => !email.istPrimaer),
+      target,
+      idOf: (email) => email.additionalEmailId,
     );
-    final replacement = source.emailAdressen.where(
-      (email) => !email.istPrimaer && email.additionalEmailId == relationshipId,
-    );
-    if (replacement.isEmpty) {
+    if (replacement == null) {
       if (index >= 0) {
         final removed = _additionalEmailDrafts.removeAt(index);
         removed.dispose();
       }
       return;
     }
-    final nextDraft = _EmailDraft.fromEmail(replacement.first);
+    final nextDraft = _EmailDraft.fromEmail(replacement);
     if (index >= 0) {
       final removed = _additionalEmailDrafts.removeAt(index);
       removed.dispose();
@@ -1629,24 +1683,27 @@ class _MemberEditPageState extends State<MemberEditPage> {
     _additionalEmailDrafts.add(nextDraft);
   }
 
-  void _replaceAdditionalAddressDraft(int? relationshipId, Mitglied source) {
-    if (relationshipId == null) {
-      return;
-    }
-    final index = _additionalAddressDrafts.indexWhere(
-      (draft) => draft.additionalAddressId == relationshipId,
+  void _replaceAdditionalAddressDraft(
+    MemberResolutionTarget target,
+    Mitglied source,
+  ) {
+    final current = _findAdditionalAddressDraft(target);
+    final index = current == null
+        ? -1
+        : _additionalAddressDrafts.indexOf(current);
+    final replacement = _findForTarget(
+      _additionalAddressesOf(source),
+      target,
+      idOf: (address) => address.additionalAddressId,
     );
-    final replacement = source.adressen.where(
-      (address) => address.additionalAddressId == relationshipId,
-    );
-    if (replacement.isEmpty) {
+    if (replacement == null) {
       if (index >= 0) {
         final removed = _additionalAddressDrafts.removeAt(index);
         removed.dispose();
       }
       return;
     }
-    final nextDraft = _AddressDraft.fromAdresse(replacement.first);
+    final nextDraft = _AddressDraft.fromAdresse(replacement);
     if (index >= 0) {
       final removed = _additionalAddressDrafts.removeAt(index);
       removed.dispose();
@@ -1700,13 +1757,13 @@ class _MemberEditPageState extends State<MemberEditPage> {
       case MemberResolutionTargetType.primaryEmail:
         return _singleResolutionValueLine(_primaryEmailController.text);
       case MemberResolutionTargetType.phone:
-        final draft = _findPhoneDraft(target.relationshipId);
+        final draft = _findPhoneDraft(target);
         return _buildPhoneResolutionLines(
           label: draft?.labelController.text,
           value: draft?.toTelefon()?.wert ?? draft?.wertController.text,
         );
       case MemberResolutionTargetType.additionalEmail:
-        final draft = _findAdditionalEmailDraft(target.relationshipId);
+        final draft = _findAdditionalEmailDraft(target);
         return _buildEmailResolutionLines(
           label: draft?.labelController.text,
           value: draft?.wertController.text,
@@ -1714,7 +1771,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
       case MemberResolutionTargetType.primaryAddress:
         return _buildAddressResolutionLines(_primaryAddressDraft.toAdresse());
       case MemberResolutionTargetType.additionalAddress:
-        final draft = _findAdditionalAddressDraft(target.relationshipId);
+        final draft = _findAdditionalAddressDraft(target);
         return _buildAddressResolutionLines(draft?.toAdresse());
     }
   }
@@ -1753,36 +1810,42 @@ class _MemberEditPageState extends State<MemberEditPage> {
           _resolvePrimaryEmail(member.emailAdressen)?.wert,
         );
       case MemberResolutionTargetType.phone:
-        for (final phone in member.telefonnummern) {
-          if (phone.phoneNumberId == target.relationshipId) {
-            return _buildPhoneResolutionLines(
-              label: phone.label,
-              value: phone.wert,
-            );
-          }
-        }
-        return _buildPhoneResolutionLines(label: null, value: null);
+        final phone = _findForTarget(
+          member.telefonnummern,
+          target,
+          idOf: (phone) => phone.phoneNumberId,
+        );
+        return _buildPhoneResolutionLines(
+          label: phone?.label,
+          value: phone?.wert,
+        );
       case MemberResolutionTargetType.additionalEmail:
-        for (final email in member.emailAdressen) {
-          if (!email.istPrimaer &&
-              email.additionalEmailId == target.relationshipId) {
-            return _buildEmailResolutionLines(
-              label: email.label,
-              value: email.wert,
-            );
-          }
-        }
-        return _buildEmailResolutionLines(label: null, value: null);
+        final email = _findForTarget(
+          member.emailAdressen.where((email) => !email.istPrimaer),
+          target,
+          idOf: (email) => email.additionalEmailId,
+        );
+        return _buildEmailResolutionLines(
+          label: email?.label,
+          value: email?.wert,
+        );
       case MemberResolutionTargetType.primaryAddress:
         return _buildAddressResolutionLines(member.primaryAddress);
       case MemberResolutionTargetType.additionalAddress:
-        for (final address in member.adressen) {
-          if (address.additionalAddressId == target.relationshipId) {
-            return _buildAddressResolutionLines(address);
-          }
-        }
-        return _buildAddressResolutionLines(null);
+        return _buildAddressResolutionLines(
+          _findForTarget(
+            _additionalAddressesOf(member),
+            target,
+            idOf: (address) => address.additionalAddressId,
+          ),
+        );
     }
+  }
+
+  Iterable<MitgliedKontaktAdresse> _additionalAddressesOf(Mitglied member) {
+    return member.adressen.where(
+      (address) => address.additionalAddressId != 0 && !address.istLeer,
+    );
   }
 
   List<_ResolutionValueLine> _singleResolutionValueLine(String? value) {
@@ -1878,11 +1941,8 @@ class _MemberEditPageState extends State<MemberEditPage> {
   }
 
   void _clearPhoneServerError(_PhoneDraft draft) {
-    final phoneNumberId = draft.phoneNumberId;
-    if (phoneNumberId == null) {
-      return;
-    }
-    _serverPhoneErrorsById.remove(phoneNumberId);
+    _serverPhoneNumberErrors.remove(draft);
+    _serverPhoneLabelErrors.remove(draft);
   }
 
   bool _applyValidationErrors(MemberEditSubmitResult result) {
@@ -1890,32 +1950,41 @@ class _MemberEditPageState extends State<MemberEditPage> {
       return false;
     }
 
-    final nextPhoneErrors = <int, String>{};
+    final nextNumberErrors = <_PhoneDraft, String>{};
+    final nextLabelErrors = <_PhoneDraft, String>{};
     for (final error in result.validationErrors) {
-      if (!error.isPhoneNumberField) {
+      if (error.relationshipName != 'phone_numbers') {
         continue;
       }
-      final relationshipId = error.relationshipId;
-      if (relationshipId == null) {
-        continue;
-      }
-      final hasDraft = _phoneDrafts.any(
-        (draft) => draft.phoneNumberId == relationshipId,
+      final draft = _findPhoneDraft(
+        MemberResolutionTarget(
+          type: MemberResolutionTargetType.phone,
+          relationshipId: error.relationshipId,
+          fingerprint: error.relationshipFingerprint,
+        ),
       );
-      if (!hasDraft) {
+      if (draft == null) {
         continue;
       }
-      nextPhoneErrors[relationshipId] = error.message;
+      // Bis die App Kategorien kennt, steht deren Fehler an der Bezeichnung.
+      final attribute = error.effectiveAttribute;
+      final errors = attribute == 'label' || attribute == 'category'
+          ? nextLabelErrors
+          : nextNumberErrors;
+      errors.putIfAbsent(draft, () => error.message);
     }
 
-    if (nextPhoneErrors.isEmpty) {
+    if (nextNumberErrors.isEmpty && nextLabelErrors.isEmpty) {
       return false;
     }
 
     setState(() {
-      _serverPhoneErrorsById
+      _serverPhoneNumberErrors
         ..clear()
-        ..addAll(nextPhoneErrors);
+        ..addAll(nextNumberErrors);
+      _serverPhoneLabelErrors
+        ..clear()
+        ..addAll(nextLabelErrors);
     });
     _formKey.currentState?.validate();
     return true;
@@ -1931,13 +2000,31 @@ String? _trimToNull(String value) {
 }
 
 class _SectionCard extends StatelessWidget {
-  const _SectionCard({super.key, required this.title, required this.child});
+  const _SectionCard({
+    super.key,
+    required this.title,
+    required this.child,
+    this.embedded = false,
+  });
 
   final String title;
   final Widget child;
 
+  /// Ohne eigene Karte, wenn der Abschnitt bereits in einer Karte liegt.
+  final bool embedded;
+
   @override
   Widget build(BuildContext context) {
+    if (embedded) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 14),
+          child,
+        ],
+      );
+    }
     final colorScheme = Theme.of(context).colorScheme;
     return Card(
       elevation: 0,
@@ -2215,6 +2302,7 @@ class _PhoneDraft {
     required this.countryId,
     String? wert,
     String? label,
+    this.originalWert,
   }) : wertController = TextEditingController(text: wert ?? ''),
        labelController = TextEditingController(text: label ?? '');
 
@@ -2225,6 +2313,7 @@ class _PhoneDraft {
       countryId: split.countryId,
       wert: split.localNumber,
       label: telefon.label,
+      originalWert: telefon.wert,
     );
   }
 
@@ -2235,6 +2324,11 @@ class _PhoneDraft {
 
   final int? phoneNumberId;
   String countryId;
+
+  /// Gespeicherter Wert, wie Hitobito ihn formatiert hat. Bleibt die Nummer
+  /// gleich, wird er unveraendert zurueckgegeben, damit eine nur anders
+  /// formatierte Nummer nicht als Aenderung gilt.
+  final String? originalWert;
   final TextEditingController wertController;
   final TextEditingController labelController;
   final GlobalKey wertFieldKey = GlobalKey();
@@ -2243,13 +2337,18 @@ class _PhoneDraft {
   bool get isOtherCountry => countryId == MemberPhoneInput.otherCountryId;
 
   MitgliedKontaktTelefon? toTelefon() {
-    final wert = MemberPhoneInput.compose(
+    final composed = MemberPhoneInput.compose(
       countryId: countryId,
       localNumber: wertController.text,
     );
-    if (wert == null) {
+    if (composed == null) {
       return null;
     }
+    final original = originalWert;
+    final wert =
+        original != null && MemberPhoneInput.isSameNumber(composed, original)
+        ? original
+        : composed;
     return MitgliedKontaktTelefon(
       phoneNumberId: phoneNumberId,
       wert: wert,

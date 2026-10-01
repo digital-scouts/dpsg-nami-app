@@ -763,6 +763,25 @@ class MemberEditModel extends ChangeNotifier {
           },
           track: true,
         );
+        // Der Problemfall zeigt danach die aktuellen Fehler des erneuten
+        // Sendens statt der Fehler des ersten Versuchs.
+        final entry = _buildPendingEntry(
+          personId: personId,
+          basisMitglied: basisMitglied,
+          zielMitglied: zielMitglied,
+          status: PendingPersonUpdateStatus.needsResolution,
+          resolutionCase: validationCase,
+        );
+        await _pendingRepository.save(entry);
+        await loadPending();
+        return MemberEditSubmitResult(
+          success: false,
+          wasQueued: false,
+          requiresResolution: true,
+          pendingEntry: entry,
+          message: error.message,
+          validationErrors: error.errors,
+        );
       }
       await _logMemberEditFailure(
         trigger: trigger,
@@ -1323,18 +1342,27 @@ class MemberEditModel extends ChangeNotifier {
       return MemberResolutionTarget(
         type: MemberResolutionTargetType.phone,
         relationshipId: error.relationshipId,
+        fingerprint: error.relationshipId == null
+            ? error.relationshipFingerprint
+            : null,
       );
     }
     if (error.relationshipName == 'additional_emails') {
       return MemberResolutionTarget(
         type: MemberResolutionTargetType.additionalEmail,
         relationshipId: error.relationshipId,
+        fingerprint: error.relationshipId == null
+            ? error.relationshipFingerprint
+            : null,
       );
     }
     if (error.relationshipName == 'additional_addresses') {
       return MemberResolutionTarget(
         type: MemberResolutionTargetType.additionalAddress,
         relationshipId: error.relationshipId,
+        fingerprint: error.relationshipId == null
+            ? error.relationshipFingerprint
+            : null,
       );
     }
     switch (error.effectiveAttribute) {
