@@ -219,16 +219,19 @@ Future<void> _startApp({
     statistikKachelRepository,
   );
 
+  Future<void> sendToWiredash(String name, Map<String, Object?> props) async {
+    final ctx = navigatorKey.currentContext;
+    if (ctx == null) return;
+    try {
+      await Wiredash.of(ctx).trackEvent(name, data: props);
+    } catch (_) {}
+  }
+
   final logger = LoggerService(
     settingsRepository: settingsRepo,
     navigatorKey: navigatorKey,
-    wiredashEventHook: (name, props) async {
-      final ctx = navigatorKey.currentContext;
-      if (ctx == null) return;
-      try {
-        await Wiredash.of(ctx).trackEvent(name, data: props);
-      } catch (_) {}
-    },
+    // Im Demo geht nur "Demo genutzt" raus, keine Ereignisse aus Demo-Aktionen.
+    wiredashEventHook: isDemo ? demoEventHook(sendToWiredash) : sendToWiredash,
   );
   final networkAccessPolicy = NetworkAccessPolicy(
     logger: logger,
@@ -441,8 +444,12 @@ Future<void> _startApp({
           logger: logger,
         );
   final achievementService = AchievementService(
+    // Erfolge gelten pro Geraet. Das Demo zeigt diesen Stand, haelt eigene
+    // Fortschritte aber nur im Speicher.
     repository: isDemo
-        ? InMemoryAchievementRepository()
+        ? InMemoryAchievementRepository(
+            initialRecords: await SharedPrefsAchievementRepository().load(),
+          )
         : SharedPrefsAchievementRepository(),
   );
   final achievementsModel = AchievementsModel(service: achievementService);
@@ -680,6 +687,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     unawaited(_checkCurrentConnectivityForForegroundSync(trigger: 'startup'));
     _syncDataExpiryReminder();
     _scheduleStartupFlow();
+    if (_isDemo) {
+      // Erst nach dem ersten Frame gibt es den Wiredash-Kontext.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        unawaited(logger.trackEvent(demoUsedEvent, const {}));
+      });
+    }
   }
 
   void _handleAppSettingsChanged() {
