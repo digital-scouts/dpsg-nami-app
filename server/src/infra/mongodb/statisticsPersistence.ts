@@ -4,7 +4,7 @@ import type { ServerDependencies } from '../../app/dependencies.js';
 import type { WeeklyAggregateDocument, WeeklyAggregatesRepository } from '../../modules/aggregation/aggregation.js';
 import type { EffectiveStateDocument, EffectiveStatesRepository } from '../../modules/effectiveState/effectiveState.js';
 import type { ReadinessProbe } from '../../modules/health/route.js';
-import type { ReportStatusRepository } from '../../modules/report/report.js';
+import type { MonthlyReportDocument, MonthlyReportsRepository } from '../../modules/report/report.js';
 import type { SenderDocument, SenderRepository } from '../../modules/senderAuth/senderAuth.js';
 import type { RawSnapshotDocument, RawSnapshotsRepository } from '../../modules/stammesSnapshot/persistence.js';
 import { SUPPORTED_SCHEMA_VERSION } from '../../modules/stammesSnapshot/schema.js';
@@ -15,6 +15,7 @@ export const statisticsCollectionNames = {
     effectiveStates: 'effective_states',
     weeklyAggregates: 'weekly_aggregates',
     senders: 'senders',
+    monthlyReports: 'monthly_reports',
     opsStatus: 'ops_status',
 } as const;
 
@@ -82,6 +83,16 @@ const weeklyAggregatesIndexes: IndexDescription[] = [
     },
 ];
 
+const monthlyReportsIndexes: IndexDescription[] = [
+    {
+        key: {
+            month: 1,
+        },
+        name: 'monthly_reports_by_month',
+        unique: true,
+    },
+];
+
 const sendersIndexes: IndexDescription[] = [
     {
         key: {
@@ -110,6 +121,7 @@ export const initializeStatisticsPersistence = async (db: Db): Promise<void> => 
     await ensureCollectionExists(db, statisticsCollectionNames.effectiveStates);
     await ensureCollectionExists(db, statisticsCollectionNames.weeklyAggregates);
     await ensureCollectionExists(db, statisticsCollectionNames.senders);
+    await ensureCollectionExists(db, statisticsCollectionNames.monthlyReports);
 
     const rawSnapshots = db.collection(statisticsCollectionNames.rawSnapshots);
     const existingRawIndexes = (await rawSnapshots.indexes()).map((index) => index.name);
@@ -122,6 +134,7 @@ export const initializeStatisticsPersistence = async (db: Db): Promise<void> => 
     await db.collection(statisticsCollectionNames.effectiveStates).createIndexes(effectiveStatesIndexes);
     await db.collection(statisticsCollectionNames.weeklyAggregates).createIndexes(weeklyAggregatesIndexes);
     await db.collection(statisticsCollectionNames.senders).createIndexes(sendersIndexes);
+    await db.collection(statisticsCollectionNames.monthlyReports).createIndexes(monthlyReportsIndexes);
 };
 
 // Dokumente ohne MongoDB-interne _id an die Fachlogik geben.
@@ -252,24 +265,25 @@ export const buildWeeklyAggregatesRepository = (db: Db): WeeklyAggregatesReposit
 type OpsStatusDocument = {
     _id: string;
     last_success_at?: Date;
-    last_reported_month?: string;
-    sent_at?: Date;
 };
 
-const MONTHLY_REPORT_STATUS_ID = 'monthly_report';
-
-export const buildReportStatusRepository = (db: Db): ReportStatusRepository => {
-    const collection = db.collection<OpsStatusDocument>(statisticsCollectionNames.opsStatus);
+export const buildMonthlyReportsRepository = (db: Db): MonthlyReportsRepository => {
+    const collection = db.collection<MonthlyReportDocument>(statisticsCollectionNames.monthlyReports);
 
     return {
-        findLastReportedMonth: async () =>
-            (await collection.findOne({ _id: MONTHLY_REPORT_STATUS_ID }))?.last_reported_month ?? null,
-        markReported: async (month, sentAt) => {
-            await collection.updateOne(
-                { _id: MONTHLY_REPORT_STATUS_ID },
-                { $set: { last_reported_month: month, sent_at: sentAt } },
-                { upsert: true },
-            );
+        insertIfAbsent: async (document) => {
+            try {
+                await collection.insertOne({ ...document });
+            } catch (error) {
+                if (!isDuplicateKeyError(error)) {
+                    throw error;
+                }
+            }
+        },
+        find: async (month) => collection.findOne({ month }, withoutId),
+        findAll: async () => collection.find({}, { ...withoutId, sort: { month: -1 } }).toArray(),
+        markNotified: async (month, notifiedAt) => {
+            await collection.updateOne({ month }, { $set: { notified_at: notifiedAt } });
         },
     };
 };
@@ -293,6 +307,6 @@ export const buildMongoDependencies = (db: Db, clock: Clock = systemClock): Serv
     senderRepository: buildSenderRepository(db),
     effectiveStatesRepository: buildEffectiveStatesRepository(db),
     weeklyAggregatesRepository: buildWeeklyAggregatesRepository(db),
-    reportStatusRepository: buildReportStatusRepository(db),
+    monthlyReportsRepository: buildMonthlyReportsRepository(db),
     readinessProbe: buildReadinessProbe(db),
 });

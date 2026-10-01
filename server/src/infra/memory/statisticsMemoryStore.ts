@@ -1,6 +1,7 @@
 import type { ServerDependencies } from '../../app/dependencies.js';
 import type { WeeklyAggregateDocument } from '../../modules/aggregation/aggregation.js';
 import type { EffectiveStateDocument } from '../../modules/effectiveState/effectiveState.js';
+import type { MonthlyReportDocument } from '../../modules/report/report.js';
 import type { SenderDocument } from '../../modules/senderAuth/senderAuth.js';
 import type { RawSnapshotDocument } from '../../modules/stammesSnapshot/persistence.js';
 import { SUPPORTED_SCHEMA_VERSION } from '../../modules/stammesSnapshot/schema.js';
@@ -15,7 +16,7 @@ export type StatisticsMemoryStore = {
     effectiveStates: Map<string, EffectiveStateDocument>;
     weeklyAggregates: Map<string, WeeklyAggregateDocument>;
     lastBackupAt: Date | null;
-    lastReportedMonth: string | null;
+    monthlyReports: Map<string, MonthlyReportDocument>;
 };
 
 export const createStatisticsMemoryStore = (): StatisticsMemoryStore => ({
@@ -24,7 +25,7 @@ export const createStatisticsMemoryStore = (): StatisticsMemoryStore => ({
     effectiveStates: new Map(),
     weeklyAggregates: new Map(),
     lastBackupAt: null,
-    lastReportedMonth: null,
+    monthlyReports: new Map(),
 });
 
 const isDuplicateRawSnapshot = (a: RawSnapshotDocument, b: RawSnapshotDocument): boolean =>
@@ -102,10 +103,19 @@ export const buildMemoryDependencies = (
                 .filter((document) => document.aggregation_type === aggregationType)
                 .sort((a, b) => b.generated_at.getTime() - a.generated_at.getTime())[0] ?? null,
     },
-    reportStatusRepository: {
-        findLastReportedMonth: async () => store.lastReportedMonth,
-        markReported: async (month) => {
-            store.lastReportedMonth = month;
+    monthlyReportsRepository: {
+        insertIfAbsent: async (document) => {
+            if (!store.monthlyReports.has(document.month)) {
+                store.monthlyReports.set(document.month, document);
+            }
+        },
+        find: async (month) => store.monthlyReports.get(month) ?? null,
+        findAll: async () => [...store.monthlyReports.values()].sort((a, b) => b.month.localeCompare(a.month)),
+        markNotified: async (month, notifiedAt) => {
+            const report = store.monthlyReports.get(month);
+            if (report != null) {
+                report.notified_at = notifiedAt;
+            }
         },
     },
     readinessProbe: {

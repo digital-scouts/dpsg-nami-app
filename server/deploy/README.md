@@ -78,20 +78,34 @@ Unter `https://mock-namiapp.scout-link.de` läuft der Service `nami-statistics-m
 
 App im Simulator auf den Mock stellen: in der lokalen `.env` (nicht in `.env.example`) `STATS_SERVER_URL=https://mock-namiapp.scout-link.de` setzen und die App neu bauen.
 
-## Monatsreport
+## Monatsreport und Web-Ansicht
 
-Der Server schickt am Monatsanfang einen Report über den Kreis der Teilnehmenden (Inhalt siehe `spec/monatsreport.md`). Dafür in `/opt/nami-statistics/.env` die Keys `REPORT_SMTP_HOST`, `REPORT_SMTP_PORT`, `REPORT_SMTP_USER`, `REPORT_SMTP_PASS`, `REPORT_MAIL_FROM` und `REPORT_MAIL_TO` setzen und neu deployen. Ohne `REPORT_SMTP_HOST` ist der Report aus; die Mock-Instanz verschickt keinen.
+Der Server legt zu jedem abgeschlossenen Monat einen Bericht über den Kreis der Teilnehmenden an (Inhalt siehe `spec/monatsreport.md`). Ansehen lässt er sich unter `https://namiapp.scout-link.de/admin`, dazu gibt es optional eine kurze Telegram-Nachricht.
 
-- Ob ein Report fällig ist, prüft der Server beim Start und danach alle sechs Stunden. Der zuletzt verschickte Monat steht in `ops_status` unter `monthly_report`. Schlägt der Versand fehl, steht das im Log (`Monthly report failed`), und der nächste Durchlauf versucht es erneut.
-- Report von Hand ansehen oder verschicken:
+Web-Ansicht einrichten:
+
+```bash
+# lokal im Ordner server/ ausführen; das Passwort wird abgefragt
+npm run admin:hash
+```
+
+Die ausgegebene Zeile `ADMIN_PASSWORD_HASH=…` zusammen mit `ADMIN_USER=…` in `/opt/nami-statistics/.env` eintragen und neu deployen. Ohne beide Werte antwortet `/admin` mit 404. In `mock.env` keinen Zugang eintragen.
+
+Telegram einrichten:
+
+1. Bei `@BotFather` einen Bot anlegen und das Token notieren.
+2. Dem Bot schreiben (oder ihn in eine Gruppe aufnehmen) und die Chat-ID über `https://api.telegram.org/bot<TOKEN>/getUpdates` ablesen.
+3. `REPORT_TELEGRAM_BOT_TOKEN`, `REPORT_TELEGRAM_CHAT_ID` und `PUBLIC_BASE_URL=https://namiapp.scout-link.de` in `/opt/nami-statistics/.env` eintragen und neu deployen.
+
+- Ob ein Bericht fällig ist, prüft der Server beim Start und danach alle sechs Stunden. Fehlen Berichte, legt er bis zu zwölf Monate rückwirkend aus den Rohdaten an. Gespeichert werden sie in der Collection `monthly_reports`.
+- Schlägt die Telegram-Nachricht fehl, steht das im Log (`Monthly report failed`), und der nächste Durchlauf versucht es erneut.
+- Bericht als Text auf der Konsole:
 
 ```bash
 cd /opt/nami-statistics
 docker compose -p nami-statistics --env-file .env -f docker-compose.server.yml exec nami-statistics \
-  npm run report -- --month 2026-10 --dry-run
+  npm run report -- --month 2026-10
 ```
-
-Ohne `--dry-run` wird der Report verschickt und als erledigt vermerkt.
 
 ## Backup und Restore
 

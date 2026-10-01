@@ -244,7 +244,7 @@ Die MVP-Tickets 1 bis 10 sind umgesetzt:
 - Die Teilnahme wird über Installations-Credentials (zufällige Installations-ID und Secret, Trust on First Use) geprüft. Sie belegen keine Stammeszugehörigkeit. Eine Prüfung über Hitobito ist bewusst ausgeschlossen: Der Server kennt nur anonyme Zählwerte, keine Logins und keine Tokens.
 - Mehrere Sender desselben Stammes werden je Gruppe zusammengeführt; Teilsichten (nur einzelne Gruppen) sind eigene Teildatensätze (`spec/stammes_snapshot.md`, Abschnitt Effektiver Stand). Der effektive Stand wird beim Ingest für den betroffenen Stamm neu berechnet und beim Start aus `raw_snapshots` neu aufgebaut.
 - Neben der Stufengröße liefert die Read-API die Gruppengröße je Stufe (`gruppen_je_stufe`).
-- Ein Monatsreport per Mail beschreibt den Kreis der Teilnehmenden (`spec/monatsreport.md`). Das Wochenaggregat wird nach jedem neu gespeicherten Snapshot und beim Start materialisiert.
+- Monatsberichte über den Kreis der Teilnehmenden stehen in der Web-Ansicht `/admin`, dazu kommt optional eine Telegram-Nachricht (`spec/monatsreport.md`). Das Wochenaggregat wird nach jedem neu gespeicherten Snapshot und beim Start materialisiert.
 - Kennzahlen mit weniger als `MIN_STAMM_COUNT_FOR_READ` beitragenden Stämmen werden in der Read-API unterdrückt.
 - Betrieb, Backup, Restore und Monitoring stehen in `server/deploy/README.md`.
 

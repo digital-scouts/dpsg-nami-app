@@ -1,17 +1,22 @@
 # Monatsreport
 
-Der Server schickt einmal im Monat eine Mail an den Betreiber. Sie beschreibt den Kreis der Teilnehmenden, damit sich abschätzen lässt, ab wann regionale Vergleiche (Diözese, Bezirk) tragfähig sind. Der Report enthält nur Zählwerte und die bei den Snapshots gespeicherten DV- und Bezirks-IDs, keine Stammes- oder Personendaten.
+Der Server hält monatlich fest, wie groß der Kreis der Teilnehmenden ist, damit sich abschätzen lässt, ab wann regionale Vergleiche (Diözese, Bezirk) tragfähig sind. Der Bericht enthält nur Zählwerte und die bei den Snapshots gespeicherten DV- und Bezirks-IDs, keine Stammes- oder Personendaten.
+
+## Auslieferung
+
+- **Web-Ansicht** `GET /admin`, geschützt mit HTTP Basic Auth (ein einziger Zugang aus `ADMIN_USER` und `ADMIN_PASSWORD_HASH`, keine Accountverwaltung). Sie zeigt den laufenden Monat live bis zum aktuellen Zeitpunkt, die Regionen und den Verlauf aller gespeicherten Monate. Antworten tragen `Cache-Control: no-store`, `X-Robots-Tag: noindex` und eine Content-Security-Policy ohne Skripte. Die Route ist pro IP begrenzt. Ohne Zugangsdaten gibt es die Route nicht (404).
+- **Telegram:** Nach Monatsende eine kurze Nachricht mit den Kernzahlen und dem Link auf `/admin`, sofern `REPORT_TELEGRAM_BOT_TOKEN` und `REPORT_TELEGRAM_CHAT_ID` gesetzt sind.
 
 ## Zeitpunkt
 
-- Berichtet wird jeweils der abgeschlossene Vormonat (UTC).
-- Ein Scheduler im Serverprozess prüft beim Start und danach alle sechs Stunden, ob der Report des Vormonats schon verschickt wurde. Der Merker liegt in `ops_status` unter `_id: "monthly_report"` (`last_reported_month`, `sent_at`). So geht nach Neustarts oder Ausfällen kein Monat verloren und keiner wird doppelt verschickt.
-- Ohne vollständige Mail-Konfiguration ist der Report aus (z. B. auf der Mock-Instanz).
-- `npm run report -- --month YYYY-MM [--dry-run]` erzeugt den Report von Hand (im Container, siehe `deploy/README.md`; lokal `npm run report:dev`). Ohne `--month` gilt der Vormonat. Mit `--dry-run` wird er nur ausgegeben und nicht verschickt, der Merker bleibt unverändert; sonst wird er verschickt und vermerkt.
+- Ein Scheduler im Serverprozess prüft beim Start und danach alle sechs Stunden, ob der Bericht des Vormonats (UTC) schon gespeichert ist (Collection `monthly_reports`, ein Dokument je Monat). Fehlt er, wird er berechnet und gespeichert. Fehlen ältere Monate, werden bis zu zwölf Monate rückwirkend aus den Rohdaten berechnet; leere Monate vor den ersten Daten werden übersprungen.
+- Die Telegram-Nachricht geht nur für den Vormonat raus, genau einmal (`notified_at`). Schlägt sie fehl, versucht es der nächste Durchlauf erneut.
+- Die Mock-Instanz legt keine Berichte an.
+- `npm run report -- --month YYYY-MM` gibt den Bericht als Text aus (im Container, siehe `deploy/README.md`; lokal `npm run report:dev`). Ohne `--month` gilt der Vormonat.
 
 ## Inhalt
 
-Stichtag ist das Monatsende. Der effektive Stand wird dafür so berechnet, als wäre der Stichtag „jetzt“ (Zwei-Monats-Fenster bis zum Stichtag). Zu jeder Zahl steht der Wert des Vormonats daneben.
+Stichtag ist das Monatsende, beim laufenden Monat der aktuelle Zeitpunkt. Der effektive Stand wird dafür so berechnet, als wäre der Stichtag „jetzt“ (Zwei-Monats-Fenster bis zum Stichtag). Zu jeder Zahl steht der Wert des Vormonats daneben.
 
 - **Installationen**
   - aktive Installationen: Sender mit mindestens einem neu gespeicherten Snapshot im Monat
@@ -33,10 +38,10 @@ Stichtag ist das Monatsende. Der effektive Stand wird dafür so berechnet, als w
 
 | Env-Key | Bedeutung |
 |---|---|
-| `REPORT_SMTP_HOST` | SMTP-Server; ohne Wert ist der Report aus |
-| `REPORT_SMTP_PORT` | Port, Standard `587` (STARTTLS); bei `465` wird TLS direkt verwendet |
-| `REPORT_SMTP_USER`, `REPORT_SMTP_PASS` | Zugangsdaten, optional |
-| `REPORT_MAIL_FROM` | Absender |
-| `REPORT_MAIL_TO` | Empfänger, mehrere durch Komma getrennt |
+| `ADMIN_USER` | Benutzername für `/admin` |
+| `ADMIN_PASSWORD_HASH` | scrypt-Hash des Passworts, erzeugt mit `npm run admin:hash` (Format `scrypt:<salt>:<hash>`) |
+| `REPORT_TELEGRAM_BOT_TOKEN` | Token des Telegram-Bots |
+| `REPORT_TELEGRAM_CHAT_ID` | Chat, in den der Bot schreibt |
+| `PUBLIC_BASE_URL` | Basis-URL für den Link in der Nachricht, z. B. `https://namiapp.scout-link.de` |
 
-Ist `REPORT_SMTP_HOST` gesetzt, müssen auch `REPORT_MAIL_FROM` und `REPORT_MAIL_TO` gesetzt sein, sonst startet der Server nicht.
+`ADMIN_USER` und `ADMIN_PASSWORD_HASH` bzw. Token und Chat-ID müssen jeweils gemeinsam gesetzt sein, sonst startet der Server nicht.

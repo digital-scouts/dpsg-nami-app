@@ -108,7 +108,7 @@ Dieses Dokument sammelt und fortschreibt visionaere Nutzerideen als Arbeitsproto
 - **Keine Anbindung an Hitobito:** Der Statistikserver kennt nur anonyme Zählwerte. Er bekommt keine Logins und keine Hitobito-Tokens, auch nicht zur Prüfung der Stammeszugehörigkeit. Welche Gruppen ein Datensatz abdeckt, bestimmt die App aus den Rechten der Person.
 - **Teildatensätze:** Leitende, die nur ihre eigene Gruppe sehen, tragen Gruppendaten bei. Der Server führt mehrere Teildatensätze eines Stammes je Gruppe zusammen.
 - **Reduzierter Vergleich:** Diese Leitenden sehen einen Bundesvergleich, der auf ihre Stufe und Gruppengröße reduziert ist.
-- **Regionale Vergleiche** erst, wenn genug Stämme teilnehmen. Bis dahin verschickt der Server einen monatlichen Report über den Kreis der Teilnehmenden an den Betreiber.
+- **Regionale Vergleiche** erst, wenn genug Stämme teilnehmen. Bis dahin zeigt der Server dem Betreiber monatliche Berichte über den Kreis der Teilnehmenden (Web-Ansicht mit Login, Hinweis per Telegram).
 
 ## Eintrag 2026-09-29 Erfolge
 
