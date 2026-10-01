@@ -20,20 +20,23 @@ void main() {
     final stories = buildStorybookStories();
     final viewports = <Size>[const Size(1280, 1600), const Size(430, 932)];
 
+    // Alle Stories prüfen und gesammelt melden, statt beim ersten Fehler
+    // abzubrechen.
+    final alleFehler = <String>[];
     for (final viewport in viewports) {
       tester.view.devicePixelRatio = 1.0;
       tester.view.physicalSize = viewport;
 
       for (final story in stories) {
         final failures = await _pumpStoryAndCollectFailures(tester, story);
-        expect(
-          failures,
-          isEmpty,
-          reason:
-              'Story ${story.name} hat bei ${viewport.width.toInt()}x${viewport.height.toInt()} Laufzeitfehler: ${failures.join('\n')}',
-        );
+        if (failures.isNotEmpty) {
+          alleFehler.add(
+            'Story ${story.name} hat bei ${viewport.width.toInt()}x${viewport.height.toInt()} Laufzeitfehler: ${failures.join('\n')}',
+          );
+        }
       }
     }
+    expect(alleFehler, isEmpty, reason: alleFehler.join('\n\n'));
   });
 }
 
@@ -48,7 +51,15 @@ Future<List<String>> _pumpStoryAndCollectFailures(
   };
 
   try {
-    await tester.pumpWidget(StorybookEntry(stories: <Story>[story]));
+    // Ohne initialStory zeigt Storybook nur „Select story“; der Schlüssel
+    // erzwingt je Story einen frischen Zustand, sonst bliebe die erste offen.
+    await tester.pumpWidget(
+      StorybookEntry(
+        key: ValueKey(story.name),
+        stories: <Story>[story],
+        initialStory: story.name,
+      ),
+    );
     await tester.pump();
     for (var i = 0; i < 6; i++) {
       await tester.pump(const Duration(milliseconds: 150));
