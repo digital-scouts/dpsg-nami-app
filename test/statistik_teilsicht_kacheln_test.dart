@@ -12,6 +12,8 @@ import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/statistics/kacheln/diagramme.dart';
 import 'package:nami/presentation/statistics/kacheln/inhalte_mitglieder.dart';
 import 'package:nami/presentation/statistics/kacheln/kachel_daten.dart';
+import 'package:nami/presentation/statistics/kacheln/kachel_katalog.dart';
+import 'package:nami/domain/statistiks/statistik_kachel_einstellungen.dart';
 
 AltersZeile _zeile(List<double> alter) => AltersZeile(
   beschriftung: 'Wö',
@@ -62,7 +64,7 @@ StammStatistik _statistik(List<(int, String, String)> gruppen) {
   );
 }
 
-Widget _app(Widget kachel) => MaterialApp(
+Widget _app(Widget kachel, {double hoehe = 110}) => MaterialApp(
   localizationsDelegates: [
     AppLocalizations.delegate,
     GlobalMaterialLocalizations.delegate,
@@ -72,7 +74,9 @@ Widget _app(Widget kachel) => MaterialApp(
   supportedLocales: const [Locale('de'), Locale('en')],
   locale: const Locale('de'),
   home: Scaffold(
-    body: Center(child: SizedBox(width: 340, height: 110, child: kachel)),
+    body: Center(
+      child: SizedBox(width: 340, height: hoehe, child: kachel),
+    ),
   ),
 );
 
@@ -158,6 +162,147 @@ void main() {
       expect(find.byKey(const Key('gruppen-spalte-4')), findsNothing);
       expect(find.text('Wö'), findsOneWidget);
       expect(find.text('Jufi'), findsOneWidget);
+    });
+  });
+
+  group('Gruppen 2×2 und Auswahl', () {
+    const typen = [
+      'Group::StammGruppeBiber',
+      'Group::StammGruppeWoelflinge',
+      'Group::StammGruppeJungpfadfinder',
+      'Group::StammGruppePfadfinder',
+      'Group::StammGruppeRover',
+    ];
+    // n Gruppen, reihum auf die Stufen verteilt; IDs ab 1.
+    List<(int, String, String)> gruppen(int n) => [
+      for (var i = 1; i <= n; i++) (i, 'Gruppe $i', typen[(i - 1) % 5]),
+    ];
+    StatistikKachelDaten daten(int n, List<int> geoeffnet) =>
+        StatistikKachelDaten(
+          statistik: _statistik(gruppen(n)),
+          grenzen: StufenDefaults.build(),
+          heute: DateTime(2026, 10, 1),
+          onGruppeOeffnen: geoeffnet.add,
+        );
+    // Innenhöhe einer 2×2-Kachel ohne Titel.
+    Widget gross(Widget kachel) => _app(kachel, hoehe: 264);
+
+    testWidgets('wechselt nach Anzahl zwischen Liste, Zellen und Chips', (
+      tester,
+    ) async {
+      final geoeffnet = <int>[];
+      await tester.pumpWidget(
+        gross(
+          GruppenKachel(
+            daten: daten(6, geoeffnet),
+            groesse: KachelGroesse.gross,
+          ),
+        ),
+      );
+      expect(find.byKey(const Key('gruppen-zelle-1')), findsNothing);
+      expect(find.byKey(const Key('gruppen-weitere')), findsNothing);
+      expect(
+        find.textContaining('Gruppe 6', findRichText: true),
+        findsOneWidget,
+      );
+
+      await tester.pumpWidget(
+        gross(
+          GruppenKachel(
+            daten: daten(9, geoeffnet),
+            groesse: KachelGroesse.gross,
+          ),
+        ),
+      );
+      expect(find.byKey(const Key('gruppen-zelle-9')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('gruppen-zelle-9')));
+      expect(geoeffnet, [9]);
+
+      await tester.pumpWidget(
+        gross(
+          GruppenKachel(
+            daten: daten(13, geoeffnet),
+            groesse: KachelGroesse.gross,
+          ),
+        ),
+      );
+      expect(find.byKey(const Key('gruppen-chip-13')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    for (final skala in const [1.0, 1.3, 1.4]) {
+      testWidgets('läuft mit 9 und 15 Gruppen bei Schrift $skala nicht über', (
+        tester,
+      ) async {
+        for (final n in const [6, 9, 12, 15]) {
+          await tester.pumpWidget(
+            MediaQuery(
+              data: MediaQueryData(textScaler: TextScaler.linear(skala)),
+              child: gross(
+                GruppenKachel(
+                  daten: daten(n, <int>[]),
+                  groesse: KachelGroesse.gross,
+                ),
+              ),
+            ),
+          );
+          expect(tester.takeException(), isNull, reason: '$n Gruppen');
+        }
+      });
+    }
+
+    testWidgets('Stufe mit mehreren Gruppen öffnet die Auswahl dieser Stufe', (
+      tester,
+    ) async {
+      final geoeffnet = <int>[];
+      // 7 Gruppen: Biber hat Gruppe 1 und 6, Pfadi nur Gruppe 4.
+      final d = daten(7, geoeffnet);
+      await tester.pumpWidget(
+        _app(GruppenKachel(daten: d, groesse: KachelGroesse.breit)),
+      );
+      expect(find.text('2 Gruppen'), findsWidgets);
+
+      await tester.tap(find.byKey(const Key('stufen-spalte-pfadfinder')));
+      await tester.pumpAndSettle();
+      expect(geoeffnet, [4]);
+
+      await tester.tap(find.byKey(const Key('stufen-spalte-biber')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('gruppen-auswahl-1')), findsOneWidget);
+      expect(find.byKey(const Key('gruppen-auswahl-6')), findsOneWidget);
+      expect(find.byKey(const Key('gruppen-auswahl-2')), findsNothing);
+      await tester.tap(find.byKey(const Key('gruppen-auswahl-6')));
+      await tester.pumpAndSettle();
+      expect(geoeffnet, [4, 6]);
+    });
+
+    testWidgets('Titel heißt ab drei Gruppen Stufen und öffnet alle Gruppen', (
+      tester,
+    ) async {
+      final geoeffnet = <int>[];
+      final d = daten(7, geoeffnet);
+      const eintrag = KachelEintrag(
+        id: 'g',
+        typId: StatistikKachelTypen.gruppen,
+        groesse: KachelGroesse.breit,
+      );
+      await tester.pumpWidget(
+        _app(
+          Builder(
+            builder: (context) => KachelKatalog.kachel(context, d, eintrag),
+          ),
+          hoehe: 150,
+        ),
+      );
+      expect(find.text('Stufen · 7 Gruppen'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('kachel-titel-link')));
+      await tester.pumpAndSettle();
+      // Alle Stufen, beginnend mit beiden Bibergruppen.
+      expect(find.text('Gruppen'), findsOneWidget);
+      expect(find.byKey(const Key('gruppen-auswahl-1')), findsOneWidget);
+      expect(find.byKey(const Key('gruppen-auswahl-6')), findsOneWidget);
+      expect(find.byKey(const Key('gruppen-auswahl-2')), findsOneWidget);
     });
   });
 }

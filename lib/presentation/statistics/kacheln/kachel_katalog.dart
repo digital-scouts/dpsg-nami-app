@@ -146,6 +146,13 @@ abstract final class KachelKatalog {
       return daten.einstellungen.eigeneKachel(eintrag.eigeneKachelId)?.titel ??
           '';
     }
+    // Ab drei Gruppen zeigt 2×1 Stufen statt Gruppen.
+    if (eintrag.typId == StatistikKachelTypen.gruppen &&
+        GruppenKachel.zeigtStufen(daten, eintrag.groesse)) {
+      return t.t('statistics_tile_groups_stages', {
+        'count': GruppenKachel.anzahlGruppen(daten),
+      });
+    }
     return finde(eintrag.typId)?.titel(t, eintrag.groesse) ?? '';
   }
 
@@ -173,6 +180,16 @@ abstract final class KachelKatalog {
           finde(eintrag.typId)?.inhalt(context, daten, eintrag) ??
           const SizedBox.shrink();
     }
-    return KachelRahmen(titel: titelFuer(t, daten, eintrag), child: inhalt);
+    final oeffnen = daten.onGruppeOeffnen;
+    return KachelRahmen(
+      titel: titelFuer(t, daten, eintrag),
+      onTitel:
+          eintrag.typId == StatistikKachelTypen.gruppen &&
+              oeffnen != null &&
+              GruppenKachel.anzahlGruppen(daten) > 0
+          ? () => oeffneGruppeAusAuswahl(context, daten)
+          : null,
+      child: inhalt,
+    );
   }
 }

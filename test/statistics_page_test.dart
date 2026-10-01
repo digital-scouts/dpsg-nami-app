@@ -12,6 +12,7 @@ import 'package:nami/domain/statistiks/statistik_kachel_typen.dart';
 import 'package:nami/domain/statistiks/statistik_verlauf.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/navigation/app_router.dart';
+import 'package:nami/presentation/screens/statistics_group_detail_page.dart';
 import 'package:nami/presentation/screens/statistics_page.dart';
 import 'package:nami/presentation/statistics/statistik_kopf_zeile.dart';
 import 'package:nami/presentation/statistics/statistik_stamm_ansicht.dart';
@@ -234,6 +235,38 @@ void main() {
       (await repository.loadForLayer(11)).ueberblick.map((e) => e.id),
       StatistikKachelEinstellungen.standardUeberblick.map((e) => e.id),
     );
+  });
+
+  testWidgets('wechselt auf der Detailseite über den Titel die Gruppe', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('de'), Locale('en')],
+        locale: const Locale('de'),
+        home: StatisticsGroupDetailPage(
+          groupId: '21',
+          debugReadModel: _buildReadModelMitZweiGruppen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Meute Nord'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('gruppe-wechseln')));
+    await tester.pumpAndSettle();
+    expect(find.text('Gruppe wechseln'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('gruppen-auswahl-22')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Meute Süd'), findsOneWidget);
+    expect(find.text('Meute Nord'), findsNothing);
   });
 
   testWidgets('bleibt mit krummen Daten in allen Themen stabil', (
