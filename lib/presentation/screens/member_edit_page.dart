@@ -2276,6 +2276,7 @@ class _PhoneDraft {
     required this.countryId,
     String? wert,
     String? label,
+    this.originalWert,
   }) : wertController = TextEditingController(text: wert ?? ''),
        labelController = TextEditingController(text: label ?? '');
 
@@ -2286,6 +2287,7 @@ class _PhoneDraft {
       countryId: split.countryId,
       wert: split.localNumber,
       label: telefon.label,
+      originalWert: telefon.wert,
     );
   }
 
@@ -2296,6 +2298,11 @@ class _PhoneDraft {
 
   final int? phoneNumberId;
   String countryId;
+
+  /// Gespeicherter Wert, wie Hitobito ihn formatiert hat. Bleibt die Nummer
+  /// gleich, wird er unveraendert zurueckgegeben, damit eine nur anders
+  /// formatierte Nummer nicht als Aenderung gilt.
+  final String? originalWert;
   final TextEditingController wertController;
   final TextEditingController labelController;
   final GlobalKey wertFieldKey = GlobalKey();
@@ -2304,13 +2311,18 @@ class _PhoneDraft {
   bool get isOtherCountry => countryId == MemberPhoneInput.otherCountryId;
 
   MitgliedKontaktTelefon? toTelefon() {
-    final wert = MemberPhoneInput.compose(
+    final composed = MemberPhoneInput.compose(
       countryId: countryId,
       localNumber: wertController.text,
     );
-    if (wert == null) {
+    if (composed == null) {
       return null;
     }
+    final original = originalWert;
+    final wert =
+        original != null && MemberPhoneInput.isSameNumber(composed, original)
+        ? original
+        : composed;
     return MitgliedKontaktTelefon(
       phoneNumberId: phoneNumberId,
       wert: wert,
