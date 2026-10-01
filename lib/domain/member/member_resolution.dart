@@ -36,9 +36,23 @@ class MemberResolutionTarget {
     this.fingerprint,
   });
 
+  /// Fingerprint fuer einen neuen Kontakt ohne Hitobito-ID: [ordinal] zaehlt
+  /// ab 1 die neuen Kontakte dieses Typs in der Reihenfolge des Zielstands.
+  static String newContactFingerprint(int ordinal) => 'new:$ordinal';
+
   final MemberResolutionTargetType type;
   final int? relationshipId;
   final String? fingerprint;
+
+  /// Position des neuen Kontakts, wenn [fingerprint] aus
+  /// [newContactFingerprint] stammt.
+  int? get newContactOrdinal {
+    final value = fingerprint;
+    if (value == null || !value.startsWith('new:')) {
+      return null;
+    }
+    return int.tryParse(value.substring(4));
+  }
 
   String get storageKey =>
       '${type.name}:${relationshipId ?? fingerprint ?? 'default'}';

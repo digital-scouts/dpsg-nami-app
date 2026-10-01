@@ -35,6 +35,7 @@ import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/model/achievements_model.dart';
 import 'package:nami/presentation/model/member_edit_model.dart';
+import 'package:nami/presentation/model/pending_sync_coordinator.dart';
 import 'package:nami/presentation/notifications/app_update_dialog.dart';
 import 'package:nami/presentation/notifications/achievement_unlocked.dart';
 import 'package:nami/presentation/notifications/feedback_prompt_dialog.dart';
@@ -104,7 +105,6 @@ import 'services/map_tile_cache_service.dart';
 import 'services/network_access_policy.dart';
 import 'services/sensitive_storage_service.dart';
 import 'services/usage_tracking_service.dart';
-import 'services/wifi_sync_trigger.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
@@ -153,9 +153,23 @@ void main() {
   );
 }
 
+bool _loggedMissingOfflineTile = false;
+
 void _installGlobalErrorHandlers() {
   // Globale Fehlerbehandlung: Framework- und ungefangene Fehler loggen/tracken
   FlutterError.onError = (FlutterErrorDetails details) async {
+    if (MapTileCacheService.isMissingOfflineTile(details.exception)) {
+      // Offline fehlende Kartenkacheln kommen je Kachel; ein Hinweis pro
+      // Sitzung reicht, Telemetrie braucht es dafuer nicht.
+      if (!_loggedMissingOfflineTile) {
+        _loggedMissingOfflineTile = true;
+        await _activeLogger?.logInfo(
+          'maps',
+          'Kartenkacheln fehlen im Offline-Cache',
+        );
+      }
+      return;
+    }
     FlutterError.presentError(details);
     await _activeLogger?.logError(
       'error',
@@ -630,12 +644,9 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
-  static const Duration _pendingRetryInterval = Duration(minutes: 1);
   static const Duration _engagementPromptDelay = Duration(seconds: 5);
 
   late UsageTrackingService _usage;
-  bool _isPaused = false;
-  bool _isForegroundSyncRunning = false;
   late final LoggerService logger;
   late final AuthSessionModel _authModel;
   late final ArbeitskontextModel _arbeitskontextModel;
@@ -647,14 +658,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   late final UrgentNotificationModel _urgentNotificationModel;
   late final AppRuntimeController _appRuntimeController;
   late final bool _isDemo;
-  late final Connectivity _connectivity;
-  late final WifiSyncTrigger _wifiSyncTrigger;
+  late final PendingSyncCoordinator _pendingSync;
   late bool _lastNoMobileDataEnabled;
   bool _pendingSessionActive = false;
+  bool _startupSyncAwaitsAuth = false;
   String? _pendingSessionPrincipal;
   Timer? _authMaintenanceTimer;
-  Timer? _pendingRetryTimer;
-  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
   PullNotificationsCubit? _notificationsCubit;
   StreamSubscription<PullNotificationsState>? _notificationsSubscription;
   PullNotificationsLoaded? _pendingNotificationsState;
@@ -688,8 +697,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       _handleAchievementUnlock,
     );
     _appRuntimeController = AppRuntimeController(resetApp: _performFullReset);
-    _connectivity = Connectivity();
-    _wifiSyncTrigger = WifiSyncTrigger();
+    _pendingSync = PendingSyncCoordinator(
+      connectivity: Connectivity(),
+      authModel: _authModel,
+      memberEditModel: _memberEditModel,
+      noMobileDataEnabled: () => _appSettingsModel.noMobileDataEnabled,
+      syncMembers: _syncArbeitskontextComplete,
+      // Der Demo-Zugang ist nur lesend, es gibt nichts nachzusenden.
+      pendingRetryEnabled: !_isDemo,
+    );
     _lastNoMobileDataEnabled = _appSettingsModel.noMobileDataEnabled;
     _pendingSessionActive = _authModel.session != null;
     _pendingSessionPrincipal = _authModel.session?.principal;
@@ -705,9 +721,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     unawaited(_achievementService.recordDaily(AchievementIds.appDays));
     _initGlobalNotifications();
     _startAuthMaintenanceTimer();
-    _startPendingRetryTimer();
-    _startConnectivityListener();
-    unawaited(_checkCurrentConnectivityForForegroundSync(trigger: 'startup'));
+    _pendingSync.start();
+    unawaited(_pendingSync.checkCurrentConnectivity(trigger: 'startup'));
     _syncDataExpiryReminder();
     _scheduleStartupFlow();
     if (_isDemo) {
@@ -725,7 +740,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     }
     _lastNoMobileDataEnabled = noMobileDataEnabled;
     unawaited(
-      _checkCurrentConnectivityForForegroundSync(
+      _pendingSync.checkCurrentConnectivity(
         trigger: noMobileDataEnabled
             ? 'mobile_data_disabled'
             : 'mobile_data_enabled',
@@ -737,6 +752,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _syncArbeitskontextWithAuth();
     _syncDataExpiryReminder();
     _reloadPendingUpdatesOnSessionChange();
+    if (_startupSyncAwaitsAuth && _authModel.state != AuthState.initializing) {
+      _startupSyncAwaitsAuth = false;
+      _runStartupSyncIfDue();
+    }
 
     final authState = _authModel.state;
     if (authState == AuthState.signedIn) {
@@ -866,19 +885,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void _startAuthMaintenanceTimer() {
     _authMaintenanceTimer?.cancel();
     final authModel = context.read<AuthSessionModel>();
-    if (authModel.isRefreshAttemptDue) {
-      final allowMobileDataOverride =
-          !authModel.dataSyncStatus.hasValidLocalData;
-      unawaited(
-        authModel.syncHitobitoData(
-          syncMembers: (accessToken) => _syncArbeitskontextComplete(
-            allowMobileDataOverride: allowMobileDataOverride,
-          ),
-          trigger: 'startup',
-          userInitiated: false,
-          allowMobileDataOverride: allowMobileDataOverride,
-        ),
-      );
+    if (authModel.state == AuthState.initializing) {
+      // Vor dem Laden der Session ist jeder Sync-Zeitpunkt unbekannt; der
+      // Start-Sync folgt, sobald die Initialisierung abgeschlossen ist.
+      _startupSyncAwaitsAuth = true;
+    } else {
+      _runStartupSyncIfDue();
     }
     _authMaintenanceTimer = Timer.periodic(
       HitobitoAuthEnv.refreshInterval,
@@ -886,6 +898,24 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         syncMembers: (accessToken) => _syncArbeitskontextComplete(),
         trigger: 'interval',
         userInitiated: false,
+      ),
+    );
+  }
+
+  void _runStartupSyncIfDue() {
+    if (!_authModel.isRefreshAttemptDue) {
+      return;
+    }
+    final allowMobileDataOverride =
+        !_authModel.dataSyncStatus.hasValidLocalData;
+    unawaited(
+      _authModel.syncHitobitoData(
+        syncMembers: (accessToken) => _syncArbeitskontextComplete(
+          allowMobileDataOverride: allowMobileDataOverride,
+        ),
+        trigger: 'startup',
+        userInitiated: false,
+        allowMobileDataOverride: allowMobileDataOverride,
       ),
     );
   }
@@ -905,111 +935,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     if (!rolesLoaded) {
       throw StateError('Rollen konnten nicht vollstaendig geladen werden.');
     }
-  }
-
-  void _startConnectivityListener() {
-    _connectivitySubscription?.cancel();
-    _connectivitySubscription = _connectivity.onConnectivityChanged.listen((
-      results,
-    ) {
-      unawaited(
-        _handleForegroundSyncOpportunity(
-          NetworkAccessPolicy.classifyConnectivityResults(results),
-          trigger: 'connectivity_changed',
-        ),
-      );
-    });
-  }
-
-  void _startPendingRetryTimer() {
-    _pendingRetryTimer?.cancel();
-    if (_isDemo) {
-      // Der Demo-Zugang ist nur lesend, es gibt nichts nachzusenden.
-      return;
-    }
-    _pendingRetryTimer = Timer.periodic(_pendingRetryInterval, (_) {
-      unawaited(
-        _retryPendingPersonUpdatesIfPossible(trigger: 'pending_retry_timer'),
-      );
-    });
-  }
-
-  Future<NetworkConnectionType> _resolveCurrentConnectionType() async {
-    final results = await _connectivity.checkConnectivity();
-    return NetworkAccessPolicy.classifyConnectivityResults(results);
-  }
-
-  Future<void> _checkCurrentConnectivityForForegroundSync({
-    required String trigger,
-  }) async {
-    final connectionType = await _resolveCurrentConnectionType();
-    await _handleForegroundSyncOpportunity(connectionType, trigger: trigger);
-  }
-
-  Future<void> _handleForegroundSyncOpportunity(
-    NetworkConnectionType connectionType, {
-    required String trigger,
-  }) async {
-    if (_isPaused ||
-        !_wifiSyncTrigger.shouldTrigger(
-          connectionType,
-          noMobileDataEnabled: _appSettingsModel.noMobileDataEnabled,
-        )) {
-      return;
-    }
-
-    await _runForegroundSync(trigger: trigger);
-  }
-
-  Future<void> _runForegroundSync({required String trigger}) async {
-    if (_isForegroundSyncRunning) {
-      return;
-    }
-
-    _isForegroundSyncRunning = true;
-    try {
-      await _authModel.syncHitobitoData(
-        syncMembers: (accessToken) => _syncArbeitskontextComplete(),
-        trigger: trigger,
-        userInitiated: false,
-      );
-      await _retryPendingPersonUpdatesIfPossible(trigger: '${trigger}_pending');
-    } finally {
-      _isForegroundSyncRunning = false;
-    }
-  }
-
-  Future<void> _retryPendingPersonUpdatesIfPossible({
-    required String trigger,
-  }) async {
-    if (_isPaused || _memberEditModel.isBusy) {
-      return;
-    }
-
-    if (!_memberEditModel.hasDueAutomaticRetry) {
-      return;
-    }
-
-    final accessToken = _authModel.session?.accessToken;
-    if (accessToken == null ||
-        accessToken.isEmpty ||
-        _authModel.requiresInteractiveLogin) {
-      return;
-    }
-
-    final connectionType = await _resolveCurrentConnectionType();
-    if (!_wifiSyncTrigger.isSyncAllowed(
-      connectionType,
-      noMobileDataEnabled: _appSettingsModel.noMobileDataEnabled,
-    )) {
-      return;
-    }
-
-    await _memberEditModel.retryPending(
-      accessToken: accessToken,
-      trigger: trigger,
-      automatic: true,
-    );
   }
 
   Future<bool> _checkForAppUpdate() async {
@@ -1233,9 +1158,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _resetStartupFlowState();
     _usage.startSession();
     _startAuthMaintenanceTimer();
-    _startPendingRetryTimer();
+    _pendingSync.start();
     await _initGlobalNotifications();
-    unawaited(_checkCurrentConnectivityForForegroundSync(trigger: 'app_reset'));
+    unawaited(_pendingSync.checkCurrentConnectivity(trigger: 'app_reset'));
     _scheduleStartupFlow();
 
     final snackbarContext = navigatorKey.currentContext;
@@ -1257,8 +1182,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _urgentNotificationModel.setAcknowledgeHandler(null);
     _achievementSubscription?.cancel();
     _authMaintenanceTimer?.cancel();
-    _pendingRetryTimer?.cancel();
-    _connectivitySubscription?.cancel();
+    _pendingSync.dispose();
     _notificationsSubscription?.cancel();
     _notificationsCubit?.close();
     super.dispose();
@@ -1272,17 +1196,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       // App kommt in den Vordergrund: einmaliges Resume
       _usage.resume();
       unawaited(_achievementService.recordDaily(AchievementIds.appDays));
-      _isPaused = false;
-      _wifiSyncTrigger.reset();
       authModel.onAppResumed();
       _notificationsCubit?.load();
-      unawaited(_checkCurrentConnectivityForForegroundSync(trigger: 'resume'));
+      _pendingSync.resume();
     } else if (state == AppLifecycleState.hidden ||
         state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
-      if (!_isPaused) {
+      if (!_pendingSync.isPaused) {
         _usage.pause();
-        _isPaused = true;
+        _pendingSync.pause();
         authModel.onAppBackgrounded();
       }
       logger.log('lifecycle', 'App $state');

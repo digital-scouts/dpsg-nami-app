@@ -49,6 +49,14 @@ class HitobitoPeopleService {
        _trafficLogService = trafficLogService,
        _logger = logger;
 
+  /// `temp-id` der [index]-ten (ab 1) Anlage einer Telefonnummer, Zusatz-Mail
+  /// oder Zusatzadresse in [updatePersonWithRelationships]. Hitobito nennt sie
+  /// in Validierungsfehlern zu diesen Anlagen.
+  static String phoneNumberCreateTempId(int index) => 'new-phone-$index';
+  static String additionalEmailCreateTempId(int index) => 'new-email-$index';
+  static String additionalAddressCreateTempId(int index) =>
+      'new-address-$index';
+
   HitobitoAuthConfig config;
   final http.Client _httpClient;
   final HitobitoTrafficLogService? _trafficLogService;
@@ -467,7 +475,7 @@ class HitobitoPeopleService {
       final telefonnummer = mutation.value;
       switch (mutation.method) {
         case HitobitoRelationshipMutationMethod.create:
-          final tempId = 'new-phone-$nextTempId';
+          final tempId = phoneNumberCreateTempId(nextTempId);
           nextTempId++;
           data.add(<String, dynamic>{
             'type': 'phone_numbers',
@@ -532,7 +540,7 @@ class HitobitoPeopleService {
       final email = mutation.value;
       switch (mutation.method) {
         case HitobitoRelationshipMutationMethod.create:
-          final tempId = 'new-email-$nextTempId';
+          final tempId = additionalEmailCreateTempId(nextTempId);
           nextTempId++;
           data.add(<String, dynamic>{
             'type': 'additional_emails',
@@ -596,7 +604,7 @@ class HitobitoPeopleService {
       final adresse = mutation.value;
       switch (mutation.method) {
         case HitobitoRelationshipMutationMethod.create:
-          final tempId = 'new-address-$nextTempId';
+          final tempId = additionalAddressCreateTempId(nextTempId);
           nextTempId++;
           data.add(<String, dynamic>{
             'type': 'additional_addresses',
@@ -1471,6 +1479,7 @@ class HitobitoPeopleService {
     final relationshipName = _toNullableString(relationshipMap['name']);
     final relationshipType = _toNullableString(relationshipMap['type']);
     final relationshipId = _toNullableInt(relationshipMap['id']);
+    final relationshipTempId = _toNullableString(relationshipMap['temp-id']);
     final relationshipMessage = _toNullableString(relationshipMap['message']);
     final code =
         _toNullableString(relationshipMap['code']) ??
@@ -1483,7 +1492,8 @@ class HitobitoPeopleService {
         relationshipAttribute == null &&
         relationshipName == null &&
         relationshipType == null &&
-        relationshipId == null) {
+        relationshipId == null &&
+        relationshipTempId == null) {
       return null;
     }
 
@@ -1495,6 +1505,7 @@ class HitobitoPeopleService {
       relationshipAttribute: relationshipAttribute,
       relationshipType: relationshipType,
       relationshipId: relationshipId,
+      relationshipTempId: relationshipTempId,
       code: code,
     );
   }
