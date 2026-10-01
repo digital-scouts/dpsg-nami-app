@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { AppError } from '../../shared/errors.js';
 
-const SUPPORTED_SCHEMA_VERSION = '2026-04-01';
+const SUPPORTED_SCHEMA_VERSION = '2026-10-01';
 // ISO 8601 erlaubt beliebig viele Nachkommastellen; Dart sendet z. B. Mikrosekunden.
 const ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/;
 
@@ -12,6 +12,14 @@ const invalidMetricValueCode = 'invalid_metric_value';
 const unsupportedSchemaVersionCode = 'unsupported_schema_version';
 const invalidStammPlausibilityCode = 'invalid_stamm_plausibility';
 const invalidSnapshotPayloadCode = 'invalid_snapshot_payload';
+const invalidCoverageCode = 'invalid_coverage';
+
+export const STUFEN = ['biber', 'woelflinge', 'jungpfadfinder', 'pfadfinder', 'rover'] as const;
+export type Stufe = (typeof STUFEN)[number];
+export const ABDECKUNGEN = ['stamm', 'gruppen'] as const;
+export type Abdeckung = (typeof ABDECKUNGEN)[number];
+// Begrenzt die Payload; ein Stamm hat in der Praxis deutlich weniger Stufengruppen.
+export const MAX_GRUPPEN = 50;
 
 const requiredStringField = () =>
     z.any().transform((value, ctx) => {
@@ -169,66 +177,106 @@ const leitendeSchema = z
         ueber_60: value.ueber_60 ?? null,
     }));
 
+// Nur stammweite Kennzahlen; Stufenwerte bildet der Server aus den Gruppen.
 const metricsSchema = z
     .object({
         aktive_mitglieder: aktiveMitgliederSchema,
         passive_mitglieder: nullableMetricField,
-        biber: countByGenderSchema,
-        woelflinge: countByGenderSchema,
-        jungpfadfinder: countByGenderSchema,
-        pfadfinder: countByGenderSchema,
-        rover: countByGenderSchema,
         leitende: leitendeSchema,
-        leitende_biber: countByGenderSchema,
-        leitende_woelflinge: countByGenderSchema,
-        leitende_jungpfadfinder: countByGenderSchema,
-        leitende_pfadfinder: countByGenderSchema,
-        leitende_rover: countByGenderSchema,
         nicht_leitende_erwachsene: nullableMetricField,
         stammesvorstand: nullableMetricField,
         kuraten: nullableMetricField,
     })
-    .superRefine((value, ctx) => {
-        const coreFields = [
-            ['biber', value.biber.gesamt],
-            ['woelflinge', value.woelflinge.gesamt],
-            ['jungpfadfinder', value.jungpfadfinder.gesamt],
-            ['pfadfinder', value.pfadfinder.gesamt],
-            ['rover', value.rover.gesamt],
-        ] as const;
-
-        const hasRelevantCoreMetric = coreFields.some(([, metricValue]) =>
-            metricValue != null && metricValue > 0,
-        );
-
-        if (!hasRelevantCoreMetric) {
-            for (const [fieldName] of coreFields) {
-                ctx.addIssue({
-                    code: 'custom',
-                    message: invalidStammPlausibilityCode,
-                    path: [fieldName, 'gesamt'],
-                });
-            }
-        }
-    })
     .transform((value) => ({
         aktive_mitglieder: value.aktive_mitglieder,
         passive_mitglieder: value.passive_mitglieder ?? null,
-        biber: value.biber,
-        woelflinge: value.woelflinge,
-        jungpfadfinder: value.jungpfadfinder,
-        pfadfinder: value.pfadfinder,
-        rover: value.rover,
         leitende: value.leitende,
-        leitende_biber: value.leitende_biber,
-        leitende_woelflinge: value.leitende_woelflinge,
-        leitende_jungpfadfinder: value.leitende_jungpfadfinder,
-        leitende_pfadfinder: value.leitende_pfadfinder,
-        leitende_rover: value.leitende_rover,
         nicht_leitende_erwachsene: value.nicht_leitende_erwachsene ?? null,
         stammesvorstand: value.stammesvorstand ?? null,
         kuraten: value.kuraten ?? null,
     }));
+
+export type StammMetrics = z.infer<typeof metricsSchema>;
+export type CountByGender = z.infer<typeof countByGenderSchema>;
+
+const stufeField = z.any().transform((value, ctx) => {
+    if (value === undefined || value === null || value === '') {
+        ctx.addIssue({ code: 'custom', message: missingRequiredFieldCode });
+        return z.NEVER;
+    }
+    if (typeof value !== 'string' || !(STUFEN as readonly string[]).includes(value)) {
+        ctx.addIssue({ code: 'custom', message: invalidSnapshotPayloadCode });
+        return z.NEVER;
+    }
+    return value as Stufe;
+});
+
+const requiredBooleanField = z.any().transform((value, ctx) => {
+    if (typeof value !== 'boolean') {
+        ctx.addIssue({
+            code: 'custom',
+            message: value === undefined || value === null ? missingRequiredFieldCode : invalidSnapshotPayloadCode,
+        });
+        return z.NEVER;
+    }
+    return value;
+});
+
+// Nicht abgedeckte Gruppen tragen nur zur Gruppenstruktur bei, ihre Zaehler werden verworfen.
+const gruppeSchema = z
+    .object({
+        gruppe_id: requiredStringField(),
+        stufe: stufeField,
+        abgedeckt: requiredBooleanField,
+        mitglieder: countByGenderSchema,
+        leitende: countByGenderSchema,
+    })
+    .transform((value) => ({
+        gruppe_id: value.gruppe_id,
+        stufe: value.stufe,
+        abgedeckt: value.abgedeckt,
+        mitglieder: value.abgedeckt ? value.mitglieder : null,
+        leitende: value.abgedeckt ? value.leitende : null,
+    }));
+
+export type SnapshotGruppe = z.infer<typeof gruppeSchema>;
+
+const abdeckungField = z.any().transform((value, ctx) => {
+    if (value === undefined || value === null || value === '') {
+        ctx.addIssue({ code: 'custom', message: missingRequiredFieldCode });
+        return z.NEVER;
+    }
+    if (typeof value !== 'string' || !(ABDECKUNGEN as readonly string[]).includes(value)) {
+        ctx.addIssue({ code: 'custom', message: invalidSnapshotPayloadCode });
+        return z.NEVER;
+    }
+    return value as Abdeckung;
+});
+
+const gruppenField = z.any().transform((value, ctx) => {
+    if (value === undefined || value === null) {
+        ctx.addIssue({ code: 'custom', message: missingRequiredFieldCode });
+        return z.NEVER;
+    }
+    if (!Array.isArray(value) || value.length === 0 || value.length > MAX_GRUPPEN) {
+        ctx.addIssue({ code: 'custom', message: invalidSnapshotPayloadCode });
+        return z.NEVER;
+    }
+
+    const gruppen: SnapshotGruppe[] = [];
+    value.forEach((entry, index) => {
+        const parsed = gruppeSchema.safeParse(entry ?? {});
+        if (!parsed.success) {
+            for (const issue of parsed.error.issues) {
+                ctx.addIssue({ ...issue, path: [index, ...issue.path] });
+            }
+            return;
+        }
+        gruppen.push(parsed.data);
+    });
+
+    return gruppen;
+});
 
 const stammesSnapshotSchema = z.object({
     schema_version: schemaVersionField,
@@ -238,31 +286,46 @@ const stammesSnapshotSchema = z.object({
     sender_id: requiredStringField(),
     sent_at: isoDateTimeField(),
     source_data_as_of: isoDateTimeField(),
-    metrics: z.any().transform((value, ctx) => {
-        if (value === undefined || value === null) {
-            ctx.addIssue({
-                code: 'custom',
-                message: missingRequiredFieldCode,
-            });
+    abdeckung: abdeckungField,
+    gruppen: gruppenField,
+    metrics: z.any(),
+}).transform((value, ctx) => {
+    const { abdeckung, gruppen } = value;
+    const ids = new Set(gruppen.map((gruppe) => gruppe.gruppe_id));
+    const abgedeckte = gruppen.filter((gruppe) => gruppe.abgedeckt);
 
+    if (
+        ids.size !== gruppen.length
+        || (abdeckung === 'stamm' && abgedeckte.length !== gruppen.length)
+        || (abdeckung === 'gruppen' && abgedeckte.length === 0)
+    ) {
+        ctx.addIssue({ code: 'custom', message: invalidCoverageCode, path: ['gruppen'] });
+        return z.NEVER;
+    }
+
+    if (!abgedeckte.some((gruppe) => (gruppe.mitglieder?.gesamt ?? 0) > 0)) {
+        ctx.addIssue({ code: 'custom', message: invalidStammPlausibilityCode, path: ['gruppen'] });
+        return z.NEVER;
+    }
+
+    // Stammweite Werte aus einer Teilsicht waeren falsch und werden verworfen.
+    let metrics: StammMetrics | null = null;
+    if (abdeckung === 'stamm') {
+        if (value.metrics === undefined || value.metrics === null) {
+            ctx.addIssue({ code: 'custom', message: missingRequiredFieldCode, path: ['metrics'] });
             return z.NEVER;
         }
-
-        const parsedMetrics = metricsSchema.safeParse(value);
-
+        const parsedMetrics = metricsSchema.safeParse(value.metrics);
         if (!parsedMetrics.success) {
             for (const issue of parsedMetrics.error.issues) {
-                ctx.addIssue({
-                    ...issue,
-                    path: issue.path,
-                });
+                ctx.addIssue({ ...issue, path: ['metrics', ...issue.path] });
             }
-
             return z.NEVER;
         }
+        metrics = parsedMetrics.data;
+    }
 
-        return parsedMetrics.data;
-    }),
+    return { ...value, metrics };
 });
 
 export type StammesSnapshotPayload = z.infer<typeof stammesSnapshotSchema>;
@@ -272,6 +335,7 @@ const errorCodePriority = [
     missingRequiredFieldCode,
     invalidDateTimeCode,
     invalidMetricValueCode,
+    invalidCoverageCode,
     invalidStammPlausibilityCode,
     invalidSnapshotPayloadCode,
 ] as const;
@@ -287,7 +351,7 @@ const mapIssueToCode = (issue: z.ZodIssue): string => {
         return invalidDateTimeCode;
     }
 
-    if (fieldPath.startsWith('metrics')) {
+    if (fieldPath.startsWith('metrics') || /^gruppen\.\d+\.(mitglieder|leitende)/.test(fieldPath)) {
         return invalidMetricValueCode;
     }
 

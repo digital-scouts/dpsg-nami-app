@@ -20,6 +20,28 @@ export const buildTestConfig = (overrides: NodeJS.ProcessEnv = {}): AppConfig =>
         ...overrides,
     });
 
+export const gruppe = (
+    gruppeId: string,
+    stufe: string,
+    mitglieder: number | null,
+    leitende: number | null = 1,
+    overrides: Record<string, unknown> = {},
+) => ({
+    gruppe_id: gruppeId,
+    stufe,
+    abgedeckt: true,
+    mitglieder: { gesamt: mitglieder },
+    leitende: { gesamt: leitende },
+    ...overrides,
+});
+
+// Nicht abgedeckte Gruppe: nur Teil der Gruppenstruktur.
+export const fremdeGruppe = (gruppeId: string, stufe: string) => ({
+    gruppe_id: gruppeId,
+    stufe,
+    abgedeckt: false,
+});
+
 export const createValidPayload = (overrides: Record<string, unknown> = {}) => ({
     schema_version: SUPPORTED_SCHEMA_VERSION,
     stamm_id: 'stamm-123',
@@ -27,9 +49,11 @@ export const createValidPayload = (overrides: Record<string, unknown> = {}) => (
     sender_id: 'install-77',
     sent_at: '2026-04-09T18:30:00Z',
     source_data_as_of: '2026-04-09T18:00:00Z',
+    abdeckung: 'stamm',
+    gruppen: [gruppe('g-biber', 'biber', 5)],
     metrics: {
-        biber: {
-            gesamt: 5,
+        leitende: {
+            gesamt: 3,
         },
     },
     ...overrides,

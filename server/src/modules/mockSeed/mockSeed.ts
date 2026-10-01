@@ -2,7 +2,12 @@ import type { ServerDependencies } from '../../app/dependencies.js';
 import { rebuildEffectiveStatesAndAggregate } from '../aggregation/refresh.js';
 import { buildRawSnapshotDocument } from '../stammesSnapshot/persistence.js';
 import { pseudonymizeStammesSnapshot } from '../stammesSnapshot/pseudonymize.js';
-import { parseStammesSnapshotPayload, SUPPORTED_SCHEMA_VERSION } from '../stammesSnapshot/schema.js';
+import {
+    parseStammesSnapshotPayload,
+    type Stufe,
+    STUFEN,
+    SUPPORTED_SCHEMA_VERSION,
+} from '../stammesSnapshot/schema.js';
 
 // Synthetische Staemme fuer die Mock-Instanz (mock-namiapp.scout-link.de), damit eine
 // einzelne Test-Installation ueber MIN_STAMM_COUNT_FOR_READ kommt und Bundeswerte erhaelt.
@@ -68,20 +73,48 @@ const leitende = (random: Random, withRare: boolean) => {
     };
 };
 
-const buildMockMetrics = (index: number) => {
-    const random = createRandom(index + 1);
-    const withRare = index < MOCK_RARE_METRIC_STAMM_COUNT;
-
-    const stufen = {
-        biber: countByGender(random, 0, 12, withRare),
-        woelflinge: countByGender(random, 5, 25, withRare),
-        jungpfadfinder: countByGender(random, 5, 25, withRare),
-        pfadfinder: countByGender(random, 3, 20, withRare),
-        rover: countByGender(random, 0, 12, withRare),
+// Jede Stufe hat mindestens eine Gruppe; Woelflinge und Jungpfadfinder teils zwei.
+const buildMockGruppen = (random: Random, number: string, withRare: boolean) => {
+    const gruppen: Array<{
+        gruppe_id: string;
+        stufe: Stufe;
+        abgedeckt: boolean;
+        mitglieder: ReturnType<typeof countByGender>;
+        leitende: ReturnType<typeof countByGender>;
+    }> = [];
+    const anzahl: Record<Stufe, number> = {
+        biber: 1,
+        woelflinge: random(1, 2),
+        jungpfadfinder: random(1, 2),
+        pfadfinder: 1,
+        rover: 1,
     };
+    const groesse: Record<Stufe, [number, number]> = {
+        biber: [1, 10],
+        woelflinge: [5, 16],
+        jungpfadfinder: [5, 16],
+        pfadfinder: [3, 14],
+        rover: [1, 10],
+    };
+
+    for (const stufe of STUFEN) {
+        for (let i = 1; i <= anzahl[stufe]; i += 1) {
+            gruppen.push({
+                gruppe_id: `mock-gruppe-${number}-${stufe}-${i}`,
+                stufe,
+                abgedeckt: true,
+                mitglieder: countByGender(random, ...groesse[stufe], withRare),
+                leitende: countByGender(random, 1, 4, false),
+            });
+        }
+    }
+
+    return gruppen;
+};
+
+const buildMockMetrics = (random: Random, withRare: boolean, gruppen: ReturnType<typeof buildMockGruppen>) => {
     const leitendeGesamt = leitende(random, withRare);
-    const aktiveGesamt = Object.values(stufen).reduce((total, stufe) => total + stufe.gesamt, 0)
-        + leitendeGesamt.gesamt;
+    const aktiveGesamt = gruppen.reduce((total, gruppe) => total + gruppe.mitglieder.gesamt, 0) + leitendeGesamt.gesamt;
     const familienermaessigt = Math.floor(aktiveGesamt * random(10, 25) / 100);
     const sozialermaessigt = Math.floor(aktiveGesamt * random(0, 8) / 100);
 
@@ -93,35 +126,62 @@ const buildMockMetrics = (index: number) => {
             sozialermaessigter_beitrag: sozialermaessigt,
         },
         passive_mitglieder: random(0, 10),
-        ...stufen,
         leitende: leitendeGesamt,
-        leitende_biber: countByGender(random, 0, 3, false),
-        leitende_woelflinge: countByGender(random, 1, 5, false),
-        leitende_jungpfadfinder: countByGender(random, 1, 5, false),
-        leitende_pfadfinder: countByGender(random, 1, 4, false),
-        leitende_rover: countByGender(random, 0, 3, false),
         nicht_leitende_erwachsene: random(0, 8),
         stammesvorstand: random(2, 3),
         kuraten: random(0, 1),
     };
 };
 
+// Jeder so vielte Stamm bekommt zusaetzlich einen neueren Teildatensatz einer Gruppen-Leitung.
+export const MOCK_GRUPPEN_SENDER_EVERY = 6;
+
 // Datenstaende relativ zu now gestaffelt, damit sie im Zwei-Monats-Fenster der Aggregation liegen.
 export const buildMockSnapshotPayloads = (count: number, now: Date) =>
     Array.from({ length: count }, (_, index) => {
         const number = String(index + 1).padStart(2, '0');
-        const sourceDataAsOf = new Date(now.getTime() - (index % MAX_SOURCE_AGE_DAYS) * DAY_MS - HOUR_MS);
-
-        return {
+        const random = createRandom(index + 1);
+        const withRare = index < MOCK_RARE_METRIC_STAMM_COUNT;
+        const sourceDataAsOf = new Date(now.getTime() - (index % MAX_SOURCE_AGE_DAYS) * DAY_MS - 2 * HOUR_MS);
+        const gruppen = buildMockGruppen(random, number, withRare);
+        const basis = {
             schema_version: SUPPORTED_SCHEMA_VERSION,
             stamm_id: `mock-stamm-${number}`,
             dv_id: `mock-dv-${(index % 5) + 1}`,
+            bezirk_id: `mock-bezirk-${(index % 10) + 1}`,
+        };
+        const stamm = {
+            ...basis,
             sender_id: `mock-sender-${number}`,
             sent_at: new Date(sourceDataAsOf.getTime() + HOUR_MS / 2).toISOString(),
             source_data_as_of: sourceDataAsOf.toISOString(),
-            metrics: buildMockMetrics(index),
+            abdeckung: 'stamm' as const,
+            gruppen,
+            metrics: buildMockMetrics(random, withRare, gruppen),
         };
-    });
+
+        if (index % MOCK_GRUPPEN_SENDER_EVERY !== 0) {
+            return [stamm];
+        }
+
+        // Gruppen-Leitung der ersten Woelflingsgruppe mit neuerem Stand und leicht anderen Zahlen.
+        const gruppenSource = new Date(sourceDataAsOf.getTime() + HOUR_MS);
+        const teil = {
+            ...basis,
+            sender_id: `mock-sender-${number}-gruppe`,
+            sent_at: new Date(gruppenSource.getTime() + HOUR_MS / 2).toISOString(),
+            source_data_as_of: gruppenSource.toISOString(),
+            abdeckung: 'gruppen' as const,
+            gruppen: gruppen.map((gruppe) => {
+                const eigene = gruppe.gruppe_id === `mock-gruppe-${number}-woelflinge-1`;
+                return eigene
+                    ? { ...gruppe, mitglieder: countByGender(random, 5, 16, withRare) }
+                    : { ...gruppe, abgedeckt: false };
+            }),
+        };
+
+        return [stamm, teil];
+    }).flat();
 
 // Laeuft durch dieselbe Validierung und Pseudonymisierung wie echte Snapshots. Seed-Sender
 // werden nicht registriert: Lesen duerfen nur echte Installationen nach eigenem Senden.

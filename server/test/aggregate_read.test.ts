@@ -7,6 +7,8 @@ import {
     buildTestConfig,
     createMutableClock,
     createValidPayload,
+    fremdeGruppe,
+    gruppe,
     OTHER_SECRET,
     TEST_SECRET,
 } from './support/fixtures.js';
@@ -30,7 +32,7 @@ describe('bund aggregate read route', () => {
                 sender_id: senderId,
                 sent_at: time.now.toISOString(),
                 source_data_as_of: time.now.toISOString(),
-                metrics: { biber: { gesamt: biber } },
+                gruppen: [gruppe('g-biber', 'biber', biber)],
             }),
         });
         expect(response.statusCode).toBe(204);
@@ -146,5 +148,81 @@ describe('bund aggregate read route', () => {
 
         expect(body.participating_stamm_count).toBe(3);
         expect(body.metrics.biber.gesamt).toEqual({ sum: 19, stamm_count: 3, median: 7 });
+    });
+
+    test('merges a newer group snapshot into the stamm and serves group sizes', async () => {
+        await shareSnapshot('stamm-1', 'install-1', 5);
+        await shareSnapshot('stamm-2', 'install-2', 7);
+        await shareSnapshot('stamm-3', 'install-3', 3);
+        time.now = new Date('2026-06-11T12:00:00Z');
+        const response = await server.inject({
+            method: 'POST',
+            url: '/snapshots/stamm',
+            headers: authHeader(),
+            payload: createValidPayload({
+                stamm_id: 'stamm-1',
+                sender_id: 'install-gruppe',
+                sent_at: time.now.toISOString(),
+                source_data_as_of: time.now.toISOString(),
+                abdeckung: 'gruppen',
+                gruppen: [gruppe('g-biber', 'biber', 11, 2)],
+                metrics: { leitende: { gesamt: 99 } },
+            }),
+        });
+        expect(response.statusCode).toBe(204);
+
+        const body = (await readAggregate('install-gruppe')).json();
+
+        expect(body.status).toBe('ok');
+        expect(body.participating_stamm_count).toBe(3);
+        expect(body.metrics.biber.gesamt).toEqual({ sum: 21, stamm_count: 3, median: 7 });
+        // Stammweite Werte der Teilsicht werden verworfen, der Stamm-Snapshot bleibt massgeblich.
+        expect(body.metrics.leitende.gesamt).toEqual({ sum: 9, stamm_count: 3, median: 3 });
+        expect(body.gruppen_je_stufe.biber).toMatchObject({
+            gruppen_count: 3,
+            stamm_count: 3,
+            gruppen_pro_stamm: { sum: 3, stamm_count: 3, median: 1 },
+            mitglieder: { gesamt: { sum: 21, stamm_count: 3, gruppen_count: 3, median: 7 } },
+            leitende: { gesamt: { sum: 4, stamm_count: 3, gruppen_count: 3, median: 1 } },
+        });
+        expect(body.gruppen_je_stufe.woelflinge.mitglieder.gesamt).toEqual({
+            sum: null,
+            stamm_count: 0,
+            gruppen_count: 0,
+            median: null,
+        });
+    });
+
+    test('ignores the stamm-wide values of a group-only stamm', async () => {
+        await shareSnapshot('stamm-1', 'install-1', 5);
+        await shareSnapshot('stamm-2', 'install-2', 7);
+        const response = await server.inject({
+            method: 'POST',
+            url: '/snapshots/stamm',
+            headers: authHeader(),
+            payload: createValidPayload({
+                stamm_id: 'stamm-3',
+                sender_id: 'install-3',
+                sent_at: time.now.toISOString(),
+                source_data_as_of: time.now.toISOString(),
+                abdeckung: 'gruppen',
+                gruppen: [gruppe('g-woe-1', 'woelflinge', 12), fremdeGruppe('g-woe-2', 'woelflinge'), fremdeGruppe('g-biber', 'biber')],
+            }),
+        });
+        expect(response.statusCode).toBe(204);
+
+        const body = (await readAggregate('install-3')).json();
+
+        expect(body.participating_stamm_count).toBe(3);
+        // Woelflinge: Stamm 3 hat zwei Meuten, nur eine ist bekannt, also kein Stufenwert. Die
+        // beiden anderen Staemme haben keine Meute (0) und bleiben unter dem Minimum von 3.
+        expect(body.metrics.woelflinge.gesamt).toEqual({ sum: null, stamm_count: 2, median: null });
+        expect(body.metrics.leitende.gesamt).toEqual({ sum: null, stamm_count: 2, median: null });
+        expect(body.gruppen_je_stufe.woelflinge.mitglieder.gesamt).toEqual({
+            sum: null,
+            stamm_count: 1,
+            gruppen_count: 1,
+            median: null,
+        });
     });
 });

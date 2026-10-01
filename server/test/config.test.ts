@@ -89,4 +89,35 @@ describe('loadConfig', () => {
             }),
         ).toThrow();
     });
+
+    test('disables the monthly report without SMTP host', () => {
+        const config = loadConfig({ ...requiredEnv, REPORT_SMTP_HOST: '', REPORT_MAIL_TO: 'a@example.org' });
+
+        expect(config.report).toBeNull();
+    });
+
+    test('reads the monthly report configuration', () => {
+        const config = loadConfig({
+            ...requiredEnv,
+            REPORT_SMTP_HOST: 'smtp.example.org',
+            REPORT_SMTP_USER: 'report',
+            REPORT_SMTP_PASS: 'geheim',
+            REPORT_MAIL_FROM: 'statistik@example.org',
+            REPORT_MAIL_TO: 'a@example.org, b@example.org',
+        });
+
+        expect(config.report).toEqual({
+            smtpHost: 'smtp.example.org',
+            smtpPort: 587,
+            smtpUser: 'report',
+            smtpPass: 'geheim',
+            mailFrom: 'statistik@example.org',
+            mailTo: ['a@example.org', 'b@example.org'],
+        });
+    });
+
+    test('rejects an SMTP host without sender or recipient', () => {
+        expect(() => loadConfig({ ...requiredEnv, REPORT_SMTP_HOST: 'smtp.example.org', REPORT_MAIL_FROM: 'x@example.org' }))
+            .toThrow(/REPORT_SMTP_HOST requires/);
+    });
 });

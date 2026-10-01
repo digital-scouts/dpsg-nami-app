@@ -7,7 +7,7 @@ Der Server schickt einmal im Monat eine Mail an den Betreiber. Sie beschreibt de
 - Berichtet wird jeweils der abgeschlossene Vormonat (UTC).
 - Ein Scheduler im Serverprozess prüft beim Start und danach alle sechs Stunden, ob der Report des Vormonats schon verschickt wurde. Der Merker liegt in `ops_status` unter `_id: "monthly_report"` (`last_reported_month`, `sent_at`). So geht nach Neustarts oder Ausfällen kein Monat verloren und keiner wird doppelt verschickt.
 - Ohne vollständige Mail-Konfiguration ist der Report aus (z. B. auf der Mock-Instanz).
-- `npm run report -- --month YYYY-MM [--dry-run]` erzeugt den Report von Hand. Mit `--dry-run` wird er nur ausgegeben und nicht verschickt; der Merker bleibt unverändert.
+- `npm run report -- --month YYYY-MM [--dry-run]` erzeugt den Report von Hand (im Container, siehe `deploy/README.md`; lokal `npm run report:dev`). Ohne `--month` gilt der Vormonat. Mit `--dry-run` wird er nur ausgegeben und nicht verschickt, der Merker bleibt unverändert; sonst wird er verschickt und vermerkt.
 
 ## Inhalt
 

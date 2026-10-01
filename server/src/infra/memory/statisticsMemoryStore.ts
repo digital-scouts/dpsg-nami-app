@@ -1,22 +1,21 @@
 import type { ServerDependencies } from '../../app/dependencies.js';
 import type { WeeklyAggregateDocument } from '../../modules/aggregation/aggregation.js';
-import {
-    type EffectiveStateDocument,
-    isNewerSnapshot,
-    selectEffectiveSnapshots,
-} from '../../modules/effectiveState/effectiveState.js';
+import type { EffectiveStateDocument } from '../../modules/effectiveState/effectiveState.js';
 import type { SenderDocument } from '../../modules/senderAuth/senderAuth.js';
 import type { RawSnapshotDocument } from '../../modules/stammesSnapshot/persistence.js';
+import { SUPPORTED_SCHEMA_VERSION } from '../../modules/stammesSnapshot/schema.js';
 import { type Clock, systemClock } from '../../shared/time.js';
 
 // In-Memory-Umsetzung aller Repositories fuer Tests und Server-Instanzen ohne MongoDB.
-// Die Regeln (Dubletten, Upsert-if-newer, TOFU) entsprechen der MongoDB-Umsetzung.
+// Die Regeln (Dubletten, TOFU, Filter auf die aktuelle Schema-Version) entsprechen der
+// MongoDB-Umsetzung.
 export type StatisticsMemoryStore = {
     rawSnapshots: RawSnapshotDocument[];
     senders: Map<string, SenderDocument>;
     effectiveStates: Map<string, EffectiveStateDocument>;
     weeklyAggregates: Map<string, WeeklyAggregateDocument>;
     lastBackupAt: Date | null;
+    lastReportedMonth: string | null;
 };
 
 export const createStatisticsMemoryStore = (): StatisticsMemoryStore => ({
@@ -25,12 +24,18 @@ export const createStatisticsMemoryStore = (): StatisticsMemoryStore => ({
     effectiveStates: new Map(),
     weeklyAggregates: new Map(),
     lastBackupAt: null,
+    lastReportedMonth: null,
 });
 
 const isDuplicateRawSnapshot = (a: RawSnapshotDocument, b: RawSnapshotDocument): boolean =>
     a.stamm_pseudonym === b.stamm_pseudonym
     && a.sender_pseudonym === b.sender_pseudonym
-    && a.source_data_as_of.getTime() === b.source_data_as_of.getTime();
+    && a.source_data_as_of.getTime() === b.source_data_as_of.getTime()
+    && a.schema_version === b.schema_version;
+
+const isCurrentSince = (document: RawSnapshotDocument, since: Date): boolean =>
+    document.schema_version === SUPPORTED_SCHEMA_VERSION
+    && (document.source_data_as_of.getTime() >= since.getTime() || document.received_at.getTime() >= since.getTime());
 
 export const buildMemoryDependencies = (
     store: StatisticsMemoryStore = createStatisticsMemoryStore(),
@@ -45,7 +50,12 @@ export const buildMemoryDependencies = (
             store.rawSnapshots.push(document);
             return { inserted: true };
         },
-        findLatestPerStamm: async () => selectEffectiveSnapshots(store.rawSnapshots),
+        findByStammSince: async (stammPseudonym, since) =>
+            store.rawSnapshots.filter((document) =>
+                document.stamm_pseudonym === stammPseudonym
+                && document.schema_version === SUPPORTED_SCHEMA_VERSION
+                && document.source_data_as_of.getTime() >= since.getTime()),
+        findSince: async (since) => store.rawSnapshots.filter((document) => isCurrentSince(document, since)),
     },
     senderRepository: {
         findByPseudonym: async (senderPseudonym) => store.senders.get(senderPseudonym) ?? null,
@@ -62,13 +72,18 @@ export const buildMemoryDependencies = (
                 sender.last_successful_send_at = sentAt;
             }
         },
+        listActivity: async () =>
+            [...store.senders.values()].map(({ created_at, last_successful_send_at }) => ({
+                created_at,
+                last_successful_send_at,
+            })),
     },
     effectiveStatesRepository: {
-        upsertIfNewer: async (state) => {
-            const current = store.effectiveStates.get(state.stamm_pseudonym);
-            if (current == null || isNewerSnapshot(state, current)) {
-                store.effectiveStates.set(state.stamm_pseudonym, state);
-            }
+        upsert: async (state) => {
+            store.effectiveStates.set(state.stamm_pseudonym, state);
+        },
+        remove: async (stammPseudonym) => {
+            store.effectiveStates.delete(stammPseudonym);
         },
         replaceAll: async (states) => {
             store.effectiveStates.clear();
@@ -86,6 +101,12 @@ export const buildMemoryDependencies = (
             [...store.weeklyAggregates.values()]
                 .filter((document) => document.aggregation_type === aggregationType)
                 .sort((a, b) => b.generated_at.getTime() - a.generated_at.getTime())[0] ?? null,
+    },
+    reportStatusRepository: {
+        findLastReportedMonth: async () => store.lastReportedMonth,
+        markReported: async (month) => {
+            store.lastReportedMonth = month;
+        },
     },
     readinessProbe: {
         pingDatabase: async () => undefined,
