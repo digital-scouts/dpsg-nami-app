@@ -21,6 +21,7 @@ import '../services/hitobito_auth_env.dart';
 import '../services/hitobito_efz_service.dart';
 import '../services/hitobito_groups_service.dart';
 import '../services/hitobito_oauth_service.dart';
+import '../services/logger_service.dart';
 import '../services/sensitive_storage_service.dart';
 import 'demo_data.dart';
 
@@ -36,6 +37,19 @@ const HitobitoAuthConfig demoAuthConfig = HitobitoAuthConfig(
   discoveryUrl: '',
   profileUrl: 'https://demo.invalid/oauth/profile',
 );
+
+/// Einziges Telemetrie-Ereignis, das der Demo-Zugang sendet.
+const String demoUsedEvent = 'demo_used';
+
+/// Laesst im Demo nur [demoUsedEvent] an [inner] durch. Alle anderen
+/// Ereignisse stammen aus Demo-Aktionen und werden nicht gesendet.
+WiredashEventHook demoEventHook(WiredashEventHook inner) {
+  return (name, properties) async {
+    if (name == demoUsedEvent) {
+      await inner(name, properties);
+    }
+  };
+}
 
 /// Haelt alle sensiblen Boxen nur im Speicher. Echte Boxen und der
 /// Verschluesselungsschluessel im Secure Storage bleiben unberuehrt.
