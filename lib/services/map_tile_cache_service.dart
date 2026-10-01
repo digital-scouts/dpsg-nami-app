@@ -14,6 +14,14 @@ import 'maps_env.dart';
 import 'network_access_policy.dart';
 
 class MapTileCacheService {
+  /// Ob [error] eine Kachel meldet, die offline nicht im Cache liegt. Das ist
+  /// erwartet, sobald die Karte ohne Netz einen nie geladenen Ausschnitt
+  /// zeigt, und kein Laufzeitfehler.
+  static bool isMissingOfflineTile(Object error) {
+    return error is FMTCBrowsingError &&
+        error.type == FMTCBrowsingErrorType.missingInCacheOnlyMode;
+  }
+
   MapTileCacheService({
     FMTCBackend? backend,
     FMTCBackend Function()? backendFactory,
