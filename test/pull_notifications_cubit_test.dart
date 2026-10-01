@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/core/notifications/pull_notification.dart';
 import 'package:nami/core/notifications/pull_notifications_cubit.dart';
@@ -7,6 +9,7 @@ class _FakePullNotificationsRepository implements PullNotificationsRepository {
   List<PullNotification> notifications = const [];
   Set<String> acknowledged = const {};
   Object? fetchError;
+  Completer<void>? fetchGate;
   bool? lastForceRefresh;
   String? acknowledgedId;
   bool resetCalled = false;
@@ -21,6 +24,7 @@ class _FakePullNotificationsRepository implements PullNotificationsRepository {
     bool forceRefresh = false,
   }) async {
     lastForceRefresh = forceRefresh;
+    await fetchGate?.future;
     if (fetchError != null) {
       throw fetchError!;
     }
@@ -67,6 +71,22 @@ void main() {
     await expectation;
     expect(repo.lastForceRefresh, isTrue);
     await cubit.close();
+  });
+
+  test('bleibt still, wenn der Cubit waehrend des Ladens schliesst', () async {
+    for (final fetchError in <Object?>[null, Exception('kaputt')]) {
+      final repo = _FakePullNotificationsRepository()
+        ..fetchError = fetchError
+        ..fetchGate = Completer<void>();
+      final cubit = PullNotificationsCubit(repo);
+
+      final laden = cubit.load();
+      await cubit.close();
+      repo.fetchGate!.complete();
+
+      await expectLater(laden, completes);
+      expect(cubit.state, isA<PullNotificationsLoading>());
+    }
   });
 
   test('emitiert error wenn das Laden fehlschlaegt', () async {

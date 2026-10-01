@@ -17,8 +17,12 @@ class PullNotificationsCubit extends Cubit<PullNotificationsState> {
         forceRefresh: force,
       );
       final ack = await repository.getAcknowledgedIds();
+      // Wird die App waehrend des Ladens neu aufgebaut (z. B. beim Wechsel in
+      // die Demo), ist der Cubit schon geschlossen.
+      if (isClosed) return;
       emit(PullNotificationsLoaded(notifications, ack));
     } catch (e) {
+      if (isClosed) return;
       emit(PullNotificationsError(e.toString()));
     }
   }
