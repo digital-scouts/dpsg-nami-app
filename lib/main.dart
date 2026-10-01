@@ -640,6 +640,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   late final PendingSyncCoordinator _pendingSync;
   late bool _lastNoMobileDataEnabled;
   bool _pendingSessionActive = false;
+  bool _startupSyncAwaitsAuth = false;
   String? _pendingSessionPrincipal;
   Timer? _authMaintenanceTimer;
   PullNotificationsCubit? _notificationsCubit;
@@ -730,6 +731,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _syncArbeitskontextWithAuth();
     _syncDataExpiryReminder();
     _reloadPendingUpdatesOnSessionChange();
+    if (_startupSyncAwaitsAuth && _authModel.state != AuthState.initializing) {
+      _startupSyncAwaitsAuth = false;
+      _runStartupSyncIfDue();
+    }
 
     final authState = _authModel.state;
     if (authState == AuthState.signedIn) {
@@ -859,19 +864,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void _startAuthMaintenanceTimer() {
     _authMaintenanceTimer?.cancel();
     final authModel = context.read<AuthSessionModel>();
-    if (authModel.isRefreshAttemptDue) {
-      final allowMobileDataOverride =
-          !authModel.dataSyncStatus.hasValidLocalData;
-      unawaited(
-        authModel.syncHitobitoData(
-          syncMembers: (accessToken) => _syncArbeitskontextComplete(
-            allowMobileDataOverride: allowMobileDataOverride,
-          ),
-          trigger: 'startup',
-          userInitiated: false,
-          allowMobileDataOverride: allowMobileDataOverride,
-        ),
-      );
+    if (authModel.state == AuthState.initializing) {
+      // Vor dem Laden der Session ist jeder Sync-Zeitpunkt unbekannt; der
+      // Start-Sync folgt, sobald die Initialisierung abgeschlossen ist.
+      _startupSyncAwaitsAuth = true;
+    } else {
+      _runStartupSyncIfDue();
     }
     _authMaintenanceTimer = Timer.periodic(
       HitobitoAuthEnv.refreshInterval,
@@ -879,6 +877,24 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         syncMembers: (accessToken) => _syncArbeitskontextComplete(),
         trigger: 'interval',
         userInitiated: false,
+      ),
+    );
+  }
+
+  void _runStartupSyncIfDue() {
+    if (!_authModel.isRefreshAttemptDue) {
+      return;
+    }
+    final allowMobileDataOverride =
+        !_authModel.dataSyncStatus.hasValidLocalData;
+    unawaited(
+      _authModel.syncHitobitoData(
+        syncMembers: (accessToken) => _syncArbeitskontextComplete(
+          allowMobileDataOverride: allowMobileDataOverride,
+        ),
+        trigger: 'startup',
+        userInitiated: false,
+        allowMobileDataOverride: allowMobileDataOverride,
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 
+import '../../domain/auth/auth_state.dart';
 import '../../services/network_access_policy.dart';
 import '../../services/wifi_sync_trigger.dart';
 import 'auth_session_model.dart';
@@ -45,6 +46,7 @@ class PendingSyncCoordinator {
 
   bool _isPaused = false;
   bool _isForegroundSyncRunning = false;
+  bool _waitsForAuthInitialization = false;
   Timer? _pendingRetryTimer;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
@@ -52,6 +54,8 @@ class PendingSyncCoordinator {
 
   /// Startet Connectivity-Listener und Retry-Timer neu.
   void start() {
+    _authModel.removeListener(_handleAuthChanged);
+    _authModel.addListener(_handleAuthChanged);
     _startConnectivityListener();
     _startPendingRetryTimer();
   }
@@ -72,10 +76,23 @@ class PendingSyncCoordinator {
   }
 
   void dispose() {
+    _authModel.removeListener(_handleAuthChanged);
     _pendingRetryTimer?.cancel();
     _pendingRetryTimer = null;
     _connectivitySubscription?.cancel();
     _connectivitySubscription = null;
+  }
+
+  /// Laeuft die Auth-Initialisierung noch, sind Session und Sync-Zeitpunkte
+  /// unbekannt. Statt die Verbindung dann als bereits genutzt zu werten, wird
+  /// die Pruefung nachgeholt, sobald die Initialisierung abgeschlossen ist.
+  void _handleAuthChanged() {
+    if (!_waitsForAuthInitialization ||
+        _authModel.state == AuthState.initializing) {
+      return;
+    }
+    _waitsForAuthInitialization = false;
+    unawaited(checkCurrentConnectivity(trigger: 'auth_ready'));
   }
 
   void _startConnectivityListener() {
@@ -113,11 +130,17 @@ class PendingSyncCoordinator {
     NetworkConnectionType connectionType, {
     required String trigger,
   }) async {
-    if (_isPaused ||
-        !_wifiSyncTrigger.shouldTrigger(
-          connectionType,
-          noMobileDataEnabled: _noMobileDataEnabled(),
-        )) {
+    if (_isPaused) {
+      return;
+    }
+    if (_authModel.state == AuthState.initializing) {
+      _waitsForAuthInitialization = true;
+      return;
+    }
+    if (!_wifiSyncTrigger.shouldTrigger(
+      connectionType,
+      noMobileDataEnabled: _noMobileDataEnabled(),
+    )) {
       return;
     }
 
