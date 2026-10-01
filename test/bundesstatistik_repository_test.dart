@@ -8,6 +8,7 @@ import 'package:nami/domain/bundesstatistik/bundesaggregat.dart';
 import 'package:nami/domain/bundesstatistik/bundesstatistik_repository.dart';
 import 'package:nami/domain/bundesstatistik/installation_credentials.dart';
 import 'package:nami/domain/bundesstatistik/stammes_snapshot.dart';
+import 'package:nami/domain/taetigkeit/stufe.dart';
 
 const _credentials = InstallationCredentials(id: 'install-1', secret: 'geheim');
 
@@ -44,6 +45,21 @@ StammesSnapshot _snapshot() => StammesSnapshot(
     leitendePfadfinder: GeschlechterVerteilung.leer(),
     leitendeRover: GeschlechterVerteilung.leer(),
     nichtLeitendeErwachsene: 0,
+    gruppen: <GruppenKennzahl>[
+      GruppenKennzahl(
+        gruppenId: 21,
+        stufe: Stufe.woelfling,
+        abgedeckt: true,
+        mitglieder: GeschlechterVerteilung(
+          gesamt: 3,
+          maennlich: 1,
+          weiblich: 2,
+          divers: 0,
+          geschlechtUnbekannt: 0,
+        ),
+        leitende: GeschlechterVerteilung.leer(),
+      ),
+    ],
   ),
 );
 
@@ -75,9 +91,32 @@ void main() {
     );
     expect(captured.headers['authorization'], 'Bearer geheim');
     final body = jsonDecode(captured.body) as Map<String, dynamic>;
-    expect(body['schema_version'], '2026-04-01');
+    expect(body['schema_version'], '2026-10-01');
     expect(body['sender_id'], 'install-1');
-    expect((body['metrics'] as Map)['woelflinge']['gesamt'], 3);
+    expect(body['abdeckung'], 'stamm');
+    expect(body['gruppen'], [
+      {
+        'gruppe_id': '21',
+        'stufe': 'woelflinge',
+        'abgedeckt': true,
+        'mitglieder': {
+          'gesamt': 3,
+          'maennlich': 1,
+          'weiblich': 2,
+          'divers': 0,
+          'geschlecht_unbekannt': 0,
+        },
+        'leitende': {
+          'gesamt': 0,
+          'maennlich': 0,
+          'weiblich': 0,
+          'divers': 0,
+          'geschlecht_unbekannt': 0,
+        },
+      },
+    ]);
+    expect((body['metrics'] as Map)['leitende']['gesamt'], 1);
+    expect((body['metrics'] as Map).containsKey('woelflinge'), isFalse);
   });
 
   test('bildet Fehlerantworten auf Fehlerarten ab', () async {
@@ -157,6 +196,33 @@ void main() {
                 },
                 'kuraten': {'sum': null, 'stamm_count': 0, 'median': null},
               },
+              'gruppen_je_stufe': {
+                'woelflinge': {
+                  'gruppen_count': 15,
+                  'stamm_count': 12,
+                  'gruppen_pro_stamm': {
+                    'sum': 15,
+                    'stamm_count': 12,
+                    'median': 1,
+                  },
+                  'mitglieder': {
+                    'gesamt': {
+                      'sum': 150,
+                      'stamm_count': 12,
+                      'gruppen_count': 15,
+                      'median': 9,
+                    },
+                  },
+                  'leitende': {
+                    'gesamt': {
+                      'sum': null,
+                      'stamm_count': 3,
+                      'gruppen_count': 4,
+                      'median': null,
+                    },
+                  },
+                },
+              },
             }),
           ),
           200,
@@ -179,5 +245,13 @@ void main() {
     expect(woelflinge.durchschnitt, 10);
     expect(aggregat.kennzahl('woelflinge.divers')!.istUnterdrueckt, isTrue);
     expect(aggregat.kennzahl('kuraten')!.stammAnzahl, 0);
+    final meuten = aggregat.gruppenDerStufe('woelflinge')!;
+    expect(meuten.gruppenAnzahl, 15);
+    expect(meuten.gruppenProStamm.median, 1);
+    expect(meuten.mitglieder['gesamt']!.median, 9);
+    // Durchschnitt je Gruppe, nicht je Stamm.
+    expect(meuten.mitglieder['gesamt']!.durchschnitt, 10);
+    expect(meuten.leitende['gesamt']!.istUnterdrueckt, isTrue);
+    expect(aggregat.gruppenDerStufe('rover'), isNull);
   });
 }
