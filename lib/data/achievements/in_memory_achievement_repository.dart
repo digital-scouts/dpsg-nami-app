@@ -1,7 +1,13 @@
 import '../../domain/achievements/achievement_repository.dart';
 
+/// Hält Erfolge nur im Speicher. Mit [initialRecords] startet die Ablage mit
+/// einem fremden Stand, ohne ihn je zurückzuschreiben (z. B. im Demo).
 class InMemoryAchievementRepository implements AchievementRepository {
-  Map<String, AchievementRecord> _records = {};
+  InMemoryAchievementRepository({
+    Map<String, AchievementRecord> initialRecords = const {},
+  }) : _records = Map.of(initialRecords);
+
+  Map<String, AchievementRecord> _records;
 
   @override
   Future<Map<String, AchievementRecord>> load() async => Map.of(_records);
