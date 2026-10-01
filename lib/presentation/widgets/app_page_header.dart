@@ -42,6 +42,12 @@ class AppPageHeader extends StatelessWidget {
   /// grossen Systemschriften bedienbar bleibt und die Liste sichtbar ist.
   static const double maxTextScaleFactor = 1.4;
 
+  /// Skalierungsfaktor der Header-Zeilen: Textskalierung bezogen auf die
+  /// Fliesstextgroesse (nichtlinear ab Android 14). Das Statistik-Raster
+  /// nutzt dieselbe Regel, damit Header und Kacheln gleich wachsen.
+  static double textScaleOf(BuildContext context) =>
+      MediaQuery.textScalerOf(context).scale(14) / 14;
+
   static const double _primaryBaseHeight = 48;
   static const double _secondaryBaseHeight = 34;
   static const double _verticalPadding = 12;
@@ -66,8 +72,7 @@ class AppPageHeader extends StatelessWidget {
     final background = this.background;
     final useBackdrop = SupporterBackdrop.maybeOf(context) != null;
     final colorScheme = Theme.of(context).colorScheme;
-    // Nichtlineare Skalierung (Android 14+) auf Fliesstextgroesse bezogen.
-    final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+    final scale = textScaleOf(context);
     final header = DecoratedBox(
       decoration: BoxDecoration(
         color: useBackdrop ? Colors.transparent : colorScheme.surface,
