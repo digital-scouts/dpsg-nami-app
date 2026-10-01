@@ -4,8 +4,10 @@ import type { ServerDependencies } from '../../app/dependencies.js';
 import type { WeeklyAggregateDocument, WeeklyAggregatesRepository } from '../../modules/aggregation/aggregation.js';
 import type { EffectiveStateDocument, EffectiveStatesRepository } from '../../modules/effectiveState/effectiveState.js';
 import type { ReadinessProbe } from '../../modules/health/route.js';
+import type { ReportStatusRepository } from '../../modules/report/report.js';
 import type { SenderDocument, SenderRepository } from '../../modules/senderAuth/senderAuth.js';
 import type { RawSnapshotDocument, RawSnapshotsRepository } from '../../modules/stammesSnapshot/persistence.js';
+import { SUPPORTED_SCHEMA_VERSION } from '../../modules/stammesSnapshot/schema.js';
 import { type Clock, systemClock } from '../../shared/time.js';
 
 export const statisticsCollectionNames = {
@@ -33,14 +35,31 @@ const rawSnapshotsIndexes: IndexDescription[] = [
     },
     {
         key: {
+            source_data_as_of: -1,
+        },
+        name: 'raw_snapshots_by_source_data_as_of',
+    },
+    {
+        key: {
+            received_at: -1,
+        },
+        name: 'raw_snapshots_by_received_at',
+    },
+    {
+        // Mit Schema-Version, damit ein neuer Snapshot nicht an einem alten gleichen Datenstands scheitert.
+        key: {
             stamm_pseudonym: 1,
             sender_pseudonym: 1,
             source_data_as_of: 1,
+            schema_version: 1,
         },
-        name: 'raw_snapshots_dedup',
+        name: 'raw_snapshots_dedup_by_version',
         unique: true,
     },
 ];
+
+// Indizes frueherer Staende, die beim Start entfernt werden.
+const obsoleteRawSnapshotIndexes = ['raw_snapshots_dedup'];
 
 const effectiveStatesIndexes: IndexDescription[] = [
     {
@@ -92,7 +111,14 @@ export const initializeStatisticsPersistence = async (db: Db): Promise<void> => 
     await ensureCollectionExists(db, statisticsCollectionNames.weeklyAggregates);
     await ensureCollectionExists(db, statisticsCollectionNames.senders);
 
-    await db.collection(statisticsCollectionNames.rawSnapshots).createIndexes(rawSnapshotsIndexes);
+    const rawSnapshots = db.collection(statisticsCollectionNames.rawSnapshots);
+    const existingRawIndexes = (await rawSnapshots.indexes()).map((index) => index.name);
+    for (const name of obsoleteRawSnapshotIndexes) {
+        if (existingRawIndexes.includes(name)) {
+            await rawSnapshots.dropIndex(name);
+        }
+    }
+    await rawSnapshots.createIndexes(rawSnapshotsIndexes);
     await db.collection(statisticsCollectionNames.effectiveStates).createIndexes(effectiveStatesIndexes);
     await db.collection(statisticsCollectionNames.weeklyAggregates).createIndexes(weeklyAggregatesIndexes);
     await db.collection(statisticsCollectionNames.senders).createIndexes(sendersIndexes);
@@ -116,14 +142,26 @@ export const buildRawSnapshotsRepository = (db: Db): RawSnapshotsRepository => {
                 throw error;
             }
         },
-        findLatestPerStamm: async () =>
+        findByStammSince: async (stammPseudonym, since) =>
             collection
-                .aggregate<RawSnapshotDocument>([
-                    { $sort: { stamm_pseudonym: 1, source_data_as_of: -1, sent_at: -1 } },
-                    { $group: { _id: '$stamm_pseudonym', latest: { $first: '$$ROOT' } } },
-                    { $replaceRoot: { newRoot: '$latest' } },
-                    { $project: { _id: 0 } },
-                ])
+                .find(
+                    {
+                        stamm_pseudonym: stammPseudonym,
+                        schema_version: SUPPORTED_SCHEMA_VERSION,
+                        source_data_as_of: { $gte: since },
+                    },
+                    withoutId,
+                )
+                .toArray(),
+        findSince: async (since) =>
+            collection
+                .find(
+                    {
+                        schema_version: SUPPORTED_SCHEMA_VERSION,
+                        $or: [{ source_data_as_of: { $gte: since } }, { received_at: { $gte: since } }],
+                    },
+                    withoutId,
+                )
                 .toArray(),
     };
 };
@@ -151,6 +189,10 @@ export const buildSenderRepository = (db: Db): SenderRepository => {
                 { $max: { last_successful_send_at: sentAt } },
             );
         },
+        listActivity: async () =>
+            collection
+                .find({}, { projection: { _id: 0, created_at: 1, last_successful_send_at: 1 } })
+                .toArray(),
     };
 };
 
@@ -158,30 +200,11 @@ export const buildEffectiveStatesRepository = (db: Db): EffectiveStatesRepositor
     const collection = db.collection<EffectiveStateDocument>(statisticsCollectionNames.effectiveStates);
 
     return {
-        upsertIfNewer: async (state) => {
-            try {
-                // Trifft nur, wenn der gespeicherte Stand aelter ist. Existiert der Stamm mit
-                // gleichem oder neuerem Stand, versucht der Upsert ein Insert und scheitert am
-                // Unique-Index; das ist hier das gewuenschte "nichts tun".
-                await collection.replaceOne(
-                    {
-                        stamm_pseudonym: state.stamm_pseudonym,
-                        $or: [
-                            { source_data_as_of: { $lt: state.source_data_as_of } },
-                            {
-                                source_data_as_of: state.source_data_as_of,
-                                sent_at: { $lt: state.sent_at },
-                            },
-                        ],
-                    },
-                    { ...state },
-                    { upsert: true },
-                );
-            } catch (error) {
-                if (!isDuplicateKeyError(error)) {
-                    throw error;
-                }
-            }
+        upsert: async (state) => {
+            await collection.replaceOne({ stamm_pseudonym: state.stamm_pseudonym }, { ...state }, { upsert: true });
+        },
+        remove: async (stammPseudonym) => {
+            await collection.deleteOne({ stamm_pseudonym: stammPseudonym });
         },
         replaceAll: async (states) => {
             const stammPseudonyms = states.map((state) => state.stamm_pseudonym);
@@ -229,6 +252,26 @@ export const buildWeeklyAggregatesRepository = (db: Db): WeeklyAggregatesReposit
 type OpsStatusDocument = {
     _id: string;
     last_success_at?: Date;
+    last_reported_month?: string;
+    sent_at?: Date;
+};
+
+const MONTHLY_REPORT_STATUS_ID = 'monthly_report';
+
+export const buildReportStatusRepository = (db: Db): ReportStatusRepository => {
+    const collection = db.collection<OpsStatusDocument>(statisticsCollectionNames.opsStatus);
+
+    return {
+        findLastReportedMonth: async () =>
+            (await collection.findOne({ _id: MONTHLY_REPORT_STATUS_ID }))?.last_reported_month ?? null,
+        markReported: async (month, sentAt) => {
+            await collection.updateOne(
+                { _id: MONTHLY_REPORT_STATUS_ID },
+                { $set: { last_reported_month: month, sent_at: sentAt } },
+                { upsert: true },
+            );
+        },
+    };
 };
 
 export const buildReadinessProbe = (db: Db): ReadinessProbe => ({
@@ -250,5 +293,6 @@ export const buildMongoDependencies = (db: Db, clock: Clock = systemClock): Serv
     senderRepository: buildSenderRepository(db),
     effectiveStatesRepository: buildEffectiveStatesRepository(db),
     weeklyAggregatesRepository: buildWeeklyAggregatesRepository(db),
+    reportStatusRepository: buildReportStatusRepository(db),
     readinessProbe: buildReadinessProbe(db),
 });

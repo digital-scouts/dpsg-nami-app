@@ -71,12 +71,27 @@ Immer mit `-p nami-statistics` arbeiten. Ohne festen Projektnamen könnte `--rem
 Unter `https://mock-namiapp.scout-link.de` läuft der Service `nami-statistics-mock`. Er nutzt dasselbe Image, wird mit jedem Deploy aktualisiert und dient zum Testen aus dem Simulator: Snapshots senden und plausible Bundeswerte lesen, ohne die Produktivdaten zu berühren.
 
 - `STORAGE_BACKEND=memory`: keine MongoDB, kein Backup. Ein Neustart oder Deploy setzt alle Daten zurück, auch die Registrierung der Test-Installation. Die App registriert sich beim nächsten Senden neu.
-- `MOCK_SEED_STAMM_COUNT=30` erzeugt beim Start und danach täglich synthetische Stämme (`mock-stamm-NN`) mit Datenständen der letzten 30 Tage. Die seltenen Kennzahlen (z. B. `divers`, `leitende.ueber_60`) liefern nur 3 Stämme, dadurch wird ihre Unterdrückung sichtbar.
+- `MOCK_SEED_STAMM_COUNT=30` erzeugt beim Start und danach täglich synthetische Stämme (`mock-stamm-NN`) mit Datenständen der letzten 30 Tage. Jede Stufe hat mindestens eine Gruppe, Wölflinge und Jungpfadfinder teils zwei. Bei jedem sechsten Stamm sendet zusätzlich eine Gruppen-Leitung einen neueren Teildatensatz für die erste Meute. Die seltenen Kennzahlen (z. B. `divers`, `leitende.ueber_60`) liefern nur 3 Stämme, dadurch wird ihre Unterdrückung sichtbar.
 - API-Vertrag und Regeln sind dieselben wie in Produktion. Lesen darf also nur eine Installation, die selbst gesendet hat.
 - Eigene Secrets in `mock.env`, niemals die Werte aus `.env`. Aus dem Simulator gesendete echte Stammesdaten liegen pseudonymisiert und nur im Speicher.
 - Der tägliche Status-Check überwacht die Mock-Instanz nicht. Der Deploy prüft aber ihre Version über `/health/ready`.
 
 App im Simulator auf den Mock stellen: in der lokalen `.env` (nicht in `.env.example`) `STATS_SERVER_URL=https://mock-namiapp.scout-link.de` setzen und die App neu bauen.
+
+## Monatsreport
+
+Der Server schickt am Monatsanfang einen Report über den Kreis der Teilnehmenden (Inhalt siehe `spec/monatsreport.md`). Dafür in `/opt/nami-statistics/.env` die Keys `REPORT_SMTP_HOST`, `REPORT_SMTP_PORT`, `REPORT_SMTP_USER`, `REPORT_SMTP_PASS`, `REPORT_MAIL_FROM` und `REPORT_MAIL_TO` setzen und neu deployen. Ohne `REPORT_SMTP_HOST` ist der Report aus; die Mock-Instanz verschickt keinen.
+
+- Ob ein Report fällig ist, prüft der Server beim Start und danach alle sechs Stunden. Der zuletzt verschickte Monat steht in `ops_status` unter `monthly_report`. Schlägt der Versand fehl, steht das im Log (`Monthly report failed`), und der nächste Durchlauf versucht es erneut.
+- Report von Hand ansehen oder verschicken:
+
+```bash
+cd /opt/nami-statistics
+docker compose -p nami-statistics --env-file .env -f docker-compose.server.yml exec nami-statistics \
+  npm run report -- --month 2026-10 --dry-run
+```
+
+Ohne `--dry-run` wird der Report verschickt und als erledigt vermerkt.
 
 ## Backup und Restore
 

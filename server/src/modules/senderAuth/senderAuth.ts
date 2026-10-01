@@ -20,7 +20,11 @@ export type SenderRepository = {
     // Legt den Sender nur an, wenn es ihn noch nicht gibt (atomar, unique auf sender_pseudonym).
     registerIfAbsent(document: SenderDocument): Promise<SenderRegistrationResult>;
     markSuccessfulSend(senderPseudonym: string, sentAt: Date): Promise<void>;
+    // Nur Zeitpunkte, ohne Pseudonym und Secret-Hash, fuer den Monatsreport.
+    listActivity(): Promise<SenderActivity[]>;
 };
+
+export type SenderActivity = Pick<SenderDocument, 'created_at' | 'last_successful_send_at'>;
 
 const MIN_SECRET_LENGTH = 32;
 const MAX_SECRET_LENGTH = 256;

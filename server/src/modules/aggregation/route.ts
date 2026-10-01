@@ -5,7 +5,7 @@ import type { ServerDependencies } from '../../app/dependencies.js';
 import { AppError } from '../../shared/errors.js';
 import { buildPseudonym } from '../stammesSnapshot/pseudonymize.js';
 import { assertActiveParticipant, extractBearerSecret } from '../senderAuth/senderAuth.js';
-import { BUND_AGGREGATION_TYPE, suppressSmallCounts } from './aggregation.js';
+import { BUND_AGGREGATION_TYPE, suppressSmallCounts, suppressSmallGruppenCounts } from './aggregation.js';
 
 export const APPROXIMATION_NOTICE =
     'Annäherung aus freiwillig geteilten Stammesdaten teilnehmender App-Nutzer. '
@@ -64,6 +64,9 @@ export const registerAggregateRoutes = (
                 notice: APPROXIMATION_NOTICE,
                 metrics: hasEnoughParticipation && aggregate?.metrics != null
                     ? suppressSmallCounts(aggregate.metrics, config.minStammCountForRead)
+                    : null,
+                gruppen_je_stufe: hasEnoughParticipation && aggregate?.gruppen_je_stufe != null
+                    ? suppressSmallGruppenCounts(aggregate.gruppen_je_stufe, config.minStammCountForRead)
                     : null,
             };
         },

@@ -8,9 +8,9 @@
 - Fehlerantwort bei ungültiger Anfrage: `400 Bad Request`
 - Fehlerantwort bei fehlenden oder falschen Credentials: `401 Unauthorized`
 - Fehlerantwort bei zu vielen Anfragen: `429 Too Many Requests`
-- Ein erneut gesendeter Snapshot mit identischem Stamm, Sender und `source_data_as_of` wird nicht erneut gespeichert und liefert trotzdem `204`.
+- Ein erneut gesendeter Snapshot mit identischem Stamm, Sender, `source_data_as_of` und `schema_version` wird nicht erneut gespeichert und liefert trotzdem `204`.
 - `sent_at` und `source_data_as_of` dürfen höchstens 24 Stunden in der Zukunft liegen, sonst `invalid_datetime`.
-- Unterstützte `schema_version`: `2026-10-01`. Ältere Versionen werden mit `unsupported_schema_version` abgelehnt; Daten früherer Versionen wurden beim Wechsel verworfen.
+- Unterstützte `schema_version`: `2026-10-01`. Ältere Versionen werden mit `unsupported_schema_version` abgelehnt. Bereits gespeicherte Snapshots älterer Versionen bleiben liegen, zählen aber für den effektiven Stand nicht mehr und fallen nach zwei Monaten ohnehin aus dem Fenster.
 - Unbekannte Felder werden auf allen Ebenen serverseitig verworfen.
 - Fehlende bekannte Kennzahlenfelder werden serverseitig wie `null` behandelt.
 - IDs werden roh gesendet und im Server direkt nach erfolgreicher Validierung serverseitig pseudonymisiert.

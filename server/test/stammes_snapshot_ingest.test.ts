@@ -11,6 +11,8 @@ import {
     authHeader,
     buildMemoryTestServer,
     createValidPayload,
+    fremdeGruppe,
+    gruppe,
     OTHER_SECRET,
 } from './support/fixtures.js';
 
@@ -55,6 +57,7 @@ describe('stammes snapshot ingest route', () => {
         expect(stored?.received_at).toBeInstanceOf(Date);
         expect(JSON.stringify(stored)).not.toContain('stamm-123');
         expect(JSON.stringify(stored)).not.toContain('install-77');
+        expect(JSON.stringify(stored)).not.toContain('g-biber');
     });
 
     test('registers the sender on first contact and derives effective state and aggregate', async () => {
@@ -119,7 +122,7 @@ describe('stammes snapshot ingest route', () => {
     });
 
     test('rejects unsupported schema version', async () => {
-        const response = await postSnapshot(createValidPayload({ schema_version: '2025-01-01' }));
+        const response = await postSnapshot(createValidPayload({ schema_version: '2026-04-01' }));
 
         expect(response.statusCode).toBe(400);
         expect(response.json()).toEqual({
@@ -188,15 +191,9 @@ describe('stammes snapshot ingest route', () => {
         });
     });
 
-    test('rejects invalid stamm plausibility when all core levels are empty', async () => {
+    test('rejects a snapshot without members in any covered group', async () => {
         const response = await postSnapshot(createValidPayload({
-            metrics: {
-                biber: { gesamt: 0 },
-                woelflinge: { gesamt: null },
-                jungpfadfinder: { gesamt: null },
-                pfadfinder: { gesamt: 0 },
-                rover: { gesamt: null },
-            },
+            gruppen: [gruppe('g1', 'biber', 0), gruppe('g2', 'rover', null)],
         }));
 
         expect(response.statusCode).toBe(400);
@@ -204,15 +201,40 @@ describe('stammes snapshot ingest route', () => {
             error: {
                 code: 'invalid_stamm_plausibility',
                 message: 'Snapshot payload is invalid',
-                fields: [
-                    'metrics.biber.gesamt',
-                    'metrics.woelflinge.gesamt',
-                    'metrics.jungpfadfinder.gesamt',
-                    'metrics.pfadfinder.gesamt',
-                    'metrics.rover.gesamt',
-                ],
+                fields: ['gruppen'],
             },
         });
+    });
+
+    test.each([
+        ['a stamm snapshot with an uncovered group', 'stamm', [gruppe('g1', 'biber', 5), fremdeGruppe('g2', 'rover')]],
+        ['a group snapshot without covered groups', 'gruppen', [fremdeGruppe('g1', 'biber')]],
+        ['duplicate group ids', 'stamm', [gruppe('g1', 'biber', 5), gruppe('g1', 'rover', 3)]],
+    ])('rejects %s as invalid coverage', async (_name, abdeckung, gruppen) => {
+        const response = await postSnapshot(createValidPayload({ abdeckung, gruppen }));
+
+        expect(response.statusCode).toBe(400);
+        expect(response.json().error).toMatchObject({ code: 'invalid_coverage', fields: ['gruppen'] });
+    });
+
+    test('rejects missing coverage, groups and stamm metrics', async () => {
+        const ohneAbdeckung: Record<string, unknown> = createValidPayload();
+        delete ohneAbdeckung.abdeckung;
+        const ohneGruppen: Record<string, unknown> = createValidPayload();
+        delete ohneGruppen.gruppen;
+        const ohneMetrics: Record<string, unknown> = createValidPayload();
+        delete ohneMetrics.metrics;
+
+        expect((await postSnapshot(ohneAbdeckung)).json().error).toMatchObject({ code: 'missing_required_field', fields: ['abdeckung'] });
+        expect((await postSnapshot(ohneGruppen)).json().error).toMatchObject({ code: 'missing_required_field', fields: ['gruppen'] });
+        expect((await postSnapshot(ohneMetrics)).json().error).toMatchObject({ code: 'missing_required_field', fields: ['metrics'] });
+    });
+
+    test('rejects unknown stufen and coverage values', async () => {
+        expect((await postSnapshot(createValidPayload({ gruppen: [gruppe('g1', 'leitung', 5)] }))).json().error)
+            .toMatchObject({ code: 'invalid_snapshot_payload', fields: ['gruppen.0.stufe'] });
+        expect((await postSnapshot(createValidPayload({ abdeckung: 'bezirk' }))).json().error)
+            .toMatchObject({ code: 'invalid_snapshot_payload', fields: ['abdeckung'] });
     });
 });
 
@@ -222,15 +244,17 @@ describe('parseStammesSnapshotPayload', () => {
             ...createValidPayload(),
             bezirk_id: undefined,
             unknown_root: 'ignored',
+            gruppen: [{ ...gruppe('g1', 'biber', 5), unknown_group_field: 1 }],
             metrics: {
-                biber: {
-                    gesamt: 5,
+                leitende: {
+                    gesamt: 3,
                     unknown_nested: 999,
                 },
                 unknown_metric: 12,
             },
         });
 
+        const leer = { gesamt: null, maennlich: null, weiblich: null, divers: null, geschlecht_unbekannt: null };
         expect(parsed).toEqual({
             schema_version: SUPPORTED_SCHEMA_VERSION,
             stamm_id: 'stamm-123',
@@ -239,6 +263,14 @@ describe('parseStammesSnapshotPayload', () => {
             sender_id: 'install-77',
             sent_at: '2026-04-09T18:30:00Z',
             source_data_as_of: '2026-04-09T18:00:00Z',
+            abdeckung: 'stamm',
+            gruppen: [{
+                gruppe_id: 'g1',
+                stufe: 'biber',
+                abgedeckt: true,
+                mitglieder: { ...leer, gesamt: 5 },
+                leitende: { ...leer, gesamt: 1 },
+            }],
             metrics: {
                 aktive_mitglieder: {
                     gesamt: null,
@@ -247,84 +279,14 @@ describe('parseStammesSnapshotPayload', () => {
                     sozialermaessigter_beitrag: null,
                 },
                 passive_mitglieder: null,
-                biber: {
-                    gesamt: 5,
-                    maennlich: null,
-                    weiblich: null,
-                    divers: null,
-                    geschlecht_unbekannt: null,
-                },
-                woelflinge: {
-                    gesamt: null,
-                    maennlich: null,
-                    weiblich: null,
-                    divers: null,
-                    geschlecht_unbekannt: null,
-                },
-                jungpfadfinder: {
-                    gesamt: null,
-                    maennlich: null,
-                    weiblich: null,
-                    divers: null,
-                    geschlecht_unbekannt: null,
-                },
-                pfadfinder: {
-                    gesamt: null,
-                    maennlich: null,
-                    weiblich: null,
-                    divers: null,
-                    geschlecht_unbekannt: null,
-                },
-                rover: {
-                    gesamt: null,
-                    maennlich: null,
-                    weiblich: null,
-                    divers: null,
-                    geschlecht_unbekannt: null,
-                },
                 leitende: {
-                    gesamt: null,
+                    gesamt: 3,
                     unter_21: null,
                     von_21_bis_30: null,
                     von_31_bis_40: null,
                     von_41_bis_50: null,
                     von_51_bis_60: null,
                     ueber_60: null,
-                },
-                leitende_biber: {
-                    gesamt: null,
-                    maennlich: null,
-                    weiblich: null,
-                    divers: null,
-                    geschlecht_unbekannt: null,
-                },
-                leitende_woelflinge: {
-                    gesamt: null,
-                    maennlich: null,
-                    weiblich: null,
-                    divers: null,
-                    geschlecht_unbekannt: null,
-                },
-                leitende_jungpfadfinder: {
-                    gesamt: null,
-                    maennlich: null,
-                    weiblich: null,
-                    divers: null,
-                    geschlecht_unbekannt: null,
-                },
-                leitende_pfadfinder: {
-                    gesamt: null,
-                    maennlich: null,
-                    weiblich: null,
-                    divers: null,
-                    geschlecht_unbekannt: null,
-                },
-                leitende_rover: {
-                    gesamt: null,
-                    maennlich: null,
-                    weiblich: null,
-                    divers: null,
-                    geschlecht_unbekannt: null,
                 },
                 nicht_leitende_erwachsene: null,
                 stammesvorstand: null,
@@ -333,22 +295,29 @@ describe('parseStammesSnapshotPayload', () => {
         });
     });
 
+    test('drops stamm metrics of a group snapshot and counts of uncovered groups', () => {
+        const parsed = parseStammesSnapshotPayload(createValidPayload({
+            abdeckung: 'gruppen',
+            gruppen: [gruppe('g1', 'woelflinge', 12), { ...fremdeGruppe('g2', 'woelflinge'), mitglieder: { gesamt: 99 } }],
+            metrics: { leitende: { gesamt: 3 } },
+        }));
+
+        expect(parsed.metrics).toBeNull();
+        expect(parsed.gruppen[1]).toEqual({ gruppe_id: 'g2', stufe: 'woelflinge', abgedeckt: false, mitglieder: null, leitende: null });
+    });
+
     test('rejects invalid metric values', () => {
         try {
             parseStammesSnapshotPayload({
                 ...createValidPayload(),
-                metrics: {
-                    biber: {
-                        gesamt: -1,
-                    },
-                },
+                gruppen: [gruppe('g1', 'biber', -1)],
             });
 
             throw new Error('Expected validation error');
         } catch (error) {
             expect(error).toMatchObject({
                 code: 'invalid_metric_value',
-                fields: ['metrics.biber.gesamt'],
+                fields: ['gruppen.0.mitglieder.gesamt'],
             });
         }
     });
@@ -370,8 +339,10 @@ describe('pseudonymizeStammesSnapshot', () => {
         expect(firstResult.dv_id).toBe('dv-1');
         expect(firstResult.bezirk_id).toBe('bezirk-5');
         expect(firstResult.sent_at).toEqual(new Date('2026-04-09T18:30:00Z'));
+        expect(firstResult.gruppen[0]?.gruppe_pseudonym).toMatch(/^gruppe_[a-f0-9]{64}$/);
         expect(JSON.stringify(firstResult)).not.toContain('stamm-123');
         expect(JSON.stringify(firstResult)).not.toContain('install-77');
+        expect(JSON.stringify(firstResult)).not.toContain('g-biber');
     });
 
     test('separates pseudonym scopes and secrets', () => {

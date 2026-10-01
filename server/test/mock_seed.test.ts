@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest'
 import { createStatisticsMemoryStore } from '../src/infra/memory/statisticsMemoryStore.js';
 import {
     buildMockSnapshotPayloads,
+    MOCK_GRUPPEN_SENDER_EVERY,
     MOCK_RARE_METRIC_STAMM_COUNT,
     seedMockSnapshots,
 } from '../src/modules/mockSeed/mockSeed.js';
@@ -66,6 +67,9 @@ describe('mock seed', () => {
         const payloads = buildMockSnapshotPayloads(SEED_COUNT, time.now);
 
         expect(new Set(payloads.map((payload) => payload.stamm_id)).size).toBe(SEED_COUNT);
+        expect(payloads.filter((payload) => payload.abdeckung === 'gruppen')).toHaveLength(
+            Math.ceil(SEED_COUNT / MOCK_GRUPPEN_SENDER_EVERY),
+        );
         for (const payload of payloads) {
             expect(() => parseStammesSnapshotPayload(payload, time.now)).not.toThrow();
         }
@@ -92,6 +96,8 @@ describe('mock seed', () => {
         expect(body.status).toBe('ok');
         expect(body.participating_stamm_count).toBe(SEED_COUNT + 1);
         expect(body.metrics.woelflinge.gesamt.sum).toBeGreaterThan(0);
+        expect(body.gruppen_je_stufe.woelflinge.gruppen_count).toBeGreaterThan(SEED_COUNT);
+        expect(body.gruppen_je_stufe.woelflinge.mitglieder.gesamt.median).toBeGreaterThan(0);
         // Seltene Kennzahlen liefern zu wenige Staemme und werden unterdrueckt.
         expect(body.metrics.biber.divers).toEqual({
             sum: null,
