@@ -152,9 +152,23 @@ void main() {
   );
 }
 
+bool _loggedMissingOfflineTile = false;
+
 void _installGlobalErrorHandlers() {
   // Globale Fehlerbehandlung: Framework- und ungefangene Fehler loggen/tracken
   FlutterError.onError = (FlutterErrorDetails details) async {
+    if (MapTileCacheService.isMissingOfflineTile(details.exception)) {
+      // Offline fehlende Kartenkacheln kommen je Kachel; ein Hinweis pro
+      // Sitzung reicht, Telemetrie braucht es dafuer nicht.
+      if (!_loggedMissingOfflineTile) {
+        _loggedMissingOfflineTile = true;
+        await _activeLogger?.logInfo(
+          'maps',
+          'Kartenkacheln fehlen im Offline-Cache',
+        );
+      }
+      return;
+    }
     FlutterError.presentError(details);
     await _activeLogger?.logError(
       'error',
