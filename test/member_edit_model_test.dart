@@ -944,6 +944,72 @@ void main() {
     );
 
     test(
+      'speichert bei erneut abgelehntem Validierungsfall die aktuellen Fehler',
+      () async {
+        final validationCase = MemberResolutionCase(
+          remoteMitglied: ersterEntwurf,
+          source: MemberResolutionSource.pendingRetry,
+          items: const <MemberResolutionItem>[
+            MemberResolutionItem(
+              problemType: MemberResolutionProblemType.validation,
+              target: MemberResolutionTarget(
+                type: MemberResolutionTargetType.lastName,
+              ),
+              message: 'ist ungueltig',
+            ),
+          ],
+        );
+        const categoryError = MemberWriteFieldValidationError(
+          message: 'Kategorie muss ausgefüllt werden',
+          relationshipName: 'phone_numbers',
+          relationshipAttribute: 'category',
+          relationshipFingerprint: 'new:1',
+        );
+        final writeRepository = _FakeMemberWriteRepository(
+          onUpdate: (_, _) async => throw const MemberWriteValidationException(
+            'Kategorie muss ausgefüllt werden',
+            errors: <MemberWriteFieldValidationError>[categoryError],
+          ),
+        );
+        final model = MemberEditModel(
+          memberWriteRepository: writeRepository,
+          pendingRepository: InMemoryPendingPersonUpdateRepository(
+            entries: <PendingPersonUpdate>[
+              wartenderEintrag(
+                status: PendingPersonUpdateStatus.needsResolution,
+                resolutionCase: validationCase,
+              ),
+            ],
+          ),
+          logger: FakeLoggerService(),
+          onMemberUpdated: (_) async {},
+        );
+        await model.loadPending();
+
+        final result = await model.submitUpdate(
+          accessToken: 'token-123',
+          basisMitglied: validationCase.remoteMitglied,
+          zielMitglied: zweiterEntwurf,
+          trigger: 'manual_resolution',
+          existingResolutionCase: validationCase,
+        );
+
+        expect(result.requiresResolution, isTrue);
+        expect(result.validationErrors, <MemberWriteFieldValidationError>[
+          categoryError,
+        ]);
+        final entry = model.firstResolutionEntry!;
+        expect(entry, result.pendingEntry);
+        expect(entry.basisMitglied, serverStand);
+        expect(entry.zielMitglied, zweiterEntwurf);
+        final item = entry.resolutionCase!.items.single;
+        expect(item.message, 'Kategorie muss ausgefüllt werden');
+        expect(item.target.type, MemberResolutionTargetType.phone);
+        expect(item.target.newContactOrdinal, 1);
+      },
+    );
+
+    test(
       'nutzt beim Aufloesen eines Merge-Konflikts den Serverstand als Basis',
       () async {
         final remoteStand = serverStand.copyWith(

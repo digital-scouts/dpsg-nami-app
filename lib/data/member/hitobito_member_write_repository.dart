@@ -67,7 +67,7 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
         'member_write',
         'Fetch verworfen reason=api_exception person_id=$personId status=${error.statusCode ?? 0} detail="${_compactLogValue(error.message)}"',
       );
-      throw _mapApiException(error);
+      throw _mapApiException(error, const <String, String>{});
     }
   }
 
@@ -95,6 +95,7 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
       );
     }
 
+    var newContactFingerprints = const <String, String>{};
     try {
       return await _executeRemoteAccess<Mitglied>(
         trigger: 'member_update',
@@ -162,6 +163,11 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
             zielMitglied: mergedTarget,
           );
 
+          newContactFingerprints = _newContactFingerprintsByTempId(
+            remoteMitglied: remoteMitglied,
+            zielMitglied: mergedTarget,
+          );
+
           if (changedAttributes.isEmpty &&
               phoneNumberMutations.isEmpty &&
               additionalEmailMutations.isEmpty &&
@@ -199,7 +205,7 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
         'member_write',
         'Update verworfen reason=api_exception person_id=$personId status=${error.statusCode ?? 0} detail="${_compactLogValue(error.message)}"',
       );
-      throw _mapApiException(error);
+      throw _mapApiException(error, newContactFingerprints);
     }
   }
 
@@ -524,7 +530,74 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
     return result;
   }
 
-  MemberWriteException _mapApiException(HitobitoApiException error) {
+  /// Ordnet die `temp-id` jeder Neuanlage dem Fingerprint des neuen Kontakts
+  /// zu. Die Reihenfolge entspricht den Create-Mutationen aus
+  /// `_build...Mutations`; nur Kontakte ohne ID bekommen einen Fingerprint.
+  Map<String, String> _newContactFingerprintsByTempId({
+    required Mitglied remoteMitglied,
+    required Mitglied zielMitglied,
+  }) {
+    final fingerprints = <String, String>{};
+
+    void collect<T>({
+      required Iterable<T> zielValues,
+      required Iterable<int?> remoteIds,
+      required int? Function(T value) idOf,
+      required String Function(int index) tempIdFor,
+    }) {
+      final knownIds = remoteIds.whereType<int>().where((id) => id > 0).toSet();
+      var createIndex = 0;
+      var newOrdinal = 0;
+      for (final value in zielValues) {
+        final id = idOf(value);
+        final isNew = id == null || id <= 0;
+        if (!isNew && knownIds.contains(id)) {
+          continue;
+        }
+        createIndex++;
+        if (isNew) {
+          newOrdinal++;
+          fingerprints[tempIdFor(createIndex)] =
+              MemberResolutionTarget.newContactFingerprint(newOrdinal);
+        }
+      }
+    }
+
+    collect<MitgliedKontaktTelefon>(
+      zielValues: zielMitglied.telefonnummern,
+      remoteIds: remoteMitglied.telefonnummern.map(
+        (telefon) => telefon.phoneNumberId,
+      ),
+      idOf: (telefon) => telefon.phoneNumberId,
+      tempIdFor: HitobitoPeopleService.phoneNumberCreateTempId,
+    );
+    collect<MitgliedKontaktEmail>(
+      zielValues: zielMitglied.emailAdressen.where(
+        (email) => !email.istPrimaer,
+      ),
+      remoteIds: remoteMitglied.emailAdressen
+          .where((email) => !email.istPrimaer)
+          .map((email) => email.additionalEmailId),
+      idOf: (email) => email.additionalEmailId,
+      tempIdFor: HitobitoPeopleService.additionalEmailCreateTempId,
+    );
+    collect<MitgliedKontaktAdresse>(
+      zielValues: zielMitglied.adressen.where(
+        (adresse) => adresse.additionalAddressId != 0 && !adresse.istLeer,
+      ),
+      remoteIds: remoteMitglied.adressen.map(
+        (adresse) => adresse.additionalAddressId,
+      ),
+      idOf: (adresse) => adresse.additionalAddressId,
+      tempIdFor: HitobitoPeopleService.additionalAddressCreateTempId,
+    );
+    return fingerprints;
+  }
+
+  MemberWriteException _mapApiException(
+    HitobitoApiException error,
+    Map<String, String> newContactFingerprints,
+  ) {
     switch (error.statusCode) {
       case 400:
       case 403:
@@ -534,7 +607,10 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
         );
       case 422:
         final validationErrors = error.validationErrors
-            .map(_mapValidationError)
+            .map(
+              (validationError) =>
+                  _mapValidationError(validationError, newContactFingerprints),
+            )
             .toList(growable: false);
         if (validationErrors.isNotEmpty) {
           return MemberWriteValidationException(
@@ -558,6 +634,7 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
 
   MemberWriteFieldValidationError _mapValidationError(
     HitobitoApiValidationError error,
+    Map<String, String> newContactFingerprints,
   ) {
     return MemberWriteFieldValidationError(
       message: error.message,
@@ -567,6 +644,7 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
       relationshipAttribute: error.relationshipAttribute,
       relationshipType: error.relationshipType,
       relationshipId: error.relationshipId,
+      relationshipFingerprint: newContactFingerprints[error.relationshipTempId],
       code: error.code,
     );
   }
