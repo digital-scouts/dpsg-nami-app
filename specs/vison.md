@@ -119,7 +119,9 @@ Dieses Dokument sammelt und fortschreibt visionaere Nutzerideen als Arbeitsproto
 ### Leitplanken und Annahmen
 
 - Erfolge sind rein lokal: kein Server-Sync, keine Abhängigkeit von der Analytics-Einstellung.
+- Erfolge gelten pro Gerät, unabhängig vom angemeldeten Konto.
 - Beim Logout bleiben Erfolge erhalten; nur der vollständige App-Reset löscht sie.
+- Der Demo-Zugang zeigt die Erfolge des Geräts, zahlt aber nicht darauf ein: Demo-Fortschritt liegt nur im Speicher und darf nach einem Neustart erneut erscheinen.
 - Wiederholbare Anzeigen wie „Statistik geöffnet“ zählen höchstens einmal pro Tag, damit sich Erfolge nicht durch Hin- und Herwechseln sammeln lassen.
 - Bewertung und Feedback gelten beim Öffnen von Store bzw. Feedback-Formular als erledigt, weil sich das tatsächliche Absenden technisch nicht erkennen lässt.
 

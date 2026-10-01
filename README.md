@@ -208,7 +208,7 @@ Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den
   - Leitung (`group_read` im Trupp Kompass): nur die Mitglieder der eigenen Gruppe.
   - Bezirksvorstand (`layer_and_below_read` im Bezirk Silbertal): startet im Bezirk und wechselt im Profil über „Layer wechseln“ in die Stämme Silberfels und Birkenhain.
 
-  Die Demo ist nur lesend, spricht Hitobito nicht an und hält alle Daten nur im Speicher. Für den bundesweiten Vergleich sendet sie an den Mock-Statistikserver `mock-namiapp.scout-link.de` (siehe `server/deploy/README.md`). Beendet wird die Demo über die Einstellungen oder über Abmelden. Der Demo-Modus bleibt samt gewähltem Zugang auch über einen Neustart der App erhalten.
+  Die Demo ist nur lesend, spricht Hitobito nicht an und hält alle Daten nur im Speicher. Für den bundesweiten Vergleich sendet sie an den Mock-Statistikserver `mock-namiapp.scout-link.de` (siehe `server/deploy/README.md`). Beendet wird die Demo über die Einstellungen oder über Abmelden. Der Demo-Modus bleibt samt gewähltem Zugang auch über einen Neustart der App erhalten. Außer dem Ereignis „Demo genutzt“ sendet die Demo keine Nutzungsdaten, auch wenn Analytics aktiviert ist.
 - Empfehlung für den nächsten Stufenwechsel eines Mitglieds.
   - Die gewünschte Altersgrenzen der Stufen können angepasst werden.
   - Stufenwechsel durchführen
@@ -221,7 +221,7 @@ Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den
 - Die App-Sprache wird nach dem Login auf Basis der bevorzugten Profilsprache gesetzt. Unbekannte oder fehlende Sprachcodes fallen auf Deutsch zurück.
 - Jeder Nutzer sieht auch nur die Funktionen, die er aufgrund seiner Rechte ausführen kann. Die Rechte sind im eigenen Profil aufgelistet.
 - Jeder Nutzer hat die Möglichkeit das Bearbeiten von Daten zu deaktiven und braucht so keine Angst haben 'Etwas kaput zu machen'
-- Erfolge belohnen regelmäßige Nutzung mit Abzeichen in den Stufen Bronze, Silber, Gold, Platin und Diamant (Tage mit geöffneter App, gespeicherte Mitgliedsänderungen, Tage mit geöffneter Statistik) sowie mit einmaligen Abzeichen für App-Bewertung und Feedback. Die Übersicht ist über das Profil erreichbar. Erfolge werden nur lokal gespeichert, nicht synchronisiert und beim vollständigen App-Reset gelöscht.
+- Erfolge belohnen regelmäßige Nutzung mit Abzeichen in den Stufen Bronze, Silber, Gold, Platin und Diamant (Tage mit geöffneter App, gespeicherte Mitgliedsänderungen, Tage mit geöffneter Statistik) sowie mit einmaligen Abzeichen für App-Bewertung und Feedback. Die Übersicht ist über das Profil erreichbar. Erfolge gelten pro Gerät, unabhängig vom angemeldeten Konto: Sie werden nur lokal gespeichert, nicht synchronisiert, bleiben beim Abmelden erhalten und werden nur beim vollständigen App-Reset gelöscht. Der Demo-Zugang zeigt die Erfolge des Geräts; was in der Demo dazukommt, wird nicht gespeichert und kann nach einem Neustart erneut erscheinen.
 
 ## Geplante Funktionen
 
