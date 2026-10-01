@@ -75,13 +75,16 @@ int jahreAusDuration(Duration d) {
 /// - Für Biber/Wös/Jufis/Pfadis: frühestens zum minAlter der nächsten Stufe,
 ///   spätestens zum maxAlter der aktuellen Stufe.
 /// - Für Rover: Mitgliedschaft endet zum maxAlter (nur max relevant).
+///
+/// [heute] bestimmt die aktuelle Stufe; ohne Angabe gilt jetzt.
 Wechselzeitraum berechneWechselzeitraum(
   Mitglied m,
   DateTime stichtag,
-  Altersgrenzen grenzen,
-) {
+  Altersgrenzen grenzen, {
+  DateTime? heute,
+}) {
   // Bestimme aktuelle Stufe über MemberUtils
-  final currentStufe = MemberUtils.aktiveStufe(m);
+  final currentStufe = MemberUtils.aktiveStufe(m, heute: heute);
   if (currentStufe == Stufe.leitung) {
     return const Wechselzeitraum(startJahr: null, endJahr: null);
   }
@@ -106,17 +109,19 @@ Wechselzeitraum berechneWechselzeitraum(
 }
 
 /// Gibt zurück, ob das Mitglied beim nächsten Wechsel wechseln sollte.
+/// [heute] bestimmt die aktuelle Stufe; ohne Angabe gilt jetzt.
 bool berechneShouldWechselNext(
   Mitglied m,
   DateTime stichtag,
-  Altersgrenzen grenzen,
-) {
-  if (MemberUtils.isLeitung(m)) {
+  Altersgrenzen grenzen, {
+  DateTime? heute,
+}) {
+  if (MemberUtils.isLeitung(m, heute: heute)) {
     return false;
   }
   // Wenn bereits eine zukünftige Tätigkeit in der nächsten Stufe geplant ist,
   // soll shouldWechselNext = false sein.
-  final Stufe? currentStufe = MemberUtils.aktiveStufe(m);
+  final Stufe? currentStufe = MemberUtils.aktiveStufe(m, heute: heute);
   final Stufe? next = currentStufe?.nextStufe;
   if (next != null) {
     final hasFuturePlannedNext = m.roles.any(
@@ -127,7 +132,7 @@ bool berechneShouldWechselNext(
     );
     if (hasFuturePlannedNext) return false;
   }
-  final wz = berechneWechselzeitraum(m, stichtag, grenzen);
+  final wz = berechneWechselzeitraum(m, stichtag, grenzen, heute: heute);
   if (currentStufe == Stufe.rover) {
     return wz.endJahr != null && stichtag.year >= wz.endJahr!;
   }
@@ -139,24 +144,31 @@ bool berechneShouldWechselNext(
       stichtag.year > end; // innerhalb oder zu alt => true
 }
 
+/// [heute] bestimmt die aktuelle Stufe; ohne Angabe gilt jetzt.
 List<StufenwechselInfo> computeStufenwechselInfos({
   required List<Mitglied> mitglieder,
   required DateTime stichtag,
   required Altersgrenzen grenzen,
+  DateTime? heute,
 }) {
   // Nur Mitglieder berücksichtigen, die aktuell Mitglied in einer Stufe sind
   final filtered = mitglieder.where((m) {
-    final stufe = MemberUtils.aktiveStufe(m);
+    final stufe = MemberUtils.aktiveStufe(m, heute: heute);
     return stufe != null && stufe != Stufe.leitung;
   });
   return filtered.map((m) {
     final alter = alterAm(m.geburtsdatum, stichtag);
-    final wechsel = berechneWechselzeitraum(m, stichtag, grenzen);
-    final shouldWechsel = berechneShouldWechselNext(m, stichtag, grenzen);
+    final wechsel = berechneWechselzeitraum(m, stichtag, grenzen, heute: heute);
+    final shouldWechsel = berechneShouldWechselNext(
+      m,
+      stichtag,
+      grenzen,
+      heute: heute,
+    );
     return StufenwechselInfo(
       id: m.mitgliedsnummer,
       vorname: m.vorname,
-      stufe: MemberUtils.aktiveStufe(m),
+      stufe: MemberUtils.aktiveStufe(m, heute: heute),
       alterZumStichtag: alter,
       wechselzeitraum: wechsel,
       shouldWechselNext: shouldWechsel,

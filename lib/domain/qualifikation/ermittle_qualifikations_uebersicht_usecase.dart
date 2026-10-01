@@ -66,7 +66,10 @@ class ErmittleQualifikationsUebersichtUseCase {
         return false;
       }
       if (qualifikationsart.istPflicht) {
-        return istFuehrungszeugnispflichtigUseCase(mitglied);
+        return istFuehrungszeugnispflichtigUseCase(
+          mitglied,
+          heute: referenceDate,
+        );
       }
       return einsichtnahmenByPersonId.containsKey(mitglied.personId);
     });

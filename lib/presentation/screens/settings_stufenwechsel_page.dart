@@ -69,6 +69,7 @@ class _SettingsStufenwechselPageState extends State<SettingsStufenwechselPage> {
     final picked = await pickStufenwechselDatum(
       context,
       initial: settings.stufenwechselDatum,
+      heute: widget.todayProvider?.call(),
     );
     if (picked == null || !mounted) {
       return;

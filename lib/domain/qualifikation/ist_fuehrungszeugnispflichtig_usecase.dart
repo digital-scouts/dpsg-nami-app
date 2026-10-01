@@ -17,9 +17,11 @@ import '../taetigkeit/roles.dart';
 class IstFuehrungszeugnispflichtigUseCase {
   const IstFuehrungszeugnispflichtigUseCase();
 
-  bool call(Mitglied mitglied) {
+  /// [heute] legt fest, an welchem Tag „aktiv“ gilt; ohne Angabe jetzt.
+  bool call(Mitglied mitglied, {DateTime? heute}) {
+    final tag = heute ?? DateTime.now();
     return mitglied.roles.any(
-      (role) => role.istAktiv && role.art != RoleCategory.mitglied,
+      (role) => role.isActiveAt(tag) && role.art != RoleCategory.mitglied,
     );
   }
 }

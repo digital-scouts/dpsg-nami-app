@@ -7,10 +7,14 @@ import 'mitglied.dart';
 /// Keine Flutter-Abhängigkeiten, leicht testbar.
 class MemberUtils {
   /// Hat das Mitglied aktuell eine aktive Tätigkeit mit Art `Leitung`?
-  static bool isLeitung(Mitglied m) {
+  /// [heute] legt fest, an welchem Tag „aktiv“ gilt; ohne Angabe jetzt.
+  static bool isLeitung(Mitglied m, {DateTime? heute}) {
+    final tag = heute ?? DateTime.now();
     return m.roles.any(
       (t) =>
-          t.istAktiv && !istMitgliederRolle(t) && t.art == RoleCategory.leitung,
+          t.isActiveAt(tag) &&
+          !istMitgliederRolle(t) &&
+          t.art == RoleCategory.leitung,
     );
   }
 
@@ -19,13 +23,15 @@ class MemberUtils {
   /// Innerhalb derselben Art: rover vor pfadfinder vor jungpfadfinder vor
   /// woelfling vor biber vor leitung.
   /// Rollen vom Typ Group::Mitglieder werden ignoriert.
-  static Stufe? aktiveStufe(Mitglied m) {
-    return visualRole(m)?.stufe;
+  /// [heute] legt fest, an welchem Tag „aktiv“ gilt; ohne Angabe jetzt.
+  static Stufe? aktiveStufe(Mitglied m, {DateTime? heute}) {
+    return visualRole(m, heute: heute)?.stufe;
   }
 
-  static MemberVisualRole? visualRole(Mitglied m) {
+  static MemberVisualRole? visualRole(Mitglied m, {DateTime? heute}) {
+    final tag = heute ?? DateTime.now();
     final aktive = m.roles
-        .where((t) => t.istAktiv && !istMitgliederRolle(t))
+        .where((t) => t.isActiveAt(tag) && !istMitgliederRolle(t))
         .toList(growable: false);
     if (aktive.isEmpty) {
       return null;

@@ -161,6 +161,7 @@ class BerechneStammStatistikUseCase {
               mitgliedById,
               grenzen,
               stichtag,
+              heute,
             )
           : null,
       bindung: _bindung(readModel.mitglieder, kinderIds, leitungsIds, heute),
@@ -176,6 +177,7 @@ class BerechneStammStatistikUseCase {
     Map<String, Mitglied> mitgliedById,
     Altersgrenzen grenzen,
     DateTime stichtag,
+    DateTime heute,
   ) {
     final ab = {for (final s in stufen) s: 0};
     final zu = {for (final s in stufen) s: 0};
@@ -184,6 +186,7 @@ class BerechneStammStatistikUseCase {
       mitglieder: readModel.mitglieder,
       stichtag: stichtag,
       altersgrenzen: grenzen,
+      heute: heute,
     );
     for (final section in sections) {
       final n = section.vorschlaege.length;

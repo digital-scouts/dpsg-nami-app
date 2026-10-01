@@ -367,6 +367,7 @@ void main() {
   });
 
   testWidgets('zeigt letztes Update als relative Zeit an', (tester) async {
+    final jetzt = DateTime(2026, 6, 15, 12);
     final mitglieder = <Mitglied>[
       Mitglied.peopleListItem(
         mitgliedsnummer: '1001',
@@ -390,6 +391,7 @@ void main() {
             body: MemberList(
               mitglieder: mitglieder,
               lastUpdateAt: lastUpdateAt,
+              nowProvider: () => jetzt,
             ),
           ),
         ),
@@ -397,13 +399,13 @@ void main() {
       await tester.pump();
     }
 
-    await pumpList(DateTime.now());
+    await pumpList(jetzt);
     expect(find.text('Letztes Update: Jetzt'), findsOneWidget);
 
-    await pumpList(DateTime.now().subtract(const Duration(seconds: 10)));
+    await pumpList(jetzt.subtract(const Duration(seconds: 10)));
     expect(find.text('Letztes Update: vor 10 Sekunden'), findsOneWidget);
 
-    await pumpList(DateTime.now().subtract(const Duration(minutes: 30)));
+    await pumpList(jetzt.subtract(const Duration(minutes: 30)));
     expect(find.text('Letztes Update: vor 30 Minuten'), findsOneWidget);
   });
 

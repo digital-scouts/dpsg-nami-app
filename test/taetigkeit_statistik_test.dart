@@ -6,10 +6,13 @@ import 'package:nami/domain/taetigkeit/stufe.dart';
 
 DateTime _day(int year, int month, int day) => DateTime(year, month, day);
 
+/// Feste Uhr; laufende Tätigkeiten werden auf diesen Zeitpunkt begrenzt.
+final _jetzt = DateTime(2026, 6, 15, 12);
+
 void main() {
   group('cleanForStatistiks', () {
     test('ignores future roles and returns empty when none past/active', () {
-      final now = DateTime.now();
+      final now = _jetzt;
       final roles = [
         roleFromLegacy(
           stufe: Stufe.rover,
@@ -18,12 +21,12 @@ void main() {
           ende: now.add(const Duration(days: 20)),
         ),
       ];
-      final res = cleanForStatistiks(roles);
+      final res = cleanForStatistiks(roles, jetzt: _jetzt);
       expect(res, isEmpty);
     });
 
     test('includes past roles unchanged when no overlaps', () {
-      final now = DateTime.now();
+      final now = _jetzt;
       final roles = [
         roleFromLegacy(
           stufe: Stufe.woelfling,
@@ -32,7 +35,7 @@ void main() {
           ende: now.subtract(const Duration(days: 50)),
         ),
       ];
-      final res = cleanForStatistiks(roles);
+      final res = cleanForStatistiks(roles, jetzt: _jetzt);
       expect(res.length, 1);
       expect(res.first.stufe, Stufe.woelfling);
       expect(res.first.art, RoleCategory.mitglied);
@@ -55,7 +58,7 @@ void main() {
     });
 
     test('active role is capped at now', () {
-      final now = DateTime.now();
+      final now = _jetzt;
       final start = now.subtract(const Duration(days: 30));
       final roles = [
         roleFromLegacy(
@@ -65,7 +68,7 @@ void main() {
           ende: null,
         ),
       ];
-      final res = cleanForStatistiks(roles);
+      final res = cleanForStatistiks(roles, jetzt: _jetzt);
       expect(res.length, 1);
       expect(res.first.start, DateTime(start.year, start.month, start.day));
       final cappedEnd = DateTime(now.year, now.month, now.day);
@@ -91,7 +94,7 @@ void main() {
           ende: b2,
         ),
       ];
-      final res = cleanForStatistiks(roles);
+      final res = cleanForStatistiks(roles, jetzt: _jetzt);
       // Erwartet: mindestens Pfadi-Segment am Anfang und Rover (Leitung) im Overlap/Rest.
       expect(res.isNotEmpty, isTrue);
       expect(res.length, 2);
@@ -124,7 +127,7 @@ void main() {
           ende: b2,
         ),
       ];
-      final res = cleanForStatistiks(roles);
+      final res = cleanForStatistiks(roles, jetzt: _jetzt);
       expect(res.isNotEmpty, isTrue);
       expect(res.length, 2);
 
@@ -158,7 +161,7 @@ void main() {
           ende: b2,
         ),
       ];
-      final res = cleanForStatistiks(roles);
+      final res = cleanForStatistiks(roles, jetzt: _jetzt);
       expect(res.isNotEmpty, isTrue);
       expect(res.length, 2);
 
@@ -174,7 +177,7 @@ void main() {
     });
 
     test('active overlap caps winning segment at today', () {
-      final now = DateTime.now();
+      final now = _jetzt;
       final olderStart = DateTime(now.year - 2, 1, 1);
       final newerStart = DateTime(now.year - 1, 6, 1);
       final olderEnd = DateTime(now.year - 1, 12, 31);
@@ -195,7 +198,7 @@ void main() {
         ),
       ];
 
-      final res = cleanForStatistiks(roles);
+      final res = cleanForStatistiks(roles, jetzt: _jetzt);
       final today = DateTime(now.year, now.month, now.day);
 
       expect(res.length, 2);
@@ -218,7 +221,7 @@ void main() {
     test('merge segments of same role', () {
       // Zwei Segmente mit gleicher (Stufe, Art). Diese sollten gemerged werden.
       // Dazwischenliegende Segmente werden bei bedarf auf spätere start/ende angepasst.
-      final now = DateTime.now();
+      final now = _jetzt;
       final s = Stufe.jungpfadfinder;
       final roles = [
         roleFromLegacy(
@@ -240,7 +243,7 @@ void main() {
           ende: DateTime(now.year - 2, 4, 1),
         ),
       ];
-      final res = cleanForStatistiks(roles);
+      final res = cleanForStatistiks(roles, jetzt: _jetzt);
 
       expect(res.length, 2);
 
@@ -252,7 +255,7 @@ void main() {
     });
 
     test('priority Leitung over Mitglied for same start in overlap', () {
-      final now = DateTime.now();
+      final now = _jetzt;
       final start = DateTime(now.year - 1, 1, 1);
       final end = DateTime(now.year - 1, 6, 1);
       final roles = [
@@ -269,7 +272,7 @@ void main() {
           ende: end,
         ),
       ];
-      final res = cleanForStatistiks(roles);
+      final res = cleanForStatistiks(roles, jetzt: _jetzt);
       expect(res.length, 1);
       expect(res.first.art, RoleCategory.leitung);
       expect(res.first.stufe, Stufe.rover);
@@ -278,7 +281,7 @@ void main() {
 
   group('durationsByRoleDays', () {
     test('returns empty list for only future roles', () {
-      final now = DateTime.now();
+      final now = _jetzt;
       final roles = [
         roleFromLegacy(
           stufe: Stufe.biber,
@@ -287,12 +290,12 @@ void main() {
           ende: DateTime(now.year + 1, 1, 10),
         ),
       ];
-      final res = durationsByRoleDays(roles);
+      final res = durationsByRoleDays(roles, jetzt: _jetzt);
       expect(res.isEmpty, true);
     });
 
     test('aggregates member days for same stufe', () {
-      final now = DateTime.now();
+      final now = _jetzt;
       final roles = [
         roleFromLegacy(
           stufe: Stufe.woelfling,
@@ -307,7 +310,7 @@ void main() {
           ende: DateTime(now.year - 1, 2, 6), // 5 Tage
         ),
       ];
-      final res = durationsByRoleDays(roles);
+      final res = durationsByRoleDays(roles, jetzt: _jetzt);
       expect(res.length, 1);
       expect(res.first.stufe, Stufe.woelfling);
       expect(res.first.art, RoleCategory.mitglied);
@@ -315,7 +318,7 @@ void main() {
     });
 
     test('leader days aggregated separately (art == leitung)', () {
-      final now = DateTime.now();
+      final now = _jetzt;
       final roles = [
         roleFromLegacy(
           stufe: Stufe.jungpfadfinder,
@@ -324,7 +327,7 @@ void main() {
           ende: DateTime(now.year - 2, 3, 11), // 10 Tage
         ),
       ];
-      final res = durationsByRoleDays(roles);
+      final res = durationsByRoleDays(roles, jetzt: _jetzt);
       expect(res.length, 1);
       expect(res.first.stufe, Stufe.jungpfadfinder);
       expect(res.first.art, RoleCategory.leitung);
@@ -332,7 +335,7 @@ void main() {
     });
 
     test('overlap resolution reflected in day counts', () {
-      final now = DateTime.now();
+      final now = _jetzt;
       final s = Stufe.pfadfinder;
       final roles = [
         roleFromLegacy(
@@ -348,7 +351,7 @@ void main() {
           ende: DateTime(now.year - 2, 4, 1),
         ),
       ];
-      final res = durationsByRoleDays(roles);
+      final res = durationsByRoleDays(roles, jetzt: _jetzt);
       expect(res.length, 2);
       final member = res.firstWhere((e) => e.art == RoleCategory.mitglied);
       final leader = res.firstWhere((e) => e.art == RoleCategory.leitung);
@@ -357,7 +360,7 @@ void main() {
     });
 
     test('active role capped at now', () {
-      final now = DateTime.now();
+      final now = _jetzt;
       final start = DateTime(now.year - 1, now.month, 1);
       final roles = [
         roleFromLegacy(
@@ -367,7 +370,7 @@ void main() {
           ende: null,
         ),
       ];
-      final res = durationsByRoleDays(roles);
+      final res = durationsByRoleDays(roles, jetzt: _jetzt);
       expect(res.length, 1);
       final expectedDays = DateTime(
         now.year,
@@ -380,7 +383,7 @@ void main() {
 
   group('membershipDuration', () {
     test('returns zero for empty or only future roles', () {
-      final now = DateTime.now();
+      final now = _jetzt;
       final roles = [
         roleFromLegacy(
           stufe: Stufe.biber,
@@ -390,11 +393,11 @@ void main() {
         ),
       ];
       expect(membershipDuration(const []).inDays, 0);
-      expect(membershipDuration(roles).inDays, 0);
+      expect(membershipDuration(roles, jetzt: _jetzt).inDays, 0);
     });
 
     test('sums all cleaned segments regardless of art/stufe', () {
-      final now = DateTime.now();
+      final now = _jetzt;
       final roles = [
         // 10 Tage Mitglied
         roleFromLegacy(
@@ -411,11 +414,11 @@ void main() {
           ende: DateTime(now.year - 1, 2, 6),
         ),
       ];
-      expect(membershipDuration(roles).inDays, 15);
+      expect(membershipDuration(roles, jetzt: _jetzt).inDays, 15);
     });
 
     test('overlap reduces total to non-overlapping sum per rules', () {
-      final now = DateTime.now();
+      final now = _jetzt;
       final roles = [
         // Mitglied: Jan 01 - Mar 01
         roleFromLegacy(
@@ -432,13 +435,13 @@ void main() {
           ende: DateTime(now.year - 2, 4, 1),
         ),
       ];
-      final d = membershipDuration(roles).inDays;
+      final d = membershipDuration(roles, jetzt: _jetzt).inDays;
       // Erwartung: ungefähr Jan (Mitglied) + Feb-März (Leitung) + April-Anteil
       expect(d > 0, true);
     });
 
     test('active role capped at now contributes correctly', () {
-      final now = DateTime.now();
+      final now = _jetzt;
       final start = DateTime(now.year - 1, now.month, 1);
       final roles = [
         roleFromLegacy(
@@ -453,7 +456,7 @@ void main() {
         now.month,
         now.day,
       ).difference(DateTime(now.year - 1, now.month, 1)).inDays;
-      expect(membershipDuration(roles).inDays, expectedDays);
+      expect(membershipDuration(roles, jetzt: _jetzt).inDays, expectedDays);
     });
   });
 }
