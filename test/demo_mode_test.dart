@@ -5,11 +5,13 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:nami/data/achievements/in_memory_achievement_repository.dart';
+import 'package:nami/data/achievements/shared_prefs_achievement_repository.dart';
 import 'package:nami/data/arbeitskontext/secure_arbeitskontext_local_repository.dart';
 import 'package:nami/data/auth/secure_auth_profile_repository.dart';
 import 'package:nami/demo/demo_data.dart';
 import 'package:nami/demo/demo_services.dart';
 import 'package:nami/demo/demo_staemme.dart';
+import 'package:nami/domain/achievements/achievement_definition.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext.dart';
 import 'package:nami/domain/arbeitskontext/usecases/bestimme_startkontext_usecase.dart';
 import 'package:nami/domain/auth/auth_state.dart';
@@ -214,6 +216,56 @@ void main() {
         repository.fetchRemoteMember(accessToken: 'demo', personId: 1),
         throwsA(isA<MemberWriteRejectedException>()),
       );
+    });
+
+    test('zeigt Erfolge des Geraets und speichert eigene nicht', () async {
+      SharedPreferences.setMockInitialValues({});
+      final now = DateTime(2026, 10, 1, 12);
+      final device = SharedPrefsAchievementRepository();
+      await AchievementService(
+        repository: device,
+        nowProvider: () => now,
+      ).record(AchievementIds.memberEdited);
+      final deviceIds = (await device.load()).keys.toSet();
+
+      Future<AchievementService> startDemo() async => AchievementService(
+        repository: InMemoryAchievementRepository(
+          initialRecords: await device.load(),
+        ),
+        nowProvider: () => now,
+      );
+
+      final demo = await startDemo();
+      final memberEdited = (await demo.loadAll()).firstWhere(
+        (p) => p.id == AchievementIds.memberEdited,
+      );
+      expect(memberEdited.count, 1);
+
+      final unlocks = await demo.recordDaily(AchievementIds.statisticsOpened);
+      expect(unlocks.single.tier, AchievementTier.bronze);
+      expect(
+        (await device.load()).keys.toSet(),
+        deviceIds,
+        reason: 'Demo-Fortschritt landet nicht auf dem Geraet',
+      );
+
+      // Nach einem Neustart im Demo kann derselbe Erfolg erneut kommen.
+      final restarted = await startDemo();
+      final again = await restarted.recordDaily(
+        AchievementIds.statisticsOpened,
+      );
+      expect(again.single.tier, AchievementTier.bronze);
+    });
+
+    test('sendet nur das Ereignis "Demo genutzt"', () async {
+      final sent = <String>[];
+      final hook = demoEventHook((name, _) async => sent.add(name));
+
+      await hook('auth_flow', const {});
+      await hook('settings_changed', const {});
+      await hook(demoUsedEvent, const {});
+
+      expect(sent, [demoUsedEvent]);
     });
 
     test('liefert Fuehrungszeugnisse nur fuer sichtbare Personen', () async {

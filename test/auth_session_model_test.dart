@@ -5,7 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
+import 'package:nami/data/achievements/shared_prefs_achievement_repository.dart';
 import 'package:nami/data/statistiks/shared_prefs_statistik_verlauf_repository.dart';
+import 'package:nami/domain/achievements/achievement_definition.dart';
 import 'package:nami/domain/auth/auth_profile.dart';
 import 'package:nami/domain/auth/auth_profile_repository.dart';
 import 'package:nami/domain/auth/auth_session.dart';
@@ -16,6 +18,7 @@ import 'package:nami/domain/settings/app_settings_repository.dart';
 import 'package:nami/domain/statistiks/statistik_verlauf.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
+import 'package:nami/services/achievement_service.dart';
 import 'package:nami/services/biometric_lock_service.dart';
 import 'package:nami/services/hitobito_auth_env.dart';
 import 'package:nami/services/hitobito_data_retention_policy.dart';
@@ -1345,6 +1348,59 @@ void main() {
       await model.onAppResumed();
 
       expect(model.state, AuthState.signedIn);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  test(
+    'Abmelden laesst die Erfolge des Geraets unberuehrt',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      final now = DateTime(2026, 10, 1, 12);
+      final achievements = AchievementService(
+        repository: SharedPrefsAchievementRepository(),
+        nowProvider: () => now,
+      );
+      final model = AuthSessionModel(
+        repository: _InMemoryAuthSessionRepository(),
+        profileRepository: _InMemoryAuthProfileRepository(),
+        oauthService: _FakeOauthService(
+          sessionToReturn: AuthSession(
+            accessToken: 'access-token',
+            refreshToken: 'refresh-token',
+            receivedAt: now,
+          ),
+          profileToReturn: const AuthProfile(
+            namiId: 91,
+            firstName: 'Erfolg',
+            lastName: 'Reich',
+            language: 'de',
+          ),
+        ),
+        biometricLockService: _FakeBiometricLockService(),
+        sensitiveStorageService: _FakeSensitiveStorageService(),
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => now,
+        ),
+        logger: _createLogger(),
+      );
+
+      await model.signIn();
+      await achievements.record(AchievementIds.memberEdited);
+      await model.logout();
+
+      final afterLogout = await AchievementService(
+        repository: SharedPrefsAchievementRepository(),
+        nowProvider: () => now,
+      ).loadAll();
+      expect(
+        afterLogout
+            .firstWhere((p) => p.id == AchievementIds.memberEdited)
+            .count,
+        1,
+      );
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
