@@ -32,20 +32,39 @@
       "gesamt": { "sum": 310, "stamm_count": 40, "median": 7 },
       "divers": { "sum": null, "stamm_count": 3, "median": null }
     }
+  },
+  "gruppen_je_stufe": {
+    "woelflinge": {
+      "gruppen_count": 61,
+      "stamm_count": 44,
+      "gruppen_pro_stamm": { "sum": 61, "stamm_count": 44, "median": 1 },
+      "mitglieder": {
+        "gesamt": { "sum": 830, "stamm_count": 44, "gruppen_count": 61, "median": 13 }
+      },
+      "leitende": {
+        "gesamt": { "sum": 190, "stamm_count": 44, "gruppen_count": 61, "median": 3 }
+      }
+    }
   }
 }
 ```
 
-- `status` ist `ok` oder `insufficient_participation`. Bei `insufficient_participation` ist `metrics` gleich `null`.
-- `metrics` hat dieselbe Struktur wie `metrics` im Stammes-Snapshot. Jede Kennzahl enthält:
+- `status` ist `ok` oder `insufficient_participation`. Bei `insufficient_participation` sind `metrics` und `gruppen_je_stufe` gleich `null`.
+- `metrics` enthält die stammweiten Kennzahlen aus `metrics` im Stammes-Snapshot sowie die daraus abgeleiteten Stufenwerte `biber` … `rover` und `leitende_biber` … `leitende_rover` (Stufengröße je Stamm). Jede Kennzahl enthält:
   - `sum`: Summe über alle Stämme mit Wert
   - `stamm_count`: Anzahl der Stämme, die für diese Kennzahl einen Wert geliefert haben
   - `median`: Median über diese Stämme
 - Kennzahlen, zu denen weniger als `min_stamm_count` Stämme Werte geliefert haben, werden mit `sum` und `median` gleich `null` ausgeliefert, damit einzelne Stämme nicht rückführbar sind.
+- `gruppen_je_stufe` beschreibt die Gruppengröße je Stufe, also Meuten, Trupps, Runden usw. Grundlage sind alle effektiven Gruppen mit Wert:
+  - `gruppen_count`: Anzahl Gruppen der Stufe, `stamm_count`: Anzahl Stämme, aus denen sie stammen
+  - `gruppen_pro_stamm`: wie viele Gruppen dieser Stufe ein Stamm hat (über alle Stämme mit Gruppenstruktur, die mindestens eine Gruppe der Stufe haben)
+  - `mitglieder` und `leitende` je Geschlechterfeld: `sum` über alle Gruppen, `median` über die Gruppen, dazu `gruppen_count` und `stamm_count`
+  - Die Unterdrückung richtet sich nach der Anzahl **verschiedener Stämme**, nicht nach der Anzahl der Gruppen. Sonst wären etwa fünf Meuten eines einzigen Stammes rückführbar.
 
 ## Fachliche Regeln
 
-- Grundlage ist pro Stamm genau ein effektiver Stand: der Snapshot mit dem neuesten `source_data_as_of`, bei Gleichstand der mit dem neuesten `sent_at`, unabhängig davon, welche Installation ihn gesendet hat.
-- Ein Stamm zählt nur, wenn sein effektiver Stand höchstens zwei Monate alt ist (bezogen auf `source_data_as_of`).
+- Grundlage ist pro Stamm genau ein effektiver Stand, zusammengeführt aus allen Snapshots der letzten zwei Monate (siehe `stammes_snapshot.md`, Abschnitt Effektiver Stand), unabhängig davon, welche Installation sie gesendet hat.
+- `participating_stamm_count` zählt alle Stämme mit effektivem Stand, auch solche, die nur Gruppenwerte geliefert haben.
+- Teilnahme gilt unabhängig von der Abdeckung: Auch wer nur Gruppenwerte sendet, darf lesen.
 - Das Aggregat wird nach jedem neu gespeicherten Snapshot und beim Serverstart für die aktuelle ISO-Woche materialisiert. Die Read-API rechnet nicht live auf Rohsnapshots.
 - Ein Widerruf in der App stoppt nur weitere Sendungen. Bereits gesendete Daten bleiben im MVP erhalten und fallen nach zwei Monaten ohne neuen Snapshot aus dem Aggregat.

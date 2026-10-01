@@ -10,11 +10,11 @@
 - Fehlerantwort bei zu vielen Anfragen: `429 Too Many Requests`
 - Ein erneut gesendeter Snapshot mit identischem Stamm, Sender und `source_data_as_of` wird nicht erneut gespeichert und liefert trotzdem `204`.
 - `sent_at` und `source_data_as_of` dürfen höchstens 24 Stunden in der Zukunft liegen, sonst `invalid_datetime`.
-- Unterstützte `schema_version`: `2026-04-01`
+- Unterstützte `schema_version`: `2026-10-01`. Ältere Versionen werden mit `unsupported_schema_version` abgelehnt; Daten früherer Versionen wurden beim Wechsel verworfen.
 - Unbekannte Felder werden auf allen Ebenen serverseitig verworfen.
 - Fehlende bekannte Kennzahlenfelder werden serverseitig wie `null` behandelt.
 - IDs werden roh gesendet und im Server direkt nach erfolgreicher Validierung serverseitig pseudonymisiert.
-- Für die Stammes-Plausibilisierung muss mindestens eine der Kernstufen `biber`, `woelflinge`, `jungpfadfinder`, `pfadfinder` oder `rover` einen numerischen Gesamtwert größer `0` haben.
+- Plausibilisierung: Mindestens eine abgedeckte Gruppe muss bei `mitglieder.gesamt` einen Wert größer `0` haben.
 
 ## Fehlerformat
 
@@ -41,6 +41,7 @@ Aktuell verwendete Fehlercodes:
 - `invalid_datetime`
 - `invalid_metric_value`
 - `invalid_stamm_plausibility`
+- `invalid_coverage` (Abdeckung und Gruppenliste passen nicht zusammen, siehe Abschnitt Abdeckung)
 - `invalid_snapshot_payload`
 - `missing_sender_credentials` (401)
 - `invalid_sender_credentials` (401)
@@ -66,76 +67,71 @@ Aktuell verwendete Fehlercodes:
 
 Zeitstempel werden im ISO-8601-Format mit `Z` oder Offset gesendet und serverseitig als UTC-Datum gespeichert.
 
-Metadaten liegen flach auf Top-Level. Kennzahlen liegen unter `metrics`.
+Metadaten liegen flach auf Top-Level. Abdeckung und Gruppen liegen ebenfalls auf Top-Level, stammweite Kennzahlen unter `metrics`.
+
+## Abdeckung
+
+Nicht jede sendende Person sieht den ganzen Stamm. Wer nur Leserechte auf die eigene Gruppe hat (z. B. `group_read` als Leitung einer Meute), sendet nur die Werte dieser Gruppe. Welche Gruppen abgedeckt sind, bestimmt die App aus den Hitobito-Rechten der Person; der Server prüft das nicht gegen Hitobito und kennt keine Personen.
+
+- `abdeckung`: `"stamm"` oder `"gruppen"`
+  - `stamm`: Die Person darf den ganzen Stamm lesen. Alle Gruppen sind abgedeckt, `metrics` enthält die stammweiten Kennzahlen.
+  - `gruppen`: Die Person sieht nur einzelne Gruppen. `metrics` wird serverseitig vollständig verworfen, weil stammweite Werte aus einer Teilsicht falsch wären.
+- `gruppen`: Liste **aller** Stufengruppen des Stammes, die die App kennt (höchstens 50). Hitobito liefert angemeldeten Personen die Gruppenstruktur unabhängig von den Personenrechten; daher kennt auch eine Teilsicht alle Gruppen.
+
+```json
+{
+  "gruppe_id": "4711",
+  "stufe": "woelflinge",
+  "abgedeckt": true,
+  "mitglieder": { "gesamt": 14, "maennlich": 7, "weiblich": 6, "divers": 0, "geschlecht_unbekannt": 1 },
+  "leitende": { "gesamt": 3, "maennlich": 1, "weiblich": 2, "divers": 0, "geschlecht_unbekannt": 0 }
+}
+```
+
+- `gruppe_id` wird wie `stamm_id` serverseitig pseudonymisiert. Jede ID darf nur einmal vorkommen.
+- `stufe` ist einer der Werte `biber`, `woelflinge`, `jungpfadfinder`, `pfadfinder`, `rover`. Die Zuordnung leitet die App aus dem Hitobito-Gruppentyp ab. Gruppen ohne Stufe werden nicht gesendet.
+- Bei `abgedeckt: false` setzt der Server `mitglieder` und `leitende` auf `null`, auch wenn Werte gesendet wurden.
+- Bei `abdeckung: "stamm"` müssen alle Gruppen `abgedeckt: true` sein, bei `abdeckung: "gruppen"` mindestens eine. Sonst `invalid_coverage`.
+- Eine Person kann in mehreren Gruppen derselben Stufe sein und zählt dann in jeder Gruppe.
 
 ## Kennzahlen
 
-In Kennzahlen sind doppelnennungen möglich. Eine Person kann Vorstand und Leitung in mehreren Stufen sein.
-Die Anzahl der Leitenden ist also nicht gleich die Summe aller Leitenden in den Stufen.
+`metrics` enthält nur noch stammweite Kennzahlen. Stufen- und Leitendenzahlen je Stufe bildet der Server aus den Gruppen (siehe Abschnitt Effektiver Stand).
 
-- Anzahl Aktive Mitglieder
-  - Anzahl normaler Beitrag
-  - Anzahl familienermäßigter Beitrag
-  - Anzahl sozialermäßigter Beitrag
-- Anzahl Passive Mitglieder
-- Anzahl Biber
-  - Anzahl männliche Biber
-  - Anzahl weibliche Biber
-  - Anzahl diverse Biber
-  - Anzahl unbekannte Geschlecht Biber
-- Anzahl Wölflinge
-  - Anzahl männliche Wölflinge
-  - Anzahl weibliche Wölflinge
-  - Anzahl diverse Wölflinge
-  - Anzahl unbekannte Geschlecht Wölflinge
-- Anzahl Jungpfadfinder
-  - Anzahl männliche Jungpfadfinder
-  - Anzahl weibliche Jungpfadfinder
-  - Anzahl diverse Jungpfadfinder
-  - Anzahl unbekannte Geschlecht Jungpfadfinder
-- Anzahl Pfadfinder
-  - Anzahl männliche Pfadfinder
-  - Anzahl weibliche Pfadfinder
-  - Anzahl diverse Pfadfinder
-  - Anzahl unbekannte Geschlecht Pfadfinder
-- Anzahl Rover
-  - Anzahl männliche Rover
-  - Anzahl weibliche Rover
-  - Anzahl diverse Rover
-  - Anzahl unbekannte Geschlecht Rover
-- Anzahl Leitende
-  - Anzahl Leitende unter 21 Jahren
-  - Anzahl Leitende 21-30 Jahren
-  - Anzahl Leitende 31-40 Jahren
-  - Anzahl Leitende 41-50 Jahren
-  - Anzahl Leitende 51-60 Jahren
-  - Anzahl Leitende über 60 Jahren
-- Anzahl Leitende Biber
-  - Anzahl männliche Leitende
-  - Anzahl weibliche Leitende
-  - Anzahl diverse Leitende
-  - Anzahl unbekannte Geschlecht Leitende
-- Anzahl Leitende Wölflinge
-  - Anzahl männliche Leitende
-  - Anzahl weibliche Leitende
-  - Anzahl diverse Leitende
-  - Anzahl unbekannte Geschlecht Leitende
-- Anzahl Leitende Jungpfadfinder
-  - Anzahl männliche Leitende
-  - Anzahl weibliche Leitende
-  - Anzahl diverse Leitende
-  - Anzahl unbekannte Geschlecht Leitende
-- Anzahl Leitende Pfadfinder
-  - Anzahl männliche Leitende
-  - Anzahl weibliche Leitende
-  - Anzahl diverse Leitende
-  - Anzahl unbekannte Geschlecht Leitende
-- Anzahl Leitende Rover
-  - Anzahl männliche Leitende
-  - Anzahl weibliche Leitende
-  - Anzahl diverse Leitende
-  - Anzahl unbekannte Geschlecht Leitende
-- Anzahl nicht Leitende Erwachsene (sonstige Mitglieder)
-- Anzahl Stammesvorstand
-- Anzahl Kuraten
-  
+In Kennzahlen sind Doppelnennungen möglich. Eine Person kann Vorstand und Leitung in mehreren Stufen sein.
+
+- `aktive_mitglieder`
+  - `gesamt`
+  - `normaler_beitrag`
+  - `familienermaessigter_beitrag`
+  - `sozialermaessigter_beitrag`
+- `passive_mitglieder`
+- `leitende` (alle Leitenden des Stammes, jede Person einmal)
+  - `gesamt`
+  - `unter_21`, `von_21_bis_30`, `von_31_bis_40`, `von_41_bis_50`, `von_51_bis_60`, `ueber_60`
+- `nicht_leitende_erwachsene` (sonstige Mitglieder)
+- `stammesvorstand`
+- `kuraten`
+
+Je Gruppe (unter `gruppen`):
+
+- `mitglieder` und `leitende`, jeweils mit `gesamt`, `maennlich`, `weiblich`, `divers`, `geschlecht_unbekannt`
+
+## Effektiver Stand
+
+Pro Stamm führt der Server alle Snapshots zusammen, deren `source_data_as_of` höchstens zwei Monate alt ist. Ältere Snapshots spielen keine Rolle. „Neuer“ heißt: späteres `source_data_as_of`, bei Gleichstand späteres `sent_at`.
+
+1. **Gruppenstruktur:** Welche Gruppen und Stufen der Stamm hat, kommt aus dem neuesten Snapshot, gleich welcher Abdeckung.
+2. **Gruppenwerte:** Pro Gruppe der Struktur zählt der neueste Snapshot, der diese Gruppe abdeckt.
+3. **Stufenwerte** (`biber` … `rover`, `leitende_biber` … `leitende_rover`): Summe der Gruppenwerte dieser Stufe, je Feld. Fehlt für eine Gruppe der Stufe ein Wert, ist die ganze Stufe `null`; der Stamm zählt dann für diese Stufe nicht im Aggregat. Hat der Stamm keine Gruppe einer Stufe, ist der Wert `0`.
+4. **Stammweite Kennzahlen** kommen aus dem neuesten Snapshot mit `abdeckung: "stamm"`. Gibt es keinen, sind sie `null`.
+
+Beispiel: P4 sendet den ganzen Stamm mit den Gruppen A, B, C und D (ältester Stand). Danach senden P3 die Gruppe C, P2 die Gruppen A und B und zuletzt P1 die Gruppe A. Der effektive Stand besteht aus den stammweiten Werten und D von P4, C von P3, B von P2 und A von P1.
+
+Die stammweiten Werte können dadurch älter sein als die Gruppenwerte. Kleine Abweichungen, etwa zwischen `leitende.gesamt` und der Summe der Leitenden je Stufe, sind gewollt in Kauf genommen.
+
+Für Transparenz und Monatsreport merkt sich der effektive Stand außerdem:
+
+- `data_as_of`: ältester und neuester Stand der verwendeten Teile
+- `art`: `vollstaendig` (nur der Stamm-Snapshot), `nur_gruppen` (kein Stamm-Snapshot) oder `gemischt`
+- Anzahl der Sender im Fenster sowie Anzahl der Gruppen, die mehr als ein Sender abgedeckt hat
