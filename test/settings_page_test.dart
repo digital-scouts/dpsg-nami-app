@@ -15,6 +15,7 @@ import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/notifications/notifications_hub.dart';
 import 'package:nami/presentation/screens/settings_page.dart';
+import 'package:nami/services/app_mode_controller.dart';
 import 'package:nami/services/app_update_service.dart';
 import 'package:nami/services/biometric_lock_service.dart';
 import 'package:nami/services/hitobito_auth_env.dart';
@@ -34,6 +35,8 @@ void main() {
     VoidCallback? onNamiAi,
     VoidCallback? onNamiAiPaywall,
     VoidCallback? onProfile,
+    VoidCallback? onExitDemo,
+    DemoZugang? demoZugang,
     Future<NamiAiAccessDecision> Function()? namiAiAccessLoader,
     Future<List<AppHubNotification>> Function()?
     unreadExternalNotificationsLoader,
@@ -59,6 +62,8 @@ void main() {
           onNamiAi: onNamiAi,
           onNamiAiPaywall: onNamiAiPaywall,
           onProfile: onProfile,
+          onExitDemo: onExitDemo,
+          demoZugang: demoZugang,
           namiAiAccessLoader: namiAiAccessLoader,
           unreadExternalNotificationsLoader: unreadExternalNotificationsLoader,
         ),
@@ -79,6 +84,31 @@ void main() {
     ),
     logger: _FakeLoggerService(),
   );
+
+  testWidgets('Demo-Hinweis nennt den gewaehlten Zugang', (tester) async {
+    var beendet = false;
+
+    await tester.pumpWidget(
+      buildTestApp(
+        authModel: buildAuthModel(),
+        onExitDemo: () => beendet = true,
+        demoZugang: DemoZugang.leitung,
+      ),
+    );
+    await tester.pump();
+
+    final card = find.byKey(const Key('demo-mode-card'));
+    expect(card, findsOneWidget);
+    expect(
+      find.descendant(
+        of: card,
+        matching: find.textContaining('als Leitung des Trupps Kompass'),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const Key('demo-exit')));
+    expect(beendet, isTrue);
+  });
 
   testWidgets('Profil-Header zeigt Name und oeffnet das Profil', (
     tester,

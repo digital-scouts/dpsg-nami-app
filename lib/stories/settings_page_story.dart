@@ -12,6 +12,7 @@ import 'package:nami/presentation/screens/settings_map_page.dart';
 import 'package:nami/presentation/screens/settings_notification_page.dart';
 import 'package:nami/presentation/screens/settings_page.dart';
 import 'package:nami/presentation/screens/settings_stamm_page.dart';
+import 'package:nami/services/app_mode_controller.dart';
 import 'package:nami/stories/profile_page_story.dart';
 import 'package:nami/stories/story_tab_shell.dart';
 // ignore: depend_on_referenced_packages
@@ -21,7 +22,16 @@ Story settingsPageStory() => Story(
   name: 'Einstellungen/Screens/Uebersicht',
   builder: (context) {
     final version = context.knobs.text(label: 'App Version', initial: 'v0.2.0');
-    final demoMode = context.knobs.boolean(label: 'Demo-Modus', initial: false);
+    final demoZugang = context.knobs.options<DemoZugang?>(
+      label: 'Demo-Modus',
+      initial: null,
+      options: const [
+        Option(label: 'Aus', value: null),
+        Option(label: 'Stammesvorstand', value: DemoZugang.stammesvorstand),
+        Option(label: 'Leitung', value: DemoZugang.leitung),
+        Option(label: 'Bezirksvorstand', value: DemoZugang.bezirksvorstand),
+      ],
+    );
     final background = storyHeaderBackgroundKnob(context.knobs);
     final textScale = storyTextScaleKnob(context.knobs);
     final dark = context.knobs.boolean(label: 'Dunkel', initial: false);
@@ -35,7 +45,7 @@ Story settingsPageStory() => Story(
       dark: dark,
       angemeldet: angemeldet,
       appVersion: version,
-      demoMode: demoMode,
+      demoZugang: demoZugang,
     );
   },
 );
@@ -49,7 +59,7 @@ class SettingsPageStoryScene extends StatelessWidget {
     this.dark = false,
     this.angemeldet = true,
     this.appVersion = 'v1.0.0',
-    this.demoMode = false,
+    this.demoZugang,
     this.simulateTopInset = true,
     this.textScale = 1,
   });
@@ -58,7 +68,9 @@ class SettingsPageStoryScene extends StatelessWidget {
   final bool dark;
   final bool angemeldet;
   final String appVersion;
-  final bool demoMode;
+
+  /// Gesetzt, wenn die Szene die laufende Demo mit diesem Zugang zeigt.
+  final DemoZugang? demoZugang;
   final bool simulateTopInset;
   final double textScale;
 
@@ -117,8 +129,13 @@ class SettingsPageStoryScene extends StatelessWidget {
           onMessages: () => _info(context, 'Meldungen'),
           onImpressum: () => _info(context, 'Impressum'),
           onDatenschutz: () => _info(context, 'Datenschutz'),
-          onDebugTools: demoMode ? null : () => _info(context, 'Debug & Tools'),
-          onExitDemo: demoMode ? () => _info(context, 'Demo beenden') : null,
+          onDebugTools: demoZugang != null
+              ? null
+              : () => _info(context, 'Debug & Tools'),
+          onExitDemo: demoZugang != null
+              ? () => _info(context, 'Demo beenden')
+              : null,
+          demoZugang: demoZugang,
           onProfile: angemeldet ? () => _info(context, 'Profil') : null,
         ),
       ),

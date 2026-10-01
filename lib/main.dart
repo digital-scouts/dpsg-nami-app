@@ -124,7 +124,12 @@ void main() {
       Intl.defaultLocale = "de_DE";
       _installGlobalErrorHandlers();
 
-      await _startApp(appDocDir: appDocDir, mode: await AppModeStore().load());
+      final appModeStore = AppModeStore();
+      await _startApp(
+        appDocDir: appDocDir,
+        mode: await appModeStore.load(),
+        demoZugang: await appModeStore.loadDemoZugang(),
+      );
     },
     (error, stack) {
       final logger = _activeLogger;
@@ -186,11 +191,14 @@ void _installGlobalErrorHandlers() {
 /// Baut alle App-Abhaengigkeiten fuer [mode] auf und startet die App. Im
 /// Demo-Modus liegen alle sensiblen Daten nur im Speicher, Hitobito wird nicht
 /// angesprochen und die Bundesstatistik laeuft gegen den Mock-Statistikserver.
+/// [demoZugang] bestimmt, mit welcher Rolle die Demo den Bezirk zeigt.
 Future<void> _startApp({
   required Directory appDocDir,
   required AppMode mode,
+  required DemoZugang demoZugang,
 }) async {
   final isDemo = mode == AppMode.demo;
+  final demoData = DemoData(demoZugang);
   // Settings laden und Provider initialisieren
   final AppSettingsRepository settingsRepo = SharedPrefsAppSettingsRepository();
   final MemberFilterRepository memberFilterRepository = isDemo
@@ -287,10 +295,10 @@ Future<void> _startApp({
   );
   final envAuthConfig = isDemo ? demoAuthConfig : HitobitoAuthEnv.authConfig;
   final oauthService = isDemo
-      ? DemoOauthService()
+      ? DemoOauthService(demoData)
       : HitobitoOauthService(config: envAuthConfig, logger: logger);
   final hitobitoGroupsService = isDemo
-      ? DemoHitobitoGroupsService()
+      ? DemoHitobitoGroupsService(demoData)
       : HitobitoGroupsService(
           config: envAuthConfig,
           trafficLogService: hitobitoTrafficLogService,
@@ -307,7 +315,7 @@ Future<void> _startApp({
     logger: logger,
   );
   final hitobitoEfzService = isDemo
-      ? DemoHitobitoEfzService()
+      ? DemoHitobitoEfzService(demoData)
       : HitobitoEfzService(
           config: envAuthConfig,
           trafficLogService: hitobitoTrafficLogService,
@@ -325,7 +333,7 @@ Future<void> _startApp({
   );
   final ArbeitskontextReadModelRepository arbeitskontextReadModelRepository =
       isDemo
-      ? DemoArbeitskontextReadModelRepository()
+      ? DemoArbeitskontextReadModelRepository(demoData)
       : HitobitoArbeitskontextReadModelRepository(
           groupsService: hitobitoGroupsService,
           peopleService: hitobitoPeopleService,
@@ -395,7 +403,7 @@ Future<void> _startApp({
     teilnahmeRepository: isDemo
         ? InMemoryBundesstatistikTeilnahmeRepository(
             initial: BundesstatistikTeilnahme.leer.mitEinwilligung(
-              DemoData.profile.namiId.toString(),
+              demoData.profile.namiId.toString(),
               DateTime.now(),
             ),
           )
@@ -481,8 +489,8 @@ Future<void> _startApp({
       await authModel.initialize();
       if (isDemo && authModel.state == AuthState.signedOut) {
         // Der Demo-Zugang meldet sich wie ein echter Login an und laedt
-        // danach den Demo-Stamm.
-        await authModel.signInWithAuthenticatedSession(DemoData.session());
+        // danach seinen Startkontext.
+        await authModel.signInWithAuthenticatedSession(demoData.session());
       }
       await arbeitskontextModel.syncForAuth(
         authState: authModel.state,
@@ -504,13 +512,17 @@ Future<void> _startApp({
   late final AppModeController appModeController;
   appModeController = AppModeController(
     mode: mode,
-    switchMode: (nextMode) async {
-      if (nextMode == mode) {
+    demoZugang: isDemo ? demoZugang : null,
+    switchMode: (nextMode, nextDemoZugang) async {
+      if (nextMode == mode &&
+          (nextMode == AppMode.live || nextDemoZugang == demoZugang)) {
         return;
       }
+      final zielZugang = nextDemoZugang ?? demoZugang;
       await logger.log(
         'app_mode',
-        'Wechsel von ${mode.name} zu ${nextMode.name}',
+        'Wechsel von ${mode.name} zu ${nextMode.name}'
+            '${nextMode == AppMode.demo ? ' (${zielZugang.name})' : ''}',
       );
       scaffoldMessengerKey.currentState
         ?..hideCurrentSnackBar()
@@ -519,13 +531,17 @@ Future<void> _startApp({
       if (isDemo) {
         await authModel.logout();
       }
-      await AppModeStore().save(nextMode);
+      await AppModeStore().save(nextMode, demoZugang: nextDemoZugang);
       // Alten Baum vollstaendig abbauen, bevor der neue die globalen Keys
       // (Navigator, ScaffoldMessenger) uebernimmt. Sonst wuerde Flutter
       // deren State samt Referenzen auf die alten Models weiterverwenden.
       runApp(const ColoredBox(color: Color(0xFFFFFFFF)));
       await WidgetsBinding.instance.endOfFrame;
-      await _startApp(appDocDir: appDocDir, mode: nextMode);
+      await _startApp(
+        appDocDir: appDocDir,
+        mode: nextMode,
+        demoZugang: zielZugang,
+      );
     },
   );
 

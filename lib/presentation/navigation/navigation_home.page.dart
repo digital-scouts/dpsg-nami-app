@@ -14,6 +14,7 @@ import 'package:nami/presentation/screens/settings_page.dart';
 import 'package:nami/presentation/screens/settings_stufenwechsel_page.dart';
 import 'package:nami/presentation/screens/statistics_page.dart';
 import 'package:nami/presentation/widgets/app_bottom_navigation.dart';
+import 'package:nami/presentation/widgets/demo_zugang_sheet.dart';
 import 'package:nami/presentation/widgets/logout_flow.dart';
 import 'package:nami/presentation/widgets/supporter_backdrop.dart';
 import 'package:nami/services/achievement_service.dart';
@@ -99,6 +100,7 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
           onExitDemo: _isDemo(context)
               ? context.read<AppModeController>().exitDemo
               : null,
+          demoZugang: context.read<AppModeController?>()?.demoZugang,
           // Die Debug-Tools wirken auf die echte Installation.
           onDebugTools: _isDemo(context)
               ? null
@@ -423,7 +425,12 @@ class _LoginActions extends StatelessWidget {
           const SizedBox(height: 24),
           OutlinedButton.icon(
             key: const Key('demo-start'),
-            onPressed: appModeController.enterDemo,
+            onPressed: () async {
+              final zugang = await DemoZugangSheet.show(context);
+              if (zugang != null) {
+                await appModeController.enterDemo(zugang);
+              }
+            },
             icon: const Icon(Icons.visibility_outlined),
             label: Text(t.t('demo_start_action')),
           ),

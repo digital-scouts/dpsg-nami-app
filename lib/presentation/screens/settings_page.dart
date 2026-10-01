@@ -12,8 +12,10 @@ import 'package:nami/presentation/model/member_edit_model.dart';
 import 'package:nami/presentation/notifications/notifications_hub.dart';
 import 'package:nami/presentation/widgets/app_page_header.dart';
 import 'package:nami/presentation/widgets/confetti_overlay.dart';
+import 'package:nami/presentation/widgets/demo_zugang_sheet.dart';
 import 'package:nami/presentation/widgets/section_header.dart';
 import 'package:nami/presentation/widgets/supporter_badge.dart';
+import 'package:nami/services/app_mode_controller.dart';
 import 'package:nami/services/app_update_service.dart';
 import 'package:nami/services/logger_service.dart';
 import 'package:nami/services/nami_ai/nami_ai_access_service.dart';
@@ -38,6 +40,9 @@ class SettingsPage extends StatefulWidget {
 
   /// Nur im Demo-Modus gesetzt: zeigt den Demo-Hinweis mit Ausstieg.
   final VoidCallback? onExitDemo;
+
+  /// Zugang der laufenden Demo, beschreibt im Demo-Hinweis die Rolle.
+  final DemoZugang? demoZugang;
   final String? appVersion;
   final Future<NamiAiAccessDecision> Function()? namiAiAccessLoader;
   final Future<List<AppHubNotification>> Function()?
@@ -59,6 +64,7 @@ class SettingsPage extends StatefulWidget {
     this.onNamiAiPaywall,
     this.onProfile,
     this.onExitDemo,
+    this.demoZugang,
     this.appVersion,
     this.namiAiAccessLoader,
     this.unreadExternalNotificationsLoader,
@@ -272,7 +278,14 @@ class _SettingsPageState extends State<SettingsPage> {
                                           style: theme.textTheme.titleMedium,
                                         ),
                                         const SizedBox(height: 4),
-                                        Text(t.t('demo_banner_body')),
+                                        Text(
+                                          [
+                                            if (widget.demoZugang
+                                                case final zugang?)
+                                              t.t(zugang.hinweisKey),
+                                            t.t('demo_banner_body'),
+                                          ].join(' '),
+                                        ),
                                         const SizedBox(height: 8),
                                         Align(
                                           alignment: Alignment.centerRight,
