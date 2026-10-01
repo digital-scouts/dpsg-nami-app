@@ -26,9 +26,13 @@ class StatistikStammAnsicht extends StatefulWidget {
     this.bearbeitung,
     this.bearbeitenLeiste,
     this.unterBearbeiten,
+    this.nurUeberblick = false,
   });
 
   final StatistikKachelDaten daten;
+
+  /// Nur der Überblick, ohne Stufen und Entwicklung, z. B. bei Teilsicht.
+  final bool nurUeberblick;
 
   /// Gesetzt = Bearbeiten-Modus des Überblicks.
   final KachelRasterBearbeitung? bearbeitung;
@@ -54,6 +58,7 @@ class _StatistikStammAnsichtState extends State<StatistikStammAnsicht>
 
   List<StatistikThema> _sichtbareThemen() {
     final e = widget.daten.einstellungen;
+    if (widget.nurUeberblick) return const [StatistikThema.ueberblick];
     return [
       StatistikThema.ueberblick,
       if (e.stufenSichtbar) StatistikThema.stufen,

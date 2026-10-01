@@ -46,8 +46,18 @@ class StatistikKachelnModel extends ChangeNotifier {
       'k${DateTime.now().microsecondsSinceEpoch}-${_zaehler++}';
 
   /// Lädt die Belegung eines Stamms; ein Wechsel beendet das Bearbeiten.
-  Future<void> ensureLoadedForLayer(int? layerId) async {
-    if (layerId == null || _layerId == layerId) return;
+  ///
+  /// Mit [teilsicht] (nur einzelne Gruppen lesbar) gilt eine eigene
+  /// Standardbelegung, solange nichts gespeichert ist.
+  Future<void> ensureLoadedForLayer(
+    int? layerId, {
+    bool teilsicht = false,
+  }) async {
+    _teilsicht = teilsicht;
+    if (layerId == null || _layerId == layerId) {
+      _standardFuerTeilsichtAnwenden();
+      return;
+    }
     _layerId = layerId;
     _bearbeiten = false;
     _isLoading = true;
@@ -63,7 +73,43 @@ class StatistikKachelnModel extends ChangeNotifier {
     if (_layerId != layerId) return;
     _einstellungen = geladen;
     _isLoading = false;
+    _standardFuerTeilsichtAnwenden(benachrichtigen: false);
     notifyListeners();
+  }
+
+  bool _teilsicht = false;
+
+  /// Bei Teilsicht ohne gespeicherte Belegung die passende Standardbelegung.
+  void _standardFuerTeilsichtAnwenden({bool benachrichtigen = true}) {
+    if (!_teilsicht || !_einstellungen.hatStandardUeberblick) return;
+    _einstellungen = _einstellungen.copyWith(
+      ueberblick: StatistikKachelEinstellungen.standardUeberblickTeilsicht,
+    );
+    if (benachrichtigen) notifyListeners();
+  }
+
+  /// Stellt die Standardbelegung des Überblicks wieder her. Eigene Kacheln
+  /// bleiben am Ende erhalten, Zielwerte bleiben unverändert.
+  void zuruecksetzen() {
+    final standard = _teilsicht
+        ? StatistikKachelEinstellungen.standardUeberblickTeilsicht
+        : StatistikKachelEinstellungen.standardUeberblick;
+    final eigene = [
+      for (final k in _einstellungen.eigeneKacheln)
+        KachelEintrag(
+          id: _neueId(),
+          typId: StatistikKachelTypen.eigene,
+          groesse: KachelGroesse.klein,
+          eigeneKachelId: k.id,
+        ),
+    ];
+    _aendern(
+      _einstellungen.copyWith(
+        ueberblick: List.unmodifiable([...standard, ...eigene]),
+        stufenSichtbar: true,
+        entwicklungSichtbar: true,
+      ),
+    );
   }
 
   void bearbeitenStarten() {

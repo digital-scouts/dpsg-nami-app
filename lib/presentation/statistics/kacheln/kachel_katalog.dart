@@ -74,7 +74,8 @@ abstract final class KachelKatalog {
       typId: StatistikKachelTypen.altersstruktur,
       titelSchluessel: 'statistics_tile_age',
       bereich: KachelBereich.stufen,
-      inhalt: (context, daten, e) => AltersstrukturKachel(daten: daten),
+      inhalt: (context, daten, e) =>
+          AltersstrukturKachel(daten: daten, groesse: e.groesse),
     ),
     KachelDefinition(
       typId: StatistikKachelTypen.alterInZahlen,

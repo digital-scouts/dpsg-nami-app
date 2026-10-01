@@ -83,7 +83,6 @@ Nächste Aufgaben:
 
 - Größere Schrift feinschleifen: Bei hoher Textskalierung wirkt die Schrift in einigen Kacheln eher kleiner und der Leerraum wächst (siehe Entwürfe Runde 5 unter `design/statistik/`).
 - „Hinter den Kacheln“ aus Runde 2 (§6) als eigene Ausbaustufe konzipieren: Detailseiten beim Antippen der Kacheln.
-- Gruppendetail und Bundesvergleich lokalisieren; dort stehen noch feste deutsche Texte.
 - Konfession aus echten Daten statt der bisherigen Beispielquelle anzeigen, sobald Hitobito sie liefert.
 
 ## Priorität 6: App-Wartung und nützliche Ergänzungen

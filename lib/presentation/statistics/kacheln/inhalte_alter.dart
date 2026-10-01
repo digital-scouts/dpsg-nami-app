@@ -14,9 +14,14 @@ List<StufenStatistik> _mitAlter(StatistikKachelDaten daten) =>
     daten.statistik.stufen.where((s) => s.alter.isNotEmpty).toList();
 
 class AltersstrukturKachel extends StatelessWidget {
-  const AltersstrukturKachel({super.key, required this.daten});
+  const AltersstrukturKachel({
+    super.key,
+    required this.daten,
+    this.groesse = KachelGroesse.gross,
+  });
 
   final StatistikKachelDaten daten;
+  final KachelGroesse groesse;
 
   @override
   Widget build(BuildContext context) {
@@ -33,25 +38,27 @@ class AltersstrukturKachel extends StatelessWidget {
         [t.t('statistics_no_birthdays'), if (ohne > 0) fuss].join('\n'),
       );
     }
+    final zeilen = [
+      for (final s in stufen)
+        AltersZeile(
+          beschriftung: s.stufe.shortDisplayName,
+          alter: s.alter,
+          min: daten.grenzen.forStufe(s.stufe).minJahre,
+          max: daten.grenzen.forStufe(s.stufe).maxJahre,
+          farbe: farben.stufe(s.stufe),
+          flaeche: farben.grenzFlaeche(s.stufe),
+          kontur: farben.kontur(s.stufe),
+        ),
+    ];
+    // In 2×1 ist kein Platz für die Fußzeile; die Leiste unter der Achse
+    // zeigt die Altersgrenzen.
+    if (groesse == KachelGroesse.breit) {
+      return AltersSaeulenGestapelt(zeilen: zeilen);
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(
-          child: AltersSaeulen(
-            zeilen: [
-              for (final s in stufen)
-                AltersZeile(
-                  beschriftung: s.stufe.shortDisplayName,
-                  alter: s.alter,
-                  min: daten.grenzen.forStufe(s.stufe).minJahre,
-                  max: daten.grenzen.forStufe(s.stufe).maxJahre,
-                  farbe: farben.stufe(s.stufe),
-                  flaeche: farben.grenzFlaeche(s.stufe),
-                  kontur: farben.kontur(s.stufe),
-                ),
-            ],
-          ),
-        ),
+        Expanded(child: AltersSaeulen(zeilen: zeilen)),
         const SizedBox(height: 4),
         KachelFuss(fuss, zeilen: 2),
       ],

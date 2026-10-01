@@ -123,6 +123,10 @@ class BundesstatistikModel extends ChangeNotifier {
   /// Ob die Person den ganzen Stamm oder nur einzelne Gruppen sieht; `null`,
   /// solange Rechte oder Daten fehlen.
   StatistikAbdeckung? get abdeckung => _abdeckung;
+
+  /// Anzeigename einer Gruppe des aktiven Stamms, z. B. für geteilte Werte.
+  String? gruppenName(int gruppenId) =>
+      _readModel?.findeGruppe(gruppenId)?.anzeigename;
   BundesstatistikFehlerArt? get letzterFehler => _letzterFehler;
 
   /// Zuletzt fuer den aktuellen Stamm gesendeter Snapshot (Transparenz).

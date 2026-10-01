@@ -134,11 +134,108 @@ class GruppenKachel extends StatelessWidget {
   final StatistikKachelDaten daten;
   final KachelGroesse groesse;
 
+  /// Bis zu so vielen Gruppen zeigt 2×1 eine Spalte je Gruppe statt je Stufe.
+  static const int maxGruppenspalten = 2;
+
   @override
   Widget build(BuildContext context) {
-    return groesse == KachelGroesse.gross
-        ? _GruppenListe(daten: daten)
+    if (groesse == KachelGroesse.gross) return _GruppenListe(daten: daten);
+    final gruppen = daten.statistik.stufen.expand((s) => s.gruppen).toList();
+    return gruppen.isNotEmpty && gruppen.length <= maxGruppenspalten
+        ? _GruppenSpalten(daten: daten, gruppen: gruppen)
         : _GruppenJeStufe(daten: daten);
+  }
+}
+
+/// Wenige Gruppen, z. B. bei Teilsicht oder zwei Meuten: je Gruppe eine
+/// Spalte; ein Tipp öffnet die Gruppe.
+class _GruppenSpalten extends StatelessWidget {
+  const _GruppenSpalten({required this.daten, required this.gruppen});
+
+  final StatistikKachelDaten daten;
+  final List<GruppenStatistik> gruppen;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final oeffnen = daten.onGruppeOeffnen;
+    final hatZiele = daten.ziele.gruppeMax.isNotEmpty;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final g in gruppen) ...[
+              if (g != gruppen.first) const SizedBox(width: 8),
+              Expanded(
+                child: InkWell(
+                  key: Key('gruppen-spalte-${g.gruppenId}'),
+                  onTap: oeffnen == null ? null : () => oeffnen(g.gruppenId),
+                  borderRadius: BorderRadius.circular(8),
+                  child: _GruppenSpalte(gruppe: g, daten: daten),
+                ),
+              ),
+            ],
+          ],
+        ),
+        KachelRest(
+          child: KachelFuss(
+            [
+              t.t('statistics_groups_legend'),
+              if (oeffnen != null) t.t('statistics_groups_tap_hint'),
+              if (hatZiele) '| ${t.t('statistics_target')}',
+            ].join(' · '),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GruppenSpalte extends StatelessWidget {
+  const _GruppenSpalte({required this.gruppe, required this.daten});
+
+  final GruppenStatistik gruppe;
+  final StatistikKachelDaten daten;
+
+  @override
+  Widget build(BuildContext context) {
+    final farben = StatistikFarben.of(context);
+    final ziel = daten.ziele.gruppeMax[gruppe.stufe];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        KachelZahl(
+          '${gruppe.kinder}',
+          groesse: 22,
+          zusatz: '+${gruppe.leitende}',
+        ),
+        Row(
+          children: [
+            Flexible(
+              child: Text(
+                gruppe.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 11.5, color: farben.textGedaempft),
+              ),
+            ),
+            if (daten.onGruppeOeffnen != null)
+              Icon(Icons.chevron_right, size: 14, color: farben.textSchwach),
+          ],
+        ),
+        const SizedBox(height: 4),
+        ZielBalken(
+          wert: gruppe.kinder,
+          skala: math.max(1, math.max(gruppe.kinder, ziel ?? 0)),
+          ziel: ziel,
+          farbe: farben.stufe(gruppe.stufe),
+          kontur: farben.kontur(gruppe.stufe),
+          dicke: 3,
+        ),
+      ],
+    );
   }
 }
 

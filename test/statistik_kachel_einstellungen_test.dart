@@ -81,7 +81,8 @@ void main() {
           ],
         });
         expect(e.ueberblick.map((k) => (k.id, k.groesse)), [
-          ('b', KachelGroesse.gross),
+          // Altersstruktur gibt es als 2×1 und 2×2; 1×1 rastet auf 2×1 ein.
+          ('b', KachelGroesse.breit),
           ('c', KachelGroesse.breit),
           ('d', KachelGroesse.breit),
         ]);
@@ -117,7 +118,7 @@ void main() {
           1,
           1,
         ),
-        KachelGroesse.gross,
+        KachelGroesse.breit,
       );
     });
   });
