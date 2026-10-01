@@ -11,16 +11,19 @@ import '../../services/sensitive_storage_service.dart';
 class NamiAiChatHistoryLocalRepository implements NamiAiChatHistoryRepository {
   NamiAiChatHistoryLocalRepository({
     required SensitiveStorageService sensitiveStorageService,
-  }) : _sensitiveStorageService = sensitiveStorageService;
+    DateTime Function()? nowProvider,
+  }) : _sensitiveStorageService = sensitiveStorageService,
+       _now = nowProvider ?? DateTime.now;
 
   static const String boxName = 'nami_ai_chat_history_box';
 
   final SensitiveStorageService _sensitiveStorageService;
+  final DateTime Function() _now;
 
   @override
   Future<List<NamiAiChatHistoryEntry>> loadAll() async {
     final box = await _sensitiveStorageService.openEncryptedStringBox(boxName);
-    final now = DateTime.now();
+    final now = _now();
     final entries = <NamiAiChatHistoryEntry>[];
     final expiredKeys = <dynamic>[];
 

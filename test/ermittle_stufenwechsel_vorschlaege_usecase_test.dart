@@ -6,6 +6,10 @@ import 'package:nami/domain/taetigkeit/role_derivation.dart';
 import 'package:nami/domain/taetigkeit/roles.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 
+/// Feste Uhr für die aktuelle Stufe: alle Testrollen haben begonnen, die
+/// geplante Jufi-Rolle ab 01.10.2026 liegt noch in der Zukunft.
+final _heute = DateTime(2025, 8, 1);
+
 void main() {
   const useCase = ErmittleStufenwechselVorschlaegeUseCase();
 
@@ -13,6 +17,7 @@ void main() {
     'ermittelt faellige und ueberfaellige Wechsel aus echten Mitgliedern',
     () {
       final sections = useCase(
+        heute: _heute,
         mitglieder: [
           _mitglied(
             id: 'w1',
@@ -53,6 +58,7 @@ void main() {
     'ignoriert zu junge Mitglieder, Rover und geplante Zielstufenrollen',
     () {
       final sections = useCase(
+        heute: _heute,
         mitglieder: [
           _mitglied(
             id: 'young',
@@ -93,6 +99,7 @@ void main() {
 
   test('ignoriert Mitglieder ohne bekanntes Geburtsdatum', () {
     final sections = useCase(
+      heute: _heute,
       mitglieder: [
         _mitglied(
           id: 'placeholder',

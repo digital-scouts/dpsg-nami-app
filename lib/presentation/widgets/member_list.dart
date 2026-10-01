@@ -41,6 +41,7 @@ class MemberList extends StatelessWidget {
     this.warningBuilder,
     this.supporterBadgeBuilder,
     this.lastUpdateAt,
+    this.nowProvider,
     this.isRefreshing = false,
     this.favourites = const {},
     this.selectedFilterKeys = const <String>{},
@@ -62,6 +63,9 @@ class MemberList extends StatelessWidget {
   final bool Function(Mitglied mitglied)? warningBuilder;
   final SupporterBadgeId? Function(Mitglied mitglied)? supporterBadgeBuilder;
   final DateTime? lastUpdateAt;
+
+  /// Uhr für „Letztes Update“; ohne Angabe die echte Zeit.
+  final DateTime Function()? nowProvider;
   final bool isRefreshing;
   final Set<String> favourites;
   final Set<String> selectedFilterKeys;
@@ -260,7 +264,8 @@ class MemberList extends StatelessWidget {
     if (updatedAt == null) {
       return '';
     }
-    final difference = DateTime.now().difference(updatedAt);
+    final now = nowProvider?.call() ?? DateTime.now();
+    final difference = now.difference(updatedAt);
     final label = _relativeLastUpdateLabel(t, difference);
     return t.tParams('member_list_last_update', <String, Object>{
       'time': label,

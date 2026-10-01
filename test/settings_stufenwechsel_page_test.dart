@@ -15,6 +15,10 @@ import 'package:nami/presentation/screens/settings_stufenwechsel_page.dart';
 
 import 'support/page_header_height.dart';
 
+/// Feste Uhr, wenn ein Test keine eigene vorgibt; der Datumswähler rechnet
+/// seinen Bereich davon aus.
+final _heute = DateTime(2026, 8, 1);
+
 void main() {
   Widget buildTestApp({
     required ArbeitskontextReadModel readModel,
@@ -50,7 +54,7 @@ void main() {
               );
         },
         stufenwechselDatumSaver: datumSaver,
-        todayProvider: todayProvider,
+        todayProvider: todayProvider ?? () => _heute,
       ),
     );
   }

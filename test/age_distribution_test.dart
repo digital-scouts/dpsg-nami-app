@@ -3,11 +3,17 @@ import 'package:nami/domain/statistiks/age_distribution.dart';
 import 'package:nami/domain/taetigkeit/roles.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 
+/// Feste Uhr für Tests ohne eigenes Referenzdatum.
+final _jetzt = DateTime(2026, 6, 15);
+
 void main() {
   group('computeAgeDistribution', () {
     test('returns empty for no members or no mitglied art', () {
-      expect(computeAgeDistribution(const []).bars.isEmpty, true);
-      final now = DateTime.now();
+      expect(
+        computeAgeDistribution(const [], referenceDate: _jetzt).bars.isEmpty,
+        true,
+      );
+      final now = _jetzt;
       final members = [
         MemberAgeInfo(
           stufe: Stufe.woelfling,
@@ -15,12 +21,12 @@ void main() {
           art: RoleCategory.leitung,
         ),
       ];
-      final data = computeAgeDistribution(members);
+      final data = computeAgeDistribution(members, referenceDate: _jetzt);
       expect(data.bars.isEmpty, true);
     });
 
     test('stacks counts per age across stufen', () {
-      final now = DateTime.now();
+      final now = _jetzt;
       final members = [
         MemberAgeInfo(
           stufe: Stufe.woelfling,
@@ -38,7 +44,7 @@ void main() {
           art: RoleCategory.mitglied,
         ),
       ];
-      final data = computeAgeDistribution(members);
+      final data = computeAgeDistribution(members, referenceDate: _jetzt);
       expect(data.minAge, 6);
       expect(data.maxAge, 14);
       expect(data.bars.length, 9);
@@ -57,7 +63,7 @@ void main() {
     });
 
     test('fills gap ages with empty bars', () {
-      final now = DateTime.now();
+      final now = _jetzt;
       final members = [
         MemberAgeInfo(
           stufe: Stufe.woelfling,

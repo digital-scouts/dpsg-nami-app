@@ -47,10 +47,12 @@ class ErmittleStufenwechselVorschlaegeUseCase {
     Stufe.pfadfinder,
   ];
 
+  /// [heute] bestimmt die aktuelle Stufe; ohne Angabe gilt jetzt.
   List<StufenwechselVorschlagsSection> call({
     required Iterable<Mitglied> mitglieder,
     required DateTime stichtag,
     required Altersgrenzen altersgrenzen,
+    DateTime? heute,
   }) {
     final vorschlaegeByStage = <Stufe, List<StufenwechselVorschlag>>{
       for (final stufe in wechselStufen) stufe: <StufenwechselVorschlag>[],
@@ -61,7 +63,7 @@ class ErmittleStufenwechselVorschlaegeUseCase {
         continue;
       }
 
-      final aktuelleStufe = MemberUtils.aktiveStufe(mitglied);
+      final aktuelleStufe = MemberUtils.aktiveStufe(mitglied, heute: heute);
       if (aktuelleStufe == null || !wechselStufen.contains(aktuelleStufe)) {
         continue;
       }

@@ -7,6 +7,9 @@ import 'package:nami/data/nami_ai/nami_ai_chat_history_local_repository.dart';
 import 'package:nami/domain/nami_ai/nami_ai_chat_history_entry.dart';
 import 'package:nami/services/sensitive_storage_service.dart';
 
+/// Feste Uhr, damit die 30-Tage-Grenze nicht vom Testdatum abhängt.
+final _jetzt = DateTime(2026, 9, 15, 12);
+
 void main() {
   late Directory tempDir;
   late SensitiveStorageService sensitiveStorageService;
@@ -21,6 +24,7 @@ void main() {
     sensitiveStorageService = SensitiveStorageService();
     repository = NamiAiChatHistoryLocalRepository(
       sensitiveStorageService: sensitiveStorageService,
+      nowProvider: () => _jetzt,
     );
   });
 
@@ -114,7 +118,7 @@ void main() {
   test(
     'entfernt Eintraege, die aelter als 30 Tage sind, beim Laden automatisch',
     () async {
-      final now = DateTime.now();
+      final now = _jetzt;
       await repository.save(
         NamiAiChatHistoryEntry(
           id: 'expired',
@@ -148,7 +152,7 @@ void main() {
     await repository.save(
       NamiAiChatHistoryEntry(
         id: 'entry-1',
-        startedAt: DateTime.now(),
+        startedAt: _jetzt,
         title: 'Frage',
         messages: const <NamiAiChatMessage>[],
       ),

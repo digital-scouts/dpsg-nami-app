@@ -3,16 +3,26 @@ import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/format/date_formatters.dart';
 
 /// Waehlt das Datum des naechsten Stufenwechsels; `null` bei Abbruch.
+/// Auswahl bis zwei Jahre um [heute] (ohne Angabe: jetzt); ein älteres oder
+/// späteres [initial] wird an den Rand des Bereichs gesetzt.
 Future<DateTime?> pickStufenwechselDatum(
   BuildContext context, {
   DateTime? initial,
+  DateTime? heute,
 }) {
-  final now = DateTime.now();
+  final now = heute ?? DateTime.now();
+  final first = now.subtract(const Duration(days: 365 * 2));
+  final last = now.add(const Duration(days: 365 * 2));
+  final start = initial ?? now;
   return showDatePicker(
     context: context,
-    initialDate: initial ?? now,
-    firstDate: now.subtract(const Duration(days: 365 * 2)),
-    lastDate: now.add(const Duration(days: 365 * 2)),
+    initialDate: start.isBefore(first)
+        ? first
+        : start.isAfter(last)
+        ? last
+        : start,
+    firstDate: first,
+    lastDate: last,
   );
 }
 

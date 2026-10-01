@@ -13,12 +13,14 @@ import '../taetigkeit/stufe.dart';
 ///
 /// Input: Original Liste Taetigkeit
 /// Output: Neue Liste Taetigkeit ohne Überlapp, zusammengelegt.
-List<Role> cleanForStatistiks(List<Role> original) {
+///
+/// [jetzt] begrenzt laufende Tätigkeiten; ohne Angabe gilt die echte Zeit.
+List<Role> cleanForStatistiks(List<Role> original, {DateTime? jetzt}) {
   if (original.isEmpty) return const [];
 
   // Vergangene und aktuelle Tätigkeiten berücksichtigen.
   // Aktuelle werden bis "jetzt" begrenzt; zukünftige ignoriert.
-  final now = DateTime.now();
+  final now = jetzt ?? DateTime.now();
   final normalized = <Role>[];
   for (final t in original) {
     final startsInFuture = t.start.isAfter(now);
@@ -187,8 +189,8 @@ class RoleDuration {
   final int days;
 }
 
-List<RoleDuration> durationsByRoleDays(List<Role> original) {
-  final cleaned = cleanForStatistiks(original);
+List<RoleDuration> durationsByRoleDays(List<Role> original, {DateTime? jetzt}) {
+  final cleaned = cleanForStatistiks(original, jetzt: jetzt);
   if (cleaned.isEmpty) return const [];
 
   final Map<(Stufe, RoleCategory), int> acc = {};
@@ -205,8 +207,8 @@ List<RoleDuration> durationsByRoleDays(List<Role> original) {
   ];
 }
 
-Duration membershipDuration(List<Role> original) {
-  final cleaned = cleanForStatistiks(original);
+Duration membershipDuration(List<Role> original, {DateTime? jetzt}) {
+  final cleaned = cleanForStatistiks(original, jetzt: jetzt);
   if (cleaned.isEmpty) return Duration.zero;
 
   int days = 0;
