@@ -4,8 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:nami/domain/member/mitglied.dart';
-import 'package:nami/services/hitobito_auth_env.dart';
 import 'package:nami/services/hitobito_people_service.dart';
+
+import 'support/hitobito_jsonapi_fixtures.dart';
 
 void main() {
   test(
@@ -219,16 +220,7 @@ void main() {
       });
 
       final service = HitobitoPeopleService(
-        config: const HitobitoAuthConfig(
-          clientId: 'client',
-          clientSecret: 'secret',
-          authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
-          tokenUrl: 'https://demo.hitobito.com/oauth/token',
-          redirectUri: 'de.jlange.nami.app:/oauth/callback',
-          scopeString: 'openid email api',
-          discoveryUrl: '',
-          profileUrl: 'https://demo.hitobito.com/oauth/profile',
-        ),
+        config: testHitobitoAuthConfig,
         httpClient: client,
       );
 
@@ -402,16 +394,7 @@ void main() {
       });
 
       final service = HitobitoPeopleService(
-        config: const HitobitoAuthConfig(
-          clientId: 'client',
-          clientSecret: 'secret',
-          authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
-          tokenUrl: 'https://demo.hitobito.com/oauth/token',
-          redirectUri: 'de.jlange.nami.app:/oauth/callback',
-          scopeString: 'openid email api',
-          discoveryUrl: '',
-          profileUrl: 'https://demo.hitobito.com/oauth/profile',
-        ),
+        config: testHitobitoAuthConfig,
         httpClient: client,
       );
 
@@ -440,16 +423,7 @@ void main() {
       });
 
       final service = HitobitoPeopleService(
-        config: const HitobitoAuthConfig(
-          clientId: 'client',
-          clientSecret: 'secret',
-          authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
-          tokenUrl: 'https://demo.hitobito.com/oauth/token',
-          redirectUri: 'de.jlange.nami.app:/oauth/callback',
-          scopeString: 'openid email api',
-          discoveryUrl: '',
-          profileUrl: 'https://demo.hitobito.com/oauth/profile',
-        ),
+        config: testHitobitoAuthConfig,
         httpClient: client,
       );
 
@@ -640,16 +614,7 @@ void main() {
     });
 
     final service = HitobitoPeopleService(
-      config: const HitobitoAuthConfig(
-        clientId: 'client',
-        clientSecret: 'secret',
-        authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
-        tokenUrl: 'https://demo.hitobito.com/oauth/token',
-        redirectUri: 'de.jlange.nami.app:/oauth/callback',
-        scopeString: 'openid email api',
-        discoveryUrl: '',
-        profileUrl: 'https://demo.hitobito.com/oauth/profile',
-      ),
+      config: testHitobitoAuthConfig,
       httpClient: client,
     );
 
@@ -672,16 +637,7 @@ void main() {
   test('haelt den HTTP-Status bei 401 aus dem People-Endpoint fest', () async {
     final client = MockClient((_) async => http.Response('Unauthorized', 401));
     final service = HitobitoPeopleService(
-      config: const HitobitoAuthConfig(
-        clientId: 'client',
-        clientSecret: 'secret',
-        authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
-        tokenUrl: 'https://demo.hitobito.com/oauth/token',
-        redirectUri: 'de.jlange.nami.app:/oauth/callback',
-        scopeString: 'openid email api',
-        discoveryUrl: '',
-        profileUrl: 'https://demo.hitobito.com/oauth/profile',
-      ),
+      config: testHitobitoAuthConfig,
       httpClient: client,
     );
 
@@ -721,16 +677,7 @@ void main() {
       ),
     );
     final service = HitobitoPeopleService(
-      config: const HitobitoAuthConfig(
-        clientId: 'client',
-        clientSecret: 'secret',
-        authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
-        tokenUrl: 'https://demo.hitobito.com/oauth/token',
-        redirectUri: 'de.jlange.nami.app:/oauth/callback',
-        scopeString: 'openid email api',
-        discoveryUrl: '',
-        profileUrl: 'https://demo.hitobito.com/oauth/profile',
-      ),
+      config: testHitobitoAuthConfig,
       httpClient: client,
     );
 
@@ -792,16 +739,7 @@ void main() {
       });
 
       final service = HitobitoPeopleService(
-        config: const HitobitoAuthConfig(
-          clientId: 'client',
-          clientSecret: 'secret',
-          authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
-          tokenUrl: 'https://demo.hitobito.com/oauth/token',
-          redirectUri: 'de.jlange.nami.app:/oauth/callback',
-          scopeString: 'openid email api',
-          discoveryUrl: '',
-          profileUrl: 'https://demo.hitobito.com/oauth/profile',
-        ),
+        config: testHitobitoAuthConfig,
         httpClient: client,
       );
 

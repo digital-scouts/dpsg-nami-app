@@ -6,19 +6,17 @@ import 'package:nami/domain/member/member_resolution.dart';
 import 'package:nami/domain/member/member_write_repository.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/member/pending_person_update.dart';
-import 'package:nami/domain/member/pending_person_update_repository.dart';
-import 'package:nami/domain/settings/app_settings.dart';
-import 'package:nami/domain/settings/app_settings_repository.dart';
-import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/member_edit_model.dart';
-import 'package:nami/services/logger_service.dart';
+
+import 'support/fake_logger_service.dart';
+import 'support/in_memory_pending_person_update_repository.dart';
 
 void main() {
   test(
     'laedt das Mitglied vor dem Editieren remote und aktualisiert den Read-Stand',
     () async {
-      final logger = _FakeLoggerService();
+      final logger = FakeLoggerService();
       final updatedMembers = <Mitglied>[];
       final basisMitglied = Mitglied.peopleListItem(
         mitgliedsnummer: '4711',
@@ -34,7 +32,7 @@ void main() {
         memberWriteRepository: _FakeMemberWriteRepository(
           fetchResultsByPersonId: <int, Object>{23: refreshedMember},
         ),
-        pendingRepository: _InMemoryPendingPersonUpdateRepository(),
+        pendingRepository: InMemoryPendingPersonUpdateRepository(),
         logger: logger,
         onMemberUpdated: (member) async {
           updatedMembers.add(member);
@@ -52,7 +50,7 @@ void main() {
       expect(
         logger.events,
         contains(
-          _TrackedEvent(
+          TrackedEvent(
             name: 'member_edit',
             properties: const <String, Object?>{
               'action': 'prepare_result',
@@ -67,14 +65,14 @@ void main() {
   );
 
   test('setzt lokalen Draft beim erneuten Editieren fort', () async {
-    final logger = _FakeLoggerService();
+    final logger = FakeLoggerService();
     final basisMitglied = Mitglied.peopleListItem(
       mitgliedsnummer: '4711',
       personId: 23,
       vorname: 'Julia',
       nachname: 'Keller',
     );
-    final pendingRepository = _InMemoryPendingPersonUpdateRepository(
+    final pendingRepository = InMemoryPendingPersonUpdateRepository(
       entries: <PendingPersonUpdate>[
         PendingPersonUpdate(
           entryId: 'person-23',
@@ -115,7 +113,7 @@ void main() {
   test(
     'faellt beim Vorbereiten offline auf den lokalen Stand zurueck',
     () async {
-      final logger = _FakeLoggerService();
+      final logger = FakeLoggerService();
       final basisMitglied = Mitglied.peopleListItem(
         mitgliedsnummer: '4711',
         personId: 23,
@@ -128,7 +126,7 @@ void main() {
             23: const MemberWriteNetworkBlockedException('Nur ueber WLAN.'),
           },
         ),
-        pendingRepository: _InMemoryPendingPersonUpdateRepository(),
+        pendingRepository: InMemoryPendingPersonUpdateRepository(),
         logger: logger,
         onMemberUpdated: (_) async {},
       );
@@ -150,7 +148,7 @@ void main() {
   test(
     'faellt beim Vorbereiten mit auth_required auf den lokalen Stand zurueck',
     () async {
-      final logger = _FakeLoggerService();
+      final logger = FakeLoggerService();
       final basisMitglied = Mitglied.peopleListItem(
         mitgliedsnummer: '4711',
         personId: 23,
@@ -165,7 +163,7 @@ void main() {
             ),
           },
         ),
-        pendingRepository: _InMemoryPendingPersonUpdateRepository(),
+        pendingRepository: InMemoryPendingPersonUpdateRepository(),
         logger: logger,
         onMemberUpdated: (_) async {},
       );
@@ -185,7 +183,7 @@ void main() {
       expect(
         logger.events,
         contains(
-          _TrackedEvent(
+          TrackedEvent(
             name: 'member_edit',
             properties: const <String, Object?>{
               'action': 'prepare_result',
@@ -200,8 +198,8 @@ void main() {
   );
 
   test('queuet das Update bei generischem Fehler', () async {
-    final pendingRepository = _InMemoryPendingPersonUpdateRepository();
-    final logger = _FakeLoggerService();
+    final pendingRepository = InMemoryPendingPersonUpdateRepository();
+    final logger = FakeLoggerService();
     final model = MemberEditModel(
       memberWriteRepository: _FakeMemberWriteRepository(
         updateResultsByPersonId: <int, Object>{23: Exception('offline')},
@@ -236,7 +234,7 @@ void main() {
     expect(
       logger.events,
       contains(
-        _TrackedEvent(
+        TrackedEvent(
           name: 'member_edit',
           properties: const <String, Object?>{
             'action': 'submit_result',
@@ -250,7 +248,7 @@ void main() {
   });
 
   test('ersetzt vorhandenen Draft derselben Person', () async {
-    final pendingRepository = _InMemoryPendingPersonUpdateRepository(
+    final pendingRepository = InMemoryPendingPersonUpdateRepository(
       entries: <PendingPersonUpdate>[
         _pendingEntry(
           entryId: 'person-23',
@@ -266,7 +264,7 @@ void main() {
         },
       ),
       pendingRepository: pendingRepository,
-      logger: _FakeLoggerService(),
+      logger: FakeLoggerService(),
       onMemberUpdated: (_) async {},
       nowProvider: () => DateTime(2026, 4, 14, 11, 30),
     );
@@ -293,8 +291,8 @@ void main() {
   test(
     'queuet das Update bei Auth-Fall lokal und markiert es als Warning',
     () async {
-      final pendingRepository = _InMemoryPendingPersonUpdateRepository();
-      final logger = _FakeLoggerService();
+      final pendingRepository = InMemoryPendingPersonUpdateRepository();
+      final logger = FakeLoggerService();
       final basisMitglied = Mitglied.peopleListItem(
         mitgliedsnummer: '4711',
         personId: 23,
@@ -350,7 +348,7 @@ void main() {
       expect(
         logger.events,
         contains(
-          _TrackedEvent(
+          TrackedEvent(
             name: 'member_edit',
             properties: const <String, Object?>{
               'action': 'submit_result',
@@ -373,7 +371,7 @@ void main() {
   );
 
   test('queuet das Update bei abgelehntem 4xx-Fehler nicht', () async {
-    final pendingRepository = _InMemoryPendingPersonUpdateRepository();
+    final pendingRepository = InMemoryPendingPersonUpdateRepository();
     final model = MemberEditModel(
       memberWriteRepository: _FakeMemberWriteRepository(
         updateResultsByPersonId: <int, Object>{
@@ -381,7 +379,7 @@ void main() {
         },
       ),
       pendingRepository: pendingRepository,
-      logger: _FakeLoggerService(),
+      logger: FakeLoggerService(),
       onMemberUpdated: (_) async {},
       nowProvider: () => DateTime(2026, 4, 14, 10, 45),
     );
@@ -407,7 +405,7 @@ void main() {
   test(
     'reicht feldbezogene Validierungsfehler im Submit-Result durch',
     () async {
-      final pendingRepository = _InMemoryPendingPersonUpdateRepository();
+      final pendingRepository = InMemoryPendingPersonUpdateRepository();
       final model = MemberEditModel(
         memberWriteRepository: _FakeMemberWriteRepository(
           updateResultsByPersonId: <int, Object>{
@@ -426,7 +424,7 @@ void main() {
           },
         ),
         pendingRepository: pendingRepository,
-        logger: _FakeLoggerService(),
+        logger: FakeLoggerService(),
         onMemberUpdated: (_) async {},
       );
       final basisMitglied = Mitglied.peopleListItem(
@@ -460,7 +458,7 @@ void main() {
   );
 
   test('trackt die Erzeugung eines Merge-Konflikt-Falls getrennt', () async {
-    final logger = _FakeLoggerService();
+    final logger = FakeLoggerService();
     final basisMitglied = Mitglied.peopleListItem(
       mitgliedsnummer: '4711',
       personId: 23,
@@ -490,7 +488,7 @@ void main() {
           ),
         },
       ),
-      pendingRepository: _InMemoryPendingPersonUpdateRepository(),
+      pendingRepository: InMemoryPendingPersonUpdateRepository(),
       logger: logger,
       onMemberUpdated: (_) async {},
     );
@@ -515,8 +513,8 @@ void main() {
   });
 
   test('trackt Retry-Validierung als non-merge-Problemfall', () async {
-    final logger = _FakeLoggerService();
-    final pendingRepository = _InMemoryPendingPersonUpdateRepository(
+    final logger = FakeLoggerService();
+    final pendingRepository = InMemoryPendingPersonUpdateRepository(
       entries: <PendingPersonUpdate>[
         _pendingEntry(
           entryId: 'validation-1',
@@ -564,7 +562,7 @@ void main() {
   });
 
   test('trackt erfolgreichen Submit anonymisiert', () async {
-    final logger = _FakeLoggerService();
+    final logger = FakeLoggerService();
     final basisMitglied = Mitglied.peopleListItem(
       mitgliedsnummer: '4711',
       personId: 23,
@@ -577,7 +575,7 @@ void main() {
           23: basisMitglied.copyWith(vorname: 'Juliane'),
         },
       ),
-      pendingRepository: _InMemoryPendingPersonUpdateRepository(),
+      pendingRepository: InMemoryPendingPersonUpdateRepository(),
       logger: logger,
       onMemberUpdated: (_) async {},
       nowProvider: () => DateTime(2026, 4, 14, 10, 30),
@@ -592,7 +590,7 @@ void main() {
     expect(
       logger.events,
       contains(
-        _TrackedEvent(
+        TrackedEvent(
           name: 'member_edit',
           properties: const <String, Object?>{
             'action': 'submit_result',
@@ -606,7 +604,7 @@ void main() {
   });
 
   test('trackt Resend-Start und Resend-Erfolg fuer Problemloesungen', () async {
-    final logger = _FakeLoggerService();
+    final logger = FakeLoggerService();
     final basisMitglied = Mitglied.peopleListItem(
       mitgliedsnummer: '4711',
       personId: 23,
@@ -633,7 +631,7 @@ void main() {
           23: basisMitglied.copyWith(vorname: 'Lokale Julia'),
         },
       ),
-      pendingRepository: _InMemoryPendingPersonUpdateRepository(),
+      pendingRepository: InMemoryPendingPersonUpdateRepository(),
       logger: logger,
       onMemberUpdated: (_) async {},
     );
@@ -668,7 +666,7 @@ void main() {
   test(
     'retryPending entfernt, behaelt und verwirft Eintraege je nach Ergebnis',
     () async {
-      final pendingRepository = _InMemoryPendingPersonUpdateRepository(
+      final pendingRepository = InMemoryPendingPersonUpdateRepository(
         entries: <PendingPersonUpdate>[
           _pendingEntry(
             entryId: 'success-1',
@@ -699,7 +697,7 @@ void main() {
           },
         ),
         pendingRepository: pendingRepository,
-        logger: _FakeLoggerService(),
+        logger: FakeLoggerService(),
         onMemberUpdated: (member) async {
           updatedMembers.add(member);
         },
@@ -726,8 +724,8 @@ void main() {
   );
 
   test('trackt Retry-Start und Retry-Ergebnis anonymisiert', () async {
-    final logger = _FakeLoggerService();
-    final pendingRepository = _InMemoryPendingPersonUpdateRepository(
+    final logger = FakeLoggerService();
+    final pendingRepository = InMemoryPendingPersonUpdateRepository(
       entries: <PendingPersonUpdate>[
         _pendingEntry(entryId: 'success-1', personId: 1, mitgliedsnummer: '1'),
       ],
@@ -750,7 +748,7 @@ void main() {
     expect(
       logger.events,
       contains(
-        _TrackedEvent(
+        TrackedEvent(
           name: 'member_edit',
           properties: const <String, Object?>{
             'action': 'retry_started',
@@ -805,7 +803,7 @@ void main() {
     test(
       'behaelt offline die urspruengliche Serverbasis und beide Aenderungen',
       () async {
-        final pendingRepository = _InMemoryPendingPersonUpdateRepository(
+        final pendingRepository = InMemoryPendingPersonUpdateRepository(
           entries: <PendingPersonUpdate>[wartenderEintrag()],
         );
         final model = MemberEditModel(
@@ -815,7 +813,7 @@ void main() {
             },
           ),
           pendingRepository: pendingRepository,
-          logger: _FakeLoggerService(),
+          logger: FakeLoggerService(),
           onMemberUpdated: (_) async {},
         );
         await model.loadPending();
@@ -838,7 +836,7 @@ void main() {
     test(
       'merged beim spaeteren Retry beide Offline-Aenderungen gegen den Server',
       () async {
-        final pendingRepository = _InMemoryPendingPersonUpdateRepository(
+        final pendingRepository = InMemoryPendingPersonUpdateRepository(
           entries: <PendingPersonUpdate>[wartenderEintrag()],
         );
         var serverErreichbar = false;
@@ -858,7 +856,7 @@ void main() {
         final model = MemberEditModel(
           memberWriteRepository: writeRepository,
           pendingRepository: pendingRepository,
-          logger: _FakeLoggerService(),
+          logger: FakeLoggerService(),
           onMemberUpdated: (member) async => updatedMembers.add(member),
         );
         await model.loadPending();
@@ -882,10 +880,10 @@ void main() {
       final writeRepository = _FakeMemberWriteRepository();
       final model = MemberEditModel(
         memberWriteRepository: writeRepository,
-        pendingRepository: _InMemoryPendingPersonUpdateRepository(
+        pendingRepository: InMemoryPendingPersonUpdateRepository(
           entries: <PendingPersonUpdate>[wartenderEintrag()],
         ),
-        logger: _FakeLoggerService(),
+        logger: FakeLoggerService(),
         onMemberUpdated: (_) async {},
       );
       await model.loadPending();
@@ -920,7 +918,7 @@ void main() {
         final writeRepository = _FakeMemberWriteRepository();
         final model = MemberEditModel(
           memberWriteRepository: writeRepository,
-          pendingRepository: _InMemoryPendingPersonUpdateRepository(
+          pendingRepository: InMemoryPendingPersonUpdateRepository(
             entries: <PendingPersonUpdate>[
               wartenderEintrag(
                 status: PendingPersonUpdateStatus.needsResolution,
@@ -928,7 +926,7 @@ void main() {
               ),
             ],
           ),
-          logger: _FakeLoggerService(),
+          logger: FakeLoggerService(),
           onMemberUpdated: (_) async {},
         );
         await model.loadPending();
@@ -968,7 +966,7 @@ void main() {
         final writeRepository = _FakeMemberWriteRepository();
         final model = MemberEditModel(
           memberWriteRepository: writeRepository,
-          pendingRepository: _InMemoryPendingPersonUpdateRepository(
+          pendingRepository: InMemoryPendingPersonUpdateRepository(
             entries: <PendingPersonUpdate>[
               wartenderEintrag(
                 status: PendingPersonUpdateStatus.needsResolution,
@@ -976,7 +974,7 @@ void main() {
               ),
             ],
           ),
-          logger: _FakeLoggerService(),
+          logger: FakeLoggerService(),
           onMemberUpdated: (_) async {},
         );
         await model.loadPending();
@@ -1000,7 +998,7 @@ void main() {
       final writeRepository = _FakeMemberWriteRepository(
         onUpdate: (_, _) => blocker.future,
       );
-      final pendingRepository = _InMemoryPendingPersonUpdateRepository(
+      final pendingRepository = InMemoryPendingPersonUpdateRepository(
         entries: <PendingPersonUpdate>[
           _pendingEntry(entryId: 'person-1', personId: 1, mitgliedsnummer: '1'),
         ],
@@ -1008,7 +1006,7 @@ void main() {
       final model = MemberEditModel(
         memberWriteRepository: writeRepository,
         pendingRepository: pendingRepository,
-        logger: _FakeLoggerService(),
+        logger: FakeLoggerService(),
         onMemberUpdated: (_) async {},
       );
       await model.loadPending();
@@ -1043,13 +1041,13 @@ void main() {
           personId: 1,
           mitgliedsnummer: '1',
         );
-        final pendingRepository = _InMemoryPendingPersonUpdateRepository(
+        final pendingRepository = InMemoryPendingPersonUpdateRepository(
           entries: <PendingPersonUpdate>[alterEintrag],
         );
         final model = MemberEditModel(
           memberWriteRepository: writeRepository,
           pendingRepository: pendingRepository,
-          logger: _FakeLoggerService(),
+          logger: FakeLoggerService(),
           onMemberUpdated: (_) async {},
         );
         await model.loadPending();
@@ -1077,15 +1075,15 @@ void main() {
   group('submitUpdate Ergebnisse', () {
     Future<MemberEditSubmitResult> submitWith(
       Object updateResult, {
-      _InMemoryPendingPersonUpdateRepository? pendingRepository,
+      InMemoryPendingPersonUpdateRepository? pendingRepository,
     }) async {
       final model = MemberEditModel(
         memberWriteRepository: _FakeMemberWriteRepository(
           updateResultsByPersonId: <int, Object>{23: updateResult},
         ),
         pendingRepository:
-            pendingRepository ?? _InMemoryPendingPersonUpdateRepository(),
-        logger: _FakeLoggerService(),
+            pendingRepository ?? InMemoryPendingPersonUpdateRepository(),
+        logger: FakeLoggerService(),
         onMemberUpdated: (_) async {},
       );
       await model.loadPending();
@@ -1098,7 +1096,7 @@ void main() {
     }
 
     test('speichert einen Merge-Konflikt als offenen Problemfall', () async {
-      final pendingRepository = _InMemoryPendingPersonUpdateRepository();
+      final pendingRepository = InMemoryPendingPersonUpdateRepository();
       final remote = _mitglied(
         personId: 23,
         mitgliedsnummer: '4711',
@@ -1137,7 +1135,7 @@ void main() {
     });
 
     test('verwirft Aenderungen ohne updatedAt ohne Queue', () async {
-      final pendingRepository = _InMemoryPendingPersonUpdateRepository();
+      final pendingRepository = InMemoryPendingPersonUpdateRepository();
 
       final result = await submitWith(
         const MemberWriteUpdatedAtMissingException('updatedAt fehlt'),
@@ -1151,7 +1149,7 @@ void main() {
     });
 
     test('verwirft Aenderungen bei 409-Konflikt ohne Queue', () async {
-      final pendingRepository = _InMemoryPendingPersonUpdateRepository();
+      final pendingRepository = InMemoryPendingPersonUpdateRepository();
 
       final result = await submitWith(
         const MemberWriteConflictException('Konflikt'),
@@ -1179,7 +1177,7 @@ void main() {
     test(
       'merkt die Aenderung bei nicht erreichbarem Hitobito mit Hinweis vor',
       () async {
-        final pendingRepository = _InMemoryPendingPersonUpdateRepository();
+        final pendingRepository = InMemoryPendingPersonUpdateRepository();
 
         final result = await submitWith(
           const MemberWriteNetworkUnavailableException('nicht erreichbar'),
@@ -1197,8 +1195,8 @@ void main() {
       final writeRepository = _FakeMemberWriteRepository();
       final model = MemberEditModel(
         memberWriteRepository: writeRepository,
-        pendingRepository: _InMemoryPendingPersonUpdateRepository(),
-        logger: _FakeLoggerService(),
+        pendingRepository: InMemoryPendingPersonUpdateRepository(),
+        logger: FakeLoggerService(),
         onMemberUpdated: (_) async {},
       );
       final ohnePersonId = Mitglied.peopleListItem(
@@ -1224,7 +1222,7 @@ void main() {
       ({
         PendingPersonUpdateRetrySummary summary,
         List<PendingPersonUpdate> remaining,
-        _FakeLoggerService logger,
+        FakeLoggerService logger,
       })
     >
     retryWith(
@@ -1233,8 +1231,8 @@ void main() {
       Iterable<String>? entryIds,
       Future<void> Function(Mitglied member)? onMemberUpdated,
     }) async {
-      final logger = _FakeLoggerService();
-      final pendingRepository = _InMemoryPendingPersonUpdateRepository(
+      final logger = FakeLoggerService();
+      final pendingRepository = InMemoryPendingPersonUpdateRepository(
         entries:
             entries ??
             updateResults.keys
@@ -1537,20 +1535,20 @@ void main() {
     final jetzt = DateTime(2026, 4, 14, 12, 0);
 
     MemberEditModel modelFor(
-      _InMemoryPendingPersonUpdateRepository repository,
+      InMemoryPendingPersonUpdateRepository repository,
       _FakeMemberWriteRepository writeRepository,
     ) {
       return MemberEditModel(
         memberWriteRepository: writeRepository,
         pendingRepository: repository,
-        logger: _FakeLoggerService(),
+        logger: FakeLoggerService(),
         onMemberUpdated: (_) async {},
         nowProvider: () => jetzt,
       );
     }
 
     test('sendet automatisch nur faellige Eintraege', () async {
-      final repository = _InMemoryPendingPersonUpdateRepository(
+      final repository = InMemoryPendingPersonUpdateRepository(
         entries: <PendingPersonUpdate>[
           _pendingEntry(entryId: 'person-1', personId: 1, mitgliedsnummer: '1'),
           _pendingEntry(
@@ -1582,7 +1580,7 @@ void main() {
     test(
       'sendet manuell auch nicht faellige und pausierte Eintraege',
       () async {
-        final repository = _InMemoryPendingPersonUpdateRepository(
+        final repository = InMemoryPendingPersonUpdateRepository(
           entries: <PendingPersonUpdate>[
             _pendingEntry(
               entryId: 'person-1',
@@ -1610,7 +1608,7 @@ void main() {
     test(
       'sendet nach geleerter Box keine alten Eintraege aus dem Speicher',
       () async {
-        final repository = _InMemoryPendingPersonUpdateRepository(
+        final repository = InMemoryPendingPersonUpdateRepository(
           entries: <PendingPersonUpdate>[
             _pendingEntry(
               entryId: 'person-1',
@@ -1640,7 +1638,7 @@ void main() {
     test('zaehlt und findet offene Problemfaelle', () async {
       final model = MemberEditModel(
         memberWriteRepository: _FakeMemberWriteRepository(),
-        pendingRepository: _InMemoryPendingPersonUpdateRepository(
+        pendingRepository: InMemoryPendingPersonUpdateRepository(
           entries: <PendingPersonUpdate>[
             _pendingEntry(
               entryId: 'person-1',
@@ -1654,7 +1652,7 @@ void main() {
             ).copyWith(status: PendingPersonUpdateStatus.needsResolution),
           ],
         ),
-        logger: _FakeLoggerService(),
+        logger: FakeLoggerService(),
         onMemberUpdated: (_) async {},
       );
       await model.loadPending();
@@ -1674,8 +1672,8 @@ void main() {
         memberWriteRepository: _FakeMemberWriteRepository(
           fetchResultsByPersonId: <int, Object>{23: fetchResult},
         ),
-        pendingRepository: _InMemoryPendingPersonUpdateRepository(),
-        logger: _FakeLoggerService(),
+        pendingRepository: InMemoryPendingPersonUpdateRepository(),
+        logger: FakeLoggerService(),
         onMemberUpdated: (_) async {},
       );
       return model.prepareForEdit(
@@ -1732,10 +1730,10 @@ void main() {
       final writeRepository = _FakeMemberWriteRepository();
       final model = MemberEditModel(
         memberWriteRepository: writeRepository,
-        pendingRepository: _InMemoryPendingPersonUpdateRepository(
+        pendingRepository: InMemoryPendingPersonUpdateRepository(
           entries: <PendingPersonUpdate>[entry],
         ),
-        logger: _FakeLoggerService(),
+        logger: FakeLoggerService(),
         onMemberUpdated: (_) async {},
       );
       await model.loadPending();
@@ -1756,8 +1754,8 @@ void main() {
     test('lehnt eine ungueltige personId ab', () async {
       final model = MemberEditModel(
         memberWriteRepository: _FakeMemberWriteRepository(),
-        pendingRepository: _InMemoryPendingPersonUpdateRepository(),
-        logger: _FakeLoggerService(),
+        pendingRepository: InMemoryPendingPersonUpdateRepository(),
+        logger: FakeLoggerService(),
         onMemberUpdated: (_) async {},
       );
 
@@ -1791,8 +1789,8 @@ void main() {
             23: basisMitglied.copyWith(vorname: 'Juliane'),
           },
         ),
-        pendingRepository: _InMemoryPendingPersonUpdateRepository(),
-        logger: _FakeLoggerService(),
+        pendingRepository: InMemoryPendingPersonUpdateRepository(),
+        logger: FakeLoggerService(),
         onMemberUpdated: (_) async {},
         onMemberSaved: () async => saved++,
       );
@@ -1817,8 +1815,8 @@ void main() {
             fetchResultsByPersonId: <int, Object>{23: basisMitglied},
             updateResultsByPersonId: <int, Object>{23: Exception('offline')},
           ),
-          pendingRepository: _InMemoryPendingPersonUpdateRepository(),
-          logger: _FakeLoggerService(),
+          pendingRepository: InMemoryPendingPersonUpdateRepository(),
+          logger: FakeLoggerService(),
           onMemberUpdated: (_) async {},
           onMemberSaved: () async => saved++,
         );
@@ -1849,13 +1847,13 @@ void main() {
               2: _mitglied(personId: 2, mitgliedsnummer: '2'),
             },
           ),
-          pendingRepository: _InMemoryPendingPersonUpdateRepository(
+          pendingRepository: InMemoryPendingPersonUpdateRepository(
             entries: <PendingPersonUpdate>[
               _pendingEntry(entryId: 'a', personId: 1, mitgliedsnummer: '1'),
               _pendingEntry(entryId: 'b', personId: 2, mitgliedsnummer: '2'),
             ],
           ),
-          logger: _FakeLoggerService(),
+          logger: FakeLoggerService(),
           onMemberUpdated: (_) async {},
           onMemberSaved: () async => saved++,
         );
@@ -1874,8 +1872,8 @@ void main() {
             23: basisMitglied.copyWith(vorname: 'Juliane'),
           },
         ),
-        pendingRepository: _InMemoryPendingPersonUpdateRepository(),
-        logger: _FakeLoggerService(),
+        pendingRepository: InMemoryPendingPersonUpdateRepository(),
+        logger: FakeLoggerService(),
         onMemberUpdated: (_) async {},
         onMemberSaved: () async => throw StateError('kaputt'),
       );
@@ -1989,153 +1987,4 @@ class _FakeMemberWriteRepository implements MemberWriteRepository {
     }
     return zielMitglied;
   }
-}
-
-class _InMemoryPendingPersonUpdateRepository
-    implements PendingPersonUpdateRepository {
-  _InMemoryPendingPersonUpdateRepository({
-    List<PendingPersonUpdate> entries = const <PendingPersonUpdate>[],
-  }) : _entries = List<PendingPersonUpdate>.from(entries);
-
-  final List<PendingPersonUpdate> _entries;
-
-  @override
-  Future<void> clear() async {
-    _entries.clear();
-  }
-
-  @override
-  Future<List<PendingPersonUpdate>> loadAll() async {
-    return List<PendingPersonUpdate>.unmodifiable(_entries);
-  }
-
-  @override
-  Future<void> remove(String entryId) async {
-    _entries.removeWhere((entry) => entry.entryId == entryId);
-  }
-
-  @override
-  Future<void> save(PendingPersonUpdate entry) async {
-    final index = _entries.indexWhere(
-      (existing) =>
-          existing.entryId == entry.entryId ||
-          existing.personId == entry.personId,
-    );
-    if (index >= 0) {
-      _entries[index] = entry;
-      return;
-    }
-    _entries.add(entry);
-  }
-}
-
-class _FakeLoggerService extends LoggerService {
-  _FakeLoggerService()
-    : super(
-        settingsRepository: _FakeAppSettingsRepository(),
-        navigatorKey: GlobalKey<NavigatorState>(),
-      );
-
-  final List<String> messages = <String>[];
-  final List<_TrackedEvent> events = <_TrackedEvent>[];
-
-  @override
-  Future<void> log(String service, String message) async {
-    messages.add('$service|$message');
-  }
-
-  @override
-  Future<void> logInfo(String service, String message) async {
-    messages.add('$service|$message');
-  }
-
-  @override
-  Future<void> logWarn(String service, String message) async {
-    messages.add('$service|$message');
-  }
-
-  @override
-  Future<void> logError(
-    String service,
-    String message, {
-    Object? error,
-    StackTrace? stackTrace,
-  }) async {
-    messages.add('$service|$message');
-  }
-
-  @override
-  Future<void> trackEvent(String name, Map<String, Object?> properties) async {
-    events.add(
-      _TrackedEvent(
-        name: name,
-        properties: Map<String, Object?>.from(properties),
-      ),
-    );
-  }
-}
-
-class _TrackedEvent {
-  const _TrackedEvent({required this.name, required this.properties});
-
-  final String name;
-  final Map<String, Object?> properties;
-
-  @override
-  bool operator ==(Object other) {
-    return other is _TrackedEvent &&
-        other.name == name &&
-        _mapEquals(other.properties, properties);
-  }
-
-  @override
-  int get hashCode => Object.hash(name, Object.hashAll(properties.entries));
-
-  static bool _mapEquals(
-    Map<String, Object?> left,
-    Map<String, Object?> right,
-  ) {
-    if (identical(left, right)) {
-      return true;
-    }
-    if (left.length != right.length) {
-      return false;
-    }
-    for (final entry in left.entries) {
-      if (!right.containsKey(entry.key) || right[entry.key] != entry.value) {
-        return false;
-      }
-    }
-    return true;
-  }
-}
-
-class _FakeAppSettingsRepository extends AppSettingsRepository {
-  @override
-  Future<AppSettings> load() async => const AppSettings(
-    themeMode: ThemeMode.system,
-    languageCode: 'de',
-    analyticsEnabled: false,
-  );
-
-  @override
-  Future<void> saveAnalyticsEnabled(bool enabled) async {}
-
-  @override
-  Future<void> saveBiometricLockEnabled(bool enabled) async {}
-
-  @override
-  Future<void> saveMemberListSearchResultHighlightEnabled(bool enabled) async {}
-
-  @override
-  Future<void> saveGeburstagsbenachrichtigungStufen(Set<Stufe> stufen) async {}
-
-  @override
-  Future<void> saveLanguageCode(String code) async {}
-
-  @override
-  Future<void> saveNotificationsEnabled(bool enabled) async {}
-
-  @override
-  Future<void> saveThemeMode(ThemeMode mode) async {}
 }
