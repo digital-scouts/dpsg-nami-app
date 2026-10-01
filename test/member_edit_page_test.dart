@@ -790,6 +790,37 @@ void main() {
     },
   );
 
+  testWidgets(
+    'sendet eine nur anders formatierte Nummer unveraendert zurueck',
+    (tester) async {
+      const formatted = MitgliedKontaktTelefon(
+        phoneNumberId: 1,
+        wert: '+49 (0170) 123-4567',
+        label: 'Mobil',
+      );
+      final member = _buildMember(
+        gender: '',
+      ).copyWith(telefonnummern: const <MitgliedKontaktTelefon>[formatted]);
+      final model = _RecordingMemberEditModel();
+
+      _useLargeViewport(tester);
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberEditPage(mitglied: member),
+          providers: _buildEditProviders(model),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('member-edit-save-button')));
+      await tester.pumpAndSettle();
+
+      expect(
+        model.submitCalls.single.zielMitglied.telefonnummern,
+        const <MitgliedKontaktTelefon>[formatted],
+      );
+    },
+  );
+
   group('Problemloesungsmodus', () {
     const firstNameConflict = MemberResolutionItem(
       problemType: MemberResolutionProblemType.conflict,
@@ -849,6 +880,86 @@ void main() {
     String fieldText(WidgetTester tester, Key key) {
       return tester.widget<TextFormField>(find.byKey(key)).controller!.text;
     }
+
+    group('neue Telefonnummer mit Servervalidierung', () {
+      final newPhoneTarget = MemberResolutionTarget(
+        type: MemberResolutionTargetType.phone,
+        fingerprint: MemberResolutionTarget.newContactFingerprint(1),
+      );
+      final categoryItem = MemberResolutionItem(
+        problemType: MemberResolutionProblemType.validation,
+        cause: MemberResolutionCause.serverValidation,
+        target: newPhoneTarget,
+        message: 'Kategorie muss ausgefüllt werden',
+      );
+      final numberItem = MemberResolutionItem(
+        problemType: MemberResolutionProblemType.validation,
+        cause: MemberResolutionCause.serverValidation,
+        target: newPhoneTarget,
+        message: 'Nummer ist nicht gültig',
+      );
+
+      PendingPersonUpdate buildEntry() {
+        final member = _buildMember(gender: '');
+        final ziel = member.copyWith(
+          telefonnummern: <MitgliedKontaktTelefon>[
+            ...member.telefonnummern,
+            const MitgliedKontaktTelefon(wert: '+49170111', label: 'Mobil'),
+          ],
+        );
+        return _buildResolutionEntry(
+          basisMitglied: member,
+          zielMitglied: ziel,
+          remoteMitglied: ziel,
+          items: <MemberResolutionItem>[categoryItem, numberItem],
+        );
+      }
+
+      testWidgets('zeigt beide Meldungen in einer Karte mit einem Vergleich', (
+        tester,
+      ) async {
+        await pumpResolutionPage(
+          tester,
+          pendingEntry: buildEntry(),
+          model: _RecordingMemberEditModel(),
+        );
+
+        expect(find.text('Kategorie muss ausgefüllt werden'), findsOneWidget);
+        expect(find.text('Nummer ist nicht gültig'), findsOneWidget);
+        expect(
+          find.byKey(Key('member-edit-resolution-edit-${numberItem.itemId}')),
+          findsOneWidget,
+        );
+        // Aktuell zeigt die neue Nummer, der vorherige Stand kennt sie nicht.
+        expect(find.text('+49170111'), findsOneWidget);
+        expect(find.text('Mobil'), findsOneWidget);
+        expect(find.text('Lokale Änderung verwerfen'), findsOneWidget);
+      });
+
+      testWidgets('Lokale Änderung verwerfen entfernt die neue Nummer', (
+        tester,
+      ) async {
+        await pumpResolutionPage(
+          tester,
+          pendingEntry: buildEntry(),
+          model: _RecordingMemberEditModel(),
+        );
+
+        await tester.tap(find.text('Lokale Änderung verwerfen'));
+        await tester.pumpAndSettle();
+        await expandEditSection(tester);
+
+        expect(
+          find.byKey(const Key('member-edit-phone-number-0')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const Key('member-edit-phone-number-1')),
+          findsNothing,
+        );
+        expect(find.text('Nummer ist nicht gültig'), findsNothing);
+      });
+    });
 
     testWidgets(
       'Lokal behalten blendet Konflikt aus und behaelt lokalen Wert',
