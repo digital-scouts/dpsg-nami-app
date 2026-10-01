@@ -1,7 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hive_ce/hive.dart';
 import 'package:nami/data/achievements/shared_prefs_achievement_repository.dart';
+import 'package:nami/data/statistiks/shared_prefs_statistik_verlauf_repository.dart';
 import 'package:nami/domain/achievements/achievement_definition.dart';
 import 'package:nami/domain/auth/auth_profile.dart';
 import 'package:nami/domain/auth/auth_profile_repository.dart';
@@ -10,6 +15,7 @@ import 'package:nami/domain/auth/auth_session_repository.dart';
 import 'package:nami/domain/auth/auth_state.dart';
 import 'package:nami/domain/settings/app_settings.dart';
 import 'package:nami/domain/settings/app_settings_repository.dart';
+import 'package:nami/domain/statistiks/statistik_verlauf.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/services/achievement_service.dart';
@@ -24,6 +30,82 @@ import 'package:nami/services/sensitive_storage_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  test(
+    'Abmelden loescht sensible Daten, aber nicht den Statistik-Verlauf',
+    () async {
+      // Der Verlauf baut sich ueber Monate auf und enthaelt nur Summen; er
+      // soll ein Abmelden ueberstehen. Echte Speicher, damit ein spaeteres
+      // Aufraeumen im Logout hier auffaellt.
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      FlutterSecureStorage.setMockInitialValues(<String, String>{});
+      final tempDir = await Directory.systemTemp.createTemp('logout_verlauf_');
+      Hive.init(tempDir.path);
+      addTearDown(() async {
+        await Hive.close();
+        await tempDir.delete(recursive: true);
+      });
+
+      final sensitiveStorage = SensitiveStorageService();
+      final mitglieder = await sensitiveStorage.openEncryptedStringBox(
+        'hitobito_people_box',
+      );
+      await mitglieder.put('person-1', '{"name":"Mara"}');
+
+      final verlauf = SharedPrefsStatistikVerlaufRepository();
+      const eintraege = <StatistikVerlaufEintrag>[
+        StatistikVerlaufEintrag(
+          monat: '2026-08',
+          personen: 74,
+          kinder: 56,
+          leitende: 14,
+        ),
+        StatistikVerlaufEintrag(
+          monat: '2026-09',
+          personen: 75,
+          kinder: 57,
+          leitende: 14,
+        ),
+      ];
+      await verlauf.saveForLayer(31, eintraege);
+
+      final model = AuthSessionModel(
+        repository: _InMemoryAuthSessionRepository(
+          initialSession: AuthSession(
+            accessToken: 'access-token',
+            refreshToken: 'refresh-token',
+            receivedAt: DateTime(2026, 9, 30),
+          ),
+        ),
+        profileRepository: _InMemoryAuthProfileRepository(),
+        oauthService: _FakeOauthService(
+          sessionToReturn: AuthSession(
+            accessToken: 'access-token',
+            receivedAt: DateTime(2026, 9, 30),
+          ),
+          profileToReturn: const AuthProfile(namiId: 31),
+        ),
+        biometricLockService: _FakeBiometricLockService(),
+        sensitiveStorageService: sensitiveStorage,
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => DateTime(2026, 9, 30, 12),
+        ),
+        logger: _createLogger(),
+      );
+
+      await model.logout();
+
+      expect(model.state, AuthState.signedOut);
+      final mitgliederNachher = await sensitiveStorage.openEncryptedStringBox(
+        'hitobito_people_box',
+      );
+      expect(mitgliederNachher.get('person-1'), isNull);
+      expect(await verlauf.loadForLayer(31), eintraege);
+    },
+    timeout: const Timeout(Duration(seconds: 5)),
+  );
+
   test(
     'setzt unbekannte Profilsprache nach Login auf deutsch zurueck',
     () async {
