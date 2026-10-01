@@ -42,6 +42,7 @@ import 'stories/member_roles_statistik_pie_story.dart';
 import 'stories/statistics_page_story.dart';
 import 'stories/statistik_age_distribution_story.dart';
 import 'stories/statistik_group_distribution_story.dart';
+import 'stories/statistik_kacheln_story.dart';
 import 'stories/store/store_scenes_story.dart';
 
 Future<void> main() async {
@@ -114,6 +115,7 @@ List<Story> buildStorybookStories() {
     stufenwechselPageStory(),
     statisticsPageStory(),
     statisticsGroupDetailStory(),
+    statistikKachelnGalerieStory(),
     ageDistributionStory(),
     groupDistributionStory(),
     bundesvergleichStory(),

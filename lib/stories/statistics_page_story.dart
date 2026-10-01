@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:nami/data/statistiks/shared_prefs_statistik_kachel_repository.dart';
+import 'package:nami/data/statistiks/shared_prefs_statistik_verlauf_repository.dart';
 import 'package:nami/domain/appearance/appearance_catalog.dart';
+import 'package:nami/domain/statistiks/statistik_kachel_einstellungen.dart';
+import 'package:nami/domain/statistiks/statistik_verlauf.dart';
 import 'package:nami/presentation/model/bundesstatistik_model.dart';
 import 'package:nami/presentation/screens/statistics_group_detail_page.dart';
 import 'package:nami/presentation/screens/statistics_page.dart';
+import 'package:nami/presentation/statistics/statistik_stamm_ansicht.dart';
 import 'package:nami/stories/bundesstatistik_story.dart';
-import 'package:nami/stories/store/store_showcase_data.dart';
+import 'package:nami/stories/statistik/statistik_kachel_beispiele.dart';
 import 'package:nami/stories/story_tab_shell.dart';
 import 'package:provider/provider.dart';
 // ignore: depend_on_referenced_packages
@@ -29,19 +34,39 @@ Story statisticsPageStory() {
         label: 'Mit Lade-Info',
         initial: false,
       );
+      final datensatz = context.knobs.options<StatistikBeispielDatensatz>(
+        label: 'Datensatz',
+        initial: StatistikBeispielDatensatz.silberfels,
+        options: [
+          for (final d in StatistikBeispielDatensatz.values)
+            Option(label: d.label, value: d),
+        ],
+      );
+      final thema = context.knobs.options<StatistikThema>(
+        label: 'Thema',
+        initial: StatistikThema.ueberblick,
+        options: const [
+          Option(label: 'Überblick', value: StatistikThema.ueberblick),
+          Option(label: 'Stufen', value: StatistikThema.stufen),
+          Option(label: 'Entwicklung', value: StatistikThema.entwicklung),
+        ],
+      );
       return StatisticsPageStoryScene(
         textScale: textScale,
         background: background,
         dark: dark,
         bundesstatistik: bundesweit,
         showLoadingInfo: loading,
+        datensatz: datensatz,
+        thema: thema,
       );
     },
   );
 }
 
 /// Statistik-Tab wie in der App, mit Beispieldaten und einer Bundesstatistik
-/// ohne Server im gewaehlten Zustand.
+/// ohne Server im gewaehlten Zustand. Kachel-Belegung und Verlauf kommen aus
+/// dem Datensatz und liegen nur im Speicher.
 class StatisticsPageStoryScene extends StatelessWidget {
   const StatisticsPageStoryScene({
     super.key,
@@ -51,6 +76,8 @@ class StatisticsPageStoryScene extends StatelessWidget {
     this.showLoadingInfo = false,
     this.simulateTopInset = true,
     this.textScale = 1,
+    this.datensatz = StatistikBeispielDatensatz.silberfels,
+    this.thema = StatistikThema.ueberblick,
   });
 
   final AppearanceBackgroundId? background;
@@ -59,13 +86,22 @@ class StatisticsPageStoryScene extends StatelessWidget {
   final bool showLoadingInfo;
   final bool simulateTopInset;
   final double textScale;
+  final StatistikBeispielDatensatz datensatz;
+  final StatistikThema thema;
 
   @override
   Widget build(BuildContext context) {
-    final readModel = StoreShowcaseData.readModel();
+    final heute = DateTime.now();
+    final readModel = datensatz.readModel(heute);
+    final layerId = readModel.arbeitskontext.aktiverLayer.id;
+    final kacheln = InMemoryStatistikKachelRepository()
+      ..saveForLayer(layerId, datensatz.einstellungen);
+    final verlauf = InMemoryStatistikVerlaufRepository()
+      ..saveForLayer(layerId, datensatz.verlauf(heute));
     return StoryTabPage(
       key: ValueKey(
-        '$background-$dark-$bundesstatistik-$showLoadingInfo-$textScale',
+        '$background-$dark-$bundesstatistik-$showLoadingInfo-$textScale-'
+        '$datensatz-$thema',
       ),
       tabIndex: 1,
       background: background,
@@ -78,8 +114,10 @@ class StatisticsPageStoryScene extends StatelessWidget {
           create: (_) =>
               storyBundesstatistikModel(readModel, szenario: bundesstatistik),
         ),
+        Provider<StatistikKachelRepository>.value(value: kacheln),
+        Provider<StatistikVerlaufRepository>.value(value: verlauf),
       ],
-      child: StatisticsPage(debugReadModel: readModel),
+      child: StatisticsPage(debugReadModel: readModel, debugThema: thema),
     );
   }
 }
