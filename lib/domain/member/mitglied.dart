@@ -344,6 +344,11 @@ class Mitglied {
       geburtsdatum.month != peoplePlaceholderDate.month ||
       geburtsdatum.day != peoplePlaceholderDate.day;
 
+  bool get hatBekanntesEintrittsdatum =>
+      eintrittsdatum.year != peoplePlaceholderDate.year ||
+      eintrittsdatum.month != peoplePlaceholderDate.month ||
+      eintrittsdatum.day != peoplePlaceholderDate.day;
+
   /// Eigene Adresse der Person (Konvention: `additionalAddressId == 0`).
   /// Die Position in [adressen] ist dafuer nicht massgeblich, damit eine
   /// geleerte Hauptadresse nicht durch eine Zusatzadresse ersetzt wird.
