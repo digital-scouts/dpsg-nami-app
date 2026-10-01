@@ -53,6 +53,8 @@ import 'package:provider/provider.dart';
 import 'package:wiredash/wiredash.dart';
 
 import 'data/member_filters/shared_prefs_member_filter_repository.dart';
+import 'data/statistiks/shared_prefs_statistik_kachel_repository.dart';
+import 'data/statistiks/shared_prefs_statistik_verlauf_repository.dart';
 import 'data/bundesstatistik/http_bundesstatistik_repository.dart';
 import 'data/bundesstatistik/secure_installation_credentials_repository.dart';
 import 'data/bundesstatistik/shared_prefs_bundesstatistik_teilnahme_repository.dart';
@@ -64,6 +66,8 @@ import 'domain/auth/auth_profile.dart';
 import 'domain/auth/auth_state.dart';
 import 'domain/settings/app_settings.dart';
 import 'domain/settings/app_settings_repository.dart';
+import 'domain/statistiks/statistik_kachel_einstellungen.dart';
+import 'domain/statistiks/statistik_verlauf.dart';
 import 'l10n/app_localizations.dart';
 import 'presentation/model/app_settings_model.dart';
 import 'presentation/model/appearance_model.dart';
@@ -80,6 +84,7 @@ import 'services/app_reset_service.dart';
 import 'services/app_runtime_controller.dart';
 import 'services/app_startup_state_service.dart';
 import 'services/app_update_service.dart';
+import 'services/statistik_verlauf_service.dart';
 import 'services/biometric_lock_service.dart';
 import 'services/bundesstatistik_env.dart';
 import 'services/data_expiry_notification_service.dart';
@@ -190,6 +195,12 @@ Future<void> _startApp({
   final MemberFilterRepository memberFilterRepository = isDemo
       ? InMemoryMemberFilterRepository()
       : SharedPrefsMemberFilterRepository();
+  final StatistikKachelRepository statistikKachelRepository = isDemo
+      ? InMemoryStatistikKachelRepository()
+      : SharedPrefsStatistikKachelRepository();
+  final StatistikVerlaufRepository statistikVerlaufRepository = isDemo
+      ? InMemoryStatistikVerlaufRepository()
+      : SharedPrefsStatistikVerlaufRepository();
   final appStartupStateService = AppStartupStateService();
   final AppSettings initial = await settingsRepo.load();
   final urgentNotificationModel = UrgentNotificationModel();
@@ -401,6 +412,20 @@ Future<void> _startApp({
   authModel.addListener(syncBundesstatistik);
   arbeitskontextModel.addListener(syncBundesstatistik);
 
+  // Monatliche Summen für die Statistik-Kachel „Verlauf“ (nur auf dem Gerät).
+  final statistikVerlaufService = StatistikVerlaufService(
+    repository: statistikVerlaufRepository,
+  );
+  arbeitskontextModel.addListener(
+    () => unawaited(
+      statistikVerlaufService.aktualisiere(
+        arbeitskontextModel.readModel,
+        ladeLaeuft:
+            arbeitskontextModel.isLoading || arbeitskontextModel.isLoadingRoles,
+      ),
+    ),
+  );
+
   final pendingPersonUpdateRepository = SecurePendingPersonUpdateRepository(
     sensitiveStorageService: sensitiveStorageService,
   );
@@ -516,6 +541,12 @@ Future<void> _startApp({
         ChangeNotifierProvider<AppSettingsModel>.value(value: appSettingsModel),
         ChangeNotifierProvider<MemberFiltersModel>.value(
           value: memberFiltersModel,
+        ),
+        Provider<StatistikKachelRepository>.value(
+          value: statistikKachelRepository,
+        ),
+        Provider<StatistikVerlaufRepository>.value(
+          value: statistikVerlaufRepository,
         ),
         ChangeNotifierProvider<UrgentNotificationModel>.value(
           value: urgentNotificationModel,
