@@ -99,6 +99,8 @@ Im Abschnitt Speicherprobleme zeigt die App pro betroffenem Eintrag:
 
 Telefonnummern und Zusatzmails werden dabei mit Bezeichnung und Wert angezeigt.
 
+Meldet Hitobito mehrere Probleme zur selben Änderungseinheit, etwa eine fehlende Kategorie und eine ungültige Nummer bei derselben Telefonnummer, erscheinen alle Meldungen in einem gemeinsamen Eintrag mit nur einem Vergleich. Das gilt auch für neu angelegte Telefonnummern, Zusatzmails und Zusatzadressen, die in Hitobito noch nicht existieren. Bei ihnen ist der vorherige Stand leer.
+
 Adressen werden nicht als ein einziger String gezeigt, sondern mit ihren einzelnen Feldern untereinander, zum Beispiel Bezeichnung, c/o, Straße, Hausnummer, PLZ, Ort und Land.
 
 Der normale Bearbeiten-Bereich bleibt im selben Screen verfügbar, ist beim Einstieg in den Problemlösungsfall aber zunächst eingeklappt.
@@ -133,6 +135,8 @@ Bei späteren Validierungsproblemen:
 - lokale Änderung verwerfen
 
 Anschließend sendet die App den verbleibenden Stand für dieses Mitglied erneut.
+
+Lehnt Hitobito auch das erneute Senden ab, bleibt der Problemlösungsfall bestehen und zeigt danach die Meldungen des letzten Versuchs.
 
 ## Verhalten bei manuellem Speichern und späterem Retry
 
