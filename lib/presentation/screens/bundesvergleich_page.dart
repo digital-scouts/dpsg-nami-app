@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 
 import '../../domain/bundesstatistik/bundesaggregat.dart';
 import '../../domain/bundesstatistik/stammes_snapshot.dart';
+import '../../domain/taetigkeit/stufe.dart';
+import '../../l10n/app_localizations.dart';
 import '../model/bundesstatistik_model.dart';
 import '../statistics/statistics_ui.dart';
 import '../widgets/bundesstatistik_einwilligung_dialog.dart';
@@ -14,8 +16,9 @@ class BundesvergleichPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Bundesweiter Vergleich')),
+      appBar: AppBar(title: Text(t.t('bund_page_title'))),
       body: const BundesvergleichBody(),
     );
   }
@@ -66,6 +69,7 @@ class _BundesvergleichBodyState extends State<BundesvergleichBody> {
         eigeneKennzahlen: model.eigeneKennzahlen,
         zuletztGesendet: model.zuletztGesendeterSnapshot,
         einwilligungAm: model.einwilligungAm,
+        gruppenName: model.gruppenName,
         onEinwilligungAendern: _einwilligungAendern,
       ),
     );
@@ -83,6 +87,7 @@ class BundesvergleichView extends StatelessWidget {
     this.eigeneKennzahlen,
     this.zuletztGesendet,
     this.einwilligungAm,
+    this.gruppenName,
   });
 
   final BundesstatistikStatus status;
@@ -92,18 +97,32 @@ class BundesvergleichView extends StatelessWidget {
   final StammesKennzahlen? eigeneKennzahlen;
   final StammesSnapshot? zuletztGesendet;
   final DateTime? einwilligungAm;
+
+  /// Name einer Gruppe nach ID; ohne Namen erscheint „Gruppe 123“.
+  final String? Function(int gruppenId)? gruppenName;
   final ValueChanged<bool> onEinwilligungAendern;
 
-  static const List<(String, String)> _stufen = <(String, String)>[
-    ('biber', 'Biber'),
-    ('woelflinge', 'Wölflinge'),
-    ('jungpfadfinder', 'Jungpfadfinder'),
-    ('pfadfinder', 'Pfadfinder'),
-    ('rover', 'Rover'),
+  static const List<Stufe> stufen = <Stufe>[
+    Stufe.biber,
+    Stufe.woelfling,
+    Stufe.jungpfadfinder,
+    Stufe.pfadfinder,
+    Stufe.rover,
   ];
+
+  static const List<(String, String)> _geschlechter = <(String, String)>[
+    ('weiblich', 'bund_female'),
+    ('maennlich', 'bund_male'),
+    ('divers', 'bund_diverse'),
+    ('geschlecht_unbekannt', 'bund_gender_unknown'),
+  ];
+
+  /// Nur einzelne Gruppen lesbar: Vergleich mit Gruppen derselben Stufe.
+  bool get _teilsicht => !(eigeneKennzahlen?.abdeckung.istStamm ?? true);
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final aggregat = this.aggregat;
     final zeigeVergleich =
         status == BundesstatistikStatus.bereit && aggregat != null;
@@ -124,6 +143,7 @@ class BundesvergleichView extends StatelessWidget {
           _EinwilligungCard(
             hatEinwilligung: hatEinwilligung,
             einwilligungAm: einwilligungAm,
+            teilsicht: _teilsicht,
             onChanged: onEinwilligungAendern,
           )
         else
@@ -137,80 +157,281 @@ class BundesvergleichView extends StatelessWidget {
             padding: EdgeInsets.all(24),
             child: Center(child: CircularProgressIndicator()),
           )
+        else if (zeigeVergleich && _teilsicht)
+          ..._teilsichtVergleich(context, aggregat)
         else if (zeigeVergleich) ...[
-          _stufenVergleich(aggregat, mitglieder: true),
+          _stufenVergleich(context, aggregat, mitglieder: true),
           const SizedBox(height: 12),
-          _stufenVergleich(aggregat, mitglieder: false),
+          _stufenVergleich(context, aggregat, mitglieder: false),
           const SizedBox(height: 12),
-          _geschlechterVergleich(aggregat),
+          _gruppengroesse(context, aggregat),
           const SizedBox(height: 12),
-          _leitendeAlterVergleich(aggregat),
+          _geschlechterVergleich(context, aggregat),
+          const SizedBox(height: 12),
+          _leitendeAlterVergleich(context, aggregat),
           const SizedBox(height: 12),
           _TransparenzCard(aggregat: aggregat),
         ] else if (hatEinwilligung)
           _StatusHinweis(status: status, aggregat: aggregat),
         if (hatEinwilligung || zuletztGesendet != null) ...[
           const SizedBox(height: 12),
-          _GeteilteDatenCard(snapshot: zuletztGesendet),
+          _GeteilteDatenCard(snapshot: zuletztGesendet, gruppenName: _name(t)),
         ],
       ],
     );
   }
 
-  Widget _stufenVergleich(Bundesaggregat aggregat, {required bool mitglieder}) {
+  String Function(int) _name(AppLocalizations t) =>
+      (id) => gruppenName?.call(id) ?? t.t('bund_group_fallback', {'id': id});
+
+  static String stufenName(AppLocalizations t, Stufe stufe) =>
+      t.t('bund_stage_${stufenSchluessel[stufe]}');
+
+  // ------------------------------------------------------------ Teilsicht
+
+  List<Widget> _teilsichtVergleich(BuildContext context, Bundesaggregat a) {
+    final t = AppLocalizations.of(context);
+    final eigene = eigeneKennzahlen!;
+    final gruppen = eigene.abgedeckteGruppen;
+    final name = _name(t);
+    final eigeneStufen = {for (final g in gruppen) g.stufe};
+    // Die Stufengröße nur zeigen, wenn alle Gruppen der Stufe lesbar sind.
+    final vollstaendigeStufen = [
+      for (final s in stufen)
+        if (eigeneStufen.contains(s) && eigene.stufe(s).gesamt != null) s,
+    ];
+    return [
+      for (final g in gruppen) ...[
+        _gruppenVergleich(context, a, g, name(g.gruppenId)),
+        const SizedBox(height: 12),
+        _gruppenGeschlecht(context, a, g, name(g.gruppenId)),
+        const SizedBox(height: 12),
+      ],
+      _gruppenJeStamm(context, a, eigeneStufen),
+      if (vollstaendigeStufen.isNotEmpty) ...[
+        const SizedBox(height: 12),
+        _stufenVergleich(
+          context,
+          a,
+          mitglieder: true,
+          nurStufen: vollstaendigeStufen,
+        ),
+      ],
+      const SizedBox(height: 12),
+      _TransparenzCard(aggregat: a),
+    ];
+  }
+
+  Widget _gruppenVergleich(
+    BuildContext context,
+    Bundesaggregat a,
+    GruppenKennzahl gruppe,
+    String name,
+  ) {
+    final t = AppLocalizations.of(context);
+    final bund = a.gruppenDerStufe(stufenSchluessel[gruppe.stufe]!);
+    return StatisticsCard(
+      title: t.t('bund_group_compare_title', {'group': name}),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (bund != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                t.t('bund_group_compare_basis', {
+                  'groups': bund.gruppenAnzahl,
+                  'stage': stufenName(t, gruppe.stufe),
+                  'stamms': bund.stammAnzahl,
+                }),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+          _VergleichsTabelle(
+            eigeneSpalte: t.t('bund_col_own_group'),
+            zeilen: [
+              _VergleichsZeile(
+                label: t.t('bund_children'),
+                eigenerWert: gruppe.mitglieder?.gesamt,
+                bund: bund?.mitglieder['gesamt'],
+              ),
+              _VergleichsZeile(
+                label: t.t('bund_leaders'),
+                eigenerWert: gruppe.leitende?.gesamt,
+                bund: bund?.leitende['gesamt'],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _gruppenGeschlecht(
+    BuildContext context,
+    Bundesaggregat a,
+    GruppenKennzahl gruppe,
+    String name,
+  ) {
+    final t = AppLocalizations.of(context);
+    final bund = a.gruppenDerStufe(stufenSchluessel[gruppe.stufe]!);
+    final eigene = gruppe.mitglieder;
+    final eigeneWerte = <String, int>{
+      for (final (schluessel, _) in _geschlechter)
+        schluessel: eigene == null
+            ? 0
+            : _geschlechtWert(eigene, schluessel) ?? 0,
+    };
+    final bundWerte = <String, num?>{
+      for (final (schluessel, _) in _geschlechter)
+        schluessel: bund?.mitglieder[schluessel]?.summe,
+    };
+    return StatisticsCard(
+      title: t.t('bund_group_gender_title', {'group': name}),
+      child: _AnteilsTabelle(
+        eigeneSpalte: t.t('bund_col_own_group'),
+        zeilen: [
+          for (final (schluessel, label) in _geschlechter)
+            _AnteilsZeile(
+              label: t.t(label),
+              eigenerAnteil: _anteil(
+                eigeneWerte[schluessel],
+                eigeneWerte.values,
+              ),
+              bundAnteil: _anteilNullable(
+                bundWerte[schluessel],
+                bundWerte.values,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _gruppenJeStamm(
+    BuildContext context,
+    Bundesaggregat a,
+    Set<Stufe> eigeneStufen,
+  ) {
+    final t = AppLocalizations.of(context);
+    return StatisticsCard(
+      title: t.t('bund_groups_per_stamm_title'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final s in stufen)
+            if (eigeneStufen.contains(s))
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Text(
+                  t.t('bund_groups_per_stamm_text', {
+                    'stage': stufenName(t, s),
+                    'median':
+                        _formatiere(
+                          context,
+                          a
+                              .gruppenDerStufe(stufenSchluessel[s]!)
+                              ?.gruppenProStamm
+                              .median,
+                        ) ??
+                        '–',
+                    'avg':
+                        _formatiere(
+                          context,
+                          a
+                              .gruppenDerStufe(stufenSchluessel[s]!)
+                              ?.gruppenProStamm
+                              .durchschnitt,
+                        ) ??
+                        '–',
+                  }),
+                ),
+              ),
+        ],
+      ),
+    );
+  }
+
+  // ------------------------------------------------------------ Stamm
+
+  Widget _stufenVergleich(
+    BuildContext context,
+    Bundesaggregat aggregat, {
+    required bool mitglieder,
+    List<Stufe>? nurStufen,
+  }) {
+    final t = AppLocalizations.of(context);
     final eigene = eigeneKennzahlen;
     final zeilen = <_VergleichsZeile>[
-      for (final (schluessel, label) in _stufen)
+      for (final stufe in nurStufen ?? stufen)
         _VergleichsZeile(
-          label: label,
-          eigenerWert: _eigenerStufenWert(eigene, schluessel, mitglieder),
+          label: stufenName(t, stufe),
+          eigenerWert: eigene == null
+              ? null
+              : (mitglieder
+                        ? eigene.stufe(stufe)
+                        : eigene.leitendeDerStufe(stufe))
+                    .gesamt,
           bund: aggregat.kennzahl(
-            mitglieder ? '$schluessel.gesamt' : 'leitende_$schluessel.gesamt',
+            mitglieder
+                ? '${stufenSchluessel[stufe]}.gesamt'
+                : 'leitende_${stufenSchluessel[stufe]}.gesamt',
           ),
         ),
     ];
     return StatisticsCard(
-      title: mitglieder ? 'Mitglieder je Stufe' : 'Leitende je Stufe',
-      child: _VergleichsTabelle(zeilen: zeilen),
+      title: t.t(
+        mitglieder ? 'bund_members_per_stage' : 'bund_leaders_per_stage',
+      ),
+      child: _VergleichsTabelle(
+        eigeneSpalte: t.t('bund_col_own_stamm'),
+        zeilen: zeilen,
+      ),
     );
   }
 
-  int? _eigenerStufenWert(
-    StammesKennzahlen? kennzahlen,
-    String schluessel,
-    bool mitglieder,
-  ) {
-    if (kennzahlen == null) {
-      return null;
-    }
-    final GeschlechterVerteilung verteilung = switch ((
-      schluessel,
-      mitglieder,
-    )) {
-      ('biber', true) => kennzahlen.biber,
-      ('woelflinge', true) => kennzahlen.woelflinge,
-      ('jungpfadfinder', true) => kennzahlen.jungpfadfinder,
-      ('pfadfinder', true) => kennzahlen.pfadfinder,
-      ('rover', true) => kennzahlen.rover,
-      ('biber', false) => kennzahlen.leitendeBiber,
-      ('woelflinge', false) => kennzahlen.leitendeWoelflinge,
-      ('jungpfadfinder', false) => kennzahlen.leitendeJungpfadfinder,
-      ('pfadfinder', false) => kennzahlen.leitendePfadfinder,
-      _ => kennzahlen.leitendeRover,
-    };
-    return verteilung.gesamt;
+  /// Kinder und Jugendliche je Gruppe; mehrere Gruppen einer Stufe stehen
+  /// nebeneinander in der Zeile.
+  Widget _gruppengroesse(BuildContext context, Bundesaggregat aggregat) {
+    final t = AppLocalizations.of(context);
+    final gruppen = eigeneKennzahlen?.abgedeckteGruppen ?? const [];
+    final zeilen = <_GroessenZeile>[
+      for (final stufe in stufen)
+        if (gruppen.any((g) => g.stufe == stufe))
+          _GroessenZeile(
+            label: stufenName(t, stufe),
+            eigene: gruppen
+                .where((g) => g.stufe == stufe)
+                .map((g) => g.mitglieder?.gesamt?.toString() ?? '–')
+                .join(' · '),
+            median: aggregat
+                .gruppenDerStufe(stufenSchluessel[stufe]!)
+                ?.mitglieder['gesamt']
+                ?.median,
+          ),
+    ];
+    return StatisticsCard(
+      key: const Key('bundesvergleich-gruppengroesse'),
+      title: t.t('bund_group_size_title'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            t.t('bund_group_size_hint'),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 8),
+          _GroessenTabelle(zeilen: zeilen),
+        ],
+      ),
+    );
   }
 
-  Widget _geschlechterVergleich(Bundesaggregat aggregat) {
-    const geschlechter = <(String, String)>[
-      ('weiblich', 'Weiblich'),
-      ('maennlich', 'Männlich'),
-      ('divers', 'Divers'),
-      ('geschlecht_unbekannt', 'Ohne Angabe'),
-    ];
+  Widget _geschlechterVergleich(BuildContext context, Bundesaggregat aggregat) {
+    final t = AppLocalizations.of(context);
     final eigene = eigeneKennzahlen;
     final eigeneSummen = <String, int>{
-      for (final (schluessel, _) in geschlechter)
+      for (final (schluessel, _) in _geschlechter)
         schluessel: eigene == null
             ? 0
             : eigene.kernstufen.fold<int>(
@@ -220,17 +441,18 @@ class BundesvergleichView extends StatelessWidget {
               ),
     };
     final bundSummen = <String, num?>{
-      for (final (schluessel, _) in geschlechter)
+      for (final (schluessel, _) in _geschlechter)
         schluessel: _summeUeberStufen(aggregat, schluessel),
     };
 
     return StatisticsCard(
-      title: 'Geschlecht in den Stufen',
+      title: t.t('bund_gender_in_stages'),
       child: _AnteilsTabelle(
+        eigeneSpalte: t.t('bund_col_own_stamm'),
         zeilen: [
-          for (final (schluessel, label) in geschlechter)
+          for (final (schluessel, label) in _geschlechter)
             _AnteilsZeile(
-              label: label,
+              label: t.t(label),
               eigenerAnteil: _anteil(
                 eigeneSummen[schluessel],
                 eigeneSummen.values,
@@ -245,14 +467,18 @@ class BundesvergleichView extends StatelessWidget {
     );
   }
 
-  Widget _leitendeAlterVergleich(Bundesaggregat aggregat) {
+  Widget _leitendeAlterVergleich(
+    BuildContext context,
+    Bundesaggregat aggregat,
+  ) {
+    final t = AppLocalizations.of(context);
     const gruppen = <(String, String)>[
-      ('unter_21', 'unter 21'),
-      ('von_21_bis_30', '21–30'),
-      ('von_31_bis_40', '31–40'),
-      ('von_41_bis_50', '41–50'),
-      ('von_51_bis_60', '51–60'),
-      ('ueber_60', 'über 60'),
+      ('unter_21', 'bund_age_under_21'),
+      ('von_21_bis_30', 'bund_age_21_30'),
+      ('von_31_bis_40', 'bund_age_31_40'),
+      ('von_41_bis_50', 'bund_age_41_50'),
+      ('von_51_bis_60', 'bund_age_51_60'),
+      ('ueber_60', 'bund_age_over_60'),
     ];
     final eigene = eigeneKennzahlen?.leitende;
     final eigeneWerte = <String, int>{
@@ -265,12 +491,13 @@ class BundesvergleichView extends StatelessWidget {
     };
 
     return StatisticsCard(
-      title: 'Leitende nach Alter',
+      title: t.t('bund_leaders_by_age'),
       child: _AnteilsTabelle(
+        eigeneSpalte: t.t('bund_col_own_stamm'),
         zeilen: [
           for (final (schluessel, label) in gruppen)
             _AnteilsZeile(
-              label: label,
+              label: t.t(label),
               eigenerAnteil: _anteil(
                 eigeneWerte[schluessel],
                 eigeneWerte.values,
@@ -287,8 +514,10 @@ class BundesvergleichView extends StatelessWidget {
 
   num? _summeUeberStufen(Bundesaggregat aggregat, String geschlecht) {
     num summe = 0;
-    for (final (schluessel, _) in _stufen) {
-      final wert = aggregat.kennzahl('$schluessel.$geschlecht')?.summe;
+    for (final stufe in stufen) {
+      final wert = aggregat
+          .kennzahl('${stufenSchluessel[stufe]}.$geschlecht')
+          ?.summe;
       if (wert == null) {
         return null;
       }
@@ -339,15 +568,18 @@ class _EinwilligungCard extends StatelessWidget {
   const _EinwilligungCard({
     required this.hatEinwilligung,
     required this.einwilligungAm,
+    required this.teilsicht,
     required this.onChanged,
   });
 
   final bool hatEinwilligung;
   final DateTime? einwilligungAm;
+  final bool teilsicht;
   final ValueChanged<bool> onChanged;
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final seit = einwilligungAm;
     return Card(
@@ -359,11 +591,15 @@ class _EinwilligungCard extends StatelessWidget {
           children: [
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Stammesdaten teilen'),
+              title: Text(
+                t.t(teilsicht ? 'bund_share_title_groups' : 'bund_share_title'),
+              ),
               subtitle: Text(
                 hatEinwilligung && seit != null
-                    ? 'Aktiv seit ${DateFormat('dd.MM.yyyy').format(seit.toLocal())}'
-                    : 'Voraussetzung für den bundesweiten Vergleich',
+                    ? t.t('bund_share_since', {
+                        'date': DateFormat('dd.MM.yyyy').format(seit.toLocal()),
+                      })
+                    : t.t('bund_share_required'),
               ),
               value: hatEinwilligung,
               onChanged: onChanged,
@@ -371,10 +607,7 @@ class _EinwilligungCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: Text(
-                'Geteilt werden nur zusammengefasste Anzahlen deines Stammes, '
-                'keine Namen oder Einzeldaten. Ein Widerruf stoppt weitere '
-                'Sendungen; bereits geteilte Zahlen fallen nach zwei Monaten '
-                'aus der Statistik.',
+                t.t('bund_share_info'),
                 style: theme.textTheme.bodySmall,
               ),
             ),
@@ -394,6 +627,7 @@ class _TeilnahmeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return Card(
       key: const Key('bundesstatistik-teilnahme'),
@@ -409,26 +643,21 @@ class _TeilnahmeCard extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Mit Stämmen bundesweit vergleichen',
+                    t.t('bund_join_title'),
                     style: theme.textTheme.titleMedium,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
-            Text(
-              'Teile die zusammengefassten Anzahlen deines Stammes und sieh im '
-              'Gegenzug, wie sich Stufen, Leitende und Geschlechter bundesweit '
-              'verteilen. Namen oder Einzeldaten verlassen die App nicht.',
-              style: theme.textTheme.bodyMedium,
-            ),
+            Text(t.t('bund_join_text'), style: theme.textTheme.bodyMedium),
             const SizedBox(height: 12),
             Align(
               alignment: Alignment.centerRight,
               child: FilledButton.icon(
                 onPressed: isBusy ? null : onTeilnehmen,
                 icon: const Icon(Icons.check),
-                label: const Text('Jetzt teilnehmen'),
+                label: Text(t.t('bund_join_button')),
               ),
             ),
           ],
@@ -446,32 +675,21 @@ class _StatusHinweis extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final aggregat = this.aggregat;
     final text = switch (status) {
-      BundesstatistikStatus.zuWenigTeilnahme =>
-        'Bisher teilen ${aggregat?.teilnehmendeStaemme ?? 0} Stämme ihre Zahlen. '
-            'Bundeswerte werden ab ${aggregat?.mindestAnzahlStaemme ?? 0} '
-            'Stämmen angezeigt, damit einzelne Stämme nicht erkennbar sind.',
-      BundesstatistikStatus.keinStamm =>
-        'Der bundesweite Vergleich ist nur verfügbar, wenn ein Stamm als '
-            'Arbeitskontext ausgewählt ist.',
-      BundesstatistikStatus.keineKennzahlen =>
-        'In deinem Stamm wurden keine Mitglieder in den Stufen gefunden. '
-            'Ohne eigene Zahlen kann nichts geteilt werden.',
-      BundesstatistikStatus.abgelehnt =>
-        'Der Statistikserver hat die Zahlen deines Stammes abgelehnt. '
-            'Vermutlich passen App und Server nicht zusammen; bitte die App '
-            'aktualisieren.',
-      BundesstatistikStatus.nichtVerfuegbar =>
-        'Der bundesweite Vergleich ist in dieser App-Version nicht verfügbar.',
-      BundesstatistikStatus.fehler =>
-        'Der Statistikserver ist derzeit nicht erreichbar. Die App versucht '
-            'es beim nächsten Synchronisieren erneut.',
-      _ =>
-        'Dein Beitrag wird vorbereitet, sobald die Mitglieder und Rollen '
-            'deines Stammes geladen sind.',
+      BundesstatistikStatus.zuWenigTeilnahme => t.t('bund_status_too_few', {
+        'count': aggregat?.teilnehmendeStaemme ?? 0,
+        'min': aggregat?.mindestAnzahlStaemme ?? 0,
+      }),
+      BundesstatistikStatus.keinStamm => t.t('bund_status_no_stamm'),
+      BundesstatistikStatus.keineKennzahlen => t.t('bund_status_no_figures'),
+      BundesstatistikStatus.abgelehnt => t.t('bund_status_rejected'),
+      BundesstatistikStatus.nichtVerfuegbar => t.t('bund_status_unavailable'),
+      BundesstatistikStatus.fehler => t.t('bund_status_error'),
+      _ => t.t('bund_status_waiting'),
     };
-    return StatisticsCard(title: 'Status', child: Text(text));
+    return StatisticsCard(title: t.t('bund_status_title'), child: Text(text));
   }
 }
 
@@ -482,26 +700,35 @@ class _TransparenzCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final format = DateFormat('dd.MM.yyyy');
     final von = aggregat.datenstandVon;
     final bis = aggregat.datenstandBis;
     return StatisticsCard(
-      title: 'Grundlage',
+      title: t.t('bund_basis_title'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('${aggregat.teilnehmendeStaemme} teilnehmende Stämme'),
+          Text(
+            t.t('bund_basis_participants', {
+              'count': aggregat.teilnehmendeStaemme,
+            }),
+          ),
           if (von != null && bis != null)
             Text(
-              'Datenstand ${format.format(von.toLocal())} bis ${format.format(bis.toLocal())}',
+              t.t('bund_basis_as_of', {
+                'from': format.format(von.toLocal()),
+                'to': format.format(bis.toLocal()),
+              }),
             ),
           const SizedBox(height: 8),
           Text(aggregat.hinweis, style: theme.textTheme.bodySmall),
           const SizedBox(height: 4),
           Text(
-            'Werte, zu denen weniger als ${aggregat.mindestAnzahlStaemme} '
-            'Stämme beitragen, werden nicht angezeigt.',
+            t.t('bund_basis_suppressed', {
+              'min': aggregat.mindestAnzahlStaemme,
+            }),
             style: theme.textTheme.bodySmall,
           ),
         ],
@@ -511,41 +738,67 @@ class _TransparenzCard extends StatelessWidget {
 }
 
 class _GeteilteDatenCard extends StatelessWidget {
-  const _GeteilteDatenCard({required this.snapshot});
+  const _GeteilteDatenCard({required this.snapshot, required this.gruppenName});
 
   final StammesSnapshot? snapshot;
+  final String Function(int gruppenId) gruppenName;
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final snapshot = this.snapshot;
     if (snapshot == null) {
-      return const StatisticsCard(
-        title: 'Was dein Stamm geteilt hat',
-        child: Text('Bisher wurden keine Zahlen deines Stammes geteilt.'),
+      return StatisticsCard(
+        title: t.t('bund_shared_title'),
+        child: Text(t.t('bund_shared_none')),
       );
     }
 
     final kennzahlen = snapshot.kennzahlen;
     final theme = Theme.of(context);
-    final zeilen = <(String, int?)>[
-      ('Biber', kennzahlen.biber.gesamt),
-      ('Wölflinge', kennzahlen.woelflinge.gesamt),
-      ('Jungpfadfinder', kennzahlen.jungpfadfinder.gesamt),
-      ('Pfadfinder', kennzahlen.pfadfinder.gesamt),
-      ('Rover', kennzahlen.rover.gesamt),
-      ('Leitende', kennzahlen.leitende.gesamt),
-      ('Ordentliche Mitgliedschaften', kennzahlen.aktiveMitglieder),
-      ('Sonstige Mitglieder', kennzahlen.nichtLeitendeErwachsene),
-    ];
+    final teilsicht = !kennzahlen.abdeckung.istStamm;
+    final zeilen = teilsicht
+        ? <(String, String)>[
+            for (final g in kennzahlen.abgedeckteGruppen)
+              (
+                gruppenName(g.gruppenId),
+                t.t('bund_shared_group_values', {
+                  'children': g.mitglieder?.gesamt ?? '–',
+                  'leaders': g.leitende?.gesamt ?? '–',
+                }),
+              ),
+          ]
+        : <(String, String)>[
+            for (final stufe in BundesvergleichView.stufen)
+              (
+                BundesvergleichView.stufenName(t, stufe),
+                kennzahlen.stufe(stufe).gesamt?.toString() ?? '–',
+              ),
+            (
+              t.t('bund_leaders'),
+              kennzahlen.leitende.gesamt?.toString() ?? '–',
+            ),
+            (
+              t.t('bund_shared_regular_members'),
+              kennzahlen.aktiveMitglieder?.toString() ?? '–',
+            ),
+            (
+              t.t('bund_shared_other_members'),
+              kennzahlen.nichtLeitendeErwachsene?.toString() ?? '–',
+            ),
+          ];
 
     return StatisticsCard(
-      title: 'Was dein Stamm geteilt hat',
+      title: t.t('bund_shared_title'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Zuletzt gesendet am '
-            '${DateFormat('dd.MM.yyyy, HH:mm').format(snapshot.sentAt.toLocal())}',
+            t.t('bund_shared_at', {
+              'date': DateFormat(
+                'dd.MM.yyyy, HH:mm',
+              ).format(snapshot.sentAt.toLocal()),
+            }),
           ),
           const SizedBox(height: 8),
           for (final (label, wert) in zeilen)
@@ -554,15 +807,13 @@ class _GeteilteDatenCard extends StatelessWidget {
               child: Row(
                 children: [
                   Expanded(child: Text(label)),
-                  Text(wert?.toString() ?? '–'),
+                  Text(wert),
                 ],
               ),
             ),
           const SizedBox(height: 8),
           Text(
-            'Zusätzlich je Stufe die Aufteilung nach Geschlecht und bei '
-            'Leitenden nach Altersgruppen. Stamm und Installation werden '
-            'auf dem Server pseudonymisiert.',
+            t.t(teilsicht ? 'bund_shared_footer_groups' : 'bund_shared_footer'),
             style: theme.textTheme.bodySmall,
           ),
         ],
@@ -584,12 +835,14 @@ class _VergleichsZeile {
 }
 
 class _VergleichsTabelle extends StatelessWidget {
-  const _VergleichsTabelle({required this.zeilen});
+  const _VergleichsTabelle({required this.zeilen, required this.eigeneSpalte});
 
   final List<_VergleichsZeile> zeilen;
+  final String eigeneSpalte;
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final kopf = theme.textTheme.labelSmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
@@ -605,9 +858,9 @@ class _VergleichsTabelle extends StatelessWidget {
         TableRow(
           children: [
             Text('', style: kopf),
-            Text('Dein Stamm', style: kopf, textAlign: TextAlign.end),
-            Text('Median', style: kopf, textAlign: TextAlign.end),
-            Text('Ø', style: kopf, textAlign: TextAlign.end),
+            Text(eigeneSpalte, style: kopf, textAlign: TextAlign.end),
+            Text(t.t('bund_col_median'), style: kopf, textAlign: TextAlign.end),
+            Text(t.t('bund_col_avg'), style: kopf, textAlign: TextAlign.end),
           ],
         ),
         for (final zeile in zeilen)
@@ -618,8 +871,8 @@ class _VergleichsTabelle extends StatelessWidget {
                 child: Text(zeile.label),
               ),
               _zelle(zeile.eigenerWert?.toString()),
-              _zelle(_formatiere(zeile.bund?.median)),
-              _zelle(_formatiere(zeile.bund?.durchschnitt)),
+              _zelle(_formatiere(context, zeile.bund?.median)),
+              _zelle(_formatiere(context, zeile.bund?.durchschnitt)),
             ],
           ),
       ],
@@ -630,6 +883,68 @@ class _VergleichsTabelle extends StatelessWidget {
     padding: const EdgeInsets.symmetric(vertical: 6),
     child: Text(text ?? '–', textAlign: TextAlign.end),
   );
+}
+
+class _GroessenZeile {
+  const _GroessenZeile({
+    required this.label,
+    required this.eigene,
+    required this.median,
+  });
+
+  final String label;
+  final String eigene;
+  final num? median;
+}
+
+class _GroessenTabelle extends StatelessWidget {
+  const _GroessenTabelle({required this.zeilen});
+
+  final List<_GroessenZeile> zeilen;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final kopf = theme.textTheme.labelSmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+    Widget zelle(String text) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Text(text, textAlign: TextAlign.end),
+    );
+    return Table(
+      columnWidths: const <int, TableColumnWidth>{
+        0: FlexColumnWidth(2),
+        1: FlexColumnWidth(1.5),
+        2: FlexColumnWidth(),
+      },
+      children: [
+        TableRow(
+          children: [
+            Text('', style: kopf),
+            Text(
+              t.t('bund_col_own_groups'),
+              style: kopf,
+              textAlign: TextAlign.end,
+            ),
+            Text(t.t('bund_col_median'), style: kopf, textAlign: TextAlign.end),
+          ],
+        ),
+        for (final zeile in zeilen)
+          TableRow(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Text(zeile.label),
+              ),
+              zelle(zeile.eigene),
+              zelle(_formatiere(context, zeile.median) ?? '–'),
+            ],
+          ),
+      ],
+    );
+  }
 }
 
 class _AnteilsZeile {
@@ -645,12 +960,14 @@ class _AnteilsZeile {
 }
 
 class _AnteilsTabelle extends StatelessWidget {
-  const _AnteilsTabelle({required this.zeilen});
+  const _AnteilsTabelle({required this.zeilen, required this.eigeneSpalte});
 
   final List<_AnteilsZeile> zeilen;
+  final String eigeneSpalte;
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final kopf = theme.textTheme.labelSmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
@@ -665,8 +982,8 @@ class _AnteilsTabelle extends StatelessWidget {
         TableRow(
           children: [
             Text('', style: kopf),
-            Text('Dein Stamm', style: kopf, textAlign: TextAlign.end),
-            Text('Bund', style: kopf, textAlign: TextAlign.end),
+            Text(eigeneSpalte, style: kopf, textAlign: TextAlign.end),
+            Text(t.t('bund_col_bund'), style: kopf, textAlign: TextAlign.end),
           ],
         ),
         for (final zeile in zeilen)
@@ -693,12 +1010,15 @@ class _AnteilsTabelle extends StatelessWidget {
   );
 }
 
-String? _formatiere(num? wert) {
+String? _formatiere(BuildContext context, num? wert) {
   if (wert == null) {
     return null;
   }
   if (wert == wert.roundToDouble()) {
     return wert.toInt().toString();
   }
-  return NumberFormat('0.0', 'de_DE').format(wert);
+  return NumberFormat(
+    '0.0',
+    Localizations.localeOf(context).toLanguageTag(),
+  ).format(wert);
 }

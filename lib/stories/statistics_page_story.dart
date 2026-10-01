@@ -112,13 +112,20 @@ class StatisticsPageStoryScene extends StatelessWidget {
       textScale: textScale,
       providers: [
         ChangeNotifierProvider<BundesstatistikModel>(
-          create: (_) =>
-              storyBundesstatistikModel(readModel, szenario: bundesstatistik),
+          create: (_) => storyBundesstatistikModel(
+            readModel,
+            szenario: bundesstatistik,
+            abdeckung: datensatz.abdeckung,
+          ),
         ),
         Provider<StatistikKachelRepository>.value(value: kacheln),
         Provider<StatistikVerlaufRepository>.value(value: verlauf),
       ],
-      child: StatisticsPage(debugReadModel: readModel, debugThema: thema),
+      child: StatisticsPage(
+        debugReadModel: readModel,
+        debugThema: thema,
+        debugAbdeckung: datensatz.abdeckung,
+      ),
     );
   }
 }

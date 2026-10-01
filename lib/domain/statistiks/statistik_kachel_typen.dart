@@ -69,7 +69,7 @@ abstract final class StatistikKachelTypen {
     personen: [KachelGroesse.klein, KachelGroesse.breit],
     stufen: [KachelGroesse.breit],
     gruppen: [KachelGroesse.breit, KachelGroesse.gross],
-    altersstruktur: [KachelGroesse.gross],
+    altersstruktur: [KachelGroesse.breit, KachelGroesse.gross],
     alterInZahlen: [KachelGroesse.breit, KachelGroesse.gross],
     stufenwechsel: [
       KachelGroesse.klein,
