@@ -1398,6 +1398,153 @@ void main() {
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
+
+  group('automatische Pfade ohne interaktiven Relogin', () {
+    const unauthorized = HitobitoPeopleException(
+      'People-Anfrage fehlgeschlagen (401).',
+      statusCode: 401,
+    );
+
+    ({AuthSessionModel model, FakeOauthService oauthService}) buildModel() {
+      final oauthService = FakeOauthService(
+        sessionToReturn: AuthSession(
+          accessToken: 'refreshed-token',
+          refreshToken: 'refreshed-refresh-token',
+          receivedAt: DateTime(2026, 3, 28, 12),
+        ),
+        profileToReturn: const AuthProfile(
+          namiId: 98,
+          firstName: 'Auto',
+          lastName: 'Sync',
+          language: 'de',
+        ),
+      );
+      final model = AuthSessionModel(
+        repository: InMemoryAuthSessionRepository(
+          initialSession: AuthSession(
+            accessToken: 'stale-token',
+            refreshToken: 'stale-refresh-token',
+            receivedAt: DateTime(2026, 3, 27),
+          ),
+        ),
+        profileRepository: InMemoryAuthProfileRepository(
+          profile: const AuthProfile(
+            namiId: 98,
+            firstName: 'Auto',
+            lastName: 'Sync',
+            language: 'de',
+          ),
+          lastSyncAt: DateTime(2026, 3, 28, 8),
+        ),
+        oauthService: oauthService,
+        biometricLockService: FakeBiometricLockService(),
+        sensitiveStorageService: FakeSensitiveStorageService()
+          ..lastSensitiveSyncAt = DateTime(2026, 3, 27, 8),
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => DateTime(2026, 3, 28, 12),
+        ),
+        logger: _createLogger(),
+      );
+      return (model: model, oauthService: oauthService);
+    }
+
+    test(
+      'executeRemoteAccess oeffnet nach 401 und fehlgeschlagenem Refresh keinen Login',
+      () async {
+        final (:model, :oauthService) = buildModel();
+        oauthService.refreshError = const HitobitoAuthException(
+          'Token-Anfrage fehlgeschlagen (401).',
+          statusCode: 401,
+        );
+        await model.initialize();
+
+        final result = await model.runWithoutInteractiveRelogin(
+          () => model.executeRemoteAccess<String>(
+            trigger: 'pending_retry_timer',
+            action: (_) async => throw unauthorized,
+          ),
+        );
+
+        expect(result, isNull);
+        expect(oauthService.authenticateInteractiveCallCount, 0);
+        expect(model.requiresInteractiveLogin, isTrue);
+        expect(model.hasUnseenRemoteAccessIssueNotice, isTrue);
+        expect(model.state, AuthState.signedIn);
+      },
+      timeout: const Timeout(Duration(seconds: 3)),
+    );
+
+    test(
+      'executeRemoteAccess oeffnet keinen Login, wenn auch das frische Token abgelehnt wird',
+      () async {
+        final (:model, :oauthService) = buildModel();
+        await model.initialize();
+        final usedTokens = <String>[];
+
+        final result = await model.runWithoutInteractiveRelogin(
+          () => model.executeRemoteAccess<String>(
+            trigger: 'pending_retry_timer',
+            action: (session) async {
+              usedTokens.add(session.accessToken);
+              throw unauthorized;
+            },
+          ),
+        );
+
+        expect(result, isNull);
+        expect(usedTokens, <String>['stale-token', 'refreshed-token']);
+        expect(oauthService.refreshCallCount, 1);
+        expect(oauthService.authenticateInteractiveCallCount, 0);
+        expect(model.requiresInteractiveLogin, isTrue);
+      },
+      timeout: const Timeout(Duration(seconds: 3)),
+    );
+
+    test(
+      'syncHitobitoData ohne Nutzeraktion oeffnet bei 401 keinen Login',
+      () async {
+        final (:model, :oauthService) = buildModel();
+        oauthService.fetchProfileError = const HitobitoAuthException(
+          'Profil-Anfrage fehlgeschlagen (401).',
+          statusCode: 401,
+        );
+        await model.initialize();
+
+        await model.syncHitobitoData(
+          trigger: 'interval',
+          userInitiated: false,
+          syncMembers: (_) async {},
+        );
+
+        expect(oauthService.authenticateInteractiveCallCount, 0);
+        expect(model.requiresInteractiveLogin, isTrue);
+        expect(model.lastSyncAttemptResult, SyncAttemptResult.loginRequired);
+      },
+      timeout: const Timeout(Duration(seconds: 3)),
+    );
+
+    test(
+      'syncHitobitoData durch Nutzeraktion darf bei 401 weiterhin einen Login oeffnen',
+      () async {
+        final (:model, :oauthService) = buildModel();
+        oauthService.fetchProfileError = const HitobitoAuthException(
+          'Profil-Anfrage fehlgeschlagen (401).',
+          statusCode: 401,
+        );
+        await model.initialize();
+
+        await model.syncHitobitoData(
+          trigger: 'manual',
+          syncMembers: (_) async {},
+        );
+
+        expect(oauthService.authenticateInteractiveCallCount, 1);
+      },
+      timeout: const Timeout(Duration(seconds: 3)),
+    );
+  });
 }
 
 FakeLoggerService _createLogger() => FakeLoggerService();
