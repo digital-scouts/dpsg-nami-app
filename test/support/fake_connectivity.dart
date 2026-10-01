@@ -11,6 +11,12 @@ class FakeConnectivity implements Connectivity {
     ],
   ]) : _current = List<ConnectivityResult>.from(initial);
 
+  FakeConnectivity.wifi() : this(const [ConnectivityResult.wifi]);
+
+  FakeConnectivity.mobile() : this(const [ConnectivityResult.mobile]);
+
+  FakeConnectivity.offline() : this(const [ConnectivityResult.none]);
+
   final StreamController<List<ConnectivityResult>> _changes =
       StreamController<List<ConnectivityResult>>.broadcast();
   List<ConnectivityResult> _current;
