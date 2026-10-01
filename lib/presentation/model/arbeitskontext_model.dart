@@ -17,6 +17,7 @@ import '../../domain/auth/auth_state.dart';
 import '../../domain/member/mitglied.dart';
 import '../../services/hitobito_groups_service.dart';
 import '../../services/logger_service.dart';
+import 'nutzer_fehlermeldung.dart';
 
 enum ArbeitskontextStatus { initial, loading, ready, unauthorized, error }
 
@@ -502,7 +503,7 @@ class ArbeitskontextModel extends ChangeNotifier {
       _status = _arbeitskontext != null
           ? ArbeitskontextStatus.ready
           : ArbeitskontextStatus.error;
-      _errorMessage = error.toString();
+      _errorMessage = nutzerFehlermeldung(error);
     } finally {
       _isSynchronizing = false;
       _isLoadingRoles = false;
@@ -747,7 +748,7 @@ class ArbeitskontextModel extends ChangeNotifier {
       _status = _arbeitskontext != null
           ? ArbeitskontextStatus.ready
           : ArbeitskontextStatus.error;
-      _errorMessage = error.toString();
+      _errorMessage = nutzerFehlermeldung(error);
     } finally {
       _isSynchronizing = false;
       _isLoadingRoles = false;
@@ -865,7 +866,7 @@ class ArbeitskontextModel extends ChangeNotifier {
         'Roles-Nachladen fehlgeschlagen: $error\n$stack',
       );
       if (surfaceErrors) {
-        _errorMessage = error.toString();
+        _errorMessage = nutzerFehlermeldung(error);
       }
       return false;
     } finally {

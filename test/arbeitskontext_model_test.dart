@@ -269,7 +269,9 @@ void main() {
       expect(model.status, ArbeitskontextStatus.ready);
       expect(model.arbeitskontext, arbeitskontextNachErstemLauf);
       expect(model.readModel, readModelNachErstemLauf);
-      expect(model.errorMessage, contains('Netzwerkfehler'));
+      // Hinweis als App-Meldung; der Ausnahmetext bleibt im Log.
+      expect(model.errorMessage, isNotEmpty);
+      expect(model.errorMessage, isNot(contains('Netzwerkfehler')));
     },
   );
 
@@ -297,6 +299,40 @@ void main() {
 
       expect(model.hasError, isTrue);
       expect(model.arbeitskontext, isNull);
+    },
+  );
+
+  test(
+    'zeigt bei abgelehnter Gruppen-Anfrage eine App-Meldung statt der Serverantwort',
+    () async {
+      final groupsService = _FakeHitobitoGroupsService()
+        ..fetchErrorOverride = const HitobitoGroupsException(
+          'Groups-Anfrage fehlgeschlagen (400). Grund: Failed typecasting '
+          ':zip_code! /app-src/vendor/bundle/ruby/3.2.0/gems/dry-types',
+          statusCode: 400,
+        );
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: groupsService,
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: AuthSession(
+          accessToken: 'token-31',
+          receivedAt: DateTime(2026, 3, 31),
+        ),
+        profile: const AuthProfile(namiId: 31),
+      );
+
+      expect(model.hasError, isTrue);
+      expect(model.errorMessage, contains('Fehler 400'));
+      expect(model.errorMessage, contains('Fehlerhafte Gruppe suchen'));
+      expect(model.errorMessage, isNot(contains('zip_code')));
+      expect(model.errorMessage, isNot(contains('/app-src/')));
     },
   );
 
@@ -481,7 +517,8 @@ void main() {
     expect(model.isReady, isTrue);
     expect(model.arbeitskontext, isNotNull);
     expect(model.arbeitskontext?.aktiverLayer.id, 40);
-    expect(model.errorMessage, contains('Netzwerkfehler'));
+    expect(model.errorMessage, isNotEmpty);
+    expect(model.errorMessage, isNot(contains('Netzwerkfehler')));
   });
 
   test('durchlaeuft die Ladeschritte auch, wenn refreshFromRemote der '

@@ -14,6 +14,7 @@ import '../../services/hitobito_oauth_service.dart';
 import '../../services/logger_service.dart';
 import '../../services/network_access_policy.dart';
 import '../../services/sensitive_storage_service.dart';
+import 'nutzer_fehlermeldung.dart';
 
 enum SyncAttemptResult {
   success,
@@ -189,7 +190,7 @@ class AuthSessionModel extends ChangeNotifier {
         'Initialisierung fehlgeschlagen: $error\n$stack',
       );
       _state = AuthState.error;
-      _errorMessage = error.toString();
+      _errorMessage = nutzerFehlermeldung(error);
     } finally {
       notifyListeners();
     }
@@ -270,7 +271,7 @@ class AuthSessionModel extends ChangeNotifier {
           },
         );
       }
-      _errorMessage = error.toString();
+      _errorMessage = nutzerFehlermeldung(error);
       _state = previousState;
       notifyListeners();
     }
@@ -320,7 +321,7 @@ class AuthSessionModel extends ChangeNotifier {
           'error_type': error.runtimeType.toString(),
         },
       );
-      _errorMessage = error.toString();
+      _errorMessage = nutzerFehlermeldung(error);
       _state = previousState;
       notifyListeners();
       rethrow;
@@ -736,7 +737,7 @@ class AuthSessionModel extends ChangeNotifier {
         await _loadProfileFromRemote(authenticatedSession);
       } catch (error, stack) {
         if (_isUnauthorized(error)) {
-          _errorMessage = error.toString();
+          _errorMessage = nutzerFehlermeldung(error);
           return null;
         }
         await _logger.logError(
@@ -745,7 +746,7 @@ class AuthSessionModel extends ChangeNotifier {
           error: error,
           stackTrace: stack,
         );
-        _errorMessage = error.toString();
+        _errorMessage = nutzerFehlermeldung(error);
         return null;
       }
       await _logger.logInfo(
@@ -769,7 +770,7 @@ class AuthSessionModel extends ChangeNotifier {
           stackTrace: stack,
         );
       }
-      _errorMessage = error.toString();
+      _errorMessage = nutzerFehlermeldung(error);
       return null;
     }
   }
@@ -813,7 +814,7 @@ class AuthSessionModel extends ChangeNotifier {
           'Profil konnte nicht geladen werden: $error\n$stack',
         );
       }
-      _errorMessage = error.toString();
+      _errorMessage = nutzerFehlermeldung(error);
     } finally {
       _isLoadingProfile = false;
       notifyListeners();
@@ -1014,7 +1015,7 @@ class AuthSessionModel extends ChangeNotifier {
           'auth',
           'Profil konnte nicht geladen werden: $error\n$stack',
         );
-        _errorMessage = error.toString();
+        _errorMessage = nutzerFehlermeldung(error);
         reportRemoteDataIssue(
           error.toString(),
           requiresInteractiveLogin: false,
