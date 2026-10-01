@@ -240,11 +240,9 @@ class _MemberEditPageState extends State<MemberEditPage> {
 
   /// Im Problemloesungsmodus liegen die Abschnitte bereits in der
   /// aufklappbaren Karte "Mitglied bearbeiten"; dort erscheinen sie ohne
-  /// eigene Karte, nur durch Trennlinien abgesetzt.
+  /// eigene Karte, nur durch Abstand getrennt.
   Widget _buildEditSectionsContent({bool embedded = false}) {
-    final separator = embedded
-        ? const Divider(height: 32)
-        : const SizedBox(height: 10);
+    final separator = SizedBox(height: embedded ? 20 : 10);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
