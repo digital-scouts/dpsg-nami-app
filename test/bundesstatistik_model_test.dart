@@ -226,7 +226,7 @@ void main() {
       expect(model.zuletztGesendeterSnapshot?.stammId, '11');
       expect(
         jsonDecode(
-          teilnahme.stored.zuletztGesendeterSnapshotJson!,
+          teilnahme.stored.sendestaende['11']!.snapshotJson!,
         )['sender_id'],
         'install-1',
       );
@@ -297,18 +297,23 @@ void main() {
     expect(repository.sendungen, hasLength(2));
   });
 
-  test('sendet sofort bei Wechsel auf einen anderen Stamm', () async {
-    final model = await modelMitEinwilligung();
+  test(
+    'sendet nach Wechsel sofort, sobald der neue Stamm freigegeben ist',
+    () async {
+      final model = await modelMitEinwilligung();
 
-    await model.aktualisiereKontext(
-      personId: '42',
-      readModel: _readModel(layerId: 12),
-      datenstand: now,
-      abdeckung: const StatistikAbdeckung.stamm(),
-    );
+      await model.aktualisiereKontext(
+        personId: '42',
+        readModel: _readModel(layerId: 12),
+        datenstand: now,
+        abdeckung: const StatistikAbdeckung.stamm(),
+      );
+      expect(repository.sendungen.map((s) => s.$1.stammId), ['11']);
 
-    expect(repository.sendungen.map((s) => s.$1.stammId), ['11', '12']);
-  });
+      await model.setzeEinwilligung(true);
+      expect(repository.sendungen.map((s) => s.$1.stammId), ['11', '12']);
+    },
+  );
 
   test('uebertraegt die Einwilligung nicht auf eine andere Person', () async {
     final model = await modelMitEinwilligung();
@@ -355,8 +360,47 @@ void main() {
     expect(repository.sendungen, hasLength(1));
     expect(model.aggregat, isNull);
     expect(model.status, BundesstatistikStatus.keineEinwilligung);
-    expect(teilnahme.stored.einwilligungFuer, isNull);
+    expect(teilnahme.stored.einwilligungen, isEmpty);
   });
+
+  test(
+    'gilt je Stamm: ein anderer Stamm braucht eine eigene Einwilligung',
+    () async {
+      final model = await modelMitEinwilligung();
+      expect(repository.sendungen, hasLength(1));
+
+      await model.aktualisiereKontext(
+        personId: '42',
+        readModel: _readModel(layerId: 12),
+        datenstand: now,
+        abdeckung: const StatistikAbdeckung.stamm(),
+      );
+      expect(model.hatEinwilligung, isFalse);
+      expect(model.status, BundesstatistikStatus.keineEinwilligung);
+      expect(model.zuletztGesendeterSnapshot, isNull);
+      expect(repository.sendungen, hasLength(1));
+
+      await model.setzeEinwilligung(true);
+      expect(repository.sendungen, hasLength(2));
+      expect(repository.sendungen.last.$1.stammId, '12');
+
+      // Zurueck zu Stamm 11: bereits freigegeben, innerhalb des Intervalls kein neues Senden.
+      await model.aktualisiereKontext(
+        personId: '42',
+        readModel: _readModel(),
+        datenstand: now,
+        abdeckung: const StatistikAbdeckung.stamm(),
+      );
+      expect(model.hatEinwilligung, isTrue);
+      expect(model.status, BundesstatistikStatus.bereit);
+      expect(model.zuletztGesendeterSnapshot?.stammId, '11');
+      expect(repository.sendungen, hasLength(2));
+
+      // Widerruf betrifft nur den aktiven Stamm.
+      await model.setzeEinwilligung(false);
+      expect(teilnahme.stored.einwilligungen.keys, ['12']);
+    },
+  );
 
   test('erzeugt bei ungueltigen Credentials neue und sendet erneut', () async {
     repository.sendeFehler.add(

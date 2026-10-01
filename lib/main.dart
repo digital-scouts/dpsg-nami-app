@@ -21,6 +21,7 @@ import 'package:nami/data/member/hitobito_member_write_repository.dart';
 import 'package:nami/data/member/secure_pending_person_update_repository.dart';
 import 'package:nami/data/nami_ai/nami_ai_chat_history_local_repository.dart';
 import 'package:nami/demo/demo_data.dart';
+import 'package:nami/demo/demo_staemme.dart';
 import 'package:nami/demo/demo_services.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model_repository.dart';
 import 'package:nami/domain/auth/auth_session_repository.dart';
@@ -402,9 +403,14 @@ Future<void> _startApp({
     credentialsRepository: installationCredentialsRepository,
     teilnahmeRepository: isDemo
         ? InMemoryBundesstatistikTeilnahmeRepository(
-            initial: BundesstatistikTeilnahme.leer.mitEinwilligung(
-              demoData.profile.namiId.toString(),
-              DateTime.now(),
+            // Im Demo sind alle erfundenen Staemme bereits freigegeben.
+            initial: [DemoBezirk.silberfelsId, DemoBezirk.birkenhainId].fold(
+              BundesstatistikTeilnahme.leer,
+              (teilnahme, stammId) => teilnahme.mitEinwilligung(
+                demoData.profile.namiId.toString(),
+                stammId.toString(),
+                DateTime.now(),
+              ),
             ),
           )
         : SharedPrefsBundesstatistikTeilnahmeRepository(),

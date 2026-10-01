@@ -791,6 +791,83 @@ void main() {
     );
     expect(readModel.findeMitglied('1001')?.roles, isEmpty);
   });
+
+  test(
+    'refresh merkt sich die Gruppen der Layer oberhalb des aktiven Layers',
+    () async {
+      final repository = HitobitoArbeitskontextReadModelRepository(
+        groupsService: _FakeHitobitoGroupsService(
+          groups: const <HitobitoGroupResource>[
+            HitobitoGroupResource(
+              id: 1,
+              name: 'Dioezese',
+              isLayer: true,
+              layerGroupId: 1,
+            ),
+            HitobitoGroupResource(
+              id: 20,
+              name: 'Bezirk Rhein',
+              isLayer: true,
+              parentId: 1,
+              layerGroupId: 20,
+            ),
+            HitobitoGroupResource(
+              id: 201,
+              name: 'Bezirksleitung',
+              isLayer: false,
+              parentId: 20,
+              layerGroupId: 20,
+            ),
+            HitobitoGroupResource(
+              id: 11,
+              name: 'Stamm Musterdorf',
+              isLayer: true,
+              parentId: 20,
+              layerGroupId: 11,
+            ),
+            HitobitoGroupResource(
+              id: 101,
+              name: 'Meute',
+              isLayer: false,
+              parentId: 11,
+              layerGroupId: 11,
+            ),
+            HitobitoGroupResource(
+              id: 12,
+              name: 'Stamm Nachbar',
+              isLayer: true,
+              parentId: 20,
+              layerGroupId: 12,
+            ),
+            HitobitoGroupResource(
+              id: 121,
+              name: 'Stammesleitung Nachbar',
+              isLayer: false,
+              parentId: 12,
+              layerGroupId: 12,
+            ),
+          ],
+        ),
+        peopleService: _FakeHitobitoPeopleService(
+          people: const <HitobitoPersonResource>[],
+        ),
+        localRepository: _FakeArbeitskontextLocalRepository(),
+      );
+
+      final readModel = await repository.refresh(
+        accessToken: 'token-123',
+        arbeitskontext: Arbeitskontext(
+          aktiverLayer: const ArbeitskontextLayer(
+            id: 11,
+            name: 'Stamm Musterdorf',
+          ),
+        ),
+      );
+
+      // Dioezese und Bezirk samt Bezirksleitung, nicht aber der Nachbarstamm.
+      expect(readModel.uebergeordneteGruppenIds, <int>{1, 20, 201});
+    },
+  );
 }
 
 class _FakeArbeitskontextLocalRepository

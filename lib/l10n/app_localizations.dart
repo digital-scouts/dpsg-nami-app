@@ -365,7 +365,7 @@ class AppLocalizations {
       'settings_app_analytics_hint': 'Anonyme Fehlerberichte senden',
       'settings_app_bundesstatistik_title': 'Bundesweite Statistik',
       'settings_app_bundesstatistik_hint':
-          'Zusammengefasste Stammeszahlen für den Vergleich teilen',
+          'Zusammengefasste Zahlen des aktiven Stammes für den Vergleich teilen',
       'settings_app_theme_system': 'System',
       'settings_app_language_en': 'English',
       'settings_app_mobile_data_title': 'Mobile Daten einschränken',
@@ -1223,7 +1223,7 @@ class AppLocalizations {
       'settings_app_analytics_hint': 'Send anonymous crash reports',
       'settings_app_bundesstatistik_title': 'Nationwide statistics',
       'settings_app_bundesstatistik_hint':
-          'Share aggregated group figures for the comparison',
+          'Share aggregated figures of the active Stamm for the comparison',
       'settings_app_theme_system': 'System',
       'settings_app_language_en': 'English',
       'settings_app_mobile_data_title': 'Restrict mobile data',

@@ -12,8 +12,10 @@ import 'statistik_abdeckung.dart';
 /// - `group_*` bzw. `group_and_below_*` auf Gruppen des aktiven Layers:
 ///   nur diese Gruppen (mit Untergruppen).
 ///
-/// Der Layer einer Rolle wird wie bei den Schreibrechten aufgeloest: ueber
-/// die bekannten Layer oder die Gruppen des aktiven Layers.
+/// Gezaehlt werden nur Rechte, die im aktiven Layer wirken: Wer im Stamm A
+/// volle Rechte und im Stamm B nur eine Gruppe hat, sieht in B nur die Gruppe.
+/// Der Layer einer Rolle ergibt sich aus den bekannten Layern, den Gruppen des
+/// aktiven Layers oder den Gruppen der uebergeordneten Layer.
 class ErmittleStatistikAbdeckungUseCase {
   const ErmittleStatistikAbdeckungUseCase();
 
@@ -36,10 +38,9 @@ class ErmittleStatistikAbdeckungUseCase {
         return const StatistikAbdeckung.stamm();
       }
       if (rechte.any(HitobitoBerechtigungen.layerUndDarunterLesen.contains) &&
-          (rollenLayerId == null ||
-              _istGleichOderDarueber(rollenLayerId, arbeitskontext))) {
-        // Eine Rolle ausserhalb des aktiven Layers (z. B. im Bezirk) macht ihn
-        // nur ueber layer_and_below lesbar; ihr Layer ist hier oft unbekannt.
+          (readModel.uebergeordneteGruppenIds.contains(rolle.groupId) ||
+              (rollenLayerId != null &&
+                  _istGleichOderDarueber(rollenLayerId, arbeitskontext)))) {
         return const StatistikAbdeckung.stamm();
       }
 

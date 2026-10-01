@@ -61,6 +61,9 @@ class SecureArbeitskontextLocalRepository
       'mitglieds_zuordnungen': readModel.mitgliedsZuordnungen
           .map(_mitgliedsZuordnungToJson)
           .toList(growable: false),
+      'uebergeordnete_gruppen_ids': readModel.uebergeordneteGruppenIds.toList(
+        growable: false,
+      ),
     };
   }
 
@@ -124,6 +127,10 @@ class SecureArbeitskontextLocalRepository
       mitglieder: mitglieder,
       gruppen: gruppen,
       mitgliedsZuordnungen: mitgliedsZuordnungen,
+      uebergeordneteGruppenIds: switch (json['uebergeordnete_gruppen_ids']) {
+        final List<dynamic> ids => ids.whereType<int>(),
+        _ => const <int>[],
+      },
     );
   }
 
