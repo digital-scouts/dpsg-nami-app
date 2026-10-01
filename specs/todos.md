@@ -13,16 +13,15 @@ Nächste Aufgaben:
 - [specs/hitobito-arbeitskontext-konzept.md](hitobito-arbeitskontext-konzept.md) mit dem umgesetzten Stand zu Stufen, Beitragsarten, Rollenladen und Sync-Status abgleichen.
 - Prüfen, ob zusätzliche Begriffs- oder Gruppentyp-Dokumentation nötig ist; aktuell existiert dafür keine eigene `dpsg-org-hierarchie`-Spec.
 
-## Priorität 2: Offline-Sync und Problemlösungsfälle fertig prüfen
+## Priorität 2: Sync-Tests ausbauen
 
-Ziel: Der bestehende Problemlösungsfall soll für spätere Sync- und Retry-Situationen belastbar sein.
+Ziel: Die Sync-Kette bleibt automatisiert abgesichert. Offline-Konflikt, Telefonnummer mit Server-Validierungsfehler, Auto-Sync mit WLAN, mobilen Daten und Backoff sowie die ungültige Sitzung laufen als Tests in [test/pending_sync_chain_test.dart](../test/pending_sync_chain_test.dart) und [test/pending_sync_coordinator_test.dart](../test/pending_sync_coordinator_test.dart).
 
 Nächste Aufgaben:
 
-- Offline-Konflikt manuell testen: Mitglied lokal ändern, Serverstand ändern, später synchronisieren, Problemlösungsfall öffnen und lösen.
-- Fehlerhafte Telefonnummer offline speichern und später synchronisieren: Server-Validierungsfehler muss als Problemlösungsfall sichtbar werden.
-- Automatischen Sync während aktiver App-Nutzung mit Queue-Einträgen prüfen: WLAN, erlaubte mobile Daten, gedrosselte Retry-Versuche.
-- Verhalten bei ungültiger Sitzung erneut prüfen: Hinweis nur einmal anzeigen, Bearbeiten weiterhin wie im Offline-Modus möglich.
+- Das Öffnen und Lösen des Problemlösungsfalls im Problemlösungs-Screen an die Ketten-Szenarien anschließen.
+- Die übrigen duplizierten Test-Fakes (Logger, App-Settings, Auth, Pending- und Write-Repositories in etwa 15 Testdateien) auf `test/support/` umstellen.
+- Contract-Tests gegen einen lokalen Hitobito-Stack mit DPSG-Wagon prüfen: Service-Ebene in Dart mit Service-Token (`X-TOKEN`) statt Geräte-Integrationstests. Hürden sind der Port 3000, den auch der Statistikserver nutzt, eine Dev-Ausnahme für Cleartext-HTTP und der interaktive Login.
 
 ## Priorität 3: Adressvalidierung anschließen
 
@@ -82,8 +81,6 @@ Diese Punkte sind für den aktuellen MVP nicht blockierend, bleiben aber als sp�
 - [ ] Biber wird über die zentrale Stufenableitung erkannt und bei fehlendem Biber im aktiven Stamm standardmäßig ausgeblendet.
 - [ ] Jufi und Pfadi werden fachlich korrekt getrennt.
 - [ ] Mitglieder ohne Stufenzuordnung landen weiterhin in Rest beziehungsweise Alle anderen.
-- [ ] Konfliktlösung offline getestet.
-- [ ] Fehlerhafte Telefonnummer offline gespeichert und später als Problemlösungsfall geprüft.
+- [ ] Problemlösungsfall nach Offline-Konflikt im Screen geöffnet und gelöst.
 - [ ] Gültige Adresse offline gespeichert und später erfolgreich synchronisiert.
 - [ ] Ungültige Adresse offline gespeichert und später als Problemlösungsfall geprüft.
-- [ ] Automatischer Sync mit vorhandenen Queue-Einträgen geprüft.
