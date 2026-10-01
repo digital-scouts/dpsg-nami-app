@@ -143,6 +143,62 @@ void main() {
     },
   );
 
+  testWidgets(
+    'bietet im Fehlerzustand Abmelden und ein offenes Profil, ohne Serverantwort',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final authModel = await _createSignedInAuthModel();
+      final groupsService =
+          _FakeHitobitoGroupsService(groups: const <HitobitoGroupResource>[])
+            ..fetchErrorOverride = const HitobitoGroupsException(
+              'Groups-Anfrage fehlgeschlagen (400). Grund: Failed typecasting '
+              ':zip_code! /app-src/vendor/bundle/ruby',
+              statusCode: 400,
+            );
+      final arbeitskontextModel = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: groupsService,
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+      await arbeitskontextModel.syncForAuth(
+        authState: authModel.state,
+        session: authModel.session,
+        profile: authModel.profile,
+      );
+      expect(arbeitskontextModel.hasError, isTrue);
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          authModel: authModel,
+          arbeitskontextModel: arbeitskontextModel,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Arbeitskontext konnte nicht initialisiert werden'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('zip_code'), findsNothing);
+      expect(find.textContaining('Fehlerhafte Gruppe suchen'), findsOneWidget);
+      expect(find.byKey(const Key('shell-error-logout')), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.settings));
+      await tester.pumpAndSettle();
+      final kopf = find.byKey(const Key('settings-profile-header'));
+      expect(
+        find.descendant(of: kopf, matching: find.byIcon(Icons.chevron_right)),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: kopf, matching: find.byIcon(Icons.lock_outline)),
+        findsNothing,
+      );
+    },
+  );
+
   testWidgets('zeigt den Ladefortschritt waehrend des initialen Ladens', (
     tester,
   ) async {
