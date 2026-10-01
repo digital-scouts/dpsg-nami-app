@@ -41,7 +41,7 @@ The app is designed so that no intentional transfer of member data in plain text
 
 ## Nationwide statistics (optional)
 
-The app offers an optional nationwide comparison of Stamm figures. It is only active after the signed-in user has explicitly agreed to share the figures of their Stamm. The consent applies only to that user and can be withdrawn at any time in the app settings or on the comparison page.
+The app offers an optional nationwide comparison of Stamm figures. It is only active after the signed-in user has explicitly agreed to share the figures of a Stamm. Users who can see several Stämme give their consent for each Stamm separately. The consent applies only to that user and can be withdrawn at any time in the app settings or on the comparison page.
 
 If enabled, the app sends aggregated figures of the active Stamm to the statistics server of the NaMi app about once a week: the number of members and leaders per group of an age section (for example per Meute), split by gender, and, for users who may read the whole Stamm, the number of leaders by age group, the number of regular memberships and the number of other members. Users who may only read their own group share only the figures of that group. No names, dates of birth, addresses, contact details or other individual member data are sent, and no data identifying the user.
 

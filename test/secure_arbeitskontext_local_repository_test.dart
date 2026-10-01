@@ -123,6 +123,18 @@ void main() {
     expect(cached, readModel);
   });
 
+  test('speichert die Gruppen der uebergeordneten Layer mit', () async {
+    final readModel = _buildReadModel(
+      aktiverLayerId: 11,
+      aktiverLayerName: 'Stamm Musterdorf',
+    ).copyWith(uebergeordneteGruppenIds: const <int>[20, 201]);
+
+    await repository.saveCached(readModel);
+    final cached = await repository.loadLastCached();
+
+    expect(cached?.uebergeordneteGruppenIds, <int>{20, 201});
+  });
+
   test('ersetzt den bisherigen lokalen Arbeitskontext vollstaendig', () async {
     final first = _buildReadModel(
       aktiverLayerId: 11,

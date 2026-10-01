@@ -221,7 +221,9 @@ class ArbeitskontextReadModel {
     Iterable<ArbeitskontextGruppe> gruppen = const <ArbeitskontextGruppe>[],
     Iterable<ArbeitskontextMitgliedsZuordnung> mitgliedsZuordnungen =
         const <ArbeitskontextMitgliedsZuordnung>[],
+    Iterable<int> uebergeordneteGruppenIds = const <int>[],
   }) : mitglieder = List.unmodifiable(_normalizeMitglieder(mitglieder)),
+       uebergeordneteGruppenIds = Set.unmodifiable(uebergeordneteGruppenIds),
        gruppen = List.unmodifiable(
          _normalizeGruppen(
            aktiverLayerId: arbeitskontext.aktiverLayer.id,
@@ -241,6 +243,11 @@ class ArbeitskontextReadModel {
   final List<Mitglied> mitglieder;
   final List<ArbeitskontextGruppe> gruppen;
   final List<ArbeitskontextMitgliedsZuordnung> mitgliedsZuordnungen;
+
+  /// Gruppen (einschliesslich der Layer-Gruppen selbst) in Layern oberhalb
+  /// des aktiven Layers, z. B. Bezirks- und Dioezesanleitung. Damit laesst sich
+  /// pruefen, ob eine Rolle ausserhalb des aktiven Layers auf ihn wirkt.
+  final Set<int> uebergeordneteGruppenIds;
 
   bool get hatMitglieder => mitglieder.isNotEmpty;
   bool get hatGruppen => gruppen.isNotEmpty;
@@ -278,12 +285,15 @@ class ArbeitskontextReadModel {
     Iterable<Mitglied>? mitglieder,
     Iterable<ArbeitskontextGruppe>? gruppen,
     Iterable<ArbeitskontextMitgliedsZuordnung>? mitgliedsZuordnungen,
+    Iterable<int>? uebergeordneteGruppenIds,
   }) => ArbeitskontextReadModel(
     arbeitskontext: arbeitskontext ?? this.arbeitskontext,
     rolesSindGeladen: rolesSindGeladen ?? this.rolesSindGeladen,
     mitglieder: mitglieder ?? this.mitglieder,
     gruppen: gruppen ?? this.gruppen,
     mitgliedsZuordnungen: mitgliedsZuordnungen ?? this.mitgliedsZuordnungen,
+    uebergeordneteGruppenIds:
+        uebergeordneteGruppenIds ?? this.uebergeordneteGruppenIds,
   );
 
   @override
@@ -293,7 +303,10 @@ class ArbeitskontextReadModel {
         other.rolesSindGeladen == rolesSindGeladen &&
         _listEquals(other.mitglieder, mitglieder) &&
         _listEquals(other.gruppen, gruppen) &&
-        _listEquals(other.mitgliedsZuordnungen, mitgliedsZuordnungen);
+        _listEquals(other.mitgliedsZuordnungen, mitgliedsZuordnungen) &&
+        other.uebergeordneteGruppenIds.length ==
+            uebergeordneteGruppenIds.length &&
+        other.uebergeordneteGruppenIds.containsAll(uebergeordneteGruppenIds);
   }
 
   @override

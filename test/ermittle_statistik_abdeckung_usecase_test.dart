@@ -18,6 +18,8 @@ const _stamm = ArbeitskontextLayer(
 );
 
 ArbeitskontextReadModel _readModel() => ArbeitskontextReadModel(
+  // Gruppe 5 ist die Bezirksleitung im Bezirk oberhalb des Stammes.
+  uebergeordneteGruppenIds: const [1, 5],
   arbeitskontext: Arbeitskontext(
     aktiverLayer: _stamm,
     verfuegbareLayer: const [_bezirk, _stamm],
@@ -84,12 +86,26 @@ void main() {
     );
   });
 
-  test('layer_and_below in einer unbekannten Bezirksgruppe gilt als Stamm', () {
+  test(
+    'layer_and_below in einer Gruppe des Bezirks sieht den ganzen Stamm',
+    () {
+      expect(
+        abdeckung([
+          (5, ['layer_and_below_full', 'contact_data']),
+        ]),
+        const StatistikAbdeckung.stamm(),
+      );
+    },
+  );
+
+  test('volle Rechte in einem anderen Stamm wirken hier nicht', () {
+    // Gruppe 777 liegt in Stamm A, der aktive Layer ist Stamm B.
     expect(
       abdeckung([
-        (999, ['layer_and_below_full', 'contact_data']),
+        (777, ['layer_and_below_full']),
+        (21, ['group_read']),
       ]),
-      const StatistikAbdeckung.stamm(),
+      StatistikAbdeckung.gruppen({21}),
     );
   });
 
