@@ -11,6 +11,7 @@ import '../../domain/bundesstatistik/bundesstatistik_teilnahme.dart';
 import '../../domain/bundesstatistik/ermittle_stammes_hierarchie_usecase.dart';
 import '../../domain/bundesstatistik/installation_credentials.dart';
 import '../../domain/bundesstatistik/stammes_snapshot.dart';
+import '../../domain/bundesstatistik/statistik_abdeckung.dart';
 import '../../services/logger_service.dart';
 import '../../services/network_access_policy.dart';
 
@@ -84,6 +85,7 @@ class BundesstatistikModel extends ChangeNotifier {
   BundesstatistikTeilnahme _teilnahme = BundesstatistikTeilnahme.leer;
   String? _personId;
   ArbeitskontextReadModel? _readModel;
+  StatistikAbdeckung? _abdeckung;
   DateTime? _datenstand;
   StammesHierarchie? _hierarchie;
   StammesKennzahlen? _eigeneKennzahlen;
@@ -105,6 +107,10 @@ class BundesstatistikModel extends ChangeNotifier {
       hatEinwilligung ? _teilnahme.einwilligungAm : null;
   Bundesaggregat? get aggregat => _aggregat;
   StammesKennzahlen? get eigeneKennzahlen => _eigeneKennzahlen;
+
+  /// Ob die Person den ganzen Stamm oder nur einzelne Gruppen sieht; `null`,
+  /// solange Rechte oder Daten fehlen.
+  StatistikAbdeckung? get abdeckung => _abdeckung;
   BundesstatistikFehlerArt? get letzterFehler => _letzterFehler;
 
   /// Zuletzt fuer den aktuellen Stamm gesendeter Snapshot (Transparenz).
@@ -138,7 +144,9 @@ class BundesstatistikModel extends ChangeNotifier {
           : BundesstatistikStatus.zuWenigTeilnahme;
     }
     final readModel = _readModel;
-    if (readModel == null || !readModel.rolesSindGeladen) {
+    if (readModel == null ||
+        !readModel.rolesSindGeladen ||
+        _abdeckung == null) {
       return BundesstatistikStatus.wartetAufDaten;
     }
     if (_hierarchie == null) {
@@ -172,13 +180,15 @@ class BundesstatistikModel extends ChangeNotifier {
     required String? personId,
     required ArbeitskontextReadModel? readModel,
     required DateTime? datenstand,
+    required StatistikAbdeckung? abdeckung,
   }) async {
     if (!_featureEnabled) {
       return;
     }
     if (personId == _personId &&
         identical(readModel, _readModel) &&
-        datenstand == _datenstand) {
+        datenstand == _datenstand &&
+        abdeckung == _abdeckung) {
       return;
     }
 
@@ -190,6 +200,7 @@ class BundesstatistikModel extends ChangeNotifier {
     }
     _personId = personId;
     _readModel = readModel;
+    _abdeckung = abdeckung;
     _datenstand = datenstand;
     _berechneEigeneKennzahlen();
     notifyListeners();
@@ -229,7 +240,8 @@ class BundesstatistikModel extends ChangeNotifier {
 
   void _berechneEigeneKennzahlen() {
     final readModel = _readModel;
-    if (readModel == null || !readModel.rolesSindGeladen) {
+    final abdeckung = _abdeckung;
+    if (readModel == null || !readModel.rolesSindGeladen || abdeckung == null) {
       _hierarchie = null;
       _eigeneKennzahlen = null;
       return;
@@ -237,7 +249,7 @@ class BundesstatistikModel extends ChangeNotifier {
     _hierarchie = _ermittleHierarchie(readModel);
     _eigeneKennzahlen = _hierarchie == null
         ? null
-        : _baueKennzahlen(readModel, stichtag: _now());
+        : _baueKennzahlen(readModel, stichtag: _now(), abdeckung: abdeckung);
   }
 
   Future<void> _synchronisiere({bool aggregatErzwingen = false}) async {
@@ -327,7 +339,8 @@ class BundesstatistikModel extends ChangeNotifier {
     final faellig =
         zuletzt == null ||
         now.difference(zuletzt) >= _sendInterval ||
-        _teilnahme.zuletztGesendeterStammId != hierarchie.stammId;
+        _teilnahme.zuletztGesendeterStammId != hierarchie.stammId ||
+        _zuletztGesendeteAbdeckung() != kennzahlen.abdeckung;
     if (!faellig) {
       return;
     }
@@ -356,6 +369,22 @@ class BundesstatistikModel extends ChangeNotifier {
     // Nach neuem Beitrag das Aggregat frisch laden.
     _aggregatGeladenAm = null;
     await _log('Stammes-Snapshot fuer die bundesweite Statistik gesendet');
+  }
+
+  /// Abdeckung des zuletzt gesendeten Snapshots; aendern sich die Rechte,
+  /// wird sofort neu gesendet.
+  StatistikAbdeckung? _zuletztGesendeteAbdeckung() {
+    final json = _teilnahme.zuletztGesendeterSnapshotJson;
+    if (json == null) {
+      return null;
+    }
+    try {
+      return StammesSnapshot.fromJson(
+        jsonDecode(json) as Map<String, dynamic>,
+      ).kennzahlen.abdeckung;
+    } catch (_) {
+      return null;
+    }
   }
 
   bool _aggregatFaellig() {

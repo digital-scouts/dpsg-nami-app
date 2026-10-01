@@ -16,6 +16,7 @@ import 'package:nami/presentation/screens/bundesvergleich_page.dart';
 import 'package:nami/presentation/screens/statistics_page.dart';
 import 'package:nami/presentation/widgets/bundesstatistik_einwilligung_dialog.dart';
 import 'package:provider/provider.dart';
+import 'package:nami/domain/bundesstatistik/statistik_abdeckung.dart';
 
 Widget _app(Widget home) => MaterialApp(
   onGenerateRoute: onGenerateRoute,
@@ -263,6 +264,7 @@ void main() {
       personId: '42',
       readModel: readModel,
       datenstand: null,
+      abdeckung: const StatistikAbdeckung.stamm(),
     );
 
     await tester.pumpWidget(

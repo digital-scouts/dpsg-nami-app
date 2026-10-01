@@ -11,6 +11,7 @@ import '../domain/bundesstatistik/stammes_snapshot.dart';
 import '../presentation/model/bundesstatistik_model.dart';
 import '../presentation/screens/bundesvergleich_page.dart';
 import '../presentation/widgets/bundesstatistik_einwilligung_dialog.dart';
+import '../domain/bundesstatistik/statistik_abdeckung.dart';
 
 const List<Option<BundesstatistikStatus>> _statusOptionen = [
   Option(
@@ -260,6 +261,7 @@ BundesstatistikModel storyBundesstatistikModel(
         personId: 'story',
         readModel: readModel,
         datenstand: null,
+        abdeckung: const StatistikAbdeckung.stamm(),
       )
       .then((_) {
         if (szenario != StoryBundesstatistikSzenario.optIn) {

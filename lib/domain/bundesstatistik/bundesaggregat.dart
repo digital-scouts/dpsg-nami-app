@@ -29,6 +29,76 @@ class KennzahlAggregat {
       );
 }
 
+/// Kennzahl ueber alle Gruppen einer Stufe: Median je Gruppe, Durchschnitt
+/// ueber die Gruppen. Unterdrueckt wird nach Anzahl der Staemme.
+class GruppenKennzahlAggregat extends KennzahlAggregat {
+  const GruppenKennzahlAggregat({
+    required super.summe,
+    required super.stammAnzahl,
+    required super.median,
+    required this.gruppenAnzahl,
+  });
+
+  final int gruppenAnzahl;
+
+  @override
+  double? get durchschnitt {
+    final value = summe;
+    if (value == null || gruppenAnzahl <= 0) {
+      return null;
+    }
+    return value / gruppenAnzahl;
+  }
+
+  factory GruppenKennzahlAggregat.fromJson(Map<String, dynamic> json) =>
+      GruppenKennzahlAggregat(
+        summe: json['sum'] as num?,
+        stammAnzahl: (json['stamm_count'] as num?)?.toInt() ?? 0,
+        median: json['median'] as num?,
+        gruppenAnzahl: (json['gruppen_count'] as num?)?.toInt() ?? 0,
+      );
+}
+
+/// Gruppengroesse einer Stufe (`gruppen_je_stufe` im Aggregat).
+class StufenGruppenAggregat {
+  const StufenGruppenAggregat({
+    required this.gruppenAnzahl,
+    required this.stammAnzahl,
+    required this.gruppenProStamm,
+    required this.mitglieder,
+    required this.leitende,
+  });
+
+  final int gruppenAnzahl;
+  final int stammAnzahl;
+  final KennzahlAggregat gruppenProStamm;
+
+  /// Je Geschlechterfeld, z. B. `gesamt`, `weiblich`.
+  final Map<String, GruppenKennzahlAggregat> mitglieder;
+  final Map<String, GruppenKennzahlAggregat> leitende;
+
+  factory StufenGruppenAggregat.fromJson(Map<String, dynamic> json) {
+    Map<String, GruppenKennzahlAggregat> verteilung(Object? value) => {
+      if (value is Map<String, dynamic>)
+        for (final entry in value.entries)
+          if (entry.value is Map<String, dynamic>)
+            entry.key: GruppenKennzahlAggregat.fromJson(
+              entry.value as Map<String, dynamic>,
+            ),
+    };
+    final proStamm = json['gruppen_pro_stamm'];
+    return StufenGruppenAggregat(
+      gruppenAnzahl: (json['gruppen_count'] as num?)?.toInt() ?? 0,
+      stammAnzahl: (json['stamm_count'] as num?)?.toInt() ?? 0,
+      gruppenProStamm: KennzahlAggregat.fromJson(
+        proStamm is Map<String, dynamic> ? proStamm : const {},
+      ),
+      mitglieder: verteilung(json['mitglieder']),
+      leitende: verteilung(json['leitende']),
+    );
+  }
+}
+
 enum BundesaggregatStatus { ok, zuWenigTeilnahme }
 
 class Bundesaggregat {
@@ -38,6 +108,7 @@ class Bundesaggregat {
     required this.mindestAnzahlStaemme,
     required this.hinweis,
     required this.kennzahlen,
+    this.gruppenJeStufe = const <String, StufenGruppenAggregat>{},
     this.aggregationsWoche,
     this.erzeugtAm,
     this.datenstandVon,
@@ -51,6 +122,9 @@ class Bundesaggregat {
 
   /// Kennzahlen mit Punkt-Pfad als Schluessel, z. B. `biber.gesamt`.
   final Map<String, KennzahlAggregat> kennzahlen;
+
+  /// Gruppengroesse je Stufe, Schluessel wie im API-Vertrag (`woelflinge` ...).
+  final Map<String, StufenGruppenAggregat> gruppenJeStufe;
   final String? aggregationsWoche;
   final DateTime? erzeugtAm;
   final DateTime? datenstandVon;
@@ -58,9 +132,13 @@ class Bundesaggregat {
 
   KennzahlAggregat? kennzahl(String pfad) => kennzahlen[pfad];
 
+  StufenGruppenAggregat? gruppenDerStufe(String stufenSchluessel) =>
+      gruppenJeStufe[stufenSchluessel];
+
   factory Bundesaggregat.fromJson(Map<String, dynamic> json) {
     final dataAsOf = json['data_as_of'];
     final metrics = json['metrics'];
+    final gruppen = json['gruppen_je_stufe'];
     return Bundesaggregat(
       status: json['status'] == 'ok'
           ? BundesaggregatStatus.ok
@@ -72,6 +150,15 @@ class Bundesaggregat {
       kennzahlen: metrics is Map<String, dynamic>
           ? _flatten(metrics)
           : const <String, KennzahlAggregat>{},
+      gruppenJeStufe: gruppen is Map<String, dynamic>
+          ? {
+              for (final entry in gruppen.entries)
+                if (entry.value is Map<String, dynamic>)
+                  entry.key: StufenGruppenAggregat.fromJson(
+                    entry.value as Map<String, dynamic>,
+                  ),
+            }
+          : const <String, StufenGruppenAggregat>{},
       aggregationsWoche: json['aggregation_week']?.toString(),
       erzeugtAm: _toDateTime(json['generated_at']),
       datenstandVon: dataAsOf is Map<String, dynamic>

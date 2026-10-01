@@ -420,6 +420,7 @@ Future<void> _startApp({
         personId: authModel.profile?.namiId.toString(),
         readModel: arbeitskontextModel.readModel,
         datenstand: authModel.lastSensitiveSyncAt,
+        abdeckung: arbeitskontextModel.statistikAbdeckung,
       ),
     );
   }
