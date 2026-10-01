@@ -238,31 +238,41 @@ class _MemberEditPageState extends State<MemberEditPage> {
     );
   }
 
-  Widget _buildEditSectionsContent() {
+  /// Im Problemloesungsmodus liegen die Abschnitte bereits in der
+  /// aufklappbaren Karte "Mitglied bearbeiten"; dort erscheinen sie ohne
+  /// eigene Karte, nur durch Trennlinien abgesetzt.
+  Widget _buildEditSectionsContent({bool embedded = false}) {
+    final separator = embedded
+        ? const Divider(height: 32)
+        : const SizedBox(height: 10);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _SectionCard(
           key: _generalSectionKey,
           title: _t.t('member_edit_section_general'),
+          embedded: embedded,
           child: _buildGeneralSection(),
         ),
-        const SizedBox(height: 10),
+        separator,
         _SectionCard(
           key: _emailSectionKey,
           title: _t.t('member_edit_section_email'),
+          embedded: embedded,
           child: _buildEmailSection(),
         ),
-        const SizedBox(height: 10),
+        separator,
         _SectionCard(
           key: _phoneSectionKey,
           title: _t.t('member_edit_section_phone'),
+          embedded: embedded,
           child: _buildPhoneSection(),
         ),
-        const SizedBox(height: 10),
+        separator,
         _SectionCard(
           key: _addressSectionKey,
           title: _t.t('member_edit_section_address'),
+          embedded: embedded,
           child: _buildAddressSection(),
         ),
       ],
@@ -279,7 +289,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
           _editSectionExpanded = !_editSectionExpanded;
         });
       },
-      child: _buildEditSectionsContent(),
+      child: _buildEditSectionsContent(embedded: true),
     );
   }
 
@@ -1992,13 +2002,31 @@ String? _trimToNull(String value) {
 }
 
 class _SectionCard extends StatelessWidget {
-  const _SectionCard({super.key, required this.title, required this.child});
+  const _SectionCard({
+    super.key,
+    required this.title,
+    required this.child,
+    this.embedded = false,
+  });
 
   final String title;
   final Widget child;
 
+  /// Ohne eigene Karte, wenn der Abschnitt bereits in einer Karte liegt.
+  final bool embedded;
+
   @override
   Widget build(BuildContext context) {
+    if (embedded) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 14),
+          child,
+        ],
+      );
+    }
     final colorScheme = Theme.of(context).colorScheme;
     return Card(
       elevation: 0,
