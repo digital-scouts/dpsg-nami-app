@@ -5,6 +5,10 @@ import 'package:nami/domain/taetigkeit/role_derivation.dart';
 import 'package:nami/domain/taetigkeit/roles.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 
+/// Feste Uhr für die aktuelle Stufe: alle Testrollen haben begonnen, die
+/// geplante Jufi-Rolle ab 01.10.2026 liegt noch in der Zukunft.
+final _heute = DateTime(2025, 8, 1);
+
 void main() {
   group('Stufenwechsel Info', () {
     test('Beispiel Max: Wös (8 Jahre, Dez 2025) und Stichtag Sep 2026', () {
@@ -33,6 +37,7 @@ void main() {
 
       final stichtag = DateTime(2026, 9, 1);
       final infos = computeStufenwechselInfos(
+        heute: _heute,
         mitglieder: [mitglied],
         stichtag: stichtag,
         grenzen: grenzen,
@@ -79,6 +84,7 @@ void main() {
       });
 
       final infos = computeStufenwechselInfos(
+        heute: _heute,
         mitglieder: [rita],
         stichtag: DateTime(2025, 10, 1),
         grenzen: grenzen,
@@ -117,6 +123,7 @@ void main() {
 
       final stichtag = DateTime(2027, 9, 1); // genau 9 Jahre alt
       final info = computeStufenwechselInfos(
+        heute: _heute,
         mitglieder: [m],
         stichtag: stichtag,
         grenzen: grenzen,
@@ -154,6 +161,7 @@ void main() {
 
       final stichtag = DateTime(2026, 9, 1); // 9 Jahre
       final info = computeStufenwechselInfos(
+        heute: _heute,
         mitglieder: [m],
         stichtag: stichtag,
         grenzen: grenzen,
@@ -193,6 +201,7 @@ void main() {
 
       final stichtag = DateTime(2026, 9, 1); // 6 Jahre → StartJahr wäre 2029
       final info = computeStufenwechselInfos(
+        heute: _heute,
         mitglieder: [m],
         stichtag: stichtag,
         grenzen: grenzen,
@@ -229,6 +238,7 @@ void main() {
 
       final stichtag = DateTime(2025, 9, 1); // 11 Jahre → über max (9) der Wö
       final info = computeStufenwechselInfos(
+        heute: _heute,
         mitglieder: [m],
         stichtag: stichtag,
         grenzen: grenzen,
@@ -296,6 +306,7 @@ void main() {
 
       final stichtag = DateTime(2025, 9, 1);
       final infos = computeStufenwechselInfos(
+        heute: _heute,
         mitglieder: [mAktiv, mLeitung, mPassiv],
         stichtag: stichtag,
         grenzen: grenzen,
@@ -338,11 +349,15 @@ void main() {
 
         final stichtag = DateTime(2026, 9, 1);
         final info = computeStufenwechselInfos(
+          heute: _heute,
           mitglieder: [m],
           stichtag: stichtag,
           grenzen: grenzen,
         ).first;
 
+        // Die geplante Jufi-Rolle zählt noch nicht: aktuell Wölfling, und
+        // nur die Planung verhindert den Wechselvorschlag.
+        expect(info.stufe, Stufe.woelfling);
         expect(info.shouldWechselNext, isFalse);
       },
     );
