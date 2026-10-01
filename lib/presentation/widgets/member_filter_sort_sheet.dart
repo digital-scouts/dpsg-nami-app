@@ -710,7 +710,6 @@ class _CustomGroupEditorSheetState extends State<_CustomGroupEditorSheet> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final selectorData = _buildSelectorData(t, widget.readModel);
 
     return SafeArea(
       child: Padding(
@@ -783,244 +782,14 @@ class _CustomGroupEditorSheetState extends State<_CustomGroupEditorSheet> {
                 ],
               ),
               const SizedBox(height: 12),
-              _SheetSelectField(
-                label: t.t('member_filter_logic_label'),
-                value: _logic == MemberCustomFilterLogic.und
-                    ? t.t('member_filter_logic_and')
-                    : t.t('member_filter_logic_or'),
-                onTap: () async {
-                  final selected =
-                      await _showOptionPickerSheet<MemberCustomFilterLogic>(
-                        context,
-                        title: t.t('member_filter_logic_label'),
-                        selected: _logic,
-                        options: MemberCustomFilterLogic.values
-                            .map(
-                              (value) => _SelectOption<MemberCustomFilterLogic>(
-                                value: value,
-                                label: value == MemberCustomFilterLogic.und
-                                    ? t.t('member_filter_logic_and')
-                                    : t.t('member_filter_logic_or'),
-                              ),
-                            )
-                            .toList(growable: false),
-                      );
-                  if (selected != null) {
-                    setState(() => _logic = selected);
-                  }
-                },
-              ),
-              const SizedBox(height: 16),
-              Text(
-                t.t('member_filter_rules_title'),
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              ..._rules.asMap().entries.map((entry) {
-                final index = entry.key;
-                final rule = entry.value;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Card(
-                    margin: EdgeInsets.zero,
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _SheetSelectField(
-                            label: t.t('member_filter_rule_operator_label'),
-                            value:
-                                rule.operator ==
-                                    MemberCustomFilterRuleOperator.hat
-                                ? t.t('member_filter_operator_has')
-                                : t.t('member_filter_operator_has_not'),
-                            onTap: () async {
-                              final selected =
-                                  await _showOptionPickerSheet<
-                                    MemberCustomFilterRuleOperator
-                                  >(
-                                    context,
-                                    title: t.t(
-                                      'member_filter_rule_operator_label',
-                                    ),
-                                    selected: rule.operator,
-                                    options: MemberCustomFilterRuleOperator
-                                        .values
-                                        .map(
-                                          (value) =>
-                                              _SelectOption<
-                                                MemberCustomFilterRuleOperator
-                                              >(
-                                                value: value,
-                                                label:
-                                                    value ==
-                                                        MemberCustomFilterRuleOperator
-                                                            .hat
-                                                    ? t.t(
-                                                        'member_filter_operator_has',
-                                                      )
-                                                    : t.t(
-                                                        'member_filter_operator_has_not',
-                                                      ),
-                                              ),
-                                        )
-                                        .toList(growable: false),
-                                  );
-                              if (selected != null) {
-                                setState(() {
-                                  _rules[index] = _rules[index].copyWith(
-                                    operator: selected,
-                                  );
-                                });
-                              }
-                            },
-                          ),
-                          const SizedBox(height: 8),
-                          _SheetSelectField(
-                            label: t.t('member_filter_rule_group_label'),
-                            value: selectorData.groups
-                                .firstWhere(
-                                  (option) =>
-                                      option.key ==
-                                      _selectedGroupKey(
-                                        rule.criterion,
-                                        selectorData,
-                                      ),
-                                )
-                                .label,
-                            onTap: () async {
-                              final selected =
-                                  await _showOptionPickerSheet<String>(
-                                    context,
-                                    title: t.t(
-                                      'member_filter_rule_group_label',
-                                    ),
-                                    selected: _selectedGroupKey(
-                                      rule.criterion,
-                                      selectorData,
-                                    ),
-                                    options: selectorData.groups
-                                        .map(
-                                          (option) => _SelectOption<String>(
-                                            value: option.key,
-                                            label: option.label,
-                                          ),
-                                        )
-                                        .toList(growable: false),
-                                  );
-                              if (selected == null) {
-                                return;
-                              }
-                              final groupOption = selectorData.groups
-                                  .firstWhere(
-                                    (option) => option.key == selected,
-                                  );
-                              setState(() {
-                                _rules[index] = _rules[index].copyWith(
-                                  criterion: groupOption.defaultCriterion,
-                                );
-                              });
-                            },
-                          ),
-                          const SizedBox(height: 8),
-                          _SheetSelectField(
-                            label: t.t('member_filter_rule_role_label'),
-                            value:
-                                _roleOptionsForRule(
-                                      t,
-                                      rule.criterion,
-                                      selectorData,
-                                    )
-                                    .firstWhere(
-                                      (option) =>
-                                          option.key ==
-                                          _selectedRoleKey(rule.criterion),
-                                      orElse: () => _roleOptionsForRule(
-                                        t,
-                                        rule.criterion,
-                                        selectorData,
-                                      ).first,
-                                    )
-                                    .label,
-                            enabled:
-                                rule.criterion.type !=
-                                MemberCustomFilterCriterionType.stufe,
-                            onTap:
-                                rule.criterion.type ==
-                                    MemberCustomFilterCriterionType.stufe
-                                ? null
-                                : () async {
-                                    final roleOptions = _roleOptionsForRule(
-                                      t,
-                                      rule.criterion,
-                                      selectorData,
-                                    );
-                                    final selected =
-                                        await _showOptionPickerSheet<String>(
-                                          context,
-                                          title: t.t(
-                                            'member_filter_rule_role_label',
-                                          ),
-                                          selected: _selectedRoleKey(
-                                            rule.criterion,
-                                          ),
-                                          options: roleOptions
-                                              .map(
-                                                (option) =>
-                                                    _SelectOption<String>(
-                                                      value: option.key,
-                                                      label: option.label,
-                                                    ),
-                                              )
-                                              .toList(growable: false),
-                                        );
-                                    if (selected == null) {
-                                      return;
-                                    }
-                                    final roleOption = roleOptions.firstWhere(
-                                      (option) => option.key == selected,
-                                    );
-                                    setState(() {
-                                      _rules[index] = _rules[index].copyWith(
-                                        criterion: roleOption.criterion,
-                                      );
-                                    });
-                                  },
-                          ),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: IconButton(
-                              icon: const Icon(Icons.remove_circle_outline),
-                              tooltip: t.t('member_filter_rule_remove'),
-                              onPressed: _rules.length <= 1
-                                  ? null
-                                  : () {
-                                      setState(() {
-                                        _rules.removeAt(index);
-                                      });
-                                    },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }),
-              TextButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _rules.add(
-                      const MemberCustomFilterRule(
-                        operator: MemberCustomFilterRuleOperator.hat,
-                        criterion: MemberCustomFilterCriterion.stufe(),
-                      ),
-                    );
-                  });
-                },
-                icon: const Icon(Icons.add),
-                label: Text(t.t('member_filter_rule_add')),
+              MemberFilterRegelEditor(
+                readModel: widget.readModel,
+                logic: _logic,
+                rules: _rules,
+                onChanged: (logic, rules) => setState(() {
+                  _logic = logic;
+                  _rules = rules;
+                }),
               ),
               const SizedBox(height: 12),
               SizedBox(
@@ -1052,6 +821,273 @@ class _CustomGroupEditorSheetState extends State<_CustomGroupEditorSheet> {
           ),
         ),
       ),
+    );
+  }
+
+  String _iconLabel(AppLocalizations t, String? iconKey) {
+    if (iconKey == null) {
+      return t.t('member_filter_icon_none');
+    }
+    for (final option in memberCustomFilterIconOptions) {
+      if (option.key == iconKey) {
+        return t.t(option.labelKey);
+      }
+    }
+    return t.t('member_filter_icon_none');
+  }
+}
+
+/// Bearbeitet die Regeln einer eigenen Filtergruppe: Verknüpfung, Regeln
+/// mit Gruppe und Rolle, Regel hinzufügen und entfernen. Wird auch für
+/// eigene Statistik-Kacheln genutzt.
+class MemberFilterRegelEditor extends StatelessWidget {
+  const MemberFilterRegelEditor({
+    super.key,
+    required this.readModel,
+    required this.logic,
+    required this.rules,
+    required this.onChanged,
+  });
+
+  final ArbeitskontextReadModel readModel;
+  final MemberCustomFilterLogic logic;
+  final List<MemberCustomFilterRule> rules;
+  final void Function(
+    MemberCustomFilterLogic logic,
+    List<MemberCustomFilterRule> rules,
+  )
+  onChanged;
+
+  void _regelAendern(int index, MemberCustomFilterRule regel) => onChanged(
+    logic,
+    [for (var i = 0; i < rules.length; i++) i == index ? regel : rules[i]],
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final selectorData = _buildSelectorData(t, readModel);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _SheetSelectField(
+          label: t.t('member_filter_logic_label'),
+          value: logic == MemberCustomFilterLogic.und
+              ? t.t('member_filter_logic_and')
+              : t.t('member_filter_logic_or'),
+          onTap: () async {
+            final selected =
+                await _showOptionPickerSheet<MemberCustomFilterLogic>(
+                  context,
+                  title: t.t('member_filter_logic_label'),
+                  selected: logic,
+                  options: MemberCustomFilterLogic.values
+                      .map(
+                        (value) => _SelectOption<MemberCustomFilterLogic>(
+                          value: value,
+                          label: value == MemberCustomFilterLogic.und
+                              ? t.t('member_filter_logic_and')
+                              : t.t('member_filter_logic_or'),
+                        ),
+                      )
+                      .toList(growable: false),
+                );
+            if (selected != null) {
+              onChanged(selected, rules);
+            }
+          },
+        ),
+        const SizedBox(height: 16),
+        Text(
+          t.t('member_filter_rules_title'),
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        ...rules.asMap().entries.map((entry) {
+          final index = entry.key;
+          final rule = entry.value;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Card(
+              margin: EdgeInsets.zero,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _SheetSelectField(
+                      label: t.t('member_filter_rule_operator_label'),
+                      value: rule.operator == MemberCustomFilterRuleOperator.hat
+                          ? t.t('member_filter_operator_has')
+                          : t.t('member_filter_operator_has_not'),
+                      onTap: () async {
+                        final selected =
+                            await _showOptionPickerSheet<
+                              MemberCustomFilterRuleOperator
+                            >(
+                              context,
+                              title: t.t('member_filter_rule_operator_label'),
+                              selected: rule.operator,
+                              options: MemberCustomFilterRuleOperator.values
+                                  .map(
+                                    (value) =>
+                                        _SelectOption<
+                                          MemberCustomFilterRuleOperator
+                                        >(
+                                          value: value,
+                                          label:
+                                              value ==
+                                                  MemberCustomFilterRuleOperator
+                                                      .hat
+                                              ? t.t(
+                                                  'member_filter_operator_has',
+                                                )
+                                              : t.t(
+                                                  'member_filter_operator_has_not',
+                                                ),
+                                        ),
+                                  )
+                                  .toList(growable: false),
+                            );
+                        if (selected != null) {
+                          _regelAendern(
+                            index,
+                            rules[index].copyWith(operator: selected),
+                          );
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    _SheetSelectField(
+                      label: t.t('member_filter_rule_group_label'),
+                      value: selectorData.groups
+                          .firstWhere(
+                            (option) =>
+                                option.key ==
+                                _selectedGroupKey(rule.criterion, selectorData),
+                          )
+                          .label,
+                      onTap: () async {
+                        final selected = await _showOptionPickerSheet<String>(
+                          context,
+                          title: t.t('member_filter_rule_group_label'),
+                          selected: _selectedGroupKey(
+                            rule.criterion,
+                            selectorData,
+                          ),
+                          options: selectorData.groups
+                              .map(
+                                (option) => _SelectOption<String>(
+                                  value: option.key,
+                                  label: option.label,
+                                ),
+                              )
+                              .toList(growable: false),
+                        );
+                        if (selected == null) {
+                          return;
+                        }
+                        final groupOption = selectorData.groups.firstWhere(
+                          (option) => option.key == selected,
+                        );
+                        _regelAendern(
+                          index,
+                          rules[index].copyWith(
+                            criterion: groupOption.defaultCriterion,
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    _SheetSelectField(
+                      label: t.t('member_filter_rule_role_label'),
+                      value:
+                          _roleOptionsForRule(t, rule.criterion, selectorData)
+                              .firstWhere(
+                                (option) =>
+                                    option.key ==
+                                    _selectedRoleKey(rule.criterion),
+                                orElse: () => _roleOptionsForRule(
+                                  t,
+                                  rule.criterion,
+                                  selectorData,
+                                ).first,
+                              )
+                              .label,
+                      enabled:
+                          rule.criterion.type !=
+                          MemberCustomFilterCriterionType.stufe,
+                      onTap:
+                          rule.criterion.type ==
+                              MemberCustomFilterCriterionType.stufe
+                          ? null
+                          : () async {
+                              final roleOptions = _roleOptionsForRule(
+                                t,
+                                rule.criterion,
+                                selectorData,
+                              );
+                              final selected =
+                                  await _showOptionPickerSheet<String>(
+                                    context,
+                                    title: t.t('member_filter_rule_role_label'),
+                                    selected: _selectedRoleKey(rule.criterion),
+                                    options: roleOptions
+                                        .map(
+                                          (option) => _SelectOption<String>(
+                                            value: option.key,
+                                            label: option.label,
+                                          ),
+                                        )
+                                        .toList(growable: false),
+                                  );
+                              if (selected == null) {
+                                return;
+                              }
+                              final roleOption = roleOptions.firstWhere(
+                                (option) => option.key == selected,
+                              );
+                              _regelAendern(
+                                index,
+                                rules[index].copyWith(
+                                  criterion: roleOption.criterion,
+                                ),
+                              );
+                            },
+                    ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: IconButton(
+                        icon: const Icon(Icons.remove_circle_outline),
+                        tooltip: t.t('member_filter_rule_remove'),
+                        onPressed: rules.length <= 1
+                            ? null
+                            : () {
+                                onChanged(logic, [...rules]..removeAt(index));
+                              },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }),
+        TextButton.icon(
+          onPressed: () {
+            onChanged(logic, [
+              ...rules,
+              const MemberCustomFilterRule(
+                operator: MemberCustomFilterRuleOperator.hat,
+                criterion: MemberCustomFilterCriterion.stufe(),
+              ),
+            ]);
+          },
+          icon: const Icon(Icons.add),
+          label: Text(t.t('member_filter_rule_add')),
+        ),
+      ],
     );
   }
 
@@ -1138,7 +1174,7 @@ class _CustomGroupEditorSheetState extends State<_CustomGroupEditorSheet> {
           );
     }
 
-    for (final rule in _rules) {
+    for (final rule in rules) {
       if (rule.criterion.type == MemberCustomFilterCriterionType.stufe) {
         continue;
       }
@@ -1237,18 +1273,6 @@ class _CustomGroupEditorSheetState extends State<_CustomGroupEditorSheet> {
   }
 
   String _groupKeyForId(int id) => 'group:$id';
-
-  String _iconLabel(AppLocalizations t, String? iconKey) {
-    if (iconKey == null) {
-      return t.t('member_filter_icon_none');
-    }
-    for (final option in memberCustomFilterIconOptions) {
-      if (option.key == iconKey) {
-        return t.t(option.labelKey);
-      }
-    }
-    return t.t('member_filter_icon_none');
-  }
 
   String _roleKeyForCriterion(MemberCustomFilterCriterion criterion) {
     if (criterion.roleType == null && criterion.roleLabel == null) {

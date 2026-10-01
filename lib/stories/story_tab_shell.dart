@@ -131,6 +131,7 @@ class StoryTabPage extends StatelessWidget {
     this.providers = const [],
     this.badge,
     this.textScale = 1,
+    this.disableAnimations = false,
   });
 
   final int tabIndex;
@@ -148,6 +149,9 @@ class StoryTabPage extends StatelessWidget {
 
   /// Simulierte System-Textskalierung.
   final double textScale;
+
+  /// Simuliert „Bewegung reduzieren“.
+  final bool disableAnimations;
 
   @override
   Widget build(BuildContext context) {
@@ -179,9 +183,10 @@ class StoryTabPage extends StatelessWidget {
         supportedLocales: const [Locale('de'), Locale('en')],
         onGenerateRoute: onGenerateRoute,
         builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(
-            context,
-          ).copyWith(textScaler: TextScaler.linear(textScale)),
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(textScale),
+            disableAnimations: disableAnimations,
+          ),
           child: child!,
         ),
         home: Scaffold(

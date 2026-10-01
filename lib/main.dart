@@ -74,6 +74,7 @@ import 'presentation/model/appearance_model.dart';
 import 'presentation/model/bundesstatistik_model.dart';
 import 'presentation/model/locale_model.dart';
 import 'presentation/model/member_filters_model.dart';
+import 'presentation/model/statistik_kacheln_model.dart';
 import 'presentation/model/urgent_notification_model.dart';
 import 'presentation/navigation/app_router.dart';
 import 'presentation/notifications/app_snackbar.dart';
@@ -214,6 +215,9 @@ Future<void> _startApp({
   );
   await appearanceModel.load();
   final memberFiltersModel = MemberFiltersModel(memberFilterRepository);
+  final statistikKachelnModel = StatistikKachelnModel(
+    statistikKachelRepository,
+  );
 
   final logger = LoggerService(
     settingsRepository: settingsRepo,
@@ -542,8 +546,8 @@ Future<void> _startApp({
         ChangeNotifierProvider<MemberFiltersModel>.value(
           value: memberFiltersModel,
         ),
-        Provider<StatistikKachelRepository>.value(
-          value: statistikKachelRepository,
+        ChangeNotifierProvider<StatistikKachelnModel>.value(
+          value: statistikKachelnModel,
         ),
         Provider<StatistikVerlaufRepository>.value(
           value: statistikVerlaufRepository,
