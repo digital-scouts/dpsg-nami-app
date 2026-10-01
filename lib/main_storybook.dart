@@ -130,9 +130,12 @@ List<Story> buildStorybookStories() {
 }
 
 class StorybookEntry extends StatelessWidget {
-  const StorybookEntry({super.key, this.stories});
+  const StorybookEntry({super.key, this.stories, this.initialStory});
 
   final List<Story>? stories;
+
+  /// Name der beim Start geöffneten Story, z. B. für den Smoke-Test.
+  final String? initialStory;
 
   @override
   Widget build(BuildContext context) {
@@ -142,6 +145,7 @@ class StorybookEntry extends StatelessWidget {
       themeMode: ThemeMode.system,
       home: Storybook(
         stories: stories ?? buildStorybookStories(),
+        initialStory: initialStory,
         wrapperBuilder: _storyWrapper,
       ),
     );

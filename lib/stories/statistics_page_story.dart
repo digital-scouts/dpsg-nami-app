@@ -10,6 +10,7 @@ import 'package:nami/presentation/screens/statistics_page.dart';
 import 'package:nami/presentation/statistics/statistik_stamm_ansicht.dart';
 import 'package:nami/stories/bundesstatistik_story.dart';
 import 'package:nami/stories/statistik/statistik_kachel_beispiele.dart';
+import 'package:nami/stories/store/store_showcase_data.dart';
 import 'package:nami/stories/story_tab_shell.dart';
 import 'package:provider/provider.dart';
 // ignore: depend_on_referenced_packages
@@ -128,15 +129,18 @@ Story statisticsGroupDetailStory() {
     builder: (context) {
       final groupId = context.knobs.options<String>(
         label: 'Gruppe',
-        initial: 'woe',
-        options: const [
-          Option(label: 'Woelflinge', value: 'woe'),
-          Option(label: 'Jungpfadfinder', value: 'jup'),
-          Option(label: 'Pfadfinder', value: 'pf'),
-          Option(label: 'Rover', value: 'rov'),
+        initial: '${StoreShowcaseData.gruppen[1].id}',
+        options: [
+          for (final gruppe in StoreShowcaseData.gruppen)
+            Option(label: gruppe.name, value: '${gruppe.id}'),
         ],
       );
-      return MaterialApp(home: StatisticsGroupDetailPage(groupId: groupId));
+      // Ohne Read-Model sucht die Seite das ArbeitskontextModel der App.
+      return StatisticsGroupDetailPage(
+        key: ValueKey(groupId),
+        groupId: groupId,
+        debugReadModel: StoreShowcaseData.readModel(),
+      );
     },
   );
 }
