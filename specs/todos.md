@@ -21,7 +21,6 @@ Nächste Aufgaben:
 
 - Kategorien für neue Kontaktangaben senden: Hitobito verlangt seit hitobito#4359 bei Telefonnummern, Zusatzmails und Zusatzadressen eine `category_id`. Ohne sie endet jede Neuanlage aus der App mit 422 („Kategorie muss ausgefüllt werden“). Umsetzbar, sobald [hitobito#4535](https://github.com/hitobito/hitobito/pull/4535) mit `GET /api/contact_account_categories` auf der Instanz läuft: Kategorien laden, beim Anlegen mitsenden, in der UI auswählbar machen, `specs/hitobito_dpsg_openapi.yaml` aktualisieren.
 - Den Inhaltsabgleich neuer Telefonnummern in `MemberConflictResolver` formatunabhängig machen. Hitobito liefert Nummern formatiert (`+49 (0170) 123-4567`), die App sendet sie als Ziffernfolge. Kam ein erstes Senden an, galt aber als fehlgeschlagen, legt das erneute Senden die Nummer doppelt an.
-- Szenario Offline-Konflikt (lokale und fremde Änderung desselben Felds) einmal auf einem echten Gerät durchspielen.
 - Das Öffnen und Lösen des Problemlösungsfalls im Problemlösungs-Screen an die Ketten-Szenarien anschließen.
 - Die übrigen duplizierten Test-Fakes (Logger, App-Settings, Auth, Pending- und Write-Repositories in etwa 15 Testdateien) auf `test/support/` umstellen.
 - Contract-Tests gegen einen lokalen Hitobito-Stack mit DPSG-Wagon prüfen: Service-Ebene in Dart mit Service-Token (`X-TOKEN`) statt Geräte-Integrationstests. Hürden sind der Port 3000, den auch der Statistikserver nutzt, eine Dev-Ausnahme für Cleartext-HTTP und der interaktive Login.
@@ -84,6 +83,5 @@ Diese Punkte sind für den aktuellen MVP nicht blockierend, bleiben aber als sp�
 - [ ] Biber wird über die zentrale Stufenableitung erkannt und bei fehlendem Biber im aktiven Stamm standardmäßig ausgeblendet.
 - [ ] Jufi und Pfadi werden fachlich korrekt getrennt.
 - [ ] Mitglieder ohne Stufenzuordnung landen weiterhin in Rest beziehungsweise Alle anderen.
-- [ ] Problemlösungsfall nach Offline-Konflikt im Screen geöffnet und gelöst.
 - [ ] Gültige Adresse offline gespeichert und später erfolgreich synchronisiert.
 - [ ] Ungültige Adresse offline gespeichert und später als Problemlösungsfall geprüft.
