@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,25 +8,20 @@ import 'package:nami/data/achievements/shared_prefs_achievement_repository.dart'
 import 'package:nami/data/statistiks/shared_prefs_statistik_verlauf_repository.dart';
 import 'package:nami/domain/achievements/achievement_definition.dart';
 import 'package:nami/domain/auth/auth_profile.dart';
-import 'package:nami/domain/auth/auth_profile_repository.dart';
 import 'package:nami/domain/auth/auth_session.dart';
-import 'package:nami/domain/auth/auth_session_repository.dart';
 import 'package:nami/domain/auth/auth_state.dart';
-import 'package:nami/domain/settings/app_settings.dart';
-import 'package:nami/domain/settings/app_settings_repository.dart';
 import 'package:nami/domain/statistiks/statistik_verlauf.dart';
-import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/services/achievement_service.dart';
-import 'package:nami/services/biometric_lock_service.dart';
-import 'package:nami/services/hitobito_auth_env.dart';
 import 'package:nami/services/hitobito_data_retention_policy.dart';
 import 'package:nami/services/hitobito_oauth_service.dart';
 import 'package:nami/services/hitobito_people_service.dart';
-import 'package:nami/services/logger_service.dart';
 import 'package:nami/services/network_access_policy.dart';
 import 'package:nami/services/sensitive_storage_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'support/auth_session_fakes.dart';
+import 'support/fake_logger_service.dart';
 
 void main() {
   test(
@@ -69,22 +63,22 @@ void main() {
       await verlauf.saveForLayer(31, eintraege);
 
       final model = AuthSessionModel(
-        repository: _InMemoryAuthSessionRepository(
+        repository: InMemoryAuthSessionRepository(
           initialSession: AuthSession(
             accessToken: 'access-token',
             refreshToken: 'refresh-token',
             receivedAt: DateTime(2026, 9, 30),
           ),
         ),
-        profileRepository: _InMemoryAuthProfileRepository(),
-        oauthService: _FakeOauthService(
+        profileRepository: InMemoryAuthProfileRepository(),
+        oauthService: FakeOauthService(
           sessionToReturn: AuthSession(
             accessToken: 'access-token',
             receivedAt: DateTime(2026, 9, 30),
           ),
           profileToReturn: const AuthProfile(namiId: 31),
         ),
-        biometricLockService: _FakeBiometricLockService(),
+        biometricLockService: FakeBiometricLockService(),
         sensitiveStorageService: sensitiveStorage,
         retentionPolicy: HitobitoDataRetentionPolicy(
           maxDataAge: const Duration(days: 90),
@@ -109,7 +103,7 @@ void main() {
   test(
     'setzt unbekannte Profilsprache nach Login auf deutsch zurueck',
     () async {
-      final oauthService = _FakeOauthService(
+      final oauthService = FakeOauthService(
         sessionToReturn: AuthSession(
           accessToken: 'access-token',
           refreshToken: 'refresh-token',
@@ -126,11 +120,11 @@ void main() {
       final languageChanges = <String>[];
 
       final model = AuthSessionModel(
-        repository: _InMemoryAuthSessionRepository(),
-        profileRepository: _InMemoryAuthProfileRepository(),
+        repository: InMemoryAuthSessionRepository(),
+        profileRepository: InMemoryAuthProfileRepository(),
         oauthService: oauthService,
-        biometricLockService: _FakeBiometricLockService(),
-        sensitiveStorageService: _FakeSensitiveStorageService(),
+        biometricLockService: FakeBiometricLockService(),
+        sensitiveStorageService: FakeSensitiveStorageService(),
         retentionPolicy: HitobitoDataRetentionPolicy(
           maxDataAge: const Duration(days: 90),
           refreshInterval: const Duration(hours: 24),
@@ -154,7 +148,7 @@ void main() {
   test(
     'uebernimmt englische Profilsprache nach Login',
     () async {
-      final oauthService = _FakeOauthService(
+      final oauthService = FakeOauthService(
         sessionToReturn: AuthSession(
           accessToken: 'access-token',
           refreshToken: 'refresh-token',
@@ -170,11 +164,11 @@ void main() {
       final languageChanges = <String>[];
 
       final model = AuthSessionModel(
-        repository: _InMemoryAuthSessionRepository(),
-        profileRepository: _InMemoryAuthProfileRepository(),
+        repository: InMemoryAuthSessionRepository(),
+        profileRepository: InMemoryAuthProfileRepository(),
         oauthService: oauthService,
-        biometricLockService: _FakeBiometricLockService(),
-        sensitiveStorageService: _FakeSensitiveStorageService(),
+        biometricLockService: FakeBiometricLockService(),
+        sensitiveStorageService: FakeSensitiveStorageService(),
         retentionPolicy: HitobitoDataRetentionPolicy(
           maxDataAge: const Duration(days: 90),
           refreshInterval: const Duration(hours: 24),
@@ -198,7 +192,7 @@ void main() {
   test(
     'laedt Profil und synchronisiert Sprache bei vorhandener Session waehrend initialize',
     () async {
-      final oauthService = _FakeOauthService(
+      final oauthService = FakeOauthService(
         sessionToReturn: AuthSession(
           accessToken: 'unused',
           receivedAt: DateTime(2026, 3, 27),
@@ -210,7 +204,7 @@ void main() {
           language: 'en',
         ),
       );
-      final repository = _InMemoryAuthSessionRepository(
+      final repository = InMemoryAuthSessionRepository(
         initialSession: AuthSession(
           accessToken: 'existing-token',
           receivedAt: DateTime(2026, 3, 27),
@@ -220,10 +214,10 @@ void main() {
 
       final model = AuthSessionModel(
         repository: repository,
-        profileRepository: _InMemoryAuthProfileRepository(),
+        profileRepository: InMemoryAuthProfileRepository(),
         oauthService: oauthService,
-        biometricLockService: _FakeBiometricLockService(),
-        sensitiveStorageService: _FakeSensitiveStorageService(),
+        biometricLockService: FakeBiometricLockService(),
+        sensitiveStorageService: FakeSensitiveStorageService(),
         retentionPolicy: HitobitoDataRetentionPolicy(
           maxDataAge: const Duration(days: 90),
           refreshInterval: const Duration(hours: 24),
@@ -248,13 +242,13 @@ void main() {
   test(
     'setzt state auf error statt eine Exception unbehandelt zu lassen, wenn initialize fehlschlaegt',
     () async {
-      final repository = _InMemoryAuthSessionRepository()
+      final repository = InMemoryAuthSessionRepository()
         ..loadError = Exception('Storage nicht verfuegbar');
 
       final model = AuthSessionModel(
         repository: repository,
-        profileRepository: _InMemoryAuthProfileRepository(),
-        oauthService: _FakeOauthService(
+        profileRepository: InMemoryAuthProfileRepository(),
+        oauthService: FakeOauthService(
           sessionToReturn: AuthSession(
             accessToken: 'unused',
             receivedAt: DateTime(2026, 3, 27),
@@ -265,8 +259,8 @@ void main() {
             lastName: 'Beispiel',
           ),
         ),
-        biometricLockService: _FakeBiometricLockService(),
-        sensitiveStorageService: _FakeSensitiveStorageService(),
+        biometricLockService: FakeBiometricLockService(),
+        sensitiveStorageService: FakeSensitiveStorageService(),
         retentionPolicy: HitobitoDataRetentionPolicy(
           maxDataAge: const Duration(days: 90),
           refreshInterval: const Duration(hours: 24),
@@ -290,7 +284,7 @@ void main() {
   test(
     'setzt uebernommene Session ohne Profildaten und Sync-Stand bei initialize auf signedOut zurueck',
     () async {
-      final repository = _InMemoryAuthSessionRepository(
+      final repository = InMemoryAuthSessionRepository(
         initialSession: AuthSession(
           accessToken: 'existing-token',
           receivedAt: DateTime(2026, 3, 27),
@@ -299,8 +293,8 @@ void main() {
       final logger = _createLogger();
       final model = AuthSessionModel(
         repository: repository,
-        profileRepository: _InMemoryAuthProfileRepository(),
-        oauthService: _FakeOauthService(
+        profileRepository: InMemoryAuthProfileRepository(),
+        oauthService: FakeOauthService(
           sessionToReturn: AuthSession(
             accessToken: 'unused',
             receivedAt: DateTime(2026, 3, 27),
@@ -312,8 +306,8 @@ void main() {
             language: 'de',
           ),
         ),
-        biometricLockService: _FakeBiometricLockService(available: true),
-        sensitiveStorageService: _FakeSensitiveStorageService(),
+        biometricLockService: FakeBiometricLockService(available: true),
+        sensitiveStorageService: FakeSensitiveStorageService(),
         retentionPolicy: HitobitoDataRetentionPolicy(
           maxDataAge: const Duration(days: 90),
           refreshInterval: const Duration(hours: 24),
@@ -346,7 +340,7 @@ void main() {
     () async {
       final logger = _createLogger();
       final oauthService =
-          _FakeOauthService(
+          FakeOauthService(
               sessionToReturn: AuthSession(
                 accessToken: 'existing-token',
                 receivedAt: DateTime(2026, 3, 27),
@@ -364,16 +358,16 @@ void main() {
             );
 
       final model = AuthSessionModel(
-        repository: _InMemoryAuthSessionRepository(
+        repository: InMemoryAuthSessionRepository(
           initialSession: AuthSession(
             accessToken: 'existing-token',
             receivedAt: DateTime(2026, 3, 27),
           ),
         ),
-        profileRepository: _InMemoryAuthProfileRepository(),
+        profileRepository: InMemoryAuthProfileRepository(),
         oauthService: oauthService,
-        biometricLockService: _FakeBiometricLockService(),
-        sensitiveStorageService: _FakeSensitiveStorageService(),
+        biometricLockService: FakeBiometricLockService(),
+        sensitiveStorageService: FakeSensitiveStorageService(),
         retentionPolicy: HitobitoDataRetentionPolicy(
           maxDataAge: const Duration(days: 90),
           refreshInterval: const Duration(hours: 24),
@@ -403,7 +397,7 @@ void main() {
     () async {
       final logger = _createLogger();
       final oauthService =
-          _FakeOauthService(
+          FakeOauthService(
               sessionToReturn: AuthSession(
                 accessToken: 'existing-token',
                 receivedAt: DateTime(2026, 3, 27),
@@ -421,16 +415,16 @@ void main() {
             );
 
       final model = AuthSessionModel(
-        repository: _InMemoryAuthSessionRepository(
+        repository: InMemoryAuthSessionRepository(
           initialSession: AuthSession(
             accessToken: 'existing-token',
             receivedAt: DateTime(2026, 3, 27),
           ),
         ),
-        profileRepository: _InMemoryAuthProfileRepository(),
+        profileRepository: InMemoryAuthProfileRepository(),
         oauthService: oauthService,
-        biometricLockService: _FakeBiometricLockService(),
-        sensitiveStorageService: _FakeSensitiveStorageService(),
+        biometricLockService: FakeBiometricLockService(),
+        sensitiveStorageService: FakeSensitiveStorageService(),
         retentionPolicy: HitobitoDataRetentionPolicy(
           maxDataAge: const Duration(days: 90),
           refreshInterval: const Duration(hours: 24),
@@ -462,7 +456,7 @@ void main() {
         lastName: 'Only',
         language: 'de',
       );
-      final oauthService = _FakeOauthService(
+      final oauthService = FakeOauthService(
         sessionToReturn: AuthSession(
           accessToken: 'unused',
           receivedAt: DateTime(2026, 3, 27),
@@ -474,13 +468,13 @@ void main() {
           language: 'en',
         ),
       );
-      final profileRepository = _InMemoryAuthProfileRepository(
+      final profileRepository = InMemoryAuthProfileRepository(
         profile: cachedProfile,
         lastSyncAt: DateTime(2026, 3, 27, 6),
       );
 
       final model = AuthSessionModel(
-        repository: _InMemoryAuthSessionRepository(
+        repository: InMemoryAuthSessionRepository(
           initialSession: AuthSession(
             accessToken: 'existing-token',
             receivedAt: DateTime(2026, 3, 27),
@@ -488,8 +482,8 @@ void main() {
         ),
         profileRepository: profileRepository,
         oauthService: oauthService,
-        biometricLockService: _FakeBiometricLockService(),
-        sensitiveStorageService: _FakeSensitiveStorageService(),
+        biometricLockService: FakeBiometricLockService(),
+        sensitiveStorageService: FakeSensitiveStorageService(),
         retentionPolicy: HitobitoDataRetentionPolicy(
           maxDataAge: const Duration(days: 90),
           refreshInterval: const Duration(hours: 24),
@@ -509,7 +503,7 @@ void main() {
   test(
     'syncHitobitoData aktualisiert Profil, Mitglieder und Sync-Zeitpunkt',
     () async {
-      final oauthService = _FakeOauthService(
+      final oauthService = FakeOauthService(
         sessionToReturn: AuthSession(
           accessToken: 'access-token',
           refreshToken: 'refresh-token',
@@ -522,13 +516,13 @@ void main() {
           language: 'de',
         ),
       );
-      final sensitiveStorage = _FakeSensitiveStorageService();
+      final sensitiveStorage = FakeSensitiveStorageService();
       final memberSyncTokens = <String>[];
       final model = AuthSessionModel(
-        repository: _InMemoryAuthSessionRepository(),
-        profileRepository: _InMemoryAuthProfileRepository(),
+        repository: InMemoryAuthSessionRepository(),
+        profileRepository: InMemoryAuthProfileRepository(),
         oauthService: oauthService,
-        biometricLockService: _FakeBiometricLockService(),
+        biometricLockService: FakeBiometricLockService(),
         sensitiveStorageService: sensitiveStorage,
         retentionPolicy: HitobitoDataRetentionPolicy(
           maxDataAge: const Duration(days: 90),
@@ -539,7 +533,7 @@ void main() {
       );
 
       await model.signIn();
-      sensitiveStorage._lastSensitiveSyncAt = DateTime(2026, 3, 27, 8);
+      sensitiveStorage.lastSensitiveSyncAt = DateTime(2026, 3, 27, 8);
 
       await model.syncHitobitoData(
         syncMembers: (accessToken) async {
@@ -558,7 +552,7 @@ void main() {
   test(
     'bleibt bei wiederholtem 401 waehrend Sync signedIn und blockiert weitere Remote-Zugriffe',
     () async {
-      final oauthService = _FakeOauthService(
+      final oauthService = FakeOauthService(
         sessionToReturn: AuthSession(
           accessToken: 'access-token',
           refreshToken: 'refresh-token',
@@ -571,12 +565,12 @@ void main() {
           language: 'de',
         ),
       );
-      final sensitiveStorage = _FakeSensitiveStorageService();
+      final sensitiveStorage = FakeSensitiveStorageService();
       final model = AuthSessionModel(
-        repository: _InMemoryAuthSessionRepository(),
-        profileRepository: _InMemoryAuthProfileRepository(),
+        repository: InMemoryAuthSessionRepository(),
+        profileRepository: InMemoryAuthProfileRepository(),
         oauthService: oauthService,
-        biometricLockService: _FakeBiometricLockService(),
+        biometricLockService: FakeBiometricLockService(),
         sensitiveStorageService: sensitiveStorage,
         retentionPolicy: HitobitoDataRetentionPolicy(
           maxDataAge: const Duration(days: 90),
@@ -605,7 +599,7 @@ void main() {
   test(
     'retryt Mitgliedersync nach 401 einmal mit aufgefrischter Session',
     () async {
-      final oauthService = _FakeOauthService(
+      final oauthService = FakeOauthService(
         sessionToReturn: AuthSession(
           accessToken: 'refreshed-token',
           refreshToken: 'refresh-token',
@@ -619,14 +613,14 @@ void main() {
         ),
       );
       final model = AuthSessionModel(
-        repository: _InMemoryAuthSessionRepository(
+        repository: InMemoryAuthSessionRepository(
           initialSession: AuthSession(
             accessToken: 'stale-token',
             refreshToken: 'refresh-token',
             receivedAt: DateTime(2026, 3, 27),
           ),
         ),
-        profileRepository: _InMemoryAuthProfileRepository(
+        profileRepository: InMemoryAuthProfileRepository(
           profile: const AuthProfile(
             namiId: 94,
             firstName: 'Retry',
@@ -636,8 +630,8 @@ void main() {
           lastSyncAt: DateTime(2026, 3, 28, 8),
         ),
         oauthService: oauthService,
-        biometricLockService: _FakeBiometricLockService(),
-        sensitiveStorageService: _FakeSensitiveStorageService(),
+        biometricLockService: FakeBiometricLockService(),
+        sensitiveStorageService: FakeSensitiveStorageService(),
         retentionPolicy: HitobitoDataRetentionPolicy(
           maxDataAge: const Duration(days: 90),
           refreshInterval: const Duration(hours: 24),
@@ -671,7 +665,7 @@ void main() {
   test(
     'markiert blockierten Netzwerkzugriff beim Sync ohne Relogin-Pflicht',
     () async {
-      final oauthService = _FakeOauthService(
+      final oauthService = FakeOauthService(
         sessionToReturn: AuthSession(
           accessToken: 'access-token',
           refreshToken: 'refresh-token',
@@ -684,12 +678,12 @@ void main() {
           language: 'de',
         ),
       );
-      final sensitiveStorage = _FakeSensitiveStorageService();
+      final sensitiveStorage = FakeSensitiveStorageService();
       final model = AuthSessionModel(
-        repository: _InMemoryAuthSessionRepository(),
-        profileRepository: _InMemoryAuthProfileRepository(),
+        repository: InMemoryAuthSessionRepository(),
+        profileRepository: InMemoryAuthProfileRepository(),
         oauthService: oauthService,
-        biometricLockService: _FakeBiometricLockService(),
+        biometricLockService: FakeBiometricLockService(),
         sensitiveStorageService: sensitiveStorage,
         retentionPolicy: HitobitoDataRetentionPolicy(
           maxDataAge: const Duration(days: 90),
@@ -708,7 +702,7 @@ void main() {
       );
 
       await model.signIn();
-      sensitiveStorage._lastSensitiveSyncAt = DateTime(2026, 3, 27, 8);
+      sensitiveStorage.lastSensitiveSyncAt = DateTime(2026, 3, 27, 8);
 
       await model.syncHitobitoData(
         syncMembers: (_) async {},
@@ -732,7 +726,7 @@ void main() {
     'executeRemoteAccess versucht nach 401 und fehlgeschlagenem Refresh einen interaktiven Re-Login und macht erfolgreich weiter',
     () async {
       final oauthService =
-          _FakeOauthService(
+          FakeOauthService(
               sessionToReturn: AuthSession(
                 accessToken: 'interactive-token',
                 refreshToken: 'interactive-refresh-token',
@@ -750,14 +744,14 @@ void main() {
               statusCode: 401,
             );
       final model = AuthSessionModel(
-        repository: _InMemoryAuthSessionRepository(
+        repository: InMemoryAuthSessionRepository(
           initialSession: AuthSession(
             accessToken: 'stale-token',
             refreshToken: 'stale-refresh-token',
             receivedAt: DateTime(2026, 3, 27),
           ),
         ),
-        profileRepository: _InMemoryAuthProfileRepository(
+        profileRepository: InMemoryAuthProfileRepository(
           profile: const AuthProfile(
             namiId: 95,
             firstName: 'Interactive',
@@ -767,8 +761,8 @@ void main() {
           lastSyncAt: DateTime(2026, 3, 28, 8),
         ),
         oauthService: oauthService,
-        biometricLockService: _FakeBiometricLockService(),
-        sensitiveStorageService: _FakeSensitiveStorageService(),
+        biometricLockService: FakeBiometricLockService(),
+        sensitiveStorageService: FakeSensitiveStorageService(),
         retentionPolicy: HitobitoDataRetentionPolicy(
           maxDataAge: const Duration(days: 90),
           refreshInterval: const Duration(hours: 24),
@@ -807,7 +801,7 @@ void main() {
   test(
     'Pull-Sync startet bei Loginbedarf interaktiven Login und synchronisiert danach weiter',
     () async {
-      final oauthService = _FakeOauthService(
+      final oauthService = FakeOauthService(
         sessionToReturn: AuthSession(
           accessToken: 'interactive-token',
           refreshToken: 'interactive-refresh-token',
@@ -820,18 +814,18 @@ void main() {
           language: 'de',
         ),
       );
-      final sensitiveStorage = _FakeSensitiveStorageService()
-        .._lastSensitiveSyncAt = DateTime(2026, 3, 27, 8);
+      final sensitiveStorage = FakeSensitiveStorageService()
+        ..lastSensitiveSyncAt = DateTime(2026, 3, 27, 8);
       final logger = _createLogger();
       final model = AuthSessionModel(
-        repository: _InMemoryAuthSessionRepository(
+        repository: InMemoryAuthSessionRepository(
           initialSession: AuthSession(
             accessToken: 'stale-token',
             refreshToken: 'stale-refresh-token',
             receivedAt: DateTime(2026, 3, 27),
           ),
         ),
-        profileRepository: _InMemoryAuthProfileRepository(
+        profileRepository: InMemoryAuthProfileRepository(
           profile: const AuthProfile(
             namiId: 97,
             firstName: 'Cached',
@@ -841,7 +835,7 @@ void main() {
           lastSyncAt: DateTime(2026, 3, 28, 8),
         ),
         oauthService: oauthService,
-        biometricLockService: _FakeBiometricLockService(),
+        biometricLockService: FakeBiometricLockService(),
         sensitiveStorageService: sensitiveStorage,
         retentionPolicy: HitobitoDataRetentionPolicy(
           maxDataAge: const Duration(days: 90),
@@ -892,7 +886,7 @@ void main() {
     'bleibt nach abgebrochenem interaktivem Relogin bei vorhandener Session und lokalem Profil signedIn',
     () async {
       final oauthService =
-          _FakeOauthService(
+          FakeOauthService(
               sessionToReturn: AuthSession(
                 accessToken: 'interactive-token',
                 refreshToken: 'interactive-refresh-token',
@@ -922,20 +916,20 @@ void main() {
         language: 'de',
       );
       final model = AuthSessionModel(
-        repository: _InMemoryAuthSessionRepository(
+        repository: InMemoryAuthSessionRepository(
           initialSession: AuthSession(
             accessToken: 'stale-token',
             refreshToken: 'stale-refresh-token',
             receivedAt: DateTime(2026, 3, 27),
           ),
         ),
-        profileRepository: _InMemoryAuthProfileRepository(
+        profileRepository: InMemoryAuthProfileRepository(
           profile: cachedProfile,
           lastSyncAt: DateTime(2026, 3, 28, 8),
         ),
         oauthService: oauthService,
-        biometricLockService: _FakeBiometricLockService(),
-        sensitiveStorageService: _FakeSensitiveStorageService(),
+        biometricLockService: FakeBiometricLockService(),
+        sensitiveStorageService: FakeSensitiveStorageService(),
         retentionPolicy: HitobitoDataRetentionPolicy(
           maxDataAge: const Duration(days: 90),
           refreshInterval: const Duration(hours: 24),
@@ -971,7 +965,7 @@ void main() {
     'interaktiver relogin mit Benutzerwechsel verwirft altes Profil und alten Sync-Stand',
     () async {
       final oauthService =
-          _FakeOauthService(
+          FakeOauthService(
               sessionToReturn: AuthSession(
                 accessToken: 'interactive-token',
                 refreshToken: 'interactive-refresh-token',
@@ -989,12 +983,12 @@ void main() {
               'Token-Anfrage fehlgeschlagen (401).',
               statusCode: 401,
             );
-      final sensitiveStorage = _FakeSensitiveStorageService()
-        .._principal = 'principal-old'
-        .._lastSensitiveSyncAt = DateTime(2026, 3, 27, 8)
-        .._lastSensitiveSyncAttemptAt = DateTime(2026, 3, 27, 9);
+      final sensitiveStorage = FakeSensitiveStorageService()
+        ..principal = 'principal-old'
+        ..lastSensitiveSyncAt = DateTime(2026, 3, 27, 8)
+        ..lastSensitiveSyncAttemptAt = DateTime(2026, 3, 27, 9);
       final model = AuthSessionModel(
-        repository: _InMemoryAuthSessionRepository(
+        repository: InMemoryAuthSessionRepository(
           initialSession: AuthSession(
             accessToken: 'stale-token',
             refreshToken: 'stale-refresh-token',
@@ -1002,7 +996,7 @@ void main() {
             principal: 'principal-old',
           ),
         ),
-        profileRepository: _InMemoryAuthProfileRepository(
+        profileRepository: InMemoryAuthProfileRepository(
           profile: const AuthProfile(
             namiId: 111,
             firstName: 'Alt',
@@ -1012,7 +1006,7 @@ void main() {
           lastSyncAt: DateTime(2026, 3, 27, 8),
         ),
         oauthService: oauthService,
-        biometricLockService: _FakeBiometricLockService(),
+        biometricLockService: FakeBiometricLockService(),
         sensitiveStorageService: sensitiveStorage,
         retentionPolicy: HitobitoDataRetentionPolicy(
           maxDataAge: const Duration(days: 90),
@@ -1049,7 +1043,7 @@ void main() {
     'loggt technisch abgefangene 401 als Retry-Hinweis ohne technischen Fehlertext',
     () async {
       final logger = _createLogger();
-      final oauthService = _FakeOauthService(
+      final oauthService = FakeOauthService(
         sessionToReturn: AuthSession(
           accessToken: 'refreshed-token',
           refreshToken: 'refresh-token',
@@ -1063,14 +1057,14 @@ void main() {
         ),
       );
       final model = AuthSessionModel(
-        repository: _InMemoryAuthSessionRepository(
+        repository: InMemoryAuthSessionRepository(
           initialSession: AuthSession(
             accessToken: 'stale-token',
             refreshToken: 'refresh-token',
             receivedAt: DateTime(2026, 3, 27),
           ),
         ),
-        profileRepository: _InMemoryAuthProfileRepository(
+        profileRepository: InMemoryAuthProfileRepository(
           profile: const AuthProfile(
             namiId: 94,
             firstName: 'Retry',
@@ -1080,8 +1074,8 @@ void main() {
           lastSyncAt: DateTime(2026, 3, 28, 8),
         ),
         oauthService: oauthService,
-        biometricLockService: _FakeBiometricLockService(),
-        sensitiveStorageService: _FakeSensitiveStorageService(),
+        biometricLockService: FakeBiometricLockService(),
+        sensitiveStorageService: FakeSensitiveStorageService(),
         retentionPolicy: HitobitoDataRetentionPolicy(
           maxDataAge: const Duration(days: 90),
           refreshInterval: const Duration(hours: 24),
@@ -1124,7 +1118,7 @@ void main() {
   test(
     'bleibt bei fehlgeschlagener erneuter Anmeldung im bisherigen Zustand',
     () async {
-      final oauthService = _FakeOauthService(
+      final oauthService = FakeOauthService(
         sessionToReturn: AuthSession(
           accessToken: 'access-token',
           refreshToken: 'refresh-token',
@@ -1138,11 +1132,11 @@ void main() {
         ),
       );
       final model = AuthSessionModel(
-        repository: _InMemoryAuthSessionRepository(),
-        profileRepository: _InMemoryAuthProfileRepository(),
+        repository: InMemoryAuthSessionRepository(),
+        profileRepository: InMemoryAuthProfileRepository(),
         oauthService: oauthService,
-        biometricLockService: _FakeBiometricLockService(),
-        sensitiveStorageService: _FakeSensitiveStorageService(),
+        biometricLockService: FakeBiometricLockService(),
+        sensitiveStorageService: FakeSensitiveStorageService(),
         retentionPolicy: HitobitoDataRetentionPolicy(
           maxDataAge: const Duration(days: 90),
           refreshInterval: const Duration(hours: 24),
@@ -1168,7 +1162,7 @@ void main() {
     'loggt bei abgebrochener OAuth-Anmeldung keine technische PlatformException',
     () async {
       final logger = _createLogger();
-      final oauthService = _FakeOauthService(
+      final oauthService = FakeOauthService(
         sessionToReturn: AuthSession(
           accessToken: 'access-token',
           refreshToken: 'refresh-token',
@@ -1182,11 +1176,11 @@ void main() {
         ),
       );
       final model = AuthSessionModel(
-        repository: _InMemoryAuthSessionRepository(),
-        profileRepository: _InMemoryAuthProfileRepository(),
+        repository: InMemoryAuthSessionRepository(),
+        profileRepository: InMemoryAuthProfileRepository(),
         oauthService: oauthService,
-        biometricLockService: _FakeBiometricLockService(),
-        sensitiveStorageService: _FakeSensitiveStorageService(),
+        biometricLockService: FakeBiometricLockService(),
+        sensitiveStorageService: FakeSensitiveStorageService(),
         retentionPolicy: HitobitoDataRetentionPolicy(
           maxDataAge: const Duration(days: 90),
           refreshInterval: const Duration(hours: 24),
@@ -1219,9 +1213,9 @@ void main() {
     () async {
       var now = DateTime(2026, 3, 28, 12, 0, 0);
       final model = AuthSessionModel(
-        repository: _InMemoryAuthSessionRepository(),
-        profileRepository: _InMemoryAuthProfileRepository(),
-        oauthService: _FakeOauthService(
+        repository: InMemoryAuthSessionRepository(),
+        profileRepository: InMemoryAuthProfileRepository(),
+        oauthService: FakeOauthService(
           sessionToReturn: AuthSession(
             accessToken: 'access-token',
             refreshToken: 'refresh-token',
@@ -1234,8 +1228,8 @@ void main() {
             language: 'de',
           ),
         ),
-        biometricLockService: _FakeBiometricLockService(available: true),
-        sensitiveStorageService: _FakeSensitiveStorageService(),
+        biometricLockService: FakeBiometricLockService(available: true),
+        sensitiveStorageService: FakeSensitiveStorageService(),
         retentionPolicy: HitobitoDataRetentionPolicy(
           maxDataAge: const Duration(days: 90),
           refreshInterval: const Duration(hours: 24),
@@ -1269,9 +1263,9 @@ void main() {
     () async {
       var now = DateTime(2026, 3, 28, 12, 0, 0);
       final model = AuthSessionModel(
-        repository: _InMemoryAuthSessionRepository(),
-        profileRepository: _InMemoryAuthProfileRepository(),
-        oauthService: _FakeOauthService(
+        repository: InMemoryAuthSessionRepository(),
+        profileRepository: InMemoryAuthProfileRepository(),
+        oauthService: FakeOauthService(
           sessionToReturn: AuthSession(
             accessToken: 'access-token',
             refreshToken: 'refresh-token',
@@ -1284,8 +1278,8 @@ void main() {
             language: 'de',
           ),
         ),
-        biometricLockService: _FakeBiometricLockService(available: true),
-        sensitiveStorageService: _FakeSensitiveStorageService(),
+        biometricLockService: FakeBiometricLockService(available: true),
+        sensitiveStorageService: FakeSensitiveStorageService(),
         retentionPolicy: HitobitoDataRetentionPolicy(
           maxDataAge: const Duration(days: 90),
           refreshInterval: const Duration(hours: 24),
@@ -1316,9 +1310,9 @@ void main() {
     () async {
       var now = DateTime(2026, 3, 28, 12, 0, 0);
       final model = AuthSessionModel(
-        repository: _InMemoryAuthSessionRepository(),
-        profileRepository: _InMemoryAuthProfileRepository(),
-        oauthService: _FakeOauthService(
+        repository: InMemoryAuthSessionRepository(),
+        profileRepository: InMemoryAuthProfileRepository(),
+        oauthService: FakeOauthService(
           sessionToReturn: AuthSession(
             accessToken: 'access-token',
             refreshToken: 'refresh-token',
@@ -1331,8 +1325,8 @@ void main() {
             language: 'de',
           ),
         ),
-        biometricLockService: _FakeBiometricLockService(available: true),
-        sensitiveStorageService: _FakeSensitiveStorageService(),
+        biometricLockService: FakeBiometricLockService(available: true),
+        sensitiveStorageService: FakeSensitiveStorageService(),
         retentionPolicy: HitobitoDataRetentionPolicy(
           maxDataAge: const Duration(days: 90),
           refreshInterval: const Duration(hours: 24),
@@ -1362,9 +1356,9 @@ void main() {
         nowProvider: () => now,
       );
       final model = AuthSessionModel(
-        repository: _InMemoryAuthSessionRepository(),
-        profileRepository: _InMemoryAuthProfileRepository(),
-        oauthService: _FakeOauthService(
+        repository: InMemoryAuthSessionRepository(),
+        profileRepository: InMemoryAuthProfileRepository(),
+        oauthService: FakeOauthService(
           sessionToReturn: AuthSession(
             accessToken: 'access-token',
             refreshToken: 'refresh-token',
@@ -1377,8 +1371,8 @@ void main() {
             language: 'de',
           ),
         ),
-        biometricLockService: _FakeBiometricLockService(),
-        sensitiveStorageService: _FakeSensitiveStorageService(),
+        biometricLockService: FakeBiometricLockService(),
+        sensitiveStorageService: FakeSensitiveStorageService(),
         retentionPolicy: HitobitoDataRetentionPolicy(
           maxDataAge: const Duration(days: 90),
           refreshInterval: const Duration(hours: 24),
@@ -1406,197 +1400,7 @@ void main() {
   );
 }
 
-class _InMemoryAuthProfileRepository implements AuthProfileRepository {
-  _InMemoryAuthProfileRepository({this.profile, this.lastSyncAt});
-
-  AuthProfile? profile;
-  DateTime? lastSyncAt;
-
-  @override
-  Future<void> clear() async {
-    profile = null;
-    lastSyncAt = null;
-  }
-
-  @override
-  Future<AuthProfile?> loadCached() async => profile;
-
-  @override
-  Future<DateTime?> loadLastSyncAt() async => lastSyncAt;
-
-  @override
-  Future<void> save(AuthProfile profile) async {
-    this.profile = profile;
-  }
-
-  @override
-  Future<void> saveLastSyncAt(DateTime timestamp) async {
-    lastSyncAt = timestamp;
-  }
-}
-
-class _InMemoryAuthSessionRepository implements AuthSessionRepository {
-  _InMemoryAuthSessionRepository({AuthSession? initialSession})
-    : _session = initialSession;
-
-  AuthSession? _session;
-  Object? loadError;
-
-  @override
-  Future<void> clear() async {
-    _session = null;
-  }
-
-  @override
-  Future<AuthSession?> load() async {
-    final error = loadError;
-    if (error != null) {
-      throw error;
-    }
-    return _session;
-  }
-
-  @override
-  Future<void> save(AuthSession session) async {
-    _session = session;
-  }
-}
-
-class _FakeOauthService extends HitobitoOauthService {
-  _FakeOauthService({
-    required this.sessionToReturn,
-    required this.profileToReturn,
-  }) : super(
-         config: const HitobitoAuthConfig(
-           clientId: 'client',
-           clientSecret: 'secret',
-           authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
-           tokenUrl: 'https://demo.hitobito.com/oauth/token',
-           redirectUri: 'de.jlange.nami.app:/oauth/callback',
-           scopeString: 'openid email',
-           discoveryUrl: '',
-           profileUrl: 'https://demo.hitobito.com/oauth/profile',
-         ),
-       );
-
-  final AuthSession sessionToReturn;
-  final AuthProfile profileToReturn;
-  Object? authenticateError;
-  Object? refreshError;
-  Object? fetchProfileError;
-  int authenticateInteractiveCallCount = 0;
-  int refreshCallCount = 0;
-  int fetchProfileCallCount = 0;
-
-  @override
-  Future<AuthSession> authenticateInteractive() async {
-    authenticateInteractiveCallCount += 1;
-    final error = authenticateError;
-    if (error != null) {
-      throw error;
-    }
-    return sessionToReturn;
-  }
-
-  @override
-  Future<AuthSession> refresh(AuthSession session) async {
-    refreshCallCount += 1;
-    final error = refreshError;
-    if (error != null) {
-      throw error;
-    }
-    return sessionToReturn;
-  }
-
-  @override
-  Future<AuthProfile> fetchProfile(AuthSession session) async {
-    fetchProfileCallCount += 1;
-    final error = fetchProfileError;
-    if (error != null) {
-      throw error;
-    }
-    return profileToReturn;
-  }
-
-  @override
-  Future<AuthSession> refreshIfNeeded(
-    AuthSession session, {
-    Duration threshold = const Duration(minutes: 5),
-  }) async {
-    return session;
-  }
-}
-
-class _FakeBiometricLockService extends BiometricLockService {
-  _FakeBiometricLockService({this.available = false}) : super();
-
-  final bool available;
-
-  @override
-  Future<bool> authenticate() async => true;
-
-  @override
-  Future<bool> isAvailable() async => available;
-}
-
-class _FakeSensitiveStorageService extends SensitiveStorageService {
-  String? _principal;
-  DateTime? _lastSensitiveSyncAt;
-  DateTime? _lastSensitiveSyncAttemptAt;
-  DateTime? _lastBackgroundedAt;
-
-  _FakeSensitiveStorageService() : super();
-
-  @override
-  Future<String?> loadPrincipal() async => _principal;
-
-  @override
-  Future<DateTime?> loadLastSensitiveSyncAt() async => _lastSensitiveSyncAt;
-
-  @override
-  Future<DateTime?> loadLastSensitiveSyncAttemptAt() async =>
-      _lastSensitiveSyncAttemptAt;
-
-  @override
-  Future<DateTime?> loadLastBackgroundedAt() async => _lastBackgroundedAt;
-
-  @override
-  Future<void> purgeSensitiveData() async {
-    _principal = null;
-    _lastSensitiveSyncAt = null;
-    _lastSensitiveSyncAttemptAt = null;
-    _lastBackgroundedAt = null;
-  }
-
-  @override
-  Future<void> saveLastSensitiveSyncAt(DateTime timestamp) async {
-    _lastSensitiveSyncAt = timestamp;
-  }
-
-  @override
-  Future<void> saveLastSensitiveSyncAttemptAt(DateTime? timestamp) async {
-    _lastSensitiveSyncAttemptAt = timestamp;
-  }
-
-  @override
-  Future<void> saveLastBackgroundedAt(DateTime? timestamp) async {
-    _lastBackgroundedAt = timestamp;
-  }
-
-  @override
-  Future<void> savePrincipal(String? principal) async {
-    _principal = principal;
-  }
-}
-
-_FakeLoggerService _createLogger() => _FakeLoggerService();
-
-class _LogEntry {
-  const _LogEntry({required this.service, required this.message});
-
-  final String service;
-  final String message;
-}
+FakeLoggerService _createLogger() => FakeLoggerService();
 
 class _BlockedNetworkAccessPolicy extends NetworkAccessPolicy {
   _BlockedNetworkAccessPolicy(this.error);
@@ -1611,87 +1415,4 @@ class _BlockedNetworkAccessPolicy extends NetworkAccessPolicy {
   }) async {
     throw error;
   }
-}
-
-class _FakeLoggerService extends LoggerService {
-  _FakeLoggerService()
-    : super(
-        settingsRepository: _FakeAppSettingsRepository(),
-        navigatorKey: GlobalKey<NavigatorState>(),
-      );
-
-  final List<_LogEntry> entries = <_LogEntry>[];
-
-  @override
-  Future<void> log(String service, String message) async {
-    entries.add(_LogEntry(service: service, message: message));
-  }
-
-  @override
-  Future<void> logInfo(String service, String message) async {
-    entries.add(_LogEntry(service: service, message: message));
-  }
-
-  @override
-  Future<void> logWarn(String service, String message) async {
-    entries.add(_LogEntry(service: service, message: message));
-  }
-
-  @override
-  Future<void> logError(
-    String service,
-    String message, {
-    Object? error,
-    StackTrace? stackTrace,
-  }) async {
-    final suffix = error == null ? '' : ' ${error.runtimeType}: $error';
-    entries.add(_LogEntry(service: service, message: '$message$suffix'));
-  }
-
-  @override
-  Future<void> trackEvent(String name, Map<String, Object?> properties) async {}
-
-  @override
-  Future<void> trackAndLog(
-    String service,
-    String name,
-    Map<String, Object?> properties,
-  ) async {}
-
-  @override
-  Future<void> debounceTrackAndLog(
-    String service,
-    String name,
-    Map<String, Object?> properties,
-  ) async {}
-}
-
-class _FakeAppSettingsRepository extends AppSettingsRepository {
-  @override
-  Future<AppSettings> load() async => const AppSettings(
-    themeMode: ThemeMode.system,
-    languageCode: 'de',
-    analyticsEnabled: false,
-  );
-
-  @override
-  Future<void> saveAnalyticsEnabled(bool enabled) async {}
-
-  @override
-  Future<void> saveBiometricLockEnabled(bool enabled) async {}
-
-  @override
-  Future<void> saveGeburstagsbenachrichtigungStufen(Set<Stufe> stufen) async {}
-
-  @override
-  Future<void> saveLanguageCode(String code) async {}
-
-  @override
-  Future<void> saveNotificationsEnabled(bool enabled) async {}
-
-  @override
-  Future<void> saveMemberListSearchResultHighlightEnabled(bool enabled) async {}
-
-  @override
-  Future<void> saveThemeMode(ThemeMode mode) async {}
 }
