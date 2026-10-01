@@ -21,6 +21,8 @@ Member data loaded from Hitobito is stored locally on the device in encrypted fo
 
 The app shows achievements for app usage, for example the number of days the app was opened or the number of saved member changes. The counters and unlock dates are stored only on the device, are never transferred and are deleted when the app is reset.
 
+For the statistics of the active Stamm, the app keeps a monthly history of aggregated figures, for example the number of members per age section, for up to 24 months. It also stores the user's tile layout, custom counting tiles and target values for each Stamm. This data contains no names or other individual member data, is stored only on the device, is never transferred and is deleted when the app is reset.
+
 ## Analytics and diagnostics
 
 The app can send analytics and diagnostics events if analytics are enabled in the app settings. This is used to better understand app usage, detect problems and improve the app.

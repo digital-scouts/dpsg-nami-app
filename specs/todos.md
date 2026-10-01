@@ -47,7 +47,18 @@ Nächste Aufgaben:
 - Aktuelle strukturierte Adresseingabe als Fallback erhalten, wenn offline oder Geoapify nicht verfügbar ist.
 - Prüfen, ob das Postfach-Feld im neuen Online-Pfad entfallen kann und wie bestehende Daten weiter angezeigt werden.
 
-## Priorität 5: App-Wartung und nützliche Ergänzungen
+## Priorität 5: Stammstatistik nachschärfen
+
+Ziel: Die neue Kachel-Statistik nach den ersten Rückmeldungen abrunden.
+
+Nächste Aufgaben:
+
+- Größere Schrift feinschleifen: Bei hoher Textskalierung wirkt die Schrift in einigen Kacheln eher kleiner und der Leerraum wächst (siehe Entwürfe Runde 5 unter `design/statistik/`).
+- „Hinter den Kacheln“ aus Runde 2 (§6) als eigene Ausbaustufe konzipieren: Detailseiten beim Antippen der Kacheln.
+- Gruppendetail und Bundesvergleich lokalisieren; dort stehen noch feste deutsche Texte.
+- Konfession aus echten Daten statt der bisherigen Beispielquelle anzeigen, sobald Hitobito sie liefert.
+
+## Priorität 6: App-Wartung und nützliche Ergänzungen
 
 - GitHub-Pages-Wiki/Userguide für Konfliktlösung, Datenspeicherung und Löschung schreiben.
 - Problemlösungs-Screen prüfen: Bereich "Mitglied bearbeiten" bleibt beim Einstieg eingeklappt, kann aber gut sichtbar aufgeklappt werden.
