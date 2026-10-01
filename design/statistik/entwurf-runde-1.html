@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entwürfe: Stammesstatistik, Runde 1</title>
+<style>
+/* ---------- Vergleichsseite ---------- */
+body { margin:0; background:#eceae4; color:#1f1f1c; font:16px/1.5 system-ui, -apple-system, sans-serif; }
+main { max-width:1780px; margin:0 auto; padding:28px 28px 80px; }
+h1 { font-size:2rem; margin:0 0 .3rem; }
+h2 { font-size:1.45rem; margin:0 0 .35rem; }
+h3 { font-size:1.05rem; margin:0 0 .2rem; }
+main > p, section > p { color:#5d5b54; margin:0 0 1rem; max-width:80ch; }
+.bar { position:sticky; top:0; z-index:5; background:rgba(236,234,228,.94); backdrop-filter:blur(8px); border-bottom:1px solid #d6d3c9; padding:10px 28px; display:flex; gap:22px; flex-wrap:wrap; align-items:center; font-size:14px; }
+.bar b { font-weight:600; margin-right:6px; }
+.bar nav { display:flex; gap:14px; margin-left:auto; }
+.bar a { color:#003056; }
+.tgl { display:inline-flex; background:#dcd9cf; border-radius:999px; padding:3px; }
+.tgl button { border:0; background:none; font:inherit; font-size:13px; padding:4px 12px; border-radius:999px; cursor:pointer; color:#3a3934; }
+.tgl button.on { background:#003056; color:#fff; }
+section.part { border-top:1px solid #d6d3c9; padding:30px 0 10px; }
+.variant { margin:0 0 36px; }
+.variant .desc { max-width:78ch; color:#4a4943; margin:0 0 12px; }
+.variant .desc b { color:#1f1f1c; }
+.phones { display:flex; gap:26px; flex-wrap:wrap; align-items:flex-start; }
+.tag { font-size:.75rem; font-weight:600; background:#e2dccb; color:#6b5520; border-radius:999px; padding:2px 10px; vertical-align:middle; margin-left:6px; }
+.cmp { display:grid; grid-template-columns:repeat(3, 390px); gap:26px; }
+.cmp h3 { margin-bottom:8px; }
+.open { background:#fff8e6; border:1px solid #efd9a2; border-radius:12px; padding:12px 16px; max-width:900px; font-size:14px; color:#4a3f1c; }
+.open li { margin:.2rem 0; }
+
+/* ---------- Handy ---------- */
+.phone { margin:0; width:390px; flex:none; }
+.phone figcaption { font-size:13px; color:#6b6960; margin-top:8px; }
+.screen { width:390px; border-radius:46px; overflow:hidden; background:var(--bg); color:var(--fg); box-shadow:0 0 0 10px #1c1c1e, 0 18px 40px rgba(0,0,0,.25); font:15px/1.35 system-ui, -apple-system, sans-serif; position:relative; margin:10px; }
+.screen.fest { height:844px; }
+.status { height:50px; display:flex; align-items:center; justify-content:space-between; padding:0 30px; font-size:15px; font-weight:600; background:var(--surface); position:relative; }
+.status .island { position:absolute; left:50%; top:11px; transform:translateX(-50%); width:122px; height:35px; border-radius:18px; background:#000; }
+.status .sys { width:26px; height:12px; border:1.5px solid var(--fg); border-radius:4px; position:relative; opacity:.8; }
+.status .sys::after { content:''; position:absolute; inset:1.5px 6px 1.5px 1.5px; background:var(--fg); border-radius:1.5px; }
+.hdr { background:var(--surface); border-bottom:1px solid var(--border); padding:10px 16px 12px; }
+.hdr-title { font-size:22px; font-weight:700; letter-spacing:-.01em; }
+.hero { font-size:46px; font-weight:700; letter-spacing:-.025em; line-height:1.05; margin-top:10px; }
+.hero span { font-size:18px; font-weight:600; letter-spacing:0; color:var(--fg2); }
+.hero-sub { font-size:13.5px; color:var(--fg2); margin:2px 0 10px; }
+.hdr-band .keys { margin-top:8px; }
+.hdr-line { font-size:13.5px; color:var(--fg2); margin-top:4px; }
+.hdr-line b { color:var(--fg); }
+.pill { display:flex; background:var(--surface2); border-radius:24px; padding:4px; margin-top:12px; }
+.pill span { flex:1; text-align:center; font-size:14px; font-weight:600; padding:8px 0; border-radius:20px; color:var(--fg2); }
+.pill span.on { background:var(--primary); color:var(--on-primary); }
+.hdr .pill span { font-size:13px; }
+.body { padding:4px 16px 20px; }
+.body > .grid:first-child, .body > .card:first-child { margin-top:16px; }
+.tabbar { display:flex; justify-content:space-around; border-top:1px solid var(--border); background:var(--surface); padding:10px 0 28px; font-size:10.5px; color:var(--muted); }
+.tabbar span::before { content:''; display:block; width:22px; height:22px; margin:0 auto 3px; border-radius:6px; background:currentColor; opacity:.35; }
+.tabbar .on { color:var(--primary); font-weight:600; }
+.tabbar .on::before { opacity:1; }
+
+/* ---------- Karten, Raster ---------- */
+.sec { font-size:12px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--primary); margin:20px 4px 8px; }
+.card { background:var(--surface); border-radius:16px; padding:16px; }
+.card.nopad { padding:4px 0; }
+.grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.grid.top12 { margin-top:12px; }
+.tile { background:var(--surface); border-radius:16px; padding:12px; min-width:0; }
+.t2x1 { grid-column:span 2; }
+.tile-head { display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:var(--fg2); margin-bottom:8px; }
+.tile-more { color:var(--muted); }
+.zk-own { display:inline-block; font-size:10px; font-weight:600; color:var(--primary); background:var(--primary-lite); border-radius:999px; padding:0 7px; margin:0 2px 2px 0; }
+.tile.add { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; background:transparent; border:1.5px dashed var(--border); color:var(--fg2); font-size:13px; font-weight:600; min-height:90px; }
+.tile.add span { font-size:22px; color:var(--primary); }
+.adjust { display:flex; gap:10px; justify-content:center; margin:22px 0 6px; }
+.adjust span { font-size:13.5px; font-weight:600; color:var(--primary); border:1.5px solid var(--border); border-radius:999px; padding:7px 14px; background:var(--surface); }
+.viz { display:block; overflow:visible; }
+.viz text { font-family:system-ui, -apple-system, sans-serif; }
+.t-lab { font-size:11px; font-weight:600; fill:var(--fg2); }
+.t-val { font-size:11px; font-weight:600; fill:var(--fg); font-variant-numeric:tabular-nums; }
+.t-axis { font-size:10px; fill:var(--muted); font-variant-numeric:tabular-nums; }
+.t-in { font-size:10px; font-weight:700; }
+.t-in2 { font-size:9.5px; font-weight:600; }
+.t-center { font-size:20px; font-weight:700; fill:var(--fg); }
+.t-center2 { font-size:10px; fill:var(--muted); }
+.keys { display:flex; flex-wrap:wrap; gap:4px 12px; margin-top:10px; font-size:12px; color:var(--fg2); }
+.key { display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
+.key b { color:var(--fg); font-variant-numeric:tabular-nums; }
+.sw { display:inline-block; width:10px; height:10px; border-radius:3px; flex:none; }
+.sw.biber, .dot.biber, .node.biber { box-shadow:inset 0 0 0 1px var(--biber-ring-stark); }
+.sw.round { border-radius:50%; }
+.sw.house { background:var(--fg); clip-path:polygon(50% 0, 100% 40%, 100% 100%, 0 100%, 0 40%); border-radius:0; }
+.foot { display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; font-size:11px; color:var(--fg2); margin-top:10px; }
+.foot.muted { color:var(--muted); }
+.foot.center { justify-content:center; text-align:center; }
+.foot .tick { display:inline-block; width:1px; height:11px; background:var(--fg2); }
+.foot .band { display:inline-block; width:14px; height:8px; border-radius:2px; background:var(--grid); }
+.foot svg { display:inline-block; vertical-align:middle; }
+
+/* Gruppenzeilen */
+.grp-list { display:flex; flex-direction:column; }
+.grp-row { display:grid; grid-template-columns:12px 1fr auto 12px; gap:10px; align-items:center; padding:9px 0; border-bottom:1px solid var(--border); }
+.grp-row:last-child { border-bottom:0; }
+.grp-row.kompakt { padding:6px 0; }
+.dot { width:10px; height:10px; border-radius:50%; }
+.grp-name { font-size:15px; font-weight:600; }
+.kompakt .grp-name { font-size:14px; }
+.grp-sub { font-size:12px; color:var(--muted); }
+.grp-viz { margin-top:6px; }
+.grp-val { font-size:17px; font-weight:700; font-variant-numeric:tabular-nums; text-align:right; }
+.grp-val.big { font-size:24px; line-height:1; }
+.grp-val small { font-size:12px; color:var(--muted); font-weight:600; margin-left:2px; }
+.chev { color:var(--muted); font-size:18px; }
+
+/* Zahlen-Stil */
+.num-list { display:flex; flex-direction:column; gap:10px; }
+.num-row { display:grid; grid-template-columns:58px 64px 1fr 26px; align-items:center; gap:6px; }
+.num-big { font-size:18px; font-weight:700; }
+.num-big small { font-size:11px; color:var(--muted); font-weight:600; }
+.num-strip { display:flex; align-items:center; gap:6px; }
+.num-strip small { font-size:10.5px; color:var(--muted); white-space:nowrap; font-variant-numeric:tabular-nums; }
+.num-flag { font-size:12px; font-weight:700; text-align:right; }
+.tbl { width:100%; border-collapse:collapse; font-size:13.5px; font-variant-numeric:tabular-nums; }
+.tbl th { font-size:11px; font-weight:600; color:var(--muted); text-align:right; padding:0 4px 6px; }
+.tbl td { text-align:right; padding:6px 4px; border-top:1px solid var(--border); }
+.tbl td:first-child, .tbl th:first-child { text-align:left; }
+.lead { font-size:14px; color:var(--fg2); margin-bottom:12px; }
+.lead b { color:var(--fg); }
+.prog-row { display:grid; grid-template-columns:40px 1fr 30px; align-items:center; padding:5px 0; }
+.num-lab { font-size:11px; font-weight:600; color:var(--fg2); }
+.prog-val { text-align:right; font-weight:700; font-size:15px; font-variant-numeric:tabular-nums; }
+
+/* Bindung */
+.stats { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; }
+.stat { background:var(--surface2); border-radius:12px; padding:9px 10px; }
+.stat-lab { font-size:11px; color:var(--fg2); line-height:1.2; min-height:26px; }
+.stat-val { font-size:22px; font-weight:700; line-height:1.1; }
+.stat-val small, .zk-val small { font-size:12px; color:var(--muted); font-weight:600; }
+.stat-sub { font-size:11px; color:var(--muted); margin-top:2px; }
+.meter { height:5px; border-radius:3px; background:var(--primary-lite); margin:6px 0 2px; overflow:hidden; }
+.meter i { display:block; height:100%; background:var(--primary); border-radius:3px; }
+.sub-head { font-size:12px; font-weight:600; color:var(--fg2); margin:16px 0 6px; }
+.spark-row { display:flex; align-items:center; gap:8px; margin-top:14px; font-size:12px; color:var(--fg2); }
+.spark-row b { font-size:16px; color:var(--fg); }
+.spark-row small { color:var(--muted); }
+.verlauf { display:flex; gap:8px; align-items:flex-start; font-size:11.5px; color:var(--fg2); background:var(--surface2); border-radius:10px; padding:8px 10px; margin-top:10px; }
+.pulse { width:8px; height:8px; border-radius:50%; background:var(--primary); flex:none; margin-top:4px; box-shadow:0 0 0 3px var(--primary-lite); }
+
+/* Donut, Karte, Zählkachel */
+.donut-1x1 { display:flex; justify-content:center; }
+.donut-rest { font-size:11px; color:var(--muted); text-align:center; margin-top:6px; min-height:15px; }
+.donut-2x1 { display:flex; gap:16px; align-items:center; }
+.leg { display:flex; flex-direction:column; gap:7px; flex:1; min-width:0; }
+.leg-row { display:grid; grid-template-columns:12px 1fr auto 36px; gap:6px; align-items:center; font-size:13px; }
+.leg-row b { font-variant-numeric:tabular-nums; text-align:right; }
+.leg-row small { color:var(--muted); text-align:right; font-variant-numeric:tabular-nums; }
+.leg-note { font-size:11.5px; color:var(--muted); margin-top:4px; }
+.map-wrap { position:relative; }
+.map-chip { position:absolute; left:8px; top:8px; background:var(--surface); border-radius:999px; font-size:11px; font-weight:600; padding:3px 9px; box-shadow:0 1px 3px rgba(0,0,0,.18); }
+.map-2x1 { display:flex; gap:12px; align-items:center; }
+.map-2x1 .leg-row { grid-template-columns:12px 1fr auto; }
+.zk-val { font-size:34px; font-weight:700; line-height:1.05; letter-spacing:-.02em; }
+.zk-filter { font-size:11px; color:var(--muted); margin-top:4px; }
+.zk-2x1 { display:flex; justify-content:space-between; gap:12px; align-items:center; }
+.zk-right { width:170px; }
+.flag { display:inline-block; margin-top:6px; font-size:11.5px; font-weight:700; color:var(--fg); background:var(--surface2); border-radius:6px; padding:2px 7px; }
+
+/* Pfad */
+.pfad { position:relative; margin-top:16px; }
+.pfad::before { content:''; position:absolute; left:7px; top:18px; bottom:18px; width:2px; background:var(--border); border-radius:1px; }
+.station + .station { margin-top:12px; }
+.station { display:grid; grid-template-columns:28px 1fr; align-items:start; position:relative; }
+.node { width:16px; height:16px; border-radius:50%; margin-top:16px; box-shadow:0 0 0 4px var(--bg); position:relative; }
+.node.biber { box-shadow:0 0 0 4px var(--bg), inset 0 0 0 1px var(--biber-ring-stark); }
+.station-card { background:var(--surface); border-radius:16px; padding:12px 14px; }
+.st-head { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+.st-name { font-size:16px; font-weight:700; }
+.st-groups { font-size:12px; color:var(--muted); }
+.st-count { font-size:26px; font-weight:700; line-height:1; }
+.st-count small { font-size:13px; color:var(--muted); margin-left:2px; }
+.st-viz { margin-top:10px; }
+.st-meta { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px; font-size:11.5px; color:var(--fg2); }
+.gmini { display:inline-flex; flex-direction:column; gap:3px; }
+.gmini small { font-size:10.5px; color:var(--muted); }
+.uebergang { margin:8px 0 8px 28px; font-size:12.5px; color:var(--fg2); padding:6px 12px; background:var(--surface2); border-radius:999px; display:inline-block; }
+.uebergang b { color:var(--fg); }
+.pfad-foot { margin-left:28px; }
+
+/* Anpassen */
+.sheet-hdr { display:flex; justify-content:space-between; align-items:center; font-size:16px; }
+.lnk { color:var(--primary); font-size:15px; min-width:70px; }
+.lnk.strong { font-weight:700; text-align:right; }
+.edit-hint { font-size:12px; color:var(--muted); margin:14px 4px 10px; }
+.edit-row { display:grid; grid-template-columns:20px 1fr auto 26px; gap:8px; align-items:center; padding:11px 14px; border-bottom:1px solid var(--border); font-size:14.5px; }
+.edit-row:last-child { border-bottom:0; }
+.edit-row.aus { color:var(--muted); }
+.edit-row.aus .seg { opacity:.4; }
+.edit-title em { font-style:normal; font-size:10px; font-weight:600; color:var(--primary); background:var(--primary-lite); border-radius:999px; padding:1px 7px; margin-left:4px; }
+.handle { color:var(--muted); font-size:16px; }
+.eye { text-align:center; font-size:14px; }
+.seg { display:inline-flex; background:var(--surface2); border-radius:8px; padding:2px; }
+.seg i { font-style:normal; font-size:12px; font-weight:600; padding:3px 8px; border-radius:6px; color:var(--fg2); }
+.seg i.on { background:var(--surface); color:var(--fg); box-shadow:0 1px 2px rgba(0,0,0,.15); }
+.seg.wide { display:flex; margin-top:8px; }
+.seg.wide i { flex:1; text-align:center; padding:6px 0; }
+.edit-add { margin-top:14px; text-align:center; font-weight:600; color:var(--on-primary); background:var(--primary); border-radius:12px; padding:12px; }
+.edit-add.ghost { background:transparent; color:var(--primary); border:1.5px solid var(--border); }
+.dim { position:absolute; inset:0; background:rgba(0,0,0,.35); z-index:1; }
+.sheet { position:absolute; left:0; right:0; bottom:0; top:96px; background:var(--surface); border-radius:22px 22px 0 0; z-index:2; padding:8px 18px 20px; }
+.grabber { width:38px; height:5px; border-radius:3px; background:var(--border); margin:0 auto 10px; }
+.sheet-title { font-size:18px; font-weight:700; text-align:center; margin-bottom:12px; }
+.fld { display:block; margin:0 0 14px; }
+.fld > span { display:block; font-size:12px; font-weight:600; color:var(--fg2); margin-bottom:6px; }
+.fld.row { display:flex; align-items:center; gap:10px; }
+.fld.row > span { margin:0; flex:1; }
+.input { background:var(--surface2); border-radius:10px; padding:10px 12px; font-size:15px; }
+.rule { background:var(--primary-lite); border-radius:10px; padding:9px 12px; font-size:13px; display:flex; gap:10px; align-items:center; }
+.rule i { margin-left:auto; font-style:normal; color:var(--muted); }
+.rule-add { font-size:13px; font-weight:600; color:var(--primary); margin-top:8px; }
+.preview { display:flex; gap:12px; align-items:center; }
+.preview .tile { width:173px; flex:none; background:var(--bg); box-sizing:border-box; }
+.preview-note { font-size:11.5px; color:var(--muted); }
+.stepper { display:inline-flex; align-items:center; gap:12px; background:var(--surface2); border-radius:10px; padding:4px 10px; }
+.stepper i { font-style:normal; color:var(--primary); font-weight:700; }
+.toggle { display:inline-block; width:44px; height:26px; border-radius:13px; background:var(--border); position:relative; flex:none; }
+.toggle::after { content:''; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.25); }
+.toggle.on { background:var(--primary); }
+.toggle.on::after { left:21px; }
+.btn { text-align:center; font-weight:700; color:var(--on-primary); background:var(--primary); border-radius:12px; padding:13px; margin-top:6px; }
+.set-row { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; border-bottom:1px solid var(--border); font-size:14.5px; }
+.set-row:last-child { border-bottom:0; }
+.set-row .key { font-size:14.5px; color:var(--fg); }
+
+/* ---------- Rückmeldung ---------- */
+.fb { background:#fff; border-radius:16px; padding:18px 22px; max-width:1100px; }
+.fb fieldset { border:0; border-top:1px solid #e5e2d8; margin:0; padding:14px 0 10px; }
+.fb legend { font-weight:700; padding:0; margin-bottom:6px; }
+.fb label { margin-right:16px; font-size:14.5px; white-space:nowrap; }
+.fb textarea { width:100%; box-sizing:border-box; min-height:44px; margin-top:6px; font:14px system-ui; border:1px solid #d6d3c9; border-radius:8px; padding:6px 8px; }
+.fb .bl { display:grid; grid-template-columns:180px auto 1fr; gap:6px 12px; align-items:center; }
+.fb .bl textarea { min-height:32px; margin:0; }
+.fb button { font:inherit; font-weight:700; background:#003056; color:#fff; border:0; border-radius:10px; padding:10px 18px; cursor:pointer; margin-top:10px; }
+.fb #ausgabe { min-height:140px; font-family:ui-monospace, monospace; font-size:12.5px; }
+</style>
+</head>
+<body>
+<div class="bar">
+  <span><b>Datensatz</b><span class="tgl" id="tgl-stamm"><button data-v="gross">Weitblick · 75</button><button data-v="klein">Silberfels · 26</button></span></span>
+  <span><b>Stil in den Layouts</b><span class="tgl" id="tgl-stil"><button data-v="punkte">Punkte</button><button data-v="balken">Balken</button><button data-v="zahlen">Zahlen</button></span></span>
+  <nav><a href="#layouts">1 Layouts</a><a href="#stil">2 Stil</a><a href="#breiten">3 Kachelbreiten</a><a href="#anpassen">4 Anpassen</a><a href="#rueckmeldung">5 Rückmeldung</a></nav>
+</div>
+<main>
+<h1>Stammesstatistik – Entwürfe, Runde 1</h1>
+<p>Alle Personen sind erfunden. „Stamm Weitblick“ (75 Personen, zwei Meuten, Neue und Überfällige) prüft, ob die Darstellungen bei mehr Menschen tragen. „Stamm Silberfels“ entspricht der Store-Szene. Stand der Daten 30.09.2026, Stufenwechsel-Stichtag 01.11.2026, Altersgrenzen wie in der App voreingestellt. Kopf und Tabs „Stamm | Bundesweit“ folgen dem heutigen <code>develop</code>.</p>
+<div class="open"><b>Farbregeln in allen Entwürfen</b>
+<ul>
+<li>Stufenfarben bleiben Markenfarben. Pfadi-Grün und Rover-Rot sind bei Rot-Grün-Schwäche kaum trennbar (ΔE 4,6), deshalb hat jede Stufenmarke ein Textlabel.</li>
+<li>Leitung ist keine eigene Farbe mehr (statt Gelb): Leitende sind Ringe in Stufenfarbe, Kinder und Jugendliche gefüllte Punkte.</li>
+<li>Geschlecht und Konfession nutzen eine eigene, geprüfte Palette (Violett, Aqua, Gelb, Grau), die mit keiner Stufe verwechselbar ist. Heute ist „männlich“ exakt Jufi-Blau.</li>
+<li><b>Offen:</b> Biber-Weiß ist auf weißen Karten unsichtbar und als Punkt nicht von einem Leitungsring zu unterscheiden. Hell erscheint Biber deshalb als Hellgrau mit Kontur, dunkel bleibt es weiß. Jufi-Blau ist im Dunkelmodus auf <code>#5b7fd6</code> angehoben (sonst 2,4:1 Kontrast).</li>
+</ul></div>
+
+<section class="part" id="layouts">
+<h2>1 · Layouts</h2>
+<p>Gleiche Daten, vier Seitenstrukturen. Der Stil (oben umschaltbar) gilt für alle vier gleich, damit nur das Layout verglichen wird.</p>
+<div id="slot-layouts"></div>
+</section>
+
+<section class="part" id="stil">
+<h2>2 · Stil im Vergleich</h2>
+<p>Gleiche Inhalte in Punkte, Balken und Zahlen – immer für den oben gewählten Datensatz. Mit „Silberfels“ und „Weitblick“ gegenprüfen, wie die Punkte bei 26 und 75 Personen wirken.</p>
+<div id="slot-stil"></div>
+</section>
+
+<section class="part" id="breiten">
+<h2>3 · Kachelbreiten</h2>
+<p>Jede Diagrammkarte in zwei Breiten: <b>1×1</b> mit Beschriftung im Diagramm, <b>2×1</b> mit Legende daneben wie heute. Zwei 1×1-Karten teilen sich eine Zeile.</p>
+<div id="slot-breiten"></div>
+</section>
+
+<section class="part" id="anpassen">
+<h2>4 · Anpassen & eigene Kacheln</h2>
+<p>Bearbeiten-Modus (sortieren, Breite, ausblenden), eigene Zählkachel aus den Filtern der Mitgliederliste, Zielwerte je Stamm.</p>
+<div id="slot-anpassen" class="phones"></div>
+</section>
+
+<section class="part" id="rueckmeldung">
+<h2>5 · Rückmeldung</h2>
+<p>Auswählen, kurz kommentieren, „Auswahl kopieren“ und den Text in den Chat einfügen.</p>
+<form class="fb" id="fb"></form>
+</section>
+</main>
+
+<script src="daten.js"></script>
+<script src="bausteine.js"></script>
+<script src="layouts.js"></script>
+<script>
+(function () {
+  const D = window.STATISTIK;
+  const B = window.BAUSTEINE;
+  const L = window.LAYOUTS;
+  const params = new URLSearchParams(location.search);
+  const zustand = { stamm: params.get('stamm') || 'gross', stil: params.get('stil') || 'balken' };
+
+  // Theme-Variablen aus daten.js
+  const zusatz = {
+    hell: { '--biber-ring': '#aeaeb2', '--biber-ring-stark': '#8e8e93', '--biber-band': '#f4f4f7', '--map-bg': '#edf0e9', '--map-road': '#ffffff', '--map-water': '#d3e2ee' },
+    dunkel: { '--biber-ring': 'transparent', '--biber-ring-stark': '#ffffff', '--biber-band': '#2e2e3a', '--map-bg': '#1c2320', '--map-road': '#2c3531', '--map-water': '#1d2e3b' },
+  };
+  let css = '';
+  for (const modus of ['hell', 'dunkel']) {
+    const p = D.palette[modus];
+    const vars = {
+      '--bg': p.bg, '--surface': p.surface, '--surface2': p.surface2, '--fg': p.fg, '--fg2': p.fg2,
+      '--muted': p.muted, '--border': p.border, '--primary': p.primary, '--on-primary': p.onPrimary,
+      '--primary-lite': p.primaryLite, '--grid': p.grid, ...zusatz[modus],
+    };
+    for (const [id, c] of Object.entries(D.stufenfarben[modus])) vars[`--st-${id}`] = c;
+    css += `.phone.${modus}{${Object.entries(vars).map(([k, v]) => `${k}:${v}`).join(';')}}`;
+  }
+  const style = document.createElement('style');
+  style.textContent = css;
+  document.head.appendChild(style);
+
+  const ctxFuer = (modus, stil = zustand.stil) => ({ k: B.kennzahlen(D.staemme[zustand.stamm]), stil, modus });
+
+  const LAYOUT_TEXTE = {
+    A: ['A · Lagebericht', 'Kopf mit Gesamtzahl und Stufenband, dann in fester Leserichtung: <b>Stufen & Gruppen</b> (ersetzt Gruppenliste und Säulen), <b>nächster Stufenwechsel</b>, <b>Altersstruktur</b>, <b>Bindung</b>, am Ende das Raster für Zusammensetzung und eigene Kacheln.'],
+    B: ['B · Pfad', 'Die Seite folgt dem Weg Biber → Rover. Jede Stufe ist eine Station mit Größe, Altersstreifen und Geschlecht, dazwischen stehen die anstehenden <b>Übergänge</b>. Prognose und Altersstruktur sind in den Pfad eingewoben.'],
+    C: ['C · Kacheln', 'Bento-Raster aus 1×1- und 2×1-Kacheln, jede öffnet ihre Details. Kennzahlen stehen oben als Einzelkacheln, der Kopf ist schlank. Natürlicher Träger für Sortieren, Breite und eigene Kacheln.'],
+    D: ['D · Themen', 'Die bestehende Tab-Leiste wächst auf <b>Überblick | Stufen | Entwicklung | Bundesweit</b>. Jede Ansicht bleibt kurz. Gezeigt: Überblick hell und dunkel, dazu Stufen und Entwicklung.'],
+  };
+
+  function renderLayouts() {
+    let html = '';
+    for (const id of ['A', 'B', 'C', 'D']) {
+      const [titel, text] = LAYOUT_TEXTE[id];
+      const phones = [];
+      for (const modus of ['hell', 'dunkel']) {
+        const ctx = ctxFuer(modus);
+        const r = L[id](ctx, 0);
+        phones.push(L.telefon(ctx, r.inhalt, { shot: `layout-${id}-${modus}`, kopfHtml: r.kopfHtml, beschriftung: modus === 'hell' ? 'hell' : 'dunkel' }));
+      }
+      if (id === 'D') {
+        for (const tab of [1, 2]) {
+          const ctx = ctxFuer('hell');
+          const r = L.D(ctx, tab);
+          phones.push(L.telefon(ctx, r.inhalt, { shot: `layout-D-tab${tab}`, kopfHtml: r.kopfHtml, beschriftung: tab === 1 ? 'Tab „Stufen“' : 'Tab „Entwicklung“' }));
+        }
+      }
+      html += `<div class="variant" data-shot-group="layout-${id}"><h3>${titel}</h3><p class="desc">${text}</p><div class="phones">${phones.join('')}</div></div>`;
+    }
+    document.getElementById('slot-layouts').innerHTML = html;
+  }
+
+  function renderStil() {
+    const bloecke = [
+      ['Stufen & Gruppen', (ctx) => B.stufenZeilen(ctx, { breite: L.KARTE })],
+      ['Nächster Stufenwechsel', (ctx) => B.prognose(ctx, { breite: L.KARTE })],
+      ['Altersstruktur', (ctx) => B.altersstruktur(ctx, { breite: L.KARTE })],
+      ['Bindung', (ctx) => B.bindung(ctx, { breite: L.KARTE })],
+    ];
+    let html = '<div class="cmp">';
+    for (const stil of ['punkte', 'balken', 'zahlen']) {
+      const ctx = ctxFuer('hell', stil);
+      const inhalt = bloecke.map(([t, f]) => B.abschnitt(t, f(ctx))).join('');
+      html += `<div><h3>${stil[0].toUpperCase() + stil.slice(1)}</h3>${L.telefon(ctx, inhalt, { shot: `stil-${stil}`, tabbar: false })}</div>`;
+    }
+    html += '</div>';
+    document.getElementById('slot-stil').innerHTML = html;
+  }
+
+  function renderBreiten() {
+    const ctx = ctxFuer('hell');
+    const ctxD = ctxFuer('dunkel');
+    const [vorstand, foerder] = ctx.k.eigeneKacheln;
+    const raster = (c) => `<div class="grid">
+      ${B.kachel('1x1', 'Geschlecht', B.geschlecht(c, '1x1'))}
+      ${B.kachel('1x1', 'Konfession', B.konfession(c, '1x1'))}
+      ${B.kachel('2x1', 'Geschlecht', B.geschlecht(c, '2x1'))}
+      ${B.kachel('2x1', 'Konfession', B.konfession(c, '2x1'))}
+      ${B.kachel('1x1', 'Standorte', B.standorte(c, '1x1', L.HALB))}
+      ${B.kachel('1x1', vorstand.titel, B.zaehlkachel(c, vorstand, '1x1'), 'eigen')}
+      ${B.kachel('2x1', 'Standorte', B.standorte(c, '2x1', L.KACHEL))}
+      ${B.kachel('2x1', foerder.titel, B.zaehlkachel(c, foerder, '2x1'), 'eigen')}
+      ${B.kachel('1x1', foerder.titel, B.zaehlkachel(c, foerder, '1x1'), 'eigen')}
+      ${B.kachel('1x1', vorstand.titel + ' ', B.zaehlkachel(c, { ...vorstand, ziel: null }, '1x1'), 'eigen')}
+    </div>`;
+    document.getElementById('slot-breiten').innerHTML = `<div class="phones">
+      ${L.telefon(ctx, raster(ctx), { shot: 'breiten-hell', tabbar: false, beschriftung: 'hell' })}
+      ${L.telefon(ctxD, raster(ctxD), { shot: 'breiten-dunkel', tabbar: false, beschriftung: 'dunkel' })}</div>`;
+  }
+
+  function renderAnpassen() {
+    const ctx = ctxFuer('hell');
+    const a = L.bearbeiten(ctx);
+    const b = L.kachelAnlegen(ctx);
+    const c = L.zielwerte(ctx);
+    const hintergrund = L.C(ctx);
+    document.getElementById('slot-anpassen').innerHTML = [
+      L.telefon(ctx, a.inhalt, { shot: 'anpassen-bearbeiten', kopfHtml: a.kopfHtml, tabbar: false, fest: true, beschriftung: 'Bearbeiten-Modus' }),
+      L.telefon(ctx, hintergrund.inhalt + b.kopfHtml + b.inhalt, { shot: 'anpassen-kachel', kopfHtml: hintergrund.kopfHtml, tabbar: false, fest: true, beschriftung: 'Eigene Kachel anlegen' }),
+      L.telefon(ctx, c.inhalt, { shot: 'anpassen-ziele', kopfHtml: c.kopfHtml, tabbar: false, fest: true, beschriftung: 'Zielwerte' }),
+    ].join('');
+  }
+
+  // ------------------------------------------------------ Rückmeldung
+  const FRAGEN = [
+    { id: 'layout', titel: 'Layout', optionen: ['A Lagebericht', 'B Pfad', 'C Kacheln', 'D Themen', 'Kombination'] },
+    { id: 'stil', titel: 'Stil', optionen: ['Punkte', 'Balken', 'Zahlen', 'je Baustein verschieden'] },
+    { id: 'breiten', titel: 'Kachelbreiten 1×1 / 2×1', optionen: ['passt', 'nur 2×1 für Diagramme', 'anders'] },
+    { id: 'anpassen', titel: 'Anpassen & eigene Kacheln', optionen: ['passt', 'zu viel', 'fehlt etwas'] },
+    { id: 'farben', titel: 'Offene Farbpunkte (Biber hellgrau, Jufi dunkel)', optionen: ['beides ok', 'Biber anders', 'Jufi anders'] },
+  ];
+  const BAUSTEINE_FB = ['Kopf mit Stufenband', 'Stufen & Gruppen', 'Nächster Stufenwechsel', 'Altersstruktur', 'Bindung', 'Geschlecht / Konfession', 'Standorte', 'Eigene Zählkacheln'];
+
+  function renderFeedback() {
+    const f = document.getElementById('fb');
+    f.innerHTML = FRAGEN.map((q) => `<fieldset><legend>${q.titel}</legend>${q.optionen.map((o) => `<label><input type="radio" name="${q.id}" value="${o}"> ${o}</label>`).join('')}<textarea name="${q.id}-text" placeholder="Anmerkung (optional)"></textarea></fieldset>`).join('') +
+      `<fieldset><legend>Bausteine</legend><div class="bl">${BAUSTEINE_FB.map((b, i) => `<span>${b}</span><span>${['behalten', 'ändern', 'weg'].map((o) => `<label><input type="radio" name="b${i}" value="${o}"> ${o}</label>`).join('')}</span><textarea name="b${i}-text" placeholder="Anmerkung"></textarea>`).join('')}</div></fieldset>` +
+      `<fieldset><legend>Sonst noch</legend><textarea name="frei" placeholder="Freitext"></textarea></fieldset>
+      <button type="button" id="kopieren">Auswahl kopieren</button>
+      <textarea id="ausgabe" readonly placeholder="Hier erscheint der Text für den Chat."></textarea>`;
+    document.getElementById('kopieren').addEventListener('click', async () => {
+      const fd = new FormData(f);
+      const zeilen = ['Rückmeldung Statistik, Runde 1', `(Datensatz ${zustand.stamm}, Stil in Layouts ${zustand.stil})`];
+      for (const q of FRAGEN) {
+        const v = fd.get(q.id);
+        const t = (fd.get(`${q.id}-text`) || '').trim();
+        if (v || t) zeilen.push(`- ${q.titel}: ${v || '–'}${t ? ` – ${t}` : ''}`);
+      }
+      BAUSTEINE_FB.forEach((b, i) => {
+        const v = fd.get(`b${i}`);
+        const t = (fd.get(`b${i}-text`) || '').trim();
+        if (v || t) zeilen.push(`- ${b}: ${v || '–'}${t ? ` – ${t}` : ''}`);
+      });
+      const frei = (fd.get('frei') || '').trim();
+      if (frei) zeilen.push(`- Sonst: ${frei}`);
+      const text = zeilen.join('\n');
+      const out = document.getElementById('ausgabe');
+      out.value = text;
+      try { await navigator.clipboard.writeText(text); } catch (e) { out.select(); document.execCommand('copy'); }
+    });
+  }
+
+  function markiere() {
+    for (const [id, key] of [['tgl-stamm', 'stamm'], ['tgl-stil', 'stil']]) {
+      document.querySelectorAll(`#${id} button`).forEach((b) => b.classList.toggle('on', b.dataset.v === zustand[key]));
+    }
+  }
+  function alles() {
+    markiere();
+    renderLayouts();
+    renderStil();
+    renderBreiten();
+    renderAnpassen();
+  }
+  for (const [id, key] of [['tgl-stamm', 'stamm'], ['tgl-stil', 'stil']]) {
+    document.getElementById(id).addEventListener('click', (e) => {
+      const v = e.target.dataset && e.target.dataset.v;
+      if (!v) return;
+      zustand[key] = v;
+      alles();
+    });
+  }
+  alles();
+  renderFeedback();
+  document.body.dataset.fertig = '1';
+})();
+</script>
+</body>
+</html>
