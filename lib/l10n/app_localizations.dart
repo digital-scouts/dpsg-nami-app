@@ -457,12 +457,30 @@ class AppLocalizations {
       'auth_login_action': 'Mit Hitobito anmelden',
       'demo_start_action': 'Demo ansehen',
       'demo_start_hint':
-          'Ohne Login ausprobieren: erfundener Stamm, nur lesend, keine echten Daten.',
+          'Ohne Login ausprobieren: erfundene Stämme, nur lesend, keine echten Daten.',
       'demo_banner_title': 'Demo-Modus',
       'demo_banner_body':
-          'Du siehst den erfundenen Stamm Silberfels. Bearbeiten ist nicht möglich, Hitobito wird nicht angesprochen.',
+          'Alle Personen sind erfunden. Bearbeiten ist nicht möglich, Hitobito wird nicht angesprochen.',
       'demo_ribbon': 'DEMO',
       'demo_exit_action': 'Demo beenden',
+      'demo_zugang_sheet_title': 'Demo-Zugang wählen',
+      'demo_zugang_sheet_hint':
+          'Jeder Zugang sieht nur, was seine Rolle in Hitobito lesen darf.',
+      'demo_zugang_stammesvorstand_title': 'Stammesvorstand',
+      'demo_zugang_stammesvorstand_body':
+          'Sieht alle Mitglieder im Stamm Silberfels.',
+      'demo_zugang_stammesvorstand_hint':
+          'Du siehst die App als Stammesvorstand des erfundenen Stamms Silberfels.',
+      'demo_zugang_leitung_title': 'Leitung',
+      'demo_zugang_leitung_body':
+          'Leitet den Trupp Kompass und sieht nur dessen Mitglieder.',
+      'demo_zugang_leitung_hint':
+          'Du siehst die App als Leitung des Trupps Kompass im erfundenen Stamm Silberfels.',
+      'demo_zugang_bezirksvorstand_title': 'Bezirksvorstand',
+      'demo_zugang_bezirksvorstand_body':
+          'Sieht den Bezirk Silbertal und wechselt zwischen zwei Stämmen.',
+      'demo_zugang_bezirksvorstand_hint':
+          'Du siehst die App als Bezirksvorstand des erfundenen Bezirks Silbertal. Im Profil wechselst du über „Layer wechseln“ in die Stämme.',
       'auth_relogin_title': 'Erneute Anmeldung erforderlich',
       'auth_relogin_body':
           'Die lokal gespeicherten Daten sind abgelaufen. Bitte melde dich erneut an, um den Datenbestand zu entsperren.',
@@ -1295,12 +1313,30 @@ class AppLocalizations {
       'auth_login_action': 'Sign in with Hitobito',
       'demo_start_action': 'Try the demo',
       'demo_start_hint':
-          'Explore without signing in: fictional group, read-only, no real data.',
+          'Explore without signing in: fictional groups, read-only, no real data.',
       'demo_banner_title': 'Demo mode',
       'demo_banner_body':
-          'You are viewing the fictional group Stamm Silberfels. Editing is disabled and Hitobito is not contacted.',
+          'All people are fictional. Editing is disabled and Hitobito is not contacted.',
       'demo_ribbon': 'DEMO',
       'demo_exit_action': 'End demo',
+      'demo_zugang_sheet_title': 'Choose a demo account',
+      'demo_zugang_sheet_hint':
+          'Each account only sees what its role may read in Hitobito.',
+      'demo_zugang_stammesvorstand_title': 'Group board',
+      'demo_zugang_stammesvorstand_body':
+          'Sees all members of Stamm Silberfels.',
+      'demo_zugang_stammesvorstand_hint':
+          'You are viewing the app as board member of the fictional group Stamm Silberfels.',
+      'demo_zugang_leitung_title': 'Leader',
+      'demo_zugang_leitung_body':
+          'Leads Trupp Kompass and only sees its members.',
+      'demo_zugang_leitung_hint':
+          'You are viewing the app as leader of Trupp Kompass in the fictional group Stamm Silberfels.',
+      'demo_zugang_bezirksvorstand_title': 'District board',
+      'demo_zugang_bezirksvorstand_body':
+          'Sees the district Bezirk Silbertal and switches between two groups.',
+      'demo_zugang_bezirksvorstand_hint':
+          'You are viewing the app as board member of the fictional district Bezirk Silbertal. Use “Switch layer” in your profile to open its groups.',
       'auth_relogin_title': 'Sign-in required again',
       'auth_relogin_body':
           'The locally stored data has expired. Please sign in again to unlock the data set.',

@@ -84,10 +84,12 @@ class InMemoryAuthSessionRepository implements AuthSessionRepository {
 }
 
 class DemoOauthService extends HitobitoOauthService {
-  DemoOauthService() : super(config: demoAuthConfig);
+  DemoOauthService(this.demoData) : super(config: demoAuthConfig);
+
+  final DemoData demoData;
 
   @override
-  Future<AuthSession> authenticateInteractive() async => DemoData.session();
+  Future<AuthSession> authenticateInteractive() async => demoData.session();
 
   @override
   Future<AuthSession> refresh(AuthSession session) async => session;
@@ -100,33 +102,37 @@ class DemoOauthService extends HitobitoOauthService {
 
   @override
   Future<AuthProfile> fetchProfile(AuthSession session) async =>
-      DemoData.profile;
+      demoData.profile;
 }
 
 class DemoHitobitoGroupsService extends HitobitoGroupsService {
-  DemoHitobitoGroupsService() : super(config: demoAuthConfig);
+  DemoHitobitoGroupsService(this.demoData) : super(config: demoAuthConfig);
+
+  final DemoData demoData;
 
   @override
   Future<List<HitobitoGroupResource>> fetchAccessibleGroups(
     String accessToken,
-  ) async => DemoData.hitobitoGruppen();
+  ) async => demoData.hitobitoGruppen();
 }
 
-/// Liefert den Demo-Stamm mit kurzer Verzoegerung, damit der Ladeablauf wie
+/// Liefert den Demo-Layer mit kurzer Verzoegerung, damit der Ladeablauf wie
 /// bei einer echten Anmeldung sichtbar wird.
 class DemoArbeitskontextReadModelRepository
     implements ArbeitskontextReadModelRepository {
-  DemoArbeitskontextReadModelRepository({
+  DemoArbeitskontextReadModelRepository(
+    this.demoData, {
     this.ladedauer = const Duration(milliseconds: 1200),
   });
 
+  final DemoData demoData;
   final Duration ladedauer;
 
   @override
   Future<ArbeitskontextReadModel> loadCached(
     Arbeitskontext arbeitskontext,
   ) async {
-    return DemoData.readModel(arbeitskontext: arbeitskontext);
+    return demoData.readModel(arbeitskontext: arbeitskontext);
   }
 
   @override
@@ -137,7 +143,7 @@ class DemoArbeitskontextReadModelRepository
     void Function(ArbeitskontextReadModel partial)? onProgress,
   }) async {
     await Future<void>.delayed(ladedauer);
-    return DemoData.readModel(arbeitskontext: arbeitskontext);
+    return demoData.readModel(arbeitskontext: arbeitskontext);
   }
 
   @override
@@ -150,14 +156,17 @@ class DemoArbeitskontextReadModelRepository
 }
 
 class DemoHitobitoEfzService extends HitobitoEfzService {
-  DemoHitobitoEfzService() : super(config: demoAuthConfig);
+  DemoHitobitoEfzService(this.demoData) : super(config: demoAuthConfig);
+
+  final DemoData demoData;
 
   @override
   Future<List<EfzEinsichtnahme>> fetchEfzEinsichtnahmenFuerPerson(
     String accessToken, {
     required int personId,
   }) async {
-    return DemoData.efzEinsichtnahmen()
+    return demoData
+        .efzEinsichtnahmen()
         .where((einsichtnahme) => einsichtnahme.personId == personId)
         .toList(growable: false);
   }
@@ -166,7 +175,7 @@ class DemoHitobitoEfzService extends HitobitoEfzService {
   Future<List<EfzEinsichtnahme>> fetchAlleEfzEinsichtnahmen(
     String accessToken,
   ) async {
-    return DemoData.efzEinsichtnahmen();
+    return demoData.efzEinsichtnahmen();
   }
 
   @override
