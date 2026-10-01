@@ -5,492 +5,235 @@ import 'package:nami/domain/auth/auth_profile.dart';
 import 'package:nami/domain/auth/auth_session.dart';
 import 'package:nami/domain/member/efz_einsichtnahme.dart';
 import 'package:nami/domain/member/mitglied.dart';
-import 'package:nami/domain/taetigkeit/role_derivation.dart';
-import 'package:nami/domain/taetigkeit/roles.dart';
-import 'package:nami/domain/taetigkeit/stufe.dart';
+import 'package:nami/services/app_mode_controller.dart';
 
-/// Fiktiver Stamm fuer den Demo-Zugang.
+import 'demo_staemme.dart';
+
+/// Daten, die Hitobito fuer den gewaehlten [zugang] liefern wuerde.
 ///
-/// Alle Namen und Kontaktdaten sind erfunden. Geburtsdaten sind relativ zum
-/// heutigen Tag angegeben, damit Stufenwechsel und Altersverteilung auch in
-/// spaeteren Jahren gleich aussehen.
+/// Die Rechte der Demo-Profile entsprechen den Rollen in Hitobito. Welche
+/// Layer auswaehlbar sind und wo die App startet, leitet die App daraus wie
+/// im Echtbetrieb ab. Welche Personen sichtbar sind, bildet [readModel] so
+/// nach, wie Hitobito sie fuer diese Rechte zurueckgibt.
 class DemoData {
-  DemoData._();
+  DemoData(this.zugang, {DateTime Function()? now})
+    : _now = now ?? DateTime.now;
 
-  static const int layerId = 990011;
-  static const String stammName = 'Stamm Silberfels';
-  static const int _bezirkId = 990003;
-  static const int _dioezeseId = 990002;
+  final DemoZugang zugang;
+  final DateTime Function() _now;
 
-  static const int _biberId = 990021;
-  static const int _woelflingeId = 990022;
-  static const int _jungpfadfinderId = 990023;
-  static const int _pfadfinderId = 990024;
-  static const int _roverId = 990025;
+  AuthProfile get profile => switch (zugang) {
+    DemoZugang.stammesvorstand => const AuthProfile(
+      namiId: 1061,
+      primaryGroupId: DemoBezirk.silberfelsId,
+      email: 'johanna.becker@example.org',
+      firstName: 'Johanna',
+      lastName: 'Becker',
+      language: 'de',
+      roles: <AuthProfileRole>[
+        AuthProfileRole(
+          groupId: DemoBezirk.silberfelsId,
+          groupName: 'Stamm Silberfels',
+          roleName: 'Stammesführer*in',
+          roleClass: 'Group::Stamm::Stammesfuehrung',
+          permissions: <String>['layer_and_below_read'],
+        ),
+      ],
+    ),
+    DemoZugang.leitung => const AuthProfile(
+      namiId: 1052,
+      primaryGroupId: DemoBezirk.truppKompassId,
+      email: 'david.neumann@example.org',
+      firstName: 'David',
+      lastName: 'Neumann',
+      language: 'de',
+      roles: <AuthProfileRole>[
+        AuthProfileRole(
+          groupId: DemoBezirk.truppKompassId,
+          groupName: 'Trupp Kompass',
+          roleName: 'Leiter*in',
+          roleClass: 'Group::StammGruppeJungpfadfinder::Leitung',
+          permissions: <String>['group_read'],
+        ),
+      ],
+    ),
+    DemoZugang.bezirksvorstand => const AuthProfile(
+      namiId: 3001,
+      primaryGroupId: DemoBezirk.bezirkId,
+      email: 'martin.krause@example.org',
+      firstName: 'Martin',
+      lastName: 'Krause',
+      language: 'de',
+      roles: <AuthProfileRole>[
+        AuthProfileRole(
+          groupId: DemoBezirk.bezirkId,
+          groupName: 'Bezirk Silbertal',
+          roleName: 'Bezirkssprecher*in',
+          roleClass: 'Group::Bezirk::Vorstand',
+          permissions: <String>['layer_and_below_read', 'contact_data'],
+        ),
+      ],
+    ),
+  };
 
-  static const List<ArbeitskontextGruppe> gruppen = <ArbeitskontextGruppe>[
-    ArbeitskontextGruppe(
-      id: _biberId,
-      name: 'Biberbande',
-      layerId: layerId,
-      gruppenTyp: 'Group::StammGruppeBiber',
-    ),
-    ArbeitskontextGruppe(
-      id: _woelflingeId,
-      name: 'Meute Seeadler',
-      layerId: layerId,
-      gruppenTyp: 'Group::StammGruppeWoelflinge',
-    ),
-    ArbeitskontextGruppe(
-      id: _jungpfadfinderId,
-      name: 'Trupp Kompass',
-      layerId: layerId,
-      gruppenTyp: 'Group::StammGruppeJungpfadfinder',
-    ),
-    ArbeitskontextGruppe(
-      id: _pfadfinderId,
-      name: 'Trupp Nordlicht',
-      layerId: layerId,
-      gruppenTyp: 'Group::StammGruppePfadfinder',
-    ),
-    ArbeitskontextGruppe(
-      id: _roverId,
-      name: 'Runde Fernweh',
-      layerId: layerId,
-      gruppenTyp: 'Group::StammGruppeRover',
-    ),
-  ];
-
-  static final List<_DemoMember> _members = <_DemoMember>[
-    // Biber
-    _DemoMember('1001', 'Mila', 'Brandt', 4, 3, Stufe.biber, _biberId),
-    _DemoMember('1002', 'Theo', 'Hartmann', 4, 8, Stufe.biber, _biberId),
-    _DemoMember('1003', 'Ida', 'Schuster', 5, 5, Stufe.biber, _biberId),
-    // Woelflinge
-    _DemoMember('1011', 'Emil', 'Voigt', 6, 5, Stufe.woelfling, _woelflingeId),
-    _DemoMember(
-      '1012',
-      'Lotta',
-      'Krüger',
-      7,
-      2,
-      Stufe.woelfling,
-      _woelflingeId,
-    ),
-    _DemoMember(
-      '1013',
-      'Paul',
-      'Seidel',
-      7,
-      11,
-      Stufe.woelfling,
-      _woelflingeId,
-    ),
-    _DemoMember(
-      '1014',
-      'Frieda',
-      'Lorenz',
-      8,
-      6,
-      Stufe.woelfling,
-      _woelflingeId,
-    ),
-    _DemoMember('1015', 'Anton', 'Engel', 9, 4, Stufe.woelfling, _woelflingeId),
-    _DemoMember(
-      '1016',
-      'Greta',
-      'Winter',
-      10,
-      6,
-      Stufe.woelfling,
-      _woelflingeId,
-    ),
-    // Jungpfadfinder
-    _DemoMember(
-      '1021',
-      'Jonas',
-      'Peters',
-      9,
-      7,
-      Stufe.jungpfadfinder,
-      _jungpfadfinderId,
-    ),
-    _DemoMember(
-      '1022',
-      'Hanna',
-      'Albrecht',
-      10,
-      0,
-      Stufe.jungpfadfinder,
-      _jungpfadfinderId,
-    ),
-    _DemoMember(
-      '1023',
-      'Luis',
-      'Franke',
-      10,
-      9,
-      Stufe.jungpfadfinder,
-      _jungpfadfinderId,
-    ),
-    _DemoMember(
-      '1024',
-      'Marie',
-      'Graf',
-      11,
-      2,
-      Stufe.jungpfadfinder,
-      _jungpfadfinderId,
-    ),
-    _DemoMember(
-      '1025',
-      'Ben',
-      'Kuhn',
-      12,
-      10,
-      Stufe.jungpfadfinder,
-      _jungpfadfinderId,
-    ),
-    // Pfadfinder
-    _DemoMember(
-      '1031',
-      'Clara',
-      'Böhm',
-      12,
-      3,
-      Stufe.pfadfinder,
-      _pfadfinderId,
-    ),
-    _DemoMember(
-      '1032',
-      'Finn',
-      'Arnold',
-      13,
-      8,
-      Stufe.pfadfinder,
-      _pfadfinderId,
-    ),
-    _DemoMember('1033', 'Lea', 'Busch', 14, 5, Stufe.pfadfinder, _pfadfinderId),
-    _DemoMember(
-      '1034',
-      'Noah',
-      'Ludwig',
-      15,
-      2,
-      Stufe.pfadfinder,
-      _pfadfinderId,
-    ),
-    // Rover
-    _DemoMember('1041', 'Sophie', 'Haas', 16, 5, Stufe.rover, _roverId),
-    _DemoMember('1042', 'Jakob', 'Sommer', 18, 1, Stufe.rover, _roverId),
-    _DemoMember('1043', 'Nele', 'Pohl', 19, 9, Stufe.rover, _roverId),
-    // Leitende
-    _DemoMember(
-      '1051',
-      'Katharina',
-      'Wolf',
-      27,
-      4,
-      Stufe.woelfling,
-      _woelflingeId,
-      leitung: true,
-      fahrtenname: 'Eule',
-    ),
-    _DemoMember(
-      '1052',
-      'David',
-      'Neumann',
-      24,
-      7,
-      Stufe.jungpfadfinder,
-      _jungpfadfinderId,
-      leitung: true,
-    ),
-    _DemoMember(
-      '1053',
-      'Lena',
-      'Schreiber',
-      23,
-      2,
-      Stufe.pfadfinder,
-      _pfadfinderId,
-      leitung: true,
-      fahrtenname: 'Luchs',
-    ),
-    _DemoMember(
-      '1054',
-      'Tobias',
-      'Richter',
-      31,
-      10,
-      Stufe.rover,
-      _roverId,
-      leitung: true,
-    ),
-    _DemoMember(
-      '1055',
-      'Miriam',
-      'Keller',
-      29,
-      6,
-      Stufe.biber,
-      _biberId,
-      leitung: true,
-    ),
-  ];
-
-  /// Mitglied, das dem Demo-Profil (`namiId: 1`) entspricht.
-  static const String eigeneMitgliedsnummer = '1052';
-
-  /// Berechtigung des Demo-Profils: Stamm und Untergruppen lesen, nichts
-  /// schreiben.
-  static const List<String> profilBerechtigungen = <String>[
-    'layer_and_below_read',
-  ];
-
-  static AuthSession session({DateTime? now}) {
-    final receivedAt = now ?? DateTime.now();
+  AuthSession session() {
+    final receivedAt = _now();
+    final profil = profile;
     return AuthSession(
       accessToken: 'demo',
       receivedAt: receivedAt,
       expiresAt: receivedAt.add(const Duration(days: 3650)),
-      principal: 'demo',
-      email: 'david.neumann@example.org',
-      displayName: 'David Neumann',
+      principal: 'demo-${zugang.name}',
+      email: profil.email,
+      displayName: '${profil.firstName} ${profil.lastName}',
     );
   }
 
-  static const AuthProfile profile = AuthProfile(
-    namiId: 1,
-    primaryGroupId: _jungpfadfinderId,
-    email: 'david.neumann@example.org',
-    firstName: 'David',
-    lastName: 'Neumann',
-    language: 'de',
-    roles: <AuthProfileRole>[
-      AuthProfileRole(
-        groupId: _jungpfadfinderId,
-        groupName: 'Trupp Kompass',
-        roleName: 'Leiter*in',
-        roleClass: 'Group::StammGruppeJungpfadfinder::Leitung',
-        permissions: profilBerechtigungen,
-      ),
-    ],
-  );
-
-  /// Gruppen, wie Hitobito sie fuer das Demo-Profil als erreichbar liefert.
-  static List<HitobitoGroupResource> hitobitoGruppen() {
+  /// Hitobito liefert alle Gruppen, unabhaengig von den Rechten. Welche Layer
+  /// davon relevant sind, entscheidet die App.
+  List<HitobitoGroupResource> hitobitoGruppen() {
     return <HitobitoGroupResource>[
       const HitobitoGroupResource(
-        id: _dioezeseId,
-        name: 'Diözese Silberland',
+        id: DemoBezirk.dioezeseId,
+        name: DemoBezirk.dioezeseName,
         isLayer: true,
-        layerGroupId: _dioezeseId,
+        layerGroupId: DemoBezirk.dioezeseId,
         groupType: 'Group::Dioezese',
       ),
-      const HitobitoGroupResource(
-        id: _bezirkId,
-        name: 'Bezirk Silbertal',
-        isLayer: true,
-        parentId: _dioezeseId,
-        layerGroupId: _bezirkId,
-        groupType: 'Group::Bezirk',
-      ),
-      const HitobitoGroupResource(
-        id: layerId,
-        name: stammName,
-        isLayer: true,
-        parentId: _bezirkId,
-        layerGroupId: layerId,
-        groupType: 'Group::Stamm',
-      ),
-      for (final gruppe in gruppen)
+      for (final layer in DemoBezirk.layer) ...[
         HitobitoGroupResource(
-          id: gruppe.id,
-          name: gruppe.name,
-          isLayer: false,
-          parentId: layerId,
-          layerGroupId: layerId,
-          groupType: gruppe.gruppenTyp,
+          id: layer.id,
+          name: layer.name,
+          isLayer: true,
+          parentId: layer.parentId,
+          layerGroupId: layer.id,
+          groupType: layer.typ,
         ),
+        for (final gruppe in layer.gruppen)
+          HitobitoGroupResource(
+            id: gruppe.id,
+            name: gruppe.name,
+            isLayer: false,
+            parentId: layer.id,
+            layerGroupId: layer.id,
+            groupType: gruppe.gruppenTyp,
+          ),
+      ],
     ];
   }
 
-  static ArbeitskontextReadModel readModel({
-    Arbeitskontext? arbeitskontext,
-    DateTime? today,
-  }) {
-    final referenceDate = today ?? DateTime.now();
+  ArbeitskontextReadModel readModel({required Arbeitskontext arbeitskontext}) {
+    final layer = DemoBezirk.findeLayer(arbeitskontext.aktiverLayer.id);
+    if (layer == null) {
+      return ArbeitskontextReadModel(
+        arbeitskontext: arbeitskontext,
+        rolesSindGeladen: true,
+      );
+    }
+    final today = _now();
+    final personen = _sichtbarePersonen(layer);
     return ArbeitskontextReadModel(
-      arbeitskontext:
-          arbeitskontext ??
-          Arbeitskontext(
-            aktiverLayer: const ArbeitskontextLayer(
-              id: layerId,
-              name: stammName,
-              parentLayerId: _bezirkId,
-              layerTyp: 'Group::Stamm',
-            ),
-          ),
+      arbeitskontext: arbeitskontext,
       rolesSindGeladen: true,
-      mitglieder: mitglieder(today: referenceDate),
-      gruppen: gruppen,
+      mitglieder: <Mitglied>[
+        for (final person in personen) person.toMitglied(today, layer),
+      ],
+      gruppen: layer.gruppen,
       mitgliedsZuordnungen: <ArbeitskontextMitgliedsZuordnung>[
-        for (final member in _members)
-          ArbeitskontextMitgliedsZuordnung(
-            mitgliedsnummer: member.mitgliedsnummer,
-            gruppenId: member.gruppenId,
-            rollenLabel: member.leitung ? 'Leiter*in' : 'Mitglied',
-          ),
+        for (final person in personen)
+          if (layer.enthaeltGruppe(person.gruppenId))
+            ArbeitskontextMitgliedsZuordnung(
+              mitgliedsnummer: person.mitgliedsnummer,
+              gruppenId: person.gruppenId,
+              rollenLabel: person.rollenLabel,
+            ),
       ],
     );
   }
 
-  static List<Mitglied> mitglieder({DateTime? today}) {
-    final referenceDate = today ?? DateTime.now();
+  /// Sichtbare Mitglieder eines Layers, z. B. fuer Tests.
+  List<Mitglied> mitglieder(int layerId) {
+    final layer = DemoBezirk.findeLayer(layerId);
+    if (layer == null) {
+      return const <Mitglied>[];
+    }
+    final today = _now();
     return <Mitglied>[
-      for (final member in _members) member.toMitglied(referenceDate),
+      for (final person in _sichtbarePersonen(layer))
+        person.toMitglied(today, layer),
     ];
   }
 
-  /// Ausstellungsalter der Fuehrungszeugnisse der Leitenden in Monaten. Eines
-  /// laeuft bald ab, eines ist abgelaufen, eine Person hat keines vorgelegt.
-  static const Map<String, int> _efzAlterMonate = <String, int>{
-    '1051': 58,
-    '1052': 14,
-    '1053': 26,
-    '1054': 64,
-  };
-
-  static List<EfzEinsichtnahme> efzEinsichtnahmen({DateTime? today}) {
-    final referenceDate = today ?? DateTime.now();
-    final personIds = <String, int?>{
-      for (final mitglied in mitglieder(today: referenceDate))
-        mitglied.mitgliedsnummer: mitglied.personId,
-    };
+  /// Fuehrungszeugnisse aller Personen, die der Zugang sehen darf.
+  List<EfzEinsichtnahme> efzEinsichtnahmen() {
+    final today = _now();
     var id = 1;
     return <EfzEinsichtnahme>[
-      for (final entry in _efzAlterMonate.entries)
-        if (personIds[entry.key] != null)
-          EfzEinsichtnahme(
-            id: id++,
-            personId: personIds[entry.key]!,
-            issuedOn: DateTime(
-              referenceDate.year,
-              referenceDate.month - entry.value,
-              referenceDate.day,
+      for (final layer in DemoBezirk.layer)
+        for (final person in _sichtbarePersonen(layer))
+          if (DemoBezirk.efzAlterMonate[person.mitgliedsnummer]
+              case final alterMonate?)
+            EfzEinsichtnahme(
+              id: id++,
+              personId: person.personId,
+              issuedOn: DateTime(
+                today.year,
+                today.month - alterMonate,
+                today.day,
+              ),
+              einsichtOn: DateTime(
+                today.year,
+                today.month - alterMonate + 1,
+                today.day,
+              ),
             ),
-            einsichtOn: DateTime(
-              referenceDate.year,
-              referenceDate.month - entry.value + 1,
-              referenceDate.day,
-            ),
-          ),
     ];
   }
-}
 
-class _DemoMember {
-  _DemoMember(
-    this.mitgliedsnummer,
-    this.vorname,
-    this.nachname,
-    this.alterJahre,
-    this.alterMonate,
-    this.stufe,
-    this.gruppenId, {
-    this.leitung = false,
-    this.fahrtenname,
-  });
-
-  final String mitgliedsnummer;
-  final String vorname;
-  final String nachname;
-  final int alterJahre;
-  final int alterMonate;
-  final Stufe stufe;
-  final int gruppenId;
-  final bool leitung;
-  final String? fahrtenname;
-
-  Mitglied toMitglied(DateTime today) {
-    final geburtsdatum = DateTime(
-      today.year - alterJahre,
-      today.month - alterMonate,
-      (int.parse(mitgliedsnummer) % 27) + 1,
-    );
-    final mitgliedsjahre = leitung ? 12 : (alterJahre - 4).clamp(1, 6);
-    final eintrittsdatum = DateTime(today.year - mitgliedsjahre, 9, 1);
-    final stufenStart = DateTime(today.year - (leitung ? 3 : 1), 9, 1);
-    final nummer = int.parse(mitgliedsnummer);
-    final emailName =
-        '${_ascii(vorname).toLowerCase()}.${_ascii(nachname).toLowerCase()}';
-
-    return Mitglied(
-      vorname: vorname,
-      nachname: nachname,
-      fahrtenname: fahrtenname,
-      geburtsdatum: geburtsdatum,
-      eintrittsdatum: eintrittsdatum,
-      mitgliedsnummer: mitgliedsnummer,
-      personId: mitgliedsnummer == DemoData.eigeneMitgliedsnummer
-          ? DemoData.profile.namiId
-          : nummer,
-      primaryGroupId: gruppenId,
-      gender: _weiblicheVornamen.contains(vorname) ? 'w' : 'm',
-      telefonnummern: <MitgliedKontaktTelefon>[
-        MitgliedKontaktTelefon(
-          wert: '+49 151 ${2340000 + nummer * 37}',
-          label: Mitglied.phoneMobileLabel,
-        ),
-      ],
-      emailAdressen: <MitgliedKontaktEmail>[
-        MitgliedKontaktEmail(
-          wert: '$emailName@example.org',
-          label: Mitglied.primaryEmailLabel,
-          istPrimaer: true,
-        ),
-      ],
-      adressen: <MitgliedKontaktAdresse>[
-        MitgliedKontaktAdresse(
-          street: 'Am Silberbach',
-          housenumber: '${nummer % 40 + 1}',
-          zipCode: '49074',
-          town: 'Osnabrück',
-          country: 'DE',
-        ),
-      ],
-      roles: <Role>[
-        roleFromLegacy(
-          stufe: stufe,
-          art: leitung ? RoleCategory.leitung : RoleCategory.mitglied,
-          start: stufenStart,
-          groupId: gruppenId,
-        ),
-      ],
-    );
+  /// Bildet die Lesesicht von Hitobito fuer die Rechte des Profils nach:
+  /// `layer_read` zeigt den Layer der Rolle, `layer_and_below_read`
+  /// zusaetzlich alle Layer darunter, `group_read` nur die Personen der
+  /// eigenen Gruppe.
+  List<DemoPerson> _sichtbarePersonen(DemoLayer layer) {
+    final lesbareGruppen = <int>{};
+    for (final rolle in profile.roles) {
+      final rollenLayer = _layerIdFuerGruppe(rolle.groupId);
+      if (rolle.permissions.contains('layer_read') && rollenLayer == layer.id) {
+        return layer.personen;
+      }
+      if (rolle.permissions.contains('layer_and_below_read') &&
+          _istGleichOderDarunter(layer.id, rollenLayer)) {
+        return layer.personen;
+      }
+      if (rolle.permissions.contains('group_read')) {
+        lesbareGruppen.add(rolle.groupId);
+      }
+    }
+    return layer.personen
+        .where((person) => lesbareGruppen.contains(person.gruppenId))
+        .toList(growable: false);
   }
 
-  static const Set<String> _weiblicheVornamen = <String>{
-    'Mila',
-    'Ida',
-    'Lotta',
-    'Frieda',
-    'Greta',
-    'Hanna',
-    'Marie',
-    'Clara',
-    'Lea',
-    'Sophie',
-    'Nele',
-    'Katharina',
-    'Lena',
-    'Miriam',
-  };
+  static int? _layerIdFuerGruppe(int gruppenId) {
+    if (gruppenId == DemoBezirk.dioezeseId) {
+      return gruppenId;
+    }
+    for (final layer in DemoBezirk.layer) {
+      if (layer.id == gruppenId || layer.enthaeltGruppe(gruppenId)) {
+        return layer.id;
+      }
+    }
+    return null;
+  }
 
-  static String _ascii(String value) => value
-      .replaceAll('ä', 'ae')
-      .replaceAll('ö', 'oe')
-      .replaceAll('ü', 'ue')
-      .replaceAll('ß', 'ss');
+  static bool _istGleichOderDarunter(int layerId, int? obererLayerId) {
+    int? aktuell = layerId;
+    while (aktuell != null) {
+      if (aktuell == obererLayerId) {
+        return true;
+      }
+      aktuell = DemoBezirk.findeLayer(aktuell)?.parentId;
+    }
+    return false;
+  }
 }

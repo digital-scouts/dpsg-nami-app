@@ -1,4 +1,4 @@
-// Geraete-Test fuer den Demo-Zugang: Start ohne Login, Demo betreten, Demo-
+// Geraete-Test fuer den Demo-Zugang: Start ohne Login, Zugang waehlen, Demo-
 // Stamm sehen und Demo wieder beenden. Setzt eine frische Installation ohne
 // Hitobito-Login voraus.
 import 'package:flutter/material.dart';
@@ -21,23 +21,33 @@ void main() {
     expect(finder, findsWidgets);
   }
 
+  // Das Demo-Band zeichnet seinen Text selbst, deshalb kein find.text.
+  final demoBand = find.byWidgetPredicate(
+    (widget) => widget is Banner && widget.message == 'DEMO',
+  );
+
   testWidgets('Demo-Zugang laesst sich betreten und beenden', (tester) async {
     final originalOnError = FlutterError.onError;
     app.main();
 
     await pumpUntilFound(tester, find.byKey(const Key('demo-start')));
     await tester.tap(find.byKey(const Key('demo-start')));
+    await pumpUntilFound(
+      tester,
+      find.byKey(const Key('demo-zugang-stammesvorstand')),
+    );
+    await tester.tap(find.byKey(const Key('demo-zugang-stammesvorstand')));
 
     // Mitgliederliste des erfundenen Stammes.
     await pumpUntilFound(tester, find.textContaining('Albrecht'));
-    expect(find.text('DEMO'), findsOneWidget);
+    expect(demoBand, findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.settings));
     await pumpUntilFound(tester, find.byKey(const Key('demo-exit')));
     await tester.tap(find.byKey(const Key('demo-exit')));
 
     await pumpUntilFound(tester, find.byKey(const Key('demo-start')));
-    expect(find.text('DEMO'), findsNothing);
+    expect(demoBand, findsNothing);
     FlutterError.onError = originalOnError;
   });
 }
