@@ -227,33 +227,31 @@ Zielbild für den MVP ist ein transparenter Statistikserver, der versionierte St
 
 ## Spätere Ausbaustufen
 
-- Komplexere Snapshot-Auswahl bei mehreren Sendern desselben Stammes.
-- Regionale Vergleiche für Bezirk und DV erst nach dem MVP.
+- Regionale Vergleiche für Bezirk und DV, sobald der Monatsreport genug Stämme je Region zeigt.
 - Statische Verbandszahlen als getrennte Referenzquelle ergänzen.
 - Transparenz- und Admin-Werkzeuge für Einsicht, Fehleranalyse und Nachvollziehbarkeit ergänzen.
 - Verfeinerte Regeln für Teilnahmehistorie, Widerrufe und Governance nach dem MVP ausbauen.
 
 ## Offene Punkte für später
 
-- Die Auswahl des maßgeblichen Snapshots bei konkurrierenden Sendern desselben Stammes wird nach dem MVP geschärft.
 - Regionale Vergleiche und statische Referenzdaten bleiben spätere Ausbaustufen.
-- Ein ausgefeilter Vollständigkeitsvergleich konkurrierender Sender ist nicht Teil des MVP.
 - Zu klären bleibt später, ob und wie historische Daten bei verschärften Datenschutzanforderungen nachträglich behandelt werden sollen.
 
 ## Umsetzungsstand
 
 Die MVP-Tickets 1 bis 10 sind umgesetzt:
 
-- Die Teilnahme wird über Installations-Credentials (zufällige Installations-ID und Secret, Trust on First Use) geprüft. Sie belegen keine Stammeszugehörigkeit. Eine spätere Prüfung über Hitobito-Tokens bleibt möglich.
-- Der effektive Stand wird beim Ingest per Upsert-if-newer gepflegt und beim Start aus `raw_snapshots` neu aufgebaut. Das Wochenaggregat wird nach jedem neu gespeicherten Snapshot und beim Start materialisiert.
+- Die Teilnahme wird über Installations-Credentials (zufällige Installations-ID und Secret, Trust on First Use) geprüft. Sie belegen keine Stammeszugehörigkeit. Eine Prüfung über Hitobito ist bewusst ausgeschlossen: Der Server kennt nur anonyme Zählwerte, keine Logins und keine Tokens.
+- Mehrere Sender desselben Stammes werden je Gruppe zusammengeführt; Teilsichten (nur einzelne Gruppen) sind eigene Teildatensätze (`spec/stammes_snapshot.md`, Abschnitt Effektiver Stand). Der effektive Stand wird beim Ingest für den betroffenen Stamm neu berechnet und beim Start aus `raw_snapshots` neu aufgebaut.
+- Neben der Stufengröße liefert die Read-API die Gruppengröße je Stufe (`gruppen_je_stufe`).
+- Ein Monatsreport per Mail beschreibt den Kreis der Teilnehmenden (`spec/monatsreport.md`). Das Wochenaggregat wird nach jedem neu gespeicherten Snapshot und beim Start materialisiert.
 - Kennzahlen mit weniger als `MIN_STAMM_COUNT_FOR_READ` beitragenden Stämmen werden in der Read-API unterdrückt.
 - Betrieb, Backup, Restore und Monitoring stehen in `server/deploy/README.md`.
 
 ## Empfohlene nächste Schritte
 
 1. Erfahrungen aus dem Betrieb sammeln: Teilnahmequote, Missbrauchsversuche, Rate-Limits.
-2. Prüfen, ob die Installations-Credentials durch eine Prüfung der Stammeszugehörigkeit über Hitobito ergänzt werden sollen.
-3. Spätere Ausbaustufen (regionale Vergleiche, statische Verbandszahlen) fachlich schärfen.
+2. Spätere Ausbaustufen (regionale Vergleiche, statische Verbandszahlen) fachlich schärfen.
 
 ## Hinweis zur Nutzung in GitHub
 
