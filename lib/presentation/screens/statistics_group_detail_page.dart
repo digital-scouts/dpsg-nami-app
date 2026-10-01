@@ -5,11 +5,13 @@ import 'package:nami/domain/stufe/altersgrenzen.dart';
 import 'package:provider/provider.dart';
 
 import '../../domain/arbeitskontext/arbeitskontext_read_model.dart';
+import '../../domain/bundesstatistik/statistik_abdeckung.dart';
 import '../../domain/statistiks/berechne_stamm_statistik_usecase.dart';
 import '../../domain/statistiks/statistik_kachel_einstellungen.dart';
 import '../../l10n/app_localizations.dart';
 import '../model/arbeitskontext_model.dart';
 import '../statistics/kacheln/kachel_daten.dart';
+import '../statistics/gruppen_auswahl.dart';
 import '../statistics/kacheln/kachel_raster.dart';
 import '../statistics/statistics_snapshot_builder.dart';
 import '../statistics/statistik_ausschnitt.dart';
@@ -22,10 +24,14 @@ class StatisticsGroupDetailPage extends StatefulWidget {
     required this.groupId,
     this.debugReadModel,
     this.debugHeute,
+    this.debugAbdeckung,
   });
 
   final String groupId;
   final ArbeitskontextReadModel? debugReadModel;
+
+  /// Feste Abdeckung für Stories und Tests; sonst aus dem Arbeitskontext.
+  final StatistikAbdeckung? debugAbdeckung;
 
   /// Fester Tag für Stories und Tests.
   final DateTime? debugHeute;
@@ -49,10 +55,32 @@ class _StatisticsGroupDetailPageState extends State<StatisticsGroupDetailPage> {
   DateTime? _stichtag;
   String? _stammAddress;
 
+  /// Aktuell gezeigte Gruppe; über den Titel wechselbar.
+  late String _gruppenId = widget.groupId;
+
   @override
   void initState() {
     super.initState();
     _loadSettings();
+  }
+
+  Future<void> _gruppeWechseln(
+    ArbeitskontextReadModel lesbar,
+    DateTime heute,
+    int aktuell,
+  ) async {
+    final alle = _statistikUseCase(
+      lesbar,
+      heute: heute,
+      altersgrenzen: _altersgrenzen,
+      stichtag: _stichtag ?? heute,
+    );
+    final id = await zeigeGruppenAuswahl(
+      context,
+      stufen: alle.stufen,
+      aktuell: aktuell,
+    );
+    if (id != null && mounted) setState(() => _gruppenId = '$id');
   }
 
   Future<void> _loadSettings() async {
@@ -71,9 +99,13 @@ class _StatisticsGroupDetailPageState extends State<StatisticsGroupDetailPage> {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final readModel =
-        widget.debugReadModel ?? context.watch<ArbeitskontextModel>().readModel;
-    final gruppenId = int.tryParse(widget.groupId);
+    final arbeitskontext = widget.debugReadModel == null
+        ? context.watch<ArbeitskontextModel>()
+        : null;
+    final readModel = widget.debugReadModel ?? arbeitskontext?.readModel;
+    final abdeckung =
+        widget.debugAbdeckung ?? arbeitskontext?.statistikAbdeckung;
+    final gruppenId = int.tryParse(_gruppenId);
     final gruppe = gruppenId == null ? null : readModel?.findeGruppe(gruppenId);
 
     if (readModel == null || gruppe == null) {
@@ -94,6 +126,10 @@ class _StatisticsGroupDetailPageState extends State<StatisticsGroupDetailPage> {
     final ausschnitt = readModel.nurGruppen((id) => id == gruppe.id);
     final jetzt = widget.debugHeute ?? DateTime.now();
     final heute = DateTime(jetzt.year, jetzt.month, jetzt.day);
+    // Wechseln lässt sich nur zwischen lesbaren Gruppen.
+    final lesbar = abdeckung == null || abdeckung.istStamm
+        ? readModel
+        : readModel.nurGruppen(abdeckung.deckt);
     final snapshot = _snapshotBuilder.build(
       ausschnitt,
       altersgrenzen: _altersgrenzen,
@@ -115,15 +151,35 @@ class _StatisticsGroupDetailPageState extends State<StatisticsGroupDetailPage> {
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(gruppe.anzeigename),
-            Text(
-              readModel.arbeitskontext.aktiverLayer.name,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
+        title: InkWell(
+          key: const Key('gruppe-wechseln'),
+          onTap: () => _gruppeWechseln(lesbar, heute, gruppe.id),
+          borderRadius: BorderRadius.circular(8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      gruppe.anzeigename,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_drop_down,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ],
+              ),
+              Text(
+                readModel.arbeitskontext.aktiverLayer.name,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
         ),
       ),
       body: ListView(
