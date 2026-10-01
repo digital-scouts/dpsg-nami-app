@@ -86,6 +86,8 @@ class AuthSessionModel extends ChangeNotifier {
 
   static bool _appLockDisabled() => false;
 
+  static final Object _noInteractiveReloginZoneKey = Object();
+
   AuthState _state = AuthState.initializing;
   AuthSession? _session;
   AuthProfile? _profile;
@@ -617,6 +619,18 @@ class AuthSessionModel extends ChangeNotifier {
     return _PreparedRemoteAccess(session: _session);
   }
 
+  /// Fuehrt [body] so aus, dass Remote-Zugriffe darin keinen interaktiven
+  /// Login oeffnen, auch nicht in verschachtelten Aufrufen. Fuer automatische
+  /// Pfade wie Retry-Timer und Hintergrund-Sync: Ein abgelaufener Login setzt
+  /// dort [requiresInteractiveLogin] und loest den einmaligen Hinweis aus,
+  /// statt ungefragt den Login-Browser zu starten.
+  Future<T> runWithoutInteractiveRelogin<T>(Future<T> Function() body) {
+    return runZoned(
+      body,
+      zoneValues: <Object, Object>{_noInteractiveReloginZoneKey: true},
+    );
+  }
+
   Future<T?> executeRemoteAccess<T>({
     required String trigger,
     required Future<T> Function(AuthSession session) action,
@@ -724,6 +738,14 @@ class AuthSessionModel extends ChangeNotifier {
   Future<AuthSession?> _attemptInteractiveRelogin({
     required String trigger,
   }) async {
+    if (Zone.current[_noInteractiveReloginZoneKey] == true) {
+      await _logger.logInfo(
+        'auth_flow',
+        'interaktiver relogin unterdrueckt trigger=$trigger reason=automatic',
+      );
+      return null;
+    }
+
     await _logger.logInfo(
       'auth_flow',
       'interaktiver relogin gestartet trigger=$trigger',
@@ -828,6 +850,27 @@ class AuthSessionModel extends ChangeNotifier {
     bool userInitiated = true,
     bool allowMobileDataOverride = false,
     bool interactiveLoginOnRequired = false,
+  }) {
+    Future<void> sync() => _syncHitobitoData(
+      syncMembers: syncMembers,
+      force: force,
+      trigger: trigger,
+      userInitiated: userInitiated,
+      allowMobileDataOverride: allowMobileDataOverride,
+      interactiveLoginOnRequired: interactiveLoginOnRequired,
+    );
+    // Startup-, Intervall- und Connectivity-Syncs laufen ohne Nutzeraktion
+    // und duerfen deshalb keinen Login-Browser oeffnen.
+    return userInitiated ? sync() : runWithoutInteractiveRelogin(sync);
+  }
+
+  Future<void> _syncHitobitoData({
+    required Future<void> Function(String accessToken) syncMembers,
+    required bool force,
+    required String trigger,
+    required bool userInitiated,
+    required bool allowMobileDataOverride,
+    required bool interactiveLoginOnRequired,
   }) async {
     await _logger.logInfo(
       'hitobito_sync',
