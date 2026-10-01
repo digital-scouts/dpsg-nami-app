@@ -13,18 +13,30 @@ import { type Stufe, STUFEN } from '../stammesSnapshot/schema.js';
 // Monatlicher Report ueber den Kreis der Teilnehmenden (spec/monatsreport.md). Enthaelt nur
 // Zaehlwerte und die gespeicherten DV- und Bezirks-IDs.
 
-export type ReportStatusRepository = {
-    findLastReportedMonth(): Promise<string | null>;
-    markReported(month: string, sentAt: Date): Promise<void>;
-};
-
 export type ReportMessage = {
     subject: string;
     text: string;
 };
 
-export type ReportMailer = {
-    send(message: ReportMessage): Promise<void>;
+// Kurze Nachricht nach Abschluss eines Monats, z. B. per Telegram.
+export type ReportNotifier = {
+    send(text: string): Promise<void>;
+};
+
+export type MonthlyReportDocument = {
+    month: string;
+    figures: ReportFigures;
+    created_at: Date;
+    notified_at: Date | null;
+};
+
+export type MonthlyReportsRepository = {
+    // Legt den Bericht nur an, wenn es fuer den Monat noch keinen gibt.
+    insertIfAbsent(document: MonthlyReportDocument): Promise<void>;
+    find(month: string): Promise<MonthlyReportDocument | null>;
+    // Neueste zuerst.
+    findAll(): Promise<MonthlyReportDocument[]>;
+    markNotified(month: string, notifiedAt: Date): Promise<void>;
 };
 
 const MONTH_PATTERN = /^(\d{4})-(0[1-9]|1[0-2])$/;
@@ -81,16 +93,19 @@ const zaehleJe = (werte: string[]): Record<string, number> => {
     return result;
 };
 
-// Berechnet die Kennzahlen zum Monatsende, als waere der Stichtag "jetzt": Es zaehlen nur
-// Snapshots, die bis dahin eingegangen sind und im Zwei-Monats-Fenster davor liegen.
+// Berechnet die Kennzahlen zum Stichtag, als waere er "jetzt": Es zaehlen nur Snapshots, die
+// bis dahin eingegangen sind und im Zwei-Monats-Fenster davor liegen. Standard ist das
+// Monatsende; fuer den laufenden Monat gilt der aktuelle Zeitpunkt.
 export const computeReportFigures = (
     month: string,
     rawSnapshots: RawSnapshotDocument[],
     senders: SenderActivity[],
+    bis?: Date,
 ): ReportFigures => {
     const start = monthStart(month);
-    const end = nextMonthStart(month);
-    const stichtag = new Date(end.getTime() - 1);
+    const monatsEnde = nextMonthStart(month);
+    const stichtag = new Date(Math.min(monatsEnde.getTime() - 1, (bis ?? monatsEnde).getTime()));
+    const end = new Date(stichtag.getTime() + 1);
     const since = snapshotWindowStart(stichtag);
     const imMonat = (datum: Date) => datum.getTime() >= start.getTime() && datum.getTime() < end.getTime();
 
@@ -206,15 +221,24 @@ export const formatMonthlyReport = (
     };
 };
 
-// Laedt alle Snapshots, die fuer Monat und Vormonat gebraucht werden, und baut den Report.
+const loadReportInputs = async (
+    dependencies: Pick<ServerDependencies, 'rawSnapshotsRepository' | 'senderRepository'>,
+    fruehesterMonat: string,
+) => ({
+    rawSnapshots: await dependencies.rawSnapshotsRepository.findSince(snapshotWindowStart(monthStart(fruehesterMonat))),
+    senders: await dependencies.senderRepository.listActivity(),
+});
+
+const vormonatVon = (month: string): string => toMonth(subtractUtcMonths(monthStart(month), 1));
+
+// Textfassung fuer die Kommandozeile.
 export const buildMonthlyReport = async (
     dependencies: Pick<ServerDependencies, 'rawSnapshotsRepository' | 'senderRepository'>,
     month: string,
     minStammCount: number,
 ): Promise<ReportMessage> => {
-    const vormonat = toMonth(subtractUtcMonths(monthStart(month), 1));
-    const rawSnapshots = await dependencies.rawSnapshotsRepository.findSince(snapshotWindowStart(monthStart(vormonat)));
-    const senders = await dependencies.senderRepository.listActivity();
+    const vormonat = vormonatVon(month);
+    const { rawSnapshots, senders } = await loadReportInputs(dependencies, vormonat);
 
     return formatMonthlyReport(
         computeReportFigures(month, rawSnapshots, senders),
@@ -223,23 +247,80 @@ export const buildMonthlyReport = async (
     );
 };
 
-// Verschickt den Report des Vormonats, falls er noch nicht verschickt wurde. Liefert den
-// berichteten Monat oder null.
-export const runMonthlyReportIfDue = async (
-    dependencies: Pick<ServerDependencies, 'rawSnapshotsRepository' | 'senderRepository' | 'reportStatusRepository'>,
-    mailer: ReportMailer,
+export const formatTelegramMessage = (
+    aktuell: ReportFigures,
+    vormonat: ReportFigures | null,
     minStammCount: number,
+    adminUrl: string | null,
+): string => {
+    const vorher = (wert: number | undefined) => (wert == null ? '' : ` (${wert})`);
+    const regionen = (werte: Record<string, number>) =>
+        Object.entries(werte).filter(([key, wert]) => key !== UNBEKANNT && wert >= minStammCount).length;
+
+    return [
+        `NaMi-Statistik ${aktuell.month}`,
+        `Stämme: ${aktuell.staemme.teilnehmend}${vorher(vormonat?.staemme.teilnehmend)}`
+            + ` – vollständig ${aktuell.staemme.vollstaendig}, nur Gruppen ${aktuell.staemme.nur_gruppen}, gemischt ${aktuell.staemme.gemischt}`,
+        `Aktive Installationen: ${aktuell.installationen.aktiv}${vorher(vormonat?.installationen.aktiv)}, neu ${aktuell.installationen.neu}`,
+        `Gruppen mit Wert: ${aktuell.gruppen.mit_wert}${vorher(vormonat?.gruppen.mit_wert)}, mehrfach abgedeckt ${aktuell.gruppen.mehrfach_abgedeckt}`,
+        `DVs mit ≥ ${minStammCount} Stämmen: ${regionen(aktuell.staemme_je_dv)}, Bezirke: ${regionen(aktuell.staemme_je_bezirk)}`,
+        ...(adminUrl == null ? [] : ['', adminUrl]),
+    ].join('\n');
+};
+
+// Wie viele abgeschlossene Monate rueckwirkend berechnet werden, wenn Berichte fehlen.
+export const REPORT_BACKFILL_MONTHS = 12;
+
+// Legt fehlende Monatsberichte an (rueckwirkend aus den Rohdaten) und benachrichtigt einmal
+// ueber den Vormonat. Liefert den gemeldeten Monat oder null.
+export const runMonthlyReportIfDue = async (
+    dependencies: Pick<ServerDependencies, 'rawSnapshotsRepository' | 'senderRepository' | 'monthlyReportsRepository'>,
+    notifier: ReportNotifier | null,
+    options: { minStammCount: number; adminUrl: string | null },
     now: Date,
 ): Promise<string | null> => {
-    const month = previousMonth(now);
-    const zuletzt = await dependencies.reportStatusRepository.findLastReportedMonth();
+    const vormonat = previousMonth(now);
+    const monate = Array.from({ length: REPORT_BACKFILL_MONTHS }, (_, index) =>
+        toMonth(subtractUtcMonths(monthStart(vormonat), index)));
+    const vorhanden = new Set((await dependencies.monthlyReportsRepository.findAll()).map((report) => report.month));
+    const fehlend = monate.filter((month) => !vorhanden.has(month));
 
-    if (zuletzt != null && zuletzt >= month) {
+    if (fehlend.length > 0) {
+        const { rawSnapshots, senders } = await loadReportInputs(dependencies, fehlend[fehlend.length - 1] ?? vormonat);
+        for (const month of fehlend) {
+            const figures = computeReportFigures(month, rawSnapshots, senders);
+            // Leere Monate vor den ersten Daten nicht rueckwirkend anlegen.
+            if (month !== vormonat && figures.installationen.gesamt === 0 && figures.staemme.teilnehmend === 0) {
+                continue;
+            }
+            await dependencies.monthlyReportsRepository.insertIfAbsent({
+                month,
+                figures,
+                created_at: now,
+                // Nur der Vormonat wird gemeldet, rueckwirkend angelegte Monate nicht.
+                notified_at: month === vormonat ? null : now,
+            });
+        }
+    }
+
+    const bericht = await dependencies.monthlyReportsRepository.find(vormonat);
+    if (notifier == null || bericht == null || bericht.notified_at != null) {
         return null;
     }
 
-    await mailer.send(await buildMonthlyReport(dependencies, month, minStammCount));
-    await dependencies.reportStatusRepository.markReported(month, now);
+    const vorher = await dependencies.monthlyReportsRepository.find(vormonatVon(vormonat));
+    await notifier.send(formatTelegramMessage(bericht.figures, vorher?.figures ?? null, options.minStammCount, options.adminUrl));
+    await dependencies.monthlyReportsRepository.markNotified(vormonat, now);
 
-    return month;
+    return vormonat;
+};
+
+// Laufender Monat bis jetzt, fuer die Web-Ansicht.
+export const computeCurrentFigures = async (
+    dependencies: Pick<ServerDependencies, 'rawSnapshotsRepository' | 'senderRepository'>,
+    now: Date,
+): Promise<ReportFigures> => {
+    const month = toMonth(now);
+    const { rawSnapshots, senders } = await loadReportInputs(dependencies, month);
+    return computeReportFigures(month, rawSnapshots, senders, now);
 };

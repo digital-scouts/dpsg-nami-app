@@ -4,8 +4,9 @@ import { buildMemoryDependencies, createStatisticsMemoryStore } from '../src/inf
 import {
     computeReportFigures,
     formatMonthlyReport,
+    formatTelegramMessage,
     previousMonth,
-    type ReportMessage,
+    REPORT_BACKFILL_MONTHS,
     runMonthlyReportIfDue,
 } from '../src/modules/report/report.js';
 import { buildRawSnapshotDocument, type RawSnapshotDocument } from '../src/modules/stammesSnapshot/persistence.js';
@@ -96,34 +97,79 @@ describe('formatMonthlyReport', () => {
     });
 });
 
+describe('formatTelegramMessage', () => {
+    test('summarizes the month briefly and links the admin view', () => {
+        const text = formatTelegramMessage(
+            computeReportFigures('2026-06', rohdaten(), senders),
+            computeReportFigures('2026-05', rohdaten(), senders),
+            1,
+            'https://namiapp.example.org/admin',
+        );
+
+        expect(text).toContain('NaMi-Statistik 2026-06');
+        expect(text).toContain('Stämme: 2 (2) – vollständig 0, nur Gruppen 1, gemischt 1');
+        expect(text).toContain('Aktive Installationen: 2 (1), neu 2');
+        expect(text).toContain('DVs mit ≥ 1 Stämmen: 1, Bezirke: 1');
+        expect(text.endsWith('https://namiapp.example.org/admin')).toBe(true);
+        expect(text.length).toBeLessThan(4096);
+    });
+});
+
+describe('computeReportFigures for the running month', () => {
+    test('counts only snapshots received until now', () => {
+        const figures = computeReportFigures('2026-06', rohdaten(), senders, new Date('2026-06-07T00:00:00Z'));
+
+        expect(figures.stichtag).toEqual(new Date('2026-06-07T00:00:00Z'));
+        expect(figures.installationen).toEqual({ aktiv: 1, neu: 1, gesamt: 3 });
+        expect(figures.staemme.teilnehmend).toBe(2);
+    });
+});
+
 describe('runMonthlyReportIfDue', () => {
     const setup = () => {
         const store = createStatisticsMemoryStore();
         store.rawSnapshots.push(...rohdaten());
         const dependencies = buildMemoryDependencies(store);
-        const sent: ReportMessage[] = [];
-        const mailer = { send: async (message: ReportMessage) => { sent.push(message); } };
-        return { store, dependencies, sent, mailer };
+        const sent: string[] = [];
+        const notifier = { send: async (text: string) => { sent.push(text); } };
+        return { store, dependencies, sent, notifier };
     };
+    const options = { minStammCount: 5, adminUrl: null };
 
-    test('sends the previous month once and remembers it', async () => {
-        const { store, dependencies, sent, mailer } = setup();
+    test('stores the previous month, backfills older months and notifies once', async () => {
+        const { store, dependencies, sent, notifier } = setup();
 
-        expect(await runMonthlyReportIfDue(dependencies, mailer, 5, new Date('2026-07-01T06:00:00Z'))).toBe('2026-06');
-        expect(await runMonthlyReportIfDue(dependencies, mailer, 5, new Date('2026-07-15T06:00:00Z'))).toBeNull();
+        expect(await runMonthlyReportIfDue(dependencies, notifier, options, new Date('2026-07-01T06:00:00Z'))).toBe('2026-06');
+        expect(await runMonthlyReportIfDue(dependencies, notifier, options, new Date('2026-07-15T06:00:00Z'))).toBeNull();
+
         expect(sent).toHaveLength(1);
-        expect(sent[0]?.subject).toContain('2026-06');
-        expect(store.lastReportedMonth).toBe('2026-06');
+        expect(sent[0]).toContain('2026-06');
+        // Rueckwirkend nur Monate mit Daten (ab April), nicht die leeren davor.
+        expect([...store.monthlyReports.keys()].sort()).toEqual(['2026-04', '2026-05', '2026-06']);
+        expect(store.monthlyReports.size).toBeLessThanOrEqual(REPORT_BACKFILL_MONTHS);
+        expect(store.monthlyReports.get('2026-06')?.figures.staemme.teilnehmend).toBe(2);
+        expect(store.monthlyReports.get('2026-05')?.notified_at).not.toBeNull();
 
-        expect(await runMonthlyReportIfDue(dependencies, mailer, 5, new Date('2026-08-01T00:00:00Z'))).toBe('2026-07');
+        expect(await runMonthlyReportIfDue(dependencies, notifier, options, new Date('2026-08-01T00:00:00Z'))).toBe('2026-07');
+        expect(store.monthlyReports.has('2026-07')).toBe(true);
     });
 
-    test('keeps the marker unchanged when sending fails', async () => {
+    test('stores reports without notifier', async () => {
         const { store, dependencies } = setup();
-        const mailer = { send: async () => { throw new Error('smtp down'); } };
 
-        await expect(runMonthlyReportIfDue(dependencies, mailer, 5, new Date('2026-07-01T06:00:00Z'))).rejects.toThrow('smtp down');
-        expect(store.lastReportedMonth).toBeNull();
+        expect(await runMonthlyReportIfDue(dependencies, null, options, new Date('2026-07-01T06:00:00Z'))).toBeNull();
+        expect(store.monthlyReports.get('2026-06')?.notified_at).toBeNull();
+    });
+
+    test('retries the notification after a failure', async () => {
+        const { store, dependencies, sent, notifier } = setup();
+        const kaputt = { send: async () => { throw new Error('telegram down'); } };
+
+        await expect(runMonthlyReportIfDue(dependencies, kaputt, options, new Date('2026-07-01T06:00:00Z'))).rejects.toThrow('telegram down');
+        expect(store.monthlyReports.get('2026-06')?.notified_at).toBeNull();
+
+        expect(await runMonthlyReportIfDue(dependencies, notifier, options, new Date('2026-07-01T12:00:00Z'))).toBe('2026-06');
+        expect(sent).toHaveLength(1);
     });
 
     test('derives the previous month across year boundaries', () => {

@@ -9,6 +9,7 @@ import {
     statisticsCollectionNames,
 } from '../src/infra/mongodb/statisticsPersistence.js';
 import { rebuildEffectiveStatesAndAggregate } from '../src/modules/aggregation/refresh.js';
+import { computeReportFigures } from '../src/modules/report/report.js';
 import {
     authHeader,
     buildTestConfig,
@@ -71,6 +72,7 @@ describe('statistics server with MongoDB', () => {
         expect(await indexNames(statisticsCollectionNames.effectiveStates)).toContain('effective_states_by_stamm');
         expect(await indexNames(statisticsCollectionNames.weeklyAggregates)).toContain('weekly_aggregates_by_week_and_type');
         expect(await indexNames(statisticsCollectionNames.senders)).toContain('senders_by_pseudonym');
+        expect(await indexNames(statisticsCollectionNames.monthlyReports)).toContain('monthly_reports_by_month');
     });
 
     test('persists ingest end to end without raw ids and serves the aggregate', async () => {
@@ -205,15 +207,24 @@ describe('statistics server with MongoDB', () => {
         await server.close();
     });
 
-    test('stores the monthly report marker in ops_status', async () => {
-        const dependencies = buildMongoDependencies(db, time.clock);
+    test('stores monthly reports once per month, newest first', async () => {
+        const reports = buildMongoDependencies(db, time.clock).monthlyReportsRepository;
+        const bericht = (month: string) => ({
+            month,
+            figures: computeReportFigures(month, [], []),
+            created_at: time.now,
+            notified_at: null,
+        });
 
-        expect(await dependencies.reportStatusRepository.findLastReportedMonth()).toBeNull();
-        await dependencies.reportStatusRepository.markReported('2026-05', time.now);
-        await dependencies.reportStatusRepository.markReported('2026-06', time.now);
+        await reports.insertIfAbsent(bericht('2026-04'));
+        await reports.insertIfAbsent(bericht('2026-05'));
+        await reports.insertIfAbsent({ ...bericht('2026-05'), notified_at: time.now });
+        await reports.markNotified('2026-04', time.now);
 
-        expect(await dependencies.reportStatusRepository.findLastReportedMonth()).toBe('2026-06');
-        expect(await db.collection(statisticsCollectionNames.opsStatus).countDocuments()).toBe(1);
+        expect((await reports.findAll()).map((report) => report.month)).toEqual(['2026-05', '2026-04']);
+        expect((await reports.find('2026-05'))?.notified_at).toBeNull();
+        expect((await reports.find('2026-04'))?.notified_at).toEqual(time.now);
+        expect((await reports.find('2026-04'))?.figures.stichtag).toBeInstanceOf(Date);
     });
 
     test('reports readiness including the backup marker', async () => {
