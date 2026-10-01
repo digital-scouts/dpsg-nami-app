@@ -1,27 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nami/data/statistiks/shared_prefs_statistik_kachel_repository.dart';
+import 'package:nami/data/statistiks/shared_prefs_statistik_verlauf_repository.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model.dart';
 import 'package:nami/domain/member/mitglied.dart';
+import 'package:nami/domain/statistiks/statistik_kachel_einstellungen.dart';
+import 'package:nami/domain/statistiks/statistik_verlauf.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/navigation/app_router.dart';
 import 'package:nami/presentation/screens/statistics_page.dart';
+import 'package:nami/presentation/statistics/statistik_kopf_zeile.dart';
+import 'package:nami/presentation/statistics/statistik_stamm_ansicht.dart';
 import 'package:nami/presentation/widgets/app_page_header.dart';
+import 'package:nami/stories/statistik/statistik_beispiel_staemme.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/page_header_height.dart';
 
 void main() {
-  testWidgets('zeigt Stammansicht mit Gruppenauswahl', (tester) async {
-    await tester.pumpWidget(_buildTestApp(_buildReadModel()));
-    await tester.pump();
+  setUp(() => SharedPreferences.setMockInitialValues({}));
 
-    expect(find.text('Stamm Testdorf'), findsOneWidget);
-    expect(find.text('Meute Nord'), findsOneWidget);
-    expect(find.text('GRUPPENVERTEILUNG'), findsOneWidget);
-  });
-
-  testWidgets('zeigt Kennzahlen im Header und immer beide Tabs', (
+  testWidgets('zeigt Personen und Stufenband im Kopf und beide Tabs', (
     tester,
   ) async {
     await tester.pumpWidget(_buildTestApp(_buildReadModel()));
@@ -29,12 +31,14 @@ void main() {
 
     final header = find.byType(AppPageHeader);
     expect(header, findsOneWidget);
-    for (final label in ['Mitglieder', 'Leitende', 'Sonstige']) {
-      expect(
-        find.descendant(of: header, matching: find.text(label)),
-        findsOneWidget,
-      );
-    }
+    expect(
+      find.descendant(of: header, matching: find.byType(StatistikKopfZeile)),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: header, matching: find.text('Personen')),
+      findsOneWidget,
+    );
     // Der Stammesname ersetzt "Stamm" im Tab-Switch.
     expect(
       tester
@@ -65,27 +69,119 @@ void main() {
     await tester.pump();
 
     expect(find.text('Global'), findsNothing);
-    expect(find.text('Konfession'), findsNothing);
   });
 
-  testWidgets('oeffnet Gruppendetailseite aus der Gruppenliste', (
+  testWidgets('wechselt zwischen Überblick, Stufen und Entwicklung', (
     tester,
   ) async {
     await tester.pumpWidget(_buildTestApp(_buildReadModel()));
     await tester.pump();
 
-    await tester.tap(find.text('Meute Nord'));
+    expect(_themenLeiste, findsOneWidget);
+    expect(find.text('Gruppen'), findsOneWidget);
+    expect(find.text('Geschlecht'), findsOneWidget);
+    expect(find.text('Altersstruktur'), findsNothing);
+
+    await tester.tap(find.text('Stufen'));
+    await tester.pumpAndSettle();
+    expect(find.text('Altersstruktur'), findsOneWidget);
+    expect(find.text('Alter in Zahlen'), findsOneWidget);
+    expect(find.text('Geschlecht'), findsNothing);
+
+    await tester.tap(find.text('Entwicklung'));
+    await tester.pumpAndSettle();
+    expect(find.text('Stufenwechsel'), findsOneWidget);
+    expect(find.text('Verlauf'), findsOneWidget);
+    expect(find.text('Altersstruktur'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('blendet ausgeblendete Themen und ohne sie die Leiste aus', (
+    tester,
+  ) async {
+    final repository = InMemoryStatistikKachelRepository();
+    await repository.saveForLayer(
+      11,
+      const StatistikKachelEinstellungen(stufenSichtbar: false),
+    );
+    await tester.pumpWidget(
+      _buildTestApp(_buildReadModel(), kacheln: repository),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Stufen'), findsNothing);
+    expect(find.text('Entwicklung'), findsOneWidget);
+
+    await repository.saveForLayer(
+      11,
+      const StatistikKachelEinstellungen(
+        stufenSichtbar: false,
+        entwicklungSichtbar: false,
+      ),
+    );
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpWidget(
+      _buildTestApp(_buildReadModel(), kacheln: repository),
+    );
+    await tester.pumpAndSettle();
+
+    expect(_themenLeiste, findsNothing);
+    expect(find.text('Gruppen'), findsOneWidget);
+  });
+
+  testWidgets('oeffnet Gruppendetailseite aus der Gruppenzeile', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_buildTestApp(_buildReadModel()));
+    await tester.pump();
+
+    await tester.tap(find.text('Stufen'));
+    await tester.pumpAndSettle();
+    // Die Zeile zeigt Name und Untertitel als einen Rich-Text.
+    await tester.tap(find.textContaining('Meute Nord', findRichText: true));
     await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.arrow_back), findsOneWidget);
     expect(find.text('Meute Nord'), findsAtLeastNWidgets(1));
     expect(find.text('Mitglieder'), findsWidgets);
-    expect(find.text('ALTERSVERTEILUNG'), findsNothing);
+  });
+
+  testWidgets('bleibt mit krummen Daten in allen Themen stabil', (
+    tester,
+  ) async {
+    final heute = DateTime(2026, 9, 30);
+    final readModel = StatistikBeispielStaemme.querfeld(heute: heute);
+    final repository = InMemoryStatistikKachelRepository();
+    await repository.saveForLayer(
+      readModel.arbeitskontext.aktiverLayer.id,
+      StatistikBeispielStaemme.einstellungenQuerfeld(),
+    );
+    await tester.pumpWidget(
+      _buildTestApp(readModel, kacheln: repository, heute: heute),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('Stamm Querfeld'), findsOneWidget);
+
+    for (final thema in ['Stufen', 'Entwicklung']) {
+      await tester.tap(find.text(thema));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: thema);
+    }
   });
 }
 
-Widget _buildTestApp(ArbeitskontextReadModel readModel) {
-  return MaterialApp(
+final _themenLeiste = find.descendant(
+  of: find.byType(StatistikStammAnsicht),
+  matching: find.byType(TabBar),
+);
+
+Widget _buildTestApp(
+  ArbeitskontextReadModel readModel, {
+  StatistikKachelRepository? kacheln,
+  DateTime? heute,
+}) {
+  final app = MaterialApp(
     onGenerateRoute: onGenerateRoute,
     localizationsDelegates: [
       AppLocalizations.delegate,
@@ -95,7 +191,19 @@ Widget _buildTestApp(ArbeitskontextReadModel readModel) {
     ],
     supportedLocales: const [Locale('de'), Locale('en')],
     locale: const Locale('de'),
-    home: Scaffold(body: StatisticsPage(debugReadModel: readModel)),
+    home: Scaffold(
+      body: StatisticsPage(debugReadModel: readModel, debugHeute: heute),
+    ),
+  );
+  if (kacheln == null) return app;
+  return MultiProvider(
+    providers: [
+      Provider<StatistikKachelRepository>.value(value: kacheln),
+      Provider<StatistikVerlaufRepository>.value(
+        value: InMemoryStatistikVerlaufRepository(),
+      ),
+    ],
+    child: app,
   );
 }
 
