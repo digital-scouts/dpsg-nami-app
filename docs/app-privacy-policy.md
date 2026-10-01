@@ -51,7 +51,7 @@ Withdrawing consent stops further transfers. Figures already shared remain store
 
 ## Demo mode
 
-On the sign-in screen, the app offers a demo without a Hitobito account. The demo shows a fictional Stamm with invented names and contact details, is read-only and does not contact Hitobito. Demo data is kept in memory only and is discarded when the demo ends. For the nationwide comparison, the demo sends the figures of the fictional Stamm to a separate test instance of the statistics server that holds only synthetic data and no real Stämme.
+On the sign-in screen, the app offers a demo without a Hitobito account. After choosing one of several demo roles, the demo shows a fictional Bezirk with fictional Stämme, invented names and contact details. It is read-only and does not contact Hitobito. Demo data is kept in memory only and is discarded when the demo ends. For the nationwide comparison, the demo sends the figures of the fictional Stämme to a separate test instance of the statistics server that holds only synthetic data and no real Stämme.
 
 ## Feedback
 
