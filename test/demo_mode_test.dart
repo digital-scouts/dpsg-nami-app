@@ -9,6 +9,8 @@ import 'package:nami/data/arbeitskontext/secure_arbeitskontext_local_repository.
 import 'package:nami/data/auth/secure_auth_profile_repository.dart';
 import 'package:nami/demo/demo_data.dart';
 import 'package:nami/demo/demo_services.dart';
+import 'package:nami/demo/demo_staemme.dart';
+import 'package:nami/domain/arbeitskontext/arbeitskontext.dart';
 import 'package:nami/domain/arbeitskontext/usecases/bestimme_startkontext_usecase.dart';
 import 'package:nami/domain/auth/auth_state.dart';
 import 'package:nami/domain/bundesstatistik/ermittle_stammes_hierarchie_usecase.dart';
@@ -45,44 +47,147 @@ void main() {
   });
 
   group('Demo-Zugang', () {
-    test('meldet an und laedt den Demo-Stamm nur lesend', () async {
-      final demo = await _DemoModels.create();
+    test(
+      'Stammesvorstand sieht den ganzen Stamm Silberfels nur lesend',
+      () async {
+        final demo = await _DemoModels.create(DemoZugang.stammesvorstand);
 
-      await demo.authModel.initialize();
-      expect(demo.authModel.state, AuthState.signedOut);
+        await demo.authModel.initialize();
+        expect(demo.authModel.state, AuthState.signedOut);
+        await demo.anmelden();
 
-      await demo.authModel.signInWithAuthenticatedSession(DemoData.session());
-      await demo.arbeitskontextModel.syncForAuth(
-        authState: demo.authModel.state,
-        session: demo.authModel.session,
-        profile: demo.authModel.profile,
-      );
-
-      expect(demo.authModel.state, AuthState.signedIn);
-      expect(demo.authModel.profile?.firstName, 'David');
-      expect(demo.arbeitskontextModel.isUnauthorized, isFalse);
-      final readModel = demo.arbeitskontextModel.readModel!;
-      expect(readModel.arbeitskontext.aktiverLayer.name, DemoData.stammName);
-      expect(readModel.mitglieder.length, DemoData.mitglieder().length);
-      for (final Mitglied mitglied in readModel.mitglieder) {
+        expect(demo.authModel.state, AuthState.signedIn);
+        expect(demo.authModel.profile?.firstName, 'Johanna');
+        expect(demo.arbeitskontextModel.isUnauthorized, isFalse);
+        final readModel = demo.arbeitskontextModel.readModel!;
         expect(
-          demo.arbeitskontextModel.istMitgliedSchreibbar(mitglied),
-          isFalse,
-          reason: mitglied.mitgliedsnummer,
+          readModel.arbeitskontext.aktiverLayer.id,
+          DemoBezirk.silberfelsId,
         );
-      }
-      // Die Bundesstatistik erkennt den Demo-Stamm als Stamm.
+        expect(readModel.arbeitskontext.verfuegbareLayer, isEmpty);
+        expect(
+          _nummern(readModel.mitglieder),
+          _personen(DemoBezirk.silberfels).toSet(),
+        );
+        for (final Mitglied mitglied in readModel.mitglieder) {
+          expect(
+            demo.arbeitskontextModel.istMitgliedSchreibbar(mitglied),
+            isFalse,
+            reason: mitglied.mitgliedsnummer,
+          );
+        }
+        // Die Bundesstatistik erkennt den Demo-Stamm als Stamm.
+        expect(
+          const ErmittleStammesHierarchieUseCase()(readModel)?.stammId,
+          DemoBezirk.silberfelsId.toString(),
+        );
+
+        await demo.authModel.logout();
+      },
+    );
+
+    test('Leitung sieht mit group_read nur die eigene Gruppe', () async {
+      final demo = await _DemoModels.create(DemoZugang.leitung);
+      await demo.anmelden();
+
+      expect(demo.authModel.profile?.firstName, 'David');
+      final readModel = demo.arbeitskontextModel.readModel!;
+      expect(readModel.arbeitskontext.aktiverLayer.id, DemoBezirk.silberfelsId);
+      expect(readModel.arbeitskontext.verfuegbareLayer, isEmpty);
       expect(
-        const ErmittleStammesHierarchieUseCase()(readModel)?.stammId,
-        DemoData.layerId.toString(),
+        _nummern(readModel.mitglieder),
+        _personen(
+          DemoBezirk.silberfels,
+          gruppenId: DemoBezirk.truppKompassId,
+        ).toSet(),
+      );
+      expect(_nummern(readModel.mitglieder), contains('1052'));
+      // Die Gruppen des Stamms liefert Hitobito trotzdem vollstaendig.
+      expect(
+        readModel.gruppen,
+        hasLength(DemoBezirk.silberfels.gruppen.length),
       );
 
       await demo.authModel.logout();
     });
 
+    test(
+      'Bezirksvorstand startet im Bezirk und wechselt in beide Staemme',
+      () async {
+        final demo = await _DemoModels.create(DemoZugang.bezirksvorstand);
+        await demo.anmelden();
+
+        expect(demo.authModel.profile?.firstName, 'Martin');
+        var readModel = demo.arbeitskontextModel.readModel!;
+        expect(readModel.arbeitskontext.aktiverLayer.id, DemoBezirk.bezirkId);
+        expect(
+          readModel.arbeitskontext.verfuegbareLayer.map((layer) => layer.id),
+          unorderedEquals(<int>[
+            DemoBezirk.silberfelsId,
+            DemoBezirk.birkenhainId,
+          ]),
+        );
+        expect(
+          _nummern(readModel.mitglieder),
+          _personen(DemoBezirk.bezirk).toSet(),
+        );
+        expect(const ErmittleStammesHierarchieUseCase()(readModel), isNull);
+
+        final birkenhain = readModel.arbeitskontext.verfuegbareLayer.firstWhere(
+          (layer) => layer.id == DemoBezirk.birkenhainId,
+        );
+        final gewechselt = await demo.arbeitskontextModel.switchToLayer(
+          targetLayer: birkenhain,
+          session: demo.authModel.session,
+          profile: demo.authModel.profile,
+        );
+
+        expect(gewechselt, isTrue);
+        readModel = demo.arbeitskontextModel.readModel!;
+        expect(
+          readModel.arbeitskontext.aktiverLayer.id,
+          DemoBezirk.birkenhainId,
+        );
+        expect(
+          _nummern(readModel.mitglieder),
+          _personen(DemoBezirk.birkenhain).toSet(),
+        );
+        final hierarchie = const ErmittleStammesHierarchieUseCase()(readModel);
+        expect(hierarchie?.stammId, DemoBezirk.birkenhainId.toString());
+        expect(hierarchie?.bezirkId, DemoBezirk.bezirkId.toString());
+
+        await demo.authModel.logout();
+      },
+    );
+
+    test('baut jeden Layer fuer jeden Zugang', () {
+      for (final zugang in DemoZugang.values) {
+        final data = DemoData(zugang, now: () => _heute);
+        for (final layer in DemoBezirk.layer) {
+          final readModel = data.readModel(
+            arbeitskontext: Arbeitskontext(
+              aktiverLayer: ArbeitskontextLayer(id: layer.id, name: layer.name),
+            ),
+          );
+          expect(
+            readModel.gruppen.every((gruppe) => gruppe.layerId == layer.id),
+            isTrue,
+            reason: '${zugang.name}/${layer.name}',
+          );
+          expect(
+            readModel.mitglieder.length,
+            data.mitglieder(layer.id).length,
+            reason: '${zugang.name}/${layer.name}',
+          );
+        }
+      }
+    });
+
     test('schreibt keine echten sensiblen Boxen', () async {
-      final demo = await _DemoModels.create();
-      await demo.authModel.signInWithAuthenticatedSession(DemoData.session());
+      final demo = await _DemoModels.create(DemoZugang.stammesvorstand);
+      await demo.authModel.signInWithAuthenticatedSession(
+        demo.demoData.session(),
+      );
       await demo.authModel.markSensitiveDataSynced();
 
       for (final boxName in SensitiveStorageBoxNames.all) {
@@ -96,7 +201,7 @@ void main() {
 
       await demo.authModel.logout();
       // Nach dem Beenden startet ein neuer Demo-Zugang ohne Altdaten.
-      final next = await _DemoModels.create();
+      final next = await _DemoModels.create(DemoZugang.leitung);
       await next.authModel.initialize();
       expect(next.authModel.state, AuthState.signedOut);
       expect(next.authModel.lastSensitiveSyncAt, isNull);
@@ -111,37 +216,64 @@ void main() {
       );
     });
 
-    test('liefert Fuehrungszeugnisse nur fuer Demo-Personen', () async {
-      final efz = await DemoHitobitoEfzService().fetchAlleEfzEinsichtnahmen(
-        'demo',
-      );
-      final personIds = DemoData.mitglieder()
-          .map((mitglied) => mitglied.personId)
-          .toSet();
+    test('liefert Fuehrungszeugnisse nur fuer sichtbare Personen', () async {
+      Future<Set<int>> efzPersonen(DemoZugang zugang) async {
+        final service = DemoHitobitoEfzService(
+          DemoData(zugang, now: () => _heute),
+        );
+        final efz = await service.fetchAlleEfzEinsichtnahmen('demo');
+        return efz.map((einsichtnahme) => einsichtnahme.personId).toSet();
+      }
 
-      expect(efz, isNotEmpty);
-      expect(efz.every((e) => personIds.contains(e.personId)), isTrue);
+      expect(await efzPersonen(DemoZugang.leitung), <int>{1052});
+      expect(await efzPersonen(DemoZugang.stammesvorstand), <int>{
+        1051,
+        1052,
+        1053,
+        1054,
+        1061,
+      });
+      expect(
+        await efzPersonen(DemoZugang.bezirksvorstand),
+        containsAll(<int>{3001, 1061, 2061}),
+      );
     });
 
-    test('merkt sich den Modus fuer den naechsten Start', () async {
+    test('merkt sich Modus und Zugang fuer den naechsten Start', () async {
       SharedPreferences.setMockInitialValues({});
       final store = AppModeStore();
 
       expect(await store.load(), AppMode.live);
-      await store.save(AppMode.demo);
+      await store.save(AppMode.demo, demoZugang: DemoZugang.bezirksvorstand);
       expect(await store.load(), AppMode.demo);
+      expect(await store.loadDemoZugang(), DemoZugang.bezirksvorstand);
       await store.save(AppMode.live);
       expect(await store.load(), AppMode.live);
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.containsKey(AppModeStore.demoZugangKey), isFalse);
     });
+
+    test(
+      'startet eine Demo ohne gespeicherten Zugang als Stammesvorstand',
+      () async {
+        SharedPreferences.setMockInitialValues({
+          AppModeStore.demoModeActiveKey: true,
+        });
+        final store = AppModeStore();
+
+        expect(await store.load(), AppMode.demo);
+        expect(await store.loadDemoZugang(), DemoZugang.stammesvorstand);
+      },
+    );
   });
 
   group('Demo-Einstieg in der Oberflaeche', () {
-    testWidgets('bietet im abgemeldeten Zustand den Demo-Zugang an', (
-      tester,
-    ) async {
+    testWidgets('Demo ansehen fragt nach dem Zugang', (tester) async {
       SharedPreferences.setMockInitialValues({});
-      final switches = <AppMode>[];
-      final demo = await tester.runAsync(_DemoModels.create);
+      final switches = <_Wechsel>[];
+      final demo = await tester.runAsync(
+        () => _DemoModels.create(DemoZugang.stammesvorstand),
+      );
       await tester.runAsync(demo!.authModel.initialize);
 
       await tester.pumpWidget(
@@ -155,19 +287,57 @@ void main() {
 
       expect(find.text('Mit Hitobito anmelden'), findsOneWidget);
       await tester.tap(find.byKey(const Key('demo-start')));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
-      expect(switches, <AppMode>[AppMode.demo]);
+      expect(switches, isEmpty);
+      for (final zugang in DemoZugang.values) {
+        expect(find.byKey(Key('demo-zugang-${zugang.name}')), findsOneWidget);
+      }
+      await tester.tap(find.byKey(const Key('demo-zugang-leitung')));
+      await tester.pumpAndSettle();
+
+      expect(switches, <_Wechsel>[(AppMode.demo, DemoZugang.leitung)]);
+    });
+
+    testWidgets('Schliessen der Auswahl startet keine Demo', (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final switches = <_Wechsel>[];
+      final demo = await tester.runAsync(
+        () => _DemoModels.create(DemoZugang.stammesvorstand),
+      );
+      await tester.runAsync(demo!.authModel.initialize);
+
+      await tester.pumpWidget(
+        _buildApp(
+          demo,
+          AppModeController(mode: AppMode.live, switchMode: _record(switches)),
+          home: const NavigationHomeScreen(),
+        ),
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('demo-start')));
+      await tester.pumpAndSettle();
+      await tester.tapAt(const Offset(20, 20));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('demo-zugang-leitung')), findsNothing);
+      expect(switches, isEmpty);
     });
 
     testWidgets('Abmelden beendet im Demo den Demo-Zugang', (tester) async {
-      final switches = <AppMode>[];
-      final demo = await tester.runAsync(_DemoModels.create);
+      final switches = <_Wechsel>[];
+      final demo = await tester.runAsync(
+        () => _DemoModels.create(DemoZugang.leitung),
+      );
 
       await tester.pumpWidget(
         _buildApp(
           demo!,
-          AppModeController(mode: AppMode.demo, switchMode: _record(switches)),
+          AppModeController(
+            mode: AppMode.demo,
+            demoZugang: DemoZugang.leitung,
+            switchMode: _record(switches),
+          ),
           home: Builder(
             builder: (context) => TextButton(
               onPressed: () => runLogoutFlow(context),
@@ -179,14 +349,25 @@ void main() {
       await tester.tap(find.text('Abmelden'));
       await tester.pump();
 
-      expect(switches, <AppMode>[AppMode.live]);
+      expect(switches, <_Wechsel>[(AppMode.live, null)]);
     });
   });
 }
 
-Future<void> Function(AppMode) _record(List<AppMode> switches) {
-  return (mode) async => switches.add(mode);
+final DateTime _heute = DateTime(2026, 3, 15, 10);
+
+typedef _Wechsel = (AppMode, DemoZugang?);
+
+Future<void> Function(AppMode, DemoZugang?) _record(List<_Wechsel> switches) {
+  return (mode, zugang) async => switches.add((mode, zugang));
 }
+
+Set<String> _nummern(Iterable<Mitglied> mitglieder) =>
+    mitglieder.map((mitglied) => mitglied.mitgliedsnummer).toSet();
+
+Iterable<String> _personen(DemoLayer layer, {int? gruppenId}) => layer.personen
+    .where((person) => gruppenId == null || person.gruppenId == gruppenId)
+    .map((person) => person.mitgliedsnummer);
 
 Widget _buildApp(
   _DemoModels demo,
@@ -224,12 +405,14 @@ Widget _buildApp(
 
 /// Baut die sensiblen Models so zusammen wie `main.dart` im Demo-Modus.
 class _DemoModels {
-  _DemoModels(this.authModel, this.arbeitskontextModel);
+  _DemoModels(this.demoData, this.authModel, this.arbeitskontextModel);
 
+  final DemoData demoData;
   final AuthSessionModel authModel;
   final ArbeitskontextModel arbeitskontextModel;
 
-  static Future<_DemoModels> create() async {
+  static Future<_DemoModels> create(DemoZugang zugang) async {
+    final demoData = DemoData(zugang, now: () => _heute);
     final storage = DemoSensitiveStorageService();
     await storage.purgeSensitiveData();
     final logger = _SilentLoggerService();
@@ -238,7 +421,7 @@ class _DemoModels {
       profileRepository: SecureAuthProfileRepository(
         sensitiveStorageService: storage,
       ),
-      oauthService: DemoOauthService(),
+      oauthService: DemoOauthService(demoData),
       biometricLockService: _NoBiometricLockService(),
       sensitiveStorageService: storage,
       retentionPolicy: HitobitoDataRetentionPolicy(
@@ -252,14 +435,25 @@ class _DemoModels {
         sensitiveStorageService: storage,
       ),
       readModelRepository: DemoArbeitskontextReadModelRepository(
+        demoData,
         ladedauer: Duration.zero,
       ),
-      groupsService: DemoHitobitoGroupsService(),
+      groupsService: DemoHitobitoGroupsService(demoData),
       bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
       remoteAccessExecutor: authModel.executeRemoteAccess,
       logger: logger,
     );
-    return _DemoModels(authModel, arbeitskontextModel);
+    return _DemoModels(demoData, authModel, arbeitskontextModel);
+  }
+
+  /// Meldet an wie `main.dart` und laedt danach den Startkontext.
+  Future<void> anmelden() async {
+    await authModel.signInWithAuthenticatedSession(demoData.session());
+    await arbeitskontextModel.syncForAuth(
+      authState: authModel.state,
+      session: authModel.session,
+      profile: authModel.profile,
+    );
   }
 }
 
