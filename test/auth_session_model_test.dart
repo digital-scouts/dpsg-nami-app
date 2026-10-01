@@ -1526,6 +1526,58 @@ void main() {
     );
 
     test(
+      'syncHitobitoData vor Ende der Initialisierung speichert keinen Versuch',
+      () async {
+        final sensitiveStorage = FakeSensitiveStorageService()
+          ..lastSensitiveSyncAt = DateTime(2026, 3, 27, 8);
+        final model = AuthSessionModel(
+          repository: InMemoryAuthSessionRepository(
+            initialSession: AuthSession(
+              accessToken: 'stored-token',
+              refreshToken: 'stored-refresh-token',
+              receivedAt: DateTime(2026, 3, 27),
+            ),
+          ),
+          profileRepository: InMemoryAuthProfileRepository(
+            profile: const AuthProfile(namiId: 98, language: 'de'),
+            lastSyncAt: DateTime(2026, 3, 28, 8),
+          ),
+          oauthService: buildModel().oauthService,
+          biometricLockService: FakeBiometricLockService(),
+          sensitiveStorageService: sensitiveStorage,
+          retentionPolicy: HitobitoDataRetentionPolicy(
+            maxDataAge: const Duration(days: 90),
+            refreshInterval: const Duration(hours: 24),
+            nowProvider: () => DateTime(2026, 3, 28, 12),
+          ),
+          logger: _createLogger(),
+        );
+        final memberSyncs = <String>[];
+
+        await model.syncHitobitoData(
+          trigger: 'startup',
+          userInitiated: false,
+          syncMembers: (token) async => memberSyncs.add(token),
+        );
+
+        expect(memberSyncs, isEmpty);
+        expect(sensitiveStorage.lastSensitiveSyncAttemptAt, isNull);
+        expect(model.lastSyncAttemptResult, isNull);
+
+        await model.initialize();
+        expect(model.isRefreshAttemptDue, isTrue);
+
+        await model.syncHitobitoData(
+          trigger: 'startup',
+          userInitiated: false,
+          syncMembers: (token) async => memberSyncs.add(token),
+        );
+        expect(memberSyncs, <String>['stored-token']);
+      },
+      timeout: const Timeout(Duration(seconds: 3)),
+    );
+
+    test(
       'syncHitobitoData durch Nutzeraktion darf bei 401 weiterhin einen Login oeffnen',
       () async {
         final (:model, :oauthService) = buildModel();

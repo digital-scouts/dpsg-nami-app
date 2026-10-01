@@ -885,6 +885,17 @@ class AuthSessionModel extends ChangeNotifier {
       return;
     }
 
+    if (_state == AuthState.initializing) {
+      // Session und Sync-Zeitpunkte sind noch nicht geladen. Ein hier
+      // gespeicherter Versuch wuerde den eigentlichen Start-Sync als nicht
+      // faellig erscheinen lassen.
+      await _logger.logInfo(
+        'hitobito_sync',
+        'Hitobito-Sync uebersprungen trigger=$trigger reason=initializing',
+      );
+      return;
+    }
+
     if (_session == null ||
         _state == AuthState.reloginRequired ||
         _requiresInteractiveLogin) {

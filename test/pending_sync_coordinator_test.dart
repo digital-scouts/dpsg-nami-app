@@ -4,6 +4,7 @@ import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/domain/auth/auth_profile.dart';
 import 'package:nami/domain/auth/auth_session.dart';
+import 'package:nami/domain/auth/auth_state.dart';
 import 'package:nami/domain/member/member_write_repository.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/member/pending_person_update.dart';
@@ -260,6 +261,38 @@ void main() {
     });
   });
 
+  test(
+    'holt den Start-Check nach, wenn die Auth-Initialisierung noch laeuft',
+    () {
+      fakeAsync((async) {
+        final harness = _Harness(async, connectivity: FakeConnectivity.wifi());
+        harness.authModel.changeState(AuthState.initializing);
+        harness.coordinator.start();
+
+        unawaited(
+          harness.coordinator.checkCurrentConnectivity(trigger: 'startup'),
+        );
+        harness.connectivity.setWifi();
+        async.flushMicrotasks();
+
+        expect(harness.authModel.syncTriggers, isEmpty);
+        expect(harness.writeRepository.updateCount, 0);
+
+        harness.authModel.changeState(AuthState.signedIn);
+        async.flushMicrotasks();
+
+        expect(harness.authModel.syncTriggers, <String>['auth_ready']);
+        expect(harness.writeRepository.updateCount, 1);
+
+        // Weitere Auth-Aenderungen loesen keinen zweiten Start-Check aus.
+        harness.authModel.changeState(AuthState.signedIn);
+        async.flushMicrotasks();
+        expect(harness.authModel.syncTriggers, <String>['auth_ready']);
+        harness.dispose();
+      });
+    },
+  );
+
   test('dispose beendet Listener und Timer', () {
     fakeAsync((async) {
       final harness = _Harness(async, connectivity: FakeConnectivity.wifi());
@@ -369,6 +402,15 @@ class _StubAuthSessionModel extends AuthSessionModel {
   Future<void> Function()? onSync;
   bool hasSession = true;
   bool requiresInteractiveLoginOverride = false;
+  AuthState _stateOverride = AuthState.signedIn;
+
+  @override
+  AuthState get state => _stateOverride;
+
+  void changeState(AuthState value) {
+    _stateOverride = value;
+    notifyListeners();
+  }
 
   @override
   AuthSession? get session => hasSession
