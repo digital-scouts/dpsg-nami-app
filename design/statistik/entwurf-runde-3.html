@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entwürfe: Stammesstatistik, Runde 3</title>
+<link rel="stylesheet" href="basis.css">
+<link rel="stylesheet" href="kacheln.css">
+<style>
+/* Runde 3 */
+.kgrid .tile { overflow:visible; }
+.tile-clip { height:100%; overflow:hidden; }
+.kgrid.edit .tile-head { padding-left:0; }
+.k-minus.r3 { top:-7px; left:-7px; width:22px; height:22px; background:var(--loeschen); display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(0,0,0,.25); z-index:2; }
+.k-minus.r3 i { display:block; width:10px; height:2px; border-radius:1px; background:#fff; }
+@keyframes wackeln { 0% { transform:rotate(-.8deg); } 50% { transform:rotate(.8deg); } 100% { transform:rotate(-.8deg); } }
+@keyframes wackeln-breit { 0% { transform:rotate(-.35deg); } 50% { transform:rotate(.35deg); } 100% { transform:rotate(-.35deg); } }
+.kgrid.edit .tile.t1x1 { animation:wackeln .34s ease-in-out infinite; }
+.kgrid.edit .tile.t2x1, .kgrid.edit .tile.t2x2 { animation:wackeln-breit .4s ease-in-out infinite; }
+.kgrid.edit .tile:nth-child(odd) { animation-delay:-.17s; }
+.kgrid.edit .tile.dragging { animation:none; }
+@media (prefers-reduced-motion: reduce) { .kgrid.edit .tile { animation:none !important; } }
+.tab-edit { display:flex; gap:8px; margin:0 0 6px; flex-wrap:wrap; }
+.tab-edit span { font-size:13px; font-weight:600; padding:6px 10px; border-radius:999px; display:inline-flex; gap:7px; align-items:center; cursor:pointer; }
+.tab-edit .fix { background:var(--surface2); color:var(--fg2); cursor:default; }
+.tab-edit .an { background:var(--primary-lite); color:var(--primary); }
+.tab-edit .aus { box-shadow:inset 0 0 0 1.5px var(--border); color:var(--muted); }
+.tab-edit i { font-style:normal; width:16px; height:16px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#fff; }
+.tab-edit .an i { background:var(--loeschen); }
+.tab-edit .aus i { background:var(--primary); }
+.tab-hint { margin:2px 2px 12px; }
+.themen-leer { height:14px; }
+.g3-row { display:grid; grid-template-columns:10px 1fr 58px; gap:8px; align-items:center; height:44px; border-bottom:1px solid var(--border); box-sizing:border-box; }
+.g3-row:last-child { border-bottom:0; }
+.g3-main { min-width:0; }
+.g3-line { display:flex; gap:6px; align-items:baseline; white-space:nowrap; overflow:hidden; min-width:0; }
+.g3-line .g2-name { flex:none; max-width:62%; }
+.g3-line .g2-sub { min-width:0; }
+.g3-main svg { margin-top:5px; }
+.az-row { display:grid; grid-template-columns:62px 56px 150px 1fr; align-items:center; gap:6px; }
+.az-span { white-space:nowrap; }
+.g3-row .g2-val { white-space:nowrap; }
+.keys.mini { justify-content:center; gap:0 7px; margin-top:4px; font-size:10px; line-height:13px; }
+.keys.mini .sw { width:8px; height:8px; border-radius:2px; }
+.az-span { font-size:10.5px; color:var(--muted); text-align:right; font-variant-numeric:tabular-nums; }
+.fg { color:var(--fg); }
+.kat-hint { margin:-6px 0 10px; }
+.ausbau { background:#f3f0e8; border:1px solid #ddd6c5; border-radius:12px; padding:12px 18px; max-width:980px; font-size:14px; color:#4a4943; }
+.ausbau li { margin:.15rem 0; }
+.ausbau .tag { background:#e7e0cf; color:#6b5520; }
+</style>
+<script>window.RUNDE = 3;</script>
+</head>
+<body>
+<div class="bar">
+  <span><b>Datensatz</b><span class="tgl" id="tgl-stamm"><button data-v="gross">Weitblick · 75</button><button data-v="klein">Silberfels · 26</button></span></span>
+  <nav><a href="#seiten">1 Seiten</a><a href="#kacheln">2 Kacheln</a><a href="#bearbeiten">3 Bearbeiten</a><a href="#ausbau">4 Ausbau später</a><a href="#rueckmeldung">5 Rückmeldung</a></nav>
+</div>
+<main>
+<h1>Stammesstatistik – Entwürfe, Runde 3</h1>
+<p>Stand nach deiner Rückmeldung zu Runde 2. Gezeigt wird nur noch der gewählte Weg; Varianten gibt es keine mehr. Gleiche erfundene Stämme, Stand 30.09.2026, Stichtag 01.11.2026.</p>
+<div class="fest-list"><b>Festgelegt</b> <span class="tag">festgelegt</span>
+<ul>
+<li>Kopf K1 nach PR #162: Zeile 1 Zahl und Stufenband, Zeile 2 „‹Stammesname› | Bundesweit“. Darunter die Themen Überblick, Stufen und Entwicklung.</li>
+<li>Kachelraster mit festen Größen 1×1, 2×1 und 2×2, jede Kachel nur in ihren sinnvollen Größen. Kacheln sind in diesem Ausbau nicht antippbar.</li>
+<li>Nur der Überblick ist anpassbar. Stufen und Entwicklung sind fest zusammengestellt und lassen sich ausblenden. Ihre Kacheln stehen im Katalog auch für den Überblick bereit.</li>
+<li>Gruppen: große Zahl, langer Balken mit Zielstrich. Stufenwechsel: Balken mit grauem „heute“, Text „… können zum … wechseln“, ohne „überfällig“ und ohne ▲.</li>
+<li>Altersstruktur als Balken. „Alter in Zahlen“ ohne ↑, die Spanne läuft frei über die Grenze. Bindung als Zahlen. Eigene Kachel mit Aufteilung nach Stufe als Kreis in 1×1.</li>
+<li>Farben: Stufenfarben mit Textlabel, Leitung ohne eigene Farbe, eigene Palette für Geschlecht und Konfession. Biber immer ausgeschrieben, hell als Hellgrau mit Kontur.</li>
+</ul></div>
+
+<section class="part" id="seiten">
+<h2>1 · Seiten</h2>
+<p>Überblick hell und dunkel, dazu die festen Tabs Stufen und Entwicklung.</p>
+<div id="slot-seiten" class="phones"></div>
+</section>
+
+<section class="part" id="kacheln">
+<h2>2 · Geänderte Kacheln</h2>
+<p>Alle Größen der Kacheln, die sich seit Runde 2 geändert haben. Die Tabelle zeigt den vollständigen Katalog.</p>
+<div id="slot-matrix"></div>
+<div id="slot-kacheln"></div>
+</section>
+
+<section class="part" id="bearbeiten">
+<h2>3 · Bearbeiten</h2>
+<p><b>Zum Ausprobieren:</b> Das erste Handy ist klickbar. „✎ Bearbeiten“ startet den Modus wie bei Widgets auf dem Handy: Kacheln wackeln, rotes − entfernt, Ecke ziehen ändert die Größe (nur erlaubte Größen), Ziehen sortiert, ＋ öffnet den Katalog. Oben lassen sich die Tabs Stufen und Entwicklung aus- und wieder einblenden.</p>
+<p class="hint">Die Wackel-Animation entfällt bei „Bewegung reduzieren“ in den Systemeinstellungen.</p>
+<div id="slot-bearbeiten" class="phones"></div>
+</section>
+
+<section class="part" id="ausbau">
+<h2>4 · Ausbau später</h2>
+<div class="ausbau"><b>Hinter den Kacheln</b> <span class="tag">später</span>
+<p>Nicht Teil dieses Ausbaus. Vorschlag aus Runde 2, Abschnitt 6, bleibt als Plan erhalten:</p>
+<ul>
+<li>Personen: Aufschlüsselung je Stufe, wer „Sonstige“ sind</li>
+<li>Gruppendetail im Stil der Pfad-Stationen (ersetzt die heutige Seite)</li>
+<li>Altersstruktur: Personen über der Grenze, fehlende Geburtsdaten, Altersgrenzen anpassen</li>
+<li>Bindung: Neue mit Datum, Jubiläen</li>
+<li>Zusammensetzung je Stufe, Standorte im Vollbild mit Stufenfilter</li>
+<li>Stufenwechsel → bestehender Tab, eigene Kachel → Mitgliederliste mit Filter</li>
+</ul></div>
+</section>
+
+<section class="part" id="rueckmeldung">
+<h2>5 · Rückmeldung</h2>
+<p>Wenn alles passt, ist das die Grundlage für den Umsetzungsplan in Flutter.</p>
+<form class="fb" id="fb"></form>
+</section>
+</main>
+
+<script src="daten.js"></script>
+<script src="bausteine.js"></script>
+<script src="layouts.js"></script>
+<script src="kacheln.js"></script>
+<script src="bearbeiten.js"></script>
+<script>
+(function () {
+  const D = window.STATISTIK;
+  const B = window.BAUSTEINE;
+  const L = window.LAYOUTS;
+  const K = window.KACHELN;
+  const params = new URLSearchParams(location.search);
+  const zustand = { stamm: params.get('stamm') || 'gross' };
+
+  const zusatz = {
+    hell: { '--biber-ring': '#aeaeb2', '--biber-ring-stark': '#8e8e93', '--biber-band': '#f4f4f7', '--ghost': '#e3e3e8', '--loeschen': '#ff3b30', '--map-bg': '#edf0e9', '--map-road': '#ffffff', '--map-water': '#d3e2ee' },
+    dunkel: { '--biber-ring': 'transparent', '--biber-ring-stark': '#ffffff', '--biber-band': '#2e2e3a', '--ghost': '#363642', '--loeschen': '#ff453a', '--map-bg': '#1c2320', '--map-road': '#2c3531', '--map-water': '#1d2e3b' },
+  };
+  let css = '';
+  for (const modus of ['hell', 'dunkel']) {
+    const p = D.palette[modus];
+    const vars = {
+      '--bg': p.bg, '--surface': p.surface, '--surface2': p.surface2, '--fg': p.fg, '--fg2': p.fg2,
+      '--muted': p.muted, '--border': p.border, '--primary': p.primary, '--on-primary': p.onPrimary,
+      '--primary-lite': p.primaryLite, '--grid': p.grid, ...zusatz[modus],
+    };
+    for (const [id, c] of Object.entries(D.stufenfarben[modus])) vars[`--st-${id}`] = c;
+    css += `.phone.${modus},.panel.${modus}{${Object.entries(vars).map(([k, v]) => `${k}:${v}`).join(';')}}`;
+  }
+  const style = document.createElement('style');
+  style.textContent = css;
+  document.head.appendChild(style);
+
+  const ctxFuer = (modus) => ({ k: B.kennzahlen(D.staemme[zustand.stamm]), stil: 'zahlen', modus });
+  const panel = (modus, inhalt, { schmal } = {}) => `<div class="panel ${modus}${schmal ? ' schmal' : ''}">${inhalt}</div>`;
+
+  function seitenTelefon(modus, tab, shot, beschriftung) {
+    const ctx = ctxFuer(modus);
+    const r = K.seite(ctx, 'H1', tab);
+    return L.telefon(ctx, r.inhalt, { shot, kopfHtml: r.kopfHtml, beschriftung });
+  }
+
+  function renderSeiten() {
+    document.getElementById('slot-seiten').innerHTML = [
+      seitenTelefon('hell', 0, 'seite-ueberblick-hell', 'Überblick'),
+      seitenTelefon('dunkel', 0, 'seite-ueberblick-dunkel', 'Überblick dunkel'),
+      seitenTelefon('hell', 1, 'seite-stufen', 'Stufen (fest)'),
+      seitenTelefon('hell', 2, 'seite-entwicklung', 'Entwicklung (fest)'),
+    ].join('');
+  }
+
+  function renderKacheln() {
+    const alle = ['1x1', '2x1', '2x2'];
+    document.getElementById('slot-matrix').innerHTML = `<table class="matrix"><thead><tr><th>Kachel</th><th>Tab</th>${alle.map((g) => `<th>${g.replace('x', '×')}</th>`).join('')}</tr></thead><tbody>${K.KATALOG.map((w) =>
+      `<tr><td>${w.titel2 ? `${w.titel} / ${w.titel2}` : w.titel}</td><td>${w.bereich}</td>${alle.map((g) => `<td class="c">${w.groessen.includes(g) ? '●' : ''}</td>`).join('')}</tr>`).join('')}
+      <tr><td>Eigene Kachel</td><td>Überblick</td><td class="c">●</td><td class="c">●</td><td class="c"></td></tr></tbody></table>`;
+    const geaendert = ['gruppen', 'wechsel', 'alter', 'alterZahlen', 'eigen:1', 'eigen:0', 'verlauf'];
+    const html = [];
+    for (const modus of ['hell', 'dunkel']) {
+      const ctx = ctxFuer(modus);
+      html.push(...geaendert.map((ref) => {
+        const w = K.widgetFuer(ctx, ref);
+        const felder = w.groessen.map((g) => panel(modus, `<div class="kgrid"${g === '1x1' ? ' style="width:173px;grid-template-columns:1fr"' : ''}>${K.kachel(ctx, ref, g)}</div>`, { schmal: g === '1x1' })).join('');
+        return `<div class="variant" data-shot="kachel-${ref.replace(':', '-')}-${modus}"><h3>${w.titel2 ? `${w.titel} / ${w.titel2}` : w.titel}${modus === 'dunkel' ? ' · dunkel' : ''} <span class="tag">${w.groessen.map((g) => g.replace('x', '×')).join(' · ')}</span></h3><div class="panels">${felder}</div></div>`;
+      }));
+    }
+    document.getElementById('slot-kacheln').innerHTML = html.join('');
+  }
+
+  function renderBearbeiten() {
+    const presets = [
+      ['bearbeiten-live', 'Zum Ausprobieren', {}],
+      ['bearbeiten-modus', 'Bearbeiten: Wackeln, rotes −', { modus: 'bearbeiten' }],
+      ['bearbeiten-tab-aus', 'Entwicklung ausgeblendet', { modus: 'bearbeiten', tabs: [true, true, false] }],
+      ['bearbeiten-nur-ueberblick', 'Nur Überblick: Themenleiste entfällt', { tabs: [true, false, false] }],
+      ['bearbeiten-groesse', 'Ecke ziehen: Geschlecht → 2×1', { modus: 'bearbeiten', resizeDemo: { ref: 'geschlecht', g: '2x1' } }],
+      ['bearbeiten-katalog', 'Katalog', { modus: 'bearbeiten', overlay: 'katalog' }],
+      ['bearbeiten-eigen', 'Eigene Kachel erstellen', { modus: 'bearbeiten', overlay: 'eigen' }],
+    ];
+    const slot = document.getElementById('slot-bearbeiten');
+    slot.innerHTML = presets.map(([shot, text]) => {
+      const ctx = ctxFuer('hell');
+      return L.telefon(ctx, '', { shot, kopfHtml: K.kopf(ctx, 'H1', 0), fest: true, beschriftung: text });
+    }).join('');
+    presets.forEach(([shot, , preset]) => {
+      window.BEARBEITEN.editor(slot.querySelector(`[data-shot="${shot}"]`), () => ctxFuer('hell'), preset);
+    });
+  }
+
+  const FRAGEN = [
+    { id: 'seiten', titel: 'Seiten (Überblick, Stufen, Entwicklung)', optionen: ['freigegeben', 'ändern'] },
+    { id: 'kacheln', titel: 'Geänderte Kacheln', optionen: ['freigegeben', 'ändern'] },
+    { id: 'bearbeiten', titel: 'Bearbeiten', optionen: ['freigegeben', 'ändern'] },
+    { id: 'weiter', titel: 'Nächster Schritt', optionen: ['Umsetzungsplan Flutter', 'noch eine Runde'] },
+  ];
+  function renderFeedback() {
+    const f = document.getElementById('fb');
+    f.innerHTML = FRAGEN.map((q) => `<fieldset><legend>${q.titel}</legend>${q.optionen.map((o) => `<label><input type="radio" name="${q.id}" value="${o}"> ${o}</label>`).join('')}<textarea name="${q.id}-text" placeholder="Anmerkung (optional)"></textarea></fieldset>`).join('') +
+      `<fieldset><legend>Sonst noch</legend><textarea name="frei" placeholder="Freitext"></textarea></fieldset>
+      <button type="button" id="kopieren">Auswahl kopieren</button>
+      <textarea id="ausgabe" readonly placeholder="Hier erscheint der Text für den Chat."></textarea>`;
+    document.getElementById('kopieren').addEventListener('click', async () => {
+      const fd = new FormData(f);
+      const zeilen = ['Rückmeldung Statistik, Runde 3', `(Datensatz ${zustand.stamm})`];
+      for (const q of FRAGEN) {
+        const v = fd.get(q.id);
+        const t = (fd.get(`${q.id}-text`) || '').trim();
+        if (v || t) zeilen.push(`- ${q.titel}: ${v || '–'}${t ? ` – ${t}` : ''}`);
+      }
+      const frei = (fd.get('frei') || '').trim();
+      if (frei) zeilen.push(`- Sonst: ${frei}`);
+      const text = zeilen.join('\n');
+      const out = document.getElementById('ausgabe');
+      out.value = text;
+      try { await navigator.clipboard.writeText(text); } catch (e) { out.select(); document.execCommand('copy'); }
+    });
+  }
+
+  function alles() {
+    document.querySelectorAll('#tgl-stamm button').forEach((b) => b.classList.toggle('on', b.dataset.v === zustand.stamm));
+    renderSeiten();
+    renderKacheln();
+    renderBearbeiten();
+  }
+  document.getElementById('tgl-stamm').addEventListener('click', (e) => {
+    const v = e.target.dataset && e.target.dataset.v;
+    if (!v) return;
+    zustand.stamm = v;
+    alles();
+  });
+  alles();
+  renderFeedback();
+  document.body.dataset.fertig = '1';
+})();
+</script>
+</body>
+</html>
