@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model.dart';
 import 'package:nami/domain/statistiks/berechne_stamm_statistik_usecase.dart';
@@ -9,6 +8,7 @@ import 'package:nami/domain/statistiks/statistik_verlauf.dart';
 import 'package:nami/domain/statistiks/zaehle_eigene_kachel_usecase.dart';
 import 'package:nami/domain/stufe/altersgrenzen.dart';
 import 'package:nami/presentation/statistics/kacheln/kachel_daten.dart';
+import 'package:nami/presentation/statistics/kacheln/karten_vorschau.dart';
 import 'package:nami/presentation/statistics/statistics_snapshot_builder.dart';
 import 'package:nami/services/statistics_location_service.dart';
 import 'package:nami/stories/statistik/statistik_beispiel_staemme.dart';
@@ -71,7 +71,7 @@ enum StatistikBeispielDatensatz {
 }
 
 /// Kacheldaten wie auf der Statistikseite, aber mit festem Tag, erfundenen
-/// Standorten und einer schlichten Kartenattrappe, damit Stories und Tests
+/// Standorten und der statischen Kartenvorschau, damit Stories und Tests
 /// ohne Netz und Kartenkacheln auskommen.
 class StatistikKachelBeispiele {
   StatistikKachelBeispiele._();
@@ -121,7 +121,7 @@ class StatistikKachelBeispiele {
             datensatz == StatistikBeispielDatensatz.weitblick ? 71 : 23,
           ),
       kartenBauer: (context, wohnorte, stammesheim) =>
-          StatistikKartenAttrappe(wohnorte: wohnorte, stammesheim: stammesheim),
+          StatistikKartenVorschau(wohnorte: wohnorte, stammesheim: stammesheim),
       onGruppeOeffnen: (_) {},
     );
   }
@@ -140,83 +140,4 @@ class StatistikKachelBeispiele {
       stammPoint: mitte,
     );
   }
-}
-
-/// Graue Fläche mit Punkten statt einer echten Karte.
-class StatistikKartenAttrappe extends StatelessWidget {
-  const StatistikKartenAttrappe({
-    super.key,
-    required this.wohnorte,
-    this.stammesheim,
-  });
-
-  final List<LatLng> wohnorte;
-  final LatLng? stammesheim;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return CustomPaint(
-      painter: _AttrappePainter(
-        wohnorte: wohnorte,
-        stammesheim: stammesheim,
-        flaeche: scheme.surfaceContainerHighest,
-        punkt: scheme.primary,
-      ),
-      child: const SizedBox.expand(),
-    );
-  }
-}
-
-class _AttrappePainter extends CustomPainter {
-  _AttrappePainter({
-    required this.wohnorte,
-    required this.stammesheim,
-    required this.flaeche,
-    required this.punkt,
-  });
-
-  final List<LatLng> wohnorte;
-  final LatLng? stammesheim;
-  final Color flaeche;
-  final Color punkt;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawRect(Offset.zero & size, Paint()..color = flaeche);
-    final alle = [...wohnorte, ?stammesheim];
-    if (alle.isEmpty) return;
-    final breiten = alle.map((p) => p.latitude);
-    final laengen = alle.map((p) => p.longitude);
-    final minB = breiten.reduce(math.min);
-    final maxB = breiten.reduce(math.max);
-    final minL = laengen.reduce(math.min);
-    final maxL = laengen.reduce(math.max);
-    Offset ort(LatLng p) => Offset(
-      8 +
-          (p.longitude - minL) /
-              math.max(1e-9, maxL - minL) *
-              (size.width - 16),
-      8 +
-          (maxB - p.latitude) /
-              math.max(1e-9, maxB - minB) *
-              (size.height - 16),
-    );
-    for (final p in wohnorte) {
-      canvas.drawCircle(ort(p), 2.5, Paint()..color = punkt);
-    }
-    if (stammesheim case final heim?) {
-      canvas.drawRect(
-        Rect.fromCenter(center: ort(heim), width: 9, height: 9),
-        Paint()..color = const Color(0xFF1565C0),
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(_AttrappePainter old) =>
-      old.wohnorte != wohnorte ||
-      old.stammesheim != stammesheim ||
-      old.flaeche != flaeche ||
-      old.punkt != punkt;
 }

@@ -64,6 +64,7 @@ class StatistikKachelDaten {
   StatistikKachelDaten copyWith({
     StatistikKachelEinstellungen? einstellungen,
     Map<String, EigeneKachelZaehlung>? eigeneZaehlungen,
+    StatistikKartenBauer? kartenBauer,
     ValueChanged<int>? onGruppeOeffnen,
   }) => StatistikKachelDaten(
     statistik: statistik,
@@ -76,7 +77,7 @@ class StatistikKachelDaten {
     standortMitglieder: standortMitglieder,
     stammAdresse: stammAdresse,
     standortAufloesung: standortAufloesung,
-    kartenBauer: kartenBauer,
+    kartenBauer: kartenBauer ?? this.kartenBauer,
     onGruppeOeffnen: onGruppeOeffnen ?? this.onGruppeOeffnen,
   );
 }

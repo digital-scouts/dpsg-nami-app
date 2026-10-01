@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nami/data/settings/shared_prefs_address_settings_repository.dart';
 import 'package:nami/data/settings/shared_prefs_stufen_settings_repository.dart';
+import 'package:nami/data/statistiks/shared_prefs_statistik_kachel_repository.dart';
 import 'package:nami/domain/stufe/altersgrenzen.dart';
 import 'package:provider/provider.dart';
 
@@ -13,9 +14,16 @@ import '../../l10n/app_localizations.dart';
 import '../model/appearance_model.dart';
 import '../model/arbeitskontext_model.dart';
 import '../model/bundesstatistik_model.dart';
+import '../model/statistik_kacheln_model.dart';
+import '../notifications/app_snackbar.dart';
 import '../navigation/app_router.dart';
 import 'bundesvergleich_page.dart';
+import 'statistik_zielwerte_page.dart';
+import '../statistics/kachel_katalog_sheet.dart';
+import '../statistics/kacheln/kachel_bearbeiten.dart';
+import '../statistics/statistik_bearbeiten_leiste.dart';
 import '../statistics/kacheln/kachel_daten.dart';
+import '../statistics/kacheln/kachel_katalog.dart';
 import '../statistics/statistics_snapshot_builder.dart';
 import '../statistics/statistik_kopf_zeile.dart';
 import '../statistics/statistik_stamm_ansicht.dart';
@@ -59,16 +67,46 @@ class _StatisticsPageState extends State<StatisticsPage> {
   Altersgrenzen _altersgrenzen = StufenDefaults.build();
   DateTime? _stichtag;
   String? _stammAddress;
-  StatistikKachelEinstellungen _einstellungen =
-      const StatistikKachelEinstellungen();
   List<StatistikVerlaufEintrag> _verlauf = const [];
   int? _geladenFuerLayer;
+
+  /// Nur ohne app-weites Modell (Stories, Tests).
+  StatistikKachelnModel? _eigenesModell;
 
   @override
   void initState() {
     super.initState();
     _loadAltersgrenzen();
     _loadStammAddress();
+  }
+
+  @override
+  void dispose() {
+    _eigenesModell?.removeListener(_modellGeaendert);
+    _eigenesModell?.dispose();
+    super.dispose();
+  }
+
+  void _modellGeaendert() {
+    if (mounted) setState(() {});
+  }
+
+  /// App-weites Modell; ohne Provider ein eigenes mit dem bereitgestellten
+  /// Repository (sonst nur im Speicher).
+  StatistikKachelnModel _kachelnModell(BuildContext context) {
+    try {
+      return context.watch<StatistikKachelnModel>();
+    } on ProviderNotFoundException {
+      return _eigenesModell ??= () {
+        StatistikKachelRepository repository;
+        try {
+          repository = context.read<StatistikKachelRepository>();
+        } on ProviderNotFoundException {
+          repository = InMemoryStatistikKachelRepository();
+        }
+        return StatistikKachelnModel(repository)..addListener(_modellGeaendert);
+      }();
+    }
   }
 
   Future<void> _loadAltersgrenzen() async {
@@ -104,25 +142,23 @@ class _StatisticsPageState extends State<StatisticsPage> {
     ).pushNamed(AppRoutes.statisticsGroupDetail, arguments: arguments);
   }
 
-  /// Lädt Kachel-Einstellungen und Verlauf des Stamms, sobald der Layer
-  /// bekannt ist oder wechselt. Ohne Repositories (Stories, Tests) bleiben
-  /// die Standardwerte.
-  void _ladeFuerLayer(int layerId) {
+  /// Lädt Kachel-Belegung und Verlauf des Stamms, sobald der Layer bekannt
+  /// ist oder wechselt. Ohne Verlaufs-Repository (Stories, Tests) bleibt der
+  /// Verlauf leer.
+  void _ladeFuerLayer(int layerId, StatistikKachelnModel modell) {
+    if (modell.layerId != layerId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) modell.ensureLoadedForLayer(layerId);
+      });
+    }
     if (_geladenFuerLayer == layerId) return;
     _geladenFuerLayer = layerId;
-    StatistikKachelRepository? kacheln;
-    StatistikVerlaufRepository? verlauf;
+    StatistikVerlaufRepository verlauf;
     try {
-      kacheln = context.read<StatistikKachelRepository>();
       verlauf = context.read<StatistikVerlaufRepository>();
     } on ProviderNotFoundException {
       return;
     }
-    kacheln.loadForLayer(layerId).then((wert) {
-      if (mounted && _geladenFuerLayer == layerId) {
-        setState(() => _einstellungen = wert);
-      }
-    });
     verlauf.loadForLayer(layerId).then((wert) {
       if (mounted && _geladenFuerLayer == layerId) {
         setState(() => _verlauf = wert);
@@ -133,6 +169,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
   StatistikKachelDaten _kachelDaten(
     ArbeitskontextReadModel readModel,
     StatisticsSnapshot snapshot,
+    StatistikKachelEinstellungen einstellungen,
   ) {
     final jetzt = widget.debugHeute ?? DateTime.now();
     final heute = DateTime(jetzt.year, jetzt.month, jetzt.day);
@@ -146,10 +183,10 @@ class _StatisticsPageState extends State<StatisticsPage> {
       statistik: statistik,
       grenzen: _altersgrenzen,
       heute: heute,
-      einstellungen: _einstellungen,
+      einstellungen: einstellungen,
       konfession: [for (final k in snapshot.confessions) k.value],
       eigeneZaehlungen: {
-        for (final kachel in _einstellungen.eigeneKacheln)
+        for (final kachel in einstellungen.eigeneKacheln)
           kachel.id: _eigeneKachelUseCase(readModel, kachel.filter),
       },
       verlauf: _verlauf,
@@ -158,6 +195,71 @@ class _StatisticsPageState extends State<StatisticsPage> {
       onGruppeOeffnen: (id) => _openGroup('$id'),
     );
   }
+
+  void _entfernen(StatistikKachelnModel modell, KachelEintrag eintrag) {
+    final t = AppLocalizations.of(context);
+    final titel = KachelKatalog.titelFuer(t, _letzteDaten!, eintrag);
+    final entfernt = modell.entfernen(eintrag.id);
+    if (entfernt == null) return;
+    AppSnackbar.show(
+      context,
+      type: AppSnackbarType.info,
+      message: t.t('statistics_edit_removed', {'title': titel}),
+      replaceCurrent: true,
+      action: AppSnackbarAction(
+        label: t.t('statistics_edit_undo'),
+        onPressed: () => modell.wiederherstellen(entfernt.$1, entfernt.$2),
+      ),
+    );
+  }
+
+  Future<void> _katalogOeffnen(
+    StatistikKachelnModel modell,
+    ArbeitskontextReadModel readModel,
+  ) async {
+    final daten = _letzteDaten;
+    if (daten == null) return;
+    final auswahl = await zeigeKachelKatalog(
+      context,
+      daten: daten,
+      readModel: readModel,
+      neueId: modell.neueId,
+    );
+    switch (auswahl) {
+      case KatalogKachel(:final typId, :final groesse):
+        modell.hinzufuegen(typId, groesse);
+      case KatalogEigeneKachel(:final kachel):
+        modell.eigeneKachelSpeichern(kachel);
+      case null:
+        break;
+    }
+  }
+
+  Future<void> _eigeneKachelBearbeiten(
+    StatistikKachelnModel modell,
+    ArbeitskontextReadModel readModel,
+    KachelEintrag eintrag,
+  ) async {
+    final kachel = modell.einstellungen.eigeneKachel(eintrag.eigeneKachelId);
+    if (kachel == null) return;
+    final neu = await zeigeEigeneKachelEditor(
+      context,
+      readModel: readModel,
+      kachel: kachel,
+      neueId: modell.neueId,
+    );
+    if (neu != null) modell.eigeneKachelSpeichern(neu);
+  }
+
+  void _zielwerteOeffnen(StatistikKachelnModel modell) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => StatistikZielwertePage(model: modell),
+      ),
+    );
+  }
+
+  StatistikKachelDaten? _letzteDaten;
 
   bool _hasBundesstatistik(BuildContext context) {
     try {
@@ -190,16 +292,59 @@ class _StatisticsPageState extends State<StatisticsPage> {
       );
     }
 
-    _ladeFuerLayer(readModel.arbeitskontext.aktiverLayer.id);
+    final layerId = readModel.arbeitskontext.aktiverLayer.id;
+    final modell = _kachelnModell(context);
+    _ladeFuerLayer(layerId, modell);
+    final geladen = modell.layerId == layerId && !modell.isLoading;
+    final einstellungen = geladen
+        ? modell.einstellungen
+        : const StatistikKachelEinstellungen();
     final snapshot = _snapshotBuilder.build(
       readModel,
       altersgrenzen: _altersgrenzen,
     );
-    final daten = _kachelDaten(readModel, snapshot);
+    final daten = _kachelDaten(readModel, snapshot, einstellungen);
+    _letzteDaten = daten;
+    final t = AppLocalizations.of(context);
+    final bearbeiten = geladen && modell.bearbeiten;
 
-    final stammView = StatistikStammAnsicht(
-      daten: daten,
-      initialesThema: widget.debugThema,
+    final stammView = _BeimVerlassen(
+      onVerlassen: modell.bearbeitenBeenden,
+      child: StatistikStammAnsicht(
+        daten: daten,
+        initialesThema: widget.debugThema,
+        unterUeberblick: geladen
+            ? Center(
+                child: OutlinedButton.icon(
+                  key: const Key('statistik-bearbeiten'),
+                  onPressed: modell.bearbeitenStarten,
+                  icon: const Icon(Icons.edit_outlined),
+                  label: Text(t.t('statistics_edit')),
+                ),
+              )
+            : null,
+        bearbeitung: bearbeiten
+            ? KachelRasterBearbeitung(
+                onVerschieben: modell.verschieben,
+                onGroesse: (eintrag, groesse) =>
+                    modell.groesseSetzen(eintrag.id, groesse),
+                onEntfernen: (eintrag) => _entfernen(modell, eintrag),
+                onAntippen: (eintrag) =>
+                    _eigeneKachelBearbeiten(modell, readModel, eintrag),
+              )
+            : null,
+        bearbeitenLeiste: StatistikBearbeitenLeiste(
+          stufenSichtbar: einstellungen.stufenSichtbar,
+          entwicklungSichtbar: einstellungen.entwicklungSichtbar,
+          onHinzufuegen: () => _katalogOeffnen(modell, readModel),
+          onFertig: modell.bearbeitenBeenden,
+          onThemaSichtbar: modell.themaSichtbar,
+        ),
+        unterBearbeiten: _ZielwerteEintrag(
+          ziele: einstellungen.ziele,
+          onTap: () => _zielwerteOeffnen(modell),
+        ),
+      ),
     );
     final background = context.watch<AppearanceModel?>()?.background;
     final bundesweitView = _hasBundesstatistik(context)
@@ -289,6 +434,66 @@ class _StatisticsTabBar extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Ruft [onVerlassen] auf, wenn der Stamm-Tab verlassen wird (Tab-Wechsel,
+/// andere Seite), z. B. um das Bearbeiten zu beenden.
+class _BeimVerlassen extends StatefulWidget {
+  const _BeimVerlassen({required this.onVerlassen, required this.child});
+
+  final VoidCallback onVerlassen;
+  final Widget child;
+
+  @override
+  State<_BeimVerlassen> createState() => _BeimVerlassenState();
+}
+
+class _BeimVerlassenState extends State<_BeimVerlassen> {
+  @override
+  void dispose() {
+    // Nicht mitten im Abbau benachrichtigen.
+    final verlassen = widget.onVerlassen;
+    WidgetsBinding.instance.addPostFrameCallback((_) => verlassen());
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
+
+/// Eintrag „Zielwerte“ unter dem Raster im Bearbeiten-Modus.
+class _ZielwerteEintrag extends StatelessWidget {
+  const _ZielwerteEintrag({required this.ziele, required this.onTap});
+
+  final StatistikZielwerte ziele;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final anzahl = ziele.gruppeMax.length + (ziele.neuProJahr == null ? 0 : 1);
+    return Material(
+      color: scheme.surface,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        key: const Key('statistik-zielwerte'),
+        leading: Icon(Icons.flag_outlined, color: scheme.primary),
+        title: Text(
+          t.t('statistics_targets'),
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        subtitle: Text(
+          anzahl == 0
+              ? t.t('statistics_targets_none')
+              : t.t('statistics_targets_count', {'count': anzahl}),
+        ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: onTap,
+      ),
     );
   }
 }

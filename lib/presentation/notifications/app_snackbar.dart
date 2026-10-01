@@ -4,6 +4,14 @@ import '../../l10n/app_localizations.dart';
 
 enum AppSnackbarType { success, warning, error, info, help }
 
+/// Knopf in der Snackbar, z. B. „Rückgängig“. Schließt die Snackbar.
+class AppSnackbarAction {
+  const AppSnackbarAction({required this.label, required this.onPressed});
+
+  final String label;
+  final VoidCallback onPressed;
+}
+
 class AppSnackbar {
   static ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? show(
     BuildContext context, {
@@ -12,6 +20,7 @@ class AppSnackbar {
     String? title,
     Duration? duration,
     bool replaceCurrent = false,
+    AppSnackbarAction? action,
   }) {
     final messenger = ScaffoldMessenger.maybeOf(context);
     if (messenger == null) {
@@ -25,6 +34,7 @@ class AppSnackbar {
       title: title,
       duration: duration,
       replaceCurrent: replaceCurrent,
+      action: action,
     );
   }
 
@@ -37,6 +47,7 @@ class AppSnackbar {
     String? title,
     Duration? duration,
     bool replaceCurrent = false,
+    AppSnackbarAction? action,
   }) {
     if (messenger == null) {
       return null;
@@ -55,6 +66,7 @@ class AppSnackbar {
           title: title ?? _defaultTitle(AppLocalizations.of(context), type),
           message: message,
           type: type,
+          action: action,
         ),
       ),
     );
@@ -81,11 +93,13 @@ class AppSnackbarContent extends StatelessWidget {
     required this.title,
     required this.message,
     required this.type,
+    this.action,
   });
 
   final String title;
   final String message;
   final AppSnackbarType type;
+  final AppSnackbarAction? action;
 
   @override
   Widget build(BuildContext context) {
@@ -177,6 +191,18 @@ class AppSnackbarContent extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (action case final action?)
+                  TextButton(
+                    style: TextButton.styleFrom(foregroundColor: Colors.white),
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      action.onPressed();
+                    },
+                    child: Text(
+                      action.label,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
                 IconButton(
                   tooltip: closeTooltip,
                   onPressed: () {
