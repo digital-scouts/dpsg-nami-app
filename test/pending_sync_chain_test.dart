@@ -95,9 +95,18 @@ void main() {
 
         chain.api.putFailure = FakePutFailure(
           422,
-          body: phoneNumberValidationErrorDocument(
-            detail: 'Nummer ist nicht gültig',
-          ),
+          body: validationErrorDocument(<Map<String, dynamic>>[
+            phoneNumberValidationError(
+              detail: 'Kategorie muss ausgefüllt werden',
+              tempId: 'new-phone-1',
+              attribute: 'category',
+              code: 'blank',
+            ),
+            phoneNumberValidationError(
+              detail: 'Nummer ist nicht gültig',
+              tempId: 'new-phone-1',
+            ),
+          ]),
         );
         chain.connectivity.setWifi();
         async.flushMicrotasks();
@@ -111,15 +120,81 @@ void main() {
         expect(chain.memberEditModel.openResolutionCount, 1);
         final resolutionCase =
             chain.memberEditModel.firstResolutionEntry!.resolutionCase!;
-        final item = resolutionCase.items.single;
-        expect(item.problemType, MemberResolutionProblemType.validation);
-        expect(item.target.type, MemberResolutionTargetType.phone);
-        expect(item.message, 'Nummer ist nicht gültig');
+        expect(resolutionCase.items.map((item) => item.message), <String>[
+          'Kategorie muss ausgefüllt werden',
+          'Nummer ist nicht gültig',
+        ]);
+        for (final item in resolutionCase.items) {
+          expect(item.problemType, MemberResolutionProblemType.validation);
+          expect(item.target.type, MemberResolutionTargetType.phone);
+          expect(item.target.relationshipId, isNull);
+          expect(item.target.newContactOrdinal, 1);
+        }
+        // Beide Meldungen betreffen dieselbe Nummer und teilen sich die
+        // Karte im Problemfall.
+        expect(
+          resolutionCase.items.map((item) => item.itemId).toSet(),
+          hasLength(1),
+        );
         expect(resolutionCase.source, MemberResolutionSource.pendingRetry);
 
         async.elapse(const Duration(hours: 2));
         expect(chain.api.putRequests, hasLength(1));
         expect(chain.api.phoneNumbersOf(_personId), isEmpty);
+        chain.dispose();
+      });
+    },
+  );
+
+  test(
+    '422 bei der zweiten neuen Nummer neben einer bestehenden trifft diese Nummer',
+    () {
+      fakeAsync((async) {
+        final chain = _SyncChain(
+          async,
+          connectivity: FakeConnectivity.offline(),
+          phoneNumbers: const <FixturePhoneNumber>[
+            FixturePhoneNumber(
+              id: 701,
+              number: '+49401234567',
+              label: 'Festnetz',
+            ),
+          ],
+        );
+        final basis = chain.loadMember();
+
+        chain.submit(
+          basis.copyWith(
+            telefonnummern: <MitgliedKontaktTelefon>[
+              ...basis.telefonnummern,
+              const MitgliedKontaktTelefon(
+                wert: '+491701234567',
+                label: 'Mobil',
+              ),
+              const MitgliedKontaktTelefon(wert: '+49 abc', label: 'Dienst'),
+            ],
+          ),
+        );
+        chain.api.putFailure = FakePutFailure(
+          422,
+          body: validationErrorDocument(<Map<String, dynamic>>[
+            phoneNumberValidationError(
+              detail: 'Nummer ist nicht gültig',
+              tempId: 'new-phone-2',
+            ),
+          ]),
+        );
+        chain.connectivity.setWifi();
+        async.flushMicrotasks();
+
+        final item = chain
+            .memberEditModel
+            .firstResolutionEntry!
+            .resolutionCase!
+            .items
+            .single;
+        expect(item.target.newContactOrdinal, 2);
+        expect(item.message, 'Nummer ist nicht gültig');
         chain.dispose();
       });
     },
@@ -292,6 +367,7 @@ class _SyncChain {
     this.async, {
     required this.connectivity,
     bool noMobileDataEnabled = false,
+    List<FixturePhoneNumber> phoneNumbers = const <FixturePhoneNumber>[],
   }) {
     DateTime now() => _start.add(async.elapsed);
     final logger = FakeLoggerService();
@@ -300,6 +376,7 @@ class _SyncChain {
         id: _personId,
         membershipNumber: 4711,
         updatedAt: DateTime.utc(2026, 4, 1, 12),
+        phoneNumbers: phoneNumbers,
       );
     oauthService = FakeOauthService(
       sessionToReturn: AuthSession(

@@ -7,6 +7,7 @@ class HitobitoApiValidationError {
     this.relationshipAttribute,
     this.relationshipType,
     this.relationshipId,
+    this.relationshipTempId,
     this.code,
   });
 
@@ -17,6 +18,10 @@ class HitobitoApiValidationError {
   final String? relationshipAttribute;
   final String? relationshipType;
   final int? relationshipId;
+
+  /// `temp-id` eines im selben Request neu angelegten Kontakts, der noch
+  /// keine Hitobito-ID hat.
+  final String? relationshipTempId;
   final String? code;
 
   @override
@@ -29,6 +34,7 @@ class HitobitoApiValidationError {
         other.relationshipAttribute == relationshipAttribute &&
         other.relationshipType == relationshipType &&
         other.relationshipId == relationshipId &&
+        other.relationshipTempId == relationshipTempId &&
         other.code == code;
   }
 
@@ -41,6 +47,7 @@ class HitobitoApiValidationError {
     relationshipAttribute,
     relationshipType,
     relationshipId,
+    relationshipTempId,
     code,
   );
 }

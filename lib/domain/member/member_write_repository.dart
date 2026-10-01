@@ -19,6 +19,7 @@ class MemberWriteFieldValidationError {
     this.relationshipAttribute,
     this.relationshipType,
     this.relationshipId,
+    this.relationshipFingerprint,
     this.code,
   });
 
@@ -29,6 +30,10 @@ class MemberWriteFieldValidationError {
   final String? relationshipAttribute;
   final String? relationshipType;
   final int? relationshipId;
+
+  /// Fingerprint eines neu angelegten Kontakts ohne [relationshipId], siehe
+  /// `MemberResolutionTarget.newContactFingerprint`.
+  final String? relationshipFingerprint;
   final String? code;
 
   String? get effectiveAttribute => relationshipAttribute ?? attribute;
@@ -46,6 +51,7 @@ class MemberWriteFieldValidationError {
         other.relationshipAttribute == relationshipAttribute &&
         other.relationshipType == relationshipType &&
         other.relationshipId == relationshipId &&
+        other.relationshipFingerprint == relationshipFingerprint &&
         other.code == code;
   }
 
@@ -58,6 +64,7 @@ class MemberWriteFieldValidationError {
     relationshipAttribute,
     relationshipType,
     relationshipId,
+    relationshipFingerprint,
     code,
   );
 }

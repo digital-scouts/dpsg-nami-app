@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:nami/domain/member/mitglied.dart';
+import 'package:nami/services/hitobito_api_exception.dart';
 import 'package:nami/services/hitobito_people_service.dart';
 
 import 'support/hitobito_jsonapi_fixtures.dart';
@@ -797,4 +798,74 @@ void main() {
       );
     },
   );
+
+  test('liest die temp-id neu angelegter Kontakte aus 422-Fehlern', () async {
+    final client = MockClient(
+      (_) async => http.Response(
+        jsonEncode(<String, dynamic>{
+          'errors': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'status': '422',
+              'detail': 'Kategorie muss ausgefüllt werden',
+              'source': <String, dynamic>{
+                'pointer': '/data/relationships/category',
+              },
+              'meta': <String, dynamic>{
+                'relationship': <String, dynamic>{
+                  'attribute': 'category',
+                  'code': 'blank',
+                  'name': 'phone_numbers',
+                  'type': 'phone_numbers',
+                  'temp-id': HitobitoPeopleService.phoneNumberCreateTempId(1),
+                },
+              },
+            },
+          ],
+        }),
+        422,
+        headers: <String, String>{
+          'content-type': 'application/vnd.api+json; charset=utf-8',
+        },
+      ),
+    );
+    final service = HitobitoPeopleService(
+      config: testHitobitoAuthConfig,
+      httpClient: client,
+    );
+
+    await expectLater(
+      () => service.updatePersonWithRelationships(
+        'token-123',
+        mitglied: Mitglied.peopleListItem(
+          mitgliedsnummer: '4711',
+          personId: 23,
+          vorname: 'Julia',
+          nachname: 'Keller',
+        ),
+        changedAttributes: const <String, dynamic>{},
+        phoneNumberMutations:
+            const <HitobitoRelationshipMutation<MitgliedKontaktTelefon>>[
+              HitobitoRelationshipMutation<MitgliedKontaktTelefon>(
+                method: HitobitoRelationshipMutationMethod.create,
+                value: MitgliedKontaktTelefon(wert: '+491701234567'),
+              ),
+            ],
+      ),
+      throwsA(
+        isA<HitobitoPeopleException>().having(
+          (error) => error.validationErrors.single,
+          'validationError',
+          const HitobitoApiValidationError(
+            message: 'Kategorie muss ausgefüllt werden',
+            pointer: '/data/relationships/category',
+            relationshipName: 'phone_numbers',
+            relationshipAttribute: 'category',
+            relationshipType: 'phone_numbers',
+            relationshipTempId: 'new-phone-1',
+            code: 'blank',
+          ),
+        ),
+      ),
+    );
+  });
 }

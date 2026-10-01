@@ -124,6 +124,10 @@ PendingPersonUpdate _buildServerConflictEntry() {
 PendingPersonUpdate _buildServerValidationEntry() {
   final basisMitglied = _buildBaseMember();
   final zielMitglied = basisMitglied.copyWith(
+    telefonnummern: <MitgliedKontaktTelefon>[
+      ...basisMitglied.telefonnummern,
+      const MitgliedKontaktTelefon(wert: '+491111', label: 'Mobil'),
+    ],
     emailAdressen: const <MitgliedKontaktEmail>[
       MitgliedKontaktEmail(
         wert: 'julia.keller@',
@@ -161,8 +165,22 @@ PendingPersonUpdate _buildServerValidationEntry() {
     basisMitglied: basisMitglied,
     zielMitglied: zielMitglied,
     remoteMitglied: basisMitglied,
-    items: const <MemberResolutionItem>[
-      MemberResolutionItem(
+    items: <MemberResolutionItem>[
+      // Zwei Meldungen zu einer neu angelegten Nummer ohne Hitobito-ID.
+      for (final message in const <String>[
+        'Kategorie muss ausgefüllt werden',
+        'Nummer ist nicht gültig',
+      ])
+        MemberResolutionItem(
+          problemType: MemberResolutionProblemType.validation,
+          cause: MemberResolutionCause.serverValidation,
+          target: MemberResolutionTarget(
+            type: MemberResolutionTargetType.phone,
+            fingerprint: MemberResolutionTarget.newContactFingerprint(1),
+          ),
+          message: message,
+        ),
+      const MemberResolutionItem(
         problemType: MemberResolutionProblemType.validation,
         cause: MemberResolutionCause.serverValidation,
         target: MemberResolutionTarget(
@@ -170,7 +188,7 @@ PendingPersonUpdate _buildServerValidationEntry() {
         ),
         message: 'Die primaere E-Mail-Adresse wurde vom Server abgelehnt.',
       ),
-      MemberResolutionItem(
+      const MemberResolutionItem(
         problemType: MemberResolutionProblemType.validation,
         cause: MemberResolutionCause.serverValidation,
         target: MemberResolutionTarget(

@@ -84,33 +84,40 @@ Map<String, dynamic> personResourceDocument({
   };
 }
 
-/// JSON:API-Fehlerdokument einer abgelehnten Mutation (422) fuer ein
-/// Attribut einer Telefonnummer, wie Hitobito es bei Sideposting liefert.
-Map<String, dynamic> phoneNumberValidationErrorDocument({
+/// Ein Validierungsfehler einer abgelehnten Mutation (422) zu einer
+/// Telefonnummer, wie Hitobito ihn bei Sideposting liefert. Neu angelegte
+/// Nummern tragen statt der [phoneNumberId] die [tempId] des Requests.
+Map<String, dynamic> phoneNumberValidationError({
   required String detail,
   int? phoneNumberId,
+  String? tempId,
   String attribute = 'number',
   String code = 'invalid',
 }) {
+  final pointer = attribute == 'category'
+      ? '/data/relationships/category'
+      : '/data/attributes/$attribute';
   return <String, dynamic>{
-    'errors': <Map<String, dynamic>>[
-      <String, dynamic>{
-        'code': 'unprocessable_entity',
-        'status': '422',
-        'title': 'Validation Error',
-        'detail': detail,
-        'source': <String, dynamic>{'pointer': '/data/attributes/$attribute'},
-        'meta': <String, dynamic>{
-          'relationship': <String, dynamic>{
-            'attribute': attribute,
-            'message': detail,
-            'code': code,
-            'name': 'phone_numbers',
-            'type': 'phone_numbers',
-            'id': phoneNumberId,
-          },
-        },
+    'code': 'unprocessable_entity',
+    'status': '422',
+    'title': 'Validation Error',
+    'detail': detail,
+    'source': <String, dynamic>{'pointer': pointer},
+    'meta': <String, dynamic>{
+      'relationship': <String, dynamic>{
+        'attribute': attribute,
+        'message': detail,
+        'code': code,
+        'name': 'phone_numbers',
+        'type': 'phone_numbers',
+        'id': ?phoneNumberId,
+        'temp-id': ?tempId,
       },
-    ],
+    },
   };
 }
+
+/// JSON:API-Fehlerdokument mit den angegebenen Validierungsfehlern.
+Map<String, dynamic> validationErrorDocument(
+  List<Map<String, dynamic>> errors,
+) => <String, dynamic>{'errors': errors};
