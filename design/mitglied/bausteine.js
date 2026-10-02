@@ -31,6 +31,8 @@
     return kurz ? `${j} J.` : `${j} Jahren`;
   }
   const plural = (n, eins, viele) => `${n} ${n === 1 ? eins : viele}`;
+  // Ab Runde 2 gelten die Festlegungen aus Runde 1; ältere Runden-Seiten bleiben unverändert.
+  const R2 = (ctx) => (ctx.runde || 1) >= 2;
 
   // ------------------------------------------------------------- Symbole
   const PFADE = {
@@ -168,7 +170,7 @@
       <div class="steck-main"><span class="av gross">${initialen(p)}</span>
         <div class="steck-t"><b>${esc(titel(p))}</b>${p.fahrtenname ? `<small>${esc(`${p.vorname} ${p.nachname}`)}</small>` : ''}
           <div class="steck-f">${fakten.map(esc).join(' · ')}</div></div></div>
-      <div class="steck-chips">${chips.join('')}<span class="sbadge efz ${efz.ton}"><i class="punkt"></i>EFZ ${esc(efz.kurz)}</span></div>
+      <div class="steck-chips${chips.length || !R2(ctx) ? '' : ' leer'}">${chips.join('')}${R2(ctx) ? '' : `<span class="sbadge efz ${efz.ton}"><i class="punkt"></i>EFZ ${esc(efz.kurz)}</span>`}</div>
       ${tabZeile(aktiv)}</header>`;
   }
 
@@ -270,13 +272,13 @@
     z.push(zeile(D.STAMM, 'Stamm', { icon: i('group') }));
     return z.join('');
   }
-  function persoenlichZeilen(p, icons, { ohneAlter = false } = {}) {
+  function persoenlichZeilen(p, icons, { ohneAlter = false, konfession = true } = {}) {
     const i = (n) => (icons ? ico(n, 19, 'muted') : '');
     const z = [];
     if (p.geburtsdatum && !ohneAlter) z.push(zeile(`${alter(p.geburtsdatum)} Jahre`, `Geburtstag ${dmy(p.geburtsdatum)}`, { icon: i('cake') }));
     if (p.geschlecht) z.push(zeile(esc(p.geschlecht), 'Geschlecht', { icon: i('person') }));
     if (p.pronomen) z.push(zeile(esc(p.pronomen), 'Pronomen', { icon: i('person') }));
-    z.push(zeile('<span class="platzhalter">noch nicht verfügbar</span>', 'Konfession', { icon: i('person'), klasse: 'blass' }));
+    if (konfession) z.push(zeile('<span class="platzhalter">noch nicht verfügbar</span>', 'Konfession', { icon: i('person'), klasse: 'blass' }));
     return z.join('');
   }
   const AKTIONEN = (p) => `<div class="qa"><span class="${p.telefon.length ? '' : 'aus'}">${ico('phone', 17)}Anrufen</span><span class="${p.mail.length ? '' : 'aus'}">${ico('mail', 17)}E-Mail</span><span>${ico('edit', 17)}Bearbeiten</span></div>`;
@@ -290,7 +292,7 @@
         <div class="card">${kontaktListe(p, ctx, { icons: true, aktionen: true, zuerst: 1 })}</div>
         ${p.adressen.length ? `<div class="gap"></div>${adressKarte(p, ctx, { icons: true, kartenOben: true })}` : ''}
         ${p.haushalt.length ? `${sec('Familie')}${familie(p, { icons: false })}` : ''}
-        ${sec(`Über ${esc(p.fahrtenname || p.vorname)}`)}<div class="card">${persoenlichZeilen(p, true)}${mitgliedschaftsZeilen(p, true)}</div>`;
+        ${sec(`Über ${esc(p.fahrtenname || p.vorname)}`)}<div class="card">${persoenlichZeilen(p, true, { konfession: !R2(ctx) })}${mitgliedschaftsZeilen(p, true)}</div>`;
     }
     if (v === 'D3') {
       const fakten = [
@@ -302,10 +304,10 @@
         ${p.haushalt.length ? `${sec('Familie im Stamm')}${familie(p, { chips: true })}` : ''}
         ${sec('Kontakt')}<div class="card">${kontaktListe(p, ctx, { icons: true, aktionen: true, zuerst: 1 })}</div>
         ${p.adressen.length ? `${sec('Adresse')}${adressKarte(p, ctx, {})}` : ''}
-        ${sec('Details')}<div class="card zwei">${persoenlichZeilen(p, false, { ohneAlter: true })}${mitgliedschaftsZeilen(p, false, { ohneDauer: true })}</div>`;
+        ${sec('Details')}<div class="card zwei">${persoenlichZeilen(p, false, { ohneAlter: true, konfession: !R2(ctx) })}${mitgliedschaftsZeilen(p, false, { ohneDauer: true })}</div>`;
     }
     return `${austrittsBanner(p)}${AKTIONEN(p)}
-      ${sec('Persönliche Daten')}<div class="card">${persoenlichZeilen(p, false)}</div>
+      ${sec('Persönliche Daten')}<div class="card">${persoenlichZeilen(p, false, { konfession: !R2(ctx) })}</div>
       ${sec('Kontakt')}<div class="card">${kontaktListe(p, ctx, { zuerst: 1 })}</div>
       ${p.adressen.length ? `${sec('Adresse')}${adressKarte(p, ctx, {})}` : ''}
       ${p.haushalt.length ? `${sec('Familie')}${familie(p)}` : ''}
@@ -345,7 +347,7 @@
         return `${sec(esc(l), l === D.AKTIVER_LAYER ? '' : 'anderer Layer')}<div class="card">${html}</div>`;
       }).join('') + historieHinweis(ctx);
     }
-    if (v === 'R3') return zeitstrahl(p, ctx, rollen);
+    if (v === 'R3') return R2(ctx) ? zeitstrahl2(p, ctx, rollen) : zeitstrahl(p, ctx, rollen);
     let html = '';
     if (zukunft.length) html += `${sec('Zukünftig', zukunft.length)}<div class="card">${zukunft.map((r) => rollenZeile(r)).join('')}</div>`;
     html += aktiv.length ? `${sec('Aktiv', aktiv.length)}<div class="card">${aktiv.map((r) => rollenZeile(r)).join('')}</div>` : `${sec('Aktiv')}<div class="card"><div class="leer">Keine aktive Rolle</div></div>`;
@@ -368,6 +370,51 @@
     if (!ctx.offen && reihen.length > 5) html += aufklapp(`${reihen.length - 5} frühere Jahre anzeigen`, false);
     html += `<div class="zs eintritt"><span class="zs-j">${jahr(p.eintritt)}</span><span class="zs-l ende"></span><div class="zs-e"><small>Eintritt in die DPSG</small></div></div>`;
     return `${sec('Rollen', rollen.length)}<div class="card">${html}</div>${historieHinweis(ctx)}`;
+  }
+
+  // Runde 2: Zeitstrahl mit Layer-Filter (F1 Umschalter, F2 Hinweis am Ende)
+  // und Hervorhebung aktiver Rollen (H1 getönte Zeile, H2 gefüllte Punkte, H3 Block „Jetzt“).
+  function zeitstrahl2(p, ctx, alle) {
+    const fremd = alle.filter((r) => r.layer !== D.AKTIVER_LAYER);
+    const nurAktiv = ctx.layerFilter === 'aktiv' && fremd.length > 0;
+    const rollen = nurAktiv ? alle.filter((r) => r.layer === D.AKTIVER_LAYER) : alle;
+    const h = ctx.hervor || 'H1';
+    const f = ctx.filterUi || 'F1';
+    const zeit = (r) => (r.status === 'vergangen' ? (!r.ohneStart && jahr(r.start) === jahr(r.ende) ? `${MONATE[+r.start.slice(5, 7) - 1]} – ${my(r.ende)}` : `${r.ohneStart ? '?' : my(r.start)} – ${my(r.ende)}`) : r.status === 'aktiv' ? (r.ohneStart ? 'aktiv' : `aktiv seit ${my(r.start)}`) : `ab ${my(r.start)}`);
+    const eintrag = (r) => `<div class="zs-r ${r.status}">${rollenIcon(r, 24)}<div><b>${esc(rollenTitel(r))}${r.layer !== D.AKTIVER_LAYER ? `<span class="lchip">${esc(r.layer.split(' ')[0])}</span>` : ''}</b><small>${esc(r.gruppe)} · ${zeit(r)}</small></div></div>`;
+    let jetzt = '';
+    let strahl = rollen;
+    if (h === 'H3') {
+      const oben = rollen.filter((r) => r.status !== 'vergangen').sort((a, b) => (a.status === 'zukunft' ? -1 : b.status === 'zukunft' ? 1 : t(b.start) - t(a.start)));
+      strahl = rollen.filter((r) => r.status === 'vergangen');
+      jetzt = oben.length ? `<div class="card jetzt">${oben.map(eintrag).join('')}</div>` : '';
+    }
+    const nachJahr = new Map();
+    for (const r of strahl) {
+      const j = r.status === 'zukunft' ? 'Geplant' : jahr(r.start);
+      if (!nachJahr.has(j)) nachJahr.set(j, []);
+      nachJahr.get(j).push(r);
+    }
+    const reihen = [...nachJahr.entries()].sort((a, b) => (a[0] === 'Geplant' ? -1 : b[0] === 'Geplant' ? 1 : b[0] - a[0]));
+    const grenze = h === 'H3' ? 4 : 5;
+    const begrenzt = ctx.offen ? reihen : reihen.slice(0, grenze);
+    let html = begrenzt.map(([j, rs], i) => `<div class="zs ${j === 'Geplant' ? 'plan' : ''} ${rs.some((r) => r.status === 'aktiv') ? 'hat-aktiv' : ''}"><span class="zs-j">${j}</span><span class="zs-l${i === begrenzt.length - 1 && !reihen.length ? ' ende' : ''}"></span><div class="zs-e">${rs.map(eintrag).join('')}</div></div>`).join('');
+    if (!ctx.offen && reihen.length > grenze) html += `<div class="zs mehrzeile"><span></span><span class="zs-l"></span>${aufklapp(`${reihen.length - grenze} frühere Jahre anzeigen`, false)}</div>`;
+    html += `<div class="zs eintritt"><span class="zs-j">${jahr(p.eintritt)}</span><span class="zs-l ende"></span><div class="zs-e"><small>Eintritt in die DPSG</small></div></div>`;
+    const anzahl = nurAktiv ? `${rollen.length} (${alle.length - rollen.length} ausgeblendet)` : alle.length;
+    let filterOben = '';
+    let filterUnten = '';
+    if (fremd.length && f === 'F1') {
+      filterOben = `<div class="segf"><span class="${nurAktiv ? 'on' : ''}">${esc(D.AKTIVER_LAYER)}</span><span class="${nurAktiv ? '' : 'on'}">Alle Layer</span></div>`;
+    } else if (fremd.length && f === 'F2') {
+      const ebenen = [...new Set(fremd.map((r) => r.layer.split(' ')[0]))].join(' und ');
+      filterUnten = nurAktiv
+        ? `<div class="filterzeile">${ico('people', 15)}<span>${plural(fremd.length, 'Rolle', 'Rollen')} aus ${esc(ebenen)} ausgeblendet</span><u>Anzeigen</u></div>`
+        : `<div class="filterzeile">${ico('people', 15)}<span>Alle Layer</span><u>Nur ${esc(D.AKTIVER_LAYER)}</u></div>`;
+    }
+    const titel = h === 'H3' ? `${sec('Rollen', anzahl)}${filterOben}${jetzt}${strahl.length ? sec('Früher') : ''}` : `${sec('Rollen', anzahl)}${filterOben}`;
+    const strahlKarte = strahl.length || h !== 'H3' ? `<div class="card zstrahl ${h.toLowerCase()}">${html}${filterUnten}</div>` : `<div class="card zstrahl">${html}${filterUnten}</div>`;
+    return `${titel}${strahlKarte}${historieHinweis(ctx)}`;
   }
 
   // ------------------------------------------------------------- Verlauf
@@ -423,6 +470,7 @@
   function verlauf(p, ctx) {
     const v = ctx.verlauf || 'V1';
     const k = kennzahlen(p, ctx);
+    if (v === 'K1' || v === 'K2') return verlaufKombi(p, ctx, k, v);
     if (k.jung) return neulingKarte(p, k);
     if (v === 'V3') return verlaufZahlen(p, ctx, k);
     if (v === 'V2') return verlaufTreppe(p, ctx, k);
@@ -435,7 +483,7 @@
     const a = t(p.eintritt);
     return erste - a > 180 * TAG ? { a, b: erste } : null;
   }
-  function verlaufBand(p, ctx, k) {
+  function verlaufBand(p, ctx, k, { nurDiagramm = false } = {}) {
     const W = 326; const LAB = 54; const PW = W - LAB; const H = 14; const G = 3;
     const von = t(p.eintritt); const bis = p.austritt ? t(p.austritt) : HEUTE;
     const x = (d) => LAB + ((d - von) / (bis - von || 1)) * PW;
@@ -458,7 +506,7 @@
         const tip = `${rollenTitel(s)} · ${s.gruppe} · ${jahr(s.start)}–${s.status === 'aktiv' ? 'heute' : jahr(s.ende)}`;
         svg += `<g><title>${esc(tip)}</title><rect x="${sx}" y="${sy}" width="${sw}" height="${H}" rx="4" fill="${farbe}" ${s.stufe === 'biber' ? 'stroke="var(--biber-ring-stark)" stroke-width="1"' : ''}/>`;
         // Kürzel als zweite Codierung (Pfadi-Grün/Rover-Rot sind bei Rot-Grün-Schwäche kaum trennbar).
-        const text = kurz && (sw >= kurz.length * 5.6 + 6 ? kurz : sw >= 11 ? kurz[0] : '');
+        const text = kurz && (sw >= kurz.length * 5.6 + 6 ? kurz : sw >= 11 && !R2(ctx) ? kurz[0] : '');
         if (text) svg += `<text class="t-in" x="${sx + sw / 2}" y="${sy + 10.5}" text-anchor="middle" fill="${s.stufe === 'biber' ? '#1c1c1e' : '#fff'}">${text}</text>`;
         svg += '</g>';
       }
@@ -469,7 +517,9 @@
     const hoehe = y + 14;
     const defs = `<defs><pattern id="schraffur-${ctx.modus}" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="var(--surface2)"/><line x1="0" y1="0" x2="0" y2="6" stroke="var(--border)" stroke-width="3"/></pattern></defs>`;
     const fuss = lu ? `<div class="foot muted"><span class="band schraffur"></span>früher, noch nicht abrufbar</div>` : '';
-    return `<div class="card vl">${verlaufKopf(p, k)}<svg class="viz" width="${W}" height="${hoehe}" viewBox="0 0 ${W} ${hoehe}">${defs}${tickSvg}${svg}</svg>${fuss}</div>`;
+    const diagramm = `<svg class="viz" width="${W}" height="${hoehe}" viewBox="0 0 ${W} ${hoehe}">${defs}${tickSvg}${svg}</svg>${fuss}`;
+    if (nurDiagramm) return diagramm;
+    return `<div class="card vl">${verlaufKopf(p, k)}${diagramm}</div>`;
   }
   function verlaufTreppe(p, ctx, k) {
     // Je Stufe und Art eine Zeile, auf gemeinsamer Zeitachse; ergibt die Treppe.
@@ -523,6 +573,21 @@
     }).join('<span class="pfeil">›</span>');
     return `<div class="card vl"><div class="stats">${kacheln.map(([w, l, s]) => `<div class="stat"><div class="stat-val">${esc(w)}</div><div class="stat-lab">${esc(l)}</div><div class="stat-sub">${esc(s)}</div></div>`).join('')}</div><div class="pfadzeile">${pfad}</div>${ctx.historie ? '' : '<div class="foot muted">Frühere Stufen erscheinen, sobald Hitobito sie liefert.</div>'}</div>`;
   }
+  // Runde 2: erst Kennzahlen (aus V3), dann Bahnen (V1). K1 in einer Karte, K2 Kacheln frei darüber.
+  function kennKacheln(p, ctx, k) {
+    const leitStufen = [...new Set(k.iv.filter((s) => s.art === 'l' && s.stufe).map((s) => s.stufe))];
+    const stufen = k.stufenM.filter((s) => ['woe', 'jufi', 'pfadi', 'rover'].includes(s)).length;
+    return [
+      [faktDauer(p.eintritt, p.austritt || heuteIso), p.austritt ? 'dabei gewesen' : 'dabei', p.austritt ? `${jahr(p.eintritt)}–${jahr(p.austritt)}` : `seit ${jahr(p.eintritt)}`],
+      [k.leitJahre >= 1 ? `${Math.round(k.leitJahre)} J.` : k.leitJahre > 0 ? '<1 J.' : '–', 'in der Leitung', leitStufen.length ? leitStufen.map((s) => D.stufen[s].kurz).join(', ') : 'noch nicht'],
+      [`${stufen}/4`, 'Stufen', ctx.historie ? 'durchlaufen' : 'bekannt'],
+    ].map(([w, l, s]) => `<div class="stat"><div class="stat-val">${esc(w)}</div><div class="stat-lab">${esc(l)}</div><div class="stat-sub">${esc(s)}</div></div>`).join('');
+  }
+  function verlaufKombi(p, ctx, k, v) {
+    const diagramm = k.jung ? '<div class="foot muted">Der Verlauf wächst mit jeder Stufe.</div>' : verlaufBand(p, ctx, k, { nurDiagramm: true });
+    if (v === 'K2') return `<div class="stats frei">${kennKacheln(p, ctx, k)}</div><div class="card vl">${diagramm}</div>`;
+    return `<div class="card vl"><div class="stats">${kennKacheln(p, ctx, k)}</div><div class="trenn"></div>${diagramm}</div>`;
+  }
   function rollenTab(p, ctx) {
     return `${sec('Pfadfinder-Verlauf')}${verlauf(p, ctx)}${rollenListe(p, ctx)}`;
   }
@@ -531,9 +596,9 @@
   function efzInfo(efz, ctx = {}) {
     const z = ctx.efzZustand || efz.status;
     switch (z) {
-      case 'gueltig': return { ton: 'gut', kurz: 'gültig', pill: 'Gültig', zeile: `Gültig bis ${dmy(efz.bis)}`, detail: `ausgestellt ${dmy(efz.ausgestellt)} · eingesehen ${dmy(efz.eingesehen)}`, icon: 'shield' };
-      case 'bald': return { ton: 'warn', kurz: 'läuft ab', pill: 'Läuft bald ab', zeile: `Gültig bis ${dmy(efz.bis)}`, detail: `noch ${dauer(heuteIso, efz.bis)} · eingesehen ${dmy(efz.eingesehen)}`, icon: 'shield' };
-      case 'abgelaufen': return { ton: 'schlecht', kurz: 'abgelaufen', pill: 'Abgelaufen', zeile: `Abgelaufen am ${dmy(efz.bis)}`, detail: `ausgestellt ${dmy(efz.ausgestellt)}`, icon: 'shield' };
+      case 'gueltig': return { ton: 'gut', kurz: 'gültig', pill: 'Gültig', zeile: `Gültig bis ${dmy(efz.bis)}`, detail: R2(ctx) ? '' : `ausgestellt ${dmy(efz.ausgestellt)} · eingesehen ${dmy(efz.eingesehen)}`, icon: 'shield' };
+      case 'bald': return { ton: 'warn', kurz: 'läuft ab', pill: 'Läuft bald ab', zeile: `Gültig bis ${dmy(efz.bis)}`, detail: R2(ctx) ? `noch ${dauer(heuteIso, efz.bis)}` : `noch ${dauer(heuteIso, efz.bis)} · eingesehen ${dmy(efz.eingesehen)}`, icon: 'shield' };
+      case 'abgelaufen': return { ton: 'schlecht', kurz: 'abgelaufen', pill: 'Abgelaufen', zeile: `Abgelaufen am ${dmy(efz.bis)}`, detail: R2(ctx) ? '' : `ausgestellt ${dmy(efz.ausgestellt)}`, icon: 'shield' };
       case 'unbekannt': return { ton: 'leise', kurz: '?', pill: '', zeile: 'Noch nicht synchronisiert', detail: 'Wird beim nächsten Abgleich geladen', icon: 'clock' };
       case 'verboten': return { ton: 'leise', kurz: '–', pill: '', zeile: 'Keine Berechtigung', detail: 'Nur Erfasser*innen Führungszeugnis sehen den Status', icon: 'lock' };
       default: return { ton: 'neutral', kurz: 'keines', pill: '', zeile: 'Keines hinterlegt', detail: '', icon: 'shield' };
