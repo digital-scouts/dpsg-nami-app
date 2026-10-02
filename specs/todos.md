@@ -85,11 +85,8 @@ Gesammelt am 2026-10-01, jeweils mit Kurzbefund. Jede Stufe wird vor der Umsetzu
 
 **Mitgliedsdetails: offene Punkte**
 
-- Gegen dpsg.puzzle.ch prüfen:
-  - Liefert `/api/qualifications` Daten, und mit welchen Rechten?
-  - Liefern Rollen mit `include=group,layer_group` den Gruppen- und Layernamen?
-  - Ist `household_key` gesetzt?
-  - Lässt sich `fields[people]` ohne Bankfelder nutzen?
+- Auf dpsg.puzzle.ch bestätigt (2026-10-02): `/api/qualifications` liefert Daten, Rollen tragen über `include=group,layer_group` Gruppe und Layer, `household_key` verknüpft Haushalte.
+- Noch prüfen: Lässt sich `fields[people]` ohne Bankfelder nutzen, damit sie gar nicht erst geladen werden?
 - Vergangene Rollen: Die API liefert beendete Rollen derzeit nicht. Verlauf und Zeitstrahl sind darauf vorbereitet und markieren die Zeit vor der ersten bekannten Rolle. Zu klären ist, ob `filter[end_on]` oder ein Upstream-PR einen Abruf ermöglicht.
 - Store-Screenshots der Szene `Store/Mitgliedsdetail` neu erzeugen.
 
