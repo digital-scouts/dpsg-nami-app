@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../domain/appearance/appearance_catalog.dart';
 import '../../domain/arbeitskontext/arbeitskontext_read_model.dart';
+import '../../domain/arbeitskontext/teildaten_stand.dart';
 import '../../domain/maps/address_map_location_repository.dart';
 import '../../domain/member/mitglied.dart';
 import '../../domain/member/pending_person_update.dart';
@@ -19,7 +20,7 @@ import '../model/arbeitskontext_model.dart';
 import '../model/auth_session_model.dart';
 import '../model/member_edit_model.dart';
 import '../notifications/app_snackbar.dart';
-import '../widgets/efz_status_section.dart';
+import '../widgets/member_detail/member_qualifikationen_tab.dart';
 import '../widgets/member_basis.dart';
 import '../widgets/member_detail/member_rollen_tab.dart';
 import '../navigation/app_router.dart';
@@ -415,7 +416,24 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
                     ),
                   ),
                   _TabBleibtErhalten(
-                    child: EfzStatusSection(mitglied: currentMitglied),
+                    child: MemberQualifikationenTab(
+                      mitglied: currentMitglied,
+                      heute: heute,
+                      efzStand: readModel?.efzStand ?? TeildatenStand.unbekannt,
+                      efzEinsichtnahmen:
+                          readModel?.findeEfzEinsichtnahmen(
+                            currentMitglied.personId,
+                          ) ??
+                          const [],
+                      qualifikationenStand:
+                          readModel?.qualifikationenStand ??
+                          TeildatenStand.unbekannt,
+                      qualifikationen:
+                          readModel?.findeQualifikationen(
+                            currentMitglied.personId,
+                          ) ??
+                          const [],
+                    ),
                   ),
                 ],
               ),
