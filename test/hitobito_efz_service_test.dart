@@ -182,4 +182,37 @@ void main() {
       );
     },
   );
+
+  test(
+    'ueberspringt unvollstaendige Eintraege und liest person aus relationships',
+    () async {
+      final client = MockClient(
+        (request) async => http.Response(
+          '''
+        {
+          "data": [
+            { "id": "1", "type": "efz_einsichtnahmen", "attributes": { "issued_on": "2021-02-15" } },
+            {
+              "id": "2", "type": "efz_einsichtnahmen",
+              "attributes": { "issued_on": "2022-02-15" },
+              "relationships": { "person": { "data": { "id": "42", "type": "people" } } }
+            },
+            { "id": "3", "type": "efz_einsichtnahmen", "attributes": { "person_id": 7, "issued_on": "2023-02-15" } }
+          ],
+          "links": { "next": null }
+        }
+        ''',
+          200,
+          headers: <String, String>{'content-type': 'application/json'},
+        ),
+      );
+
+      final result = await HitobitoEfzService(
+        config: _testConfig(),
+        httpClient: client,
+      ).fetchAlleEfzEinsichtnahmen('token');
+
+      expect(result.map((e) => (e.id, e.personId)), [(2, 42), (3, 7)]);
+    },
+  );
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/appearance/appearance_catalog.dart';
+import 'status_farben.dart';
 
 /// Zentrale Farbdefinitionen der DPSG App.
 /// Hinweis: Domain-Layer sollte diese Datei nicht importieren. Falls `Stufe`
@@ -281,6 +282,13 @@ ThemeData buildTheme(AppPaletteId paletteId, Brightness brightness) {
   return ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
+    extensions: <ThemeExtension<dynamic>>[
+      StatusFarben(
+        gut: c.success,
+        warnung: isDark ? StatusFarben.warnungDunkel : StatusFarben.warnungHell,
+        kritisch: c.error,
+      ),
+    ],
     scaffoldBackgroundColor: c.bg,
     disabledColor: isDark
         ? const Color(0xFF424242)

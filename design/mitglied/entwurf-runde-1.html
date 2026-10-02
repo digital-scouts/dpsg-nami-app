@@ -1,0 +1,267 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8">
+<title>Entwürfe: Mitgliedsdetails, Runde 1</title>
+<link rel="stylesheet" href="../statistik/basis.css">
+<link rel="stylesheet" href="mitglied.css">
+<script src="daten.js"></script>
+<script src="lilie.js"></script>
+<script src="bausteine.js"></script>
+</head><body>
+<div class="bar">
+  <span><b>Person</b><span class="tgl" id="tgl-person"></span></span>
+  <span><b>Rollen-Historie</b><span class="tgl" id="tgl-historie"><button data-v="1">mit früheren Rollen</button><button data-v="0">wie heute (nur aktuelle)</button></span></span>
+  <nav><a href="#struktur">1 Struktur</a><a href="#daten">2 Daten</a><a href="#rollen">3 Rollen</a><a href="#verlauf">4 Verlauf</a><a href="#quali">5 Qualifikationen</a><a href="#galerie">6 Alle Personen</a><a href="#rueckmeldung">7 Rückmeldung</a></nav>
+</div>
+<main>
+  <h1>Mitgliedsdetails: Entwürfe, Runde 1</h1>
+  <p>Varianten für Struktur, Daten, Rollen, Pfadfinder-Verlauf und Qualifikationen. Alle Personen sind erfunden und decken die Edge Cases aus <code>specs/mitgliedsdetails-redesign.md</code> ab. Stichtag ist der 02.10.2026. Oben lassen sich die Person und die Datenlage umschalten: „wie heute“ zeigt, was die API derzeit liefert, also keine vergangenen Rollen.</p>
+  <div class="fest-list"><b>Festgelegt</b> <span class="tag">festgelegt</span>
+    <ul>
+      <li>EFZ bleibt im Qualifikationen-Tab als kompakte Zeile bei jedem Mitglied, ohne Unterscheidung nach Pflicht. Zustände: keines hinterlegt, Daten, läuft bald ab. Der Download der Antragsunterlagen bleibt.</li>
+      <li>Bankdaten erscheinen nirgends und werden nicht mehr gespeichert.</li>
+      <li>Neu sind Zusatzadressen, Austritt bzw. Mitgliedsdauer und Familie. Weitere Adressen, E-Mails und Telefonnummern sind eingeklappt.</li>
+      <li>Qualifikationen und EFZ sind nach dem Sync offline verfügbar.</li>
+    </ul></div>
+
+  <section class="part" id="struktur">
+    <h2>1 · Gesamtstruktur</h2>
+    <p>Wie die drei Bereiche zusammenhängen. Die Inhalte zeigen jeweils D1, R1, V1 und E1, die Unterschiede liegen im Kopf und in der Navigation. Die Handys haben feste iPhone-Höhe.</p>
+    <div id="slot-struktur"></div>
+  </section>
+
+  <section class="part" id="daten">
+    <h2>2 · Daten</h2>
+    <p>Links ist alles eingeklappt, rechts im dunklen Modus ausgeklappt. Mats hat fünf Telefonnummern, drei E-Mails, drei Adressen und zwei Geschwister.</p>
+    <div id="slot-daten"></div>
+    <h3 style="margin-top:10px">Kartenzustände</h3>
+    <p>Bisher belegt jeder Fehler die volle Kartenhöhe von 186 px, und beim Laden steht schon „Karte nicht verfügbar“. Hier drei Varianten, wie Fehler kompakt bleiben. Das Laden zeigt keinen Text mehr.</p>
+    <div id="slot-karte"></div>
+  </section>
+
+  <section class="part" id="rollen">
+    <h2>3 · Rollen</h2>
+    <p>Gezeigt wird nur die Rollenliste, ohne Verlauf (siehe Abschnitt 4). Das Stufenbild ist von 80 auf 32 px verkleinert. Mitgliedsrollen tragen das Maskottchen, Leitungsrollen die Lilie in Stufenfarbe, Ämter eine graue Lilie. Rollen aus anderen Layern haben einen Layer-Hinweis. Wischen ohne Funktion entfällt.</p>
+    <div id="slot-rollen"></div>
+  </section>
+
+  <section class="part" id="verlauf">
+    <h2>4 · Pfadfinder-Verlauf</h2>
+    <p>Eine Karte oben im Rollen-Tab. Jede Zeile zeigt eine Variante mit allen Edge Cases. „Wie heute“ markiert die Zeit vor der ersten bekannten Rolle schraffiert, weil die API frühere Rollen noch nicht liefert. Pfadi-Grün und Rover-Rot sind bei Rot-Grün-Schwäche kaum unterscheidbar (geprüft, ΔE 4,6). Deshalb stehen Kürzel in den Balken, und zwischen den Segmenten bleiben Lücken. Beim Hovern über einen Balken erscheint die Rolle.</p>
+    <div id="slot-verlauf"></div>
+  </section>
+
+  <section class="part" id="quali">
+    <h2>5 · Qualifikationen</h2>
+    <p>Das EFZ steht als kompakte Zeile oben, darunter die Qualifikationen aus <code>/api/qualifications</code> im gleichen Stil. Rechts daneben alle EFZ-Zustände, inklusive „noch nicht synchronisiert“ und „keine Berechtigung“. Ohne Berechtigung entfällt der Download.</p>
+    <div id="slot-quali"></div>
+  </section>
+
+  <section class="part" id="galerie">
+    <h2>6 · Alle Personen</h2>
+    <p>Zum Durchspielen: Varianten wählen und sehen, wie alle sechs Personen damit aussehen.</p>
+    <div class="bar" style="position:static;padding:10px 0;background:none;border:0" id="galerie-bar"></div>
+    <div class="galerie" id="slot-galerie"></div>
+  </section>
+
+  <section class="part" id="rueckmeldung">
+    <h2>7 · Rückmeldung</h2>
+    <p>Auswählen, kurz kommentieren, „Auswahl kopieren“ und den Text in den Chat einfügen.</p>
+    <form class="fb" id="fb"></form>
+  </section>
+</main>
+<script>
+(function () {
+  const D = window.MITGLIED;
+  const B = window.MBAU;
+  const q = new URLSearchParams(location.search);
+  const zustand = { person: q.get('person') || 'lena', historie: q.get('historie') !== '0' };
+
+  // Farbvariablen je Modus.
+  const zusatz = {
+    hell: { '--biber-ring-stark': '#8e8e93', '--ghost': '#e3e3e8', '--map-bg': '#edf0e9', '--map-road': '#ffffff', '--map-water': '#d3e2ee', '--map-park': '#dbe8d2', '--amt': '#a1a1aa' },
+    dunkel: { '--biber-ring-stark': '#ffffff', '--ghost': '#363642', '--map-bg': '#1c2320', '--map-road': '#2c3531', '--map-water': '#1d2e3b', '--map-park': '#1f2d22', '--amt': '#6e6e7c' },
+  };
+  let css = '';
+  for (const modus of ['hell', 'dunkel']) {
+    const p = D.palette[modus];
+    const vars = { '--bg': p.bg, '--surface': p.surface, '--surface2': p.surface2, '--fg': p.fg, '--fg2': p.fg2, '--muted': p.muted, '--border': p.border,
+      '--primary': p.primary, '--on-primary': p.onPrimary, '--primary-lite': p.primaryLite, '--grid': p.grid, '--success': p.success, '--error': p.error, '--warn': p.warn, ...zusatz[modus] };
+    for (const [id, c] of Object.entries(D.stufenfarben[modus])) vars[`--st-${id}`] = c;
+    css += `.phone.${modus},.mpanel.${modus}{${Object.entries(vars).map(([k, v]) => `${k}:${v}`).join(';')}}`;
+  }
+  document.head.insertAdjacentHTML('beforeend', `<style>${css}</style>`);
+
+  const ctxVon = (modus, extra = {}) => ({ modus, historie: zustand.historie, ...extra });
+  const variante = (id, titel, desc, inhalt) => `<div class="variant" data-shot-group="${id}"><h3>${titel}</h3><p class="desc">${desc}</p><div class="phones">${inhalt}</div></div>`;
+
+  // ---------- 1 Struktur
+  function struktur() {
+    const p = D.personen[zustand.person];
+    const S = [
+      ['S1', 'S1 · Tabs wie heute', 'Kompakter Kopf mit Stufen-Badge, darunter drei Tabs. Vertraut, jeder Bereich hat Platz.'],
+      ['S2', 'S2 · Steckbrief-Kopf und Tabs', 'Der Kopf fasst zusammen: Alter, Pronomen, Dauer der Mitgliedschaft, alle aktiven Stufen und den EFZ-Status als Punkt. Damit steht das Wichtigste ohne Tabwechsel da. Bearbeiten sitzt oben rechts.'],
+      ['S3', 'S3 · Eine Seite mit Sprungmarken', 'Alles untereinander, oben Sprungmarken als Chips. Gut zum Durchscrollen, aber bei Vielrollen lang. Die Handys zeigen den Seitenanfang sowie den Zustand nach dem Sprung zu Rollen und Qualifikationen.'],
+    ];
+    return S.map(([id, t, d]) => variante(`struktur-${id}`, t, d, [0, 1, 2].map((tab) => B.bildschirm(p, ctxVon(tab === 2 ? 'dunkel' : 'hell'), id, tab, { shot: `struktur-${id}-${tab}`, fest: true, beschriftung: B.TABS[tab] + (tab === 2 ? ' · dunkel' : '') })).join(''))).join('');
+  }
+
+  // ---------- 2 Daten
+  function daten() {
+    const p = D.personen[zustand.person];
+    const V = [
+      ['D1', 'D1 · Karten wie heute, aufgeräumt', 'Die Abschnitte bleiben, die Schnellaktionen oben auch. Von jeder Art sind die ersten Einträge sichtbar, der Rest ist hinter „+ weitere“ eingeklappt. Neu: Familie und Mitgliedsdauer.'],
+      ['D2', 'D2 · Liste mit Symbolen', 'Weniger Überschriften, Symbole statt Labels. Anrufen und E-Mail sitzen als runde Knöpfe direkt an der Nummer, die Schnellaktionen entfallen. Die Karte steht über der Adresse.'],
+      ['D3', 'D3 · Kennzahlen zuerst', 'Oben zwei Kacheln mit Alter und Mitgliedsdauer, Familie als Chips, dann Kontakt und Adresse. Der Rest ist unter „Details“ gesammelt.'],
+    ];
+    return V.map(([id, t, d]) => variante(`daten-${id}`, t, d,
+      B.bildschirm(p, ctxVon('hell', { daten: id }), 'S1', 0, { shot: `daten-${id}-hell`, beschriftung: 'eingeklappt' }) +
+      B.bildschirm(p, ctxVon('dunkel', { daten: id, offen: true }), 'S1', 0, { shot: `daten-${id}-dunkel`, beschriftung: 'ausgeklappt · dunkel' }) +
+      (p.id === 'mats' ? '' : B.bildschirm(D.personen.mats, ctxVon('hell', { daten: id }), 'S1', 0, { shot: `daten-${id}-mats`, beschriftung: 'Mats: viele Kontakte, Familie, Kartenfehler' })))).join('');
+  }
+  function karte() {
+    const p = { ...D.personen.lena };
+    const Z = [['laden', 'lädt'], ['fehler', 'technischer Fehler'], ['offline', 'offline'], ['wlan', 'nur WLAN'], ['nichtGefunden', 'Adresse nicht gefunden']];
+    const M = [
+      ['M1', 'M1 · Schmale Zeile', 'Statt der Karte erscheint eine 40-px-Zeile mit Grund und Aktion.'],
+      ['M2', 'M2 · Hinweis in der Adresszeile', 'Die Karte entfällt ganz, ein kurzer Hinweis steht unter der Adresse. Am ruhigsten.'],
+      ['M3', 'M3 · Flache Karte', 'Eine 76 px hohe, entsättigte Kartenfläche mit Hinweis darauf. Der Platz für die Karte bleibt erkennbar.'],
+    ];
+    return M.map(([id, t, d]) => variante(`karte-${id}`, t, d, `<div class="zustaende">${Z.map(([z, name]) => B.panel(ctxVon('hell'), B.adressKarte(p, ctxVon('hell', { karte: id, kartenZustand: z })), { shot: `karte-${id}-${z}`, titel: name })).join('')}${B.panel(ctxVon('dunkel'), B.adressKarte(p, ctxVon('dunkel', { karte: id, kartenZustand: 'fehler' })), { shot: `karte-${id}-dunkel`, titel: 'technischer Fehler · dunkel' })}</div>`)).join('');
+  }
+
+  // ---------- 3 Rollen
+  function rollen() {
+    const p = D.personen[zustand.person];
+    const V = [
+      ['R1', 'R1 · Nach Status', 'Zukünftig, Aktiv und Vergangen wie bisher, aber kompakter: Gruppe und Layer stehen unter dem Titel. Vergangene Rollen sind eingeklappt und ausgeklappt einzeilig.'],
+      ['R2', 'R2 · Nach Layer', 'Ein Abschnitt je Layer, der aktive Stamm zuerst. Innerhalb eines Layers stehen aktuelle Rollen oben, frühere eingeklappt darunter. Mehrlayer-Personen sind so schnell lesbar.'],
+      ['R3', 'R3 · Zeitstrahl', 'Rollen nach Beginnjahr auf einer Linie, Geplantes oben gestrichelt. Gleichzeitige Rollen stehen im selben Jahr. Ganz unten der Eintritt.'],
+    ];
+    const tel = (pp, ctx, shot, cap) => B.telefon(ctx, B.kopf(ctx, pp, 'S1', 1), B.rollenListe(pp, ctx), { shot, beschriftung: cap });
+    const zweite = p.id === 'jonas' ? D.personen.sami : D.personen.jonas;
+    return V.map(([id, t, d]) => variante(`rollen-${id}`, t, d,
+      tel(p, ctxVon('hell', { rollen: id }), `rollen-${id}-hell`, 'eingeklappt') +
+      tel(p, ctxVon('dunkel', { rollen: id, offen: true }), `rollen-${id}-dunkel`, 'ausgeklappt · dunkel') +
+      tel(zweite, ctxVon('hell', { rollen: id }), `rollen-${id}-zweite`, `${zweite.vorname}: ${zweite.kurz}`))).join('');
+  }
+
+  // ---------- 4 Verlauf
+  function verlauf() {
+    const V = [
+      ['V1', 'V1 · Bahnen', 'Eine gemeinsame Zeitachse mit drei Bahnen: Mitglied, Leitung und Ämter. Gleichzeitige Rollen liegen übereinander. Zeigt Parallelität und Übergänge.'],
+      ['V2', 'V2 · Treppe', 'Eine Zeile je Stufe und Art, nach Beginn sortiert. Daraus entsteht eine Treppe durch die Stufen, rechts die Jahre.'],
+      ['V3', 'V3 · Kennzahlen', 'Kein Diagramm: drei Zahlen und die vier Stufen als Pfad mit Jahren. Am kompaktesten.'],
+    ];
+    const faelle = [
+      ['lena', true, 'hell', 'Funke · mit Historie'],
+      ['lena', false, 'hell', 'Funke · wie heute'],
+      ['sami', true, 'hell', 'Sami · Rover + Wö-Leitung'],
+      ['jonas', true, 'hell', 'Jonas · Jufi und Pfadi parallel'],
+      ['karl', true, 'hell', 'Karl · ausgetreten'],
+      ['lena', true, 'dunkel', 'Funke · dunkel'],
+    ];
+    const neu = B.panel({ modus: 'hell' }, B.verlauf(D.personen.mats, { modus: 'hell', historie: true }), { shot: 'verlauf-neu', titel: 'Mats · Neuling (für alle Varianten gleich)' });
+    return V.map(([id, t, d], i) => variante(`verlauf-${id}`, t, d, `<div class="zustaende">${faelle.map(([pid, h, m, cap]) => B.panel({ modus: m }, B.verlauf(D.personen[pid], { modus: m, historie: h, verlauf: id }), { shot: `verlauf-${id}-${pid}-${h ? 'h' : 'a'}-${m}`, titel: cap })).join('')}${i === 0 ? neu : ''}</div>`)).join('');
+  }
+
+  // ---------- 5 Qualifikationen
+  function quali() {
+    const p = D.personen[zustand.person];
+    const V = [
+      ['E1', 'E1 · Zeile mit Status und Download-Knopf', 'Titel, darunter Datum und Einsicht, rechts der Status und ein runder Download-Knopf. „Keines hinterlegt“ hat keine Farbe.'],
+      ['E2', 'E2 · Punkt und Link-Zeile', 'Ein Farbpunkt statt einer Pille, das Datum ist die Hauptzeile. Der Download steht als Textlink darunter.'],
+      ['E3', 'E3 · Einzeiler', 'Am knappsten: eine Zeile mit Datum, nur „läuft bald ab“ bekommt eine Pille, Download als kleiner Knopf. Qualifikationen ebenfalls einzeilig.'],
+    ];
+    const efzFall = {
+      keins: { status: 'keins' },
+      gueltig: D.personen.sami.efz,
+      bald: D.personen.lena.efz,
+      abgelaufen: D.personen.karl.efz,
+      unbekannt: { status: 'unbekannt' },
+      verboten: { status: 'verboten' },
+    };
+    const namen = { keins: 'keines hinterlegt', gueltig: 'gültig', bald: 'läuft bald ab', abgelaufen: 'abgelaufen', unbekannt: 'noch nicht synchronisiert', verboten: 'keine Berechtigung' };
+    return V.map(([id, t, d]) => {
+      const leer = p.qualis.length ? D.personen.mats : D.personen.lena;
+      const tel = (pp, ctx, shot, cap) => B.telefon(ctx, B.kopf(ctx, pp, 'S1', 2), B.qualiTab(pp, ctx), { shot, beschriftung: cap });
+      const zust = Object.keys(efzFall).map((z) => B.panel(ctxVon('hell'), B.efzZeile({ efz: { ...efzFall[z], status: z } }, ctxVon('hell', { efz: id })), { shot: `quali-${id}-${z}`, titel: namen[z] })).join('');
+      return variante(`quali-${id}`, t, d,
+        tel(p, ctxVon('hell', { efz: id }), `quali-${id}-hell`, p.vorname) +
+        tel(leer, ctxVon('dunkel', { efz: id }), `quali-${id}-dunkel`, `${leer.vorname} · dunkel`) +
+        `<div class="zustaende" style="grid-template-columns:repeat(2, 390px)">${zust}</div>`);
+    }).join('');
+  }
+
+  // ---------- 6 Galerie
+  const gal = { struktur: 'S1', daten: 'D1', karte: 'M1', rollen: 'R1', verlauf: 'V1', efz: 'E1', tab: '0' };
+  const GAL = [['struktur', ['S1', 'S2', 'S3']], ['tab', [['0', 'Daten'], ['1', 'Rollen'], ['2', 'Quali']]], ['daten', ['D1', 'D2', 'D3']], ['karte', ['M1', 'M2', 'M3']], ['rollen', ['R1', 'R2', 'R3']], ['verlauf', ['V1', 'V2', 'V3']], ['efz', ['E1', 'E2', 'E3']]];
+  function galerieBar() {
+    const el = document.getElementById('galerie-bar');
+    el.innerHTML = GAL.map(([k, opts]) => `<span><b>${k[0].toUpperCase() + k.slice(1)}</b><span class="tgl" data-k="${k}">${opts.map((o) => { const [v, l] = Array.isArray(o) ? o : [o, o]; return `<button type="button" data-v="${v}" class="${gal[k] === v ? 'on' : ''}">${l}</button>`; }).join('')}</span></span>`).join('');
+    el.querySelectorAll('.tgl').forEach((tg) => tg.addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      gal[tg.dataset.k] = b.dataset.v; galerieBar(); galerie();
+    }));
+  }
+  function galerie() {
+    const ctx = ctxVon('hell', { daten: gal.daten, karte: gal.karte, rollen: gal.rollen, verlauf: gal.verlauf, efz: gal.efz });
+    document.getElementById('slot-galerie').innerHTML = Object.values(D.personen).map((p) => B.bildschirm(p, ctx, gal.struktur, Number(gal.tab), { shot: `galerie-${p.id}`, beschriftung: `${p.vorname}: ${p.kurz}` })).join('');
+  }
+
+  // ---------- 7 Rückmeldung
+  const FRAGEN = [
+    { id: 'struktur', titel: 'Gesamtstruktur', optionen: ['S1 Tabs wie heute', 'S2 Steckbrief-Kopf + Tabs', 'S3 Eine Seite mit Sprungmarken'] },
+    { id: 'daten', titel: 'Daten', optionen: ['D1 Karten aufgeräumt', 'D2 Liste mit Symbolen', 'D3 Kennzahlen zuerst'] },
+    { id: 'karte', titel: 'Kartenfehler', optionen: ['M1 Schmale Zeile', 'M2 Hinweis in Adresszeile', 'M3 Flache Karte'] },
+    { id: 'konfession', titel: 'Konfession (heute Platzhalter)', optionen: ['ausblenden, bis Daten kommen', 'Platzhalter zeigen'] },
+    { id: 'rollen', titel: 'Rollenliste', optionen: ['R1 Nach Status', 'R2 Nach Layer', 'R3 Zeitstrahl'] },
+    { id: 'verlauf', titel: 'Pfadfinder-Verlauf', optionen: ['V1 Bahnen', 'V2 Treppe', 'V3 Kennzahlen', 'keinen'] },
+    { id: 'verlaufOrt', titel: 'Ort des Verlaufs', optionen: ['oben im Rollen-Tab', 'unten im Rollen-Tab', 'im Daten-Tab'] },
+    { id: 'efz', titel: 'EFZ und Qualifikationen', optionen: ['E1 Status + Download-Knopf', 'E2 Punkt + Link-Zeile', 'E3 Einzeiler'] },
+    { id: 'abgelaufen', titel: 'Abgelaufenes EFZ', optionen: ['eigener Zustand „Abgelaufen am …“', 'wie „keines hinterlegt“'] },
+  ];
+  function renderFeedback() {
+    const f = document.getElementById('fb');
+    f.innerHTML = FRAGEN.map((qq) => `<fieldset><legend>${qq.titel}</legend>${qq.optionen.map((o) => `<label><input type="radio" name="${qq.id}" value="${o}"> ${o}</label>`).join('')}<textarea name="${qq.id}-text" placeholder="Anmerkung (optional)"></textarea></fieldset>`).join('') +
+      `<fieldset><legend>Sonst noch</legend><textarea name="frei" placeholder="Freitext"></textarea></fieldset>
+      <button type="button" id="kopieren">Auswahl kopieren</button>
+      <textarea id="ausgabe" readonly placeholder="Hier erscheint der Text für den Chat."></textarea>`;
+    document.getElementById('kopieren').addEventListener('click', async () => {
+      const fd = new FormData(f);
+      const zeilen = ['Rückmeldung Mitgliedsdetails, Runde 1', `(Person ${zustand.person}, Historie ${zustand.historie ? 'mit' : 'wie heute'})`];
+      for (const qq of FRAGEN) {
+        const wahl = fd.get(qq.id); const text = (fd.get(`${qq.id}-text`) || '').trim();
+        zeilen.push(`- ${qq.titel}: ${wahl || '–'}${text ? ` – ${text}` : ''}`);
+      }
+      const frei = (fd.get('frei') || '').trim();
+      if (frei) zeilen.push(`- Sonst: ${frei}`);
+      const text = zeilen.join('\n');
+      const out = document.getElementById('ausgabe');
+      out.value = text;
+      try { await navigator.clipboard.writeText(text); } catch (e) { out.select(); document.execCommand('copy'); }
+    });
+  }
+
+  // ---------- Umschalter
+  function tglSetzen() {
+    document.getElementById('tgl-person').innerHTML = Object.values(D.personen).map((p) => `<button data-v="${p.id}" class="${p.id === zustand.person ? 'on' : ''}" title="${p.kurz}">${p.fahrtenname || p.vorname}</button>`).join('');
+    document.querySelectorAll('#tgl-historie button').forEach((b) => b.classList.toggle('on', (b.dataset.v === '1') === zustand.historie));
+  }
+  function alles() {
+    tglSetzen();
+    document.getElementById('slot-struktur').innerHTML = struktur();
+    document.getElementById('slot-daten').innerHTML = daten();
+    document.getElementById('slot-karte').innerHTML = karte();
+    document.getElementById('slot-rollen').innerHTML = rollen();
+    document.getElementById('slot-verlauf').innerHTML = verlauf();
+    document.getElementById('slot-quali').innerHTML = quali();
+    galerie();
+  }
+  document.getElementById('tgl-person').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { zustand.person = b.dataset.v; alles(); } });
+  document.getElementById('tgl-historie').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { zustand.historie = b.dataset.v === '1'; alles(); } });
+  galerieBar();
+  alles();
+  renderFeedback();
+  document.body.dataset.fertig = '1';
+})();
+</script>
+</body></html>

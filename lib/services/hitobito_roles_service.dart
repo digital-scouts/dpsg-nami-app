@@ -44,13 +44,35 @@ class HitobitoRolesService {
 
     final resources = <HitobitoPersonRoleResource>[];
     Uri? nextUri = requestUri;
+    var mitGruppen = true;
 
     while (nextUri != null) {
-      final effectiveRequestUri = _decorateRolesRequestUri(nextUri);
-      final decoded = await _fetchRolesPage(
-        requestUri: effectiveRequestUri,
-        accessToken: accessToken,
+      var effectiveRequestUri = _decorateRolesRequestUri(
+        nextUri,
+        mitGruppen: mitGruppen,
       );
+      Map<String, dynamic> decoded;
+      try {
+        decoded = await _fetchRolesPage(
+          requestUri: effectiveRequestUri,
+          accessToken: accessToken,
+        );
+      } on HitobitoRolesException catch (error) {
+        // Lehnt die Instanz die Gruppen-Sideloads ab, laden wir die Rollen
+        // ohne Gruppennamen statt den ganzen Abruf scheitern zu lassen.
+        if (!mitGruppen || error.statusCode != 400) {
+          rethrow;
+        }
+        mitGruppen = false;
+        effectiveRequestUri = _decorateRolesRequestUri(
+          nextUri,
+          mitGruppen: false,
+        );
+        decoded = await _fetchRolesPage(
+          requestUri: effectiveRequestUri,
+          accessToken: accessToken,
+        );
+      }
       final data = decoded['data'];
       if (data is! List) {
         throw const HitobitoRolesException(
@@ -58,8 +80,11 @@ class HitobitoRolesService {
         );
       }
 
+      final gruppenNamen = _extractIncludedGroupNames(decoded['included']);
       resources.addAll(
-        data.whereType<Map<String, dynamic>>().map(_mapRoleResource),
+        data.whereType<Map<String, dynamic>>().map(
+          (resource) => _mapRoleResource(resource, gruppenNamen),
+        ),
       );
       onPageLoaded?.call(List.unmodifiable(resources));
       nextUri = _resolveNextUri(decoded, currentUri: effectiveRequestUri);
@@ -68,10 +93,17 @@ class HitobitoRolesService {
     return resources;
   }
 
-  Uri _decorateRolesRequestUri(Uri uri) {
+  Uri _decorateRolesRequestUri(Uri uri, {required bool mitGruppen}) {
     final queryParameters = Map<String, String>.from(uri.queryParameters);
     queryParameters['fields[roles]'] =
         'created_at,updated_at,start_on,end_on,name,person_id,group_id,type,label';
+    if (mitGruppen) {
+      queryParameters['include'] = 'group,layer_group';
+      queryParameters['fields[groups]'] = 'name';
+    } else {
+      queryParameters.remove('include');
+      queryParameters.remove('fields[groups]');
+    }
 
     // Hitobito erwartet fuer filter[active][eq] ein Datum als Stichtag.
     // Solange die API keinen verlaesslichen Modus fuer historische oder
@@ -84,7 +116,7 @@ class HitobitoRolesService {
     required String accessToken,
   }) async {
     final headers = <String, String>{
-      'Accept': 'application/json',
+      'Accept': 'application/vnd.api+json, application/json',
       'Authorization': 'Bearer $accessToken',
     };
     await _trafficLogService?.logRequest(
@@ -145,7 +177,45 @@ class HitobitoRolesService {
     return decoded;
   }
 
-  HitobitoPersonRoleResource _mapRoleResource(Map<String, dynamic> resource) {
+  /// Liest Gruppennamen aus `included` (Typ `groups`), damit Rollen auch
+  /// ausserhalb des aktiven Layers mit Gruppe und Layer angezeigt werden.
+  Map<int, String> _extractIncludedGroupNames(Object? included) {
+    if (included is! List) {
+      return const <int, String>{};
+    }
+    final names = <int, String>{};
+    for (final entry in included.whereType<Map<String, dynamic>>()) {
+      if (entry['type']?.toString() != 'groups') {
+        continue;
+      }
+      final id = _toNullableInt(entry['id']);
+      final attributes = entry['attributes'];
+      final name = attributes is Map<String, dynamic>
+          ? attributes['name']?.toString().trim()
+          : null;
+      if (id != null && name != null && name.isNotEmpty) {
+        names[id] = name;
+      }
+    }
+    return names;
+  }
+
+  int? _relationshipId(Object? relationships, String key) {
+    if (relationships is! Map<String, dynamic>) {
+      return null;
+    }
+    final relationship = relationships[key];
+    if (relationship is! Map<String, dynamic>) {
+      return null;
+    }
+    final data = relationship['data'];
+    return data is Map<String, dynamic> ? _toNullableInt(data['id']) : null;
+  }
+
+  HitobitoPersonRoleResource _mapRoleResource(
+    Map<String, dynamic> resource,
+    Map<int, String> gruppenNamen,
+  ) {
     final attributes = resource['attributes'];
     final attributesMap = attributes is Map<String, dynamic>
         ? attributes
@@ -169,6 +239,14 @@ class HitobitoRolesService {
       roleType: attributesMap['type']?.toString(),
       roleName: attributesMap['name']?.toString(),
       roleLabel: attributesMap['label']?.toString(),
+      groupName:
+          gruppenNamen[_relationshipId(resource['relationships'], 'group') ??
+              groupId],
+      layerName:
+          gruppenNamen[_relationshipId(
+            resource['relationships'],
+            'layer_group',
+          )],
     );
   }
 

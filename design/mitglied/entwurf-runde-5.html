@@ -1,0 +1,212 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8">
+<title>Entwürfe: Mitgliedsdetails, Runde 5</title>
+<link rel="stylesheet" href="../statistik/basis.css">
+<link rel="stylesheet" href="mitglied.css">
+<script src="daten.js"></script>
+<script src="lilie.js"></script>
+<script src="bausteine.js"></script>
+</head><body>
+<div class="bar">
+  <span><b>Tab</b><span class="tgl" id="tgl-tab"><button data-v="0">Daten</button><button data-v="1">Rollen</button><button data-v="2">Qualifikationen</button></span></span>
+  <nav><a href="#vergleich">1 Vergleich</a><a href="#k1">2 K1</a><a href="#k2">3 K2</a><a href="#schnell">4 Schnellaktionen</a><a href="#einklappen">5 Einklappen</a><a href="#tabs">6 Tabs</a><a href="#galerie">7 Alle Personen</a><a href="#rueckmeldung">8 Rückmeldung</a></nav>
+</div>
+<main>
+  <h1>Mitgliedsdetails: Entwürfe, Runde 5</h1>
+  <p>Der Steckbrief-Kopf ist auf dem Gerät zu hoch. Bis zum ersten Inhalt vergehen rund 210 dp, und drei Flächen bleiben leer: die AppBar zwischen Zurück und Bearbeiten, rechts neben dem Namen und rechts neben den Chips. Diese Runde zeigt, wie sich der Kopf verdichten lässt. Alle Handys haben dieselbe Höhe, so sieht man direkt, wie viel Inhalt dazukommt. Unter jedem Handy steht die Kopfhöhe ohne Statusleiste.</p>
+  <div class="fest-list"><b>Freigegeben (unverändert)</b> <span class="tag">freigegeben</span>
+    <ul>
+      <li><b>Kopf-Inhalt:</b> Avatar, Name bzw. Fahrtenname, Kopfzeile „30 Jahre · sie/ihr · weiblich“, Stufen-Chips, kein EFZ-Chip. Offen ist nur noch die Anordnung.</li>
+      <li><b>Daten, Rollen, Verlauf, Qualifikationen:</b> wie in Runde 4 freigegeben.</li>
+    </ul></div>
+
+  <section class="part" id="vergleich">
+    <h2>1 · Vergleich auf einen Blick</h2>
+    <p>Lena (Fahrtenname, zwei Leitungen) im Daten-Tab, links der Stand der App.</p>
+    <div id="slot-vergleich"></div>
+  </section>
+
+  <section class="part" id="k1">
+    <h2>2 · K1 · Name in der AppBar</h2>
+    <p>Avatar und Name rücken in die AppBar-Zeile zwischen Zurück und Bearbeiten. Der Namensblock hat bis zu drei Zeilen: Fahrtenname, voller Name, Kopfzeile. Die Chips stehen darunter, eingerückt auf Höhe des Namens, und behalten ihre Beschriftung. Ohne aktive Stufe entfällt die Chip-Zeile ganz.</p>
+    <div id="slot-k1"></div>
+  </section>
+
+  <section class="part" id="k2">
+    <h2>3 · K2 · Eine Zeile</h2>
+    <p>Wie K1, aber die Chips werden zu runden Stufen-Icons rechts neben dem Namen und füllen die freie Fläche dort. Leitung zeigt die Lilie in Stufenfarbe, Mitgliedschaft das Maskottchen. Die Chip-Zeile fällt weg. Was „Leitung“ bedeutet, steht dann nur noch im Rollen-Tab; dorthin führt ein Tipp auf die Icons.</p>
+    <div id="slot-k2"></div>
+  </section>
+
+  <section class="part" id="schnell">
+    <h2>4 · Schnellaktionen in der freien Fläche (zu K1)</h2>
+    <p>Rechts in der Chip-Zeile ist Platz für zwei runde Knöpfe, gestaltet wie der EFZ-Download. „Anrufen“ und „E-Mail“ nehmen jeweils den ersten Eintrag. Mehrere Nummern führen zu einer kurzen Auswahl. Fehlt ein Kontakt, ist der Knopf ausgegraut (Petra hat keine Mail). Im Daten-Tab liegt die Kontaktliste erst unter den Kacheln, so spart man den Weg dorthin.</p>
+    <div id="slot-schnell"></div>
+  </section>
+
+  <section class="part" id="einklappen">
+    <h2>5 · Einklappen beim Scrollen</h2>
+    <p>Unabhängig von K1/K2: Beim Scrollen schrumpft der Kopf auf eine Zeile mit kleinem Avatar, Name und Stufen-Icons, die Tabs bleiben stehen. Damit ließe sich auch der heutige Kopf S2 beibehalten, er wäre nur oben groß. Gezeigt: oben und nach dem Scrollen.</p>
+    <div id="slot-einklappen"></div>
+  </section>
+
+  <section class="part" id="tabs">
+    <h2>6 · Tab „Qualifikationen“ wird abgeschnitten</h2>
+    <p>In der App hat jeder Tab ein Drittel der Breite mit 16 dp Innenabstand je Seite. Für „Qualifikationen“ reicht das nicht.</p>
+    <div id="slot-tabs"></div>
+  </section>
+
+  <section class="part" id="galerie">
+    <h2>7 · Alle Personen</h2>
+    <div class="bar" style="position:static;padding:10px 0;background:none;border:0" id="galerie-bar"></div>
+    <div class="galerie" id="slot-galerie"></div>
+  </section>
+
+  <section class="part" id="rueckmeldung">
+    <h2>8 · Rückmeldung</h2>
+    <p>Auswählen, kurz kommentieren, „Auswahl kopieren“ und den Text in den Chat einfügen.</p>
+    <form class="fb" id="fb"></form>
+  </section>
+</main>
+<script>
+(function () {
+  const D = window.MITGLIED;
+  const B = window.MBAU;
+  const q = new URLSearchParams(location.search);
+  const zustand = { tab: Number(q.get('tab') || 0) };
+
+  const zusatz = {
+    hell: { '--biber-ring-stark': '#8e8e93', '--ghost': '#e3e3e8', '--map-bg': '#edf0e9', '--map-road': '#ffffff', '--map-water': '#d3e2ee', '--map-park': '#dbe8d2', '--amt': '#a1a1aa' },
+    dunkel: { '--biber-ring-stark': '#ffffff', '--ghost': '#363642', '--map-bg': '#1c2320', '--map-road': '#2c3531', '--map-water': '#1d2e3b', '--map-park': '#1f2d22', '--amt': '#6e6e7c' },
+  };
+  let css = '';
+  for (const modus of ['hell', 'dunkel']) {
+    const p = D.palette[modus];
+    const vars = { '--bg': p.bg, '--surface': p.surface, '--surface2': p.surface2, '--fg': p.fg, '--fg2': p.fg2, '--muted': p.muted, '--border': p.border,
+      '--primary': p.primary, '--on-primary': p.onPrimary, '--primary-lite': p.primaryLite, '--grid': p.grid, '--success': p.success, '--error': p.error, '--warn': p.warn, ...zusatz[modus] };
+    for (const [id, c] of Object.entries(D.stufenfarben[modus])) vars[`--st-${id}`] = c;
+    css += `.phone.${modus},.mpanel.${modus}{${Object.entries(vars).map(([k, v]) => `${k}:${v}`).join(';')}}`;
+  }
+  document.head.insertAdjacentHTML('beforeend', `<style>${css}</style>`);
+
+  const BASIS = { runde: 5, gebHervor: 'G1', daten: 'D3', karte: 'M3', rollen: 'R3', verlauf: 'K2', efz: 'E2', hervor: 'H1', filterUi: 'F2', layerFilter: 'aktiv', historie: true, tabs: 'C' };
+  const ctxVon = (modus, extra = {}) => ({ ...BASIS, modus, ...extra });
+  const HEUTE_KOPF = { tabs: 'heute' };
+  const variante = (id, titel, desc, inhalt) => `<div class="variant" data-shot-group="${id}"><h3>${titel}</h3><p class="desc">${desc}</p><div class="phones">${inhalt}</div></div>`;
+  // Feste Handyhöhe; „gescrollt“ verschiebt den Inhalt, um den Zustand nach dem Scrollen zu zeigen.
+  function tel(p, ctx, shot, cap, { gescrollt = 0, tab = zustand.tab } = {}) {
+    const inhalt = B.seite(p, ctx, tab);
+    return B.telefon(ctx, B.kopf(ctx, p, 'S2', tab), gescrollt ? `<div style="margin-top:-${gescrollt}px">${inhalt}</div>` : inhalt,
+      { shot, fest: true, beschriftung: `${cap} · <span class="kh">Kopf …</span>` });
+  }
+  const drei = (id, extra) => [
+    [D.personen.lena, 'hell', 'Lena'], [D.personen.mats, 'hell', 'Mats (ohne Fahrtenname)'], [D.personen.sami, 'hell', 'Sami (Rover und Wö-Leitung)'], [D.personen.lena, 'dunkel', 'Lena · dunkel'],
+  ].map(([p, m, cap], i) => tel(p, ctxVon(m, extra), `${id}-${i}`, cap)).join('');
+
+  function vergleich() {
+    const p = D.personen.lena;
+    return `<div class="vergleich">${variante('vergleich', 'Heute · K1 · K1 mit Schnellaktionen · K2', 'Gleicher Inhalt, nur der Kopf ändert sich.',
+      tel(p, ctxVon('hell', HEUTE_KOPF), 'vergleich-heute', 'Heute (S2)') +
+      tel(p, ctxVon('hell', { kopf: 'K1' }), 'vergleich-k1', 'K1') +
+      tel(p, ctxVon('hell', { kopf: 'K1', schnell: true }), 'vergleich-k1s', 'K1 + Schnellaktionen') +
+      tel(p, ctxVon('hell', { kopf: 'K2' }), 'vergleich-k2', 'K2'))}</div>`;
+  }
+  const k1 = () => variante('k1', 'K1 · Name in der AppBar, Chips darunter', 'Lena, Mats, Sami und Lena im dunklen Modus.', drei('k1', { kopf: 'K1' }));
+  const k2 = () => variante('k2', 'K2 · Eine Zeile mit Stufen-Icons', 'Lena, Mats, Sami und Lena im dunklen Modus.', drei('k2', { kopf: 'K2' }));
+  function schnell() {
+    const e = { kopf: 'K1', schnell: true };
+    return variante('schnell', 'K1 mit Anrufen und E-Mail', 'Lena, Mats, Petra (keine Mail, keine Stufe) und Lena im dunklen Modus.',
+      tel(D.personen.lena, ctxVon('hell', e), 'schnell-0', 'Lena') + tel(D.personen.mats, ctxVon('hell', e), 'schnell-1', 'Mats') +
+      tel(D.personen.petra, ctxVon('hell', e), 'schnell-2', 'Petra') + tel(D.personen.lena, ctxVon('dunkel', e), 'schnell-3', 'Lena · dunkel'));
+  }
+  function einklappen() {
+    const p = D.personen.lena;
+    return variante('einklappen', 'Oben und nach dem Scrollen', 'Eingeklappt sieht der Kopf für S2, K1 und K2 gleich aus.',
+      tel(p, ctxVon('hell', HEUTE_KOPF), 'einklappen-s2', 'S2 oben') +
+      tel(p, ctxVon('hell', { kopf: 'K1' }), 'einklappen-k1', 'K1 oben') +
+      tel(p, ctxVon('hell', { eingeklappt: true }), 'einklappen-ein', 'nach dem Scrollen', { gescrollt: 230 }) +
+      tel(p, ctxVon('dunkel', { eingeklappt: true }), 'einklappen-ein-dunkel', 'nach dem Scrollen · dunkel', { gescrollt: 230 }));
+  }
+  function tabs() {
+    const V = [
+      ['heute', 'Heute', 'Gleich breite Tabs, 16 dp Innenabstand. Auf dem Gerät mit größerer Systemschrift abgeschnitten.'],
+      ['A', 'A · Kurzlabel „Quali“', 'Gleich breite Tabs, kürzeres Wort. Passt auch bei großer Schrift.'],
+      ['B', 'B · Breite nach Text', 'Tabs so breit wie ihr Text, zentriert. Reicht der Platz nicht, wird die Zeile scrollbar statt abzuschneiden.'],
+      ['C', 'C · Weniger Innenabstand', 'Gleich breite Tabs, 4 statt 16 dp Innenabstand. Passt bei 1,4-facher Schrift knapp, bei noch größerer Schrift wird wieder abgeschnitten.'],
+    ];
+    const zeile = (id, gross) => B.kopf(ctxVon('hell', { kopf: 'K1', tabs: id }), D.personen.lena, 'S2', 2)
+      .replace(/^[\s\S]*?(<div class="tabs)/, '$1').replace(/<\/header>$/, '').replace('class="tabs', `class="tabs${gross ? ' gross' : ''}`);
+    const label = (t) => `<p style="font-size:11.5px;color:var(--muted);margin:12px 0 4px">${t}</p>`;
+    return `<div class="zustaende">${V.map(([id, titel, desc]) => B.panel(ctxVon('hell'),
+      `${label('Standardschrift')}<div class="tabprobe">${zeile(id, false)}</div>${label('Schrift 1,4-fach (Bedienungshilfen)')}<div class="tabprobe">${zeile(id, true)}</div><p style="font-size:12.5px;color:var(--muted);margin:14px 0 0">${desc}</p>`,
+      { shot: `tabs-${id}`, titel })).join('')}</div>`;
+  }
+
+  const gal = { kopf: 'K1' };
+  function galerieBar() {
+    const el = document.getElementById('galerie-bar');
+    const opts = [['S2', 'Heute (S2)'], ['K1', 'K1'], ['K1s', 'K1 + Schnellaktionen'], ['K2', 'K2']];
+    el.innerHTML = `<span><b>Kopf</b><span class="tgl">${opts.map(([v, l]) => `<button type="button" data-v="${v}" class="${gal.kopf === v ? 'on' : ''}">${l}</button>`).join('')}</span></span>`;
+    el.querySelector('.tgl').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; gal.kopf = b.dataset.v; galerieBar(); galerie(); hoehen(); });
+  }
+  function galerie() {
+    const extra = gal.kopf === 'S2' ? HEUTE_KOPF : gal.kopf === 'K1s' ? { kopf: 'K1', schnell: true } : { kopf: gal.kopf };
+    document.getElementById('slot-galerie').innerHTML = Object.values(D.personen).map((p) => tel(p, ctxVon('hell', extra), `galerie-${p.id}`, `${p.fahrtenname || p.vorname}: ${p.kurz}`)).join('');
+  }
+  // Kopfhöhe ohne Statusleiste in die Beschriftung schreiben.
+  function hoehen() {
+    document.querySelectorAll('.phone').forEach((ph) => {
+      const h = ph.querySelector('header');
+      const kh = ph.querySelector('.kh');
+      if (h && kh) kh.textContent = `Kopf ${Math.round(h.getBoundingClientRect().height)} dp`;
+    });
+  }
+
+  const FRAGEN = [
+    { id: 'kopf', titel: 'Kopf-Anordnung', optionen: ['S2 bleibt', 'K1 Name in der AppBar', 'K2 Eine Zeile mit Icons'] },
+    { id: 'schnell', titel: 'Schnellaktionen Anrufen/E-Mail im Kopf', optionen: ['ja', 'nein'] },
+    { id: 'einklappen', titel: 'Einklappen beim Scrollen', optionen: ['ja', 'nein'] },
+    { id: 'tabs', titel: 'Tab „Qualifikationen“', optionen: ['A Quali', 'B Breite nach Text', 'C weniger Innenabstand'] },
+    { id: 'weiter', titel: 'Nächster Schritt', optionen: ['umsetzen', 'noch eine Runde'] },
+  ];
+  function renderFeedback() {
+    const f = document.getElementById('fb');
+    f.innerHTML = FRAGEN.map((qq) => `<fieldset><legend>${qq.titel}</legend>${qq.optionen.map((o) => `<label><input type="radio" name="${qq.id}" value="${o}"> ${o}</label>`).join('')}<textarea name="${qq.id}-text" placeholder="Anmerkung (optional)"></textarea></fieldset>`).join('') +
+      `<fieldset><legend>Sonst noch</legend><textarea name="frei" placeholder="Freitext"></textarea></fieldset>
+      <button type="button" id="kopieren">Auswahl kopieren</button>
+      <textarea id="ausgabe" readonly placeholder="Hier erscheint der Text für den Chat."></textarea>`;
+    document.getElementById('kopieren').addEventListener('click', async () => {
+      const fd = new FormData(f);
+      const zeilen = ['Rückmeldung Mitgliedsdetails, Runde 5'];
+      for (const qq of FRAGEN) {
+        const wahl = fd.get(qq.id); const text = (fd.get(`${qq.id}-text`) || '').trim();
+        zeilen.push(`- ${qq.titel}: ${wahl || '–'}${text ? ` – ${text}` : ''}`);
+      }
+      const frei = (fd.get('frei') || '').trim();
+      if (frei) zeilen.push(`- Sonst: ${frei}`);
+      const text = zeilen.join('\n');
+      const out = document.getElementById('ausgabe');
+      out.value = text;
+      try { await navigator.clipboard.writeText(text); } catch (e) { out.select(); document.execCommand('copy'); }
+    });
+  }
+
+  function alles() {
+    document.querySelectorAll('#tgl-tab button').forEach((b) => b.classList.toggle('on', Number(b.dataset.v) === zustand.tab));
+    document.getElementById('slot-vergleich').innerHTML = vergleich();
+    document.getElementById('slot-k1').innerHTML = k1();
+    document.getElementById('slot-k2').innerHTML = k2();
+    document.getElementById('slot-schnell').innerHTML = schnell();
+    document.getElementById('slot-einklappen').innerHTML = einklappen();
+    document.getElementById('slot-tabs').innerHTML = tabs();
+    galerie();
+    hoehen();
+  }
+  document.getElementById('tgl-tab').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { zustand.tab = Number(b.dataset.v); alles(); } });
+  galerieBar();
+  alles();
+  renderFeedback();
+  document.fonts.ready.then(hoehen);
+  document.body.dataset.fertig = '1';
+})();
+</script>
+</body></html>

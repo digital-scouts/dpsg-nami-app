@@ -638,7 +638,7 @@ class _ArbeitskontextLoadingStepRow extends StatelessWidget {
         color: theme.colorScheme.onSurfaceVariant,
       ),
     };
-    final hasDetail = step.detailKey != null && step.detailCount != null;
+    final hasDetail = step.detailKey != null;
     final textStyle = dense
         ? theme.textTheme.bodySmall
         : theme.textTheme.bodyMedium;
@@ -659,7 +659,9 @@ class _ArbeitskontextLoadingStepRow extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                t.t(step.detailKey!, {'count': '${step.detailCount}'}),
+                t.t(step.detailKey!, {
+                  if (step.detailCount != null) 'count': '${step.detailCount}',
+                }),
                 textAlign: TextAlign.right,
                 style: textStyle?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,

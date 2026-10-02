@@ -6,6 +6,7 @@ import '../../data/arbeitskontext/hitobito_group_resource.dart';
 import '../../domain/arbeitskontext/arbeitskontext.dart';
 import '../../domain/arbeitskontext/arbeitskontext_local_repository.dart';
 import '../../domain/arbeitskontext/arbeitskontext_read_model.dart';
+import '../../domain/arbeitskontext/teildaten_stand.dart';
 import '../../domain/arbeitskontext/arbeitskontext_read_model_repository.dart';
 import '../../domain/arbeitskontext/relevante_layer_input.dart';
 import '../../domain/arbeitskontext/startkontext_input.dart';
@@ -254,20 +255,67 @@ class ArbeitskontextModel extends ChangeNotifier {
         state: rolesState,
         indent: true,
       ),
-      // Platzhalter-Zeilen ohne eigene Lade-Logik: bereiten die Anzeige
-      // grafisch auf spaeter folgende Features vor (Qualifikationen als
-      // Unterpunkt von Mitgliedern, Veranstaltungen als eigene Top-Level-
-      // Zeile).
-      const ArbeitskontextLoadingStepStatus(
-        labelKey: 'nav_work_context_step_qualifikationen',
-        state: ArbeitskontextLoadingStepState.waiting,
-        indent: true,
+      _qualifikationenStep(
+        phaseErreicht: rollenPhaseErreicht,
+        laeuft: membersState == ArbeitskontextLoadingStepState.loading,
       ),
+      // Platzhalter-Zeile ohne eigene Lade-Logik fuer spaeter folgende
+      // Veranstaltungen.
       const ArbeitskontextLoadingStepStatus(
         labelKey: 'nav_work_context_step_veranstaltungen',
         state: ArbeitskontextLoadingStepState.waiting,
       ),
     ];
+  }
+
+  /// EFZ und Qualifikationen laden parallel zur Mitglieder-Phase mit
+  /// (siehe refresh()); danach zeigt die Zeile den gespeicherten Stand.
+  ArbeitskontextLoadingStepStatus _qualifikationenStep({
+    required bool phaseErreicht,
+    required bool laeuft,
+  }) {
+    const label = 'nav_work_context_step_qualifikationen';
+    final readModel = _readModel;
+    if (!phaseErreicht) {
+      return const ArbeitskontextLoadingStepStatus(
+        labelKey: label,
+        state: ArbeitskontextLoadingStepState.waiting,
+        indent: true,
+      );
+    }
+    if (laeuft || readModel == null) {
+      return const ArbeitskontextLoadingStepStatus(
+        labelKey: label,
+        state: ArbeitskontextLoadingStepState.loading,
+        indent: true,
+      );
+    }
+    final staende = {readModel.efzStand, readModel.qualifikationenStand};
+    if (staende.contains(TeildatenStand.fehlgeschlagen) ||
+        staende.contains(TeildatenStand.unbekannt)) {
+      return const ArbeitskontextLoadingStepStatus(
+        labelKey: label,
+        state: ArbeitskontextLoadingStepState.waiting,
+        detailKey: 'nav_work_context_step_qualifikationen_failed',
+        indent: true,
+      );
+    }
+    if (staende.every((stand) => stand == TeildatenStand.keineBerechtigung)) {
+      return const ArbeitskontextLoadingStepStatus(
+        labelKey: label,
+        state: ArbeitskontextLoadingStepState.done,
+        detailKey: 'nav_work_context_step_qualifikationen_no_permission',
+        indent: true,
+      );
+    }
+    return ArbeitskontextLoadingStepStatus(
+      labelKey: label,
+      state: ArbeitskontextLoadingStepState.done,
+      detailKey: 'nav_work_context_step_qualifikationen_done',
+      detailCount:
+          readModel.efzEinsichtnahmen.length + readModel.qualifikationen.length,
+      indent: true,
+    );
   }
 
   bool istMitgliedSchreibbar(Mitglied mitglied) {
@@ -741,7 +789,9 @@ class ArbeitskontextModel extends ChangeNotifier {
       if (_arbeitskontext != null) {
         await _logger.log(
           'arbeitskontext',
-          'Arbeitskontext erfolgreich aktualisiert: layer=${_arbeitskontext!.aktiverLayer.id} name=${_arbeitskontext!.aktiverLayer.name} gruppen=${_readModel?.gruppen.length ?? 0} mitglieder=${_readModel?.mitglieder.length ?? 0}',
+          'Arbeitskontext erfolgreich aktualisiert: layer=${_arbeitskontext!.aktiverLayer.id} name=${_arbeitskontext!.aktiverLayer.name} gruppen=${_readModel?.gruppen.length ?? 0} mitglieder=${_readModel?.mitglieder.length ?? 0} '
+              'efz=${_readModel?.efzStand.name}/${_readModel?.efzEinsichtnahmen.length ?? 0} '
+              'qualifikationen=${_readModel?.qualifikationenStand.name}/${_readModel?.qualifikationen.length ?? 0}',
         );
       }
       if (isInitialLoad) {

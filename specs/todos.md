@@ -75,14 +75,20 @@ Gesammelt am 2026-10-01, jeweils mit Kurzbefund. Jede Stufe wird vor der Umsetzu
   - Heute ist das Antippen nur für eigene Kacheln verdrahtet, in `lib/presentation/statistics/kachel_raster.dart`.
 - Danach Detailseiten nach `design/statistik/entwurf-runde-2.html` §6.
 
-**Qualifikationen und Erinnerungen**
+**Qualifikationen: Erinnerungen**
 
-- Umfang:
-  - `/api/qualifications` und `qualification_kinds` anbinden
-  - Übersicht „läuft bald ab“
+- `/api/qualifications` ist angebunden und offline verfügbar (Mitgliedsdetails, siehe `specs/mitgliedsdetails-redesign.md`).
+- Offen:
+  - Übersicht „läuft bald ab“ über alle Qualifikationen, nicht nur das EFZ
   - Erinnerung über `internal.data.expiry_soon` (`specs/pull-notifications.md`)
-- Vorbild ist der EFZ-Code: `lib/domain/qualifikation/qualifikationsart.dart` und `lib/services/hitobito_efz_service.dart`.
 - Die DPSG-API erlaubt auch POST auf `qualifications`.
+
+**Mitgliedsdetails: offene Punkte**
+
+- Auf dpsg.puzzle.ch bestätigt (2026-10-02): `/api/qualifications` liefert Daten, Rollen tragen über `include=group,layer_group` Gruppe und Layer, `household_key` verknüpft Haushalte.
+- Noch prüfen: Lässt sich `fields[people]` ohne Bankfelder nutzen, damit sie gar nicht erst geladen werden?
+- Vergangene Rollen: Die API liefert beendete Rollen derzeit nicht. Verlauf und Zeitstrahl sind darauf vorbereitet und markieren die Zeit vor der ersten bekannten Rolle. Zu klären ist, ob `filter[end_on]` oder ein Upstream-PR einen Abruf ermöglicht.
+- Store-Screenshots der Szene `Store/Mitgliedsdetail` neu erzeugen.
 
 **Events und Kurse aus Sicht der Teilnehmenden**
 
