@@ -1,22 +1,25 @@
-/// Status einer Qualifikation aus Sicht der noetigen Aktion.
+/// Status einer Qualifikation.
 ///
-/// Bewusst nur drei Zustaende: ein abgelaufener Nachweis erfordert dieselbe
-/// Aktion (erneute Vorlage) wie ein nie eingereichter, daher gibt es keinen
-/// eigenen `abgelaufen`-Zustand.
-enum QualifikationsStatus { fehlt, baldAblaufend, gueltig }
+/// `abgelaufen` und `fehlt` erfordern dieselbe Aktion (erneute Vorlage),
+/// werden aber getrennt gefuehrt, damit die Anzeige „Abgelaufen am …“ von
+/// „Keines hinterlegt“ unterscheiden kann.
+enum QualifikationsStatus { fehlt, abgelaufen, baldAblaufend, gueltig }
 
 const _standardWarnschwelle = Duration(days: 90);
 
 /// Ermittelt den [QualifikationsStatus] aus einem (ggf. fehlenden)
-/// Gueltig-bis-Datum. `fehlt`, wenn kein Datum vorhanden ist oder es in der
-/// Vergangenheit liegt (abgelaufen zaehlt als fehlt).
+/// Gueltig-bis-Datum. `fehlt`, wenn kein Datum vorhanden ist, `abgelaufen`,
+/// wenn es in der Vergangenheit liegt.
 QualifikationsStatus berechneStatus({
   required DateTime? gueltigBis,
   required DateTime heute,
   Duration warnschwelle = _standardWarnschwelle,
 }) {
-  if (gueltigBis == null || gueltigBis.isBefore(heute)) {
+  if (gueltigBis == null) {
     return QualifikationsStatus.fehlt;
+  }
+  if (gueltigBis.isBefore(heute)) {
+    return QualifikationsStatus.abgelaufen;
   }
 
   final warnschwelleAb = gueltigBis.subtract(warnschwelle);

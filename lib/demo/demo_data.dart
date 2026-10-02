@@ -1,10 +1,12 @@
 import 'package:nami/data/arbeitskontext/hitobito_group_resource.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model.dart';
+import 'package:nami/domain/arbeitskontext/teildaten_stand.dart';
 import 'package:nami/domain/auth/auth_profile.dart';
 import 'package:nami/domain/auth/auth_session.dart';
 import 'package:nami/domain/member/efz_einsichtnahme.dart';
 import 'package:nami/domain/member/mitglied.dart';
+import 'package:nami/domain/qualifikation/qualifikation.dart';
 import 'package:nami/services/app_mode_controller.dart';
 
 import 'demo_staemme.dart';
@@ -132,9 +134,18 @@ class DemoData {
     }
     final today = _now();
     final personen = _sichtbarePersonen(layer);
+    final personIds = {for (final person in personen) person.personId};
     return ArbeitskontextReadModel(
       arbeitskontext: arbeitskontext,
       rolesSindGeladen: true,
+      efzStand: TeildatenStand.geladen,
+      efzEinsichtnahmen: efzEinsichtnahmen().where(
+        (eintrag) => personIds.contains(eintrag.personId),
+      ),
+      qualifikationenStand: TeildatenStand.geladen,
+      qualifikationen: qualifikationen().where(
+        (eintrag) => personIds.contains(eintrag.personId),
+      ),
       mitglieder: <Mitglied>[
         for (final person in personen) person.toMitglied(today, layer),
       ],
@@ -186,6 +197,37 @@ class DemoData {
                 today.month - alterMonate + 1,
                 today.day,
               ),
+            ),
+    ];
+  }
+
+  /// Qualifikationen aller Personen, die der Zugang sehen darf.
+  List<Qualifikation> qualifikationen() {
+    final today = _now();
+    var id = 1;
+    return <Qualifikation>[
+      for (final layer in DemoBezirk.layer)
+        for (final person in _sichtbarePersonen(layer))
+          for (final quali
+              in DemoBezirk.qualifikationen[person.mitgliedsnummer] ??
+                  const <DemoQualifikation>[])
+            Qualifikation(
+              id: id++,
+              personId: person.personId,
+              label: quali.label,
+              qualifiedAt: DateTime(
+                today.year,
+                today.month - quali.vorMonaten,
+                today.day,
+              ),
+              finishAt: quali.gueltigJahre == null
+                  ? null
+                  : DateTime(
+                      today.year + quali.gueltigJahre!,
+                      today.month - quali.vorMonaten,
+                      today.day,
+                    ),
+              reaktivierbar: quali.reaktivierbar,
             ),
     ];
   }

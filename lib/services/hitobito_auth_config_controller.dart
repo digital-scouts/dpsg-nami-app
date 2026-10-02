@@ -5,6 +5,7 @@ import 'hitobito_efz_service.dart';
 import 'hitobito_groups_service.dart';
 import 'hitobito_oauth_service.dart';
 import 'hitobito_people_service.dart';
+import 'hitobito_qualifications_service.dart';
 import 'hitobito_roles_service.dart';
 import 'logger_service.dart';
 import 'sensitive_storage_service.dart';
@@ -17,6 +18,7 @@ class HitobitoAuthConfigController extends ChangeNotifier {
     required HitobitoPeopleService peopleService,
     HitobitoRolesService? rolesService,
     HitobitoEfzService? efzService,
+    HitobitoQualificationsService? qualificationsService,
     LoggerService? logger,
     HitobitoAuthConfig? envConfig,
   }) : _sensitiveStorageService = sensitiveStorageService,
@@ -25,6 +27,7 @@ class HitobitoAuthConfigController extends ChangeNotifier {
        _peopleService = peopleService,
        _rolesService = rolesService,
        _efzService = efzService,
+       _qualificationsService = qualificationsService,
        _logger = logger,
        _envConfig = envConfig ?? HitobitoAuthEnv.authConfig,
        _effectiveConfig = envConfig ?? HitobitoAuthEnv.authConfig;
@@ -35,6 +38,7 @@ class HitobitoAuthConfigController extends ChangeNotifier {
   final HitobitoPeopleService _peopleService;
   final HitobitoRolesService? _rolesService;
   final HitobitoEfzService? _efzService;
+  final HitobitoQualificationsService? _qualificationsService;
   final LoggerService? _logger;
   final HitobitoAuthConfig _envConfig;
 
@@ -132,6 +136,7 @@ class HitobitoAuthConfigController extends ChangeNotifier {
     _peopleService.updateConfig(nextConfig);
     _rolesService?.updateConfig(nextConfig);
     _efzService?.updateConfig(nextConfig);
+    _qualificationsService?.updateConfig(nextConfig);
     if (notify) {
       notifyListeners();
     }

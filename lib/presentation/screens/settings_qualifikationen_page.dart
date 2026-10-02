@@ -2,14 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-import '../../domain/member/efz_einsichtnahme.dart';
+import '../../domain/arbeitskontext/teildaten_stand.dart';
 import '../../domain/member/mitglied.dart';
 import '../../domain/qualifikation/ermittle_qualifikations_uebersicht_usecase.dart';
 import '../../domain/qualifikation/qualifikations_status.dart';
 import '../../domain/qualifikation/qualifikationsart.dart';
-import '../../services/hitobito_efz_service.dart';
+import '../../l10n/app_localizations.dart';
 import '../model/arbeitskontext_model.dart';
-import '../model/auth_session_model.dart';
 import '../navigation/app_router.dart';
 import '../widgets/qualifikations_status_badge.dart';
 import 'member_detail_page.dart';
@@ -32,16 +31,6 @@ class _SettingsQualifikationenPageState
   static const _useCase = ErmittleQualifikationsUebersichtUseCase();
 
   Qualifikationsart _selectedQualifikationsart = efzQualifikationsart;
-  Future<List<EfzEinsichtnahme>>? _future;
-
-  Future<List<EfzEinsichtnahme>> _loadEinsichtnahmen() {
-    final accessToken = context.read<AuthSessionModel?>()?.session?.accessToken;
-    if (accessToken == null || accessToken.isEmpty) {
-      return Future.value(const <EfzEinsichtnahme>[]);
-    }
-    final service = context.read<HitobitoEfzService>();
-    return service.fetchAlleEfzEinsichtnahmen(accessToken);
-  }
 
   Future<void> _openMemberDetails(Mitglied mitglied) async {
     await Navigator.of(context).push(
@@ -58,45 +47,43 @@ class _SettingsQualifikationenPageState
   @override
   Widget build(BuildContext context) {
     final readModel = context.watch<ArbeitskontextModel>().readModel;
-    _future ??= _loadEinsichtnahmen();
+    final t = AppLocalizations.of(context);
 
+    // EFZ-Einsichtnahmen kommen aus dem beim Sync gespeicherten Arbeitskontext
+    // und sind damit auch offline verfuegbar.
     return Scaffold(
       appBar: widget.showAppBar
           ? AppBar(title: const Text('Qualifikationen'))
           : null,
-      body: readModel == null
-          ? const Center(child: CircularProgressIndicator())
-          : FutureBuilder<List<EfzEinsichtnahme>>(
-              future: _future,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState != ConnectionState.done) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return const _QualifikationenStatusView(
-                    icon: Icons.error_outline,
-                    title: 'Qualifikationen konnten nicht geladen werden',
-                    message: 'Bitte versuche es später erneut.',
-                  );
-                }
-
-                final einsichtnahmen =
-                    snapshot.data ?? const <EfzEinsichtnahme>[];
-                final eintraege = _useCase(
-                  readModel: readModel,
-                  einsichtnahmen: einsichtnahmen,
-                  qualifikationsart: _selectedQualifikationsart,
-                );
-
-                return _QualifikationenContent(
-                  eintraege: eintraege,
-                  selectedQualifikationsart: _selectedQualifikationsart,
-                  onQualifikationsartChanged: (art) =>
-                      setState(() => _selectedQualifikationsart = art),
-                  onMemberTap: _openMemberDetails,
-                );
-              },
-            ),
+      body: switch (readModel?.efzStand) {
+        null => const Center(child: CircularProgressIndicator()),
+        TeildatenStand.keineBerechtigung => _QualifikationenStatusView(
+          icon: Icons.lock_outline,
+          title: t.t('qualifikationen_efz_keine_berechtigung_titel'),
+          message: t.t('qualifikationen_efz_keine_berechtigung_text'),
+        ),
+        TeildatenStand.unbekannt => _QualifikationenStatusView(
+          icon: Icons.schedule_outlined,
+          title: t.t('qualifikationen_efz_nicht_synchronisiert_titel'),
+          message: t.t('qualifikationen_efz_nicht_synchronisiert_text'),
+        ),
+        TeildatenStand.fehlgeschlagen => const _QualifikationenStatusView(
+          icon: Icons.error_outline,
+          title: 'Qualifikationen konnten nicht geladen werden',
+          message: 'Bitte versuche es später erneut.',
+        ),
+        TeildatenStand.geladen => _QualifikationenContent(
+          eintraege: _useCase(
+            readModel: readModel!,
+            einsichtnahmen: readModel.efzEinsichtnahmen,
+            qualifikationsart: _selectedQualifikationsart,
+          ),
+          selectedQualifikationsart: _selectedQualifikationsart,
+          onQualifikationsartChanged: (art) =>
+              setState(() => _selectedQualifikationsart = art),
+          onMemberTap: _openMemberDetails,
+        ),
+      },
     );
   }
 }

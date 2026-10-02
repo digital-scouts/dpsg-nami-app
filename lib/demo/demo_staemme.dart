@@ -658,6 +658,52 @@ abstract final class DemoBezirk {
     '3002': 40,
     '3003': 50,
   };
+
+  /// Qualifikationen der Leitenden: Erwerb vor [DemoQualifikation.vorMonaten]
+  /// Monaten, gueltig fuer [DemoQualifikation.gueltigJahre] (null = ohne
+  /// Ablauf).
+  static const Map<String, List<DemoQualifikation>> qualifikationen =
+      <String, List<DemoQualifikation>>{
+        '1051': <DemoQualifikation>[
+          DemoQualifikation('Woodbadge', 40),
+          DemoQualifikation('Präventionsschulung', 30, gueltigJahre: 5),
+          DemoQualifikation('Erste-Hilfe-Kurs', 22, gueltigJahre: 2),
+          DemoQualifikation(
+            'Juleica',
+            44,
+            gueltigJahre: 3,
+            reaktivierbar: true,
+          ),
+        ],
+        '1052': <DemoQualifikation>[
+          DemoQualifikation('Präventionsschulung', 10, gueltigJahre: 5),
+        ],
+        '1053': <DemoQualifikation>[
+          DemoQualifikation('Modulausbildung', 60),
+          DemoQualifikation('Präventionsschulung', 58, gueltigJahre: 5),
+        ],
+        '1061': <DemoQualifikation>[
+          DemoQualifikation('Woodbadge', 90),
+          DemoQualifikation('Präventionsschulung', 20, gueltigJahre: 5),
+        ],
+        '2051': <DemoQualifikation>[
+          DemoQualifikation('Präventionsschulung', 6, gueltigJahre: 5),
+        ],
+      };
+}
+
+class DemoQualifikation {
+  const DemoQualifikation(
+    this.label,
+    this.vorMonaten, {
+    this.gueltigJahre,
+    this.reaktivierbar = false,
+  });
+
+  final String label;
+  final int vorMonaten;
+  final int? gueltigJahre;
+  final bool reaktivierbar;
 }
 
 class DemoLayer {

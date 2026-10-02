@@ -7,11 +7,13 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../domain/arbeitskontext/teildaten_stand.dart';
 import '../../domain/member/efz_einsichtnahme.dart';
 import '../../domain/member/mitglied.dart';
 import '../../domain/qualifikation/berechne_efz_gueltigkeit_usecase.dart';
 import '../../domain/qualifikation/qualifikations_status.dart';
 import '../../services/hitobito_efz_service.dart';
+import '../model/arbeitskontext_model.dart';
 import '../model/auth_session_model.dart';
 import '../notifications/app_snackbar.dart';
 import 'qualifikations_status_badge.dart';
@@ -53,6 +55,17 @@ class _EfzStatusSectionState extends State<EfzStatusSection> {
 
   Future<List<EfzEinsichtnahme>> _loadEinsichtnahmen() async {
     final personId = widget.mitglied.personId;
+    ArbeitskontextModel? arbeitskontextModel;
+    try {
+      arbeitskontextModel = context.read<ArbeitskontextModel?>();
+    } on ProviderNotFoundException {
+      arbeitskontextModel = null;
+    }
+    final readModel = arbeitskontextModel?.readModel;
+    if (readModel != null && readModel.efzStand == TeildatenStand.geladen) {
+      return readModel.findeEfzEinsichtnahmen(personId);
+    }
+
     final accessToken = context.read<AuthSessionModel?>()?.session?.accessToken;
     if (personId == null || accessToken == null || accessToken.isEmpty) {
       return const <EfzEinsichtnahme>[];
@@ -251,7 +264,7 @@ class _EfzStatusSectionState extends State<EfzStatusSection> {
                   child: Text(
                     gueltigkeit.gueltigBis == null
                         ? 'Erneute Vorlage notwendig'
-                        : status == QualifikationsStatus.fehlt
+                        : status == QualifikationsStatus.abgelaufen
                         ? 'Erneute Vorlage sofort notwendig'
                         : 'Erneute Vorlage bis zum '
                               '${_dateFormat.format(gueltigkeit.gueltigBis!)} notwendig',
