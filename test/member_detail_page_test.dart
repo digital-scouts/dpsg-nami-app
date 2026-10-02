@@ -102,7 +102,7 @@ void main() {
   );
 
   testWidgets(
-    'priorisiert fuer den Header Woe Leitung vor Rover Mitglied',
+    'zeigt alle aktiven Stufenrollen als Chips, Leitung zuerst',
     (tester) async {
       final member = Mitglied(
         mitgliedsnummer: '42',
@@ -119,49 +119,58 @@ void main() {
             type: 'Group::StammGruppeWoelflinge::Leitung',
             startOn: DateTime(2024, 5, 1),
           ),
+          Role(
+            type: 'Group::StammGruppePfadfinder::Mitglied',
+            startOn: DateTime(2020, 5, 1),
+            endOn: DateTime(2024, 5, 1),
+          ),
         ],
       );
 
       await tester.pumpWidget(
-        _buildTestApp(MemberDetailPage(mitglied: member)),
+        _buildTestApp(
+          MemberDetailPage(mitglied: member, heuteProvider: () => _heute),
+        ),
       );
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Wö'), findsOneWidget);
+      expect(find.text('Wö-Leitung'), findsOneWidget);
+      expect(find.text('Rover'), findsOneWidget);
+      // Beendete Rollen erscheinen nicht im Kopf.
+      expect(find.text('Pfadi'), findsNothing);
+      expect(
+        tester.getTopLeft(find.text('Wö-Leitung')).dx,
+        lessThan(tester.getTopLeft(find.text('Rover')).dx),
+      );
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
 
   testWidgets(
-    'priorisiert fuer den Header Rover vor Pfadfinder bei gleicher Leitungs-Art',
+    'zeigt Alter, Pronomen und Geschlecht in der Kopfzeile',
     (tester) async {
       final member = Mitglied(
-        mitgliedsnummer: '44',
-        vorname: 'Lina',
-        nachname: 'Beispiel',
-        geburtsdatum: DateTime(2010, 4, 6),
-        eintrittsdatum: DateTime(2020, 5, 1),
-        roles: <Role>[
-          Role(
-            type: 'Group::StammGruppePfadfinder::Leitung',
-            startOn: DateTime(2025, 5, 1),
-          ),
-          Role(
-            type: 'Group::StammGruppeRover::Leitung',
-            startOn: DateTime(2024, 5, 1),
-          ),
-        ],
+        mitgliedsnummer: '46',
+        vorname: 'Lena',
+        nachname: 'Brandt',
+        fahrtenname: 'Funke',
+        geburtsdatum: DateTime(1996, 3, 14),
+        eintrittsdatum: DateTime(2004, 4, 1),
+        pronoun: 'sie/ihr',
+        gender: 'w',
       );
 
       await tester.pumpWidget(
-        _buildTestApp(MemberDetailPage(mitglied: member)),
+        _buildTestApp(
+          MemberDetailPage(mitglied: member, heuteProvider: () => _heute),
+        ),
       );
-
       await tester.pumpAndSettle();
 
-      expect(find.text('Rover'), findsOneWidget);
-      expect(find.text('Pfadi'), findsNothing);
+      expect(find.text('Funke'), findsOneWidget);
+      expect(find.text('Lena Brandt'), findsOneWidget);
+      expect(find.text('30 Jahre · sie/ihr · weiblich'), findsOneWidget);
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
@@ -240,7 +249,7 @@ void main() {
   );
 
   testWidgets(
-    'zeigt Auswahlmenue fuer Anrufen bei mehreren Telefonnummern',
+    'klappt weitere Telefonnummern und E-Mails erst auf Wunsch auf',
     (tester) async {
       final member = Mitglied(
         mitgliedsnummer: '4711',
@@ -252,37 +261,6 @@ void main() {
           MitgliedKontaktTelefon(wert: '+491701234567', label: 'Mobil'),
           MitgliedKontaktTelefon(wert: '+4940123456', label: 'Festnetz'),
         ],
-      );
-
-      await tester.pumpWidget(
-        _buildTestApp(MemberDetailPage(mitglied: member)),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Anrufen'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Telefonnummer auswählen'), findsOneWidget);
-      expect(find.text('Mobil - +491701234567'), findsOneWidget);
-      expect(find.text('Festnetz - +4940123456'), findsOneWidget);
-
-      await tester.tap(find.text('Mobil - +491701234567'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Telefonnummer auswählen'), findsNothing);
-    },
-    timeout: const Timeout(Duration(seconds: 3)),
-  );
-
-  testWidgets(
-    'zeigt Auswahlmenue fuer E-Mail bei mehreren Adressen',
-    (tester) async {
-      final member = Mitglied(
-        mitgliedsnummer: '4711',
-        vorname: 'Julia',
-        nachname: 'Keller',
-        geburtsdatum: DateTime(2010, 4, 6),
-        eintrittsdatum: DateTime(2020, 5, 1),
         emailAdressen: const <MitgliedKontaktEmail>[
           MitgliedKontaktEmail(wert: 'julia@example.com', label: 'Privat'),
           MitgliedKontaktEmail(wert: 'j.keller@stamm.de', label: 'Stamm'),
@@ -290,52 +268,85 @@ void main() {
       );
 
       await tester.pumpWidget(
-        _buildTestApp(MemberDetailPage(mitglied: member)),
+        _buildTestApp(
+          MemberDetailPage(mitglied: member, heuteProvider: () => _heute),
+        ),
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('E-Mail'));
+      expect(find.text('+491701234567', findRichText: true), findsOneWidget);
+      expect(
+        find.text('julia@example.com', findRichText: true),
+        findsOneWidget,
+      );
+      expect(find.text('+4940123456', findRichText: true), findsNothing);
+      expect(find.text('j.keller@stamm.de', findRichText: true), findsNothing);
+
+      await tester.tap(find.text('1 weitere Telefonnummer, 1 weitere E-Mail'));
       await tester.pumpAndSettle();
 
-      expect(find.text('E-Mail auswählen'), findsOneWidget);
-      expect(find.text('Privat - julia@example.com'), findsOneWidget);
-      expect(find.text('Stamm - j.keller@stamm.de'), findsOneWidget);
-
-      await tester.tap(find.text('Privat - julia@example.com'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('E-Mail auswählen'), findsNothing);
+      expect(find.text('+4940123456', findRichText: true), findsOneWidget);
+      expect(
+        find.text('j.keller@stamm.de', findRichText: true),
+        findsOneWidget,
+      );
+      expect(find.text('Weniger anzeigen'), findsOneWidget);
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
 
   testWidgets(
-    'deaktiviert Anrufen und E-Mail wenn keine Daten vorhanden sind',
+    'hebt den Geburtstag heute und in den naechsten 7 Tagen hervor',
     (tester) async {
-      final member = Mitglied(
-        mitgliedsnummer: '4815',
-        vorname: 'Alex',
-        nachname: 'OhneKontakt',
-        geburtsdatum: DateTime(2010, 4, 6),
-        eintrittsdatum: DateTime(2020, 5, 1),
-      );
+      Future<Card> kachelBei(DateTime geburtsdatum) async {
+        await tester.pumpWidget(
+          _buildTestApp(
+            MemberDetailPage(
+              key: UniqueKey(),
+              mitglied: Mitglied(
+                mitgliedsnummer: '50',
+                vorname: 'Mats',
+                nachname: 'Okafor',
+                geburtsdatum: geburtsdatum,
+                eintrittsdatum: DateTime(2026, 9, 25),
+              ),
+              heuteProvider: () => _heute,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        return tester.widget<Card>(
+          find.descendant(
+            of: find.byKey(const ValueKey('fakt-geburtstag')),
+            matching: find.byType(Card),
+          ),
+        );
+      }
 
-      await tester.pumpWidget(
-        _buildTestApp(MemberDetailPage(mitglied: member)),
-      );
-      await tester.pumpAndSettle();
+      final heute = await kachelBei(DateTime(2018, 10, 2));
+      expect(find.text('heute Geburtstag'), findsOneWidget);
+      expect(find.byIcon(Icons.cake_outlined), findsOneWidget);
+      expect(heute.color, isNotNull);
 
-      final anrufenInkWell = tester.widget<InkWell>(
-        find.ancestor(of: find.text('Anrufen'), matching: find.byType(InkWell)),
-      );
-      final emailInkWell = tester.widget<InkWell>(
-        find.ancestor(of: find.text('E-Mail'), matching: find.byType(InkWell)),
-      );
+      final morgen = await kachelBei(DateTime(2018, 10, 3));
+      expect(find.text('morgen · wird 8'), findsOneWidget);
+      expect(morgen.color, isNotNull);
 
-      expect(anrufenInkWell.onTap, isNull);
-      expect(emailInkWell.onTap, isNull);
+      final siebenTage = await kachelBei(DateTime(2018, 10, 9));
+      expect(find.text('in 7 Tagen · wird 8'), findsOneWidget);
+      expect(siebenTage.color, isNotNull);
+
+      final achtTage = await kachelBei(DateTime(2018, 10, 10));
+      expect(find.text('in 8 Tagen · wird 8'), findsOneWidget);
+      expect(achtTage.color, isNull);
+
+      final spaeter = await kachelBei(DateTime(2018, 5, 9));
+      expect(find.text('Geburtstag in 7 Monaten'), findsOneWidget);
+      expect(spaeter.color, isNull);
+      expect(find.text('7 Tage'), findsOneWidget);
+      expect(find.text('dabei seit 25.09.2026'), findsOneWidget);
     },
-    timeout: const Timeout(Duration(seconds: 3)),
+    timeout: const Timeout(Duration(seconds: 5)),
   );
 
   testWidgets('zeigt die erste Adresse in den Details an', (tester) async {
@@ -417,6 +428,9 @@ void main() {
 
       expect(find.text('ADRESSE'), findsOneWidget);
       expect(find.byType(CircularProgressIndicator), findsNothing);
+      // Technischer Fehler: flache Hinweisflaeche mit erneutem Versuch.
+      expect(find.text('Technischer Fehler'), findsOneWidget);
+      expect(find.text('Erneut versuchen'), findsOneWidget);
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
@@ -458,9 +472,56 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 150));
       await tester.pump();
+
+      expect(find.text('Adresse nicht gefunden'), findsOneWidget);
+      expect(find.text('In Karten-App öffnen'), findsOneWidget);
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
+
+  testWidgets('zeigt sichtbare Haushaltsmitglieder als Familie', (
+    tester,
+  ) async {
+    Mitglied kind(String nummer, String vorname, String? haushalt) => Mitglied(
+      mitgliedsnummer: nummer,
+      personId: int.parse(nummer),
+      vorname: vorname,
+      nachname: 'Okafor',
+      geburtsdatum: DateTime(2018, 5, 9),
+      eintrittsdatum: DateTime(2026, 9, 25),
+      householdKey: haushalt,
+    );
+    final mats = kind('51', 'Mats', 'okafor');
+    final arbeitskontextModel = await _buildArbeitskontextModel(
+      member: mats,
+      permissions: const <String>[],
+      weitereMitglieder: <Mitglied>[
+        kind('52', 'Ida', 'okafor'),
+        kind('53', 'Lio', 'andere'),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        MemberDetailPage(mitglied: mats, heuteProvider: () => _heute),
+        providers: <SingleChildWidget>[
+          ChangeNotifierProvider<ArbeitskontextModel>.value(
+            value: arbeitskontextModel,
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('FAMILIE IM STAMM'), findsOneWidget);
+    expect(find.text('Ida'), findsOneWidget);
+    expect(find.text('Lio'), findsNothing);
+
+    await tester.tap(find.text('Ida'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ida Okafor'), findsOneWidget);
+  });
 
   testWidgets('zeigt den Bearbeiten-Button bei Schreibrecht', (tester) async {
     final member = Mitglied.peopleListItem(
@@ -488,7 +549,10 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Bearbeiten'), findsOneWidget);
+    final button = tester.widget<IconButton>(
+      find.byKey(const Key('member-detail-edit')),
+    );
+    expect(button.onPressed, isNotNull);
   });
 
   testWidgets('zeigt den Pending-Hinweis fuer das passende Mitglied', (
@@ -653,7 +717,7 @@ void main() {
     );
 
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Bearbeiten'));
+    await tester.tap(find.byKey(const Key('member-detail-edit')));
     await tester.pumpAndSettle();
 
     expect(find.text('Person bearbeiten'), findsOneWidget);
@@ -707,7 +771,7 @@ void main() {
     );
 
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Bearbeiten'));
+    await tester.tap(find.byKey(const Key('member-detail-edit')));
     await tester.pumpAndSettle();
 
     expect(find.text('Person bearbeiten'), findsOneWidget);
@@ -765,7 +829,7 @@ void main() {
     );
 
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Bearbeiten'));
+    await tester.tap(find.byKey(const Key('member-detail-edit')));
     await tester.pumpAndSettle();
 
     expect(find.text('Person bearbeiten'), findsOneWidget);
@@ -842,7 +906,7 @@ void main() {
     );
 
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Bearbeiten'));
+    await tester.tap(find.byKey(const Key('member-detail-edit')));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Problemlösung'), findsOneWidget);
@@ -1062,18 +1126,25 @@ class _NullGeoapifyAddressMapService extends GeoapifyAddressMapService {
 
   @override
   Future<LatLng?> geocodeAddress(String addressText) async => null;
+
+  @override
+  Future<GeoapifyGeocodeResult> resolveAddress(String addressText) async =>
+      const GeoapifyGeocodeResult.addressNotFound();
 }
+
+final DateTime _heute = DateTime(2026, 10, 2);
 
 Future<ArbeitskontextModel> _buildArbeitskontextModel({
   required Mitglied member,
   required List<String> permissions,
+  List<Mitglied> weitereMitglieder = const <Mitglied>[],
 }) async {
   final readModel = ArbeitskontextReadModel(
     arbeitskontext: Arbeitskontext(
       aktiverLayer: const ArbeitskontextLayer(id: 11, name: 'Stamm Musterdorf'),
       verfuegbareLayer: const <ArbeitskontextLayer>[],
     ),
-    mitglieder: <Mitglied>[member],
+    mitglieder: <Mitglied>[member, ...weitereMitglieder],
     gruppen: const <ArbeitskontextGruppe>[
       ArbeitskontextGruppe(id: 100, name: 'Meute', layerId: 11),
       ArbeitskontextGruppe(

@@ -87,4 +87,73 @@ void main() {
 
     expect(launchedQuery, 'Musterweg 4, 50667 Koeln, DE');
   });
+
+  testWidgets('zeigt Zusatzadressen erst nach dem Aufklappen', (tester) async {
+    final member = Mitglied(
+      mitgliedsnummer: '4729981',
+      vorname: 'Mats',
+      nachname: 'Okafor',
+      geburtsdatum: DateTime(2018, 5, 9),
+      eintrittsdatum: DateTime(2026, 9, 25),
+      adressen: const <MitgliedKontaktAdresse>[
+        MitgliedKontaktAdresse(
+          additionalAddressId: 0,
+          street: 'Am Mühlbach',
+          housenumber: '3',
+          zipCode: '50999',
+          town: 'Köln',
+          country: 'DE',
+        ),
+        MitgliedKontaktAdresse(
+          additionalAddressId: 7,
+          label: 'Papa',
+          street: 'Venloer Straße',
+          housenumber: '210',
+          zipCode: '50823',
+          town: 'Köln',
+          country: 'DE',
+        ),
+        MitgliedKontaktAdresse(
+          additionalAddressId: 8,
+          label: 'Oma',
+          street: 'Kirchweg',
+          housenumber: '5',
+          zipCode: '53111',
+          town: 'Bonn',
+          country: 'DE',
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          AppLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('de'), Locale('en')],
+        locale: const Locale('de'),
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: MemberAddressCard(
+              mitglied: member,
+              onLaunchAddress: (_) async => true,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Am Mühlbach 3, 50999 Köln'), findsOneWidget);
+    expect(find.text('Papa'), findsNothing);
+
+    await tester.tap(find.text('2 weitere Adressen'));
+    await tester.pump();
+
+    expect(find.text('Venloer Straße 210, 50823 Köln'), findsOneWidget);
+    expect(find.text('Papa'), findsOneWidget);
+    expect(find.text('Oma'), findsOneWidget);
+  });
 }
