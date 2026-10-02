@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/domain/member/mitglied.dart';
+import 'package:nami/domain/taetigkeit/roles.dart';
 
 void main() {
   test('akzeptiert leeren Vor- und Nachnamen als fehlende People-Felder', () {
@@ -71,11 +72,17 @@ void main() {
       updatedAt: DateTime(2025, 3, 4, 16, 30),
       picture: 'https://example.org/picture.svg',
       pronoun: 'er/ihm',
-      bankAccountOwner: 'Max Muster',
-      iban: 'DE02120300000000202051',
-      bic: 'BYLADEM1001',
-      bankName: 'Testbank',
-      paymentMethod: 'lsv',
+      householdKey: 'haushalt-77',
+      roles: <Role>[
+        Role(
+          id: 5,
+          groupId: 90,
+          type: 'Group::Bezirk::Mitarbeiter',
+          startOn: DateTime(2023, 1, 1),
+          groupName: 'AK Woelflingsstufe',
+          layerName: 'Bezirk Rheinauen',
+        ),
+      ],
       emailAdressen: const <MitgliedKontaktEmail>[
         MitgliedKontaktEmail(
           wert: 'max@example.org',
@@ -106,6 +113,35 @@ void main() {
     final decoded = Mitglied.fromPeopleListJson(original.toPeopleListJson());
 
     expect(decoded, original);
+  });
+
+  test('verwirft Bankdaten aus aelteren Caches', () {
+    final alterCache =
+        Mitglied(
+          mitgliedsnummer: '1003',
+          vorname: 'Mia',
+          nachname: 'Alt',
+          geburtsdatum: DateTime(2010, 1, 1),
+          eintrittsdatum: DateTime(2018, 1, 1),
+        ).toPeopleListJson()..addAll(<String, dynamic>{
+          'bank_account_owner': 'Mia Alt',
+          'iban': 'DE02120300000000202051',
+          'bic': 'BYLADEM1001',
+          'bank_name': 'Testbank',
+          'payment_method': 'lsv',
+        });
+
+    final neu = Mitglied.fromPeopleListJson(alterCache).toPeopleListJson();
+
+    for (final bankfeld in const [
+      'bank_account_owner',
+      'iban',
+      'bic',
+      'bank_name',
+      'payment_method',
+    ]) {
+      expect(neu, isNot(contains(bankfeld)));
+    }
   });
 
   group('primaryAddress und additionalAddresses', () {

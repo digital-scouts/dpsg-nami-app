@@ -95,6 +95,10 @@ void main() {
                 "gender": "w",
                 "pronoun": "sie/ihr",
                 "picture": "https://demo.hitobito.com/images/profile.svg",
+                "household_key": "haushalt-keller",
+                "bank_account_owner": "Julia Keller",
+                "iban": "DE02120300000000202051",
+                "payment_method": "lsv",
                 "street": "Musterweg",
                 "housenumber": "4",
                 "zip_code": "50667",
@@ -264,6 +268,17 @@ void main() {
       expect(people.first.mitgliedsnummer, '1001');
       expect(people.first.gender, 'w');
       expect(people.first.pronoun, 'sie/ihr');
+      expect(people.first.householdKey, 'haushalt-keller');
+      final gespeichert = people.first.toPeopleListJson();
+      for (final bankfeld in const [
+        'bank_account_owner',
+        'iban',
+        'bic',
+        'bank_name',
+        'payment_method',
+      ]) {
+        expect(gespeichert, isNot(contains(bankfeld)));
+      }
       expect(
         people.first.picture,
         'https://demo.hitobito.com/images/profile.svg',
@@ -439,11 +454,7 @@ void main() {
         austrittsdatum: DateTime.utc(2026, 4, 14),
         gender: 'divers',
         pronoun: 'sie/ihr',
-        bankAccountOwner: 'Julia Keller',
-        iban: 'DE02120300000000202051',
-        bic: 'BYLADEM1001',
-        bankName: 'Testbank',
-        paymentMethod: 'manual',
+        householdKey: 'haushalt-keller',
         emailAdressen: const <MitgliedKontaktEmail>[
           MitgliedKontaktEmail(
             wert: 'julia@example.org',

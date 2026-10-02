@@ -29,6 +29,10 @@ abstract final class DemoBezirk {
   static const int pfadfinderBirkenhainId = 990034;
   static const int roverBirkenhainId = 990035;
 
+  /// Arbeitskreis im Bezirk; nur als Rolle sichtbar, nicht als Gruppe eines
+  /// Demo-Layers.
+  static const int akWoelflingeBezirkId = 990041;
+
   static const DemoLayer bezirk = DemoLayer(
     id: bezirkId,
     name: 'Bezirk Silbertal',
@@ -125,6 +129,7 @@ abstract final class DemoBezirk {
         3,
         Stufe.biber,
         biberSilberfelsId,
+        haushalt: 'demo-haushalt-brandt',
       ),
       DemoPerson(
         '1002',
@@ -166,11 +171,12 @@ abstract final class DemoBezirk {
       DemoPerson(
         '1013',
         'Paul',
-        'Seidel',
+        'Brandt',
         7,
         11,
         Stufe.woelfling,
         woelflingeSilberfelsId,
+        haushalt: 'demo-haushalt-brandt',
       ),
       DemoPerson(
         '1014',
@@ -313,6 +319,15 @@ abstract final class DemoBezirk {
         woelflingeSilberfelsId,
         leitung: true,
         fahrtenname: 'Eule',
+        weitereRollen: <DemoRolle>[
+          DemoRolle(
+            label: 'AK Mitarbeiter*in',
+            gruppenId: akWoelflingeBezirkId,
+            gruppenName: 'AK Wölflingsstufe',
+            layerName: 'Bezirk Silbertal',
+            seitJahren: 2,
+          ),
+        ],
       ),
       DemoPerson(
         '1052',
@@ -672,8 +687,26 @@ class DemoLayer {
       gruppen.any((gruppe) => gruppe.id == gruppenId);
 }
 
-/// Person mit genau einer Rolle. [gruppenId] ist entweder eine Gruppe des
-/// Layers oder, bei Vorstandsrollen, der Layer selbst.
+/// Zusaetzliche Rolle einer Person, etwa in einem anderen Layer.
+class DemoRolle {
+  const DemoRolle({
+    required this.label,
+    required this.gruppenId,
+    required this.gruppenName,
+    required this.layerName,
+    required this.seitJahren,
+  });
+
+  final String label;
+  final int gruppenId;
+  final String gruppenName;
+  final String layerName;
+  final int seitJahren;
+}
+
+/// Person mit einer Hauptrolle und optional [weitereRollen]. [gruppenId] ist
+/// entweder eine Gruppe des Layers oder, bei Vorstandsrollen, der Layer
+/// selbst. Personen mit gleichem [haushalt] bilden einen Hitobito-Haushalt.
 class DemoPerson {
   const DemoPerson(
     this.mitgliedsnummer,
@@ -686,6 +719,8 @@ class DemoPerson {
     this.leitung = false,
     this.fahrtenname,
     this.rolle,
+    this.haushalt,
+    this.weitereRollen = const <DemoRolle>[],
   });
 
   final String mitgliedsnummer;
@@ -700,6 +735,8 @@ class DemoPerson {
 
   /// Bezeichnung der Rolle, wenn sie nicht „Leiter*in“ oder „Mitglied“ ist.
   final String? rolle;
+  final String? haushalt;
+  final List<DemoRolle> weitereRollen;
 
   int get personId => int.parse(mitgliedsnummer);
 
@@ -716,6 +753,16 @@ class DemoPerson {
     final stufenStart = DateTime(today.year - (leitung ? 3 : 1), 9, 1);
     final emailName =
         '${_ascii(vorname).toLowerCase()}.${_ascii(nachname).toLowerCase()}';
+    final gruppenName = gruppenId == layer.id
+        ? layer.name
+        : layer.gruppen
+              .where((gruppe) => gruppe.id == gruppenId)
+              .map((gruppe) => gruppe.name)
+              .firstOrNull;
+    // Ein Haushalt teilt sich die Hausnummer, damit die Adresse passt.
+    final hausnummer = haushalt == null
+        ? '${personId % 40 + 1}'
+        : '${haushalt!.length % 40 + 1}';
 
     return Mitglied(
       vorname: vorname,
@@ -727,6 +774,7 @@ class DemoPerson {
       personId: personId,
       primaryGroupId: gruppenId,
       gender: _weiblicheVornamen.contains(vorname) ? 'w' : 'm',
+      householdKey: haushalt,
       telefonnummern: <MitgliedKontaktTelefon>[
         MitgliedKontaktTelefon(
           wert: '+49 151 ${2340000 + personId * 37}',
@@ -742,8 +790,9 @@ class DemoPerson {
       ],
       adressen: <MitgliedKontaktAdresse>[
         MitgliedKontaktAdresse(
+          additionalAddressId: 0,
           street: layer.strasse,
-          housenumber: '${personId % 40 + 1}',
+          housenumber: hausnummer,
           zipCode: layer.plz,
           town: layer.ort,
           country: 'DE',
@@ -756,7 +805,18 @@ class DemoPerson {
           start: stufenStart,
           groupId: gruppenId,
           permission: rolle,
-        ),
+        ).copyWith(groupName: gruppenName, layerName: layer.name),
+        for (final weitere in weitereRollen)
+          roleFromLegacy(
+            stufe: Stufe.leitung,
+            art: RoleCategory.sonstiges,
+            start: DateTime(today.year - weitere.seitJahren, 1, 1),
+            groupId: weitere.gruppenId,
+            permission: weitere.label,
+          ).copyWith(
+            groupName: weitere.gruppenName,
+            layerName: weitere.layerName,
+          ),
       ],
     );
   }

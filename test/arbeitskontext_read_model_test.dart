@@ -34,6 +34,33 @@ void main() {
       expect(readModel.findeGruppe(101)?.name, 'Woelflinge');
     });
 
+    test('findet sichtbare Mitglieder im selben Haushalt', () {
+      Mitglied person(String nummer, String? haushalt) =>
+          Mitglied.peopleListItem(
+            mitgliedsnummer: nummer,
+            vorname: 'Kind $nummer',
+            nachname: 'Okafor',
+            householdKey: haushalt,
+          );
+      final mats = person('1', 'okafor');
+      final readModel = ArbeitskontextReadModel(
+        arbeitskontext: arbeitskontext,
+        mitglieder: <Mitglied>[
+          mats,
+          person('2', 'okafor'),
+          person('3', 'okafor'),
+          person('4', 'andere'),
+          person('5', null),
+        ],
+      );
+
+      expect(
+        readModel.findeHaushalt(mats).map((m) => m.mitgliedsnummer),
+        <String>['2', '3'],
+      );
+      expect(readModel.findeHaushalt(person('5', null)), isEmpty);
+    });
+
     test('normalisiert doppelte Mitglieder ueber die Mitgliedsnummer', () {
       final anna = Mitglied.peopleListItem(
         mitgliedsnummer: '1001',
