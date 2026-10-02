@@ -1,5 +1,8 @@
+import '../member/efz_einsichtnahme.dart';
 import '../member/mitglied.dart';
+import '../qualifikation/qualifikation.dart';
 import 'arbeitskontext.dart';
+import 'teildaten_stand.dart';
 
 class ArbeitskontextMitgliedsZuordnung {
   const ArbeitskontextMitgliedsZuordnung({
@@ -222,7 +225,13 @@ class ArbeitskontextReadModel {
     Iterable<ArbeitskontextMitgliedsZuordnung> mitgliedsZuordnungen =
         const <ArbeitskontextMitgliedsZuordnung>[],
     Iterable<int> uebergeordneteGruppenIds = const <int>[],
+    this.efzStand = TeildatenStand.unbekannt,
+    Iterable<EfzEinsichtnahme> efzEinsichtnahmen = const <EfzEinsichtnahme>[],
+    this.qualifikationenStand = TeildatenStand.unbekannt,
+    Iterable<Qualifikation> qualifikationen = const <Qualifikation>[],
   }) : mitglieder = List.unmodifiable(_normalizeMitglieder(mitglieder)),
+       efzEinsichtnahmen = List.unmodifiable(efzEinsichtnahmen),
+       qualifikationen = List.unmodifiable(qualifikationen),
        uebergeordneteGruppenIds = Set.unmodifiable(uebergeordneteGruppenIds),
        gruppen = List.unmodifiable(
          _normalizeGruppen(
@@ -248,6 +257,13 @@ class ArbeitskontextReadModel {
   /// des aktiven Layers, z. B. Bezirks- und Dioezesanleitung. Damit laesst sich
   /// pruefen, ob eine Rolle ausserhalb des aktiven Layers auf ihn wirkt.
   final Set<int> uebergeordneteGruppenIds;
+
+  /// EFZ-Einsichtnahmen und Qualifikationen der Personen dieses Kontexts,
+  /// beim Sync mitgeladen und offline verfuegbar.
+  final TeildatenStand efzStand;
+  final List<EfzEinsichtnahme> efzEinsichtnahmen;
+  final TeildatenStand qualifikationenStand;
+  final List<Qualifikation> qualifikationen;
 
   bool get hatMitglieder => mitglieder.isNotEmpty;
   bool get hatGruppen => gruppen.isNotEmpty;
@@ -278,6 +294,24 @@ class ArbeitskontextReadModel {
         .toList(growable: false);
   }
 
+  List<EfzEinsichtnahme> findeEfzEinsichtnahmen(int? personId) {
+    if (personId == null) {
+      return const <EfzEinsichtnahme>[];
+    }
+    return efzEinsichtnahmen
+        .where((eintrag) => eintrag.personId == personId)
+        .toList(growable: false);
+  }
+
+  List<Qualifikation> findeQualifikationen(int? personId) {
+    if (personId == null) {
+      return const <Qualifikation>[];
+    }
+    return qualifikationen
+        .where((eintrag) => eintrag.personId == personId)
+        .toList(growable: false);
+  }
+
   ArbeitskontextGruppe? findeGruppe(int gruppenId) {
     for (final gruppe in gruppen) {
       if (gruppe.id == gruppenId) {
@@ -302,6 +336,10 @@ class ArbeitskontextReadModel {
     Iterable<ArbeitskontextGruppe>? gruppen,
     Iterable<ArbeitskontextMitgliedsZuordnung>? mitgliedsZuordnungen,
     Iterable<int>? uebergeordneteGruppenIds,
+    TeildatenStand? efzStand,
+    Iterable<EfzEinsichtnahme>? efzEinsichtnahmen,
+    TeildatenStand? qualifikationenStand,
+    Iterable<Qualifikation>? qualifikationen,
   }) => ArbeitskontextReadModel(
     arbeitskontext: arbeitskontext ?? this.arbeitskontext,
     rolesSindGeladen: rolesSindGeladen ?? this.rolesSindGeladen,
@@ -310,6 +348,10 @@ class ArbeitskontextReadModel {
     mitgliedsZuordnungen: mitgliedsZuordnungen ?? this.mitgliedsZuordnungen,
     uebergeordneteGruppenIds:
         uebergeordneteGruppenIds ?? this.uebergeordneteGruppenIds,
+    efzStand: efzStand ?? this.efzStand,
+    efzEinsichtnahmen: efzEinsichtnahmen ?? this.efzEinsichtnahmen,
+    qualifikationenStand: qualifikationenStand ?? this.qualifikationenStand,
+    qualifikationen: qualifikationen ?? this.qualifikationen,
   );
 
   @override
@@ -322,7 +364,11 @@ class ArbeitskontextReadModel {
         _listEquals(other.mitgliedsZuordnungen, mitgliedsZuordnungen) &&
         other.uebergeordneteGruppenIds.length ==
             uebergeordneteGruppenIds.length &&
-        other.uebergeordneteGruppenIds.containsAll(uebergeordneteGruppenIds);
+        other.uebergeordneteGruppenIds.containsAll(uebergeordneteGruppenIds) &&
+        other.efzStand == efzStand &&
+        _listEquals(other.efzEinsichtnahmen, efzEinsichtnahmen) &&
+        other.qualifikationenStand == qualifikationenStand &&
+        _listEquals(other.qualifikationen, qualifikationen);
   }
 
   @override
@@ -332,11 +378,15 @@ class ArbeitskontextReadModel {
     Object.hashAll(mitglieder),
     Object.hashAll(gruppen),
     Object.hashAll(mitgliedsZuordnungen),
+    efzStand,
+    Object.hashAll(efzEinsichtnahmen),
+    qualifikationenStand,
+    Object.hashAll(qualifikationen),
   );
 
   @override
   String toString() {
-    return 'ArbeitskontextReadModel(arbeitskontext: $arbeitskontext, rolesSindGeladen: $rolesSindGeladen, mitglieder: $mitglieder, gruppen: $gruppen, mitgliedsZuordnungen: $mitgliedsZuordnungen)';
+    return 'ArbeitskontextReadModel(arbeitskontext: $arbeitskontext, rolesSindGeladen: $rolesSindGeladen, mitglieder: $mitglieder, gruppen: $gruppen, mitgliedsZuordnungen: $mitgliedsZuordnungen, efzStand: $efzStand, efz: ${efzEinsichtnahmen.length}, qualifikationenStand: $qualifikationenStand, qualifikationen: ${qualifikationen.length})';
   }
 
   static List<Mitglied> _normalizeMitglieder(Iterable<Mitglied> mitglieder) {

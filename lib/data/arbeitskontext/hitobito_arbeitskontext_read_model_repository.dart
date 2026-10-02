@@ -2,10 +2,16 @@ import '../../domain/arbeitskontext/arbeitskontext.dart';
 import '../../domain/arbeitskontext/arbeitskontext_local_repository.dart';
 import '../../domain/arbeitskontext/arbeitskontext_read_model.dart';
 import '../../domain/arbeitskontext/arbeitskontext_read_model_repository.dart';
+import '../../domain/arbeitskontext/teildaten_stand.dart';
+import '../../domain/member/efz_einsichtnahme.dart';
 import '../../domain/member/mitglied.dart';
+import '../../domain/qualifikation/qualifikation.dart';
 import '../../domain/taetigkeit/roles.dart';
+import '../../services/hitobito_api_exception.dart';
+import '../../services/hitobito_efz_service.dart';
 import '../../services/hitobito_groups_service.dart';
 import '../../services/hitobito_people_service.dart';
+import '../../services/hitobito_qualifications_service.dart';
 import '../../services/hitobito_roles_service.dart';
 import '../../services/logger_service.dart';
 import 'hitobito_group_resource.dart';
@@ -17,17 +23,23 @@ class HitobitoArbeitskontextReadModelRepository
     required HitobitoGroupsService groupsService,
     required HitobitoPeopleService peopleService,
     HitobitoRolesService? rolesService,
+    HitobitoEfzService? efzService,
+    HitobitoQualificationsService? qualificationsService,
     required ArbeitskontextLocalRepository localRepository,
     LoggerService? logger,
   }) : _groupsService = groupsService,
        _peopleService = peopleService,
        _rolesService = rolesService,
+       _efzService = efzService,
+       _qualificationsService = qualificationsService,
        _localRepository = localRepository,
        _logger = logger;
 
   final HitobitoGroupsService _groupsService;
   final HitobitoPeopleService _peopleService;
   final HitobitoRolesService? _rolesService;
+  final HitobitoEfzService? _efzService;
+  final HitobitoQualificationsService? _qualificationsService;
   final ArbeitskontextLocalRepository _localRepository;
   final LoggerService? _logger;
 
@@ -93,6 +105,9 @@ class HitobitoArbeitskontextReadModelRepository
     // ensureRolesLoaded() holt Rollen in dem Fall eigenstaendig nochmal nach.
     var latestPeople = const <HitobitoPersonResource>[];
     var latestRoles = const <HitobitoPersonRoleResource>[];
+    // Bisheriger Bestand, damit Zwischenstaende und Fehlschlaege EFZ und
+    // Qualifikationen nicht voruebergehend leeren.
+    final vorher = await _cachedFuerLayer(aktuellerKontext.aktiverLayer.id);
 
     void emitProgress() {
       if (onProgress == null) {
@@ -115,6 +130,11 @@ class HitobitoArbeitskontextReadModelRepository
           gruppen: gruppen,
           mitgliedsZuordnungen: partialMitgliedsdaten.mitgliedsZuordnungen,
           uebergeordneteGruppenIds: uebergeordneteGruppenIds,
+          efzStand: vorher?.efzStand ?? TeildatenStand.unbekannt,
+          efzEinsichtnahmen: vorher?.efzEinsichtnahmen ?? const [],
+          qualifikationenStand:
+              vorher?.qualifikationenStand ?? TeildatenStand.unbekannt,
+          qualifikationen: vorher?.qualifikationen ?? const [],
         ),
       );
     }
@@ -134,8 +154,28 @@ class HitobitoArbeitskontextReadModelRepository
       },
     );
 
+    // EFZ und Qualifikationen laufen ebenfalls parallel und isoliert: ohne
+    // Berechtigung (403) oder bei Fehlern bleibt der Mitglieder-Refresh
+    // gueltig.
+    final efzService = _efzService;
+    final efzFuture = _fetchTeildatenIsolated<EfzEinsichtnahme>(
+      bezeichnung: 'EFZ-Einsichtnahmen',
+      laden: efzService == null
+          ? null
+          : () => efzService.fetchAlleEfzEinsichtnahmen(accessToken),
+    );
+    final qualificationsService = _qualificationsService;
+    final qualifikationenFuture = _fetchTeildatenIsolated<Qualifikation>(
+      bezeichnung: 'Qualifikationen',
+      laden: qualificationsService == null
+          ? null
+          : () => qualificationsService.fetchAlleQualifikationen(accessToken),
+    );
+
     final peopleResources = await peopleFuture;
     final rolesResult = await rolesFuture;
+    final efzResult = await efzFuture;
+    final qualifikationenResult = await qualifikationenFuture;
 
     final mitgliedsdaten = _extractKontextMitgliedsdaten(
       peopleResources: peopleResources,
@@ -151,6 +191,23 @@ class HitobitoArbeitskontextReadModelRepository
           )
         : mitgliedsdaten.mitglieder;
 
+    final personIds = <int>{
+      for (final mitglied in mitgliedsdaten.mitglieder)
+        if (mitglied.personId != null) mitglied.personId!,
+    };
+    final efz = efzResult.fuerPersonen(
+      personIds,
+      personIdVon: (eintrag) => eintrag.personId,
+      vorherStand: vorher?.efzStand,
+      vorherEintraege: vorher?.efzEinsichtnahmen,
+    );
+    final qualifikationen = qualifikationenResult.fuerPersonen(
+      personIds,
+      personIdVon: (eintrag) => eintrag.personId,
+      vorherStand: vorher?.qualifikationenStand,
+      vorherEintraege: vorher?.qualifikationen,
+    );
+
     final readModel = ArbeitskontextReadModel(
       arbeitskontext: aktuellerKontext,
       mitglieder: mitgliederMitRollen,
@@ -158,9 +215,53 @@ class HitobitoArbeitskontextReadModelRepository
       mitgliedsZuordnungen: mitgliedsdaten.mitgliedsZuordnungen,
       rolesSindGeladen: rolesResult.succeeded,
       uebergeordneteGruppenIds: uebergeordneteGruppenIds,
+      efzStand: efz.stand,
+      efzEinsichtnahmen: efz.eintraege,
+      qualifikationenStand: qualifikationen.stand,
+      qualifikationen: qualifikationen.eintraege,
     );
     await _localRepository.saveCached(readModel);
     return readModel;
+  }
+
+  Future<ArbeitskontextReadModel?> _cachedFuerLayer(int layerId) async {
+    try {
+      final cached = await _localRepository.loadLastCached();
+      return cached?.arbeitskontext.aktiverLayer.id == layerId ? cached : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<_TeildatenResult<T>> _fetchTeildatenIsolated<T>({
+    required String bezeichnung,
+    required Future<List<T>> Function()? laden,
+  }) async {
+    if (laden == null) {
+      return _TeildatenResult<T>(stand: TeildatenStand.unbekannt);
+    }
+    try {
+      return _TeildatenResult<T>(
+        stand: TeildatenStand.geladen,
+        eintraege: await laden(),
+      );
+    } on HitobitoApiException catch (error) {
+      if (error.statusCode == 403) {
+        return _TeildatenResult<T>(stand: TeildatenStand.keineBerechtigung);
+      }
+      await _logger?.logWarn(
+        'arbeitskontext_repository',
+        '$bezeichnung konnten waehrend refresh() nicht geladen werden: $error',
+      );
+      return _TeildatenResult<T>(stand: TeildatenStand.fehlgeschlagen);
+    } catch (error, stack) {
+      await _logger?.logWarn(
+        'arbeitskontext_repository',
+        '$bezeichnung konnten waehrend refresh() nicht geladen werden: '
+            '$error\n$stack',
+      );
+      return _TeildatenResult<T>(stand: TeildatenStand.fehlgeschlagen);
+    }
   }
 
   /// Kapselt den zu [refresh] parallel laufenden Rollen-Fetch: ein Fehler
@@ -565,6 +666,35 @@ class _KontextMitgliedsdaten {
 
   final List<Mitglied> mitglieder;
   final List<ArbeitskontextMitgliedsZuordnung> mitgliedsZuordnungen;
+}
+
+class _TeildatenResult<T> {
+  _TeildatenResult({required this.stand, this.eintraege = const []});
+
+  final TeildatenStand stand;
+  final List<T> eintraege;
+
+  /// Schraenkt auf die Personen des Kontexts ein. Schlaegt der Abruf fehl,
+  /// bleibt ein zuvor erfolgreich geladener Bestand erhalten, damit ein
+  /// kurzer Netzfehler die Offline-Daten nicht loescht.
+  ({TeildatenStand stand, List<T> eintraege}) fuerPersonen(
+    Set<int> personIds, {
+    required int Function(T eintrag) personIdVon,
+    TeildatenStand? vorherStand,
+    List<T>? vorherEintraege,
+  }) {
+    if (stand == TeildatenStand.fehlgeschlagen &&
+        vorherStand == TeildatenStand.geladen &&
+        vorherEintraege != null) {
+      return (stand: TeildatenStand.geladen, eintraege: vorherEintraege);
+    }
+    return (
+      stand: stand,
+      eintraege: eintraege
+          .where((eintrag) => personIds.contains(personIdVon(eintrag)))
+          .toList(growable: false),
+    );
+  }
 }
 
 class _RollenFetchResult {

@@ -617,6 +617,13 @@ class AppLocalizations {
       'member_detail_reload_failed':
           'Die Person konnte nicht neu geladen werden. Bitte erneut versuchen.',
       'member_detail_edit_tooltip': 'Person bearbeiten',
+      'qualifikationen_efz_keine_berechtigung_titel': 'Keine Berechtigung',
+      'qualifikationen_efz_keine_berechtigung_text':
+          'Den EFZ-Status sehen nur Erfasser*innen Führungszeugnis.',
+      'qualifikationen_efz_nicht_synchronisiert_titel':
+          'Noch nicht synchronisiert',
+      'qualifikationen_efz_nicht_synchronisiert_text':
+          'Der EFZ-Status wird beim nächsten Abgleich geladen.',
       'member_detail_pending_resolution_banner':
           'Für diese Person gibt es offene Problemfälle. Bitte prüfe die betroffenen Felder und sende die Änderung danach erneut.',
       'member_detail_pending_retry_banner':
@@ -1568,6 +1575,12 @@ class AppLocalizations {
       'member_detail_reload_failed':
           'The person could not be reloaded. Please try again.',
       'member_detail_edit_tooltip': 'Edit person',
+      'qualifikationen_efz_keine_berechtigung_titel': 'No permission',
+      'qualifikationen_efz_keine_berechtigung_text':
+          'Only people who record criminal record checks can see this status.',
+      'qualifikationen_efz_nicht_synchronisiert_titel': 'Not synchronized yet',
+      'qualifikationen_efz_nicht_synchronisiert_text':
+          'The criminal record check status is loaded with the next sync.',
       'member_detail_pending_resolution_banner':
           'There are open issue cases for this person. Please review the affected fields and send the change again afterwards.',
       'member_detail_pending_retry_banner':

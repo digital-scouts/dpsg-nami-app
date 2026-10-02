@@ -3,7 +3,10 @@ import 'dart:convert';
 import '../../domain/arbeitskontext/arbeitskontext.dart';
 import '../../domain/arbeitskontext/arbeitskontext_local_repository.dart';
 import '../../domain/arbeitskontext/arbeitskontext_read_model.dart';
+import '../../domain/arbeitskontext/teildaten_stand.dart';
+import '../../domain/member/efz_einsichtnahme.dart';
 import '../../domain/member/mitglied.dart';
+import '../../domain/qualifikation/qualifikation.dart';
 import '../../services/sensitive_storage_service.dart';
 
 class SecureArbeitskontextLocalRepository
@@ -64,6 +67,14 @@ class SecureArbeitskontextLocalRepository
       'uebergeordnete_gruppen_ids': readModel.uebergeordneteGruppenIds.toList(
         growable: false,
       ),
+      'efz_stand': readModel.efzStand.name,
+      'efz_einsichtnahmen': readModel.efzEinsichtnahmen
+          .map((eintrag) => eintrag.toJson())
+          .toList(growable: false),
+      'qualifikationen_stand': readModel.qualifikationenStand.name,
+      'qualifikationen': readModel.qualifikationen
+          .map((eintrag) => eintrag.toJson())
+          .toList(growable: false),
     };
   }
 
@@ -130,6 +141,28 @@ class SecureArbeitskontextLocalRepository
       uebergeordneteGruppenIds: switch (json['uebergeordnete_gruppen_ids']) {
         final List<dynamic> ids => ids.whereType<int>(),
         _ => const <int>[],
+      },
+      // Fehlende Keys stammen aus Caches vor der Offline-Ablage von EFZ und
+      // Qualifikationen und gelten als noch nicht synchronisiert.
+      efzStand: TeildatenStand.ausName(json['efz_stand']),
+      efzEinsichtnahmen: switch (json['efz_einsichtnahmen']) {
+        final List<dynamic> eintraege =>
+          eintraege
+              .whereType<Map<String, dynamic>>()
+              .map(EfzEinsichtnahme.fromJson)
+              .whereType<EfzEinsichtnahme>(),
+        _ => const <EfzEinsichtnahme>[],
+      },
+      qualifikationenStand: TeildatenStand.ausName(
+        json['qualifikationen_stand'],
+      ),
+      qualifikationen: switch (json['qualifikationen']) {
+        final List<dynamic> eintraege =>
+          eintraege
+              .whereType<Map<String, dynamic>>()
+              .map(Qualifikation.fromJson)
+              .whereType<Qualifikation>(),
+        _ => const <Qualifikation>[],
       },
     );
   }

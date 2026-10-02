@@ -5,11 +5,16 @@ import 'package:nami/data/arbeitskontext/hitobito_person_resource.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext_local_repository.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model.dart';
+import 'package:nami/domain/arbeitskontext/teildaten_stand.dart';
+import 'package:nami/domain/member/efz_einsichtnahme.dart';
 import 'package:nami/domain/member/mitglied.dart';
+import 'package:nami/domain/qualifikation/qualifikation.dart';
 import 'package:nami/domain/taetigkeit/roles.dart';
 import 'package:nami/services/hitobito_auth_env.dart';
+import 'package:nami/services/hitobito_efz_service.dart';
 import 'package:nami/services/hitobito_groups_service.dart';
 import 'package:nami/services/hitobito_people_service.dart';
+import 'package:nami/services/hitobito_qualifications_service.dart';
 import 'package:nami/services/hitobito_roles_service.dart';
 
 void main() {
@@ -894,6 +899,122 @@ void main() {
       expect(readModel.uebergeordneteGruppenIds, <int>{1, 20, 201});
     },
   );
+
+  group('EFZ und Qualifikationen im refresh', () {
+    const stamm = ArbeitskontextLayer(id: 11, name: 'Stamm Musterdorf');
+    HitobitoArbeitskontextReadModelRepository repositoryMit({
+      required _FakeHitobitoEfzService efzService,
+      required _FakeHitobitoQualificationsService qualificationsService,
+      _FakeArbeitskontextLocalRepository? localRepository,
+    }) {
+      return HitobitoArbeitskontextReadModelRepository(
+        groupsService: _FakeHitobitoGroupsService(
+          groups: const <HitobitoGroupResource>[
+            HitobitoGroupResource(
+              id: 11,
+              name: 'Stamm Musterdorf',
+              isLayer: true,
+              layerGroupId: 11,
+            ),
+          ],
+        ),
+        peopleService: _FakeHitobitoPeopleService(
+          people: const <HitobitoPersonResource>[
+            HitobitoPersonResource(
+              id: 1,
+              firstName: 'Julia',
+              lastName: 'Keller',
+              membershipNumber: 1001,
+              primaryGroupId: 11,
+            ),
+          ],
+        ),
+        efzService: efzService,
+        qualificationsService: qualificationsService,
+        localRepository:
+            localRepository ?? _FakeArbeitskontextLocalRepository(),
+      );
+    }
+
+    test('speichert nur Eintraege der Personen im Kontext', () async {
+      final repository = repositoryMit(
+        efzService: _FakeHitobitoEfzService(
+          eintraege: <EfzEinsichtnahme>[
+            EfzEinsichtnahme(id: 1, personId: 1, issuedOn: DateTime(2024)),
+            EfzEinsichtnahme(id: 2, personId: 99, issuedOn: DateTime(2024)),
+          ],
+        ),
+        qualificationsService: _FakeHitobitoQualificationsService(
+          eintraege: const <Qualifikation>[
+            Qualifikation(id: 3, personId: 1, label: 'Woodbadge'),
+            Qualifikation(id: 4, personId: 99, label: 'Juleica'),
+          ],
+        ),
+      );
+
+      final readModel = await repository.refresh(
+        accessToken: 'token',
+        arbeitskontext: Arbeitskontext(aktiverLayer: stamm),
+      );
+
+      expect(readModel.efzStand, TeildatenStand.geladen);
+      expect(readModel.efzEinsichtnahmen.map((e) => e.id), <int>[1]);
+      expect(readModel.qualifikationenStand, TeildatenStand.geladen);
+      expect(readModel.findeQualifikationen(1).single.label, 'Woodbadge');
+    });
+
+    test(
+      'wertet 403 als fehlende Berechtigung, nicht als Sync-Fehler',
+      () async {
+        final repository = repositoryMit(
+          efzService: _FakeHitobitoEfzService(
+            error: const HitobitoEfzException('verboten', statusCode: 403),
+          ),
+          qualificationsService: _FakeHitobitoQualificationsService(
+            error: const HitobitoQualificationsException(
+              'kaputt',
+              statusCode: 500,
+            ),
+          ),
+        );
+
+        final readModel = await repository.refresh(
+          accessToken: 'token',
+          arbeitskontext: Arbeitskontext(aktiverLayer: stamm),
+        );
+
+        expect(readModel.efzStand, TeildatenStand.keineBerechtigung);
+        expect(readModel.qualifikationenStand, TeildatenStand.fehlgeschlagen);
+        expect(readModel.findeMitglied('1001'), isNotNull);
+      },
+    );
+
+    test(
+      'behaelt bei einem Fehlschlag den zuletzt geladenen Bestand',
+      () async {
+        final vorher = ArbeitskontextReadModel(
+          arbeitskontext: Arbeitskontext(aktiverLayer: stamm),
+          efzStand: TeildatenStand.geladen,
+          efzEinsichtnahmen: <EfzEinsichtnahme>[
+            EfzEinsichtnahme(id: 7, personId: 1, issuedOn: DateTime(2023)),
+          ],
+        );
+        final repository = repositoryMit(
+          efzService: _FakeHitobitoEfzService(error: Exception('offline')),
+          qualificationsService: _FakeHitobitoQualificationsService(),
+          localRepository: _FakeArbeitskontextLocalRepository(cached: vorher),
+        );
+
+        final readModel = await repository.refresh(
+          accessToken: 'token',
+          arbeitskontext: Arbeitskontext(aktiverLayer: stamm),
+        );
+
+        expect(readModel.efzStand, TeildatenStand.geladen);
+        expect(readModel.efzEinsichtnahmen.single.id, 7);
+      },
+    );
+  });
 }
 
 class _FakeArbeitskontextLocalRepository
@@ -1019,5 +1140,58 @@ class _FakeHitobitoRolesService extends HitobitoRolesService {
     }
     onPageLoaded?.call(_roles);
     return _roles;
+  }
+}
+
+const _testAuthConfig = HitobitoAuthConfig(
+  clientId: 'client',
+  clientSecret: 'secret',
+  authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
+  tokenUrl: 'https://demo.hitobito.com/oauth/token',
+  redirectUri: 'de.jlange.nami.app:/oauth/callback',
+  scopeString: 'openid email',
+  discoveryUrl: '',
+  profileUrl: 'https://demo.hitobito.com/oauth/profile',
+);
+
+class _FakeHitobitoEfzService extends HitobitoEfzService {
+  _FakeHitobitoEfzService({
+    this.eintraege = const <EfzEinsichtnahme>[],
+    this.error,
+  }) : super(config: _testAuthConfig);
+
+  final List<EfzEinsichtnahme> eintraege;
+  final Object? error;
+
+  @override
+  Future<List<EfzEinsichtnahme>> fetchAlleEfzEinsichtnahmen(
+    String accessToken,
+  ) async {
+    final error = this.error;
+    if (error != null) {
+      throw error;
+    }
+    return eintraege;
+  }
+}
+
+class _FakeHitobitoQualificationsService extends HitobitoQualificationsService {
+  _FakeHitobitoQualificationsService({
+    this.eintraege = const <Qualifikation>[],
+    this.error,
+  }) : super(config: _testAuthConfig);
+
+  final List<Qualifikation> eintraege;
+  final Object? error;
+
+  @override
+  Future<List<Qualifikation>> fetchAlleQualifikationen(
+    String accessToken,
+  ) async {
+    final error = this.error;
+    if (error != null) {
+      throw error;
+    }
+    return eintraege;
   }
 }

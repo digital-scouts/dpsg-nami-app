@@ -123,6 +123,17 @@ class HitobitoAuthConfig {
     return base.replace(path: '/api/efz_einsichtnahmen', queryParameters: null);
   }
 
+  Uri? get qualificationsUri {
+    final base = Uri.tryParse(
+      profileUrl.isNotEmpty ? profileUrl : authorizationUrl,
+    );
+    if (base == null) {
+      return null;
+    }
+
+    return base.replace(path: '/api/qualifications', queryParameters: null);
+  }
+
   // Nicht Teil der oeffentlichen /api/*-JSON:API, sondern derselbe Web-Endpoint,
   // ueber den auch die NAMI-Weboberflaeche das Antrags-PDF ausliefert
   // (People::EfzAntragsController im hitobito_pfadi_de-Wagon).

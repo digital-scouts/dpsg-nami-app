@@ -13,6 +13,7 @@ class QualifikationsStatusBadge extends StatelessWidget {
     final (label, color) = switch (status) {
       QualifikationsStatus.gueltig => ('Gültig', Colors.green),
       QualifikationsStatus.baldAblaufend => ('Bald ablaufend', Colors.orange),
+      QualifikationsStatus.abgelaufen => ('Abgelaufen', colorScheme.error),
       QualifikationsStatus.fehlt => ('Fehlt', colorScheme.error),
     };
 
