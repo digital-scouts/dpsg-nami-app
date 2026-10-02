@@ -15,6 +15,7 @@ class AppSettingsModel extends ChangeNotifier {
   bool noMobileDataEnabled;
   bool memberListSearchResultHighlightEnabled;
   Set<Stufe> geburstagsbenachrichtigungStufen;
+  bool supporterTestZugang;
 
   AppSettingsModel(AppSettings initial, this._repo)
     : themeMode = initial.themeMode,
@@ -26,7 +27,8 @@ class AppSettingsModel extends ChangeNotifier {
       memberListSearchResultHighlightEnabled =
           initial.memberListSearchResultHighlightEnabled,
       geburstagsbenachrichtigungStufen =
-          initial.geburstagsbenachrichtigungStufen;
+          initial.geburstagsbenachrichtigungStufen,
+      supporterTestZugang = initial.supporterTestZugang;
 
   void replaceWith(AppSettings settings) {
     themeMode = settings.themeMode;
@@ -39,6 +41,7 @@ class AppSettingsModel extends ChangeNotifier {
         settings.memberListSearchResultHighlightEnabled;
     geburstagsbenachrichtigungStufen =
         settings.geburstagsbenachrichtigungStufen;
+    supporterTestZugang = settings.supporterTestZugang;
     notifyListeners();
   }
 
@@ -86,6 +89,12 @@ class AppSettingsModel extends ChangeNotifier {
     memberListSearchResultHighlightEnabled = enabled;
     notifyListeners();
     await _repo.saveMemberListSearchResultHighlightEnabled(enabled);
+  }
+
+  Future<void> setSupporterTestZugang(bool enabled) async {
+    supporterTestZugang = enabled;
+    notifyListeners();
+    await _repo.saveSupporterTestZugang(enabled);
   }
 
   Future<void> setGeburstagsbenachrichtigungStufen(Set<Stufe> stufen) async {

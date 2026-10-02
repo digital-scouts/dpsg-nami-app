@@ -59,6 +59,14 @@ void main() {
       },
     );
 
+    test('supporterTestZugang ist aus und wird gespeichert', () async {
+      SharedPreferences.setMockInitialValues({});
+      final repo = SharedPrefsAppSettingsRepository();
+      expect((await repo.load()).supporterTestZugang, isFalse);
+      await repo.saveSupporterTestZugang(true);
+      expect((await repo.load()).supporterTestZugang, isTrue);
+    });
+
     test('geburstagsbenachrichtigungStufen defaults and persists', () async {
       SharedPreferences.setMockInitialValues({});
       final repo = SharedPrefsAppSettingsRepository();

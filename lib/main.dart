@@ -65,6 +65,8 @@ import 'data/appearance/shared_prefs_appearance_settings_repository.dart';
 import 'data/achievements/shared_prefs_achievement_repository.dart';
 import 'domain/achievements/achievement_definition.dart';
 import 'data/settings/shared_prefs_app_settings_repository.dart';
+import 'data/settings/shared_prefs_qualifikations_einstellungen_repository.dart';
+import 'domain/appearance/support_access.dart';
 import 'domain/auth/auth_profile.dart';
 import 'domain/auth/auth_state.dart';
 import 'domain/settings/app_settings.dart';
@@ -77,6 +79,7 @@ import 'presentation/model/appearance_model.dart';
 import 'presentation/model/bundesstatistik_model.dart';
 import 'presentation/model/locale_model.dart';
 import 'presentation/model/member_filters_model.dart';
+import 'presentation/model/qualifikations_einstellungen_model.dart';
 import 'presentation/model/statistik_kacheln_model.dart';
 import 'presentation/model/urgent_notification_model.dart';
 import 'presentation/navigation/app_router.dart';
@@ -233,11 +236,31 @@ Future<void> _startApp({
     persist: (code) => settingsRepo.saveLanguageCode(code),
   )..setLocale(Locale(initial.languageCode), persist: false);
   final appSettingsModel = AppSettingsModel(initial, settingsRepo);
+  // Supporter-Zugang kommt bis zur Store-Anbindung vom Testschalter; die
+  // Demo zeigt alles.
+  SupportAccess supportAccessVon(bool freigeschaltet) => isDemo
+      ? const UnlockedSupportAccess()
+      : SchalterSupportAccess(freigeschaltet: freigeschaltet);
   final appearanceModel = AppearanceModel(
     repository: SharedPrefsAppearanceSettingsRepository(),
     appIconService: MethodChannelAppIconService(),
+    access: supportAccessVon(initial.supporterTestZugang),
   );
   await appearanceModel.load();
+  var supporterTestZugang = appSettingsModel.supporterTestZugang;
+  appSettingsModel.addListener(() {
+    if (appSettingsModel.supporterTestZugang == supporterTestZugang) {
+      return;
+    }
+    supporterTestZugang = appSettingsModel.supporterTestZugang;
+    appearanceModel.updateAccess(supportAccessVon(supporterTestZugang));
+  });
+  final qualifikationsEinstellungenModel = QualifikationsEinstellungenModel(
+    isDemo
+        ? InMemoryQualifikationsEinstellungenRepository()
+        : SharedPrefsQualifikationsEinstellungenRepository(),
+  );
+  await qualifikationsEinstellungenModel.load();
   final memberFiltersModel = MemberFiltersModel(memberFilterRepository);
   final statistikKachelnModel = StatistikKachelnModel(
     statistikKachelRepository,
@@ -598,6 +621,9 @@ Future<void> _startApp({
         ChangeNotifierProvider<AppSettingsModel>.value(value: appSettingsModel),
         ChangeNotifierProvider<MemberFiltersModel>.value(
           value: memberFiltersModel,
+        ),
+        ChangeNotifierProvider<QualifikationsEinstellungenModel>.value(
+          value: qualifikationsEinstellungenModel,
         ),
         ChangeNotifierProvider<StatistikKachelnModel>.value(
           value: statistikKachelnModel,

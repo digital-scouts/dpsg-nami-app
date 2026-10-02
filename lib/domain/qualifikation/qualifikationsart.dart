@@ -30,7 +30,5 @@ const efzQualifikationsart = Qualifikationsart(
   gueltigkeitsjahre: 5,
 );
 
-/// Registrierung aller unterstuetzten Qualifikationsarten. Aktuell nur EFZ;
-/// spaeter sollen hier echte NAMI-`qualification_kinds` (z.B.
-/// Praeventionsschulung) ergaenzt werden koennen.
-const alleQualifikationsarten = <Qualifikationsart>[efzQualifikationsart];
+// Hitobito-Arten (Praevention, Erste Hilfe, ...) kommen aus den
+// Qualifikationen des Arbeitskontexts, siehe HitobitoQualifikationsart.
