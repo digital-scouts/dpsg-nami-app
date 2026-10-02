@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entwürfe: Gruppen-Kachel, Runde 1</title>
+<link rel="stylesheet" href="basis.css">
+<link rel="stylesheet" href="kacheln.css">
+<link rel="stylesheet" href="kacheln-r4.css">
+<style>
+.panel { background:var(--bg); border-radius:18px; padding:12px; }
+.reihe { display:flex; gap:18px; flex-wrap:wrap; align-items:flex-start; margin-bottom:26px; }
+.fall h3 { margin:0 0 6px; font-size:14px; }
+.fall .tag { margin-left:4px; }
+.zk-val, .scol-val { white-space:nowrap; overflow:hidden; }
+/* 2×2: Liste wie _GruppenListe in Flutter (Zeilenhöhe 17 + 10 + 16 = 43 pt) */
+.gl { display:flex; flex-direction:column; height:100%; }
+.gl-row { height:43px; box-sizing:border-box; display:flex; align-items:center; gap:8px; border-bottom:1px solid var(--grid); }
+.gl-row:last-child.ohne-trenner { border-bottom:0; }
+.gl-dot { width:10px; height:10px; border-radius:50%; flex:none; }
+.gl-mid { flex:1; min-width:0; }
+.gl-name { font-size:14px; font-weight:600; color:var(--fg); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.gl-name small { font-size:11px; font-weight:400; color:var(--muted); margin-left:6px; }
+.gl-bar { height:5px; border-radius:3px; background:var(--grid); margin-top:4px; position:relative; overflow:hidden; }
+.gl-bar i { position:absolute; left:0; top:0; bottom:0; border-radius:3px; }
+.gl-num { width:52px; text-align:right; font-size:20px; font-weight:700; color:var(--fg); white-space:nowrap; }
+.gl-num small { font-size:11px; font-weight:500; color:var(--muted); }
+.gl-mehr { padding-top:6px; font-size:13px; font-weight:600; color:var(--primary); }
+.scol-lab { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.mini { height:3px; border-radius:2px; background:var(--grid); margin-top:4px; position:relative; overflow:hidden; width:100%; }
+.mini i { position:absolute; left:0; top:0; bottom:0; border-radius:2px; }
+.fest-list { background:#fff; border-radius:12px; padding:10px 16px; max-width:900px; font-size:14px; }
+</style>
+<script>window.RUNDE = 5;</script>
+</head>
+<body>
+<div class="bar">
+  <span><b>Gruppen-Kachel – Runde 1</b></span>
+  <nav><a href="#heute">1 Heute in der App</a><a href="#rueckmeldung">2 Rückmeldung</a></nav>
+</div>
+<main>
+<h1>Gruppen-Kachel – Entwürfe, Runde 1</h1>
+<p>Ausgangsstand: so verhält sich die Kachel nach dem letzten Commit in der App. 2×1 zeigt bei höchstens zwei Gruppen eine Spalte je Gruppe, ab drei Gruppen eine Spalte je Stufe. 2×2 listet die Gruppen; passen nicht alle, stehen fünf Zeilen da und darunter „+N weitere“ (nicht antippbar).</p>
+<div class="fest-list"><b>Beispieldaten</b> Gruppennamen und Größen sind erfunden. Bei mehreren Gruppen einer Stufe (z. B. zwei Meuten) sind die Fälle so gewählt, dass sichtbar wird, wo die Stufen-Sicht Gruppen zusammenfasst.</div>
+
+<section class="part" id="heute">
+<h2>1 · Heute in der App</h2>
+<div id="slot"></div>
+</section>
+
+<section class="part" id="rueckmeldung">
+<h2>2 · Rückmeldung</h2>
+<form class="fb" id="fb"></form>
+</section>
+</main>
+
+<script src="daten.js"></script>
+<script src="bausteine.js"></script>
+<script src="layouts.js"></script>
+<script src="kacheln.js"></script>
+<script>
+(function () {
+  const D = window.STATISTIK;
+  const B = window.BAUSTEINE;
+  const K = window.KACHELN;
+  const { esc, farbe } = B;
+
+  const zusatz = { '--biber-ring': '#aeaeb2', '--biber-ring-stark': '#8e8e93', '--biber-band': '#f4f4f7', '--ghost': '#e3e3e8' };
+  const p = D.palette.hell;
+  const vars = {
+    '--bg': p.bg, '--surface': p.surface, '--surface2': p.surface2, '--fg': p.fg, '--fg2': p.fg2,
+    '--muted': p.muted, '--border': p.border, '--primary': p.primary, '--on-primary': p.onPrimary,
+    '--primary-lite': p.primaryLite, '--grid': p.grid, ...zusatz,
+  };
+  for (const [id, c] of Object.entries(D.stufenfarben.hell)) vars[`--st-${id}`] = c;
+  const style = document.createElement('style');
+  style.textContent = `.panel{${Object.entries(vars).map(([k, v]) => `${k}:${v}`).join(';')}}`;
+  document.head.appendChild(style);
+
+  const stufeById = Object.fromEntries(D.stufen.map((s) => [s.id, s]));
+  const g = (name, stufe, kinder, leitende) => ({ name, stufe, kinder, leitende });
+
+  // Fälle mit 1 bis 12 Gruppen; Reihenfolge wie in der App (nach Stufe).
+  const FAELLE = [
+    { titel: '1 Gruppe', hinweis: 'Teilsicht einer Leitung', gruppen: [g('Trupp Kompass', 'jufi', 5, 1)] },
+    { titel: '2 Gruppen, eine Stufe', hinweis: 'zwei Meuten', gruppen: [g('Meute Wirbelwind', 'woe', 11, 3), g('Meute Sternschnuppe', 'woe', 9, 2)] },
+    { titel: '3 Gruppen', hinweis: 'kleiner Stamm', gruppen: [g('Meute Seeadler', 'woe', 8, 2), g('Trupp Kompass', 'jufi', 7, 2), g('Trupp Nordlicht', 'pfadi', 6, 1)] },
+    { titel: '4 Gruppen', hinweis: '', gruppen: [g('Biberbande', 'biber', 6, 2), g('Meute Seeadler', 'woe', 12, 3), g('Trupp Kompass', 'jufi', 9, 2), g('Runde Fernweh', 'rover', 5, 1)] },
+    { titel: '5 Gruppen', hinweis: 'je Stufe eine', gruppen: [g('Biberbande', 'biber', 6, 2), g('Meute Seeadler', 'woe', 12, 3), g('Trupp Kompass', 'jufi', 9, 2), g('Trupp Nordlicht', 'pfadi', 8, 2), g('Runde Fernweh', 'rover', 5, 1)] },
+    { titel: '6 Gruppen', hinweis: 'zwei Meuten', gruppen: [g('Biberburg', 'biber', 7, 2), g('Meute Wirbelwind', 'woe', 11, 3), g('Meute Sternschnuppe', 'woe', 9, 2), g('Trupp Wegweiser', 'jufi', 13, 3), g('Trupp Nordwind', 'pfadi', 10, 2), g('Runde Horizont', 'rover', 7, 2)] },
+    { titel: '7 Gruppen', hinweis: 'ab hier „+N weitere“', gruppen: [g('Biberburg', 'biber', 7, 2), g('Meute Wirbelwind', 'woe', 11, 3), g('Meute Sternschnuppe', 'woe', 9, 2), g('Trupp Wegweiser', 'jufi', 13, 3), g('Trupp Falken', 'jufi', 8, 2), g('Trupp Nordwind', 'pfadi', 10, 2), g('Runde Horizont', 'rover', 7, 2)] },
+    { titel: '9 Gruppen', hinweis: 'großer Stamm', gruppen: [g('Biberburg', 'biber', 7, 2), g('Biberbau', 'biber', 6, 2), g('Meute Wirbelwind', 'woe', 11, 3), g('Meute Sternschnuppe', 'woe', 9, 2), g('Meute Mondschein', 'woe', 10, 2), g('Trupp Wegweiser', 'jufi', 13, 3), g('Trupp Falken', 'jufi', 8, 2), g('Trupp Nordwind', 'pfadi', 10, 2), g('Runde Horizont', 'rover', 7, 2)] },
+    { titel: '12 Gruppen', hinweis: 'sehr großer Stamm', gruppen: [g('Biberburg', 'biber', 7, 2), g('Biberbau', 'biber', 6, 2), g('Meute Wirbelwind', 'woe', 11, 3), g('Meute Sternschnuppe', 'woe', 9, 2), g('Meute Mondschein', 'woe', 10, 2), g('Trupp Wegweiser', 'jufi', 13, 3), g('Trupp Falken', 'jufi', 8, 2), g('Trupp Adler', 'jufi', 9, 2), g('Trupp Nordwind', 'pfadi', 10, 2), g('Trupp Südwind', 'pfadi', 9, 2), g('Runde Horizont', 'rover', 7, 2), g('Runde Weitsicht', 'rover', 6, 1)] },
+  ];
+
+  const kachel = (groesse, inhalt) =>
+    `<div class="tile t${groesse}" style="width:${groesse === '1x1' ? 173 : 358}px"><div class="tile-clip"><div class="tile-head"><span class="th">Gruppen</span></div><div class="tile-body">${inhalt}</div></div></div>`;
+  const mini = (stufe, wert, skala) =>
+    `<div class="mini"><i style="width:${Math.round((100 * wert) / Math.max(1, skala))}%;background:${farbe(stufe)}"></i></div>`;
+
+  // 2×1 wie GruppenKachel: ≤ 2 Gruppen je Gruppe, sonst je Stufe.
+  function zweiMalEins(gruppen) {
+    if (gruppen.length <= 2) {
+      const spalten = gruppen.map((x) => `<div class="scol"><div class="scol-val">${x.kinder}<small>+${x.leitende}</small></div>
+        <div class="scol-lab">${esc(x.name)} ›</div>${mini(x.stufe, x.kinder, x.kinder)}</div>`).join('');
+      return `<div class="scols">${spalten}</div><div class="foot muted">Kinder &amp; Jugendliche +Leitende · Antippen öffnet die Gruppe</div>`;
+    }
+    const stufen = D.stufen.filter((s) => gruppen.some((x) => x.stufe === s.id));
+    const spalten = stufen.map((s) => {
+      const eigene = gruppen.filter((x) => x.stufe === s.id);
+      const kinder = eigene.reduce((n, x) => n + x.kinder, 0);
+      const leitende = eigene.reduce((n, x) => n + x.leitende, 0);
+      return `<div class="scol"><div class="scol-val">${kinder}<small>+${leitende}</small></div>
+        <div class="scol-lab">${esc(s.kurz)}</div>${mini(s.id, kinder, kinder)}</div>`;
+    }).join('');
+    return `<div class="scols">${spalten}</div><div class="foot muted">Kinder &amp; Jugendliche +Leitende</div>`;
+  }
+
+  // 2×2 wie _GruppenListe: Zeilen à 43 pt, bei Überlauf Kapazität − 1 Zeilen und „+N weitere“.
+  function zweiMalZwei(gruppen) {
+    const kapazitaet = Math.max(1, Math.floor(K.HOEHE['2x2'] / 43));
+    const zuViele = gruppen.length > kapazitaet;
+    const sichtbar = zuViele ? gruppen.slice(0, kapazitaet - 1) : gruppen;
+    const skala = Math.max(1, ...gruppen.map((x) => x.kinder));
+    const zeilen = sichtbar.map((x, i) => `<div class="gl-row${!zuViele && i === sichtbar.length - 1 ? ' ohne-trenner' : ''}">
+      <span class="gl-dot" style="background:${farbe(x.stufe)}${x.stufe === 'biber' ? ';box-shadow:inset 0 0 0 1px var(--biber-ring)' : ''}"></span>
+      <div class="gl-mid"><div class="gl-name">${esc(x.name)}<small>${esc(stufeById[x.stufe].name)} · ${x.leitende} Leitende</small></div>
+      <div class="gl-bar"><i style="width:${Math.round((100 * x.kinder) / skala)}%;background:${farbe(x.stufe)}"></i></div></div>
+      <div class="gl-num">${x.kinder}<small>+${x.leitende}</small></div></div>`).join('');
+    const mehr = zuViele ? `<div class="gl-mehr">+${gruppen.length - sichtbar.length} weitere</div>` : '';
+    return `<div class="gl">${zeilen}${mehr}</div>`;
+  }
+
+  document.getElementById('slot').innerHTML = FAELLE.map((f, i) => `
+    <div class="fall" data-shot="fall-${i + 1}">
+      <h3>${esc(f.titel)}${f.hinweis ? ` <span class="tag">${esc(f.hinweis)}</span>` : ''}</h3>
+      <div class="reihe">
+        <div class="panel"><div class="kgrid" style="width:358px">${kachel('2x1', zweiMalEins(f.gruppen))}</div></div>
+        <div class="panel"><div class="kgrid" style="width:358px">${kachel('2x2', zweiMalZwei(f.gruppen))}</div></div>
+      </div>
+    </div>`).join('');
+
+  const FRAGEN = [
+    { id: 'zweiEins', titel: '2×1', optionen: ['passt', 'ändern'] },
+    { id: 'zweiZwei', titel: '2×2', optionen: ['passt', 'ändern'] },
+    { id: 'mehr', titel: '„+N weitere“', optionen: ['so lassen', 'antippbar machen', 'anders lösen'] },
+  ];
+  const f = document.getElementById('fb');
+  f.innerHTML = FRAGEN.map((q) => `<fieldset><legend>${q.titel}</legend>${q.optionen.map((o) => `<label><input type="radio" name="${q.id}" value="${o}"> ${o}</label>`).join('')}<textarea name="${q.id}-text" placeholder="Anmerkung (optional)"></textarea></fieldset>`).join('') +
+    `<fieldset><legend>Sonst noch</legend><textarea name="frei" placeholder="Freitext"></textarea></fieldset>
+    <button type="button" id="kopieren">Auswahl kopieren</button>
+    <textarea id="ausgabe" readonly placeholder="Hier erscheint der Text für den Chat."></textarea>`;
+  document.getElementById('kopieren').addEventListener('click', async () => {
+    const fd = new FormData(f);
+    const zeilen = ['Rückmeldung Gruppen-Kachel, Runde 1'];
+    for (const q of FRAGEN) {
+      const wahl = fd.get(q.id);
+      const text = (fd.get(`${q.id}-text`) || '').trim();
+      if (wahl || text) zeilen.push(`- ${q.titel}: ${wahl || '–'}${text ? ` (${text})` : ''}`);
+    }
+    const frei = (fd.get('frei') || '').trim();
+    if (frei) zeilen.push(`- Sonst: ${frei}`);
+    const ausgabe = document.getElementById('ausgabe');
+    ausgabe.value = zeilen.join('\n');
+    try { await navigator.clipboard.writeText(ausgabe.value); } catch (e) { /* nur anzeigen */ }
+  });
+})();
+</script>
+</body>
+</html>

@@ -78,6 +78,11 @@ class HitobitoArbeitskontextReadModelRepository
       accessibleGroups: resolvedAccessibleGroups,
       aktiverLayerId: aktuellerKontext.aktiverLayer.id,
     );
+    final uebergeordneteGruppenIds = _extractUebergeordneteGruppenIds(
+      accessibleGroups: resolvedAccessibleGroups,
+      accessibleLayers: accessibleLayers,
+      aktiverLayer: aktuellerKontext.aktiverLayer,
+    );
 
     // Personen und Rollen werden bewusst PARALLEL geladen (statt erst alle
     // Personen, dann alle Rollen): beides sind unabhaengige GET-Endpunkte,
@@ -109,6 +114,7 @@ class HitobitoArbeitskontextReadModelRepository
           ),
           gruppen: gruppen,
           mitgliedsZuordnungen: partialMitgliedsdaten.mitgliedsZuordnungen,
+          uebergeordneteGruppenIds: uebergeordneteGruppenIds,
         ),
       );
     }
@@ -151,6 +157,7 @@ class HitobitoArbeitskontextReadModelRepository
       gruppen: gruppen,
       mitgliedsZuordnungen: mitgliedsdaten.mitgliedsZuordnungen,
       rolesSindGeladen: rolesResult.succeeded,
+      uebergeordneteGruppenIds: uebergeordneteGruppenIds,
     );
     await _localRepository.saveCached(readModel);
     return readModel;
@@ -326,6 +333,37 @@ class HitobitoArbeitskontextReadModelRepository
     }
 
     return requestedLayer;
+  }
+
+  /// Gruppen in Layern oberhalb des aktiven Layers (Bezirk, Dioezese ...).
+  Set<int> _extractUebergeordneteGruppenIds({
+    required List<HitobitoGroupResource> accessibleGroups,
+    required List<ArbeitskontextLayer> accessibleLayers,
+    required ArbeitskontextLayer aktiverLayer,
+  }) {
+    final layerById = <int, ArbeitskontextLayer>{
+      for (final layer in accessibleLayers) layer.id: layer,
+    };
+    final vorfahren = <int>{};
+    var parentId =
+        layerById[aktiverLayer.id]?.parentLayerId ?? aktiverLayer.parentLayerId;
+    while (parentId != null && vorfahren.add(parentId)) {
+      parentId = layerById[parentId]?.parentLayerId;
+    }
+    if (vorfahren.isEmpty) {
+      return const <int>{};
+    }
+
+    final groupsById = <int, HitobitoGroupResource>{
+      for (final group in accessibleGroups) group.id: group,
+    };
+    return <int>{
+      for (final group in accessibleGroups)
+        if (vorfahren.contains(
+          group.isLayer ? group.id : _resolveLayerId(group, groupsById),
+        ))
+          group.id,
+    };
   }
 
   List<ArbeitskontextGruppe> _extractKontextGruppen({

@@ -1,10 +1,16 @@
-import { subtractUtcMonths, toIsoWeek } from '../../shared/time.js';
-import type { EffectiveStateDocument } from '../effectiveState/effectiveState.js';
+import { toIsoWeek } from '../../shared/time.js';
+import {
+    type DerivedStammState,
+    deriveStammState,
+    type EffectiveStateDocument,
+    GESCHLECHTER,
+    snapshotWindowStart,
+} from '../effectiveState/effectiveState.js';
+import { type Stufe, STUFEN } from '../stammesSnapshot/schema.js';
+
+export { MAX_SNAPSHOT_AGE_MONTHS } from '../effectiveState/effectiveState.js';
 
 export const BUND_AGGREGATION_TYPE = 'bund';
-
-// Ein Stamm zaehlt nur, wenn sein neuester gueltiger Snapshot hoechstens so alt ist.
-export const MAX_SNAPSHOT_AGE_MONTHS = 2;
 
 export type MetricAggregate = {
     // null nur in ausgelieferten Antworten, wenn die Kennzahl unterdrueckt wurde.
@@ -17,6 +23,23 @@ export type AggregatedMetrics = {
     [metric: string]: MetricAggregate | AggregatedMetrics;
 };
 
+// Kennzahl ueber Gruppen: Median je Gruppe, unterdrueckt wird nach Anzahl der Staemme.
+export type GruppenMetricAggregate = MetricAggregate & {
+    gruppen_count: number;
+};
+
+type Geschlecht = (typeof GESCHLECHTER)[number];
+
+export type StufenGruppenAggregat = {
+    gruppen_count: number;
+    stamm_count: number;
+    gruppen_pro_stamm: MetricAggregate;
+    mitglieder: Record<Geschlecht, GruppenMetricAggregate>;
+    leitende: Record<Geschlecht, GruppenMetricAggregate>;
+};
+
+export type GruppenJeStufe = Record<Stufe, StufenGruppenAggregat>;
+
 export type WeeklyAggregateDocument = {
     aggregation_week: string;
     aggregation_type: typeof BUND_AGGREGATION_TYPE;
@@ -25,6 +48,7 @@ export type WeeklyAggregateDocument = {
     oldest_source_data_as_of: Date | null;
     newest_source_data_as_of: Date | null;
     metrics: AggregatedMetrics | null;
+    gruppen_je_stufe: GruppenJeStufe | null;
 };
 
 export type WeeklyAggregatesRepository = {
@@ -58,8 +82,8 @@ const aggregateLeaf = (values: unknown[]): MetricAggregate => {
     };
 };
 
-// Die Kennzahlen sind durch das Ingest-Schema normalisiert und haben daher bei allen
-// Staemmen dieselbe Struktur; die Struktur des ersten Eintrags dient als Vorlage.
+// Die abgeleiteten Kennzahlen haben bei allen Staemmen dieselbe Struktur; die Struktur des
+// ersten Eintrags dient als Vorlage.
 const aggregateNode = (template: Record<string, unknown>, nodes: Array<Record<string, unknown>>): AggregatedMetrics => {
     const result: AggregatedMetrics = {};
 
@@ -77,26 +101,81 @@ const aggregateNode = (template: Record<string, unknown>, nodes: Array<Record<st
     return result;
 };
 
+const aggregateGruppenLeaf = (eintraege: Array<{ stamm: string; wert: number | null }>): GruppenMetricAggregate => {
+    const mitWert = eintraege.filter((eintrag): eintrag is { stamm: string; wert: number } => eintrag.wert != null);
+    const werte = mitWert.map((eintrag) => eintrag.wert);
+
+    return {
+        sum: werte.reduce((total, value) => total + value, 0),
+        stamm_count: new Set(mitWert.map((eintrag) => eintrag.stamm)).size,
+        gruppen_count: werte.length,
+        median: median(werte),
+    };
+};
+
+export const computeGruppenJeStufe = (derived: DerivedStammState[]): GruppenJeStufe => {
+    const result = {} as GruppenJeStufe;
+
+    for (const stufe of STUFEN) {
+        const gruppen = derived.flatMap((stamm) =>
+            stamm.gruppen
+                .filter((gruppe) => gruppe.stufe === stufe)
+                .map((gruppe) => ({ stamm: stamm.state.stamm_pseudonym, wert: gruppe.wert })));
+        const proStamm = derived
+            .map((stamm) => stamm.state.gruppen.filter((gruppe) => gruppe.stufe === stufe).length)
+            .filter((anzahl) => anzahl > 0);
+        const verteilung = (art: 'mitglieder' | 'leitende') =>
+            Object.fromEntries(GESCHLECHTER.map((feld) => [
+                feld,
+                aggregateGruppenLeaf(gruppen.map((gruppe) => ({ stamm: gruppe.stamm, wert: gruppe.wert[art][feld] }))),
+            ])) as Record<Geschlecht, GruppenMetricAggregate>;
+
+        result[stufe] = {
+            gruppen_count: gruppen.length,
+            stamm_count: new Set(gruppen.map((gruppe) => gruppe.stamm)).size,
+            gruppen_pro_stamm: aggregateLeaf(proStamm),
+            mitglieder: verteilung('mitglieder'),
+            leitende: verteilung('leitende'),
+        };
+    }
+
+    return result;
+};
+
+export const deriveAllStammStates = (states: EffectiveStateDocument[], now: Date): DerivedStammState[] => {
+    const since = snapshotWindowStart(now);
+
+    return states
+        .map((state) => deriveStammState(state, since))
+        .filter((derived): derived is DerivedStammState => derived != null);
+};
+
 export const computeBundAggregate = (
     states: EffectiveStateDocument[],
     now: Date,
 ): WeeklyAggregateDocument => {
-    const cutoff = subtractUtcMonths(now, MAX_SNAPSHOT_AGE_MONTHS).getTime();
-    const qualifying = states.filter((state) => state.source_data_as_of.getTime() >= cutoff);
-    const sourceTimes = qualifying.map((state) => state.source_data_as_of.getTime());
-    const metricNodes = qualifying.map((state) => state.metrics as unknown as Record<string, unknown>);
+    const derived = deriveAllStammStates(states, now);
+    const metricNodes = derived.map((stamm) => stamm.metrics as unknown as Record<string, unknown>);
     const template = metricNodes[0];
 
     return {
         aggregation_week: toIsoWeek(now),
         aggregation_type: BUND_AGGREGATION_TYPE,
         generated_at: now,
-        participating_stamm_count: qualifying.length,
-        oldest_source_data_as_of: sourceTimes.length > 0 ? new Date(Math.min(...sourceTimes)) : null,
-        newest_source_data_as_of: sourceTimes.length > 0 ? new Date(Math.max(...sourceTimes)) : null,
+        participating_stamm_count: derived.length,
+        oldest_source_data_as_of: derived.length > 0
+            ? new Date(Math.min(...derived.map((stamm) => stamm.oldest.getTime())))
+            : null,
+        newest_source_data_as_of: derived.length > 0
+            ? new Date(Math.max(...derived.map((stamm) => stamm.newest.getTime())))
+            : null,
         metrics: template == null ? null : aggregateNode(template, metricNodes),
+        gruppen_je_stufe: derived.length > 0 ? computeGruppenJeStufe(derived) : null,
     };
 };
+
+const suppressLeaf = <T extends MetricAggregate>(value: T, minStammCount: number): T =>
+    value.stamm_count >= minStammCount ? value : { ...value, sum: null, median: null };
 
 // Kennzahlen, zu denen weniger als minStammCount Staemme Werte geliefert haben, werden
 // nicht ausgeliefert, damit einzelne Staemme nicht rueckfuehrbar sind.
@@ -104,13 +183,33 @@ export const suppressSmallCounts = (metrics: AggregatedMetrics, minStammCount: n
     const result: AggregatedMetrics = {};
 
     for (const [key, value] of Object.entries(metrics)) {
-        if (isMetricAggregate(value)) {
-            result[key] = value.stamm_count >= minStammCount
-                ? value
-                : { sum: null, stamm_count: value.stamm_count, median: null };
-        } else {
-            result[key] = suppressSmallCounts(value, minStammCount);
-        }
+        result[key] = isMetricAggregate(value)
+            ? suppressLeaf(value, minStammCount)
+            : suppressSmallCounts(value, minStammCount);
+    }
+
+    return result;
+};
+
+// Auch bei Gruppen zaehlen verschiedene Staemme, sonst waeren z. B. fuenf Meuten eines
+// einzigen Stammes rueckfuehrbar.
+export const suppressSmallGruppenCounts = (gruppenJeStufe: GruppenJeStufe, minStammCount: number): GruppenJeStufe => {
+    const result = {} as GruppenJeStufe;
+
+    for (const stufe of STUFEN) {
+        const aggregat = gruppenJeStufe[stufe];
+        const verteilung = (werte: Record<Geschlecht, GruppenMetricAggregate>) =>
+            Object.fromEntries(GESCHLECHTER.map((feld) => [feld, suppressLeaf(werte[feld], minStammCount)])) as Record<
+                Geschlecht,
+                GruppenMetricAggregate
+            >;
+
+        result[stufe] = {
+            ...aggregat,
+            gruppen_pro_stamm: suppressLeaf(aggregat.gruppen_pro_stamm, minStammCount),
+            mitglieder: verteilung(aggregat.mitglieder),
+            leitende: verteilung(aggregat.leitende),
+        };
     }
 
     return result;

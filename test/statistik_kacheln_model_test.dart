@@ -94,10 +94,10 @@ void main() {
 
   test('hinzufuegen rastet auf eine erlaubte Größe ein', () {
     final eintrag = model.hinzufuegen(
-      StatistikKachelTypen.altersstruktur,
+      StatistikKachelTypen.stufen,
       KachelGroesse.klein,
     )!;
-    expect(eintrag.groesse, KachelGroesse.gross);
+    expect(eintrag.groesse, KachelGroesse.breit);
     expect(ids().last, eintrag.id);
     expect(model.hinzufuegen('unbekannt', KachelGroesse.klein), isNull);
     expect(
@@ -186,6 +186,51 @@ void main() {
     model.dispose();
     expect(model.bearbeitenBeenden, returnsNormally);
   });
+
+  test(
+    'nutzt bei Teilsicht ohne gespeicherte Belegung den Teilsicht-Standard',
+    () async {
+      final teilsicht = StatistikKachelnModel(repository, neueId: () => 'x');
+      await teilsicht.ensureLoadedForLayer(5, teilsicht: true);
+      expect(
+        teilsicht.einstellungen.ueberblick,
+        StatistikKachelEinstellungen.standardUeberblickTeilsicht,
+      );
+
+      // Gespeicherte Belegungen bleiben unangetastet.
+      await repository.saveForLayer(
+        6,
+        const StatistikKachelEinstellungen(ueberblick: []),
+      );
+      await teilsicht.ensureLoadedForLayer(6, teilsicht: true);
+      expect(teilsicht.einstellungen.ueberblick, isEmpty);
+    },
+  );
+
+  test(
+    'zuruecksetzen stellt den Standard her und behält eigene Kacheln',
+    () async {
+      model.eigeneKachelSpeichern(eigene('vorstand'));
+      model.zieleSpeichern(const StatistikZielwerte(neuProJahr: 4));
+      model.themaSichtbar(StatistikThema.stufen, false);
+      model.entfernen('standard-gruppen');
+
+      model.zuruecksetzen();
+
+      final e = model.einstellungen;
+      expect(
+        e.ueberblick.take(
+          StatistikKachelEinstellungen.standardUeberblick.length,
+        ),
+        StatistikKachelEinstellungen.standardUeberblick,
+      );
+      expect(e.ueberblick.last.eigeneKachelId, 'vorstand');
+      expect(e.eigeneKacheln.single.id, 'vorstand');
+      expect(e.ziele.neuProJahr, 4);
+      expect(e.stufenSichtbar, isTrue);
+      expect((await repository.loadForLayer(1)).ueberblick, e.ueberblick);
+    },
+  );
 }
 
 KachelEintrag _eintrag(StatistikKachelnModel model, String id) =>

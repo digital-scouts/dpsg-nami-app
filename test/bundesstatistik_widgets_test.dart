@@ -15,7 +15,9 @@ import 'package:nami/presentation/navigation/app_router.dart';
 import 'package:nami/presentation/screens/bundesvergleich_page.dart';
 import 'package:nami/presentation/screens/statistics_page.dart';
 import 'package:nami/presentation/widgets/bundesstatistik_einwilligung_dialog.dart';
+import 'package:nami/stories/bundesstatistik_story.dart';
 import 'package:provider/provider.dart';
+import 'package:nami/domain/bundesstatistik/statistik_abdeckung.dart';
 
 Widget _app(Widget home) => MaterialApp(
   onGenerateRoute: onGenerateRoute,
@@ -263,6 +265,7 @@ void main() {
       personId: '42',
       readModel: readModel,
       datenstand: null,
+      abdeckung: const StatistikAbdeckung.stamm(),
     );
 
     await tester.pumpWidget(
@@ -285,6 +288,58 @@ void main() {
     expect(model.hatEinwilligung, isTrue);
     expect(repository.sendungen, 1);
     expect(find.text('Stammesdaten teilen'), findsOneWidget);
+  });
+
+  group('BundesvergleichView mit Gruppenwerten', () {
+    Widget vergleich(StammesKennzahlen kennzahlen) => _app(
+      Scaffold(
+        body: BundesvergleichView(
+          status: BundesstatistikStatus.bereit,
+          hatEinwilligung: true,
+          aggregat: bundesstatistikBeispielAggregat,
+          eigeneKennzahlen: kennzahlen,
+          gruppenName: (id) => id == 24 ? 'Trupp Kompass' : null,
+          onEinwilligungAendern: (_) {},
+        ),
+      ),
+    );
+
+    testWidgets('vergleicht bei Teilsicht die Gruppe mit Gruppen der Stufe', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        vergleich(bundesstatistikBeispielKennzahlenTeilsicht),
+      );
+
+      expect(find.text('Gruppendaten teilen'), findsOneWidget);
+      expect(find.text('TRUPP KOMPASS IM VERGLEICH'), findsOneWidget);
+      expect(
+        find.text('Mit 52 Gruppen der Stufe Jungpfadfinder aus 41 Stämmen'),
+        findsOneWidget,
+      );
+      // Tabellen ohne Bezug zur eigenen Gruppe entfallen.
+      expect(find.text('LEITENDE NACH ALTER'), findsNothing);
+      expect(find.text('LEITENDE JE STUFE'), findsNothing);
+      await tester.scrollUntilVisible(find.text('GRUPPEN JE STAMM'), 200);
+      expect(
+        find.text('Jungpfadfinder: Median 1, Ø 1,3 Gruppen je Stamm'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('zeigt bei voller Sicht zusätzlich die Gruppengröße', (
+      tester,
+    ) async {
+      await tester.pumpWidget(vergleich(bundesstatistikBeispielKennzahlen));
+
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('bundesvergleich-gruppengroesse')),
+        200,
+      );
+      // Zwei Meuten stehen nebeneinander in der Zeile der Wölflinge.
+      expect(find.text('8 · 6'), findsOneWidget);
+      expect(find.text('Deine Gruppen'), findsOneWidget);
+    });
   });
 }
 

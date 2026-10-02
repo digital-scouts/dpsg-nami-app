@@ -11,6 +11,7 @@ import 'package:nami/domain/bundesstatistik/stammes_snapshot.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/presentation/model/bundesstatistik_model.dart';
 import 'package:nami/services/network_access_policy.dart';
+import 'package:nami/domain/bundesstatistik/statistik_abdeckung.dart';
 
 class _FakeRepository implements BundesstatistikRepository {
   final List<(StammesSnapshot, InstallationCredentials)> sendungen = [];
@@ -166,6 +167,7 @@ void main() {
       personId: '42',
       readModel: readModel ?? _readModel(),
       datenstand: now.subtract(const Duration(hours: 1)),
+      abdeckung: const StatistikAbdeckung.stamm(),
     );
     await model.setzeEinwilligung(true);
     return model;
@@ -185,6 +187,7 @@ void main() {
       personId: '42',
       readModel: _readModel(),
       datenstand: now,
+      abdeckung: const StatistikAbdeckung.stamm(),
     );
 
     expect(model.status, BundesstatistikStatus.keineEinwilligung);
@@ -198,6 +201,7 @@ void main() {
       personId: '42',
       readModel: _readModel(),
       datenstand: now,
+      abdeckung: const StatistikAbdeckung.stamm(),
     );
     await model.setzeEinwilligung(true);
 
@@ -222,12 +226,54 @@ void main() {
       expect(model.zuletztGesendeterSnapshot?.stammId, '11');
       expect(
         jsonDecode(
-          teilnahme.stored.zuletztGesendeterSnapshotJson!,
+          teilnahme.stored.sendestaende['11']!.snapshotJson!,
         )['sender_id'],
         'install-1',
       );
     },
   );
+
+  test('sendet sofort neu, wenn sich die Abdeckung aendert', () async {
+    final model = await modelMitEinwilligung();
+    expect(repository.sendungen, hasLength(1));
+
+    await model.aktualisiereKontext(
+      personId: '42',
+      readModel: _readModel(),
+      datenstand: now.subtract(const Duration(hours: 1)),
+      abdeckung: StatistikAbdeckung.gruppen({110}),
+    );
+
+    expect(repository.sendungen, hasLength(2));
+    final snapshot = repository.sendungen.last.$1;
+    expect(snapshot.kennzahlen.abdeckung, StatistikAbdeckung.gruppen({110}));
+    expect(snapshot.toJson()['metrics'], isNull);
+    expect(model.abdeckung, StatistikAbdeckung.gruppen({110}));
+
+    // Gleiche Abdeckung erneut: kein weiterer Versand vor Ablauf des Intervalls.
+    await model.aktualisiereKontext(
+      personId: '42',
+      readModel: _readModel(),
+      datenstand: now,
+      abdeckung: StatistikAbdeckung.gruppen({110}),
+    );
+    expect(repository.sendungen, hasLength(2));
+  });
+
+  test('wartet ohne bekannte Abdeckung und sendet nichts', () async {
+    final model = buildModel();
+    await model.initialize();
+    await model.aktualisiereKontext(
+      personId: '42',
+      readModel: _readModel(),
+      datenstand: now,
+      abdeckung: null,
+    );
+    await model.setzeEinwilligung(true);
+
+    expect(model.status, BundesstatistikStatus.wartetAufDaten);
+    expect(repository.sendungen, isEmpty);
+  });
 
   test('sendet erst nach Ablauf des Intervalls erneut', () async {
     final model = await modelMitEinwilligung();
@@ -237,6 +283,7 @@ void main() {
       personId: '42',
       readModel: _readModel(),
       datenstand: now,
+      abdeckung: const StatistikAbdeckung.stamm(),
     );
     expect(repository.sendungen, hasLength(1));
 
@@ -245,21 +292,28 @@ void main() {
       personId: '42',
       readModel: _readModel(),
       datenstand: now,
+      abdeckung: const StatistikAbdeckung.stamm(),
     );
     expect(repository.sendungen, hasLength(2));
   });
 
-  test('sendet sofort bei Wechsel auf einen anderen Stamm', () async {
-    final model = await modelMitEinwilligung();
+  test(
+    'sendet nach Wechsel sofort, sobald der neue Stamm freigegeben ist',
+    () async {
+      final model = await modelMitEinwilligung();
 
-    await model.aktualisiereKontext(
-      personId: '42',
-      readModel: _readModel(layerId: 12),
-      datenstand: now,
-    );
+      await model.aktualisiereKontext(
+        personId: '42',
+        readModel: _readModel(layerId: 12),
+        datenstand: now,
+        abdeckung: const StatistikAbdeckung.stamm(),
+      );
+      expect(repository.sendungen.map((s) => s.$1.stammId), ['11']);
 
-    expect(repository.sendungen.map((s) => s.$1.stammId), ['11', '12']);
-  });
+      await model.setzeEinwilligung(true);
+      expect(repository.sendungen.map((s) => s.$1.stammId), ['11', '12']);
+    },
+  );
 
   test('uebertraegt die Einwilligung nicht auf eine andere Person', () async {
     final model = await modelMitEinwilligung();
@@ -268,6 +322,7 @@ void main() {
       personId: '99',
       readModel: _readModel(),
       datenstand: now,
+      abdeckung: const StatistikAbdeckung.stamm(),
     );
 
     expect(model.hatEinwilligung, isFalse);
@@ -299,13 +354,53 @@ void main() {
       personId: '42',
       readModel: _readModel(),
       datenstand: now,
+      abdeckung: const StatistikAbdeckung.stamm(),
     );
 
     expect(repository.sendungen, hasLength(1));
     expect(model.aggregat, isNull);
     expect(model.status, BundesstatistikStatus.keineEinwilligung);
-    expect(teilnahme.stored.einwilligungFuer, isNull);
+    expect(teilnahme.stored.einwilligungen, isEmpty);
   });
+
+  test(
+    'gilt je Stamm: ein anderer Stamm braucht eine eigene Einwilligung',
+    () async {
+      final model = await modelMitEinwilligung();
+      expect(repository.sendungen, hasLength(1));
+
+      await model.aktualisiereKontext(
+        personId: '42',
+        readModel: _readModel(layerId: 12),
+        datenstand: now,
+        abdeckung: const StatistikAbdeckung.stamm(),
+      );
+      expect(model.hatEinwilligung, isFalse);
+      expect(model.status, BundesstatistikStatus.keineEinwilligung);
+      expect(model.zuletztGesendeterSnapshot, isNull);
+      expect(repository.sendungen, hasLength(1));
+
+      await model.setzeEinwilligung(true);
+      expect(repository.sendungen, hasLength(2));
+      expect(repository.sendungen.last.$1.stammId, '12');
+
+      // Zurueck zu Stamm 11: bereits freigegeben, innerhalb des Intervalls kein neues Senden.
+      await model.aktualisiereKontext(
+        personId: '42',
+        readModel: _readModel(),
+        datenstand: now,
+        abdeckung: const StatistikAbdeckung.stamm(),
+      );
+      expect(model.hatEinwilligung, isTrue);
+      expect(model.status, BundesstatistikStatus.bereit);
+      expect(model.zuletztGesendeterSnapshot?.stammId, '11');
+      expect(repository.sendungen, hasLength(2));
+
+      // Widerruf betrifft nur den aktiven Stamm.
+      await model.setzeEinwilligung(false);
+      expect(teilnahme.stored.einwilligungen.keys, ['12']);
+    },
+  );
 
   test('erzeugt bei ungueltigen Credentials neue und sendet erneut', () async {
     repository.sendeFehler.add(
@@ -375,6 +470,7 @@ void main() {
       personId: '42',
       readModel: _readModel(),
       datenstand: now,
+      abdeckung: const StatistikAbdeckung.stamm(),
     );
     await model.setzeEinwilligung(true);
 
@@ -388,6 +484,7 @@ void main() {
       personId: '42',
       readModel: _readModel(),
       datenstand: now.add(const Duration(days: 1)),
+      abdeckung: const StatistikAbdeckung.stamm(),
     );
     await model.setzeEinwilligung(true);
 

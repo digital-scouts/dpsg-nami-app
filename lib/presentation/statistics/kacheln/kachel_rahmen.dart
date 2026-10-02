@@ -5,12 +5,19 @@ import '../../../domain/taetigkeit/stufe.dart';
 import '../statistik_farben.dart';
 
 /// Rahmen einer Kachel: einzeiliger Titel, darunter der Inhalt, der auf die
-/// feste Kachelgröße beschnitten wird. Kacheln sind (noch) nicht antippbar.
+/// feste Kachelgröße beschnitten wird. Mit [onTitel] wird der Titel zum
+/// Verweis (z. B. auf alle Gruppen) und bekommt ein ›.
 class KachelRahmen extends StatelessWidget {
-  const KachelRahmen({super.key, required this.titel, required this.child});
+  const KachelRahmen({
+    super.key,
+    required this.titel,
+    required this.child,
+    this.onTitel,
+  });
 
   final String titel;
   final Widget child;
+  final VoidCallback? onTitel;
 
   @override
   Widget build(BuildContext context) {
@@ -24,20 +31,41 @@ class KachelRahmen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              titel,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: farben.textGedaempft,
-              ),
-            ),
+            _titelZeile(context, farben),
             const SizedBox(height: 6),
             Expanded(child: ClipRect(child: child)),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _titelZeile(BuildContext context, StatistikFarben farben) {
+    final text = Text(
+      titel,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: farben.textGedaempft,
+      ),
+    );
+    final onTitel = this.onTitel;
+    if (onTitel == null) return text;
+    return InkWell(
+      key: const Key('kachel-titel-link'),
+      onTap: onTitel,
+      borderRadius: BorderRadius.circular(6),
+      child: Row(
+        children: [
+          Flexible(child: text),
+          Icon(
+            Icons.chevron_right,
+            size: 16,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ],
       ),
     );
   }

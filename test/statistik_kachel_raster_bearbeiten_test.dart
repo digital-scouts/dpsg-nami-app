@@ -51,8 +51,8 @@ const _eintraege = [
   ),
   KachelEintrag(
     id: 'f',
-    typId: StatistikKachelTypen.altersstruktur,
-    groesse: KachelGroesse.gross,
+    typId: StatistikKachelTypen.stufen,
+    groesse: KachelGroesse.breit,
   ),
   KachelEintrag(
     id: 'g',
@@ -193,7 +193,7 @@ void main() {
     await tester.pumpWidget(_app(bearbeitung: _Aufrufe().bearbeitung));
     await tester.pump();
 
-    // 7 Kacheln, Altersstruktur gibt es nur als 2×2.
+    // 7 Kacheln, Stufen gibt es nur als 2×1.
     expect(find.byType(KachelGroessenGriff), findsNWidgets(6));
     expect(find.byType(KachelEntfernenKnopf), findsNWidgets(7));
   });

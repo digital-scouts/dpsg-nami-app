@@ -166,20 +166,20 @@ void main() {
     expect(neu.groesse, KachelGroesse.gross);
   });
 
-  testWidgets('Altersstruktur hat im Katalog keine Größenwahl', (tester) async {
+  testWidgets('Stufen hat im Katalog keine Größenwahl', (tester) async {
     await starten(tester);
     await bearbeiten(tester);
     await tester.tap(find.byTooltip('Kachel hinzufügen'));
     await warten(tester);
 
-    // Die Zeile der Altersstruktur nennt als einzige nur „2×2“.
-    await tester.ensureVisible(find.text('2×2'));
-    await tester.tap(find.text('2×2'));
+    // Die Zeile der Stufen nennt als einzige nur „2×1“.
+    await tester.ensureVisible(find.text('2×1'));
+    await tester.tap(find.text('2×1'));
     await warten(tester);
     expect(find.byType(SegmentedButton<KachelGroesse>), findsNothing);
     await tester.tap(find.text('Hinzufügen'));
     await warten(tester);
-    expect(model.einstellungen.ueberblick.last.groesse, KachelGroesse.gross);
+    expect(model.einstellungen.ueberblick.last.groesse, KachelGroesse.breit);
   });
 
   testWidgets('eigene Kachel anlegen, ohne Namen erst ein Hinweis', (

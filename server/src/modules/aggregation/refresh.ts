@@ -1,7 +1,9 @@
 import type { RawSnapshotsRepository } from '../stammesSnapshot/persistence.js';
 import {
     type EffectiveStatesRepository,
-    toEffectiveState,
+    mergeAllStammSnapshots,
+    mergeStammSnapshots,
+    snapshotWindowStart,
 } from '../effectiveState/effectiveState.js';
 import { computeBundAggregate, type WeeklyAggregatesRepository } from './aggregation.js';
 
@@ -15,6 +17,23 @@ export const refreshBundAggregate = async (
     await weeklyAggregatesRepository.upsert(computeBundAggregate(states, now));
 };
 
+// Fuehrt die Snapshots eines Stammes im Fenster neu zusammen, z. B. nach einem neuen Snapshot.
+export const refreshEffectiveStateForStamm = async (
+    rawSnapshotsRepository: RawSnapshotsRepository,
+    effectiveStatesRepository: EffectiveStatesRepository,
+    stammPseudonym: string,
+    now: Date,
+): Promise<void> => {
+    const since = snapshotWindowStart(now);
+    const state = mergeStammSnapshots(await rawSnapshotsRepository.findByStammSince(stammPseudonym, since), since);
+
+    if (state == null) {
+        await effectiveStatesRepository.remove(stammPseudonym);
+    } else {
+        await effectiveStatesRepository.upsert(state);
+    }
+};
+
 // Idempotenter Neuaufbau von effective_states aus raw_snapshots, z. B. beim Serverstart.
 export const rebuildEffectiveStatesAndAggregate = async (
     rawSnapshotsRepository: RawSnapshotsRepository,
@@ -22,7 +41,7 @@ export const rebuildEffectiveStatesAndAggregate = async (
     weeklyAggregatesRepository: WeeklyAggregatesRepository,
     now: Date,
 ): Promise<void> => {
-    const latestSnapshots = await rawSnapshotsRepository.findLatestPerStamm();
-    await effectiveStatesRepository.replaceAll(latestSnapshots.map(toEffectiveState));
+    const since = snapshotWindowStart(now);
+    await effectiveStatesRepository.replaceAll(mergeAllStammSnapshots(await rawSnapshotsRepository.findSince(since), since));
     await refreshBundAggregate(effectiveStatesRepository, weeklyAggregatesRepository, now);
 };

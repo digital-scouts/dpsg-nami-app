@@ -14,7 +14,11 @@ class StatistikBearbeitenLeiste extends StatelessWidget {
     required this.onHinzufuegen,
     required this.onFertig,
     required this.onThemaSichtbar,
+    this.themenAnzeigen = true,
   });
+
+  /// Ohne Themen (Teilsicht) entfallen die Chips für Stufen und Entwicklung.
+  final bool themenAnzeigen;
 
   final bool stufenSichtbar;
   final bool entwicklungSichtbar;
@@ -64,31 +68,33 @@ class StatistikBearbeitenLeiste extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.only(left: 4, right: 4),
-            child: Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                _ThemenChip(text: t.t('statistics_theme_overview')),
-                _ThemenChip(
-                  text: t.t('statistics_theme_stages'),
-                  sichtbar: stufenSichtbar,
-                  onUmschalten: () =>
-                      onThemaSichtbar(StatistikThema.stufen, !stufenSichtbar),
-                ),
-                _ThemenChip(
-                  text: t.t('statistics_theme_development'),
-                  sichtbar: entwicklungSichtbar,
-                  onUmschalten: () => onThemaSichtbar(
-                    StatistikThema.entwicklung,
-                    !entwicklungSichtbar,
+          if (themenAnzeigen) ...[
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.only(left: 4, right: 4),
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  _ThemenChip(text: t.t('statistics_theme_overview')),
+                  _ThemenChip(
+                    text: t.t('statistics_theme_stages'),
+                    sichtbar: stufenSichtbar,
+                    onUmschalten: () =>
+                        onThemaSichtbar(StatistikThema.stufen, !stufenSichtbar),
                   ),
-                ),
-              ],
+                  _ThemenChip(
+                    text: t.t('statistics_theme_development'),
+                    sichtbar: entwicklungSichtbar,
+                    onUmschalten: () => onThemaSichtbar(
+                      StatistikThema.entwicklung,
+                      !entwicklungSichtbar,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
           Padding(
             padding: const EdgeInsets.fromLTRB(6, 8, 6, 0),
             child: Text(

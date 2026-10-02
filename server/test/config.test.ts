@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 
 import { loadConfig } from '../src/app/config.js';
+import { hashAdminPassword } from '../src/modules/admin/password.js';
 
 const requiredEnv = {
     PSEUDONYMIZATION_SECRET: 'test-secret',
@@ -88,5 +89,36 @@ describe('loadConfig', () => {
                 PSEUDONYMIZATION_SECRET: 'test-secret',
             }),
         ).toThrow();
+    });
+
+    test('leaves admin view and telegram off by default', () => {
+        const config = loadConfig({ ...requiredEnv, ADMIN_USER: '', REPORT_TELEGRAM_CHAT_ID: '' });
+
+        expect(config.admin).toBeNull();
+        expect(config.telegram).toBeNull();
+        expect(config.publicBaseUrl).toBeNull();
+    });
+
+    test('reads admin, telegram and public base url', () => {
+        const passwordHash = hashAdminPassword('ein-langes-passwort');
+        const config = loadConfig({
+            ...requiredEnv,
+            ADMIN_USER: 'betrieb',
+            ADMIN_PASSWORD_HASH: passwordHash,
+            REPORT_TELEGRAM_BOT_TOKEN: '123:abc',
+            REPORT_TELEGRAM_CHAT_ID: '-10042',
+            PUBLIC_BASE_URL: 'https://namiapp.example.org/',
+        });
+
+        expect(config.admin).toEqual({ user: 'betrieb', passwordHash });
+        expect(config.telegram).toEqual({ botToken: '123:abc', chatId: '-10042' });
+        expect(config.publicBaseUrl).toBe('https://namiapp.example.org');
+    });
+
+    test('rejects half configured admin access and telegram', () => {
+        expect(() => loadConfig({ ...requiredEnv, ADMIN_USER: 'betrieb' })).toThrow(/ADMIN_USER and ADMIN_PASSWORD_HASH/);
+        expect(() => loadConfig({ ...requiredEnv, ADMIN_USER: 'betrieb', ADMIN_PASSWORD_HASH: 'klartext' }))
+            .toThrow(/npm run admin:hash/);
+        expect(() => loadConfig({ ...requiredEnv, REPORT_TELEGRAM_BOT_TOKEN: '123:abc' })).toThrow(/REPORT_TELEGRAM/);
     });
 });

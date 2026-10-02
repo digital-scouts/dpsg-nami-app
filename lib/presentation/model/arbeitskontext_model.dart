@@ -14,6 +14,9 @@ import '../../domain/arbeitskontext/usecases/bestimme_startkontext_usecase.dart'
 import '../../domain/auth/auth_profile.dart';
 import '../../domain/auth/auth_session.dart';
 import '../../domain/auth/auth_state.dart';
+import '../../domain/auth/hitobito_berechtigungen.dart';
+import '../../domain/bundesstatistik/ermittle_statistik_abdeckung_usecase.dart';
+import '../../domain/bundesstatistik/statistik_abdeckung.dart';
 import '../../domain/member/mitglied.dart';
 import '../../services/hitobito_groups_service.dart';
 import '../../services/logger_service.dart';
@@ -88,24 +91,22 @@ class ArbeitskontextModel extends ChangeNotifier {
   static const String unauthorizedMessage =
       'Du hast nicht die notwendigen Berechtigungen um die App zu nutzen';
   static const Set<String> _exactLayerPermissions = <String>{
-    'layer_full',
-    'layer_read',
+    ...HitobitoBerechtigungen.layerLesen,
     'group_read',
-    'group_and_below_full',
-    'group_and_below_read',
+    ...HitobitoBerechtigungen.gruppeUndDarunterLesen,
   };
-  static const Set<String> _layerAndBelowPermissions = <String>{
-    'layer_and_below_full',
-    'layer_and_below_read',
-  };
-  static const Set<String> _writeLayerPermissions = <String>{'layer_full'};
-  static const Set<String> _writeLayerAndBelowPermissions = <String>{
-    'layer_and_below_full',
-  };
-  static const Set<String> _writeGroupPermissions = <String>{'group_full'};
-  static const Set<String> _writeGroupAndBelowPermissions = <String>{
-    'group_and_below_full',
-  };
+  static const Set<String> _layerAndBelowPermissions =
+      HitobitoBerechtigungen.layerUndDarunterLesen;
+  static const Set<String> _writeLayerPermissions =
+      HitobitoBerechtigungen.layerSchreiben;
+  static const Set<String> _writeLayerAndBelowPermissions =
+      HitobitoBerechtigungen.layerUndDarunterSchreiben;
+  static const Set<String> _writeGroupPermissions =
+      HitobitoBerechtigungen.gruppeSchreiben;
+  static const Set<String> _writeGroupAndBelowPermissions =
+      HitobitoBerechtigungen.gruppeUndDarunterSchreiben;
+  static const ErmittleStatistikAbdeckungUseCase _ermittleStatistikAbdeckung =
+      ErmittleStatistikAbdeckungUseCase();
 
   ArbeitskontextStatus _status = ArbeitskontextStatus.initial;
   Arbeitskontext? _arbeitskontext;
@@ -142,6 +143,18 @@ class ArbeitskontextModel extends ChangeNotifier {
   ArbeitskontextStatus get status => _status;
   Arbeitskontext? get arbeitskontext => _arbeitskontext;
   ArbeitskontextReadModel? get readModel => _readModel;
+
+  /// Welcher Teil des aktiven Layers fuer die Statistik lesbar ist; `null`,
+  /// solange Profil oder Read-Model fehlen.
+  StatistikAbdeckung? get statistikAbdeckung {
+    final profile = _profile;
+    final readModel = _readModel;
+    if (profile == null || readModel == null) {
+      return null;
+    }
+    return _ermittleStatistikAbdeckung(profile: profile, readModel: readModel);
+  }
+
   String? get errorMessage => _errorMessage;
   bool get isLoading => _status == ArbeitskontextStatus.loading;
   bool get isReady => _status == ArbeitskontextStatus.ready;

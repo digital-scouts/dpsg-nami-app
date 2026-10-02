@@ -1,19 +1,24 @@
 import { createHmac } from 'node:crypto';
 
-import type { StammesSnapshotPayload } from './schema.js';
+import type { SnapshotGruppe, StammesSnapshotPayload } from './schema.js';
+
+export type PseudonymizedGruppe = Omit<SnapshotGruppe, 'gruppe_id'> & {
+    gruppe_pseudonym: string;
+};
 
 export type PseudonymizedStammesSnapshot = Omit<
     StammesSnapshotPayload,
-    'stamm_id' | 'sender_id' | 'sent_at' | 'source_data_as_of'
+    'stamm_id' | 'sender_id' | 'sent_at' | 'source_data_as_of' | 'gruppen'
 > & {
     stamm_pseudonym: string;
     sender_pseudonym: string;
     sent_at: Date;
     source_data_as_of: Date;
+    gruppen: PseudonymizedGruppe[];
 };
 
 export const buildPseudonym = (
-    scope: 'stamm' | 'sender',
+    scope: 'stamm' | 'sender' | 'gruppe',
     value: string,
     secret: string,
 ): string => {
@@ -37,5 +42,10 @@ export const pseudonymizeStammesSnapshot = (
     bezirk_id: snapshot.bezirk_id,
     sent_at: new Date(snapshot.sent_at),
     source_data_as_of: new Date(snapshot.source_data_as_of),
+    abdeckung: snapshot.abdeckung,
+    gruppen: snapshot.gruppen.map(({ gruppe_id: gruppeId, ...gruppe }) => ({
+        gruppe_pseudonym: buildPseudonym('gruppe', gruppeId, secret),
+        ...gruppe,
+    })),
     metrics: snapshot.metrics,
 });

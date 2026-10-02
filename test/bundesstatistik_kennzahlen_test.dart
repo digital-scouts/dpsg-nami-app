@@ -1,9 +1,12 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model.dart';
 import 'package:nami/domain/bundesstatistik/baue_stammes_kennzahlen_usecase.dart';
 import 'package:nami/domain/bundesstatistik/ermittle_stammes_hierarchie_usecase.dart';
 import 'package:nami/domain/bundesstatistik/stammes_snapshot.dart';
+import 'package:nami/domain/bundesstatistik/statistik_abdeckung.dart';
 import 'package:nami/domain/member/mitglied.dart';
 
 Mitglied _mitglied(String nummer, {String? gender, DateTime? geburtsdatum}) {
@@ -200,6 +203,57 @@ void main() {
     );
   });
 
+  group('BaueStammesKennzahlenUseCase bei Teilsicht', () {
+    const useCase = BaueStammesKennzahlenUseCase();
+    final stichtag = DateTime(2026, 6, 15);
+
+    test('zaehlt nur lesbare Gruppen und laesst stammweite Werte leer', () {
+      final kennzahlen = useCase(
+        _stammReadModel(),
+        stichtag: stichtag,
+        abdeckung: StatistikAbdeckung.gruppen({21}),
+      );
+
+      expect(kennzahlen.abdeckung.istStamm, isFalse);
+      expect(kennzahlen.aktiveMitglieder, isNull);
+      expect(kennzahlen.nichtLeitendeErwachsene, isNull);
+      expect(kennzahlen.leitende.gesamt, isNull);
+      // Die Meute ist ganz lesbar, die Runde nicht.
+      expect(kennzahlen.woelflinge.gesamt, 2);
+      expect(kennzahlen.rover, const GeschlechterVerteilung.unbekannt());
+      expect(kennzahlen.leitendeRover.gesamt, isNull);
+      // Biber hat keine Gruppe und ist damit vollstaendig bekannt: 0.
+      expect(kennzahlen.biber.gesamt, 0);
+      expect(kennzahlen.gruppen.map((g) => (g.gruppenId, g.abgedeckt)), [
+        (21, true),
+        (22, false),
+      ]);
+      expect(kennzahlen.gruppen.last.mitglieder, isNull);
+      expect(kennzahlen.istPlausibel, isTrue);
+    });
+
+    test('ist ohne lesbare Gruppe nicht plausibel', () {
+      final kennzahlen = useCase(
+        _stammReadModel(),
+        stichtag: stichtag,
+        abdeckung: StatistikAbdeckung.gruppen(const <int>{}),
+      );
+
+      expect(kennzahlen.istPlausibel, isFalse);
+      expect(kennzahlen.gruppen.every((g) => !g.abgedeckt), isTrue);
+    });
+
+    test('liefert bei voller Sicht alle Stufengruppen mit Zaehlern', () {
+      final kennzahlen = useCase(_stammReadModel(), stichtag: stichtag);
+
+      expect(kennzahlen.gruppen, hasLength(2));
+      expect(kennzahlen.gruppen.first.mitglieder?.gesamt, 2);
+      expect(kennzahlen.gruppen.first.leitende?.gesamt, 2);
+      expect(kennzahlen.gruppen.last.mitglieder?.gesamt, 1);
+      expect(kennzahlen.gruppen.last.leitende?.gesamt, 1);
+    });
+  });
+
   group('ErmittleStammesHierarchieUseCase', () {
     const useCase = ErmittleStammesHierarchieUseCase();
 
@@ -295,7 +349,7 @@ void main() {
       expect(json['source_data_as_of'], '2026-06-15T09:00:00.000Z');
     });
 
-    test('serialisiert nach Schema 2026-04-01 und liest sich zurueck', () {
+    test('serialisiert nach Schema 2026-10-01 und liest sich zurueck', () {
       const useCase = BaueStammesKennzahlenUseCase();
       final kennzahlen = useCase(
         _stammReadModel(),
@@ -312,15 +366,69 @@ void main() {
 
       final json = snapshot.toJson();
 
-      expect(json['schema_version'], '2026-04-01');
+      expect(json['schema_version'], '2026-10-01');
       expect(json['stamm_id'], '11');
       expect(json['bezirk_id'], isNull);
       expect(json['sent_at'], '2026-06-15T10:00:00.000Z');
-      expect((json['metrics'] as Map)['woelflinge'], containsPair('gesamt', 2));
+      expect(json['abdeckung'], 'stamm');
+      expect((json['gruppen'] as List).map((g) => (g as Map)['gruppe_id']), [
+        '21',
+        '22',
+      ]);
+      expect((json['metrics'] as Map).containsKey('woelflinge'), isFalse);
 
-      final restored = StammesSnapshot.fromJson(json);
+      final restored = StammesSnapshot.fromJson(
+        jsonDecode(jsonEncode(json)) as Map<String, dynamic>,
+      );
       expect(restored.kennzahlen, kennzahlen);
       expect(restored.sourceDataAsOf, DateTime.utc(2026, 6, 15, 9, 30));
+    });
+
+    test('sendet bei Teilsicht keine stammweiten Werte', () {
+      final kennzahlen = const BaueStammesKennzahlenUseCase()(
+        _stammReadModel(),
+        stichtag: DateTime(2026, 6, 15),
+        abdeckung: StatistikAbdeckung.gruppen({21}),
+      );
+      final json = StammesSnapshot(
+        stammId: '11',
+        senderId: 'install-1',
+        sentAt: DateTime.utc(2026, 6, 15, 10),
+        sourceDataAsOf: DateTime.utc(2026, 6, 15, 9),
+        kennzahlen: kennzahlen,
+      ).toJson();
+
+      expect(json['abdeckung'], 'gruppen');
+      expect(json['metrics'], isNull);
+      expect(json['gruppen'], [
+        {
+          'gruppe_id': '21',
+          'stufe': 'woelflinge',
+          'abgedeckt': true,
+          'mitglieder': {
+            'gesamt': 2,
+            'maennlich': 1,
+            'weiblich': 1,
+            'divers': 0,
+            'geschlecht_unbekannt': 0,
+          },
+          'leitende': {
+            'gesamt': 2,
+            'maennlich': 1,
+            'weiblich': 1,
+            'divers': 0,
+            'geschlecht_unbekannt': 0,
+          },
+        },
+        {'gruppe_id': '22', 'stufe': 'rover', 'abgedeckt': false},
+      ]);
+
+      final restored = StammesSnapshot.fromJson(
+        jsonDecode(jsonEncode(json)) as Map<String, dynamic>,
+      );
+      expect(restored.kennzahlen.abdeckung, StatistikAbdeckung.gruppen({21}));
+      expect(restored.kennzahlen.woelflinge.gesamt, 2);
+      expect(restored.kennzahlen.rover.gesamt, isNull);
     });
   });
 }

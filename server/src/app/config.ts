@@ -1,7 +1,16 @@
 import { z } from 'zod';
 
+import { isAdminPasswordHash } from '../modules/admin/password.js';
+
 const logLevels = ['fatal', 'error', 'warn', 'info', 'debug', 'trace'] as const;
 const storageBackends = ['mongodb', 'memory'] as const;
+
+// Leere Werte (z. B. "REPORT_SMTP_HOST=" in der .env) gelten als nicht gesetzt.
+const optionalString = z
+    .string()
+    .trim()
+    .optional()
+    .transform((value) => (value == null || value === '' ? undefined : value));
 
 const envSchema = z.object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -25,11 +34,36 @@ const envSchema = z.object({
     GIT_SHA: z.string().trim().min(1).default('unknown'),
     STORAGE_BACKEND: z.enum(storageBackends).default('mongodb'),
     MOCK_SEED_STAMM_COUNT: z.coerce.number().int().min(0).max(1000).default(0),
+    ADMIN_USER: optionalString,
+    ADMIN_PASSWORD_HASH: optionalString,
+    REPORT_TELEGRAM_BOT_TOKEN: optionalString,
+    REPORT_TELEGRAM_CHAT_ID: optionalString,
+    PUBLIC_BASE_URL: optionalString.pipe(z.string().url().optional()),
 }).refine(
     // Synthetische Staemme nur fluechtig im Speicher, nie in der produktiven MongoDB.
     (env) => env.MOCK_SEED_STAMM_COUNT === 0 || env.STORAGE_BACKEND === 'memory',
     { message: 'MOCK_SEED_STAMM_COUNT requires STORAGE_BACKEND=memory', path: ['MOCK_SEED_STAMM_COUNT'] },
+).refine(
+    (env) => (env.ADMIN_USER == null) === (env.ADMIN_PASSWORD_HASH == null),
+    { message: 'ADMIN_USER and ADMIN_PASSWORD_HASH must be set together', path: ['ADMIN_USER'] },
+).refine(
+    (env) => env.ADMIN_PASSWORD_HASH == null || isAdminPasswordHash(env.ADMIN_PASSWORD_HASH),
+    { message: 'ADMIN_PASSWORD_HASH must be created with npm run admin:hash', path: ['ADMIN_PASSWORD_HASH'] },
+).refine(
+    // Halb konfiguriert wuerde Telegram still nie benachrichtigen.
+    (env) => (env.REPORT_TELEGRAM_BOT_TOKEN == null) === (env.REPORT_TELEGRAM_CHAT_ID == null),
+    { message: 'REPORT_TELEGRAM_BOT_TOKEN and REPORT_TELEGRAM_CHAT_ID must be set together', path: ['REPORT_TELEGRAM_BOT_TOKEN'] },
 );
+
+export type AdminConfig = {
+    user: string;
+    passwordHash: string;
+};
+
+export type TelegramConfig = {
+    botToken: string;
+    chatId: string;
+};
 
 export type AppConfig = {
     nodeEnv: 'development' | 'test' | 'production';
@@ -49,6 +83,12 @@ export type AppConfig = {
     gitSha: string;
     storageBackend: (typeof storageBackends)[number];
     mockSeedStammCount: number;
+    // null: keine Web-Ansicht unter /admin.
+    admin: AdminConfig | null;
+    // null: keine Telegram-Nachricht zum Monatsreport.
+    telegram: TelegramConfig | null;
+    // Fuer den Link auf /admin in der Telegram-Nachricht, z. B. https://namiapp.scout-link.de
+    publicBaseUrl: string | null;
 };
 
 export const loadConfig = (
@@ -74,5 +114,12 @@ export const loadConfig = (
         gitSha: parsed.GIT_SHA,
         storageBackend: parsed.STORAGE_BACKEND,
         mockSeedStammCount: parsed.MOCK_SEED_STAMM_COUNT,
+        admin: parsed.ADMIN_USER != null && parsed.ADMIN_PASSWORD_HASH != null
+            ? { user: parsed.ADMIN_USER, passwordHash: parsed.ADMIN_PASSWORD_HASH }
+            : null,
+        telegram: parsed.REPORT_TELEGRAM_BOT_TOKEN != null && parsed.REPORT_TELEGRAM_CHAT_ID != null
+            ? { botToken: parsed.REPORT_TELEGRAM_BOT_TOKEN, chatId: parsed.REPORT_TELEGRAM_CHAT_ID }
+            : null,
+        publicBaseUrl: parsed.PUBLIC_BASE_URL?.replace(/\/+$/, '') ?? null,
     };
 };

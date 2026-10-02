@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entwürfe: Gruppenstatistik und Teilsicht</title>
+<link rel="stylesheet" href="basis.css">
+<link rel="stylesheet" href="kacheln.css">
+<link rel="stylesheet" href="kacheln-r4.css">
+<style>
+/* Gruppenstatistik */
+.zk-val, .scol-val, .scol-flow, .g2-val, .stat-val, .az4-val, .band-leg, .kpi b, .h1-num b { white-space:nowrap; overflow:hidden; }
+.fill-col { height:100%; display:flex; flex-direction:column; justify-content:space-between; }
+.az4-list { flex:1; display:flex; flex-direction:column; justify-content:space-evenly; }
+.leg-row { grid-template-columns:12px 1fr auto auto; }
+.appbar { height:52px; display:flex; align-items:center; gap:10px; padding:0 12px; background:var(--bg); color:var(--fg); font-weight:700; font-size:18px; }
+.appbar .zurueck { font-size:26px; color:var(--primary); line-height:1; }
+.appbar small { display:block; font-size:12px; font-weight:500; color:var(--muted); }
+.hinweis { display:flex; gap:10px; align-items:flex-start; background:var(--primary-lite); color:var(--fg2); border-radius:14px; padding:10px 12px; font-size:13px; margin:14px 0 4px; }
+.hinweis i { font-style:normal; color:var(--primary); font-weight:700; }
+.gchips { display:flex; flex-wrap:nowrap; gap:8px; margin:14px -16px 2px 0; overflow:hidden; }
+.gchips span { white-space:nowrap; font-size:13.5px; padding:6px 12px; border-radius:999px; background:var(--surface); color:var(--fg2); border:1px solid var(--border); }
+.gchips span.on { background:var(--primary); color:var(--on-primary); border-color:var(--primary); font-weight:600; }
+.gtitel { font-size:13px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--primary); margin:16px 4px 8px; }
+.kgrid.einspaltig { grid-template-columns:1fr; }
+.bcard { background:var(--surface); border-radius:16px; padding:14px 16px; margin-top:12px; color:var(--fg); }
+.bcard h5 { margin:0 0 8px; font-size:15px; }
+.bcard p { margin:4px 0; font-size:13px; color:var(--fg2); }
+.vgl { width:100%; border-collapse:collapse; font-size:14px; }
+.vgl th { font-size:12px; color:var(--muted); font-weight:600; text-align:right; padding:2px 0 6px; }
+.vgl th:first-child { text-align:left; }
+.vgl td { padding:5px 0; border-top:1px solid var(--border); text-align:right; font-variant-numeric:tabular-nums; }
+.vgl td:first-child { text-align:left; color:var(--fg2); }
+.vgl td.eigen { font-weight:700; color:var(--fg); }
+.vgl td.leer { color:var(--muted); }
+.schalter { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.schalter b { font-size:15px; }
+.schalter .sw { width:44px; height:26px; border-radius:13px; background:#34c759; position:relative; flex:none; }
+.schalter .sw::after { content:''; position:absolute; right:3px; top:3px; width:20px; height:20px; border-radius:50%; background:#fff; }
+.muted { color:var(--muted); }
+.neu-tag { font-size:11px; font-weight:700; background:#fff1c2; color:#6b5520; border-radius:999px; padding:1px 8px; margin-left:6px; vertical-align:middle; }
+.fest-list { background:#fff; border-radius:12px; padding:10px 16px; max-width:900px; font-size:14px; }
+</style>
+<script>window.RUNDE = 5;</script>
+</head>
+<body>
+<div class="bar">
+  <span><b>Gruppenstatistik und Teilsicht</b></span>
+  <nav><a href="#detail">1 Detailseite</a><a href="#stamm">2 Stamm-Tab bei Teilsicht</a><a href="#bund">3 Bund-Tab</a><a href="#rueckmeldung">4 Rückmeldung</a></nav>
+</div>
+<main>
+<h1>Gruppenstatistik und Teilsicht – Entwürfe</h1>
+<p>Wer nur die eigene Gruppe lesen darf, sieht künftig die Gruppenstatistik statt der Stammesstatistik, und im Bund-Tab einen Vergleich mit Gruppen derselben Stufe. Die Tabs im Header bleiben unverändert. Beispieldaten: Stamm Silberfels (wie der Demo-Zugang „Leitung“, Trupp Kompass) und Stamm Weitblick (zwei Meuten).</p>
+<div class="fest-list"><b>Festgelegt</b> <span class="tag">aus der Planung</span>
+<ul>
+<li>Header (Personen, Stufenband, Tabs „Stammname | Bundesweit“) bleibt gleich, nur der Inhalt darunter ändert sich.</li>
+<li>Die Gruppenstatistik nutzt dieselben Kacheln wie die Stammesstatistik, ohne Bearbeiten.</li>
+<li>Bundesweit: Stufengröße wie bisher, neu zusätzlich die Gruppengröße je Stufe.</li>
+</ul></div>
+
+<section class="part" id="detail">
+<h2>1 · Gruppenstatistik als Detailseite</h2>
+<p>Erreichbar wie heute über eine Zeile in der Kachel „Gruppen“. Heute: Mitglieder/Leitende, Altersverteilung, Geschlecht, Konfession, Karte als einfache Karten, feste deutsche Texte.</p>
+<div class="variant"><h3>A · Kacheln wie im Stamm <span class="tag">Empfehlung</span></h3>
+<p class="desc">Dieselben Kacheln wie in der Stammesstatistik, berechnet nur für die Gruppe, in fester Reihenfolge. <b>Personen</b>, <b>Altersstruktur</b>, <b>Stufenwechsel</b>, <b>Neu in 12 Monaten</b>, <b>Geschlecht</b>, <b>Konfession</b>, <b>Standorte</b>. Kein Bearbeiten, keine eigenen Kacheln.</p>
+<div class="phones" id="slot-detail-a"></div></div>
+<div class="variant"><h3>B · Kacheln untereinander in voller Breite</h3>
+<p class="desc">Gleiche Inhalte, alle in voller Breite. Ruhiger, aber länger zu scrollen und optisch näher an der heutigen Seite.</p>
+<div class="phones" id="slot-detail-b"></div></div>
+</section>
+
+<section class="part" id="stamm">
+<h2>2 · Stamm-Tab bei Teilsicht</h2>
+<p>Der Header zeigt die sichtbaren Personen. Darunter steht statt des Kachelrasters des Stammes die Gruppenstatistik aus 1. Ein Hinweis erklärt, warum nur die eigene Gruppe zu sehen ist.</p>
+<div class="variant"><h3>Eine Gruppe (Leitung Trupp Kompass, Silberfels)</h3><div class="phones" id="slot-stamm-eine"></div></div>
+<div class="variant"><h3>Mehrere Gruppen (Leitung beider Meuten, Weitblick)</h3>
+<p class="desc">Auswahl als Chips über der Ansicht. Erster Chip „Alle“ fasst die sichtbaren Gruppen zusammen, danach je Gruppe ein Chip. Alternative: nur Gruppen-Chips ohne „Alle“.</p>
+<div class="phones" id="slot-stamm-mehrere"></div></div>
+</section>
+
+<section class="part" id="bund">
+<h2>3 · Bund-Tab</h2>
+<div class="variant"><h3>Teilsicht: Vergleich mit Gruppen derselben Stufe</h3>
+<p class="desc">Die eigene Gruppe wird mit allen bundesweit geteilten Gruppen derselben Stufe verglichen (Median und Durchschnitt). Tabellen ohne Bezug zur eigenen Stufe (Leitende nach Alter, alle Stufen) entfallen. Die Stufengröße erscheint nur, wenn die Person alle Gruppen ihrer Stufe sieht.</p>
+<div class="phones" id="slot-bund-teil"></div></div>
+<div class="variant"><h3>Vollständige Sicht: neuer Abschnitt Gruppengröße <span class="neu-tag">neu</span></h3>
+<p class="desc">Die bisherigen Tabellen bleiben. Neu darunter: Gruppengröße je Stufe. Bei mehreren Gruppen einer Stufe (Weitblick: zwei Meuten) stehen beide Werte in der Zeile.</p>
+<div class="phones" id="slot-bund-voll"></div></div>
+</section>
+
+<section class="part" id="rueckmeldung">
+<h2>4 · Rückmeldung</h2>
+<form class="fb" id="fb"></form>
+</section>
+</main>
+
+<script src="daten.js"></script>
+<script src="bausteine.js"></script>
+<script src="layouts.js"></script>
+<script src="kacheln.js"></script>
+<script>
+(function () {
+  const D = window.STATISTIK;
+  const B = window.BAUSTEINE;
+  const L = window.LAYOUTS;
+  const K = window.KACHELN;
+  const { esc } = B;
+
+  // Theme-Variablen wie in den Runden 1–5
+  const zusatz = {
+    hell: { '--biber-ring': '#aeaeb2', '--biber-ring-stark': '#8e8e93', '--biber-band': '#f4f4f7', '--ghost': '#e3e3e8', '--loeschen': '#ff3b30', '--map-bg': '#edf0e9', '--map-road': '#ffffff', '--map-water': '#d3e2ee' },
+    dunkel: { '--biber-ring': 'transparent', '--biber-ring-stark': '#ffffff', '--biber-band': '#2e2e3a', '--ghost': '#363642', '--loeschen': '#ff453a', '--map-bg': '#1c2320', '--map-road': '#2c3531', '--map-water': '#1d2e3b' },
+  };
+  let css = '';
+  for (const modus of ['hell', 'dunkel']) {
+    const p = D.palette[modus];
+    const vars = {
+      '--bg': p.bg, '--surface': p.surface, '--surface2': p.surface2, '--fg': p.fg, '--fg2': p.fg2,
+      '--muted': p.muted, '--border': p.border, '--primary': p.primary, '--on-primary': p.onPrimary,
+      '--primary-lite': p.primaryLite, '--grid': p.grid, ...zusatz[modus],
+    };
+    for (const [id, c] of Object.entries(D.stufenfarben[modus])) vars[`--st-${id}`] = c;
+    css += `.phone.${modus}{${Object.entries(vars).map(([k, v]) => `${k}:${v}`).join(';')}}`;
+  }
+  const style = document.createElement('style');
+  style.textContent = css;
+  document.head.appendChild(style);
+
+  function einpassen(root) {
+    root.querySelectorAll('.zk-val, .scol-val, .scol-flow, .g2-val, .stat-val, .az4-val, .band-leg, .kpi b, .h1-num b').forEach((el) => {
+      el.style.zoom = '';
+      const breit = el.scrollWidth;
+      const platz = el.clientWidth;
+      if (platz > 0 && breit > platz + 0.5) el.style.zoom = Math.max(0.5, platz / breit).toFixed(3);
+    });
+  }
+
+  // Teilbestand eines Stammes: nur die Personen der angegebenen Gruppen.
+  // Der Name bleibt der des Stammes, damit der Header unverändert bleibt.
+  function teilStamm(stamm, gruppenIds) {
+    return {
+      ...stamm,
+      gruppen: stamm.gruppen.filter((g) => gruppenIds.includes(g.id)),
+      personen: stamm.personen.filter((p) => gruppenIds.includes(p.gruppe)),
+      sonstige: 0,
+      sonstigeRollen: [],
+      eigeneKacheln: [],
+      ziele: { neuProJahr: 0, gruppeMax: {} },
+    };
+  }
+  const ctxFuer = (stamm, modus = 'hell') => ({ k: B.kennzahlen(stamm), stil: 'zahlen', modus });
+  const gruppe = (stamm, id) => stamm.gruppen.find((g) => g.id === id);
+
+  const GRUPPEN_KACHELN = [['personen', '2x1'], ['alter', '2x2'], ['wechsel', '1x1'], ['bindung', '1x1'], ['geschlecht', '1x1'], ['konfession', '1x1'], ['standorte', '2x1']];
+  const GRUPPEN_KACHELN_BREIT = [['personen', '2x1'], ['alter', '2x2'], ['wechsel', '2x1'], ['bindung', '2x1'], ['geschlecht', '2x1'], ['konfession', '2x1'], ['standorte', '2x2']];
+
+  function appbar(titel, unter) {
+    return `<header class="appbar"><span class="zurueck">‹</span><span>${esc(titel)}${unter ? `<small>${esc(unter)}</small>` : ''}</span></header>`;
+  }
+
+  function detailTelefon(stammId, gruppenId, modus, breit, shot) {
+    const stamm = D.staemme[stammId];
+    const g = gruppe(stamm, gruppenId);
+    const ctx = ctxFuer(teilStamm(stamm, [gruppenId]), modus);
+    const raster = K.raster(ctx, breit ? GRUPPEN_KACHELN_BREIT : GRUPPEN_KACHELN);
+    return L.telefon(ctx, raster, { shot, kopfHtml: appbar(g.name, stamm.name), tabbar: false, beschriftung: `${g.name}${modus === 'dunkel' ? ' · dunkel' : ''}` });
+  }
+
+  function stammTabTelefon(stammId, gruppenIds, aktiv, shot, beschriftung) {
+    const stamm = D.staemme[stammId];
+    const sicht = teilStamm(stamm, gruppenIds);
+    const ctxKopf = ctxFuer(sicht);
+    const auswahl = aktiv === 'alle' ? gruppenIds : [aktiv];
+    const ctx = ctxFuer(teilStamm(stamm, auswahl));
+    const namen = gruppenIds.map((id) => gruppe(stamm, id).name);
+    const hinweis = `<div class="hinweis"><i>i</i><span>Du siehst ${gruppenIds.length === 1 ? `nur ${esc(namen[0])}` : 'nur deine Gruppen'}, weil deine Rolle in Hitobito nur diese ${gruppenIds.length === 1 ? 'Gruppe' : 'Gruppen'} lesen darf.</span></div>`;
+    const chips = gruppenIds.length > 1
+      ? `<div class="gchips"><span class="${aktiv === 'alle' ? 'on' : ''}">Alle</span>${gruppenIds.map((id) => `<span class="${aktiv === id ? 'on' : ''}">${esc(gruppe(stamm, id).name)}</span>`).join('')}</div>`
+      : `<div class="gtitel">${esc(namen[0])}</div>`;
+    const inhalt = `${hinweis}${chips}${K.raster(ctx, GRUPPEN_KACHELN)}`;
+    return L.telefon(ctxKopf, inhalt, { shot, kopfHtml: K.kopf(ctxKopf, 'H1', 0), beschriftung });
+  }
+
+  // Header mit aktivem Tab „Bundesweit“
+  function kopfBund(ctx) {
+    return K.kopf(ctx, 'H1', 0).replace('<span class="on">', '<span>').replace(/<span class="">Bundesweit<\/span>/, '<span class="on">Bundesweit</span>');
+  }
+
+  const fmt = (v) => (v == null ? '–' : String(v).replace('.', ','));
+  function tabelle(kopf, zeilen) {
+    return `<table class="vgl"><thead><tr>${kopf.map((k) => `<th>${esc(k)}</th>`).join('')}</tr></thead><tbody>${zeilen.map((z) => `<tr>${z.map((c, i) => `<td class="${i === 1 ? 'eigen' : ''}${c == null ? ' leer' : ''}">${fmt(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  }
+  const einwilligung = (text) => `<div class="bcard"><div class="schalter"><span><b>${text}</b><p>Geteilt seit 12.09.2026</p></span><span class="sw"></span></div></div>`;
+  const transparenz = (zeilen) => `<div class="bcard"><h5>Grundlage</h5>${zeilen.map((z) => `<p>${z}</p>`).join('')}<p class="muted">Annäherung aus freiwillig geteilten Daten teilnehmender App-Nutzer. Keine amtliche und keine repräsentative Statistik.</p></div>`;
+
+  function bundTeilTelefon(shot) {
+    const stamm = D.staemme.klein;
+    const sicht = teilStamm(stamm, ['jufi']);
+    const ctx = ctxFuer(sicht);
+    const k = ctx.k;
+    const kinder = k.kinder.length;
+    const leitende = k.leitende.length;
+    const w = k.geschlecht.find((x) => x.kurz === 'w').wert;
+    const m = k.geschlecht.find((x) => x.kurz === 'm').wert;
+    const inhalt = [
+      einwilligung('Gruppendaten teilen'),
+      `<div class="bcard"><h5>Trupp Kompass im Vergleich</h5><p>Mit 312 Trupps (Jungpfadfinder) aus 244 Stämmen</p>${tabelle(['', 'Dein Trupp', 'Median', 'Ø'], [
+        ['Kinder & Jugendliche', kinder, 12, 12.6],
+        ['Leitende', leitende, 3, 3.2],
+      ])}</div>`,
+      `<div class="bcard"><h5>Geschlecht im Trupp</h5>${tabelle(['', 'Dein Trupp', 'Bund'], [
+        ['Weiblich', `${Math.round((100 * w) / kinder)} %`, '46 %'],
+        ['Männlich', `${Math.round((100 * m) / kinder)} %`, '52 %'],
+        ['Divers', '0 %', '1 %'],
+        ['Ohne Angabe', '0 %', '1 %'],
+      ])}</div>`,
+      `<div class="bcard"><h5>Trupps je Stamm</h5><p>Die meisten Stämme haben <b>einen</b> Jufi-Trupp (Median 1, Ø 1,3).</p></div>`,
+      transparenz(['1.284 teilnehmende Stämme, davon 244 mit Jufi-Trupps', 'Datenstand 03.08. bis 29.09.2026']),
+      `<div class="bcard"><h5>Von dir geteilt</h5><p>Trupp Kompass: ${kinder} Kinder & Jugendliche, ${leitende} Leitende, jeweils nach Geschlecht. Keine Namen, keine Geburtsdaten.</p></div>`,
+    ].join('');
+    return L.telefon(ctx, inhalt, { shot, kopfHtml: kopfBund(ctx), beschriftung: 'Teilsicht · Trupp Kompass' });
+  }
+
+  function bundVollTelefon(shot) {
+    const stamm = D.staemme.gross;
+    const ctx = ctxFuer(stamm);
+    const k = ctx.k;
+    const median = { biber: 8, woe: 13, jufi: 12, pfadi: 11, rover: 8 };
+    const zeilen = k.proStufe.filter((ps) => ps.gruppen.length).map((ps) => [
+      ps.stufe.name,
+      ps.gruppen.map((g) => g.kinder.length).join(' · '),
+      median[ps.stufe.id],
+    ]);
+    const inhalt = [
+      einwilligung('Stammesdaten teilen'),
+      `<div class="bcard"><h5>Mitglieder je Stufe</h5>${tabelle(['', 'Dein Stamm', 'Median', 'Ø'], k.proStufe.map((ps) => [ps.stufe.name, ps.kinder.length, { biber: 9, woe: 15, jufi: 14, pfadi: 12, rover: 9 }[ps.stufe.id], null]).map((z) => [z[0], z[1], z[2], (z[2] * 1.07).toFixed(1)]))}</div>`,
+      `<div class="bcard"><h5>Gruppengröße je Stufe <span class="neu-tag">neu</span></h5><p>Kinder & Jugendliche je Gruppe, verglichen mit allen geteilten Gruppen der Stufe</p>${tabelle(['', 'Deine Gruppen', 'Median'], zeilen)}</div>`,
+      `<div class="bcard muted"><h5>Leitende je Stufe · Geschlecht · Leitende nach Alter</h5><p>wie bisher</p></div>`,
+    ].join('');
+    return L.telefon(ctx, inhalt, { shot, kopfHtml: kopfBund(ctx), beschriftung: 'Vollständige Sicht · Weitblick' });
+  }
+
+  function render() {
+    const setze = (id, html) => {
+      const el = document.getElementById(id);
+      el.innerHTML = html;
+      einpassen(el);
+    };
+    setze('slot-detail-a', [
+      detailTelefon('klein', 'jufi', 'hell', false, 'detail-a-kompass'),
+      detailTelefon('gross', 'w1', 'hell', false, 'detail-a-wirbelwind'),
+      detailTelefon('gross', 'w1', 'dunkel', false, 'detail-a-wirbelwind-dunkel'),
+    ].join(''));
+    setze('slot-detail-b', [
+      detailTelefon('klein', 'jufi', 'hell', true, 'detail-b-kompass'),
+      detailTelefon('gross', 'w1', 'hell', true, 'detail-b-wirbelwind'),
+    ].join(''));
+    setze('slot-stamm-eine', stammTabTelefon('klein', ['jufi'], 'jufi', 'stamm-eine', 'Teilsicht · eine Gruppe'));
+    setze('slot-stamm-mehrere', [
+      stammTabTelefon('gross', ['w1', 'w2'], 'alle', 'stamm-mehrere-alle', 'Teilsicht · „Alle“ gewählt'),
+      stammTabTelefon('gross', ['w1', 'w2'], 'w2', 'stamm-mehrere-w2', 'Teilsicht · Meute Sternschnuppe gewählt'),
+    ].join(''));
+    setze('slot-bund-teil', bundTeilTelefon('bund-teil'));
+    setze('slot-bund-voll', bundVollTelefon('bund-voll'));
+  }
+  render();
+
+  const FRAGEN = [
+    { id: 'detail', titel: 'Detailseite', optionen: ['A Kacheln wie im Stamm', 'B volle Breite', 'ändern'] },
+    { id: 'stamm', titel: 'Stamm-Tab bei Teilsicht', optionen: ['freigegeben', 'ändern'] },
+    { id: 'auswahl', titel: 'Mehrere Gruppen', optionen: ['Chips mit „Alle“', 'Chips ohne „Alle“', 'ändern'] },
+    { id: 'bundteil', titel: 'Bund-Tab bei Teilsicht', optionen: ['freigegeben', 'ändern'] },
+    { id: 'bundvoll', titel: 'Gruppengröße bei vollständiger Sicht', optionen: ['freigegeben', 'ändern'] },
+  ];
+  const f = document.getElementById('fb');
+  f.innerHTML = FRAGEN.map((q) => `<fieldset><legend>${q.titel}</legend>${q.optionen.map((o) => `<label><input type="radio" name="${q.id}" value="${o}"> ${o}</label>`).join('')}<textarea name="${q.id}-text" placeholder="Anmerkung (optional)"></textarea></fieldset>`).join('') +
+    `<fieldset><legend>Sonst noch</legend><textarea name="frei" placeholder="Freitext"></textarea></fieldset>
+    <button type="button" id="kopieren">Auswahl kopieren</button>
+    <textarea id="ausgabe" readonly placeholder="Hier erscheint der Text für den Chat."></textarea>`;
+  document.getElementById('kopieren').addEventListener('click', async () => {
+    const fd = new FormData(f);
+    const zeilen = ['Rückmeldung Gruppenstatistik und Teilsicht'];
+    for (const q of FRAGEN) {
+      const wahl = fd.get(q.id);
+      const text = (fd.get(`${q.id}-text`) || '').trim();
+      if (wahl || text) zeilen.push(`- ${q.titel}: ${wahl || '–'}${text ? ` (${text})` : ''}`);
+    }
+    const frei = (fd.get('frei') || '').trim();
+    if (frei) zeilen.push(`- Sonst: ${frei}`);
+    const ausgabe = document.getElementById('ausgabe');
+    ausgabe.value = zeilen.join('\n');
+    try { await navigator.clipboard.writeText(ausgabe.value); } catch (e) { /* nur anzeigen */ }
+  });
+})();
+</script>
+</body>
+</html>

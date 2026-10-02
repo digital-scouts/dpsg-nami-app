@@ -11,6 +11,7 @@ import '../../domain/bundesstatistik/bundesstatistik_teilnahme.dart';
 import '../../domain/bundesstatistik/ermittle_stammes_hierarchie_usecase.dart';
 import '../../domain/bundesstatistik/installation_credentials.dart';
 import '../../domain/bundesstatistik/stammes_snapshot.dart';
+import '../../domain/bundesstatistik/statistik_abdeckung.dart';
 import '../../services/logger_service.dart';
 import '../../services/network_access_policy.dart';
 
@@ -84,6 +85,7 @@ class BundesstatistikModel extends ChangeNotifier {
   BundesstatistikTeilnahme _teilnahme = BundesstatistikTeilnahme.leer;
   String? _personId;
   ArbeitskontextReadModel? _readModel;
+  StatistikAbdeckung? _abdeckung;
   DateTime? _datenstand;
   StammesHierarchie? _hierarchie;
   StammesKennzahlen? _eigeneKennzahlen;
@@ -96,21 +98,43 @@ class BundesstatistikModel extends ChangeNotifier {
 
   bool get isAvailable => _featureEnabled;
   bool get isBusy => _isBusy;
+
+  /// Einwilligung der angemeldeten Person fuer den aktiven Stamm. Wer mehrere
+  /// Staemme sieht, gibt jeden einzeln frei.
   bool get hatEinwilligung {
     final personId = _personId;
-    return personId != null && _teilnahme.hatEinwilligungFuer(personId);
+    final stammId = _hierarchie?.stammId;
+    return personId != null &&
+        stammId != null &&
+        _teilnahme.hatEinwilligungFuer(personId, stammId);
   }
 
-  DateTime? get einwilligungAm =>
-      hatEinwilligung ? _teilnahme.einwilligungAm : null;
+  DateTime? get einwilligungAm {
+    final personId = _personId;
+    final stammId = _hierarchie?.stammId;
+    return personId == null || stammId == null
+        ? null
+        : _teilnahme.einwilligungAm(personId, stammId);
+  }
+
   Bundesaggregat? get aggregat => _aggregat;
   StammesKennzahlen? get eigeneKennzahlen => _eigeneKennzahlen;
+
+  /// Ob die Person den ganzen Stamm oder nur einzelne Gruppen sieht; `null`,
+  /// solange Rechte oder Daten fehlen.
+  StatistikAbdeckung? get abdeckung => _abdeckung;
+
+  /// Anzeigename einer Gruppe des aktiven Stamms, z. B. für geteilte Werte.
+  String? gruppenName(int gruppenId) =>
+      _readModel?.findeGruppe(gruppenId)?.anzeigename;
   BundesstatistikFehlerArt? get letzterFehler => _letzterFehler;
 
   /// Zuletzt fuer den aktuellen Stamm gesendeter Snapshot (Transparenz).
   StammesSnapshot? get zuletztGesendeterSnapshot {
-    final json = _teilnahme.zuletztGesendeterSnapshotJson;
     final stammId = _hierarchie?.stammId;
+    final json = stammId == null
+        ? null
+        : _teilnahme.sendestaende[stammId]?.snapshotJson;
     if (json == null || stammId == null) {
       return null;
     }
@@ -128,6 +152,16 @@ class BundesstatistikModel extends ChangeNotifier {
     if (!_featureEnabled) {
       return BundesstatistikStatus.nichtVerfuegbar;
     }
+    // Die Einwilligung gilt je Stamm, deshalb zuerst den Stamm kennen.
+    final readModel = _readModel;
+    if (readModel == null ||
+        !readModel.rolesSindGeladen ||
+        _abdeckung == null) {
+      return BundesstatistikStatus.wartetAufDaten;
+    }
+    if (_hierarchie == null) {
+      return BundesstatistikStatus.keinStamm;
+    }
     if (!hatEinwilligung) {
       return BundesstatistikStatus.keineEinwilligung;
     }
@@ -136,13 +170,6 @@ class BundesstatistikModel extends ChangeNotifier {
       return aggregat.status == BundesaggregatStatus.ok
           ? BundesstatistikStatus.bereit
           : BundesstatistikStatus.zuWenigTeilnahme;
-    }
-    final readModel = _readModel;
-    if (readModel == null || !readModel.rolesSindGeladen) {
-      return BundesstatistikStatus.wartetAufDaten;
-    }
-    if (_hierarchie == null) {
-      return BundesstatistikStatus.keinStamm;
     }
     if (!(_eigeneKennzahlen?.istPlausibel ?? false)) {
       return BundesstatistikStatus.keineKennzahlen;
@@ -172,13 +199,15 @@ class BundesstatistikModel extends ChangeNotifier {
     required String? personId,
     required ArbeitskontextReadModel? readModel,
     required DateTime? datenstand,
+    required StatistikAbdeckung? abdeckung,
   }) async {
     if (!_featureEnabled) {
       return;
     }
     if (personId == _personId &&
         identical(readModel, _readModel) &&
-        datenstand == _datenstand) {
+        datenstand == _datenstand &&
+        abdeckung == _abdeckung) {
       return;
     }
 
@@ -190,21 +219,24 @@ class BundesstatistikModel extends ChangeNotifier {
     }
     _personId = personId;
     _readModel = readModel;
+    _abdeckung = abdeckung;
     _datenstand = datenstand;
     _berechneEigeneKennzahlen();
     notifyListeners();
     await _synchronisiere();
   }
 
+  /// Erteilt oder widerruft die Einwilligung fuer den aktiven Stamm.
   Future<void> setzeEinwilligung(bool erteilt) async {
     final personId = _personId;
-    if (!_featureEnabled || personId == null) {
+    final stammId = _hierarchie?.stammId;
+    if (!_featureEnabled || personId == null || stammId == null) {
       return;
     }
 
     _teilnahme = erteilt
-        ? _teilnahme.mitEinwilligung(personId, _now())
-        : _teilnahme.ohneEinwilligung();
+        ? _teilnahme.mitEinwilligung(personId, stammId, _now())
+        : _teilnahme.ohneEinwilligung(stammId);
     if (!erteilt) {
       _aggregat = null;
       _aggregatGeladenAm = null;
@@ -229,7 +261,8 @@ class BundesstatistikModel extends ChangeNotifier {
 
   void _berechneEigeneKennzahlen() {
     final readModel = _readModel;
-    if (readModel == null || !readModel.rolesSindGeladen) {
+    final abdeckung = _abdeckung;
+    if (readModel == null || !readModel.rolesSindGeladen || abdeckung == null) {
       _hierarchie = null;
       _eigeneKennzahlen = null;
       return;
@@ -237,7 +270,7 @@ class BundesstatistikModel extends ChangeNotifier {
     _hierarchie = _ermittleHierarchie(readModel);
     _eigeneKennzahlen = _hierarchie == null
         ? null
-        : _baueKennzahlen(readModel, stichtag: _now());
+        : _baueKennzahlen(readModel, stichtag: _now(), abdeckung: abdeckung);
   }
 
   Future<void> _synchronisiere({bool aggregatErzwingen = false}) async {
@@ -323,11 +356,11 @@ class BundesstatistikModel extends ChangeNotifier {
     }
 
     final now = _now();
-    final zuletzt = _teilnahme.zuletztGesendetAm;
+    final zuletzt = _teilnahme.sendestaende[hierarchie.stammId]?.am;
     final faellig =
         zuletzt == null ||
         now.difference(zuletzt) >= _sendInterval ||
-        _teilnahme.zuletztGesendeterStammId != hierarchie.stammId;
+        _zuletztGesendeteAbdeckung(hierarchie.stammId) != kennzahlen.abdeckung;
     if (!faellig) {
       return;
     }
@@ -356,6 +389,22 @@ class BundesstatistikModel extends ChangeNotifier {
     // Nach neuem Beitrag das Aggregat frisch laden.
     _aggregatGeladenAm = null;
     await _log('Stammes-Snapshot fuer die bundesweite Statistik gesendet');
+  }
+
+  /// Abdeckung des zuletzt gesendeten Snapshots; aendern sich die Rechte,
+  /// wird sofort neu gesendet.
+  StatistikAbdeckung? _zuletztGesendeteAbdeckung(String stammId) {
+    final json = _teilnahme.sendestaende[stammId]?.snapshotJson;
+    if (json == null) {
+      return null;
+    }
+    try {
+      return StammesSnapshot.fromJson(
+        jsonDecode(json) as Map<String, dynamic>,
+      ).kennzahlen.abdeckung;
+    } catch (_) {
+      return null;
+    }
   }
 
   bool _aggregatFaellig() {
