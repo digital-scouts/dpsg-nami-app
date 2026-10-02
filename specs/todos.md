@@ -78,9 +78,7 @@ Gesammelt am 2026-10-01, jeweils mit Kurzbefund. Jede Stufe wird vor der Umsetzu
 **Qualifikationen: Erinnerungen**
 
 - `/api/qualifications` ist angebunden und offline verfügbar (Mitgliedsdetails, siehe `specs/mitgliedsdetails-redesign.md`).
-- Offen:
-  - Übersicht „läuft bald ab“ über alle Qualifikationen, nicht nur das EFZ
-  - Erinnerung über `internal.data.expiry_soon` (`specs/pull-notifications.md`)
+- In Arbeit: konfigurierbare Übersicht über alle Qualifikationen mit Erinnerungen, siehe `specs/qualifikationen-uebersicht.md` (Branch `feature/qualifikationen-uebersicht`).
 - Die DPSG-API erlaubt auch POST auf `qualifications`.
 
 **Mitgliedsdetails: offene Punkte**
