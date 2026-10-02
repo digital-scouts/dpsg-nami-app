@@ -670,6 +670,8 @@ void main() {
           label: 'Mitglied',
           startOn: DateTime(2020, 1, 1),
           endOn: DateTime(2021, 1, 1),
+          groupName: 'Woelflinge',
+          layerName: 'Stamm Musterdorf',
         ),
         Role(
           id: 702,
@@ -678,6 +680,8 @@ void main() {
           type: 'Group::Leiter',
           label: 'Leitung Stamm',
           startOn: DateTime(2021, 2, 1),
+          groupName: 'Stamm Musterdorf',
+          layerName: 'Stamm Musterdorf',
         ),
       ]);
     },
@@ -716,6 +720,15 @@ void main() {
             roleType: 'Group::Leiter',
             roleLabel: 'Leitung',
           ),
+          HitobitoPersonRoleResource(
+            id: 702,
+            personId: 1,
+            groupId: 90,
+            roleType: 'Group::Bezirk::Mitarbeiter',
+            roleLabel: 'AK Mitarbeiter*in',
+            groupName: 'AK Woelflingsstufe',
+            layerName: 'Bezirk Rheinauen',
+          ),
         ],
       ),
       localRepository: _FakeArbeitskontextLocalRepository(),
@@ -740,6 +753,19 @@ void main() {
         type: 'Group::Leiter',
         label: 'Leitung',
         startOn: readModel.findeMitglied('1001')?.eintrittsdatum,
+        groupName: 'Stamm Musterdorf',
+        layerName: 'Stamm Musterdorf',
+      ),
+      // Rolle ausserhalb des aktiven Layers behaelt Gruppe und Layer aus der API.
+      Role(
+        id: 702,
+        personId: 1,
+        groupId: 90,
+        type: 'Group::Bezirk::Mitarbeiter',
+        label: 'AK Mitarbeiter*in',
+        startOn: readModel.findeMitglied('1001')?.eintrittsdatum,
+        groupName: 'AK Woelflingsstufe',
+        layerName: 'Bezirk Rheinauen',
       ),
     ]);
   });

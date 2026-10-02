@@ -13,6 +13,8 @@ class HitobitoPersonRoleResource {
     this.roleType,
     this.roleName,
     this.roleLabel,
+    this.groupName,
+    this.layerName,
   }) : assert(id > 0),
        assert(groupId > 0);
 
@@ -26,6 +28,8 @@ class HitobitoPersonRoleResource {
   final String? roleType;
   final String? roleName;
   final String? roleLabel;
+  final String? groupName;
+  final String? layerName;
 
   String? get resolvedRoleLabel {
     final trimmedRoleName = roleName?.trim();
@@ -82,11 +86,7 @@ class HitobitoPersonResource {
     this.gender,
     this.pronoun,
     this.picture,
-    this.bankAccountOwner,
-    this.iban,
-    this.bic,
-    this.bankName,
-    this.paymentMethod,
+    this.householdKey,
     this.telefonnummern = const <MitgliedKontaktTelefon>[],
     this.emailAdressen = const <MitgliedKontaktEmail>[],
     this.adressen = const <MitgliedKontaktAdresse>[],
@@ -106,11 +106,7 @@ class HitobitoPersonResource {
   final String? gender;
   final String? pronoun;
   final String? picture;
-  final String? bankAccountOwner;
-  final String? iban;
-  final String? bic;
-  final String? bankName;
-  final String? paymentMethod;
+  final String? householdKey;
   final List<MitgliedKontaktTelefon> telefonnummern;
   final List<MitgliedKontaktEmail> emailAdressen;
   final List<MitgliedKontaktAdresse> adressen;
@@ -146,11 +142,7 @@ class HitobitoPersonResource {
       emailAdressen: emailAdressen,
       adressen: adressen,
       pronoun: pronoun,
-      bankAccountOwner: bankAccountOwner,
-      iban: iban,
-      bic: bic,
-      bankName: bankName,
-      paymentMethod: paymentMethod,
+      householdKey: householdKey,
     );
   }
 

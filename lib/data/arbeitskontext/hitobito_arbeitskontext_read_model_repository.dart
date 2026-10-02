@@ -242,8 +242,9 @@ class HitobitoArbeitskontextReadModelRepository
         if (mitglied.personId != null && mitglied.personId! > 0)
           mitglied.personId!: mitglied,
     };
+    final aktiverLayer = arbeitskontext.aktiverLayer;
     final gruppenNamenById = <int, String>{
-      arbeitskontext.aktiverLayer.id: arbeitskontext.aktiverLayer.name,
+      aktiverLayer.id: aktiverLayer.name,
       for (final gruppe in gruppen) gruppe.id: gruppe.name,
     };
     final rolesByMitgliedsnummer = <String, List<Role>>{};
@@ -266,6 +267,9 @@ class HitobitoArbeitskontextReadModelRepository
               role: role,
               mitglied: mitglied,
               gruppenName: gruppenNamenById[role.groupId],
+              aktiverLayerName: gruppenNamenById.containsKey(role.groupId)
+                  ? aktiverLayer.name
+                  : null,
             ),
           );
     }
@@ -534,6 +538,7 @@ class HitobitoArbeitskontextReadModelRepository
     required HitobitoPersonRoleResource role,
     required Mitglied mitglied,
     required String? gruppenName,
+    String? aktiverLayerName,
   }) {
     return Role(
       id: role.id,
@@ -546,6 +551,8 @@ class HitobitoArbeitskontextReadModelRepository
       groupId: role.groupId,
       type: role.roleType,
       label: role.roleLabel ?? role.resolvedRoleLabel ?? gruppenName,
+      groupName: role.groupName ?? gruppenName,
+      layerName: role.layerName ?? aktiverLayerName,
     );
   }
 }

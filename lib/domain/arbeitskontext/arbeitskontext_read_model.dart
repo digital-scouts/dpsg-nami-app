@@ -262,6 +262,22 @@ class ArbeitskontextReadModel {
     return null;
   }
 
+  /// Sichtbare Mitglieder im selben Hitobito-Haushalt, ohne [mitglied]
+  /// selbst. Personen ausserhalb der Sicht sind nicht enthalten.
+  List<Mitglied> findeHaushalt(Mitglied mitglied) {
+    final schluessel = mitglied.householdKey;
+    if (schluessel == null) {
+      return const <Mitglied>[];
+    }
+    return mitglieder
+        .where(
+          (andere) =>
+              andere.householdKey == schluessel &&
+              andere.mitgliedsnummer != mitglied.mitgliedsnummer,
+        )
+        .toList(growable: false);
+  }
+
   ArbeitskontextGruppe? findeGruppe(int gruppenId) {
     for (final gruppe in gruppen) {
       if (gruppe.id == gruppenId) {
