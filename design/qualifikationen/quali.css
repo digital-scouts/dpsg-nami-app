@@ -178,3 +178,10 @@
 .q-leer b { color:var(--fg); font-size:17px; }
 .q-leer span { font-size:13.5px; }
 .q-teaser-box .q-btn { color:var(--on-primary); }
+
+/* ---------- Runde 2 ---------- */
+.q-wahl.aus2 { opacity:.75; }
+.q-wahl .q-sw { margin-left:6px; }
+.q-chev { color:var(--muted); display:flex; margin-left:2px; }
+.q-dbg-t { font-size:15px; font-weight:600; padding-top:8px; }
+.q-dbg-s { font-size:12px; color:var(--muted); padding-bottom:4px; }
