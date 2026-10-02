@@ -166,20 +166,11 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
   }) {
     final showsStaleDataWarning =
         showStatusBanners && arbeitskontextModel.hasStaleDataWarning;
-    // arbeitskontext == null ausgeschlossen: in dem Fall zeigt bereits der
-    // Vollbild-Platzhalter (_buildPlaceholder) dieselbe Checkliste zentriert
-    // an - hier wuerde sie sonst doppelt erscheinen. Sobald der Arbeitskontext
-    // gesetzt ist, deckt isSynchronizing/isLoadingRoles sowohl den initialen
-    // Ladevorgang (ohne Luecke waehrend "Mitglieder laden") als auch spaetere
-    // Syncs (Pull-to-refresh, Debug-Tools) ab.
-    final showsLoadingChecklist =
-        showStatusBanners &&
-        !showsStaleDataWarning &&
-        arbeitskontextModel.arbeitskontext != null &&
-        (arbeitskontextModel.isSynchronizing ||
-            arbeitskontextModel.isLoadingRoles);
-    final showsTopBanner = showsStaleDataWarning || showsLoadingChecklist;
-    // Die Header-Flaeche der Seite laeuft bis hinter Safe Area und Lade-Info;
+    // Laufende Syncs zeigt nur der globale Ladebalken (GlobalLoadingTopBar);
+    // die Schritt-Checkliste erscheint ausschliesslich im Vollbild-Platzhalter
+    // beim allerersten Laden (_buildPlaceholder).
+    final showsTopBanner = showsStaleDataWarning;
+    // Die Header-Flaeche der Seite laeuft bis hinter Safe Area und Banner;
     // die Unterkante meldet der AppPageHeader der jeweiligen Seite.
     final backdropBackground = context.watch<AppearanceModel?>()?.background;
     return SupporterBackdrop(
@@ -209,27 +200,6 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
                 onRetry: () => arbeitskontextModel.refreshFromRemote(
                   session: authModel.session,
                   profile: authModel.profile,
-                ),
-              ),
-            ),
-          if (showsLoadingChecklist)
-            SafeArea(
-              bottom: false,
-              top: urgentNotification == null,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                color: backdropBackground == null
-                    ? Theme.of(context).colorScheme.surfaceContainerHigh
-                    : Theme.of(
-                        context,
-                      ).colorScheme.surface.withValues(alpha: 0.6),
-                child: _ArbeitskontextLoadingChecklist(
-                  steps: arbeitskontextModel.loadingSteps,
-                  dense: true,
                 ),
               ),
             ),
@@ -580,13 +550,9 @@ class _StaleDataWarningBanner extends StatelessWidget {
 }
 
 class _ArbeitskontextLoadingChecklist extends StatelessWidget {
-  const _ArbeitskontextLoadingChecklist({
-    required this.steps,
-    this.dense = false,
-  });
+  const _ArbeitskontextLoadingChecklist({required this.steps});
 
   final List<ArbeitskontextLoadingStepStatus> steps;
-  final bool dense;
 
   @override
   Widget build(BuildContext context) {
@@ -596,8 +562,8 @@ class _ArbeitskontextLoadingChecklist extends StatelessWidget {
       children: [
         for (final step in steps)
           Padding(
-            padding: EdgeInsets.symmetric(vertical: dense ? 2 : 4),
-            child: _ArbeitskontextLoadingStepRow(step: step, dense: dense),
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: _ArbeitskontextLoadingStepRow(step: step),
           ),
       ],
     );
@@ -605,19 +571,15 @@ class _ArbeitskontextLoadingChecklist extends StatelessWidget {
 }
 
 class _ArbeitskontextLoadingStepRow extends StatelessWidget {
-  const _ArbeitskontextLoadingStepRow({
-    required this.step,
-    required this.dense,
-  });
+  const _ArbeitskontextLoadingStepRow({required this.step});
 
   final ArbeitskontextLoadingStepStatus step;
-  final bool dense;
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final iconSize = dense ? 16.0 : 20.0;
+    const iconSize = 20.0;
     // "Wartet" wird bewusst nicht mit theme.colorScheme.outline eingefaerbt:
     // dieser Farbton ist in Material 3 fuer Raender/Trenner gedacht und in
     // beiden Themes zu kontrastarm fuer Text/Icons.
@@ -639,12 +601,10 @@ class _ArbeitskontextLoadingStepRow extends StatelessWidget {
       ),
     };
     final hasDetail = step.detailKey != null;
-    final textStyle = dense
-        ? theme.textTheme.bodySmall
-        : theme.textTheme.bodyMedium;
+    final textStyle = theme.textTheme.bodyMedium;
     final dimmed = step.state == ArbeitskontextLoadingStepState.waiting;
     return Padding(
-      padding: EdgeInsets.only(left: step.indent ? (dense ? 20 : 28) : 0),
+      padding: EdgeInsets.only(left: step.indent ? 28 : 0),
       child: Row(
         children: [
           icon,
