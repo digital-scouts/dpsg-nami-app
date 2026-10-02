@@ -760,6 +760,7 @@ class AppLocalizations {
       'quali_efz_abgelaufen_am': 'Abgelaufen am {datum}',
       'quali_efz_noch': 'noch {dauer}',
       'quali_nicht_synchronisiert': 'Noch nicht synchronisiert',
+      'quali_nicht_geladen': 'Nicht geladen',
       'quali_nicht_synchronisiert_text': 'Wird beim nächsten Abgleich geladen',
       'quali_keine_berechtigung': 'Keine Berechtigung',
       'quali_efz_keine_berechtigung_text':
@@ -901,6 +902,10 @@ class AppLocalizations {
       'nav_work_context_step_veranstaltungen': 'Veranstaltungen',
       'nav_work_context_step_groups_done': '{count} Gruppen gefunden',
       'nav_work_context_step_members_done': '{count} Mitglieder geladen',
+      'nav_work_context_step_qualifikationen_done': '{count} Einträge',
+      'nav_work_context_step_qualifikationen_no_permission':
+          'keine Berechtigung',
+      'nav_work_context_step_qualifikationen_failed': 'nicht geladen',
       'nav_work_context_step_members_loading_count': '{count} geladen…',
       'nav_work_context_step_state_waiting': 'Wartet',
       'nav_work_context_step_state_loading': 'Lädt…',
@@ -1825,6 +1830,7 @@ class AppLocalizations {
       'quali_efz_abgelaufen_am': 'Expired on {datum}',
       'quali_efz_noch': '{dauer} left',
       'quali_nicht_synchronisiert': 'Not synchronized yet',
+      'quali_nicht_geladen': 'Not loaded',
       'quali_nicht_synchronisiert_text': 'Loaded with the next sync',
       'quali_keine_berechtigung': 'No permission',
       'quali_efz_keine_berechtigung_text':
@@ -1963,6 +1969,9 @@ class AppLocalizations {
       'nav_work_context_step_veranstaltungen': 'Events',
       'nav_work_context_step_groups_done': '{count} groups found',
       'nav_work_context_step_members_done': '{count} members loaded',
+      'nav_work_context_step_qualifikationen_done': '{count} entries',
+      'nav_work_context_step_qualifikationen_no_permission': 'no permission',
+      'nav_work_context_step_qualifikationen_failed': 'not loaded',
       'nav_work_context_step_members_loading_count': '{count} loaded…',
       'nav_work_context_step_state_waiting': 'Waiting',
       'nav_work_context_step_state_loading': 'Loading…',

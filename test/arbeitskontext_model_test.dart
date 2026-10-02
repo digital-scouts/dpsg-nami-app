@@ -6,6 +6,8 @@ import 'package:nami/data/arbeitskontext/hitobito_group_resource.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext_local_repository.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model.dart';
+import 'package:nami/domain/arbeitskontext/teildaten_stand.dart';
+import 'package:nami/domain/member/efz_einsichtnahme.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model_repository.dart';
 import 'package:nami/domain/arbeitskontext/usecases/bestimme_startkontext_usecase.dart';
 import 'package:nami/domain/auth/auth_profile.dart';
@@ -447,9 +449,8 @@ void main() {
 
     // Erste Benachrichtigung: nur "Login" laeuft. "Rollen" laedt erst ab der
     // Mitglieder-Phase parallel mit (siehe refresh()) und wartet bis dahin
-    // ebenfalls, genau wie Gruppen/Mitglieder. Die letzten beiden Eintraege
-    // (Qualifikationen/Veranstaltungen) sind reine Platzhalter-Zeilen ohne
-    // eigene Lade-Logik und bleiben dauerhaft "waiting".
+    // ebenfalls, genau wie Gruppen/Mitglieder. Qualifikationen warten ebenso;
+    // Veranstaltungen ist eine reine Platzhalter-Zeile.
     expect(observedStates.first, <ArbeitskontextLoadingStepState>[
       ArbeitskontextLoadingStepState.loading,
       ArbeitskontextLoadingStepState.waiting,
@@ -459,8 +460,9 @@ void main() {
       ArbeitskontextLoadingStepState.waiting,
     ]);
 
-    // Nach Abschluss (inkl. Rollen im Hintergrund): die vier echten Schritte
-    // sind fertig, die beiden Platzhalter-Zeilen bleiben "waiting".
+    // Nach Abschluss (inkl. Rollen im Hintergrund): die vier ersten Schritte
+    // sind fertig. Der Fake liefert keinen EFZ-/Qualifikationsstand, daher
+    // bleibt diese Zeile "waiting" mit Hinweis; Veranstaltungen ist Platzhalter.
     final finalSteps = model.loadingSteps;
     expect(
       finalSteps.take(4).map((step) => step.state),
@@ -471,6 +473,84 @@ void main() {
     expect(finalSteps[1].detailCount, 1);
     expect(finalSteps[2].detailCount, 0);
     expect(model.isInitialSequenceActive, isFalse);
+  });
+
+  test('zeigt Qualifikationen nach dem Sync mit gespeichertem Stand', () async {
+    ArbeitskontextModel modelMit(
+      ArbeitskontextReadModel ergebnis,
+    ) => ArbeitskontextModel(
+      localRepository: _FakeArbeitskontextLocalRepository(),
+      readModelRepository: _FakeArbeitskontextReadModelRepository(
+        refreshResultsByLayer: <int, ArbeitskontextReadModel>{33: ergebnis},
+        loadRolesResultsByLayer: <int, ArbeitskontextReadModel>{33: ergebnis},
+      ),
+      groupsService: _FakeHitobitoGroupsService(
+        groups: const <HitobitoGroupResource>[
+          HitobitoGroupResource(id: 33, name: 'Stamm Feldberg', isLayer: true),
+        ],
+      ),
+      bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+      logger: _FakeLoggerService(),
+    );
+    Future<ArbeitskontextLoadingStepStatus> schrittNachSync(
+      ArbeitskontextReadModel ergebnis,
+    ) async {
+      final model = modelMit(ergebnis);
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: AuthSession(
+          accessToken: 'token-33',
+          receivedAt: DateTime(2026, 3, 31),
+        ),
+        profile: const AuthProfile(
+          namiId: 33,
+          primaryGroupId: 33,
+          roles: <AuthProfileRole>[
+            AuthProfileRole(
+              groupId: 33,
+              groupName: 'Stamm Feldberg',
+              roleName: 'Leitung',
+              roleClass: 'Group::Stamm::Leitung',
+              permissions: <String>['layer_read'],
+            ),
+          ],
+        ),
+      );
+      await _waitForBackgroundWork();
+      return model.loadingSteps[4];
+    }
+
+    final kontext = Arbeitskontext(
+      aktiverLayer: const ArbeitskontextLayer(id: 33, name: 'Stamm Feldberg'),
+    );
+    final geladen = await schrittNachSync(
+      ArbeitskontextReadModel(
+        arbeitskontext: kontext,
+        rolesSindGeladen: true,
+        efzStand: TeildatenStand.geladen,
+        efzEinsichtnahmen: <EfzEinsichtnahme>[
+          EfzEinsichtnahme(id: 1, personId: 5, issuedOn: DateTime(2024)),
+        ],
+        qualifikationenStand: TeildatenStand.geladen,
+      ),
+    );
+    expect(geladen.state, ArbeitskontextLoadingStepState.done);
+    expect(geladen.detailKey, 'nav_work_context_step_qualifikationen_done');
+    expect(geladen.detailCount, 1);
+
+    final ohneRecht = await schrittNachSync(
+      ArbeitskontextReadModel(
+        arbeitskontext: kontext,
+        rolesSindGeladen: true,
+        efzStand: TeildatenStand.keineBerechtigung,
+        qualifikationenStand: TeildatenStand.keineBerechtigung,
+      ),
+    );
+    expect(ohneRecht.state, ArbeitskontextLoadingStepState.done);
+    expect(
+      ohneRecht.detailKey,
+      'nav_work_context_step_qualifikationen_no_permission',
+    );
   });
 
   test('zeigt keinen Vollbild-Fehler, wenn der allererste Ladevorgang ueber '

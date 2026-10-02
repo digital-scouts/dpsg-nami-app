@@ -124,7 +124,7 @@ class _MemberQualifikationenTabState extends State<MemberQualifikationenTab> {
       ),
       TeildatenStand.fehlgeschlagen => (
         _Ton.leise,
-        t.t('quali_nicht_synchronisiert'),
+        t.t('quali_nicht_geladen'),
         t.t('quali_fehlgeschlagen'),
         true,
       ),
@@ -193,8 +193,8 @@ class _MemberQualifikationenTabState extends State<MemberQualifikationenTab> {
 
   List<Widget> _qualifikationsZeilen(BuildContext context, AppLocalizations t) {
     final hinweis = switch (widget.qualifikationenStand) {
-      TeildatenStand.unbekannt ||
-      TeildatenStand.fehlgeschlagen => t.t('quali_nicht_synchronisiert'),
+      TeildatenStand.unbekannt => t.t('quali_nicht_synchronisiert'),
+      TeildatenStand.fehlgeschlagen => t.t('quali_fehlgeschlagen'),
       TeildatenStand.keineBerechtigung => t.t('quali_keine_berechtigung'),
       TeildatenStand.geladen =>
         widget.qualifikationen.isEmpty ? t.t('quali_keine') : null,

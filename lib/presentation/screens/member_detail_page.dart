@@ -316,12 +316,18 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
     final beitragsart = mitgliedsBeitragsarten[currentMitglied.mitgliedsnummer];
     final haushalt = readModel?.findeHaushalt(currentMitglied) ?? const [];
     final t = AppLocalizations.of(context);
+    // AppBar, Steckbrief und Tabs bilden eine gemeinsame Kopfflaeche.
+    final kopfFarbe = Theme.of(context).colorScheme.surface;
 
     return DefaultTabController(
       length: 3,
       child: Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
+          backgroundColor: kopfFarbe,
+          surfaceTintColor: Colors.transparent,
+          scrolledUnderElevation: 0,
+          notificationPredicate: (_) => false,
           leading: IconButton(
             tooltip: MaterialLocalizations.of(context).backButtonTooltip,
             onPressed: () => Navigator.of(context).maybePop(),
@@ -342,17 +348,24 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
         ),
         body: Column(
           children: [
-            MemberSteckbriefKopf(
-              mitglied: currentMitglied,
-              heute: heute,
-              supporterBadge: _ownBadge(context, currentMitglied),
-            ),
-            TabBar(
-              tabs: [
-                Tab(text: t.t('member_detail_tab_daten')),
-                Tab(text: t.t('member_detail_tab_rollen')),
-                Tab(text: t.t('member_detail_tab_qualifikationen')),
-              ],
+            Material(
+              color: kopfFarbe,
+              child: Column(
+                children: [
+                  MemberSteckbriefKopf(
+                    mitglied: currentMitglied,
+                    heute: heute,
+                    supporterBadge: _ownBadge(context, currentMitglied),
+                  ),
+                  TabBar(
+                    tabs: [
+                      Tab(text: t.t('member_detail_tab_daten')),
+                      Tab(text: t.t('member_detail_tab_rollen')),
+                      Tab(text: t.t('member_detail_tab_qualifikationen')),
+                    ],
+                  ),
+                ],
+              ),
             ),
             if (hasPending)
               MaterialBanner(
