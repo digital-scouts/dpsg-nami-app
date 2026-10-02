@@ -241,7 +241,10 @@ Dieses Dokument beschreibt weiterhin primär das technische Hitobito-Datenmodell
 
 - Das aktuelle Legacy-Modell mit festen Slots wie `telefon1`, `telefon2`, `telefon3`, `email1` und `email2` soll nicht weiter Zielstruktur bleiben.
 - Für die App ist stattdessen ein Hitobito-nahes Personenmodell mit strukturierten Listen für E-Mails, Telefonnummern und Adressen vorgesehen.
-- Relevante optionale Personenfelder aus der DPSG-Erweiterung sind `pronoun`, `entry_date`, `exit_date` sowie Bankdaten (`bank_account_owner`, `iban`, `bic`, `bank_name`, `payment_method`). Diese Felder müssen optional behandelt werden, da sie in Demoantworten nicht durchgängig vorhanden sind.
+- Relevante optionale Personenfelder aus der DPSG-Erweiterung sind `pronoun`, `entry_date`, `exit_date` und `household_key`. Diese Felder müssen optional behandelt werden, da sie in Demoantworten nicht durchgängig vorhanden sind.
+- Bankdaten (`bank_account_owner`, `iban`, `bic`, `bank_name`, `payment_method`) liefert die API mit, die App übernimmt sie aber bewusst nicht und speichert sie nicht. Eine Feldliste `fields[people]`, die sie gar nicht erst lädt, folgt nach einer Prüfung gegen die Instanz, weil `membership_number` nicht in der Spec steht.
+- Qualifikationen kommen über `GET /api/qualifications?include=qualification_kind` und EFZ-Einsichtnahmen über `/api/efz_einsichtnahmen`. Beide werden beim Arbeitskontext-Sync mitgeladen und mit Ladezustand gespeichert. Ein 403 gilt als fehlende Berechtigung, nicht als Sync-Fehler.
+- Rollen werden mit `include=group,layer_group` geladen, damit auch Rollen außerhalb des aktiven Layers Gruppen- und Layernamen tragen. Lehnt die Instanz die Sideloads mit 400 ab, lädt die App ohne sie weiter.
 - Die erste Suchausbaustufe soll bewusst nur Vorname, Nachname, Nickname, ID und alle verfügbaren E-Mail-Adressen durchsuchen. Telefonnummern und Adressen gehören noch nicht zum ersten Suchumfang.
 - Tags bleiben vorerst außerhalb des Zielmodells, solange dafür kein belastbarer JSON:API-Pfad bestätigt ist.
 - Historische Rollen sollen später nicht aus dem reduzierten People-Schnitt abgeleitet werden, sondern über den dedizierten Roles-Endpoint mit Filtern wie `active`, `start_on` und `end_on`.

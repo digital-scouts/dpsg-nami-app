@@ -191,8 +191,11 @@ Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den
 
 - Mitglieder und deren Details auflisten, sortieren und filtern
   - Stufenfilter und benutzerdefinierte Filtergruppen auf Basis von Gruppen- und Rollenzuordnungen verwenden.
-  - Adresse und Entfernung zum Stammesheim auf der Karte anzeigen.
-  - Über Grafiken und Auflistung den Tätigkeitsverlauf eines Mitglieds ansehen.
+  - Die Mitgliedsdetails zeigen im Kopf Alter, Pronomen, Geschlecht und alle aktiven Stufenrollen.
+    - **Daten:** Kacheln zum nächsten Geburtstag (heute und in den nächsten 7 Tagen hervorgehoben) und zur Mitgliedsdauer, dazu Geschwister im selben Hitobito-Haushalt. Weitere Telefonnummern, E-Mails und Zusatzadressen sind eingeklappt.
+    - **Rollen:** Pfadfinder-Verlauf mit Kennzahlen und Bahnen je Stufe. Kinder ohne Leitung sehen statt der Leitungsjahre den nächsten Stufenwechsel (jetzt, ab oder bis Jahr). Darunter ein Zeitstrahl aller Rollen, Rollen anderer Layer sind standardmäßig ausgeblendet.
+    - **Qualifikationen:** EFZ-Status als kompakte Zeile mit Download der Antragsunterlagen, darunter die Qualifikationen aus Hitobito. Beides wird beim Sync geladen und ist offline verfügbar.
+  - Adresse und Entfernung zum Stammesheim auf der Karte anzeigen; ist die Karte nicht verfügbar, erscheint eine flache Hinweisfläche mit passender Aktion.
   - Wie in den Kontakten E-Mails schreiben und einen Anruf starten
 - Mitglieder und Tätigkeiten bearbeiten, erstellen und löschen/Mitgliedschaft beenden
 - Mitgliedsdaten sind nach erstem erfolgreichem Hitobito-Login und initialem Laden offline verfügbar; Aktualisierungen werden im konfigurierten Hitobito-Refresh-Intervall versucht
@@ -213,7 +216,7 @@ Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den
 - Empfehlung für den nächsten Stufenwechsel eines Mitglieds.
   - Die gewünschte Altersgrenzen der Stufen können angepasst werden.
   - Stufenwechsel durchführen
-- Führungszeugniss Antragsunterlagen und Bescheinigungen herrunterladen
+- Führungszeugnis-Antragsunterlagen herunterladen; die Qualifikationsübersicht in den Einstellungen nutzt den beim Sync gespeicherten EFZ-Stand
 - Unter Einstellungen → Erscheinungsbild lassen sich Hell/Dunkel, eine Farbpalette, ein alternatives App-Icon (Pakete mit Morgen, Abend und Nacht; unter iOS zusätzlich „Automatisch“ passend zum Hell/Dunkel-Modus), ein animierter Hintergrund für die Kopfbereiche von Mitgliederliste, Statistik, Stufenwechsel und Einstellungen und ein Supporter-Badge wählen. Das Badge erscheint im eigenen Profil und beim eigenen Eintrag in der Mitgliederliste. Aktuell sind alle Optionen frei nutzbar; die Quellen der Designs und die Export-Skripte liegen unter `design/supporter/`.
 - Das eigene Profil wird nach dem Login über Hitobito OAuth geladen und zeigt nami-id, E-Mail, bevorzugte Sprache als Sprachbadge und die zugewiesenen Rollen.
 - Wenn Hitobito später nicht erreichbar ist oder eine erneute Anmeldung für Updates erforderlich wird, bleibt der lokale Datenstand bis zum Ablauf von `HITOBITO_DATA_MAX_AGE_DAYS` nutzbar; die App zeigt dazu einen fachlichen Hinweis statt einer generischen Plattformfehlermeldung.
