@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../data/arbeitskontext/hitobito_person_resource.dart';
 import 'hitobito_api_exception.dart';
 import 'hitobito_auth_env.dart';
+import 'hitobito_pagination.dart';
 import 'hitobito_traffic_log_service.dart';
 import 'logger_service.dart';
 
@@ -31,8 +32,11 @@ class HitobitoRolesService {
     config = nextConfig;
   }
 
+  /// [filter] wird als zusaetzliche Query-Parameter auf jede Seite gesetzt,
+  /// z.B. `{'filter[group_id]': '11,12'}`.
   Future<List<HitobitoPersonRoleResource>> fetchRoleResources(
     String accessToken, {
+    Map<String, String> filter = const <String, String>{},
     void Function(List<HitobitoPersonRoleResource> loadedSoFar)? onPageLoaded,
   }) async {
     final requestUri = config.rolesUri;
@@ -47,9 +51,9 @@ class HitobitoRolesService {
     var mitGruppen = true;
 
     while (nextUri != null) {
-      var effectiveRequestUri = _decorateRolesRequestUri(
-        nextUri,
-        mitGruppen: mitGruppen,
+      var effectiveRequestUri = withHitobitoListFilter(
+        _decorateRolesRequestUri(nextUri, mitGruppen: mitGruppen),
+        filter,
       );
       Map<String, dynamic> decoded;
       try {
@@ -64,9 +68,9 @@ class HitobitoRolesService {
           rethrow;
         }
         mitGruppen = false;
-        effectiveRequestUri = _decorateRolesRequestUri(
-          nextUri,
-          mitGruppen: false,
+        effectiveRequestUri = withHitobitoListFilter(
+          _decorateRolesRequestUri(nextUri, mitGruppen: false),
+          filter,
         );
         decoded = await _fetchRolesPage(
           requestUri: effectiveRequestUri,
@@ -108,7 +112,9 @@ class HitobitoRolesService {
     // Hitobito erwartet fuer filter[active][eq] ein Datum als Stichtag.
     // Solange die API keinen verlaesslichen Modus fuer historische oder
     // inaktive Rollen anbietet, setzen wir hier bewusst keinen Active-Filter.
-    return uri.replace(queryParameters: queryParameters);
+    return withHitobitoListPaging(
+      uri.replace(queryParameters: queryParameters),
+    );
   }
 
   Future<Map<String, dynamic>> _fetchRolesPage({

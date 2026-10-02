@@ -157,11 +157,20 @@ void main() {
       httpClient: client,
     );
 
-    final roles = await service.fetchRoleResources('token-123');
+    final roles = await service.fetchRoleResources(
+      'token-123',
+      filter: const <String, String>{'filter[person_id]': '23'},
+    );
 
     expect(roles, hasLength(2));
     expect(requestedUris, hasLength(2));
+    expect(requestedUris.first.queryParameters['filter[person_id]'], '23');
+    expect(requestedUris.last.queryParameters['filter[person_id]'], '23');
+    expect(requestedUris.first.queryParameters['page[size]'], '1000');
     expect(requestedUris.last.queryParameters['page[number]'], '2');
+    expect(requestedUris.last.queryParameters['page[size]'], '1000');
+    expect(requestedUris.first.queryParameters['sort'], 'id');
+    expect(requestedUris.last.queryParameters['sort'], 'id');
     expect(
       requestedUris.last.queryParameters['fields[roles]'],
       'created_at,updated_at,start_on,end_on,name,person_id,group_id,type,label',

@@ -86,6 +86,43 @@ void main() {
     await tempDir.delete(recursive: true);
   });
 
+  test('raeumt bei parallelen Schreibvorgaengen ohne Fehler auf', () async {
+    final tempDir = await Directory.systemTemp.createTemp(
+      'hitobito_traffic_log_service_parallel_test',
+    );
+
+    var tick = 0;
+    final service = HitobitoTrafficLogService(
+      logsDirectoryProvider: () async => tempDir,
+      nowProvider: () {
+        tick += 1;
+        return DateTime(2026, 6, 3, 10, 0, 0, tick);
+      },
+    );
+
+    final uri = Uri.parse('https://example.org/api/people');
+    Future<void> schreibe(int index) => service.logResponse(
+      source: 'people',
+      method: 'GET',
+      uri: uri,
+      statusCode: 200,
+      body: '{"index":$index}',
+    );
+
+    // Wie beim Sync: viele Requests loggen gleichzeitig und loesen jeweils
+    // ein Aufraeumen aus. Vorher loeschten zwei Durchlaeufe dieselbe Datei
+    // und der zweite warf PathNotFoundException in den Request hinein.
+    await Future.wait(<Future<void>>[
+      for (var index = 0; index < 130; index++) schreibe(index),
+    ]);
+    await schreibe(130);
+
+    final files = await service.listLogFiles();
+    expect(files.length, HitobitoTrafficLogService.maxFiles);
+
+    await tempDir.delete(recursive: true);
+  });
+
   test('deletes files older than one day', () async {
     final tempDir = await Directory.systemTemp.createTemp(
       'hitobito_traffic_log_service_age_test',

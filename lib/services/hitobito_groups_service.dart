@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../data/arbeitskontext/hitobito_group_resource.dart';
 import 'hitobito_api_exception.dart';
 import 'hitobito_auth_env.dart';
+import 'hitobito_pagination.dart';
 import 'hitobito_traffic_log_service.dart';
 import 'logger_service.dart';
 
@@ -64,8 +65,9 @@ class HitobitoGroupsService {
     Uri? nextUri = requestUri;
 
     while (nextUri != null) {
+      final effectiveRequestUri = withHitobitoListPaging(nextUri);
       final decoded = await _fetchGroupsPage(
-        requestUri: nextUri,
+        requestUri: effectiveRequestUri,
         accessToken: accessToken,
       );
       final data = decoded['data'];
@@ -76,7 +78,7 @@ class HitobitoGroupsService {
       }
 
       resources.addAll(data.whereType<Map<String, dynamic>>().map(_mapGroup));
-      nextUri = _resolveNextUri(decoded, currentUri: nextUri);
+      nextUri = _resolveNextUri(decoded, currentUri: effectiveRequestUri);
     }
 
     return resources;
