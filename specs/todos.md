@@ -78,7 +78,11 @@ Gesammelt am 2026-10-01, jeweils mit Kurzbefund. Jede Stufe wird vor der Umsetzu
 **Qualifikationen: Erinnerungen**
 
 - `/api/qualifications` ist angebunden und offline verfügbar (Mitgliedsdetails, siehe `specs/mitgliedsdetails-redesign.md`).
-- In Arbeit: konfigurierbare Übersicht über alle Qualifikationen mit Erinnerungen, siehe `specs/qualifikationen-uebersicht.md` (Branch `feature/qualifikationen-uebersicht`).
+- Umgesetzt: konfigurierbare Übersicht über alle Qualifikationen mit Erinnerungen, siehe `specs/qualifikationen-uebersicht.md`.
+- Offen:
+  - Tippen auf eine Mitteilung soll die passende Seite öffnen. Deep-Links gibt es dafür noch nicht.
+  - Die echten Labels für Prävention und Erste Hilfe auf dpsg.puzzle.ch prüfen (`QualifikationsVorgaben`).
+  - `DataExpiryNotificationService.initialize()` fragt bei jedem Start um Berechtigung, auch wenn nichts geplant wird.
 - Die DPSG-API erlaubt auch POST auf `qualifications`.
 
 **Mitgliedsdetails: offene Punkte**
