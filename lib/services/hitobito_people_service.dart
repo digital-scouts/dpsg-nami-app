@@ -906,11 +906,9 @@ class HitobitoPeopleService {
       gender: _toNullableString(attributesMap['gender']),
       pronoun: _toNullableString(attributesMap['pronoun']),
       picture: _toNullableString(attributesMap['picture']),
-      bankAccountOwner: _toNullableString(attributesMap['bank_account_owner']),
-      iban: _toNullableString(attributesMap['iban']),
-      bic: _toNullableString(attributesMap['bic']),
-      bankName: _toNullableString(attributesMap['bank_name']),
-      paymentMethod: _toNullableString(attributesMap['payment_method']),
+      // Bankdaten (bank_account_owner, iban, bic, bank_name, payment_method)
+      // werden bewusst nicht uebernommen und damit auch nicht gespeichert.
+      householdKey: _toNullableString(attributesMap['household_key']),
       telefonnummern: _mapTelefonnummern(
         personId: id,
         relationshipIds: phoneNumberIds,

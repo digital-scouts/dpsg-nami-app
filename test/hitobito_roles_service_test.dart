@@ -75,7 +75,15 @@ void main() {
         isFalse,
       );
       expect(requestHeaders['Authorization'], 'Bearer token-123');
-      expect(requestHeaders['Accept'], 'application/json');
+      expect(
+        requestHeaders['Accept'],
+        'application/vnd.api+json, application/json',
+      );
+      expect(
+        requestedUris.single.queryParameters['include'],
+        'group,layer_group',
+      );
+      expect(requestedUris.single.queryParameters['fields[groups]'], 'name');
     },
   );
 
@@ -172,4 +180,84 @@ void main() {
       isFalse,
     );
   });
+
+  HitobitoRolesService serviceMit(MockClient client) => HitobitoRolesService(
+    config: HitobitoAuthConfig.fromBaseUrl(
+      clientId: 'client',
+      clientSecret: 'secret',
+      baseUrl: 'https://demo.hitobito.com',
+      redirectUri: 'de.jlange.nami.app:/oauth/callback',
+      scopeString: 'openid email',
+    ),
+    httpClient: client,
+  );
+
+  test('liest Gruppen- und Layernamen aus included', () async {
+    final client = MockClient((request) async {
+      return http.Response(
+        '''
+        {
+          "data": [
+            {
+              "id": "801",
+              "type": "roles",
+              "attributes": { "person_id": 23, "group_id": 90, "type": "Group::Bezirk::Mitarbeiter" },
+              "relationships": {
+                "group": { "data": { "id": "90", "type": "groups" } },
+                "layer_group": { "data": { "id": "9", "type": "groups" } }
+              }
+            }
+          ],
+          "included": [
+            { "id": "90", "type": "groups", "attributes": { "name": "AK Wölflingsstufe" } },
+            { "id": "9", "type": "groups", "attributes": { "name": "Bezirk Rheinauen" } }
+          ],
+          "links": { "next": null }
+        }
+        ''',
+        200,
+        headers: <String, String>{'content-type': 'application/json'},
+      );
+    });
+
+    final roles = await serviceMit(client).fetchRoleResources('token');
+
+    expect(roles.single.groupName, 'AK Wölflingsstufe');
+    expect(roles.single.layerName, 'Bezirk Rheinauen');
+  });
+
+  test(
+    'laedt ohne Gruppen-Sideloads weiter, wenn die Instanz sie ablehnt',
+    () async {
+      final requestedUris = <Uri>[];
+      final client = MockClient((request) async {
+        requestedUris.add(request.url);
+        if (request.url.queryParameters.containsKey('include')) {
+          return http.Response('{"errors":[]}', 400);
+        }
+        return http.Response(
+          '''
+        {
+          "data": [
+            { "id": "802", "type": "roles", "attributes": { "person_id": 23, "group_id": 11 } }
+          ],
+          "links": { "next": null }
+        }
+        ''',
+          200,
+          headers: <String, String>{'content-type': 'application/json'},
+        );
+      });
+
+      final roles = await serviceMit(client).fetchRoleResources('token');
+
+      expect(roles.single.id, 802);
+      expect(roles.single.groupName, isNull);
+      expect(requestedUris, hasLength(2));
+      expect(
+        requestedUris.last.queryParameters.containsKey('include'),
+        isFalse,
+      );
+    },
+  );
 }

@@ -266,11 +266,7 @@ class Mitglied {
     this.gender,
     this.pronoun,
     this.picture,
-    this.bankAccountOwner,
-    this.iban,
-    this.bic,
-    this.bankName,
-    this.paymentMethod,
+    this.householdKey,
     List<Role>? roles,
   }) : assert(mitgliedsnummer.isNotEmpty),
        telefonnummern = List.unmodifiable(
@@ -296,11 +292,7 @@ class Mitglied {
     this.gender,
     this.pronoun,
     this.picture,
-    this.bankAccountOwner,
-    this.iban,
-    this.bic,
-    this.bankName,
-    this.paymentMethod,
+    this.householdKey,
   }) : assert(mitgliedsnummer.isNotEmpty),
        geburtsdatum = _peoplePlaceholderDate,
        eintrittsdatum = _peoplePlaceholderDate,
@@ -330,11 +322,11 @@ class Mitglied {
   final String? gender;
   final String? pronoun;
   final String? picture;
-  final String? bankAccountOwner;
-  final String? iban;
-  final String? bic;
-  final String? bankName;
-  final String? paymentMethod;
+
+  /// Hitobito-Haushaltsschluessel; Personen mit gleichem Schluessel leben in
+  /// einem Haushalt. Bankdaten werden bewusst weder uebernommen noch
+  /// gespeichert.
+  final String? householdKey;
   final List<Role> roles;
 
   static DateTime get peoplePlaceholderDate => _peoplePlaceholderDate;
@@ -397,11 +389,7 @@ class Mitglied {
     String? gender,
     String? pronoun,
     String? picture,
-    String? bankAccountOwner,
-    String? iban,
-    String? bic,
-    String? bankName,
-    String? paymentMethod,
+    String? householdKey,
     List<Role>? roles,
     bool fahrtennameLoeschen = false,
     bool austrittsdatumLoeschen = false,
@@ -411,11 +399,7 @@ class Mitglied {
     bool genderLoeschen = false,
     bool pronounLoeschen = false,
     bool pictureLoeschen = false,
-    bool bankAccountOwnerLoeschen = false,
-    bool ibanLoeschen = false,
-    bool bicLoeschen = false,
-    bool bankNameLoeschen = false,
-    bool paymentMethodLoeschen = false,
+    bool householdKeyLoeschen = false,
   }) => Mitglied(
     vorname: vorname ?? this.vorname,
     nachname: nachname ?? this.nachname,
@@ -437,15 +421,9 @@ class Mitglied {
     gender: genderLoeschen ? null : gender ?? this.gender,
     pronoun: pronounLoeschen ? null : pronoun ?? this.pronoun,
     picture: pictureLoeschen ? null : picture ?? this.picture,
-    bankAccountOwner: bankAccountOwnerLoeschen
+    householdKey: householdKeyLoeschen
         ? null
-        : bankAccountOwner ?? this.bankAccountOwner,
-    iban: ibanLoeschen ? null : iban ?? this.iban,
-    bic: bicLoeschen ? null : bic ?? this.bic,
-    bankName: bankNameLoeschen ? null : bankName ?? this.bankName,
-    paymentMethod: paymentMethodLoeschen
-        ? null
-        : paymentMethod ?? this.paymentMethod,
+        : householdKey ?? this.householdKey,
     roles: roles ?? this.roles,
   );
 
@@ -476,11 +454,7 @@ class Mitglied {
       'gender': gender,
       'pronoun': pronoun,
       'picture': picture,
-      'bank_account_owner': bankAccountOwner,
-      'iban': iban,
-      'bic': bic,
-      'bank_name': bankName,
-      'payment_method': paymentMethod,
+      'household_key': householdKey,
     };
   }
 
@@ -535,11 +509,9 @@ class Mitglied {
       gender: _trimToNull(json['gender']?.toString()),
       pronoun: _trimToNull(json['pronoun']?.toString()),
       picture: _trimToNull(json['picture']?.toString()),
-      bankAccountOwner: _trimToNull(json['bank_account_owner']?.toString()),
-      iban: _trimToNull(json['iban']?.toString()),
-      bic: _trimToNull(json['bic']?.toString()),
-      bankName: _trimToNull(json['bank_name']?.toString()),
-      paymentMethod: _trimToNull(json['payment_method']?.toString()),
+      // Bankdaten aelterer Caches werden hier verworfen und nicht mehr
+      // zurueckgeschrieben.
+      householdKey: _trimToNull(json['household_key']?.toString()),
     );
   }
 
@@ -559,11 +531,7 @@ class Mitglied {
         other.gender == gender &&
         other.pronoun == pronoun &&
         other.picture == picture &&
-        other.bankAccountOwner == bankAccountOwner &&
-        other.iban == iban &&
-        other.bic == bic &&
-        other.bankName == bankName &&
-        other.paymentMethod == paymentMethod &&
+        other.householdKey == householdKey &&
         _listEquals(other.telefonnummern, telefonnummern) &&
         _listEquals(other.emailAdressen, emailAdressen) &&
         _listEquals(other.adressen, adressen) &&
@@ -585,11 +553,7 @@ class Mitglied {
     gender,
     pronoun,
     picture,
-    bankAccountOwner,
-    iban,
-    bic,
-    bankName,
-    paymentMethod,
+    householdKey,
     Object.hashAll(telefonnummern),
     Object.hashAll(emailAdressen),
     Object.hashAll(adressen),

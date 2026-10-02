@@ -402,9 +402,9 @@ void main() {
         find.text('Arbeitskontext konnte nicht initialisiert werden'),
         findsNothing,
       );
-      // Mitglieder laden noch, und Rollen laden ab sofort parallel dazu mit -
-      // beide Zeilen zeigen daher gleichzeitig den Lade-Spinner.
-      expect(find.byType(CircularProgressIndicator), findsNWidgets(2));
+      // Mitglieder laden noch; Rollen und Qualifikationen laden ab sofort
+      // parallel dazu mit - alle drei Zeilen zeigen den Lade-Spinner.
+      expect(find.byType(CircularProgressIndicator), findsNWidgets(3));
 
       refreshCompleter.complete();
       await tester.pumpAndSettle();
@@ -565,8 +565,9 @@ void main() {
       // "Mitglieder" und "Rollen" zeigen hier beide einen Spinner: Rollen
       // laedt von Anfang an parallel mit, statt kurz den veralteten
       // "Fertig"-Stand vom letzten Sync zu zeigen (das war das urspruengliche
-      // Flacker-Problem: Haken -> kurz weg -> Spinner).
-      expect(find.byType(CircularProgressIndicator), findsNWidgets(2));
+      // Flacker-Problem: Haken -> kurz weg -> Spinner). Qualifikationen laden
+      // ebenfalls parallel mit.
+      expect(find.byType(CircularProgressIndicator), findsNWidgets(3));
 
       refreshCompleter.complete();
       await tester.pumpAndSettle();

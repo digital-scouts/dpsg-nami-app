@@ -90,7 +90,10 @@ class HitobitoEfzService {
       }
 
       resources.addAll(
-        data.whereType<Map<String, dynamic>>().map(_mapResource),
+        data
+            .whereType<Map<String, dynamic>>()
+            .map(_mapResource)
+            .whereType<EfzEinsichtnahme>(),
       );
       nextUri = _resolveNextUri(decoded, currentUri: nextUri);
     }
@@ -171,17 +174,19 @@ class HitobitoEfzService {
     return decoded;
   }
 
-  EfzEinsichtnahme _mapResource(Map<String, dynamic> resource) {
+  /// Liefert `null` fuer unvollstaendige Eintraege, damit ein einzelner
+  /// Datensatz nicht den ganzen Abruf scheitern laesst.
+  EfzEinsichtnahme? _mapResource(Map<String, dynamic> resource) {
     final attributes = resource['attributes'];
     final attributesMap = attributes is Map<String, dynamic>
         ? attributes
         : const <String, dynamic>{};
     final id = _toInt(resource['id']);
-    final personId = _toNullableInt(attributesMap['person_id']);
-    if (id <= 0 || personId == null) {
-      throw const HitobitoEfzException(
-        'Efz-Einsichtnahmen-Antwort enthaelt einen ungueltigen Eintrag.',
-      );
+    final personId =
+        _toNullableInt(attributesMap['person_id']) ??
+        _personIdAusRelationships(resource['relationships']);
+    if (id <= 0 || personId == null || personId <= 0) {
+      return null;
     }
 
     return EfzEinsichtnahme(
@@ -191,6 +196,15 @@ class HitobitoEfzService {
       einsichtOn: _toDateTime(attributesMap['einsicht_on']),
       issuedOn: _toDateTime(attributesMap['issued_on']),
     );
+  }
+
+  int? _personIdAusRelationships(Object? relationships) {
+    if (relationships is! Map<String, dynamic>) {
+      return null;
+    }
+    final person = relationships['person'];
+    final data = person is Map<String, dynamic> ? person['data'] : null;
+    return data is Map<String, dynamic> ? _toNullableInt(data['id']) : null;
   }
 
   Uri? _resolveNextUri(

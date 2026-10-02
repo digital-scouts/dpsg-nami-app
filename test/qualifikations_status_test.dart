@@ -12,11 +12,11 @@ void main() {
   });
 
   test(
-    'liefert fehlt, wenn das Gueltig-bis-Datum in der Vergangenheit liegt',
+    'liefert abgelaufen, wenn das Gueltig-bis-Datum in der Vergangenheit liegt',
     () {
       expect(
         berechneStatus(gueltigBis: DateTime(2026, 9, 16), heute: heute),
-        QualifikationsStatus.fehlt,
+        QualifikationsStatus.abgelaufen,
       );
     },
   );
@@ -54,8 +54,8 @@ void main() {
     },
   );
 
-  test('liefert baldAblaufend (nicht fehlt) genau am Ablauftag, '
-      'einen Tag spaeter erst fehlt', () {
+  test('liefert baldAblaufend genau am Ablauftag, '
+      'einen Tag spaeter abgelaufen', () {
     expect(
       berechneStatus(gueltigBis: heute, heute: heute),
       QualifikationsStatus.baldAblaufend,
@@ -65,7 +65,7 @@ void main() {
         gueltigBis: heute,
         heute: heute.add(const Duration(days: 1)),
       ),
-      QualifikationsStatus.fehlt,
+      QualifikationsStatus.abgelaufen,
     );
   });
 }

@@ -39,7 +39,7 @@ class MemberGeneralInfoCard extends StatelessWidget {
       _InfoRow(
         icon: Icons.wc,
         label: 'Geschlecht',
-        value: _displayGender(context, mitglied.gender),
+        value: memberGenderLabel(context, mitglied.gender),
       ),
       if (hasPronoun)
         _InfoRow(
@@ -47,11 +47,6 @@ class MemberGeneralInfoCard extends StatelessWidget {
           label: 'Pronomen',
           value: pronoun,
         ),
-      _InfoRow(
-        icon: Icons.church_outlined,
-        label: 'Konfession',
-        value: _dummyFieldValue,
-      ),
     ];
 
     return Card(
@@ -64,14 +59,24 @@ class MemberGeneralInfoCard extends StatelessWidget {
   }
 }
 
-class MemberContactInfoCard extends StatelessWidget {
+/// Kontaktangaben eines Mitglieds. Sichtbar sind die erste Telefonnummer und
+/// die erste E-Mail-Adresse, weitere Eintraege lassen sich aufklappen.
+class MemberContactInfoCard extends StatefulWidget {
   const MemberContactInfoCard({super.key, required this.mitglied});
 
   final Mitglied mitglied;
 
   @override
+  State<MemberContactInfoCard> createState() => _MemberContactInfoCardState();
+}
+
+class _MemberContactInfoCardState extends State<MemberContactInfoCard> {
+  bool _offen = false;
+
+  @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
+    final mitglied = widget.mitglied;
     final telefonRows = mitglied.telefonnummern
         .map(
           (telefonnummer) => _InfoRow(
@@ -99,10 +104,11 @@ class MemberContactInfoCard extends StatelessWidget {
         )
         .toList(growable: false);
 
-    final rows = <_InfoRow>[...telefonRows, ...emailRows];
+    final sichtbar = <_InfoRow>[...telefonRows.take(1), ...emailRows.take(1)];
+    final weitere = <_InfoRow>[...telefonRows.skip(1), ...emailRows.skip(1)];
 
-    if (rows.isEmpty) {
-      rows.add(
+    if (sichtbar.isEmpty) {
+      sichtbar.add(
         _InfoRow(
           icon: Icons.contact_phone_outlined,
           label: 'Info',
@@ -116,7 +122,79 @@ class MemberContactInfoCard extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(_memberDetailsCardRadius),
       ),
-      child: Column(children: [...rows.map((r) => _InfoTile(row: r))]),
+      child: Column(
+        children: [
+          ...sichtbar.map((r) => _InfoTile(row: r)),
+          if (_offen) ...weitere.map((r) => _InfoTile(row: r)),
+          if (weitere.isNotEmpty)
+            MemberAufklappZeile(
+              offen: _offen,
+              text: _offen
+                  ? t.t('member_contact_less')
+                  : _weitereText(
+                      t,
+                      telefon: telefonRows.length - 1,
+                      email: emailRows.length - 1,
+                    ),
+              onTap: () => setState(() => _offen = !_offen),
+            ),
+        ],
+      ),
+    );
+  }
+
+  String _weitereText(
+    AppLocalizations t, {
+    required int telefon,
+    required int email,
+  }) {
+    return <String>[
+      if (telefon == 1) t.t('member_contact_more_phone'),
+      if (telefon > 1) t.t('member_contact_more_phones', {'n': telefon}),
+      if (email == 1) t.t('member_contact_more_email'),
+      if (email > 1) t.t('member_contact_more_emails', {'n': email}),
+    ].join(', ');
+  }
+}
+
+/// Zeile zum Auf- und Zuklappen weiterer Eintraege in einer Detailkarte.
+class MemberAufklappZeile extends StatelessWidget {
+  const MemberAufklappZeile({
+    super.key,
+    required this.offen,
+    required this.text,
+    required this.onTap,
+  });
+
+  final bool offen;
+  final String text;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final farbe = theme.colorScheme.primary;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+        child: Row(
+          children: [
+            Flexible(
+              child: Text(
+                text,
+                style: theme.textTheme.labelLarge?.copyWith(color: farbe),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              offen ? Icons.expand_less : Icons.expand_more,
+              size: 18,
+              color: farbe,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -291,7 +369,8 @@ class _InfoTileState extends State<_InfoTile> {
   }
 }
 
-/// Zeigt Mitgliedschafts-Infos: Mitgliedsnummer, Eintrittsdatum, Status und Button.
+/// Zeigt Mitgliedschafts-Details: Mitgliedsnummer, Beitragsart, Stamm und
+/// Gruppe.
 class MemberMembershipInfoCard extends StatelessWidget {
   const MemberMembershipInfoCard({
     super.key,
@@ -311,33 +390,13 @@ class MemberMembershipInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final hasKnownEntryDate =
-        mitglied.eintrittsdatum != Mitglied.peoplePlaceholderDate;
+    // Eintritt und Status stehen in Kachel und Kopf der Detailseite.
     final infoRows = <_InfoRow>[
       _InfoRow(
         icon: Icons.confirmation_number,
         label: t.t('member_info_member_number'),
         value: mitglied.mitgliedsnummer,
         copy: true,
-      ),
-      if (hasKnownEntryDate)
-        _InfoRow(
-          icon: Icons.login,
-          label: t.t('member_info_join_date'),
-          value: DateFormatter.formatGermanShortDate(mitglied.eintrittsdatum),
-        ),
-      if (mitglied.updatedAt != null)
-        _InfoRow(
-          icon: Icons.update,
-          label: t.t('member_info_updated_at'),
-          value: DateFormatter.formatGermanShortDateTime(mitglied.updatedAt!),
-        ),
-      _InfoRow(
-        icon: mitglied.istAusgetreten ? Icons.cancel : Icons.check_circle,
-        label: t.t('member_info_status'),
-        value: mitglied.istAusgetreten
-            ? t.t('member_info_status_ended')
-            : t.t('member_info_status_active'),
       ),
       _InfoRow(
         icon: Icons.payments_outlined,
@@ -378,9 +437,8 @@ class MemberMembershipInfoCard extends StatelessWidget {
   }
 }
 
-const String _dummyFieldValue = 'Geplant (Dummy)';
-
-String _displayGender(BuildContext context, String? rawGender) {
+/// Anzeigetext fuer das Hitobito-Geschlecht, `-` wenn unbekannt.
+String memberGenderLabel(BuildContext context, String? rawGender) {
   final normalized = rawGender?.trim().toLowerCase();
   final t = AppLocalizations.of(context);
   if (normalized == null || normalized.isEmpty) {

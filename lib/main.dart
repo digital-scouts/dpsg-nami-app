@@ -45,6 +45,7 @@ import 'package:nami/presentation/screens/auth_gate_screen.dart';
 import 'package:nami/presentation/theme/theme.dart';
 import 'package:nami/presentation/widgets/global_loading_top_bar.dart';
 import 'package:nami/services/hitobito_efz_service.dart';
+import 'package:nami/services/hitobito_qualifications_service.dart';
 import 'package:nami/services/hitobito_roles_service.dart';
 import 'package:nami/services/nami_ai/nami_ai_corpus_lookup_service.dart';
 import 'package:nami/services/nami_ai/nami_ai_debug_log_service.dart';
@@ -336,6 +337,11 @@ Future<void> _startApp({
           trafficLogService: hitobitoTrafficLogService,
           logger: logger,
         );
+  final hitobitoQualificationsService = HitobitoQualificationsService(
+    config: envAuthConfig,
+    trafficLogService: hitobitoTrafficLogService,
+    logger: logger,
+  );
   final hitobitoAuthConfigController = HitobitoAuthConfigController(
     sensitiveStorageService: sensitiveStorageService,
     oauthService: oauthService,
@@ -343,6 +349,7 @@ Future<void> _startApp({
     peopleService: hitobitoPeopleService,
     rolesService: hitobitoRolesService,
     efzService: hitobitoEfzService,
+    qualificationsService: hitobitoQualificationsService,
     logger: logger,
     envConfig: envAuthConfig,
   );
@@ -353,6 +360,8 @@ Future<void> _startApp({
           groupsService: hitobitoGroupsService,
           peopleService: hitobitoPeopleService,
           rolesService: hitobitoRolesService,
+          efzService: hitobitoEfzService,
+          qualificationsService: hitobitoQualificationsService,
           localRepository: arbeitskontextLocalRepository,
           logger: logger,
         );
