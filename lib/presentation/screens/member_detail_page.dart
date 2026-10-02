@@ -4,12 +4,13 @@ import 'package:provider/provider.dart';
 import '../../domain/appearance/appearance_catalog.dart';
 import '../../domain/arbeitskontext/arbeitskontext_read_model.dart';
 import '../../domain/maps/address_map_location_repository.dart';
-import '../../domain/member/member_utils.dart';
 import '../../domain/member/mitglied.dart';
 import '../../domain/member/pending_person_update.dart';
 import '../../domain/member_filters/beitragsart.dart';
 import '../../domain/member_filters/usecases/ermittle_beitragsart_im_arbeitskontext_usecase.dart';
 import '../../domain/settings/address_settings_repository.dart';
+import '../../domain/settings/stufen_settings.dart';
+import '../../data/settings/shared_prefs_stufen_settings_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/geoapify_address_map_service.dart';
 import '../../services/map_tile_cache_service.dart';
@@ -20,7 +21,7 @@ import '../model/member_edit_model.dart';
 import '../notifications/app_snackbar.dart';
 import '../widgets/efz_status_section.dart';
 import '../widgets/member_basis.dart';
-import '../widgets/member_roles_list.dart';
+import '../widgets/member_detail/member_rollen_tab.dart';
 import '../navigation/app_router.dart';
 import '../widgets/member_detail/member_steckbrief_kopf.dart';
 import 'member_edit_page.dart';
@@ -35,6 +36,7 @@ class MemberDetailPage extends StatefulWidget {
     this.tileCacheService,
     this.previewTimeout,
     this.heuteProvider,
+    this.stufenSettingsLoader,
   });
 
   final Mitglied mitglied;
@@ -47,6 +49,10 @@ class MemberDetailPage extends StatefulWidget {
   /// Liefert das heutige Datum; in Tests fest vorgegeben.
   final DateTime Function()? heuteProvider;
 
+  /// Laedt Altersgrenzen und Stufenwechsel-Stichtag; Standard sind die
+  /// gespeicherten Stufen-Einstellungen.
+  final Future<StufenSettings> Function()? stufenSettingsLoader;
+
   @override
   State<MemberDetailPage> createState() => _MemberDetailPageState();
 }
@@ -57,6 +63,27 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
       ErmittleBeitragsartImArbeitskontextUseCase();
 
   bool _isPreparingEdit = false;
+  StufenSettings? _stufenSettings;
+
+  @override
+  void initState() {
+    super.initState();
+    _ladeStufenSettings();
+  }
+
+  Future<void> _ladeStufenSettings() async {
+    try {
+      final loader =
+          widget.stufenSettingsLoader ??
+          SharedPrefsStufenSettingsRepository().load;
+      final settings = await loader();
+      if (mounted) {
+        setState(() => _stufenSettings = settings);
+      }
+    } catch (_) {
+      // Ohne gespeicherte Einstellungen gelten die Standardgrenzen.
+    }
+  }
 
   Future<void> _openEditPage(
     Mitglied mitglied, {
@@ -245,6 +272,7 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
           tileCacheService: widget.tileCacheService,
           previewTimeout: widget.previewTimeout,
           heuteProvider: widget.heuteProvider,
+          stufenSettingsLoader: widget.stufenSettingsLoader,
         ),
       ),
     );
@@ -273,9 +301,6 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
         false;
     final isWritable =
         arbeitskontextModel?.istMitgliedSchreibbar(currentMitglied) ?? false;
-    final sichtbareRollen = currentMitglied.roles
-        .where((role) => !MemberUtils.istMitgliederRolle(role))
-        .toList(growable: false);
     final stammNamen = _resolveAnzeigeStaemme(
       readModel,
       currentMitglied.mitgliedsnummer,
@@ -381,14 +406,13 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
                     ),
                   ),
                   _TabBleibtErhalten(
-                    child: sichtbareRollen.isEmpty
-                        ? Center(
-                            child: Text(
-                              'Keine Rollen',
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                          )
-                        : MemberRolesList(roles: sichtbareRollen),
+                    child: MemberRollenTab(
+                      mitglied: currentMitglied,
+                      heute: heute,
+                      stufenSettings: _stufenSettings,
+                      aktiverLayerName:
+                          readModel?.arbeitskontext.aktiverLayer.name,
+                    ),
                   ),
                   _TabBleibtErhalten(
                     child: EfzStatusSection(mitglied: currentMitglied),

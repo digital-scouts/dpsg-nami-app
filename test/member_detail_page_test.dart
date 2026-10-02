@@ -241,8 +241,10 @@ void main() {
       await tester.tap(find.text('Rollen'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Mitglied'), findsOneWidget);
-      expect(find.text('Mitglied - Leitung'), findsNothing);
+      // Im Zeitstrahl heisst die Mitgliedsrolle nach ihrer Stufe.
+      expect(find.text('Pfadfinder'), findsOneWidget);
+      expect(find.text('Rollen'), findsWidgets);
+      expect(find.text('1'), findsOneWidget);
       expect(find.textContaining('OrdentlicheMitgliedschaft'), findsNothing);
     },
     timeout: const Timeout(Duration(seconds: 3)),
