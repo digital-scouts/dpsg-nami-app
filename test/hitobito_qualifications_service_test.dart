@@ -75,10 +75,12 @@ void main() {
     expect(juleica.finishAt, DateTime(2023, 5, 1));
     expect(juleica.erworbenAm, DateTime(2020, 5, 1));
     expect(juleica.reaktivierbar, isTrue);
+    expect(juleica.gueltigkeitJahre, 3);
     final woodbadge = qualifikationen.last;
     expect(woodbadge.label, 'Woodbadge');
     expect(woodbadge.finishAt, isNull);
     expect(woodbadge.reaktivierbar, isFalse);
+    expect(woodbadge.gueltigkeitJahre, isNull);
 
     expect(requestedUris.first.path, '/api/qualifications');
     expect(

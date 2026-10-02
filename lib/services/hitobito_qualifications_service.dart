@@ -169,9 +169,13 @@ class HitobitoQualificationsService {
         continue;
       }
       final reaktivierbarJahre = _toNullableInt(attributes['reactivateable']);
+      final gueltigkeitJahre = _toNullableInt(attributes['validity']);
       arten[id] = _QualifikationsArt(
         label: label,
         reaktivierbar: reaktivierbarJahre != null && reaktivierbarJahre > 0,
+        gueltigkeitJahre: gueltigkeitJahre != null && gueltigkeitJahre > 0
+            ? gueltigkeitJahre
+            : null,
       );
     }
     return arten;
@@ -210,6 +214,7 @@ class HitobitoQualificationsService {
       finishAt: _toDateTime(attributesMap['finish_at']),
       origin: attributesMap['origin']?.toString(),
       reaktivierbar: art.reaktivierbar,
+      gueltigkeitJahre: art.gueltigkeitJahre,
     );
   }
 
@@ -264,8 +269,13 @@ class HitobitoQualificationsService {
 }
 
 class _QualifikationsArt {
-  const _QualifikationsArt({required this.label, required this.reaktivierbar});
+  const _QualifikationsArt({
+    required this.label,
+    required this.reaktivierbar,
+    this.gueltigkeitJahre,
+  });
 
   final String label;
   final bool reaktivierbar;
+  final int? gueltigkeitJahre;
 }

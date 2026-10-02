@@ -11,6 +11,7 @@ class Qualifikation {
     this.finishAt,
     this.origin,
     this.reaktivierbar = false,
+    this.gueltigkeitJahre,
   }) : assert(id > 0),
        assert(personId > 0);
 
@@ -29,6 +30,10 @@ class Qualifikation {
   /// aktivieren (`qualification_kind.reactivateable`).
   final bool reaktivierbar;
 
+  /// Regelmaessigkeit der Art in Jahren (`qualification_kind.validity`);
+  /// `null` bei Arten ohne Ablauf.
+  final int? gueltigkeitJahre;
+
   /// Datum, ab dem die Qualifikation gilt, fuer Anzeige und Sortierung.
   DateTime? get erworbenAm => qualifiedAt ?? startAt;
 
@@ -42,6 +47,7 @@ class Qualifikation {
     'finish_at': finishAt?.toIso8601String(),
     'origin': origin,
     'reaktivierbar': reaktivierbar,
+    'gueltigkeit_jahre': gueltigkeitJahre,
   };
 
   /// Liefert `null` fuer unvollstaendige Eintraege.
@@ -67,6 +73,9 @@ class Qualifikation {
       finishAt: DateTime.tryParse(json['finish_at']?.toString() ?? ''),
       origin: json['origin']?.toString(),
       reaktivierbar: json['reaktivierbar'] == true,
+      gueltigkeitJahre: int.tryParse(
+        json['gueltigkeit_jahre']?.toString() ?? '',
+      ),
     );
   }
 
@@ -81,7 +90,8 @@ class Qualifikation {
         other.startAt == startAt &&
         other.finishAt == finishAt &&
         other.origin == origin &&
-        other.reaktivierbar == reaktivierbar;
+        other.reaktivierbar == reaktivierbar &&
+        other.gueltigkeitJahre == gueltigkeitJahre;
   }
 
   @override
@@ -95,6 +105,7 @@ class Qualifikation {
     finishAt,
     origin,
     reaktivierbar,
+    gueltigkeitJahre,
   );
 
   @override
