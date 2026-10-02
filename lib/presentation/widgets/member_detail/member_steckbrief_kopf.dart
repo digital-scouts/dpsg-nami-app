@@ -12,26 +12,34 @@ import '../../stufe/stufe_visuals.dart';
 import '../member_basis_info_card.dart';
 import '../supporter_badge.dart';
 
-/// Steckbrief-Kopf der Mitgliedsdetails: Avatar, Name, Zeile mit Alter,
-/// Pronomen und Geschlecht sowie Chips aller aktiven Stufenrollen.
+/// Steckbrief-Kopf der Mitgliedsdetails in einer Zeile: Zurueck, Avatar,
+/// Name mit Zeile fuer Alter, Pronomen und Geschlecht, aktive Stufen als
+/// Icons und die Aktionen.
 class MemberSteckbriefKopf extends StatelessWidget {
   const MemberSteckbriefKopf({
     super.key,
     required this.mitglied,
     required this.heute,
     this.supporterBadge,
+    this.leading,
+    this.actions = const <Widget>[],
+    this.onStufenTap,
   });
 
   final Mitglied mitglied;
   final DateTime heute;
   final SupporterBadgeId? supporterBadge;
+  final Widget? leading;
+  final List<Widget> actions;
+
+  /// Tipp auf die Stufen-Icons, etwa um zum Rollen-Tab zu wechseln.
+  final VoidCallback? onStufenTap;
 
   static const double _maxTextSkalierung = 1.4;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final t = AppLocalizations.of(context);
     final fahrtenname = mitglied.fahrtenname?.trim();
     final hatFahrtenname = fahrtenname != null && fahrtenname.isNotEmpty;
     final titel = hatFahrtenname
@@ -45,67 +53,61 @@ class MemberSteckbriefKopf extends StatelessWidget {
     return MediaQuery.withClampedTextScaling(
       maxScaleFactor: _maxTextSkalierung,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: EdgeInsets.fromLTRB(leading == null ? 16 : 4, 8, 4, 8),
+        child: Row(
           children: [
-            Row(
-              children: [
-                _Avatar(mitglied: mitglied),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            ?leading,
+            _Avatar(mitglied: mitglied),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              titel,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                          if (supporterBadge != null) ...[
-                            const SizedBox(width: 6),
-                            SupporterBadge(badge: supporterBadge!, size: 20),
-                          ],
-                        ],
-                      ),
-                      if (hatFahrtenname && mitglied.fullName.isNotEmpty)
-                        Text(
-                          mitglied.fullName,
+                      Flexible(
+                        child: Text(
+                          titel,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodyMedium,
-                        ),
-                      if (fakten.isNotEmpty)
-                        Text(
-                          fakten,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.outlineVariant,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
+                      ),
+                      if (supporterBadge != null) ...[
+                        const SizedBox(width: 6),
+                        SupporterBadge(badge: supporterBadge!, size: 18),
+                      ],
                     ],
                   ),
-                ),
-              ],
-            ),
-            if (chips.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  for (final chip in chips) _StufenChip(chip: chip, t: t),
+                  if (hatFahrtenname && mitglied.fullName.isNotEmpty)
+                    Text(
+                      mitglied.fullName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  if (fakten.isNotEmpty)
+                    Text(
+                      fakten,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.outlineVariant,
+                      ),
+                    ),
                 ],
               ),
+            ),
+            if (chips.isNotEmpty) ...[
+              const SizedBox(width: 8),
+              _StufenIcons(chips: chips, onTap: onStufenTap),
             ],
+            ...actions,
           ],
         ),
       ),
@@ -194,11 +196,70 @@ List<SteckbriefChip> steckbriefChips(
   });
 }
 
-class _StufenChip extends StatelessWidget {
-  const _StufenChip({required this.chip, required this.t});
+/// Beschriftung eines Chips, etwa „Wö-Leitung“; dient als Tooltip.
+String steckbriefChipLabel(SteckbriefChip chip, AppLocalizations t) {
+  final stufe = chip.stufe;
+  if (chip.sonstige || stufe == null) {
+    return t.t('member_detail_sonstige');
+  }
+  return chip.leitung
+      ? t.t('member_detail_stufe_leitung', {'stufe': stufe.shortDisplayName})
+      : stufe.shortDisplayName;
+}
+
+/// Aktive Stufen als ueberlappende runde Icons; ab vier Stufen fasst ein
+/// „+n“ den Rest zusammen.
+class _StufenIcons extends StatelessWidget {
+  const _StufenIcons({required this.chips, this.onTap});
+
+  final List<SteckbriefChip> chips;
+  final VoidCallback? onTap;
+
+  static const int _maxIcons = 3;
+  static const double _groesse = 26;
+  static const double _versatz = 20;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final sichtbar = chips.take(_maxIcons).toList(growable: false);
+    final rest = chips.skip(_maxIcons).toList(growable: false);
+    final anzahl = sichtbar.length + (rest.isEmpty ? 0 : 1);
+    final icons = <Widget>[
+      for (final chip in sichtbar)
+        Tooltip(
+          message: steckbriefChipLabel(chip, t),
+          child: _StufenIcon(chip: chip, groesse: _groesse),
+        ),
+      if (rest.isNotEmpty)
+        Tooltip(
+          message: rest.map((chip) => steckbriefChipLabel(chip, t)).join(', '),
+          child: _RestIcon(anzahl: rest.length, groesse: _groesse),
+        ),
+    ];
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: SizedBox(
+        width: _groesse + (anzahl - 1) * _versatz,
+        height: _groesse,
+        child: Stack(
+          children: [
+            for (var i = 0; i < icons.length; i++)
+              Positioned(left: i * _versatz, top: 0, child: icons[i]),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StufenIcon extends StatelessWidget {
+  const _StufenIcon({required this.chip, required this.groesse});
 
   final SteckbriefChip chip;
-  final AppLocalizations t;
+  final double groesse;
 
   @override
   Widget build(BuildContext context) {
@@ -207,54 +268,77 @@ class _StufenChip extends StatelessWidget {
     final farbe = stufe == null
         ? theme.colorScheme.outlineVariant
         : StatistikFarben.of(context).stufe(stufe);
-    final label = chip.sonstige
-        ? t.t('member_detail_sonstige')
-        : chip.leitung
-        ? t.t('member_detail_stufe_leitung', {'stufe': stufe!.shortDisplayName})
-        : stufe!.shortDisplayName;
+    final dunkel = theme.brightness == Brightness.dark;
+    // Dunkle Maskottchen (Rover, Jufi) brauchen im Dunkelmodus hellen Grund.
+    final hintergrund = chip.sonstige
+        ? theme.colorScheme.surfaceContainerHighest
+        : !chip.leitung && dunkel
+        ? const Color(0xFFE9E9EE)
+        : Color.alphaBlend(
+            farbe.withValues(alpha: 0.18),
+            theme.colorScheme.surface,
+          );
     final icon = chip.sonstige || chip.leitung
         ? Image.asset(
             StufeVisuals.assetFor(Stufe.leitung),
-            width: 14,
-            height: 14,
+            width: groesse * 0.55,
+            height: groesse * 0.55,
             color: chip.sonstige ? theme.colorScheme.onSurface : farbe,
             colorBlendMode: BlendMode.srcIn,
-            cacheWidth: 40,
-            cacheHeight: 40,
+            cacheWidth: 48,
+            cacheHeight: 48,
           )
         : Image.asset(
             StufeVisuals.assetFor(stufe!),
-            width: 14,
-            height: 14,
-            cacheWidth: 40,
-            cacheHeight: 40,
+            width: groesse * 0.72,
+            height: groesse * 0.72,
+            cacheWidth: 60,
+            cacheHeight: 60,
           );
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      width: groesse,
+      height: groesse,
+      alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: chip.sonstige
-            ? theme.colorScheme.surfaceContainerHighest
-            : farbe.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(999),
+        shape: BoxShape.circle,
+        color: hintergrund,
         border: Border.all(
+          width: 1.5,
           color: chip.sonstige
               ? theme.colorScheme.outline
-              : farbe.withValues(alpha: 0.6),
+              : farbe.withValues(alpha: 0.7),
         ),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          icon,
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
+      child: icon,
+    );
+  }
+}
+
+class _RestIcon extends StatelessWidget {
+  const _RestIcon({required this.anzahl, required this.groesse});
+
+  final int anzahl;
+  final double groesse;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: groesse,
+      height: groesse,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: theme.colorScheme.surfaceContainerHighest,
+        border: Border.all(width: 1.5, color: theme.colorScheme.outline),
+      ),
+      child: Text(
+        '+$anzahl',
+        maxLines: 1,
+        style: theme.textTheme.labelSmall?.copyWith(
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -275,12 +359,12 @@ class _Avatar extends StatelessWidget {
         .join();
 
     return CircleAvatar(
-      radius: 28,
+      radius: 19,
       backgroundColor: theme.colorScheme.primaryContainer,
       foregroundColor: theme.colorScheme.onPrimaryContainer,
       child: Text(
         initialen.isEmpty ? '?' : initialen,
-        style: theme.textTheme.titleMedium,
+        style: theme.textTheme.labelLarge,
       ),
     );
   }

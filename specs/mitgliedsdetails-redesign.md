@@ -1,13 +1,14 @@
 # Mitgliedsdetails: Bedarfsanalyse und Redesign
 
-Stand: 2026-10-02, umgesetzt. Diese Spec beschreibt die Ausgangslage der Mitgliedsdetailseite, die festgelegten Anforderungen, die Edge Cases und den umgesetzten Stand. Die freigegebenen visuellen Entwürfe liegen unter `design/mitglied/` (Runden 1 bis 4).
+Stand: 2026-10-02, umgesetzt. Diese Spec beschreibt die Ausgangslage der Mitgliedsdetailseite, die festgelegten Anforderungen, die Edge Cases und den umgesetzten Stand. Die freigegebenen visuellen Entwürfe liegen unter `design/mitglied/` (Runden 1 bis 5).
 
 ## Umgesetzter Stand
 
-**Kopf:** `MemberSteckbriefKopf`
-- Avatar, Name bzw. Fahrtenname und die Zeile „30 Jahre · sie/ihr · weiblich“.
-- Chips aller aktiven Stufenrollen, Leitung zuerst. Ohne Stufenrolle erscheint „Sonstige“.
-- Bearbeiten als Stift oben rechts. Die Tabs behalten ihren Zustand.
+**Kopf:** `MemberSteckbriefKopf`, eine Zeile ohne eigene AppBar (Runde 5, K2)
+- Zurück, Avatar, Name bzw. Fahrtenname mit vollem Namen und der Zeile „30 Jahre · sie/ihr · weiblich“.
+- Aktive Stufenrollen als überlappende runde Icons rechts neben dem Namen, Leitung zuerst: Maskottchen für Mitgliedschaft, Lilie in Stufenfarbe für Leitung. Ab vier Stufen fasst „+n“ den Rest zusammen. Die Beschriftung („Wö-Leitung“) steht im Tooltip. Ein Tipp auf die Icons öffnet den Rollen-Tab. Ohne Stufenrolle erscheint die Lilie für „Sonstige“.
+- Bearbeiten als Stift rechts in derselben Zeile.
+- Die Tabs sind so breit wie ihr Text und zentriert, bei großer Schrift scrollbar statt abgeschnitten. Sie behalten ihren Zustand.
 
 **Daten:** `MemberDetails`
 - **Kacheln:** Geburtstag und Mitgliedsdauer. Der Geburtstag ist heute rot getönt mit Kuchen, in 1–7 Tagen blau getönt.

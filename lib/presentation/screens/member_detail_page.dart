@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../domain/appearance/appearance_catalog.dart';
@@ -316,55 +317,71 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
     final beitragsart = mitgliedsBeitragsarten[currentMitglied.mitgliedsnummer];
     final haushalt = readModel?.findeHaushalt(currentMitglied) ?? const [];
     final t = AppLocalizations.of(context);
-    // AppBar, Steckbrief und Tabs bilden eine gemeinsame Kopfflaeche.
+    // Steckbrief-Zeile und Tabs bilden eine gemeinsame Kopfflaeche.
     final kopfFarbe = Theme.of(context).colorScheme.surface;
 
     return DefaultTabController(
       length: 3,
       child: Scaffold(
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          backgroundColor: kopfFarbe,
-          surfaceTintColor: Colors.transparent,
-          scrolledUnderElevation: 0,
-          notificationPredicate: (_) => false,
-          leading: IconButton(
-            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-            onPressed: () => Navigator.of(context).maybePop(),
-            icon: const Icon(Icons.arrow_back),
-          ),
-          actions: [
-            if (hasPending) _PendingBadge(needsResolution: needsResolution),
-            IconButton(
-              key: const Key('member-detail-edit'),
-              tooltip: t.t('member_detail_edit_tooltip'),
-              icon: const Icon(Icons.edit_outlined),
-              onPressed: isWritable && !_isPreparingEdit
-                  ? () => _prepareAndOpenEditPage(currentMitglied)
-                  : null,
-            ),
-            const SizedBox(width: 4),
-          ],
-        ),
         body: Column(
           children: [
-            Material(
-              color: kopfFarbe,
-              child: Column(
-                children: [
-                  MemberSteckbriefKopf(
-                    mitglied: currentMitglied,
-                    heute: heute,
-                    supporterBadge: _ownBadge(context, currentMitglied),
+            AnnotatedRegion<SystemUiOverlayStyle>(
+              value:
+                  ThemeData.estimateBrightnessForColor(kopfFarbe) ==
+                      Brightness.dark
+                  ? SystemUiOverlayStyle.light
+                  : SystemUiOverlayStyle.dark,
+              child: Material(
+                color: kopfFarbe,
+                child: SafeArea(
+                  bottom: false,
+                  child: Builder(
+                    builder: (context) => Column(
+                      children: [
+                        MemberSteckbriefKopf(
+                          mitglied: currentMitglied,
+                          heute: heute,
+                          supporterBadge: _ownBadge(context, currentMitglied),
+                          onStufenTap: () =>
+                              DefaultTabController.of(context).animateTo(1),
+                          leading: IconButton(
+                            tooltip: MaterialLocalizations.of(
+                              context,
+                            ).backButtonTooltip,
+                            onPressed: () => Navigator.of(context).maybePop(),
+                            icon: const Icon(Icons.arrow_back),
+                          ),
+                          actions: [
+                            if (hasPending) ...[
+                              const SizedBox(width: 8),
+                              _PendingBadge(needsResolution: needsResolution),
+                            ],
+                            IconButton(
+                              key: const Key('member-detail-edit'),
+                              tooltip: t.t('member_detail_edit_tooltip'),
+                              icon: const Icon(Icons.edit_outlined),
+                              onPressed: isWritable && !_isPreparingEdit
+                                  ? () =>
+                                        _prepareAndOpenEditPage(currentMitglied)
+                                  : null,
+                            ),
+                          ],
+                        ),
+                        // Tabs so breit wie ihr Text, damit nichts
+                        // abgeschnitten wird; bei grosser Schrift scrollbar.
+                        TabBar(
+                          isScrollable: true,
+                          tabAlignment: TabAlignment.center,
+                          tabs: [
+                            Tab(text: t.t('member_detail_tab_daten')),
+                            Tab(text: t.t('member_detail_tab_rollen')),
+                            Tab(text: t.t('member_detail_tab_qualifikationen')),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                  TabBar(
-                    tabs: [
-                      Tab(text: t.t('member_detail_tab_daten')),
-                      Tab(text: t.t('member_detail_tab_rollen')),
-                      Tab(text: t.t('member_detail_tab_qualifikationen')),
-                    ],
-                  ),
-                ],
+                ),
               ),
             ),
             if (hasPending)
