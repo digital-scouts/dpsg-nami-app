@@ -68,6 +68,7 @@ import 'data/settings/shared_prefs_app_settings_repository.dart';
 import 'data/settings/shared_prefs_qualifikations_einstellungen_repository.dart';
 import 'domain/appearance/support_access.dart';
 import 'domain/auth/auth_profile.dart';
+import 'domain/appearance/appearance_catalog.dart';
 import 'domain/auth/auth_state.dart';
 import 'domain/settings/app_settings.dart';
 import 'domain/settings/app_settings_repository.dart';
@@ -105,6 +106,7 @@ import 'services/hitobito_people_service.dart';
 import 'services/hitobito_traffic_log_service.dart';
 import 'services/legacy_app_data_cleanup_service.dart';
 import 'services/logger_service.dart';
+import 'services/qualifikations_erinnerung_service.dart';
 import 'services/map_tile_cache_service.dart';
 import 'services/network_access_policy.dart';
 import 'services/sensitive_storage_service.dart';
@@ -479,6 +481,46 @@ Future<void> _startApp({
 
   authModel.addListener(syncBundesstatistik);
   arbeitskontextModel.addListener(syncBundesstatistik);
+
+  // Erinnerungen an ablaufende Qualifikationen; die Demo plant nichts.
+  final qualifikationsErinnerungService = QualifikationsErinnerungService(
+    logger: logger,
+  );
+  void syncQualifikationsErinnerungen() {
+    if (isDemo) {
+      return;
+    }
+    // Nur beim Abmelden raeumen; solange beim Start noch nichts geladen ist,
+    // bleibt die Merkliste gemeldeter Ablaeufe erhalten.
+    if (authModel.state == AuthState.signedOut) {
+      unawaited(qualifikationsErinnerungService.raeumen());
+      return;
+    }
+    final readModel = arbeitskontextModel.readModel;
+    final personId = authModel.profile?.namiId;
+    if (readModel == null ||
+        personId == null ||
+        arbeitskontextModel.isLoading ||
+        arbeitskontextModel.isLoadingRoles) {
+      return;
+    }
+    unawaited(
+      qualifikationsErinnerungService.aktualisiere(
+        readModel: readModel,
+        einstellungen: qualifikationsEinstellungenModel.einstellungen,
+        eigenePersonId: personId,
+        supporter: appearanceModel.access.isTierUnlocked(SupportTier.supporter),
+        pushErlaubt: appSettingsModel.notificationsEnabled,
+        sprache: appSettingsModel.languageCode,
+      ),
+    );
+  }
+
+  authModel.addListener(syncQualifikationsErinnerungen);
+  arbeitskontextModel.addListener(syncQualifikationsErinnerungen);
+  qualifikationsEinstellungenModel.addListener(syncQualifikationsErinnerungen);
+  appSettingsModel.addListener(syncQualifikationsErinnerungen);
+  appearanceModel.addListener(syncQualifikationsErinnerungen);
 
   // Monatliche Summen für die Statistik-Kachel „Verlauf“ (nur auf dem Gerät).
   final statistikVerlaufService = StatistikVerlaufService(

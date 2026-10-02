@@ -25,6 +25,7 @@ import 'package:nami/services/logger_service.dart';
 import 'package:nami/services/nami_ai/nami_ai_access_service.dart';
 import 'package:nami/services/network_access_policy.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:nami/presentation/notifications/qualifikations_meldung.dart';
 import 'package:provider/provider.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -230,6 +231,9 @@ class _SettingsPageState extends State<SettingsPage> {
                     authModel: authModel,
                     unresolvedCount: unresolvedCount,
                     updateInfo: updateSnapshot.data,
+                    eigeneQualifikationsAblaeufe: eigeneQualifikationsAblaeufe(
+                      context,
+                    ),
                   ),
                   external:
                       notificationSnapshot.data ?? const <AppHubNotification>[],

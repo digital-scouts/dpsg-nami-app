@@ -7,6 +7,7 @@ import 'package:nami/presentation/notifications/notifications_hub.dart';
 import 'package:nami/services/app_update_service.dart';
 import 'package:nami/services/logger_service.dart';
 import 'package:nami/services/network_access_policy.dart';
+import 'package:nami/presentation/notifications/qualifikations_meldung.dart';
 import 'package:provider/provider.dart';
 
 class SettingsMessagesPage extends StatefulWidget {
@@ -125,6 +126,8 @@ class _SettingsMessagesPageState extends State<SettingsMessagesPage> {
                       authModel: authModel,
                       unresolvedCount: openResolutionCount,
                       updateInfo: updateSnapshot.data,
+                      eigeneQualifikationsAblaeufe:
+                          eigeneQualifikationsAblaeufe(context),
                     ),
                     external:
                         notificationSnapshot.data ??
@@ -154,7 +157,10 @@ class _SettingsMessagesPageState extends State<SettingsMessagesPage> {
                                   notification: hubMessages[i],
                                   locale: locale,
                                   onTap: () =>
-                                      _acknowledgeIfNeeded(hubMessages[i]),
+                                      hubMessages[i].id ==
+                                          qualifikationsMeldungId
+                                      ? oeffneEigeneMitgliedsdetails(context)
+                                      : _acknowledgeIfNeeded(hubMessages[i]),
                                 ),
                                 if (i < hubMessages.length - 1)
                                   const Divider(
