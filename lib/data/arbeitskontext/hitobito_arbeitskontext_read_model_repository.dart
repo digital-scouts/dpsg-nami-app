@@ -84,13 +84,6 @@ class HitobitoArbeitskontextReadModelRepository
       aktiverLayer: aktuellerKontext.aktiverLayer,
     );
 
-    // Personen und Rollen werden bewusst PARALLEL geladen (statt erst alle
-    // Personen, dann alle Rollen): beides sind unabhaengige GET-Endpunkte,
-    // und bereits eingetroffene Rollen koennen so sofort auf bereits bekannte
-    // Mitglieder angewendet werden, statt erst ganz am Ende in einem Rutsch
-    // sichtbar zu werden. Ein Fehler beim Rollen-Fetch darf den
-    // Mitglieder-Refresh nicht scheitern lassen (siehe _fetchRolesIsolated) -
-    // ensureRolesLoaded() holt Rollen in dem Fall eigenstaendig nochmal nach.
     var latestPeople = const <HitobitoPersonResource>[];
     var latestRoles = const <HitobitoPersonRoleResource>[];
 
@@ -119,23 +112,95 @@ class HitobitoArbeitskontextReadModelRepository
       );
     }
 
-    final peopleFuture = _peopleService.fetchPeopleResources(
-      accessToken,
-      onPageLoaded: (loadedSoFar) {
-        latestPeople = loadedSoFar;
-        emitProgress();
-      },
-    );
-    final rolesFuture = _fetchRolesIsolated(
-      accessToken: accessToken,
-      onLoadedSoFar: (loadedSoFar) {
-        latestRoles = loadedSoFar;
-        emitProgress();
-      },
-    );
+    final rolesService = _rolesService;
+    final List<HitobitoPersonResource> peopleResources;
+    final _RollenFetchResult rolesResult;
+    if (rolesService == null) {
+      peopleResources = await _peopleService.fetchPeopleResources(
+        accessToken,
+        onPageLoaded: (loadedSoFar) {
+          latestPeople = loadedSoFar;
+          emitProgress();
+        },
+      );
+      rolesResult = const _RollenFetchResult(
+        rollen: <HitobitoPersonRoleResource>[],
+        succeeded: false,
+      );
+    } else {
+      // Nur die Personen des aktiven Layers laden statt aller lesbaren
+      // Personen der Instanz - die App verwirft alle anderen ohnehin in
+      // _extractKontextMitgliedsdaten(). Zum Layer gehoert, wer dort eine
+      // Rolle hat oder dort seine Hauptgruppe hat. Die API kennt keinen
+      // Personenfilter ueber Rollen, deshalb in zwei Schritten:
+      // 1. parallel: Rollen der Layergruppen (liefert die person_ids) und
+      //    Personen mit Hauptgruppe im Layer,
+      // 2. parallel: die noch fehlenden Personen per filter[id] und alle
+      //    Rollen dieser Personen per filter[person_id] (auch Rollen
+      //    ausserhalb des Layers, wie bisher).
+      final layerGruppenIds = _extractLayerGruppenIds(
+        accessibleGroups: resolvedAccessibleGroups,
+        aktiverLayerId: aktuellerKontext.aktiverLayer.id,
+      ).toList()..sort();
+      final layerGruppenFilter = layerGruppenIds.join(',');
 
-    final peopleResources = await peopleFuture;
-    final rolesResult = await rolesFuture;
+      final layerRollenFuture = rolesService.fetchRoleResources(
+        accessToken,
+        filter: <String, String>{'filter[group_id]': layerGruppenFilter},
+      );
+      final hauptgruppenPeopleFuture = _peopleService.fetchPeopleResources(
+        accessToken,
+        filter: <String, String>{
+          'filter[primary_group_id]': layerGruppenFilter,
+        },
+        onPageLoaded: (loadedSoFar) {
+          latestPeople = loadedSoFar;
+          emitProgress();
+        },
+      );
+      await Future.wait<void>(<Future<void>>[
+        layerRollenFuture,
+        hauptgruppenPeopleFuture,
+      ]);
+      final layerRollen = await layerRollenFuture;
+      final hauptgruppenPeople = await hauptgruppenPeopleFuture;
+
+      final bekanntePersonIds = <int>{
+        for (final person in hauptgruppenPeople) person.id,
+      };
+      final fehlendePersonIds = <int>{
+        for (final rolle in layerRollen)
+          if (rolle.personId != null &&
+              !bekanntePersonIds.contains(rolle.personId))
+            rolle.personId!,
+      };
+
+      final weiterePeopleFuture = _fetchPeopleByIds(
+        accessToken: accessToken,
+        personIds: fehlendePersonIds,
+        onLoadedSoFar: (loadedSoFar) {
+          latestPeople = <HitobitoPersonResource>[
+            ...hauptgruppenPeople,
+            ...loadedSoFar,
+          ];
+          emitProgress();
+        },
+      );
+      final rolesFuture = _fetchRolesIsolated(
+        accessToken: accessToken,
+        personIds: <int>{...bekanntePersonIds, ...fehlendePersonIds},
+        onLoadedSoFar: (loadedSoFar) {
+          latestRoles = loadedSoFar;
+          emitProgress();
+        },
+      );
+
+      peopleResources = <HitobitoPersonResource>[
+        ...hauptgruppenPeople,
+        ...await weiterePeopleFuture,
+      ];
+      rolesResult = await rolesFuture;
+    }
 
     final mitgliedsdaten = _extractKontextMitgliedsdaten(
       peopleResources: peopleResources,
@@ -169,21 +234,15 @@ class HitobitoArbeitskontextReadModelRepository
   /// nochmal nach.
   Future<_RollenFetchResult> _fetchRolesIsolated({
     required String accessToken,
+    required Set<int> personIds,
     required void Function(List<HitobitoPersonRoleResource> loadedSoFar)
     onLoadedSoFar,
   }) async {
-    final rolesService = _rolesService;
-    if (rolesService == null) {
-      return const _RollenFetchResult(
-        rollen: <HitobitoPersonRoleResource>[],
-        succeeded: false,
-      );
-    }
-
     try {
-      final rollen = await rolesService.fetchRoleResources(
-        accessToken,
-        onPageLoaded: onLoadedSoFar,
+      final rollen = await _fetchRolesByPersonIds(
+        accessToken: accessToken,
+        personIds: personIds,
+        onLoadedSoFar: onLoadedSoFar,
       );
       return _RollenFetchResult(rollen: rollen, succeeded: true);
     } catch (error, stack) {
@@ -197,6 +256,78 @@ class HitobitoArbeitskontextReadModelRepository
         succeeded: false,
       );
     }
+  }
+
+  /// Hoechstzahl IDs pro gefiltertem Request. Haelt die URL kurz und verteilt
+  /// grosse Layer auf parallele Requests, die der Server gleichzeitig
+  /// bearbeitet.
+  static const int _idsProRequest = 200;
+
+  Future<List<HitobitoPersonResource>> _fetchPeopleByIds({
+    required String accessToken,
+    required Set<int> personIds,
+    required void Function(List<HitobitoPersonResource> loadedSoFar)
+    onLoadedSoFar,
+  }) {
+    return _fetchInIdBloecken<HitobitoPersonResource>(
+      ids: personIds,
+      onLoadedSoFar: onLoadedSoFar,
+      fetch: (idFilter) => _peopleService.fetchPeopleResources(
+        accessToken,
+        filter: <String, String>{'filter[id]': idFilter},
+      ),
+    );
+  }
+
+  Future<List<HitobitoPersonRoleResource>> _fetchRolesByPersonIds({
+    required String accessToken,
+    required Set<int> personIds,
+    void Function(List<HitobitoPersonRoleResource> loadedSoFar)? onLoadedSoFar,
+  }) {
+    final rolesService = _rolesService;
+    if (rolesService == null) {
+      return Future.value(const <HitobitoPersonRoleResource>[]);
+    }
+    return _fetchInIdBloecken<HitobitoPersonRoleResource>(
+      ids: personIds,
+      onLoadedSoFar: onLoadedSoFar,
+      fetch: (idFilter) => rolesService.fetchRoleResources(
+        accessToken,
+        filter: <String, String>{'filter[person_id]': idFilter},
+      ),
+    );
+  }
+
+  /// Laedt [ids] in Bloecken von [_idsProRequest] parallel und meldet nach
+  /// jedem fertigen Block den kumulierten Stand.
+  Future<List<T>> _fetchInIdBloecken<T>({
+    required Set<int> ids,
+    required Future<List<T>> Function(String idFilter) fetch,
+    void Function(List<T> loadedSoFar)? onLoadedSoFar,
+  }) async {
+    if (ids.isEmpty) {
+      return <T>[];
+    }
+    final sortierteIds = ids.toList()..sort();
+    final geladen = <T>[];
+    final bloecke = <Future<void>>[
+      for (var start = 0; start < sortierteIds.length; start += _idsProRequest)
+        fetch(
+          sortierteIds
+              .sublist(
+                start,
+                start + _idsProRequest > sortierteIds.length
+                    ? sortierteIds.length
+                    : start + _idsProRequest,
+              )
+              .join(','),
+        ).then((block) {
+          geladen.addAll(block);
+          onLoadedSoFar?.call(List.unmodifiable(geladen));
+        }),
+    ];
+    await Future.wait<void>(bloecke);
+    return geladen;
   }
 
   @override
@@ -213,7 +344,14 @@ class HitobitoArbeitskontextReadModelRepository
       return readModel;
     }
 
-    final rollen = await rolesService.fetchRoleResources(accessToken);
+    final rollen = await _fetchRolesByPersonIds(
+      accessToken: accessToken,
+      personIds: <int>{
+        for (final mitglied in readModel.mitglieder)
+          if (mitglied.personId != null && mitglied.personId! > 0)
+            mitglied.personId!,
+      },
+    );
     final updated = readModel.copyWith(
       rolesSindGeladen: true,
       mitglieder: _attachRollenZuMitgliedern(
@@ -363,6 +501,23 @@ class HitobitoArbeitskontextReadModelRepository
           group.isLayer ? group.id : _resolveLayerId(group, groupsById),
         ))
           group.id,
+    };
+  }
+
+  /// Der aktive Layer selbst plus alle lesbaren Gruppen darunter, die nicht
+  /// zu einem Unterlayer gehoeren - dieselbe Zuordnung wie in
+  /// _extractKontextMitgliedsdaten().
+  Set<int> _extractLayerGruppenIds({
+    required List<HitobitoGroupResource> accessibleGroups,
+    required int aktiverLayerId,
+  }) {
+    final groupsById = <int, HitobitoGroupResource>{
+      for (final group in accessibleGroups) group.id: group,
+    };
+    return <int>{
+      aktiverLayerId,
+      for (final group in accessibleGroups)
+        if (_resolveLayerId(group, groupsById) == aktiverLayerId) group.id,
     };
   }
 
