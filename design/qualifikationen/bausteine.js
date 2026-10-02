@@ -7,6 +7,7 @@
 
   // Ab Runde 2 gelten die Festlegungen aus Runde 1; die Seite von Runde 1 bleibt unverändert.
   const R2 = (x) => (x?.runde || 1) >= 2;
+  const R3 = (x) => (x?.runde || 1) >= 3;
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const dmy = (s) => { const [y, m, d] = s.split('-'); return `${d}.${m}.${y}`; };
   const PFADE = {
@@ -89,7 +90,7 @@
   }
   function balken(a, hoch = 5) {
     const seg = (n, cls) => (n ? `<i class="${cls}" style="flex:${n}"></i>` : '');
-    if (R2(a)) return `<div class="q-bal" style="height:${hoch}px">${seg(a.ok, 'ok')}${seg(a.bald, 'bald')}${seg(a.ueber + a.fehlt, 'fehlt')}</div>`;
+    if (R2(a)) return `<div class="q-bal" style="height:${hoch}px">${seg(a.ok, 'ok')}${seg(a.bald, 'bald')}${seg(a.ueber + a.fehlt, R3(a) ? 'ueber' : 'fehlt')}</div>`;
     return `<div class="q-bal" style="height:${hoch}px">${seg(a.ok, 'ok')}${seg(a.bald, 'bald')}${seg(a.ueber, 'ueber')}${seg(a.fehlt, 'fehlt')}</div>`;
   }
   function gesperrtKarte(art, variante) {
@@ -144,7 +145,7 @@
     return `<div class="q-pz">${personIcon(x.p)}<div class="q-pzt"><b>${esc(x.p.name)}${x.p.eigene ? ' <span class="q-du">du</span>' : ''}</b><small>${datum} · ${esc(rollenKurz(x.p))}</small></div><span class="spill ${ton}">${text}</span></div>`;
   }
   function detailKopfkarte(a) {
-    return `<div class="card q-dk">${artIcon(a.art, 44)}<div><b class="q-dk-n">${a.erfuellt} von ${a.benoetigt} erfüllt</b><small>${regel(a.art, a.einst)} · ${a.art.quelle === 'app' ? (R2(a) ? 'fest für das EFZ' : 'Gültigkeit in der App eingestellt') : 'Gültigkeit aus Hitobito'}</small><div class="q-status">${statusText(a)}</div></div></div>
+    return `<div class="card q-dk">${artIcon(a.art, 44)}<div><b class="q-dk-n">${a.erfuellt} von ${a.benoetigt} erfüllt</b><small>${regel(a.art, a.einst)}${a.art.quelle === 'app' ? (R3(a) ? '' : R2(a) ? ' · fest für das EFZ' : ' · Gültigkeit in der App eingestellt') : ' · Gültigkeit aus Hitobito'}</small><div class="q-status">${statusText(a)}</div></div></div>
       <div class="q-kreiszeile">${ico('group', 16)}<span>Benötigt von: <b>${esc(a.kreis.label)}</b> · ${a.benoetigt} Personen</span></div>${balken(a, 6)}`;
   }
   function detail(ctx, artId, variante, einstellungen = Q.standard.einstellungen, { alle = false } = {}) {
@@ -223,7 +224,7 @@
         ${radio(einst.umfang === 'alle', 'Von allen im Personenkreis', 'Läuft bei jemandem die Qualifikation ab, wirst du erinnert. Gebündelt, eine Mitteilung pro Tag.')}
         ${radio(einst.umfang === 'meine', 'Nur von mir', 'Nur wenn deine eigene Qualifikation abläuft')}` : ''}
       </div><div class="q-fuss">Gilt auch als Warnschwelle: „demnächst fällig“ ab ${tage || 90} Tagen vorher.</div>`;
-    const gueltig = `${sec('Gültigkeit')}<div class="card q-erin"><div class="q-zeile-e"><span>${regel(art, einst)}</span><small class="q-leise">${art.id === 'efz' ? 'fest für das EFZ' : 'aus Hitobito'}</small></div></div>${art.id === 'efz' ? '<div class="q-fuss">Gerechnet ab dem Ausstellungsdatum der letzten Einsichtnahme.</div>' : ''}`;
+    const gueltig = `${sec('Gültigkeit')}<div class="card q-erin"><div class="q-zeile-e"><span>${regel(art, einst)}</span><small class="q-leise">${art.id === 'efz' ? (R3(ctx) ? '' : 'fest für das EFZ') : 'aus Hitobito'}</small></div></div>${art.id === 'efz' ? '<div class="q-fuss">Gerechnet ab dem Ausstellungsdatum der letzten Einsichtnahme.</div>' : ''}`;
     return `<div class="q-ek">${artIcon(art, 36)}<b>${esc(art.label)}</b></div>
       ${sec('Wer braucht sie?')}${kreisP1(einst)}
       ${sec('Erinnerung')}${erinnerung}

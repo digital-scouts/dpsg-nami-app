@@ -1,6 +1,6 @@
 # Qualifikationen-Übersicht: Anforderungen
 
-Stand: 2026-10-02, in Planung (Entwurfsrunde 2). Diese Spec beschreibt die Erweiterung der Seite „Qualifikationen“ (Einstellungen, Schnellzugriff) von einer reinen EFZ-Liste zu einer konfigurierbaren Übersicht über alle Qualifikationsarten. Die visuellen Entwürfe entstehen in Feedback-Runden unter `design/qualifikationen/`.
+Stand: 2026-10-02, in Planung (Entwürfe freigegeben nach Runde 3). Diese Spec beschreibt die Erweiterung der Seite „Qualifikationen“ (Einstellungen, Schnellzugriff) von einer reinen EFZ-Liste zu einer konfigurierbaren Übersicht über alle Qualifikationsarten. Die visuellen Entwürfe entstehen in Feedback-Runden unter `design/qualifikationen/`.
 
 ## Ausgangslage
 
@@ -26,7 +26,7 @@ Ein Zahnrad öffnet die Einstellungen der Qualifikation, ein „+“ fügt eine 
 **Übersicht** (Entwurf U3)
 - Je angezeigter Qualifikation eine Zeile in einer gemeinsamen Karte: Symbol, Name, Regelmäßigkeit, „n fehlen · n bald“, Balken, „erfüllt / benötigt“.
 - Status:
-  - Fehlt und abgelaufen zählen gemeinsam als „fehlt“ und sehen im Balken gleich aus (rot schraffiert).
+  - Fehlt und abgelaufen zählen gemeinsam als „fehlt“ und sind im Balken rot.
   - „Demnächst fällig“ ist orange und beginnt beim Erinnerungs-Vorlauf der Qualifikation.
   - „Erfüllt“ zählt gültig und demnächst fällig.
 - Ein Tipp auf eine Zeile öffnet die Personenliste mit dem Umschalter „Handlungsbedarf / Alle“ (Entwurf D2).
@@ -51,7 +51,7 @@ Ein Zahnrad öffnet die Einstellungen der Qualifikation, ein „+“ fügt eine 
 
 **Gültigkeit**
 - Sie kommt aus Hitobito: `validity` der Art, `finish_at` der Qualifikation.
-- Das EFZ gilt fest 5 Jahre ab dem Ausstellungsdatum der letzten Einsichtnahme (`efzQualifikationsart.gueltigkeitsjahre`), nicht einstellbar.
+- Das EFZ gilt fest 5 Jahre ab dem Ausstellungsdatum der letzten Einsichtnahme (`efzQualifikationsart.gueltigkeitsjahre`), nicht einstellbar und ohne Zusatz. Bei Hitobito-Arten steht „aus Hitobito“.
 
 **Erinnerungen auf der Quali-Seite**
 - Je Qualifikation einstellbar: frei wählbare Tage vorher oder keine Erinnerung.
