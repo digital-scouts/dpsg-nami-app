@@ -69,6 +69,25 @@ Nächste Aufgaben:
 
 Gesammelt am 2026-10-01, jeweils mit Kurzbefund. Jede Stufe wird vor der Umsetzung eigens geplant.
 
+**Sync weiter beschleunigen**
+
+- Messung vom 2026-10-02 auf dpsg.puzzle.ch im Simulator, Stamm mit 27 Mitgliedern:
+
+  | Stand | Pull-to-Refresh |
+  |---|---|
+  | Ausgangsstand: Seiten zu 20, ohne Sortierung, alle 404 lesbaren Personen | 30–32 s, 48 Requests |
+  | `page[size]=1000` und `sort=id` | 11–12 s |
+  | zusätzlich serverseitig auf den Layer gefiltert | 3–4 s |
+
+- Seit dem Filter fragt die App Personen und Rollen nur noch für den aktiven Layer ab, mit `filter[group_id]`, `filter[primary_group_id]`, `filter[id]` und `filter[person_id]`. ID-Listen gehen in parallelen Blöcken zu je 200 raus.
+- Der größte Stamm hat ca. 377 Mitglieder, bei etwa 25 ms Serverzeit pro Person sind das 2 parallele Blöcke. Dort noch einmal messen.
+- Weiterer möglicher Schritt: `fields[people]` auf die Attribute beschränken, die die App nutzt. So entfallen z. B. die Bankdaten und je nach Bedarf `picture`, das pro Person eine URL berechnet.
+- Delta-Sync, Befunde zur API (Hitobito-Core):
+  - Hitobito bietet keine globale Version und kein ETag, nur `filter[updated_at]` auf `people`, `roles` und `groups`.
+  - Ändern sich Telefonnummern, Zusatzmails oder Zusatzadressen, ändert sich das `updated_at` der Person nicht.
+  - Gelöschte Rollen (paranoid) und Personen, die aus der Sichtbarkeit herausfallen, liefert kein Filter.
+  - Verlässlich wäre nur ein Manifest-Abgleich: IDs und `updated_at` per `fields[people]`/`fields[roles]` laden, neue oder geänderte Personen per `filter[id]` nachholen, fehlende IDs entfernen. Dazu bräuchte es weiterhin einen periodischen Vollsync für die Kontaktdaten.
+
 **Statistik klickbar („Hinter den Kacheln“)**
 
 - Erster Schritt: Ein Tipp auf eine Kachel öffnet die gefilterte Mitgliederliste.

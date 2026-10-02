@@ -4,8 +4,8 @@ import 'package:flutter/scheduler.dart';
 import '../../domain/appearance/appearance_catalog.dart';
 import 'supporter_background.dart';
 
-/// Legt die Header-Flaeche durchgehend vom oberen Rand (hinter Safe Area,
-/// Banner und Lade-Info) bis zur Unterkante des Bereichs, den ein
+/// Legt die Header-Flaeche durchgehend vom oberen Rand (hinter Safe Area und
+/// Banner) bis zur Unterkante des Bereichs, den ein
 /// [SupporterBackdropAnchor] markiert, z. B. den Listen-Header. Mit
 /// Supporter-Hintergrund animiert, sonst schlicht in `surface`.
 class SupporterBackdrop extends StatefulWidget {

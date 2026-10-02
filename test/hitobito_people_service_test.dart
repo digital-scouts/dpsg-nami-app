@@ -371,7 +371,9 @@ void main() {
   test(
     'ruft onPageLoaded nach jeder Pagination-Seite mit kumulativ wachsender Liste auf',
     () async {
+      final requestedUris = <Uri>[];
       final client = MockClient((request) async {
+        requestedUris.add(request.url);
         if (request.url.queryParameters['page'] == '2') {
           return http.Response(
             '''
@@ -417,11 +419,20 @@ void main() {
       final progressSnapshots = <int>[];
       final resources = await service.fetchPeopleResources(
         'token-123',
+        filter: const <String, String>{'filter[id]': '23,24'},
         onPageLoaded: (loadedSoFar) =>
             progressSnapshots.add(loadedSoFar.length),
       );
 
       expect(progressSnapshots, [1, 2]);
+      expect(requestedUris, hasLength(2));
+      expect(requestedUris.first.queryParameters['page[size]'], '1000');
+      expect(requestedUris.last.queryParameters['page'], '2');
+      expect(requestedUris.last.queryParameters['page[size]'], '1000');
+      expect(requestedUris.first.queryParameters['sort'], 'id');
+      expect(requestedUris.last.queryParameters['sort'], 'id');
+      expect(requestedUris.first.queryParameters['filter[id]'], '23,24');
+      expect(requestedUris.last.queryParameters['filter[id]'], '23,24');
       expect(resources, hasLength(2));
       expect(resources.first.firstName, 'Julia');
       expect(resources.last.firstName, 'Max');
