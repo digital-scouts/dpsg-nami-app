@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../domain/arbeitskontext/teildaten_stand.dart';
 import '../../domain/member/mitglied.dart';
 import '../../domain/qualifikation/ermittle_qualifikations_uebersicht_usecase.dart';
+import '../../domain/qualifikation/qualifikations_einstellungen.dart';
 import '../../domain/qualifikation/qualifikations_status.dart';
 import '../../domain/qualifikation/qualifikationsart.dart';
 import '../../l10n/app_localizations.dart';
@@ -75,9 +76,9 @@ class _SettingsQualifikationenPageState
         TeildatenStand.geladen => _QualifikationenContent(
           eintraege: _useCase(
             readModel: readModel!,
-            einsichtnahmen: readModel.efzEinsichtnahmen,
-            qualifikationsart: _selectedQualifikationsart,
-          ),
+            einstellungen: const QualifikationsEinstellungen(),
+            heute: DateTime.now(),
+          ).first.eintraege,
           selectedQualifikationsart: _selectedQualifikationsart,
           onQualifikationsartChanged: (art) =>
               setState(() => _selectedQualifikationsart = art),
@@ -96,7 +97,7 @@ class _QualifikationenContent extends StatelessWidget {
     required this.onMemberTap,
   });
 
-  final List<QualifikationsUebersichtEintrag> eintraege;
+  final List<UebersichtEintrag> eintraege;
   final Qualifikationsart selectedQualifikationsart;
   final ValueChanged<Qualifikationsart> onQualifikationsartChanged;
   final ValueChanged<Mitglied> onMemberTap;
@@ -190,7 +191,7 @@ class _QualifikationenContent extends StatelessWidget {
 class _QualifikationEintragRow extends StatelessWidget {
   const _QualifikationEintragRow({required this.eintrag, required this.onTap});
 
-  final QualifikationsUebersichtEintrag eintrag;
+  final UebersichtEintrag eintrag;
   final VoidCallback onTap;
 
   static final _dateFormat = DateFormat('dd.MM.yyyy');
