@@ -33,6 +33,21 @@
   const plural = (n, eins, viele) => `${n} ${n === 1 ? eins : viele}`;
   // Ab Runde 2 gelten die Festlegungen aus Runde 1; ältere Runden-Seiten bleiben unverändert.
   const R2 = (ctx) => (ctx.runde || 1) >= 2;
+  const R3 = (ctx) => (ctx.runde || 1) >= 3;
+  const MONATE_LANG = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+  // Nächster Geburtstag ab dem Stichtag; liefert Tage bis dahin.
+  function naechsterGeburtstag(geb) {
+    const [, m, d] = geb.split('-').map(Number);
+    const j = Number(heuteIso.slice(0, 4));
+    let ziel = Date.UTC(j, m - 1, d);
+    if (ziel < HEUTE) ziel = Date.UTC(j + 1, m - 1, d);
+    return { tage: Math.round((ziel - HEUTE) / TAG), text: `${d}. ${MONATE_LANG[m - 1]}` };
+  }
+  // Altersgrenzen wie StufenDefaults.build() in lib/domain/stufe/altersgrenzen.dart.
+  const ALTER_MIN = { biber: 4, woe: 6, jufi: 9, pfadi: 12, rover: 15 };
+  const ROVER_MAX = 20;
+  const NAECHSTE = { biber: 'woe', woe: 'jufi', jufi: 'pfadi', pfadi: 'rover' };
+  const ZIELNAME = { woe: 'den Wölflingen', jufi: 'den Jufis', pfadi: 'den Pfadis', rover: 'den Rovern' };
 
   // ------------------------------------------------------------- Symbole
   const PFADE = {
@@ -163,7 +178,10 @@
     const fakten = [];
     if (p.geburtsdatum) fakten.push(`${alter(p.geburtsdatum)} Jahre`);
     if (p.pronomen) fakten.push(p.pronomen);
-    fakten.push(p.austritt ? `ausgetreten ${my(p.austritt)}` : `seit ${dauer(p.eintritt)} dabei`);
+    if (R3(ctx)) {
+      if (p.geschlecht) fakten.push(p.geschlecht);
+      if (p.austritt) fakten.push(`ausgetreten ${jahr(p.austritt)}`);
+    } else fakten.push(p.austritt ? `ausgetreten ${my(p.austritt)}` : `seit ${dauer(p.eintritt)} dabei`);
     const efz = efzInfo(p.efz, ctx);
     return `<header class="ab steck">
       <div class="ab-row">${ico('back', 22)}<span class="grow"></span>${ico('edit', 20, 'muted')}</div>
@@ -281,6 +299,7 @@
     if (konfession) z.push(zeile('<span class="platzhalter">noch nicht verfügbar</span>', 'Konfession', { icon: i('person'), klasse: 'blass' }));
     return z.join('');
   }
+  const faktKacheln = (fakten) => `<div class="fakten">${fakten.map(([w, e, l]) => `<div class="fakt"><b>${esc(w)}${e ? ` <small>${e}</small>` : ''}</b><span>${esc(l)}</span></div>`).join('')}</div>`;
   const AKTIONEN = (p) => `<div class="qa"><span class="${p.telefon.length ? '' : 'aus'}">${ico('phone', 17)}Anrufen</span><span class="${p.mail.length ? '' : 'aus'}">${ico('mail', 17)}E-Mail</span><span>${ico('edit', 17)}Bearbeiten</span></div>`;
   const sec = (x, n) => `<div class="sec">${x}${n != null ? ` <span class="n">${n}</span>` : ''}</div>`;
   const austrittsBanner = (p) => (p.austritt ? `<div class="banner">${ico('clock', 17)}Ausgetreten zum ${dmy(p.austritt)}</div>` : '');
@@ -295,16 +314,18 @@
         ${sec(`Über ${esc(p.fahrtenname || p.vorname)}`)}<div class="card">${persoenlichZeilen(p, true, { konfession: !R2(ctx) })}${mitgliedschaftsZeilen(p, true)}</div>`;
     }
     if (v === 'D3') {
+      const ng = p.geburtsdatum ? naechsterGeburtstag(p.geburtsdatum) : null;
+      const gebKachel = !ng ? ['–', '', 'Geburtstag unbekannt'] : [ng.text, '', ng.tage === 0 ? 'heute Geburtstag' : ng.tage <= 31 ? `in ${plural(ng.tage, 'Tag', 'Tagen')} · wird ${alter(p.geburtsdatum) + 1}` : `Geburtstag in ${plural(Math.round(ng.tage / 30.44), 'Monat', 'Monaten')}`];
       const fakten = [
-        p.geburtsdatum ? [`${alter(p.geburtsdatum)}`, 'Jahre', `Geb. ${dmy(p.geburtsdatum)}`] : ['–', '', 'Geburtstag unbekannt'],
+        R3(ctx) ? gebKachel : p.geburtsdatum ? [`${alter(p.geburtsdatum)}`, 'Jahre', `Geb. ${dmy(p.geburtsdatum)}`] : ['–', '', 'Geburtstag unbekannt'],
         p.austritt ? [faktDauer(p.eintritt, p.austritt), '', `${jahr(p.eintritt)}–${jahr(p.austritt)} dabei`] : [faktDauer(p.eintritt, heuteIso), '', `dabei seit ${dmy(p.eintritt)}`],
       ];
       return `${austrittsBanner(p)}
-        <div class="fakten">${fakten.map(([w, e, l]) => `<div class="fakt"><b>${esc(w)}${e ? ` <small>${e}</small>` : ''}</b><span>${esc(l)}</span></div>`).join('')}</div>
+        ${faktKacheln(fakten)}
         ${p.haushalt.length ? `${sec('Familie im Stamm')}${familie(p, { chips: true })}` : ''}
         ${sec('Kontakt')}<div class="card">${kontaktListe(p, ctx, { icons: true, aktionen: true, zuerst: 1 })}</div>
         ${p.adressen.length ? `${sec('Adresse')}${adressKarte(p, ctx, {})}` : ''}
-        ${sec('Details')}<div class="card zwei">${persoenlichZeilen(p, false, { ohneAlter: true, konfession: !R2(ctx) })}${mitgliedschaftsZeilen(p, false, { ohneDauer: true })}</div>`;
+        ${sec('Details')}<div class="card zwei">${R3(ctx) ? '' : persoenlichZeilen(p, false, { ohneAlter: true, konfession: !R2(ctx) })}${mitgliedschaftsZeilen(p, false, { ohneDauer: true })}</div>`;
     }
     return `${austrittsBanner(p)}${AKTIONEN(p)}
       ${sec('Persönliche Daten')}<div class="card">${persoenlichZeilen(p, false, { konfession: !R2(ctx) })}</div>
@@ -562,7 +583,7 @@
     const leitStufen = [...new Set(k.iv.filter((s) => s.art === 'l' && s.stufe).map((s) => s.stufe))];
     const kacheln = [
       [k.dabeiKurz, p.austritt ? 'dabei gewesen' : 'dabei', `seit ${jahr(p.eintritt)}`],
-      [k.leitJahre >= 1 ? `${Math.round(k.leitJahre)} J.` : k.leitJahre > 0 ? '<1 J.' : '–', 'in der Leitung', leitStufen.length ? leitStufen.map((s) => D.stufen[s].kurz).join(', ') : 'noch nicht'],
+      zweite || [k.leitJahre >= 1 ? `${Math.round(k.leitJahre)} J.` : k.leitJahre > 0 ? '<1 J.' : '–', 'in der Leitung', leitStufen.length ? leitStufen.map((s) => D.stufen[s].kurz).join(', ') : 'noch nicht'],
       [`${k.stufenM.filter((s) => alleStufen.includes(s)).length}/4`, 'Stufen', ctx.historie ? 'durchlaufen' : 'bekannt'],
     ];
     const pfad = alleStufen.map((s) => {
@@ -577,11 +598,30 @@
   function kennKacheln(p, ctx, k) {
     const leitStufen = [...new Set(k.iv.filter((s) => s.art === 'l' && s.stufe).map((s) => s.stufe))];
     const stufen = k.stufenM.filter((s) => ['woe', 'jufi', 'pfadi', 'rover'].includes(s)).length;
+    const zweite = R3(ctx) && k.leitJahre === 0 ? stufenwechselKachel(p, ctx) : null;
     return [
       [faktDauer(p.eintritt, p.austritt || heuteIso), p.austritt ? 'dabei gewesen' : 'dabei', p.austritt ? `${jahr(p.eintritt)}–${jahr(p.austritt)}` : `seit ${jahr(p.eintritt)}`],
-      [k.leitJahre >= 1 ? `${Math.round(k.leitJahre)} J.` : k.leitJahre > 0 ? '<1 J.' : '–', 'in der Leitung', leitStufen.length ? leitStufen.map((s) => D.stufen[s].kurz).join(', ') : 'noch nicht'],
+      zweite || [k.leitJahre >= 1 ? `${Math.round(k.leitJahre)} J.` : k.leitJahre > 0 ? '<1 J.' : '–', 'in der Leitung', leitStufen.length ? leitStufen.map((s) => D.stufen[s].kurz).join(', ') : 'noch nicht'],
       [`${stufen}/4`, 'Stufen', ctx.historie ? 'durchlaufen' : 'bekannt'],
     ].map(([w, l, s]) => `<div class="stat"><div class="stat-val">${esc(w)}</div><div class="stat-lab">${esc(l)}</div><div class="stat-sub">${esc(s)}</div></div>`).join('');
+  }
+  // Nächster Stufenwechsel wie ErmittleStufenwechselVorschlaegeUseCase: fällig ab Geburtsjahr + Mindestalter der Zielstufe.
+  function stufenwechselKachel(p, ctx) {
+    if (!p.geburtsdatum || p.austritt) return null;
+    const aktiv = p.rollen.filter((r) => status(r) === 'aktiv' && r.art === 'm' && r.stufe);
+    if (!aktiv.length) return null;
+    const st = aktiv.sort((a, b) => RANG[a.stufe] - RANG[b.stufe])[0].stufe;
+    const gebJahr = Number(jahr(p.geburtsdatum));
+    const jetzt = Number(heuteIso.slice(0, 4));
+    if (st === 'rover') {
+      const ende = gebJahr + ROVER_MAX;
+      return [String(ende), 'Ende Roverzeit', 'mit 20 Jahren'];
+    }
+    const ziel = NAECHSTE[st];
+    if (aktiv.some((r) => r.stufe === ziel)) return ['läuft', 'Wechsel', `zu ${ZIELNAME[ziel]}`];
+    const faellig = gebJahr + ALTER_MIN[ziel];
+    if (faellig <= jetzt) return ['jetzt', 'Wechsel möglich', `zu ${ZIELNAME[ziel]}`];
+    return [String(faellig), 'nächster Wechsel', `zu ${ZIELNAME[ziel]}`];
   }
   function verlaufKombi(p, ctx, k, v) {
     const diagramm = k.jung ? '<div class="foot muted">Der Verlauf wächst mit jeder Stufe.</div>' : verlaufBand(p, ctx, k, { nurDiagramm: true });
@@ -610,7 +650,8 @@
     const i = efzInfo(p.efz, ctx);
     const darfLaden = !['verboten'].includes(ctx.efzZustand || p.efz.status);
     if (v === 'E2') {
-      return `<div class="card efz e2"><div class="zl"><span class="dotbig ${i.ton}"></span><div class="zl-t"><div class="zl-l oben">Erweitertes Führungszeugnis</div><div class="zl-w">${i.zeile}</div>${i.detail ? `<div class="zl-l">${i.detail}</div>` : ''}</div></div>${darfLaden ? `<div class="linkzeile">${ico('download', 17)}Antragsunterlagen herunterladen</div>` : ''}</div>`;
+      const knopf = R3(ctx) && darfLaden ? `<span class="rund" title="Antragsunterlagen herunterladen">${ico('download', 17)}</span>` : '';
+      return `<div class="card efz e2"><div class="zl"><span class="dotbig ${i.ton}"></span><div class="zl-t"><div class="zl-l oben">Erweitertes Führungszeugnis</div><div class="zl-w">${i.zeile}</div>${i.detail ? `<div class="zl-l">${i.detail}</div>` : ''}</div>${knopf}</div>${darfLaden && !R3(ctx) ? `<div class="linkzeile">${ico('download', 17)}Antragsunterlagen herunterladen</div>` : ''}</div>`;
     }
     if (v === 'E3') {
       const knapp = i.ton === 'gut' || i.ton === 'warn' ? i.zeile.replace('Gültig bis', 'bis') : i.zeile;
@@ -663,7 +704,7 @@
   }
 
   window.MBAU = {
-    esc, ico, telefon, panel, kopf, seite, bildschirm, datenTab, rollenTab, qualiTab,
+    esc, ico, telefon, panel, naechsterGeburtstag, kopf, seite, bildschirm, datenTab, rollenTab, qualiTab,
     adressKarte, karte, verlauf, rollenListe, efzZeile, qualiListe, sec, TABS,
   };
 })();
