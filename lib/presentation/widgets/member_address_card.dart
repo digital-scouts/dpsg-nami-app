@@ -8,6 +8,7 @@ import 'package:nami/domain/settings/address_settings_repository.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/notifications/app_snackbar.dart';
 import 'package:nami/presentation/widgets/address_map_preview.dart';
+import 'package:nami/presentation/widgets/member_basis_info_card.dart';
 import 'package:nami/services/geoapify_address_map_service.dart';
 import 'package:nami/services/map_tile_cache_service.dart';
 import 'package:nami/services/maps_env.dart';
@@ -23,7 +24,8 @@ Future<bool> _launchMapQuery(String query) async {
   }
 }
 
-class MemberAddressCard extends StatelessWidget {
+/// Hauptadresse mit Kartenvorschau; Zusatzadressen sind eingeklappt.
+class MemberAddressCard extends StatefulWidget {
   const MemberAddressCard({
     super.key,
     required this.mitglied,
@@ -44,19 +46,22 @@ class MemberAddressCard extends StatelessWidget {
   final Future<bool> Function(String addressQuery)? onLaunchAddress;
 
   @override
+  State<MemberAddressCard> createState() => _MemberAddressCardState();
+}
+
+class _MemberAddressCardState extends State<MemberAddressCard> {
+  bool _offen = false;
+
+  @override
   Widget build(BuildContext context) {
-    final address = mitglied.primaryAddress;
-    if (address == null) {
+    final address = widget.mitglied.primaryAddress;
+    final weitere = widget.mitglied.additionalAddresses
+        .where((adresse) => !adresse.istLeer)
+        .toList(growable: false);
+    if (address == null && weitere.isEmpty) {
       return const SizedBox.shrink();
     }
-
-    final formattedAddress = MemberAddressUtils.formatCompactDisplayAddress(
-      address,
-    );
-    final mapQueryAddress = MemberAddressUtils.formatMapQueryAddress(address);
-    final addressFingerprint = MemberAddressUtils.fingerprint(address);
-    final stammRepository =
-        addressSettingsRepository ?? SharedPrefsAddressSettingsRepository();
+    final t = AppLocalizations.of(context);
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -67,48 +72,126 @@ class MemberAddressCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ListTile(
-            dense: true,
-            leading: const Icon(Icons.location_on, size: 20),
-            title: _AddressLink(
-              displayAddress: formattedAddress,
-              queryAddress: mapQueryAddress,
-              onLaunchAddress: onLaunchAddress,
+          if (address != null) ...[
+            _AdressZeile(
+              adresse: address,
+              label: t.t('member_address_wohnort'),
+              icon: Icons.location_on,
+              onLaunchAddress: widget.onLaunchAddress,
             ),
-            subtitle: const Text('Wohnort'),
-          ),
-          FutureBuilder<String?>(
-            future: stammRepository.loadAddress(),
-            builder: (context, snapshot) {
-              final stammAddress = snapshot.data?.trim();
-              final stammFingerprint = (stammAddress?.isNotEmpty ?? false)
-                  ? MemberAddressUtils.fingerprintFromText(stammAddress!)
-                  : null;
-              return AddressMapPreview(
-                addressText: MemberAddressUtils.formatSingleLineAddress(
-                  address,
+            _karte(context, address),
+          ],
+          if (weitere.isNotEmpty) ...[
+            if (_offen || address == null)
+              for (final adresse in weitere)
+                _AdressZeile(
+                  adresse: adresse,
+                  label: adresse.label?.trim().isNotEmpty == true
+                      ? adresse.label!.trim()
+                      : t.t('member_address_wohnort'),
+                  icon: Icons.place_outlined,
+                  onLaunchAddress: widget.onLaunchAddress,
                 ),
-                cacheKey: addressFingerprint,
-                addressFingerprint: addressFingerprint,
-                secondaryAddressText: (stammAddress?.isNotEmpty ?? false)
-                    ? stammAddress
-                    : null,
-                secondaryCacheKey: stammFingerprint,
-                secondaryAddressFingerprint: stammFingerprint,
-                previewTimeout: previewTimeout ?? const Duration(seconds: 5),
-                repository: addressLocationRepository,
-                mapService: mapService,
-                tileCacheService: tileCacheService,
-                offlineDownloadRadiusKm: MapsEnv.memberOfflineRadiusKm,
-                height: 186,
-                borderRadius: const BorderRadius.vertical(
-                  bottom: Radius.circular(_memberAddressCardRadius),
-                ),
-              );
-            },
-          ),
+            if (address != null)
+              MemberAufklappZeile(
+                offen: _offen,
+                text: _offen
+                    ? t.t('member_contact_less')
+                    : weitere.length == 1
+                    ? t.t('member_address_more_one')
+                    : t.t('member_address_more', {'n': weitere.length}),
+                onTap: () => setState(() => _offen = !_offen),
+              ),
+          ],
         ],
       ),
+    );
+  }
+
+  Widget _karte(BuildContext context, MitgliedKontaktAdresse address) {
+    final addressFingerprint = MemberAddressUtils.fingerprint(address);
+    final mapQueryAddress = MemberAddressUtils.formatMapQueryAddress(address);
+    final stammRepository =
+        widget.addressSettingsRepository ??
+        SharedPrefsAddressSettingsRepository();
+    final weitereVorhanden = widget.mitglied.additionalAddresses.any(
+      (adresse) => !adresse.istLeer,
+    );
+    return FutureBuilder<String?>(
+      future: stammRepository.loadAddress(),
+      builder: (context, snapshot) {
+        final stammAddress = snapshot.data?.trim();
+        final stammFingerprint = (stammAddress?.isNotEmpty ?? false)
+            ? MemberAddressUtils.fingerprintFromText(stammAddress!)
+            : null;
+        return AddressMapPreview(
+          addressText: MemberAddressUtils.formatSingleLineAddress(address),
+          cacheKey: addressFingerprint,
+          addressFingerprint: addressFingerprint,
+          secondaryAddressText: (stammAddress?.isNotEmpty ?? false)
+              ? stammAddress
+              : null,
+          secondaryCacheKey: stammFingerprint,
+          secondaryAddressFingerprint: stammFingerprint,
+          previewTimeout: widget.previewTimeout ?? const Duration(seconds: 5),
+          repository: widget.addressLocationRepository,
+          mapService: widget.mapService,
+          tileCacheService: widget.tileCacheService,
+          offlineDownloadRadiusKm: MapsEnv.memberOfflineRadiusKm,
+          height: 186,
+          borderRadius: weitereVorhanden
+              ? BorderRadius.zero
+              : const BorderRadius.vertical(
+                  bottom: Radius.circular(_memberAddressCardRadius),
+                ),
+          onOpenInMaps: mapQueryAddress.isEmpty
+              ? null
+              : () => _openInMaps(context, mapQueryAddress),
+        );
+      },
+    );
+  }
+
+  Future<void> _openInMaps(BuildContext context, String query) async {
+    final launch = widget.onLaunchAddress ?? _launchMapQuery;
+    final success = await launch(query);
+    if (!context.mounted || success) {
+      return;
+    }
+    AppSnackbar.show(
+      context,
+      message: AppLocalizations.of(
+        context,
+      ).t('member_address_open_maps_failed'),
+      type: AppSnackbarType.error,
+    );
+  }
+}
+
+class _AdressZeile extends StatelessWidget {
+  const _AdressZeile({
+    required this.adresse,
+    required this.label,
+    required this.icon,
+    this.onLaunchAddress,
+  });
+
+  final MitgliedKontaktAdresse adresse;
+  final String label;
+  final IconData icon;
+  final Future<bool> Function(String addressQuery)? onLaunchAddress;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      dense: true,
+      leading: Icon(icon, size: 20),
+      title: _AddressLink(
+        displayAddress: MemberAddressUtils.formatCompactDisplayAddress(adresse),
+        queryAddress: MemberAddressUtils.formatMapQueryAddress(adresse),
+        onLaunchAddress: onLaunchAddress,
+      ),
+      subtitle: Text(label),
     );
   }
 }

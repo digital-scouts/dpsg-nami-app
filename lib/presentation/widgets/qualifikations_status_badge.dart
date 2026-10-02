@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/qualifikation/qualifikations_status.dart';
+import '../theme/status_farben.dart';
 
 class QualifikationsStatusBadge extends StatelessWidget {
   const QualifikationsStatusBadge({super.key, required this.status});
@@ -9,12 +10,12 @@ class QualifikationsStatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final farben = StatusFarben.of(context);
     final (label, color) = switch (status) {
-      QualifikationsStatus.gueltig => ('Gültig', Colors.green),
-      QualifikationsStatus.baldAblaufend => ('Bald ablaufend', Colors.orange),
-      QualifikationsStatus.abgelaufen => ('Abgelaufen', colorScheme.error),
-      QualifikationsStatus.fehlt => ('Fehlt', colorScheme.error),
+      QualifikationsStatus.gueltig => ('Gültig', farben.gut),
+      QualifikationsStatus.baldAblaufend => ('Bald ablaufend', farben.warnung),
+      QualifikationsStatus.abgelaufen => ('Abgelaufen', farben.kritisch),
+      QualifikationsStatus.fehlt => ('Fehlt', farben.kritisch),
     };
 
     return Container(

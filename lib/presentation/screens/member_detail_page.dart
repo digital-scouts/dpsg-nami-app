@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../domain/appearance/appearance_catalog.dart';
 import '../../domain/arbeitskontext/arbeitskontext_read_model.dart';
@@ -11,9 +10,6 @@ import '../../domain/member/pending_person_update.dart';
 import '../../domain/member_filters/beitragsart.dart';
 import '../../domain/member_filters/usecases/ermittle_beitragsart_im_arbeitskontext_usecase.dart';
 import '../../domain/settings/address_settings_repository.dart';
-import '../../domain/taetigkeit/klassifiziere_mitglied_usecase.dart';
-import '../../domain/taetigkeit/roles.dart';
-import '../../domain/taetigkeit/stufe.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/geoapify_address_map_service.dart';
 import '../../services/map_tile_cache_service.dart';
@@ -22,11 +18,11 @@ import '../model/arbeitskontext_model.dart';
 import '../model/auth_session_model.dart';
 import '../model/member_edit_model.dart';
 import '../notifications/app_snackbar.dart';
-import '../stufe/stufe_visuals.dart';
 import '../widgets/efz_status_section.dart';
 import '../widgets/member_basis.dart';
 import '../widgets/member_roles_list.dart';
-import '../widgets/supporter_badge.dart';
+import '../navigation/app_router.dart';
+import '../widgets/member_detail/member_steckbrief_kopf.dart';
 import 'member_edit_page.dart';
 
 class MemberDetailPage extends StatefulWidget {
@@ -38,6 +34,7 @@ class MemberDetailPage extends StatefulWidget {
     this.addressSettingsRepository,
     this.tileCacheService,
     this.previewTimeout,
+    this.heuteProvider,
   });
 
   final Mitglied mitglied;
@@ -47,6 +44,9 @@ class MemberDetailPage extends StatefulWidget {
   final MapTileCacheService? tileCacheService;
   final Duration? previewTimeout;
 
+  /// Liefert das heutige Datum; in Tests fest vorgegeben.
+  final DateTime Function()? heuteProvider;
+
   @override
   State<MemberDetailPage> createState() => _MemberDetailPageState();
 }
@@ -55,12 +55,8 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
   static const ErmittleBeitragsartImArbeitskontextUseCase
   _ermittleBeitragsartImArbeitskontextUseCase =
       ErmittleBeitragsartImArbeitskontextUseCase();
-  static const KlassifiziereMitgliedUseCase _klassifiziereMitgliedUseCase =
-      KlassifiziereMitgliedUseCase();
 
   bool _isPreparingEdit = false;
-
-  static const _quickActionSpacing = 8.0;
 
   Future<void> _openEditPage(
     Mitglied mitglied, {
@@ -220,110 +216,37 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
     AppSnackbar.show(context, message: message, type: type);
   }
 
-  Future<void> _launchQuickPhone(Mitglied mitglied) async {
-    final options = mitglied.telefonnummern
-        .where((entry) => entry.wert.trim().isNotEmpty)
-        .map(
-          (entry) => _ContactOption(
-            label:
-                entry.label ??
-                AppLocalizations.of(context).t('member_info_default_phone'),
-            value: entry.wert,
-          ),
-        )
-        .toList(growable: false);
-    await _launchQuickContact(
-      options: options,
-      emptyMessage: 'Keine Telefonnummer vorhanden',
-      scheme: 'tel',
-    );
+  DateTime _heute() {
+    final jetzt = widget.heuteProvider?.call() ?? DateTime.now();
+    return DateTime(jetzt.year, jetzt.month, jetzt.day);
   }
 
-  Future<void> _launchQuickMail(Mitglied mitglied) async {
-    final options = mitglied.emailAdressen
-        .where((entry) => entry.wert.trim().isNotEmpty)
-        .map(
-          (entry) => _ContactOption(
-            label:
-                entry.label ??
-                AppLocalizations.of(context).t('member_info_default_email'),
-            value: entry.wert,
-          ),
-        )
-        .toList(growable: false);
-    await _launchQuickContact(
-      options: options,
-      emptyMessage: 'Keine E-Mail-Adresse vorhanden',
-      scheme: 'mailto',
-    );
+  /// Eigenes Supporter-Badge; Badges anderer folgen mit der Synchronisation.
+  SupporterBadgeId? _ownBadge(BuildContext context, Mitglied mitglied) {
+    final ownId = _maybeWatch<AuthSessionModel>(context)?.profile?.namiId;
+    if (ownId == null || mitglied.personId != ownId) {
+      return null;
+    }
+    return _maybeWatch<AppearanceModel>(context)?.badge;
   }
 
-  Future<void> _launchQuickContact({
-    required List<_ContactOption> options,
-    required String emptyMessage,
-    required String scheme,
-  }) async {
-    if (options.isEmpty) {
-      _showMessage(emptyMessage, type: AppSnackbarType.info);
-      return;
-    }
-
-    _ContactOption selected;
-    if (options.length == 1) {
-      selected = options.first;
-    } else {
-      final chosen = await showModalBottomSheet<_ContactOption>(
-        context: context,
-        showDragHandle: true,
-        builder: (context) {
-          return SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ListTile(
-                  title: Text(
-                    scheme == 'tel'
-                        ? 'Telefonnummer auswählen'
-                        : 'E-Mail auswählen',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-                for (final option in options)
-                  ListTile(
-                    leading: Icon(
-                      scheme == 'tel' ? Icons.phone_outlined : Icons.email,
-                    ),
-                    title: Text('${option.label} - ${option.value}'),
-                    onTap: () => Navigator.of(context).pop(option),
-                  ),
-                const SizedBox(height: 6),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Abbrechen'),
-                ),
-                const SizedBox(height: 10),
-              ],
-            ),
-          );
-        },
-      );
-      if (!mounted || chosen == null) {
-        return;
-      }
-      selected = chosen;
-    }
-
-    final uri = Uri(scheme: scheme, path: selected.value).toString();
-    if (await canLaunchUrlString(uri)) {
-      await launchUrlString(uri);
-      return;
-    }
-    if (!mounted) {
-      return;
-    }
-    _showMessage(
-      AppLocalizations.of(context).t('member_info_link_open_failed'),
-      type: AppSnackbarType.error,
+  Future<void> _openHaushaltsmitglied(Mitglied mitglied) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        settings: RouteSettings(
+          name: AppRoutes.memberDetail,
+          arguments: mitglied.mitgliedsnummer,
+        ),
+        builder: (_) => MemberDetailPage(
+          mitglied: mitglied,
+          addressLocationRepository: widget.addressLocationRepository,
+          mapService: widget.mapService,
+          addressSettingsRepository: widget.addressSettingsRepository,
+          tileCacheService: widget.tileCacheService,
+          previewTimeout: widget.previewTimeout,
+          heuteProvider: widget.heuteProvider,
+        ),
+      ),
     );
   }
 
@@ -332,6 +255,8 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
     final currentMitglied = _resolveCurrentMitglied(context);
     final memberEditModel = _maybeWatch<MemberEditModel>(context);
     final arbeitskontextModel = _maybeWatch<ArbeitskontextModel>(context);
+    final readModel = arbeitskontextModel?.readModel;
+    final heute = _heute();
     final hasPending =
         memberEditModel?.hasPendingForMitglied(
           currentMitglied.mitgliedsnummer,
@@ -348,74 +273,61 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
         false;
     final isWritable =
         arbeitskontextModel?.istMitgliedSchreibbar(currentMitglied) ?? false;
-    final fullName = currentMitglied.fullName.trim().isEmpty
-        ? currentMitglied.mitgliedsnummer
-        : currentMitglied.fullName;
-    final nickname = currentMitglied.fahrtenname?.trim();
-    final hasNickname = nickname != null && nickname.isNotEmpty;
-    final String title = hasNickname ? nickname : fullName;
-    final roleCategory = arbeitskontextModel?.readModel == null
-        ? MemberUtils.visualRole(currentMitglied)?.category
-        : _klassifiziereMitgliedUseCase.klassifiziere(
-            currentMitglied.mitgliedsnummer,
-            arbeitskontextModel!.readModel!,
-          );
-    final activeStufe = MemberUtils.aktiveStufe(currentMitglied);
     final sichtbareRollen = currentMitglied.roles
         .where((role) => !MemberUtils.istMitgliederRolle(role))
         .toList(growable: false);
     final stammNamen = _resolveAnzeigeStaemme(
-      arbeitskontextModel?.readModel,
+      readModel,
       currentMitglied.mitgliedsnummer,
     );
     final gruppenNamen = _resolveAnzeigeGruppen(
-      arbeitskontextModel?.readModel,
+      readModel,
       currentMitglied.mitgliedsnummer,
     );
-    final mitgliedsBeitragsarten = arbeitskontextModel?.readModel == null
+    final mitgliedsBeitragsarten = readModel == null
         ? const <String, Beitragsart>{}
-        : _ermittleBeitragsartImArbeitskontextUseCase(
-            arbeitskontextModel!.readModel!,
-          );
+        : _ermittleBeitragsartImArbeitskontextUseCase(readModel);
     final beitragsart = mitgliedsBeitragsarten[currentMitglied.mitgliedsnummer];
+    final haushalt = readModel?.findeHaushalt(currentMitglied) ?? const [];
     final t = AppLocalizations.of(context);
-    final hasCallablePhone = currentMitglied.telefonnummern.any(
-      (entry) => entry.wert.trim().isNotEmpty,
-    );
-    final hasMailableEmail = currentMitglied.emailAdressen.any(
-      (entry) => entry.wert.trim().isNotEmpty,
-    );
 
     return DefaultTabController(
       length: 3,
       child: Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
-          toolbarHeight: 64,
-          titleSpacing: 0,
-          title: Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: _MemberDetailTopBar(
-              title: title,
-              subtitle: hasNickname ? fullName : null,
-              stage: activeStufe,
-              roleCategory: roleCategory,
-              member: currentMitglied,
-              hasPending: hasPending,
-              needsResolution: needsResolution,
-              onBack: () => Navigator.of(context).maybePop(),
+          leading: IconButton(
+            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+            onPressed: () => Navigator.of(context).maybePop(),
+            icon: const Icon(Icons.arrow_back),
+          ),
+          actions: [
+            if (hasPending) _PendingBadge(needsResolution: needsResolution),
+            IconButton(
+              key: const Key('member-detail-edit'),
+              tooltip: t.t('member_detail_edit_tooltip'),
+              icon: const Icon(Icons.edit_outlined),
+              onPressed: isWritable && !_isPreparingEdit
+                  ? () => _prepareAndOpenEditPage(currentMitglied)
+                  : null,
             ),
-          ),
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'Daten'),
-              Tab(text: 'Rollen'),
-              Tab(text: 'Qualifikationen'),
-            ],
-          ),
+            const SizedBox(width: 4),
+          ],
         ),
         body: Column(
           children: [
+            MemberSteckbriefKopf(
+              mitglied: currentMitglied,
+              heute: heute,
+              supporterBadge: _ownBadge(context, currentMitglied),
+            ),
+            TabBar(
+              tabs: [
+                Tab(text: t.t('member_detail_tab_daten')),
+                Tab(text: t.t('member_detail_tab_rollen')),
+                Tab(text: t.t('member_detail_tab_qualifikationen')),
+              ],
+            ),
             if (hasPending)
               MaterialBanner(
                 content: Text(
@@ -450,62 +362,37 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
             Expanded(
               child: TabBarView(
                 children: [
-                  MemberDetails(
-                    mitglied: currentMitglied,
-                    beitragsart: beitragsart,
-                    stammNamen: stammNamen,
-                    gruppenNamen: gruppenNamen,
-                    addressLocationRepository: widget.addressLocationRepository,
-                    mapService: widget.mapService,
-                    addressSettingsRepository: widget.addressSettingsRepository,
-                    tileCacheService: widget.tileCacheService,
-                    previewTimeout: widget.previewTimeout,
-                    leadingChildren: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _MemberQuickActionChip(
-                              icon: Icons.phone_outlined,
-                              label: 'Anrufen',
-                              onPressed: hasCallablePhone
-                                  ? () => _launchQuickPhone(currentMitglied)
-                                  : null,
-                            ),
-                          ),
-                          const SizedBox(width: _quickActionSpacing),
-                          Expanded(
-                            child: _MemberQuickActionChip(
-                              icon: Icons.email_outlined,
-                              label: 'E-Mail',
-                              onPressed: hasMailableEmail
-                                  ? () => _launchQuickMail(currentMitglied)
-                                  : null,
-                            ),
-                          ),
-                          const SizedBox(width: _quickActionSpacing),
-                          Expanded(
-                            child: _MemberQuickActionChip(
-                              icon: Icons.edit_outlined,
-                              label: 'Bearbeiten',
-                              onPressed: isWritable && !_isPreparingEdit
-                                  ? () =>
-                                        _prepareAndOpenEditPage(currentMitglied)
-                                  : null,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                  _TabBleibtErhalten(
+                    child: MemberDetails(
+                      mitglied: currentMitglied,
+                      heute: heute,
+                      beitragsart: beitragsart,
+                      stammNamen: stammNamen,
+                      gruppenNamen: gruppenNamen,
+                      haushalt: haushalt,
+                      onHaushaltTap: _openHaushaltsmitglied,
+                      addressLocationRepository:
+                          widget.addressLocationRepository,
+                      mapService: widget.mapService,
+                      addressSettingsRepository:
+                          widget.addressSettingsRepository,
+                      tileCacheService: widget.tileCacheService,
+                      previewTimeout: widget.previewTimeout,
+                    ),
                   ),
-                  sichtbareRollen.isEmpty
-                      ? Center(
-                          child: Text(
-                            'Keine Rollen',
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                        )
-                      : MemberRolesList(roles: sichtbareRollen),
-                  EfzStatusSection(mitglied: currentMitglied),
+                  _TabBleibtErhalten(
+                    child: sichtbareRollen.isEmpty
+                        ? Center(
+                            child: Text(
+                              'Keine Rollen',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                          )
+                        : MemberRolesList(roles: sichtbareRollen),
+                  ),
+                  _TabBleibtErhalten(
+                    child: EfzStatusSection(mitglied: currentMitglied),
+                  ),
                 ],
               ),
             ),
@@ -635,212 +522,6 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
   }
 }
 
-class _ContactOption {
-  const _ContactOption({required this.label, required this.value});
-
-  final String label;
-  final String value;
-}
-
-class _MemberDetailTopBar extends StatelessWidget {
-  const _MemberDetailTopBar({
-    required this.title,
-    required this.member,
-    required this.hasPending,
-    required this.needsResolution,
-    required this.onBack,
-    this.subtitle,
-    this.stage,
-    this.roleCategory,
-  });
-
-  final String title;
-  final String? subtitle;
-  final Stufe? stage;
-  final RoleCategory? roleCategory;
-  final Mitglied member;
-  final bool hasPending;
-  final bool needsResolution;
-  final VoidCallback onBack;
-
-  /// Eigenes Supporter-Badge; Badges anderer folgen mit der Synchronisation.
-  SupporterBadgeId? _ownBadge(BuildContext context) {
-    final ownId = context.watch<AuthSessionModel?>()?.profile?.namiId;
-    if (ownId == null || member.personId != ownId) {
-      return null;
-    }
-    return context.watch<AppearanceModel?>()?.badge;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final badge = _ownBadge(context);
-
-    return Row(
-      children: [
-        IconButton(
-          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-          onPressed: onBack,
-          icon: const Icon(Icons.arrow_back),
-        ),
-        _MemberAvatar(member: member),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Row(
-                children: [
-                  Flexible(
-                    child: Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleMedium,
-                    ),
-                  ),
-                  if (badge != null) ...[
-                    const SizedBox(width: 6),
-                    SupporterBadge(badge: badge, size: 20),
-                  ],
-                ],
-              ),
-              if (subtitle != null)
-                Text(
-                  subtitle!,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall,
-                ),
-            ],
-          ),
-        ),
-        if (roleCategory == RoleCategory.sonstiges) ...[
-          const _SonstigesBadge(),
-          const SizedBox(width: 6),
-        ] else if (stage != null) ...[
-          _StageBadge(stage: stage!),
-          const SizedBox(width: 6),
-        ],
-        if (hasPending)
-          _PendingBadge(needsResolution: needsResolution)
-        else
-          const SizedBox(width: 4),
-      ],
-    );
-  }
-}
-
-class _MemberAvatar extends StatelessWidget {
-  const _MemberAvatar({required this.member});
-
-  final Mitglied member;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final initials = [member.vorname, member.nachname]
-        .where((value) => value.trim().isNotEmpty)
-        .map((value) => value.trim().substring(0, 1).toUpperCase())
-        .take(2)
-        .join();
-
-    return CircleAvatar(
-      radius: 17,
-      backgroundColor: theme.colorScheme.surfaceContainerHighest,
-      foregroundColor: theme.colorScheme.onSurface,
-      child: Text(
-        initials.isEmpty ? '?' : initials,
-        style: theme.textTheme.labelLarge,
-      ),
-    );
-  }
-}
-
-class _StageBadge extends StatelessWidget {
-  const _StageBadge({required this.stage});
-
-  final Stufe stage;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = StufeVisuals.colorFor(stage);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.6)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Image.asset(
-            StufeVisuals.assetFor(stage),
-            width: 14,
-            height: 14,
-            cacheWidth: 40,
-            cacheHeight: 40,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            stage.shortDisplayName,
-            style: Theme.of(
-              context,
-            ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w700),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SonstigesBadge extends StatelessWidget {
-  const _SonstigesBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final containerColor = colorScheme.surfaceContainerHighest;
-    final borderColor = colorScheme.outlineVariant;
-    final contentColor = colorScheme.onSurface;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: containerColor,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: borderColor),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Image.asset(
-            StufeVisuals.assetFor(Stufe.leitung),
-            width: 14,
-            height: 14,
-            color: contentColor,
-            colorBlendMode: BlendMode.srcIn,
-            cacheWidth: 40,
-            cacheHeight: 40,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            'Sonstige',
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: contentColor,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _PendingBadge extends StatelessWidget {
   const _PendingBadge({required this.needsResolution});
 
@@ -868,82 +549,25 @@ class _PendingBadge extends StatelessWidget {
   }
 }
 
-class _MemberQuickActionChip extends StatelessWidget {
-  const _MemberQuickActionChip({
-    required this.icon,
-    required this.label,
-    this.onPressed,
-  });
+/// Haelt den Inhalt eines Tabs beim Wechsel am Leben, damit Karte, Listen
+/// und Scrollposition nicht neu aufgebaut werden.
+class _TabBleibtErhalten extends StatefulWidget {
+  const _TabBleibtErhalten({required this.child});
 
-  final IconData icon;
-  final String label;
-  final VoidCallback? onPressed;
+  final Widget child;
+
+  @override
+  State<_TabBleibtErhalten> createState() => _TabBleibtErhaltenState();
+}
+
+class _TabBleibtErhaltenState extends State<_TabBleibtErhalten>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final enabled = onPressed != null;
-    final foregroundColor = enabled
-        ? theme.colorScheme.onSurface
-        : theme.colorScheme.onSurface.withValues(alpha: 0.38);
-
-    return Material(
-      color: enabled
-          ? theme.colorScheme.surface
-          : theme.colorScheme.surfaceContainerHighest,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: theme.colorScheme.outline.withValues(alpha: 0.28),
-        ),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onPressed,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final isTight = constraints.maxWidth < 100;
-            final isCompact = constraints.maxWidth < 116;
-            final horizontalPadding = isTight
-                ? 6.0
-                : isCompact
-                ? 8.0
-                : 14.0;
-            final iconSize = isTight ? 16.0 : 18.0;
-            final spacing = isTight
-                ? 3.0
-                : isCompact
-                ? 4.0
-                : 6.0;
-
-            return Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: horizontalPadding,
-                vertical: 9,
-              ),
-              child: Center(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(icon, size: iconSize, color: foregroundColor),
-                      SizedBox(width: spacing),
-                      Text(
-                        label,
-                        maxLines: 1,
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: foregroundColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-    );
+    super.build(context);
+    return widget.child;
   }
 }
