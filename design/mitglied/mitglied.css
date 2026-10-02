@@ -212,3 +212,44 @@
 .fakt.geb-bald.g1 { background:var(--primary-lite); }
 .fakt.geb-bald.g1 span { color:var(--primary); font-weight:600; }
 .fakt.geb-bald.g2 span { display:inline-flex; align-items:center; gap:4px; color:var(--primary); font-weight:600; }
+
+/* ---------- Runde 5: kompakter Kopf ---------- */
+/* S2 in App-Maßen (AppBar 56, Avatar 56), damit der Vergleich ehrlich ist. */
+.steck.r5 .ab-row { min-height:44px; padding:6px 6px 6px; }
+.steck.r5 .steck-main { padding-top:0; }
+.k-row { display:flex; align-items:center; gap:10px; padding:6px 6px; min-height:44px; }
+.k-row > .ico { color:var(--fg); }
+.k-row > .ico.muted { color:var(--muted); }
+.k1 .k-row, .k2 .k-row { padding:8px 6px 8px; }
+.av.k30 { width:30px; height:30px; font-size:12px; }
+.av.k38 { width:38px; height:38px; font-size:14px; }
+.av.k42 { width:42px; height:42px; font-size:15px; }
+.k-t { flex:1; min-width:0; display:flex; flex-direction:column; line-height:1.25; }
+.k-t b { font-size:17.5px; font-weight:700; letter-spacing:-.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.k-t small { font-size:13px; color:var(--fg2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.k-t small.f { font-size:12.5px; color:var(--muted); }
+.k-ein .k-t b { font-size:16.5px; }
+.k-chips { display:flex; align-items:center; gap:8px; padding:0 6px 10px 90px; }
+.k-chips.mit-schnell { padding-left:38px; }
+.k-chipwrap { display:flex; flex-wrap:wrap; gap:6px; flex:1; min-width:0; }
+.k-schnell { display:flex; gap:8px; margin-left:auto; flex:none; }
+.k-schnell .rund.aus { opacity:.4; }
+.kst-reihe { display:flex; flex:none; }
+.kst { display:flex; align-items:center; justify-content:center; border-radius:50%; box-sizing:border-box; flex:none;
+  background:color-mix(in srgb, var(--c) 18%, var(--surface)); border:1.5px solid color-mix(in srgb, var(--c) 70%, transparent); }
+.kst + .kst { margin-left:-6px; }
+.kst.neutral, .kst.mehr-n { background:var(--surface2); border-color:var(--border); font-size:10.5px; font-weight:700; color:var(--fg2); }
+.dunkel .kst:not(.leit):not(.neutral):not(.mehr-n) { background:#e9e9ee; }
+/* Tabs */
+.tabs.t-heute span, .tabs.t-b span { white-space:nowrap; }
+.tabs.t-heute span { flex:1 1 0; min-width:0; padding-left:16px; padding-right:16px; overflow:hidden; -webkit-mask-image:linear-gradient(90deg, #000 86%, transparent); mask-image:linear-gradient(90deg, #000 86%, transparent); }
+.tabs.t-b { justify-content:center; gap:4px; }
+.tabs.t-b span { flex:none; padding-left:18px; padding-right:18px; }
+.tabs.t-b span.on::after { left:18px; right:18px; }
+.tabs.t-c span { padding-left:4px; padding-right:4px; white-space:nowrap; }
+.kh { font-variant-numeric:tabular-nums; font-weight:600; color:#3b3a35; }
+.vergleich .phone figcaption { font-size:13.5px; }
+.tabprobe { background:var(--surface); border-radius:12px; padding:0 8px; overflow:hidden; }
+.tabprobe .tabs { border-bottom:0; }
+.tabs.gross span { font-size:19.6px; }
+.tabs.t-b.gross { justify-content:flex-start; overflow:hidden; }

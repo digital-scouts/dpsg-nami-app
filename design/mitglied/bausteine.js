@@ -35,6 +35,7 @@
   const R2 = (ctx) => (ctx.runde || 1) >= 2;
   const R3 = (ctx) => (ctx.runde || 1) >= 3;
   const R4 = (ctx) => (ctx.runde || 1) >= 4;
+  const R5 = (ctx) => (ctx.runde || 1) >= 5;
   const MONATE_LANG = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
   // Nächster Geburtstag ab dem Stichtag; liefert Tage bis dahin.
   function naechsterGeburtstag(geb) {
@@ -155,11 +156,15 @@
     const icon = h.art === 'l' ? lilie(13, `var(--st-${h.stufe})`) : maskottchen(h.stufe, 14);
     return `<span class="sbadge" style="--c:var(--st-${h.stufe})">${icon}${esc(st.kurz)}${h.art === 'l' ? '-Leitung' : ''}</span>`;
   }
-  function tabZeile(aktiv) {
-    return `<div class="tabs">${TABS.map((x, i) => `<span class="${i === aktiv ? 'on' : ''}">${x}</span>`).join('')}</div>`;
+  // ctx.tabs (ab Runde 5): 'heute' wie in der App (abgeschnitten), 'A' Kurzlabel, 'B' nach Textbreite, 'C' weniger Innenabstand.
+  function tabZeile(aktiv, ctx = {}) {
+    const labels = ctx.tabs === 'A' ? ['Daten', 'Rollen', 'Quali'] : TABS;
+    const cls = ctx.tabs ? ` t-${ctx.tabs.toLowerCase()}` : '';
+    return `<div class="tabs${cls}">${labels.map((x, i) => `<span class="${i === aktiv ? 'on' : ''}">${x}</span>`).join('')}</div>`;
   }
   function kopf(ctx, p, variante, aktiv = 0) {
     const sub = p.fahrtenname ? `${p.vorname} ${p.nachname}` : '';
+    if (ctx.kopf || ctx.eingeklappt) return kompaktKopf(ctx, p, aktiv);
     if (variante === 'S2') return steckbriefKopf(ctx, p, aktiv);
     const zeile = `<div class="ab-row">${ico('back', 22)}<span class="av">${initialen(p)}</span>
       <div class="ab-t"><b>${esc(titel(p))}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</div>${stufenBadge(p)}</div>`;
@@ -185,13 +190,67 @@
       if (p.austritt) fakten.push(`ausgetreten ${jahr(p.austritt)}`);
     } else fakten.push(p.austritt ? `ausgetreten ${my(p.austritt)}` : `seit ${dauer(p.eintritt)} dabei`);
     const efz = efzInfo(p.efz, ctx);
-    return `<header class="ab steck">
+    return `<header class="ab steck${R5(ctx) ? ' r5' : ''}">
       <div class="ab-row">${ico('back', 22)}<span class="grow"></span>${ico('edit', 20, 'muted')}</div>
       <div class="steck-main"><span class="av gross">${initialen(p)}</span>
         <div class="steck-t"><b>${esc(titel(p))}</b>${p.fahrtenname ? `<small>${esc(`${p.vorname} ${p.nachname}`)}</small>` : ''}
           <div class="steck-f">${fakten.map(esc).join(' · ')}</div></div></div>
       <div class="steck-chips${chips.length || !R2(ctx) ? '' : ' leer'}">${chips.join('')}${R2(ctx) ? '' : `<span class="sbadge efz ${efz.ton}"><i class="punkt"></i>EFZ ${esc(efz.kurz)}</span>`}</div>
-      ${tabZeile(aktiv)}</header>`;
+      ${tabZeile(aktiv, ctx)}</header>`;
+  }
+
+  // ------------------------------------------------------------- Kopf, Runde 5
+  // ctx.kopf: 'S2' (heute), 'K1' Name in der AppBar, 'K2' eine Zeile; ctx.schnell: Anrufen/Mail im Kopf;
+  // ctx.eingeklappt: Zustand nach dem Scrollen.
+  function aktiveStufen(p) {
+    return p.rollen.filter((r) => status(r) === 'aktiv' && r.stufe)
+      .sort((a, b) => (a.art === b.art ? RANG[b.stufe] - RANG[a.stufe] : a.art === 'l' ? -1 : 1));
+  }
+  function textChips(p) {
+    const aktive = aktiveStufen(p);
+    const chips = aktive.slice(0, 3).map((r) => {
+      const icon = r.art === 'l' ? lilie(12, `var(--st-${r.stufe})`) : maskottchen(r.stufe, 13);
+      return `<span class="sbadge" style="--c:var(--st-${r.stufe})">${icon}${D.stufen[r.stufe].kurz}${r.art === 'l' ? '-Leitung' : ''}</span>`;
+    });
+    if (aktive.length > 3) chips.push(`<span class="sbadge neutral">+${aktive.length - 3}</span>`);
+    if (!aktive.length && p.rollen.some((r) => status(r) === 'aktiv')) chips.push(`<span class="sbadge neutral">${lilie(12, 'var(--fg)')}Sonstige</span>`);
+    return chips;
+  }
+  function iconChips(p, size) {
+    const aktive = aktiveStufen(p);
+    const kreise = aktive.slice(0, 3).map((r) => `<span class="kst${r.art === 'l' ? ' leit' : ''}" style="--c:var(--st-${r.stufe});width:${size}px;height:${size}px">${r.art === 'l' ? lilie(Math.round(size * 0.55), `var(--st-${r.stufe})`) : maskottchen(r.stufe, Math.round(size * 0.72))}</span>`);
+    if (aktive.length > 3) kreise.push(`<span class="kst mehr-n" style="width:${size}px;height:${size}px">+${aktive.length - 3}</span>`);
+    if (!aktive.length && p.rollen.some((r) => status(r) === 'aktiv')) kreise.push(`<span class="kst neutral" style="width:${size}px;height:${size}px">${lilie(Math.round(size * 0.55), 'var(--fg2)')}</span>`);
+    return kreise.length ? `<span class="kst-reihe">${kreise.join('')}</span>` : '';
+  }
+  function faktenText(p) {
+    const f = [];
+    if (p.geburtsdatum) f.push(`${alter(p.geburtsdatum)} Jahre`);
+    if (p.pronomen) f.push(p.pronomen);
+    if (p.geschlecht) f.push(p.geschlecht);
+    if (p.austritt) f.push(`ausgetreten ${jahr(p.austritt)}`);
+    return f.join(' · ');
+  }
+  const schnellKnoepfe = (p) => `<span class="k-schnell"><span class="rund${p.telefon.length ? '' : ' aus'}">${ico('phone', 16)}</span><span class="rund${p.mail.length ? '' : ' aus'}">${ico('mail', 16)}</span></span>`;
+  function kompaktKopf(ctx, p, aktiv) {
+    const name = esc(titel(p));
+    const voll = p.fahrtenname ? esc(`${p.vorname} ${p.nachname}`) : '';
+    const fakten = esc(faktenText(p));
+    const edit = ico('edit', 20, 'muted');
+    if (ctx.eingeklappt) {
+      return `<header class="ab k-ein"><div class="k-row">${ico('back', 22)}<span class="av k30">${initialen(p)}</span>
+        <div class="k-t"><b>${name}</b></div>${iconChips(p, 22)}${edit}</div>${tabZeile(aktiv, ctx)}</header>`;
+    }
+    const zeilen = `<b>${name}</b>${voll ? `<small>${voll}</small>` : ''}${fakten ? `<small class="f">${fakten}</small>` : ''}`;
+    if (ctx.kopf === 'K2') {
+      return `<header class="ab k2"><div class="k-row">${ico('back', 22)}<span class="av k38">${initialen(p)}</span>
+        <div class="k-t">${zeilen}</div>${iconChips(p, 26)}${edit}</div>${tabZeile(aktiv, ctx)}</header>`;
+    }
+    const chips = textChips(p);
+    const zweite = chips.length || ctx.schnell
+      ? `<div class="k-chips${ctx.schnell ? ' mit-schnell' : ''}"><span class="k-chipwrap">${chips.join('')}</span>${ctx.schnell ? schnellKnoepfe(p) : ''}</div>` : '';
+    return `<header class="ab k1"><div class="k-row">${ico('back', 22)}<span class="av k42">${initialen(p)}</span>
+      <div class="k-t">${zeilen}</div>${edit}</div>${zweite}${tabZeile(aktiv, ctx)}</header>`;
   }
 
   // ------------------------------------------------------------- Daten
