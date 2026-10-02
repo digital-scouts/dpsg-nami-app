@@ -216,8 +216,14 @@ Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den
 - Empfehlung für den nächsten Stufenwechsel eines Mitglieds.
   - Die gewünschte Altersgrenzen der Stufen können angepasst werden.
   - Stufenwechsel durchführen
-- Führungszeugnis-Antragsunterlagen herunterladen; die Qualifikationsübersicht in den Einstellungen nutzt den beim Sync gespeicherten EFZ-Stand
-- Unter Einstellungen → Erscheinungsbild lassen sich Hell/Dunkel, eine Farbpalette, ein alternatives App-Icon (Pakete mit Morgen, Abend und Nacht; unter iOS zusätzlich „Automatisch“ passend zum Hell/Dunkel-Modus), ein animierter Hintergrund für die Kopfbereiche von Mitgliederliste, Statistik, Stufenwechsel und Einstellungen und ein Supporter-Badge wählen. Das Badge erscheint im eigenen Profil und beim eigenen Eintrag in der Mitgliederliste. Aktuell sind alle Optionen frei nutzbar; die Quellen der Designs und die Export-Skripte liegen unter `design/supporter/`.
+- Führungszeugnis-Antragsunterlagen herunterladen.
+- Qualifikationen-Übersicht unter Einstellungen → Schnellzugriff, Teil des Supporter-Pakets:
+  - Je Qualifikation (EFZ, Präventionsschulung, Erste Hilfe und weitere aus Hitobito) zeigt sie, wie viele im Personenkreis sie erfüllen, wo sie fehlen und was bald abläuft.
+  - Einstellbar sind die angezeigten Arten mit ihrer Reihenfolge, je Art der Personenkreis (Regeln aus Rollenart, Stufe, Rollentyp und Alter) und Erinnerungen per Mitteilung.
+  - Die Daten stammen aus dem Sync und sind offline verfügbar. Die Einstellungen gelten pro App und überstehen das Abmelden.
+  - Bis zur Store-Anbindung schaltet ein Testschalter in Debug & Tools den Supporter-Zugang frei.
+- Unter Einstellungen → Benachrichtigungen erinnert die App an die eigenen Qualifikationen (an/aus, Arten, Tage vorher), als Mitteilung und als Meldung in der App.
+- Unter Einstellungen → Erscheinungsbild lassen sich Hell/Dunkel, eine Farbpalette, ein alternatives App-Icon (Pakete mit Morgen, Abend und Nacht; unter iOS zusätzlich „Automatisch“ passend zum Hell/Dunkel-Modus), ein animierter Hintergrund für die Kopfbereiche von Mitgliederliste, Statistik, Stufenwechsel und Einstellungen und ein Supporter-Badge wählen. Das Badge erscheint im eigenen Profil und beim eigenen Eintrag in der Mitgliederliste. Supporter-Optionen schaltet bis zur Store-Anbindung der Testschalter in Debug & Tools frei; die Quellen der Designs und die Export-Skripte liegen unter `design/supporter/`.
 - Das eigene Profil wird nach dem Login über Hitobito OAuth geladen und zeigt nami-id, E-Mail, bevorzugte Sprache als Sprachbadge und die zugewiesenen Rollen.
 - Wenn Hitobito später nicht erreichbar ist oder eine erneute Anmeldung für Updates erforderlich wird, bleibt der lokale Datenstand bis zum Ablauf von `HITOBITO_DATA_MAX_AGE_DAYS` nutzbar; die App zeigt dazu einen fachlichen Hinweis statt einer generischen Plattformfehlermeldung.
 - Die Stamm-Einstellungen und Debug & Tools bleiben auch dann erreichbar, wenn noch kein Login vorliegt oder der Arbeitskontext nicht initialisiert werden konnte. Das Profil ist nur ohne Login gesperrt. Kann der Arbeitskontext nicht geladen werden, bleiben Profil und Abmelden erreichbar; der Fehlerbildschirm bietet neben „Erneut versuchen“ auch „Abmelden“ und zeigt eine App-Meldung statt der Serverantwort (Details im Log unter Debug & Tools).
@@ -232,9 +238,7 @@ Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den
 - Adresse automatisch vervollständigen über Geoapify im Online-Bearbeiten-Pfad; die separate Adressvalidierung bleibt auf Offline- und spätere Sync-Fälle begrenzt
 - Mitglieder anlegen per Texterkennung / Foto vom Anmeldebogen
 - Export von Zuschusslisten
-- Erinnerungen und Kalenderintegration für
-  - Geburtstage
-  - Ablaufende Ausbildungen (Präventionsschulung)
+- Erinnerungen und Kalenderintegration für Geburtstage
 - Detailansichten hinter den Statistik-Kacheln, etwa wann Mitglieder den Stamm verlassen und wann sie kommen
 - Weitere fachliche Kartenebenen auf Basis der neuen Karteninfrastruktur
 

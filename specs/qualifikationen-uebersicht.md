@@ -1,8 +1,30 @@
 # Qualifikationen-Übersicht: Anforderungen
 
-Stand: 2026-10-02, in Planung (Entwürfe freigegeben nach Runde 3). Diese Spec beschreibt die Erweiterung der Seite „Qualifikationen“ (Einstellungen, Schnellzugriff) von einer reinen EFZ-Liste zu einer konfigurierbaren Übersicht über alle Qualifikationsarten. Die visuellen Entwürfe entstehen in Feedback-Runden unter `design/qualifikationen/`.
+Stand: 2026-10-02, umgesetzt. Diese Spec beschreibt die Erweiterung der Seite „Qualifikationen“ (Einstellungen, Schnellzugriff) von einer reinen EFZ-Liste zu einer konfigurierbaren Übersicht über alle Qualifikationsarten. Die freigegebenen Entwürfe liegen unter `design/qualifikationen/` (Runden 1 bis 3, Vorlage ist Runde 3).
 
-## Ausgangslage
+## Umgesetzter Stand
+
+- **Arten:** Qualifikationen tragen die Gültigkeit ihrer Art (`validity`). Die Arten leitet das Read Model aus den Qualifikationen ab (`HitobitoQualifikationsart`); eine eigene Liste gibt es nicht.
+- **Domain** (`lib/domain/qualifikation/`):
+  - `Personenkreis` mit Regeln aus Rollenart, Stufe, Rollentyp und Alter; „und“ bindet stärker als „oder“.
+  - `QualifikationsEinstellungen` mit Vorgaben aus `QualifikationsVorgaben`.
+  - `ErmittleQualifikationsUebersichtUseCase`: Katalog und Zeilen.
+  - `PlaneQualifikationsErinnerungenUseCase`: Erinnerungsplan und eigene Abläufe.
+- **Speicherung:** in SharedPreferences (`qualifikationsEinstellungenJson`), im Demo-Modus nur im Speicher.
+- **Oberfläche:**
+  - Übersicht: `settings_qualifikationen_page.dart`.
+  - Personenliste, Auswahl und Einstellungen: unter `lib/presentation/screens/qualifikationen/`.
+  - „Meine Qualifikationen“ im Abschnitt Benachrichtigungen (`settings_notification_page.dart`).
+- **Erinnerungen:** `QualifikationsErinnerungService` plant lokale Mitteilungen um 9 Uhr.
+  - Er nutzt die IDs 95000–95099 und räumt beim Abmelden nur diesen Bereich.
+  - Gemeldete Abläufe merkt er sich unter `qualifikationsErinnerungenGeplant`.
+- **Meldung im Hub:** `qualifikation-laeuft-ab`. Ein Tipp öffnet die eigenen Mitgliedsdetails.
+- **Supporter:** `SchalterSupportAccess` mit dem Testschalter `supporterTestZugang` in Debug & Tools, standardmäßig aus. Der Schalter gilt auch für Paletten und Icons der Supporter-Stufe. Der Demo-Modus ist freigeschaltet.
+- **Offen:**
+  - Ein Tipp auf eine Push-Mitteilung öffnet nur die App, Deep-Links fehlen noch.
+  - Die Labels für Prävention und Erste Hilfe auf dpsg.puzzle.ch sind noch zu prüfen. Die Muster stehen in `QualifikationsVorgaben`.
+
+## Ausgangslage vor der Umsetzung
 
 - `lib/presentation/screens/settings_qualifikationen_page.dart` zeigt nur das EFZ. Gezeigt wird jede Person mit einer heute aktiven Rolle, die keine reine Mitgliedsrolle ist (`IstFuehrungszeugnispflichtigUseCase`).
 - Die Daten kommen offline aus dem Arbeitskontext (`efzEinsichtnahmen`, `efzStand`).
