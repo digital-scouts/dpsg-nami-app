@@ -8,6 +8,7 @@ import 'package:nami/domain/auth/auth_state.dart';
 import 'package:nami/domain/maps/stamm_map_marker_repository.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/main.dart' show navigatorKey;
+import 'package:nami/presentation/model/app_settings_model.dart';
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/model/member_edit_model.dart';
@@ -461,6 +462,7 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
     final arbeitskontextModel = context.read<ArbeitskontextModel>();
     final memberEditModel = context.watch<MemberEditModel?>();
     final configController = context.watch<HitobitoAuthConfigController>();
+    final appSettings = context.watch<AppSettingsModel?>();
     return Scaffold(
       appBar: AppBar(title: Text(t.t('debug_title'))),
       body: DecoratedBox(
@@ -1316,6 +1318,22 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                     ],
                   ),
                 ),
+                if (appSettings != null) ...[
+                  const SizedBox(height: 16),
+                  _DebugSectionCard(
+                    icon: Icons.workspace_premium_outlined,
+                    title: t.t('debug_supporter_section_title'),
+                    subtitle: t.t('debug_supporter_section_subtitle'),
+                    child: SwitchListTile(
+                      key: const Key('debug-supporter-test-zugang'),
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(t.t('debug_supporter_switch')),
+                      subtitle: Text(t.t('debug_supporter_switch_hint')),
+                      value: appSettings.supporterTestZugang,
+                      onChanged: appSettings.setSupporterTestZugang,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 _DebugSectionCard(
                   icon: Icons.warning_amber_rounded,

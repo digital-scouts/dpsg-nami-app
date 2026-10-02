@@ -12,6 +12,10 @@ class AppSettings {
   final bool memberListSearchResultHighlightEnabled;
   final Set<Stufe> geburstagsbenachrichtigungStufen;
 
+  /// Testschalter in Debug & Tools: schaltet Supporter-Funktionen frei, bis
+  /// eine Store-Anbindung den Zugang liefert.
+  final bool supporterTestZugang;
+
   const AppSettings({
     required this.themeMode,
     required this.languageCode,
@@ -28,6 +32,7 @@ class AppSettings {
       Stufe.rover,
       Stufe.leitung,
     },
+    this.supporterTestZugang = false,
   });
 
   AppSettings copyWith({
@@ -39,6 +44,7 @@ class AppSettings {
     bool? noMobileDataEnabled,
     bool? memberListSearchResultHighlightEnabled,
     Set<Stufe>? geburstagsbenachrichtigungStufen,
+    bool? supporterTestZugang,
   }) => AppSettings(
     themeMode: themeMode ?? this.themeMode,
     languageCode: languageCode ?? this.languageCode,
@@ -52,5 +58,6 @@ class AppSettings {
     geburstagsbenachrichtigungStufen:
         geburstagsbenachrichtigungStufen ??
         this.geburstagsbenachrichtigungStufen,
+    supporterTestZugang: supporterTestZugang ?? this.supporterTestZugang,
   );
 }
