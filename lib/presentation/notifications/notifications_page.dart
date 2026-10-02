@@ -10,6 +10,7 @@ import 'package:nami/presentation/notifications/notifications_hub.dart';
 import 'package:nami/services/app_update_service.dart';
 import 'package:nami/services/logger_service.dart';
 import 'package:nami/services/network_access_policy.dart';
+import 'package:nami/presentation/notifications/qualifikations_meldung.dart';
 import 'package:provider/provider.dart';
 
 class NotificationsPage extends StatefulWidget {
@@ -72,6 +73,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
   }
 
   Future<void> _handleMessageTap(AppHubNotification message) async {
+    if (message.id == qualifikationsMeldungId) {
+      await oeffneEigeneMitgliedsdetails(context);
+      return;
+    }
     if (message.id != 'hitobito-issue') {
       return;
     }
@@ -178,6 +183,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
                           authModel: authModel,
                           unresolvedCount: unresolvedCount,
                           updateInfo: updateSnapshot.data,
+                          eigeneQualifikationsAblaeufe:
+                              eigeneQualifikationsAblaeufe(context),
                         )
                       : const <AppHubNotification>[];
 
