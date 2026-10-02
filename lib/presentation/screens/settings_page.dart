@@ -3,12 +3,16 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:nami/core/notifications/pull_notifications_repository_factory.dart';
 import 'package:nami/domain/appearance/appearance_catalog.dart';
+import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model.dart';
 import 'package:nami/domain/auth/auth_profile.dart';
+import 'package:nami/domain/qualifikation/ermittle_qualifikations_uebersicht_usecase.dart';
+import 'package:nami/domain/qualifikation/qualifikations_einstellungen.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/appearance_model.dart';
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/model/member_edit_model.dart';
+import 'package:nami/presentation/model/qualifikations_einstellungen_model.dart';
 import 'package:nami/presentation/notifications/notifications_hub.dart';
 import 'package:nami/presentation/widgets/app_page_header.dart';
 import 'package:nami/presentation/widgets/confetti_overlay.dart';
@@ -21,6 +25,7 @@ import 'package:nami/services/logger_service.dart';
 import 'package:nami/services/nami_ai/nami_ai_access_service.dart';
 import 'package:nami/services/network_access_policy.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:nami/presentation/notifications/qualifikations_meldung.dart';
 import 'package:provider/provider.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -226,6 +231,9 @@ class _SettingsPageState extends State<SettingsPage> {
                     authModel: authModel,
                     unresolvedCount: unresolvedCount,
                     updateInfo: updateSnapshot.data,
+                    eigeneQualifikationsAblaeufe: eigeneQualifikationsAblaeufe(
+                      context,
+                    ),
                   ),
                   external:
                       notificationSnapshot.data ?? const <AppHubNotification>[],
@@ -244,11 +252,18 @@ class _SettingsPageState extends State<SettingsPage> {
                         );
 
                     final appearance = context.watch<AppearanceModel?>();
-                    final layer = context
+                    final readModel = context
                         .watch<ArbeitskontextModel?>()
-                        ?.readModel
-                        ?.arbeitskontext
-                        .aktiverLayer;
+                        ?.readModel;
+                    final layer = readModel?.arbeitskontext.aktiverLayer;
+                    final qualiEinstellungen = context
+                        .watch<QualifikationsEinstellungenModel?>()
+                        ?.einstellungen;
+                    final qualiGesperrt =
+                        appearance != null &&
+                        !appearance.access.isTierUnlocked(
+                          SupportTier.supporter,
+                        );
                     return Column(
                       children: [
                         _SettingsProfileHeader(
@@ -372,8 +387,15 @@ class _SettingsPageState extends State<SettingsPage> {
                                       iconBackgroundColor: const Color(
                                         0xFF34C759,
                                       ),
-                                      title: 'Qualifikationen',
-                                      subtitle: 'EFZ-Status der Leitenden',
+                                      title: t.t('quali_titel'),
+                                      subtitle: _qualiUntertitel(
+                                        t,
+                                        readModel,
+                                        qualiEinstellungen,
+                                      ),
+                                      badge: qualiGesperrt
+                                          ? t.t('quali_supporter_schild')
+                                          : null,
                                       onTap: widget.onQualifikationen,
                                     ),
                                     if (!namiAiDecision.isHidden) ...[
@@ -1011,11 +1033,32 @@ class _SettingsRowDivider extends StatelessWidget {
   }
 }
 
+/// Untertitel der Qualifikationen im Schnellzugriff: die angezeigten Arten.
+String _qualiUntertitel(
+  AppLocalizations t,
+  ArbeitskontextReadModel? readModel,
+  QualifikationsEinstellungen? einstellungen,
+) {
+  if (readModel == null) {
+    return t.t('quali_schnellzugriff_leer');
+  }
+  final arten = const ErmittleQualifikationsUebersichtUseCase()
+      .katalog(
+        readModel: readModel,
+        einstellungen: einstellungen ?? const QualifikationsEinstellungen(),
+      )
+      .where((eintrag) => eintrag.angezeigt)
+      .map((eintrag) => eintrag.art.istEfz ? 'EFZ' : eintrag.art.label)
+      .toList(growable: false);
+  return arten.isEmpty ? t.t('quali_schnellzugriff_leer') : arten.join(', ');
+}
+
 class _SettingsNavTile extends StatelessWidget {
   final IconData icon;
   final Color iconBackgroundColor;
   final String title;
   final String? subtitle;
+  final String? badge;
   final VoidCallback? onTap;
 
   const _SettingsNavTile({
@@ -1023,6 +1066,7 @@ class _SettingsNavTile extends StatelessWidget {
     required this.iconBackgroundColor,
     required this.title,
     this.subtitle,
+    this.badge,
     this.onTap,
   });
 
@@ -1044,10 +1088,37 @@ class _SettingsNavTile extends StatelessWidget {
       title: Text(title, style: theme.textTheme.titleSmall),
       subtitle: subtitle == null
           ? null
-          : Text(subtitle!, style: theme.textTheme.bodySmall),
-      trailing: Icon(
-        onTap == null ? Icons.lock_outline : Icons.chevron_right,
-        size: 20,
+          : Text(
+              subtitle!,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall,
+            ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (badge != null) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.tertiaryContainer,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                badge!,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onTertiaryContainer,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+          ],
+          Icon(
+            onTap == null ? Icons.lock_outline : Icons.chevron_right,
+            size: 20,
+          ),
+        ],
       ),
       enabled: onTap != null,
       onTap: onTap,

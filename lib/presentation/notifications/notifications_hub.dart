@@ -2,7 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:nami/core/notifications/pull_notification.dart';
 import 'package:nami/l10n/app_localizations.dart';
+import 'package:intl/intl.dart';
+import 'package:nami/domain/qualifikation/plane_qualifikations_erinnerungen_usecase.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
+import 'package:nami/presentation/notifications/qualifikations_meldung.dart';
 import 'package:nami/services/app_update_service.dart';
 import 'package:nami/services/network_access_policy.dart';
 
@@ -46,6 +49,8 @@ class NotificationsHub {
     required AuthSessionModel authModel,
     required int unresolvedCount,
     required AppUpdateInfo? updateInfo,
+    List<EigenerQualifikationsAblauf> eigeneQualifikationsAblaeufe =
+        const <EigenerQualifikationsAblauf>[],
   }) {
     final messages = <AppHubNotification>[];
 
@@ -68,7 +73,56 @@ class NotificationsHub {
       messages.add(_buildUpdateNotification(updateInfo));
     }
 
+    if (eigeneQualifikationsAblaeufe.isNotEmpty) {
+      messages.add(
+        _buildQualifikationsNotification(eigeneQualifikationsAblaeufe),
+      );
+    }
+
     return messages;
+  }
+
+  /// Eigene Qualifikationen, die bald ablaufen oder abgelaufen sind.
+  static AppHubNotification _buildQualifikationsNotification(
+    List<EigenerQualifikationsAblauf> ablaeufe,
+  ) {
+    final de = AppLocalizations(const Locale('de'));
+    final en = AppLocalizations(const Locale('en'));
+    final datum = DateFormat('dd.MM.yyyy');
+    String titel(AppLocalizations t) {
+      if (ablaeufe.length > 1) {
+        return t.t('quali_hub_titel_mehrere', {'n': ablaeufe.length});
+      }
+      final ablauf = ablaeufe.single;
+      return t.t(
+        ablauf.abgelaufen ? 'quali_hub_titel_abgelaufen' : 'quali_hub_titel',
+        {'art': ablauf.artLabel},
+      );
+    }
+
+    String text(AppLocalizations t) {
+      if (ablaeufe.length > 1) {
+        return t.t('quali_hub_text_mehrere', {
+          'liste': ablaeufe
+              .map((a) => '${a.artLabel} (${datum.format(a.gueltigBis)})')
+              .join(', '),
+        });
+      }
+      final ablauf = ablaeufe.single;
+      return t.t(
+        ablauf.abgelaufen ? 'quali_hub_text_abgelaufen' : 'quali_hub_text',
+        {'datum': datum.format(ablauf.gueltigBis)},
+      );
+    }
+
+    return AppHubNotification(
+      id: qualifikationsMeldungId,
+      source: AppNotificationSource.internal,
+      severity: AppNotificationSeverity.warn,
+      title: LocalizedString(de: titel(de), en: titel(en)),
+      body: LocalizedString(de: text(de), en: text(en)),
+      ackable: false,
+    );
   }
 
   static List<AppHubNotification> mapUnreadExternal({

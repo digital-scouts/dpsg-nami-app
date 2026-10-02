@@ -13,4 +13,5 @@ abstract class AppSettingsRepository {
   Future<void> saveNoMobileDataEnabled(bool enabled) async {}
   Future<void> saveMemberListSearchResultHighlightEnabled(bool enabled);
   Future<void> saveGeburstagsbenachrichtigungStufen(Set<Stufe> stufen);
+  Future<void> saveSupporterTestZugang(bool enabled) async {}
 }

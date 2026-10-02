@@ -12,7 +12,19 @@ abstract class SupportAccess {
       isTierUnlocked(AppearanceCatalog.iconPackageTier);
 }
 
-/// Vorlaeufige Implementierung: alles ist freigeschaltet.
+/// Zugang ueber den Testschalter in Debug & Tools: freie Optionen immer,
+/// alles andere nur mit Schalter.
+class SchalterSupportAccess extends SupportAccess {
+  const SchalterSupportAccess({required this.freigeschaltet});
+
+  final bool freigeschaltet;
+
+  @override
+  bool isTierUnlocked(SupportTier tier) =>
+      tier == SupportTier.free || freigeschaltet;
+}
+
+/// Alles freigeschaltet, etwa im Demo-Modus.
 class UnlockedSupportAccess extends SupportAccess {
   const UnlockedSupportAccess();
 

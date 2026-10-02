@@ -16,6 +16,7 @@ class SharedPrefsAppSettingsRepository implements AppSettingsRepository {
       'memberListSearchResultHighlightEnabled';
   static const String _keyGeburstagsbenachrichtigungStufen =
       'geburstagsbenachrichtigungStufen';
+  static const String _keySupporterTestZugang = 'supporterTestZugang';
 
   Future<SharedPreferences> _prefs() async => SharedPreferences.getInstance();
 
@@ -34,6 +35,7 @@ class SharedPrefsAppSettingsRepository implements AppSettingsRepository {
     final stufenList = prefs.getStringList(
       _keyGeburstagsbenachrichtigungStufen,
     );
+    final supporterTestZugang = prefs.getBool(_keySupporterTestZugang) ?? false;
     final themeMode = themeIndex != null
         ? ThemeMode.values[themeIndex]
         : ThemeMode.system;
@@ -64,6 +66,7 @@ class SharedPrefsAppSettingsRepository implements AppSettingsRepository {
       memberListSearchResultHighlightEnabled:
           memberListSearchResultHighlightEnabled,
       geburstagsbenachrichtigungStufen: geburstagsbenachrichtigungStufen,
+      supporterTestZugang: supporterTestZugang,
     );
   }
 
@@ -107,6 +110,12 @@ class SharedPrefsAppSettingsRepository implements AppSettingsRepository {
   Future<void> saveMemberListSearchResultHighlightEnabled(bool enabled) async {
     final prefs = await _prefs();
     await prefs.setBool(_keyMemberListSearchResultHighlightEnabled, enabled);
+  }
+
+  @override
+  Future<void> saveSupporterTestZugang(bool enabled) async {
+    final prefs = await _prefs();
+    await prefs.setBool(_keySupporterTestZugang, enabled);
   }
 
   @override

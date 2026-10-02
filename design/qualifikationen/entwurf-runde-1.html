@@ -1,0 +1,204 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8">
+<title>Entwürfe: Qualifikationen-Übersicht, Runde 1</title>
+<link rel="stylesheet" href="../statistik/basis.css">
+<link rel="stylesheet" href="../mitglied/mitglied.css">
+<link rel="stylesheet" href="quali.css">
+<script src="../mitglied/daten.js"></script>
+<script src="../mitglied/lilie.js"></script>
+<script src="daten.js"></script>
+<script src="bausteine.js"></script>
+</head><body>
+<div class="bar">
+  <nav><a href="#uebersicht">1 Übersicht</a><a href="#detail">2 Karte geöffnet</a><a href="#einstellungen">3 Einstellungen</a><a href="#hinzufuegen">4 Hinzufügen</a><a href="#benachrichtigungen">5 Eigene Erinnerungen</a><a href="#premium">6 Supporter</a><a href="#zustaende">7 Zustände</a><a href="#rueckmeldung">8 Rückmeldung</a></nav>
+</div>
+<main>
+  <h1>Qualifikationen-Übersicht: Entwürfe, Runde 1</h1>
+  <p>Die Seite „Qualifikationen“ wird zur Übersicht über alle Qualifikationsarten, nach dem Vorbild von Campflow. Gezeigt wird ein synthetischer Stamm mit 16 Personen, davon 12 mit Leitungs- oder Amtsrolle. Stichtag ist der 02.10.2026.</p>
+  <div class="fest-list"><b>Festgelegt</b> <span class="tag">festgelegt</span>
+    <ul>
+      <li><b>Personenkreis:</b> aus Rollenart, Stufe, Rollentyp und Alter. Labels kommen später, die API liefert keine.</li>
+      <li><b>Vorgaben:</b> angezeigt werden EFZ, Präventionsschulung und Erste Hilfe; jede Vorgabe lässt sich entfernen und ändern.</li>
+      <li><b>Gültigkeit:</b> kommt aus Hitobito. Nur beim EFZ stellt man sie selbst ein, Vorgabe 5 Jahre.</li>
+      <li><b>Erinnerung je Qualifikation:</b> Tage frei wählbar oder aus, Umfang „alle“ oder „nur meine“.</li>
+      <li><b>Eigene Qualifikationen:</b> unter Benachrichtigungen (an/aus, Arten, Tage), zusätzlich als Meldung in der App.</li>
+      <li><b>Auswahl und Speicherort:</b> Zur Auswahl stehen nur Arten aus dem aktuellen Arbeitskontext. Einstellungen gelten pro App und bleiben auch für Arten erhalten, die gerade fehlen.</li>
+    </ul></div>
+  <div class="open"><b>Farben im Balken:</b> Grün heißt gültig, Orange demnächst fällig, Rot überfällig. Rot schraffiert heißt: fehlt, nie hinterlegt. „Erfüllt“ zählt gültig und demnächst fällig. In den kompakten Varianten heißt „offen“: fehlt oder überfällig. „Demnächst fällig“ beginnt beim Erinnerungs-Vorlauf der Qualifikation, beim EFZ also 90 Tage vorher.</div>
+
+  <section class="part" id="uebersicht">
+    <h2>1 · Übersicht</h2>
+    <p>Drei Darstellungen derselben Daten. Links die Vorgabe, in der Mitte dunkel, rechts mit zusätzlich Juleica und Woodbadge (ohne Ablauf).</p>
+    <div id="slot-uebersicht"></div>
+  </section>
+
+  <section class="part" id="detail">
+    <h2>2 · Karte geöffnet</h2>
+    <p>Wer im Personenkreis was braucht. Ein Tipp auf eine Person öffnet ihre Mitgliedsdetails, das Zahnrad oben die Einstellungen.</p>
+    <div id="slot-detail"></div>
+  </section>
+
+  <section class="part" id="einstellungen">
+    <h2>3 · Einstellungen je Qualifikation</h2>
+    <p>Personenkreis, Erinnerung und beim EFZ die Gültigkeit. Zwei Wege, den Personenkreis festzulegen: P1 baut Regeln aus Bausteinen, P2 bietet fertige Kreise zum Auswählen und „eigene Regeln“ für den Rest.</p>
+    <div id="slot-einstellungen"></div>
+  </section>
+
+  <section class="part" id="hinzufuegen">
+    <h2>4 · Qualifikation hinzufügen</h2>
+    <p>Mehrfachauswahl aus den Arten, die jemand im aktuellen Stamm hat; die Reihenfolge ändert man per Ziehen. „Sanitätsdienst“ wurde früher in einem anderen Stamm eingestellt: Die Art bleibt sichtbar, ist aber ausgegraut.</p>
+    <div id="slot-hinzufuegen"></div>
+  </section>
+
+  <section class="part" id="benachrichtigungen">
+    <h2>5 · Eigene Qualifikationen: Benachrichtigungen</h2>
+    <p>Für alle Nutzer, auch ohne Supporter-Paket. Ein Schalter, die Arten zur Auswahl und ein gemeinsamer Vorlauf. Arten ohne Ablauf sind ausgegraut. Daneben: wie Mitteilungen und Meldung aussehen.</p>
+    <div id="slot-benachrichtigungen"></div>
+  </section>
+
+  <section class="part" id="premium">
+    <h2>6 · Übersicht als Supporter-Funktion</h2>
+    <p>Heute ist alles frei. So könnte es gesperrt aussehen: L1 zeigt die Übersicht unscharf mit Hinweis, L2 nur einen Hinweis. Die Mitgliedsdetails und die eigenen Erinnerungen bleiben in beiden Fällen frei.</p>
+    <div id="slot-premium"></div>
+  </section>
+
+  <section class="part" id="zustaende">
+    <h2>7 · Zustände</h2>
+    <div id="slot-zustaende"></div>
+  </section>
+
+  <section class="part" id="rueckmeldung">
+    <h2>8 · Rückmeldung</h2>
+    <p>Auswählen, kurz kommentieren, „Auswahl kopieren“ und den Text in den Chat einfügen.</p>
+    <form class="fb" id="fb"></form>
+  </section>
+</main>
+<script>
+(function () {
+  const M = window.MITGLIED;
+  const Q = window.QDATEN;
+  const B = window.QBAU;
+
+  const zusatz = {
+    hell: { '--ghost': '#e3e3e8' },
+    dunkel: { '--ghost': '#363642' },
+  };
+  let css = '';
+  for (const modus of ['hell', 'dunkel']) {
+    const p = M.palette[modus];
+    const vars = { '--bg': p.bg, '--surface': p.surface, '--surface2': p.surface2, '--fg': p.fg, '--fg2': p.fg2, '--muted': p.muted, '--border': p.border,
+      '--primary': p.primary, '--on-primary': p.onPrimary, '--primary-lite': p.primaryLite, '--grid': p.grid, '--success': p.success, '--error': p.error, '--warn': p.warn, ...zusatz[modus] };
+    for (const [id, c] of Object.entries(M.stufenfarben[modus])) vars[`--st-${id}`] = c;
+    css += `.phone.${modus},.mpanel.${modus}{${Object.entries(vars).map(([k, v]) => `${k}:${v}`).join(';')}}`;
+  }
+  document.head.insertAdjacentHTML('beforeend', `<style>${css}</style>`);
+
+  const hell = { modus: 'hell' };
+  const dunkel = { modus: 'dunkel' };
+  const variante = (id, titel, desc, inhalt) => `<div class="variant" data-shot-group="${id}"><h3>${titel}</h3><p class="desc">${desc}</p><div class="phones">${inhalt}</div></div>`;
+  const kopfUe = B.kopf('Qualifikationen');
+  const MEHR = ['efz', 'praev', 'eh', 'juleica', 'wb'];
+
+  function uebersicht() {
+    const V = [
+      ['U1', 'U1 · Karten untereinander', 'Wie bei Campflow: große Zahl, Regelmäßigkeit, Fällige, Balken am unteren Rand. Das Zahnrad öffnet direkt die Einstellungen.'],
+      ['U2', 'U2 · Raster mit zwei Spalten', 'Kompaktere Karten mit Kurzname, zwei pro Zeile. Einstellungen erreicht man über die geöffnete Karte.'],
+      ['U3', 'U3 · Zeilen in einer Karte', 'Eine Zeile je Qualifikation mit schmalem Balken. Am dichtesten, auch bei vielen Arten.'],
+    ];
+    return V.map(([id, t, d]) => variante(`ue-${id}`, t, d,
+      B.telefon(hell, kopfUe, B.uebersicht(hell, id), { shot: `ue-${id}-hell`, beschriftung: 'Vorgabe' }) +
+      B.telefon(dunkel, kopfUe, B.uebersicht(dunkel, id), { shot: `ue-${id}-dunkel`, beschriftung: 'dunkel' }) +
+      B.telefon(hell, kopfUe, B.uebersicht(hell, id, { angezeigt: MEHR }), { shot: `ue-${id}-mehr`, beschriftung: 'mit Juleica und Woodbadge' }))).join('');
+  }
+  function detail() {
+    const kopfD = (id) => B.kopf(Q.arten[id].kurz, B.ico('gear', 21));
+    const V = [
+      ['D1', 'D1 · Nach Status gruppiert', 'Fehlt, Überfällig, Demnächst fällig, Gültig untereinander; lange Gültig-Listen eingeklappt.'],
+      ['D2', 'D2 · Umschalter „Handlungsbedarf / Alle“', 'Zuerst nur, wo etwas zu tun ist. „Alle“ zeigt die ganze sortierte Liste.'],
+    ];
+    return V.map(([id, t, d]) => variante(`detail-${id}`, t, d,
+      B.telefon(hell, kopfD('efz'), B.detail(hell, 'efz', id), { shot: `detail-${id}-efz`, beschriftung: 'EFZ' }) +
+      B.telefon(hell, kopfD('eh'), B.detail(hell, 'eh', id), { shot: `detail-${id}-eh`, beschriftung: 'Erste Hilfe (Kreis: Leitende)' }) +
+      B.telefon(dunkel, kopfD('praev'), B.detail(dunkel, 'praev', id), { shot: `detail-${id}-dunkel`, beschriftung: 'Prävention · dunkel' }))).join('');
+  }
+  function einstellungen() {
+    const kopfE = B.kopf('Einstellungen');
+    const V = [
+      ['P1', 'P1 · Regeln aus Bausteinen', 'Jede Zeile eine Regel: „wer Rollenart Leitung“, „oder Rollenart Amt“. Weitere Regeln wie „und Alter ab 16“ kommen über „Regel hinzufügen“ dazu. Mächtig, aber mehr Bedienung.'],
+      ['P2', 'P2 · Fertige Kreise', 'Vier häufige Kreise mit Anzahl zum Antippen; „Eigene Regeln …“ öffnet die Bausteine aus P1. Schneller für die Standardfälle.'],
+    ];
+    return V.map(([id, t, d]) => variante(`einst-${id}`, t, d,
+      B.telefon(hell, kopfE, B.einstellungen(hell, 'efz', id), { shot: `einst-${id}-efz`, beschriftung: 'EFZ (mit Gültigkeit)', lang: true }) +
+      B.telefon(hell, kopfE, B.einstellungen(hell, 'eh', id), { shot: `einst-${id}-eh`, beschriftung: 'Erste Hilfe (nur meine, 60 Tage)', lang: true }) +
+      B.telefon(dunkel, kopfE, B.einstellungen(dunkel, 'praev', id), { shot: `einst-${id}-dunkel`, beschriftung: 'Prävention · dunkel', lang: true }))).join('');
+  }
+  function hinzufuegen() {
+    return variante('hinzu', 'Auswahl als Blatt über der Übersicht', 'Haken heißt: in der Übersicht angezeigt.',
+      B.telefon(hell, kopfUe, B.uebersicht(hell, 'U1'), { shot: 'hinzu-hell', beschriftung: 'hell', overlay: B.hinzufuegenSheet(hell) }) +
+      B.telefon(dunkel, kopfUe, B.uebersicht(dunkel, 'U1'), { shot: 'hinzu-dunkel', beschriftung: 'dunkel', overlay: B.hinzufuegenSheet(dunkel) }));
+  }
+  function benachrichtigungen() {
+    const kopfN = B.kopf('Benachrichtigungen');
+    return variante('benach', 'Einstellungen · Mitteilung · Meldung', 'Links eingeschaltet, daneben ausgeschaltet. Rechts der Sperrbildschirm mit einer eigenen und zwei fremden Mitteilungen, darunter die Meldung in der App.',
+      B.telefon(hell, kopfN, B.benachrichtigungen(hell), { shot: 'benach-an', beschriftung: 'eingeschaltet' }) +
+      B.telefon(dunkel, kopfN, B.benachrichtigungen(dunkel, { an: false }), { shot: 'benach-aus', beschriftung: 'ausgeschaltet · dunkel' }) +
+      `<div style="display:flex;flex-direction:column;gap:18px">${B.panel(hell, B.sperrbildschirm(hell), { shot: 'benach-lock', titel: 'Sperrbildschirm' })}${B.panel(hell, B.meldungen(hell), { shot: 'benach-meldung', titel: 'Einstellungen → Meldungen' })}</div>`);
+  }
+  function premium() {
+    const kopfE = B.kopf('Einstellungen');
+    const kopfQ = B.kopf('Qualifikationen');
+    return variante('premium', 'Einstieg und gesperrte Seite', 'Im Schnellzugriff trägt der Eintrag dann ein „Supporter“-Schild.',
+      B.telefon(hell, kopfE, B.schnellzugriff(hell, true), { shot: 'premium-sz', beschriftung: 'Schnellzugriff' }) +
+      B.telefon(hell, kopfQ, B.gesperrt(hell, 'L1'), { shot: 'premium-L1', beschriftung: 'L1 · Vorschau unscharf' }) +
+      B.telefon(hell, kopfQ, B.gesperrt(hell, 'L2'), { shot: 'premium-L2', beschriftung: 'L2 · nur Hinweis' }));
+  }
+  function zustaende() {
+    return variante('zustaende', 'Keine EFZ-Berechtigung · nicht synchronisiert · keine Hitobito-Qualifikationen', 'Ohne EFZ-Recht zeigt nur die EFZ-Karte ein Schloss, die anderen bleiben nutzbar.',
+      B.telefon(hell, kopfUe, B.uebersicht(hell, 'U1', { efzGesperrt: true }), { shot: 'zustand-efz', beschriftung: 'ohne EFZ-Berechtigung' }) +
+      B.telefon(hell, kopfUe, B.zustand(hell, 'nichtSync'), { shot: 'zustand-sync', beschriftung: 'nicht synchronisiert' }) +
+      B.telefon(hell, kopfUe, B.zustand(hell, 'leer'), { shot: 'zustand-leer', beschriftung: 'niemand hat eine Hitobito-Qualifikation' }));
+  }
+
+  const FRAGEN = [
+    { id: 'uebersicht', titel: 'Übersicht', optionen: ['U1 Karten untereinander', 'U2 Raster', 'U3 Zeilen'] },
+    { id: 'detail', titel: 'Karte geöffnet', optionen: ['D1 nach Status gruppiert', 'D2 Handlungsbedarf / Alle'] },
+    { id: 'kreis', titel: 'Personenkreis festlegen', optionen: ['P1 Regeln aus Bausteinen', 'P2 fertige Kreise + eigene Regeln'] },
+    { id: 'farben', titel: 'Farben und Zählweise im Balken', optionen: ['passt', 'ändern'] },
+    { id: 'hinzu', titel: 'Hinzufügen und Reihenfolge', optionen: ['passt', 'ändern'] },
+    { id: 'benach', titel: 'Eigene Erinnerungen unter Benachrichtigungen', optionen: ['passt', 'ändern'] },
+    { id: 'premium', titel: 'Supporter-Sperre', optionen: ['L1 Vorschau unscharf', 'L2 nur Hinweis', 'vorerst ohne Sperre'] },
+    { id: 'zustaende', titel: 'Zustände', optionen: ['passt', 'ändern'] },
+  ];
+  function renderFeedback() {
+    const f = document.getElementById('fb');
+    f.innerHTML = FRAGEN.map((qq) => `<fieldset><legend>${qq.titel}</legend>${qq.optionen.map((o) => `<label><input type="radio" name="${qq.id}" value="${o}"> ${o}</label>`).join('')}<textarea name="${qq.id}-text" placeholder="Anmerkung (optional)"></textarea></fieldset>`).join('') +
+      `<fieldset><legend>Sonst noch</legend><textarea name="frei" placeholder="Freitext"></textarea></fieldset>
+      <button type="button" id="kopieren">Auswahl kopieren</button>
+      <textarea id="ausgabe" readonly placeholder="Hier erscheint der Text für den Chat."></textarea>`;
+    document.getElementById('kopieren').addEventListener('click', async () => {
+      const fd = new FormData(f);
+      const zeilen = ['Rückmeldung Qualifikationen-Übersicht, Runde 1'];
+      for (const qq of FRAGEN) {
+        const wahl = fd.get(qq.id); const text = (fd.get(`${qq.id}-text`) || '').trim();
+        zeilen.push(`- ${qq.titel}: ${wahl || '–'}${text ? ` – ${text}` : ''}`);
+      }
+      const frei = (fd.get('frei') || '').trim();
+      if (frei) zeilen.push(`- Sonst: ${frei}`);
+      const text = zeilen.join('\n');
+      const out = document.getElementById('ausgabe');
+      out.value = text;
+      try { await navigator.clipboard.writeText(text); } catch (e) { out.select(); document.execCommand('copy'); }
+    });
+  }
+
+  document.getElementById('slot-uebersicht').innerHTML = uebersicht();
+  document.getElementById('slot-detail').innerHTML = detail();
+  document.getElementById('slot-einstellungen').innerHTML = einstellungen();
+  document.getElementById('slot-hinzufuegen').innerHTML = hinzufuegen();
+  document.getElementById('slot-benachrichtigungen').innerHTML = benachrichtigungen();
+  document.getElementById('slot-premium').innerHTML = premium();
+  document.getElementById('slot-zustaende').innerHTML = zustaende();
+  renderFeedback();
+  document.body.dataset.fertig = '1';
+})();
+</script>
+</body></html>

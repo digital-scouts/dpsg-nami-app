@@ -1,242 +1,235 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../domain/arbeitskontext/arbeitskontext_read_model.dart';
 import '../../domain/arbeitskontext/teildaten_stand.dart';
-import '../../domain/member/mitglied.dart';
 import '../../domain/qualifikation/ermittle_qualifikations_uebersicht_usecase.dart';
-import '../../domain/qualifikation/qualifikations_status.dart';
-import '../../domain/qualifikation/qualifikationsart.dart';
 import '../../l10n/app_localizations.dart';
-import '../model/arbeitskontext_model.dart';
-import '../navigation/app_router.dart';
-import '../widgets/qualifikations_status_badge.dart';
-import 'member_detail_page.dart';
+import '../model/qualifikations_einstellungen_model.dart';
+import '../widgets/qualifikationen/qualifikation_bausteine.dart';
+import 'qualifikationen/qualifikation_personen_page.dart';
+import 'qualifikationen/qualifikationen_auswahl_page.dart';
+import 'qualifikationen/qualifikationen_kontext.dart';
 
-/// Qualifikationen-Uebersicht fuer Leitende: zeigt den EFZ-Status aller
-/// aktiven Leitenden im aktuellen Arbeitskontext (ein Stamm), mit Filter nach
-/// Qualifikationsart. Erreichbar ueber Einstellungen -> Schnellzugriff.
-class SettingsQualifikationenPage extends StatefulWidget {
-  const SettingsQualifikationenPage({super.key, this.showAppBar = true});
+/// Qualifikationen-Uebersicht (Einstellungen -> Schnellzugriff): je
+/// angezeigter Art eine Zeile mit „erfuellt / benoetigt“ und Status. Teil des
+/// Supporter-Pakets; gesperrt erscheint nur ein Hinweis.
+class SettingsQualifikationenPage extends StatelessWidget {
+  const SettingsQualifikationenPage({
+    super.key,
+    this.readModel,
+    this.heuteProvider,
+  });
 
-  final bool showAppBar;
+  /// Fuer Stories und Tests; sonst aus dem ArbeitskontextModel.
+  final ArbeitskontextReadModel? readModel;
+  final DateTime Function()? heuteProvider;
 
-  @override
-  State<SettingsQualifikationenPage> createState() =>
-      _SettingsQualifikationenPageState();
-}
-
-class _SettingsQualifikationenPageState
-    extends State<SettingsQualifikationenPage> {
   static const _useCase = ErmittleQualifikationsUebersichtUseCase();
 
-  Qualifikationsart _selectedQualifikationsart = efzQualifikationsart;
-
-  Future<void> _openMemberDetails(Mitglied mitglied) async {
-    await Navigator.of(context).push(
+  void _oeffneAuswahl(BuildContext context) {
+    Navigator.of(context).push(
       MaterialPageRoute<void>(
-        settings: RouteSettings(
-          name: AppRoutes.memberDetail,
-          arguments: mitglied.mitgliedsnummer,
+        builder: (_) => QualifikationenAuswahlPage(
+          readModel: readModel,
+          heuteProvider: heuteProvider,
         ),
-        builder: (_) => MemberDetailPage(mitglied: mitglied),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final readModel = context.watch<ArbeitskontextModel>().readModel;
     final t = AppLocalizations.of(context);
+    final supporter = QualifikationenKontext.supporterFrei(context);
+    final readModel = QualifikationenKontext.readModel(context, this.readModel);
+    final einstellungen = context
+        .watch<QualifikationsEinstellungenModel>()
+        .einstellungen;
+    final heute = QualifikationenKontext.heute(heuteProvider);
 
-    // EFZ-Einsichtnahmen kommen aus dem beim Sync gespeicherten Arbeitskontext
-    // und sind damit auch offline verfuegbar.
     return Scaffold(
-      appBar: widget.showAppBar
-          ? AppBar(title: const Text('Qualifikationen'))
-          : null,
-      body: switch (readModel?.efzStand) {
-        null => const Center(child: CircularProgressIndicator()),
-        TeildatenStand.keineBerechtigung => _QualifikationenStatusView(
-          icon: Icons.lock_outline,
-          title: t.t('qualifikationen_efz_keine_berechtigung_titel'),
-          message: t.t('qualifikationen_efz_keine_berechtigung_text'),
-        ),
-        TeildatenStand.unbekannt => _QualifikationenStatusView(
-          icon: Icons.schedule_outlined,
-          title: t.t('qualifikationen_efz_nicht_synchronisiert_titel'),
-          message: t.t('qualifikationen_efz_nicht_synchronisiert_text'),
-        ),
-        TeildatenStand.fehlgeschlagen => const _QualifikationenStatusView(
-          icon: Icons.error_outline,
-          title: 'Qualifikationen konnten nicht geladen werden',
-          message: 'Bitte versuche es später erneut.',
-        ),
-        TeildatenStand.geladen => _QualifikationenContent(
-          eintraege: _useCase(
-            readModel: readModel!,
-            einsichtnahmen: readModel.efzEinsichtnahmen,
-            qualifikationsart: _selectedQualifikationsart,
-          ),
-          selectedQualifikationsart: _selectedQualifikationsart,
-          onQualifikationsartChanged: (art) =>
-              setState(() => _selectedQualifikationsart = art),
-          onMemberTap: _openMemberDetails,
-        ),
-      },
+      appBar: AppBar(
+        title: Text(t.t('quali_titel')),
+        actions: [
+          if (supporter && readModel != null)
+            IconButton(
+              key: const Key('quali-auswahl-oeffnen'),
+              tooltip: t.t('quali_auswahl_tooltip'),
+              icon: const Icon(Icons.settings_outlined),
+              onPressed: () => _oeffneAuswahl(context),
+            ),
+        ],
+      ),
+      body: !supporter
+          ? const _SupporterHinweis()
+          : readModel == null
+          ? const Center(child: CircularProgressIndicator())
+          : readModel.efzStand == TeildatenStand.unbekannt &&
+                readModel.qualifikationenStand == TeildatenStand.unbekannt
+          ? _ZustandsHinweis(
+              icon: Icons.sync,
+              titel: t.t('quali_nicht_sync_titel'),
+              text: t.t('quali_nicht_sync_text'),
+            )
+          : _Uebersicht(
+              readModel: readModel,
+              zeilen: _useCase(
+                readModel: readModel,
+                einstellungen: einstellungen,
+                heute: heute,
+              ),
+              heute: heute,
+              onAuswahl: () => _oeffneAuswahl(context),
+              onZeile: (zeile) => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => QualifikationPersonenPage(
+                    schluessel: zeile.art.schluessel,
+                    readModel: this.readModel,
+                    heuteProvider: heuteProvider,
+                  ),
+                ),
+              ),
+            ),
     );
   }
 }
 
-class _QualifikationenContent extends StatelessWidget {
-  const _QualifikationenContent({
-    required this.eintraege,
-    required this.selectedQualifikationsart,
-    required this.onQualifikationsartChanged,
-    required this.onMemberTap,
+class _Uebersicht extends StatelessWidget {
+  const _Uebersicht({
+    required this.readModel,
+    required this.zeilen,
+    required this.heute,
+    required this.onAuswahl,
+    required this.onZeile,
   });
 
-  final List<QualifikationsUebersichtEintrag> eintraege;
-  final Qualifikationsart selectedQualifikationsart;
-  final ValueChanged<Qualifikationsart> onQualifikationsartChanged;
-  final ValueChanged<Mitglied> onMemberTap;
+  final ArbeitskontextReadModel readModel;
+  final List<UebersichtZeile> zeilen;
+  final DateTime heute;
+  final VoidCallback onAuswahl;
+  final ValueChanged<UebersichtZeile> onZeile;
 
   @override
   Widget build(BuildContext context) {
-    final ohneGueltigenNachweis = eintraege
-        .where((eintrag) => eintrag.status != QualifikationsStatus.gueltig)
-        .length;
+    final theme = Theme.of(context);
+    final t = AppLocalizations.of(context);
+    final ohneHitobitoArten = readModel.qualifikationsarten.isEmpty;
+    final hinweis = !ohneHitobitoArten
+        ? null
+        : readModel.qualifikationenStand == TeildatenStand.fehlgeschlagen
+        ? t.t('quali_fehlgeschlagen_titel')
+        : readModel.qualifikationenStand == TeildatenStand.geladen
+        ? t.t('quali_leer_hinweis')
+        : null;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       children: [
-        Wrap(
-          spacing: 8,
-          children: [
-            for (final qualifikationsart in alleQualifikationsarten)
-              ChoiceChip(
-                label: Text(qualifikationsart.label),
-                selected:
-                    qualifikationsart.key == selectedQualifikationsart.key,
-                onSelected: (_) =>
-                    onQualifikationsartChanged(qualifikationsart),
-              ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary,
-            borderRadius: BorderRadius.circular(16),
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 10),
+          child: Text(
+            t.t('quali_kontext', {
+              'kontext': readModel.arbeitskontext.aktiverLayer.name,
+              'n': QualifikationenKontext.personenMitRolle(readModel, heute),
+            }),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
-          child: Row(
+        ),
+        Card(
+          margin: EdgeInsets.zero,
+          clipBehavior: Clip.antiAlias,
+          child: Column(
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(12),
+              for (final zeile in zeilen) ...[
+                QualifikationUebersichtZeile(
+                  zeile: zeile,
+                  onTap: () => onZeile(zeile),
                 ),
-                child: const Icon(Icons.verified_outlined, color: Colors.white),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '$ohneGueltigenNachweis von ${eintraege.length}',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                    Text(
-                      'ohne gültiges ${selectedQualifikationsart.label}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.8),
-                      ),
-                    ),
-                  ],
+                const Divider(height: 1, indent: 62),
+              ],
+              ListTile(
+                key: const Key('quali-hinzufuegen'),
+                leading: Icon(Icons.add, color: theme.colorScheme.primary),
+                title: Text(
+                  t.t('quali_hinzufuegen'),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
+                onTap: onAuswahl,
               ),
             ],
           ),
         ),
-        const SizedBox(height: 12),
-        if (eintraege.isEmpty)
-          const _QualifikationenStatusView(
-            icon: Icons.info_outline,
-            title: 'Keine Leitenden gefunden',
-            message:
-                'Im aktuellen Arbeitskontext sind keine aktiven Leitenden vorhanden.',
-          )
-        else
-          for (var i = 0; i < eintraege.length; i++) ...[
-            _QualifikationEintragRow(
-              eintrag: eintraege[i],
-              onTap: () => onMemberTap(eintraege[i].mitglied),
+        if (hinweis != null) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(12),
             ),
-            if (i < eintraege.length - 1) const SizedBox(height: 8),
-          ],
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline, size: 18, color: theme.hintColor),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(hinweis, style: theme.textTheme.bodySmall),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
 }
 
-class _QualifikationEintragRow extends StatelessWidget {
-  const _QualifikationEintragRow({required this.eintrag, required this.onTap});
-
-  final QualifikationsUebersichtEintrag eintrag;
-  final VoidCallback onTap;
-
-  static final _dateFormat = DateFormat('dd.MM.yyyy');
+class _SupporterHinweis extends StatelessWidget {
+  const _SupporterHinweis();
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final mitglied = eintrag.mitglied;
-    final gueltigBis = eintrag.gueltigBis;
-
-    return InkWell(
-      key: Key('qualifikation-member-row-${mitglied.mitgliedsnummer}'),
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: theme.colorScheme.outline.withValues(alpha: 0.3),
-          ),
-        ),
-        child: Row(
+    final t = AppLocalizations.of(context);
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(28, 24, 28, 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _memberName(mitglied),
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    gueltigBis == null
-                        ? 'Keine Einsichtnahme hinterlegt'
-                        : 'Gültig bis ${_dateFormat.format(gueltigBis)}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.outlineVariant,
-                    ),
-                  ),
-                ],
+            Icon(
+              Icons.lock_outline,
+              size: 32,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              t.t('quali_supporter_titel'),
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
               ),
             ),
-            QualifikationsStatusBadge(status: eintrag.status),
+            const SizedBox(height: 10),
+            Text(
+              t.t('quali_supporter_text'),
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              t.t('quali_supporter_hinweis'),
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
           ],
         ),
       ),
@@ -244,40 +237,39 @@ class _QualifikationEintragRow extends StatelessWidget {
   }
 }
 
-class _QualifikationenStatusView extends StatelessWidget {
-  const _QualifikationenStatusView({
+class _ZustandsHinweis extends StatelessWidget {
+  const _ZustandsHinweis({
     required this.icon,
-    required this.title,
-    required this.message,
+    required this.titel,
+    required this.text,
   });
 
   final IconData icon;
-  final String title;
-  final String message;
+  final String titel;
+  final String text;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 40, color: theme.colorScheme.outline),
+            Icon(icon, size: 32, color: theme.colorScheme.outline),
             const SizedBox(height: 10),
             Text(
-              title,
+              titel,
               textAlign: TextAlign.center,
               style: theme.textTheme.titleMedium,
             ),
             const SizedBox(height: 4),
             Text(
-              message,
+              text,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.outlineVariant,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -285,13 +277,4 @@ class _QualifikationenStatusView extends StatelessWidget {
       ),
     );
   }
-}
-
-String _memberName(Mitglied mitglied) {
-  final fahrtenname = mitglied.fahrtenname?.trim();
-  if (fahrtenname != null && fahrtenname.isNotEmpty) {
-    return fahrtenname;
-  }
-  final fullName = '${mitglied.vorname} ${mitglied.nachname}'.trim();
-  return fullName.isEmpty ? mitglied.mitgliedsnummer : fullName;
 }

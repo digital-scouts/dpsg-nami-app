@@ -17,6 +17,8 @@ import '../domain/member/efz_einsichtnahme.dart';
 import '../domain/member/member_write_repository.dart';
 import '../domain/member/mitglied.dart';
 import '../domain/member_filters/member_filter_repository.dart';
+import '../domain/qualifikation/qualifikations_einstellungen.dart';
+import '../domain/qualifikation/qualifikations_einstellungen_repository.dart';
 import '../services/hitobito_auth_env.dart';
 import '../services/hitobito_efz_service.dart';
 import '../services/hitobito_groups_service.dart';
@@ -280,6 +282,21 @@ class InMemoryBundesstatistikTeilnahmeRepository
   @override
   Future<void> save(BundesstatistikTeilnahme teilnahme) async {
     _teilnahme = teilnahme;
+  }
+}
+
+/// Einstellungen der Qualifikationen im Demo-Modus, nur im Speicher.
+class InMemoryQualifikationsEinstellungenRepository
+    implements QualifikationsEinstellungenRepository {
+  QualifikationsEinstellungen _einstellungen =
+      const QualifikationsEinstellungen();
+
+  @override
+  Future<QualifikationsEinstellungen> load() async => _einstellungen;
+
+  @override
+  Future<void> save(QualifikationsEinstellungen einstellungen) async {
+    _einstellungen = einstellungen;
   }
 }
 

@@ -662,45 +662,50 @@ abstract final class DemoBezirk {
   /// Qualifikationen der Leitenden: Erwerb vor [DemoQualifikation.vorMonaten]
   /// Monaten, gueltig fuer [DemoQualifikation.gueltigJahre] (null = ohne
   /// Ablauf).
-  static const Map<String, List<DemoQualifikation>> qualifikationen =
-      <String, List<DemoQualifikation>>{
-        '1051': <DemoQualifikation>[
-          DemoQualifikation('Woodbadge', 40),
-          DemoQualifikation('Präventionsschulung', 30, gueltigJahre: 5),
-          DemoQualifikation('Erste-Hilfe-Kurs', 22, gueltigJahre: 2),
-          DemoQualifikation(
-            'Juleica',
-            44,
-            gueltigJahre: 3,
-            reaktivierbar: true,
-          ),
-        ],
-        '1052': <DemoQualifikation>[
-          DemoQualifikation('Präventionsschulung', 10, gueltigJahre: 5),
-        ],
-        '1053': <DemoQualifikation>[
-          DemoQualifikation('Modulausbildung', 60),
-          DemoQualifikation('Präventionsschulung', 58, gueltigJahre: 5),
-        ],
-        '1061': <DemoQualifikation>[
-          DemoQualifikation('Woodbadge', 90),
-          DemoQualifikation('Präventionsschulung', 20, gueltigJahre: 5),
-        ],
-        '2051': <DemoQualifikation>[
-          DemoQualifikation('Präventionsschulung', 6, gueltigJahre: 5),
-        ],
-      };
+  static const Map<String, List<DemoQualifikation>>
+  qualifikationen = <String, List<DemoQualifikation>>{
+    '1051': <DemoQualifikation>[
+      DemoQualifikation('Woodbadge', 40, artId: 3),
+      DemoQualifikation('Präventionsschulung', 30, artId: 14, gueltigJahre: 5),
+      DemoQualifikation('Erste-Hilfe-Kurs', 22, artId: 9, gueltigJahre: 2),
+      DemoQualifikation(
+        'Juleica',
+        44,
+        artId: 21,
+        gueltigJahre: 3,
+        reaktivierbar: true,
+      ),
+    ],
+    '1052': <DemoQualifikation>[
+      DemoQualifikation('Präventionsschulung', 10, artId: 14, gueltigJahre: 5),
+    ],
+    '1053': <DemoQualifikation>[
+      DemoQualifikation('Modulausbildung', 60, artId: 5),
+      DemoQualifikation('Präventionsschulung', 58, artId: 14, gueltigJahre: 5),
+    ],
+    '1061': <DemoQualifikation>[
+      DemoQualifikation('Woodbadge', 90, artId: 3),
+      DemoQualifikation('Präventionsschulung', 20, artId: 14, gueltigJahre: 5),
+    ],
+    '2051': <DemoQualifikation>[
+      DemoQualifikation('Präventionsschulung', 6, artId: 14, gueltigJahre: 5),
+    ],
+  };
 }
 
 class DemoQualifikation {
   const DemoQualifikation(
     this.label,
     this.vorMonaten, {
+    required this.artId,
     this.gueltigJahre,
     this.reaktivierbar = false,
   });
 
   final String label;
+
+  /// Feste Art-ID wie `qualification_kind_id` in Hitobito.
+  final int artId;
   final int vorMonaten;
   final int? gueltigJahre;
   final bool reaktivierbar;

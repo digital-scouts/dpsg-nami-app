@@ -1,0 +1,169 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8">
+<title>Entwürfe: Qualifikationen-Übersicht, Runde 3</title>
+<link rel="stylesheet" href="../statistik/basis.css">
+<link rel="stylesheet" href="../mitglied/mitglied.css">
+<link rel="stylesheet" href="quali.css">
+<script src="../mitglied/daten.js"></script>
+<script src="../mitglied/lilie.js"></script>
+<script src="daten.js"></script>
+<script src="bausteine.js"></script>
+</head><body>
+<div class="bar">
+  <nav><a href="#uebersicht">1 Übersicht</a><a href="#weg">2 Weg zu den Einstellungen</a><a href="#detail">3 Karte geöffnet</a><a href="#einstellungen">4 Einstellungen</a><a href="#supporter">5 Supporter</a><a href="#kontrolle">6 Kontrolle</a><a href="#rueckmeldung">7 Rückmeldung</a></nav>
+</div>
+<main>
+  <h1>Qualifikationen-Übersicht: Entwürfe, Runde 3</h1>
+  <p>Endstand nach Runde 2: Der Balken für „fehlt“ ist voll rot, und der Zusatz „fest für das EFZ“ entfällt. Alles andere ist freigegeben; die Seite dient als Vorlage für die Umsetzung.</p>
+  <div class="fest-list"><b>Freigegeben</b> <span class="tag">freigegeben</span>
+    <ul>
+      <li><b>Übersicht:</b> U3, Zeilen in einer Karte.</li>
+      <li><b>Fehlt und abgelaufen:</b> beides zählt als „fehlt“, im Balken voll rot. In der Personenliste heißt es weiter „abgelaufen“.</li>
+      <li><b>Karte geöffnet:</b> D2, Umschalter „Handlungsbedarf / Alle“.</li>
+      <li><b>Personenkreis:</b> P1, Regeln aus Bausteinen.</li>
+      <li><b>EFZ:</b> fest 5 Jahre, nicht einstellbar und ohne Zusatz. Bei Hitobito-Arten steht „aus Hitobito“.</li>
+      <li><b>Erinnerung:</b> „Von wem“ statt „An wen“. Erinnert wirst immer du, entweder bei Abläufen von allen im Personenkreis oder nur bei deinen eigenen.</li>
+      <li><b>Auswahl:</b> Es gibt keinen Bereich „Früher gesehen“. Sichtbar ist nur, was im Kontext jemand hat. Einstellungen bleiben gespeichert und gelten wieder, sobald jemand die Qualifikation hat.</li>
+      <li><b>Supporter:</b> L2, nur Hinweis. Dazu ein Testschalter in Debug & Tools.</li>
+      <li><b>Weg zu den Einstellungen, Karte geöffnet, Supporter, eigene Erinnerungen und Zustände:</b> freigegeben.</li>
+    </ul></div>
+
+  <section class="part" id="uebersicht">
+    <h2>1 · Übersicht mit zusammengefasstem „fehlt“</h2>
+    <p>Rechts mit Juleica und Woodbadge: Juleica hat nur Funke (abgelaufen), Woodbadge haben zwei. Das Zahnrad oben rechts führt zur Auswahl.</p>
+    <div id="slot-uebersicht"></div>
+  </section>
+
+  <section class="part" id="weg">
+    <h2>2 · Von der Übersicht zu den Einstellungen</h2>
+    <p>Zahnrad oder „Qualifikation hinzufügen“ öffnen die Auswahl. Dort schaltet man Arten ein und aus, ändert die Reihenfolge und öffnet mit dem Pfeil die Einstellungen einer Art. Aus der geöffneten Karte führt das Zahnrad direkt zu ihren Einstellungen.</p>
+    <div id="slot-weg"></div>
+  </section>
+
+  <section class="part" id="detail">
+    <h2>3 · Karte geöffnet (D2)</h2>
+    <div id="slot-detail"></div>
+  </section>
+
+  <section class="part" id="einstellungen">
+    <h2>4 · Einstellungen je Qualifikation (P1)</h2>
+    <p>Beim EFZ steht die Gültigkeit fest. „Aus der Übersicht entfernen“ entfällt; dafür gibt es den Schalter in der Auswahl.</p>
+    <div id="slot-einstellungen"></div>
+  </section>
+
+  <section class="part" id="supporter">
+    <h2>5 · Supporter-Sperre (L2) und Testschalter</h2>
+    <p>Der Schalter liegt in Debug & Tools und ersetzt übergangsweise die Store-Anbindung. Aus: Die Übersicht zeigt den Hinweis. An: Sie ist frei.</p>
+    <div id="slot-supporter"></div>
+  </section>
+
+  <section class="part" id="kontrolle">
+    <h2>6 · Kontrolle: eigene Erinnerungen und Zustände</h2>
+    <p>Freigegeben, hier mit der Zeilen-Übersicht und dem zusammengefassten „fehlt“.</p>
+    <div id="slot-kontrolle"></div>
+  </section>
+
+  <section class="part" id="rueckmeldung">
+    <h2>7 · Rückmeldung</h2>
+    <p>Auswählen, kurz kommentieren, „Auswahl kopieren“ und den Text in den Chat einfügen.</p>
+    <form class="fb" id="fb"></form>
+  </section>
+</main>
+<script>
+(function () {
+  const M = window.MITGLIED;
+  const Q = window.QDATEN;
+  const B = window.QBAU;
+
+  const zusatz = { hell: { '--ghost': '#e3e3e8' }, dunkel: { '--ghost': '#363642' } };
+  let css = '';
+  for (const modus of ['hell', 'dunkel']) {
+    const p = M.palette[modus];
+    const vars = { '--bg': p.bg, '--surface': p.surface, '--surface2': p.surface2, '--fg': p.fg, '--fg2': p.fg2, '--muted': p.muted, '--border': p.border,
+      '--primary': p.primary, '--on-primary': p.onPrimary, '--primary-lite': p.primaryLite, '--grid': p.grid, '--success': p.success, '--error': p.error, '--warn': p.warn, ...zusatz[modus] };
+    for (const [id, c] of Object.entries(M.stufenfarben[modus])) vars[`--st-${id}`] = c;
+    css += `.phone.${modus},.mpanel.${modus}{${Object.entries(vars).map(([k, v]) => `${k}:${v}`).join(';')}}`;
+  }
+  document.head.insertAdjacentHTML('beforeend', `<style>${css}</style>`);
+
+  const hell = { modus: 'hell', runde: 3 };
+  const dunkel = { modus: 'dunkel', runde: 3 };
+  const variante = (id, titel, desc, inhalt) => `<div class="variant" data-shot-group="${id}"><h3>${titel}</h3><p class="desc">${desc}</p><div class="phones">${inhalt}</div></div>`;
+  const kopfUe = B.kopf('Qualifikationen', B.ico('gear', 21));
+  const kopfD = (id) => B.kopf(Q.arten[id].kurz, B.ico('gear', 21));
+  const MEHR = ['efz', 'praev', 'eh', 'juleica', 'wb'];
+
+  function uebersicht() {
+    return variante('ue', 'U3 · Zeilen', 'Vorgabe, dunkel und mit fünf Arten.',
+      B.telefon(hell, kopfUe, B.uebersicht(hell, 'U3'), { shot: 'ue-hell', beschriftung: 'Vorgabe' }) +
+      B.telefon(dunkel, kopfUe, B.uebersicht(dunkel, 'U3'), { shot: 'ue-dunkel', beschriftung: 'dunkel' }) +
+      B.telefon(hell, kopfUe, B.uebersicht(hell, 'U3', { angezeigt: MEHR }), { shot: 'ue-mehr', beschriftung: 'mit Juleica und Woodbadge' }));
+  }
+  function weg() {
+    return variante('weg', 'Übersicht → Auswahl → Einstellungen', 'Juleica, Woodbadge und Modulausbildung haben im Stamm Personen und stehen deshalb unter „Ausgeblendet“. Sanitätsdienst hat niemand und fehlt ganz, die Einstellungen dazu bleiben gespeichert.',
+      B.telefon(hell, kopfUe, B.uebersicht(hell, 'U3'), { shot: 'weg-1', beschriftung: '① Zahnrad oben rechts' }) +
+      B.telefon(hell, B.kopf('Qualifikationen auswählen'), B.auswahl(hell), { shot: 'weg-2', beschriftung: '② Auswahl und Reihenfolge' }) +
+      B.telefon(hell, B.kopf('EFZ einstellen'), B.einstellungen(hell, 'efz', 'P1'), { shot: 'weg-3', beschriftung: '③ Einstellungen der Art', lang: true }) +
+      B.telefon(dunkel, B.kopf('Qualifikationen auswählen'), B.auswahl(dunkel), { shot: 'weg-2-dunkel', beschriftung: 'Auswahl · dunkel' }));
+  }
+  function detail() {
+    return variante('detail', 'Handlungsbedarf und Alle', 'Abgelaufene stehen bei den Fehlenden, behalten aber ihr Label.',
+      B.telefon(hell, kopfD('efz'), B.detail(hell, 'efz', 'D2'), { shot: 'detail-efz', beschriftung: 'EFZ · Handlungsbedarf' }) +
+      B.telefon(hell, kopfD('efz'), B.detail(hell, 'efz', 'D2', undefined, { alle: true }), { shot: 'detail-efz-alle', beschriftung: 'EFZ · Alle' }) +
+      B.telefon(dunkel, kopfD('eh'), B.detail(dunkel, 'eh', 'D2'), { shot: 'detail-eh-dunkel', beschriftung: 'Erste Hilfe · dunkel' }));
+  }
+  function einstellungen() {
+    return variante('einst', 'Personenkreis, Erinnerung, Gültigkeit', 'Erste Hilfe ist auf „Nur von mir“ und 60 Tage gestellt.',
+      B.telefon(hell, B.kopf('EFZ einstellen'), B.einstellungen(hell, 'efz', 'P1'), { shot: 'einst-efz', beschriftung: 'EFZ', lang: true }) +
+      B.telefon(hell, B.kopf('Erste Hilfe einstellen'), B.einstellungen(hell, 'eh', 'P1'), { shot: 'einst-eh', beschriftung: 'Erste Hilfe', lang: true }) +
+      B.telefon(dunkel, B.kopf('Prävention einstellen'), B.einstellungen(dunkel, 'praev', 'P1'), { shot: 'einst-dunkel', beschriftung: 'Prävention · dunkel', lang: true }));
+  }
+  function supporter() {
+    return variante('sup', 'Testschalter und beide Zustände', '',
+      B.telefon(hell, B.kopf('Debug & Tools'), B.debugTools(hell, false), { shot: 'sup-debug', beschriftung: 'Debug & Tools · Schalter aus' }) +
+      B.telefon(hell, B.kopf('Qualifikationen'), B.gesperrt(hell, 'L2'), { shot: 'sup-aus', beschriftung: 'Supporter aus: Hinweis' }) +
+      B.telefon(hell, kopfUe, B.uebersicht(hell, 'U3'), { shot: 'sup-an', beschriftung: 'Supporter an: Übersicht' }));
+  }
+  function kontrolle() {
+    return variante('kontrolle', 'Benachrichtigungen und Zustände', '',
+      B.telefon(hell, B.kopf('Benachrichtigungen'), B.benachrichtigungen(hell), { shot: 'k-benach', beschriftung: 'Meine Qualifikationen' }) +
+      B.telefon(hell, kopfUe, B.uebersicht(hell, 'U3', { efzGesperrt: true }), { shot: 'k-efz', beschriftung: 'ohne EFZ-Berechtigung' }) +
+      B.telefon(hell, kopfUe, B.zustand(hell, 'nichtSync'), { shot: 'k-sync', beschriftung: 'nicht synchronisiert' }) +
+      B.telefon(hell, kopfUe, B.zustand(hell, 'leer'), { shot: 'k-leer', beschriftung: 'niemand hat eine Hitobito-Qualifikation' }));
+  }
+
+  const FRAGEN = [
+    { id: 'gesamt', titel: 'Gesamtbild', optionen: ['freigegeben', 'ändern'] },
+  ];
+  function renderFeedback() {
+    const f = document.getElementById('fb');
+    f.innerHTML = FRAGEN.map((qq) => `<fieldset><legend>${qq.titel}</legend>${qq.optionen.map((o) => `<label><input type="radio" name="${qq.id}" value="${o}"> ${o}</label>`).join('')}<textarea name="${qq.id}-text" placeholder="Anmerkung (optional)"></textarea></fieldset>`).join('') +
+      `<fieldset><legend>Sonst noch</legend><textarea name="frei" placeholder="Freitext"></textarea></fieldset>
+      <button type="button" id="kopieren">Auswahl kopieren</button>
+      <textarea id="ausgabe" readonly placeholder="Hier erscheint der Text für den Chat."></textarea>`;
+    document.getElementById('kopieren').addEventListener('click', async () => {
+      const fd = new FormData(f);
+      const zeilen = ['Rückmeldung Qualifikationen-Übersicht, Runde 3'];
+      for (const qq of FRAGEN) {
+        const wahl = fd.get(qq.id); const text = (fd.get(`${qq.id}-text`) || '').trim();
+        zeilen.push(`- ${qq.titel}: ${wahl || '–'}${text ? ` – ${text}` : ''}`);
+      }
+      const frei = (fd.get('frei') || '').trim();
+      if (frei) zeilen.push(`- Sonst: ${frei}`);
+      const text = zeilen.join('\n');
+      const out = document.getElementById('ausgabe');
+      out.value = text;
+      try { await navigator.clipboard.writeText(text); } catch (e) { out.select(); document.execCommand('copy'); }
+    });
+  }
+
+  document.getElementById('slot-uebersicht').innerHTML = uebersicht();
+  document.getElementById('slot-weg').innerHTML = weg();
+  document.getElementById('slot-detail').innerHTML = detail();
+  document.getElementById('slot-einstellungen').innerHTML = einstellungen();
+  document.getElementById('slot-supporter').innerHTML = supporter();
+  document.getElementById('slot-kontrolle').innerHTML = kontrolle();
+  renderFeedback();
+  document.body.dataset.fertig = '1';
+})();
+</script>
+</body></html>

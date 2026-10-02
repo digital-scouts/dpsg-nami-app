@@ -1,5 +1,6 @@
 import '../member/efz_einsichtnahme.dart';
 import '../member/mitglied.dart';
+import '../qualifikation/hitobito_qualifikationsart.dart';
 import '../qualifikation/qualifikation.dart';
 import 'arbeitskontext.dart';
 import 'teildaten_stand.dart';
@@ -302,6 +303,10 @@ class ArbeitskontextReadModel {
         .where((eintrag) => eintrag.personId == personId)
         .toList(growable: false);
   }
+
+  /// Qualifikationsarten, die im Arbeitskontext jemand hat.
+  List<HitobitoQualifikationsart> get qualifikationsarten =>
+      HitobitoQualifikationsart.ausQualifikationen(qualifikationen);
 
   List<Qualifikation> findeQualifikationen(int? personId) {
     if (personId == null) {
