@@ -207,3 +207,8 @@
 .trenn { height:14px; }
 .stats.frei { margin-bottom:10px; }
 .stats.frei .stat { background:var(--surface); }
+
+/* ---------- Runde 4: Geburtstag bald ---------- */
+.fakt.geb-bald.g1 { background:var(--primary-lite); }
+.fakt.geb-bald.g1 span { color:var(--primary); font-weight:600; }
+.fakt.geb-bald.g2 span { display:inline-flex; align-items:center; gap:4px; color:var(--primary); font-weight:600; }

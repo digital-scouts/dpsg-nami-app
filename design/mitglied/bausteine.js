@@ -34,6 +34,7 @@
   // Ab Runde 2 gelten die Festlegungen aus Runde 1; ältere Runden-Seiten bleiben unverändert.
   const R2 = (ctx) => (ctx.runde || 1) >= 2;
   const R3 = (ctx) => (ctx.runde || 1) >= 3;
+  const R4 = (ctx) => (ctx.runde || 1) >= 4;
   const MONATE_LANG = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
   // Nächster Geburtstag ab dem Stichtag; liefert Tage bis dahin.
   function naechsterGeburtstag(geb) {
@@ -45,6 +46,7 @@
   }
   // Altersgrenzen wie StufenDefaults.build() in lib/domain/stufe/altersgrenzen.dart.
   const ALTER_MIN = { biber: 4, woe: 6, jufi: 9, pfadi: 12, rover: 15 };
+  const ALTER_MAX = { biber: 7, woe: 10, jufi: 13, pfadi: 16, rover: 20 };
   const ROVER_MAX = 20;
   const NAECHSTE = { biber: 'woe', woe: 'jufi', jufi: 'pfadi', pfadi: 'rover' };
   const ZIELNAME = { woe: 'den Wölflingen', jufi: 'den Jufis', pfadi: 'den Pfadis', rover: 'den Rovern' };
@@ -299,7 +301,7 @@
     if (konfession) z.push(zeile('<span class="platzhalter">noch nicht verfügbar</span>', 'Konfession', { icon: i('person'), klasse: 'blass' }));
     return z.join('');
   }
-  const faktKacheln = (fakten) => `<div class="fakten">${fakten.map(([w, e, l]) => `<div class="fakt"><b>${esc(w)}${e ? ` <small>${e}</small>` : ''}</b><span>${esc(l)}</span></div>`).join('')}</div>`;
+  const faktKacheln = (fakten) => `<div class="fakten">${fakten.map(([w, e, l, cls = '']) => `<div class="fakt${cls}"><b>${esc(w)}${e ? ` <small>${e}</small>` : ''}</b><span>${cls.includes('g2') ? ico('cake', 14) : ''}${esc(l)}</span></div>`).join('')}</div>`;
   const AKTIONEN = (p) => `<div class="qa"><span class="${p.telefon.length ? '' : 'aus'}">${ico('phone', 17)}Anrufen</span><span class="${p.mail.length ? '' : 'aus'}">${ico('mail', 17)}E-Mail</span><span>${ico('edit', 17)}Bearbeiten</span></div>`;
   const sec = (x, n) => `<div class="sec">${x}${n != null ? ` <span class="n">${n}</span>` : ''}</div>`;
   const austrittsBanner = (p) => (p.austritt ? `<div class="banner">${ico('clock', 17)}Ausgetreten zum ${dmy(p.austritt)}</div>` : '');
@@ -315,7 +317,8 @@
     }
     if (v === 'D3') {
       const ng = p.geburtsdatum ? naechsterGeburtstag(p.geburtsdatum) : null;
-      const gebKachel = !ng ? ['–', '', 'Geburtstag unbekannt'] : [ng.text, '', ng.tage === 0 ? 'heute Geburtstag' : ng.tage <= 31 ? `in ${plural(ng.tage, 'Tag', 'Tagen')} · wird ${alter(p.geburtsdatum) + 1}` : `Geburtstag in ${plural(Math.round(ng.tage / 30.44), 'Monat', 'Monaten')}`];
+      const gebBald = R4(ctx) && ng && ng.tage <= 7 ? ` geb-bald ${(ctx.gebHervor || 'G1').toLowerCase()}` : '';
+      const gebKachel = !ng ? ['–', '', 'Geburtstag unbekannt'] : [ng.text, '', ng.tage === 0 ? 'heute Geburtstag' : ng.tage <= 31 ? `in ${plural(ng.tage, 'Tag', 'Tagen')} · wird ${alter(p.geburtsdatum) + 1}` : `Geburtstag in ${plural(Math.round(ng.tage / 30.44), 'Monat', 'Monaten')}`, gebBald];
       const fakten = [
         R3(ctx) ? gebKachel : p.geburtsdatum ? [`${alter(p.geburtsdatum)}`, 'Jahre', `Geb. ${dmy(p.geburtsdatum)}`] : ['–', '', 'Geburtstag unbekannt'],
         p.austritt ? [faktDauer(p.eintritt, p.austritt), '', `${jahr(p.eintritt)}–${jahr(p.austritt)} dabei`] : [faktDauer(p.eintritt, heuteIso), '', `dabei seit ${dmy(p.eintritt)}`],
@@ -608,6 +611,7 @@
   // Nächster Stufenwechsel wie ErmittleStufenwechselVorschlaegeUseCase: fällig ab Geburtsjahr + Mindestalter der Zielstufe.
   function stufenwechselKachel(p, ctx) {
     if (!p.geburtsdatum || p.austritt) return null;
+    if (R4(ctx)) return stufenwechselKachel4(p);
     const aktiv = p.rollen.filter((r) => status(r) === 'aktiv' && r.art === 'm' && r.stufe);
     if (!aktiv.length) return null;
     const st = aktiv.sort((a, b) => RANG[a.stufe] - RANG[b.stufe])[0].stufe;
@@ -622,6 +626,21 @@
     const faellig = gebJahr + ALTER_MIN[ziel];
     if (faellig <= jetzt) return ['jetzt', 'Wechsel möglich', `zu ${ZIELNAME[ziel]}`];
     return [String(faellig), 'nächster Wechsel', `zu ${ZIELNAME[ziel]}`];
+  }
+  // Runde 4: maßgeblich ist die höchste aktive Mitgliedsstufe; kein Zustand „läuft“.
+  // fällig ab = Geburtsjahr + Mindestalter Zielstufe, spätestens = Geburtsjahr + Höchstalter aktuelle Stufe.
+  function stufenwechselKachel4(p) {
+    const aktiv = p.rollen.filter((r) => status(r) === 'aktiv' && r.art === 'm' && r.stufe);
+    if (!aktiv.length) return null;
+    const st = aktiv.sort((a, b) => RANG[b.stufe] - RANG[a.stufe])[0].stufe;
+    const gebJahr = Number(jahr(p.geburtsdatum));
+    const jetzt = Number(heuteIso.slice(0, 4));
+    const spaetestens = gebJahr + ALTER_MAX[st];
+    if (st === 'rover') return [spaetestens < jetzt ? 'jetzt' : `bis ${spaetestens}`, 'Ende Roverzeit', 'mit 20 Jahren'];
+    const ziel = NAECHSTE[st];
+    const ab = gebJahr + ALTER_MIN[ziel];
+    const wert = spaetestens < jetzt ? 'jetzt' : ab > jetzt ? `ab ${ab}` : `bis ${spaetestens}`;
+    return [wert, 'Stufenwechsel', `zu ${ZIELNAME[ziel]}`];
   }
   function verlaufKombi(p, ctx, k, v) {
     const diagramm = k.jung ? '<div class="foot muted">Der Verlauf wächst mit jeder Stufe.</div>' : verlaufBand(p, ctx, k, { nurDiagramm: true });
