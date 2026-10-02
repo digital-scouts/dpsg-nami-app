@@ -1,8 +1,48 @@
 # Mitgliedsdetails: Bedarfsanalyse und Redesign
 
-Stand: 2026-10-02. Diese Spec beschreibt den Ist-Zustand der Mitgliedsdetailseite, die festgelegten Anforderungen und die Edge Cases, an denen sich Entwürfe, Stories und Tests messen. Die visuellen Entwürfe liegen unter `design/mitglied/`. Umgesetzt wird erst, wenn die Entwürfe freigegeben sind.
+Stand: 2026-10-02, umgesetzt. Diese Spec beschreibt die Ausgangslage der Mitgliedsdetailseite, die festgelegten Anforderungen, die Edge Cases und den umgesetzten Stand. Die freigegebenen visuellen Entwürfe liegen unter `design/mitglied/` (Runden 1 bis 4).
 
-## Ist-Zustand
+## Umgesetzter Stand
+
+**Kopf:** `MemberSteckbriefKopf`
+- Avatar, Name bzw. Fahrtenname und die Zeile „30 Jahre · sie/ihr · weiblich“.
+- Chips aller aktiven Stufenrollen, Leitung zuerst. Ohne Stufenrolle erscheint „Sonstige“.
+- Bearbeiten als Stift oben rechts. Die Tabs behalten ihren Zustand.
+
+**Daten:** `MemberDetails`
+- **Kacheln:** Geburtstag und Mitgliedsdauer. Der Geburtstag ist heute rot getönt mit Kuchen, in 1–7 Tagen blau getönt.
+- **Familie:** Chips aus dem Hitobito-Haushalt.
+- **Kontakt und Adressen:** weitere Telefonnummern, E-Mails und Zusatzadressen eingeklappt.
+- **Details:** Mitgliedsnummer, Beitragsart, Stamm und Gruppe. Die Konfession entfällt, bis Hitobito sie liefert.
+- **Karte:** Ist sie nicht verfügbar, erscheint eine flache Hinweisfläche mit Aktion („Erneut versuchen“, „In Karten-App öffnen“). Beim Laden steht kein Fehlertext mehr.
+
+**Rollen:** `MemberRollenTab`
+- **Kennzahlen:** Dauer, Leitungsjahre und durchlaufene Stufen.
+  - Kinder ohne Leitung sehen statt der Leitungsjahre den nächsten Stufenwechsel (`berechneNaechstenStufenwechsel`): „jetzt“ (überfällig), „ab JJJJ“ (noch nicht möglich), „bis JJJJ“ (jetzt möglich, spätestens dann).
+  - Maßgeblich ist die höchste aktive Mitgliedsstufe, mit den eingestellten Altersgrenzen und dem Stichtag. Rover sehen das Ende der Roverzeit.
+- **Bahnen:** Mitglied, Leitung und Ämter auf einer Jahresachse (`VerlaufBahnen`).
+  - Kürzel stehen nur im Balken, wenn sie passen.
+  - Die Zeit vor der ersten bekannten Rolle ist schraffiert.
+- **Zeitstrahl:** `MemberRollenZeitstrahl`
+  - Rollen nach Beginnjahr, aktive Rollen getönt, Geplantes oben, mehr als fünf Jahre eingeklappt.
+  - Rollen anderer Layer sind standardmäßig ausgeblendet, ein Hinweis am Ende blendet sie ein.
+
+**Qualifikationen:** `MemberQualifikationenTab`
+- **EFZ-Zeile:** Statuspunkt mit „Keines hinterlegt“, „Gültig bis …“, „noch 7 Wochen“ oder „Abgelaufen am …“. Dazu die Zustände „noch nicht synchronisiert“ und „keine Berechtigung“.
+- **Download:** runder Knopf ohne Text, entfällt ohne Berechtigung.
+- **Qualifikationen:** im gleichen Stil, abgelaufene gedämpft am Ende.
+
+**Daten und Sync:**
+- Bankdaten werden nicht übernommen und nicht gespeichert.
+- `household_key` wird übernommen.
+- Rollen tragen `groupName` und `layerName`.
+- EFZ und Qualifikationen werden beim Sync parallel geladen und mit `TeildatenStand` im verschlüsselten Arbeitskontext gespeichert. Ein 403 gilt als fehlende Berechtigung. Bei Fehlschlag bleibt der zuletzt geladene Bestand erhalten.
+
+**Absicherung:**
+- **Stories:** Personen aus `lib/stories/support/mitglied_edge_cases.dart`, also Funke, Mats, Jonas, Sami, Petra und Karl.
+- **Tests:** mit festem Stichtag.
+
+## Ausgangslage vor dem Redesign
 
 Der Screen `lib/presentation/screens/member_detail_page.dart` besteht aus einem Kopf und drei Tabs: Daten, Rollen und Qualifikationen.
 
