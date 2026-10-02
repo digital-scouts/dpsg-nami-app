@@ -102,7 +102,7 @@ void main() {
   );
 
   testWidgets(
-    'zeigt alle aktiven Stufenrollen als Chips, Leitung zuerst',
+    'zeigt alle aktiven Stufenrollen als Icons, Leitung zuerst',
     (tester) async {
       final member = Mitglied(
         mitgliedsnummer: '42',
@@ -135,14 +135,84 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Wö-Leitung'), findsOneWidget);
-      expect(find.text('Rover'), findsOneWidget);
+      expect(find.byTooltip('Wö-Leitung'), findsOneWidget);
+      expect(find.byTooltip('Rover'), findsOneWidget);
       // Beendete Rollen erscheinen nicht im Kopf.
-      expect(find.text('Pfadi'), findsNothing);
+      expect(find.byTooltip('Pfadi'), findsNothing);
       expect(
-        tester.getTopLeft(find.text('Wö-Leitung')).dx,
-        lessThan(tester.getTopLeft(find.text('Rover')).dx),
+        tester.getTopLeft(find.byTooltip('Wö-Leitung')).dx,
+        lessThan(tester.getTopLeft(find.byTooltip('Rover')).dx),
       );
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  testWidgets(
+    'fasst ab vier aktiven Stufen den Rest als +n zusammen',
+    (tester) async {
+      final member = Mitglied(
+        mitgliedsnummer: '47',
+        vorname: 'Lea',
+        nachname: 'Beispiel',
+        geburtsdatum: DateTime(1990, 4, 6),
+        eintrittsdatum: DateTime(2000, 5, 1),
+        roles: <Role>[
+          Role(type: 'Group::StammGruppeRover::Leitung'),
+          Role(type: 'Group::StammGruppeWoelflinge::Leitung'),
+          Role(type: 'Group::StammGruppePfadfinder::Mitglied'),
+          Role(type: 'Group::StammGruppeJungpfadfinder::Mitglied'),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberDetailPage(mitglied: member, heuteProvider: () => _heute),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip('Rover-Leitung'), findsOneWidget);
+      expect(find.byTooltip('Wö-Leitung'), findsOneWidget);
+      expect(find.byTooltip('Pfadi'), findsOneWidget);
+      expect(find.byTooltip('Jufi'), findsOneWidget);
+      expect(find.text('+1'), findsOneWidget);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  testWidgets(
+    'wechselt per Tipp auf die Stufen-Icons in den Rollen-Tab',
+    (tester) async {
+      final member = Mitglied(
+        mitgliedsnummer: '48',
+        vorname: 'Mia',
+        nachname: 'Test',
+        geburtsdatum: DateTime(2014, 4, 6),
+        eintrittsdatum: DateTime(2020, 5, 1),
+        roles: <Role>[
+          Role(
+            type: 'Group::StammGruppePfadfinder::Mitglied',
+            startOn: DateTime(2024, 1, 1),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberDetailPage(mitglied: member, heuteProvider: () => _heute),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final controller = DefaultTabController.of(
+        tester.element(find.byType(TabBar)),
+      );
+      expect(controller.index, 0);
+
+      await tester.tap(find.byTooltip('Pfadi'));
+      await tester.pumpAndSettle();
+
+      expect(controller.index, 1);
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
@@ -206,7 +276,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Sonstige'), findsOneWidget);
+      expect(find.byTooltip('Sonstige'), findsOneWidget);
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
