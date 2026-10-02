@@ -162,16 +162,11 @@ Story stufenwechselPageStory() {
         label: 'Stichtag festgelegt',
         initial: true,
       );
-      final loading = context.knobs.boolean(
-        label: 'Mit Lade-Info',
-        initial: false,
-      );
       return StufenwechselPageStoryScene(
         textScale: textScale,
         background: background,
         dark: dark,
         mitDatum: mitDatum,
-        showLoadingInfo: loading,
       );
     },
   );
@@ -185,7 +180,6 @@ class StufenwechselPageStoryScene extends StatelessWidget {
     required this.background,
     this.dark = false,
     this.mitDatum = true,
-    this.showLoadingInfo = false,
     this.simulateTopInset = true,
     this.textScale = 1,
   });
@@ -193,7 +187,6 @@ class StufenwechselPageStoryScene extends StatelessWidget {
   final AppearanceBackgroundId? background;
   final bool dark;
   final bool mitDatum;
-  final bool showLoadingInfo;
   final bool simulateTopInset;
   final double textScale;
 
@@ -204,11 +197,10 @@ class StufenwechselPageStoryScene extends StatelessWidget {
         ? DateTime(today.year + 1, 9, 1)
         : DateTime(today.year, 9, 1);
     return StoryTabPage(
-      key: ValueKey('$background-$dark-$mitDatum-$showLoadingInfo-$textScale'),
+      key: ValueKey('$background-$dark-$mitDatum-$textScale'),
       tabIndex: 2,
       background: background,
       dark: dark,
-      showLoadingInfo: showLoadingInfo,
       simulateTopInset: simulateTopInset,
       textScale: textScale,
       child: SettingsStufenwechselPage(
