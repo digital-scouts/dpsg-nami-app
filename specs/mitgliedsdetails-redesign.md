@@ -5,7 +5,7 @@ Stand: 2026-10-02, umgesetzt. Diese Spec beschreibt die Ausgangslage der Mitglie
 ## Umgesetzter Stand
 
 **Kopf:** `MemberSteckbriefKopf`, eine Zeile ohne eigene AppBar (Runde 5, K2)
-- Zurück, Avatar, Name bzw. Fahrtenname mit vollem Namen und der Zeile „30 Jahre · sie/ihr · weiblich“.
+- Zurück, Avatar, Name bzw. Fahrtenname mit vollem Namen und der Zeile „30 Jahre · sie/ihr · weiblich“. Jede Zeile ist einzeilig und endet bei Überlänge mit „…“. Ein Tipp auf den Namen klappt alle Zeilen vollständig auf, ein zweiter wieder zu.
 - Aktive Stufenrollen als überlappende runde Icons rechts neben dem Namen, Leitung zuerst: Maskottchen für Mitgliedschaft, Lilie in Stufenfarbe für Leitung. Ab vier Stufen fasst „+n“ den Rest zusammen. Die Beschriftung („Wö-Leitung“) steht im Tooltip. Ein Tipp auf die Icons öffnet den Rollen-Tab. Ohne Stufenrolle erscheint die Lilie für „Sonstige“.
 - Bearbeiten als Stift rechts in derselben Zeile.
 - Die Tabs sind so breit wie ihr Text und zentriert, bei großer Schrift scrollbar statt abgeschnitten. Sie behalten ihren Zustand.

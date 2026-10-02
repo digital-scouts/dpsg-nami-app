@@ -14,8 +14,9 @@ import '../supporter_badge.dart';
 
 /// Steckbrief-Kopf der Mitgliedsdetails in einer Zeile: Zurueck, Avatar,
 /// Name mit Zeile fuer Alter, Pronomen und Geschlecht, aktive Stufen als
-/// Icons und die Aktionen.
-class MemberSteckbriefKopf extends StatelessWidget {
+/// Icons und die Aktionen. Ein Tipp auf den Namen klappt abgeschnittene
+/// Zeilen auf und wieder zu.
+class MemberSteckbriefKopf extends StatefulWidget {
   const MemberSteckbriefKopf({
     super.key,
     required this.mitglied,
@@ -35,10 +36,26 @@ class MemberSteckbriefKopf extends StatelessWidget {
   /// Tipp auf die Stufen-Icons, etwa um zum Rollen-Tab zu wechseln.
   final VoidCallback? onStufenTap;
 
+  @override
+  State<MemberSteckbriefKopf> createState() => _MemberSteckbriefKopfState();
+}
+
+class _MemberSteckbriefKopfState extends State<MemberSteckbriefKopf> {
   static const double _maxTextSkalierung = 1.4;
+
+  bool _ausgeklappt = false;
+
+  Mitglied get mitglied => widget.mitglied;
+  DateTime get heute => widget.heute;
 
   @override
   Widget build(BuildContext context) {
+    final leading = widget.leading;
+    final supporterBadge = widget.supporterBadge;
+    final zeilen = _ausgeklappt ? null : 1;
+    final ueberlauf = _ausgeklappt
+        ? TextOverflow.visible
+        : TextOverflow.ellipsis;
     final theme = Theme.of(context);
     final fahrtenname = mitglied.fahrtenname?.trim();
     final hatFahrtenname = fahrtenname != null && fahrtenname.isNotEmpty;
@@ -60,54 +77,63 @@ class MemberSteckbriefKopf extends StatelessWidget {
             _Avatar(mitglied: mitglied),
             const SizedBox(width: 10),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+              child: GestureDetector(
+                key: const Key('member-steckbrief-name'),
+                behavior: HitTestBehavior.opaque,
+                onTap: () => setState(() => _ausgeklappt = !_ausgeklappt),
+                child: AnimatedSize(
+                  duration: const Duration(milliseconds: 180),
+                  alignment: Alignment.topLeft,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Flexible(
-                        child: Text(
-                          titel,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w700,
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              titel,
+                              maxLines: zeilen,
+                              overflow: ueberlauf,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          if (supporterBadge != null) ...[
+                            const SizedBox(width: 6),
+                            SupporterBadge(badge: supporterBadge, size: 18),
+                          ],
+                        ],
+                      ),
+                      if (hatFahrtenname && mitglied.fullName.isNotEmpty)
+                        Text(
+                          mitglied.fullName,
+                          maxLines: zeilen,
+                          overflow: ueberlauf,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
-                      ),
-                      if (supporterBadge != null) ...[
-                        const SizedBox(width: 6),
-                        SupporterBadge(badge: supporterBadge!, size: 18),
-                      ],
+                      if (fakten.isNotEmpty)
+                        Text(
+                          fakten,
+                          maxLines: zeilen,
+                          overflow: ueberlauf,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.outlineVariant,
+                          ),
+                        ),
                     ],
                   ),
-                  if (hatFahrtenname && mitglied.fullName.isNotEmpty)
-                    Text(
-                      mitglied.fullName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  if (fakten.isNotEmpty)
-                    Text(
-                      fakten,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.outlineVariant,
-                      ),
-                    ),
-                ],
+                ),
               ),
             ),
             if (chips.isNotEmpty) ...[
               const SizedBox(width: 8),
-              _StufenIcons(chips: chips, onTap: onStufenTap),
+              _StufenIcons(chips: chips, onTap: widget.onStufenTap),
             ],
-            ...actions,
+            ...widget.actions,
           ],
         ),
       ),
