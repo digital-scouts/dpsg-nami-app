@@ -1,0 +1,228 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8">
+<title>Entwürfe: Mitgliedsdetails, Runde 2</title>
+<link rel="stylesheet" href="../statistik/basis.css">
+<link rel="stylesheet" href="mitglied.css">
+<script src="daten.js"></script>
+<script src="lilie.js"></script>
+<script src="bausteine.js"></script>
+</head><body>
+<div class="bar">
+  <span><b>Person</b><span class="tgl" id="tgl-person"></span></span>
+  <span><b>Rollen-Historie</b><span class="tgl" id="tgl-historie"><button data-v="1">mit früheren Rollen</button><button data-v="0">wie heute (nur aktuelle)</button></span></span>
+  <nav><a href="#gesamt">1 Gesamtbild</a><a href="#rollen">2 Rollen</a><a href="#verlauf">3 Verlauf</a><a href="#quali">4 Qualifikationen</a><a href="#galerie">5 Alle Personen</a><a href="#rueckmeldung">6 Rückmeldung</a></nav>
+</div>
+<main>
+  <h1>Mitgliedsdetails: Entwürfe, Runde 2</h1>
+  <p>Die Auswahl aus Runde 1 ist zusammengesetzt. Neu zur Entscheidung stehen nur der Layer-Filter im Zeitstrahl, die Hervorhebung aktiver Rollen und die Kombination aus Kennzahlen und Bahnen. Runde 1 bleibt unter <code>entwurf-runde-1.html</code> unverändert.</p>
+  <div class="fest-list"><b>Festgelegt aus Runde 1</b> <span class="tag">festgelegt</span>
+    <ul>
+      <li>Struktur: S2 Steckbrief-Kopf mit Tabs, ohne EFZ-Chip im Kopf.</li>
+      <li>Daten: D3 Kennzahlen zuerst. Kartenfehler als M3 flache Karte. Konfession ist ausgeblendet, bis Hitobito sie liefert.</li>
+      <li>Rollen: R3 Zeitstrahl, aktive Rollen hervorgehoben, optional mit Filter „nur aktiver Layer“ und dem Zusatz „n ausgeblendet“.</li>
+      <li>Verlauf: oben im Rollen-Tab, erst Kennzahlen (aus V3), dann Bahnen (V1). Kürzel in den Balken entfallen, wenn der Platz nicht reicht. Die Reihenfolge Wö → Jufi → Pfadi → Rover trägt die Bedeutung auch ohne Farbe, Balken werden nie für ein Label verlängert.</li>
+      <li>Qualifikationen: E2 Punkt mit Link-Zeile, ohne „ausgestellt“ und „eingesehen“. Abgelaufenes EFZ ist ein eigener Zustand „Abgelaufen am …“.</li>
+    </ul></div>
+
+  <section class="part" id="gesamt">
+    <h2>1 · Gesamtbild</h2>
+    <p>Alle drei Tabs mit der Auswahl aus Runde 1. Im Zeitstrahl ist vorerst H1 mit Filter F1 eingesetzt, Standard ist „nur aktiver Layer“. Darunter der Steckbrief-Kopf für alle Personen.</p>
+    <div id="slot-gesamt"></div>
+    <h3 style="margin-top:10px">Steckbrief-Kopf bei allen Personen</h3>
+    <p>Ohne aktive Stufenrolle entfällt die Chip-Zeile (Karl, ausgetreten). Nur Ämter ergeben den Chip „Sonstige“ (Petra).</p>
+    <div class="zustaende" id="slot-koepfe"></div>
+    <div class="open" style="margin-top:18px"><b>Offen: Doppelung.</b> Alter und Mitgliedsdauer stehen jetzt dreimal: in der Faktenzeile des Steckbrief-Kopfs, in den D3-Kacheln und in der Verlaufs-Kachel „dabei“. Vorschlag: Der Kopf behält beides, weil er auf jedem Tab sichtbar ist. Die D3-Kacheln zeigen stattdessen Geburtstag (mit „in 12 Tagen“) und Beitragsart, die Verlaufs-Kachel bleibt. Siehe Frage in der Rückmeldung.</div>
+  </section>
+
+  <section class="part" id="rollen">
+    <h2>2 · Rollen-Zeitstrahl</h2>
+    <h3>2a · Aktive Rollen hervorheben</h3>
+    <p>Drei Wege, wie aktive Rollen sich vom Vergangenen abheben. Hier ohne Filter, damit alle Rollen sichtbar sind.</p>
+    <div id="slot-hervor"></div>
+    <h3>2b · Filter „nur aktiver Layer“</h3>
+    <p>Der Filter erscheint nur, wenn es Rollen aus anderen Layern gibt. Die Überschrift zählt mit, z. B. „Rollen 12 (3 ausgeblendet)“.</p>
+    <div id="slot-filter"></div>
+  </section>
+
+  <section class="part" id="verlauf">
+    <h2>3 · Verlauf: Kennzahlen und Bahnen</h2>
+    <p>Die drei Kennzahlen aus V3 stehen über den Bahnen aus V1, die Stufenreihe aus V3 entfällt, weil die Mitglied-Bahn sie schon zeigt. Kürzel fallen jetzt weg, wenn sie nicht passen, etwa Jonas' Pfadi-Balken seit einem Monat.</p>
+    <div id="slot-verlauf"></div>
+  </section>
+
+  <section class="part" id="quali">
+    <h2>4 · Qualifikationen (E2, überarbeitet)</h2>
+    <p>Ohne „ausgestellt“ und „eingesehen“, dafür mit „Abgelaufen am …“ als eigenem roten Zustand. Ohne Berechtigung entfällt der Download.</p>
+    <div id="slot-quali"></div>
+  </section>
+
+  <section class="part" id="galerie">
+    <h2>5 · Alle Personen</h2>
+    <p>Zum Durchspielen mit allen Edge Cases.</p>
+    <div class="bar" style="position:static;padding:10px 0;background:none;border:0" id="galerie-bar"></div>
+    <div class="galerie" id="slot-galerie"></div>
+  </section>
+
+  <section class="part" id="rueckmeldung">
+    <h2>6 · Rückmeldung</h2>
+    <p>Auswählen, kurz kommentieren, „Auswahl kopieren“ und den Text in den Chat einfügen.</p>
+    <form class="fb" id="fb"></form>
+  </section>
+</main>
+<script>
+(function () {
+  const D = window.MITGLIED;
+  const B = window.MBAU;
+  const q = new URLSearchParams(location.search);
+  const zustand = { person: q.get('person') || 'lena', historie: q.get('historie') !== '0' };
+
+  const zusatz = {
+    hell: { '--biber-ring-stark': '#8e8e93', '--ghost': '#e3e3e8', '--map-bg': '#edf0e9', '--map-road': '#ffffff', '--map-water': '#d3e2ee', '--map-park': '#dbe8d2', '--amt': '#a1a1aa' },
+    dunkel: { '--biber-ring-stark': '#ffffff', '--ghost': '#363642', '--map-bg': '#1c2320', '--map-road': '#2c3531', '--map-water': '#1d2e3b', '--map-park': '#1f2d22', '--amt': '#6e6e7c' },
+  };
+  let css = '';
+  for (const modus of ['hell', 'dunkel']) {
+    const p = D.palette[modus];
+    const vars = { '--bg': p.bg, '--surface': p.surface, '--surface2': p.surface2, '--fg': p.fg, '--fg2': p.fg2, '--muted': p.muted, '--border': p.border,
+      '--primary': p.primary, '--on-primary': p.onPrimary, '--primary-lite': p.primaryLite, '--grid': p.grid, '--success': p.success, '--error': p.error, '--warn': p.warn, ...zusatz[modus] };
+    for (const [id, c] of Object.entries(D.stufenfarben[modus])) vars[`--st-${id}`] = c;
+    css += `.phone.${modus},.mpanel.${modus}{${Object.entries(vars).map(([k, v]) => `${k}:${v}`).join(';')}}`;
+  }
+  document.head.insertAdjacentHTML('beforeend', `<style>${css}</style>`);
+
+  // Auswahl aus Runde 1 als Grundlage.
+  const BASIS = { runde: 2, daten: 'D3', karte: 'M3', rollen: 'R3', verlauf: 'K1', efz: 'E2', hervor: 'H1', filterUi: 'F1', layerFilter: 'aktiv' };
+  const ctxVon = (modus, extra = {}) => ({ ...BASIS, modus, historie: zustand.historie, ...extra });
+  const variante = (id, titel, desc, inhalt) => `<div class="variant" data-shot-group="${id}"><h3>${titel}</h3><p class="desc">${desc}</p><div class="phones">${inhalt}</div></div>`;
+  const tel = (p, ctx, tab, shot, cap) => B.bildschirm(p, ctx, 'S2', tab, { shot, beschriftung: cap });
+  const rollenTel = (p, ctx, shot, cap) => B.telefon(ctx, B.kopf(ctx, p, 'S2', 1), B.rollenListe(p, ctx), { shot, beschriftung: cap });
+
+  function gesamt() {
+    const p = D.personen[zustand.person];
+    return variante('gesamt', 'Daten · Rollen · Qualifikationen', `${p.titel}: ${p.kurz}`,
+      tel(p, ctxVon('hell'), 0, 'gesamt-daten', 'Daten') +
+      tel(p, ctxVon('hell'), 1, 'gesamt-rollen', 'Rollen') +
+      tel(p, ctxVon('hell'), 2, 'gesamt-quali', 'Qualifikationen') +
+      tel(p, ctxVon('dunkel'), 1, 'gesamt-rollen-dunkel', 'Rollen · dunkel'));
+  }
+  function koepfe() {
+    return Object.values(D.personen).map((p) => B.panel(ctxVon('hell'), B.kopf(ctxVon('hell'), p, 'S2', 0), { shot: `kopf-${p.id}`, titel: `${p.vorname}: ${p.kurz}` })).join('');
+  }
+  function hervor() {
+    const p = D.personen[zustand.person];
+    const zweite = p.id === 'sami' ? D.personen.jonas : D.personen.sami;
+    const V = [
+      ['H1', 'H1 · Getönte Zeile', 'Aktive Rollen liegen auf hellblauem Grund im Zeitstrahl, Vergangenes bleibt neutral. Die Chronologie bleibt erhalten.'],
+      ['H2', 'H2 · Gefüllter Punkt, Vergangenes gedämpft', 'Jahre mit aktiver Rolle bekommen einen gefüllten Punkt, aktive Rollen „aktiv seit …“ in Blau. Vergangenes ist blasser. Am ruhigsten.'],
+      ['H3', 'H3 · Block „Jetzt“ oben', 'Aktive und geplante Rollen stehen getrennt oben auf getöntem Grund, darunter der Zeitstrahl nur mit Vergangenem. Am schnellsten erfassbar, aber aktive Rollen stehen nicht mehr in ihrem Jahr.'],
+    ];
+    return V.map(([id, t, d]) => variante(`hervor-${id}`, t, d,
+      rollenTel(p, ctxVon('hell', { hervor: id, layerFilter: 'alle' }), `hervor-${id}-hell`, 'eingeklappt') +
+      rollenTel(p, ctxVon('dunkel', { hervor: id, layerFilter: 'alle', offen: true }), `hervor-${id}-dunkel`, 'ausgeklappt · dunkel') +
+      rollenTel(zweite, ctxVon('hell', { hervor: id, layerFilter: 'alle' }), `hervor-${id}-zweite`, `${zweite.vorname}: ${zweite.kurz}`))).join('');
+  }
+  function filter() {
+    const p = D.personen.lena;
+    const V = [
+      ['F1', 'F1 · Umschalter über dem Zeitstrahl', 'Ein Segment „Stamm Silberfels | Alle Layer“ direkt unter der Überschrift. Immer sichtbar, ein Tipp zum Wechseln.'],
+      ['F2', 'F2 · Hinweis am Ende', 'Kein Bedienelement oben. Am Ende des Zeitstrahls steht, wie viele Rollen aus welchen Layern ausgeblendet sind, mit „Anzeigen“. Ruhiger, aber weniger auffindbar.'],
+    ];
+    return V.map(([id, t, d]) => variante(`filter-${id}`, t, d,
+      rollenTel(p, ctxVon('hell', { filterUi: id, layerFilter: 'aktiv' }), `filter-${id}-aktiv`, 'nur aktiver Layer') +
+      rollenTel(p, ctxVon('hell', { filterUi: id, layerFilter: 'alle' }), `filter-${id}-alle`, 'alle Layer') +
+      rollenTel(D.personen.petra, ctxVon('dunkel', { filterUi: id, layerFilter: 'aktiv' }), `filter-${id}-petra`, 'Petra: Kassenprüfung im Bezirk · dunkel') +
+      rollenTel(D.personen.jonas, ctxVon('hell', { filterUi: id, layerFilter: 'aktiv' }), `filter-${id}-jonas`, 'Jonas: nur Stamm, kein Filter'))).join('');
+  }
+  function verlauf() {
+    const V = [
+      ['K1', 'K1 · Eine Karte', 'Kennzahlen und Bahnen bilden eine Karte und lesen sich als ein Block.'],
+      ['K2', 'K2 · Kacheln frei, Bahnen darunter', 'Die drei Kennzahlen stehen als eigene Kacheln wie in der Statistik, die Bahnen als Karte darunter.'],
+    ];
+    const faelle = [
+      ['lena', true, 'hell', 'Funke · mit Historie'], ['lena', false, 'hell', 'Funke · wie heute'], ['sami', true, 'hell', 'Sami · Rover + Wö-Leitung'],
+      ['jonas', true, 'hell', 'Jonas · Jufi und Pfadi parallel'], ['karl', true, 'hell', 'Karl · ausgetreten'], ['mats', true, 'hell', 'Mats · Neuling'],
+      ['lena', true, 'dunkel', 'Funke · dunkel'],
+    ];
+    return V.map(([id, t, d]) => variante(`verlauf-${id}`, t, d, `<div class="zustaende">${faelle.map(([pid, h, m, cap]) => B.panel({ modus: m }, B.verlauf(D.personen[pid], { ...BASIS, modus: m, historie: h, verlauf: id }), { shot: `verlauf-${id}-${pid}-${h ? 'h' : 'a'}-${m}`, titel: cap })).join('')}</div>`)).join('');
+  }
+  function quali() {
+    const p = D.personen[zustand.person];
+    const efzFall = { keins: { status: 'keins' }, gueltig: D.personen.sami.efz, bald: D.personen.lena.efz, abgelaufen: D.personen.karl.efz, unbekannt: { status: 'unbekannt' }, verboten: { status: 'verboten' } };
+    const namen = { keins: 'keines hinterlegt', gueltig: 'gültig', bald: 'läuft bald ab', abgelaufen: 'abgelaufen', unbekannt: 'noch nicht synchronisiert', verboten: 'keine Berechtigung' };
+    const zust = Object.keys(efzFall).map((z) => B.panel(ctxVon('hell'), B.efzZeile({ efz: { ...efzFall[z], status: z } }, ctxVon('hell')), { shot: `quali-${z}`, titel: namen[z] })).join('');
+    const zweite = p.id === 'karl' ? D.personen.mats : D.personen.karl;
+    return variante('quali', 'E2 überarbeitet', 'Alle Zustände der EFZ-Zeile.',
+      tel(p, ctxVon('hell'), 2, 'quali-hell', p.vorname) + tel(zweite, ctxVon('dunkel'), 2, 'quali-dunkel', `${zweite.vorname} · dunkel`) +
+      `<div class="zustaende" style="grid-template-columns:repeat(2, 390px)">${zust}</div>`);
+  }
+
+  const gal = { tab: '1', hervor: 'H1', filterUi: 'F1', layerFilter: 'aktiv', verlauf: 'K1' };
+  const GAL = [['tab', [['0', 'Daten'], ['1', 'Rollen'], ['2', 'Quali']]], ['hervor', ['H1', 'H2', 'H3']], ['filterUi', ['F1', 'F2']], ['layerFilter', [['aktiv', 'nur aktiver Layer'], ['alle', 'alle Layer']]], ['verlauf', ['K1', 'K2']]];
+  const GAL_NAMEN = { tab: 'Tab', hervor: 'Hervorhebung', filterUi: 'Filter', layerFilter: 'Standard', verlauf: 'Verlauf' };
+  function galerieBar() {
+    const el = document.getElementById('galerie-bar');
+    el.innerHTML = GAL.map(([k, opts]) => `<span><b>${GAL_NAMEN[k]}</b><span class="tgl" data-k="${k}">${opts.map((o) => { const [v, l] = Array.isArray(o) ? o : [o, o]; return `<button type="button" data-v="${v}" class="${gal[k] === v ? 'on' : ''}">${l}</button>`; }).join('')}</span></span>`).join('');
+    el.querySelectorAll('.tgl').forEach((tg) => tg.addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      gal[tg.dataset.k] = b.dataset.v; galerieBar(); galerie();
+    }));
+  }
+  function galerie() {
+    const ctx = ctxVon('hell', { hervor: gal.hervor, filterUi: gal.filterUi, layerFilter: gal.layerFilter, verlauf: gal.verlauf });
+    document.getElementById('slot-galerie').innerHTML = Object.values(D.personen).map((p) => B.bildschirm(p, ctx, 'S2', Number(gal.tab), { shot: `galerie-${p.id}`, beschriftung: `${p.vorname}: ${p.kurz}` })).join('');
+  }
+
+  const FRAGEN = [
+    { id: 'gesamt', titel: 'Gesamtbild', optionen: ['freigegeben', 'ändern'] },
+    { id: 'hervor', titel: 'Aktive Rollen hervorheben', optionen: ['H1 Getönte Zeile', 'H2 Gefüllter Punkt', 'H3 Block „Jetzt“'] },
+    { id: 'filter', titel: 'Layer-Filter', optionen: ['F1 Umschalter oben', 'F2 Hinweis am Ende', 'kein Filter'] },
+    { id: 'standard', titel: 'Filter-Standard', optionen: ['nur aktiver Layer', 'alle Layer', 'letzte Wahl merken'] },
+    { id: 'verlauf', titel: 'Verlauf', optionen: ['K1 Eine Karte', 'K2 Kacheln frei'] },
+    { id: 'doppelung', titel: 'Doppelung Alter/Dauer', optionen: ['Vorschlag: D3-Kacheln mit Geburtstag und Beitragsart', 'Faktenzeile im Kopf kürzen', 'so lassen'] },
+    { id: 'quali', titel: 'Qualifikationen', optionen: ['freigegeben', 'ändern'] },
+    { id: 'weiter', titel: 'Nächster Schritt', optionen: ['Umsetzungsplan Flutter', 'noch eine Runde'] },
+  ];
+  function renderFeedback() {
+    const f = document.getElementById('fb');
+    f.innerHTML = FRAGEN.map((qq) => `<fieldset><legend>${qq.titel}</legend>${qq.optionen.map((o) => `<label><input type="radio" name="${qq.id}" value="${o}"> ${o}</label>`).join('')}<textarea name="${qq.id}-text" placeholder="Anmerkung (optional)"></textarea></fieldset>`).join('') +
+      `<fieldset><legend>Sonst noch</legend><textarea name="frei" placeholder="Freitext"></textarea></fieldset>
+      <button type="button" id="kopieren">Auswahl kopieren</button>
+      <textarea id="ausgabe" readonly placeholder="Hier erscheint der Text für den Chat."></textarea>`;
+    document.getElementById('kopieren').addEventListener('click', async () => {
+      const fd = new FormData(f);
+      const zeilen = ['Rückmeldung Mitgliedsdetails, Runde 2', `(Person ${zustand.person}, Historie ${zustand.historie ? 'mit' : 'wie heute'})`];
+      for (const qq of FRAGEN) {
+        const wahl = fd.get(qq.id); const text = (fd.get(`${qq.id}-text`) || '').trim();
+        zeilen.push(`- ${qq.titel}: ${wahl || '–'}${text ? ` – ${text}` : ''}`);
+      }
+      const frei = (fd.get('frei') || '').trim();
+      if (frei) zeilen.push(`- Sonst: ${frei}`);
+      const text = zeilen.join('\n');
+      const out = document.getElementById('ausgabe');
+      out.value = text;
+      try { await navigator.clipboard.writeText(text); } catch (e) { out.select(); document.execCommand('copy'); }
+    });
+  }
+
+  function tglSetzen() {
+    document.getElementById('tgl-person').innerHTML = Object.values(D.personen).map((p) => `<button data-v="${p.id}" class="${p.id === zustand.person ? 'on' : ''}" title="${p.kurz}">${p.fahrtenname || p.vorname}</button>`).join('');
+    document.querySelectorAll('#tgl-historie button').forEach((b) => b.classList.toggle('on', (b.dataset.v === '1') === zustand.historie));
+  }
+  function alles() {
+    tglSetzen();
+    document.getElementById('slot-gesamt').innerHTML = gesamt();
+    document.getElementById('slot-koepfe').innerHTML = koepfe();
+    document.getElementById('slot-hervor').innerHTML = hervor();
+    document.getElementById('slot-filter').innerHTML = filter();
+    document.getElementById('slot-verlauf').innerHTML = verlauf();
+    document.getElementById('slot-quali').innerHTML = quali();
+    galerie();
+  }
+  document.getElementById('tgl-person').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { zustand.person = b.dataset.v; alles(); } });
+  document.getElementById('tgl-historie').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { zustand.historie = b.dataset.v === '1'; alles(); } });
+  galerieBar();
+  alles();
+  renderFeedback();
+  document.body.dataset.fertig = '1';
+})();
+</script>
+</body></html>

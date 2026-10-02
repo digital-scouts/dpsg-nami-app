@@ -178,3 +178,32 @@
 .dunkel .sbadge .mask { background:#e9e9ee; border-radius:50%; padding:1px; box-sizing:border-box; }
 .rund.klein { width:28px; height:28px; }
 .leise-t.rot { color:var(--error); }
+
+/* ---------- Runde 2 ---------- */
+.steck-chips.leer { display:none; }
+.segf { display:flex; background:var(--surface2); border-radius:10px; padding:3px; margin:0 0 10px; }
+.segf span { flex:1; text-align:center; font-size:13px; font-weight:600; color:var(--fg2); padding:6px 0; border-radius:8px; }
+.segf span.on { background:var(--surface); color:var(--fg); box-shadow:0 1px 2px rgba(0,0,0,.15); }
+.dunkel .segf span.on { background:#3a3a48; }
+.filterzeile { display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--muted); padding:8px 0 10px; }
+.filterzeile span { flex:1; }
+.filterzeile u { text-decoration:none; color:var(--primary); font-weight:600; }
+.zs.mehrzeile .mehr { padding:4px 0 6px; }
+/* H1: aktive Rollen auf getöntem Grund */
+.zstrahl.h1 .zs-r.aktiv { background:var(--primary-lite); border-radius:12px; padding:6px 10px; margin-left:-10px; }
+/* H2: gefüllter Punkt für Jahre mit aktiver Rolle, Vergangenes gedämpft */
+.zstrahl.h2 .zs.hat-aktiv .zs-l::after { background:var(--primary); }
+.zstrahl.h2 .zs-r.vergangen { opacity:.55; }
+.zstrahl.h2 .zs-r.aktiv b { font-size:15px; }
+.zstrahl.h2 .zs-r.aktiv small { color:var(--primary); font-weight:600; }
+/* H3: Block „Jetzt“ */
+.card.jetzt { background:var(--primary-lite); padding:4px 14px; }
+.card.jetzt .zs-r { padding:8px 0; }
+.card.jetzt .zs-r b { font-size:15px; }
+.card.jetzt .zs-r small { color:var(--fg2); }
+.card.jetzt .zs-r.zukunft small { color:var(--primary); font-weight:600; }
+.card.jetzt .ri.lil { background:var(--surface); }
+.zs-r.aktiv small, .zs-r.zukunft small { white-space:nowrap; }
+.trenn { height:14px; }
+.stats.frei { margin-bottom:10px; }
+.stats.frei .stat { background:var(--surface); }
