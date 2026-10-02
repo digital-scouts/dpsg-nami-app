@@ -13,8 +13,8 @@ import 'package:nami/presentation/widgets/supporter_background.dart';
 /// (Ellipsis, horizontal scrollen oder zu "+n" zusammenfassen).
 ///
 /// In der App zeichnet der [SupporterBackdrop] die Flaeche des Headers
-/// durchgehend vom oberen Bildschirmrand (hinter Safe Area, Banner und
-/// Lade-Info) bis zur Unterkante des Headers - mit Supporter-Hintergrund
+/// durchgehend vom oberen Bildschirmrand (hinter Safe Area und Banner) bis
+/// zur Unterkante des Headers - mit Supporter-Hintergrund
 /// animiert, sonst schlicht in `surface`. Ohne Backdrop (Storybook, Tests,
 /// Unterseiten mit AppBar) zeichnet der Header seine Flaeche selbst.
 class AppPageHeader extends StatelessWidget {

@@ -711,10 +711,9 @@ class ArbeitskontextModel extends ChangeNotifier {
     }
 
     try {
-      // Anders als isInitialSequenceActive laeuft die Schritt-Anzeige
-      // (loadingStep) hier bewusst auch fuer spaetere Syncs (Pull-to-refresh,
-      // Debug-Tools) mit, damit die Ladeinfo-Checkliste im Tab-Shell-Banner
-      // bei jedem Sync sinnvolle Zwischenstaende zeigt statt nur "OK".
+      // Die Schritte (loadingStep) sind nur im Vollbild-Platzhalter des
+      // allerersten Ladens sichtbar; spaetere Syncs zeigt allein der globale
+      // Ladebalken.
       _loadingStep = ArbeitskontextLoadingStep.loadingGroups;
       _lastGroupsCount = null;
       _lastMembersCount = null;

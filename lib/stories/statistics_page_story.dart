@@ -31,10 +31,6 @@ Story statisticsPageStory() {
             Option(label: szenario.label, value: szenario),
         ],
       );
-      final loading = context.knobs.boolean(
-        label: 'Mit Lade-Info',
-        initial: false,
-      );
       final datensatz = context.knobs.options<StatistikBeispielDatensatz>(
         label: 'Datensatz',
         initial: StatistikBeispielDatensatz.silberfels,
@@ -57,7 +53,6 @@ Story statisticsPageStory() {
         background: background,
         dark: dark,
         bundesstatistik: bundesweit,
-        showLoadingInfo: loading,
         datensatz: datensatz,
         thema: thema,
       );
@@ -74,7 +69,6 @@ class StatisticsPageStoryScene extends StatelessWidget {
     required this.background,
     this.dark = false,
     this.bundesstatistik = StoryBundesstatistikSzenario.optIn,
-    this.showLoadingInfo = false,
     this.simulateTopInset = true,
     this.textScale = 1,
     this.datensatz = StatistikBeispielDatensatz.silberfels,
@@ -84,7 +78,6 @@ class StatisticsPageStoryScene extends StatelessWidget {
   final AppearanceBackgroundId? background;
   final bool dark;
   final StoryBundesstatistikSzenario bundesstatistik;
-  final bool showLoadingInfo;
   final bool simulateTopInset;
   final double textScale;
   final StatistikBeispielDatensatz datensatz;
@@ -101,13 +94,12 @@ class StatisticsPageStoryScene extends StatelessWidget {
       ..saveForLayer(layerId, datensatz.verlauf(heute));
     return StoryTabPage(
       key: ValueKey(
-        '$background-$dark-$bundesstatistik-$showLoadingInfo-$textScale-'
+        '$background-$dark-$bundesstatistik-$textScale-'
         '$datensatz-$thema',
       ),
       tabIndex: 1,
       background: background,
       dark: dark,
-      showLoadingInfo: showLoadingInfo,
       simulateTopInset: simulateTopInset,
       textScale: textScale,
       providers: [

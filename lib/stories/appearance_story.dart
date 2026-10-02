@@ -87,7 +87,7 @@ Story supporterBackgroundStory() => Story(
       initial: true,
     );
     final withTopArea = context.knobs.boolean(
-      label: 'Mit Safe Area und Lade-Info',
+      label: 'Mit Safe Area',
       initial: true,
     );
     final mitglieder = [
@@ -113,7 +113,7 @@ Story supporterBackgroundStory() => Story(
               )
             : !withTopArea
             ? SafeArea(child: directory)
-            // Wie im Tab-Rahmen: Backdrop hinter Dynamic Island und Lade-Info.
+            // Wie im Tab-Rahmen: Backdrop hinter der Dynamic Island.
             : Builder(
                 builder: (context) => MediaQuery(
                   data: MediaQuery.of(
@@ -121,36 +121,7 @@ Story supporterBackgroundStory() => Story(
                   ).copyWith(padding: const EdgeInsets.only(top: 59)),
                   child: SupporterBackdrop(
                     background: background,
-                    child: Column(
-                      children: [
-                        SafeArea(
-                          bottom: false,
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.surface.withValues(alpha: 0.6),
-                            child: const Row(
-                              children: [
-                                SizedBox.square(
-                                  dimension: 14,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                ),
-                                SizedBox(width: 8),
-                                Text('Mitglieder laden'),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Expanded(child: directory),
-                      ],
-                    ),
+                    child: SafeArea(bottom: false, child: directory),
                   ),
                 ),
               ),
