@@ -71,13 +71,16 @@ void main() {
           finishAt: DateTime(2023, 5, 1),
           origin: 'Kurs',
           reaktivierbar: true,
+          gueltigkeitJahre: 3,
         ),
       ],
     );
 
     await repository.saveCached(readModel);
 
-    expect(await repository.loadLastCached(), readModel);
+    final geladen = await repository.loadLastCached();
+    expect(geladen, readModel);
+    expect(geladen?.qualifikationen.single.gueltigkeitJahre, 3);
   });
 
   test('liest aeltere Caches ohne EFZ als noch nicht synchronisiert', () async {

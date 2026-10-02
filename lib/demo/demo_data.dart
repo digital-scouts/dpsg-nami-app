@@ -214,6 +214,7 @@ class DemoData {
             Qualifikation(
               id: id++,
               personId: person.personId,
+              artId: quali.artId,
               label: quali.label,
               qualifiedAt: DateTime(
                 today.year,
@@ -228,6 +229,7 @@ class DemoData {
                       today.day,
                     ),
               reaktivierbar: quali.reaktivierbar,
+              gueltigkeitJahre: quali.gueltigJahre,
             ),
     ];
   }
