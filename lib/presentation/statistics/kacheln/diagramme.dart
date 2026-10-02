@@ -610,6 +610,147 @@ class _AltersSaeulenPainter extends CustomPainter {
       old.schrift != schrift;
 }
 
+/// Alle Stufen in einer Zeile: Säulen je Altersjahr, gestapelt in den
+/// Stufenfarben, die Altersgrenzen als Leiste unter der Achse. Für 2×1; die
+/// Achse reicht vom jüngsten bis ein Jahr über das älteste Kind.
+class AltersSaeulenGestapelt extends StatelessWidget {
+  const AltersSaeulenGestapelt({super.key, required this.zeilen});
+
+  final List<AltersZeile> zeilen;
+
+  /// Achsenbereich `[von, bis)` aus den Daten: ein Jahr Rand auf beiden Seiten.
+  static (int, int) achse(List<AltersZeile> zeilen) {
+    final alle = [for (final z in zeilen) ...z.alter];
+    if (alle.isEmpty) return (3, 23);
+    final jung = alle.reduce(math.min).floor();
+    final alt = alle.reduce(math.max).floor();
+    return (math.max(0, jung - 1), alt + 2);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final farben = StatistikFarben.of(context);
+    final (von, bis) = achse(zeilen);
+    return CustomPaint(
+      size: Size.infinite,
+      painter: _AltersSaeulenGestapeltPainter(
+        zeilen: zeilen,
+        von: von,
+        bis: bis,
+        achse: farben.textSchwach,
+        linie: farben.spur,
+        textScaler: MediaQuery.textScalerOf(context),
+        schrift: _schriftAus(context),
+      ),
+    );
+  }
+}
+
+class _AltersSaeulenGestapeltPainter extends CustomPainter {
+  _AltersSaeulenGestapeltPainter({
+    required this.zeilen,
+    required this.von,
+    required this.bis,
+    required this.achse,
+    required this.linie,
+    required this.textScaler,
+    required this.schrift,
+  });
+
+  final List<AltersZeile> zeilen;
+  final int von;
+  final int bis;
+  final Color achse;
+  final Color linie;
+  final TextScaler textScaler;
+  final TextStyle schrift;
+
+  static const double _leiste = 5;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.isEmpty || zeilen.isEmpty || bis <= von) return;
+    final achsStil = TextStyle(fontSize: 10, color: achse);
+    final achsProbe = _text('22', achsStil, textScaler, schrift: schrift);
+    final achsHoehe = achsProbe.height + 2;
+    achsProbe.dispose();
+    final pw = math.max(0.0, size.width - 4);
+    final proJahr = pw / (bis - von);
+    double x(num alter) => 2 + (alter.clamp(von, bis) - von) / (bis - von) * pw;
+    final grundlinie = size.height - achsHoehe - _leiste - 4;
+    final hoeheMax = math.max(0.0, grundlinie - 2);
+
+    final jeJahr = <int, List<(AltersZeile, int)>>{};
+    for (final z in zeilen) {
+      final zaehler = <int, int>{};
+      for (final a in z.alter) {
+        final jahr = a.floor().clamp(von, bis - 1);
+        zaehler.update(jahr, (n) => n + 1, ifAbsent: () => 1);
+      }
+      for (final e in zaehler.entries) {
+        (jeJahr[e.key] ??= []).add((z, e.value));
+      }
+    }
+    final maxSumme = math.max(
+      1,
+      jeJahr.values
+          .map((teile) => teile.fold<int>(0, (s, t) => s + t.$2))
+          .fold<int>(0, math.max),
+    );
+    final breite = math.max(1.0, math.min(12.0, proJahr - 3));
+
+    canvas.drawRect(
+      Rect.fromLTWH(2, grundlinie, pw, 1),
+      Paint()..color = linie,
+    );
+    for (final e in jeJahr.entries) {
+      var oben = grundlinie;
+      final links = x(e.key) + (proJahr - breite) / 2;
+      for (final (z, anzahl) in e.value) {
+        final h = hoeheMax * anzahl / maxSumme;
+        final rect = Rect.fromLTWH(links, oben - h, breite, math.max(1, h - 1));
+        _rechteck(canvas, rect, z.farbe, radius: 2, kontur: z.kontur);
+        oben -= h;
+      }
+    }
+    final leisteOben = grundlinie + 3;
+    for (final z in zeilen) {
+      final rect = Rect.fromLTRB(
+        x(z.min),
+        leisteOben,
+        x(z.max + 1),
+        leisteOben + _leiste,
+      );
+      _rechteck(
+        canvas,
+        rect,
+        z.kontur != null ? z.flaeche : z.farbe.withValues(alpha: 0.45),
+        radius: 2,
+        kontur: z.kontur,
+      );
+    }
+    final schritt = bis - von <= 12 ? 1 : 2;
+    final achsY = leisteOben + _leiste + 2;
+    for (var a = (von / schritt).ceil() * schritt; a < bis; a += schritt) {
+      final tp = _text('$a', achsStil, textScaler, schrift: schrift);
+      final mitte = x(a) + proJahr / 2;
+      if (mitte - tp.width / 2 >= 0 && mitte + tp.width / 2 <= size.width) {
+        tp.paint(canvas, Offset(mitte - tp.width / 2, achsY));
+      }
+      tp.dispose();
+    }
+  }
+
+  @override
+  bool shouldRepaint(_AltersSaeulenGestapeltPainter old) =>
+      !const ListEquality<AltersZeile>().equals(old.zeilen, zeilen) ||
+      old.von != von ||
+      old.bis != bis ||
+      old.achse != achse ||
+      old.textScaler != textScaler ||
+      old.schrift != schrift;
+}
+
 /// Spanne einer Stufe: Fläche = Altersgrenze, Linie = jüngste bis älteste,
 /// Punkt = Median. Eigene Skala, damit die Linie über die Grenze laufen kann.
 class AltersStreifen extends StatelessWidget {

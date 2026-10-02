@@ -1,8 +1,30 @@
+import '../taetigkeit/stufe.dart';
+import 'statistik_abdeckung.dart';
+
 /// Stammes-Snapshot fuer die bundesweite Statistik.
 ///
 /// Entspricht dem API-Vertrag `server/spec/stammes_snapshot.md` in der
 /// Schema-Version [StammesSnapshot.schemaVersion]. Nicht sicher ableitbare
 /// Kennzahlen bleiben `null` und werden nicht geschaetzt.
+
+/// Stufen-Schluessel im API-Vertrag.
+const Map<Stufe, String> stufenSchluessel = <Stufe, String>{
+  Stufe.biber: 'biber',
+  Stufe.woelfling: 'woelflinge',
+  Stufe.jungpfadfinder: 'jungpfadfinder',
+  Stufe.pfadfinder: 'pfadfinder',
+  Stufe.rover: 'rover',
+};
+
+Stufe? stufeFuerSchluessel(String? schluessel) {
+  for (final entry in stufenSchluessel.entries) {
+    if (entry.value == schluessel) {
+      return entry.key;
+    }
+  }
+  return null;
+}
+
 class GeschlechterVerteilung {
   const GeschlechterVerteilung({
     required this.gesamt,
@@ -18,6 +40,14 @@ class GeschlechterVerteilung {
       weiblich = 0,
       divers = 0,
       geschlechtUnbekannt = 0;
+
+  /// Nicht bekannt, z. B. eine Stufe, die bei Teilsicht nicht ganz lesbar ist.
+  const GeschlechterVerteilung.unbekannt()
+    : gesamt = null,
+      maennlich = null,
+      weiblich = null,
+      divers = null,
+      geschlechtUnbekannt = null;
 
   final int? gesamt;
   final int? maennlich;
@@ -119,6 +149,67 @@ class LeitendeAltersVerteilung {
   );
 }
 
+/// Zaehlwerte einer Stufengruppe (Meute, Trupp, Runde ...).
+///
+/// Nicht abgedeckte Gruppen gehoeren nur zur Gruppenstruktur und tragen keine
+/// Zaehler. Der Name wird nicht gesendet; die UI loest ihn ueber die ID auf.
+class GruppenKennzahl {
+  const GruppenKennzahl({
+    required this.gruppenId,
+    required this.stufe,
+    required this.abgedeckt,
+    this.mitglieder,
+    this.leitende,
+  });
+
+  final int gruppenId;
+  final Stufe stufe;
+  final bool abgedeckt;
+  final GeschlechterVerteilung? mitglieder;
+  final GeschlechterVerteilung? leitende;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'gruppe_id': gruppenId.toString(),
+    'stufe': stufenSchluessel[stufe],
+    'abgedeckt': abgedeckt,
+    if (abgedeckt) 'mitglieder': mitglieder?.toJson(),
+    if (abgedeckt) 'leitende': leitende?.toJson(),
+  };
+
+  static GruppenKennzahl? fromJson(Map<String, dynamic> json) {
+    final id = int.tryParse(json['gruppe_id']?.toString() ?? '');
+    final stufe = stufeFuerSchluessel(json['stufe']?.toString());
+    if (id == null || stufe == null) {
+      return null;
+    }
+    final abgedeckt = json['abgedeckt'] == true;
+    return GruppenKennzahl(
+      gruppenId: id,
+      stufe: stufe,
+      abgedeckt: abgedeckt,
+      mitglieder: abgedeckt
+          ? GeschlechterVerteilung.fromJson(_map(json['mitglieder']))
+          : null,
+      leitende: abgedeckt
+          ? GeschlechterVerteilung.fromJson(_map(json['leitende']))
+          : null,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is GruppenKennzahl &&
+      other.gruppenId == gruppenId &&
+      other.stufe == stufe &&
+      other.abgedeckt == abgedeckt &&
+      other.mitglieder == mitglieder &&
+      other.leitende == leitende;
+
+  @override
+  int get hashCode =>
+      Object.hash(gruppenId, stufe, abgedeckt, mitglieder, leitende);
+}
+
 class StammesKennzahlen {
   const StammesKennzahlen({
     required this.aktiveMitglieder,
@@ -137,7 +228,16 @@ class StammesKennzahlen {
     this.passiveMitglieder,
     this.stammesvorstand,
     this.kuraten,
+    this.abdeckung = const StatistikAbdeckung.stamm(),
+    this.gruppen = const <GruppenKennzahl>[],
   });
+
+  /// Bei Teilsicht sind alle stammweiten Werte `null` und Stufen nur bekannt,
+  /// wenn alle ihre Gruppen lesbar sind.
+  final StatistikAbdeckung abdeckung;
+
+  /// Alle Stufengruppen des Stammes; Zaehler nur fuer abgedeckte Gruppen.
+  final List<GruppenKennzahl> gruppen;
 
   /// Anzahl ordentlicher Mitgliedschaften; die Aufteilung nach Beitragsart
   /// (normal, familien-, sozialermaessigt) ist in Hitobito nicht sichtbar.
@@ -166,9 +266,31 @@ class StammesKennzahlen {
     rover,
   ];
 
-  /// Der Server verlangt mindestens eine Kernstufe mit Mitgliedern.
-  bool get istPlausibel => kernstufen.any((stufe) => (stufe.gesamt ?? 0) > 0);
+  GeschlechterVerteilung stufe(Stufe stufe) => switch (stufe) {
+    Stufe.biber => biber,
+    Stufe.woelfling => woelflinge,
+    Stufe.jungpfadfinder => jungpfadfinder,
+    Stufe.pfadfinder => pfadfinder,
+    _ => rover,
+  };
 
+  GeschlechterVerteilung leitendeDerStufe(Stufe stufe) => switch (stufe) {
+    Stufe.biber => leitendeBiber,
+    Stufe.woelfling => leitendeWoelflinge,
+    Stufe.jungpfadfinder => leitendeJungpfadfinder,
+    Stufe.pfadfinder => leitendePfadfinder,
+    _ => leitendeRover,
+  };
+
+  List<GruppenKennzahl> get abgedeckteGruppen =>
+      gruppen.where((gruppe) => gruppe.abgedeckt).toList(growable: false);
+
+  /// Der Server verlangt mindestens eine abgedeckte Gruppe mit Mitgliedern.
+  bool get istPlausibel =>
+      abgedeckteGruppen.any((gruppe) => (gruppe.mitglieder?.gesamt ?? 0) > 0);
+
+  /// Stammweite Kennzahlen (`metrics` im Snapshot). Stufenwerte bildet der
+  /// Server aus den Gruppen.
   Map<String, Object?> toJson() => <String, Object?>{
     'aktive_mitglieder': <String, Object?>{
       'gesamt': aktiveMitglieder,
@@ -177,63 +299,102 @@ class StammesKennzahlen {
       'sozialermaessigter_beitrag': null,
     },
     'passive_mitglieder': passiveMitglieder,
-    'biber': biber.toJson(),
-    'woelflinge': woelflinge.toJson(),
-    'jungpfadfinder': jungpfadfinder.toJson(),
-    'pfadfinder': pfadfinder.toJson(),
-    'rover': rover.toJson(),
     'leitende': leitende.toJson(),
-    'leitende_biber': leitendeBiber.toJson(),
-    'leitende_woelflinge': leitendeWoelflinge.toJson(),
-    'leitende_jungpfadfinder': leitendeJungpfadfinder.toJson(),
-    'leitende_pfadfinder': leitendePfadfinder.toJson(),
-    'leitende_rover': leitendeRover.toJson(),
     'nicht_leitende_erwachsene': nichtLeitendeErwachsene,
     'stammesvorstand': stammesvorstand,
     'kuraten': kuraten,
   };
 
-  factory StammesKennzahlen.fromJson(Map<String, dynamic> json) {
-    final aktive = json['aktive_mitglieder'];
+  /// Liest die Kennzahlen eines gesendeten Snapshots zurueck. Stufenwerte
+  /// ergeben sich aus den Gruppen, sofern alle Gruppen der Stufe abgedeckt sind.
+  factory StammesKennzahlen.fromJson(
+    Map<String, dynamic>? json, {
+    required StatistikAbdeckung abdeckung,
+    required List<GruppenKennzahl> gruppen,
+  }) {
+    final aktive = json?['aktive_mitglieder'];
+    GeschlechterVerteilung summe(
+      Stufe stufe,
+      GeschlechterVerteilung? Function(GruppenKennzahl gruppe) wert,
+    ) => summiereGruppen(
+      gruppen.where((gruppe) => gruppe.stufe == stufe).toList(),
+      wert,
+    );
     return StammesKennzahlen(
+      abdeckung: abdeckung,
+      gruppen: gruppen,
       aktiveMitglieder: aktive is Map<String, dynamic>
           ? _toNullableInt(aktive['gesamt'])
           : null,
-      passiveMitglieder: _toNullableInt(json['passive_mitglieder']),
-      biber: GeschlechterVerteilung.fromJson(_map(json['biber'])),
-      woelflinge: GeschlechterVerteilung.fromJson(_map(json['woelflinge'])),
-      jungpfadfinder: GeschlechterVerteilung.fromJson(
-        _map(json['jungpfadfinder']),
-      ),
-      pfadfinder: GeschlechterVerteilung.fromJson(_map(json['pfadfinder'])),
-      rover: GeschlechterVerteilung.fromJson(_map(json['rover'])),
-      leitende: LeitendeAltersVerteilung.fromJson(_map(json['leitende'])),
-      leitendeBiber: GeschlechterVerteilung.fromJson(
-        _map(json['leitende_biber']),
-      ),
-      leitendeWoelflinge: GeschlechterVerteilung.fromJson(
-        _map(json['leitende_woelflinge']),
-      ),
-      leitendeJungpfadfinder: GeschlechterVerteilung.fromJson(
-        _map(json['leitende_jungpfadfinder']),
-      ),
-      leitendePfadfinder: GeschlechterVerteilung.fromJson(
-        _map(json['leitende_pfadfinder']),
-      ),
-      leitendeRover: GeschlechterVerteilung.fromJson(
-        _map(json['leitende_rover']),
-      ),
+      passiveMitglieder: _toNullableInt(json?['passive_mitglieder']),
+      biber: summe(Stufe.biber, (g) => g.mitglieder),
+      woelflinge: summe(Stufe.woelfling, (g) => g.mitglieder),
+      jungpfadfinder: summe(Stufe.jungpfadfinder, (g) => g.mitglieder),
+      pfadfinder: summe(Stufe.pfadfinder, (g) => g.mitglieder),
+      rover: summe(Stufe.rover, (g) => g.mitglieder),
+      leitende: json == null
+          ? const LeitendeAltersVerteilung(
+              gesamt: null,
+              unter21: null,
+              von21Bis30: null,
+              von31Bis40: null,
+              von41Bis50: null,
+              von51Bis60: null,
+              ueber60: null,
+            )
+          : LeitendeAltersVerteilung.fromJson(_map(json['leitende'])),
+      leitendeBiber: summe(Stufe.biber, (g) => g.leitende),
+      leitendeWoelflinge: summe(Stufe.woelfling, (g) => g.leitende),
+      leitendeJungpfadfinder: summe(Stufe.jungpfadfinder, (g) => g.leitende),
+      leitendePfadfinder: summe(Stufe.pfadfinder, (g) => g.leitende),
+      leitendeRover: summe(Stufe.rover, (g) => g.leitende),
       nichtLeitendeErwachsene: _toNullableInt(
-        json['nicht_leitende_erwachsene'],
+        json?['nicht_leitende_erwachsene'],
       ),
-      stammesvorstand: _toNullableInt(json['stammesvorstand']),
-      kuraten: _toNullableInt(json['kuraten']),
+      stammesvorstand: _toNullableInt(json?['stammesvorstand']),
+      kuraten: _toNullableInt(json?['kuraten']),
+    );
+  }
+
+  /// Feldweise Summe; eine nicht abgedeckte Gruppe macht die Summe unbekannt.
+  static GeschlechterVerteilung summiereGruppen(
+    List<GruppenKennzahl> gruppen,
+    GeschlechterVerteilung? Function(GruppenKennzahl gruppe) wert,
+  ) {
+    final werte = <GeschlechterVerteilung>[];
+    for (final gruppe in gruppen) {
+      final verteilung = gruppe.abgedeckt ? wert(gruppe) : null;
+      if (verteilung == null) {
+        return const GeschlechterVerteilung.unbekannt();
+      }
+      werte.add(verteilung);
+    }
+    int? feld(int? Function(GeschlechterVerteilung v) auswahl) {
+      var summe = 0;
+      for (final verteilung in werte) {
+        final teil = auswahl(verteilung);
+        if (teil == null) {
+          return null;
+        }
+        summe += teil;
+      }
+      return summe;
+    }
+
+    return GeschlechterVerteilung(
+      gesamt: feld((v) => v.gesamt),
+      maennlich: feld((v) => v.maennlich),
+      weiblich: feld((v) => v.weiblich),
+      divers: feld((v) => v.divers),
+      geschlechtUnbekannt: feld((v) => v.geschlechtUnbekannt),
     );
   }
 
   @override
   bool operator ==(Object other) =>
       other is StammesKennzahlen &&
+      other.abdeckung == abdeckung &&
+      _listEquals(other.gruppen, gruppen) &&
       other.aktiveMitglieder == aktiveMitglieder &&
       other.biber == biber &&
       other.woelflinge == woelflinge &&
@@ -253,6 +414,8 @@ class StammesKennzahlen {
 
   @override
   int get hashCode => Object.hash(
+    abdeckung,
+    Object.hashAll(gruppen),
     aktiveMitglieder,
     Object.hashAll(kernstufen),
     leitende,
@@ -279,7 +442,7 @@ class StammesSnapshot {
     this.bezirkId,
   });
 
-  static const String schemaVersion = '2026-04-01';
+  static const String schemaVersion = '2026-10-01';
 
   final String stammId;
   final String? dvId;
@@ -299,7 +462,9 @@ class StammesSnapshot {
     'sender_id': senderId,
     'sent_at': _isoMillis(sentAt),
     'source_data_as_of': _isoMillis(sourceDataAsOf),
-    'metrics': kennzahlen.toJson(),
+    'abdeckung': kennzahlen.abdeckung.istStamm ? 'stamm' : 'gruppen',
+    'gruppen': [for (final gruppe in kennzahlen.gruppen) gruppe.toJson()],
+    'metrics': kennzahlen.abdeckung.istStamm ? kennzahlen.toJson() : null,
   };
 
   factory StammesSnapshot.fromJson(Map<String, dynamic> json) =>
@@ -310,8 +475,25 @@ class StammesSnapshot {
         senderId: json['sender_id']?.toString() ?? '',
         sentAt: DateTime.parse(json['sent_at'].toString()),
         sourceDataAsOf: DateTime.parse(json['source_data_as_of'].toString()),
-        kennzahlen: StammesKennzahlen.fromJson(_map(json['metrics']) ?? {}),
+        kennzahlen: _kennzahlenAusJson(json),
       );
+
+  static StammesKennzahlen _kennzahlenAusJson(Map<String, dynamic> json) {
+    final gruppen = <GruppenKennzahl>[
+      for (final eintrag in (json['gruppen'] as List?) ?? const <Object?>[])
+        if (eintrag is Map<String, dynamic>) ?GruppenKennzahl.fromJson(eintrag),
+    ];
+    final abdeckung = json['abdeckung'] == 'gruppen'
+        ? StatistikAbdeckung.gruppen(
+            gruppen.where((g) => g.abgedeckt).map((g) => g.gruppenId),
+          )
+        : const StatistikAbdeckung.stamm();
+    return StammesKennzahlen.fromJson(
+      abdeckung.istStamm ? _map(json['metrics']) : null,
+      abdeckung: abdeckung,
+      gruppen: gruppen,
+    );
+  }
 }
 
 /// ISO-Zeitstempel in UTC mit hoechstens Millisekunden; `toIso8601String`
@@ -322,6 +504,18 @@ String _isoMillis(DateTime value) {
     utc.millisecondsSinceEpoch,
     isUtc: true,
   ).toIso8601String();
+}
+
+bool _listEquals<T>(List<T> a, List<T> b) {
+  if (a.length != b.length) {
+    return false;
+  }
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) {
+      return false;
+    }
+  }
+  return true;
 }
 
 Map<String, dynamic>? _map(Object? value) =>

@@ -10,6 +10,10 @@ import { buildMongoDbClient, connectToMongoDb } from './infra/mongodb/client.js'
 import { buildMongoDependencies, initializeStatisticsPersistence } from './infra/mongodb/statisticsPersistence.js';
 import { rebuildEffectiveStatesAndAggregate } from './modules/aggregation/refresh.js';
 import { MOCK_SEED_INTERVAL_MS, seedMockSnapshots } from './modules/mockSeed/mockSeed.js';
+import { runMonthlyReportIfDue } from './modules/report/report.js';
+import { buildTelegramNotifier } from './modules/report/telegram.js';
+
+const REPORT_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
 const config = loadConfig();
 // Im Speichermodus (Mock-Instanz) gibt es keine MongoDB; Daten gehen beim Neustart verloren.
@@ -18,9 +22,34 @@ const mongoDb = mongoClient?.db(config.mongoDbDatabase) ?? null;
 const dependencies: ServerDependencies = mongoDb != null ? buildMongoDependencies(mongoDb) : buildMemoryDependencies();
 const server = buildServer(config, dependencies);
 let mockSeedTimer: NodeJS.Timeout | null = null;
+let reportTimer: NodeJS.Timeout | null = null;
+const reportNotifier = config.telegram != null ? buildTelegramNotifier(config.telegram) : null;
 
 const runMockSeed = async (): Promise<void> => {
     await seedMockSnapshots(dependencies, config.pseudonymizationSecret, config.mockSeedStammCount, dependencies.clock());
+};
+
+// Die Mock-Instanz legt keine Monatsberichte an; ihre Daten sind synthetisch und fluechtig.
+const reportsEnabled = config.storageBackend === 'mongodb';
+
+const runReportCheck = async (): Promise<void> => {
+    try {
+        const month = await runMonthlyReportIfDue(
+            dependencies,
+            reportNotifier,
+            {
+                minStammCount: config.minStammCountForRead,
+                adminUrl: config.publicBaseUrl != null && config.admin != null ? `${config.publicBaseUrl}/admin` : null,
+            },
+            dependencies.clock(),
+        );
+        if (month != null) {
+            server.log.info({ month }, 'Monthly report notification sent');
+        }
+    } catch (error) {
+        // Beim naechsten Durchlauf erneut versuchen; der Merker bleibt unveraendert.
+        server.log.error(error, 'Monthly report failed');
+    }
 };
 
 const start = async (): Promise<void> => {
@@ -44,6 +73,13 @@ const start = async (): Promise<void> => {
             mockSeedTimer.unref();
         }
         await server.listen({ host: config.host, port: config.port });
+        if (reportsEnabled) {
+            void runReportCheck();
+            reportTimer = setInterval(() => {
+                void runReportCheck();
+            }, REPORT_CHECK_INTERVAL_MS);
+            reportTimer.unref();
+        }
         server.log.info(
             {
                 host: config.host,
@@ -51,6 +87,8 @@ const start = async (): Promise<void> => {
                 storage: config.storageBackend,
                 database: mongoDb != null ? config.mongoDbDatabase : null,
                 mockSeedStammCount: config.mockSeedStammCount,
+                admin: config.admin != null,
+                telegram: config.telegram != null,
                 version: config.gitSha,
             },
             'Statistics server listening',
@@ -68,6 +106,9 @@ const shutdown = async (signal: NodeJS.Signals): Promise<void> => {
     try {
         if (mockSeedTimer != null) {
             clearInterval(mockSeedTimer);
+        }
+        if (reportTimer != null) {
+            clearInterval(reportTimer);
         }
         await server.close();
         await mongoClient?.close();

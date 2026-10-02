@@ -252,6 +252,88 @@ class StatistikKachelEinstellungen {
     ),
   ];
 
+  /// Standard für Personen, die nur einzelne Gruppen sehen: dieselben Kacheln
+  /// wie im Stamm, ergänzt um die Altersstruktur in 2×1.
+  static const List<KachelEintrag> standardUeberblickTeilsicht = [
+    KachelEintrag(
+      id: 'standard-gruppen',
+      typId: StatistikKachelTypen.gruppen,
+      groesse: KachelGroesse.breit,
+    ),
+    KachelEintrag(
+      id: 'standard-altersstruktur',
+      typId: StatistikKachelTypen.altersstruktur,
+      groesse: KachelGroesse.breit,
+    ),
+    KachelEintrag(
+      id: 'standard-stufenwechsel',
+      typId: StatistikKachelTypen.stufenwechsel,
+      groesse: KachelGroesse.klein,
+    ),
+    KachelEintrag(
+      id: 'standard-bindung',
+      typId: StatistikKachelTypen.bindung,
+      groesse: KachelGroesse.klein,
+    ),
+    KachelEintrag(
+      id: 'standard-geschlecht',
+      typId: StatistikKachelTypen.geschlecht,
+      groesse: KachelGroesse.klein,
+    ),
+    KachelEintrag(
+      id: 'standard-konfession',
+      typId: StatistikKachelTypen.konfession,
+      groesse: KachelGroesse.klein,
+    ),
+    KachelEintrag(
+      id: 'standard-standorte',
+      typId: StatistikKachelTypen.standorte,
+      groesse: KachelGroesse.breit,
+    ),
+  ];
+
+  /// Feste Belegung der Detailseite einer Gruppe.
+  static const List<KachelEintrag> gruppenDetail = [
+    KachelEintrag(
+      id: 'gruppe-personen',
+      typId: StatistikKachelTypen.personen,
+      groesse: KachelGroesse.breit,
+    ),
+    KachelEintrag(
+      id: 'gruppe-altersstruktur',
+      typId: StatistikKachelTypen.altersstruktur,
+      groesse: KachelGroesse.breit,
+    ),
+    KachelEintrag(
+      id: 'gruppe-stufenwechsel',
+      typId: StatistikKachelTypen.stufenwechsel,
+      groesse: KachelGroesse.klein,
+    ),
+    KachelEintrag(
+      id: 'gruppe-bindung',
+      typId: StatistikKachelTypen.bindung,
+      groesse: KachelGroesse.klein,
+    ),
+    KachelEintrag(
+      id: 'gruppe-geschlecht',
+      typId: StatistikKachelTypen.geschlecht,
+      groesse: KachelGroesse.klein,
+    ),
+    KachelEintrag(
+      id: 'gruppe-konfession',
+      typId: StatistikKachelTypen.konfession,
+      groesse: KachelGroesse.klein,
+    ),
+    KachelEintrag(
+      id: 'gruppe-standorte',
+      typId: StatistikKachelTypen.standorte,
+      groesse: KachelGroesse.gross,
+    ),
+  ];
+
+  /// Ob noch die unveränderte Standardbelegung gilt (nichts gespeichert).
+  bool get hatStandardUeberblick => identical(ueberblick, standardUeberblick);
+
   /// Fest zusammengestellte Kacheln des Tabs „Stufen“.
   static const List<KachelEintrag> stufenTab = [
     KachelEintrag(

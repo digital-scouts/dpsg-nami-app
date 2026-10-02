@@ -2,9 +2,8 @@ import type { FastifyInstance } from 'fastify';
 
 import type { AppConfig } from '../../app/config.js';
 import type { ServerDependencies } from '../../app/dependencies.js';
-import { refreshBundAggregate } from '../aggregation/refresh.js';
+import { refreshBundAggregate, refreshEffectiveStateForStamm } from '../aggregation/refresh.js';
 import { extractBearerSecret, verifyOrRegisterSender } from '../senderAuth/senderAuth.js';
-import { toEffectiveState } from '../effectiveState/effectiveState.js';
 import { buildRawSnapshotDocument } from './persistence.js';
 import { pseudonymizeStammesSnapshot } from './pseudonymize.js';
 import { parseStammesSnapshotPayload } from './schema.js';
@@ -51,8 +50,11 @@ export const registerStammesSnapshotRoutes = (
             );
 
             if (inserted) {
-                await dependencies.effectiveStatesRepository.upsertIfNewer(
-                    toEffectiveState(rawSnapshotDocument),
+                await refreshEffectiveStateForStamm(
+                    dependencies.rawSnapshotsRepository,
+                    dependencies.effectiveStatesRepository,
+                    pseudonymizedSnapshot.stamm_pseudonym,
+                    now,
                 );
                 await refreshBundAggregate(
                     dependencies.effectiveStatesRepository,

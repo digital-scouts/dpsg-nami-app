@@ -9,11 +9,13 @@ import {
     statisticsCollectionNames,
 } from '../src/infra/mongodb/statisticsPersistence.js';
 import { rebuildEffectiveStatesAndAggregate } from '../src/modules/aggregation/refresh.js';
+import { computeReportFigures } from '../src/modules/report/report.js';
 import {
     authHeader,
     buildTestConfig,
     createMutableClock,
     createValidPayload,
+    gruppe,
     OTHER_SECRET,
 } from './support/fixtures.js';
 
@@ -65,18 +67,19 @@ describe('statistics server with MongoDB', () => {
             (await db.collection(collection).indexes()).map((index) => index.name);
 
         expect(await indexNames(statisticsCollectionNames.rawSnapshots)).toEqual(
-            expect.arrayContaining(['raw_snapshots_by_stamm_and_recency', 'raw_snapshots_by_sent_at', 'raw_snapshots_dedup']),
+            expect.arrayContaining(['raw_snapshots_by_stamm_and_recency', 'raw_snapshots_by_sent_at', 'raw_snapshots_dedup_by_version']),
         );
         expect(await indexNames(statisticsCollectionNames.effectiveStates)).toContain('effective_states_by_stamm');
         expect(await indexNames(statisticsCollectionNames.weeklyAggregates)).toContain('weekly_aggregates_by_week_and_type');
         expect(await indexNames(statisticsCollectionNames.senders)).toContain('senders_by_pseudonym');
+        expect(await indexNames(statisticsCollectionNames.monthlyReports)).toContain('monthly_reports_by_month');
     });
 
     test('persists ingest end to end without raw ids and serves the aggregate', async () => {
         const server = buildMongoServer();
 
-        expect((await share(server, { stamm_id: 'stamm-a', sender_id: 'install-a', metrics: { biber: { gesamt: 4 } } })).statusCode).toBe(204);
-        expect((await share(server, { stamm_id: 'stamm-b', sender_id: 'install-b', metrics: { biber: { gesamt: 6 } } })).statusCode).toBe(204);
+        expect((await share(server, { stamm_id: 'stamm-a', sender_id: 'install-a', gruppen: [gruppe('g-biber', 'biber', 4)] })).statusCode).toBe(204);
+        expect((await share(server, { stamm_id: 'stamm-b', sender_id: 'install-b', gruppen: [gruppe('g-biber', 'biber', 6)] })).statusCode).toBe(204);
 
         const rawSnapshots = await db.collection(statisticsCollectionNames.rawSnapshots).find().toArray();
         expect(rawSnapshots).toHaveLength(2);
@@ -105,16 +108,16 @@ describe('statistics server with MongoDB', () => {
     test('ignores duplicates and keeps the newest state for out-of-order snapshots', async () => {
         const server = buildMongoServer();
 
-        await share(server, { source_data_as_of: '2026-06-09T00:00:00Z', metrics: { biber: { gesamt: 9 } } });
-        const duplicate = await share(server, { source_data_as_of: '2026-06-09T00:00:00Z', metrics: { biber: { gesamt: 9 } } });
-        await share(server, { source_data_as_of: '2026-06-01T00:00:00Z', metrics: { biber: { gesamt: 2 } } });
+        await share(server, { source_data_as_of: '2026-06-09T00:00:00Z', gruppen: [gruppe('g-biber', 'biber', 9)] });
+        const duplicate = await share(server, { source_data_as_of: '2026-06-09T00:00:00Z', gruppen: [gruppe('g-biber', 'biber', 9)] });
+        await share(server, { source_data_as_of: '2026-06-01T00:00:00Z', gruppen: [gruppe('g-biber', 'biber', 2)] });
 
         expect(duplicate.statusCode).toBe(204);
         expect(await db.collection(statisticsCollectionNames.rawSnapshots).countDocuments()).toBe(2);
 
         const states = await db.collection(statisticsCollectionNames.effectiveStates).find().toArray();
         expect(states).toHaveLength(1);
-        expect(states[0]?.metrics.biber.gesamt).toBe(9);
+        expect(states[0]?.gruppen[0]?.wert?.mitglieder.gesamt).toBe(9);
 
         await server.close();
     });
@@ -148,9 +151,9 @@ describe('statistics server with MongoDB', () => {
 
     test('rebuilds effective states and aggregate from raw snapshots', async () => {
         const server = buildMongoServer();
-        await share(server, { stamm_id: 'stamm-a', source_data_as_of: '2026-06-01T00:00:00Z', metrics: { biber: { gesamt: 1 } } });
-        await share(server, { stamm_id: 'stamm-a', source_data_as_of: '2026-06-05T00:00:00Z', metrics: { biber: { gesamt: 3 } } });
-        await share(server, { stamm_id: 'stamm-b', metrics: { biber: { gesamt: 7 } } });
+        await share(server, { stamm_id: 'stamm-a', source_data_as_of: '2026-06-01T00:00:00Z', gruppen: [gruppe('g-biber', 'biber', 1)] });
+        await share(server, { stamm_id: 'stamm-a', source_data_as_of: '2026-06-05T00:00:00Z', gruppen: [gruppe('g-biber', 'biber', 3)] });
+        await share(server, { stamm_id: 'stamm-b', gruppen: [gruppe('g-biber', 'biber', 7)] });
         await server.close();
 
         await db.collection(statisticsCollectionNames.effectiveStates).deleteMany({});
@@ -167,10 +170,61 @@ describe('statistics server with MongoDB', () => {
 
         const states = await dependencies.effectiveStatesRepository.findAll();
         expect(states).toHaveLength(2);
-        expect(states.map((state) => state.metrics.biber.gesamt).sort()).toEqual([3, 7]);
+        expect(states.map((state) => state.gruppen[0]?.wert?.mitglieder.gesamt).sort()).toEqual([3, 7]);
 
         const aggregate = await dependencies.weeklyAggregatesRepository.findLatest('bund');
         expect(aggregate?.participating_stamm_count).toBe(2);
+    });
+
+    test('replaces the old dedup index and ignores snapshots of older schema versions', async () => {
+        const raw = db.collection(statisticsCollectionNames.rawSnapshots);
+        await raw.dropIndex('raw_snapshots_dedup_by_version');
+        await raw.createIndex({ stamm_pseudonym: 1, sender_pseudonym: 1, source_data_as_of: 1 }, { name: 'raw_snapshots_dedup', unique: true });
+        await initializeStatisticsPersistence(db);
+
+        const names = (await raw.indexes()).map((index) => index.name);
+        expect(names).not.toContain('raw_snapshots_dedup');
+        expect(names).toContain('raw_snapshots_dedup_by_version');
+
+        const server = buildMongoServer();
+        await share(server, { stamm_id: 'stamm-a' });
+        const stamm = (await raw.findOne({}))?.stamm_pseudonym as string;
+        // Alter Snapshot mit gleichem Datenstand und Sender, aber frueherer Version.
+        await raw.insertOne({
+            schema_version: '2026-04-01',
+            stamm_pseudonym: stamm,
+            sender_pseudonym: 'sender_alt',
+            source_data_as_of: time.now,
+            sent_at: time.now,
+            received_at: time.now,
+            metrics: { biber: { gesamt: 99 } },
+        });
+        const dependencies = buildMongoDependencies(db, time.clock);
+
+        expect(await dependencies.rawSnapshotsRepository.findByStammSince(stamm, new Date('2026-01-01T00:00:00Z'))).toHaveLength(1);
+        expect(await dependencies.rawSnapshotsRepository.findSince(new Date('2026-01-01T00:00:00Z'))).toHaveLength(1);
+
+        await server.close();
+    });
+
+    test('stores monthly reports once per month, newest first', async () => {
+        const reports = buildMongoDependencies(db, time.clock).monthlyReportsRepository;
+        const bericht = (month: string) => ({
+            month,
+            figures: computeReportFigures(month, [], []),
+            created_at: time.now,
+            notified_at: null,
+        });
+
+        await reports.insertIfAbsent(bericht('2026-04'));
+        await reports.insertIfAbsent(bericht('2026-05'));
+        await reports.insertIfAbsent({ ...bericht('2026-05'), notified_at: time.now });
+        await reports.markNotified('2026-04', time.now);
+
+        expect((await reports.findAll()).map((report) => report.month)).toEqual(['2026-05', '2026-04']);
+        expect((await reports.find('2026-05'))?.notified_at).toBeNull();
+        expect((await reports.find('2026-04'))?.notified_at).toEqual(time.now);
+        expect((await reports.find('2026-04'))?.figures.stichtag).toBeInstanceOf(Date);
     });
 
     test('reports readiness including the backup marker', async () => {

@@ -5,11 +5,14 @@ import 'package:nami/data/statistiks/shared_prefs_statistik_kachel_repository.da
 import 'package:nami/data/statistiks/shared_prefs_statistik_verlauf_repository.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model.dart';
+import 'package:nami/domain/bundesstatistik/statistik_abdeckung.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/statistiks/statistik_kachel_einstellungen.dart';
+import 'package:nami/domain/statistiks/statistik_kachel_typen.dart';
 import 'package:nami/domain/statistiks/statistik_verlauf.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/navigation/app_router.dart';
+import 'package:nami/presentation/screens/statistics_group_detail_page.dart';
 import 'package:nami/presentation/screens/statistics_page.dart';
 import 'package:nami/presentation/statistics/statistik_kopf_zeile.dart';
 import 'package:nami/presentation/statistics/statistik_stamm_ansicht.dart';
@@ -143,7 +146,127 @@ void main() {
 
     expect(find.byIcon(Icons.arrow_back), findsOneWidget);
     expect(find.text('Meute Nord'), findsAtLeastNWidgets(1));
-    expect(find.text('Mitglieder'), findsWidgets);
+    // Dieselben Kacheln wie im Stamm, in fester Belegung.
+    expect(find.text('Personen'), findsOneWidget);
+    expect(find.text('Altersstruktur'), findsOneWidget);
+  });
+
+  testWidgets('zeigt bei Teilsicht nur den Überblick der lesbaren Gruppe', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildTestApp(
+        _buildReadModelMitZweiGruppen(),
+        kacheln: InMemoryStatistikKachelRepository(),
+        abdeckung: StatistikAbdeckung.gruppen({21}),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(_themenLeiste, findsNothing);
+    // Standardbelegung bei Teilsicht: mit Altersstruktur in 2×1.
+    expect(find.text('Altersstruktur'), findsOneWidget);
+    // Nur die lesbare Meute, eine Spalte je Gruppe.
+    expect(find.byKey(const Key('gruppen-spalte-21')), findsOneWidget);
+    expect(find.byKey(const Key('gruppen-spalte-22')), findsNothing);
+    expect(find.text('Meute Süd'), findsNothing);
+    expect(tester.takeException(), isNull);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('statistik-bearbeiten')),
+      200,
+      scrollable: _statistikListe,
+    );
+    await tester.tap(find.byKey(const Key('statistik-bearbeiten')));
+    await _warten(tester);
+    // Stufen und Entwicklung lassen sich bei Teilsicht nicht einblenden.
+    expect(find.text('Entwicklung'), findsNothing);
+  });
+
+  testWidgets('setzt den Überblick nach Bestätigung zurück', (tester) async {
+    final repository = InMemoryStatistikKachelRepository();
+    await repository.saveForLayer(
+      11,
+      const StatistikKachelEinstellungen(
+        ueberblick: [
+          KachelEintrag(
+            id: 'nur-geschlecht',
+            typId: 'geschlecht',
+            groesse: KachelGroesse.klein,
+          ),
+        ],
+      ),
+    );
+    await tester.pumpWidget(
+      _buildTestApp(_buildReadModel(), kacheln: repository),
+    );
+    await _warten(tester);
+    expect(find.text('Gruppen'), findsNothing);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('statistik-bearbeiten')),
+      200,
+      scrollable: _statistikListe,
+    );
+    await tester.tap(find.byKey(const Key('statistik-bearbeiten')));
+    await _warten(tester);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('statistik-zuruecksetzen')),
+      200,
+      scrollable: _statistikListe,
+    );
+    await tester.tap(find.byKey(const Key('statistik-zuruecksetzen')));
+    await _warten(tester);
+    expect(find.text('Überblick zurücksetzen?'), findsOneWidget);
+
+    await tester.tap(find.text('Abbrechen'));
+    await _warten(tester);
+    expect((await repository.loadForLayer(11)).ueberblick.map((e) => e.id), [
+      'nur-geschlecht',
+    ]);
+
+    await tester.tap(find.byKey(const Key('statistik-zuruecksetzen')));
+    await _warten(tester);
+    await tester.tap(
+      find.byKey(const Key('statistik-zuruecksetzen-bestaetigen')),
+    );
+    await _warten(tester);
+    expect(
+      (await repository.loadForLayer(11)).ueberblick.map((e) => e.id),
+      StatistikKachelEinstellungen.standardUeberblick.map((e) => e.id),
+    );
+  });
+
+  testWidgets('wechselt auf der Detailseite über den Titel die Gruppe', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('de'), Locale('en')],
+        locale: const Locale('de'),
+        home: StatisticsGroupDetailPage(
+          groupId: '21',
+          debugReadModel: _buildReadModelMitZweiGruppen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Meute Nord'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('gruppe-wechseln')));
+    await tester.pumpAndSettle();
+    expect(find.text('Gruppe wechseln'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('gruppen-auswahl-22')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Meute Süd'), findsOneWidget);
+    expect(find.text('Meute Nord'), findsNothing);
   });
 
   testWidgets('bleibt mit krummen Daten in allen Themen stabil', (
@@ -180,6 +303,7 @@ Widget _buildTestApp(
   ArbeitskontextReadModel readModel, {
   StatistikKachelRepository? kacheln,
   DateTime? heute,
+  StatistikAbdeckung? abdeckung,
 }) {
   final app = MaterialApp(
     onGenerateRoute: onGenerateRoute,
@@ -192,7 +316,11 @@ Widget _buildTestApp(
     supportedLocales: const [Locale('de'), Locale('en')],
     locale: const Locale('de'),
     home: Scaffold(
-      body: StatisticsPage(debugReadModel: readModel, debugHeute: heute),
+      body: StatisticsPage(
+        debugReadModel: readModel,
+        debugHeute: heute,
+        debugAbdeckung: abdeckung,
+      ),
     ),
   );
   if (kacheln == null) return app;
@@ -204,6 +332,51 @@ Widget _buildTestApp(
       ),
     ],
     child: app,
+  );
+}
+
+// Der Bearbeiten-Modus wackelt dauerhaft; pumpAndSettle käme nie zur Ruhe.
+Future<void> _warten(WidgetTester tester) async {
+  for (var i = 0; i < 5; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+}
+
+Finder get _statistikListe => find
+    .descendant(
+      of: find.byType(StatistikStammAnsicht),
+      matching: find.byType(Scrollable),
+    )
+    .last;
+
+ArbeitskontextReadModel _buildReadModelMitZweiGruppen() {
+  final basis = _buildReadModel();
+  return basis.copyWith(
+    mitglieder: [
+      ...basis.mitglieder,
+      Mitglied.peopleListItem(
+        mitgliedsnummer: '3',
+        vorname: 'Sina',
+        nachname: 'Süd',
+      ),
+    ],
+    gruppen: [
+      ...basis.gruppen,
+      const ArbeitskontextGruppe(
+        id: 22,
+        name: 'Meute Süd',
+        layerId: 11,
+        gruppenTyp: 'Group::StammGruppeWoelflinge',
+      ),
+    ],
+    mitgliedsZuordnungen: [
+      ...basis.mitgliedsZuordnungen,
+      const ArbeitskontextMitgliedsZuordnung(
+        mitgliedsnummer: '3',
+        gruppenId: 22,
+        rollenLabel: 'Mitglied',
+      ),
+    ],
   );
 }
 

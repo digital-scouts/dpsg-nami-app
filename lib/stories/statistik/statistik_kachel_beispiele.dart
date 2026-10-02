@@ -12,6 +12,7 @@ import 'package:nami/domain/statistiks/zaehle_eigene_kachel_usecase.dart';
 import 'package:nami/domain/stufe/altersgrenzen.dart';
 import 'package:nami/presentation/statistics/kacheln/kachel_daten.dart';
 import 'package:nami/presentation/statistics/kacheln/karten_vorschau.dart';
+import 'package:nami/domain/bundesstatistik/statistik_abdeckung.dart';
 import 'package:nami/presentation/statistics/statistics_snapshot_builder.dart';
 import 'package:nami/services/app_mode_controller.dart';
 import 'package:nami/services/statistics_location_service.dart';
@@ -38,6 +39,12 @@ enum StatistikBeispielDatensatz {
     querfeld => StatistikBeispielStaemme.querfeld(heute: heute),
     bezirk => _demo(DemoZugang.bezirksvorstand, DemoBezirk.bezirk, heute),
     leitung => _demo(DemoZugang.leitung, DemoBezirk.silberfels, heute),
+  };
+
+  /// Teilsicht des Demo-Zugangs Leitung (`group_read` in Trupp Kompass).
+  StatistikAbdeckung? get abdeckung => switch (this) {
+    leitung => StatistikAbdeckung.gruppen({DemoBezirk.truppKompassId}),
+    _ => null,
   };
 
   StatistikKachelEinstellungen get einstellungen => switch (this) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 // ignore: depend_on_referenced_packages
 import 'package:storybook_flutter/storybook_flutter.dart';
 
@@ -8,9 +9,12 @@ import '../domain/bundesstatistik/bundesstatistik_repository.dart';
 import '../domain/bundesstatistik/bundesstatistik_teilnahme.dart';
 import '../domain/bundesstatistik/installation_credentials.dart';
 import '../domain/bundesstatistik/stammes_snapshot.dart';
+import '../domain/taetigkeit/stufe.dart';
+import '../l10n/app_localizations.dart';
 import '../presentation/model/bundesstatistik_model.dart';
 import '../presentation/screens/bundesvergleich_page.dart';
 import '../presentation/widgets/bundesstatistik_einwilligung_dialog.dart';
+import '../domain/bundesstatistik/statistik_abdeckung.dart';
 
 const List<Option<BundesstatistikStatus>> _statusOptionen = [
   Option(
@@ -44,6 +48,13 @@ Story bundesvergleichStory() {
         initial: BundesstatistikStatus.bereit,
         options: _statusOptionen,
       );
+      final teilsicht = context.knobs.boolean(
+        label: 'Teilsicht (nur Trupp Kompass)',
+        initial: false,
+      );
+      final kennzahlen = teilsicht
+          ? bundesstatistikBeispielKennzahlenTeilsicht
+          : bundesstatistikBeispielKennzahlen;
       final hatEinwilligung = status != BundesstatistikStatus.keineEinwilligung;
       final aggregat = switch (status) {
         BundesstatistikStatus.bereit => bundesstatistikBeispielAggregat,
@@ -51,13 +62,22 @@ Story bundesvergleichStory() {
         _ => null,
       };
       return MaterialApp(
+        localizationsDelegates: [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('de'), Locale('en')],
+        locale: const Locale('de'),
         home: Scaffold(
           appBar: AppBar(title: const Text('Bundesweiter Vergleich')),
           body: BundesvergleichView(
             status: status,
             hatEinwilligung: hatEinwilligung,
             aggregat: aggregat,
-            eigeneKennzahlen: bundesstatistikBeispielKennzahlen,
+            eigeneKennzahlen: kennzahlen,
+            gruppenName: (id) => _storyGruppenNamen[id],
             einwilligungAm: hatEinwilligung ? DateTime(2026, 6, 1) : null,
             zuletztGesendet: hatEinwilligung
                 ? StammesSnapshot(
@@ -65,7 +85,7 @@ Story bundesvergleichStory() {
                     senderId: 'installation',
                     sentAt: DateTime(2026, 6, 14, 18, 5),
                     sourceDataAsOf: DateTime(2026, 6, 14, 18),
-                    kennzahlen: bundesstatistikBeispielKennzahlen,
+                    kennzahlen: kennzahlen,
                   )
                 : null,
             onEinwilligungAendern: (_) {},
@@ -79,13 +99,23 @@ Story bundesvergleichStory() {
 Story bundesstatistikEinwilligungStory() {
   return Story(
     name: 'Statistik/Bundesweit/Einwilligungsdialog',
-    builder: (context) => const MaterialApp(
-      home: Scaffold(body: Center(child: BundesstatistikEinwilligungDialog())),
+    builder: (context) => MaterialApp(
+      localizationsDelegates: [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('de'), Locale('en')],
+      locale: const Locale('de'),
+      home: const Scaffold(
+        body: Center(child: BundesstatistikEinwilligungDialog()),
+      ),
     ),
   );
 }
 
-const bundesstatistikBeispielKennzahlen = StammesKennzahlen(
+final bundesstatistikBeispielKennzahlen = StammesKennzahlen(
   aktiveMitglieder: 58,
   biber: GeschlechterVerteilung(
     gesamt: 6,
@@ -167,7 +197,105 @@ const bundesstatistikBeispielKennzahlen = StammesKennzahlen(
     geschlechtUnbekannt: 0,
   ),
   nichtLeitendeErwachsene: 4,
+  gruppen: [
+    _g(21, Stufe.biber, 6, 2),
+    _g(22, Stufe.woelfling, 8, 2),
+    _g(23, Stufe.woelfling, 6, 2),
+    _g(24, Stufe.jungpfadfinder, 11, 3),
+    _g(25, Stufe.pfadfinder, 9, 2),
+    _g(26, Stufe.rover, 5, 2),
+  ],
 );
+
+const _storyGruppenNamen = <int, String>{
+  21: 'Biberbande',
+  22: 'Meute Wirbelwind',
+  23: 'Meute Sternschnuppe',
+  24: 'Trupp Kompass',
+  25: 'Trupp Nordlicht',
+  26: 'Runde Fernweh',
+};
+
+GruppenKennzahl _g(int id, Stufe stufe, int kinder, int leitende) =>
+    GruppenKennzahl(
+      gruppenId: id,
+      stufe: stufe,
+      abgedeckt: true,
+      mitglieder: GeschlechterVerteilung(
+        gesamt: kinder,
+        maennlich: kinder ~/ 2,
+        weiblich: kinder - kinder ~/ 2,
+        divers: 0,
+        geschlechtUnbekannt: 0,
+      ),
+      leitende: GeschlechterVerteilung(
+        gesamt: leitende,
+        maennlich: leitende ~/ 2,
+        weiblich: leitende - leitende ~/ 2,
+        divers: 0,
+        geschlechtUnbekannt: 0,
+      ),
+    );
+
+/// Leitung von Trupp Kompass mit `group_read`: nur diese Gruppe ist lesbar.
+final bundesstatistikBeispielKennzahlenTeilsicht = StammesKennzahlen(
+  abdeckung: StatistikAbdeckung.gruppen({24}),
+  aktiveMitglieder: null,
+  biber: const GeschlechterVerteilung.unbekannt(),
+  woelflinge: const GeschlechterVerteilung.unbekannt(),
+  jungpfadfinder: bundesstatistikBeispielKennzahlen.jungpfadfinder,
+  pfadfinder: const GeschlechterVerteilung.unbekannt(),
+  rover: const GeschlechterVerteilung.unbekannt(),
+  leitende: const LeitendeAltersVerteilung(
+    gesamt: null,
+    unter21: null,
+    von21Bis30: null,
+    von31Bis40: null,
+    von41Bis50: null,
+    von51Bis60: null,
+    ueber60: null,
+  ),
+  leitendeBiber: const GeschlechterVerteilung.unbekannt(),
+  leitendeWoelflinge: const GeschlechterVerteilung.unbekannt(),
+  leitendeJungpfadfinder:
+      bundesstatistikBeispielKennzahlen.leitendeJungpfadfinder,
+  leitendePfadfinder: const GeschlechterVerteilung.unbekannt(),
+  leitendeRover: const GeschlechterVerteilung.unbekannt(),
+  nichtLeitendeErwachsene: null,
+  gruppen: [
+    for (final g in bundesstatistikBeispielKennzahlen.gruppen)
+      g.gruppenId == 24
+          ? g
+          : GruppenKennzahl(
+              gruppenId: g.gruppenId,
+              stufe: g.stufe,
+              abgedeckt: false,
+            ),
+  ],
+);
+
+GruppenKennzahlAggregat _gk(num summe, int staemme, int gruppen, num median) =>
+    GruppenKennzahlAggregat(
+      summe: summe,
+      stammAnzahl: staemme,
+      median: median,
+      gruppenAnzahl: gruppen,
+    );
+
+StufenGruppenAggregat _stufeGruppen(int gruppen, int staemme, num median) =>
+    StufenGruppenAggregat(
+      gruppenAnzahl: gruppen,
+      stammAnzahl: staemme,
+      gruppenProStamm: _k(gruppen, staemme, 1),
+      mitglieder: {
+        'gesamt': _gk(gruppen * median, staemme, gruppen, median),
+        'weiblich': _gk(gruppen * median * 0.46, staemme, gruppen, median / 2),
+        'maennlich': _gk(gruppen * median * 0.52, staemme, gruppen, median / 2),
+        'divers': _gk(gruppen * 0.1, staemme, gruppen, 0),
+        'geschlecht_unbekannt': _gk(gruppen * 0.1, staemme, gruppen, 0),
+      },
+      leitende: {'gesamt': _gk(gruppen * 3, staemme, gruppen, 3)},
+    );
 
 KennzahlAggregat _k(num summe, int staemme, num median) =>
     KennzahlAggregat(summe: summe, stammAnzahl: staemme, median: median);
@@ -182,6 +310,13 @@ final bundesstatistikBeispielAggregat = Bundesaggregat(
   aggregationsWoche: '2026-W24',
   datenstandVon: DateTime(2026, 4, 20),
   datenstandBis: DateTime(2026, 6, 14),
+  gruppenJeStufe: {
+    'biber': _stufeGruppen(33, 30, 5),
+    'woelflinge': _stufeGruppen(55, 42, 9),
+    'jungpfadfinder': _stufeGruppen(52, 41, 8),
+    'pfadfinder': _stufeGruppen(45, 40, 7),
+    'rover': _stufeGruppen(38, 36, 5),
+  },
   kennzahlen: {
     'biber.gesamt': _k(180, 30, 5),
     'woelflinge.gesamt': _k(520, 42, 12),
@@ -244,6 +379,7 @@ enum StoryBundesstatistikSzenario {
 BundesstatistikModel storyBundesstatistikModel(
   ArbeitskontextReadModel readModel, {
   StoryBundesstatistikSzenario szenario = StoryBundesstatistikSzenario.optIn,
+  StatistikAbdeckung? abdeckung,
 }) {
   final model = BundesstatistikModel(
     featureEnabled: szenario != StoryBundesstatistikSzenario.nichtVerfuegbar,
@@ -260,6 +396,7 @@ BundesstatistikModel storyBundesstatistikModel(
         personId: 'story',
         readModel: readModel,
         datenstand: null,
+        abdeckung: abdeckung ?? const StatistikAbdeckung.stamm(),
       )
       .then((_) {
         if (szenario != StoryBundesstatistikSzenario.optIn) {

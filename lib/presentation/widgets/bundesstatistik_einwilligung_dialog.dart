@@ -36,10 +36,19 @@ class BundesstatistikEinwilligungDialog extends StatelessWidget {
               style: theme.textTheme.labelLarge,
             ),
             const SizedBox(height: 4),
-            const _Punkt('Mitglieder je Stufe, aufgeteilt nach Geschlecht'),
-            const _Punkt('Leitende je Stufe und nach Altersgruppen'),
+            const _Punkt(
+              'Mitglieder und Leitende je Gruppe (z. B. je Meute), '
+              'aufgeteilt nach Geschlecht',
+            ),
+            const _Punkt('Leitende nach Altersgruppen'),
             const _Punkt(
               'Ordentliche Mitgliedschaften und sonstige Mitglieder',
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Siehst du in Hitobito nur deine eigene Gruppe, werden nur '
+              'deren Zahlen geteilt.',
+              style: theme.textTheme.bodySmall,
             ),
             const SizedBox(height: 12),
             Text('Nicht geteilt werden:', style: theme.textTheme.labelLarge),
@@ -48,7 +57,8 @@ class BundesstatistikEinwilligungDialog extends StatelessWidget {
             const _Punkt('deine Person oder dein Hitobito-Zugang'),
             const SizedBox(height: 12),
             Text(
-              'Der Server speichert Stamm und Installation nur pseudonymisiert. '
+              'Der Server speichert Stamm, Gruppen und Installation nur '
+              'pseudonymisiert. '
               'Bundeswerte siehst du, solange du teilst. Du kannst die '
               'Einwilligung jederzeit widerrufen; bereits geteilte Zahlen '
               'fallen nach zwei Monaten aus der Statistik.',

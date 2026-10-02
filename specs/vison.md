@@ -101,7 +101,14 @@ Dieses Dokument sammelt und fortschreibt visionaere Nutzerideen als Arbeitsproto
 - Der Statistikserver unter `server/` nimmt Stammes-Snapshots an, pseudonymisiert sie, leitet je Stamm einen effektiven Stand ab und liefert ein wöchentliches Bundesaggregat mit Transparenz-Metadaten aus (`server/spec/`).
 - Gegenseitigkeit ist umgesetzt: Bundeswerte erhalten nur Installationen, die in den letzten 14 Tagen selbst Zahlen geteilt haben. Kennzahlen mit zu wenigen beitragenden Stämmen werden unterdrückt.
 - Die App fragt die Einwilligung personengebunden ab, zeigt den zuletzt geteilten Stand und vergleicht im Statistik-Tab den eigenen Stamm mit Median und Durchschnitt.
-- Offen bleiben regionale Vergleiche (Diözese), statische Verbandszahlen und eine Prüfung der Stammeszugehörigkeit über Hitobito statt über Installations-Credentials.
+- Offen bleiben regionale Vergleiche (Diözese) und statische Verbandszahlen.
+
+### Entscheidungen (2026-10-01)
+
+- **Keine Anbindung an Hitobito:** Der Statistikserver kennt nur anonyme Zählwerte. Er bekommt keine Logins und keine Hitobito-Tokens, auch nicht zur Prüfung der Stammeszugehörigkeit. Welche Gruppen ein Datensatz abdeckt, bestimmt die App aus den Rechten der Person.
+- **Teildatensätze:** Leitende, die nur ihre eigene Gruppe sehen, tragen Gruppendaten bei. Der Server führt mehrere Teildatensätze eines Stammes je Gruppe zusammen.
+- **Reduzierter Vergleich:** Diese Leitenden sehen einen Bundesvergleich, der auf ihre Stufe und Gruppengröße reduziert ist.
+- **Regionale Vergleiche** erst, wenn genug Stämme teilnehmen. Bis dahin zeigt der Server dem Betreiber monatliche Berichte über den Kreis der Teilnehmenden (Web-Ansicht mit Login, Hinweis per Telegram).
 
 ## Eintrag 2026-09-29 Erfolge
 

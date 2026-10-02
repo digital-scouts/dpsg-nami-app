@@ -6,6 +6,7 @@ import 'package:nami/domain/stufe/altersgrenzen.dart';
 import 'package:provider/provider.dart';
 
 import '../../domain/arbeitskontext/arbeitskontext_read_model.dart';
+import '../../domain/bundesstatistik/statistik_abdeckung.dart';
 import '../../domain/statistiks/berechne_stamm_statistik_usecase.dart';
 import '../../domain/statistiks/statistik_kachel_einstellungen.dart';
 import '../../domain/statistiks/statistik_verlauf.dart';
@@ -25,6 +26,7 @@ import '../statistics/statistik_bearbeiten_leiste.dart';
 import '../statistics/kacheln/kachel_daten.dart';
 import '../statistics/kacheln/kachel_katalog.dart';
 import '../statistics/statistics_snapshot_builder.dart';
+import '../statistics/statistik_ausschnitt.dart';
 import '../statistics/statistik_kopf_zeile.dart';
 import '../statistics/statistik_stamm_ansicht.dart';
 import '../widgets/app_page_header.dart';
@@ -36,6 +38,7 @@ class StatisticsPage extends StatefulWidget {
     this.debugHeute,
     this.debugStichtag,
     this.debugThema = StatistikThema.ueberblick,
+    this.debugAbdeckung,
   });
 
   final ArbeitskontextReadModel? debugReadModel;
@@ -48,6 +51,9 @@ class StatisticsPage extends StatefulWidget {
 
   /// Anfangs gezeigtes Thema im Stamm-Tab für Stories.
   final StatistikThema debugThema;
+
+  /// Feste Abdeckung für Stories und Tests; sonst aus dem Arbeitskontext.
+  final StatistikAbdeckung? debugAbdeckung;
 
   @override
   State<StatisticsPage> createState() => _StatisticsPageState();
@@ -69,6 +75,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
   String? _stammAddress;
   List<StatistikVerlaufEintrag> _verlauf = const [];
   int? _geladenFuerLayer;
+  bool? _geladenMitTeilsicht;
 
   /// Nur ohne app-weites Modell (Stories, Tests).
   StatistikKachelnModel? _eigenesModell;
@@ -145,10 +152,17 @@ class _StatisticsPageState extends State<StatisticsPage> {
   /// Lädt Kachel-Belegung und Verlauf des Stamms, sobald der Layer bekannt
   /// ist oder wechselt. Ohne Verlaufs-Repository (Stories, Tests) bleibt der
   /// Verlauf leer.
-  void _ladeFuerLayer(int layerId, StatistikKachelnModel modell) {
-    if (modell.layerId != layerId) {
+  void _ladeFuerLayer(
+    int layerId,
+    StatistikKachelnModel modell, {
+    required bool teilsicht,
+  }) {
+    if (modell.layerId != layerId || _geladenMitTeilsicht != teilsicht) {
+      _geladenMitTeilsicht = teilsicht;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) modell.ensureLoadedForLayer(layerId);
+        if (mounted) {
+          modell.ensureLoadedForLayer(layerId, teilsicht: teilsicht);
+        }
       });
     }
     if (_geladenFuerLayer == layerId) return;
@@ -251,6 +265,32 @@ class _StatisticsPageState extends State<StatisticsPage> {
     if (neu != null) modell.eigeneKachelSpeichern(neu);
   }
 
+  Future<void> _zuruecksetzen(StatistikKachelnModel modell) async {
+    final t = AppLocalizations.of(context);
+    final bestaetigt = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(t.t('statistics_reset_title')),
+        content: Text(t.t('statistics_reset_message')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(t.t('statistics_reset_cancel')),
+          ),
+          TextButton(
+            key: const Key('statistik-zuruecksetzen-bestaetigen'),
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: Text(t.t('statistics_reset_confirm')),
+          ),
+        ],
+      ),
+    );
+    if (bestaetigt == true) modell.zuruecksetzen();
+  }
+
   void _zielwerteOeffnen(StatistikKachelnModel modell) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -277,7 +317,15 @@ class _StatisticsPageState extends State<StatisticsPage> {
     final arbeitskontextModel = injectedReadModel == null
         ? context.watch<ArbeitskontextModel>()
         : null;
-    final readModel = injectedReadModel ?? arbeitskontextModel?.readModel;
+    final vollesReadModel = injectedReadModel ?? arbeitskontextModel?.readModel;
+    final abdeckung =
+        widget.debugAbdeckung ?? arbeitskontextModel?.statistikAbdeckung;
+    final teilsicht = abdeckung != null && !abdeckung.istStamm;
+    // Bei Teilsicht zählen nur die lesbaren Gruppen, nicht die übrige
+    // Gruppenstruktur des Stamms.
+    final readModel = teilsicht && vollesReadModel != null
+        ? vollesReadModel.nurGruppen(abdeckung.deckt)
+        : vollesReadModel;
 
     if (injectedReadModel == null &&
         (arbeitskontextModel!.isLoading ||
@@ -294,7 +342,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
     final layerId = readModel.arbeitskontext.aktiverLayer.id;
     final modell = _kachelnModell(context);
-    _ladeFuerLayer(layerId, modell);
+    _ladeFuerLayer(layerId, modell, teilsicht: teilsicht);
     final geladen = modell.layerId == layerId && !modell.isLoading;
     final einstellungen = geladen
         ? modell.einstellungen
@@ -312,6 +360,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
       onVerlassen: modell.bearbeitenBeenden,
       child: StatistikStammAnsicht(
         daten: daten,
+        nurUeberblick: teilsicht,
         initialesThema: widget.debugThema,
         unterUeberblick: geladen
             ? Center(
@@ -334,15 +383,23 @@ class _StatisticsPageState extends State<StatisticsPage> {
               )
             : null,
         bearbeitenLeiste: StatistikBearbeitenLeiste(
+          themenAnzeigen: !teilsicht,
           stufenSichtbar: einstellungen.stufenSichtbar,
           entwicklungSichtbar: einstellungen.entwicklungSichtbar,
           onHinzufuegen: () => _katalogOeffnen(modell, readModel),
           onFertig: modell.bearbeitenBeenden,
           onThemaSichtbar: modell.themaSichtbar,
         ),
-        unterBearbeiten: _ZielwerteEintrag(
-          ziele: einstellungen.ziele,
-          onTap: () => _zielwerteOeffnen(modell),
+        unterBearbeiten: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _ZielwerteEintrag(
+              ziele: einstellungen.ziele,
+              onTap: () => _zielwerteOeffnen(modell),
+            ),
+            const SizedBox(height: 8),
+            _ZuruecksetzenEintrag(onTap: () => _zuruecksetzen(modell)),
+          ],
         ),
       ),
     );
@@ -423,8 +480,8 @@ class _StatisticsTabBar extends StatelessWidget {
                 ),
                 Tab(
                   height: tabHeight,
-                  child: const Text(
-                    'Bundesweit',
+                  child: Text(
+                    AppLocalizations.of(context).t('bund_tab'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -461,6 +518,34 @@ class _BeimVerlassenState extends State<_BeimVerlassen> {
 
   @override
   Widget build(BuildContext context) => widget.child;
+}
+
+/// Eintrag „Überblick zurücksetzen“ unter dem Raster im Bearbeiten-Modus.
+class _ZuruecksetzenEintrag extends StatelessWidget {
+  const _ZuruecksetzenEintrag({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: scheme.surface,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        key: const Key('statistik-zuruecksetzen'),
+        leading: Icon(Icons.restart_alt, color: scheme.primary),
+        title: Text(
+          t.t('statistics_reset'),
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        subtitle: Text(t.t('statistics_reset_hint')),
+        onTap: onTap,
+      ),
+    );
+  }
 }
 
 /// Eintrag „Zielwerte“ unter dem Raster im Bearbeiten-Modus.
