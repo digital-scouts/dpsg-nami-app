@@ -27,6 +27,7 @@ import 'stories/appearance_story.dart';
 import 'stories/confetti_overlay_story.dart';
 import 'stories/member_basis_info_card_story.dart';
 import 'stories/member_basis_story.dart';
+import 'stories/member_detail_daten_story.dart';
 import 'stories/member_detail_page_story.dart';
 import 'stories/member_edit_resolution_story.dart';
 import 'stories/member_list_directory_story.dart';
@@ -37,6 +38,8 @@ import 'stories/member_list_story.dart';
 import 'stories/member_list_tile_story.dart';
 import 'stories/member_people_page_story.dart';
 import 'stories/member_roles_list_story.dart';
+import 'stories/member_qualifikationen_tab_story.dart';
+import 'stories/member_rollen_tab_story.dart';
 import 'stories/member_roles_list_tile_story.dart';
 import 'stories/member_roles_recommendation_tile_story.dart';
 import 'stories/member_roles_statistik_pie_story.dart';
@@ -88,8 +91,12 @@ List<Story> buildStorybookStories() {
     groupFilterStory(),
     memberDirectoryStory(),
     memberDetailsStory(),
+    memberAddressMapStatesStory(),
+    memberFaktKachelnStory(),
     memberGeneralInfoCardStory(),
     memberMembershipInfoCardStory(),
+    memberRollenTabStory(),
+    memberQualifikationenTabStory(),
     memberRolesListStory(),
     memberRolesListTileStory(),
     memberRolesRecommendationTileStory(),

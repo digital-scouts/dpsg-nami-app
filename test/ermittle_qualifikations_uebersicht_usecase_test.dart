@@ -108,7 +108,7 @@ void main() {
     expect(byNummer['A']!.status, QualifikationsStatus.gueltig);
     expect(byNummer['B']!.status, QualifikationsStatus.fehlt);
     expect(byNummer['B']!.gueltigBis, isNull);
-    expect(byNummer['C']!.status, QualifikationsStatus.fehlt);
+    expect(byNummer['C']!.status, QualifikationsStatus.abgelaufen);
     expect(byNummer['C']!.gueltigBis, isNotNull);
     expect(byNummer['E']!.status, QualifikationsStatus.fehlt);
     expect(byNummer['F']!.status, QualifikationsStatus.fehlt);

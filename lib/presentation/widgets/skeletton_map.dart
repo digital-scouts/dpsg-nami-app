@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:nami/l10n/app_localizations.dart';
 
+/// Platzhalter waehrend die Kartenvorschau laedt. Bewusst ohne Text: ob die
+/// Karte verfuegbar ist, steht erst nach dem Laden fest.
 class MapSkeleton extends StatelessWidget {
-  const MapSkeleton({super.key, this.height = 200});
+  const MapSkeleton({
+    super.key,
+    this.height = 200,
+    this.borderRadius = const BorderRadius.all(Radius.circular(16)),
+    this.showShadow = true,
+  });
 
   final double height;
+  final BorderRadiusGeometry borderRadius;
+  final bool showShadow;
 
   @override
   Widget build(BuildContext context) {
@@ -17,22 +25,23 @@ class MapSkeleton extends StatelessWidget {
     );
 
     final theme = Theme.of(context);
-    final t = AppLocalizations.of(context);
     final shadowColor = theme.colorScheme.onSurface.withValues(alpha: 0.18);
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: shadowColor,
-            blurRadius: 10,
-            spreadRadius: 0,
-            offset: const Offset(5, 5),
-          ),
-        ],
+        borderRadius: borderRadius,
+        boxShadow: showShadow
+            ? [
+                BoxShadow(
+                  color: shadowColor,
+                  blurRadius: 10,
+                  spreadRadius: 0,
+                  offset: const Offset(5, 5),
+                ),
+              ]
+            : null,
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: borderRadius,
         child: Stack(
           children: [
             if (isDark)
@@ -48,17 +57,8 @@ class MapSkeleton extends StatelessWidget {
             else
               img,
             Positioned.fill(
-              child: Container(
-                alignment: Alignment.center,
+              child: ColoredBox(
                 color: theme.colorScheme.surface.withValues(alpha: 0.35),
-                child: Text(
-                  t.t('map_not_available'),
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: theme.colorScheme.onSurface,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
               ),
             ),
           ],

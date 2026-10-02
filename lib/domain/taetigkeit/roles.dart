@@ -12,9 +12,13 @@ class Role {
     this.groupId,
     String? type,
     String? label,
+    String? groupName,
+    String? layerName,
   }) : name = _trimToNull(name),
        type = _trimToNull(type),
-       label = _trimToNull(label);
+       label = _trimToNull(label),
+       groupName = _trimToNull(groupName),
+       layerName = _trimToNull(layerName);
 
   final int? id;
   final DateTime? createdAt;
@@ -26,6 +30,11 @@ class Role {
   final int? groupId;
   final String? type;
   final String? label;
+
+  /// Name der Gruppe und ihres Layers, auch fuer Rollen ausserhalb des
+  /// aktiven Layers (aus `include=group,layer_group`).
+  final String? groupName;
+  final String? layerName;
 
   DateTime get effectiveStart =>
       startOn ??
@@ -82,6 +91,8 @@ class Role {
       'group_id': groupId,
       'type': type,
       'label': label,
+      'group_name': groupName,
+      'layer_name': layerName,
     };
   }
 
@@ -100,6 +111,8 @@ class Role {
       groupId: _tryParseInt(json['group_id']),
       type: _trimToNull(json['type']?.toString()),
       label: _trimToNull(json['label']?.toString()),
+      groupName: _trimToNull(json['group_name']?.toString()),
+      layerName: _trimToNull(json['layer_name']?.toString()),
     );
   }
 
@@ -114,6 +127,8 @@ class Role {
     int? groupId,
     String? type,
     String? label,
+    String? groupName,
+    String? layerName,
   }) => Role(
     id: id ?? this.id,
     createdAt: createdAt ?? this.createdAt,
@@ -125,6 +140,8 @@ class Role {
     groupId: groupId ?? this.groupId,
     type: type ?? this.type,
     label: label ?? this.label,
+    groupName: groupName ?? this.groupName,
+    layerName: layerName ?? this.layerName,
   );
 
   @override
@@ -139,7 +156,9 @@ class Role {
         other.personId == personId &&
         other.groupId == groupId &&
         other.type == type &&
-        other.label == label;
+        other.label == label &&
+        other.groupName == groupName &&
+        other.layerName == layerName;
   }
 
   @override
@@ -154,11 +173,13 @@ class Role {
     groupId,
     type,
     label,
+    groupName,
+    layerName,
   );
 
   @override
   String toString() =>
-      'Role(id: $id, type: $type, label: $label, name: $name, startOn: $startOn, endOn: $endOn, personId: $personId, groupId: $groupId)';
+      'Role(id: $id, type: $type, label: $label, name: $name, startOn: $startOn, endOn: $endOn, personId: $personId, groupId: $groupId, groupName: $groupName, layerName: $layerName)';
 }
 
 DateTime? _tryParseDateTime(Object? value) {

@@ -1,0 +1,196 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8">
+<title>Entwürfe: Mitgliedsdetails, Runde 4</title>
+<link rel="stylesheet" href="../statistik/basis.css">
+<link rel="stylesheet" href="mitglied.css">
+<script src="daten.js"></script>
+<script src="lilie.js"></script>
+<script src="bausteine.js"></script>
+</head><body>
+<div class="bar">
+  <span><b>Person</b><span class="tgl" id="tgl-person"></span></span>
+  <span><b>Rollen-Historie</b><span class="tgl" id="tgl-historie"><button data-v="1">mit früheren Rollen</button><button data-v="0">wie heute (nur aktuelle)</button></span></span>
+  <nav><a href="#geburtstag">1 Geburtstag</a><a href="#stufenwechsel">2 Stufenwechsel</a><a href="#gesamt">3 Gesamtbild</a><a href="#galerie">4 Alle Personen</a><a href="#rueckmeldung">5 Rückmeldung</a></nav>
+</div>
+<main>
+  <h1>Mitgliedsdetails: Entwürfe, Runde 4</h1>
+  <p>Offen sind nur noch die Hervorhebung des Geburtstags und die neue Logik der Stufenwechsel-Kachel. Alles andere ist freigegeben und steht zur Kontrolle im Gesamtbild.</p>
+  <div class="fest-list"><b>Freigegeben</b> <span class="tag">freigegeben</span>
+    <ul>
+      <li><b>Kopf:</b> S2 Steckbrief-Kopf mit Kopfzeile „30 Jahre · sie/ihr · weiblich“, ohne EFZ-Chip.</li>
+      <li><b>Daten:</b>
+        <ul>
+          <li>D3 mit den Kacheln Geburtstag und „dabei seit“.</li>
+          <li>Kartenfehler als flache Karte (M3).</li>
+          <li>Konfession ausgeblendet.</li>
+        </ul></li>
+      <li><b>Rollen:</b>
+        <ul>
+          <li>Zeitstrahl, aktive Rollen auf getöntem Grund (H1).</li>
+          <li>Filter-Hinweis am Ende (F2), Standard ist „nur aktiver Layer“.</li>
+        </ul></li>
+      <li><b>Verlauf:</b> freie Kennzahl-Kacheln, darunter die Bahnen (K2). Kürzel entfallen bei Platzmangel.</li>
+      <li><b>Qualifikationen:</b>
+        <ul>
+          <li>E2 mit rundem Download-Knopf.</li>
+          <li>Ohne „ausgestellt“ und „eingesehen“.</li>
+          <li>Abgelaufen ist ein eigener Zustand.</li>
+        </ul></li>
+    </ul></div>
+
+  <section class="part" id="geburtstag">
+    <h2>1 · Geburtstag hervorheben</h2>
+    <p>Hervorgehoben wird heute und in den nächsten 7 Tagen, ab dem 8. Tag nicht mehr. Als Farbe dient die Primärfarbe, weil Grün, Orange und Rot für Status reserviert sind.</p>
+    <div id="slot-geburtstag"></div>
+  </section>
+
+  <section class="part" id="stufenwechsel">
+    <h2>2 · Stufenwechsel-Kachel</h2>
+    <p>Drei Zustände, berechnet wie im Stufenwechsel-Tab:</p>
+    <ul style="max-width:86ch;color:#5d5b54;font-size:14.5px;margin:0 0 1rem">
+      <li><b>ab 2027:</b> Der Wechsel ist jetzt noch nicht möglich, frühestens im genannten Jahr. Das ist das Jahr, in dem das Mindestalter der nächsten Stufe erreicht ist.</li>
+      <li><b>bis 2027:</b> Der Wechsel ist jetzt möglich und spätestens im genannten Jahr fällig. Das ist das Jahr, in dem das Höchstalter der aktuellen Stufe erreicht ist.</li>
+      <li><b>jetzt:</b> Der Wechsel ist überfällig, das Höchstalter ist überschritten.</li>
+    </ul>
+    <p>Einen Zustand „läuft“ gibt es nicht mehr. Bei paralleler Mitgliedschaft zählt die höchste aktive Stufe: Jonas ist schon Pfadi, also geht es bei ihm um den Wechsel zu den Rovern. Rover ohne Leitung sehen das Ende ihrer Roverzeit. Wer schon geleitet hat, behält die Leitungs-Kachel.</p>
+    <div id="slot-stufenwechsel"></div>
+  </section>
+
+  <section class="part" id="gesamt">
+    <h2>3 · Gesamtbild zur Kontrolle</h2>
+    <div id="slot-gesamt"></div>
+  </section>
+
+  <section class="part" id="galerie">
+    <h2>4 · Alle Personen</h2>
+    <div class="bar" style="position:static;padding:10px 0;background:none;border:0" id="galerie-bar"></div>
+    <div class="galerie" id="slot-galerie"></div>
+  </section>
+
+  <section class="part" id="rueckmeldung">
+    <h2>5 · Rückmeldung</h2>
+    <p>Auswählen, kurz kommentieren, „Auswahl kopieren“ und den Text in den Chat einfügen.</p>
+    <form class="fb" id="fb"></form>
+  </section>
+</main>
+<script>
+(function () {
+  const D = window.MITGLIED;
+  const B = window.MBAU;
+  const q = new URLSearchParams(location.search);
+  const zustand = { person: q.get('person') || 'lena', historie: q.get('historie') !== '0' };
+
+  const zusatz = {
+    hell: { '--biber-ring-stark': '#8e8e93', '--ghost': '#e3e3e8', '--map-bg': '#edf0e9', '--map-road': '#ffffff', '--map-water': '#d3e2ee', '--map-park': '#dbe8d2', '--amt': '#a1a1aa' },
+    dunkel: { '--biber-ring-stark': '#ffffff', '--ghost': '#363642', '--map-bg': '#1c2320', '--map-road': '#2c3531', '--map-water': '#1d2e3b', '--map-park': '#1f2d22', '--amt': '#6e6e7c' },
+  };
+  let css = '';
+  for (const modus of ['hell', 'dunkel']) {
+    const p = D.palette[modus];
+    const vars = { '--bg': p.bg, '--surface': p.surface, '--surface2': p.surface2, '--fg': p.fg, '--fg2': p.fg2, '--muted': p.muted, '--border': p.border,
+      '--primary': p.primary, '--on-primary': p.onPrimary, '--primary-lite': p.primaryLite, '--grid': p.grid, '--success': p.success, '--error': p.error, '--warn': p.warn, ...zusatz[modus] };
+    for (const [id, c] of Object.entries(D.stufenfarben[modus])) vars[`--st-${id}`] = c;
+    css += `.phone.${modus},.mpanel.${modus}{${Object.entries(vars).map(([k, v]) => `${k}:${v}`).join(';')}}`;
+  }
+  document.head.insertAdjacentHTML('beforeend', `<style>${css}</style>`);
+
+  const BASIS = { runde: 4, gebHervor: 'G1', daten: 'D3', karte: 'M3', rollen: 'R3', verlauf: 'K2', efz: 'E2', hervor: 'H1', filterUi: 'F2', layerFilter: 'aktiv' };
+  const ctxVon = (modus, extra = {}) => ({ ...BASIS, modus, historie: zustand.historie, ...extra });
+  const variante = (id, titel, desc, inhalt) => `<div class="variant" data-shot-group="${id}"><h3>${titel}</h3><p class="desc">${desc}</p><div class="phones">${inhalt}</div></div>`;
+  const tel = (p, ctx, tab, shot, cap) => B.bildschirm(p, ctx, 'S2', tab, { shot, beschriftung: cap });
+  const rollenTel = (p, ctx, shot, cap) => B.telefon(ctx, B.kopf(ctx, p, 'S2', 1), B.rollenListe(p, ctx), { shot, beschriftung: cap });
+  const nurKacheln = (p, ctx) => { const d = document.createElement('div'); d.innerHTML = B.datenTab(p, ctx); return d.querySelector('.fakten').outerHTML; };
+
+  function gesamt() {
+    const p = D.personen[zustand.person];
+    return variante('gesamt', 'Daten · Rollen · Qualifikationen', `${p.titel}: ${p.kurz}`,
+      tel(p, ctxVon('hell'), 0, 'gesamt-daten', 'Daten') + tel(p, ctxVon('hell'), 1, 'gesamt-rollen', 'Rollen') +
+      tel(p, ctxVon('hell'), 2, 'gesamt-quali', 'Qualifikationen') + tel(p, ctxVon('dunkel'), 0, 'gesamt-daten-dunkel', 'Daten · dunkel'));
+  }
+  function geburtstag() {
+    const mit = (geb) => ({ ...D.personen.jonas, geburtsdatum: geb });
+    const faelle = [['heute', mit('2016-10-02')], ['in 3 Tagen', mit('2015-10-05')], ['in 7 Tagen', mit('2015-10-09')], ['in 8 Tagen (nicht mehr)', mit('2015-10-10')], ['in 5 Monaten (Funke)', D.personen.lena]];
+    const V = [
+      ['G1', 'G1 · Getönte Kachel', 'Die Kachel bekommt den hellblauen Grund wie aktive Rollen, die Unterzeile wird blau.'],
+      ['G2', 'G2 · Kuchen und blaue Unterzeile', 'Die Kachel bleibt weiß, nur die Unterzeile wird blau und bekommt ein kleines Kuchen-Symbol. Dezenter.'],
+    ];
+    return V.map(([id, t, d]) => variante(`geburtstag-${id}`, t, d, `<div class="zustaende">${faelle.map(([name, p], i) => B.panel(ctxVon('hell'), nurKacheln(p, ctxVon('hell', { gebHervor: id })), { shot: `geburtstag-${id}-${i}`, titel: name })).join('')}${B.panel(ctxVon('dunkel'), nurKacheln(mit('2015-10-05'), ctxVon('dunkel', { gebHervor: id })), { shot: `geburtstag-${id}-dunkel`, titel: 'in 3 Tagen · dunkel' })}</div>`)).join('');
+  }
+  function stufenwechsel() {
+    const nurMitglied = (p) => p.rollen.filter((r) => r.art === 'm');
+    const jufiMit = (geb) => ({ ...D.personen.jonas, geburtsdatum: geb, rollen: D.personen.jonas.rollen.filter((r) => r.stufe !== 'pfadi') });
+    const faelle = [
+      [D.personen.mats, 'Mats · Wö, geb. 2018 → ab 2027'],
+      [jufiMit('2014-02-11'), 'Jufi, geb. 2014 → bis 2027'],
+      [jufiMit('2011-02-11'), 'Jufi, geb. 2011 → jetzt'],
+      [D.personen.jonas, 'Jonas · Jufi und Pfadi parallel → ab 2028'],
+      [{ ...D.personen.sami, rollen: nurMitglied(D.personen.sami) }, 'Rover, geb. 2006 → bis 2026'],
+      [{ ...D.personen.sami, geburtsdatum: '2004-07-22', rollen: nurMitglied(D.personen.sami) }, 'Rover, geb. 2004 → jetzt'],
+      [D.personen.sami, 'Sami · leitet schon, Leitungs-Kachel'],
+    ];
+    return `<div class="zustaende">${faelle.map(([p, cap], i) => B.panel({ modus: 'hell' }, B.verlauf(p, { ...BASIS, modus: 'hell', historie: true }), { shot: `stufenwechsel-${i}`, titel: cap })).join('')}${B.panel({ modus: 'dunkel' }, B.verlauf(D.personen.mats, { ...BASIS, modus: 'dunkel', historie: true }), { shot: 'stufenwechsel-dunkel', titel: 'Mats · dunkel' })}</div>`;
+  }
+
+  const gal = { tab: '0', layerFilter: 'aktiv' };
+  const GAL = [['tab', [['0', 'Daten'], ['1', 'Rollen'], ['2', 'Quali']]], ['layerFilter', [['aktiv', 'nur aktiver Layer'], ['alle', 'alle Layer']]]];
+  const GAL_NAMEN = { tab: 'Tab', layerFilter: 'Rollen' };
+  function galerieBar() {
+    const el = document.getElementById('galerie-bar');
+    el.innerHTML = GAL.map(([k, opts]) => `<span><b>${GAL_NAMEN[k]}</b><span class="tgl" data-k="${k}">${opts.map(([v, l]) => `<button type="button" data-v="${v}" class="${gal[k] === v ? 'on' : ''}">${l}</button>`).join('')}</span></span>`).join('');
+    el.querySelectorAll('.tgl').forEach((tg) => tg.addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      gal[tg.dataset.k] = b.dataset.v; galerieBar(); galerie();
+    }));
+  }
+  function galerie() {
+    const ctx = ctxVon('hell', { layerFilter: gal.layerFilter });
+    document.getElementById('slot-galerie').innerHTML = Object.values(D.personen).map((p) => B.bildschirm(p, ctx, 'S2', Number(gal.tab), { shot: `galerie-${p.id}`, beschriftung: `${p.vorname}: ${p.kurz}` })).join('');
+  }
+
+  const FRAGEN = [
+    { id: 'geburtstag', titel: 'Geburtstag hervorheben', optionen: ['G1 Getönte Kachel', 'G2 Kuchen und blaue Unterzeile'] },
+    { id: 'stufenwechsel', titel: 'Stufenwechsel-Kachel (jetzt · ab · bis)', optionen: ['freigegeben', 'ändern'] },
+    { id: 'gesamt', titel: 'Gesamtbild', optionen: ['freigegeben', 'ändern'] },
+    { id: 'weiter', titel: 'Nächster Schritt', optionen: ['Umsetzungsplan Flutter', 'noch eine Runde'] },
+  ];
+  function renderFeedback() {
+    const f = document.getElementById('fb');
+    f.innerHTML = FRAGEN.map((qq) => `<fieldset><legend>${qq.titel}</legend>${qq.optionen.map((o) => `<label><input type="radio" name="${qq.id}" value="${o}"> ${o}</label>`).join('')}<textarea name="${qq.id}-text" placeholder="Anmerkung (optional)"></textarea></fieldset>`).join('') +
+      `<fieldset><legend>Sonst noch</legend><textarea name="frei" placeholder="Freitext"></textarea></fieldset>
+      <button type="button" id="kopieren">Auswahl kopieren</button>
+      <textarea id="ausgabe" readonly placeholder="Hier erscheint der Text für den Chat."></textarea>`;
+    document.getElementById('kopieren').addEventListener('click', async () => {
+      const fd = new FormData(f);
+      const zeilen = ['Rückmeldung Mitgliedsdetails, Runde 4', `(Person ${zustand.person}, Historie ${zustand.historie ? 'mit' : 'wie heute'})`];
+      for (const qq of FRAGEN) {
+        const wahl = fd.get(qq.id); const text = (fd.get(`${qq.id}-text`) || '').trim();
+        zeilen.push(`- ${qq.titel}: ${wahl || '–'}${text ? ` – ${text}` : ''}`);
+      }
+      const frei = (fd.get('frei') || '').trim();
+      if (frei) zeilen.push(`- Sonst: ${frei}`);
+      const text = zeilen.join('\n');
+      const out = document.getElementById('ausgabe');
+      out.value = text;
+      try { await navigator.clipboard.writeText(text); } catch (e) { out.select(); document.execCommand('copy'); }
+    });
+  }
+
+  function tglSetzen() {
+    document.getElementById('tgl-person').innerHTML = Object.values(D.personen).map((p) => `<button data-v="${p.id}" class="${p.id === zustand.person ? 'on' : ''}" title="${p.kurz}">${p.fahrtenname || p.vorname}</button>`).join('');
+    document.querySelectorAll('#tgl-historie button').forEach((b) => b.classList.toggle('on', (b.dataset.v === '1') === zustand.historie));
+  }
+  function alles() {
+    tglSetzen();
+    document.getElementById('slot-geburtstag').innerHTML = geburtstag();
+    document.getElementById('slot-stufenwechsel').innerHTML = stufenwechsel();
+    document.getElementById('slot-gesamt').innerHTML = gesamt();
+    galerie();
+  }
+  document.getElementById('tgl-person').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { zustand.person = b.dataset.v; alles(); } });
+  document.getElementById('tgl-historie').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { zustand.historie = b.dataset.v === '1'; alles(); } });
+  galerieBar();
+  alles();
+  renderFeedback();
+  document.body.dataset.fertig = '1';
+})();
+</script>
+</body></html>

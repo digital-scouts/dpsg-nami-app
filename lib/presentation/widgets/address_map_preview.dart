@@ -34,6 +34,7 @@ class AddressMapPreview extends StatefulWidget {
     this.tileCacheService,
     this.offlineDownloadRadiusKm,
     this.borderRadius = const BorderRadius.all(Radius.circular(14)),
+    this.onOpenInMaps,
   });
 
   final String addressText;
@@ -50,6 +51,9 @@ class AddressMapPreview extends StatefulWidget {
   final MapTileCacheService? tileCacheService;
   final double? offlineDownloadRadiusKm;
   final BorderRadiusGeometry borderRadius;
+
+  /// Aktion fuer „Adresse nicht gefunden“: Adresse in der Karten-App suchen.
+  final Future<void> Function()? onOpenInMaps;
 
   @override
   State<AddressMapPreview> createState() => _AddressMapPreviewState();
@@ -89,7 +93,11 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
           return Stack(
             alignment: Alignment.center,
             children: [
-              MapSkeleton(height: widget.height),
+              MapSkeleton(
+                height: widget.height,
+                borderRadius: widget.borderRadius,
+                showShadow: false,
+              ),
               const CircularProgressIndicator(),
             ],
           );
@@ -106,73 +114,53 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
           );
         }
 
+        // Fehler bleiben eine flache Flaeche statt der vollen Kartenhoehe.
         final t = AppLocalizations.of(context);
-        if (result?.blockedByWifiPolicy == true) {
-          return _MapMessagePlaceholder(
-            height: widget.height,
-            message: t.t('map_wifi_only_refresh'),
-            borderRadius: widget.borderRadius,
-          );
-        }
-
-        if (result?.deviceOffline == true) {
-          return _MapMessagePlaceholder(
-            height: widget.height,
-            message:
-                '${t.t('map_not_available')}\n${t.t('map_device_offline')}',
-            borderRadius: widget.borderRadius,
-          );
-        }
-
-        if (result?.mobileDataBlocked == true) {
-          return _MapMessagePlaceholder(
-            height: widget.height,
-            message:
-                '${t.t('map_not_available')}\n${t.t('map_mobile_data_blocked')}',
-            borderRadius: widget.borderRadius,
-          );
-        }
-
-        if (result?.addressNotFound == true) {
-          return _MapMessagePlaceholder(
-            height: widget.height,
-            message:
-                '${t.t('map_not_available')}\n${t.t('map_address_not_found')}',
-            borderRadius: widget.borderRadius,
-          );
-        }
-
-        if (result?.apiKeyMissing == true) {
-          return _MapMessagePlaceholder(
-            height: widget.height,
-            message:
-                '${t.t('map_not_available')}\n${t.t('map_technical_error')}',
-            borderRadius: widget.borderRadius,
-          );
-        }
-
-        if (result?.timedOut == true) {
-          return _MapMessagePlaceholder(
-            height: widget.height,
-            message:
-                '${t.t('map_not_available')}\n${t.t('map_technical_error')}',
-            borderRadius: widget.borderRadius,
-          );
-        }
-
-        if (result?.technicalError == true) {
-          return _MapMessagePlaceholder(
-            height: widget.height,
-            message:
-                '${t.t('map_not_available')}\n${t.t('map_technical_error')}',
-            borderRadius: widget.borderRadius,
-          );
-        }
-
-        return _MapMessagePlaceholder(
-          height: widget.height,
-          message:
-              '${t.t('map_not_available')}\n${t.t('map_address_not_found')}',
+        final retry = _MapHinweisAktion(
+          label: t.t('map_retry'),
+          onPressed: () => setState(() => _future = _loadPreview()),
+        );
+        final (icon, grund, aktion) = switch (result) {
+          _AddressMapPreviewResult(blockedByWifiPolicy: true) => (
+            Icons.wifi_off,
+            t.t('map_wifi_only_refresh'),
+            null,
+          ),
+          _AddressMapPreviewResult(deviceOffline: true) => (
+            Icons.cloud_off_outlined,
+            t.t('map_device_offline'),
+            null,
+          ),
+          _AddressMapPreviewResult(mobileDataBlocked: true) => (
+            Icons.signal_cellular_off_outlined,
+            t.t('map_mobile_data_blocked'),
+            null,
+          ),
+          _AddressMapPreviewResult(apiKeyMissing: true) => (
+            Icons.error_outline,
+            t.t('map_technical_error'),
+            null,
+          ),
+          _AddressMapPreviewResult(timedOut: true) ||
+          _AddressMapPreviewResult(
+            technicalError: true,
+          ) => (Icons.error_outline, t.t('map_technical_error'), retry),
+          _ => (
+            Icons.wrong_location_outlined,
+            t.t('map_address_not_found'),
+            widget.onOpenInMaps == null
+                ? null
+                : _MapHinweisAktion(
+                    label: t.t('map_open_in_maps'),
+                    onPressed: () => widget.onOpenInMaps!(),
+                  ),
+          ),
+        };
+        return _MapHinweis(
+          icon: icon,
+          titel: t.t('map_not_available'),
+          grund: grund,
+          aktion: aktion,
           borderRadius: widget.borderRadius,
         );
       },
@@ -642,32 +630,91 @@ class _MapMarker extends StatelessWidget {
   }
 }
 
-class _MapMessagePlaceholder extends StatelessWidget {
-  const _MapMessagePlaceholder({
-    required this.height,
-    required this.message,
+class _MapHinweisAktion {
+  const _MapHinweisAktion({required this.label, required this.onPressed});
+
+  final String label;
+  final VoidCallback onPressed;
+}
+
+/// Flache Kartenflaeche mit Grund und optionaler Aktion, wenn die Karte nicht
+/// angezeigt werden kann.
+class _MapHinweis extends StatelessWidget {
+  const _MapHinweis({
+    required this.icon,
+    required this.titel,
+    required this.grund,
     required this.borderRadius,
+    this.aktion,
   });
 
-  final double height;
-  final String message;
+  static const double hoehe = 76;
+
+  final IconData icon;
+  final String titel;
+  final String grund;
+  final _MapHinweisAktion? aktion;
   final BorderRadiusGeometry borderRadius;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      height: height,
-      decoration: BoxDecoration(
-        borderRadius: borderRadius,
+    final aktion = this.aktion;
+    return ClipRRect(
+      borderRadius: borderRadius,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: hoehe),
         color: theme.colorScheme.surfaceContainerHighest,
-      ),
-      alignment: Alignment.center,
-      padding: const EdgeInsets.all(16),
-      child: Text(
-        message,
-        textAlign: TextAlign.center,
-        style: theme.textTheme.bodyMedium,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Opacity(
+                opacity: 0.18,
+                child: ColorFiltered(
+                  colorFilter: const ColorFilter.matrix(<double>[
+                    0.33, 0.33, 0.33, 0, 0, //
+                    0.33, 0.33, 0.33, 0, 0, //
+                    0.33, 0.33, 0.33, 0, 0, //
+                    0, 0, 0, 1, 0, //
+                  ]),
+                  child: Image.asset(
+                    'assets/images/map_skeleton.png',
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
+              child: Row(
+                children: [
+                  Icon(icon, size: 20, color: theme.colorScheme.onSurface),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          titel,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(grund, style: theme.textTheme.bodySmall),
+                      ],
+                    ),
+                  ),
+                  if (aktion != null)
+                    TextButton(
+                      onPressed: aktion.onPressed,
+                      child: Text(aktion.label),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
