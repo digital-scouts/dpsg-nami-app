@@ -350,8 +350,8 @@ void main() {
   );
 
   testWidgets(
-    'zeigt die Ladeinfo luechenlos als Banner weiter an, waehrend Mitglieder '
-    'nach dem Setzen des Arbeitskontexts noch laden',
+    'zeigt nach dem Setzen des Arbeitskontexts keine Lade-Checkliste mehr, '
+    'auch wenn Mitglieder noch laden',
     (tester) async {
       SharedPreferences.setMockInitialValues({});
       final authModel = await _createSignedInAuthModel();
@@ -393,18 +393,16 @@ void main() {
       await tester.pump();
 
       // Gruppen sind fertig (arbeitskontext gesetzt), der Vollbild-Stepper
-      // ist deshalb weg - aber die Mitglieder haengen noch am blockierten
-      // refresh(). Die Ladeinfo darf jetzt nicht verschwinden, sondern muss
-      // als Banner ueber der Mitgliederliste sichtbar bleiben.
+      // ist deshalb weg, obwohl die Mitglieder noch am blockierten refresh()
+      // haengen. Den laufenden Sync zeigt nur noch der globale Ladebalken,
+      // ueber der Mitgliederliste erscheint kein Banner.
       expect(arbeitskontextModel.arbeitskontext, isNotNull);
       expect(arbeitskontextModel.isSynchronizing, isTrue);
       expect(
         find.text('Arbeitskontext konnte nicht initialisiert werden'),
         findsNothing,
       );
-      // Mitglieder laden noch; Rollen und Qualifikationen laden ab sofort
-      // parallel dazu mit - alle drei Zeilen zeigen den Lade-Spinner.
-      expect(find.byType(CircularProgressIndicator), findsNWidgets(3));
+      expect(find.byType(CircularProgressIndicator), findsNothing);
 
       refreshCompleter.complete();
       await tester.pumpAndSettle();
@@ -414,8 +412,8 @@ void main() {
   );
 
   testWidgets(
-    'zeigt bereits geladene Mitglieder progressiv an und aktualisiert den '
-    'Live-Zaehler in der Ladeinfo, waehrend weitere Seiten nachladen',
+    'zeigt bereits geladene Mitglieder progressiv an, waehrend weitere '
+    'Seiten nachladen',
     (tester) async {
       SharedPreferences.setMockInitialValues({});
       final authModel = await _createSignedInAuthModel();
@@ -496,7 +494,6 @@ void main() {
       expect(arbeitskontextModel.isSynchronizing, isTrue);
       expect(find.text('Julia Keller'), findsOneWidget);
       expect(find.text('Max Mustermann'), findsOneWidget);
-      expect(find.textContaining('2 geladen'), findsOneWidget);
 
       refreshCompleter.complete();
       await tester.pumpAndSettle();
@@ -506,8 +503,8 @@ void main() {
   );
 
   testWidgets(
-    'zeigt die Ladeinfo auch bei einem spaeteren Sync (Pull-to-refresh/'
-    'Debug-Tools), nicht nur beim initialen Laden',
+    'zeigt bei einem spaeteren Sync (Pull-to-refresh/Debug-Tools) keine '
+    'Lade-Checkliste',
     (tester) async {
       SharedPreferences.setMockInitialValues({});
       final authModel = await _createSignedInAuthModel();
@@ -547,8 +544,8 @@ void main() {
 
       // Simuliert einen spaeteren Sync ueber Pull-to-refresh oder die
       // Debug-Tools (beide rufen refreshFromRemote auf einem bereits
-      // "ready" ArbeitskontextModel auf) - die Ladeinfo soll auch dabei
-      // wieder sichtbar werden, nicht nur beim allerersten Login.
+      // "ready" ArbeitskontextModel auf). Den Sync zeigt nur der globale
+      // Ladebalken, die Liste bleibt ohne Banner sichtbar.
       final refreshCompleter = Completer<void>();
       readModelRepository.refreshDelay = refreshCompleter.future;
       unawaited(
@@ -562,12 +559,8 @@ void main() {
       await tester.pump();
 
       expect(arbeitskontextModel.isSynchronizing, isTrue);
-      // "Mitglieder" und "Rollen" zeigen hier beide einen Spinner: Rollen
-      // laedt von Anfang an parallel mit, statt kurz den veralteten
-      // "Fertig"-Stand vom letzten Sync zu zeigen (das war das urspruengliche
-      // Flacker-Problem: Haken -> kurz weg -> Spinner). Qualifikationen laden
-      // ebenfalls parallel mit.
-      expect(find.byType(CircularProgressIndicator), findsNWidgets(3));
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.text('Lädt…'), findsNothing);
 
       refreshCompleter.complete();
       await tester.pumpAndSettle();

@@ -22,6 +22,10 @@ class HitobitoTrafficLogService {
   final HitobitoTrafficLogsDirectoryProvider? _logsDirectoryProvider;
   final HitobitoTrafficNowProvider _now;
   int _sequence = 0;
+  // Parallele Requests (Sync laedt Personen, Rollen, EFZ und Qualifikationen
+  // gleichzeitig) duerfen nicht gleichzeitig aufraeumen: sonst loeschen zwei
+  // Durchlaeufe dieselbe Datei und der zweite scheitert.
+  Future<void>? _cleanupInFlight;
 
   Future<Directory> _defaultLogsDirectory() async {
     final dir = await getApplicationSupportDirectory();
@@ -113,8 +117,16 @@ class HitobitoTrafficLogService {
       statusCode: statusCode,
     );
     final file = File('${dir.path}/$fileName');
-    await file.writeAsString(payload, flush: true);
-    await _cleanupLogs();
+    // Reines Diagnose-Log: ein Dateifehler darf den eigentlichen Request nie
+    // scheitern lassen.
+    try {
+      await file.writeAsString(payload, flush: true);
+      await (_cleanupInFlight ??= _cleanupLogs().whenComplete(() {
+        _cleanupInFlight = null;
+      }));
+    } on FileSystemException {
+      return;
+    }
   }
 
   String _buildFileName({
@@ -352,8 +364,11 @@ class HitobitoTrafficLogService {
     final retained = <File>[];
     for (final file in files) {
       final stat = await file.stat();
+      if (stat.type == FileSystemEntityType.notFound) {
+        continue;
+      }
       if (stat.modified.isBefore(cutoff)) {
-        await file.delete();
+        await _deleteIfPresent(file);
       } else {
         retained.add(file);
       }
@@ -368,10 +383,15 @@ class HitobitoTrafficLogService {
     );
     final overflow = retained.length - maxFiles;
     for (var index = 0; index < overflow; index++) {
-      final file = retained[index];
-      if (await file.exists()) {
-        await file.delete();
-      }
+      await _deleteIfPresent(retained[index]);
+    }
+  }
+
+  Future<void> _deleteIfPresent(File file) async {
+    try {
+      await file.delete();
+    } on PathNotFoundException {
+      // Bereits von einem anderen Aufraeumen oder clearAllLogs entfernt.
     }
   }
 

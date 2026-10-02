@@ -91,14 +91,17 @@ void main() {
       final groups = await service.fetchAccessibleGroups('token-123');
 
       expect(requestedUris, hasLength(2));
-      expect(
-        requestedUris.first.toString(),
-        'https://demo.hitobito.com/api/groups',
-      );
-      expect(
-        requestedUris.last.toString(),
-        'https://demo.hitobito.com/api/groups?page=2',
-      );
+      expect(requestedUris.first.host, 'demo.hitobito.com');
+      expect(requestedUris.first.path, '/api/groups');
+      expect(requestedUris.first.queryParameters, {
+        'page[size]': '1000',
+        'sort': 'id',
+      });
+      expect(requestedUris.last.queryParameters, {
+        'page': '2',
+        'page[size]': '1000',
+        'sort': 'id',
+      });
       expect(requestHeaders['Authorization'], 'Bearer token-123');
       expect(groups, hasLength(2));
       expect(groups.first.isLayer, isTrue);

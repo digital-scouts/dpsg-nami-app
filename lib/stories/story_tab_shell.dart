@@ -48,19 +48,17 @@ double storyTextScaleKnob(KnobsBuilder knobs) {
 }
 
 /// Bildet den Tab-Rahmen der App nach: Header-Flaeche per [SupporterBackdrop]
-/// hinter einer simulierten Dynamic Island und optionaler Lade-Info.
+/// hinter einer simulierten Dynamic Island.
 class StoryTabShell extends StatelessWidget {
   const StoryTabShell({
     super.key,
     required this.background,
     required this.child,
-    this.showLoadingInfo = false,
     this.simulateTopInset = true,
   });
 
   final AppearanceBackgroundId? background;
   final Widget child;
-  final bool showLoadingInfo;
   final bool simulateTopInset;
 
   @override
@@ -76,41 +74,7 @@ class StoryTabShell extends StatelessWidget {
       child: SupporterBackdrop(
         background: background,
         child: Column(
-          children: [
-            if (showLoadingInfo)
-              SafeArea(
-                bottom: false,
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  color: background == null
-                      ? Theme.of(context).colorScheme.surfaceContainerHigh
-                      : Theme.of(
-                          context,
-                        ).colorScheme.surface.withValues(alpha: 0.6),
-                  child: const Row(
-                    children: [
-                      SizedBox.square(
-                        dimension: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                      SizedBox(width: 8),
-                      Text('Mitglieder laden'),
-                    ],
-                  ),
-                ),
-              ),
-            Expanded(
-              child: SafeArea(
-                top: !showLoadingInfo,
-                bottom: false,
-                child: child,
-              ),
-            ),
-          ],
+          children: [Expanded(child: SafeArea(bottom: false, child: child))],
         ),
       ),
     );
@@ -126,7 +90,6 @@ class StoryTabPage extends StatelessWidget {
     required this.background,
     required this.child,
     this.dark = false,
-    this.showLoadingInfo = false,
     this.simulateTopInset = true,
     this.providers = const [],
     this.badge,
@@ -141,7 +104,6 @@ class StoryTabPage extends StatelessWidget {
   final SupporterBadgeId? badge;
   final Widget child;
   final bool dark;
-  final bool showLoadingInfo;
   final bool simulateTopInset;
 
   /// Zusaetzliche Provider der Seite, z. B. Bundesstatistik.
@@ -192,7 +154,6 @@ class StoryTabPage extends StatelessWidget {
         home: Scaffold(
           body: StoryTabShell(
             background: background,
-            showLoadingInfo: showLoadingInfo,
             simulateTopInset: simulateTopInset,
             child: child,
           ),
