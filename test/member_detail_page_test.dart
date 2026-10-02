@@ -246,6 +246,41 @@ void main() {
   );
 
   testWidgets(
+    'klappt lange Namen im Kopf per Tipp auf und wieder zu',
+    (tester) async {
+      const name = 'Tim Aurelius Maximilian Teichmann der Dritte';
+      final member = Mitglied(
+        mitgliedsnummer: '49',
+        vorname: 'Tim Aurelius Maximilian',
+        nachname: 'Teichmann der Dritte',
+        geburtsdatum: DateTime(2004, 6, 18),
+        eintrittsdatum: DateTime(2012, 9, 1),
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberDetailPage(mitglied: member, heuteProvider: () => _heute),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      int? zeilen() => tester.widget<Text>(find.text(name)).maxLines;
+      final einzeilig = tester.getSize(find.text(name)).height;
+      expect(zeilen(), 1);
+
+      await tester.tap(find.byKey(const Key('member-steckbrief-name')));
+      await tester.pumpAndSettle();
+      expect(zeilen(), isNull);
+      expect(tester.getSize(find.text(name)).height, greaterThan(einzeilig));
+
+      await tester.tap(find.byKey(const Key('member-steckbrief-name')));
+      await tester.pumpAndSettle();
+      expect(zeilen(), 1);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  testWidgets(
     'zeigt im Header Sonstige fuer Rollen ohne Stamm-Gruppen-Zuordnung',
     (tester) async {
       final member = Mitglied(

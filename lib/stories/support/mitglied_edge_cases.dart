@@ -407,6 +407,28 @@ abstract final class MitgliedEdgeCases {
     ],
   );
 
+  /// Tim: sehr langer Name, der im Kopf abgeschnitten und per Tipp
+  /// aufgeklappt wird.
+  static final Mitglied tim = Mitglied(
+    personId: 9107,
+    mitgliedsnummer: '4731158',
+    vorname: 'Tim Aurelius Maximilian',
+    nachname: 'Teichmann der Dritte',
+    geburtsdatum: DateTime(2004, 6, 18),
+    eintrittsdatum: DateTime(2012, 9, 1),
+    gender: 'm',
+    pronoun: 'er/ihm',
+    roles: <Role>[
+      _leitung(
+        'Pfadfinder',
+        'Trupp Polarstern',
+        DateTime(2023, 9, 1),
+        null,
+        'Leiter*in',
+      ),
+    ],
+  );
+
   static final Map<String, Mitglied> alle = <String, Mitglied>{
     'Funke · Vielrolle, Mehrlayer': funke,
     'Mats · Neuling, Familie, viele Kontakte': mats,
@@ -414,6 +436,7 @@ abstract final class MitgliedEdgeCases {
     'Sami · Rover und Wö-Hilfsleitung': sami,
     'Petra · nur Ämter, ohne Adresse': petra,
     'Karl · ausgetreten': karl,
+    'Tim · sehr langer Name': tim,
   };
 
   /// EFZ-Einsichtnahmen passend zu den Personen (Funke laeuft bald ab, Sami
