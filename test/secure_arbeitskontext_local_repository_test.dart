@@ -6,7 +6,10 @@ import 'package:hive_ce/hive.dart';
 import 'package:nami/data/arbeitskontext/secure_arbeitskontext_local_repository.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model.dart';
+import 'package:nami/domain/arbeitskontext/teildaten_stand.dart';
+import 'package:nami/domain/member/efz_einsichtnahme.dart';
 import 'package:nami/domain/member/mitglied.dart';
+import 'package:nami/domain/qualifikation/qualifikation.dart';
 import 'package:nami/services/sensitive_storage_service.dart';
 
 void main() {
@@ -41,6 +44,57 @@ void main() {
       expect(cached, isNull);
     },
   );
+
+  test('speichert EFZ und Qualifikationen fuer die Offline-Anzeige', () async {
+    final readModel = ArbeitskontextReadModel(
+      arbeitskontext: Arbeitskontext(
+        aktiverLayer: const ArbeitskontextLayer(id: 11, name: 'Stamm'),
+      ),
+      efzStand: TeildatenStand.keineBerechtigung,
+      efzEinsichtnahmen: <EfzEinsichtnahme>[
+        EfzEinsichtnahme(
+          id: 1,
+          personId: 5,
+          einsichtnehmerId: 9,
+          einsichtOn: DateTime(2024, 3, 2),
+          issuedOn: DateTime(2024, 2, 1),
+        ),
+      ],
+      qualifikationenStand: TeildatenStand.geladen,
+      qualifikationen: <Qualifikation>[
+        Qualifikation(
+          id: 2,
+          personId: 5,
+          artId: 7,
+          label: 'Juleica',
+          qualifiedAt: DateTime(2020, 5, 1),
+          finishAt: DateTime(2023, 5, 1),
+          origin: 'Kurs',
+          reaktivierbar: true,
+        ),
+      ],
+    );
+
+    await repository.saveCached(readModel);
+
+    expect(await repository.loadLastCached(), readModel);
+  });
+
+  test('liest aeltere Caches ohne EFZ als noch nicht synchronisiert', () async {
+    await repository.saveCached(
+      ArbeitskontextReadModel(
+        arbeitskontext: Arbeitskontext(
+          aktiverLayer: const ArbeitskontextLayer(id: 11, name: 'Stamm'),
+        ),
+      ),
+    );
+
+    final cached = await repository.loadLastCached();
+
+    expect(cached?.efzStand, TeildatenStand.unbekannt);
+    expect(cached?.qualifikationenStand, TeildatenStand.unbekannt);
+    expect(cached?.efzEinsichtnahmen, isEmpty);
+  });
 
   test('speichert und laedt genau einen lokalen Arbeitskontext', () async {
     final readModel = _buildReadModel(

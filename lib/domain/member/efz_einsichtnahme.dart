@@ -14,6 +14,33 @@ class EfzEinsichtnahme {
   final DateTime? einsichtOn;
   final DateTime? issuedOn;
 
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'id': id,
+    'person_id': personId,
+    'einsichtnehmer_id': einsichtnehmerId,
+    'einsicht_on': einsichtOn?.toIso8601String(),
+    'issued_on': issuedOn?.toIso8601String(),
+  };
+
+  /// Liefert `null` fuer unvollstaendige Eintraege, damit ein beschaedigter
+  /// Cache-Eintrag nicht den ganzen Arbeitskontext unlesbar macht.
+  static EfzEinsichtnahme? fromJson(Map<String, dynamic> json) {
+    final id = int.tryParse(json['id']?.toString() ?? '');
+    final personId = int.tryParse(json['person_id']?.toString() ?? '');
+    if (id == null || id <= 0 || personId == null || personId <= 0) {
+      return null;
+    }
+    return EfzEinsichtnahme(
+      id: id,
+      personId: personId,
+      einsichtnehmerId: int.tryParse(
+        json['einsichtnehmer_id']?.toString() ?? '',
+      ),
+      einsichtOn: DateTime.tryParse(json['einsicht_on']?.toString() ?? ''),
+      issuedOn: DateTime.tryParse(json['issued_on']?.toString() ?? ''),
+    );
+  }
+
   @override
   bool operator ==(Object other) {
     return other is EfzEinsichtnahme &&
