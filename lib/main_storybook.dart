@@ -38,6 +38,7 @@ import 'stories/member_list_story.dart';
 import 'stories/member_list_tile_story.dart';
 import 'stories/member_people_page_story.dart';
 import 'stories/member_roles_list_story.dart';
+import 'stories/member_qualifikationen_tab_story.dart';
 import 'stories/member_rollen_tab_story.dart';
 import 'stories/member_roles_list_tile_story.dart';
 import 'stories/member_roles_recommendation_tile_story.dart';
@@ -95,6 +96,7 @@ List<Story> buildStorybookStories() {
     memberGeneralInfoCardStory(),
     memberMembershipInfoCardStory(),
     memberRollenTabStory(),
+    memberQualifikationenTabStory(),
     memberRolesListStory(),
     memberRolesListTileStory(),
     memberRolesRecommendationTileStory(),
