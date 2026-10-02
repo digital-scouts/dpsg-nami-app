@@ -745,7 +745,7 @@ void main() {
   });
 
   test('refresh liefert weiterhin ein gueltiges Mitglieder-Ergebnis, wenn der '
-      'parallele Rollen-Fetch fehlschlaegt', () async {
+      'parallele Rollen-Fetch pro Person fehlschlaegt', () async {
     final repository = HitobitoArbeitskontextReadModelRepository(
       groupsService: _FakeHitobitoGroupsService(
         groups: const <HitobitoGroupResource>[
@@ -769,7 +769,17 @@ void main() {
         ],
       ),
       rolesService: _FakeHitobitoRolesService(
+        roles: <HitobitoPersonRoleResource>[
+          HitobitoPersonRoleResource(
+            id: 701,
+            personId: 1,
+            groupId: 11,
+            roleType: 'Group::Leiter',
+            roleLabel: 'Leitung',
+          ),
+        ],
         error: const HitobitoRolesException('Rollen nicht erreichbar'),
+        errorNurBeiFilter: 'filter[person_id]',
       ),
       localRepository: _FakeArbeitskontextLocalRepository(),
     );
@@ -790,6 +800,206 @@ void main() {
       <String>['1001'],
     );
     expect(readModel.findeMitglied('1001')?.roles, isEmpty);
+  });
+
+  group('refresh laedt nur Personen des aktiven Layers', () {
+    const gruppen = <HitobitoGroupResource>[
+      HitobitoGroupResource(
+        id: 11,
+        name: 'Stamm Musterdorf',
+        isLayer: true,
+        layerGroupId: 11,
+      ),
+      HitobitoGroupResource(
+        id: 101,
+        name: 'Woelflinge',
+        isLayer: false,
+        parentId: 11,
+        layerGroupId: 11,
+      ),
+      HitobitoGroupResource(
+        id: 20,
+        name: 'Stamm Nachbarort',
+        isLayer: true,
+        layerGroupId: 20,
+      ),
+      HitobitoGroupResource(
+        id: 201,
+        name: 'Pfadfinder',
+        isLayer: false,
+        parentId: 20,
+        layerGroupId: 20,
+      ),
+    ];
+    final arbeitskontext = Arbeitskontext(
+      aktiverLayer: const ArbeitskontextLayer(id: 11, name: 'Stamm Musterdorf'),
+    );
+    final rolleImLayer = HitobitoPersonRoleResource(
+      id: 702,
+      personId: 2,
+      groupId: 101,
+      roleType: 'Group::Leiter',
+      roleLabel: 'Leitung',
+    );
+    final rolleAusserhalb = HitobitoPersonRoleResource(
+      id: 703,
+      personId: 2,
+      groupId: 201,
+      roleType: 'Group::Mitglied',
+      roleLabel: 'Mitglied',
+    );
+
+    test('ueber Hauptgruppe oder Rolle und behaelt Rollen ausserhalb des '
+        'Layers', () async {
+      final peopleService = _FakeHitobitoPeopleService(
+        people: <HitobitoPersonResource>[
+          const HitobitoPersonResource(
+            id: 1,
+            firstName: 'Julia',
+            lastName: 'Keller',
+            membershipNumber: 1001,
+            primaryGroupId: 11,
+          ),
+          HitobitoPersonResource(
+            id: 2,
+            firstName: 'Max',
+            lastName: 'Mustermann',
+            membershipNumber: 1002,
+            primaryGroupId: 201,
+            roles: <HitobitoPersonRoleResource>[rolleImLayer, rolleAusserhalb],
+          ),
+          const HitobitoPersonResource(
+            id: 3,
+            firstName: 'Lea',
+            lastName: 'Nachbar',
+            membershipNumber: 1003,
+            primaryGroupId: 201,
+          ),
+        ],
+      );
+      final rolesService = _FakeHitobitoRolesService(
+        roles: <HitobitoPersonRoleResource>[
+          rolleImLayer,
+          rolleAusserhalb,
+          HitobitoPersonRoleResource(
+            id: 704,
+            personId: 3,
+            groupId: 201,
+            roleType: 'Group::Mitglied',
+            roleLabel: 'Mitglied',
+          ),
+        ],
+      );
+      final repository = HitobitoArbeitskontextReadModelRepository(
+        groupsService: _FakeHitobitoGroupsService(groups: gruppen),
+        peopleService: peopleService,
+        rolesService: rolesService,
+        localRepository: _FakeArbeitskontextLocalRepository(),
+      );
+
+      final readModel = await repository.refresh(
+        accessToken: 'token-123',
+        arbeitskontext: arbeitskontext,
+      );
+
+      expect(rolesService.requestedFilters, <Map<String, String>>[
+        <String, String>{'filter[group_id]': '11,101'},
+        <String, String>{'filter[person_id]': '1,2'},
+      ]);
+      expect(peopleService.requestedFilters, <Map<String, String>>[
+        <String, String>{'filter[primary_group_id]': '11,101'},
+        <String, String>{'filter[id]': '2'},
+      ]);
+      expect(
+        readModel.mitglieder.map((mitglied) => mitglied.mitgliedsnummer),
+        <String>['1001', '1002'],
+      );
+      expect(
+        readModel.findeMitglied('1002')?.roles.map((role) => role.id),
+        <int>[702, 703],
+      );
+    });
+
+    test('in parallelen Bloecken von hoechstens 200 IDs', () async {
+      final personen = <HitobitoPersonResource>[
+        for (var id = 1; id <= 450; id++)
+          HitobitoPersonResource(
+            id: id,
+            firstName: 'Person',
+            lastName: '$id',
+            membershipNumber: 10000 + id,
+            primaryGroupId: 201,
+            roles: <HitobitoPersonRoleResource>[
+              HitobitoPersonRoleResource(
+                id: 5000 + id,
+                personId: id,
+                groupId: 101,
+              ),
+            ],
+          ),
+      ];
+      final peopleService = _FakeHitobitoPeopleService(people: personen);
+      final rolesService = _FakeHitobitoRolesService(
+        roles: <HitobitoPersonRoleResource>[
+          for (final person in personen) ...person.roles,
+        ],
+      );
+      final repository = HitobitoArbeitskontextReadModelRepository(
+        groupsService: _FakeHitobitoGroupsService(groups: gruppen),
+        peopleService: peopleService,
+        rolesService: rolesService,
+        localRepository: _FakeArbeitskontextLocalRepository(),
+      );
+
+      final readModel = await repository.refresh(
+        accessToken: 'token-123',
+        arbeitskontext: arbeitskontext,
+      );
+
+      final idBloecke = peopleService.requestedFilters
+          .where((filter) => filter.containsKey('filter[id]'))
+          .map((filter) => filter['filter[id]']!.split(',').length);
+      expect(idBloecke, <int>[200, 200, 50]);
+      final rollenBloecke = rolesService.requestedFilters
+          .where((filter) => filter.containsKey('filter[person_id]'))
+          .map((filter) => filter['filter[person_id]']!.split(',').length);
+      expect(rollenBloecke, <int>[200, 200, 50]);
+      expect(readModel.mitglieder, hasLength(450));
+      expect(readModel.rolesSindGeladen, isTrue);
+    });
+
+    test('scheitert ohne Cache-Ueberschreibung, wenn die Rollen des Layers '
+        'nicht geladen werden koennen', () async {
+      final localRepository = _FakeArbeitskontextLocalRepository();
+      final repository = HitobitoArbeitskontextReadModelRepository(
+        groupsService: _FakeHitobitoGroupsService(groups: gruppen),
+        peopleService: _FakeHitobitoPeopleService(
+          people: const <HitobitoPersonResource>[
+            HitobitoPersonResource(
+              id: 1,
+              firstName: 'Julia',
+              lastName: 'Keller',
+              membershipNumber: 1001,
+              primaryGroupId: 11,
+            ),
+          ],
+        ),
+        rolesService: _FakeHitobitoRolesService(
+          error: const HitobitoRolesException('Rollen nicht erreichbar'),
+          errorNurBeiFilter: 'filter[group_id]',
+        ),
+        localRepository: localRepository,
+      );
+
+      await expectLater(
+        repository.refresh(
+          accessToken: 'token-123',
+          arbeitskontext: arbeitskontext,
+        ),
+        throwsA(isA<HitobitoRolesException>()),
+      );
+      expect(localRepository.saved, isNull);
+    });
   });
 
   test(
@@ -939,23 +1149,42 @@ class _FakeHitobitoPeopleService extends HitobitoPeopleService {
 
   final List<HitobitoPersonResource> _people;
   final List<List<HitobitoPersonResource>>? _pages;
+  final List<Map<String, String>> requestedFilters = <Map<String, String>>[];
 
   @override
   Future<List<HitobitoPersonResource>> fetchPeopleResources(
     String accessToken, {
+    Map<String, String> filter = const <String, String>{},
     void Function(List<HitobitoPersonResource> loadedSoFar)? onPageLoaded,
   }) async {
-    final pages = _pages;
-    if (pages == null) {
-      return _people;
-    }
+    requestedFilters.add(filter);
+    final pages = _pages ?? <List<HitobitoPersonResource>>[_people];
     final loaded = <HitobitoPersonResource>[];
     for (final page in pages) {
-      loaded.addAll(page);
+      loaded.addAll(
+        page.where(
+          (person) =>
+              _passtZuFilter(filter, 'filter[id]', person.id) &&
+              _passtZuFilter(
+                filter,
+                'filter[primary_group_id]',
+                person.primaryGroupId,
+              ),
+        ),
+      );
       onPageLoaded?.call(List.unmodifiable(loaded));
     }
     return loaded;
   }
+}
+
+/// Bildet die Graphiti-Listenfilter (`filter[x]=1,2,3`) der API nach.
+bool _passtZuFilter(Map<String, String> filter, String key, int? value) {
+  final werte = filter[key];
+  if (werte == null) {
+    return true;
+  }
+  return value != null && werte.split(',').contains('$value');
 }
 
 class _FakeHitobitoRolesService extends HitobitoRolesService {
@@ -963,6 +1192,7 @@ class _FakeHitobitoRolesService extends HitobitoRolesService {
     List<HitobitoPersonRoleResource> roles =
         const <HitobitoPersonRoleResource>[],
     this.error,
+    this.errorNurBeiFilter,
   }) : _roles = roles,
        super(
          config: const HitobitoAuthConfig(
@@ -979,19 +1209,32 @@ class _FakeHitobitoRolesService extends HitobitoRolesService {
 
   final List<HitobitoPersonRoleResource> _roles;
   final Object? error;
+  // Wirft [error] nur fuer Requests mit diesem Filter-Key, sonst immer.
+  final String? errorNurBeiFilter;
   int fetchCallCount = 0;
+  final List<Map<String, String>> requestedFilters = <Map<String, String>>[];
 
   @override
   Future<List<HitobitoPersonRoleResource>> fetchRoleResources(
     String accessToken, {
+    Map<String, String> filter = const <String, String>{},
     void Function(List<HitobitoPersonRoleResource> loadedSoFar)? onPageLoaded,
   }) async {
     fetchCallCount += 1;
+    requestedFilters.add(filter);
     final error = this.error;
-    if (error != null) {
+    final errorKey = errorNurBeiFilter;
+    if (error != null && (errorKey == null || filter.containsKey(errorKey))) {
       throw error;
     }
-    onPageLoaded?.call(_roles);
-    return _roles;
+    final roles = _roles
+        .where(
+          (role) =>
+              _passtZuFilter(filter, 'filter[group_id]', role.groupId) &&
+              _passtZuFilter(filter, 'filter[person_id]', role.personId),
+        )
+        .toList(growable: false);
+    onPageLoaded?.call(roles);
+    return roles;
   }
 }

@@ -589,6 +589,67 @@ void main() {
     expect(model.isInitialSequenceActive, isFalse);
   });
 
+  test(
+    'loggt nach erfolgreichem Refresh Dauer und Anzahl geladener Seiten',
+    () async {
+      final readModel = _buildReadModel(
+        aktiverLayerId: 41,
+        aktiverLayerName: 'Stamm Suedhang',
+        mitglieder: const <Mitglied>[],
+      );
+      final logger = _FakeLoggerService();
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(),
+        readModelRepository: _FakeArbeitskontextReadModelRepository()
+          ..progressReadModels = <ArbeitskontextReadModel>[
+            readModel,
+            readModel,
+          ],
+        groupsService: _FakeHitobitoGroupsService(
+          groups: const <HitobitoGroupResource>[
+            HitobitoGroupResource(
+              id: 41,
+              name: 'Stamm Suedhang',
+              isLayer: true,
+            ),
+          ],
+        ),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: logger,
+      );
+
+      await model.refreshFromRemote(
+        session: AuthSession(
+          accessToken: 'token-41',
+          receivedAt: DateTime(2026, 3, 31),
+        ),
+        profile: const AuthProfile(
+          namiId: 41,
+          primaryGroupId: 41,
+          roles: <AuthProfileRole>[
+            AuthProfileRole(
+              groupId: 41,
+              groupName: 'Stamm Suedhang',
+              roleName: 'Leitung',
+              roleClass: 'Group::Stamm::Leitung',
+              permissions: <String>['layer_read'],
+            ),
+          ],
+        ),
+        scheduleRolesPreload: false,
+      );
+
+      final erfolgsZeile = logger.messages.singleWhere(
+        (message) =>
+            message.startsWith('Arbeitskontext erfolgreich aktualisiert'),
+      );
+      // Die Dauer haengt von der echten Laufzeit ab und wird daher nur auf
+      // Vorhandensein geprueft, die Seitenzahl dagegen exakt.
+      expect(erfolgsZeile, matches(RegExp(r'dauer_ms=\d+ gruppen_ms=\d+ ')));
+      expect(erfolgsZeile, endsWith('seiten=2'));
+    },
+  );
+
   test('leert die Mitgliederliste waehrend eines laufenden Refreshs nicht, '
       'sondern zeigt noch nicht erneut bestaetigte Mitglieder samt alter '
       'Rollen weiter an, bis das finale Ergebnis vorliegt', () async {

@@ -447,6 +447,7 @@ class ArbeitskontextModel extends ChangeNotifier {
       _lastGroupsCount = null;
       _lastMembersCount = null;
       notifyListeners();
+      final messung = _SyncMessung();
       final accessibleGroups =
           await _executeRemoteAccess<List<HitobitoGroupResource>>(
             trigger: 'arbeitskontext_initialize_groups',
@@ -460,6 +461,7 @@ class ArbeitskontextModel extends ChangeNotifier {
             : ArbeitskontextStatus.initial;
         return;
       }
+      messung.gruppenGeladen();
       _lastGroupsCount = accessibleGroups.length;
       final arbeitskontext = _bestimmeStartkontext(
         profile: profile,
@@ -488,7 +490,7 @@ class ArbeitskontextModel extends ChangeNotifier {
           accessToken: activeSession.accessToken,
           arbeitskontext: arbeitskontext,
           accessibleGroups: accessibleGroups,
-          onProgress: _applyProgressReadModel,
+          onProgress: messung.zaehleSeiten(_applyProgressReadModel),
         ),
       );
       if (_readModel == null) {
@@ -503,7 +505,7 @@ class ArbeitskontextModel extends ChangeNotifier {
       if (_arbeitskontext != null) {
         await _logger.log(
           'arbeitskontext',
-          'Arbeitskontext erfolgreich remote geladen: layer=${_arbeitskontext!.aktiverLayer.id} name=${_arbeitskontext!.aktiverLayer.name} gruppen=${_readModel?.gruppen.length ?? 0} mitglieder=${_readModel?.mitglieder.length ?? 0}',
+          'Arbeitskontext erfolgreich remote geladen: layer=${_arbeitskontext!.aktiverLayer.id} name=${_arbeitskontext!.aktiverLayer.name} gruppen=${_readModel?.gruppen.length ?? 0} mitglieder=${_readModel?.mitglieder.length ?? 0} ${messung.logWerte()}',
         );
       }
       _isInitialSequenceActive = true;
@@ -669,6 +671,7 @@ class ArbeitskontextModel extends ChangeNotifier {
       _lastGroupsCount = null;
       _lastMembersCount = null;
       notifyListeners();
+      final messung = _SyncMessung();
       final accessibleGroups =
           await _executeRemoteAccess<List<HitobitoGroupResource>>(
             trigger: 'arbeitskontext_refresh_groups',
@@ -687,6 +690,7 @@ class ArbeitskontextModel extends ChangeNotifier {
         _status = previousStatus;
         return;
       }
+      messung.gruppenGeladen();
       _lastGroupsCount = accessibleGroups.length;
       final nextArbeitskontext = _arbeitskontext != null
           ? _mergeCurrentKontext(
@@ -721,7 +725,7 @@ class ArbeitskontextModel extends ChangeNotifier {
           accessToken: activeSession.accessToken,
           arbeitskontext: nextArbeitskontext,
           accessibleGroups: accessibleGroups,
-          onProgress: _applyProgressReadModel,
+          onProgress: messung.zaehleSeiten(_applyProgressReadModel),
         ),
       );
       if (_readModel == null) {
@@ -741,7 +745,7 @@ class ArbeitskontextModel extends ChangeNotifier {
       if (_arbeitskontext != null) {
         await _logger.log(
           'arbeitskontext',
-          'Arbeitskontext erfolgreich aktualisiert: layer=${_arbeitskontext!.aktiverLayer.id} name=${_arbeitskontext!.aktiverLayer.name} gruppen=${_readModel?.gruppen.length ?? 0} mitglieder=${_readModel?.mitglieder.length ?? 0}',
+          'Arbeitskontext erfolgreich aktualisiert: layer=${_arbeitskontext!.aktiverLayer.id} name=${_arbeitskontext!.aktiverLayer.name} gruppen=${_readModel?.gruppen.length ?? 0} mitglieder=${_readModel?.mitglieder.length ?? 0} ${messung.logWerte()}',
         );
       }
       if (isInitialLoad) {
@@ -1407,5 +1411,34 @@ class ArbeitskontextModel extends ChangeNotifier {
     }
 
     return false;
+  }
+}
+
+/// Misst Dauer und Seitenzahl eines Remote-Syncs fuer das Log, damit sich
+/// Ladezeiten auf echten Geraeten vergleichen lassen. Enthaelt bewusst keine
+/// personenbezogenen Daten.
+class _SyncMessung {
+  final Stopwatch _stopwatch = Stopwatch()..start();
+  int? _gruppenMs;
+  int _seiten = 0;
+
+  void gruppenGeladen() {
+    _gruppenMs = _stopwatch.elapsedMilliseconds;
+  }
+
+  /// Zaehlt jede geladene People-/Rollen-Seite (ein onProgress-Aufruf pro
+  /// Seite) und reicht den Fortschritt unveraendert weiter.
+  void Function(ArbeitskontextReadModel partial) zaehleSeiten(
+    void Function(ArbeitskontextReadModel partial) onProgress,
+  ) {
+    return (partial) {
+      _seiten++;
+      onProgress(partial);
+    };
+  }
+
+  String logWerte() {
+    return 'dauer_ms=${_stopwatch.elapsedMilliseconds} '
+        'gruppen_ms=${_gruppenMs ?? 0} seiten=$_seiten';
   }
 }

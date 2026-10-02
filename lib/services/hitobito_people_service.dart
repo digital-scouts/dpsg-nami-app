@@ -6,6 +6,7 @@ import '../data/arbeitskontext/hitobito_person_resource.dart';
 import '../domain/member/mitglied.dart';
 import 'hitobito_api_exception.dart';
 import 'hitobito_auth_env.dart';
+import 'hitobito_pagination.dart';
 import 'hitobito_traffic_log_service.dart';
 import 'logger_service.dart';
 
@@ -73,8 +74,11 @@ class HitobitoPeopleService {
         .toList(growable: false);
   }
 
+  /// [filter] wird als zusaetzliche Query-Parameter auf jede Seite gesetzt,
+  /// z.B. `{'filter[id]': '1,2,3'}`.
   Future<List<HitobitoPersonResource>> fetchPeopleResources(
     String accessToken, {
+    Map<String, String> filter = const <String, String>{},
     void Function(List<HitobitoPersonResource> loadedSoFar)? onPageLoaded,
   }) async {
     final requestUri = config.peopleUri;
@@ -88,7 +92,10 @@ class HitobitoPeopleService {
     Uri? nextUri = requestUri;
 
     while (nextUri != null) {
-      final effectiveRequestUri = _decoratePeopleRequestUri(nextUri);
+      final effectiveRequestUri = withHitobitoListFilter(
+        _decoratePeopleRequestUri(nextUri),
+        filter,
+      );
       final decoded = await _fetchPeoplePage(
         requestUri: effectiveRequestUri,
         accessToken: accessToken,
@@ -689,7 +696,9 @@ class HitobitoPeopleService {
         'contactable_id,contactable_type,label,email';
     queryParameters['fields[additional_addresses]'] =
         'contactable_id,contactable_type,label,address_care_of,street,housenumber,postbox,zip_code,town,country';
-    return uri.replace(queryParameters: queryParameters);
+    return withHitobitoListPaging(
+      uri.replace(queryParameters: queryParameters),
+    );
   }
 
   Future<Map<String, dynamic>> _fetchPeoplePage({
