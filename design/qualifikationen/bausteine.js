@@ -5,6 +5,8 @@
   const L = window.LILIE;
   const BILD = '../../assets/images/';
 
+  // Ab Runde 2 gelten die Festlegungen aus Runde 1; die Seite von Runde 1 bleibt unverändert.
+  const R2 = (x) => (x?.runde || 1) >= 2;
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const dmy = (s) => { const [y, m, d] = s.split('-'); return `${d}.${m}.${y}`; };
   const PFADE = {
@@ -65,6 +67,13 @@
   };
   function statusText(a, kurz = false) {
     const teile = [];
+    if (R2(a)) {
+      const offen = a.fehlt + a.ueber;
+      if (offen) teile.push(`<span class="q-rot">${offen} ${offen === 1 ? 'fehlt' : 'fehlen'}</span>`);
+      if (a.bald) teile.push(`<span class="q-orange">${a.bald} ${kurz ? 'bald' : 'demnächst fällig'}</span>`);
+      if (!teile.length) teile.push('<span class="q-gruen">alle gültig</span>');
+      return teile.join('<i class="q-sep">·</i>');
+    }
     if (kurz) {
       const offen = a.fehlt + a.ueber;
       if (offen) teile.push(`<span class="q-rot">${offen} offen</span>`);
@@ -80,6 +89,7 @@
   }
   function balken(a, hoch = 5) {
     const seg = (n, cls) => (n ? `<i class="${cls}" style="flex:${n}"></i>` : '');
+    if (R2(a)) return `<div class="q-bal" style="height:${hoch}px">${seg(a.ok, 'ok')}${seg(a.bald, 'bald')}${seg(a.ueber + a.fehlt, 'fehlt')}</div>`;
     return `<div class="q-bal" style="height:${hoch}px">${seg(a.ok, 'ok')}${seg(a.bald, 'bald')}${seg(a.ueber, 'ueber')}${seg(a.fehlt, 'fehlt')}</div>`;
   }
   function gesperrtKarte(art, variante) {
@@ -105,7 +115,9 @@
       <small class="q-regel">${regel(art, a.einst)}</small><div class="q-status">${statusText(a)}</div>${balken(a, 5)}</div>`;
   }
   function uebersicht(ctx, variante, { angezeigt = Q.standard.angezeigt, einstellungen = Q.standard.einstellungen, efzGesperrt = false } = {}) {
-    const karten = angezeigt.map((id) => karte(Q.auswertung(id, einstellungen), variante, { gesperrt: efzGesperrt && id === 'efz' }));
+    // Ab Runde 2 erscheinen nur Arten, die im Kontext jemand hat (EFZ immer).
+    const sichtbar = R2(ctx) ? angezeigt.filter((id) => id === 'efz' || anzahlInhaber(id) > 0) : angezeigt;
+    const karten = sichtbar.map((id) => karte({ ...Q.auswertung(id, einstellungen), runde: ctx.runde }, variante, { gesperrt: efzGesperrt && id === 'efz' }));
     const hinzu = variante === 'U3'
       ? `<div class="q-zeile q-hinzu">${ico('plus', 20)}<b>Qualifikation hinzufügen</b></div>`
       : `<div class="${variante === 'U2' ? 'q-k2' : 'q-k1'} q-hinzu">${ico('plus', 22)}<b>Qualifikation hinzufügen</b></div>`;
@@ -126,17 +138,23 @@
     if (r.art === 'l') return `<span class="q-pi" style="--c:var(--st-${r.stufe})">${lilie(16, `var(--st-${r.stufe})`)}</span>`;
     return `<span class="q-pi mit" style="--c:var(--st-${r.stufe})">${maskottchen(r.stufe, 22)}</span>`;
   }
-  function personZeile(x) {
-    const [ton, text] = PILL[x.s];
-    const datum = x.bis === null ? 'nicht hinterlegt' : x.bis === 'ohne' ? 'ohne Ablauf' : x.s === 'ueber' ? `abgelaufen ${dmy(x.bis)}` : `bis ${dmy(x.bis)}`;
+  function personZeile(x, r2 = false) {
+    const [ton, text] = r2 && x.s === 'ueber' ? ['schlecht', 'abgelaufen'] : PILL[x.s];
+    const datum = x.bis === null ? 'nicht hinterlegt' : x.bis === 'ohne' ? 'ohne Ablauf' : x.s === 'ueber' ? (r2 ? `seit ${dmy(x.bis)}` : `abgelaufen ${dmy(x.bis)}`) : `bis ${dmy(x.bis)}`;
     return `<div class="q-pz">${personIcon(x.p)}<div class="q-pzt"><b>${esc(x.p.name)}${x.p.eigene ? ' <span class="q-du">du</span>' : ''}</b><small>${datum} · ${esc(rollenKurz(x.p))}</small></div><span class="spill ${ton}">${text}</span></div>`;
   }
   function detailKopfkarte(a) {
-    return `<div class="card q-dk">${artIcon(a.art, 44)}<div><b class="q-dk-n">${a.erfuellt} von ${a.benoetigt} erfüllt</b><small>${regel(a.art, a.einst)} · ${a.art.quelle === 'app' ? 'Gültigkeit in der App eingestellt' : 'Gültigkeit aus Hitobito'}</small><div class="q-status">${statusText(a)}</div></div></div>
+    return `<div class="card q-dk">${artIcon(a.art, 44)}<div><b class="q-dk-n">${a.erfuellt} von ${a.benoetigt} erfüllt</b><small>${regel(a.art, a.einst)} · ${a.art.quelle === 'app' ? (R2(a) ? 'fest für das EFZ' : 'Gültigkeit in der App eingestellt') : 'Gültigkeit aus Hitobito'}</small><div class="q-status">${statusText(a)}</div></div></div>
       <div class="q-kreiszeile">${ico('group', 16)}<span>Benötigt von: <b>${esc(a.kreis.label)}</b> · ${a.benoetigt} Personen</span></div>${balken(a, 6)}`;
   }
-  function detail(ctx, artId, variante, einstellungen = Q.standard.einstellungen) {
-    const a = Q.auswertung(artId, einstellungen);
+  function detail(ctx, artId, variante, einstellungen = Q.standard.einstellungen, { alle = false } = {}) {
+    const a = { ...Q.auswertung(artId, einstellungen), runde: ctx.runde };
+    if (variante === 'D2' && R2(ctx)) {
+      const bedarf = a.fehlt + a.ueber + a.bald;
+      const liste = alle ? a.leute : a.leute.filter((x) => x.s !== 'ok');
+      return `${detailKopfkarte(a)}<div class="segf q-seg"><span class="${alle ? '' : 'on'}">Handlungsbedarf <i>${bedarf}</i></span><span class="${alle ? 'on' : ''}">Alle <i>${a.benoetigt}</i></span></div>
+        <div class="card q-pliste">${liste.map((x) => personZeile(x, true)).join('')}</div>`;
+    }
     if (variante === 'D2') {
       return `${detailKopfkarte(a)}<div class="segf q-seg"><span class="on">Handlungsbedarf <i>${a.fehlt + a.ueber + a.bald}</i></span><span>Alle <i>${a.benoetigt}</i></span></div>
         <div class="card q-pliste">${a.leute.filter((x) => x.s !== 'ok').map(personZeile).join('')}</div>`;
@@ -172,6 +190,7 @@
       ${radio(false, 'Eigene Regeln …', 'Rollenart, Stufe, Rollentyp und Alter kombinieren', ico('right', 16, 'muted'))}</div>${kreisVorschau(einst)}`;
   }
   function einstellungen(ctx, artId, variante) {
+    if (R2(ctx)) return einstellungenR2(ctx, artId);
     const art = Q.arten[artId];
     const einst = Q.standard.einstellungen[artId];
     const kreis = variante === 'P1' ? kreisP1(einst) : kreisP2(einst);
@@ -191,6 +210,42 @@
       ${sec('Erinnerung')}${erinnerung}
       ${gueltig}
       <div class="q-entfernen">Aus der Übersicht entfernen</div>`;
+  }
+
+  function einstellungenR2(ctx, artId) {
+    const art = Q.arten[artId];
+    const einst = Q.standard.einstellungen[artId];
+    const tage = einst.vorlauf;
+    const erinnerung = `<div class="card q-erin">
+        <div class="segf"><span class="${tage ? '' : 'on'}">Aus</span><span class="${tage ? 'on' : ''}">Vorher erinnern</span></div>
+        ${tage ? `<div class="q-zeile-e"><span>Erinnern</span>${stepper(tage, 'Tage vorher')}</div>
+        <div class="q-zeile-e"><span>Von wem</span></div>
+        ${radio(einst.umfang === 'alle', 'Von allen im Personenkreis', 'Läuft bei jemandem die Qualifikation ab, wirst du erinnert. Gebündelt, eine Mitteilung pro Tag.')}
+        ${radio(einst.umfang === 'meine', 'Nur von mir', 'Nur wenn deine eigene Qualifikation abläuft')}` : ''}
+      </div><div class="q-fuss">Gilt auch als Warnschwelle: „demnächst fällig“ ab ${tage || 90} Tagen vorher.</div>`;
+    const gueltig = `${sec('Gültigkeit')}<div class="card q-erin"><div class="q-zeile-e"><span>${regel(art, einst)}</span><small class="q-leise">${art.id === 'efz' ? 'fest für das EFZ' : 'aus Hitobito'}</small></div></div>${art.id === 'efz' ? '<div class="q-fuss">Gerechnet ab dem Ausstellungsdatum der letzten Einsichtnahme.</div>' : ''}`;
+    return `<div class="q-ek">${artIcon(art, 36)}<b>${esc(art.label)}</b></div>
+      ${sec('Wer braucht sie?')}${kreisP1(einst)}
+      ${sec('Erinnerung')}${erinnerung}
+      ${gueltig}`;
+  }
+
+  // Zwischen Übersicht und Einstellungen: welche Arten angezeigt werden, Reihenfolge, Einstieg je Art.
+  function auswahl(ctx, angezeigt = Q.standard.angezeigt) {
+    const im = Object.values(Q.arten).filter((a) => !a.nichtImKontext && (a.id === 'efz' || anzahlInhaber(a.id) > 0));
+    const zeile = (a) => {
+      const an = angezeigt.includes(a.id);
+      const sub = a.id === 'efz' ? 'Einsichtnahmen · Alle 5 Jahre' : `${anzahlInhaber(a.id)} im Stamm · ${regel(a)}`;
+      return `<div class="q-wahl${an ? '' : ' aus2'}">${ico('grip', 18, 'muted')}${artIcon(a, 30)}<div><b>${esc(a.label)}</b><small>${sub}</small></div>${schalter(an)}<span class="q-chev">${ico('right', 16)}</span></div>`;
+    };
+    return `<p class="q-sheet-h" style="margin-top:16px">Angezeigt werden nur Qualifikationen, die im Stamm Silberfels jemand hat. Ausgeblendete und gerade fehlende Arten behalten ihre Einstellungen.</p>
+      ${sec('In der Übersicht')}<div class="card q-wliste">${im.filter((a) => angezeigt.includes(a.id)).map(zeile).join('')}</div>
+      ${sec('Ausgeblendet')}<div class="card q-wliste">${im.filter((a) => !angezeigt.includes(a.id)).map(zeile).join('')}</div>
+      <div class="q-fuss">Schalter: in der Übersicht zeigen. Pfeil: Personenkreis und Erinnerung einstellen. Reihenfolge per Ziehen.</div>`;
+  }
+  function debugTools(ctx, an) {
+    return `<div class="card q-nz"><div class="q-dbg-t">Supporter (Test)</div><div class="q-dbg-s">Übergangsweise, bis die Store-Anbindung steht.</div>
+      <div class="q-zeile-e"><div><span>Supporter-Zugang</span><small>Schaltet Supporter-Funktionen frei, etwa die Qualifikationen-Übersicht</small></div>${schalter(an)}</div></div>`;
   }
 
   // ------------------------------------------------------------- Hinzufügen
@@ -263,6 +318,11 @@
   // ------------------------------------------------------------- Zustände
   function zustand(ctx, art) {
     if (art === 'nichtSync') return `<div class="q-leer">${ico('sync', 30)}<b>Noch nicht synchronisiert</b><span>Qualifikationen werden beim nächsten Sync geladen und sind danach auch offline verfügbar.</span></div>`;
+    if (art === 'leer' && R2(ctx)) {
+      const efz = { ...Q.auswertung('efz'), runde: ctx.runde };
+      return `<div class="q-ue-kopf"><span>Stamm Silberfels · 12 Personen mit Rolle</span></div><div class="card q-liste">${karte(efz, 'U3')}</div>
+        <div class="banner">${ico('info', 17)}<span>Im Stamm hat noch niemand eine Qualifikation aus Hitobito. Präventionsschulung und Erste Hilfe erscheinen, sobald sie jemand hat.</span></div>`;
+    }
     if (art === 'leer') {
       return `<div class="q-ue-kopf"><span>Stamm Silberfels · 12 Personen mit Rolle</span></div><div class="q-stapel">${karte(Q.auswertung('efz'), 'U1')}
         <div class="banner">${ico('info', 17)}<span>Im Stamm hat noch niemand eine Qualifikation aus Hitobito. Präventionsschulung und Erste Hilfe erscheinen, sobald sie jemand hat.</span></div>
@@ -271,5 +331,5 @@
     return '';
   }
 
-  window.QBAU = { esc, ico, telefon, panel, kopf, sec, karte, uebersicht, detail, einstellungen, hinzufuegenSheet, benachrichtigungen, sperrbildschirm, meldungen, schnellzugriff, gesperrt, zustand };
+  window.QBAU = { esc, ico, telefon, panel, kopf, sec, karte, uebersicht, detail, einstellungen, auswahl, debugTools, hinzufuegenSheet, benachrichtigungen, sperrbildschirm, meldungen, schnellzugriff, gesperrt, zustand };
 })();

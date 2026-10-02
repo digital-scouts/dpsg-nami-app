@@ -1,6 +1,6 @@
 # Qualifikationen-Übersicht: Anforderungen
 
-Stand: 2026-10-02, in Planung. Diese Spec beschreibt die Erweiterung der Seite „Qualifikationen“ (Einstellungen, Schnellzugriff) von einer reinen EFZ-Liste zu einer konfigurierbaren Übersicht über alle Qualifikationsarten. Die visuellen Entwürfe entstehen in Feedback-Runden unter `design/qualifikationen/`.
+Stand: 2026-10-02, in Planung (Entwurfsrunde 2). Diese Spec beschreibt die Erweiterung der Seite „Qualifikationen“ (Einstellungen, Schnellzugriff) von einer reinen EFZ-Liste zu einer konfigurierbaren Übersicht über alle Qualifikationsarten. Die visuellen Entwürfe entstehen in Feedback-Runden unter `design/qualifikationen/`.
 
 ## Ausgangslage
 
@@ -23,16 +23,24 @@ Ein Zahnrad öffnet die Einstellungen der Qualifikation, ein „+“ fügt eine 
 
 ## Festgelegte Anforderungen
 
-**Übersicht**
-- Je angezeigter Qualifikation eine Karte nach dem Vorbild.
-- Ein Tipp auf die Karte zeigt die Personen des Personenkreises mit ihrem Status. Ein Tipp auf eine Person öffnet die Mitgliedsdetails.
+**Übersicht** (Entwurf U3)
+- Je angezeigter Qualifikation eine Zeile in einer gemeinsamen Karte: Symbol, Name, Regelmäßigkeit, „n fehlen · n bald“, Balken, „erfüllt / benötigt“.
+- Status:
+  - Fehlt und abgelaufen zählen gemeinsam als „fehlt“ und sehen im Balken gleich aus (rot schraffiert).
+  - „Demnächst fällig“ ist orange und beginnt beim Erinnerungs-Vorlauf der Qualifikation.
+  - „Erfüllt“ zählt gültig und demnächst fällig.
+- Ein Tipp auf eine Zeile öffnet die Personenliste mit dem Umschalter „Handlungsbedarf / Alle“ (Entwurf D2).
+  - Abgelaufene behalten dort ihr Label „abgelaufen“.
+  - Ein Tipp auf eine Person öffnet die Mitgliedsdetails.
+- Ein Zahnrad oben rechts und „Qualifikation hinzufügen“ öffnen die Auswahl. Darin schaltet man Arten an und aus, ändert die Reihenfolge per Ziehen und öffnet mit dem Pfeil die Einstellungen einer Art. In der Personenliste führt das Zahnrad direkt zu den Einstellungen der Art.
 
 **Angezeigte Qualifikationen**
 - Vorgabe: EFZ, Präventionsschulung und Erste Hilfe.
-- Vorgaben lassen sich entfernen und ändern, weitere Arten lassen sich hinzufügen.
+- Vorgaben lassen sich ausblenden und ändern, weitere Arten lassen sich einblenden.
+- Sichtbar sind nur Arten, die im aktuellen Arbeitskontext jemand hat; das EFZ ist immer sichtbar. Arten, die gerade niemand hat, erscheinen auch nicht in der Auswahl. Ihre Einstellungen bleiben gespeichert und gelten wieder, sobald jemand die Qualifikation hat.
 - Juleica wird nicht eigens behandelt, sie erscheint wie jede andere Art, sobald Hitobito sie liefert.
 
-**Personenkreis je Qualifikation**
+**Personenkreis je Qualifikation** (Entwurf P1, Regeln aus Bausteinen)
 - Er wird aus Rollen gebildet:
   - Rollenart (Leitung, Amt, Mitglied),
   - Stufe,
@@ -43,11 +51,11 @@ Ein Zahnrad öffnet die Einstellungen der Qualifikation, ein „+“ fügt eine 
 
 **Gültigkeit**
 - Sie kommt aus Hitobito: `validity` der Art, `finish_at` der Qualifikation.
-- Nur beim EFZ stellt man sie selbst ein, Vorgabe 5 Jahre (`efzQualifikationsart.gueltigkeitsjahre`).
+- Das EFZ gilt fest 5 Jahre ab dem Ausstellungsdatum der letzten Einsichtnahme (`efzQualifikationsart.gueltigkeitsjahre`), nicht einstellbar.
 
 **Erinnerungen auf der Quali-Seite**
 - Je Qualifikation einstellbar: frei wählbare Tage vorher oder keine Erinnerung.
-- Umfang „alle im Personenkreis“ oder „nur meine“.
+- „Von wem“: von allen im Personenkreis oder nur von mir. Erinnert wird immer der Nutzer selbst. Fremde Abläufe werden pro Tag gebündelt.
 - Kanal: lokale Push-Benachrichtigung auf diesem Gerät.
 
 **Eigene Qualifikationen, für alle Nutzer**
@@ -57,14 +65,12 @@ Ein Zahnrad öffnet die Einstellungen der Qualifikation, ein „+“ fügt eine 
 **Premium**
 - Die Quali-Seite ist Kandidat für das Supporter-Paket (`SupportAccess`).
 - Die Mitgliedsdetails mit dem Qualifikationen-Tab und die Erinnerungen an eigene Qualifikationen bleiben frei.
+- Gesperrt zeigt die Seite nur einen Hinweis (Entwurf L2).
+- Übergangsweise schaltet ein Testschalter „Supporter-Zugang“ in Debug & Tools die Funktionen frei, bis die Store-Anbindung steht.
 
 **Speicherung**
 - Alle Einstellungen gelten pro App, nicht pro Arbeitskontext (SharedPreferences).
 - Sie überstehen den Logout und werden erst beim vollständigen Zurücksetzen gelöscht.
-
-**Katalog**
-- Zur Auswahl stehen die Arten, die im aktuellen Arbeitskontext vorkommen.
-- Einstellungen zu einmal gesehenen Arten bleiben erhalten, auch wenn die Art im aktuellen Kontext fehlt.
 
 ## Datenquellen
 
@@ -85,11 +91,11 @@ Befunde zur API:
 
 ## Edge Cases
 
-- **Gespeicherte Art fehlt im Kontext:** Die Einstellungen bleiben erhalten. Die Karte zeigt „0 / n“, alle im Personenkreis fehlen. Die Art lässt sich ausblenden.
+- **Gespeicherte Art fehlt im Kontext:** Sie erscheint weder in der Übersicht noch in der Auswahl. Die Einstellungen bleiben erhalten und gelten wieder, sobald jemand sie hat.
 - **Keine EFZ-Berechtigung:** Die EFZ-Karte zeigt „keine Berechtigung“ statt Zahlen. Die anderen Karten bleiben nutzbar.
 - **Mehrere Personenkreise:** Eine Person kann in mehreren Kreisen liegen. Sie zählt je Qualifikation einmal.
 - **Mehrere Qualifikationen derselben Art:** Es zählt die mit dem spätesten `finish_at`. Ohne Ablauf geht vor einem Ablaufdatum.
-- **Abgelaufen, aber reaktivierbar:** Das zählt als überfällig, mit dem Hinweis „reaktivierbar“.
+- **Abgelaufen, aber reaktivierbar:** Das zählt als fehlt, mit dem Label „abgelaufen“ und dem Hinweis „reaktivierbar“.
 - **Ohne Ablauf (`validity` leer):** Das zählt als gültig. Die Karte zeigt „ohne Ablauf“ statt „Alle n Jahre“.
 - **Unbekanntes Geburtsdatum:** Altersregeln treffen nicht. Die Person fällt aus Kreisen mit Altersgrenze heraus und erscheint als Hinweis in der Vorschau.
 - **Gleiche Art in zwei Instanzen:** Die Zuordnung der Vorgaben läuft über den Namen. Nach dem ersten Treffer gilt die Art-ID.
