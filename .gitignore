@@ -43,6 +43,7 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 .vscode/launch.json
+.vscode/mcp.json
 
 venv
 .venv
@@ -53,6 +54,13 @@ download
 .env
 .env.*
 !.env.example
+
+# API-Mitschnitte koennen echte Personendaten enthalten (siehe tool/validate_tracked_files.dart)
+*.postman_collection.json
+*.postman_environment.json
+*.har
+*.xcappdata
+specs/demoResponse/
 
 assets/territorialgrenzen_bistumsatlas
 

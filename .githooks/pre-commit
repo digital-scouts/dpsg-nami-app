@@ -15,6 +15,9 @@ if [ -n "$tracked_env_files" ]; then
 	exit 1
 fi
 
+echo "Pruefe versionierte Dateien auf API-Mitschnitte..."
+dart tool/validate_tracked_files.dart
+
 echo "Pruefe Versionskonsistenz..."
 dart tool/validate_versions.dart
 

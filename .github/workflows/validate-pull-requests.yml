@@ -75,6 +75,24 @@ jobs:
       - name: Validate app version consistency
         run: dart tool/validate_versions.dart
 
+  # Laeuft immer: sperrt API-Mitschnitte im Stand und in der gesamten Historie,
+  # damit auch alte Branches von vor der Historienbereinigung auffallen.
+  validate-tracked-files:
+    name: Validate tracked files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: "3.12.2" # Dart von Flutter 3.44.5
+
+      - name: Block API captures in index and history
+        run: dart tool/validate_tracked_files.dart --history
+
   validate:
     name: Validate Flutter project
     needs: changes
