@@ -21,7 +21,14 @@ void main() {
     Provider.debugCheckInvalidValueType = null;
   });
 
-  Future<({_FakeAuthSessionModel auth, _PendingRepository pending})> pumpFlow(
+  Future<
+    ({
+      _FakeAuthSessionModel auth,
+      _PendingRepository pending,
+      MemberEditModel model,
+    })
+  >
+  pumpFlow(
     WidgetTester tester, {
     List<PendingPersonUpdate> entries = const <PendingPersonUpdate>[],
     Object? updateResult,
@@ -62,7 +69,7 @@ void main() {
     );
     await tester.tap(find.text('Abmelden'));
     await tester.pumpAndSettle();
-    return (auth: auth, pending: pending);
+    return (auth: auth, pending: pending, model: model);
   }
 
   testWidgets('meldet ohne ausstehende Aenderungen direkt ab', (tester) async {
@@ -109,10 +116,14 @@ void main() {
       updateResult: const MemberWriteNetworkBlockedException('Offline.'),
     );
 
+    final loadAllCallsVorLogout = result.pending.loadAllCalls;
     await tester.tap(find.byKey(const Key('logout-pending-confirm')));
     await tester.pumpAndSettle();
 
     expect(result.auth.logoutCalls, 1);
+    // Nach dem Logout ist die Box geloescht und darf nicht neu entstehen.
+    expect(result.pending.loadAllCalls, loadAllCallsVorLogout);
+    expect(result.model.pendingUpdates, isEmpty);
   });
 }
 
@@ -179,13 +190,16 @@ class _PendingRepository implements PendingPersonUpdateRepository {
     : _entries = List<PendingPersonUpdate>.from(entries);
 
   final List<PendingPersonUpdate> _entries;
+  int loadAllCalls = 0;
 
   @override
   Future<void> clear() async => _entries.clear();
 
   @override
-  Future<List<PendingPersonUpdate>> loadAll() async =>
-      List<PendingPersonUpdate>.unmodifiable(_entries);
+  Future<List<PendingPersonUpdate>> loadAll() async {
+    loadAllCalls++;
+    return List<PendingPersonUpdate>.unmodifiable(_entries);
+  }
 
   @override
   Future<void> remove(String entryId) async =>

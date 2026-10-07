@@ -21,7 +21,8 @@ void main() {
       'nami_ai_chat_history_local_repository_',
     );
     Hive.init(tempDir.path);
-    sensitiveStorageService = SensitiveStorageService();
+    SensitiveStorageService.resetForTest();
+    sensitiveStorageService = SensitiveStorageService()..beginSession();
     repository = NamiAiChatHistoryLocalRepository(
       sensitiveStorageService: sensitiveStorageService,
       nowProvider: () => _jetzt,
@@ -160,7 +161,10 @@ void main() {
 
     await sensitiveStorageService.purgeSensitiveData();
 
-    final entries = await repository.loadAll();
-    expect(entries, isEmpty);
+    expect(await Hive.boxExists('nami_ai_chat_history_box'), isFalse);
+    await expectLater(
+      repository.loadAll(),
+      throwsA(isA<SensitiveSessionEndedException>()),
+    );
   });
 }

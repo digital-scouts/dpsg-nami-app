@@ -61,6 +61,17 @@ class DemoSensitiveStorageService extends SensitiveStorageService {
   static const String _boxPrefix = 'demo_';
   static final Set<String> _openedBoxNames = <String>{};
 
+  // Die Demo-Boxen liegen nur im Speicher; die Sitzung der echten
+  // Installation bleibt unberuehrt.
+  @override
+  void beginSession() {}
+
+  @override
+  void endSession() {}
+
+  @override
+  Future<bool> hasLocalSensitiveData() async => true;
+
   @override
   Future<Box<String>> openEncryptedStringBox(String boxName) async {
     final demoBoxName = '$_boxPrefix$boxName';

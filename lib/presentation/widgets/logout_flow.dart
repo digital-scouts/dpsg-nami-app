@@ -90,5 +90,6 @@ Future<void> runLogoutFlow(BuildContext context) async {
   }
 
   await authModel.logout();
-  await memberEditModel?.loadPending();
+  // Die Pending-Box ist geloescht; erneutes Laden wuerde sie neu anlegen.
+  memberEditModel?.clearPendingInMemory();
 }

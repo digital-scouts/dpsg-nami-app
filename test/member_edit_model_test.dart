@@ -1698,6 +1698,55 @@ void main() {
         expect(model.pendingUpdates, isEmpty);
       },
     );
+
+    test(
+      'sendet und speichert nach einem Sitzungswechsel nichts mehr',
+      () async {
+        var generation = 0;
+        final repository = InMemoryPendingPersonUpdateRepository(
+          entries: <PendingPersonUpdate>[
+            _pendingEntry(
+              entryId: 'person-1',
+              personId: 1,
+              mitgliedsnummer: '1',
+            ),
+            _pendingEntry(
+              entryId: 'person-2',
+              personId: 2,
+              mitgliedsnummer: '2',
+            ),
+          ],
+        );
+        final writeRepository = _FakeMemberWriteRepository(
+          onUpdate: (basis, ziel) async {
+            // Waehrend der erste Eintrag unterwegs ist, meldet sich jemand
+            // ab und ein anderes Konto an.
+            generation += 1;
+            return ziel;
+          },
+        );
+        final model = MemberEditModel(
+          memberWriteRepository: writeRepository,
+          pendingRepository: repository,
+          logger: FakeLoggerService(),
+          onMemberUpdated: (_) async {},
+          nowProvider: () => jetzt,
+          sessionGeneration: () => generation,
+        );
+        await model.loadPending();
+
+        final summary = await model.retryPending(accessToken: 'token-123');
+
+        expect(writeRepository.updateCalls, hasLength(1));
+        expect(summary.successCount, 0);
+        // Der gesendete Eintrag bleibt stehen; die neue Sitzung entscheidet
+        // selbst ueber ihre Box.
+        expect(
+          (await repository.loadAll()).map((entry) => entry.entryId),
+          <String>['person-1', 'person-2'],
+        );
+      },
+    );
   });
 
   group('Abfragen zu offenen Problemfaellen', () {

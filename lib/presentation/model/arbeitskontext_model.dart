@@ -72,6 +72,7 @@ class ArbeitskontextModel extends ChangeNotifier {
     BestimmeRelevanteLayerUseCase bestimmeRelevanteLayerUseCase =
         const BestimmeRelevanteLayerUseCase(),
     ArbeitskontextRemoteAccessExecutor? remoteAccessExecutor,
+    int Function()? sessionGeneration,
     required LoggerService logger,
   }) : _localRepository = localRepository,
        _readModelRepository = readModelRepository,
@@ -79,7 +80,12 @@ class ArbeitskontextModel extends ChangeNotifier {
        _bestimmeStartkontextUseCase = bestimmeStartkontextUseCase,
        _bestimmeRelevanteLayerUseCase = bestimmeRelevanteLayerUseCase,
        _remoteAccessExecutor = remoteAccessExecutor,
-       _logger = logger;
+       _sessionGeneration = sessionGeneration ?? _ohneSitzungsgeneration,
+       _logger = logger {
+    _authGeneration = _sessionGeneration();
+  }
+
+  static int _ohneSitzungsgeneration() => 0;
 
   final ArbeitskontextLocalRepository _localRepository;
   final ArbeitskontextReadModelRepository _readModelRepository;
@@ -87,6 +93,9 @@ class ArbeitskontextModel extends ChangeNotifier {
   final BestimmeStartkontextUseCase _bestimmeStartkontextUseCase;
   final BestimmeRelevanteLayerUseCase _bestimmeRelevanteLayerUseCase;
   final ArbeitskontextRemoteAccessExecutor? _remoteAccessExecutor;
+  // Sitzungsgeneration des AuthSessionModel; wechselt bei Logout,
+  // Benutzerwechsel und Datenablauf.
+  final int Function() _sessionGeneration;
   final LoggerService _logger;
 
   static const String unauthorizedMessage =
@@ -110,6 +119,10 @@ class ArbeitskontextModel extends ChangeNotifier {
       ErmittleStatistikAbdeckungUseCase();
 
   ArbeitskontextStatus _status = ArbeitskontextStatus.initial;
+  // Laufende Vorgaenge merken sich die Generation beim Start und verwerfen
+  // ihr Ergebnis, wenn der Zustand inzwischen zurueckgesetzt wurde.
+  int _generation = 0;
+  late int _authGeneration;
   Arbeitskontext? _arbeitskontext;
   ArbeitskontextReadModel? _readModel;
   AuthSession? _session;
@@ -383,6 +396,14 @@ class ArbeitskontextModel extends ChangeNotifier {
     required AuthSession? session,
     required AuthProfile? profile,
   }) async {
+    final sessionGeneration = _sessionGeneration();
+    if (sessionGeneration != _authGeneration) {
+      // Neue Sitzung (anderes Konto oder nach Logout): nichts aus der alten
+      // darf sich mit den Daten der neuen mischen.
+      _authGeneration = sessionGeneration;
+      _resetState();
+    }
+
     final isSignedInState =
         authState == AuthState.signedIn ||
         authState == AuthState.unlockRequired;
@@ -462,6 +483,7 @@ class ArbeitskontextModel extends ChangeNotifier {
     required AuthSession? session,
     required String fingerprint,
   }) async {
+    final generation = _generation;
     _isSynchronizing = true;
     _status = ArbeitskontextStatus.loading;
     _errorMessage = null;
@@ -472,6 +494,9 @@ class ArbeitskontextModel extends ChangeNotifier {
 
     try {
       final cached = await _localRepository.loadLastCached();
+      if (!_isCurrent(generation)) {
+        return;
+      }
       if (cached != null) {
         _readModel = cached;
         _arbeitskontext = cached.arbeitskontext;
@@ -503,6 +528,9 @@ class ArbeitskontextModel extends ChangeNotifier {
             action: (activeSession) =>
                 _groupsService.fetchAccessibleGroups(activeSession.accessToken),
           );
+      if (!_isCurrent(generation)) {
+        return;
+      }
       if (accessibleGroups == null) {
         _status = _readModel != null
             ? ArbeitskontextStatus.ready
@@ -531,20 +559,28 @@ class ArbeitskontextModel extends ChangeNotifier {
       _isLoadingRoles = true;
       notifyListeners();
 
-      _readModel = await _executeRemoteAccess<ArbeitskontextReadModel>(
+      final readModel = await _executeRemoteAccess<ArbeitskontextReadModel>(
         trigger: 'arbeitskontext_initialize_read_model',
         session: session,
         action: (activeSession) => _readModelRepository.refresh(
           accessToken: activeSession.accessToken,
           arbeitskontext: arbeitskontext,
           accessibleGroups: accessibleGroups,
-          onProgress: messung.zaehleSeiten(_applyProgressReadModel),
+          onProgress: messung.zaehleSeiten(_progressFuerGeneration(generation)),
         ),
       );
-      if (_readModel == null) {
+      if (!_isCurrent(generation)) {
+        return;
+      }
+      _readModel = readModel;
+      if (readModel == null) {
         _status = _arbeitskontext != null
             ? ArbeitskontextStatus.ready
             : ArbeitskontextStatus.initial;
+        return;
+      }
+      await _localRepository.saveCached(readModel);
+      if (!_isCurrent(generation)) {
         return;
       }
       _arbeitskontext = _readModel?.arbeitskontext ?? _arbeitskontext;
@@ -559,6 +595,9 @@ class ArbeitskontextModel extends ChangeNotifier {
       _isInitialSequenceActive = true;
       _scheduleRolesPreload();
     } catch (error, stack) {
+      if (!_isCurrent(generation)) {
+        return;
+      }
       await _logger.log(
         'arbeitskontext',
         'Arbeitskontext konnte nicht initialisiert werden: $error\n$stack',
@@ -568,10 +607,12 @@ class ArbeitskontextModel extends ChangeNotifier {
           : ArbeitskontextStatus.error;
       _errorMessage = nutzerFehlermeldung(error);
     } finally {
-      _isSynchronizing = false;
-      _isLoadingRoles = false;
-      _loadingStep = null;
-      notifyListeners();
+      if (_isCurrent(generation)) {
+        _isSynchronizing = false;
+        _isLoadingRoles = false;
+        _loadingStep = null;
+        notifyListeners();
+      }
     }
   }
 
@@ -579,6 +620,16 @@ class ArbeitskontextModel extends ChangeNotifier {
   /// ArbeitskontextReadModelRepository.refresh's onProgress-Parameter), damit
   /// bereits geladene Mitglieder sofort sichtbar werden, waehrend weitere
   /// Seiten im Hintergrund nachladen.
+  void Function(ArbeitskontextReadModel partial) _progressFuerGeneration(
+    int generation,
+  ) {
+    return (partial) {
+      if (_isCurrent(generation)) {
+        _applyProgressReadModel(partial);
+      }
+    };
+  }
+
   void _applyProgressReadModel(ArbeitskontextReadModel partial) {
     final previous = _readModel;
     final merged = previous == null
@@ -694,6 +745,7 @@ class ArbeitskontextModel extends ChangeNotifier {
     required bool allowMobileDataOverride,
     required bool scheduleRolesPreload,
   }) async {
+    final generation = _generation;
     final previousStatus = _status;
     // Viele Startup-/Maintenance-Trigger (main.dart: _syncArbeitskontextComplete,
     // Auth-Maintenance-Timer, Connectivity-Listener) fuehren den allerersten
@@ -727,6 +779,9 @@ class ArbeitskontextModel extends ChangeNotifier {
             action: (activeSession) =>
                 _groupsService.fetchAccessibleGroups(activeSession.accessToken),
           );
+      if (!_isCurrent(generation)) {
+        return;
+      }
       if (accessibleGroups == null) {
         await _logger.log(
           'arbeitskontext',
@@ -764,7 +819,7 @@ class ArbeitskontextModel extends ChangeNotifier {
       // zeigen.
       _isLoadingRoles = true;
       notifyListeners();
-      _readModel = await _executeRemoteAccess<ArbeitskontextReadModel>(
+      final readModel = await _executeRemoteAccess<ArbeitskontextReadModel>(
         trigger: 'arbeitskontext_refresh_read_model',
         session: session,
         allowMobileDataOverride: allowMobileDataOverride,
@@ -772,10 +827,14 @@ class ArbeitskontextModel extends ChangeNotifier {
           accessToken: activeSession.accessToken,
           arbeitskontext: nextArbeitskontext,
           accessibleGroups: accessibleGroups,
-          onProgress: messung.zaehleSeiten(_applyProgressReadModel),
+          onProgress: messung.zaehleSeiten(_progressFuerGeneration(generation)),
         ),
       );
-      if (_readModel == null) {
+      if (!_isCurrent(generation)) {
+        return;
+      }
+      _readModel = readModel;
+      if (readModel == null) {
         await _logger.log(
           'arbeitskontext',
           'Arbeitskontext-Refresh abgebrochen: '
@@ -783,6 +842,10 @@ class ArbeitskontextModel extends ChangeNotifier {
               '(siehe auth_flow-Log fuer den Grund)',
         );
         _status = previousStatus;
+        return;
+      }
+      await _localRepository.saveCached(readModel);
+      if (!_isCurrent(generation)) {
         return;
       }
       _arbeitskontext = _readModel?.arbeitskontext ?? _arbeitskontext;
@@ -805,6 +868,9 @@ class ArbeitskontextModel extends ChangeNotifier {
         _scheduleRolesPreload();
       }
     } catch (error, stack) {
+      if (!_isCurrent(generation)) {
+        return;
+      }
       await _logger.log(
         'arbeitskontext',
         'Arbeitskontext-Refresh fehlgeschlagen: $error\n$stack',
@@ -817,10 +883,12 @@ class ArbeitskontextModel extends ChangeNotifier {
           : ArbeitskontextStatus.error;
       _errorMessage = nutzerFehlermeldung(error);
     } finally {
-      _isSynchronizing = false;
-      _isLoadingRoles = false;
-      _loadingStep = null;
-      notifyListeners();
+      if (_isCurrent(generation)) {
+        _isSynchronizing = false;
+        _isLoadingRoles = false;
+        _loadingStep = null;
+        notifyListeners();
+      }
     }
   }
 
@@ -897,6 +965,7 @@ class ArbeitskontextModel extends ChangeNotifier {
     required bool surfaceErrors,
     required bool allowMobileDataOverride,
   }) async {
+    final generation = _generation;
     _isLoadingRoles = true;
     if (surfaceErrors) {
       _errorMessage = null;
@@ -904,7 +973,7 @@ class ArbeitskontextModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _readModel = await _executeRemoteAccess<ArbeitskontextReadModel>(
+      final readModel = await _executeRemoteAccess<ArbeitskontextReadModel>(
         trigger: 'arbeitskontext_load_roles',
         session: session,
         allowMobileDataOverride: allowMobileDataOverride,
@@ -913,12 +982,20 @@ class ArbeitskontextModel extends ChangeNotifier {
           readModel: currentReadModel,
         ),
       );
-      if (_readModel == null) {
+      if (!_isCurrent(generation)) {
+        return false;
+      }
+      _readModel = readModel;
+      if (readModel == null) {
         await _logger.log(
           'arbeitskontext',
           'Roles-Nachladen abgebrochen: Remote-Zugriff lieferte kein '
               'Ergebnis (siehe auth_flow-Log fuer den Grund)',
         );
+        return false;
+      }
+      await _localRepository.saveCached(readModel);
+      if (!_isCurrent(generation)) {
         return false;
       }
       _arbeitskontext = _readModel?.arbeitskontext;
@@ -928,6 +1005,9 @@ class ArbeitskontextModel extends ChangeNotifier {
       );
       return true;
     } catch (error, stack) {
+      if (!_isCurrent(generation)) {
+        return false;
+      }
       await _logger.log(
         'arbeitskontext',
         'Roles-Nachladen fehlgeschlagen: $error\n$stack',
@@ -937,8 +1017,10 @@ class ArbeitskontextModel extends ChangeNotifier {
       }
       return false;
     } finally {
-      _isLoadingRoles = false;
-      notifyListeners();
+      if (_isCurrent(generation)) {
+        _isLoadingRoles = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -995,6 +1077,7 @@ class ArbeitskontextModel extends ChangeNotifier {
       },
     );
 
+    final generation = _generation;
     _session = session;
     _isSwitchingLayer = true;
     _errorMessage = null;
@@ -1008,7 +1091,7 @@ class ArbeitskontextModel extends ChangeNotifier {
             action: (activeSession) =>
                 _groupsService.fetchAccessibleGroups(activeSession.accessToken),
           );
-      if (accessibleGroups == null) {
+      if (!_isCurrent(generation) || accessibleGroups == null) {
         return false;
       }
       final nextArbeitskontext = _buildArbeitskontextForTargetLayer(
@@ -1030,7 +1113,7 @@ class ArbeitskontextModel extends ChangeNotifier {
         _setUnauthorizedState();
         return false;
       }
-      _readModel = await _executeRemoteAccess<ArbeitskontextReadModel>(
+      final readModel = await _executeRemoteAccess<ArbeitskontextReadModel>(
         trigger: 'arbeitskontext_switch_layer_read_model',
         session: session,
         action: (activeSession) => _readModelRepository.refresh(
@@ -1039,7 +1122,15 @@ class ArbeitskontextModel extends ChangeNotifier {
           accessibleGroups: accessibleGroups,
         ),
       );
-      if (_readModel == null) {
+      if (!_isCurrent(generation)) {
+        return false;
+      }
+      _readModel = readModel;
+      if (readModel == null) {
+        return false;
+      }
+      await _localRepository.saveCached(readModel);
+      if (!_isCurrent(generation)) {
         return false;
       }
       _arbeitskontext = _readModel?.arbeitskontext;
@@ -1063,6 +1154,9 @@ class ArbeitskontextModel extends ChangeNotifier {
       _scheduleRolesPreload();
       return true;
     } catch (error, stack) {
+      if (!_isCurrent(generation)) {
+        return false;
+      }
       await _logger.logError(
         'arbeitskontext',
         'layer switch failure from=${current.aktiverLayer.id} to=${targetLayer.id}',
@@ -1082,19 +1176,33 @@ class ArbeitskontextModel extends ChangeNotifier {
       _errorMessage = layerSwitchFailedMessage;
       return false;
     } finally {
-      _isSwitchingLayer = false;
-      notifyListeners();
+      if (_isCurrent(generation)) {
+        _isSwitchingLayer = false;
+        notifyListeners();
+      }
     }
   }
 
   void _resetState() {
+    // Laufende Vorgaenge gehoeren ab hier zu einem verworfenen Zustand.
+    _generation += 1;
+    _syncInFlight = null;
+    _rolesInFlight = null;
     final hadState =
         _status != ArbeitskontextStatus.initial ||
         _arbeitskontext != null ||
         _readModel != null ||
         _errorMessage != null ||
         _activeProfileId != null ||
-        _profileFingerprint != null;
+        _profileFingerprint != null ||
+        _isSynchronizing ||
+        _isLoadingRoles ||
+        _isSwitchingLayer;
+    _isSynchronizing = false;
+    _isLoadingRoles = false;
+    _isSwitchingLayer = false;
+    _loadingStep = null;
+    _isInitialSequenceActive = false;
     if (!hadState) {
       return;
     }
@@ -1109,6 +1217,9 @@ class ArbeitskontextModel extends ChangeNotifier {
     _profileFingerprint = null;
     notifyListeners();
   }
+
+  bool _isCurrent(int generation) =>
+      generation == _generation && _authGeneration == _sessionGeneration();
 
   void _scheduleRolesPreload() {
     unawaited(

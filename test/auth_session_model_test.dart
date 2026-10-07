@@ -39,7 +39,8 @@ void main() {
         await tempDir.delete(recursive: true);
       });
 
-      final sensitiveStorage = SensitiveStorageService();
+      SensitiveStorageService.resetForTest();
+      final sensitiveStorage = SensitiveStorageService()..beginSession();
       final mitglieder = await sensitiveStorage.openEncryptedStringBox(
         'hitobito_people_box',
       );
@@ -91,10 +92,8 @@ void main() {
       await model.logout();
 
       expect(model.state, AuthState.signedOut);
-      final mitgliederNachher = await sensitiveStorage.openEncryptedStringBox(
-        'hitobito_people_box',
-      );
-      expect(mitgliederNachher.get('person-1'), isNull);
+      expect(await Hive.boxExists('hitobito_people_box'), isFalse);
+      expect(sensitiveStorage.isSessionOpen, isFalse);
       expect(await verlauf.loadForLayer(31), eintraege);
     },
     timeout: const Timeout(Duration(seconds: 5)),
@@ -962,7 +961,7 @@ void main() {
   );
 
   test(
-    'interaktiver relogin mit Benutzerwechsel verwirft altes Profil und alten Sync-Stand',
+    'interaktiver relogin mit Benutzerwechsel verwirft altes Profil, alten Sync-Stand und die urspruengliche Aktion',
     () async {
       final oauthService =
           FakeOauthService(
@@ -1017,9 +1016,12 @@ void main() {
       );
 
       await model.initialize();
+      final generationVorher = model.sessionGeneration;
+      final aufgerufeneTokens = <String>[];
       final result = await model.executeRemoteAccess<String>(
         trigger: 'members_load',
         action: (session) async {
+          aufgerufeneTokens.add(session.accessToken);
           if (session.accessToken == 'stale-token') {
             throw const HitobitoPeopleException(
               'People-Anfrage fehlgeschlagen (401).',
@@ -1030,7 +1032,11 @@ void main() {
         },
       );
 
-      expect(result, 'ok');
+      // Die Aktion gehoert zum alten Konto und darf nicht mit der Session
+      // des neuen Kontos weiterlaufen.
+      expect(result, isNull);
+      expect(aufgerufeneTokens, <String>['stale-token']);
+      expect(model.sessionGeneration, isNot(generationVorher));
       expect(model.session?.principal, 'principal-new');
       expect(model.profile?.namiId, 222);
       expect(model.lastSensitiveSyncAt, isNull);

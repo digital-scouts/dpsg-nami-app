@@ -2,8 +2,21 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_ce/hive.dart';
+
+/// Ein Vorgang wollte eine sensible Box oeffnen, obwohl keine Sitzung offen
+/// ist, etwa nach Logout, Datenablauf oder Benutzerwechsel.
+class SensitiveSessionEndedException implements Exception {
+  const SensitiveSessionEndedException(this.boxName);
+
+  final String boxName;
+
+  @override
+  String toString() =>
+      'SensitiveSessionEndedException: keine offene Sitzung fuer $boxName';
+}
 
 class SensitiveStorageService {
   SensitiveStorageService({FlutterSecureStorage? secureStorage})
@@ -34,20 +47,49 @@ class SensitiveStorageService {
   static final Map<String, Future<Box<String>>> _openingStringBoxes =
       <String, Future<Box<String>>>{};
 
+  // Sensible Boxen sind nur zwischen beginSession() und endSession()
+  // erreichbar. Der Zustand ist statisch wie Hive selbst, weil ein
+  // Moduswechsel eine neue Instanz erzeugt.
+  static bool _sessionOpen = false;
+  static Future<List<int>>? _encryptionKey;
+
   final FlutterSecureStorage _secureStorage;
+
+  bool get isSessionOpen => _sessionOpen;
+
+  /// Oeffnet die Sitzung fuer sensible Boxen. Nur in einer offenen Sitzung
+  /// entsteht bei Bedarf ein neuer Verschluesselungsschluessel.
+  void beginSession() {
+    _sessionOpen = true;
+  }
+
+  /// Schliesst die Sitzung sofort. Laufende Vorgaenge koennen danach keine
+  /// sensible Box mehr oeffnen und keinen Schluessel mehr erzeugen.
+  void endSession() {
+    _sessionOpen = false;
+  }
+
+  /// Ob von einer frueheren Sitzung sensible Daten auf dem Geraet liegen.
+  /// Oeffnet nichts, damit die Pruefung selbst keine Datei anlegt.
+  Future<bool> hasLocalSensitiveData() {
+    return Hive.boxExists(secureMetaBoxName);
+  }
 
   Future<Box<String>> openSecureMetaBox() async {
     return openEncryptedStringBox(secureMetaBoxName);
   }
 
   Future<Box<String>> openEncryptedStringBox(String boxName) async {
+    _ensureSessionOpen(boxName);
     if (Hive.isBoxOpen(boxName)) {
       return Hive.box<String>(boxName);
     }
 
     final existingOpen = _openingStringBoxes[boxName];
     if (existingOpen != null) {
-      return existingOpen;
+      final box = await existingOpen;
+      _ensureSessionOpen(boxName);
+      return box;
     }
 
     late final Future<Box<String>> openFuture;
@@ -55,7 +97,9 @@ class SensitiveStorageService {
     _openingStringBoxes[boxName] = openFuture;
 
     try {
-      return await openFuture;
+      final box = await openFuture;
+      _ensureSessionOpen(boxName);
+      return box;
     } finally {
       if (identical(_openingStringBoxes[boxName], openFuture)) {
         _openingStringBoxes.remove(boxName);
@@ -64,11 +108,32 @@ class SensitiveStorageService {
   }
 
   Future<Box<String>> _openEncryptedStringBoxInternal(String boxName) async {
-    final encryptionKey = await _loadOrCreateEncryptionKey();
+    final encryptionKey = await _loadEncryptionKey();
+    _ensureSessionOpen(boxName);
     return Hive.openBox<String>(
       boxName,
       encryptionCipher: HiveAesCipher(encryptionKey),
     );
+  }
+
+  // Ein gemeinsames Future verhindert, dass parallele Erstoeffnungen zwei
+  // verschiedene Schluessel erzeugen.
+  Future<List<int>> _loadEncryptionKey() async {
+    final keyFuture = _encryptionKey ??= _loadOrCreateEncryptionKey();
+    try {
+      return await keyFuture;
+    } catch (_) {
+      if (identical(_encryptionKey, keyFuture)) {
+        _encryptionKey = null;
+      }
+      rethrow;
+    }
+  }
+
+  void _ensureSessionOpen(String boxName) {
+    if (!_sessionOpen) {
+      throw SensitiveSessionEndedException(boxName);
+    }
   }
 
   Future<void> savePrincipal(String? principal) async {
@@ -138,43 +203,64 @@ class SensitiveStorageService {
     return DateTime.tryParse(raw);
   }
 
+  // Der OAuth-Override ist Geraetekonfiguration ohne Personenbezug. Er liegt
+  // direkt im Secure Storage, damit er auch ohne Sitzung lesbar ist.
   Future<void> saveHitobitoOauthClientId(String? clientId) async {
-    final box = await openSecureMetaBox();
     if (clientId == null || clientId.isEmpty) {
-      await box.delete(_hitobitoOauthClientIdKey);
+      await _secureStorage.delete(key: _hitobitoOauthClientIdKey);
       return;
     }
-    await box.put(_hitobitoOauthClientIdKey, clientId);
+    await _secureStorage.write(key: _hitobitoOauthClientIdKey, value: clientId);
   }
 
-  Future<String?> loadHitobitoOauthClientId() async {
-    final box = await openSecureMetaBox();
-    return box.get(_hitobitoOauthClientIdKey);
+  Future<String?> loadHitobitoOauthClientId() {
+    return _secureStorage.read(key: _hitobitoOauthClientIdKey);
   }
 
   Future<void> saveHitobitoOauthClientSecret(String? clientSecret) async {
-    final box = await openSecureMetaBox();
     if (clientSecret == null || clientSecret.isEmpty) {
-      await box.delete(_hitobitoOauthClientSecretKey);
+      await _secureStorage.delete(key: _hitobitoOauthClientSecretKey);
       return;
     }
-    await box.put(_hitobitoOauthClientSecretKey, clientSecret);
+    await _secureStorage.write(
+      key: _hitobitoOauthClientSecretKey,
+      value: clientSecret,
+    );
   }
 
-  Future<String?> loadHitobitoOauthClientSecret() async {
-    final box = await openSecureMetaBox();
-    return box.get(_hitobitoOauthClientSecretKey);
+  Future<String?> loadHitobitoOauthClientSecret() {
+    return _secureStorage.read(key: _hitobitoOauthClientSecretKey);
   }
 
   Future<void> clearHitobitoOauthOverride() async {
-    final box = await openSecureMetaBox();
-    await box.delete(_hitobitoOauthClientIdKey);
-    await box.delete(_hitobitoOauthClientSecretKey);
+    await _secureStorage.delete(key: _hitobitoOauthClientIdKey);
+    await _secureStorage.delete(key: _hitobitoOauthClientSecretKey);
   }
 
   Future<void> purgeSensitiveData() async {
+    endSession();
+    final pendingKey = _encryptionKey;
+    _encryptionKey = null;
+
+    // Laufende Oeffnungen erst abwarten, sonst legen sie die Box nach dem
+    // Loeschen mit dem alten Schluessel wieder an.
+    final pendingOpens = _openingStringBoxes.values.toList();
+    _openingStringBoxes.clear();
+    for (final pending in <Future<Object?>>[...pendingOpens, ?pendingKey]) {
+      try {
+        await pending;
+      } catch (_) {
+        // Ein abgebrochener Vorgang ist hier erwartet.
+      }
+    }
+
+    await _deleteSensitiveBoxes();
+    await _secureStorage.delete(key: _encryptionKeyStorageKey);
+    await clearHitobitoOauthOverride();
+  }
+
+  Future<void> _deleteSensitiveBoxes() async {
     for (final boxName in sensitiveBoxNames) {
-      _openingStringBoxes.remove(boxName);
       if (Hive.isBoxOpen(boxName)) {
         await Hive.box<String>(boxName).close();
       }
@@ -185,8 +271,6 @@ class SensitiveStorageService {
         // Ignorieren: Box kann auf frischen Instanzen fehlen.
       }
     }
-
-    await _secureStorage.delete(key: _encryptionKeyStorageKey);
   }
 
   Future<List<int>> _loadOrCreateEncryptionKey() async {
@@ -195,6 +279,10 @@ class SensitiveStorageService {
       return base64Decode(existing);
     }
 
+    // Ohne passenden Schluessel sind vorhandene Boxen ohnehin unlesbar,
+    // etwa nach einer Wiederherstellung auf einem anderen Geraet.
+    await _deleteSensitiveBoxes();
+
     final random = Random.secure();
     final bytes = List<int>.generate(32, (_) => random.nextInt(256));
     await _secureStorage.write(
@@ -202,5 +290,12 @@ class SensitiveStorageService {
       value: base64Encode(bytes),
     );
     return bytes;
+  }
+
+  @visibleForTesting
+  static void resetForTest() {
+    _sessionOpen = false;
+    _encryptionKey = null;
+    _openingStringBoxes.clear();
   }
 }
