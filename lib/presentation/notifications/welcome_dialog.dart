@@ -201,8 +201,25 @@ class _WillkommenStepperState extends State<WillkommenStepper> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _SchrittIcon(icon: _index == 0 ? null : icon),
-                        const SizedBox(height: 20),
+                        if (_aktuell == _Schritt.highlights)
+                          Row(
+                            children: [
+                              _SchrittIcon(icon: icon, size: 40),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  t.t(titelKey),
+                                  style: theme.textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        else ...[
+                          _SchrittIcon(icon: _index == 0 ? null : icon),
+                          const SizedBox(height: 20),
+                        ],
                         if (_index == 0)
                           Text(
                             t.t('welcome_title').toUpperCase(),
@@ -212,13 +229,16 @@ class _WillkommenStepperState extends State<WillkommenStepper> {
                               letterSpacing: 0.8,
                             ),
                           ),
-                        Text(
-                          t.t(titelKey),
-                          style: theme.textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
+                        if (_aktuell != _Schritt.highlights)
+                          Text(
+                            t.t(titelKey),
+                            style: theme.textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
+                        SizedBox(
+                          height: _aktuell == _Schritt.highlights ? 8 : 12,
                         ),
-                        const SizedBox(height: 12),
                         inhalt,
                         const SizedBox(height: 16),
                       ],
@@ -361,18 +381,23 @@ class _WillkommenStepperState extends State<WillkommenStepper> {
             child: SegmentedButton<ThemeMode>(
               key: const Key('welcome-theme'),
               showSelectedIcon: false,
+              style: const ButtonStyle(
+                padding: WidgetStatePropertyAll(
+                  EdgeInsets.symmetric(horizontal: 6),
+                ),
+              ),
               segments: [
                 ButtonSegment(
                   value: ThemeMode.light,
-                  label: Text(t.t('theme_light')),
+                  label: _Einzeilig(t.t('theme_light')),
                 ),
                 ButtonSegment(
                   value: ThemeMode.dark,
-                  label: Text(t.t('theme_dark')),
+                  label: _Einzeilig(t.t('theme_dark')),
                 ),
                 ButtonSegment(
                   value: ThemeMode.system,
-                  label: Text(t.t('theme_system')),
+                  label: _Einzeilig(t.t('theme_system')),
                 ),
               ],
               selected: {_themeMode},
@@ -431,30 +456,56 @@ class _WillkommenStepperState extends State<WillkommenStepper> {
       (Icons.workspace_premium_outlined, 'qualifications'),
       (Icons.account_tree_outlined, 'layers'),
     ];
+    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _Absatz(t.t('welcome_highlights_body')),
-        const SizedBox(height: 16),
+        Text(
+          t.t('welcome_highlights_body'),
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 14),
         LayoutBuilder(
           builder: (context, constraints) {
             // Auf dem Telefon 2 Spalten (3 Zeilen), breiter 3 Spalten.
             final spalten = constraints.maxWidth >= 560 ? 3 : 2;
             const abstand = 10.0;
-            final breite =
-                (constraints.maxWidth - abstand * (spalten - 1)) / spalten;
-            return Wrap(
-              spacing: abstand,
-              runSpacing: abstand,
+            return Column(
               children: [
-                for (final (icon, key) in kacheln)
-                  SizedBox(
-                    width: breite,
-                    child: _HighlightKachel(
-                      key: Key('welcome-highlight-$key'),
-                      icon: icon,
-                      titel: t.t('welcome_highlight_${key}_title'),
-                      text: t.t('welcome_highlight_${key}_text'),
+                for (var i = 0; i < kacheln.length; i += spalten)
+                  Padding(
+                    padding: EdgeInsets.only(
+                      bottom: i + spalten < kacheln.length ? abstand : 0,
+                    ),
+                    // Gleiche Hoehe je Zeile; die Mindesthoehe haelt alle
+                    // Zeilen gleich, solange die Texte hineinpassen.
+                    child: IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          for (var j = i; j < i + spalten; j++) ...[
+                            if (j > i) const SizedBox(width: abstand),
+                            Expanded(
+                              child: j < kacheln.length
+                                  ? _HighlightKachel(
+                                      key: Key(
+                                        'welcome-highlight-${kacheln[j].$2}',
+                                      ),
+                                      icon: kacheln[j].$1,
+                                      titel: t.t(
+                                        'welcome_highlight_${kacheln[j].$2}_title',
+                                      ),
+                                      text: t.t(
+                                        'welcome_highlight_${kacheln[j].$2}_text',
+                                      ),
+                                    )
+                                  : const SizedBox.shrink(),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                   ),
               ],
@@ -464,6 +515,18 @@ class _WillkommenStepperState extends State<WillkommenStepper> {
       ],
     );
   }
+}
+
+class _Einzeilig extends StatelessWidget {
+  const _Einzeilig(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => FittedBox(
+    fit: BoxFit.scaleDown,
+    child: Text(text, maxLines: 1, softWrap: false),
+  );
 }
 
 class _Absatz extends StatelessWidget {
@@ -587,7 +650,7 @@ class _AktivierenKarte extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
       decoration: BoxDecoration(
-        color: colors.surfaceContainerHighest,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: aktiv ? gruen : Colors.transparent,
@@ -649,7 +712,7 @@ class _OptionKarte extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -709,10 +772,10 @@ class _HighlightKachel extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     return Container(
-      constraints: const BoxConstraints(minHeight: 128),
+      constraints: const BoxConstraints(minHeight: 120),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: colors.surfaceContainerHighest,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -765,9 +828,7 @@ class _Fortschritt extends StatelessWidget {
               duration: const Duration(milliseconds: 200),
               height: 4,
               decoration: BoxDecoration(
-                color: i <= aktiv
-                    ? colors.primary
-                    : colors.surfaceContainerHighest,
+                color: i <= aktiv ? colors.primary : colors.outline,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -779,34 +840,35 @@ class _Fortschritt extends StatelessWidget {
 }
 
 class _SchrittIcon extends StatelessWidget {
-  const _SchrittIcon({required this.icon});
+  const _SchrittIcon({required this.icon, this.size = 56});
 
   /// Ohne Icon (erster Schritt) erscheint die Lilie.
   final IconData? icon;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final icon = this.icon;
     return Container(
-      width: 56,
-      height: 56,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         color: icon == null ? colors.primary : colors.primaryContainer,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(size / 4),
       ),
       child: Center(
         child: icon == null
             ? SvgPicture.asset(
                 'assets/images/lilie.svg',
-                width: 34,
-                height: 34,
+                width: size * 0.6,
+                height: size * 0.6,
                 colorFilter: ColorFilter.mode(
                   colors.onPrimary,
                   BlendMode.srcIn,
                 ),
               )
-            : Icon(icon, size: 28, color: colors.onPrimaryContainer),
+            : Icon(icon, size: size / 2, color: colors.onPrimaryContainer),
       ),
     );
   }

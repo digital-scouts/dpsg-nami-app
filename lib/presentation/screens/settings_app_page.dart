@@ -303,7 +303,7 @@ class _AppSettingsRadioDot extends StatelessWidget {
         border: Border.all(
           color: selected
               ? theme.colorScheme.primary
-              : theme.colorScheme.outline,
+              : theme.colorScheme.outlineVariant,
           width: 2,
         ),
       ),
