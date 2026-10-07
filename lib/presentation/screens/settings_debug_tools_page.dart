@@ -17,6 +17,7 @@ import 'package:nami/presentation/notifications/feedback_prompt_dialog.dart';
 import 'package:nami/presentation/screens/changelog_page.dart';
 import 'package:nami/presentation/widgets/hitobito_traffic_log_view.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:wiredash/wiredash.dart';
 
 import '../../services/app_runtime_controller.dart';
@@ -714,6 +715,17 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                                   final isTraffic =
                                       _selectedLogSource ==
                                       _DebugLogSource.hitobitoTraffic;
+                                  final files = isTraffic
+                                      ? await hitobitoTrafficLogService
+                                            .resolveLogFiles(
+                                              selectionId: selectedId,
+                                            )
+                                      : await logger.resolveLogFiles(
+                                          selectionId: selectedId,
+                                        );
+                                  if (!context.mounted) {
+                                    return;
+                                  }
                                   Navigator.of(context).push(
                                     MaterialPageRoute(
                                       settings: const RouteSettings(
@@ -723,6 +735,11 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                                           ? Scaffold(
                                               appBar: AppBar(
                                                 title: Text(title),
+                                                actions: [
+                                                  _ShareLogsButton(
+                                                    files: files,
+                                                  ),
+                                                ],
                                               ),
                                               body: HitobitoTrafficLogView(
                                                 content: content,
@@ -731,6 +748,7 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                                           : _LogViewerPage(
                                               title: title,
                                               content: content,
+                                              files: files,
                                               reverseLines: false,
                                             ),
                                     ),
@@ -1743,13 +1761,47 @@ class _OauthOverrideDialogState extends State<_OauthOverrideDialog> {
   }
 }
 
+/// Teilt die angezeigten Logdateien ueber den System-Teilen-Dialog.
+class _ShareLogsButton extends StatelessWidget {
+  const _ShareLogsButton({required this.files});
+
+  final List<File> files;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    return IconButton(
+      key: const Key('debug_logs_share_button'),
+      tooltip: t.t('debug_logs_share'),
+      icon: Icon(Icons.adaptive.share),
+      onPressed: files.isEmpty
+          ? null
+          : () async {
+              // iPad braucht einen Ankerpunkt fuer das Popover.
+              final box = context.findRenderObject() as RenderBox?;
+              await SharePlus.instance.share(
+                ShareParams(
+                  files: files.map((file) => XFile(file.path)).toList(),
+                  subject: t.t('debug_logs_email_subject'),
+                  sharePositionOrigin: box == null
+                      ? null
+                      : box.localToGlobal(Offset.zero) & box.size,
+                ),
+              );
+            },
+    );
+  }
+}
+
 class _LogViewerPage extends StatefulWidget {
   final String title;
   final String content;
+  final List<File> files;
   final bool reverseLines;
   const _LogViewerPage({
     required this.title,
     required this.content,
+    this.files = const <File>[],
     this.reverseLines = true,
   });
 
@@ -1814,7 +1866,10 @@ class _LogViewerPageState extends State<_LogViewerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
+      appBar: AppBar(
+        title: Text(widget.title),
+        actions: [_ShareLogsButton(files: widget.files)],
+      ),
       body: Stack(
         children: [
           Padding(

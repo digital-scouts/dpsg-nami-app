@@ -1056,6 +1056,7 @@ class AppLocalizations {
       'debug_logs_viewer_title_all': 'Alle Logs anzeigen',
       'debug_logs_viewer_title_selected': '{selection} anzeigen',
       'debug_logs_delete': 'Logs löschen',
+      'debug_logs_share': 'Logs teilen',
       'debug_logs_deleted': 'Alle Logdateien gelöscht',
       'debug_logs_email_body':
           'Beschreibe dein Problem. Wie hat sich die App verhalten, was ist passiert? Was hättest du erwartet?',
@@ -2261,6 +2262,7 @@ class AppLocalizations {
       'debug_logs_viewer_title_all': 'View all logs',
       'debug_logs_viewer_title_selected': 'View {selection}',
       'debug_logs_delete': 'Delete logs',
+      'debug_logs_share': 'Share logs',
       'debug_logs_deleted': 'All log files deleted',
       'debug_logs_email_body':
           'Describe your issue. How did the app behave, what happened, and what did you expect?',
