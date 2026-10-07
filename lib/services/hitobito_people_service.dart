@@ -676,6 +676,13 @@ class HitobitoPeopleService {
     return _HitobitoRelationshipPayload(data: data, included: included);
   }
 
+  static const String _peopleFields =
+      'first_name,last_name,nickname,email,address_care_of,street,'
+      'housenumber,postbox,zip_code,town,country,household_key,'
+      'primary_group_id,gender,pronoun,birthday,entry_date,exit_date,'
+      'picture,updated_at,membership_number,'
+      'roles,phone_numbers,additional_emails,additional_addresses';
+
   Uri _decoratePeopleRequestUri(Uri uri) {
     final queryParameters = Map<String, String>.from(uri.queryParameters);
     var includeValue = queryParameters['include'];
@@ -688,6 +695,11 @@ class HitobitoPeopleService {
       includeValue = _mergeCsvValue(includeValue, relationship);
     }
     queryParameters['include'] = includeValue ?? '';
+    // Nur Attribute, die die App liest: Bankdaten (iban, bic, ...) und
+    // additional_information gehen so gar nicht erst ueber die Leitung.
+    // Sparse Fieldsets gelten laut JSON:API auch fuer Relationships, deshalb
+    // stehen die Sideloads mit in der Liste.
+    queryParameters['fields[people]'] = _peopleFields;
     queryParameters['fields[roles]'] =
         'created_at,updated_at,start_on,end_on,name,person_id,group_id,type,label';
     queryParameters['fields[phone_numbers]'] =
