@@ -32,6 +32,16 @@ class HitobitoGroupsDiagnosisResult {
   bool get found => brokenGroups.isNotEmpty;
 }
 
+/// Die von `_mapGroup` gelesenen Gruppenattribute. Hitobito serialisiert nur
+/// angefragte Felder; ungenutzte Attribute (Adresse, Bankdaten ...) koennen so
+/// weder die Antwort aufblaehen noch an fehlerhaften Datensaetzen die ganze
+/// Seite scheitern lassen (z.B. eine nicht numerische `zip_code`).
+const String hitobitoGroupFields =
+    'name,short_name,display_name,description,layer,parent_id,'
+    'layer_group_id,type,self_registration_url,'
+    'self_registration_require_adult_consent,archived_at,created_at,'
+    'updated_at,deleted_at';
+
 class HitobitoGroupsService {
   HitobitoGroupsService({
     required this.config,
@@ -65,23 +75,46 @@ class HitobitoGroupsService {
     Uri? nextUri = requestUri;
 
     while (nextUri != null) {
-      final effectiveRequestUri = withHitobitoListPaging(nextUri);
+      final effectiveRequestUri = withHitobitoListFilter(
+        withHitobitoListPaging(nextUri),
+        const <String, String>{'fields[groups]': hitobitoGroupFields},
+      );
       final decoded = await _fetchGroupsPage(
         requestUri: effectiveRequestUri,
         accessToken: accessToken,
       );
-      final data = decoded['data'];
-      if (data is! List) {
-        throw const HitobitoGroupsException(
-          'Groups-Antwort enthaelt keine gueltige Datensammlung.',
-        );
-      }
-
-      resources.addAll(data.whereType<Map<String, dynamic>>().map(_mapGroup));
+      resources.addAll(await _mapGroups(decoded));
       nextUri = _resolveNextUri(decoded, currentUri: effectiveRequestUri);
     }
 
     return resources;
+  }
+
+  /// Ungueltige Einzelgruppen werden uebersprungen, statt den ganzen Abruf
+  /// scheitern zu lassen.
+  Future<List<HitobitoGroupResource>> _mapGroups(
+    Map<String, dynamic> decoded,
+  ) async {
+    final data = decoded['data'];
+    if (data is! List) {
+      throw const HitobitoGroupsException(
+        'Groups-Antwort enthaelt keine gueltige Datensammlung.',
+      );
+    }
+
+    final groups = <HitobitoGroupResource>[];
+    for (final resource in data.whereType<Map<String, dynamic>>()) {
+      final group = _mapGroup(resource);
+      if (group == null) {
+        await _logger?.logWarn(
+          'hitobito_groups',
+          'Ungueltige Gruppe uebersprungen id=${resource['id']}',
+        );
+        continue;
+      }
+      groups.add(group);
+    }
+    return groups;
   }
 
   /// Übergangs-Diagnosewerkzeug: grenzt per Teile-und-herrsche über
@@ -354,7 +387,7 @@ class HitobitoGroupsService {
     return decoded;
   }
 
-  HitobitoGroupResource _mapGroup(Map<String, dynamic> resource) {
+  HitobitoGroupResource? _mapGroup(Map<String, dynamic> resource) {
     final attributes = resource['attributes'];
     final attributesMap = attributes is Map<String, dynamic>
         ? attributes
@@ -363,9 +396,7 @@ class HitobitoGroupsService {
     final id = _toInt(resource['id']);
     final name = attributesMap['name']?.toString() ?? '';
     if (id <= 0 || name.isEmpty) {
-      throw const HitobitoGroupsException(
-        'Groups-Antwort enthaelt eine ungueltige Gruppe.',
-      );
+      return null;
     }
 
     return HitobitoGroupResource(

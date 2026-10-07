@@ -68,8 +68,8 @@ class HitobitoArbeitskontextReadModelRepository
     // fuer ein Fortschritts-Readmodel pro Seite (onProgress) muessen die
     // Gruppen schon vollstaendig bekannt sein, damit
     // _extractKontextMitgliedsdaten() die Layer-Zugehoerigkeit korrekt
-    // filtern kann. Gruppen sind ueblicherweise 1-3 schnelle Requests, der
-    // Verlust der Parallelitaet dazu ist gering.
+    // filtern kann. Hitobito liefert dabei alle Gruppen der Instanz (je 1000
+    // pro Seite, nur die genutzten Felder).
     final resolvedAccessibleGroups =
         accessibleGroups ??
         await _groupsService.fetchAccessibleGroups(accessToken);
