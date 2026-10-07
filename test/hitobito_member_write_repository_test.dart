@@ -746,6 +746,61 @@ void main() {
     );
   });
 
+  group('updateMember Geburtsdatum', () {
+    HitobitoPersonResource remoteMit(DateTime? birthday) {
+      return HitobitoPersonResource(
+        id: 23,
+        firstName: 'Julia',
+        lastName: 'Keller',
+        membershipNumber: 4711,
+        birthday: birthday,
+        updatedAt: DateTime.parse('2026-04-14T09:00:00Z'),
+      );
+    }
+
+    test('sendet ein geleertes Geburtsdatum als null', () async {
+      final peopleService = _FakeHitobitoPeopleService()
+        ..remoteResource = remoteMit(DateTime(2012, 5, 4));
+      final repository = HitobitoMemberWriteRepository(
+        peopleService: peopleService,
+        logger: _FakeLoggerService(),
+      );
+      final basis = peopleService.remoteResource!.toMitglied();
+
+      await repository.updateMember(
+        accessToken: 'token-123',
+        basisMitglied: basis,
+        zielMitglied: basis.copyWith(
+          geburtsdatum: Mitglied.peoplePlaceholderDate,
+        ),
+      );
+
+      expect(peopleService.lastChangedAttributes, <String, dynamic>{
+        'birthday': null,
+      });
+    });
+
+    test('sendet nichts, wenn das Datum schon remote fehlt', () async {
+      final peopleService = _FakeHitobitoPeopleService()
+        ..remoteResource = remoteMit(null);
+      final repository = HitobitoMemberWriteRepository(
+        peopleService: peopleService,
+        logger: _FakeLoggerService(),
+      );
+      final basis = peopleService.remoteResource!.toMitglied();
+
+      await repository.updateMember(
+        accessToken: 'token-123',
+        basisMitglied: basis,
+        zielMitglied: basis.copyWith(
+          geburtsdatum: Mitglied.peoplePlaceholderDate,
+        ),
+      );
+
+      expect(peopleService.updateCallCount, 0);
+    });
+  });
+
   group('updateMember Vorbedingungen', () {
     test(
       'wirft UpdatedAtMissing ohne lokales updatedAt und fragt Remote nicht ab',

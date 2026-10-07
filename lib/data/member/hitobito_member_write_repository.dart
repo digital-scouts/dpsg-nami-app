@@ -439,10 +439,12 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
     );
     assignIfChanged('gender', remoteMitglied.gender, zielMitglied.gender);
     if (remoteMitglied.geburtsdatum != zielMitglied.geburtsdatum) {
-      attributes['birthday'] = zielMitglied.geburtsdatum
-          .toIso8601String()
-          .split('T')
-          .first;
+      // Der Platzhalter steht fuer ein geleertes Datum und geht nie als
+      // echtes Datum nach Hitobito.
+      attributes['birthday'] =
+          zielMitglied.geburtsdatum == Mitglied.peoplePlaceholderDate
+          ? null
+          : zielMitglied.geburtsdatum.toIso8601String().split('T').first;
     }
 
     final remotePrimaryEmail = _primaryEmail(remoteMitglied)?.wert;
