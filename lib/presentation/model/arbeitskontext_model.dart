@@ -565,7 +565,7 @@ class ArbeitskontextModel extends ChangeNotifier {
       _isLoadingRoles = true;
       notifyListeners();
 
-      _readModel = await _executeRemoteAccess<ArbeitskontextReadModel>(
+      final readModel = await _executeRemoteAccess<ArbeitskontextReadModel>(
         trigger: 'arbeitskontext_initialize_read_model',
         session: session,
         action: (activeSession) => _readModelRepository.refresh(
@@ -575,17 +575,20 @@ class ArbeitskontextModel extends ChangeNotifier {
           onProgress: messung.zaehleSeiten(_applyProgressReadModel),
         ),
       );
-      if (_readModel == null) {
+      if (readModel == null) {
         _letzterLauf = _SyncLauf.fehlgeschlagen(
           const ArbeitskontextSyncOhneErgebnisException('read_model'),
           StackTrace.current,
         );
+        _readModel = vorherReadModel;
+        _arbeitskontext = vorherArbeitskontext;
         _status = _arbeitskontext != null
             ? ArbeitskontextStatus.ready
             : ArbeitskontextStatus.initial;
         return;
       }
-      _arbeitskontext = _readModel?.arbeitskontext ?? _arbeitskontext;
+      _readModel = readModel;
+      _arbeitskontext = readModel.arbeitskontext;
       _status = ArbeitskontextStatus.ready;
       _letzterLauf = const _SyncLauf.remote();
       _lastMembersCount = _readModel?.mitglieder.length;
@@ -1008,7 +1011,7 @@ class ArbeitskontextModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _readModel = await _executeRemoteAccess<ArbeitskontextReadModel>(
+      final readModel = await _executeRemoteAccess<ArbeitskontextReadModel>(
         trigger: 'arbeitskontext_load_roles',
         session: session,
         allowMobileDataOverride: allowMobileDataOverride,
@@ -1017,7 +1020,9 @@ class ArbeitskontextModel extends ChangeNotifier {
           readModel: currentReadModel,
         ),
       );
-      if (_readModel == null) {
+      // Ohne Ergebnis bleibt das bisherige Read-Model stehen, statt die
+      // Liste trotz Cache zu leeren.
+      if (readModel == null) {
         await _logger.log(
           'arbeitskontext',
           'Roles-Nachladen abgebrochen: Remote-Zugriff lieferte kein '
@@ -1025,7 +1030,8 @@ class ArbeitskontextModel extends ChangeNotifier {
         );
         return false;
       }
-      _arbeitskontext = _readModel?.arbeitskontext;
+      _readModel = readModel;
+      _arbeitskontext = readModel.arbeitskontext;
       await _logger.log(
         'arbeitskontext',
         'Roles erfolgreich nachgeladen: layer=${_arbeitskontext?.aktiverLayer.id} mitglieder=${_readModel?.mitglieder.length ?? 0}',
@@ -1134,7 +1140,7 @@ class ArbeitskontextModel extends ChangeNotifier {
         _setUnauthorizedState();
         return false;
       }
-      _readModel = await _executeRemoteAccess<ArbeitskontextReadModel>(
+      final readModel = await _executeRemoteAccess<ArbeitskontextReadModel>(
         trigger: 'arbeitskontext_switch_layer_read_model',
         session: session,
         action: (activeSession) => _readModelRepository.refresh(
@@ -1143,10 +1149,12 @@ class ArbeitskontextModel extends ChangeNotifier {
           accessibleGroups: accessibleGroups,
         ),
       );
-      if (_readModel == null) {
+      if (readModel == null) {
+        // Der bisherige Layer bleibt mit seinen Daten stehen.
         return false;
       }
-      _arbeitskontext = _readModel?.arbeitskontext;
+      _readModel = readModel;
+      _arbeitskontext = readModel.arbeitskontext;
       _status = ArbeitskontextStatus.ready;
       _errorMessage = null;
       if (_arbeitskontext != null) {

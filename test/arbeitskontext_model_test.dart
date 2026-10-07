@@ -1220,6 +1220,120 @@ void main() {
     expect(triggers, contains('arbeitskontext_load_roles'));
   });
 
+  group('Remote-Zugriff ohne Ergebnis leert die Liste nicht (A-82)', () {
+    final cached = _buildReadModel(
+      aktiverLayerId: 11,
+      aktiverLayerName: 'Stamm Musterdorf',
+      verfuegbareLayer: const <ArbeitskontextLayer>[
+        ArbeitskontextLayer(id: 11, name: 'Stamm Musterdorf'),
+        ArbeitskontextLayer(id: 20, name: 'Bezirk Rhein'),
+      ],
+      mitglieder: <Mitglied>[
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '1001',
+          personId: 1,
+          vorname: 'Julia',
+          nachname: 'Keller',
+        ),
+      ],
+    );
+    final session = AuthSession(
+      accessToken: 'token-null',
+      receivedAt: DateTime(2026, 3, 31),
+    );
+    const profile = AuthProfile(
+      namiId: 101,
+      roles: <AuthProfileRole>[
+        AuthProfileRole(
+          groupId: 20,
+          groupName: 'Bezirk Rhein',
+          roleName: 'Vorstand',
+          roleClass: 'Group::Bezirk::Vorstand',
+          permissions: <String>['layer_and_below_read'],
+        ),
+      ],
+    );
+
+    /// Liefert fuer [ohneErgebnis] kein Ergebnis, wie executeRemoteAccess
+    /// bei abgebrochener Anmeldung.
+    Future<ArbeitskontextModel> modelMitCache({
+      required String ohneErgebnis,
+    }) async {
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(cached: cached),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: _FakeHitobitoGroupsService(
+          groups: const <HitobitoGroupResource>[
+            HitobitoGroupResource(id: 20, name: 'Bezirk Rhein', isLayer: true),
+            HitobitoGroupResource(
+              id: 11,
+              name: 'Stamm Musterdorf',
+              isLayer: true,
+              parentId: 20,
+            ),
+          ],
+        ),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        remoteAccessExecutor:
+            <T>({
+              required String trigger,
+              required Future<T> Function(AuthSession session) action,
+              bool forceRefresh = false,
+              bool allowMobileDataOverride = false,
+            }) async {
+              if (trigger == ohneErgebnis) {
+                return null;
+              }
+              return action(session);
+            },
+        logger: _FakeLoggerService(),
+      );
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: session,
+        profile: profile,
+      );
+      await _waitForBackgroundWork();
+      return model;
+    }
+
+    test('beim Rollen-Nachladen', () async {
+      final model = await modelMitCache(
+        ohneErgebnis: 'arbeitskontext_load_roles',
+      );
+
+      expect(await model.ensureRolesLoaded(), isFalse);
+      expect(model.readModel?.findeMitglied('1001'), isNotNull);
+    });
+
+    test('beim Refresh', () async {
+      final model = await modelMitCache(
+        ohneErgebnis: 'arbeitskontext_refresh_read_model',
+      );
+
+      await model.refreshFromRemote(session: session, profile: profile);
+
+      expect(model.readModel?.findeMitglied('1001'), isNotNull);
+      expect(model.arbeitskontext?.aktiverLayer.id, 11);
+    });
+
+    test('beim Layerwechsel bleibt der alte Layer mit Daten', () async {
+      final model = await modelMitCache(
+        ohneErgebnis: 'arbeitskontext_switch_layer_read_model',
+      );
+
+      final gewechselt = await model.switchToLayer(
+        targetLayer: const ArbeitskontextLayer(id: 20, name: 'Bezirk Rhein'),
+        session: session,
+        profile: profile,
+      );
+
+      expect(gewechselt, isFalse);
+      expect(model.arbeitskontext?.aktiverLayer.id, 11);
+      expect(model.readModel?.findeMitglied('1001'), isNotNull);
+    });
+  });
+
   test('nutzt den Remote-Access-Wrapper beim Layer-Wechsel', () async {
     final triggers = <String>[];
     final currentReadModel = _buildReadModel(
