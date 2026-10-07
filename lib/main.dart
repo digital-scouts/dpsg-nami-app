@@ -1027,6 +1027,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   Future<void> _zeigeWillkommen(BuildContext dialogContext) async {
     final appSettings = dialogContext.read<AppSettingsModel>();
     final berechtigung = dialogContext.read<BenachrichtigungsBerechtigung>();
+    final themeModel = dialogContext.read<ThemeModel>();
     final biometrie = BiometricLockService(
       logger: dialogContext.read<LoggerService>(),
     );
@@ -1048,7 +1049,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         benachrichtigungenErlaubt: benachrichtigungenErlaubt,
         analyseAktiv: appSettings.analyticsEnabled,
         keineMobilenDaten: appSettings.noMobileDataEnabled,
-        themeMode: appSettings.themeMode,
+        themeMode: themeModel.currentMode,
         // Einmal bestaetigen laesst die Systemabfrage fuer Face ID gleich
         // hier erscheinen; die Sperre greift erst nach 60 s im Hintergrund.
         onBiometrieAktivieren: () async {
@@ -1067,7 +1068,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         },
         onAnalyseAendern: appSettings.setAnalyticsEnabled,
         onKeineMobilenDatenAendern: appSettings.setNoMobileDataEnabled,
-        onThemeAendern: appSettings.setThemeMode,
+        // Wie die Einstellungsseite: ThemeModel wirkt sofort, AppSettings
+        // speichert.
+        onThemeAendern: (mode) async {
+          themeModel.setTheme(mode);
+          await appSettings.setThemeMode(mode);
+        },
         onRechtliches: () =>
             navigatorKey.currentState?.pushNamed(AppRoutes.settingsRechtliches),
         // Android kennt keinen einheitlichen Link in die App-Einstellungen.
