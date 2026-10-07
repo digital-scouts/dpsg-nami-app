@@ -4,15 +4,32 @@ import 'package:intl/intl.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/logger_service.dart';
 import '../theme/status_farben.dart';
+import 'log_ausschnitt.dart';
 
 /// Lesbare Ansicht des App-Logs: neueste Eintraege oben, nach Tagen
 /// getrennt, Warnungen und Fehler farbig markiert. `key=value`-Paare stehen
 /// als Text mit grauen Schluesseln, Folgezeilen (Stacktraces) sind
 /// eingeklappt.
 class AppLogView extends StatefulWidget {
-  const AppLogView({super.key, required this.content, this.nowProvider});
+  const AppLogView({
+    super.key,
+    required this.content,
+    this.nowProvider,
+    this.zeitfenster = LogZeitfenster.alles,
+    this.zeitraumAuswahl,
+    this.onAusschnitt,
+  });
 
   final String content;
+
+  /// Nur Eintraege in diesem Zeitfenster sind sichtbar.
+  final LogZeitfenster zeitfenster;
+
+  /// Bedienelement fuer den Zeitraum, rechts neben der Suche.
+  final Widget? zeitraumAuswahl;
+
+  /// Meldet den sichtbaren Ausschnitt, sobald er sich aendert.
+  final ValueChanged<LogAusschnitt>? onAusschnitt;
 
   /// Fuer „Heute“ und „Gestern“; in Tests fest.
   final DateTime Function()? nowProvider;
@@ -30,6 +47,7 @@ class _AppLogViewState extends State<AppLogView> {
   bool _ohneRoutine = false;
   String _suche = '';
   final Set<int> _offen = <int>{};
+  LogAusschnitt? _gemeldet;
 
   @override
   void initState() {
@@ -50,6 +68,9 @@ class _AppLogViewState extends State<AppLogView> {
       AppLogEntry.parseAll(content).reversed.toList(growable: false);
 
   bool _passt(AppLogEntry entry) {
+    if (!widget.zeitfenster.enthaelt(entry.timestamp)) {
+      return false;
+    }
     if (_nurProbleme && !entry.isProblem) {
       return false;
     }
@@ -69,7 +90,12 @@ class _AppLogViewState extends State<AppLogView> {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final problemAnzahl = _entries.where((entry) => entry.isProblem).length;
+    final imZeitfenster = _entries
+        .where((entry) => widget.zeitfenster.enthaelt(entry.timestamp))
+        .toList(growable: false);
+    final problemAnzahl = imZeitfenster
+        .where((entry) => entry.isProblem)
+        .length;
 
     final items = <Object>[];
     DateTime? tag;
@@ -86,17 +112,28 @@ class _AppLogViewState extends State<AppLogView> {
       }
       items.add(index);
     }
+    _melde(t, items);
 
     final kopf = <Widget>[
-      TextField(
-        key: const Key('applog_search'),
-        decoration: InputDecoration(
-          hintText: t.t('debug_applog_search'),
-          prefixIcon: const Icon(Icons.search),
-          isDense: true,
-          border: const OutlineInputBorder(),
-        ),
-        onChanged: (value) => setState(() => _suche = value.trim()),
+      Row(
+        children: [
+          Expanded(
+            child: TextField(
+              key: const Key('applog_search'),
+              decoration: InputDecoration(
+                hintText: t.t('debug_applog_search'),
+                prefixIcon: const Icon(Icons.search),
+                isDense: true,
+                border: const OutlineInputBorder(),
+              ),
+              onChanged: (value) => setState(() => _suche = value.trim()),
+            ),
+          ),
+          if (widget.zeitraumAuswahl != null) ...[
+            const SizedBox(width: 8),
+            widget.zeitraumAuswahl!,
+          ],
+        ],
       ),
       const SizedBox(height: 8),
       Wrap(
@@ -105,7 +142,9 @@ class _AppLogViewState extends State<AppLogView> {
         children: [
           ChoiceChip(
             key: const Key('applog_filter_all'),
-            label: Text('${t.t('debug_applog_filter_all')} ${_entries.length}'),
+            label: Text(
+              '${t.t('debug_applog_filter_all')} ${imZeitfenster.length}',
+            ),
             selected: !_nurProbleme,
             onSelected: (_) => setState(() => _nurProbleme = false),
           ),
@@ -136,7 +175,7 @@ class _AppLogViewState extends State<AppLogView> {
             padding: const EdgeInsets.symmetric(vertical: 24),
             child: Text(
               t.t(
-                _entries.isEmpty
+                imZeitfenster.isEmpty
                     ? 'debug_applog_empty'
                     : 'debug_applog_empty_filtered',
               ),
@@ -182,6 +221,34 @@ class _AppLogViewState extends State<AppLogView> {
         );
       },
     );
+  }
+
+  /// Meldet den sichtbaren Ausschnitt nach dem Frame, wenn er sich
+  /// geaendert hat; `items` ist neueste zuerst.
+  void _melde(AppLocalizations t, List<Object> items) {
+    final callback = widget.onAusschnitt;
+    if (callback == null) {
+      return;
+    }
+    final sichtbar = items.whereType<int>().toList(growable: false).reversed;
+    final ausschnitt = LogAusschnitt(
+      zeilen: [for (final index in sichtbar) ..._entries[index].rawLines],
+      eintraege: sichtbar.length,
+      filter: [
+        if (_nurProbleme) t.t('debug_applog_filter_problems'),
+        if (_ohneRoutine) t.t('debug_applog_filter_hide_routine'),
+        if (_suche.isNotEmpty) '„$_suche“',
+      ],
+    );
+    if (ausschnitt == _gemeldet) {
+      return;
+    }
+    _gemeldet = ausschnitt;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        callback(ausschnitt);
+      }
+    });
   }
 
   static DateTime _tagVon(DateTime ts) => DateTime(ts.year, ts.month, ts.day);

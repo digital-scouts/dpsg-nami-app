@@ -560,6 +560,7 @@ class AppLogEntry {
     required this.level,
     required this.service,
     required this.message,
+    this.raw = '',
     this.extraLines = const <String>[],
   });
 
@@ -574,7 +575,13 @@ class AppLogEntry {
   final String level;
   final String service;
   final String message;
+
+  /// Kopfzeile wie gespeichert.
+  final String raw;
   final List<String> extraLines;
+
+  /// Kopfzeile und Folgezeilen wie gespeichert, etwa zum Teilen.
+  List<String> get rawLines => <String>[raw, ...extraLines];
 
   bool get isProblem => level == 'warn' || level == 'error';
 
@@ -586,6 +593,7 @@ class AppLogEntry {
     var level = '';
     var service = '';
     var message = '';
+    var raw = '';
     var extra = <String>[];
 
     void abschliessen() {
@@ -599,6 +607,7 @@ class AppLogEntry {
           level: level,
           service: service,
           message: message,
+          raw: raw,
           extraLines: List<String>.unmodifiable(extra),
         ),
       );
@@ -615,6 +624,7 @@ class AppLogEntry {
         level = match.group(2)!;
         service = match.group(3)!;
         message = match.group(4)!;
+        raw = line;
         extra = <String>[];
         continue;
       }

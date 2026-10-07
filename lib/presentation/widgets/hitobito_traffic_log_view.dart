@@ -6,14 +6,31 @@ import '../../l10n/app_localizations.dart';
 import '../../services/hitobito_traffic_log_service.dart';
 import '../notifications/app_snackbar.dart';
 import '../theme/status_farben.dart';
+import 'log_ausschnitt.dart';
 
 /// Lesbare Ansicht des Hitobito-Traffic-Logs: neueste Anfrage oben, Status
 /// als farbiges Kennzeichen, lange Feldlisten eingeklappt. Antippen zeigt die
 /// vollstaendige URI. Zeilen in unbekanntem Format erscheinen als Klartext.
 class HitobitoTrafficLogView extends StatefulWidget {
-  const HitobitoTrafficLogView({super.key, required this.content});
+  const HitobitoTrafficLogView({
+    super.key,
+    required this.content,
+    this.zeitfenster = LogZeitfenster.alles,
+    this.zeitraumAuswahl,
+    this.onAusschnitt,
+  });
 
   final String content;
+
+  /// Nur Anfragen in diesem Zeitfenster sind sichtbar; Zeilen ohne
+  /// Zeitstempel nur bei „Alles“.
+  final LogZeitfenster zeitfenster;
+
+  /// Bedienelement fuer den Zeitraum, rechts neben den Filtern.
+  final Widget? zeitraumAuswahl;
+
+  /// Meldet den sichtbaren Ausschnitt, sobald er sich aendert.
+  final ValueChanged<LogAusschnitt>? onAusschnitt;
 
   @override
   State<HitobitoTrafficLogView> createState() => _HitobitoTrafficLogViewState();
@@ -23,6 +40,7 @@ class _HitobitoTrafficLogViewState extends State<HitobitoTrafficLogView> {
   late List<_TrafficRow> _rows;
   bool _nurFehler = false;
   final Set<int> _offen = <int>{};
+  LogAusschnitt? _gemeldet;
 
   @override
   void initState() {
@@ -54,48 +72,70 @@ class _HitobitoTrafficLogViewState extends State<HitobitoTrafficLogView> {
     ];
   }
 
+  bool _imZeitfenster(_TrafficRow row) {
+    final entry = row.entry;
+    if (entry == null) {
+      return widget.zeitfenster.istAlles;
+    }
+    return widget.zeitfenster.enthaelt(entry.timestamp);
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final anfragen = _rows.where((row) => row.entry != null).length;
-    final fehlerAnzahl = _rows.where((row) => row.isError).length;
+    final imZeitfenster = _rows.where(_imZeitfenster).toList(growable: false);
+    final anfragen = imZeitfenster.where((row) => row.entry != null).length;
+    final fehlerAnzahl = imZeitfenster.where((row) => row.isError).length;
     final sichtbar = _nurFehler
-        ? _rows.where((row) => row.isError).toList(growable: false)
-        : _rows;
+        ? imZeitfenster.where((row) => row.isError).toList(growable: false)
+        : imZeitfenster;
     final mehrereTage =
-        _rows
+        sichtbar
             .map((row) => row.entry?.timestamp)
             .whereType<DateTime>()
             .map((ts) => DateTime(ts.year, ts.month, ts.day))
             .toSet()
             .length >
         1;
+    _melde(t, sichtbar);
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+    final kopf = Row(
       children: [
-        Wrap(
-          spacing: 8,
-          children: [
-            ChoiceChip(
-              key: const Key('traffic_filter_all'),
-              label: Text('${t.t('debug_traffic_filter_all')} $anfragen'),
-              selected: !_nurFehler,
-              onSelected: (_) => setState(() => _nurFehler = false),
-            ),
-            ChoiceChip(
-              key: const Key('traffic_filter_errors'),
-              label: Text(
-                '${t.t('debug_traffic_filter_errors')} $fehlerAnzahl',
+        Expanded(
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              ChoiceChip(
+                key: const Key('traffic_filter_all'),
+                label: Text('${t.t('debug_traffic_filter_all')} $anfragen'),
+                selected: !_nurFehler,
+                onSelected: (_) => setState(() => _nurFehler = false),
               ),
-              selected: _nurFehler,
-              onSelected: (_) => setState(() => _nurFehler = true),
-            ),
-          ],
+              ChoiceChip(
+                key: const Key('traffic_filter_errors'),
+                label: Text(
+                  '${t.t('debug_traffic_filter_errors')} $fehlerAnzahl',
+                ),
+                selected: _nurFehler,
+                onSelected: (_) => setState(() => _nurFehler = true),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 8),
-        if (sichtbar.isEmpty)
+        if (widget.zeitraumAuswahl != null) ...[
+          const SizedBox(width: 8),
+          widget.zeitraumAuswahl!,
+        ],
+      ],
+    );
+
+    if (sichtbar.isEmpty) {
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+        children: [
+          kopf,
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
             child: Text(
@@ -109,35 +149,77 @@ class _HitobitoTrafficLogViewState extends State<HitobitoTrafficLogView> {
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
-          )
-        else
-          Card(
-            margin: EdgeInsets.zero,
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              children: [
-                for (var i = 0; i < sichtbar.length; i++) ...[
-                  if (i > 0)
-                    Divider(height: 1, color: theme.colorScheme.outlineVariant),
-                  _TrafficRowTile(
-                    row: sichtbar[i],
-                    offen: _offen.contains(sichtbar[i].index),
-                    mitDatum: mehrereTage,
-                    onTap: sichtbar[i].entry == null
-                        ? null
-                        : () => setState(() {
-                            final index = sichtbar[i].index;
-                            if (!_offen.remove(index)) {
-                              _offen.add(index);
-                            }
-                          }),
-                  ),
-                ],
-              ],
+          ),
+        ],
+      );
+    }
+
+    const radius = Radius.circular(16);
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+      itemCount: sichtbar.length + 1,
+      itemBuilder: (context, position) {
+        if (position == 0) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: kopf,
+          );
+        }
+        final i = position - 1;
+        final row = sichtbar[i];
+        return Container(
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.vertical(
+              top: i == 0 ? radius : Radius.zero,
+              bottom: i == sichtbar.length - 1 ? radius : Radius.zero,
             ),
           ),
-      ],
+          child: Column(
+            children: [
+              if (i > 0)
+                Divider(height: 1, color: theme.colorScheme.outlineVariant),
+              _TrafficRowTile(
+                row: row,
+                offen: _offen.contains(row.index),
+                mitDatum: mehrereTage,
+                onTap: row.entry == null
+                    ? null
+                    : () => setState(() {
+                        if (!_offen.remove(row.index)) {
+                          _offen.add(row.index);
+                        }
+                      }),
+              ),
+            ],
+          ),
+        );
+      },
     );
+  }
+
+  /// Meldet den sichtbaren Ausschnitt nach dem Frame, wenn er sich
+  /// geaendert hat; `sichtbar` ist neueste zuerst.
+  void _melde(AppLocalizations t, List<_TrafficRow> sichtbar) {
+    final callback = widget.onAusschnitt;
+    if (callback == null) {
+      return;
+    }
+    final ausschnitt = LogAusschnitt(
+      zeilen: [for (final row in sichtbar.reversed) row.raw],
+      eintraege: sichtbar.length,
+      filter: [if (_nurFehler) t.t('debug_traffic_filter_errors')],
+    );
+    if (ausschnitt == _gemeldet) {
+      return;
+    }
+    _gemeldet = ausschnitt;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        callback(ausschnitt);
+      }
+    });
   }
 }
 
