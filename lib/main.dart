@@ -1010,18 +1010,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   Future<void> _syncArbeitskontextComplete({
     bool allowMobileDataOverride = false,
   }) async {
-    await _arbeitskontextModel.refreshFromRemote(
+    await _arbeitskontextModel.syncVollstaendig(
       session: _authModel.session,
       profile: _authModel.profile,
       allowMobileDataOverride: allowMobileDataOverride,
-      scheduleRolesPreload: false,
     );
-    final rolesLoaded = await _arbeitskontextModel.ensureRolesLoaded(
-      allowMobileDataOverride: allowMobileDataOverride,
-    );
-    if (!rolesLoaded) {
-      throw StateError('Rollen konnten nicht vollstaendig geladen werden.');
-    }
   }
 
   Future<bool> _checkForAppUpdate() async {

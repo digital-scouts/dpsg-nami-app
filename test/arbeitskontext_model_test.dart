@@ -553,8 +553,9 @@ void main() {
     );
   });
 
-  test('zeigt keinen Vollbild-Fehler, wenn der allererste Ladevorgang ueber '
-      'refreshFromRemote beim Laden der Mitglieder scheitert', () async {
+  test('zeigt den Fehlerbildschirm statt eines leeren Kontexts, wenn der '
+      'allererste Ladevorgang ueber refreshFromRemote beim Laden der '
+      'Mitglieder scheitert (A-15)', () async {
     // Viele Startup-Trigger (main.dart: _syncArbeitskontextComplete,
     // Auth-Maintenance-Timer) fuehren den allerersten Ladevorgang der
     // Session ueber refreshFromRemote statt initializeForProfile aus.
@@ -593,10 +594,9 @@ void main() {
       ),
     );
 
-    expect(model.hasError, isFalse);
-    expect(model.isReady, isTrue);
-    expect(model.arbeitskontext, isNotNull);
-    expect(model.arbeitskontext?.aktiverLayer.id, 40);
+    expect(model.hasError, isTrue);
+    expect(model.arbeitskontext, isNull);
+    expect(model.readModel, isNull);
     expect(model.errorMessage, isNotEmpty);
     expect(model.errorMessage, isNot(contains('Netzwerkfehler')));
   });

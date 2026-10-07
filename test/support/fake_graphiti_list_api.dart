@@ -43,6 +43,12 @@ class FakeGraphitiListApi {
   /// mit 500 scheitert (z.B. eine nicht numerische PLZ in `zip_code`).
   final Map<int, String> defekteGruppen = <int, String>{};
 
+  /// Pro Ressource ein Status, mit dem jeder Request scheitert.
+  final Map<String, int> dauerfehler = <String, int>{};
+
+  /// Pro Ressource die Seite, ab der die Verbindung abbricht.
+  final Map<String, int> abbruchAbSeite = <String, int>{};
+
   final List<Uri> requests = <Uri>[];
 
   late final http.Client client = MockClient(_handle);
@@ -71,6 +77,10 @@ class FakeGraphitiListApi {
       return http.Response('', 404);
     }
     final query = request.url.queryParameters;
+    final fehlerStatus = dauerfehler[typ];
+    if (fehlerStatus != null) {
+      return http.Response('<html>Fehler</html>', fehlerStatus);
+    }
 
     final seitengroesse =
         int.tryParse(query['page[size]'] ?? '') ?? standardSeitengroesse;
@@ -78,6 +88,10 @@ class FakeGraphitiListApi {
       return http.Response('{"errors":[{"title":"page size"}]}', 400);
     }
     final seite = int.tryParse(query['page[number]'] ?? '') ?? 1;
+    final abbruch = abbruchAbSeite[typ];
+    if (abbruch != null && seite >= abbruch) {
+      throw http.ClientException('Verbindung abgebrochen', request.url);
+    }
 
     final gefiltert = records.where((record) => _passt(record, query)).toList();
     final sortiert = _sortiere(gefiltert, query['sort']);

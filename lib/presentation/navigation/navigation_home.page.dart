@@ -355,20 +355,11 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
       force: true,
       trigger: 'initial_data_retry',
       allowMobileDataOverride: true,
-      syncMembers: (accessToken) async {
-        await arbeitskontextModel.refreshFromRemote(
-          session: authModel.session,
-          profile: authModel.profile,
-          allowMobileDataOverride: true,
-          scheduleRolesPreload: false,
-        );
-        final rolesLoaded = await arbeitskontextModel.ensureRolesLoaded(
-          allowMobileDataOverride: true,
-        );
-        if (!rolesLoaded) {
-          throw StateError('Rollen konnten nicht vollstaendig geladen werden.');
-        }
-      },
+      syncMembers: (accessToken) => arbeitskontextModel.syncVollstaendig(
+        session: authModel.session,
+        profile: authModel.profile,
+        allowMobileDataOverride: true,
+      ),
     );
   }
 }

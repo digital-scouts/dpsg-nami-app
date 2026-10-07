@@ -25,6 +25,29 @@ import 'nutzer_fehlermeldung.dart';
 
 enum ArbeitskontextStatus { initial, loading, ready, unauthorized, error }
 
+/// Ein Remote-Zugriff des Syncs lieferte kein Ergebnis (z.B. abgebrochene
+/// Anmeldung). Der Sync gilt dann nicht als erfolgreich.
+class ArbeitskontextSyncOhneErgebnisException implements Exception {
+  const ArbeitskontextSyncOhneErgebnisException(this.schritt);
+
+  final String schritt;
+
+  @override
+  String toString() => 'Arbeitskontext-Sync ohne Ergebnis ($schritt)';
+}
+
+/// Ausgang des letzten Lade- oder Sync-Durchlaufs.
+class _SyncLauf {
+  const _SyncLauf.ausCache() : remote = false, fehler = null, stack = null;
+  const _SyncLauf.remote() : remote = true, fehler = null, stack = null;
+  const _SyncLauf.fehlgeschlagen(Object this.fehler, this.stack)
+    : remote = true;
+
+  final bool remote;
+  final Object? fehler;
+  final StackTrace? stack;
+}
+
 enum ArbeitskontextLoadingStep { checkingLogin, loadingGroups, loadingMembers }
 
 enum ArbeitskontextLoadingStepState { waiting, loading, done }
@@ -127,6 +150,10 @@ class ArbeitskontextModel extends ChangeNotifier {
   // stillschweigend mit einem veralteten ReadModel abzubrechen.
   Future<void>? _syncInFlight;
   Future<bool>? _rolesInFlight;
+  // Wird von jedem Durchlauf hinter _syncInFlight gesetzt, damit
+  // syncVollstaendig() auch beim Warten auf einen fremden Durchlauf dessen
+  // Ausgang kennt.
+  _SyncLauf? _letzterLauf;
   // Nur waehrend des initialen Ladevorgangs (initializeForProfile ohne
   // Cache-Treffer) gesetzt, damit die UI dem Nutzer zeigen kann, welcher von
   // mehreren Schritten gerade laeuft. Hintergrund-Refreshes beeinflussen
@@ -462,6 +489,8 @@ class ArbeitskontextModel extends ChangeNotifier {
     required AuthSession? session,
     required String fingerprint,
   }) async {
+    final vorherReadModel = _readModel;
+    final vorherArbeitskontext = _arbeitskontext;
     _isSynchronizing = true;
     _status = ArbeitskontextStatus.loading;
     _errorMessage = null;
@@ -481,6 +510,7 @@ class ArbeitskontextModel extends ChangeNotifier {
           'Arbeitskontext erfolgreich aus lokalem Cache geladen: layer=${cached.arbeitskontext.aktiverLayer.id} name=${cached.arbeitskontext.aktiverLayer.name}',
         );
         _isInitialSequenceActive = true;
+        _letzterLauf = const _SyncLauf.ausCache();
         _scheduleRolesPreload();
         return;
       }
@@ -504,6 +534,10 @@ class ArbeitskontextModel extends ChangeNotifier {
                 _groupsService.fetchAccessibleGroups(activeSession.accessToken),
           );
       if (accessibleGroups == null) {
+        _letzterLauf = _SyncLauf.fehlgeschlagen(
+          const ArbeitskontextSyncOhneErgebnisException('groups'),
+          StackTrace.current,
+        );
         _status = _readModel != null
             ? ArbeitskontextStatus.ready
             : ArbeitskontextStatus.initial;
@@ -542,6 +576,10 @@ class ArbeitskontextModel extends ChangeNotifier {
         ),
       );
       if (_readModel == null) {
+        _letzterLauf = _SyncLauf.fehlgeschlagen(
+          const ArbeitskontextSyncOhneErgebnisException('read_model'),
+          StackTrace.current,
+        );
         _status = _arbeitskontext != null
             ? ArbeitskontextStatus.ready
             : ArbeitskontextStatus.initial;
@@ -549,6 +587,7 @@ class ArbeitskontextModel extends ChangeNotifier {
       }
       _arbeitskontext = _readModel?.arbeitskontext ?? _arbeitskontext;
       _status = ArbeitskontextStatus.ready;
+      _letzterLauf = const _SyncLauf.remote();
       _lastMembersCount = _readModel?.mitglieder.length;
       if (_arbeitskontext != null) {
         await _logger.log(
@@ -563,6 +602,12 @@ class ArbeitskontextModel extends ChangeNotifier {
         'arbeitskontext',
         'Arbeitskontext konnte nicht initialisiert werden: $error\n$stack',
       );
+      _letzterLauf = _SyncLauf.fehlgeschlagen(error, stack);
+      // Ein bis zum Fehler geladener Teilstand ist unvollstaendig und wird
+      // verworfen; ohne vorherigen Stand bleibt der Fehlerbildschirm mit
+      // Neuversuch.
+      _readModel = vorherReadModel;
+      _arbeitskontext = vorherArbeitskontext;
       _status = _arbeitskontext != null
           ? ArbeitskontextStatus.ready
           : ArbeitskontextStatus.error;
@@ -688,6 +733,46 @@ class ArbeitskontextModel extends ChangeNotifier {
     }
   }
 
+  /// Vollstaendiger Sync fuer AuthSessionModel.syncHitobitoData: Mitglieder
+  /// und Rollen neu laden und bei jedem Teilfehler werfen, damit der Sync
+  /// nicht als erfolgreich verbucht wird und die Datenfrist nicht verlaengert.
+  Future<void> syncVollstaendig({
+    required AuthSession? session,
+    required AuthProfile? profile,
+    bool allowMobileDataOverride = false,
+  }) async {
+    Future<void> refresh() {
+      _letzterLauf = null;
+      return refreshFromRemote(
+        session: session,
+        profile: profile,
+        allowMobileDataOverride: allowMobileDataOverride,
+        scheduleRolesPreload: false,
+      );
+    }
+
+    await refresh();
+    if (_letzterLauf?.remote == false) {
+      // Gebuendelt mit einem Start aus dem Cache, der nichts geladen hat.
+      await refresh();
+    }
+    final lauf = _letzterLauf;
+    if (lauf == null) {
+      throw const ArbeitskontextSyncOhneErgebnisException('refresh');
+    }
+    final fehler = lauf.fehler;
+    if (fehler != null) {
+      Error.throwWithStackTrace(fehler, lauf.stack ?? StackTrace.current);
+    }
+
+    final rolesLoaded = await ensureRolesLoaded(
+      allowMobileDataOverride: allowMobileDataOverride,
+    );
+    if (!rolesLoaded) {
+      throw StateError('Rollen konnten nicht vollstaendig geladen werden.');
+    }
+  }
+
   Future<void> _runRefreshFromRemote({
     required AuthSession session,
     required AuthProfile profile,
@@ -695,6 +780,10 @@ class ArbeitskontextModel extends ChangeNotifier {
     required bool scheduleRolesPreload,
   }) async {
     final previousStatus = _status;
+    // Stand vor dem Sync: Scheitert der Durchlauf, wird der zwischendurch
+    // gemischte Teilstand (_applyProgressReadModel) wieder verworfen.
+    final vorherReadModel = _readModel;
+    final vorherArbeitskontext = _arbeitskontext;
     // Viele Startup-/Maintenance-Trigger (main.dart: _syncArbeitskontextComplete,
     // Auth-Maintenance-Timer, Connectivity-Listener) fuehren den allerersten
     // Ladevorgang der Session ueber refreshFromRemote statt initializeForProfile
@@ -734,6 +823,10 @@ class ArbeitskontextModel extends ChangeNotifier {
               'Remote-Zugriff fuer Groups lieferte kein Ergebnis '
               '(siehe auth_flow-Log fuer den Grund)',
         );
+        _letzterLauf = _SyncLauf.fehlgeschlagen(
+          const ArbeitskontextSyncOhneErgebnisException('groups'),
+          StackTrace.current,
+        );
         _status = previousStatus;
         return;
       }
@@ -764,7 +857,7 @@ class ArbeitskontextModel extends ChangeNotifier {
       // zeigen.
       _isLoadingRoles = true;
       notifyListeners();
-      _readModel = await _executeRemoteAccess<ArbeitskontextReadModel>(
+      final readModel = await _executeRemoteAccess<ArbeitskontextReadModel>(
         trigger: 'arbeitskontext_refresh_read_model',
         session: session,
         allowMobileDataOverride: allowMobileDataOverride,
@@ -775,19 +868,27 @@ class ArbeitskontextModel extends ChangeNotifier {
           onProgress: messung.zaehleSeiten(_applyProgressReadModel),
         ),
       );
-      if (_readModel == null) {
+      if (readModel == null) {
         await _logger.log(
           'arbeitskontext',
           'Arbeitskontext-Refresh abgebrochen: '
               'Remote-Zugriff fuer ReadModel lieferte kein Ergebnis '
               '(siehe auth_flow-Log fuer den Grund)',
         );
+        _letzterLauf = _SyncLauf.fehlgeschlagen(
+          const ArbeitskontextSyncOhneErgebnisException('read_model'),
+          StackTrace.current,
+        );
+        _readModel = vorherReadModel;
+        _arbeitskontext = vorherArbeitskontext;
         _status = previousStatus;
         return;
       }
-      _arbeitskontext = _readModel?.arbeitskontext ?? _arbeitskontext;
+      _readModel = readModel;
+      _arbeitskontext = readModel.arbeitskontext;
       _errorMessage = null;
       _status = ArbeitskontextStatus.ready;
+      _letzterLauf = const _SyncLauf.remote();
       _lastMembersCount = _readModel?.mitglieder.length;
       if (_arbeitskontext != null) {
         await _logger.log(
@@ -809,9 +910,12 @@ class ArbeitskontextModel extends ChangeNotifier {
         'arbeitskontext',
         'Arbeitskontext-Refresh fehlgeschlagen: $error\n$stack',
       );
-      // War schon ein Kontext bekannt (entweder von vorher, oder weil dieser
-      // Durchlauf ihn bereits fruehzeitig gesetzt hat), zeigen wir keinen
-      // Vollbild-Fehler, sondern behalten die Daten mit dezentem Hinweis.
+      _letzterLauf = _SyncLauf.fehlgeschlagen(error, stack);
+      // Der bis zum Fehler geladene Teilstand ist unvollstaendig: zurueck
+      // zum Stand vor dem Sync. War vorher ein Kontext bekannt, zeigen wir
+      // keinen Vollbild-Fehler, sondern behalten die Daten mit Hinweis.
+      _readModel = vorherReadModel;
+      _arbeitskontext = vorherArbeitskontext;
       _status = _arbeitskontext != null
           ? ArbeitskontextStatus.ready
           : ArbeitskontextStatus.error;

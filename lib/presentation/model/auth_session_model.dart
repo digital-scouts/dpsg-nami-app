@@ -962,17 +962,23 @@ class AuthSessionModel extends ChangeNotifier {
         );
         return;
       }
-      await executeRemoteAccess<void>(
+      final membersSynced = await executeRemoteAccess<bool>(
         trigger: '${trigger}_members',
         forceRefresh: force,
         allowMobileDataOverride: allowMobileDataOverride,
-        action: (session) => syncMembers(session.accessToken),
+        action: (session) async {
+          await syncMembers(session.accessToken);
+          return true;
+        },
       );
-      if (_requiresInteractiveLogin) {
+      // Ohne Ergebnis (keine Sitzung, Datenfrist abgelaufen, Login noetig)
+      // wurde nichts geladen; das darf die Datenfrist nicht verlaengern.
+      if (_requiresInteractiveLogin || membersSynced != true) {
         _lastSyncAttemptResult = SyncAttemptResult.loginRequired;
         await _logger.logInfo(
           'hitobito_sync',
-          'Hitobito-Sync abgebrochen trigger=$trigger phase=members reason=login_required',
+          'Hitobito-Sync abgebrochen trigger=$trigger phase=members '
+              'reason=${_requiresInteractiveLogin ? 'login_required' : 'no_result'}',
         );
         return;
       }
@@ -1000,7 +1006,11 @@ class AuthSessionModel extends ChangeNotifier {
         'Hitobito-Sync fehlgeschlagen ($trigger): $error\n$stack',
       );
       _errorMessage ??= error.toString();
-      _lastSyncAttemptResult = _classifySyncError(error);
+      // Bricht der Mitglieder-Sync ab, weil eine Anmeldung noetig ist, zaehlt
+      // das wie bisher als Login-Pflicht und nicht als unbekannter Fehler.
+      _lastSyncAttemptResult = _requiresInteractiveLogin
+          ? SyncAttemptResult.loginRequired
+          : _classifySyncError(error);
       reportRemoteDataIssue(
         error.toString(),
         requiresInteractiveLogin: _isUnauthorized(error),

@@ -390,22 +390,11 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
       trigger: 'member_list_pull_refresh',
       allowMobileDataOverride: allowMobileDataOverride || !hasValidLocalData,
       interactiveLoginOnRequired: true,
-      syncMembers: (accessToken) async {
-        await arbeitskontextModel.refreshFromRemote(
-          session: authModel.session,
-          profile: authModel.profile,
-          allowMobileDataOverride:
-              allowMobileDataOverride || !hasValidLocalData,
-          scheduleRolesPreload: false,
-        );
-        final rolesLoaded = await arbeitskontextModel.ensureRolesLoaded(
-          allowMobileDataOverride:
-              allowMobileDataOverride || !hasValidLocalData,
-        );
-        if (!rolesLoaded) {
-          throw StateError('Rollen konnten nicht vollstaendig geladen werden.');
-        }
-      },
+      syncMembers: (accessToken) => arbeitskontextModel.syncVollstaendig(
+        session: authModel.session,
+        profile: authModel.profile,
+        allowMobileDataOverride: allowMobileDataOverride || !hasValidLocalData,
+      ),
     );
   }
 
