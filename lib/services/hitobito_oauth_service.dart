@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
@@ -58,16 +59,19 @@ class HitobitoOauthService {
     DateTime Function()? nowProvider,
     LoggerService? logger,
     HitobitoWebAuthenticator? webAuthenticator,
+    Duration revokeTimeout = const Duration(seconds: 5),
   }) : _httpClient = httpClient ?? http.Client(),
        _now = nowProvider ?? DateTime.now,
        _logger = logger,
-       _webAuthenticator = webAuthenticator ?? _flutterWebAuth;
+       _webAuthenticator = webAuthenticator ?? _flutterWebAuth,
+       _revokeTimeout = revokeTimeout;
 
   HitobitoAuthConfig config;
   final http.Client _httpClient;
   final DateTime Function() _now;
   final LoggerService? _logger;
   final HitobitoWebAuthenticator _webAuthenticator;
+  final Duration _revokeTimeout;
 
   static Future<String> _flutterWebAuth({
     required String url,
@@ -172,6 +176,53 @@ class HitobitoOauthService {
 
     final refreshed = _mapSession(tokenPayload, previous: session);
     return refreshed;
+  }
+
+  /// Widerruft die Tokens der Sitzung bei Hitobito. Weil Access- und
+  /// Refresh-Token einen gemeinsamen Datensatz bilden, reicht der
+  /// Refresh-Token. Wirft nie; liefert `true`, wenn Hitobito bestätigt hat.
+  Future<bool> revoke(AuthSession session) async {
+    final token = (session.refreshToken?.isNotEmpty ?? false)
+        ? session.refreshToken!
+        : session.accessToken;
+    final requestUri = Uri.tryParse(config.revokeUrl);
+    if (token.isEmpty || requestUri == null || config.revokeUrl.isEmpty) {
+      return false;
+    }
+    try {
+      final response = await _httpClient
+          .post(
+            requestUri,
+            headers: const <String, String>{
+              'Accept': 'application/json',
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: <String, String>{
+              'token': token,
+              'token_type_hint': token == session.refreshToken
+                  ? 'refresh_token'
+                  : 'access_token',
+              'client_id': config.clientId,
+              'client_secret': config.clientSecret,
+            },
+          )
+          .timeout(_revokeTimeout);
+      await _logger?.logHttpRequest(
+        source: 'hitobito_revoke',
+        method: 'POST',
+        uri: requestUri,
+        statusCode: response.statusCode,
+      );
+      return response.statusCode >= 200 && response.statusCode < 300;
+    } catch (error) {
+      await _logger?.logHttpRequest(
+        source: 'hitobito_revoke',
+        method: 'POST',
+        uri: requestUri,
+        error: error,
+      );
+      return false;
+    }
   }
 
   Future<AuthSession> refreshIfNeeded(
