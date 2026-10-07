@@ -145,14 +145,14 @@ void main() {
     expect(readModel.mitglieder, hasLength(personenImStamm));
     expect(readModel.qualifikationen, hasLength(personenImStamm));
     expect(readModel.efzEinsichtnahmen, hasLength(personenImStamm));
-    // Qualifikationen und EFZ ueber alle 3.000 lesbaren Personen in
-    // 20er-Seiten: je 150 Requests.
+    // Qualifikationen und EFZ ueber alle 3.000 lesbaren Personen. Vorher in
+    // 20er-Seiten je 150 Requests, mit page[size]=1000 je 3.
     expect(api.anfragenJeRessource(), <String, int>{
       'groups': 1,
       'roles': 2,
       'people': 1,
-      'efz_einsichtnahmen': 150,
-      'qualifications': 150,
+      'efz_einsichtnahmen': 3,
+      'qualifications': 3,
     });
   });
 }

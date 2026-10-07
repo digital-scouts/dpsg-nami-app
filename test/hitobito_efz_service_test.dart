@@ -4,6 +4,8 @@ import 'package:http/testing.dart';
 import 'package:nami/services/hitobito_auth_env.dart';
 import 'package:nami/services/hitobito_efz_service.dart';
 
+import 'support/fake_graphiti_list_api.dart';
+
 HitobitoAuthConfig _testConfig() => HitobitoAuthConfig.fromBaseUrl(
   clientId: 'client',
   clientSecret: 'secret',
@@ -67,7 +69,8 @@ void main() {
         requestedUris.single.queryParameters['filter[person_id][eq]'],
         '23',
       );
-      expect(requestedUris.single.queryParameters['sort'], '-issued_on');
+      expect(requestedUris.single.queryParameters['sort'], 'id');
+      expect(requestedUris.single.queryParameters['page[size]'], '1000');
       expect(requestHeaders['Authorization'], 'Bearer token-123');
     },
   );
@@ -126,6 +129,39 @@ void main() {
     expect(result, hasLength(2));
     expect(requestedUris, hasLength(2));
   });
+
+  test(
+    'blaettert mit eindeutiger Sortierung und grossen Seiten, damit bei '
+    'wechselnder Reihenfolge nichts fehlt oder doppelt kommt (A-90)',
+    () async {
+      // Viele Eintraege mit gleichem Ausstellungsdatum: nach issued_on allein
+      // waere die Reihenfolge an den Seitengrenzen nicht eindeutig.
+      final api = FakeGraphitiListApi(instabileReihenfolge: true)
+        ..setze('efz_einsichtnahmen', <GraphitiRecord>[
+          for (var id = 1; id <= 2500; id++)
+            GraphitiRecord(
+              id: id,
+              attributes: <String, dynamic>{
+                'person_id': id,
+                'issued_on': '2024-01-15',
+              },
+            ),
+        ]);
+
+      final result = await HitobitoEfzService(
+        config: _testConfig(),
+        httpClient: api.client,
+      ).fetchAlleEfzEinsichtnahmen('token-123');
+
+      expect(result.map((eintrag) => eintrag.id).toSet(), hasLength(2500));
+      expect(result, hasLength(2500));
+      expect(api.requests, hasLength(3));
+      for (final uri in api.requests) {
+        expect(uri.queryParameters['sort'], 'id');
+        expect(uri.queryParameters['page[size]'], '1000');
+      }
+    },
+  );
 
   test(
     'liefert die PDF-Bytes des Efz-Antrags bei erfolgreicher Antwort',

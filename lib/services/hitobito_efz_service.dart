@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../domain/member/efz_einsichtnahme.dart';
 import 'hitobito_api_exception.dart';
 import 'hitobito_auth_env.dart';
+import 'hitobito_pagination.dart';
 import 'hitobito_traffic_log_service.dart';
 import 'logger_service.dart';
 
@@ -75,11 +76,15 @@ class HitobitoEfzService {
     }
 
     final resources = <EfzEinsichtnahme>[];
-    Uri? nextUri = _decorateRequestUri(requestUri, extraQueryParameters);
+    Uri? nextUri = requestUri;
 
     while (nextUri != null) {
+      final effectiveRequestUri = withHitobitoListFilter(
+        withHitobitoListPaging(nextUri),
+        extraQueryParameters,
+      );
       final decoded = await _fetchPage(
-        requestUri: nextUri,
+        requestUri: effectiveRequestUri,
         accessToken: accessToken,
       );
       final data = decoded['data'];
@@ -95,17 +100,10 @@ class HitobitoEfzService {
             .map(_mapResource)
             .whereType<EfzEinsichtnahme>(),
       );
-      nextUri = _resolveNextUri(decoded, currentUri: nextUri);
+      nextUri = _resolveNextUri(decoded, currentUri: effectiveRequestUri);
     }
 
     return resources;
-  }
-
-  Uri _decorateRequestUri(Uri uri, Map<String, String> extraQueryParameters) {
-    final queryParameters = Map<String, String>.from(uri.queryParameters);
-    queryParameters['sort'] = '-issued_on';
-    queryParameters.addAll(extraQueryParameters);
-    return uri.replace(queryParameters: queryParameters);
   }
 
   Future<Map<String, dynamic>> _fetchPage({
