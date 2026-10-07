@@ -15,6 +15,7 @@ import 'package:nami/presentation/model/member_edit_model.dart';
 import 'package:nami/presentation/notifications/app_snackbar.dart';
 import 'package:nami/presentation/notifications/feedback_prompt_dialog.dart';
 import 'package:nami/presentation/screens/changelog_page.dart';
+import 'package:nami/presentation/widgets/hitobito_traffic_log_view.dart';
 import 'package:provider/provider.dart';
 import 'package:wiredash/wiredash.dart';
 
@@ -710,16 +711,28 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                                           'debug_logs_viewer_title_selected',
                                           {'selection': selectedId},
                                         );
+                                  final isTraffic =
+                                      _selectedLogSource ==
+                                      _DebugLogSource.hitobitoTraffic;
                                   Navigator.of(context).push(
                                     MaterialPageRoute(
                                       settings: const RouteSettings(
                                         name: '/settings/debug/logs',
                                       ),
-                                      builder: (_) => _LogViewerPage(
-                                        title: title,
-                                        content: content,
-                                        reverseLines: false,
-                                      ),
+                                      builder: (_) => isTraffic
+                                          ? Scaffold(
+                                              appBar: AppBar(
+                                                title: Text(title),
+                                              ),
+                                              body: HitobitoTrafficLogView(
+                                                content: content,
+                                              ),
+                                            )
+                                          : _LogViewerPage(
+                                              title: title,
+                                              content: content,
+                                              reverseLines: false,
+                                            ),
                                     ),
                                   );
                                 },

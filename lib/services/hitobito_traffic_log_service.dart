@@ -237,3 +237,96 @@ class HitobitoTrafficLogService {
     return parts.isEmpty ? file.path : parts.last;
   }
 }
+
+/// Eine gelesene Zeile des Traffic-Logs, Gegenstueck zu
+/// [HitobitoTrafficLogService.logResponse].
+class HitobitoTrafficLogEntry {
+  const HitobitoTrafficLogEntry({
+    required this.timestamp,
+    required this.method,
+    required this.source,
+    required this.uri,
+    this.statusCode,
+    this.errorType,
+  });
+
+  static final RegExp _linePattern = RegExp(
+    r'^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\] (\S+) (\S+) (\S+) (\S+)$',
+  );
+
+  final DateTime timestamp;
+  final String method;
+  final String source;
+
+  /// Vollstaendige URI wie geschrieben, Query lesbar dekodiert.
+  final String uri;
+  final int? statusCode;
+
+  /// Typ der Exception, wenn keine Antwort ankam.
+  final String? errorType;
+
+  static HitobitoTrafficLogEntry? tryParse(String line) {
+    final match = _linePattern.firstMatch(line.trim());
+    if (match == null) {
+      return null;
+    }
+    final timestamp = DateTime.tryParse(match.group(1)!.replaceFirst(' ', 'T'));
+    if (timestamp == null) {
+      return null;
+    }
+    final status = match.group(3)!;
+    final statusCode = int.tryParse(status);
+    if (statusCode == null && !status.startsWith('exception')) {
+      return null;
+    }
+    final separator = status.indexOf(':');
+    return HitobitoTrafficLogEntry(
+      timestamp: timestamp,
+      method: match.group(2)!,
+      statusCode: statusCode,
+      errorType: statusCode != null || separator < 0
+          ? null
+          : status.substring(separator + 1),
+      source: match.group(4)!,
+      uri: match.group(5)!,
+    );
+  }
+
+  bool get isException => statusCode == null;
+
+  bool get isError => statusCode == null || statusCode! >= 400;
+
+  /// Pfad ohne Schema, Host und Query.
+  String get path {
+    final schemeEnd = uri.indexOf('://');
+    final pathStart = schemeEnd < 0 ? 0 : uri.indexOf('/', schemeEnd + 3);
+    final withoutHost = pathStart < 0 ? '/' : uri.substring(pathStart);
+    final queryStart = withoutHost.indexOf('?');
+    return queryStart < 0 ? withoutHost : withoutHost.substring(0, queryStart);
+  }
+
+  /// Query-Parameter in der Reihenfolge der URI, z. B. `page[number]=2`.
+  List<String> get queryParameters {
+    final queryStart = uri.indexOf('?');
+    if (queryStart < 0 || queryStart == uri.length - 1) {
+      return const <String>[];
+    }
+    return uri
+        .substring(queryStart + 1)
+        .split('&')
+        .where((parameter) => parameter.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  /// Parameter, die fuer die Diagnose zaehlen; lange Feldlisten
+  /// (`fields[...]`, `include`) bleiben aussen vor.
+  List<String> get relevantQueryParameters => queryParameters
+      .where((parameter) => !_isFieldList(parameter))
+      .toList(growable: false);
+
+  int get hiddenQueryParameterCount =>
+      queryParameters.length - relevantQueryParameters.length;
+
+  static bool _isFieldList(String parameter) =>
+      parameter.startsWith('fields[') || parameter.startsWith('include=');
+}

@@ -172,4 +172,57 @@ void main() {
 
     expect(await service.listLogFiles(), isEmpty);
   });
+
+  group('HitobitoTrafficLogEntry', () {
+    test('liest geschriebene Zeilen wieder ein', () async {
+      final service = HitobitoTrafficLogService(
+        logsDirectoryProvider: () async => tempDir,
+        nowProvider: () => DateTime(2026, 6, 3, 10, 0, 5),
+        maxDays: 7,
+      );
+      await service.logResponse(
+        source: 'people',
+        method: 'GET',
+        uri: Uri.parse(
+          'https://example.org/api/people?filter[primary_group_id]=12&fields[people]=first_name&include=roles',
+        ),
+        statusCode: 200,
+      );
+      await service.logResponse(
+        source: 'groups',
+        method: 'GET',
+        uri: Uri.parse('https://example.org/api/groups'),
+        error: const FormatException('kaputt'),
+      );
+
+      final lines = (await service.readLogs()).split('\n');
+      final ok = HitobitoTrafficLogEntry.tryParse(lines.first)!;
+      expect(ok.timestamp, DateTime(2026, 6, 3, 10, 0, 5));
+      expect(ok.method, 'GET');
+      expect(ok.statusCode, 200);
+      expect(ok.isError, isFalse);
+      expect(ok.source, 'people');
+      expect(ok.path, '/api/people');
+      expect(ok.relevantQueryParameters, <String>[
+        'filter[primary_group_id]=12',
+      ]);
+      expect(ok.hiddenQueryParameterCount, 2);
+
+      final fehler = HitobitoTrafficLogEntry.tryParse(lines.last)!;
+      expect(fehler.statusCode, isNull);
+      expect(fehler.errorType, 'FormatException');
+      expect(fehler.isError, isTrue);
+      expect(fehler.queryParameters, isEmpty);
+    });
+
+    test('liefert null fuer fremde Zeilen', () {
+      expect(HitobitoTrafficLogEntry.tryParse('===== datei ====='), isNull);
+      expect(
+        HitobitoTrafficLogEntry.tryParse(
+          '[2026-06-03 10:00:00] GET abc people https://example.org/api',
+        ),
+        isNull,
+      );
+    });
+  });
 }
