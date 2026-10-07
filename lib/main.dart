@@ -775,7 +775,11 @@ Future<void> _startApp({
           value: namiAiChatHistoryRepository,
         ),
       ],
-      child: const MyApp(),
+      // Ueber MyApp, damit dieser Observer vor dem des Navigators kommt.
+      child: AppSperreZurueckTaste(
+        gesperrt: () => authModel.state == AuthState.unlockRequired,
+        child: const MyApp(),
+      ),
     ),
   );
   unawaited(runStartupInitialization());
@@ -1499,8 +1503,19 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 final content = Stack(
                   fit: StackFit.expand,
                   children: [
-                    ?child,
+                    if (child != null)
+                      AppGesperrterInhalt(
+                        gesperrt: authModel.state == AuthState.unlockRequired,
+                        child: child,
+                      ),
                     const AppLockOverlay(),
+                    AppSichtschutz(
+                      aktiv:
+                          !_isDemo &&
+                          context.select<AppSettingsModel, bool>(
+                            (settings) => settings.biometricLockEnabled,
+                          ),
+                    ),
                     GlobalLoadingTopBar(
                       active: isGlobalLoading,
                       immediate: useImmediateFeedback,

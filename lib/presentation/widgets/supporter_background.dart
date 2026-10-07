@@ -11,6 +11,7 @@ class SupporterBackground extends StatefulWidget {
     required this.background,
     this.child,
     this.stillFrameSeconds = 12,
+    this.maxSceneHeight = SupporterBackgroundPainter.defaultMaxSceneHeight,
   });
 
   final AppearanceBackgroundId background;
@@ -18,6 +19,9 @@ class SupporterBackground extends StatefulWidget {
 
   /// Zeitpunkt des Standbilds bei reduzierter Bewegung.
   final double stillFrameSeconds;
+
+  /// Hoehe, bis zu der die Szene mitwaechst; darueber folgt Himmel.
+  final double maxSceneHeight;
 
   @override
   State<SupporterBackground> createState() => _SupporterBackgroundState();
@@ -66,6 +70,7 @@ class _SupporterBackgroundState extends State<SupporterBackground>
               background: widget.background,
               dark: dark,
               seconds: seconds,
+              maxSceneHeight: widget.maxSceneHeight,
             ),
             child: child,
           );

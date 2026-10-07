@@ -1816,9 +1816,11 @@ void main() {
       FakeBiometricLockService biometrie,
       FakeSensitiveStorageService storage,
       void Function(Duration) vorspulen,
+      void Function(Duration) wanduhrVerstellen,
     })
     gesperrtesModell() {
       var now = start;
+      var monoton = Duration.zero;
       final oauth = FakeOauthService(
         sessionToReturn: AuthSession(
           accessToken: 'access-token',
@@ -1855,13 +1857,20 @@ void main() {
         logger: _createLogger(),
         isAppLockEnabled: () => true,
         lockTimeout: const Duration(seconds: 60),
+        monotonicElapsed: () => monoton,
       );
       return (
         model: model,
         oauth: oauth,
         biometrie: biometrie,
         storage: storage,
-        vorspulen: (dauer) => now = now.add(dauer),
+        // Echte Zeit vergeht: Wanduhr und monotone Uhr laufen mit.
+        vorspulen: (dauer) {
+          now = now.add(dauer);
+          monoton += dauer;
+        },
+        // Nur die Wanduhr springt, etwa durch Verstellen der Uhrzeit.
+        wanduhrVerstellen: (dauer) => now = now.add(dauer),
       );
     }
 
@@ -1983,6 +1992,59 @@ void main() {
         expect(model.state, AuthState.signedIn);
       },
     );
+
+    group('manipulierte Uhr (A-18)', () {
+      Future<
+        ({
+          AuthSessionModel model,
+          FakeOauthService oauth,
+          FakeBiometricLockService biometrie,
+          FakeSensitiveStorageService storage,
+          void Function(Duration) vorspulen,
+          void Function(Duration) wanduhrVerstellen,
+        })
+      >
+      entsperrtImHintergrund() async {
+        final t = gesperrtesModell();
+        await t.model.initialize();
+        await t.model.unlock();
+        expect(t.model.state, AuthState.signedIn);
+        await t.model.onAppBackgrounded();
+        return t;
+      }
+
+      test('zurueckgestellte Uhr sperrt trotzdem', () async {
+        final t = await entsperrtImHintergrund();
+        t.vorspulen(const Duration(minutes: 5));
+        t.wanduhrVerstellen(const Duration(minutes: -10));
+
+        await t.model.onAppResumed();
+
+        expect(t.model.state, AuthState.unlockRequired);
+      });
+
+      test(
+        'Uhr knapp unter den Timeout gestellt sperrt ueber die monotone Uhr',
+        () async {
+          final t = await entsperrtImHintergrund();
+          t.vorspulen(const Duration(minutes: 5));
+          t.wanduhrVerstellen(const Duration(minutes: -4, seconds: -30));
+
+          await t.model.onAppResumed();
+
+          expect(t.model.state, AuthState.unlockRequired);
+        },
+      );
+
+      test('kurzer Wechsel ohne Manipulation sperrt nicht', () async {
+        final t = await entsperrtImHintergrund();
+        t.vorspulen(const Duration(seconds: 30));
+
+        await t.model.onAppResumed();
+
+        expect(t.model.state, AuthState.signedIn);
+      });
+    });
   });
 }
 

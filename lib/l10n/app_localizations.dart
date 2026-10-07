@@ -798,7 +798,7 @@ class AppLocalizations {
       'auth_relogin_action': 'Erneut anmelden',
       'auth_unlock_title': 'App entsperren',
       'auth_unlock_body':
-          'Bestaetige kurz deine Identitaet, um auf die lokal gespeicherten Daten zuzugreifen.',
+          'Bestätige kurz deine Identität, um auf die lokal gespeicherten Daten zuzugreifen.',
       'auth_unlock_action': 'Jetzt entsperren',
       'auth_refresh_due_title': 'Auffrischung nach 24 Stunden faellig',
       'auth_refresh_due_yes': 'Ja',

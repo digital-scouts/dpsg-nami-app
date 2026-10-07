@@ -10,5 +10,6 @@ public class MainActivity extends FlutterFragmentActivity {
   public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {
     super.configureFlutterEngine(flutterEngine);
     AppIconChannel.register(flutterEngine.getDartExecutor().getBinaryMessenger(), this);
+    SichtschutzChannel.register(flutterEngine.getDartExecutor().getBinaryMessenger(), this);
   }
 }
