@@ -1,8 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:open_file/open_file.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -14,6 +12,7 @@ import '../../../domain/qualifikation/qualifikation.dart';
 import '../../../domain/qualifikation/qualifikations_status.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../services/hitobito_efz_service.dart';
+import '../../../services/teilen_ordner.dart';
 import '../../format/date_formatters.dart';
 import '../../model/auth_session_model.dart';
 import '../../notifications/app_snackbar.dart';
@@ -319,14 +318,14 @@ class _MemberQualifikationenTabState extends State<MemberQualifikationenTab> {
   }
 
   Future<void> _oeffnePdf(List<int> bytes, {required int personId}) async {
-    final tempDir = await getTemporaryDirectory();
-    final file = File('${tempDir.path}/efz_antrag_$personId.pdf');
+    final ordner = await TeilenOrdner.verzeichnis();
+    final file = File('${ordner.path}/efz_antrag_$personId.pdf');
     await file.writeAsBytes(bytes, flush: true);
     if (!mounted) {
       return;
     }
-    final result = await OpenFile.open(file.path);
-    if (!mounted || result.type == ResultType.done) {
+    final geoeffnet = await const PdfOeffnen().oeffnen(file);
+    if (!mounted || geoeffnet) {
       return;
     }
     _meldung(

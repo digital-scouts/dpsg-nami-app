@@ -93,6 +93,7 @@ import 'presentation/notifications/app_snackbar.dart';
 import 'services/app_icon_service.dart';
 import 'services/achievement_service.dart';
 import 'services/app_mode_controller.dart';
+import 'services/teilen_ordner.dart';
 import 'services/app_reset_service.dart';
 import 'services/app_runtime_controller.dart';
 import 'services/app_startup_state_service.dart';
@@ -438,6 +439,7 @@ Future<void> _startApp({
     purgeLocalPersonalData: () async {
       await SharedPrefsAddressMapLocationRepository().clearAll();
       await mapTileCacheService.deleteRoot();
+      await TeilenOrdner.leeren();
     },
     onPreferredLanguageChanged: (languageCode) async {
       final normalized = AuthProfile.normalizeLanguageCode(languageCode);
@@ -783,6 +785,7 @@ Future<void> _startApp({
     ),
   );
   unawaited(runStartupInitialization());
+  unawaited(TeilenOrdner.leeren());
 }
 
 class MyApp extends StatefulWidget {
