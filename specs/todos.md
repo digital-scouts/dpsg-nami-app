@@ -80,6 +80,8 @@ Gesammelt am 2026-10-01, jeweils mit Kurzbefund. Jede Stufe wird vor der Umsetzu
   | zusätzlich serverseitig auf den Layer gefiltert | 3–4 s |
 
 - Seit dem Filter fragt die App Personen und Rollen nur noch für den aktiven Layer ab, mit `filter[group_id]`, `filter[primary_group_id]`, `filter[id]` und `filter[person_id]`. ID-Listen gehen in parallelen Blöcken zu je 200 raus.
+- Qualifikationen und EFZ-Einsichtnahmen laufen genauso über `filter[person_id]` in 200er-Blöcken, mit `page[size]=1000` und `sort=id`. Vorher kamen sie für alle lesbaren Personen in 20er-Seiten. `test/sync_last_test.dart` hält die Request-Zahl fest.
+- `/api/groups` lädt weiter alle Gruppen der Instanz, aber nur mit den genutzten Feldern (`fields[groups]`). Scheitert eine Seite mit 500, lädt die App in ID-Blöcken um die defekte Gruppe herum.
 - Der größte Stamm hat ca. 377 Mitglieder, bei etwa 25 ms Serverzeit pro Person sind das 2 parallele Blöcke. Dort noch einmal messen.
 - `fields[people]` beschränkt die Personenabrufe auf die Attribute, die die App nutzt, und auf die Sideload-Relationships. Bankdaten und `additional_information` werden nicht mehr geladen.
 - Delta-Sync, Befunde zur API (Hitobito-Core):
