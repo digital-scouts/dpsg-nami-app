@@ -683,6 +683,39 @@ void main() {
     expect(updatePersonBody['data']['attributes']['birthday'], isNull);
   });
 
+  test('setzt ohne Haupt-E-Mail keine Zusatz-E-Mail als email', () async {
+    final requests = <http.Request>[];
+    final client = MockClient((request) async {
+      requests.add(request);
+      return http.Response('', 204);
+    });
+    final service = HitobitoPeopleService(
+      config: testHitobitoAuthConfig,
+      httpClient: client,
+    );
+
+    final mitglied = Mitglied(
+      personId: 23,
+      mitgliedsnummer: '4711',
+      vorname: 'Julia',
+      nachname: 'Keller',
+      geburtsdatum: DateTime(2012, 5, 4),
+      eintrittsdatum: DateTime(2020, 5, 1),
+      emailAdressen: const <MitgliedKontaktEmail>[
+        MitgliedKontaktEmail(
+          additionalEmailId: 31,
+          wert: 'eltern@example.org',
+          label: 'E-Mail Vertretungsberechtigte/r',
+        ),
+      ],
+    );
+
+    await service.updatePerson('token-123', mitglied: mitglied);
+
+    final body = jsonDecode(requests.single.body) as Map<String, dynamic>;
+    expect(body['data']['attributes']['email'], isNull);
+  });
+
   test('haelt den HTTP-Status bei 401 aus dem People-Endpoint fest', () async {
     final client = MockClient((_) async => http.Response('Unauthorized', 401));
     final service = HitobitoPeopleService(

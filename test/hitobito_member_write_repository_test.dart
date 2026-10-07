@@ -709,6 +709,43 @@ void main() {
     );
   });
 
+  group('updateMember Stammdaten ohne Aenderung', () {
+    test(
+      'sendet bei Person ohne Haupt-E-Mail mit Zusatz-E-Mail keinen PUT',
+      () async {
+        final peopleService = _FakeHitobitoPeopleService()
+          ..remoteResource = HitobitoPersonResource(
+            id: 23,
+            firstName: 'Julia',
+            lastName: 'Keller',
+            membershipNumber: 4711,
+            updatedAt: DateTime.parse('2026-04-14T09:00:00Z'),
+            emailAdressen: const <MitgliedKontaktEmail>[
+              MitgliedKontaktEmail(
+                additionalEmailId: 31,
+                wert: 'eltern@example.org',
+                label: 'E-Mail Vertretungsberechtigte/r',
+              ),
+            ],
+          );
+        final repository = HitobitoMemberWriteRepository(
+          peopleService: peopleService,
+          logger: _FakeLoggerService(),
+        );
+        final basis = peopleService.remoteResource!.toMitglied();
+
+        await repository.updateMember(
+          accessToken: 'token-123',
+          basisMitglied: basis,
+          zielMitglied: basis,
+        );
+
+        expect(peopleService.updateCallCount, 0);
+        expect(peopleService.lastChangedAttributes, isNull);
+      },
+    );
+  });
+
   group('updateMember Vorbedingungen', () {
     test(
       'wirft UpdatedAtMissing ohne lokales updatedAt und fragt Remote nicht ab',

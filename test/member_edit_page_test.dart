@@ -608,6 +608,50 @@ void main() {
     },
   );
 
+  testWidgets(
+    'belegt ohne Haupt-E-Mail das Feld nicht mit einer Zusatz-E-Mail vor',
+    (tester) async {
+      const elternEmail = MitgliedKontaktEmail(
+        additionalEmailId: 31,
+        wert: 'eltern@example.org',
+        label: 'E-Mail Vertretungsberechtigte/r',
+      );
+      final member = _buildMember(
+        gender: 'w',
+      ).copyWith(emailAdressen: const <MitgliedKontaktEmail>[elternEmail]);
+      final model = _RecordingMemberEditModel();
+
+      _useLargeViewport(tester);
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberEditPage(mitglied: member),
+          providers: _buildEditProviders(model),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final primaryEmailField = tester.widget<TextFormField>(
+        find.byKey(const Key('member-edit-primary-email-field')),
+      );
+      expect(primaryEmailField.controller!.text, isEmpty);
+
+      await tester.tap(find.byKey(const Key('member-edit-save-button')));
+      await tester.pumpAndSettle();
+
+      final ziel = model.submitCalls.single.zielMitglied;
+      expect(ziel.emailAdressen, member.emailAdressen);
+      final plan = MemberConflictResolver.resolve(
+        basisMitglied: member,
+        zielMitglied: ziel,
+        remoteMitglied: member,
+      );
+      expect(
+        plan.mergedMitglied.emailAdressen.where((email) => email.istPrimaer),
+        isEmpty,
+      );
+    },
+  );
+
   testWidgets('wartender Entwurf sendet die Basis des Eintrags', (
     tester,
   ) async {

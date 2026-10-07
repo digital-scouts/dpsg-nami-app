@@ -1288,7 +1288,8 @@ class _MemberEditPageState extends State<MemberEditPage> {
         return email;
       }
     }
-    return emails.isEmpty ? null : emails.first;
+    // Zusatz-E-Mails sind nie die Haupt-E-Mail, auch wenn diese fehlt.
+    return null;
   }
 
   List<String> _buildGenderItems() {
