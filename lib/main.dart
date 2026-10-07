@@ -98,6 +98,7 @@ import 'services/biometric_lock_service.dart';
 import 'services/bundesstatistik_env.dart';
 import 'services/data_expiry_notification_service.dart';
 import 'services/feedback_prompt_service.dart';
+import 'services/store_review_prompt_service.dart';
 import 'services/hitobito_auth_config_controller.dart';
 import 'services/hitobito_auth_env.dart';
 import 'services/hitobito_data_retention_policy.dart';
@@ -568,6 +569,10 @@ Future<void> _startApp({
         : SharedPrefsAchievementRepository(),
   );
   final achievementsModel = AchievementsModel(service: achievementService);
+  final storeReviewPromptService = StoreReviewPromptService(
+    logger: logger,
+    isDemo: isDemo,
+  );
   unawaited(achievementsModel.load());
   final memberEditModel = MemberEditModel(
     memberWriteRepository: memberWriteRepository,
@@ -700,6 +705,9 @@ Future<void> _startApp({
         ),
         ChangeNotifierProvider<MemberEditModel>.value(value: memberEditModel),
         Provider<AchievementService>.value(value: achievementService),
+        Provider<StoreReviewPromptService>.value(
+          value: storeReviewPromptService,
+        ),
         ChangeNotifierProvider<AchievementsModel>.value(
           value: achievementsModel,
         ),
@@ -765,6 +773,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   bool _didRunEngagementPrompt = false;
   final FeedbackPromptService _feedbackPromptService = FeedbackPromptService();
   late final AchievementService _achievementService;
+  late final StoreReviewPromptService _storeReviewPromptService;
   StreamSubscription<AchievementUnlock>? _achievementSubscription;
   final List<AchievementUnlock> _pendingAchievementUnlocks = [];
 
@@ -785,6 +794,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         .read<DataExpiryNotificationService>();
     _urgentNotificationModel = context.read<UrgentNotificationModel>();
     _achievementService = context.read<AchievementService>();
+    _storeReviewPromptService = context.read<StoreReviewPromptService>();
     _achievementSubscription = _achievementService.unlocks.listen(
       _handleAchievementUnlock,
     );
@@ -1075,6 +1085,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         if (ctx == null || !ctx.mounted) {
           return;
         }
+        // Kein System-Bewertungsdialog im selben App-Start.
+        _storeReviewPromptService.markFeedbackPromptShown();
         await runFeedbackPromptFlow(
           ctx,
           logger: logger,
