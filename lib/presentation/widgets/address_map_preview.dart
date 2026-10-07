@@ -181,10 +181,7 @@ class _AddressMapPreviewState extends State<AddressMapPreview> {
         );
     final tileCacheService =
         widget.tileCacheService ?? _resolveTileCacheService();
-    _log(
-      logger,
-      'Vorschau geladen: cacheKey=${widget.cacheKey}, wifiOnly=${widget.wifiOnlyRefresh}',
-    );
+    _log(logger, 'Vorschau geladen: wifiOnly=${widget.wifiOnlyRefresh}');
     final primary = await _resolveLocation(
       request: _AddressLocationRequest(
         addressText: widget.addressText,
