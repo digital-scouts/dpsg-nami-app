@@ -8,6 +8,16 @@ import 'package:storybook_flutter/storybook_flutter.dart';
 Story feedbackPromptDialogStory() => Story(
   name: 'App/Feedback/Feedback-Dialog',
   builder: (context) {
+    // iOS ohne "App bewerten" (nur Systemdialog erlaubt), Android mit drei
+    // gestapelten Knoepfen.
+    final platform = context.knobs.options<TargetPlatform>(
+      label: 'Plattform',
+      initial: TargetPlatform.iOS,
+      options: const [
+        Option(label: 'iOS', value: TargetPlatform.iOS),
+        Option(label: 'Android', value: TargetPlatform.android),
+      ],
+    );
     final locale = context.knobs.options<Locale>(
       label: 'Sprache',
       initial: const Locale('de'),
@@ -26,7 +36,9 @@ Story feedbackPromptDialogStory() => Story(
       ],
       supportedLocales: const [Locale('de'), Locale('en')],
       locale: locale,
-      home: const Scaffold(body: Center(child: FeedbackPromptDialog())),
+      home: Scaffold(
+        body: Center(child: FeedbackPromptDialog(platform: platform)),
+      ),
     );
   },
 );

@@ -116,6 +116,15 @@ Story achievementsPageStory() => Story(
       ],
     );
     final dark = knobs.boolean(label: 'Dunkel', initial: false);
+    // iOS: "App bewertet" offen antippbar; Android: Abzeichen entfaellt.
+    final platform = knobs.options<TargetPlatform>(
+      label: 'Plattform',
+      initial: TargetPlatform.iOS,
+      options: const [
+        Option(label: 'iOS', value: TargetPlatform.iOS),
+        Option(label: 'Android', value: TargetPlatform.android),
+      ],
+    );
 
     return _AchievementStoryApp(
       dark: dark,
@@ -124,7 +133,10 @@ Story achievementsPageStory() => Story(
         achievements: achievementSampleProgress(
           scenario,
           includePrepared: includePrepared,
+          platform: platform,
         ),
+        onRateApp: platform == TargetPlatform.iOS ? () {} : null,
+        onGiveFeedback: () {},
       ),
     );
   },
@@ -399,9 +411,11 @@ class _UnlockedPreview extends StatelessWidget {
 /// Beispiel-Fortschritt, auch fuer die Store-Szenen.
 enum AchievementSampleScenario { fresh, mixed, complete }
 
+/// Mit [platform] entfallen Erfolge, die dort nicht vorgesehen sind.
 List<AchievementProgress> achievementSampleProgress(
   AchievementSampleScenario scenario, {
   required bool includePrepared,
+  TargetPlatform? platform,
 }) {
   final base = DateTime(2026, 9, 1);
   const mixedCounts = {
@@ -417,7 +431,8 @@ List<AchievementProgress> achievementSampleProgress(
 
   return [
     for (final d in achievementCatalog)
-      if (d.available || includePrepared)
+      if ((d.available || includePrepared) &&
+          (platform == null || (d.platforms?.contains(platform) ?? true)))
         () {
           final count = switch (scenario) {
             AchievementSampleScenario.fresh => 0,

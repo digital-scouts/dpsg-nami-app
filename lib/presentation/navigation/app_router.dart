@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -9,6 +10,7 @@ import '../../domain/settings/stufen_settings.dart';
 import '../../domain/stufe/altersgrenzen.dart';
 import '../../domain/stufe/usecases/update_altersgrenzen_usecase.dart';
 import '../../l10n/app_localizations.dart';
+import '../../services/achievement_service.dart';
 import '../../services/logger_service.dart';
 import '../../services/benachrichtigungs_berechtigung.dart';
 import '../model/achievements_model.dart';
@@ -17,6 +19,7 @@ import '../model/bundesstatistik_model.dart';
 import '../model/locale_model.dart';
 import '../navigation/navigation_home.page.dart';
 import '../notifications/app_snackbar.dart';
+import '../notifications/feedback_prompt_dialog.dart';
 import '../notifications/notifications_page.dart';
 import '../screens/achievements_page.dart';
 import '../screens/bundesvergleich_page.dart';
@@ -79,6 +82,18 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
         settings: settings,
         builder: (context) => AchievementsPage(
           achievements: context.watch<AchievementsModel>().achievements,
+          // Passiver Link zur Bewertung nur auf iOS; auf Android gibt es das
+          // Abzeichen nicht.
+          onRateApp: defaultTargetPlatform == TargetPlatform.iOS
+              ? () => openAppStoreReviewPage(
+                  logger: context.read<LoggerService>(),
+                  achievements: context.read<AchievementService>(),
+                )
+              : null,
+          onGiveFeedback: () => openFeedback(
+            context,
+            achievements: context.read<AchievementService>(),
+          ),
         ),
       );
     case AppRoutes.namiAiChat:

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/data/achievements/shared_prefs_achievement_repository.dart';
 import 'package:nami/domain/achievements/achievement_definition.dart';
@@ -84,7 +85,11 @@ void main() {
   });
 
   test('einmalige Erfolge werden genau einmal freigeschaltet', () async {
-    final service = buildService();
+    final service = AchievementService(
+      repository: repository,
+      nowProvider: () => now,
+      platformProvider: () => TargetPlatform.iOS,
+    );
 
     final first = await service.record(AchievementIds.storeRating);
     final second = await service.record(AchievementIds.storeRating);
@@ -105,6 +110,30 @@ void main() {
     expect(ids, isNot(contains(AchievementIds.stufenwechselDone)));
     expect(ids, isNot(contains(AchievementIds.supporter)));
     expect(ids, contains(AchievementIds.appDays));
+  });
+
+  test('App bewertet gibt es nur auf iOS', () async {
+    AchievementService serviceOn(TargetPlatform platform) => AchievementService(
+      repository: repository,
+      nowProvider: () => now,
+      platformProvider: () => platform,
+    );
+
+    final android = serviceOn(TargetPlatform.android);
+    expect(await android.record(AchievementIds.storeRating), isEmpty);
+    final androidIds = (await android.loadAll()).map((p) => p.id);
+    expect(androidIds, isNot(contains(AchievementIds.storeRating)));
+    expect(androidIds, contains(AchievementIds.feedbackSent));
+
+    final ios = serviceOn(TargetPlatform.iOS);
+    final iosIds = (await ios.loadAll()).map((p) => p.id);
+    expect(iosIds, contains(AchievementIds.storeRating));
+    expect(
+      (await ios.loadAll())
+          .firstWhere((p) => p.id == AchievementIds.storeRating)
+          .count,
+      0,
+    );
   });
 
   test('unlocks und changes melden Freischaltungen', () async {

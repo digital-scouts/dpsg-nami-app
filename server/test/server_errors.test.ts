@@ -33,6 +33,8 @@ describe('server error handling', () => {
                     },
                     findByStammSince: async () => [],
                     findSince: async () => [],
+                    findBySender: async () => [],
+                    deleteBySender: async () => 0,
                 },
             },
         });

@@ -55,9 +55,16 @@ Neben dem Tracking nutzt die App Wiredash für Feedback und den Promoter Score. 
 ### Feedback-Dialog
 
 - erscheint frühestens 7 Tage nach der ersten Nutzung (erster angemeldeter Start), einige Sekunden nach dem Start
-- bietet „Feedback geben“ (öffnet Wiredash-Feedback), „App bewerten“ (öffnet den Store-Eintrag) und „Später“
+- iOS: bietet nur „Feedback geben“ (öffnet Wiredash-Feedback) und „Später“; Apple erlaubt aktive Bewertungsaufforderungen nur über den Systemdialog
+- Android: bietet gestapelt „App bewerten“ (öffnet das In-App-Review von Google Play, sonst den Store-Eintrag), „Feedback geben“ und „Später“; für die Bewertung gibt es kein Abzeichen
 - „Später“ oder Schließen verschiebt den Dialog um 14 Tage; insgesamt erscheint er höchstens zweimal
 - nach „Feedback geben“ oder „App bewerten“ erscheint er nicht mehr
+
+### Bewertung auf iOS
+
+- nach dem ersten manuellen Speichern einer Person fragt die App einmalig den Systemdialog an (`requestReview`), nicht im Demo-Modus und nicht im selben App-Start wie der Feedback-Dialog; ob er erscheint, entscheidet iOS
+- auf der Erfolge-Seite öffnet das offene Abzeichen „App bewertet“ die Bewertungsseite im App Store; das Abzeichen gilt danach als erreicht
+- „Mitgestalten“ ist auf beiden Plattformen antippbar und öffnet das Feedback
 - der Zustand liegt in SharedPreferences unter `feedback_prompt.*` und wird beim App-Reset gelöscht
 - in den Debug-Tools lässt sich der Dialog ohne Speicherung des Zustands erzwingen
 

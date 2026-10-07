@@ -11,10 +11,39 @@ import '../widgets/section_header.dart';
 
 /// Übersicht aller Erfolge. Rein darstellend: bekommt die bereits gefilterten
 /// Erfolge (nur verfügbare) von außen.
+///
+/// Offene Abzeichen mit Aktion sind antippbar und führen direkt dorthin:
+/// "App bewertet" über [onRateApp] zur Bewertungsseite, "Mitgestalten" über
+/// [onGiveFeedback] zum Feedback.
 class AchievementsPage extends StatelessWidget {
-  const AchievementsPage({super.key, required this.achievements});
+  const AchievementsPage({
+    super.key,
+    required this.achievements,
+    this.onRateApp,
+    this.onGiveFeedback,
+  });
 
   final List<AchievementProgress> achievements;
+  final VoidCallback? onRateApp;
+  final VoidCallback? onGiveFeedback;
+
+  /// Aktion fuer ein noch offenes Abzeichen, sonst `null`.
+  _OpenAction? _openActionFor(AchievementProgress achievement) {
+    if (achievement.isUnlocked) {
+      return null;
+    }
+    return switch (achievement.id) {
+      AchievementIds.storeRating when onRateApp != null => _OpenAction(
+        labelKey: 'achievements_store_rating_action',
+        onTap: onRateApp!,
+      ),
+      AchievementIds.feedbackSent when onGiveFeedback != null => _OpenAction(
+        labelKey: 'achievements_feedback_sent_action',
+        onTap: onGiveFeedback!,
+      ),
+      _ => null,
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,6 +97,7 @@ class AchievementsPage extends StatelessWidget {
                         _SpecialAchievementCell(
                           key: Key('achievement-special-${a.id}'),
                           achievement: a,
+                          openAction: _openActionFor(a),
                           onTap: () => showAchievementDetailSheet(context, a),
                         ),
                     ],
@@ -198,22 +228,34 @@ class _AchievementsSummary extends StatelessWidget {
   }
 }
 
+class _OpenAction {
+  const _OpenAction({required this.labelKey, required this.onTap});
+
+  final String labelKey;
+  final VoidCallback onTap;
+}
+
 class _SpecialAchievementCell extends StatelessWidget {
   const _SpecialAchievementCell({
     super.key,
     required this.achievement,
+    this.openAction,
     this.onTap,
   });
 
   final AchievementProgress achievement;
+
+  /// Ersetzt beim Antippen das Detail-Sheet und zeigt einen Hinweis.
+  final _OpenAction? openAction;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final t = AppLocalizations.of(context);
+    final action = openAction;
     return InkWell(
-      onTap: onTap,
+      onTap: action?.onTap ?? onTap,
       borderRadius: BorderRadius.circular(12),
       child: SizedBox(
         width: 96,
@@ -239,6 +281,30 @@ class _SpecialAchievementCell extends StatelessWidget {
                       : theme.colorScheme.onSurface.withValues(alpha: 0.55),
                 ),
               ),
+              if (action != null) ...[
+                const SizedBox(height: 2),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        t.t(action.labelKey),
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    Icon(
+                      Icons.open_in_new,
+                      size: 12,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),

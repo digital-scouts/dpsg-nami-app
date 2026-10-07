@@ -22,6 +22,8 @@ export type SenderRepository = {
     markSuccessfulSend(senderPseudonym: string, sentAt: Date): Promise<void>;
     // Nur Zeitpunkte, ohne Pseudonym und Secret-Hash, fuer den Monatsreport.
     listActivity(): Promise<SenderActivity[]>;
+    // Loeschung auf Anfrage; true, wenn es den Sender gab.
+    delete(senderPseudonym: string): Promise<boolean>;
 };
 
 export type SenderActivity = Pick<SenderDocument, 'created_at' | 'last_successful_send_at'>;

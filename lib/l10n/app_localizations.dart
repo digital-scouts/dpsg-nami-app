@@ -477,8 +477,10 @@ class AppLocalizations {
       'welcome_highlight_layers_text':
           'Zwischen Stamm, Bezirk und Diözese wechseln.',
       'feedback_prompt_title': 'Wie gefällt dir die App?',
-      'feedback_prompt_body':
-          'Du nutzt die App jetzt seit einer Weile. Dein Feedback hilft uns, sie weiter zu verbessern – und eine Bewertung im Store hilft anderen Leitenden, die App zu finden.',
+      'feedback_prompt_body_ios':
+          'Du nutzt die App jetzt seit einer Weile. Was läuft gut, was fehlt dir? Dein Feedback hilft uns, sie weiter zu verbessern.',
+      'feedback_prompt_body_android':
+          'Du nutzt die App jetzt seit einer Weile. Dein Feedback hilft uns, sie weiter zu verbessern – und eine Bewertung im Play Store hilft anderen Leitenden, die App zu finden.',
       'feedback_prompt_feedback': 'Feedback geben',
       'feedback_prompt_rate': 'App bewerten',
       'feedback_prompt_later': 'Später',
@@ -1470,6 +1472,8 @@ class AppLocalizations {
       'achievements_store_rating_desc': 'Die App im Store bewertet',
       'achievements_feedback_sent_title': 'Mitgestalten',
       'achievements_feedback_sent_desc': 'Feedback zur App gesendet',
+      'achievements_store_rating_action': 'Jetzt bewerten',
+      'achievements_feedback_sent_action': 'Feedback geben',
       'achievements_supporter_title': 'Unterstützung',
       'achievements_supporter_desc':
           'Die Weiterentwicklung der App unterstützt',
@@ -1928,8 +1932,10 @@ class AppLocalizations {
       'welcome_highlight_layers_text':
           'Switch between Stamm, district and diocese.',
       'feedback_prompt_title': 'How do you like the app?',
-      'feedback_prompt_body':
-          'You have been using the app for a while now. Your feedback helps us improve it – and a store rating helps other leaders find the app.',
+      'feedback_prompt_body_ios':
+          'You have been using the app for a while now. What works well, what is missing? Your feedback helps us improve it.',
+      'feedback_prompt_body_android':
+          'You have been using the app for a while now. Your feedback helps us improve it – and a rating on Google Play helps other leaders find the app.',
       'feedback_prompt_feedback': 'Give feedback',
       'feedback_prompt_rate': 'Rate app',
       'feedback_prompt_later': 'Later',
@@ -2894,6 +2900,8 @@ class AppLocalizations {
       'achievements_store_rating_desc': 'Rated the app in the store',
       'achievements_feedback_sent_title': 'Shaping the app',
       'achievements_feedback_sent_desc': 'Sent feedback about the app',
+      'achievements_store_rating_action': 'Rate now',
+      'achievements_feedback_sent_action': 'Give feedback',
       'achievements_supporter_title': 'Supporter',
       'achievements_supporter_desc': 'Supported the development of the app',
     },

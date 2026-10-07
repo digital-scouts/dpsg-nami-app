@@ -40,8 +40,8 @@ window.STORE = {
       scene: 'erscheinungsbild',
       sceneDark: 'erscheinungsbild_dunkel',
       split: [46, 20],
-      headline: 'Komplett kostenlos',
-      subline: 'Alle Funktionen sind frei – hell wie dunkel. Supporter-Pakete bringen nur zusätzliche Designs.',
+      headline: 'Kostenlos im Kern',
+      subline: 'Mitglieder, Statistik und Karten sind frei. Supporter-Pakete bringen Extras und zusätzliche Designs.',
       accent: '#cc1f2f',
     },
     {
@@ -130,8 +130,8 @@ WEITERE FUNKTIONEN
 • Wechsel des Arbeitskontexts für Bezirks-, Diözesan- und Bundesebene
 • App-Sperre per Face ID oder Fingerabdruck
 
-KOSTENLOS
-Alle Funktionen der App sind kostenlos und bleiben es. Wer die Entwicklung unterstützen möchte, kann Supporter-Pakete kaufen. Sie bringen ausschließlich zusätzliche Designs wie Farbpaletten, Hintergründe, App-Icons und ein Supporter-Badge.
+KOSTENLOS IM KERN
+Mitgliederverwaltung, Statistiken, Karten und Erinnerungen sind kostenlos. Wer die Entwicklung unterstützen möchte, kann Supporter-Pakete kaufen. Sie schalten Extras frei: die Qualifikationen-Übersicht mit Erinnerungen, zusätzliche Farbpaletten und Hintergründe, App-Icons und Supporter-Badges.
 
 VORAUSSETZUNG
 Du brauchst einen Zugang zur NaMi der DPSG. Die App zeigt nur die Daten, die du auch in der NaMi sehen darfst.
