@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -177,4 +178,102 @@ class _AppSperreZurueckTasteState extends State<AppSperreZurueckTaste>
 
   @override
   Widget build(BuildContext context) => widget.child;
+}
+
+/// Sichtschutz im App-Umschalter (A-17): Bei aktiver App-Sperre verdeckt die
+/// App ihren Inhalt, sobald sie nicht mehr im Vordergrund ist. iOS übernimmt
+/// diese Fläche in den Schnappschuss; unter Android 13+ blendet das System
+/// die Vorschau zusätzlich selbst aus.
+class AppSichtschutz extends StatefulWidget {
+  const AppSichtschutz({super.key, required this.aktiv, this.plattform});
+
+  final bool aktiv;
+
+  /// Nur für Tests; sonst der Android-Kanal.
+  final AppSichtschutzPlattform? plattform;
+
+  @override
+  State<AppSichtschutz> createState() => _AppSichtschutzState();
+}
+
+class _AppSichtschutzState extends State<AppSichtschutz>
+    with WidgetsBindingObserver {
+  AppLifecycleState? _zustand = WidgetsBinding.instance.lifecycleState;
+
+  AppSichtschutzPlattform get _plattform =>
+      widget.plattform ?? AppSichtschutzPlattform.standard;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _plattform.setzen(widget.aktiv);
+  }
+
+  @override
+  void didUpdateWidget(covariant AppSichtschutz oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.aktiv != widget.aktiv) {
+      _plattform.setzen(widget.aktiv);
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    setState(() => _zustand = state);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final imHintergrund =
+        _zustand != null && _zustand != AppLifecycleState.resumed;
+    if (!widget.aktiv || !imHintergrund) {
+      return const SizedBox.shrink();
+    }
+    return Consumer<AuthSessionModel>(
+      builder: (context, authModel, _) {
+        // Die Sperre ist schon deckend; so bleibt sie auch während der
+        // Face-ID-Abfrage sichtbar.
+        if (authModel.state == AuthState.unlockRequired) {
+          return const SizedBox.shrink();
+        }
+        return const Material(
+          key: Key('app_sichtschutz'),
+          type: MaterialType.transparency,
+          child: AppSperreFlaeche(),
+        );
+      },
+    );
+  }
+}
+
+/// Plattformteil des Sichtschutzes: Unter Android 13+ blendet
+/// `setRecentsScreenshotEnabled(false)` die Vorschau im Umschalter aus.
+class AppSichtschutzPlattform {
+  const AppSichtschutzPlattform();
+
+  static const AppSichtschutzPlattform standard = AppSichtschutzPlattform();
+
+  static const MethodChannel _kanal = MethodChannel('com.namiapp/sichtschutz');
+
+  Future<void> setzen(bool aktiv) async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+      return;
+    }
+    try {
+      await _kanal.invokeMethod<void>('setzen', <String, Object>{
+        'aktiv': aktiv,
+      });
+    } on MissingPluginException {
+      // Tests und Plattformen ohne Kanal.
+    } on PlatformException {
+      // Ohne Plattformteil bleibt die Flutter-Abdeckung.
+    }
+  }
 }

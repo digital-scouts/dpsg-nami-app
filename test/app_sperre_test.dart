@@ -58,6 +58,8 @@ Future<AuthSessionModel> _gesperrtesModell() async {
 Widget _app({
   required AuthSessionModel authModel,
   AppearanceModel? appearance,
+  bool sichtschutzAktiv = false,
+  _FakePlattform? plattform,
   Future<void> Function()? onZurueck,
 }) {
   Widget app = ChangeNotifierProvider<AuthSessionModel>.value(
@@ -83,6 +85,7 @@ Widget _app({
                 child: child!,
               ),
               const AppLockOverlay(),
+              AppSichtschutz(aktiv: sichtschutzAktiv, plattform: plattform),
             ],
           ),
         ),
@@ -200,4 +203,74 @@ void main() {
       );
     });
   });
+
+  group('Sichtschutz (A-17)', () {
+    Future<AuthSessionModel> entsperrt() async {
+      final model = await _gesperrtesModell();
+      await model.unlock();
+      expect(model.state, AuthState.signedIn);
+      return model;
+    }
+
+    testWidgets('verdeckt bei aktiver Sperre, sobald die App nicht vorn ist', (
+      tester,
+    ) async {
+      final plattform = _FakePlattform();
+      await tester.pumpWidget(
+        _app(
+          authModel: await entsperrt(),
+          sichtschutzAktiv: true,
+          plattform: plattform,
+        ),
+      );
+      expect(find.byKey(const Key('app_sichtschutz')), findsNothing);
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await tester.pump();
+      expect(find.byKey(const Key('app_sichtschutz')), findsOneWidget);
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+      expect(find.byKey(const Key('app_sichtschutz')), findsNothing);
+      expect(plattform.aufrufe, [true]);
+    });
+
+    testWidgets('ohne App-Sperre bleibt die Vorschau sichtbar', (tester) async {
+      final plattform = _FakePlattform();
+      await tester.pumpWidget(
+        _app(authModel: await entsperrt(), plattform: plattform),
+      );
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await tester.pump();
+
+      expect(find.byKey(const Key('app_sichtschutz')), findsNothing);
+      expect(plattform.aufrufe, [false]);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    });
+
+    testWidgets('überlagert die Sperre nicht', (tester) async {
+      await tester.pumpWidget(
+        _app(
+          authModel: await _gesperrtesModell(),
+          sichtschutzAktiv: true,
+          plattform: _FakePlattform(),
+        ),
+      );
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await tester.pump();
+
+      expect(find.byKey(const Key('app_lock_overlay')), findsOneWidget);
+      expect(find.byKey(const Key('app_sichtschutz')), findsNothing);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    });
+  });
+}
+
+class _FakePlattform extends AppSichtschutzPlattform {
+  final List<bool> aufrufe = <bool>[];
+
+  @override
+  Future<void> setzen(bool aktiv) async => aufrufe.add(aktiv);
 }

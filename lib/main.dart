@@ -1401,6 +1401,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                         child: child,
                       ),
                     const AppLockOverlay(),
+                    AppSichtschutz(
+                      aktiv:
+                          !_isDemo &&
+                          context.select<AppSettingsModel, bool>(
+                            (settings) => settings.biometricLockEnabled,
+                          ),
+                    ),
                     GlobalLoadingTopBar(
                       active: isGlobalLoading,
                       immediate: useImmediateFeedback,
