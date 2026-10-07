@@ -29,8 +29,8 @@ Janneck Lange, privat, `dev@jannecklange.de`. Es gibt keinen Datenschutzbeauftra
 | Rechtsgrundlage | Feedback und Umfrage: Handlung der Nutzenden, berechtigtes Interesse (lit. f). Technischer Ping des SDK: berechtigtes Interesse (lit. f, § 25 Abs. 2 TDDDG `[prüfen]`). Nutzungsereignisse und Fehlerberichte: Einwilligung (lit. a, § 25 Abs. 1 TDDDG), Vorgabe aus. |
 | Betroffene | Nutzende; bei Screenshots auch Mitglieder, die darauf zu sehen sind |
 | Daten | Ping: App-Nutzungs-ID des SDK, App-Version und Build, Bundle-ID, Betriebssystem und Version, Sprache. Feedback: Text, optional E-Mail und Screenshots, Gerätemetadaten. Ereignisse: Ereignisname, Layer-IDs und -Namen, Fehlertexte, Stacktraces. |
-| Empfänger | Wiredash `[prüfen: Anbieter, Sitz, Hosting-Region, AV-Vertrag]` |
-| Drittland | `[prüfen]` |
+| Empfänger | Wiredash GmbH, Hosting auf Google Cloud Platform; AV-Vertrag in den Projekteinstellungen von Wiredash `[prüfen: abgeschlossen?]` |
+| Drittland | USA möglich (Google Cloud), laut Datenschutzerklärung von Wiredash |
 | Löschfrist | Nach den Vorgaben von Wiredash `[prüfen]`; Feedback löscht der Betreiber nach Bearbeitung `[festlegen]` |
 | TOM | Ereignisse nur mit Opt-in; Hinweis im Screenshot-Schritt, keine Mitgliederdaten aufzunehmen; Wiredash setzt keine Nutzer-ID oder E-Mail von sich aus |
 

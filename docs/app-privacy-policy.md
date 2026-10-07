@@ -35,7 +35,7 @@ Die App speichert die Daten verschlüsselt auf dem Gerät, damit sie auch offlin
 
 ## Feedback und Nutzungsanalyse (Wiredash)
 
-Die App nutzt den Dienst [Wiredash](https://wiredash.io/legal/privacy-policy).
+Die App nutzt den Dienst der [Wiredash GmbH](https://docs.wiredash.com/company/privacy). Wiredash speichert die Daten auf der Google Cloud Platform; dabei kann eine Übermittlung in die USA stattfinden.
 
 - **Technische Kennung:** Beim Start übermittelt die App höchstens alle 30 Minuten eine zufällige Kennung der Installation, App-Version, Betriebssystem und Sprache. So sehen wir, welche Versionen im Einsatz sind. Rechtsgrundlage ist unser berechtigtes Interesse an einem stabilen Betrieb (Art. 6 Abs. 1 lit. f DSGVO).
 - **Feedback und Zufriedenheitsumfrage:** nur wenn du sie selbst startest. Übermittelt werden dein Text, auf Wunsch deine E-Mail-Adresse und Screenshots sowie Gerätedaten wie Modell und Bildschirmgröße. Achte darauf, dass auf Screenshots keine Mitgliederdaten zu sehen sind, oder übermale sie. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO.
