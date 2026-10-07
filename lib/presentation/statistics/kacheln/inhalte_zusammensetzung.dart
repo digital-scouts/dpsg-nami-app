@@ -9,6 +9,7 @@ import '../../../domain/statistiks/statistik_mathe.dart';
 import '../../../domain/statistiks/zaehle_eigene_kachel_usecase.dart';
 import '../../../domain/taetigkeit/stufe.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../services/statistics_location_service.dart';
 import '../statistics_ui.dart';
 import '../statistik_farben.dart';
 import '../statistik_standorte.dart';
@@ -258,8 +259,12 @@ class StandorteKachel extends StatelessWidget {
             ),
           );
         }
+        final hinweis = aufgeloest.hinweis;
         if (aufgeloest.memberPoints.isEmpty && aufgeloest.stammPoint == null) {
-          return KachelLeer(t.t('statistics_no_locations'));
+          if (hinweis == null) {
+            return KachelLeer(t.t('statistics_no_locations'));
+          }
+          return _StandortHinweisLeer(hinweis: hinweis);
         }
         final karte = ClipRRect(
           borderRadius: BorderRadius.circular(10),
@@ -287,6 +292,7 @@ class StandorteKachel extends StatelessWidget {
               farbe: const Color(0xFF1565C0),
               text: t.t('statistics_home'),
             ),
+          if (hinweis != null) _StandortHinweisZeile(hinweis: hinweis),
         ];
         if (groesse == KachelGroesse.gross) {
           return Column(
@@ -314,6 +320,132 @@ class StandorteKachel extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+IconData _standortHinweisIcon(StandortHinweis hinweis) => switch (hinweis) {
+  StandortHinweis.keineMobilenDaten => Icons.wifi,
+  StandortHinweis.offline => Icons.cloud_off,
+  StandortHinweis.pausiert => Icons.pause_circle_outline,
+  StandortHinweis.unvollstaendig => Icons.error_outline,
+};
+
+/// Grund, warum noch kein Standort bekannt ist, mittig in der Kachel.
+class _StandortHinweisLeer extends StatelessWidget {
+  const _StandortHinweisLeer({required this.hinweis});
+
+  final StandortHinweis hinweis;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final farben = StatistikFarben.of(context);
+    final (haupt, neben) = switch (hinweis) {
+      StandortHinweis.keineMobilenDaten => (
+        'statistics_locations_wifi',
+        'statistics_locations_wifi_reason',
+      ),
+      StandortHinweis.offline => ('statistics_locations_offline', null),
+      StandortHinweis.pausiert => (
+        'statistics_locations_paused',
+        'statistics_locations_retry_later',
+      ),
+      StandortHinweis.unvollstaendig => (
+        'statistics_locations_incomplete',
+        'statistics_locations_retry_later',
+      ),
+    };
+    return Center(
+      key: const Key('standorte-hinweis-leer'),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              _standortHinweisIcon(hinweis),
+              size: 22,
+              color: farben.textGedaempft,
+            ),
+            const SizedBox(height: 6),
+            // Flexible: Bei großer Schrift kürzt der Text statt die Kachel
+            // zu sprengen.
+            Flexible(
+              child: Text(
+                t.t(haupt),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: farben.textGedaempft,
+                ),
+              ),
+            ),
+            if (neben != null) ...[
+              const SizedBox(height: 2),
+              Flexible(
+                child: Text(
+                  t.t(neben),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12, color: farben.textSchwach),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Grund für fehlende Standorte als leise Zeile unter der Legende.
+class _StandortHinweisZeile extends StatelessWidget {
+  const _StandortHinweisZeile({required this.hinweis});
+
+  final StandortHinweis hinweis;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final farben = StatistikFarben.of(context);
+    final text = t.t(switch (hinweis) {
+      StandortHinweis.keineMobilenDaten => 'statistics_locations_wifi_more',
+      StandortHinweis.offline => 'statistics_locations_offline_more',
+      StandortHinweis.pausiert => 'statistics_locations_paused',
+      StandortHinweis.unvollstaendig => 'statistics_locations_incomplete',
+    });
+    return Padding(
+      key: const Key('standorte-hinweis-zeile'),
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            _standortHinweisIcon(hinweis),
+            size: 13,
+            color: farben.textSchwach,
+          ),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11.5,
+                height: 1.3,
+                color: farben.textSchwach,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
