@@ -59,6 +59,9 @@ class PullNotificationsRepositoryImpl implements PullNotificationsRepository {
     } on NetworkAccessBlockedException {
       return cached;
     } catch (e) {
+      // Auch ein Fehlschlag zaehlt fuer das Intervall, sonst wiederholt
+      // jeder Aufruf die Fehlanfrage (A-50).
+      await local.setLastFetchAt(now);
       // Bei Fehler: Fallback auf Cache
       if (cached.isNotEmpty) return cached;
       rethrow;
@@ -77,8 +80,12 @@ class PullNotificationsRepositoryImpl implements PullNotificationsRepository {
           await local.saveNotifications(fresh);
           await local.setLastFetchAt(DateTime.now());
         })
-        .catchError((_) {
-          /* Fehler ignorieren, da nur Hintergrund */
+        .catchError((Object error) async {
+          // Nur Hintergrund: Fehler nicht melden, aber das Intervall
+          // beginnen, damit nicht jeder Aufruf erneut anfragt.
+          if (error is! NetworkAccessBlockedException) {
+            await local.setLastFetchAt(DateTime.now());
+          }
         });
   }
 

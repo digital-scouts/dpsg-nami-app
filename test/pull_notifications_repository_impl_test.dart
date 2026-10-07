@@ -7,9 +7,10 @@ import 'package:nami/core/notifications/remote_notifications_data_source.dart';
 import 'package:nami/services/logger_service.dart';
 
 class FakeRemote implements RemoteNotificationsDataSource {
-  FakeRemote(this.result);
+  FakeRemote(this.result, {this.fehler = false});
 
   final List<PullNotification> result;
+  final bool fehler;
   int fetchCalls = 0;
 
   @override
@@ -21,6 +22,9 @@ class FakeRemote implements RemoteNotificationsDataSource {
   @override
   Future<List<PullNotification>> fetch() async {
     fetchCalls++;
+    if (fehler) {
+      throw Exception('404');
+    }
     return result;
   }
 }
@@ -70,6 +74,19 @@ void main() {
     late FakeRemote remote;
     late FakeLocal local;
     late PullNotificationsRepositoryImpl repo;
+
+    test('fehlgeschlagener Abruf startet das Intervall (A-50)', () async {
+      remote = FakeRemote(const [], fehler: true);
+      local = FakeLocal(cached: const []);
+      repo = PullNotificationsRepositoryImpl(remote: remote, local: local);
+
+      await expectLater(repo.fetchNotifications(), throwsException);
+      final zweiter = await repo.fetchNotifications();
+
+      expect(remote.fetchCalls, 1);
+      expect(zweiter, isEmpty);
+      expect(local.lastFetchAt, isNotNull);
+    });
 
     test('liefert Cache und refresht im Hintergrund', () async {
       final cached = [

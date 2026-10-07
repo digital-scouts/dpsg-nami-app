@@ -105,4 +105,19 @@ void main() {
       isTrue,
     );
   });
+
+  test('lehnt URLs ohne https ab, ohne anzufragen', () async {
+    for (final url in ['', 'http://example.org/n.json', 'ftp://x/y']) {
+      final dataSource = RemoteNotificationsDataSource(url, logger: logger);
+      await expectLater(dataSource.fetch(), throwsStateError);
+    }
+    expect(
+      RemoteNotificationsDataSource.istErlaubt(
+        Uri.parse(
+          'https://digital-scouts.github.io/dpsg-nami-app/notifications.json',
+        ),
+      ),
+      isTrue,
+    );
+  });
 }

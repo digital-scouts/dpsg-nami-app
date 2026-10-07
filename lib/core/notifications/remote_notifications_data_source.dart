@@ -8,13 +8,33 @@ import 'pull_notification.dart';
 class RemoteNotificationsDataSource {
   final String url;
   final LoggerService logger;
-  RemoteNotificationsDataSource(this.url, {required this.logger});
+  final http.Client? _client;
+  final Duration _timeout;
+
+  RemoteNotificationsDataSource(
+    this.url, {
+    required this.logger,
+    http.Client? client,
+    Duration timeout = const Duration(seconds: 5),
+  }) : _client = client,
+       _timeout = timeout;
+
+  /// Nur https; http bleibt fuer lokale Tests auf Loopback erlaubt (A-50).
+  static bool istErlaubt(Uri uri) =>
+      uri.scheme == 'https' && uri.host.isNotEmpty ||
+      uri.scheme == 'http' &&
+          (uri.host == 'localhost' || uri.host == '127.0.0.1');
 
   Future<List<PullNotification>> fetch() async {
-    final uri = Uri.parse(url);
+    final uri = Uri.tryParse(url.trim());
+    if (uri == null || !istErlaubt(uri)) {
+      throw StateError('Mitteilungs-URL fehlt oder ist nicht https');
+    }
     http.Response response;
     try {
-      response = await http.get(uri);
+      final client = _client;
+      response = await (client == null ? http.get(uri) : client.get(uri))
+          .timeout(_timeout);
     } catch (error) {
       await logger.logHttpRequest(
         source: 'remote_notifications',
