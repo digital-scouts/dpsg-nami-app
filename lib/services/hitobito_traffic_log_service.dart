@@ -3,29 +3,38 @@ import 'dart:io';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'logging_env.dart';
+
 typedef HitobitoTrafficLogsDirectoryProvider = Future<Directory> Function();
 typedef HitobitoTrafficNowProvider = DateTime Function();
 
-enum HitobitoTrafficLogKind { request, response }
-
+/// Protokolliert Hitobito-Anfragen als eine Zeile je Antwort:
+/// `[2026-10-07 10:00:00] GET 200 people https://host/api/people?...`
+///
+/// Bewusst ohne Header und Bodies: Antworten enthalten Mitgliederdaten, die
+/// nicht im Klartext auf dem Geraet oder in einem Log-Export landen duerfen.
 class HitobitoTrafficLogService {
   static const String allLogsSelectionId = '__all__';
-  static const int maxFiles = 100;
-  static const Duration maxAge = Duration(days: 1);
+  static final RegExp _fileNamePattern = RegExp(
+    r'^traffic-(\d{4}-\d{2}-\d{2})\.log$',
+  );
 
   HitobitoTrafficLogService({
     HitobitoTrafficLogsDirectoryProvider? logsDirectoryProvider,
     HitobitoTrafficNowProvider? nowProvider,
+    int? maxDays,
   }) : _logsDirectoryProvider = logsDirectoryProvider,
-       _now = nowProvider ?? DateTime.now;
+       _now = nowProvider ?? DateTime.now,
+       _maxDays = maxDays;
 
   final HitobitoTrafficLogsDirectoryProvider? _logsDirectoryProvider;
   final HitobitoTrafficNowProvider _now;
-  int _sequence = 0;
-  // Parallele Requests (Sync laedt Personen, Rollen, EFZ und Qualifikationen
-  // gleichzeitig) duerfen nicht gleichzeitig aufraeumen: sonst loeschen zwei
-  // Durchlaeufe dieselbe Datei und der zweite scheitert.
-  Future<void>? _cleanupInFlight;
+  final int? _maxDays;
+  DateTime? _lastCleanupDay;
+  // Parallele Anhaenge an dieselbe Datei verlieren sonst Zeilen.
+  Future<void> _writeQueue = Future<void>.value();
+
+  int get _retentionDays => _maxDays ?? LoggingEnv.maxDays;
 
   Future<Directory> _defaultLogsDirectory() async {
     final dir = await getApplicationSupportDirectory();
@@ -40,238 +49,82 @@ class HitobitoTrafficLogService {
       ? await _logsDirectoryProvider()
       : await _defaultLogsDirectory();
 
-  Future<void> logRequest({
-    required String source,
-    required String method,
-    required Uri uri,
-    required Map<String, String> headers,
-    String? body,
-  }) {
-    if (_isEmptyBody(body)) {
-      return Future<void>.value();
-    }
-
-    return _writeEntry(
-      kind: HitobitoTrafficLogKind.request,
-      source: source,
-      method: method,
-      uri: uri,
-      payload: _buildRequestPayload(
-        method: method,
-        uri: uri,
-        headers: headers,
-        body: body,
-      ),
-    );
-  }
-
   Future<void> logResponse({
     required String source,
     required String method,
     required Uri uri,
     int? statusCode,
-    Map<String, String>? headers,
-    String? body,
     Object? error,
-    StackTrace? stackTrace,
   }) {
-    final hasEmptyBody = _isEmptyBody(body);
-    final isSuccessfulStatus =
-        statusCode != null && statusCode >= 200 && statusCode < 300;
-    if (hasEmptyBody && error == null && isSuccessfulStatus) {
-      return Future<void>.value();
-    }
-
-    return _writeEntry(
-      kind: HitobitoTrafficLogKind.response,
-      source: source,
-      method: method,
-      uri: uri,
-      statusCode: statusCode,
-      payload: _buildResponsePayload(
-        method: method,
-        uri: uri,
-        statusCode: statusCode,
-        headers: headers,
-        body: body,
-        error: error,
-        stackTrace: stackTrace,
-      ),
-    );
+    final ts = DateFormat('yyyy-MM-dd HH:mm:ss').format(_now());
+    final status = statusCode?.toString() ?? _exceptionLabel(error);
+    final line =
+        '[$ts] ${method.trim().toUpperCase()} $status ${_safe(source)} '
+        '${_sanitizeUri(uri)}\n';
+    return _writeLine(line);
   }
 
-  Future<void> _writeEntry({
-    required HitobitoTrafficLogKind kind,
-    required String source,
-    required String method,
-    required Uri uri,
-    required String payload,
-    int? statusCode,
-  }) async {
-    final dir = await _logsDirectory();
-    final fileName = _buildFileName(
-      kind: kind,
-      source: source,
-      method: method,
-      uri: uri,
-      statusCode: statusCode,
-    );
-    final file = File('${dir.path}/$fileName');
+  // Nur der Typ: ClientException.toString enthaelt die vollstaendige URI.
+  String _exceptionLabel(Object? error) =>
+      error == null ? 'exception' : 'exception:${error.runtimeType}';
+
+  Future<void> _writeLine(String line) {
+    final next = _writeQueue.then((_) => _appendLine(line));
+    _writeQueue = next;
+    return next;
+  }
+
+  Future<void> _appendLine(String line) async {
     // Reines Diagnose-Log: ein Dateifehler darf den eigentlichen Request nie
     // scheitern lassen.
     try {
-      await file.writeAsString(payload, flush: true);
-      await (_cleanupInFlight ??= _cleanupLogs().whenComplete(() {
-        _cleanupInFlight = null;
-      }));
+      final dir = await _logsDirectory();
+      final file = File('${dir.path}/${_fileNameForDate(_now())}');
+      await file.writeAsString(line, mode: FileMode.append, flush: true);
+      await _maybeCleanupLogs();
     } on FileSystemException {
       return;
     }
   }
 
-  String _buildFileName({
-    required HitobitoTrafficLogKind kind,
-    required String source,
-    required String method,
-    required Uri uri,
-    int? statusCode,
-  }) {
-    final timestamp = DateFormat('yyyy-MM-ddTHH-mm-ss').format(_now());
-    _sequence = (_sequence + 1) % 1000;
-    final id = _sequence.toString().padLeft(3, '0');
-    final methodLabel = _methodLabel(method);
-    final shortName = _shortName(source, uri);
-    final statusLabel = _statusLabel(kind: kind, statusCode: statusCode);
-    return '${timestamp}_${id}_${methodLabel}_${shortName}_$statusLabel.log';
+  Future<void> _maybeCleanupLogs() async {
+    final now = _now();
+    final today = DateTime(now.year, now.month, now.day);
+    if (_lastCleanupDay == today) {
+      return;
+    }
+    await _cleanupLogs();
+    _lastCleanupDay = today;
   }
 
-  String _methodLabel(String method) {
-    final upper = method.trim().toUpperCase();
-    if (upper.isEmpty) {
-      return 'Unknown';
-    }
-    return upper[0] + upper.substring(1).toLowerCase();
-  }
+  String _fileNameForDate(DateTime day) =>
+      'traffic-${DateFormat('yyyy-MM-dd').format(day)}.log';
 
-  String _shortName(String source, Uri uri) {
-    final safeSource = _safe(source);
-    if (safeSource.isNotEmpty) {
-      return safeSource;
-    }
-
-    final segments = uri.pathSegments;
-    if (segments.isEmpty) {
-      return 'root';
-    }
-    return _safe(segments.last);
-  }
-
-  String _statusLabel({required HitobitoTrafficLogKind kind, int? statusCode}) {
-    if (statusCode != null) {
-      return '$statusCode';
-    }
-    return kind == HitobitoTrafficLogKind.request ? 'req' : 'exception';
-  }
-
-  String _buildRequestPayload({
-    required String method,
-    required Uri uri,
-    required Map<String, String> headers,
-    String? body,
-  }) {
-    final safeHeaders = _sanitizeHeaders(headers);
-    final buffer = StringBuffer()
-      ..writeln('type=request')
-      ..writeln('method=${method.toUpperCase()}')
-      ..writeln('uri=${_sanitizeUri(uri)}')
-      ..writeln('headers:');
-
-    for (final entry in safeHeaders.entries.toList(
-      growable: false,
-    )..sort((a, b) => a.key.compareTo(b.key))) {
-      buffer.writeln('${entry.key}: ${entry.value}');
-    }
-
-    buffer.writeln('body:');
-    buffer.writeln(body == null || body.isEmpty ? '<empty>' : body);
-    return buffer.toString();
-  }
-
-  String _buildResponsePayload({
-    required String method,
-    required Uri uri,
-    int? statusCode,
-    Map<String, String>? headers,
-    String? body,
-    Object? error,
-    StackTrace? stackTrace,
-  }) {
-    final safeHeaders = headers == null
-        ? const <String, String>{}
-        : _sanitizeHeaders(headers);
-
-    final buffer = StringBuffer()
-      ..writeln('type=response')
-      ..writeln('method=${method.toUpperCase()}')
-      ..writeln('uri=${_sanitizeUri(uri)}')
-      ..writeln('status=${statusCode?.toString() ?? 'exception'}')
-      ..writeln('headers:');
-
-    for (final entry in safeHeaders.entries.toList(
-      growable: false,
-    )..sort((a, b) => a.key.compareTo(b.key))) {
-      buffer.writeln('${entry.key}: ${entry.value}');
-    }
-
-    if (error != null) {
-      buffer.writeln('error: ${error.runtimeType}: $error');
-      if (stackTrace != null) {
-        buffer.writeln('stack_trace:');
-        buffer.writeln(stackTrace);
+  String _sanitizeUri(Uri uri) {
+    var sanitized = uri;
+    if (uri.queryParameters.isNotEmpty) {
+      final parameters = <String, String>{};
+      for (final entry in uri.queryParameters.entries) {
+        final lower = entry.key.toLowerCase();
+        parameters[entry.key] =
+            lower.contains('token') || lower.contains('secret')
+            ? '<redacted>'
+            : entry.value;
       }
+      sanitized = uri.replace(queryParameters: parameters);
     }
-
-    buffer.writeln('body:');
-    buffer.writeln(body == null || body.isEmpty ? '<empty>' : body);
-    return buffer.toString();
-  }
-
-  Map<String, String> _sanitizeHeaders(Map<String, String> headers) {
-    final sanitized = <String, String>{};
-    for (final entry in headers.entries) {
-      final key = entry.key;
-      if (key.toLowerCase() == 'authorization') {
-        sanitized[key] = '<redacted>';
-        continue;
-      }
-      sanitized[key] = entry.value;
-    }
-    return sanitized;
-  }
-
-  Uri _sanitizeUri(Uri uri) {
-    if (uri.queryParameters.isEmpty) {
-      return uri;
-    }
-
-    final sanitized = <String, String>{};
-    for (final entry in uri.queryParameters.entries) {
-      final lower = entry.key.toLowerCase();
-      if (lower.contains('token') || lower.contains('secret')) {
-        sanitized[entry.key] = '<redacted>';
-      } else {
-        sanitized[entry.key] = entry.value;
-      }
-    }
-    return uri.replace(queryParameters: sanitized);
+    // Lesbar statt %5B...%5D; Leerzeichen bleiben kodiert, damit die URI ein
+    // zusammenhaengendes Feld der Zeile bleibt.
+    return Uri.decodeFull(sanitized.toString()).replaceAll(' ', '%20');
   }
 
   String _safe(String value) {
-    return value
+    final cleaned = value
         .replaceAll(RegExp(r'[^A-Za-z0-9_.-]'), '_')
         .replaceAll(RegExp(r'_+'), '_')
         .replaceAll(RegExp(r'^_+|_+$'), '')
         .toLowerCase();
+    return cleaned.isEmpty ? 'unknown' : cleaned;
   }
 
   Future<List<File>> listLogFiles() async {
@@ -284,20 +137,13 @@ class HitobitoTrafficLogService {
     final files =
         entities
             .whereType<File>()
-            .where((file) => file.path.endsWith('.log'))
+            .where((file) => _fileNamePattern.hasMatch(_fileBaseName(file)))
             .toList(growable: false)
           ..sort(
             (left, right) =>
-                _fileBaseName(left).compareTo(_fileBaseName(right)),
+                _fileBaseName(right).compareTo(_fileBaseName(left)),
           );
     return files;
-  }
-
-  bool _isEmptyBody(String? body) {
-    if (body == null) {
-      return true;
-    }
-    return body.trim().isEmpty;
   }
 
   Future<List<String>> listLogFileNames() async {
@@ -316,74 +162,64 @@ class HitobitoTrafficLogService {
         .toList(growable: false);
   }
 
+  /// Liefert die Zeilen chronologisch, ueber mehrere Tagesdateien hinweg.
   Future<String> readLogs({String? selectionId}) async {
-    final files = await resolveLogFiles(selectionId: selectionId);
-    if (files.isEmpty) {
-      return '';
-    }
-
-    if (files.length == 1) {
-      return files.single.readAsString();
-    }
-
+    final files = (await resolveLogFiles(
+      selectionId: selectionId,
+    )).reversed.toList(growable: false);
     final buffer = StringBuffer();
     for (final file in files) {
-      final name = _fileBaseName(file);
       final content = await file.readAsString();
-      buffer.writeln('===== $name =====');
-      if (content.isNotEmpty) {
-        buffer.write(content);
-        if (!content.endsWith('\n')) {
-          buffer.writeln();
-        }
+      if (content.isEmpty) {
+        continue;
       }
-      buffer.writeln();
+      buffer.write(content);
+      if (!content.endsWith('\n')) {
+        buffer.writeln();
+      }
     }
-
     return buffer.toString().trimRight();
   }
 
   Future<void> clearAllLogs() async {
-    final files = await listLogFiles();
-    for (final file in files) {
-      if (await file.exists()) {
-        await file.delete();
+    final dir = await _logsDirectory();
+    if (!await dir.exists()) {
+      return;
+    }
+    for (final file in (await dir.list().toList()).whereType<File>()) {
+      await _deleteIfPresent(file);
+    }
+  }
+
+  /// Entfernt Dateien aus dem frueheren Format (eine Datei je Request mit
+  /// vollstaendigen Bodies). Laeuft bei jedem Start; nach der ersten
+  /// Bereinigung findet sie nichts mehr.
+  Future<void> deleteLegacyFiles() async {
+    try {
+      final dir = await _logsDirectory();
+      if (!await dir.exists()) {
+        return;
       }
+      for (final file in (await dir.list().toList()).whereType<File>()) {
+        if (!_fileNamePattern.hasMatch(_fileBaseName(file))) {
+          await _deleteIfPresent(file);
+        }
+      }
+    } on FileSystemException {
+      return;
     }
   }
 
   Future<void> _cleanupLogs() async {
-    final files = await listLogFiles();
-    if (files.isEmpty) {
-      return;
-    }
-
     final now = _now();
-    final cutoff = now.subtract(maxAge);
-
-    final retained = <File>[];
-    for (final file in files) {
-      final stat = await file.stat();
-      if (stat.type == FileSystemEntityType.notFound) {
-        continue;
-      }
-      if (stat.modified.isBefore(cutoff)) {
+    final today = DateTime(now.year, now.month, now.day);
+    final earliestKeptDay = today.subtract(Duration(days: _retentionDays - 1));
+    for (final file in await listLogFiles()) {
+      final match = _fileNamePattern.firstMatch(_fileBaseName(file));
+      final day = match == null ? null : DateTime.tryParse(match.group(1)!);
+      if (day != null && day.isBefore(earliestKeptDay)) {
         await _deleteIfPresent(file);
-      } else {
-        retained.add(file);
       }
-    }
-
-    if (retained.length <= maxFiles) {
-      return;
-    }
-
-    retained.sort(
-      (left, right) => _fileBaseName(left).compareTo(_fileBaseName(right)),
-    );
-    final overflow = retained.length - maxFiles;
-    for (var index = 0; index < overflow; index++) {
-      await _deleteIfPresent(retained[index]);
     }
   }
 

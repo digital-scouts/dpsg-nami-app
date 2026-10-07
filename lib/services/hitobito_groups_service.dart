@@ -303,17 +303,11 @@ class HitobitoGroupsService {
       'Accept': 'application/json',
       'Authorization': 'Bearer $accessToken',
     };
-    await _trafficLogService?.logRequest(
-      source: 'groups',
-      method: 'GET',
-      uri: requestUri,
-      headers: headers,
-    );
 
     http.Response response;
     try {
       response = await _httpClient.get(requestUri, headers: headers);
-    } catch (error, stackTrace) {
+    } catch (error) {
       await _logger?.logHttpRequest(
         source: 'hitobito_groups',
         method: 'GET',
@@ -325,7 +319,6 @@ class HitobitoGroupsService {
         method: 'GET',
         uri: requestUri,
         error: error,
-        stackTrace: stackTrace,
       );
       rethrow;
     }
@@ -341,8 +334,6 @@ class HitobitoGroupsService {
       method: 'GET',
       uri: requestUri,
       statusCode: response.statusCode,
-      headers: response.headers,
-      body: response.body,
     );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {

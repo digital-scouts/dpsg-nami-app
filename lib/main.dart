@@ -312,6 +312,9 @@ Future<void> _startApp({
     await legacyAppDataCleanupService.runIfNeeded();
   }
   final hitobitoTrafficLogService = HitobitoTrafficLogService();
+  // Fruehere Versionen haben vollstaendige Antworten mit Mitgliederdaten
+  // protokolliert; diese Dateien duerfen nicht liegen bleiben.
+  await hitobitoTrafficLogService.deleteLegacyFiles();
   final namiAiDebugLogService = NamiAiDebugLogService();
   final namiAiCorpusLookupService = NamiAiCorpusLookupService();
 
