@@ -117,6 +117,8 @@ class StatistikKachelBeispiele {
     StatistikBeispielDatensatz datensatz, {
     DateTime? heute,
     StatistikKachelEinstellungen? einstellungen,
+    StandortHinweis? standortHinweis,
+    bool standorteLeer = false,
   }) {
     final tag = heute ?? StatistikKachelBeispiele.heute;
     final readModel = datensatz.readModel(tag);
@@ -151,19 +153,28 @@ class StatistikKachelBeispiele {
           ? null
           : 'Am Stammesheim 1',
       standortAufloesung: ({required members, required stammAddress}) async =>
-          _standorte(switch (datensatz) {
-            StatistikBeispielDatensatz.weitblick => 71,
-            StatistikBeispielDatensatz.bezirk ||
-            StatistikBeispielDatensatz.leitung => readModel.mitglieder.length,
-            _ => 23,
-          }),
+          _standorte(
+            standorteLeer
+                ? 0
+                : switch (datensatz) {
+                    StatistikBeispielDatensatz.weitblick => 71,
+                    StatistikBeispielDatensatz.bezirk ||
+                    StatistikBeispielDatensatz.leitung =>
+                      readModel.mitglieder.length,
+                    _ => 23,
+                  },
+            hinweis: standortHinweis,
+          ),
       kartenBauer: (context, wohnorte, stammesheim) =>
           StatistikKartenVorschau(wohnorte: wohnorte, stammesheim: stammesheim),
       onGruppeOeffnen: (_) {},
     );
   }
 
-  static StatisticsResolvedLocations _standorte(int anzahl) {
+  static StatisticsResolvedLocations _standorte(
+    int anzahl, {
+    StandortHinweis? hinweis,
+  }) {
     const mitte = LatLng(50.94, 6.96);
     final zufall = math.Random(7);
     return StatisticsResolvedLocations(
@@ -174,7 +185,8 @@ class StatistikKachelBeispiele {
             mitte.longitude + (zufall.nextDouble() - 0.5) * 0.1,
           ),
       ],
-      stammPoint: mitte,
+      stammPoint: anzahl == 0 ? null : mitte,
+      hinweis: hinweis,
     );
   }
 }

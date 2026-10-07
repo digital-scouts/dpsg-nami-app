@@ -20,7 +20,10 @@ class HitobitoDataRetentionPolicy {
     if (lastVerifiedAt == null) {
       return true;
     }
-    return now().difference(lastVerifiedAt) >= refreshInterval;
+    final seit = now().difference(lastVerifiedAt);
+    // Ein Zeitpunkt in der Zukunft stammt von einer vorgestellten Uhr; ohne
+    // diese Pruefung setzten automatische Syncs so lange aus (A-18).
+    return seit.isNegative || seit >= refreshInterval;
   }
 
   Duration? remainingUntilRelogin(DateTime? lastVerifiedAt) {

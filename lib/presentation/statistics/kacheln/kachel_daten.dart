@@ -65,6 +65,7 @@ class StatistikKachelDaten {
     StatistikKachelEinstellungen? einstellungen,
     Map<String, EigeneKachelZaehlung>? eigeneZaehlungen,
     StatistikKartenBauer? kartenBauer,
+    StandortAufloesung? standortAufloesung,
     ValueChanged<int>? onGruppeOeffnen,
   }) => StatistikKachelDaten(
     statistik: statistik,
@@ -76,7 +77,7 @@ class StatistikKachelDaten {
     verlauf: verlauf,
     standortMitglieder: standortMitglieder,
     stammAdresse: stammAdresse,
-    standortAufloesung: standortAufloesung,
+    standortAufloesung: standortAufloesung ?? this.standortAufloesung,
     kartenBauer: kartenBauer ?? this.kartenBauer,
     onGruppeOeffnen: onGruppeOeffnen ?? this.onGruppeOeffnen,
   );

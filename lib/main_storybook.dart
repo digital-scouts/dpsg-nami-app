@@ -27,6 +27,7 @@ import 'package:nami/stories/stufenwechsel_timeline_story.dart';
 import 'package:storybook_flutter/storybook_flutter.dart';
 
 import 'presentation/theme/theme.dart';
+import 'stories/app_sperre_story.dart';
 import 'stories/appearance_story.dart';
 import 'stories/hilfe_diagnose_story.dart';
 import 'stories/confetti_overlay_story.dart';
@@ -73,6 +74,7 @@ List<Story> buildStorybookStories() {
     appBottomNavigationStory(),
     appSidebarStory(),
     appSnackbarStory(),
+    appSperreStory(),
     hilfeDiagnoseStory(),
     problemMeldenSheetStory(),
     abmeldungHinweisKarteStory(),

@@ -125,7 +125,7 @@ class _MemberAddressCardState extends State<MemberAddressCard> {
             ? MemberAddressUtils.fingerprintFromText(stammAddress!)
             : null;
         return AddressMapPreview(
-          addressText: MemberAddressUtils.formatSingleLineAddress(address),
+          addressText: MemberAddressUtils.formatGeocodingAddress(address),
           cacheKey: addressFingerprint,
           addressFingerprint: addressFingerprint,
           secondaryAddressText: (stammAddress?.isNotEmpty ?? false)

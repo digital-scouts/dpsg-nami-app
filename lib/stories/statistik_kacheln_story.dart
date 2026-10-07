@@ -7,6 +7,7 @@ import 'package:nami/presentation/statistics/kacheln/kachel_katalog.dart';
 import 'package:nami/presentation/statistics/kacheln/kachel_raster.dart';
 import 'package:nami/presentation/theme/theme.dart';
 import 'package:nami/presentation/widgets/app_page_header.dart';
+import 'package:nami/services/statistics_location_service.dart';
 import 'package:nami/stories/statistik/statistik_kachel_beispiele.dart';
 import 'package:nami/stories/story_tab_shell.dart';
 // ignore: depend_on_referenced_packages
@@ -26,10 +27,25 @@ Story statistikKachelnGalerieStory() {
       );
       final dark = context.knobs.boolean(label: 'Dunkel', initial: false);
       final textScale = storyTextScaleKnob(context.knobs);
+      final standortHinweis = context.knobs.options<StandortHinweis?>(
+        label: 'Standorte-Hinweis',
+        initial: null,
+        options: [
+          const Option(label: 'keiner', value: null),
+          for (final h in StandortHinweis.values)
+            Option(label: h.name, value: h),
+        ],
+      );
+      final standorteLeer = context.knobs.boolean(
+        label: 'Standorte noch unbekannt',
+        initial: false,
+      );
       return StatistikKachelGalerie(
         datensatz: datensatz,
         dark: dark,
         textScale: textScale,
+        standortHinweis: standortHinweis,
+        standorteLeer: standorteLeer,
       );
     },
   );
@@ -42,11 +58,15 @@ class StatistikKachelGalerie extends StatelessWidget {
     required this.datensatz,
     this.dark = false,
     this.textScale = 1,
+    this.standortHinweis,
+    this.standorteLeer = false,
   });
 
   final StatistikBeispielDatensatz datensatz;
   final bool dark;
   final double textScale;
+  final StandortHinweis? standortHinweis;
+  final bool standorteLeer;
 
   static const Map<KachelBereich, String> _titel = {
     KachelBereich.mitglieder: 'Mitglieder',
@@ -58,7 +78,11 @@ class StatistikKachelGalerie extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final daten = StatistikKachelBeispiele.daten(datensatz);
+    final daten = StatistikKachelBeispiele.daten(
+      datensatz,
+      standortHinweis: standortHinweis,
+      standorteLeer: standorteLeer,
+    );
     final theme = buildTheme(
       AppPaletteId.standard,
       dark ? Brightness.dark : Brightness.light,
