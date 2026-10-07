@@ -53,10 +53,6 @@
 	<false/>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Um Ihre Identität zu bestätigen und den Zugriff auf Ihre Daten zu schützen.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Nutzung der Karte</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Nutzung der Karte</string>
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>Diese App benötigt Zugriff auf Benachrichtigungen, um Sie über Ereignisse zu
 			informieren.</string>

@@ -12,6 +12,7 @@ import 'package:nami/presentation/statistics/kacheln/kachel_rahmen.dart';
 import 'package:nami/presentation/statistics/kacheln/kachel_raster.dart';
 import 'package:nami/presentation/theme/theme.dart';
 import 'package:nami/presentation/widgets/app_page_header.dart';
+import 'package:nami/services/statistics_location_service.dart';
 import 'package:nami/stories/statistik/statistik_kachel_beispiele.dart';
 
 /// Jede Kachel in jeder erlaubten Größe, bei mehreren Breiten und
@@ -35,6 +36,46 @@ void main() {
               breite: breite,
               skala: skala,
               helligkeit: helligkeit,
+            );
+          }
+        }
+      });
+    }
+  }
+
+  // Hinweise der Standorte-Kachel, leer und mit Teilergebnis.
+  for (final hinweis in StandortHinweis.values) {
+    for (final leer in [true, false]) {
+      testWidgets('Standorte-Hinweis ${hinweis.name}, leer: $leer', (
+        tester,
+      ) async {
+        final daten = StatistikKachelBeispiele.daten(
+          StatistikBeispielDatensatz.weitblick,
+          standortHinweis: hinweis,
+          standorteLeer: leer,
+        );
+        final eintraege = [
+          for (final eintrag in _alleEintraege(daten))
+            if (eintrag.typId == StatistikKachelTypen.standorte) eintrag,
+        ];
+        expect(eintraege, isNotEmpty);
+        for (final breite in breiten) {
+          for (final skala in textSkalen) {
+            await _pruefen(
+              tester,
+              daten: daten,
+              eintraege: eintraege,
+              breite: breite,
+              skala: skala,
+              helligkeit: Brightness.light,
+            );
+            expect(
+              find.byKey(
+                Key(
+                  leer ? 'standorte-hinweis-leer' : 'standorte-hinweis-zeile',
+                ),
+              ),
+              findsWidgets,
             );
           }
         }

@@ -5,6 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
+import 'geoapify_anfrage_steuerung.dart';
 import 'geoapify_env.dart';
 import 'logger_service.dart';
 import 'network_access_policy.dart';
@@ -17,6 +18,7 @@ class GeoapifyGeocodeResult {
     this.networkBlocked = false,
     this.deviceOffline = false,
     this.mobileDataBlocked = false,
+    this.rateLimited = false,
   });
 
   const GeoapifyGeocodeResult.success(LatLng location)
@@ -25,6 +27,10 @@ class GeoapifyGeocodeResult {
   const GeoapifyGeocodeResult.addressNotFound() : this._(addressNotFound: true);
 
   const GeoapifyGeocodeResult.technicalError() : this._(technicalError: true);
+
+  /// Geoapify hat mit 429 geantwortet oder die Pause danach läuft noch.
+  const GeoapifyGeocodeResult.rateLimited()
+    : this._(technicalError: true, rateLimited: true);
 
   const GeoapifyGeocodeResult.networkBlocked({
     required bool deviceOffline,
@@ -41,6 +47,7 @@ class GeoapifyGeocodeResult {
   final bool networkBlocked;
   final bool deviceOffline;
   final bool mobileDataBlocked;
+  final bool rateLimited;
 }
 
 class GeoapifyAddressMapService {
@@ -53,6 +60,7 @@ class GeoapifyAddressMapService {
     double? minimumConfidence,
     double? minimumStreetLevelConfidence,
     bool? detailedLogEnabled,
+    GeoapifyAnfrageSteuerung? steuerung,
   }) : _httpClient = httpClient ?? http.Client(),
        _apiKeyOverride = apiKeyOverride,
        _logger = logger,
@@ -62,7 +70,8 @@ class GeoapifyAddressMapService {
        _minimumStreetLevelConfidence =
            minimumStreetLevelConfidence ?? GeoapifyEnv.minStreetLevelConfidence,
        _detailedLogEnabled =
-           detailedLogEnabled ?? GeoapifyEnv.detailedLogEnabled;
+           detailedLogEnabled ?? GeoapifyEnv.detailedLogEnabled,
+       _steuerung = steuerung ?? GeoapifyAnfrageSteuerung.geteilt;
 
   final http.Client _httpClient;
   final String? _apiKeyOverride;
@@ -72,6 +81,7 @@ class GeoapifyAddressMapService {
   final double _minimumConfidence;
   final double _minimumStreetLevelConfidence;
   final bool _detailedLogEnabled;
+  final GeoapifyAnfrageSteuerung _steuerung;
 
   bool get hasApiKey {
     final key = _apiKey;
@@ -97,6 +107,25 @@ class GeoapifyAddressMapService {
       return const GeoapifyGeocodeResult.addressNotFound();
     }
 
+    final pauseBis = await _steuerung.pauseBis();
+    if (pauseBis != null) {
+      await _logger?.log(
+        'maps',
+        'Geoapify Geocoding pausiert bis ${pauseBis.toIso8601String()}',
+      );
+      return const GeoapifyGeocodeResult.rateLimited();
+    }
+
+    return _steuerung.teilen(
+      trimmedAddress.toLowerCase(),
+      () => _anfragen(trimmedAddress, key),
+    );
+  }
+
+  Future<GeoapifyGeocodeResult> _anfragen(
+    String trimmedAddress,
+    String key,
+  ) async {
     final uri = Uri.https('api.geoapify.com', '/v1/geocode/search', {
       'text': trimmedAddress,
       'lang': 'de',
@@ -121,6 +150,18 @@ class GeoapifyAddressMapService {
         'maps',
         'Geoapify Geocoding Response: status=${response.statusCode}, bytes=${response.bodyBytes.length}',
       );
+      if (response.statusCode == 429) {
+        final bis = await _steuerung.pausieren(
+          retryAfter: GeoapifyAnfrageSteuerung.retryAfterAus(
+            response.headers['retry-after'],
+          ),
+        );
+        await _logger?.log(
+          'maps',
+          'Geoapify Geocoding: 429, pausiert bis ${bis.toIso8601String()}',
+        );
+        return const GeoapifyGeocodeResult.rateLimited();
+      }
       if (response.statusCode != 200) {
         await _logger?.log(
           'maps',

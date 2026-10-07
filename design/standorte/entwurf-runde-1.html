@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Standorte-Kachel: Hinweise – Entwurf Runde 1</title>
+<style>
+  :root { --bg:#F5F5F7; --surface:#FFFFFF; --fg:#1C1C1E; --fg2:rgba(28,28,30,.72); --muted:#8E8E93; --weak:#C7C7CC; --border:#E5E5EA; --primary:#003056; --primary-lite:#E8EDF5; --rot:#CC1F2F; --blau:#1565C0; --karte:#EEF1EC; --strasse:#FFFFFF; --wasser:#CFE0EE; --warn:#8A5A00; --warn-bg:#FFF4DC; }
+  .dark { --bg:#0E0E12; --surface:#1A1A22; --fg:#F0F0F5; --fg2:rgba(240,240,245,.72); --muted:#8A8A9A; --weak:#3A3A48; --border:#2E2E3A; --primary:#5A9AD8; --primary-lite:#1A253A; --karte:#23262B; --strasse:#33373E; --wasser:#1E3346; --warn:#F2C26B; --warn-bg:#3A2E14; }
+  body { margin:0; background:#eceae4; color:#1f1f1c; font:16px/1.5 system-ui,-apple-system,sans-serif; }
+  main { max-width:1500px; margin:0 auto; padding:24px 28px 120px; }
+  h1 { font-size:1.9rem; margin:0 0 .3rem; }
+  h2 { font-size:1.35rem; margin:28px 0 .3rem; }
+  p.lead, .desc { color:#4a4943; max-width:86ch; margin:0 0 14px; }
+  .bar { position:sticky; top:0; z-index:5; background:rgba(236,234,228,.95); backdrop-filter:blur(8px); border-bottom:1px solid #d6d3c9; padding:10px 28px; display:flex; gap:18px; align-items:center; font-size:14px; flex-wrap:wrap; }
+  .tgl { display:inline-flex; background:#dcd9cf; border-radius:999px; padding:3px; }
+  .tgl button { border:0; background:none; font:inherit; font-size:13px; padding:4px 12px; border-radius:999px; cursor:pointer; color:#3a3934; }
+  .tgl button.on { background:#003056; color:#fff; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, 400px); gap:22px 26px; }
+  figure { margin:0; }
+  figcaption { font-size:13px; color:#5d5b54; margin:6px 2px 0; max-width:390px; }
+  figcaption b { color:#1f1f1c; }
+  .flaeche { background:var(--bg); padding:12px; border-radius:22px; width:366px; }
+  .kachel { background:var(--surface); color:var(--fg); border-radius:16px; padding:12px; box-sizing:border-box; display:flex; flex-direction:column; width:366px; }
+  .k2x1 { height:172px; } .k2x2 { height:356px; }
+  .titel { font-size:13px; font-weight:600; color:var(--fg2); margin-bottom:6px; }
+  .inhalt { flex:1; min-height:0; display:flex; gap:12px; }
+  .k2x2 .inhalt { flex-direction:column; gap:8px; }
+  .karte { flex:3; border-radius:10px; overflow:hidden; position:relative; min-height:0; }
+  .k2x2 .karte { flex:1; }
+  .karte svg { width:100%; height:100%; display:block; }
+  .legende { flex:2; display:flex; flex-direction:column; justify-content:center; gap:4px; font-size:13px; }
+  .k2x2 .legende { flex:none; flex-direction:row; flex-wrap:wrap; gap:2px 18px; justify-content:flex-start; }
+  .leg { display:flex; align-items:center; gap:6px; color:var(--fg); }
+  .leg b { margin-left:2px; font-weight:600; }
+  .pin { width:10px; height:10px; border-radius:50%; background:var(--rot); flex:none; }
+  .haus { width:11px; height:10px; background:var(--blau); clip-path:polygon(50% 0,100% 45%,88% 45%,88% 100%,12% 100%,12% 45%,0 45%); flex:none; }
+  .leer { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:6px; color:var(--weak); font-size:13px; padding:0 10px; }
+  .leer .ico { font-size:22px; line-height:1; color:var(--muted); }
+  .leer .haupt { color:var(--fg2); font-size:13px; font-weight:500; }
+  .leer .neben { color:var(--muted); font-size:12px; }
+  /* Variante A: Hinweiszeile in der Legende */
+  .hinweis-a { display:flex; gap:5px; align-items:flex-start; font-size:11.5px; color:var(--muted); line-height:1.3; margin-top:4px; }
+  .hinweis-a .i { flex:none; font-size:13px; }
+  .k2x2 .hinweis-a { flex-basis:100%; margin-top:2px; }
+  /* Variante B: Chip auf der Karte */
+  .chip { position:absolute; left:8px; bottom:8px; right:8px; display:flex; gap:6px; align-items:center; background:color-mix(in srgb, var(--surface) 90%, transparent); color:var(--fg); border-radius:999px; padding:4px 10px 4px 8px; font-size:11.5px; box-shadow:0 1px 3px rgba(0,0,0,.18); width:max-content; max-width:calc(100% - 16px); box-sizing:border-box; }
+  .chip .i { color:var(--warn); }
+  .feedback { position:fixed; left:0; right:0; bottom:0; background:#1f1f1c; color:#fff; padding:10px 28px; display:flex; gap:14px; align-items:center; font-size:14px; flex-wrap:wrap; z-index:9; }
+  .feedback select, .feedback input { font:inherit; font-size:13px; padding:4px 8px; border-radius:8px; border:0; }
+  .feedback input { flex:1; min-width:260px; }
+  .feedback button { font:inherit; font-size:13px; padding:6px 14px; border-radius:999px; border:0; background:#f2c26b; color:#1f1f1c; cursor:pointer; font-weight:600; }
+  .open { background:#fff8e6; border:1px solid #efd9a2; border-radius:12px; padding:10px 16px; max-width:900px; font-size:14px; color:#4a3f1c; }
+</style>
+</head>
+<body>
+<div class="bar">
+  <b>Standorte-Kachel · Hinweise</b>
+  <span class="tgl" id="modus"><button class="on" data-m="hell">Hell</button><button data-m="dunkel">Dunkel</button></span>
+  <span class="tgl" id="groesse"><button class="on" data-g="2x1">2×1</button><button data-g="2x2">2×2</button></span>
+</div>
+<main>
+  <h1>Standorte-Kachel: Hinweise statt „Keine Adressen vorhanden“</h1>
+  <p class="lead">Die Kachel geokodiert weiter von selbst, hält jetzt aber „Keine mobilen Daten“ ein, pausiert nach einer Überlastung von Geoapify und sperrt fehlerhafte Adressen 30 Minuten. Heute steht in all diesen Fällen „Keine Adressen vorhanden“, obwohl Adressen da sind. Gesucht ist, wie die Kachel den Grund zeigt – einmal, wenn noch gar kein Punkt bekannt ist (leer), und einmal, wenn ein Teil schon aus dem Speicher kommt (teilweise).</p>
+
+  <div class="open"><b>Gleich in beiden Varianten:</b> Ohne Hinweis sieht die Kachel aus wie heute. Bei leerer Karte steht der Grund mittig mit Symbol. Texte sind Vorschläge, kürzere Fassungen gern im Kommentar.</div>
+
+  <h2>Variante A · Hinweis als Zeile unter der Legende</h2>
+  <p class="desc">Ruhig und ohne Farbe: der Grund steht klein in der Legende. Die Karte bleibt frei.</p>
+  <div class="grid" id="varA"></div>
+
+  <h2>Variante B · Hinweis als Chip auf der Karte</h2>
+  <p class="desc">Auffälliger: ein heller Chip mit gelbem Symbol liegt unten auf der Karte. Die Legende bleibt wie heute.</p>
+  <div class="grid" id="varB"></div>
+</main>
+
+<div class="feedback">
+  <b>Rückmeldung</b>
+  <label>Variante <select id="wahl"><option>A</option><option>B</option><option>keine</option></select></label>
+  <input id="kommentar" placeholder="Kommentar, z. B. andere Texte">
+  <button id="kopieren">Auswahl kopieren</button>
+  <span id="kopiert"></span>
+</div>
+
+<script>
+// Material-Icons (wifi, cloud_off, pause_circle_outline, error_outline) wie in der App.
+const svg = (d) => `<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" style="vertical-align:-0.15em"><path d="${d}"/></svg>`;
+const ICON = {
+  wlan: svg('M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z'),
+  offline: svg('M19.35 10.04C18.67 6.59 15.64 4 12 4c-1.48 0-2.85.43-4.01 1.17l1.46 1.46C10.21 6.23 11.08 6 12 6c3.04 0 5.5 2.46 5.5 5.5v.5H19c1.66 0 3 1.34 3 3 0 1.13-.64 2.11-1.56 2.62l1.45 1.45C23.16 18.16 24 16.68 24 15c0-2.64-2.05-4.78-4.65-4.96zM3 5.27l2.75 2.74C2.56 8.15 0 10.77 0 14c0 3.31 2.69 6 6 6h11.73l2 2L21 20.73 4.27 4 3 5.27zM7.73 10l8 8H6c-2.21 0-4-1.79-4-4s1.79-4 4-4h1.73z'),
+  pause: svg('M9 16h2V8H9v8zm3-14C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm1-4h2V8h-2v8z'),
+  fehler: svg('M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z'),
+};
+
+const ZUSTAENDE = [
+  { id: 'normal', titel: 'Alles aufgelöst', punkte: 14, text: null, unter: 'Zum Vergleich: wie heute.' },
+  { id: 'mobil-leer', titel: 'Keine mobilen Daten, nichts gespeichert', punkte: 0, ico: ICON.wlan, text: 'Standorte laden im WLAN', neben: '„Keine mobilen Daten“ ist an.', unter: 'Erster Aufruf unterwegs mit eingeschalteter Datenregel.' },
+  { id: 'mobil-teil', titel: 'Keine mobilen Daten, teilweise gespeichert', punkte: 9, ico: ICON.wlan, text: 'Weitere Standorte laden im WLAN', unter: 'Ein Teil ist schon bekannt, neue Adressen warten aufs WLAN.' },
+  { id: 'offline', titel: 'Offline, teilweise gespeichert', punkte: 9, ico: ICON.offline, text: 'Offline · weitere Standorte folgen', unter: 'Gleiche Lage ohne Netz.' },
+  { id: 'pause-leer', titel: 'Kartendienst pausiert, nichts gespeichert', punkte: 0, ico: ICON.pause, text: 'Kartendienst gerade ausgelastet', neben: 'Die App versucht es später erneut.', unter: 'Geoapify hat mit 429 geantwortet; Pause laut Retry-After, sonst 1 Stunde.' },
+  { id: 'fehler-teil', titel: 'Einzelne Adressen fehlgeschlagen', punkte: 12, ico: ICON.fehler, text: 'Nicht alle Standorte geladen', unter: 'Technischer Fehler bei einzelnen Adressen; neuer Versuch nach 30 Minuten.' },
+];
+
+let modus = 'hell', groesse = '2x1';
+
+function karte(n, hoehe) {
+  // Einfache Kartenattrappe: Fläche, Wasser, Straßen, Punkte, Stammesheim.
+  const pts = [[38,40],[52,58],[60,34],[72,62],[44,70],[80,44],[28,56],[64,78],[86,70],[50,26],[34,82],[76,28],[22,38],[90,52]];
+  const punkte = pts.slice(0, n).map(([x, y]) => `<circle cx="${x}%" cy="${y}%" r="4.5" fill="var(--rot)" stroke="var(--surface)" stroke-width="1.5"/>`).join('');
+  return `<svg viewBox="0 0 100 100" preserveAspectRatio="none">
+    <rect width="100" height="100" fill="var(--karte)"/>
+    <path d="M0 78 C 20 70, 35 88, 55 80 S 85 64, 100 72 L100 100 L0 100Z" fill="var(--wasser)"/>
+    <path d="M0 30 L100 46 M18 0 L36 100 M0 62 L100 58 M70 0 L58 100" stroke="var(--strasse)" stroke-width="2.4" fill="none"/>
+  </svg>
+  <svg style="position:absolute;inset:0" width="100%" height="100%">${punkte}
+    <g transform="translate(0,0)"><foreignObject x="55%" y="45%" width="14" height="14"><div class="haus" style="width:13px;height:12px"></div></foreignObject></g>
+  </svg>`;
+}
+
+function kachel(z, variante) {
+  const leer = z.punkte === 0 && z.text;
+  const legende = `<div class="leg"><span class="pin"></span>Wohnorte<b>${z.punkte}</b></div><div class="leg"><span class="haus"></span>Stammesheim</div>`;
+  if (leer) {
+    return `<div class="kachel k${groesse}"><div class="titel">Standorte</div>
+      <div class="leer"><div class="ico">${z.ico}</div><div class="haupt">${z.text}</div>${z.neben ? `<div class="neben">${z.neben}</div>` : ''}</div></div>`;
+  }
+  const hinweisA = variante === 'A' && z.text ? `<div class="hinweis-a"><span class="i">${z.ico}</span><span>${z.text}</span></div>` : '';
+  const chip = variante === 'B' && z.text ? `<div class="chip"><span class="i">${z.ico}</span>${z.text}</div>` : '';
+  return `<div class="kachel k${groesse}"><div class="titel">Standorte</div>
+    <div class="inhalt"><div class="karte">${karte(z.punkte)}${chip}</div><div class="legende">${legende}${hinweisA}</div></div></div>`;
+}
+
+function render() {
+  for (const v of ['A', 'B']) {
+    document.getElementById('var' + v).innerHTML = ZUSTAENDE.map((z) => `
+      <figure data-shot="${v}-${z.id}"><div class="flaeche ${modus === 'dunkel' ? 'dark' : ''}">${kachel(z, v)}</div>
+      <figcaption><b>${z.titel}.</b> ${z.unter}</figcaption></figure>`).join('');
+  }
+}
+
+for (const [id, set] of [['modus', (b) => (modus = b.dataset.m)], ['groesse', (b) => (groesse = b.dataset.g)]]) {
+  document.getElementById(id).addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    [...e.currentTarget.children].forEach((x) => x.classList.toggle('on', x === b));
+    set(b); render();
+  });
+}
+const p = new URLSearchParams(location.search);
+if (p.get('modus')) { modus = p.get('modus'); document.querySelectorAll('#modus button').forEach((b) => b.classList.toggle('on', b.dataset.m === modus)); }
+if (p.get('groesse')) { groesse = p.get('groesse'); document.querySelectorAll('#groesse button').forEach((b) => b.classList.toggle('on', b.dataset.g === groesse)); }
+render();
+
+document.getElementById('kopieren').addEventListener('click', async () => {
+  const text = `Standorte-Hinweise Runde 1: Variante ${document.getElementById('wahl').value}. ${document.getElementById('kommentar').value}`.trim();
+  try { await navigator.clipboard.writeText(text); document.getElementById('kopiert').textContent = 'kopiert'; }
+  catch { prompt('Zum Kopieren:', text); }
+});
+</script>
+</body>
+</html>
