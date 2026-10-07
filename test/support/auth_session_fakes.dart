@@ -125,9 +125,13 @@ class FakeBiometricLockService extends BiometricLockService {
   FakeBiometricLockService({this.available = false}) : super();
 
   final bool available;
+  int authenticateCallCount = 0;
 
   @override
-  Future<bool> authenticate() async => true;
+  Future<bool> authenticate() async {
+    authenticateCallCount += 1;
+    return true;
+  }
 
   @override
   Future<bool> isAvailable() async => available;

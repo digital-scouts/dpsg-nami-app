@@ -70,6 +70,52 @@ void main() {
   );
 
   test(
+    'laedt hinter der App-Sperre keine Rollen nach, erst nach dem Entsperren',
+    () async {
+      final cached = ArbeitskontextReadModel(
+        arbeitskontext: Arbeitskontext(
+          aktiverLayer: const ArbeitskontextLayer(id: 42, name: 'Bezirk Sieg'),
+        ),
+      );
+      final readModelRepository = _FakeArbeitskontextReadModelRepository(
+        loadRolesResult: cached.copyWith(rolesSindGeladen: true),
+      );
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(cached: cached),
+        readModelRepository: readModelRepository,
+        groupsService: _FakeHitobitoGroupsService(),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+      final session = AuthSession(
+        accessToken: 'token-1',
+        receivedAt: DateTime(2026, 3, 31),
+      );
+      const profile = AuthProfile(namiId: 1);
+
+      await model.syncForAuth(
+        authState: AuthState.unlockRequired,
+        session: session,
+        profile: profile,
+      );
+      await _waitForBackgroundWork();
+
+      expect(model.isReady, isTrue);
+      expect(readModelRepository.loadRolesCallCount, 0);
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: session,
+        profile: profile,
+      );
+      await _waitForBackgroundWork();
+
+      expect(readModelRepository.loadRolesCallCount, 1);
+      expect(model.areRolesLoaded, isTrue);
+    },
+  );
+
+  test(
     'laedt Roles nach Cache-Wiederherstellung automatisch im Hintergrund nach',
     () async {
       final cached = _buildReadModel(

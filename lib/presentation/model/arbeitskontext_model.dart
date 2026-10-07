@@ -123,6 +123,8 @@ class ArbeitskontextModel extends ChangeNotifier {
   // ihr Ergebnis, wenn der Zustand inzwischen zurueckgesetzt wurde.
   int _generation = 0;
   late int _authGeneration;
+  // Hinter der App-Sperre werden keine Rollen im Hintergrund nachgeladen.
+  bool _isLocked = false;
   Arbeitskontext? _arbeitskontext;
   ArbeitskontextReadModel? _readModel;
   AuthSession? _session;
@@ -404,6 +406,8 @@ class ArbeitskontextModel extends ChangeNotifier {
       _resetState();
     }
 
+    final wasLocked = _isLocked;
+    _isLocked = authState == AuthState.unlockRequired;
     final isSignedInState =
         authState == AuthState.signedIn ||
         authState == AuthState.unlockRequired;
@@ -439,6 +443,15 @@ class ArbeitskontextModel extends ChangeNotifier {
 
     _profile = profile;
     await initializeForProfile(profile, session: session);
+    final readModel = _readModel;
+    if (wasLocked &&
+        authState == AuthState.signedIn &&
+        readModel != null &&
+        !readModel.rolesSindGeladen &&
+        !_isSynchronizing) {
+      // Nach dem Entsperren das unterdrueckte Vorladen nachholen.
+      _scheduleRolesPreload();
+    }
   }
 
   Future<void> initializeForProfile(
@@ -1222,6 +1235,9 @@ class ArbeitskontextModel extends ChangeNotifier {
       generation == _generation && _authGeneration == _sessionGeneration();
 
   void _scheduleRolesPreload() {
+    if (_isLocked) {
+      return;
+    }
     unawaited(
       Future<void>.microtask(() async {
         await _preloadRolesInBackground();

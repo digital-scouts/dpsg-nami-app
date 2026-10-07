@@ -394,7 +394,11 @@ class AuthSessionModel extends ChangeNotifier {
     _requiresInteractiveLogin = false;
     _remoteAccessIssueMessage = null;
     _hasShownRemoteAccessIssueNotice = false;
-    _state = AuthState.signedIn;
+    // Greift die App-Sperre waehrend des Logins im Browser, bleibt sie
+    // bestehen; nur die lokale Entsperrung hebt sie auf.
+    if (_state != AuthState.unlockRequired) {
+      _state = AuthState.signedIn;
+    }
   }
 
   Future<void> unlock() async {
@@ -487,19 +491,31 @@ class AuthSessionModel extends ChangeNotifier {
       return;
     }
 
-    final shouldRequireUnlock = _shouldRequireUnlockAfterResume();
-    await _clearBackgroundedAt();
-
-    if (shouldRequireUnlock &&
-        _isAppLockEnabled() &&
-        await _biometricLockService.isAvailable()) {
+    final shouldRequireUnlock =
+        _shouldRequireUnlockAfterResume() && _isAppLockEnabled();
+    final previousState = _state;
+    if (shouldRequireUnlock) {
+      // Sofort sperren: Andere Resume-Handler starten direkt danach
+      // Remote-Zugriffe und muessen die Sperre schon sehen.
       _state = AuthState.unlockRequired;
-      await _logger.log(
-        'auth_flow',
-        'Lokale Entsperrung nach Resume erforderlich',
-      );
       notifyListeners();
     }
+    await _clearBackgroundedAt();
+    if (!shouldRequireUnlock) {
+      return;
+    }
+
+    if (!await _biometricLockService.isAvailable()) {
+      if (_state == AuthState.unlockRequired) {
+        _state = previousState;
+        notifyListeners();
+      }
+      return;
+    }
+    await _logger.log(
+      'auth_flow',
+      'Lokale Entsperrung nach Resume erforderlich',
+    );
   }
 
   bool _shouldRequireUnlockAfterResume() {
@@ -565,6 +581,15 @@ class AuthSessionModel extends ChangeNotifier {
         'auth_flow',
         'Remote-Zugriff abgebrochen ($trigger): '
             'session=${_session != null} state=$_state',
+      );
+      return const _PreparedRemoteAccess(session: null);
+    }
+
+    if (_state == AuthState.unlockRequired) {
+      // Hinter der App-Sperre gibt es weder Sync noch Login-Browser.
+      await _logger.log(
+        'auth_flow',
+        'Remote-Zugriff abgebrochen ($trigger): App-Sperre aktiv',
       );
       return const _PreparedRemoteAccess(session: null);
     }
@@ -948,6 +973,16 @@ class AuthSessionModel extends ChangeNotifier {
       await _logger.logInfo(
         'hitobito_sync',
         'Hitobito-Sync uebersprungen trigger=$trigger reason=initializing',
+      );
+      return;
+    }
+
+    if (_state == AuthState.unlockRequired) {
+      // Kein Versuch speichern: Nach dem Entsperren soll der Sync faellig
+      // bleiben.
+      await _logger.logInfo(
+        'hitobito_sync',
+        'Hitobito-Sync uebersprungen trigger=$trigger reason=locked',
       );
       return;
     }
@@ -1342,7 +1377,6 @@ class AuthSessionModel extends ChangeNotifier {
       requiresInteractiveLogin: true,
       notify: false,
     );
-    _state = AuthState.signedIn;
     await _logger.logInfo(
       'auth_flow',
       'Retry fehlgeschlagen, interaktiver Relogin fuer Remote-Zugriffe erforderlich${trigger == null ? '' : ' trigger=$trigger'}',

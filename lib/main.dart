@@ -843,7 +843,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _syncArbeitskontextWithAuth();
     _syncDataExpiryReminder();
     _reloadPendingUpdatesOnSessionChange();
-    if (_startupSyncAwaitsAuth && _authModel.state != AuthState.initializing) {
+    if (_startupSyncAwaitsAuth && !_isAuthPendingForStartupSync()) {
       _startupSyncAwaitsAuth = false;
       _runStartupSyncIfDue();
     }
@@ -981,9 +981,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void _startAuthMaintenanceTimer() {
     _authMaintenanceTimer?.cancel();
     final authModel = context.read<AuthSessionModel>();
-    if (authModel.state == AuthState.initializing) {
-      // Vor dem Laden der Session ist jeder Sync-Zeitpunkt unbekannt; der
-      // Start-Sync folgt, sobald die Initialisierung abgeschlossen ist.
+    if (_isAuthPendingForStartupSync()) {
+      // Vor dem Laden der Session ist jeder Sync-Zeitpunkt unbekannt, und
+      // hinter der App-Sperre wird nicht synchronisiert; der Start-Sync
+      // folgt, sobald beides vorbei ist.
       _startupSyncAwaitsAuth = true;
     } else {
       _runStartupSyncIfDue();
@@ -996,6 +997,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         userInitiated: false,
       ),
     );
+  }
+
+  bool _isAuthPendingForStartupSync() {
+    final state = _authModel.state;
+    return state == AuthState.initializing || state == AuthState.unlockRequired;
   }
 
   void _runStartupSyncIfDue() {

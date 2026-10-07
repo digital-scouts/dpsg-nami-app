@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
@@ -1703,6 +1704,188 @@ void main() {
 
         expect(aufrufe, 1);
         expect(model.state, AuthState.signedOut);
+      },
+    );
+  });
+
+  group('App-Sperre', () {
+    final start = DateTime(2026, 10, 7, 12);
+    final abgelaufenerLogin = const HitobitoAuthException(
+      'Token-Anfrage fehlgeschlagen (401).',
+      statusCode: 401,
+    );
+
+    ({
+      AuthSessionModel model,
+      FakeOauthService oauth,
+      FakeBiometricLockService biometrie,
+      FakeSensitiveStorageService storage,
+      void Function(Duration) vorspulen,
+    })
+    gesperrtesModell() {
+      var now = start;
+      final oauth = FakeOauthService(
+        sessionToReturn: AuthSession(
+          accessToken: 'access-token',
+          refreshToken: 'refresh-token',
+          receivedAt: start,
+        ),
+        profileToReturn: const AuthProfile(namiId: 7),
+      );
+      final biometrie = FakeBiometricLockService(available: true);
+      final storage = FakeSensitiveStorageService()
+        ..principal = 'person-7'
+        ..lastSensitiveSyncAt = start.subtract(const Duration(days: 2))
+        ..lastSensitiveSyncAttemptAt = start.subtract(const Duration(days: 2));
+      final model = AuthSessionModel(
+        repository: InMemoryAuthSessionRepository(
+          initialSession: AuthSession(
+            accessToken: 'access-token',
+            refreshToken: 'refresh-token',
+            receivedAt: start,
+          ),
+        ),
+        profileRepository: InMemoryAuthProfileRepository(
+          profile: const AuthProfile(namiId: 7),
+          lastSyncAt: start,
+        ),
+        oauthService: oauth,
+        biometricLockService: biometrie,
+        sensitiveStorageService: storage,
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => now,
+        ),
+        logger: _createLogger(),
+        isAppLockEnabled: () => true,
+        lockTimeout: const Duration(seconds: 60),
+      );
+      return (
+        model: model,
+        oauth: oauth,
+        biometrie: biometrie,
+        storage: storage,
+        vorspulen: (dauer) => now = now.add(dauer),
+      );
+    }
+
+    test(
+      'automatischer Sync mit abgelaufenem Login hebt die Sperre nicht auf',
+      () async {
+        final t = gesperrtesModell();
+        t.oauth.refreshError = abgelaufenerLogin;
+        await t.model.initialize();
+        expect(t.model.state, AuthState.unlockRequired);
+        final versuchVorher = t.storage.lastSensitiveSyncAttemptAt;
+        var mitgliederGeladen = 0;
+
+        await t.model.syncHitobitoData(
+          syncMembers: (_) async => mitgliederGeladen++,
+          trigger: 'startup',
+          userInitiated: false,
+          force: true,
+        );
+
+        expect(t.model.state, AuthState.unlockRequired);
+        expect(t.biometrie.authenticateCallCount, 0);
+        expect(t.oauth.refreshCallCount, 0);
+        expect(t.oauth.fetchProfileCallCount, 0);
+        expect(t.oauth.authenticateInteractiveCallCount, 0);
+        expect(mitgliederGeladen, 0);
+        // Der Versuch zaehlt nicht, damit der Sync nach dem Entsperren
+        // faellig bleibt.
+        expect(t.storage.lastSensitiveSyncAttemptAt, versuchVorher);
+      },
+    );
+
+    test(
+      '401 eines laufenden Zugriffs nach dem Sperren hebt die Sperre nicht auf',
+      () async {
+        final t = gesperrtesModell();
+        await t.model.initialize();
+        await t.model.unlock();
+        expect(t.model.state, AuthState.signedIn);
+        t.biometrie.authenticateCallCount = 0;
+        t.oauth.refreshError = abgelaufenerLogin;
+
+        final antwort = Completer<void>();
+        final zugriff = t.model.runWithoutInteractiveRelogin(
+          () => t.model.executeRemoteAccess<String>(
+            trigger: 'members_load',
+            action: (_) async {
+              await antwort.future;
+              throw const HitobitoPeopleException(
+                'People-Anfrage fehlgeschlagen (401).',
+                statusCode: 401,
+              );
+            },
+          ),
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        // Die App geht in den Hintergrund und kommt nach dem Timeout zurueck,
+        // waehrend der Zugriff noch laeuft.
+        await t.model.onAppBackgrounded();
+        t.vorspulen(const Duration(minutes: 2));
+        await t.model.onAppResumed();
+        expect(t.model.state, AuthState.unlockRequired);
+
+        antwort.complete();
+        expect(await zugriff, isNull);
+
+        expect(t.model.state, AuthState.unlockRequired);
+        expect(t.biometrie.authenticateCallCount, 0);
+        expect(t.oauth.authenticateInteractiveCallCount, 0);
+      },
+    );
+
+    test('sperrt beim Resume, bevor der erste await zurueckkehrt', () async {
+      final t = gesperrtesModell();
+      await t.model.initialize();
+      await t.model.unlock();
+      await t.model.onAppBackgrounded();
+      t.vorspulen(const Duration(minutes: 2));
+
+      final resume = t.model.onAppResumed();
+      // Andere Resume-Handler laufen direkt nach diesem Aufruf an.
+      expect(t.model.state, AuthState.unlockRequired);
+      await resume;
+
+      expect(t.model.state, AuthState.unlockRequired);
+    });
+
+    test(
+      'ohne verfuegbare Biometrie bleibt die App nach Resume nutzbar',
+      () async {
+        var now = start;
+        final model = AuthSessionModel(
+          repository: InMemoryAuthSessionRepository(),
+          profileRepository: InMemoryAuthProfileRepository(),
+          oauthService: FakeOauthService(
+            sessionToReturn: AuthSession(
+              accessToken: 'access-token',
+              receivedAt: start,
+            ),
+            profileToReturn: const AuthProfile(namiId: 7),
+          ),
+          biometricLockService: FakeBiometricLockService(),
+          sensitiveStorageService: FakeSensitiveStorageService(),
+          retentionPolicy: HitobitoDataRetentionPolicy(
+            maxDataAge: const Duration(days: 90),
+            refreshInterval: const Duration(hours: 24),
+            nowProvider: () => now,
+          ),
+          logger: _createLogger(),
+          isAppLockEnabled: () => true,
+        );
+        await model.signIn();
+        await model.onAppBackgrounded();
+        now = now.add(const Duration(minutes: 2));
+
+        await model.onAppResumed();
+
+        expect(model.state, AuthState.signedIn);
       },
     );
   });
