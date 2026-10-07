@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../domain/bundesstatistik/bundesaggregat.dart';
 import '../../domain/bundesstatistik/stammes_snapshot.dart';
+import '../../domain/rechtliches/anbieter.dart';
 import '../../domain/taetigkeit/stufe.dart';
 import '../../l10n/app_localizations.dart';
 import '../model/bundesstatistik_model.dart';
@@ -45,12 +47,17 @@ class _BundesvergleichBodyState extends State<BundesvergleichBody> {
       if (model.hatEinwilligung) {
         model.aktualisieren();
       }
+      model.ladeInstallationsId();
     });
   }
 
   Future<void> _einwilligungAendern(bool erteilen) async {
     final model = context.read<BundesstatistikModel>();
-    if (erteilen && !await zeigeBundesstatistikEinwilligungDialog(context)) {
+    if (erteilen &&
+        !await zeigeBundesstatistikEinwilligungDialog(
+          context,
+          stammName: model.stammName,
+        )) {
       return;
     }
     await model.setzeEinwilligung(erteilen);
@@ -70,6 +77,7 @@ class _BundesvergleichBodyState extends State<BundesvergleichBody> {
         zuletztGesendet: model.zuletztGesendeterSnapshot,
         einwilligungAm: model.einwilligungAm,
         gruppenName: model.gruppenName,
+        installationsId: model.installationsId,
         onEinwilligungAendern: _einwilligungAendern,
       ),
     );
@@ -88,6 +96,7 @@ class BundesvergleichView extends StatelessWidget {
     this.zuletztGesendet,
     this.einwilligungAm,
     this.gruppenName,
+    this.installationsId,
   });
 
   final BundesstatistikStatus status;
@@ -101,6 +110,9 @@ class BundesvergleichView extends StatelessWidget {
   /// Name einer Gruppe nach ID; ohne Namen erscheint „Gruppe 123“.
   final String? Function(int gruppenId)? gruppenName;
   final ValueChanged<bool> onEinwilligungAendern;
+
+  /// Fuer Auskunft und Loeschung auf Anfrage; nur bekannt, wenn schon geteilt.
+  final String? installationsId;
 
   static const List<Stufe> stufen = <Stufe>[
     Stufe.biber,
@@ -175,7 +187,11 @@ class BundesvergleichView extends StatelessWidget {
           _StatusHinweis(status: status, aggregat: aggregat),
         if (hatEinwilligung || zuletztGesendet != null) ...[
           const SizedBox(height: 12),
-          _GeteilteDatenCard(snapshot: zuletztGesendet, gruppenName: _name(t)),
+          _GeteilteDatenCard(
+            snapshot: zuletztGesendet,
+            gruppenName: _name(t),
+            installationsId: installationsId,
+          ),
         ],
       ],
     );
@@ -738,10 +754,15 @@ class _TransparenzCard extends StatelessWidget {
 }
 
 class _GeteilteDatenCard extends StatelessWidget {
-  const _GeteilteDatenCard({required this.snapshot, required this.gruppenName});
+  const _GeteilteDatenCard({
+    required this.snapshot,
+    required this.gruppenName,
+    this.installationsId,
+  });
 
   final StammesSnapshot? snapshot;
   final String Function(int gruppenId) gruppenName;
+  final String? installationsId;
 
   @override
   Widget build(BuildContext context) {
@@ -815,6 +836,111 @@ class _GeteilteDatenCard extends StatelessWidget {
           Text(
             t.t(teilsicht ? 'bund_shared_footer_groups' : 'bund_shared_footer'),
             style: theme.textTheme.bodySmall,
+          ),
+          if (installationsId case final id?) ...[
+            const SizedBox(height: 12),
+            _InstallationsIdBox(id: id),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Installations-ID zum Kopieren; damit lassen sich Auskunft und Loeschung
+/// per Mail anfragen, weil der Server nur ihr Pseudonym kennt.
+class _InstallationsIdBox extends StatelessWidget {
+  const _InstallationsIdBox({required this.id});
+
+  final String id;
+
+  /// Lang genug zum Wiedererkennen, kopiert wird immer die ganze ID.
+  String get _gekuerzt => id.length <= 12
+      ? id
+      : '${id.substring(0, 4)}…${id.substring(id.length - 4)}';
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final klein = theme.textTheme.bodySmall;
+    final hinweis = t.t('bund_installation_id_hint', {'email': Anbieter.email});
+    final mailStart = hinweis.indexOf(Anbieter.email);
+
+    return Container(
+      key: const Key('bund-installations-id'),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 10, 10, 12),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      t.t('bund_installation_id'),
+                      style: klein?.copyWith(color: colors.onSurfaceVariant),
+                    ),
+                    Text(
+                      _gekuerzt,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontFamily: 'monospace',
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              FilledButton.tonalIcon(
+                key: const Key('bund-installations-id-kopieren'),
+                style: FilledButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                ),
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: id));
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(t.t('bund_installation_id_copied')),
+                      ),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.copy, size: 16),
+                label: Text(t.t('bund_installation_id_copy')),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text.rich(
+            TextSpan(
+              style: klein,
+              children: [
+                if (mailStart < 0)
+                  TextSpan(text: hinweis)
+                else ...[
+                  TextSpan(text: hinweis.substring(0, mailStart)),
+                  TextSpan(
+                    text: Anbieter.email,
+                    style: TextStyle(
+                      color: colors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  TextSpan(
+                    text: hinweis.substring(mailStart + Anbieter.email.length),
+                  ),
+                ],
+              ],
+            ),
           ),
         ],
       ),

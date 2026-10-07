@@ -47,6 +47,7 @@ class AppRoutes {
   static const String settingsMessages = '/settings/messages';
   static const String settingsImpressum = '/settings/impressum';
   static const String settingsDatenschutz = '/settings/datenschutz';
+  static const String settingsRechtliches = '/settings/rechtliches';
   static const String settingsStufenwechsel = '/settings/stufenwechsel';
   static const String settingsQualifikationen = '/settings/qualifikationen';
   static const String debugTools = '/settings/debug';
@@ -165,7 +166,11 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
             bundesstatistikTeilnahme: bundesstatistik.hatEinwilligung,
             onBundesstatistikChanged: (v) async {
               final logger = Provider.of<LoggerService>(context, listen: false);
-              if (v && !await zeigeBundesstatistikEinwilligungDialog(context)) {
+              if (v &&
+                  !await zeigeBundesstatistikEinwilligungDialog(
+                    context,
+                    stammName: bundesstatistik.stammName,
+                  )) {
                 return false;
               }
               await bundesstatistik.setzeEinwilligung(v);
@@ -288,6 +293,7 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
         settings: settings,
         builder: (context) => const SettingsImpressumPage(),
       );
+    case AppRoutes.settingsRechtliches:
     case AppRoutes.settingsDatenschutz:
       return MaterialPageRoute(
         settings: settings,

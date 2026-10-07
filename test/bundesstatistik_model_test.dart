@@ -402,6 +402,34 @@ void main() {
     },
   );
 
+  test('kennt die Installations-ID erst nach dem ersten Senden', () async {
+    final ohne = buildModel();
+    await ohne.initialize();
+    await ohne.ladeInstallationsId();
+    expect(ohne.installationsId, isNull);
+
+    final model = await modelMitEinwilligung();
+    expect(model.installationsId, 'install-1');
+    expect(model.stammName, isNotNull);
+
+    final neuGestartet = buildModel();
+    await neuGestartet.initialize();
+    await neuGestartet.ladeInstallationsId();
+    expect(neuGestartet.installationsId, 'install-1');
+  });
+
+  test('zeigt nach neuen Credentials die neue Installations-ID', () async {
+    repository.sendeFehler.add(
+      const BundesstatistikException(
+        BundesstatistikFehlerArt.ungueltigeCredentials,
+      ),
+    );
+
+    final model = await modelMitEinwilligung();
+
+    expect(model.installationsId, 'install-2');
+  });
+
   test('erzeugt bei ungueltigen Credentials neue und sendet erneut', () async {
     repository.sendeFehler.add(
       const BundesstatistikException(

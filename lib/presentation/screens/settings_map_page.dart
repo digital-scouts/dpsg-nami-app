@@ -15,6 +15,7 @@ import 'package:nami/services/map_tile_cache_service.dart';
 import 'package:nami/services/maps_env.dart';
 import 'package:nami/services/stamm_map_sync_service.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../widgets/karten_quellenangabe.dart';
 
 typedef ExternalUrlOpener = Future<bool> Function(Uri uri);
 
@@ -601,6 +602,7 @@ class _SettingsMapPageState extends State<SettingsMapPage> {
                         _polygonHitNotifier.value = null;
                       },
                     ),
+                    const KartenQuellenangabe(),
                   ],
                 ),
               ),

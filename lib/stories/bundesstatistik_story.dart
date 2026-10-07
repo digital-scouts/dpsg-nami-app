@@ -88,6 +88,7 @@ Story bundesvergleichStory() {
                     kennzahlen: kennzahlen,
                   )
                 : null,
+            installationsId: hatEinwilligung ? 'q3ZkAbCdEfGh9fA2' : null,
             onEinwilligungAendern: (_) {},
           ),
         ),
@@ -99,19 +100,32 @@ Story bundesvergleichStory() {
 Story bundesstatistikEinwilligungStory() {
   return Story(
     name: 'Statistik/Bundesweit/Einwilligungsdialog',
-    builder: (context) => MaterialApp(
-      localizationsDelegates: [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [Locale('de'), Locale('en')],
-      locale: const Locale('de'),
-      home: const Scaffold(
-        body: Center(child: BundesstatistikEinwilligungDialog()),
-      ),
-    ),
+    builder: (context) {
+      final aufgeklappt = context.knobs.boolean(
+        label: 'Mehr erfahren aufgeklappt',
+        initial: false,
+      );
+      return MaterialApp(
+        localizationsDelegates: [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('de'), Locale('en')],
+        locale: const Locale('de'),
+        home: Scaffold(
+          body: Center(
+            child: BundesstatistikEinwilligungDialog(
+              // Key erzwingt neuen State, wenn der Knopf umgeschaltet wird.
+              key: ValueKey(aufgeklappt),
+              stammName: 'Stamm St. Georg, Musterstadt',
+              initialAufgeklappt: aufgeklappt,
+            ),
+          ),
+        ),
+      );
+    },
   );
 }
 

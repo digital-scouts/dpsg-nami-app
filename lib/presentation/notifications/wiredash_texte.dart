@@ -9,12 +9,13 @@ class WiredashTexteDelegate
   const WiredashTexteDelegate();
 
   static const screenshotHinweisDe =
-      'Du kannst die App normal bedienen, bevor du einen Screenshot '
-      'erstellst. Achte darauf, dass keine Mitgliederdaten zu sehen sind, '
-      'oder übermale sie.';
+      'Bediene die App bis zur passenden Stelle und erstelle dann den '
+      'Screenshot. Bitte keine Namen oder Kontaktdaten von Mitgliedern im '
+      'Bild – übermale sie mit dem Stift.';
   static const screenshotHinweisEn =
-      'You can use the app as usual before taking a screenshot. Make sure '
-      'no member data is visible, or paint over it.';
+      'Navigate to the right spot in the app, then take the screenshot. '
+      'Please keep member names and contact details out of the picture – '
+      'paint over them with the pen.';
 
   @override
   bool isSupported(Locale locale) =>

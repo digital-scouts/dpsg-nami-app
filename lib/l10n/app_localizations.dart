@@ -118,7 +118,7 @@ class AppLocalizations {
       'bund_share_since': 'Aktiv seit {date}',
       'bund_share_required': 'Voraussetzung für den bundesweiten Vergleich',
       'bund_share_info':
-          'Geteilt werden nur zusammengefasste Anzahlen deines Stammes, keine Namen oder Einzeldaten. Ein Widerruf stoppt weitere Sendungen; bereits geteilte Zahlen fallen nach zwei Monaten aus der Statistik.',
+          'Geteilt werden nur zusammengefasste Anzahlen deines Stammes, keine Namen oder Einzeldaten. Ein Widerruf stoppt weitere Sendungen; geteilte Zahlen fallen nach zwei Monaten aus dem Vergleich und werden nach 14 Monaten gelöscht, auf Anfrage sofort.',
       'bund_join_title': 'Mit Stämmen bundesweit vergleichen',
       'bund_join_text':
           'Teile die zusammengefassten Anzahlen deines Stammes und sieh im Gegenzug, wie sich Stufen, Leitende und Geschlechter bundesweit verteilen. Namen oder Einzeldaten verlassen die App nicht.',
@@ -169,9 +169,40 @@ class AppLocalizations {
       'bund_shared_other_members': 'Sonstige Mitglieder',
       'bund_shared_group_values': '{children} + {leaders} Leitende',
       'bund_shared_footer':
-          'Zusätzlich je Gruppe die Aufteilung nach Geschlecht und bei Leitenden nach Altersgruppen. Stamm, Gruppen und Installation werden auf dem Server pseudonymisiert.',
+          'Zusätzlich je Gruppe die Aufteilung nach Geschlecht und stammweit die Leitenden nach Altersgruppen. Stamm, Gruppen und Installation werden auf dem Server pseudonymisiert.',
       'bund_shared_footer_groups':
           'Je Gruppe Kinder & Jugendliche und Leitende, jeweils nach Geschlecht. Stammweite Zahlen werden bei deiner Teilsicht nicht geteilt. Stamm, Gruppen und Installation werden auf dem Server pseudonymisiert.',
+      'bund_consent_title': 'Stammesdaten teilen?',
+      'bund_consent_intro':
+          'Etwa einmal pro Woche gehen Zahlen dieses Stammes an den Statistikserver der App.',
+      'bund_consent_point_counts':
+          'Nur Anzahlen je Gruppe nach Geschlecht, Leitende nach Altersgruppe',
+      'bund_consent_point_no_personal':
+          'Keine Namen, Geburtsdaten, Adressen oder Kontaktdaten',
+      'bund_consent_point_retention':
+          'Gelöscht nach 14 Monaten, Widerruf jederzeit',
+      'bund_consent_more': 'Mehr erfahren',
+      'bund_consent_less': 'Weniger anzeigen',
+      'bund_consent_shared_label': 'Geteilt:',
+      'bund_consent_shared':
+          'Mitglieder und Leitende je Gruppe nach Geschlecht, Leitende stammweit nach Altersgruppen, Mitgliedschaftsarten. Siehst du in Hitobito nur deine eigene Gruppe, werden nur deren Zahlen geteilt.',
+      'bund_consent_not_shared_label': 'Nicht geteilt:',
+      'bund_consent_not_shared': 'deine Person und dein Hitobito-Zugang.',
+      'bund_consent_server_label': 'Auf dem Server:',
+      'bund_consent_server':
+          'Bezirks- und Diözesannummer im Klartext, Stamm, Gruppen und Installation pseudonym, keine IP-Adresse.',
+      'bund_consent_withdraw_label': 'Widerruf',
+      'bund_consent_withdraw':
+          'stoppt weitere Sendungen; geteilte Zahlen löschen wir auf Anfrage.',
+      'bund_consent_responsible': 'Verantwortlich: {name}',
+      'bund_consent_cancel': 'Abbrechen',
+      'bund_consent_confirm': 'Teilen aktivieren',
+      'bund_installation_id': 'Installations-ID',
+      'bund_installation_id_copy': 'Kopieren',
+      'bund_installation_id_copied': 'Installations-ID kopiert',
+      'bund_installation_id_hint':
+          'Für Auskunft oder Löschung schreib an {email} und nenne diese ID. Nach einem App-Reset ist die ID weg.',
+      'legal_title': 'Impressum & Datenschutz',
       'bund_col_own_stamm': 'Dein Stamm',
       'bund_col_own_group': 'Deine Gruppe',
       'bund_col_own_groups': 'Deine Gruppen',
@@ -1370,7 +1401,7 @@ class AppLocalizations {
       'bund_share_since': 'Active since {date}',
       'bund_share_required': 'Required for the nationwide comparison',
       'bund_share_info':
-          'Only aggregated counts of your Stamm are shared, no names or individual data. Withdrawing stops further transfers; figures already shared drop out of the statistics after two months.',
+          'Only aggregated counts of your Stamm are shared, no names or individual data. Withdrawing stops further transfers; shared figures drop out of the comparison after two months and are deleted after 14 months, or immediately on request.',
       'bund_join_title': 'Compare with Stämme nationwide',
       'bund_join_text':
           'Share the aggregated counts of your Stamm and see in return how age sections, leaders and genders are distributed nationwide. Names or individual data never leave the app.',
@@ -1421,9 +1452,40 @@ class AppLocalizations {
       'bund_shared_other_members': 'Other members',
       'bund_shared_group_values': '{children} + {leaders} leaders',
       'bund_shared_footer':
-          'In addition the split by gender per group and the leaders by age group. Stamm, groups and installation are pseudonymised on the server.',
+          'In addition the split by gender per group and, for the whole Stamm, the leaders by age group. Stamm, groups and installation are pseudonymised on the server.',
       'bund_shared_footer_groups':
           'Children & youth and leaders per group, each by gender. Stamm-wide figures are not shared with your partial view. Stamm, groups and installation are pseudonymised on the server.',
+      'bund_consent_title': 'Share Stamm figures?',
+      'bund_consent_intro':
+          'About once a week, figures of this Stamm are sent to the app\'s statistics server.',
+      'bund_consent_point_counts':
+          'Only counts per group by gender, leaders by age group',
+      'bund_consent_point_no_personal':
+          'No names, dates of birth, addresses or contact details',
+      'bund_consent_point_retention':
+          'Deleted after 14 months, withdraw at any time',
+      'bund_consent_more': 'Learn more',
+      'bund_consent_less': 'Show less',
+      'bund_consent_shared_label': 'Shared:',
+      'bund_consent_shared':
+          'Members and leaders per group by gender, leaders of the whole Stamm by age group, membership types. If you only see your own group in Hitobito, only its figures are shared.',
+      'bund_consent_not_shared_label': 'Not shared:',
+      'bund_consent_not_shared': 'you as a person and your Hitobito account.',
+      'bund_consent_server_label': 'On the server:',
+      'bund_consent_server':
+          'District and diocese number in plain text, Stamm, groups and installation pseudonymised, no IP address.',
+      'bund_consent_withdraw_label': 'Withdrawing',
+      'bund_consent_withdraw':
+          'stops further transfers; we delete shared figures on request.',
+      'bund_consent_responsible': 'Responsible: {name}',
+      'bund_consent_cancel': 'Cancel',
+      'bund_consent_confirm': 'Start sharing',
+      'bund_installation_id': 'Installation ID',
+      'bund_installation_id_copy': 'Copy',
+      'bund_installation_id_copied': 'Installation ID copied',
+      'bund_installation_id_hint':
+          'For access or deletion, write to {email} and quote this ID. After resetting the app, the ID is gone.',
+      'legal_title': 'Imprint & privacy',
       'bund_col_own_stamm': 'Your Stamm',
       'bund_col_own_group': 'Your group',
       'bund_col_own_groups': 'Your groups',

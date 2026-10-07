@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../domain/rechtliches/anbieter.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/hitobito_traffic_log_service.dart';
 import '../../services/logger_service.dart';
@@ -16,7 +17,7 @@ import '../widgets/log_ausschnitt.dart';
 
 /// Empfaenger fuer „Report Issue“; zugleich die Kontaktadresse aus der
 /// Datenschutzerklaerung.
-const String logReportRecipient = 'dev@jannecklange.de';
+const String logReportRecipient = Anbieter.email;
 
 typedef LogAnsichtBuilder =
     Widget Function(

@@ -12,11 +12,11 @@ void main() {
 
     expect(
       de.feedbackStep3ScreenshotOverviewDescription,
-      contains('keine Mitgliederdaten'),
+      contains('keine Namen oder Kontaktdaten von Mitgliedern'),
     );
     expect(
       en.feedbackStep3ScreenshotOverviewDescription,
-      contains('no member data'),
+      contains('member names and contact details'),
     );
   });
 
