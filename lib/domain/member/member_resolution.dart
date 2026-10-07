@@ -273,6 +273,96 @@ class MemberConflictResolver {
     ).mergedMitglied;
   }
 
+  /// Ob [zielMitglied] gegenueber [basisMitglied] etwas aendert, das beim
+  /// Speichern an Hitobito ginge. Verglichen werden dieselben Einheiten wie
+  /// beim Senden: Personenfelder, primaere E-Mail, die Felder der primaeren
+  /// Adresse und die Kontakte pro ID bzw. neue Kontakte ueber den Inhalt.
+  static bool hasLocalChanges({
+    required Mitglied basisMitglied,
+    required Mitglied zielMitglied,
+  }) {
+    String? normalized(String? value) => _trimToNull(value);
+    List<Object?> addressFields(MitgliedKontaktAdresse? adresse) => <Object?>[
+      normalized(adresse?.addressCareOf),
+      normalized(adresse?.street),
+      normalized(adresse?.housenumber),
+      normalized(adresse?.postbox),
+      normalized(adresse?.zipCode),
+      normalized(adresse?.town),
+      normalized(adresse?.country),
+    ];
+    bool sameList(List<Object?> left, List<Object?> right) {
+      if (left.length != right.length) {
+        return false;
+      }
+      for (var index = 0; index < left.length; index++) {
+        if (left[index] != right[index]) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    bool sameContacts<T>(
+      List<T> basis,
+      List<T> ziel,
+      int? Function(T item) idOf,
+    ) {
+      bool hasId(T item) => (idOf(item) ?? 0) > 0;
+      final basisById = {
+        for (final item in basis)
+          if (hasId(item)) idOf(item)!: item,
+      };
+      final zielById = {
+        for (final item in ziel)
+          if (hasId(item)) idOf(item)!: item,
+      };
+      if (basisById.length != zielById.length) {
+        return false;
+      }
+      for (final entry in basisById.entries) {
+        if (zielById[entry.key] != entry.value) {
+          return false;
+        }
+      }
+      final basisNew = basis.where((item) => !hasId(item)).toSet();
+      final zielNew = ziel.where((item) => !hasId(item)).toSet();
+      return basisNew.length == zielNew.length && basisNew.containsAll(zielNew);
+    }
+
+    return basisMitglied.vorname != zielMitglied.vorname ||
+        basisMitglied.nachname != zielMitglied.nachname ||
+        normalized(basisMitglied.fahrtenname) !=
+            normalized(zielMitglied.fahrtenname) ||
+        normalized(basisMitglied.gender) != normalized(zielMitglied.gender) ||
+        basisMitglied.geburtsdatum != zielMitglied.geburtsdatum ||
+        normalized(_primaryEmail(basisMitglied)?.wert) !=
+            normalized(_primaryEmail(zielMitglied)?.wert) ||
+        !sameList(
+          addressFields(basisMitglied.primaryAddress),
+          addressFields(zielMitglied.primaryAddress),
+        ) ||
+        !sameContacts(
+          basisMitglied.telefonnummern,
+          zielMitglied.telefonnummern,
+          (item) => item.phoneNumberId,
+        ) ||
+        !sameContacts(
+          _additionalEmails(basisMitglied),
+          _additionalEmails(zielMitglied),
+          (item) => item.additionalEmailId,
+        ) ||
+        !sameContacts(
+          _additionalAddresses(
+            basisMitglied,
+          ).where((adresse) => !adresse.istLeer).toList(growable: false),
+          _additionalAddresses(
+            zielMitglied,
+          ).where((adresse) => !adresse.istLeer).toList(growable: false),
+          (item) => item.additionalAddressId,
+        );
+  }
+
   static MemberMergePlan _merge({
     required Mitglied basisMitglied,
     required Mitglied zielMitglied,

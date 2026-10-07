@@ -107,6 +107,8 @@ Adressen werden nicht als ein einziger String gezeigt, sondern mit ihren einzeln
 
 Der normale Bearbeiten-Bereich bleibt im selben Screen verfügbar, ist beim Einstieg in den Problemlösungsfall aber zunächst eingeklappt.
 
+Beim normalen Bearbeiten ist Speichern erst aktiv, wenn sich gegenüber dem geladenen Stand etwas geändert hat. Ohne Änderung verlässt der Nutzer den Screen über Zurück. Im Problemlösungsfall und bei einer noch wartenden Änderung bleibt Speichern immer aktiv, weil das Speichern den Fall abschließt oder die Änderung sendet.
+
 Wenn der Nutzer bei einem Problemfeld Bearbeiten wählt, klappt die App den Bearbeiten-Bereich auf und setzt den Fokus auf das passende Eingabefeld. Für Adressprobleme gilt dabei eine Standardregel und der Fokus landet auf dem Straßenfeld der betroffenen Adresse.
 
 Direkt bearbeitbar sind heute:

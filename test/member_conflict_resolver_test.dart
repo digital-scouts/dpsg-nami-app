@@ -1267,4 +1267,57 @@ void main() {
       );
     });
   });
+
+  group('MemberConflictResolver.hasLocalChanges', () {
+    bool geaendert(Mitglied ziel) => MemberConflictResolver.hasLocalChanges(
+      basisMitglied: _basis(),
+      zielMitglied: ziel,
+    );
+
+    test('erkennt keinen Unterschied ohne Aenderung', () {
+      expect(geaendert(_basis()), isFalse);
+    });
+
+    test('leeres und fehlendes Geschlecht gelten als gleich', () {
+      final ohneGeschlecht = _basis().copyWith(genderLoeschen: true);
+
+      expect(
+        MemberConflictResolver.hasLocalChanges(
+          basisMitglied: ohneGeschlecht,
+          zielMitglied: ohneGeschlecht.copyWith(gender: ''),
+        ),
+        isFalse,
+      );
+    });
+
+    for (final scalarCase in _scalarCases) {
+      test('${scalarCase.name} geaendert', () {
+        expect(geaendert(scalarCase.change(_basis(), 'lokal')), isTrue);
+      });
+    }
+
+    test('neue, geaenderte und entfernte Kontakte', () {
+      final basis = _basis();
+      expect(
+        geaendert(
+          _withPhones(basis, const [
+            _mobil,
+            _festnetz,
+            MitgliedKontaktTelefon(wert: '+491701234567', label: 'Mobil'),
+          ]),
+        ),
+        isTrue,
+      );
+      expect(geaendert(_withPhones(basis, const [_mobil])), isTrue);
+      expect(
+        geaendert(
+          _withAdditionalEmails(basis, [
+            _elternEmail.copyWith(wert: 'neu@example.org'),
+          ]),
+        ),
+        isTrue,
+      );
+      expect(geaendert(_withAdditionalAddresses(basis, const [])), isTrue);
+    });
+  });
 }

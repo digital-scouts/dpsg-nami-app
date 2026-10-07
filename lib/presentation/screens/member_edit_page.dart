@@ -88,6 +88,18 @@ class _MemberEditPageState extends State<MemberEditPage> {
     return widget.mitglied.mitgliedsnummer;
   }
 
+  /// Ohne Aenderung gibt es nichts zu senden. Problemfaelle und wartende
+  /// Entwuerfe lassen sich dagegen immer abschliessen bzw. senden.
+  bool get _canSave {
+    if (widget.pendingEntry != null) {
+      return true;
+    }
+    return MemberConflictResolver.hasLocalChanges(
+      basisMitglied: widget.mitglied,
+      zielMitglied: _buildTargetMember(),
+    );
+  }
+
   bool get _cannotSendNow {
     final authModel = _maybeWatch<AuthSessionModel>(context);
     if (authModel == null) {
@@ -194,6 +206,8 @@ class _MemberEditPageState extends State<MemberEditPage> {
           Expanded(
             child: Form(
               key: _formKey,
+              // Haelt den Zustand des Speichern-Buttons aktuell.
+              onChanged: () => setState(() {}),
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final horizontalPadding = switch (constraints.maxWidth) {
@@ -326,7 +340,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
             constraints: const BoxConstraints(maxWidth: 1320),
             child: FilledButton.icon(
               key: const Key('member-edit-save-button'),
-              onPressed: _isSubmitting ? null : _save,
+              onPressed: _isSubmitting || !_canSave ? null : _save,
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(52),
                 backgroundColor: cannotSendNow

@@ -192,15 +192,16 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.text(auswahl).last);
         await tester.pumpAndSettle();
+      } else {
+        expect(_speichernAktiv(tester), isFalse);
+        await _aendereVorname(tester);
       }
       await tester.tap(find.byKey(const Key('member-edit-save-button')));
       await tester.pumpAndSettle();
       return model.submitCalls.single.zielMitglied;
     }
 
-    testWidgets('fehlendes Geschlecht bleibt ohne Eingabe null', (
-      tester,
-    ) async {
+    testWidgets('fehlendes Geschlecht bleibt unberuehrt null', (tester) async {
       final member = _buildMember(gender: 'w').copyWith(genderLoeschen: true);
 
       final ziel = await speichern(tester, member);
@@ -208,7 +209,7 @@ void main() {
       expect(ziel.gender, isNull);
     });
 
-    testWidgets('Altwert bleibt ohne Eingabe erhalten', (tester) async {
+    testWidgets('Altwert bleibt unberuehrt erhalten', (tester) async {
       final ziel = await speichern(tester, _buildMember(gender: 'divers'));
 
       expect(ziel.gender, 'divers');
@@ -229,18 +230,17 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      _buildTestApp(
-        MemberEditPage(
-          mitglied: _buildMember(gender: '').copyWith(
-            vorname: '',
-            nachname: '',
-            fahrtenname: '',
-            fahrtennameLoeschen: true,
-          ),
-        ),
-      ),
+      _buildTestApp(MemberEditPage(mitglied: _buildMember(gender: ''))),
     );
 
+    for (final key in const <Key>[
+      Key('member-edit-first-name-field'),
+      Key('member-edit-last-name-field'),
+      Key('member-edit-nickname-field'),
+    ]) {
+      await tester.enterText(find.byKey(key), '');
+    }
+    await tester.pump();
     await tester.tap(find.byKey(const Key('member-edit-save-button')));
     await tester.pump();
 
@@ -260,6 +260,7 @@ void main() {
       ),
     );
 
+    await _aendereVorname(tester);
     await tester.tap(find.byKey(const Key('member-edit-save-button')));
     await tester.pump();
 
@@ -287,6 +288,7 @@ void main() {
       ),
     );
 
+    await _aendereVorname(tester);
     await tester.tap(find.byKey(const Key('member-edit-save-button')));
     await tester.pump();
 
@@ -305,6 +307,7 @@ void main() {
       find.byKey(const Key('member-edit-phone-number-0')),
       'abc',
     );
+    await tester.pump();
 
     await tester.tap(find.byKey(const Key('member-edit-save-button')));
     await tester.pump();
@@ -441,6 +444,7 @@ void main() {
 
     await tester.tap(find.text('E-Mail hinzufügen'));
     await tester.pump();
+    await _aendereVorname(tester);
     await tester.tap(find.byKey(const Key('member-edit-save-button')));
     await tester.pump();
 
@@ -687,23 +691,76 @@ void main() {
         find.byKey(const Key('member-edit-primary-email-field')),
       );
       expect(primaryEmailField.controller!.text, isEmpty);
-
-      await tester.tap(find.byKey(const Key('member-edit-save-button')));
-      await tester.pumpAndSettle();
-
-      final ziel = model.submitCalls.single.zielMitglied;
-      expect(ziel.emailAdressen, member.emailAdressen);
-      final plan = MemberConflictResolver.resolve(
-        basisMitglied: member,
-        zielMitglied: ziel,
-        remoteMitglied: member,
-      );
-      expect(
-        plan.mergedMitglied.emailAdressen.where((email) => email.istPrimaer),
-        isEmpty,
-      );
+      // Ohne untergeschobene Haupt-E-Mail gibt es nichts zu speichern.
+      expect(_speichernAktiv(tester), isFalse);
+      expect(model.submitCalls, isEmpty);
     },
   );
+
+  group('Speichern ohne Aenderung', () {
+    testWidgets('ist nach dem Oeffnen inaktiv und sendet nichts', (
+      tester,
+    ) async {
+      final model = _RecordingMemberEditModel();
+      _useLargeViewport(tester);
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberEditPage(mitglied: _buildMember(gender: 'w')),
+          providers: _buildEditProviders(model),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(_speichernAktiv(tester), isFalse);
+      await tester.tap(find.byKey(const Key('member-edit-save-button')));
+      await tester.pumpAndSettle();
+      expect(model.submitCalls, isEmpty);
+    });
+
+    testWidgets('wird mit einer Aenderung aktiv und beim Zuruecknehmen '
+        'wieder inaktiv', (tester) async {
+      _useLargeViewport(tester);
+      await tester.pumpWidget(
+        _buildTestApp(MemberEditPage(mitglied: _buildMember(gender: 'w'))),
+      );
+      await tester.pumpAndSettle();
+
+      await _aendereVorname(tester);
+      expect(_speichernAktiv(tester), isTrue);
+
+      await tester.enterText(
+        find.byKey(const Key('member-edit-first-name-field')),
+        'Julia',
+      );
+      await tester.pump();
+      expect(_speichernAktiv(tester), isFalse);
+    });
+
+    testWidgets('bleibt fuer einen wartenden Entwurf aktiv', (tester) async {
+      final member = _buildMember(gender: 'w');
+      final entwurf = member.copyWith(vorname: 'Juliane');
+      _useLargeViewport(tester);
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberEditPage(
+            mitglied: entwurf,
+            pendingEntry: PendingPersonUpdate(
+              entryId: 'person-23',
+              personId: 23,
+              mitgliedsnummer: member.mitgliedsnummer,
+              displayName: entwurf.fullName,
+              basisMitglied: member,
+              zielMitglied: entwurf,
+              queuedAt: DateTime(2026, 4, 14, 12, 0),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(_speichernAktiv(tester), isTrue);
+    });
+  });
 
   testWidgets('wartender Entwurf sendet die Basis des Eintrags', (
     tester,
@@ -765,6 +822,7 @@ void main() {
 
       expect(find.widgetWithText(TextField, 'Zeltplatz'), findsOneWidget);
 
+      await _aendereVorname(tester);
       await tester.tap(find.byKey(const Key('member-edit-save-button')));
       await tester.pumpAndSettle();
 
@@ -941,6 +999,9 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      expect(_speichernAktiv(tester), isFalse);
+
+      await _aendereVorname(tester);
       await tester.tap(find.byKey(const Key('member-edit-save-button')));
       await tester.pumpAndSettle();
 
@@ -1616,6 +1677,24 @@ Widget _buildTestApp(
   }
 
   return MultiProvider(providers: providers, child: app);
+}
+
+/// Aendert den Vornamen, damit Speichern aktiv wird.
+Future<void> _aendereVorname(WidgetTester tester) async {
+  await tester.enterText(
+    find.byKey(const Key('member-edit-first-name-field')),
+    'Juliane',
+  );
+  await tester.pump();
+}
+
+bool _speichernAktiv(WidgetTester tester) {
+  return tester
+          .widget<ButtonStyleButton>(
+            find.byKey(const Key('member-edit-save-button')),
+          )
+          .onPressed !=
+      null;
 }
 
 PendingPersonUpdate _buildResolutionEntry({
