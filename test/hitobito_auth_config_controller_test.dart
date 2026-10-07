@@ -40,6 +40,31 @@ void main() {
       expect(peopleService.config.clientId, 'override-client');
     },
   );
+
+  test('ignoriert im Release einen gespeicherten Override (A-94)', () async {
+    final storage = _FakeSensitiveStorageService()
+      ..clientId = 'override-client'
+      ..clientSecret = 'override-secret';
+    final envConfig = HitobitoAuthConfig.fromBaseUrl(
+      clientId: 'env-client',
+      clientSecret: 'env-secret',
+      baseUrl: 'https://demo.hitobito.com',
+      redirectUri: 'de.jlange.nami.app:/oauth/callback',
+    );
+    final controller = HitobitoAuthConfigController(
+      sensitiveStorageService: storage,
+      oauthService: HitobitoOauthService(config: envConfig),
+      groupsService: HitobitoGroupsService(config: envConfig),
+      peopleService: HitobitoPeopleService(config: envConfig),
+      envConfig: envConfig,
+      overrideErlaubt: false,
+    );
+
+    await controller.initialize();
+
+    expect(controller.hasOverride, isFalse);
+    expect(controller.config.clientId, 'env-client');
+  });
 }
 
 class _FakeSensitiveStorageService extends SensitiveStorageService {

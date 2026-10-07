@@ -163,7 +163,7 @@ Gesammelt am 2026-10-01, jeweils mit Kurzbefund. Jede Stufe wird vor der Umsetzu
 - Impressum: ladungsfähige Anschrift ergänzen, spätestens bevor Supporter-Käufe live gehen (§ 5 DDG).
 - Offene Kartenbefunde klären: GPL-Lizenz von FMTC und erlaubte Quelle für Offline-Kacheln (A-62, A-51, A-55).
 - Prüfen, ob der Caddy des News-Stacks Access-Logs mit IP-Adressen schreibt (Rest von S-06).
-- Store-Anbindung für Supporter-Pakete umsetzen, bevor die neuen Store-Texte („Kostenlos im Kern“, Qualifikationen-Übersicht als Extra) sichtbar werden. Danach den Testschalter `supporterTestZugang` aus Release-Builds nehmen und den DSA-Händlerstatus in App Store Connect und Play Console angeben (A-61).
+- Store-Anbindung für Supporter-Pakete umsetzen, bevor die neuen Store-Texte („Kostenlos im Kern“, Qualifikationen-Übersicht als Extra) sichtbar werden. Der Testschalter `supporterTestZugang` wirkt seit A-94 nur noch in Debug- und Profile-Builds. Danach den DSA-Händlerstatus in App Store Connect und Play Console angeben (A-61).
 
 ## Später prüfen: Arbeitskontext-Ausbau
 

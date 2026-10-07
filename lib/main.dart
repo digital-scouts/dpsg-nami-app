@@ -248,11 +248,11 @@ Future<void> _startApp({
     persist: (code) => settingsRepo.saveLanguageCode(code),
   )..setLocale(Locale(initial.languageCode), persist: false);
   final appSettingsModel = AppSettingsModel(initial, settingsRepo);
-  // Supporter-Zugang kommt bis zur Store-Anbindung vom Testschalter; die
-  // Demo zeigt alles.
+  // Supporter-Zugang kommt bis zur Store-Anbindung vom Testschalter, den es
+  // nur in Debug- und Profile-Builds gibt (A-94); die Demo zeigt alles.
   SupportAccess supportAccessVon(bool freigeschaltet) => isDemo
       ? const UnlockedSupportAccess()
-      : SchalterSupportAccess(freigeschaltet: freigeschaltet);
+      : SchalterSupportAccess(freigeschaltet: !kReleaseMode && freigeschaltet);
   final appearanceModel = AppearanceModel(
     repository: SharedPrefsAppearanceSettingsRepository(),
     appIconService: MethodChannelAppIconService(),

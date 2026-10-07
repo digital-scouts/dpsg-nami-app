@@ -21,7 +21,9 @@ class HitobitoAuthConfigController extends ChangeNotifier {
     HitobitoQualificationsService? qualificationsService,
     LoggerService? logger,
     HitobitoAuthConfig? envConfig,
-  }) : _sensitiveStorageService = sensitiveStorageService,
+    bool overrideErlaubt = !kReleaseMode,
+  }) : _overrideErlaubt = overrideErlaubt,
+       _sensitiveStorageService = sensitiveStorageService,
        _oauthService = oauthService,
        _groupsService = groupsService,
        _peopleService = peopleService,
@@ -32,6 +34,9 @@ class HitobitoAuthConfigController extends ChangeNotifier {
        _envConfig = envConfig ?? HitobitoAuthEnv.authConfig,
        _effectiveConfig = envConfig ?? HitobitoAuthEnv.authConfig;
 
+  /// Im Release gilt immer die Konfiguration aus der .env; ein frueher
+  /// gespeicherter Override aus den Entwickler-Werkzeugen wird ignoriert.
+  final bool _overrideErlaubt;
   final SensitiveStorageService _sensitiveStorageService;
   final HitobitoOauthService _oauthService;
   final HitobitoGroupsService _groupsService;
@@ -50,7 +55,7 @@ class HitobitoAuthConfigController extends ChangeNotifier {
   String get effectiveClientId => _effectiveConfig.clientId;
 
   Future<void> initialize() async {
-    final override = await loadOverride();
+    final override = _overrideErlaubt ? await loadOverride() : null;
     final resolved = buildResolvedConfig(
       clientId: override?.clientId,
       clientSecret: override?.clientSecret,

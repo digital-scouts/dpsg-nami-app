@@ -28,7 +28,7 @@ import '../screens/nami_ai/nami_ai_paywall_page.dart';
 import '../screens/profile_page.dart';
 import '../screens/settings_app_page.dart';
 import '../screens/settings_appearance_page.dart';
-import '../screens/settings_debug_tools_page.dart';
+import '../screens/hilfe_diagnose_page.dart';
 import '../screens/settings_rechtliches_page.dart';
 import '../screens/settings_map_page.dart';
 import '../screens/settings_notification_page.dart';
@@ -367,7 +367,7 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
     case AppRoutes.debugTools:
       return MaterialPageRoute(
         settings: settings,
-        builder: (context) => const DebugToolsPage(),
+        builder: (context) => const HilfeDiagnosePage(),
       );
     default:
       return MaterialPageRoute(

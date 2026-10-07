@@ -23,7 +23,7 @@ Ebenfalls unabhängig vom Schalter sendet das Wiredash-SDK bei jedem Start, höc
 | `member_edit` | Bearbeiten, Speichern, erneutes Senden | siehe unten |
 | `member_resolution_*` | Problemlösungsfälle | siehe unten |
 | `feedback_prompt`, `promoter_survey` | Feedback-Dialog und Umfrage | siehe unten |
-| `feedback`, `debug_tools`, `debug_action` | Aktionen in den Debug-Tools | `action` |
+| `feedback`, `debug_tools`, `debug_action` | Aktionen in Hilfe & Diagnose und den Entwickler-Werkzeugen | `action` |
 | `demo_used` | Start des Demo-Modus | keine |
 
 ## Grundprinzip
@@ -66,7 +66,7 @@ Neben dem Tracking nutzt die App Wiredash für Feedback und den Promoter Score. 
 - auf der Erfolge-Seite öffnet das offene Abzeichen „App bewertet“ die Bewertungsseite im App Store; das Abzeichen gilt danach als erreicht
 - „Mitgestalten“ ist auf beiden Plattformen antippbar und öffnet das Feedback
 - der Zustand liegt in SharedPreferences unter `feedback_prompt.*` und wird beim App-Reset gelöscht
-- in den Debug-Tools lässt sich der Dialog ohne Speicherung des Zustands erzwingen
+- in den Entwickler-Werkzeugen (nur Debug- und Profile-Builds) lässt sich der Dialog ohne Speicherung des Zustands erzwingen
 
 ### Promoter Score
 
