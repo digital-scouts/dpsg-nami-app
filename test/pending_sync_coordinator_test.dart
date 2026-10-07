@@ -293,6 +293,33 @@ void main() {
     },
   );
 
+  test(
+    'sendet hinter der App-Sperre nichts und holt nach dem Entsperren nach',
+    () {
+      fakeAsync((async) {
+        final harness = _Harness(async, connectivity: FakeConnectivity.wifi());
+        harness.authModel.changeState(AuthState.unlockRequired);
+        harness.coordinator.start();
+
+        unawaited(
+          harness.coordinator.checkCurrentConnectivity(trigger: 'resume'),
+        );
+        // Auch der Retry-Timer laeuft, waehrend die Sperre aktiv ist.
+        async.elapse(const Duration(minutes: 3));
+
+        expect(harness.authModel.syncTriggers, isEmpty);
+        expect(harness.writeRepository.updateCount, 0);
+
+        harness.authModel.changeState(AuthState.signedIn);
+        async.flushMicrotasks();
+
+        expect(harness.authModel.syncTriggers, <String>['auth_ready']);
+        expect(harness.writeRepository.updateCount, 1);
+        harness.dispose();
+      });
+    },
+  );
+
   test('dispose beendet Listener und Timer', () {
     fakeAsync((async) {
       final harness = _Harness(async, connectivity: FakeConnectivity.wifi());

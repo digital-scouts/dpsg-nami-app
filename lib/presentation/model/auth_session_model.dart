@@ -27,6 +27,9 @@ enum SyncAttemptResult {
 
 enum NextSyncDisplayKind { atTime, whenWifiAvailable, loginRequired }
 
+/// Warum die App ohne Zutun der Person abgemeldet hat.
+enum LogoutReason { keineBerechtigung }
+
 class DataSyncStatus {
   const DataSyncStatus({
     required this.isSyncing,
@@ -94,6 +97,11 @@ class AuthSessionModel extends ChangeNotifier {
   static final Object _noInteractiveReloginZoneKey = Object();
 
   AuthState _state = AuthState.initializing;
+  // Steigt mit jedem Ende einer Sitzung (Logout, Benutzerwechsel,
+  // Datenablauf). Laufende Vorgaenge vergleichen sie nach jedem await und
+  // verwerfen ihr Ergebnis, wenn die Sitzung inzwischen gewechselt hat.
+  int _sessionGeneration = 0;
+  Object? _activeSyncToken;
   AuthSession? _session;
   AuthProfile? _profile;
   DateTime? _lastSensitiveSyncAt;
@@ -109,8 +117,10 @@ class AuthSessionModel extends ChangeNotifier {
   bool _isSyncingHitobitoData = false;
   bool _isUserInitiatedSyncInProgress = false;
   SyncAttemptResult? _lastSyncAttemptResult;
+  LogoutReason? _logoutReason;
 
   AuthState get state => _state;
+  int get sessionGeneration => _sessionGeneration;
   AuthSession? get session => _session;
   AuthProfile? get profile => _profile;
   DateTime? get lastSensitiveSyncAt => _lastSensitiveSyncAt;
@@ -124,6 +134,9 @@ class AuthSessionModel extends ChangeNotifier {
   bool get isSyncingHitobitoData => _isSyncingHitobitoData;
   bool get isUserInitiatedSyncInProgress => _isUserInitiatedSyncInProgress;
   SyncAttemptResult? get lastSyncAttemptResult => _lastSyncAttemptResult;
+
+  /// Grund der letzten automatischen Abmeldung, bis zur naechsten Anmeldung.
+  LogoutReason? get logoutReason => _logoutReason;
   DataSyncStatus get dataSyncStatus => DataSyncStatus(
     isSyncing: _isSyncingHitobitoData,
     hasValidLocalData: _lastSensitiveSyncAt != null,
@@ -158,29 +171,35 @@ class AuthSessionModel extends ChangeNotifier {
 
     try {
       _session = await _repository.load();
-      _lastSensitiveSyncAt = await _sensitiveStorageService
-          .loadLastSensitiveSyncAt();
-      _lastSensitiveSyncAttemptAt = await _sensitiveStorageService
-          .loadLastSensitiveSyncAttemptAt();
-      _lastBackgroundedAt = await _sensitiveStorageService
-          .loadLastBackgroundedAt();
-      _lastProfileSyncAt = await _profileRepository.loadLastSyncAt();
-      _profile = await _profileRepository.loadCached();
-
-      if (await _shouldResetStaleSessionBeforeUnlock()) {
+      if (_session != null && await _isSessionWithoutLocalData()) {
+        // Der Schluesselbund ueberdauert unter iOS das Loeschen der App, die
+        // App-Daten nicht. Eine solche Session gehoert zu einer frueheren
+        // Installation und meldet niemanden an.
         await _logger.log(
           'auth_flow',
-          'Uebernommene Session ohne restorable Profildaten erkannt, Login wird zurueckgesetzt',
+          'Uebernommene Session ohne lokale App-Daten erkannt, Login wird zurueckgesetzt',
         );
         await _repository.clear();
-        await _profileRepository.clear();
+        try {
+          await _profileRepository.clear();
+        } on SensitiveSessionEndedException {
+          // Die Profil-Box loescht der folgende Purge.
+        }
         await _purgeSensitiveData();
         _session = null;
-        _profile = null;
-        _lastSensitiveSyncAt = null;
-        _lastSensitiveSyncAttemptAt = null;
-        _lastProfileSyncAt = null;
-        _lastBackgroundedAt = null;
+      }
+      if (_session != null) {
+        // Ohne Session bleiben die sensiblen Boxen geschlossen; es gibt dann
+        // nichts zu lesen und es soll auch nichts entstehen.
+        _sensitiveStorageService.beginSession();
+        _lastSensitiveSyncAt = await _sensitiveStorageService
+            .loadLastSensitiveSyncAt();
+        _lastSensitiveSyncAttemptAt = await _sensitiveStorageService
+            .loadLastSensitiveSyncAttemptAt();
+        _lastBackgroundedAt = await _sensitiveStorageService
+            .loadLastBackgroundedAt();
+        _lastProfileSyncAt = await _profileRepository.loadLastSyncAt();
+        _profile = await _profileRepository.loadCached();
       }
 
       await _deriveState(requireUnlock: true);
@@ -203,19 +222,17 @@ class AuthSessionModel extends ChangeNotifier {
     }
   }
 
-  Future<bool> _shouldResetStaleSessionBeforeUnlock() async {
-    if (_session == null) {
+  Future<bool> _isSessionWithoutLocalData() async {
+    try {
+      return !await _sensitiveStorageService.hasLocalSensitiveData();
+    } catch (error, stack) {
+      // Im Zweifel nicht abmelden; der Zustand ist dann nur unbekannt.
+      await _logger.log(
+        'auth_flow',
+        'Pruefung auf lokale App-Daten fehlgeschlagen: $error\n$stack',
+      );
       return false;
     }
-
-    final hasRestorableProfile = _profile != null || _lastProfileSyncAt != null;
-    final hasSensitiveSyncState =
-        _lastSensitiveSyncAt != null || _lastSensitiveSyncAttemptAt != null;
-    if (hasRestorableProfile || hasSensitiveSyncState) {
-      return false;
-    }
-
-    return _isAppLockEnabled() && await _biometricLockService.isAvailable();
   }
 
   Future<void> signIn() async {
@@ -345,6 +362,7 @@ class AuthSessionModel extends ChangeNotifier {
   Future<void> _persistAuthenticatedSession(
     AuthSession authenticatedSession,
   ) async {
+    _sensitiveStorageService.beginSession();
     final previousPrincipal = await _sensitiveStorageService.loadPrincipal();
     final nextPrincipal = authenticatedSession.principal;
     final mustPurgeExistingData =
@@ -367,6 +385,7 @@ class AuthSessionModel extends ChangeNotifier {
       _requiresInteractiveLogin = false;
       _hasShownRemoteAccessIssueNotice = false;
       _errorMessage = null;
+      _sensitiveStorageService.beginSession();
     }
 
     await _repository.save(authenticatedSession);
@@ -375,13 +394,18 @@ class AuthSessionModel extends ChangeNotifier {
     await _sensitiveStorageService.saveLastSensitiveSyncAttemptAt(null);
 
     _session = authenticatedSession;
+    _logoutReason = null;
     _lastBackgroundedAt = null;
     _lastSensitiveSyncAttemptAt = null;
     _errorMessage = null;
     _requiresInteractiveLogin = false;
     _remoteAccessIssueMessage = null;
     _hasShownRemoteAccessIssueNotice = false;
-    _state = AuthState.signedIn;
+    // Greift die App-Sperre waehrend des Logins im Browser, bleibt sie
+    // bestehen; nur die lokale Entsperrung hebt sie auf.
+    if (_state != AuthState.unlockRequired) {
+      _state = AuthState.signedIn;
+    }
   }
 
   Future<void> unlock() async {
@@ -412,16 +436,25 @@ class AuthSessionModel extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    // Sofort beenden, damit laufende Vorgaenge waehrend der folgenden awaits
+    // nichts mehr schreiben.
+    _endSession();
+    _session = null;
+    _logoutReason = null;
     await _logger.logInfo('auth_flow', 'logout started');
     await _logger.trackAuthFlow('logout', 'started');
     await _repository.clear();
-    await _profileRepository.clear();
+    try {
+      await _profileRepository.clear();
+    } on SensitiveSessionEndedException {
+      // Die Profil-Box loescht der folgende Purge.
+    }
     await _purgeSensitiveData();
 
-    _session = null;
     _profile = null;
     _isLoadingProfile = false;
     _isSyncingHitobitoData = false;
+    _activeSyncToken = null;
     _isUserInitiatedSyncInProgress = false;
     _lastSyncAttemptResult = null;
     _lastSensitiveSyncAt = null;
@@ -442,6 +475,15 @@ class AuthSessionModel extends ChangeNotifier {
       'success',
       properties: const {'sensitive_data_cleared': true},
     );
+    notifyListeners();
+  }
+
+  /// Meldet ab, weil das Konto keinen lesbaren Layer mehr hat. Alle lokalen
+  /// Daten werden wie beim Logout geloescht.
+  Future<void> logoutWegenFehlenderRechte() async {
+    await _logger.logInfo('auth_flow', 'logout reason=keine_berechtigung');
+    await logout();
+    _logoutReason = LogoutReason.keineBerechtigung;
     notifyListeners();
   }
 
@@ -466,19 +508,31 @@ class AuthSessionModel extends ChangeNotifier {
       return;
     }
 
-    final shouldRequireUnlock = _shouldRequireUnlockAfterResume();
-    await _clearBackgroundedAt();
-
-    if (shouldRequireUnlock &&
-        _isAppLockEnabled() &&
-        await _biometricLockService.isAvailable()) {
+    final shouldRequireUnlock =
+        _shouldRequireUnlockAfterResume() && _isAppLockEnabled();
+    final previousState = _state;
+    if (shouldRequireUnlock) {
+      // Sofort sperren: Andere Resume-Handler starten direkt danach
+      // Remote-Zugriffe und muessen die Sperre schon sehen.
       _state = AuthState.unlockRequired;
-      await _logger.log(
-        'auth_flow',
-        'Lokale Entsperrung nach Resume erforderlich',
-      );
       notifyListeners();
     }
+    await _clearBackgroundedAt();
+    if (!shouldRequireUnlock) {
+      return;
+    }
+
+    if (!await _biometricLockService.isAvailable()) {
+      if (_state == AuthState.unlockRequired) {
+        _state = previousState;
+        notifyListeners();
+      }
+      return;
+    }
+    await _logger.log(
+      'auth_flow',
+      'Lokale Entsperrung nach Resume erforderlich',
+    );
   }
 
   bool _shouldRequireUnlockAfterResume() {
@@ -538,11 +592,21 @@ class AuthSessionModel extends ChangeNotifier {
     bool forceRefresh = false,
     bool allowMobileDataOverride = false,
   }) async {
+    final generation = _sessionGeneration;
     if (_session == null || _state == AuthState.reloginRequired) {
       await _logger.log(
         'auth_flow',
         'Remote-Zugriff abgebrochen ($trigger): '
             'session=${_session != null} state=$_state',
+      );
+      return const _PreparedRemoteAccess(session: null);
+    }
+
+    if (_state == AuthState.unlockRequired) {
+      // Hinter der App-Sperre gibt es weder Sync noch Login-Browser.
+      await _logger.log(
+        'auth_flow',
+        'Remote-Zugriff abgebrochen ($trigger): App-Sperre aktiv',
       );
       return const _PreparedRemoteAccess(session: null);
     }
@@ -573,11 +637,19 @@ class AuthSessionModel extends ChangeNotifier {
       allowMobileDataOverride: allowMobileDataOverride,
     );
 
+    if (generation != _sessionGeneration || _session == null) {
+      return const _PreparedRemoteAccess(session: null);
+    }
+
     try {
       final currentSession = _session!;
       final refreshedSession = forceRefresh && currentSession.canRefresh
           ? await _oauthService.refresh(currentSession)
           : await _oauthService.refreshIfNeeded(currentSession);
+      if (generation != _sessionGeneration) {
+        // Nach einem Logout darf die alte Session nicht zurueckkehren.
+        return const _PreparedRemoteAccess(session: null);
+      }
       if (refreshedSession.accessToken != currentSession.accessToken ||
           refreshedSession.refreshToken != currentSession.refreshToken ||
           refreshedSession.expiresAt != currentSession.expiresAt) {
@@ -587,7 +659,7 @@ class AuthSessionModel extends ChangeNotifier {
       }
       _clearRemoteAccessIssue(notify: false);
     } catch (error, stack) {
-      if (_requiresInteractiveLogin) {
+      if (generation != _sessionGeneration || _requiresInteractiveLogin) {
         return const _PreparedRemoteAccess(session: null);
       }
       if (_isUnauthorized(error)) {
@@ -595,6 +667,14 @@ class AuthSessionModel extends ChangeNotifier {
         final reloggedInSession = await _attemptInteractiveRelogin(
           trigger: '${trigger}_interactive_relogin',
         );
+        if (generation != _sessionGeneration) {
+          // Anderes Konto oder Logout: Die urspruengliche Aktion gehoert
+          // zur beendeten Sitzung.
+          return const _PreparedRemoteAccess(
+            session: null,
+            interactiveReloginAttempted: true,
+          );
+        }
         if (reloggedInSession == null) {
           await _requireReloginForRemoteFailure(
             error.toString(),
@@ -643,20 +723,21 @@ class AuthSessionModel extends ChangeNotifier {
     bool retryOnUnauthorized = true,
     bool allowMobileDataOverride = false,
   }) async {
+    final generation = _sessionGeneration;
     final initialPreparation = await _prepareSessionForRemoteAccess(
       trigger: '${trigger}_session',
       forceRefresh: forceRefresh,
       allowMobileDataOverride: allowMobileDataOverride,
     );
     final activeSession = initialPreparation.session;
-    if (activeSession == null) {
+    if (activeSession == null || generation != _sessionGeneration) {
       return null;
     }
 
     try {
       return await action(activeSession);
     } catch (error) {
-      if (!_isUnauthorized(error)) {
+      if (generation != _sessionGeneration || !_isUnauthorized(error)) {
         rethrow;
       }
 
@@ -684,13 +765,16 @@ class AuthSessionModel extends ChangeNotifier {
         allowMobileDataOverride: allowMobileDataOverride,
       );
       final refreshedSession = retryPreparation.session;
-      if (refreshedSession == null) {
+      if (refreshedSession == null || generation != _sessionGeneration) {
         return null;
       }
 
       try {
         return await action(refreshedSession);
       } catch (retryError) {
+        if (generation != _sessionGeneration) {
+          rethrow;
+        }
         if (_isUnauthorized(retryError)) {
           if (retryPreparation.interactiveReloginAttempted) {
             await _requireReloginForRemoteFailure(
@@ -703,6 +787,7 @@ class AuthSessionModel extends ChangeNotifier {
             trigger: '${trigger}_retry',
             action: action,
             unauthorizedError: retryError,
+            generation: generation,
           );
         }
         rethrow;
@@ -714,10 +799,14 @@ class AuthSessionModel extends ChangeNotifier {
     required String trigger,
     required Future<T> Function(AuthSession session) action,
     required Object unauthorizedError,
+    required int generation,
   }) async {
     final reloggedInSession = await _attemptInteractiveRelogin(
       trigger: '${trigger}_interactive_relogin',
     );
+    if (generation != _sessionGeneration) {
+      return null;
+    }
     if (reloggedInSession == null) {
       await _requireReloginForRemoteFailure(
         unauthorizedError.toString(),
@@ -729,7 +818,7 @@ class AuthSessionModel extends ChangeNotifier {
     try {
       return await action(reloggedInSession);
     } catch (error) {
-      if (_isUnauthorized(error)) {
+      if (generation == _sessionGeneration && _isUnauthorized(error)) {
         await _requireReloginForRemoteFailure(
           error.toString(),
           trigger: trigger,
@@ -826,6 +915,7 @@ class AuthSessionModel extends ChangeNotifier {
     _isLoadingProfile = true;
     notifyListeners();
 
+    final generation = _sessionGeneration;
     try {
       await executeRemoteAccess<void>(
         trigger: force ? 'profile_force' : 'profile_load',
@@ -835,6 +925,9 @@ class AuthSessionModel extends ChangeNotifier {
         return;
       }
     } catch (error, stack) {
+      if (generation != _sessionGeneration) {
+        return;
+      }
       if (!_isUnauthorized(error)) {
         await _logger.log(
           'auth',
@@ -901,6 +994,16 @@ class AuthSessionModel extends ChangeNotifier {
       return;
     }
 
+    if (_state == AuthState.unlockRequired) {
+      // Kein Versuch speichern: Nach dem Entsperren soll der Sync faellig
+      // bleiben.
+      await _logger.logInfo(
+        'hitobito_sync',
+        'Hitobito-Sync uebersprungen trigger=$trigger reason=locked',
+      );
+      return;
+    }
+
     if (_session == null ||
         _state == AuthState.reloginRequired ||
         _requiresInteractiveLogin) {
@@ -943,36 +1046,51 @@ class AuthSessionModel extends ChangeNotifier {
     }
 
     await markSensitiveDataSyncAttempted();
+    final generation = _sessionGeneration;
+    final syncToken = Object();
+    _activeSyncToken = syncToken;
     _isSyncingHitobitoData = true;
     _isUserInitiatedSyncInProgress = userInitiated;
     notifyListeners();
 
     try {
-      await executeRemoteAccess<void>(
+      final profileLoaded = await executeRemoteAccess<bool>(
         trigger: '${trigger}_profile',
         forceRefresh: force,
         allowMobileDataOverride: allowMobileDataOverride,
-        action: _loadProfileFromRemote,
+        action: (session) async {
+          await _loadProfileFromRemote(session);
+          return true;
+        },
       );
-      if (_requiresInteractiveLogin) {
-        _lastSyncAttemptResult = SyncAttemptResult.loginRequired;
-        await _logger.logInfo(
-          'hitobito_sync',
-          'Hitobito-Sync abgebrochen trigger=$trigger phase=profile reason=login_required',
+      if (generation != _sessionGeneration) {
+        await _logSyncAbortedForEndedSession(trigger);
+        return;
+      }
+      if (profileLoaded == null) {
+        await _handleSyncWithoutRemoteAccess(
+          trigger: trigger,
+          phase: 'profile',
         );
         return;
       }
-      await executeRemoteAccess<void>(
+      final membersLoaded = await executeRemoteAccess<bool>(
         trigger: '${trigger}_members',
         forceRefresh: force,
         allowMobileDataOverride: allowMobileDataOverride,
-        action: (session) => syncMembers(session.accessToken),
+        action: (session) async {
+          await syncMembers(session.accessToken);
+          return true;
+        },
       );
-      if (_requiresInteractiveLogin) {
-        _lastSyncAttemptResult = SyncAttemptResult.loginRequired;
-        await _logger.logInfo(
-          'hitobito_sync',
-          'Hitobito-Sync abgebrochen trigger=$trigger phase=members reason=login_required',
+      if (generation != _sessionGeneration) {
+        await _logSyncAbortedForEndedSession(trigger);
+        return;
+      }
+      if (membersLoaded == null) {
+        await _handleSyncWithoutRemoteAccess(
+          trigger: trigger,
+          phase: 'members',
         );
         return;
       }
@@ -986,6 +1104,10 @@ class AuthSessionModel extends ChangeNotifier {
         'Hitobito-Sync erfolgreich trigger=$trigger',
       );
     } on NetworkAccessBlockedException catch (error) {
+      if (generation != _sessionGeneration) {
+        await _logSyncAbortedForEndedSession(trigger);
+        return;
+      }
       await _logger.logInfo(
         'hitobito_sync',
         'Hitobito-Sync blockiert ($trigger): ${error.message}',
@@ -995,6 +1117,10 @@ class AuthSessionModel extends ChangeNotifier {
           : SyncAttemptResult.networkError;
       _reportNetworkAccessBlockedIssue(error, notify: false);
     } catch (error, stack) {
+      if (generation != _sessionGeneration) {
+        await _logSyncAbortedForEndedSession(trigger);
+        return;
+      }
       await _logger.log(
         'hitobito_sync',
         'Hitobito-Sync fehlgeschlagen ($trigger): $error\n$stack',
@@ -1007,10 +1133,39 @@ class AuthSessionModel extends ChangeNotifier {
         notify: false,
       );
     } finally {
-      _isSyncingHitobitoData = false;
-      _isUserInitiatedSyncInProgress = false;
-      notifyListeners();
+      // Ein neuer Sync nach Logout oder Benutzerwechsel hat eigene Flags.
+      if (identical(_activeSyncToken, syncToken)) {
+        _activeSyncToken = null;
+        _isSyncingHitobitoData = false;
+        _isUserInitiatedSyncInProgress = false;
+        notifyListeners();
+      }
     }
+  }
+
+  Future<void> _handleSyncWithoutRemoteAccess({
+    required String trigger,
+    required String phase,
+  }) async {
+    if (_requiresInteractiveLogin) {
+      _lastSyncAttemptResult = SyncAttemptResult.loginRequired;
+      await _logger.logInfo(
+        'hitobito_sync',
+        'Hitobito-Sync abgebrochen trigger=$trigger phase=$phase reason=login_required',
+      );
+      return;
+    }
+    await _logger.logInfo(
+      'hitobito_sync',
+      'Hitobito-Sync abgebrochen trigger=$trigger phase=$phase reason=no_remote_access state=$_state',
+    );
+  }
+
+  Future<void> _logSyncAbortedForEndedSession(String trigger) {
+    return _logger.logInfo(
+      'hitobito_sync',
+      'Hitobito-Sync verworfen trigger=$trigger reason=session_ended',
+    );
   }
 
   NextSyncDisplayKind? _resolveNextSyncKind() {
@@ -1059,8 +1214,12 @@ class AuthSessionModel extends ChangeNotifier {
   }
 
   Future<void> _loadProfileFromRemote(AuthSession session) async {
+    final generation = _sessionGeneration;
     try {
       final loadedProfile = await _oauthService.fetchProfile(session);
+      if (generation != _sessionGeneration) {
+        return;
+      }
       final syncAt = _retentionPolicy.now();
       _profile = loadedProfile;
       _lastProfileSyncAt = syncAt;
@@ -1148,6 +1307,10 @@ class AuthSessionModel extends ChangeNotifier {
     final attemptedAt = _retentionPolicy.now();
     _lastSensitiveSyncAttemptAt = attemptedAt;
     _lastSyncAttemptResult = null;
+    if (_session == null) {
+      // Ohne Sitzung gibt es keinen Speicher, dem der Versuch gehoert.
+      return;
+    }
     await _sensitiveStorageService.saveLastSensitiveSyncAttemptAt(attemptedAt);
   }
 
@@ -1231,7 +1394,6 @@ class AuthSessionModel extends ChangeNotifier {
       requiresInteractiveLogin: true,
       notify: false,
     );
-    _state = AuthState.signedIn;
     await _logger.logInfo(
       'auth_flow',
       'Retry fehlgeschlagen, interaktiver Relogin fuer Remote-Zugriffe erforderlich${trigger == null ? '' : ' trigger=$trigger'}',
@@ -1239,7 +1401,15 @@ class AuthSessionModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Beendet die Sitzung sofort: Laufende Vorgaenge erkennen den Wechsel an
+  // der Generation und koennen keine sensible Box mehr oeffnen.
+  void _endSession() {
+    _sessionGeneration += 1;
+    _sensitiveStorageService.endSession();
+  }
+
   Future<void> _purgeSensitiveData() async {
+    _endSession();
     await _sensitiveStorageService.purgeSensitiveData();
     final purgeLocalPersonalData = _purgeLocalPersonalData;
     if (purgeLocalPersonalData == null) {

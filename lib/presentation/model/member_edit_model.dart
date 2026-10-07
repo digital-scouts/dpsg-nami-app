@@ -144,14 +144,18 @@ class MemberEditModel extends ChangeNotifier {
     required Future<void> Function(Mitglied member) onMemberUpdated,
     Future<void> Function()? onMemberSaved,
     DateTime Function()? nowProvider,
+    int Function()? sessionGeneration,
   }) : _memberWriteRepository = memberWriteRepository,
        _pendingRepository = pendingRepository,
        _logger = logger,
        _onMemberUpdated = onMemberUpdated,
        _onMemberSaved = onMemberSaved,
-       _now = nowProvider ?? DateTime.now {
+       _now = nowProvider ?? DateTime.now,
+       _sessionGeneration = sessionGeneration ?? _ohneSitzungsgeneration {
     _sessionStartedAt = _now();
   }
+
+  static int _ohneSitzungsgeneration() => 0;
 
   final MemberWriteRepository _memberWriteRepository;
   final PendingPersonUpdateRepository _pendingRepository;
@@ -162,6 +166,9 @@ class MemberEditModel extends ChangeNotifier {
   /// aufgerufen, auch beim Nachsenden aus der Offline-Warteschlange.
   final Future<void> Function()? _onMemberSaved;
   final DateTime Function() _now;
+  // Sitzungsgeneration des AuthSessionModel. Ein Nachsenden, das eine
+  // Sitzung ueberdauert, darf nichts mehr senden oder speichern.
+  final int Function() _sessionGeneration;
   late final DateTime _sessionStartedAt;
 
   List<PendingPersonUpdate> _pendingUpdates = const <PendingPersonUpdate>[];
@@ -286,6 +293,16 @@ class MemberEditModel extends ChangeNotifier {
 
   Future<void> loadPending() async {
     _pendingUpdates = await _pendingRepository.loadAll();
+    notifyListeners();
+  }
+
+  /// Leert nur die Liste im Speicher. Nach dem Logout ist die Box bereits
+  /// geloescht und darf nicht erneut geoeffnet werden.
+  void clearPendingInMemory() {
+    if (_pendingUpdates.isEmpty) {
+      return;
+    }
+    _pendingUpdates = const <PendingPersonUpdate>[];
     notifyListeners();
   }
 
@@ -901,6 +918,7 @@ class MemberEditModel extends ChangeNotifier {
     required String trigger,
     required bool automatic,
   }) async {
+    final generation = _sessionGeneration();
     // Immer vom gespeicherten Stand ausgehen: Nach einem Logout ist die Box
     // geleert, und alte Eintraege aus dem Speicher duerfen nicht mit der
     // Sitzung eines anderen Nutzers gesendet werden.
@@ -936,6 +954,9 @@ class MemberEditModel extends ChangeNotifier {
         track: true,
       );
       for (final entry in entries) {
+        if (generation != _sessionGeneration()) {
+          break;
+        }
         final attemptedEntry = entry.markAttempted(_now());
         await _pendingRepository.save(attemptedEntry);
         try {
@@ -944,6 +965,9 @@ class MemberEditModel extends ChangeNotifier {
             basisMitglied: attemptedEntry.basisMitglied,
             zielMitglied: attemptedEntry.zielMitglied,
           );
+          if (generation != _sessionGeneration()) {
+            break;
+          }
           await _onMemberUpdated(updated);
           await _pendingRepository.remove(attemptedEntry.entryId);
           await _notifyMemberSaved();
@@ -1041,6 +1065,13 @@ class MemberEditModel extends ChangeNotifier {
             ),
           );
         }
+      }
+      if (generation != _sessionGeneration()) {
+        await _logger.log(
+          'member_edit',
+          'Nachsenden abgebrochen trigger=$trigger reason=session_ended',
+        );
+        return PendingPersonUpdateRetrySummary(results: results);
       }
       await loadPending();
       final summary = PendingPersonUpdateRetrySummary(results: results);

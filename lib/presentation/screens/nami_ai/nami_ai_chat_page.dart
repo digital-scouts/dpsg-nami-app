@@ -13,6 +13,7 @@ import 'package:nami/services/nami_ai/nami_ai_service.dart';
 import 'package:nami/services/nami_ai/nami_ai_stream_service.dart';
 import 'package:open_file/open_file.dart';
 import 'package:provider/provider.dart';
+import '../../../services/sensitive_storage_service.dart';
 
 enum _ChatMenuAction { newConversation, history, shareDebugLog, deleteDebugLog }
 
@@ -424,14 +425,18 @@ class _NamiAiChatPageState extends State<NamiAiChatPage> {
     if (conversationId == null || startedAt == null || title == null) {
       return;
     }
-    await repository.save(
-      NamiAiChatHistoryEntry(
-        id: conversationId,
-        startedAt: startedAt,
-        title: title,
-        messages: List<NamiAiChatMessage>.unmodifiable(_messages),
-      ),
-    );
+    try {
+      await repository.save(
+        NamiAiChatHistoryEntry(
+          id: conversationId,
+          startedAt: startedAt,
+          title: title,
+          messages: List<NamiAiChatMessage>.unmodifiable(_messages),
+        ),
+      );
+    } on SensitiveSessionEndedException {
+      // Nach Logout oder Datenablauf wird der Verlauf nicht mehr gespeichert.
+    }
   }
 
   void _scrollToBottom() {

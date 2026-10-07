@@ -106,7 +106,8 @@ void main() {
 
   test('laesst Daten der App-Version 1.0.0 unangetastet', () async {
     await installFixture();
-    final sensitiveStorage = SensitiveStorageService();
+    SensitiveStorageService.resetForTest();
+    final sensitiveStorage = SensitiveStorageService()..beginSession();
     final box = await sensitiveStorage.openEncryptedStringBox(
       'hitobito_profile_box',
     );

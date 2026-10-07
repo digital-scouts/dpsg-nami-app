@@ -23,7 +23,8 @@ void main() {
       'arbeitskontext_local_repository_',
     );
     Hive.init(tempDir.path);
-    sensitiveStorageService = SensitiveStorageService();
+    SensitiveStorageService.resetForTest();
+    sensitiveStorageService = SensitiveStorageService()..beginSession();
     repository = SecureArbeitskontextLocalRepository(
       sensitiveStorageService: sensitiveStorageService,
     );
@@ -259,6 +260,8 @@ void main() {
 
       await sensitiveStorageService.purgeSensitiveData();
 
+      expect(await Hive.boxExists('hitobito_arbeitskontext_box'), isFalse);
+      sensitiveStorageService.beginSession();
       final cached = await repository.loadLastCached();
       expect(cached, isNull);
     },

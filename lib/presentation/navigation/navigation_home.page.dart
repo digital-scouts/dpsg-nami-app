@@ -13,6 +13,7 @@ import 'package:nami/presentation/screens/member_people_page.dart';
 import 'package:nami/presentation/screens/settings_page.dart';
 import 'package:nami/presentation/screens/settings_stufenwechsel_page.dart';
 import 'package:nami/presentation/screens/statistics_page.dart';
+import 'package:nami/presentation/widgets/abmeldung_hinweis_karte.dart';
 import 'package:nami/presentation/widgets/app_bottom_navigation.dart';
 import 'package:nami/presentation/widgets/demo_zugang_sheet.dart';
 import 'package:nami/presentation/widgets/logout_flow.dart';
@@ -270,8 +271,17 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
               ? t.t('auth_login_body')
               : t.t('auth_not_configured_body'),
           errorMessage: authModel.errorMessage,
-          child: _LoginActions(
-            onSignIn: authModel.isConfigured ? authModel.signIn : null,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (authModel.logoutReason == LogoutReason.keineBerechtigung) ...[
+                const AbmeldungHinweisKarte(),
+                const SizedBox(height: 20),
+              ],
+              _LoginActions(
+                onSignIn: authModel.isConfigured ? authModel.signIn : null,
+              ),
+            ],
           ),
         );
       case AuthState.unlockRequired:

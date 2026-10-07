@@ -442,6 +442,8 @@ Future<void> _startApp({
     groupsService: hitobitoGroupsService,
     bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
     remoteAccessExecutor: authModel.executeRemoteAccess,
+    sessionGeneration: () => authModel.sessionGeneration,
+    onKeineBerechtigung: authModel.logoutWegenFehlenderRechte,
     logger: logger,
   );
   // Im Demo sendet der erfundene Stamm an den Mock-Statistikserver und
@@ -573,6 +575,7 @@ Future<void> _startApp({
     logger: logger,
     onMemberUpdated: arbeitskontextModel.ersetzeMitglied,
     onMemberSaved: () => achievementService.record(AchievementIds.memberEdited),
+    sessionGeneration: () => authModel.sessionGeneration,
   );
 
   // Session-/Arbeitskontext-Initialisierung (inkl. moeglicher voller
@@ -605,7 +608,9 @@ Future<void> _startApp({
       if (isDemo && arbeitskontextModel.readModel != null) {
         await authModel.markSensitiveDataSynced();
       }
-      await memberEditModel.loadPending();
+      if (authModel.session != null) {
+        await memberEditModel.loadPending();
+      }
     } catch (error, stack) {
       await logger.log(
         'startup',
@@ -839,7 +844,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     _syncArbeitskontextWithAuth();
     _syncDataExpiryReminder();
     _reloadPendingUpdatesOnSessionChange();
-    if (_startupSyncAwaitsAuth && _authModel.state != AuthState.initializing) {
+    if (_startupSyncAwaitsAuth && !_isAuthPendingForStartupSync()) {
       _startupSyncAwaitsAuth = false;
       _runStartupSyncIfDue();
     }
@@ -860,7 +865,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   }
 
   /// Logout, Datenablauf und Nutzerwechsel leeren die Pending-Box; die Liste
-  /// im Speicher muss danach neu geladen werden.
+  /// im Speicher muss danach neu geladen werden. Ohne Session bleibt die Box
+  /// zu, dann wird nur die Liste im Speicher geleert.
   void _reloadPendingUpdatesOnSessionChange() {
     final session = _authModel.session;
     final hasSession = session != null;
@@ -870,6 +876,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     }
     _pendingSessionActive = hasSession;
     _pendingSessionPrincipal = session?.principal;
+    if (!hasSession) {
+      _memberEditModel.clearPendingInMemory();
+      return;
+    }
     unawaited(_memberEditModel.loadPending());
   }
 
@@ -972,9 +982,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void _startAuthMaintenanceTimer() {
     _authMaintenanceTimer?.cancel();
     final authModel = context.read<AuthSessionModel>();
-    if (authModel.state == AuthState.initializing) {
-      // Vor dem Laden der Session ist jeder Sync-Zeitpunkt unbekannt; der
-      // Start-Sync folgt, sobald die Initialisierung abgeschlossen ist.
+    if (_isAuthPendingForStartupSync()) {
+      // Vor dem Laden der Session ist jeder Sync-Zeitpunkt unbekannt, und
+      // hinter der App-Sperre wird nicht synchronisiert; der Start-Sync
+      // folgt, sobald beides vorbei ist.
       _startupSyncAwaitsAuth = true;
     } else {
       _runStartupSyncIfDue();
@@ -987,6 +998,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         userInitiated: false,
       ),
     );
+  }
+
+  bool _isAuthPendingForStartupSync() {
+    final state = _authModel.state;
+    return state == AuthState.initializing || state == AuthState.unlockRequired;
   }
 
   void _runStartupSyncIfDue() {
