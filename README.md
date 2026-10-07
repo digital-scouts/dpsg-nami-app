@@ -73,6 +73,8 @@ Ab dann wird vor jedem Commit automatisch geprüft, ob [pubspec.yaml](pubspec.ya
 
 Wenn lokal eine [.env](.env) vorhanden ist, prüft der Hook zusätzlich, ob die Keys zu [.env.example](.env.example) passen.
 
+Außerdem bricht der Hook ab, wenn API-Mitschnitte versioniert werden sollen, also Postman-Collections und -Environments, HAR-Dateien, `.xcappdata`-Bundles oder Dateien unter `specs/demoResponse/`. Solche Mitschnitte können echte Personendaten enthalten. Für Tests gibt es synthetische Fixtures. Die Prüfung steckt in [tool/validate_tracked_files.dart](tool/validate_tracked_files.dart).
+
 ### GitHub Actions
 
 Die gleiche Versionsprüfung läuft zusätzlich in GitHub Actions:
@@ -89,6 +91,8 @@ Die Workflows laufen nur für den Bereich, der sich geändert hat:
 - Ein neuer Push auf einen PR bricht den noch laufenden Validierungslauf ab.
 
 Neue App-Verzeichnisse oder -Dateien müssen in diese Pfadlisten aufgenommen werden.
+
+Der Job `Validate tracked files` in [validate-pull-requests.yml](.github/workflows/validate-pull-requests.yml) läuft bei jedem PR. Er prüft dieselben Sperrmuster wie der Pre-Commit-Hook, zusätzlich über die gesamte Git-Historie (`dart tool/validate_tracked_files.dart --history`). Damit fällt auch ein Branch auf, der noch auf der Historie vor der Bereinigung vom Oktober 2026 basiert.
 
 Zusätzlich validieren [validate-pull-requests.yml](.github/workflows/validate-pull-requests.yml) und [deploy-android-internal.yml](.github/workflows/deploy-android-internal.yml) die Env-Vorlage über [tool/validate_env_files.dart](tool/validate_env_files.dart), damit neue oder entfernte Keys nicht unbemerkt an [.env.example](.env.example) vorbeilaufen.
 

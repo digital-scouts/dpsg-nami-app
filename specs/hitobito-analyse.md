@@ -303,9 +303,8 @@ Aktueller App-Ablauf:
 Der Testzugang ist über die Hitobito Demo-Instanz möglich: <https://demo.hitobito.com>. Hier stehen nur die Hitobito-eigenen Ressourcen zur Verfügung, aber keine Pfadi-DE oder DPSG-spezifischen Erweiterungen. Für die Entwicklung und das Testen der API-Integration und Grundfunktionen ist dies jedoch ausreichend. OAuth Applikationen werden um 4 Uhr morgens zurückgesetzt.
 
 Name: NamiDevTest
-Client ID: ***REMOVED***
 
-Client secret: ***REMOVED***
+Client ID und Client secret zeigt die Demo-Instanz bei der OAuth-Applikation an. Sie gehören nur in die lokale `.env` (siehe unten) und nicht in dieses Dokument.
 
 Redirect URIs: de.jlange.nami.app:/oauth/callback
 
