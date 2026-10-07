@@ -666,22 +666,11 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                                       'sync_data_now',
                                     );
                                     await authModel.syncHitobitoData(
-                                      syncMembers: (accessToken) async {
-                                        await arbeitskontextModel
-                                            .refreshFromRemote(
-                                              session: authModel.session,
-                                              profile: authModel.profile,
-                                              scheduleRolesPreload: false,
-                                            );
-                                        final rolesLoaded =
-                                            await arbeitskontextModel
-                                                .ensureRolesLoaded();
-                                        if (!rolesLoaded) {
-                                          throw StateError(
-                                            'Rollen konnten nicht vollstaendig geladen werden.',
-                                          );
-                                        }
-                                      },
+                                      syncMembers: (accessToken) =>
+                                          arbeitskontextModel.syncVollstaendig(
+                                            session: authModel.session,
+                                            profile: authModel.profile,
+                                          ),
                                       force: true,
                                       trigger: 'debug_tools',
                                     );

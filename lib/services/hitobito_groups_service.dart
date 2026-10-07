@@ -32,6 +32,16 @@ class HitobitoGroupsDiagnosisResult {
   bool get found => brokenGroups.isNotEmpty;
 }
 
+/// Die von `_mapGroup` gelesenen Gruppenattribute. Hitobito serialisiert nur
+/// angefragte Felder; ungenutzte Attribute (Adresse, Bankdaten ...) koennen so
+/// weder die Antwort aufblaehen noch an fehlerhaften Datensaetzen die ganze
+/// Seite scheitern lassen (z.B. eine nicht numerische `zip_code`).
+const String hitobitoGroupFields =
+    'name,short_name,display_name,description,layer,parent_id,'
+    'layer_group_id,type,self_registration_url,'
+    'self_registration_require_adult_consent,archived_at,created_at,'
+    'updated_at,deleted_at';
+
 class HitobitoGroupsService {
   HitobitoGroupsService({
     required this.config,
@@ -61,27 +71,177 @@ class HitobitoGroupsService {
       );
     }
 
+    try {
+      return await _fetchGroupList(
+        requestUri,
+        accessToken,
+        query: const <String, String>{'fields[groups]': hitobitoGroupFields},
+      );
+    } on HitobitoGroupsException catch (error) {
+      // 500 heisst hier praktisch immer: ein einzelner Datensatz der Seite
+      // ist nicht serialisierbar. Statt alle Nutzer am selben Datensatz
+      // scheitern zu lassen, wird um ihn herum geladen.
+      if (error.statusCode != 500) {
+        rethrow;
+      }
+      await _logger?.logWarn(
+        'hitobito_groups',
+        'Gruppenseite mit 500 abgelehnt, lade Gruppen in ID-Bloecken',
+      );
+      return _fetchGroupsInIdBlocks(requestUri, accessToken);
+    }
+  }
+
+  Future<List<HitobitoGroupResource>> _fetchGroupList(
+    Uri requestUri,
+    String accessToken, {
+    required Map<String, String> query,
+  }) async {
     final resources = <HitobitoGroupResource>[];
     Uri? nextUri = requestUri;
 
     while (nextUri != null) {
-      final effectiveRequestUri = withHitobitoListPaging(nextUri);
+      final effectiveRequestUri = withHitobitoListFilter(
+        withHitobitoListPaging(nextUri),
+        query,
+      );
       final decoded = await _fetchGroupsPage(
         requestUri: effectiveRequestUri,
         accessToken: accessToken,
       );
-      final data = decoded['data'];
-      if (data is! List) {
-        throw const HitobitoGroupsException(
-          'Groups-Antwort enthaelt keine gueltige Datensammlung.',
-        );
-      }
-
-      resources.addAll(data.whereType<Map<String, dynamic>>().map(_mapGroup));
+      resources.addAll(await _mapGroups(decoded));
       nextUri = _resolveNextUri(decoded, currentUri: effectiveRequestUri);
     }
 
     return resources;
+  }
+
+  static const int _groupIdsPerRequest = 200;
+
+  /// Felder, die fuer Layer-Zuordnung und Kontext mindestens noetig sind.
+  static const String _minimalGroupFields =
+      'name,layer,parent_id,layer_group_id,type';
+
+  /// Rueckfall bei einer defekten Gruppenseite: alle IDs holen, in Bloecken
+  /// laden und scheiternde Bloecke halbieren, bis die defekten Gruppen
+  /// einzeln feststehen.
+  Future<List<HitobitoGroupResource>> _fetchGroupsInIdBlocks(
+    Uri requestUri,
+    String accessToken,
+  ) async {
+    final ids = await _fetchAllGroupIds(accessToken);
+    final groups = <HitobitoGroupResource>[];
+    for (var start = 0; start < ids.length; start += _groupIdsPerRequest) {
+      final end = start + _groupIdsPerRequest > ids.length
+          ? ids.length
+          : start + _groupIdsPerRequest;
+      groups.addAll(
+        await _fetchGroupIdBlock(
+          requestUri,
+          accessToken,
+          ids: ids.sublist(start, end),
+        ),
+      );
+    }
+    return groups;
+  }
+
+  Future<List<HitobitoGroupResource>> _fetchGroupIdBlock(
+    Uri requestUri,
+    String accessToken, {
+    required List<int> ids,
+  }) async {
+    try {
+      return await _fetchGroupList(
+        requestUri,
+        accessToken,
+        query: <String, String>{
+          'filter[id]': ids.join(','),
+          'fields[groups]': hitobitoGroupFields,
+        },
+      );
+    } on HitobitoGroupsException catch (error) {
+      if (error.statusCode != 500) {
+        rethrow;
+      }
+    }
+
+    if (ids.length == 1) {
+      return _fetchGroupMinimal(requestUri, accessToken, id: ids.single);
+    }
+    final middle = ids.length ~/ 2;
+    return <HitobitoGroupResource>[
+      ...await _fetchGroupIdBlock(
+        requestUri,
+        accessToken,
+        ids: ids.sublist(0, middle),
+      ),
+      ...await _fetchGroupIdBlock(
+        requestUri,
+        accessToken,
+        ids: ids.sublist(middle),
+      ),
+    ];
+  }
+
+  /// Laedt eine defekte Gruppe nur mit den noetigsten Feldern. Scheitert
+  /// auch das, wird sie ausgelassen.
+  Future<List<HitobitoGroupResource>> _fetchGroupMinimal(
+    Uri requestUri,
+    String accessToken, {
+    required int id,
+  }) async {
+    try {
+      final groups = await _fetchGroupList(
+        requestUri,
+        accessToken,
+        query: <String, String>{
+          'filter[id]': '$id',
+          'fields[groups]': _minimalGroupFields,
+        },
+      );
+      await _logger?.logWarn(
+        'hitobito_groups',
+        'Gruppe nur mit Minimalfeldern geladen id=$id',
+      );
+      return groups;
+    } on HitobitoGroupsException catch (error) {
+      if (error.statusCode != 500) {
+        rethrow;
+      }
+      await _logger?.logWarn(
+        'hitobito_groups',
+        'Gruppe nicht ladbar und ausgelassen id=$id',
+      );
+      return const <HitobitoGroupResource>[];
+    }
+  }
+
+  /// Ungueltige Einzelgruppen werden uebersprungen, statt den ganzen Abruf
+  /// scheitern zu lassen.
+  Future<List<HitobitoGroupResource>> _mapGroups(
+    Map<String, dynamic> decoded,
+  ) async {
+    final data = decoded['data'];
+    if (data is! List) {
+      throw const HitobitoGroupsException(
+        'Groups-Antwort enthaelt keine gueltige Datensammlung.',
+      );
+    }
+
+    final groups = <HitobitoGroupResource>[];
+    for (final resource in data.whereType<Map<String, dynamic>>()) {
+      final group = _mapGroup(resource);
+      if (group == null) {
+        await _logger?.logWarn(
+          'hitobito_groups',
+          'Ungueltige Gruppe uebersprungen id=${resource['id']}',
+        );
+        continue;
+      }
+      groups.add(group);
+    }
+    return groups;
   }
 
   /// Übergangs-Diagnosewerkzeug: grenzt per Teile-und-herrsche über
@@ -166,13 +326,15 @@ class HitobitoGroupsService {
     }
 
     final ids = <int>[];
-    Uri? nextUri = base.replace(
-      queryParameters: {'fields[groups]': 'id', 'sort': 'id'},
-    );
+    Uri? nextUri = base;
 
     while (nextUri != null) {
+      final effectiveRequestUri = withHitobitoListFilter(
+        withHitobitoListPaging(nextUri),
+        const <String, String>{'fields[groups]': 'id'},
+      );
       final decoded = await _fetchGroupsPage(
-        requestUri: nextUri,
+        requestUri: effectiveRequestUri,
         accessToken: accessToken,
       );
       final data = decoded['data'];
@@ -184,7 +346,7 @@ class HitobitoGroupsService {
               .where((id) => id > 0),
         );
       }
-      nextUri = _resolveNextUri(decoded, currentUri: nextUri);
+      nextUri = _resolveNextUri(decoded, currentUri: effectiveRequestUri);
     }
 
     ids.sort();
@@ -354,7 +516,7 @@ class HitobitoGroupsService {
     return decoded;
   }
 
-  HitobitoGroupResource _mapGroup(Map<String, dynamic> resource) {
+  HitobitoGroupResource? _mapGroup(Map<String, dynamic> resource) {
     final attributes = resource['attributes'];
     final attributesMap = attributes is Map<String, dynamic>
         ? attributes
@@ -363,9 +525,7 @@ class HitobitoGroupsService {
     final id = _toInt(resource['id']);
     final name = attributesMap['name']?.toString() ?? '';
     if (id <= 0 || name.isEmpty) {
-      throw const HitobitoGroupsException(
-        'Groups-Antwort enthaelt eine ungueltige Gruppe.',
-      );
+      return null;
     }
 
     return HitobitoGroupResource(

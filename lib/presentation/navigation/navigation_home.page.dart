@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:nami/core/notifications/pull_notification.dart';
 import 'package:nami/domain/achievements/achievement_definition.dart';
@@ -32,6 +34,40 @@ class NavigationHomeScreen extends StatefulWidget {
 
 class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
   int _index = 0;
+
+  /// Der Hinweis auf veraltete Daten verschwindet nach dieser Zeit von
+  /// selbst. Gespeicherte Daten sind innerhalb der Datenfrist normal nutzbar.
+  static const Duration _syncHinweisDauer = Duration(seconds: 15);
+  Timer? _syncHinweisTimer;
+  int? _syncHinweisNr;
+  int? _ausgeblendeterSyncHinweisNr;
+
+  @override
+  void dispose() {
+    _syncHinweisTimer?.cancel();
+    super.dispose();
+  }
+
+  /// Zeigt den Hinweis je Fehlschlag fuer [_syncHinweisDauer].
+  bool _zeigtSyncHinweis(ArbeitskontextModel arbeitskontextModel) {
+    if (!arbeitskontextModel.hasStaleDataWarning) {
+      return false;
+    }
+    final nr = arbeitskontextModel.fehlermeldungNr;
+    if (_ausgeblendeterSyncHinweisNr == nr) {
+      return false;
+    }
+    if (_syncHinweisNr != nr) {
+      _syncHinweisNr = nr;
+      _syncHinweisTimer?.cancel();
+      _syncHinweisTimer = Timer(_syncHinweisDauer, () {
+        if (mounted) {
+          setState(() => _ausgeblendeterSyncHinweisNr = nr);
+        }
+      });
+    }
+    return true;
+  }
 
   static const List<String> _tabIds = <String>[
     'members',
@@ -166,7 +202,7 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
     bool showStatusBanners = true,
   }) {
     final showsStaleDataWarning =
-        showStatusBanners && arbeitskontextModel.hasStaleDataWarning;
+        showStatusBanners && _zeigtSyncHinweis(arbeitskontextModel);
     // Laufende Syncs zeigt nur der globale Ladebalken (GlobalLoadingTopBar);
     // die Schritt-Checkliste erscheint ausschliesslich im Vollbild-Platzhalter
     // beim allerersten Laden (_buildPlaceholder).
@@ -365,20 +401,11 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
       force: true,
       trigger: 'initial_data_retry',
       allowMobileDataOverride: true,
-      syncMembers: (accessToken) async {
-        await arbeitskontextModel.refreshFromRemote(
-          session: authModel.session,
-          profile: authModel.profile,
-          allowMobileDataOverride: true,
-          scheduleRolesPreload: false,
-        );
-        final rolesLoaded = await arbeitskontextModel.ensureRolesLoaded(
-          allowMobileDataOverride: true,
-        );
-        if (!rolesLoaded) {
-          throw StateError('Rollen konnten nicht vollstaendig geladen werden.');
-        }
-      },
+      syncMembers: (accessToken) => arbeitskontextModel.syncVollstaendig(
+        session: authModel.session,
+        profile: authModel.profile,
+        allowMobileDataOverride: true,
+      ),
     );
   }
 }

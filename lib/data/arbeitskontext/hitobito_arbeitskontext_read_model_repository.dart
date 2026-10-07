@@ -68,8 +68,8 @@ class HitobitoArbeitskontextReadModelRepository
     // fuer ein Fortschritts-Readmodel pro Seite (onProgress) muessen die
     // Gruppen schon vollstaendig bekannt sein, damit
     // _extractKontextMitgliedsdaten() die Layer-Zugehoerigkeit korrekt
-    // filtern kann. Gruppen sind ueblicherweise 1-3 schnelle Requests, der
-    // Verlust der Parallelitaet dazu ist gering.
+    // filtern kann. Hitobito liefert dabei alle Gruppen der Instanz (je 1000
+    // pro Seite, nur die genutzten Felder).
     final resolvedAccessibleGroups =
         accessibleGroups ??
         await _groupsService.fetchAccessibleGroups(accessToken);
@@ -132,23 +132,10 @@ class HitobitoArbeitskontextReadModelRepository
       );
     }
 
-    // EFZ und Qualifikationen laufen ebenfalls parallel und isoliert: ohne
-    // Berechtigung (403) oder bei Fehlern bleibt der Mitglieder-Refresh
-    // gueltig.
-    final efzService = _efzService;
-    final efzFuture = _fetchTeildatenIsolated<EfzEinsichtnahme>(
-      bezeichnung: 'EFZ-Einsichtnahmen',
-      laden: efzService == null
-          ? null
-          : () => efzService.fetchAlleEfzEinsichtnahmen(accessToken),
-    );
-    final qualificationsService = _qualificationsService;
-    final qualifikationenFuture = _fetchTeildatenIsolated<Qualifikation>(
-      bezeichnung: 'Qualifikationen',
-      laden: qualificationsService == null
-          ? null
-          : () => qualificationsService.fetchAlleQualifikationen(accessToken),
-    );
+    // EFZ und Qualifikationen laufen isoliert: ohne Berechtigung (403) oder
+    // bei Fehlern bleibt der Mitglieder-Refresh gueltig. Geladen werden sie
+    // nur fuer die Personen des Layers, sobald deren IDs feststehen.
+    _TeildatenFutures? teildaten;
 
     final rolesService = _rolesService;
     final List<HitobitoPersonResource> peopleResources;
@@ -224,9 +211,14 @@ class HitobitoArbeitskontextReadModelRepository
           emitProgress();
         },
       );
+      final layerPersonIds = <int>{...bekanntePersonIds, ...fehlendePersonIds};
+      teildaten = _starteTeildaten(
+        accessToken: accessToken,
+        personIds: layerPersonIds,
+      );
       final rolesFuture = _fetchRolesIsolated(
         accessToken: accessToken,
-        personIds: <int>{...bekanntePersonIds, ...fehlendePersonIds},
+        personIds: layerPersonIds,
         onLoadedSoFar: (loadedSoFar) {
           latestRoles = loadedSoFar;
           emitProgress();
@@ -239,8 +231,6 @@ class HitobitoArbeitskontextReadModelRepository
       ];
       rolesResult = await rolesFuture;
     }
-    final efzResult = await efzFuture;
-    final qualifikationenResult = await qualifikationenFuture;
 
     final mitgliedsdaten = _extractKontextMitgliedsdaten(
       peopleResources: peopleResources,
@@ -260,6 +250,12 @@ class HitobitoArbeitskontextReadModelRepository
       for (final mitglied in mitgliedsdaten.mitglieder)
         if (mitglied.personId != null) mitglied.personId!,
     };
+    teildaten ??= _starteTeildaten(
+      accessToken: accessToken,
+      personIds: personIds,
+    );
+    final efzResult = await teildaten.efz;
+    final qualifikationenResult = await teildaten.qualifikationen;
     final efz = efzResult.fuerPersonen(
       personIds,
       personIdVon: (eintrag) => eintrag.personId,
@@ -295,6 +291,43 @@ class HitobitoArbeitskontextReadModelRepository
     } catch (_) {
       return null;
     }
+  }
+
+  /// Startet EFZ- und Qualifikationsabruf fuer [personIds] in ID-Bloecken
+  /// (`filter[person_id]`), damit die Last mit der Layergroesse waechst und
+  /// nicht mit der Reichweite der Leserechte.
+  _TeildatenFutures _starteTeildaten({
+    required String accessToken,
+    required Set<int> personIds,
+  }) {
+    final efzService = _efzService;
+    final qualificationsService = _qualificationsService;
+    return (
+      efz: _fetchTeildatenIsolated<EfzEinsichtnahme>(
+        bezeichnung: 'EFZ-Einsichtnahmen',
+        laden: efzService == null
+            ? null
+            : () => _fetchInIdBloecken<EfzEinsichtnahme>(
+                ids: personIds,
+                fetch: (idFilter) => efzService.fetchEfzEinsichtnahmen(
+                  accessToken,
+                  filter: <String, String>{'filter[person_id]': idFilter},
+                ),
+              ),
+      ),
+      qualifikationen: _fetchTeildatenIsolated<Qualifikation>(
+        bezeichnung: 'Qualifikationen',
+        laden: qualificationsService == null
+            ? null
+            : () => _fetchInIdBloecken<Qualifikation>(
+                ids: personIds,
+                fetch: (idFilter) => qualificationsService.fetchQualifikationen(
+                  accessToken,
+                  filter: <String, String>{'filter[person_id]': idFilter},
+                ),
+              ),
+      ),
+    );
   }
 
   Future<_TeildatenResult<T>> _fetchTeildatenIsolated<T>({
@@ -820,6 +853,11 @@ class _KontextMitgliedsdaten {
   final List<Mitglied> mitglieder;
   final List<ArbeitskontextMitgliedsZuordnung> mitgliedsZuordnungen;
 }
+
+typedef _TeildatenFutures = ({
+  Future<_TeildatenResult<EfzEinsichtnahme>> efz,
+  Future<_TeildatenResult<Qualifikation>> qualifikationen,
+});
 
 class _TeildatenResult<T> {
   _TeildatenResult({required this.stand, this.eintraege = const []});

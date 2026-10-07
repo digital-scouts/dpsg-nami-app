@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../domain/qualifikation/qualifikation.dart';
 import 'hitobito_api_exception.dart';
 import 'hitobito_auth_env.dart';
+import 'hitobito_pagination.dart';
 import 'hitobito_traffic_log_service.dart';
 import 'logger_service.dart';
 
@@ -13,7 +14,8 @@ class HitobitoQualificationsException extends HitobitoApiException {
 }
 
 /// Laedt Qualifikationen aus `/api/qualifications` samt Art
-/// (`include=qualification_kind`), paginiert ueber `links.next`.
+/// (`include=qualification_kind`), paginiert ueber `links.next` mit
+/// [withHitobitoListPaging].
 class HitobitoQualificationsService {
   HitobitoQualificationsService({
     required this.config,
@@ -33,12 +35,13 @@ class HitobitoQualificationsService {
     config = nextConfig;
   }
 
-  /// Alle fuer den Token sichtbaren Qualifikationen. Die API kennt nur
-  /// Filter auf `person_id` und `qualification_kind_id`, daher wird die
-  /// Gesamtliste geladen und erst im Arbeitskontext eingeschraenkt.
-  Future<List<Qualifikation>> fetchAlleQualifikationen(
-    String accessToken,
-  ) async {
+  /// Qualifikationen, eingeschraenkt ueber [filter] (z.B.
+  /// `{'filter[person_id]': '1,2,3'}`). Der Filter wird auf jede Seite
+  /// gesetzt.
+  Future<List<Qualifikation>> fetchQualifikationen(
+    String accessToken, {
+    Map<String, String> filter = const <String, String>{},
+  }) async {
     final requestUri = config.qualificationsUri;
     if (requestUri == null) {
       throw const HitobitoQualificationsException(
@@ -47,11 +50,15 @@ class HitobitoQualificationsService {
     }
 
     final qualifikationen = <Qualifikation>[];
-    Uri? nextUri = _decorateRequestUri(requestUri);
+    Uri? nextUri = requestUri;
 
     while (nextUri != null) {
+      final effectiveRequestUri = withHitobitoListFilter(
+        _decorateRequestUri(nextUri),
+        filter,
+      );
       final decoded = await _fetchPage(
-        requestUri: nextUri,
+        requestUri: effectiveRequestUri,
         accessToken: accessToken,
       );
       final data = decoded['data'];
@@ -68,7 +75,7 @@ class HitobitoQualificationsService {
           qualifikationen.add(qualifikation);
         }
       }
-      nextUri = _resolveNextUri(decoded, currentUri: nextUri);
+      nextUri = _resolveNextUri(decoded, currentUri: effectiveRequestUri);
     }
 
     return qualifikationen;
@@ -81,7 +88,11 @@ class HitobitoQualificationsService {
         'person_id,qualification_kind_id,start_at,finish_at,qualified_at,origin';
     queryParameters['fields[qualification_kinds]'] =
         'label,validity,reactivateable';
-    return uri.replace(queryParameters: queryParameters);
+    // Qualifikationen sind nur nach id sortierbar; ohne feste Sortierung
+    // waere das Offset-Paging instabil.
+    return withHitobitoListPaging(
+      uri.replace(queryParameters: queryParameters),
+    );
   }
 
   Future<Map<String, dynamic>> _fetchPage({

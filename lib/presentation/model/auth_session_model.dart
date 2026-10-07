@@ -1126,7 +1126,11 @@ class AuthSessionModel extends ChangeNotifier {
         'Hitobito-Sync fehlgeschlagen ($trigger): $error\n$stack',
       );
       _errorMessage ??= error.toString();
-      _lastSyncAttemptResult = _classifySyncError(error);
+      // Bricht der Mitglieder-Sync ab, weil eine Anmeldung noetig ist, zaehlt
+      // das wie bisher als Login-Pflicht und nicht als unbekannter Fehler.
+      _lastSyncAttemptResult = _requiresInteractiveLogin
+          ? SyncAttemptResult.loginRequired
+          : _classifySyncError(error);
       reportRemoteDataIssue(
         error.toString(),
         requiresInteractiveLogin: _isUnauthorized(error),

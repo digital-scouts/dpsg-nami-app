@@ -183,6 +183,22 @@ void main() {
       );
       expect(find.text('Mitglieder'), findsWidgets);
       expect(find.byIcon(Icons.sync_problem), findsOneWidget);
+
+      // Der Hinweis verschwindet nach 15 Sekunden von selbst ...
+      await tester.pump(const Duration(seconds: 14));
+      expect(find.byIcon(Icons.sync_problem), findsOneWidget);
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.byIcon(Icons.sync_problem), findsNothing);
+      expect(arbeitskontextModel.hasStaleDataWarning, isTrue);
+
+      // ... und erscheint beim naechsten Fehlschlag wieder.
+      await arbeitskontextModel.initializeForProfile(
+        authModel.profile!,
+        session: authModel.session,
+        force: true,
+      );
+      await tester.pump();
+      expect(find.byIcon(Icons.sync_problem), findsOneWidget);
     },
   );
 

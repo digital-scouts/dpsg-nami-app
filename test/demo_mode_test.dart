@@ -273,7 +273,7 @@ void main() {
         final service = DemoHitobitoEfzService(
           DemoData(zugang, now: () => _heute),
         );
-        final efz = await service.fetchAlleEfzEinsichtnahmen('demo');
+        final efz = await service.fetchEfzEinsichtnahmen('demo');
         return efz.map((einsichtnahme) => einsichtnahme.personId).toSet();
       }
 

@@ -4,6 +4,8 @@ import 'package:http/testing.dart';
 import 'package:nami/services/hitobito_auth_env.dart';
 import 'package:nami/services/hitobito_qualifications_service.dart';
 
+import 'support/fake_graphiti_list_api.dart';
+
 void main() {
   HitobitoQualificationsService serviceMit(MockClient client) =>
       HitobitoQualificationsService(
@@ -64,7 +66,7 @@ void main() {
 
     final qualifikationen = await serviceMit(
       client,
-    ).fetchAlleQualifikationen('token-123');
+    ).fetchQualifikationen('token-123');
 
     // Eintrag 13 verweist auf eine unbekannte Art und wird uebersprungen.
     expect(qualifikationen.map((q) => q.id), <int>[11, 12]);
@@ -88,6 +90,47 @@ void main() {
       'qualification_kind',
     );
     expect(requestedUris.last.queryParameters['page'], '2');
+    for (final uri in requestedUris) {
+      expect(uri.queryParameters['sort'], 'id');
+      expect(uri.queryParameters['page[size]'], '1000');
+    }
+  });
+
+  test('blaettert mit eindeutiger Sortierung, damit bei wechselnder '
+      'Reihenfolge nichts fehlt oder doppelt kommt (A-90)', () async {
+    final api = FakeGraphitiListApi(instabileReihenfolge: true)
+      ..setze('qualifications', <GraphitiRecord>[
+        for (var id = 1; id <= 2500; id++)
+          GraphitiRecord(
+            id: id,
+            attributes: <String, dynamic>{
+              'person_id': id,
+              'qualification_kind_id': 5,
+            },
+            included: const <Map<String, dynamic>>[
+              <String, dynamic>{
+                'id': '5',
+                'type': 'qualification_kinds',
+                'attributes': <String, dynamic>{'label': 'Juleica'},
+              },
+            ],
+          ),
+      ]);
+
+    final qualifikationen = await HitobitoQualificationsService(
+      config: HitobitoAuthConfig.fromBaseUrl(
+        clientId: 'client',
+        clientSecret: 'secret',
+        baseUrl: 'https://demo.hitobito.com',
+        redirectUri: 'de.jlange.nami.app:/oauth/callback',
+        scopeString: 'openid email',
+      ),
+      httpClient: api.client,
+    ).fetchQualifikationen('token-123');
+
+    expect(qualifikationen.map((q) => q.id).toSet(), hasLength(2500));
+    expect(qualifikationen, hasLength(2500));
+    expect(api.requests, hasLength(3));
   });
 
   test('wirft bei fehlender Berechtigung mit Statuscode 403', () async {
@@ -96,7 +139,7 @@ void main() {
     );
 
     await expectLater(
-      serviceMit(client).fetchAlleQualifikationen('token'),
+      serviceMit(client).fetchQualifikationen('token'),
       throwsA(
         isA<HitobitoQualificationsException>().having(
           (error) => error.statusCode,

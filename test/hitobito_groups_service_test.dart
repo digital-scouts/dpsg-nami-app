@@ -4,6 +4,8 @@ import 'package:http/testing.dart';
 import 'package:nami/services/hitobito_auth_env.dart';
 import 'package:nami/services/hitobito_groups_service.dart';
 
+import 'support/fake_graphiti_list_api.dart';
+
 void main() {
   test(
     'laedt accessible groups ueber /api/groups und mappt Layer-Felder',
@@ -96,11 +98,13 @@ void main() {
       expect(requestedUris.first.queryParameters, {
         'page[size]': '1000',
         'sort': 'id',
+        'fields[groups]': hitobitoGroupFields,
       });
       expect(requestedUris.last.queryParameters, {
         'page': '2',
         'page[size]': '1000',
         'sort': 'id',
+        'fields[groups]': hitobitoGroupFields,
       });
       expect(requestHeaders['Authorization'], 'Bearer token-123');
       expect(groups, hasLength(2));
@@ -128,4 +132,130 @@ void main() {
       );
     },
   );
+
+  final config = HitobitoAuthConfig.fromBaseUrl(
+    clientId: 'client',
+    clientSecret: 'secret',
+    baseUrl: 'https://demo.hitobito.com',
+    redirectUri: 'de.jlange.nami.app:/oauth/callback',
+    scopeString: 'openid email',
+  );
+
+  test('fragt nur die genutzten Felder an, damit ein ungueltiges anderes '
+      'Attribut die Seite nicht scheitern laesst (A-14)', () async {
+    final api = FakeGraphitiListApi()
+      ..setze('groups', <GraphitiRecord>[
+        for (var id = 1; id <= 1500; id++)
+          GraphitiRecord(
+            id: id,
+            attributes: <String, dynamic>{
+              'name': 'Gruppe $id',
+              'layer': true,
+              'zip_code': 12345,
+              'iban': 'DE00 0000',
+            },
+          ),
+      ])
+      ..defekteGruppen[1200] = 'zip_code';
+
+    final groups = await HitobitoGroupsService(
+      config: config,
+      httpClient: api.client,
+    ).fetchAccessibleGroups('token-123');
+
+    expect(groups, hasLength(1500));
+    expect(api.requests, hasLength(2));
+    for (final uri in api.requests) {
+      expect(uri.queryParameters['fields[groups]'], hitobitoGroupFields);
+    }
+  });
+
+  test('ueberspringt eine ungueltige Einzelgruppe statt abzubrechen', () async {
+    final api = FakeGraphitiListApi()
+      ..setze('groups', <GraphitiRecord>[
+        const GraphitiRecord(
+          id: 1,
+          attributes: <String, dynamic>{'name': 'Stamm', 'layer': true},
+        ),
+        const GraphitiRecord(
+          id: 2,
+          attributes: <String, dynamic>{'name': '', 'layer': false},
+        ),
+      ]);
+
+    final groups = await HitobitoGroupsService(
+      config: config,
+      httpClient: api.client,
+    ).fetchAccessibleGroups('token-123');
+
+    expect(groups.map((group) => group.id), <int>[1]);
+  });
+
+  group('defekte Gruppenseite (A-14)', () {
+    FakeGraphitiListApi instanzMitDefekterGruppe(String defektesFeld) {
+      return FakeGraphitiListApi()
+        ..setze('groups', <GraphitiRecord>[
+          for (var id = 1; id <= 1500; id++)
+            GraphitiRecord(
+              id: id,
+              attributes: <String, dynamic>{
+                'name': 'Gruppe $id',
+                'layer': true,
+                'description': 'Beschreibung $id',
+              },
+            ),
+        ])
+        ..defekteGruppen[1200] = defektesFeld;
+    }
+
+    test('laedt um die defekte Gruppe herum und holt sie mit '
+        'Minimalfeldern nach', () async {
+      final api = instanzMitDefekterGruppe('description');
+
+      final groups = await HitobitoGroupsService(
+        config: config,
+        httpClient: api.client,
+      ).fetchAccessibleGroups('token-123');
+
+      expect(groups, hasLength(1500));
+      expect(groups.map((group) => group.id).toSet(), hasLength(1500));
+      final defekt = groups.singleWhere((group) => group.id == 1200);
+      expect(defekt.name, 'Gruppe 1200');
+      expect(defekt.description, isNull);
+      // 2 Seiten regulaer (Seite 2 scheitert), 2 ID-Seiten, 8 Bloecke,
+      // 2 je Halbierungsstufe bis zur Einzelgruppe (200 -> 1: 8 Stufen) und
+      // 1 Abruf mit Minimalfeldern.
+      expect(api.requests, hasLength(2 + 2 + 8 + 16 + 1));
+    });
+
+    test('laesst eine auch mit Minimalfeldern defekte Gruppe aus', () async {
+      final api = instanzMitDefekterGruppe('name');
+
+      final groups = await HitobitoGroupsService(
+        config: config,
+        httpClient: api.client,
+      ).fetchAccessibleGroups('token-123');
+
+      expect(groups, hasLength(1499));
+      expect(groups.any((group) => group.id == 1200), isFalse);
+    });
+
+    test('wirft bei 503 weiter statt zu halbieren', () async {
+      final client = MockClient((request) async => http.Response('', 503));
+
+      await expectLater(
+        HitobitoGroupsService(
+          config: config,
+          httpClient: client,
+        ).fetchAccessibleGroups('token-123'),
+        throwsA(
+          isA<HitobitoGroupsException>().having(
+            (error) => error.statusCode,
+            'statusCode',
+            503,
+          ),
+        ),
+      );
+    });
+  });
 }

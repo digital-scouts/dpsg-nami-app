@@ -199,10 +199,19 @@ class DemoHitobitoEfzService extends HitobitoEfzService {
   }
 
   @override
-  Future<List<EfzEinsichtnahme>> fetchAlleEfzEinsichtnahmen(
-    String accessToken,
-  ) async {
-    return demoData.efzEinsichtnahmen();
+  Future<List<EfzEinsichtnahme>> fetchEfzEinsichtnahmen(
+    String accessToken, {
+    Map<String, String> filter = const <String, String>{},
+  }) async {
+    final personIds = filter['filter[person_id]']?.split(',').toSet();
+    return demoData
+        .efzEinsichtnahmen()
+        .where(
+          (einsichtnahme) =>
+              personIds == null ||
+              personIds.contains('${einsichtnahme.personId}'),
+        )
+        .toList(growable: false);
   }
 
   @override
