@@ -31,7 +31,8 @@ class BenachrichtigungsBerechtigung {
     return android ?? ios ?? false;
   }
 
-  /// Aktueller Stand ohne Systemdialog; `null`, wenn unbekannt.
+  /// Aktueller Stand ohne Systemdialog; `null`, wenn unbekannt. Achtung:
+  /// iOS und Android melden `false` auch, solange noch nie gefragt wurde.
   Future<bool?> istErlaubt() async {
     final android = _plugin
         .resolvePlatformSpecificImplementation<

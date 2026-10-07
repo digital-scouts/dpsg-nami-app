@@ -1031,7 +1031,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       logger: dialogContext.read<LoggerService>(),
     );
     final biometrieVerfuegbar = await biometrie.isAvailable();
-    final benachrichtigungenErlaubt = await berechtigung.istErlaubt();
+    // iOS meldet auch ein nie gefragtes „nicht erlaubt“; deshalb gilt nur
+    // ein Ja als Stand, sonst zeigt der Stepper „Aktivieren“. Eine fruehere
+    // Ablehnung erkennt er erst an der sofortigen Antwort darauf.
+    final benachrichtigungenErlaubt = await berechtigung.istErlaubt() == true
+        ? true
+        : null;
     if (!dialogContext.mounted) {
       return;
     }
