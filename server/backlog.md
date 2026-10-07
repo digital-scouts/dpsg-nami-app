@@ -19,7 +19,7 @@ Zielbild für den MVP ist ein transparenter Statistikserver, der versionierte St
 - Ein Stamm bleibt nur dann in der Statistik, wenn sein neuester gültiger Snapshot höchstens zwei Monate alt ist.
 - Nur aktive Teilnehmende dürfen das Bundesaggregat lesen.
 - Die Teilnahme an der Read-API ist nur für Sender zulässig, die in den vergangenen 14 Tagen mindestens einmal erfolgreich gesendet haben.
-- Im MVP stoppt ein Widerruf nur weitere Sendungen; historische Daten werden nicht rückwirkend entfernt.
+- Ein Widerruf stoppt nur weitere Sendungen. Rohsnapshots und Sender werden nach 14 Monaten gelöscht, auf Anfrage per Mail auch vorher (CLI `installation`).
 - Im MVP bleibt der Server eine transparente Annäherung und keine amtliche Wahrheit.
 
 ## Zielarchitektur und Systemgrenzen
@@ -152,12 +152,12 @@ Zielbild für den MVP ist ein transparenter Statistikserver, der versionierte St
 - Priorität: P0
 - Status: erledigt
 - Ziel: Die fachlichen Regeln für Teilnahme am Senden und Berechtigung zum Lesen im Server konsistent abbilden.
-- Kurzbeschreibung: Der Server soll unterscheiden zwischen Sendezugang, Teilnahme an der Read-API und Widerruf. Im MVP stoppt ein Widerruf nur weitere Sendungen; historische Daten bleiben erhalten. Zugriff auf die Read-API erhalten nur aktive Teilnehmende, die in den vergangenen 14 Tagen mindestens einmal erfolgreich gesendet haben.
+- Kurzbeschreibung: Der Server soll unterscheiden zwischen Sendezugang, Teilnahme an der Read-API und Widerruf. Ein Widerruf stoppt nur weitere Sendungen; historische Daten bleiben bis zum Ablauf der Speicherfrist von 14 Monaten erhalten, auf Anfrage werden sie vorher gelöscht. Zugriff auf die Read-API erhalten nur aktive Teilnehmende, die in den vergangenen 14 Tagen mindestens einmal erfolgreich gesendet haben.
 - Akzeptanzkriterien:
   - Die Read-API ist nur für Sender zulässig, die in den vergangenen 14 Tagen mindestens einmal erfolgreich gesendet haben.
   - Nur aktive Teilnehmende dürfen das Bundesaggregat lesen.
   - Ein Widerruf stoppt im MVP weitere Sendungen.
-  - Historische Daten werden durch einen Widerruf im MVP nicht rückwirkend entfernt.
+  - Historische Daten werden durch einen Widerruf nicht automatisch entfernt, sondern nach Fristablauf oder auf Anfrage.
 - Abhängigkeiten: Ticket 2, Ticket 5.
 - Nicht Teil dieses Tickets: Komplexe Rollenmodelle, nachträgliche Datenlöschung, regionale Auswertungen.
 
@@ -235,7 +235,7 @@ Zielbild für den MVP ist ein transparenter Statistikserver, der versionierte St
 ## Offene Punkte für später
 
 - Regionale Vergleiche und statische Referenzdaten bleiben spätere Ausbaustufen.
-- Zu klären bleibt später, ob und wie historische Daten bei verschärften Datenschutzanforderungen nachträglich behandelt werden sollen.
+- Historische Daten: Speicherfrist 14 Monate (TTL), Auskunft und Löschung auf Anfrage per CLI; eine automatische Löschung beim Widerruf ist bewusst nicht vorgesehen.
 
 ## Umsetzungsstand
 
