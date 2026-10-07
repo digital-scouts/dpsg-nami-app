@@ -1,3 +1,4 @@
+import 'member_phone_input.dart';
 import 'mitglied.dart';
 
 enum PendingPersonUpdateStatus { queued, needsResolution }
@@ -244,6 +245,130 @@ class MemberConflictResolver {
     required Mitglied zielMitglied,
     required Mitglied remoteMitglied,
   }) {
+    return _merge(
+      basisMitglied: basisMitglied,
+      zielMitglied: zielMitglied,
+      remoteMitglied: remoteMitglied,
+      preferLocalOnConflict: false,
+    );
+  }
+
+  /// Stellt einen Entwurf auf einen neueren Serverstand um.
+  ///
+  /// Das Ergebnis passt als Entwurf zur Basis [remoteMitglied]: Lokale
+  /// Aenderungen gegenueber [basisMitglied] sind uebernommen, nur in Hitobito
+  /// geaenderte Werte und Kontakte bleiben erhalten. Bei strittigen
+  /// Aenderungseinheiten steht der lokale Wert, damit die Problemloesung ihn
+  /// anzeigen und senden kann.
+  static Mitglied rebase({
+    required Mitglied basisMitglied,
+    required Mitglied zielMitglied,
+    required Mitglied remoteMitglied,
+  }) {
+    return _merge(
+      basisMitglied: basisMitglied,
+      zielMitglied: zielMitglied,
+      remoteMitglied: remoteMitglied,
+      preferLocalOnConflict: true,
+    ).mergedMitglied;
+  }
+
+  /// Ob [zielMitglied] gegenueber [basisMitglied] etwas aendert, das beim
+  /// Speichern an Hitobito ginge. Verglichen werden dieselben Einheiten wie
+  /// beim Senden: Personenfelder, primaere E-Mail, die Felder der primaeren
+  /// Adresse und die Kontakte pro ID bzw. neue Kontakte ueber den Inhalt.
+  static bool hasLocalChanges({
+    required Mitglied basisMitglied,
+    required Mitglied zielMitglied,
+  }) {
+    String? normalized(String? value) => _trimToNull(value);
+    List<Object?> addressFields(MitgliedKontaktAdresse? adresse) => <Object?>[
+      normalized(adresse?.addressCareOf),
+      normalized(adresse?.street),
+      normalized(adresse?.housenumber),
+      normalized(adresse?.postbox),
+      normalized(adresse?.zipCode),
+      normalized(adresse?.town),
+      normalized(adresse?.country),
+    ];
+    bool sameList(List<Object?> left, List<Object?> right) {
+      if (left.length != right.length) {
+        return false;
+      }
+      for (var index = 0; index < left.length; index++) {
+        if (left[index] != right[index]) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    bool sameContacts<T>(
+      List<T> basis,
+      List<T> ziel,
+      int? Function(T item) idOf,
+    ) {
+      bool hasId(T item) => (idOf(item) ?? 0) > 0;
+      final basisById = {
+        for (final item in basis)
+          if (hasId(item)) idOf(item)!: item,
+      };
+      final zielById = {
+        for (final item in ziel)
+          if (hasId(item)) idOf(item)!: item,
+      };
+      if (basisById.length != zielById.length) {
+        return false;
+      }
+      for (final entry in basisById.entries) {
+        if (zielById[entry.key] != entry.value) {
+          return false;
+        }
+      }
+      final basisNew = basis.where((item) => !hasId(item)).toSet();
+      final zielNew = ziel.where((item) => !hasId(item)).toSet();
+      return basisNew.length == zielNew.length && basisNew.containsAll(zielNew);
+    }
+
+    return basisMitglied.vorname != zielMitglied.vorname ||
+        basisMitglied.nachname != zielMitglied.nachname ||
+        normalized(basisMitglied.fahrtenname) !=
+            normalized(zielMitglied.fahrtenname) ||
+        normalized(basisMitglied.gender) != normalized(zielMitglied.gender) ||
+        basisMitglied.geburtsdatum != zielMitglied.geburtsdatum ||
+        normalized(_primaryEmail(basisMitglied)?.wert) !=
+            normalized(_primaryEmail(zielMitglied)?.wert) ||
+        !sameList(
+          addressFields(basisMitglied.primaryAddress),
+          addressFields(zielMitglied.primaryAddress),
+        ) ||
+        !sameContacts(
+          basisMitglied.telefonnummern,
+          zielMitglied.telefonnummern,
+          (item) => item.phoneNumberId,
+        ) ||
+        !sameContacts(
+          _additionalEmails(basisMitglied),
+          _additionalEmails(zielMitglied),
+          (item) => item.additionalEmailId,
+        ) ||
+        !sameContacts(
+          _additionalAddresses(
+            basisMitglied,
+          ).where((adresse) => !adresse.istLeer).toList(growable: false),
+          _additionalAddresses(
+            zielMitglied,
+          ).where((adresse) => !adresse.istLeer).toList(growable: false),
+          (item) => item.additionalAddressId,
+        );
+  }
+
+  static MemberMergePlan _merge({
+    required Mitglied basisMitglied,
+    required Mitglied zielMitglied,
+    required Mitglied remoteMitglied,
+    required bool preferLocalOnConflict,
+  }) {
     final items = <MemberResolutionItem>[];
 
     String vorname = remoteMitglied.vorname;
@@ -279,6 +404,9 @@ class MemberConflictResolver {
           message: message,
         ),
       );
+      if (preferLocalOnConflict) {
+        assignMerged(localValue);
+      }
     }
 
     mergeScalar<String>(
@@ -362,18 +490,21 @@ class MemberConflictResolver {
       zielMitglied: zielMitglied,
       remoteMitglied: remoteMitglied,
       items: items,
+      preferLocalOnConflict: preferLocalOnConflict,
     );
     final mergedAdditionalEmails = _mergeAdditionalEmails(
       basisMitglied: basisMitglied,
       zielMitglied: zielMitglied,
       remoteMitglied: remoteMitglied,
       items: items,
+      preferLocalOnConflict: preferLocalOnConflict,
     );
     final mergedAdditionalAddresses = _mergeAdditionalAddresses(
       basisMitglied: basisMitglied,
       zielMitglied: zielMitglied,
       remoteMitglied: remoteMitglied,
       items: items,
+      preferLocalOnConflict: preferLocalOnConflict,
     );
 
     final mergedMitglied = remoteMitglied.copyWith(
@@ -403,6 +534,7 @@ class MemberConflictResolver {
     required Mitglied zielMitglied,
     required Mitglied remoteMitglied,
     required List<MemberResolutionItem> items,
+    required bool preferLocalOnConflict,
   }) {
     return _mergeRelationships<MitgliedKontaktTelefon>(
       basis: basisMitglied.telefonnummern,
@@ -410,12 +542,19 @@ class MemberConflictResolver {
       remote: remoteMitglied.telefonnummern,
       idOf: (item) => item.phoneNumberId,
       withoutId: (item) => item.copyWith(phoneNumberIdLoeschen: true),
+      // Hitobito liefert Nummern formatiert zurueck; eine schon angekommene
+      // Nummer darf beim erneuten Senden nicht doppelt angelegt werden.
+      sameContent: (left, right) =>
+          left == right ||
+          (left.label == right.label &&
+              MemberPhoneInput.isSameNumber(left.wert, right.wert)),
       targetType: MemberResolutionTargetType.phone,
       conflictMessage:
           'Telefonnummer wurde lokal und in Hitobito unterschiedlich geändert.',
       remoteDeletedMessage:
           'Telefonnummer wurde lokal geändert, in Hitobito aber gelöscht.',
       items: items,
+      preferLocalOnConflict: preferLocalOnConflict,
     );
   }
 
@@ -424,6 +563,7 @@ class MemberConflictResolver {
     required Mitglied zielMitglied,
     required Mitglied remoteMitglied,
     required List<MemberResolutionItem> items,
+    required bool preferLocalOnConflict,
   }) {
     return _mergeRelationships<MitgliedKontaktEmail>(
       basis: _additionalEmails(basisMitglied),
@@ -437,6 +577,7 @@ class MemberConflictResolver {
       remoteDeletedMessage:
           'Zusätzliche E-Mail wurde lokal geändert, in Hitobito aber gelöscht.',
       items: items,
+      preferLocalOnConflict: preferLocalOnConflict,
     );
   }
 
@@ -445,6 +586,7 @@ class MemberConflictResolver {
     required Mitglied zielMitglied,
     required Mitglied remoteMitglied,
     required List<MemberResolutionItem> items,
+    required bool preferLocalOnConflict,
   }) {
     return _mergeRelationships<MitgliedKontaktAdresse>(
       basis: _additionalAddresses(basisMitglied),
@@ -458,6 +600,7 @@ class MemberConflictResolver {
       remoteDeletedMessage:
           'Zusatzadresse wurde lokal geändert, in Hitobito aber gelöscht.',
       items: items,
+      preferLocalOnConflict: preferLocalOnConflict,
     );
   }
 
@@ -473,10 +616,12 @@ class MemberConflictResolver {
     required List<T> remote,
     required int? Function(T item) idOf,
     required T Function(T item) withoutId,
+    bool Function(T left, T right)? sameContent,
     required MemberResolutionTargetType targetType,
     required String conflictMessage,
     required String remoteDeletedMessage,
     required List<MemberResolutionItem> items,
+    required bool preferLocalOnConflict,
   }) {
     bool hasId(T item) => (idOf(item) ?? 0) > 0;
     Map<int, T> byId(List<T> list) => {
@@ -518,8 +663,9 @@ class MemberConflictResolver {
           message: remoteDeleted ? remoteDeletedMessage : conflictMessage,
         ),
       );
-      if (remoteItem != null) {
-        merged.add(remoteItem);
+      final kept = preferLocalOnConflict ? localItem : remoteItem;
+      if (kept != null) {
+        merged.add(kept);
       }
     }
 
@@ -538,7 +684,8 @@ class MemberConflictResolver {
         continue;
       }
       final content = withoutId(localItem);
-      if (merged.any((item) => withoutId(item) == content)) {
+      final isSame = sameContent ?? (T left, T right) => left == right;
+      if (merged.any((item) => isSame(withoutId(item), content))) {
         continue;
       }
       merged.add(localItem);

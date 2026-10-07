@@ -818,10 +818,10 @@ void main() {
         );
         await model.loadPending();
 
-        // Die Bearbeiten-Seite uebergibt den ersten Entwurf als Basis.
+        // Die Bearbeiten-Seite uebergibt die Basis des wartenden Eintrags.
         final result = await model.submitUpdate(
           accessToken: 'token-123',
-          basisMitglied: ersterEntwurf,
+          basisMitglied: wartenderEintrag().basisMitglied,
           zielMitglied: zweiterEntwurf,
         );
         final stored = (await pendingRepository.loadAll()).single;
@@ -863,7 +863,7 @@ void main() {
 
         await model.submitUpdate(
           accessToken: 'token-123',
-          basisMitglied: ersterEntwurf,
+          basisMitglied: wartenderEintrag().basisMitglied,
           zielMitglied: zweiterEntwurf,
         );
         serverErreichbar = true;
@@ -890,7 +890,7 @@ void main() {
 
       final result = await model.submitUpdate(
         accessToken: 'token-123',
-        basisMitglied: ersterEntwurf,
+        basisMitglied: wartenderEintrag().basisMitglied,
         zielMitglied: zweiterEntwurf,
       );
 
@@ -933,7 +933,7 @@ void main() {
 
         await model.submitUpdate(
           accessToken: 'token-123',
-          basisMitglied: validationCase.remoteMitglied,
+          basisMitglied: wartenderEintrag().basisMitglied,
           zielMitglied: zweiterEntwurf,
           trigger: 'manual_resolution',
           existingResolutionCase: validationCase,
@@ -988,7 +988,7 @@ void main() {
 
         final result = await model.submitUpdate(
           accessToken: 'token-123',
-          basisMitglied: validationCase.remoteMitglied,
+          basisMitglied: wartenderEintrag().basisMitglied,
           zielMitglied: zweiterEntwurf,
           trigger: 'manual_resolution',
           existingResolutionCase: validationCase,

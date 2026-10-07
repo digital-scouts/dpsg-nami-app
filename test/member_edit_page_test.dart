@@ -16,7 +16,7 @@ import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/model/member_edit_model.dart';
-import 'package:nami/presentation/model/member_phone_input.dart';
+import 'package:nami/domain/member/member_phone_input.dart';
 import 'package:nami/presentation/screens/member_edit_page.dart';
 import 'package:nami/services/biometric_lock_service.dart';
 import 'package:nami/services/hitobito_auth_env.dart';
@@ -172,22 +172,75 @@ void main() {
     expect(find.text('Keine Angabe', skipOffstage: false), findsNothing);
   });
 
+  group('Geschlecht beim Speichern', () {
+    Future<Mitglied> speichern(
+      WidgetTester tester,
+      Mitglied member, {
+      String? auswahl,
+    }) async {
+      final model = _RecordingMemberEditModel();
+      _useLargeViewport(tester);
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberEditPage(mitglied: member),
+          providers: _buildEditProviders(model),
+        ),
+      );
+      await tester.pumpAndSettle();
+      if (auswahl != null) {
+        await tester.tap(find.byKey(const Key('member-edit-gender-field')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(auswahl).last);
+        await tester.pumpAndSettle();
+      } else {
+        expect(_speichernAktiv(tester), isFalse);
+        await _aendereVorname(tester);
+      }
+      await tester.tap(find.byKey(const Key('member-edit-save-button')));
+      await tester.pumpAndSettle();
+      return model.submitCalls.single.zielMitglied;
+    }
+
+    testWidgets('fehlendes Geschlecht bleibt unberuehrt null', (tester) async {
+      final member = _buildMember(gender: 'w').copyWith(genderLoeschen: true);
+
+      final ziel = await speichern(tester, member);
+
+      expect(ziel.gender, isNull);
+    });
+
+    testWidgets('Altwert bleibt unberuehrt erhalten', (tester) async {
+      final ziel = await speichern(tester, _buildMember(gender: 'divers'));
+
+      expect(ziel.gender, 'divers');
+    });
+
+    testWidgets('Auswahl Unbekannt loescht das Geschlecht', (tester) async {
+      final ziel = await speichern(
+        tester,
+        _buildMember(gender: 'w'),
+        auswahl: 'Unbekannt',
+      );
+
+      expect(ziel.gender, isNull);
+    });
+  });
+
   testWidgets('blockiert Speichern ohne Namen oder Fahrtenname', (
     tester,
   ) async {
     await tester.pumpWidget(
-      _buildTestApp(
-        MemberEditPage(
-          mitglied: _buildMember(gender: '').copyWith(
-            vorname: '',
-            nachname: '',
-            fahrtenname: '',
-            fahrtennameLoeschen: true,
-          ),
-        ),
-      ),
+      _buildTestApp(MemberEditPage(mitglied: _buildMember(gender: ''))),
     );
 
+    for (final key in const <Key>[
+      Key('member-edit-first-name-field'),
+      Key('member-edit-last-name-field'),
+      Key('member-edit-nickname-field'),
+    ]) {
+      await tester.enterText(find.byKey(key), '');
+    }
+    await tester.pump();
     await tester.tap(find.byKey(const Key('member-edit-save-button')));
     await tester.pump();
 
@@ -207,6 +260,7 @@ void main() {
       ),
     );
 
+    await _aendereVorname(tester);
     await tester.tap(find.byKey(const Key('member-edit-save-button')));
     await tester.pump();
 
@@ -234,6 +288,7 @@ void main() {
       ),
     );
 
+    await _aendereVorname(tester);
     await tester.tap(find.byKey(const Key('member-edit-save-button')));
     await tester.pump();
 
@@ -252,6 +307,7 @@ void main() {
       find.byKey(const Key('member-edit-phone-number-0')),
       'abc',
     );
+    await tester.pump();
 
     await tester.tap(find.byKey(const Key('member-edit-save-button')));
     await tester.pump();
@@ -388,6 +444,7 @@ void main() {
 
     await tester.tap(find.text('E-Mail hinzufügen'));
     await tester.pump();
+    await _aendereVorname(tester);
     await tester.tap(find.byKey(const Key('member-edit-save-button')));
     await tester.pump();
 
@@ -609,6 +666,136 @@ void main() {
   );
 
   testWidgets(
+    'belegt ohne Haupt-E-Mail das Feld nicht mit einer Zusatz-E-Mail vor',
+    (tester) async {
+      const elternEmail = MitgliedKontaktEmail(
+        additionalEmailId: 31,
+        wert: 'eltern@example.org',
+        label: 'E-Mail Vertretungsberechtigte/r',
+      );
+      final member = _buildMember(
+        gender: 'w',
+      ).copyWith(emailAdressen: const <MitgliedKontaktEmail>[elternEmail]);
+      final model = _RecordingMemberEditModel();
+
+      _useLargeViewport(tester);
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberEditPage(mitglied: member),
+          providers: _buildEditProviders(model),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final primaryEmailField = tester.widget<TextFormField>(
+        find.byKey(const Key('member-edit-primary-email-field')),
+      );
+      expect(primaryEmailField.controller!.text, isEmpty);
+      // Ohne untergeschobene Haupt-E-Mail gibt es nichts zu speichern.
+      expect(_speichernAktiv(tester), isFalse);
+      expect(model.submitCalls, isEmpty);
+    },
+  );
+
+  group('Speichern ohne Aenderung', () {
+    testWidgets('ist nach dem Oeffnen inaktiv und sendet nichts', (
+      tester,
+    ) async {
+      final model = _RecordingMemberEditModel();
+      _useLargeViewport(tester);
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberEditPage(mitglied: _buildMember(gender: 'w')),
+          providers: _buildEditProviders(model),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(_speichernAktiv(tester), isFalse);
+      await tester.tap(find.byKey(const Key('member-edit-save-button')));
+      await tester.pumpAndSettle();
+      expect(model.submitCalls, isEmpty);
+    });
+
+    testWidgets('wird mit einer Aenderung aktiv und beim Zuruecknehmen '
+        'wieder inaktiv', (tester) async {
+      _useLargeViewport(tester);
+      await tester.pumpWidget(
+        _buildTestApp(MemberEditPage(mitglied: _buildMember(gender: 'w'))),
+      );
+      await tester.pumpAndSettle();
+
+      await _aendereVorname(tester);
+      expect(_speichernAktiv(tester), isTrue);
+
+      await tester.enterText(
+        find.byKey(const Key('member-edit-first-name-field')),
+        'Julia',
+      );
+      await tester.pump();
+      expect(_speichernAktiv(tester), isFalse);
+    });
+
+    testWidgets('bleibt fuer einen wartenden Entwurf aktiv', (tester) async {
+      final member = _buildMember(gender: 'w');
+      final entwurf = member.copyWith(vorname: 'Juliane');
+      _useLargeViewport(tester);
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberEditPage(
+            mitglied: entwurf,
+            pendingEntry: PendingPersonUpdate(
+              entryId: 'person-23',
+              personId: 23,
+              mitgliedsnummer: member.mitgliedsnummer,
+              displayName: entwurf.fullName,
+              basisMitglied: member,
+              zielMitglied: entwurf,
+              queuedAt: DateTime(2026, 4, 14, 12, 0),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(_speichernAktiv(tester), isTrue);
+    });
+  });
+
+  testWidgets('wartender Entwurf sendet die Basis des Eintrags', (
+    tester,
+  ) async {
+    final member = _buildMember(gender: 'w');
+    final entwurf = member.copyWith(vorname: 'Juliane');
+    final entry = PendingPersonUpdate(
+      entryId: 'person-23',
+      personId: 23,
+      mitgliedsnummer: member.mitgliedsnummer,
+      displayName: entwurf.fullName,
+      basisMitglied: member,
+      zielMitglied: entwurf,
+      queuedAt: DateTime(2026, 4, 14, 12, 0),
+    );
+    final model = _RecordingMemberEditModel();
+
+    _useLargeViewport(tester);
+    await tester.pumpWidget(
+      _buildTestApp(
+        MemberEditPage(mitglied: entwurf, pendingEntry: entry),
+        providers: _buildEditProviders(model),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('member-edit-save-button')));
+    await tester.pumpAndSettle();
+
+    final call = model.submitCalls.single;
+    expect(call.basisMitglied, same(member));
+    expect(call.zielMitglied.vorname, 'Juliane');
+    expect(call.existingResolutionCase, isNull);
+  });
+
+  testWidgets(
     'zeigt Zusatzadresse ohne Hauptadresse nicht zusaetzlich als Hauptadresse',
     (tester) async {
       const zusatzadresse = MitgliedKontaktAdresse(
@@ -635,6 +822,7 @@ void main() {
 
       expect(find.widgetWithText(TextField, 'Zeltplatz'), findsOneWidget);
 
+      await _aendereVorname(tester);
       await tester.tap(find.byKey(const Key('member-edit-save-button')));
       await tester.pumpAndSettle();
 
@@ -811,6 +999,9 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      expect(_speichernAktiv(tester), isFalse);
+
+      await _aendereVorname(tester);
       await tester.tap(find.byKey(const Key('member-edit-save-button')));
       await tester.pumpAndSettle();
 
@@ -1219,7 +1410,7 @@ void main() {
     });
 
     testWidgets(
-      'Speichern sendet mit Serverstand als Basis und bestehendem Problemfall',
+      'Speichern sendet die Basis des Problemfalls und erhaelt fremde Aenderungen',
       (tester) async {
         final member = _buildMember(gender: '');
         final pendingEntry = _buildResolutionEntry(
@@ -1244,14 +1435,13 @@ void main() {
         expect(model.submitCalls, hasLength(1));
         final call = model.submitCalls.single;
         expect(call.accessToken, 'token-123');
-        expect(
-          call.basisMitglied,
-          same(pendingEntry.resolutionCase!.remoteMitglied),
-        );
+        expect(call.basisMitglied, same(pendingEntry.basisMitglied));
+        expect(call.basisMitglied, pendingEntry.resolutionCase!.remoteMitglied);
         expect(call.trigger, 'manual_resolution');
         expect(call.existingResolutionCase, same(pendingEntry.resolutionCase));
         expect(call.zielMitglied.vorname, 'Juliane');
-        expect(call.zielMitglied.nachname, 'Keller');
+        // Nur in Hitobito geaendert: bleibt erhalten statt zurueckgesetzt.
+        expect(call.zielMitglied.nachname, 'Remote');
       },
     );
 
@@ -1489,26 +1679,53 @@ Widget _buildTestApp(
   return MultiProvider(providers: providers, child: app);
 }
 
+/// Aendert den Vornamen, damit Speichern aktiv wird.
+Future<void> _aendereVorname(WidgetTester tester) async {
+  await tester.enterText(
+    find.byKey(const Key('member-edit-first-name-field')),
+    'Juliane',
+  );
+  await tester.pump();
+}
+
+bool _speichernAktiv(WidgetTester tester) {
+  return tester
+          .widget<ButtonStyleButton>(
+            find.byKey(const Key('member-edit-save-button')),
+          )
+          .onPressed !=
+      null;
+}
+
 PendingPersonUpdate _buildResolutionEntry({
   required Mitglied basisMitglied,
   required Mitglied zielMitglied,
   required Mitglied remoteMitglied,
   required List<MemberResolutionItem> items,
 }) {
+  final resolutionCase = MemberResolutionCase(
+    remoteMitglied: remoteMitglied,
+    items: items,
+    source: MemberResolutionSource.manualSave,
+  );
+  // Wie MemberEditModel: Konfliktfaelle sind auf den Serverstand umgestellt.
+  final hasMergeConflicts = resolutionCase.hasMergeConflicts;
   return PendingPersonUpdate(
     entryId: 'person-${zielMitglied.personId ?? 0}',
     personId: zielMitglied.personId ?? 23,
     mitgliedsnummer: zielMitglied.mitgliedsnummer,
     displayName: zielMitglied.fullName,
-    basisMitglied: basisMitglied,
-    zielMitglied: zielMitglied,
+    basisMitglied: hasMergeConflicts ? remoteMitglied : basisMitglied,
+    zielMitglied: hasMergeConflicts
+        ? MemberConflictResolver.rebase(
+            basisMitglied: basisMitglied,
+            zielMitglied: zielMitglied,
+            remoteMitglied: remoteMitglied,
+          )
+        : zielMitglied,
     queuedAt: DateTime(2026, 4, 14, 12, 0),
     status: PendingPersonUpdateStatus.needsResolution,
-    resolutionCase: MemberResolutionCase(
-      remoteMitglied: remoteMitglied,
-      items: items,
-      source: MemberResolutionSource.manualSave,
-    ),
+    resolutionCase: resolutionCase,
   );
 }
 

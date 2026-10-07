@@ -25,6 +25,75 @@ import 'package:nami/services/hitobito_groups_service.dart';
 import 'package:nami/services/logger_service.dart';
 
 void main() {
+  test('ersetzeMitglied behaelt die Rollen aus dem Sync', () async {
+    final rolle = Role(
+      id: 7,
+      personId: 23,
+      groupId: 11,
+      type: 'Group::Stamm::Wolf',
+      groupName: 'Woelflinge',
+      startOn: DateTime(2024, 9, 1),
+    );
+    final mitglied = Mitglied.peopleListItem(
+      mitgliedsnummer: '4711',
+      personId: 23,
+      vorname: 'Julia',
+      nachname: 'Keller',
+    ).copyWith(roles: <Role>[rolle]);
+    final localRepository = _FakeArbeitskontextLocalRepository(
+      cached: ArbeitskontextReadModel(
+        arbeitskontext: Arbeitskontext(
+          aktiverLayer: const ArbeitskontextLayer(
+            id: 11,
+            name: 'Stamm Musterdorf',
+          ),
+        ),
+        mitglieder: <Mitglied>[mitglied],
+        rolesSindGeladen: true,
+      ),
+    );
+    final model = ArbeitskontextModel(
+      localRepository: localRepository,
+      readModelRepository: _FakeArbeitskontextReadModelRepository(),
+      groupsService: _FakeHitobitoGroupsService(),
+      bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+      logger: _FakeLoggerService(),
+    );
+    await model.syncForAuth(
+      authState: AuthState.signedIn,
+      session: AuthSession(
+        accessToken: 'token-1',
+        receivedAt: DateTime(2026, 3, 31),
+      ),
+      profile: const AuthProfile(
+        namiId: 1,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 11,
+            groupName: 'Stamm Musterdorf',
+            roleName: 'Mitglied',
+            roleClass: 'Group::Mitglied',
+          ),
+        ],
+      ),
+    );
+
+    // Der Schreibpfad liefert die Person ohne Rollen.
+    await model.ersetzeMitglied(
+      Mitglied.peopleListItem(
+        mitgliedsnummer: '4711',
+        personId: 23,
+        vorname: 'Juliane',
+        nachname: 'Keller',
+      ),
+    );
+
+    final ersetzt = model.readModel!.mitglieder.single;
+    expect(ersetzt.vorname, 'Juliane');
+    expect(ersetzt.roles, <Role>[rolle]);
+    expect(localRepository.saved!.mitglieder.single.roles, <Role>[rolle]);
+  });
+
   test(
     'stellt zuerst den lokal gespeicherten Arbeitskontext wieder her',
     () async {
@@ -2540,8 +2609,12 @@ class _FakeArbeitskontextLocalRepository
   @override
   Future<ArbeitskontextReadModel?> loadLastCached() async => cached;
 
+  ArbeitskontextReadModel? saved;
+
   @override
-  Future<void> saveCached(ArbeitskontextReadModel readModel) async {}
+  Future<void> saveCached(ArbeitskontextReadModel readModel) async {
+    saved = readModel;
+  }
 }
 
 class _FakeArbeitskontextReadModelRepository

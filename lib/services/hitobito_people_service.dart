@@ -1348,7 +1348,8 @@ class HitobitoPeopleService {
         return email;
       }
     }
-    return emailAdressen.isEmpty ? null : emailAdressen.first;
+    // Zusatz-E-Mails sind nie die Haupt-E-Mail, auch wenn diese fehlt.
+    return null;
   }
 
   String? _toDateStringOrNull(DateTime value) {

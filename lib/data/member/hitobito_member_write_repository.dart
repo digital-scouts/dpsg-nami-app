@@ -437,12 +437,20 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
       remoteMitglied.fahrtenname,
       zielMitglied.fahrtenname,
     );
-    assignIfChanged('gender', remoteMitglied.gender, zielMitglied.gender);
+    // Ein leerer Wert bedeutet wie null "keine Angabe" und geht nie als ""
+    // nach Hitobito.
+    assignIfChanged(
+      'gender',
+      _emptyToNull(remoteMitglied.gender),
+      _emptyToNull(zielMitglied.gender),
+    );
     if (remoteMitglied.geburtsdatum != zielMitglied.geburtsdatum) {
-      attributes['birthday'] = zielMitglied.geburtsdatum
-          .toIso8601String()
-          .split('T')
-          .first;
+      // Der Platzhalter steht fuer ein geleertes Datum und geht nie als
+      // echtes Datum nach Hitobito.
+      attributes['birthday'] =
+          zielMitglied.geburtsdatum == Mitglied.peoplePlaceholderDate
+          ? null
+          : zielMitglied.geburtsdatum.toIso8601String().split('T').first;
     }
 
     final remotePrimaryEmail = _primaryEmail(remoteMitglied)?.wert;
@@ -488,6 +496,11 @@ class HitobitoMemberWriteRepository implements MemberWriteRepository {
     );
 
     return attributes;
+  }
+
+  String? _emptyToNull(String? value) {
+    final trimmed = value?.trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
   }
 
   MitgliedKontaktEmail? _primaryEmail(Mitglied mitglied) {

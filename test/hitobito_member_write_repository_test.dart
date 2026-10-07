@@ -709,6 +709,163 @@ void main() {
     );
   });
 
+  group('updateMember Stammdaten ohne Aenderung', () {
+    test(
+      'sendet bei Person ohne Haupt-E-Mail mit Zusatz-E-Mail keinen PUT',
+      () async {
+        final peopleService = _FakeHitobitoPeopleService()
+          ..remoteResource = HitobitoPersonResource(
+            id: 23,
+            firstName: 'Julia',
+            lastName: 'Keller',
+            membershipNumber: 4711,
+            updatedAt: DateTime.parse('2026-04-14T09:00:00Z'),
+            emailAdressen: const <MitgliedKontaktEmail>[
+              MitgliedKontaktEmail(
+                additionalEmailId: 31,
+                wert: 'eltern@example.org',
+                label: 'E-Mail Vertretungsberechtigte/r',
+              ),
+            ],
+          );
+        final repository = HitobitoMemberWriteRepository(
+          peopleService: peopleService,
+          logger: _FakeLoggerService(),
+        );
+        final basis = peopleService.remoteResource!.toMitglied();
+
+        await repository.updateMember(
+          accessToken: 'token-123',
+          basisMitglied: basis,
+          zielMitglied: basis,
+        );
+
+        expect(peopleService.updateCallCount, 0);
+        expect(peopleService.lastChangedAttributes, isNull);
+      },
+    );
+  });
+
+  group('updateMember Geburtsdatum', () {
+    HitobitoPersonResource remoteMit(DateTime? birthday) {
+      return HitobitoPersonResource(
+        id: 23,
+        firstName: 'Julia',
+        lastName: 'Keller',
+        membershipNumber: 4711,
+        birthday: birthday,
+        updatedAt: DateTime.parse('2026-04-14T09:00:00Z'),
+      );
+    }
+
+    test('sendet ein geleertes Geburtsdatum als null', () async {
+      final peopleService = _FakeHitobitoPeopleService()
+        ..remoteResource = remoteMit(DateTime(2012, 5, 4));
+      final repository = HitobitoMemberWriteRepository(
+        peopleService: peopleService,
+        logger: _FakeLoggerService(),
+      );
+      final basis = peopleService.remoteResource!.toMitglied();
+
+      await repository.updateMember(
+        accessToken: 'token-123',
+        basisMitglied: basis,
+        zielMitglied: basis.copyWith(
+          geburtsdatum: Mitglied.peoplePlaceholderDate,
+        ),
+      );
+
+      expect(peopleService.lastChangedAttributes, <String, dynamic>{
+        'birthday': null,
+      });
+    });
+
+    test('sendet nichts, wenn das Datum schon remote fehlt', () async {
+      final peopleService = _FakeHitobitoPeopleService()
+        ..remoteResource = remoteMit(null);
+      final repository = HitobitoMemberWriteRepository(
+        peopleService: peopleService,
+        logger: _FakeLoggerService(),
+      );
+      final basis = peopleService.remoteResource!.toMitglied();
+
+      await repository.updateMember(
+        accessToken: 'token-123',
+        basisMitglied: basis,
+        zielMitglied: basis.copyWith(
+          geburtsdatum: Mitglied.peoplePlaceholderDate,
+        ),
+      );
+
+      expect(peopleService.updateCallCount, 0);
+    });
+  });
+
+  test('sendet ein leeres Geschlecht nie als leeren Wert', () async {
+    final peopleService = _FakeHitobitoPeopleService()
+      ..remoteResource = HitobitoPersonResource(
+        id: 23,
+        firstName: 'Julia',
+        lastName: 'Keller',
+        membershipNumber: 4711,
+        updatedAt: DateTime.parse('2026-04-14T09:00:00Z'),
+      );
+    final repository = HitobitoMemberWriteRepository(
+      peopleService: peopleService,
+      logger: _FakeLoggerService(),
+    );
+    final basis = peopleService.remoteResource!.toMitglied();
+
+    await repository.updateMember(
+      accessToken: 'token-123',
+      basisMitglied: basis,
+      zielMitglied: basis.copyWith(gender: ''),
+    );
+
+    expect(peopleService.updateCallCount, 0);
+  });
+
+  test('legt eine von Hitobito formatiert gespeicherte Nummer beim erneuten '
+      'Senden nicht doppelt an', () async {
+    final peopleService = _FakeHitobitoPeopleService()
+      ..remoteResource = HitobitoPersonResource(
+        id: 23,
+        firstName: 'Julia',
+        lastName: 'Keller',
+        membershipNumber: 4711,
+        updatedAt: DateTime.parse('2026-04-14T09:05:00Z'),
+        telefonnummern: const <MitgliedKontaktTelefon>[
+          MitgliedKontaktTelefon(
+            phoneNumberId: 901,
+            wert: '+49 170 1234567',
+            label: 'Mobil',
+          ),
+        ],
+      );
+    final repository = HitobitoMemberWriteRepository(
+      peopleService: peopleService,
+      logger: _FakeLoggerService(),
+    );
+    final basis = Mitglied.peopleListItem(
+      mitgliedsnummer: '4711',
+      personId: 23,
+      vorname: 'Julia',
+      nachname: 'Keller',
+    ).copyWith(updatedAt: DateTime.parse('2026-04-14T09:00:00Z'));
+
+    await repository.updateMember(
+      accessToken: 'token-123',
+      basisMitglied: basis,
+      zielMitglied: basis.copyWith(
+        telefonnummern: const <MitgliedKontaktTelefon>[
+          MitgliedKontaktTelefon(wert: '+491701234567', label: 'Mobil'),
+        ],
+      ),
+    );
+
+    expect(peopleService.updateCallCount, 0);
+  });
+
   group('updateMember Vorbedingungen', () {
     test(
       'wirft UpdatedAtMissing ohne lokales updatedAt und fragt Remote nicht ab',
