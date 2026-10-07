@@ -28,6 +28,7 @@ void main() {
   late _RecordingLoggerService logger;
 
   setUp(() async {
+    SensitiveStorageService.resetForTest();
     SharedPreferences.setMockInitialValues({});
     tempDir = await Directory.systemTemp.createTemp('upgrade_0_2_8_test');
     Hive.init(tempDir.path);
@@ -87,7 +88,9 @@ void main() {
     expect(authModel.profile, isNull);
     expect(await AppStartupStateService().hasSeenWelcome(), isFalse);
 
-    // Eigene verschluesselte Boxen lassen sich anlegen und oeffnen.
+    // Eigene verschluesselte Boxen lassen sich nach dem Login anlegen und
+    // oeffnen.
+    sensitiveStorage.beginSession();
     final profileBox = await sensitiveStorage.openEncryptedStringBox(
       'hitobito_profile_box',
     );

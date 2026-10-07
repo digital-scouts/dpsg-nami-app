@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
@@ -39,7 +40,8 @@ void main() {
         await tempDir.delete(recursive: true);
       });
 
-      final sensitiveStorage = SensitiveStorageService();
+      SensitiveStorageService.resetForTest();
+      final sensitiveStorage = SensitiveStorageService()..beginSession();
       final mitglieder = await sensitiveStorage.openEncryptedStringBox(
         'hitobito_people_box',
       );
@@ -91,10 +93,8 @@ void main() {
       await model.logout();
 
       expect(model.state, AuthState.signedOut);
-      final mitgliederNachher = await sensitiveStorage.openEncryptedStringBox(
-        'hitobito_people_box',
-      );
-      expect(mitgliederNachher.get('person-1'), isNull);
+      expect(await Hive.boxExists('hitobito_people_box'), isFalse);
+      expect(sensitiveStorage.isSessionOpen, isFalse);
       expect(await verlauf.loadForLayer(31), eintraege);
     },
     timeout: const Timeout(Duration(seconds: 5)),
@@ -281,59 +281,97 @@ void main() {
     timeout: const Timeout(Duration(seconds: 3)),
   );
 
-  test(
-    'setzt uebernommene Session ohne Profildaten und Sync-Stand bei initialize auf signedOut zurueck',
-    () async {
+  group('Session aus einer frueheren Installation', () {
+    ({
+      AuthSessionModel model,
+      InMemoryAuthSessionRepository repository,
+      FakeOauthService oauth,
+      FakeLoggerService logger,
+    })
+    neuinstallation({required bool hasLocalData}) {
       final repository = InMemoryAuthSessionRepository(
         initialSession: AuthSession(
           accessToken: 'existing-token',
+          refreshToken: 'existing-refresh-token',
           receivedAt: DateTime(2026, 3, 27),
+        ),
+      );
+      final oauth = FakeOauthService(
+        sessionToReturn: AuthSession(
+          accessToken: 'unused',
+          receivedAt: DateTime(2026, 3, 27),
+        ),
+        profileToReturn: const AuthProfile(
+          namiId: 99,
+          firstName: 'Lea',
+          lastName: 'Beispiel',
+          language: 'de',
         ),
       );
       final logger = _createLogger();
       final model = AuthSessionModel(
         repository: repository,
         profileRepository: InMemoryAuthProfileRepository(),
-        oauthService: FakeOauthService(
-          sessionToReturn: AuthSession(
-            accessToken: 'unused',
-            receivedAt: DateTime(2026, 3, 27),
-          ),
-          profileToReturn: const AuthProfile(
-            namiId: 99,
-            firstName: 'Lea',
-            lastName: 'Beispiel',
-            language: 'de',
-          ),
-        ),
-        biometricLockService: FakeBiometricLockService(available: true),
-        sensitiveStorageService: FakeSensitiveStorageService(),
+        oauthService: oauth,
+        biometricLockService: FakeBiometricLockService(),
+        sensitiveStorageService: FakeSensitiveStorageService()
+          ..hasLocalData = hasLocalData,
         retentionPolicy: HitobitoDataRetentionPolicy(
           maxDataAge: const Duration(days: 90),
           refreshInterval: const Duration(hours: 24),
           nowProvider: () => DateTime(2026, 3, 27, 12),
         ),
         logger: logger,
-        isAppLockEnabled: () => true,
+        // Nach einer Neuinstallation ist die App-Sperre aus, weil ihre
+        // Einstellung mit den App-Daten geloescht wurde.
+        isAppLockEnabled: () => false,
       );
+      return (
+        model: model,
+        repository: repository,
+        oauth: oauth,
+        logger: logger,
+      );
+    }
 
-      await model.initialize();
+    test(
+      'meldet ohne lokale App-Daten niemanden an und verwirft die Session',
+      () async {
+        final t = neuinstallation(hasLocalData: false);
 
-      expect(model.state, AuthState.signedOut);
-      expect(model.session, isNull);
-      expect(model.profile, isNull);
-      expect(await repository.load(), isNull);
-      expect(
-        logger.entries.any(
-          (entry) => entry.message.contains(
-            'Uebernommene Session ohne restorable Profildaten erkannt',
+        await t.model.initialize();
+
+        expect(t.model.state, AuthState.signedOut);
+        expect(t.model.session, isNull);
+        expect(t.model.profile, isNull);
+        expect(await t.repository.load(), isNull);
+        expect(t.oauth.refreshCallCount, 0);
+        expect(t.oauth.fetchProfileCallCount, 0);
+        expect(
+          t.logger.entries.any(
+            (entry) => entry.message.contains(
+              'Uebernommene Session ohne lokale App-Daten erkannt',
+            ),
           ),
-        ),
-        isTrue,
-      );
-    },
-    timeout: const Timeout(Duration(seconds: 3)),
-  );
+          isTrue,
+        );
+      },
+      timeout: const Timeout(Duration(seconds: 3)),
+    );
+
+    test(
+      'behaelt die Session, wenn lokale App-Daten vorhanden sind',
+      () async {
+        final t = neuinstallation(hasLocalData: true);
+
+        await t.model.initialize();
+
+        expect(t.model.state, AuthState.signedIn);
+        expect(t.model.session?.accessToken, 'existing-token');
+      },
+      timeout: const Timeout(Duration(seconds: 3)),
+    );
+  });
 
   test(
     'loggt den erwarteten 401-Fall beim Profil-Laden waehrend initialize nicht',
@@ -962,7 +1000,7 @@ void main() {
   );
 
   test(
-    'interaktiver relogin mit Benutzerwechsel verwirft altes Profil und alten Sync-Stand',
+    'interaktiver relogin mit Benutzerwechsel verwirft altes Profil, alten Sync-Stand und die urspruengliche Aktion',
     () async {
       final oauthService =
           FakeOauthService(
@@ -1017,9 +1055,12 @@ void main() {
       );
 
       await model.initialize();
+      final generationVorher = model.sessionGeneration;
+      final aufgerufeneTokens = <String>[];
       final result = await model.executeRemoteAccess<String>(
         trigger: 'members_load',
         action: (session) async {
+          aufgerufeneTokens.add(session.accessToken);
           if (session.accessToken == 'stale-token') {
             throw const HitobitoPeopleException(
               'People-Anfrage fehlgeschlagen (401).',
@@ -1030,7 +1071,11 @@ void main() {
         },
       );
 
-      expect(result, 'ok');
+      // Die Aktion gehoert zum alten Konto und darf nicht mit der Session
+      // des neuen Kontos weiterlaufen.
+      expect(result, isNull);
+      expect(aufgerufeneTokens, <String>['stale-token']);
+      expect(model.sessionGeneration, isNot(generationVorher));
       expect(model.session?.principal, 'principal-new');
       expect(model.profile?.namiId, 222);
       expect(model.lastSensitiveSyncAt, isNull);
@@ -1684,19 +1729,200 @@ void main() {
       () async {
         var aufrufe = 0;
         final model = buildModel(
-          sensitiveStorage: FakeSensitiveStorageService(),
+          sensitiveStorage: FakeSensitiveStorageService()..hasLocalData = false,
           purgeLocalPersonalData: () async => aufrufe++,
           initialSession: AuthSession(
             accessToken: 'existing-token',
             receivedAt: DateTime(2026, 10, 7),
           ),
-          appLockEnabled: true,
         );
 
         await model.initialize();
 
         expect(aufrufe, 1);
         expect(model.state, AuthState.signedOut);
+      },
+    );
+  });
+
+  group('App-Sperre', () {
+    final start = DateTime(2026, 10, 7, 12);
+    final abgelaufenerLogin = const HitobitoAuthException(
+      'Token-Anfrage fehlgeschlagen (401).',
+      statusCode: 401,
+    );
+
+    ({
+      AuthSessionModel model,
+      FakeOauthService oauth,
+      FakeBiometricLockService biometrie,
+      FakeSensitiveStorageService storage,
+      void Function(Duration) vorspulen,
+    })
+    gesperrtesModell() {
+      var now = start;
+      final oauth = FakeOauthService(
+        sessionToReturn: AuthSession(
+          accessToken: 'access-token',
+          refreshToken: 'refresh-token',
+          receivedAt: start,
+        ),
+        profileToReturn: const AuthProfile(namiId: 7),
+      );
+      final biometrie = FakeBiometricLockService(available: true);
+      final storage = FakeSensitiveStorageService()
+        ..principal = 'person-7'
+        ..lastSensitiveSyncAt = start.subtract(const Duration(days: 2))
+        ..lastSensitiveSyncAttemptAt = start.subtract(const Duration(days: 2));
+      final model = AuthSessionModel(
+        repository: InMemoryAuthSessionRepository(
+          initialSession: AuthSession(
+            accessToken: 'access-token',
+            refreshToken: 'refresh-token',
+            receivedAt: start,
+          ),
+        ),
+        profileRepository: InMemoryAuthProfileRepository(
+          profile: const AuthProfile(namiId: 7),
+          lastSyncAt: start,
+        ),
+        oauthService: oauth,
+        biometricLockService: biometrie,
+        sensitiveStorageService: storage,
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => now,
+        ),
+        logger: _createLogger(),
+        isAppLockEnabled: () => true,
+        lockTimeout: const Duration(seconds: 60),
+      );
+      return (
+        model: model,
+        oauth: oauth,
+        biometrie: biometrie,
+        storage: storage,
+        vorspulen: (dauer) => now = now.add(dauer),
+      );
+    }
+
+    test(
+      'automatischer Sync mit abgelaufenem Login hebt die Sperre nicht auf',
+      () async {
+        final t = gesperrtesModell();
+        t.oauth.refreshError = abgelaufenerLogin;
+        await t.model.initialize();
+        expect(t.model.state, AuthState.unlockRequired);
+        final versuchVorher = t.storage.lastSensitiveSyncAttemptAt;
+        var mitgliederGeladen = 0;
+
+        await t.model.syncHitobitoData(
+          syncMembers: (_) async => mitgliederGeladen++,
+          trigger: 'startup',
+          userInitiated: false,
+          force: true,
+        );
+
+        expect(t.model.state, AuthState.unlockRequired);
+        expect(t.biometrie.authenticateCallCount, 0);
+        expect(t.oauth.refreshCallCount, 0);
+        expect(t.oauth.fetchProfileCallCount, 0);
+        expect(t.oauth.authenticateInteractiveCallCount, 0);
+        expect(mitgliederGeladen, 0);
+        // Der Versuch zaehlt nicht, damit der Sync nach dem Entsperren
+        // faellig bleibt.
+        expect(t.storage.lastSensitiveSyncAttemptAt, versuchVorher);
+      },
+    );
+
+    test(
+      '401 eines laufenden Zugriffs nach dem Sperren hebt die Sperre nicht auf',
+      () async {
+        final t = gesperrtesModell();
+        await t.model.initialize();
+        await t.model.unlock();
+        expect(t.model.state, AuthState.signedIn);
+        t.biometrie.authenticateCallCount = 0;
+        t.oauth.refreshError = abgelaufenerLogin;
+
+        final antwort = Completer<void>();
+        final zugriff = t.model.runWithoutInteractiveRelogin(
+          () => t.model.executeRemoteAccess<String>(
+            trigger: 'members_load',
+            action: (_) async {
+              await antwort.future;
+              throw const HitobitoPeopleException(
+                'People-Anfrage fehlgeschlagen (401).',
+                statusCode: 401,
+              );
+            },
+          ),
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        // Die App geht in den Hintergrund und kommt nach dem Timeout zurueck,
+        // waehrend der Zugriff noch laeuft.
+        await t.model.onAppBackgrounded();
+        t.vorspulen(const Duration(minutes: 2));
+        await t.model.onAppResumed();
+        expect(t.model.state, AuthState.unlockRequired);
+
+        antwort.complete();
+        expect(await zugriff, isNull);
+
+        expect(t.model.state, AuthState.unlockRequired);
+        expect(t.biometrie.authenticateCallCount, 0);
+        expect(t.oauth.authenticateInteractiveCallCount, 0);
+      },
+    );
+
+    test('sperrt beim Resume, bevor der erste await zurueckkehrt', () async {
+      final t = gesperrtesModell();
+      await t.model.initialize();
+      await t.model.unlock();
+      await t.model.onAppBackgrounded();
+      t.vorspulen(const Duration(minutes: 2));
+
+      final resume = t.model.onAppResumed();
+      // Andere Resume-Handler laufen direkt nach diesem Aufruf an.
+      expect(t.model.state, AuthState.unlockRequired);
+      await resume;
+
+      expect(t.model.state, AuthState.unlockRequired);
+    });
+
+    test(
+      'ohne verfuegbare Biometrie bleibt die App nach Resume nutzbar',
+      () async {
+        var now = start;
+        final model = AuthSessionModel(
+          repository: InMemoryAuthSessionRepository(),
+          profileRepository: InMemoryAuthProfileRepository(),
+          oauthService: FakeOauthService(
+            sessionToReturn: AuthSession(
+              accessToken: 'access-token',
+              receivedAt: start,
+            ),
+            profileToReturn: const AuthProfile(namiId: 7),
+          ),
+          biometricLockService: FakeBiometricLockService(),
+          sensitiveStorageService: FakeSensitiveStorageService(),
+          retentionPolicy: HitobitoDataRetentionPolicy(
+            maxDataAge: const Duration(days: 90),
+            refreshInterval: const Duration(hours: 24),
+            nowProvider: () => now,
+          ),
+          logger: _createLogger(),
+          isAppLockEnabled: () => true,
+        );
+        await model.signIn();
+        await model.onAppBackgrounded();
+        now = now.add(const Duration(minutes: 2));
+
+        await model.onAppResumed();
+
+        expect(model.state, AuthState.signedIn);
       },
     );
   });

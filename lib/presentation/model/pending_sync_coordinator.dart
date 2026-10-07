@@ -46,7 +46,7 @@ class PendingSyncCoordinator {
 
   bool _isPaused = false;
   bool _isForegroundSyncRunning = false;
-  bool _waitsForAuthInitialization = false;
+  bool _waitsForAuthReady = false;
   Timer? _pendingRetryTimer;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
@@ -84,15 +84,20 @@ class PendingSyncCoordinator {
   }
 
   /// Laeuft die Auth-Initialisierung noch, sind Session und Sync-Zeitpunkte
-  /// unbekannt. Statt die Verbindung dann als bereits genutzt zu werten, wird
-  /// die Pruefung nachgeholt, sobald die Initialisierung abgeschlossen ist.
+  /// unbekannt; hinter der App-Sperre wird nicht synchronisiert. Statt die
+  /// Verbindung dann als bereits genutzt zu werten, wird die Pruefung
+  /// nachgeholt, sobald beides vorbei ist.
   void _handleAuthChanged() {
-    if (!_waitsForAuthInitialization ||
-        _authModel.state == AuthState.initializing) {
+    if (!_waitsForAuthReady || _isAuthPending()) {
       return;
     }
-    _waitsForAuthInitialization = false;
+    _waitsForAuthReady = false;
     unawaited(checkCurrentConnectivity(trigger: 'auth_ready'));
+  }
+
+  bool _isAuthPending() {
+    final state = _authModel.state;
+    return state == AuthState.initializing || state == AuthState.unlockRequired;
   }
 
   void _startConnectivityListener() {
@@ -133,8 +138,8 @@ class PendingSyncCoordinator {
     if (_isPaused) {
       return;
     }
-    if (_authModel.state == AuthState.initializing) {
-      _waitsForAuthInitialization = true;
+    if (_isAuthPending()) {
+      _waitsForAuthReady = true;
       return;
     }
     if (!_wifiSyncTrigger.shouldTrigger(
@@ -173,6 +178,10 @@ class PendingSyncCoordinator {
     }
 
     if (!_memberEditModel.hasDueAutomaticRetry) {
+      return;
+    }
+
+    if (_authModel.state != AuthState.signedIn) {
       return;
     }
 

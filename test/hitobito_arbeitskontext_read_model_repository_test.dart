@@ -137,7 +137,8 @@ void main() {
           ),
         ],
       );
-      expect(localRepository.saved, readModel);
+      // Speichern uebernimmt das Model nach der Sitzungspruefung.
+      expect(localRepository.saved, isNull);
     },
   );
 
@@ -370,7 +371,7 @@ void main() {
   );
 
   test(
-    'refresh ersetzt beim Kontextwechsel den lokalen Cache vollstaendig mit erweitertem Personenmodell und Zuordnungen',
+    'refresh liefert beim Kontextwechsel ein vollstaendig neues ReadModel mit erweitertem Personenmodell und Zuordnungen',
     () async {
       final localRepository = _FakeArbeitskontextLocalRepository();
       final firstRepository = HitobitoArbeitskontextReadModelRepository(
@@ -551,19 +552,17 @@ void main() {
         ),
       );
 
-      expect(localRepository.saved, secondReadModel);
-      expect(localRepository.saved, isNot(firstReadModel));
+      expect(localRepository.saved, isNull);
+      expect(secondReadModel, isNot(firstReadModel));
       expect(
-        localRepository.saved?.mitglieder.map(
-          (mitglied) => mitglied.mitgliedsnummer,
-        ),
+        secondReadModel.mitglieder.map((mitglied) => mitglied.mitgliedsnummer),
         <String>['2001'],
       );
-      expect(localRepository.saved?.findeMitglied('1001'), isNull);
-      expect(localRepository.saved?.findeGruppe(101), isNull);
-      expect(localRepository.saved?.findeGruppe(201)?.name, 'Bezirksteam');
+      expect(secondReadModel.findeMitglied('1001'), isNull);
+      expect(secondReadModel.findeGruppe(101), isNull);
+      expect(secondReadModel.findeGruppe(201)?.name, 'Bezirksteam');
       expect(
-        localRepository.saved?.findeMitglied('2001')?.emailAdressen,
+        secondReadModel.findeMitglied('2001')?.emailAdressen,
         const <MitgliedKontaktEmail>[
           MitgliedKontaktEmail(
             wert: 'mara@example.org',
@@ -574,13 +573,13 @@ void main() {
         ],
       );
       expect(
-        localRepository.saved?.findeMitglied('2001')?.telefonnummern,
+        secondReadModel.findeMitglied('2001')?.telefonnummern,
         const <MitgliedKontaktTelefon>[
           MitgliedKontaktTelefon(wert: '+49 40 9876543', label: 'Festnetz'),
         ],
       );
       expect(
-        localRepository.saved?.findeMitglied('2001')?.adressen,
+        secondReadModel.findeMitglied('2001')?.adressen,
         const <MitgliedKontaktAdresse>[
           MitgliedKontaktAdresse(
             label: 'Post',
@@ -592,11 +591,11 @@ void main() {
         ],
       );
       expect(
-        localRepository.saved?.findeMitglied('2001')?.updatedAt,
+        secondReadModel.findeMitglied('2001')?.updatedAt,
         DateTime(2024, 12, 24, 9, 15),
       );
       expect(
-        localRepository.saved?.mitgliedsZuordnungen,
+        secondReadModel.mitgliedsZuordnungen,
         const <ArbeitskontextMitgliedsZuordnung>[
           ArbeitskontextMitgliedsZuordnung(
             mitgliedsnummer: '2001',
@@ -665,7 +664,7 @@ void main() {
       );
 
       expect(loaded.rolesSindGeladen, isTrue);
-      expect(localRepository.saved, loaded);
+      expect(localRepository.saved, isNull);
       expect(loaded.findeMitglied('1001')?.roles, <Role>[
         Role(
           id: 701,

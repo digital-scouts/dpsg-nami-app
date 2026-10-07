@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../domain/auth/auth_session.dart';
 import '../../domain/auth/auth_session_repository.dart';
+import '../../services/app_secure_storage.dart';
 
 class SecureAuthSessionRepository implements AuthSessionRepository {
   static const String _storageKey = 'hitobito_auth_session_v1';
@@ -11,7 +12,7 @@ class SecureAuthSessionRepository implements AuthSessionRepository {
   final FlutterSecureStorage storage;
 
   SecureAuthSessionRepository({FlutterSecureStorage? storage})
-    : storage = storage ?? const FlutterSecureStorage();
+    : storage = storage ?? appSecureStorage;
 
   @override
   Future<AuthSession?> load() async {
@@ -30,7 +31,10 @@ class SecureAuthSessionRepository implements AuthSessionRepository {
 
   @override
   Future<void> save(AuthSession session) async {
-    await storage.write(key: _storageKey, value: jsonEncode(session.toJson()));
+    await storage.writeReplacing(
+      key: _storageKey,
+      value: jsonEncode(session.toJson()),
+    );
   }
 
   @override

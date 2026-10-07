@@ -89,6 +89,49 @@ void main() {
     },
   );
 
+  for (final wegenRechten in <bool>[true, false]) {
+    testWidgets(
+      wegenRechten
+          ? 'erklaert nach Abmeldung wegen geaenderter Rechte den Grund'
+          : 'zeigt nach normalem Logout keinen Abmeldegrund',
+      (tester) async {
+        SharedPreferences.setMockInitialValues({});
+        final authModel = await _createSignedInAuthModel();
+        final arbeitskontextModel = await _createArbeitskontextModel(
+          authModel: authModel,
+        );
+        if (wegenRechten) {
+          await authModel.logoutWegenFehlenderRechte();
+        } else {
+          await authModel.logout();
+        }
+        await arbeitskontextModel.syncForAuth(
+          authState: authModel.state,
+          session: authModel.session,
+          profile: authModel.profile,
+        );
+
+        await tester.pumpWidget(
+          _buildTestApp(
+            authModel: authModel,
+            arbeitskontextModel: arbeitskontextModel,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Anmeldung erforderlich'), findsOneWidget);
+        expect(
+          find.byKey(const Key('abmeldung-hinweis')),
+          wegenRechten ? findsOneWidget : findsNothing,
+        );
+        expect(
+          find.text('Rechte geändert'),
+          wegenRechten ? findsOneWidget : findsNothing,
+        );
+      },
+    );
+  }
+
   testWidgets(
     'zeigt dezenten Sync-Hinweis statt Vollbild-Fehler, wenn trotz Fehler bereits Daten vorhanden sind',
     (tester) async {

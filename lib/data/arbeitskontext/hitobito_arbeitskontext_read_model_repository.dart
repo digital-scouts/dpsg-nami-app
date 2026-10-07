@@ -281,7 +281,6 @@ class HitobitoArbeitskontextReadModelRepository
       qualifikationenStand: qualifikationen.stand,
       qualifikationen: qualifikationen.eintraege,
     );
-    await _localRepository.saveCached(readModel);
     return readModel;
   }
 
@@ -495,7 +494,6 @@ class HitobitoArbeitskontextReadModelRepository
         arbeitskontext: readModel.arbeitskontext,
       ),
     );
-    await _localRepository.saveCached(updated);
     return updated;
   }
 

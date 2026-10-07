@@ -125,9 +125,13 @@ class FakeBiometricLockService extends BiometricLockService {
   FakeBiometricLockService({this.available = false}) : super();
 
   final bool available;
+  int authenticateCallCount = 0;
 
   @override
-  Future<bool> authenticate() async => true;
+  Future<bool> authenticate() async {
+    authenticateCallCount += 1;
+    return true;
+  }
 
   @override
   Future<bool> isAvailable() async => available;
@@ -140,6 +144,13 @@ class FakeSensitiveStorageService extends SensitiveStorageService {
   DateTime? lastSensitiveSyncAt;
   DateTime? lastSensitiveSyncAttemptAt;
   DateTime? lastBackgroundedAt;
+
+  /// Ob App-Daten einer frueheren Sitzung vorliegen. `false` bildet eine
+  /// Neuinstallation nach, bei der nur der Schluesselbund uebrig ist.
+  bool hasLocalData = true;
+
+  @override
+  Future<bool> hasLocalSensitiveData() async => hasLocalData;
 
   @override
   Future<String?> loadPrincipal() async => principal;

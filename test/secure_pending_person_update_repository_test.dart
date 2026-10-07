@@ -72,7 +72,8 @@ void main() {
       'secure_pending_person_update_repository_',
     );
     Hive.init(tempDir.path);
-    sensitiveStorageService = SensitiveStorageService();
+    SensitiveStorageService.resetForTest();
+    sensitiveStorageService = SensitiveStorageService()..beginSession();
     repository = SecurePendingPersonUpdateRepository(
       sensitiveStorageService: sensitiveStorageService,
     );
