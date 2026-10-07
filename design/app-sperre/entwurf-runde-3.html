@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>App-Sperre und Sichtschutz – Entwurf Runde 3</title>
+<style>
+  :root { --bg:#F5F5F7; --surface:#FFFFFF; --fg:#1C1C1E; --fg2:#5d5d63; --muted:#8E8E93; --border:#E5E5EA; --primary:#003056; --on-primary:#FFFFFF; --primary-lite:#E8EDF5; }
+  .dark { --bg:#0E0E12; --surface:#1A1A22; --fg:#F0F0F5; --fg2:#a9a9b6; --muted:#8A8A9A; --border:#2E2E3A; --primary:#5A9AD8; --on-primary:#0E0E12; --primary-lite:#1A253A; }
+  body { margin:0; background:#eceae4; color:#1f1f1c; font:16px/1.5 system-ui,-apple-system,sans-serif; }
+  main { max-width:1600px; margin:0 auto; padding:24px 28px 120px; }
+  h1 { font-size:1.9rem; margin:0 0 .3rem; } h2 { font-size:1.4rem; margin:34px 0 .2rem; } h3 { font-size:1rem; margin:18px 0 6px; color:#4a4943; }
+  .lead, .desc { color:#4a4943; max-width:92ch; margin:0 0 12px; }
+  .bar { position:sticky; top:0; z-index:5; background:rgba(236,234,228,.95); backdrop-filter:blur(8px); border-bottom:1px solid #d6d3c9; padding:10px 28px; display:flex; gap:18px; align-items:center; font-size:14px; flex-wrap:wrap; }
+  .bar label { display:flex; gap:6px; align-items:center; }
+  .bar select { font:inherit; font-size:13px; padding:3px 6px; border-radius:8px; }
+  .tgl { display:inline-flex; background:#dcd9cf; border-radius:999px; padding:3px; }
+  .tgl button { border:0; background:none; font:inherit; font-size:13px; padding:4px 12px; border-radius:999px; cursor:pointer; }
+  .tgl button.on { background:#003056; color:#fff; }
+  .reihe { display:flex; gap:26px; flex-wrap:wrap; align-items:flex-start; }
+  figure { margin:0; width:282px; } figcaption { font-size:13px; color:#5d5b54; margin-top:10px; } figcaption b { color:#1f1f1c; }
+  .screen { width:264px; height:560px; border-radius:38px; overflow:hidden; background:var(--bg); color:var(--fg); box-shadow:0 0 0 9px #1c1c1e, 0 16px 36px rgba(0,0,0,.25); position:relative; margin:9px; font:14px/1.35 system-ui,-apple-system,sans-serif; }
+  .status { position:absolute; top:0; left:0; right:0; height:38px; display:flex; align-items:center; justify-content:space-between; padding:0 22px; font-size:12.5px; font-weight:600; z-index:6; }
+  .status .island { position:absolute; left:50%; top:9px; transform:translateX(-50%); width:86px; height:25px; border-radius:13px; background:#000; }
+  .hell-text .status { color:#fff; }
+  .lage { position:absolute; inset:0; }
+  .mitte { position:absolute; left:22px; right:22px; top:0; bottom:110px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+  .unten { position:absolute; left:22px; right:22px; bottom:40px; }
+  .btn { display:flex; gap:6px; align-items:center; justify-content:center; background:var(--primary); color:var(--on-primary); border-radius:999px; padding:10px 18px; font-size:14px; font-weight:600; }
+  .btn.weiss { background:#fff; color:#003056; }
+  .ttl { font-size:21px; font-weight:650; margin:14px 0 8px; }
+  .txt { font-size:13px; color:var(--fg2); max-width:210px; }
+  .hell-text .ttl, .hell-text .txt, .hell-text .appname { color:#fff; text-shadow:0 1px 8px rgba(0,0,0,.35); }
+  .icon { width:92px; height:92px; border-radius:22px; overflow:hidden; box-shadow:0 6px 18px rgba(0,0,0,.18); background:#fff; flex:none; }
+  .icon img { width:100%; height:100%; display:block; object-fit:cover; }
+  .icon.klein { width:64px; height:64px; border-radius:15px; }
+  .appname { font-size:12px; letter-spacing:.06em; color:var(--muted); margin-top:8px; font-weight:600; }
+  .szene { position:absolute; left:0; right:0; overflow:hidden; }
+  .szene img { position:absolute; height:100%; left:50%; transform:translateX(-50%); }
+  .band { bottom:0; height:200px; }
+  .band::before { content:''; position:absolute; left:0; right:0; top:0; height:60px; background:linear-gradient(var(--bg), transparent); z-index:1; }
+  .voll { inset:0; }
+  .kopf { top:0; height:250px; border-radius:0 0 26px 26px; }
+  .kopf.frei { background:var(--surface); border-bottom:1px solid var(--border); }
+  .glas { background:color-mix(in srgb, var(--surface) 78%, transparent); backdrop-filter:blur(14px); border-radius:18px; padding:16px 14px; }
+  .glas .ttl, .glas .txt { color:var(--fg); text-shadow:none; }
+  .glas .txt { color:var(--fg2); }
+  .verlauf { background:linear-gradient(170deg, #0b3e6b, #003056 55%, #001a30); }
+  .dark .verlauf { background:linear-gradient(170deg, #1d3550, #0f1e30 60%, #0b0f16); }
+  .figuren { position:absolute; left:50%; bottom:64px; transform:translateX(-50%); width:150px; opacity:.14; }
+  /* App-Umschalter */
+  .switcher { width:282px; height:420px; border-radius:22px; background:linear-gradient(160deg,#3b4a5a,#1f262e); position:relative; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,.25); }
+  .switcher .label { position:absolute; top:12px; left:62px; color:#fff; font-size:12px; font-weight:600; display:flex; gap:6px; align-items:center; }
+  .switcher .label .icon { width:18px; height:18px; border-radius:5px; box-shadow:none; }
+  .switcher .karte { position:absolute; left:62px; top:40px; width:158px; height:336px; border-radius:20px; overflow:hidden; box-shadow:0 8px 24px rgba(0,0,0,.4); }
+  .switcher .karte .screen { transform:scale(.598); transform-origin:0 0; margin:0; box-shadow:none; border-radius:0; }
+  .switcher .fremd { position:absolute; left:-110px; top:40px; width:158px; height:336px; border-radius:20px; background:#f2efe8; opacity:.85; }
+  .feedback { position:fixed; left:0; right:0; bottom:0; background:#1f1f1c; color:#fff; padding:10px 28px; display:flex; gap:14px; align-items:center; font-size:14px; flex-wrap:wrap; z-index:9; }
+  .feedback select, .feedback input { font:inherit; font-size:13px; padding:4px 8px; border-radius:8px; border:0; }
+  .feedback input { flex:1; min-width:240px; }
+  .feedback button { font:inherit; font-size:13px; padding:6px 14px; border-radius:999px; border:0; background:#f2c26b; color:#1f1f1c; cursor:pointer; font-weight:600; }
+  .open { background:#fff8e6; border:1px solid #efd9a2; border-radius:12px; padding:10px 16px; max-width:980px; font-size:14px; color:#4a3f1c; }
+  .open li { margin:.15rem 0; }
+</style>
+</head>
+<body>
+<div class="bar"><b>App-Sperre · Runde 3</b>
+  <span class="tgl" id="modus"><button class="on" data-m="hell">Hell</button><button data-m="dunkel">Dunkel</button></span>
+  <label>Supporter-Hintergrund <select id="hg"><option value="lagerfeuer">Lagerfeuer</option><option value="wald">Wald</option><option value="sternenhimmel">Himmel</option></select></label>
+  <label>Supporter-Icon <select id="ic"><option value="kohte-see-abend">Kohte am See · Abend</option><option value="lagerfeuer-nacht">Lagerfeuer · Nacht</option><option value="hajk-morgen">Hajk · Morgen</option><option value="nachtlager-abend">Nachtlager · Abend</option></select></label>
+</div>
+<main>
+  <h1>App-Sperre: B3 mit kleinerer Szene</h1>
+  <p class="lead">Gewählt war B3, die Szene aber etwas kleiner, also zwischen B2 (Band von 200 pt) und B3 (bildfüllend, 560 pt). Hier stehen drei Höhen zur Wahl. Die Szene sitzt unten und läuft im Entwurf animiert. Darüber geht sie in ihre eigene Himmelfarbe über, damit die Fläche ganz gefüllt bleibt. Die Höhe wächst mit dem Gerät, sie ist als Anteil der Bildschirmhöhe gemeint.</p>
+  <div class="open"><ul>
+    <li>Ohne Supporter-Paket bleibt es beim Verlauf in der Primärfarbe aus B3, eine Szene gibt es dort nicht.</li>
+    <li>Im App-Umschalter steht dieselbe Fläche mit Icon und „NaMi“ als Standbild.</li>
+  </ul></div>
+  <div id="varianten"></div>
+</main>
+
+<div class="feedback"><b>Rückmeldung</b>
+  <label>Höhe <select id="wahl"><option>S</option><option>M</option><option>L</option></select></label>
+  <input id="kommentar" placeholder="Kommentar">
+  <button id="kopieren">Auswahl kopieren</button><span id="kopiert"></span>
+</div>
+
+<script>
+const TITEL = 'App entsperren';
+const TEXT = 'Bestätige kurz deine Identität, um auf die lokal gespeicherten Daten zuzugreifen.';
+const SCHLOSS = `<svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm6-9h-1V6A5 5 0 0 0 7 6h1.9a3.1 3.1 0 0 1 6.2 0v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2zm0 12H6V10h12v10z"/></svg>`;
+let modus = 'hell', hg = 'lagerfeuer', ic = 'kohte-see-abend';
+const dunkel = () => modus === 'dunkel';
+const standardIcon = () => `../../ios/Runner/Assets.xcassets/AppIcon.appiconset/Nami-App-iosIcon-${dunkel() ? 'dark' : 'light'}.png`;
+const supporterIcon = () => `../supporter/icons/${ic}.svg`;
+const szene = () => `../supporter/backgrounds/${hg}-${dunkel() ? 'dark' : 'light'}.svg`;
+const icon = (sup, klein) => `<div class="icon ${klein ? 'klein' : ''}"><img src="${sup ? supporterIcon() : standardIcon()}"></div>`;
+const status = `<div class="status"><span>9:41</span><span class="island"></span><span>●●●</span></div>`;
+const knopf = (weiss) => `<div class="btn ${weiss ? 'weiss' : ''}">${SCHLOSS}Jetzt entsperren</div>`;
+
+// Jede Variante liefert ({sup, deckel}) -> {klassen, html}
+const HIMMEL = { 'lagerfeuer-light':'#e6edf0', 'lagerfeuer-dark':'#1d1512', 'wald-light':'#e3ebe2', 'wald-dark':'#0d1612', 'sternenhimmel-light':'#b3cde6', 'sternenhimmel-dark':'#0b1428' };
+const himmel = () => HIMMEL[`${hg}-${dunkel() ? 'dark' : 'light'}`];
+const b3 = (hoehe) => ({ sup, deckel }) => ({
+  klassen: !sup || dunkel() ? 'hell-text' : '',
+  html: `${sup
+    ? `<div class="lage" style="background:${himmel()}"></div><div class="szene" style="bottom:0;height:${hoehe}px"><img src="${szene()}"></div><div class="szene" style="bottom:${hoehe - 70}px;height:70px;background:linear-gradient(${himmel()}, transparent)"></div>`
+    : '<div class="lage verlauf"></div>'}
+    <div class="mitte">${icon(sup)}${deckel ? '<div class="appname">NaMi</div>' : `<div class="glas" style="margin-top:16px"><div class="ttl" style="margin-top:0">${TITEL}</div><div class="txt">${TEXT}</div></div>`}</div>
+    ${deckel ? '' : `<div class="unten">${knopf(true)}</div>`}`,
+});
+const VARIANTEN = [
+  { id: 'S', titel: 'S · etwa 55 % (310 pt)', text: 'Nah an B2: Die Szene füllt das untere Drittel bis zur Hälfte, Icon und Text stehen auf ruhigem Himmel.', bau: b3(310) },
+  { id: 'M', titel: 'M · etwa 65 % (370 pt)', text: 'Die Mitte: Die Szene reicht bis knapp unter die Glasfläche.', bau: b3(370) },
+  { id: 'L', titel: 'L · etwa 75 % (430 pt)', text: 'Nah an B3: Die Szene reicht bis hinter die Glasfläche, oben bleibt nur wenig Himmel.', bau: b3(430) },
+];
+
+function telefon(v, sup, deckel) {
+  const { klassen = '', html } = v.bau({ sup, deckel });
+  return `<div class="screen ${dunkel() ? 'dark' : ''} ${klassen}">${status}${html}</div>`;
+}
+function umschalter(v, sup) {
+  return `<div class="switcher"><div class="label">${icon(sup, true)}NaMi</div><div class="fremd"></div><div class="karte">${telefon(v, sup, true)}</div></div>`;
+}
+function render() {
+  document.getElementById('varianten').innerHTML = VARIANTEN.map((v) => `
+    <h2>${v.titel}</h2><p class="desc">${v.text}</p>
+    <div class="reihe">
+      <figure>${telefon(v, false, false)}<figcaption><b>Sperre</b> · ohne Supporter-Paket</figcaption></figure>
+      <figure>${telefon(v, true, false)}<figcaption><b>Sperre</b> · mit Supporter-Paket</figcaption></figure>
+      <figure>${umschalter(v, false)}<figcaption><b>Umschalter</b> · ohne Paket</figcaption></figure>
+      <figure>${umschalter(v, true)}<figcaption><b>Umschalter</b> · mit Paket</figcaption></figure>
+    </div>`).join('');
+}
+document.getElementById('modus').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  [...e.currentTarget.children].forEach((x) => x.classList.toggle('on', x === b));
+  modus = b.dataset.m; render();
+});
+document.getElementById('hg').addEventListener('change', (e) => { hg = e.target.value; render(); });
+document.getElementById('ic').addEventListener('change', (e) => { ic = e.target.value; render(); });
+const p = new URLSearchParams(location.search);
+if (p.get('modus')) { modus = p.get('modus'); document.querySelectorAll('#modus button').forEach((b) => b.classList.toggle('on', b.dataset.m === modus)); }
+render();
+document.getElementById('kopieren').addEventListener('click', async () => {
+  const text = `App-Sperre Runde 3: Höhe ${document.getElementById('wahl').value}. ${document.getElementById('kommentar').value}`.trim();
+  try { await navigator.clipboard.writeText(text); document.getElementById('kopiert').textContent = 'kopiert'; } catch { prompt('Zum Kopieren:', text); }
+});
+</script>
+</body>
+</html>
