@@ -95,6 +95,7 @@ import 'services/app_runtime_controller.dart';
 import 'services/app_startup_state_service.dart';
 import 'services/app_update_service.dart';
 import 'services/statistik_verlauf_service.dart';
+import 'services/benachrichtigungs_berechtigung.dart';
 import 'services/biometric_lock_service.dart';
 import 'services/bundesstatistik_env.dart';
 import 'services/data_expiry_notification_service.dart';
@@ -293,6 +294,7 @@ Future<void> _startApp({
     logger: logger,
   );
   _activeLogger = logger;
+  final benachrichtigungsBerechtigung = BenachrichtigungsBerechtigung();
   final dataExpiryNotificationService = DataExpiryNotificationService(
     logger: logger,
   );
@@ -673,6 +675,9 @@ Future<void> _startApp({
         Provider<AppUpdateService>.value(value: appUpdateService),
         Provider<DataExpiryNotificationService>.value(
           value: dataExpiryNotificationService,
+        ),
+        Provider<BenachrichtigungsBerechtigung>.value(
+          value: benachrichtigungsBerechtigung,
         ),
         Provider<AppStartupStateService>.value(value: appStartupStateService),
         Provider<AppResetService>.value(value: appResetService),

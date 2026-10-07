@@ -10,13 +10,9 @@ import 'support/qualifikationen_testdaten.dart';
 class _FakeMitteilungen implements QualifikationsMitteilungen {
   final geplant = <int, ({String titel, String text, DateTime zeitpunkt})>{};
   final abgebrochen = <int>[];
-  int berechtigungsAnfragen = 0;
 
   @override
   Future<void> initialisieren() async {}
-
-  @override
-  Future<void> berechtigungAnfragen() async => berechtigungsAnfragen++;
 
   @override
   Future<List<int>> geplanteIds() async => geplant.keys.toList();
@@ -90,7 +86,6 @@ void main() {
     final fremde =
         mitteilungen.geplant[QualifikationsErinnerungService.idErste + 1]!;
     expect(fremde.text, 'PersonB Test: gültig bis 01.03.2027.');
-    expect(mitteilungen.berechtigungsAnfragen, 1);
     expect(mitteilungen.geplant.containsKey(94031), isTrue);
   });
 
@@ -102,11 +97,10 @@ void main() {
     expect(mitteilungen.abgebrochen, isNot(contains(94031)));
   });
 
-  test('ohne Push-Erlaubnis wird nichts geplant und nicht gefragt', () async {
+  test('ohne Push-Erlaubnis wird nichts geplant', () async {
     await aktualisiere(pushErlaubt: false);
 
     expect(mitteilungen.geplant.keys, <int>[94031]);
-    expect(mitteilungen.berechtigungsAnfragen, 0);
   });
 
   test('gleiche Eingaben planen nicht erneut', () async {

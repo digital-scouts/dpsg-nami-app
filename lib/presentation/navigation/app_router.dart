@@ -10,6 +10,7 @@ import '../../domain/stufe/altersgrenzen.dart';
 import '../../domain/stufe/usecases/update_altersgrenzen_usecase.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/logger_service.dart';
+import '../../services/benachrichtigungs_berechtigung.dart';
 import '../model/achievements_model.dart';
 import '../model/app_settings_model.dart';
 import '../model/bundesstatistik_model.dart';
@@ -256,6 +257,13 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
           return SettingsNotificationPage(
             notificationsEnabled: appSettings.notificationsEnabled,
             onNotificationsChanged: (v) async {
+              if (v) {
+                // Systemabfrage nur auf ausdruecklichen Wunsch.
+                await Provider.of<BenachrichtigungsBerechtigung>(
+                  context,
+                  listen: false,
+                ).anfragen();
+              }
               await appSettings.setNotificationsEnabled(v);
               await logger.debounceTrackSettingsChanged('notifications', {
                 'value': v,

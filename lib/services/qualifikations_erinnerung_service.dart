@@ -19,10 +19,6 @@ import 'logger_service.dart';
 abstract class QualifikationsMitteilungen {
   Future<void> initialisieren();
 
-  /// Fragt die Berechtigung an; erst aufrufen, wenn wirklich etwas geplant
-  /// wird.
-  Future<void> berechtigungAnfragen();
-
   Future<List<int>> geplanteIds();
 
   Future<void> abbrechen(int id);
@@ -62,20 +58,6 @@ class PluginQualifikationsMitteilungen implements QualifikationsMitteilungen {
     );
     tz_daten.initializeTimeZones();
     _initialisiert = true;
-  }
-
-  @override
-  Future<void> berechtigungAnfragen() async {
-    await _plugin
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.requestNotificationsPermission();
-    await _plugin
-        .resolvePlatformSpecificImplementation<
-          IOSFlutterLocalNotificationsPlugin
-        >()
-        ?.requestPermissions(alert: true, badge: true, sound: true);
   }
 
   @override
@@ -232,7 +214,6 @@ class QualifikationsErinnerungService {
           eintrag.key: eintrag.value,
     };
     if (plan.isNotEmpty) {
-      await _mitteilungen.berechtigungAnfragen();
       final t = AppLocalizations(Locale(sprache));
       for (var i = 0; i < plan.length && idErste + i <= idLetzte; i++) {
         final erinnerung = plan[i];
