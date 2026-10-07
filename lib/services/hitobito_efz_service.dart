@@ -116,17 +116,11 @@ class HitobitoEfzService {
       'Accept': 'application/json',
       'Authorization': 'Bearer $accessToken',
     };
-    await _trafficLogService?.logRequest(
-      source: 'efz_einsichtnahmen',
-      method: 'GET',
-      uri: requestUri,
-      headers: headers,
-    );
 
     http.Response response;
     try {
       response = await _httpClient.get(requestUri, headers: headers);
-    } catch (error, stackTrace) {
+    } catch (error) {
       await _logger?.logHttpRequest(
         source: 'hitobito_efz',
         method: 'GET',
@@ -138,7 +132,6 @@ class HitobitoEfzService {
         method: 'GET',
         uri: requestUri,
         error: error,
-        stackTrace: stackTrace,
       );
       rethrow;
     }
@@ -154,8 +147,6 @@ class HitobitoEfzService {
       method: 'GET',
       uri: requestUri,
       statusCode: response.statusCode,
-      headers: response.headers,
-      body: response.body,
     );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -256,17 +247,11 @@ class HitobitoEfzService {
       'Accept': 'application/pdf',
       'Authorization': 'Bearer $accessToken',
     };
-    await _trafficLogService?.logRequest(
-      source: 'efz_antrag',
-      method: 'GET',
-      uri: requestUri,
-      headers: headers,
-    );
 
     http.Response response;
     try {
       response = await _httpClient.get(requestUri, headers: headers);
-    } catch (error, stackTrace) {
+    } catch (error) {
       await _logger?.logHttpRequest(
         source: 'hitobito_efz_antrag',
         method: 'GET',
@@ -278,7 +263,6 @@ class HitobitoEfzService {
         method: 'GET',
         uri: requestUri,
         error: error,
-        stackTrace: stackTrace,
       );
       rethrow;
     }
@@ -294,7 +278,6 @@ class HitobitoEfzService {
       method: 'GET',
       uri: requestUri,
       statusCode: response.statusCode,
-      headers: response.headers,
     );
 
     final contentType = response.headers['content-type'] ?? '';

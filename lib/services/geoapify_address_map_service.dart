@@ -200,9 +200,11 @@ class GeoapifyAddressMapService {
         uri: uri,
         error: error,
       );
+      // Nur der Typ: ClientException.toString enthaelt die URI mit Adresse
+      // und API-Key.
       await _logger?.log(
         'maps',
-        'Geoapify Geocoding Exception: $error\n$stackTrace',
+        'Geoapify Geocoding Exception: ${error.runtimeType}\n$stackTrace',
       );
       return const GeoapifyGeocodeResult.technicalError();
     }

@@ -80,7 +80,7 @@ class StatisticsLocationService {
           )) {
             await _logger?.log(
               'statistics',
-              'Negativ-Cache fuer Statistik-Adresse abgelaufen: $fingerprint',
+              'Negativ-Cache fuer Statistik-Adresse abgelaufen',
             );
           } else {
             continue;
@@ -117,7 +117,7 @@ class StatisticsLocationService {
       if (location == null) {
         await _logger?.log(
           'statistics',
-          'Standort fuer Statistik konnte nicht aufgeloest werden: $fingerprint',
+          'Standort fuer Statistik konnte nicht aufgeloest werden',
         );
         continue;
       }
@@ -163,7 +163,7 @@ class StatisticsLocationService {
       if (cached.addressNotFound) {
         await _logger?.log(
           'statistics',
-          'Negativ-Cache fuer Stamm-Adresse abgelaufen: $fingerprint',
+          'Negativ-Cache fuer Stamm-Adresse abgelaufen',
         );
       } else if (!cached.hasCoordinates) {
         return null;
@@ -187,7 +187,7 @@ class StatisticsLocationService {
     if (location == null) {
       await _logger?.log(
         'statistics',
-        'Stamm-Standort konnte nicht aufgeloest werden: $fingerprint',
+        'Stamm-Standort konnte nicht aufgeloest werden',
       );
       return null;
     }

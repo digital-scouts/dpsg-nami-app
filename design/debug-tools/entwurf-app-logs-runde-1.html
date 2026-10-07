@@ -1,0 +1,214 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8">
+<title>Entwürfe: App-Logs in Debug & Tools, Runde 1</title>
+<link rel="stylesheet" href="../statistik/basis.css">
+<script src="../mitglied/daten.js"></script>
+<style>
+  .screen .body { padding:0 0 20px; }
+  .hdr { display:flex; align-items:center; gap:12px; }
+  .hdr .back { font-size:24px; color:var(--primary); line-height:1; }
+  .hdr .titel { flex:1; min-width:0; }
+  .hdr .titel b { display:block; font-size:18px; }
+  .hdr .titel small { font-size:12.5px; color:var(--fg2); }
+  .hdr .akt { color:var(--primary); font-size:19px; }
+  .such { margin:10px 12px 0; background:var(--surface); border:1.5px solid var(--border); border-radius:12px; padding:8px 12px; font-size:14px; color:var(--muted); }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; padding:10px 16px 4px; }
+  .chip { font-size:12.5px; font-weight:600; border:1.5px solid var(--border); border-radius:999px; padding:4px 11px; color:var(--fg2); background:var(--surface); }
+  .chip.on { background:var(--primary); border-color:var(--primary); color:var(--on-primary); }
+  .chip .n { opacity:.7; margin-left:4px; font-variant-numeric:tabular-nums; }
+  .mono { font-family:ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .zeit { font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .ber { font-size:11px; font-weight:600; color:var(--primary); background:var(--primary-lite); border-radius:999px; padding:1px 8px; }
+  .lvl { display:inline-flex; align-items:center; justify-content:center; min-width:46px; height:20px; border-radius:6px; font:700 10.5px/1 ui-monospace, Menlo, monospace; letter-spacing:.03em; }
+  .lvl.warn { background:color-mix(in srgb, var(--warn) 18%, transparent); color:var(--warn); }
+  .lvl.error { background:color-mix(in srgb, var(--error) 16%, transparent); color:var(--error); }
+  .msg { font-size:13.5px; line-height:1.35; color:var(--fg); }
+  .kv { display:inline-block; font:11.5px/1.3 ui-monospace, Menlo, monospace; background:var(--surface2); border-radius:6px; padding:1px 6px; margin:3px 4px 0 0; color:var(--fg); }
+  .kv i { font-style:normal; color:var(--muted); }
+  .kv-err { font:12px/1.4 ui-monospace, Menlo, monospace; color:var(--error); margin-top:4px; word-break:break-word; }
+  .stack { font:11.5px/1.45 ui-monospace, Menlo, monospace; color:var(--fg2); background:var(--surface2); border-radius:10px; padding:8px 10px; margin-top:6px; white-space:pre-wrap; word-break:break-all; }
+  .mehr { font-size:12.5px; font-weight:600; color:var(--primary); margin-top:4px; display:inline-block; }
+  .tag { position:sticky; }
+  .datum { font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--primary); margin:14px 16px 6px; }
+
+  /* A: Liste */
+  .liste { background:var(--surface); margin:8px 12px 0; border-radius:16px; overflow:hidden; }
+  .z { padding:9px 14px; border-bottom:1px solid var(--border); border-left:3px solid transparent; }
+  .z:last-child { border-bottom:0; }
+  .z.warn { border-left-color:var(--warn); }
+  .z.error { border-left-color:var(--error); background:color-mix(in srgb, var(--error) 5%, var(--surface)); }
+  .z .kopf { display:flex; align-items:center; gap:8px; margin-bottom:3px; }
+  .z .kopf .zeit { margin-left:auto; }
+
+  /* B: Abschnitte */
+  .abschnitt { background:var(--surface); margin:12px 12px 0; border-radius:16px; overflow:hidden; }
+  .ab-kopf { display:flex; align-items:center; gap:10px; padding:12px 14px; }
+  .ab-kopf .t { font-size:15px; font-weight:700; }
+  .ab-kopf .sum { font-size:12.5px; color:var(--fg2); flex:1; }
+  .ab-kopf .sum b.w { color:var(--warn); } .ab-kopf .sum b.e { color:var(--error); }
+  .ab-kopf .chev { color:var(--muted); }
+  .abschnitt .z { border-top:1px solid var(--border); border-bottom:0; }
+
+  /* C: Terminal verbessert */
+  .term { margin:8px 12px 0; background:var(--surface); border-radius:16px; padding:6px 0; font:12px/1.45 ui-monospace, Menlo, monospace; }
+  .tz { display:grid; grid-template-columns:58px 14px 1fr; gap:0 6px; padding:3px 10px; }
+  .tz .t { color:var(--muted); }
+  .tz .l { font-weight:700; }
+  .tz .l.i { color:var(--success); } .tz .l.w { color:var(--warn); } .tz .l.e { color:var(--error); }
+  .tz .m { color:var(--fg); word-break:break-word; }
+  .tz .m .b { color:var(--primary); font-weight:600; }
+  .tz .m .k { color:var(--muted); }
+  .tz.error { background:color-mix(in srgb, var(--error) 7%, transparent); }
+  .tz.warn { background:color-mix(in srgb, var(--warn) 8%, transparent); }
+  .tz .st { grid-column:3; color:var(--fg2); font-size:11px; white-space:pre-wrap; }
+
+  .fb fieldset { border:1px solid #d6d3c9; border-radius:12px; margin:0 0 12px; padding:10px 14px; max-width:760px; }
+  .fb legend { font-weight:600; }
+  .fb label { margin-right:16px; display:inline-block; }
+  .fb textarea { display:block; width:100%; max-width:720px; margin-top:8px; min-height:44px; font:inherit; }
+  .fb button { font:inherit; padding:8px 16px; border-radius:999px; border:0; background:#003056; color:#fff; cursor:pointer; }
+  #ausgabe { margin-top:10px; min-height:90px; }
+</style>
+</head><body>
+<div class="bar">
+  <nav><a href="#heute">0 Heute</a><a href="#a">A Liste</a><a href="#b">B Abschnitte</a><a href="#c">C Terminal</a><a href="#rueckmeldung">Rückmeldung</a></nav>
+</div>
+<main>
+  <h1>App-Logs in Debug & Tools: Entwürfe, Runde 1</h1>
+  <p>Grundlage sind echte Zeilenmuster aus dem Simulator: <code>[Zeit] [Level] [Bereich] Nachricht</code>, oft mit <code>key=value</code>-Paaren, bei Fehlern mit mehrzeiligem Stacktrace. Am häufigsten sind <code>http</code>, <code>hitobito_sync</code>, <code>nav</code>, <code>maps</code> und <code>auth_flow</code>. Die Inhalte hier sind synthetisch. Gemeinsam ist allen Varianten: neueste Einträge oben, Stacktraces eingeklappt, Teilen-Button oben rechts.</p>
+
+  <section class="part" id="heute"><h2>0 · Heute</h2><p>Bunter Rohtext mit vollem Datum in jeder Zeile; Warnungen und Fehler gehen zwischen <code>http</code>- und <code>nav</code>-Zeilen unter.</p><div id="slot-heute"></div></section>
+  <section class="part" id="a"><h2>A · Liste wie beim Traffic</h2><p>Eine Karte je Eintrag: Bereich und Uhrzeit oben, darunter die Nachricht in Klartext und die <code>key=value</code>-Paare als kleine Chips. Warnungen und Fehler haben einen farbigen Rand und ein Kennzeichen; Info bleibt ohne. Filter: Level und Suche. Rechts ist „Ohne Navigation und HTTP“ aktiv, das blendet die häufigsten Routinezeilen aus.</p><div id="slot-a"></div></section>
+  <section class="part" id="b"><h2>B · Nach Abschnitten</h2><p>Einträge werden an App-Starts, Login/Logout und Vordergrund-Wechseln in Abschnitte geteilt. Der Kopf zeigt, was passiert ist, und zählt Warnungen und Fehler; Abschnitte mit Problemen sind offen, die anderen zu.</p><div id="slot-b"></div></section>
+  <section class="part" id="c"><h2>C · Terminal, aufgeräumt</h2><p>Bleibt eine dichte Textansicht, aber mit Datumstrennern statt Datum in jeder Zeile, festen Spalten (Zeit, Level-Buchstabe), farbigem Bereich und ausgegrauten Schlüsseln. Fehlerzeilen sind hinterlegt. Am meisten Inhalt pro Bildschirm.</p><div id="slot-c"></div></section>
+
+  <section class="part" id="rueckmeldung"><h2>Rückmeldung</h2><p>Auswählen, kurz kommentieren, „Auswahl kopieren“ und den Text in den Chat einfügen.</p><form class="fb" id="fb"></form></section>
+</main>
+<script>
+(function () {
+  const M = window.MITGLIED;
+  let css = '';
+  for (const modus of ['hell', 'dunkel']) {
+    const p = M.palette[modus];
+    const vars = { '--bg': p.bg, '--surface': p.surface, '--surface2': p.surface2, '--fg': p.fg, '--fg2': p.fg2, '--muted': p.muted, '--border': p.border,
+      '--primary': p.primary, '--on-primary': p.onPrimary, '--primary-lite': p.primaryLite, '--success': p.success, '--error': p.error, '--warn': p.warn };
+    css += `.phone.${modus}{${Object.entries(vars).map(([k, v]) => `${k}:${v}`).join(';')}}`;
+  }
+  document.head.insertAdjacentHTML('beforeend', `<style>${css}</style>`);
+
+  const STACK = '#0 HitobitoPeopleService._fetchPeoplePage (package:nami/services/hitobito_people_service.dart:745)\n#1 HitobitoPeopleService.fetchPeople (package:nami/services/hitobito_people_service.dart:96)\n#2 HitobitoArbeitskontextReadModelRepository.refresh (package:nami/data/arbeitskontext/hitobito_arbeitskontext_read_model_repository.dart:211)\n#3 ArbeitskontextModel._runRefreshFromRemote (package:nami/presentation/model/arbeitskontext_model.dart:534)';
+  // [datum, zeit, level, bereich, nachricht, stack?]
+  const L = [
+    ['2026-10-06', '21:14:02', 'info', 'lifecycle', 'App AppLifecycleState.resumed'],
+    ['2026-10-06', '21:14:02', 'info', 'hitobito_sync', 'Hitobito-Sync angefragt trigger=resume force=false userInitiated=false'],
+    ['2026-10-06', '21:14:06', 'info', 'arbeitskontext', 'Arbeitskontext erfolgreich aktualisiert: layer=68 gruppen=6 mitglieder=27 dauer_ms=3837 seiten=3'],
+    ['2026-10-06', '21:14:06', 'info', 'hitobito_sync', 'Hitobito-Sync erfolgreich trigger=resume'],
+    ['2026-10-06', '21:20:44', 'info', 'lifecycle', 'App AppLifecycleState.paused'],
+    ['2026-10-07', '08:02:11', 'info', 'auth_flow', 'Initialisierung gestartet'],
+    ['2026-10-07', '08:02:11', 'info', 'nav', 'route_open route=/'],
+    ['2026-10-07', '08:02:12', 'info', 'http', 'source=hitobito_token method=POST url=https://dpsg.example/oauth/token status=200'],
+    ['2026-10-07', '08:02:12', 'info', 'hitobito_sync', 'Hitobito-Sync angefragt trigger=startup force=false userInitiated=false'],
+    ['2026-10-07', '08:02:13', 'info', 'http', 'source=hitobito_groups method=GET url=https://dpsg.example/api/groups status=200'],
+    ['2026-10-07', '08:02:15', 'info', 'http', 'source=hitobito_people method=GET url=https://dpsg.example/api/people status=503'],
+    ['2026-10-07', '08:02:15', 'warn', 'arbeitskontext', 'Mitglieder-Refresh fehlgeschlagen, Cache bleibt aktiv status=503 versuch=1'],
+    ['2026-10-07', '08:02:21', 'info', 'http', 'source=hitobito_people method=GET url=https://dpsg.example/api/people status=exception error_type=ClientException'],
+    ['2026-10-07', '08:02:21', 'error', 'arbeitskontext', 'Arbeitskontext konnte nicht aktualisiert werden error=HitobitoPeopleException: People-Anfrage fehlgeschlagen (503).', STACK],
+    ['2026-10-07', '08:02:21', 'info', 'hitobito_sync', 'Hitobito-Sync fehlgeschlagen trigger=startup'],
+    ['2026-10-07', '08:03:40', 'info', 'nav', 'route_open route=/members/detail'],
+    ['2026-10-07', '08:03:40', 'info', 'member_list', 'member_detail_opened source=member_list'],
+    ['2026-10-07', '08:03:41', 'info', 'maps', 'Kein Geoapify-API-Key verfuegbar'],
+    ['2026-10-07', '08:03:52', 'info', 'nav', 'route_back from=/members/detail to=/'],
+    ['2026-10-07', '08:04:10', 'info', 'hitobito_sync', 'Hitobito-Sync erfolgreich trigger=member_list_pull_refresh'],
+  ];
+  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const ROUTINE = ['nav', 'http'];
+  function zerlege(msg) {
+    const teile = msg.split(' ');
+    const text = []; const kv = [];
+    for (const t of teile) { const m = t.match(/^([a-zA-Z_]+)=(.+)$/); if (m) kv.push([m[1], m[2]]); else if (kv.length) kv[kv.length - 1][1] += ' ' + t; else text.push(t); }
+    return { text: text.join(' '), kv };
+  }
+  const kvHtml = (kv) => kv.map(([k, v]) => k === 'error' ? `<div class="kv-err">${esc(v)}</div>` : `<span class="kv"><i>${esc(k)}=</i>${esc(k === 'url' && v.length > 40 ? '…' + v.slice(v.indexOf('/', 8)) : v)}</span>`).join('');
+  const telefon = (modus, kopf, inhalt, beschriftung) => `<figure class="phone ${modus}"><div class="screen fest"><div class="status"><span>8:05</span><span class="island"></span><span class="sys"></span></div>${kopf}<div class="body">${inhalt}</div></div><figcaption>${beschriftung}</figcaption></figure>`;
+  const kopf = (sub) => `<div class="hdr"><span class="back">‹</span><span class="titel"><b>App-Logs</b><small>${sub}</small></span><span class="akt">⤴︎</span></div>`;
+  const anz = (lvl) => L.filter((z) => z[2] === lvl).length;
+  const sub = `${L.length} Einträge · ${anz('warn')} Warnung · ${anz('error')} Fehler`;
+  const filter = (aktiv, routine) => `<div class="such">🔍︎ Suchen</div><div class="chips"><span class="chip ${aktiv === 'alle' ? 'on' : ''}">Alle<span class="n">${L.length}</span></span><span class="chip ${aktiv === 'probleme' ? 'on' : ''}">Warnungen & Fehler<span class="n">${anz('warn') + anz('error')}</span></span><span class="chip ${routine ? 'on' : ''}">Ohne Navigation und HTTP</span></div>`;
+
+  function zeileA(z, { offen = false } = {}) {
+    const [, zeit, lvl, ber, msg, stack] = z;
+    const t = zerlege(msg);
+    const st = stack ? (offen ? `<div class="stack">${esc(stack)}</div><span class="mehr">Stacktrace einklappen</span>` : `<span class="mehr">Stacktrace (${stack.split('\n').length} Zeilen) ›</span>`) : '';
+    return `<div class="z ${lvl}"><div class="kopf">${lvl !== 'info' ? `<span class="lvl ${lvl}">${lvl === 'warn' ? 'WARN' : 'FEHLER'}</span>` : ''}<span class="ber">${ber}</span><span class="zeit">${zeit}</span></div><div class="msg">${esc(t.text)}</div>${kvHtml(t.kv)}${st}</div>`;
+  }
+  function listeA({ aktiv = 'alle', routine = false, offen = false } = {}) {
+    let z = L.slice().reverse();
+    if (aktiv === 'probleme') z = z.filter((x) => x[2] !== 'info');
+    if (routine) z = z.filter((x) => !ROUTINE.includes(x[3]));
+    const gruppen = [];
+    for (const x of z) { const g = gruppen[gruppen.length - 1]; if (!g || g.d !== x[0]) gruppen.push({ d: x[0], z: [x] }); else g.z.push(x); }
+    return filter(aktiv, routine) + gruppen.map((g) => `<div class="datum">${g.d === '2026-10-07' ? 'Heute' : 'Gestern'}</div><div class="liste">${g.z.map((x) => zeileA(x, { offen })).join('')}</div>`).join('');
+  }
+
+  function abschnitte() {
+    const grenzen = (x) => (x[3] === 'auth_flow' && x[4].startsWith('Initialisierung')) || (x[3] === 'lifecycle' && x[4].includes('resumed'));
+    const ab = [];
+    for (const x of L) { if (!ab.length || grenzen(x)) ab.push({ titel: x[3] === 'auth_flow' ? 'App-Start' : 'Zurück in der App', d: x[0], start: x[1], z: [] }); ab[ab.length - 1].z.push(x); }
+    return filter('alle', true) + ab.reverse().map((a) => {
+      const w = a.z.filter((x) => x[2] === 'warn').length; const e = a.z.filter((x) => x[2] === 'error').length;
+      const offen = w + e > 0;
+      const sichtbar = a.z.filter((x) => !ROUTINE.includes(x[3])).reverse();
+      return `<div class="abschnitt"><div class="ab-kopf"><span class="t">${a.d === '2026-10-07' ? '' : 'Gestern '}${a.start.slice(0, 5)}</span><span class="sum">${a.titel} · ${a.z.length} Einträge${w ? ` · <b class="w">${w} Warnung</b>` : ''}${e ? ` · <b class="e">${e} Fehler</b>` : ''}</span><span class="chev">${offen ? '⌃' : '⌄'}</span></div>${offen ? sichtbar.map((x) => zeileA(x)).join('') : ''}</div>`;
+    }).join('');
+  }
+
+  function terminal() {
+    let out = ''; let tag = null;
+    for (const x of L.slice().reverse()) {
+      if (x[0] !== tag) { tag = x[0]; out += `<div class="datum" style="margin:10px 10px 4px">${tag === '2026-10-07' ? 'Heute, 7. Oktober' : 'Gestern, 6. Oktober'}</div>`; }
+      const t = zerlege(x[4]);
+      const m = `<span class="b">${x[3]}</span> ${esc(t.text)} ${t.kv.map(([k, v]) => `<span class="k">${esc(k)}=</span>${esc(v)}`).join(' ')}`;
+      out += `<div class="tz ${x[2]}"><span class="t">${x[1]}</span><span class="l ${x[2][0]}">${x[2][0].toUpperCase()}</span><span class="m">${m}</span>${x[5] ? `<span class="st">▸ Stacktrace (${x[5].split('\n').length} Zeilen)</span>` : ''}</div>`;
+    }
+    return `<div class="such">🔍︎ Suchen</div><div class="term">${out}</div>`;
+  }
+
+  function heute() {
+    const farbe = { info: 'green', warn: 'orange', error: 'red' };
+    return `<div class="term" style="padding:10px">${L.map((x) => `<div><span style="color:gray">[${x[0]} ${x[1]}]</span> <span style="color:${farbe[x[2]]}">[${x[2]}]</span> <span style="color:#1e6fd9">[${x[3]}]</span> ${esc(x[4])}${x[5] ? '<br>' + esc(x[5]).replace(/\n/g, '<br>') : ''}</div>`).join('')}</div>`;
+  }
+
+  const variante = (titel, desc, inhalt) => `<div class="variant"><h3>${titel}</h3><p class="desc">${desc}</p><div class="phones">${inhalt}</div></div>`;
+  document.getElementById('slot-heute').innerHTML = variante('Heute', '', telefon('hell', kopf('app-2026-10-07.log'), heute(), 'aktuelle Ansicht'));
+  document.getElementById('slot-a').innerHTML = variante('A · Liste', 'Datumstrenner „Heute“ / „Gestern“. Mitte: Fehler mit aufgeklapptem Stacktrace.',
+    telefon('hell', kopf(sub), listeA(), 'Alle') +
+    telefon('hell', kopf(sub), listeA({ aktiv: 'probleme', offen: true }), 'Warnungen & Fehler, Stacktrace offen') +
+    telefon('hell', kopf(sub), listeA({ routine: true }), 'ohne Navigation und HTTP') +
+    telefon('dunkel', kopf(sub), listeA(), 'dunkel'));
+  document.getElementById('slot-b').innerHTML = variante('B · Abschnitte', 'Routinezeilen (nav, http) sind hier standardmäßig ausgeblendet.',
+    telefon('hell', kopf(sub), abschnitte(), 'Abschnitte') + telefon('dunkel', kopf(sub), abschnitte(), 'dunkel'));
+  document.getElementById('slot-c').innerHTML = variante('C · Terminal', '',
+    telefon('hell', kopf(sub), terminal(), 'hell') + telefon('dunkel', kopf(sub), terminal(), 'dunkel'));
+
+  const FRAGEN = [
+    { id: 'variante', titel: 'Variante', optionen: ['A Liste', 'B Abschnitte', 'C Terminal'] },
+    { id: 'filter', titel: 'Filter', optionen: ['Level + Routine ausblenden + Suche', 'nur Level + Suche', 'nur Level'] },
+    { id: 'routine', titel: 'Navigation und HTTP beim Öffnen', optionen: ['sichtbar', 'ausgeblendet'] },
+    { id: 'kv', titel: 'key=value-Paare', optionen: ['als Chips', 'als Text mit grauen Schlüsseln'] },
+  ];
+  const f = document.getElementById('fb');
+  f.innerHTML = FRAGEN.map((qq) => `<fieldset><legend>${qq.titel}</legend>${qq.optionen.map((o) => `<label><input type="radio" name="${qq.id}" value="${o}"> ${o}</label>`).join('')}<textarea name="${qq.id}-text" placeholder="Anmerkung (optional)"></textarea></fieldset>`).join('') +
+    `<fieldset><legend>Sonst noch</legend><textarea name="frei" placeholder="Freitext"></textarea></fieldset>
+    <button type="button" id="kopieren">Auswahl kopieren</button>
+    <textarea id="ausgabe" readonly placeholder="Hier erscheint der Text für den Chat."></textarea>`;
+  document.getElementById('kopieren').addEventListener('click', async () => {
+    const fd = new FormData(f);
+    const zeilen = ['Rückmeldung App-Logs, Runde 1'];
+    for (const qq of FRAGEN) { const wahl = fd.get(qq.id); const text = (fd.get(`${qq.id}-text`) || '').trim(); zeilen.push(`- ${qq.titel}: ${wahl || '–'}${text ? ` – ${text}` : ''}`); }
+    const frei = (fd.get('frei') || '').trim(); if (frei) zeilen.push(`- Sonst: ${frei}`);
+    const text = zeilen.join('\n'); const out = document.getElementById('ausgabe'); out.value = text;
+    try { await navigator.clipboard.writeText(text); } catch (e) { out.select(); document.execCommand('copy'); }
+  });
+  document.body.dataset.fertig = '1';
+})();
+</script>
+</body></html>

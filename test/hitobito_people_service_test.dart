@@ -253,6 +253,32 @@ void main() {
         requestedUris.first.queryParameters['fields[additional_addresses]'],
         'contactable_id,contactable_type,label,address_care_of,street,housenumber,postbox,zip_code,town,country',
       );
+      final peopleFields = requestedUris
+          .first
+          .queryParameters['fields[people]']!
+          .split(',');
+      expect(
+        peopleFields,
+        containsAll(<String>[
+          'first_name',
+          'birthday',
+          'membership_number',
+          'roles',
+          'phone_numbers',
+          'additional_emails',
+          'additional_addresses',
+        ]),
+      );
+      for (final bankField in const <String>[
+        'iban',
+        'bic',
+        'bank_name',
+        'bank_account_owner',
+        'payment_method',
+        'additional_information',
+      ]) {
+        expect(peopleFields, isNot(contains(bankField)));
+      }
       expect(requestedUris.last.path, '/api/people');
       expect(requestedUris.last.queryParameters['page'], '2');
       expect(

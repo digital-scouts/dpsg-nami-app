@@ -61,6 +61,7 @@ import 'data/statistiks/shared_prefs_statistik_verlauf_repository.dart';
 import 'data/bundesstatistik/http_bundesstatistik_repository.dart';
 import 'data/bundesstatistik/secure_installation_credentials_repository.dart';
 import 'data/bundesstatistik/shared_prefs_bundesstatistik_teilnahme_repository.dart';
+import 'data/maps/shared_prefs_address_map_location_repository.dart';
 import 'data/appearance/shared_prefs_appearance_settings_repository.dart';
 import 'data/achievements/shared_prefs_achievement_repository.dart';
 import 'domain/achievements/achievement_definition.dart';
@@ -312,6 +313,9 @@ Future<void> _startApp({
     await legacyAppDataCleanupService.runIfNeeded();
   }
   final hitobitoTrafficLogService = HitobitoTrafficLogService();
+  // Fruehere Versionen haben vollstaendige Antworten mit Mitgliederdaten
+  // protokolliert; diese Dateien duerfen nicht liegen bleiben.
+  await hitobitoTrafficLogService.deleteLegacyFiles();
   final namiAiDebugLogService = NamiAiDebugLogService();
   final namiAiCorpusLookupService = NamiAiCorpusLookupService();
 
@@ -419,6 +423,12 @@ Future<void> _startApp({
     networkAccessPolicy: networkAccessPolicy,
     isAppLockEnabled: () => !isDemo && appSettingsModel.biometricLockEnabled,
     lockTimeout: HitobitoAuthEnv.appLockTimeout,
+    // Geokodierte Wohnorte und Kacheln um Mitgliedsadressen gehoeren zu den
+    // Daten, die Logout und Datenablauf entfernen muessen.
+    purgeLocalPersonalData: () async {
+      await SharedPrefsAddressMapLocationRepository().clearAll();
+      await mapTileCacheService.deleteRoot();
+    },
     onPreferredLanguageChanged: (languageCode) async {
       final normalized = AuthProfile.normalizeLanguageCode(languageCode);
       localeModel.setLocale(Locale(normalized), persist: false);

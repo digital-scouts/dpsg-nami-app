@@ -676,6 +676,13 @@ class HitobitoPeopleService {
     return _HitobitoRelationshipPayload(data: data, included: included);
   }
 
+  static const String _peopleFields =
+      'first_name,last_name,nickname,email,address_care_of,street,'
+      'housenumber,postbox,zip_code,town,country,household_key,'
+      'primary_group_id,gender,pronoun,birthday,entry_date,exit_date,'
+      'picture,updated_at,membership_number,'
+      'roles,phone_numbers,additional_emails,additional_addresses';
+
   Uri _decoratePeopleRequestUri(Uri uri) {
     final queryParameters = Map<String, String>.from(uri.queryParameters);
     var includeValue = queryParameters['include'];
@@ -688,6 +695,11 @@ class HitobitoPeopleService {
       includeValue = _mergeCsvValue(includeValue, relationship);
     }
     queryParameters['include'] = includeValue ?? '';
+    // Nur Attribute, die die App liest: Bankdaten (iban, bic, ...) und
+    // additional_information gehen so gar nicht erst ueber die Leitung.
+    // Sparse Fieldsets gelten laut JSON:API auch fuer Relationships, deshalb
+    // stehen die Sideloads mit in der Liste.
+    queryParameters['fields[people]'] = _peopleFields;
     queryParameters['fields[roles]'] =
         'created_at,updated_at,start_on,end_on,name,person_id,group_id,type,label';
     queryParameters['fields[phone_numbers]'] =
@@ -709,17 +721,11 @@ class HitobitoPeopleService {
       'Accept': 'application/vnd.api+json, application/json',
       'Authorization': 'Bearer $accessToken',
     };
-    await _trafficLogService?.logRequest(
-      source: 'people',
-      method: 'GET',
-      uri: requestUri,
-      headers: headers,
-    );
 
     http.Response response;
     try {
       response = await _httpClient.get(requestUri, headers: headers);
-    } catch (error, stackTrace) {
+    } catch (error) {
       await _logger?.logHttpRequest(
         source: 'hitobito_people',
         method: 'GET',
@@ -731,7 +737,6 @@ class HitobitoPeopleService {
         method: 'GET',
         uri: requestUri,
         error: error,
-        stackTrace: stackTrace,
       );
       rethrow;
     }
@@ -747,8 +752,6 @@ class HitobitoPeopleService {
       method: 'GET',
       uri: requestUri,
       statusCode: response.statusCode,
-      headers: response.headers,
-      body: response.body,
     );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -780,14 +783,6 @@ class HitobitoPeopleService {
     };
     final encodedBody = body == null ? null : jsonEncode(body);
 
-    await _trafficLogService?.logRequest(
-      source: 'people',
-      method: method,
-      uri: requestUri,
-      headers: headers,
-      body: encodedBody,
-    );
-
     final request = http.Request(method, requestUri)
       ..headers.addAll(<String, String>{...headers});
     if (encodedBody != null) {
@@ -797,7 +792,7 @@ class HitobitoPeopleService {
     http.StreamedResponse streamedResponse;
     try {
       streamedResponse = await _httpClient.send(request);
-    } catch (error, stackTrace) {
+    } catch (error) {
       await _logger?.logHttpRequest(
         source: 'hitobito_people',
         method: method,
@@ -809,7 +804,6 @@ class HitobitoPeopleService {
         method: method,
         uri: requestUri,
         error: error,
-        stackTrace: stackTrace,
       );
       rethrow;
     }
@@ -825,8 +819,6 @@ class HitobitoPeopleService {
       method: method,
       uri: requestUri,
       statusCode: response.statusCode,
-      headers: response.headers,
-      body: response.body,
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return;

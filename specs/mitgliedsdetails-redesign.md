@@ -112,7 +112,7 @@ Befunde:
 | Weitere E-Mails, Telefon | `additional_emails`, `phone_numbers` | angezeigt | ab dem zweiten Eintrag eingeklappt |
 | Austritt | `people.exit_date` | geladen, nicht angezeigt | anzeigen, dazu die Mitgliedsdauer |
 | Haushalt | `people.household_key` (readOnly) | nicht geladen | laden; Familie aus sichtbaren Personen mit gleichem Schlüssel |
-| Bankdaten | `bank_account_owner`, `iban`, `bic`, `bank_name`, `payment_method` | geladen und gecacht | entfernen, `fields[people]` als Whitelist |
+| Bankdaten | `bank_account_owner`, `iban`, `bic`, `bank_name`, `payment_method` | nicht mehr geladen (`fields[people]`) | entfernen, `fields[people]` als Whitelist |
 | Rollengruppe, Layer | `roles` mit `include=group,layer_group` | nur `group_id` | Name von Gruppe und Layer an der Rolle cachen |
 | Qualifikationen | `GET /api/qualifications`, `include=qualification_kind` | nicht angebunden | beim Sync laden und cachen |
 | Qualifikationsart | `qualification_kinds`: `label`, `validity`, `reactivateable` | – | nur über include, kein eigener Pfad |

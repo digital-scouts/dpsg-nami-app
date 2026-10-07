@@ -81,7 +81,7 @@ Gesammelt am 2026-10-01, jeweils mit Kurzbefund. Jede Stufe wird vor der Umsetzu
 
 - Seit dem Filter fragt die App Personen und Rollen nur noch für den aktiven Layer ab, mit `filter[group_id]`, `filter[primary_group_id]`, `filter[id]` und `filter[person_id]`. ID-Listen gehen in parallelen Blöcken zu je 200 raus.
 - Der größte Stamm hat ca. 377 Mitglieder, bei etwa 25 ms Serverzeit pro Person sind das 2 parallele Blöcke. Dort noch einmal messen.
-- Weiterer möglicher Schritt: `fields[people]` auf die Attribute beschränken, die die App nutzt. So entfallen z. B. die Bankdaten und je nach Bedarf `picture`, das pro Person eine URL berechnet.
+- `fields[people]` beschränkt die Personenabrufe auf die Attribute, die die App nutzt, und auf die Sideload-Relationships. Bankdaten und `additional_information` werden nicht mehr geladen.
 - Delta-Sync, Befunde zur API (Hitobito-Core):
   - Hitobito bietet keine globale Version und kein ETag, nur `filter[updated_at]` auf `people`, `roles` und `groups`.
   - Ändern sich Telefonnummern, Zusatzmails oder Zusatzadressen, ändert sich das `updated_at` der Person nicht.
@@ -107,7 +107,7 @@ Gesammelt am 2026-10-01, jeweils mit Kurzbefund. Jede Stufe wird vor der Umsetzu
 **Mitgliedsdetails: offene Punkte**
 
 - Auf dpsg.puzzle.ch bestätigt (2026-10-02): `/api/qualifications` liefert Daten, Rollen tragen über `include=group,layer_group` Gruppe und Layer, `household_key` verknüpft Haushalte.
-- Noch prüfen: Lässt sich `fields[people]` ohne Bankfelder nutzen, damit sie gar nicht erst geladen werden?
+- Noch prüfen: Liefert dpsg.puzzle.ch mit der `fields[people]`-Whitelist weiterhin Kontaktangaben, Rollen und `membership_number`? `membership_number` fehlt in der OpenAPI-Spec. Sparse Fieldsets ignorieren unbekannte Felder üblicherweise, ein Gerätetest steht aber aus.
 - Vergangene Rollen: Die API liefert beendete Rollen derzeit nicht. Verlauf und Zeitstrahl sind darauf vorbereitet und markieren die Zeit vor der ersten bekannten Rolle. Zu klären ist, ob `filter[end_on]` oder ein Upstream-PR einen Abruf ermöglicht.
 - Store-Screenshots der Szene `Store/Mitgliedsdetail` neu erzeugen.
 

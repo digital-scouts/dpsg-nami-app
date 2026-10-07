@@ -125,17 +125,11 @@ class HitobitoRolesService {
       'Accept': 'application/vnd.api+json, application/json',
       'Authorization': 'Bearer $accessToken',
     };
-    await _trafficLogService?.logRequest(
-      source: 'roles',
-      method: 'GET',
-      uri: requestUri,
-      headers: headers,
-    );
 
     http.Response response;
     try {
       response = await _httpClient.get(requestUri, headers: headers);
-    } catch (error, stackTrace) {
+    } catch (error) {
       await _logger?.logHttpRequest(
         source: 'hitobito_roles',
         method: 'GET',
@@ -147,7 +141,6 @@ class HitobitoRolesService {
         method: 'GET',
         uri: requestUri,
         error: error,
-        stackTrace: stackTrace,
       );
       rethrow;
     }
@@ -163,8 +156,6 @@ class HitobitoRolesService {
       method: 'GET',
       uri: requestUri,
       statusCode: response.statusCode,
-      headers: response.headers,
-      body: response.body,
     );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
