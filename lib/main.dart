@@ -44,6 +44,7 @@ import 'package:nami/presentation/notifications/notifications_hub.dart';
 import 'package:nami/presentation/notifications/welcome_dialog.dart';
 import 'package:nami/presentation/notifications/wiredash_texte.dart';
 import 'package:nami/presentation/screens/auth_gate_screen.dart';
+import 'package:nami/presentation/theme/schrift_lizenzen.dart';
 import 'package:nami/presentation/theme/theme.dart';
 import 'package:nami/presentation/widgets/global_loading_top_bar.dart';
 import 'package:nami/services/hitobito_efz_service.dart';
@@ -131,6 +132,7 @@ void main() {
   runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
+      registriereSchriftlizenzen();
       final appDocDir = await getApplicationDocumentsDirectory();
       Hive.init(appDocDir.path);
       await dotenv.load(fileName: ".env");
