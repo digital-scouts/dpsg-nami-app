@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:http/http.dart' as http;
@@ -43,20 +45,41 @@ class HitobitoAuthException implements Exception {
   String toString() => message;
 }
 
+/// Öffnet die Anmeldeseite und liefert die Rückleitungs-URL.
+typedef HitobitoWebAuthenticator =
+    Future<String> Function({
+      required String url,
+      required String callbackUrlScheme,
+    });
+
 class HitobitoOauthService {
   HitobitoOauthService({
     required this.config,
     http.Client? httpClient,
     DateTime Function()? nowProvider,
     LoggerService? logger,
+    HitobitoWebAuthenticator? webAuthenticator,
+    Duration revokeTimeout = const Duration(seconds: 5),
   }) : _httpClient = httpClient ?? http.Client(),
        _now = nowProvider ?? DateTime.now,
-       _logger = logger;
+       _logger = logger,
+       _webAuthenticator = webAuthenticator ?? _flutterWebAuth,
+       _revokeTimeout = revokeTimeout;
 
   HitobitoAuthConfig config;
   final http.Client _httpClient;
   final DateTime Function() _now;
   final LoggerService? _logger;
+  final HitobitoWebAuthenticator _webAuthenticator;
+  final Duration _revokeTimeout;
+
+  static Future<String> _flutterWebAuth({
+    required String url,
+    required String callbackUrlScheme,
+  }) => FlutterWebAuth2.authenticate(
+    url: url,
+    callbackUrlScheme: callbackUrlScheme,
+  );
 
   void updateConfig(HitobitoAuthConfig nextConfig) {
     config = nextConfig;
@@ -72,6 +95,8 @@ class HitobitoOauthService {
     }
 
     final state = _randomState();
+    // PKCE (RFC 7636): Ein abgefangener Code ist ohne den Verifier wertlos.
+    final codeVerifier = _randomState();
     final authorizationUri = Uri.parse(config.authorizationUrl).replace(
       queryParameters: <String, String>{
         'client_id': config.clientId,
@@ -79,12 +104,14 @@ class HitobitoOauthService {
         'response_type': 'code',
         'scope': config.scopeString,
         'state': state,
+        'code_challenge': _codeChallenge(codeVerifier),
+        'code_challenge_method': 'S256',
       },
     );
 
     final String callback;
     try {
-      callback = await FlutterWebAuth2.authenticate(
+      callback = await _webAuthenticator(
         url: authorizationUri.toString(),
         callbackUrlScheme: config.callbackScheme,
       );
@@ -125,6 +152,7 @@ class HitobitoOauthService {
       'client_secret': config.clientSecret,
       'redirect_uri': config.redirectUri,
       'code': code,
+      'code_verifier': codeVerifier,
     });
 
     final session = _mapSession(tokenPayload);
@@ -148,6 +176,53 @@ class HitobitoOauthService {
 
     final refreshed = _mapSession(tokenPayload, previous: session);
     return refreshed;
+  }
+
+  /// Widerruft die Tokens der Sitzung bei Hitobito. Weil Access- und
+  /// Refresh-Token einen gemeinsamen Datensatz bilden, reicht der
+  /// Refresh-Token. Wirft nie; liefert `true`, wenn Hitobito bestätigt hat.
+  Future<bool> revoke(AuthSession session) async {
+    final token = (session.refreshToken?.isNotEmpty ?? false)
+        ? session.refreshToken!
+        : session.accessToken;
+    final requestUri = Uri.tryParse(config.revokeUrl);
+    if (token.isEmpty || requestUri == null || config.revokeUrl.isEmpty) {
+      return false;
+    }
+    try {
+      final response = await _httpClient
+          .post(
+            requestUri,
+            headers: const <String, String>{
+              'Accept': 'application/json',
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: <String, String>{
+              'token': token,
+              'token_type_hint': token == session.refreshToken
+                  ? 'refresh_token'
+                  : 'access_token',
+              'client_id': config.clientId,
+              'client_secret': config.clientSecret,
+            },
+          )
+          .timeout(_revokeTimeout);
+      await _logger?.logHttpRequest(
+        source: 'hitobito_revoke',
+        method: 'POST',
+        uri: requestUri,
+        statusCode: response.statusCode,
+      );
+      return response.statusCode >= 200 && response.statusCode < 300;
+    } catch (error) {
+      await _logger?.logHttpRequest(
+        source: 'hitobito_revoke',
+        method: 'POST',
+        uri: requestUri,
+        error: error,
+      );
+      return false;
+    }
   }
 
   Future<AuthSession> refreshIfNeeded(
@@ -327,6 +402,11 @@ class HitobitoOauthService {
     }
 
     return const <String, dynamic>{};
+  }
+
+  static String _codeChallenge(String verifier) {
+    final digest = sha256.convert(ascii.encode(verifier));
+    return base64UrlEncode(digest.bytes).replaceAll('=', '');
   }
 
   String _randomState() {

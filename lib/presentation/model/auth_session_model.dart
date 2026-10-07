@@ -439,7 +439,13 @@ class AuthSessionModel extends ChangeNotifier {
     // Sofort beenden, damit laufende Vorgaenge waehrend der folgenden awaits
     // nichts mehr schreiben.
     _endSession();
+    final beendeteSession = _session;
     _session = null;
+    if (beendeteSession != null) {
+      // Im Hintergrund, damit der Logout offline und bei langsamer Leitung
+      // nicht wartet; die lokale Loeschung haengt nicht davon ab.
+      unawaited(_widerrufen(beendeteSession));
+    }
     _logoutReason = null;
     await _logger.logInfo('auth_flow', 'logout started');
     await _logger.trackAuthFlow('logout', 'started');
@@ -476,6 +482,21 @@ class AuthSessionModel extends ChangeNotifier {
       properties: const {'sensitive_data_cleared': true},
     );
     notifyListeners();
+  }
+
+  Future<void> _widerrufen(AuthSession session) async {
+    try {
+      await _networkAccessPolicy?.ensureNetworkAllowed(
+        trigger: 'logout_revoke',
+        feature: 'Hitobito',
+        allowMobileDataOverride: true,
+      );
+    } on NetworkAccessBlockedException {
+      await _logger.log('auth_flow', 'Token-Widerruf uebersprungen: offline');
+      return;
+    }
+    final widerrufen = await _oauthService.revoke(session);
+    await _logger.logInfo('auth_flow', 'logout token_revoked=$widerrufen');
   }
 
   /// Meldet ab, weil das Konto keinen lesbaren Layer mehr hat. Alle lokalen

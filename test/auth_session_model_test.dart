@@ -1650,21 +1650,26 @@ void main() {
       AuthSession? initialSession,
       AuthSession? sessionToReturn,
       bool appLockEnabled = false,
+      FakeOauthService? oauthService,
+      NetworkAccessPolicy? networkAccessPolicy,
     }) {
       return AuthSessionModel(
         repository: InMemoryAuthSessionRepository(
           initialSession: initialSession,
         ),
         profileRepository: InMemoryAuthProfileRepository(),
-        oauthService: FakeOauthService(
-          sessionToReturn:
-              sessionToReturn ??
-              AuthSession(
-                accessToken: 'access-token',
-                receivedAt: DateTime(2026, 10, 7),
-              ),
-          profileToReturn: const AuthProfile(namiId: 31),
-        ),
+        networkAccessPolicy: networkAccessPolicy,
+        oauthService:
+            oauthService ??
+            FakeOauthService(
+              sessionToReturn:
+                  sessionToReturn ??
+                  AuthSession(
+                    accessToken: 'access-token',
+                    receivedAt: DateTime(2026, 10, 7),
+                  ),
+              profileToReturn: const AuthProfile(namiId: 31),
+            ),
         biometricLockService: FakeBiometricLockService(available: true),
         sensitiveStorageService: sensitiveStorage,
         retentionPolicy: HitobitoDataRetentionPolicy(
@@ -1677,6 +1682,59 @@ void main() {
         purgeLocalPersonalData: purgeLocalPersonalData,
       );
     }
+
+    test('Abmelden widerruft die Tokens im Hintergrund', () async {
+      final oauth = FakeOauthService(
+        sessionToReturn: AuthSession(
+          accessToken: 'access-token',
+          refreshToken: 'refresh-token',
+          receivedAt: DateTime(2026, 10, 7),
+        ),
+        profileToReturn: const AuthProfile(namiId: 31),
+      )..revokeAntwort = Completer<bool>();
+      final model = buildModel(
+        sensitiveStorage: FakeSensitiveStorageService(),
+        purgeLocalPersonalData: () async {},
+        oauthService: oauth,
+      );
+      await model.signIn();
+
+      // Hitobito antwortet nicht: Der Logout wartet trotzdem nicht.
+      await model.logout();
+
+      expect(model.state, AuthState.signedOut);
+      expect(oauth.widerrufeneSessions.single.refreshToken, 'refresh-token');
+    });
+
+    test('Abmelden offline widerruft nicht und loescht trotzdem', () async {
+      final oauth = FakeOauthService(
+        sessionToReturn: AuthSession(
+          accessToken: 'access-token',
+          receivedAt: DateTime(2026, 10, 7),
+        ),
+        profileToReturn: const AuthProfile(namiId: 31),
+      );
+      final model = buildModel(
+        sensitiveStorage: FakeSensitiveStorageService(),
+        purgeLocalPersonalData: () async {},
+        oauthService: oauth,
+        networkAccessPolicy: _BlockedNetworkAccessPolicy(
+          const NetworkAccessBlockedException(
+            reason: NetworkAccessBlockedReason.offline,
+            connectionType: NetworkConnectionType.offline,
+            message: 'offline',
+          ),
+        ),
+      );
+      await model.signIn();
+      expect(model.session, isNotNull);
+
+      await model.logout();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(model.state, AuthState.signedOut);
+      expect(oauth.widerrufeneSessions, isEmpty);
+    });
 
     test('Abmelden loescht die lokalen Caches', () async {
       var aufrufe = 0;
