@@ -69,16 +69,154 @@ void main() {
     expect(cached?.addressNotFound, isFalse);
     expect(cached?.hasCoordinates, isTrue);
   });
+
+  group('Lauf der Standorte-Kachel', () {
+    final now = DateTime(2026, 6, 5, 12);
+    late _InMemoryAddressMapLocationRepository repository;
+    late Map<String, DateTime> fehlerSperre;
+
+    setUp(() {
+      repository = _InMemoryAddressMapLocationRepository();
+      fehlerSperre = <String, DateTime>{};
+    });
+
+    StatisticsLocationService serviceMit(
+      _FakeGeoapifyAddressMapService mapService, {
+      DateTime Function()? nowProvider,
+    }) => StatisticsLocationService(
+      repository: repository,
+      mapService: mapService,
+      nowProvider: nowProvider ?? () => now,
+      anfrageAbstand: Duration.zero,
+      fehlerSperreBis: fehlerSperre,
+    );
+
+    final zweiMitglieder = <Mitglied>[
+      _memberWithAddress(mitgliedsnummer: '1', street: 'Musterweg'),
+      _memberWithAddress(mitgliedsnummer: '2', street: 'Lindenallee'),
+    ];
+
+    test('sendet die Adresse ohne c/o-Zeile', () async {
+      final mapService = _FakeGeoapifyAddressMapService(
+        const GeoapifyGeocodeResult.success(LatLng(50.9, 6.9)),
+      );
+
+      await serviceMit(mapService).resolveLocations(
+        members: <Mitglied>[_memberWithAddress(careOf: 'c/o Erika Muster')],
+      );
+
+      expect(mapService.texts.single, 'Musterweg 4, 50667 Koeln, DE');
+    });
+
+    test('bricht bei Keine mobilen Daten nach der ersten Adresse ab', () async {
+      final mapService = _FakeGeoapifyAddressMapService(
+        const GeoapifyGeocodeResult.networkBlocked(
+          deviceOffline: false,
+          mobileDataBlocked: true,
+        ),
+      );
+
+      final ergebnis = await serviceMit(mapService).resolveLocations(
+        members: zweiMitglieder,
+        stammAddress: 'Heim 1, Koeln',
+      );
+
+      expect(mapService.calls, 1);
+      expect(ergebnis.memberPoints, isEmpty);
+      expect(ergebnis.hinweis, StandortHinweis.keineMobilenDaten);
+    });
+
+    test('bricht bei Pause nach 429 ab und meldet sie', () async {
+      final mapService = _FakeGeoapifyAddressMapService(
+        const GeoapifyGeocodeResult.rateLimited(),
+      );
+
+      final ergebnis = await serviceMit(
+        mapService,
+      ).resolveLocations(members: zweiMitglieder);
+
+      expect(mapService.calls, 1);
+      expect(ergebnis.hinweis, StandortHinweis.pausiert);
+    });
+
+    test('sperrt technische Fehler je Adresse fuer 30 Minuten', () async {
+      var jetzt = now;
+      final mapService = _FakeGeoapifyAddressMapService(
+        const GeoapifyGeocodeResult.technicalError(),
+      );
+      final service = serviceMit(mapService, nowProvider: () => jetzt);
+      final mitglied = <Mitglied>[_memberWithAddress()];
+
+      final erstes = await service.resolveLocations(members: mitglied);
+      jetzt = now.add(const Duration(minutes: 29));
+      final zweites = await service.resolveLocations(members: mitglied);
+
+      expect(erstes.hinweis, StandortHinweis.unvollstaendig);
+      expect(zweites.hinweis, StandortHinweis.unvollstaendig);
+      expect(mapService.calls, 1);
+
+      jetzt = now.add(const Duration(minutes: 31));
+      mapService.result = const GeoapifyGeocodeResult.success(
+        LatLng(50.9, 6.9),
+      );
+      final drittes = await service.resolveLocations(members: mitglied);
+
+      expect(mapService.calls, 2);
+      expect(drittes.hinweis, isNull);
+      expect(drittes.memberPoints, hasLength(1));
+    });
+
+    test('fragt mit nurCache nichts an und liefert Cache-Treffer', () async {
+      final mapService = _FakeGeoapifyAddressMapService(
+        const GeoapifyGeocodeResult.success(LatLng(50.9, 6.9)),
+      );
+      final bekannt = zweiMitglieder.first.primaryAddress!;
+      final fingerprint = MemberAddressUtils.fingerprint(bekannt);
+      await repository.save(
+        AddressMapLocation(
+          cacheKey: fingerprint,
+          latitude: 50.1,
+          longitude: 6.1,
+          resolvedAt: now,
+          addressFingerprint: fingerprint,
+        ),
+      );
+
+      final ergebnis = await serviceMit(
+        mapService,
+      ).resolveLocations(members: zweiMitglieder, nurCache: true);
+
+      expect(mapService.calls, 0);
+      expect(ergebnis.memberPoints.single.latitude, 50.1);
+    });
+
+    test('fragt nach Abbruch nichts mehr an', () async {
+      final mapService = _FakeGeoapifyAddressMapService(
+        const GeoapifyGeocodeResult.success(LatLng(50.9, 6.9)),
+      );
+
+      await serviceMit(
+        mapService,
+      ).resolveLocations(members: zweiMitglieder, abgebrochen: () => true);
+
+      expect(mapService.calls, 0);
+    });
+  });
 }
 
-Mitglied _memberWithAddress() => Mitglied.peopleListItem(
-  mitgliedsnummer: '1',
+Mitglied _memberWithAddress({
+  String mitgliedsnummer = '1',
+  String street = 'Musterweg',
+  String? careOf,
+}) => Mitglied.peopleListItem(
+  mitgliedsnummer: mitgliedsnummer,
   vorname: 'Mara',
   nachname: 'Muster',
-  adressen: const <MitgliedKontaktAdresse>[
+  adressen: <MitgliedKontaktAdresse>[
     MitgliedKontaktAdresse(
       additionalAddressId: 0,
-      street: 'Musterweg',
+      addressCareOf: careOf,
+      street: street,
       housenumber: '4',
       zipCode: '50667',
       town: 'Koeln',
@@ -90,12 +228,14 @@ Mitglied _memberWithAddress() => Mitglied.peopleListItem(
 class _FakeGeoapifyAddressMapService extends GeoapifyAddressMapService {
   _FakeGeoapifyAddressMapService(this.result) : super(apiKeyOverride: 'test');
 
-  final GeoapifyGeocodeResult result;
+  GeoapifyGeocodeResult result;
   int calls = 0;
+  final List<String> texts = <String>[];
 
   @override
   Future<GeoapifyGeocodeResult> resolveAddress(String addressText) async {
     calls += 1;
+    texts.add(addressText);
     return result;
   }
 }

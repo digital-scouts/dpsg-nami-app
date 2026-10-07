@@ -250,10 +250,9 @@ Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den
 
 ## Externe Apis
 
-- [Geoapify](https://www.geoapify.com): Autovervollständigung von Adressen beim anlegen eines Nutzers (Free Limit 3000 Requests / day)
+- [Geoapify](https://www.geoapify.com): Autovervollständigung von Adressen und Geokodierung für Mitglieds- und Stammeskarte sowie die Standorte-Kachel der Statistik (Free Limit 3000 Requests / day). Gesendet wird die Adresse ohne c/o-Zeile, nur wenn die Netzregel es erlaubt; Koordinaten werden lokal zwischengespeichert. Nach HTTP 429 pausiert die App alle Geokodierungen (laut `Retry-After`, sonst eine Stunde).
 - [MapTiler](https://www.maptiler.com): konfigurierbarer Tile-Provider für Kartenansicht und Offline-Tiles
 - [OpenStreetMap Tiles](https://operations.osmfoundation.org/policies/tiles/): Fallback, wenn kein expliziter Tile-Endpoint konfiguriert ist
-- [openplzapi](https://www.openplzapi.org/de/): Fallback für Geoapify (Unlimited)
 - [openiban](https://openiban.com): Validierung der IBAN beim anlegen eines Nutzers (Unlimited)
 
 ## Dokumentation
