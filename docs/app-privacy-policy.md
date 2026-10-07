@@ -1,124 +1,89 @@
 ---
 layout: page
-title: App Privacy Policy
+title: Datenschutzerklärung
 ---
 
-## Privacy Policy
+Stand: 7. Oktober 2026
 
-This privacy policy applies to the NaMi app for mobile devices. The app is developed and maintained by Janneck Lange.
+Diese Datenschutzerklärung gilt für die App „NaMi“ für iOS und Android und für den Statistikserver der App.
 
-## Scope
+## Verantwortlich
 
-The app is intended to support work with DPSG-related member administration data. It is developed privately and is not an official service of the DPSG.
+Janneck Lange, E-Mail: [dev@jannecklange.de](mailto:dev@jannecklange.de)
 
-This privacy policy describes which data is processed by the app itself and which third-party services are used.
+Die App wird privat und ehrenamtlich entwickelt. Sie ist kein Angebot der DPSG und wird von ihr weder betrieben noch autorisiert.
 
-## Data processed in the app
+## Kurz gesagt
 
-The app can process member-related content that is entered by users or loaded from external systems. This data is processed on the device to provide app functionality.
+- Mitgliederdaten lädt die App mit deinem Zugang aus Hitobito und speichert sie verschlüsselt nur auf deinem Gerät.
+- Nutzungsereignisse und Fehlerberichte gehen nur mit deiner Einwilligung an Wiredash. Die Vorgabe ist aus.
+- Zahlen für die bundesweite Statistik teilst du nur mit Einwilligung je Stamm. Es sind Zählwerte ohne Namen, sie werden nach 14 Monaten gelöscht.
+- Für Karten gehen Adressen ohne Namen an Geoapify, Kartenbilder kommen von MapTiler bzw. OpenStreetMap.
 
-Member data loaded from Hitobito is stored locally on the device in encrypted form so it can be used offline after the first successful sign-in and initial data load.
+## Mitgliederdaten aus Hitobito
 
-The app shows achievements for app usage, for example the number of days the app was opened or the number of saved member changes. The counters and unlock dates are stored only on the device, are never transferred and are deleted when the app is reset.
+Nach der Anmeldung lädt die App über die Schnittstelle der Mitgliederverwaltung der DPSG (Hitobito) die Daten, die du mit deinem Zugang auch im Web sehen darfst. Änderungen schreibt sie mit deinem Zugang dorthin zurück. Verantwortlich für diese Mitgliederdaten ist die DPSG. Fragen und Anträge dazu richtest du an die DPSG.
 
-For the statistics of the active Stamm, the app keeps a monthly history of aggregated figures, for example the number of members per age section, for up to 24 months. It also stores the user's tile layout, custom counting tiles and target values for each Stamm. This data contains no names or other individual member data, is stored only on the device, is never transferred and is deleted when the app is reset.
+Die App speichert die Daten verschlüsselt auf dem Gerät, damit sie auch offline nutzbar sind. Beim Abmelden werden sie gelöscht, ebenso wenn sie 90 Tage lang nicht aktualisiert wurden. Der Entwickler erhält keine Mitgliederdaten aus Hitobito.
 
-## Analytics and diagnostics
+## Daten nur auf deinem Gerät
 
-The app can send analytics and diagnostics events if analytics are enabled in the app settings. This is used to better understand app usage, detect problems and improve the app.
+- **Erfolge:** Zähler und Freischaltdaten, zum Beispiel wie oft die App geöffnet wurde. Sie bleiben bis zum Zurücksetzen der App.
+- **Statistik-Verlauf:** monatliche Zählwerte deines Stammes für bis zu 24 Monate, dazu deine Kachel-Einstellungen. Sie enthalten keine Daten einzelner Mitglieder und bleiben bis zum Zurücksetzen der App.
+- **Protokolle:** ein App-Protokoll mit technischen Ereignissen und ein Netzwerkprotokoll mit Methode, Status, Quelle und Adresse jeder Anfrage, ohne Inhalte. In Adressen können technische IDs von Personen und Gruppen stehen. Die Protokolle werden nach sieben Tagen gelöscht.
 
-The analytics setting can be changed by the user inside the app.
+## Feedback und Nutzungsanalyse (Wiredash)
 
-Analytics and diagnostics events may include, for example:
+Die App nutzt den Dienst [Wiredash](https://wiredash.io/legal/privacy-policy).
 
-- app settings changes
-- login and logout events
-- work context or layer changes
-- runtime errors
-- technical event metadata required for diagnostics
+- **Technische Kennung:** Beim Start übermittelt die App höchstens alle 30 Minuten eine zufällige Kennung der Installation, App-Version, Betriebssystem und Sprache. So sehen wir, welche Versionen im Einsatz sind. Rechtsgrundlage ist unser berechtigtes Interesse an einem stabilen Betrieb (Art. 6 Abs. 1 lit. f DSGVO).
+- **Feedback und Zufriedenheitsumfrage:** nur wenn du sie selbst startest. Übermittelt werden dein Text, auf Wunsch deine E-Mail-Adresse und Screenshots sowie Gerätedaten wie Modell und Bildschirmgröße. Achte darauf, dass auf Screenshots keine Mitgliederdaten zu sehen sind, oder übermale sie. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO.
+- **Nutzungsereignisse und Fehlerberichte:** nur mit deiner Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die du beim ersten Start oder in den Einstellungen unter „Nutzungsanalyse“ gibst und jederzeit widerrufen kannst. Übermittelt werden zum Beispiel Anmeldeschritte, Wechsel der Gruppenebene samt Name, geänderte Einstellungen, die Art einer Mitgliedsänderung ohne Inhalte und technische Fehlermeldungen. Die Liste aller Ereignisse steht unter [Wiredash und Tracking](./wiredash/).
 
-The app is designed so that no intentional transfer of member data in plain text should take place as part of these analytics events.
+## Bundesweite Statistik (freiwillig)
 
-Independently of the analytics setting, the app keeps local diagnostic logs on the device for up to seven days: an app log with technical events and a network log with one line per request to Hitobito (method, address and status code). The logs contain no request or response contents, no member names, addresses, contact details or coordinates; technical IDs of people and groups may appear in request addresses. The logs never leave the device automatically. A user can delete them or send them by e-mail to the developer from the app's debug tools.
+Für den bundesweiten Vergleich kannst du je Stamm einwilligen, dass die App etwa einmal pro Woche Zählwerte an den Statistikserver der App sendet (Art. 6 Abs. 1 lit. a DSGVO). Geteilt wird die Zahl der Mitglieder und Leitenden je Gruppe, nach Geschlecht. Wenn du den ganzen Stamm sehen darfst, kommen für den Stamm die Leitenden nach Altersgruppen und die Mitgliedschaftsarten hinzu. Siehst du nur deine eigene Gruppe, werden nur deren Zahlen geteilt. Namen, Geburtsdaten, Adressen und Kontaktdaten werden nicht gesendet.
 
-## Nationwide statistics (optional)
+- **Was der Server speichert:** Stamm, Gruppen und Installation nur als Pseudonym, die Nummern von Bezirk und Diözese im Klartext sowie die Zeitpunkte von Datenstand, Versand und Eingang. Jede Installation hat eine zufällige Installations-ID und ein Geheimnis, damit nur sie für sich senden kann.
+- **Was der Server nicht speichert:** deine IP-Adresse. Sie wird nur kurz im Arbeitsspeicher genutzt, um Missbrauch zu begrenzen.
+- **Wer die Zahlen sieht:** Bundesweite Werte erhalten nur Installationen, die in den letzten 14 Tagen geteilt haben, und nur, wenn genug Stämme teilnehmen. Der Betreiber erhält einen Monatsbericht mit Zählwerten, auf Wunsch auch per Telegram.
+- **Speicherdauer:** Geteilte Zahlen werden 14 Monate nach Eingang gelöscht, die Daten der Installation 14 Monate nach ihrer letzten Sendung. Sicherungskopien werden nach 14 Tagen gelöscht.
+- **Widerruf:** Du kannst jederzeit auf der Seite Bundesvergleich oder in den Einstellungen widerrufen. Dann sendet die App nichts mehr, und deine Zahlen fallen nach zwei Monaten aus dem Vergleich. Möchtest du die bereits geteilten Zahlen vorher löschen lassen, schreib an die oben genannte Adresse und nenne deine Installations-ID von der Seite Bundesvergleich. Ohne diese ID können wir die Daten keiner Installation zuordnen (Art. 11 DSGVO). Nach einem Zurücksetzen der App ist die ID nicht mehr abrufbar.
+- **Hosting:** Der Server läuft bei ZAP-Hosting in Deutschland.
 
-The app offers an optional nationwide comparison of Stamm figures. It is only active after the signed-in user has explicitly agreed to share the figures of a Stamm. Users who can see several Stämme give their consent for each Stamm separately. The consent applies only to that user and can be withdrawn at any time in the app settings or on the comparison page.
+## Demo-Modus
 
-If enabled, the app sends aggregated figures of the active Stamm to the statistics server of the NaMi app about once a week: the number of members and leaders per group of an age section (for example per Meute), split by gender, and, for users who may read the whole Stamm, the number of leaders by age group, the number of regular memberships and the number of other members. Users who may only read their own group share only the figures of that group. No names, dates of birth, addresses, contact details or other individual member data are sent, and no data identifying the user.
+Die Demo zeigt einen erfundenen Bezirk mit erfundenen Personen. Sie greift nicht auf Hitobito zu, speichert keine Demodaten dauerhaft und sendet die erfundenen Zahlen für den Bundesvergleich an eine getrennte Testinstanz des Statistikservers. Für Nutzungsereignisse gilt auch hier: nur mit Einwilligung.
 
-Each app installation creates a random installation ID and secret that are used to recognise the installation. The server pseudonymises the Stamm, its groups and the installation ID before storing them. The IDs of the district and diocese are stored as sent, if the app can determine them. The server only returns nationwide aggregates, and only to installations that shared figures within the last 14 days. Figures reported by fewer than a minimum number of Stämme are not shown. For the operator, the server keeps a monthly overview with counts of participating installations, Stämme and groups and the number of Stämme per district and diocese ID, accessible only with a password and optionally announced via a Telegram message; it contains no Stamm or member data.
+## Karten und Adressen
 
-Withdrawing consent stops further transfers. Figures already shared remain stored but are no longer included in the nationwide aggregate once they are older than two months. Resetting the app deletes the installation ID and secret. The last transferred figures can be viewed in the app.
+- **Geokodierung (Geoapify):** Um eine Adresse auf der Karte zu zeigen, sendet die App den Adresstext ohne Namen an [Geoapify](https://www.geoapify.com/privacy-policy/). Das geschieht bei der Karte in den Mitgliedsdetails, bei der Stammadresse (auch für Vorschläge beim Tippen) und bei der Standorte-Kachel der Statistik, die die Adressen aller angezeigten Mitglieder auflöst. Die Koordinaten speichert die App auf dem Gerät, beim Abmelden werden sie gelöscht. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO.
+- **Kartenbilder:** Die App lädt Kartenkacheln von [MapTiler](https://www.maptiler.com/privacy-policy/) (Schweiz) oder von [OpenStreetMap](https://osmfoundation.org/wiki/Privacy_Policy) (Vereinigtes Königreich). Dabei werden deine IP-Adresse und der Kartenausschnitt übermittelt. Für beide Länder gilt ein Angemessenheitsbeschluss der EU-Kommission. Geladene Kacheln speichert die App zwischen.
+- **Stammeskarte:** Die Liste der Stämme lädt die App von der Stammessuche der DPSG (`tools.dpsg.de`). Dabei wird deine IP-Adresse übermittelt.
+- **Karten-App:** Tippst du auf eine Adresse, übergibt die App sie an die Karten-App deiner Wahl.
 
-## Demo mode
+## Update-Hinweis und Mitteilungen
 
-On the sign-in screen, the app offers a demo without a Hitobito account. After choosing one of several demo roles, the demo shows a fictional Bezirk with fictional Stämme, invented names and contact details. It is read-only and does not contact Hitobito. Demo data is kept in memory only and is discarded when the demo ends. If analytics are enabled, the demo sends only a single "demo used" event; actions inside the demo are not tracked. For the nationwide comparison, the demo sends the figures of the fictional Stämme to a separate test instance of the statistics server that holds only synthetic data and no real Stämme.
+Die App prüft höchstens alle zwölf Stunden eine Datei auf GitHub Pages, ob es eine neue Version gibt, und kann wichtige Mitteilungen von GitHub laden. Dabei werden deine IP-Adresse und der Zeitpunkt an GitHub Inc. (USA) übermittelt. GitHub ist nach dem EU-US Data Privacy Framework zertifiziert. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO.
 
-## Feedback
+## Protokolle per E-Mail
 
-The app integrates a feedback service so users can send feedback from within the app. If this feature is used, the information entered by the user is transmitted to that service.
+In den Debug-Tools kannst du die Protokolle selbst per E-Mail an den Entwickler senden. Die Mail verschickt dein eigenes Mailprogramm, du siehst Empfänger und Anhänge vorher. Die Protokolle werden nach Abschluss der Fehlersuche gelöscht.
 
-## Location and address features
+## App-Stores
 
-The app itself does not continuously collect precise location data for analytics purposes.
+Für Download und Updates gelten die Datenschutzbestimmungen von [Apple](https://www.apple.com/legal/privacy/) und [Google](https://policies.google.com/privacy).
 
-For address-related features, user input may be sent to an external geocoding service to retrieve address suggestions. This happens only when the corresponding feature is used.
+## Deine Rechte
 
-For member detail maps and the map around the saved Stamm address, postal address data may also be sent to Geoapify to geocode the address. The app stores resulting coordinates locally on the device to reduce repeated requests. If no sufficiently precise address match can be determined, the app may also store a local "address not found" cache state for that address input to avoid repeated geocoding requests. Map tiles may additionally be cached locally for offline use and may be delivered via a configured tile provider such as MapTiler, with an OpenStreetMap-based fallback used if no explicit tile URL is configured.
+Du hast das Recht auf Auskunft (Art. 15 DSGVO), Berichtigung (Art. 16), Löschung (Art. 17), Einschränkung der Verarbeitung (Art. 18) und Datenübertragbarkeit (Art. 20). Eine Einwilligung kannst du jederzeit mit Wirkung für die Zukunft widerrufen (Art. 7 Abs. 3).
 
-Stored coordinates and cached map tiles are deleted on logout, when the locally stored Hitobito data expires and when the app is reset.
+**Widerspruchsrecht:** Verarbeitungen auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO kannst du aus Gründen, die sich aus deiner besonderen Situation ergeben, widersprechen (Art. 21).
 
-TODO: Before broader rollout of map features, refine this section and the in-app first-start notice with a more explicit consent flow for Privacy Policy acknowledgement.
+Schreib dafür an [dev@jannecklange.de](mailto:dev@jannecklange.de). Du kannst dich außerdem bei einer Datenschutz-Aufsichtsbehörde beschweren (Art. 77 DSGVO). Für Mitgliederdaten in Hitobito ist die DPSG zuständig, für sie gilt das kirchliche Datenschutzgesetz (KDG).
 
-## Third-party services
+Eine automatisierte Entscheidungsfindung findet nicht statt. Du bist nicht verpflichtet, Daten bereitzustellen; ohne Hitobito-Zugang steht nur die Demo zur Verfügung.
 
-The app currently uses third-party services such as:
+## Änderungen
 
-- Wiredash for feedback, optional satisfaction surveys (promoter score) and event tracking
-- Geoapify for address autocomplete and geocoding
-- MapTiler for configured map tile delivery, with an OpenStreetMap-based fallback when no explicit tile endpoint is configured
-- platform and store infrastructure provided by Apple and Google
-
-These services process data under their own privacy policies:
-
-- [Wiredash Privacy Policy](https://wiredash.io/legal/privacy-policy)
-- [Geoapify Privacy Policy](https://www.geoapify.com/privacy-policy/)
-- [MapTiler Privacy Policy](https://www.maptiler.com/privacy-policy/)
-- [Google Play Services](https://www.google.com/policies/privacy/)
-- [Apple Privacy Policy](https://www.apple.com/legal/privacy/)
-
-## Data retention
-
-Hitobito profile and member data remain on the device until the user logs out or the locally stored data exceeds the configured maximum retention period used by the app.
-
-If an update from Hitobito fails, the app can continue to use the existing local data until that retention period is exceeded.
-
-Analytics, diagnostics and feedback data may also be retained by the respective third-party providers according to their own retention policies.
-
-## Security
-
-Reasonable care is taken to avoid unnecessary exposure of sensitive data.
-
-Sensitive Hitobito-related data used by the app is stored locally in encrypted form and is deleted on logout or when the locally cached data is considered too old by the app.
-
-## Your choices
-
-You can:
-
-- disable analytics in the app settings
-- withdraw consent to the nationwide statistics in the app settings
-- stop using the app at any time
-- uninstall the app from your device
-
-## Changes
-
-This privacy policy may be updated if app behavior or third-party services change.
-
-Effective date: 2026-04-06
-
-## Contact
-
-If you have questions about privacy or data processing in the app, contact:
-
-- [dev@jannecklange.de](mailto:dev@jannecklange.de)
+Wenn sich die App oder die genutzten Dienste ändern, passen wir diese Erklärung an. Es gilt die jeweils hier veröffentlichte Fassung.

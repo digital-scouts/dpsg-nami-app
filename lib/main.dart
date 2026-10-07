@@ -41,6 +41,7 @@ import 'package:nami/presentation/notifications/achievement_unlocked.dart';
 import 'package:nami/presentation/notifications/feedback_prompt_dialog.dart';
 import 'package:nami/presentation/notifications/notifications_hub.dart';
 import 'package:nami/presentation/notifications/welcome_dialog.dart';
+import 'package:nami/presentation/notifications/wiredash_texte.dart';
 import 'package:nami/presentation/screens/auth_gate_screen.dart';
 import 'package:nami/presentation/theme/theme.dart';
 import 'package:nami/presentation/widgets/global_loading_top_bar.dart';
@@ -1357,6 +1358,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             ),
             options: WiredashOptionsData(
               locale: context.watch<LocaleModel>().currentLocale,
+              localizationDelegate: const WiredashTexteDelegate(),
             ),
             collectMetaData: (metaData) => metaData,
             child: MaterialApp(

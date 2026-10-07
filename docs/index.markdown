@@ -12,7 +12,7 @@ Diese Seiten beschreiben den aktuellen Stand der App aus Sicht von Nutzung, Betr
 - [Konfliktdialog und Problemlösungsfall](./konfliktdialog/) erklärt, wann ein Problemlösungsfall entsteht, wo offene Fälle sichtbar sind und wie die Bearbeitung abläuft.
 - [Wiredash und Tracking](./wiredash/) listet die derzeit vorhandenen Tracking-Ereignisse und ihre fachliche Bedeutung auf.
 - [Arbeitskontext](./arbeitskontext/) beschreibt das aktuelle Arbeitskontextmodell der App.
-- [Datenschutz](./app-privacy-policy/) und [Nutzungsbedingungen](./app-terms-conditions/) beschreiben die rechtlichen Begleittexte der App.
+- [Datenschutzerklärung](./app-privacy-policy), [Impressum](./impressum/) und [Nutzungsbedingungen](./app-terms-conditions) beschreiben die rechtlichen Begleittexte der App.
 
 ## Ziel der Dokumentation
 

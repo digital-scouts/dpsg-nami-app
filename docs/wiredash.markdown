@@ -8,7 +8,23 @@ permalink: /wiredash/
 
 Diese Seite listet die aktuell in der App vorhandenen Tracking-Ereignisse auf, die über Wiredash gesendet werden können.
 
-Die Ereignisse werden nur weitergegeben, wenn Analytics in der App aktiviert sind. Unabhängig davon schreibt die App lokale Logs für denselben Ablauf.
+Die Ereignisse werden nur gesendet, wenn die Nutzungsanalyse eingeschaltet ist. Die Vorgabe ist aus; einschalten lässt sie sich im Willkommensdialog nach dem ersten Login und in den Einstellungen. Das gilt auch im Demo-Modus. Unabhängig davon schreibt die App lokale Logs für denselben Ablauf.
+
+Ebenfalls unabhängig vom Schalter sendet das Wiredash-SDK bei jedem Start, höchstens alle 30 Minuten, einen technischen Ping mit zufälliger Installationskennung, App-Version, Bundle-ID, Betriebssystem und Sprache. Er enthält keine Ereignisse und keine Inhalte.
+
+## Alle Ereignisse
+
+| Ereignis | Anlass | Eigenschaften (Auswahl) |
+|---|---|---|
+| `auth_flow` | Anmelden, Abmelden, Token-Erneuerung | `action`, `outcome` |
+| `layer_switch` | Wechsel des Arbeitskontexts | `outcome`, Layer-IDs und -Namen |
+| `settings_changed` | geänderte Einstellung (30 s entprellt) | `setting`, neuer Wert |
+| `runtime_error` | unerwarteter Fehler | `source`, `error_type`, `exception`, `stack` (je auf 900 Zeichen gekürzt) |
+| `member_edit` | Bearbeiten, Speichern, erneutes Senden | siehe unten |
+| `member_resolution_*` | Problemlösungsfälle | siehe unten |
+| `feedback_prompt`, `promoter_survey` | Feedback-Dialog und Umfrage | siehe unten |
+| `feedback`, `debug_tools`, `debug_action` | Aktionen in den Debug-Tools | `action` |
+| `demo_used` | Start des Demo-Modus | keine |
 
 ## Grundprinzip
 
@@ -238,5 +254,5 @@ Das sind genau die Fälle, in denen nicht ein echter Merge-Konflikt die Ursache 
 ## Aktuelle Grenzen
 
 - Die separate Adressvalidierung ist fachlich vorgesehen, aber noch nicht an den Problemlösungsablauf angeschlossen.
-- Der Wert `remote_deleted_local_edited` ist bereits als Tracking-Ursache vorbereitet, aber aktuell noch nicht im Produktionsablauf belegt.
+- Der Wert `remote_deleted_local_edited` wird vergeben, wenn ein lokal bearbeitetes Mitglied auf dem Server gelöscht wurde.
 - Hinweise aus Einstellungen und Detailansicht öffnen den Fall, erzeugen aber keinen eigenen separaten Hint-Event; der explizite Hint-Event wird derzeit für die Mitgliederliste verwendet.
