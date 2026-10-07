@@ -137,7 +137,16 @@ class ArbeitskontextModel extends ChangeNotifier {
   ArbeitskontextReadModel? _readModel;
   AuthSession? _session;
   AuthProfile? _profile;
-  String? _errorMessage;
+  String? _errorMessageWert;
+  int _fehlermeldungNr = 0;
+  String? get _errorMessage => _errorMessageWert;
+  set _errorMessage(String? value) {
+    if (value != null) {
+      _fehlermeldungNr += 1;
+    }
+    _errorMessageWert = value;
+  }
+
   int? _activeProfileId;
   String? _profileFingerprint;
   bool _isSynchronizing = false;
@@ -184,6 +193,11 @@ class ArbeitskontextModel extends ChangeNotifier {
   }
 
   String? get errorMessage => _errorMessage;
+
+  /// Zaehlt jede gesetzte Fehlermeldung, auch eine wortgleiche Wiederholung.
+  /// Die Oberflaeche erkennt daran einen neuen Fehlschlag, etwa um den
+  /// Hinweis auf veraltete Daten erneut einzublenden.
+  int get fehlermeldungNr => _fehlermeldungNr;
   bool get isLoading => _status == ArbeitskontextStatus.loading;
   bool get isReady => _status == ArbeitskontextStatus.ready;
   bool get isUnauthorized => _status == ArbeitskontextStatus.unauthorized;
