@@ -999,6 +999,71 @@ void main() {
       expect(readModel.rolesSindGeladen, isTrue);
     });
 
+    test('laedt EFZ und Qualifikationen nur fuer Personen des Layers, in '
+        'Bloecken von hoechstens 200 IDs (A-09)', () async {
+      final personen = <HitobitoPersonResource>[
+        for (var id = 1; id <= 450; id++)
+          HitobitoPersonResource(
+            id: id,
+            firstName: 'Person',
+            lastName: '$id',
+            membershipNumber: 10000 + id,
+            primaryGroupId: 101,
+          ),
+      ];
+      // Lesbar, aber ausserhalb des Layers: darf nicht angefragt werden.
+      const fremdePersonId = 9999;
+      final efzService = _FakeHitobitoEfzService(
+        eintraege: <EfzEinsichtnahme>[
+          for (final person in personen)
+            EfzEinsichtnahme(
+              id: person.id,
+              personId: person.id,
+              issuedOn: DateTime(2024),
+            ),
+          EfzEinsichtnahme(
+            id: fremdePersonId,
+            personId: fremdePersonId,
+            issuedOn: DateTime(2024),
+          ),
+        ],
+      );
+      final qualificationsService = _FakeHitobitoQualificationsService(
+        eintraege: <Qualifikation>[
+          for (final person in personen)
+            Qualifikation(id: person.id, personId: person.id, label: 'Juleica'),
+        ],
+      );
+      final repository = HitobitoArbeitskontextReadModelRepository(
+        groupsService: _FakeHitobitoGroupsService(groups: gruppen),
+        peopleService: _FakeHitobitoPeopleService(people: personen),
+        rolesService: _FakeHitobitoRolesService(),
+        efzService: efzService,
+        qualificationsService: qualificationsService,
+        localRepository: _FakeArbeitskontextLocalRepository(),
+      );
+
+      final readModel = await repository.refresh(
+        accessToken: 'token-123',
+        arbeitskontext: arbeitskontext,
+      );
+
+      for (final filters in <List<Map<String, String>>>[
+        efzService.requestedFilters,
+        qualificationsService.requestedFilters,
+      ]) {
+        final bloecke = filters
+            .map((filter) => filter['filter[person_id]']!.split(','))
+            .toList();
+        expect(bloecke.map((block) => block.length), <int>[200, 200, 50]);
+        expect(bloecke.expand((block) => block).toSet(), <String>{
+          for (final person in personen) '${person.id}',
+        });
+      }
+      expect(readModel.efzEinsichtnahmen, hasLength(450));
+      expect(readModel.qualifikationen, hasLength(450));
+    });
+
     test('scheitert ohne Cache-Ueberschreibung, wenn die Rollen des Layers '
         'nicht geladen werden koennen', () async {
       final localRepository = _FakeArbeitskontextLocalRepository();
@@ -1147,13 +1212,14 @@ void main() {
     }
 
     test('speichert nur Eintraege der Personen im Kontext', () async {
+      final efzService = _FakeHitobitoEfzService(
+        eintraege: <EfzEinsichtnahme>[
+          EfzEinsichtnahme(id: 1, personId: 1, issuedOn: DateTime(2024)),
+          EfzEinsichtnahme(id: 2, personId: 99, issuedOn: DateTime(2024)),
+        ],
+      );
       final repository = repositoryMit(
-        efzService: _FakeHitobitoEfzService(
-          eintraege: <EfzEinsichtnahme>[
-            EfzEinsichtnahme(id: 1, personId: 1, issuedOn: DateTime(2024)),
-            EfzEinsichtnahme(id: 2, personId: 99, issuedOn: DateTime(2024)),
-          ],
-        ),
+        efzService: efzService,
         qualificationsService: _FakeHitobitoQualificationsService(
           eintraege: const <Qualifikation>[
             Qualifikation(id: 3, personId: 1, label: 'Woodbadge'),
@@ -1169,6 +1235,9 @@ void main() {
 
       expect(readModel.efzStand, TeildatenStand.geladen);
       expect(readModel.efzEinsichtnahmen.map((e) => e.id), <int>[1]);
+      expect(efzService.requestedFilters, <Map<String, String>>[
+        <String, String>{'filter[person_id]': '1'},
+      ]);
       expect(readModel.qualifikationenStand, TeildatenStand.geladen);
       expect(readModel.findeQualifikationen(1).single.label, 'Woodbadge');
     });
@@ -1405,16 +1474,25 @@ class _FakeHitobitoEfzService extends HitobitoEfzService {
 
   final List<EfzEinsichtnahme> eintraege;
   final Object? error;
+  final List<Map<String, String>> requestedFilters = <Map<String, String>>[];
 
   @override
-  Future<List<EfzEinsichtnahme>> fetchAlleEfzEinsichtnahmen(
-    String accessToken,
-  ) async {
+  Future<List<EfzEinsichtnahme>> fetchEfzEinsichtnahmen(
+    String accessToken, {
+    Map<String, String> filter = const <String, String>{},
+  }) async {
+    requestedFilters.add(filter);
     final error = this.error;
     if (error != null) {
       throw error;
     }
-    return eintraege;
+    final personIds = filter['filter[person_id]']?.split(',').toSet();
+    return eintraege
+        .where(
+          (eintrag) =>
+              personIds == null || personIds.contains('${eintrag.personId}'),
+        )
+        .toList();
   }
 }
 
@@ -1426,15 +1504,24 @@ class _FakeHitobitoQualificationsService extends HitobitoQualificationsService {
 
   final List<Qualifikation> eintraege;
   final Object? error;
+  final List<Map<String, String>> requestedFilters = <Map<String, String>>[];
 
   @override
-  Future<List<Qualifikation>> fetchAlleQualifikationen(
-    String accessToken,
-  ) async {
+  Future<List<Qualifikation>> fetchQualifikationen(
+    String accessToken, {
+    Map<String, String> filter = const <String, String>{},
+  }) async {
+    requestedFilters.add(filter);
     final error = this.error;
     if (error != null) {
       throw error;
     }
-    return eintraege;
+    final personIds = filter['filter[person_id]']?.split(',').toSet();
+    return eintraege
+        .where(
+          (eintrag) =>
+              personIds == null || personIds.contains('${eintrag.personId}'),
+        )
+        .toList();
   }
 }

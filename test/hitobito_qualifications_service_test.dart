@@ -66,7 +66,7 @@ void main() {
 
     final qualifikationen = await serviceMit(
       client,
-    ).fetchAlleQualifikationen('token-123');
+    ).fetchQualifikationen('token-123');
 
     // Eintrag 13 verweist auf eine unbekannte Art und wird uebersprungen.
     expect(qualifikationen.map((q) => q.id), <int>[11, 12]);
@@ -126,7 +126,7 @@ void main() {
         scopeString: 'openid email',
       ),
       httpClient: api.client,
-    ).fetchAlleQualifikationen('token-123');
+    ).fetchQualifikationen('token-123');
 
     expect(qualifikationen.map((q) => q.id).toSet(), hasLength(2500));
     expect(qualifikationen, hasLength(2500));
@@ -139,7 +139,7 @@ void main() {
     );
 
     await expectLater(
-      serviceMit(client).fetchAlleQualifikationen('token'),
+      serviceMit(client).fetchQualifikationen('token'),
       throwsA(
         isA<HitobitoQualificationsException>().having(
           (error) => error.statusCode,

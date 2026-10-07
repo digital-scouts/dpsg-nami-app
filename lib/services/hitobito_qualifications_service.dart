@@ -35,12 +35,13 @@ class HitobitoQualificationsService {
     config = nextConfig;
   }
 
-  /// Alle fuer den Token sichtbaren Qualifikationen. Die API kennt nur
-  /// Filter auf `person_id` und `qualification_kind_id`, daher wird die
-  /// Gesamtliste geladen und erst im Arbeitskontext eingeschraenkt.
-  Future<List<Qualifikation>> fetchAlleQualifikationen(
-    String accessToken,
-  ) async {
+  /// Qualifikationen, eingeschraenkt ueber [filter] (z.B.
+  /// `{'filter[person_id]': '1,2,3'}`). Der Filter wird auf jede Seite
+  /// gesetzt.
+  Future<List<Qualifikation>> fetchQualifikationen(
+    String accessToken, {
+    Map<String, String> filter = const <String, String>{},
+  }) async {
     final requestUri = config.qualificationsUri;
     if (requestUri == null) {
       throw const HitobitoQualificationsException(
@@ -52,7 +53,10 @@ class HitobitoQualificationsService {
     Uri? nextUri = requestUri;
 
     while (nextUri != null) {
-      final effectiveRequestUri = _decorateRequestUri(nextUri);
+      final effectiveRequestUri = withHitobitoListFilter(
+        _decorateRequestUri(nextUri),
+        filter,
+      );
       final decoded = await _fetchPage(
         requestUri: effectiveRequestUri,
         accessToken: accessToken,

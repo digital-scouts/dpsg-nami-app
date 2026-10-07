@@ -55,13 +55,14 @@ class HitobitoEfzService {
     );
   }
 
-  /// Laedt die komplette, fuer den Token sichtbare `efz_einsichtnahmen`-Liste
-  /// (paginiert). Wird von der Qualifikationen-Uebersichtsseite verwendet, da
-  /// die API keinen Batch-/"in"-Filter fuer `person_id` anbietet.
-  Future<List<EfzEinsichtnahme>> fetchAlleEfzEinsichtnahmen(
-    String accessToken,
-  ) {
-    return _fetchAll(accessToken);
+  /// EFZ-Einsichtnahmen, eingeschraenkt ueber [filter] (z.B.
+  /// `{'filter[person_id]': '1,2,3'}`). Der Filter wird auf jede Seite
+  /// gesetzt.
+  Future<List<EfzEinsichtnahme>> fetchEfzEinsichtnahmen(
+    String accessToken, {
+    Map<String, String> filter = const <String, String>{},
+  }) {
+    return _fetchAll(accessToken, extraQueryParameters: filter);
   }
 
   Future<List<EfzEinsichtnahme>> _fetchAll(

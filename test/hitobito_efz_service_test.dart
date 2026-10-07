@@ -124,7 +124,7 @@ void main() {
       config: _testConfig(),
       httpClient: client,
     );
-    final result = await service.fetchAlleEfzEinsichtnahmen('token-123');
+    final result = await service.fetchEfzEinsichtnahmen('token-123');
 
     expect(result, hasLength(2));
     expect(requestedUris, hasLength(2));
@@ -151,7 +151,7 @@ void main() {
       final result = await HitobitoEfzService(
         config: _testConfig(),
         httpClient: api.client,
-      ).fetchAlleEfzEinsichtnahmen('token-123');
+      ).fetchEfzEinsichtnahmen('token-123');
 
       expect(result.map((eintrag) => eintrag.id).toSet(), hasLength(2500));
       expect(result, hasLength(2500));
@@ -246,7 +246,7 @@ void main() {
       final result = await HitobitoEfzService(
         config: _testConfig(),
         httpClient: client,
-      ).fetchAlleEfzEinsichtnahmen('token');
+      ).fetchEfzEinsichtnahmen('token');
 
       expect(result.map((e) => (e.id, e.personId)), [(2, 42), (3, 7)]);
     },
