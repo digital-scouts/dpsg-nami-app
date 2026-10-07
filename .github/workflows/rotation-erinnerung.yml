@@ -1,0 +1,41 @@
+name: Schluessel-Rotation Erinnerung
+
+on:
+  schedule:
+    # Quartalsweise am 1. um 06:00 UTC (Januar, April, Juli, Oktober)
+    - cron: "0 6 1 1,4,7,10 *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  erinnern:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Issue anlegen, falls noch keines offen ist
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          TITEL="Schlüssel-Rotation prüfen"
+          offen=$(gh issue list --state open --search "\"$TITEL\" in:title" --json number --jq 'length')
+          if [ "$offen" != "0" ]; then
+            echo "Es gibt bereits ein offenes Issue, nichts zu tun."
+            exit 0
+          fi
+          cat > body.md <<'EOF'
+          Regelmäßige Erinnerung (alle 3 Monate). Bitte prüfen, ob Zugangsdaten rotiert werden müssen, und das Issue danach schließen.
+
+          - [ ] Schlüssel und Zugänge zu Drittanbieter-Diensten der App
+          - [ ] Zugangsdaten und Tokens für Deploy und Registry
+          - [ ] Zugänge zum Server und zur Datenbank
+          - [ ] Passwörter und Tokens für Admin und Berichte
+          - [ ] Signatur- und Store-Zugänge für die App
+          - [ ] Geheimnisse mit bekannter Offenlegung oder Verdacht sofort rotieren, nicht erst zum Termin
+          - [ ] Ergebnis und Datum der letzten Rotation festhalten (privat, nicht in diesem Issue)
+
+          Einzelheiten stehen nicht hier, sondern in den privaten Unterlagen.
+          EOF
+          sed -i 's/^          //' body.md
+          gh issue create --title "$TITEL" --body-file body.md
