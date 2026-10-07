@@ -39,6 +39,8 @@ Analytics and diagnostics events may include, for example:
 
 The app is designed so that no intentional transfer of member data in plain text should take place as part of these analytics events.
 
+Independently of the analytics setting, the app keeps local diagnostic logs on the device for up to seven days: an app log with technical events and a network log with one line per request to Hitobito (method, address and status code). The logs contain no request or response contents, no member names, addresses, contact details or coordinates; technical IDs of people and groups may appear in request addresses. The logs never leave the device automatically. A user can delete them or send them by e-mail to the developer from the app's debug tools.
+
 ## Nationwide statistics (optional)
 
 The app offers an optional nationwide comparison of Stamm figures. It is only active after the signed-in user has explicitly agreed to share the figures of a Stamm. Users who can see several Stämme give their consent for each Stamm separately. The consent applies only to that user and can be withdrawn at any time in the app settings or on the comparison page.
@@ -64,6 +66,8 @@ The app itself does not continuously collect precise location data for analytics
 For address-related features, user input may be sent to an external geocoding service to retrieve address suggestions. This happens only when the corresponding feature is used.
 
 For member detail maps and the map around the saved Stamm address, postal address data may also be sent to Geoapify to geocode the address. The app stores resulting coordinates locally on the device to reduce repeated requests. If no sufficiently precise address match can be determined, the app may also store a local "address not found" cache state for that address input to avoid repeated geocoding requests. Map tiles may additionally be cached locally for offline use and may be delivered via a configured tile provider such as MapTiler, with an OpenStreetMap-based fallback used if no explicit tile URL is configured.
+
+Stored coordinates and cached map tiles are deleted on logout, when the locally stored Hitobito data expires and when the app is reset.
 
 TODO: Before broader rollout of map features, refine this section and the in-app first-start notice with a more explicit consent flow for Privacy Policy acknowledgement.
 
