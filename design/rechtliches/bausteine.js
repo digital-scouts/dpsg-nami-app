@@ -70,6 +70,8 @@
     bug: 'M8 9h8v7a4 4 0 0 1-8 0zM9 9a3 3 0 0 1 6 0M4 13h4M16 13h4M5 8l3 2M19 8l-3 2M5 19l3-2M19 19l-3-2',
     users: 'M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 6.5M18 14a6 6 0 0 1 3.5 6',
     trash: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13',
+    sparkle: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z',
+    id: 'M3 5h18v14H3zM7 15h4M7 11h10',
   };
   const ico = (name, size = 20, cls = '') => `<svg class="ico ${cls}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${PFADE[name]}"/></svg>`;
   const lilie = (size, farbe) => `<svg class="lilie" width="${size}" height="${size}" viewBox="${L.viewBox}" aria-hidden="true"><g transform="${L.transform}"><path d="${L.d}" fill="${farbe}"/></g></svg>`;
@@ -176,9 +178,11 @@
   }
 
   function seiteD2(ctx) {
+    return `<div style="height:14px"></div>${anbieterKarte(true)}${d2Rest(ctx)}`;
+  }
+  function d2Rest(ctx) {
     const kacheln = EMPF.map((e) => `<div class="r-k">${quad(e.icon, e.farbe, 'klein', 16)}<b>${e.name}</b><small>${e.kurz}</small>${wann(e.wann)}</div>`).join('');
-    return `<div style="height:14px"></div>${anbieterKarte(true)}
-      ${sec('Welche Daten gehen wohin')}<div class="r-sec-u">Antippen für Zweck, Rechtsgrundlage und Speicherdauer.</div>
+    return `${sec('Welche Daten gehen wohin')}<div class="r-sec-u">Antippen für Zweck, Rechtsgrundlage und Speicherdauer.</div>
       <div class="r-kach">${kacheln}</div>
       <div style="height:16px"></div>
       <div class="card r-zeilen">
@@ -202,14 +206,14 @@
     </div>`;
   }
 
-  function seiteD3(ctx) {
-    const KURZ = [
+  const KURZ = [
       ['lock', 'Mitgliederdaten kommen aus Hitobito und liegen verschlüsselt nur auf deinem Gerät.'],
       ['shieldCheck', 'Statistik und Nutzungsanalyse gibt es nur mit deiner Einwilligung.'],
       ['send', 'Feedback und Log-Mails gehen nur raus, wenn du sie abschickst.'],
       ['globe', 'Karten und Update-Hinweise laden Daten von Anbietern; dabei wird deine IP&#8209;Adresse übertragen.'],
       ['mail', 'Fragen, Auskunft, Löschung: <span class="r-link">dev@jannecklange.de</span>'],
     ];
+  function seiteD3(ctx) {
     const zeilen = EMPF.map((e) => `<tr><td><b>${e.name}</b><small>${e.kurz}</small><div class="r-tab-z">${wann(e.wann)}<small>${e.grundlage.replace(/;.*$/, '').replace(/^deine /, '')}</small></div></td><td>${e.dauer === OFFEN ? '<span class="r-offen">folgt</span>' : e.id === 'statistik' ? '14 Monate' : e.id === 'hitobito' ? 'DPSG' : 'beim Anbieter'}</td></tr>`).join('');
     return `<div style="height:14px"></div>
       <div class="card r-kurz"><h4>Kurz gesagt</h4>${KURZ.map(([i, t]) => `<div class="r-kp">${ico(i, 17)}<span>${t}</span></div>`).join('')}</div>
@@ -327,7 +331,7 @@
       <g transform="translate(${r - is / 2} ${r - is / 2}) scale(${is / 24})"><path d="${PFADE[icon]}" fill="${erreicht && icon === 'star' ? motiv : 'none'}" stroke="${motiv}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
     </svg>`;
   }
-  function erfolge(ctx, { bewertung = null, hinweis = false } = {}) {
+  function erfolge(ctx, { bewertung = null, hinweis = false, mitgestalten = 'erreicht', hinweisMit = false } = {}) {
     // bewertung: null (Android, keine Kachel), 'offen', 'erreicht'
     const ios = ctx.plattform !== 'android';
     const zellen = [];
@@ -335,10 +339,11 @@
       const erreicht = bewertung === 'erreicht';
       zellen.push(`<div class="r-abz${erreicht ? '' : ' offen'}${!erreicht && hinweis ? ' markiert' : ''}">${abzeichen(ctx, 'star', erreicht)}<b>App bewertet</b>${!erreicht && hinweis ? `<small>Jetzt bewerten${ico('ext', 11)}</small>` : ''}</div>`);
     }
-    zellen.push(`<div class="r-abz">${abzeichen(ctx, 'forum', true)}<b>Mitgestalten</b></div>`);
+    const mitOffen = mitgestalten === 'offen';
+    zellen.push(`<div class="r-abz${mitOffen ? ' offen' : ''}${mitOffen && hinweisMit ? ' markiert' : ''}">${abzeichen(ctx, 'forum', !mitOffen)}<b>Mitgestalten</b>${mitOffen && hinweisMit ? `<small>Feedback geben${ico('ext', 11)}</small>` : ''}</div>`);
     const gesamt = ios ? 18 : 17;
-    const erreichtN = bewertung === 'erreicht' ? 5 : 4;
-    return `<div class="r-erf-sum">${abzeichen({ modus: 'hell' }, 'forum', true, 64)}<div style="flex:1"><b>${erreichtN} von ${gesamt} Erfolgen erreicht</b><small>Weiter so! Jeder Schritt zählt.</small><i style="--p:${Math.round((erreichtN / gesamt) * 100)}%"></i></div></div>
+    const erreichtN = 3 + (bewertung === 'erreicht' ? 1 : 0) + (mitOffen ? 0 : 1);
+    return `<div class="r-erf-sum">${abzeichen({ modus: 'hell' }, mitOffen ? 'fire' : 'forum', true, 64)}<div style="flex:1"><b>${erreichtN} von ${gesamt} Erfolgen erreicht</b><small>Weiter so! Jeder Schritt zählt.</small><i style="--p:${Math.round((erreichtN / gesamt) * 100)}%"></i></div></div>
       ${sec('Stufen')}<div class="r-set">
         <div class="r-stufenz">${abzeichen(ctx, 'fire', false, 44)}<div><b>Immer dabei</b><small>An 3 Tagen die App geöffnet</small></div>${ico('right', 18, 'muted')}</div>
         <div class="r-stufenz">${abzeichen(ctx, 'edit', false, 44)}<div><b>Daten gepflegt</b><small>1 Mitglied bearbeitet</small></div>${ico('right', 18, 'muted')}</div>
@@ -487,10 +492,84 @@
     return `<div class="r-vk">${karteSvg(b, h, { marker: 'lilien' })}<div class="r-suche">${ico('search', 18)}Stamm oder Ort suchen</div>${innen}</div>${leiste}`;
   }
 
+  // ------------------------------------------------------------- Runde 2
+  const kurzZeilen = (n) => KURZ.slice(0, n).map(([i, t]) => `<div class="r-kp">${ico(i, 17)}<span>${t}</span></div>`).join('');
+  // S1: „Kurz gesagt“ als eigene Karte, dann Anbieter, dann Kacheln. S2: Anbieter im „Kurz gesagt“-Block.
+  function seiteR2(ctx, variante) {
+    if (variante === 'S1') {
+      return `<div style="height:14px"></div><div class="card r-kurz"><h4>Kurz gesagt</h4>${kurzZeilen(5)}</div>
+        <div style="height:12px"></div>${anbieterKarte(true)}${d2Rest(ctx)}`;
+    }
+    return `<div style="height:14px"></div><div class="card r-kurz"><h4>Kurz gesagt</h4>${kurzZeilen(4)}
+        <div class="r-kurz-anb"><span class="r-av">JL</span><div><b>Janneck Lange</b><span class="r-link">${ico('mail', 14)}dev@jannecklange.de</span>
+          <small>Fragen, Auskunft, Löschung. Privates Projekt, nicht von der DPSG betrieben oder autorisiert.</small></div></div></div>${d2Rest(ctx)}`;
+  }
+  function einstiegE2(ctx) {
+    return `${sec('Entwicklung')}<div class="r-set"><div class="r-setz">${quad('bug', '#8E8E93', 'gross', 20)}<div><b>Debug & Tools</b><small>Fehlerberichte, Cache, Tools</small></div>${ico('right', 20)}</div></div>
+      <div class="r-fuss">Entwickelt mit <span class="herz">♥</span> in Hamburg<small>Version 1.0.0 (412)</small><div style="margin-top:8px"><span class="r-link r-markiert">Impressum & Datenschutz</span></div></div>`;
+  }
+
+  // Willkommen als Stepper. schritt: 'schutz' | 'daten' | 'intro'; schritte: Liste der Schritte (ohne Biometrie nur zwei).
+  const SCHRITTE = {
+    schutz: { icon: 'lock', titel: 'App schützen', inhalt: () => `<div class="r-text">Sperre die App mit Face ID, damit niemand ohne dich Mitgliederdaten sieht.</div>
+        <div class="r-opt"><div><b>App-Sperre mit Face ID</b><small>Beim Öffnen und nach kurzer Pause entsperren. Auf Android: Fingerabdruck.</small></div>${sw(false)}</div>
+        <div class="r-klein" style="margin-top:10px">Kannst du später in den App-Einstellungen ändern.</div>` },
+    daten: { icon: 'shieldCheck', titel: 'Daten und Datenschutz', inhalt: () => `<div class="r-text">Deine Mitgliederdaten kommen aus Hitobito und bleiben verschlüsselt auf diesem Gerät.</div>
+        <div class="r-opt"><div><b>Nutzungsanalyse</b><small>Nutzungsereignisse und Fehlerberichte an Wiredash senden. Jederzeit in den Einstellungen änderbar.</small></div>${sw(false)}</div>
+        <div class="r-opt" style="margin-top:8px"><div><b>Keine mobilen Daten</b><small>Synchronisation und Karten nur im WLAN laden.</small></div>${sw(false)}</div>
+        <span class="r-linkzeile">${ico('shield', 16)}Impressum & Datenschutz${ico('right', 15)}</span>` },
+    intro: { icon: 'sparkle', titel: 'Kurze Einführung?', inhalt: () => `<div class="r-text">Möchtest du eine kurze Einführung? Sie zeigt dir in einer Minute, wo du Mitglieder, Statistik und Stufenwechsel findest.</div>` },
+  };
+  function punkte(n, aktiv) {
+    return `<div class="r-punkte">${Array.from({ length: n }, (_, i) => `<i class="${i === aktiv ? 'on' : i < aktiv ? 'fertig' : ''}"></i>`).join('')}</div>`;
+  }
+  function balkenSchritte(n, aktiv) {
+    return `<div class="r-fort">${Array.from({ length: n }, (_, i) => `<i class="${i <= aktiv ? 'on' : ''}"></i>`).join('')}</div>`;
+  }
+  function willkommenStepper(ctx, variante, schritt, schritte = ['schutz', 'daten', 'intro']) {
+    const i = schritte.indexOf(schritt);
+    const n = schritte.length;
+    const S = SCHRITTE[schritt];
+    const letzter = i === n - 1;
+    const zurueck = i > 0 ? '<span class="r-btn text">Zurück</span>' : '<span></span>';
+    if (variante === 'WS1') {
+      const akt = letzter
+        ? `<div class="r-akt gestapelt"><span class="r-btn filled breit">Ja, zeig mir die App</span><span class="r-btn tonal breit">Nein, direkt loslegen</span></div><div class="r-akt" style="justify-content:flex-start;margin-top:4px">${zurueck}</div>`
+        : `<div class="r-akt" style="justify-content:space-between">${zurueck}<span class="r-btn filled">Weiter</span></div>`;
+      return `<div class="r-dim"></div><div class="r-dlg r-stepdlg">
+        ${punkte(n, i)}
+        <div class="r-dlg-ico">${i === 0 ? lilie(36, 'var(--primary)') : `<span class="r-rundico">${ico(S.icon, 24)}</span>`}</div>
+        ${i === 0 ? '<div class="r-gruss">Willkommen!</div>' : ''}
+        <h3 style="text-align:center">${S.titel}</h3>
+        <div class="r-step-in">${S.inhalt()}</div>
+        <div class="r-step-fuss">${akt}</div></div>`;
+    }
+    const akt = letzter
+      ? `<span class="r-btn filled breit">Ja, zeig mir die App</span><span class="r-btn tonal breit" style="margin-top:8px">Nein, direkt loslegen</span>${i > 0 ? '<span class="r-btn text breit" style="margin-top:2px">Zurück</span>' : ''}`
+      : `<span class="r-btn filled breit">Weiter</span>${i > 0 ? '<span class="r-btn text breit" style="margin-top:2px">Zurück</span>' : '<span class="r-btn text breit" style="margin-top:2px;visibility:hidden">Zurück</span>'}`;
+    return `<div class="r-voll-dlg">
+      ${balkenSchritte(n, i)}<div class="r-schritt-t">Schritt ${i + 1} von ${n}</div>
+      <div class="r-voll-kopf">${i === 0 ? `<span class="r-bs-logo">${lilie(34, '#ffffff')}</span>` : `<span class="r-rundico gross">${ico(S.icon, 28)}</span>`}
+        ${i === 0 ? '<div class="r-gruss" style="text-align:left">Willkommen!</div>' : ''}<h3>${S.titel}</h3></div>
+      <div class="r-step-in">${S.inhalt()}</div>
+      <div class="r-voll-fuss">${akt}</div></div>`;
+  }
+
+  // Mitglied-Detail für den I2-Zeitpunkt
+  function mitgliedDetail(ctx) {
+    const z = (icon, w, l) => `<div class="r-setz">${quad(icon, 'var(--primary)', 'klein', 15)}<div><b style="font-weight:500">${w}</b><small>${l}</small></div></div>`;
+    return `<div class="r-md-kopf"><span class="av gross">LB</span><div><b>Lena „Funke“ Brandt</b><small>Leiterin · Trupp Kompass</small></div></div>
+      ${sec('Kontakt')}<div class="r-set">${z('device', '+49 170 1234567', 'Mobil')}${z('mail', 'lena.brandt@example.org', 'E-Mail')}</div>
+      ${sec('Adresse')}<div class="r-set">${z('pin', 'Lindenstraße 12', '12345 Musterstadt')}</div>
+      ${sec('Mitgliedschaft')}<div class="r-set">${z('users', 'Seit 01.04.2004', 'Eintritt')}${z('id', '4711203', 'Mitgliedsnummer')}</div>`;
+  }
+  const snack = (text) => `<div class="r-snack">${text}</div>`;
+
   window.RBAU = {
     esc, ico, lilie, sec, farbenEinfuegen, telefon, panel, kopf, kopfOhne, tabbarMitglieder,
     EMPF, seiteD1, seiteD2, sheetD2, seiteD3, einstellungen, mitgliederliste, willkommen,
     feedbackDialog, iosReview, playReview, erfolge, abzeichenSheet, wiredash, wiredashText,
     bundHintergrund, einwilligung, transparenz, adresskarte, vollkarte,
+    seiteR2, einstiegE2, willkommenStepper, mitgliedDetail, snack,
   };
 })();

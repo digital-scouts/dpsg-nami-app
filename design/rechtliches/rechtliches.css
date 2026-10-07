@@ -266,3 +266,47 @@
 .r-wd-app .mini { box-sizing:border-box; }
 .r-wd-in .r-akt { flex-wrap:nowrap; }
 .r-wd-in .r-akt .r-btn { padding:10px 14px; font-size:13.5px; }
+
+/* ---------- Runde 2 ---------- */
+.r-kurz-anb { display:flex; gap:12px; align-items:flex-start; margin-top:20px; }
+.r-kurz-anb .r-av { width:38px; height:38px; font-size:13.5px; background:var(--surface); }
+.r-kurz-anb b { display:block; font-size:15px; }
+.r-kurz-anb .r-link { display:inline-flex; align-items:center; gap:5px; font-size:13.5px; }
+.r-kurz-anb small { display:block; font-size:12px; color:var(--fg2); line-height:1.4; margin-top:3px; }
+.r-markiert { outline:2px dashed #e0703a; outline-offset:4px; border-radius:4px; }
+/* Stepper im Dialog (WS1) */
+.r-stepdlg { height:600px; display:flex; flex-direction:column; padding-top:18px; box-sizing:border-box; }
+.r-step-in { flex:1; }
+.r-step-fuss { margin-top:auto; }
+.r-stepdlg .r-akt { margin-top:14px; }
+.r-stepdlg h3 { margin-bottom:12px; }
+.r-punkte { display:flex; justify-content:center; gap:6px; margin-bottom:16px; }
+.r-punkte i { width:8px; height:8px; border-radius:4px; background:var(--border); }
+.r-punkte i.fertig { background:color-mix(in srgb, var(--primary) 45%, var(--border)); }
+.r-punkte i.on { width:22px; background:var(--primary); }
+.dunkel .r-punkte i:not(.on):not(.fertig) { background:#3a3a48; }
+.r-rundico { width:48px; height:48px; border-radius:50%; background:var(--primary-lite); color:var(--primary); display:flex; align-items:center; justify-content:center; }
+.r-rundico.gross { width:56px; height:56px; border-radius:16px; }
+.r-gruss { text-align:center; font-size:13px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--primary); margin:-4px 0 4px; }
+/* Stepper als Vollbild-Dialog (WS2) */
+.r-voll-dlg { position:absolute; left:0; right:0; top:50px; bottom:0; background:var(--dlg); z-index:4; padding:14px 24px 30px; display:flex; flex-direction:column; }
+.screen.android .r-voll-dlg { top:40px; }
+.r-fort { display:flex; gap:6px; }
+.r-fort i { flex:1; height:4px; border-radius:2px; background:var(--border); }
+.r-fort i.on { background:var(--primary); }
+.dunkel .r-fort i:not(.on) { background:#3a3a48; }
+.r-schritt-t { font-size:12.5px; font-weight:600; color:var(--muted); margin:8px 0 26px; }
+.r-voll-kopf h3 { font-size:28px; font-weight:700; letter-spacing:-.015em; margin:14px 0 14px; line-height:1.15; }
+.r-voll-kopf .r-gruss { margin:16px 0 -10px; }
+.r-voll-dlg .r-text { font-size:15px; color:var(--fg2); }
+.r-voll-fuss { margin-top:auto; display:flex; flex-direction:column; }
+.dunkel .r-voll-dlg .r-opt { background:#32323f; }
+.dunkel .r-rundico { background:#2b3550; }
+/* Mitglied-Detail */
+.r-md-kopf { display:flex; gap:14px; align-items:center; margin:16px 4px 0; }
+.r-md-kopf b { display:block; font-size:20px; font-weight:700; }
+.r-md-kopf small { display:block; font-size:13px; color:var(--fg2); }
+.r-notiz { font-size:12.5px; line-height:1.4; color:#4a3f1c; background:#fff8e6; border:1px solid #efd9a2; border-radius:10px; padding:8px 10px; margin-top:8px; max-width:390px; box-sizing:border-box; }
+.r-pfeil { align-self:center; font-size:30px; color:#8a877c; }
+.r-abz { width:116px; }
+.r-abz small { white-space:nowrap; }
