@@ -128,7 +128,7 @@ Ein Restore holt auch Installationen zurück, die seit dem Backup auf Anfrage ge
 
 ## Anfragen Betroffener
 
-Der Server kennt keine Personen, nur das Pseudonym der Installations-ID. Die ID steht in der App auf der Seite Bundesvergleich (Anzeige folgt mit der App-Änderung zur Datenschutzseite); wer Auskunft oder Löschung möchte, schreibt sie per Mail an die Kontaktadresse der Datenschutzerklärung. Ohne ID ist keine Zuordnung möglich (Art. 11 DSGVO), nach einem App-Reset ist sie verloren.
+Der Server kennt keine Personen, nur das Pseudonym der Installations-ID. Die ID steht in der App auf der Seite Bundesvergleich und im Statistikserver-Eintrag unter Impressum & Datenschutz; wer Auskunft oder Löschung möchte, schreibt sie per Mail an die Kontaktadresse der Datenschutzerklärung. Ohne ID ist keine Zuordnung möglich (Art. 11 DSGVO), nach einem App-Reset ist sie verloren.
 
 ```bash
 cd /opt/nami-statistics
