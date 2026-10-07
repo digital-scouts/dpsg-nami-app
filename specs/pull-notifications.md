@@ -78,8 +78,9 @@ Regeln:
 
 ### Quelle und Laden
 
-- Quelle bleibt eine JSON-Datei über URL aus `.env`.
-- Cache-first mit gedrosseltem Remote-Check.
+- Quelle bleibt eine JSON-Datei über URL aus `.env`: `docs/notifications.json`, ausgeliefert über GitHub Pages (`https://digital-scouts.github.io/dpsg-nami-app/notifications.json`) wie `version.json`. Neue Mitteilungen entstehen durch einen Commit auf `master`.
+- Die App akzeptiert nur https-URLs (http nur für Loopback in Tests) und bricht nach 5 s ab.
+- Cache-first mit gedrosseltem Remote-Check. Das Intervall gilt auch nach einem fehlgeschlagenen Abruf.
 
 ### Externe Felder
 

@@ -139,6 +139,7 @@ class StorySignedInScope extends StatefulWidget {
 class _StorySignedInScopeState extends State<StorySignedInScope> {
   late final AuthSessionModel _authModel;
   late final ArbeitskontextModel _arbeitskontextModel;
+  final LoggerService _logger = _FakeLoggerService();
   late final Future<void> _initializeFuture;
 
   @override
@@ -210,6 +211,7 @@ class _StorySignedInScopeState extends State<StorySignedInScope> {
             ChangeNotifierProvider<ArbeitskontextModel>.value(
               value: _arbeitskontextModel,
             ),
+            Provider<LoggerService>.value(value: _logger),
           ],
           child: widget.child,
         );

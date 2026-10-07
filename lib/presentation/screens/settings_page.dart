@@ -465,16 +465,17 @@ class _SettingsPageState extends State<SettingsPage> {
                               ),
                               if (widget.onDebugTools != null) ...[
                                 const SizedBox(height: 12),
-                                const DpsgSectionHeader(label: 'Entwicklung'),
+                                DpsgSectionHeader(
+                                  label: t.t('settings_help_section'),
+                                ),
                                 Card(
                                   margin: EdgeInsets.zero,
                                   child: _SettingsNavTile(
-                                    icon: Icons.bug_report,
-                                    iconBackgroundColor: const Color(
-                                      0xFF8E8E93,
-                                    ),
-                                    title: t.t('settings_debug_tools'),
-                                    subtitle: 'Fehlerberichte, Cache, Tools',
+                                    icon: Icons.help_outline,
+                                    iconBackgroundColor:
+                                        theme.colorScheme.tertiary,
+                                    title: t.t('settings_help'),
+                                    subtitle: t.t('settings_help_hint'),
                                     onTap: widget.onDebugTools,
                                   ),
                                 ),

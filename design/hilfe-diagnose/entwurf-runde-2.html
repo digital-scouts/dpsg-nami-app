@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Hilfe & Diagnose – Entwurf Runde 2</title>
+<style>
+  :root { --bg:#F5F5F7; --surface:#FFFFFF; --fg:#1C1C1E; --fg2:#6b6b72; --muted:#8E8E93; --border:#E5E5EA; --primary:#003056; --on-primary:#fff; --primary-lite:#E8EDF5; --error:#CC1F2F; --tertiary:#6b4e9b; }
+  .dark { --bg:#0E0E12; --surface:#1A1A22; --fg:#F0F0F5; --fg2:#a9a9b6; --muted:#8A8A9A; --border:#2E2E3A; --primary:#5A9AD8; --on-primary:#0E0E12; --primary-lite:#1A253A; --error:#FF5050; --tertiary:#b49be0; }
+  body { margin:0; background:#eceae4; color:#1f1f1c; font:16px/1.5 system-ui,-apple-system,sans-serif; }
+  main { max-width:1600px; margin:0 auto; padding:24px 28px 120px; }
+  h1 { font-size:1.9rem; margin:0 0 .3rem; } h2 { font-size:1.4rem; margin:34px 0 .2rem; }
+  .lead, .desc { color:#4a4943; max-width:92ch; margin:0 0 12px; }
+  .bar { position:sticky; top:0; z-index:5; background:rgba(236,234,228,.95); backdrop-filter:blur(8px); border-bottom:1px solid #d6d3c9; padding:10px 28px; display:flex; gap:18px; align-items:center; font-size:14px; }
+  .tgl { display:inline-flex; background:#dcd9cf; border-radius:999px; padding:3px; }
+  .tgl button { border:0; background:none; font:inherit; font-size:13px; padding:4px 12px; border-radius:999px; cursor:pointer; }
+  .tgl button.on { background:#003056; color:#fff; }
+  .reihe { display:flex; gap:28px; flex-wrap:wrap; align-items:flex-start; }
+  figure { margin:0; width:318px; } figcaption { font-size:13px; color:#5d5b54; margin-top:10px; } figcaption b { color:#1f1f1c; }
+  .tag { font-size:.72rem; font-weight:600; background:#e2dccb; color:#6b5520; border-radius:999px; padding:1px 9px; margin-left:4px; }
+  .screen { width:300px; min-height:650px; border-radius:40px; overflow:hidden; background:var(--bg); color:var(--fg); box-shadow:0 0 0 9px #1c1c1e, 0 16px 36px rgba(0,0,0,.25); position:relative; margin:9px; font:14px/1.35 system-ui,-apple-system,sans-serif; display:flex; flex-direction:column; }
+  .status { height:40px; flex:none; display:flex; align-items:center; justify-content:space-between; padding:0 24px; font-size:12.5px; font-weight:600; position:relative; }
+  .status .island { position:absolute; left:50%; top:9px; transform:translateX(-50%); width:90px; height:26px; border-radius:13px; background:#000; }
+  .hdr { padding:4px 16px 10px; display:flex; align-items:center; gap:10px; flex:none; }
+  .hdr .back { color:var(--primary); font-size:24px; line-height:1; }
+  .hdr b { font-size:19px; }
+  .hdr.gross b { font-size:26px; }
+  .body { flex:1; padding-bottom:22px; }
+  .sec { font-size:12px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--fg2); margin:14px 18px 6px; }
+  .karte { background:var(--surface); margin:0 12px; border-radius:14px; overflow:hidden; }
+  .z { display:flex; align-items:center; gap:11px; padding:10px 12px; border-bottom:1px solid var(--border); }
+  .z:last-child { border-bottom:0; }
+  .ico { width:30px; height:30px; border-radius:9px; background:var(--primary); color:#fff; display:grid; place-items:center; font-size:15px; flex:none; }
+  .ico.t { background:var(--tertiary); } .ico.g { background:#8E8E93; } .ico.r { background:var(--error); }
+  .z .tx { flex:1; min-width:0; } .z .tx b { display:block; font-size:14px; font-weight:600; } .z .tx small { font-size:12px; color:var(--fg2); }
+  .z .chev { color:var(--muted); font-size:18px; }
+  .z.neu { box-shadow:inset 3px 0 0 #f2c26b; }
+  .knopf { margin:8px 12px 0; display:flex; gap:8px; flex-wrap:wrap; }
+  .knopf span { font-size:12.5px; font-weight:600; border:1.5px solid var(--border); border-radius:999px; padding:5px 11px; background:var(--surface); color:var(--primary); }
+  .knopf span.rot { color:var(--error); }
+  .info { margin:0 12px; background:var(--surface); border-radius:14px; padding:10px 12px; font-size:12.5px; color:var(--fg2); }
+  .info b { color:var(--fg); }
+  .fuss { text-align:center; margin-top:14px; font-size:12px; color:var(--muted); }
+  .fuss .link { color:var(--primary); font-weight:600; display:inline-flex; gap:5px; margin:0 6px; }
+  .dev { margin:16px 12px 0; border:1.5px dashed #c9a74a; border-radius:14px; padding:2px 0 8px; }
+  .dev .sec { color:#8a6a10; }
+  .feedback { position:fixed; left:0; right:0; bottom:0; background:#1f1f1c; color:#fff; padding:10px 28px; display:flex; gap:14px; align-items:center; font-size:14px; flex-wrap:wrap; z-index:9; }
+  .feedback select, .feedback input { font:inherit; font-size:13px; padding:4px 8px; border-radius:8px; border:0; }
+  .feedback input { flex:1; min-width:240px; }
+  .feedback button { font:inherit; font-size:13px; padding:6px 14px; border-radius:999px; border:0; background:#f2c26b; color:#1f1f1c; cursor:pointer; font-weight:600; }
+  .open { background:#fff8e6; border:1px solid #efd9a2; border-radius:12px; padding:10px 16px; max-width:980px; font-size:14px; color:#4a3f1c; }
+  .open li { margin:.15rem 0; }
+</style>
+</head>
+<body>
+<div class="bar"><b>Hilfe & Diagnose · Runde 2</b>
+  <span class="tgl" id="modus"><button class="on" data-m="hell">Hell</button><button data-m="dunkel">Dunkel</button></span>
+</div>
+<main>
+  <h1>Hilfe & Diagnose: Seite klarer gliedern</h1>
+  <p class="lead">Einstieg E1 ist gesetzt (Abschnitt „Hilfe“), Offline-Karten bleiben im Release. Runde 1 wirkte unruhig: zu viele lose Knöpfe ohne Gliederung. Alle drei Varianten hier nutzen deshalb nur Zeilen wie auf der Einstellungsseite, mit Symbol, Titel und Kurztext, und höchstens vier Gruppen. Löschende Aktionen stehen immer zuletzt und rot.</p>
+  <div class="open"><ul>
+    <li>„Problem melden“ öffnet die Mail mit dem App-Protokoll der letzten 24 Stunden, wie heute „Report Issue“ in der Protokollansicht. Vorher sieht man Empfänger und Anhang.</li>
+    <li>„Feedback-Dialog zeigen“, Supporter-Schalter und die übrigen Entwicklerteile erscheinen nur in Debug- und Profile-Builds als eigene Gruppe „Entwicklung“ ganz unten (nicht dargestellt).</li>
+  </ul></div>
+  <div class="reihe" id="teil2"></div>
+</main>
+
+<div class="feedback"><b>Rückmeldung</b>
+  <label>Seite <select id="w2"><option>G1</option><option>G2</option><option>G3</option></select></label>
+  <input id="kommentar" placeholder="Kommentar">
+  <button id="kopieren">Auswahl kopieren</button><span id="kopiert"></span>
+</div>
+
+<script>
+let modus = 'hell';
+const status = `<div class="status"><span>9:41</span><span class="island"></span><span>●●●</span></div>`;
+const z = (ico, titel, sub, cls = '', icls = '') => `<div class="z ${cls}"><div class="ico ${icls}">${ico}</div><div class="tx"><b>${titel}</b>${sub ? `<small>${sub}</small>` : ''}</div><span class="chev">›</span></div>`;
+const telefon = (kopf, inhalt) => `<div class="screen ${modus === 'dunkel' ? 'dark' : ''}">${status}${kopf}<div class="body">${inhalt}</div></div>`;
+const kopfSettings = `<div class="hdr gross"><b>Einstellungen</b></div>`;
+const kopfSeite = (t) => `<div class="hdr"><span class="back">‹</span><b>${t}</b></div>`;
+const settingsOben = `<div class="sec">Einstellungen</div><div class="karte">
+  ${z('⌂', 'Stamm', 'Daten, Altersgrenzen')}${z('⚙', 'App', 'Sperre, Analyse, mobile Daten')}${z('◐', 'Erscheinungsbild', 'Farben, Icon, Hintergrund')}${z('♪', 'Benachrichtigungen', 'Geburtstage, Erinnerungen')}</div>`;
+const fussHeute = `<div class="fuss"><span class="link">🛡 Impressum & Datenschutz</span><br>Version: 1.0.0</div>`;
+
+function render() {
+  const sub = (t) => `<div class="hdr"><span class="back">‹</span><b>${t}</b></div>`;
+  const g1 = `
+    <div class="sec">Hilfe</div><div class="karte">
+      ${z('✉', 'Problem melden', 'Protokoll per Mail an den Entwickler', '', 't')}
+      ${z('✎', 'Feedback senden', 'Idee, Lob oder Fehler')}
+      ${z('★', 'App bewerten', '')}</div>
+    <div class="sec">Daten</div><div class="karte">
+      ${z('↻', 'Daten jetzt aktualisieren', 'Zuletzt heute 08:12')}
+      ${z('⧗', 'Wartende Änderungen', 'Keine')}</div>
+    <div class="sec">Protokolle</div><div class="karte">
+      ${z('☰', 'App-Log', '142 Einträge heute')}
+      ${z('⇄', 'Traffic-Log', '38 Anfragen heute')}</div>
+    <div class="sec">Speicher</div><div class="karte">
+      ${z('▦', 'Offline-Karten', '12 MB')}
+      ${z('✕', 'Kartendaten löschen', '', '', 'g')}
+      ${z('✕', 'Adress-Cache löschen', '', '', 'g')}
+      ${z('⚠', 'App zurücksetzen', 'Alle Daten auf diesem Gerät löschen', '', 'r')}</div>`;
+  const g2haupt = `
+    <div class="karte" style="margin-top:6px">
+      ${z('✉', 'Problem melden', 'Protokoll per Mail an den Entwickler', '', 't')}
+      ${z('✎', 'Feedback senden', 'Idee, Lob oder Fehler')}</div>
+    <div class="sec">Bereiche</div><div class="karte">
+      ${z('↻', 'Daten & Synchronisation', 'Aktuell · keine wartenden Änderungen')}
+      ${z('☰', 'Protokolle', 'App-Log und Traffic-Log')}
+      ${z('▦', 'Speicher & Karten', 'Offline-Karten, Caches, Zurücksetzen')}</div>`;
+  const g2speicher = `
+    <div class="sec">Karten</div><div class="karte">
+      ${z('▦', 'Offline-Karten', '12 MB')}
+      ${z('✕', 'Kartendaten löschen', '', '', 'g')}
+      ${z('✕', 'Adress-Cache löschen', '', '', 'g')}</div>
+    <div class="sec">Gerät</div><div class="karte">
+      ${z('⚠', 'App zurücksetzen', 'Alle Daten auf diesem Gerät löschen', '', 'r')}</div>`;
+  const g3 = `
+    <div class="karte" style="margin-top:6px;padding:14px 14px 12px">
+      <div style="display:flex;gap:10px;align-items:center"><div class="ico" style="background:#00823C">✓</div><div><b style="font-size:15px">Alles in Ordnung</b><br><small style="color:var(--fg2)">Daten von heute 08:12 · keine wartenden Änderungen</small></div></div>
+      <div style="margin-top:12px;display:flex;justify-content:center;background:var(--primary);color:var(--on-primary);border-radius:999px;padding:9px;font-weight:600;font-size:14px">Problem melden</div>
+    </div>
+    <div class="sec">Werkzeuge</div><div class="karte">
+      ${z('↻', 'Daten jetzt aktualisieren', '')}
+      ${z('☰', 'Protokolle', 'App-Log und Traffic-Log')}
+      ${z('✎', 'Feedback & Bewertung', '')}
+      ${z('▦', 'Offline-Karten', '12 MB')}</div>
+    <div class="sec">Speicher freigeben</div><div class="karte">
+      ${z('✕', 'Karten- und Adress-Cache löschen', '', '', 'g')}
+      ${z('⚠', 'App zurücksetzen', 'Alle Daten auf diesem Gerät löschen', '', 'r')}</div>`;
+  document.getElementById('teil2').innerHTML = [
+    ['G1 · Vier Gruppen, alles auf einer Seite', 'Hilfe, Daten, Protokolle, Speicher. Jede Aktion ist eine Zeile, nichts klappt auf.', sub('Hilfe & Diagnose'), g1],
+    ['G2 · Übersicht mit Unterseiten', 'Oben die zwei häufigsten Aktionen, darunter drei Bereiche, die je eine eigene, kurze Seite öffnen.', sub('Hilfe & Diagnose'), g2haupt],
+    ['G2 · Unterseite „Speicher & Karten“', 'So sieht ein Bereich aus, wenn man ihn öffnet.', sub('Speicher & Karten'), g2speicher],
+    ['G3 · Status zuerst', 'Oben eine Statuskarte mit „Problem melden“. Darunter nur zwei Gruppen, die Caches in einer Zeile zusammengefasst.', sub('Hilfe & Diagnose'), g3],
+  ].map(([t, d, kopf, inhalt]) => `<figure>${telefon(kopf, inhalt)}<figcaption><b>${t}</b><br>${d}</figcaption></figure>`).join('');
+}
+document.getElementById('modus').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  [...e.currentTarget.children].forEach((x) => x.classList.toggle('on', x === b));
+  modus = b.dataset.m; render();
+});
+render();
+document.getElementById('kopieren').addEventListener('click', async () => {
+  const text = `Hilfe & Diagnose Runde 2: Seite ${document.getElementById('w2').value}. ${document.getElementById('kommentar').value}`.trim();
+  try { await navigator.clipboard.writeText(text); document.getElementById('kopiert').textContent = 'kopiert'; } catch { prompt('Zum Kopieren:', text); }
+});
+</script>
+</body>
+</html>

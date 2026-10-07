@@ -29,6 +29,7 @@ import 'package:storybook_flutter/storybook_flutter.dart';
 import 'presentation/theme/theme.dart';
 import 'stories/app_sperre_story.dart';
 import 'stories/appearance_story.dart';
+import 'stories/hilfe_diagnose_story.dart';
 import 'stories/confetti_overlay_story.dart';
 import 'stories/member_basis_info_card_story.dart';
 import 'stories/member_basis_story.dart';
@@ -74,6 +75,8 @@ List<Story> buildStorybookStories() {
     appSidebarStory(),
     appSnackbarStory(),
     appSperreStory(),
+    hilfeDiagnoseStory(),
+    problemMeldenSheetStory(),
     abmeldungHinweisKarteStory(),
     feedbackPromptDialogStory(),
     demoZugangSheetStory(),

@@ -69,7 +69,7 @@ Die App prüft höchstens alle zwölf Stunden eine Datei auf GitHub Pages, ob es
 
 ## Protokolle per E-Mail
 
-In den Debug-Tools kannst du die Protokolle selbst per E-Mail an den Entwickler senden. Die Mail verschickt dein eigenes Mailprogramm, du siehst Empfänger und Anhänge vorher. Die Protokolle werden nach Abschluss der Fehlersuche gelöscht.
+Unter Einstellungen → Hilfe & Diagnose kannst du mit „Problem melden“ deine Angaben und das App-Protokoll der letzten 24 Stunden per E-Mail an den Entwickler senden; die Protokolle lassen sich dort auch einzeln teilen. Die Mail verschickt dein eigenes Mailprogramm, du siehst Empfänger und Anhänge vorher. Die Protokolle werden nach Abschluss der Fehlersuche gelöscht.
 
 ## App-Stores
 
