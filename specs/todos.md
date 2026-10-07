@@ -130,7 +130,7 @@ Gesammelt am 2026-10-01, jeweils mit Kurzbefund. Jede Stufe wird vor der Umsetzu
 **Monetarisierung**
 
 - Ein einziges Supporter-Paket mit Paletten, Icons und Badge. Später kommen gegebenenfalls Events und NaMi AI hinzu.
-- Eine Store-Anbindung (`in_app_purchase` oder RevenueCat) ersetzt `UnlockedSupportAccess`.
+- Eine Store-Anbindung (`in_app_purchase` oder RevenueCat) ersetzt `SchalterSupportAccess` außerhalb des Demo-Modus.
 - Den Erfolg „Unterstützung“ einblenden.
 - Vorher den rechtlichen Rahmen klären.
 
@@ -159,6 +159,7 @@ Gesammelt am 2026-10-01, jeweils mit Kurzbefund. Jede Stufe wird vor der Umsetzu
 - Den 1.0.0-Eintrag in `assets/changelog.json` auf den tatsächlichen Umfang bringen.
 - `README.md` korrigieren: „Mitglieder erstellen“ beschreibt den Altstand.
 - Crash-Reporting entscheiden.
+- Store-Anbindung für Supporter-Pakete umsetzen, bevor die neuen Store-Texte („Kostenlos im Kern“, Qualifikationen-Übersicht als Extra) sichtbar werden. Danach den Testschalter `supporterTestZugang` aus Release-Builds nehmen und den DSA-Händlerstatus in App Store Connect und Play Console angeben (A-61).
 
 ## Später prüfen: Arbeitskontext-Ausbau
 
