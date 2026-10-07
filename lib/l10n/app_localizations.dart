@@ -553,6 +553,9 @@ class AppLocalizations {
       'auth_not_configured_body':
           'OAuth ist noch nicht konfiguriert. Hinterlege die Hitobito-Zugangsdaten in der .env, um den Login zu aktivieren.',
       'auth_login_action': 'Mit Hitobito anmelden',
+      'auth_logout_rights_changed_title': 'Rechte geändert',
+      'auth_logout_rights_changed_body':
+          'Die App hat dich abgemeldet und die gespeicherten Daten gelöscht, weil sich deine Rechte in Hitobito geändert haben. Melde dich neu an, um den aktuellen Stand zu laden.',
       'demo_start_action': 'Demo ansehen',
       'demo_start_hint':
           'Ohne Login ausprobieren: erfundene Stämme, nur lesend, keine echten Daten.',
@@ -1797,6 +1800,9 @@ class AppLocalizations {
       'auth_not_configured_body':
           'OAuth is not configured yet. Add the Hitobito credentials to the .env file to enable sign-in.',
       'auth_login_action': 'Sign in with Hitobito',
+      'auth_logout_rights_changed_title': 'Permissions changed',
+      'auth_logout_rights_changed_body':
+          'The app signed you out and deleted the stored data because your permissions in Hitobito changed. Sign in again to load the current data.',
       'demo_start_action': 'Try the demo',
       'demo_start_hint':
           'Explore without signing in: fictional groups, read-only, no real data.',
