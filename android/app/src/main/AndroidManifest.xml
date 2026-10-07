@@ -26,7 +26,9 @@
   </queries>
 
   <application android:label="NaMi" android:icon="@mipmap/ic_launcher"
-    android:roundIcon="@mipmap/ic_launcher_round" android:allowBackup="false">
+    android:roundIcon="@mipmap/ic_launcher_round" android:allowBackup="false"
+    android:dataExtractionRules="@xml/data_extraction_rules"
+    android:fullBackupContent="@xml/backup_rules">
     <receiver android:exported="false"
       android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
     <receiver android:exported="false"
