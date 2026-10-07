@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/stories/achievements_story.dart';
+import 'package:nami/stories/app_log_view_story.dart';
 import 'package:nami/stories/app_bottom_navigation_story.dart';
 import 'package:nami/stories/app_sidebar_story.dart';
 import 'package:nami/stories/app_snackbar_story.dart';
@@ -122,6 +123,7 @@ List<Story> buildStorybookStories() {
     settingsNotificationPageDisabledStory(),
     settingsMapPageStory(),
     hitobitoTrafficLogViewStory(),
+    appLogViewStory(),
     buildSettingsStammPageStory(),
     stammAddressSettingsStory(),
     stufenwechselSettingsStory(),

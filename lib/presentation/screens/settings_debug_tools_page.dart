@@ -15,6 +15,7 @@ import 'package:nami/presentation/model/member_edit_model.dart';
 import 'package:nami/presentation/notifications/app_snackbar.dart';
 import 'package:nami/presentation/notifications/feedback_prompt_dialog.dart';
 import 'package:nami/presentation/screens/changelog_page.dart';
+import 'package:nami/presentation/widgets/app_log_view.dart';
 import 'package:nami/presentation/widgets/hitobito_traffic_log_view.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -731,26 +732,19 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                                       settings: const RouteSettings(
                                         name: '/settings/debug/logs',
                                       ),
-                                      builder: (_) => isTraffic
-                                          ? Scaffold(
-                                              appBar: AppBar(
-                                                title: Text(title),
-                                                actions: [
-                                                  _ShareLogsButton(
-                                                    files: files,
-                                                  ),
-                                                ],
-                                              ),
-                                              body: HitobitoTrafficLogView(
+                                      builder: (_) => Scaffold(
+                                        appBar: AppBar(
+                                          title: Text(title),
+                                          actions: [
+                                            _ShareLogsButton(files: files),
+                                          ],
+                                        ),
+                                        body: isTraffic
+                                            ? HitobitoTrafficLogView(
                                                 content: content,
-                                              ),
-                                            )
-                                          : _LogViewerPage(
-                                              title: title,
-                                              content: content,
-                                              files: files,
-                                              reverseLines: false,
-                                            ),
+                                              )
+                                            : AppLogView(content: content),
+                                      ),
                                     ),
                                   );
                                 },
@@ -1789,210 +1783,6 @@ class _ShareLogsButton extends StatelessWidget {
                 ),
               );
             },
-    );
-  }
-}
-
-class _LogViewerPage extends StatefulWidget {
-  final String title;
-  final String content;
-  final List<File> files;
-  final bool reverseLines;
-  const _LogViewerPage({
-    required this.title,
-    required this.content,
-    this.files = const <File>[],
-    this.reverseLines = true,
-  });
-
-  @override
-  State<_LogViewerPage> createState() => _LogViewerPageState();
-}
-
-class _LogViewerPageState extends State<_LogViewerPage> {
-  final ScrollController _scrollController = ScrollController();
-  bool _showJumpToBottom = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController.addListener(_updateJumpButtonVisibility);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _jumpToBottom();
-      _updateJumpButtonVisibility();
-    });
-  }
-
-  @override
-  void dispose() {
-    _scrollController.removeListener(_updateJumpButtonVisibility);
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _jumpToBottom() {
-    if (!_scrollController.hasClients) {
-      return;
-    }
-    _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-  }
-
-  void _animateToBottom() {
-    if (!_scrollController.hasClients) {
-      return;
-    }
-    _scrollController.animateTo(
-      _scrollController.position.maxScrollExtent,
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOut,
-    );
-  }
-
-  void _updateJumpButtonVisibility() {
-    if (!_scrollController.hasClients) {
-      return;
-    }
-    final max = _scrollController.position.maxScrollExtent;
-    final current = _scrollController.offset;
-    final shouldShow = max > 0 && current < (max - 48);
-    if (shouldShow == _showJumpToBottom) {
-      return;
-    }
-    setState(() {
-      _showJumpToBottom = shouldShow;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-        actions: [_ShareLogsButton(files: widget.files)],
-      ),
-      body: Stack(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    controller: _scrollController,
-                    child: _ColoredLogView(
-                      content: widget.content,
-                      reverseLines: widget.reverseLines,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (_showJumpToBottom)
-            Positioned(
-              right: 16,
-              bottom: 16,
-              child: FloatingActionButton.small(
-                onPressed: _animateToBottom,
-                child: const Icon(Icons.arrow_downward),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ColoredLogView extends StatelessWidget {
-  final String content;
-  final bool reverseLines;
-  const _ColoredLogView({required this.content, this.reverseLines = true});
-
-  TextSpan _spanForLine(
-    String line,
-    TextStyle base, {
-    required TextStyle tsStyle,
-    required TextStyle levelInfoStyle,
-    required TextStyle levelWarnStyle,
-    required TextStyle levelErrorStyle,
-    required TextStyle levelDebugStyle,
-    required TextStyle domainStyle,
-    required TextStyle msgStyle,
-  }) {
-    final regex = RegExp(r"^\[(.*?)\]\s*(\[\w+\])?\s*(\[[^\]]+\])?\s*(.*)$");
-    final m = regex.firstMatch(line);
-    if (m == null) {
-      return TextSpan(text: line, style: msgStyle);
-    }
-    final ts = m.group(1) ?? '';
-    final level = m.group(2) ?? '';
-    final domain = m.group(3) ?? '';
-    final msg = m.group(4) ?? '';
-
-    TextStyle levelStyle = msgStyle;
-    if (level.toLowerCase() == '[info]') {
-      levelStyle = levelInfoStyle;
-    } else if (level.toLowerCase() == '[warn]') {
-      levelStyle = levelWarnStyle;
-    } else if (level.toLowerCase() == '[error]') {
-      levelStyle = levelErrorStyle;
-    } else if (level.toLowerCase() == '[debug]') {
-      levelStyle = levelDebugStyle;
-    } else {
-      levelStyle = domainStyle;
-    }
-
-    return TextSpan(
-      children: [
-        TextSpan(text: '[$ts] ', style: tsStyle),
-        if (level.isNotEmpty) TextSpan(text: '$level ', style: levelStyle),
-        if (domain.isNotEmpty) TextSpan(text: '$domain ', style: domainStyle),
-        TextSpan(text: msg, style: msgStyle),
-      ],
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final lines = content.isEmpty ? const <String>[] : content.split('\n');
-    final ordered = reverseLines ? lines.reversed.toList() : lines;
-    final base = const TextStyle(fontFamily: 'monospace', fontSize: 13);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final tsStyle = base.copyWith(
-      color: isDark ? Colors.grey.shade400 : Colors.grey,
-    );
-    final levelInfoStyle = base.copyWith(color: Colors.green);
-    final levelWarnStyle = base.copyWith(color: Colors.orange);
-    final levelErrorStyle = base.copyWith(color: Colors.red);
-    final domainStyle = base.copyWith(color: Colors.blue);
-    final levelDebugStyle = base.copyWith(color: Colors.purple);
-    final msgStyle = base.copyWith(color: isDark ? Colors.white : Colors.black);
-
-    return SelectableText.rich(
-      TextSpan(
-        children: lines.isEmpty
-            ? const <TextSpan>[]
-            : ordered
-                  .expand(
-                    (l) => [
-                      _spanForLine(
-                        l,
-                        base,
-                        tsStyle: tsStyle,
-                        levelInfoStyle: levelInfoStyle,
-                        levelWarnStyle: levelWarnStyle,
-                        levelErrorStyle: levelErrorStyle,
-                        domainStyle: domainStyle,
-                        levelDebugStyle: levelDebugStyle,
-                        msgStyle: msgStyle,
-                      ),
-                      const TextSpan(text: '\n'),
-                    ],
-                  )
-                  .toList(),
-        style: base,
-      ),
     );
   }
 }

@@ -551,6 +551,105 @@ class LoggerService {
   }
 }
 
+/// Ein gelesener Eintrag des App-Logs, Gegenstueck zu
+/// `LoggerService._writeLogLine`. Folgezeilen ohne Zeitstempel (etwa
+/// Stacktraces) gehoeren zum vorherigen Eintrag.
+class AppLogEntry {
+  const AppLogEntry({
+    required this.timestamp,
+    required this.level,
+    required this.service,
+    required this.message,
+    this.extraLines = const <String>[],
+  });
+
+  static final RegExp _linePattern = RegExp(
+    r'^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\] \[(\w+)\] \[([^\]]+)\] ?(.*)$',
+  );
+  static final RegExp _keyPattern = RegExp(r'^[A-Za-z_][A-Za-z0-9_]*$');
+
+  final DateTime timestamp;
+
+  /// `debug`, `info`, `warn` oder `error`; unbekannte Werte bleiben erhalten.
+  final String level;
+  final String service;
+  final String message;
+  final List<String> extraLines;
+
+  bool get isProblem => level == 'warn' || level == 'error';
+
+  /// Liest alle Eintraege; Dateitrenner (`===== ... =====`) und Zeilen in
+  /// fremdem Format vor dem ersten Eintrag werden uebersprungen.
+  static List<AppLogEntry> parseAll(String content) {
+    final entries = <AppLogEntry>[];
+    DateTime? timestamp;
+    var level = '';
+    var service = '';
+    var message = '';
+    var extra = <String>[];
+
+    void abschliessen() {
+      final ts = timestamp;
+      if (ts == null) {
+        return;
+      }
+      entries.add(
+        AppLogEntry(
+          timestamp: ts,
+          level: level,
+          service: service,
+          message: message,
+          extraLines: List<String>.unmodifiable(extra),
+        ),
+      );
+    }
+
+    for (final line in content.split('\n')) {
+      final match = _linePattern.firstMatch(line);
+      final ts = match == null
+          ? null
+          : DateTime.tryParse(match.group(1)!.replaceFirst(' ', 'T'));
+      if (match != null && ts != null) {
+        abschliessen();
+        timestamp = ts;
+        level = match.group(2)!;
+        service = match.group(3)!;
+        message = match.group(4)!;
+        extra = <String>[];
+        continue;
+      }
+      if (line.trim().isEmpty || line.startsWith('===== ')) {
+        continue;
+      }
+      if (timestamp != null) {
+        extra.add(line);
+      }
+    }
+    abschliessen();
+    return entries;
+  }
+
+  /// Zerlegt die Nachricht in Fliesstext und `key=value`-Paare. Woerter nach
+  /// einem Paar gehoeren zu dessen Wert, z. B. `name=Santa Lucia`.
+  ({String text, List<MapEntry<String, String>> fields}) get parts {
+    final text = <String>[];
+    final fields = <MapEntry<String, String>>[];
+    for (final token in message.split(' ')) {
+      final separator = token.indexOf('=');
+      final key = separator > 0 ? token.substring(0, separator) : '';
+      if (separator > 0 && _keyPattern.hasMatch(key)) {
+        fields.add(MapEntry(key, token.substring(separator + 1)));
+      } else if (fields.isNotEmpty) {
+        final last = fields.removeLast();
+        fields.add(MapEntry(last.key, '${last.value} $token'));
+      } else {
+        text.add(token);
+      }
+    }
+    return (text: text.join(' ').trim(), fields: fields);
+  }
+}
+
 class AppNavigationLoggingObserver extends NavigatorObserver {
   AppNavigationLoggingObserver({required LoggerService logger})
     : _logger = logger;
