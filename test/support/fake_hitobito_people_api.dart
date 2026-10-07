@@ -106,6 +106,23 @@ class FakeHitobitoPeopleApi {
     _touch(person);
   }
 
+  /// Telefonnummer, die jemand anderes direkt in Hitobito anlegt.
+  void serverAddPhoneNumber(
+    int personId, {
+    required String number,
+    String? label,
+  }) {
+    final person = _person(personId);
+    person.phoneNumbers.add(
+      FixturePhoneNumber(
+        id: _nextPhoneNumberId++,
+        number: number,
+        label: label,
+      ),
+    );
+    _touch(person);
+  }
+
   Map<String, dynamic> personDocument(int personId) {
     final person = _person(personId);
     return personResourceDocument(

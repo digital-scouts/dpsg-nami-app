@@ -179,6 +179,7 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
       }
       await _openEditPage(
         refreshedMember,
+        pendingEntry: result.pendingEntry,
         initialNoticeMessage: result.preferDeferredSaveUi
             ? null
             : result.resolveMessage(AppLocalizations.of(context)),

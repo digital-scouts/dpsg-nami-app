@@ -608,6 +608,39 @@ void main() {
     },
   );
 
+  testWidgets('wartender Entwurf sendet die Basis des Eintrags', (
+    tester,
+  ) async {
+    final member = _buildMember(gender: 'w');
+    final entwurf = member.copyWith(vorname: 'Juliane');
+    final entry = PendingPersonUpdate(
+      entryId: 'person-23',
+      personId: 23,
+      mitgliedsnummer: member.mitgliedsnummer,
+      displayName: entwurf.fullName,
+      basisMitglied: member,
+      zielMitglied: entwurf,
+      queuedAt: DateTime(2026, 4, 14, 12, 0),
+    );
+    final model = _RecordingMemberEditModel();
+
+    _useLargeViewport(tester);
+    await tester.pumpWidget(
+      _buildTestApp(
+        MemberEditPage(mitglied: entwurf, pendingEntry: entry),
+        providers: _buildEditProviders(model),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('member-edit-save-button')));
+    await tester.pumpAndSettle();
+
+    final call = model.submitCalls.single;
+    expect(call.basisMitglied, same(member));
+    expect(call.zielMitglied.vorname, 'Juliane');
+    expect(call.existingResolutionCase, isNull);
+  });
+
   testWidgets(
     'zeigt Zusatzadresse ohne Hauptadresse nicht zusaetzlich als Hauptadresse',
     (tester) async {
@@ -1219,7 +1252,7 @@ void main() {
     });
 
     testWidgets(
-      'Speichern sendet mit Serverstand als Basis und bestehendem Problemfall',
+      'Speichern sendet die Basis des Problemfalls und erhaelt fremde Aenderungen',
       (tester) async {
         final member = _buildMember(gender: '');
         final pendingEntry = _buildResolutionEntry(
@@ -1244,14 +1277,13 @@ void main() {
         expect(model.submitCalls, hasLength(1));
         final call = model.submitCalls.single;
         expect(call.accessToken, 'token-123');
-        expect(
-          call.basisMitglied,
-          same(pendingEntry.resolutionCase!.remoteMitglied),
-        );
+        expect(call.basisMitglied, same(pendingEntry.basisMitglied));
+        expect(call.basisMitglied, pendingEntry.resolutionCase!.remoteMitglied);
         expect(call.trigger, 'manual_resolution');
         expect(call.existingResolutionCase, same(pendingEntry.resolutionCase));
         expect(call.zielMitglied.vorname, 'Juliane');
-        expect(call.zielMitglied.nachname, 'Keller');
+        // Nur in Hitobito geaendert: bleibt erhalten statt zurueckgesetzt.
+        expect(call.zielMitglied.nachname, 'Remote');
       },
     );
 
@@ -1495,20 +1527,29 @@ PendingPersonUpdate _buildResolutionEntry({
   required Mitglied remoteMitglied,
   required List<MemberResolutionItem> items,
 }) {
+  final resolutionCase = MemberResolutionCase(
+    remoteMitglied: remoteMitglied,
+    items: items,
+    source: MemberResolutionSource.manualSave,
+  );
+  // Wie MemberEditModel: Konfliktfaelle sind auf den Serverstand umgestellt.
+  final hasMergeConflicts = resolutionCase.hasMergeConflicts;
   return PendingPersonUpdate(
     entryId: 'person-${zielMitglied.personId ?? 0}',
     personId: zielMitglied.personId ?? 23,
     mitgliedsnummer: zielMitglied.mitgliedsnummer,
     displayName: zielMitglied.fullName,
-    basisMitglied: basisMitglied,
-    zielMitglied: zielMitglied,
+    basisMitglied: hasMergeConflicts ? remoteMitglied : basisMitglied,
+    zielMitglied: hasMergeConflicts
+        ? MemberConflictResolver.rebase(
+            basisMitglied: basisMitglied,
+            zielMitglied: zielMitglied,
+            remoteMitglied: remoteMitglied,
+          )
+        : zielMitglied,
     queuedAt: DateTime(2026, 4, 14, 12, 0),
     status: PendingPersonUpdateStatus.needsResolution,
-    resolutionCase: MemberResolutionCase(
-      remoteMitglied: remoteMitglied,
-      items: items,
-      source: MemberResolutionSource.manualSave,
-    ),
+    resolutionCase: resolutionCase,
   );
 }
 

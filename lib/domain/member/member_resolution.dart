@@ -244,6 +244,40 @@ class MemberConflictResolver {
     required Mitglied zielMitglied,
     required Mitglied remoteMitglied,
   }) {
+    return _merge(
+      basisMitglied: basisMitglied,
+      zielMitglied: zielMitglied,
+      remoteMitglied: remoteMitglied,
+      preferLocalOnConflict: false,
+    );
+  }
+
+  /// Stellt einen Entwurf auf einen neueren Serverstand um.
+  ///
+  /// Das Ergebnis passt als Entwurf zur Basis [remoteMitglied]: Lokale
+  /// Aenderungen gegenueber [basisMitglied] sind uebernommen, nur in Hitobito
+  /// geaenderte Werte und Kontakte bleiben erhalten. Bei strittigen
+  /// Aenderungseinheiten steht der lokale Wert, damit die Problemloesung ihn
+  /// anzeigen und senden kann.
+  static Mitglied rebase({
+    required Mitglied basisMitglied,
+    required Mitglied zielMitglied,
+    required Mitglied remoteMitglied,
+  }) {
+    return _merge(
+      basisMitglied: basisMitglied,
+      zielMitglied: zielMitglied,
+      remoteMitglied: remoteMitglied,
+      preferLocalOnConflict: true,
+    ).mergedMitglied;
+  }
+
+  static MemberMergePlan _merge({
+    required Mitglied basisMitglied,
+    required Mitglied zielMitglied,
+    required Mitglied remoteMitglied,
+    required bool preferLocalOnConflict,
+  }) {
     final items = <MemberResolutionItem>[];
 
     String vorname = remoteMitglied.vorname;
@@ -279,6 +313,9 @@ class MemberConflictResolver {
           message: message,
         ),
       );
+      if (preferLocalOnConflict) {
+        assignMerged(localValue);
+      }
     }
 
     mergeScalar<String>(
@@ -362,18 +399,21 @@ class MemberConflictResolver {
       zielMitglied: zielMitglied,
       remoteMitglied: remoteMitglied,
       items: items,
+      preferLocalOnConflict: preferLocalOnConflict,
     );
     final mergedAdditionalEmails = _mergeAdditionalEmails(
       basisMitglied: basisMitglied,
       zielMitglied: zielMitglied,
       remoteMitglied: remoteMitglied,
       items: items,
+      preferLocalOnConflict: preferLocalOnConflict,
     );
     final mergedAdditionalAddresses = _mergeAdditionalAddresses(
       basisMitglied: basisMitglied,
       zielMitglied: zielMitglied,
       remoteMitglied: remoteMitglied,
       items: items,
+      preferLocalOnConflict: preferLocalOnConflict,
     );
 
     final mergedMitglied = remoteMitglied.copyWith(
@@ -403,6 +443,7 @@ class MemberConflictResolver {
     required Mitglied zielMitglied,
     required Mitglied remoteMitglied,
     required List<MemberResolutionItem> items,
+    required bool preferLocalOnConflict,
   }) {
     return _mergeRelationships<MitgliedKontaktTelefon>(
       basis: basisMitglied.telefonnummern,
@@ -416,6 +457,7 @@ class MemberConflictResolver {
       remoteDeletedMessage:
           'Telefonnummer wurde lokal geändert, in Hitobito aber gelöscht.',
       items: items,
+      preferLocalOnConflict: preferLocalOnConflict,
     );
   }
 
@@ -424,6 +466,7 @@ class MemberConflictResolver {
     required Mitglied zielMitglied,
     required Mitglied remoteMitglied,
     required List<MemberResolutionItem> items,
+    required bool preferLocalOnConflict,
   }) {
     return _mergeRelationships<MitgliedKontaktEmail>(
       basis: _additionalEmails(basisMitglied),
@@ -437,6 +480,7 @@ class MemberConflictResolver {
       remoteDeletedMessage:
           'Zusätzliche E-Mail wurde lokal geändert, in Hitobito aber gelöscht.',
       items: items,
+      preferLocalOnConflict: preferLocalOnConflict,
     );
   }
 
@@ -445,6 +489,7 @@ class MemberConflictResolver {
     required Mitglied zielMitglied,
     required Mitglied remoteMitglied,
     required List<MemberResolutionItem> items,
+    required bool preferLocalOnConflict,
   }) {
     return _mergeRelationships<MitgliedKontaktAdresse>(
       basis: _additionalAddresses(basisMitglied),
@@ -458,6 +503,7 @@ class MemberConflictResolver {
       remoteDeletedMessage:
           'Zusatzadresse wurde lokal geändert, in Hitobito aber gelöscht.',
       items: items,
+      preferLocalOnConflict: preferLocalOnConflict,
     );
   }
 
@@ -477,6 +523,7 @@ class MemberConflictResolver {
     required String conflictMessage,
     required String remoteDeletedMessage,
     required List<MemberResolutionItem> items,
+    required bool preferLocalOnConflict,
   }) {
     bool hasId(T item) => (idOf(item) ?? 0) > 0;
     Map<int, T> byId(List<T> list) => {
@@ -518,8 +565,9 @@ class MemberConflictResolver {
           message: remoteDeleted ? remoteDeletedMessage : conflictMessage,
         ),
       );
-      if (remoteItem != null) {
-        merged.add(remoteItem);
+      final kept = preferLocalOnConflict ? localItem : remoteItem;
+      if (kept != null) {
+        merged.add(kept);
       }
     }
 

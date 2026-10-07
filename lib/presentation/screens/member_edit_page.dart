@@ -1172,7 +1172,9 @@ class _MemberEditPageState extends State<MemberEditPage> {
       final targetMember = _buildTargetMember();
       final result = await memberEditModel.submitUpdate(
         accessToken: accessToken,
-        basisMitglied: _resolutionCase?.remoteMitglied ?? widget.mitglied,
+        // Basis ist immer die des geoeffneten Entwurfs. Konfliktfaelle sind
+        // bereits auf den Serverstand umgestellt.
+        basisMitglied: widget.pendingEntry?.basisMitglied ?? widget.mitglied,
         zielMitglied: targetMember,
         trigger: _isResolutionMode ? 'manual_resolution' : 'manual_edit',
         existingResolutionCase: _resolutionCase,

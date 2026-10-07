@@ -1109,4 +1109,99 @@ void main() {
       expect(value.category, MemberResolutionCategory.mergeConflict);
     });
   });
+
+  group('MemberConflictResolver.rebase', () {
+    const fremdeNummer = MitgliedKontaktTelefon(
+      phoneNumberId: 13,
+      wert: '+49 171 3333333',
+      label: Mitglied.phoneMobileLabel,
+    );
+
+    test(
+      'uebernimmt fremde Aenderungen und behaelt im Konflikt den lokalen Wert',
+      () {
+        final basis = _basis();
+        final remote = _withPhones(
+          _withPrimaryAddress(basis, 'Neue Strasse'),
+          const <MitgliedKontaktTelefon>[_mobil, _festnetz, fremdeNummer],
+        ).copyWith(fahrtenname: 'Fahrt-remote');
+        final ziel = basis.copyWith(fahrtenname: 'Fahrt-lokal');
+
+        final entwurf = MemberConflictResolver.rebase(
+          basisMitglied: basis,
+          zielMitglied: ziel,
+          remoteMitglied: remote,
+        );
+
+        expect(entwurf.fahrtenname, 'Fahrt-lokal');
+        expect(entwurf.primaryAddress?.street, 'Neue Strasse');
+        expect(entwurf.telefonnummern, contains(fremdeNummer));
+
+        // Gegen den Serverstand gesendet bleibt nur die lokale Aenderung.
+        final plan = _resolve(basis: remote, ziel: entwurf, remote: remote);
+        expect(plan.requiresResolution, isFalse);
+        expect(plan.mergedMitglied.fahrtenname, 'Fahrt-lokal');
+        expect(plan.mergedMitglied.primaryAddress?.street, 'Neue Strasse');
+        expect(plan.mergedMitglied.telefonnummern, contains(fremdeNummer));
+      },
+    );
+
+    for (final scalarCase in _scalarCases) {
+      test('${scalarCase.name}: Konflikt behaelt den lokalen Wert', () {
+        final basis = _basis();
+        final ziel = scalarCase.change(basis, 'lokal');
+
+        final entwurf = MemberConflictResolver.rebase(
+          basisMitglied: basis,
+          zielMitglied: ziel,
+          remoteMitglied: scalarCase.change(basis, 'remote'),
+        );
+
+        expect(scalarCase.read(entwurf), scalarCase.read(ziel));
+      });
+    }
+
+    test('Kontaktkonflikte behalten den lokalen Stand', () {
+      final basis = _basis();
+      final lokalGeaendert = _mobil.copyWith(wert: '+49 170 9999999');
+      final remoteGeaendert = _mobil.copyWith(wert: '+49 170 8888888');
+      final ziel = _withPhones(basis, <MitgliedKontaktTelefon>[lokalGeaendert]);
+      final remote = _withPhones(basis, <MitgliedKontaktTelefon>[
+        remoteGeaendert,
+        _festnetz.copyWith(label: 'Privat'),
+      ]);
+
+      final entwurf = MemberConflictResolver.rebase(
+        basisMitglied: basis,
+        zielMitglied: ziel,
+        remoteMitglied: remote,
+      );
+
+      // Mobil: lokal geaendert gewinnt im Entwurf; Festnetz lokal geloescht,
+      // remote geaendert: bleibt lokal geloescht.
+      expect(entwurf.telefonnummern, <MitgliedKontaktTelefon>[lokalGeaendert]);
+    });
+
+    test('ist auf dem eigenen Ergebnis idempotent', () {
+      final basis = _basis();
+      final remote = _withPrimaryAddress(
+        basis,
+        'Neue Strasse',
+      ).copyWith(fahrtenname: 'Fahrt-remote');
+      final entwurf = MemberConflictResolver.rebase(
+        basisMitglied: basis,
+        zielMitglied: basis.copyWith(fahrtenname: 'Fahrt-lokal'),
+        remoteMitglied: remote,
+      );
+
+      expect(
+        MemberConflictResolver.rebase(
+          basisMitglied: remote,
+          zielMitglied: entwurf,
+          remoteMitglied: remote,
+        ),
+        entwurf,
+      );
+    });
+  });
 }
