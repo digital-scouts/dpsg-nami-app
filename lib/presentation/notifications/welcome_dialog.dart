@@ -9,54 +9,75 @@ class WillkommenOptionen {
   const WillkommenOptionen({
     required this.biometrieVerfuegbar,
     required this.biometrieAktiv,
+    required this.benachrichtigungenErlaubt,
     required this.analyseAktiv,
     required this.keineMobilenDaten,
-    required this.onBiometrieAendern,
+    required this.themeMode,
+    required this.onBiometrieAktivieren,
+    required this.onBenachrichtigungenAktivieren,
     required this.onAnalyseAendern,
     required this.onKeineMobilenDatenAendern,
+    required this.onThemeAendern,
     required this.onRechtliches,
+    this.onSystemEinstellungen,
   });
 
   /// Ohne Biometrie auf dem Geraet entfaellt der Schritt „App schuetzen“.
   final bool biometrieVerfuegbar;
   final bool biometrieAktiv;
+
+  /// `null`, solange das System noch nicht gefragt hat.
+  final bool? benachrichtigungenErlaubt;
   final bool analyseAktiv;
   final bool keineMobilenDaten;
-  final Future<void> Function(bool aktiv) onBiometrieAendern;
+  final ThemeMode themeMode;
+
+  /// Bestaetigt per Face ID bzw. Fingerabdruck und schaltet die Sperre ein;
+  /// liefert, ob das geklappt hat.
+  final Future<bool> Function() onBiometrieAktivieren;
+
+  /// Zeigt die Systemabfrage; liefert, ob Benachrichtigungen erlaubt sind.
+  final Future<bool> Function() onBenachrichtigungenAktivieren;
   final Future<void> Function(bool aktiv) onAnalyseAendern;
   final Future<void> Function(bool aktiv) onKeineMobilenDatenAendern;
+  final Future<void> Function(ThemeMode mode) onThemeAendern;
   final VoidCallback onRechtliches;
+
+  /// Oeffnet die Systemeinstellungen der App; ohne (Android) nur ein Hinweis.
+  final VoidCallback? onSystemEinstellungen;
 }
 
-/// Zeigt den Stepper als Vollbild-Dialog. Liefert, ob eine kurze Einfuehrung
-/// gewuenscht ist (die Einfuehrung selbst folgt spaeter).
-Future<bool> showWelcomeDialog(
+/// Zeigt den Stepper als Vollbild-Dialog.
+Future<void> showWelcomeDialog(
   BuildContext context, {
   required WillkommenOptionen optionen,
-}) async {
-  final ergebnis = await showDialog<bool>(
+}) {
+  return showDialog<void>(
     context: context,
     barrierDismissible: false,
     useSafeArea: false,
     builder: (_) =>
         Dialog.fullscreen(child: WillkommenStepper(optionen: optionen)),
   );
-  return ergebnis ?? false;
 }
 
-enum _Schritt { schutz, daten, einfuehrung }
+enum _Schritt { schutz, benachrichtigungen, einstellungen, highlights }
 
 class WillkommenStepper extends StatefulWidget {
   const WillkommenStepper({
     super.key,
     required this.optionen,
     this.startSchritt = 0,
+    this.weiterNachErlaubnis = const Duration(milliseconds: 700),
   });
 
   final WillkommenOptionen optionen;
 
   /// Nur fuer Storybook und Tests.
   final int startSchritt;
+
+  /// Nach einer Erlaubnis bleibt „Aktiv“ kurz sichtbar, dann geht es weiter.
+  final Duration weiterNachErlaubnis;
 
   @override
   State<WillkommenStepper> createState() => _WillkommenStepperState();
@@ -65,18 +86,68 @@ class WillkommenStepper extends StatefulWidget {
 class _WillkommenStepperState extends State<WillkommenStepper> {
   late final List<_Schritt> _schritte = [
     if (widget.optionen.biometrieVerfuegbar) _Schritt.schutz,
-    _Schritt.daten,
-    _Schritt.einfuehrung,
+    _Schritt.benachrichtigungen,
+    _Schritt.einstellungen,
+    _Schritt.highlights,
   ];
   late int _index = widget.startSchritt.clamp(0, _schritte.length - 1);
   late bool _biometrie = widget.optionen.biometrieAktiv;
+  late bool? _benachrichtigungen = widget.optionen.benachrichtigungenErlaubt;
   late bool _analyse = widget.optionen.analyseAktiv;
   late bool _keineMobilenDaten = widget.optionen.keineMobilenDaten;
+  late ThemeMode _themeMode = widget.optionen.themeMode;
+  bool _beschaeftigt = false;
 
   _Schritt get _aktuell => _schritte[_index];
+  bool get _istLetzter => _index == _schritte.length - 1;
 
-  void _weiter() => setState(() => _index++);
+  void _weiter() {
+    if (_istLetzter) {
+      Navigator.of(context).pop();
+      return;
+    }
+    setState(() => _index++);
+  }
+
   void _zurueck() => setState(() => _index--);
+
+  /// Nach erteilter Erlaubnis ist der naechste Schritt offensichtlich.
+  Future<void> _weiterNachErlaubnis(_Schritt schritt) async {
+    await Future<void>.delayed(widget.weiterNachErlaubnis);
+    if (mounted && _aktuell == schritt) {
+      _weiter();
+    }
+  }
+
+  Future<void> _biometrieAktivieren() async {
+    setState(() => _beschaeftigt = true);
+    final ok = await widget.optionen.onBiometrieAktivieren();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _beschaeftigt = false;
+      _biometrie = ok;
+    });
+    if (ok) {
+      await _weiterNachErlaubnis(_Schritt.schutz);
+    }
+  }
+
+  Future<void> _benachrichtigungenAktivieren() async {
+    setState(() => _beschaeftigt = true);
+    final ok = await widget.optionen.onBenachrichtigungenAktivieren();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _beschaeftigt = false;
+      _benachrichtigungen = ok;
+    });
+    if (ok) {
+      await _weiterNachErlaubnis(_Schritt.benachrichtigungen);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -86,15 +157,20 @@ class _WillkommenStepperState extends State<WillkommenStepper> {
 
     final (icon, titelKey, inhalt) = switch (_aktuell) {
       _Schritt.schutz => (null, 'welcome_lock_title', _schutzInhalt(t)),
-      _Schritt.daten => (
-        Icons.verified_user_outlined,
-        'welcome_data_title',
-        _datenInhalt(t),
+      _Schritt.benachrichtigungen => (
+        Icons.notifications_none,
+        'welcome_notify_title',
+        _benachrichtigungInhalt(t),
       ),
-      _Schritt.einfuehrung => (
+      _Schritt.einstellungen => (
+        Icons.tune,
+        'welcome_settings_title',
+        _einstellungenInhalt(t),
+      ),
+      _Schritt.highlights => (
         Icons.auto_awesome_outlined,
-        'welcome_intro_title',
-        Text(t.t('welcome_intro_body'), style: theme.textTheme.bodyLarge),
+        'welcome_highlights_title',
+        _highlightsInhalt(t),
       ),
     };
 
@@ -118,14 +194,14 @@ class _WillkommenStepperState extends State<WillkommenStepper> {
                     color: colors.onSurfaceVariant,
                   ),
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 24),
                 Expanded(
                   child: SingleChildScrollView(
                     key: ValueKey(_aktuell),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _SchrittIcon(icon: icon),
+                        _SchrittIcon(icon: _index == 0 ? null : icon),
                         const SizedBox(height: 20),
                         if (_index == 0)
                           Text(
@@ -144,11 +220,31 @@ class _WillkommenStepperState extends State<WillkommenStepper> {
                         ),
                         const SizedBox(height: 12),
                         inhalt,
+                        const SizedBox(height: 16),
                       ],
                     ),
                   ),
                 ),
-                ..._knoepfe(t),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    key: Key(_istLetzter ? 'welcome-finish' : 'welcome-next'),
+                    onPressed: _beschaeftigt ? null : _weiter,
+                    child: Text(
+                      t.t(_istLetzter ? 'welcome_finish' : 'welcome_next'),
+                    ),
+                  ),
+                ),
+                if (_index > 0)
+                  Center(
+                    child: TextButton(
+                      key: const Key('welcome-back'),
+                      onPressed: _beschaeftigt ? null : _zurueck,
+                      child: Text(t.t('welcome_back')),
+                    ),
+                  )
+                else
+                  const SizedBox(height: 48),
               ],
             ),
           ),
@@ -157,104 +253,142 @@ class _WillkommenStepperState extends State<WillkommenStepper> {
     );
   }
 
-  List<Widget> _knoepfe(AppLocalizations t) {
-    final zurueck = _index > 0
-        ? Center(
-            child: TextButton(
-              key: const Key('welcome-back'),
-              onPressed: _zurueck,
-              child: Text(t.t('welcome_back')),
-            ),
-          )
-        : const SizedBox(height: 48);
-    if (_aktuell == _Schritt.einfuehrung) {
-      return [
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton(
-            key: const Key('welcome-intro-yes'),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(t.t('welcome_intro_yes')),
-          ),
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton.tonal(
-            key: const Key('welcome-intro-no'),
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(t.t('welcome_intro_no')),
-          ),
-        ),
-        zurueck,
-      ];
-    }
-    return [
-      SizedBox(
-        width: double.infinity,
-        child: FilledButton(
-          key: const Key('welcome-next'),
-          onPressed: _weiter,
-          child: Text(t.t('welcome_next')),
-        ),
-      ),
-      zurueck,
-    ];
-  }
-
   Widget _schutzInhalt(AppLocalizations t) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(t.t('welcome_lock_body'), style: theme.textTheme.bodyLarge),
+        _Absatz(t.t('welcome_lock_body')),
         const SizedBox(height: 16),
-        _OptionKarte(
+        _WarumPunkte(
+          punkte: [
+            (Icons.smartphone, t.t('welcome_lock_why_offline')),
+            (Icons.person_outline, t.t('welcome_lock_why_lend')),
+            (Icons.visibility_off_outlined, t.t('welcome_lock_why_pause')),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _AktivierenKarte(
+          key: const Key('welcome-lock-card'),
+          icon: Icons.face_unlock_outlined,
           titel: t.t('welcome_lock_option'),
           text: t.t('welcome_lock_option_hint'),
-          aktion: _biometrie
-              ? TextButton.icon(
-                  key: const Key('welcome-lock-off'),
-                  onPressed: () async {
-                    await widget.optionen.onBiometrieAendern(false);
-                    setState(() => _biometrie = false);
-                  },
-                  icon: Icon(Icons.check_circle, color: colors.primary),
-                  label: Text(t.t('welcome_lock_active')),
-                )
-              : FilledButton(
-                  key: const Key('welcome-lock-on'),
-                  onPressed: () async {
-                    await widget.optionen.onBiometrieAendern(true);
-                    setState(() => _biometrie = true);
-                  },
-                  child: Text(t.t('welcome_lock_activate')),
-                ),
+          aktiv: _biometrie,
+          beschaeftigt: _beschaeftigt,
+          aktivierenKey: const Key('welcome-lock-on'),
+          onAktivieren: _biometrieAktivieren,
         ),
         const SizedBox(height: 10),
-        Text(
-          t.t('welcome_change_later'),
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: colors.onSurfaceVariant,
-          ),
-        ),
+        _Hinweis(t.t('welcome_change_later')),
       ],
     );
   }
 
-  Widget _datenInhalt(AppLocalizations t) {
+  Widget _benachrichtigungInhalt(AppLocalizations t) {
+    final colors = Theme.of(context).colorScheme;
+    final abgelehnt = _benachrichtigungen == false;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _Absatz(t.t('welcome_notify_body')),
+        const SizedBox(height: 16),
+        _WarumPunkte(
+          punkte: [
+            (Icons.workspace_premium_outlined, t.t('welcome_notify_why_quali')),
+            (Icons.cake_outlined, t.t('welcome_notify_why_birthday')),
+            (Icons.sync, t.t('welcome_notify_why_expiry')),
+            (Icons.shield_outlined, t.t('welcome_notify_why_local')),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _AktivierenKarte(
+          key: const Key('welcome-notify-card'),
+          icon: Icons.notifications_none,
+          titel: t.t('welcome_notify_option'),
+          text: t.t('welcome_notify_option_hint'),
+          aktiv: _benachrichtigungen == true,
+          aus: abgelehnt,
+          beschaeftigt: _beschaeftigt,
+          aktivierenKey: const Key('welcome-notify-on'),
+          onAktivieren: _benachrichtigungenAktivieren,
+          zusatz: abgelehnt
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info_outline, size: 18, color: colors.error),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(t.t('welcome_notify_denied')),
+                          if (widget.optionen.onSystemEinstellungen != null)
+                            TextButton.icon(
+                              key: const Key('welcome-notify-settings'),
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              iconAlignment: IconAlignment.end,
+                              onPressed: widget.optionen.onSystemEinstellungen,
+                              icon: const Icon(Icons.open_in_new, size: 16),
+                              label: Text(t.t('welcome_notify_open_settings')),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                )
+              : null,
+        ),
+        const SizedBox(height: 10),
+        _Hinweis(t.t('welcome_change_later')),
+      ],
+    );
+  }
+
+  Widget _einstellungenInhalt(AppLocalizations t) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(t.t('welcome_data_body'), style: theme.textTheme.bodyLarge),
+        _Absatz(t.t('welcome_settings_body')),
         const SizedBox(height: 16),
+        _OptionKarte(
+          titel: t.t('welcome_theme'),
+          unten: SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<ThemeMode>(
+              key: const Key('welcome-theme'),
+              showSelectedIcon: false,
+              segments: [
+                ButtonSegment(
+                  value: ThemeMode.light,
+                  label: Text(t.t('theme_light')),
+                ),
+                ButtonSegment(
+                  value: ThemeMode.dark,
+                  label: Text(t.t('theme_dark')),
+                ),
+                ButtonSegment(
+                  value: ThemeMode.system,
+                  label: Text(t.t('theme_system')),
+                ),
+              ],
+              selected: {_themeMode},
+              onSelectionChanged: (auswahl) async {
+                final mode = auswahl.first;
+                setState(() => _themeMode = mode);
+                await widget.optionen.onThemeAendern(mode);
+              },
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
         _OptionKarte(
           titel: t.t('settings_app_analytics_title'),
           text: t.t('welcome_analytics_hint'),
-          aktion: Switch(
+          rechts: Switch(
             key: const Key('welcome-analytics'),
             value: _analyse,
             onChanged: (wert) async {
@@ -267,7 +401,7 @@ class _WillkommenStepperState extends State<WillkommenStepper> {
         _OptionKarte(
           titel: t.t('welcome_no_mobile_data'),
           text: t.t('welcome_no_mobile_data_hint'),
-          aktion: Switch(
+          rechts: Switch(
             key: const Key('welcome-no-mobile-data'),
             value: _keineMobilenDaten,
             onChanged: (wert) async {
@@ -285,6 +419,330 @@ class _WillkommenStepperState extends State<WillkommenStepper> {
           label: Text(t.t('legal_title')),
         ),
       ],
+    );
+  }
+
+  Widget _highlightsInhalt(AppLocalizations t) {
+    const kacheln = <(IconData, String)>[
+      (Icons.groups_outlined, 'members'),
+      (Icons.cloud_off_outlined, 'offline'),
+      (Icons.bar_chart, 'statistics'),
+      (Icons.trending_up, 'stage_change'),
+      (Icons.workspace_premium_outlined, 'qualifications'),
+      (Icons.account_tree_outlined, 'layers'),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _Absatz(t.t('welcome_highlights_body')),
+        const SizedBox(height: 16),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            // Auf dem Telefon 2 Spalten (3 Zeilen), breiter 3 Spalten.
+            final spalten = constraints.maxWidth >= 560 ? 3 : 2;
+            const abstand = 10.0;
+            final breite =
+                (constraints.maxWidth - abstand * (spalten - 1)) / spalten;
+            return Wrap(
+              spacing: abstand,
+              runSpacing: abstand,
+              children: [
+                for (final (icon, key) in kacheln)
+                  SizedBox(
+                    width: breite,
+                    child: _HighlightKachel(
+                      key: Key('welcome-highlight-$key'),
+                      icon: icon,
+                      titel: t.t('welcome_highlight_${key}_title'),
+                      text: t.t('welcome_highlight_${key}_text'),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _Absatz extends StatelessWidget {
+  const _Absatz(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) =>
+      Text(text, style: Theme.of(context).textTheme.bodyLarge);
+}
+
+class _Hinweis extends StatelessWidget {
+  const _Hinweis(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Text(
+      text,
+      style: theme.textTheme.bodySmall?.copyWith(
+        color: theme.colorScheme.onSurfaceVariant,
+      ),
+    );
+  }
+}
+
+class _WarumPunkte extends StatelessWidget {
+  const _WarumPunkte({required this.punkte});
+
+  final List<(IconData, String)> punkte;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Column(
+      children: [
+        for (final (icon, text) in punkte)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, size: 20, color: colors.primary),
+                const SizedBox(width: 12),
+                Expanded(child: Text(text)),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _AktivierenKarte extends StatelessWidget {
+  const _AktivierenKarte({
+    super.key,
+    required this.icon,
+    required this.titel,
+    required this.text,
+    required this.aktiv,
+    required this.beschaeftigt,
+    required this.aktivierenKey,
+    required this.onAktivieren,
+    this.aus = false,
+    this.zusatz,
+  });
+
+  final IconData icon;
+  final String titel;
+  final String text;
+  final bool aktiv;
+  final bool aus;
+  final bool beschaeftigt;
+  final Key aktivierenKey;
+  final VoidCallback onAktivieren;
+  final Widget? zusatz;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final gruen = Colors.green.shade600;
+
+    final Widget rechts;
+    if (aktiv) {
+      rechts = Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.check, size: 18, color: gruen),
+          const SizedBox(width: 4),
+          Text(
+            t.t('welcome_active'),
+            style: TextStyle(color: gruen, fontWeight: FontWeight.w700),
+          ),
+        ],
+      );
+    } else if (aus) {
+      rechts = Text(
+        t.t('welcome_off'),
+        style: TextStyle(color: colors.onSurfaceVariant),
+      );
+    } else if (beschaeftigt) {
+      rechts = const SizedBox.square(
+        dimension: 22,
+        child: CircularProgressIndicator(strokeWidth: 2.5),
+      );
+    } else {
+      rechts = FilledButton.tonal(
+        key: aktivierenKey,
+        onPressed: onAktivieren,
+        child: Text(t.t('welcome_activate')),
+      );
+    }
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: aktiv ? gruen : Colors.transparent,
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 22, color: colors.primary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      titel,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      text,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              rechts,
+            ],
+          ),
+          if (zusatz case final zusatz?) ...[
+            const SizedBox(height: 10),
+            zusatz,
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _OptionKarte extends StatelessWidget {
+  const _OptionKarte({required this.titel, this.text, this.rechts, this.unten});
+
+  final String titel;
+  final String? text;
+  final Widget? rechts;
+  final Widget? unten;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final text = this.text;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      titel,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    if (text != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        text,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (rechts case final rechts?) ...[
+                const SizedBox(width: 12),
+                rechts,
+              ],
+            ],
+          ),
+          if (unten case final unten?) ...[const SizedBox(height: 10), unten],
+        ],
+      ),
+    );
+  }
+}
+
+class _HighlightKachel extends StatelessWidget {
+  const _HighlightKachel({
+    super.key,
+    required this.icon,
+    required this.titel,
+    required this.text,
+  });
+
+  final IconData icon;
+  final String titel;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return Container(
+      constraints: const BoxConstraints(minHeight: 128),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: colors.primaryContainer,
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Icon(icon, size: 20, color: colors.onPrimaryContainer),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            titel,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            text,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colors.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -349,57 +807,6 @@ class _SchrittIcon extends StatelessWidget {
                 ),
               )
             : Icon(icon, size: 28, color: colors.onPrimaryContainer),
-      ),
-    );
-  }
-}
-
-class _OptionKarte extends StatelessWidget {
-  const _OptionKarte({
-    required this.titel,
-    required this.text,
-    required this.aktion,
-  });
-
-  final String titel;
-  final String text;
-  final Widget aktion;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  titel,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  text,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          aktion,
-        ],
       ),
     );
   }

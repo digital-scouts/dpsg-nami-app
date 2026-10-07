@@ -61,23 +61,32 @@ Story willkommenStepperStory() => Story(
       label: 'Startschritt',
       initial: 0,
       min: 0,
-      max: 2,
+      max: 3,
+    );
+    final abgelehnt = context.knobs.boolean(
+      label: 'Benachrichtigungen abgelehnt',
+      initial: false,
     );
     return _app(
       locale,
       WillkommenStepper(
         // Key erzwingt neuen State, wenn ein Knopf umgeschaltet wird.
-        key: ValueKey('$biometrie-$schritt'),
+        key: ValueKey('$biometrie-$schritt-$abgelehnt'),
         startSchritt: schritt,
         optionen: WillkommenOptionen(
           biometrieVerfuegbar: biometrie,
           biometrieAktiv: false,
+          benachrichtigungenErlaubt: abgelehnt ? false : null,
           analyseAktiv: false,
           keineMobilenDaten: false,
-          onBiometrieAendern: (_) async {},
+          themeMode: ThemeMode.system,
+          onBiometrieAktivieren: () async => true,
+          onBenachrichtigungenAktivieren: () async => !abgelehnt,
           onAnalyseAendern: (_) async {},
           onKeineMobilenDatenAendern: (_) async {},
+          onThemeAendern: (_) async {},
           onRechtliches: () {},
+          onSystemEinstellungen: () {},
         ),
       ),
     );

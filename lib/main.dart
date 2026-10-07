@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -55,6 +56,7 @@ import 'package:nami/services/nami_ai/nami_ai_stream_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:wiredash/wiredash.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'data/member_filters/shared_prefs_member_filter_repository.dart';
 import 'data/statistiks/shared_prefs_statistik_kachel_repository.dart';
@@ -989,27 +991,51 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   /// Hintergrund weiter (siehe [_syncArbeitskontextWithAuth]).
   Future<void> _zeigeWillkommen(BuildContext dialogContext) async {
     final appSettings = dialogContext.read<AppSettingsModel>();
-    final biometrieVerfuegbar = await BiometricLockService(
+    final berechtigung = dialogContext.read<BenachrichtigungsBerechtigung>();
+    final biometrie = BiometricLockService(
       logger: dialogContext.read<LoggerService>(),
-    ).isAvailable();
+    );
+    final biometrieVerfuegbar = await biometrie.isAvailable();
+    final benachrichtigungenErlaubt = await berechtigung.istErlaubt();
     if (!dialogContext.mounted) {
       return;
     }
-    final einfuehrung = await showWelcomeDialog(
+    await showWelcomeDialog(
       dialogContext,
       optionen: WillkommenOptionen(
         biometrieVerfuegbar: biometrieVerfuegbar,
         biometrieAktiv: appSettings.biometricLockEnabled,
+        benachrichtigungenErlaubt: benachrichtigungenErlaubt,
         analyseAktiv: appSettings.analyticsEnabled,
         keineMobilenDaten: appSettings.noMobileDataEnabled,
-        onBiometrieAendern: appSettings.setBiometricLockEnabled,
+        themeMode: appSettings.themeMode,
+        // Einmal bestaetigen laesst die Systemabfrage fuer Face ID gleich
+        // hier erscheinen; die Sperre greift erst nach 60 s im Hintergrund.
+        onBiometrieAktivieren: () async {
+          if (!await biometrie.authenticate()) {
+            return false;
+          }
+          await appSettings.setBiometricLockEnabled(true);
+          return true;
+        },
+        onBenachrichtigungenAktivieren: () async {
+          final erlaubt = await berechtigung.anfragen();
+          if (erlaubt) {
+            await appSettings.setNotificationsEnabled(true);
+          }
+          return erlaubt;
+        },
         onAnalyseAendern: appSettings.setAnalyticsEnabled,
         onKeineMobilenDatenAendern: appSettings.setNoMobileDataEnabled,
+        onThemeAendern: appSettings.setThemeMode,
         onRechtliches: () =>
             navigatorKey.currentState?.pushNamed(AppRoutes.settingsRechtliches),
+        // Android kennt keinen einheitlichen Link in die App-Einstellungen.
+        onSystemEinstellungen: defaultTargetPlatform == TargetPlatform.iOS
+            ? () => launchUrl(Uri.parse('app-settings:'))
+            : null,
       ),
     );
-    await _appStartupStateService.saveIntroWanted(einfuehrung);
   }
 
   void _startAuthMaintenanceTimer() {

@@ -412,29 +412,70 @@ class AppLocalizations {
       'welcome_step': 'Schritt {current} von {total}',
       'welcome_next': 'Weiter',
       'welcome_back': 'Zurück',
-      'welcome_lock_title': 'App schützen',
-      'welcome_lock_body':
-          'Sperre die App mit Face ID oder Fingerabdruck, damit niemand ohne dich Mitgliederdaten sieht.',
-      'welcome_lock_option': 'App-Sperre',
-      'welcome_lock_option_hint':
-          'Beim Öffnen und nach kurzer Pause entsperren.',
-      'welcome_lock_activate': 'Aktivieren',
-      'welcome_lock_active': 'Aktiv',
+      'welcome_finish': 'Los geht’s',
+      'welcome_activate': 'Aktivieren',
+      'welcome_active': 'Aktiv',
+      'welcome_off': 'Aus',
       'welcome_change_later':
           'Kannst du später in den App-Einstellungen ändern.',
-      'welcome_data_title': 'Daten und Datenschutz',
-      'welcome_data_body':
-          'Deine Mitgliederdaten kommen aus Hitobito und bleiben verschlüsselt auf diesem Gerät.',
+      'welcome_lock_title': 'App schützen',
+      'welcome_lock_body':
+          'Sperre die App mit Face ID oder Fingerabdruck. Dann sieht niemand ohne dich die Mitgliederdaten.',
+      'welcome_lock_why_offline':
+          'Mitgliederdaten liegen offline auf dem Gerät, viele von Minderjährigen, mit Adressen, Geburtsdaten und Angaben zum Führungszeugnis.',
+      'welcome_lock_why_lend':
+          'Schützt, wenn das Handy entsperrt herumliegt oder verliehen wird.',
+      'welcome_lock_why_pause':
+          'Fragt beim Öffnen und nach kurzer Pause erneut nach Face ID oder Fingerabdruck.',
+      'welcome_lock_option': 'App-Sperre',
+      'welcome_lock_option_hint':
+          'Beim Öffnen und nach kurzer Pause entsperren',
+      'welcome_notify_title': 'Benachrichtigungen',
+      'welcome_notify_body':
+          'Die App erinnert dich an Fristen und Geburtstage, damit nichts unbemerkt bleibt.',
+      'welcome_notify_why_quali':
+          'Erinnerung, bevor Qualifikationen ablaufen, etwa Präventionsschulung, Führungszeugnis oder Erste Hilfe, je nach Einstellung.',
+      'welcome_notify_why_birthday':
+          'Geburtstage deiner Mitglieder am Morgen. Für welche Stufen, legst du in den Einstellungen fest.',
+      'welcome_notify_why_expiry':
+          'Hinweis, bevor die Offline-Daten ablaufen und du dich neu anmelden musst.',
+      'welcome_notify_why_local':
+          'Keine Werbung, kein Tracking: nur lokale Erinnerungen von deinem Gerät.',
+      'welcome_notify_option': 'Benachrichtigungen',
+      'welcome_notify_option_hint': 'Erinnerungen von diesem Gerät',
+      'welcome_notify_denied':
+          'Nicht erlaubt. In den Systemeinstellungen änderbar.',
+      'welcome_notify_open_settings': 'Einstellungen öffnen',
+      'welcome_settings_title': 'Einstellungen',
+      'welcome_settings_body':
+          'Passe die App an. Alles lässt sich später in den Einstellungen ändern.',
+      'welcome_theme': 'Darstellung',
       'welcome_analytics_hint':
-          'Nutzungsereignisse und Fehlerberichte an Wiredash senden. Jederzeit in den Einstellungen änderbar.',
+          'Nutzungsereignisse und Fehlerberichte an Wiredash senden.',
       'welcome_no_mobile_data': 'Keine mobilen Daten',
       'welcome_no_mobile_data_hint':
           'Synchronisation und Karten nur im WLAN laden.',
-      'welcome_intro_title': 'Kurze Einführung?',
-      'welcome_intro_body':
-          'Möchtest du eine kurze Einführung? Sie zeigt dir in einer Minute, wo du Mitglieder, Statistik und Stufenwechsel findest.',
-      'welcome_intro_yes': 'Ja, zeig mir die App',
-      'welcome_intro_no': 'Nein, direkt loslegen',
+      'welcome_highlights_title': 'Das kann die App',
+      'welcome_highlights_body':
+          'Ein kurzer Überblick über das, was dich erwartet.',
+      'welcome_highlight_members_title': 'Mitglieder',
+      'welcome_highlight_members_text':
+          'Suchen, filtern, Details ansehen und direkt bearbeiten.',
+      'welcome_highlight_offline_title': 'Offline',
+      'welcome_highlight_offline_text':
+          'Verschlüsselt auf dem Gerät, auch ohne Netz im Lager.',
+      'welcome_highlight_statistics_title': 'Statistik',
+      'welcome_highlight_statistics_text':
+          'Gruppengrößen, Altersverteilung und Verlauf.',
+      'welcome_highlight_stage_change_title': 'Stufenwechsel',
+      'welcome_highlight_stage_change_text':
+          'Wer wann in die nächste Stufe wechselt.',
+      'welcome_highlight_qualifications_title': 'Qualifikationen',
+      'welcome_highlight_qualifications_text':
+          'Führungszeugnis, Prävention und Erste Hilfe im Blick.',
+      'welcome_highlight_layers_title': 'Ebenen wechseln',
+      'welcome_highlight_layers_text':
+          'Zwischen Stamm, Bezirk und Diözese wechseln.',
       'feedback_prompt_title': 'Wie gefällt dir die App?',
       'feedback_prompt_body':
           'Du nutzt die App jetzt seit einer Weile. Dein Feedback hilft uns, sie weiter zu verbessern – und eine Bewertung im Store hilft anderen Leitenden, die App zu finden.',
@@ -1821,27 +1862,66 @@ class AppLocalizations {
       'welcome_step': 'Step {current} of {total}',
       'welcome_next': 'Next',
       'welcome_back': 'Back',
+      'welcome_finish': 'Let’s go',
+      'welcome_activate': 'Activate',
+      'welcome_active': 'Active',
+      'welcome_off': 'Off',
+      'welcome_change_later': 'You can change this later in the app settings.',
       'welcome_lock_title': 'Protect the app',
       'welcome_lock_body':
           'Lock the app with Face ID or fingerprint so nobody can see member data without you.',
+      'welcome_lock_why_offline':
+          'Member data is stored offline on the device, many of them minors, with addresses, dates of birth and police check details.',
+      'welcome_lock_why_lend':
+          'Protects you if the phone is left unlocked or lent to someone.',
+      'welcome_lock_why_pause':
+          'Asks for Face ID or fingerprint again when opening and after a short break.',
       'welcome_lock_option': 'App lock',
-      'welcome_lock_option_hint':
-          'Unlock when opening and after a short break.',
-      'welcome_lock_activate': 'Activate',
-      'welcome_lock_active': 'Active',
-      'welcome_change_later': 'You can change this later in the app settings.',
-      'welcome_data_title': 'Data and privacy',
-      'welcome_data_body':
-          'Your member data comes from Hitobito and stays encrypted on this device.',
+      'welcome_lock_option_hint': 'Unlock when opening and after a short break',
+      'welcome_notify_title': 'Notifications',
+      'welcome_notify_body':
+          'The app reminds you of deadlines and birthdays so nothing goes unnoticed.',
+      'welcome_notify_why_quali':
+          'Reminder before qualifications expire, such as prevention training, police check or first aid, depending on your settings.',
+      'welcome_notify_why_birthday':
+          'Birthdays of your members in the morning. Choose the sections in the settings.',
+      'welcome_notify_why_expiry':
+          'Notice before the offline data expires and you need to sign in again.',
+      'welcome_notify_why_local':
+          'No ads, no tracking: only local reminders from your device.',
+      'welcome_notify_option': 'Notifications',
+      'welcome_notify_option_hint': 'Reminders from this device',
+      'welcome_notify_denied':
+          'Not allowed. Can be changed in the system settings.',
+      'welcome_notify_open_settings': 'Open settings',
+      'welcome_settings_title': 'Settings',
+      'welcome_settings_body':
+          'Adjust the app. Everything can be changed later in the settings.',
+      'welcome_theme': 'Appearance',
       'welcome_analytics_hint':
-          'Send usage events and error reports to Wiredash. Can be changed in the settings at any time.',
+          'Send usage events and error reports to Wiredash.',
       'welcome_no_mobile_data': 'No mobile data',
       'welcome_no_mobile_data_hint': 'Load sync and maps only on Wi-Fi.',
-      'welcome_intro_title': 'Short introduction?',
-      'welcome_intro_body':
-          'Would you like a short introduction? It shows you in a minute where to find members, statistics and section changes.',
-      'welcome_intro_yes': 'Yes, show me the app',
-      'welcome_intro_no': 'No, let me start',
+      'welcome_highlights_title': 'What the app can do',
+      'welcome_highlights_body': 'A short overview of what to expect.',
+      'welcome_highlight_members_title': 'Members',
+      'welcome_highlight_members_text':
+          'Search, filter, view details and edit directly.',
+      'welcome_highlight_offline_title': 'Offline',
+      'welcome_highlight_offline_text':
+          'Encrypted on the device, available without network at camp.',
+      'welcome_highlight_statistics_title': 'Statistics',
+      'welcome_highlight_statistics_text':
+          'Group sizes, age distribution and history.',
+      'welcome_highlight_stage_change_title': 'Section changes',
+      'welcome_highlight_stage_change_text':
+          'Who moves to the next section and when.',
+      'welcome_highlight_qualifications_title': 'Qualifications',
+      'welcome_highlight_qualifications_text':
+          'Police check, prevention and first aid at a glance.',
+      'welcome_highlight_layers_title': 'Switch levels',
+      'welcome_highlight_layers_text':
+          'Switch between Stamm, district and diocese.',
       'feedback_prompt_title': 'How do you like the app?',
       'feedback_prompt_body':
           'You have been using the app for a while now. Your feedback helps us improve it – and a store rating helps other leaders find the app.',
