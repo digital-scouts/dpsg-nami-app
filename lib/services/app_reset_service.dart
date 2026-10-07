@@ -21,6 +21,7 @@ class AppResetService {
     Future<void> Function()? clearMapCache,
     Future<void> Function()? clearLegacyData,
     Future<void> Function()? clearInstallationCredentials,
+    Future<void> Function()? cancelScheduledNotifications,
   }) : _authSessionRepository = authSessionRepository,
        _sensitiveStorageService = sensitiveStorageService,
        _preferencesProvider =
@@ -30,7 +31,8 @@ class AppResetService {
        _clearHitobitoTrafficLogs = clearHitobitoTrafficLogs,
        _clearMapCache = clearMapCache,
        _clearLegacyData = clearLegacyData,
-       _clearInstallationCredentials = clearInstallationCredentials;
+       _clearInstallationCredentials = clearInstallationCredentials,
+       _cancelScheduledNotifications = cancelScheduledNotifications;
 
   static const List<String> plainHiveBoxes = <String>[
     'notifications_box',
@@ -47,6 +49,7 @@ class AppResetService {
   final Future<void> Function()? _clearMapCache;
   final Future<void> Function()? _clearLegacyData;
   final Future<void> Function()? _clearInstallationCredentials;
+  final Future<void> Function()? _cancelScheduledNotifications;
 
   Future<void> resetAllData({bool clearLogFile = true}) async {
     final prefs = await _preferencesProvider();
@@ -54,6 +57,16 @@ class AppResetService {
 
     await _authSessionRepository.clear();
     await _sensitiveStorageService.purgeSensitiveData();
+    // Geplante Erinnerungen (Datenablauf, Qualifikationen, Geburtstage)
+    // enthalten Namen und duerfen den Reset nicht ueberdauern.
+    final cancelScheduledNotifications = _cancelScheduledNotifications;
+    if (cancelScheduledNotifications != null) {
+      try {
+        await cancelScheduledNotifications();
+      } catch (_) {
+        // Der Reset darf am Benachrichtigungs-Plugin nicht scheitern.
+      }
+    }
     // Nach einem Reset tritt die App gegenueber dem Statistikserver als neue
     // Installation auf.
     final clearInstallationCredentials = _clearInstallationCredentials;

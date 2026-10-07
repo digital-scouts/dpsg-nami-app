@@ -7,6 +7,7 @@ import 'package:latlong2/latlong.dart';
 import '../../services/map_tile_cache_service.dart';
 import '../widgets/map_recenter_button.dart';
 import 'statistics_snapshot_builder.dart';
+import '../widgets/karten_quellenangabe.dart';
 
 class StatisticsCard extends StatelessWidget {
   const StatisticsCard({
@@ -545,6 +546,7 @@ class _StatisticsMapState extends State<StatisticsMap> {
                   ),
               ],
             ),
+            const KartenQuellenangabe(),
           ],
         ),
         Positioned(

@@ -1,0 +1,137 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8">
+<title>Entwürfe: Willkommen-Stepper mit Benachrichtigungen, Runde 3</title>
+<link rel="stylesheet" href="../statistik/basis.css">
+<link rel="stylesheet" href="../mitglied/mitglied.css">
+<link rel="stylesheet" href="rechtliches.css">
+<script src="../mitglied/daten.js"></script>
+<script src="../mitglied/lilie.js"></script>
+<script src="bausteine.js"></script>
+</head><body>
+<div class="bar">
+  <nav><a href="#wa">A Liste über der Karte</a><a href="#wb">B Info-Box „Warum?“</a><a href="#rest">Schritte 3 und 4</a><a href="#ohne">Ohne Biometrie</a><a href="#rueckmeldung">Rückmeldung</a></nav>
+</div>
+<main>
+  <h1>Willkommen-Stepper mit Benachrichtigungen: Entwürfe, Runde 3</h1>
+  <p>Der Stepper aus WS2 bekommt einen eigenen Schritt „Benachrichtigungen“, und „App schützen“ erklärt, warum die Sperre sinnvoll ist. Beide Schritte haben eine Karte mit dem Knopf „Aktivieren“. Die iOS-Abfrage für Mitteilungen erscheint erst nach diesem Knopf, nicht mehr ungefragt beim Start. Alle Daten sind synthetisch.</p>
+  <div class="r-hinweisbox" style="background:#eef5ec;border-color:#c9dcc4;color:#24391f"><b>Festgelegt nach Runde 2</b>
+    <ul>
+      <li><b>Seite „Impressum & Datenschutz“:</b> S2, Anbieter im „Kurz gesagt“-Block.</li>
+      <li><b>Willkommen:</b> WS2, Vollbild-Stepper mit Segmentbalken, „Schritt x von n“, großem Titel und Knöpfen unten in voller Breite.</li>
+      <li><b>Biometrie:</b> Knopf „Aktivieren“, danach „Aktiv“ mit Haken.</li>
+      <li><b>Schritte „Daten und Datenschutz“ und „Kurze Einführung?“:</b> passen.</li>
+      <li><b>Mitgestalten:</b> antippbar, öffnet das Feedback.</li>
+      <li><b>Zeitpunkt des iOS-Systemdialogs (I2):</b> passt.</li>
+    </ul></div>
+  <div class="r-hinweisbox"><b>Neue Reihenfolge</b>: 1 App schützen, 2 Benachrichtigungen, 3 Daten und Datenschutz, 4 Kurze Einführung? Ohne Biometrie entfällt Schritt 1, dann sind es drei Schritte. Je Schritt sind die Zustände vorher, nach dem Aktivieren und (bei Mitteilungen) nach der Ablehnung gezeigt.</div>
+
+  <section class="part" id="wa">
+    <h2>A · „Warum“-Punkte als Liste über der Karte</h2>
+    <p>Die Gründe stehen offen da, bevor man entscheidet. Mehr Text auf dem Bildschirm, dafür ohne Antippen lesbar.</p>
+    <div id="slot-wa"></div>
+  </section>
+
+  <section class="part" id="wb">
+    <h2>B · Aufklappbare Info-Box „Warum?“ unter der Karte</h2>
+    <p>Die Karte steht direkt unter dem Satz, die Gründe sind eingeklappt. Ruhiger, aber die Gründe sieht nur, wer nachfragt.</p>
+    <div id="slot-wb"></div>
+  </section>
+
+  <section class="part" id="rest">
+    <h2>Schritte 3 und 4 (unverändert aus WS2)</h2>
+    <p>Zur Vollständigkeit, jetzt mit „Schritt x von 4“.</p>
+    <div id="slot-rest"></div>
+  </section>
+
+  <section class="part" id="ohne">
+    <h2>Ohne Biometrie</h2>
+    <p>Gerät ohne Face ID, Touch ID oder Fingerabdruck: „App schützen“ entfällt, „Benachrichtigungen“ ist Schritt 1 von 3 und trägt die Begrüßung.</p>
+    <div id="slot-ohne"></div>
+  </section>
+
+  <section class="part" id="rueckmeldung">
+    <h2>Rückmeldung</h2>
+    <p>Auswählen, kurz kommentieren, „Auswahl kopieren“ und den Text in den Chat einfügen.</p>
+    <form class="fb" id="fb"></form>
+  </section>
+</main>
+<script>
+(function () {
+  const B = window.RBAU;
+  B.farbenEinfuegen();
+
+  const ctxs = { hell: { modus: 'hell', plattform: 'ios' }, dunkel: { modus: 'dunkel', plattform: 'ios' } };
+  const variante = (id, titel, desc, inhalt) => `<div class="variant" data-shot-group="${id}"><h3>${titel}</h3>${desc ? `<p class="desc">${desc}</p>` : ''}<div class="phones">${inhalt}</div></div>`;
+  const kM = B.kopfOhne('Mitglieder');
+  const tM = B.tabbarMitglieder;
+  const phone = (m, shot, cap, overlay) => B.telefon(ctxs[m], kM, B.mitgliederliste(ctxs[m]), { shot, beschriftung: cap, overlay, tabbar: tM });
+
+  function reihe(v, m) {
+    const c = ctxs[m];
+    const k = v.toLowerCase();
+    const s = (schritt, opts) => B.stepperR3(c, v, schritt, opts);
+    const liste = [
+      ['schutz-vorher', '① App schützen · vorher', s('schutz')],
+      ...(v === 'WB' ? [['schutz-warum', '① App schützen · „Warum?“ aufgeklappt', s('schutz', { warumAuf: true })]] : []),
+      ['schutz-aktiv', '① App schützen · nach „Aktivieren“', s('schutz', { zustand: 'aktiv' })],
+      ['benach-vorher', '② Benachrichtigungen · vorher', s('benach')],
+      ...(v === 'WB' ? [['benach-warum', '② Benachrichtigungen · „Warum?“ aufgeklappt', s('benach', { warumAuf: true })]] : []),
+      ['benach-system', '② nach „Aktivieren“: iOS-Systemabfrage', s('benach') + B.iosMitteilungen()],
+      ['benach-aktiv', '② erlaubt', s('benach', { zustand: 'aktiv' })],
+      ['benach-abgelehnt', '② nicht erlaubt', s('benach', { zustand: 'abgelehnt' })],
+    ];
+    return liste.map(([id, cap, ov]) => phone(m, `${k}-${id}-${m}`, `${cap} · ${m}`, ov)).join('');
+  }
+
+  const ws = (v) => variante(`${v.toLowerCase()}-hell`, `${v} · hell`, '', reihe(v, 'hell')) + variante(`${v.toLowerCase()}-dunkel`, `${v} · dunkel`, '', reihe(v, 'dunkel'));
+  function rest() {
+    const r = (m) => phone(m, `rest-daten-${m}`, `③ Daten und Datenschutz · ${m}`, B.stepperR3(ctxs[m], 'WA', 'daten')) +
+      phone(m, `rest-intro-${m}`, `④ Kurze Einführung? · ${m}<div class="r-notiz">Entwurfsnotiz: Die Einführung selbst kommt später. „Ja“ wird vorerst nur gespeichert.</div>`, B.stepperR3(ctxs[m], 'WA', 'intro'));
+    return variante('rest', 'Schritte 3 und 4', '', r('hell') + r('dunkel'));
+  }
+  function ohne() {
+    const schritte = ['benach', 'daten', 'intro'];
+    return variante('ohne', 'Ohne Biometrie: drei Schritte', '',
+      phone('hell', 'ohne-wa-hell', 'A · Schritt 1 von 3 · hell', B.stepperR3(ctxs.hell, 'WA', 'benach', { schritte })) +
+      phone('dunkel', 'ohne-wa-dunkel', 'A · Schritt 1 von 3 · dunkel', B.stepperR3(ctxs.dunkel, 'WA', 'benach', { schritte })) +
+      phone('hell', 'ohne-wb-hell', 'B · Schritt 1 von 3 · hell', B.stepperR3(ctxs.hell, 'WB', 'benach', { schritte })) +
+      phone('dunkel', 'ohne-wb-dunkel', 'B · Schritt 1 von 3 · dunkel', B.stepperR3(ctxs.dunkel, 'WB', 'benach', { schritte })));
+  }
+
+  const FRAGEN = [
+    { id: 'warum', titel: 'Darstellung der „Warum“-Punkte', optionen: ['A Liste über der Karte', 'B Info-Box „Warum?“'] },
+    { id: 'schutz', titel: 'Schritt „App schützen“ (Texte, Punkte)', optionen: ['passt', 'ändern'] },
+    { id: 'benach', titel: 'Schritt „Benachrichtigungen“ (Texte, Punkte)', optionen: ['passt', 'ändern'] },
+    { id: 'abgelehnt', titel: 'Zustand „nicht erlaubt“', optionen: ['passt', 'ändern'] },
+    { id: 'reihenfolge', titel: 'Reihenfolge der vier Schritte', optionen: ['passt', 'ändern'] },
+  ];
+  function renderFeedback() {
+    const f = document.getElementById('fb');
+    f.innerHTML = FRAGEN.map((qq) => `<fieldset><legend>${qq.titel}</legend>${qq.optionen.map((o) => `<label><input type="radio" name="${qq.id}" value="${o}"> ${o}</label>`).join('')}<textarea name="${qq.id}-text" placeholder="Anmerkung (optional)"></textarea></fieldset>`).join('') +
+      `<fieldset><legend>Sonst noch</legend><textarea name="frei" placeholder="Freitext"></textarea></fieldset>
+      <button type="button" id="kopieren">Auswahl kopieren</button>
+      <textarea id="ausgabe" readonly placeholder="Hier erscheint der Text für den Chat."></textarea>`;
+    document.getElementById('kopieren').addEventListener('click', async () => {
+      const fd = new FormData(f);
+      const zeilen = ['Rückmeldung Willkommen-Stepper, Runde 3'];
+      for (const qq of FRAGEN) {
+        const wahl = fd.get(qq.id); const text = (fd.get(`${qq.id}-text`) || '').trim();
+        zeilen.push(`- ${qq.titel}: ${wahl || '–'}${text ? ` – ${text}` : ''}`);
+      }
+      const frei = (fd.get('frei') || '').trim();
+      if (frei) zeilen.push(`- Sonst: ${frei}`);
+      const text = zeilen.join('\n');
+      const out = document.getElementById('ausgabe');
+      out.value = text;
+      try { await navigator.clipboard.writeText(text); } catch (e) { out.select(); document.execCommand('copy'); }
+    });
+  }
+
+  document.getElementById('slot-wa').innerHTML = ws('WA');
+  document.getElementById('slot-wb').innerHTML = ws('WB');
+  document.getElementById('slot-rest').innerHTML = rest();
+  document.getElementById('slot-ohne').innerHTML = ohne();
+  renderFeedback();
+  document.body.dataset.fertig = '1';
+})();
+</script>
+</body></html>

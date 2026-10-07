@@ -97,6 +97,32 @@ class BundesstatistikModel extends ChangeNotifier {
   bool _syncErneutAngefordert = false;
 
   bool get isAvailable => _featureEnabled;
+
+  /// Name des aktiven Stammes fuer den Einwilligungsdialog.
+  String? get stammName =>
+      _hierarchie == null ? null : _readModel?.arbeitskontext.aktiverLayer.name;
+
+  String? _installationsId;
+
+  /// Installations-ID fuer Auskunft und Loeschung auf Anfrage. Erst bekannt,
+  /// wenn diese Installation schon geteilt hat.
+  String? get installationsId => _installationsId;
+
+  /// Liest die ID nur, wenn bereits gesendet wurde; legt keine neue an.
+  Future<void> ladeInstallationsId() async {
+    if (_teilnahme.zuletztGesendetAm == null) {
+      return;
+    }
+    _setzeInstallationsId((await _credentialsRepository.loadOrCreate()).id);
+  }
+
+  void _setzeInstallationsId(String id) {
+    if (_installationsId != id) {
+      _installationsId = id;
+      notifyListeners();
+    }
+  }
+
   bool get isBusy => _isBusy;
 
   /// Einwilligung der angemeldeten Person fuer den aktiven Stamm. Wer mehrere
@@ -294,6 +320,9 @@ class BundesstatistikModel extends ChangeNotifier {
         credentials,
         _sendeWennFaellig,
       );
+      if (_teilnahme.zuletztGesendetAm != null) {
+        _setzeInstallationsId(credentials.id);
+      }
 
       // Lesen darf nur, wer beigetragen hat; ohne eigene Sendung waere die
       // Antwort ohnehin 403.

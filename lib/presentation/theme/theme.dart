@@ -290,6 +290,45 @@ ThemeData buildTheme(AppPaletteId paletteId, Brightness brightness) {
       ),
     ],
     scaffoldBackgroundColor: c.bg,
+    // Die Material-Vorgaben fuer ausgeschaltete Schalter und Segment-Raender
+    // nutzen outline/surfaceContainerHighest; beide sind hier die Rahmenfarbe
+    // und verschwinden auf Karten. Deshalb muted fuer alles Ausgeschaltete.
+    switchTheme: SwitchThemeData(
+      thumbColor: WidgetStateProperty.resolveWith(
+        (states) =>
+            states.contains(WidgetState.selected) ? c.onPrimary : c.muted,
+      ),
+      trackColor: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected)
+            ? c.primary
+            : (isDark ? c.bg : c.border),
+      ),
+      trackOutlineColor: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected)
+            ? Colors.transparent
+            : c.muted,
+      ),
+    ),
+    radioTheme: RadioThemeData(
+      fillColor: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected) ? c.primary : c.muted,
+      ),
+    ),
+    segmentedButtonTheme: SegmentedButtonThemeData(
+      style: ButtonStyle(
+        side: WidgetStatePropertyAll(BorderSide(color: c.muted)),
+        backgroundColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? c.primaryLite
+              : Colors.transparent,
+        ),
+        foregroundColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? (isDark ? c.fg : c.primary)
+              : c.fg,
+        ),
+      ),
+    ),
     disabledColor: isDark
         ? const Color(0xFF424242)
         : const Color.fromARGB(255, 222, 222, 222),

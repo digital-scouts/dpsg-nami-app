@@ -74,6 +74,32 @@ void main() {
 
     expect(legacyCleared, isTrue);
   });
+
+  test('bricht beim Reset alle geplanten Benachrichtigungen ab', () async {
+    var abgebrochen = false;
+    final service = AppResetService(
+      authSessionRepository: _FakeAuthSessionRepository(),
+      sensitiveStorageService: _FakeSensitiveStorageService(),
+      cancelScheduledNotifications: () async => abgebrochen = true,
+    );
+
+    await service.resetAllData(clearLogFile: false);
+
+    expect(abgebrochen, isTrue);
+  });
+
+  test('Reset scheitert nicht am Benachrichtigungs-Plugin', () async {
+    final service = AppResetService(
+      authSessionRepository: _FakeAuthSessionRepository(),
+      sensitiveStorageService: _FakeSensitiveStorageService(),
+      cancelScheduledNotifications: () async => throw StateError('plugin'),
+    );
+
+    await service.resetAllData(clearLogFile: false);
+
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getKeys(), isEmpty);
+  });
 }
 
 class _FakeAuthSessionRepository implements AuthSessionRepository {

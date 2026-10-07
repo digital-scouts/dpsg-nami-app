@@ -47,6 +47,7 @@ import 'stories/member_rollen_tab_story.dart';
 import 'stories/member_roles_list_tile_story.dart';
 import 'stories/member_roles_recommendation_tile_story.dart';
 import 'stories/member_roles_statistik_pie_story.dart';
+import 'stories/rechtliches_story.dart';
 import 'stories/settings_qualifikationen_story.dart';
 import 'stories/statistics_page_story.dart';
 import 'stories/statistik_age_distribution_story.dart';
@@ -116,6 +117,8 @@ List<Story> buildStorybookStories() {
     profilePageWithoutNicknameStory(),
     profilePageUnknownLanguageStory(),
     settingsPageStory(),
+    rechtlichesPageStory(),
+    willkommenStepperStory(),
     appSettingsPageStory(),
     appSettingsPageEnglishStory(),
     settingsAppearancePageStory(),

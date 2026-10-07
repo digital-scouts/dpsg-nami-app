@@ -1,0 +1,167 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8">
+<title>Entwürfe: Impressum, Datenschutz und Einwilligungen, Runde 2</title>
+<link rel="stylesheet" href="../statistik/basis.css">
+<link rel="stylesheet" href="../mitglied/mitglied.css">
+<link rel="stylesheet" href="rechtliches.css">
+<script src="../mitglied/daten.js"></script>
+<script src="../mitglied/lilie.js"></script>
+<script src="bausteine.js"></script>
+</head><body>
+<div class="bar">
+  <nav><a href="#seite">1 Impressum & Datenschutz</a><a href="#willkommen">2 Willkommen</a><a href="#erfolge">3 Erfolge</a><a href="#systemdialog">4 Zeitpunkt Systemdialog</a><a href="#rueckmeldung">5 Rückmeldung</a></nav>
+</div>
+<main>
+  <h1>Impressum, Datenschutz und Einwilligungen: Entwürfe, Runde 2</h1>
+  <p>Runde 2 baut auf den Festlegungen aus Runde 1 auf. Neu sind die zusammengeführte Seite „Impressum & Datenschutz“, der Willkommens-Stepper, das antippbare Abzeichen „Mitgestalten“ und der Zeitpunkt des iOS-Systemdialogs. Alle Daten sind synthetisch.</p>
+  <div class="fest-list r-hinweisbox" style="background:#eef5ec;border-color:#c9dcc4;color:#24391f"><b>Festgelegt nach Runde 1</b>
+    <ul>
+      <li><b>Einstieg:</b> E2, Link „Impressum & Datenschutz“ im Fußbereich der Einstellungen.</li>
+      <li><b>Seite:</b> D2 (Kacheln, Details im Sheet) mit dem „Kurz gesagt“-Block aus D3 vorweg.</li>
+      <li><b>Willkommen:</b> W1 als Stepper.</li>
+      <li><b>iOS:</b> I1 (eigener Dialog ohne „App bewerten“), I2 (Systemdialog nach dem Bearbeiten oder Anlegen einer Person), A1 (Abzeichen „App bewertet“ öffnet direkt den App Store).</li>
+      <li><b>Mitgestalten:</b> Das Abzeichen ist auf iOS und Android antippbar und öffnet das Feedback.</li>
+      <li><b>Android:</b> G2 (gestapelte Knöpfe); „App bewerten“ öffnet das Google-Play-In-App-Review.</li>
+      <li><b>Screenshot-Hinweis:</b> Text T3. Eine eigene Hinweiszeile (T2) ist mit Wiredash nicht machbar, nur Texte.</li>
+      <li><b>Bundesstatistik:</b> B2 (gestufter Dialog) und K2 (Installations-ID im Kasten).</li>
+      <li><b>Kartenquellen:</b> Q2, unten links halbtransparent.</li>
+    </ul></div>
+
+  <section class="part" id="seite">
+    <h2>1 · Seite „Impressum & Datenschutz“</h2>
+    <p>D2 mit „Kurz gesagt“ ganz oben. Die Varianten unterscheiden sich darin, ob der Anbieter eine eigene Karte bekommt oder im „Kurz gesagt“-Block steht. Links der Einstieg E2 als Ausschnitt.</p>
+    <div id="slot-seite"></div>
+  </section>
+
+  <section class="part" id="willkommen">
+    <h2>2 · Willkommen als Stepper</h2>
+    <p>Drei Schritte: App schützen, Daten und Datenschutz, kurze Einführung. Nicht wegtippbar; „Weiter“ und „Zurück“ führen durch, der letzte Schritt schließt mit einer der beiden Antworten. Alle Schalter stehen anfangs auf aus.</p>
+    <div id="slot-willkommen"></div>
+  </section>
+
+  <section class="part" id="erfolge">
+    <h2>3 · Erfolge: offene Abzeichen antippbar</h2>
+    <p>Wie A1 trägt das offene „Mitgestalten“ den Hinweis „Feedback geben ↗“ und öffnet beim Antippen das Feedback. Auf iOS sind beide offenen Abzeichen antippbar, auf Android gibt es nur „Mitgestalten“. Die gestrichelte Markierung gehört nur zum Entwurf.</p>
+    <div id="slot-erfolge"></div>
+  </section>
+
+  <section class="part" id="systemdialog">
+    <h2>4 · Zeitpunkt des iOS-Systemdialogs (I2)</h2>
+    <p>Nach dem Speichern einer bearbeiteten oder neu angelegten Person: Erst erscheint die Bestätigung, kurz danach der Systemdialog.</p>
+    <div id="slot-systemdialog"></div>
+  </section>
+
+  <section class="part" id="rueckmeldung">
+    <h2>5 · Rückmeldung</h2>
+    <p>Je Bildschirm eine Variante wählen, kurz kommentieren, „Auswahl kopieren“ und den Text in den Chat einfügen.</p>
+    <form class="fb" id="fb"></form>
+  </section>
+</main>
+<script>
+(function () {
+  const B = window.RBAU;
+  B.farbenEinfuegen();
+
+  const hell = { modus: 'hell' };
+  const dunkel = { modus: 'dunkel' };
+  const ah = { modus: 'hell', plattform: 'android' };
+  const ad = { modus: 'dunkel', plattform: 'android' };
+  const variante = (id, titel, desc, inhalt) => `<div class="variant" data-shot-group="${id}"><h3>${titel}</h3>${desc ? `<p class="desc">${desc}</p>` : ''}<div class="phones">${inhalt}</div></div>`;
+  const notiz = (t) => `<div class="r-notiz">${t}</div>`;
+  const kopfSeite = B.kopf('Impressum & Datenschutz');
+  const tM = B.tabbarMitglieder;
+  const kM = B.kopfOhne('Mitglieder');
+
+  function seite() {
+    const einstieg = B.panel(hell, B.einstiegE2(hell), { shot: 'e2-einstieg-hell', titel: 'Einstieg E2 · hell' }) +
+      B.panel(dunkel, B.einstiegE2(dunkel), { shot: 'e2-einstieg-dunkel', titel: 'Einstieg E2 · dunkel' });
+    return variante('e2', 'Einstieg E2 (festgelegt)', 'Ausschnitt aus dem Fußbereich der Einstellungen.', einstieg) +
+      variante('s1', 'S1 · „Kurz gesagt“ als eigene Karte, dann Anbieter', 'Fünf Kernaussagen in der farbigen Karte, darunter die Anbieter-Karte wie in D2, dann die Kacheln.',
+        B.telefon(hell, kopfSeite, B.seiteR2(hell, 'S1'), { shot: 's1-hell', beschriftung: 'hell', lang: true, falz: true }) +
+        B.telefon(dunkel, kopfSeite, B.seiteR2(dunkel, 'S1'), { shot: 's1-dunkel', beschriftung: 'dunkel', lang: true, falz: true })) +
+      variante('s2', 'S2 · Anbieter im „Kurz gesagt“-Block', 'Eine Karte statt zwei: vier Kernaussagen, darunter der Anbieter mit Mail und dem Hinweis auf das private Projekt. Die Kacheln rücken nach oben.',
+        B.telefon(hell, kopfSeite, B.seiteR2(hell, 'S2'), { shot: 's2-hell', beschriftung: 'hell', lang: true, falz: true }) +
+        B.telefon(dunkel, kopfSeite, B.seiteR2(dunkel, 'S2'), { shot: 's2-dunkel', beschriftung: 'dunkel', lang: true, falz: true }));
+  }
+
+  function willkommen() {
+    const SCHRITTE = [['schutz', '① App schützen'], ['daten', '② Daten und Datenschutz'], ['intro', '③ Kurze Einführung?']];
+    const introNotiz = notiz('Entwurfsnotiz: Die Einführung selbst kommt später. „Ja“ wird vorerst nur gespeichert.');
+    const reihe = (v, ctx, modus) => SCHRITTE.map(([s, t]) => B.telefon(ctx, kM, B.mitgliederliste(ctx), {
+      shot: `${v.toLowerCase()}-${s}-${modus}`, beschriftung: `${t} · ${modus}${s === 'intro' ? introNotiz : ''}`, overlay: B.willkommenStepper(ctx, v, s), tabbar: tM,
+    })).join('');
+    const ohneBio = (v) => B.telefon(hell, kM, B.mitgliederliste(hell), {
+      shot: `${v.toLowerCase()}-ohne-biometrie`, beschriftung: `ohne Biometrie: Schritt „App schützen“ entfällt, nur 2 Schritte${notiz('Gerät ohne Face ID, Touch ID oder Fingerabdruck: Es geht direkt mit „Daten und Datenschutz“ los.')}`,
+      overlay: B.willkommenStepper(hell, v, 'daten', ['daten', 'intro']), tabbar: tM,
+    });
+    return variante('ws1-hell', 'WS1 · Dialog fester Höhe mit Punkten · hell', 'Optik von W1: Lilie und „Willkommen!“ im ersten Schritt, danach je ein Symbol. Die Höhe bleibt gleich, damit die Knöpfe nicht springen. Punkte oben zeigen den Fortschritt.', reihe('WS1', hell, 'hell')) +
+      variante('ws1-dunkel', 'WS1 · dunkel', '', reihe('WS1', dunkel, 'dunkel')) +
+      variante('ws1-ohne', 'WS1 · ohne Biometrie', '', ohneBio('WS1')) +
+      variante('ws2-hell', 'WS2 · Vollbild-Dialog mit Fortschrittsbalken · hell', 'Mehr Raum, großer Titel, Fortschritt als Segmentbalken mit „Schritt 1 von 3“. Knöpfe unten in voller Breite, „Zurück“ darunter.', reihe('WS2', hell, 'hell')) +
+      variante('ws2-dunkel', 'WS2 · dunkel', '', reihe('WS2', dunkel, 'dunkel')) +
+      variante('ws2-ohne', 'WS2 · ohne Biometrie', '', ohneBio('WS2'));
+  }
+
+  function erfolge() {
+    const kE = B.kopf('Erfolge');
+    const ios = (m) => ({ modus: m, plattform: 'ios' });
+    return variante('m-ios', '<span class="plattform">iOS</span>Beide offenen Abzeichen antippbar', '„App bewertet“ öffnet den App Store, „Mitgestalten“ öffnet das Feedback.',
+        B.telefon(ios('hell'), kE, B.erfolge(ios('hell'), { bewertung: 'offen', hinweis: true, mitgestalten: 'offen', hinweisMit: true }), { shot: 'm-ios-hell', beschriftung: 'hell' }) +
+        B.telefon(ios('dunkel'), kE, B.erfolge(ios('dunkel'), { bewertung: 'offen', hinweis: true, mitgestalten: 'offen', hinweisMit: true }), { shot: 'm-ios-dunkel', beschriftung: 'dunkel' })) +
+      variante('m-android', '<span class="plattform">Android</span>Nur „Mitgestalten“', 'Kein Abzeichen „App bewertet“; „Mitgestalten“ öffnet das Feedback.',
+        B.telefon(ah, kE, B.erfolge(ah, { mitgestalten: 'offen', hinweisMit: true }), { shot: 'm-android-hell', beschriftung: 'hell' }) +
+        B.telefon(ad, kE, B.erfolge(ad, { mitgestalten: 'offen', hinweisMit: true }), { shot: 'm-android-dunkel', beschriftung: 'dunkel' }));
+  }
+
+  function systemdialog() {
+    const k = B.kopf('Lena „Funke“ Brandt', B.ico('edit', 21));
+    const pfeil = '<div class="r-pfeil">→</div>';
+    const paar = (m) => {
+      const ctx = { modus: m, plattform: 'ios' };
+      return B.telefon(ctx, k, B.mitgliedDetail(ctx), { shot: `i2-gespeichert-${m}`, beschriftung: `① gespeichert · ${m}`, overlay: B.snack('Änderungen gespeichert'), tabbar: tM }) + pfeil +
+        B.telefon(ctx, k, B.mitgliedDetail(ctx), { shot: `i2-dialog-${m}`, beschriftung: `② etwa 1–2 Sekunden später · ${m}`, overlay: B.iosReview(ctx), tabbar: tM });
+    };
+    const regeln = notiz('<b>Regeln:</b> nach dem Speichern einer bearbeiteten oder neu angelegten Person; höchstens einmal anfragen; nicht im selben App-Start wie der eigene Feedback-Dialog. Ob der Dialog wirklich erscheint, entscheidet Apple, höchstens dreimal pro Jahr.');
+    return variante('i2-hell', 'I2 · Speichern, dann Systemdialog · hell', '', paar('hell') + `<div style="width:320px;align-self:center">${regeln}</div>`) +
+      variante('i2-dunkel', 'I2 · dunkel', '', paar('dunkel'));
+  }
+
+  const FRAGEN = [
+    { id: 'seite', titel: '1 Seite Impressum & Datenschutz', optionen: ['S1', 'S2'] },
+    { id: 'willkommen', titel: '2 Willkommen-Stepper', optionen: ['WS1', 'WS2'] },
+    { id: 'schutz', titel: '2 Schritt „App schützen“ mit Schalter', optionen: ['passt', 'lieber Knopf „Aktivieren“'] },
+    { id: 'daten', titel: '2 Schritt „Daten und Datenschutz“', optionen: ['passt', 'ändern'] },
+    { id: 'intro', titel: '2 Schritt „Kurze Einführung?“', optionen: ['passt', 'ändern', 'weglassen'] },
+    { id: 'erfolge', titel: '3 Abzeichen „Mitgestalten“ antippbar', optionen: ['passt', 'ändern'] },
+    { id: 'systemdialog', titel: '4 Zeitpunkt Systemdialog', optionen: ['passt', 'ändern'] },
+  ];
+  function renderFeedback() {
+    const f = document.getElementById('fb');
+    f.innerHTML = FRAGEN.map((qq) => `<fieldset><legend>${qq.titel}</legend>${qq.optionen.map((o) => `<label><input type="radio" name="${qq.id}" value="${o}"> ${o}</label>`).join('')}<textarea name="${qq.id}-text" placeholder="Anmerkung (optional)"></textarea></fieldset>`).join('') +
+      `<fieldset><legend>Sonst noch</legend><textarea name="frei" placeholder="Freitext"></textarea></fieldset>
+      <button type="button" id="kopieren">Auswahl kopieren</button>
+      <textarea id="ausgabe" readonly placeholder="Hier erscheint der Text für den Chat."></textarea>`;
+    document.getElementById('kopieren').addEventListener('click', async () => {
+      const fd = new FormData(f);
+      const zeilen = ['Rückmeldung Impressum, Datenschutz und Einwilligungen, Runde 2'];
+      for (const qq of FRAGEN) {
+        const wahl = fd.get(qq.id); const text = (fd.get(`${qq.id}-text`) || '').trim();
+        zeilen.push(`- ${qq.titel}: ${wahl || '–'}${text ? ` – ${text}` : ''}`);
+      }
+      const frei = (fd.get('frei') || '').trim();
+      if (frei) zeilen.push(`- Sonst: ${frei}`);
+      const text = zeilen.join('\n');
+      const out = document.getElementById('ausgabe');
+      out.value = text;
+      try { await navigator.clipboard.writeText(text); } catch (e) { out.select(); document.execCommand('copy'); }
+    });
+  }
+
+  document.getElementById('slot-seite').innerHTML = seite();
+  document.getElementById('slot-willkommen').innerHTML = willkommen();
+  document.getElementById('slot-erfolge').innerHTML = erfolge();
+  document.getElementById('slot-systemdialog').innerHTML = systemdialog();
+  renderFeedback();
+  document.body.dataset.fertig = '1';
+})();
+</script>
+</body></html>

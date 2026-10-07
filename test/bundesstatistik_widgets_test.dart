@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext.dart';
@@ -219,7 +220,99 @@ void main() {
     });
   });
 
+  testWidgets('zeigt die Installations-ID gekürzt und kopiert sie ganz', (
+    tester,
+  ) async {
+    String? kopiert;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          kopiert = (call.arguments as Map)['text'] as String?;
+        }
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _app(
+        Scaffold(
+          body: BundesvergleichView(
+            status: BundesstatistikStatus.wartetAufDaten,
+            hatEinwilligung: true,
+            installationsId: 'q3ZkAbCdEfGh9fA2',
+            zuletztGesendet: StammesSnapshot(
+              stammId: '11',
+              senderId: 'install-1',
+              sentAt: DateTime(2026, 6, 15, 10, 30),
+              sourceDataAsOf: DateTime(2026, 6, 15, 10),
+              kennzahlen: _kennzahlen,
+            ),
+            onEinwilligungAendern: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    final kopieren = find.byKey(const Key('bund-installations-id-kopieren'));
+    await tester.scrollUntilVisible(kopieren, 200);
+    expect(find.text('q3Zk…9fA2'), findsOneWidget);
+    expect(find.textContaining('nenne diese ID'), findsOneWidget);
+    expect(find.textContaining('stammweit die Leitenden'), findsOneWidget);
+
+    await tester.ensureVisible(kopieren);
+    await tester.pumpAndSettle();
+    await tester.tap(kopieren);
+    await tester.pump();
+    expect(kopiert, 'q3ZkAbCdEfGh9fA2');
+  });
+
+  testWidgets('ohne Installations-ID keine ID-Box', (tester) async {
+    await tester.pumpWidget(
+      _app(
+        Scaffold(
+          body: BundesvergleichView(
+            status: BundesstatistikStatus.wartetAufDaten,
+            hatEinwilligung: true,
+            onEinwilligungAendern: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byKey(const Key('bund-installations-id')), findsNothing);
+  });
+
   group('Einwilligungsdialog', () {
+    testWidgets('nennt den Stamm und klappt die Details auf', (tester) async {
+      await tester.pumpWidget(
+        _app(
+          const Scaffold(
+            body: BundesstatistikEinwilligungDialog(
+              stammName: 'Stamm St. Georg',
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Stamm St. Georg'), findsOneWidget);
+      expect(find.textContaining('Gelöscht nach 14 Monaten'), findsOneWidget);
+      expect(find.textContaining('keine IP-Adresse'), findsNothing);
+
+      await tester.tap(find.byKey(const Key('bund-consent-mehr')));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('keine IP-Adresse'), findsOneWidget);
+      expect(find.textContaining('Janneck Lange'), findsOneWidget);
+      expect(find.text('Impressum & Datenschutz'), findsOneWidget);
+    });
+
     testWidgets('liefert nur bei Zustimmung true', (tester) async {
       final ergebnisse = <bool>[];
       await tester.pumpWidget(

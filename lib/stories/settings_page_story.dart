@@ -127,8 +127,7 @@ class SettingsPageStoryScene extends StatelessWidget {
             context,
           ).push(MaterialPageRoute(builder: (_) => const SettingsMapPage())),
           onMessages: () => _info(context, 'Meldungen'),
-          onImpressum: () => _info(context, 'Impressum'),
-          onDatenschutz: () => _info(context, 'Datenschutz'),
+          onRechtliches: () => _info(context, 'Impressum & Datenschutz'),
           onDebugTools: demoZugang != null
               ? null
               : () => _info(context, 'Debug & Tools'),

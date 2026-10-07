@@ -118,7 +118,7 @@ class AppLocalizations {
       'bund_share_since': 'Aktiv seit {date}',
       'bund_share_required': 'Voraussetzung für den bundesweiten Vergleich',
       'bund_share_info':
-          'Geteilt werden nur zusammengefasste Anzahlen deines Stammes, keine Namen oder Einzeldaten. Ein Widerruf stoppt weitere Sendungen; bereits geteilte Zahlen fallen nach zwei Monaten aus der Statistik.',
+          'Geteilt werden nur zusammengefasste Anzahlen deines Stammes, keine Namen oder Einzeldaten. Ein Widerruf stoppt weitere Sendungen; geteilte Zahlen fallen nach zwei Monaten aus dem Vergleich und werden nach 14 Monaten gelöscht, auf Anfrage sofort.',
       'bund_join_title': 'Mit Stämmen bundesweit vergleichen',
       'bund_join_text':
           'Teile die zusammengefassten Anzahlen deines Stammes und sieh im Gegenzug, wie sich Stufen, Leitende und Geschlechter bundesweit verteilen. Namen oder Einzeldaten verlassen die App nicht.',
@@ -169,9 +169,144 @@ class AppLocalizations {
       'bund_shared_other_members': 'Sonstige Mitglieder',
       'bund_shared_group_values': '{children} + {leaders} Leitende',
       'bund_shared_footer':
-          'Zusätzlich je Gruppe die Aufteilung nach Geschlecht und bei Leitenden nach Altersgruppen. Stamm, Gruppen und Installation werden auf dem Server pseudonymisiert.',
+          'Zusätzlich je Gruppe die Aufteilung nach Geschlecht und stammweit die Leitenden nach Altersgruppen. Stamm, Gruppen und Installation werden auf dem Server pseudonymisiert.',
       'bund_shared_footer_groups':
           'Je Gruppe Kinder & Jugendliche und Leitende, jeweils nach Geschlecht. Stammweite Zahlen werden bei deiner Teilsicht nicht geteilt. Stamm, Gruppen und Installation werden auf dem Server pseudonymisiert.',
+      'bund_consent_title': 'Stammesdaten teilen?',
+      'bund_consent_intro':
+          'Etwa einmal pro Woche gehen Zahlen dieses Stammes an den Statistikserver der App.',
+      'bund_consent_point_counts':
+          'Nur Anzahlen je Gruppe nach Geschlecht, Leitende nach Altersgruppe',
+      'bund_consent_point_no_personal':
+          'Keine Namen, Geburtsdaten, Adressen oder Kontaktdaten',
+      'bund_consent_point_retention':
+          'Gelöscht nach 14 Monaten, Widerruf jederzeit',
+      'bund_consent_more': 'Mehr erfahren',
+      'bund_consent_less': 'Weniger anzeigen',
+      'bund_consent_shared_label': 'Geteilt:',
+      'bund_consent_shared':
+          'Mitglieder und Leitende je Gruppe nach Geschlecht, Leitende stammweit nach Altersgruppen, Mitgliedschaftsarten. Siehst du in Hitobito nur deine eigene Gruppe, werden nur deren Zahlen geteilt.',
+      'bund_consent_not_shared_label': 'Nicht geteilt:',
+      'bund_consent_not_shared': 'deine Person und dein Hitobito-Zugang.',
+      'bund_consent_server_label': 'Auf dem Server:',
+      'bund_consent_server':
+          'Bezirks- und Diözesannummer im Klartext, Stamm, Gruppen und Installation pseudonym, keine IP-Adresse.',
+      'bund_consent_withdraw_label': 'Widerruf',
+      'bund_consent_withdraw':
+          'stoppt weitere Sendungen; geteilte Zahlen löschen wir auf Anfrage.',
+      'bund_consent_responsible': 'Verantwortlich: {name}',
+      'bund_consent_cancel': 'Abbrechen',
+      'bund_consent_confirm': 'Teilen aktivieren',
+      'bund_installation_id': 'Installations-ID',
+      'bund_installation_id_copy': 'Kopieren',
+      'bund_installation_id_copied': 'Installations-ID kopiert',
+      'bund_installation_id_hint':
+          'Für Auskunft oder Löschung schreib an {email} und nenne diese ID. Nach einem App-Reset ist die ID weg.',
+      'legal_title': 'Impressum & Datenschutz',
+      'legal_short_title': 'Kurz gesagt',
+      'legal_short_local':
+          'Mitgliederdaten kommen aus Hitobito und liegen verschlüsselt nur auf deinem Gerät.',
+      'legal_short_consent':
+          'Bundesstatistik und Nutzungsanalyse gibt es nur mit deiner Einwilligung.',
+      'legal_short_action':
+          'Feedback und Log-Mails gehen nur raus, wenn du sie abschickst.',
+      'legal_short_ip':
+          'Karten und Update-Hinweise laden Daten von Anbietern; dabei wird deine IP-Adresse übertragen.',
+      'legal_provider_note':
+          'Fragen, Auskunft, Löschung. Privates Projekt, nicht von der DPSG betrieben oder autorisiert.',
+      'legal_recipients_title': 'Welche Daten gehen wohin',
+      'legal_recipients_hint':
+          'Antippen für Zweck, Rechtsgrundlage und Speicherdauer.',
+      'legal_when_login': 'bei der Anmeldung',
+      'legal_when_use': 'beim Laden',
+      'legal_when_consent': 'nur mit Einwilligung',
+      'legal_when_partly': 'teils mit Einwilligung',
+      'legal_when_action': 'nur auf deine Aktion',
+      'legal_label_purpose': 'Zweck',
+      'legal_label_data': 'Welche Daten',
+      'legal_label_basis': 'Rechtsgrundlage',
+      'legal_label_retention': 'Speicherdauer',
+      'legal_copy_id': 'ID kopieren',
+      'legal_write_mail': 'Mail schreiben',
+      'legal_r_hitobito_name': 'Hitobito (DPSG)',
+      'legal_r_hitobito_short': 'Anmeldung und Mitgliederdaten',
+      'legal_r_hitobito_purpose':
+          'Anmeldung und Abruf der Mitgliederdaten, die du in Hitobito sehen darfst. Änderungen schreibt die App dorthin zurück.',
+      'legal_r_hitobito_data':
+          'Zugangsdaten, Mitgliederdaten im Rahmen deiner Rechte',
+      'legal_r_hitobito_basis':
+          'deine Mitgliedschaft bzw. dein Amt in der DPSG',
+      'legal_r_hitobito_retention': 'nach den Regeln der DPSG',
+      'legal_r_hitobito_note':
+          'Für die Mitgliederdaten ist die DPSG verantwortlich. Es gilt das kirchliche Datenschutzrecht (KDG).',
+      'legal_r_statistik_name': 'Statistikserver der App',
+      'legal_r_statistik_short': 'Bundesweiter Vergleich',
+      'legal_r_statistik_purpose':
+          'Zählwerte deines Stammes für den bundesweiten Vergleich.',
+      'legal_r_statistik_data':
+          'Anzahlen je Gruppe. Stamm, Gruppen und Installation pseudonym, Bezirks- und Diözesannummer im Klartext. Keine Speicherung der IP-Adresse.',
+      'legal_r_statistik_basis': 'Einwilligung je Stamm, jederzeit widerrufbar',
+      'legal_r_statistik_retention': '14 Monate, Backups 14 Tage',
+      'legal_r_statistik_note':
+          'Auskunft oder Löschung: Mail an {email} mit deiner Installations-ID (steht im Bundesvergleich).',
+      'legal_r_wiredash_name': 'Wiredash',
+      'legal_r_wiredash_short': 'Feedback und Nutzungsanalyse',
+      'legal_r_wiredash_purpose':
+          'Feedback und Zufriedenheitsumfrage, wenn du sie abschickst. Nutzungsereignisse und Fehlerberichte nur mit Einwilligung.',
+      'legal_r_wiredash_data':
+          'Technischer Ping mit App-Version, Gerät und Sprache; beim Feedback dein Text, auf Wunsch E-Mail und Screenshots',
+      'legal_r_wiredash_basis':
+          'Einwilligung bzw. eigene Aktion; Ping: berechtigtes Interesse',
+      'legal_r_wiredash_retention': 'beim Anbieter nach dessen Regeln',
+      'legal_r_geoapify_name': 'Geoapify',
+      'legal_r_geoapify_short': 'Adressen auf der Karte',
+      'legal_r_geoapify_purpose':
+          'Wandelt Adressen in Koordinaten für Karten und die Standorte-Statistik.',
+      'legal_r_geoapify_data': 'Nur der Adresstext, ohne Namen',
+      'legal_r_geoapify_basis': 'berechtigtes Interesse',
+      'legal_r_geoapify_retention':
+          'Koordinaten auf dem Gerät bis zum Abmelden, beim Anbieter nach dessen Regeln',
+      'legal_r_kacheln_name': 'Kartenkacheln',
+      'legal_r_kacheln_short': 'MapTiler bzw. OpenStreetMap',
+      'legal_r_kacheln_purpose': 'Lädt die Kartenbilder.',
+      'legal_r_kacheln_data': 'IP-Adresse und Kartenausschnitt beim Laden',
+      'legal_r_kacheln_basis': 'berechtigtes Interesse',
+      'legal_r_kacheln_retention':
+          'beim Anbieter nach dessen Regeln, Kacheln zwischengespeichert',
+      'legal_r_github_name': 'GitHub',
+      'legal_r_github_short': 'Update-Hinweis und Mitteilungen',
+      'legal_r_github_purpose':
+          'Prüft auf neue Versionen und lädt Mitteilungen.',
+      'legal_r_github_data': 'IP-Adresse',
+      'legal_r_github_basis': 'berechtigtes Interesse',
+      'legal_r_github_retention': 'bei GitHub nach dessen Regeln',
+      'legal_r_dpsg_name': 'DPSG-Stammessuche',
+      'legal_r_dpsg_short': 'tools.dpsg.de, Stammeskarte',
+      'legal_r_dpsg_purpose': 'Lädt die Stämme für die Stammeskarte.',
+      'legal_r_dpsg_data': 'IP-Adresse',
+      'legal_r_dpsg_basis': 'berechtigtes Interesse',
+      'legal_r_dpsg_retention': 'bei der DPSG nach deren Regeln',
+      'legal_r_logmail_name': 'Log-Mail an den Entwickler',
+      'legal_r_logmail_short': 'Hilfe bei der Fehlersuche',
+      'legal_r_logmail_purpose': 'Hilft bei der Fehlersuche.',
+      'legal_r_logmail_data':
+          'App-Protokolle, die du selbst per Mail verschickst',
+      'legal_r_logmail_basis': 'eigene Aktion',
+      'legal_r_logmail_retention': 'bis die Fehlersuche abgeschlossen ist',
+      'legal_device_title': 'Auf deinem Gerät',
+      'legal_device_body':
+          'Mitgliederdaten liegen verschlüsselt auf deinem Gerät und werden beim Abmelden gelöscht, ebenso nach 90 Tagen ohne Aktualisierung. Erfolge und der Statistik-Verlauf bleiben bis zum Zurücksetzen der App, Protokolle sieben Tage.',
+      'legal_rights_title': 'Deine Rechte',
+      'legal_rights_intro': 'Du kannst jederzeit verlangen:',
+      'legal_rights_list':
+          'Auskunft|Berichtigung|Löschung|Einschränkung|Widerspruch|Widerruf von Einwilligungen|Beschwerde bei einer Aufsichtsbehörde',
+      'legal_rights_contact':
+          'Schreib an {email}. Für Mitgliederdaten in Hitobito ist die DPSG zuständig.',
+      'legal_sources_title': 'Quellen',
+      'legal_sources_body':
+          'Kartendaten © OpenStreetMap-Mitwirkende · Karten © MapTiler · Adresssuche © Geoapify',
+      'legal_licenses': 'Open-Source-Lizenzen',
+      'legal_full_policy': 'Ausführliche Datenschutzerklärung',
       'bund_col_own_stamm': 'Dein Stamm',
       'bund_col_own_group': 'Deine Gruppe',
       'bund_col_own_groups': 'Deine Gruppen',
@@ -273,10 +408,74 @@ class AppLocalizations {
       'update_required_title': 'Update erforderlich',
       'update_required_body':
           'Deine aktuelle App-Version wird nicht mehr unterstützt. Bitte aktualisiere die App.',
-      'welcome_title': 'Willkommen',
-      'welcome_body':
-          'Willkommen in der App. Weitere Hinweise und Optionen folgen später. Vor dem breiteren Rollout der Kartenfunktion wird hier noch ein ausdrücklicher Privacy-Policy-Hinweis mit einer Bestätigung wie "Ich stimme Privacy Policy zu" ergänzt.',
-      'welcome_action': 'Weiter',
+      'welcome_title': 'Willkommen!',
+      'welcome_step': 'Schritt {current} von {total}',
+      'welcome_next': 'Weiter',
+      'welcome_back': 'Zurück',
+      'welcome_finish': 'Los geht’s',
+      'welcome_activate': 'Aktivieren',
+      'welcome_active': 'Aktiv',
+      'welcome_off': 'Aus',
+      'welcome_change_later':
+          'Kannst du später in den App-Einstellungen ändern.',
+      'welcome_lock_title': 'App schützen',
+      'welcome_lock_body':
+          'Sperre die App mit Face ID oder Fingerabdruck. Dann sieht niemand ohne dich die Mitgliederdaten.',
+      'welcome_lock_why_offline':
+          'Mitgliederdaten liegen offline auf dem Gerät, viele von Minderjährigen, mit Adressen, Geburtsdaten und Angaben zum Führungszeugnis.',
+      'welcome_lock_why_lend':
+          'Schützt, wenn das Handy entsperrt herumliegt oder verliehen wird.',
+      'welcome_lock_why_pause':
+          'Fragt beim Öffnen und nach kurzer Pause erneut nach Face ID oder Fingerabdruck.',
+      'welcome_lock_option': 'App-Sperre',
+      'welcome_lock_option_hint':
+          'Beim Öffnen und nach kurzer Pause entsperren',
+      'welcome_notify_title': 'Benachrichtigungen',
+      'welcome_notify_body':
+          'Die App erinnert dich an Fristen und Geburtstage, damit nichts unbemerkt bleibt.',
+      'welcome_notify_why_quali':
+          'Erinnerung, bevor Qualifikationen ablaufen, etwa Präventionsschulung, Führungszeugnis oder Erste Hilfe, je nach Einstellung.',
+      'welcome_notify_why_birthday':
+          'Geburtstage deiner Mitglieder am Morgen. Für welche Stufen, legst du in den Einstellungen fest.',
+      'welcome_notify_why_expiry':
+          'Hinweis, bevor die Offline-Daten ablaufen und du dich neu anmelden musst.',
+      'welcome_notify_why_local':
+          'Keine Werbung, kein Tracking: nur lokale Erinnerungen von deinem Gerät.',
+      'welcome_notify_option': 'Benachrichtigungen',
+      'welcome_notify_option_hint': 'Erinnerungen von diesem Gerät',
+      'welcome_notify_denied':
+          'Nicht erlaubt. In den Systemeinstellungen änderbar.',
+      'welcome_notify_open_settings': 'Einstellungen öffnen',
+      'welcome_settings_title': 'Einstellungen',
+      'welcome_settings_body':
+          'Passe die App an. Alles lässt sich später in den Einstellungen ändern.',
+      'welcome_theme': 'Darstellung',
+      'welcome_analytics_hint':
+          'Nutzungsereignisse und Fehlerberichte an Wiredash senden.',
+      'welcome_no_mobile_data': 'Keine mobilen Daten',
+      'welcome_no_mobile_data_hint':
+          'Synchronisation und Karten nur im WLAN laden.',
+      'welcome_highlights_title': 'Das kann die App',
+      'welcome_highlights_body':
+          'Ein kurzer Überblick über das, was dich erwartet.',
+      'welcome_highlight_members_title': 'Mitglieder',
+      'welcome_highlight_members_text':
+          'Suchen, filtern, Details ansehen und direkt bearbeiten.',
+      'welcome_highlight_offline_title': 'Offline',
+      'welcome_highlight_offline_text':
+          'Verschlüsselt auf dem Gerät, auch ohne Netz im Lager.',
+      'welcome_highlight_statistics_title': 'Statistik',
+      'welcome_highlight_statistics_text':
+          'Gruppengrößen, Altersverteilung und Verlauf.',
+      'welcome_highlight_stage_change_title': 'Stufenwechsel',
+      'welcome_highlight_stage_change_text':
+          'Wer wann in die nächste Stufe wechselt.',
+      'welcome_highlight_qualifications_title': 'Qualifikationen',
+      'welcome_highlight_qualifications_text':
+          'Führungszeugnis, Prävention und Erste Hilfe im Blick.',
+      'welcome_highlight_layers_title': 'Ebenen wechseln',
+      'welcome_highlight_layers_text':
+          'Zwischen Stamm, Bezirk und Diözese wechseln.',
       'feedback_prompt_title': 'Wie gefällt dir die App?',
       'feedback_prompt_body_ios':
           'Du nutzt die App jetzt seit einer Weile. Was läuft gut, was fehlt dir? Dein Feedback hilft uns, sie weiter zu verbessern.',
@@ -460,7 +659,8 @@ class AppLocalizations {
       'settings_app_lock_title': 'App-Sperre',
       'settings_app_lock_hint': 'Biometrie oder PIN beim Start',
       'settings_app_analytics_title': 'Nutzungsanalyse',
-      'settings_app_analytics_hint': 'Anonyme Fehlerberichte senden',
+      'settings_app_analytics_hint':
+          'Nutzungsereignisse und Fehlerberichte an Wiredash senden',
       'settings_app_bundesstatistik_title': 'Bundesweite Statistik',
       'settings_app_bundesstatistik_hint':
           'Zusammengefasste Zahlen des aktiven Stammes für den Vergleich teilen',
@@ -955,6 +1155,11 @@ class AppLocalizations {
       'quali_push_fremde_text_eins': '{name}: gültig bis {datum}.',
       'quali_push_fremde_text_mehr': '{name} und {n} weitere, ab {datum}.',
       'quali_push_kanal': 'Qualifikationen',
+      'geburtstag_push_titel': 'Geburtstag',
+      'geburtstag_push_text': '{name} wird heute {alter}.',
+      'geburtstag_push_kanal': 'Geburtstage',
+      'geburtstag_einstellung_hinweis':
+          'Am Geburtstag um 9 Uhr, nur für die gewählten Stufen',
       'quali_schnellzugriff_leer': 'Status im Arbeitskontext',
       'debug_supporter_section_title': 'Supporter (Test)',
       'debug_supporter_section_subtitle':
@@ -1374,7 +1579,7 @@ class AppLocalizations {
       'bund_share_since': 'Active since {date}',
       'bund_share_required': 'Required for the nationwide comparison',
       'bund_share_info':
-          'Only aggregated counts of your Stamm are shared, no names or individual data. Withdrawing stops further transfers; figures already shared drop out of the statistics after two months.',
+          'Only aggregated counts of your Stamm are shared, no names or individual data. Withdrawing stops further transfers; shared figures drop out of the comparison after two months and are deleted after 14 months, or immediately on request.',
       'bund_join_title': 'Compare with Stämme nationwide',
       'bund_join_text':
           'Share the aggregated counts of your Stamm and see in return how age sections, leaders and genders are distributed nationwide. Names or individual data never leave the app.',
@@ -1425,9 +1630,142 @@ class AppLocalizations {
       'bund_shared_other_members': 'Other members',
       'bund_shared_group_values': '{children} + {leaders} leaders',
       'bund_shared_footer':
-          'In addition the split by gender per group and the leaders by age group. Stamm, groups and installation are pseudonymised on the server.',
+          'In addition the split by gender per group and, for the whole Stamm, the leaders by age group. Stamm, groups and installation are pseudonymised on the server.',
       'bund_shared_footer_groups':
           'Children & youth and leaders per group, each by gender. Stamm-wide figures are not shared with your partial view. Stamm, groups and installation are pseudonymised on the server.',
+      'bund_consent_title': 'Share Stamm figures?',
+      'bund_consent_intro':
+          'About once a week, figures of this Stamm are sent to the app\'s statistics server.',
+      'bund_consent_point_counts':
+          'Only counts per group by gender, leaders by age group',
+      'bund_consent_point_no_personal':
+          'No names, dates of birth, addresses or contact details',
+      'bund_consent_point_retention':
+          'Deleted after 14 months, withdraw at any time',
+      'bund_consent_more': 'Learn more',
+      'bund_consent_less': 'Show less',
+      'bund_consent_shared_label': 'Shared:',
+      'bund_consent_shared':
+          'Members and leaders per group by gender, leaders of the whole Stamm by age group, membership types. If you only see your own group in Hitobito, only its figures are shared.',
+      'bund_consent_not_shared_label': 'Not shared:',
+      'bund_consent_not_shared': 'you as a person and your Hitobito account.',
+      'bund_consent_server_label': 'On the server:',
+      'bund_consent_server':
+          'District and diocese number in plain text, Stamm, groups and installation pseudonymised, no IP address.',
+      'bund_consent_withdraw_label': 'Withdrawing',
+      'bund_consent_withdraw':
+          'stops further transfers; we delete shared figures on request.',
+      'bund_consent_responsible': 'Responsible: {name}',
+      'bund_consent_cancel': 'Cancel',
+      'bund_consent_confirm': 'Start sharing',
+      'bund_installation_id': 'Installation ID',
+      'bund_installation_id_copy': 'Copy',
+      'bund_installation_id_copied': 'Installation ID copied',
+      'bund_installation_id_hint':
+          'For access or deletion, write to {email} and quote this ID. After resetting the app, the ID is gone.',
+      'legal_title': 'Imprint & privacy',
+      'legal_short_title': 'In short',
+      'legal_short_local':
+          'Member data comes from Hitobito and is stored encrypted only on your device.',
+      'legal_short_consent':
+          'Nationwide statistics and usage analytics only with your consent.',
+      'legal_short_action':
+          'Feedback and log e-mails are only sent when you send them.',
+      'legal_short_ip':
+          'Maps and update notices load data from providers; your IP address is transmitted.',
+      'legal_provider_note':
+          'Questions, access, deletion. Private project, not operated or authorised by the DPSG.',
+      'legal_recipients_title': 'Which data goes where',
+      'legal_recipients_hint': 'Tap for purpose, legal basis and retention.',
+      'legal_when_login': 'at sign-in',
+      'legal_when_use': 'when loading',
+      'legal_when_consent': 'only with consent',
+      'legal_when_partly': 'partly with consent',
+      'legal_when_action': 'only on your action',
+      'legal_label_purpose': 'Purpose',
+      'legal_label_data': 'Which data',
+      'legal_label_basis': 'Legal basis',
+      'legal_label_retention': 'Retention',
+      'legal_copy_id': 'Copy ID',
+      'legal_write_mail': 'Write e-mail',
+      'legal_r_hitobito_name': 'Hitobito (DPSG)',
+      'legal_r_hitobito_short': 'Sign-in and member data',
+      'legal_r_hitobito_purpose':
+          'Sign-in and loading the member data you may see in Hitobito. The app writes changes back there.',
+      'legal_r_hitobito_data':
+          'Credentials, member data within your permissions',
+      'legal_r_hitobito_basis': 'your membership or role in the DPSG',
+      'legal_r_hitobito_retention': 'according to the rules of the DPSG',
+      'legal_r_hitobito_note':
+          'The DPSG is responsible for member data. Church data protection law (KDG) applies.',
+      'legal_r_statistik_name': 'App statistics server',
+      'legal_r_statistik_short': 'Nationwide comparison',
+      'legal_r_statistik_purpose':
+          'Counts of your Stamm for the nationwide comparison.',
+      'legal_r_statistik_data':
+          'Counts per group. Stamm, groups and installation pseudonymised, district and diocese number in plain text. No IP address stored.',
+      'legal_r_statistik_basis':
+          'consent per Stamm, can be withdrawn at any time',
+      'legal_r_statistik_retention': '14 months, backups 14 days',
+      'legal_r_statistik_note':
+          'Access or deletion: e-mail {email} with your installation ID (shown on the nationwide comparison).',
+      'legal_r_wiredash_name': 'Wiredash',
+      'legal_r_wiredash_short': 'Feedback and usage analytics',
+      'legal_r_wiredash_purpose':
+          'Feedback and satisfaction survey when you send them. Usage events and error reports only with consent.',
+      'legal_r_wiredash_data':
+          'Technical ping with app version, device and language; for feedback your text and optionally e-mail and screenshots',
+      'legal_r_wiredash_basis':
+          'consent or your own action; ping: legitimate interest',
+      'legal_r_wiredash_retention': 'by the provider according to its rules',
+      'legal_r_geoapify_name': 'Geoapify',
+      'legal_r_geoapify_short': 'Addresses on the map',
+      'legal_r_geoapify_purpose':
+          'Converts addresses into coordinates for maps and the location statistics.',
+      'legal_r_geoapify_data': 'Only the address text, without names',
+      'legal_r_geoapify_basis': 'legitimate interest',
+      'legal_r_geoapify_retention':
+          'coordinates on the device until sign-out, by the provider according to its rules',
+      'legal_r_kacheln_name': 'Map tiles',
+      'legal_r_kacheln_short': 'MapTiler or OpenStreetMap',
+      'legal_r_kacheln_purpose': 'Loads the map images.',
+      'legal_r_kacheln_data': 'IP address and map section when loading',
+      'legal_r_kacheln_basis': 'legitimate interest',
+      'legal_r_kacheln_retention':
+          'by the provider according to its rules, tiles cached',
+      'legal_r_github_name': 'GitHub',
+      'legal_r_github_short': 'Update notice and announcements',
+      'legal_r_github_purpose':
+          'Checks for new versions and loads announcements.',
+      'legal_r_github_data': 'IP address',
+      'legal_r_github_basis': 'legitimate interest',
+      'legal_r_github_retention': 'by GitHub according to its rules',
+      'legal_r_dpsg_name': 'DPSG Stamm search',
+      'legal_r_dpsg_short': 'tools.dpsg.de, Stamm map',
+      'legal_r_dpsg_purpose': 'Loads the Stämme for the Stamm map.',
+      'legal_r_dpsg_data': 'IP address',
+      'legal_r_dpsg_basis': 'legitimate interest',
+      'legal_r_dpsg_retention': 'by the DPSG according to its rules',
+      'legal_r_logmail_name': 'Log e-mail to the developer',
+      'legal_r_logmail_short': 'Help with troubleshooting',
+      'legal_r_logmail_purpose': 'Helps with troubleshooting.',
+      'legal_r_logmail_data': 'App logs you send yourself by e-mail',
+      'legal_r_logmail_basis': 'your own action',
+      'legal_r_logmail_retention': 'until troubleshooting is finished',
+      'legal_device_title': 'On your device',
+      'legal_device_body':
+          'Member data is stored encrypted on your device and deleted when you sign out, or after 90 days without an update. Achievements and statistics history remain until the app is reset, logs for seven days.',
+      'legal_rights_title': 'Your rights',
+      'legal_rights_intro': 'You can request at any time:',
+      'legal_rights_list':
+          'Access|Rectification|Erasure|Restriction|Objection|Withdrawal of consent|Complaint to a supervisory authority',
+      'legal_rights_contact':
+          'Write to {email}. The DPSG is responsible for member data in Hitobito.',
+      'legal_sources_title': 'Sources',
+      'legal_sources_body':
+          'Map data © OpenStreetMap contributors · Maps © MapTiler · Address search © Geoapify',
+      'legal_licenses': 'Open source licences',
+      'legal_full_policy': 'Full privacy policy',
       'bund_col_own_stamm': 'Your Stamm',
       'bund_col_own_group': 'Your group',
       'bund_col_own_groups': 'Your groups',
@@ -1529,10 +1867,70 @@ class AppLocalizations {
       'update_required_title': 'Update required',
       'update_required_body':
           'Your current app version is no longer supported. Please update the app.',
-      'welcome_title': 'Welcome',
-      'welcome_body':
-          'Welcome to the app. More guidance and options will be added later. Before the broader rollout of the map feature, an explicit Privacy Policy notice with a confirmation such as "I agree to the Privacy Policy" will be added here.',
-      'welcome_action': 'Continue',
+      'welcome_title': 'Welcome!',
+      'welcome_step': 'Step {current} of {total}',
+      'welcome_next': 'Next',
+      'welcome_back': 'Back',
+      'welcome_finish': 'Let’s go',
+      'welcome_activate': 'Activate',
+      'welcome_active': 'Active',
+      'welcome_off': 'Off',
+      'welcome_change_later': 'You can change this later in the app settings.',
+      'welcome_lock_title': 'Protect the app',
+      'welcome_lock_body':
+          'Lock the app with Face ID or fingerprint so nobody can see member data without you.',
+      'welcome_lock_why_offline':
+          'Member data is stored offline on the device, many of them minors, with addresses, dates of birth and police check details.',
+      'welcome_lock_why_lend':
+          'Protects you if the phone is left unlocked or lent to someone.',
+      'welcome_lock_why_pause':
+          'Asks for Face ID or fingerprint again when opening and after a short break.',
+      'welcome_lock_option': 'App lock',
+      'welcome_lock_option_hint': 'Unlock when opening and after a short break',
+      'welcome_notify_title': 'Notifications',
+      'welcome_notify_body':
+          'The app reminds you of deadlines and birthdays so nothing goes unnoticed.',
+      'welcome_notify_why_quali':
+          'Reminder before qualifications expire, such as prevention training, police check or first aid, depending on your settings.',
+      'welcome_notify_why_birthday':
+          'Birthdays of your members in the morning. Choose the sections in the settings.',
+      'welcome_notify_why_expiry':
+          'Notice before the offline data expires and you need to sign in again.',
+      'welcome_notify_why_local':
+          'No ads, no tracking: only local reminders from your device.',
+      'welcome_notify_option': 'Notifications',
+      'welcome_notify_option_hint': 'Reminders from this device',
+      'welcome_notify_denied':
+          'Not allowed. Can be changed in the system settings.',
+      'welcome_notify_open_settings': 'Open settings',
+      'welcome_settings_title': 'Settings',
+      'welcome_settings_body':
+          'Adjust the app. Everything can be changed later in the settings.',
+      'welcome_theme': 'Appearance',
+      'welcome_analytics_hint':
+          'Send usage events and error reports to Wiredash.',
+      'welcome_no_mobile_data': 'No mobile data',
+      'welcome_no_mobile_data_hint': 'Load sync and maps only on Wi-Fi.',
+      'welcome_highlights_title': 'What the app can do',
+      'welcome_highlights_body': 'A short overview of what to expect.',
+      'welcome_highlight_members_title': 'Members',
+      'welcome_highlight_members_text':
+          'Search, filter, view details and edit directly.',
+      'welcome_highlight_offline_title': 'Offline',
+      'welcome_highlight_offline_text':
+          'Encrypted on the device, available without network at camp.',
+      'welcome_highlight_statistics_title': 'Statistics',
+      'welcome_highlight_statistics_text':
+          'Group sizes, age distribution and history.',
+      'welcome_highlight_stage_change_title': 'Section changes',
+      'welcome_highlight_stage_change_text':
+          'Who moves to the next section and when.',
+      'welcome_highlight_qualifications_title': 'Qualifications',
+      'welcome_highlight_qualifications_text':
+          'Police check, prevention and first aid at a glance.',
+      'welcome_highlight_layers_title': 'Switch levels',
+      'welcome_highlight_layers_text':
+          'Switch between Stamm, district and diocese.',
       'feedback_prompt_title': 'How do you like the app?',
       'feedback_prompt_body_ios':
           'You have been using the app for a while now. What works well, what is missing? Your feedback helps us improve it.',
@@ -1713,7 +2111,8 @@ class AppLocalizations {
       'settings_app_lock_title': 'App lock',
       'settings_app_lock_hint': 'Biometrics or PIN on launch',
       'settings_app_analytics_title': 'Usage analytics',
-      'settings_app_analytics_hint': 'Send anonymous crash reports',
+      'settings_app_analytics_hint':
+          'Send usage events and error reports to Wiredash',
       'settings_app_bundesstatistik_title': 'Nationwide statistics',
       'settings_app_bundesstatistik_hint':
           'Share aggregated figures of the active Stamm for the comparison',
@@ -2196,6 +2595,11 @@ class AppLocalizations {
       'quali_push_fremde_text_eins': '{name}: valid until {datum}.',
       'quali_push_fremde_text_mehr': '{name} and {n} more, from {datum}.',
       'quali_push_kanal': 'Qualifications',
+      'geburtstag_push_titel': 'Birthday',
+      'geburtstag_push_text': '{name} turns {alter} today.',
+      'geburtstag_push_kanal': 'Birthdays',
+      'geburtstag_einstellung_hinweis':
+          'On the birthday at 9 am, only for the selected sections',
       'quali_schnellzugriff_leer': 'Status in this context',
       'debug_supporter_section_title': 'Supporter (test)',
       'debug_supporter_section_subtitle':

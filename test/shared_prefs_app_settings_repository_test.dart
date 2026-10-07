@@ -59,6 +59,17 @@ void main() {
       },
     );
 
+    test(
+      'Nutzungsanalyse ist ohne Einwilligung aus und wird gespeichert',
+      () async {
+        SharedPreferences.setMockInitialValues({});
+        final repo = SharedPrefsAppSettingsRepository();
+        expect((await repo.load()).analyticsEnabled, isFalse);
+        await repo.saveAnalyticsEnabled(true);
+        expect((await repo.load()).analyticsEnabled, isTrue);
+      },
+    );
+
     test('supporterTestZugang ist aus und wird gespeichert', () async {
       SharedPreferences.setMockInitialValues({});
       final repo = SharedPrefsAppSettingsRepository();

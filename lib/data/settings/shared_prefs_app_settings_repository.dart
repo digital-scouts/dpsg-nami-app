@@ -40,7 +40,8 @@ class SharedPrefsAppSettingsRepository implements AppSettingsRepository {
         ? ThemeMode.values[themeIndex]
         : ThemeMode.system;
     final languageCode = lang ?? 'de';
-    final analyticsEnabled = analytics ?? true;
+    // Nutzungsereignisse nur nach Einwilligung (Willkommensdialog oder Einstellungen).
+    final analyticsEnabled = analytics ?? false;
     final biometricLockEnabled = biometricLock ?? false;
     final notificationsEnabled = notifications ?? true;
     final noMobileDataEnabled = noMobileData ?? false;

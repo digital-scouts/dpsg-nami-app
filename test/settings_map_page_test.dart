@@ -65,6 +65,7 @@ void main() {
 
     expect(find.byType(AppBar), findsNothing);
     expect(find.byType(FlutterMap), findsOneWidget);
+    expect(find.byKey(const Key('karten-quellenangabe')), findsOneWidget);
     expect(find.byType(MarkerClusterLayerWidget), findsOneWidget);
     expect(
       find.byKey(const ValueKey('settings-map-back-button')),

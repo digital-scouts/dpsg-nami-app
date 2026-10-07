@@ -16,6 +16,7 @@ import 'package:nami/services/logger_service.dart';
 import 'package:nami/services/map_tile_cache_service.dart';
 import 'package:nami/services/network_access_policy.dart';
 import 'package:provider/provider.dart';
+import 'karten_quellenangabe.dart';
 
 class AddressMapPreview extends StatefulWidget {
   const AddressMapPreview({
@@ -575,6 +576,7 @@ class _InteractiveMapPreviewState extends State<_InteractiveMapPreview> {
                       ),
                   ],
                 ),
+                const KartenQuellenangabe(),
               ],
             ),
             Positioned(

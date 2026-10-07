@@ -1,6 +1,8 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:nami/services/logger_service.dart';
 
+import 'benachrichtigungs_berechtigung.dart';
+
 class DataExpiryNotificationService {
   DataExpiryNotificationService({
     required LoggerService logger,
@@ -12,17 +14,22 @@ class DataExpiryNotificationService {
 
   final LoggerService _logger;
   final FlutterLocalNotificationsPlugin _plugin;
-  bool _initialized = false;
+  Future<void>? _initialisierung;
 
-  Future<void> initialize() async {
-    if (_initialized) {
-      return;
-    }
+  /// Initialisiert nur das Plugin. Rechte fragt allein
+  /// [BenachrichtigungsBerechtigung] an; ohne Erlaubnis zeigt das System die
+  /// Erinnerung nicht. Gleichzeitige Aufrufe beim Start teilen sich einen Lauf.
+  Future<void> initialize() => _initialisierung ??= _initialisiere();
 
+  Future<void> _initialisiere() async {
     const androidSettings = AndroidInitializationSettings(
       '@mipmap/ic_launcher',
     );
-    const darwinSettings = DarwinInitializationSettings();
+    const darwinSettings = DarwinInitializationSettings(
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
+    );
     const initSettings = InitializationSettings(
       android: androidSettings,
       iOS: darwinSettings,
@@ -30,26 +37,6 @@ class DataExpiryNotificationService {
     );
 
     await _plugin.initialize(initSettings);
-
-    await _plugin
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.requestNotificationsPermission();
-
-    await _plugin
-        .resolvePlatformSpecificImplementation<
-          IOSFlutterLocalNotificationsPlugin
-        >()
-        ?.requestPermissions(alert: true, badge: true, sound: true);
-
-    await _plugin
-        .resolvePlatformSpecificImplementation<
-          MacOSFlutterLocalNotificationsPlugin
-        >()
-        ?.requestPermissions(alert: true, badge: true, sound: true);
-
-    _initialized = true;
   }
 
   /// Entfernt alle geplanten und angezeigten Benachrichtigungen der App,

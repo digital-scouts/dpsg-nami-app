@@ -12,6 +12,7 @@ import '../../domain/stufe/usecases/update_altersgrenzen_usecase.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/achievement_service.dart';
 import '../../services/logger_service.dart';
+import '../../services/benachrichtigungs_berechtigung.dart';
 import '../model/achievements_model.dart';
 import '../model/app_settings_model.dart';
 import '../model/bundesstatistik_model.dart';
@@ -27,9 +28,8 @@ import '../screens/nami_ai/nami_ai_paywall_page.dart';
 import '../screens/profile_page.dart';
 import '../screens/settings_app_page.dart';
 import '../screens/settings_appearance_page.dart';
-import '../screens/settings_datenschutz_page.dart';
 import '../screens/settings_debug_tools_page.dart';
-import '../screens/settings_impressum_page.dart';
+import '../screens/settings_rechtliches_page.dart';
 import '../screens/settings_map_page.dart';
 import '../screens/settings_notification_page.dart';
 import '../screens/settings_qualifikationen_page.dart';
@@ -48,8 +48,7 @@ class AppRoutes {
   static const String settingsNotification = '/settings/notifications';
   static const String settingsMap = '/settings/map';
   static const String settingsMessages = '/settings/messages';
-  static const String settingsImpressum = '/settings/impressum';
-  static const String settingsDatenschutz = '/settings/datenschutz';
+  static const String settingsRechtliches = '/settings/rechtliches';
   static const String settingsStufenwechsel = '/settings/stufenwechsel';
   static const String settingsQualifikationen = '/settings/qualifikationen';
   static const String debugTools = '/settings/debug';
@@ -180,7 +179,11 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
             bundesstatistikTeilnahme: bundesstatistik.hatEinwilligung,
             onBundesstatistikChanged: (v) async {
               final logger = Provider.of<LoggerService>(context, listen: false);
-              if (v && !await zeigeBundesstatistikEinwilligungDialog(context)) {
+              if (v &&
+                  !await zeigeBundesstatistikEinwilligungDialog(
+                    context,
+                    stammName: bundesstatistik.stammName,
+                  )) {
                 return false;
               }
               await bundesstatistik.setzeEinwilligung(v);
@@ -269,6 +272,13 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
           return SettingsNotificationPage(
             notificationsEnabled: appSettings.notificationsEnabled,
             onNotificationsChanged: (v) async {
+              if (v) {
+                // Systemabfrage nur auf ausdruecklichen Wunsch.
+                await Provider.of<BenachrichtigungsBerechtigung>(
+                  context,
+                  listen: false,
+                ).anfragen();
+              }
               await appSettings.setNotificationsEnabled(v);
               await logger.debounceTrackSettingsChanged('notifications', {
                 'value': v,
@@ -298,15 +308,15 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
           showStatusButtons: false,
         ),
       );
-    case AppRoutes.settingsImpressum:
+    case AppRoutes.settingsRechtliches:
       return MaterialPageRoute(
         settings: settings,
-        builder: (context) => const SettingsImpressumPage(),
-      );
-    case AppRoutes.settingsDatenschutz:
-      return MaterialPageRoute(
-        settings: settings,
-        builder: (context) => const SettingsDatenschutzPage(),
+        builder: (context) => SettingsRechtlichesPage(
+          installationsId: Provider.of<BundesstatistikModel>(
+            context,
+            listen: false,
+          ).installationsId,
+        ),
       );
     case AppRoutes.settingsStufenwechsel:
       return MaterialPageRoute(

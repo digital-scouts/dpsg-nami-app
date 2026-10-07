@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -41,7 +42,9 @@ import 'package:nami/presentation/notifications/achievement_unlocked.dart';
 import 'package:nami/presentation/notifications/feedback_prompt_dialog.dart';
 import 'package:nami/presentation/notifications/notifications_hub.dart';
 import 'package:nami/presentation/notifications/welcome_dialog.dart';
+import 'package:nami/presentation/notifications/wiredash_texte.dart';
 import 'package:nami/presentation/screens/auth_gate_screen.dart';
+import 'package:nami/presentation/theme/schrift_lizenzen.dart';
 import 'package:nami/presentation/theme/theme.dart';
 import 'package:nami/presentation/widgets/global_loading_top_bar.dart';
 import 'package:nami/services/hitobito_efz_service.dart';
@@ -54,6 +57,7 @@ import 'package:nami/services/nami_ai/nami_ai_stream_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:wiredash/wiredash.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'data/member_filters/shared_prefs_member_filter_repository.dart';
 import 'data/statistiks/shared_prefs_statistik_kachel_repository.dart';
@@ -94,10 +98,12 @@ import 'services/app_runtime_controller.dart';
 import 'services/app_startup_state_service.dart';
 import 'services/app_update_service.dart';
 import 'services/statistik_verlauf_service.dart';
+import 'services/benachrichtigungs_berechtigung.dart';
 import 'services/biometric_lock_service.dart';
 import 'services/bundesstatistik_env.dart';
 import 'services/data_expiry_notification_service.dart';
 import 'services/feedback_prompt_service.dart';
+import 'services/geburtstags_erinnerung_service.dart';
 import 'services/store_review_prompt_service.dart';
 import 'services/hitobito_auth_config_controller.dart';
 import 'services/hitobito_auth_env.dart';
@@ -126,6 +132,7 @@ void main() {
   runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
+      registriereSchriftlizenzen();
       final appDocDir = await getApplicationDocumentsDirectory();
       Hive.init(appDocDir.path);
       await dotenv.load(fileName: ".env");
@@ -293,6 +300,7 @@ Future<void> _startApp({
     logger: logger,
   );
   _activeLogger = logger;
+  final benachrichtigungsBerechtigung = BenachrichtigungsBerechtigung();
   final dataExpiryNotificationService = DataExpiryNotificationService(
     logger: logger,
   );
@@ -408,6 +416,7 @@ Future<void> _startApp({
     clearHitobitoTrafficLogs: hitobitoTrafficLogService.clearAllLogs,
     clearMapCache: mapTileCacheService.deleteRoot,
     clearLegacyData: legacyAppDataCleanupService.deleteLegacyData,
+    cancelScheduledNotifications: dataExpiryNotificationService.cancelAll,
   );
 
   final authModel = AuthSessionModel(
@@ -534,6 +543,39 @@ Future<void> _startApp({
   qualifikationsEinstellungenModel.addListener(syncQualifikationsErinnerungen);
   appSettingsModel.addListener(syncQualifikationsErinnerungen);
   appearanceModel.addListener(syncQualifikationsErinnerungen);
+
+  // Geburtstags-Erinnerungen fuer die gewaehlten Stufen; die Demo plant
+  // nichts.
+  final geburtstagsErinnerungService = GeburtstagsErinnerungService(
+    logger: logger,
+  );
+  void syncGeburtstagsErinnerungen() {
+    if (isDemo) {
+      return;
+    }
+    if (authModel.state == AuthState.signedOut) {
+      unawaited(geburtstagsErinnerungService.raeumen());
+      return;
+    }
+    final readModel = arbeitskontextModel.readModel;
+    if (readModel == null ||
+        arbeitskontextModel.isLoading ||
+        arbeitskontextModel.isLoadingRoles) {
+      return;
+    }
+    unawaited(
+      geburtstagsErinnerungService.aktualisiere(
+        readModel: readModel,
+        stufen: appSettingsModel.geburstagsbenachrichtigungStufen,
+        pushErlaubt: appSettingsModel.notificationsEnabled,
+        sprache: appSettingsModel.languageCode,
+      ),
+    );
+  }
+
+  authModel.addListener(syncGeburtstagsErinnerungen);
+  arbeitskontextModel.addListener(syncGeburtstagsErinnerungen);
+  appSettingsModel.addListener(syncGeburtstagsErinnerungen);
 
   // Monatliche Summen für die Statistik-Kachel „Verlauf“ (nur auf dem Gerät).
   final statistikVerlaufService = StatistikVerlaufService(
@@ -677,6 +719,9 @@ Future<void> _startApp({
         Provider<AppUpdateService>.value(value: appUpdateService),
         Provider<DataExpiryNotificationService>.value(
           value: dataExpiryNotificationService,
+        ),
+        Provider<BenachrichtigungsBerechtigung>.value(
+          value: benachrichtigungsBerechtigung,
         ),
         Provider<AppStartupStateService>.value(value: appStartupStateService),
         Provider<AppResetService>.value(value: appResetService),
@@ -968,7 +1013,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       }
       final hasSeenWelcome = await _appStartupStateService.hasSeenWelcome();
       if (!hasSeenWelcome) {
-        await showWelcomeDialog(dialogContext);
+        await _zeigeWillkommen(dialogContext);
         await _appStartupStateService.markWelcomeSeen();
         await _feedbackPromptService.recordFirstUse();
         _startupFlowCompleted = true;
@@ -987,6 +1032,68 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         _flushAchievementUnlocks();
       }
     }
+  }
+
+  /// Willkommen-Stepper nach dem ersten Login. Die Daten laden derweil im
+  /// Hintergrund weiter (siehe [_syncArbeitskontextWithAuth]).
+  Future<void> _zeigeWillkommen(BuildContext dialogContext) async {
+    final appSettings = dialogContext.read<AppSettingsModel>();
+    final berechtigung = dialogContext.read<BenachrichtigungsBerechtigung>();
+    final themeModel = dialogContext.read<ThemeModel>();
+    final biometrie = BiometricLockService(
+      logger: dialogContext.read<LoggerService>(),
+    );
+    final biometrieVerfuegbar = await biometrie.isAvailable();
+    // iOS meldet auch ein nie gefragtes „nicht erlaubt“; deshalb gilt nur
+    // ein Ja als Stand, sonst zeigt der Stepper „Aktivieren“. Eine fruehere
+    // Ablehnung erkennt er erst an der sofortigen Antwort darauf.
+    final benachrichtigungenErlaubt = await berechtigung.istErlaubt() == true
+        ? true
+        : null;
+    if (!dialogContext.mounted) {
+      return;
+    }
+    await showWelcomeDialog(
+      dialogContext,
+      optionen: WillkommenOptionen(
+        biometrieVerfuegbar: biometrieVerfuegbar,
+        biometrieAktiv: appSettings.biometricLockEnabled,
+        benachrichtigungenErlaubt: benachrichtigungenErlaubt,
+        analyseAktiv: appSettings.analyticsEnabled,
+        keineMobilenDaten: appSettings.noMobileDataEnabled,
+        themeMode: themeModel.currentMode,
+        // Einmal bestaetigen laesst die Systemabfrage fuer Face ID gleich
+        // hier erscheinen; die Sperre greift erst nach 60 s im Hintergrund.
+        onBiometrieAktivieren: () async {
+          if (!await biometrie.authenticate()) {
+            return false;
+          }
+          await appSettings.setBiometricLockEnabled(true);
+          return true;
+        },
+        onBenachrichtigungenAktivieren: () async {
+          final erlaubt = await berechtigung.anfragen();
+          if (erlaubt) {
+            await appSettings.setNotificationsEnabled(true);
+          }
+          return erlaubt;
+        },
+        onAnalyseAendern: appSettings.setAnalyticsEnabled,
+        onKeineMobilenDatenAendern: appSettings.setNoMobileDataEnabled,
+        // Wie die Einstellungsseite: ThemeModel wirkt sofort, AppSettings
+        // speichert.
+        onThemeAendern: (mode) async {
+          themeModel.setTheme(mode);
+          await appSettings.setThemeMode(mode);
+        },
+        onRechtliches: () =>
+            navigatorKey.currentState?.pushNamed(AppRoutes.settingsRechtliches),
+        // Android kennt keinen einheitlichen Link in die App-Einstellungen.
+        onSystemEinstellungen: defaultTargetPlatform == TargetPlatform.iOS
+            ? () => launchUrl(Uri.parse('app-settings:'))
+            : null,
+      ),
+    );
   }
 
   void _startAuthMaintenanceTimer() {
@@ -1369,6 +1476,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             ),
             options: WiredashOptionsData(
               locale: context.watch<LocaleModel>().currentLocale,
+              localizationDelegate: const WiredashTexteDelegate(),
             ),
             collectMetaData: (metaData) => metaData,
             child: MaterialApp(
