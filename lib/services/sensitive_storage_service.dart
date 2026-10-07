@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_ce/hive.dart';
 
+import 'app_secure_storage.dart';
+
 /// Ein Vorgang wollte eine sensible Box oeffnen, obwohl keine Sitzung offen
 /// ist, etwa nach Logout, Datenablauf oder Benutzerwechsel.
 class SensitiveSessionEndedException implements Exception {
@@ -20,7 +22,7 @@ class SensitiveSessionEndedException implements Exception {
 
 class SensitiveStorageService {
   SensitiveStorageService({FlutterSecureStorage? secureStorage})
-    : _secureStorage = secureStorage ?? const FlutterSecureStorage();
+    : _secureStorage = secureStorage ?? appSecureStorage;
 
   static const String secureMetaBoxName = 'hitobito_secure_meta_box';
   static const String _encryptionKeyStorageKey = 'hitobito_hive_encryption_key';
@@ -210,7 +212,10 @@ class SensitiveStorageService {
       await _secureStorage.delete(key: _hitobitoOauthClientIdKey);
       return;
     }
-    await _secureStorage.write(key: _hitobitoOauthClientIdKey, value: clientId);
+    await _secureStorage.writeReplacing(
+      key: _hitobitoOauthClientIdKey,
+      value: clientId,
+    );
   }
 
   Future<String?> loadHitobitoOauthClientId() {
@@ -222,7 +227,7 @@ class SensitiveStorageService {
       await _secureStorage.delete(key: _hitobitoOauthClientSecretKey);
       return;
     }
-    await _secureStorage.write(
+    await _secureStorage.writeReplacing(
       key: _hitobitoOauthClientSecretKey,
       value: clientSecret,
     );
@@ -285,7 +290,7 @@ class SensitiveStorageService {
 
     final random = Random.secure();
     final bytes = List<int>.generate(32, (_) => random.nextInt(256));
-    await _secureStorage.write(
+    await _secureStorage.writeReplacing(
       key: _encryptionKeyStorageKey,
       value: base64Encode(bytes),
     );

@@ -145,6 +145,13 @@ class FakeSensitiveStorageService extends SensitiveStorageService {
   DateTime? lastSensitiveSyncAttemptAt;
   DateTime? lastBackgroundedAt;
 
+  /// Ob App-Daten einer frueheren Sitzung vorliegen. `false` bildet eine
+  /// Neuinstallation nach, bei der nur der Schluesselbund uebrig ist.
+  bool hasLocalData = true;
+
+  @override
+  Future<bool> hasLocalSensitiveData() async => hasLocalData;
+
   @override
   Future<String?> loadPrincipal() async => principal;
 

@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../domain/bundesstatistik/installation_credentials.dart';
+import '../../services/app_secure_storage.dart';
 
 /// Speichert die Installations-Credentials im sicheren Speicher des Geraets.
 ///
@@ -14,7 +15,7 @@ class SecureInstallationCredentialsRepository
   SecureInstallationCredentialsRepository({
     FlutterSecureStorage? secureStorage,
     Random? random,
-  }) : _secureStorage = secureStorage ?? const FlutterSecureStorage(),
+  }) : _secureStorage = secureStorage ?? appSecureStorage,
        _random = random ?? Random.secure();
 
   static const String _idKey = 'bundesstatistik_installation_id';
@@ -39,8 +40,11 @@ class SecureInstallationCredentialsRepository
       id: _randomToken(16),
       secret: _randomToken(32),
     );
-    await _secureStorage.write(key: _idKey, value: credentials.id);
-    await _secureStorage.write(key: _secretKey, value: credentials.secret);
+    await _secureStorage.writeReplacing(key: _idKey, value: credentials.id);
+    await _secureStorage.writeReplacing(
+      key: _secretKey,
+      value: credentials.secret,
+    );
     return credentials;
   }
 

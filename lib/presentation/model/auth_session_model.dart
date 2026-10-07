@@ -164,6 +164,23 @@ class AuthSessionModel extends ChangeNotifier {
 
     try {
       _session = await _repository.load();
+      if (_session != null && await _isSessionWithoutLocalData()) {
+        // Der Schluesselbund ueberdauert unter iOS das Loeschen der App, die
+        // App-Daten nicht. Eine solche Session gehoert zu einer frueheren
+        // Installation und meldet niemanden an.
+        await _logger.log(
+          'auth_flow',
+          'Uebernommene Session ohne lokale App-Daten erkannt, Login wird zurueckgesetzt',
+        );
+        await _repository.clear();
+        try {
+          await _profileRepository.clear();
+        } on SensitiveSessionEndedException {
+          // Die Profil-Box loescht der folgende Purge.
+        }
+        await _purgeSensitiveData();
+        _session = null;
+      }
       if (_session != null) {
         // Ohne Session bleiben die sensiblen Boxen geschlossen; es gibt dann
         // nichts zu lesen und es soll auch nichts entstehen.
@@ -176,22 +193,6 @@ class AuthSessionModel extends ChangeNotifier {
             .loadLastBackgroundedAt();
         _lastProfileSyncAt = await _profileRepository.loadLastSyncAt();
         _profile = await _profileRepository.loadCached();
-      }
-
-      if (await _shouldResetStaleSessionBeforeUnlock()) {
-        await _logger.log(
-          'auth_flow',
-          'Uebernommene Session ohne restorable Profildaten erkannt, Login wird zurueckgesetzt',
-        );
-        await _repository.clear();
-        await _profileRepository.clear();
-        await _purgeSensitiveData();
-        _session = null;
-        _profile = null;
-        _lastSensitiveSyncAt = null;
-        _lastSensitiveSyncAttemptAt = null;
-        _lastProfileSyncAt = null;
-        _lastBackgroundedAt = null;
       }
 
       await _deriveState(requireUnlock: true);
@@ -214,19 +215,17 @@ class AuthSessionModel extends ChangeNotifier {
     }
   }
 
-  Future<bool> _shouldResetStaleSessionBeforeUnlock() async {
-    if (_session == null) {
+  Future<bool> _isSessionWithoutLocalData() async {
+    try {
+      return !await _sensitiveStorageService.hasLocalSensitiveData();
+    } catch (error, stack) {
+      // Im Zweifel nicht abmelden; der Zustand ist dann nur unbekannt.
+      await _logger.log(
+        'auth_flow',
+        'Pruefung auf lokale App-Daten fehlgeschlagen: $error\n$stack',
+      );
       return false;
     }
-
-    final hasRestorableProfile = _profile != null || _lastProfileSyncAt != null;
-    final hasSensitiveSyncState =
-        _lastSensitiveSyncAt != null || _lastSensitiveSyncAttemptAt != null;
-    if (hasRestorableProfile || hasSensitiveSyncState) {
-      return false;
-    }
-
-    return _isAppLockEnabled() && await _biometricLockService.isAvailable();
   }
 
   Future<void> signIn() async {

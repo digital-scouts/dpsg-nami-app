@@ -281,59 +281,97 @@ void main() {
     timeout: const Timeout(Duration(seconds: 3)),
   );
 
-  test(
-    'setzt uebernommene Session ohne Profildaten und Sync-Stand bei initialize auf signedOut zurueck',
-    () async {
+  group('Session aus einer frueheren Installation', () {
+    ({
+      AuthSessionModel model,
+      InMemoryAuthSessionRepository repository,
+      FakeOauthService oauth,
+      FakeLoggerService logger,
+    })
+    neuinstallation({required bool hasLocalData}) {
       final repository = InMemoryAuthSessionRepository(
         initialSession: AuthSession(
           accessToken: 'existing-token',
+          refreshToken: 'existing-refresh-token',
           receivedAt: DateTime(2026, 3, 27),
+        ),
+      );
+      final oauth = FakeOauthService(
+        sessionToReturn: AuthSession(
+          accessToken: 'unused',
+          receivedAt: DateTime(2026, 3, 27),
+        ),
+        profileToReturn: const AuthProfile(
+          namiId: 99,
+          firstName: 'Lea',
+          lastName: 'Beispiel',
+          language: 'de',
         ),
       );
       final logger = _createLogger();
       final model = AuthSessionModel(
         repository: repository,
         profileRepository: InMemoryAuthProfileRepository(),
-        oauthService: FakeOauthService(
-          sessionToReturn: AuthSession(
-            accessToken: 'unused',
-            receivedAt: DateTime(2026, 3, 27),
-          ),
-          profileToReturn: const AuthProfile(
-            namiId: 99,
-            firstName: 'Lea',
-            lastName: 'Beispiel',
-            language: 'de',
-          ),
-        ),
-        biometricLockService: FakeBiometricLockService(available: true),
-        sensitiveStorageService: FakeSensitiveStorageService(),
+        oauthService: oauth,
+        biometricLockService: FakeBiometricLockService(),
+        sensitiveStorageService: FakeSensitiveStorageService()
+          ..hasLocalData = hasLocalData,
         retentionPolicy: HitobitoDataRetentionPolicy(
           maxDataAge: const Duration(days: 90),
           refreshInterval: const Duration(hours: 24),
           nowProvider: () => DateTime(2026, 3, 27, 12),
         ),
         logger: logger,
-        isAppLockEnabled: () => true,
+        // Nach einer Neuinstallation ist die App-Sperre aus, weil ihre
+        // Einstellung mit den App-Daten geloescht wurde.
+        isAppLockEnabled: () => false,
       );
+      return (
+        model: model,
+        repository: repository,
+        oauth: oauth,
+        logger: logger,
+      );
+    }
 
-      await model.initialize();
+    test(
+      'meldet ohne lokale App-Daten niemanden an und verwirft die Session',
+      () async {
+        final t = neuinstallation(hasLocalData: false);
 
-      expect(model.state, AuthState.signedOut);
-      expect(model.session, isNull);
-      expect(model.profile, isNull);
-      expect(await repository.load(), isNull);
-      expect(
-        logger.entries.any(
-          (entry) => entry.message.contains(
-            'Uebernommene Session ohne restorable Profildaten erkannt',
+        await t.model.initialize();
+
+        expect(t.model.state, AuthState.signedOut);
+        expect(t.model.session, isNull);
+        expect(t.model.profile, isNull);
+        expect(await t.repository.load(), isNull);
+        expect(t.oauth.refreshCallCount, 0);
+        expect(t.oauth.fetchProfileCallCount, 0);
+        expect(
+          t.logger.entries.any(
+            (entry) => entry.message.contains(
+              'Uebernommene Session ohne lokale App-Daten erkannt',
+            ),
           ),
-        ),
-        isTrue,
-      );
-    },
-    timeout: const Timeout(Duration(seconds: 3)),
-  );
+          isTrue,
+        );
+      },
+      timeout: const Timeout(Duration(seconds: 3)),
+    );
+
+    test(
+      'behaelt die Session, wenn lokale App-Daten vorhanden sind',
+      () async {
+        final t = neuinstallation(hasLocalData: true);
+
+        await t.model.initialize();
+
+        expect(t.model.state, AuthState.signedIn);
+        expect(t.model.session?.accessToken, 'existing-token');
+      },
+      timeout: const Timeout(Duration(seconds: 3)),
+    );
+  });
 
   test(
     'loggt den erwarteten 401-Fall beim Profil-Laden waehrend initialize nicht',
@@ -1691,13 +1729,12 @@ void main() {
       () async {
         var aufrufe = 0;
         final model = buildModel(
-          sensitiveStorage: FakeSensitiveStorageService(),
+          sensitiveStorage: FakeSensitiveStorageService()..hasLocalData = false,
           purgeLocalPersonalData: () async => aufrufe++,
           initialSession: AuthSession(
             accessToken: 'existing-token',
             receivedAt: DateTime(2026, 10, 7),
           ),
-          appLockEnabled: true,
         );
 
         await model.initialize();
