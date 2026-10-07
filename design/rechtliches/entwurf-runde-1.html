@@ -1,0 +1,235 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8">
+<title>Entwürfe: Impressum, Datenschutz und Einwilligungen, Runde 1</title>
+<link rel="stylesheet" href="../statistik/basis.css">
+<link rel="stylesheet" href="../mitglied/mitglied.css">
+<link rel="stylesheet" href="rechtliches.css">
+<script src="../mitglied/daten.js"></script>
+<script src="../mitglied/lilie.js"></script>
+<script src="bausteine.js"></script>
+</head><body>
+<div class="bar">
+  <nav><a href="#einstellungen">1 Einstellungen</a><a href="#seite">2 Impressum & Datenschutz</a><a href="#willkommen">3 Willkommen</a><a href="#feedback">4 Feedback</a><a href="#wiredash">5 Screenshot-Hinweis</a><a href="#bund">6 Bundesstatistik</a><a href="#karten">7 Kartenquellen</a><a href="#rueckmeldung">8 Rückmeldung</a></nav>
+</div>
+<main>
+  <h1>Impressum, Datenschutz und Einwilligungen: Entwürfe, Runde 1</h1>
+  <p>Die zwei Lorem-ipsum-Seiten werden zu einer Seite „Impressum & Datenschutz“. Dazu kommen ein Willkommensdialog mit Opt-in, plattformgerechte Feedback- und Bewertungswege, ein Screenshot-Hinweis für Wiredash, der überarbeitete Einwilligungsdialog zur Bundesstatistik und sichtbare Kartenquellen. Alle Daten sind synthetisch.</p>
+  <div class="r-hinweisbox"><b>Lesehilfe</b>
+    <ul>
+      <li>Jede Variante steht hell und dunkel nebeneinander. Kennungen wie <b>D1</b> oder <b>W2</b> stehen in den Überschriften.</li>
+      <li><span class="r-offen" style="color:#b35c00;border-color:#b35c00">Angabe folgt</span> markiert Speicherdauern, die noch nicht feststehen. Sie sind bewusst nicht erfunden.</li>
+      <li>Lange Seiten zeigen den ganzen Inhalt; die orange gestrichelte Linie markiert das Ende des ersten Bildschirms.</li>
+    </ul></div>
+
+  <section class="part" id="einstellungen">
+    <h2>1 · Eintrag in den Einstellungen</h2>
+    <p>Eine Zeile statt zwei. Die Abschnitte sind durch Abstand getrennt, nicht durch Linien.</p>
+    <div id="slot-einstellungen"></div>
+  </section>
+
+  <section class="part" id="seite">
+    <h2>2 · Seite „Impressum & Datenschutz“</h2>
+    <p>Inhalt ist in allen Varianten gleich: Anbieter, welche Daten wohin gehen (Zweck, Rechtsgrundlage, Speicherdauer), lokale Speicherung, deine Rechte, Quellen mit Open-Source-Lizenzen und der Link zur ausführlichen Erklärung im Web. Die Varianten unterscheiden sich darin, wie man die Empfänger überblickt.</p>
+    <div id="slot-seite"></div>
+  </section>
+
+  <section class="part" id="willkommen">
+    <h2>3 · Willkommen nach dem ersten Login</h2>
+    <p>Kurzer Datenschutzhinweis, Opt-in „Nutzungsanalyse“ (Vorgabe aus), Link zu „Impressum & Datenschutz“ und „Los geht’s“. Nicht wegtippbar, damit die Entscheidung bewusst fällt; aus bleibt aus.</p>
+    <div id="slot-willkommen"></div>
+  </section>
+
+  <section class="part" id="feedback">
+    <h2>4 · Feedback und Bewertung je Plattform</h2>
+    <p><span class="plattform">iOS</span>Apple erlaubt eine aktive Bewertungsaufforderung nur über den Systemdialog. Der eigene Dialog bietet deshalb nur „Feedback geben“ und „Später“; bewerten kann man über das Abzeichen auf der Erfolge-Seite (passiver Link) oder, falls gewünscht, über den Systemdialog zu einem eigenen Zeitpunkt.<br>
+    <span class="plattform">Android</span>Google erlaubt die aktive Aufforderung, aber keinen Anreiz. Der eigene Dialog behält „App bewerten“, die Erfolge-Seite hat kein Abzeichen „App bewertet“.</p>
+    <div id="slot-feedback"></div>
+  </section>
+
+  <section class="part" id="wiredash">
+    <h2>5 · Screenshot-Schritt in Wiredash (nur Text)</h2>
+    <p>Heute: „Du kannst die App normal bedienen, bevor du einen Screenshot erstellst.“ Ergänzt wird ein Hinweis auf Mitgliederdaten. Die Nachbildung ist schlicht; es geht nur um den Text. Gelb markiert ist, was neu ist.</p>
+    <div id="slot-wiredash"></div>
+  </section>
+
+  <section class="part" id="bund">
+    <h2>6 · Einwilligung Bundesstatistik und Transparenzkarte</h2>
+    <p>Der Dialog nennt den Stamm, was geteilt wird und was nicht, wie der Server speichert, die Löschfrist, den Widerruf und wer verantwortlich ist. Die Karte „Was dein Stamm geteilt hat“ bekommt die Installations-ID für Auskunft und Löschung; der Fußtext ist korrigiert (Altersgruppen der Leitenden sind stammweit).</p>
+    <div id="slot-bund"></div>
+  </section>
+
+  <section class="part" id="karten">
+    <h2>7 · Quellenangabe auf Karten</h2>
+    <p>OpenStreetMap verlangt eine sichtbare Nennung, nicht hinter einem Schalter. Links die kleine Adresskarte im Mitglied-Detail (160 px hoch, „© OpenStreetMap-Mitwirkende“), rechts die Vollbildkarte (Stammeskarte, „© MapTiler © OpenStreetMap-Mitwirkende“).</p>
+    <div id="slot-karten"></div>
+  </section>
+
+  <section class="part" id="rueckmeldung">
+    <h2>8 · Rückmeldung</h2>
+    <p>Je Bildschirm eine Variante wählen, kurz kommentieren, „Auswahl kopieren“ und den Text in den Chat einfügen.</p>
+    <form class="fb" id="fb"></form>
+  </section>
+</main>
+<script>
+(function () {
+  const B = window.RBAU;
+  B.farbenEinfuegen();
+
+  const hell = { modus: 'hell' };
+  const dunkel = { modus: 'dunkel' };
+  const ah = { modus: 'hell', plattform: 'android' };
+  const ad = { modus: 'dunkel', plattform: 'android' };
+  const variante = (id, titel, desc, inhalt) => `<div class="variant" data-shot-group="${id}"><h3>${titel}</h3>${desc ? `<p class="desc">${desc}</p>` : ''}<div class="phones">${inhalt}</div></div>`;
+  const kopfSeite = B.kopf('Impressum & Datenschutz');
+
+  function einstellungen() {
+    const k = B.kopfOhne('Einstellungen');
+    return variante('e1', 'E1 · Eigener Abschnitt „Rechtliches“ mit einer Zeile', 'Wie heute, nur eine Zeile mit Untertitel. Leicht zu finden, kostet aber einen eigenen Abschnitt.',
+      B.telefon(hell, k, B.einstellungen(hell, 'E1'), { shot: 'e1-hell', beschriftung: 'hell' }) +
+      B.telefon(dunkel, k, B.einstellungen(dunkel, 'E1'), { shot: 'e1-dunkel', beschriftung: 'dunkel' })) +
+    variante('e2', 'E2 · Link im Fußbereich', 'Kein eigener Abschnitt; der Link steht unter „Entwickelt mit ♥ in Hamburg“ und der Version. Ruhiger, aber weniger auffällig.',
+      B.telefon(hell, k, B.einstellungen(hell, 'E2'), { shot: 'e2-hell', beschriftung: 'hell' }) +
+      B.telefon(dunkel, k, B.einstellungen(dunkel, 'E2'), { shot: 'e2-dunkel', beschriftung: 'dunkel' }));
+  }
+
+  function seite() {
+    return variante('d1', 'D1 · Abschnitte mit aufklappbaren Empfängern', 'Anbieter oben, dann alle Empfänger als kompakte Zeilen mit Icon, Kurzzweck und „Wann“-Kennzeichen. Antippen klappt Zweck, Daten, Rechtsgrundlage und Speicherdauer auf (hier: Statistikserver). Darunter Gerät, Rechte, Quellen.',
+      B.telefon(hell, kopfSeite, B.seiteD1(hell), { shot: 'd1-hell', beschriftung: 'hell · Statistikserver aufgeklappt', lang: true, falz: true }) +
+      B.telefon(dunkel, kopfSeite, B.seiteD1(dunkel, { offen: 'hitobito' }), { shot: 'd1-dunkel', beschriftung: 'dunkel · Hitobito aufgeklappt', lang: true, falz: true })) +
+    variante('d2', 'D2 · Übersicht als Kacheln, Details im Sheet', 'Zwei Ebenen: Die Kacheln zeigen nur Empfänger, Kurzzweck und wann Daten fließen. Antippen öffnet ein Sheet mit allen Angaben; beim Statistikserver mit „ID kopieren“ und „Mail schreiben“. Gerät, Rechte und Quellen sind eigene Unterseiten.',
+      B.telefon(hell, kopfSeite, B.seiteD2(hell), { shot: 'd2-hell', beschriftung: 'hell · Übersicht', lang: true, falz: true }) +
+      B.telefon(hell, kopfSeite, B.seiteD2(hell), { shot: 'd2-sheet-hell', beschriftung: 'hell · Statistikserver angetippt', overlay: B.sheetD2(hell, 'statistik') }) +
+      B.telefon(dunkel, kopfSeite, B.seiteD2(dunkel), { shot: 'd2-dunkel', beschriftung: 'dunkel · Übersicht', lang: true, falz: true }) +
+      B.telefon(dunkel, kopfSeite, B.seiteD2(dunkel), { shot: 'd2-sheet-dunkel', beschriftung: 'dunkel · Wiredash angetippt', overlay: B.sheetD2(dunkel, 'wiredash') })) +
+    variante('d3', 'D3 · „Kurz gesagt“ oben, Tabelle darunter', 'Fünf Kernaussagen zuerst, dann alle Empfänger in einer Tabelle (Wann, Speicherdauer) ohne Antippen. Am knappsten, die Rechtsgrundlage steht klein unter dem Namen.',
+      B.telefon(hell, kopfSeite, B.seiteD3(hell), { shot: 'd3-hell', beschriftung: 'hell', lang: true, falz: true }) +
+      B.telefon(dunkel, kopfSeite, B.seiteD3(dunkel), { shot: 'd3-dunkel', beschriftung: 'dunkel', lang: true, falz: true }));
+  }
+
+  function willkommen() {
+    const k = B.kopfOhne('Mitglieder');
+    const opts = (ctx, v, shot, cap) => B.telefon(ctx, k, B.mitgliederliste(ctx), { shot, beschriftung: cap, overlay: B.willkommen(ctx, v), tabbar: B.tabbarMitglieder });
+    return variante('w1', 'W1 · Dialog', 'Klassischer Dialog mit Lilie, zwei Sätzen, Schalter „Nutzungsanalyse“ (aus) und Link. Ein einziger Knopf.',
+      opts(hell, 'W1', 'w1-hell', 'hell') + opts(dunkel, 'W1', 'w1-dunkel', 'dunkel')) +
+    variante('w2', 'W2 · Bottom-Sheet', 'Mehr Raum: App-Symbol, zwei Kernaussagen mit Icons, darunter Schalter, Link und breiter Knopf. Wirkt mehr wie ein Begrüßungsschritt als wie eine Warnung.',
+      opts(hell, 'W2', 'w2-hell', 'hell') + opts(dunkel, 'W2', 'w2-dunkel', 'dunkel'));
+  }
+
+  function feedback() {
+    const kM = B.kopfOhne('Mitglieder');
+    const kE = B.kopf('Erfolge');
+    const tM = B.tabbarMitglieder;
+    const hiOS = { modus: 'hell', plattform: 'ios' };
+    const diOS = { modus: 'dunkel', plattform: 'ios' };
+    return variante('i1', '<span class="plattform">iOS</span>I1 · Eigener Dialog ohne „App bewerten“', 'Text ohne Store-Hinweis, nur „Später“ und „Feedback geben“.',
+      B.telefon(hiOS, kM, B.mitgliederliste(hiOS), { shot: 'i1-hell', beschriftung: 'hell', overlay: B.feedbackDialog(hiOS, 'I1'), tabbar: tM }) +
+      B.telefon(diOS, kM, B.mitgliederliste(diOS), { shot: 'i1-dunkel', beschriftung: 'dunkel', overlay: B.feedbackDialog(diOS, 'I1'), tabbar: tM })) +
+    variante('i2', '<span class="plattform">iOS</span>I2 · Systemdialog zu einem eigenen Zeitpunkt (optional)', 'Apple entscheidet selbst, ob er erscheint (höchstens dreimal im Jahr). Möglicher Zeitpunkt: nach einem erfolgreichen Stufenwechsel oder nach 30 Nutzungstagen, nie direkt nach dem eigenen Feedback-Dialog.',
+      B.telefon(hiOS, kM, B.mitgliederliste(hiOS), { shot: 'i2-hell', beschriftung: 'hell', overlay: B.iosReview(hiOS), tabbar: tM }) +
+      B.telefon(diOS, kM, B.mitgliederliste(diOS), { shot: 'i2-dunkel', beschriftung: 'dunkel', overlay: B.iosReview(diOS), tabbar: tM })) +
+    variante('a1', '<span class="plattform">iOS</span>A1 · Abzeichen öffnet direkt den App Store', 'Das offene Abzeichen trägt „Jetzt bewerten ↗“. Antippen öffnet die Bewertungsseite im App Store; zurück in der App ist das Abzeichen erreicht. Die gestrichelte Markierung gehört nur zum Entwurf.',
+      B.telefon(hiOS, kE, B.erfolge(hiOS, { bewertung: 'offen', hinweis: true }), { shot: 'a1-offen-hell', beschriftung: 'hell · offen' }) +
+      B.telefon(hiOS, kE, B.erfolge(hiOS, { bewertung: 'erreicht' }), { shot: 'a1-erreicht-hell', beschriftung: 'hell · erreicht' }) +
+      B.telefon(diOS, kE, B.erfolge(diOS, { bewertung: 'offen', hinweis: true }), { shot: 'a1-offen-dunkel', beschriftung: 'dunkel · offen' }) +
+      B.telefon(diOS, kE, B.erfolge(diOS, { bewertung: 'erreicht' }), { shot: 'a1-erreicht-dunkel', beschriftung: 'dunkel · erreicht' })) +
+    variante('a2', '<span class="plattform">iOS</span>A2 · Abzeichen öffnet erst das Detail-Sheet', 'Wie die anderen Abzeichen: Antippen zeigt das Detail-Sheet, dort führt „Im App Store bewerten“ weiter. Ein Schritt mehr, dafür einheitlich.',
+      B.telefon(hiOS, kE, B.erfolge(hiOS, { bewertung: 'offen' }), { shot: 'a2-hell', beschriftung: 'hell · Sheet', overlay: B.abzeichenSheet(hiOS) }) +
+      B.telefon(diOS, kE, B.erfolge(diOS, { bewertung: 'offen' }), { shot: 'a2-dunkel', beschriftung: 'dunkel · Sheet', overlay: B.abzeichenSheet(diOS) })) +
+    variante('g1', '<span class="plattform">Android</span>G1 · Drei Knöpfe in einer Reihe', 'Wie heute, Text nennt den Play Store. Auf schmalen Geräten bricht Flutter die Reihe automatisch untereinander um.',
+      B.telefon(ah, kM, B.mitgliederliste(ah), { shot: 'g1-hell', beschriftung: 'hell', overlay: B.feedbackDialog(ah, 'G1'), tabbar: tM }) +
+      B.telefon(ad, kM, B.mitgliederliste(ad), { shot: 'g1-dunkel', beschriftung: 'dunkel', overlay: B.feedbackDialog(ad, 'G1'), tabbar: tM }) +
+      B.telefon(ah, kM, B.mitgliederliste(ah), { shot: 'g-play-hell', beschriftung: 'nach „App bewerten“: Google-Play-Bewertungsfenster (In-App-Review, optional statt Store-Seite)', overlay: B.playReview(ah), tabbar: tM })) +
+    variante('g2', '<span class="plattform">Android</span>G2 · Knöpfe gestapelt', 'Volle Breite, „App bewerten“ zuerst. Klarer auf kleinen Geräten.',
+      B.telefon(ah, kM, B.mitgliederliste(ah), { shot: 'g2-hell', beschriftung: 'hell', overlay: B.feedbackDialog(ah, 'G2'), tabbar: tM }) +
+      B.telefon(ad, kM, B.mitgliederliste(ad), { shot: 'g2-dunkel', beschriftung: 'dunkel', overlay: B.feedbackDialog(ad, 'G2'), tabbar: tM })) +
+    variante('g-erfolge', '<span class="plattform">Android</span>Erfolge ohne „App bewertet“', 'Unter „Besondere“ steht nur „Mitgestalten“; die Gesamtzahl sinkt um eins.',
+      B.telefon(ah, kE, B.erfolge(ah), { shot: 'g-erfolge-hell', beschriftung: 'hell' }) +
+      B.telefon(ad, kE, B.erfolge(ad), { shot: 'g-erfolge-dunkel', beschriftung: 'dunkel' }));
+  }
+
+  function wiredash() {
+    const t = (id, titel, desc) => variante(`t${id.slice(1)}`, titel, desc,
+      B.telefon(hell, '', B.wiredash(hell, id, 'de'), { shot: `${id.toLowerCase()}-de-hell`, beschriftung: 'Deutsch · hell', tabbar: false, bodyCls: 'r-wd' }) +
+      B.telefon(dunkel, '', B.wiredash(dunkel, id, 'de'), { shot: `${id.toLowerCase()}-de-dunkel`, beschriftung: 'Deutsch · dunkel', tabbar: false, bodyCls: 'r-wd' }) +
+      `<div style="width:390px" data-shot="${id.toLowerCase()}-texte">${B.wiredashText(id)}</div>`);
+    return t('T1', 'T1 · Ein Satz angehängt', 'Der heutige Text bleibt, ein zweiter Satz kommt dazu. Kleinste Änderung.') +
+      t('T2', 'T2 · Hinweis als eigene Zeile', 'Beschreibung unverändert, darunter ein farbiger Hinweis mit Icon. Fällt am meisten auf, braucht aber ein eigenes Widget im Wiredash-Schritt (nur über eigene Lokalisierung nicht machbar).') +
+      t('T3', 'T3 · Umformuliert, Datenschutz konkret', 'Ein Absatz, nennt „Namen oder Kontaktdaten“ statt „Mitgliederdaten“ und verweist auf den Stift.');
+  }
+
+  function bund() {
+    const k = B.kopf('Bundesvergleich');
+    const tS = '<nav class="tabbar"><span>Mitglieder</span><span class="on">Statistik</span><span>Stufenwechsel</span><span>Einstellungen</span></nav>';
+    const d = (ctx, v, shot, cap, o = {}) => B.telefon(ctx, k, B.bundHintergrund(ctx), { shot, beschriftung: cap, overlay: B.einwilligung(ctx, v, o), tabbar: tS });
+    const kt = (ctx, v, shot, cap) => B.telefon(ctx, k, B.transparenz(ctx, v), { shot, beschriftung: cap, tabbar: tS, lang: true });
+    return variante('b1', 'B1 · Alles auf einen Blick', 'Alle Angaben im Dialog, knapp gesetzt: zwei Listen, ein grauer Kasten für Speicherung und Widerruf, Verantwortlicher mit Link.',
+      d(hell, 'B1', 'b1-hell', 'hell') + d(dunkel, 'B1', 'b1-dunkel', 'dunkel')) +
+    variante('b2', 'B2 · Gestuft mit „Mehr erfahren“', 'Drei Kernaussagen mit Icons; „Mehr erfahren“ klappt die übrigen Angaben im Dialog auf.',
+      d(hell, 'B2', 'b2-hell', 'hell · zu') + d(hell, 'B2', 'b2-mehr-hell', 'hell · aufgeklappt', { mehr: true }) +
+      d(dunkel, 'B2', 'b2-dunkel', 'dunkel · zu') + d(dunkel, 'B2', 'b2-mehr-dunkel', 'dunkel · aufgeklappt', { mehr: true })) +
+    variante('k1', 'K1 · Installations-ID als Zeile', 'Die ID steht unter dem Fußtext wie ein weiterer Wert, rechts ein runder Kopier-Knopf, darunter der Hinweis.',
+      kt(hell, 'K1', 'k1-hell', 'hell') + kt(dunkel, 'K1', 'k1-dunkel', 'dunkel')) +
+    variante('k2', 'K2 · Installations-ID im Kasten', 'Eigener grauer Kasten mit „Kopieren“-Knopf und Hinweis; hebt die ID als Werkzeug für Auskunft und Löschung ab.',
+      kt(hell, 'K2', 'k2-hell', 'hell') + kt(dunkel, 'K2', 'k2-dunkel', 'dunkel'));
+  }
+
+  function karten() {
+    const kM = B.kopf('Lena „Funke“ Brandt');
+    const kK = B.kopf('Karte', B.ico('search', 21));
+    const q = (v, titel, desc) => variante(v.toLowerCase(), titel, desc,
+      B.panel(hell, B.adresskarte(hell, v), { shot: `${v.toLowerCase()}-adresse-hell`, titel: 'Adresskarte · hell' }) +
+      B.panel(dunkel, B.adresskarte(dunkel, v), { shot: `${v.toLowerCase()}-adresse-dunkel`, titel: 'Adresskarte · dunkel' }) +
+      B.telefon(hell, kK, B.vollkarte(hell, v), { shot: `${v.toLowerCase()}-voll-hell`, beschriftung: 'Stammeskarte · hell', bodyCls: 'r-voll' }) +
+      B.telefon(dunkel, kK, B.vollkarte(dunkel, v), { shot: `${v.toLowerCase()}-voll-dunkel`, beschriftung: 'Stammeskarte · dunkel', bodyCls: 'r-voll' }));
+    return q('Q1', 'Q1 · Unten rechts, halbtransparent', 'Übliche Stelle bei Kartendiensten. In der kleinen Karte wandert der Zentrieren-Knopf nach oben rechts, in der großen über das Label.') +
+      q('Q2', 'Q2 · Unten links, halbtransparent', 'Zentrieren-Knopf bleibt, wo er ist. Kein Konflikt mit Bedienelementen.') +
+      q('Q3', 'Q3 · Unter der Karte, außerhalb', 'Die Karte bleibt frei; die Quelle steht als leise Zeile darunter bzw. als Leiste über der Navigation.');
+  }
+
+  const FRAGEN = [
+    { id: 'einstellungen', titel: '1 Eintrag in den Einstellungen', optionen: ['E1', 'E2'] },
+    { id: 'seite', titel: '2 Seite Impressum & Datenschutz', optionen: ['D1', 'D2', 'D3'] },
+    { id: 'willkommen', titel: '3 Willkommen', optionen: ['W1', 'W2'] },
+    { id: 'ios-dialog', titel: '4 iOS: eigener Dialog', optionen: ['I1 passt', 'ändern'] },
+    { id: 'ios-system', titel: '4 iOS: Systemdialog zusätzlich', optionen: ['I2 ja', 'nein'] },
+    { id: 'ios-abzeichen', titel: '4 iOS: Abzeichen „App bewertet“', optionen: ['A1', 'A2'] },
+    { id: 'android', titel: '4 Android: eigener Dialog', optionen: ['G1', 'G2'] },
+    { id: 'android-play', titel: '4 Android: „App bewerten“ öffnet', optionen: ['Store-Seite', 'In-App-Review'] },
+    { id: 'wiredash', titel: '5 Screenshot-Hinweis', optionen: ['T1', 'T2', 'T3'] },
+    { id: 'einwilligung', titel: '6 Einwilligungsdialog', optionen: ['B1', 'B2'] },
+    { id: 'transparenz', titel: '6 Transparenzkarte', optionen: ['K1', 'K2'] },
+    { id: 'karten', titel: '7 Kartenquelle', optionen: ['Q1', 'Q2', 'Q3'] },
+  ];
+  function renderFeedback() {
+    const f = document.getElementById('fb');
+    f.innerHTML = FRAGEN.map((qq) => `<fieldset><legend>${qq.titel}</legend><span class="r-opts">${qq.optionen.map((o) => `<label><input type="radio" name="${qq.id}" value="${o}"> ${o}</label>`).join('')}</span><textarea name="${qq.id}-text" placeholder="Anmerkung (optional)"></textarea></fieldset>`).join('') +
+      `<fieldset><legend>Sonst noch</legend><textarea name="frei" placeholder="Freitext"></textarea></fieldset>
+      <button type="button" id="kopieren">Auswahl kopieren</button>
+      <textarea id="ausgabe" readonly placeholder="Hier erscheint der Text für den Chat."></textarea>`;
+    document.getElementById('kopieren').addEventListener('click', async () => {
+      const fd = new FormData(f);
+      const zeilen = ['Rückmeldung Impressum, Datenschutz und Einwilligungen, Runde 1'];
+      for (const qq of FRAGEN) {
+        const wahl = fd.get(qq.id); const text = (fd.get(`${qq.id}-text`) || '').trim();
+        zeilen.push(`- ${qq.titel}: ${wahl || '–'}${text ? ` – ${text}` : ''}`);
+      }
+      const frei = (fd.get('frei') || '').trim();
+      if (frei) zeilen.push(`- Sonst: ${frei}`);
+      const text = zeilen.join('\n');
+      const out = document.getElementById('ausgabe');
+      out.value = text;
+      try { await navigator.clipboard.writeText(text); } catch (e) { out.select(); document.execCommand('copy'); }
+    });
+  }
+
+  document.getElementById('slot-einstellungen').innerHTML = einstellungen();
+  document.getElementById('slot-seite').innerHTML = seite();
+  document.getElementById('slot-willkommen').innerHTML = willkommen();
+  document.getElementById('slot-feedback').innerHTML = feedback();
+  document.getElementById('slot-wiredash').innerHTML = wiredash();
+  document.getElementById('slot-bund').innerHTML = bund();
+  document.getElementById('slot-karten').innerHTML = karten();
+  renderFeedback();
+  document.body.dataset.fertig = '1';
+})();
+</script>
+</body></html>
