@@ -825,6 +825,47 @@ void main() {
     expect(peopleService.updateCallCount, 0);
   });
 
+  test('legt eine von Hitobito formatiert gespeicherte Nummer beim erneuten '
+      'Senden nicht doppelt an', () async {
+    final peopleService = _FakeHitobitoPeopleService()
+      ..remoteResource = HitobitoPersonResource(
+        id: 23,
+        firstName: 'Julia',
+        lastName: 'Keller',
+        membershipNumber: 4711,
+        updatedAt: DateTime.parse('2026-04-14T09:05:00Z'),
+        telefonnummern: const <MitgliedKontaktTelefon>[
+          MitgliedKontaktTelefon(
+            phoneNumberId: 901,
+            wert: '+49 170 1234567',
+            label: 'Mobil',
+          ),
+        ],
+      );
+    final repository = HitobitoMemberWriteRepository(
+      peopleService: peopleService,
+      logger: _FakeLoggerService(),
+    );
+    final basis = Mitglied.peopleListItem(
+      mitgliedsnummer: '4711',
+      personId: 23,
+      vorname: 'Julia',
+      nachname: 'Keller',
+    ).copyWith(updatedAt: DateTime.parse('2026-04-14T09:00:00Z'));
+
+    await repository.updateMember(
+      accessToken: 'token-123',
+      basisMitglied: basis,
+      zielMitglied: basis.copyWith(
+        telefonnummern: const <MitgliedKontaktTelefon>[
+          MitgliedKontaktTelefon(wert: '+491701234567', label: 'Mobil'),
+        ],
+      ),
+    );
+
+    expect(peopleService.updateCallCount, 0);
+  });
+
   group('updateMember Vorbedingungen', () {
     test(
       'wirft UpdatedAtMissing ohne lokales updatedAt und fragt Remote nicht ab',

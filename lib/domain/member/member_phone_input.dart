@@ -1,6 +1,3 @@
-import 'package:flutter/foundation.dart';
-
-@immutable
 class MemberPhoneCountryOption {
   const MemberPhoneCountryOption({
     required this.id,
@@ -29,7 +26,6 @@ class MemberPhoneCountryOption {
   String get displayLabel => isOther ? '$flag $label' : '$flag $dialCode';
 }
 
-@immutable
 class MemberPhoneSplitResult {
   const MemberPhoneSplitResult({
     required this.countryId,

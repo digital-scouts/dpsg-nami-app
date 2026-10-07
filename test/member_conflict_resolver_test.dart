@@ -320,6 +320,69 @@ void main() {
   });
 
   group('MemberConflictResolver Telefonnummern', () {
+    test('legt eine schon angekommene Nummer trotz Formatierung nicht doppelt '
+        'an', () {
+      final basis = _basis();
+      const neu = MitgliedKontaktTelefon(
+        wert: '+491701234567',
+        label: Mitglied.phoneMobileLabel,
+      );
+      const angekommen = MitgliedKontaktTelefon(
+        phoneNumberId: 13,
+        wert: '+49 (0170) 123-4567',
+        label: Mitglied.phoneMobileLabel,
+      );
+
+      final plan = _resolve(
+        basis: basis,
+        ziel: _withPhones(basis, const [_mobil, _festnetz, neu]),
+        remote: _withPhones(basis, const [_mobil, _festnetz, angekommen]),
+      );
+
+      expect(plan.requiresResolution, isFalse);
+      expect(plan.mergedMitglied.telefonnummern, const [
+        _mobil,
+        _festnetz,
+        angekommen,
+      ]);
+    });
+
+    test('legt eine andere Nummer oder Kategorie weiterhin neu an', () {
+      final basis = _basis();
+      const vorhanden = MitgliedKontaktTelefon(
+        phoneNumberId: 13,
+        wert: '+49 170 1234567',
+        label: Mitglied.phoneMobileLabel,
+      );
+      const andereNummer = MitgliedKontaktTelefon(
+        wert: '+491701234568',
+        label: Mitglied.phoneMobileLabel,
+      );
+      const andereKategorie = MitgliedKontaktTelefon(
+        wert: '+491701234567',
+        label: Mitglied.phoneLandlineLabel,
+      );
+
+      final plan = _resolve(
+        basis: basis,
+        ziel: _withPhones(basis, const [
+          _mobil,
+          _festnetz,
+          andereNummer,
+          andereKategorie,
+        ]),
+        remote: _withPhones(basis, const [_mobil, _festnetz, vorhanden]),
+      );
+
+      expect(plan.mergedMitglied.telefonnummern, const [
+        _mobil,
+        _festnetz,
+        vorhanden,
+        andereNummer,
+        andereKategorie,
+      ]);
+    });
+
     test('uebernimmt lokale Aenderung einer Telefonnummer', () {
       final basis = _basis();
       final lokal = _mobil.copyWith(wert: '+49 170 9999999');

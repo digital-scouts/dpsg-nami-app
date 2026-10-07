@@ -1,3 +1,4 @@
+import 'member_phone_input.dart';
 import 'mitglied.dart';
 
 enum PendingPersonUpdateStatus { queued, needsResolution }
@@ -451,6 +452,12 @@ class MemberConflictResolver {
       remote: remoteMitglied.telefonnummern,
       idOf: (item) => item.phoneNumberId,
       withoutId: (item) => item.copyWith(phoneNumberIdLoeschen: true),
+      // Hitobito liefert Nummern formatiert zurueck; eine schon angekommene
+      // Nummer darf beim erneuten Senden nicht doppelt angelegt werden.
+      sameContent: (left, right) =>
+          left == right ||
+          (left.label == right.label &&
+              MemberPhoneInput.isSameNumber(left.wert, right.wert)),
       targetType: MemberResolutionTargetType.phone,
       conflictMessage:
           'Telefonnummer wurde lokal und in Hitobito unterschiedlich geändert.',
@@ -519,6 +526,7 @@ class MemberConflictResolver {
     required List<T> remote,
     required int? Function(T item) idOf,
     required T Function(T item) withoutId,
+    bool Function(T left, T right)? sameContent,
     required MemberResolutionTargetType targetType,
     required String conflictMessage,
     required String remoteDeletedMessage,
@@ -586,7 +594,8 @@ class MemberConflictResolver {
         continue;
       }
       final content = withoutId(localItem);
-      if (merged.any((item) => withoutId(item) == content)) {
+      final isSame = sameContent ?? (T left, T right) => left == right;
+      if (merged.any((item) => isSame(withoutId(item), content))) {
         continue;
       }
       merged.add(localItem);

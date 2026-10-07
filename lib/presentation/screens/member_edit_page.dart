@@ -4,13 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../domain/member/member_phone_input.dart';
 import '../../domain/member/member_resolution.dart';
 import '../../domain/member/mitglied.dart';
 import '../../domain/member/pending_person_update.dart';
 import '../../l10n/app_localizations.dart';
 import '../model/auth_session_model.dart';
 import '../model/member_edit_model.dart';
-import '../model/member_phone_input.dart';
 import '../notifications/app_snackbar.dart';
 
 class MemberEditPage extends StatefulWidget {

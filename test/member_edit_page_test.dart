@@ -16,7 +16,7 @@ import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/model/member_edit_model.dart';
-import 'package:nami/presentation/model/member_phone_input.dart';
+import 'package:nami/domain/member/member_phone_input.dart';
 import 'package:nami/presentation/screens/member_edit_page.dart';
 import 'package:nami/services/biometric_lock_service.dart';
 import 'package:nami/services/hitobito_auth_env.dart';
