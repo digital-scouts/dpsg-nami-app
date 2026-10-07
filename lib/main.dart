@@ -100,6 +100,7 @@ import 'services/biometric_lock_service.dart';
 import 'services/bundesstatistik_env.dart';
 import 'services/data_expiry_notification_service.dart';
 import 'services/feedback_prompt_service.dart';
+import 'services/geburtstags_erinnerung_service.dart';
 import 'services/hitobito_auth_config_controller.dart';
 import 'services/hitobito_auth_env.dart';
 import 'services/hitobito_data_retention_policy.dart';
@@ -410,6 +411,7 @@ Future<void> _startApp({
     clearHitobitoTrafficLogs: hitobitoTrafficLogService.clearAllLogs,
     clearMapCache: mapTileCacheService.deleteRoot,
     clearLegacyData: legacyAppDataCleanupService.deleteLegacyData,
+    cancelScheduledNotifications: dataExpiryNotificationService.cancelAll,
   );
 
   final authModel = AuthSessionModel(
@@ -536,6 +538,39 @@ Future<void> _startApp({
   qualifikationsEinstellungenModel.addListener(syncQualifikationsErinnerungen);
   appSettingsModel.addListener(syncQualifikationsErinnerungen);
   appearanceModel.addListener(syncQualifikationsErinnerungen);
+
+  // Geburtstags-Erinnerungen fuer die gewaehlten Stufen; die Demo plant
+  // nichts.
+  final geburtstagsErinnerungService = GeburtstagsErinnerungService(
+    logger: logger,
+  );
+  void syncGeburtstagsErinnerungen() {
+    if (isDemo) {
+      return;
+    }
+    if (authModel.state == AuthState.signedOut) {
+      unawaited(geburtstagsErinnerungService.raeumen());
+      return;
+    }
+    final readModel = arbeitskontextModel.readModel;
+    if (readModel == null ||
+        arbeitskontextModel.isLoading ||
+        arbeitskontextModel.isLoadingRoles) {
+      return;
+    }
+    unawaited(
+      geburtstagsErinnerungService.aktualisiere(
+        readModel: readModel,
+        stufen: appSettingsModel.geburstagsbenachrichtigungStufen,
+        pushErlaubt: appSettingsModel.notificationsEnabled,
+        sprache: appSettingsModel.languageCode,
+      ),
+    );
+  }
+
+  authModel.addListener(syncGeburtstagsErinnerungen);
+  arbeitskontextModel.addListener(syncGeburtstagsErinnerungen);
+  appSettingsModel.addListener(syncGeburtstagsErinnerungen);
 
   // Monatliche Summen für die Statistik-Kachel „Verlauf“ (nur auf dem Gerät).
   final statistikVerlaufService = StatistikVerlaufService(

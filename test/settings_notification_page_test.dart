@@ -7,6 +7,7 @@ import 'package:nami/domain/auth/auth_profile.dart';
 import 'package:nami/domain/auth/auth_session.dart';
 import 'package:nami/domain/qualifikation/plane_qualifikations_erinnerungen_usecase.dart';
 import 'package:nami/domain/qualifikation/qualifikations_einstellungen.dart';
+import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/model/qualifikations_einstellungen_model.dart';
@@ -97,6 +98,48 @@ void main() {
     await tester.pumpAndSettle();
     expect(model.einstellungen.eigene.aktiv, isFalse);
     expect(find.byKey(const Key('quali-meine-efz')), findsNothing);
+  });
+
+  testWidgets('Geburtstage: Hinweis passt, Schalter speichert die Stufen', (
+    tester,
+  ) async {
+    final gespeichert = <Set<Stufe>>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('de')],
+        locale: const Locale('de'),
+        home: SettingsNotificationPage(
+          geburstagsbenachrichtigungStufen: const {
+            Stufe.woelfling,
+            Stufe.leitung,
+          },
+          geburstagsbenachrichtigungStufenChanged: gespeichert.add,
+          readModel: qualiReadModel(mitglieder: const []),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Am Geburtstag um 9 Uhr, nur für die gewählten Stufen'),
+      findsOneWidget,
+    );
+    expect(find.text('Zeitpunkt'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('geburtstag-schalter')));
+    await tester.pumpAndSettle();
+    expect(gespeichert.last, isEmpty);
+    expect(find.text('Stufen'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('geburtstag-schalter')));
+    await tester.pumpAndSettle();
+    expect(gespeichert.last, {Stufe.woelfling, Stufe.leitung});
   });
 
   test('Hub-Meldung fuer eigene Ablaeufe', () {

@@ -229,6 +229,7 @@ Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den
   - Die Daten stammen aus dem Sync und sind offline verfügbar. Die Einstellungen gelten pro App und überstehen das Abmelden.
   - Bis zur Store-Anbindung schaltet ein Testschalter in Debug & Tools den Supporter-Zugang frei.
 - Unter Einstellungen → Benachrichtigungen erinnert die App an die eigenen Qualifikationen (an/aus, Arten, Tage vorher), als Mitteilung und als Meldung in der App.
+- Unter Einstellungen → Benachrichtigungen lassen sich Geburtstagserinnerungen für gewählte Stufen einschalten (Leitende unter „Leitung“). Die App plant sie lokal als Mitteilung am Geburtstag um 9 Uhr, für bis zu 30 Geburtstage in den nächsten 60 Tagen. Der Text nennt nur Vorname, Initial des Nachnamens und Alter.
 - Unter Einstellungen → Erscheinungsbild lassen sich Hell/Dunkel, eine Farbpalette, ein alternatives App-Icon (Pakete mit Morgen, Abend und Nacht; unter iOS zusätzlich „Automatisch“ passend zum Hell/Dunkel-Modus), ein animierter Hintergrund für die Kopfbereiche von Mitgliederliste, Statistik, Stufenwechsel und Einstellungen und ein Supporter-Badge wählen. Das Badge erscheint im eigenen Profil und beim eigenen Eintrag in der Mitgliederliste. Supporter-Optionen schaltet bis zur Store-Anbindung der Testschalter in Debug & Tools frei; die Quellen der Designs und die Export-Skripte liegen unter `design/supporter/`.
 - Das eigene Profil wird nach dem Login über Hitobito OAuth geladen und zeigt nami-id, E-Mail, bevorzugte Sprache als Sprachbadge und die zugewiesenen Rollen.
 - Wenn Hitobito später nicht erreichbar ist oder eine erneute Anmeldung für Updates erforderlich wird, bleibt der lokale Datenstand bis zum Ablauf von `HITOBITO_DATA_MAX_AGE_DAYS` nutzbar; die App zeigt dazu einen fachlichen Hinweis statt einer generischen Plattformfehlermeldung.
@@ -244,7 +245,7 @@ Für die geplante Hitobito-Weiterentwicklung wird dieses Caching künftig an den
 - Adresse automatisch vervollständigen über Geoapify im Online-Bearbeiten-Pfad; die separate Adressvalidierung bleibt auf Offline- und spätere Sync-Fälle begrenzt
 - Mitglieder anlegen per Texterkennung / Foto vom Anmeldebogen
 - Export von Zuschusslisten
-- Erinnerungen und Kalenderintegration für Geburtstage
+- Kalenderintegration für Geburtstage
 - Detailansichten hinter den Statistik-Kacheln, etwa wann Mitglieder den Stamm verlassen und wann sie kommen
 - Weitere fachliche Kartenebenen auf Basis der neuen Karteninfrastruktur
 

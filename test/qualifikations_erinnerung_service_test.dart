@@ -1,13 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/domain/member/efz_einsichtnahme.dart';
 import 'package:nami/domain/qualifikation/qualifikations_einstellungen.dart';
+import 'package:nami/services/lokale_mitteilungen.dart';
 import 'package:nami/services/qualifikations_erinnerung_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/fake_logger_service.dart';
 import 'support/qualifikationen_testdaten.dart';
 
-class _FakeMitteilungen implements QualifikationsMitteilungen {
+class _FakeMitteilungen implements LokaleMitteilungen {
   final geplant = <int, ({String titel, String text, DateTime zeitpunkt})>{};
   final abgebrochen = <int>[];
 

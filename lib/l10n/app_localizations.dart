@@ -1112,6 +1112,11 @@ class AppLocalizations {
       'quali_push_fremde_text_eins': '{name}: gültig bis {datum}.',
       'quali_push_fremde_text_mehr': '{name} und {n} weitere, ab {datum}.',
       'quali_push_kanal': 'Qualifikationen',
+      'geburtstag_push_titel': 'Geburtstag',
+      'geburtstag_push_text': '{name} wird heute {alter}.',
+      'geburtstag_push_kanal': 'Geburtstage',
+      'geburtstag_einstellung_hinweis':
+          'Am Geburtstag um 9 Uhr, nur für die gewählten Stufen',
       'quali_schnellzugriff_leer': 'Status im Arbeitskontext',
       'debug_supporter_section_title': 'Supporter (Test)',
       'debug_supporter_section_subtitle':
@@ -2504,6 +2509,11 @@ class AppLocalizations {
       'quali_push_fremde_text_eins': '{name}: valid until {datum}.',
       'quali_push_fremde_text_mehr': '{name} and {n} more, from {datum}.',
       'quali_push_kanal': 'Qualifications',
+      'geburtstag_push_titel': 'Birthday',
+      'geburtstag_push_text': '{name} turns {alter} today.',
+      'geburtstag_push_kanal': 'Birthdays',
+      'geburtstag_einstellung_hinweis':
+          'On the birthday at 9 am, only for the selected sections',
       'quali_schnellzugriff_leer': 'Status in this context',
       'debug_supporter_section_title': 'Supporter (test)',
       'debug_supporter_section_subtitle':

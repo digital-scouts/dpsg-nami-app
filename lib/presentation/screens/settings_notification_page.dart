@@ -44,15 +44,27 @@ class SettingsNotificationPage extends StatefulWidget {
 
 class _SettingsNotificationPageState extends State<SettingsNotificationPage> {
   late bool _notificationsEnabled;
-  bool _birthdayEnabled = true;
-  String _birthdayTiming = 'vorabend';
+  late bool _birthdayEnabled;
   late Set<Stufe> _geburstagsbenachrichtigungStufen;
+
+  /// Auswahl vor dem Ausschalten, damit sie beim Einschalten zurueckkommt.
+  late Set<Stufe> _letzteGeburtstagsStufen;
 
   @override
   void initState() {
     super.initState();
     _notificationsEnabled = widget.notificationsEnabled;
     _geburstagsbenachrichtigungStufen = widget.geburstagsbenachrichtigungStufen;
+    // Ausgeschaltet heisst: keine Stufe gewaehlt.
+    _birthdayEnabled = _geburstagsbenachrichtigungStufen.isNotEmpty;
+    _letzteGeburtstagsStufen = _birthdayEnabled
+        ? _geburstagsbenachrichtigungStufen
+        : Stufe.values.toSet();
+  }
+
+  void _setGeburtstagsStufen(Set<Stufe> stufen) {
+    setState(() => _geburstagsbenachrichtigungStufen = stufen);
+    widget.geburstagsbenachrichtigungStufenChanged?.call(stufen);
   }
 
   @override
@@ -87,13 +99,21 @@ class _SettingsNotificationPageState extends State<SettingsNotificationPage> {
                   child: Column(
                     children: [
                       SwitchListTile(
+                        key: const Key('geburtstag-schalter'),
                         title: const Text('Geburtstagserinnerungen'),
-                        subtitle: const Text(
-                          'Benachrichtigungen bei Geburtstagen',
-                        ),
+                        subtitle: Text(t.t('geburtstag_einstellung_hinweis')),
                         value: _birthdayEnabled,
                         onChanged: (v) {
                           setState(() => _birthdayEnabled = v);
+                          if (v) {
+                            _setGeburtstagsStufen(_letzteGeburtstagsStufen);
+                          } else {
+                            if (_geburstagsbenachrichtigungStufen.isNotEmpty) {
+                              _letzteGeburtstagsStufen =
+                                  _geburstagsbenachrichtigungStufen;
+                            }
+                            _setGeburtstagsStufen(const <Stufe>{});
+                          }
                         },
                       ),
                       if (_birthdayEnabled) ...[
@@ -114,45 +134,8 @@ class _SettingsNotificationPageState extends State<SettingsNotificationPage> {
                                 showLeader: true,
                                 ausgewaehlteStufen:
                                     _geburstagsbenachrichtigungStufen,
-                                ausgewaehlteStufenChanged: (stufen) {
-                                  setState(
-                                    () => _geburstagsbenachrichtigungStufen =
-                                        stufen,
-                                  );
-                                  widget.geburstagsbenachrichtigungStufenChanged
-                                      ?.call(stufen);
-                                },
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                'Zeitpunkt',
-                                style: Theme.of(context).textTheme.labelLarge,
-                              ),
-                              RadioGroup<String>(
-                                groupValue: _birthdayTiming,
-                                onChanged: (value) {
-                                  if (value == null) return;
-                                  setState(() => _birthdayTiming = value);
-                                },
-                                child: Column(
-                                  children: const [
-                                    RadioListTile<String>(
-                                      value: 'vorabend',
-                                      contentPadding: EdgeInsets.zero,
-                                      title: Text('18 Uhr Vorabend'),
-                                    ),
-                                    RadioListTile<String>(
-                                      value: 'morgen',
-                                      contentPadding: EdgeInsets.zero,
-                                      title: Text('9 Uhr morgens'),
-                                    ),
-                                    RadioListTile<String>(
-                                      value: 'mittag',
-                                      contentPadding: EdgeInsets.zero,
-                                      title: Text('12 Uhr mittags'),
-                                    ),
-                                  ],
-                                ),
+                                ausgewaehlteStufenChanged:
+                                    _setGeburtstagsStufen,
                               ),
                             ],
                           ),

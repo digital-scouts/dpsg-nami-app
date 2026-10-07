@@ -2,103 +2,15 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/widgets.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:timezone/data/latest.dart' as tz_daten;
-import 'package:timezone/timezone.dart' as tz;
 
 import '../domain/arbeitskontext/arbeitskontext_read_model.dart';
 import '../domain/qualifikation/plane_qualifikations_erinnerungen_usecase.dart';
 import '../domain/qualifikation/qualifikations_einstellungen.dart';
 import '../l10n/app_localizations.dart';
 import 'logger_service.dart';
-
-/// Schmale Schnittstelle zum Benachrichtigungs-Plugin, damit sich die
-/// Planung ohne Plattform testen laesst.
-abstract class QualifikationsMitteilungen {
-  Future<void> initialisieren();
-
-  Future<List<int>> geplanteIds();
-
-  Future<void> abbrechen(int id);
-
-  Future<void> planen({
-    required int id,
-    required String titel,
-    required String text,
-    required DateTime zeitpunkt,
-    required String kanalName,
-  });
-}
-
-class PluginQualifikationsMitteilungen implements QualifikationsMitteilungen {
-  PluginQualifikationsMitteilungen({FlutterLocalNotificationsPlugin? plugin})
-    : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
-
-  final FlutterLocalNotificationsPlugin _plugin;
-  bool _initialisiert = false;
-
-  @override
-  Future<void> initialisieren() async {
-    if (_initialisiert) {
-      return;
-    }
-    const darwin = DarwinInitializationSettings(
-      requestAlertPermission: false,
-      requestBadgePermission: false,
-      requestSoundPermission: false,
-    );
-    await _plugin.initialize(
-      const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-        iOS: darwin,
-        macOS: darwin,
-      ),
-    );
-    tz_daten.initializeTimeZones();
-    _initialisiert = true;
-  }
-
-  @override
-  Future<List<int>> geplanteIds() async =>
-      (await _plugin.pendingNotificationRequests())
-          .map((anfrage) => anfrage.id)
-          .toList();
-
-  @override
-  Future<void> abbrechen(int id) => _plugin.cancel(id);
-
-  @override
-  Future<void> planen({
-    required int id,
-    required String titel,
-    required String text,
-    required DateTime zeitpunkt,
-    required String kanalName,
-  }) {
-    final details = NotificationDetails(
-      android: AndroidNotificationDetails(
-        'qualifikationen',
-        kanalName,
-        importance: Importance.defaultImportance,
-        priority: Priority.defaultPriority,
-      ),
-      iOS: const DarwinNotificationDetails(),
-      macOS: const DarwinNotificationDetails(),
-    );
-    // Der lokale Zeitpunkt wird als Instant uebergeben; eine lokale Zeitzone
-    // braucht das Plugin dafuer nicht.
-    return _plugin.zonedSchedule(
-      id,
-      titel,
-      text,
-      tz.TZDateTime.from(zeitpunkt, tz.UTC),
-      details,
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-    );
-  }
-}
+import 'lokale_mitteilungen.dart';
 
 /// Plant Erinnerungen an ablaufende Qualifikationen nach jedem Sync und
 /// jeder Einstellungsaenderung neu. Nutzt einen eigenen ID-Bereich und raeumt
@@ -106,12 +18,13 @@ class PluginQualifikationsMitteilungen implements QualifikationsMitteilungen {
 class QualifikationsErinnerungService {
   QualifikationsErinnerungService({
     required LoggerService logger,
-    QualifikationsMitteilungen? mitteilungen,
+    LokaleMitteilungen? mitteilungen,
     DateTime Function()? jetzt,
     PlaneQualifikationsErinnerungenUseCase planer =
         const PlaneQualifikationsErinnerungenUseCase(),
   }) : _logger = logger,
-       _mitteilungen = mitteilungen ?? PluginQualifikationsMitteilungen(),
+       _mitteilungen =
+           mitteilungen ?? PluginLokaleMitteilungen(kanalId: 'qualifikationen'),
        _jetzt = jetzt ?? DateTime.now,
        _planer = planer;
 
@@ -120,7 +33,7 @@ class QualifikationsErinnerungService {
   static const _prefsSchluessel = 'qualifikationsErinnerungenGeplant';
 
   final LoggerService _logger;
-  final QualifikationsMitteilungen _mitteilungen;
+  final LokaleMitteilungen _mitteilungen;
   final DateTime Function() _jetzt;
   final PlaneQualifikationsErinnerungenUseCase _planer;
 
