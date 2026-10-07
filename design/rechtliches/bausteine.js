@@ -72,6 +72,10 @@
     trash: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13',
     sparkle: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z',
     id: 'M3 5h18v14H3zM7 15h4M7 11h10',
+    award: 'M12 3a6 6 0 1 0 0 12 6 6 0 0 0 0-12zM8.5 14 7 21l5-3 5 3-1.5-7',
+    sync: 'M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5',
+    face: 'M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M9 9.5v1M15 9.5v1M12 9.5v3.5h-1M9.5 16a3.5 3.5 0 0 0 5 0',
+    swap: 'M7 4v13M3 13l4 4 4-4M17 20V7M13 11l4-4 4 4',
   };
   const ico = (name, size = 20, cls = '') => `<svg class="ico ${cls}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${PFADE[name]}"/></svg>`;
   const lilie = (size, farbe) => `<svg class="lilie" width="${size}" height="${size}" viewBox="${L.viewBox}" aria-hidden="true"><g transform="${L.transform}"><path d="${L.d}" fill="${farbe}"/></g></svg>`;
@@ -565,11 +569,87 @@
   }
   const snack = (text) => `<div class="r-snack">${text}</div>`;
 
+  // ------------------------------------------------------------- Runde 3
+  // Stepper mit vier Schritten in der Optik von WS2. Varianten für die „Warum“-Punkte:
+  // WA = Liste mit Icons über der Karte, WB = aufklappbare Info-Box „Warum?“ unter der Karte.
+  const R3 = {
+    schutz: {
+      icon: 'lock', titel: 'App schützen',
+      text: 'Sperre die App mit Face ID. Dann sieht niemand ohne dich die Mitgliederdaten.',
+      warumTitel: 'Warum ist das sinnvoll?',
+      warum: [
+        ['device', 'Mitgliederdaten liegen offline auf dem Gerät, viele von Minderjährigen, mit Adressen, Geburtsdaten und Angaben zum Führungszeugnis.'],
+        ['user', 'Schützt, wenn das Handy entsperrt herumliegt oder verliehen wird.'],
+        ['eyeOff', 'Fragt beim Öffnen und nach kurzer Pause erneut nach Face ID.'],
+      ],
+      karte: { icon: 'face', titel: 'App-Sperre', sub: 'Face ID beim Öffnen und nach kurzer Pause' },
+      spaeter: 'Kannst du später in den App-Einstellungen ändern.',
+    },
+    benach: {
+      icon: 'bell', titel: 'Benachrichtigungen',
+      text: 'Die App erinnert dich an Fristen, damit nichts unbemerkt abläuft.',
+      warumTitel: 'Wofür braucht die App das?',
+      warum: [
+        ['award', 'Erinnerung, bevor Qualifikationen ablaufen, etwa Präventionsschulung, EFZ oder Erste Hilfe, je nach Einstellung.'],
+        ['sync', 'Hinweis, bevor die Offline-Daten ablaufen und du dich neu anmelden musst.'],
+        ['shield', 'Keine Werbung, kein Tracking: nur lokale Erinnerungen von deinem Gerät.'],
+      ],
+      karte: { icon: 'bell', titel: 'Benachrichtigungen', sub: 'Erinnerungen von diesem Gerät' },
+      spaeter: 'Kannst du später in den App-Einstellungen ändern.',
+    },
+  };
+  function aktivKarte(k, zustand) {
+    let rechts = '<span class="r-btn tonal r-akt-btn">Aktivieren</span>';
+    let unten = '';
+    if (zustand === 'aktiv') rechts = `<span class="r-aktiv">${ico('check', 17)}Aktiv</span>`;
+    if (zustand === 'abgelehnt') {
+      rechts = '<span class="r-aus">Aus</span>';
+      unten = `<div class="r-abgelehnt">${ico('info', 16)}<div>Nicht erlaubt. In den iOS-Einstellungen änderbar.<span class="r-link">Einstellungen öffnen${ico('ext', 13)}</span></div></div>`;
+    }
+    return `<div class="r-aktk${zustand === 'aktiv' ? ' an' : ''}"><div class="r-aktk-z"><span class="r-rundico klein">${ico(k.icon, 20)}</span><div><b>${k.titel}</b><small>${k.sub}</small></div>${rechts}</div>${unten}</div>`;
+  }
+  const warumListe = (S) => `<div class="r-warum">${S.warum.map(([i, t]) => `<div class="r-pkt info">${ico(i, 19)}<span>${t}</span></div>`).join('')}</div>`;
+  const warumBox = (S, auf) => `<div class="r-warumbox${auf ? ' auf' : ''}"><div class="r-warumbox-k">${ico('info', 17)}<b>${S.warumTitel}</b>${ico(auf ? 'up' : 'down', 17)}</div>
+      ${auf ? S.warum.map(([i, t]) => `<div class="r-wz3">${ico(i, 16)}<span>${t}</span></div>`).join('') : ''}</div>`;
+  function iosMitteilungen() {
+    return `<div class="r-dim" style="background:rgba(0,0,0,.3);z-index:5"></div><div class="r-ios" style="z-index:6"><div class="r-ios-in">
+      <b>„NaMi“ möchte dir Mitteilungen senden</b><p>Mitteilungen können Hinweise, Töne und Kennzeichensymbole enthalten. Diese können in den Einstellungen konfiguriert werden.</p></div>
+      <div class="r-ios-2"><span>Nicht erlauben</span><span><b>Erlauben</b></span></div></div>`;
+  }
+  // schritt: 'schutz' | 'benach' | 'daten' | 'intro'; opts: { zustand, warumAuf, schritte }
+  function stepperR3(ctx, variante, schritt, { zustand = 'vorher', warumAuf = false, schritte = ['schutz', 'benach', 'daten', 'intro'] } = {}) {
+    const i = schritte.indexOf(schritt);
+    const n = schritte.length;
+    const letzter = i === n - 1;
+    const erster = i === 0;
+    let titel, icon, inhalt;
+    if (R3[schritt]) {
+      const S = R3[schritt];
+      titel = S.titel; icon = S.icon;
+      inhalt = variante === 'WA'
+        ? `<div class="r-text">${S.text}</div>${warumListe(S)}${aktivKarte(S.karte, zustand)}`
+        : `<div class="r-text">${S.text}</div>${aktivKarte(S.karte, zustand)}${warumBox(S, warumAuf)}`;
+      inhalt += `<div class="r-klein" style="margin-top:10px">${S.spaeter}</div>`;
+    } else {
+      titel = SCHRITTE[schritt].titel; icon = SCHRITTE[schritt].icon; inhalt = SCHRITTE[schritt].inhalt();
+    }
+    const zurueck = erster ? '<span class="r-btn text breit" style="margin-top:2px;visibility:hidden">Zurück</span>' : '<span class="r-btn text breit" style="margin-top:2px">Zurück</span>';
+    const akt = letzter
+      ? `<span class="r-btn filled breit">Ja, zeig mir die App</span><span class="r-btn tonal breit" style="margin-top:8px">Nein, direkt loslegen</span>${zurueck}`
+      : `<span class="r-btn filled breit">Weiter</span>${zurueck}`;
+    return `<div class="r-voll-dlg r3">
+      ${balkenSchritte(n, i)}<div class="r-schritt-t">Schritt ${i + 1} von ${n}</div>
+      <div class="r-voll-kopf">${erster ? `<span class="r-bs-logo">${lilie(34, '#ffffff')}</span><div class="r-gruss" style="text-align:left">Willkommen!</div>` : `<span class="r-rundico gross">${ico(icon, 28)}</span>`}<h3>${titel}</h3></div>
+      <div class="r-step-in">${inhalt}</div>
+      <div class="r-voll-fuss">${akt}</div></div>`;
+  }
+
   window.RBAU = {
     esc, ico, lilie, sec, farbenEinfuegen, telefon, panel, kopf, kopfOhne, tabbarMitglieder,
     EMPF, seiteD1, seiteD2, sheetD2, seiteD3, einstellungen, mitgliederliste, willkommen,
     feedbackDialog, iosReview, playReview, erfolge, abzeichenSheet, wiredash, wiredashText,
     bundHintergrund, einwilligung, transparenz, adresskarte, vollkarte,
     seiteR2, einstiegE2, willkommenStepper, mitgliedDetail, snack,
+    stepperR3, iosMitteilungen,
   };
 })();
