@@ -10,6 +10,7 @@ import 'package:nami/stories/app_snackbar_story.dart';
 import 'package:nami/stories/demo_zugang_sheet_story.dart';
 import 'package:nami/stories/feedback_prompt_dialog_story.dart';
 import 'package:nami/stories/hitobito_traffic_log_view_story.dart';
+import 'package:nami/stories/log_viewer_page_story.dart';
 import 'package:nami/stories/message_of_the_day_card_story.dart';
 import 'package:nami/stories/nami_ai_chat_page_story.dart';
 import 'package:nami/stories/notifications_story.dart';
@@ -124,6 +125,7 @@ List<Story> buildStorybookStories() {
     settingsMapPageStory(),
     hitobitoTrafficLogViewStory(),
     appLogViewStory(),
+    logViewerPageStory(),
     buildSettingsStammPageStory(),
     stammAddressSettingsStory(),
     stufenwechselSettingsStory(),

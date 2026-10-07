@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_email_sender/flutter_email_sender.dart';
 import 'package:intl/intl.dart';
 import 'package:nami/data/maps/shared_prefs_address_map_location_repository.dart';
 import 'package:nami/domain/auth/auth_state.dart';
@@ -15,10 +14,8 @@ import 'package:nami/presentation/model/member_edit_model.dart';
 import 'package:nami/presentation/notifications/app_snackbar.dart';
 import 'package:nami/presentation/notifications/feedback_prompt_dialog.dart';
 import 'package:nami/presentation/screens/changelog_page.dart';
-import 'package:nami/presentation/widgets/app_log_view.dart';
-import 'package:nami/presentation/widgets/hitobito_traffic_log_view.dart';
+import 'package:nami/presentation/screens/log_viewer_page.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:wiredash/wiredash.dart';
 
 import '../../services/app_runtime_controller.dart';
@@ -55,13 +52,11 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
   final ScrollController _scrollController = ScrollController();
   bool _isRefreshingStammMarkers = false;
   bool _isDiagnosingGroups = false;
-  _DebugLogSource _selectedLogSource = _DebugLogSource.app;
   final HitobitoTrafficLogService _fallbackHitobitoTrafficLogService =
       HitobitoTrafficLogService(
         logsDirectoryProvider: () async => Directory.systemTemp,
       );
-  String _selectedLogSelectionId = LoggerService.allLogsSelectionId;
-  int _logFilesRevision = 0;
+  int _logRevision = 0;
 
   Future<void> _trackDebugAction(
     LoggerService logger,
@@ -146,40 +141,6 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
     final handler =
         widget.onResetAllData ?? context.read<AppRuntimeController>().resetApp;
     await handler();
-  }
-
-  Future<void> sendLogsEmail(List<File> files) async {
-    final existingFiles = <File>[];
-    for (final file in files) {
-      if (await file.exists()) {
-        existingFiles.add(file);
-      }
-    }
-
-    if (existingFiles.isEmpty) {
-      return;
-    }
-    try {
-      final t = AppLocalizations.of(context);
-      FlutterEmailSender.send(
-        Email(
-          body: t.t('debug_logs_email_body'),
-          attachmentPaths: existingFiles.map((file) => file.path).toList(),
-          subject: t.t('debug_logs_email_subject'),
-          recipients: ["dev@jannecklange.de"],
-        ),
-      );
-    } catch (_) {}
-  }
-
-  Future<List<String>> _loadLogFileNames(
-    LoggerService logger,
-    HitobitoTrafficLogService hitobitoTrafficLogService,
-  ) {
-    if (_selectedLogSource == _DebugLogSource.hitobitoTraffic) {
-      return hitobitoTrafficLogService.listLogFileNames();
-    }
-    return logger.listLogFileNames();
   }
 
   List<String> _buildSyncStatusLines(
@@ -491,307 +452,43 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                   icon: Icons.article_outlined,
                   title: t.t('debug_logs_section_title'),
                   subtitle: t.t('debug_logs_section_subtitle'),
-                  child: FutureBuilder<List<String>>(
-                    key: ValueKey(_logFilesRevision),
-                    future: _loadLogFileNames(
-                      logger,
-                      hitobitoTrafficLogService,
-                    ),
-                    builder: (context, snapshot) {
-                      final names = snapshot.data ?? const <String>[];
-                      final hasLogs = names.isNotEmpty;
-                      final selectedId = names.contains(_selectedLogSelectionId)
-                          ? _selectedLogSelectionId
-                          : LoggerService.allLogsSelectionId;
-
-                      if (selectedId != _selectedLogSelectionId) {
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (!mounted) {
-                            return;
-                          }
-                          setState(() {
-                            _selectedLogSelectionId =
-                                LoggerService.allLogsSelectionId;
-                          });
-                        });
-                      }
-
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: colorScheme.surfaceContainerHigh,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: colorScheme.outlineVariant,
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  t.t('debug_logs_selection'),
-                                  style: theme.textTheme.titleMedium,
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  hasLogs
-                                      ? t.t('debug_logs_available_count', {
-                                          'count': names.length,
-                                          'suffix': names.length == 1
-                                              ? ''
-                                              : 'en',
-                                        })
-                                      : t.t('debug_logs_empty'),
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                DropdownButtonFormField<_DebugLogSource>(
-                                  initialValue: _selectedLogSource,
-                                  decoration: InputDecoration(
-                                    labelText: t.t('debug_logs_source_label'),
-                                    border: const OutlineInputBorder(),
-                                  ),
-                                  items: [
-                                    DropdownMenuItem<_DebugLogSource>(
-                                      value: _DebugLogSource.app,
-                                      child: Text(t.t('debug_logs_source_app')),
-                                    ),
-                                    DropdownMenuItem<_DebugLogSource>(
-                                      value: _DebugLogSource.hitobitoTraffic,
-                                      child: Text(
-                                        t.t('debug_logs_source_hitobito'),
-                                      ),
-                                    ),
-                                  ],
-                                  onChanged: (value) {
-                                    if (value == null ||
-                                        value == _selectedLogSource) {
-                                      return;
-                                    }
-                                    setState(() {
-                                      _selectedLogSource = value;
-                                      _selectedLogSelectionId =
-                                          LoggerService.allLogsSelectionId;
-                                      _logFilesRevision++;
-                                    });
-                                  },
-                                ),
-                                const SizedBox(height: 12),
-                                DropdownButtonFormField<String>(
-                                  initialValue: selectedId,
-                                  isExpanded: true,
-                                  decoration: InputDecoration(
-                                    labelText: t.t('debug_logs_selection'),
-                                    border: const OutlineInputBorder(),
-                                  ),
-                                  selectedItemBuilder: (context) {
-                                    return [
-                                      Text(
-                                        t.t('debug_logs_all_files'),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      ...names.map(
-                                        (name) => Tooltip(
-                                          message: name,
-                                          child: Text(
-                                            name,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ),
-                                    ];
-                                  },
-                                  items: [
-                                    DropdownMenuItem<String>(
-                                      value: LoggerService.allLogsSelectionId,
-                                      child: Text(
-                                        t.t('debug_logs_all_files'),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    ...names.map(
-                                      (name) => DropdownMenuItem<String>(
-                                        value: name,
-                                        child: Tooltip(
-                                          message: name,
-                                          child: Text(
-                                            name,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _selectedLogSelectionId =
-                                          value ??
-                                          LoggerService.allLogsSelectionId;
-                                    });
-                                  },
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          _DebugButtonGroup(
-                            children: [
-                              _DebugActionButton(
-                                icon: Icons.mail_outline,
-                                label:
-                                    selectedId ==
-                                        LoggerService.allLogsSelectionId
-                                    ? t.t('debug_logs_send_all')
-                                    : t.t('debug_logs_send_selected'),
-                                onPressed: !hasLogs
-                                    ? null
-                                    : () async {
-                                        await _trackDebugAction(
-                                          logger,
-                                          'send_logs_email',
-                                          properties: <String, Object?>{
-                                            'source': _selectedLogSource.name,
-                                            'selection': selectedId,
-                                          },
-                                        );
-                                        final files =
-                                            _selectedLogSource ==
-                                                _DebugLogSource.hitobitoTraffic
-                                            ? await hitobitoTrafficLogService
-                                                  .resolveLogFiles(
-                                                    selectionId: selectedId,
-                                                  )
-                                            : await logger.resolveLogFiles(
-                                                selectionId: selectedId,
-                                              );
-                                        await sendLogsEmail(files);
-                                      },
-                              ),
-                              _DebugActionButton(
-                                icon: Icons.article_outlined,
-                                label:
-                                    selectedId ==
-                                        LoggerService.allLogsSelectionId
-                                    ? t.t('debug_logs_view_all')
-                                    : t.t('debug_logs_view_selected'),
-                                onPressed: () async {
-                                  await _trackDebugAction(
-                                    logger,
-                                    'view_logs',
-                                    properties: <String, Object?>{
-                                      'source': _selectedLogSource.name,
-                                      'selection': selectedId,
-                                    },
-                                  );
-                                  final content =
-                                      _selectedLogSource ==
-                                          _DebugLogSource.hitobitoTraffic
-                                      ? await hitobitoTrafficLogService
-                                            .readLogs(selectionId: selectedId)
-                                      : await logger.readLogs(
-                                          selectionId: selectedId,
-                                        );
-
-                                  if (!context.mounted) {
-                                    return;
-                                  }
-
-                                  final title =
-                                      selectedId ==
-                                          LoggerService.allLogsSelectionId
-                                      ? t.t('debug_logs_viewer_title_all')
-                                      : t.t(
-                                          'debug_logs_viewer_title_selected',
-                                          {'selection': selectedId},
-                                        );
-                                  final isTraffic =
-                                      _selectedLogSource ==
-                                      _DebugLogSource.hitobitoTraffic;
-                                  final files = isTraffic
-                                      ? await hitobitoTrafficLogService
-                                            .resolveLogFiles(
-                                              selectionId: selectedId,
-                                            )
-                                      : await logger.resolveLogFiles(
-                                          selectionId: selectedId,
-                                        );
-                                  if (!context.mounted) {
-                                    return;
-                                  }
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      settings: const RouteSettings(
-                                        name: '/settings/debug/logs',
-                                      ),
-                                      builder: (_) => Scaffold(
-                                        appBar: AppBar(
-                                          title: Text(title),
-                                          actions: [
-                                            _ShareLogsButton(files: files),
-                                          ],
-                                        ),
-                                        body: isTraffic
-                                            ? HitobitoTrafficLogView(
-                                                content: content,
-                                              )
-                                            : AppLogView(content: content),
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                              _DebugActionButton(
-                                icon: Icons.delete_outline,
-                                label: t.t('debug_logs_delete'),
-                                isDestructive: true,
-                                buttonKey: const Key(
-                                  'debug_logs_delete_button',
-                                ),
-                                onPressed: !hasLogs
-                                    ? null
-                                    : () async {
-                                        await _trackDebugAction(
-                                          logger,
-                                          'delete_logs',
-                                          properties: <String, Object?>{
-                                            'source': _selectedLogSource.name,
-                                            'selection': selectedId,
-                                          },
-                                        );
-                                        if (_selectedLogSource ==
-                                            _DebugLogSource.hitobitoTraffic) {
-                                          await hitobitoTrafficLogService
-                                              .clearAllLogs();
-                                        } else {
-                                          await logger.clearAllLogs();
-                                        }
-                                        if (!mounted) {
-                                          return;
-                                        }
-                                        setState(() {
-                                          _selectedLogSelectionId =
-                                              LoggerService.allLogsSelectionId;
-                                          _logFilesRevision++;
-                                        });
-                                        _showSnackbar(
-                                          t.t('debug_logs_deleted'),
-                                          type: AppSnackbarType.success,
-                                        );
-                                      },
-                              ),
-                            ],
-                          ),
-                        ],
+                  child: _LogEinstiege(
+                    key: ValueKey(_logRevision),
+                    quellen: [
+                      LogQuelle.app(logger),
+                      LogQuelle.traffic(hitobitoTrafficLogService),
+                    ],
+                    onOeffnen: (quelle) async {
+                      await _trackDebugAction(
+                        logger,
+                        'view_logs',
+                        properties: <String, Object?>{
+                          'source': quelle.dateiKennung,
+                        },
                       );
+                      if (!context.mounted) {
+                        return;
+                      }
+                      await Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          settings: const RouteSettings(
+                            name: '/settings/debug/logs',
+                          ),
+                          builder: (_) => LogViewerPage(
+                            quelle: quelle,
+                            onAktion: (aktion) => _trackDebugAction(
+                              logger,
+                              aktion,
+                              properties: <String, Object?>{
+                                'source': quelle.dateiKennung,
+                              },
+                            ),
+                          ),
+                        ),
+                      );
+                      if (mounted) {
+                        setState(() => _logRevision++);
+                      }
                     },
                   ),
                 ),
@@ -1400,8 +1097,6 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
   }
 }
 
-enum _DebugLogSource { app, hitobitoTraffic }
-
 enum _DebugSectionTone { normal, danger }
 
 class _DebugSectionCard extends StatelessWidget {
@@ -1755,34 +1450,110 @@ class _OauthOverrideDialogState extends State<_OauthOverrideDialog> {
   }
 }
 
-/// Teilt die angezeigten Logdateien ueber den System-Teilen-Dialog.
-class _ShareLogsButton extends StatelessWidget {
-  const _ShareLogsButton({required this.files});
+/// Zwei Einstiege in die Log-Ansichten, mit Eintraegen und Fehlern von heute.
+class _LogEinstiege extends StatefulWidget {
+  const _LogEinstiege({
+    super.key,
+    required this.quellen,
+    required this.onOeffnen,
+  });
 
-  final List<File> files;
+  final List<LogQuelle> quellen;
+  final Future<void> Function(LogQuelle quelle) onOeffnen;
+
+  @override
+  State<_LogEinstiege> createState() => _LogEinstiegeState();
+}
+
+class _LogEinstiegeState extends State<_LogEinstiege> {
+  late final Future<List<({int heute, int fehler})>> _zahlen = _zaehlen();
+
+  Future<List<({int heute, int fehler})>> _zaehlen() async {
+    final jetzt = DateTime.now();
+    final heute = DateTime(jetzt.year, jetzt.month, jetzt.day);
+    return [
+      for (final quelle in widget.quellen)
+        await quelle.lesen().then((content) {
+          final infos = quelle
+              .eintraege(content)
+              .where((info) => !info.zeitpunkt.isBefore(heute))
+              .toList(growable: false);
+          return (
+            heute: infos.length,
+            fehler: infos.where((info) => info.fehler).length,
+          );
+        }),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    return IconButton(
-      key: const Key('debug_logs_share_button'),
-      tooltip: t.t('debug_logs_share'),
-      icon: Icon(Icons.adaptive.share),
-      onPressed: files.isEmpty
-          ? null
-          : () async {
-              // iPad braucht einen Ankerpunkt fuer das Popover.
-              final box = context.findRenderObject() as RenderBox?;
-              await SharePlus.instance.share(
-                ShareParams(
-                  files: files.map((file) => XFile(file.path)).toList(),
-                  subject: t.t('debug_logs_email_subject'),
-                  sharePositionOrigin: box == null
+    final scheme = Theme.of(context).colorScheme;
+    return FutureBuilder<List<({int heute, int fehler})>>(
+      future: _zahlen,
+      builder: (context, snapshot) {
+        final zahlen = snapshot.data;
+        // Material statt DecoratedBox, damit der Tipp-Effekt sichtbar bleibt.
+        return Material(
+          color: scheme.surfaceContainerHigh,
+          clipBehavior: Clip.antiAlias,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: scheme.outlineVariant),
+          ),
+          child: Column(
+            children: [
+              for (var i = 0; i < widget.quellen.length; i++) ...[
+                if (i > 0) Divider(height: 1, color: scheme.outlineVariant),
+                ListTile(
+                  key: Key('debug_logs_open_${widget.quellen[i].dateiKennung}'),
+                  leading: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: scheme.primaryContainer.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      widget.quellen[i].dateiKennung == 'traffic'
+                          ? Icons.swap_horiz
+                          : Icons.article_outlined,
+                      size: 20,
+                      color: scheme.onPrimaryContainer,
+                    ),
+                  ),
+                  title: Text(t.t(widget.quellen[i].titelKey)),
+                  subtitle: zahlen == null
                       ? null
-                      : box.localToGlobal(Offset.zero) & box.size,
+                      : Text.rich(
+                          TextSpan(
+                            children: [
+                              TextSpan(
+                                text: t.t(widget.quellen[i].heuteKey, {
+                                  'count': zahlen[i].heute,
+                                }),
+                              ),
+                              if (zahlen[i].fehler > 0)
+                                TextSpan(
+                                  text:
+                                      ' · ${t.t('debug_logs_errors', {'count': zahlen[i].fehler})}',
+                                  style: TextStyle(
+                                    color: scheme.error,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => widget.onOeffnen(widget.quellen[i]),
                 ),
-              );
-            },
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 }
