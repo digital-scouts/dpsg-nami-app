@@ -13,6 +13,16 @@ void main() {
     expect(policy.isRefreshDue(DateTime(2026, 3, 25, 12, 30)), isFalse);
   });
 
+  test('Sync-Zeitpunkt in der Zukunft gilt als faellig', () {
+    final policy = HitobitoDataRetentionPolicy(
+      maxDataAge: const Duration(days: 90),
+      refreshInterval: const Duration(hours: 24),
+      nowProvider: () => DateTime(2026, 3, 26, 12),
+    );
+
+    expect(policy.isRefreshDue(DateTime(2026, 3, 27, 12)), isTrue);
+  });
+
   test('erzwingt Relogin nach 90 Tagen', () {
     final policy = HitobitoDataRetentionPolicy(
       maxDataAge: const Duration(days: 90),
