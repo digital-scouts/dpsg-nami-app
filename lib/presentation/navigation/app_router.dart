@@ -24,9 +24,8 @@ import '../screens/nami_ai/nami_ai_paywall_page.dart';
 import '../screens/profile_page.dart';
 import '../screens/settings_app_page.dart';
 import '../screens/settings_appearance_page.dart';
-import '../screens/settings_datenschutz_page.dart';
 import '../screens/settings_debug_tools_page.dart';
-import '../screens/settings_impressum_page.dart';
+import '../screens/settings_rechtliches_page.dart';
 import '../screens/settings_map_page.dart';
 import '../screens/settings_notification_page.dart';
 import '../screens/settings_qualifikationen_page.dart';
@@ -45,8 +44,6 @@ class AppRoutes {
   static const String settingsNotification = '/settings/notifications';
   static const String settingsMap = '/settings/map';
   static const String settingsMessages = '/settings/messages';
-  static const String settingsImpressum = '/settings/impressum';
-  static const String settingsDatenschutz = '/settings/datenschutz';
   static const String settingsRechtliches = '/settings/rechtliches';
   static const String settingsStufenwechsel = '/settings/stufenwechsel';
   static const String settingsQualifikationen = '/settings/qualifikationen';
@@ -288,16 +285,15 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
           showStatusButtons: false,
         ),
       );
-    case AppRoutes.settingsImpressum:
-      return MaterialPageRoute(
-        settings: settings,
-        builder: (context) => const SettingsImpressumPage(),
-      );
     case AppRoutes.settingsRechtliches:
-    case AppRoutes.settingsDatenschutz:
       return MaterialPageRoute(
         settings: settings,
-        builder: (context) => const SettingsDatenschutzPage(),
+        builder: (context) => SettingsRechtlichesPage(
+          installationsId: Provider.of<BundesstatistikModel>(
+            context,
+            listen: false,
+          ).installationsId,
+        ),
       );
     case AppRoutes.settingsStufenwechsel:
       return MaterialPageRoute(

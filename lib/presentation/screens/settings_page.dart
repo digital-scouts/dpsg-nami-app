@@ -36,8 +36,7 @@ class SettingsPage extends StatefulWidget {
   final VoidCallback? onMapSettings;
   final VoidCallback? onQualifikationen;
   final FutureOr<void> Function()? onMessages;
-  final VoidCallback? onImpressum;
-  final VoidCallback? onDatenschutz;
+  final VoidCallback? onRechtliches;
   final VoidCallback? onDebugTools;
   final VoidCallback? onNamiAi;
   final VoidCallback? onNamiAiPaywall;
@@ -62,8 +61,7 @@ class SettingsPage extends StatefulWidget {
     this.onMapSettings,
     this.onQualifikationen,
     this.onMessages,
-    this.onImpressum,
-    this.onDatenschutz,
+    this.onRechtliches,
     this.onDebugTools,
     this.onNamiAi,
     this.onNamiAiPaywall,
@@ -482,30 +480,6 @@ class _SettingsPageState extends State<SettingsPage> {
                                 ),
                               ],
                               const SizedBox(height: 12),
-                              const DpsgSectionHeader(label: 'Rechtliches'),
-                              Card(
-                                margin: EdgeInsets.zero,
-                                child: Column(
-                                  children: [
-                                    _SettingsNavTile(
-                                      icon: Icons.gavel,
-                                      iconBackgroundColor:
-                                          theme.colorScheme.tertiary,
-                                      title: 'Impressum',
-                                      onTap: widget.onImpressum,
-                                    ),
-                                    const _SettingsRowDivider(),
-                                    _SettingsNavTile(
-                                      icon: Icons.shield,
-                                      iconBackgroundColor:
-                                          theme.colorScheme.tertiary,
-                                      title: 'Datenschutz',
-                                      onTap: widget.onDatenschutz,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 12),
                               const _SettingsRowDivider(indent: 16),
                               GestureDetector(
                                 behavior: HitTestBehavior.opaque,
@@ -537,7 +511,15 @@ class _SettingsPageState extends State<SettingsPage> {
                                           ),
                                         ],
                                       ),
-                                      const SizedBox(height: 6),
+                                      TextButton.icon(
+                                        key: const Key('settings-legal-link'),
+                                        onPressed: widget.onRechtliches,
+                                        icon: const Icon(
+                                          Icons.shield_outlined,
+                                          size: 16,
+                                        ),
+                                        label: Text(t.t('legal_title')),
+                                      ),
                                       Text(
                                         '${t.t('version_label')}: ${_appVersion ?? '...'}',
                                         style: theme.textTheme.bodySmall,

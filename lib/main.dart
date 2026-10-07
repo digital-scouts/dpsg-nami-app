@@ -959,7 +959,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       }
       final hasSeenWelcome = await _appStartupStateService.hasSeenWelcome();
       if (!hasSeenWelcome) {
-        await showWelcomeDialog(dialogContext);
+        await _zeigeWillkommen(dialogContext);
         await _appStartupStateService.markWelcomeSeen();
         await _feedbackPromptService.recordFirstUse();
         _startupFlowCompleted = true;
@@ -978,6 +978,33 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         _flushAchievementUnlocks();
       }
     }
+  }
+
+  /// Willkommen-Stepper nach dem ersten Login. Die Daten laden derweil im
+  /// Hintergrund weiter (siehe [_syncArbeitskontextWithAuth]).
+  Future<void> _zeigeWillkommen(BuildContext dialogContext) async {
+    final appSettings = dialogContext.read<AppSettingsModel>();
+    final biometrieVerfuegbar = await BiometricLockService(
+      logger: dialogContext.read<LoggerService>(),
+    ).isAvailable();
+    if (!dialogContext.mounted) {
+      return;
+    }
+    final einfuehrung = await showWelcomeDialog(
+      dialogContext,
+      optionen: WillkommenOptionen(
+        biometrieVerfuegbar: biometrieVerfuegbar,
+        biometrieAktiv: appSettings.biometricLockEnabled,
+        analyseAktiv: appSettings.analyticsEnabled,
+        keineMobilenDaten: appSettings.noMobileDataEnabled,
+        onBiometrieAendern: appSettings.setBiometricLockEnabled,
+        onAnalyseAendern: appSettings.setAnalyticsEnabled,
+        onKeineMobilenDatenAendern: appSettings.setNoMobileDataEnabled,
+        onRechtliches: () =>
+            navigatorKey.currentState?.pushNamed(AppRoutes.settingsRechtliches),
+      ),
+    );
+    await _appStartupStateService.saveIntroWanted(einfuehrung);
   }
 
   void _startAuthMaintenanceTimer() {

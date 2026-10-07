@@ -15,4 +15,16 @@ void main() {
     await service.clearStartupState();
     expect(await service.hasSeenWelcome(), isFalse);
   });
+
+  test('merkt die Antwort zur Einführung bis zum Zurücksetzen', () async {
+    SharedPreferences.setMockInitialValues({});
+    final service = AppStartupStateService();
+
+    expect(await service.loadIntroWanted(), isNull);
+    await service.saveIntroWanted(true);
+    expect(await service.loadIntroWanted(), isTrue);
+
+    await service.clearStartupState();
+    expect(await service.loadIntroWanted(), isNull);
+  });
 }

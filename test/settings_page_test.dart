@@ -36,6 +36,7 @@ void main() {
     VoidCallback? onNamiAiPaywall,
     VoidCallback? onProfile,
     VoidCallback? onExitDemo,
+    VoidCallback? onRechtliches,
     DemoZugang? demoZugang,
     Future<NamiAiAccessDecision> Function()? namiAiAccessLoader,
     Future<List<AppHubNotification>> Function()?
@@ -63,6 +64,7 @@ void main() {
           onNamiAiPaywall: onNamiAiPaywall,
           onProfile: onProfile,
           onExitDemo: onExitDemo,
+          onRechtliches: onRechtliches,
           demoZugang: demoZugang,
           namiAiAccessLoader: namiAiAccessLoader,
           unreadExternalNotificationsLoader: unreadExternalNotificationsLoader,
@@ -84,6 +86,26 @@ void main() {
     ),
     logger: _FakeLoggerService(),
   );
+
+  testWidgets('Impressum & Datenschutz als Link im Fußbereich', (tester) async {
+    var geoeffnet = 0;
+    await tester.pumpWidget(
+      buildTestApp(
+        authModel: buildAuthModel(),
+        onRechtliches: () => geoeffnet++,
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Rechtliches'.toUpperCase()), findsNothing);
+    final link = find.byKey(const Key('settings-legal-link'));
+    await tester.scrollUntilVisible(link, 300);
+    await tester.ensureVisible(link);
+    await tester.pumpAndSettle();
+    expect(find.text('Impressum & Datenschutz'), findsOneWidget);
+    await tester.tap(link);
+    expect(geoeffnet, 1);
+  });
 
   testWidgets('Demo-Hinweis nennt den gewaehlten Zugang', (tester) async {
     var beendet = false;
