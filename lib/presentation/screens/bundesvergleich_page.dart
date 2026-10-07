@@ -900,10 +900,17 @@ class _InstallationsIdBox extends StatelessWidget {
                 ),
               ),
               FilledButton.tonalIcon(
-                key: const Key('bund-installations-id-kopieren'),
+                // Akzentflaeche wie im Entwurf; tonal waere das DPSG-Rot.
                 style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.primaryContainer,
+                  foregroundColor: Theme.of(
+                    context,
+                  ).colorScheme.onPrimaryContainer,
                   visualDensity: VisualDensity.compact,
                 ),
+                key: const Key('bund-installations-id-kopieren'),
                 onPressed: () async {
                   await Clipboard.setData(ClipboardData(text: id));
                   if (context.mounted) {

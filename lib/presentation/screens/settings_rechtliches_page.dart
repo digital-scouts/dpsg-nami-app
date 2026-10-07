@@ -591,6 +591,15 @@ class _EmpfaengerSheet extends StatelessWidget {
                   if (idWert != null) ...[
                     Expanded(
                       child: FilledButton.tonalIcon(
+                        // Akzentflaeche wie im Entwurf; tonal waere das DPSG-Rot.
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primaryContainer,
+                          foregroundColor: Theme.of(
+                            context,
+                          ).colorScheme.onPrimaryContainer,
+                        ),
                         key: const Key('legal-copy-id'),
                         onPressed: () async {
                           await Clipboard.setData(ClipboardData(text: idWert));

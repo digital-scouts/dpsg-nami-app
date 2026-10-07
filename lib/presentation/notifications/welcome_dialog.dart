@@ -101,15 +101,24 @@ class _WillkommenStepperState extends State<WillkommenStepper> {
   _Schritt get _aktuell => _schritte[_index];
   bool get _istLetzter => _index == _schritte.length - 1;
 
+  /// Richtung des letzten Wechsels fuer die Wisch-Animation.
+  bool _vorwaerts = true;
+
   void _weiter() {
     if (_istLetzter) {
       Navigator.of(context).pop();
       return;
     }
-    setState(() => _index++);
+    setState(() {
+      _vorwaerts = true;
+      _index++;
+    });
   }
 
-  void _zurueck() => setState(() => _index--);
+  void _zurueck() => setState(() {
+    _vorwaerts = false;
+    _index--;
+  });
 
   /// Nach erteilter Erlaubnis ist der naechste Schritt offensichtlich.
   Future<void> _weiterNachErlaubnis(_Schritt schritt) async {
@@ -194,54 +203,69 @@ class _WillkommenStepperState extends State<WillkommenStepper> {
                     color: colors.onSurfaceVariant,
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
                 Expanded(
-                  child: SingleChildScrollView(
-                    key: ValueKey(_aktuell),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (_aktuell == _Schritt.highlights)
-                          Row(
-                            children: [
-                              _SchrittIcon(icon: icon, size: 40),
-                              const SizedBox(width: 12),
-                              Expanded(
+                  // Wischen: vorwaerts kommt der Schritt von rechts, zurueck
+                  // von links; der alte gleitet zur Gegenseite hinaus.
+                  child: ClipRect(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 280),
+                      switchInCurve: Curves.easeOutCubic,
+                      switchOutCurve: Curves.easeInCubic,
+                      layoutBuilder: (aktuell, vorherige) => Stack(
+                        alignment: Alignment.topLeft,
+                        children: [...vorherige, ?aktuell],
+                      ),
+                      transitionBuilder: (child, animation) {
+                        final richtung = _vorwaerts ? 1.0 : -1.0;
+                        final eingehend = child.key == ValueKey(_aktuell);
+                        return SlideTransition(
+                          position: Tween<Offset>(
+                            begin: Offset(eingehend ? richtung : -richtung, 0),
+                            end: Offset.zero,
+                          ).animate(animation),
+                          child: child,
+                        );
+                      },
+                      child: SingleChildScrollView(
+                        key: ValueKey(_aktuell),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (_index == 0)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 6),
                                 child: Text(
-                                  t.t(titelKey),
-                                  style: theme.textTheme.titleLarge?.copyWith(
+                                  t.t('welcome_title').toUpperCase(),
+                                  style: theme.textTheme.labelLarge?.copyWith(
+                                    color: colors.primary,
                                     fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.8,
                                   ),
                                 ),
                               ),
-                            ],
-                          )
-                        else ...[
-                          _SchrittIcon(icon: _index == 0 ? null : icon),
-                          const SizedBox(height: 20),
-                        ],
-                        if (_index == 0)
-                          Text(
-                            t.t('welcome_title').toUpperCase(),
-                            style: theme.textTheme.labelLarge?.copyWith(
-                              color: colors.primary,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.8,
+                            Row(
+                              children: [
+                                _SchrittIcon(
+                                  icon: _index == 0 ? null : icon,
+                                  size: 40,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    t.t(titelKey),
+                                    style: theme.textTheme.headlineSmall
+                                        ?.copyWith(fontWeight: FontWeight.w700),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        if (_aktuell != _Schritt.highlights)
-                          Text(
-                            t.t(titelKey),
-                            style: theme.textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        SizedBox(
-                          height: _aktuell == _Schritt.highlights ? 8 : 12,
+                            const SizedBox(height: 12),
+                            inhalt,
+                            const SizedBox(height: 16),
+                          ],
                         ),
-                        inhalt,
-                        const SizedBox(height: 16),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -639,6 +663,11 @@ class _AktivierenKarte extends StatelessWidget {
       );
     } else {
       rechts = FilledButton.tonal(
+        // Akzentflaeche wie im Entwurf; tonal waere das DPSG-Rot.
+        style: FilledButton.styleFrom(
+          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+          foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+        ),
         key: aktivierenKey,
         onPressed: onAktivieren,
         child: Text(t.t('welcome_activate')),
