@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -110,4 +113,52 @@ void main() {
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
+
+  group('PKCE', () {
+    const config = HitobitoAuthConfig(
+      clientId: 'client',
+      clientSecret: 'secret',
+      authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
+      tokenUrl: 'https://demo.hitobito.com/oauth/token',
+      redirectUri: 'de.jlange.nami.app:/oauth/callback',
+      scopeString: 'openid email',
+      discoveryUrl: '',
+      profileUrl: 'https://demo.hitobito.com/oauth/profile',
+    );
+
+    test('sendet Challenge beim Login und Verifier beim Code-Tausch', () async {
+      late Uri anmeldeUrl;
+      late Map<String, String> tokenBody;
+      final service = HitobitoOauthService(
+        config: config,
+        nowProvider: () => DateTime(2026, 10, 7),
+        webAuthenticator: ({required url, required callbackUrlScheme}) async {
+          anmeldeUrl = Uri.parse(url);
+          final state = anmeldeUrl.queryParameters['state'];
+          return 'de.jlange.nami.app:/oauth/callback?code=abc&state=$state';
+        },
+        httpClient: MockClient((request) async {
+          tokenBody = request.bodyFields;
+          return http.Response(
+            '{"access_token":"a","refresh_token":"r","expires_in":7200}',
+            200,
+          );
+        }),
+      );
+
+      await service.authenticateInteractive();
+
+      final challenge = anmeldeUrl.queryParameters['code_challenge']!;
+      final verifier = tokenBody['code_verifier']!;
+      expect(anmeldeUrl.queryParameters['code_challenge_method'], 'S256');
+      expect(verifier.length, inInclusiveRange(43, 128));
+      expect(
+        challenge,
+        base64UrlEncode(
+          sha256.convert(ascii.encode(verifier)).bytes,
+        ).replaceAll('=', ''),
+      );
+      expect(tokenBody['code'], 'abc');
+    });
+  });
 }

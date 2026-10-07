@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:http/http.dart' as http;
@@ -43,20 +44,38 @@ class HitobitoAuthException implements Exception {
   String toString() => message;
 }
 
+/// Öffnet die Anmeldeseite und liefert die Rückleitungs-URL.
+typedef HitobitoWebAuthenticator =
+    Future<String> Function({
+      required String url,
+      required String callbackUrlScheme,
+    });
+
 class HitobitoOauthService {
   HitobitoOauthService({
     required this.config,
     http.Client? httpClient,
     DateTime Function()? nowProvider,
     LoggerService? logger,
+    HitobitoWebAuthenticator? webAuthenticator,
   }) : _httpClient = httpClient ?? http.Client(),
        _now = nowProvider ?? DateTime.now,
-       _logger = logger;
+       _logger = logger,
+       _webAuthenticator = webAuthenticator ?? _flutterWebAuth;
 
   HitobitoAuthConfig config;
   final http.Client _httpClient;
   final DateTime Function() _now;
   final LoggerService? _logger;
+  final HitobitoWebAuthenticator _webAuthenticator;
+
+  static Future<String> _flutterWebAuth({
+    required String url,
+    required String callbackUrlScheme,
+  }) => FlutterWebAuth2.authenticate(
+    url: url,
+    callbackUrlScheme: callbackUrlScheme,
+  );
 
   void updateConfig(HitobitoAuthConfig nextConfig) {
     config = nextConfig;
@@ -72,6 +91,8 @@ class HitobitoOauthService {
     }
 
     final state = _randomState();
+    // PKCE (RFC 7636): Ein abgefangener Code ist ohne den Verifier wertlos.
+    final codeVerifier = _randomState();
     final authorizationUri = Uri.parse(config.authorizationUrl).replace(
       queryParameters: <String, String>{
         'client_id': config.clientId,
@@ -79,12 +100,14 @@ class HitobitoOauthService {
         'response_type': 'code',
         'scope': config.scopeString,
         'state': state,
+        'code_challenge': _codeChallenge(codeVerifier),
+        'code_challenge_method': 'S256',
       },
     );
 
     final String callback;
     try {
-      callback = await FlutterWebAuth2.authenticate(
+      callback = await _webAuthenticator(
         url: authorizationUri.toString(),
         callbackUrlScheme: config.callbackScheme,
       );
@@ -125,6 +148,7 @@ class HitobitoOauthService {
       'client_secret': config.clientSecret,
       'redirect_uri': config.redirectUri,
       'code': code,
+      'code_verifier': codeVerifier,
     });
 
     final session = _mapSession(tokenPayload);
@@ -327,6 +351,11 @@ class HitobitoOauthService {
     }
 
     return const <String, dynamic>{};
+  }
+
+  static String _codeChallenge(String verifier) {
+    final digest = sha256.convert(ascii.encode(verifier));
+    return base64UrlEncode(digest.bytes).replaceAll('=', '');
   }
 
   String _randomState() {
