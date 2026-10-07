@@ -16,6 +16,8 @@
         "report": "node dist/cli/report.js",
         "report:dev": "tsx src/cli/report.ts",
         "admin:hash": "tsx src/cli/adminHash.ts",
+        "installation": "node dist/cli/installation.js",
+        "installation:dev": "tsx src/cli/installation.ts",
         "docker:prod:up": "docker-compose --env-file .env.production -f docker-compose.prod.yml up --build -d",
         "docker:prod:down": "docker-compose --env-file .env.production -f docker-compose.prod.yml down",
         "typecheck": "tsc --noEmit --project tsconfig.json && tsc --project tsconfig.test.json",

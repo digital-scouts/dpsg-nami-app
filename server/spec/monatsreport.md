@@ -21,7 +21,7 @@ Stichtag ist das Monatsende, beim laufenden Monat der aktuelle Zeitpunkt. Der ef
 - **Installationen**
   - aktive Installationen: Sender mit mindestens einem neu gespeicherten Snapshot im Monat
   - neue Installationen: im Monat erstmals registrierte Sender
-  - Installationen gesamt
+  - Installationen gesamt (Sender innerhalb der Speicherfrist von 14 Monaten)
 - **Stämme**
   - teilnehmende Stämme (effektiver Stand am Stichtag)
   - davon `vollstaendig`, `nur_gruppen`, `gemischt`

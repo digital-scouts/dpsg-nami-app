@@ -122,7 +122,26 @@ docker compose -p nami-statistics --env-file .env -f docker-compose.server.yml e
 
 Für einen echten Restore `--drop` ergänzen und `--nsFrom`/`--nsTo` weglassen. Danach den Server neu starten, damit er `effective_states` und das Aggregat neu aufbaut.
 
-Die Backups liegen auf demselben vServer. Gegen einen Totalausfall des Servers hilft nur eine zusätzliche Kopie an einem anderen Ort (z. B. per `rsync` auf einen Rechner außerhalb).
+Die Backups liegen auf demselben vServer. Gegen einen Totalausfall des Servers hilft nur eine zusätzliche Kopie an einem anderen Ort (z. B. per `rsync` auf einen Rechner außerhalb). Auch dort gilt die Frist von 14 Tagen, weil die Datenschutzerklärung sie nennt.
+
+Ein Restore holt auch Installationen zurück, die seit dem Backup auf Anfrage gelöscht wurden. Danach die Löschungen aus den bearbeiteten Anfragen der letzten 14 Tage erneut ausführen (siehe Anfragen Betroffener).
+
+## Anfragen Betroffener
+
+Der Server kennt keine Personen, nur das Pseudonym der Installations-ID. Die ID steht in der App auf der Seite Bundesvergleich und im Statistikserver-Eintrag unter Impressum & Datenschutz; wer Auskunft oder Löschung möchte, schreibt sie per Mail an die Kontaktadresse der Datenschutzerklärung. Ohne ID ist keine Zuordnung möglich (Art. 11 DSGVO), nach einem App-Reset ist sie verloren.
+
+```bash
+cd /opt/nami-statistics
+docker compose -p nami-statistics --env-file .env -f docker-compose.server.yml exec nami-statistics \
+  npm run installation -- auskunft --sender-id <Installations-ID>
+docker compose -p nami-statistics --env-file .env -f docker-compose.server.yml exec nami-statistics \
+  npm run installation -- loeschen --sender-id <Installations-ID>
+```
+
+- `auskunft` gibt alle gespeicherten Snapshots der Installation und die Zeitpunkte des Senders als JSON aus (ohne Secret-Hash). Die Ausgabe geht als Antwort an die anfragende Person.
+- `loeschen` entfernt Snapshots und Sender und baut effektive Stände und Aggregat neu auf. Backups enthalten die Daten danach noch bis zu 14 Tage.
+- Ohne Anfrage löscht MongoDB Rohsnapshots 14 Monate nach Eingang und Sender 14 Monate nach der letzten Sendung (TTL-Indizes).
+- Das Log enthält keine Client-IPs. Ob der Caddy des News-Stacks Access-Logs schreibt, regelt dessen globale Caddyfile; die Site `namiapp.caddy` selbst loggt nicht.
 
 ## Monitoring
 

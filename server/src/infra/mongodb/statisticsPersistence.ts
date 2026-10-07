@@ -8,6 +8,7 @@ import type { MonthlyReportDocument, MonthlyReportsRepository } from '../../modu
 import type { SenderDocument, SenderRepository } from '../../modules/senderAuth/senderAuth.js';
 import type { RawSnapshotDocument, RawSnapshotsRepository } from '../../modules/stammesSnapshot/persistence.js';
 import { SUPPORTED_SCHEMA_VERSION } from '../../modules/stammesSnapshot/schema.js';
+import { RETENTION_MONTHS, retentionEnd } from '../../shared/retention.js';
 import { type Clock, systemClock } from '../../shared/time.js';
 
 export const statisticsCollectionNames = {
@@ -45,6 +46,20 @@ const rawSnapshotsIndexes: IndexDescription[] = [
             received_at: -1,
         },
         name: 'raw_snapshots_by_received_at',
+    },
+    {
+        key: {
+            sender_pseudonym: 1,
+        },
+        name: 'raw_snapshots_by_sender',
+    },
+    {
+        // Speicherfrist: MongoDB loescht den Snapshot, sobald expires_at erreicht ist.
+        key: {
+            expires_at: 1,
+        },
+        name: 'raw_snapshots_ttl',
+        expireAfterSeconds: 0,
     },
     {
         // Mit Schema-Version, damit ein neuer Snapshot nicht an einem alten gleichen Datenstands scheitert.
@@ -101,7 +116,19 @@ const sendersIndexes: IndexDescription[] = [
         name: 'senders_by_pseudonym',
         unique: true,
     },
+    {
+        // Speicherfrist ab der letzten erfolgreichen Sendung bzw. der Anlage.
+        key: {
+            expires_at: 1,
+        },
+        name: 'senders_ttl',
+        expireAfterSeconds: 0,
+    },
 ];
+
+// Ablaufzeitpunkt fuer die TTL-Indizes; die Fachlogik sieht das Feld nicht.
+type StoredRawSnapshot = RawSnapshotDocument & { expires_at: Date };
+type StoredSender = SenderDocument & { expires_at: Date };
 
 const DUPLICATE_KEY_ERROR_CODE = 11000;
 
@@ -135,18 +162,37 @@ export const initializeStatisticsPersistence = async (db: Db): Promise<void> => 
     await db.collection(statisticsCollectionNames.weeklyAggregates).createIndexes(weeklyAggregatesIndexes);
     await db.collection(statisticsCollectionNames.senders).createIndexes(sendersIndexes);
     await db.collection(statisticsCollectionNames.monthlyReports).createIndexes(monthlyReportsIndexes);
+
+    // Eintraege aus der Zeit vor der Speicherfrist nachtraeglich mit Ablauf versehen.
+    await rawSnapshots.updateMany({ expires_at: { $exists: false } }, [
+        { $set: { expires_at: { $dateAdd: { startDate: '$received_at', unit: 'month', amount: RETENTION_MONTHS } } } },
+    ]);
+    await db.collection(statisticsCollectionNames.senders).updateMany({ expires_at: { $exists: false } }, [
+        {
+            $set: {
+                expires_at: {
+                    $dateAdd: {
+                        startDate: { $ifNull: ['$last_successful_send_at', '$created_at'] },
+                        unit: 'month',
+                        amount: RETENTION_MONTHS,
+                    },
+                },
+            },
+        },
+    ]);
 };
 
 // Dokumente ohne MongoDB-interne _id an die Fachlogik geben.
 const withoutId = { projection: { _id: 0 } } as const;
+const withoutInternals = { projection: { _id: 0, expires_at: 0 } } as const;
 
 export const buildRawSnapshotsRepository = (db: Db): RawSnapshotsRepository => {
-    const collection = db.collection<RawSnapshotDocument>(statisticsCollectionNames.rawSnapshots);
+    const collection = db.collection<StoredRawSnapshot>(statisticsCollectionNames.rawSnapshots);
 
     return {
         insert: async (document) => {
             try {
-                await collection.insertOne({ ...document });
+                await collection.insertOne({ ...document, expires_at: retentionEnd(document.received_at) });
                 return { inserted: true };
             } catch (error) {
                 if (isDuplicateKeyError(error)) {
@@ -163,7 +209,7 @@ export const buildRawSnapshotsRepository = (db: Db): RawSnapshotsRepository => {
                         schema_version: SUPPORTED_SCHEMA_VERSION,
                         source_data_as_of: { $gte: since },
                     },
-                    withoutId,
+                    withoutInternals,
                 )
                 .toArray(),
         findSince: async (since) =>
@@ -173,21 +219,25 @@ export const buildRawSnapshotsRepository = (db: Db): RawSnapshotsRepository => {
                         schema_version: SUPPORTED_SCHEMA_VERSION,
                         $or: [{ source_data_as_of: { $gte: since } }, { received_at: { $gte: since } }],
                     },
-                    withoutId,
+                    withoutInternals,
                 )
                 .toArray(),
+        findBySender: async (senderPseudonym) =>
+            collection.find({ sender_pseudonym: senderPseudonym }, { ...withoutInternals, sort: { received_at: 1 } }).toArray(),
+        deleteBySender: async (senderPseudonym) =>
+            (await collection.deleteMany({ sender_pseudonym: senderPseudonym })).deletedCount,
     };
 };
 
 export const buildSenderRepository = (db: Db): SenderRepository => {
-    const collection = db.collection<SenderDocument>(statisticsCollectionNames.senders);
+    const collection = db.collection<StoredSender>(statisticsCollectionNames.senders);
 
     return {
         findByPseudonym: async (senderPseudonym) =>
-            collection.findOne({ sender_pseudonym: senderPseudonym }, withoutId),
+            collection.findOne({ sender_pseudonym: senderPseudonym }, withoutInternals),
         registerIfAbsent: async (document) => {
             try {
-                await collection.insertOne({ ...document });
+                await collection.insertOne({ ...document, expires_at: retentionEnd(document.created_at) });
                 return 'registered';
             } catch (error) {
                 if (isDuplicateKeyError(error)) {
@@ -199,13 +249,15 @@ export const buildSenderRepository = (db: Db): SenderRepository => {
         markSuccessfulSend: async (senderPseudonym, sentAt) => {
             await collection.updateOne(
                 { sender_pseudonym: senderPseudonym },
-                { $max: { last_successful_send_at: sentAt } },
+                { $max: { last_successful_send_at: sentAt, expires_at: retentionEnd(sentAt) } },
             );
         },
         listActivity: async () =>
             collection
                 .find({}, { projection: { _id: 0, created_at: 1, last_successful_send_at: 1 } })
                 .toArray(),
+        delete: async (senderPseudonym) =>
+            (await collection.deleteOne({ sender_pseudonym: senderPseudonym })).deletedCount > 0,
     };
 };
 

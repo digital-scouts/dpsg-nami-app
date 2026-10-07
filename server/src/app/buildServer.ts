@@ -16,15 +16,32 @@ export type { ServerDependencies } from './dependencies.js';
 export const buildServer = (
     config: AppConfig,
     dependencies: ServerDependencies = buildMemoryDependencies(),
+    // Nur fuer Tests: Logzeilen abfangen statt nach stdout schreiben.
+    logStream?: { write(line: string): void },
 ) => {
     const server = Fastify({
-        logger: buildLoggerOptions(config),
+        logger: logStream == null ? buildLoggerOptions(config) : { level: config.logLevel, stream: logStream },
+        // Das Standard-Request-Log schreibt die Client-IP (remoteAddress); stattdessen eigene Zeile ohne IP.
+        disableRequestLogging: true,
         bodyLimit: config.bodyLimitBytes,
-        // Hinter Caddy liefert X-Forwarded-For die echte Client-IP fuer das Rate-Limit.
+        // Hinter Caddy liefert X-Forwarded-For die echte Client-IP fuer das Rate-Limit (nur im Speicher).
         trustProxy: config.trustProxyHops > 0 ? config.trustProxyHops : false,
     });
 
     server.decorate('appConfig', config);
+
+    // Nur Methode, Routenmuster (ohne IDs aus der URL), Status und Dauer; keine IP, keine Header.
+    server.addHook('onResponse', async (request, reply) => {
+        request.log.info(
+            {
+                method: request.method,
+                route: request.routeOptions.url ?? 'unbekannt',
+                status: reply.statusCode,
+                ms: Math.round(reply.elapsedTime),
+            },
+            'request completed',
+        );
+    });
 
     // Nur Routen mit eigener rateLimit-Konfiguration werden begrenzt (Ingest und Read).
     void server.register(rateLimit, {
