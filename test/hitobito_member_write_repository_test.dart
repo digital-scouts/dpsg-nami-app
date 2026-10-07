@@ -801,6 +801,30 @@ void main() {
     });
   });
 
+  test('sendet ein leeres Geschlecht nie als leeren Wert', () async {
+    final peopleService = _FakeHitobitoPeopleService()
+      ..remoteResource = HitobitoPersonResource(
+        id: 23,
+        firstName: 'Julia',
+        lastName: 'Keller',
+        membershipNumber: 4711,
+        updatedAt: DateTime.parse('2026-04-14T09:00:00Z'),
+      );
+    final repository = HitobitoMemberWriteRepository(
+      peopleService: peopleService,
+      logger: _FakeLoggerService(),
+    );
+    final basis = peopleService.remoteResource!.toMitglied();
+
+    await repository.updateMember(
+      accessToken: 'token-123',
+      basisMitglied: basis,
+      zielMitglied: basis.copyWith(gender: ''),
+    );
+
+    expect(peopleService.updateCallCount, 0);
+  });
+
   group('updateMember Vorbedingungen', () {
     test(
       'wirft UpdatedAtMissing ohne lokales updatedAt und fragt Remote nicht ab',

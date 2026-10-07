@@ -172,6 +172,59 @@ void main() {
     expect(find.text('Keine Angabe', skipOffstage: false), findsNothing);
   });
 
+  group('Geschlecht beim Speichern', () {
+    Future<Mitglied> speichern(
+      WidgetTester tester,
+      Mitglied member, {
+      String? auswahl,
+    }) async {
+      final model = _RecordingMemberEditModel();
+      _useLargeViewport(tester);
+      await tester.pumpWidget(
+        _buildTestApp(
+          MemberEditPage(mitglied: member),
+          providers: _buildEditProviders(model),
+        ),
+      );
+      await tester.pumpAndSettle();
+      if (auswahl != null) {
+        await tester.tap(find.byKey(const Key('member-edit-gender-field')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(auswahl).last);
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(find.byKey(const Key('member-edit-save-button')));
+      await tester.pumpAndSettle();
+      return model.submitCalls.single.zielMitglied;
+    }
+
+    testWidgets('fehlendes Geschlecht bleibt ohne Eingabe null', (
+      tester,
+    ) async {
+      final member = _buildMember(gender: 'w').copyWith(genderLoeschen: true);
+
+      final ziel = await speichern(tester, member);
+
+      expect(ziel.gender, isNull);
+    });
+
+    testWidgets('Altwert bleibt ohne Eingabe erhalten', (tester) async {
+      final ziel = await speichern(tester, _buildMember(gender: 'divers'));
+
+      expect(ziel.gender, 'divers');
+    });
+
+    testWidgets('Auswahl Unbekannt loescht das Geschlecht', (tester) async {
+      final ziel = await speichern(
+        tester,
+        _buildMember(gender: 'w'),
+        auswahl: 'Unbekannt',
+      );
+
+      expect(ziel.gender, isNull);
+    });
+  });
+
   testWidgets('blockiert Speichern ohne Namen oder Fahrtenname', (
     tester,
   ) async {

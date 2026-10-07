@@ -1256,14 +1256,15 @@ class _MemberEditPageState extends State<MemberEditPage> {
         .where((adresse) => !adresse.istLeer)
         .toList(growable: false);
 
+    final gender = _resolveGenderValue();
     return widget.mitglied.copyWith(
       vorname: _vornameController.text.trim(),
       nachname: _nachnameController.text.trim(),
       fahrtenname: _trimToNull(_fahrtennameController.text),
       fahrtennameLoeschen: _trimToNull(_fahrtennameController.text) == null,
       geburtsdatum: _geburtsdatum ?? Mitglied.peoplePlaceholderDate,
-      gender: _gender ?? '',
-      genderLoeschen: false,
+      gender: gender,
+      genderLoeschen: gender == null,
       telefonnummern: phones,
       emailAdressen: emails,
       adressen: <MitgliedKontaktAdresse>[
@@ -1299,6 +1300,24 @@ class _MemberEditPageState extends State<MemberEditPage> {
       items.add(currentGender);
     }
     return items;
+  }
+
+  /// Das Auswahlfeld kennt nur w, m und Unbekannt. Entspricht die Auswahl
+  /// einem geladenen Wert, bleibt dessen Rohwert erhalten, auch null oder ein
+  /// Altwert; so gilt ein unberuehrtes Feld nie als Aenderung. Eine bewusste
+  /// Auswahl von Unbekannt wird zu null.
+  String? _resolveGenderValue() {
+    final selected = _gender ?? '';
+    final loadedValues = <String?>[
+      widget.mitglied.gender,
+      widget.pendingEntry?.basisMitglied.gender,
+    ];
+    for (final loaded in loadedValues) {
+      if ((_normalizeGenderValue(loaded) ?? '') == selected) {
+        return loaded;
+      }
+    }
+    return selected.isEmpty ? null : selected;
   }
 
   String? _normalizeGenderValue(String? value) {
