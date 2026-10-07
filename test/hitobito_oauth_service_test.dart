@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -110,4 +114,99 @@ void main() {
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
+
+  group('PKCE und Widerruf', () {
+    const config = HitobitoAuthConfig(
+      clientId: 'client',
+      clientSecret: 'secret',
+      authorizationUrl: 'https://demo.hitobito.com/oauth/authorize',
+      tokenUrl: 'https://demo.hitobito.com/oauth/token',
+      redirectUri: 'de.jlange.nami.app:/oauth/callback',
+      scopeString: 'openid email',
+      discoveryUrl: '',
+      profileUrl: 'https://demo.hitobito.com/oauth/profile',
+    );
+
+    test('sendet Challenge beim Login und Verifier beim Code-Tausch', () async {
+      late Uri anmeldeUrl;
+      late Map<String, String> tokenBody;
+      final service = HitobitoOauthService(
+        config: config,
+        nowProvider: () => DateTime(2026, 10, 7),
+        webAuthenticator: ({required url, required callbackUrlScheme}) async {
+          anmeldeUrl = Uri.parse(url);
+          final state = anmeldeUrl.queryParameters['state'];
+          return 'de.jlange.nami.app:/oauth/callback?code=abc&state=$state';
+        },
+        httpClient: MockClient((request) async {
+          tokenBody = request.bodyFields;
+          return http.Response(
+            '{"access_token":"a","refresh_token":"r","expires_in":7200}',
+            200,
+          );
+        }),
+      );
+
+      await service.authenticateInteractive();
+
+      final challenge = anmeldeUrl.queryParameters['code_challenge']!;
+      final verifier = tokenBody['code_verifier']!;
+      expect(anmeldeUrl.queryParameters['code_challenge_method'], 'S256');
+      expect(verifier.length, inInclusiveRange(43, 128));
+      expect(
+        challenge,
+        base64UrlEncode(
+          sha256.convert(ascii.encode(verifier)).bytes,
+        ).replaceAll('=', ''),
+      );
+      expect(tokenBody['code'], 'abc');
+    });
+
+    test('widerruft den Refresh-Token am Revoke-Endpunkt', () async {
+      late http.Request anfrage;
+      final service = HitobitoOauthService(
+        config: config,
+        httpClient: MockClient((request) async {
+          anfrage = request;
+          return http.Response('{}', 200);
+        }),
+      );
+
+      final ok = await service.revoke(
+        AuthSession(
+          accessToken: 'a',
+          refreshToken: 'r',
+          receivedAt: DateTime(2026, 10, 7),
+        ),
+      );
+
+      expect(ok, isTrue);
+      expect(anfrage.url.toString(), 'https://demo.hitobito.com/oauth/revoke');
+      expect(anfrage.bodyFields, <String, String>{
+        'token': 'r',
+        'token_type_hint': 'refresh_token',
+        'client_id': 'client',
+        'client_secret': 'secret',
+      });
+    });
+
+    test('Widerruf wirft nicht bei Fehler oder Zeitueberschreitung', () async {
+      final fehler = HitobitoOauthService(
+        config: config,
+        httpClient: MockClient((request) async => throw Exception('offline')),
+      );
+      final haengt = HitobitoOauthService(
+        config: config,
+        revokeTimeout: const Duration(milliseconds: 10),
+        httpClient: MockClient((request) => Completer<http.Response>().future),
+      );
+      final session = AuthSession(
+        accessToken: 'a',
+        receivedAt: DateTime(2026, 10, 7),
+      );
+
+      expect(await fehler.revoke(session), isFalse);
+      expect(await haengt.revoke(session), isFalse);
+    });
+  });
 }

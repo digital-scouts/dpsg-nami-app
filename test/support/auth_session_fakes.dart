@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:nami/domain/auth/auth_profile.dart';
 import 'package:nami/domain/auth/auth_profile_repository.dart';
 import 'package:nami/domain/auth/auth_session.dart';
@@ -81,6 +83,8 @@ class FakeOauthService extends HitobitoOauthService {
   int authenticateInteractiveCallCount = 0;
   int refreshCallCount = 0;
   int fetchProfileCallCount = 0;
+  final List<AuthSession> widerrufeneSessions = <AuthSession>[];
+  Completer<bool>? revokeAntwort;
 
   @override
   Future<AuthSession> authenticateInteractive() async {
@@ -100,6 +104,12 @@ class FakeOauthService extends HitobitoOauthService {
       throw error;
     }
     return sessionToReturn;
+  }
+
+  @override
+  Future<bool> revoke(AuthSession session) {
+    widerrufeneSessions.add(session);
+    return revokeAntwort?.future ?? Future.value(true);
   }
 
   @override

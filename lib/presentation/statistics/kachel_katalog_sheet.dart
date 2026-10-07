@@ -4,6 +4,7 @@ import '../../domain/arbeitskontext/arbeitskontext_read_model.dart';
 import '../../domain/statistiks/statistik_kachel_einstellungen.dart';
 import '../../domain/statistiks/statistik_kachel_typen.dart';
 import '../../l10n/app_localizations.dart';
+import '../../services/statistics_location_service.dart';
 import '../widgets/app_page_header.dart';
 import 'eigene_kachel_editor.dart';
 import 'kacheln/kachel_bearbeiten.dart';
@@ -102,10 +103,18 @@ class _KachelKatalogSheetState extends State<KachelKatalogSheet> {
   KachelDefinition? _gewaehlt;
   KachelGroesse _groesse = KachelGroesse.klein;
 
-  /// Vorschauen ohne echte Karte.
+  /// Vorschauen ohne echte Karte und ohne neue Geokodierung.
   late final StatistikKachelDaten _vorschauDaten = widget.daten.copyWith(
     kartenBauer: (context, wohnorte, stammesheim) =>
         StatistikKartenVorschau(wohnorte: wohnorte, stammesheim: stammesheim),
+    standortAufloesung:
+        widget.daten.standortAufloesung ??
+        ({required members, required stammAddress}) =>
+            StatisticsLocationService().resolveLocations(
+              members: members,
+              stammAddress: stammAddress,
+              nurCache: true,
+            ),
   );
 
   void _oeffnen(KachelDefinition definition) => setState(() {

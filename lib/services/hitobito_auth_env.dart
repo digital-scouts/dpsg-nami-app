@@ -45,6 +45,17 @@ class HitobitoAuthConfig {
   final String discoveryUrl;
   final String profileUrl;
 
+  /// Doorkeeper-Endpunkt zum Widerrufen, neben dem Token-Endpunkt.
+  String get revokeUrl {
+    final token = Uri.tryParse(tokenUrl);
+    if (token == null || tokenUrl.isEmpty) {
+      return '';
+    }
+    return token
+        .replace(path: '/oauth/revoke', queryParameters: null)
+        .toString();
+  }
+
   HitobitoAuthConfig copyWith({
     String? clientId,
     String? clientSecret,

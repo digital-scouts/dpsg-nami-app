@@ -16,6 +16,7 @@ class SupporterBackgroundPainter extends CustomPainter {
     required this.background,
     required this.dark,
     required this.seconds,
+    this.maxSceneHeight = defaultMaxSceneHeight,
   });
 
   final AppearanceBackgroundId background;
@@ -29,7 +30,9 @@ class SupporterBackgroundPainter extends CustomPainter {
 
   /// Ab dieser Hoehe (logische Pixel) waechst die Szene nicht weiter; der
   /// Platz darueber wird mit Himmel (und je nach Szene Sternen) gefuellt.
-  static const double maxSceneHeight = 220;
+  static const double defaultMaxSceneHeight = 220;
+
+  final double maxSceneHeight;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -62,7 +65,8 @@ class SupporterBackgroundPainter extends CustomPainter {
   bool shouldRepaint(SupporterBackgroundPainter oldDelegate) =>
       oldDelegate.seconds != seconds ||
       oldDelegate.background != background ||
-      oldDelegate.dark != dark;
+      oldDelegate.dark != dark ||
+      oldDelegate.maxSceneHeight != maxSceneHeight;
 }
 
 const double _w = SupporterBackgroundPainter.designWidth;

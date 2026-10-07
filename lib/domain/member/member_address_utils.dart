@@ -18,6 +18,12 @@ class MemberAddressUtils {
     return _addressLines(address).join(', ');
   }
 
+  /// Adresstext für die Geokodierung: ohne c/o-Zeile, weil sie meist einen
+  /// Personennamen enthält und für die Koordinaten nichts beiträgt.
+  static String formatGeocodingAddress(MitgliedKontaktAdresse address) {
+    return _addressLines(address, mitCareOf: false).join(', ');
+  }
+
   static String formatCompactDisplayAddress(MitgliedKontaktAdresse address) {
     final streetLine = _joinParts(
       _trimToNull(address.street),
@@ -58,10 +64,13 @@ class MemberAddressUtils {
     return fingerprintFromText(normalized);
   }
 
-  static List<String> _addressLines(MitgliedKontaktAdresse address) {
+  static List<String> _addressLines(
+    MitgliedKontaktAdresse address, {
+    bool mitCareOf = true,
+  }) {
     final lines = <String>[];
 
-    final careOf = _trimToNull(address.addressCareOf);
+    final careOf = mitCareOf ? _trimToNull(address.addressCareOf) : null;
     if (careOf != null) {
       lines.add(careOf);
     }

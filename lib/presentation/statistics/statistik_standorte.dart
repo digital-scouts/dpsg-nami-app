@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../domain/member/member_address_utils.dart';
 import '../../domain/member/mitglied.dart';
+import '../../services/logger_service.dart';
+import '../../services/network_access_policy.dart';
 import '../../services/statistics_location_service.dart';
 
 typedef StandortAufloesung =
@@ -11,7 +14,8 @@ typedef StandortAufloesung =
     });
 
 /// Löst die Adressen der Mitglieder und des Stammesheims auf und baut daraus
-/// eine Ansicht. Die Auflösung läuft nur neu, wenn sich Adressen ändern.
+/// eine Ansicht. Die Auflösung läuft nur neu, wenn sich Adressen ändern; ein
+/// überholter Lauf endet vor seiner nächsten Anfrage.
 class StatistikStandortAufloesung extends StatefulWidget {
   const StatistikStandortAufloesung({
     super.key,
@@ -19,6 +23,7 @@ class StatistikStandortAufloesung extends StatefulWidget {
     required this.stammAddress,
     required this.builder,
     this.aufloesung,
+    this.service,
   });
 
   final List<Mitglied> members;
@@ -26,6 +31,11 @@ class StatistikStandortAufloesung extends StatefulWidget {
 
   /// `null` = echte Auflösung über [StatisticsLocationService].
   final StandortAufloesung? aufloesung;
+
+  /// Nur für Tests; sonst entsteht der Dienst mit Logger und Netzrichtlinie
+  /// aus dem Provider.
+  @visibleForTesting
+  final StatisticsLocationService? service;
 
   /// [daten] ist `null`, solange noch aufgelöst wird.
   final Widget Function(
@@ -48,6 +58,7 @@ class _StatistikStandortAufloesungState
   StatisticsLocationService? _service;
   late Future<StatisticsResolvedLocations> _future;
   late String _signatur;
+  int _laufNummer = 0;
 
   @override
   void initState() {
@@ -65,16 +76,37 @@ class _StatistikStandortAufloesungState
     _future = _aufloesen();
   }
 
+  @override
+  void dispose() {
+    _laufNummer++;
+    super.dispose();
+  }
+
   Future<StatisticsResolvedLocations> _aufloesen() {
+    final lauf = ++_laufNummer;
     final eigene = widget.aufloesung;
     if (eigene != null) {
       return eigene(members: widget.members, stammAddress: widget.stammAddress);
     }
-    final service = _service ??= StatisticsLocationService();
+    final service = _service ??=
+        widget.service ??
+        StatisticsLocationService(
+          logger: _lies<LoggerService>(),
+          networkAccessPolicy: _lies<NetworkAccessPolicy>(),
+        );
     return service.resolveLocations(
       members: widget.members,
       stammAddress: widget.stammAddress,
+      abgebrochen: () => lauf != _laufNummer,
     );
+  }
+
+  T? _lies<T>() {
+    try {
+      return Provider.of<T>(context, listen: false);
+    } catch (_) {
+      return null;
+    }
   }
 
   static String _signaturFuer(StatistikStandortAufloesung widget) {

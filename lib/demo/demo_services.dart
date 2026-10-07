@@ -130,6 +130,9 @@ class DemoOauthService extends HitobitoOauthService {
   @override
   Future<AuthProfile> fetchProfile(AuthSession session) async =>
       demoData.profile;
+
+  @override
+  Future<bool> revoke(AuthSession session) async => true;
 }
 
 class DemoHitobitoGroupsService extends HitobitoGroupsService {

@@ -64,6 +64,7 @@ class AuthSessionModel extends ChangeNotifier {
     bool Function()? isAppLockEnabled,
     Duration lockTimeout = const Duration(seconds: 60),
     Future<void> Function()? purgeLocalPersonalData,
+    Duration Function()? monotonicElapsed,
   }) : _repository = repository,
        _profileRepository = profileRepository,
        _oauthService = oauthService,
@@ -75,7 +76,8 @@ class AuthSessionModel extends ChangeNotifier {
        _onPreferredLanguageChanged = onPreferredLanguageChanged,
        _isAppLockEnabled = isAppLockEnabled ?? _appLockDisabled,
        _lockTimeout = lockTimeout,
-       _purgeLocalPersonalData = purgeLocalPersonalData;
+       _purgeLocalPersonalData = purgeLocalPersonalData,
+       _monotonicElapsed = monotonicElapsed ?? _prozessUhr();
 
   final AuthSessionRepository _repository;
   final AuthProfileRepository _profileRepository;
@@ -94,6 +96,15 @@ class AuthSessionModel extends ChangeNotifier {
 
   static bool _appLockDisabled() => false;
 
+  // Monotone Zeit seit Prozessstart. Anders als die Wanduhr laesst sie sich
+  // nicht zurueckstellen und schuetzt so die Sperre beim Warmstart (A-18).
+  final Duration Function() _monotonicElapsed;
+
+  static Duration Function() _prozessUhr() {
+    final uhr = Stopwatch()..start();
+    return () => uhr.elapsed;
+  }
+
   static final Object _noInteractiveReloginZoneKey = Object();
 
   AuthState _state = AuthState.initializing;
@@ -108,6 +119,8 @@ class AuthSessionModel extends ChangeNotifier {
   DateTime? _lastSensitiveSyncAttemptAt;
   DateTime? _lastProfileSyncAt;
   DateTime? _lastBackgroundedAt;
+  // Nur im laufenden Prozess bekannt; ein Kaltstart sperrt ohnehin immer.
+  Duration? _backgroundedMonotonic;
   String? _errorMessage;
   String? _remoteAccessIssueMessage;
   NetworkAccessBlockedReason? _remoteAccessBlockedReason;
@@ -396,6 +409,7 @@ class AuthSessionModel extends ChangeNotifier {
     _session = authenticatedSession;
     _logoutReason = null;
     _lastBackgroundedAt = null;
+    _backgroundedMonotonic = null;
     _lastSensitiveSyncAttemptAt = null;
     _errorMessage = null;
     _requiresInteractiveLogin = false;
@@ -439,7 +453,13 @@ class AuthSessionModel extends ChangeNotifier {
     // Sofort beenden, damit laufende Vorgaenge waehrend der folgenden awaits
     // nichts mehr schreiben.
     _endSession();
+    final beendeteSession = _session;
     _session = null;
+    if (beendeteSession != null) {
+      // Im Hintergrund, damit der Logout offline und bei langsamer Leitung
+      // nicht wartet; die lokale Loeschung haengt nicht davon ab.
+      unawaited(_widerrufen(beendeteSession));
+    }
     _logoutReason = null;
     await _logger.logInfo('auth_flow', 'logout started');
     await _logger.trackAuthFlow('logout', 'started');
@@ -461,6 +481,7 @@ class AuthSessionModel extends ChangeNotifier {
     _lastSensitiveSyncAttemptAt = null;
     _lastProfileSyncAt = null;
     _lastBackgroundedAt = null;
+    _backgroundedMonotonic = null;
     _errorMessage = null;
     _remoteAccessIssueMessage = null;
     _requiresInteractiveLogin = false;
@@ -476,6 +497,21 @@ class AuthSessionModel extends ChangeNotifier {
       properties: const {'sensitive_data_cleared': true},
     );
     notifyListeners();
+  }
+
+  Future<void> _widerrufen(AuthSession session) async {
+    try {
+      await _networkAccessPolicy?.ensureNetworkAllowed(
+        trigger: 'logout_revoke',
+        feature: 'Hitobito',
+        allowMobileDataOverride: true,
+      );
+    } on NetworkAccessBlockedException {
+      await _logger.log('auth_flow', 'Token-Widerruf uebersprungen: offline');
+      return;
+    }
+    final widerrufen = await _oauthService.revoke(session);
+    await _logger.logInfo('auth_flow', 'logout token_revoked=$widerrufen');
   }
 
   /// Meldet ab, weil das Konto keinen lesbaren Layer mehr hat. Alle lokalen
@@ -494,6 +530,7 @@ class AuthSessionModel extends ChangeNotifier {
 
     final backgroundedAt = _retentionPolicy.now();
     _lastBackgroundedAt = backgroundedAt;
+    _backgroundedMonotonic = _monotonicElapsed();
     await _sensitiveStorageService.saveLastBackgroundedAt(backgroundedAt);
     await _logger.log('auth_flow', 'App-Hintergrundzeitpunkt gespeichert');
   }
@@ -541,8 +578,14 @@ class AuthSessionModel extends ChangeNotifier {
       return false;
     }
 
-    return _retentionPolicy.now().difference(lastBackgroundedAt) >=
-        _lockTimeout;
+    final wanduhr = _retentionPolicy.now().difference(lastBackgroundedAt);
+    // Eine zurueckgestellte Uhr ergibt eine negative Differenz und sperrt.
+    if (wanduhr.isNegative || wanduhr >= _lockTimeout) {
+      return true;
+    }
+    final backgroundedMonotonic = _backgroundedMonotonic;
+    return backgroundedMonotonic != null &&
+        _monotonicElapsed() - backgroundedMonotonic >= _lockTimeout;
   }
 
   Future<void> performBackgroundMaintenance({required String trigger}) async {
@@ -1261,6 +1304,7 @@ class AuthSessionModel extends ChangeNotifier {
 
   Future<void> _clearBackgroundedAt() async {
     _lastBackgroundedAt = null;
+    _backgroundedMonotonic = null;
     await _sensitiveStorageService.saveLastBackgroundedAt(null);
   }
 
