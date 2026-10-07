@@ -1,6 +1,7 @@
 /// Katalog aller Erscheinungsbild-Optionen. Die Stufe (`SupportTier`) legt
-/// fest, welche Optionen spaeter hinter einem Supporter- oder Foerderer-Kauf
-/// liegen. Aktuell sind alle Optionen frei (siehe [UnlockedSupportAccess]).
+/// fest, welche Optionen hinter einem Supporter- oder Foerderer-Kauf liegen.
+/// Bis zur Store-Anbindung schaltet sie der Testschalter frei
+/// (siehe [SchalterSupportAccess]), im Demo-Modus [UnlockedSupportAccess].
 library;
 
 enum SupportTier { free, supporter, foerderer }

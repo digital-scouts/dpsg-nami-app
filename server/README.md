@@ -103,6 +103,8 @@ Fehler liefern eine strukturierte Antwort in der Form:
 
 Interne Fehler werden ohne Details als `internal_error` ausgeliefert. Ingest und Read-API sind pro Client-IP begrenzt (`RATE_LIMIT_*`), Anfragen sind auf `BODY_LIMIT_BYTES` begrenzt. CORS ist bewusst nicht aktiviert, weil nur die native App zugreift.
 
+Das Log enthält je Anfrage nur Methode, Routenmuster, Status und Dauer. Client-IPs werden nicht geloggt; das Rate-Limit hält sie nur im Speicher. Rohsnapshots und Sender werden nach 14 Monaten per TTL-Index gelöscht.
+
 Die Verträge liegen unter `server/spec/stammes_snapshot.md` und `server/spec/bundesaggregat.md`.
 
 ## Skripte
@@ -111,6 +113,7 @@ Die Verträge liegen unter `server/spec/stammes_snapshot.md` und `server/spec/bu
 - `npm run typecheck`: TypeScript-Prüfung von Quellcode und Tests ohne Build
 - `npm run test`: Unit- und Integrationstests; die Integrationstests starten per `mongodb-memory-server` eine echte MongoDB 7.0 (beim ersten Lauf wird das Binary heruntergeladen), Docker ist dafür nicht nötig
 - `npm run build`: Produktionsbuild nach `dist/`
+- `npm run installation -- auskunft|loeschen --sender-id <ID>`: Auskunft und Löschung auf Anfrage (`installation:dev` ohne Build), siehe `deploy/README.md`
 
 ## Trennung zum Flutter-Projekt
 

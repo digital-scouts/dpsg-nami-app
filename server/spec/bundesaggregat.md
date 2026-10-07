@@ -67,4 +67,4 @@
 - `participating_stamm_count` zählt alle Stämme mit effektivem Stand, auch solche, die nur Gruppenwerte geliefert haben.
 - Teilnahme gilt unabhängig von der Abdeckung: Auch wer nur Gruppenwerte sendet, darf lesen.
 - Das Aggregat wird nach jedem neu gespeicherten Snapshot und beim Serverstart für die aktuelle ISO-Woche materialisiert. Die Read-API rechnet nicht live auf Rohsnapshots.
-- Ein Widerruf in der App stoppt nur weitere Sendungen. Bereits gesendete Daten bleiben im MVP erhalten und fallen nach zwei Monaten ohne neuen Snapshot aus dem Aggregat.
+- Ein Widerruf in der App stoppt nur weitere Sendungen. Bereits gesendete Daten fallen nach zwei Monaten ohne neuen Snapshot aus dem Aggregat. Gelöscht werden sie nach Ablauf der Speicherfrist (14 Monate, siehe `stammes_snapshot.md`) oder vorher auf Anfrage per Mail mit der Installations-ID (`deploy/README.md`, Abschnitt Anfragen Betroffener).

@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 /// Stufen eines gestuften Erfolgs in aufsteigender Reihenfolge.
 enum AchievementTier { bronze, silver, gold, platinum, diamond }
 
@@ -9,6 +11,7 @@ class AchievementDefinition {
     required this.id,
     this.thresholds = const [],
     this.available = true,
+    this.platforms,
   });
 
   final String id;
@@ -17,6 +20,13 @@ class AchievementDefinition {
   /// Nicht verfügbare Erfolge sind vorbereitet, aber noch nicht auslösbar und
   /// werden nicht angezeigt.
   final bool available;
+
+  /// Plattformen, auf denen der Erfolg angezeigt und gezaehlt wird; `null`
+  /// bedeutet alle.
+  final Set<TargetPlatform>? platforms;
+
+  bool availableOn(TargetPlatform platform) =>
+      available && (platforms?.contains(platform) ?? true);
 
   bool get isOneTime => thresholds.isEmpty;
 
@@ -57,7 +67,12 @@ const achievementCatalog = <AchievementDefinition>[
     thresholds: [1, 5, 25, 100, 250],
     available: false,
   ),
-  AchievementDefinition(id: AchievementIds.storeRating),
+  // Nur iOS: Dort fuehrt das Abzeichen als passiver Link zur Bewertung. Google
+  // verbietet Anreize fuer Bewertungen, deshalb gibt es es auf Android nicht.
+  AchievementDefinition(
+    id: AchievementIds.storeRating,
+    platforms: {TargetPlatform.iOS},
+  ),
   AchievementDefinition(id: AchievementIds.feedbackSent),
   AchievementDefinition(id: AchievementIds.supporter, available: false),
 ];

@@ -15,6 +15,10 @@ export type RawSnapshotsRepository = {
     findByStammSince(stammPseudonym: string, since: Date): Promise<RawSnapshotDocument[]>;
     // Snapshots der aktuellen Schema-Version mit source_data_as_of oder received_at ab since.
     findSince(since: Date): Promise<RawSnapshotDocument[]>;
+    // Alle Snapshots eines Senders, auch alter Schema-Versionen (Auskunft auf Anfrage).
+    findBySender(senderPseudonym: string): Promise<RawSnapshotDocument[]>;
+    // Loescht alle Snapshots eines Senders (Loeschung auf Anfrage), liefert die Anzahl.
+    deleteBySender(senderPseudonym: string): Promise<number>;
 };
 
 export const buildRawSnapshotDocument = (
