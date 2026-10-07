@@ -1,0 +1,258 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8">
+<title>Entwürfe: Hitobito-Traffic in Debug & Tools, Runde 1</title>
+<link rel="stylesheet" href="../statistik/basis.css">
+<script src="../mitglied/daten.js"></script>
+<style>
+  .screen .body { padding:0 0 20px; }
+  .hdr { display:flex; align-items:center; gap:12px; }
+  .hdr .back { font-size:24px; color:var(--primary); line-height:1; }
+  .hdr .titel { flex:1; min-width:0; }
+  .hdr .titel b { display:block; font-size:18px; }
+  .hdr .titel small { font-size:12.5px; color:var(--fg2); }
+  .hdr .akt { display:flex; gap:14px; color:var(--primary); font-size:19px; }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; padding:10px 16px 4px; }
+  .chip { font-size:12.5px; font-weight:600; border:1.5px solid var(--border); border-radius:999px; padding:4px 11px; color:var(--fg2); background:var(--surface); }
+  .chip.on { background:var(--primary); border-color:var(--primary); color:var(--on-primary); }
+  .chip .n { opacity:.7; margin-left:4px; font-variant-numeric:tabular-nums; }
+
+  /* Status-Kennzeichen */
+  .st { display:inline-flex; align-items:center; justify-content:center; min-width:42px; height:22px; border-radius:7px; font:700 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric:tabular-nums; }
+  .st.ok { background:color-mix(in srgb, var(--success) 16%, transparent); color:var(--success); }
+  .st.warn { background:color-mix(in srgb, var(--warn) 18%, transparent); color:var(--warn); }
+  .st.err { background:color-mix(in srgb, var(--error) 16%, transparent); color:var(--error); }
+  .mth { font:700 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; color:var(--fg2); letter-spacing:.02em; }
+  .mth.write { color:var(--primary); }
+  .src { font-size:11px; font-weight:600; color:var(--primary); background:var(--primary-lite); border-radius:999px; padding:1px 8px; }
+  .zeit { font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .uri { font:13px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace; color:var(--fg); word-break:break-all; }
+  .param { display:inline-block; font:11.5px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; color:var(--fg2); background:var(--surface2); border-radius:6px; padding:1px 6px; margin:3px 4px 0 0; }
+  .param.mehr { color:var(--muted); background:none; padding-left:0; }
+  .fehler { font-size:12px; color:var(--error); margin-top:3px; }
+
+  /* A: kompakte Liste */
+  .liste { background:var(--surface); margin:10px 12px 0; border-radius:16px; overflow:hidden; }
+  .zeile { padding:10px 14px; border-bottom:1px solid var(--border); }
+  .zeile:last-child { border-bottom:0; }
+  .zeile .kopf { display:flex; align-items:center; gap:8px; }
+  .zeile .kopf .zeit { margin-left:auto; }
+  .zeile .inhalt { margin:4px 0 0 52px; min-width:0; }
+  .zeile.auf { background:var(--surface2); }
+  .detail { margin-left:52px; background:var(--surface); border-radius:12px; padding:10px 12px; margin-top:6px; font:12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color:var(--fg2); word-break:break-all; }
+  .detail b { color:var(--fg); font-weight:600; }
+  .detail .kopieren { display:inline-block; margin-top:8px; font:600 12.5px system-ui; color:var(--primary); }
+
+  /* B: Läufe */
+  .lauf { background:var(--surface); margin:12px 12px 0; border-radius:16px; overflow:hidden; }
+  .lauf-kopf { display:flex; align-items:center; gap:10px; padding:12px 14px; }
+  .lauf-kopf .zeit { font-size:15px; font-weight:700; color:var(--fg); }
+  .lauf-kopf .sum { font-size:12.5px; color:var(--fg2); flex:1; }
+  .lauf-kopf .sum b { color:var(--error); }
+  .lauf-kopf .chev { color:var(--muted); }
+  .balken { display:flex; height:6px; gap:2px; padding:0 14px 12px; }
+  .balken i { flex:1; border-radius:2px; background:var(--success); opacity:.7; }
+  .balken i.warn { background:var(--warn); opacity:1; }
+  .balken i.err { background:var(--error); opacity:1; }
+  .lauf .zeile { border-top:1px solid var(--border); border-bottom:0; }
+
+  /* C: Tabelle */
+  .tab { margin:10px 12px 0; background:var(--surface); border-radius:16px; overflow:hidden; font:12px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .tab .th, .tab .tr { display:grid; grid-template-columns:62px 40px 46px 1fr; gap:6px; padding:7px 10px; align-items:start; }
+  .tab .th { font:600 10px system-ui; color:var(--muted); text-transform:uppercase; letter-spacing:.02em; background:var(--surface2); }
+  .tab .tr { border-top:1px solid var(--border); }
+  .tab .tr:nth-child(odd) { background:color-mix(in srgb, var(--surface2) 45%, var(--surface)); }
+  .tab .c-st.ok { color:var(--success); font-weight:700; }
+  .tab .c-st.warn { color:var(--warn); font-weight:700; }
+  .tab .c-st.err { color:var(--error); font-weight:700; }
+  .tab .c-zeit { color:var(--muted); }
+  .tab .c-uri { word-break:break-all; color:var(--fg); }
+  .tab .c-uri small { display:block; color:var(--fg2); font-size:11px; }
+
+  /* Heute: Rohtext */
+  .roh { margin:10px 12px 0; background:var(--surface); border-radius:16px; padding:12px; font:11.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color:var(--fg); word-break:break-all; }
+  .roh .ts { color:var(--muted); }
+
+  .fb fieldset { border:1px solid #d6d3c9; border-radius:12px; margin:0 0 12px; padding:10px 14px; max-width:760px; }
+  .fb legend { font-weight:600; }
+  .fb label { margin-right:16px; }
+  .fb textarea { display:block; width:100%; max-width:720px; margin-top:8px; min-height:44px; font:inherit; }
+  .fb button { font:inherit; padding:8px 16px; border-radius:999px; border:0; background:#003056; color:#fff; cursor:pointer; }
+  #ausgabe { margin-top:10px; min-height:90px; }
+</style>
+</head><body>
+<div class="bar">
+  <nav><a href="#heute">0 Heute</a><a href="#a">A Liste</a><a href="#b">B Läufe</a><a href="#c">C Tabelle</a><a href="#rueckmeldung">Rückmeldung</a></nav>
+</div>
+<main>
+  <h1>Hitobito-Traffic in Debug & Tools: Entwürfe, Runde 1</h1>
+  <p>Der Traffic-Log enthält seit dem Fix nur noch eine Zeile je Antwort: Zeit, Methode, Status, Quelle und URI, ohne Header und Inhalte. Die Ansicht soll das lesbar machen. Alle Daten sind synthetisch. Gemeinsam ist allen Varianten: Der Host entfällt, die Query steht entschlüsselt (<code>filter[primary_group_id]=12</code> statt <code>%5B…%5D</code>), lange Feldlisten (<code>fields[…]</code>, <code>include</code>) sind eingeklappt und erscheinen erst beim Antippen.</p>
+
+  <section class="part" id="heute">
+    <h2>0 · Heute: Rohtext</h2>
+    <p>So sähe die neue Datei in der bisherigen Ansicht aus: lesbar, aber ohne Struktur, Fehler gehen unter.</p>
+    <div id="slot-heute"></div>
+  </section>
+
+  <section class="part" id="a">
+    <h2>A · Kompakte Liste</h2>
+    <p>Eine Zeile je Anfrage, Status als farbiges Kennzeichen vorn, darunter der Pfad mit den wichtigen Parametern. Filter oben: Alle oder Fehler, dazu je Quelle. Antippen klappt die vollständige URI mit allen Parametern und „Kopieren“ auf.</p>
+    <div id="slot-a"></div>
+  </section>
+
+  <section class="part" id="b">
+    <h2>B · Nach Läufen gruppiert</h2>
+    <p>Anfragen, zwischen denen weniger als 30 Sekunden liegen, bilden einen Lauf (typisch: ein Sync). Der Kopf zeigt Uhrzeit, Anzahl, Fehler und Dauer, der Balken je Anfrage eine Farbe. Läufe mit Fehler sind aufgeklappt, die anderen zu.</p>
+    <div id="slot-b"></div>
+  </section>
+
+  <section class="part" id="c">
+    <h2>C · Tabelle</h2>
+    <p>Dicht wie ein Terminal: Spalten für Zeit, Status, Methode und Pfad, Fehlerzeilen nur durch die Farbe des Status hervorgehoben. Passt am meisten auf den Bildschirm, ist aber am wenigsten ruhig.</p>
+    <div id="slot-c"></div>
+  </section>
+
+  <section class="part" id="rueckmeldung">
+    <h2>Rückmeldung</h2>
+    <p>Auswählen, kurz kommentieren, „Auswahl kopieren“ und den Text in den Chat einfügen.</p>
+    <form class="fb" id="fb"></form>
+  </section>
+</main>
+<script>
+(function () {
+  const M = window.MITGLIED;
+  let css = '';
+  for (const modus of ['hell', 'dunkel']) {
+    const p = M.palette[modus];
+    const vars = { '--bg': p.bg, '--surface': p.surface, '--surface2': p.surface2, '--fg': p.fg, '--fg2': p.fg2, '--muted': p.muted, '--border': p.border,
+      '--primary': p.primary, '--on-primary': p.onPrimary, '--primary-lite': p.primaryLite, '--grid': p.grid, '--success': p.success, '--error': p.error, '--warn': p.warn };
+    css += `.phone.${modus}{${Object.entries(vars).map(([k, v]) => `${k}:${v}`).join(';')}}`;
+  }
+  document.head.insertAdjacentHTML('beforeend', `<style>${css}</style>`);
+
+  const HOST = 'https://hitobito.example';
+  const FELDER = 'fields[people]=first_name,last_name,nickname,…&fields[roles]=created_at,…&include=roles,phone_numbers,additional_emails,additional_addresses';
+  // [zeit, methode, status, quelle, pfad+query]
+  const ZEILEN = [
+    ['10:02:11', 'GET', '200', 'groups', '/api/groups?page[size]=1000&sort=id&page[number]=1'],
+    ['10:02:12', 'GET', '200', 'groups', '/api/groups?page[size]=1000&sort=id&page[number]=2'],
+    ['10:02:13', 'GET', '200', 'people', `/api/people?filter[primary_group_id]=12&page[size]=500&page[number]=1&${FELDER}`],
+    ['10:02:14', 'GET', '200', 'people', `/api/people?filter[primary_group_id]=12&page[size]=500&page[number]=2&${FELDER}`],
+    ['10:02:15', 'GET', '200', 'roles', '/api/roles?filter[person_id][eq]=101,102,103,…&page[size]=500'],
+    ['10:02:15', 'GET', '200', 'roles', '/api/roles?filter[person_id][eq]=301,302,303,…&page[size]=500'],
+    ['10:02:16', 'GET', '200', 'qualifications', '/api/qualifications?include=qualification_kind&page[number]=1'],
+    ['10:02:17', 'GET', '500', 'efz_einsichtnahmen', '/api/efz_einsichtnahmen?sort=-issued_on&page[number]=3'],
+    ['10:15:40', 'GET', '200', 'people', `/api/people/2817?${FELDER}`],
+    ['10:15:52', 'PATCH', '422', 'people', '/api/people/2817'],
+    ['10:20:03', 'GET', 'exception:ClientException', 'groups', '/api/groups?page[size]=1000&sort=id&page[number]=1'],
+    ['10:20:33', 'GET', '401', 'people', `/api/people?filter[primary_group_id]=12&page[size]=500&page[number]=1&${FELDER}`],
+  ];
+
+  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const art = (st) => st.startsWith('exception') ? 'err' : st[0] === '2' ? 'ok' : st[0] === '4' ? 'warn' : 'err';
+  const stText = (st) => st.startsWith('exception') ? 'EXC' : st;
+  const schreibend = (m) => m !== 'GET';
+  function zerlege(pfadQuery) {
+    const [pfad, q = ''] = pfadQuery.split('?');
+    const params = q ? q.split('&') : [];
+    const wichtig = params.filter((p) => !p.startsWith('fields[') && !p.startsWith('include='));
+    const versteckt = params.length - wichtig.length;
+    return { pfad, wichtig, versteckt, params };
+  }
+  const fehlerText = (st) => st.startsWith('exception') ? `Verbindungsfehler (${st.split(':')[1]})` : st === '401' ? 'Sitzung abgelaufen' : st === '422' ? 'von Hitobito abgelehnt' : st[0] === '5' ? 'Serverfehler' : '';
+
+  function telefon(modus, kopf, inhalt, beschriftung) {
+    return `<figure class="phone ${modus}"><div class="screen fest"><div class="status"><span>10:21</span><span class="island"></span><span class="sys"></span></div>${kopf}<div class="body">${inhalt}</div></div><figcaption>${beschriftung}</figcaption></figure>`;
+  }
+  const kopf = (sub) => `<div class="hdr"><span class="back">‹</span><span class="titel"><b>Hitobito-Traffic</b><small>${sub}</small></span><span class="akt"><span title="Senden">✉︎</span><span title="Löschen">🗑︎</span></span></div>`;
+  const anzahlFehler = ZEILEN.filter((z) => art(z[2]) !== 'ok').length;
+  function filterChips(nurFehler) {
+    const quellen = ['groups', 'people', 'roles', 'qualifications', 'efz'];
+    return `<div class="chips"><span class="chip ${nurFehler ? '' : 'on'}">Alle<span class="n">${ZEILEN.length}</span></span><span class="chip ${nurFehler ? 'on' : ''}">Fehler<span class="n">${anzahlFehler}</span></span>${quellen.map((q) => `<span class="chip">${q}</span>`).join('')}</div>`;
+  }
+
+  function zeileA(z, { offen = false } = {}) {
+    const [zeit, m, st, quelle, pq] = z;
+    const t = zerlege(pq);
+    const params = t.wichtig.map((p) => `<span class="param">${esc(p)}</span>`).join('') + (t.versteckt ? `<span class="param mehr">+${t.versteckt} Felder</span>` : '');
+    const ft = fehlerText(st);
+    const detail = offen ? `<div class="detail"><b>${m} ${esc(HOST + t.pfad)}</b><br>${t.params.map((p) => esc(p)).join('<br>')}<br><span class="kopieren">URI kopieren</span></div>` : '';
+    return `<div class="zeile${offen ? ' auf' : ''}"><div class="kopf"><span class="st ${art(st)}">${stText(st)}</span><span class="mth${schreibend(m) ? ' write' : ''}">${m}</span><span class="src">${quelle}</span><span class="zeit">${zeit}</span></div><div class="inhalt"><div class="uri">${esc(t.pfad)}</div>${params}${ft ? `<div class="fehler">${ft}</div>` : ''}</div>${detail}</div>`;
+  }
+  function listeA(modus, { nurFehler = false, offenIndex = -1 } = {}) {
+    const zeilen = ZEILEN.map((z, i) => [z, i]).filter(([z]) => !nurFehler || art(z[2]) !== 'ok').reverse();
+    return filterChips(nurFehler) + `<div class="liste">${zeilen.map(([z, i]) => zeileA(z, { offen: i === offenIndex })).join('')}</div>`;
+  }
+
+  function laeufe() {
+    const gruppen = [];
+    let aktuell = null;
+    const sek = (t) => { const [h, mi, s] = t.split(':').map(Number); return h * 3600 + mi * 60 + s; };
+    for (const z of ZEILEN) {
+      if (!aktuell || sek(z[0]) - sek(aktuell.ende) > 30) { aktuell = { start: z[0], ende: z[0], zeilen: [] }; gruppen.push(aktuell); }
+      aktuell.zeilen.push(z); aktuell.ende = z[0];
+    }
+    return gruppen.reverse().map((g) => ({ ...g, dauer: sek(g.ende) - sek(g.start), fehler: g.zeilen.filter((z) => art(z[2]) !== 'ok').length }));
+  }
+  function listeB() {
+    return filterChips(false) + laeufe().map((g) => {
+      const offen = g.fehler > 0;
+      const sum = `${g.zeilen.length} ${g.zeilen.length === 1 ? 'Anfrage' : 'Anfragen'}${g.dauer ? ` · ${g.dauer} s` : ''}${g.fehler ? ` · <b>${g.fehler} Fehler</b>` : ''}`;
+      const quellen = [...new Set(g.zeilen.map((z) => z[3]))].join(', ');
+      return `<div class="lauf"><div class="lauf-kopf"><span class="zeit">${g.start.slice(0, 5)}</span><span class="sum">${sum}<br><span style="color:var(--muted)">${quellen}</span></span><span class="chev">${offen ? '⌃' : '⌄'}</span></div><div class="balken">${g.zeilen.map((z) => `<i class="${art(z[2]) === 'ok' ? '' : art(z[2])}"></i>`).join('')}</div>${offen ? g.zeilen.slice().reverse().map((z) => zeileA(z)).join('') : ''}</div>`;
+    }).join('');
+  }
+
+  function tabelleC(nurFehler) {
+    const zeilen = ZEILEN.filter((z) => !nurFehler || art(z[2]) !== 'ok').slice().reverse();
+    return filterChips(nurFehler) + `<div class="tab"><div class="th"><span>Zeit</span><span>Status</span><span>Methode</span><span>Pfad</span></div>${zeilen.map(([zeit, m, st, quelle, pq]) => {
+      const t = zerlege(pq);
+      return `<div class="tr"><span class="c-zeit">${zeit}</span><span class="c-st ${art(st)}">${stText(st)}</span><span>${m}</span><span class="c-uri">${esc(t.pfad)}${t.wichtig.length ? `<small>${esc(t.wichtig.join(' '))}${t.versteckt ? ` +${t.versteckt}` : ''}</small>` : ''}</span></div>`;
+    }).join('')}</div>`;
+  }
+
+  function roh() {
+    return `<div class="roh">${ZEILEN.map(([zeit, m, st, quelle, pq]) => `<span class="ts">[2026-10-07 ${zeit}]</span> ${m} ${st} ${quelle} ${esc(HOST + pq)}`).join('<br>')}</div>`;
+  }
+
+  const sub = `7. Okt. · ${ZEILEN.length} Anfragen · ${anzahlFehler} Fehler`;
+  const variante = (titel, desc, inhalt) => `<div class="variant"><h3>${titel}</h3><p class="desc">${desc}</p><div class="phones">${inhalt}</div></div>`;
+  document.getElementById('slot-heute').innerHTML = variante('Rohtext', 'Eine Datei pro Tag, Zeilen wie gespeichert.', telefon('hell', kopf('traffic-2026-10-07.log'), roh(), 'heute mit neuem Format'));
+  document.getElementById('slot-a').innerHTML = variante('A · Liste', 'Neueste oben. Rechts: „Fehler“ aktiv und eine Zeile aufgeklappt.',
+    telefon('hell', kopf(sub), listeA('hell'), 'Alle') +
+    telefon('hell', kopf(sub), listeA('hell', { nurFehler: true, offenIndex: 11 }), 'Fehler, 401 aufgeklappt') +
+    telefon('dunkel', kopf(sub), listeA('dunkel'), 'dunkel'));
+  document.getElementById('slot-b').innerHTML = variante('B · Läufe', 'Neuester Lauf oben.',
+    telefon('hell', kopf(sub), listeB(), 'Läufe') +
+    telefon('dunkel', kopf(sub), listeB(), 'dunkel'));
+  document.getElementById('slot-c').innerHTML = variante('C · Tabelle', '',
+    telefon('hell', kopf(sub), tabelleC(false), 'Alle') +
+    telefon('dunkel', kopf(sub), tabelleC(false), 'dunkel') +
+    telefon('hell', kopf(sub), tabelleC(true), 'nur Fehler'));
+
+  const FRAGEN = [
+    { id: 'variante', titel: 'Variante', optionen: ['A Liste', 'B Läufe', 'C Tabelle'] },
+    { id: 'felder', titel: 'Lange Feldlisten (fields, include)', optionen: ['eingeklappt', 'immer zeigen'] },
+    { id: 'filter', titel: 'Filter-Chips', optionen: ['Alle/Fehler und Quellen', 'nur Alle/Fehler', 'keine'] },
+  ];
+  const f = document.getElementById('fb');
+  f.innerHTML = FRAGEN.map((qq) => `<fieldset><legend>${qq.titel}</legend>${qq.optionen.map((o) => `<label><input type="radio" name="${qq.id}" value="${o}"> ${o}</label>`).join('')}<textarea name="${qq.id}-text" placeholder="Anmerkung (optional)"></textarea></fieldset>`).join('') +
+    `<fieldset><legend>Sonst noch</legend><textarea name="frei" placeholder="Freitext"></textarea></fieldset>
+    <button type="button" id="kopieren">Auswahl kopieren</button>
+    <textarea id="ausgabe" readonly placeholder="Hier erscheint der Text für den Chat."></textarea>`;
+  document.getElementById('kopieren').addEventListener('click', async () => {
+    const fd = new FormData(f);
+    const zeilen = ['Rückmeldung Hitobito-Traffic, Runde 1'];
+    for (const qq of FRAGEN) {
+      const wahl = fd.get(qq.id); const text = (fd.get(`${qq.id}-text`) || '').trim();
+      zeilen.push(`- ${qq.titel}: ${wahl || '–'}${text ? ` – ${text}` : ''}`);
+    }
+    const frei = (fd.get('frei') || '').trim();
+    if (frei) zeilen.push(`- Sonst: ${frei}`);
+    const text = zeilen.join('\n');
+    const out = document.getElementById('ausgabe');
+    out.value = text;
+    try { await navigator.clipboard.writeText(text); } catch (e) { out.select(); document.execCommand('copy'); }
+  });
+  document.body.dataset.fertig = '1';
+})();
+</script>
+</body></html>
