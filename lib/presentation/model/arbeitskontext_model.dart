@@ -21,6 +21,7 @@ import '../../domain/bundesstatistik/statistik_abdeckung.dart';
 import '../../domain/member/mitglied.dart';
 import '../../services/hitobito_groups_service.dart';
 import '../../services/logger_service.dart';
+import '../../services/sensitive_storage_service.dart';
 import 'nutzer_fehlermeldung.dart';
 
 enum ArbeitskontextStatus { initial, loading, ready, unauthorized, error }
@@ -73,6 +74,7 @@ class ArbeitskontextModel extends ChangeNotifier {
         const BestimmeRelevanteLayerUseCase(),
     ArbeitskontextRemoteAccessExecutor? remoteAccessExecutor,
     int Function()? sessionGeneration,
+    Future<void> Function()? onKeineBerechtigung,
     required LoggerService logger,
   }) : _localRepository = localRepository,
        _readModelRepository = readModelRepository,
@@ -81,6 +83,7 @@ class ArbeitskontextModel extends ChangeNotifier {
        _bestimmeRelevanteLayerUseCase = bestimmeRelevanteLayerUseCase,
        _remoteAccessExecutor = remoteAccessExecutor,
        _sessionGeneration = sessionGeneration ?? _ohneSitzungsgeneration,
+       _onKeineBerechtigung = onKeineBerechtigung,
        _logger = logger {
     _authGeneration = _sessionGeneration();
   }
@@ -96,6 +99,8 @@ class ArbeitskontextModel extends ChangeNotifier {
   // Sitzungsgeneration des AuthSessionModel; wechselt bei Logout,
   // Benutzerwechsel und Datenablauf.
   final int Function() _sessionGeneration;
+  // Meldet einen erkannten Rechteverlust; die App meldet daraufhin ab.
+  final Future<void> Function()? _onKeineBerechtigung;
   final LoggerService _logger;
 
   static const String unauthorizedMessage =
@@ -557,7 +562,7 @@ class ArbeitskontextModel extends ChangeNotifier {
         accessibleGroups: accessibleGroups,
       );
       if (arbeitskontext == null) {
-        _setUnauthorizedState();
+        await _enterUnauthorizedState(generation);
         return;
       }
 
@@ -818,7 +823,7 @@ class ArbeitskontextModel extends ChangeNotifier {
               accessibleGroups: accessibleGroups,
             );
       if (nextArbeitskontext == null) {
-        _setUnauthorizedState();
+        await _enterUnauthorizedState(generation);
         return;
       }
       if (isInitialLoad) {
@@ -1123,7 +1128,7 @@ class ArbeitskontextModel extends ChangeNotifier {
             'reason': 'target_not_resolvable',
           },
         );
-        _setUnauthorizedState();
+        await _enterUnauthorizedState(generation);
         return false;
       }
       final readModel = await _executeRemoteAccess<ArbeitskontextReadModel>(
@@ -1420,11 +1425,26 @@ class ArbeitskontextModel extends ChangeNotifier {
     return null;
   }
 
-  void _setUnauthorizedState() {
+  /// Kein lesbarer Layer mehr: Der Cache darf beim naechsten Start nicht
+  /// wieder erscheinen, und die App meldet ab.
+  Future<void> _enterUnauthorizedState(int generation) async {
     _arbeitskontext = null;
     _readModel = null;
     _status = ArbeitskontextStatus.unauthorized;
     _errorMessage = unauthorizedMessage;
+    await _logger.logInfo(
+      'arbeitskontext',
+      'Keine lesbaren Layer mehr, lokaler Arbeitskontext wird verworfen',
+    );
+    try {
+      await _localRepository.clearCached();
+    } on SensitiveSessionEndedException {
+      // Ohne Sitzung ist der Cache bereits geloescht.
+    }
+    if (!_isCurrent(generation)) {
+      return;
+    }
+    await _onKeineBerechtigung?.call();
   }
 
   Future<T?> _executeRemoteAccess<T>({

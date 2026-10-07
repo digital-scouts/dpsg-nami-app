@@ -122,6 +122,115 @@ void main() {
     });
   });
 
+  group('Rechteverlust', () {
+    late Directory tempDir;
+
+    setUp(() async {
+      FlutterSecureStorage.setMockInitialValues(<String, String>{});
+      SensitiveStorageService.resetForTest();
+      tempDir = await Directory.systemTemp.createTemp('rechteverlust_');
+      Hive.init(tempDir.path);
+    });
+
+    tearDown(() async {
+      SensitiveStorageService.resetForTest();
+      await Hive.close();
+      await tempDir.delete(recursive: true);
+    });
+
+    test(
+      'meldet ab, loescht den Cache und startet danach abgemeldet',
+      () async {
+        final sessionRepository = InMemoryAuthSessionRepository(
+          initialSession: _session('token-a', principal: 'person-a'),
+        );
+        final storage = SensitiveStorageService();
+        // Vorheriger Stand mit gespeichertem Arbeitskontext.
+        storage.beginSession();
+        await storage.savePrincipal('person-a');
+        await storage.saveLastSensitiveSyncAt(jetzt);
+        final localRepository = SecureArbeitskontextLocalRepository(
+          sensitiveStorageService: storage,
+        );
+        await localRepository.saveCached(
+          ArbeitskontextReadModel(
+            arbeitskontext: Arbeitskontext(
+              aktiverLayer: const ArbeitskontextLayer(
+                id: 55,
+                name: 'Stamm Talrand',
+              ),
+            ),
+          ),
+        );
+
+        AuthSessionModel neuesAuthModel() => AuthSessionModel(
+          repository: sessionRepository,
+          profileRepository: InMemoryAuthProfileRepository(
+            profile: _profilA,
+            lastSyncAt: jetzt,
+          ),
+          oauthService: FakeOauthService(
+            sessionToReturn: _session('token-a', principal: 'person-a'),
+            profileToReturn: _profilA,
+          ),
+          biometricLockService: FakeBiometricLockService(),
+          sensitiveStorageService: storage,
+          retentionPolicy: HitobitoDataRetentionPolicy(
+            maxDataAge: const Duration(days: 90),
+            refreshInterval: const Duration(hours: 24),
+            nowProvider: () => jetzt,
+          ),
+          logger: FakeLoggerService(),
+        );
+        final authModel = neuesAuthModel();
+        final arbeitskontextModel = ArbeitskontextModel(
+          localRepository: localRepository,
+          readModelRepository: _SteuerbaresReadModelRepository(),
+          // Hitobito liefert keine lesbare Gruppe mehr.
+          groupsService: _FakeGroupsService(groups: const []),
+          bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+          remoteAccessExecutor: authModel.executeRemoteAccess,
+          sessionGeneration: () => authModel.sessionGeneration,
+          onKeineBerechtigung: authModel.logoutWegenFehlenderRechte,
+          logger: FakeLoggerService(),
+        );
+        authModel.addListener(() {
+          unawaited(
+            arbeitskontextModel.syncForAuth(
+              authState: authModel.state,
+              session: authModel.session,
+              profile: authModel.profile,
+            ),
+          );
+        });
+
+        await authModel.initialize();
+        await arbeitskontextModel.syncForAuth(
+          authState: authModel.state,
+          session: authModel.session,
+          profile: authModel.profile,
+        );
+        expect(arbeitskontextModel.isReady, isTrue);
+
+        await arbeitskontextModel.refreshFromRemote(
+          session: authModel.session,
+          profile: authModel.profile,
+        );
+
+        expect(authModel.state, AuthState.signedOut);
+        expect(authModel.logoutReason, LogoutReason.keineBerechtigung);
+        expect(arbeitskontextModel.readModel, isNull);
+        expect(await Hive.boxExists('hitobito_arbeitskontext_box'), isFalse);
+
+        // Neustart: Es gibt weder Anmeldung noch Arbeitskontext.
+        final nachNeustart = neuesAuthModel();
+        await nachNeustart.initialize();
+        expect(nachNeustart.state, AuthState.signedOut);
+        expect(nachNeustart.logoutReason, isNull);
+      },
+    );
+  });
+
   group('Kontowechsel waehrend eines laufenden Refresh', () {
     test('verwirft das Ergebnis des alten Kontos ohne Mischen', () async {
       var generation = 0;
@@ -206,16 +315,20 @@ const _profilB = AuthProfile(
 );
 
 class _FakeGroupsService extends HitobitoGroupsService {
-  _FakeGroupsService() : super(config: testHitobitoAuthConfig);
+  _FakeGroupsService({
+    this.groups = const <HitobitoGroupResource>[
+      HitobitoGroupResource(id: 55, name: 'Stamm Talrand', isLayer: true),
+      HitobitoGroupResource(id: 66, name: 'Stamm Bergblick', isLayer: true),
+    ],
+  }) : super(config: testHitobitoAuthConfig);
+
+  final List<HitobitoGroupResource> groups;
 
   @override
   Future<List<HitobitoGroupResource>> fetchAccessibleGroups(
     String accessToken,
   ) async {
-    return const <HitobitoGroupResource>[
-      HitobitoGroupResource(id: 55, name: 'Stamm Talrand', isLayer: true),
-      HitobitoGroupResource(id: 66, name: 'Stamm Bergblick', isLayer: true),
-    ];
+    return groups;
   }
 }
 

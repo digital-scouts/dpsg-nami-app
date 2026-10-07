@@ -27,6 +27,9 @@ enum SyncAttemptResult {
 
 enum NextSyncDisplayKind { atTime, whenWifiAvailable, loginRequired }
 
+/// Warum die App ohne Zutun der Person abgemeldet hat.
+enum LogoutReason { keineBerechtigung }
+
 class DataSyncStatus {
   const DataSyncStatus({
     required this.isSyncing,
@@ -114,6 +117,7 @@ class AuthSessionModel extends ChangeNotifier {
   bool _isSyncingHitobitoData = false;
   bool _isUserInitiatedSyncInProgress = false;
   SyncAttemptResult? _lastSyncAttemptResult;
+  LogoutReason? _logoutReason;
 
   AuthState get state => _state;
   int get sessionGeneration => _sessionGeneration;
@@ -130,6 +134,9 @@ class AuthSessionModel extends ChangeNotifier {
   bool get isSyncingHitobitoData => _isSyncingHitobitoData;
   bool get isUserInitiatedSyncInProgress => _isUserInitiatedSyncInProgress;
   SyncAttemptResult? get lastSyncAttemptResult => _lastSyncAttemptResult;
+
+  /// Grund der letzten automatischen Abmeldung, bis zur naechsten Anmeldung.
+  LogoutReason? get logoutReason => _logoutReason;
   DataSyncStatus get dataSyncStatus => DataSyncStatus(
     isSyncing: _isSyncingHitobitoData,
     hasValidLocalData: _lastSensitiveSyncAt != null,
@@ -387,6 +394,7 @@ class AuthSessionModel extends ChangeNotifier {
     await _sensitiveStorageService.saveLastSensitiveSyncAttemptAt(null);
 
     _session = authenticatedSession;
+    _logoutReason = null;
     _lastBackgroundedAt = null;
     _lastSensitiveSyncAttemptAt = null;
     _errorMessage = null;
@@ -432,6 +440,7 @@ class AuthSessionModel extends ChangeNotifier {
     // nichts mehr schreiben.
     _endSession();
     _session = null;
+    _logoutReason = null;
     await _logger.logInfo('auth_flow', 'logout started');
     await _logger.trackAuthFlow('logout', 'started');
     await _repository.clear();
@@ -466,6 +475,15 @@ class AuthSessionModel extends ChangeNotifier {
       'success',
       properties: const {'sensitive_data_cleared': true},
     );
+    notifyListeners();
+  }
+
+  /// Meldet ab, weil das Konto keinen lesbaren Layer mehr hat. Alle lokalen
+  /// Daten werden wie beim Logout geloescht.
+  Future<void> logoutWegenFehlenderRechte() async {
+    await _logger.logInfo('auth_flow', 'logout reason=keine_berechtigung');
+    await logout();
+    _logoutReason = LogoutReason.keineBerechtigung;
     notifyListeners();
   }
 

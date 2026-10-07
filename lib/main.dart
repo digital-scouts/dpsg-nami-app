@@ -443,6 +443,7 @@ Future<void> _startApp({
     bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
     remoteAccessExecutor: authModel.executeRemoteAccess,
     sessionGeneration: () => authModel.sessionGeneration,
+    onKeineBerechtigung: authModel.logoutWegenFehlenderRechte,
     logger: logger,
   );
   // Im Demo sendet der erfundene Stamm an den Mock-Statistikserver und

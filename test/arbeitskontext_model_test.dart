@@ -245,11 +245,14 @@ void main() {
   test(
     'meldet einen expliziten Zustand ohne App-Berechtigung, wenn kein relevanter Layer ableitbar ist',
     () async {
+      final localRepository = _FakeArbeitskontextLocalRepository();
+      var meldungen = 0;
       final model = ArbeitskontextModel(
-        localRepository: _FakeArbeitskontextLocalRepository(),
+        localRepository: localRepository,
         readModelRepository: _FakeArbeitskontextReadModelRepository(),
         groupsService: _FakeHitobitoGroupsService(),
         bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        onKeineBerechtigung: () async => meldungen++,
         logger: _FakeLoggerService(),
       );
 
@@ -264,6 +267,8 @@ void main() {
 
       expect(model.isUnauthorized, isTrue);
       expect(model.errorMessage, ArbeitskontextModel.unauthorizedMessage);
+      expect(localRepository.clearCachedCount, 1);
+      expect(meldungen, 1);
     },
   );
 
@@ -2411,9 +2416,12 @@ class _FakeArbeitskontextLocalRepository
   _FakeArbeitskontextLocalRepository({this.cached});
 
   final ArbeitskontextReadModel? cached;
+  int clearCachedCount = 0;
 
   @override
-  Future<void> clearCached() async {}
+  Future<void> clearCached() async {
+    clearCachedCount += 1;
+  }
 
   @override
   Future<ArbeitskontextReadModel?> loadLastCached() async => cached;
