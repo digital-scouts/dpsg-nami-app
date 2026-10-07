@@ -190,6 +190,17 @@ void main() {
       expect(ergebnis.memberPoints.single.latitude, 50.1);
     });
 
+    test('fragt ohne API-Key nichts an und meldet den Hinweis', () async {
+      final mapService = _OhneKeyGeoapifyAddressMapService();
+
+      final ergebnis = await serviceMit(
+        mapService,
+      ).resolveLocations(members: zweiMitglieder);
+
+      expect(mapService.calls, 0);
+      expect(ergebnis.hinweis, StandortHinweis.unvollstaendig);
+    });
+
     test('fragt nach Abbruch nichts mehr an', () async {
       final mapService = _FakeGeoapifyAddressMapService(
         const GeoapifyGeocodeResult.success(LatLng(50.9, 6.9)),
@@ -238,6 +249,14 @@ class _FakeGeoapifyAddressMapService extends GeoapifyAddressMapService {
     texts.add(addressText);
     return result;
   }
+}
+
+class _OhneKeyGeoapifyAddressMapService extends _FakeGeoapifyAddressMapService {
+  _OhneKeyGeoapifyAddressMapService()
+    : super(const GeoapifyGeocodeResult.technicalError());
+
+  @override
+  bool get hasApiKey => false;
 }
 
 class _InMemoryAddressMapLocationRepository

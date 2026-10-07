@@ -78,6 +78,14 @@ class StatisticsLocationService {
     bool Function()? abgebrochen,
   }) async {
     final lauf = _Lauf(nurCache: nurCache, abgebrochen: abgebrochen);
+    if (!nurCache && !_mapService.hasApiKey) {
+      // Ohne Schluessel waere jede Anfrage ein Fehler: nur den Cache nutzen.
+      lauf.netzSperren(StandortHinweis.unvollstaendig);
+      await _logger?.log(
+        'statistics',
+        'Standorte nur aus dem Cache: Geoapify-Key fehlt',
+      );
+    }
     final memberPoints = await _resolveMembers(members, lauf);
     final stammPoint = await _resolveText(stammAddress, lauf);
     return StatisticsResolvedLocations(
