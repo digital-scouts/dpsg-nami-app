@@ -5,11 +5,12 @@ import type { MonthlyReportDocument } from '../../modules/report/report.js';
 import type { SenderDocument } from '../../modules/senderAuth/senderAuth.js';
 import type { RawSnapshotDocument } from '../../modules/stammesSnapshot/persistence.js';
 import { SUPPORTED_SCHEMA_VERSION } from '../../modules/stammesSnapshot/schema.js';
+import { retentionEnd, senderRetentionStart } from '../../shared/retention.js';
 import { type Clock, systemClock } from '../../shared/time.js';
 
 // In-Memory-Umsetzung aller Repositories fuer Tests und Server-Instanzen ohne MongoDB.
-// Die Regeln (Dubletten, TOFU, Filter auf die aktuelle Schema-Version) entsprechen der
-// MongoDB-Umsetzung.
+// Die Regeln (Dubletten, TOFU, Filter auf die aktuelle Schema-Version, Speicherfrist) entsprechen
+// der MongoDB-Umsetzung.
 export type StatisticsMemoryStore = {
     rawSnapshots: RawSnapshotDocument[];
     senders: Map<string, SenderDocument>;
@@ -38,88 +39,118 @@ const isCurrentSince = (document: RawSnapshotDocument, since: Date): boolean =>
     document.schema_version === SUPPORTED_SCHEMA_VERSION
     && (document.source_data_as_of.getTime() >= since.getTime() || document.received_at.getTime() >= since.getTime());
 
+// Gegenstueck zu den TTL-Indizes: Abgelaufenes vor jedem Zugriff entfernen.
+const pruneExpired = (store: StatisticsMemoryStore, now: Date): void => {
+    store.rawSnapshots = store.rawSnapshots.filter((document) =>
+        retentionEnd(document.received_at).getTime() > now.getTime());
+    for (const [pseudonym, sender] of store.senders) {
+        if (retentionEnd(senderRetentionStart(sender)).getTime() <= now.getTime()) {
+            store.senders.delete(pseudonym);
+        }
+    }
+};
+
 export const buildMemoryDependencies = (
     store: StatisticsMemoryStore = createStatisticsMemoryStore(),
     clock: Clock = systemClock,
-): ServerDependencies => ({
-    clock,
-    rawSnapshotsRepository: {
-        insert: async (document) => {
-            if (store.rawSnapshots.some((existing) => isDuplicateRawSnapshot(existing, document))) {
-                return { inserted: false };
-            }
-            store.rawSnapshots.push(document);
-            return { inserted: true };
+): ServerDependencies => {
+    const ohneAbgelaufene = (): StatisticsMemoryStore => {
+        pruneExpired(store, clock());
+        return store;
+    };
+
+    return {
+        clock,
+        rawSnapshotsRepository: {
+            insert: async (document) => {
+                ohneAbgelaufene();
+                if (store.rawSnapshots.some((existing) => isDuplicateRawSnapshot(existing, document))) {
+                    return { inserted: false };
+                }
+                store.rawSnapshots.push(document);
+                return { inserted: true };
+            },
+            findByStammSince: async (stammPseudonym, since) =>
+                ohneAbgelaufene().rawSnapshots.filter((document) =>
+                    document.stamm_pseudonym === stammPseudonym
+                    && document.schema_version === SUPPORTED_SCHEMA_VERSION
+                    && document.source_data_as_of.getTime() >= since.getTime()),
+            findSince: async (since) => ohneAbgelaufene().rawSnapshots.filter((document) => isCurrentSince(document, since)),
+            findBySender: async (senderPseudonym) =>
+                ohneAbgelaufene().rawSnapshots
+                    .filter((document) => document.sender_pseudonym === senderPseudonym)
+                    .sort((a, b) => a.received_at.getTime() - b.received_at.getTime()),
+            deleteBySender: async (senderPseudonym) => {
+                const vorher = ohneAbgelaufene().rawSnapshots.length;
+                store.rawSnapshots = store.rawSnapshots.filter((document) => document.sender_pseudonym !== senderPseudonym);
+                return vorher - store.rawSnapshots.length;
+            },
         },
-        findByStammSince: async (stammPseudonym, since) =>
-            store.rawSnapshots.filter((document) =>
-                document.stamm_pseudonym === stammPseudonym
-                && document.schema_version === SUPPORTED_SCHEMA_VERSION
-                && document.source_data_as_of.getTime() >= since.getTime()),
-        findSince: async (since) => store.rawSnapshots.filter((document) => isCurrentSince(document, since)),
-    },
-    senderRepository: {
-        findByPseudonym: async (senderPseudonym) => store.senders.get(senderPseudonym) ?? null,
-        registerIfAbsent: async (document) => {
-            if (store.senders.has(document.sender_pseudonym)) {
-                return 'already_registered';
-            }
-            store.senders.set(document.sender_pseudonym, { ...document });
-            return 'registered';
+        senderRepository: {
+            findByPseudonym: async (senderPseudonym) => ohneAbgelaufene().senders.get(senderPseudonym) ?? null,
+            registerIfAbsent: async (document) => {
+                ohneAbgelaufene();
+                if (store.senders.has(document.sender_pseudonym)) {
+                    return 'already_registered';
+                }
+                store.senders.set(document.sender_pseudonym, { ...document });
+                return 'registered';
+            },
+            markSuccessfulSend: async (senderPseudonym, sentAt) => {
+                const sender = ohneAbgelaufene().senders.get(senderPseudonym);
+                if (sender != null) {
+                    sender.last_successful_send_at = sentAt;
+                }
+            },
+            listActivity: async () =>
+                [...ohneAbgelaufene().senders.values()].map(({ created_at, last_successful_send_at }) => ({
+                    created_at,
+                    last_successful_send_at,
+                })),
+            delete: async (senderPseudonym) => ohneAbgelaufene().senders.delete(senderPseudonym),
         },
-        markSuccessfulSend: async (senderPseudonym, sentAt) => {
-            const sender = store.senders.get(senderPseudonym);
-            if (sender != null) {
-                sender.last_successful_send_at = sentAt;
-            }
-        },
-        listActivity: async () =>
-            [...store.senders.values()].map(({ created_at, last_successful_send_at }) => ({
-                created_at,
-                last_successful_send_at,
-            })),
-    },
-    effectiveStatesRepository: {
-        upsert: async (state) => {
-            store.effectiveStates.set(state.stamm_pseudonym, state);
-        },
-        remove: async (stammPseudonym) => {
-            store.effectiveStates.delete(stammPseudonym);
-        },
-        replaceAll: async (states) => {
-            store.effectiveStates.clear();
-            for (const state of states) {
+        effectiveStatesRepository: {
+            upsert: async (state) => {
                 store.effectiveStates.set(state.stamm_pseudonym, state);
-            }
+            },
+            remove: async (stammPseudonym) => {
+                store.effectiveStates.delete(stammPseudonym);
+            },
+            replaceAll: async (states) => {
+                store.effectiveStates.clear();
+                for (const state of states) {
+                    store.effectiveStates.set(state.stamm_pseudonym, state);
+                }
+            },
+            findAll: async () => [...store.effectiveStates.values()],
         },
-        findAll: async () => [...store.effectiveStates.values()],
-    },
-    weeklyAggregatesRepository: {
-        upsert: async (document) => {
-            store.weeklyAggregates.set(`${document.aggregation_week}:${document.aggregation_type}`, document);
+        weeklyAggregatesRepository: {
+            upsert: async (document) => {
+                store.weeklyAggregates.set(`${document.aggregation_week}:${document.aggregation_type}`, document);
+            },
+            findLatest: async (aggregationType) =>
+                [...store.weeklyAggregates.values()]
+                    .filter((document) => document.aggregation_type === aggregationType)
+                    .sort((a, b) => b.generated_at.getTime() - a.generated_at.getTime())[0] ?? null,
         },
-        findLatest: async (aggregationType) =>
-            [...store.weeklyAggregates.values()]
-                .filter((document) => document.aggregation_type === aggregationType)
-                .sort((a, b) => b.generated_at.getTime() - a.generated_at.getTime())[0] ?? null,
-    },
-    monthlyReportsRepository: {
-        insertIfAbsent: async (document) => {
-            if (!store.monthlyReports.has(document.month)) {
-                store.monthlyReports.set(document.month, document);
-            }
+        monthlyReportsRepository: {
+            insertIfAbsent: async (document) => {
+                if (!store.monthlyReports.has(document.month)) {
+                    store.monthlyReports.set(document.month, document);
+                }
+            },
+            find: async (month) => store.monthlyReports.get(month) ?? null,
+            findAll: async () => [...store.monthlyReports.values()].sort((a, b) => b.month.localeCompare(a.month)),
+            markNotified: async (month, notifiedAt) => {
+                const report = store.monthlyReports.get(month);
+                if (report != null) {
+                    report.notified_at = notifiedAt;
+                }
+            },
         },
-        find: async (month) => store.monthlyReports.get(month) ?? null,
-        findAll: async () => [...store.monthlyReports.values()].sort((a, b) => b.month.localeCompare(a.month)),
-        markNotified: async (month, notifiedAt) => {
-            const report = store.monthlyReports.get(month);
-            if (report != null) {
-                report.notified_at = notifiedAt;
-            }
+        readinessProbe: {
+            pingDatabase: async () => undefined,
+            findLastBackupAt: async () => store.lastBackupAt,
         },
-    },
-    readinessProbe: {
-        pingDatabase: async () => undefined,
-        findLastBackupAt: async () => store.lastBackupAt,
-    },
-});
+    };
+};

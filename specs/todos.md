@@ -130,7 +130,7 @@ Gesammelt am 2026-10-01, jeweils mit Kurzbefund. Jede Stufe wird vor der Umsetzu
 **Monetarisierung**
 
 - Ein einziges Supporter-Paket mit Paletten, Icons und Badge. Später kommen gegebenenfalls Events und NaMi AI hinzu.
-- Eine Store-Anbindung (`in_app_purchase` oder RevenueCat) ersetzt `UnlockedSupportAccess`.
+- Eine Store-Anbindung (`in_app_purchase` oder RevenueCat) ersetzt `SchalterSupportAccess` außerhalb des Demo-Modus.
 - Den Erfolg „Unterstützung“ einblenden.
 - Vorher den rechtlichen Rahmen klären.
 
@@ -159,6 +159,11 @@ Gesammelt am 2026-10-01, jeweils mit Kurzbefund. Jede Stufe wird vor der Umsetzu
 - Den 1.0.0-Eintrag in `assets/changelog.json` auf den tatsächlichen Umfang bringen.
 - `README.md` korrigieren: „Mitglieder erstellen“ beschreibt den Altstand.
 - Crash-Reporting entscheiden.
+- Antwort der DPSG zu Datenschutzrollen, OAuth-Client samt Review-Zugang für Apple/Google sowie Name, Lilie und Stufensymbolen einholen (A-84, A-59, A-64); danach über DSFA für die Geokodierung entscheiden (`specs/datenschutz/dsfa-schwellwert.md`).
+- Impressum: ladungsfähige Anschrift ergänzen, spätestens bevor Supporter-Käufe live gehen (§ 5 DDG).
+- Offene Kartenbefunde klären: GPL-Lizenz von FMTC und erlaubte Quelle für Offline-Kacheln (A-62, A-51, A-55).
+- Prüfen, ob der Caddy des News-Stacks Access-Logs mit IP-Adressen schreibt (Rest von S-06).
+- Store-Anbindung für Supporter-Pakete umsetzen, bevor die neuen Store-Texte („Kostenlos im Kern“, Qualifikationen-Übersicht als Extra) sichtbar werden. Danach den Testschalter `supporterTestZugang` aus Release-Builds nehmen und den DSA-Händlerstatus in App Store Connect und Play Console angeben (A-61).
 
 ## Später prüfen: Arbeitskontext-Ausbau
 

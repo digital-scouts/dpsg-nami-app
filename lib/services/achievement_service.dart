@@ -1,10 +1,13 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+
 import '../domain/achievements/achievement_definition.dart';
 import '../domain/achievements/achievement_progress.dart';
 import '../domain/achievements/achievement_repository.dart';
 
 typedef AchievementNowProvider = DateTime Function();
+typedef AchievementPlatformProvider = TargetPlatform Function();
 
 /// Neu erreichte Stufe eines Erfolgs. [tier] ist `null` bei einmaligen
 /// Erfolgen.
@@ -21,20 +24,24 @@ class AchievementUnlock {
 
 /// Zählt Tätigkeiten und schaltet lokal gespeicherte Erfolge frei.
 ///
-/// Nicht verfügbare Erfolge aus dem Katalog werden ignoriert. Alle Schreib-
+/// Nicht verfügbare oder auf der aktuellen Plattform nicht vorgesehene Erfolge
+/// aus dem Katalog werden ignoriert. Alle Schreib-
 /// zugriffe laufen nacheinander, damit parallele Aufrufe (z. B. Start und
 /// Resume) sich nicht überschreiben.
 class AchievementService {
   AchievementService({
     required AchievementRepository repository,
     AchievementNowProvider? nowProvider,
+    AchievementPlatformProvider? platformProvider,
     List<AchievementDefinition> catalog = achievementCatalog,
   }) : _repository = repository,
        _now = nowProvider ?? DateTime.now,
+       _platform = platformProvider ?? (() => defaultTargetPlatform),
        _catalog = catalog;
 
   final AchievementRepository _repository;
   final AchievementNowProvider _now;
+  final AchievementPlatformProvider _platform;
   final List<AchievementDefinition> _catalog;
   final StreamController<AchievementUnlock> _unlocks =
       StreamController<AchievementUnlock>.broadcast();
@@ -52,7 +59,9 @@ class AchievementService {
     await _queue;
     final records = await _repository.load();
     return [
-      for (final definition in _catalog.where((d) => d.available))
+      for (final definition in _catalog.where(
+        (d) => d.availableOn(_platform()),
+      ))
         AchievementProgress(
           definition: definition,
           count: records[definition.id]?.count ?? 0,
@@ -85,7 +94,7 @@ class AchievementService {
     required bool daily,
   }) async {
     final definition = _catalog.where((d) => d.id == id).firstOrNull;
-    if (definition == null || !definition.available) {
+    if (definition == null || !definition.availableOn(_platform())) {
       return const [];
     }
 

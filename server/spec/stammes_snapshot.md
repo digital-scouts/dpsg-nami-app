@@ -10,7 +10,8 @@
 - Fehlerantwort bei zu vielen Anfragen: `429 Too Many Requests`
 - Ein erneut gesendeter Snapshot mit identischem Stamm, Sender, `source_data_as_of` und `schema_version` wird nicht erneut gespeichert und liefert trotzdem `204`.
 - `sent_at` und `source_data_as_of` dürfen höchstens 24 Stunden in der Zukunft liegen, sonst `invalid_datetime`.
-- Unterstützte `schema_version`: `2026-10-01`. Ältere Versionen werden mit `unsupported_schema_version` abgelehnt. Bereits gespeicherte Snapshots älterer Versionen bleiben liegen, zählen aber für den effektiven Stand nicht mehr und fallen nach zwei Monaten ohnehin aus dem Fenster.
+- Unterstützte `schema_version`: `2026-10-01`. Ältere Versionen werden mit `unsupported_schema_version` abgelehnt. Bereits gespeicherte Snapshots älterer Versionen bleiben bis zum Ablauf der Speicherfrist liegen, zählen aber für den effektiven Stand nicht mehr und fallen nach zwei Monaten ohnehin aus dem Fenster.
+- Speicherfrist: Rohsnapshots werden 14 Monate nach Eingang (`received_at`) gelöscht, Sender 14 Monate nach ihrer letzten erfolgreichen Sendung (ohne Sendung nach der Anlage). Umgesetzt über TTL-Indizes auf dem internen Feld `expires_at`; die Frist deckt den Backfill der Monatsberichte ab. Vorher löscht der Betreiber auf Anfrage (`npm run installation -- loeschen`).
 - Unbekannte Felder werden auf allen Ebenen serverseitig verworfen.
 - Fehlende bekannte Kennzahlenfelder werden serverseitig wie `null` behandelt.
 - IDs werden roh gesendet und im Server direkt nach erfolgreicher Validierung serverseitig pseudonymisiert.

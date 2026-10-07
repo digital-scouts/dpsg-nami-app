@@ -9,6 +9,7 @@ import {
     statisticsCollectionNames,
 } from '../src/infra/mongodb/statisticsPersistence.js';
 import { rebuildEffectiveStatesAndAggregate } from '../src/modules/aggregation/refresh.js';
+import { auskunftFuerInstallation, loescheInstallation } from '../src/modules/betroffenenanfrage/installation.js';
 import { computeReportFigures } from '../src/modules/report/report.js';
 import {
     authHeader,
@@ -47,6 +48,8 @@ describe('statistics server with MongoDB', () => {
         mongo = await MongoMemoryServer.create();
         client = new MongoClient(mongo.getUri());
         await client.connect();
+        // Der TTL-Monitor arbeitet mit echter Zeit und wuerde Testdaten mit festen Daten sonst irgendwann loeschen.
+        await client.db('admin').command({ setParameter: 1, ttlMonitorEnabled: false });
     });
 
     afterAll(async () => {
@@ -72,6 +75,7 @@ describe('statistics server with MongoDB', () => {
         expect(await indexNames(statisticsCollectionNames.effectiveStates)).toContain('effective_states_by_stamm');
         expect(await indexNames(statisticsCollectionNames.weeklyAggregates)).toContain('weekly_aggregates_by_week_and_type');
         expect(await indexNames(statisticsCollectionNames.senders)).toContain('senders_by_pseudonym');
+        expect(await indexNames(statisticsCollectionNames.rawSnapshots)).toContain('raw_snapshots_by_sender');
         expect(await indexNames(statisticsCollectionNames.monthlyReports)).toContain('monthly_reports_by_month');
     });
 
@@ -244,5 +248,95 @@ describe('statistics server with MongoDB', () => {
         });
 
         await server.close();
+    });
+
+    test('legt TTL-Indizes an und setzt expires_at 14 Monate nach Eingang bzw. letzter Sendung', async () => {
+        const ttl = async (collection: string, name: string) =>
+            (await db.collection(collection).indexes()).find((index) => index.name === name);
+
+        expect(await ttl(statisticsCollectionNames.rawSnapshots, 'raw_snapshots_ttl')).toMatchObject({
+            key: { expires_at: 1 },
+            expireAfterSeconds: 0,
+        });
+        expect(await ttl(statisticsCollectionNames.senders, 'senders_ttl')).toMatchObject({
+            key: { expires_at: 1 },
+            expireAfterSeconds: 0,
+        });
+
+        const server = buildMongoServer();
+        expect((await share(server, {})).statusCode).toBe(204);
+        time.now = new Date('2026-09-01T12:00:00Z');
+        expect((await share(server, { source_data_as_of: time.now.toISOString() })).statusCode).toBe(204);
+        await server.close();
+
+        const raw = await db.collection(statisticsCollectionNames.rawSnapshots).find().sort({ received_at: 1 }).toArray();
+        expect(raw.map((document) => document.expires_at)).toEqual([
+            new Date('2027-08-10T12:00:00Z'),
+            new Date('2027-11-01T12:00:00Z'),
+        ]);
+        const [sender] = await db.collection(statisticsCollectionNames.senders).find().toArray();
+        expect(sender?.expires_at).toEqual(new Date('2027-11-01T12:00:00Z'));
+
+        // Die Fachlogik sieht das interne Feld nicht.
+        const dependencies = buildMongoDependencies(db, time.clock);
+        const [gelesen] = await dependencies.rawSnapshotsRepository.findSince(new Date('2026-01-01T00:00:00Z'));
+        expect(gelesen).not.toHaveProperty('expires_at');
+        expect(await dependencies.senderRepository.findByPseudonym(String(sender?.sender_pseudonym))).not.toHaveProperty('expires_at');
+    });
+
+    test('versieht Altbestand ohne expires_at beim Start nachträglich mit Ablauf', async () => {
+        await db.collection(statisticsCollectionNames.rawSnapshots).insertOne({
+            schema_version: 0,
+            stamm_pseudonym: 'stamm_alt',
+            sender_pseudonym: 'sender_alt',
+            source_data_as_of: new Date('2026-05-01T00:00:00Z'),
+            received_at: new Date('2026-05-02T00:00:00Z'),
+        });
+        await db.collection(statisticsCollectionNames.senders).insertMany([
+            {
+                sender_pseudonym: 'sender_alt',
+                secret_hash: 'x',
+                created_at: new Date('2026-03-01T00:00:00Z'),
+                last_successful_send_at: new Date('2026-05-02T00:00:00Z'),
+            },
+            {
+                sender_pseudonym: 'sender_nie',
+                secret_hash: 'y',
+                created_at: new Date('2026-03-01T00:00:00Z'),
+                last_successful_send_at: null,
+            },
+        ]);
+
+        await initializeStatisticsPersistence(db);
+
+        expect((await db.collection(statisticsCollectionNames.rawSnapshots).findOne({ sender_pseudonym: 'sender_alt' }))?.expires_at)
+            .toEqual(new Date('2027-07-02T00:00:00Z'));
+        const senders = await db.collection(statisticsCollectionNames.senders).find().sort({ sender_pseudonym: 1 }).toArray();
+        expect(senders.map((sender) => sender.expires_at)).toEqual([
+            new Date('2027-07-02T00:00:00Z'),
+            new Date('2027-05-01T00:00:00Z'),
+        ]);
+    });
+
+    test('Auskunft und Löschung einer Installation auf Anfrage', async () => {
+        const server = buildMongoServer();
+        expect((await share(server, { sender_id: 'install-a', gruppen: [gruppe('g-biber', 'biber', 4)] })).statusCode).toBe(204);
+        time.now = new Date('2026-06-11T12:00:00Z');
+        expect((await share(server, { sender_id: 'install-b', gruppen: [gruppe('g-biber', 'biber', 7)] }, OTHER_SECRET)).statusCode).toBe(204);
+        await server.close();
+
+        const dependencies = buildMongoDependencies(db, time.clock);
+        const auskunft = await auskunftFuerInstallation(dependencies, 'install-b', 'test-secret');
+        expect(auskunft.snapshots).toHaveLength(1);
+        expect(JSON.stringify(auskunft)).not.toContain('secret_hash');
+        expect(JSON.stringify(auskunft)).not.toContain('expires_at');
+
+        expect(await loescheInstallation(dependencies, 'install-b', 'test-secret', time.now))
+            .toMatchObject({ geloeschte_snapshots: 1, sender_geloescht: true });
+
+        expect(await db.collection(statisticsCollectionNames.rawSnapshots).countDocuments()).toBe(1);
+        expect(await db.collection(statisticsCollectionNames.senders).countDocuments()).toBe(1);
+        const states = await db.collection(statisticsCollectionNames.effectiveStates).find().toArray();
+        expect(states[0]?.gruppen[0]?.wert?.mitglieder.gesamt).toBe(4);
     });
 });
