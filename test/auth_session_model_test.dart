@@ -1597,6 +1597,109 @@ void main() {
       timeout: const Timeout(Duration(seconds: 3)),
     );
   });
+
+  group('Loeschen lokaler Caches', () {
+    AuthSessionModel buildModel({
+      required FakeSensitiveStorageService sensitiveStorage,
+      required Future<void> Function() purgeLocalPersonalData,
+      AuthSession? initialSession,
+      AuthSession? sessionToReturn,
+      bool appLockEnabled = false,
+    }) {
+      return AuthSessionModel(
+        repository: InMemoryAuthSessionRepository(
+          initialSession: initialSession,
+        ),
+        profileRepository: InMemoryAuthProfileRepository(),
+        oauthService: FakeOauthService(
+          sessionToReturn:
+              sessionToReturn ??
+              AuthSession(
+                accessToken: 'access-token',
+                receivedAt: DateTime(2026, 10, 7),
+              ),
+          profileToReturn: const AuthProfile(namiId: 31),
+        ),
+        biometricLockService: FakeBiometricLockService(available: true),
+        sensitiveStorageService: sensitiveStorage,
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => DateTime(2026, 10, 7, 12),
+        ),
+        logger: _createLogger(),
+        isAppLockEnabled: () => appLockEnabled,
+        purgeLocalPersonalData: purgeLocalPersonalData,
+      );
+    }
+
+    test('Abmelden loescht die lokalen Caches', () async {
+      var aufrufe = 0;
+      final model = buildModel(
+        sensitiveStorage: FakeSensitiveStorageService(),
+        purgeLocalPersonalData: () async => aufrufe++,
+      );
+
+      await model.logout();
+
+      expect(aufrufe, 1);
+      expect(model.state, AuthState.signedOut);
+    });
+
+    test('Fehler beim Cache-Loeschen bricht das Abmelden nicht ab', () async {
+      final model = buildModel(
+        sensitiveStorage: FakeSensitiveStorageService(),
+        purgeLocalPersonalData: () async =>
+            throw const FileSystemException('kein Zugriff'),
+      );
+
+      await model.logout();
+
+      expect(model.state, AuthState.signedOut);
+      expect(model.session, isNull);
+    });
+
+    test('Benutzerwechsel loescht die lokalen Caches', () async {
+      var aufrufe = 0;
+      final sensitiveStorage = FakeSensitiveStorageService()
+        ..principal = 'person-alt';
+      final model = buildModel(
+        sensitiveStorage: sensitiveStorage,
+        purgeLocalPersonalData: () async => aufrufe++,
+        sessionToReturn: AuthSession(
+          accessToken: 'access-token',
+          receivedAt: DateTime(2026, 10, 7),
+          principal: 'person-neu',
+        ),
+      );
+
+      await model.signIn();
+
+      expect(aufrufe, 1);
+      expect(sensitiveStorage.principal, 'person-neu');
+    });
+
+    test(
+      'Zuruecksetzen einer uebernommenen Session loescht die lokalen Caches',
+      () async {
+        var aufrufe = 0;
+        final model = buildModel(
+          sensitiveStorage: FakeSensitiveStorageService(),
+          purgeLocalPersonalData: () async => aufrufe++,
+          initialSession: AuthSession(
+            accessToken: 'existing-token',
+            receivedAt: DateTime(2026, 10, 7),
+          ),
+          appLockEnabled: true,
+        );
+
+        await model.initialize();
+
+        expect(aufrufe, 1);
+        expect(model.state, AuthState.signedOut);
+      },
+    );
+  });
 }
 
 FakeLoggerService _createLogger() => FakeLoggerService();

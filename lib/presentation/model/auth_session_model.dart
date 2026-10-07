@@ -60,6 +60,7 @@ class AuthSessionModel extends ChangeNotifier {
     Future<void> Function(String languageCode)? onPreferredLanguageChanged,
     bool Function()? isAppLockEnabled,
     Duration lockTimeout = const Duration(seconds: 60),
+    Future<void> Function()? purgeLocalPersonalData,
   }) : _repository = repository,
        _profileRepository = profileRepository,
        _oauthService = oauthService,
@@ -70,7 +71,8 @@ class AuthSessionModel extends ChangeNotifier {
        _networkAccessPolicy = networkAccessPolicy,
        _onPreferredLanguageChanged = onPreferredLanguageChanged,
        _isAppLockEnabled = isAppLockEnabled ?? _appLockDisabled,
-       _lockTimeout = lockTimeout;
+       _lockTimeout = lockTimeout,
+       _purgeLocalPersonalData = purgeLocalPersonalData;
 
   final AuthSessionRepository _repository;
   final AuthProfileRepository _profileRepository;
@@ -83,6 +85,9 @@ class AuthSessionModel extends ChangeNotifier {
   final Future<void> Function(String languageCode)? _onPreferredLanguageChanged;
   final bool Function() _isAppLockEnabled;
   final Duration _lockTimeout;
+  // Loescht personenbezogene Daten ausserhalb der Hive-Boxen, etwa den
+  // Geocoding- und Kartencache.
+  final Future<void> Function()? _purgeLocalPersonalData;
 
   static bool _appLockDisabled() => false;
 
@@ -169,7 +174,7 @@ class AuthSessionModel extends ChangeNotifier {
         );
         await _repository.clear();
         await _profileRepository.clear();
-        await _sensitiveStorageService.purgeSensitiveData();
+        await _purgeSensitiveData();
         _session = null;
         _profile = null;
         _lastSensitiveSyncAt = null;
@@ -353,7 +358,7 @@ class AuthSessionModel extends ChangeNotifier {
         'Vorhandene sensible Daten werden wegen Benutzerwechsel geloescht',
       );
       await _profileRepository.clear();
-      await _sensitiveStorageService.purgeSensitiveData();
+      await _purgeSensitiveData();
       _profile = null;
       _lastProfileSyncAt = null;
       _lastSensitiveSyncAt = null;
@@ -411,7 +416,7 @@ class AuthSessionModel extends ChangeNotifier {
     await _logger.trackAuthFlow('logout', 'started');
     await _repository.clear();
     await _profileRepository.clear();
-    await _sensitiveStorageService.purgeSensitiveData();
+    await _purgeSensitiveData();
 
     _session = null;
     _profile = null;
@@ -1232,6 +1237,25 @@ class AuthSessionModel extends ChangeNotifier {
       'Retry fehlgeschlagen, interaktiver Relogin fuer Remote-Zugriffe erforderlich${trigger == null ? '' : ' trigger=$trigger'}',
     );
     notifyListeners();
+  }
+
+  Future<void> _purgeSensitiveData() async {
+    await _sensitiveStorageService.purgeSensitiveData();
+    final purgeLocalPersonalData = _purgeLocalPersonalData;
+    if (purgeLocalPersonalData == null) {
+      return;
+    }
+    try {
+      await purgeLocalPersonalData();
+    } catch (error, stackTrace) {
+      // Ein Cache-Fehler darf Logout und Datenablauf nicht abbrechen.
+      await _logger.logError(
+        'auth_flow',
+        'Lokale Caches konnten nicht geloescht werden',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   Future<void> _expireSensitiveData() async {
