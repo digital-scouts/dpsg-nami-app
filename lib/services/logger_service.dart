@@ -31,6 +31,9 @@ class LoggerService {
   final Map<String, Map<String, Object?>> _debounceLastProps = {};
   DateTime? _lastCleanupAt;
   Future<void>? _cleanupFuture;
+  // Parallele Anhaenge an dieselbe Datei verlieren sonst Zeilen oder
+  // zerreissen sie.
+  Future<void> _writeQueue = Future<void>.value();
 
   LoggerService({
     required this.settingsRepository,
@@ -297,6 +300,12 @@ class LoggerService {
       // ignore: avoid_print
       print(line.trim());
     }
+    final next = _writeQueue.then((_) => _appendLine(line));
+    _writeQueue = next;
+    await next;
+  }
+
+  Future<void> _appendLine(String line) async {
     // Ein Dateifehler (voller Speicher, fehlende Rechte) darf Aufrufer wie
     // Logout oder Datenablauf nicht abbrechen.
     try {
