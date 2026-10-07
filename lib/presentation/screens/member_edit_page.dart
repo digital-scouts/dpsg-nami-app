@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import '../../domain/member/member_resolution.dart';
 import '../../domain/member/mitglied.dart';
 import '../../domain/member/pending_person_update.dart';
 import '../../l10n/app_localizations.dart';
+import '../../services/store_review_prompt_service.dart';
 import '../model/auth_session_model.dart';
 import '../model/member_edit_model.dart';
 import '../notifications/app_snackbar.dart';
@@ -1216,7 +1218,13 @@ class _MemberEditPageState extends State<MemberEditPage> {
         return;
       }
       if (result.success || result.wasQueued) {
+        // Nur nach echtem Speichern beim Server, nicht fuer Wartendes. Der
+        // Dienst prueft Plattform, Demo-Modus und Einmaligkeit selbst.
+        final storeReview = result.success
+            ? context.read<StoreReviewPromptService?>()
+            : null;
         Navigator.of(context).pop(result);
+        unawaited(storeReview?.requestAfterMemberSaved());
         return;
       }
       final hasMappedValidationErrors = _applyValidationErrors(result);
