@@ -71,13 +71,39 @@ class HitobitoGroupsService {
       );
     }
 
+    try {
+      return await _fetchGroupList(
+        requestUri,
+        accessToken,
+        query: const <String, String>{'fields[groups]': hitobitoGroupFields},
+      );
+    } on HitobitoGroupsException catch (error) {
+      // 500 heisst hier praktisch immer: ein einzelner Datensatz der Seite
+      // ist nicht serialisierbar. Statt alle Nutzer am selben Datensatz
+      // scheitern zu lassen, wird um ihn herum geladen.
+      if (error.statusCode != 500) {
+        rethrow;
+      }
+      await _logger?.logWarn(
+        'hitobito_groups',
+        'Gruppenseite mit 500 abgelehnt, lade Gruppen in ID-Bloecken',
+      );
+      return _fetchGroupsInIdBlocks(requestUri, accessToken);
+    }
+  }
+
+  Future<List<HitobitoGroupResource>> _fetchGroupList(
+    Uri requestUri,
+    String accessToken, {
+    required Map<String, String> query,
+  }) async {
     final resources = <HitobitoGroupResource>[];
     Uri? nextUri = requestUri;
 
     while (nextUri != null) {
       final effectiveRequestUri = withHitobitoListFilter(
         withHitobitoListPaging(nextUri),
-        const <String, String>{'fields[groups]': hitobitoGroupFields},
+        query,
       );
       final decoded = await _fetchGroupsPage(
         requestUri: effectiveRequestUri,
@@ -88,6 +114,107 @@ class HitobitoGroupsService {
     }
 
     return resources;
+  }
+
+  static const int _groupIdsPerRequest = 200;
+
+  /// Felder, die fuer Layer-Zuordnung und Kontext mindestens noetig sind.
+  static const String _minimalGroupFields =
+      'name,layer,parent_id,layer_group_id,type';
+
+  /// Rueckfall bei einer defekten Gruppenseite: alle IDs holen, in Bloecken
+  /// laden und scheiternde Bloecke halbieren, bis die defekten Gruppen
+  /// einzeln feststehen.
+  Future<List<HitobitoGroupResource>> _fetchGroupsInIdBlocks(
+    Uri requestUri,
+    String accessToken,
+  ) async {
+    final ids = await _fetchAllGroupIds(accessToken);
+    final groups = <HitobitoGroupResource>[];
+    for (var start = 0; start < ids.length; start += _groupIdsPerRequest) {
+      final end = start + _groupIdsPerRequest > ids.length
+          ? ids.length
+          : start + _groupIdsPerRequest;
+      groups.addAll(
+        await _fetchGroupIdBlock(
+          requestUri,
+          accessToken,
+          ids: ids.sublist(start, end),
+        ),
+      );
+    }
+    return groups;
+  }
+
+  Future<List<HitobitoGroupResource>> _fetchGroupIdBlock(
+    Uri requestUri,
+    String accessToken, {
+    required List<int> ids,
+  }) async {
+    try {
+      return await _fetchGroupList(
+        requestUri,
+        accessToken,
+        query: <String, String>{
+          'filter[id]': ids.join(','),
+          'fields[groups]': hitobitoGroupFields,
+        },
+      );
+    } on HitobitoGroupsException catch (error) {
+      if (error.statusCode != 500) {
+        rethrow;
+      }
+    }
+
+    if (ids.length == 1) {
+      return _fetchGroupMinimal(requestUri, accessToken, id: ids.single);
+    }
+    final middle = ids.length ~/ 2;
+    return <HitobitoGroupResource>[
+      ...await _fetchGroupIdBlock(
+        requestUri,
+        accessToken,
+        ids: ids.sublist(0, middle),
+      ),
+      ...await _fetchGroupIdBlock(
+        requestUri,
+        accessToken,
+        ids: ids.sublist(middle),
+      ),
+    ];
+  }
+
+  /// Laedt eine defekte Gruppe nur mit den noetigsten Feldern. Scheitert
+  /// auch das, wird sie ausgelassen.
+  Future<List<HitobitoGroupResource>> _fetchGroupMinimal(
+    Uri requestUri,
+    String accessToken, {
+    required int id,
+  }) async {
+    try {
+      final groups = await _fetchGroupList(
+        requestUri,
+        accessToken,
+        query: <String, String>{
+          'filter[id]': '$id',
+          'fields[groups]': _minimalGroupFields,
+        },
+      );
+      await _logger?.logWarn(
+        'hitobito_groups',
+        'Gruppe nur mit Minimalfeldern geladen id=$id',
+      );
+      return groups;
+    } on HitobitoGroupsException catch (error) {
+      if (error.statusCode != 500) {
+        rethrow;
+      }
+      await _logger?.logWarn(
+        'hitobito_groups',
+        'Gruppe nicht ladbar und ausgelassen id=$id',
+      );
+      return const <HitobitoGroupResource>[];
+    }
   }
 
   /// Ungueltige Einzelgruppen werden uebersprungen, statt den ganzen Abruf
@@ -199,13 +326,15 @@ class HitobitoGroupsService {
     }
 
     final ids = <int>[];
-    Uri? nextUri = base.replace(
-      queryParameters: {'fields[groups]': 'id', 'sort': 'id'},
-    );
+    Uri? nextUri = base;
 
     while (nextUri != null) {
+      final effectiveRequestUri = withHitobitoListFilter(
+        withHitobitoListPaging(nextUri),
+        const <String, String>{'fields[groups]': 'id'},
+      );
       final decoded = await _fetchGroupsPage(
-        requestUri: nextUri,
+        requestUri: effectiveRequestUri,
         accessToken: accessToken,
       );
       final data = decoded['data'];
@@ -217,7 +346,7 @@ class HitobitoGroupsService {
               .where((id) => id > 0),
         );
       }
-      nextUri = _resolveNextUri(decoded, currentUri: nextUri);
+      nextUri = _resolveNextUri(decoded, currentUri: effectiveRequestUri);
     }
 
     ids.sort();
