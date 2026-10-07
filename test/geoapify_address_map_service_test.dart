@@ -180,6 +180,26 @@ void main() {
     expect(messages, isNot(contains('Musterweg 4')));
   });
 
+  test('loggt Verbindungsfehler ohne URI, Adresse und API-Key', () async {
+    final logger = _RecordingLoggerService();
+    final service = GeoapifyAddressMapService(
+      apiKeyOverride: 'test-key',
+      logger: logger,
+      detailedLogEnabled: false,
+      httpClient: MockClient((request) async {
+        throw http.ClientException('Verbindung abgebrochen', request.url);
+      }),
+    );
+
+    final result = await service.resolveAddress('Geheime Adresse 1, 12345 Ort');
+
+    expect(result.technicalError, isTrue);
+    final messages = logger.messages.join('\n');
+    expect(messages, contains('ClientException'));
+    expect(messages, isNot(contains('test-key')));
+    expect(messages, isNot(contains('Geheime')));
+  });
+
   test('loggt mit Detailed-Log gesuchte Adresse und Trefferliste', () async {
     final logger = _RecordingLoggerService();
     final service = GeoapifyAddressMapService(

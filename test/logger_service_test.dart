@@ -109,6 +109,33 @@ void main() {
     expect(await service.listLogFileNames(), ['app-2026-04-08.log']);
   });
 
+  test('Schreibfehler im Log-Verzeichnis werfen nicht', () async {
+    final tempDir = await Directory.systemTemp.createTemp('logger_test');
+    addTearDown(() => tempDir.delete(recursive: true));
+    // Eine Datei an Stelle des Verzeichnisses: jedes Schreiben scheitert.
+    final blockiert = File('${tempDir.path}/logs');
+    await blockiert.writeAsString('');
+
+    final service = LoggerService(
+      settingsRepository: _FakeRepo(
+        const AppSettings(
+          themeMode: ThemeMode.system,
+          languageCode: 'de',
+          analyticsEnabled: false,
+        ),
+      ),
+      navigatorKey: GlobalKey<NavigatorState>(),
+      logsDirectoryProvider: () async => Directory(blockiert.path),
+      nowProvider: () => DateTime(2026, 4, 8, 12, 0, 0),
+    );
+
+    await expectLater(
+      service.logInfo('auth_flow', 'logout started'),
+      completes,
+    );
+    await expectLater(service.logError('auth_flow', 'fehler'), completes);
+  });
+
   test('logHttpRequest schreibt kurze Zeile ohne Query oder Body', () async {
     final tempDir = await Directory.systemTemp.createTemp('logger_http_test');
     final repo = _FakeRepo(

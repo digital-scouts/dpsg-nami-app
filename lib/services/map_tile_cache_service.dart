@@ -122,7 +122,7 @@ class MapTileCacheService {
       );
       final instanceId = '$reason:${DateTime.now().microsecondsSinceEpoch}';
       await _log(
-        'Offline-Download gestartet: reason=$reason, radiusKm=$radiusKm, lat=${center.latitude}, lon=${center.longitude}',
+        'Offline-Download gestartet: reason=$reason, radiusKm=$radiusKm',
       );
       final streams = store.download.startForeground(
         region: region,

@@ -175,11 +175,10 @@ class _StammAddressSettingsState extends State<StammAddressSettings> {
     if (location == null) {
       return;
     }
-    final fingerprint = MemberAddressUtils.fingerprintFromText(addressText);
     await tileCacheService.downloadRegion(
       center: location,
       radiusKm: MapsEnv.stammOfflineRadiusKm,
-      reason: fingerprint,
+      reason: 'stammadresse',
       wifiOnly: true,
     );
   }

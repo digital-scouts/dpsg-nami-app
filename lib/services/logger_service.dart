@@ -291,15 +291,21 @@ class LoggerService {
     String service,
     String message,
   ) async {
-    await _maybeCleanupLogs();
     final ts = DateFormat('yyyy-MM-dd HH:mm:ss').format(_now());
     final line = '[$ts] [${level.name}] [$service] $message\n';
     if (kDebugMode) {
       // ignore: avoid_print
       print(line.trim());
     }
-    final file = await _logFile();
-    await file.writeAsString(line, mode: FileMode.append, flush: true);
+    // Ein Dateifehler (voller Speicher, fehlende Rechte) darf Aufrufer wie
+    // Logout oder Datenablauf nicht abbrechen.
+    try {
+      await _maybeCleanupLogs();
+      final file = await _logFile();
+      await file.writeAsString(line, mode: FileMode.append, flush: true);
+    } on FileSystemException {
+      return;
+    }
   }
 
   Future<void> trackEvent(String name, Map<String, Object?> properties) async {
