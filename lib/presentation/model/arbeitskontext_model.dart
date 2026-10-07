@@ -420,6 +420,10 @@ class ArbeitskontextModel extends ChangeNotifier {
     return false;
   }
 
+  /// Uebernimmt die Stammdaten eines frisch geladenen oder gespeicherten
+  /// Mitglieds. Rollen kommen nur aus dem Sync, mit Gruppennamen und
+  /// Verlauf; der Schreibpfad liefert keine. Deshalb bleiben die vorhandenen
+  /// Rollen erhalten.
   Future<void> ersetzeMitglied(Mitglied mitglied) async {
     final readModel = _readModel;
     if (readModel == null) {
@@ -429,7 +433,7 @@ class ArbeitskontextModel extends ChangeNotifier {
     final nextMitglieder = readModel.mitglieder
         .map((existing) {
           if (existing.mitgliedsnummer == mitglied.mitgliedsnummer) {
-            return mitglied;
+            return mitglied.copyWith(roles: existing.roles);
           }
           return existing;
         })
