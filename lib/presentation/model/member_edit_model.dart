@@ -77,10 +77,15 @@ class MemberEditPrepareResult {
     this.preferDeferredSaveUi = false,
     this.message,
     this.messageSpec,
+    this.pendingEntry,
   });
 
   final bool success;
   final Mitglied? member;
+
+  /// Wartender Eintrag, aus dem [member] stammt. Seine Basis gehoert zum
+  /// Entwurf und muss beim Speichern mitgesendet werden.
+  final PendingPersonUpdate? pendingEntry;
   final bool preferDeferredSaveUi;
   final String? message;
   final UiMessageSpec? messageSpec;
@@ -325,6 +330,7 @@ class MemberEditModel extends ChangeNotifier {
       return MemberEditPrepareResult(
         success: true,
         member: pendingEntry.zielMitglied,
+        pendingEntry: pendingEntry,
         messageSpec: UiMessageSpec(
           pendingEntry.needsResolution
               ? 'member_detail_resolution_required_notice'
@@ -498,6 +504,9 @@ class MemberEditModel extends ChangeNotifier {
     }
   }
 
+  /// Sendet [zielMitglied]. [basisMitglied] muss der Stand sein, auf dem der
+  /// Entwurf beruht: der beim Oeffnen geladene Serverstand oder die Basis des
+  /// wartenden Eintrags, aus dem der Entwurf stammt.
   Future<MemberEditSubmitResult> submitUpdate({
     required String accessToken,
     required Mitglied basisMitglied,
@@ -517,13 +526,13 @@ class MemberEditModel extends ChangeNotifier {
     _isSubmitting = true;
     _setBusy(true);
     try {
-      // Ein laufender Retry kann den Eintrag dieser Person noch entfernen oder
-      // ersetzen; erst danach ist die gespeicherte Basis verlaesslich.
+      // Nicht parallel zu einem laufenden Retry senden. Die Basis bleibt die
+      // des Entwurfs: Hat der Retry den Eintrag inzwischen zum Konfliktfall
+      // gemacht, erkennt der Merge denselben Konflikt erneut.
       final runningRetry = _retryInFlight;
       if (runningRetry != null) {
         await runningRetry;
       }
-      basisMitglied = _queuedBasisFor(personId) ?? basisMitglied;
       if (existingResolutionCase != null) {
         await _logResolutionEvent(
           eventName: 'member_resolution_resend_started',
@@ -610,13 +619,18 @@ class MemberEditModel extends ChangeNotifier {
         message: error.message,
       );
     } on MemberWriteNeedsResolutionException catch (error) {
+      final remoteMitglied = error.resolutionCase.remoteMitglied;
       final entry = _buildPendingEntry(
         personId: personId,
-        basisMitglied: basisMitglied,
-        zielMitglied: zielMitglied,
+        basisMitglied: remoteMitglied,
+        zielMitglied: MemberConflictResolver.rebase(
+          basisMitglied: basisMitglied,
+          zielMitglied: zielMitglied,
+          remoteMitglied: remoteMitglied,
+        ),
         status: PendingPersonUpdateStatus.needsResolution,
         resolutionCase: MemberResolutionCase(
-          remoteMitglied: error.resolutionCase.remoteMitglied,
+          remoteMitglied: remoteMitglied,
           items: error.resolutionCase.items,
           source: MemberResolutionSource.manualSave,
         ),
@@ -863,27 +877,6 @@ class MemberEditModel extends ChangeNotifier {
     }
   }
 
-  /// Liefert die urspruengliche Serverbasis eines wartenden Entwurfs.
-  ///
-  /// Wird ein wartender Entwurf erneut bearbeitet, uebergibt die UI den alten
-  /// Entwurf als Basis. Ohne die urspruengliche Basis wuerden dessen
-  /// Aenderungen beim Merge als "lokal unveraendert" gelten und vom
-  /// Serverstand ueberschrieben. Bei Merge-Konflikten ist der Serverstand aus
-  /// dem Konfliktfall die richtige Basis, daher bleibt die uebergebene Basis.
-  Mitglied? _queuedBasisFor(int personId) {
-    for (final entry in _pendingUpdates) {
-      if (entry.personId != personId) {
-        continue;
-      }
-      final resolutionCase = entry.resolutionCase;
-      if (resolutionCase != null && resolutionCase.hasMergeConflicts) {
-        return null;
-      }
-      return entry.basisMitglied;
-    }
-    return null;
-  }
-
   Future<PendingPersonUpdateRetrySummary> retryPending({
     required String accessToken,
     Iterable<String>? entryIds,
@@ -997,10 +990,17 @@ class MemberEditModel extends ChangeNotifier {
             ),
           );
         } on MemberWriteNeedsResolutionException catch (error) {
+          final remoteMitglied = error.resolutionCase.remoteMitglied;
           final resolutionEntry = attemptedEntry.copyWith(
+            basisMitglied: remoteMitglied,
+            zielMitglied: MemberConflictResolver.rebase(
+              basisMitglied: attemptedEntry.basisMitglied,
+              zielMitglied: attemptedEntry.zielMitglied,
+              remoteMitglied: remoteMitglied,
+            ),
             status: PendingPersonUpdateStatus.needsResolution,
             resolutionCase: MemberResolutionCase(
-              remoteMitglied: error.resolutionCase.remoteMitglied,
+              remoteMitglied: remoteMitglied,
               items: error.resolutionCase.items,
               source: MemberResolutionSource.pendingRetry,
             ),

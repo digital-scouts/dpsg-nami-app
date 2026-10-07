@@ -308,20 +308,30 @@ PendingPersonUpdate _buildPendingEntry({
   required Mitglied remoteMitglied,
   required List<MemberResolutionItem> items,
 }) {
+  final resolutionCase = MemberResolutionCase(
+    remoteMitglied: remoteMitglied,
+    items: items,
+    source: MemberResolutionSource.pendingRetry,
+  );
+  // Wie in der App: Konfliktfaelle sind auf den Serverstand umgestellt.
+  final hasMergeConflicts = resolutionCase.hasMergeConflicts;
+  final entwurf = hasMergeConflicts
+      ? MemberConflictResolver.rebase(
+          basisMitglied: basisMitglied,
+          zielMitglied: zielMitglied,
+          remoteMitglied: remoteMitglied,
+        )
+      : zielMitglied;
   return PendingPersonUpdate(
     entryId: 'story-${zielMitglied.personId}',
     personId: zielMitglied.personId!,
     mitgliedsnummer: zielMitglied.mitgliedsnummer,
     displayName: zielMitglied.fullName,
-    basisMitglied: basisMitglied,
-    zielMitglied: zielMitglied,
+    basisMitglied: hasMergeConflicts ? remoteMitglied : basisMitglied,
+    zielMitglied: entwurf,
     queuedAt: DateTime(2026, 4, 16, 11, 0),
     status: PendingPersonUpdateStatus.needsResolution,
-    resolutionCase: MemberResolutionCase(
-      remoteMitglied: remoteMitglied,
-      items: items,
-      source: MemberResolutionSource.pendingRetry,
-    ),
+    resolutionCase: resolutionCase,
   );
 }
 

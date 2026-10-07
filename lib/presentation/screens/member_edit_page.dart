@@ -4,13 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../domain/member/member_phone_input.dart';
 import '../../domain/member/member_resolution.dart';
 import '../../domain/member/mitglied.dart';
 import '../../domain/member/pending_person_update.dart';
 import '../../l10n/app_localizations.dart';
 import '../model/auth_session_model.dart';
 import '../model/member_edit_model.dart';
-import '../model/member_phone_input.dart';
 import '../notifications/app_snackbar.dart';
 
 class MemberEditPage extends StatefulWidget {
@@ -86,6 +86,18 @@ class _MemberEditPageState extends State<MemberEditPage> {
       return fullName;
     }
     return widget.mitglied.mitgliedsnummer;
+  }
+
+  /// Ohne Aenderung gibt es nichts zu senden. Problemfaelle und wartende
+  /// Entwuerfe lassen sich dagegen immer abschliessen bzw. senden.
+  bool get _canSave {
+    if (widget.pendingEntry != null) {
+      return true;
+    }
+    return MemberConflictResolver.hasLocalChanges(
+      basisMitglied: widget.mitglied,
+      zielMitglied: _buildTargetMember(),
+    );
   }
 
   bool get _cannotSendNow {
@@ -194,6 +206,8 @@ class _MemberEditPageState extends State<MemberEditPage> {
           Expanded(
             child: Form(
               key: _formKey,
+              // Haelt den Zustand des Speichern-Buttons aktuell.
+              onChanged: () => setState(() {}),
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final horizontalPadding = switch (constraints.maxWidth) {
@@ -326,7 +340,7 @@ class _MemberEditPageState extends State<MemberEditPage> {
             constraints: const BoxConstraints(maxWidth: 1320),
             child: FilledButton.icon(
               key: const Key('member-edit-save-button'),
-              onPressed: _isSubmitting ? null : _save,
+              onPressed: _isSubmitting || !_canSave ? null : _save,
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(52),
                 backgroundColor: cannotSendNow
@@ -1172,7 +1186,9 @@ class _MemberEditPageState extends State<MemberEditPage> {
       final targetMember = _buildTargetMember();
       final result = await memberEditModel.submitUpdate(
         accessToken: accessToken,
-        basisMitglied: _resolutionCase?.remoteMitglied ?? widget.mitglied,
+        // Basis ist immer die des geoeffneten Entwurfs. Konfliktfaelle sind
+        // bereits auf den Serverstand umgestellt.
+        basisMitglied: widget.pendingEntry?.basisMitglied ?? widget.mitglied,
         zielMitglied: targetMember,
         trigger: _isResolutionMode ? 'manual_resolution' : 'manual_edit',
         existingResolutionCase: _resolutionCase,
@@ -1254,14 +1270,15 @@ class _MemberEditPageState extends State<MemberEditPage> {
         .where((adresse) => !adresse.istLeer)
         .toList(growable: false);
 
+    final gender = _resolveGenderValue();
     return widget.mitglied.copyWith(
       vorname: _vornameController.text.trim(),
       nachname: _nachnameController.text.trim(),
       fahrtenname: _trimToNull(_fahrtennameController.text),
       fahrtennameLoeschen: _trimToNull(_fahrtennameController.text) == null,
       geburtsdatum: _geburtsdatum ?? Mitglied.peoplePlaceholderDate,
-      gender: _gender ?? '',
-      genderLoeschen: false,
+      gender: gender,
+      genderLoeschen: gender == null,
       telefonnummern: phones,
       emailAdressen: emails,
       adressen: <MitgliedKontaktAdresse>[
@@ -1286,7 +1303,8 @@ class _MemberEditPageState extends State<MemberEditPage> {
         return email;
       }
     }
-    return emails.isEmpty ? null : emails.first;
+    // Zusatz-E-Mails sind nie die Haupt-E-Mail, auch wenn diese fehlt.
+    return null;
   }
 
   List<String> _buildGenderItems() {
@@ -1296,6 +1314,24 @@ class _MemberEditPageState extends State<MemberEditPage> {
       items.add(currentGender);
     }
     return items;
+  }
+
+  /// Das Auswahlfeld kennt nur w, m und Unbekannt. Entspricht die Auswahl
+  /// einem geladenen Wert, bleibt dessen Rohwert erhalten, auch null oder ein
+  /// Altwert; so gilt ein unberuehrtes Feld nie als Aenderung. Eine bewusste
+  /// Auswahl von Unbekannt wird zu null.
+  String? _resolveGenderValue() {
+    final selected = _gender ?? '';
+    final loadedValues = <String?>[
+      widget.mitglied.gender,
+      widget.pendingEntry?.basisMitglied.gender,
+    ];
+    for (final loaded in loadedValues) {
+      if ((_normalizeGenderValue(loaded) ?? '') == selected) {
+        return loaded;
+      }
+    }
+    return selected.isEmpty ? null : selected;
   }
 
   String? _normalizeGenderValue(String? value) {

@@ -75,6 +75,125 @@ void main() {
   );
 
   test(
+    'Problemloesung sendet nur die strittige Aenderung und erhaelt fremde Aenderungen',
+    () {
+      fakeAsync((async) {
+        final chain = _SyncChain(
+          async,
+          connectivity: FakeConnectivity.offline(),
+        );
+        chain.api.serverEdit(_personId, <String, dynamic>{
+          'street': 'Alte Strasse',
+          'housenumber': '1',
+        });
+        final basis = chain.loadMember();
+        chain.submit(basis.copyWith(fahrtenname: 'Polka'));
+
+        // Jemand anderes aendert in Hitobito dasselbe Feld, ein weiteres Feld
+        // und legt eine Telefonnummer an.
+        chain.api.serverEdit(_personId, <String, dynamic>{
+          'nickname': 'Pfiff',
+          'street': 'Neue Strasse',
+        });
+        chain.api.serverAddPhoneNumber(
+          _personId,
+          number: '+49 171 3333333',
+          label: 'Mobil',
+        );
+        chain.connectivity.setWifi();
+        async.flushMicrotasks();
+
+        final entry = chain.memberEditModel.firstResolutionEntry!;
+        expect(entry.basisMitglied, entry.resolutionCase!.remoteMitglied);
+        expect(entry.zielMitglied.fahrtenname, 'Polka');
+        expect(entry.zielMitglied.primaryAddress?.street, 'Neue Strasse');
+        expect(entry.zielMitglied.telefonnummern, hasLength(1));
+
+        // „Lokal behalten“ und speichern, wie die Bearbeiten-Seite.
+        late MemberEditSubmitResult result;
+        chain.memberEditModel
+            .submitUpdate(
+              accessToken: chain.authModel.session!.accessToken,
+              basisMitglied: entry.basisMitglied,
+              zielMitglied: entry.zielMitglied,
+              trigger: 'manual_resolution',
+              existingResolutionCase: entry.resolutionCase,
+            )
+            .then((value) => result = value);
+        async.flushMicrotasks();
+
+        expect(result.success, isTrue);
+        final data = chain.api.putRequests.single.body!['data'];
+        expect(data['attributes'], <String, dynamic>{'nickname': 'Polka'});
+        final phoneData =
+            data['relationships']?['phone_numbers']?['data'] as List<dynamic>?;
+        expect(phoneData ?? const <dynamic>[], isEmpty);
+        expect(chain.api.attributeOf(_personId, 'nickname'), 'Polka');
+        expect(chain.api.attributeOf(_personId, 'street'), 'Neue Strasse');
+        expect(chain.api.phoneNumbersOf(_personId), hasLength(1));
+        expect(chain.memberEditModel.pendingUpdates, isEmpty);
+        chain.dispose();
+      });
+    },
+  );
+
+  test(
+    'Speichern eines wartenden Entwurfs waehrend eines Retry-Konflikts meldet keinen Erfolg',
+    () {
+      fakeAsync((async) {
+        final chain = _SyncChain(
+          async,
+          connectivity: FakeConnectivity.offline(),
+        );
+        final basis = chain.loadMember();
+        final entwurf = basis.copyWith(fahrtenname: 'Polka');
+        chain.submit(entwurf);
+
+        // Die Bearbeiten-Seite oeffnet den wartenden Entwurf samt Basis.
+        late MemberEditPrepareResult prepared;
+        chain.memberEditModel
+            .prepareForEdit(
+              accessToken: chain.authModel.session!.accessToken,
+              mitglied: basis,
+            )
+            .then((value) => prepared = value);
+        async.flushMicrotasks();
+        expect(prepared.member, entwurf);
+        expect(prepared.pendingEntry!.basisMitglied, basis);
+
+        chain.api.serverEdit(_personId, <String, dynamic>{'nickname': 'Pfiff'});
+        chain.connectivity.setWifi();
+        // Ein Retry laeuft an, waehrend die Seite eine weitere Aenderung
+        // speichert.
+        unawaited(
+          chain.memberEditModel.retryPending(
+            accessToken: chain.authModel.session!.accessToken,
+          ),
+        );
+        late MemberEditSubmitResult result;
+        chain.memberEditModel
+            .submitUpdate(
+              accessToken: chain.authModel.session!.accessToken,
+              basisMitglied: prepared.pendingEntry!.basisMitglied,
+              zielMitglied: entwurf.copyWith(nachname: 'Kellermann'),
+            )
+            .then((value) => result = value);
+        async.flushMicrotasks();
+
+        expect(result.success, isFalse);
+        expect(result.requiresResolution, isTrue);
+        expect(chain.api.putRequests, isEmpty);
+        expect(chain.api.attributeOf(_personId, 'nickname'), 'Pfiff');
+        final entry = chain.memberEditModel.pendingUpdates.single;
+        expect(entry.needsResolution, isTrue);
+        expect(entry.zielMitglied.fahrtenname, 'Polka');
+        expect(entry.zielMitglied.nachname, 'Kellermann');
+        chain.dispose();
+      });
+    },
+  );
+
+  test(
     '422 bei einer Telefonnummer: offline gespeicherte Nummer wird zum Problemfall',
     () {
       fakeAsync((async) {

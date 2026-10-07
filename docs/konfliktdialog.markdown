@@ -70,6 +70,8 @@ Aktuell sind drei Arten von Fällen angeschlossen:
 
 Direkt zuordenbare Validierungsfehler bei einem manuellen Online-Speichern, zum Beispiel eine ungültige Telefonnummer, bleiben weiterhin im normalen Bearbeiten-Screen.
 
+Bei einem Konflikt stellt die App den gespeicherten Entwurf auf den Serverstand zum Konfliktzeitpunkt um. Was nur in Hitobito geändert wurde, übernimmt sie in den Entwurf, auch neu angelegte Telefonnummern, Zusatzmails und Zusatzadressen. Bei den strittigen Änderungseinheiten bleibt der lokale Wert stehen. Dieser Serverstand ist danach die Vergleichsbasis. Beim erneuten Senden gehen deshalb nur die lokalen Änderungen und die getroffenen Entscheidungen raus, fremde Änderungen werden weder zurückgesetzt noch gelöscht.
+
 Die separate Adressvalidierung für den Offline- oder späteren Sync-Pfad ist fachlich vorgesehen, aber noch nicht an diesen Ablauf angeschlossen.
 
 ## Wo offene Fälle sichtbar sind
@@ -104,6 +106,8 @@ Meldet Hitobito mehrere Probleme zur selben Änderungseinheit, etwa eine fehlend
 Adressen werden nicht als ein einziger String gezeigt, sondern mit ihren einzelnen Feldern untereinander, zum Beispiel Bezeichnung, c/o, Straße, Hausnummer, PLZ, Ort und Land.
 
 Der normale Bearbeiten-Bereich bleibt im selben Screen verfügbar, ist beim Einstieg in den Problemlösungsfall aber zunächst eingeklappt.
+
+Beim normalen Bearbeiten ist Speichern erst aktiv, wenn sich gegenüber dem geladenen Stand etwas geändert hat. Ohne Änderung verlässt der Nutzer den Screen über Zurück. Im Problemlösungsfall und bei einer noch wartenden Änderung bleibt Speichern immer aktiv, weil das Speichern den Fall abschließt oder die Änderung sendet.
 
 Wenn der Nutzer bei einem Problemfeld Bearbeiten wählt, klappt die App den Bearbeiten-Bereich auf und setzt den Fokus auf das passende Eingabefeld. Für Adressprobleme gilt dabei eine Standardregel und der Fokus landet auf dem Straßenfeld der betroffenen Adresse.
 
@@ -157,7 +161,7 @@ Die Mitgliederliste zeigt zusätzlich eine einmalige Snackbar, wenn offene Probl
 
 ## Erneutes Bearbeiten und nicht erreichbares Hitobito
 
-- Wird eine noch nicht gesendete Änderung erneut bearbeitet, bleibt der ursprüngliche Serverstand die Vergleichsbasis. Dadurch gehen die Änderungen aus der ersten Bearbeitung beim späteren Senden nicht verloren.
+- Wird eine noch nicht gesendete Änderung erneut bearbeitet, bleibt der ursprüngliche Serverstand die Vergleichsbasis. Dadurch gehen die Änderungen aus der ersten Bearbeitung beim späteren Senden nicht verloren. Das gilt auch, wenn ein laufender Retry die Änderung währenddessen zum Problemlösungsfall macht: Das Speichern meldet dann erneut den Konflikt statt eines Erfolgs.
 - Ist Hitobito beim Öffnen des Bearbeiten-Screens wegen eines Verbindungsfehlers nicht erreichbar, arbeitet die App mit den lokal gespeicherten Daten weiter und sendet die Änderung später.
 - Ein laufender Retry und ein manuelles Speichern desselben Stands laufen nacheinander, nie gleichzeitig.
 
