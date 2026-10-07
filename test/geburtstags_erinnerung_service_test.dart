@@ -18,6 +18,7 @@ class _FakeMitteilungen implements LokaleMitteilungen {
       >{};
   final abgebrochen = <int>[];
   var planungen = 0;
+  var ohneErlaubnis = false;
 
   @override
   Future<void> initialisieren() async {}
@@ -39,6 +40,9 @@ class _FakeMitteilungen implements LokaleMitteilungen {
     required DateTime zeitpunkt,
     required String kanalName,
   }) async {
+    if (ohneErlaubnis) {
+      throw Exception('Source is not authorized');
+    }
     planungen++;
     geplant[id] = (
       titel: titel,
@@ -355,6 +359,24 @@ void main() {
     await aktualisiere(null);
 
     expect(eigene(), isEmpty);
+  });
+
+  test('nach fehlender Erlaubnis plant derselbe Aufruf erneut', () async {
+    final readModel = qualiReadModel(
+      mitglieder: [
+        _mitglied('1', [
+          mitgliedRolle('Pfadfinder'),
+        ], geburtsdatum: DateTime(2014, 10, 9)),
+      ],
+    );
+    mitteilungen.ohneErlaubnis = true;
+    await aktualisiere(readModel);
+    expect(mitteilungen.planungen, 0);
+
+    mitteilungen.ohneErlaubnis = false;
+    await aktualisiere(readModel);
+
+    expect(mitteilungen.planungen, 1);
   });
 
   test('gleiche Eingaben planen nicht erneut', () async {

@@ -11,6 +11,7 @@ import 'support/qualifikationen_testdaten.dart';
 class _FakeMitteilungen implements LokaleMitteilungen {
   final geplant = <int, ({String titel, String text, DateTime zeitpunkt})>{};
   final abgebrochen = <int>[];
+  var ohneErlaubnis = false;
 
   @override
   Future<void> initialisieren() async {}
@@ -32,6 +33,9 @@ class _FakeMitteilungen implements LokaleMitteilungen {
     required DateTime zeitpunkt,
     required String kanalName,
   }) async {
+    if (ohneErlaubnis) {
+      throw Exception('Source is not authorized');
+    }
     geplant[id] = (titel: titel, text: text, zeitpunkt: zeitpunkt);
   }
 }
@@ -102,6 +106,20 @@ void main() {
     await aktualisiere(pushErlaubt: false);
 
     expect(mitteilungen.geplant.keys, <int>[94031]);
+  });
+
+  test('nach fehlender Erlaubnis plant derselbe Aufruf erneut', () async {
+    mitteilungen.ohneErlaubnis = true;
+    await aktualisiere();
+    expect(mitteilungen.geplant.keys, <int>[94031]);
+
+    mitteilungen.ohneErlaubnis = false;
+    await aktualisiere();
+
+    expect(
+      mitteilungen.geplant.containsKey(QualifikationsErinnerungService.idErste),
+      isTrue,
+    );
   });
 
   test('gleiche Eingaben planen nicht erneut', () async {

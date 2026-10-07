@@ -56,6 +56,9 @@ class GeburtstagsErinnerungService {
             pushErlaubt: pushErlaubt,
             sprache: sprache,
           ).catchError((Object fehler, StackTrace stack) {
+            // Etwa ohne Systemerlaubnis: Stand vergessen, damit die naechste
+            // Aenderung (z. B. die Erlaubnis im Stepper) neu plant.
+            _letzterStand = null;
             unawaited(
               _logger.logWarn(
                 'notifications',
