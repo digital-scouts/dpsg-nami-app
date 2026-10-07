@@ -29,6 +29,15 @@
     android:roundIcon="@mipmap/ic_launcher_round" android:allowBackup="false"
     android:dataExtractionRules="@xml/data_extraction_rules"
     android:fullBackupContent="@xml/backup_rules">
+    <provider
+      android:name="androidx.core.content.FileProvider"
+      android:authorities="${applicationId}.teilen"
+      android:exported="false"
+      android:grantUriPermissions="true">
+      <meta-data
+        android:name="android.support.FILE_PROVIDER_PATHS"
+        android:resource="@xml/teilen_pfade" />
+    </provider>
     <receiver android:exported="false"
       android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
     <receiver android:exported="false"

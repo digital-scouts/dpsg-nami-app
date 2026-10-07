@@ -3,13 +3,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_email_sender/flutter_email_sender.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../domain/rechtliches/anbieter.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/hitobito_traffic_log_service.dart';
 import '../../services/logger_service.dart';
+import '../../services/teilen_ordner.dart';
 import '../notifications/app_snackbar.dart';
 import '../widgets/app_log_view.dart';
 import '../widgets/hitobito_traffic_log_view.dart';
@@ -483,8 +483,9 @@ class _LogViewerPageState extends State<LogViewerPage> {
   }
 
   Future<File> _ausschnittDatei() async {
-    final verzeichnis =
-        await (widget.temporaeresVerzeichnis ?? getTemporaryDirectory)();
+    final verzeichnis = await TeilenOrdner.verzeichnis(
+      temp: widget.temporaeresVerzeichnis,
+    );
     final stempel = DateFormat('yyyy-MM-dd_HHmm').format(_jetzt);
     final datei = File(
       '${verzeichnis.path}/nami-${widget.quelle.dateiKennung}-log_$stempel.log',
