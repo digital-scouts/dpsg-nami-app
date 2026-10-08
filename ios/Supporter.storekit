@@ -88,7 +88,11 @@
           "familyShareable" : false,
           "groupNumber" : 1,
           "internalID" : "6F1C2D11",
-          "introductoryOffer" : null,
+          "introductoryOffer" : {
+            "internalID" : "6F1C2D12",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
           "localizations" : [
             {
               "description" : "Alle Design-Pakete, Qualifikationen-Übersicht und künftige Extras",
