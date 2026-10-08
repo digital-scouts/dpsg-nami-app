@@ -26,6 +26,10 @@ describe('mock seed', () => {
     const { server, dependencies } = buildMemoryTestServer({ store, clock: time.clock, config });
 
     const seed = () => seedMockSnapshots(dependencies, config.pseudonymizationSecret, SEED_COUNT, time.now);
+    // Die Antwort nennt nur eine Untergrenze; die genaue Zahl steht im gespeicherten Aggregat.
+    const publishedStammCount = () =>
+        [...store.weeklyAggregates.values()].sort((a, b) => b.generated_at.getTime() - a.generated_at.getTime())[0]
+            ?.participating_stamm_count;
 
     const shareAndRead = async () => {
         const send = await server.inject({
@@ -95,16 +99,13 @@ describe('mock seed', () => {
         expect(response.statusCode).toBe(200);
         expect(body.status).toBe('ok');
         // Der eigene Stamm kommt erst mit dem naechsten Nachtlauf dazu.
-        expect(body.participating_stamm_count).toBe(SEED_COUNT);
-        expect(body.metrics.woelflinge.gesamt.sum).toBeGreaterThan(0);
-        expect(body.gruppen_je_stufe.woelflinge.gruppen_count).toBeGreaterThan(SEED_COUNT);
+        expect(body.teilnehmende_staemme_mindestens).toBe(SEED_COUNT);
+        expect(publishedStammCount()).toBe(SEED_COUNT);
+        expect(body.metrics.woelflinge.gesamt.durchschnitt).toBeGreaterThan(0);
         expect(body.gruppen_je_stufe.woelflinge.mitglieder.gesamt.median).toBeGreaterThan(0);
-        // Seltene Kennzahlen liefern zu wenige Staemme und werden unterdrueckt.
-        expect(body.metrics.biber.divers).toEqual({
-            sum: null,
-            stamm_count: MOCK_RARE_METRIC_STAMM_COUNT,
-            median: null,
-        });
+        // Seltene Kennzahlen liefern nur MOCK_RARE_METRIC_STAMM_COUNT Staemme und werden unterdrueckt.
+        expect(MOCK_RARE_METRIC_STAMM_COUNT).toBeLessThan(5);
+        expect(body.metrics.biber.divers).toEqual({ durchschnitt: null, median: null, anteil: null });
     });
 
     test('reseeding keeps seeded stamms inside the aggregation window', async () => {
@@ -117,15 +118,10 @@ describe('mock seed', () => {
 
         expect(body.status).toBe('ok');
         expect(body.aggregation_week).toBe('2026-W37');
-        expect(body.participating_stamm_count).toBe(SEED_COUNT);
+        expect(publishedStammCount()).toBe(SEED_COUNT);
 
         time.now = new Date('2026-09-11T03:00:00Z');
         expect(await runAggregatePublicationIfDue(dependencies, time.now)).toBe('nacht');
-        const read = await server.inject({
-            method: 'GET',
-            url: '/aggregates/bund/latest',
-            headers: { 'x-sender-id': 'simulator-install', ...authHeader() },
-        });
-        expect(read.json().participating_stamm_count).toBe(SEED_COUNT + 1);
+        expect(publishedStammCount()).toBe(SEED_COUNT + 1);
     });
 });

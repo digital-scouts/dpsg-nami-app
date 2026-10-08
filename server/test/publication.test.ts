@@ -65,16 +65,16 @@ describe('runAggregatePublicationIfDue', () => {
 
     test('publishes weekly, adds only new stamms at night and keeps existing ones frozen', async () => {
         // Ohne Aggregat rechnet der erste Lauf (z. B. beim Start) alles.
-        await teile('stamm-1', 5);
+        await teile('stamm-1', 15);
         expect(await lauf()).toBe('woche');
         expect(aggregat()?.participating_stamm_count).toBe(1);
-        expect(biberSumme()).toBe(5);
+        expect(biberSumme()).toBe(15);
 
         // Ein erneuter Start ohne faelligen Lauf rechnet nichts.
         time.now = new Date('2026-06-10T18:00:00Z');
-        await teile('stamm-1', 8);
+        await teile('stamm-1', 18);
         expect(await lauf()).toBeNull();
-        expect(biberSumme()).toBe(5);
+        expect(biberSumme()).toBe(15);
 
         // Nachtlauf ohne neue Staemme: Inhalt und Zeitpunkt bleiben, nur die Pruefung wird vermerkt.
         time.now = new Date('2026-06-11T03:00:00Z');
@@ -85,17 +85,17 @@ describe('runAggregatePublicationIfDue', () => {
 
         // Nachtlauf mit neuem Stamm: Er kommt dazu, stamm-1 bleibt beim Stand des Wochenlaufs.
         time.now = new Date('2026-06-11T10:00:00Z');
-        await teile('stamm-2', 3);
+        await teile('stamm-2', 13);
         time.now = new Date('2026-06-12T03:30:00Z');
         expect(await lauf()).toBe('nacht');
         expect(aggregat()?.participating_stamm_count).toBe(2);
-        expect(biberSumme()).toBe(8);
+        expect(biberSumme()).toBe(28);
         expect(aggregat()?.full_refresh_at).toEqual(new Date('2026-06-10T12:00:00Z'));
 
         // Wochenlauf am Montag: Alle Staemme werden neu berechnet.
         time.now = new Date('2026-06-15T03:00:00Z');
         expect(await lauf()).toBe('woche');
-        expect(biberSumme()).toBe(11);
+        expect(biberSumme()).toBe(31);
         expect(aggregat()?.aggregation_week).toBe('2026-W25');
     });
 
@@ -104,16 +104,16 @@ describe('runAggregatePublicationIfDue', () => {
         store.effectiveStates.clear();
         store.weeklyAggregates.clear();
         time.now = new Date('2026-06-08T03:00:00Z');
-        await teile('stamm-alt', 4);
+        await teile('stamm-alt', 14);
         time.now = new Date('2026-08-03T03:00:00Z');
-        await teile('stamm-neu', 6);
+        await teile('stamm-neu', 16);
         expect(await lauf()).toBe('woche');
         expect(aggregat()?.participating_stamm_count).toBe(2);
 
         // stamm-alt faellt am 08.08. aus dem Zwei-Monats-Fenster, bleibt aber bis zum
         // Wochenlauf veroeffentlicht, damit sich nachts nichts an bestehenden Staemmen aendert.
         time.now = new Date('2026-08-08T12:00:00Z');
-        await teile('stamm-3', 2);
+        await teile('stamm-3', 12);
         time.now = new Date('2026-08-09T03:00:00Z');
         expect(await lauf()).toBe('nacht');
         expect(aggregat()?.participating_stamm_count).toBe(3);

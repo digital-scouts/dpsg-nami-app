@@ -85,8 +85,8 @@ describe('statistics server with MongoDB', () => {
     test('persists ingest end to end without raw ids and serves the aggregate', async () => {
         const server = buildMongoServer();
 
-        expect((await share(server, { stamm_id: 'stamm-a', sender_id: 'install-a', gruppen: [gruppe('g-biber', 'biber', 4)] })).statusCode).toBe(204);
-        expect((await share(server, { stamm_id: 'stamm-b', sender_id: 'install-b', gruppen: [gruppe('g-biber', 'biber', 6)] })).statusCode).toBe(204);
+        expect((await share(server, { stamm_id: 'stamm-a', sender_id: 'install-a', gruppen: [gruppe('g-biber', 'biber', 14)] })).statusCode).toBe(204);
+        expect((await share(server, { stamm_id: 'stamm-b', sender_id: 'install-b', gruppen: [gruppe('g-biber', 'biber', 16)] })).statusCode).toBe(204);
 
         const rawSnapshots = await db.collection(statisticsCollectionNames.rawSnapshots).find().toArray();
         expect(rawSnapshots).toHaveLength(2);
@@ -108,8 +108,8 @@ describe('statistics server with MongoDB', () => {
         expect(response.statusCode).toBe(200);
         expect(response.json()).toMatchObject({
             status: 'ok',
-            participating_stamm_count: 2,
-            metrics: { biber: { gesamt: { sum: 10, stamm_count: 2, median: 5 } } },
+            teilnehmende_staemme_mindestens: 2,
+            metrics: { biber: { gesamt: { durchschnitt: 15, median: 15 } } },
         });
 
         await server.close();
@@ -168,7 +168,8 @@ describe('statistics server with MongoDB', () => {
 
     test('rebuilds effective states and aggregate from raw snapshots', async () => {
         const server = buildMongoServer();
-        await share(server, { stamm_id: 'stamm-a', source_data_as_of: '2026-06-01T00:00:00Z', gruppen: [gruppe('g-biber', 'biber', 1)] });
+        await share(server, { stamm_id: 'stamm-a', source_data_as_of: '2026-06-04T00:00:00Z', gruppen: [gruppe('g-biber', 'biber', 1)] });
+        time.now = new Date('2026-06-10T12:30:00Z');
         await share(server, { stamm_id: 'stamm-a', source_data_as_of: '2026-06-05T00:00:00Z', gruppen: [gruppe('g-biber', 'biber', 3)] });
         await share(server, { stamm_id: 'stamm-b', gruppen: [gruppe('g-biber', 'biber', 7)] });
         await server.close();

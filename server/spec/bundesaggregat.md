@@ -19,52 +19,61 @@
   "status": "ok",
   "aggregation_type": "bund",
   "aggregation_week": "2026-W40",
-  "generated_at": "2026-09-29T08:00:00.000Z",
-  "participating_stamm_count": 42,
+  "generated_at": "2026-09-28T03:00:00.000Z",
+  "teilnehmende_staemme_mindestens": 40,
   "min_stamm_count": 5,
   "data_as_of": {
-    "oldest": "2026-08-01T10:00:00.000Z",
-    "newest": "2026-09-29T07:59:00.000Z"
+    "oldest": "2026-08-01T00:00:00.000Z",
+    "newest": "2026-09-27T00:00:00.000Z"
   },
   "notice": "Annäherung aus freiwillig geteilten Stammesdaten teilnehmender App-Nutzer. Keine amtliche und keine repräsentative Statistik.",
   "metrics": {
     "biber": {
-      "gesamt": { "sum": 310, "stamm_count": 40, "median": 7 },
-      "divers": { "sum": null, "stamm_count": 3, "median": null }
-    }
+      "gesamt": { "durchschnitt": 7.8, "median": 7 },
+      "weiblich": { "durchschnitt": 3.6, "median": 4, "anteil": 46 },
+      "divers": { "durchschnitt": null, "median": null, "anteil": null }
+    },
+    "alle_stufen": {
+      "gesamt": { "durchschnitt": 61.4, "median": 58 },
+      "maennlich": { "durchschnitt": 30.1, "median": 29, "anteil": 49 }
+    },
+    "kuraten": { "durchschnitt": 0.6, "median": 1 }
   },
   "gruppen_je_stufe": {
     "woelflinge": {
-      "gruppen_count": 61,
-      "stamm_count": 44,
-      "gruppen_pro_stamm": { "sum": 61, "stamm_count": 44, "median": 1 },
+      "gruppen_pro_stamm": { "durchschnitt": 1.4, "median": 1 },
       "mitglieder": {
-        "gesamt": { "sum": 830, "stamm_count": 44, "gruppen_count": 61, "median": 13 }
+        "gesamt": { "durchschnitt": 13.6, "median": 13 },
+        "weiblich": { "durchschnitt": 6.1, "median": 6, "anteil": 45 }
       },
       "leitende": {
-        "gesamt": { "sum": 190, "stamm_count": 44, "gruppen_count": 61, "median": 3 }
+        "gesamt": { "durchschnitt": 3.1, "median": 3 }
       }
     }
   }
 }
 ```
 
-- `status` ist `ok` oder `insufficient_participation`. Bei `insufficient_participation` sind `metrics` und `gruppen_je_stufe` gleich `null`.
-- `metrics` enthält die stammweiten Kennzahlen aus `metrics` im Stammes-Snapshot sowie die daraus abgeleiteten Stufenwerte `biber` … `rover` und `leitende_biber` … `leitende_rover` (Stufengröße je Stamm). Jede Kennzahl enthält:
-  - `sum`: Summe über alle Stämme mit Wert
-  - `stamm_count`: Anzahl der Stämme, die für diese Kennzahl einen Wert geliefert haben
-  - `median`: Median über diese Stämme
-- Kennzahlen, zu denen weniger als `min_stamm_count` Stämme Werte geliefert haben, werden mit `sum` und `median` gleich `null` ausgeliefert, damit einzelne Stämme nicht rückführbar sind.
-- `gruppen_je_stufe` beschreibt die Gruppengröße je Stufe, also Meuten, Trupps, Runden usw. Grundlage sind alle effektiven Gruppen mit Wert:
-  - `gruppen_count`: Anzahl Gruppen der Stufe, `stamm_count`: Anzahl Stämme, aus denen sie stammen
-  - `gruppen_pro_stamm`: wie viele Gruppen dieser Stufe ein Stamm hat (über alle Stämme mit Gruppenstruktur, die mindestens eine Gruppe der Stufe haben)
-  - `mitglieder` und `leitende` je Geschlechterfeld: `sum` über alle Gruppen, `median` über die Gruppen, dazu `gruppen_count` und `stamm_count`
+- `status` ist `ok` oder `insufficient_participation`. Bei `insufficient_participation` sind `metrics`, `gruppen_je_stufe` und `teilnehmende_staemme_mindestens` gleich `null`; die App zeigt dann „unter `min_stamm_count` Stämme“.
+- `teilnehmende_staemme_mindestens` nennt die Zahl der teilnehmenden Stämme nur als Untergrenze: unter 50 auf Vielfache von 5, ab 50 auf Vielfache von 10 abgerundet, nie unter `min_stamm_count`.
+- `data_as_of` nennt den ältesten und neuesten Eingang der verwendeten Teile, nur tagesgenau.
+- **Keine Zählwerte:** Ausgeliefert werden nur gerundete Ergebnisse, keine Summen und keine Zahl der Stämme oder Gruppen je Kennzahl. Exakte Zählwerte machten die Differenz zweier Abrufe zum exakten Beitrag einzelner Stämme.
+- `metrics` enthält die stammweiten Kennzahlen aus `metrics` im Stammes-Snapshot sowie die daraus abgeleiteten Stufenwerte `biber` … `rover` und `leitende_biber` … `leitende_rover` (Stufengröße je Stamm) und `alle_stufen` (Mitglieder aller Stufen je Stamm nach Geschlecht). Jede Kennzahl enthält:
+  - `durchschnitt`: Durchschnitt je Stamm mit Wert, eine Nachkommastelle
+  - `median`: Median über diese Stämme, ganze Zahl
+  - `anteil`: nur bei Feldern neben einem `gesamt` (Geschlecht, Leitende nach Alter, Beitragsarten): Anteil an `gesamt` in ganzen Prozent, berechnet aus den Summen über alle Stämme
+- Kennzahlen, zu denen weniger als `min_stamm_count` Stämme Werte geliefert haben, werden mit allen Werten gleich `null` ausgeliefert, damit einzelne Stämme nicht rückführbar sind.
+- Für `alle_stufen` trägt ein Stamm ohne Gruppe einer Stufe dort 0 bei. Stämme, bei denen eine Stufe unvollständig ist, fehlen.
+- `gruppen_je_stufe` beschreibt die Gruppengröße je Stufe, also Meuten, Trupps, Runden usw. Grundlage sind alle aktiven effektiven Gruppen mit Wert:
+  - `gruppen_pro_stamm`: wie viele aktive Gruppen dieser Stufe ein Stamm hat (über alle Stämme, die mindestens eine haben)
+  - `mitglieder` und `leitende` je Geschlechterfeld: `durchschnitt` und `median` je Gruppe, `anteil` wie oben
   - Die Unterdrückung richtet sich nach der Anzahl **verschiedener Stämme**, nicht nach der Anzahl der Gruppen. Sonst wären etwa fünf Meuten eines einzigen Stammes rückführbar.
 
 ## Fachliche Regeln
 
 - Grundlage ist pro Stamm genau ein effektiver Stand, zusammengeführt aus allen Snapshots, die in den letzten zwei Monaten eingegangen sind (siehe `stammes_snapshot.md`, Abschnitt Effektiver Stand mit Haltefrist).
-- `participating_stamm_count` zählt alle Stämme mit effektivem Stand, auch solche, die nur Gruppenwerte geliefert haben.
+- Teilnehmend ist ein Stamm, der mindestens eine aktive Gruppe mit Wert oder stammweite Kennzahlen beiträgt, auch wenn er nur Gruppenwerte geliefert hat.
+- **Mindestgrößen:** Gruppen mit höchstens 2 Mitgliedern (`mitglieder.gesamt`, ohne Leitende) gelten als nicht aktiv und zählen nirgends, auch nicht für Stufensummen und `gruppen_pro_stamm`. Eine Stufe ohne aktive Gruppe zählt für diese Stufe nicht als liefernder Stamm. Ein Stamm mit weniger als 5 Mitgliedern (`aktive_mitglieder.gesamt`, ohne Gesamtbericht die Summe seiner aktiven Gruppen) liefert keine stammweiten Kennzahlen und keine Stufenwerte, sondern nur seine aktiven Gruppen.
 - Teilnahme gilt unabhängig von der Abdeckung: Auch wer nur Gruppenwerte sendet, darf lesen.
 - Das Aggregat wird nicht nach jedem Snapshot neu berechnet, sonst ergäbe die Differenz zweier Abrufe den Beitrag eines einzelnen Stammes. Stattdessen gibt es zwei feste Läufe:
   - **Wochenlauf** (Montag 03:00 UTC): Alle Stämme werden aus den Rohsnapshots neu zusammengeführt. Ihre Stände werden bis zum nächsten Wochenlauf eingefroren (`effective_states`).

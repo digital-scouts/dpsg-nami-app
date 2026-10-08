@@ -220,15 +220,25 @@ export const mergeAllStammSnapshots = (
 
 // ------------------------------------------------------------ Ableitung
 
-export type DerivedMetrics = StammMetrics & Record<Stufe | `leitende_${Stufe}`, CountByGender>;
+// Gruppen mit hoechstens so vielen Mitgliedern (ohne Leitende) gelten als nicht aktiv und
+// zaehlen nirgends; Staemme mit weniger als MIN_STAMM_MITGLIEDER liefern nur Gruppenwerte.
+// Beides haelt Kleinstwerte aus dem Aggregat, die sich Einzelpersonen naehern (S-13).
+export const MAX_MITGLIEDER_INAKTIVE_GRUPPE = 2;
+export const MIN_STAMM_MITGLIEDER = 5;
+
+export type DerivedMetrics = StammMetrics
+    & Record<Stufe | `leitende_${Stufe}`, CountByGender>
+    & { alle_stufen: CountByGender };
 
 export type GruppeMitWert = EffectiveGruppe & { wert: GruppenWert };
 
 export type DerivedStammState = {
     state: EffectiveStateDocument;
     metrics: DerivedMetrics;
-    // Gruppen mit gueltigem Wert im Fenster, Grundlage fuer die Gruppengroesse.
+    // Aktive Gruppen mit gueltigem Wert im Fenster, Grundlage fuer die Gruppengroesse.
     gruppen: GruppeMitWert[];
+    // Gruppen je Stufe laut Struktur, ohne bekannt inaktive Gruppen.
+    gruppen_je_stufe: Record<Stufe, number>;
     art: 'vollstaendig' | 'nur_gruppen' | 'gemischt';
     oldest: Date;
     newest: Date;
@@ -262,7 +272,7 @@ const leereStammMetrics = (): StammMetrics => ({
     kuraten: null,
 });
 
-// Feldweise Summe; ein fehlender Teilwert macht das Feld unbekannt. Ohne Gruppen ist die Summe 0.
+// Feldweise Summe; ein fehlender Teilwert macht das Feld unbekannt.
 const summiere = (verteilungen: CountByGender[]): CountByGender => {
     const summe = leereVerteilung();
     for (const feld of GESCHLECHTER) {
@@ -276,6 +286,10 @@ const summiere = (verteilungen: CountByGender[]): CountByGender => {
     return summe;
 };
 
+// Unbekannte Groesse gilt nicht als inaktiv.
+export const istAktiveGruppe = (gruppe: GruppenZaehler): boolean =>
+    gruppe.mitglieder.gesamt == null || gruppe.mitglieder.gesamt > MAX_MITGLIEDER_INAKTIVE_GRUPPE;
+
 // Leitet die Kennzahlen eines Stammes zum Zeitpunkt der Aggregation ab: Teile, die inzwischen
 // aus dem Fenster gefallen sind, zaehlen nicht mehr.
 export const deriveStammState = (state: EffectiveStateDocument, since: Date): DerivedStammState | null => {
@@ -285,32 +299,52 @@ export const deriveStammState = (state: EffectiveStateDocument, since: Date): De
         return null;
     }
 
-    const stammweit = state.stammweit != null && istFrisch(state.stammweit.received_at)
-        ? state.stammweit
-        : null;
     const gruppen = state.gruppen.map((gruppe) => ({
         ...gruppe,
         wert: gruppe.wert != null && istFrisch(gruppe.wert.received_at) ? gruppe.wert : null,
     }));
-    const mitWert = gruppen.filter((gruppe): gruppe is GruppeMitWert => gruppe.wert != null);
+    const mitWert = gruppen.filter((gruppe): gruppe is GruppeMitWert => gruppe.wert != null && istAktiveGruppe(gruppe.wert));
+    const bekanntInaktiv = new Set(gruppen
+        .filter((gruppe) => gruppe.wert != null && !istAktiveGruppe(gruppe.wert))
+        .map((gruppe) => gruppe.gruppe_pseudonym));
+
+    const stammweitImFenster = state.stammweit != null && istFrisch(state.stammweit.received_at)
+        ? state.stammweit
+        : null;
+    const mitgliederImStamm = stammweitImFenster?.metrics.aktive_mitglieder.gesamt
+        ?? mitWert.reduce((summe, gruppe) => summe + (gruppe.wert.mitglieder.gesamt ?? 0), 0);
+    const istAktiverStamm = mitgliederImStamm >= MIN_STAMM_MITGLIEDER;
+    const stammweit = istAktiverStamm ? stammweitImFenster : null;
 
     if (stammweit == null && mitWert.length === 0) {
         return null;
     }
 
+    // Stufen ohne Gruppe, ohne aktive Gruppe oder in einem Kleinststamm bleiben unbekannt,
+    // damit sie nicht als liefernder Stamm zaehlen.
     const stufenMetrics = {} as Record<Stufe | `leitende_${Stufe}`, CountByGender>;
+    const alleStufen: CountByGender[] = [];
+    let alleStufenBekannt = istAktiverStamm;
     let unvollstaendigeStufen = 0;
     for (const stufe of STUFEN) {
+        stufenMetrics[stufe] = leereVerteilung();
+        stufenMetrics[`leitende_${stufe}`] = leereVerteilung();
         const eintrag = state.stufen.find((kandidat) => kandidat.stufe === stufe);
-        const werte = eintrag == null ? [] : eintrag.wert != null && istFrisch(eintrag.wert.received_at) ? eintrag.wert.gruppen : null;
-        if (werte == null) {
-            unvollstaendigeStufen += 1;
-            stufenMetrics[stufe] = leereVerteilung();
-            stufenMetrics[`leitende_${stufe}`] = leereVerteilung();
+        if (eintrag == null) {
             continue;
         }
-        stufenMetrics[stufe] = summiere(werte.map((wert) => wert.mitglieder));
-        stufenMetrics[`leitende_${stufe}`] = summiere(werte.map((wert) => wert.leitende));
+        if (eintrag.wert == null || !istFrisch(eintrag.wert.received_at)) {
+            unvollstaendigeStufen += 1;
+            alleStufenBekannt = false;
+            continue;
+        }
+        const aktive = eintrag.wert.gruppen.filter(istAktiveGruppe);
+        if (!istAktiverStamm || aktive.length === 0) {
+            continue;
+        }
+        stufenMetrics[stufe] = summiere(aktive.map((wert) => wert.mitglieder));
+        stufenMetrics[`leitende_${stufe}`] = summiere(aktive.map((wert) => wert.leitende));
+        alleStufen.push(stufenMetrics[stufe]);
     }
 
     const ausStammSnapshot = (wert: GruppenWert) =>
@@ -328,8 +362,16 @@ export const deriveStammState = (state: EffectiveStateDocument, since: Date): De
 
     return {
         state,
-        metrics: { ...(stammweit?.metrics ?? leereStammMetrics()), ...stufenMetrics },
+        metrics: {
+            ...(stammweit?.metrics ?? leereStammMetrics()),
+            ...stufenMetrics,
+            alle_stufen: alleStufenBekannt ? summiere(alleStufen) : leereVerteilung(),
+        },
         gruppen: mitWert,
+        gruppen_je_stufe: Object.fromEntries(STUFEN.map((stufe) => [
+            stufe,
+            state.gruppen.filter((gruppe) => gruppe.stufe === stufe && !bekanntInaktiv.has(gruppe.gruppe_pseudonym)).length,
+        ])) as Record<Stufe, number>,
         art,
         oldest: new Date(Math.min(...zeiten)),
         newest: new Date(Math.max(...zeiten)),

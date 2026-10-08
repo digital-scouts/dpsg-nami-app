@@ -2,9 +2,11 @@ import { describe, expect, test } from 'vitest';
 
 import {
     computeBundAggregate,
+    formatAggregatedMetrics,
+    formatGruppenJeStufe,
     type MetricAggregate,
-    suppressSmallCounts,
-    suppressSmallGruppenCounts,
+    tagesgenau,
+    teilnahmeUntergrenze,
 } from '../src/modules/aggregation/aggregation.js';
 import {
     deriveStammState,
@@ -101,7 +103,8 @@ describe('mergeStammSnapshots', () => {
         // Stufensummen stammen aus der einzigen Installation, die alle Gruppen der Stufe abdeckt.
         expect(derived?.metrics.woelflinge.gesamt).toBe(120);
         expect(derived?.metrics.pfadfinder.gesamt).toBe(40);
-        expect(derived?.metrics.biber.gesamt).toBe(0);
+        // Ohne Biber-Gruppe bleibt die Stufe unbekannt und zaehlt nicht als liefernder Stamm (S-13).
+        expect(derived?.metrics.biber.gesamt).toBeNull();
         expect(derived?.metrics.leitende.gesamt).toBe(12);
         expect(derived?.oldest).toEqual(new Date('2026-04-10T00:00:00Z'));
         expect(derived?.newest).toEqual(new Date('2026-04-13T00:00:00Z'));
@@ -203,13 +206,13 @@ describe('mergeStammSnapshots', () => {
 
     test('drops parts that left the window by the time of aggregation', () => {
         const voll = snapshot({ sender_id: 'voll', gruppen: [gruppe('A', 'biber', 8), gruppe('B', 'rover', 4)] }, '2026-04-01T00:00:00Z');
-        const teil = snapshot({ sender_id: 'teil', abdeckung: 'gruppen', gruppen: [gruppe('A', 'biber', 3), fremdeGruppe('B', 'rover')] }, '2026-05-20T00:00:00Z');
+        const teil = snapshot({ sender_id: 'teil', abdeckung: 'gruppen', gruppen: [gruppe('A', 'biber', 13), fremdeGruppe('B', 'rover')] }, '2026-05-20T00:00:00Z');
         const state = merge([voll, teil], new Date('2026-06-10T00:00:00Z'));
 
         const danach = deriveStammState(state, new Date('2026-04-15T00:00:00Z'));
 
         expect(danach?.art).toBe('nur_gruppen');
-        expect(danach?.metrics.biber.gesamt).toBe(3);
+        expect(danach?.metrics.biber.gesamt).toBe(13);
         expect(danach?.metrics.rover.gesamt).toBeNull();
         expect(danach?.metrics.leitende.gesamt).toBeNull();
     });
@@ -234,7 +237,7 @@ describe('computeBundAggregate', () => {
         const aggregate = computeBundAggregate(states([
             snapshot({ stamm_id: 's1', gruppen: [gruppe('a', 'biber', 4), gruppe('b', 'woelflinge', 10)] }, '2026-06-01T00:00:00Z'),
             snapshot({ stamm_id: 's2', gruppen: [gruppe('c', 'biber', 8), fremdeGruppe('d', 'woelflinge')], abdeckung: 'gruppen' }, '2026-06-02T00:00:00Z'),
-            snapshot({ stamm_id: 's3', gruppen: [gruppe('e', 'biber', 1)] }, '2026-06-03T00:00:00Z'),
+            snapshot({ stamm_id: 's3', gruppen: [gruppe('e', 'biber', 6)] }, '2026-06-03T00:00:00Z'),
         ]), now);
         const biber = aggregate.metrics?.biber as Record<string, MetricAggregate>;
         const woelflinge = aggregate.metrics?.woelflinge as Record<string, MetricAggregate>;
@@ -244,17 +247,17 @@ describe('computeBundAggregate', () => {
         expect(aggregate.participating_stamm_count).toBe(3);
         expect(aggregate.oldest_data_as_of).toEqual(new Date('2026-06-01T00:00:00Z'));
         expect(aggregate.newest_data_as_of).toEqual(new Date('2026-06-03T00:00:00Z'));
-        expect(biber.gesamt).toEqual({ sum: 13, stamm_count: 3, median: 4 });
-        // s2 kennt seine Meute nicht, s3 hat keine (0).
-        expect(woelflinge.gesamt).toEqual({ sum: 10, stamm_count: 2, median: 5 });
-        expect(woelflinge.maennlich).toEqual({ sum: 0, stamm_count: 1, median: 0 });
+        expect(biber.gesamt).toEqual({ sum: 18, stamm_count: 3, median: 6 });
+        // s2 kennt seine Meute nicht, s3 hat keine: Beide zaehlen fuer die Woelflinge nicht.
+        expect(woelflinge.gesamt).toEqual({ sum: 10, stamm_count: 1, median: 10 });
+        expect(woelflinge.maennlich).toEqual({ sum: 0, stamm_count: 0, median: null });
     });
 
     test('averages the two middle values for an even median', () => {
-        const aggregate = computeBundAggregate(states([2, 4, 6, 100].map((wert, index) =>
+        const aggregate = computeBundAggregate(states([6, 8, 10, 100].map((wert, index) =>
             snapshot({ stamm_id: `s${index}`, gruppen: [gruppe(`g${index}`, 'biber', wert)] }, '2026-06-01T00:00:00Z'))), now);
 
-        expect((aggregate.metrics?.biber as Record<string, MetricAggregate>).gesamt?.median).toBe(5);
+        expect((aggregate.metrics?.biber as Record<string, MetricAggregate>).gesamt?.median).toBe(9);
     });
 
     test('excludes stamms whose snapshots are older than two months', () => {
@@ -292,23 +295,80 @@ describe('computeBundAggregate', () => {
     });
 });
 
-describe('suppressSmallCounts', () => {
-    test('hides sum and median of metrics reported by too few stamms', () => {
-        const suppressed = suppressSmallCounts({
+describe('Mindestgroessen', () => {
+    const now = new Date('2026-06-10T12:00:00Z');
+    const window = new Date('2026-04-10T12:00:00Z');
+    const derive = (overrides: Record<string, unknown>) => {
+        const [state] = mergeAllStammSnapshots([snapshot(overrides, '2026-06-01T00:00:00Z')], window, now);
+        return state == null ? null : deriveStammState(state, window);
+    };
+
+    test('ignores groups with at most two members everywhere', () => {
+        const derived = derive({
+            gruppen: [gruppe('m1', 'woelflinge', 12), gruppe('m2', 'woelflinge', 2), gruppe('r1', 'rover', 1)],
+        });
+
+        expect(derived?.gruppen.map((g) => g.gruppe_pseudonym)).toEqual([gruppenPseudonym('m1')]);
+        expect(derived?.gruppen_je_stufe).toMatchObject({ woelflinge: 1, rover: 0 });
+        expect(derived?.metrics.woelflinge.gesamt).toBe(12);
+        // Eine Stufe nur mit inaktiven Gruppen bleibt unbekannt.
+        expect(derived?.metrics.rover.gesamt).toBeNull();
+        expect(derived?.metrics.alle_stufen.gesamt).toBe(12);
+    });
+
+    test('treats a stamm with fewer than five members as group values only', () => {
+        const derived = derive({
+            gruppen: [gruppe('r1', 'rover', 4)],
+            metrics: { aktive_mitglieder: { gesamt: 4 }, kuraten: 1 },
+        });
+
+        expect(derived?.gruppen).toHaveLength(1);
+        expect(derived?.art).toBe('nur_gruppen');
+        expect(derived?.metrics.kuraten).toBeNull();
+        expect(derived?.metrics.rover.gesamt).toBeNull();
+        expect(derived?.metrics.alle_stufen.gesamt).toBeNull();
+    });
+
+    test('drops a stamm without any counted value', () => {
+        expect(derive({ gruppen: [gruppe('r1', 'rover', 2)] })).toBeNull();
+    });
+
+    test('suppresses a stufe that only a single stamm has (S-13)', () => {
+        const staemme = [1, 2, 3, 4, 5].map((nummer) => snapshot({
+            stamm_id: `s${nummer}`,
+            gruppen: nummer === 1
+                ? [gruppe('b1', 'biber', 4, 1, { mitglieder: { gesamt: 4, divers: 1 } }), gruppe(`w${nummer}`, 'woelflinge', 12)]
+                : [gruppe(`w${nummer}`, 'woelflinge', 12)],
+        }, '2026-06-01T00:00:00Z'));
+        const aggregate = computeBundAggregate(mergeAllStammSnapshots(staemme, window, now), now);
+        const metrics = formatAggregatedMetrics(aggregate.metrics!, 5) as Record<string, Record<string, unknown>>;
+
+        expect(metrics.biber?.gesamt).toEqual({ durchschnitt: null, median: null });
+        expect(metrics.biber?.divers).toEqual({ durchschnitt: null, median: null, anteil: null });
+        expect(metrics.woelflinge?.gesamt).toEqual({ durchschnitt: 12, median: 12 });
+    });
+});
+
+describe('Auslieferung', () => {
+    test('delivers rounded averages, medians and shares without sums or counts', () => {
+        const metrics = formatAggregatedMetrics({
             biber: {
-                gesamt: { sum: 30, stamm_count: 5, median: 6 },
-                divers: { sum: 1, stamm_count: 1, median: 1 },
+                gesamt: { sum: 37, stamm_count: 6, median: 6.5 },
+                weiblich: { sum: 17, stamm_count: 6, median: 3 },
+                divers: { sum: 1, stamm_count: 4, median: 0 },
             },
-            kuraten: { sum: 2, stamm_count: 2, median: 1 },
+            kuraten: { sum: 7, stamm_count: 6, median: 1 },
         }, 5);
 
-        expect(suppressed).toEqual({
+        expect(metrics).toEqual({
             biber: {
-                gesamt: { sum: 30, stamm_count: 5, median: 6 },
-                divers: { sum: null, stamm_count: 1, median: null },
+                gesamt: { durchschnitt: 6.2, median: 7 },
+                weiblich: { durchschnitt: 2.8, median: 3, anteil: 46 },
+                divers: { durchschnitt: null, median: null, anteil: null },
             },
-            kuraten: { sum: null, stamm_count: 2, median: null },
+            kuraten: { durchschnitt: 1.2, median: 1 },
         });
+        expect(JSON.stringify(metrics)).not.toMatch(/sum|stamm_count/);
     });
 
     test('suppresses group sizes by the number of stamms, not groups', () => {
@@ -320,10 +380,36 @@ describe('suppressSmallCounts', () => {
             }, '2026-06-01T00:00:00Z'),
         ], new Date('2026-04-10T12:00:00Z'), new Date('2026-06-10T12:00:00Z')), new Date('2026-06-10T12:00:00Z'));
 
-        const suppressed = suppressSmallGruppenCounts(aggregate.gruppen_je_stufe!, 5);
+        const formatted = formatGruppenJeStufe(aggregate.gruppen_je_stufe!, 5);
 
-        expect(suppressed.woelflinge.mitglieder.gesamt).toEqual({ sum: null, stamm_count: 1, gruppen_count: 6, median: null });
-        expect(suppressed.woelflinge.gruppen_pro_stamm).toEqual({ sum: null, stamm_count: 1, median: null });
+        expect(formatted.woelflinge).toEqual({
+            gruppen_pro_stamm: { durchschnitt: null, median: null },
+            mitglieder: expect.objectContaining({ gesamt: { durchschnitt: null, median: null } }),
+            leitende: expect.objectContaining({ maennlich: { durchschnitt: null, median: null, anteil: null } }),
+        });
+        expect(JSON.stringify(formatted)).not.toMatch(/count|sum/);
+    });
+
+    test('averages group values per group', () => {
+        const aggregate = computeBundAggregate(mergeAllStammSnapshots([1, 2, 3, 4, 5].map((nummer) => snapshot({
+            stamm_id: `s${nummer}`,
+            gruppen: [gruppe(`a${nummer}`, 'woelflinge', 10), gruppe(`b${nummer}`, 'woelflinge', 15)],
+        }, '2026-06-01T00:00:00Z')), new Date('2026-04-10T12:00:00Z'), new Date('2026-06-10T12:00:00Z')), new Date('2026-06-10T12:00:00Z'));
+
+        const formatted = formatGruppenJeStufe(aggregate.gruppen_je_stufe!, 5);
+
+        expect(formatted.woelflinge.mitglieder.gesamt).toEqual({ durchschnitt: 12.5, median: 13 });
+        expect(formatted.woelflinge.gruppen_pro_stamm).toEqual({ durchschnitt: 2, median: 2 });
+    });
+
+    test.each([
+        [5, 5], [7, 5], [47, 45], [49, 45], [50, 50], [59, 50], [123, 120],
+    ])('reports %i participating stamms as at least %i', (staemme, untergrenze) => {
+        expect(teilnahmeUntergrenze(staemme)).toBe(untergrenze);
+    });
+
+    test('reduces data timestamps to the day', () => {
+        expect(tagesgenau(new Date('2026-06-10T13:45:12.345Z'))).toEqual(new Date('2026-06-10T00:00:00Z'));
     });
 });
 

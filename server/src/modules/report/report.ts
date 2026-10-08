@@ -71,8 +71,9 @@ export type ReportFigures = {
         nur_gruppen: number;
         gemischt: number;
         mehrere_sender: number;
-        // Staemme, fuer die nur Teilnahmen ohne Werte vorliegen (z. B. Leitungen ohne lesbare
-        // Rollen). Sie zaehlen nicht als teilnehmend. Fehlt in Berichten vor 2026-10.
+        // Staemme ohne verwertbare Werte: nur Teilnahmen ohne Werte (z. B. Leitungen ohne
+        // lesbare Rollen) oder nur Gruppen bis 2 Mitglieder. Sie zaehlen nicht als teilnehmend.
+        // Fehlt in Berichten vor 2026-10.
         ohne_werte?: number;
     };
     gruppen: {
@@ -202,21 +203,21 @@ export const formatMonthlyReport = (
         zeile('nur Gruppen', staemme.nur_gruppen, vormonat.staemme.nur_gruppen, 4),
         zeile('gemischt', staemme.gemischt, vormonat.staemme.gemischt, 4),
         zeile('mit mehreren Sendern', staemme.mehrere_sender, vormonat.staemme.mehrere_sender),
-        zeile('nur Teilnahme ohne Werte', staemme.ohne_werte ?? 0, vormonat.staemme.ohne_werte ?? 0),
+        zeile('ohne verwertbare Werte', staemme.ohne_werte ?? 0, vormonat.staemme.ohne_werte ?? 0),
         '',
         'Gruppen',
         zeile('mit Wert', gruppen.mit_wert, vormonat.gruppen.mit_wert),
         ...STUFEN.map((stufe) => zeile(STUFEN_NAMEN[stufe], gruppen.je_stufe[stufe], vormonat.gruppen.je_stufe[stufe], 4)),
         zeile('von mehreren abgedeckt', gruppen.mehrfach_abgedeckt, vormonat.gruppen.mehrfach_abgedeckt),
-        zeile('verworfene ältere Gruppenwerte', gruppen.verworfene_werte, vormonat.gruppen.verworfene_werte),
+        zeile('nicht verwendete Gruppenwerte', gruppen.verworfene_werte, vormonat.gruppen.verworfene_werte),
         zeile('unvollständige Stufen', gruppen.unvollstaendige_stufen, vormonat.gruppen.unvollstaendige_stufen),
         '',
         ...regionen('Stämme je DV', aktuell.staemme_je_dv, vormonat.staemme_je_dv),
         '',
         ...regionen('Stämme je Bezirk', aktuell.staemme_je_bezirk, vormonat.staemme_je_bezirk),
         '',
-        '„Unvollständige Stufen“ zählt Stamm-Stufen-Paare, bei denen mindestens eine Gruppe keinen Wert hat.',
-        '„Nur Teilnahme ohne Werte“ zählt Stämme, deren Sender teilen wollen, aber keine lesbaren Werte haben; sie zählen nicht als teilnehmend.',
+        '„Unvollständige Stufen“ zählt Stamm-Stufen-Paare, die keine Installation vollständig abgedeckt hat.',
+        '„Ohne verwertbare Werte“ zählt Stämme mit Teilnahmen ohne Werte oder nur Gruppen bis 2 Mitglieder; sie zählen nicht als teilnehmend.',
         'Der Report enthält nur Zählwerte und die gespeicherten DV- und Bezirks-IDs.',
     ].join('\n');
 
