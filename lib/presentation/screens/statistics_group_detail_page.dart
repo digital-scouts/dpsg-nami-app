@@ -106,7 +106,10 @@ class _StatisticsGroupDetailPageState extends State<StatisticsGroupDetailPage> {
     final abdeckung =
         widget.debugAbdeckung ?? arbeitskontext?.statistikAbdeckung;
     final gruppenId = int.tryParse(_gruppenId);
-    final gruppe = gruppenId == null ? null : readModel?.findeGruppe(gruppenId);
+    // Gruppen ausserhalb der Abdeckung haetten nur unbekannte Zahlen.
+    final gruppe = gruppenId == null || !(abdeckung?.deckt(gruppenId) ?? true)
+        ? null
+        : readModel?.findeGruppe(gruppenId);
 
     if (readModel == null || gruppe == null) {
       return Scaffold(

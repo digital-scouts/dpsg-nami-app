@@ -26,7 +26,13 @@ Story memberRollenTabStory() => Story(
       label: 'Aktiver Layer Stamm Silberfels',
       initial: true,
     );
-    final anzeige = nurAktuell
+    final nichtLesbar = context.knobs.boolean(
+      label: 'Nur Leserecht: Hitobito liefert keine Rollen',
+      initial: false,
+    );
+    final anzeige = nichtLesbar
+        ? mitglied.copyWith(roles: const [])
+        : nurAktuell
         ? mitglied.copyWith(
             roles: mitglied.roles
                 .where(
@@ -39,7 +45,10 @@ Story memberRollenTabStory() => Story(
         : mitglied;
 
     return MemberRollenTab(
-      key: ValueKey<Object>(Object.hash(mitglied, nurAktuell, mitLayer)),
+      key: ValueKey<Object>(
+        Object.hash(mitglied, nurAktuell, mitLayer, nichtLesbar),
+      ),
+      rollenNichtLesbar: nichtLesbar,
       mitglied: anzeige,
       heute: MitgliedEdgeCases.heute,
       aktiverLayerName: mitLayer ? MitgliedEdgeCases.stamm : null,

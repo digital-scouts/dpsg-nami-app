@@ -15,7 +15,7 @@
 - Unbekannte Felder werden auf allen Ebenen serverseitig verworfen.
 - Fehlende bekannte Kennzahlenfelder werden serverseitig wie `null` behandelt.
 - IDs werden roh gesendet und im Server direkt nach erfolgreicher Validierung serverseitig pseudonymisiert.
-- Plausibilisierung: Mindestens eine abgedeckte Gruppe muss bei `mitglieder.gesamt` einen Wert größer `0` haben.
+- Plausibilisierung: Mindestens eine abgedeckte Gruppe muss bei `mitglieder.gesamt` einen Wert größer `0` haben. Ausgenommen ist die Teilnahme ohne Werte (siehe Abschnitt Abdeckung).
 
 ## Fehlerformat
 
@@ -92,7 +92,8 @@ Nicht jede sendende Person sieht den ganzen Stamm. Wer nur Leserechte auf die ei
 - `gruppe_id` wird wie `stamm_id` serverseitig pseudonymisiert. Jede ID darf nur einmal vorkommen.
 - `stufe` ist einer der Werte `biber`, `woelflinge`, `jungpfadfinder`, `pfadfinder`, `rover`. Die Zuordnung leitet die App aus dem Hitobito-Gruppentyp ab. Gruppen ohne Stufe werden nicht gesendet.
 - Bei `abgedeckt: false` setzt der Server `mitglieder` und `leitende` auf `null`, auch wenn Werte gesendet wurden.
-- Bei `abdeckung: "stamm"` müssen alle Gruppen `abgedeckt: true` sein, bei `abdeckung: "gruppen"` mindestens eine. Sonst `invalid_coverage`.
+- Bei `abdeckung: "stamm"` müssen alle Gruppen `abgedeckt: true` sein, sonst `invalid_coverage`.
+- Bei `abdeckung: "gruppen"` darf auch keine einzige Gruppe abgedeckt sein. Das ist eine **Teilnahme ohne Werte**: Die Person will teilen, sieht aber keine Zahlen, etwa als Leitung mit `group_read`, für deren Gruppe Hitobito keine Rollen liefert. Der Snapshot liefert nur die Gruppenstruktur und berechtigt zum Lesen des Aggregats. Ein Stamm, für den nur solche Snapshots vorliegen, zählt nicht als teilnehmend.
 - Eine Person kann in mehreren Gruppen derselben Stufe sein und zählt dann in jeder Gruppe.
 
 ## Kennzahlen

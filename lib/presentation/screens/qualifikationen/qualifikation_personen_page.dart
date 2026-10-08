@@ -84,10 +84,12 @@ class _QualifikationPersonenPageState extends State<QualifikationPersonenPage> {
       );
     }
 
+    final istVollLesbar = QualifikationenKontext.istVollLesbar(context);
     final zeile = _useCase.zeile(
       readModel: readModel,
       katalog: katalog,
       heute: heute,
+      istVollLesbar: istVollLesbar,
     );
     final eigenePersonId = QualifikationenKontext.eigenePersonId(context);
     final liste = _alle

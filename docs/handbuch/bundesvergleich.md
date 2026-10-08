@@ -28,7 +28,7 @@ Danach sendet die App etwa einmal pro Woche die Zahlen des Stamms und zeigt Medi
 | Mitglieder und Leitende je Gruppe, nach Geschlecht | Namen, Geburtsdaten, Adressen, Kontaktdaten |
 | bei Leserecht auf den ganzen Stamm: Leitende nach Altersgruppen, Mitgliedschaftsarten | einzelne Personen |
 
-Wer nur die eigene Gruppe lesen darf, teilt nur deren Zahlen. Die Einwilligung gilt je Stamm. Wer mehrere Stämme sieht, gibt jeden einzeln frei.
+Wer nur die eigene Gruppe lesen darf, teilt nur deren Zahlen. Liefert Hitobito dir gar keine Zahlen, etwa ohne Rollen deiner Gruppe, sendet die App nur, welche Gruppen der Stamm hat. Den Vergleich siehst du trotzdem. Die Einwilligung gilt je Stamm. Wer mehrere Stämme sieht, gibt jeden einzeln frei.
 
 {: .hinweis }
 Die Werte erscheinen erst, wenn genug Stämme teilnehmen. Bis dahin zeigt der Tab einen Hinweis.

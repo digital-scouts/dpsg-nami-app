@@ -43,7 +43,7 @@ Alle Mitgliederdaten kommen direkt aus Hitobito und gehen direkt dorthin zurück
 
 ### Statistikserver
 
-Ein eigener Node-Server (`server/` im Repository), gehostet in Deutschland. Er nimmt nur Zählwerte an und speichert Stamm, Gruppen und Installation als Pseudonym. Bundesweite Werte gibt er nur an Installationen heraus, die in den letzten 14 Tagen geteilt haben, und nur bei genug teilnehmenden Stämmen. Geteilte Zahlen löscht er nach 14 Monaten.
+Ein eigener Node-Server (`server/` im Repository), gehostet in Deutschland. Er nimmt nur Zählwerte an und speichert Stamm, Gruppen und Installation als Pseudonym. Bundesweite Werte gibt er nur an Installationen heraus, die in den letzten 14 Tagen geteilt haben, und nur bei genug teilnehmenden Stämmen. Wer keine Zahlen lesen kann, teilt nur die Gruppenstruktur des Stamms; das genügt zum Lesen, zählt aber nicht als teilnehmender Stamm. Geteilte Zahlen löscht er nach 14 Monaten.
 
 ### Geoapify
 

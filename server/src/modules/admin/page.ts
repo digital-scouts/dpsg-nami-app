@@ -24,7 +24,7 @@ const kennzahlen = (figures: ReportFigures): string => {
         `<div class="kpi"><b>${wert}</b><span>${escapeHtml(label)}</span>${unter ? `<small>${escapeHtml(unter)}</small>` : ''}</div>`;
     const { installationen, staemme, gruppen } = figures;
     return `<div class="kpis">
-        ${kachel(staemme.teilnehmend, 'Stämme', `vollständig ${staemme.vollstaendig} · nur Gruppen ${staemme.nur_gruppen} · gemischt ${staemme.gemischt}`)}
+        ${kachel(staemme.teilnehmend, 'Stämme', `vollständig ${staemme.vollstaendig} · nur Gruppen ${staemme.nur_gruppen} · gemischt ${staemme.gemischt} · ohne Werte ${staemme.ohne_werte ?? 0}`)}
         ${kachel(installationen.aktiv, 'aktive Installationen', `neu ${installationen.neu} · gesamt ${installationen.gesamt}`)}
         ${kachel(gruppen.mit_wert, 'Gruppen mit Wert', STUFEN.map((stufe) => `${STUFEN_NAMEN[stufe]} ${gruppen.je_stufe[stufe]}`).join(' · '))}
         ${kachel(staemme.mehrere_sender, 'Stämme mit mehreren Sendern', `Gruppen mehrfach abgedeckt ${gruppen.mehrfach_abgedeckt} · verworfene Werte ${gruppen.verworfene_werte}`)}
@@ -66,10 +66,10 @@ const verlauf = (berichte: MonthlyReportDocument[]): string => {
 };
 
 const tabelle = (berichte: MonthlyReportDocument[]): string => `<table><thead><tr>
-    <th>Monat</th><th class="r">Stämme</th><th class="r">vollst.</th><th class="r">nur Gr.</th><th class="r">gemischt</th>
+    <th>Monat</th><th class="r">Stämme</th><th class="r">vollst.</th><th class="r">nur Gr.</th><th class="r">gemischt</th><th class="r">ohne W.</th>
     <th class="r">aktive Inst.</th><th class="r">neu</th><th class="r">Gruppen</th><th class="r">mehrfach</th><th class="r">verworfen</th>
     </tr></thead><tbody>${berichte.map(({ month, figures: f }) => `<tr><td>${escapeHtml(month)}</td>
-    <td class="r">${f.staemme.teilnehmend}</td><td class="r">${f.staemme.vollstaendig}</td><td class="r">${f.staemme.nur_gruppen}</td><td class="r">${f.staemme.gemischt}</td>
+    <td class="r">${f.staemme.teilnehmend}</td><td class="r">${f.staemme.vollstaendig}</td><td class="r">${f.staemme.nur_gruppen}</td><td class="r">${f.staemme.gemischt}</td><td class="r">${f.staemme.ohne_werte ?? 0}</td>
     <td class="r">${f.installationen.aktiv}</td><td class="r">${f.installationen.neu}</td><td class="r">${f.gruppen.mit_wert}</td>
     <td class="r">${f.gruppen.mehrfach_abgedeckt}</td><td class="r">${f.gruppen.verworfene_werte}</td></tr>`).join('')}</tbody></table>`;
 

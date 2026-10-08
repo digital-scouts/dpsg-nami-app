@@ -59,7 +59,9 @@ describe('computeReportFigures', () => {
         expect(figures.stichtag).toEqual(new Date('2026-06-30T23:59:59.999Z'));
         expect(figures.installationen).toEqual({ aktiv: 2, neu: 2, gesamt: 4 });
         // C liegt am 30.06. ausserhalb des Zwei-Monats-Fensters.
-        expect(figures.staemme).toEqual({ teilnehmend: 2, vollstaendig: 0, nur_gruppen: 1, gemischt: 1, mehrere_sender: 1 });
+        expect(figures.staemme).toEqual({
+            teilnehmend: 2, vollstaendig: 0, nur_gruppen: 1, gemischt: 1, mehrere_sender: 1, ohne_werte: 0,
+        });
         expect(figures.gruppen).toMatchObject({
             mit_wert: 3,
             mehrfach_abgedeckt: 1,
@@ -69,6 +71,20 @@ describe('computeReportFigures', () => {
         expect(figures.gruppen.je_stufe).toMatchObject({ woelflinge: 2, jungpfadfinder: 1, rover: 0 });
         expect(figures.staemme_je_dv).toEqual({ 'dv-1': 2 });
         expect(figures.staemme_je_bezirk).toEqual({ 'bz-1': 1, unbekannt: 1 });
+    });
+
+    test('counts stamms with only participation without values separately', () => {
+        const figures = computeReportFigures('2026-06', [
+            ...rohdaten(),
+            snapshot({
+                stamm_id: 'D', sender_id: 'L2', abdeckung: 'gruppen',
+                source_data_as_of: '2026-06-12T00:00:00Z', sent_at: '2026-06-12T01:00:00Z',
+                gruppen: [fremdeGruppe('d-m1', 'woelflinge')],
+            }, '2026-06-12T01:00:00Z'),
+        ], senders);
+
+        expect(figures.staemme).toMatchObject({ teilnehmend: 2, ohne_werte: 1 });
+        expect(figures.installationen.aktiv).toBe(3);
     });
 
     test('only uses snapshots received until the end of the month', () => {

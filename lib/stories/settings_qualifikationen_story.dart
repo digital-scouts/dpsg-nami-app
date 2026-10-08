@@ -5,6 +5,7 @@ import 'package:nami/domain/appearance/support_access.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model.dart';
 import 'package:nami/domain/arbeitskontext/teildaten_stand.dart';
+import 'package:nami/domain/bundesstatistik/statistik_abdeckung.dart';
 import 'package:nami/domain/qualifikation/qualifikations_einstellungen.dart';
 import 'package:nami/presentation/model/appearance_model.dart';
 import 'package:nami/presentation/model/qualifikations_einstellungen_model.dart';
@@ -26,6 +27,9 @@ enum QualifikationenStoryZustand {
   nichtSynchronisiert,
   leer,
 }
+
+/// Rechte fuer den Nutzen-Hinweis der gesperrten Seite.
+enum QualifikationenStoryRechte { stamm, gruppeBearbeiten, gruppeLesen }
 
 enum QualifikationenStorySeite {
   uebersicht,
@@ -81,10 +85,29 @@ Story settingsQualifikationenStory() => Story(
         ),
       ],
     );
+    final rechte = context.knobs.options<QualifikationenStoryRechte>(
+      label: 'Rechte (Hinweis gesperrt)',
+      initial: QualifikationenStoryRechte.stamm,
+      options: const [
+        Option(
+          label: 'Leserecht Stamm',
+          value: QualifikationenStoryRechte.stamm,
+        ),
+        Option(
+          label: 'group_full Trupp',
+          value: QualifikationenStoryRechte.gruppeBearbeiten,
+        ),
+        Option(
+          label: 'group_read Trupp',
+          value: QualifikationenStoryRechte.gruppeLesen,
+        ),
+      ],
+    );
     return QualifikationenStoryHost(
-      key: ValueKey<String>('${zustand.name}-${seite.name}'),
+      key: ValueKey<String>('${zustand.name}-${seite.name}-${rechte.name}'),
       zustand: zustand,
       seite: seite,
+      rechte: rechte,
     );
   },
 );
@@ -94,15 +117,19 @@ class QualifikationenStoryHost extends StatefulWidget {
     super.key,
     required this.zustand,
     required this.seite,
+    this.rechte = QualifikationenStoryRechte.stamm,
   });
 
   final QualifikationenStoryZustand zustand;
   final QualifikationenStorySeite seite;
+  final QualifikationenStoryRechte rechte;
 
   @override
   State<QualifikationenStoryHost> createState() =>
       _QualifikationenStoryHostState();
 }
+
+const _truppId = 22;
 
 class _QualifikationenStoryHostState extends State<QualifikationenStoryHost> {
   final _einstellungen = QualifikationsEinstellungenModel(
@@ -135,6 +162,9 @@ class _QualifikationenStoryHostState extends State<QualifikationenStoryHost> {
         verfuegbareLayer: const <ArbeitskontextLayer>[],
       ),
       mitglieder: MitgliedEdgeCases.alle.values.toList(growable: false),
+      gruppen: const [
+        ArbeitskontextGruppe(id: _truppId, name: 'Trupp Kompass', layerId: 11),
+      ],
       efzStand: switch (widget.zustand) {
         QualifikationenStoryZustand.ohneEfzRecht =>
           TeildatenStand.keineBerechtigung,
@@ -163,6 +193,18 @@ class _QualifikationenStoryHostState extends State<QualifikationenStoryHost> {
       QualifikationenStorySeite.uebersicht => SettingsQualifikationenPage(
         readModel: readModel,
         heuteProvider: heute,
+        abdeckung: switch (widget.rechte) {
+          QualifikationenStoryRechte.stamm => const StatistikAbdeckung.stamm(),
+          QualifikationenStoryRechte.gruppeBearbeiten =>
+            StatistikAbdeckung.gruppen(
+              {_truppId},
+              vollLesbareGruppenIds: {_truppId},
+            ),
+          QualifikationenStoryRechte.gruppeLesen => StatistikAbdeckung.gruppen(
+            const <int>{},
+            gruppenOhneRollen: {_truppId},
+          ),
+        },
       ),
       QualifikationenStorySeite.personenEfz => QualifikationPersonenPage(
         schluessel: QualifikationsSchluessel.efz,

@@ -5,6 +5,7 @@ import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/settings/stufen_settings.dart';
 import 'package:nami/domain/stufenwechsel/ermittle_stufenwechsel_vorschlaege_usecase.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
+import 'package:nami/l10n/app_localizations.dart';
 import 'package:nami/presentation/model/appearance_model.dart';
 import 'package:nami/domain/appearance/appearance_catalog.dart';
 import 'package:nami/presentation/model/arbeitskontext_model.dart';
@@ -13,6 +14,7 @@ import 'package:nami/presentation/screens/member_detail_page.dart';
 import 'package:nami/presentation/stufe/stufe_visuals.dart';
 import 'package:nami/presentation/theme/theme.dart';
 import 'package:nami/presentation/widgets/app_page_header.dart';
+import 'package:nami/presentation/widgets/leserechte_hinweis.dart';
 import 'package:nami/presentation/widgets/stufenwechsel_date_row.dart';
 import 'package:provider/provider.dart';
 
@@ -121,6 +123,14 @@ class _SettingsStufenwechselPageState extends State<SettingsStufenwechselPage> {
   Widget build(BuildContext context) {
     final readModel = _resolveReadModel(context);
     final background = context.watch<AppearanceModel?>()?.background;
+    final rollenFehlen =
+        widget.debugReadModel == null &&
+        (context
+                .watch<ArbeitskontextModel>()
+                .statistikAbdeckung
+                ?.gruppenOhneRollen
+                .isNotEmpty ??
+            false);
 
     final body = FutureBuilder<StufenSettings>(
       future: _settingsFuture,
@@ -161,6 +171,13 @@ class _SettingsStufenwechselPageState extends State<SettingsStufenwechselPage> {
               onPickDate: () => _pickStufenwechselDatum(settings),
               onOpenAltersgrenzen: _openAltersgrenzen,
             ),
+            if (rollenFehlen)
+              LeserechteHinweis(
+                text: AppLocalizations.of(
+                  context,
+                ).t('leserechte_stufenwechsel_hinweis'),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+              ),
             Expanded(
               child: _StufenwechselContent(
                 sections: sections,
