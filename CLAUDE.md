@@ -22,12 +22,29 @@
 
 - Aendere Release-Dateien nur bewusst und konsistent.
 - Halte pubspec.yaml, assets/changelog.json und docs/version.json inhaltlich stimmig, wenn eine Release-Aufgabe dies erfordert; validiere mit `dart tool/validate_versions.dart`.
+- Pflege assets/changelog.json direkt mit: Jede nutzerseitig sichtbare Aenderung bekommt im selben PR einen kurzen Eintrag unter der Version aus pubspec.yaml (bis zum Livegang 1.0.0), als Feature oder Bugfix, aus Nutzersicht formuliert, ohne Technikdetails. Interne Umbauten ohne sichtbare Wirkung brauchen keinen Eintrag.
 - Wenn Env-Keys geaendert werden, halte .env.example, lokale .env, ios/ci_scripts/ci_pre_xcodebuild.sh und die GitHub-Workflow-Env-Erzeugung synchron; validiere mit `dart tool/validate_env_files.dart`.
 
 ## Dokumentation
 
-- Halte README, docs und specs synchron zum tatsaechlichen Verhalten der App.
+- Halte README, docs und specs synchron zum tatsaechlichen Verhalten der App. Aendert sich Verhalten oder Bedienung eines Bereichs, pflege die zugehoerige Seite im selben PR mit.
 - Aktualisiere Dokumentation nur dort, wo sich Verhalten, Bedienung, Setup oder Release-Ablauf wirklich geaendert hat.
+- README.md stellt das Projekt vor (Funktionsumfang, Store-Bilder, Links). Passe sie nur an, wenn eine Funktion neu dazukommt oder entfaellt. Entwickler-Setup, CI und Release-Ablauf stehen in CONTRIBUTING.md.
+- docs/ ist die GitHub-Pages-Seite (Jekyll, just-the-docs, gebaut aus develop:/docs). Texte knapp und auf den Punkt, Anleitungen als nummerierte Schritte mit Screenshots. Zuordnung Bereich → Seite:
+  - Funktionsumfang, Werbetexte → docs/index.html (nur bei neuen oder entfallenen Funktionen)
+  - Anmeldung, Demo, Offline → docs/handbuch/erste-schritte.md und docs/technik/anmeldung-und-offline.md
+  - Arbeitskontext, Rechte → docs/handbuch/arbeitskontext.md, docs/handbuch/faq.md und docs/technik/arbeitskontext.md
+  - Stufenwechsel → docs/handbuch/stufenwechsel.md
+  - Statistik und Bundesvergleich → docs/handbuch/statistik.md und docs/handbuch/bundesvergleich.md
+  - Qualifikationen → docs/handbuch/qualifikationen.md
+  - Bearbeiten, Retry, Konflikte → docs/handbuch/aenderungen.md und docs/technik/zusammenfuehrung.md
+  - Supporter-Paket → docs/handbuch/supporter.md
+  - Hilfe & Diagnose, Feedback → docs/handbuch/probleme-melden.md
+  - Neue oder geaenderte externe Dienste, Datenfluesse, Speicherfristen → docs/technik/externe-dienste.md, docs/handbuch/datenschutz.md und die Datenschutzerklaerung docs/app-privacy-policy.md
+  - Wiredash-Ereignisse → docs/technik/wiredash.md
+- Aendert sich eine Oberflaeche, die im Handbuch abgebildet ist, passe die Szene unter lib/stories/docs/ an und erzeuge die Bilder neu (Befehl in lib/CLAUDE.md).
+- Die Adressen /app-privacy-policy, /notifications.json und /version.json ruft die App direkt ab; sie duerfen sich nicht aendern. Verschobene Seiten bekommen ein `redirect_from`.
+- Pruefe Aenderungen an docs/ lokal mit `cd docs && bundle exec jekyll build`.
 
 ## Arbeitsweise
 

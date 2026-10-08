@@ -108,8 +108,19 @@
       "version": "1.0.0",
       "data_reset": true,
       "features": [
-        "Die App verwendet nun NaMi 3.0.",
-        "Die App wurde komplett überarbeitet und neu gestaltet.",
+        "Die App verwendet nun NaMi 3.0 (Hitobito) und wurde komplett neu gestaltet.",
+        "Arbeitskontext: Wer Rechte auf mehreren Ebenen hat, wechselt im Profil zwischen Stamm, Bezirk und weiteren Ebenen.",
+        "Mitgliedsdetails mit Rollenverlauf, nächstem Stufenwechsel, Geschwistern und Qualifikationen.",
+        "Mitglieder bearbeiten, auch offline: Änderungen werden vorgemerkt und später gesendet, parallele Änderungen automatisch zusammengeführt.",
+        "Neue Statistik mit anpassbaren Kacheln, eigenen Zählkacheln, Zielwerten und Verlauf.",
+        "Freiwilliger bundesweiter Vergleich mit anderen Stämmen, nur mit zusammengefassten Zahlen.",
+        "Qualifikationen: Erinnerung an die eigenen Qualifikationen, Übersicht für den ganzen Stamm im Supporter-Paket.",
+        "Geburtstagserinnerungen für ausgewählte Stufen.",
+        "Karte mit Diözesangrenzen und allen Stämmen.",
+        "App-Sperre mit Face ID oder Fingerabdruck.",
+        "Erfolge mit Abzeichen von Bronze bis Diamant.",
+        "Erscheinungsbild mit Farbpaletten, App-Icons und Hell- und Dunkelmodus.",
+        "Demo ohne Login zum Ausprobieren.",
         "Die App ist nun auf Englisch und Deutsch verfügbar."
       ],
       "bugFixes": []
