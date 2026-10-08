@@ -17,14 +17,6 @@ import 'package:provider/provider.dart';
 // ignore: depend_on_referenced_packages
 import 'package:storybook_flutter/storybook_flutter.dart';
 
-/// Nur freie Optionen sind nutzbar, alles andere zeigt das Schloss.
-class _FreeOnlyAccess extends SupportAccess {
-  const _FreeOnlyAccess();
-
-  @override
-  bool isTierUnlocked(SupportTier tier) => tier == SupportTier.free;
-}
-
 Widget _app({
   required Widget home,
   required bool dark,
@@ -59,7 +51,9 @@ Story settingsAppearancePageStory() => Story(
     );
     return _AppearanceStoryHost(
       key: ValueKey('$locked-$automatic'),
-      access: locked ? const _FreeOnlyAccess() : const UnlockedSupportAccess(),
+      access: locked
+          ? const SchalterSupportAccess(SupporterTestZugang.keiner)
+          : const UnlockedSupportAccess(),
       supportsAutomatic: automatic,
       builder: (model) => _app(
         dark: dark,

@@ -12,21 +12,27 @@ Alles für den Stammesalltag ist kostenlos. Wer die Entwicklung unterstützt, be
 
 ## Was frei bleibt und was dazukommt
 
-| Kostenlos | Supporter |
-|:--|:--|
-| Mitglieder, Details und Bearbeiten | [Qualifikationen-Übersicht](../qualifikationen/#übersicht-für-den-stamm) mit Erinnerungen aller Leitenden |
-| Statistik und Bundesvergleich | zusätzliche Farbpaletten und App-Icons |
-| Stufenwechsel, Karte, Geburtstagserinnerungen | animierte Hintergründe für die Kopfbereiche |
-| Erinnerung an die eigenen Qualifikationen | Supporter-Badge im Profil und in der Mitgliederliste |
-| Offline-Zugriff, App-Sperre, hell und dunkel | |
+| Kostenlos | Design-Paket (einmalig) | Förderer (Jahres-Abo) |
+|:--|:--|:--|
+| Mitglieder, Details und Bearbeiten | Farbpalette, animierter Hintergrund und App-Icons eines Themas | alle drei Design-Pakete |
+| Statistik und Bundesvergleich | Kompass-Badges im Profil und in der Mitgliederliste | [Qualifikationen-Übersicht](../qualifikationen/#übersicht-für-den-stamm) mit Erinnerungen aller Leitenden |
+| Stufenwechsel, Karte, Geburtstagserinnerungen | | Polarstern-Badge |
+| Erinnerung an die eigenen Qualifikationen | | künftige Extras |
+| Offline-Zugriff, App-Sperre, hell und dunkel | | |
 
-Gesperrte Optionen zeigen ein Schloss <i class="ref">1</i> <i class="ref">2</i>. Funktionen, die du für die Arbeit im Stamm brauchst, sperrt das Paket nie.
+Es gibt drei Design-Pakete:
+
+- **Wald:** Farbpalette Wald, Hintergrund Wald, App-Icons Kohte am See
+- **Lagerfeuer:** Farbpalette, Hintergrund und App-Icons Lagerfeuer
+- **Nachthimmel:** Farbpalette Nachthimmel, Hintergrund Himmel, App-Icons Nachtlager
+
+Gesperrte Optionen zeigen ein Schloss <i class="ref">1</i> <i class="ref">2</i>. Funktionen, die du für die Arbeit im Stamm brauchst, sperren die Extras nie. Endet das Förderer-Abo, springen Farbpalette, Hintergrund und App-Icon auf den Standard zurück, sofern du das passende Design-Paket nicht gekauft hast.
 
 {% include shots.html items="erscheinungsbild:Erscheinungsbild mit Supporter-Optionen|qualifikationen_gesperrt:Qualifikationen-Übersicht ohne Paket" %}
 
 ## Supporter werden
 
-Das Supporter-Paket gibt es mit dem Start von Version 1.0 in den App-Stores. Bis dahin ist es noch nicht erhältlich.
+Design-Pakete und Förderer-Abo gibt es mit dem Start von Version 1.0 in den App-Stores. Bis dahin sind sie noch nicht erhältlich.
 
 ## Auf anderen Wegen unterstützen
 

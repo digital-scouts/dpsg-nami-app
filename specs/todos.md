@@ -125,14 +125,16 @@ Gesammelt am 2026-10-01, jeweils mit Kurzbefund. Jede Stufe wird vor der Umsetzu
   - Die API bietet keinen iCal-Feed. Die App müsste Einträge selbst im Gerätekalender anlegen.
 - Der Scope `api` sollte reichen. Prüfen gegen `dpsg.puzzle.ch`.
 - Erster Schritt: ein Spike, wie viele Events mit echten Daten gepflegt sind und in welcher Qualität.
-- Trägt das Feature, kommt es ins Supporter-Paket, ohne neue Preisstufe.
+- Trägt das Feature, kommt es ins Förderer-Abo, ohne neue Preisstufe.
 
 **Monetarisierung** (#212)
 
-- Ein einziges Supporter-Paket mit Paletten, Icons und Badge. Später kommen gegebenenfalls Events und NaMi AI hinzu.
-- Eine Store-Anbindung (`in_app_purchase` oder RevenueCat) ersetzt `SchalterSupportAccess` außerhalb des Demo-Modus.
+- Drei Design-Pakete als Einmalkauf (Wald, Lagerfeuer, Nachthimmel: je Palette, Hintergrund und App-Icons, dazu die Kompass-Badges) und ein Förderer-Jahresabo, das alles freischaltet, inklusive Polarstern-Badge, Qualifikationen-Übersicht und künftiger Extras wie Events und NaMi AI. Umgesetzt im Katalog (`SupporterPaket`, `SupportAccess`).
+- Preise: Pakete 2,99 € einmalig, Förderer 5,99 €/Jahr. In den ersten zwei Monaten nach Veröffentlichung 30 % günstiger (1,97 € bzw. 3,95 €/Jahr), beim Abo dauerhaft bis zur Kündigung. Läuft über Preisänderungen in den Store-Konsolen, Bestandsabos behalten ihren Preis. Apple-Preispunkte prüfen, sonst 1,99 € und 3,99 €.
+- Store-Anbindung mit `in_app_purchase` hinter dem Env-Schalter `SUPPORTER_STORE_ENABLED` (Standard aus) ersetzt `SchalterSupportAccess` außerhalb des Demo-Modus.
+- Kaufseite „Supporter werden“ mit Wiederherstellen und Abo-Pflichtangaben, vorher als HTML-Entwurf abstimmen.
 - Den Erfolg „Unterstützung“ einblenden.
-- Vorher den rechtlichen Rahmen klären.
+- Vor dem Livegang den rechtlichen Rahmen klären.
 
 **NaMi AI** (#213)
 

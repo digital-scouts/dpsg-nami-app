@@ -73,7 +73,6 @@ import 'data/settings/shared_prefs_app_settings_repository.dart';
 import 'data/settings/shared_prefs_qualifikations_einstellungen_repository.dart';
 import 'domain/appearance/support_access.dart';
 import 'domain/auth/auth_profile.dart';
-import 'domain/appearance/appearance_catalog.dart';
 import 'domain/auth/auth_state.dart';
 import 'domain/settings/app_settings.dart';
 import 'domain/settings/app_settings_repository.dart';
@@ -250,9 +249,11 @@ Future<void> _startApp({
   final appSettingsModel = AppSettingsModel(initial, settingsRepo);
   // Supporter-Zugang kommt bis zur Store-Anbindung vom Testschalter, den es
   // nur in Debug- und Profile-Builds gibt (A-94); die Demo zeigt alles.
-  SupportAccess supportAccessVon(bool freigeschaltet) => isDemo
+  SupportAccess supportAccessVon(SupporterTestZugang zugang) => isDemo
       ? const UnlockedSupportAccess()
-      : SchalterSupportAccess(freigeschaltet: !kReleaseMode && freigeschaltet);
+      : SchalterSupportAccess(
+          kReleaseMode ? SupporterTestZugang.keiner : zugang,
+        );
   final appearanceModel = AppearanceModel(
     repository: SharedPrefsAppearanceSettingsRepository(),
     appIconService: MethodChannelAppIconService(),
@@ -533,7 +534,7 @@ Future<void> _startApp({
         readModel: readModel,
         einstellungen: qualifikationsEinstellungenModel.einstellungen,
         eigenePersonId: personId,
-        supporter: appearanceModel.access.isTierUnlocked(SupportTier.supporter),
+        supporter: appearanceModel.access.qualifikationenFrei,
         pushErlaubt: appSettingsModel.notificationsEnabled,
         sprache: appSettingsModel.languageCode,
       ),

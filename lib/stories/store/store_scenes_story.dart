@@ -150,7 +150,7 @@ class _ErscheinungsbildScene extends StatelessWidget {
       create: (_) => AppearanceModel(
         repository: InMemoryAppearanceSettingsRepository(),
         appIconService: FakeAppIconService(),
-        access: const _NurFreieOptionen(),
+        access: const SchalterSupportAccess(SupporterTestZugang.keiner),
       )..load(),
       child: StoreSceneApp(
         dark: dark,
@@ -160,13 +160,6 @@ class _ErscheinungsbildScene extends StatelessWidget {
       ),
     );
   }
-}
-
-class _NurFreieOptionen extends SupportAccess {
-  const _NurFreieOptionen();
-
-  @override
-  bool isTierUnlocked(SupportTier tier) => tier == SupportTier.free;
 }
 
 class StoreSceneApp extends StatelessWidget {

@@ -158,30 +158,6 @@
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
     </activity-alias>
-    <activity-alias android:name=".IconHajkMorgen" android:targetActivity=".MainActivity"
-      android:enabled="false" android:exported="true"
-      android:icon="@mipmap/ic_launcher_hajk_morgen" android:roundIcon="@mipmap/ic_launcher_hajk_morgen">
-      <intent-filter>
-        <action android:name="android.intent.action.MAIN" />
-        <category android:name="android.intent.category.LAUNCHER" />
-      </intent-filter>
-    </activity-alias>
-    <activity-alias android:name=".IconHajkAbend" android:targetActivity=".MainActivity"
-      android:enabled="false" android:exported="true"
-      android:icon="@mipmap/ic_launcher_hajk_abend" android:roundIcon="@mipmap/ic_launcher_hajk_abend">
-      <intent-filter>
-        <action android:name="android.intent.action.MAIN" />
-        <category android:name="android.intent.category.LAUNCHER" />
-      </intent-filter>
-    </activity-alias>
-    <activity-alias android:name=".IconHajkNacht" android:targetActivity=".MainActivity"
-      android:enabled="false" android:exported="true"
-      android:icon="@mipmap/ic_launcher_hajk_nacht" android:roundIcon="@mipmap/ic_launcher_hajk_nacht">
-      <intent-filter>
-        <action android:name="android.intent.action.MAIN" />
-        <category android:name="android.intent.category.LAUNCHER" />
-      </intent-filter>
-    </activity-alias>
     <activity android:name="com.linusu.flutter_web_auth_2.CallbackActivity"
       android:exported="true"
       android:taskAffinity="">

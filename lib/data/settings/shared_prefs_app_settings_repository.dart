@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../domain/appearance/support_access.dart';
 import '../../domain/settings/app_settings.dart';
 import '../../domain/settings/app_settings_repository.dart';
 import '../../domain/taetigkeit/stufe.dart';
@@ -16,7 +17,10 @@ class SharedPrefsAppSettingsRepository implements AppSettingsRepository {
       'memberListSearchResultHighlightEnabled';
   static const String _keyGeburstagsbenachrichtigungStufen =
       'geburstagsbenachrichtigungStufen';
-  static const String _keySupporterTestZugang = 'supporterTestZugang';
+  static const String _keySupporterTestZugang = 'supporterTestZugangAuswahl';
+
+  /// Frueher ein bool-Schalter, der alles freischaltete.
+  static const String _keySupporterTestZugangAlt = 'supporterTestZugang';
 
   Future<SharedPreferences> _prefs() async => SharedPreferences.getInstance();
 
@@ -35,7 +39,7 @@ class SharedPrefsAppSettingsRepository implements AppSettingsRepository {
     final stufenList = prefs.getStringList(
       _keyGeburstagsbenachrichtigungStufen,
     );
-    final supporterTestZugang = prefs.getBool(_keySupporterTestZugang) ?? false;
+    final supporterTestZugang = _supporterTestZugang(prefs);
     final themeMode = themeIndex != null
         ? ThemeMode.values[themeIndex]
         : ThemeMode.system;
@@ -114,9 +118,22 @@ class SharedPrefsAppSettingsRepository implements AppSettingsRepository {
   }
 
   @override
-  Future<void> saveSupporterTestZugang(bool enabled) async {
+  Future<void> saveSupporterTestZugang(SupporterTestZugang zugang) async {
     final prefs = await _prefs();
-    await prefs.setBool(_keySupporterTestZugang, enabled);
+    await prefs.setString(_keySupporterTestZugang, zugang.name);
+    await prefs.remove(_keySupporterTestZugangAlt);
+  }
+
+  SupporterTestZugang _supporterTestZugang(SharedPreferences prefs) {
+    final name = prefs.getString(_keySupporterTestZugang);
+    for (final zugang in SupporterTestZugang.values) {
+      if (zugang.name == name) {
+        return zugang;
+      }
+    }
+    return prefs.getBool(_keySupporterTestZugangAlt) == true
+        ? SupporterTestZugang.foerderer
+        : SupporterTestZugang.keiner;
   }
 
   @override

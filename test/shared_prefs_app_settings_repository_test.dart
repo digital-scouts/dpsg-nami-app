@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nami/data/settings/shared_prefs_app_settings_repository.dart';
+import 'package:nami/domain/appearance/support_access.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -70,12 +71,32 @@ void main() {
       },
     );
 
-    test('supporterTestZugang ist aus und wird gespeichert', () async {
+    test('supporterTestZugang ist keiner und wird gespeichert', () async {
       SharedPreferences.setMockInitialValues({});
       final repo = SharedPrefsAppSettingsRepository();
-      expect((await repo.load()).supporterTestZugang, isFalse);
-      await repo.saveSupporterTestZugang(true);
-      expect((await repo.load()).supporterTestZugang, isTrue);
+      expect(
+        (await repo.load()).supporterTestZugang,
+        SupporterTestZugang.keiner,
+      );
+      await repo.saveSupporterTestZugang(SupporterTestZugang.lagerfeuer);
+      expect(
+        (await repo.load()).supporterTestZugang,
+        SupporterTestZugang.lagerfeuer,
+      );
+    });
+
+    test('alter Supporter-Schalter wird als Foerderer gelesen', () async {
+      SharedPreferences.setMockInitialValues({'supporterTestZugang': true});
+      final repo = SharedPrefsAppSettingsRepository();
+      expect(
+        (await repo.load()).supporterTestZugang,
+        SupporterTestZugang.foerderer,
+      );
+      await repo.saveSupporterTestZugang(SupporterTestZugang.keiner);
+      expect(
+        (await repo.load()).supporterTestZugang,
+        SupporterTestZugang.keiner,
+      );
     });
 
     test('geburstagsbenachrichtigungStufen defaults and persists', () async {

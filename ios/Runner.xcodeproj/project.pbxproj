@@ -30,10 +30,6 @@
 		03D0A2095AA466A3F4D81AFC /* KohteSeeAbend.icon in Resources */ = {isa = PBXBuildFile; fileRef = 3AEA6287FE3E30652FFFBF4D /* KohteSeeAbend.icon */; };
 		1712CD69D13433B8F42B7263 /* KohteSeeNacht.icon in Resources */ = {isa = PBXBuildFile; fileRef = 72A975EEC38B37FC1F737C0C /* KohteSeeNacht.icon */; };
 		AA9A917ECFC8B1B5FA9A6EA7 /* KohteSeeAutomatisch.icon in Resources */ = {isa = PBXBuildFile; fileRef = BC39F439527E6E0166F3B261 /* KohteSeeAutomatisch.icon */; };
-		AD29930FCE2A35E8828A83EF /* HajkMorgen.icon in Resources */ = {isa = PBXBuildFile; fileRef = D533AE35C6FA1B84DCF3BC6E /* HajkMorgen.icon */; };
-		B21F8F2219E2B48751A18D09 /* HajkAbend.icon in Resources */ = {isa = PBXBuildFile; fileRef = CC8BF87F6F7663A31E5D5987 /* HajkAbend.icon */; };
-		9AF6706B4C5480B1AA325456 /* HajkNacht.icon in Resources */ = {isa = PBXBuildFile; fileRef = 82897B7E7848DBF84702A718 /* HajkNacht.icon */; };
-		F7CE05BCBDEA9C136275716C /* HajkAutomatisch.icon in Resources */ = {isa = PBXBuildFile; fileRef = D68F1077124615488A335CF5 /* HajkAutomatisch.icon */; };
 		92D27815668E6D7A7F6DED67 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CCF33E99BE5A2A6057AAC72C /* Pods_Runner.framework */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
@@ -90,10 +86,6 @@
 		3AEA6287FE3E30652FFFBF4D /* KohteSeeAbend.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = KohteSeeAbend.icon; sourceTree = "<group>"; };
 		72A975EEC38B37FC1F737C0C /* KohteSeeNacht.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = KohteSeeNacht.icon; sourceTree = "<group>"; };
 		BC39F439527E6E0166F3B261 /* KohteSeeAutomatisch.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = KohteSeeAutomatisch.icon; sourceTree = "<group>"; };
-		D533AE35C6FA1B84DCF3BC6E /* HajkMorgen.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = HajkMorgen.icon; sourceTree = "<group>"; };
-		CC8BF87F6F7663A31E5D5987 /* HajkAbend.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = HajkAbend.icon; sourceTree = "<group>"; };
-		82897B7E7848DBF84702A718 /* HajkNacht.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = HajkNacht.icon; sourceTree = "<group>"; };
-		D68F1077124615488A335CF5 /* HajkAutomatisch.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = HajkAutomatisch.icon; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Flutter/Debug.xcconfig; sourceTree = "<group>"; };
 		9740EEB31CF90195004384FC /* Generated.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Generated.xcconfig; path = Flutter/Generated.xcconfig; sourceTree = "<group>"; };
 		97C146EE1CF9000F007C117D /* Runner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Runner.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -190,10 +182,6 @@
 				3AEA6287FE3E30652FFFBF4D /* KohteSeeAbend.icon */,
 				72A975EEC38B37FC1F737C0C /* KohteSeeNacht.icon */,
 				BC39F439527E6E0166F3B261 /* KohteSeeAutomatisch.icon */,
-				D533AE35C6FA1B84DCF3BC6E /* HajkMorgen.icon */,
-				CC8BF87F6F7663A31E5D5987 /* HajkAbend.icon */,
-				82897B7E7848DBF84702A718 /* HajkNacht.icon */,
-				D68F1077124615488A335CF5 /* HajkAutomatisch.icon */,
 			);
 			path = Runner;
 			sourceTree = "<group>";
@@ -334,10 +322,6 @@
 				03D0A2095AA466A3F4D81AFC /* KohteSeeAbend.icon in Resources */,
 				1712CD69D13433B8F42B7263 /* KohteSeeNacht.icon in Resources */,
 				AA9A917ECFC8B1B5FA9A6EA7 /* KohteSeeAutomatisch.icon in Resources */,
-				AD29930FCE2A35E8828A83EF /* HajkMorgen.icon in Resources */,
-				B21F8F2219E2B48751A18D09 /* HajkAbend.icon in Resources */,
-				9AF6706B4C5480B1AA325456 /* HajkNacht.icon in Resources */,
-				F7CE05BCBDEA9C136275716C /* HajkAutomatisch.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -525,7 +509,7 @@
 			baseConfigurationReference = 7AFA3C8E1D35360C0083082E /* Release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = NamiAppIcon;
-				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "NachtlagerMorgen NachtlagerAbend NachtlagerNacht NachtlagerAutomatisch LagerfeuerMorgen LagerfeuerAbend LagerfeuerNacht LagerfeuerAutomatisch KohteSeeMorgen KohteSeeAbend KohteSeeNacht KohteSeeAutomatisch HajkMorgen HajkAbend HajkNacht HajkAutomatisch";
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "NachtlagerMorgen NachtlagerAbend NachtlagerNacht NachtlagerAutomatisch LagerfeuerMorgen LagerfeuerAbend LagerfeuerNacht LagerfeuerAutomatisch KohteSeeMorgen KohteSeeAbend KohteSeeNacht KohteSeeAutomatisch";
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
@@ -711,7 +695,7 @@
 			baseConfigurationReference = 9740EEB21CF90195004384FC /* Debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = NamiAppIcon;
-				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "NachtlagerMorgen NachtlagerAbend NachtlagerNacht NachtlagerAutomatisch LagerfeuerMorgen LagerfeuerAbend LagerfeuerNacht LagerfeuerAutomatisch KohteSeeMorgen KohteSeeAbend KohteSeeNacht KohteSeeAutomatisch HajkMorgen HajkAbend HajkNacht HajkAutomatisch";
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "NachtlagerMorgen NachtlagerAbend NachtlagerNacht NachtlagerAutomatisch LagerfeuerMorgen LagerfeuerAbend LagerfeuerNacht LagerfeuerAutomatisch KohteSeeMorgen KohteSeeAbend KohteSeeNacht KohteSeeAutomatisch";
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
@@ -740,7 +724,7 @@
 			baseConfigurationReference = 7AFA3C8E1D35360C0083082E /* Release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = NamiAppIcon;
-				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "NachtlagerMorgen NachtlagerAbend NachtlagerNacht NachtlagerAutomatisch LagerfeuerMorgen LagerfeuerAbend LagerfeuerNacht LagerfeuerAutomatisch KohteSeeMorgen KohteSeeAbend KohteSeeNacht KohteSeeAutomatisch HajkMorgen HajkAbend HajkNacht HajkAutomatisch";
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "NachtlagerMorgen NachtlagerAbend NachtlagerNacht NachtlagerAutomatisch LagerfeuerMorgen LagerfeuerAbend LagerfeuerNacht LagerfeuerAutomatisch KohteSeeMorgen KohteSeeAbend KohteSeeNacht KohteSeeAutomatisch";
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;

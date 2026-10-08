@@ -139,7 +139,9 @@ class _QualifikationenStoryHostState extends State<QualifikationenStoryHost> {
     repository: InMemoryAppearanceSettingsRepository(),
     appIconService: FakeAppIconService(),
     access: SchalterSupportAccess(
-      freigeschaltet: widget.zustand != QualifikationenStoryZustand.gesperrt,
+      widget.zustand == QualifikationenStoryZustand.gesperrt
+          ? SupporterTestZugang.keiner
+          : SupporterTestZugang.foerderer,
     ),
   );
 

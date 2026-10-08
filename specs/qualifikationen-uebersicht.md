@@ -19,7 +19,7 @@ Stand: 2026-10-02, umgesetzt. Diese Spec beschreibt die Erweiterung der Seite �
   - Er nutzt die IDs 95000–95099 und räumt beim Abmelden nur diesen Bereich.
   - Gemeldete Abläufe merkt er sich unter `qualifikationsErinnerungenGeplant`.
 - **Meldung im Hub:** `qualifikation-laeuft-ab`. Ein Tipp öffnet die eigenen Mitgliedsdetails.
-- **Supporter:** `SchalterSupportAccess` mit dem Testschalter `supporterTestZugang` in Debug & Tools, standardmäßig aus. Der Schalter gilt auch für Paletten und Icons der Supporter-Stufe. Der Demo-Modus ist freigeschaltet.
+- **Förderer:** Die Übersicht hängt an `SupportAccess.qualifikationenFrei`, also am Förderer-Abo. Bis zur Store-Anbindung simuliert der Testschalter `supporterTestZugang` in Debug & Tools einen Kauf (keiner, ein Design-Paket oder Förderer), standardmäßig keiner. Der Demo-Modus ist freigeschaltet.
 - **Offen:**
   - Ein Tipp auf eine Push-Mitteilung öffnet nur die App, Deep-Links fehlen noch.
   - Die Labels für Prävention und Erste Hilfe auf dpsg.puzzle.ch sind noch zu prüfen. Die Muster stehen in `QualifikationsVorgaben`.
@@ -85,10 +85,10 @@ Ein Zahnrad öffnet die Einstellungen der Qualifikation, ein „+“ fügt eine 
 - Zusätzlich eine In-App-Meldung im Meldungs-Hub (`NotificationsHub.buildInternal`).
 
 **Premium**
-- Die Quali-Seite ist Kandidat für das Supporter-Paket (`SupportAccess`).
+- Die Quali-Seite gehört zum Förderer-Abo (`SupportAccess.qualifikationenFrei`).
 - Die Mitgliedsdetails mit dem Qualifikationen-Tab und die Erinnerungen an eigene Qualifikationen bleiben frei.
 - Gesperrt zeigt die Seite nur einen Hinweis (Entwurf L2).
-- Übergangsweise schaltet ein Testschalter „Supporter-Zugang“ in Debug & Tools die Funktionen frei, bis die Store-Anbindung steht.
+- Übergangsweise simuliert der Testschalter „Simulierter Kauf“ in Debug & Tools den Förderer, bis die Store-Anbindung steht.
 
 **Speicherung**
 - Alle Einstellungen gelten pro App, nicht pro Arbeitskontext (SharedPreferences).
