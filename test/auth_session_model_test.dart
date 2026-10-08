@@ -14,6 +14,7 @@ import 'package:nami/domain/auth/auth_state.dart';
 import 'package:nami/domain/statistiks/statistik_verlauf.dart';
 import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/services/achievement_service.dart';
+import 'package:nami/services/app_startup_state_service.dart';
 import 'package:nami/services/hitobito_data_retention_policy.dart';
 import 'package:nami/services/hitobito_oauth_service.dart';
 import 'package:nami/services/hitobito_people_service.dart';
@@ -138,6 +139,100 @@ void main() {
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
+
+  group('Anmeldung bei Prozessende (A-109)', () {
+    final jetzt = DateTime(2026, 10, 8, 12);
+
+    AuthSessionModel buildModel(
+      AppStartupStateService startupState, {
+      FakeOauthService? oauthService,
+    }) {
+      return AuthSessionModel(
+        repository: InMemoryAuthSessionRepository(),
+        profileRepository: InMemoryAuthProfileRepository(),
+        oauthService:
+            oauthService ??
+            FakeOauthService(
+              sessionToReturn: AuthSession(
+                accessToken: 'access-token',
+                refreshToken: 'refresh-token',
+                receivedAt: jetzt,
+              ),
+              profileToReturn: const AuthProfile(namiId: 34, language: 'de'),
+            ),
+        biometricLockService: FakeBiometricLockService(),
+        sensitiveStorageService: FakeSensitiveStorageService(),
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => jetzt,
+        ),
+        logger: _createLogger(),
+        startupStateService: startupState,
+      );
+    }
+
+    test(
+      'erkennt einen kurz zuvor begonnenen Login als unterbrochen',
+      () async {
+        SharedPreferences.setMockInitialValues(<String, Object>{
+          AppStartupStateService.anmeldungBegonnenKey: jetzt
+              .subtract(const Duration(minutes: 4))
+              .toIso8601String(),
+        });
+        final startupState = AppStartupStateService();
+        final model = buildModel(startupState);
+
+        await model.initialize();
+
+        expect(model.state, AuthState.signedOut);
+        expect(model.anmeldungUnterbrochen, isTrue);
+        expect(await startupState.loadAnmeldungBegonnen(), isNull);
+      },
+    );
+
+    test('ignoriert einen alten Eintrag', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        AppStartupStateService.anmeldungBegonnenKey: jetzt
+            .subtract(const Duration(hours: 3))
+            .toIso8601String(),
+      });
+      final startupState = AppStartupStateService();
+      final model = buildModel(startupState);
+
+      await model.initialize();
+
+      expect(model.anmeldungUnterbrochen, isFalse);
+      expect(await startupState.loadAnmeldungBegonnen(), isNull);
+    });
+
+    test('merkt sich den Login nur, solange der Browser offen ist', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final startupState = AppStartupStateService();
+      final sperre = Completer<void>();
+      final oauthService = FakeOauthService(
+        sessionToReturn: AuthSession(
+          accessToken: 'access-token',
+          refreshToken: 'refresh-token',
+          receivedAt: jetzt,
+        ),
+        profileToReturn: const AuthProfile(namiId: 34, language: 'de'),
+      )..anmeldungSperre = sperre;
+      final model = buildModel(startupState, oauthService: oauthService);
+      await model.initialize();
+
+      final anmeldung = model.signIn();
+      await pumpEventQueue();
+      expect(await startupState.loadAnmeldungBegonnen(), jetzt);
+
+      sperre.complete();
+      await anmeldung;
+
+      expect(await startupState.loadAnmeldungBegonnen(), isNull);
+      expect(model.anmeldungUnterbrochen, isFalse);
+      expect(model.state, AuthState.signedIn);
+    });
+  });
 
   test(
     'setzt unbekannte Profilsprache nach Login auf deutsch zurueck',

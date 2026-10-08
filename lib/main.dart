@@ -460,6 +460,7 @@ Future<void> _startApp({
     networkAccessPolicy: networkAccessPolicy,
     isAppLockEnabled: () => !isDemo && appSettingsModel.biometricLockEnabled,
     lockTimeout: HitobitoAuthEnv.appLockTimeout,
+    startupStateService: appStartupStateService,
     // Geokodierte Wohnorte und Kacheln um Mitgliedsadressen gehoeren zu den
     // Daten, die Logout und Datenablauf entfernen muessen.
     purgeLocalPersonalData: () async {

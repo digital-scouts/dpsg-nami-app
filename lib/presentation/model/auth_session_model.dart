@@ -8,6 +8,7 @@ import '../../domain/auth/auth_profile_repository.dart';
 import '../../domain/auth/auth_session.dart';
 import '../../domain/auth/auth_session_repository.dart';
 import '../../domain/auth/auth_state.dart';
+import '../../services/app_startup_state_service.dart';
 import '../../services/biometric_lock_service.dart';
 import '../../services/hitobito_api_exception.dart';
 import '../../services/hitobito_auth_env.dart';
@@ -67,6 +68,7 @@ class AuthSessionModel extends ChangeNotifier {
     Duration lockTimeout = const Duration(seconds: 60),
     Future<void> Function()? purgeLocalPersonalData,
     Duration Function()? monotonicElapsed,
+    AppStartupStateService? startupStateService,
   }) : _repository = repository,
        _profileRepository = profileRepository,
        _oauthService = oauthService,
@@ -79,7 +81,8 @@ class AuthSessionModel extends ChangeNotifier {
        _isAppLockEnabled = isAppLockEnabled ?? _appLockDisabled,
        _lockTimeout = lockTimeout,
        _purgeLocalPersonalData = purgeLocalPersonalData,
-       _monotonicElapsed = monotonicElapsed ?? _prozessUhr();
+       _monotonicElapsed = monotonicElapsed ?? _prozessUhr(),
+       _startupStateService = startupStateService;
 
   final AuthSessionRepository _repository;
   final AuthProfileRepository _profileRepository;
@@ -97,6 +100,12 @@ class AuthSessionModel extends ChangeNotifier {
   final Future<void> Function()? _purgeLocalPersonalData;
 
   static bool _appLockDisabled() => false;
+
+  // Merkt sich einen laufenden Browser-Login ueber ein Prozessende hinweg.
+  final AppStartupStateService? _startupStateService;
+
+  /// So lange gilt ein gemerkter Login nach dem Neustart als unterbrochen.
+  static const Duration _anmeldungUnterbrochenFrist = Duration(minutes: 30);
 
   // Monotone Zeit seit Prozessstart. Anders als die Wanduhr laesst sie sich
   // nicht zurueckstellen und schuetzt so die Sperre beim Warmstart (A-18).
@@ -132,6 +141,7 @@ class AuthSessionModel extends ChangeNotifier {
   bool _isSyncingHitobitoData = false;
   bool _isUserInitiatedSyncInProgress = false;
   bool _isNeuanmeldungAktiv = false;
+  bool _anmeldungUnterbrochen = false;
   int _neuanmeldungen = 0;
   SyncAttemptResult? _lastSyncAttemptResult;
   LogoutReason? _logoutReason;
@@ -153,6 +163,10 @@ class AuthSessionModel extends ChangeNotifier {
 
   /// Laeuft gerade [neuAnmelden]; der Arbeitskontext bleibt dabei sichtbar.
   bool get isNeuanmeldungAktiv => _isNeuanmeldungAktiv;
+
+  /// Das System hat die App beim letzten Mal waehrend der Anmeldung im
+  /// Browser beendet. Gilt bis zum naechsten Anmeldeversuch.
+  bool get anmeldungUnterbrochen => _anmeldungUnterbrochen;
 
   /// Zaehlt erfolgreiche Neuanmeldungen. Wer synchronisiert, erkennt daran,
   /// dass nach einer abgelaufenen Anmeldung wieder Zugriffe moeglich sind.
@@ -192,6 +206,7 @@ class AuthSessionModel extends ChangeNotifier {
     await _logger.log('auth_flow', 'Initialisierung gestartet');
     _state = AuthState.initializing;
     notifyListeners();
+    await _pruefeUnterbrocheneAnmeldung();
 
     try {
       _session = await _repository.load();
@@ -772,9 +787,58 @@ class AuthSessionModel extends ChangeNotifier {
 
   /// Oeffnet hoechstens eine Hitobito-Anmeldung im Browser gleichzeitig.
   Future<AuthSession> _anmeldenImBrowser() {
-    return _laufendeBrowserAnmeldung ??= _oauthService
-        .authenticateInteractive()
-        .whenComplete(() => _laufendeBrowserAnmeldung = null);
+    return _laufendeBrowserAnmeldung ??= _browserAnmeldung().whenComplete(
+      () => _laufendeBrowserAnmeldung = null,
+    );
+  }
+
+  Future<AuthSession> _browserAnmeldung() async {
+    _anmeldungUnterbrochen = false;
+    await _merkeAnmeldungBegonnen(_retentionPolicy.now());
+    try {
+      return await _oauthService.authenticateInteractive();
+    } finally {
+      await _merkeAnmeldungBegonnen(null);
+    }
+  }
+
+  Future<void> _merkeAnmeldungBegonnen(DateTime? zeitpunkt) async {
+    try {
+      await _startupStateService?.saveAnmeldungBegonnen(zeitpunkt);
+    } catch (error) {
+      // Nur fuer den Hinweis nach einem Prozessende; die Anmeldung selbst
+      // haengt nicht davon ab.
+      await _logger.log(
+        'auth_flow',
+        'Anmeldevorgang konnte nicht gemerkt werden: $error',
+      );
+    }
+  }
+
+  Future<void> _pruefeUnterbrocheneAnmeldung() async {
+    final DateTime? begonnen;
+    try {
+      begonnen = await _startupStateService?.loadAnmeldungBegonnen();
+    } catch (error) {
+      await _logger.log(
+        'auth_flow',
+        'Anmeldevorgang konnte nicht gelesen werden: $error',
+      );
+      return;
+    }
+    if (begonnen == null) {
+      return;
+    }
+    await _merkeAnmeldungBegonnen(null);
+    final alter = _retentionPolicy.now().difference(begonnen);
+    if (alter.isNegative || alter > _anmeldungUnterbrochenFrist) {
+      return;
+    }
+    _anmeldungUnterbrochen = true;
+    await _logger.logInfo(
+      'auth_flow',
+      'login interrupted by process end age_s=${alter.inSeconds}',
+    );
   }
 
   /// Fuehrt [action] mit einer gueltigen Session aus. Lehnt Hitobito das
