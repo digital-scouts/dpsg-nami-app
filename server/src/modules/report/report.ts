@@ -71,6 +71,9 @@ export type ReportFigures = {
         nur_gruppen: number;
         gemischt: number;
         mehrere_sender: number;
+        // Staemme, fuer die nur Teilnahmen ohne Werte vorliegen (z. B. Leitungen ohne lesbare
+        // Rollen). Sie zaehlen nicht als teilnehmend. Fehlt in Berichten vor 2026-10.
+        ohne_werte?: number;
     };
     gruppen: {
         mit_wert: number;
@@ -112,7 +115,8 @@ export const computeReportFigures = (
     const bisStichtag = rawSnapshots.filter((snapshot) =>
         snapshot.received_at.getTime() < end.getTime()
         && snapshot.source_data_as_of.getTime() <= stichtag.getTime());
-    const derived = mergeAllStammSnapshots(bisStichtag, since)
+    const merged = mergeAllStammSnapshots(bisStichtag, since);
+    const derived = merged
         .map((state) => deriveStammState(state, since))
         .filter((stamm): stamm is DerivedStammState => stamm != null);
 
@@ -137,6 +141,7 @@ export const computeReportFigures = (
             nur_gruppen: derived.filter((stamm) => stamm.art === 'nur_gruppen').length,
             gemischt: derived.filter((stamm) => stamm.art === 'gemischt').length,
             mehrere_sender: derived.filter((stamm) => stamm.state.sender_count > 1).length,
+            ohne_werte: merged.length - derived.length,
         },
         gruppen: {
             mit_wert: derived.reduce((summe, stamm) => summe + stamm.gruppen.length, 0),
@@ -199,6 +204,7 @@ export const formatMonthlyReport = (
         zeile('nur Gruppen', staemme.nur_gruppen, vormonat.staemme.nur_gruppen, 4),
         zeile('gemischt', staemme.gemischt, vormonat.staemme.gemischt, 4),
         zeile('mit mehreren Sendern', staemme.mehrere_sender, vormonat.staemme.mehrere_sender),
+        zeile('nur Teilnahme ohne Werte', staemme.ohne_werte ?? 0, vormonat.staemme.ohne_werte ?? 0),
         '',
         'Gruppen',
         zeile('mit Wert', gruppen.mit_wert, vormonat.gruppen.mit_wert),
@@ -212,6 +218,7 @@ export const formatMonthlyReport = (
         ...regionen('Stämme je Bezirk', aktuell.staemme_je_bezirk, vormonat.staemme_je_bezirk),
         '',
         '„Unvollständige Stufen“ zählt Stamm-Stufen-Paare, bei denen mindestens eine Gruppe keinen Wert hat.',
+        '„Nur Teilnahme ohne Werte“ zählt Stämme, deren Sender teilen wollen, aber keine lesbaren Werte haben; sie zählen nicht als teilnehmend.',
         'Der Report enthält nur Zählwerte und die gespeicherten DV- und Bezirks-IDs.',
     ].join('\n');
 
@@ -260,7 +267,8 @@ export const formatTelegramMessage = (
     return [
         `NaMi-Statistik ${aktuell.month}`,
         `Stämme: ${aktuell.staemme.teilnehmend}${vorher(vormonat?.staemme.teilnehmend)}`
-            + ` – vollständig ${aktuell.staemme.vollstaendig}, nur Gruppen ${aktuell.staemme.nur_gruppen}, gemischt ${aktuell.staemme.gemischt}`,
+            + ` – vollständig ${aktuell.staemme.vollstaendig}, nur Gruppen ${aktuell.staemme.nur_gruppen}, gemischt ${aktuell.staemme.gemischt}`
+            + `, ohne Werte ${aktuell.staemme.ohne_werte ?? 0}`,
         `Aktive Installationen: ${aktuell.installationen.aktiv}${vorher(vormonat?.installationen.aktiv)}, neu ${aktuell.installationen.neu}`,
         `Gruppen mit Wert: ${aktuell.gruppen.mit_wert}${vorher(vormonat?.gruppen.mit_wert)}, mehrfach abgedeckt ${aktuell.gruppen.mehrfach_abgedeckt}`,
         `DVs mit ≥ ${minStammCount} Stämmen: ${regionen(aktuell.staemme_je_dv)}, Bezirke: ${regionen(aktuell.staemme_je_bezirk)}`,
