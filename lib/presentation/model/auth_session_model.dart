@@ -1,14 +1,17 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 
 import '../../domain/auth/auth_profile.dart';
 import '../../domain/auth/auth_profile_repository.dart';
 import '../../domain/auth/auth_session.dart';
 import '../../domain/auth/auth_session_repository.dart';
 import '../../domain/auth/auth_state.dart';
+import '../../services/app_startup_state_service.dart';
 import '../../services/biometric_lock_service.dart';
 import '../../services/hitobito_api_exception.dart';
+import '../../services/hitobito_auth_env.dart';
 import '../../services/hitobito_data_retention_policy.dart';
 import '../../services/hitobito_oauth_service.dart';
 import '../../services/logger_service.dart';
@@ -65,6 +68,7 @@ class AuthSessionModel extends ChangeNotifier {
     Duration lockTimeout = const Duration(seconds: 60),
     Future<void> Function()? purgeLocalPersonalData,
     Duration Function()? monotonicElapsed,
+    AppStartupStateService? startupStateService,
   }) : _repository = repository,
        _profileRepository = profileRepository,
        _oauthService = oauthService,
@@ -77,7 +81,8 @@ class AuthSessionModel extends ChangeNotifier {
        _isAppLockEnabled = isAppLockEnabled ?? _appLockDisabled,
        _lockTimeout = lockTimeout,
        _purgeLocalPersonalData = purgeLocalPersonalData,
-       _monotonicElapsed = monotonicElapsed ?? _prozessUhr();
+       _monotonicElapsed = monotonicElapsed ?? _prozessUhr(),
+       _startupStateService = startupStateService;
 
   final AuthSessionRepository _repository;
   final AuthProfileRepository _profileRepository;
@@ -96,6 +101,12 @@ class AuthSessionModel extends ChangeNotifier {
 
   static bool _appLockDisabled() => false;
 
+  // Merkt sich einen laufenden Browser-Login ueber ein Prozessende hinweg.
+  final AppStartupStateService? _startupStateService;
+
+  /// So lange gilt ein gemerkter Login nach dem Neustart als unterbrochen.
+  static const Duration _anmeldungUnterbrochenFrist = Duration(minutes: 30);
+
   // Monotone Zeit seit Prozessstart. Anders als die Wanduhr laesst sie sich
   // nicht zurueckstellen und schuetzt so die Sperre beim Warmstart (A-18).
   final Duration Function() _monotonicElapsed;
@@ -105,14 +116,14 @@ class AuthSessionModel extends ChangeNotifier {
     return () => uhr.elapsed;
   }
 
-  static final Object _noInteractiveReloginZoneKey = Object();
-
   AuthState _state = AuthState.initializing;
   // Steigt mit jedem Ende einer Sitzung (Logout, Benutzerwechsel,
   // Datenablauf). Laufende Vorgaenge vergleichen sie nach jedem await und
   // verwerfen ihr Ergebnis, wenn die Sitzung inzwischen gewechselt hat.
   int _sessionGeneration = 0;
   Object? _activeSyncToken;
+  _LaufenderRefresh? _laufenderRefresh;
+  Future<AuthSession>? _laufendeBrowserAnmeldung;
   AuthSession? _session;
   AuthProfile? _profile;
   DateTime? _lastSensitiveSyncAt;
@@ -129,6 +140,9 @@ class AuthSessionModel extends ChangeNotifier {
   bool _isLoadingProfile = false;
   bool _isSyncingHitobitoData = false;
   bool _isUserInitiatedSyncInProgress = false;
+  bool _isNeuanmeldungAktiv = false;
+  bool _anmeldungUnterbrochen = false;
+  int _neuanmeldungen = 0;
   SyncAttemptResult? _lastSyncAttemptResult;
   LogoutReason? _logoutReason;
 
@@ -146,6 +160,17 @@ class AuthSessionModel extends ChangeNotifier {
   bool get isLoadingProfile => _isLoadingProfile;
   bool get isSyncingHitobitoData => _isSyncingHitobitoData;
   bool get isUserInitiatedSyncInProgress => _isUserInitiatedSyncInProgress;
+
+  /// Laeuft gerade [neuAnmelden]; der Arbeitskontext bleibt dabei sichtbar.
+  bool get isNeuanmeldungAktiv => _isNeuanmeldungAktiv;
+
+  /// Das System hat die App beim letzten Mal waehrend der Anmeldung im
+  /// Browser beendet. Gilt bis zum naechsten Anmeldeversuch.
+  bool get anmeldungUnterbrochen => _anmeldungUnterbrochen;
+
+  /// Zaehlt erfolgreiche Neuanmeldungen. Wer synchronisiert, erkennt daran,
+  /// dass nach einer abgelaufenen Anmeldung wieder Zugriffe moeglich sind.
+  int get neuanmeldungen => _neuanmeldungen;
   SyncAttemptResult? get lastSyncAttemptResult => _lastSyncAttemptResult;
 
   /// Grund der letzten automatischen Abmeldung, bis zur naechsten Anmeldung.
@@ -181,6 +206,7 @@ class AuthSessionModel extends ChangeNotifier {
     await _logger.log('auth_flow', 'Initialisierung gestartet');
     _state = AuthState.initializing;
     notifyListeners();
+    await _pruefeUnterbrocheneAnmeldung();
 
     try {
       _session = await _repository.load();
@@ -249,6 +275,10 @@ class AuthSessionModel extends ChangeNotifier {
   }
 
   Future<void> signIn() async {
+    if (_laufendeBrowserAnmeldung != null) {
+      // Ein zweiter Tipp oeffnet keinen zweiten Login.
+      return;
+    }
     await _logger.logInfo(
       'auth_flow',
       'login started method=interactive_oauth',
@@ -264,8 +294,7 @@ class AuthSessionModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final authenticatedSession = await _oauthService
-          .authenticateInteractive();
+      final authenticatedSession = await _anmeldenImBrowser();
       await _completeSuccessfulSignIn(authenticatedSession);
       await _logger.logInfo(
         'auth_flow',
@@ -295,7 +324,7 @@ class AuthSessionModel extends ChangeNotifier {
       } else {
         await _logger.logError(
           'auth',
-          'login failure method=interactive_oauth',
+          'login failure method=interactive_oauth${_plattformCode(error)}',
           error: error,
           stackTrace: stack,
         );
@@ -475,6 +504,8 @@ class AuthSessionModel extends ChangeNotifier {
     _isLoadingProfile = false;
     _isSyncingHitobitoData = false;
     _activeSyncToken = null;
+    _laufenderRefresh = null;
+    _isNeuanmeldungAktiv = false;
     _isUserInitiatedSyncInProgress = false;
     _lastSyncAttemptResult = null;
     _lastSensitiveSyncAt = null;
@@ -556,6 +587,7 @@ class AuthSessionModel extends ChangeNotifier {
     }
     await _clearBackgroundedAt();
     if (!shouldRequireUnlock) {
+      unawaited(sitzungFrischHalten(trigger: 'resume'));
       return;
     }
 
@@ -588,52 +620,27 @@ class AuthSessionModel extends ChangeNotifier {
         _monotonicElapsed() - backgroundedMonotonic >= _lockTimeout;
   }
 
-  Future<void> performBackgroundMaintenance({required String trigger}) async {
-    if (_session == null || _state == AuthState.reloginRequired) {
-      return;
-    }
-
-    if (_retentionPolicy.isReloginRequired(_lastSensitiveSyncAt)) {
-      await _expireSensitiveData();
-      return;
-    }
-
-    try {
-      await prepareSessionForRemoteAccess(trigger: trigger);
-    } catch (error, stack) {
-      await _logger.log(
-        'auth',
-        'Session-Wartung fehlgeschlagen ($trigger): $error\n$stack',
-      );
-    }
-
-    if (_retentionPolicy.isReloginRequired(_lastSensitiveSyncAt)) {
-      _state = AuthState.reloginRequired;
-      await _logger.log(
-        'auth_flow',
-        'Relogin erforderlich: Datenfrist abgelaufen',
-      );
-      notifyListeners();
-    }
-  }
-
   Future<AuthSession?> prepareSessionForRemoteAccess({
     required String trigger,
     bool forceRefresh = false,
     bool allowMobileDataOverride = false,
-  }) async {
-    final preparation = await _prepareSessionForRemoteAccess(
+  }) {
+    return _prepareSessionForRemoteAccess(
       trigger: trigger,
       forceRefresh: forceRefresh,
       allowMobileDataOverride: allowMobileDataOverride,
     );
-    return preparation.session;
   }
 
-  Future<_PreparedRemoteAccess> _prepareSessionForRemoteAccess({
+  /// [abgelehntesAccessToken]: Hitobito hat dieses Access-Token bereits mit
+  /// 401 abgelehnt. Hat ein paralleler Zugriff es inzwischen erneuert, gilt
+  /// die neue Session. Scheitert der Refresh voruebergehend, wird der Fehler
+  /// durchgereicht, statt das abgelehnte Token erneut zu senden.
+  Future<AuthSession?> _prepareSessionForRemoteAccess({
     required String trigger,
     bool forceRefresh = false,
     bool allowMobileDataOverride = false,
+    String? abgelehntesAccessToken,
   }) async {
     final generation = _sessionGeneration;
     if (_session == null || _state == AuthState.reloginRequired) {
@@ -642,7 +649,7 @@ class AuthSessionModel extends ChangeNotifier {
         'Remote-Zugriff abgebrochen ($trigger): '
             'session=${_session != null} state=$_state',
       );
-      return const _PreparedRemoteAccess(session: null);
+      return null;
     }
 
     if (_state == AuthState.unlockRequired) {
@@ -651,7 +658,7 @@ class AuthSessionModel extends ChangeNotifier {
         'auth_flow',
         'Remote-Zugriff abgebrochen ($trigger): App-Sperre aktiv',
       );
-      return const _PreparedRemoteAccess(session: null);
+      return null;
     }
 
     if (_requiresInteractiveLogin) {
@@ -660,7 +667,7 @@ class AuthSessionModel extends ChangeNotifier {
         'Remote-Zugriff abgebrochen ($trigger): '
             'interaktiver Login erforderlich',
       );
-      return const _PreparedRemoteAccess(session: null);
+      return null;
     }
 
     if (_retentionPolicy.isReloginRequired(_lastSensitiveSyncAt)) {
@@ -671,7 +678,7 @@ class AuthSessionModel extends ChangeNotifier {
             '(lastSensitiveSyncAt=$_lastSensitiveSyncAt)',
       );
       await _expireSensitiveData();
-      return const _PreparedRemoteAccess(session: null);
+      return null;
     }
 
     await _networkAccessPolicy?.ensureNetworkAllowed(
@@ -681,21 +688,26 @@ class AuthSessionModel extends ChangeNotifier {
     );
 
     if (generation != _sessionGeneration || _session == null) {
-      return const _PreparedRemoteAccess(session: null);
+      return null;
     }
 
+    final currentSession = _session!;
     try {
-      final currentSession = _session!;
-      final refreshedSession = forceRefresh && currentSession.canRefresh
-          ? await _oauthService.refresh(currentSession)
-          : await _oauthService.refreshIfNeeded(currentSession);
+      final bereitsErneuert =
+          abgelehntesAccessToken != null &&
+          currentSession.accessToken != abgelehntesAccessToken;
+      final refreshedSession = bereitsErneuert
+          ? currentSession
+          : await _erneuereGemeinsam(currentSession, erzwingen: forceRefresh);
       if (generation != _sessionGeneration) {
         // Nach einem Logout darf die alte Session nicht zurueckkehren.
-        return const _PreparedRemoteAccess(session: null);
+        return null;
       }
-      if (refreshedSession.accessToken != currentSession.accessToken ||
-          refreshedSession.refreshToken != currentSession.refreshToken ||
-          refreshedSession.expiresAt != currentSession.expiresAt) {
+      final bisher = _session;
+      if (bisher == null ||
+          refreshedSession.accessToken != bisher.accessToken ||
+          refreshedSession.refreshToken != bisher.refreshToken ||
+          refreshedSession.expiresAt != bisher.expiresAt) {
         await _logger.log('auth_flow', 'Session durch $trigger aktualisiert');
         _session = refreshedSession;
         await _repository.save(refreshedSession);
@@ -703,35 +715,16 @@ class AuthSessionModel extends ChangeNotifier {
       _clearRemoteAccessIssue(notify: false);
     } catch (error, stack) {
       if (generation != _sessionGeneration || _requiresInteractiveLogin) {
-        return const _PreparedRemoteAccess(session: null);
+        return null;
       }
-      if (_isUnauthorized(error)) {
-        await _logExpiredLoginRetry(trigger: trigger);
-        final reloggedInSession = await _attemptInteractiveRelogin(
-          trigger: '${trigger}_interactive_relogin',
+      if (_istSitzungsende(error)) {
+        // Hitobito hat die Anmeldung beendet. Den Browser oeffnet nur die
+        // Person selbst ueber „Neu anmelden“.
+        await _requireReloginForRemoteFailure(
+          error.toString(),
+          trigger: trigger,
         );
-        if (generation != _sessionGeneration) {
-          // Anderes Konto oder Logout: Die urspruengliche Aktion gehoert
-          // zur beendeten Sitzung.
-          return const _PreparedRemoteAccess(
-            session: null,
-            interactiveReloginAttempted: true,
-          );
-        }
-        if (reloggedInSession == null) {
-          await _requireReloginForRemoteFailure(
-            error.toString(),
-            trigger: trigger,
-          );
-          return const _PreparedRemoteAccess(
-            session: null,
-            interactiveReloginAttempted: true,
-          );
-        }
-        return _PreparedRemoteAccess(
-          session: reloggedInSession,
-          interactiveReloginAttempted: true,
-        );
+        return null;
       }
       await _logger.log(
         'auth',
@@ -742,23 +735,116 @@ class AuthSessionModel extends ChangeNotifier {
         requiresInteractiveLogin: false,
         notify: false,
       );
+      // Hitobito lehnt das alte Token ab. Ein Zugriff damit scheitert mit
+      // 401 und wuerde eine Stoerung am Token-Endpunkt (Ueberlast,
+      // Zeitlimit) faelschlich als abgelaufene Anmeldung werten.
+      if (abgelehntesAccessToken != null || _istAbgelaufen(currentSession)) {
+        rethrow;
+      }
     }
 
-    return _PreparedRemoteAccess(session: _session);
+    return _session;
   }
 
-  /// Fuehrt [body] so aus, dass Remote-Zugriffe darin keinen interaktiven
-  /// Login oeffnen, auch nicht in verschachtelten Aufrufen. Fuer automatische
-  /// Pfade wie Retry-Timer und Hintergrund-Sync: Ein abgelaufener Login setzt
-  /// dort [requiresInteractiveLogin] und loest den einmaligen Hinweis aus,
-  /// statt ungefragt den Login-Browser zu starten.
-  Future<T> runWithoutInteractiveRelogin<T>(Future<T> Function() body) {
-    return runZoned(
-      body,
-      zoneValues: <Object, Object>{_noInteractiveReloginZoneKey: true},
+  /// Erneuert die Session hoechstens einmal gleichzeitig. Hitobito rotiert
+  /// den Refresh-Token bei jeder Nutzung; ein zweiter paralleler Refresh mit
+  /// demselben Token wuerde abgelehnt und die Sitzung faelschlich beenden.
+  Future<AuthSession> _erneuereGemeinsam(
+    AuthSession session, {
+    required bool erzwingen,
+  }) async {
+    final laufend = _laufenderRefresh;
+    if (laufend != null) {
+      if (laufend.quelle == session.refreshToken &&
+          (laufend.erzwungen || !erzwingen)) {
+        return laufend.ergebnis;
+      }
+      try {
+        await laufend.ergebnis;
+      } on Object {
+        // Den Fehler behandelt der Aufrufer des laufenden Refreshs.
+      }
+      return _erneuereGemeinsam(_session ?? session, erzwingen: erzwingen);
+    }
+
+    final ergebnis = erzwingen && session.canRefresh
+        ? _oauthService.refresh(session)
+        : _oauthService.refreshIfNeeded(session);
+    final eintrag = _LaufenderRefresh(
+      quelle: session.refreshToken,
+      erzwungen: erzwingen,
+      ergebnis: ergebnis,
+    );
+    _laufenderRefresh = eintrag;
+    try {
+      return await ergebnis;
+    } finally {
+      if (identical(_laufenderRefresh, eintrag)) {
+        _laufenderRefresh = null;
+      }
+    }
+  }
+
+  /// Oeffnet hoechstens eine Hitobito-Anmeldung im Browser gleichzeitig.
+  Future<AuthSession> _anmeldenImBrowser() {
+    return _laufendeBrowserAnmeldung ??= _browserAnmeldung().whenComplete(
+      () => _laufendeBrowserAnmeldung = null,
     );
   }
 
+  Future<AuthSession> _browserAnmeldung() async {
+    _anmeldungUnterbrochen = false;
+    await _merkeAnmeldungBegonnen(_retentionPolicy.now());
+    try {
+      return await _oauthService.authenticateInteractive();
+    } finally {
+      await _merkeAnmeldungBegonnen(null);
+    }
+  }
+
+  Future<void> _merkeAnmeldungBegonnen(DateTime? zeitpunkt) async {
+    try {
+      await _startupStateService?.saveAnmeldungBegonnen(zeitpunkt);
+    } catch (error) {
+      // Nur fuer den Hinweis nach einem Prozessende; die Anmeldung selbst
+      // haengt nicht davon ab.
+      await _logger.log(
+        'auth_flow',
+        'Anmeldevorgang konnte nicht gemerkt werden: $error',
+      );
+    }
+  }
+
+  Future<void> _pruefeUnterbrocheneAnmeldung() async {
+    final DateTime? begonnen;
+    try {
+      begonnen = await _startupStateService?.loadAnmeldungBegonnen();
+    } catch (error) {
+      await _logger.log(
+        'auth_flow',
+        'Anmeldevorgang konnte nicht gelesen werden: $error',
+      );
+      return;
+    }
+    if (begonnen == null) {
+      return;
+    }
+    await _merkeAnmeldungBegonnen(null);
+    final alter = _retentionPolicy.now().difference(begonnen);
+    if (alter.isNegative || alter > _anmeldungUnterbrochenFrist) {
+      return;
+    }
+    _anmeldungUnterbrochen = true;
+    await _logger.logInfo(
+      'auth_flow',
+      'login interrupted by process end age_s=${alter.inSeconds}',
+    );
+  }
+
+  /// Fuehrt [action] mit einer gueltigen Session aus. Lehnt Hitobito das
+  /// Token mit 401 ab, wird es einmal erneuert und die Aktion wiederholt.
+  /// Ist die Anmeldung beendet, liefert der Aufruf `null` und setzt
+  /// [requiresInteractiveLogin]; einen Login-Browser oeffnet er nie.
   Future<T?> executeRemoteAccess<T>({
     required String trigger,
     required Future<T> Function(AuthSession session) action,
@@ -767,12 +853,11 @@ class AuthSessionModel extends ChangeNotifier {
     bool allowMobileDataOverride = false,
   }) async {
     final generation = _sessionGeneration;
-    final initialPreparation = await _prepareSessionForRemoteAccess(
+    final activeSession = await _prepareSessionForRemoteAccess(
       trigger: '${trigger}_session',
       forceRefresh: forceRefresh,
       allowMobileDataOverride: allowMobileDataOverride,
     );
-    final activeSession = initialPreparation.session;
     if (activeSession == null || generation != _sessionGeneration) {
       return null;
     }
@@ -786,14 +871,6 @@ class AuthSessionModel extends ChangeNotifier {
 
       await _logExpiredLoginRetry(trigger: trigger);
 
-      if (initialPreparation.interactiveReloginAttempted) {
-        await _requireReloginForRemoteFailure(
-          error.toString(),
-          trigger: trigger,
-        );
-        return null;
-      }
-
       if (!retryOnUnauthorized) {
         await _requireReloginForRemoteFailure(
           error.toString(),
@@ -802,12 +879,12 @@ class AuthSessionModel extends ChangeNotifier {
         return null;
       }
 
-      final retryPreparation = await _prepareSessionForRemoteAccess(
+      final refreshedSession = await _prepareSessionForRemoteAccess(
         trigger: '${trigger}_retry',
         forceRefresh: true,
         allowMobileDataOverride: allowMobileDataOverride,
+        abgelehntesAccessToken: activeSession.accessToken,
       );
-      final refreshedSession = retryPreparation.session;
       if (refreshedSession == null || generation != _sessionGeneration) {
         return null;
       }
@@ -815,105 +892,86 @@ class AuthSessionModel extends ChangeNotifier {
       try {
         return await action(refreshedSession);
       } catch (retryError) {
-        if (generation != _sessionGeneration) {
-          rethrow;
-        }
-        if (_isUnauthorized(retryError)) {
-          if (retryPreparation.interactiveReloginAttempted) {
-            await _requireReloginForRemoteFailure(
-              retryError.toString(),
-              trigger: trigger,
-            );
-            return null;
-          }
-          return _retryActionAfterInteractiveRelogin(
-            trigger: '${trigger}_retry',
-            action: action,
-            unauthorizedError: retryError,
-            generation: generation,
+        if (generation == _sessionGeneration && _isUnauthorized(retryError)) {
+          // Auch das frisch erneuerte Token wird abgelehnt.
+          await _requireReloginForRemoteFailure(
+            retryError.toString(),
+            trigger: trigger,
           );
+          return null;
         }
         rethrow;
       }
     }
   }
 
-  Future<T?> _retryActionAfterInteractiveRelogin<T>({
-    required String trigger,
-    required Future<T> Function(AuthSession session) action,
-    required Object unauthorizedError,
-    required int generation,
-  }) async {
-    final reloggedInSession = await _attemptInteractiveRelogin(
-      trigger: '${trigger}_interactive_relogin',
-    );
-    if (generation != _sessionGeneration) {
-      return null;
-    }
-    if (reloggedInSession == null) {
-      await _requireReloginForRemoteFailure(
-        unauthorizedError.toString(),
-        trigger: trigger,
-      );
-      return null;
-    }
+  static const String anderesKontoMeldung =
+      'Du hast dich mit einem anderen Konto angemeldet. Die gespeicherten '
+      'Daten gehören zum bisherigen Konto. Melde dich mit diesem Konto an '
+      'oder wechsle über „Abmelden“.';
 
-    try {
-      return await action(reloggedInSession);
-    } catch (error) {
-      if (generation == _sessionGeneration && _isUnauthorized(error)) {
-        await _requireReloginForRemoteFailure(
-          error.toString(),
-          trigger: trigger,
-        );
-        return null;
-      }
-      rethrow;
+  /// Gehoert [neu] zu einem anderen Konto als die gespeicherten Daten?
+  Future<bool> _istAnderesKonto(AuthSession neu) async {
+    final bisher = await _sensitiveStorageService.loadPrincipal();
+    if (bisher == null || bisher.isEmpty) {
+      return false;
     }
+    return neu.principal == null || neu.principal != bisher;
   }
 
-  Future<AuthSession?> _attemptInteractiveRelogin({
-    required String trigger,
-  }) async {
-    if (Zone.current[_noInteractiveReloginZoneKey] == true) {
-      await _logger.logInfo(
-        'auth_flow',
-        'interaktiver relogin unterdrueckt trigger=$trigger reason=automatic',
-      );
-      return null;
+  /// Meldet bei Hitobito neu an, waehrend die Session und die lokalen Daten
+  /// bestehen bleiben. Nur fuer ausdrueckliche Nutzeraktionen wie „Neu
+  /// anmelden“. Liefert `true`, wenn die Anmeldung samt Profil gelungen ist.
+  Future<bool> neuAnmelden({String trigger = 'manual'}) async {
+    if (_session == null ||
+        _state == AuthState.unlockRequired ||
+        _isNeuanmeldungAktiv) {
+      return false;
     }
 
-    await _logger.logInfo(
-      'auth_flow',
-      'interaktiver relogin gestartet trigger=$trigger',
-    );
+    _isNeuanmeldungAktiv = true;
+    _errorMessage = null;
+    notifyListeners();
 
     try {
-      final authenticatedSession = await _oauthService
-          .authenticateInteractive();
+      await _logger.logInfo(
+        'auth_flow',
+        'interaktiver relogin gestartet trigger=$trigger',
+      );
+      final authenticatedSession = await _anmeldenImBrowser();
+      if (await _istAnderesKonto(authenticatedSession)) {
+        // Die Neuanmeldung gehoert zum gespeicherten Konto. Daten und
+        // vorgemerkte Aenderungen bleiben; ein Kontowechsel laeuft ueber
+        // Abmelden, das vorher nachfragt.
+        unawaited(_widerrufen(authenticatedSession));
+        _errorMessage = anderesKontoMeldung;
+        await _logger.logInfo(
+          'auth_flow',
+          'interaktiver relogin abgelehnt trigger=$trigger reason=other_account',
+        );
+        return false;
+      }
       await _persistAuthenticatedSession(authenticatedSession);
       try {
         await _loadProfileFromRemote(authenticatedSession);
       } catch (error, stack) {
-        if (_isUnauthorized(error)) {
-          _errorMessage = nutzerFehlermeldung(error);
-          return null;
+        if (!_isUnauthorized(error)) {
+          await _logger.logError(
+            'auth',
+            'Profil nach interaktivem relogin fehlgeschlagen trigger=$trigger',
+            error: error,
+            stackTrace: stack,
+          );
         }
-        await _logger.logError(
-          'auth',
-          'Profil nach interaktivem relogin fehlgeschlagen trigger=$trigger',
-          error: error,
-          stackTrace: stack,
-        );
         _errorMessage = nutzerFehlermeldung(error);
-        return null;
+        return false;
       }
       await _logger.logInfo(
         'auth_flow',
         'interaktiver relogin erfolgreich trigger=$trigger',
       );
-      notifyListeners();
-      return authenticatedSession;
+      _neuanmeldungen += 1;
+      return true;
     } catch (error, stack) {
       if (error is HitobitoAuthException &&
           error.isExpectedInteractionFailure) {
@@ -924,13 +982,16 @@ class AuthSessionModel extends ChangeNotifier {
       } else {
         await _logger.logError(
           'auth',
-          'interaktiver relogin fehlgeschlagen trigger=$trigger',
+          'interaktiver relogin fehlgeschlagen trigger=$trigger${_plattformCode(error)}',
           error: error,
           stackTrace: stack,
         );
       }
       _errorMessage = nutzerFehlermeldung(error);
-      return null;
+      return false;
+    } finally {
+      _isNeuanmeldungAktiv = false;
+      notifyListeners();
     }
   }
 
@@ -990,19 +1051,14 @@ class AuthSessionModel extends ChangeNotifier {
     String trigger = 'manual',
     bool userInitiated = true,
     bool allowMobileDataOverride = false,
-    bool interactiveLoginOnRequired = false,
   }) {
-    Future<void> sync() => _syncHitobitoData(
+    return _syncHitobitoData(
       syncMembers: syncMembers,
       force: force,
       trigger: trigger,
       userInitiated: userInitiated,
       allowMobileDataOverride: allowMobileDataOverride,
-      interactiveLoginOnRequired: interactiveLoginOnRequired,
     );
-    // Startup-, Intervall- und Connectivity-Syncs laufen ohne Nutzeraktion
-    // und duerfen deshalb keinen Login-Browser oeffnen.
-    return userInitiated ? sync() : runWithoutInteractiveRelogin(sync);
   }
 
   Future<void> _syncHitobitoData({
@@ -1011,11 +1067,10 @@ class AuthSessionModel extends ChangeNotifier {
     required String trigger,
     required bool userInitiated,
     required bool allowMobileDataOverride,
-    required bool interactiveLoginOnRequired,
   }) async {
     await _logger.logInfo(
       'hitobito_sync',
-      'Hitobito-Sync angefragt trigger=$trigger force=$force userInitiated=$userInitiated interactiveLoginOnRequired=$interactiveLoginOnRequired',
+      'Hitobito-Sync angefragt trigger=$trigger force=$force userInitiated=$userInitiated',
     );
 
     if (_isSyncingHitobitoData) {
@@ -1054,30 +1109,13 @@ class AuthSessionModel extends ChangeNotifier {
       _lastSyncAttemptResult = SyncAttemptResult.loginRequired;
       notifyListeners();
 
-      if (interactiveLoginOnRequired && userInitiated) {
-        await _logger.logInfo(
-          'hitobito_sync',
-          'Hitobito-Sync startet interaktiven Login trigger=$trigger reason=login_required',
-        );
-        await _attemptInteractiveRelogin(
-          trigger: '${trigger}_interactive_relogin',
-        );
-        if (_session == null ||
-            _state == AuthState.reloginRequired ||
-            _requiresInteractiveLogin) {
-          await _logger.logInfo(
-            'hitobito_sync',
-            'Hitobito-Sync abgebrochen trigger=$trigger reason=login_required',
-          );
-          return;
-        }
-      } else {
-        await _logger.logInfo(
-          'hitobito_sync',
-          'Hitobito-Sync uebersprungen trigger=$trigger reason=login_required',
-        );
-        return;
-      }
+      // Den Login-Browser oeffnet nur „Neu anmelden“; der Aufrufer fragt
+      // anhand von [lastSyncAttemptResult] danach.
+      await _logger.logInfo(
+        'hitobito_sync',
+        'Hitobito-Sync uebersprungen trigger=$trigger reason=login_required',
+      );
+      return;
     }
 
     if (!force && !isRefreshAttemptDue) {
@@ -1253,8 +1291,17 @@ class AuthSessionModel extends ChangeNotifier {
     if (_isUnauthorized(error)) {
       return SyncAttemptResult.loginRequired;
     }
-    final statusCode = error is HitobitoApiException ? error.statusCode : null;
-    if (statusCode != null && statusCode >= 500) {
+    // Zeitlimit und abgebrochene Verbindung: Hitobito war nicht erreichbar,
+    // ein spaeterer Versuch kann gelingen.
+    if (error is TimeoutException || error is http.ClientException) {
+      return SyncAttemptResult.networkError;
+    }
+    final statusCode = switch (error) {
+      HitobitoApiException(:final statusCode) => statusCode,
+      HitobitoAuthException(:final statusCode) => statusCode,
+      _ => null,
+    };
+    if (statusCode != null && (statusCode >= 500 || statusCode == 429)) {
       return SyncAttemptResult.serverError;
     }
     return SyncAttemptResult.unknownError;
@@ -1299,6 +1346,64 @@ class AuthSessionModel extends ChangeNotifier {
   Future<void> _refreshAfterUnlock() async {
     if (isRefreshAttemptDue) {
       await ensureProfileLoaded(force: true);
+    }
+    await sitzungFrischHalten(trigger: 'unlock');
+  }
+
+  /// Erneuert das Token still, wenn es aelter als
+  /// [HitobitoAuthEnv.sitzungAuffrischenNach] ist. Hitobito loescht
+  /// Refresh-Tokens nach etwa einer Woche ohne Erneuerung; der regulaere
+  /// Sync erneuert nur, wenn er faellig ist und das Netz ihn erlaubt.
+  /// Der Refresh uebertraegt nur wenige Bytes und laeuft deshalb auch bei
+  /// eingeschraenkten mobilen Daten. Fehler bleiben still; nur ein
+  /// Sitzungsende setzt [requiresInteractiveLogin].
+  Future<void> sitzungFrischHalten({required String trigger}) async {
+    final session = _session;
+    if (session == null ||
+        !session.canRefresh ||
+        _state != AuthState.signedIn ||
+        _requiresInteractiveLogin ||
+        _retentionPolicy.now().difference(session.receivedAt) <
+            HitobitoAuthEnv.sitzungAuffrischenNach) {
+      return;
+    }
+
+    final generation = _sessionGeneration;
+    try {
+      await _networkAccessPolicy?.ensureNetworkAllowed(
+        trigger: '${trigger}_token_refresh',
+        feature: 'Hitobito',
+        allowMobileDataOverride: true,
+      );
+      if (generation != _sessionGeneration || _session == null) {
+        return;
+      }
+      final erneuert = await _erneuereGemeinsam(_session!, erzwingen: true);
+      if (generation != _sessionGeneration) {
+        return;
+      }
+      if (erneuert.accessToken != _session?.accessToken ||
+          erneuert.refreshToken != _session?.refreshToken) {
+        _session = erneuert;
+        await _repository.save(erneuert);
+        await _logger.log('auth_flow', 'Session still erneuert ($trigger)');
+        notifyListeners();
+      }
+    } catch (error) {
+      if (generation != _sessionGeneration) {
+        return;
+      }
+      if (_istSitzungsende(error)) {
+        await _requireReloginForRemoteFailure(
+          error.toString(),
+          trigger: trigger,
+        );
+        return;
+      }
+      await _logger.log(
+        'auth_flow',
+        'Stille Token-Erneuerung fehlgeschlagen ($trigger): $error',
+      );
     }
   }
 
@@ -1420,6 +1525,26 @@ class AuthSessionModel extends ChangeNotifier {
     }
   }
 
+  static String _plattformCode(Object error) {
+    final code = error is HitobitoAuthException ? error.plattformCode : null;
+    return code == null ? '' : ' code=$code';
+  }
+
+  /// Der Token-Endpunkt hat die Sitzung beendet; nur eine neue Anmeldung
+  /// hilft. Andere Refresh-Fehler lassen die Sitzung bestehen.
+  bool _istSitzungsende(Object error) {
+    if (error is! HitobitoAuthException) {
+      return false;
+    }
+    return error.art == HitobitoAuthFehlerArt.sitzungBeendet ||
+        (error.art == null && error.statusCode == 401);
+  }
+
+  bool _istAbgelaufen(AuthSession session) {
+    final expiresAt = session.expiresAt;
+    return expiresAt != null && !expiresAt.isAfter(_retentionPolicy.now());
+  }
+
   bool _isUnauthorized(Object error) {
     return (error is HitobitoAuthException && error.statusCode == 401) ||
         (error is HitobitoApiException && error.statusCode == 401);
@@ -1485,12 +1610,15 @@ class AuthSessionModel extends ChangeNotifier {
   }
 }
 
-class _PreparedRemoteAccess {
-  const _PreparedRemoteAccess({
-    required this.session,
-    this.interactiveReloginAttempted = false,
+class _LaufenderRefresh {
+  const _LaufenderRefresh({
+    required this.quelle,
+    required this.erzwungen,
+    required this.ergebnis,
   });
 
-  final AuthSession? session;
-  final bool interactiveReloginAttempted;
+  /// Refresh-Token, mit dem der Refresh gestartet wurde.
+  final String? quelle;
+  final bool erzwungen;
+  final Future<AuthSession> ergebnis;
 }

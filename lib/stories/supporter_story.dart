@@ -22,7 +22,7 @@ Story supporterPageStory() => Story(
       options: const [
         Option(label: 'Nichts gekauft', value: SupporterStoryZustand.neu),
         Option(
-          label: 'Paket Wald gekauft',
+          label: 'Paket Waldsee gekauft',
           value: SupporterStoryZustand.paketGekauft,
         ),
         Option(label: 'Förderer', value: SupporterStoryZustand.foerderer),
@@ -38,7 +38,7 @@ Story supporterPageStory() => Story(
       future: storySupporterKaufModel(
         erreichbar: zustand != SupporterStoryZustand.offline,
         gekauft: switch (zustand) {
-          SupporterStoryZustand.paketGekauft => {SupporterProdukt.paketWald},
+          SupporterStoryZustand.paketGekauft => {SupporterProdukt.paketWaldsee},
           SupporterStoryZustand.foerderer => {SupporterProdukt.foerderer},
           _ => const {},
         },

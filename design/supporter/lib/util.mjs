@@ -176,8 +176,9 @@ export function stars({ count, seed, yMax, width = 1024, color = '#ffffff', minR
   return out;
 }
 
-export function celestial(kind, cx, cy, r, color) {
-  const halo = `<circle cx="${cx}" cy="${cy}" r="${r * 3.4}" fill="${color}" opacity="0.12"/><circle cx="${cx}" cy="${cy}" r="${r * 1.9}" fill="${color}" opacity="0.18"/>`;
+// Sonne oder Mond mit zwei Lichthoefen. `halo` skaliert deren Deckkraft.
+export function celestial(kind, cx, cy, r, color, { halo: haloScale = 1 } = {}) {
+  const halo = `<circle cx="${cx}" cy="${cy}" r="${r1(r * 3.4)}" fill="${color}" opacity="${r1(0.12 * haloScale * 100) / 100}"/><circle cx="${cx}" cy="${cy}" r="${r1(r * 1.9)}" fill="${color}" opacity="${r1(0.18 * haloScale * 100) / 100}"/>`;
   if (kind === 'moon') {
     return (
       halo +
@@ -190,4 +191,42 @@ export function celestial(kind, cx, cy, r, color) {
 
 export function mistBand(y, h, color, opacity, id) {
   return `<rect x="-60" y="${y}" width="1144" height="${h}" fill="${color}" opacity="${opacity}" filter="url(#${id})" rx="${h / 2}"/>`;
+}
+
+// Milchstrasse: weicher Schleier plus Sterne, die sich entlang einer
+// Diagonale verdichten. Braucht den Filter `mw` in den defs.
+export function milkyWay({ x0, y0, x1, y1, width, count, seed, color = '#ffffff', haze = '#b9c3ef', hazeOpacity = 0.2, starOpacity = 1 }) {
+  const rand = rng(seed);
+  const len = Math.hypot(x1 - x0, y1 - y0);
+  const nx = (x1 - x0) / len;
+  const ny = (y1 - y0) / len;
+  const angle = r1((Math.atan2(y1 - y0, x1 - x0) * 180) / Math.PI);
+  const mx = r1((x0 + x1) / 2);
+  const my = r1((y0 + y1) / 2);
+  let out =
+    `<ellipse cx="${mx}" cy="${my}" rx="${r1(len * 0.55)}" ry="${r1(width * 1.5)}" fill="${haze}" opacity="${r1(hazeOpacity * 50) / 100}" filter="url(#mw)" transform="rotate(${angle} ${mx} ${my})"/>` +
+    `<ellipse cx="${mx}" cy="${my}" rx="${r1(len * 0.45)}" ry="${r1(width * 0.6)}" fill="${haze}" opacity="${r1(hazeOpacity * 100) / 100}" filter="url(#mw)" transform="rotate(${angle} ${mx} ${my})"/>`;
+  for (let i = 0; i < count; i++) {
+    const t = rand();
+    const spread = (rand() + rand() + rand() - 1.5) * width;
+    const x = x0 + (x1 - x0) * t - spread * ny;
+    const y = y0 + (y1 - y0) * t + spread * nx;
+    const r = 1.1 + rand() ** 3 * 2.6;
+    out += `<circle cx="${r1(x)}" cy="${r1(y)}" r="${r1(r)}" fill="${color}" opacity="${r1((0.3 + rand() * 0.6) * starOpacity)}"/>`;
+  }
+  return out;
+}
+
+export const milkyWayFilterDef = `<filter id="mw" x="-30%" y="-150%" width="160%" height="400%"><feGaussianBlur stdDeviation="30"/></filter>`;
+
+// Kleines Lager auf fernem Huegel, Kohten dicht beisammen. `s` skaliert.
+export function farCamp(cx, y, { cloth, lit = false, light = '#ffb45c', s = 1 }) {
+  const tents = [
+    [-34, 0, 40],
+    [0, -3, 46],
+    [32, 1, 36],
+  ];
+  return tents
+    .map(([dx, dy, h], i) => kohte(cx + dx * s, y + dy * s, h * s, { cloth, light, lit: lit && i === 1, seams: false }))
+    .join('');
 }

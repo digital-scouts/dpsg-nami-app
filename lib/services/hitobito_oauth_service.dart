@@ -10,36 +10,57 @@ import 'package:http/http.dart' as http;
 import '../domain/auth/auth_profile.dart';
 import '../domain/auth/auth_session.dart';
 import 'hitobito_auth_env.dart';
+import 'hitobito_http_client.dart';
 import 'logger_service.dart';
+
+/// Was ein Fehler am Token-Endpunkt fuer die Sitzung bedeutet.
+enum HitobitoAuthFehlerArt {
+  /// Hitobito hat den Refresh-Token abgelehnt (`invalid_grant`), etwa nach
+  /// einer Woche ohne Nutzung. Nur eine neue Anmeldung hilft.
+  sitzungBeendet,
+
+  /// Ueberlast oder Serverfehler (429, 5xx). Die Sitzung kann noch gueltig
+  /// sein, ein spaeterer Versuch kann gelingen.
+  voruebergehend,
+
+  /// Client-ID oder Secret passen nicht (`invalid_client`). Auch eine neue
+  /// Anmeldung hilft nicht.
+  konfiguration,
+}
 
 class HitobitoAuthException implements Exception {
   const HitobitoAuthException(
     this.message, {
     this.statusCode,
+    this.art,
+    this.plattformCode,
     this.isExpectedInteractionFailure = false,
   });
 
   final String message;
   final int? statusCode;
+  final HitobitoAuthFehlerArt? art;
+
+  /// Fehlercode des Login-Plugins, nur fuer Logs.
+  final String? plattformCode;
   final bool isExpectedInteractionFailure;
 
+  /// Nur ein Abbruch durch die Person ist erwartbar. Technische Fehler wie
+  /// `NO_BROWSER` oder `EUNKNOWN` gelten als Fehlschlag, damit sie in Log und
+  /// Fehlerstatistik auftauchen.
   factory HitobitoAuthException.fromPlatformException(PlatformException error) {
-    final code = error.code.toUpperCase();
-    final message = error.message?.toLowerCase() ?? '';
-    final isCanceled = code == 'CANCELED' || message.contains('cancel');
-
-    if (isCanceled) {
+    if (error.code.toUpperCase() == 'CANCELED') {
       return const HitobitoAuthException(
         'Die Hitobito-Anmeldung wurde abgebrochen.',
         isExpectedInteractionFailure: true,
       );
     }
 
-    return const HitobitoAuthException(
-      'Die Hitobito-Anmeldung konnte nicht gestartet werden. Bitte pruefe die OAuth-Konfiguration.',
-      isExpectedInteractionFailure: true,
-    );
+    return HitobitoAuthException(_startFehlerText, plattformCode: error.code);
   }
+
+  static const String _startFehlerText =
+      'Die Anmeldung konnte nicht gestartet werden. Bitte versuche es noch einmal.';
 
   @override
   String toString() => message;
@@ -60,7 +81,11 @@ class HitobitoOauthService {
     LoggerService? logger,
     HitobitoWebAuthenticator? webAuthenticator,
     Duration revokeTimeout = const Duration(seconds: 5),
-  }) : _httpClient = httpClient ?? http.Client(),
+  }) : _httpClient =
+           httpClient ??
+           HitobitoHttpClient(
+             antwortZeitlimit: HitobitoHttpClient.anmeldungZeitlimit,
+           ),
        _now = nowProvider ?? DateTime.now,
        _logger = logger,
        _webAuthenticator = webAuthenticator ?? _flutterWebAuth,
@@ -90,7 +115,7 @@ class HitobitoOauthService {
 
     if (!config.isConfigured) {
       throw const HitobitoAuthException(
-        'OAuth ist nicht vollstaendig konfiguriert.',
+        'OAuth ist nicht vollständig konfiguriert.',
       );
     }
 
@@ -119,8 +144,8 @@ class HitobitoOauthService {
       throw HitobitoAuthException.fromPlatformException(error);
     } on MissingPluginException {
       throw const HitobitoAuthException(
-        'Die Hitobito-Anmeldung konnte nicht gestartet werden. Bitte pruefe die OAuth-Konfiguration.',
-        isExpectedInteractionFailure: true,
+        HitobitoAuthException._startFehlerText,
+        plattformCode: 'MISSING_PLUGIN',
       );
     }
 
@@ -129,20 +154,22 @@ class HitobitoOauthService {
     final error = callbackUri.queryParameters['error'];
     final errorDescription = callbackUri.queryParameters['error_description'];
 
-    if (error != null && error.isNotEmpty) {
-      throw HitobitoAuthException(errorDescription ?? error);
-    }
-
+    // Erst den Status pruefen: Eine fremde App koennte sonst ueber die
+    // Rueckleitung einen beliebigen Fehlertext anzeigen lassen.
     if (returnedState != state) {
       throw const HitobitoAuthException(
-        'Ungueltiger OAuth-Status in der Rueckleitung.',
+        'Ungültiger OAuth-Status in der Rückleitung.',
       );
+    }
+
+    if (error != null && error.isNotEmpty) {
+      throw HitobitoAuthException(errorDescription ?? error);
     }
 
     final code = callbackUri.queryParameters['code'];
     if (code == null || code.isEmpty) {
       throw const HitobitoAuthException(
-        'Kein Authorization Code in der Rueckleitung enthalten.',
+        'Kein Authorization Code in der Rückleitung enthalten.',
       );
     }
 
@@ -163,7 +190,7 @@ class HitobitoOauthService {
   Future<AuthSession> refresh(AuthSession session) async {
     if (!session.canRefresh) {
       throw const HitobitoAuthException(
-        'Fuer diese Session ist kein Refresh Token verfuegbar.',
+        'Für diese Session ist kein Refresh-Token verfügbar.',
       );
     }
 
@@ -287,7 +314,7 @@ class HitobitoOauthService {
     final decoded = jsonDecode(response.body);
     if (decoded is! Map<String, dynamic>) {
       throw const HitobitoAuthException(
-        'Profil-Antwort hat ein ungueltiges Format.',
+        'Profil-Antwort hat ein ungültiges Format.',
       );
     }
 
@@ -326,20 +353,59 @@ class HitobitoOauthService {
     );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
+      final oauthFehler = _oauthFehlercode(response.body);
       throw HitobitoAuthException(
-        'Token-Anfrage fehlgeschlagen (${response.statusCode}).',
+        oauthFehler == null
+            ? 'Token-Anfrage fehlgeschlagen (${response.statusCode}).'
+            : 'Token-Anfrage fehlgeschlagen (${response.statusCode}, $oauthFehler).',
         statusCode: response.statusCode,
+        art: _fehlerArt(response.statusCode, oauthFehler),
       );
     }
 
     final decoded = jsonDecode(response.body);
     if (decoded is! Map<String, dynamic>) {
       throw const HitobitoAuthException(
-        'Token-Antwort hat ein ungueltiges Format.',
+        'Token-Antwort hat ein ungültiges Format.',
       );
+    }
+    final accessToken = decoded['access_token'];
+    if (accessToken is! String || accessToken.isEmpty) {
+      throw const HitobitoAuthException('Token-Antwort ohne Zugangstoken.');
     }
 
     return decoded;
+  }
+
+  /// Doorkeeper beantwortet abgelaufene oder widerrufene Refresh-Tokens mit
+  /// 400 `invalid_grant`; 401 gibt es nur bei `invalid_client`.
+  static HitobitoAuthFehlerArt? _fehlerArt(
+    int statusCode,
+    String? oauthFehler,
+  ) {
+    if (oauthFehler == 'invalid_client') {
+      return HitobitoAuthFehlerArt.konfiguration;
+    }
+    if (oauthFehler == 'invalid_grant' || statusCode == 401) {
+      return HitobitoAuthFehlerArt.sitzungBeendet;
+    }
+    if (statusCode == 429 || statusCode >= 500) {
+      return HitobitoAuthFehlerArt.voruebergehend;
+    }
+    return null;
+  }
+
+  static String? _oauthFehlercode(String body) {
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is Map<String, dynamic>) {
+        final error = decoded['error'];
+        return error is String && error.isNotEmpty ? error : null;
+      }
+    } on FormatException {
+      // Kein JSON, etwa eine HTML-Fehlerseite eines Proxys.
+    }
+    return null;
   }
 
   AuthSession _mapSession(

@@ -55,7 +55,19 @@ class HitobitoAuthConfigController extends ChangeNotifier {
   String get effectiveClientId => _effectiveConfig.clientId;
 
   Future<void> initialize() async {
-    final override = _overrideErlaubt ? await loadOverride() : null;
+    HitobitoAuthCredentialsOverride? override;
+    if (_overrideErlaubt) {
+      try {
+        override = await loadOverride();
+      } catch (error, stack) {
+        // Ein unlesbarer Speicher darf den Start nicht anhalten; dann gilt
+        // die Konfiguration aus der .env (A-188).
+        await _logger?.log(
+          'auth_config',
+          'OAuth-Override nicht lesbar, nutze .env: $error\n$stack',
+        );
+      }
+    }
     final resolved = buildResolvedConfig(
       clientId: override?.clientId,
       clientSecret: override?.clientSecret,

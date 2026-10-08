@@ -25,6 +25,7 @@ import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/model/urgent_notification_model.dart';
 import 'package:nami/presentation/navigation/navigation_home.page.dart';
 import 'package:nami/presentation/screens/statistics_page.dart';
+import 'package:nami/services/app_startup_state_service.dart';
 import 'package:nami/services/achievement_service.dart';
 import 'package:nami/services/biometric_lock_service.dart';
 import 'package:nami/services/hitobito_auth_env.dart';
@@ -88,6 +89,123 @@ void main() {
       expect(find.text('Einstellungen'), findsWidgets);
     },
   );
+
+  testWidgets(
+    'bietet ohne geladene Daten bei abgelaufener Anmeldung Neu anmelden statt Dauer-Laden',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final authModel = await _createSignedInAuthModel(markDataSynced: false);
+      final arbeitskontextModel = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: _FakeHitobitoGroupsService(),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+      authModel.reportRemoteDataIssue(
+        'Token-Anfrage fehlgeschlagen (400, invalid_grant).',
+        requiresInteractiveLogin: true,
+      );
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          authModel: authModel,
+          arbeitskontextModel: arbeitskontextModel,
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('Erneute Anmeldung erforderlich'), findsOneWidget);
+      expect(find.byKey(const Key('shell-neuanmeldung')), findsOneWidget);
+      expect(
+        find.byKey(const Key('shell-neuanmeldung-logout')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const Key('shell-neuanmeldung')));
+      await tester.pump();
+      await tester.pump();
+
+      expect(authModel.requiresInteractiveLogin, isFalse);
+      expect(authModel.neuanmeldungen, 1);
+      expect(find.text('Erneute Anmeldung erforderlich'), findsNothing);
+    },
+  );
+
+  testWidgets('erklaert eine durch das System unterbrochene Anmeldung', (
+    tester,
+  ) async {
+    final jetzt = DateTime(2026, 10, 8, 12);
+    SharedPreferences.setMockInitialValues({
+      AppStartupStateService.anmeldungBegonnenKey: jetzt
+          .subtract(const Duration(minutes: 2))
+          .toIso8601String(),
+    });
+    final authModel = AuthSessionModel(
+      repository: _InMemoryAuthSessionRepository(),
+      profileRepository: _InMemoryAuthProfileRepository(),
+      oauthService: _FakeOauthService(),
+      biometricLockService: _FakeBiometricLockService(),
+      sensitiveStorageService: _FakeSensitiveStorageService(),
+      retentionPolicy: HitobitoDataRetentionPolicy(
+        maxDataAge: const Duration(days: 90),
+        refreshInterval: const Duration(hours: 24),
+        nowProvider: () => jetzt,
+      ),
+      logger: _FakeLoggerService(),
+      startupStateService: AppStartupStateService(),
+    );
+    await authModel.initialize();
+    final arbeitskontextModel = await _createArbeitskontextModel(
+      authModel: authModel,
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        authModel: authModel,
+        arbeitskontextModel: arbeitskontextModel,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Anmeldung erforderlich'), findsOneWidget);
+    expect(
+      find.byKey(const Key('anmeldung-unterbrochen-hinweis')),
+      findsOneWidget,
+    );
+    expect(find.text('Anmeldung unterbrochen'), findsOneWidget);
+  });
+
+  testWidgets('springt beim Abmelden auf die Mitgliederliste mit Anmeldung', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final authModel = await _createSignedInAuthModel();
+    final arbeitskontextModel = await _createArbeitskontextModel(
+      authModel: authModel,
+    );
+    await tester.pumpWidget(
+      _buildTestApp(
+        authModel: authModel,
+        arbeitskontextModel: arbeitskontextModel,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.settings));
+    await tester.pumpAndSettle();
+    expect(find.text('Einstellungen'), findsWidgets);
+
+    await authModel.logout();
+    await arbeitskontextModel.syncForAuth(
+      authState: authModel.state,
+      session: authModel.session,
+      profile: authModel.profile,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Anmeldung erforderlich'), findsOneWidget);
+    expect(find.text('Mit Hitobito anmelden'), findsOneWidget);
+  });
 
   for (final wegenRechten in <bool>[true, false]) {
     testWidgets(
@@ -1027,6 +1145,10 @@ class _FakeOauthService extends HitobitoOauthService {
       receivedAt: DateTime(2026, 4, 7),
     );
   }
+
+  // Kein echter Widerruf ueber das Netz beim Abmelden.
+  @override
+  Future<bool> revoke(AuthSession session) async => true;
 
   // Laesst die ersten N Aufrufe von fetchProfile mit einem 404 fehlschlagen -
   // simuliert einen zunaechst fehlerhaften Profil-Endpoint, der sich per

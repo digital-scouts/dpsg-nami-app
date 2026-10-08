@@ -191,6 +191,15 @@ class HitobitoAuthEnv {
     );
   }
 
+  /// Hitobito loescht Refresh-Tokens, die so lange nicht erneuert wurden
+  /// (Doorkeeper `refresh_token_expires_in`). Gilt auch fuer die
+  /// DPSG-Instanz.
+  static const Duration refreshTokenLebensdauer = Duration(days: 7);
+
+  /// Ab diesem Alter erneuert die App das Token still beim Start, beim
+  /// Entsperren und beim Zurueckkehren, auch ohne faelligen Sync.
+  static const Duration sitzungAuffrischenNach = Duration(hours: 12);
+
   static Duration get maxDataAge {
     final daysRaw = _env('HITOBITO_DATA_MAX_AGE_DAYS');
     final days = int.tryParse(daysRaw ?? '');

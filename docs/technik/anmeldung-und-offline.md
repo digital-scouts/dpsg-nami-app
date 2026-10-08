@@ -43,17 +43,39 @@ sequenceDiagram
 - <span class="ui">Mobile Daten einschränken</span> erlaubt Sync nur im WLAN. Verbindungen, die weder WLAN noch Mobilfunk sind (etwa nur VPN), gelten als mobile Daten.
 - Ein nur teilweise geladener Sync gilt als fehlgeschlagen. Die App behält dann den vorherigen Stand, Datenstand und Löschfrist bleiben unverändert.
 
+## Sitzung und Token
+
+Hitobito gibt Access-Tokens mit zwei Stunden Laufzeit aus und löscht Refresh-Tokens, die etwa eine Woche nicht erneuert wurden.
+
+- Vor jedem Zugriff erneuert die App ein ablaufendes Token. Gleichzeitige Zugriffe teilen sich eine Erneuerung, weil Hitobito den Refresh-Token bei jeder Nutzung austauscht.
+- Beim Start, beim Entsperren und beim Zurückkehren erneuert die App ein Token, das älter als zwölf Stunden ist. Das geschieht auch bei <span class="ui">Mobile Daten einschränken</span>, weil nur wenige Bytes übertragen werden.
+- Bei erlaubten Mitteilungen erinnert die App sechs Tage nach der letzten Erneuerung daran, sie kurz zu öffnen.
+- Jede Anfrage an Hitobito bricht nach 30 Sekunden ohne Antwort ab, Token- und Profilanfragen nach 20 Sekunden.
+
 ## Abgelaufene Sitzung
 
-Läuft ein Zugriff mit `401` in eine abgelaufene Sitzung, versucht die App zuerst einen Retry mit aufgefrischtem Token.
+Die App unterscheidet, warum eine Erneuerung scheitert.
 
-| Auslöser | Verhalten bei abgelaufener Sitzung |
+| Antwort des Token-Endpunkts | Folge |
 |:--|:--|
-| Nutzeraktion, etwa Speichern oder manueller Sync | öffnet die Anmeldung im Browser |
-| Start-, Intervall- und Verbindungs-Sync | kein Login-Fenster, einmaliger Hinweis „Erneut anmelden“ |
-| Nachsenden vorgemerkter Änderungen | kein Login-Fenster, Änderung bleibt vorgemerkt |
+| `400 invalid_grant` oder `401` | Anmeldung beendet, Hinweis „Anmeldung abgelaufen“ |
+| `429`, `5xx`, Zeitlimit, keine Verbindung | vorübergehende Störung, Anmeldung bleibt bestehen |
+| `invalid_client` | Konfigurationsfehler, eine neue Anmeldung hilft nicht |
 
-Der zuletzt geladene Arbeitskontext bleibt in allen Fällen erhalten.
+Den Hitobito-Login öffnet die App nur nach ausdrücklicher Zustimmung.
+
+| Auslöser | Verhalten bei abgelaufener Anmeldung |
+|:--|:--|
+| Start-, Intervall- und Verbindungs-Sync, Entsperren, Profilseite | kein Login-Fenster, Hinweis in den Mitteilungen |
+| Pull-to-Refresh, EFZ-Antrag | Rückfrage „Neu anmelden“, Login erst nach Tippen |
+| Speichern einer Änderung | Änderung bleibt vorgemerkt, Meldung mit „Neu anmelden“ |
+| Erster Start ohne geladene Daten | Ansicht „Erneute Anmeldung erforderlich“ mit „Neu anmelden“ und „Abmelden“ |
+
+Die Neuanmeldung gilt nur für das gespeicherte Konto. Meldet sich jemand mit einem anderen Konto an, widerruft die App dessen Tokens und behält Daten und vorgemerkte Änderungen des bisherigen Kontos; ein Kontowechsel läuft über <span class="ui">Abmelden</span>.
+
+Nach der Neuanmeldung bleibt der Arbeitskontext sichtbar. Die App synchronisiert danach, falls fällig, und sendet vorgemerkte Änderungen.
+
+Beendet das System die App, während der Login im Browser offen ist, erklärt der Anmeldebildschirm beim nächsten Start, dass die Anmeldung unterbrochen wurde.
 
 ## Wie lange Daten bleiben
 

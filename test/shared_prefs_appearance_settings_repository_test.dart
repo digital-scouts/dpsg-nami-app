@@ -24,14 +24,14 @@ void main() {
         palette: AppPaletteId.hochkontrast,
         background: AppearanceBackgroundId.lagerfeuer,
         badge: SupporterBadgeId.kompassRover,
-        appIcon: AppIconChoice(AppIconPackage.kohteSee, AppIconVariant.nacht),
+        appIcon: AppIconChoice(AppIconPackage.waldsee, AppIconVariant.nacht),
       ),
     );
     var loaded = await repository.load();
     expect(loaded.palette, AppPaletteId.hochkontrast);
     expect(loaded.background, AppearanceBackgroundId.lagerfeuer);
     expect(loaded.badge, SupporterBadgeId.kompassRover);
-    expect(loaded.appIcon?.key, 'KohteSeeNacht');
+    expect(loaded.appIcon?.key, 'WaldseeNacht');
 
     await repository.save(const AppearanceSettings());
     loaded = await repository.load();

@@ -44,9 +44,9 @@ void main() {
 
     expect(model.status, SupporterStoreStatus.bereit);
     expect(model.produkt(SupporterProdukt.foerderer)?.price, '2,99 €');
-    expect(model.access.pakete, {SupporterPaket.wald});
+    expect(model.access.pakete, {SupporterPaket.waldsee});
     expect(model.access.foerderer, isFalse);
-    expect((await repository.load()).pakete, {SupporterPaket.wald});
+    expect((await repository.load()).pakete, {SupporterPaket.waldsee});
   });
 
   test('ohne Store bleibt der gespeicherte Stand erhalten', () async {
@@ -146,7 +146,7 @@ void main() {
 
     expect(client.wiederhergestellt, 1);
     expect(model.access.pakete, {
-      SupporterPaket.wald,
+      SupporterPaket.waldsee,
       SupporterPaket.nachthimmel,
     });
     expect(model.fehler, isNull);
@@ -170,13 +170,13 @@ void main() {
     await prefs.save(
       GekaufterSupportAccess.ausProdukten({
         SupporterProdukt.foerderer,
-        SupporterProdukt.paketWald,
+        SupporterProdukt.paketWaldsee,
       }),
     );
 
     final geladen = await prefs.load();
     expect(geladen.foerderer, isTrue);
-    expect(geladen.pakete, {SupporterPaket.wald});
+    expect(geladen.pakete, {SupporterPaket.waldsee});
   });
 
   test('Produkt-IDs sind eindeutig und stabil', () {

@@ -59,7 +59,7 @@ void main() {
   testWidgets('Hintergrund reicht vom oberen Rand bis unter den Header', (
     tester,
   ) async {
-    await tester.pumpWidget(build(background: AppearanceBackgroundId.wald));
+    await tester.pumpWidget(build(background: AppearanceBackgroundId.waldsee));
     await settle(tester);
 
     final backgrounds = find.byType(SupporterBackground);
@@ -74,12 +74,14 @@ void main() {
   testWidgets('waechst mit, wenn oberhalb ein Banner erscheint', (
     tester,
   ) async {
-    await tester.pumpWidget(build(background: AppearanceBackgroundId.himmel));
+    await tester.pumpWidget(
+      build(background: AppearanceBackgroundId.nachthimmel),
+    );
     await settle(tester);
     final before = tester.getSize(find.byType(SupporterBackground)).height;
 
     await tester.pumpWidget(
-      build(background: AppearanceBackgroundId.himmel, bannerHeight: 80),
+      build(background: AppearanceBackgroundId.nachthimmel, bannerHeight: 80),
     );
     await settle(tester);
 
@@ -160,7 +162,7 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        buildPage(background: AppearanceBackgroundId.wald),
+        buildPage(background: AppearanceBackgroundId.waldsee),
       );
       await settle(tester);
 

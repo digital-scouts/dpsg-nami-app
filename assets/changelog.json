@@ -123,12 +123,21 @@
         "Demo ohne Login zum Ausprobieren.",
         "Die App ist nun auf Englisch und Deutsch verfügbar.",
         "Die Mitgliederliste zeigt keinen vorgegebenen Filter „Rest“ mehr. Eigene Filter legst du bei Bedarf selbst an.",
-        "Die gesperrte Qualifikationen-Übersicht zeigt, ob sie dir mit deinen Rechten etwas bringt."
+        "Die gesperrte Qualifikationen-Übersicht zeigt, ob sie dir mit deinen Rechten etwas bringt.",
+        "Erinnerung, bevor die Hitobito-Anmeldung nach einer Woche ohne Nutzung abläuft."
       ],
       "bugFixes": [
         "Mit reinem Leserecht auf deine Gruppe zeigt die App fehlende Rollen, Qualifikationen und Führungszeugnisse anderer als „Keine Berechtigung“ oder mit Hinweis, statt sie als leer oder 0 anzuzeigen.",
         "Wer am Bundesvergleich teilnimmt, aber keine eigenen Zahlen sieht, bekommt den Vergleich trotzdem angezeigt.",
         "Der Bundesvergleich ist besser gegen Rückschlüsse auf einzelne Stämme geschützt: Er aktualisiert sich wöchentlich, zeigt die Zahl der Stämme nur noch ungefähr und lässt sehr kleine Gruppen außen vor."
+        "Ist die Anmeldung abgelaufen, öffnet die App den Hitobito-Login nicht mehr ungefragt, sondern fragt vorher nach. Die gespeicherten Daten bleiben dabei sichtbar.",
+        "Bei schlechter Verbindung bleiben Laden und Anmeldung nicht mehr dauerhaft hängen.",
+        "Ohne geladene Daten zeigt die App bei abgelaufener Anmeldung „Neu anmelden“ statt eines endlosen Ladebildschirms.",
+        "Der Antrag für das Führungszeugnis lädt auch nach längerer Pause direkt in der App statt im Browser.",
+        "Mit eingeschränkten mobilen Daten bleibt die Anmeldung auch bei Nutzung im Mobilfunk erhalten.",
+        "Beendet das Gerät die App während der Anmeldung, erklärt sie beim nächsten Start den Grund.",
+        "Meldet man sich nach abgelaufener Anmeldung mit einem anderen Konto an, bleiben die gespeicherten Daten und vorgemerkten Änderungen des bisherigen Kontos erhalten.",
+        "Nach dem Abmelden zeigt die App wieder die Mitgliederliste mit Anmeldung und Demo, statt auf dem Profil zu bleiben."
       ]
     }
   ]

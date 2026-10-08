@@ -97,7 +97,7 @@ void main() {
     expect(find.byKey(const Key('supporter-foerderer-karte')), findsOneWidget);
     expect(find.text('1 Woche kostenlos testen'), findsOneWidget);
     expect(find.textContaining('Danach 5,99 € pro Jahr'), findsOneWidget);
-    for (final paket in ['wald', 'lagerfeuer', 'nachthimmel']) {
+    for (final paket in ['waldsee', 'lagerfeuer', 'nachthimmel']) {
       expect(find.byKey(Key('supporter-paket-$paket')), findsOneWidget);
     }
     expect(find.textContaining('2,99', findRichText: true), findsNWidgets(3));
@@ -126,7 +126,7 @@ void main() {
   testWidgets('Kaufen startet den Store-Kauf', (tester) async {
     await pumpSeite(tester);
 
-    await tester.tap(find.byKey(const Key('supporter-paket-wald-kaufen')));
+    await tester.tap(find.byKey(const Key('supporter-paket-waldsee-kaufen')));
     await tester.pump();
     expect(client.gekauft, ['supporter_paket_wald']);
 
@@ -139,7 +139,7 @@ void main() {
     await pumpSeite(
       tester,
       gespeichert: GekaufterSupportAccess.ausProdukten({
-        SupporterProdukt.paketWald,
+        SupporterProdukt.paketWaldsee,
       }),
     );
 
@@ -149,7 +149,7 @@ void main() {
       findsOneWidget,
     );
     await tester.tap(
-      find.byKey(const Key('supporter-paket-wald-erscheinungsbild')),
+      find.byKey(const Key('supporter-paket-waldsee-erscheinungsbild')),
     );
     await tester.pumpAndSettle();
     expect(find.text('Erscheinungsbild-Seite'), findsOneWidget);
@@ -190,7 +190,7 @@ void main() {
   testWidgets('Kauffehler erscheint als Hinweis', (tester) async {
     await pumpSeite(tester);
 
-    await tester.tap(find.byKey(const Key('supporter-paket-wald-kaufen')));
+    await tester.tap(find.byKey(const Key('supporter-paket-waldsee-kaufen')));
     await tester.pump();
     client.controller.add([
       PurchaseDetails(

@@ -6,6 +6,7 @@ import '../data/arbeitskontext/hitobito_person_resource.dart';
 import '../domain/member/mitglied.dart';
 import 'hitobito_api_exception.dart';
 import 'hitobito_auth_env.dart';
+import 'hitobito_http_client.dart';
 import 'hitobito_pagination.dart';
 import 'hitobito_traffic_log_service.dart';
 import 'logger_service.dart';
@@ -46,7 +47,7 @@ class HitobitoPeopleService {
     http.Client? httpClient,
     HitobitoTrafficLogService? trafficLogService,
     LoggerService? logger,
-  }) : _httpClient = httpClient ?? http.Client(),
+  }) : _httpClient = httpClient ?? HitobitoHttpClient(),
        _trafficLogService = trafficLogService,
        _logger = logger;
 

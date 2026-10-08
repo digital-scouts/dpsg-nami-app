@@ -48,6 +48,19 @@ Nach dem ersten Laden liegen die Daten verschlüsselt auf dem Gerät. Mitglieder
 {: .wichtig }
 Wurden die Daten 90 Tage lang nicht aktualisiert, löscht die App sie. Beim Abmelden ebenfalls.
 
+## Neu anmelden
+
+Hitobito beendet die Anmeldung, wenn die App etwa eine Woche nicht genutzt wurde. Die gespeicherten Daten bleiben sichtbar, nur Aktualisieren und Senden gehen dann nicht.
+
+1. Hinweis <span class="ui">Anmeldung abgelaufen</span> in den Mitteilungen antippen oder bei der Rückfrage <span class="ui">Neu anmelden</span> wählen.
+2. Im Browser mit deinem NaMi-Zugang anmelden.
+3. Die App aktualisiert danach die Daten und sendet vorgemerkte Änderungen.
+{: .steps }
+
+Melde dich mit demselben Konto wieder an. Mit einem anderen Konto lehnt die App die Anmeldung ab und behält die Daten des bisherigen. Für einen Kontowechsel melde dich zuerst über <span class="ui">Abmelden</span> im Profil ab.
+
+Sind Mitteilungen erlaubt, erinnert die App einen Tag vorher daran, sie kurz zu öffnen. Das hält die Anmeldung aktiv.
+
 ## Weitere Funktionen
 
 | Funktion | Wo |

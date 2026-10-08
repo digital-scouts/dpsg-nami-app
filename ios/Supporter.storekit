@@ -21,12 +21,12 @@
       "localizations" : [
         {
           "description" : "Farbpalette, Hintergrund und App-Icons Wald",
-          "displayName" : "Paket Wald",
+          "displayName" : "Paket Waldsee",
           "locale" : "de"
         }
       ],
       "productID" : "supporter_paket_wald",
-      "referenceName" : "Paket Wald",
+      "referenceName" : "Paket Waldsee",
       "type" : "NonConsumable"
     },
     {

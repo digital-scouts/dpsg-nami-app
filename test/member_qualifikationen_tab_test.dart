@@ -1,13 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:nami/domain/arbeitskontext/teildaten_stand.dart';
+import 'package:nami/domain/auth/auth_profile.dart';
+import 'package:nami/domain/auth/auth_session.dart';
 import 'package:nami/domain/member/efz_einsichtnahme.dart';
+import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/qualifikation/qualifikation.dart';
 import 'package:nami/l10n/app_localizations.dart';
+import 'package:nami/presentation/model/auth_session_model.dart';
 import 'package:nami/presentation/widgets/member_detail/member_qualifikationen_tab.dart';
+import 'package:nami/presentation/widgets/neuanmeldung_sheet.dart';
+import 'package:nami/services/hitobito_data_retention_policy.dart';
+import 'package:nami/services/hitobito_efz_service.dart';
 import 'package:nami/stories/support/mitglied_edge_cases.dart';
+import 'package:provider/provider.dart';
+import 'package:provider/single_child_widget.dart';
+
+import 'support/auth_session_fakes.dart';
+import 'support/fake_logger_service.dart';
+import 'support/hitobito_jsonapi_fixtures.dart';
 
 void main() {
   setUpAll(() async {
@@ -23,30 +38,33 @@ void main() {
     TeildatenStand qualiStand = TeildatenStand.geladen,
     List<Qualifikation> qualis = const <Qualifikation>[],
     bool vollLesbar = true,
+    List<SingleChildWidget> provider = const <SingleChildWidget>[],
+    Mitglied? anzeigen,
   }) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        localizationsDelegates: [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: const [Locale('de')],
-        locale: const Locale('de'),
-        home: Scaffold(
-          body: MemberQualifikationenTab(
-            key: UniqueKey(),
-            mitglied: mitglied,
-            heute: MitgliedEdgeCases.heute,
-            efzStand: efzStand,
-            efzEinsichtnahmen: efz,
-            qualifikationenStand: qualiStand,
-            qualifikationen: qualis,
-            vollLesbar: vollLesbar,
-          ),
+    final app = MaterialApp(
+      localizationsDelegates: [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('de')],
+      locale: const Locale('de'),
+      home: Scaffold(
+        body: MemberQualifikationenTab(
+          key: UniqueKey(),
+          mitglied: anzeigen ?? mitglied,
+          heute: MitgliedEdgeCases.heute,
+          efzStand: efzStand,
+          efzEinsichtnahmen: efz,
+          qualifikationenStand: qualiStand,
+          qualifikationen: qualis,
+          vollLesbar: vollLesbar,
         ),
       ),
+    );
+    await tester.pumpWidget(
+      provider.isEmpty ? app : MultiProvider(providers: provider, child: app),
     );
     await tester.pump();
   }
@@ -130,4 +148,69 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets(
+    'fragt bei abgelaufener Anmeldung nach, statt den Browser zu oeffnen',
+    (tester) async {
+      final tag = DateTime(2026, 10, 8);
+      final authModel = AuthSessionModel(
+        repository: InMemoryAuthSessionRepository(
+          initialSession: AuthSession(
+            accessToken: 'alt',
+            refreshToken: 'refresh-alt',
+            receivedAt: tag,
+          ),
+        ),
+        profileRepository: InMemoryAuthProfileRepository(
+          profile: const AuthProfile(namiId: 1, language: 'de'),
+          lastSyncAt: tag,
+        ),
+        oauthService: FakeOauthService(
+          sessionToReturn: AuthSession(
+            accessToken: 'neu',
+            refreshToken: 'refresh-neu',
+            receivedAt: tag,
+          ),
+          profileToReturn: const AuthProfile(namiId: 1, language: 'de'),
+        ),
+        biometricLockService: FakeBiometricLockService(),
+        sensitiveStorageService: FakeSensitiveStorageService()
+          ..lastSensitiveSyncAt = tag,
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => tag.add(const Duration(hours: 2)),
+        ),
+        logger: FakeLoggerService(),
+      );
+      await authModel.initialize();
+      final anfragen = <String>[];
+      final efzService = HitobitoEfzService(
+        config: testHitobitoAuthConfig,
+        httpClient: MockClient((request) async {
+          anfragen.add(request.headers['Authorization'] ?? '');
+          return http.Response('', 401);
+        }),
+      );
+
+      await zeige(
+        tester,
+        anzeigen: mitglied.copyWith(primaryGroupId: 11),
+        provider: <SingleChildWidget>[
+          ChangeNotifierProvider<AuthSessionModel>.value(value: authModel),
+          Provider<HitobitoEfzService>.value(value: efzService),
+        ],
+      );
+      await tester.tap(find.byKey(const Key('efz-antrag-download')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(NeuanmeldungSheet), findsOneWidget);
+      expect(anfragen, <String>['Bearer alt', 'Bearer neu']);
+      expect(authModel.requiresInteractiveLogin, isTrue);
+
+      await tester.tap(find.byKey(const Key('neuanmeldung-spaeter')));
+      await tester.pumpAndSettle();
+      expect(find.byType(NeuanmeldungSheet), findsNothing);
+    },
+  );
 }

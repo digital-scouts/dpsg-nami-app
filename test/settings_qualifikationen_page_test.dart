@@ -317,7 +317,9 @@ void main() {
       isFalse,
     );
     expect(
-      const SchalterSupportAccess(SupporterTestZugang.wald).qualifikationenFrei,
+      const SchalterSupportAccess(
+        SupporterTestZugang.waldsee,
+      ).qualifikationenFrei,
       isFalse,
     );
     expect(

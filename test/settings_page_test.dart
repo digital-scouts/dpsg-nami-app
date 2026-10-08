@@ -438,10 +438,10 @@ void main() {
 
       expect(find.byKey(const Key('settings-messages-banner')), findsOneWidget);
       expect(find.byKey(const Key('settings-messages-badge')), findsOneWidget);
-      expect(find.text('Login abgelaufen'), findsOneWidget);
+      expect(find.text('Anmeldung abgelaufen'), findsOneWidget);
       expect(
         find.text(
-          'Klicke, um dich neu anzumelden. Die App kann weiter lokale Daten anzeigen.',
+          'Tippe, um dich neu anzumelden. Deine gespeicherten Daten bleiben sichtbar.',
         ),
         findsOneWidget,
       );

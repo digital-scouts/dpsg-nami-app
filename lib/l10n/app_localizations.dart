@@ -648,16 +648,16 @@ class AppLocalizations {
       'appearance_section_background': 'Hintergrund der Mitgliederliste',
       'appearance_section_badge': 'Supporter-Badge',
       'appearance_palette_standard': 'Standard',
-      'appearance_palette_wald': 'Wald',
+      'appearance_palette_waldsee': 'Waldsee',
       'appearance_palette_lagerfeuer': 'Lagerfeuer',
       'appearance_palette_nachthimmel': 'Nachthimmel',
       'appearance_palette_hochkontrast': 'Hochkontrast',
       'appearance_icon_default': 'Standard',
       'appearance_icon_hint':
           'Jedes Paket enthält Morgen, Abend und Nacht. Du wählst, welche Variante auf dem Homescreen erscheint.',
-      'appearance_icon_package_nachtlager': 'Nachtlager',
+      'appearance_icon_package_nachthimmel': 'Nachthimmel',
       'appearance_icon_package_lagerfeuer': 'Lagerfeuer',
-      'appearance_icon_package_kohteSee': 'Kohte am See',
+      'appearance_icon_package_waldsee': 'Waldsee',
       'appearance_icon_variant_morgen': 'Morgen',
       'appearance_icon_variant_abend': 'Abend',
       'appearance_icon_variant_nacht': 'Nacht',
@@ -667,8 +667,8 @@ class AppLocalizations {
       'appearance_icon_failed': 'Das App-Icon konnte nicht geändert werden.',
       'appearance_background_none': 'Keiner',
       'appearance_background_lagerfeuer': 'Lagerfeuer',
-      'appearance_background_himmel': 'Himmel',
-      'appearance_background_wald': 'Wald',
+      'appearance_background_nachthimmel': 'Nachthimmel',
+      'appearance_background_waldsee': 'Waldsee',
       'appearance_background_hint':
           'Im hellen Modus läuft die Tagesszene, im dunklen Modus die Nacht.',
       'appearance_badge_none': 'Keins',
@@ -775,9 +775,9 @@ class AppLocalizations {
       'settings_hitobito_issue_title': 'Hitobito derzeit nicht erreichbar',
       'settings_hitobito_issue_body':
           'Die App zeigt weiter lokale Daten an. Tippe hier, um die Verbindung erneut zu pruefen.',
-      'settings_hitobito_login_expired_title': 'Login abgelaufen',
+      'settings_hitobito_login_expired_title': 'Anmeldung abgelaufen',
       'settings_hitobito_login_expired_body':
-          'Klicke, um dich neu anzumelden. Die App kann weiter lokale Daten anzeigen.',
+          'Tippe, um dich neu anzumelden. Deine gespeicherten Daten bleiben sichtbar.',
       'settings_hitobito_issue_relogin_body':
           'Die App zeigt weiter lokale Daten an. Tippe hier, um dich erneut bei Hitobito anzumelden.',
       'settings_hitobito_issue_offline_body':
@@ -837,6 +837,20 @@ class AppLocalizations {
       'auth_not_configured_body':
           'OAuth ist noch nicht konfiguriert. Hinterlege die Hitobito-Zugangsdaten in der .env, um den Login zu aktivieren.',
       'auth_login_action': 'Mit Hitobito anmelden',
+      'auth_neuanmeldung_title': 'Neu anmelden',
+      'auth_neuanmeldung_body':
+          'Deine Hitobito-Anmeldung ist abgelaufen. Das passiert, wenn die App etwa eine Woche nicht genutzt wurde. Deine gespeicherten Daten bleiben erhalten. Zum Aktualisieren meldest du dich im Browser bei Hitobito an.',
+      'auth_neuanmeldung_action': 'Neu anmelden',
+      'auth_neuanmeldung_later': 'Später',
+      'auth_neuanmeldung_noetig_body':
+          'Deine Hitobito-Anmeldung ist abgelaufen. Melde dich neu an, damit die App die Mitglieder laden kann.',
+      'auth_login_interrupted_title': 'Anmeldung unterbrochen',
+      'auth_login_interrupted_body':
+          'Das Gerät hat die App während der Anmeldung im Browser beendet. Bitte versuche es noch einmal.',
+      'auth_session_reminder_kanal': 'Anmeldung',
+      'auth_session_reminder_title': 'Angemeldet bleiben',
+      'auth_session_reminder_body':
+          'Öffne die App kurz, sonst meldet Hitobito dich morgen ab. Deine Daten bleiben erhalten.',
       'auth_logout_rights_changed_title': 'Rechte geändert',
       'auth_logout_rights_changed_body':
           'Die App hat dich abgemeldet und die gespeicherten Daten gelöscht, weil sich deine Rechte in Hitobito geändert haben. Melde dich neu an, um den aktuellen Stand zu laden.',
@@ -1022,6 +1036,8 @@ class AppLocalizations {
           '{details} Die Bearbeitung erfolgt mit lokal gespeicherten Daten. Änderungen werden gesendet, sobald Hitobito erreichbar ist.',
       'member_edit_prepare_failed':
           'Die Person konnte nicht neu geladen werden. Bitte erneut versuchen.',
+      'member_detail_queued_relogin':
+          'Änderung vorgemerkt. Zum Senden an Hitobito bitte neu anmelden.',
       'member_edit_submit_auth_required':
           'Die Änderung wurde lokal gespeichert. Für das Senden ist eine erneute Anmeldung erforderlich. {details}',
       'member_edit_submit_network_blocked':
@@ -1253,7 +1269,7 @@ class AppLocalizations {
       'debug_supporter_zugang_store': 'Aus (Store)',
       'debug_supporter_store_hint':
           'Jede andere Auswahl überdeckt den echten Kaufstand.',
-      'debug_supporter_zugang_wald': 'Paket Wald',
+      'debug_supporter_zugang_waldsee': 'Paket Waldsee',
       'debug_supporter_zugang_lagerfeuer': 'Paket Lagerfeuer',
       'debug_supporter_zugang_nachthimmel': 'Paket Nachthimmel',
       'debug_supporter_zugang_foerderer': 'Förderer',
@@ -1278,15 +1294,15 @@ class AppLocalizations {
       'supporter_kauf_laeuft': 'Kauf läuft …',
       'supporter_preis_fehlt': 'Preis nicht verfügbar',
       'supporter_pakete_titel': 'Oder einzelne Design-Pakete',
-      'supporter_paket_wald': 'Paket Wald',
-      'supporter_paket_wald_text':
-          'Farbpalette und Hintergrund Wald, App-Icons Kohte am See',
+      'supporter_paket_waldsee': 'Paket Waldsee',
+      'supporter_paket_waldsee_text':
+          'Farbpalette, Hintergrund und App-Icons Waldsee',
       'supporter_paket_lagerfeuer': 'Paket Lagerfeuer',
       'supporter_paket_lagerfeuer_text':
           'Farbpalette, Hintergrund und App-Icons Lagerfeuer',
       'supporter_paket_nachthimmel': 'Paket Nachthimmel',
       'supporter_paket_nachthimmel_text':
-          'Farbpalette Nachthimmel, Hintergrund Himmel, App-Icons Nachtlager',
+          'Farbpalette, Hintergrund und App-Icons Nachthimmel',
       'supporter_einmalig': 'einmalig',
       'supporter_aktion_bis': 'Einführungspreis bis {datum}',
       'supporter_kaufen': 'Kaufen',
@@ -2255,16 +2271,16 @@ class AppLocalizations {
       'appearance_section_background': 'Member list background',
       'appearance_section_badge': 'Supporter badge',
       'appearance_palette_standard': 'Default',
-      'appearance_palette_wald': 'Forest',
+      'appearance_palette_waldsee': 'Forest lake',
       'appearance_palette_lagerfeuer': 'Campfire',
       'appearance_palette_nachthimmel': 'Night sky',
       'appearance_palette_hochkontrast': 'High contrast',
       'appearance_icon_default': 'Default',
       'appearance_icon_hint':
           'Each pack contains morning, evening and night. You choose which variant appears on the home screen.',
-      'appearance_icon_package_nachtlager': 'Night camp',
+      'appearance_icon_package_nachthimmel': 'Night sky',
       'appearance_icon_package_lagerfeuer': 'Campfire',
-      'appearance_icon_package_kohteSee': 'Kohte by the lake',
+      'appearance_icon_package_waldsee': 'Forest lake',
       'appearance_icon_variant_morgen': 'Morning',
       'appearance_icon_variant_abend': 'Evening',
       'appearance_icon_variant_nacht': 'Night',
@@ -2274,8 +2290,8 @@ class AppLocalizations {
       'appearance_icon_failed': 'The app icon could not be changed.',
       'appearance_background_none': 'None',
       'appearance_background_lagerfeuer': 'Campfire',
-      'appearance_background_himmel': 'Sky',
-      'appearance_background_wald': 'Forest',
+      'appearance_background_nachthimmel': 'Night sky',
+      'appearance_background_waldsee': 'Forest lake',
       'appearance_background_hint':
           'Light mode shows the day scene, dark mode the night.',
       'appearance_badge_none': 'None',
@@ -2383,7 +2399,7 @@ class AppLocalizations {
           'The app continues to show local data. Tap here to try the connection again.',
       'settings_hitobito_login_expired_title': 'Sign-in expired',
       'settings_hitobito_login_expired_body':
-          'Tap to sign in again. The app can continue showing local data.',
+          'Tap to sign in again. Your saved data stays visible.',
       'settings_hitobito_issue_relogin_body':
           'The app continues to show local data. Tap here to sign in to Hitobito again.',
       'settings_hitobito_issue_offline_body':
@@ -2442,6 +2458,20 @@ class AppLocalizations {
       'auth_not_configured_body':
           'OAuth is not configured yet. Add the Hitobito credentials to the .env file to enable sign-in.',
       'auth_login_action': 'Sign in with Hitobito',
+      'auth_neuanmeldung_title': 'Sign in again',
+      'auth_neuanmeldung_body':
+          'Your Hitobito sign-in has expired. This happens when the app has not been used for about a week. Your saved data is kept. To update it, sign in to Hitobito in the browser.',
+      'auth_neuanmeldung_action': 'Sign in again',
+      'auth_neuanmeldung_later': 'Later',
+      'auth_neuanmeldung_noetig_body':
+          'Your Hitobito sign-in has expired. Sign in again so the app can load the members.',
+      'auth_login_interrupted_title': 'Sign-in interrupted',
+      'auth_login_interrupted_body':
+          'Your device closed the app while you were signing in in the browser. Please try again.',
+      'auth_session_reminder_kanal': 'Sign-in',
+      'auth_session_reminder_title': 'Stay signed in',
+      'auth_session_reminder_body':
+          'Open the app briefly, otherwise Hitobito will sign you out tomorrow. Your data is kept.',
       'auth_logout_rights_changed_title': 'Permissions changed',
       'auth_logout_rights_changed_body':
           'The app signed you out and deleted the stored data because your permissions in Hitobito changed. Sign in again to load the current data.',
@@ -2622,6 +2652,8 @@ class AppLocalizations {
           '{details} Editing continues with locally stored data. Changes will be sent once Hitobito is reachable.',
       'member_edit_prepare_failed':
           'The person could not be reloaded. Please try again.',
+      'member_detail_queued_relogin':
+          'Change saved for later. Sign in again to send it to Hitobito.',
       'member_edit_submit_auth_required':
           'The change was stored locally. Signing in again is required for sending. {details}',
       'member_edit_submit_network_blocked':
@@ -2848,7 +2880,7 @@ class AppLocalizations {
       'debug_supporter_zugang_store': 'Off (store)',
       'debug_supporter_store_hint':
           'Any other choice overrides the real purchase state.',
-      'debug_supporter_zugang_wald': 'Forest package',
+      'debug_supporter_zugang_waldsee': 'Forest lake package',
       'debug_supporter_zugang_lagerfeuer': 'Campfire package',
       'debug_supporter_zugang_nachthimmel': 'Night sky package',
       'debug_supporter_zugang_foerderer': 'Patron',
@@ -2873,15 +2905,15 @@ class AppLocalizations {
       'supporter_kauf_laeuft': 'Purchasing …',
       'supporter_preis_fehlt': 'Price not available',
       'supporter_pakete_titel': 'Or single design packages',
-      'supporter_paket_wald': 'Forest package',
-      'supporter_paket_wald_text':
-          'Forest colour palette and background, Kohte by the lake app icons',
+      'supporter_paket_waldsee': 'Forest lake package',
+      'supporter_paket_waldsee_text':
+          'Forest lake colour palette, background and app icons',
       'supporter_paket_lagerfeuer': 'Campfire package',
       'supporter_paket_lagerfeuer_text':
           'Campfire colour palette, background and app icons',
       'supporter_paket_nachthimmel': 'Night sky package',
       'supporter_paket_nachthimmel_text':
-          'Night sky colour palette, sky background, night camp app icons',
+          'Night sky colour palette, background and app icons',
       'supporter_einmalig': 'one-time',
       'supporter_aktion_bis': 'Launch price until {datum}',
       'supporter_kaufen': 'Buy',

@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../domain/member/efz_einsichtnahme.dart';
 import 'hitobito_api_exception.dart';
 import 'hitobito_auth_env.dart';
+import 'hitobito_http_client.dart';
 import 'hitobito_pagination.dart';
 import 'hitobito_traffic_log_service.dart';
 import 'logger_service.dart';
@@ -30,7 +31,7 @@ class HitobitoEfzService {
     http.Client? httpClient,
     HitobitoTrafficLogService? trafficLogService,
     LoggerService? logger,
-  }) : _httpClient = httpClient ?? http.Client(),
+  }) : _httpClient = httpClient ?? HitobitoHttpClient(),
        _trafficLogService = trafficLogService,
        _logger = logger;
 
@@ -278,6 +279,15 @@ class HitobitoEfzService {
       uri: requestUri,
       statusCode: response.statusCode,
     );
+
+    if (response.statusCode == 401) {
+      // Abgelaufenes oder widerrufenes Token: Das klaert der Sitzungspfad
+      // (Refresh oder Neuanmeldung), nicht der Browser.
+      throw const HitobitoEfzException(
+        'Efz-Antrag-Anfrage nicht autorisiert (401).',
+        statusCode: 401,
+      );
+    }
 
     final contentType = response.headers['content-type'] ?? '';
     if (response.statusCode != 200 ||

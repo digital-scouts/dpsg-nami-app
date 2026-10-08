@@ -106,6 +106,7 @@ import 'services/bundesstatistik_env.dart';
 import 'services/data_expiry_notification_service.dart';
 import 'services/feedback_prompt_service.dart';
 import 'services/geburtstags_erinnerung_service.dart';
+import 'services/sitzungs_erinnerung_service.dart';
 import 'services/store_review_prompt_service.dart';
 import 'services/hitobito_auth_config_controller.dart';
 import 'services/hitobito_auth_env.dart';
@@ -460,6 +461,7 @@ Future<void> _startApp({
     networkAccessPolicy: networkAccessPolicy,
     isAppLockEnabled: () => !isDemo && appSettingsModel.biometricLockEnabled,
     lockTimeout: HitobitoAuthEnv.appLockTimeout,
+    startupStateService: appStartupStateService,
     // Geokodierte Wohnorte und Kacheln um Mitgliedsadressen gehoeren zu den
     // Daten, die Logout und Datenablauf entfernen muessen.
     purgeLocalPersonalData: () async {
@@ -605,6 +607,31 @@ Future<void> _startApp({
   arbeitskontextModel.addListener(syncGeburtstagsErinnerungen);
   appSettingsModel.addListener(syncGeburtstagsErinnerungen);
 
+  // Erinnerung, bevor Hitobito die Anmeldung nach einer Woche ohne
+  // Erneuerung beendet; die Demo plant nichts.
+  final sitzungsErinnerungService = SitzungsErinnerungService(logger: logger);
+  void syncSitzungsErinnerung() {
+    if (isDemo) {
+      return;
+    }
+    final session = authModel.session;
+    final aktiv =
+        session != null &&
+        session.canRefresh &&
+        authModel.state != AuthState.signedOut &&
+        !authModel.requiresInteractiveLogin;
+    unawaited(
+      sitzungsErinnerungService.aktualisiere(
+        erneuertAm: aktiv ? session.receivedAt : null,
+        pushErlaubt: appSettingsModel.notificationsEnabled,
+        sprache: appSettingsModel.languageCode,
+      ),
+    );
+  }
+
+  authModel.addListener(syncSitzungsErinnerung);
+  appSettingsModel.addListener(syncSitzungsErinnerung);
+
   // Monatliche Summen für die Statistik-Kachel „Verlauf“ (nur auf dem Gerät).
   final statistikVerlaufService = StatistikVerlaufService(
     repository: statistikVerlaufRepository,
@@ -671,6 +698,9 @@ Future<void> _startApp({
         await hitobitoAuthConfigController.initialize();
       }
       await authModel.initialize();
+      if (!isDemo) {
+        unawaited(authModel.sitzungFrischHalten(trigger: 'startup'));
+      }
       if (isDemo && authModel.state == AuthState.signedOut) {
         // Der Demo-Zugang meldet sich wie ein echter Login an und laedt
         // danach seinen Startkontext.

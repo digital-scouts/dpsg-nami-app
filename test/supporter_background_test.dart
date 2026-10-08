@@ -63,7 +63,11 @@ void main() {
 
   testWidgets('bleibt bei reduzierter Bewegung stehen', (tester) async {
     await tester.pumpWidget(
-      build(AppearanceBackgroundId.wald, dark: true, disableAnimations: true),
+      build(
+        AppearanceBackgroundId.waldsee,
+        dark: true,
+        disableAnimations: true,
+      ),
     );
 
     // Ohne laufende Animation gibt es keine weiteren Frames.
@@ -74,7 +78,7 @@ void main() {
   testWidgets('animiert ohne reduzierte Bewegung', (tester) async {
     await tester.pumpWidget(
       build(
-        AppearanceBackgroundId.himmel,
+        AppearanceBackgroundId.nachthimmel,
         dark: false,
         disableAnimations: false,
       ),

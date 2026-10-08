@@ -194,12 +194,40 @@ void main() {
     expect(find.text('Supporter werden ›'), findsOneWidget);
 
     await zeige(
-      GekaufterSupportAccess.ausProdukten({SupporterProdukt.paketWald}),
+      GekaufterSupportAccess.ausProdukten({SupporterProdukt.paketWaldsee}),
     );
     expect(find.text('Supporter · Förderer werden ›'), findsOneWidget);
 
     await zeige(const GekaufterSupportAccess(foerderer: true));
     expect(find.text('Förderer'), findsOneWidget);
+  });
+
+  testWidgets('Abmelden springt vom Profil zurueck zur Startseite', (
+    tester,
+  ) async {
+    await _pumpProfilePage(
+      tester,
+      profile: const AuthProfile(
+        namiId: 1,
+        firstName: 'Julia',
+        lastName: 'Keller',
+        language: 'de',
+      ),
+      ueberStartseite: true,
+    );
+    expect(find.byType(ProfilePage), findsOneWidget);
+
+    final abmelden = find.byIcon(Icons.logout);
+    await tester.scrollUntilVisible(
+      abmelden,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(abmelden);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ProfilePage), findsNothing);
+    expect(find.text('Startseite'), findsOneWidget);
   });
 
   testWidgets('nutzt fuer Leitungsprofile im Dark Theme das dunklere Blau', (
@@ -584,6 +612,7 @@ Future<void> _pumpProfilePage(
   List<AchievementProgress>? achievements,
   VoidCallback? onAchievements,
   SupporterKaufModel? kauf,
+  bool ueberStartseite = false,
 }) async {
   final authModel = AuthSessionModel(
     repository: _InMemoryAuthSessionRepository(),
@@ -633,13 +662,30 @@ Future<void> _pumpProfilePage(
         ],
         supportedLocales: const [Locale('de'), Locale('en')],
         locale: const Locale('de'),
-        home: ProfilePage(
-          achievements: achievements,
-          onAchievements: onAchievements,
-        ),
+        home: ueberStartseite
+            ? Builder(
+                builder: (context) => Scaffold(
+                  body: TextButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const ProfilePage(),
+                      ),
+                    ),
+                    child: const Text('Startseite'),
+                  ),
+                ),
+              )
+            : ProfilePage(
+                achievements: achievements,
+                onAchievements: onAchievements,
+              ),
       ),
     ),
   );
+  if (ueberStartseite) {
+    await tester.tap(find.text('Startseite'));
+    await tester.pumpAndSettle();
+  }
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 50));
 }
@@ -838,6 +884,10 @@ class _FakeOauthService extends HitobitoOauthService {
 
   final AuthSession sessionToReturn;
   final AuthProfile profileToReturn;
+
+  // Kein echter Widerruf ueber das Netz beim Abmelden.
+  @override
+  Future<bool> revoke(AuthSession session) async => true;
 
   @override
   Future<AuthSession> authenticateInteractive() async => sessionToReturn;

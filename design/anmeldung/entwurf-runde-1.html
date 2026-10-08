@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Anmeldung – Entwurf Runde 1</title>
+<style>
+  :root { --bg:#F2F2F7; --surface:#FFFFFF; --fg:#1C1C1E; --fg2:#5d5d63; --muted:#8E8E93; --border:#E5E5EA; --primary:#003056; --primary-lite:#E8EDF5; --hint:#E8EDF5; --hint-fg:#2c4766; --error:#B3261E; --jufi:#2F4FA2; --scrim:rgba(0,0,0,.38); --snack:#313033; --snack-fg:#F4EFF4; --snack-action:#a9c7ff; }
+  .dark { --bg:#0E0E12; --surface:#1A1A22; --fg:#F0F0F5; --fg2:#a9a9b6; --muted:#8A8A9A; --border:#2E2E3A; --primary:#5A9AD8; --primary-lite:#1A253A; --hint:#1A253A; --hint-fg:#a9c3e3; --error:#F2B8B5; --jufi:#6f8ff0; --scrim:rgba(0,0,0,.6); --snack:#E6E1E5; --snack-fg:#313033; --snack-action:#00468a; }
+  body { margin:0; background:#eceae4; color:#1f1f1c; font:16px/1.5 system-ui,-apple-system,sans-serif; }
+  main { max-width:1600px; margin:0 auto; padding:24px 28px 120px; }
+  h1 { font-size:1.9rem; margin:0 0 .3rem; } h2 { font-size:1.4rem; margin:34px 0 .2rem; }
+  .lead, .desc { color:#4a4943; max-width:92ch; margin:0 0 12px; }
+  .bar { position:sticky; top:0; z-index:5; background:rgba(236,234,228,.95); backdrop-filter:blur(8px); border-bottom:1px solid #d6d3c9; padding:10px 28px; display:flex; gap:18px; align-items:center; font-size:14px; flex-wrap:wrap; }
+  .tgl { display:inline-flex; background:#dcd9cf; border-radius:999px; padding:3px; }
+  .tgl button { border:0; background:none; font:inherit; font-size:13px; padding:4px 12px; border-radius:999px; cursor:pointer; }
+  .tgl button.on { background:#003056; color:#fff; }
+  .reihe { display:flex; gap:26px; flex-wrap:wrap; align-items:flex-start; }
+  figure { margin:0; width:282px; } figcaption { font-size:13px; color:#5d5b54; margin-top:10px; } figcaption b { color:#1f1f1c; }
+  .screen { width:264px; height:560px; border-radius:38px; overflow:hidden; background:var(--bg); color:var(--fg); box-shadow:0 0 0 9px #1c1c1e, 0 16px 36px rgba(0,0,0,.25); position:relative; margin:9px; font:13px/1.35 system-ui,-apple-system,sans-serif; }
+  .status { height:34px; display:flex; align-items:center; justify-content:space-between; padding:0 22px; font-size:12px; font-weight:600; position:relative; }
+  .status .island { position:absolute; left:50%; top:8px; transform:translateX(-50%); width:80px; height:23px; border-radius:12px; background:#000; }
+  .kopfbild { background:linear-gradient(#dfe8df, #c9d8cb); padding:6px 12px 10px; }
+  .dark .kopfbild { background:linear-gradient(#1b2620, #15201a); }
+  .suche { background:var(--surface); border-radius:999px; padding:8px 12px; color:var(--muted); font-size:12px; display:flex; justify-content:space-between; }
+  .inhalt { padding:8px 10px; }
+  .zeile { display:flex; justify-content:space-between; color:var(--fg2); font-size:11.5px; padding:2px 4px 6px; }
+  .karte { background:var(--surface); border-radius:14px; padding:9px 11px; margin-bottom:7px; position:relative; }
+  .person { display:flex; justify-content:space-between; align-items:center; }
+  .person b { font-weight:600; font-size:13px; } .person small { color:var(--muted); display:block; font-size:11px; }
+  .tabbar { position:absolute; bottom:0; left:0; right:0; height:44px; background:var(--surface); border-top:1px solid var(--border); display:flex; justify-content:space-around; align-items:center; font-size:9.5px; color:var(--fg2); }
+  .tabbar .on { color:var(--primary); font-weight:600; }
+  /* Statusansicht wie _ShellStatusView */
+  .shell { padding:40px 22px 0; text-align:center; }
+  .shell .icon { color:var(--primary); }
+  .shell h3 { font-size:17px; font-weight:500; margin:12px 0 8px; }
+  .shell p { font-size:12.5px; margin:0 0 8px; color:var(--fg); }
+  .shell .err { color:var(--error); font-size:11.5px; }
+  .btn { white-space:nowrap; display:inline-flex; gap:6px; align-items:center; justify-content:center; border-radius:999px; font-size:12.5px; font-weight:600; padding:9px 16px; margin-top:6px; }
+  .btn.filled { background:var(--primary); color:#fff; } .dark .btn.filled { color:#0b1a2b; }
+  .btn.text { color:var(--primary); }
+  .btn.outlined { border:1px solid var(--border); color:var(--primary); }
+  .klein { font-size:10.5px; color:var(--fg2); margin-top:6px; }
+  .hk { background:var(--hint); border-radius:14px; padding:10px 12px; display:flex; gap:9px; text-align:left; margin:4px 0 14px; }
+  .hk svg { flex:none; color:var(--primary); margin-top:1px; }
+  .hk b { display:block; color:var(--fg); font-size:12.5px; font-weight:600; margin-bottom:2px; }
+  .hk span { font-size:11.5px; line-height:1.4; color:var(--fg2); }
+  /* Overlays */
+  .scrim { position:absolute; inset:0; background:var(--scrim); }
+  .dialog { position:absolute; left:20px; right:20px; top:150px; background:var(--surface); border-radius:24px; padding:20px 18px 12px; }
+  .dialog .icon { color:var(--primary); text-align:center; }
+  .dialog h3 { font-size:16px; font-weight:500; margin:8px 0 8px; text-align:center; }
+  .dialog p { font-size:12px; color:var(--fg2); margin:0 0 6px; }
+  .dialog .aktionen { display:flex; justify-content:flex-end; gap:4px; margin-top:8px; }
+  .sheet { position:absolute; left:0; right:0; bottom:0; background:var(--surface); border-radius:24px 24px 0 0; padding:8px 18px 24px; }
+  .sheet .griff { width:32px; height:4px; border-radius:2px; background:var(--border); margin:0 auto 14px; }
+  .sheet h3 { font-size:16px; font-weight:600; margin:0 0 6px; }
+  .sheet p { font-size:12px; color:var(--fg2); margin:0 0 12px; }
+  .sheet .btn { display:flex; margin-top:6px; }
+  .snack { position:absolute; left:10px; right:10px; bottom:54px; background:var(--snack); color:var(--snack-fg); border-radius:6px; padding:10px 12px; font-size:11.5px; display:flex; gap:10px; align-items:center; box-shadow:0 3px 8px rgba(0,0,0,.25); }
+  .snack b { color:var(--snack-action); font-weight:600; white-space:nowrap; }
+  .refresh { text-align:center; padding:6px 0 0; color:var(--primary); font-size:16px; }
+  /* Detail */
+  .detailkopf { background:var(--surface); padding:6px 16px 8px; display:flex; gap:10px; align-items:center; }
+  .avatar { width:34px; height:34px; border-radius:50%; background:var(--primary-lite); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--primary); font-weight:600; }
+  .feld { font-size:10.5px; color:var(--muted); } .wert { font-size:13px; }
+  .eingabe { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:7px 10px; margin:3px 0 9px; font-size:12.5px; }
+  .speichern { position:absolute; left:10px; right:10px; bottom:108px; }
+  /* Sperrbildschirm */
+  .lock { background:linear-gradient(160deg,#2d4c6e,#16273b); color:#fff; }
+  .lock .zeit { text-align:center; font-size:52px; font-weight:300; margin-top:30px; }
+  .lock .datum { text-align:center; font-size:13px; opacity:.85; }
+  .push { margin:30px 10px 0; background:rgba(255,255,255,.82); color:#1c1c1e; border-radius:16px; padding:10px 12px; }
+  .push .kopf { display:flex; justify-content:space-between; font-size:10.5px; color:#555; margin-bottom:3px; }
+  .push .kopf i { display:inline-block; width:14px; height:14px; border-radius:4px; background:#003056; vertical-align:-3px; margin-right:5px; }
+  .push b { font-size:12.5px; } .push div.t { font-size:12px; line-height:1.35; }
+  /* Mitteilungen */
+  .liste-kopf { padding:6px 16px 8px; font-size:20px; font-weight:700; }
+  .mitteilung { background:var(--surface); border-radius:14px; padding:10px 12px; margin:0 10px 8px; display:flex; gap:10px; }
+  .mitteilung .punkt { width:8px; height:8px; border-radius:50%; background:var(--error); margin-top:5px; flex:none; }
+  .mitteilung b { font-size:12.5px; } .mitteilung div.t { font-size:11.5px; color:var(--fg2); }
+  .alt { text-decoration:line-through; opacity:.55; font-size:10.5px; margin-top:4px; }
+  .feedback { position:fixed; left:0; right:0; bottom:0; background:#1f1f1c; color:#fff; padding:10px 28px; display:flex; gap:14px; align-items:center; font-size:14px; flex-wrap:wrap; z-index:9; }
+  .feedback select, .feedback input { font:inherit; font-size:13px; padding:4px 8px; border-radius:8px; border:0; }
+  .feedback input { flex:1; min-width:240px; }
+  .feedback button { font:inherit; font-size:13px; padding:6px 14px; border-radius:999px; border:0; background:#f2c26b; color:#1f1f1c; cursor:pointer; font-weight:600; }
+  .open { background:#fff8e6; border:1px solid #efd9a2; border-radius:12px; padding:10px 16px; max-width:980px; font-size:14px; color:#4a3f1c; }
+  .open li { margin:.15rem 0; }
+</style>
+</head>
+<body>
+<div class="bar"><b>Anmeldung · Runde 1</b>
+  <span class="tgl" id="modus"><button class="on" data-m="hell">Hell</button><button data-m="dunkel">Dunkel</button></span>
+</div>
+<main>
+  <h1>Abgelaufene Anmeldung verständlich behandeln (#188)</h1>
+  <p class="lead">Beispiel: Hanna leitet im Stamm Silberfels und hat die App neun Tage nicht geöffnet. Hitobito hat ihre Anmeldung inzwischen beendet. Bisher öffnete die App dann ungefragt die Hitobito-Anmeldung im Browser oder hing im Ladebildschirm fest. Künftig erklärt sie die Lage, und der Browser öffnet sich erst, wenn Hanna „Neu anmelden“ tippt. Ihre gespeicherten Daten bleiben dabei sichtbar.</p>
+  <div class="open"><ul>
+    <li>Automatische Abläufe (Start, Entsperren, Hintergrund-Sync) öffnen nie mehr den Browser. Sie setzen nur den Hinweis in den Mitteilungen.</li>
+    <li>Nach „Neu anmelden“ bleibt die Mitgliederliste stehen und aktualisiert sich danach von selbst. Der Ladebildschirm erscheint dabei nicht mehr.</li>
+    <li>Die Erinnerung (Bild 5) kommt nur bei erlaubten Mitteilungen, einmalig etwa 6 Tage nach der letzten Nutzung.</li>
+  </ul></div>
+  <div id="inhalt"></div>
+</main>
+
+<div class="feedback"><b>Rückmeldung</b>
+  <label>Rückfrage <select id="wahl"><option>A · Dialog</option><option>B · Bottom Sheet</option></select></label>
+  <input id="kommentar" placeholder="Kommentar, z. B. Texte">
+  <button id="kopieren">Auswahl kopieren</button><span id="kopiert"></span>
+</div>
+
+<script>
+const INFO = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16z"/></svg>`;
+const SCHILD = `<svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm7 10c0 4.52-2.98 8.69-7 9.93-4.02-1.24-7-5.41-7-9.93V6.3l7-3.11 7 3.11V11z"/></svg>`;
+const LOGIN = `<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M11 7 9.6 8.4l2.6 2.6H2v2h10.2l-2.6 2.6L11 17l5-5-5-5zm9 12h-8v2h8a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-8v2h8v14z"/></svg>`;
+const LOGOUT = `<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="m17 7-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8v-2H4V5z"/></svg>`;
+const SYNC = `<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4V1L8 5l4 4V6a6 6 0 0 1 6 6 6 6 0 0 1-.7 2.8l1.46 1.46A7.95 7.95 0 0 0 20 12a8 8 0 0 0-8-8zm0 14a6 6 0 0 1-6-6c0-1 .25-1.97.7-2.8L5.24 7.74A7.95 7.95 0 0 0 4 12a8 8 0 0 0 8 8v3l4-4-4-4v3z"/></svg>`;
+let modus = 'hell';
+const status = `<div class="status"><span>9:41</span><span class="island"></span><span>●●●</span></div>`;
+const tabbar = (on) => `<div class="tabbar">${['Mitglieder','Statistiken','Stufenwechsel','Einstellungen'].map((x) => `<span class="${x === on ? 'on' : ''}">${x}</span>`).join('')}</div>`;
+const person = (name, nr) => `<div class="karte person"><div style="padding-left:6px"><b>${name}</b><small>${nr}</small></div></div>`;
+const liste = (refresh) => `<div class="kopfbild"><div class="suche"><span>🔍 Suche nach Name, Mail oder ID</span><span>⚙︎</span></div></div>
+  ${refresh ? `<div class="refresh">↻</div>` : ''}
+  <div class="inhalt"><div class="zeile"><span>Mitglieder: 23</span><span>Name A–Z</span></div>
+  ${person('Hanna Albrecht','1022')}${person('Ben Kuhn','1025')}${person('Luis Franke','1023')}${person('Marie Graf','1024')}${person('David Neumann','1052')}${person('Lena Ott','1031')}</div>${tabbar('Mitglieder')}`;
+
+// Texte
+const T = {
+  rueckTitel: 'Neu anmelden',
+  rueckText: 'Deine Hitobito-Anmeldung ist abgelaufen. Das passiert, wenn die App etwa eine Woche nicht genutzt wurde.',
+  rueckText2: 'Deine gespeicherten Daten bleiben erhalten. Zum Aktualisieren meldest du dich im Browser bei Hitobito an.',
+  spaeter: 'Später', neu: 'Neu anmelden',
+};
+
+function rueckfrageA() {
+  return `${liste(true)}<div class="scrim"></div>
+  <div class="dialog"><div class="icon">${SYNC}</div><h3>${T.rueckTitel}</h3>
+    <p>${T.rueckText}</p><p>${T.rueckText2}</p>
+    <div class="aktionen"><span class="btn text">${T.spaeter}</span><span class="btn text">${T.neu}</span></div></div>`;
+}
+function rueckfrageB() {
+  return `${liste(true)}<div class="scrim"></div>
+  <div class="sheet"><div class="griff"></div><h3>${T.rueckTitel}</h3>
+    <p>${T.rueckText} ${T.rueckText2}</p>
+    <span class="btn filled">${LOGIN} ${T.neu}</span><span class="btn text">${T.spaeter}</span></div>`;
+}
+function ladebildschirm() {
+  return `<div class="shell"><div class="icon">${SCHILD}</div>
+    <h3>Erneute Anmeldung erforderlich</h3>
+    <p>Deine Hitobito-Anmeldung ist abgelaufen. Melde dich neu an, damit die App die Mitglieder laden kann.</p>
+    <span class="btn filled">${LOGIN} Neu anmelden</span><br>
+    <span class="btn text">${LOGOUT} Abmelden</span></div>${tabbar('Mitglieder')}`;
+}
+function unterbrochen() {
+  return `<div class="shell"><div class="icon">${SCHILD}</div>
+    <h3>Anmeldung erforderlich</h3>
+    <p>Melde dich mit deinem Hitobito-Zugang an, um die Daten deines Stamms offline verfügbar zu machen.</p>
+    <div class="hk">${INFO}<div><b>Anmeldung unterbrochen</b><span>Das Gerät hat die App während der Anmeldung im Browser beendet. Bitte versuche es noch einmal.</span></div></div>
+    <span class="btn filled">${LOGIN} Mit Hitobito anmelden</span><br>
+    <span class="btn outlined" style="margin-top:18px">👁 Demo ansehen</span>
+    <div class="klein">Ohne Hitobito-Zugang mit Beispieldaten</div></div>`;
+}
+function technischerFehler() {
+  return `<div class="shell"><div class="icon">${SCHILD}</div>
+    <h3>Anmeldung erforderlich</h3>
+    <p>Melde dich mit deinem Hitobito-Zugang an, um die Daten deines Stamms offline verfügbar zu machen.</p>
+    <p class="err">Die Anmeldung konnte nicht gestartet werden. Bitte versuche es noch einmal.</p>
+    <span class="btn filled">${LOGIN} Mit Hitobito anmelden</span><br>
+    <span class="btn outlined" style="margin-top:18px">👁 Demo ansehen</span>
+    <div class="klein">Ohne Hitobito-Zugang mit Beispieldaten</div>
+    <div class="alt">bisher: „… Bitte pruefe die OAuth-Konfiguration.“</div></div>`;
+}
+function speichern() {
+  return `<div class="detailkopf"><span>✕</span><div class="avatar">BK</div><div><div class="wert" style="font-weight:600">Ben Kuhn bearbeiten</div><div class="feld">Kontaktdaten</div></div></div>
+  <div class="inhalt"><div class="feld">Telefon</div><div class="eingabe">0171 2345678</div>
+    <div class="feld">E-Mail</div><div class="eingabe">ben.kuhn@example.org</div>
+    <div class="feld">Straße</div><div class="eingabe">Am Waldrand 3</div></div>
+  <div class="snack"><span>Änderung vorgemerkt. Zum Senden an Hitobito bitte neu anmelden.</span><b>Neu anmelden</b></div>${tabbar('Mitglieder')}`;
+}
+function erinnerung() {
+  return `<div class="lock" style="position:absolute;inset:0">${status}<div class="zeit">9:41</div><div class="datum">Mittwoch, 14. Oktober</div>
+    <div class="push"><div class="kopf"><span><i></i>NaMi</span><span>jetzt</span></div>
+      <b>Angemeldet bleiben</b><div class="t">Öffne die App kurz, sonst meldet Hitobito dich morgen ab. Deine Daten bleiben erhalten.</div></div></div>`;
+}
+function mitteilung() {
+  return `<div class="liste-kopf">Mitteilungen</div>
+    <div class="mitteilung"><span class="punkt"></span><div><b>Anmeldung abgelaufen</b><div class="t">Tippe, um dich neu anzumelden. Deine gespeicherten Daten bleiben sichtbar.</div>
+    <div class="alt">bisher: „Login abgelaufen · Klicke, um dich neu anzumelden. Die App kann weiter lokale Daten anzeigen.“</div></div></div>${tabbar('Einstellungen')}`;
+}
+
+const ABSCHNITTE = [
+  { titel: '1 · Rückfrage bei Nutzeraktion', text: 'Erscheint, wenn Hanna die Liste herunterzieht, auf „Erneut versuchen“ tippt oder einen EFZ-Antrag herunterlädt und die Anmeldung abgelaufen ist. Zwei Formen zur Wahl.',
+    bilder: [['A · Dialog', rueckfrageA], ['B · Bottom Sheet', rueckfrageB]] },
+  { titel: '2 · Ladebildschirm ohne Daten', text: 'Erster Start ohne gespeicherte Daten und abgelaufene Anmeldung. Bisher drehte sich hier die Lade-Checkliste endlos ohne Knopf.',
+    bilder: [['Neuanmeldung statt Dauer-Laden', ladebildschirm]] },
+  { titel: '3 · Anmeldung unterbrochen und technischer Fehler', text: 'Links: Das System hat die App während der Anmeldung im Browser beendet, etwa beim Wechsel in den Passwortmanager. Rechts: Der Browser ließ sich nicht starten. Der Hinweis nutzt dieselbe Karte wie „Rechte geändert“.',
+    bilder: [['Anmeldung unterbrochen', unterbrochen], ['Technischer Fehler', technischerFehler]] },
+  { titel: '4 · Speichern mit abgelaufener Anmeldung', text: 'Die Änderung wird wie bisher vorgemerkt. Neu ist die Aktion „Neu anmelden“ in der Meldung. Danach sendet die App die Änderung von selbst.',
+    bilder: [['Bearbeiten · Speichern', speichern]] },
+  { titel: '5 · Erinnerung und Mitteilung', text: 'Links: lokale Erinnerung etwa 6 Tage nach der letzten Erneuerung. Rechts: neuer Text des bestehenden Hinweises in den Mitteilungen.',
+    bilder: [['Erinnerung', erinnerung], ['Mitteilungen', mitteilung]] },
+];
+const telefon = (inhalt) => `<div class="screen ${modus === 'dunkel' ? 'dark' : ''}">${status}${inhalt}</div>`;
+function render() {
+  document.getElementById('inhalt').innerHTML = ABSCHNITTE.map((a) => `
+    <h2>${a.titel}</h2><p class="desc">${a.text}</p>
+    <div class="reihe">${a.bilder.map(([name, bau]) => `<figure>${telefon(bau())}<figcaption><b>${name}</b></figcaption></figure>`).join('')}</div>`).join('');
+}
+document.getElementById('modus').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  [...e.currentTarget.children].forEach((x) => x.classList.toggle('on', x === b));
+  modus = b.dataset.m; render();
+});
+const p = new URLSearchParams(location.search);
+if (p.get('modus')) { modus = p.get('modus'); document.querySelectorAll('#modus button').forEach((b) => b.classList.toggle('on', b.dataset.m === modus)); }
+render();
+document.getElementById('kopieren').addEventListener('click', async () => {
+  const text = `Anmeldung Runde 1: ${document.getElementById('wahl').value}. ${document.getElementById('kommentar').value}`.trim();
+  try { await navigator.clipboard.writeText(text); document.getElementById('kopiert').textContent = 'kopiert'; } catch { prompt('Zum Kopieren:', text); }
+});
+</script>
+</body>
+</html>
