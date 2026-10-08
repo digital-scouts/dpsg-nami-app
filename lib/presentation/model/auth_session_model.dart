@@ -905,6 +905,20 @@ class AuthSessionModel extends ChangeNotifier {
     }
   }
 
+  static const String anderesKontoMeldung =
+      'Du hast dich mit einem anderen Konto angemeldet. Die gespeicherten '
+      'Daten gehören zum bisherigen Konto. Melde dich mit diesem Konto an '
+      'oder wechsle über „Abmelden“.';
+
+  /// Gehoert [neu] zu einem anderen Konto als die gespeicherten Daten?
+  Future<bool> _istAnderesKonto(AuthSession neu) async {
+    final bisher = await _sensitiveStorageService.loadPrincipal();
+    if (bisher == null || bisher.isEmpty) {
+      return false;
+    }
+    return neu.principal == null || neu.principal != bisher;
+  }
+
   /// Meldet bei Hitobito neu an, waehrend die Session und die lokalen Daten
   /// bestehen bleiben. Nur fuer ausdrueckliche Nutzeraktionen wie „Neu
   /// anmelden“. Liefert `true`, wenn die Anmeldung samt Profil gelungen ist.
@@ -925,6 +939,18 @@ class AuthSessionModel extends ChangeNotifier {
         'interaktiver relogin gestartet trigger=$trigger',
       );
       final authenticatedSession = await _anmeldenImBrowser();
+      if (await _istAnderesKonto(authenticatedSession)) {
+        // Die Neuanmeldung gehoert zum gespeicherten Konto. Daten und
+        // vorgemerkte Aenderungen bleiben; ein Kontowechsel laeuft ueber
+        // Abmelden, das vorher nachfragt.
+        unawaited(_widerrufen(authenticatedSession));
+        _errorMessage = anderesKontoMeldung;
+        await _logger.logInfo(
+          'auth_flow',
+          'interaktiver relogin abgelehnt trigger=$trigger reason=other_account',
+        );
+        return false;
+      }
       await _persistAuthenticatedSession(authenticatedSession);
       try {
         await _loadProfileFromRemote(authenticatedSession);

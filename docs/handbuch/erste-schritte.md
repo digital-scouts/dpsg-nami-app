@@ -57,6 +57,8 @@ Hitobito beendet die Anmeldung, wenn die App etwa eine Woche nicht genutzt wurde
 3. Die App aktualisiert danach die Daten und sendet vorgemerkte Änderungen.
 {: .steps }
 
+Melde dich mit demselben Konto wieder an. Mit einem anderen Konto lehnt die App die Anmeldung ab und behält die Daten des bisherigen. Für einen Kontowechsel melde dich zuerst über <span class="ui">Abmelden</span> im Profil ab.
+
 Sind Mitteilungen erlaubt, erinnert die App einen Tag vorher daran, sie kurz zu öffnen. Das hält die Anmeldung aktiv.
 
 ## Weitere Funktionen

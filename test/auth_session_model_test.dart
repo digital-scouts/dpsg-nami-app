@@ -1150,7 +1150,55 @@ void main() {
   );
 
   test(
-    'Neuanmeldung mit Benutzerwechsel verwirft altes Profil und alten Sync-Stand',
+    'Neuanmeldung mit demselben Konto bleibt erlaubt',
+    () async {
+      final oauthService = FakeOauthService(
+        sessionToReturn: AuthSession(
+          accessToken: 'interactive-token',
+          refreshToken: 'interactive-refresh-token',
+          receivedAt: DateTime(2026, 3, 28, 12),
+          principal: 'principal-old',
+        ),
+        profileToReturn: const AuthProfile(namiId: 111, language: 'de'),
+      );
+      final model = AuthSessionModel(
+        repository: InMemoryAuthSessionRepository(
+          initialSession: AuthSession(
+            accessToken: 'stale-token',
+            refreshToken: 'stale-refresh-token',
+            receivedAt: DateTime(2026, 3, 27),
+            principal: 'principal-old',
+          ),
+        ),
+        profileRepository: InMemoryAuthProfileRepository(
+          profile: const AuthProfile(namiId: 111, language: 'de'),
+          lastSyncAt: DateTime(2026, 3, 27, 8),
+        ),
+        oauthService: oauthService,
+        biometricLockService: FakeBiometricLockService(),
+        sensitiveStorageService: FakeSensitiveStorageService()
+          ..principal = 'principal-old'
+          ..lastSensitiveSyncAt = DateTime(2026, 3, 27, 8),
+        retentionPolicy: HitobitoDataRetentionPolicy(
+          maxDataAge: const Duration(days: 90),
+          refreshInterval: const Duration(hours: 24),
+          nowProvider: () => DateTime(2026, 3, 28, 12),
+        ),
+        logger: _createLogger(),
+      );
+      await model.initialize();
+
+      expect(await model.neuAnmelden(), isTrue);
+
+      expect(model.session?.accessToken, 'interactive-token');
+      expect(model.lastSensitiveSyncAt, DateTime(2026, 3, 27, 8));
+      expect(oauthService.widerrufeneSessions, isEmpty);
+    },
+    timeout: const Timeout(Duration(seconds: 3)),
+  );
+
+  test(
+    'Neuanmeldung mit anderem Konto wird abgelehnt und behaelt das gespeicherte Konto',
     () async {
       final oauthService =
           FakeOauthService(
@@ -1206,11 +1254,9 @@ void main() {
 
       await model.initialize();
       final generationVorher = model.sessionGeneration;
-      final aufgerufeneTokens = <String>[];
       final result = await model.executeRemoteAccess<String>(
         trigger: 'members_load',
         action: (session) async {
-          aufgerufeneTokens.add(session.accessToken);
           throw const HitobitoPeopleException(
             'People-Anfrage fehlgeschlagen (401).',
             statusCode: 401,
@@ -1220,15 +1266,23 @@ void main() {
       expect(result, isNull);
       expect(model.requiresInteractiveLogin, isTrue);
 
-      expect(await model.neuAnmelden(), isTrue);
+      final profilVorher = model.profile;
+      expect(await model.neuAnmelden(), isFalse);
 
-      expect(aufgerufeneTokens, <String>['stale-token']);
-      expect(model.sessionGeneration, isNot(generationVorher));
-      expect(model.session?.principal, 'principal-new');
-      expect(model.profile?.namiId, 222);
-      expect(model.lastSensitiveSyncAt, isNull);
-      expect(model.lastSensitiveSyncAttemptAt, isNull);
-      expect(model.requiresInteractiveLogin, isFalse);
+      // Das bisherige Konto samt Daten bleibt, das neue wird widerrufen.
+      expect(oauthService.authenticateInteractiveCallCount, 1);
+      expect(model.sessionGeneration, generationVorher);
+      expect(model.session?.principal, 'principal-old');
+      expect(model.session?.accessToken, 'stale-token');
+      expect(model.profile, profilVorher);
+      expect(model.lastSensitiveSyncAt, DateTime(2026, 3, 27, 8));
+      expect(model.requiresInteractiveLogin, isTrue);
+      expect(model.errorMessage, AuthSessionModel.anderesKontoMeldung);
+      await pumpEventQueue();
+      expect(
+        oauthService.widerrufeneSessions.single.accessToken,
+        'interactive-token',
+      );
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );

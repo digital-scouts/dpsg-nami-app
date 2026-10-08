@@ -63,21 +63,30 @@ class NeuanmeldungSheet extends StatelessWidget {
   }
 }
 
-/// Fragt bei abgelaufener Anmeldung nach und öffnet erst nach Zustimmung den
-/// Hitobito-Login. Liefert `true`, wenn die Neuanmeldung gelungen ist.
-Future<bool> frageNachNeuanmeldung(
+/// Meldet neu an und nennt bei Misserfolg den Grund, etwa wenn sich jemand
+/// mit einem anderen Konto angemeldet hat. Liefert `true` bei Erfolg.
+Future<bool> neuAnmeldenMitHinweis(
   BuildContext context, {
   required String trigger,
 }) async {
   final authModel = context.read<AuthSessionModel>();
-  final bestaetigt = await NeuanmeldungSheet.show(context);
-  if (bestaetigt != true) {
-    return false;
-  }
   final angemeldet = await authModel.neuAnmelden(trigger: trigger);
   final fehler = authModel.errorMessage;
   if (!angemeldet && context.mounted && fehler != null && fehler.isNotEmpty) {
     AppSnackbar.show(context, message: fehler, type: AppSnackbarType.warning);
   }
   return angemeldet;
+}
+
+/// Fragt bei abgelaufener Anmeldung nach und öffnet erst nach Zustimmung den
+/// Hitobito-Login. Liefert `true`, wenn die Neuanmeldung gelungen ist.
+Future<bool> frageNachNeuanmeldung(
+  BuildContext context, {
+  required String trigger,
+}) async {
+  final bestaetigt = await NeuanmeldungSheet.show(context);
+  if (bestaetigt != true || !context.mounted) {
+    return false;
+  }
+  return neuAnmeldenMitHinweis(context, trigger: trigger);
 }

@@ -211,7 +211,7 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
             ? AppSnackbarAction(
                 label: t.t('auth_neuanmeldung_action'),
                 onPressed: () => unawaited(
-                  authModel.neuAnmelden(trigger: 'member_list_notice'),
+                  neuAnmeldenMitHinweis(context, trigger: 'member_list_notice'),
                 ),
               )
             : null,

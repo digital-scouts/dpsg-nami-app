@@ -71,6 +71,8 @@ Den Hitobito-Login öffnet die App nur nach ausdrücklicher Zustimmung.
 | Speichern einer Änderung | Änderung bleibt vorgemerkt, Meldung mit „Neu anmelden“ |
 | Erster Start ohne geladene Daten | Ansicht „Erneute Anmeldung erforderlich“ mit „Neu anmelden“ und „Abmelden“ |
 
+Die Neuanmeldung gilt nur für das gespeicherte Konto. Meldet sich jemand mit einem anderen Konto an, widerruft die App dessen Tokens und behält Daten und vorgemerkte Änderungen des bisherigen Kontos; ein Kontowechsel läuft über <span class="ui">Abmelden</span>.
+
 Nach der Neuanmeldung bleibt der Arbeitskontext sichtbar. Die App synchronisiert danach, falls fällig, und sendet vorgemerkte Änderungen.
 
 Beendet das System die App, während der Login im Browser offen ist, erklärt der Anmeldebildschirm beim nächsten Start, dass die Anmeldung unterbrochen wurde.

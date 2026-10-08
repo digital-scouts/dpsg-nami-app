@@ -28,6 +28,7 @@ import '../widgets/member_basis.dart';
 import '../widgets/member_detail/member_rollen_tab.dart';
 import '../navigation/app_router.dart';
 import '../widgets/member_detail/member_steckbrief_kopf.dart';
+import '../widgets/neuanmeldung_sheet.dart';
 import 'member_edit_page.dart';
 
 class MemberDetailPage extends StatefulWidget {
@@ -119,7 +120,7 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
         action: AppSnackbarAction(
           label: t.t('auth_neuanmeldung_action'),
           onPressed: () =>
-              unawaited(authModel!.neuAnmelden(trigger: 'member_save')),
+              unawaited(neuAnmeldenMitHinweis(context, trigger: 'member_save')),
         ),
       );
       return;

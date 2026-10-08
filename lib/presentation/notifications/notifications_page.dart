@@ -11,6 +11,7 @@ import 'package:nami/services/app_update_service.dart';
 import 'package:nami/services/logger_service.dart';
 import 'package:nami/services/network_access_policy.dart';
 import 'package:nami/presentation/notifications/qualifikations_meldung.dart';
+import 'package:nami/presentation/widgets/neuanmeldung_sheet.dart';
 import 'package:provider/provider.dart';
 
 class NotificationsPage extends StatefulWidget {
@@ -84,7 +85,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     final authModel = context.read<AuthSessionModel>();
     if (authModel.requiresInteractiveLogin) {
       // Das Tippen auf den Hinweis ist die Zustimmung zur Anmeldung.
-      await authModel.neuAnmelden(trigger: 'notifications_hint');
+      await neuAnmeldenMitHinweis(context, trigger: 'notifications_hint');
     }
   }
 
