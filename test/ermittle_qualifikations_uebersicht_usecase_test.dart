@@ -83,6 +83,19 @@ void main() {
     expect(efzZeile.eintraege, isEmpty);
   });
 
+  test('nicht voll lesbare Personen zaehlen nicht als fehlend', () {
+    final efzZeile = useCase(
+      readModel: qualiReadModel(mitglieder: mitglieder, efz: efz),
+      einstellungen: const QualifikationsEinstellungen(),
+      heute: heute,
+      // Nur Anna ist voll lesbar, etwa als eigene Person bei group_read.
+      istVollLesbar: (mitglied) => mitglied.personId == 10,
+    ).first;
+
+    expect(efzZeile.eintraege.map((e) => e.mitglied.mitgliedsnummer), ['A']);
+    expect(efzZeile.fehlt, 0);
+  });
+
   test('Katalog: EFZ immer, Hitobito-Arten nur mit Inhabern, Vorgaben '
       'angezeigt, Rest ausgeblendet und alphabetisch', () {
     final readModel = qualiReadModel(

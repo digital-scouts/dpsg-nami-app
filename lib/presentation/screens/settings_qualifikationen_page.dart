@@ -3,9 +3,13 @@ import 'package:provider/provider.dart';
 
 import '../../domain/arbeitskontext/arbeitskontext_read_model.dart';
 import '../../domain/arbeitskontext/teildaten_stand.dart';
+import '../../domain/bundesstatistik/statistik_abdeckung.dart';
 import '../../domain/qualifikation/ermittle_qualifikations_uebersicht_usecase.dart';
 import '../../l10n/app_localizations.dart';
+import '../model/arbeitskontext_model.dart';
 import '../model/qualifikations_einstellungen_model.dart';
+import '../theme/status_farben.dart';
+import '../widgets/leserechte_hinweis.dart';
 import '../widgets/qualifikationen/qualifikation_bausteine.dart';
 import 'qualifikationen/qualifikation_personen_page.dart';
 import 'qualifikationen/qualifikationen_auswahl_page.dart';
@@ -19,10 +23,14 @@ class SettingsQualifikationenPage extends StatelessWidget {
     super.key,
     this.readModel,
     this.heuteProvider,
+    this.abdeckung,
   });
 
   /// Fuer Stories und Tests; sonst aus dem ArbeitskontextModel.
   final ArbeitskontextReadModel? readModel;
+
+  /// Fuer Stories und Tests; sonst aus dem ArbeitskontextModel.
+  final StatistikAbdeckung? abdeckung;
   final DateTime Function()? heuteProvider;
 
   static const _useCase = ErmittleQualifikationsUebersichtUseCase();
@@ -47,6 +55,7 @@ class SettingsQualifikationenPage extends StatelessWidget {
         .watch<QualifikationsEinstellungenModel>()
         .einstellungen;
     final heute = QualifikationenKontext.heute(heuteProvider);
+    final istVollLesbar = QualifikationenKontext.istVollLesbar(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -62,7 +71,13 @@ class SettingsQualifikationenPage extends StatelessWidget {
         ],
       ),
       body: !supporter
-          ? const _SupporterHinweis()
+          ? _SupporterHinweis(
+              nutzen: _nutzen(
+                t,
+                abdeckung ?? _abdeckungAusModell(context),
+                readModel,
+              ),
+            )
           : readModel == null
           ? const Center(child: CircularProgressIndicator())
           : readModel.efzStand == TeildatenStand.unbekannt &&
@@ -78,6 +93,11 @@ class SettingsQualifikationenPage extends StatelessWidget {
                 readModel: readModel,
                 einstellungen: einstellungen,
                 heute: heute,
+                istVollLesbar: istVollLesbar,
+              ),
+              nichtLesbareHinweis: QualifikationenKontext.hatNichtLesbare(
+                readModel,
+                istVollLesbar,
               ),
               heute: heute,
               onAuswahl: () => _oeffneAuswahl(context),
@@ -102,9 +122,11 @@ class _Uebersicht extends StatelessWidget {
     required this.heute,
     required this.onAuswahl,
     required this.onZeile,
+    this.nichtLesbareHinweis = false,
   });
 
   final ArbeitskontextReadModel readModel;
+  final bool nichtLesbareHinweis;
   final List<UebersichtZeile> zeilen;
   final DateTime heute;
   final VoidCallback onAuswahl;
@@ -138,6 +160,8 @@ class _Uebersicht extends StatelessWidget {
             ),
           ),
         ),
+        if (nichtLesbareHinweis)
+          LeserechteHinweis(text: t.t('leserechte_quali_uebersicht_hinweis')),
         Card(
           margin: EdgeInsets.zero,
           clipBehavior: Clip.antiAlias,
@@ -190,8 +214,126 @@ class _Uebersicht extends StatelessWidget {
   }
 }
 
+enum _NutzenArt { hilft, teilweise, hilftNicht }
+
+typedef _Nutzen = ({_NutzenArt art, String text});
+
+StatistikAbdeckung? _abdeckungAusModell(BuildContext context) {
+  try {
+    return context.watch<ArbeitskontextModel>().statistikAbdeckung;
+  } on ProviderNotFoundException {
+    return null;
+  }
+}
+
+/// Was die Uebersicht mit den eigenen Rechten bringt: Hitobito liefert
+/// Qualifikationen nur fuer voll lesbare Personen. Ohne Rechte-Infos (Stories,
+/// Tests) entfaellt der Hinweis.
+_Nutzen? _nutzen(
+  AppLocalizations t,
+  StatistikAbdeckung? abdeckung,
+  ArbeitskontextReadModel? readModel,
+) {
+  if (abdeckung == null || readModel == null) {
+    return null;
+  }
+  final ebene = readModel.arbeitskontext.aktiverLayer.name;
+  String namen(Set<int> ids) => [
+    for (final gruppe in readModel.gruppen)
+      if (ids.contains(gruppe.id) &&
+          (gruppe.parentId == null || !ids.contains(gruppe.parentId)))
+        gruppe.anzeigename,
+  ].join(', ');
+  if (abdeckung.istStamm) {
+    return (
+      art: _NutzenArt.hilft,
+      text: t.t('quali_nutzen_hilft_text', {'ebene': ebene}),
+    );
+  }
+  if (abdeckung.vollLesbareGruppenIds.isNotEmpty) {
+    return (
+      art: _NutzenArt.teilweise,
+      text: t.t('quali_nutzen_teilweise_text', {
+        'gruppen': namen(abdeckung.vollLesbareGruppenIds),
+        'ebene': ebene,
+      }),
+    );
+  }
+  final lesbar = {...abdeckung.gruppenIds, ...abdeckung.gruppenOhneRollen};
+  return (
+    art: _NutzenArt.hilftNicht,
+    text: t.t('quali_nutzen_hilft_nicht_text', {
+      'gruppen': lesbar.isEmpty ? ebene : namen(lesbar),
+    }),
+  );
+}
+
+class _NutzenKarte extends StatelessWidget {
+  const _NutzenKarte({required this.nutzen});
+
+  final _Nutzen nutzen;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final t = AppLocalizations.of(context);
+    final dunkel = theme.brightness == Brightness.dark;
+    final status = StatusFarben.of(context);
+    final (farbe, icon, titel) = switch (nutzen.art) {
+      _NutzenArt.hilft => (
+        status.gut,
+        Icons.check,
+        t.t('quali_nutzen_hilft_titel'),
+      ),
+      _NutzenArt.teilweise => (
+        dunkel ? const Color(0xFFF0CF6A) : const Color(0xFF7A5A00),
+        Icons.contrast,
+        t.t('quali_nutzen_teilweise_titel'),
+      ),
+      _NutzenArt.hilftNicht => (
+        status.warnung,
+        Icons.close,
+        t.t('quali_nutzen_hilft_nicht_titel'),
+      ),
+    };
+    return Container(
+      key: Key('quali-nutzen-${nutzen.art.name}'),
+      padding: const EdgeInsets.fromLTRB(12, 10, 14, 12),
+      decoration: BoxDecoration(
+        color: farbe.withValues(alpha: dunkel ? 0.16 : 0.12),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: farbe),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  titel,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: farbe,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(nutzen.text, style: theme.textTheme.bodySmall),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _SupporterHinweis extends StatelessWidget {
-  const _SupporterHinweis();
+  const _SupporterHinweis({this.nutzen});
+
+  final _Nutzen? nutzen;
 
   @override
   Widget build(BuildContext context) {
@@ -222,6 +364,10 @@ class _SupporterHinweis extends StatelessWidget {
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium,
             ),
+            if (nutzen != null) ...[
+              const SizedBox(height: 16),
+              _NutzenKarte(nutzen: nutzen!),
+            ],
             const SizedBox(height: 16),
             Text(
               t.t('quali_supporter_hinweis'),

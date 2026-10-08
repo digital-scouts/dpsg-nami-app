@@ -26,6 +26,7 @@ Stichtag ist das Monatsende, beim laufenden Monat der aktuelle Zeitpunkt. Der ef
   - teilnehmende Stämme (effektiver Stand am Stichtag)
   - davon `vollstaendig`, `nur_gruppen`, `gemischt`
   - Stämme mit mehreren Sendern im Fenster
+  - Stämme, für die nur Teilnahmen ohne Werte vorliegen; sie zählen nicht als teilnehmend
 - **Gruppen**
   - Gruppen mit Wert, gesamt und je Stufe
   - Gruppen, die mehr als ein Sender abgedeckt hat; dabei verworfene ältere Gruppenwerte

@@ -17,6 +17,7 @@ import 'package:nami/domain/member/member_write_repository.dart';
 import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/member/pending_person_update.dart';
 import 'package:nami/domain/member/pending_person_update_repository.dart';
+import 'package:nami/domain/member_filters/member_custom_filter.dart';
 import 'package:nami/domain/member_filters/member_filter_repository.dart';
 import 'package:nami/domain/settings/app_settings.dart';
 import 'package:nami/domain/settings/app_settings_repository.dart';
@@ -519,6 +520,122 @@ void main() {
     },
   );
 
+  testWidgets('zeigt mit group_read nur Gruppenchips lesbarer Gruppen', (
+    tester,
+  ) async {
+    final authModel = await _createSignedInAuthModel();
+    final model = await _createArbeitskontextModel(
+      mitglieder: <Mitglied>[
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '1',
+          vorname: 'Julia',
+          nachname: 'Keller',
+        ),
+      ],
+      gruppen: const <ArbeitskontextGruppe>[
+        ArbeitskontextGruppe(
+          id: 21,
+          name: 'Meute Seeadler',
+          layerId: 11,
+          gruppenTyp: 'Group::StammGruppeWoelflinge',
+        ),
+        ArbeitskontextGruppe(
+          id: 22,
+          name: 'Trupp Kompass',
+          layerId: 11,
+          gruppenTyp: 'Group::StammGruppeJungpfadfinder',
+        ),
+      ],
+      mitgliedsZuordnungen: const <ArbeitskontextMitgliedsZuordnung>[
+        ArbeitskontextMitgliedsZuordnung(mitgliedsnummer: '1', gruppenId: 22),
+      ],
+      authModel: authModel,
+      profile: const AuthProfile(
+        namiId: 99,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 22,
+            groupName: 'Trupp Kompass',
+            roleName: 'Leitung',
+            roleClass: 'Group::StammGruppeJungpfadfinder::Leitung',
+            permissions: <String>['group_read'],
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(authModel: authModel, arbeitskontextModel: model),
+    );
+    await tester.pumpAndSettle();
+
+    final chips = find.byType(GroupFilterBar);
+    expect(
+      find.descendant(of: chips, matching: find.text('Trupp Kompass')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: chips, matching: find.text('Meute Seeadler')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('weist bei group_read ohne gelieferte Rollen darauf hin', (
+    tester,
+  ) async {
+    final authModel = await _createSignedInAuthModel();
+    final model = await _createArbeitskontextModel(
+      mitglieder: <Mitglied>[
+        Mitglied.peopleListItem(
+          mitgliedsnummer: '1',
+          vorname: 'Julia',
+          nachname: 'Keller',
+        ),
+      ],
+      gruppen: const <ArbeitskontextGruppe>[
+        ArbeitskontextGruppe(
+          id: 22,
+          name: 'Trupp Kompass',
+          layerId: 11,
+          gruppenTyp: 'Group::StammGruppeJungpfadfinder',
+        ),
+      ],
+      authModel: authModel,
+      profile: const AuthProfile(
+        namiId: 99,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 22,
+            groupName: 'Trupp Kompass',
+            roleName: 'Leitung',
+            roleClass: 'Group::StammGruppeJungpfadfinder::Leitung',
+            permissions: <String>['group_read'],
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      _buildTestApp(authModel: authModel, arbeitskontextModel: model),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'Mit deinem Leserecht auf Trupp Kompass liefert Hitobito die Rollen '
+        'der anderen nicht. Stufen und Gruppenfilter fehlen deshalb.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(GroupFilterBar),
+        matching: find.text('Trupp Kompass'),
+      ),
+      findsNothing,
+    );
+  });
+
   testWidgets('zeigt feste Gruppenchips auch ohne zugeordnete Mitglieder an', (
     tester,
   ) async {
@@ -730,9 +847,7 @@ void main() {
     },
   );
 
-  testWidgets('filtert ueber Alle anderen nicht zugeordnete Mitglieder', (
-    tester,
-  ) async {
+  testWidgets('filtert ueber eine eigene Gruppe ohne Stufe', (tester) async {
     final authModel = await _createSignedInAuthModel();
     final arbeitskontextModel = await _createArbeitskontextModel(
       mitglieder: <Mitglied>[
@@ -771,6 +886,13 @@ void main() {
       _buildTestApp(
         authModel: authModel,
         arbeitskontextModel: arbeitskontextModel,
+        memberFiltersModel: MemberFiltersModel(
+          _FakeMemberFilterRepository(<int, MemberFilterLayerSettings>{
+            11: const MemberFilterLayerSettings(
+              customGroups: <MemberCustomFilterGroup>[_ohneStufeGruppe],
+            ),
+          }),
+        ),
       ),
     );
 
@@ -779,7 +901,7 @@ void main() {
     expect(find.text('Julia Keller'), findsOneWidget);
     expect(find.text('Mara Schmidt'), findsOneWidget);
 
-    await tester.tap(find.text('Rest'));
+    await tester.tap(find.text('Ohne Stufe'));
     await tester.pumpAndSettle();
 
     expect(find.text('Julia Keller'), findsNothing);
@@ -941,7 +1063,7 @@ void main() {
     expect(find.text('Filtern & Sortieren'), findsOneWidget);
     expect(find.text('Sortiere nach'), findsOneWidget);
     expect(find.text('Zusatztext'), findsOneWidget);
-    expect(find.text('Rest'), findsWidgets);
+    expect(find.text('Rest'), findsNothing);
     expect(find.text('Filtergruppe erstellen'), findsOneWidget);
 
     await tester.tap(find.text('Filtergruppe erstellen'));
@@ -1048,7 +1170,9 @@ void main() {
     expect(logger.trackedEvents.toString(), isNot(contains('Julia')));
   });
 
-  testWidgets('kann die Default-CustomGroup Rest loeschen', (tester) async {
+  testWidgets('entfernt den alten Standard-Chip Rest, behaelt eigene Gruppen', (
+    tester,
+  ) async {
     final authModel = await _createSignedInAuthModel();
     final arbeitskontextModel = await _createArbeitskontextModel(
       mitglieder: <Mitglied>[
@@ -1060,28 +1184,43 @@ void main() {
       ],
       authModel: authModel,
     );
+    final repository = _FakeMemberFilterRepository(
+      <int, MemberFilterLayerSettings>{
+        11: const MemberFilterLayerSettings(
+          defaultsInitialisiert: true,
+          customGroups: <MemberCustomFilterGroup>[
+            MemberCustomFilterGroup(
+              id: 'rest',
+              shortLabel: 'Rest',
+              isActive: true,
+              isDefault: true,
+              logic: MemberCustomFilterLogic.oder,
+              rules: <MemberCustomFilterRule>[
+                MemberCustomFilterRule(
+                  operator: MemberCustomFilterRuleOperator.hatNicht,
+                  criterion: MemberCustomFilterCriterion.stufe(),
+                ),
+              ],
+            ),
+            _ohneStufeGruppe,
+          ],
+        ),
+      },
+    );
 
     await tester.pumpWidget(
       _buildTestApp(
         authModel: authModel,
         arbeitskontextModel: arbeitskontextModel,
+        memberFiltersModel: MemberFiltersModel(repository),
       ),
     );
-
-    await tester.pumpAndSettle();
-
-    expect(find.text('Rest'), findsOneWidget);
-
-    await tester.tap(find.byTooltip('Filtern und sortieren'));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byTooltip('Filtergruppe löschen').first);
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Anwenden'));
     await tester.pumpAndSettle();
 
     expect(find.text('Rest'), findsNothing);
+    expect(find.text('Ohne Stufe'), findsOneWidget);
+    final gespeichert = await repository.loadForLayer(11);
+    expect(gespeichert.customGroups.map((g) => g.id), ['ohne-stufe']);
   });
 
   testWidgets('loggt die Navigation in die Mitglied-Detailansicht', (
@@ -1185,6 +1324,7 @@ Future<ArbeitskontextModel> _createArbeitskontextModel({
   List<ArbeitskontextMitgliedsZuordnung> mitgliedsZuordnungen =
       const <ArbeitskontextMitgliedsZuordnung>[],
   required AuthSessionModel authModel,
+  AuthProfile? profile,
 }) async {
   final model = ArbeitskontextModel(
     localRepository: _FakeArbeitskontextLocalRepository(
@@ -1209,7 +1349,7 @@ Future<ArbeitskontextModel> _createArbeitskontextModel({
   await model.syncForAuth(
     authState: authModel.state,
     session: authModel.session,
-    profile: authModel.profile,
+    profile: profile ?? authModel.profile,
   );
 
   return model;
@@ -1380,6 +1520,15 @@ class _FakeOauthService extends HitobitoOauthService {
         firstName: 'Test',
         lastName: 'User',
         language: 'de',
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 11,
+            groupName: 'Stamm Musterdorf',
+            roleName: 'Stammesvorstand',
+            roleClass: 'Group::Stamm::Vorstand',
+            permissions: <String>['layer_read'],
+          ),
+        ],
       );
 }
 
@@ -1593,8 +1742,10 @@ class _NoopPendingPersonUpdateRepository
 }
 
 class _FakeMemberFilterRepository implements MemberFilterRepository {
-  final Map<int, MemberFilterLayerSettings> _values =
-      <int, MemberFilterLayerSettings>{};
+  _FakeMemberFilterRepository([Map<int, MemberFilterLayerSettings>? values])
+    : _values = values ?? <int, MemberFilterLayerSettings>{};
+
+  final Map<int, MemberFilterLayerSettings> _values;
 
   @override
   Future<MemberFilterLayerSettings> loadForLayer(int layerId) async {
@@ -1609,3 +1760,16 @@ class _FakeMemberFilterRepository implements MemberFilterRepository {
     _values[layerId] = settings;
   }
 }
+
+const _ohneStufeGruppe = MemberCustomFilterGroup(
+  id: 'ohne-stufe',
+  shortLabel: 'Ohne Stufe',
+  isActive: true,
+  logic: MemberCustomFilterLogic.oder,
+  rules: <MemberCustomFilterRule>[
+    MemberCustomFilterRule(
+      operator: MemberCustomFilterRuleOperator.hatNicht,
+      criterion: MemberCustomFilterCriterion.stufe(),
+    ),
+  ],
+);

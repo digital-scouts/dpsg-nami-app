@@ -615,6 +615,7 @@ Future<void> _startApp({
         arbeitskontextModel.readModel,
         ladeLaeuft:
             arbeitskontextModel.isLoading || arbeitskontextModel.isLoadingRoles,
+        abdeckung: arbeitskontextModel.statistikAbdeckung,
       ),
     ),
   );

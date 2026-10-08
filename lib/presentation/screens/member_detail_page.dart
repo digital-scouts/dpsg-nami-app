@@ -304,6 +304,8 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
         false;
     final isWritable =
         arbeitskontextModel?.istMitgliedSchreibbar(currentMitglied) ?? false;
+    final vollLesbar =
+        arbeitskontextModel?.istVollLesbar(currentMitglied) ?? true;
     final stammNamen = _resolveAnzeigeStaemme(
       readModel,
       currentMitglied.mitgliedsnummer,
@@ -444,12 +446,14 @@ class _MemberDetailPageState extends State<MemberDetailPage> {
                       stufenSettings: _stufenSettings,
                       aktiverLayerName:
                           readModel?.arbeitskontext.aktiverLayer.name,
+                      rollenNichtLesbar: !vollLesbar,
                     ),
                   ),
                   _TabBleibtErhalten(
                     child: MemberQualifikationenTab(
                       mitglied: currentMitglied,
                       heute: heute,
+                      vollLesbar: vollLesbar,
                       efzStand: readModel?.efzStand ?? TeildatenStand.unbekannt,
                       efzEinsichtnahmen:
                           readModel?.findeEfzEinsichtnahmen(

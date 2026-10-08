@@ -3,6 +3,7 @@ import 'package:nami/data/statistiks/shared_prefs_statistik_verlauf_repository.d
 import 'package:nami/domain/statistiks/berechne_stamm_statistik_usecase.dart';
 import 'package:nami/domain/statistiks/statistik_verlauf.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model.dart';
+import 'package:nami/domain/bundesstatistik/statistik_abdeckung.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/services/statistik_verlauf_service.dart';
 import 'package:nami/stories/store/store_showcase_data.dart';
@@ -90,12 +91,20 @@ void main() {
       mitgliedsZuordnungen: voll.mitgliedsZuordnungen,
     );
 
-    await service.aktualisiere(null, ladeLaeuft: false);
-    await service.aktualisiere(ohneRollen, ladeLaeuft: false);
-    await service.aktualisiere(voll, ladeLaeuft: true);
+    const stamm = StatistikAbdeckung.stamm();
+    await service.aktualisiere(null, ladeLaeuft: false, abdeckung: stamm);
+    await service.aktualisiere(ohneRollen, ladeLaeuft: false, abdeckung: stamm);
+    await service.aktualisiere(voll, ladeLaeuft: true, abdeckung: stamm);
+    // Teilsicht oder unbekannte Rechte: keine Stammeszahlen.
+    await service.aktualisiere(
+      voll,
+      ladeLaeuft: false,
+      abdeckung: StatistikAbdeckung.gruppen(const {1}),
+    );
+    await service.aktualisiere(voll, ladeLaeuft: false, abdeckung: null);
     expect(await repo.loadForLayer(StoreShowcaseData.layerId), isEmpty);
 
-    await service.aktualisiere(voll, ladeLaeuft: false);
+    await service.aktualisiere(voll, ladeLaeuft: false, abdeckung: stamm);
     final eintraege = await repo.loadForLayer(StoreShowcaseData.layerId);
     expect(eintraege.single.monat, '2026-09');
   });

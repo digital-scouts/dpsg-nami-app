@@ -260,6 +260,45 @@ void main() {
     expect(repository.sendungen, hasLength(2));
   });
 
+  test(
+    'nimmt ohne lesbare Zahlen ohne Werte teil und darf trotzdem lesen',
+    () async {
+      // Leitung mit group_read, Hitobito liefert keine fremden Rollen.
+      final ohneRollen = StatistikAbdeckung.gruppen(
+        const <int>{},
+        gruppenOhneRollen: {110},
+      );
+      final model = buildModel();
+      await model.initialize();
+      await model.aktualisiereKontext(
+        personId: '42',
+        readModel: _readModel(),
+        datenstand: now.subtract(const Duration(hours: 1)),
+        abdeckung: ohneRollen,
+      );
+      await model.setzeEinwilligung(true);
+
+      expect(repository.sendungen, hasLength(1));
+      final json = repository.sendungen.single.$1.toJson();
+      expect(json['abdeckung'], 'gruppen');
+      expect(json['metrics'], isNull);
+      expect(json['gruppen'], [
+        {'gruppe_id': '110', 'stufe': 'woelflinge', 'abgedeckt': false},
+      ]);
+      expect(repository.abrufe, hasLength(1));
+      expect(model.status, BundesstatistikStatus.bereit);
+
+      // Unveraenderte Rechte: kein erneuter Versand vor Ablauf des Intervalls.
+      await model.aktualisiereKontext(
+        personId: '42',
+        readModel: _readModel(),
+        datenstand: now,
+        abdeckung: ohneRollen,
+      );
+      expect(repository.sendungen, hasLength(1));
+    },
+  );
+
   test('wartet ohne bekannte Abdeckung und sendet nichts', () async {
     final model = buildModel();
     await model.initialize();

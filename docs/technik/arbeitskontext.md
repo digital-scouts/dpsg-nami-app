@@ -48,7 +48,7 @@ Technisch sichtbare Layer sind nicht automatisch Arbeitskontexte. Angeboten werd
 |:--|:--|
 | `layer_read`, `layer_full` | Layer der Rolle wird als Arbeitskontext angeboten |
 | `layer_and_below_read`, `layer_and_below_full` | zusätzlich Unterlayer als eigene Wechselziele |
-| `group_read`, `group_and_below_read` | macht den Layer relevant, sichtbar ist aber nur die Teilmenge der Gruppe |
+| `group_read`, `group_full`, `group_and_below_*` | macht den Layer relevant, sichtbar ist aber nur die Teilmenge der Gruppe |
 | `contact_data` und ähnliche Zusatzrechte | erzeugen keinen Arbeitskontext und erweitern die Liste nicht |
 
 Leere Layer ohne Personen bleiben zulässige Arbeitskontexte, weil sie für den Aufbau relevant sein können.
@@ -62,7 +62,16 @@ Beim ersten Laden wählt die App den Primary Layer der Person, sofern er zu den 
 - Die In-App-Stufe leitet die App global im Code aus dem Hitobito-Gruppentyp ab. Eine Gruppe entspricht höchstens einer Stufe.
 - Personen werden Gruppen über ihre Rollen zugeordnet. Wer Rollen in mehreren Gruppen hat, erscheint in mehreren Filtern.
 - Leere Gruppen zeigt die Leseansicht nicht an.
-- Sonstige Gruppen sind keine vordefinierten Hauptfilter, lassen sich aber in eigenen Filtern nutzen. Die Standardgruppe „Rest“ enthält Personen ohne Stufe.
+- Sonstige Gruppen sind keine vordefinierten Hauptfilter, lassen sich aber in eigenen Filtern nutzen. Vorgegebene eigene Filter gibt es nicht; wer Personen ohne Stufe sehen will, legt sich dafür einen Filter an.
+
+## Nur Leserecht auf Gruppen
+
+Hitobito liefert über die JSON:API Rollen, Qualifikationen und EFZ nur für Personen, die man voll lesen darf: mit `group_full`, `group_and_below_full` oder einem Layer-Recht. Mit `group_read` bzw. `group_and_below_read` kommen die Personen der Gruppe, aber nur die eigenen Rollen. Die Antwort ist dabei 200 mit leerer Liste, nicht 403.
+
+- Kommt für eine nur lesbare Gruppe keine Rolle einer anderen Person an, gilt sie als „Gruppe ohne Rollen“. Ihre Zahlen sind unbekannt. Statistik, Bundesvergleich und Gruppenfilter lassen sie aus, und die App weist darauf hin.
+- Qualifikationen und EFZ nicht voll lesbarer Personen zeigt die App als „Keine Berechtigung“, nicht als „Keines hinterlegt“.
+- Der Monatsverlauf der Statistik zeichnet nur bei Leserecht auf den ganzen Stamm auf.
+- Liefert Hitobito die Rollen später doch, zählt die Gruppe ohne App-Update wieder mit.
 
 ## Wenn Rechte wegfallen
 

@@ -130,7 +130,7 @@ class ArbeitskontextModel extends ChangeNotifier {
       'Du hast nicht die notwendigen Berechtigungen um die App zu nutzen';
   static const Set<String> _exactLayerPermissions = <String>{
     ...HitobitoBerechtigungen.layerLesen,
-    'group_read',
+    ...HitobitoBerechtigungen.gruppeLesen,
     ...HitobitoBerechtigungen.gruppeUndDarunterLesen,
   };
   static const Set<String> _layerAndBelowPermissions =
@@ -210,6 +210,22 @@ class ArbeitskontextModel extends ChangeNotifier {
       return null;
     }
     return _ermittleStatistikAbdeckung(profile: profile, readModel: readModel);
+  }
+
+  /// Ob Hitobito fuer [mitglied] Qualifikationen und EFZ liefert. Mit nur
+  /// `group_read` gilt das nur fuer die eigene Person; dann ist ein leerer
+  /// Stand keine Aussage. Ohne bekannte Rechte bleibt es beim geladenen Stand.
+  bool istVollLesbar(Mitglied mitglied) {
+    final abdeckung = statistikAbdeckung;
+    if (abdeckung == null || mitglied.personId == _profile?.namiId) {
+      return true;
+    }
+    return abdeckung.istVollLesbar(<int>{
+      if (mitglied.primaryGroupId != null) mitglied.primaryGroupId!,
+      ...?_readModel
+          ?.findeMitgliedsZuordnungen(mitglied.mitgliedsnummer)
+          .map((zuordnung) => zuordnung.gruppenId),
+    });
   }
 
   String? get errorMessage => _errorMessage;
@@ -1644,6 +1660,11 @@ class ArbeitskontextModel extends ChangeNotifier {
 
     if (!permissions.any(_writeLayerAndBelowPermissions.contains)) {
       return false;
+    }
+    // Rollen in Nicht-Layer-Gruppen uebergeordneter Layer (z. B.
+    // Bezirksleitung) kennt das Read Model nur ueber ihre Gruppen-ID.
+    if (readModel.uebergeordneteGruppenIds.contains(roleGroupId)) {
+      return true;
     }
     if (roleLayerId == null) {
       return false;

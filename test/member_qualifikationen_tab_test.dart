@@ -22,6 +22,7 @@ void main() {
     List<EfzEinsichtnahme> efz = const <EfzEinsichtnahme>[],
     TeildatenStand qualiStand = TeildatenStand.geladen,
     List<Qualifikation> qualis = const <Qualifikation>[],
+    bool vollLesbar = true,
   }) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -42,6 +43,7 @@ void main() {
             efzEinsichtnahmen: efz,
             qualifikationenStand: qualiStand,
             qualifikationen: qualis,
+            vollLesbar: vollLesbar,
           ),
         ),
       ),
@@ -78,6 +80,25 @@ void main() {
     expect(find.text('Keine Berechtigung'), findsOneWidget);
     expect(find.byKey(const Key('efz-antrag-download')), findsNothing);
   });
+
+  testWidgets(
+    'zeigt bei nicht voll lesbarer Person Keine Berechtigung statt Keines hinterlegt',
+    (tester) async {
+      // Hitobito antwortet bei group_read mit 200 und leerer Liste.
+      await zeige(tester, vollLesbar: false);
+
+      expect(find.text('Keines hinterlegt'), findsNothing);
+      expect(find.text('Keine Qualifikationen hinterlegt'), findsNothing);
+      expect(find.text('Keine Berechtigung'), findsNWidgets(2));
+      expect(find.byKey(const Key('efz-antrag-download')), findsNothing);
+      expect(
+        find.text(
+          'Qualifikationen und EFZ dieser Person liefert Hitobito mit deinen Rechten nicht.',
+        ),
+        findsOneWidget,
+      );
+    },
+  );
 
   testWidgets('sortiert abgelaufene Qualifikationen ans Ende', (tester) async {
     await zeige(

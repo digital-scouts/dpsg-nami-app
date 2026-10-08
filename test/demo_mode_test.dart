@@ -109,6 +109,32 @@ void main() {
         readModel.gruppen,
         hasLength(DemoBezirk.silberfels.gruppen.length),
       );
+      // Rollen, Qualifikationen und EFZ liefert Hitobito mit group_read nur
+      // fuer die eigene Person.
+      expect(
+        readModel.mitgliedsZuordnungen.map((z) => z.mitgliedsnummer).toSet(),
+        {'1052'},
+      );
+      expect(
+        readModel.mitglieder
+            .where((m) => m.roles.isNotEmpty)
+            .map((m) => m.mitgliedsnummer),
+        ['1052'],
+      );
+      expect(
+        readModel.efzEinsichtnahmen.every((e) => e.personId == 1052),
+        isTrue,
+      );
+      expect(
+        readModel.qualifikationen.every((q) => q.personId == 1052),
+        isTrue,
+      );
+      final abdeckung = demo.arbeitskontextModel.statistikAbdeckung!;
+      expect(abdeckung.gruppenOhneRollen, {DemoBezirk.truppKompassId});
+      final andere = readModel.mitglieder.firstWhere(
+        (m) => m.mitgliedsnummer != '1052',
+      );
+      expect(demo.arbeitskontextModel.istVollLesbar(andere), isFalse);
 
       await demo.authModel.logout();
     });

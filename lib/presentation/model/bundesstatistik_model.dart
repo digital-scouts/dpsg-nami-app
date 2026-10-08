@@ -197,7 +197,9 @@ class BundesstatistikModel extends ChangeNotifier {
           ? BundesstatistikStatus.bereit
           : BundesstatistikStatus.zuWenigTeilnahme;
     }
-    if (!(_eigeneKennzahlen?.istPlausibel ?? false)) {
+    // Ohne plausible Zahlen wird ohne Werte teilgenommen; nur ohne jede
+    // Stufengruppe gibt es nichts zu senden.
+    if (_eigeneKennzahlen?.gruppen.isEmpty ?? true) {
       return BundesstatistikStatus.keineKennzahlen;
     }
     if (_letzterFehler == BundesstatistikFehlerArt.abgelehnt) {
@@ -379,8 +381,16 @@ class BundesstatistikModel extends ChangeNotifier {
 
   Future<void> _sendeWennFaellig(InstallationCredentials credentials) async {
     final hierarchie = _hierarchie;
-    final kennzahlen = _eigeneKennzahlen;
-    if (hierarchie == null || kennzahlen == null || !kennzahlen.istPlausibel) {
+    final eigene = _eigeneKennzahlen;
+    if (hierarchie == null || eigene == null) {
+      return;
+    }
+    // Die Absicht zu teilen reicht: Ohne plausible Zahlen geht eine Teilnahme
+    // ohne Werte raus. Ohne Stufengruppen gibt es nicht einmal eine Struktur.
+    final kennzahlen = eigene.istPlausibel
+        ? eigene
+        : eigene.alsTeilnahmeOhneWerte;
+    if (kennzahlen.gruppen.isEmpty) {
       return;
     }
 
@@ -389,7 +399,8 @@ class BundesstatistikModel extends ChangeNotifier {
     final faellig =
         zuletzt == null ||
         now.difference(zuletzt) >= _sendInterval ||
-        _zuletztGesendeteAbdeckung(hierarchie.stammId) != kennzahlen.abdeckung;
+        _zuletztGesendeteAbdeckung(hierarchie.stammId) !=
+            kennzahlen.abdeckung.alsGesendet;
     if (!faellig) {
       return;
     }

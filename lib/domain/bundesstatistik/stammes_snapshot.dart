@@ -289,6 +289,23 @@ class StammesKennzahlen {
   bool get istPlausibel =>
       abgedeckteGruppen.any((gruppe) => (gruppe.mitglieder?.gesamt ?? 0) > 0);
 
+  /// Teilnahme ohne Werte: Wer teilen will, aber keine Zahlen hat (etwa als
+  /// Leitung ohne lesbare Rollen), sendet nur die Gruppenstruktur. Das
+  /// berechtigt zum Lesen des Bundesvergleichs, der Stamm zaehlt aber nicht als
+  /// teilnehmend.
+  StammesKennzahlen get alsTeilnahmeOhneWerte => StammesKennzahlen.fromJson(
+    null,
+    abdeckung: StatistikAbdeckung.gruppen(const <int>{}),
+    gruppen: <GruppenKennzahl>[
+      for (final gruppe in gruppen)
+        GruppenKennzahl(
+          gruppenId: gruppe.gruppenId,
+          stufe: gruppe.stufe,
+          abgedeckt: false,
+        ),
+    ],
+  );
+
   /// Stammweite Kennzahlen (`metrics` im Snapshot). Stufenwerte bildet der
   /// Server aus den Gruppen.
   Map<String, Object?> toJson() => <String, Object?>{
