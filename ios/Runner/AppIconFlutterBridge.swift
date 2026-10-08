@@ -3,7 +3,7 @@ import UIKit
 
 /// Registers the com.namiapp/app_icon MethodChannel. Icon names match the
 /// alternate Icon Composer bundles next to NamiAppIcon.icon (for example
-/// "NachtlagerMorgen"); nil restores the primary icon.
+/// "NachthimmelMorgen"); nil restores the primary icon.
 enum AppIconFlutterBridge {
   static let channelName = "com.namiapp/app_icon"
 

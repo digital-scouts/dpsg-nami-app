@@ -116,7 +116,7 @@ const Map<AppPaletteId, AppPalette> appPalettes = {
       success: DPSGColors.darkSuccess,
     ),
   ),
-  AppPaletteId.wald: AppPalette(
+  AppPaletteId.waldsee: AppPalette(
     light: AppPaletteColors(
       primary: Color(0xFF2F5D46),
       onPrimary: Color(0xFFFFFFFF),

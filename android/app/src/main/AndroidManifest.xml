@@ -86,25 +86,25 @@
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
     </activity-alias>
-    <activity-alias android:name=".IconNachtlagerMorgen" android:targetActivity=".MainActivity"
+    <activity-alias android:name=".IconNachthimmelMorgen" android:targetActivity=".MainActivity"
       android:enabled="false" android:exported="true"
-      android:icon="@mipmap/ic_launcher_nachtlager_morgen" android:roundIcon="@mipmap/ic_launcher_nachtlager_morgen">
+      android:icon="@mipmap/ic_launcher_nachthimmel_morgen" android:roundIcon="@mipmap/ic_launcher_nachthimmel_morgen">
       <intent-filter>
         <action android:name="android.intent.action.MAIN" />
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
     </activity-alias>
-    <activity-alias android:name=".IconNachtlagerAbend" android:targetActivity=".MainActivity"
+    <activity-alias android:name=".IconNachthimmelAbend" android:targetActivity=".MainActivity"
       android:enabled="false" android:exported="true"
-      android:icon="@mipmap/ic_launcher_nachtlager_abend" android:roundIcon="@mipmap/ic_launcher_nachtlager_abend">
+      android:icon="@mipmap/ic_launcher_nachthimmel_abend" android:roundIcon="@mipmap/ic_launcher_nachthimmel_abend">
       <intent-filter>
         <action android:name="android.intent.action.MAIN" />
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
     </activity-alias>
-    <activity-alias android:name=".IconNachtlagerNacht" android:targetActivity=".MainActivity"
+    <activity-alias android:name=".IconNachthimmelNacht" android:targetActivity=".MainActivity"
       android:enabled="false" android:exported="true"
-      android:icon="@mipmap/ic_launcher_nachtlager_nacht" android:roundIcon="@mipmap/ic_launcher_nachtlager_nacht">
+      android:icon="@mipmap/ic_launcher_nachthimmel_nacht" android:roundIcon="@mipmap/ic_launcher_nachthimmel_nacht">
       <intent-filter>
         <action android:name="android.intent.action.MAIN" />
         <category android:name="android.intent.category.LAUNCHER" />
@@ -134,25 +134,25 @@
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
     </activity-alias>
-    <activity-alias android:name=".IconKohteSeeMorgen" android:targetActivity=".MainActivity"
+    <activity-alias android:name=".IconWaldseeMorgen" android:targetActivity=".MainActivity"
       android:enabled="false" android:exported="true"
-      android:icon="@mipmap/ic_launcher_kohte_see_morgen" android:roundIcon="@mipmap/ic_launcher_kohte_see_morgen">
+      android:icon="@mipmap/ic_launcher_waldsee_morgen" android:roundIcon="@mipmap/ic_launcher_waldsee_morgen">
       <intent-filter>
         <action android:name="android.intent.action.MAIN" />
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
     </activity-alias>
-    <activity-alias android:name=".IconKohteSeeAbend" android:targetActivity=".MainActivity"
+    <activity-alias android:name=".IconWaldseeAbend" android:targetActivity=".MainActivity"
       android:enabled="false" android:exported="true"
-      android:icon="@mipmap/ic_launcher_kohte_see_abend" android:roundIcon="@mipmap/ic_launcher_kohte_see_abend">
+      android:icon="@mipmap/ic_launcher_waldsee_abend" android:roundIcon="@mipmap/ic_launcher_waldsee_abend">
       <intent-filter>
         <action android:name="android.intent.action.MAIN" />
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
     </activity-alias>
-    <activity-alias android:name=".IconKohteSeeNacht" android:targetActivity=".MainActivity"
+    <activity-alias android:name=".IconWaldseeNacht" android:targetActivity=".MainActivity"
       android:enabled="false" android:exported="true"
-      android:icon="@mipmap/ic_launcher_kohte_see_nacht" android:roundIcon="@mipmap/ic_launcher_kohte_see_nacht">
+      android:icon="@mipmap/ic_launcher_waldsee_nacht" android:roundIcon="@mipmap/ic_launcher_waldsee_nacht">
       <intent-filter>
         <action android:name="android.intent.action.MAIN" />
         <category android:name="android.intent.category.LAUNCHER" />

@@ -81,14 +81,14 @@ void main() {
     final iconService = FakeAppIconService();
     final model = await pumpPage(tester, iconService: iconService);
 
-    await tapKey(tester, 'appearance-palette-wald');
-    expect(model.palette, AppPaletteId.wald);
+    await tapKey(tester, 'appearance-palette-waldsee');
+    expect(model.palette, AppPaletteId.waldsee);
 
     await tapKey(tester, 'appearance-icon-LagerfeuerAbend');
     expect(iconService.applied?.key, 'LagerfeuerAbend');
 
-    await tapKey(tester, 'appearance-background-himmel');
-    expect(model.background, AppearanceBackgroundId.himmel);
+    await tapKey(tester, 'appearance-background-nachthimmel');
+    expect(model.background, AppearanceBackgroundId.nachthimmel);
 
     await tapKey(tester, 'appearance-badge-foerderer-polarstern');
     expect(model.badge, SupporterBadgeId.foerdererPolarstern);
@@ -104,11 +104,11 @@ void main() {
     );
 
     expect(
-      find.byKey(const ValueKey('appearance-icon-NachtlagerAutomatisch')),
+      find.byKey(const ValueKey('appearance-icon-NachthimmelAutomatisch')),
       findsNothing,
     );
     expect(
-      find.byKey(const ValueKey('appearance-icon-NachtlagerMorgen')),
+      find.byKey(const ValueKey('appearance-icon-NachthimmelMorgen')),
       findsOneWidget,
     );
   });

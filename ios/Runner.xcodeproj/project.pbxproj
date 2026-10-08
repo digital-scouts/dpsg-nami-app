@@ -18,18 +18,18 @@
 		74858FB01ED2DC5600515820 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FB11ED2DC5600515821 /* SceneDelegate.swift */; };
 		78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */; };
 		7C90637B2FF2F9B600732BDA /* NamiAppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 7C90637A2FF2F9B600732BDA /* NamiAppIcon.icon */; };
-		FDFB7A0DC09C175158F8BBD6 /* NachtlagerMorgen.icon in Resources */ = {isa = PBXBuildFile; fileRef = 89EE0D63F3614BFAAC30352E /* NachtlagerMorgen.icon */; };
-		6DE019A7A38004FAD060D158 /* NachtlagerAbend.icon in Resources */ = {isa = PBXBuildFile; fileRef = C717F9574DAE2811EA3FD977 /* NachtlagerAbend.icon */; };
-		A90884C4ED5674D85042DCF9 /* NachtlagerNacht.icon in Resources */ = {isa = PBXBuildFile; fileRef = FA6D4DA5C1390818EDC26C3A /* NachtlagerNacht.icon */; };
-		B035B37D2648DC4549BADD2E /* NachtlagerAutomatisch.icon in Resources */ = {isa = PBXBuildFile; fileRef = 1CAEE18CCC81CECA49780B9A /* NachtlagerAutomatisch.icon */; };
+		FDFB7A0DC09C175158F8BBD6 /* NachthimmelMorgen.icon in Resources */ = {isa = PBXBuildFile; fileRef = 89EE0D63F3614BFAAC30352E /* NachthimmelMorgen.icon */; };
+		6DE019A7A38004FAD060D158 /* NachthimmelAbend.icon in Resources */ = {isa = PBXBuildFile; fileRef = C717F9574DAE2811EA3FD977 /* NachthimmelAbend.icon */; };
+		A90884C4ED5674D85042DCF9 /* NachthimmelNacht.icon in Resources */ = {isa = PBXBuildFile; fileRef = FA6D4DA5C1390818EDC26C3A /* NachthimmelNacht.icon */; };
+		B035B37D2648DC4549BADD2E /* NachthimmelAutomatisch.icon in Resources */ = {isa = PBXBuildFile; fileRef = 1CAEE18CCC81CECA49780B9A /* NachthimmelAutomatisch.icon */; };
 		0E24394CF6F7A511502B15B2 /* LagerfeuerMorgen.icon in Resources */ = {isa = PBXBuildFile; fileRef = 748AF684459C6656FB7C44EA /* LagerfeuerMorgen.icon */; };
 		F71F0193041E81134241DD7B /* LagerfeuerAbend.icon in Resources */ = {isa = PBXBuildFile; fileRef = 098D2FD98DFC4D4FE259D6AF /* LagerfeuerAbend.icon */; };
 		D6801619484DAA3850B9DA64 /* LagerfeuerNacht.icon in Resources */ = {isa = PBXBuildFile; fileRef = E2C9F1032E4EDEE0C6D90F60 /* LagerfeuerNacht.icon */; };
 		01E56D168852AC93DC985B8B /* LagerfeuerAutomatisch.icon in Resources */ = {isa = PBXBuildFile; fileRef = E1DA43ACEBCC8CCAD5FF8491 /* LagerfeuerAutomatisch.icon */; };
-		7A257A948E89750C32C5B585 /* KohteSeeMorgen.icon in Resources */ = {isa = PBXBuildFile; fileRef = 54E3C78D0A75B7D594B3E85C /* KohteSeeMorgen.icon */; };
-		03D0A2095AA466A3F4D81AFC /* KohteSeeAbend.icon in Resources */ = {isa = PBXBuildFile; fileRef = 3AEA6287FE3E30652FFFBF4D /* KohteSeeAbend.icon */; };
-		1712CD69D13433B8F42B7263 /* KohteSeeNacht.icon in Resources */ = {isa = PBXBuildFile; fileRef = 72A975EEC38B37FC1F737C0C /* KohteSeeNacht.icon */; };
-		AA9A917ECFC8B1B5FA9A6EA7 /* KohteSeeAutomatisch.icon in Resources */ = {isa = PBXBuildFile; fileRef = BC39F439527E6E0166F3B261 /* KohteSeeAutomatisch.icon */; };
+		7A257A948E89750C32C5B585 /* WaldseeMorgen.icon in Resources */ = {isa = PBXBuildFile; fileRef = 54E3C78D0A75B7D594B3E85C /* WaldseeMorgen.icon */; };
+		03D0A2095AA466A3F4D81AFC /* WaldseeAbend.icon in Resources */ = {isa = PBXBuildFile; fileRef = 3AEA6287FE3E30652FFFBF4D /* WaldseeAbend.icon */; };
+		1712CD69D13433B8F42B7263 /* WaldseeNacht.icon in Resources */ = {isa = PBXBuildFile; fileRef = 72A975EEC38B37FC1F737C0C /* WaldseeNacht.icon */; };
+		AA9A917ECFC8B1B5FA9A6EA7 /* WaldseeAutomatisch.icon in Resources */ = {isa = PBXBuildFile; fileRef = BC39F439527E6E0166F3B261 /* WaldseeAutomatisch.icon */; };
 		92D27815668E6D7A7F6DED67 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CCF33E99BE5A2A6057AAC72C /* Pods_Runner.framework */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
@@ -74,18 +74,18 @@
 		78E0A7A72DC9AD7400C4905E /* FlutterGeneratedPluginSwiftPackage */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = FlutterGeneratedPluginSwiftPackage; path = Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
 		7C90637A2FF2F9B600732BDA /* NamiAppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = NamiAppIcon.icon; sourceTree = "<group>"; };
-		89EE0D63F3614BFAAC30352E /* NachtlagerMorgen.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = NachtlagerMorgen.icon; sourceTree = "<group>"; };
-		C717F9574DAE2811EA3FD977 /* NachtlagerAbend.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = NachtlagerAbend.icon; sourceTree = "<group>"; };
-		FA6D4DA5C1390818EDC26C3A /* NachtlagerNacht.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = NachtlagerNacht.icon; sourceTree = "<group>"; };
-		1CAEE18CCC81CECA49780B9A /* NachtlagerAutomatisch.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = NachtlagerAutomatisch.icon; sourceTree = "<group>"; };
+		89EE0D63F3614BFAAC30352E /* NachthimmelMorgen.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = NachthimmelMorgen.icon; sourceTree = "<group>"; };
+		C717F9574DAE2811EA3FD977 /* NachthimmelAbend.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = NachthimmelAbend.icon; sourceTree = "<group>"; };
+		FA6D4DA5C1390818EDC26C3A /* NachthimmelNacht.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = NachthimmelNacht.icon; sourceTree = "<group>"; };
+		1CAEE18CCC81CECA49780B9A /* NachthimmelAutomatisch.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = NachthimmelAutomatisch.icon; sourceTree = "<group>"; };
 		748AF684459C6656FB7C44EA /* LagerfeuerMorgen.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = LagerfeuerMorgen.icon; sourceTree = "<group>"; };
 		098D2FD98DFC4D4FE259D6AF /* LagerfeuerAbend.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = LagerfeuerAbend.icon; sourceTree = "<group>"; };
 		E2C9F1032E4EDEE0C6D90F60 /* LagerfeuerNacht.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = LagerfeuerNacht.icon; sourceTree = "<group>"; };
 		E1DA43ACEBCC8CCAD5FF8491 /* LagerfeuerAutomatisch.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = LagerfeuerAutomatisch.icon; sourceTree = "<group>"; };
-		54E3C78D0A75B7D594B3E85C /* KohteSeeMorgen.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = KohteSeeMorgen.icon; sourceTree = "<group>"; };
-		3AEA6287FE3E30652FFFBF4D /* KohteSeeAbend.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = KohteSeeAbend.icon; sourceTree = "<group>"; };
-		72A975EEC38B37FC1F737C0C /* KohteSeeNacht.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = KohteSeeNacht.icon; sourceTree = "<group>"; };
-		BC39F439527E6E0166F3B261 /* KohteSeeAutomatisch.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = KohteSeeAutomatisch.icon; sourceTree = "<group>"; };
+		54E3C78D0A75B7D594B3E85C /* WaldseeMorgen.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = WaldseeMorgen.icon; sourceTree = "<group>"; };
+		3AEA6287FE3E30652FFFBF4D /* WaldseeAbend.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = WaldseeAbend.icon; sourceTree = "<group>"; };
+		72A975EEC38B37FC1F737C0C /* WaldseeNacht.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = WaldseeNacht.icon; sourceTree = "<group>"; };
+		BC39F439527E6E0166F3B261 /* WaldseeAutomatisch.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = WaldseeAutomatisch.icon; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Flutter/Debug.xcconfig; sourceTree = "<group>"; };
 		9740EEB31CF90195004384FC /* Generated.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Generated.xcconfig; path = Flutter/Generated.xcconfig; sourceTree = "<group>"; };
 		97C146EE1CF9000F007C117D /* Runner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Runner.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -170,18 +170,18 @@
 				4C8DE28F4EF380A612A514FF /* NamiAiStreamHandler.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 				7C90637A2FF2F9B600732BDA /* NamiAppIcon.icon */,
-				89EE0D63F3614BFAAC30352E /* NachtlagerMorgen.icon */,
-				C717F9574DAE2811EA3FD977 /* NachtlagerAbend.icon */,
-				FA6D4DA5C1390818EDC26C3A /* NachtlagerNacht.icon */,
-				1CAEE18CCC81CECA49780B9A /* NachtlagerAutomatisch.icon */,
+				89EE0D63F3614BFAAC30352E /* NachthimmelMorgen.icon */,
+				C717F9574DAE2811EA3FD977 /* NachthimmelAbend.icon */,
+				FA6D4DA5C1390818EDC26C3A /* NachthimmelNacht.icon */,
+				1CAEE18CCC81CECA49780B9A /* NachthimmelAutomatisch.icon */,
 				748AF684459C6656FB7C44EA /* LagerfeuerMorgen.icon */,
 				098D2FD98DFC4D4FE259D6AF /* LagerfeuerAbend.icon */,
 				E2C9F1032E4EDEE0C6D90F60 /* LagerfeuerNacht.icon */,
 				E1DA43ACEBCC8CCAD5FF8491 /* LagerfeuerAutomatisch.icon */,
-				54E3C78D0A75B7D594B3E85C /* KohteSeeMorgen.icon */,
-				3AEA6287FE3E30652FFFBF4D /* KohteSeeAbend.icon */,
-				72A975EEC38B37FC1F737C0C /* KohteSeeNacht.icon */,
-				BC39F439527E6E0166F3B261 /* KohteSeeAutomatisch.icon */,
+				54E3C78D0A75B7D594B3E85C /* WaldseeMorgen.icon */,
+				3AEA6287FE3E30652FFFBF4D /* WaldseeAbend.icon */,
+				72A975EEC38B37FC1F737C0C /* WaldseeNacht.icon */,
+				BC39F439527E6E0166F3B261 /* WaldseeAutomatisch.icon */,
 			);
 			path = Runner;
 			sourceTree = "<group>";
@@ -310,18 +310,18 @@
 				97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */,
 				97C146FC1CF9000F007C117D /* Main.storyboard in Resources */,
 				7C90637B2FF2F9B600732BDA /* NamiAppIcon.icon in Resources */,
-				FDFB7A0DC09C175158F8BBD6 /* NachtlagerMorgen.icon in Resources */,
-				6DE019A7A38004FAD060D158 /* NachtlagerAbend.icon in Resources */,
-				A90884C4ED5674D85042DCF9 /* NachtlagerNacht.icon in Resources */,
-				B035B37D2648DC4549BADD2E /* NachtlagerAutomatisch.icon in Resources */,
+				FDFB7A0DC09C175158F8BBD6 /* NachthimmelMorgen.icon in Resources */,
+				6DE019A7A38004FAD060D158 /* NachthimmelAbend.icon in Resources */,
+				A90884C4ED5674D85042DCF9 /* NachthimmelNacht.icon in Resources */,
+				B035B37D2648DC4549BADD2E /* NachthimmelAutomatisch.icon in Resources */,
 				0E24394CF6F7A511502B15B2 /* LagerfeuerMorgen.icon in Resources */,
 				F71F0193041E81134241DD7B /* LagerfeuerAbend.icon in Resources */,
 				D6801619484DAA3850B9DA64 /* LagerfeuerNacht.icon in Resources */,
 				01E56D168852AC93DC985B8B /* LagerfeuerAutomatisch.icon in Resources */,
-				7A257A948E89750C32C5B585 /* KohteSeeMorgen.icon in Resources */,
-				03D0A2095AA466A3F4D81AFC /* KohteSeeAbend.icon in Resources */,
-				1712CD69D13433B8F42B7263 /* KohteSeeNacht.icon in Resources */,
-				AA9A917ECFC8B1B5FA9A6EA7 /* KohteSeeAutomatisch.icon in Resources */,
+				7A257A948E89750C32C5B585 /* WaldseeMorgen.icon in Resources */,
+				03D0A2095AA466A3F4D81AFC /* WaldseeAbend.icon in Resources */,
+				1712CD69D13433B8F42B7263 /* WaldseeNacht.icon in Resources */,
+				AA9A917ECFC8B1B5FA9A6EA7 /* WaldseeAutomatisch.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -509,7 +509,7 @@
 			baseConfigurationReference = 7AFA3C8E1D35360C0083082E /* Release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = NamiAppIcon;
-				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "NachtlagerMorgen NachtlagerAbend NachtlagerNacht NachtlagerAutomatisch LagerfeuerMorgen LagerfeuerAbend LagerfeuerNacht LagerfeuerAutomatisch KohteSeeMorgen KohteSeeAbend KohteSeeNacht KohteSeeAutomatisch";
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "NachthimmelMorgen NachthimmelAbend NachthimmelNacht NachthimmelAutomatisch LagerfeuerMorgen LagerfeuerAbend LagerfeuerNacht LagerfeuerAutomatisch WaldseeMorgen WaldseeAbend WaldseeNacht WaldseeAutomatisch";
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
@@ -695,7 +695,7 @@
 			baseConfigurationReference = 9740EEB21CF90195004384FC /* Debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = NamiAppIcon;
-				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "NachtlagerMorgen NachtlagerAbend NachtlagerNacht NachtlagerAutomatisch LagerfeuerMorgen LagerfeuerAbend LagerfeuerNacht LagerfeuerAutomatisch KohteSeeMorgen KohteSeeAbend KohteSeeNacht KohteSeeAutomatisch";
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "NachthimmelMorgen NachthimmelAbend NachthimmelNacht NachthimmelAutomatisch LagerfeuerMorgen LagerfeuerAbend LagerfeuerNacht LagerfeuerAutomatisch WaldseeMorgen WaldseeAbend WaldseeNacht WaldseeAutomatisch";
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
@@ -724,7 +724,7 @@
 			baseConfigurationReference = 7AFA3C8E1D35360C0083082E /* Release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = NamiAppIcon;
-				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "NachtlagerMorgen NachtlagerAbend NachtlagerNacht NachtlagerAutomatisch LagerfeuerMorgen LagerfeuerAbend LagerfeuerNacht LagerfeuerAutomatisch KohteSeeMorgen KohteSeeAbend KohteSeeNacht KohteSeeAutomatisch";
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "NachthimmelMorgen NachthimmelAbend NachthimmelNacht NachthimmelAutomatisch LagerfeuerMorgen LagerfeuerAbend LagerfeuerNacht LagerfeuerAutomatisch WaldseeMorgen WaldseeAbend WaldseeNacht WaldseeAutomatisch";
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;

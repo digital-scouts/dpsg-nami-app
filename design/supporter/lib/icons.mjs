@@ -1,4 +1,4 @@
-// App-Icon-Dioramen: 8 Motive x 3 Tageszeiten.
+// App-Icon-Dioramen: 3 Motive (je ein Supporter-Paket) x 3 Tageszeiten.
 import {
   rng,
   r1,
@@ -7,6 +7,8 @@ import {
   pine,
   pineRow,
   kohte,
+  milkyWay,
+  milkyWayFilterDef,
   fire,
   fireGlowDef,
   stars,
@@ -27,6 +29,8 @@ export const TIMES = {
     light: '#ffe0b3',
     celestial: 'sun',
     celestialColor: '#fff1d6',
+    celestialScale: 0.55,
+    haloScale: 0.3,
     starCount: 0,
     mist: '#f7eee6',
     mistOpacity: 0.55,
@@ -47,6 +51,8 @@ export const TIMES = {
     light: '#ffb45c',
     celestial: 'sun',
     celestialColor: '#ffd38f',
+    celestialScale: 0.55,
+    haloScale: 0.3,
     starCount: 22,
     mist: '#e9a386',
     mistOpacity: 0.22,
@@ -67,6 +73,8 @@ export const TIMES = {
     light: '#ffbd5a',
     celestial: 'moon',
     celestialColor: '#eef1f4',
+    celestialScale: 0.7,
+    haloScale: 0.5,
     starCount: 95,
     mist: '#a3b9d8',
     mistOpacity: 0.12,
@@ -78,16 +86,17 @@ export const TIMES = {
 };
 
 export const MOTIFS = [
-  { id: 'nachtlager', label: 'Nachtlager' },
+  { id: 'nachthimmel', label: 'Nachthimmel' },
   { id: 'lagerfeuer', label: 'Lagerfeuer' },
-  { id: 'kohte-see', label: 'Kohte am See' },
+  { id: 'waldsee', label: 'Waldsee' },
 ];
 
-function defs(T, extra = '') {
+export function defs(T, extra = '') {
   return `<defs>
 <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${T.skyTop}"/><stop offset="1" stop-color="${T.skyBottom}"/></linearGradient>
 <linearGradient id="water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${T.water[0]}"/><stop offset="1" stop-color="${T.water[1]}"/></linearGradient>
 ${fireGlowDef(T.light)}
+${milkyWayFilterDef}
 <radialGradient id="doorGlow"><stop offset="0" stop-color="${T.light}" stop-opacity="0.5"/><stop offset="1" stop-color="${T.light}" stop-opacity="0"/></radialGradient>
 <filter id="blur" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="18"/></filter>
 <filter id="blurS" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>
@@ -95,23 +104,74 @@ ${extra}
 </defs>`;
 }
 
-const sky = () => `<rect width="1024" height="1024" fill="url(#sky)"/>`;
+export const sky = () => `<rect width="1024" height="1024" fill="url(#sky)"/>`;
 
-function skyObjects(T, cx, cy, r = 62, seed = 3) {
+// `celestialScale` und `haloScale` in T nehmen Sonne und Mond zurueck.
+export function skyObjects(T, cx, cy, r = 62, seed = 3) {
   const st = T.starCount ? stars({ count: T.starCount, seed, yMax: 620, opacity: T.starCount > 50 ? 1 : 0.6 }) : '';
-  return st + celestial(T.celestial, cx, cy, r, T.celestialColor);
+  return st + celestial(T.celestial, cx, cy, r * (T.celestialScale ?? 1), T.celestialColor, { halo: T.haloScale ?? 1 });
 }
 
 // Trennmarke zwischen Hintergrund, Mittelgrund und Vordergrund (fuer Liquid-Glass-Ebenen).
-const LAYER = '<!--layer-->';
+export const LAYER = '<!--layer-->';
 
 // ---------------------------------------------------------------- Motive
 
-function nachtlager(T, key) {
+function cloud(x, y, s, color, o) {
+  return `<g transform="translate(${x} ${y}) scale(${s})" opacity="${o}"><ellipse cx="0" cy="0" rx="110" ry="30" fill="${color}"/><ellipse cx="-44" cy="-20" rx="52" ry="36" fill="${color}"/><ellipse cx="30" cy="-30" rx="62" ry="42" fill="${color}"/></g>`;
+}
+
+function birds(x, y, color) {
+  return [
+    [0, 0, 1],
+    [46, 18, 0.8],
+    [-38, 24, 0.7],
+  ]
+    .map(([dx, dy, s]) => {
+      const bx = x + dx;
+      const by = y + dy;
+      const w = 20 * s;
+      return `<path d="M${r1(bx - w)} ${r1(by)} Q${r1(bx - w / 2)} ${r1(by - w * 0.55)} ${r1(bx)} ${r1(by)} Q${r1(bx + w / 2)} ${r1(by - w * 0.55)} ${r1(bx + w)} ${r1(by)}" stroke="${color}" stroke-width="${r1(4 * s)}" fill="none" stroke-linecap="round"/>`;
+    })
+    .join('');
+}
+
+function sunRays(T, cx, cy, r) {
+  const rr = r * (T.celestialScale ?? 1);
+  return Array.from({ length: 8 }, (_, i) => {
+    const a = (i / 8) * 360 + 10;
+    return `<path d="M${r1(-rr * 0.18)} ${r1(-rr * 1.3)} L${r1(rr * 0.18)} ${r1(-rr * 1.3)} L${r1(rr)} ${r1(-rr * 4.6)} L${r1(-rr)} ${r1(-rr * 4.6)} Z" fill="${T.celestialColor}" opacity="${r1(0.16 * (T.haloScale ?? 1) * 100) / 100}" transform="translate(${cx} ${cy}) rotate(${a})"/>`;
+  }).join('');
+}
+
+// Himmel wie in der Hintergrund-Animation Nachthimmel: morgens Wolken und
+// Sonnenstrahlen, abends die Milchstrasse angedeutet, nachts voll und ohne Mond.
+function nachthimmelSky(T, key, { band, sun, r = 58 }) {
+  const sunDisc = () => celestial('sun', sun[0], sun[1], r * T.celestialScale, T.celestialColor, { halo: T.haloScale });
+  if (key === 'morgen') {
+    return sunRays(T, sun[0], sun[1], r) + sunDisc() + cloud(260, 300, 1.2, '#ffffff', 0.75) + cloud(620, 410, 0.8, '#ffffff', 0.6) + birds(420, 200, '#4d5a66');
+  }
+  const night = key === 'nacht';
+  return (
+    stars({ count: night ? 70 : 18, seed: 23, yMax: 620, opacity: night ? 0.9 : 0.5 }) +
+    milkyWay({
+      ...band,
+      count: night ? 320 : 90,
+      seed: 51,
+      color: '#eef1f8',
+      haze: night ? '#b9c3ef' : '#f2c9b8',
+      hazeOpacity: night ? 0.26 : 0.08,
+      starOpacity: night ? 1 : 0.45,
+    }) +
+    (night ? '' : sunDisc())
+  );
+}
+
+function nachthimmel(T, key) {
   const lit = key !== 'morgen';
   return (
     sky() +
-    skyObjects(T, 740, 250, 58, 11) +
+    nachthimmelSky(T, key, { band: { x0: -40, y0: 40, x1: 1064, y1: 470, width: 70 }, sun: key === 'abend' ? [760, 520] : [760, 230] }) +
     ridge({ y: 560, amp: 40, seed: 2, fill: T.far }) +
     LAYER +
     pineRow({ from: -20, to: 1060, y: 640, hMin: 70, hMax: 130, seed: 5, fill: T.mid }) +
@@ -121,7 +181,6 @@ function nachtlager(T, key) {
     LAYER +
     (lit ? `<ellipse cx="512" cy="815" rx="260" ry="46" fill="url(#doorGlow)"/>` : '') +
     kohte(500, 812, 350, { cloth: T.cloth, light: T.light, lit }) +
-    (lit ? fire(735, 820, 0.22, { glow: true }) : '') +
     ridge({ y: 880, amp: 16, seed: 21, fill: T.ground }) +
     pine(70, 900, 420, T.ground) +
     pine(960, 910, 480, T.ground) +
@@ -163,15 +222,18 @@ function lagerfeuer(T, key) {
   );
 }
 
-function kohteSee(T, key) {
-  const sun = key === 'nacht' ? [700, 300] : key === 'abend' ? [640, 590] : [660, 420];
+// Tagsueber bleibt die Sonne wie bisher; nachts steht der Mond tief am Berg
+// halb hinter der Bergflanke rechts vom Gipfel.
+function waldsee(T, key) {
+  if (key !== 'nacht') T = { ...T, celestialScale: 1, haloScale: 1 };
+  const sun = key === 'nacht' ? (T.waldseeMoon ?? [745, 460]) : key === 'abend' ? [640, 590] : [660, 420];
   const mountains = ridge({ y: 470, amp: 90, seed: 31, steps: 9, fill: T.far, jag: true, bottom: 640 });
   const rand = rng(8);
   let glints = '';
   for (let i = 0; i < 12; i++) {
     const y = 660 + i * 26;
     const w = 90 - i * 4 + rand() * 30;
-    glints += `<rect x="${r1(sun[0] - w / 2 + (rand() - 0.5) * 30)}" y="${y}" width="${r1(w)}" height="6" rx="3" fill="${T.celestialColor}" opacity="${r1(0.5 - i * 0.03)}"/>`;
+    glints += `<rect x="${r1(sun[0] - w / 2 + (rand() - 0.5) * 30)}" y="${y}" width="${r1(w)}" height="6" rx="3" fill="${T.celestialColor}" opacity="${r1((0.5 - i * 0.03) * (0.4 + 0.6 * (T.haloScale ?? 1)))}"/>`;
   }
   return (
     sky() +
@@ -194,18 +256,25 @@ function kohteSee(T, key) {
 }
 
 const SCENES = {
-  nachtlager,
+  nachthimmel,
   lagerfeuer,
-  'kohte-see': kohteSee,
+  waldsee,
 };
 
 const svg = (title, body) =>
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024"><title>${title}</title>${body}</svg>\n`;
 
 export function buildIcon(motifId, timeKey) {
-  const T = TIMES[timeKey];
-  return svg(`${motifId} ${timeKey}`, defs(T) + SCENES[motifId](T, timeKey).replaceAll(LAYER, ''));
+  return buildIconFrom(SCENES[motifId], motifId, timeKey);
 }
+
+// Fuer Entwuerfe: beliebige Szene, Tageszeit-Werte ueberschreibbar.
+export function buildIconFrom(scene, title, timeKey, overrides = {}, extraDefs = '') {
+  const T = { ...TIMES[timeKey], ...overrides };
+  return svg(`${title} ${timeKey}`, defs(T, extraDefs) + scene(T, timeKey).replaceAll(LAYER, ''));
+}
+
+export { SCENES };
 
 // Drei Ebenen (hinten, mitte, vorne) mit transparentem Rest, fuer Icon Composer.
 export const LAYER_NAMES = ['hinten', 'mitte', 'vorne'];

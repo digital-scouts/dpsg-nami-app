@@ -30,8 +30,8 @@
     }
   },
   {
-    "id": "wald",
-    "label": "Wald",
+    "id": "waldsee",
+    "label": "Waldsee",
     "light": {
       "primary": "#2f5d46",
       "onPrimary": "#ffffff",

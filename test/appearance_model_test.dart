@@ -30,22 +30,22 @@ void main() {
 
   test('speichert Auswahl und laedt sie wieder', () async {
     final model = buildModel();
-    await model.setPalette(AppPaletteId.wald);
-    await model.setBackground(AppearanceBackgroundId.himmel);
+    await model.setPalette(AppPaletteId.waldsee);
+    await model.setBackground(AppearanceBackgroundId.nachthimmel);
     await model.setBadge(SupporterBadgeId.kompassPfadfinder);
     await model.setAppIcon(
-      const AppIconChoice(AppIconPackage.kohteSee, AppIconVariant.abend),
+      const AppIconChoice(AppIconPackage.waldsee, AppIconVariant.abend),
     );
 
     final reloaded = buildModel();
     await reloaded.load();
 
-    expect(reloaded.palette, AppPaletteId.wald);
-    expect(reloaded.background, AppearanceBackgroundId.himmel);
+    expect(reloaded.palette, AppPaletteId.waldsee);
+    expect(reloaded.background, AppearanceBackgroundId.nachthimmel);
     expect(reloaded.badge, SupporterBadgeId.kompassPfadfinder);
     expect(
       reloaded.appIcon,
-      const AppIconChoice(AppIconPackage.kohteSee, AppIconVariant.abend),
+      const AppIconChoice(AppIconPackage.waldsee, AppIconVariant.abend),
     );
     expect(reloaded.iconChangeSupported, isTrue);
   });
@@ -53,14 +53,14 @@ void main() {
   test('wendet das gewaehlte App-Icon an', () async {
     final model = buildModel();
     const choice = AppIconChoice(
-      AppIconPackage.nachtlager,
+      AppIconPackage.nachthimmel,
       AppIconVariant.automatisch,
     );
 
     await model.setAppIcon(choice);
 
     expect(iconService.applied, choice);
-    expect(iconService.applied?.key, 'NachtlagerAutomatisch');
+    expect(iconService.applied?.key, 'NachthimmelAutomatisch');
   });
 
   test('Automatisch faellt ohne Systemunterstuetzung auf Standard', () async {
@@ -68,7 +68,7 @@ void main() {
 
     await model.setAppIcon(
       const AppIconChoice(
-        AppIconPackage.nachtlager,
+        AppIconPackage.nachthimmel,
         AppIconVariant.automatisch,
       ),
     );
@@ -82,7 +82,7 @@ void main() {
     repository = InMemoryAppearanceSettingsRepository(
       const AppearanceSettings(
         palette: AppPaletteId.nachthimmel,
-        background: AppearanceBackgroundId.wald,
+        background: AppearanceBackgroundId.waldsee,
         badge: SupporterBadgeId.foerdererPolarstern,
       ),
     );
@@ -98,30 +98,30 @@ void main() {
     model.updateAccess(const UnlockedSupportAccess());
 
     expect(model.palette, AppPaletteId.nachthimmel);
-    expect(model.background, AppearanceBackgroundId.wald);
+    expect(model.background, AppearanceBackgroundId.waldsee);
     expect(model.badge, SupporterBadgeId.foerdererPolarstern);
   });
 
   test('ein Paket schaltet sein Design und die Kompass-Badges frei', () async {
     repository = InMemoryAppearanceSettingsRepository(
       const AppearanceSettings(
-        palette: AppPaletteId.wald,
-        background: AppearanceBackgroundId.wald,
+        palette: AppPaletteId.waldsee,
+        background: AppearanceBackgroundId.waldsee,
         badge: SupporterBadgeId.kompassRover,
-        appIcon: AppIconChoice(AppIconPackage.kohteSee, AppIconVariant.nacht),
+        appIcon: AppIconChoice(AppIconPackage.waldsee, AppIconVariant.nacht),
       ),
     );
     final model = buildModel(
-      access: const SchalterSupportAccess(SupporterTestZugang.wald),
+      access: const SchalterSupportAccess(SupporterTestZugang.waldsee),
     );
     await model.load();
 
-    expect(model.palette, AppPaletteId.wald);
-    expect(model.background, AppearanceBackgroundId.wald);
+    expect(model.palette, AppPaletteId.waldsee);
+    expect(model.background, AppearanceBackgroundId.waldsee);
     expect(model.badge, SupporterBadgeId.kompassRover);
     expect(
       model.appIcon,
-      const AppIconChoice(AppIconPackage.kohteSee, AppIconVariant.nacht),
+      const AppIconChoice(AppIconPackage.waldsee, AppIconVariant.nacht),
     );
 
     model.updateAccess(

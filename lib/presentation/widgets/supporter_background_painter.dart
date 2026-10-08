@@ -53,10 +53,10 @@ class SupporterBackgroundPainter extends CustomPainter {
     switch (background) {
       case AppearanceBackgroundId.lagerfeuer:
         dark ? scene.lagerfeuerNacht() : scene.lagerfeuerTag();
-      case AppearanceBackgroundId.himmel:
-        dark ? scene.himmelNacht() : scene.himmelTag();
-      case AppearanceBackgroundId.wald:
-        dark ? scene.waldNacht() : scene.waldTag();
+      case AppearanceBackgroundId.nachthimmel:
+        dark ? scene.nachthimmelNacht() : scene.nachthimmelTag();
+      case AppearanceBackgroundId.waldsee:
+        dark ? scene.waldseeNacht() : scene.waldseeTag();
     }
     canvas.restore();
   }
@@ -103,7 +103,7 @@ class _Colors {
   static const lfNightLogLit = Color(0xFF6B4128);
   static const lfNightStone = Color(0xFF3B2A22);
   static const lfNightStoneLit = Color(0xFF7A4A30);
-  // Himmel, Tag: tiefe Sonne und Lager in der Weite
+  // Nachthimmel, Tag: tiefe Sonne und Lager in der Weite
   static const hDayTop = Color(0xFFB3CDE6);
   static const hDayBottom = Color(0xFFF7E6CF);
   static const hDayHill = Color(0xFFBCCBC2);
@@ -114,7 +114,7 @@ class _Colors {
   static const hDaySunGlow = Color(0xFFFFF4DC);
   static const hDayCamp = Color(0xFF6F7C84);
   static const hDaySmoke = Color(0xFF9AA6AD);
-  // Himmel, Nacht: Milchstrasse mit Lager
+  // Nachthimmel, Nacht: Milchstrasse mit Lager
   static const hNightTop = Color(0xFF0B1428);
   static const hNightBottom = Color(0xFF1D2F50);
   static const hNightHill = Color(0xFF15223B);
@@ -123,18 +123,20 @@ class _Colors {
   static const hNightHaze = Color(0xFFB9C3EF);
   static const hNightCamp = Color(0xFF070B16);
   static const campLight = Color(0xFFFFB45C);
-  // Wald, Tag: Waldsee mit Libellen
+  // Waldsee, Tag: See mit Libellen
   static const wDayTop = Color(0xFFE3EBE2);
   static const wDayBottom = Color(0xFFCFDCCD);
   static const wDayFar = Color(0xFFB9CBB8);
   static const wDayNear = Color(0xFF85A086);
   static const wDayFly = Color(0xFF4E6660);
   static const wDayWater = Color(0xFFC9DCD6);
-  // Wald, Nacht: Mondlicht am See
+  static const wDayKohte = Color(0xFF4A4943);
+  // Waldsee, Nacht: Mondlicht am See
   static const wNightTop = Color(0xFF0D1612);
   static const wNightBottom = Color(0xFF16241D);
   static const wNightFar = Color(0xFF1B2C23);
   static const wNightNear = Color(0xFF101C16);
+  static const wNightKohte = Color(0xFF070A08);
   static const wNightFog = Color(0xFF6D8A7A);
   static const wNightBug = Color(0xFFF4E79A);
   static const wNightWater = Color(0xFF0E1A1F);
@@ -503,6 +505,42 @@ class _Scene {
         ..close(),
       _fill(Color.lerp(_Colors.campLight, _Colors.white, 0.45)!, 0.75),
     );
+  }
+
+  /// Kohte auf einer Uferzunge links am Waldsee mit Spiegelung im Wasser,
+  /// nachts mit leuchtendem Eingang.
+  void _seeKohte({
+    required Color cloth,
+    required Color shore,
+    required bool lit,
+  }) {
+    const x = 380.0;
+    const by = 352.0;
+    const h = 105.0;
+    canvas.save();
+    canvas.translate(0, 2 * (by + 6));
+    canvas.scale(1, -1);
+    canvas.saveLayer(
+      null,
+      Paint()..color = _Colors.white.withValues(alpha: lit ? 0.28 : 0.18),
+    );
+    _kohte(x, by, h, cloth: cloth, lit: lit);
+    canvas.restore();
+    canvas.restore();
+    _path(
+      'waldsee.ufer',
+      () => Path()
+        ..moveTo(-60, 362)
+        ..quadraticBezierTo(220, 332, 490, 350)
+        ..quadraticBezierTo(510, 352, 520, 358)
+        ..quadraticBezierTo(260, 356, -60, 390)
+        ..close(),
+      shore,
+    );
+    if (lit) {
+      _halo(Offset(x, by - h * 0.2), h * 0.95, _Colors.campLight, 0.35);
+    }
+    _kohte(x, by, h, cloth: cloth, lit: lit);
   }
 
   /// Kleines Lager auf fernem Huegel, Kohten dicht beisammen.
@@ -1106,10 +1144,10 @@ class _Scene {
     _fire(600, 366, 1.35, _FireColors.night);
   }
 
-  // --------------------------------------------------------------- Himmel
+  // --------------------------------------------------------- Nachthimmel
 
   /// Tag: tiefe Sonne, Wolken, Vögel und ein Lager in der Weite.
-  void himmelTag() {
+  void nachthimmelTag() {
     _sky(_Colors.hDayTop, _Colors.hDayBottom);
     const sun = Offset(900, 200);
     canvas.save();
@@ -1148,7 +1186,7 @@ class _Scene {
 
   /// Nacht: Milchstrasse, Sternschnuppen und dasselbe Lager, eine Kohte
   /// leuchtet.
-  void himmelNacht() {
+  void nachthimmelNacht() {
     _sky(_Colors.hNightTop, _Colors.hNightBottom);
     final haze = _lerp(0.1, 0.2, _alternate(t, 14));
     canvas.save();
@@ -1177,10 +1215,10 @@ class _Scene {
     _skyline('hNight', _Colors.hNightHill, _Colors.hNightTrees);
   }
 
-  // ----------------------------------------------------------------- Wald
+  // ------------------------------------------------------------- Waldsee
 
-  /// Tag: Waldsee mit Libellen und einzelnen Wasserkreisen.
-  void waldTag() {
+  /// Tag: Waldsee mit Kohte am Ufer, Libellen und einzelnen Wasserkreisen.
+  void waldseeTag() {
     _sky(_Colors.wDayTop, _Colors.wDayBottom);
     _farPines('wDay', _Colors.wDayFar);
     canvas.drawRect(
@@ -1193,14 +1231,15 @@ class _Scene {
       shineColor: _Colors.white,
       between: () => _ripples(5, 61, 338, 380, _Colors.white, 20),
     );
+    _seeKohte(cloth: _Colors.wDayKohte, shore: _Colors.wDayNear, lit: false);
     _dragonfly(y: 300, dir: 1, duration: 30, delay: -4);
     _dragonfly(y: 270, dir: -1, duration: 38, delay: -20);
     _nearPines('wDay', _Colors.wDayNear);
   }
 
-  /// Nacht: Mondlicht über dem Wald, einige Sterne und ein See mit
-  /// Mondspiegelung.
-  void waldNacht() {
+  /// Nacht: Mondlicht über dem Wald, einige Sterne, ein See mit
+  /// Mondspiegelung und eine leuchtende Kohte am Ufer.
+  void waldseeNacht() {
     _sky(_Colors.wNightTop, _Colors.wNightBottom);
     _twinkleStars(28, 91, _Colors.wNightMoonGlow, yMax: 170);
     for (var band = 1; (band - 1) * 300 < extraTop; band++) {
@@ -1239,6 +1278,7 @@ class _Scene {
         _ripples(3, 81, 340, 380, _Colors.wNightRipple, 21);
       },
     );
+    _seeKohte(cloth: _Colors.wNightKohte, shore: _Colors.wNightNear, lit: true);
     _nearPines('wNight', _Colors.wNightNear);
     _fireflies(10, 71, 0.6);
   }

@@ -3,9 +3,10 @@ import '../appearance/support_access.dart';
 
 /// Store-Produkte fuer Supporter-Kaeufe. Die IDs sind in App Store Connect
 /// und der Play Console identisch angelegt und duerfen sich nie aendern:
-/// Apple vergibt eine einmal genutzte Produkt-ID nicht erneut.
+/// Apple vergibt eine einmal genutzte Produkt-ID nicht erneut. Deshalb heisst
+/// das Paket Waldsee im Store weiter `supporter_paket_wald`.
 enum SupporterProdukt {
-  paketWald('supporter_paket_wald', paket: SupporterPaket.wald),
+  paketWaldsee('supporter_paket_wald', paket: SupporterPaket.waldsee),
   paketLagerfeuer(
     'supporter_paket_lagerfeuer',
     paket: SupporterPaket.lagerfeuer,

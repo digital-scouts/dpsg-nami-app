@@ -22,9 +22,9 @@ Alles für den Stammesalltag ist kostenlos. Wer die Entwicklung unterstützt, be
 
 Es gibt drei Design-Pakete:
 
-- **Wald:** Farbpalette Wald, Hintergrund Wald, App-Icons Kohte am See
+- **Waldsee:** Farbpalette, Hintergrund und App-Icons Waldsee
 - **Lagerfeuer:** Farbpalette, Hintergrund und App-Icons Lagerfeuer
-- **Nachthimmel:** Farbpalette Nachthimmel, Hintergrund Himmel, App-Icons Nachtlager
+- **Nachthimmel:** Farbpalette, Hintergrund und App-Icons Nachthimmel
 
 Gesperrte Optionen zeigen ein Schloss <i class="ref">1</i> <i class="ref">2</i>. Funktionen, die du für die Arbeit im Stamm brauchst, sperren die Extras nie. Endet das Förderer-Abo, springen Farbpalette, Hintergrund und App-Icon auf den Standard zurück, sofern du das passende Design-Paket nicht gekauft hast.
 
