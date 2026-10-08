@@ -10,8 +10,9 @@ import 'package:nami/domain/taetigkeit/role_derivation.dart';
 import 'package:nami/domain/taetigkeit/roles.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 
-/// Erfundene Stämme für Statistik-Stories und -Tests, portiert aus
-/// `design/statistik/daten.js`:
+/// Erfundene Stämme für Statistik-Stories und -Tests, portiert aus den
+/// Entwürfen der Stammesstatistik
+/// (`design/entscheidung/2026-10-02-stammesstatistik.md`):
 ///
 /// - **Weitblick**: 75 Personen, zwei Meuten, Neue, Überfällige, Sonstige.
 /// - **Querfeld**: absichtlich krumme Daten – Mehrheit außerhalb der
@@ -583,8 +584,8 @@ class _Person {
   String nachname = '';
 }
 
-/// mulberry32 wie in `design/statistik/daten.js`, damit Entwurf und App
-/// dieselben Stämme zeigen.
+/// mulberry32 wie in den Entwürfen, damit die Stämme dort und in der App
+/// gleich aussahen.
 class _Zufall {
   _Zufall(int seed) : _a = seed & 0xFFFFFFFF;
 

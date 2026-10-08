@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" preserveAspectRatio="xMidYMax slice"><title>himmel-nacht runde3</title><style>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" preserveAspectRatio="xMidYMax slice"><title>nachthimmel-dark</title><style>
 
 .tw { animation-name: twinkle; animation-timing-function: ease-in-out; animation-iteration-count: infinite; animation-direction: alternate; opacity: var(--o); }
 @keyframes twinkle { from { opacity: var(--o); } to { opacity: calc(var(--o) * .15); } }

@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import '../../domain/hilfe/problem_meldung.dart';
 import '../../l10n/app_localizations.dart';
 
-/// Fragt vor der Mail kurz nach, worum es geht (Entwurf
-/// `design/hilfe-diagnose/`, Runde 3, D2). Liefert `null` bei Abbruch.
+/// Fragt vor der Mail kurz nach, worum es geht (Variante D2 aus
+/// `design/entscheidung/2026-10-07-hilfe-diagnose.md`). Liefert `null` bei
+/// Abbruch.
 Future<ProblemMeldung?> showProblemMeldenSheet(BuildContext context) {
   return showModalBottomSheet<ProblemMeldung>(
     context: context,

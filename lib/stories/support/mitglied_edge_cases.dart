@@ -3,8 +3,8 @@ import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/qualifikation/qualifikation.dart';
 import 'package:nami/domain/taetigkeit/roles.dart';
 
-/// Edge-Case-Personen der Mitgliedsdetails, angelehnt an die Entwuerfe in
-/// `design/mitglied/daten.js`. Fester Stichtag, damit Stories nicht vom
+/// Edge-Case-Personen der Mitgliedsdetails, angelehnt an die Entwuerfe
+/// (`design/entscheidung/2026-10-02-mitgliedsdetails.md`). Fester Stichtag, damit Stories nicht vom
 /// echten Datum abhaengen. Vergangene Rollen sind enthalten, obwohl die API
 /// sie derzeit nicht liefert.
 abstract final class MitgliedEdgeCases {

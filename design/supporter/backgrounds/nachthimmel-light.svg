@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" preserveAspectRatio="xMidYMax slice"><title>himmel-tag runde3</title><style>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" preserveAspectRatio="xMidYMax slice"><title>nachthimmel-light</title><style>
 
 .cl1 { animation: cloud 110s linear infinite; }
 .cl2 { animation: cloud 80s linear infinite; animation-delay: -40s; }

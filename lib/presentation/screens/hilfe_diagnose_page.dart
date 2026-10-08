@@ -22,7 +22,8 @@ import '../widgets/problem_melden_sheet.dart';
 import 'log_viewer_page.dart';
 import 'settings_debug_tools_page.dart';
 
-/// „Hilfe & Diagnose“ (A-94, Entwurf `design/hilfe-diagnose/`, Runde 2 G3):
+/// „Hilfe & Diagnose“ (A-94, Variante G3 aus
+/// `design/entscheidung/2026-10-07-hilfe-diagnose.md`):
 /// Statuskarte mit „Problem melden“, Werkzeuge und Speicher. Die bisherigen
 /// Debug & Tools gibt es nur noch in Debug- und Profile-Builds.
 class HilfeDiagnosePage extends StatefulWidget {

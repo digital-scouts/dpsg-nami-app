@@ -1,6 +1,6 @@
 # Mitgliedsdetails: Bedarfsanalyse und Redesign
 
-Stand: 2026-10-02, umgesetzt. Diese Spec beschreibt die Ausgangslage der Mitgliedsdetailseite, die festgelegten Anforderungen, die Edge Cases und den umgesetzten Stand. Die freigegebenen visuellen Entwürfe liegen unter `design/mitglied/` (Runden 1 bis 5).
+Stand: 2026-10-02, umgesetzt. Diese Spec beschreibt die Ausgangslage der Mitgliedsdetailseite, die festgelegten Anforderungen, die Edge Cases und den umgesetzten Stand. Die Entscheidungen der fünf Entwurfsrunden stehen in `design/entscheidung/2026-10-02-mitgliedsdetails.md`.
 
 ## Umgesetzter Stand
 
@@ -123,7 +123,7 @@ Bei Qualifikationen lässt sich nur nach `person_id` und `qualification_kind_id`
 
 ## Edge Cases
 
-Diese Fälle tragen die Entwurfspersonen in `design/mitglied/daten.js` und später die Stories und Tests.
+Diese Fälle tragen die Entwurfspersonen der Runden und heute die Stories (`lib/stories/support/mitglied_edge_cases.dart`) und Tests.
 
 **Rollen und Verlauf:**
 

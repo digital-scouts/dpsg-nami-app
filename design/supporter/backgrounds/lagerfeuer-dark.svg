@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" preserveAspectRatio="xMidYMax slice"><title>lagerfeuer nacht entwurf b</title><style>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" preserveAspectRatio="xMidYMax slice"><title>lagerfeuer-dark</title><style>
 .glow { animation: flicker 5.3s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 50% 70%; }
 .glow2 { animation: flicker 3.7s ease-in-out infinite alternate-reverse; transform-box: fill-box; transform-origin: 50% 70%; }
 @keyframes flicker { from { opacity: .55; transform: scale(1); } to { opacity: .85; transform: scale(1.06); } }
