@@ -9,8 +9,9 @@
 - Fehlerantwort bei fehlenden oder falschen Credentials: `401 Unauthorized`
 - Fehlerantwort bei zu vielen Anfragen: `429 Too Many Requests`
 - Ein erneut gesendeter Snapshot mit identischem Stamm, Sender, `source_data_as_of` und `schema_version` wird nicht erneut gespeichert und liefert trotzdem `204`.
-- `sent_at` und `source_data_as_of` dürfen höchstens 24 Stunden in der Zukunft liegen, sonst `invalid_datetime`.
-- Unterstützte `schema_version`: `2026-10-01`. Ältere Versionen werden mit `unsupported_schema_version` abgelehnt. Bereits gespeicherte Snapshots älterer Versionen bleiben bis zum Ablauf der Speicherfrist liegen, zählen aber für den effektiven Stand nicht mehr und fallen nach zwei Monaten ohnehin aus dem Fenster.
+- `source_data_as_of` darf höchstens 24 Stunden in der Zukunft liegen und höchstens acht Tage alt sein (sieben Tage plus 24 Stunden Toleranz für Geräteuhren), sonst `invalid_datetime`. Die App sendet nur Datenstände, die höchstens sieben Tage alt sind.
+- Über Aktualität, Zwei-Monats-Fenster und Haltefrist entscheidet allein der Eingang beim Server (`received_at`), nie ein Zeitstempel des Clients. `source_data_as_of` dient nur der Dublettenerkennung.
+- Unterstützte `schema_version`: `2026-10-08`. Ältere Versionen werden mit `unsupported_schema_version` abgelehnt. Bereits gespeicherte Snapshots älterer Versionen bleiben bis zum Ablauf der Speicherfrist liegen, zählen aber für den effektiven Stand nicht mehr und fallen nach zwei Monaten ohnehin aus dem Fenster.
 - Speicherfrist: Rohsnapshots werden 14 Monate nach Eingang (`received_at`) gelöscht, Sender 14 Monate nach ihrer letzten erfolgreichen Sendung (ohne Sendung nach der Anlage). Umgesetzt über TTL-Indizes auf dem internen Feld `expires_at`; die Frist deckt den Backfill der Monatsberichte ab. Vorher löscht der Betreiber auf Anfrage (`npm run installation -- loeschen`).
 - Unbekannte Felder werden auf allen Ebenen serverseitig verworfen.
 - Fehlende bekannte Kennzahlenfelder werden serverseitig wie `null` behandelt.
@@ -63,7 +64,6 @@ Aktuell verwendete Fehlercodes:
 - Bezirk-ID (`bezirk_id`, optional)
 - DV-ID (`dv_id`, optional, weil die Diözese nicht in jedem Hitobito-Zugriff sicher ableitbar ist)
 - Installations-ID der sendenden App (`sender_id`, wird nach erfolgreicher Validierung serverseitig pseudonymisiert)
-- Datum des Sendens (sent_at)
 - Datum des Datenbestands (source_data_as_of)
 
 Zeitstempel werden im ISO-8601-Format mit `Z` oder Offset gesendet und serverseitig als UTC-Datum gespeichert.
@@ -121,16 +121,29 @@ Je Gruppe (unter `gruppen`):
 
 ## Effektiver Stand
 
-Pro Stamm führt der Server alle Snapshots zusammen, deren `source_data_as_of` höchstens zwei Monate alt ist. Ältere Snapshots spielen keine Rolle. „Neuer“ heißt: späteres `source_data_as_of`, bei Gleichstand späteres `sent_at`.
+Pro Stamm führt der Server alle Snapshots zusammen, die in den letzten zwei Monaten eingegangen sind (`received_at`). Ältere Snapshots spielen keine Rolle. „Neuer“ heißt: später eingegangen.
 
-1. **Gruppenstruktur:** Welche Gruppen und Stufen der Stamm hat, kommt aus dem neuesten Snapshot, gleich welcher Abdeckung.
-2. **Gruppenwerte:** Pro Gruppe der Struktur zählt der neueste Snapshot, der diese Gruppe abdeckt.
-3. **Stufenwerte** (`biber` … `rover`, `leitende_biber` … `leitende_rover`): Summe der Gruppenwerte dieser Stufe, je Feld. Fehlt für eine Gruppe der Stufe ein Wert, ist die ganze Stufe `null`; der Stamm zählt dann für diese Stufe nicht im Aggregat. Hat der Stamm keine Gruppe einer Stufe, ist der Wert `0`.
-4. **Stammweite Kennzahlen** kommen aus dem neuesten Snapshot mit `abdeckung: "stamm"`. Gibt es keinen, sind sie `null`.
+Ein Stamm besteht aus Teilen: der Gruppenstruktur samt DV und Bezirk, den stammweiten Kennzahlen, jeder Stufe und jeder einzelnen Gruppe. Für jeden Teil gilt dieselbe Vorrangregel:
 
-Beispiel: P4 sendet den ganzen Stamm mit den Gruppen A, B, C und D (ältester Stand). Danach senden P3 die Gruppe C, P2 die Gruppen A und B und zuletzt P1 die Gruppe A. Der effektive Stand besteht aus den stammweiten Werten und D von P4, C von P3, B von P2 und A von P1.
+- **Haltefrist:** Eine Installation ist für einen Teil aktiv, wenn ihr letzter Snapshot, der diesen Teil abdeckt, vor höchstens 14 Tagen eingegangen ist.
+- Gibt es aktive Installationen, zählt die, die den Stamm am längsten kennt (`first_seen_at`, der erste Eingang dieser Installation für diesen Stamm), mit ihrem neuesten Snapshot.
+- Ist keine Installation aktiv, zählt der neueste Snapshot.
+- Snapshots, die so nicht zum Zug kommen, bleiben gespeichert und greifen, sobald die Haltefrist der Installation mit Vorrang abläuft.
 
-Die stammweiten Werte können dadurch älter sein als die Gruppenwerte. Kleine Abweichungen, etwa zwischen `leitende.gesamt` und der Summe der Leitenden je Stufe, sind gewollt in Kauf genommen.
+Damit kann eine fremde Installation die Werte eines aktiv teilnehmenden Stammes nicht ersetzen und aus der Verschiebung des Aggregats zurückrechnen. Wer die App wochenlang nicht öffnet, blockiert dagegen nichts: Nach 14 Tagen übernimmt der neueste vorliegende Stand, auch mit geänderter Struktur. Kommt die Installation zurück, gilt wieder ihr Stand.
+
+`first_seen_at` übernimmt der Server beim Eingang vom ältesten gespeicherten Snapshot desselben Senders für denselben Stamm; beim ersten Kontakt ist es `received_at`. So überdauert der Wert die Speicherfrist einzelner Snapshots.
+
+1. **Gruppenstruktur:** Welche Gruppen und Stufen der Stamm hat, kommt aus dem Snapshot mit Vorrang, gleich welcher Abdeckung.
+2. **Gruppenwerte:** Pro Gruppe der Struktur zählt der Snapshot mit Vorrang unter denen, die diese Gruppe abdecken.
+3. **Stufenwerte** (`biber` … `rover`, `leitende_biber` … `leitende_rover`): Summe der Gruppenwerte dieser Stufe, je Feld. Die Summe stammt immer aus genau einem Snapshot, nämlich dem mit Vorrang unter denen, die alle Gruppen der Stufe abdecken. Sonst ließe sich eine unvollständige Stufe mit erfundenen Gruppen auffüllen und eine echte Gruppe aus der Summe herausrechnen. Deckt niemand alle Gruppen der Stufe ab, ist die ganze Stufe `null`; der Stamm zählt dann für diese Stufe nicht im Aggregat. Hat der Stamm keine aktive Gruppe einer Stufe, ist der Wert ebenfalls `null`, damit er nicht als liefernder Stamm zählt (Mindestgrößen siehe `bundesaggregat.md`).
+4. **Stammweite Kennzahlen** kommen aus dem Snapshot mit Vorrang unter denen mit `abdeckung: "stamm"`. Gibt es keinen, sind sie `null`.
+
+Beispiel ohne aktive Installation: P4 sendet den ganzen Stamm mit den Gruppen A, B, C und D (ältester Eingang). Danach senden P3 die Gruppe C, P2 die Gruppen A und B und zuletzt P1 die Gruppe A, alle vor mehr als 14 Tagen. Der effektive Stand besteht aus den stammweiten Werten und D von P4, C von P3, B von P2 und A von P1. Die Stufensumme der Wölflinge (A, B, C) kommt aus P4, weil nur P4 alle drei abdeckt.
+
+Beispiel mit aktiven Installationen: Die Gruppenleitung G sendet seit März die Meute A, der Vorstand V seit Mai den ganzen Stamm, beide in den letzten 14 Tagen. Für Meute A zählt G, für alle anderen Teile V, auch für die Stufensumme der Wölflinge.
+
+Die stammweiten Werte und Stufensummen können dadurch älter sein oder von anderen Gruppenwerten stammen als die einzelnen Gruppen. Kleine Abweichungen, etwa zwischen `leitende.gesamt` und der Summe der Leitenden je Stufe, sind gewollt in Kauf genommen.
 
 Für Transparenz und Monatsreport merkt sich der effektive Stand außerdem:
 

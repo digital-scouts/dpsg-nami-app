@@ -8,7 +8,7 @@ import {
     initializeStatisticsPersistence,
     statisticsCollectionNames,
 } from '../src/infra/mongodb/statisticsPersistence.js';
-import { rebuildEffectiveStatesAndAggregate } from '../src/modules/aggregation/refresh.js';
+import { publishFullAggregate } from '../src/modules/aggregation/refresh.js';
 import { auskunftFuerInstallation, loescheInstallation } from '../src/modules/betroffenenanfrage/installation.js';
 import { computeReportFigures } from '../src/modules/report/report.js';
 import {
@@ -38,7 +38,6 @@ describe('statistics server with MongoDB', () => {
             url: '/snapshots/stamm',
             headers: authHeader(secret),
             payload: createValidPayload({
-                sent_at: time.now.toISOString(),
                 source_data_as_of: time.now.toISOString(),
                 ...overrides,
             }),
@@ -70,7 +69,11 @@ describe('statistics server with MongoDB', () => {
             (await db.collection(collection).indexes()).map((index) => index.name);
 
         expect(await indexNames(statisticsCollectionNames.rawSnapshots)).toEqual(
-            expect.arrayContaining(['raw_snapshots_by_stamm_and_recency', 'raw_snapshots_by_sent_at', 'raw_snapshots_dedup_by_version']),
+            expect.arrayContaining([
+                'raw_snapshots_by_stamm_and_received_at',
+                'raw_snapshots_by_stamm_sender_and_received_at',
+                'raw_snapshots_dedup_by_version',
+            ]),
         );
         expect(await indexNames(statisticsCollectionNames.effectiveStates)).toContain('effective_states_by_stamm');
         expect(await indexNames(statisticsCollectionNames.weeklyAggregates)).toContain('weekly_aggregates_by_week_and_type');
@@ -82,12 +85,15 @@ describe('statistics server with MongoDB', () => {
     test('persists ingest end to end without raw ids and serves the aggregate', async () => {
         const server = buildMongoServer();
 
-        expect((await share(server, { stamm_id: 'stamm-a', sender_id: 'install-a', gruppen: [gruppe('g-biber', 'biber', 4)] })).statusCode).toBe(204);
-        expect((await share(server, { stamm_id: 'stamm-b', sender_id: 'install-b', gruppen: [gruppe('g-biber', 'biber', 6)] })).statusCode).toBe(204);
+        expect((await share(server, { stamm_id: 'stamm-a', sender_id: 'install-a', gruppen: [gruppe('g-biber', 'biber', 14)] })).statusCode).toBe(204);
+        expect((await share(server, { stamm_id: 'stamm-b', sender_id: 'install-b', gruppen: [gruppe('g-biber', 'biber', 16)] })).statusCode).toBe(204);
 
         const rawSnapshots = await db.collection(statisticsCollectionNames.rawSnapshots).find().toArray();
         expect(rawSnapshots).toHaveLength(2);
-        expect(rawSnapshots[0]?.sent_at).toBeInstanceOf(Date);
+        expect(await db.collection(statisticsCollectionNames.weeklyAggregates).countDocuments()).toBe(0);
+        await publishFullAggregate(buildMongoDependencies(db, time.clock), time.now);
+        expect(rawSnapshots[0]?.first_seen_at).toBeInstanceOf(Date);
+        expect(rawSnapshots[0]).not.toHaveProperty('sent_at');
         expect(JSON.stringify(rawSnapshots)).not.toContain('stamm-a');
         expect(JSON.stringify(rawSnapshots)).not.toContain('install-a');
         expect(await db.collection(statisticsCollectionNames.effectiveStates).countDocuments()).toBe(2);
@@ -102,26 +108,33 @@ describe('statistics server with MongoDB', () => {
         expect(response.statusCode).toBe(200);
         expect(response.json()).toMatchObject({
             status: 'ok',
-            participating_stamm_count: 2,
-            metrics: { biber: { gesamt: { sum: 10, stamm_count: 2, median: 5 } } },
+            teilnehmende_staemme_ueber: 1,
+            metrics: { biber: { gesamt: { durchschnitt: 15, median: 15 } } },
         });
 
         await server.close();
     });
 
-    test('ignores duplicates and keeps the newest state for out-of-order snapshots', async () => {
+    test('ignores duplicates and orders by receipt instead of the client data state', async () => {
         const server = buildMongoServer();
 
         await share(server, { source_data_as_of: '2026-06-09T00:00:00Z', gruppen: [gruppe('g-biber', 'biber', 9)] });
         const duplicate = await share(server, { source_data_as_of: '2026-06-09T00:00:00Z', gruppen: [gruppe('g-biber', 'biber', 9)] });
-        await share(server, { source_data_as_of: '2026-06-01T00:00:00Z', gruppen: [gruppe('g-biber', 'biber', 2)] });
+        time.now = new Date('2026-06-10T13:00:00Z');
+        await share(server, { source_data_as_of: '2026-06-05T00:00:00Z', gruppen: [gruppe('g-biber', 'biber', 2)] });
 
         expect(duplicate.statusCode).toBe(204);
-        expect(await db.collection(statisticsCollectionNames.rawSnapshots).countDocuments()).toBe(2);
+        const raw = await db.collection(statisticsCollectionNames.rawSnapshots).find().toArray();
+        expect(raw).toHaveLength(2);
+        expect(raw.map((document) => document.first_seen_at)).toEqual([
+            new Date('2026-06-10T12:00:00Z'),
+            new Date('2026-06-10T12:00:00Z'),
+        ]);
 
+        await publishFullAggregate(buildMongoDependencies(db, time.clock), time.now);
         const states = await db.collection(statisticsCollectionNames.effectiveStates).find().toArray();
         expect(states).toHaveLength(1);
-        expect(states[0]?.gruppen[0]?.wert?.mitglieder.gesamt).toBe(9);
+        expect(states[0]?.gruppen[0]?.wert?.mitglieder.gesamt).toBe(2);
 
         await server.close();
     });
@@ -155,7 +168,8 @@ describe('statistics server with MongoDB', () => {
 
     test('rebuilds effective states and aggregate from raw snapshots', async () => {
         const server = buildMongoServer();
-        await share(server, { stamm_id: 'stamm-a', source_data_as_of: '2026-06-01T00:00:00Z', gruppen: [gruppe('g-biber', 'biber', 1)] });
+        await share(server, { stamm_id: 'stamm-a', source_data_as_of: '2026-06-04T00:00:00Z', gruppen: [gruppe('g-biber', 'biber', 1)] });
+        time.now = new Date('2026-06-10T12:30:00Z');
         await share(server, { stamm_id: 'stamm-a', source_data_as_of: '2026-06-05T00:00:00Z', gruppen: [gruppe('g-biber', 'biber', 3)] });
         await share(server, { stamm_id: 'stamm-b', gruppen: [gruppe('g-biber', 'biber', 7)] });
         await server.close();
@@ -165,12 +179,7 @@ describe('statistics server with MongoDB', () => {
         await db.collection(statisticsCollectionNames.weeklyAggregates).deleteMany({});
 
         const dependencies = buildMongoDependencies(db, time.clock);
-        await rebuildEffectiveStatesAndAggregate(
-            dependencies.rawSnapshotsRepository,
-            dependencies.effectiveStatesRepository,
-            dependencies.weeklyAggregatesRepository,
-            time.now,
-        );
+        await publishFullAggregate(dependencies, time.now);
 
         const states = await dependencies.effectiveStatesRepository.findAll();
         expect(states).toHaveLength(2);

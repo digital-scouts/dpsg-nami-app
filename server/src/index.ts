@@ -8,12 +8,13 @@ import type { ServerDependencies } from './app/dependencies.js';
 import { buildMemoryDependencies } from './infra/memory/statisticsMemoryStore.js';
 import { buildMongoDbClient, connectToMongoDb } from './infra/mongodb/client.js';
 import { buildMongoDependencies, initializeStatisticsPersistence } from './infra/mongodb/statisticsPersistence.js';
-import { rebuildEffectiveStatesAndAggregate } from './modules/aggregation/refresh.js';
+import { runAggregatePublicationIfDue } from './modules/aggregation/refresh.js';
 import { MOCK_SEED_INTERVAL_MS, seedMockSnapshots } from './modules/mockSeed/mockSeed.js';
 import { runMonthlyReportIfDue } from './modules/report/report.js';
 import { buildTelegramNotifier } from './modules/report/telegram.js';
 
 const REPORT_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
+const PUBLICATION_CHECK_INTERVAL_MS = 60 * 60 * 1000;
 
 const config = loadConfig();
 // Im Speichermodus (Mock-Instanz) gibt es keine MongoDB; Daten gehen beim Neustart verloren.
@@ -23,6 +24,7 @@ const dependencies: ServerDependencies = mongoDb != null ? buildMongoDependencie
 const server = buildServer(config, dependencies);
 let mockSeedTimer: NodeJS.Timeout | null = null;
 let reportTimer: NodeJS.Timeout | null = null;
+let publicationTimer: NodeJS.Timeout | null = null;
 const reportNotifier = config.telegram != null ? buildTelegramNotifier(config.telegram) : null;
 
 const runMockSeed = async (): Promise<void> => {
@@ -52,18 +54,27 @@ const runReportCheck = async (): Promise<void> => {
     }
 };
 
+// Wochen- und Nachtlauf des Bundesaggregats; ein verpasster Lauf wird nachgeholt.
+const runPublicationCheck = async (): Promise<void> => {
+    try {
+        const lauf = await runAggregatePublicationIfDue(dependencies, dependencies.clock());
+        if (lauf != null) {
+            server.log.info({ lauf }, 'Bund aggregate published');
+        }
+    } catch (error) {
+        server.log.error(error, 'Bund aggregate publication failed');
+    }
+};
+
 const start = async (): Promise<void> => {
     try {
         if (mongoClient != null && mongoDb != null) {
             await connectToMongoDb(mongoClient, config);
             await initializeStatisticsPersistence(mongoDb);
         }
-        await rebuildEffectiveStatesAndAggregate(
-            dependencies.rawSnapshotsRepository,
-            dependencies.effectiveStatesRepository,
-            dependencies.weeklyAggregatesRepository,
-            dependencies.clock(),
-        );
+        // Rechnet beim Start nur, wenn noch kein Aggregat existiert oder ein Lauf faellig ist;
+        // ein Deploy soll keine zusaetzliche Veroeffentlichung ausloesen.
+        await runAggregatePublicationIfDue(dependencies, dependencies.clock());
         if (config.mockSeedStammCount > 0) {
             await runMockSeed();
             // Taeglich frische Datenstaende, sonst fallen die Seeds nach zwei Monaten aus dem Aggregat.
@@ -73,6 +84,10 @@ const start = async (): Promise<void> => {
             mockSeedTimer.unref();
         }
         await server.listen({ host: config.host, port: config.port });
+        publicationTimer = setInterval(() => {
+            void runPublicationCheck();
+        }, PUBLICATION_CHECK_INTERVAL_MS);
+        publicationTimer.unref();
         if (reportsEnabled) {
             void runReportCheck();
             reportTimer = setInterval(() => {
@@ -109,6 +124,9 @@ const shutdown = async (signal: NodeJS.Signals): Promise<void> => {
         }
         if (reportTimer != null) {
             clearInterval(reportTimer);
+        }
+        if (publicationTimer != null) {
+            clearInterval(publicationTimer);
         }
         await server.close();
         await mongoClient?.close();

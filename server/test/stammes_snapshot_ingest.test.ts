@@ -10,11 +10,14 @@ import {
 import {
     authHeader,
     buildMemoryTestServer,
+    createMutableClock,
     createValidPayload,
     fremdeGruppe,
     gruppe,
     OTHER_SECRET,
 } from './support/fixtures.js';
+
+const JETZT = new Date('2026-04-10T08:00:00Z');
 
 describe('stammes snapshot ingest route', () => {
     const store = createStatisticsMemoryStore();
@@ -60,30 +63,31 @@ describe('stammes snapshot ingest route', () => {
         expect(JSON.stringify(stored)).not.toContain('g-biber');
     });
 
-    test('registers the sender on first contact and derives effective state and aggregate', async () => {
+    test('registers the sender on first contact without publishing the aggregate', async () => {
         await postSnapshot(createValidPayload());
 
         const [sender] = [...store.senders.values()];
         expect(sender?.secret_hash).toMatch(/^[a-f0-9]{64}$/);
         expect(JSON.stringify(sender)).not.toContain('a'.repeat(64));
         expect(sender?.last_successful_send_at).toEqual(new Date('2026-04-10T08:00:00Z'));
-        expect(store.effectiveStates.size).toBe(1);
-        expect(store.weeklyAggregates.size).toBe(1);
+        // Ins Aggregat kommt der Snapshot erst mit dem naechsten Nacht- oder Wochenlauf.
+        expect(store.effectiveStates.size).toBe(0);
+        expect(store.weeklyAggregates.size).toBe(0);
     });
 
-    test('normalizes timestamps with offsets to UTC dates', async () => {
+    test('normalizes timestamps with offsets to UTC dates and ignores a client send time', async () => {
         await postSnapshot(createValidPayload({
             sent_at: '2026-04-09T20:30:00+02:00',
             source_data_as_of: '2026-04-09T19:00:00+01:00',
         }));
 
-        expect(store.rawSnapshots[0]?.sent_at).toEqual(new Date('2026-04-09T18:30:00Z'));
         expect(store.rawSnapshots[0]?.source_data_as_of).toEqual(new Date('2026-04-09T18:00:00Z'));
+        expect(store.rawSnapshots[0]).not.toHaveProperty('sent_at');
     });
 
     test('treats a resent identical data state as idempotent success', async () => {
         await postSnapshot(createValidPayload());
-        const response = await postSnapshot(createValidPayload({ sent_at: '2026-04-09T19:30:00Z' }));
+        const response = await postSnapshot(createValidPayload());
 
         expect(response.statusCode).toBe(204);
         expect(store.rawSnapshots).toHaveLength(1);
@@ -163,12 +167,11 @@ describe('stammes snapshot ingest route', () => {
 
     test('accepts fractional seconds with microsecond precision', async () => {
         const response = await postSnapshot(createValidPayload({
-            sent_at: '2026-04-09T18:30:00.123456Z',
             source_data_as_of: '2026-04-09T18:00:00.123456789Z',
         }));
 
         expect(response.statusCode).toBe(204);
-        expect(store.rawSnapshots[0]?.sent_at).toEqual(new Date('2026-04-09T18:30:00.123Z'));
+        expect(store.rawSnapshots[0]?.source_data_as_of).toEqual(new Date('2026-04-09T18:00:00.123Z'));
     });
 
     test('rejects impossible calendar dates', async () => {
@@ -181,14 +184,24 @@ describe('stammes snapshot ingest route', () => {
         });
     });
 
-    test('rejects timestamps too far in the future', async () => {
-        const response = await postSnapshot(createValidPayload({ source_data_as_of: '2026-05-01T00:00:00Z' }));
+    test.each([
+        ['more than a day in the future', '2026-04-11T08:00:01Z'],
+        ['older than seven days plus a day of clock skew', '2026-04-02T07:59:59Z'],
+    ])('rejects a data state %s', async (_name, sourceDataAsOf) => {
+        const response = await postSnapshot(createValidPayload({ source_data_as_of: sourceDataAsOf }));
 
         expect(response.statusCode).toBe(400);
         expect(response.json().error).toMatchObject({
             code: 'invalid_datetime',
             fields: ['source_data_as_of'],
         });
+    });
+
+    test.each([
+        ['a day in the future', '2026-04-11T08:00:00Z'],
+        ['eight days old', '2026-04-02T08:00:00Z'],
+    ])('accepts a data state %s', async (_name, sourceDataAsOf) => {
+        expect((await postSnapshot(createValidPayload({ source_data_as_of: sourceDataAsOf }))).statusCode).toBe(204);
     });
 
     test('rejects a snapshot without members in any covered group', async () => {
@@ -246,6 +259,27 @@ describe('stammes snapshot ingest route', () => {
     });
 });
 
+describe('first_seen_at', () => {
+    test('carries the first contact of a sender with a stamm forward', async () => {
+        const time = createMutableClock('2026-04-10T08:00:00Z');
+        const { server, store } = buildMemoryTestServer({ clock: time.clock });
+        const send = (overrides: Record<string, unknown>) =>
+            server.inject({ method: 'POST', url: '/snapshots/stamm', headers: authHeader(), payload: createValidPayload(overrides) });
+
+        await send({});
+        time.now = new Date('2026-04-20T08:00:00Z');
+        await send({ source_data_as_of: '2026-04-20T07:00:00Z' });
+        await send({ source_data_as_of: '2026-04-20T07:30:00Z', stamm_id: 'anderer-stamm' });
+
+        expect(store.rawSnapshots.map((document) => document.first_seen_at)).toEqual([
+            new Date('2026-04-10T08:00:00Z'),
+            new Date('2026-04-10T08:00:00Z'),
+            new Date('2026-04-20T08:00:00Z'),
+        ]);
+        await server.close();
+    });
+});
+
 describe('parseStammesSnapshotPayload', () => {
     test('normalizes missing known fields to null and strips unknown fields recursively', () => {
         const parsed = parseStammesSnapshotPayload({
@@ -260,7 +294,7 @@ describe('parseStammesSnapshotPayload', () => {
                 },
                 unknown_metric: 12,
             },
-        });
+        }, JETZT);
 
         const leer = { gesamt: null, maennlich: null, weiblich: null, divers: null, geschlecht_unbekannt: null };
         expect(parsed).toEqual({
@@ -269,7 +303,6 @@ describe('parseStammesSnapshotPayload', () => {
             dv_id: 'dv-1',
             bezirk_id: null,
             sender_id: 'install-77',
-            sent_at: '2026-04-09T18:30:00Z',
             source_data_as_of: '2026-04-09T18:00:00Z',
             abdeckung: 'stamm',
             gruppen: [{
@@ -308,7 +341,7 @@ describe('parseStammesSnapshotPayload', () => {
             abdeckung: 'gruppen',
             gruppen: [gruppe('g1', 'woelflinge', 12), { ...fremdeGruppe('g2', 'woelflinge'), mitglieder: { gesamt: 99 } }],
             metrics: { leitende: { gesamt: 3 } },
-        }));
+        }), JETZT);
 
         expect(parsed.metrics).toBeNull();
         expect(parsed.gruppen[1]).toEqual({ gruppe_id: 'g2', stufe: 'woelflinge', abgedeckt: false, mitglieder: null, leitende: null });
@@ -319,7 +352,7 @@ describe('parseStammesSnapshotPayload', () => {
             parseStammesSnapshotPayload({
                 ...createValidPayload(),
                 gruppen: [gruppe('g1', 'biber', -1)],
-            });
+            }, JETZT);
 
             throw new Error('Expected validation error');
         } catch (error) {
@@ -336,7 +369,7 @@ describe('pseudonymizeStammesSnapshot', () => {
         const snapshot = parseStammesSnapshotPayload({
             ...createValidPayload(),
             bezirk_id: 'bezirk-5',
-        });
+        }, JETZT);
 
         const firstResult = pseudonymizeStammesSnapshot(snapshot, 'test-secret');
         const secondResult = pseudonymizeStammesSnapshot(snapshot, 'test-secret');
@@ -346,7 +379,7 @@ describe('pseudonymizeStammesSnapshot', () => {
         expect(firstResult.sender_pseudonym).toMatch(/^sender_[a-f0-9]{64}$/);
         expect(firstResult.dv_id).toBe('dv-1');
         expect(firstResult.bezirk_id).toBe('bezirk-5');
-        expect(firstResult.sent_at).toEqual(new Date('2026-04-09T18:30:00Z'));
+        expect(firstResult.source_data_as_of).toEqual(new Date('2026-04-09T18:00:00Z'));
         expect(firstResult.gruppen[0]?.gruppe_pseudonym).toMatch(/^gruppe_[a-f0-9]{64}$/);
         expect(JSON.stringify(firstResult)).not.toContain('stamm-123');
         expect(JSON.stringify(firstResult)).not.toContain('install-77');
@@ -358,7 +391,7 @@ describe('pseudonymizeStammesSnapshot', () => {
             ...createValidPayload(),
             stamm_id: 'same-id',
             sender_id: 'same-id',
-        });
+        }, JETZT);
 
         const firstSecretResult = pseudonymizeStammesSnapshot(snapshot, 'first-secret');
         const secondSecretResult = pseudonymizeStammesSnapshot(snapshot, 'second-secret');
@@ -370,8 +403,17 @@ describe('pseudonymizeStammesSnapshot', () => {
 });
 
 describe('buildRawSnapshotDocument', () => {
+    test('uses received_at as first_seen_at on first contact and keeps a known one', () => {
+        const pseudonymizedSnapshot = pseudonymizeStammesSnapshot(parseStammesSnapshotPayload(createValidPayload(), JETZT), 'test-secret');
+
+        expect(buildRawSnapshotDocument(pseudonymizedSnapshot, new Date('2026-04-09T19:00:00Z')).first_seen_at)
+            .toEqual(new Date('2026-04-09T19:00:00Z'));
+        expect(buildRawSnapshotDocument(pseudonymizedSnapshot, new Date('2026-04-09T19:00:00Z'), new Date('2026-01-01T00:00:00Z')).first_seen_at)
+            .toEqual(new Date('2026-01-01T00:00:00Z'));
+    });
+
     test('adds received_at to the pseudonymized snapshot document', () => {
-        const snapshot = parseStammesSnapshotPayload(createValidPayload());
+        const snapshot = parseStammesSnapshotPayload(createValidPayload(), JETZT);
         const pseudonymizedSnapshot = pseudonymizeStammesSnapshot(snapshot, 'test-secret');
         const document = buildRawSnapshotDocument(
             pseudonymizedSnapshot,

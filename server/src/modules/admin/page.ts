@@ -24,10 +24,10 @@ const kennzahlen = (figures: ReportFigures): string => {
         `<div class="kpi"><b>${wert}</b><span>${escapeHtml(label)}</span>${unter ? `<small>${escapeHtml(unter)}</small>` : ''}</div>`;
     const { installationen, staemme, gruppen } = figures;
     return `<div class="kpis">
-        ${kachel(staemme.teilnehmend, 'Stämme', `vollständig ${staemme.vollstaendig} · nur Gruppen ${staemme.nur_gruppen} · gemischt ${staemme.gemischt} · ohne Werte ${staemme.ohne_werte ?? 0}`)}
+        ${kachel(staemme.teilnehmend, 'Stämme', `vollständig ${staemme.vollstaendig} · nur Gruppen ${staemme.nur_gruppen} · gemischt ${staemme.gemischt} · ohne verwertbare Werte ${staemme.ohne_werte ?? 0}`)}
         ${kachel(installationen.aktiv, 'aktive Installationen', `neu ${installationen.neu} · gesamt ${installationen.gesamt}`)}
         ${kachel(gruppen.mit_wert, 'Gruppen mit Wert', STUFEN.map((stufe) => `${STUFEN_NAMEN[stufe]} ${gruppen.je_stufe[stufe]}`).join(' · '))}
-        ${kachel(staemme.mehrere_sender, 'Stämme mit mehreren Sendern', `Gruppen mehrfach abgedeckt ${gruppen.mehrfach_abgedeckt} · verworfene Werte ${gruppen.verworfene_werte}`)}
+        ${kachel(staemme.mehrere_sender, 'Stämme mit mehreren Sendern', `Gruppen mehrfach abgedeckt ${gruppen.mehrfach_abgedeckt} · nicht verwendete Werte ${gruppen.verworfene_werte}`)}
     </div>`;
 };
 

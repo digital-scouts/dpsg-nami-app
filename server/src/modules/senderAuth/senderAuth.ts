@@ -31,7 +31,9 @@ export type SenderActivity = Pick<SenderDocument, 'created_at' | 'last_successfu
 const MIN_SECRET_LENGTH = 32;
 const MAX_SECRET_LENGTH = 256;
 
-export const PARTICIPATION_WINDOW_DAYS = 14;
+// Lesen darf, wer in diesem Zeitraum gesendet hat. Laenger als die Haltefrist, damit Pausen
+// ohne Sendung (App nicht geoeffnet, Datenstand zu alt) nicht sofort den Zugang kosten.
+export const PARTICIPATION_WINDOW_DAYS = 30;
 
 export const hashSenderSecret = (secret: string, pepper: string): string =>
     createHmac('sha256', pepper).update(secret).digest('hex');

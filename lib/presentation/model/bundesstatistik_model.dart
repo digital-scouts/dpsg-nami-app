@@ -96,6 +96,9 @@ class BundesstatistikModel extends ChangeNotifier {
   bool _isBusy = false;
   bool _syncErneutAngefordert = false;
 
+  /// Hoechstes Alter des Datenstands, mit dem noch gesendet wird.
+  static const Duration maxDatenstandAlter = Duration(days: 7);
+
   bool get isAvailable => _featureEnabled;
 
   /// Name des aktiven Stammes fuer den Einwilligungsdialog.
@@ -158,15 +161,17 @@ class BundesstatistikModel extends ChangeNotifier {
   /// Zuletzt fuer den aktuellen Stamm gesendeter Snapshot (Transparenz).
   StammesSnapshot? get zuletztGesendeterSnapshot {
     final stammId = _hierarchie?.stammId;
-    final json = stammId == null
+    final sendestand = stammId == null
         ? null
-        : _teilnahme.sendestaende[stammId]?.snapshotJson;
+        : _teilnahme.sendestaende[stammId];
+    final json = sendestand?.snapshotJson;
     if (json == null || stammId == null) {
       return null;
     }
     try {
       final snapshot = StammesSnapshot.fromJson(
         jsonDecode(json) as Map<String, dynamic>,
+        sentAt: sendestand?.am,
       );
       return snapshot.stammId == stammId ? snapshot : null;
     } catch (_) {
@@ -395,6 +400,12 @@ class BundesstatistikModel extends ChangeNotifier {
     }
 
     final now = _now();
+    // Der Server nimmt nur Datenstaende an, die hoechstens sieben Tage alt
+    // sind; ohne frische Synchronisierung geht nichts raus.
+    final datenstand = _datenstand;
+    if (datenstand == null || now.difference(datenstand) > maxDatenstandAlter) {
+      return;
+    }
     final zuletzt = _teilnahme.sendestaende[hierarchie.stammId]?.am;
     final faellig =
         zuletzt == null ||
@@ -405,16 +416,13 @@ class BundesstatistikModel extends ChangeNotifier {
       return;
     }
 
-    final datenstand = _datenstand;
     final snapshot = StammesSnapshot(
       stammId: hierarchie.stammId,
       bezirkId: hierarchie.bezirkId,
       dvId: hierarchie.dvId,
       senderId: credentials.id,
       sentAt: now,
-      sourceDataAsOf: datenstand == null || datenstand.isAfter(now)
-          ? now
-          : datenstand,
+      sourceDataAsOf: datenstand.isAfter(now) ? now : datenstand,
       kennzahlen: kennzahlen,
     );
 

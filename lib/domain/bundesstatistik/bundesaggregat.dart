@@ -1,95 +1,59 @@
-/// Bundesaggregat laut API-Vertrag `server/spec/bundesaggregat.md`.
+/// Bundesaggregat laut API-Vertrag `server/spec/bundesaggregat.md`. Der
+/// Server liefert nur gerundete Ergebnisse, keine Summen und keine Zahl der
+/// Staemme oder Gruppen, damit sich einzelne Staemme nicht zurueckrechnen
+/// lassen.
 class KennzahlAggregat {
   const KennzahlAggregat({
-    required this.summe,
-    required this.stammAnzahl,
+    required this.durchschnitt,
     required this.median,
+    this.anteil,
   });
 
-  /// `null`, wenn der Server die Kennzahl wegen zu weniger Staemme unterdrueckt.
-  final num? summe;
-  final int stammAnzahl;
+  /// Je Stamm bzw. bei Gruppenwerten je Gruppe; `null`, wenn der Server die
+  /// Kennzahl wegen zu weniger Staemme unterdrueckt.
+  final double? durchschnitt;
   final num? median;
 
-  bool get istUnterdrueckt => summe == null;
+  /// Anteil am Feld `gesamt` derselben Verteilung in ganzen Prozent, nur bei
+  /// Verteilungen wie Geschlecht oder Altersgruppen.
+  final int? anteil;
 
-  double? get durchschnitt {
-    final value = summe;
-    if (value == null || stammAnzahl <= 0) {
-      return null;
-    }
-    return value / stammAnzahl;
-  }
+  bool get istUnterdrueckt => durchschnitt == null && median == null;
 
   factory KennzahlAggregat.fromJson(Map<String, dynamic> json) =>
       KennzahlAggregat(
-        summe: json['sum'] as num?,
-        stammAnzahl: (json['stamm_count'] as num?)?.toInt() ?? 0,
+        durchschnitt: (json['durchschnitt'] as num?)?.toDouble(),
         median: json['median'] as num?,
+        anteil: (json['anteil'] as num?)?.toInt(),
       );
 }
 
-/// Kennzahl ueber alle Gruppen einer Stufe: Median je Gruppe, Durchschnitt
-/// ueber die Gruppen. Unterdrueckt wird nach Anzahl der Staemme.
-class GruppenKennzahlAggregat extends KennzahlAggregat {
-  const GruppenKennzahlAggregat({
-    required super.summe,
-    required super.stammAnzahl,
-    required super.median,
-    required this.gruppenAnzahl,
-  });
-
-  final int gruppenAnzahl;
-
-  @override
-  double? get durchschnitt {
-    final value = summe;
-    if (value == null || gruppenAnzahl <= 0) {
-      return null;
-    }
-    return value / gruppenAnzahl;
-  }
-
-  factory GruppenKennzahlAggregat.fromJson(Map<String, dynamic> json) =>
-      GruppenKennzahlAggregat(
-        summe: json['sum'] as num?,
-        stammAnzahl: (json['stamm_count'] as num?)?.toInt() ?? 0,
-        median: json['median'] as num?,
-        gruppenAnzahl: (json['gruppen_count'] as num?)?.toInt() ?? 0,
-      );
-}
-
-/// Gruppengroesse einer Stufe (`gruppen_je_stufe` im Aggregat).
+/// Gruppengroesse einer Stufe (`gruppen_je_stufe` im Aggregat): Durchschnitt
+/// und Median je Gruppe.
 class StufenGruppenAggregat {
   const StufenGruppenAggregat({
-    required this.gruppenAnzahl,
-    required this.stammAnzahl,
     required this.gruppenProStamm,
     required this.mitglieder,
     required this.leitende,
   });
 
-  final int gruppenAnzahl;
-  final int stammAnzahl;
   final KennzahlAggregat gruppenProStamm;
 
   /// Je Geschlechterfeld, z. B. `gesamt`, `weiblich`.
-  final Map<String, GruppenKennzahlAggregat> mitglieder;
-  final Map<String, GruppenKennzahlAggregat> leitende;
+  final Map<String, KennzahlAggregat> mitglieder;
+  final Map<String, KennzahlAggregat> leitende;
 
   factory StufenGruppenAggregat.fromJson(Map<String, dynamic> json) {
-    Map<String, GruppenKennzahlAggregat> verteilung(Object? value) => {
+    Map<String, KennzahlAggregat> verteilung(Object? value) => {
       if (value is Map<String, dynamic>)
         for (final entry in value.entries)
           if (entry.value is Map<String, dynamic>)
-            entry.key: GruppenKennzahlAggregat.fromJson(
+            entry.key: KennzahlAggregat.fromJson(
               entry.value as Map<String, dynamic>,
             ),
     };
     final proStamm = json['gruppen_pro_stamm'];
     return StufenGruppenAggregat(
-      gruppenAnzahl: (json['gruppen_count'] as num?)?.toInt() ?? 0,
-      stammAnzahl: (json['stamm_count'] as num?)?.toInt() ?? 0,
       gruppenProStamm: KennzahlAggregat.fromJson(
         proStamm is Map<String, dynamic> ? proStamm : const {},
       ),
@@ -104,7 +68,7 @@ enum BundesaggregatStatus { ok, zuWenigTeilnahme }
 class Bundesaggregat {
   const Bundesaggregat({
     required this.status,
-    required this.teilnehmendeStaemme,
+    this.teilnehmendeStaemmeUeber,
     required this.mindestAnzahlStaemme,
     required this.hinweis,
     required this.kennzahlen,
@@ -116,7 +80,10 @@ class Bundesaggregat {
   });
 
   final BundesaggregatStatus status;
-  final int teilnehmendeStaemme;
+
+  /// Es nehmen mehr als so viele Staemme teil (Vielfaches von 5, ueber 50
+  /// von 10); `null` bei zu wenig Teilnahme.
+  final int? teilnehmendeStaemmeUeber;
   final int mindestAnzahlStaemme;
   final String hinweis;
 
@@ -143,8 +110,8 @@ class Bundesaggregat {
       status: json['status'] == 'ok'
           ? BundesaggregatStatus.ok
           : BundesaggregatStatus.zuWenigTeilnahme,
-      teilnehmendeStaemme:
-          (json['participating_stamm_count'] as num?)?.toInt() ?? 0,
+      teilnehmendeStaemmeUeber: (json['teilnehmende_staemme_ueber'] as num?)
+          ?.toInt(),
       mindestAnzahlStaemme: (json['min_stamm_count'] as num?)?.toInt() ?? 0,
       hinweis: json['notice']?.toString() ?? '',
       kennzahlen: metrics is Map<String, dynamic>
@@ -181,7 +148,7 @@ class Bundesaggregat {
         continue;
       }
       final path = prefix.isEmpty ? entry.key : '$prefix.${entry.key}';
-      if (value.containsKey('stamm_count')) {
+      if (value.containsKey('durchschnitt')) {
         result[path] = KennzahlAggregat.fromJson(value);
       } else {
         result.addAll(_flatten(value, path));

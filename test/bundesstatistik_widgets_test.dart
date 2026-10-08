@@ -77,18 +77,14 @@ const _kennzahlen = StammesKennzahlen(
 
 Bundesaggregat _aggregat() => Bundesaggregat(
   status: BundesaggregatStatus.ok,
-  teilnehmendeStaemme: 23,
+  teilnehmendeStaemmeUeber: 20,
   mindestAnzahlStaemme: 5,
   hinweis: 'Annäherung aus freiwillig geteilten Stammesdaten.',
   datenstandVon: DateTime.utc(2026, 5, 1),
   datenstandBis: DateTime.utc(2026, 6, 14),
   kennzahlen: const {
-    'woelflinge.gesamt': KennzahlAggregat(
-      summe: 230,
-      stammAnzahl: 23,
-      median: 9,
-    ),
-    'biber.gesamt': KennzahlAggregat(summe: 60, stammAnzahl: 12, median: 4.5),
+    'woelflinge.gesamt': KennzahlAggregat(durchschnitt: 10, median: 9),
+    'biber.gesamt': KennzahlAggregat(durchschnitt: 5, median: 4.5),
   },
 );
 
@@ -116,8 +112,11 @@ void main() {
       expect(find.text('4,5'), findsOneWidget);
       expect(find.text('10'), findsOneWidget);
 
-      await tester.scrollUntilVisible(find.text('23 teilnehmende Stämme'), 200);
-      expect(find.text('23 teilnehmende Stämme'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('Über 20 teilnehmende Stämme'),
+        200,
+      );
+      expect(find.text('Über 20 teilnehmende Stämme'), findsOneWidget);
       expect(find.text('Datenstand 01.05.2026 bis 14.06.2026'), findsOneWidget);
     });
 
@@ -174,7 +173,6 @@ void main() {
               hatEinwilligung: true,
               aggregat: Bundesaggregat(
                 status: BundesaggregatStatus.zuWenigTeilnahme,
-                teilnehmendeStaemme: 2,
                 mindestAnzahlStaemme: 5,
                 hinweis: '',
                 kennzahlen: const {},
@@ -185,7 +183,10 @@ void main() {
         ),
       );
 
-      expect(find.textContaining('Bisher teilen 2 Stämme'), findsOneWidget);
+      expect(
+        find.textContaining('Bisher teilen weniger als 5 Stämme'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('zeigt, was zuletzt geteilt wurde', (tester) async {
@@ -347,17 +348,20 @@ void main() {
     tester,
   ) async {
     final repository = _RecordingRepository();
+    final jetzt = DateTime.utc(2026, 6, 15, 10);
     final model = BundesstatistikModel(
       featureEnabled: true,
       repository: repository,
       credentialsRepository: _StaticCredentialsRepository(),
       teilnahmeRepository: _MemoryTeilnahmeRepository(),
+      now: () => jetzt,
     );
     final readModel = _stammReadModel();
     await model.aktualisiereKontext(
       personId: '42',
       readModel: readModel,
-      datenstand: null,
+      // Gesendet wird nur mit einem hoechstens sieben Tage alten Datenstand.
+      datenstand: jetzt.subtract(const Duration(hours: 1)),
       abdeckung: const StatistikAbdeckung.stamm(),
     );
 
@@ -406,10 +410,8 @@ void main() {
 
       expect(find.text('Gruppendaten teilen'), findsOneWidget);
       expect(find.text('TRUPP KOMPASS IM VERGLEICH'), findsOneWidget);
-      expect(
-        find.text('Mit 52 Gruppen der Stufe Jungpfadfinder aus 41 Stämmen'),
-        findsOneWidget,
-      );
+      // Genaue Gruppen- und Stammzahlen liefert der Server nicht mehr.
+      expect(find.textContaining('Gruppen der Stufe'), findsNothing);
       // Tabellen ohne Bezug zur eigenen Gruppe entfallen.
       expect(find.text('LEITENDE NACH ALTER'), findsNothing);
       expect(find.text('LEITENDE JE STUFE'), findsNothing);
@@ -481,7 +483,7 @@ class _RecordingRepository implements BundesstatistikRepository {
     InstallationCredentials credentials,
   ) async => Bundesaggregat(
     status: BundesaggregatStatus.ok,
-    teilnehmendeStaemme: 7,
+    teilnehmendeStaemmeUeber: 5,
     mindestAnzahlStaemme: 5,
     hinweis: '',
     kennzahlen: const {},

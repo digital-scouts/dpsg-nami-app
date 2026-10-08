@@ -36,8 +36,7 @@ const isDuplicateRawSnapshot = (a: RawSnapshotDocument, b: RawSnapshotDocument):
     && a.schema_version === b.schema_version;
 
 const isCurrentSince = (document: RawSnapshotDocument, since: Date): boolean =>
-    document.schema_version === SUPPORTED_SCHEMA_VERSION
-    && (document.source_data_as_of.getTime() >= since.getTime() || document.received_at.getTime() >= since.getTime());
+    document.schema_version === SUPPORTED_SCHEMA_VERSION && document.received_at.getTime() >= since.getTime();
 
 // Gegenstueck zu den TTL-Indizes: Abgelaufenes vor jedem Zugriff entfernen.
 const pruneExpired = (store: StatisticsMemoryStore, now: Date): void => {
@@ -70,11 +69,16 @@ export const buildMemoryDependencies = (
                 store.rawSnapshots.push(document);
                 return { inserted: true };
             },
+            findFirstSeen: async (stammPseudonym, senderPseudonym) => {
+                const zeiten = ohneAbgelaufene().rawSnapshots
+                    .filter((document) =>
+                        document.stamm_pseudonym === stammPseudonym && document.sender_pseudonym === senderPseudonym)
+                    .map((document) => (document.first_seen_at ?? document.received_at).getTime());
+                return zeiten.length === 0 ? null : new Date(Math.min(...zeiten));
+            },
             findByStammSince: async (stammPseudonym, since) =>
                 ohneAbgelaufene().rawSnapshots.filter((document) =>
-                    document.stamm_pseudonym === stammPseudonym
-                    && document.schema_version === SUPPORTED_SCHEMA_VERSION
-                    && document.source_data_as_of.getTime() >= since.getTime()),
+                    document.stamm_pseudonym === stammPseudonym && isCurrentSince(document, since)),
             findSince: async (since) => ohneAbgelaufene().rawSnapshots.filter((document) => isCurrentSince(document, since)),
             findBySender: async (senderPseudonym) =>
                 ohneAbgelaufene().rawSnapshots

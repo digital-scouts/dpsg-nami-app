@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 
 import { buildServer } from '../src/app/buildServer.js';
 import { buildMemoryDependencies, createStatisticsMemoryStore } from '../src/infra/memory/statisticsMemoryStore.js';
+import { publishFullAggregate } from '../src/modules/aggregation/refresh.js';
 import { auskunftFuerInstallation, loescheInstallation } from '../src/modules/betroffenenanfrage/installation.js';
 import { snapshotWindowStart } from '../src/modules/effectiveState/effectiveState.js';
 import { monthStart, previousMonth, REPORT_BACKFILL_MONTHS, toMonth } from '../src/modules/report/report.js';
@@ -98,7 +99,6 @@ describe('Speicherfrist (S-05)', () => {
             url: '/snapshots/stamm',
             headers: authHeader(secret),
             payload: createValidPayload({
-                sent_at: jetzt.toISOString(),
                 source_data_as_of: jetzt.toISOString(),
                 ...overrides,
             }),
@@ -169,7 +169,6 @@ describe('Auskunft und Löschung auf Anfrage (S-04)', () => {
                 headers: authHeader(secret),
                 payload: createValidPayload({
                     sender_id: senderId,
-                    sent_at: time.now.toISOString(),
                     source_data_as_of: time.now.toISOString(),
                     gruppen: [gruppe('g-biber', 'biber', mitglieder)],
                 }),
@@ -178,6 +177,7 @@ describe('Auskunft und Löschung auf Anfrage (S-04)', () => {
         expect((await teile('install-a', undefined, 4)).statusCode).toBe(204);
         time.now = new Date('2026-04-11T08:00:00Z');
         expect((await teile('install-b', OTHER_SECRET, 7)).statusCode).toBe(204);
+        await publishFullAggregate(dependencies, time.now);
 
         return { time, store, dependencies, server };
     };
@@ -198,16 +198,17 @@ describe('Auskunft und Löschung auf Anfrage (S-04)', () => {
 
     test('Löschung entfernt Snapshots und Sender und baut den effektiven Stand neu auf', async () => {
         const { time, store, dependencies, server } = await aufbau();
+        // install-a kennt den Stamm laenger und ist aktiv, deshalb zaehlen ihre Werte.
         const [vorher] = [...store.effectiveStates.values()];
-        expect(vorher?.gruppen[0]?.wert?.mitglieder.gesamt).toBe(7);
+        expect(vorher?.gruppen[0]?.wert?.mitglieder.gesamt).toBe(4);
 
-        const ergebnis = await loescheInstallation(dependencies, 'install-b', 'test-secret', time.now);
+        const ergebnis = await loescheInstallation(dependencies, 'install-a', 'test-secret', time.now);
 
         expect(ergebnis).toMatchObject({ geloeschte_snapshots: 1, sender_geloescht: true });
-        expect(await auskunftFuerInstallation(dependencies, 'install-b', 'test-secret'))
+        expect(await auskunftFuerInstallation(dependencies, 'install-a', 'test-secret'))
             .toMatchObject({ sender: null, snapshots: [] });
         const [nachher] = [...store.effectiveStates.values()];
-        expect(nachher?.gruppen[0]?.wert?.mitglieder.gesamt).toBe(4);
+        expect(nachher?.gruppen[0]?.wert?.mitglieder.gesamt).toBe(7);
         expect(store.rawSnapshots).toHaveLength(1);
 
         await server.close();

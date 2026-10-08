@@ -366,11 +366,12 @@ void main() {
 
       final json = snapshot.toJson();
 
-      expect(json['sent_at'], '2026-06-15T10:00:00.123Z');
+      // Den Sendezeitpunkt bestimmt der Server selbst (received_at).
+      expect(json.containsKey('sent_at'), isFalse);
       expect(json['source_data_as_of'], '2026-06-15T09:00:00.000Z');
     });
 
-    test('serialisiert nach Schema 2026-10-01 und liest sich zurueck', () {
+    test('serialisiert nach Schema 2026-10-08 und liest sich zurueck', () {
       const useCase = BaueStammesKennzahlenUseCase();
       final kennzahlen = useCase(
         _stammReadModel(),
@@ -387,10 +388,9 @@ void main() {
 
       final json = snapshot.toJson();
 
-      expect(json['schema_version'], '2026-10-01');
+      expect(json['schema_version'], '2026-10-08');
       expect(json['stamm_id'], '11');
       expect(json['bezirk_id'], isNull);
-      expect(json['sent_at'], '2026-06-15T10:00:00.000Z');
       expect(json['abdeckung'], 'stamm');
       expect((json['gruppen'] as List).map((g) => (g as Map)['gruppe_id']), [
         '21',
@@ -400,9 +400,11 @@ void main() {
 
       final restored = StammesSnapshot.fromJson(
         jsonDecode(jsonEncode(json)) as Map<String, dynamic>,
+        sentAt: DateTime.utc(2026, 6, 15, 10),
       );
       expect(restored.kennzahlen, kennzahlen);
       expect(restored.sourceDataAsOf, DateTime.utc(2026, 6, 15, 9, 30));
+      expect(restored.sentAt, DateTime.utc(2026, 6, 15, 10));
     });
 
     test('sendet bei Teilsicht keine stammweiten Werte', () {

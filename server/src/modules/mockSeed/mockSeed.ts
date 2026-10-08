@@ -1,5 +1,5 @@
 import type { ServerDependencies } from '../../app/dependencies.js';
-import { rebuildEffectiveStatesAndAggregate } from '../aggregation/refresh.js';
+import { publishFullAggregate } from '../aggregation/refresh.js';
 import { buildRawSnapshotDocument } from '../stammesSnapshot/persistence.js';
 import { pseudonymizeStammesSnapshot } from '../stammesSnapshot/pseudonymize.js';
 import {
@@ -19,7 +19,8 @@ export const MOCK_RARE_METRIC_STAMM_COUNT = 3;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
-const MAX_SOURCE_AGE_DAYS = 30;
+// Der Server nimmt nur Datenstaende an, die hoechstens sieben Tage alt sind.
+const MAX_SOURCE_AGE_DAYS = 7;
 
 // Deterministischer PRNG (mulberry32), damit jeder Seed-Stamm stabile Werte hat.
 const createRandom = (seed: number) => {
@@ -136,7 +137,7 @@ const buildMockMetrics = (random: Random, withRare: boolean, gruppen: ReturnType
 // Jeder so vielte Stamm bekommt zusaetzlich einen neueren Teildatensatz einer Gruppen-Leitung.
 export const MOCK_GRUPPEN_SENDER_EVERY = 6;
 
-// Datenstaende relativ zu now gestaffelt, damit sie im Zwei-Monats-Fenster der Aggregation liegen.
+// Datenstaende relativ zu now gestaffelt, hoechstens sieben Tage alt wie bei der App.
 export const buildMockSnapshotPayloads = (count: number, now: Date) =>
     Array.from({ length: count }, (_, index) => {
         const number = String(index + 1).padStart(2, '0');
@@ -153,7 +154,6 @@ export const buildMockSnapshotPayloads = (count: number, now: Date) =>
         const stamm = {
             ...basis,
             sender_id: `mock-sender-${number}`,
-            sent_at: new Date(sourceDataAsOf.getTime() + HOUR_MS / 2).toISOString(),
             source_data_as_of: sourceDataAsOf.toISOString(),
             abdeckung: 'stamm' as const,
             gruppen,
@@ -169,7 +169,6 @@ export const buildMockSnapshotPayloads = (count: number, now: Date) =>
         const teil = {
             ...basis,
             sender_id: `mock-sender-${number}-gruppe`,
-            sent_at: new Date(gruppenSource.getTime() + HOUR_MS / 2).toISOString(),
             source_data_as_of: gruppenSource.toISOString(),
             abdeckung: 'gruppen' as const,
             gruppen: gruppen.map((gruppe) => {
@@ -193,15 +192,14 @@ export const seedMockSnapshots = async (
 ): Promise<void> => {
     for (const payload of buildMockSnapshotPayloads(count, now)) {
         const snapshot = parseStammesSnapshotPayload(payload, now);
-        await dependencies.rawSnapshotsRepository.insert(
-            buildRawSnapshotDocument(pseudonymizeStammesSnapshot(snapshot, pseudonymizationSecret), now),
+        const pseudonymized = pseudonymizeStammesSnapshot(snapshot, pseudonymizationSecret);
+        const firstSeenAt = await dependencies.rawSnapshotsRepository.findFirstSeen(
+            pseudonymized.stamm_pseudonym,
+            pseudonymized.sender_pseudonym,
         );
+        await dependencies.rawSnapshotsRepository.insert(buildRawSnapshotDocument(pseudonymized, now, firstSeenAt));
     }
 
-    await rebuildEffectiveStatesAndAggregate(
-        dependencies.rawSnapshotsRepository,
-        dependencies.effectiveStatesRepository,
-        dependencies.weeklyAggregatesRepository,
-        now,
-    );
+    // Synthetische Daten: sofort veroeffentlichen statt auf den naechsten Lauf zu warten.
+    await publishFullAggregate(dependencies, now);
 };

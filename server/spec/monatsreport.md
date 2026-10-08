@@ -26,11 +26,11 @@ Stichtag ist das Monatsende, beim laufenden Monat der aktuelle Zeitpunkt. Der ef
   - teilnehmende Stämme (effektiver Stand am Stichtag)
   - davon `vollstaendig`, `nur_gruppen`, `gemischt`
   - Stämme mit mehreren Sendern im Fenster
-  - Stämme, für die nur Teilnahmen ohne Werte vorliegen; sie zählen nicht als teilnehmend
+  - Stämme ohne verwertbare Werte (nur Teilnahmen ohne Werte oder nur inaktive Gruppen); sie zählen nicht als teilnehmend
 - **Gruppen**
-  - Gruppen mit Wert, gesamt und je Stufe
-  - Gruppen, die mehr als ein Sender abgedeckt hat; dabei verworfene ältere Gruppenwerte
-  - Stufen, die wegen fehlender Gruppenwerte `null` sind (Anzahl Stamm-Stufen-Paare)
+  - aktive Gruppen mit Wert (mehr als 2 Mitglieder), gesamt und je Stufe
+  - Gruppen, die mehr als ein Sender abgedeckt hat; dabei nicht verwendete Gruppenwerte anderer Sender
+  - Stufen, die keine Installation vollständig abgedeckt hat (Anzahl Stamm-Stufen-Paare)
 - **Regionen**
   - Stämme je DV und je Bezirk (IDs wie gespeichert, ohne ID als „unbekannt“)
   - Markierung, welche DVs und Bezirke schon `MIN_STAMM_COUNT_FOR_READ` Stämme erreichen

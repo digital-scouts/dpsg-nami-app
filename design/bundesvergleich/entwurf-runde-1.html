@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Bundesvergleich – Entwurf Runde 1</title>
+<style>
+  :root { --bg:#F2F2F7; --surface:#FFFFFF; --fg:#1C1C1E; --fg2:#5d5d63; --muted:#8E8E93; --primary:#003056; --line:#e3e3e8; --balken:#003056; --balken2:#9bb3c9; }
+  .dark { --bg:#0E0E12; --surface:#1A1A22; --fg:#F0F0F5; --fg2:#a9a9b6; --muted:#8A8A9A; --primary:#5A9AD8; --line:#2c2c36; --balken:#5A9AD8; --balken2:#3a5876; }
+  body { margin:0; background:#eceae4; color:#1f1f1c; font:16px/1.5 system-ui,-apple-system,sans-serif; }
+  main { max-width:1600px; margin:0 auto; padding:24px 28px 120px; }
+  h1 { font-size:1.9rem; margin:0 0 .3rem; } h2 { font-size:1.4rem; margin:34px 0 .2rem; }
+  .lead, .desc { color:#4a4943; max-width:92ch; margin:0 0 12px; }
+  .bar { position:sticky; top:0; z-index:5; background:rgba(236,234,228,.95); border-bottom:1px solid #d6d3c9; padding:10px 28px; display:flex; gap:18px; align-items:center; font-size:14px; }
+  .tgl { display:inline-flex; background:#dcd9cf; border-radius:999px; padding:3px; }
+  .tgl button { border:0; background:none; font:inherit; font-size:13px; padding:4px 12px; border-radius:999px; cursor:pointer; }
+  .tgl button.on { background:#003056; color:#fff; }
+  .reihe { display:flex; gap:26px; flex-wrap:wrap; align-items:flex-start; }
+  figure { margin:0; width:282px; } figcaption { font-size:13px; color:#5d5b54; margin-top:10px; } figcaption b { color:#1f1f1c; }
+  .screen { width:264px; height:560px; border-radius:38px; overflow:hidden; background:var(--bg); color:var(--fg); box-shadow:0 0 0 9px #1c1c1e, 0 16px 36px rgba(0,0,0,.25); position:relative; margin:9px; font:13px/1.4 system-ui,-apple-system,sans-serif; display:flex; flex-direction:column; }
+  .status { height:34px; display:flex; align-items:center; justify-content:space-between; padding:0 22px; font-size:12px; font-weight:600; position:relative; background:var(--surface); }
+  .status .island { position:absolute; left:50%; top:8px; transform:translateX(-50%); width:80px; height:23px; border-radius:12px; background:#000; }
+  .appbar { background:var(--surface); text-align:center; padding:6px 0 4px; font-size:15px; }
+  .tabs { background:var(--surface); display:flex; justify-content:center; gap:28px; font-size:12.5px; padding:4px 0 0; border-bottom:1px solid var(--line); }
+  .tabs span { padding:6px 4px; color:var(--muted); } .tabs span.on { color:var(--primary); border-bottom:2px solid var(--primary); font-weight:600; }
+  .inhalt { flex:1; overflow:hidden; padding:10px 10px 20px; display:flex; flex-direction:column; gap:10px; }
+  .card { background:var(--surface); border-radius:14px; padding:10px 12px; }
+  .card h3 { margin:0 0 6px; font-size:13px; }
+  .klein { font-size:10.5px; color:var(--fg2); margin-top:6px; }
+  .neu { background:#fff3c4; color:#1f1f1c; border-radius:4px; padding:0 2px; }
+  .dark .neu { background:#4a3d0f; color:#f8eaba; }
+  table { width:100%; border-collapse:collapse; font-size:11.5px; }
+  th { text-align:right; font-weight:500; color:var(--fg2); font-size:10.5px; padding:2px 0; } th:first-child { text-align:left; }
+  td { padding:3px 0; text-align:right; } td:first-child { text-align:left; }
+  .grau { color:var(--muted); }
+  .feedback { position:fixed; left:0; right:0; bottom:0; background:#1f1f1c; color:#fff; padding:10px 28px; display:flex; gap:14px; align-items:center; font-size:14px; flex-wrap:wrap; z-index:9; }
+  .feedback select, .feedback input { font:inherit; font-size:13px; padding:4px 8px; border-radius:8px; border:0; }
+  .feedback input { flex:1; min-width:240px; }
+  .feedback button { font:inherit; font-size:13px; padding:6px 14px; border-radius:999px; border:0; background:#f2c26b; color:#1f1f1c; cursor:pointer; font-weight:600; }
+  .open { background:#fff8e6; border:1px solid #efd9a2; border-radius:12px; padding:10px 16px; max-width:980px; font-size:14px; color:#4a3f1c; }
+</style>
+</head>
+<body>
+<div class="bar"><b>Bundesvergleich · Runde 1 · Teilnahme als Bereich</b>
+  <span class="tgl" id="modus"><button class="on" data-m="hell">Hell</button><button data-m="dunkel">Dunkel</button></span>
+</div>
+<main>
+  <h1>Bundesvergleich ohne genaue Zählwerte</h1>
+  <p class="lead">Der Server liefert keine Stamm- und Gruppenzahlen mehr, nur noch Durchschnitt, Median und Anteile. Die Zahl der teilnehmenden Stämme kommt nur noch als Untergrenze. Betroffen sind drei Stellen: die Karte „Grundlage“, der Hinweis bei zu wenig Teilnahme und die Zeile über dem Gruppenvergleich. Neue Texte sind gelb markiert, die Daten sind erfunden.</p>
+  <div class="open"><ul>
+    <li><b>Grundlage:</b> „Mindestens 45 teilnehmende Stämme“ statt der genauen Zahl. Abgerundet wird unter 50 auf 5, ab 50 auf 10.</li>
+    <li><b>Zu wenig Teilnahme:</b> „weniger als 5 Stämme“ statt „Bisher teilen 3 Stämme“.</li>
+    <li><b>Gruppenvergleich:</b> „Mit 61 Gruppen … aus 44 Stämmen“ geht nicht mehr. Die Varianten unterscheiden sich darin, ob die Zeile ganz wegfällt oder allgemein bleibt.</li>
+    <li><b>Geschlechteranteile:</b> Eine unterdrückte Zeile (z. B. divers) zeigt jetzt allein „–“. Bisher verschwand dann die ganze Bundesspalte.</li>
+  </ul></div>
+  <div id="varianten"></div>
+</main>
+<div class="feedback"><b>Rückmeldung</b>
+  <label>Variante <select id="wahl"><option>A · knapp</option><option>B · mit Aktualisierung und Mindestgrößen</option></select></label>
+  <label>Gruppenzeile <select id="gruppe"><option>weglassen</option><option>allgemein behalten</option></select></label>
+  <input id="kommentar" placeholder="Kommentar, z. B. Texte">
+  <button id="kopieren">Auswahl kopieren</button><span id="kopiert"></span>
+</div>
+<script>
+let modus = 'hell';
+const status = `<div class="status"><span>9:41</span><span class="island"></span><span>●●●</span></div>`;
+const kopf = `${status}<div class="appbar">Statistik</div><div class="tabs"><span>Stamm</span><span class="on">Bund</span></div>`;
+const n = (t, an) => (an ? `<span class="neu">${t}</span>` : t);
+
+function geschlecht(neu) {
+  const zeilen = [['weiblich', '41 %', '45 %'], ['männlich', '55 %', '52 %'], ['divers', '1 %', neu ? '–' : '–'], ['unbekannt', '3 %', '3 %']];
+  return `<div class="card"><h3>Geschlecht in den Stufen</h3><table><tr><th></th><th>Dein Stamm</th><th>Bund</th></tr>
+    ${zeilen.map(([l, e, b], i) => `<tr><td>${l}</td><td>${e}</td><td class="${!neu ? 'grau' : ''}">${neu ? (i === 2 ? n('–', true) : b) : '–'}</td></tr>`).join('')}</table></div>`;
+}
+
+function grundlage(v) {
+  if (v === 'heute') {
+    return `<div class="card"><h3>Grundlage</h3><div>47 teilnehmende Stämme</div><div>Datenstand 02.08.2026 bis 28.09.2026</div>
+      <div class="klein">Annäherung aus freiwillig geteilten Stammesdaten teilnehmender App-Nutzer. Keine amtliche und keine repräsentative Statistik.</div>
+      <div class="klein">Werte, zu denen weniger als 5 Stämme beitragen, werden nicht angezeigt.</div></div>`;
+  }
+  const extra = v === 'B'
+    ? `<div>${n('Aktualisiert montags, neue Stämme kommen am nächsten Tag dazu.', true)}</div>` : '';
+  const klein = v === 'B'
+    ? n('Werte, zu denen weniger als 5 Stämme beitragen, werden nicht angezeigt. Gruppen mit höchstens 2 Mitgliedern zählen nicht.', true)
+    : 'Werte, zu denen weniger als 5 Stämme beitragen, werden nicht angezeigt.';
+  return `<div class="card"><h3>Grundlage</h3><div>${n('Mindestens 45 teilnehmende Stämme', true)}</div><div>Datenstand 02.08.2026 bis 28.09.2026</div>${extra}
+    <div class="klein">Annäherung aus freiwillig geteilten Stammesdaten teilnehmender App-Nutzer. Keine amtliche und keine repräsentative Statistik.</div>
+    <div class="klein">${klein}</div></div>`;
+}
+
+function zuWenig(v) {
+  const text = v === 'heute'
+    ? 'Bisher teilen 3 Stämme ihre Zahlen. Bundeswerte werden ab 5 Stämmen angezeigt, damit einzelne Stämme nicht erkennbar sind.'
+    : `${n('Bisher teilen weniger als 5 Stämme ihre Zahlen.', true)} Bundeswerte werden ab 5 Stämmen angezeigt, damit einzelne Stämme nicht erkennbar sind.`;
+  const extra = v === 'B' ? `<div class="klein">${n('Neue Stämme kommen jeweils am nächsten Tag dazu.', true)}</div>` : '';
+  return `<div class="card"><h3>Bundesvergleich</h3><div>${text}</div>${extra}</div>`;
+}
+
+function gruppenvergleich(v, zeile) {
+  let basis = '';
+  if (v === 'heute') basis = '<div class="klein" style="margin:0 0 6px">Mit 61 Gruppen der Stufe Wölflinge aus 44 Stämmen</div>';
+  else if (zeile === 'allgemein') basis = `<div class="klein" style="margin:0 0 6px">${n('Verglichen mit allen Gruppen der Stufe Wölflinge', true)}</div>`;
+  return `<div class="card"><h3>Meute Waldläufer im Vergleich</h3>${basis}
+    <table><tr><th></th><th>Deine Gruppe</th><th>Median</th><th>Ø</th></tr>
+    <tr><td>Kinder</td><td>14</td><td>13</td><td>13,6</td></tr><tr><td>Leitende</td><td>3</td><td>3</td><td>3,1</td></tr></table></div>`;
+}
+
+function screens(v, zeile) {
+  const dunkel = modus === 'dunkel' ? 'dark' : '';
+  return [
+    [`<div class="screen ${dunkel}">${kopf}<div class="inhalt">${geschlecht(v !== 'heute')}${grundlage(v)}</div></div>`, 'Teilnahme reicht'],
+    [`<div class="screen ${dunkel}">${kopf}<div class="inhalt">${zuWenig(v)}</div></div>`, 'Zu wenig Teilnahme'],
+    [`<div class="screen ${dunkel}">${kopf}<div class="inhalt">${gruppenvergleich(v, zeile)}</div></div>`, `Gruppenvergleich${v === 'heute' ? '' : zeile === 'allgemein' ? ' · Zeile allgemein' : ' · Zeile weg'}`],
+  ];
+}
+
+const VARIANTEN = [
+  { id: 'heute', titel: 'Heute (zum Vergleich)', text: 'Genaue Zahl der Stämme, die Bundesspalte der Anteile fehlt ganz, sobald ein Wert unterdrückt ist.', zeilen: ['heute'] },
+  { id: 'A', titel: 'A · knapp', text: 'Nur die nötigen Textänderungen. Die Zeile über dem Gruppenvergleich einmal weggelassen, einmal allgemein.', zeilen: ['weg', 'allgemein'] },
+  { id: 'B', titel: 'B · mit Aktualisierung und Mindestgrößen', text: 'Wie A, dazu ein Satz, wann die Werte aktualisiert werden, und der Hinweis, dass sehr kleine Gruppen nicht zählen.', zeilen: ['weg', 'allgemein'] },
+];
+
+function render() {
+  document.getElementById('varianten').innerHTML = VARIANTEN.map((v) => `
+    <h2>${v.titel}</h2><p class="desc">${v.text}</p>
+    <div class="reihe">${screens(v.id, v.zeilen[0]).map(([s, c]) => `<figure>${s}<figcaption><b>${c}</b></figcaption></figure>`).join('')}
+    ${v.zeilen[1] ? screens(v.id, v.zeilen[1]).slice(2).map(([s, c]) => `<figure>${s}<figcaption><b>${c}</b></figcaption></figure>`).join('') : ''}</div>`).join('');
+}
+document.getElementById('modus').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  [...e.currentTarget.children].forEach((x) => x.classList.toggle('on', x === b));
+  modus = b.dataset.m; render();
+});
+const p = new URLSearchParams(location.search);
+if (p.get('modus')) { modus = p.get('modus'); document.querySelectorAll('#modus button').forEach((b) => b.classList.toggle('on', b.dataset.m === modus)); }
+render();
+document.getElementById('kopieren').addEventListener('click', async () => {
+  const text = `Bundesvergleich Runde 1: ${document.getElementById('wahl').value}, Gruppenzeile ${document.getElementById('gruppe').value}. ${document.getElementById('kommentar').value}`.trim();
+  try { await navigator.clipboard.writeText(text); document.getElementById('kopiert').textContent = 'kopiert'; } catch { prompt('Zum Kopieren:', text); }
+});
+</script>
+</body>
+</html>

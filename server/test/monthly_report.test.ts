@@ -25,22 +25,22 @@ const snapshot = (overrides: Record<string, unknown>, receivedAt: string): RawSn
 const rohdaten = (): RawSnapshotDocument[] => [
     snapshot({
         stamm_id: 'A', sender_id: 'P4', dv_id: 'dv-1', bezirk_id: 'bz-1',
-        source_data_as_of: '2026-05-20T00:00:00Z', sent_at: '2026-05-20T01:00:00Z',
+        source_data_as_of: '2026-05-20T00:00:00Z',
         gruppen: [gruppe('a-m1', 'woelflinge', 10), gruppe('a-t1', 'jungpfadfinder', 8)],
     }, '2026-05-20T01:00:00Z'),
     snapshot({
         stamm_id: 'A', sender_id: 'P1', dv_id: 'dv-1', bezirk_id: 'bz-1', abdeckung: 'gruppen',
-        source_data_as_of: '2026-06-05T00:00:00Z', sent_at: '2026-06-05T01:00:00Z',
+        source_data_as_of: '2026-06-05T00:00:00Z',
         gruppen: [gruppe('a-m1', 'woelflinge', 12), fremdeGruppe('a-t1', 'jungpfadfinder')],
     }, '2026-06-05T01:00:00Z'),
     snapshot({
         stamm_id: 'B', sender_id: 'L1', dv_id: 'dv-1', abdeckung: 'gruppen',
-        source_data_as_of: '2026-06-10T00:00:00Z', sent_at: '2026-06-10T01:00:00Z',
+        source_data_as_of: '2026-06-10T00:00:00Z',
         gruppen: [gruppe('b-m1', 'woelflinge', 9), fremdeGruppe('b-m2', 'woelflinge')],
     }, '2026-06-10T01:00:00Z'),
     snapshot({
         stamm_id: 'C', sender_id: 'S1', dv_id: 'dv-2',
-        source_data_as_of: '2026-04-15T00:00:00Z', sent_at: '2026-04-15T01:00:00Z',
+        source_data_as_of: '2026-04-15T00:00:00Z',
         gruppen: [gruppe('c-r1', 'rover', 6)],
     }, '2026-04-15T01:00:00Z'),
 ];
@@ -78,7 +78,7 @@ describe('computeReportFigures', () => {
             ...rohdaten(),
             snapshot({
                 stamm_id: 'D', sender_id: 'L2', abdeckung: 'gruppen',
-                source_data_as_of: '2026-06-12T00:00:00Z', sent_at: '2026-06-12T01:00:00Z',
+                source_data_as_of: '2026-06-12T00:00:00Z',
                 gruppen: [fremdeGruppe('d-m1', 'woelflinge')],
             }, '2026-06-12T01:00:00Z'),
         ], senders);

@@ -91,7 +91,8 @@ void main() {
     );
     expect(captured.headers['authorization'], 'Bearer geheim');
     final body = jsonDecode(captured.body) as Map<String, dynamic>;
-    expect(body['schema_version'], '2026-10-01');
+    expect(body['schema_version'], '2026-10-08');
+    expect(body.containsKey('sent_at'), isFalse);
     expect(body['sender_id'], 'install-1');
     expect(body['abdeckung'], 'stamm');
     expect(body['gruppen'], [
@@ -182,44 +183,33 @@ void main() {
               'aggregation_type': 'bund',
               'aggregation_week': '2026-W24',
               'generated_at': '2026-06-15T10:00:00.000Z',
-              'participating_stamm_count': 12,
+              'teilnehmende_staemme_ueber': 10,
               'min_stamm_count': 5,
               'data_as_of': {
                 'oldest': '2026-05-01T00:00:00.000Z',
-                'newest': '2026-06-15T09:00:00.000Z',
+                'newest': '2026-06-15T00:00:00.000Z',
               },
               'notice': 'Annäherung',
               'metrics': {
                 'woelflinge': {
-                  'gesamt': {'sum': 120, 'stamm_count': 12, 'median': 9.5},
-                  'divers': {'sum': null, 'stamm_count': 2, 'median': null},
+                  'gesamt': {'durchschnitt': 10, 'median': 10},
+                  'weiblich': {'durchschnitt': 4.6, 'median': 5, 'anteil': 46},
+                  'divers': {
+                    'durchschnitt': null,
+                    'median': null,
+                    'anteil': null,
+                  },
                 },
-                'kuraten': {'sum': null, 'stamm_count': 0, 'median': null},
+                'kuraten': {'durchschnitt': null, 'median': null},
               },
               'gruppen_je_stufe': {
                 'woelflinge': {
-                  'gruppen_count': 15,
-                  'stamm_count': 12,
-                  'gruppen_pro_stamm': {
-                    'sum': 15,
-                    'stamm_count': 12,
-                    'median': 1,
-                  },
+                  'gruppen_pro_stamm': {'durchschnitt': 1.3, 'median': 1},
                   'mitglieder': {
-                    'gesamt': {
-                      'sum': 150,
-                      'stamm_count': 12,
-                      'gruppen_count': 15,
-                      'median': 9,
-                    },
+                    'gesamt': {'durchschnitt': 10, 'median': 9},
                   },
                   'leitende': {
-                    'gesamt': {
-                      'sum': null,
-                      'stamm_count': 3,
-                      'gruppen_count': 4,
-                      'median': null,
-                    },
+                    'gesamt': {'durchschnitt': null, 'median': null},
                   },
                 },
               },
@@ -237,19 +227,19 @@ void main() {
     expect(captured.headers['x-sender-id'], 'install-1');
     expect(captured.headers['authorization'], 'Bearer geheim');
     expect(aggregat.status, BundesaggregatStatus.ok);
-    expect(aggregat.teilnehmendeStaemme, 12);
+    expect(aggregat.teilnehmendeStaemmeUeber, 10);
     expect(aggregat.hinweis, 'Annäherung');
-    expect(aggregat.datenstandBis, DateTime.utc(2026, 6, 15, 9));
+    expect(aggregat.datenstandBis, DateTime.utc(2026, 6, 15));
     final woelflinge = aggregat.kennzahl('woelflinge.gesamt')!;
-    expect(woelflinge.median, 9.5);
+    expect(woelflinge.median, 10);
     expect(woelflinge.durchschnitt, 10);
+    expect(woelflinge.anteil, isNull);
+    expect(aggregat.kennzahl('woelflinge.weiblich')!.anteil, 46);
     expect(aggregat.kennzahl('woelflinge.divers')!.istUnterdrueckt, isTrue);
-    expect(aggregat.kennzahl('kuraten')!.stammAnzahl, 0);
+    expect(aggregat.kennzahl('kuraten')!.istUnterdrueckt, isTrue);
     final meuten = aggregat.gruppenDerStufe('woelflinge')!;
-    expect(meuten.gruppenAnzahl, 15);
-    expect(meuten.gruppenProStamm.median, 1);
+    expect(meuten.gruppenProStamm.durchschnitt, 1.3);
     expect(meuten.mitglieder['gesamt']!.median, 9);
-    // Durchschnitt je Gruppe, nicht je Stamm.
     expect(meuten.mitglieder['gesamt']!.durchschnitt, 10);
     expect(meuten.leitende['gesamt']!.istUnterdrueckt, isTrue);
     expect(aggregat.gruppenDerStufe('rover'), isNull);

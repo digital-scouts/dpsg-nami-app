@@ -1,5 +1,5 @@
 import type { ServerDependencies } from '../../app/dependencies.js';
-import { rebuildEffectiveStatesAndAggregate } from '../aggregation/refresh.js';
+import { publishFullAggregate } from '../aggregation/refresh.js';
 import type { RawSnapshotDocument } from '../stammesSnapshot/persistence.js';
 import { buildPseudonym } from '../stammesSnapshot/pseudonymize.js';
 
@@ -49,7 +49,7 @@ export const auskunftFuerInstallation = async (
     };
 };
 
-// Loescht Snapshots und Sender und baut effektive Staende und Aggregat ohne sie neu auf.
+// Loescht Snapshots und Sender und veroeffentlicht das Aggregat sofort ohne sie neu.
 export const loescheInstallation = async (
     dependencies: Dependencies,
     senderId: string,
@@ -60,12 +60,8 @@ export const loescheInstallation = async (
     const geloeschteSnapshots = await dependencies.rawSnapshotsRepository.deleteBySender(senderPseudonym);
     const senderGeloescht = await dependencies.senderRepository.delete(senderPseudonym);
 
-    await rebuildEffectiveStatesAndAggregate(
-        dependencies.rawSnapshotsRepository,
-        dependencies.effectiveStatesRepository,
-        dependencies.weeklyAggregatesRepository,
-        now,
-    );
+    // Geloeschte Daten sollen sofort aus dem Aggregat verschwinden, nicht erst im Wochenlauf.
+    await publishFullAggregate(dependencies, now);
 
     return {
         sender_pseudonym: senderPseudonym,

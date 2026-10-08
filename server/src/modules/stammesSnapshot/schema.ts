@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { AppError } from '../../shared/errors.js';
 
-const SUPPORTED_SCHEMA_VERSION = '2026-10-01';
+const SUPPORTED_SCHEMA_VERSION = '2026-10-08';
 // ISO 8601 erlaubt beliebig viele Nachkommastellen; Dart sendet z. B. Mikrosekunden.
 const ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/;
 
@@ -284,7 +284,6 @@ const stammesSnapshotSchema = z.object({
     dv_id: optionalStringField,
     bezirk_id: optionalStringField,
     sender_id: requiredStringField(),
-    sent_at: isoDateTimeField(),
     source_data_as_of: isoDateTimeField(),
     abdeckung: abdeckungField,
     gruppen: gruppenField,
@@ -350,7 +349,7 @@ const mapIssueToCode = (issue: z.ZodIssue): string => {
 
     const fieldPath = issue.path.join('.');
 
-    if (fieldPath === 'sent_at' || fieldPath === 'source_data_as_of') {
+    if (fieldPath === 'source_data_as_of') {
         return invalidDateTimeCode;
     }
 
@@ -379,23 +378,22 @@ const buildValidationError = (issues: z.ZodIssue[]): AppError => {
     );
 };
 
-// Zeitstempel in der Zukunft wuerden einen Stamm dauerhaft als "neuesten Stand" festschreiben.
+// Ueber Aktualitaet und Fenster entscheidet allein der Eingang beim Server (received_at).
+// source_data_as_of dient nur der Dublettenerkennung und muss plausibel sein: Die App sendet
+// nur Datenstaende, die hoechstens sieben Tage alt sind; 24 Stunden Toleranz fuer Geraeteuhren.
 const MAX_CLOCK_SKEW_MS = 24 * 60 * 60 * 1000;
+export const MAX_SOURCE_DATA_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
-const findFutureTimestampFields = (
-    snapshot: StammesSnapshotPayload,
-    now: Date,
-): string[] => {
-    const latestAllowed = now.getTime() + MAX_CLOCK_SKEW_MS;
+const isImplausibleSourceDataAsOf = (snapshot: StammesSnapshotPayload, now: Date): boolean => {
+    const sourceDataAsOf = Date.parse(snapshot.source_data_as_of);
 
-    return (['sent_at', 'source_data_as_of'] as const).filter(
-        (fieldName) => Date.parse(snapshot[fieldName]) > latestAllowed,
-    );
+    return sourceDataAsOf > now.getTime() + MAX_CLOCK_SKEW_MS
+        || sourceDataAsOf < now.getTime() - MAX_SOURCE_DATA_AGE_MS - MAX_CLOCK_SKEW_MS;
 };
 
 export const parseStammesSnapshotPayload = (
     input: unknown,
-    now: Date = new Date(),
+    now: Date,
 ): StammesSnapshotPayload => {
     const parsed = stammesSnapshotSchema.safeParse(input);
 
@@ -403,14 +401,12 @@ export const parseStammesSnapshotPayload = (
         throw buildValidationError(parsed.error.issues);
     }
 
-    const futureFields = findFutureTimestampFields(parsed.data, now);
-
-    if (futureFields.length > 0) {
+    if (isImplausibleSourceDataAsOf(parsed.data, now)) {
         throw new AppError(
             'Snapshot payload is invalid',
             400,
             invalidDateTimeCode,
-            futureFields,
+            ['source_data_as_of'],
         );
     }
 

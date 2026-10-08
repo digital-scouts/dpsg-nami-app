@@ -2,7 +2,6 @@ import type { FastifyInstance } from 'fastify';
 
 import type { AppConfig } from '../../app/config.js';
 import type { ServerDependencies } from '../../app/dependencies.js';
-import { refreshBundAggregate, refreshEffectiveStateForStamm } from '../aggregation/refresh.js';
 import { extractBearerSecret, verifyOrRegisterSender } from '../senderAuth/senderAuth.js';
 import { buildRawSnapshotDocument } from './persistence.js';
 import { pseudonymizeStammesSnapshot } from './pseudonymize.js';
@@ -40,28 +39,19 @@ export const registerStammesSnapshotRoutes = (
                 now,
             );
 
-            const rawSnapshotDocument = buildRawSnapshotDocument(pseudonymizedSnapshot, now);
-            const { inserted } = await dependencies.rawSnapshotsRepository.insert(rawSnapshotDocument);
+            const firstSeenAt = await dependencies.rawSnapshotsRepository.findFirstSeen(
+                pseudonymizedSnapshot.stamm_pseudonym,
+                pseudonymizedSnapshot.sender_pseudonym,
+            );
+            const rawSnapshotDocument = buildRawSnapshotDocument(pseudonymizedSnapshot, now, firstSeenAt);
+            await dependencies.rawSnapshotsRepository.insert(rawSnapshotDocument);
 
-            // Auch ein erneut gesendeter, identischer Datenstand zaehlt als Teilnahme.
+            // Auch ein erneut gesendeter, identischer Datenstand zaehlt als Teilnahme. Ins
+            // Aggregat geht der Snapshot erst mit dem naechsten Nacht- oder Wochenlauf.
             await dependencies.senderRepository.markSuccessfulSend(
                 pseudonymizedSnapshot.sender_pseudonym,
                 now,
             );
-
-            if (inserted) {
-                await refreshEffectiveStateForStamm(
-                    dependencies.rawSnapshotsRepository,
-                    dependencies.effectiveStatesRepository,
-                    pseudonymizedSnapshot.stamm_pseudonym,
-                    now,
-                );
-                await refreshBundAggregate(
-                    dependencies.effectiveStatesRepository,
-                    dependencies.weeklyAggregatesRepository,
-                    now,
-                );
-            }
 
             reply.status(204).send();
         },

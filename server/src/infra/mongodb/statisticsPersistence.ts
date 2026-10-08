@@ -24,22 +24,18 @@ const rawSnapshotsIndexes: IndexDescription[] = [
     {
         key: {
             stamm_pseudonym: 1,
-            source_data_as_of: -1,
-            sent_at: -1,
+            received_at: -1,
         },
-        name: 'raw_snapshots_by_stamm_and_recency',
+        name: 'raw_snapshots_by_stamm_and_received_at',
     },
     {
+        // Fuer first_seen_at beim Eingang: aeltester Snapshot je Stamm und Sender.
         key: {
-            sent_at: -1,
+            stamm_pseudonym: 1,
+            sender_pseudonym: 1,
+            received_at: 1,
         },
-        name: 'raw_snapshots_by_sent_at',
-    },
-    {
-        key: {
-            source_data_as_of: -1,
-        },
-        name: 'raw_snapshots_by_source_data_as_of',
+        name: 'raw_snapshots_by_stamm_sender_and_received_at',
     },
     {
         key: {
@@ -75,7 +71,12 @@ const rawSnapshotsIndexes: IndexDescription[] = [
 ];
 
 // Indizes frueherer Staende, die beim Start entfernt werden.
-const obsoleteRawSnapshotIndexes = ['raw_snapshots_dedup'];
+const obsoleteRawSnapshotIndexes = [
+    'raw_snapshots_dedup',
+    'raw_snapshots_by_stamm_and_recency',
+    'raw_snapshots_by_sent_at',
+    'raw_snapshots_by_source_data_as_of',
+];
 
 const effectiveStatesIndexes: IndexDescription[] = [
     {
@@ -201,13 +202,20 @@ export const buildRawSnapshotsRepository = (db: Db): RawSnapshotsRepository => {
                 throw error;
             }
         },
+        findFirstSeen: async (stammPseudonym, senderPseudonym) => {
+            const aeltester = await collection.findOne(
+                { stamm_pseudonym: stammPseudonym, sender_pseudonym: senderPseudonym },
+                { projection: { _id: 0, first_seen_at: 1, received_at: 1 }, sort: { received_at: 1 } },
+            );
+            return aeltester == null ? null : aeltester.first_seen_at ?? aeltester.received_at;
+        },
         findByStammSince: async (stammPseudonym, since) =>
             collection
                 .find(
                     {
                         stamm_pseudonym: stammPseudonym,
                         schema_version: SUPPORTED_SCHEMA_VERSION,
-                        source_data_as_of: { $gte: since },
+                        received_at: { $gte: since },
                     },
                     withoutInternals,
                 )
@@ -217,7 +225,7 @@ export const buildRawSnapshotsRepository = (db: Db): RawSnapshotsRepository => {
                 .find(
                     {
                         schema_version: SUPPORTED_SCHEMA_VERSION,
-                        $or: [{ source_data_as_of: { $gte: since } }, { received_at: { $gte: since } }],
+                        received_at: { $gte: since },
                     },
                     withoutInternals,
                 )

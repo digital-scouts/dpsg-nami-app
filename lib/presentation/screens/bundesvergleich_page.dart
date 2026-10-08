@@ -251,18 +251,6 @@ class BundesvergleichView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (bund != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                t.t('bund_group_compare_basis', {
-                  'groups': bund.gruppenAnzahl,
-                  'stage': stufenName(t, gruppe.stufe),
-                  'stamms': bund.stammAnzahl,
-                }),
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
           _VergleichsTabelle(
             eigeneSpalte: t.t('bund_col_own_group'),
             zeilen: [
@@ -298,9 +286,9 @@ class BundesvergleichView extends StatelessWidget {
             ? 0
             : _geschlechtWert(eigene, schluessel) ?? 0,
     };
-    final bundWerte = <String, num?>{
+    final bundAnteile = <String, int?>{
       for (final (schluessel, _) in _geschlechter)
-        schluessel: bund?.mitglieder[schluessel]?.summe,
+        schluessel: bund?.mitglieder[schluessel]?.anteil,
     };
     return StatisticsCard(
       title: t.t('bund_group_gender_title', {'group': name}),
@@ -314,10 +302,7 @@ class BundesvergleichView extends StatelessWidget {
                 eigeneWerte[schluessel],
                 eigeneWerte.values,
               ),
-              bundAnteil: _anteilNullable(
-                bundWerte[schluessel],
-                bundWerte.values,
-              ),
+              bundAnteil: _prozent(bundAnteile[schluessel]),
             ),
         ],
       ),
@@ -456,9 +441,9 @@ class BundesvergleichView extends StatelessWidget {
                     summe + (_geschlechtWert(stufe, schluessel) ?? 0),
               ),
     };
-    final bundSummen = <String, num?>{
+    final bundAnteile = <String, int?>{
       for (final (schluessel, _) in _geschlechter)
-        schluessel: _summeUeberStufen(aggregat, schluessel),
+        schluessel: aggregat.kennzahl('alle_stufen.$schluessel')?.anteil,
     };
 
     return StatisticsCard(
@@ -473,10 +458,7 @@ class BundesvergleichView extends StatelessWidget {
                 eigeneSummen[schluessel],
                 eigeneSummen.values,
               ),
-              bundAnteil: _anteilNullable(
-                bundSummen[schluessel],
-                bundSummen.values,
-              ),
+              bundAnteil: _prozent(bundAnteile[schluessel]),
             ),
         ],
       ),
@@ -501,9 +483,9 @@ class BundesvergleichView extends StatelessWidget {
       for (final (schluessel, _) in gruppen)
         schluessel: eigene == null ? 0 : (_altersWert(eigene, schluessel) ?? 0),
     };
-    final bundWerte = <String, num?>{
+    final bundAnteile = <String, int?>{
       for (final (schluessel, _) in gruppen)
-        schluessel: aggregat.kennzahl('leitende.$schluessel')?.summe,
+        schluessel: aggregat.kennzahl('leitende.$schluessel')?.anteil,
     };
 
     return StatisticsCard(
@@ -518,28 +500,11 @@ class BundesvergleichView extends StatelessWidget {
                 eigeneWerte[schluessel],
                 eigeneWerte.values,
               ),
-              bundAnteil: _anteilNullable(
-                bundWerte[schluessel],
-                bundWerte.values,
-              ),
+              bundAnteil: _prozent(bundAnteile[schluessel]),
             ),
         ],
       ),
     );
-  }
-
-  num? _summeUeberStufen(Bundesaggregat aggregat, String geschlecht) {
-    num summe = 0;
-    for (final stufe in stufen) {
-      final wert = aggregat
-          .kennzahl('${stufenSchluessel[stufe]}.$geschlecht')
-          ?.summe;
-      if (wert == null) {
-        return null;
-      }
-      summe += wert;
-    }
-    return summe;
   }
 
   int? _geschlechtWert(GeschlechterVerteilung verteilung, String schluessel) =>
@@ -568,16 +533,8 @@ class BundesvergleichView extends StatelessWidget {
     return wert / summe;
   }
 
-  double? _anteilNullable(num? wert, Iterable<num?> alle) {
-    if (wert == null || alle.any((value) => value == null)) {
-      return null;
-    }
-    final summe = alle.fold<num>(0, (a, b) => a + (b ?? 0));
-    if (summe <= 0) {
-      return null;
-    }
-    return wert / summe;
-  }
+  /// Anteile liefert der Server fertig in ganzen Prozent.
+  double? _prozent(int? anteil) => anteil == null ? null : anteil / 100;
 }
 
 class _EinwilligungCard extends StatelessWidget {
@@ -695,7 +652,6 @@ class _StatusHinweis extends StatelessWidget {
     final aggregat = this.aggregat;
     final text = switch (status) {
       BundesstatistikStatus.zuWenigTeilnahme => t.t('bund_status_too_few', {
-        'count': aggregat?.teilnehmendeStaemme ?? 0,
         'min': aggregat?.mindestAnzahlStaemme ?? 0,
       }),
       BundesstatistikStatus.keinStamm => t.t('bund_status_no_stamm'),
@@ -728,7 +684,7 @@ class _TransparenzCard extends StatelessWidget {
         children: [
           Text(
             t.t('bund_basis_participants', {
-              'count': aggregat.teilnehmendeStaemme,
+              'count': aggregat.teilnehmendeStaemmeUeber ?? 0,
             }),
           ),
           if (von != null && bis != null)

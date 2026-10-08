@@ -288,35 +288,29 @@ final bundesstatistikBeispielKennzahlenTeilsicht = StammesKennzahlen(
   ],
 );
 
-GruppenKennzahlAggregat _gk(num summe, int staemme, int gruppen, num median) =>
-    GruppenKennzahlAggregat(
-      summe: summe,
-      stammAnzahl: staemme,
-      median: median,
-      gruppenAnzahl: gruppen,
-    );
-
-StufenGruppenAggregat _stufeGruppen(int gruppen, int staemme, num median) =>
+StufenGruppenAggregat _stufeGruppen(double proStamm, num median) =>
     StufenGruppenAggregat(
-      gruppenAnzahl: gruppen,
-      stammAnzahl: staemme,
-      gruppenProStamm: _k(gruppen, staemme, 1),
+      gruppenProStamm: _k(proStamm, 1),
       mitglieder: {
-        'gesamt': _gk(gruppen * median, staemme, gruppen, median),
-        'weiblich': _gk(gruppen * median * 0.46, staemme, gruppen, median / 2),
-        'maennlich': _gk(gruppen * median * 0.52, staemme, gruppen, median / 2),
-        'divers': _gk(gruppen * 0.1, staemme, gruppen, 0),
-        'geschlecht_unbekannt': _gk(gruppen * 0.1, staemme, gruppen, 0),
+        'gesamt': _k(median.toDouble(), median),
+        'weiblich': _k(median * 0.46, median / 2, 46),
+        'maennlich': _k(median * 0.52, median / 2, 52),
+        'divers': _k(null, null, null),
+        'geschlecht_unbekannt': _k(0.2, 0, 2),
       },
-      leitende: {'gesamt': _gk(gruppen * 3, staemme, gruppen, 3)},
+      leitende: {'gesamt': _k(3, 3)},
     );
 
-KennzahlAggregat _k(num summe, int staemme, num median) =>
-    KennzahlAggregat(summe: summe, stammAnzahl: staemme, median: median);
+KennzahlAggregat _k(double? durchschnitt, num? median, [int? anteil]) =>
+    KennzahlAggregat(
+      durchschnitt: durchschnitt,
+      median: median,
+      anteil: anteil,
+    );
 
 final bundesstatistikBeispielAggregat = Bundesaggregat(
   status: BundesaggregatStatus.ok,
-  teilnehmendeStaemme: 42,
+  teilnehmendeStaemmeUeber: 40,
   mindestAnzahlStaemme: 5,
   hinweis:
       'Annäherung aus freiwillig geteilten Stammesdaten teilnehmender App-Nutzer. '
@@ -325,23 +319,23 @@ final bundesstatistikBeispielAggregat = Bundesaggregat(
   datenstandVon: DateTime(2026, 4, 20),
   datenstandBis: DateTime(2026, 6, 14),
   gruppenJeStufe: {
-    'biber': _stufeGruppen(33, 30, 5),
-    'woelflinge': _stufeGruppen(55, 42, 9),
-    'jungpfadfinder': _stufeGruppen(52, 41, 8),
-    'pfadfinder': _stufeGruppen(45, 40, 7),
-    'rover': _stufeGruppen(38, 36, 5),
+    'biber': _stufeGruppen(1.1, 5),
+    'woelflinge': _stufeGruppen(1.3, 9),
+    'jungpfadfinder': _stufeGruppen(1.3, 8),
+    'pfadfinder': _stufeGruppen(1.1, 7),
+    'rover': _stufeGruppen(1.1, 5),
   },
   kennzahlen: {
-    'biber.gesamt': _k(180, 30, 5),
-    'woelflinge.gesamt': _k(520, 42, 12),
-    'jungpfadfinder.gesamt': _k(430, 41, 10),
-    'pfadfinder.gesamt': _k(350, 40, 8),
-    'rover.gesamt': _k(210, 36, 5.5),
-    'leitende_biber.gesamt': _k(60, 30, 2),
-    'leitende_woelflinge.gesamt': _k(150, 42, 3.5),
-    'leitende_jungpfadfinder.gesamt': _k(120, 41, 3),
-    'leitende_pfadfinder.gesamt': _k(100, 40, 2),
-    'leitende_rover.gesamt': _k(70, 36, 2),
+    'biber.gesamt': _k(6, 5),
+    'woelflinge.gesamt': _k(12.4, 12),
+    'jungpfadfinder.gesamt': _k(10.5, 10),
+    'pfadfinder.gesamt': _k(8.8, 8),
+    'rover.gesamt': _k(5.8, 6),
+    'leitende_biber.gesamt': _k(2, 2),
+    'leitende_woelflinge.gesamt': _k(3.6, 4),
+    'leitende_jungpfadfinder.gesamt': _k(2.9, 3),
+    'leitende_pfadfinder.gesamt': _k(2.5, 2),
+    'leitende_rover.gesamt': _k(1.9, 2),
     for (final stufe in [
       'biber',
       'woelflinge',
@@ -349,27 +343,27 @@ final bundesstatistikBeispielAggregat = Bundesaggregat(
       'pfadfinder',
       'rover',
     ]) ...{
-      '$stufe.weiblich': _k(170, 40, 4),
-      '$stufe.maennlich': _k(160, 40, 4),
-      '$stufe.divers': _k(6, 6, 1),
-      '$stufe.geschlecht_unbekannt': _k(8, 7, 1),
+      '$stufe.weiblich': _k(4.3, 4, 46),
+      '$stufe.maennlich': _k(4, 4, 52),
+      '$stufe.divers': _k(null, null, null),
+      '$stufe.geschlecht_unbekannt': _k(0.2, 0, 2),
     },
-    'leitende.unter_21': _k(80, 40, 2),
-    'leitende.von_21_bis_30': _k(260, 42, 6),
-    'leitende.von_31_bis_40': _k(90, 38, 2),
-    'leitende.von_41_bis_50': _k(50, 30, 1),
-    'leitende.von_51_bis_60': _k(30, 22, 1),
-    'leitende.ueber_60': const KennzahlAggregat(
-      summe: null,
-      stammAnzahl: 4,
-      median: null,
-    ),
+    'alle_stufen.gesamt': _k(43.5, 41),
+    'alle_stufen.weiblich': _k(20, 19, 46),
+    'alle_stufen.maennlich': _k(22.6, 21, 52),
+    'alle_stufen.divers': _k(null, null, null),
+    'alle_stufen.geschlecht_unbekannt': _k(0.9, 1, 2),
+    'leitende.unter_21': _k(2, 2, 15),
+    'leitende.von_21_bis_30': _k(6.2, 6, 50),
+    'leitende.von_31_bis_40': _k(2.4, 2, 17),
+    'leitende.von_41_bis_50': _k(1.7, 1, 10),
+    'leitende.von_51_bis_60': _k(1.4, 1, 6),
+    'leitende.ueber_60': _k(null, null, null),
   },
 );
 
 final _zuWenigAggregat = Bundesaggregat(
   status: BundesaggregatStatus.zuWenigTeilnahme,
-  teilnehmendeStaemme: 3,
   mindestAnzahlStaemme: 5,
   hinweis: '',
   kennzahlen: const {},
