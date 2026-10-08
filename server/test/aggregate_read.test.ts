@@ -193,6 +193,34 @@ describe('bund aggregate read route', () => {
         });
     });
 
+    test('lets a sender without readable values read, without counting its stamm', async () => {
+        await shareSnapshot('stamm-1', 'install-1', 5);
+        await shareSnapshot('stamm-2', 'install-2', 7);
+        // Leitung ohne lesbare Rollen: Teilnahme ohne Werte, nur die Gruppenstruktur.
+        const response = await server.inject({
+            method: 'POST',
+            url: '/snapshots/stamm',
+            headers: authHeader(),
+            payload: createValidPayload({
+                stamm_id: 'stamm-3',
+                sender_id: 'install-3',
+                sent_at: time.now.toISOString(),
+                source_data_as_of: time.now.toISOString(),
+                abdeckung: 'gruppen',
+                gruppen: [fremdeGruppe('g-woe', 'woelflinge'), fremdeGruppe('g-biber', 'biber')],
+            }),
+        });
+        expect(response.statusCode).toBe(204);
+
+        const read = await readAggregate('install-3');
+
+        expect(read.statusCode).toBe(200);
+        expect(read.json()).toMatchObject({
+            status: 'insufficient_participation',
+            participating_stamm_count: 2,
+        });
+    });
+
     test('ignores the stamm-wide values of a group-only stamm', async () => {
         await shareSnapshot('stamm-1', 'install-1', 5);
         await shareSnapshot('stamm-2', 'install-2', 7);

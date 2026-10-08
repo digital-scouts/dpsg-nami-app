@@ -545,6 +545,27 @@ class AppLocalizations {
           'Hitobito-Daten konnten nicht aktualisiert werden. Bitte melde dich erneut an.',
       'member_list_no_results': 'Keine Mitglieder gefunden',
       'member_list_count': 'Mitglieder: {count}',
+      'leserechte_liste_hinweis':
+          'Mit deinem Leserecht auf {gruppen} liefert Hitobito die Rollen der anderen nicht. Stufen und Gruppenfilter fehlen deshalb.',
+      'leserechte_rollen_hinweis':
+          'Die Rollen dieser Person liefert Hitobito mit deinen Rechten nicht.',
+      'leserechte_quali_hinweis':
+          'Qualifikationen und EFZ dieser Person liefert Hitobito mit deinen Rechten nicht.',
+      'leserechte_statistik_hinweis':
+          'Ohne Rollen kann die App Stufen und Zahlen für {gruppen} nicht berechnen.',
+      'leserechte_stufenwechsel_hinweis':
+          'Ohne Rollen weiß die App nicht, wer in welcher Stufe ist.',
+      'quali_nutzen_hilft_titel': 'Hilft dir',
+      'quali_nutzen_hilft_text':
+          'Du hast Leserecht auf die ganze Ebene {ebene}. Damit siehst du Qualifikationen und EFZ aller Personen.',
+      'quali_nutzen_teilweise_titel': 'Hilft dir teilweise',
+      'quali_nutzen_teilweise_text':
+          'Du darfst {gruppen} bearbeiten und siehst dort Qualifikationen und EFZ. Für den Rest der Ebene {ebene} fehlen sie dir.',
+      'quali_nutzen_hilft_nicht_titel': 'Hilft dir nicht',
+      'quali_nutzen_hilft_nicht_text':
+          'Du hast nur Leserecht auf {gruppen}. Qualifikationen und EFZ anderer liefert Hitobito dir damit nicht, die Übersicht bringt dir keinen Mehrwert.',
+      'leserechte_quali_uebersicht_hinweis':
+          'Qualifikationen und EFZ anderer Personen liefert Hitobito mit deinen Rechten nicht. Gezählt wird nur, wer für dich voll sichtbar ist.',
       'member_list_sort_hint_name': 'Name A–Z',
       'member_list_sort_hint_vorname': 'Vorname A–Z',
       'member_list_sort_hint_age': 'Alter',
@@ -2067,6 +2088,27 @@ class AppLocalizations {
           'Hitobito data could not be refreshed. Please sign in again.',
       'member_list_no_results': 'No members found',
       'member_list_count': 'Members: {count}',
+      'leserechte_liste_hinweis':
+          'With your read permission on {gruppen}, Hitobito does not provide the roles of the others. Stages and group filters are therefore missing.',
+      'leserechte_rollen_hinweis':
+          'Hitobito does not provide the roles of this person with your permissions.',
+      'leserechte_quali_hinweis':
+          'Hitobito does not provide qualifications and record checks of this person with your permissions.',
+      'leserechte_statistik_hinweis':
+          'Without roles, the app cannot calculate stages and numbers for {gruppen}.',
+      'leserechte_stufenwechsel_hinweis':
+          'Without roles, the app does not know who is in which stage.',
+      'quali_nutzen_hilft_titel': 'Helps you',
+      'quali_nutzen_hilft_text':
+          'You can read the whole level {ebene}. You see qualifications and record checks of everyone.',
+      'quali_nutzen_teilweise_titel': 'Helps you partly',
+      'quali_nutzen_teilweise_text':
+          'You may edit {gruppen} and see qualifications and record checks there. For the rest of {ebene} they are missing.',
+      'quali_nutzen_hilft_nicht_titel': 'Does not help you',
+      'quali_nutzen_hilft_nicht_text':
+          'You only have read access to {gruppen}. Hitobito does not provide qualifications and record checks of others with it, so the overview adds no value for you.',
+      'leserechte_quali_uebersicht_hinweis':
+          'Hitobito does not provide qualifications and record checks of other people with your permissions. Only people fully visible to you are counted.',
       'member_list_sort_hint_name': 'Name A–Z',
       'member_list_sort_hint_vorname': 'First name A–Z',
       'member_list_sort_hint_age': 'Age',

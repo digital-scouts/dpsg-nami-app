@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Leserechte – Entwurf Runde 2</title>
+<style>
+  :root { --bg:#F2F2F7; --surface:#FFFFFF; --fg:#1C1C1E; --fg2:#5d5d63; --muted:#8E8E93; --primary:#003056; --gut:#1f7a4d; --gut-bg:#e5f3ea; --nein:#a1491a; --nein-bg:#fbeee4; --teil:#7a5a00; --teil-bg:#fbf3dc; }
+  .dark { --bg:#0E0E12; --surface:#1A1A22; --fg:#F0F0F5; --fg2:#a9a9b6; --muted:#8A8A9A; --primary:#5A9AD8; --gut:#6fd39b; --gut-bg:#16261d; --nein:#f2a477; --nein-bg:#2c1c13; --teil:#f0cf6a; --teil-bg:#2a2412; }
+  body { margin:0; background:#eceae4; color:#1f1f1c; font:16px/1.5 system-ui,-apple-system,sans-serif; }
+  main { max-width:1600px; margin:0 auto; padding:24px 28px 120px; }
+  h1 { font-size:1.9rem; margin:0 0 .3rem; } h2 { font-size:1.4rem; margin:34px 0 .2rem; }
+  .lead, .desc { color:#4a4943; max-width:92ch; margin:0 0 12px; }
+  .bar { position:sticky; top:0; z-index:5; background:rgba(236,234,228,.95); border-bottom:1px solid #d6d3c9; padding:10px 28px; display:flex; gap:18px; align-items:center; font-size:14px; }
+  .tgl { display:inline-flex; background:#dcd9cf; border-radius:999px; padding:3px; }
+  .tgl button { border:0; background:none; font:inherit; font-size:13px; padding:4px 12px; border-radius:999px; cursor:pointer; }
+  .tgl button.on { background:#003056; color:#fff; }
+  .reihe { display:flex; gap:26px; flex-wrap:wrap; align-items:flex-start; }
+  figure { margin:0; width:282px; } figcaption { font-size:13px; color:#5d5b54; margin-top:10px; } figcaption b { color:#1f1f1c; }
+  .screen { width:264px; height:560px; border-radius:38px; overflow:hidden; background:var(--bg); color:var(--fg); box-shadow:0 0 0 9px #1c1c1e, 0 16px 36px rgba(0,0,0,.25); position:relative; margin:9px; font:13px/1.4 system-ui,-apple-system,sans-serif; display:flex; flex-direction:column; }
+  .status { height:34px; display:flex; align-items:center; justify-content:space-between; padding:0 22px; font-size:12px; font-weight:600; position:relative; background:var(--surface); }
+  .status .island { position:absolute; left:50%; top:8px; transform:translateX(-50%); width:80px; height:23px; border-radius:12px; background:#000; }
+  .appbar { background:var(--surface); text-align:center; padding:6px 0 12px; font-size:15px; }
+  .mitte { flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:0 20px 30px; }
+  .schloss { color:var(--primary); font-size:22px; }
+  .ttl { font-weight:700; font-size:16px; margin:6px 0 6px; }
+  .txt { font-size:12px; }
+  .klein { font-size:10.5px; color:var(--fg2); margin-top:10px; }
+  .karte { margin-top:14px; border-radius:14px; padding:10px 12px; text-align:left; display:flex; gap:9px; width:100%; box-sizing:border-box; }
+  .karte b { display:block; font-size:12.5px; margin-bottom:2px; }
+  .karte span { font-size:11.5px; line-height:1.4; }
+  .gut { background:var(--gut-bg); } .gut b, .gut .ic { color:var(--gut); }
+  .nein { background:var(--nein-bg); } .nein b, .nein .ic { color:var(--nein); }
+  .teil { background:var(--teil-bg); } .teil b, .teil .ic { color:var(--teil); }
+  .ic { font-weight:700; font-size:14px; line-height:1.1; }
+  .zeile { margin-top:12px; font-size:11.5px; display:flex; gap:6px; text-align:left; }
+  .zeile.gut, .zeile.nein, .zeile.teil { background:none; }
+  .zeile.gut { color:var(--gut); } .zeile.nein { color:var(--nein); } .zeile.teil { color:var(--teil); }
+  .feedback { position:fixed; left:0; right:0; bottom:0; background:#1f1f1c; color:#fff; padding:10px 28px; display:flex; gap:14px; align-items:center; font-size:14px; flex-wrap:wrap; z-index:9; }
+  .feedback select, .feedback input { font:inherit; font-size:13px; padding:4px 8px; border-radius:8px; border:0; }
+  .feedback input { flex:1; min-width:240px; }
+  .feedback button { font:inherit; font-size:13px; padding:6px 14px; border-radius:999px; border:0; background:#f2c26b; color:#1f1f1c; cursor:pointer; font-weight:600; }
+  .open { background:#fff8e6; border:1px solid #efd9a2; border-radius:12px; padding:10px 16px; max-width:980px; font-size:14px; color:#4a3f1c; }
+</style>
+</head>
+<body>
+<div class="bar"><b>Leserechte · Runde 2 · Qualifikationen gesperrt</b>
+  <span class="tgl" id="modus"><button class="on" data-m="hell">Hell</button><button data-m="dunkel">Dunkel</button></span>
+</div>
+<main>
+  <h1>Gesperrte Qualifikationen-Seite: Hilft dir das Supporter-Paket?</h1>
+  <p class="lead">Die Übersicht lohnt sich nur, wenn Hitobito dir Qualifikationen anderer liefert. Unter dem Werbetext steht deshalb, was die Seite mit deinen Rechten bringt. Das gilt für die Ebene, in der du gerade bist.</p>
+  <div class="open"><ul>
+    <li><b>Hilft dir:</b> Leserecht auf den ganzen Stamm (<code>layer_read</code>, <code>layer_and_below_read</code> oder höher).</li>
+    <li><b>Hilft dir teilweise:</b> Schreibrecht auf einzelne Gruppen (<code>group_full</code>). Für diese Gruppen gibt es Qualifikationen.</li>
+    <li><b>Hilft dir nicht:</b> nur Leserecht auf Gruppen (<code>group_read</code>). Du siehst nur deine eigenen Qualifikationen.</li>
+  </ul></div>
+  <div id="varianten"></div>
+</main>
+<div class="feedback"><b>Rückmeldung</b>
+  <label>Variante <select id="wahl"><option>A · Karte</option><option>B · Zeile</option></select></label>
+  <label>Teilweise <select id="teil"><option>behalten</option><option>weglassen</option></select></label>
+  <input id="kommentar" placeholder="Kommentar, z. B. Texte">
+  <button id="kopieren">Auswahl kopieren</button><span id="kopiert"></span>
+</div>
+<script>
+let modus = 'hell';
+const status = `<div class="status"><span>9:41</span><span class="island"></span><span>●●●</span></div>`;
+const FAELLE = [
+  ['gut', '✓', 'Hilft dir', 'Du hast Leserecht auf den ganzen Stamm Silberfels. Damit siehst du Qualifikationen und EFZ aller Personen.'],
+  ['teil', '◐', 'Hilft dir teilweise', 'Du darfst Trupp Kompass bearbeiten und siehst dort Qualifikationen und EFZ. Für den übrigen Stamm fehlen sie dir.'],
+  ['nein', '✕', 'Hilft dir nicht', 'Du hast nur Leserecht auf Trupp Kompass. Qualifikationen und EFZ anderer liefert Hitobito dir damit nicht, die Übersicht bringt dir keinen Mehrwert.'],
+];
+function seite(v, [klasse, ic, titel, text]) {
+  const hinweis = v === 'A'
+    ? `<div class="karte ${klasse}"><span class="ic">${ic}</span><div><b>${titel}</b><span>${text}</span></div></div>`
+    : `<div class="zeile ${klasse}"><span class="ic">${ic}</span><span><b style="display:inline">${titel}:</b> ${text}</span></div>`;
+  return `<div class="screen ${modus === 'dunkel' ? 'dark' : ''}">${status}<div class="appbar">Qualifikationen</div>
+    <div class="mitte"><div class="schloss">🔒</div><div class="ttl">Teil des Supporter-Pakets</div>
+    <div class="txt">Mit der Übersicht siehst du für den ganzen Arbeitskontext, wer welche Qualifikation braucht und wann sie abläuft, und kannst dich erinnern lassen.</div>
+    ${hinweis}
+    <div class="klein">Deine eigenen Qualifikationen siehst du weiter in deinen Mitgliedsdetails, Erinnerungen dafür gibt es unter Benachrichtigungen.</div></div></div>`;
+}
+const VARIANTEN = [
+  { id: 'A', titel: 'A · Getönte Karte', text: 'Eine farbige Karte mit Zeichen, Titel und Satz. Grün, gelb oder orange, je nach Nutzen. Fällt deutlich auf.' },
+  { id: 'B', titel: 'B · Farbige Zeile', text: 'Dieselbe Aussage als Zeile in der Farbe des Zustands, ohne Fläche. Ruhiger und passt zur Hinweiszeile aus Runde 1.' },
+];
+function render() {
+  document.getElementById('varianten').innerHTML = VARIANTEN.map((v) => `
+    <h2>${v.titel}</h2><p class="desc">${v.text}</p>
+    <div class="reihe">${FAELLE.map((f) => `<figure>${seite(v.id, f)}<figcaption><b>${f[2]}</b></figcaption></figure>`).join('')}</div>`).join('');
+}
+document.getElementById('modus').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  [...e.currentTarget.children].forEach((x) => x.classList.toggle('on', x === b));
+  modus = b.dataset.m; render();
+});
+const p = new URLSearchParams(location.search);
+if (p.get('modus')) { modus = p.get('modus'); document.querySelectorAll('#modus button').forEach((b) => b.classList.toggle('on', b.dataset.m === modus)); }
+render();
+document.getElementById('kopieren').addEventListener('click', async () => {
+  const text = `Leserechte Runde 2: ${document.getElementById('wahl').value}, teilweise ${document.getElementById('teil').value}. ${document.getElementById('kommentar').value}`.trim();
+  try { await navigator.clipboard.writeText(text); document.getElementById('kopiert').textContent = 'kopiert'; } catch { prompt('Zum Kopieren:', text); }
+});
+</script>
+</body>
+</html>

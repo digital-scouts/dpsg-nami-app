@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../domain/arbeitskontext/arbeitskontext_read_model.dart';
 import '../../../domain/member/member_utils.dart';
+import '../../../domain/member/mitglied.dart';
 import '../../model/appearance_model.dart';
 import '../../model/arbeitskontext_model.dart';
 import '../../model/auth_session_model.dart';
@@ -23,6 +24,20 @@ class QualifikationenKontext {
 
   static int? eigenePersonId(BuildContext context) =>
       _maybeWatch<AuthSessionModel>(context)?.profile?.namiId;
+
+  /// Ob Hitobito fuer eine Person Qualifikationen und EFZ liefert; ohne
+  /// ArbeitskontextModel (Stories, Tests) gilt jede Person als lesbar.
+  static bool Function(Mitglied mitglied)? istVollLesbar(
+    BuildContext context,
+  ) => _maybeWatch<ArbeitskontextModel>(context)?.istVollLesbar;
+
+  /// Ob es Personen gibt, deren Qualifikationen Hitobito nicht liefert.
+  static bool hatNichtLesbare(
+    ArbeitskontextReadModel readModel,
+    bool Function(Mitglied mitglied)? istVollLesbar,
+  ) =>
+      istVollLesbar != null &&
+      readModel.mitglieder.any((mitglied) => !istVollLesbar(mitglied));
 
   /// Personen mit mindestens einer heute aktiven Rolle ausser
   /// `Group::Mitglieder::*`.

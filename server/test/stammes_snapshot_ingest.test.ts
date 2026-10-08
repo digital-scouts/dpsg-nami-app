@@ -208,13 +208,21 @@ describe('stammes snapshot ingest route', () => {
 
     test.each([
         ['a stamm snapshot with an uncovered group', 'stamm', [gruppe('g1', 'biber', 5), fremdeGruppe('g2', 'rover')]],
-        ['a group snapshot without covered groups', 'gruppen', [fremdeGruppe('g1', 'biber')]],
         ['duplicate group ids', 'stamm', [gruppe('g1', 'biber', 5), gruppe('g1', 'rover', 3)]],
     ])('rejects %s as invalid coverage', async (_name, abdeckung, gruppen) => {
         const response = await postSnapshot(createValidPayload({ abdeckung, gruppen }));
 
         expect(response.statusCode).toBe(400);
         expect(response.json().error).toMatchObject({ code: 'invalid_coverage', fields: ['gruppen'] });
+    });
+
+    test('accepts a group snapshot without covered groups as participation without values', async () => {
+        const response = await postSnapshot(createValidPayload({
+            abdeckung: 'gruppen',
+            gruppen: [fremdeGruppe('g1', 'biber'), fremdeGruppe('g2', 'rover')],
+        }));
+
+        expect(response.statusCode).toBe(204);
     });
 
     test('rejects missing coverage, groups and stamm metrics', async () => {

@@ -311,6 +311,24 @@ class _StatisticsPageState extends State<StatisticsPage> {
     }
   }
 
+  /// Hinweis, wenn Hitobito für lesbare Gruppen keine Rollen liefert und
+  /// die Zahlen dieser Gruppen deshalb unbekannt sind.
+  String? _rollenHinweis(
+    AppLocalizations t,
+    StatistikAbdeckung? abdeckung,
+    ArbeitskontextReadModel? readModel,
+  ) {
+    final ohneRollen = abdeckung?.gruppenOhneRollen ?? const <int>{};
+    if (readModel == null || ohneRollen.isEmpty) {
+      return null;
+    }
+    final namen = <String>[
+      for (final gruppe in readModel.gruppen)
+        if (ohneRollen.contains(gruppe.id)) gruppe.anzeigename,
+    ];
+    return t.t('leserechte_statistik_hinweis', {'gruppen': namen.join(', ')});
+  }
+
   @override
   Widget build(BuildContext context) {
     final injectedReadModel = widget.debugReadModel;
@@ -361,6 +379,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
       child: StatistikStammAnsicht(
         daten: daten,
         nurUeberblick: teilsicht,
+        hinweis: _rollenHinweis(t, abdeckung, vollesReadModel),
         initialesThema: widget.debugThema,
         unterUeberblick: geladen
             ? Center(

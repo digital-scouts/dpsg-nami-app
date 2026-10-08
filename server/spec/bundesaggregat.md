@@ -9,7 +9,7 @@
 - Erfolgsantwort: `200 OK`
 - Fehlerantworten:
   - `401` mit `missing_sender_credentials` oder `invalid_sender_credentials`
-  - `403` mit `not_participating`, wenn die Installation noch nie oder seit mehr als 14 Tagen keinen Snapshot erfolgreich gesendet hat
+  - `403` mit `not_participating`, wenn die Installation noch nie oder seit mehr als 14 Tagen keinen Snapshot erfolgreich gesendet hat. Eine Teilnahme ohne Werte zählt dabei als Snapshot.
   - `429` mit `rate_limited`
 
 ## Antwort

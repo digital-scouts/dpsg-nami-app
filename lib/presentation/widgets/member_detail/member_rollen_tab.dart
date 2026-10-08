@@ -8,6 +8,7 @@ import '../../../domain/stufenwechsel/naechster_stufenwechsel.dart';
 import '../../../domain/taetigkeit/pfadfinder_verlauf.dart';
 import '../../../domain/taetigkeit/stufe.dart';
 import '../../../l10n/app_localizations.dart';
+import '../leserechte_hinweis.dart';
 import '../section_header.dart';
 import 'member_pfadfinder_verlauf.dart';
 import 'member_rollen_zeitstrahl.dart';
@@ -20,6 +21,7 @@ class MemberRollenTab extends StatelessWidget {
     required this.heute,
     this.stufenSettings,
     this.aktiverLayerName,
+    this.rollenNichtLesbar = false,
   });
 
   final Mitglied mitglied;
@@ -30,10 +32,23 @@ class MemberRollenTab extends StatelessWidget {
   final StufenSettings? stufenSettings;
   final String? aktiverLayerName;
 
+  /// Hitobito liefert die Rollen dieser Person mit den eigenen Rechten nicht.
+  /// Ohne Rollen zeigt der Tab dann den Hinweis statt eines leeren Verlaufs.
+  final bool rollenNichtLesbar;
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    if (rollenNichtLesbar && mitglied.roles.isEmpty) {
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(10, 12, 10, 16),
+        children: [
+          DpsgSectionHeader(label: t.t('verlauf_titel')),
+          LeserechteHinweis(text: t.t('leserechte_rollen_hinweis')),
+        ],
+      );
+    }
     final rollen = mitglied.roles
         .where((rolle) => !MemberUtils.istMitgliederRolle(rolle))
         .toList(growable: false);

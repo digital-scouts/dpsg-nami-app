@@ -133,8 +133,14 @@ class DemoData {
       );
     }
     final today = _now();
-    final personen = _sichtbarePersonen(layer);
-    final personIds = {for (final person in personen) person.personId};
+    final (:personen, :voll) = _sichtbarePersonen(layer);
+    // Wie Hitobito: Ohne volles Leserecht (nur `group_read`) gibt es Rollen,
+    // Qualifikationen und EFZ nur fuer die eigene Person.
+    bool vollLesbar(int personId) => voll || personId == profile.namiId;
+    final personIds = {
+      for (final person in personen)
+        if (vollLesbar(person.personId)) person.personId,
+    };
     return ArbeitskontextReadModel(
       arbeitskontext: arbeitskontext,
       rolesSindGeladen: true,
@@ -147,12 +153,16 @@ class DemoData {
         (eintrag) => personIds.contains(eintrag.personId),
       ),
       mitglieder: <Mitglied>[
-        for (final person in personen) person.toMitglied(today, layer),
+        for (final person in personen)
+          vollLesbar(person.personId)
+              ? person.toMitglied(today, layer)
+              : person.toMitglied(today, layer).copyWith(roles: const []),
       ],
       gruppen: layer.gruppen,
       mitgliedsZuordnungen: <ArbeitskontextMitgliedsZuordnung>[
         for (final person in personen)
-          if (layer.enthaeltGruppe(person.gruppenId))
+          if (vollLesbar(person.personId) &&
+              layer.enthaeltGruppe(person.gruppenId))
             ArbeitskontextMitgliedsZuordnung(
               mitgliedsnummer: person.mitgliedsnummer,
               gruppenId: person.gruppenId,
@@ -170,7 +180,7 @@ class DemoData {
     }
     final today = _now();
     return <Mitglied>[
-      for (final person in _sichtbarePersonen(layer))
+      for (final person in _sichtbarePersonen(layer).personen)
         person.toMitglied(today, layer),
     ];
   }
@@ -181,7 +191,7 @@ class DemoData {
     var id = 1;
     return <EfzEinsichtnahme>[
       for (final layer in DemoBezirk.layer)
-        for (final person in _sichtbarePersonen(layer))
+        for (final person in _vollLesbarePersonen(layer))
           if (DemoBezirk.efzAlterMonate[person.mitgliedsnummer]
               case final alterMonate?)
             EfzEinsichtnahme(
@@ -207,7 +217,7 @@ class DemoData {
     var id = 1;
     return <Qualifikation>[
       for (final layer in DemoBezirk.layer)
-        for (final person in _sichtbarePersonen(layer))
+        for (final person in _vollLesbarePersonen(layer))
           for (final quali
               in DemoBezirk.qualifikationen[person.mitgliedsnummer] ??
                   const <DemoQualifikation>[])
@@ -234,28 +244,42 @@ class DemoData {
     ];
   }
 
+  /// Personen, fuer die Hitobito auch Qualifikationen und EFZ liefert: mit nur
+  /// `group_read` allein die eigene Person.
+  List<DemoPerson> _vollLesbarePersonen(DemoLayer layer) {
+    final (:personen, :voll) = _sichtbarePersonen(layer);
+    return voll
+        ? personen
+        : personen
+              .where((person) => person.personId == profile.namiId)
+              .toList(growable: false);
+  }
+
   /// Bildet die Lesesicht von Hitobito fuer die Rechte des Profils nach:
   /// `layer_read` zeigt den Layer der Rolle, `layer_and_below_read`
   /// zusaetzlich alle Layer darunter, `group_read` nur die Personen der
-  /// eigenen Gruppe.
-  List<DemoPerson> _sichtbarePersonen(DemoLayer layer) {
+  /// eigenen Gruppe. [voll] ist falsch, wenn nur `group_read` greift.
+  ({List<DemoPerson> personen, bool voll}) _sichtbarePersonen(DemoLayer layer) {
     final lesbareGruppen = <int>{};
     for (final rolle in profile.roles) {
       final rollenLayer = _layerIdFuerGruppe(rolle.groupId);
       if (rolle.permissions.contains('layer_read') && rollenLayer == layer.id) {
-        return layer.personen;
+        return (personen: layer.personen, voll: true);
       }
       if (rolle.permissions.contains('layer_and_below_read') &&
           _istGleichOderDarunter(layer.id, rollenLayer)) {
-        return layer.personen;
+        return (personen: layer.personen, voll: true);
       }
       if (rolle.permissions.contains('group_read')) {
         lesbareGruppen.add(rolle.groupId);
       }
     }
-    return layer.personen
-        .where((person) => lesbareGruppen.contains(person.gruppenId))
-        .toList(growable: false);
+    return (
+      personen: layer.personen
+          .where((person) => lesbareGruppen.contains(person.gruppenId))
+          .toList(growable: false),
+      voll: false,
+    );
   }
 
   static int? _layerIdFuerGruppe(int gruppenId) {

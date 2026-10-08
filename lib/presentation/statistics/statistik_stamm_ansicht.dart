@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../domain/statistiks/statistik_kachel_einstellungen.dart';
 import '../../l10n/app_localizations.dart';
 import '../widgets/app_page_header.dart';
+import '../widgets/leserechte_hinweis.dart';
 import 'kacheln/kachel_bearbeiten.dart';
 import 'kacheln/kachel_daten.dart';
 import 'kacheln/kachel_raster.dart';
@@ -27,6 +28,7 @@ class StatistikStammAnsicht extends StatefulWidget {
     this.bearbeitenLeiste,
     this.unterBearbeiten,
     this.nurUeberblick = false,
+    this.hinweis,
   });
 
   final StatistikKachelDaten daten;
@@ -45,6 +47,9 @@ class StatistikStammAnsicht extends StatefulWidget {
 
   /// Wird unter dem Überblick angezeigt, z. B. der Knopf „Bearbeiten“.
   final Widget? unterUeberblick;
+
+  /// Steht über dem Überblick, z. B. wenn Rollen für Zahlen fehlen.
+  final String? hinweis;
 
   @override
   State<StatistikStammAnsicht> createState() => _StatistikStammAnsichtState();
@@ -201,6 +206,9 @@ class _StatistikStammAnsichtState extends State<StatistikStammAnsicht>
               key: PageStorageKey('statistik-thema-${_aktiv.name}'),
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
               children: [
+                if (_aktiv == StatistikThema.ueberblick &&
+                    widget.hinweis != null)
+                  LeserechteHinweis(text: widget.hinweis!),
                 KachelRaster(
                   eintraege: _eintraege(_aktiv),
                   daten: widget.daten,

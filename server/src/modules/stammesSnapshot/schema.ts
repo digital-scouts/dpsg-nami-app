@@ -297,13 +297,16 @@ const stammesSnapshotSchema = z.object({
     if (
         ids.size !== gruppen.length
         || (abdeckung === 'stamm' && abgedeckte.length !== gruppen.length)
-        || (abdeckung === 'gruppen' && abgedeckte.length === 0)
     ) {
         ctx.addIssue({ code: 'custom', message: invalidCoverageCode, path: ['gruppen'] });
         return z.NEVER;
     }
 
-    if (!abgedeckte.some((gruppe) => (gruppe.mitglieder?.gesamt ?? 0) > 0)) {
+    // Eine Teilsicht ohne abgedeckte Gruppe ist eine Teilnahme ohne Werte: Sie liefert nur die
+    // Gruppenstruktur und berechtigt zum Lesen, zaehlt aber nicht als teilnehmender Stamm.
+    const ohneWerte = abdeckung === 'gruppen' && abgedeckte.length === 0;
+
+    if (!ohneWerte && !abgedeckte.some((gruppe) => (gruppe.mitglieder?.gesamt ?? 0) > 0)) {
         ctx.addIssue({ code: 'custom', message: invalidStammPlausibilityCode, path: ['gruppen'] });
         return z.NEVER;
     }

@@ -8,6 +8,7 @@ import 'package:nami/domain/appearance/support_access.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model.dart';
 import 'package:nami/domain/arbeitskontext/teildaten_stand.dart';
+import 'package:nami/domain/bundesstatistik/statistik_abdeckung.dart';
 import 'package:nami/domain/qualifikation/personenkreis.dart';
 import 'package:nami/domain/qualifikation/qualifikations_einstellungen.dart';
 import 'package:nami/l10n/app_localizations.dart';
@@ -123,6 +124,43 @@ void main() {
     expect(find.text('Teil des Förderer-Abos'), findsOneWidget);
     expect(find.byKey(const Key('quali-zeile-efz')), findsNothing);
     expect(find.byKey(const Key('quali-auswahl-oeffnen')), findsNothing);
+  });
+
+  testWidgets('gesperrt zeigt, was die Uebersicht mit den Rechten bringt', (
+    tester,
+  ) async {
+    final readModel = _readModel().copyWith(
+      gruppen: const [
+        ArbeitskontextGruppe(id: 22, name: 'Trupp Kompass', layerId: 11),
+      ],
+    );
+    Future<void> zeige(StatistikAbdeckung abdeckung) => pumpSeite(
+      tester,
+      SettingsQualifikationenPage(
+        key: UniqueKey(),
+        readModel: readModel,
+        heuteProvider: _heute,
+        abdeckung: abdeckung,
+      ),
+      supporter: false,
+    );
+
+    await zeige(const StatistikAbdeckung.stamm());
+    expect(find.byKey(const Key('quali-nutzen-hilft')), findsOneWidget);
+    expect(find.text('Hilft dir'), findsOneWidget);
+
+    await zeige(StatistikAbdeckung.gruppen({22}, vollLesbareGruppenIds: {22}));
+    expect(find.byKey(const Key('quali-nutzen-teilweise')), findsOneWidget);
+    expect(find.textContaining('Du darfst Trupp Kompass'), findsOneWidget);
+
+    await zeige(
+      StatistikAbdeckung.gruppen(const <int>{}, gruppenOhneRollen: {22}),
+    );
+    expect(find.byKey(const Key('quali-nutzen-hilftNicht')), findsOneWidget);
+    expect(
+      find.textContaining('Du hast nur Leserecht auf Trupp Kompass'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('ohne EFZ-Recht ist nur die EFZ-Zeile gesperrt', (tester) async {
