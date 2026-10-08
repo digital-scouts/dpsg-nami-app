@@ -26,6 +26,15 @@ Ohne Hitobito-Zugang lässt sich die App über „Demo ansehen“ auf dem Anmeld
 Für die Entwicklung gegen die Demo-Instanz verwendet die App eine reduzierte Hitobito-Konfiguration über `.env` mit `HITOBITO_BASE_URL`, Client-ID, Client-Secret und Redirect-URI. Authorization-, Token-, Discovery-, Profil- und People-Endpunkte werden daraus im Code abgeleitet. Client-ID und Client-Secret können zusätzlich in den Entwickler-Werkzeugen (nur Debug- und Profile-Builds, unter Hilfe & Diagnose) zur Laufzeit testweise überschrieben werden; im Release gilt immer die `.env`, ein gespeicherter Override wird ignoriert; die Werte werden lokal sicher gespeichert und erst nach erfolgreicher Prüfung übernommen.
 Neue Env-Keys müssen immer auch in [.env.example](.env.example) enthalten sein, weil lokale Validierung, GitHub Actions und Xcode Cloud dieses Template als Referenz verwenden.
 
+## Supporter-Käufe
+
+Design-Pakete und Förderer-Abo laufen über `in_app_purchase`. Die Store-Anbindung ist nur aktiv, wenn `SUPPORTER_STORE_ENABLED=true` gesetzt ist. Ohne den Schalter gibt es keinen Kaufweg, und gesperrte Optionen bleiben gesperrt. Die Produkt-IDs stehen in [supporter_produkt.dart](lib/domain/supporter/supporter_produkt.dart) und sind in App Store Connect und der Play Console identisch angelegt.
+
+- Ohne Store testen: In Debug- und Profile-Builds simuliert Debug & Tools einen Kauf. Diese Auswahl geht dem Store vor.
+- iOS lokal: In Xcode unter Edit Scheme → Run → Options die Datei [ios/Supporter.storekit](ios/Supporter.storekit) als StoreKit-Konfiguration wählen und aus Xcode starten.
+- iOS Sandbox: In Xcode Cloud die Variable `SUPPORTER_STORE_ENABLED=true` setzen und in TestFlight mit einem Sandbox-Konto kaufen.
+- Android: Die Repository-Variable `SUPPORTER_STORE_ENABLED=true` setzen; der interne Track nutzt sie dann. Gekauft wird mit einem Lizenztester-Konto.
+
 ## Versionierung
 
 Die aktuelle App-Version wird zentral in [pubspec.yaml](pubspec.yaml) gepflegt.
@@ -81,7 +90,7 @@ Außerdem bricht der Hook ab, wenn API-Mitschnitte versioniert werden sollen, al
 Die gleiche Versionsprüfung läuft zusätzlich in GitHub Actions:
 
 - [validate-pull-requests.yml](.github/workflows/validate-pull-requests.yml) validiert Pull Requests nach `develop` und `master` mit Versionscheck, Formatierung, Analyse und Tests.
-- [deploy-android-internal.yml](.github/workflows/deploy-android-internal.yml) baut ein Android App Bundle und deployed es nach Pushes auf `develop`, nach gemergten Pull Requests auf `master` oder manuell in den internen Play-Track. Die `.env` entsteht aus [.env.example](.env.example): Wiredash, Geoapify und Hitobito kommen wie in Xcode Cloud nur aus CI (Secrets `PROD_WIREDASH_SECRET`, `PROD_WIREDASH_PROJECT_ID`, `GEOAPIFY_KEY`, `HITOBITO_OAUTH_CLIENT_SECRET`; Variablen `HITOBITO_BASE_URL`, `HITOBITO_OAUTH_CLIENT_ID`, `HITOBITO_OAUTH_REDIRECT_URI`) und erzeugen bei fehlenden Werten eine Warnung. Alle übrigen Keys übernehmen den Default aus `.env.example`.
+- [deploy-android-internal.yml](.github/workflows/deploy-android-internal.yml) baut ein Android App Bundle und deployed es nach Pushes auf `develop`, nach gemergten Pull Requests auf `master` oder manuell in den internen Play-Track. Die `.env` entsteht aus [.env.example](.env.example): Wiredash, Geoapify und Hitobito kommen wie in Xcode Cloud nur aus CI (Secrets `PROD_WIREDASH_SECRET`, `PROD_WIREDASH_PROJECT_ID`, `GEOAPIFY_KEY`, `HITOBITO_OAUTH_CLIENT_SECRET`; Variablen `HITOBITO_BASE_URL`, `HITOBITO_OAUTH_CLIENT_ID`, `HITOBITO_OAUTH_REDIRECT_URI`) und erzeugen bei fehlenden Werten eine Warnung. Alle übrigen Keys übernehmen den Default aus `.env.example`; die Repository-Variablen `STATS_SERVER_URL` und `SUPPORTER_STORE_ENABLED` überschreiben ihn optional.
 - [create-github-release.yml](.github/workflows/create-github-release.yml) erstellt nach gemergten Pull Requests auf `master` oder manuell einen GitHub Release auf Basis der Version aus [pubspec.yaml](pubspec.yaml) und der Eintraege aus [assets/changelog.json](assets/changelog.json).
 
 Die Workflows laufen nur für den Bereich, der sich geändert hat:

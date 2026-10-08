@@ -67,6 +67,7 @@ import 'data/bundesstatistik/secure_installation_credentials_repository.dart';
 import 'data/bundesstatistik/shared_prefs_bundesstatistik_teilnahme_repository.dart';
 import 'data/maps/shared_prefs_address_map_location_repository.dart';
 import 'data/appearance/shared_prefs_appearance_settings_repository.dart';
+import 'data/supporter/shared_prefs_supporter_kauf_repository.dart';
 import 'data/achievements/shared_prefs_achievement_repository.dart';
 import 'domain/achievements/achievement_definition.dart';
 import 'data/settings/shared_prefs_app_settings_repository.dart';
@@ -81,6 +82,7 @@ import 'domain/statistiks/statistik_verlauf.dart';
 import 'l10n/app_localizations.dart';
 import 'presentation/model/app_settings_model.dart';
 import 'presentation/model/appearance_model.dart';
+import 'presentation/model/supporter_kauf_model.dart';
 import 'presentation/model/bundesstatistik_model.dart';
 import 'presentation/model/locale_model.dart';
 import 'presentation/model/member_filters_model.dart';
@@ -114,6 +116,8 @@ import 'services/hitobito_people_service.dart';
 import 'services/hitobito_traffic_log_service.dart';
 import 'services/legacy_app_data_cleanup_service.dart';
 import 'services/logger_service.dart';
+import 'services/supporter/supporter_env.dart';
+import 'services/supporter/supporter_store_client.dart';
 import 'services/qualifikations_erinnerung_service.dart';
 import 'services/map_tile_cache_service.dart';
 import 'services/network_access_policy.dart';
@@ -247,27 +251,48 @@ Future<void> _startApp({
     persist: (code) => settingsRepo.saveLanguageCode(code),
   )..setLocale(Locale(initial.languageCode), persist: false);
   final appSettingsModel = AppSettingsModel(initial, settingsRepo);
-  // Supporter-Zugang kommt bis zur Store-Anbindung vom Testschalter, den es
-  // nur in Debug- und Profile-Builds gibt (A-94); die Demo zeigt alles.
-  SupportAccess supportAccessVon(SupporterTestZugang zugang) => isDemo
-      ? const UnlockedSupportAccess()
-      : SchalterSupportAccess(
-          kReleaseMode ? SupporterTestZugang.keiner : zugang,
-        );
+  // Supporter-Zugang: Die Demo zeigt alles. Sonst liefert der Store den
+  // Kaufstand, sofern SUPPORTER_STORE_ENABLED gesetzt ist. Der Testschalter
+  // wirkt nur in Debug- und Profile-Builds (A-94) und geht dort dem Store vor.
+  final supporterKaufModel = !isDemo && SupporterEnv.storeEnabled
+      ? SupporterKaufModel(
+          client: InAppPurchaseStoreClient(),
+          repository: SharedPrefsSupporterKaufRepository(),
+          log: (message) => _activeLogger?.logWarn('supporter', message),
+        )
+      : null;
+  SupportAccess aktuellerSupportAccess() {
+    if (isDemo) {
+      return const UnlockedSupportAccess();
+    }
+    final zugang = kReleaseMode
+        ? SupporterTestZugang.keiner
+        : appSettingsModel.supporterTestZugang;
+    if (supporterKaufModel == null || zugang != SupporterTestZugang.keiner) {
+      return SchalterSupportAccess(zugang);
+    }
+    return supporterKaufModel.access;
+  }
+
   final appearanceModel = AppearanceModel(
     repository: SharedPrefsAppearanceSettingsRepository(),
     appIconService: MethodChannelAppIconService(),
-    access: supportAccessVon(initial.supporterTestZugang),
+    access: aktuellerSupportAccess(),
   );
   await appearanceModel.load();
-  var supporterTestZugang = appSettingsModel.supporterTestZugang;
-  appSettingsModel.addListener(() {
-    if (appSettingsModel.supporterTestZugang == supporterTestZugang) {
-      return;
+  void aktualisiereSupportAccess() {
+    final neu = aktuellerSupportAccess();
+    final alt = appearanceModel.access;
+    if (neu.foerderer != alt.foerderer || !setEquals(neu.pakete, alt.pakete)) {
+      appearanceModel.updateAccess(neu);
     }
-    supporterTestZugang = appSettingsModel.supporterTestZugang;
-    appearanceModel.updateAccess(supportAccessVon(supporterTestZugang));
-  });
+  }
+
+  appSettingsModel.addListener(aktualisiereSupportAccess);
+  if (supporterKaufModel != null) {
+    supporterKaufModel.addListener(aktualisiereSupportAccess);
+    unawaited(supporterKaufModel.start());
+  }
   final qualifikationsEinstellungenModel = QualifikationsEinstellungenModel(
     isDemo
         ? InMemoryQualifikationsEinstellungenRepository()
@@ -717,6 +742,10 @@ Future<void> _startApp({
         ),
         ChangeNotifierProvider<LocaleModel>.value(value: localeModel),
         ChangeNotifierProvider<AppearanceModel>.value(value: appearanceModel),
+        if (supporterKaufModel != null)
+          ChangeNotifierProvider<SupporterKaufModel>.value(
+            value: supporterKaufModel,
+          ),
         Provider<AppSettingsRepository>.value(value: settingsRepo),
         Provider<NetworkAccessPolicy>.value(value: networkAccessPolicy),
         Provider<AppUpdateService>.value(value: appUpdateService),

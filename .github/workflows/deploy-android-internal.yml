@@ -120,6 +120,8 @@ jobs:
           HITOBITO_OAUTH_REDIRECT_URI: ${{ vars.HITOBITO_OAUTH_REDIRECT_URI }}
           # Optional; ohne Repository-Variable gilt der Default aus .env.example.
           STATS_SERVER_URL: ${{ vars.STATS_SERVER_URL }}
+          # Optional; true schaltet Supporter-Kaeufe fuer Tester im internen Track frei.
+          SUPPORTER_STORE_ENABLED: ${{ vars.SUPPORTER_STORE_ENABLED }}
         run: |
           set -euo pipefail
           # Wie ios/ci_scripts/ci_pre_xcodebuild.sh (require_env): diese Keys
