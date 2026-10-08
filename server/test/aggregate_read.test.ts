@@ -30,7 +30,6 @@ describe('bund aggregate read route', () => {
             payload: createValidPayload({
                 stamm_id: stammId,
                 sender_id: senderId,
-                sent_at: time.now.toISOString(),
                 source_data_as_of: time.now.toISOString(),
                 gruppen: [gruppe('g-biber', 'biber', biber)],
             }),
@@ -137,7 +136,7 @@ describe('bund aggregate read route', () => {
         expect(body.metrics.biber.divers).toEqual({ sum: null, stamm_count: 0, median: null });
     });
 
-    test('uses only the newest data state per stamm across senders', async () => {
+    test('keeps the values of an active installation when another one sends for the same stamm', async () => {
         await shareSnapshot('stamm-1', 'install-1', 5);
         await shareSnapshot('stamm-2', 'install-2', 7);
         await shareSnapshot('stamm-3', 'install-3', 3);
@@ -147,10 +146,10 @@ describe('bund aggregate read route', () => {
         const body = (await readAggregate('install-1')).json();
 
         expect(body.participating_stamm_count).toBe(3);
-        expect(body.metrics.biber.gesamt).toEqual({ sum: 19, stamm_count: 3, median: 7 });
+        expect(body.metrics.biber.gesamt).toEqual({ sum: 15, stamm_count: 3, median: 5 });
     });
 
-    test('merges a newer group snapshot into the stamm and serves group sizes', async () => {
+    test('ignores a newer partial view of a stamm whose installation is active', async () => {
         await shareSnapshot('stamm-1', 'install-1', 5);
         await shareSnapshot('stamm-2', 'install-2', 7);
         await shareSnapshot('stamm-3', 'install-3', 3);
@@ -162,7 +161,6 @@ describe('bund aggregate read route', () => {
             payload: createValidPayload({
                 stamm_id: 'stamm-1',
                 sender_id: 'install-gruppe',
-                sent_at: time.now.toISOString(),
                 source_data_as_of: time.now.toISOString(),
                 abdeckung: 'gruppen',
                 gruppen: [gruppe('g-biber', 'biber', 11, 2)],
@@ -175,15 +173,15 @@ describe('bund aggregate read route', () => {
 
         expect(body.status).toBe('ok');
         expect(body.participating_stamm_count).toBe(3);
-        expect(body.metrics.biber.gesamt).toEqual({ sum: 21, stamm_count: 3, median: 7 });
+        expect(body.metrics.biber.gesamt).toEqual({ sum: 15, stamm_count: 3, median: 5 });
         // Stammweite Werte der Teilsicht werden verworfen, der Stamm-Snapshot bleibt massgeblich.
         expect(body.metrics.leitende.gesamt).toEqual({ sum: 9, stamm_count: 3, median: 3 });
         expect(body.gruppen_je_stufe.biber).toMatchObject({
             gruppen_count: 3,
             stamm_count: 3,
             gruppen_pro_stamm: { sum: 3, stamm_count: 3, median: 1 },
-            mitglieder: { gesamt: { sum: 21, stamm_count: 3, gruppen_count: 3, median: 7 } },
-            leitende: { gesamt: { sum: 4, stamm_count: 3, gruppen_count: 3, median: 1 } },
+            mitglieder: { gesamt: { sum: 15, stamm_count: 3, gruppen_count: 3, median: 5 } },
+            leitende: { gesamt: { sum: 3, stamm_count: 3, gruppen_count: 3, median: 1 } },
         });
         expect(body.gruppen_je_stufe.woelflinge.mitglieder.gesamt).toEqual({
             sum: null,
@@ -204,7 +202,6 @@ describe('bund aggregate read route', () => {
             payload: createValidPayload({
                 stamm_id: 'stamm-3',
                 sender_id: 'install-3',
-                sent_at: time.now.toISOString(),
                 source_data_as_of: time.now.toISOString(),
                 abdeckung: 'gruppen',
                 gruppen: [fremdeGruppe('g-woe', 'woelflinge'), fremdeGruppe('g-biber', 'biber')],
@@ -231,7 +228,6 @@ describe('bund aggregate read route', () => {
             payload: createValidPayload({
                 stamm_id: 'stamm-3',
                 sender_id: 'install-3',
-                sent_at: time.now.toISOString(),
                 source_data_as_of: time.now.toISOString(),
                 abdeckung: 'gruppen',
                 gruppen: [gruppe('g-woe-1', 'woelflinge', 12), fremdeGruppe('g-woe-2', 'woelflinge'), fremdeGruppe('g-biber', 'biber')],

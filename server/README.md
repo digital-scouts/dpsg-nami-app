@@ -84,7 +84,7 @@ Der Betrieb auf dem vServer mit Caddy, Deploy-Workflow, Backups und Monitoring i
 
 - `GET /health`: Liveness-Check für den Docker-Healthcheck
 - `GET /health/ready`: Readiness-Check mit MongoDB-Ping, laufender Version (`GIT_SHA`), letztem Backup und Zeitpunkt des letzten Aggregats; `503`, wenn MongoDB nicht erreichbar ist
-- `POST /snapshots/stamm`: nimmt Stammes-Snapshots im Schema `2026-10-01` mit Installations-Credentials an. Ein Snapshot deckt den ganzen Stamm oder nur einzelne Gruppen ab (`abdeckung`). Der Server pseudonymisiert und speichert ihn, führt alle Snapshots des Stammes je Gruppe zum effektiven Stand zusammen und aktualisiert das Wochenaggregat; Erfolg ist `204 No Content`
+- `POST /snapshots/stamm`: nimmt Stammes-Snapshots im Schema `2026-10-08` mit Installations-Credentials an. Ein Snapshot deckt den ganzen Stamm oder nur einzelne Gruppen ab (`abdeckung`). Der Server pseudonymisiert und speichert ihn, führt alle Snapshots des Stammes nach Eingang und Haltefrist zum effektiven Stand zusammen und aktualisiert das Wochenaggregat; Erfolg ist `204 No Content`
 - `GET /aggregates/bund/latest`: liefert das materialisierte Bundesaggregat (Stufengröße je Stamm und Gruppengröße je Stufe) an Installationen, die in den letzten 14 Tagen erfolgreich gesendet haben
 
 - `GET /admin`: Web-Ansicht mit Monatsberichten über den Kreis der Teilnehmenden, geschützt mit HTTP Basic Auth (nur wenn `ADMIN_USER` und `ADMIN_PASSWORD_HASH` gesetzt sind, `spec/monatsreport.md`); dazu optional eine Telegram-Nachricht nach jedem Monat

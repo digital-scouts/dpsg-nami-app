@@ -58,8 +58,8 @@ export const registerAggregateRoutes = (
                 participating_stamm_count: participatingStammCount,
                 min_stamm_count: config.minStammCountForRead,
                 data_as_of: {
-                    oldest: aggregate?.oldest_source_data_as_of?.toISOString() ?? null,
-                    newest: aggregate?.newest_source_data_as_of?.toISOString() ?? null,
+                    oldest: aggregate?.oldest_data_as_of?.toISOString() ?? null,
+                    newest: aggregate?.newest_data_as_of?.toISOString() ?? null,
                 },
                 notice: APPROXIMATION_NOTICE,
                 metrics: hasEnoughParticipation && aggregate?.metrics != null

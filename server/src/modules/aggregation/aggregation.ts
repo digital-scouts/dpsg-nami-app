@@ -45,8 +45,8 @@ export type WeeklyAggregateDocument = {
     aggregation_type: typeof BUND_AGGREGATION_TYPE;
     generated_at: Date;
     participating_stamm_count: number;
-    oldest_source_data_as_of: Date | null;
-    newest_source_data_as_of: Date | null;
+    oldest_data_as_of: Date | null;
+    newest_data_as_of: Date | null;
     metrics: AggregatedMetrics | null;
     gruppen_je_stufe: GruppenJeStufe | null;
 };
@@ -163,10 +163,10 @@ export const computeBundAggregate = (
         aggregation_type: BUND_AGGREGATION_TYPE,
         generated_at: now,
         participating_stamm_count: derived.length,
-        oldest_source_data_as_of: derived.length > 0
+        oldest_data_as_of: derived.length > 0
             ? new Date(Math.min(...derived.map((stamm) => stamm.oldest.getTime())))
             : null,
-        newest_source_data_as_of: derived.length > 0
+        newest_data_as_of: derived.length > 0
             ? new Date(Math.max(...derived.map((stamm) => stamm.newest.getTime())))
             : null,
         metrics: template == null ? null : aggregateNode(template, metricNodes),

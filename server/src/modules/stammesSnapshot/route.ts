@@ -40,7 +40,11 @@ export const registerStammesSnapshotRoutes = (
                 now,
             );
 
-            const rawSnapshotDocument = buildRawSnapshotDocument(pseudonymizedSnapshot, now);
+            const firstSeenAt = await dependencies.rawSnapshotsRepository.findFirstSeen(
+                pseudonymizedSnapshot.stamm_pseudonym,
+                pseudonymizedSnapshot.sender_pseudonym,
+            );
+            const rawSnapshotDocument = buildRawSnapshotDocument(pseudonymizedSnapshot, now, firstSeenAt);
             const { inserted } = await dependencies.rawSnapshotsRepository.insert(rawSnapshotDocument);
 
             // Auch ein erneut gesendeter, identischer Datenstand zaehlt als Teilnahme.

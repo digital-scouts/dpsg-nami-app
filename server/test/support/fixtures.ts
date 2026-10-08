@@ -47,7 +47,6 @@ export const createValidPayload = (overrides: Record<string, unknown> = {}) => (
     stamm_id: 'stamm-123',
     dv_id: 'dv-1',
     sender_id: 'install-77',
-    sent_at: '2026-04-09T18:30:00Z',
     source_data_as_of: '2026-04-09T18:00:00Z',
     abdeckung: 'stamm',
     gruppen: [gruppe('g-biber', 'biber', 5)],

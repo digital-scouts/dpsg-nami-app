@@ -8,11 +8,10 @@ export type PseudonymizedGruppe = Omit<SnapshotGruppe, 'gruppe_id'> & {
 
 export type PseudonymizedStammesSnapshot = Omit<
     StammesSnapshotPayload,
-    'stamm_id' | 'sender_id' | 'sent_at' | 'source_data_as_of' | 'gruppen'
+    'stamm_id' | 'sender_id' | 'source_data_as_of' | 'gruppen'
 > & {
     stamm_pseudonym: string;
     sender_pseudonym: string;
-    sent_at: Date;
     source_data_as_of: Date;
     gruppen: PseudonymizedGruppe[];
 };
@@ -40,7 +39,6 @@ export const pseudonymizeStammesSnapshot = (
     sender_pseudonym: buildPseudonym('sender', snapshot.sender_id, secret),
     dv_id: snapshot.dv_id,
     bezirk_id: snapshot.bezirk_id,
-    sent_at: new Date(snapshot.sent_at),
     source_data_as_of: new Date(snapshot.source_data_as_of),
     abdeckung: snapshot.abdeckung,
     gruppen: snapshot.gruppen.map(({ gruppe_id: gruppeId, ...gruppe }) => ({

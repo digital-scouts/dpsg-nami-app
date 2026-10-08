@@ -31,6 +31,7 @@ describe('server error handling', () => {
                     insert: async () => {
                         throw new Error('E11001 secret mongo internals');
                     },
+                    findFirstSeen: async () => null,
                     findByStammSince: async () => [],
                     findSince: async () => [],
                     findBySender: async () => [],

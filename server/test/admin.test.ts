@@ -36,7 +36,7 @@ describe('admin view', () => {
             method: 'POST',
             url: '/snapshots/stamm',
             headers: authHeader(),
-            payload: createValidPayload({ dv_id: '<script>alert(1)</script>', sent_at: '2026-04-09T18:30:00Z' }),
+            payload: createValidPayload({ dv_id: '<script>alert(1)</script>' }),
         });
         store.monthlyReports.set('2026-03', {
             month: '2026-03',

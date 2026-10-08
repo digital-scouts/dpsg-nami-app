@@ -34,7 +34,6 @@ describe('mock seed', () => {
             payload: createValidPayload({
                 stamm_id: 'simulator-stamm',
                 sender_id: 'simulator-install',
-                sent_at: time.now.toISOString(),
                 source_data_as_of: time.now.toISOString(),
             }),
         });

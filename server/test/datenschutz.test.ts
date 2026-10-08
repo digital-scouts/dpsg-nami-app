@@ -98,7 +98,6 @@ describe('Speicherfrist (S-05)', () => {
             url: '/snapshots/stamm',
             headers: authHeader(secret),
             payload: createValidPayload({
-                sent_at: jetzt.toISOString(),
                 source_data_as_of: jetzt.toISOString(),
                 ...overrides,
             }),
@@ -169,7 +168,6 @@ describe('Auskunft und Löschung auf Anfrage (S-04)', () => {
                 headers: authHeader(secret),
                 payload: createValidPayload({
                     sender_id: senderId,
-                    sent_at: time.now.toISOString(),
                     source_data_as_of: time.now.toISOString(),
                     gruppen: [gruppe('g-biber', 'biber', mitglieder)],
                 }),
@@ -198,16 +196,17 @@ describe('Auskunft und Löschung auf Anfrage (S-04)', () => {
 
     test('Löschung entfernt Snapshots und Sender und baut den effektiven Stand neu auf', async () => {
         const { time, store, dependencies, server } = await aufbau();
+        // install-a kennt den Stamm laenger und ist aktiv, deshalb zaehlen ihre Werte.
         const [vorher] = [...store.effectiveStates.values()];
-        expect(vorher?.gruppen[0]?.wert?.mitglieder.gesamt).toBe(7);
+        expect(vorher?.gruppen[0]?.wert?.mitglieder.gesamt).toBe(4);
 
-        const ergebnis = await loescheInstallation(dependencies, 'install-b', 'test-secret', time.now);
+        const ergebnis = await loescheInstallation(dependencies, 'install-a', 'test-secret', time.now);
 
         expect(ergebnis).toMatchObject({ geloeschte_snapshots: 1, sender_geloescht: true });
-        expect(await auskunftFuerInstallation(dependencies, 'install-b', 'test-secret'))
+        expect(await auskunftFuerInstallation(dependencies, 'install-a', 'test-secret'))
             .toMatchObject({ sender: null, snapshots: [] });
         const [nachher] = [...store.effectiveStates.values()];
-        expect(nachher?.gruppen[0]?.wert?.mitglieder.gesamt).toBe(4);
+        expect(nachher?.gruppen[0]?.wert?.mitglieder.gesamt).toBe(7);
         expect(store.rawSnapshots).toHaveLength(1);
 
         await server.close();

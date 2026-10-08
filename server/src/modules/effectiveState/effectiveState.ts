@@ -8,27 +8,49 @@ import {
 } from '../stammesSnapshot/schema.js';
 import { subtractUtcMonths } from '../../shared/time.js';
 
-// Snapshots zaehlen nur, wenn ihr Datenstand hoechstens so alt ist.
+// Snapshots zaehlen nur, wenn ihr Eingang beim Server hoechstens so lange zurueckliegt.
 export const MAX_SNAPSHOT_AGE_MONTHS = 2;
 
 export const snapshotWindowStart = (now: Date): Date => subtractUtcMonths(now, MAX_SNAPSHOT_AGE_MONTHS);
 
 export const GESCHLECHTER = ['gesamt', 'maennlich', 'weiblich', 'divers', 'geschlecht_unbekannt'] as const;
 
-export type GruppenWert = {
+// Haltefrist: Eine Installation, die einen Teil des Stammes in dieser Frist abgedeckt hat, gilt
+// fuer diesen Teil als aktiv. Unter den aktiven gewinnt die, die den Stamm am laengsten kennt;
+// neuere Werte anderer Installationen werden zurueckgehalten, bis sie auslaeuft. So kann eine
+// fremde Installation einen aktiv teilnehmenden Stamm nicht ueberschreiben.
+export const HALTEFRIST_DAYS = 14;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+export type GruppenZaehler = {
     mitglieder: CountByGender;
     leitende: CountByGender;
-    source_data_as_of: Date;
+};
+
+export type Herkunft = {
+    received_at: Date;
     sender_pseudonym: string;
 };
+
+export type GruppenWert = GruppenZaehler & Herkunft;
 
 export type EffectiveGruppe = {
     gruppe_pseudonym: string;
     stufe: Stufe;
-    // Neuester abdeckender Wert im Fenster; null, wenn niemand die Gruppe abgedeckt hat.
+    // Wert der Installation mit Vorrang; null, wenn niemand die Gruppe im Fenster abgedeckt hat.
     wert: GruppenWert | null;
     // Verschiedene Sender im Fenster, die diese Gruppe abgedeckt haben.
     abdeckende_sender: number;
+};
+
+// Eine Stufe ist ein eigener Teil: Ihre Summe stammt aus genau einer Installation, die alle
+// Gruppen der Stufe abdeckt. Sonst liesse sich eine unvollstaendige Stufe mit erfundenen
+// Gruppen auffuellen und die echte Gruppe aus der Summe herausrechnen.
+export type EffectiveStufe = {
+    stufe: Stufe;
+    // null, wenn keine Installation alle Gruppen der Stufe abgedeckt hat.
+    wert: (Herkunft & { gruppen: GruppenZaehler[] }) | null;
 };
 
 // Zusammengefuehrter Stand eines Stammes aus allen Snapshots im Fenster (siehe
@@ -38,13 +60,12 @@ export type EffectiveStateDocument = {
     stamm_pseudonym: string;
     dv_id: string | null;
     bezirk_id: string | null;
+    // Eingang des Snapshots, aus dem Struktur, DV und Bezirk stammen.
     struktur_as_of: Date;
-    stammweit: {
-        metrics: StammMetrics;
-        source_data_as_of: Date;
-        sender_pseudonym: string;
-    } | null;
+    stammweit: (Herkunft & { metrics: StammMetrics }) | null;
     gruppen: EffectiveGruppe[];
+    // Nur Stufen, die laut Struktur Gruppen haben.
+    stufen: EffectiveStufe[];
     sender_count: number;
 };
 
@@ -55,79 +76,123 @@ export type EffectiveStatesRepository = {
     findAll(): Promise<EffectiveStateDocument[]>;
 };
 
-type SnapshotRecency = Pick<RawSnapshotDocument, 'source_data_as_of' | 'sent_at'>;
+type SnapshotRecency = Pick<RawSnapshotDocument, 'received_at'>;
 
-// Primaer entscheidet source_data_as_of, nur bei Gleichstand sent_at.
-export const isNewerSnapshot = (candidate: SnapshotRecency, current: SnapshotRecency): boolean => {
-    const candidateSource = candidate.source_data_as_of.getTime();
-    const currentSource = current.source_data_as_of.getTime();
+// Aktualitaet bestimmt der Server: Zeitstempel des Clients koennten vordatiert sein.
+export const isNewerSnapshot = (candidate: SnapshotRecency, current: SnapshotRecency): boolean =>
+    candidate.received_at.getTime() > current.received_at.getTime();
 
-    if (candidateSource !== currentSource) {
-        return candidateSource > currentSource;
+const herkunft = (snapshot: RawSnapshotDocument): Herkunft => ({
+    received_at: snapshot.received_at,
+    sender_pseudonym: snapshot.sender_pseudonym,
+});
+
+// Seit wann die Installation den Stamm kennt. first_seen_at fehlt nur bei Altbestand.
+const kenntSeitJeSender = (snapshots: RawSnapshotDocument[]): Map<string, number> => {
+    const kenntSeit = new Map<string, number>();
+    for (const snapshot of snapshots) {
+        const seit = (snapshot.first_seen_at ?? snapshot.received_at).getTime();
+        kenntSeit.set(snapshot.sender_pseudonym, Math.min(seit, kenntSeit.get(snapshot.sender_pseudonym) ?? seit));
+    }
+    return kenntSeit;
+};
+
+const nachSender = (a: RawSnapshotDocument, b: RawSnapshotDocument): number =>
+    a.sender_pseudonym.localeCompare(b.sender_pseudonym);
+
+const neuesterZuerst = (a: RawSnapshotDocument, b: RawSnapshotDocument): number =>
+    b.received_at.getTime() - a.received_at.getTime() || nachSender(a, b);
+
+// Waehlt fuer einen Teil des Stammes den Snapshot mit Vorrang unter den Kandidaten, die ihn abdecken.
+const waehle = (
+    kandidaten: RawSnapshotDocument[],
+    kenntSeit: Map<string, number>,
+    aktivAb: number,
+): RawSnapshotDocument | undefined => {
+    const aktive = kandidaten.filter((snapshot) => snapshot.received_at.getTime() >= aktivAb);
+
+    if (aktive.length === 0) {
+        return [...kandidaten].sort(neuesterZuerst)[0];
     }
 
-    return candidate.sent_at.getTime() > current.sent_at.getTime();
+    return aktive.sort((a, b) =>
+        (kenntSeit.get(a.sender_pseudonym) ?? 0) - (kenntSeit.get(b.sender_pseudonym) ?? 0)
+        || neuesterZuerst(a, b))[0];
 };
 
-const newestFirst = (a: SnapshotRecency, b: SnapshotRecency): number => {
-    if (isNewerSnapshot(a, b)) return -1;
-    if (isNewerSnapshot(b, a)) return 1;
-    return 0;
-};
+const findeGruppe = (snapshot: RawSnapshotDocument, gruppePseudonym: string) =>
+    snapshot.gruppen.find((candidate) => candidate.gruppe_pseudonym === gruppePseudonym && candidate.abgedeckt);
+
+const zaehler = (gruppe: RawSnapshotDocument['gruppen'][number] | undefined): GruppenZaehler | null =>
+    gruppe?.mitglieder != null && gruppe.leitende != null
+        ? { mitglieder: gruppe.mitglieder, leitende: gruppe.leitende }
+        : null;
 
 export const mergeStammSnapshots = (
     snapshots: RawSnapshotDocument[],
     since: Date,
+    now: Date,
 ): EffectiveStateDocument | null => {
-    const fresh = snapshots
-        .filter((snapshot) =>
-            snapshot.schema_version === SUPPORTED_SCHEMA_VERSION
-            && snapshot.source_data_as_of.getTime() >= since.getTime())
-        .sort(newestFirst);
-    const newest = fresh[0];
+    const fresh = snapshots.filter((snapshot) =>
+        snapshot.schema_version === SUPPORTED_SCHEMA_VERSION
+        && snapshot.received_at.getTime() >= since.getTime());
+    const kenntSeit = kenntSeitJeSender(fresh);
+    const aktivAb = now.getTime() - HALTEFRIST_DAYS * DAY_MS;
+    const struktur = waehle(fresh, kenntSeit, aktivAb);
 
-    if (newest == null) {
+    if (struktur == null) {
         return null;
     }
 
-    const stammSnapshot = fresh.find((snapshot) => snapshot.abdeckung === 'stamm' && snapshot.metrics != null);
+    const stammSnapshot = waehle(
+        fresh.filter((snapshot) => snapshot.abdeckung === 'stamm' && snapshot.metrics != null),
+        kenntSeit,
+        aktivAb,
+    );
 
-    const gruppen = newest.gruppen.map((strukturGruppe): EffectiveGruppe => {
-        const abdeckende = fresh.flatMap((snapshot) => {
-            const gruppe = snapshot.gruppen.find((candidate) =>
-                candidate.gruppe_pseudonym === strukturGruppe.gruppe_pseudonym && candidate.abgedeckt);
-            return gruppe == null ? [] : [{ snapshot, gruppe }];
-        });
-        const neueste = abdeckende[0];
+    const gruppen = struktur.gruppen.map((strukturGruppe): EffectiveGruppe => {
+        const abdeckende = fresh.filter((snapshot) => findeGruppe(snapshot, strukturGruppe.gruppe_pseudonym) != null);
+        const gewaehlt = waehle(abdeckende, kenntSeit, aktivAb);
+        const werte = gewaehlt == null ? null : zaehler(findeGruppe(gewaehlt, strukturGruppe.gruppe_pseudonym));
 
         return {
             gruppe_pseudonym: strukturGruppe.gruppe_pseudonym,
             stufe: strukturGruppe.stufe,
-            wert: neueste?.gruppe.mitglieder != null && neueste.gruppe.leitende != null
-                ? {
-                    mitglieder: neueste.gruppe.mitglieder,
-                    leitende: neueste.gruppe.leitende,
-                    source_data_as_of: neueste.snapshot.source_data_as_of,
-                    sender_pseudonym: neueste.snapshot.sender_pseudonym,
-                }
-                : null,
-            abdeckende_sender: new Set(abdeckende.map(({ snapshot }) => snapshot.sender_pseudonym)).size,
+            wert: gewaehlt != null && werte != null ? { ...werte, ...herkunft(gewaehlt) } : null,
+            abdeckende_sender: new Set(abdeckende.map((snapshot) => snapshot.sender_pseudonym)).size,
         };
     });
 
+    const stufen = STUFEN.flatMap((stufe): EffectiveStufe[] => {
+        const ids = struktur.gruppen.filter((gruppe) => gruppe.stufe === stufe).map((gruppe) => gruppe.gruppe_pseudonym);
+        if (ids.length === 0) {
+            return [];
+        }
+        const vollstaendige = fresh.filter((snapshot) =>
+            ids.every((id) => zaehler(findeGruppe(snapshot, id)) != null));
+        const gewaehlt = waehle(vollstaendige, kenntSeit, aktivAb);
+
+        return [{
+            stufe,
+            wert: gewaehlt == null
+                ? null
+                : {
+                    ...herkunft(gewaehlt),
+                    gruppen: ids.map((id) => zaehler(findeGruppe(gewaehlt, id)) as GruppenZaehler),
+                },
+        }];
+    });
+
     return {
-        stamm_pseudonym: newest.stamm_pseudonym,
-        dv_id: newest.dv_id,
-        bezirk_id: newest.bezirk_id,
-        struktur_as_of: newest.source_data_as_of,
+        stamm_pseudonym: struktur.stamm_pseudonym,
+        dv_id: struktur.dv_id,
+        bezirk_id: struktur.bezirk_id,
+        struktur_as_of: struktur.received_at,
         stammweit: stammSnapshot?.metrics != null
-            ? {
-                metrics: stammSnapshot.metrics,
-                source_data_as_of: stammSnapshot.source_data_as_of,
-                sender_pseudonym: stammSnapshot.sender_pseudonym,
-            }
+            ? { metrics: stammSnapshot.metrics, ...herkunft(stammSnapshot) }
             : null,
         gruppen,
+        stufen,
         sender_count: new Set(fresh.map((snapshot) => snapshot.sender_pseudonym)).size,
     };
 };
@@ -144,9 +209,13 @@ export const groupSnapshotsByStamm = (snapshots: RawSnapshotDocument[]): Map<str
     return byStamm;
 };
 
-export const mergeAllStammSnapshots = (snapshots: RawSnapshotDocument[], since: Date): EffectiveStateDocument[] =>
+export const mergeAllStammSnapshots = (
+    snapshots: RawSnapshotDocument[],
+    since: Date,
+    now: Date,
+): EffectiveStateDocument[] =>
     [...groupSnapshotsByStamm(snapshots).values()]
-        .map((stammSnapshots) => mergeStammSnapshots(stammSnapshots, since))
+        .map((stammSnapshots) => mergeStammSnapshots(stammSnapshots, since, now))
         .filter((state): state is EffectiveStateDocument => state != null);
 
 // ------------------------------------------------------------ Ableitung
@@ -163,7 +232,7 @@ export type DerivedStammState = {
     art: 'vollstaendig' | 'nur_gruppen' | 'gemischt';
     oldest: Date;
     newest: Date;
-    // Stufen mit Gruppen, von denen mindestens eine keinen Wert hat.
+    // Stufen mit Gruppen, die keine Installation vollstaendig abgedeckt hat.
     unvollstaendige_stufen: number;
 };
 
@@ -216,12 +285,12 @@ export const deriveStammState = (state: EffectiveStateDocument, since: Date): De
         return null;
     }
 
-    const stammweit = state.stammweit != null && istFrisch(state.stammweit.source_data_as_of)
+    const stammweit = state.stammweit != null && istFrisch(state.stammweit.received_at)
         ? state.stammweit
         : null;
     const gruppen = state.gruppen.map((gruppe) => ({
         ...gruppe,
-        wert: gruppe.wert != null && istFrisch(gruppe.wert.source_data_as_of) ? gruppe.wert : null,
+        wert: gruppe.wert != null && istFrisch(gruppe.wert.received_at) ? gruppe.wert : null,
     }));
     const mitWert = gruppen.filter((gruppe): gruppe is GruppeMitWert => gruppe.wert != null);
 
@@ -232,9 +301,9 @@ export const deriveStammState = (state: EffectiveStateDocument, since: Date): De
     const stufenMetrics = {} as Record<Stufe | `leitende_${Stufe}`, CountByGender>;
     let unvollstaendigeStufen = 0;
     for (const stufe of STUFEN) {
-        const stufenGruppen = gruppen.filter((gruppe) => gruppe.stufe === stufe);
-        const werte = stufenGruppen.flatMap((gruppe) => (gruppe.wert == null ? [] : [gruppe.wert]));
-        if (werte.length < stufenGruppen.length) {
+        const eintrag = state.stufen.find((kandidat) => kandidat.stufe === stufe);
+        const werte = eintrag == null ? [] : eintrag.wert != null && istFrisch(eintrag.wert.received_at) ? eintrag.wert.gruppen : null;
+        if (werte == null) {
             unvollstaendigeStufen += 1;
             stufenMetrics[stufe] = leereVerteilung();
             stufenMetrics[`leitende_${stufe}`] = leereVerteilung();
@@ -247,14 +316,14 @@ export const deriveStammState = (state: EffectiveStateDocument, since: Date): De
     const ausStammSnapshot = (wert: GruppenWert) =>
         stammweit != null
         && wert.sender_pseudonym === stammweit.sender_pseudonym
-        && wert.source_data_as_of.getTime() === stammweit.source_data_as_of.getTime();
+        && wert.received_at.getTime() === stammweit.received_at.getTime();
     const art = stammweit == null
         ? 'nur_gruppen'
         : mitWert.every((gruppe) => ausStammSnapshot(gruppe.wert)) ? 'vollstaendig' : 'gemischt';
 
     const zeiten = [
-        ...(stammweit == null ? [] : [stammweit.source_data_as_of.getTime()]),
-        ...mitWert.map((gruppe) => gruppe.wert.source_data_as_of.getTime()),
+        ...(stammweit == null ? [] : [stammweit.received_at.getTime()]),
+        ...mitWert.map((gruppe) => gruppe.wert.received_at.getTime()),
     ];
 
     return {

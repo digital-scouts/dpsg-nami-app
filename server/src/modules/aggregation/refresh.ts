@@ -25,7 +25,7 @@ export const refreshEffectiveStateForStamm = async (
     now: Date,
 ): Promise<void> => {
     const since = snapshotWindowStart(now);
-    const state = mergeStammSnapshots(await rawSnapshotsRepository.findByStammSince(stammPseudonym, since), since);
+    const state = mergeStammSnapshots(await rawSnapshotsRepository.findByStammSince(stammPseudonym, since), since, now);
 
     if (state == null) {
         await effectiveStatesRepository.remove(stammPseudonym);
@@ -42,6 +42,6 @@ export const rebuildEffectiveStatesAndAggregate = async (
     now: Date,
 ): Promise<void> => {
     const since = snapshotWindowStart(now);
-    await effectiveStatesRepository.replaceAll(mergeAllStammSnapshots(await rawSnapshotsRepository.findSince(since), since));
+    await effectiveStatesRepository.replaceAll(mergeAllStammSnapshots(await rawSnapshotsRepository.findSince(since), since, now));
     await refreshBundAggregate(effectiveStatesRepository, weeklyAggregatesRepository, now);
 };
