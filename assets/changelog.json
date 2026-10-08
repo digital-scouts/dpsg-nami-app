@@ -127,7 +127,8 @@
       ],
       "bugFixes": [
         "Mit reinem Leserecht auf deine Gruppe zeigt die App fehlende Rollen, Qualifikationen und Führungszeugnisse anderer als „Keine Berechtigung“ oder mit Hinweis, statt sie als leer oder 0 anzuzeigen.",
-        "Wer am Bundesvergleich teilnimmt, aber keine eigenen Zahlen sieht, bekommt den Vergleich trotzdem angezeigt."
+        "Wer am Bundesvergleich teilnimmt, aber keine eigenen Zahlen sieht, bekommt den Vergleich trotzdem angezeigt.",
+        "Der Bundesvergleich ist besser gegen Rückschlüsse auf einzelne Stämme geschützt: Er aktualisiert sich wöchentlich, zeigt die Zahl der Stämme nur noch ungefähr und lässt sehr kleine Gruppen außen vor."
       ]
     }
   ]

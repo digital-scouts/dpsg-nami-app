@@ -17,7 +17,9 @@ Vergleiche deinen Stamm mit anderen Stämmen bundesweit. Freiwillig und nur mit 
 3. Im Dialog lesen, was geteilt wird, und <span class="ui">Teilen aktivieren</span> wählen <i class="ref">2</i>.
 {: .steps }
 
-Danach sendet die App etwa einmal pro Woche die Zahlen des Stamms und zeigt Median und Durchschnitt der teilnehmenden Stämme, je Stufe und je Gruppe <i class="ref">3</i>.
+Danach sendet die App etwa einmal pro Woche die Zahlen des Stamms und zeigt Median und Durchschnitt der teilnehmenden Stämme, je Stufe und je Gruppe <i class="ref">3</i>. Gesendet wird nur, wenn die Daten in der App höchstens sieben Tage alt sind.
+
+Die Bundeswerte werden montags neu berechnet, neue Stämme kommen am nächsten Tag dazu. Damit sich einzelne Stämme nicht herausrechnen lassen, zeigt der Vergleich nur gerundete Werte und die Zahl der Stämme nur ungefähr. Gruppen mit höchstens zwei Mitgliedern zählen nicht mit.
 
 {% include shots.html items="bundesvergleich_einladung:Einladung zur Teilnahme|bundesvergleich_einwilligung:Einwilligung für den Stamm|bundesvergleich:Vergleich mit Median und Durchschnitt" %}
 

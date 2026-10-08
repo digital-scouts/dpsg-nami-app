@@ -5,7 +5,7 @@ parent: Rechtliches
 nav_order: 1
 ---
 
-Stand: 7. Oktober 2026
+Stand: 9. Oktober 2026
 
 Diese Datenschutzerklärung gilt für die App „NaMi“ für iOS und Android und für den Statistikserver der App.
 
@@ -49,7 +49,7 @@ Für den bundesweiten Vergleich kannst du je Stamm einwilligen, dass die App etw
 
 - **Was der Server speichert:** Stamm, Gruppen und Installation nur als Pseudonym, die Nummern von Bezirk und Diözese im Klartext sowie die Zeitpunkte von Datenstand, Versand und Eingang. Jede Installation hat eine zufällige Installations-ID und ein Geheimnis, damit nur sie für sich senden kann.
 - **Was der Server nicht speichert:** deine IP-Adresse. Sie wird nur kurz im Arbeitsspeicher genutzt, um Missbrauch zu begrenzen.
-- **Wer die Zahlen sieht:** Bundesweite Werte erhalten nur Installationen, die in den letzten 14 Tagen geteilt haben, auch wenn ohne Zahlen, und nur, wenn genug Stämme teilnehmen. Der Betreiber erhält einen Monatsbericht mit Zählwerten, auf Wunsch auch per Telegram.
+- **Wer die Zahlen sieht:** Bundesweite Werte erhalten nur Installationen, die in den letzten 30 Tagen geteilt haben, auch wenn ohne Zahlen, und nur, wenn genug Stämme teilnehmen. Sie bestehen nur aus gerundeten Durchschnitten, Medianen und Anteilen. Der Betreiber erhält einen Monatsbericht mit Zählwerten, auf Wunsch auch per Telegram.
 - **Speicherdauer:** Geteilte Zahlen werden 14 Monate nach Eingang gelöscht, die Daten der Installation 14 Monate nach ihrer letzten Sendung. Sicherungskopien werden nach 14 Tagen gelöscht.
 - **Widerruf:** Du kannst jederzeit auf der Seite Bundesvergleich oder in den Einstellungen widerrufen. Dann sendet die App nichts mehr, und deine Zahlen fallen nach zwei Monaten aus dem Vergleich. Möchtest du die bereits geteilten Zahlen vorher löschen lassen, schreib an die oben genannte Adresse und nenne deine Installations-ID von der Seite Bundesvergleich. Ohne diese ID können wir die Daten keiner Installation zuordnen (Art. 11 DSGVO). Nach einem Zurücksetzen der App ist die ID nicht mehr abrufbar.
 - **Hosting:** Der Server läuft bei ZAP-Hosting in Deutschland.
