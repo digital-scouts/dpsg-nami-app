@@ -5,8 +5,8 @@
 
 **Dein Stamm in der Hosentasche.** Die App für Leitende in der DPSG: Mitglieder, Statistik und Stufenwechsel direkt aus der NaMi (Hitobito), auch offline.
 
-[![Download für iOS](./assets/workfiles/Download_on_the_App_Store_Badge_DE_RGB_blk_092917.svg)](https://apps.apple.com/de/app/nami/id6468066816)
-[![Download für Android](./assets/workfiles/GetItOnGooglePlay_Badge_Web_color_German.png)](https://play.google.com/store/apps/details?id=de.jlange.nami.app)
+<a href="https://apps.apple.com/de/app/nami/id6468066816"><img src="assets/workfiles/Download_on_the_App_Store_Badge_DE_RGB_blk_092917.svg" alt="Laden im App Store" height="40"></a>
+<a href="https://play.google.com/store/apps/details?id=de.jlange.nami.app"><img src="assets/workfiles/GetItOnGooglePlay_Badge_Web_color_German.png" alt="Jetzt bei Google Play" height="40"></a>
 
 Version 1.0 erscheint Anfang 2027, in den Stores liegt bis dahin noch die Vorgängerversion. Vorabversion für iOS über [TestFlight](https://testflight.apple.com/join/YGeELMUq).
 
