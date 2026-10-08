@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -12,12 +13,14 @@ import '../../../domain/qualifikation/qualifikation.dart';
 import '../../../domain/qualifikation/qualifikations_status.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../services/hitobito_efz_service.dart';
+import '../../../services/network_access_policy.dart';
 import '../../../services/teilen_ordner.dart';
 import '../../format/date_formatters.dart';
 import '../../model/auth_session_model.dart';
 import '../../notifications/app_snackbar.dart';
 import '../../theme/status_farben.dart';
 import '../leserechte_hinweis.dart';
+import '../neuanmeldung_sheet.dart';
 import '../section_header.dart';
 import 'mitglied_dauer_text.dart';
 
@@ -296,12 +299,11 @@ class _MemberQualifikationenTabState extends State<MemberQualifikationenTab> {
     final t = AppLocalizations.of(context);
     final personId = widget.mitglied.personId;
     final groupId = widget.mitglied.primaryGroupId;
-    final accessToken = _lies<AuthSessionModel?>()?.session?.accessToken;
+    final authModel = _lies<AuthSessionModel?>();
     final service = _lies<HitobitoEfzService>();
     if (personId == null ||
         groupId == null ||
-        accessToken == null ||
-        accessToken.isEmpty ||
+        authModel?.session == null ||
         service == null) {
       _meldung(
         t.t('quali_download_fehlende_daten'),
@@ -311,18 +313,34 @@ class _MemberQualifikationenTabState extends State<MemberQualifikationenTab> {
     }
 
     setState(() => _laedtAntrag = true);
+    var anmeldungNoetig = false;
     try {
-      final bytes = await service.downloadEfzAntrag(
-        accessToken,
-        groupId: groupId,
-        personId: personId,
+      // Ueber den Sitzungspfad: Das Token ist beim Download meist aelter als
+      // seine Laufzeit und wird hier erneuert; die Netzrichtlinie gilt auch.
+      final bytes = await authModel!.executeRemoteAccess<Uint8List>(
+        trigger: 'efz_antrag',
+        action: (session) => service.downloadEfzAntrag(
+          session.accessToken,
+          groupId: groupId,
+          personId: personId,
+        ),
       );
-      if (!mounted) {
-        return;
+      if (bytes != null) {
+        if (mounted) {
+          await _oeffnePdf(bytes, personId: personId);
+        }
+      } else if (authModel.requiresInteractiveLogin) {
+        // Rueckfrage erst nach dem Ladezustand, siehe unten.
+        anmeldungNoetig = true;
+      } else if (mounted) {
+        _meldung(t.t('quali_download_fehler'), type: AppSnackbarType.error);
       }
-      await _oeffnePdf(bytes, personId: personId);
     } on HitobitoEfzAntragUnavailableException {
       await _oeffneImBrowser(service, groupId: groupId, personId: personId);
+    } on NetworkAccessBlockedException catch (error) {
+      if (mounted) {
+        _meldung(error.message, type: AppSnackbarType.warning);
+      }
     } catch (_) {
       if (mounted) {
         _meldung(t.t('quali_download_fehler'), type: AppSnackbarType.error);
@@ -331,6 +349,16 @@ class _MemberQualifikationenTabState extends State<MemberQualifikationenTab> {
       if (mounted) {
         setState(() => _laedtAntrag = false);
       }
+    }
+    if (!anmeldungNoetig || !mounted) {
+      return;
+    }
+    final angemeldet = await frageNachNeuanmeldung(
+      context,
+      trigger: 'efz_antrag',
+    );
+    if (angemeldet && mounted) {
+      await _downloadAntrag();
     }
   }
 

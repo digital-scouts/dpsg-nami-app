@@ -280,6 +280,15 @@ class HitobitoEfzService {
       statusCode: response.statusCode,
     );
 
+    if (response.statusCode == 401) {
+      // Abgelaufenes oder widerrufenes Token: Das klaert der Sitzungspfad
+      // (Refresh oder Neuanmeldung), nicht der Browser.
+      throw const HitobitoEfzException(
+        'Efz-Antrag-Anfrage nicht autorisiert (401).',
+        statusCode: 401,
+      );
+    }
+
     final contentType = response.headers['content-type'] ?? '';
     if (response.statusCode != 200 ||
         !contentType.contains('application/pdf')) {

@@ -219,6 +219,26 @@ void main() {
     },
   );
 
+  test('meldet abgelaufenes Token als 401 statt Browser-Rueckfall', () async {
+    final service = HitobitoEfzService(
+      config: _testConfig(),
+      httpClient: MockClient((_) async => http.Response('', 401)),
+    );
+
+    await expectLater(
+      service.downloadEfzAntrag('abgelaufen', groupId: 68, personId: 375),
+      throwsA(
+        isA<HitobitoEfzException>()
+            .having((error) => error.statusCode, 'statusCode', 401)
+            .having(
+              (error) => error is HitobitoEfzAntragUnavailableException,
+              'Browser-Rueckfall',
+              isFalse,
+            ),
+      ),
+    );
+  });
+
   test(
     'ueberspringt unvollstaendige Eintraege und liest person aus relationships',
     () async {
