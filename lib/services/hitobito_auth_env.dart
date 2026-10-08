@@ -192,8 +192,8 @@ class HitobitoAuthEnv {
   }
 
   /// Hitobito loescht Refresh-Tokens, die so lange nicht erneuert wurden
-  /// (Doorkeeper `refresh_token_expires_in`). Bis die Laufzeit der
-  /// DPSG-Instanz mit dem Betreiber geklaert ist, gilt der Upstream-Standard.
+  /// (Doorkeeper `refresh_token_expires_in`). Gilt auch fuer die
+  /// DPSG-Instanz.
   static const Duration refreshTokenLebensdauer = Duration(days: 7);
 
   /// Ab diesem Alter erneuert die App das Token still beim Start, beim
