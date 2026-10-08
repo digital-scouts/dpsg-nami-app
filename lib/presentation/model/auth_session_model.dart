@@ -299,7 +299,7 @@ class AuthSessionModel extends ChangeNotifier {
       } else {
         await _logger.logError(
           'auth',
-          'login failure method=interactive_oauth',
+          'login failure method=interactive_oauth${_plattformCode(error)}',
           error: error,
           stackTrace: stack,
         );
@@ -876,7 +876,7 @@ class AuthSessionModel extends ChangeNotifier {
       } else {
         await _logger.logError(
           'auth',
-          'interaktiver relogin fehlgeschlagen trigger=$trigger',
+          'interaktiver relogin fehlgeschlagen trigger=$trigger${_plattformCode(error)}',
           error: error,
           stackTrace: stack,
         );
@@ -1357,6 +1357,11 @@ class AuthSessionModel extends ChangeNotifier {
     if (notify) {
       notifyListeners();
     }
+  }
+
+  static String _plattformCode(Object error) {
+    final code = error is HitobitoAuthException ? error.plattformCode : null;
+    return code == null ? '' : ' code=$code';
   }
 
   /// Der Token-Endpunkt hat die Sitzung beendet; nur eine neue Anmeldung

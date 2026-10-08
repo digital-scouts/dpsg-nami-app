@@ -20,20 +20,24 @@ void main() {
     expect(error.isExpectedInteractionFailure, isTrue);
   });
 
-  test('uebersetzt technische OAuth-Plugin-Fehler in fachliche Meldung', () {
-    final error = HitobitoAuthException.fromPlatformException(
-      PlatformException(
-        code: 'ACTIVITY_NOT_FOUND',
-        message: 'No activity found to handle intent',
-      ),
-    );
+  test(
+    'wertet technische OAuth-Plugin-Fehler als Fehlschlag, nicht als Abbruch',
+    () {
+      final error = HitobitoAuthException.fromPlatformException(
+        PlatformException(
+          code: 'ACTIVITY_NOT_FOUND',
+          message: 'No activity found to handle intent',
+        ),
+      );
 
-    expect(
-      error.toString(),
-      'Die Hitobito-Anmeldung konnte nicht gestartet werden. Bitte pruefe die OAuth-Konfiguration.',
-    );
-    expect(error.isExpectedInteractionFailure, isTrue);
-  });
+      expect(
+        error.toString(),
+        'Die Anmeldung konnte nicht gestartet werden. Bitte versuche es noch einmal.',
+      );
+      expect(error.plattformCode, 'ACTIVITY_NOT_FOUND');
+      expect(error.isExpectedInteractionFailure, isFalse);
+    },
+  );
 
   test(
     'laedt /profile mit with_roles und mappt Rollen korrekt',
@@ -161,6 +165,31 @@ void main() {
       );
       expect(tokenBody['code'], 'abc');
     });
+
+    test(
+      'zeigt Fehlertext einer Rueckleitung nur mit gueltigem Status',
+      () async {
+        final service = HitobitoOauthService(
+          config: config,
+          webAuthenticator:
+              ({required url, required callbackUrlScheme}) async =>
+                  'de.jlange.nami.app:/oauth/callback?error=access_denied'
+                  '&error_description=Bitte+Passwort+hier+eingeben&state=fremd',
+          httpClient: MockClient((_) async => http.Response('', 500)),
+        );
+
+        await expectLater(
+          service.authenticateInteractive(),
+          throwsA(
+            isA<HitobitoAuthException>().having(
+              (error) => error.message,
+              'message',
+              'Ungültiger OAuth-Status in der Rückleitung.',
+            ),
+          ),
+        );
+      },
+    );
 
     test('widerruft den Refresh-Token am Revoke-Endpunkt', () async {
       late http.Request anfrage;

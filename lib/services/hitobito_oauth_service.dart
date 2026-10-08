@@ -33,31 +33,34 @@ class HitobitoAuthException implements Exception {
     this.message, {
     this.statusCode,
     this.art,
+    this.plattformCode,
     this.isExpectedInteractionFailure = false,
   });
 
   final String message;
   final int? statusCode;
   final HitobitoAuthFehlerArt? art;
+
+  /// Fehlercode des Login-Plugins, nur fuer Logs.
+  final String? plattformCode;
   final bool isExpectedInteractionFailure;
 
+  /// Nur ein Abbruch durch die Person ist erwartbar. Technische Fehler wie
+  /// `NO_BROWSER` oder `EUNKNOWN` gelten als Fehlschlag, damit sie in Log und
+  /// Fehlerstatistik auftauchen.
   factory HitobitoAuthException.fromPlatformException(PlatformException error) {
-    final code = error.code.toUpperCase();
-    final message = error.message?.toLowerCase() ?? '';
-    final isCanceled = code == 'CANCELED' || message.contains('cancel');
-
-    if (isCanceled) {
+    if (error.code.toUpperCase() == 'CANCELED') {
       return const HitobitoAuthException(
         'Die Hitobito-Anmeldung wurde abgebrochen.',
         isExpectedInteractionFailure: true,
       );
     }
 
-    return const HitobitoAuthException(
-      'Die Hitobito-Anmeldung konnte nicht gestartet werden. Bitte pruefe die OAuth-Konfiguration.',
-      isExpectedInteractionFailure: true,
-    );
+    return HitobitoAuthException(_startFehlerText, plattformCode: error.code);
   }
+
+  static const String _startFehlerText =
+      'Die Anmeldung konnte nicht gestartet werden. Bitte versuche es noch einmal.';
 
   @override
   String toString() => message;
@@ -112,7 +115,7 @@ class HitobitoOauthService {
 
     if (!config.isConfigured) {
       throw const HitobitoAuthException(
-        'OAuth ist nicht vollstaendig konfiguriert.',
+        'OAuth ist nicht vollständig konfiguriert.',
       );
     }
 
@@ -141,8 +144,8 @@ class HitobitoOauthService {
       throw HitobitoAuthException.fromPlatformException(error);
     } on MissingPluginException {
       throw const HitobitoAuthException(
-        'Die Hitobito-Anmeldung konnte nicht gestartet werden. Bitte pruefe die OAuth-Konfiguration.',
-        isExpectedInteractionFailure: true,
+        HitobitoAuthException._startFehlerText,
+        plattformCode: 'MISSING_PLUGIN',
       );
     }
 
@@ -151,20 +154,22 @@ class HitobitoOauthService {
     final error = callbackUri.queryParameters['error'];
     final errorDescription = callbackUri.queryParameters['error_description'];
 
-    if (error != null && error.isNotEmpty) {
-      throw HitobitoAuthException(errorDescription ?? error);
-    }
-
+    // Erst den Status pruefen: Eine fremde App koennte sonst ueber die
+    // Rueckleitung einen beliebigen Fehlertext anzeigen lassen.
     if (returnedState != state) {
       throw const HitobitoAuthException(
-        'Ungueltiger OAuth-Status in der Rueckleitung.',
+        'Ungültiger OAuth-Status in der Rückleitung.',
       );
+    }
+
+    if (error != null && error.isNotEmpty) {
+      throw HitobitoAuthException(errorDescription ?? error);
     }
 
     final code = callbackUri.queryParameters['code'];
     if (code == null || code.isEmpty) {
       throw const HitobitoAuthException(
-        'Kein Authorization Code in der Rueckleitung enthalten.',
+        'Kein Authorization Code in der Rückleitung enthalten.',
       );
     }
 
@@ -185,7 +190,7 @@ class HitobitoOauthService {
   Future<AuthSession> refresh(AuthSession session) async {
     if (!session.canRefresh) {
       throw const HitobitoAuthException(
-        'Fuer diese Session ist kein Refresh Token verfuegbar.',
+        'Für diese Session ist kein Refresh-Token verfügbar.',
       );
     }
 
@@ -309,7 +314,7 @@ class HitobitoOauthService {
     final decoded = jsonDecode(response.body);
     if (decoded is! Map<String, dynamic>) {
       throw const HitobitoAuthException(
-        'Profil-Antwort hat ein ungueltiges Format.',
+        'Profil-Antwort hat ein ungültiges Format.',
       );
     }
 
