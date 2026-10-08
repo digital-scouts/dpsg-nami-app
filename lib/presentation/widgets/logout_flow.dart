@@ -12,12 +12,14 @@ import '../model/member_edit_model.dart';
 /// Der Logout loescht alle sensiblen Daten einschliesslich vorgemerkter
 /// Aenderungen. Deshalb wird zuerst einmal gesendet; bleibt danach etwas
 /// uebrig, muss der Nutzer den Verlust bestaetigen.
-Future<void> runLogoutFlow(BuildContext context) async {
+///
+/// Liefert `true`, wenn abgemeldet wurde, `false` bei Abbruch.
+Future<bool> runLogoutFlow(BuildContext context) async {
   final appModeController = context.read<AppModeController?>();
   if (appModeController?.isDemo ?? false) {
     // Abmelden beendet im Demo den Demo-Zugang; es gibt keine Aenderungen.
     await appModeController!.exitDemo();
-    return;
+    return true;
   }
   final authModel = context.read<AuthSessionModel>();
   final memberEditModel = context.read<MemberEditModel?>();
@@ -59,7 +61,7 @@ Future<void> runLogoutFlow(BuildContext context) async {
         navigator.pop();
       }
       if (!context.mounted) {
-        return;
+        return false;
       }
     }
 
@@ -84,7 +86,7 @@ Future<void> runLogoutFlow(BuildContext context) async {
         ),
       );
       if (confirmed != true) {
-        return;
+        return false;
       }
     }
   }
@@ -92,4 +94,5 @@ Future<void> runLogoutFlow(BuildContext context) async {
   await authModel.logout();
   // Die Pending-Box ist geloescht; erneutes Laden wuerde sie neu anlegen.
   memberEditModel?.clearPendingInMemory();
+  return true;
 }

@@ -84,6 +84,11 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
     final authModel = context.watch<AuthSessionModel>();
     final arbeitskontextModel = context.watch<ArbeitskontextModel>();
     final urgentNotification = _currentUrgentNotification(context);
+    if (authModel.state == AuthState.signedOut && _index != 0) {
+      // Nach dem Abmelden zeigt die Mitgliederliste den Anmeldebildschirm,
+      // statt dass die Person auf einem leeren Tab zurueckbleibt.
+      _index = 0;
+    }
     Widget body;
     switch (_index) {
       case 0:

@@ -38,6 +38,16 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
+  /// Nach dem Abmelden gibt es nichts mehr zu zeigen; zurueck zur Hauptseite,
+  /// die den Anmeldebildschirm zeigt.
+  Future<void> _abmelden(BuildContext context) async {
+    final navigator = Navigator.of(context);
+    final abgemeldet = await runLogoutFlow(context);
+    if (abgemeldet && mounted) {
+      navigator.popUntil((route) => route.isFirst);
+    }
+  }
+
   Future<void> _openLayerSwitcher(
     BuildContext context, {
     required AuthSessionModel authModel,
@@ -140,7 +150,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                     child: OutlinedButton.icon(
                       onPressed: authModel.session != null
-                          ? () => runLogoutFlow(context)
+                          ? () => _abmelden(context)
                           : null,
                       style: OutlinedButton.styleFrom(
                         foregroundColor: theme.colorScheme.error,

@@ -176,6 +176,37 @@ void main() {
     expect(find.text('Anmeldung unterbrochen'), findsOneWidget);
   });
 
+  testWidgets('springt beim Abmelden auf die Mitgliederliste mit Anmeldung', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final authModel = await _createSignedInAuthModel();
+    final arbeitskontextModel = await _createArbeitskontextModel(
+      authModel: authModel,
+    );
+    await tester.pumpWidget(
+      _buildTestApp(
+        authModel: authModel,
+        arbeitskontextModel: arbeitskontextModel,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.settings));
+    await tester.pumpAndSettle();
+    expect(find.text('Einstellungen'), findsWidgets);
+
+    await authModel.logout();
+    await arbeitskontextModel.syncForAuth(
+      authState: authModel.state,
+      session: authModel.session,
+      profile: authModel.profile,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Anmeldung erforderlich'), findsOneWidget);
+    expect(find.text('Mit Hitobito anmelden'), findsOneWidget);
+  });
+
   for (final wegenRechten in <bool>[true, false]) {
     testWidgets(
       wegenRechten
