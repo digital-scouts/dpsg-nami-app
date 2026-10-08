@@ -6,7 +6,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../domain/appearance/appearance_catalog.dart';
 import '../../../domain/rechtliches/anbieter.dart';
 import '../../../domain/supporter/supporter_aktion.dart';
-import '../../../domain/supporter/supporter_produkt.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../model/supporter_kauf_model.dart';
 import '../../navigation/app_router.dart';
@@ -189,8 +188,9 @@ class _PaketKarte extends StatelessWidget {
     final theme = Theme.of(context);
     final produkt = SupporterPaketInfo.produkt(paket);
     final details = model.produkt(produkt);
-    final foerderer = model.gekauft(SupporterProdukt.foerderer);
-    final gekauft = model.gekauft(produkt);
+    final stand = supporterStand(context, model);
+    final foerderer = stand.foerderer;
+    final gekauft = stand.pakete.contains(paket);
     final laeuft = model.laeuft(produkt);
     final farben = appPalettes[SupporterPaketInfo.palette(paket)]!.of(
       theme.brightness,

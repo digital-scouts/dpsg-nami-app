@@ -6,7 +6,7 @@ import '../../domain/appearance/appearance_catalog.dart';
 import '../../domain/achievements/achievement_progress.dart';
 import '../../domain/arbeitskontext/arbeitskontext.dart';
 import '../../domain/auth/auth_profile.dart';
-import '../../domain/supporter/supporter_produkt.dart';
+import '../../domain/appearance/support_access.dart';
 import '../../l10n/app_localizations.dart';
 import '../model/appearance_model.dart';
 import '../model/arbeitskontext_model.dart';
@@ -441,7 +441,10 @@ class _ProfileHeader extends StatelessWidget {
           ],
           if (kauf != null) ...[
             const SizedBox(height: 10),
-            _SupporterChip(access: kauf!.access),
+            // Wie die Kaufseite: Testschalter vor Store-Stand.
+            _SupporterChip(
+              access: context.watch<AppearanceModel?>()?.access ?? kauf!.access,
+            ),
           ],
         ],
       ),
@@ -452,7 +455,7 @@ class _ProfileHeader extends StatelessWidget {
 class _SupporterChip extends StatelessWidget {
   const _SupporterChip({required this.access});
 
-  final GekaufterSupportAccess access;
+  final SupportAccess access;
 
   @override
   Widget build(BuildContext context) {

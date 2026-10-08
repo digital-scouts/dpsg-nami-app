@@ -3,12 +3,16 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:nami/data/appearance/in_memory_appearance_settings_repository.dart';
+import 'package:nami/domain/appearance/support_access.dart';
 import 'package:nami/domain/supporter/supporter_kauf_repository.dart';
 import 'package:nami/domain/supporter/supporter_produkt.dart';
 import 'package:nami/l10n/app_localizations.dart';
+import 'package:nami/presentation/model/appearance_model.dart';
 import 'package:nami/presentation/model/supporter_kauf_model.dart';
 import 'package:nami/presentation/navigation/app_router.dart';
 import 'package:nami/presentation/screens/supporter/supporter_page.dart';
+import 'package:nami/services/app_icon_service.dart';
 import 'package:provider/provider.dart';
 
 import 'support/fake_supporter_store_client.dart';
@@ -27,6 +31,7 @@ void main() {
     DateTime? jetzt,
     GekaufterSupportAccess gespeichert = const GekaufterSupportAccess(),
     bool erreichbar = true,
+    SupportAccess? testschalter,
     Map<String, double> preise = const {
       'supporter_paket_wald': 1.99,
       'supporter_paket_lagerfeuer': 1.99,
@@ -46,8 +51,18 @@ void main() {
     );
     await model.start();
     await tester.pumpWidget(
-      ChangeNotifierProvider.value(
-        value: model,
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider.value(value: model),
+          if (testschalter != null)
+            ChangeNotifierProvider.value(
+              value: AppearanceModel(
+                repository: InMemoryAppearanceSettingsRepository(),
+                appIconService: FakeAppIconService(),
+                access: testschalter,
+              ),
+            ),
+        ],
         child: MaterialApp(
           localizationsDelegates: [
             AppLocalizations.delegate,
@@ -149,6 +164,16 @@ void main() {
     expect(find.byKey(const Key('supporter-foerderer-aktiv')), findsOneWidget);
     expect(find.text('Enthalten'), findsNWidgets(3));
     expect(find.text('Kaufen'), findsNothing);
+  });
+
+  testWidgets('Testschalter Förderer geht dem Store-Stand vor', (tester) async {
+    await pumpSeite(
+      tester,
+      testschalter: const SchalterSupportAccess(SupporterTestZugang.foerderer),
+    );
+
+    expect(find.byKey(const Key('supporter-foerderer-aktiv')), findsOneWidget);
+    expect(find.text('Enthalten'), findsNWidgets(3));
   });
 
   testWidgets('ohne Store: Hinweis und keine Kaufknöpfe', (tester) async {

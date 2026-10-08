@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import '../../../domain/appearance/appearance_catalog.dart';
+import '../../../domain/appearance/support_access.dart';
 import '../../../domain/supporter/supporter_aktion.dart';
 import '../../../domain/supporter/supporter_produkt.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../model/appearance_model.dart';
 import '../../model/supporter_kauf_model.dart';
 import '../../widgets/supporter_background.dart';
 
@@ -15,6 +18,12 @@ import '../../widgets/supporter_background.dart';
 
 const _foerdererGold = Color(0xFFFFD678);
 const _foerdererText = Color(0xFF1B2A3A);
+
+/// Wirksamer Supporter-Stand: In Debug- und Profile-Builds geht der
+/// Testschalter aus Debug & Tools dem Store vor (siehe main.dart), deshalb
+/// zaehlt der Zugang des [AppearanceModel], nicht der reine Store-Stand.
+SupportAccess supporterStand(BuildContext context, SupporterKaufModel model) =>
+    context.watch<AppearanceModel?>()?.access ?? model.access;
 
 bool _istIos(BuildContext context) =>
     Theme.of(context).platform == TargetPlatform.iOS;
@@ -119,7 +128,7 @@ class SupporterFoerdererKarte extends StatelessWidget {
     final theme = Theme.of(context);
     final dunkel = theme.brightness == Brightness.dark;
     final details = model.produkt(SupporterProdukt.foerderer);
-    final aktiv = model.gekauft(SupporterProdukt.foerderer);
+    final aktiv = supporterStand(context, model).foerderer;
     final laeuft = model.laeuft(SupporterProdukt.foerderer);
     const weiss = Colors.white;
     final punkte = [

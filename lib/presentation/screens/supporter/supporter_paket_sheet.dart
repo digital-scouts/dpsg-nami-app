@@ -68,7 +68,8 @@ class _SupporterPaketSheetState extends State<SupporterPaketSheet> {
     }
 
     // Nach dem Kauf schliesst das Sheet, die Option ist jetzt frei.
-    if (model.gekauft(produkt) && !_geschlossen) {
+    final stand = supporterStand(context, model);
+    if ((stand.foerderer || stand.pakete.contains(paket)) && !_geschlossen) {
       _geschlossen = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
