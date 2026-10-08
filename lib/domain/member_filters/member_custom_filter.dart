@@ -249,20 +249,6 @@ class MemberCustomFilterGroup {
     );
   }
 
-  static const MemberCustomFilterGroup defaultRest = MemberCustomFilterGroup(
-    id: 'rest',
-    shortLabel: 'Rest',
-    isActive: true,
-    isDefault: true,
-    logic: MemberCustomFilterLogic.oder,
-    rules: <MemberCustomFilterRule>[
-      MemberCustomFilterRule(
-        operator: MemberCustomFilterRuleOperator.hatNicht,
-        criterion: MemberCustomFilterCriterion.stufe(),
-      ),
-    ],
-  );
-
   @override
   bool operator ==(Object other) {
     return other is MemberCustomFilterGroup &&

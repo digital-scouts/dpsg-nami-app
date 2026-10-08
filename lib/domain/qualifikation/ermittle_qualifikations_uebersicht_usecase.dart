@@ -188,16 +188,24 @@ class ErmittleQualifikationsUebersichtUseCase {
   }
 
   /// Zeilen fuer alle angezeigten Arten.
+  /// [istVollLesbar] blendet Personen aus, fuer die Hitobito keine
+  /// Qualifikationen und kein EFZ liefert; sie wuerden sonst als „fehlt“
+  /// gezaehlt.
   List<UebersichtZeile> call({
     required ArbeitskontextReadModel readModel,
     required QualifikationsEinstellungen einstellungen,
     required DateTime heute,
+    bool Function(Mitglied mitglied)? istVollLesbar,
   }) {
     return katalog(readModel: readModel, einstellungen: einstellungen)
         .where((eintrag) => eintrag.angezeigt)
         .map(
-          (eintrag) =>
-              zeile(readModel: readModel, katalog: eintrag, heute: heute),
+          (eintrag) => zeile(
+            readModel: readModel,
+            katalog: eintrag,
+            heute: heute,
+            istVollLesbar: istVollLesbar,
+          ),
         )
         .toList(growable: false);
   }
@@ -206,6 +214,7 @@ class ErmittleQualifikationsUebersichtUseCase {
     required ArbeitskontextReadModel readModel,
     required KatalogEintrag katalog,
     required DateTime heute,
+    bool Function(Mitglied mitglied)? istVollLesbar,
   }) {
     final gesperrt =
         katalog.art.istEfz &&
@@ -216,6 +225,7 @@ class ErmittleQualifikationsUebersichtUseCase {
               .where(
                 (mitglied) =>
                     mitglied.personId != null &&
+                    (istVollLesbar?.call(mitglied) ?? true) &&
                     katalog.personenkreis.enthaelt(mitglied, heute: heute),
               )
               .map(

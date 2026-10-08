@@ -1,4 +1,5 @@
 import '../domain/arbeitskontext/arbeitskontext_read_model.dart';
+import '../domain/bundesstatistik/statistik_abdeckung.dart';
 import '../domain/statistiks/berechne_stamm_statistik_usecase.dart';
 import '../domain/statistiks/statistik_verlauf.dart';
 
@@ -6,7 +7,8 @@ import '../domain/statistiks/statistik_verlauf.dart';
 /// Kachel „Verlauf“ über die Zeit eine Kurve zeigen kann.
 ///
 /// Aufgezeichnet wird nur ein vollständiger Stand: Rollen geladen, kein
-/// Laden mehr aktiv (keine Zwischenstände beim seitenweisen Laden).
+/// Laden mehr aktiv (keine Zwischenstände beim seitenweisen Laden) und der
+/// ganze Stamm lesbar. Summen einer Teilsicht sind keine Stammeszahlen.
 class StatistikVerlaufService {
   StatistikVerlaufService({
     required StatistikVerlaufRepository repository,
@@ -21,10 +23,12 @@ class StatistikVerlaufService {
   Future<void> aktualisiere(
     ArbeitskontextReadModel? readModel, {
     required bool ladeLaeuft,
+    required StatistikAbdeckung? abdeckung,
   }) async {
     if (readModel == null ||
         ladeLaeuft ||
         !readModel.rolesSindGeladen ||
+        abdeckung?.istStamm != true ||
         identical(readModel, _zuletzt)) {
       return;
     }

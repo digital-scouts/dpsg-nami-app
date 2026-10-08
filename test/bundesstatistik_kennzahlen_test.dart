@@ -243,6 +243,27 @@ void main() {
       expect(kennzahlen.gruppen.every((g) => !g.abgedeckt), isTrue);
     });
 
+    test(
+      'meldet eine Gruppe ohne gelieferte Rollen als unbekannt, nicht 0',
+      () {
+        // group_read auf die Meute, Hitobito liefert aber keine fremden Rollen.
+        final kennzahlen = useCase(
+          _stammReadModel(),
+          stichtag: stichtag,
+          abdeckung: StatistikAbdeckung.gruppen(
+            const <int>{},
+            gruppenOhneRollen: {21},
+          ),
+        );
+
+        final meute = kennzahlen.gruppen.firstWhere((g) => g.gruppenId == 21);
+        expect(meute.abgedeckt, isFalse);
+        expect(meute.mitglieder, isNull);
+        expect(kennzahlen.woelflinge, const GeschlechterVerteilung.unbekannt());
+        expect(kennzahlen.istPlausibel, isFalse);
+      },
+    );
+
     test('liefert bei voller Sicht alle Stufengruppen mit Zaehlern', () {
       final kennzahlen = useCase(_stammReadModel(), stichtag: stichtag);
 

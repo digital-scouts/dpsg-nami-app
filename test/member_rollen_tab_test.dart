@@ -21,6 +21,7 @@ void main() {
     Mitglied mitglied, {
     String? aktiverLayer,
     StufenSettings? settings,
+    bool rollenNichtLesbar = false,
   }) async {
     tester.view.physicalSize = const Size(1170, 4000);
     tester.view.devicePixelRatio = 3;
@@ -41,12 +42,32 @@ void main() {
             heute: MitgliedEdgeCases.heute,
             aktiverLayerName: aktiverLayer,
             stufenSettings: settings,
+            rollenNichtLesbar: rollenNichtLesbar,
           ),
         ),
       ),
     );
     await tester.pumpAndSettle();
   }
+
+  testWidgets('zeigt ohne lesbare Rollen den Hinweis statt leerem Verlauf', (
+    tester,
+  ) async {
+    final ohneRollen = Mitglied.peopleListItem(
+      mitgliedsnummer: '1022',
+      personId: 22,
+      vorname: 'Hanna',
+      nachname: 'Albrecht',
+    );
+    await zeige(tester, ohneRollen, rollenNichtLesbar: true);
+
+    expect(
+      find.text(
+        'Die Rollen dieser Person liefert Hitobito mit deinen Rechten nicht.',
+      ),
+      findsOneWidget,
+    );
+  });
 
   testWidgets('blendet Rollen anderer Layer standardmaessig aus', (
     tester,

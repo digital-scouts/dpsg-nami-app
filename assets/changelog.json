@@ -121,9 +121,14 @@
         "Erfolge mit Abzeichen von Bronze bis Diamant.",
         "Erscheinungsbild mit Farbpaletten, App-Icons und Hell- und Dunkelmodus.",
         "Demo ohne Login zum Ausprobieren.",
-        "Die App ist nun auf Englisch und Deutsch verfügbar."
+        "Die App ist nun auf Englisch und Deutsch verfügbar.",
+        "Die Mitgliederliste zeigt keinen vorgegebenen Filter „Rest“ mehr. Eigene Filter legst du bei Bedarf selbst an.",
+        "Die gesperrte Qualifikationen-Übersicht zeigt, ob sie dir mit deinen Rechten etwas bringt."
       ],
-      "bugFixes": []
+      "bugFixes": [
+        "Mit reinem Leserecht auf deine Gruppe zeigt die App fehlende Rollen, Qualifikationen und Führungszeugnisse anderer als „Keine Berechtigung“ oder mit Hinweis, statt sie als leer oder 0 anzuzeigen.",
+        "Wer am Bundesvergleich teilnimmt, aber keine eigenen Zahlen sieht, bekommt den Vergleich trotzdem angezeigt."
+      ]
     }
   ]
 }

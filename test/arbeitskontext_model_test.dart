@@ -1951,6 +1951,59 @@ void main() {
     },
   );
 
+  test('group_full allein macht den Layer der Gruppe relevant', () async {
+    final model = ArbeitskontextModel(
+      localRepository: _FakeArbeitskontextLocalRepository(),
+      readModelRepository: _FakeArbeitskontextReadModelRepository(),
+      groupsService: _FakeHitobitoGroupsService(
+        groups: const <HitobitoGroupResource>[
+          HitobitoGroupResource(id: 10, name: 'Bezirk Rhein', isLayer: true),
+          HitobitoGroupResource(
+            id: 11,
+            name: 'Stamm Musterdorf',
+            isLayer: true,
+            parentId: 10,
+            layerGroupId: 11,
+          ),
+          HitobitoGroupResource(
+            id: 111,
+            name: 'Grossprojekt',
+            isLayer: false,
+            parentId: 11,
+            layerGroupId: 11,
+          ),
+        ],
+      ),
+      bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+      logger: _FakeLoggerService(),
+    );
+
+    await model.syncForAuth(
+      authState: AuthState.signedIn,
+      session: AuthSession(
+        accessToken: 'token-group-full',
+        receivedAt: DateTime(2026, 10, 8),
+      ),
+      profile: const AuthProfile(
+        namiId: 7,
+        primaryGroupId: 111,
+        roles: <AuthProfileRole>[
+          AuthProfileRole(
+            groupId: 111,
+            groupName: 'Grossprojekt',
+            roleName: 'Mitgliederverwaltung',
+            roleClass: 'Group::Grossprojekt::Mitgliederverwaltung',
+            permissions: <String>['group_full'],
+          ),
+        ],
+      ),
+    );
+
+    expect(model.isUnauthorized, isFalse);
+    expect(model.isReady, isTrue);
+    expect(model.arbeitskontext?.aktiverLayer.id, 11);
+  });
+
   test(
     'laedt Roles nach Kontextaufbau automatisch im Hintergrund nach',
     () async {
@@ -2592,6 +2645,67 @@ void main() {
       expect(model.istMitgliedSchreibbar(mitglied), isFalse);
     },
   );
+
+  test(
+    'markiert ein Mitglied bei layer_and_below_full in einer Gruppe des Bezirks als schreibbar',
+    () async {
+      final mitglied = Mitglied.peopleListItem(
+        mitgliedsnummer: '4711',
+        personId: 23,
+        primaryGroupId: 111,
+        vorname: 'Julia',
+        nachname: 'Keller',
+      );
+      const bezirk = ArbeitskontextLayer(id: 10, name: 'Bezirk Rhein');
+      const stamm = ArbeitskontextLayer(
+        id: 11,
+        name: 'Stamm Musterdorf',
+        parentLayerId: 10,
+      );
+      final cached = _buildReadModel(
+        aktiverLayerId: 11,
+        aktiverLayerName: 'Stamm Musterdorf',
+        parentLayerId: 10,
+        verfuegbareLayer: const <ArbeitskontextLayer>[bezirk, stamm],
+        gruppen: const <ArbeitskontextGruppe>[
+          ArbeitskontextGruppe(id: 111, name: 'Woelflinge', layerId: 11),
+        ],
+        mitglieder: <Mitglied>[mitglied],
+        // Gruppe 101 ist der Bezirksvorstand, keine Layergruppe.
+        uebergeordneteGruppenIds: const <int>[10, 101],
+      );
+      final model = ArbeitskontextModel(
+        localRepository: _FakeArbeitskontextLocalRepository(cached: cached),
+        readModelRepository: _FakeArbeitskontextReadModelRepository(),
+        groupsService: _FakeHitobitoGroupsService(),
+        bestimmeStartkontextUseCase: const BestimmeStartkontextUseCase(),
+        logger: _FakeLoggerService(),
+      );
+
+      await model.syncForAuth(
+        authState: AuthState.signedIn,
+        session: AuthSession(
+          accessToken: 'token-bezirk',
+          receivedAt: DateTime(2026, 10, 8),
+        ),
+        profile: const AuthProfile(
+          namiId: 4713,
+          roles: <AuthProfileRole>[
+            AuthProfileRole(
+              groupId: 101,
+              groupName: 'Bezirksvorstand',
+              roleName: 'Vorsitz',
+              roleClass: 'Group::BezirkVorstand::Vorsitz',
+              permissions: <String>['layer_and_below_full'],
+            ),
+          ],
+        ),
+      );
+
+      expect(model.arbeitskontext?.aktiverLayer.id, 11);
+      expect(model.istMitgliedSchreibbar(mitglied), isTrue);
+    },
+  );
 }
 
 class _FakeArbeitskontextLocalRepository
@@ -2722,18 +2836,22 @@ ArbeitskontextReadModel _buildReadModel({
   List<Mitglied> mitglieder = const <Mitglied>[],
   List<ArbeitskontextMitgliedsZuordnung> mitgliedsZuordnungen =
       const <ArbeitskontextMitgliedsZuordnung>[],
+  int? parentLayerId,
+  Iterable<int> uebergeordneteGruppenIds = const <int>[],
 }) {
   return ArbeitskontextReadModel(
     arbeitskontext: Arbeitskontext(
       aktiverLayer: ArbeitskontextLayer(
         id: aktiverLayerId,
         name: aktiverLayerName,
+        parentLayerId: parentLayerId,
       ),
       verfuegbareLayer: verfuegbareLayer,
     ),
     gruppen: gruppen,
     mitglieder: mitglieder,
     mitgliedsZuordnungen: mitgliedsZuordnungen,
+    uebergeordneteGruppenIds: uebergeordneteGruppenIds,
   );
 }
 

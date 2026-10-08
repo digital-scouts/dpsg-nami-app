@@ -4,6 +4,7 @@ import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model.dart';
 import 'package:nami/domain/auth/auth_profile.dart';
 import 'package:nami/domain/bundesstatistik/ermittle_statistik_abdeckung_usecase.dart';
 import 'package:nami/domain/bundesstatistik/statistik_abdeckung.dart';
+import 'package:nami/domain/member/mitglied.dart';
 
 const _bezirk = ArbeitskontextLayer(
   id: 1,
@@ -17,9 +18,34 @@ const _stamm = ArbeitskontextLayer(
   parentLayerId: 1,
 );
 
-ArbeitskontextReadModel _readModel() => ArbeitskontextReadModel(
+/// Die eigene Person (`namiId` 7) hat die Mitgliedsnummer 'eigen'.
+final _eigene = Mitglied.peopleListItem(
+  vorname: 'Eigene',
+  nachname: 'Person',
+  mitgliedsnummer: 'eigen',
+  personId: 7,
+);
+
+/// Standardmaessig liefert Hitobito fuer alle Gruppen auch fremde Rollen.
+ArbeitskontextReadModel _readModel({
+  Set<int> fremdeRollenIn = const {20, 21, 22, 30, 31},
+  Set<int> eigeneRollenIn = const {},
+}) => ArbeitskontextReadModel(
   // Gruppe 5 ist die Bezirksleitung im Bezirk oberhalb des Stammes.
   uebergeordneteGruppenIds: const [1, 5],
+  mitglieder: [_eigene],
+  mitgliedsZuordnungen: [
+    for (final gruppe in fremdeRollenIn)
+      ArbeitskontextMitgliedsZuordnung(
+        mitgliedsnummer: 'fremd-$gruppe',
+        gruppenId: gruppe,
+      ),
+    for (final gruppe in eigeneRollenIn)
+      ArbeitskontextMitgliedsZuordnung(
+        mitgliedsnummer: 'eigen',
+        gruppenId: gruppe,
+      ),
+  ],
   arbeitskontext: Arbeitskontext(
     aktiverLayer: _stamm,
     verfuegbareLayer: const [_bezirk, _stamm],
@@ -65,8 +91,10 @@ AuthProfile _profil(List<(int, List<String>)> rollen) => AuthProfile(
 
 void main() {
   const useCase = ErmittleStatistikAbdeckungUseCase();
-  StatistikAbdeckung abdeckung(List<(int, List<String>)> rollen) =>
-      useCase(profile: _profil(rollen), readModel: _readModel());
+  StatistikAbdeckung abdeckung(
+    List<(int, List<String>)> rollen, {
+    ArbeitskontextReadModel? readModel,
+  }) => useCase(profile: _profil(rollen), readModel: readModel ?? _readModel());
 
   test('layer_read in einer Gruppe des Stammes sieht den ganzen Stamm', () {
     expect(
@@ -134,7 +162,7 @@ void main() {
         (21, ['group_read']),
         (22, ['GROUP_FULL']),
       ]),
-      StatistikAbdeckung.gruppen({21, 22}),
+      StatistikAbdeckung.gruppen({21, 22}, vollLesbareGruppenIds: {22}),
     );
   });
 
@@ -154,5 +182,73 @@ void main() {
       ]),
       StatistikAbdeckung.gruppen(const <int>{}),
     );
+  });
+
+  group('ohne Rollen anderer Personen', () {
+    test('group_read ohne fremde Rollen ist eine Gruppe ohne Rollen', () {
+      expect(
+        abdeckung([
+          (21, ['group_read']),
+        ], readModel: _readModel(fremdeRollenIn: {}, eigeneRollenIn: {21})),
+        StatistikAbdeckung.gruppen(const <int>{}, gruppenOhneRollen: {21}),
+      );
+    });
+
+    test('group_full zaehlt auch ohne fremde Rollen', () {
+      expect(
+        abdeckung([
+          (21, ['group_full']),
+        ], readModel: _readModel(fremdeRollenIn: {})),
+        StatistikAbdeckung.gruppen({21}, vollLesbareGruppenIds: {21}),
+      );
+    });
+
+    test('group_and_below_read zaehlt, wenn eine Untergruppe Rollen hat', () {
+      expect(
+        abdeckung([
+          (30, ['group_and_below_read']),
+        ], readModel: _readModel(fremdeRollenIn: {31})),
+        StatistikAbdeckung.gruppen({30, 31}),
+      );
+    });
+
+    test('group_and_below_read ohne fremde Rollen fehlt ganz', () {
+      expect(
+        abdeckung([
+          (30, ['group_and_below_read']),
+        ], readModel: _readModel(fremdeRollenIn: {21})),
+        StatistikAbdeckung.gruppen(const <int>{}, gruppenOhneRollen: {30, 31}),
+      );
+    });
+
+    test('eine voll lesbare Rolle schliesst die Gruppe aus der Luecke aus', () {
+      expect(
+        abdeckung([
+          (21, ['group_read']),
+          (30, ['group_and_below_full']),
+        ], readModel: _readModel(fremdeRollenIn: {})),
+        StatistikAbdeckung.gruppen(
+          {30, 31},
+          gruppenOhneRollen: {21},
+          vollLesbareGruppenIds: {30, 31},
+        ),
+      );
+    });
+  });
+
+  group('istVollLesbar', () {
+    test('bei Stamm-Abdeckung ist jede Person voll lesbar', () {
+      expect(const StatistikAbdeckung.stamm().istVollLesbar(const []), isTrue);
+    });
+
+    test('nur Personen mit Rolle in voll lesbarer Gruppe', () {
+      final abdeckung = StatistikAbdeckung.gruppen(
+        {21, 22},
+        vollLesbareGruppenIds: {22},
+      );
+      expect(abdeckung.istVollLesbar([22]), isTrue);
+      expect(abdeckung.istVollLesbar([21]), isFalse);
+      expect(abdeckung.istVollLesbar(const []), isFalse);
+    });
   });
 }

@@ -8,6 +8,7 @@ import 'package:nami/domain/member/mitglied.dart';
 import 'package:nami/domain/taetigkeit/roles.dart';
 import 'package:nami/domain/taetigkeit/stufe.dart';
 import 'package:nami/l10n/app_localizations.dart';
+import 'package:nami/presentation/widgets/leserechte_hinweis.dart';
 import 'package:nami/presentation/widgets/member_list_tile.dart';
 
 class _FilteredMemberEntry {
@@ -51,8 +52,12 @@ class MemberList extends StatelessWidget {
     this.onTapMember,
     this.onTapSortHint,
     this.onRefresh,
+    this.hinweis,
   });
   final List<Mitglied> mitglieder;
+
+  /// Hinweis unter der Zaehlzeile, etwa auf fehlende Rollen.
+  final String? hinweis;
   final String searchString;
   final bool highlightSearchMatches;
   final MemberSortKey sortKey;
@@ -176,6 +181,11 @@ class MemberList extends StatelessWidget {
             ],
           ),
         ),
+        if (hinweis != null)
+          LeserechteHinweis(
+            text: hinweis!,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          ),
         Expanded(
           child: filtered.isEmpty
               ? Center(

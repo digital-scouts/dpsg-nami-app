@@ -22,7 +22,7 @@ Die Kachel <span class="ui">Gruppen</span> öffnet jede Gruppe mit denselben Kac
 {% include shots.html items="statistik:Überblick des Stamms|statistik_entwicklung:Thema Entwicklung mit Verlauf|statistik_gruppe:Gruppenstatistik einer Meute" %}
 
 {: .hinweis }
-Wer nur eine Gruppe lesen darf, sieht nur den Überblick dieser Gruppe. Der Tab <span class="ui">Bundesweit</span> vergleicht sie dann mit Gruppen derselben Stufe.
+Wer nur eine Gruppe lesen darf, sieht nur den Überblick dieser Gruppe. Der Tab <span class="ui">Bundesweit</span> vergleicht sie dann mit Gruppen derselben Stufe. Liefert Hitobito für die Gruppe keine Rollen, zeigt der Überblick einen Hinweis statt Zahlen, siehe [FAQ](../faq/#mir-fehlen-stufen-rollen-oder-qualifikationen-meiner-gruppe).
 
 ## Überblick anpassen
 

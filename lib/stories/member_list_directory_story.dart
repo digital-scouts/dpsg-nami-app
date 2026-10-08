@@ -46,9 +46,18 @@ Story memberDirectoryStory() => Story(
       label: 'Suchtreffer hervorheben',
       initial: true,
     );
+    final rollenHinweis = context.knobs.boolean(
+      label: 'Hinweis: Rollen nicht lesbar (group_read)',
+      initial: false,
+    );
 
     return MemberDirectory(
       mitglieder: members,
+      hinweis: rollenHinweis
+          ? 'Mit deinem Leserecht auf Trupp Kompass liefert Hitobito die '
+                'Rollen der anderen nicht. Stufen und Gruppenfilter fehlen '
+                'deshalb.'
+          : null,
       sortKey: sort,
       subtitleMode: subtitle,
       highlightSearchMatches: highlightSearchMatches,

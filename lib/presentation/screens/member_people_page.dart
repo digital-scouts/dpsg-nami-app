@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../domain/arbeitskontext/arbeitskontext_read_model.dart';
+import '../../domain/bundesstatistik/statistik_abdeckung.dart';
 import '../../domain/member/member_list_preferences.dart';
 import '../../domain/member/mitglied.dart';
 import '../../domain/member_filters/member_fixed_filter_groups.dart';
@@ -106,7 +107,10 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
     _ensureMemberFiltersLoaded(memberFiltersModel, layerId);
     final fixedFilterGroups = arbeitskontextModel.readModel == null
         ? const <MemberFixedFilterGroup>[]
-        : _buildFixedFilterGroups(arbeitskontextModel.readModel!);
+        : _buildFixedFilterGroups(
+            arbeitskontextModel.readModel!,
+            abdeckung: arbeitskontextModel.statistikAbdeckung,
+          );
     final mitgliedsFilterKeys = arbeitskontextModel.readModel == null
         ? const <String, Set<String>>{}
         : _ermittleMemberFilterTrefferUseCase(
@@ -259,6 +263,7 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
       final ownPersonId = authModel.profile?.namiId;
       return MemberDirectory(
         mitglieder: members,
+        hinweis: _rollenHinweis(t, arbeitskontextModel),
         sortKey: sortKey,
         subtitleMode: subtitleMode,
         highlightSearchMatches: highlightSearchMatches,
@@ -523,15 +528,39 @@ class _MemberPeoplePageState extends State<MemberPeoplePage> {
     return false;
   }
 
-  List<MemberFixedFilterGroup> _buildFixedFilterGroups(
-    ArbeitskontextReadModel readModel,
+  /// Hinweis, wenn Hitobito fuer lesbare Gruppen keine Rollen liefert.
+  String? _rollenHinweis(
+    AppLocalizations t,
+    ArbeitskontextModel arbeitskontextModel,
   ) {
+    final readModel = arbeitskontextModel.readModel;
+    final ohneRollen =
+        arbeitskontextModel.statistikAbdeckung?.gruppenOhneRollen ??
+        const <int>{};
+    if (readModel == null || ohneRollen.isEmpty) {
+      return null;
+    }
+    final namen = <String>[
+      for (final gruppe in readModel.gruppen)
+        if (ohneRollen.contains(gruppe.id)) gruppe.anzeigename,
+    ];
+    return t.t('leserechte_liste_hinweis', {'gruppen': namen.join(', ')});
+  }
+
+  /// Feste Gruppenchips nur fuer Gruppen, deren Mitglieder samt Rollen
+  /// lesbar sind; andere Gruppen fuehren nur zu leeren Listen.
+  List<MemberFixedFilterGroup> _buildFixedFilterGroups(
+    ArbeitskontextReadModel readModel, {
+    required StatistikAbdeckung? abdeckung,
+  }) {
     final groups =
         readModel.gruppen
             .where(
-              (gruppe) => MemberFixedFilterGroups.isSupportedGruppenTyp(
-                gruppe.gruppenTyp,
-              ),
+              (gruppe) =>
+                  MemberFixedFilterGroups.isSupportedGruppenTyp(
+                    gruppe.gruppenTyp,
+                  ) &&
+                  (abdeckung?.deckt(gruppe.id) ?? true),
             )
             .toList(growable: true)
           ..sort((left, right) {

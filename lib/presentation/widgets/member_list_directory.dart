@@ -54,8 +54,10 @@ class MemberDirectory extends StatefulWidget {
     this.onResetFilters,
     this.onTapMember,
     this.onRefresh,
+    this.hinweis,
   });
   final List<Mitglied> mitglieder;
+  final String? hinweis;
   final Map<String, Set<String>> mitgliedsFilterKeys;
   final List<MemberFixedFilterGroup> fixedFilterGroups;
   final List<MemberCustomFilterGroup> customFilterGroups;
@@ -210,6 +212,7 @@ class _MemberDirectoryState extends State<MemberDirectory> {
         Expanded(
           child: MemberList(
             mitglieder: widget.mitglieder,
+            hinweis: widget.hinweis,
             searchString: search,
             highlightSearchMatches: widget.highlightSearchMatches,
             sortKey: widget.sortKey,

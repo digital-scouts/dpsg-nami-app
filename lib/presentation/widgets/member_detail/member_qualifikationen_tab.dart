@@ -17,6 +17,7 @@ import '../../format/date_formatters.dart';
 import '../../model/auth_session_model.dart';
 import '../../notifications/app_snackbar.dart';
 import '../../theme/status_farben.dart';
+import '../leserechte_hinweis.dart';
 import '../section_header.dart';
 import 'mitglied_dauer_text.dart';
 
@@ -32,6 +33,7 @@ class MemberQualifikationenTab extends StatefulWidget {
     this.efzEinsichtnahmen = const <EfzEinsichtnahme>[],
     this.qualifikationenStand = TeildatenStand.unbekannt,
     this.qualifikationen = const <Qualifikation>[],
+    this.vollLesbar = true,
   });
 
   final Mitglied mitglied;
@@ -40,6 +42,16 @@ class MemberQualifikationenTab extends StatefulWidget {
   final List<EfzEinsichtnahme> efzEinsichtnahmen;
   final TeildatenStand qualifikationenStand;
   final List<Qualifikation> qualifikationen;
+
+  /// Hitobito liefert Qualifikationen und EFZ nur fuer voll lesbare
+  /// Personen. Sonst ist ein leerer Stand keine Aussage („Keines hinterlegt“
+  /// waere falsch) und der Tab zeigt „Keine Berechtigung“.
+  final bool vollLesbar;
+
+  TeildatenStand get _efzStand =>
+      vollLesbar ? efzStand : TeildatenStand.keineBerechtigung;
+  TeildatenStand get _qualifikationenStand =>
+      vollLesbar ? qualifikationenStand : TeildatenStand.keineBerechtigung;
 
   @override
   State<MemberQualifikationenTab> createState() =>
@@ -68,7 +80,7 @@ class _MemberQualifikationenTabState extends State<MemberQualifikationenTab> {
           textBaseline: TextBaseline.alphabetic,
           children: [
             DpsgSectionHeader(label: t.t('quali_abschnitt_liste')),
-            if (widget.qualifikationenStand == TeildatenStand.geladen &&
+            if (widget._qualifikationenStand == TeildatenStand.geladen &&
                 qualifikationen.isNotEmpty) ...[
               const SizedBox(width: 6),
               Padding(
@@ -89,6 +101,11 @@ class _MemberQualifikationenTabState extends State<MemberQualifikationenTab> {
             children: _qualifikationsZeilen(context, t),
           ),
         ),
+        if (!widget.vollLesbar)
+          LeserechteHinweis(
+            text: t.t('leserechte_quali_hinweis'),
+            padding: const EdgeInsets.fromLTRB(4, 10, 4, 0),
+          ),
       ],
     );
   }
@@ -108,11 +125,11 @@ class _MemberQualifikationenTabState extends State<MemberQualifikationenTab> {
       hauptzeile,
       detail,
       downloadErlaubt,
-    ) = switch (widget.efzStand) {
+    ) = switch (widget._efzStand) {
       TeildatenStand.keineBerechtigung => (
         _Ton.leise,
         t.t('quali_keine_berechtigung'),
-        t.t('quali_efz_keine_berechtigung_text'),
+        widget.vollLesbar ? t.t('quali_efz_keine_berechtigung_text') : null,
         false,
       ),
       TeildatenStand.unbekannt => (
@@ -191,7 +208,7 @@ class _MemberQualifikationenTabState extends State<MemberQualifikationenTab> {
   }
 
   List<Widget> _qualifikationsZeilen(BuildContext context, AppLocalizations t) {
-    final hinweis = switch (widget.qualifikationenStand) {
+    final hinweis = switch (widget._qualifikationenStand) {
       TeildatenStand.unbekannt => t.t('quali_nicht_synchronisiert'),
       TeildatenStand.fehlgeschlagen => t.t('quali_fehlgeschlagen'),
       TeildatenStand.keineBerechtigung => t.t('quali_keine_berechtigung'),

@@ -35,9 +35,16 @@ Story memberQualifikationenTabStory() => Story(
           Option(label: stand.name, value: stand),
       ],
     );
+    final vollLesbar = !context.knobs.boolean(
+      label: 'Nur Leserecht (group_read, fremde Person)',
+      initial: false,
+    );
 
     return MemberQualifikationenTab(
-      key: ValueKey<Object>(Object.hash(mitglied, efzStand, qualiStand)),
+      key: ValueKey<Object>(
+        Object.hash(mitglied, efzStand, qualiStand, vollLesbar),
+      ),
+      vollLesbar: vollLesbar,
       mitglied: mitglied,
       heute: MitgliedEdgeCases.heute,
       efzStand: efzStand,

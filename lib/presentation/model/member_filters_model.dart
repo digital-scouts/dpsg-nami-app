@@ -28,7 +28,7 @@ class MemberFiltersModel extends ChangeNotifier {
     notifyListeners();
     final loaded = await _repository.loadForLayer(layerId);
     _layerId = layerId;
-    _settings = _ensureDefaults(loaded);
+    _settings = _ohneAltenStandardRest(loaded);
     _isLoading = false;
     notifyListeners();
     await _persist();
@@ -103,18 +103,29 @@ class MemberFiltersModel extends ChangeNotifier {
     await _persist();
   }
 
-  MemberFilterLayerSettings _ensureDefaults(
+  /// Frueher legte die App je Layer die Filtergruppe „Rest“ als Standard an.
+  /// Standard-Chips gibt es nicht mehr; die unveraenderte alte Gruppe wird
+  /// deshalb entfernt, angepasste Gruppen bleiben.
+  MemberFilterLayerSettings _ohneAltenStandardRest(
     MemberFilterLayerSettings settings,
   ) {
-    if (settings.defaultsInitialisiert) {
+    bool istAlterStandard(MemberCustomFilterGroup group) =>
+        group.isDefault &&
+        group.id == 'rest' &&
+        group.shortLabel == 'Rest' &&
+        group.logic == MemberCustomFilterLogic.oder &&
+        group.rules.length == 1 &&
+        group.rules.single.operator ==
+            MemberCustomFilterRuleOperator.hatNicht &&
+        group.rules.single.criterion ==
+            const MemberCustomFilterCriterion.stufe();
+    if (!settings.customGroups.any(istAlterStandard)) {
       return settings;
     }
     return settings.copyWith(
-      customGroups: <MemberCustomFilterGroup>[
-        ...settings.customGroups,
-        MemberCustomFilterGroup.defaultRest,
-      ],
-      defaultsInitialisiert: true,
+      customGroups: settings.customGroups
+          .where((group) => !istAlterStandard(group))
+          .toList(growable: false),
     );
   }
 

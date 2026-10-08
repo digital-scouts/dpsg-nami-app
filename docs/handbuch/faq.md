@@ -21,6 +21,16 @@ Gehe die Punkte der Reihe nach durch:
 5. **Leere Ebene.** Eine Ebene ohne Personen bleibt wählbar, zeigt aber keine Mitglieder.
 6. **Kein Leserecht.** Ohne Leserecht auf eine Ebene oder Gruppe meldet die App ab und nennt den Grund auf dem Anmeldebildschirm. Das Recht vergibt dein Stamm oder Bezirk in der NaMi.
 
+## Mir fehlen Stufen, Rollen oder Qualifikationen meiner Gruppe
+
+Mit reinem Leserecht auf deine Gruppe (in Hitobito `group_read`, etwa als Stufenleitung) liefert Hitobito die Personen deiner Gruppe, aber nicht ihre Rollen, Qualifikationen und Führungszeugnisse. Deine eigenen Daten siehst du vollständig.
+
+- Die Mitgliederliste weist darauf hin. Stufenfarben und Gruppenfilter fehlen.
+- Bei anderen Personen steht unter Qualifikationen und Führungszeugnis <span class="ui">Keine Berechtigung</span>.
+- Statistik und Stufenwechsel zeigen statt Zahlen einen Hinweis. An den Bundesvergleich sendet die App für diese Gruppe nichts.
+
+Wer die Gruppe in Hitobito bearbeiten darf (`group_full`) oder Leserecht auf den ganzen Stamm hat, sieht alles.
+
 ## Die Daten sind veraltet
 
 Die App aktualisiert etwa einmal am Tag. Sofort geht es über Hilfe & Diagnose → <span class="ui">Daten jetzt aktualisieren</span>. Schlägt eine Aktualisierung fehl, bleiben die bisherigen Daten nutzbar.

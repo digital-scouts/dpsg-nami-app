@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Leserechte – Entwurf Runde 1</title>
+<style>
+  :root { --bg:#F2F2F7; --surface:#FFFFFF; --fg:#1C1C1E; --fg2:#5d5d63; --muted:#8E8E93; --border:#E5E5EA; --primary:#003056; --primary-lite:#E8EDF5; --hint:#EEF2F8; --hint-fg:#2c4766; --jufi:#2F4FA2; --woe:#F06A12; }
+  .dark { --bg:#0E0E12; --surface:#1A1A22; --fg:#F0F0F5; --fg2:#a9a9b6; --muted:#8A8A9A; --border:#2E2E3A; --primary:#5A9AD8; --primary-lite:#1A253A; --hint:#18222f; --hint-fg:#a9c3e3; --jufi:#6f8ff0; --woe:#ff8a3d; }
+  body { margin:0; background:#eceae4; color:#1f1f1c; font:16px/1.5 system-ui,-apple-system,sans-serif; }
+  main { max-width:1600px; margin:0 auto; padding:24px 28px 120px; }
+  h1 { font-size:1.9rem; margin:0 0 .3rem; } h2 { font-size:1.4rem; margin:34px 0 .2rem; }
+  .lead, .desc { color:#4a4943; max-width:92ch; margin:0 0 12px; }
+  .bar { position:sticky; top:0; z-index:5; background:rgba(236,234,228,.95); backdrop-filter:blur(8px); border-bottom:1px solid #d6d3c9; padding:10px 28px; display:flex; gap:18px; align-items:center; font-size:14px; flex-wrap:wrap; }
+  .tgl { display:inline-flex; background:#dcd9cf; border-radius:999px; padding:3px; }
+  .tgl button { border:0; background:none; font:inherit; font-size:13px; padding:4px 12px; border-radius:999px; cursor:pointer; }
+  .tgl button.on { background:#003056; color:#fff; }
+  .reihe { display:flex; gap:26px; flex-wrap:wrap; align-items:flex-start; }
+  figure { margin:0; width:282px; } figcaption { font-size:13px; color:#5d5b54; margin-top:10px; } figcaption b { color:#1f1f1c; }
+  .screen { width:264px; height:560px; border-radius:38px; overflow:hidden; background:var(--bg); color:var(--fg); box-shadow:0 0 0 9px #1c1c1e, 0 16px 36px rgba(0,0,0,.25); position:relative; margin:9px; font:13px/1.35 system-ui,-apple-system,sans-serif; }
+  .status { height:34px; display:flex; align-items:center; justify-content:space-between; padding:0 22px; font-size:12px; font-weight:600; position:relative; }
+  .status .island { position:absolute; left:50%; top:8px; transform:translateX(-50%); width:80px; height:23px; border-radius:12px; background:#000; }
+  .kopfbild { background:linear-gradient(#dfe8df, #c9d8cb); padding:6px 12px 10px; }
+  .dark .kopfbild { background:linear-gradient(#1b2620, #15201a); }
+  .suche { background:var(--surface); border-radius:999px; padding:8px 12px; color:var(--muted); font-size:12px; display:flex; justify-content:space-between; }
+  .inhalt { padding:8px 10px; }
+  .zeile { display:flex; justify-content:space-between; color:var(--fg2); font-size:11.5px; padding:2px 4px 6px; }
+  .karte { background:var(--surface); border-radius:14px; padding:9px 11px; margin-bottom:7px; position:relative; }
+  .person { display:flex; justify-content:space-between; align-items:center; }
+  .person b { font-weight:600; font-size:13px; } .person small { color:var(--muted); display:block; font-size:11px; }
+  .person .rechts { text-align:right; color:var(--muted); font-size:10.5px; }
+  .streifen::before { content:''; position:absolute; left:0; top:12px; bottom:12px; width:3px; border-radius:2px; background:var(--jufi); }
+  .tabs { display:flex; gap:16px; padding:6px 16px 0; border-bottom:1px solid var(--border); background:var(--surface); font-size:12.5px; }
+  .tabs span { padding:6px 0; color:var(--fg2); } .tabs span.on { color:var(--primary); border-bottom:2px solid var(--primary); font-weight:600; }
+  .detailkopf { background:var(--surface); padding:6px 16px 4px; display:flex; gap:10px; align-items:center; }
+  .avatar { width:34px; height:34px; border-radius:50%; background:var(--primary-lite); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--primary); font-weight:600; }
+  .section { font-size:10.5px; font-weight:700; letter-spacing:.06em; color:var(--primary); margin:10px 6px 5px; text-transform:uppercase; }
+  .wert { font-size:14px; font-weight:600; } .sub { font-size:11px; color:var(--muted); }
+  .grau { color:var(--muted); }
+  .chip { display:inline-block; background:var(--surface); border-radius:999px; padding:4px 10px; font-size:11.5px; margin:8px 4px 0 0; }
+  .chip i { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--jufi); margin-right:5px; }
+  .seg { display:flex; background:var(--surface); border-radius:999px; padding:3px; margin-top:8px; font-size:11.5px; }
+  .seg span { flex:1; text-align:center; padding:5px; border-radius:999px; } .seg .on { background:var(--primary); color:#fff; }
+  .zahlkarte { background:var(--surface); border-radius:12px; padding:6px 10px; display:inline-block; }
+  .tabbar { position:absolute; bottom:0; left:0; right:0; height:44px; background:var(--surface); border-top:1px solid var(--border); display:flex; justify-content:space-around; align-items:center; font-size:9.5px; color:var(--fg2); }
+  .tabbar .on { color:var(--primary); font-weight:600; }
+  /* Hinweis-Varianten */
+  .hz { display:flex; gap:6px; align-items:flex-start; color:var(--hint-fg); font-size:11.5px; padding:4px 6px 8px; }
+  .hz svg, .hk svg { flex:none; margin-top:1px; }
+  .hk { background:var(--hint); color:var(--hint-fg); border-radius:14px; padding:10px 12px; margin-bottom:8px; display:flex; gap:9px; }
+  .hk b { display:block; color:var(--fg); font-size:12.5px; margin-bottom:2px; }
+  .hk span { font-size:11.5px; line-height:1.4; }
+  .hk a { display:block; margin-top:5px; color:var(--primary); font-weight:600; font-size:11.5px; text-decoration:none; }
+  .feedback { position:fixed; left:0; right:0; bottom:0; background:#1f1f1c; color:#fff; padding:10px 28px; display:flex; gap:14px; align-items:center; font-size:14px; flex-wrap:wrap; z-index:9; }
+  .feedback select, .feedback input { font:inherit; font-size:13px; padding:4px 8px; border-radius:8px; border:0; }
+  .feedback input { flex:1; min-width:240px; }
+  .feedback button { font:inherit; font-size:13px; padding:6px 14px; border-radius:999px; border:0; background:#f2c26b; color:#1f1f1c; cursor:pointer; font-weight:600; }
+  .open { background:#fff8e6; border:1px solid #efd9a2; border-radius:12px; padding:10px 16px; max-width:980px; font-size:14px; color:#4a3f1c; }
+  .open li { margin:.15rem 0; }
+</style>
+</head>
+<body>
+<div class="bar"><b>Leserechte · Runde 1</b>
+  <span class="tgl" id="modus"><button class="on" data-m="hell">Hell</button><button data-m="dunkel">Dunkel</button></span>
+</div>
+<main>
+  <h1>Fehlende Daten bei reinen Leserechten kennzeichnen</h1>
+  <p class="lead">Beispiel: David leitet den Trupp Kompass und hat in Hitobito nur <code>group_read</code>. Hitobito liefert ihm die Personen der Gruppe, aber keine Rollen, Qualifikationen und kein EFZ der anderen. Heute zeigt die App dann Nullen, leere Listen und „Keines hinterlegt“. Künftig sagt sie, dass die Daten fehlen. Seine eigenen Daten sieht David weiter vollständig.</p>
+  <div class="open"><ul>
+    <li>Gruppenchips gibt es nur noch für Gruppen mit lesbaren Rollen. Bei David verschwindet die Chipzeile deshalb ganz.</li>
+    <li>Die Hinweise verschwinden von selbst, sobald Hitobito die Rollen liefert. Der Vorschlag an Hitobito ist vorbereitet.</li>
+    <li>Qualifikationen und EFZ anderer Personen zeigt Hitobito auch in der Weboberfläche erst ab <code>group_full</code> oder Layer-Leserecht. Mit <code>group_read</code> bleibt es dort dauerhaft bei „Keine Berechtigung“.</li>
+  </ul></div>
+  <div id="varianten"></div>
+</main>
+
+<div class="feedback"><b>Rückmeldung</b>
+  <label>Variante <select id="wahl"><option>A · Zeile</option><option>B · Karte</option><option>gemischt</option></select></label>
+  <input id="kommentar" placeholder="Kommentar, z. B. Texte">
+  <button id="kopieren">Auswahl kopieren</button><span id="kopiert"></span>
+</div>
+
+<script>
+const INFO = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16z"/></svg>`;
+const SCHLOSS = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6A5 5 0 0 0 7 6v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2zM9 6a3 3 0 0 1 6 0v2H9V6zm9 14H6V10h12v10z"/></svg>`;
+let modus = 'hell';
+const status = `<div class="status"><span>9:41</span><span class="island"></span><span>●●●</span></div>`;
+
+// Hinweistexte je Stelle: [Titel, Text]
+const T = {
+  liste: ['Rollen nicht sichtbar', 'Mit deinem Leserecht auf Trupp Kompass liefert Hitobito die Rollen der anderen nicht. Stufen und Gruppenfilter fehlen deshalb.'],
+  rollen: ['Rollen nicht sichtbar', 'Die Rollen dieser Person liefert Hitobito mit deinen Rechten nicht.'],
+  quali: ['Keine Berechtigung', 'Qualifikationen und EFZ dieser Person liefert Hitobito mit deinen Rechten nicht.'],
+  statistik: ['Zahlen unbekannt', 'Ohne Rollen kann die App Stufen und Zahlen für Trupp Kompass nicht berechnen.'],
+  stufenwechsel: ['Keine Vorschläge möglich', 'Ohne Rollen weiß die App nicht, wer in welcher Stufe ist.'],
+};
+const hinweis = (v, key, mitLink = true) => {
+  const [titel, text] = T[key];
+  return v === 'A'
+    ? `<div class="hz">${INFO}<span>${text}</span></div>`
+    : `<div class="hk">${INFO}<div><b>${titel}</b><span>${text}</span>${mitLink ? '<a>Mehr erfahren</a>' : ''}</div></div>`;
+};
+const tabbar = (on) => `<div class="tabbar">${['Mitglieder','Statistiken','Stufenwechsel','Einstellungen'].map((x) => `<span class="${x === on ? 'on' : ''}">${x}</span>`).join('')}</div>`;
+const person = (name, nr, streifen) => `<div class="karte person ${streifen ? 'streifen' : ''}"><div style="padding-left:6px"><b>${name}</b><small>${nr}</small></div><div class="rechts">${streifen ? 'Trupp Kompass<br>Leitung' : ''}</div></div>`;
+
+function liste(v) {
+  return `<div class="kopfbild"><div class="suche"><span>🔍 Suche nach Name, Mail oder ID</span><span>⚙︎</span></div></div>
+  <div class="inhalt">
+    <div class="zeile"><span>Mitglieder: 8</span><span>Name A–Z</span></div>
+    ${hinweis(v, 'liste')}
+    ${person('Hanna Albrecht', '1022')}${person('Ben Kuhn', '1025')}${person('Luis Franke', '1023')}${person('David Neumann', '1052', true)}${person('Marie Graf', '1024')}
+  </div>${tabbar('Mitglieder')}`;
+}
+function detailkopf(tab) {
+  return `<div class="detailkopf"><span>←</span><div class="avatar">HA</div><div><div class="wert" style="font-size:13px">Hanna Albrecht</div><div class="sub">12 Jahre · weiblich</div></div></div>
+  <div class="tabs">${['Daten','Rollen','Qualifikationen'].map((x) => `<span class="${x === tab ? 'on' : ''}">${x}</span>`).join('')}</div>`;
+}
+function rollen(v) {
+  return `${detailkopf('Rollen')}<div class="inhalt">
+    <div class="section">Pfadfinder-Verlauf</div>
+    ${hinweis(v, 'rollen')}
+  </div>`;
+}
+function quali(v) {
+  const zeile = (titel) => v === 'A'
+    ? `<div class="karte"><div class="wert" style="font-size:13px">${titel}</div><div class="sub" style="display:flex;gap:5px;align-items:center;margin-top:3px">${SCHLOSS} Keine Berechtigung</div></div>`
+    : '';
+  return `${detailkopf('Qualifikationen')}<div class="inhalt">
+    <div class="section">Führungszeugnis</div>
+    ${v === 'A' ? zeile('Erweitertes Führungszeugnis') : hinweis(v, 'quali', false)}
+    <div class="section">Qualifikationen</div>
+    ${v === 'A' ? `<div class="karte sub" style="display:flex;gap:5px;align-items:center">${SCHLOSS} Keine Berechtigung</div><div class="hz">${INFO}<span>${T.quali[1]}</span></div>` : `<div class="karte sub" style="display:flex;gap:5px;align-items:center">${SCHLOSS} Keine Berechtigung</div>`}
+  </div>`;
+}
+function statistik(v) {
+  return `<div class="kopfbild"><div class="zahlkarte"><div class="wert">8</div><div class="sub">Personen</div></div>
+    <div class="seg"><span class="on">Stamm Silberfels</span><span>Bundesweit</span></div></div>
+  <div class="inhalt">
+    ${hinweis(v, 'statistik')}
+    <div class="karte"><div class="wert" style="font-size:12.5px">Gruppen</div><div class="sub" style="margin-top:4px">Trupp Kompass</div><div class="wert grau" style="margin-top:4px">–</div><div class="sub">unbekannt</div></div>
+    <div class="karte"><div class="wert" style="font-size:12.5px">Altersstruktur</div><div class="sub" style="margin-top:4px">8 Personen, ohne Stufen</div></div>
+  </div>${tabbar('Statistiken')}`;
+}
+function stufenwechsel(v) {
+  return `<div class="kopfbild"><div class="karte" style="margin:0"><div class="wert">– <span style="font-weight:400;font-size:12px">im Wechselalter</span></div><div class="sub" style="margin-top:4px">Stufenwechsel 01.09.2027</div></div></div>
+  <div class="inhalt">${hinweis(v, 'stufenwechsel')}</div>${tabbar('Stufenwechsel')}`;
+}
+
+const STELLEN = [
+  ['Mitgliederliste', liste],
+  ['Mitglied · Rollen', rollen],
+  ['Mitglied · Qualifikationen', quali],
+  ['Statistik', statistik],
+  ['Stufenwechsel', stufenwechsel],
+];
+const VARIANTEN = [
+  { id: 'A', titel: 'A · Dezente Zeile', text: 'Eine Zeile in der Hinweisfarbe mit Info-Symbol, ohne Fläche. Fällt wenig auf und nimmt kaum Platz weg. Beim EFZ und bei den Qualifikationen steht ein Schloss mit „Keine Berechtigung“, wie heute bei fehlendem EFZ-Recht.' },
+  { id: 'B', titel: 'B · Info-Karte', text: 'Eine getönte Karte mit Titel, Text und „Mehr erfahren“. „Mehr erfahren“ führt zur passenden FAQ im Handbuch. Fällt deutlicher auf und erklärt mehr. Bei den Qualifikationen ersetzt eine Karte beide Abschnitte.' },
+];
+const telefon = (inhalt) => `<div class="screen ${modus === 'dunkel' ? 'dark' : ''}">${status}${inhalt}</div>`;
+function render() {
+  document.getElementById('varianten').innerHTML = VARIANTEN.map((v) => `
+    <h2>${v.titel}</h2><p class="desc">${v.text}</p>
+    <div class="reihe">${STELLEN.map(([name, bau]) => `<figure>${telefon(bau(v.id))}<figcaption><b>${name}</b></figcaption></figure>`).join('')}</div>`).join('');
+}
+document.getElementById('modus').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  [...e.currentTarget.children].forEach((x) => x.classList.toggle('on', x === b));
+  modus = b.dataset.m; render();
+});
+const p = new URLSearchParams(location.search);
+if (p.get('modus')) { modus = p.get('modus'); document.querySelectorAll('#modus button').forEach((b) => b.classList.toggle('on', b.dataset.m === modus)); }
+render();
+document.getElementById('kopieren').addEventListener('click', async () => {
+  const text = `Leserechte Runde 1: ${document.getElementById('wahl').value}. ${document.getElementById('kommentar').value}`.trim();
+  try { await navigator.clipboard.writeText(text); document.getElementById('kopiert').textContent = 'kopiert'; } catch { prompt('Zum Kopieren:', text); }
+});
+</script>
+</body>
+</html>
