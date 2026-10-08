@@ -18,6 +18,14 @@ Story abmeldungHinweisKarteStory() => Story(
       ],
     );
     final dark = context.knobs.boolean(label: 'Dunkel', initial: false);
+    final unterbrochen = context.knobs.options<bool>(
+      label: 'Grund',
+      initial: false,
+      options: const [
+        Option(label: 'Rechte geändert', value: false),
+        Option(label: 'Anmeldung unterbrochen', value: true),
+      ],
+    );
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -44,7 +52,9 @@ Story abmeldungHinweisKarteStory() => Story(
                   return Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const AbmeldungHinweisKarte(),
+                      unterbrochen
+                          ? const AbmeldungHinweisKarte.anmeldungUnterbrochen()
+                          : const AbmeldungHinweisKarte(),
                       const SizedBox(height: 20),
                       FilledButton.icon(
                         onPressed: () {},

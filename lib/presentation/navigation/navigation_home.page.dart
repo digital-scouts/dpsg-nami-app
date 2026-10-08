@@ -311,6 +311,9 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
               if (authModel.logoutReason == LogoutReason.keineBerechtigung) ...[
                 const AbmeldungHinweisKarte(),
                 const SizedBox(height: 20),
+              ] else if (authModel.anmeldungUnterbrochen) ...[
+                const AbmeldungHinweisKarte.anmeldungUnterbrochen(),
+                const SizedBox(height: 20),
               ],
               _LoginActions(
                 onSignIn: authModel.isConfigured ? authModel.signIn : null,
@@ -320,6 +323,20 @@ class _NavigationHomeScreenState extends State<NavigationHomeScreen> {
         );
       case AuthState.unlockRequired:
       case AuthState.signedIn:
+        // Ohne geladene Daten fuehrt nur eine Neuanmeldung weiter; Laden und
+        // Wiederholen enden sonst sofort wieder an der abgelaufenen Anmeldung.
+        if (authModel.state == AuthState.signedIn &&
+            (authModel.requiresInteractiveLogin ||
+                authModel.isNeuanmeldungAktiv) &&
+            (arbeitskontextModel.arbeitskontext == null ||
+                arbeitskontextModel.hasError)) {
+          return _ShellStatusView(
+            title: t.t('auth_relogin_title'),
+            message: t.t('auth_neuanmeldung_noetig_body'),
+            errorMessage: authModel.errorMessage,
+            child: _NeuanmeldungAktionen(authModel: authModel),
+          );
+        }
         if (arbeitskontextModel.arbeitskontext == null &&
             (arbeitskontextModel.status == ArbeitskontextStatus.initial ||
                 arbeitskontextModel.isLoading)) {
@@ -446,6 +463,50 @@ class _LoginActions extends StatelessWidget {
             style: theme.textTheme.bodySmall,
           ),
         ],
+      ],
+    );
+  }
+}
+
+/// „Neu anmelden“ und darunter „Abmelden“, wenn ohne geladene Daten nur eine
+/// Neuanmeldung weiterhilft.
+class _NeuanmeldungAktionen extends StatelessWidget {
+  const _NeuanmeldungAktionen({required this.authModel});
+
+  final AuthSessionModel authModel;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final laeuft = authModel.isNeuanmeldungAktiv;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (authModel.anmeldungUnterbrochen) ...[
+          const AbmeldungHinweisKarte.anmeldungUnterbrochen(),
+          const SizedBox(height: 20),
+        ],
+        FilledButton.icon(
+          key: const Key('shell-neuanmeldung'),
+          onPressed: laeuft
+              ? null
+              : () =>
+                    unawaited(authModel.neuAnmelden(trigger: 'shell_relogin')),
+          icon: laeuft
+              ? const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.login),
+          label: Text(t.t('auth_neuanmeldung_action')),
+        ),
+        const SizedBox(height: 8),
+        TextButton.icon(
+          key: const Key('shell-neuanmeldung-logout'),
+          onPressed: laeuft ? null : () => runLogoutFlow(context),
+          icon: const Icon(Icons.logout),
+          label: Text(t.t('logout')),
+        ),
       ],
     );
   }
