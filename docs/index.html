@@ -17,7 +17,11 @@ description: Die NaMi-App für Leitende in der DPSG. Mitglieder, Statistik und S
       <div class="eyebrow">Für Leitende in der DPSG · mit Hitobito</div>
       <h1>Dein Stamm in der Hosentasche</h1>
       <p class="lead">Mitglieder, Statistik und Stufenwechsel direkt aus der NaMi. Auch offline, auf iPhone, iPad und Android.</p>
-      <div class="badges">{{ badges }}</div>
+      <div class="badges">
+        {{ badges }}
+        {%- comment -%} Bis zum Livegang (Q1/2027) liegt in den Stores noch 0.2.8. Danach entfernen, ebenso in README.md. {%- endcomment %}
+        <p class="beta">Version 1.0 erscheint Anfang 2027. Vorabversion für iOS über <a href="https://testflight.apple.com/join/YGeELMUq">TestFlight</a>.</p>
+      </div>
     </div>
     <div class="hero-phones">
       <div class="phone"><img src="{{ screens }}mitglieder.jpg" alt="Mitgliederliste mit Stufenfiltern"></div>

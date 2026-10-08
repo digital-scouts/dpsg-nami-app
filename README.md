@@ -8,7 +8,7 @@
 [![Download für iOS](./assets/workfiles/Download_on_the_App_Store_Badge_DE_RGB_blk_092917.svg)](https://apps.apple.com/de/app/nami/id6468066816)
 [![Download für Android](./assets/workfiles/GetItOnGooglePlay_Badge_Web_color_German.png)](https://play.google.com/store/apps/details?id=de.jlange.nami.app)
 
-Vorabversion für iOS über [TestFlight](https://testflight.apple.com/join/YGeELMUq).
+Version 1.0 erscheint Anfang 2027, in den Stores liegt bis dahin noch die Vorgängerversion. Vorabversion für iOS über [TestFlight](https://testflight.apple.com/join/YGeELMUq).
 
 [![Release](https://img.shields.io/github/v/release/digital-scouts/dpsg-nami-app?display_name=tag&include_prereleases)](https://github.com/digital-scouts/dpsg-nami-app/releases)
 [![Validate](https://github.com/digital-scouts/dpsg-nami-app/actions/workflows/validate-pull-requests.yml/badge.svg)](https://github.com/digital-scouts/dpsg-nami-app/actions/workflows/validate-pull-requests.yml)
