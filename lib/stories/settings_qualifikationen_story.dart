@@ -19,39 +19,69 @@ import 'package:storybook_flutter/storybook_flutter.dart';
 
 import 'support/mitglied_edge_cases.dart';
 
-enum _Zustand { geladen, gesperrt, ohneEfzRecht, nichtSynchronisiert, leer }
+enum QualifikationenStoryZustand {
+  geladen,
+  gesperrt,
+  ohneEfzRecht,
+  nichtSynchronisiert,
+  leer,
+}
 
-enum _Seite { uebersicht, personenEfz, personenPraevention, auswahl, efz }
+enum QualifikationenStorySeite {
+  uebersicht,
+  personenEfz,
+  personenPraevention,
+  auswahl,
+  efz,
+}
 
 Story settingsQualifikationenStory() => Story(
   name: 'Einstellungen/Qualifikationen/Uebersicht',
   builder: (context) {
-    final zustand = context.knobs.options<_Zustand>(
+    final zustand = context.knobs.options<QualifikationenStoryZustand>(
       label: 'Zustand',
-      initial: _Zustand.geladen,
+      initial: QualifikationenStoryZustand.geladen,
       options: const [
-        Option(label: 'Geladen', value: _Zustand.geladen),
-        Option(label: 'Supporter gesperrt', value: _Zustand.gesperrt),
-        Option(label: 'Ohne EFZ-Recht', value: _Zustand.ohneEfzRecht),
+        Option(label: 'Geladen', value: QualifikationenStoryZustand.geladen),
+        Option(
+          label: 'Supporter gesperrt',
+          value: QualifikationenStoryZustand.gesperrt,
+        ),
+        Option(
+          label: 'Ohne EFZ-Recht',
+          value: QualifikationenStoryZustand.ohneEfzRecht,
+        ),
         Option(
           label: 'Nicht synchronisiert',
-          value: _Zustand.nichtSynchronisiert,
+          value: QualifikationenStoryZustand.nichtSynchronisiert,
         ),
-        Option(label: 'Keine Hitobito-Qualifikation', value: _Zustand.leer),
+        Option(
+          label: 'Keine Hitobito-Qualifikation',
+          value: QualifikationenStoryZustand.leer,
+        ),
       ],
     );
-    final seite = context.knobs.options<_Seite>(
+    final seite = context.knobs.options<QualifikationenStorySeite>(
       label: 'Seite',
-      initial: _Seite.uebersicht,
+      initial: QualifikationenStorySeite.uebersicht,
       options: const [
-        Option(label: 'Übersicht', value: _Seite.uebersicht),
-        Option(label: 'Personen EFZ', value: _Seite.personenEfz),
-        Option(label: 'Personen Prävention', value: _Seite.personenPraevention),
-        Option(label: 'Auswahl', value: _Seite.auswahl),
-        Option(label: 'Einstellungen EFZ', value: _Seite.efz),
+        Option(label: 'Übersicht', value: QualifikationenStorySeite.uebersicht),
+        Option(
+          label: 'Personen EFZ',
+          value: QualifikationenStorySeite.personenEfz,
+        ),
+        Option(
+          label: 'Personen Prävention',
+          value: QualifikationenStorySeite.personenPraevention,
+        ),
+        Option(label: 'Auswahl', value: QualifikationenStorySeite.auswahl),
+        Option(
+          label: 'Einstellungen EFZ',
+          value: QualifikationenStorySeite.efz,
+        ),
       ],
     );
-    return _QualifikationenStoryHost(
+    return QualifikationenStoryHost(
       key: ValueKey<String>('${zustand.name}-${seite.name}'),
       zustand: zustand,
       seite: seite,
@@ -59,22 +89,22 @@ Story settingsQualifikationenStory() => Story(
   },
 );
 
-class _QualifikationenStoryHost extends StatefulWidget {
-  const _QualifikationenStoryHost({
+class QualifikationenStoryHost extends StatefulWidget {
+  const QualifikationenStoryHost({
     super.key,
     required this.zustand,
     required this.seite,
   });
 
-  final _Zustand zustand;
-  final _Seite seite;
+  final QualifikationenStoryZustand zustand;
+  final QualifikationenStorySeite seite;
 
   @override
-  State<_QualifikationenStoryHost> createState() =>
+  State<QualifikationenStoryHost> createState() =>
       _QualifikationenStoryHostState();
 }
 
-class _QualifikationenStoryHostState extends State<_QualifikationenStoryHost> {
+class _QualifikationenStoryHostState extends State<QualifikationenStoryHost> {
   final _einstellungen = QualifikationsEinstellungenModel(
     InMemoryQualifikationsEinstellungenRepository(),
   );
@@ -82,7 +112,7 @@ class _QualifikationenStoryHostState extends State<_QualifikationenStoryHost> {
     repository: InMemoryAppearanceSettingsRepository(),
     appIconService: FakeAppIconService(),
     access: SchalterSupportAccess(
-      freigeschaltet: widget.zustand != _Zustand.gesperrt,
+      freigeschaltet: widget.zustand != QualifikationenStoryZustand.gesperrt,
     ),
   );
 
@@ -94,7 +124,8 @@ class _QualifikationenStoryHostState extends State<_QualifikationenStoryHost> {
   }
 
   ArbeitskontextReadModel get _readModel {
-    final ohneDaten = widget.zustand == _Zustand.nichtSynchronisiert;
+    final ohneDaten =
+        widget.zustand == QualifikationenStoryZustand.nichtSynchronisiert;
     return ArbeitskontextReadModel(
       arbeitskontext: Arbeitskontext(
         aktiverLayer: const ArbeitskontextLayer(
@@ -105,8 +136,10 @@ class _QualifikationenStoryHostState extends State<_QualifikationenStoryHost> {
       ),
       mitglieder: MitgliedEdgeCases.alle.values.toList(growable: false),
       efzStand: switch (widget.zustand) {
-        _Zustand.ohneEfzRecht => TeildatenStand.keineBerechtigung,
-        _Zustand.nichtSynchronisiert => TeildatenStand.unbekannt,
+        QualifikationenStoryZustand.ohneEfzRecht =>
+          TeildatenStand.keineBerechtigung,
+        QualifikationenStoryZustand.nichtSynchronisiert =>
+          TeildatenStand.unbekannt,
         _ => TeildatenStand.geladen,
       },
       efzEinsichtnahmen: ohneDaten
@@ -115,7 +148,8 @@ class _QualifikationenStoryHostState extends State<_QualifikationenStoryHost> {
       qualifikationenStand: ohneDaten
           ? TeildatenStand.unbekannt
           : TeildatenStand.geladen,
-      qualifikationen: ohneDaten || widget.zustand == _Zustand.leer
+      qualifikationen:
+          ohneDaten || widget.zustand == QualifikationenStoryZustand.leer
           ? const []
           : MitgliedEdgeCases.qualifikationen,
     );
@@ -126,25 +160,26 @@ class _QualifikationenStoryHostState extends State<_QualifikationenStoryHost> {
     final readModel = _readModel;
     DateTime heute() => MitgliedEdgeCases.heute;
     final seite = switch (widget.seite) {
-      _Seite.uebersicht => SettingsQualifikationenPage(
+      QualifikationenStorySeite.uebersicht => SettingsQualifikationenPage(
         readModel: readModel,
         heuteProvider: heute,
       ),
-      _Seite.personenEfz => QualifikationPersonenPage(
+      QualifikationenStorySeite.personenEfz => QualifikationPersonenPage(
         schluessel: QualifikationsSchluessel.efz,
         readModel: readModel,
         heuteProvider: heute,
       ),
-      _Seite.personenPraevention => QualifikationPersonenPage(
-        schluessel: QualifikationsSchluessel.hitobito(14),
+      QualifikationenStorySeite.personenPraevention =>
+        QualifikationPersonenPage(
+          schluessel: QualifikationsSchluessel.hitobito(14),
+          readModel: readModel,
+          heuteProvider: heute,
+        ),
+      QualifikationenStorySeite.auswahl => QualifikationenAuswahlPage(
         readModel: readModel,
         heuteProvider: heute,
       ),
-      _Seite.auswahl => QualifikationenAuswahlPage(
-        readModel: readModel,
-        heuteProvider: heute,
-      ),
-      _Seite.efz => QualifikationEinstellungenPage(
+      QualifikationenStorySeite.efz => QualifikationEinstellungenPage(
         schluessel: QualifikationsSchluessel.efz,
         readModel: readModel,
         heuteProvider: heute,

@@ -28,7 +28,7 @@ List<Story> statistikBearbeitenStories() => [
       );
       final dark = context.knobs.boolean(label: 'Dunkel', initial: false);
       final textScale = storyTextScaleKnob(context.knobs);
-      return _BearbeitenSzene(
+      return StatistikBearbeitenSzene(
         key: ValueKey('$datensatz-$bearbeiten-$ruhig-$dark-$textScale'),
         datensatz: datensatz,
         bearbeiten: bearbeiten,
@@ -78,7 +78,10 @@ List<Story> statistikBearbeitenStories() => [
     name: 'Statistik/Kacheln/Zielwerte',
     builder: (context) {
       final datensatz = _datensatzKnob(context.knobs);
-      return _ZielwerteSzene(key: ValueKey(datensatz), datensatz: datensatz);
+      return StatistikZielwerteSzene(
+        key: ValueKey(datensatz),
+        datensatz: datensatz,
+      );
     },
   ),
 ];
@@ -94,8 +97,8 @@ StatistikBeispielDatensatz _datensatzKnob(KnobsBuilder knobs) =>
     );
 
 /// Statistikseite wie in der App, auf Wunsch gleich im Bearbeiten-Modus.
-class _BearbeitenSzene extends StatefulWidget {
-  const _BearbeitenSzene({
+class StatistikBearbeitenSzene extends StatefulWidget {
+  const StatistikBearbeitenSzene({
     super.key,
     required this.datensatz,
     required this.bearbeiten,
@@ -111,10 +114,11 @@ class _BearbeitenSzene extends StatefulWidget {
   final double textScale;
 
   @override
-  State<_BearbeitenSzene> createState() => _BearbeitenSzeneState();
+  State<StatistikBearbeitenSzene> createState() =>
+      _StatistikBearbeitenSzeneState();
 }
 
-class _BearbeitenSzeneState extends State<_BearbeitenSzene> {
+class _StatistikBearbeitenSzeneState extends State<StatistikBearbeitenSzene> {
   final _heute = DateTime.now();
   late final _readModel = widget.datensatz.readModel(_heute);
   late final _verlauf = InMemoryStatistikVerlaufRepository()
@@ -159,16 +163,17 @@ class _BearbeitenSzeneState extends State<_BearbeitenSzene> {
   }
 }
 
-class _ZielwerteSzene extends StatefulWidget {
-  const _ZielwerteSzene({super.key, required this.datensatz});
+class StatistikZielwerteSzene extends StatefulWidget {
+  const StatistikZielwerteSzene({super.key, required this.datensatz});
 
   final StatistikBeispielDatensatz datensatz;
 
   @override
-  State<_ZielwerteSzene> createState() => _ZielwerteSzeneState();
+  State<StatistikZielwerteSzene> createState() =>
+      _StatistikZielwerteSzeneState();
 }
 
-class _ZielwerteSzeneState extends State<_ZielwerteSzene> {
+class _StatistikZielwerteSzeneState extends State<StatistikZielwerteSzene> {
   late final StatistikKachelnModel _model;
   bool _geladen = false;
 
