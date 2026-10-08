@@ -213,6 +213,26 @@ void main() {
     });
   });
 
+  test('holt nach einer Neuanmeldung Sync und Nachsenden nach', () {
+    fakeAsync((async) {
+      final harness = _Harness(async, connectivity: FakeConnectivity.wifi());
+      harness.authModel.requiresInteractiveLoginOverride = true;
+      harness.coordinator.start();
+      unawaited(
+        harness.coordinator.checkCurrentConnectivity(trigger: 'startup'),
+      );
+      async.flushMicrotasks();
+      expect(harness.writeRepository.updateCount, 0);
+
+      harness.authModel.meldeNeuanmeldung();
+      async.flushMicrotasks();
+
+      expect(harness.authModel.syncTriggers, <String>['startup', 'relogin']);
+      expect(harness.writeRepository.updateCount, 1);
+      harness.dispose();
+    });
+  });
+
   test('sendet nicht ohne Session', () {
     fakeAsync((async) {
       final harness = _Harness(async, connectivity: FakeConnectivity.wifi());
@@ -429,7 +449,18 @@ class _StubAuthSessionModel extends AuthSessionModel {
   Future<void> Function()? onSync;
   bool hasSession = true;
   bool requiresInteractiveLoginOverride = false;
+  int _neuanmeldungen = 0;
   AuthState _stateOverride = AuthState.signedIn;
+
+  @override
+  int get neuanmeldungen => _neuanmeldungen;
+
+  /// Wie eine gelungene Neuanmeldung ueber „Neu anmelden“.
+  void meldeNeuanmeldung() {
+    requiresInteractiveLoginOverride = false;
+    _neuanmeldungen += 1;
+    notifyListeners();
+  }
 
   @override
   AuthState get state => _stateOverride;

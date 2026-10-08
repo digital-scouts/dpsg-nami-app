@@ -868,7 +868,11 @@ void main() {
       expect(oauthService.authenticateInteractiveCallCount, 0);
       expect(model.requiresInteractiveLogin, isTrue);
 
-      expect(await model.neuAnmelden(), isTrue);
+      final neuanmeldung = model.neuAnmelden();
+      expect(model.isNeuanmeldungAktiv, isTrue);
+      expect(await neuanmeldung, isTrue);
+      expect(model.isNeuanmeldungAktiv, isFalse);
+      expect(model.neuanmeldungen, 1);
       expect(await zugriff(), 'ok');
 
       expect(usedTokens, <String>['stale-token', 'interactive-token']);

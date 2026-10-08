@@ -131,6 +131,8 @@ class AuthSessionModel extends ChangeNotifier {
   bool _isLoadingProfile = false;
   bool _isSyncingHitobitoData = false;
   bool _isUserInitiatedSyncInProgress = false;
+  bool _isNeuanmeldungAktiv = false;
+  int _neuanmeldungen = 0;
   SyncAttemptResult? _lastSyncAttemptResult;
   LogoutReason? _logoutReason;
 
@@ -148,6 +150,13 @@ class AuthSessionModel extends ChangeNotifier {
   bool get isLoadingProfile => _isLoadingProfile;
   bool get isSyncingHitobitoData => _isSyncingHitobitoData;
   bool get isUserInitiatedSyncInProgress => _isUserInitiatedSyncInProgress;
+
+  /// Laeuft gerade [neuAnmelden]; der Arbeitskontext bleibt dabei sichtbar.
+  bool get isNeuanmeldungAktiv => _isNeuanmeldungAktiv;
+
+  /// Zaehlt erfolgreiche Neuanmeldungen. Wer synchronisiert, erkennt daran,
+  /// dass nach einer abgelaufenen Anmeldung wieder Zugriffe moeglich sind.
+  int get neuanmeldungen => _neuanmeldungen;
   SyncAttemptResult? get lastSyncAttemptResult => _lastSyncAttemptResult;
 
   /// Grund der letzten automatischen Abmeldung, bis zur naechsten Anmeldung.
@@ -481,6 +490,7 @@ class AuthSessionModel extends ChangeNotifier {
     _isSyncingHitobitoData = false;
     _activeSyncToken = null;
     _laufenderRefresh = null;
+    _isNeuanmeldungAktiv = false;
     _isUserInitiatedSyncInProgress = false;
     _lastSyncAttemptResult = null;
     _lastSensitiveSyncAt = null;
@@ -835,16 +845,21 @@ class AuthSessionModel extends ChangeNotifier {
   /// bestehen bleiben. Nur fuer ausdrueckliche Nutzeraktionen wie „Neu
   /// anmelden“. Liefert `true`, wenn die Anmeldung samt Profil gelungen ist.
   Future<bool> neuAnmelden({String trigger = 'manual'}) async {
-    if (_session == null || _state == AuthState.unlockRequired) {
+    if (_session == null ||
+        _state == AuthState.unlockRequired ||
+        _isNeuanmeldungAktiv) {
       return false;
     }
 
-    await _logger.logInfo(
-      'auth_flow',
-      'interaktiver relogin gestartet trigger=$trigger',
-    );
+    _isNeuanmeldungAktiv = true;
+    _errorMessage = null;
+    notifyListeners();
 
     try {
+      await _logger.logInfo(
+        'auth_flow',
+        'interaktiver relogin gestartet trigger=$trigger',
+      );
       final authenticatedSession = await _anmeldenImBrowser();
       await _persistAuthenticatedSession(authenticatedSession);
       try {
@@ -859,14 +874,13 @@ class AuthSessionModel extends ChangeNotifier {
           );
         }
         _errorMessage = nutzerFehlermeldung(error);
-        notifyListeners();
         return false;
       }
       await _logger.logInfo(
         'auth_flow',
         'interaktiver relogin erfolgreich trigger=$trigger',
       );
-      notifyListeners();
+      _neuanmeldungen += 1;
       return true;
     } catch (error, stack) {
       if (error is HitobitoAuthException &&
@@ -884,8 +898,10 @@ class AuthSessionModel extends ChangeNotifier {
         );
       }
       _errorMessage = nutzerFehlermeldung(error);
-      notifyListeners();
       return false;
+    } finally {
+      _isNeuanmeldungAktiv = false;
+      notifyListeners();
     }
   }
 

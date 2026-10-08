@@ -47,6 +47,7 @@ class PendingSyncCoordinator {
   bool _isPaused = false;
   bool _isForegroundSyncRunning = false;
   bool _waitsForAuthReady = false;
+  int _bekannteNeuanmeldungen = 0;
   Timer? _pendingRetryTimer;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
@@ -54,6 +55,7 @@ class PendingSyncCoordinator {
 
   /// Startet Connectivity-Listener und Retry-Timer neu.
   void start() {
+    _bekannteNeuanmeldungen = _authModel.neuanmeldungen;
     _authModel.removeListener(_handleAuthChanged);
     _authModel.addListener(_handleAuthChanged);
     _startConnectivityListener();
@@ -87,7 +89,17 @@ class PendingSyncCoordinator {
   /// unbekannt; hinter der App-Sperre wird nicht synchronisiert. Statt die
   /// Verbindung dann als bereits genutzt zu werten, wird die Pruefung
   /// nachgeholt, sobald beides vorbei ist.
+  ///
+  /// Nach einer Neuanmeldung holt der Koordinator Sync und Nachsenden nach,
+  /// die waehrend der abgelaufenen Anmeldung ausgefallen sind.
   void _handleAuthChanged() {
+    if (_authModel.neuanmeldungen != _bekannteNeuanmeldungen) {
+      _bekannteNeuanmeldungen = _authModel.neuanmeldungen;
+      _waitsForAuthReady = false;
+      _wifiSyncTrigger.reset();
+      unawaited(checkCurrentConnectivity(trigger: 'relogin'));
+      return;
+    }
     if (!_waitsForAuthReady || _isAuthPending()) {
       return;
     }
