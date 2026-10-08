@@ -1252,6 +1252,9 @@ class AppLocalizations {
       'debug_supporter_switch_hint':
           'Ein Paket schaltet sein Design und die Kompass-Badges frei, Förderer alles inklusive Qualifikationen-Übersicht.',
       'debug_supporter_zugang_keiner': 'Keiner',
+      'debug_supporter_zugang_store': 'Aus (Store)',
+      'debug_supporter_store_hint':
+          'Jede andere Auswahl überdeckt den echten Kaufstand.',
       'debug_supporter_zugang_wald': 'Paket Wald',
       'debug_supporter_zugang_lagerfeuer': 'Paket Lagerfeuer',
       'debug_supporter_zugang_nachthimmel': 'Paket Nachthimmel',
@@ -2846,6 +2849,9 @@ class AppLocalizations {
       'debug_supporter_switch_hint':
           'A package unlocks its design and the compass badges, patron unlocks everything including the qualifications overview.',
       'debug_supporter_zugang_keiner': 'None',
+      'debug_supporter_zugang_store': 'Off (store)',
+      'debug_supporter_store_hint':
+          'Any other choice overrides the real purchase state.',
       'debug_supporter_zugang_wald': 'Forest package',
       'debug_supporter_zugang_lagerfeuer': 'Campfire package',
       'debug_supporter_zugang_nachthimmel': 'Night sky package',
