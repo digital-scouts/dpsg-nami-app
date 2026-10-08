@@ -10,7 +10,7 @@ import {
     formatAggregatedMetrics,
     formatGruppenJeStufe,
     tagesgenau,
-    teilnahmeUntergrenze,
+    teilnahmeUeber,
 } from './aggregation.js';
 
 export const APPROXIMATION_NOTICE =
@@ -61,9 +61,9 @@ export const registerAggregateRoutes = (
                 aggregation_type: BUND_AGGREGATION_TYPE,
                 aggregation_week: aggregate?.aggregation_week ?? null,
                 generated_at: aggregate?.generated_at.toISOString() ?? null,
-                // Nur als Untergrenze, nie unter der Mindestzahl; darunter genuegt der Status.
-                teilnehmende_staemme_mindestens: hasEnoughParticipation
-                    ? Math.max(teilnahmeUntergrenze(participatingStammCount), config.minStammCountForRead)
+                // Nur als Bereich "ueber X", mindestens min_stamm_count - 1; darunter genuegt der Status.
+                teilnehmende_staemme_ueber: hasEnoughParticipation
+                    ? Math.max(teilnahmeUeber(participatingStammCount), config.minStammCountForRead - 1)
                     : null,
                 min_stamm_count: config.minStammCountForRead,
                 data_as_of: {

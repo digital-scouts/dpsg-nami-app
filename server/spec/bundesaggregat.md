@@ -20,7 +20,7 @@
   "aggregation_type": "bund",
   "aggregation_week": "2026-W40",
   "generated_at": "2026-09-28T03:00:00.000Z",
-  "teilnehmende_staemme_mindestens": 40,
+  "teilnehmende_staemme_ueber": 40,
   "min_stamm_count": 5,
   "data_as_of": {
     "oldest": "2026-08-01T00:00:00.000Z",
@@ -54,8 +54,8 @@
 }
 ```
 
-- `status` ist `ok` oder `insufficient_participation`. Bei `insufficient_participation` sind `metrics`, `gruppen_je_stufe` und `teilnehmende_staemme_mindestens` gleich `null`; die App zeigt dann „unter `min_stamm_count` Stämme“.
-- `teilnehmende_staemme_mindestens` nennt die Zahl der teilnehmenden Stämme nur als Untergrenze: unter 50 auf Vielfache von 5, ab 50 auf Vielfache von 10 abgerundet, nie unter `min_stamm_count`.
+- `status` ist `ok` oder `insufficient_participation`. Bei `insufficient_participation` sind `metrics`, `gruppen_je_stufe` und `teilnehmende_staemme_ueber` gleich `null`; die App zeigt dann „weniger als `min_stamm_count` Stämme“.
+- `teilnehmende_staemme_ueber` nennt die Zahl der teilnehmenden Stämme nur als Bereich „über X“: X ist das größte Vielfache von 5 (über 50 Stämmen von 10), das echt kleiner ist als die Zahl, mindestens `min_stamm_count - 1`. Bei 45 Stämmen ist X also 40, bei 46 Stämmen 45.
 - `data_as_of` nennt den ältesten und neuesten Eingang der verwendeten Teile, nur tagesgenau.
 - **Keine Zählwerte:** Ausgeliefert werden nur gerundete Ergebnisse, keine Summen und keine Zahl der Stämme oder Gruppen je Kennzahl. Exakte Zählwerte machten die Differenz zweier Abrufe zum exakten Beitrag einzelner Stämme.
 - `metrics` enthält die stammweiten Kennzahlen aus `metrics` im Stammes-Snapshot sowie die daraus abgeleiteten Stufenwerte `biber` … `rover` und `leitende_biber` … `leitende_rover` (Stufengröße je Stamm) und `alle_stufen` (Mitglieder aller Stufen je Stamm nach Geschlecht). Jede Kennzahl enthält:

@@ -286,9 +286,10 @@ export const formatGruppenJeStufe = (
     return result;
 };
 
-// Teilnehmende Staemme nur als Untergrenze: unter 50 auf 5, ab 50 auf 10 abgerundet.
-export const teilnahmeUntergrenze = (staemme: number): number =>
-    staemme < 50 ? Math.floor(staemme / 5) * 5 : Math.floor(staemme / 10) * 10;
+// Teilnehmende Staemme nur als Bereich "ueber X": X ist das groesste Vielfache von 5 (ueber 50
+// von 10), das echt kleiner ist als die Zahl der Staemme.
+export const teilnahmeUeber = (staemme: number): number =>
+    staemme <= 50 ? Math.floor((staemme - 1) / 5) * 5 : Math.floor((staemme - 1) / 10) * 10;
 
 // Datenstand nur tagesgenau, die App zeigt ohnehin nur das Datum.
 export const tagesgenau = (datum: Date): Date =>

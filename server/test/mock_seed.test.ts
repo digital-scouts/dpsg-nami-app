@@ -26,7 +26,7 @@ describe('mock seed', () => {
     const { server, dependencies } = buildMemoryTestServer({ store, clock: time.clock, config });
 
     const seed = () => seedMockSnapshots(dependencies, config.pseudonymizationSecret, SEED_COUNT, time.now);
-    // Die Antwort nennt nur eine Untergrenze; die genaue Zahl steht im gespeicherten Aggregat.
+    // Die Antwort nennt nur einen Bereich; die genaue Zahl steht im gespeicherten Aggregat.
     const publishedStammCount = () =>
         [...store.weeklyAggregates.values()].sort((a, b) => b.generated_at.getTime() - a.generated_at.getTime())[0]
             ?.participating_stamm_count;
@@ -99,7 +99,7 @@ describe('mock seed', () => {
         expect(response.statusCode).toBe(200);
         expect(body.status).toBe('ok');
         // Der eigene Stamm kommt erst mit dem naechsten Nachtlauf dazu.
-        expect(body.teilnehmende_staemme_mindestens).toBe(SEED_COUNT);
+        expect(body.teilnehmende_staemme_ueber).toBe(SEED_COUNT - 5);
         expect(publishedStammCount()).toBe(SEED_COUNT);
         expect(body.metrics.woelflinge.gesamt.durchschnitt).toBeGreaterThan(0);
         expect(body.gruppen_je_stufe.woelflinge.mitglieder.gesamt.median).toBeGreaterThan(0);

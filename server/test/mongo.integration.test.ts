@@ -108,7 +108,7 @@ describe('statistics server with MongoDB', () => {
         expect(response.statusCode).toBe(200);
         expect(response.json()).toMatchObject({
             status: 'ok',
-            teilnehmende_staemme_mindestens: 2,
+            teilnehmende_staemme_ueber: 1,
             metrics: { biber: { gesamt: { durchschnitt: 15, median: 15 } } },
         });
 

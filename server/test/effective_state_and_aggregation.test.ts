@@ -6,7 +6,7 @@ import {
     formatGruppenJeStufe,
     type MetricAggregate,
     tagesgenau,
-    teilnahmeUntergrenze,
+    teilnahmeUeber,
 } from '../src/modules/aggregation/aggregation.js';
 import {
     deriveStammState,
@@ -403,9 +403,9 @@ describe('Auslieferung', () => {
     });
 
     test.each([
-        [5, 5], [7, 5], [47, 45], [49, 45], [50, 50], [59, 50], [123, 120],
-    ])('reports %i participating stamms as at least %i', (staemme, untergrenze) => {
-        expect(teilnahmeUntergrenze(staemme)).toBe(untergrenze);
+        [5, 0], [6, 5], [10, 5], [45, 40], [46, 45], [50, 45], [51, 50], [60, 50], [123, 120],
+    ])('reports %i participating stamms as more than %i', (staemme, ueber) => {
+        expect(teilnahmeUeber(staemme)).toBe(ueber);
     });
 
     test('reduces data timestamps to the day', () => {

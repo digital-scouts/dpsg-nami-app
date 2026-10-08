@@ -109,7 +109,7 @@ describe('bund aggregate read route', () => {
         expect(response.statusCode).toBe(200);
         expect(response.json()).toMatchObject({
             status: 'insufficient_participation',
-            teilnehmende_staemme_mindestens: null,
+            teilnehmende_staemme_ueber: null,
             min_stamm_count: 3,
             metrics: null,
         });
@@ -131,7 +131,7 @@ describe('bund aggregate read route', () => {
             aggregation_type: 'bund',
             aggregation_week: '2026-W24',
             generated_at: '2026-06-11T13:00:00.000Z',
-            teilnehmende_staemme_mindestens: 3,
+            teilnehmende_staemme_ueber: 2,
             min_stamm_count: 3,
             data_as_of: {
                 oldest: '2026-06-10T00:00:00.000Z',
