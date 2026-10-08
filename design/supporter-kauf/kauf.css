@@ -1,0 +1,159 @@
+/* Entwurf Kaufseite „Supporter werden“ (Runde 1). Baut auf basis.css,
+   mitglied.css und rechtliches.css auf. */
+.k-intro { font-size:14.5px; color:var(--fg2); margin:14px 4px 4px; line-height:1.4; }
+
+/* Förderer-Karte */
+.k-foe { position:relative; border-radius:20px; padding:18px 16px 16px; margin-top:14px; color:#fff;
+  background:linear-gradient(150deg, #0f2a45 0%, #1d3f63 55%, #2b5677 100%); overflow:hidden; }
+.dunkel .k-foe { background:linear-gradient(150deg, #11233a 0%, #1a3654 55%, #244a69 100%); box-shadow:inset 0 0 0 1px #2e4a66; }
+.k-foe::after { content:''; position:absolute; right:-30px; top:-30px; width:150px; height:150px; border-radius:50%;
+  background:radial-gradient(circle, rgba(255,214,120,.28), rgba(255,214,120,0) 70%); }
+.k-foe-k { display:flex; align-items:center; gap:12px; position:relative; z-index:1; }
+.k-foe-k img { width:54px; height:54px; flex:none; }
+.k-foe-k b { display:block; font-size:21px; font-weight:700; letter-spacing:-.01em; }
+.k-foe-k small { display:block; font-size:13.5px; opacity:.85; }
+.k-foe ul { list-style:none; margin:14px 0 14px; padding:0; position:relative; z-index:1; }
+.k-foe li { display:flex; gap:9px; align-items:flex-start; font-size:14.5px; margin:7px 0; line-height:1.3; }
+.k-foe li .ico { flex:none; color:#ffd678; margin-top:1px; }
+.k-foe .k-preis { font-size:13px; opacity:.85; margin:10px 2px 0; line-height:1.4; position:relative; z-index:1; }
+.k-cta { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; box-sizing:border-box; border-radius:999px;
+  padding:13px 16px; font-size:15.5px; font-weight:700; position:relative; z-index:1; }
+.k-cta.gold { background:#ffd678; color:#1b2a3a; }
+.k-cta.prim { background:var(--primary); color:var(--on-primary); }
+.k-cta.leise { background:rgba(255,255,255,.14); color:#fff; }
+.k-aktiv { display:flex; align-items:center; gap:8px; background:rgba(255,255,255,.14); border-radius:12px; padding:10px 12px; font-size:14px; position:relative; z-index:1; }
+.k-aktiv .ico { color:#7ee0a0; flex:none; }
+
+/* Paket-Karten */
+.k-pk { background:var(--surface); border-radius:18px; overflow:hidden; margin-top:12px; }
+.k-pk-bild { height:86px; background-size:cover; background-position:center 70%; position:relative; }
+.k-pk-bild .k-sw { position:absolute; left:12px; bottom:-14px; display:flex; gap:0; border-radius:999px; box-shadow:0 0 0 3px var(--surface); overflow:hidden; }
+.k-sw i { display:block; width:22px; height:22px; }
+.k-pk-in { padding:20px 14px 14px; }
+.k-pk-k { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+.k-pk-k b { font-size:17px; font-weight:700; display:block; }
+.k-pk-k small { font-size:13px; color:var(--fg2); display:block; margin-top:2px; line-height:1.35; }
+.k-icons { display:flex; gap:8px; margin:12px 0 12px; }
+.k-icons img { width:46px; height:46px; border-radius:11px; box-shadow:0 1px 3px rgba(0,0,0,.18); }
+.k-pk-fuss { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.k-pk-fuss .k-p { font-size:15px; font-weight:700; }
+.k-pk-fuss .k-p small { font-weight:500; font-size:12.5px; color:var(--fg2); margin-left:4px; }
+.k-kauf { border-radius:999px; padding:9px 18px; font-size:14.5px; font-weight:700; background:var(--primary); color:var(--on-primary); display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+.k-kauf.tonal { background:var(--primary-lite); color:var(--primary); }
+.k-kauf.ok { background:none; color:var(--success); padding-right:4px; }
+.k-spin { width:15px; height:15px; border-radius:50%; border:2px solid currentColor; border-right-color:transparent; display:inline-block; }
+
+/* Kompakte Paketliste (Variante B) */
+.k-seg { display:flex; background:var(--surface2); border-radius:12px; padding:3px; margin-top:14px; }
+.k-seg span { flex:1; text-align:center; font-size:14px; font-weight:600; padding:8px 0; border-radius:10px; color:var(--fg2); }
+.k-seg span.on { background:var(--surface); color:var(--fg); box-shadow:0 1px 3px rgba(0,0,0,.12); }
+.dunkel .k-seg span.on { background:#33333f; }
+
+.k-sub { font-size:12px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--primary); margin:22px 4px 2px; }
+.k-badges { background:var(--surface); border-radius:16px; padding:12px 14px; margin-top:10px; display:flex; align-items:center; gap:12px; }
+.k-badges .k-bl { display:flex; gap:2px; flex:none; }
+.k-badges .k-bl img { width:28px; height:28px; }
+.k-badges span { font-size:13.5px; color:var(--fg2); line-height:1.35; }
+
+/* Fuß mit Wiederherstellen und Pflichtangaben */
+.k-fuss { margin:22px 4px 10px; font-size:12.5px; color:var(--muted); line-height:1.45; }
+.k-fuss .k-links { display:flex; flex-wrap:wrap; gap:4px 16px; margin-bottom:10px; }
+.k-fuss .k-links span { color:var(--primary); font-weight:600; font-size:14px; }
+
+/* Hinweisbanner (Store nicht erreichbar) */
+.k-banner { display:flex; gap:10px; align-items:flex-start; background:var(--surface); border-radius:14px; padding:12px 14px; margin-top:14px; font-size:13.5px; color:var(--fg2); line-height:1.35; }
+.k-banner .ico { color:var(--warn); flex:none; margin-top:1px; }
+.k-banner b { color:var(--fg); display:block; font-size:14.5px; margin-bottom:2px; }
+.k-banner .k-nochmal { color:var(--primary); font-weight:600; margin-top:6px; display:block; }
+.k-ske { background:var(--surface2); border-radius:8px; height:14px; }
+
+/* Einstiege */
+.k-zeile { display:flex; align-items:center; gap:12px; padding:11px 14px; }
+.k-zeile + .k-zeile { border-top:1px solid var(--border); margin-left:60px; padding-left:0; }
+.k-zeile .k-t { flex:1; min-width:0; }
+.k-zeile .k-t b { display:block; font-size:15.5px; font-weight:500; }
+.k-zeile .k-t small { display:block; font-size:13px; color:var(--fg2); }
+.k-zeile > .ico.muted { color:var(--muted); }
+.k-chip { font-size:11.5px; font-weight:700; border-radius:999px; padding:2px 8px; background:var(--primary-lite); color:var(--primary); }
+.k-chip.gold { background:#ffe7a8; color:#6b4a00; }
+.dunkel .k-chip.gold { background:#4a3a12; color:#ffd678; }
+.card.nopad.k-liste { padding:0; }
+.k-quad { width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#fff; background:var(--c); flex:none; }
+
+.k-opt { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
+.k-optk { width:104px; text-align:center; font-size:12.5px; color:var(--fg2); }
+.k-optk .k-optb { height:64px; border-radius:12px; background:var(--surface); border:1.5px solid var(--border); display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; margin-bottom:4px; }
+.k-optk.sel .k-optb { border-color:var(--primary); border-width:2px; }
+.k-optk .k-lock { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.45); color:#1c1c1e; }
+.dunkel .k-optk .k-lock { background:rgba(0,0,0,.35); color:#fff; }
+.k-swatch { width:70px; display:flex; flex-direction:column; gap:5px; }
+.k-swatch i { display:block; height:9px; border-radius:5px; }
+
+.k-sheet-bild { height:110px; border-radius:16px; background-size:cover; background-position:center 70%; margin:0 0 14px; }
+.k-sheet-t { font-size:20px; font-weight:700; margin:0 0 4px; }
+.k-sheet-u { font-size:14px; color:var(--fg2); margin:0 0 12px; line-height:1.4; }
+.k-sheet-l { font-size:14.5px; margin:0 0 14px; padding:0; list-style:none; }
+.k-sheet-l li { display:flex; gap:8px; margin:6px 0; }
+.k-sheet-l .ico { color:var(--success); flex:none; }
+.k-mitte { text-align:center; color:var(--primary); font-weight:600; font-size:14.5px; margin-top:12px; }
+
+.k-sperre { display:flex; flex-direction:column; align-items:center; text-align:center; padding:120px 22px 0; }
+.k-sperre .ico { color:var(--primary); }
+.k-sperre h3 { font-size:22px; margin:14px 0 8px; }
+.k-sperre p { font-size:15px; color:var(--fg2); margin:0 0 10px; line-height:1.45; }
+.k-sperre p.klein { font-size:13.5px; }
+.k-sperre .k-cta { margin-top:14px; }
+
+/* Runde 2: Einführungspreis, Förderer im Profil */
+.k-p s { font-weight:500; color:var(--muted); margin-right:6px; }
+.k-p .k-bis { display:block; font-size:12px; font-weight:600; color:var(--success); margin-top:1px; }
+.k-cta s { font-weight:500; opacity:.7; margin-right:4px; }
+.k-sperre.mit-karte { padding-top:28px; }
+.k-sperre.mit-karte .k-foe { text-align:left; width:100%; box-sizing:border-box; }
+
+.p-kopf { background:var(--primary); color:var(--on-primary); text-align:center; padding:22px 16px 20px; position:relative; }
+.dunkel .p-kopf { background:#13283f; color:#f0f0f5; }
+.p-av { width:62px; height:62px; border-radius:50%; background:rgba(255,255,255,.2); display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:700; margin:0 auto 10px; position:relative; }
+.p-av img { position:absolute; right:-10px; bottom:-8px; width:30px; height:30px; }
+.p-kopf b { display:block; font-size:20px; }
+.p-kopf small { display:block; font-size:13px; opacity:.8; }
+.p-chip { display:inline-flex; align-items:center; gap:6px; margin-top:10px; font-size:12.5px; font-weight:700; border-radius:999px; padding:4px 10px 4px 6px; background:#ffd678; color:#1b2a3a; }
+.p-chip img { width:18px; height:18px; }
+.p-chip.leise { background:rgba(255,255,255,.16); color:inherit; padding:5px 12px; }
+.p-sec { font-size:12px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--primary); margin:18px 4px 8px; }
+.p-karte { background:var(--surface); border-radius:16px; padding:12px 14px; display:flex; align-items:center; gap:12px; font-size:14.5px; }
+.p-karte .k-t { flex:1; }
+.p-karte .k-t b { display:block; font-weight:600; }
+.p-karte .k-t small { display:block; font-size:13px; color:var(--fg2); }
+.p-karte img { width:38px; height:38px; flex:none; }
+.p-ak { background:var(--primary); color:var(--on-primary); border-radius:16px; padding:12px 14px; font-size:15px; font-weight:600; }
+.dunkel .p-ak { background:#1a3654; color:#f0f0f5; }
+.p-ak small { display:block; font-size:11px; letter-spacing:.07em; text-transform:uppercase; opacity:.75; font-weight:600; margin-bottom:4px; }
+.p-rollen { background:var(--surface); border-radius:16px; padding:12px 14px; font-size:15px; }
+.p-rollen small { display:block; font-size:12.5px; color:var(--muted); }
+.p-ab { border:1.5px solid var(--error); color:var(--error); border-radius:14px; text-align:center; padding:11px; font-weight:600; margin-top:18px; }
+.p-foe-mini { position:relative; border-radius:16px; padding:14px; color:#fff; background:linear-gradient(150deg, #0f2a45 0%, #1d3f63 55%, #2b5677 100%); display:flex; gap:12px; align-items:center; overflow:hidden; }
+.dunkel .p-foe-mini { background:linear-gradient(150deg, #11233a 0%, #1a3654 55%, #244a69 100%); box-shadow:inset 0 0 0 1px #2e4a66; }
+.p-foe-mini img { width:44px; height:44px; flex:none; }
+.p-foe-mini .k-t { flex:1; }
+.p-foe-mini b { display:block; font-size:16px; }
+.p-foe-mini small { display:block; font-size:13px; opacity:.85; line-height:1.35; }
+.p-foe-mini .ico { flex:none; opacity:.8; }
+.p-foe-mini .k-t b, .p-foe-mini .k-t small { color:#fff; white-space:normal; overflow:visible; }
+.p-foe-mini .k-t small { opacity:.85; }
+.p-karte .k-t small { white-space:normal; }
+
+/* Runde 3: E3 mit Nutzen-Karte aus #187 */
+.n-karte { display:flex; gap:9px; align-items:flex-start; text-align:left; border-radius:14px; padding:10px 14px 12px 12px; width:100%; box-sizing:border-box; margin-top:14px; }
+.n-karte .ico { flex:none; margin-top:1px; }
+.n-karte b { display:block; font-size:14.5px; font-weight:700; }
+.n-karte span { display:block; font-size:13px; color:var(--fg); line-height:1.4; margin-top:2px; }
+.n-karte.hilft { background:rgba(0,130,60,.12); color:#00823c; }
+.n-karte.teil { background:rgba(122,90,0,.12); color:#7a5a00; }
+.n-karte.nicht { background:rgba(179,92,0,.12); color:#b35c00; }
+.dunkel .n-karte.hilft { background:rgba(34,198,90,.16); color:#22c65a; }
+.dunkel .n-karte.teil { background:rgba(240,207,106,.16); color:#f0cf6a; }
+.dunkel .n-karte.nicht { background:rgba(255,159,46,.16); color:#ff9f2e; }
+.k-sperre.mit-karte .k-foe { margin-top:14px; }
+.k-link { color:var(--primary); font-weight:600; font-size:14.5px; margin-top:16px; }
+.k-sperre .n-karte .ico { color:inherit; }

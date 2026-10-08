@@ -36,6 +36,7 @@ import '../screens/settings_qualifikationen_page.dart';
 import '../screens/settings_stamm_page.dart';
 import '../screens/settings_stufenwechsel_page.dart';
 import '../screens/statistics_group_detail_page.dart';
+import '../screens/supporter/supporter_page.dart';
 import '../theme/theme.dart';
 import '../widgets/bundesstatistik_einwilligung_dialog.dart';
 
@@ -59,6 +60,7 @@ class AppRoutes {
   static const String namiAiChat = '/nami-ai/chat';
   static const String namiAiPaywall = '/nami-ai/paywall';
   static const String achievements = '/achievements';
+  static const String supporter = '/supporter';
 }
 
 Route<dynamic> onGenerateRoute(RouteSettings settings) {
@@ -95,6 +97,11 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
             achievements: context.read<AchievementService>(),
           ),
         ),
+      );
+    case AppRoutes.supporter:
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (context) => const SupporterPage(),
       );
     case AppRoutes.namiAiChat:
       return MaterialPageRoute(

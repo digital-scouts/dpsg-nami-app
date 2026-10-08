@@ -8,10 +8,13 @@ import '../../domain/qualifikation/ermittle_qualifikations_uebersicht_usecase.da
 import '../../l10n/app_localizations.dart';
 import '../model/arbeitskontext_model.dart';
 import '../model/qualifikations_einstellungen_model.dart';
+import '../model/supporter_kauf_model.dart';
+import '../navigation/app_router.dart';
 import '../theme/status_farben.dart';
 import '../widgets/leserechte_hinweis.dart';
 import '../widgets/qualifikationen/qualifikation_bausteine.dart';
 import 'qualifikationen/qualifikation_personen_page.dart';
+import 'supporter/supporter_bausteine.dart';
 import 'qualifikationen/qualifikationen_auswahl_page.dart';
 import 'qualifikationen/qualifikationen_kontext.dart';
 
@@ -339,6 +342,8 @@ class _SupporterHinweis extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final t = AppLocalizations.of(context);
+    // Ohne Store-Anbindung bleibt es beim Hinweis ohne Kaufweg.
+    final kauf = context.watch<SupporterKaufModel?>();
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(28, 24, 28, 40),
@@ -367,6 +372,20 @@ class _SupporterHinweis extends StatelessWidget {
             if (nutzen != null) ...[
               const SizedBox(height: 16),
               _NutzenKarte(nutzen: nutzen!),
+            ],
+            if (kauf != null) ...[
+              const SizedBox(height: 14),
+              // Bringt die Uebersicht mit den eigenen Rechten nichts, wirbt
+              // die Seite nicht damit, sondern verweist nur auf die Kaufseite.
+              if (nutzen?.art == _NutzenArt.hilftNicht)
+                TextButton(
+                  key: const Key('quali-foerderer-link'),
+                  onPressed: () =>
+                      Navigator.pushNamed(context, AppRoutes.supporter),
+                  child: Text(t.t('quali_foerderer_link')),
+                )
+              else
+                SupporterFoerdererKarte(model: kauf),
             ],
             const SizedBox(height: 16),
             Text(

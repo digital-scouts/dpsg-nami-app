@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:nami/data/supporter/shared_prefs_supporter_kauf_repository.dart';
@@ -7,49 +5,9 @@ import 'package:nami/domain/appearance/appearance_catalog.dart';
 import 'package:nami/domain/supporter/supporter_kauf_repository.dart';
 import 'package:nami/domain/supporter/supporter_produkt.dart';
 import 'package:nami/presentation/model/supporter_kauf_model.dart';
-import 'package:nami/services/supporter/supporter_store_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class _FakeStoreClient implements SupporterStoreClient {
-  final controller = StreamController<List<PurchaseDetails>>.broadcast();
-  bool erreichbar = true;
-  Set<String>? aktiv = {};
-  final gekauft = <String>[];
-  final abgeschlossen = <String>[];
-  int wiederhergestellt = 0;
-
-  @override
-  Stream<List<PurchaseDetails>> get kaeufe => controller.stream;
-
-  @override
-  Future<bool> verfuegbar() async => erreichbar;
-
-  @override
-  Future<List<ProductDetails>> produkte(Set<String> ids) async => [
-    for (final id in ids)
-      ProductDetails(
-        id: id,
-        title: id,
-        description: '',
-        price: '2,99 €',
-        rawPrice: 2.99,
-        currencyCode: 'EUR',
-      ),
-  ];
-
-  @override
-  Future<void> kaufen(ProductDetails produkt) async => gekauft.add(produkt.id);
-
-  @override
-  Future<void> abschliessen(PurchaseDetails kauf) async =>
-      abgeschlossen.add(kauf.productID);
-
-  @override
-  Future<void> wiederherstellen() async => wiederhergestellt++;
-
-  @override
-  Future<Set<String>?> aktiveProduktIds() async => aktiv;
-}
+import 'support/fake_supporter_store_client.dart';
 
 PurchaseDetails _kauf(
   String id,
@@ -67,14 +25,14 @@ PurchaseDetails _kauf(
 )..pendingCompletePurchase = abschliessen;
 
 void main() {
-  late _FakeStoreClient client;
+  late FakeSupporterStoreClient client;
   late InMemorySupporterKaufRepository repository;
 
   SupporterKaufModel buildModel() =>
       SupporterKaufModel(client: client, repository: repository);
 
   setUp(() {
-    client = _FakeStoreClient();
+    client = FakeSupporterStoreClient();
     repository = InMemorySupporterKaufRepository();
   });
 

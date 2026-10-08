@@ -79,6 +79,15 @@ class SupporterKaufModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Nachdem die UI den Fehler gezeigt hat.
+  void fehlerQuittieren() {
+    if (_fehler == null) {
+      return;
+    }
+    _fehler = null;
+    notifyListeners();
+  }
+
   Future<void> kaufen(SupporterProdukt produkt) async {
     final details = _produkte[produkt];
     if (details == null || _laufend.contains(produkt)) {

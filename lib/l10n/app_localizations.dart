@@ -1252,10 +1252,77 @@ class AppLocalizations {
       'debug_supporter_switch_hint':
           'Ein Paket schaltet sein Design und die Kompass-Badges frei, Förderer alles inklusive Qualifikationen-Übersicht.',
       'debug_supporter_zugang_keiner': 'Keiner',
+      'debug_supporter_zugang_store': 'Aus (Store)',
+      'debug_supporter_store_hint':
+          'Jede andere Auswahl überdeckt den echten Kaufstand.',
       'debug_supporter_zugang_wald': 'Paket Wald',
       'debug_supporter_zugang_lagerfeuer': 'Paket Lagerfeuer',
       'debug_supporter_zugang_nachthimmel': 'Paket Nachthimmel',
       'debug_supporter_zugang_foerderer': 'Förderer',
+      'supporter_titel': 'Supporter werden',
+      'supporter_intro':
+          'Alles für den Stammesalltag bleibt kostenlos. Mit einem Kauf trägst du Store-Gebühren und Weiterentwicklung mit.',
+      'supporter_foerderer_titel': 'Förderer',
+      'supporter_foerderer_untertitel': 'Alles freischalten und die App tragen',
+      'supporter_foerderer_punkt_pakete':
+          'Alle drei Design-Pakete mit Farben, Hintergründen und App-Icons',
+      'supporter_foerderer_punkt_quali':
+          'Qualifikationen-Übersicht mit Erinnerungen für alle Leitenden',
+      'supporter_foerderer_punkt_badge': 'Polarstern-Badge im Profil',
+      'supporter_foerderer_punkt_zukunft': 'Künftige Extras ohne Aufpreis',
+      'supporter_foerderer_testen': '1 Woche kostenlos testen',
+      'supporter_foerderer_preis':
+          'Danach {preis} pro Jahr. Verlängert sich automatisch, jederzeit {store} kündbar.',
+      'supporter_store_ios': 'im App Store',
+      'supporter_store_android': 'bei Google Play',
+      'supporter_foerderer_aktiv':
+          'Du bist Förderer. Danke für deine Unterstützung!',
+      'supporter_kauf_laeuft': 'Kauf läuft …',
+      'supporter_preis_fehlt': 'Preis nicht verfügbar',
+      'supporter_pakete_titel': 'Oder einzelne Design-Pakete',
+      'supporter_paket_wald': 'Paket Wald',
+      'supporter_paket_wald_text':
+          'Farbpalette und Hintergrund Wald, App-Icons Kohte am See',
+      'supporter_paket_lagerfeuer': 'Paket Lagerfeuer',
+      'supporter_paket_lagerfeuer_text':
+          'Farbpalette, Hintergrund und App-Icons Lagerfeuer',
+      'supporter_paket_nachthimmel': 'Paket Nachthimmel',
+      'supporter_paket_nachthimmel_text':
+          'Farbpalette Nachthimmel, Hintergrund Himmel, App-Icons Nachtlager',
+      'supporter_einmalig': 'einmalig',
+      'supporter_aktion_bis': 'Einführungspreis bis {datum}',
+      'supporter_kaufen': 'Kaufen',
+      'supporter_gekauft': 'Gekauft',
+      'supporter_enthalten': 'Enthalten',
+      'supporter_erscheinungsbild': 'Erscheinungsbild anpassen ›',
+      'supporter_badges_hinweis':
+          'Jedes Paket schaltet zusätzlich die Kompass-Badges für dein Profil frei.',
+      'supporter_wiederherstellen': 'Käufe wiederherstellen',
+      'supporter_abo_verwalten': 'Abo verwalten',
+      'supporter_rechtliches':
+          'Förderer ist ein Jahres-Abo. Die Zahlung erfolgt über deinen {konto}. Das Abo verlängert sich automatisch, wenn du es nicht mindestens 24 Stunden vor Ablauf kündigst. Die kostenlose Woche gibt es einmal pro Account.',
+      'supporter_konto_ios': 'App-Store-Account',
+      'supporter_konto_android': 'Google-Play-Account',
+      'supporter_nutzungsbedingungen': 'Nutzungsbedingungen',
+      'supporter_datenschutz': 'Datenschutz',
+      'supporter_offline_titel': 'Store gerade nicht erreichbar',
+      'supporter_offline_text':
+          'Bereits Gekauftes bleibt freigeschaltet. Preise und Kauf gehen wieder, sobald du online bist.',
+      'supporter_erneut': 'Erneut versuchen',
+      'supporter_fehler_kauf':
+          'Kauf nicht abgeschlossen. Versuch es noch einmal.',
+      'supporter_fehler_wiederherstellen':
+          'Käufe konnten nicht wiederhergestellt werden.',
+      'supporter_sheet_titel': 'Teil von {paket}',
+      'supporter_sheet_text': 'Diese Option gehört zum {paket}. Es enthält:',
+      'supporter_sheet_badges': 'Alle Kompass-Badges',
+      'supporter_sheet_kaufen': '{paket} kaufen',
+      'supporter_sheet_foerderer': 'Alles als Förderer · 1 Woche kostenlos',
+      'supporter_sheet_alle': 'Alle Pakete ansehen',
+      'quali_foerderer_link': 'Was Förderer sonst bringt ›',
+      'profil_supporter_werden': 'Supporter werden ›',
+      'profil_foerderer_werden': 'Supporter · Förderer werden ›',
+      'profil_foerderer': 'Förderer',
       'member_detail_alter': '{n} Jahre',
       'member_detail_ausgetreten_jahr': 'ausgetreten {jahr}',
       'member_detail_ausgetreten_zum': 'Ausgetreten zum {datum}',
@@ -2782,10 +2849,76 @@ class AppLocalizations {
       'debug_supporter_switch_hint':
           'A package unlocks its design and the compass badges, patron unlocks everything including the qualifications overview.',
       'debug_supporter_zugang_keiner': 'None',
+      'debug_supporter_zugang_store': 'Off (store)',
+      'debug_supporter_store_hint':
+          'Any other choice overrides the real purchase state.',
       'debug_supporter_zugang_wald': 'Forest package',
       'debug_supporter_zugang_lagerfeuer': 'Campfire package',
       'debug_supporter_zugang_nachthimmel': 'Night sky package',
       'debug_supporter_zugang_foerderer': 'Patron',
+      'supporter_titel': 'Become a supporter',
+      'supporter_intro':
+          'Everything for everyday group work stays free. A purchase helps cover store fees and further development.',
+      'supporter_foerderer_titel': 'Patron',
+      'supporter_foerderer_untertitel': 'Unlock everything and support the app',
+      'supporter_foerderer_punkt_pakete':
+          'All three design packages with colours, backgrounds and app icons',
+      'supporter_foerderer_punkt_quali':
+          'Qualifications overview with reminders for all leaders',
+      'supporter_foerderer_punkt_badge': 'Pole star badge in your profile',
+      'supporter_foerderer_punkt_zukunft': 'Future extras at no extra cost',
+      'supporter_foerderer_testen': 'Try 1 week for free',
+      'supporter_foerderer_preis':
+          'Then {preis} per year. Renews automatically, cancel anytime {store}.',
+      'supporter_store_ios': 'in the App Store',
+      'supporter_store_android': 'on Google Play',
+      'supporter_foerderer_aktiv':
+          'You are a patron. Thank you for your support!',
+      'supporter_kauf_laeuft': 'Purchasing …',
+      'supporter_preis_fehlt': 'Price not available',
+      'supporter_pakete_titel': 'Or single design packages',
+      'supporter_paket_wald': 'Forest package',
+      'supporter_paket_wald_text':
+          'Forest colour palette and background, Kohte by the lake app icons',
+      'supporter_paket_lagerfeuer': 'Campfire package',
+      'supporter_paket_lagerfeuer_text':
+          'Campfire colour palette, background and app icons',
+      'supporter_paket_nachthimmel': 'Night sky package',
+      'supporter_paket_nachthimmel_text':
+          'Night sky colour palette, sky background, night camp app icons',
+      'supporter_einmalig': 'one-time',
+      'supporter_aktion_bis': 'Launch price until {datum}',
+      'supporter_kaufen': 'Buy',
+      'supporter_gekauft': 'Purchased',
+      'supporter_enthalten': 'Included',
+      'supporter_erscheinungsbild': 'Customise appearance ›',
+      'supporter_badges_hinweis':
+          'Every package also unlocks the compass badges for your profile.',
+      'supporter_wiederherstellen': 'Restore purchases',
+      'supporter_abo_verwalten': 'Manage subscription',
+      'supporter_rechtliches':
+          'Patron is a yearly subscription. Payment is charged to your {konto}. The subscription renews automatically unless cancelled at least 24 hours before it ends. The free week is available once per account.',
+      'supporter_konto_ios': 'App Store account',
+      'supporter_konto_android': 'Google Play account',
+      'supporter_nutzungsbedingungen': 'Terms of use',
+      'supporter_datenschutz': 'Privacy',
+      'supporter_offline_titel': 'Store not reachable right now',
+      'supporter_offline_text':
+          'Anything you already bought stays unlocked. Prices and purchases work again once you are online.',
+      'supporter_erneut': 'Try again',
+      'supporter_fehler_kauf': 'Purchase not completed. Please try again.',
+      'supporter_fehler_wiederherstellen': 'Purchases could not be restored.',
+      'supporter_sheet_titel': 'Part of the {paket}',
+      'supporter_sheet_text':
+          'This option belongs to the {paket}. It includes:',
+      'supporter_sheet_badges': 'All compass badges',
+      'supporter_sheet_kaufen': 'Buy {paket}',
+      'supporter_sheet_foerderer': 'Everything as a patron · 1 week free',
+      'supporter_sheet_alle': 'See all packages',
+      'quali_foerderer_link': 'What else patrons get ›',
+      'profil_supporter_werden': 'Become a supporter ›',
+      'profil_foerderer_werden': 'Supporter · Become a patron ›',
+      'profil_foerderer': 'Patron',
       'member_detail_alter': '{n} years',
       'member_detail_ausgetreten_jahr': 'left {jahr}',
       'member_detail_ausgetreten_zum': 'Left on {datum}',

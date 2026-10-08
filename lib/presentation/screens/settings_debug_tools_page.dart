@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:nami/data/maps/shared_prefs_address_map_location_repository.dart';
 import 'package:nami/domain/appearance/support_access.dart';
+import 'package:nami/services/supporter/supporter_env.dart';
 import 'package:nami/domain/auth/auth_state.dart';
 import 'package:nami/domain/maps/stamm_map_marker_repository.dart';
 import 'package:nami/l10n/app_localizations.dart';
@@ -1049,6 +1050,14 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                           t.t('debug_supporter_switch_hint'),
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
+                        // Mit Store-Anbindung heisst „Keiner“: der Store
+                        // entscheidet; alles andere ueberdeckt ihn.
+                        if (SupporterEnv.storeEnabled)
+                          Text(
+                            t.t('debug_supporter_store_hint'),
+                            key: const Key('debug-supporter-store-hinweis'),
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
                         const SizedBox(height: 8),
                         Wrap(
                           spacing: 8,
@@ -1060,7 +1069,12 @@ class _DebugToolsPageState extends State<DebugToolsPage> {
                                   'debug-supporter-zugang-${zugang.name}',
                                 ),
                                 label: Text(
-                                  t.t('debug_supporter_zugang_${zugang.name}'),
+                                  zugang == SupporterTestZugang.keiner &&
+                                          SupporterEnv.storeEnabled
+                                      ? t.t('debug_supporter_zugang_store')
+                                      : t.t(
+                                          'debug_supporter_zugang_${zugang.name}',
+                                        ),
                                 ),
                                 selected:
                                     appSettings.supporterTestZugang == zugang,

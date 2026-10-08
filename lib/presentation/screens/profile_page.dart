@@ -6,10 +6,13 @@ import '../../domain/appearance/appearance_catalog.dart';
 import '../../domain/achievements/achievement_progress.dart';
 import '../../domain/arbeitskontext/arbeitskontext.dart';
 import '../../domain/auth/auth_profile.dart';
+import '../../domain/appearance/support_access.dart';
 import '../../l10n/app_localizations.dart';
 import '../model/appearance_model.dart';
 import '../model/arbeitskontext_model.dart';
 import '../model/auth_session_model.dart';
+import '../model/supporter_kauf_model.dart';
+import '../navigation/app_router.dart';
 import '../theme/theme.dart';
 import '../widgets/achievement_badge.dart';
 import '../widgets/logout_flow.dart';
@@ -85,6 +88,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       profile: profile,
                       accentColor: accentColor,
                       badge: context.watch<AppearanceModel?>()?.badge,
+                      kauf: context.watch<SupporterKaufModel?>(),
                     ),
                     _ProfileSectionLabel(
                       label: 'Persönliche Daten',
@@ -365,11 +369,15 @@ class _ProfileHeader extends StatelessWidget {
     required this.profile,
     required this.accentColor,
     this.badge,
+    this.kauf,
   });
 
   final AuthProfile profile;
   final Color accentColor;
   final SupporterBadgeId? badge;
+
+  /// Nur mit Store-Anbindung: Chip mit Supporter-Stand unter der Mail.
+  final SupporterKaufModel? kauf;
 
   @override
   Widget build(BuildContext context) {
@@ -431,7 +439,69 @@ class _ProfileHeader extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
           ],
+          if (kauf != null) ...[
+            const SizedBox(height: 10),
+            // Wie die Kaufseite: Testschalter vor Store-Stand.
+            _SupporterChip(
+              access: context.watch<AppearanceModel?>()?.access ?? kauf!.access,
+            ),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+class _SupporterChip extends StatelessWidget {
+  const _SupporterChip({required this.access});
+
+  final SupportAccess access;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final foerderer = access.foerderer;
+    final label = foerderer
+        ? t.t('profil_foerderer')
+        : access.pakete.isNotEmpty
+        ? t.t('profil_foerderer_werden')
+        : t.t('profil_supporter_werden');
+    final vordergrund = foerderer ? const Color(0xFF1B2A3A) : Colors.white;
+    return Material(
+      color: foerderer
+          ? const Color(0xFFFFD678)
+          : Colors.white.withValues(alpha: 0.16),
+      shape: const StadiumBorder(),
+      child: InkWell(
+        key: const ValueKey('profile_supporter_chip'),
+        customBorder: const StadiumBorder(),
+        onTap: () => Navigator.pushNamed(context, AppRoutes.supporter),
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(foerderer ? 6 : 12, 5, 12, 5),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (foerderer) ...[
+                const SupporterBadge(
+                  badge: SupporterBadgeId.foerdererPolarstern,
+                  size: 18,
+                ),
+                const SizedBox(width: 6),
+              ] else if (access.pakete.isEmpty) ...[
+                Icon(Icons.favorite_border, size: 14, color: vordergrund),
+                const SizedBox(width: 5),
+              ],
+              Text(
+                label,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: vordergrund,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

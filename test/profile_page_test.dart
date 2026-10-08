@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nami/domain/supporter/supporter_kauf_repository.dart';
+import 'package:nami/domain/supporter/supporter_produkt.dart';
+import 'package:nami/presentation/model/supporter_kauf_model.dart';
 import 'package:nami/data/arbeitskontext/hitobito_group_resource.dart';
 import 'package:nami/domain/achievements/achievement_definition.dart';
 import 'package:nami/domain/achievements/achievement_progress.dart';
@@ -29,6 +32,8 @@ import 'package:nami/services/hitobito_oauth_service.dart';
 import 'package:nami/services/logger_service.dart';
 import 'package:nami/services/sensitive_storage_service.dart';
 import 'package:provider/provider.dart';
+
+import 'support/fake_supporter_store_client.dart';
 
 const _layerSwitcherListKey = ValueKey('layer_switcher_list');
 
@@ -162,6 +167,40 @@ void main() {
     },
     timeout: const Timeout(Duration(seconds: 3)),
   );
+
+  testWidgets('Supporter-Chip nur mit Store, je nach Kaufstand', (
+    tester,
+  ) async {
+    const profil = AuthProfile(
+      namiId: 52,
+      firstName: 'Julia',
+      lastName: 'Keller',
+      roles: <AuthProfileRole>[],
+    );
+    Future<void> zeige(GekaufterSupportAccess stand) async {
+      final kauf = SupporterKaufModel(
+        client: FakeSupporterStoreClient()
+          ..aktiv = {for (final p in stand.produkte) p.id},
+        repository: InMemorySupporterKaufRepository(stand),
+      );
+      await kauf.start();
+      await _pumpProfilePage(tester, profile: profil, kauf: kauf);
+    }
+
+    await _pumpProfilePage(tester, profile: profil);
+    expect(find.byKey(const ValueKey('profile_supporter_chip')), findsNothing);
+
+    await zeige(const GekaufterSupportAccess());
+    expect(find.text('Supporter werden ›'), findsOneWidget);
+
+    await zeige(
+      GekaufterSupportAccess.ausProdukten({SupporterProdukt.paketWald}),
+    );
+    expect(find.text('Supporter · Förderer werden ›'), findsOneWidget);
+
+    await zeige(const GekaufterSupportAccess(foerderer: true));
+    expect(find.text('Förderer'), findsOneWidget);
+  });
 
   testWidgets('nutzt fuer Leitungsprofile im Dark Theme das dunklere Blau', (
     tester,
@@ -544,6 +583,7 @@ Future<void> _pumpProfilePage(
   ArbeitskontextReadModelRepository? readModelRepository,
   List<AchievementProgress>? achievements,
   VoidCallback? onAchievements,
+  SupporterKaufModel? kauf,
 }) async {
   final authModel = AuthSessionModel(
     repository: _InMemoryAuthSessionRepository(),
@@ -579,6 +619,7 @@ Future<void> _pumpProfilePage(
         ChangeNotifierProvider<ArbeitskontextModel>.value(
           value: arbeitskontextModel,
         ),
+        if (kauf != null) ChangeNotifierProvider.value(value: kauf),
       ],
       child: MaterialApp(
         theme: lightTheme,

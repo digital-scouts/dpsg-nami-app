@@ -9,6 +9,9 @@ import 'package:nami/domain/arbeitskontext/arbeitskontext.dart';
 import 'package:nami/domain/arbeitskontext/arbeitskontext_read_model.dart';
 import 'package:nami/domain/arbeitskontext/teildaten_stand.dart';
 import 'package:nami/domain/bundesstatistik/statistik_abdeckung.dart';
+import 'package:nami/domain/supporter/supporter_kauf_repository.dart';
+import 'package:nami/presentation/model/supporter_kauf_model.dart';
+import 'package:nami/presentation/navigation/app_router.dart';
 import 'package:nami/domain/qualifikation/personenkreis.dart';
 import 'package:nami/domain/qualifikation/qualifikations_einstellungen.dart';
 import 'package:nami/l10n/app_localizations.dart';
@@ -20,6 +23,8 @@ import 'package:nami/presentation/screens/settings_qualifikationen_page.dart';
 import 'package:nami/services/app_icon_service.dart';
 import 'package:nami/stories/support/mitglied_edge_cases.dart';
 import 'package:provider/provider.dart';
+
+import 'support/fake_supporter_store_client.dart';
 
 ArbeitskontextReadModel _readModel({
   TeildatenStand efzStand = TeildatenStand.geladen,
@@ -56,6 +61,7 @@ void main() {
     WidgetTester tester,
     Widget seite, {
     bool supporter = true,
+    SupporterKaufModel? kauf,
   }) async {
     tester.view.physicalSize = const Size(390 * 3, 1400 * 3);
     tester.view.devicePixelRatio = 3;
@@ -64,6 +70,7 @@ void main() {
       MultiProvider(
         providers: [
           ChangeNotifierProvider.value(value: einstellungen),
+          if (kauf != null) ChangeNotifierProvider.value(value: kauf),
           ChangeNotifierProvider.value(
             value: AppearanceModel(
               repository: InMemoryAppearanceSettingsRepository(),
@@ -86,6 +93,9 @@ void main() {
           supportedLocales: const [Locale('de')],
           locale: const Locale('de'),
           home: seite,
+          routes: {
+            AppRoutes.supporter: (_) => const Scaffold(body: Text('Kaufseite')),
+          },
         ),
       ),
     );
@@ -161,6 +171,62 @@ void main() {
       find.textContaining('Du hast nur Leserecht auf Trupp Kompass'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('mit Store wirbt die Sperrseite nur, wenn die Übersicht hilft', (
+    tester,
+  ) async {
+    final kauf = SupporterKaufModel(
+      client: FakeSupporterStoreClient(),
+      repository: InMemorySupporterKaufRepository(),
+    );
+    await kauf.start();
+    final readModel = _readModel().copyWith(
+      gruppen: const [
+        ArbeitskontextGruppe(id: 22, name: 'Trupp Kompass', layerId: 11),
+      ],
+    );
+    Future<void> zeige(StatistikAbdeckung abdeckung) => pumpSeite(
+      tester,
+      SettingsQualifikationenPage(
+        key: UniqueKey(),
+        readModel: readModel,
+        heuteProvider: _heute,
+        abdeckung: abdeckung,
+      ),
+      supporter: false,
+      kauf: kauf,
+    );
+
+    await zeige(const StatistikAbdeckung.stamm());
+    expect(find.byKey(const Key('supporter-foerderer-karte')), findsOneWidget);
+    expect(find.byKey(const Key('quali-foerderer-link')), findsNothing);
+
+    await zeige(StatistikAbdeckung.gruppen({22}, vollLesbareGruppenIds: {22}));
+    expect(find.byKey(const Key('supporter-foerderer-karte')), findsOneWidget);
+
+    await zeige(
+      StatistikAbdeckung.gruppen(const <int>{}, gruppenOhneRollen: {22}),
+    );
+    expect(find.byKey(const Key('supporter-foerderer-karte')), findsNothing);
+    await tester.tap(find.byKey(const Key('quali-foerderer-link')));
+    await tester.pumpAndSettle();
+    expect(find.text('Kaufseite'), findsOneWidget);
+  });
+
+  testWidgets('ohne Store bleibt die Sperrseite ohne Kaufweg', (tester) async {
+    await pumpSeite(
+      tester,
+      SettingsQualifikationenPage(
+        readModel: _readModel(),
+        heuteProvider: _heute,
+        abdeckung: const StatistikAbdeckung.stamm(),
+      ),
+      supporter: false,
+    );
+
+    expect(find.byKey(const Key('supporter-foerderer-karte')), findsNothing);
+    expect(find.byKey(const Key('quali-foerderer-link')), findsNothing);
   });
 
   testWidgets('ohne EFZ-Recht ist nur die EFZ-Zeile gesperrt', (tester) async {
